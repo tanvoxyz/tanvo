@@ -179,7 +179,10 @@ ee/* ──▶ proto        (never any other in-repo module)
 ### 4.4 认证与授权
 * **主体**：API key（限定于组织，以 SHA-256 哈希存储，只显示一次，可选过期时间，轮换时新旧并存一段时间，记录最近使用时间）或用户会话（组织成员身份）。
 * **权限**：如 `customers:read`、`invoices:write` 这样的字符串。角色（内置与自定义）是权限的集合；API key 带有自己的一组权限。每个 RPC 在 proto 选项中声明所需的权限；由拦截器检查。
-* **用户**以邮箱和密码（argon2id）或 OIDC（Google、Okta、Entra ID、通用）登录。会话是以哈希形式存储在 PostgreSQL 中的不透明令牌。
+* **用户**以邮箱和密码（argon2id）或 OIDC（Google、Okta、Entra ID、通用）登录。会话是以哈希形式存储在 PostgreSQL（`sessions`）中的不透明令牌，可吊销，过期后清理（[领域 §5.7](domain.zh-CN.md#57-会话与登录状态)）。
+* **OIDC** 使用带 state、nonce 和 PKCE 的授权码流程。流程状态是 `oidc_states` 中的一次性行，以 `state` 参数的 SHA-256 为键，因此任一副本都能完成登录。Google 是整个实例共用的一个连接，由环境变量配置；Okta、Entra ID 和通用连接是组织的 `auth` 集成（[领域 §17.1](domain.zh-CN.md#171-集成)），以其声明的邮箱域名跨组织路由登录。
+* **设备**：每次登录都会在 `user_devices` 中记录客户端（指纹为 user agent 的 SHA-256）；apps/server 把 user agent 解析为浏览器、操作系统和设备类型。新设备会写入安全日志（[领域 §5.8](domain.zh-CN.md#58-用户设备)）。
+* **邮件**：libs/auth 发出的是携带数据而非链接的 `mail.send` 任务：密码重置携带其令牌，由 libs/mail 根据应用 URL 构建链接。
 * **客户门户**：限定于一个客户的短期签名令牌。
 
 ---

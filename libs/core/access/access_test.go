@@ -54,7 +54,7 @@ func TestEmails(t *testing.T) {
 				u := NewUser(testUser, c.Email, nil, testNow)
 				email, err = u.Email, u.Validate()
 			case "invite":
-				i := NewInvite(core.MustParseID[core.InviteID]("0190a0a0-0000-7000-8000-0000000000ff"), testOrg, c.Email, testRole, HashToken("t"), testNow.Add(time.Hour), testNow)
+				i := NewInvite(core.MustParseID[core.InviteID]("0190a0a0-0000-7000-8000-0000000000ff"), testOrg, c.Email, []core.RoleID{testRole}, HashToken("t"), testNow.Add(time.Hour), testNow)
 				email, err = i.Email, i.Validate()
 			default:
 				t.Fatalf("entity = %q", c.Entity)
@@ -125,8 +125,8 @@ func TestBuiltInRoles(t *testing.T) {
 		if got, ok := BuiltInRoleByID(r.ID); !ok || got.Code != r.Code {
 			t.Errorf("BuiltInRoleByID(%s) got = %v, want = %s", r.ID, got, r.Code)
 		}
-		if err := CheckRoleUpdate(r); ruleCode(err) != CodeBuiltInRoleImmutable {
-			t.Errorf("CheckRoleUpdate(%s) got = %v, want = %s", r.Code, err, CodeBuiltInRoleImmutable)
+		if err := CheckRoleUpdate(r); ruleCode(err) != CodePredefinedRole {
+			t.Errorf("CheckRoleUpdate(%s) got = %v, want = %s", r.Code, err, CodePredefinedRole)
 		}
 	}
 	if !roles[0].Admin() || roles[1].Admin() {
@@ -139,39 +139,64 @@ func TestBuiltInRoles(t *testing.T) {
 	if !custom.Grants("customers:read") || custom.Grants("customers:create") {
 		t.Errorf("custom Grants got = %v/%v, want = true/false", custom.Grants("customers:read"), custom.Grants("customers:create"))
 	}
-	if err := CheckRoleDeletion(custom, 1); ruleCode(err) != CodeRoleInUse {
-		t.Errorf("CheckRoleDeletion(in use) got = %v, want = %s", err, CodeRoleInUse)
+	if err := CheckRoleDeletion(custom, 1); ruleCode(err) != CodeRoleAssignedToMembers {
+		t.Errorf("CheckRoleDeletion(in use) got = %v, want = %s", err, CodeRoleAssignedToMembers)
 	}
 	if err := CheckRoleDeletion(custom, 0); err != nil {
 		t.Errorf("CheckRoleDeletion(unused) got = %v, want = nil", err)
 	}
 }
 
+// testRoleIDs maps role names of the test data to IDs: built-in codes and
+// "custom" (testRole).
+func testRoleIDs(t *testing.T, names []string) []core.RoleID {
+	t.Helper()
+	out := make([]core.RoleID, 0, len(names))
+	for _, n := range names {
+		if n == "custom" {
+			out = append(out, testRole)
+			continue
+		}
+		b, err := permission.ParseBuiltInRole(n)
+		if err != nil {
+			t.Fatalf("role %q: %v", n, err)
+		}
+		out = append(out, BuiltInRoleID(b))
+	}
+	return out
+}
+
 func TestMembershipRules(t *testing.T) {
 	type tc struct {
-		Name        string `yaml:"name"`
-		Source      string `yaml:"source"`
-		Op          string `yaml:"op"`
-		Self        bool   `yaml:"self"`
-		ActorAdmin  bool   `yaml:"actor_admin"`
-		TargetAdmin bool   `yaml:"target_admin"`
-		NewAdmin    bool   `yaml:"new_admin"`
-		Admins      int    `yaml:"admins"`
-		Code        string `yaml:"code"`
+		Name        string   `yaml:"name"`
+		Source      string   `yaml:"source"`
+		Op          string   `yaml:"op"`
+		Self        bool     `yaml:"self"`
+		Revoked     bool     `yaml:"revoked"`
+		ActorAdmin  bool     `yaml:"actor_admin"`
+		TargetRoles []string `yaml:"target_roles"`
+		NewRoles    []string `yaml:"new_roles"`
+		Admins      int      `yaml:"admins"`
+		Code        string   `yaml:"code"`
 	}
 	actor := core.MustParseID[core.UserID]("0190a0a0-0000-7000-8000-0000000000aa")
 	for _, c := range spectest.Load[tc](t, "membership_rules.yaml") {
 		t.Run(c.Name, func(t *testing.T) {
-			target := NewMembership(core.MustParseID[core.MembershipID]("0190a0a0-0000-7000-8000-0000000000ff"), testOrg, testUser, testRole, testNow)
+			target := NewMembership(core.MustParseID[core.MembershipID]("0190a0a0-0000-7000-8000-0000000000ff"), testOrg, testUser, testRoleIDs(t, c.TargetRoles), testNow)
 			if c.Self {
 				target.UserID = actor
+			}
+			if c.Revoked {
+				if err := target.Revoke(testNow); err != nil {
+					t.Fatal(err)
+				}
 			}
 			var err error
 			switch c.Op {
 			case "revoke":
-				err = CheckRevoke(actor, target, c.TargetAdmin, c.Admins)
+				err = CheckRevoke(actor, target, c.Admins)
 			case "change":
-				err = CheckRoleChange(c.ActorAdmin, target, c.TargetAdmin, c.NewAdmin, c.Admins)
+				err = CheckRoleChange(c.ActorAdmin, target, testRoleIDs(t, c.NewRoles), c.Admins)
 			default:
 				t.Fatalf("op = %q", c.Op)
 			}
@@ -180,6 +205,79 @@ func TestMembershipRules(t *testing.T) {
 			}
 			if err != nil && !errors.Is(err, core.ErrNotAllowed) {
 				t.Errorf("errors.Is(err, ErrNotAllowed) got = false, want = true")
+			}
+		})
+	}
+}
+
+func TestMembershipRoles(t *testing.T) {
+	admin, finance := BuiltInRoleID(permission.BuiltInRoleAdmin), BuiltInRoleID(permission.BuiltInRoleFinance)
+	id := core.MustParseID[core.MembershipID]("0190a0a0-0000-7000-8000-0000000000ff")
+	financeAndCustom := NormalizeRoleIDs([]core.RoleID{finance, testRole})
+	tests := []struct {
+		name    string
+		source  string
+		roles   []core.RoleID
+		want    []core.RoleID
+		admin   bool
+		revoked bool
+		errors  []string
+	}{
+		{name: "admin", source: "spec/models/membership_spec.rb:30", roles: []core.RoleID{admin}, want: []core.RoleID{admin}, admin: true},
+		{name: "no admin role", source: "spec/models/membership_spec.rb:35", roles: []core.RoleID{finance, testRole}, want: financeAndCustom, admin: false},
+		{name: "sorted and deduplicated", source: "tanvo", roles: []core.RoleID{testRole, admin, testRole}, want: []core.RoleID{admin, testRole}, admin: true},
+		{name: "no roles", source: "spec/models/membership_role_spec.rb:101", roles: nil, want: []core.RoleID{}, errors: []string{"role_ids: value_is_mandatory"}},
+		{name: "revoked without roles", source: "spec/models/membership_spec.rb:40", roles: nil, want: []core.RoleID{}, revoked: true},
+		{name: "zero role", source: "tanvo", roles: []core.RoleID{{}}, want: []core.RoleID{{}}, errors: []string{"role_ids: invalid_value"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := NewMembership(id, testOrg, testUser, tt.roles, testNow)
+			if tt.revoked {
+				if err := m.Revoke(testNow); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if !slices.Equal(m.RoleIDs, tt.want) {
+				t.Errorf("RoleIDs got = %v, want = %v (%s)", m.RoleIDs, tt.want, tt.source)
+			}
+			if m.Admin() != tt.admin {
+				t.Errorf("Admin() got = %v, want = %v (%s)", m.Admin(), tt.admin, tt.source)
+			}
+			if got := fieldErrors(m.Validate()); !slices.Equal(got, tt.errors) {
+				t.Errorf("Validate() got = %v, want = %v (%s)", got, tt.errors, tt.source)
+			}
+		})
+	}
+}
+
+func TestUnionPermissions(t *testing.T) {
+	finance, _ := BuiltInRoleByID(BuiltInRoleID(permission.BuiltInRoleFinance))
+	admin, _ := BuiltInRoleByID(BuiltInRoleID(permission.BuiltInRoleAdmin))
+	custom := NewCustomRole(testRole, testOrg, "dev", "Dev", []permission.Permission{"addons:read"}, testNow)
+	tests := []struct {
+		name   string
+		source string
+		roles  []*Role
+		perm   permission.Permission
+		want   bool
+	}{
+		{name: "admin holds everything", source: "spec/models/membership_spec.rb:65", roles: []*Role{admin}, perm: "coupons:attach", want: true},
+		{name: "custom permission", source: "spec/models/membership_spec.rb:115", roles: []*Role{custom}, perm: "addons:read", want: true},
+		{name: "custom other permission", source: "spec/models/membership_spec.rb:119", roles: []*Role{custom}, perm: "analytics:read", want: false},
+		{name: "mixed custom permission", source: "spec/models/membership_spec.rb:137", roles: []*Role{custom, finance}, perm: "addons:read", want: true},
+		{name: "mixed predefined permission", source: "spec/models/membership_spec.rb:141", roles: []*Role{custom, finance}, perm: "analytics:read", want: true},
+		{name: "mixed disabled permission", source: "spec/models/membership_spec.rb:145", roles: []*Role{custom, finance}, perm: "coupons:attach", want: false},
+		{name: "no roles", source: "spec/models/membership_spec.rb:40", roles: nil, perm: "addons:read", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := AnyGrants(tt.roles, tt.perm); got != tt.want {
+				t.Errorf("AnyGrants(%s) got = %v, want = %v (%s)", tt.perm, got, tt.want, tt.source)
+			}
+			_, found := slices.BinarySearch(UnionPermissions(tt.roles), tt.perm)
+			if found != tt.want {
+				t.Errorf("UnionPermissions() has %s got = %v, want = %v (%s)", tt.perm, found, tt.want, tt.source)
 			}
 		})
 	}
@@ -194,7 +292,7 @@ func TestMembershipTransitions(t *testing.T) {
 			}
 		}
 	}
-	m := NewMembership(core.MustParseID[core.MembershipID]("0190a0a0-0000-7000-8000-0000000000ff"), testOrg, testUser, testRole, testNow)
+	m := NewMembership(core.MustParseID[core.MembershipID]("0190a0a0-0000-7000-8000-0000000000ff"), testOrg, testUser, []core.RoleID{testRole}, testNow)
 	if err := m.Validate(); err != nil {
 		t.Fatalf("Validate() got = %v, want = nil", err)
 	}
@@ -208,8 +306,8 @@ func TestMembershipTransitions(t *testing.T) {
 	if err := m.Revoke(testNow); !errors.As(err, &te) {
 		t.Errorf("second Revoke() got = %v, want = *core.TransitionError", err)
 	}
-	if err := m.ChangeRole(testRole, testNow); ruleCode(err) != CodeMembershipRevoked {
-		t.Errorf("ChangeRole(revoked) got = %v, want = %s", err, CodeMembershipRevoked)
+	if err := m.ChangeRoles([]core.RoleID{testRole}, testNow); ruleCode(err) != CodeMembershipRevoked {
+		t.Errorf("ChangeRoles(revoked) got = %v, want = %s", err, CodeMembershipRevoked)
 	}
 }
 
@@ -223,7 +321,7 @@ func TestInviteTransitions(t *testing.T) {
 		}
 	}
 	newInvite := func() *Invite {
-		return NewInvite(core.MustParseID[core.InviteID]("0190a0a0-0000-7000-8000-0000000000ff"), testOrg, "a@b.co", testRole, HashToken("t"), testNow.Add(time.Hour), testNow)
+		return NewInvite(core.MustParseID[core.InviteID]("0190a0a0-0000-7000-8000-0000000000ff"), testOrg, "a@b.co", []core.RoleID{testRole}, HashToken("t"), testNow.Add(time.Hour), testNow)
 	}
 	// spec/models/invite_spec.rb:11
 	i := newInvite()

@@ -70,21 +70,20 @@ func (r *recorder) count(event string) int {
 
 // env wires every service over an in-memory store.
 type env struct {
-	t         *testing.T
-	ctx       context.Context
-	store     *memstore.Store
-	clock     *testClock
-	log       *recorder
-	deps      Deps
-	sessions  *Sessions
-	sessStore *MemorySessionStore
-	hasher    *PasswordHasher
-	users     *Users
-	invites   *Invites
-	resets    *PasswordResets
-	keys      *APIKeys
-	usage     *UsageTracker
-	authz     *Authorizer
+	t        *testing.T
+	ctx      context.Context
+	store    *memstore.Store
+	clock    *testClock
+	log      *recorder
+	deps     Deps
+	sessions *Sessions
+	hasher   *PasswordHasher
+	users    *Users
+	invites  *Invites
+	resets   *PasswordResets
+	keys     *APIKeys
+	usage    *UsageTracker
+	authz    *Authorizer
 }
 
 func testHasher() *PasswordHasher {
@@ -95,8 +94,7 @@ func newEnv(t *testing.T, cfg ...UsersConfig) *env {
 	t.Helper()
 	e := &env{t: t, ctx: t.Context(), store: memstore.New(), clock: &testClock{t: time.Date(2026, 5, 4, 10, 0, 0, 0, time.UTC)}, log: &recorder{}}
 	e.deps = Deps{Tx: e.store, Clock: e.clock, IDs: core.UUIDv7Generator{}, Rand: rand.Reader, SecurityLog: e.log, Logger: slog.New(slog.DiscardHandler)}
-	e.sessStore = NewMemorySessionStore()
-	e.sessions = NewSessions(e.sessStore, e.clock, e.deps.IDs, rand.Reader, DefaultSessionConfig())
+	e.sessions = NewSessions(e.deps, DefaultSessionConfig())
 	e.hasher = testHasher()
 	var uc UsersConfig
 	if len(cfg) > 0 {
@@ -104,7 +102,7 @@ func newEnv(t *testing.T, cfg ...UsersConfig) *env {
 	}
 	e.users = NewUsers(e.deps, e.sessions, e.hasher, uc)
 	e.invites = NewInvites(e.deps, e.users, InvitesConfig{FrontURL: "https://app.tanvo.test/"})
-	e.resets = NewPasswordResets(e.deps, e.users, e.sessions, "https://app.tanvo.test")
+	e.resets = NewPasswordResets(e.deps, e.users, e.sessions)
 	e.usage = NewUsageTracker()
 	e.keys = NewAPIKeys(e.deps, e.usage)
 	e.authz = NewAuthorizer(e.store)
@@ -146,9 +144,34 @@ func (e *env) user(email, password string) *access.User {
 	return u
 }
 
-func (e *env) member(u *access.User, o *organization.Organization, role permission.BuiltInRole) *access.Membership {
+// session returns the stored session with tokenHash.
+func (e *env) session(tokenHash []byte) *Session {
 	e.t.Helper()
-	m := access.NewMembership(core.NewID[core.MembershipID](e.deps.IDs), o.ID, u.ID, access.BuiltInRoleID(role), e.clock.Now())
+	var s *Session
+	e.tx(func(ctx context.Context, r port.Repos) error {
+		var err error
+		s, err = r.Sessions.GetByTokenHash(ctx, tokenHash)
+		return err
+	})
+	return s
+}
+
+// devices returns the stored devices of u.
+func (e *env) devices(u core.UserID) []*access.UserDevice {
+	e.t.Helper()
+	var ds []*access.UserDevice
+	e.tx(func(ctx context.Context, r port.Repos) error {
+		var err error
+		ds, err = r.UserDevices.ListByUser(ctx, u)
+		return err
+	})
+	return ds
+}
+
+// member creates an active membership of u in o with the built-in roles.
+func (e *env) member(u *access.User, o *organization.Organization, roles ...permission.BuiltInRole) *access.Membership {
+	e.t.Helper()
+	m := access.NewMembership(core.NewID[core.MembershipID](e.deps.IDs), o.ID, u.ID, roleIDs(roles...), e.clock.Now())
 	e.tx(func(ctx context.Context, r port.Repos) error { return r.Memberships.Create(ctx, m) })
 	return m
 }

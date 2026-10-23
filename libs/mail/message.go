@@ -159,6 +159,9 @@ func FromPortEmail(e port.Email) (*Message, error) {
 	if m.To, err = parseAddresses(e.To); err != nil {
 		return nil, err
 	}
+	if m.Cc, err = parseAddresses(e.Cc); err != nil {
+		return nil, err
+	}
 	if m.Bcc, err = parseAddresses(e.Bcc); err != nil {
 		return nil, err
 	}

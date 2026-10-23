@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +15,15 @@ import (
 )
 
 func roleID(r permission.BuiltInRole) core.RoleID { return access.BuiltInRoleID(r) }
+
+// roleIDs returns the normalized IDs of built-in roles.
+func roleIDs(rs ...permission.BuiltInRole) []core.RoleID {
+	out := make([]core.RoleID, len(rs))
+	for i, r := range rs {
+		out[i] = roleID(r)
+	}
+	return access.NormalizeRoleIDs(out)
+}
 
 func TestInvitesCreate(t *testing.T) {
 	type fixture struct {
@@ -34,11 +44,11 @@ func TestInvitesCreate(t *testing.T) {
 	// source: spec/services/invites/create_service_spec.rb:26
 	t.Run("creates an invite", func(t *testing.T) {
 		f := setup(t)
-		out, err := f.e.invites.Create(f.e.ctx, InviteRequest{OrganizationID: f.org.ID, Actor: f.admin.ID, Email: "New@Hooli.com", RoleID: roleID(permission.BuiltInRoleFinance)})
+		out, err := f.e.invites.Create(f.e.ctx, InviteRequest{OrganizationID: f.org.ID, Actor: f.admin.ID, Email: "New@Hooli.com", RoleIDs: roleIDs(permission.BuiltInRoleFinance)})
 		if err != nil {
 			t.Fatal(err)
 		}
-		if out.Invite.Email != "new@hooli.com" || out.Invite.Status != access.InviteStatusPending || out.Invite.RoleID != roleID(permission.BuiltInRoleFinance) {
+		if out.Invite.Email != "new@hooli.com" || out.Invite.Status != access.InviteStatusPending || !slices.Equal(out.Invite.RoleIDs, roleIDs(permission.BuiltInRoleFinance)) {
 			t.Errorf("invite = %+v, want a pending finance invite for new@hooli.com", out.Invite)
 		}
 		if out.URL != "https://app.tanvo.test/invitation/"+out.Token || len(out.Token) < 40 {
@@ -58,34 +68,39 @@ func TestInvitesCreate(t *testing.T) {
 		name  string
 		actor func(f fixture) core.UserID
 		email string
-		role  core.RoleID
+		roles []core.RoleID
 		prep  func(t *testing.T, f fixture)
 		field string
 		code  string
 	}{
 		// source: spec/services/invites/create_service_spec.rb:35
-		{name: "non-admin invites with admin role", actor: func(f fixture) core.UserID { return f.mgr.ID }, email: "x@hooli.com", role: roleID(permission.BuiltInRoleAdmin), code: CodeCannotGrantAdmin},
-		{name: "system caller grants admin", actor: func(fixture) core.UserID { return core.UserID{} }, email: "x@hooli.com", role: roleID(permission.BuiltInRoleAdmin)},
-		{name: "admin grants admin", email: "x@hooli.com", role: roleID(permission.BuiltInRoleAdmin)},
-		{name: "manager invites a finance user", actor: func(f fixture) core.UserID { return f.mgr.ID }, email: "x@hooli.com", role: roleID(permission.BuiltInRoleFinance)},
+		{name: "non-admin invites with admin role", actor: func(f fixture) core.UserID { return f.mgr.ID }, email: "x@hooli.com", roles: roleIDs(permission.BuiltInRoleAdmin), code: CodeCannotGrantAdmin},
+		{name: "system caller grants admin", actor: func(fixture) core.UserID { return core.UserID{} }, email: "x@hooli.com", roles: roleIDs(permission.BuiltInRoleAdmin)},
+		{name: "admin grants admin", email: "x@hooli.com", roles: roleIDs(permission.BuiltInRoleAdmin)},
+		{name: "manager invites a finance user", actor: func(f fixture) core.UserID { return f.mgr.ID }, email: "x@hooli.com", roles: roleIDs(permission.BuiltInRoleFinance)},
+		{name: "several roles", actor: func(f fixture) core.UserID { return f.mgr.ID }, email: "x@hooli.com", roles: roleIDs(permission.BuiltInRoleFinance, permission.BuiltInRoleManager)},
+		// lago app/services/invites/create_service.rb:56-62: any admin role among several needs an admin actor.
+		{name: "non-admin invites with admin among roles", actor: func(f fixture) core.UserID { return f.mgr.ID }, email: "x@hooli.com", roles: roleIDs(permission.BuiltInRoleFinance, permission.BuiltInRoleAdmin), code: CodeCannotGrantAdmin},
+		// lago app/services/invites/validate_service.rb:41-45: every role must exist.
+		{name: "one unknown role among several", email: "x@hooli.com", roles: []core.RoleID{roleID(permission.BuiltInRoleFinance), core.MustParseID[core.RoleID]("0190a000-0000-7000-8000-000000000099")}, field: "roles", code: CodeInvalidRole},
 		// source: spec/services/invites/create_service_spec.rb:59
-		{name: "invalid email", email: "gavin", role: roleID(permission.BuiltInRoleFinance), field: "email", code: core.CodeInvalidEmail},
+		{name: "invalid email", email: "gavin", roles: roleIDs(permission.BuiltInRoleFinance), field: "email", code: core.CodeInvalidEmail},
 		// source: spec/services/invites/create_service_spec.rb:81
-		{name: "missing role", email: "x@hooli.com", field: "role", code: CodeInvalidRole},
+		{name: "missing role", email: "x@hooli.com", field: "roles", code: CodeInvalidRole},
 		// source: spec/services/invites/create_service_spec.rb:103
 		// source: spec/services/invites/validate_service_spec.rb:58
-		{name: "unknown role", email: "x@hooli.com", role: core.MustParseID[core.RoleID]("0190a000-0000-7000-8000-000000000099"), field: "role", code: CodeInvalidRole},
+		{name: "unknown role", email: "x@hooli.com", roles: []core.RoleID{core.MustParseID[core.RoleID]("0190a000-0000-7000-8000-000000000099")}, field: "roles", code: CodeInvalidRole},
 		// source: spec/services/invites/create_service_spec.rb:126
 		// source: spec/services/invites/validate_service_spec.rb:26
-		{name: "already existing invite", email: "x@hooli.com", role: roleID(permission.BuiltInRoleFinance), prep: func(t *testing.T, f fixture) {
-			if _, err := f.e.invites.Create(f.e.ctx, InviteRequest{OrganizationID: f.org.ID, Actor: f.admin.ID, Email: "x@hooli.com", RoleID: roleID(permission.BuiltInRoleFinance)}); err != nil {
+		{name: "already existing invite", email: "x@hooli.com", roles: roleIDs(permission.BuiltInRoleFinance), prep: func(t *testing.T, f fixture) {
+			if _, err := f.e.invites.Create(f.e.ctx, InviteRequest{OrganizationID: f.org.ID, Actor: f.admin.ID, Email: "x@hooli.com", RoleIDs: roleIDs(permission.BuiltInRoleFinance)}); err != nil {
 				t.Fatal(err)
 			}
 		}, field: "invite", code: CodeInviteAlreadyExists},
 		// source: spec/services/invites/create_service_spec.rb:144
 		// source: spec/services/invites/validate_service_spec.rb:43
-		{name: "already existing member", email: "MANAGER@hooli.com", role: roleID(permission.BuiltInRoleFinance), field: "email", code: CodeEmailAlreadyUsed},
-		{name: "revoked member can be invited again", email: "gone@hooli.com", role: roleID(permission.BuiltInRoleFinance), prep: func(t *testing.T, f fixture) {
+		{name: "already existing member", email: "MANAGER@hooli.com", roles: roleIDs(permission.BuiltInRoleFinance), field: "email", code: CodeEmailAlreadyUsed},
+		{name: "revoked member can be invited again", email: "gone@hooli.com", roles: roleIDs(permission.BuiltInRoleFinance), prep: func(t *testing.T, f fixture) {
 			f.e.revoke(f.e.member(f.e.user("gone@hooli.com", "pw"), f.org, permission.BuiltInRoleFinance))
 		}},
 	}
@@ -99,7 +114,7 @@ func TestInvitesCreate(t *testing.T) {
 			if tt.actor != nil {
 				actor = tt.actor(f)
 			}
-			_, err := f.e.invites.Create(f.e.ctx, InviteRequest{OrganizationID: f.org.ID, Actor: actor, Email: tt.email, RoleID: tt.role})
+			_, err := f.e.invites.Create(f.e.ctx, InviteRequest{OrganizationID: f.org.ID, Actor: actor, Email: tt.email, RoleIDs: tt.roles})
 			if code(err) != tt.code || fieldOf(err) != tt.field {
 				t.Errorf("got = %s on %q, want = %s on %q", code(err), fieldOf(err), tt.code, tt.field)
 			}
@@ -117,7 +132,7 @@ func TestInvitesCreate(t *testing.T) {
 
 func newInvite(t *testing.T, e *env, o *organization.Organization, email string, role permission.BuiltInRole) *CreatedInvite {
 	t.Helper()
-	out, err := e.invites.Create(e.ctx, InviteRequest{OrganizationID: o.ID, Email: email, RoleID: roleID(role)})
+	out, err := e.invites.Create(e.ctx, InviteRequest{OrganizationID: o.ID, Email: email, RoleIDs: roleIDs(role)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,25 +143,25 @@ func TestInvitesUpdate(t *testing.T) {
 	tests := []struct {
 		name  string
 		actor permission.BuiltInRole
-		role  core.RoleID
+		roles []core.RoleID
 		state func(t *testing.T, e *env, inv *access.Invite)
 		field string
 		code  string
 	}{
 		// source: spec/services/invites/update_service_spec.rb:13
-		{name: "pending invite", actor: permission.BuiltInRoleAdmin, role: roleID(permission.BuiltInRoleManager)},
+		{name: "pending invite", actor: permission.BuiltInRoleAdmin, roles: roleIDs(permission.BuiltInRoleManager)},
 		// source: spec/services/invites/update_service_spec.rb:27
-		{name: "non-admin sets admin role", actor: permission.BuiltInRoleManager, role: roleID(permission.BuiltInRoleAdmin), code: CodeCannotGrantAdmin},
+		{name: "non-admin sets admin role", actor: permission.BuiltInRoleManager, roles: roleIDs(permission.BuiltInRoleAdmin), code: CodeCannotGrantAdmin},
 		// source: spec/services/invites/update_service_spec.rb:42
-		{name: "admin sets admin role", actor: permission.BuiltInRoleAdmin, role: roleID(permission.BuiltInRoleAdmin)},
+		{name: "admin sets admin role", actor: permission.BuiltInRoleAdmin, roles: roleIDs(permission.BuiltInRoleAdmin)},
 		// source: spec/services/invites/update_service_spec.rb:70
-		{name: "revoked invite", actor: permission.BuiltInRoleAdmin, role: roleID(permission.BuiltInRoleManager), state: func(t *testing.T, e *env, inv *access.Invite) {
+		{name: "revoked invite", actor: permission.BuiltInRoleAdmin, roles: roleIDs(permission.BuiltInRoleManager), state: func(t *testing.T, e *env, inv *access.Invite) {
 			if _, err := e.invites.Revoke(e.ctx, inv.OrganizationID, inv.ID); err != nil {
 				t.Fatal(err)
 			}
 		}, code: CodeCannotUpdateRevokedInvite},
 		// source: spec/services/invites/update_service_spec.rb:81
-		{name: "accepted invite", actor: permission.BuiltInRoleAdmin, role: roleID(permission.BuiltInRoleManager), state: func(t *testing.T, e *env, inv *access.Invite) {
+		{name: "accepted invite", actor: permission.BuiltInRoleAdmin, roles: roleIDs(permission.BuiltInRoleManager), state: func(t *testing.T, e *env, inv *access.Invite) {
 			e.tx(func(ctx context.Context, r port.Repos) error {
 				if err := inv.Accept(e.clock.Now()); err != nil {
 					return err
@@ -155,9 +170,9 @@ func TestInvitesUpdate(t *testing.T) {
 			})
 		}, code: CodeCannotUpdateAcceptedInvite},
 		// source: spec/services/invites/update_service_spec.rb:92
-		{name: "empty role", actor: permission.BuiltInRoleAdmin, field: "role", code: CodeInvalidRole},
+		{name: "empty role", actor: permission.BuiltInRoleAdmin, field: "roles", code: CodeInvalidRole},
 		// source: spec/services/invites/update_service_spec.rb:105
-		{name: "unknown role", actor: permission.BuiltInRoleAdmin, role: core.MustParseID[core.RoleID]("0190a000-0000-7000-8000-000000000099"), field: "role", code: CodeInvalidRole},
+		{name: "unknown role", actor: permission.BuiltInRoleAdmin, roles: []core.RoleID{core.MustParseID[core.RoleID]("0190a000-0000-7000-8000-000000000099")}, field: "roles", code: CodeInvalidRole},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -169,19 +184,19 @@ func TestInvitesUpdate(t *testing.T) {
 			if tt.state != nil {
 				tt.state(t, e, inv)
 			}
-			got, err := e.invites.Update(e.ctx, o.ID, actor.ID, inv.ID, tt.role)
+			got, err := e.invites.Update(e.ctx, o.ID, actor.ID, inv.ID, tt.roles)
 			if code(err) != tt.code || fieldOf(err) != tt.field {
 				t.Fatalf("got = %s on %q, want = %s on %q", code(err), fieldOf(err), tt.code, tt.field)
 			}
-			if err == nil && got.RoleID != tt.role {
-				t.Errorf("role = %s, want = %s", got.RoleID, tt.role)
+			if err == nil && !slices.Equal(got.RoleIDs, access.NormalizeRoleIDs(tt.roles)) {
+				t.Errorf("roles = %v, want = %v", got.RoleIDs, tt.roles)
 			}
 		})
 	}
 	// source: spec/services/invites/update_service_spec.rb:59
 	t.Run("invite not found", func(t *testing.T) {
 		e := newEnv(t)
-		_, err := e.invites.Update(e.ctx, e.org().ID, core.UserID{}, core.NewID[core.InviteID](e.deps.IDs), roleID(permission.BuiltInRoleManager))
+		_, err := e.invites.Update(e.ctx, e.org().ID, core.UserID{}, core.NewID[core.InviteID](e.deps.IDs), roleIDs(permission.BuiltInRoleManager))
 		if code(err) != "invite_not_found" {
 			t.Errorf("got = %s, want = invite_not_found", code(err))
 		}
@@ -254,7 +269,7 @@ func TestInvitesAccept(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if out.User.Email != "new@hooli.com" || out.Organization.ID != o.ID || out.Membership.RoleID != roleID(permission.BuiltInRoleManager) || out.Token == "" {
+		if out.User.Email != "new@hooli.com" || out.Organization.ID != o.ID || !slices.Equal(out.Membership.RoleIDs, roleIDs(permission.BuiltInRoleManager)) || out.Token == "" {
 			t.Errorf("got = %+v, want a manager membership in the inviting organization and a session", out)
 		}
 		inv, err := e.invites.Lookup(e.ctx, ci.Token)
@@ -373,7 +388,7 @@ func TestInvitesAccept(t *testing.T) {
 	t.Run("custom invite validity", func(t *testing.T) {
 		e := newEnv(t)
 		inv := NewInvites(e.deps, e.users, InvitesConfig{Validity: time.Hour})
-		ci, err := inv.Create(e.ctx, InviteRequest{OrganizationID: e.org().ID, Email: "x@hooli.com", RoleID: roleID(permission.BuiltInRoleFinance)})
+		ci, err := inv.Create(e.ctx, InviteRequest{OrganizationID: e.org().ID, Email: "x@hooli.com", RoleIDs: roleIDs(permission.BuiltInRoleFinance)})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -381,4 +396,56 @@ func TestInvitesAccept(t *testing.T) {
 			t.Errorf("got = %s, %s", ci.URL, ci.Invite.ExpiresAt)
 		}
 	})
+}
+
+func TestInvitesMultipleRoles(t *testing.T) {
+	e := newEnv(t)
+	o := e.org()
+	custom := access.NewCustomRole(core.NewID[core.RoleID](e.deps.IDs), o.ID, "developer", "Developer", []permission.Permission{"addons:read"}, e.clock.Now())
+	e.tx(func(ctx context.Context, r port.Repos) error { return r.Roles.Create(ctx, custom) })
+	want := access.NormalizeRoleIDs([]core.RoleID{custom.ID, roleID(permission.BuiltInRoleFinance)})
+	ci, err := e.invites.Create(e.ctx, InviteRequest{OrganizationID: o.ID, Email: "x@hooli.com", RoleIDs: want})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(ci.Invite.RoleIDs, want) {
+		t.Errorf("invite roles got = %v, want = %v", ci.Invite.RoleIDs, want)
+	}
+	// source: app/services/users_service.rb:108-115 (one membership role per invite role)
+	out, err := e.invites.Accept(e.ctx, ci.Token, "pw", SessionMeta{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(out.Membership.RoleIDs, want) {
+		t.Errorf("membership roles got = %v, want = %v", out.Membership.RoleIDs, want)
+	}
+	sess, err := e.sessions.Authenticate(e.ctx, out.Token)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p, err := e.authz.UserPrincipal(e.ctx, sess, o.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// spec/models/membership_spec.rb:124: the union of the roles' permissions.
+	for _, c := range []struct {
+		perm permission.Permission
+		want bool
+	}{{"addons:read", true}, {"analytics:read", true}, {"coupons:attach", false}} {
+		if got := e.authz.Check(p, c.perm) == nil; got != c.want {
+			t.Errorf("Check(%s) got = %v, want = %v", c.perm, got, c.want)
+		}
+	}
+
+	// source: app/services/users_service.rb:108-109 (first! fails on a discarded role)
+	ci, err = e.invites.Create(e.ctx, InviteRequest{OrganizationID: o.ID, Email: "y@hooli.com", RoleIDs: []core.RoleID{custom.ID}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.tx(func(ctx context.Context, r port.Repos) error {
+		return r.Roles.Discard(ctx, o.ID, custom.ID, e.clock.Now())
+	})
+	if _, err := e.invites.Accept(e.ctx, ci.Token, "pw", SessionMeta{}); code(err) != "role_not_found" {
+		t.Errorf("Accept() with a discarded role got = %v, want = role_not_found", err)
+	}
 }

@@ -78,11 +78,13 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
 | 跨组织的用户与成员资格（有效、已撤销） | `app/models/user.rb`、`app/models/membership.rb` | libs/auth | 逻辑已完成 | |
+| 多角色成员资格：权限为各角色权限的并集，至少一个角色 | `app/models/membership.rb`、`app/models/membership_role.rb` | libs/core、libs/store、libs/auth | 逻辑已完成 | `membership_roles` 表，行软删除；`Membership.RoleIDs`、`access.AnyGrants` |
 | 预定义角色 admin、finance、manager | `app/models/role.rb`、`config/permissions.yml` | libs/auth | 逻辑已完成 | |
 | 带权限集的自定义角色 | `app/services/roles/` | libs/auth | 计划中 | |
+| 删除自定义角色：软删除，拒绝删除预定义角色和有效成员使用中的角色 | `app/services/roles/destroy_service.rb`、`app/models/role.rb` | libs/core、libs/store、libs/auth | 逻辑已完成 | `auth.Roles.Delete`，记录 `role.deleted` 安全日志；已删除的角色不再出现在查找、列表与成员中，其代码可以复用 |
 | 权限目录（每种资源与操作） | `config/permissions.yml` | libs/auth | 计划中 | 每个 RPC 声明 `resource:action` 形式的权限字符串 |
-| 成员资格规则：不能撤销自己的成员资格、不能移除最后一个管理员、只有管理员能授予管理员 | `app/services/memberships/` | libs/auth | 逻辑已完成 | |
-| 带令牌与角色的邀请，支持接受、撤销、更新 | `app/models/invite.rb`、`app/services/invites/` | libs/auth | 逻辑已完成 | |
+| 成员资格规则：不能撤销自己的成员资格、不能移除最后一个管理员、只有管理员能授予管理员 | `app/services/memberships/` | libs/auth | 逻辑已完成 | `auth.Memberships`（UpdateRoles、Revoke），记录 `user.role_edited` 与 `user.deleted` 安全日志；撤销已撤销的成员会成功且不改变成员 |
+| 带令牌与角色的邀请，支持接受、撤销、更新 | `app/models/invite.rb`、`app/services/invites/` | libs/auth | 逻辑已完成 | 每个邀请可带多个角色（`role_ids`），以 ID 而非代码存储 |
 | 通过邮件重置密码（30 分钟令牌） | `app/services/password_resets/` | libs/auth | 逻辑已完成 | |
 | 自托管安装的注册开关 | `LAGO_DISABLE_SIGNUP`、`app/services/users_service.rb` | apps/server | 计划中 | 配置项 |
 
@@ -92,12 +94,12 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | :--- | :--- | :--- | :--- | :--- |
 | 邮箱密码登录与注册 | `app/services/users_service.rb`、`app/graphql/mutations/` | libs/auth | 逻辑已完成 | argon2id 哈希；以不透明会话代替 JWT（§3） |
 | Google 登录、注册与接受邀请 | `app/services/auth/google_service.rb` | libs/auth | 逻辑已完成 | 经由 OIDC 身份提供者 |
-| Okta 登录（authorize、token、userinfo、state 校验） | `app/services/auth/okta/` | libs/auth | 逻辑已完成 | OIDC 连接；state 存储在服务端 |
+| Okta 登录（authorize、token、userinfo、state 校验） | `app/services/auth/okta/` | libs/auth | 逻辑已完成 | OIDC 连接；一次性 state 存储在 PostgreSQL（`oidc_states`，10 分钟而非 90 秒） |
 | 带租户与附加域名的 Entra ID 登录 | `app/services/auth/entra_id/` | libs/auth | 逻辑已完成 | OIDC 连接 |
 | 通用 OIDC 提供者 | — | libs/auth | 逻辑已完成 | Tanvo 新增 |
-| Okta 与 Entra ID 集成配置（客户端、域名、主机） | `app/models/integrations/okta_integration.rb`、`entra_id_integration.rb` | libs/auth | 逻辑已完成 | |
+| Okta 与 Entra ID 集成配置（客户端、域名、主机） | `app/models/integrations/okta_integration.rb`、`entra_id_integration.rb` | libs/core、libs/auth | 逻辑已完成 | `integration.AuthSettings`（另有通用 OIDC 的 `issuer` 和必填的 `default_role_id`）；域名跨组织且不区分大小写地路由（`IntegrationRepository.ListByDomain`、`auth.IntegrationConnections`） |
 | 拒绝移除最后一种已启用的登录方式 | `app/services/integrations/okta/destroy_service.rb` | libs/auth | 逻辑已完成 | |
-| 已知设备与新设备安全日志记录 | `app/models/user_device.rb`、`app/services/user_devices/` | libs/auth | 计划中 | |
+| 已知设备与新设备安全日志记录 | `app/models/user_device.rb`、`app/services/user_devices/` | libs/core、libs/store、libs/auth | 逻辑已完成 | `access.UserDevice`；user agent 解析（`Utils::DeviceInfo`）属于 apps/server |
 | GoCardless 连接的 OAuth 回调 | `app/services/payment_providers/gocardless_service.rb`（`LAGO_OAUTH_PROXY_URL`） | providers/gocardless | 计划中 | 回调由 `apps/server` 提供；不经代理 |
 
 ### 1.6 API 密钥与 API 约定
@@ -973,7 +975,7 @@ Lago 的每个时钟任务都成为一个 River 周期任务，或一个在到�
 | `auto_dunning`、`manual_payments`、`issue_receipts`、`beta_payment_authorization` | 高级集成 | 核心 | |
 | `api_permissions`、`custom_roles`、`security_logs` | 高级集成 | 核心 | |
 | `multi_entities_pro`、`multi_entities_enterprise` | 高级集成 | 核心 | 计费主体数量不设上限 |
-| `from_email`、`remove_branding_watermark` | 高级集成 | 核心 | |
+| `from_email`、`remove_branding_watermark` | 高级集成 | 核心 | `from_email` 即组织设置 `from_email_enabled` |
 | `events_targeting_wallets` | 高级集成 | 核心 | |
 | `order_forms` | 高级集成与功能开关 | 核心 | |
 | `revenue_share` | 高级集成 | 核心 | 合作伙伴账户与自开票 |

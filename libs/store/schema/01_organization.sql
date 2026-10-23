@@ -35,6 +35,7 @@ CREATE TABLE organizations (
   address_zipcode text NOT NULL DEFAULT '',
   address_country text NOT NULL DEFAULT '',
   authentication_methods text[] NOT NULL,
+  from_email_enabled boolean NOT NULL DEFAULT false,
   audit_logs_retention_days integer NOT NULL,
   max_wallets_per_customer integer NOT NULL,
   created_at timestamptz NOT NULL,

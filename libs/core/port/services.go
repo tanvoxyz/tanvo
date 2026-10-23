@@ -77,6 +77,8 @@ type Email struct {
 	ReplyTo string
 	// To are the recipients.
 	To []string
+	// Cc are the copied recipients.
+	Cc []string
 	// Bcc are the hidden recipients (dunning campaigns' bcc_emails).
 	Bcc []string
 	// Subject is the subject line.

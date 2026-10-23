@@ -208,7 +208,7 @@ Markers used throughout:
 | `PaymentKind` | `provider`, `manual` | Payment |
 | `PaymentState` | `pending`, `processing`, `succeeded`, `failed` | Payment |
 | `IntegrationCategory` | `payment`, `accounting`, `tax`, `crm`, `auth` | Integration |
-| `IntegrationProvider` | `stripe`, `adyen`, `gocardless`, `cashfree`, `moneyhash`, `flutterwave`, `netsuite`, `xero`, `anrok`, `avalara`, `hubspot`, `salesforce`, `okta`, `entra_id` | Integration |
+| `IntegrationProvider` | `stripe`, `adyen`, `gocardless`, `cashfree`, `moneyhash`, `flutterwave`, `netsuite`, `xero`, `anrok`, `avalara`, `hubspot`, `salesforce`, `okta`, `entra_id`, `oidc` | Integration |
 | `MappableType` | `add_on`, `billable_metric` | IntegrationMapping |
 | `CollectionMappingType` | `fallback_item`, `coupon`, `subscription_fee`, `minimum_commitment`, `tax`, `prepaid_credit`, `credit_note`, `account`, `currencies` | IntegrationCollectionMapping |
 | `IntegrationResourceType` | `invoice`, `payment`, `credit_note`, `subscription` | IntegrationResource |
@@ -239,6 +239,7 @@ The tenant. All other entities belong to exactly one organization.
 | `logo` | blob reference? | |
 | `address` | Address | |
 | `authentication_methods` | `[]AuthenticationMethod` | at least one |
+| `from_email_enabled` | `bool` | default false; documents are sent from the billing entity's email |
 | `audit_logs_retention_days` | `int` | default 30 |
 | `max_wallets_per_customer` | `int` | default 6 |
 | `created_at` | `Time` | |
@@ -296,28 +297,32 @@ Rules:
 A person who signs in. Fields: `email` (unique, case-insensitive), `password_hash` (argon2id) or none for SSO-only users, `name?`, `created_at`, `last_sign_in_at?`. A user can belong to several organizations.
 
 ### 5.2 Membership
-Links a user to an organization with a role.
+Links a user to an organization with one or more roles.
 
 | Field | Type | Rules |
 | :--- | :--- | :--- |
 | `user_id`, `organization_id` | `ID` | unique pair among active memberships |
-| `role_id` | `ID` | built-in or custom role of the organization |
+| `role_ids` | `[]ID` | at least one while active; each a built-in role or a kept custom role of the organization (table `membership_roles`) |
 | `status` | `MembershipStatus` | `active` → `revoked` (terminal) |
 | `revoked_at` | `Time?` | |
 
 Rules:
-* The last active admin of an organization cannot be revoked or demoted.
-* A user cannot revoke their own membership.
-* Only an admin can grant the `admin` role.
+* A member holds the union of the permissions of its roles; a membership is an admin when one of its roles is `admin`.
+* Changing roles replaces the whole set; role IDs that do not exist in the organization are ignored, and an empty result is `role_not_found`.
+* `membership_roles` rows are never modified: removing a role soft-deletes its row (`deleted_at`), adding one inserts a new row, and at most one kept row exists per membership and role. A membership lists only its kept rows whose role is not deleted, so a revoked membership may be left without roles.
+* The last active admin of an organization cannot be revoked or lose the `admin` role (`last_admin`). Revoking an already revoked membership runs the same checks, keeps its `revoked_at` and is logged again.
+* A user cannot revoke their own membership (`cannot_revoke_own_membership`).
+* Only an admin can assign the `admin` role, also to a member that already has it (`cannot_grant_admin`).
+* Changes are security-logged: `user.role_edited` with the added and deleted role codes, `user.deleted` on revocation.
 
 ### 5.3 Role and Permissions
 * A permission is a string `<resource>:<action>` (`customers:read`, `invoices:void`, …). The full list is defined in `libs/core/permission` and documented in the API reference.
-* Built-in roles: `admin` (all permissions), `finance`, `manager`. Built-in roles are immutable.
-* Custom roles: `code` (`string(100)`, unique, not one of the built-in names), `name`, `description?`, `permissions []string`. A custom role in use by a membership cannot be deleted.
-* SSO (Okta, Entra ID, OIDC) maps an identity to a membership with the role configured on the integration. **[Fix]** Lago assigns a fixed role on Okta/Entra sign-up regardless of configuration.
+* Built-in roles: `admin` (all permissions), `finance`, `manager`. Built-in roles are immutable (`predefined_role`).
+* Custom roles: `code` (`string(100)`, unique among kept roles, not one of the built-in names), `name`, `description?`, `permissions []string`, `deleted_at?`. Deleting a custom role soft-deletes it and logs `role.deleted` with its code; a built-in role cannot be deleted (`predefined_role`), nor a custom role of an active membership (`role_assigned_to_members`); revoked memberships do not count. A deleted role is no longer found, listed, held by any membership or grantable, and its code can be reused.
+* SSO (Okta, Entra ID, OIDC) maps an identity to a membership with the single default role configured on the integration. **[Fix]** Lago creates Okta/Entra memberships without any role.
 
 ### 5.4 Invite
-`email`, `role_id`, `token` (random, hashed at rest), `status` (`pending` → `accepted` | `revoked`), `expires_at`. Accepting creates (or reuses) the user and an active membership. A pending invite for an email that already has an active membership is refused.
+`email`, `role_ids` (at least one, each existing in the organization, else `invalid_role` on `roles`; including `admin` needs an admin inviter, `cannot_grant_admin`), `token` (random, hashed at rest), `status` (`pending` → `accepted` | `revoked`), `expires_at`. Accepting creates (or reuses) the user and an active membership with the invite's roles; a role deleted since the invite fails the acceptance with `role_not_found`. Only pending invites can change roles (`cannot_update_accepted_invite`, `cannot_update_revoked_invite`). A pending invite for an email that already has an active membership is refused.
 
 Password reset tokens expire after 30 minutes and are single-use.
 
@@ -338,6 +343,28 @@ Rules:
 
 ### 5.6 Customer Portal Token
 A signed, stateless token scoped to one customer, valid for 12 hours, giving read access to that customer's invoices, usage and wallets and write access to its own billing details.
+
+### 5.7 Session and Sign-in State
+A session is a signed-in user's opaque token. It belongs to the user, not to an organization: the organization is chosen per request, and an organization that does not allow the session's `method` is not accessible with it.
+
+| Field | Type | Rules |
+| :--- | :--- | :--- |
+| `user_id` | `ID` | |
+| `token_hash` | `bytes` | SHA-256 of the token, unique; the token is shown once |
+| `method` | `AuthenticationMethod` | the sign-in method |
+| `user_agent`, `ip` | `string` | the client at sign-in |
+| `created_at`, `last_seen_at` | `Time` | `last_seen_at` is refreshed at most once a minute |
+| `expires_at` | `Time` | absolute end of validity (default 14 days) |
+| `revoked_at` | `Time?` | set on sign-out, password reset or revocation; never cleared |
+
+A session authenticates while it is neither revoked nor expired and was used within the idle timeout (default 24 hours). Expired and revoked sessions are purged.
+
+An OpenID Connect sign-in keeps a single-use state between the redirect to the provider and the callback, stored under the SHA-256 of the `state` parameter: `method` (not `email_password`), `intent` (`OIDCIntent`: `login`, `sign_up`, `accept_invite`), `connection_id`, `email`, `invite_token_hash` (required for `accept_invite`; the invite token itself is not stored), `organization_name`, `nonce`, the PKCE `verifier` and `expires_at` (10 minutes). Reading a state deletes it; an expired state is not found.
+
+**[Change]** Lago issues JWTs and keeps the OAuth state in the Rails cache for 90 seconds; Tanvo stores sessions and states in PostgreSQL, so sessions can be revoked and any replica can finish a sign-in.
+
+### 5.8 User Device
+A client a user has signed in from, identified per user by `fingerprint`, the SHA-256 (hex) of its user agent; unique per user. Fields: `browser?`, `os?`, `device_type?` (parsed from the user agent by the server), `last_ip_address?`, `last_logged_at`. Every sign-in with a user agent updates the device or creates it; a sign-in from a new device logs `user.new_device_logged_in` in each active organization of the user, except for a sign-up or a new user joining by invite, whose own events cover it.
 
 ---
 
@@ -1252,6 +1279,21 @@ Rules:
 | `secrets` | encrypted JSON | credentials, OAuth tokens |
 | `sync_invoices`, `sync_credit_notes`, `sync_payments`, `sync_subscriptions` | `bool` | accounting and CRM |
 
+Single sign-on integrations (category `auth`: `okta`, `entra_id`, `oidc`) keep their connection in `settings`; the client secret is in `secrets`.
+
+| Setting | Rules |
+| :--- | :--- |
+| `client_id` | required |
+| `domain` | required; the primary email domain routed to the connection, stored lower-case |
+| `additional_domains` | Entra ID and generic OIDC only; host names with at least two labels, lower-case, deduplicated |
+| `organization_name` | required for Okta; the default host is `<organization_name>.okta.com` |
+| `tenant_id` | required for Entra ID; letters, digits, `.` and `-` |
+| `host` | optional provider host override; letters, digits, `.` and `-` |
+| `issuer` | required for generic OIDC; the discovery issuer URL |
+| `default_role_id` | required; role of memberships created at first sign-in (§5.3) |
+
+A sign-in is routed to the connections of its method claiming the email's domain, case-insensitively, across organizations; a primary domain wins over an additional one, then the oldest connection. A domain is claimed by at most one connection of a method.
+
 ### 17.2 Integration Customer
 `integration_id`, `customer_id`, `external_customer_id`, `subsidiary_id?`, `sync_with_provider bool`, `is_default`. A customer has at most one tax integration customer; for other categories several connections are allowed with one default. `customer.<category>_provider_created` / `_error` are emitted.
 
@@ -1650,7 +1692,10 @@ All numbers are assigned in the transaction that finalizes the document, under a
 | Code uniqueness | application checks + soft-delete scopes | partial unique indexes on live rows (§2.1) |
 | Refund failure webhook | name differs from declared type | `credit_note.refund_failure` (§13.2) |
 | Adyen notifications | first item only | every item (§15.6) |
-| SSO roles | fixed role on Okta/Entra sign-up | configured role (§5.3) |
+| SSO roles | no role on Okta/Entra sign-up | configured default role (§5.3) |
+| Sessions and OAuth state | JWT; Rails cache for 90 s | revocable sessions and single-use states in PostgreSQL (§5.7) |
+| SSO domain matching | exact for Okta, case-insensitive for Entra ID | case-insensitive for every provider (§17.1) |
+| Sender address | `from_email` premium integration | `from_email_enabled` organization setting (§4.1) |
 
 **Dropped** (not implemented): invoice type `add_on`, groups and group properties, `grouped_by` alias, invoice version gates, `organization_sequential_id`, `vat_rate` columns, `cancelation_reason`/`incompleted_at` legacy columns, the `overriden` alias, the `event.error` webhook, `applied_add_ons`, `organizations.webhook_url`/`api_key`/`hmac_key`, the `webhooks.payload` legacy layout, the deprecated public-key endpoint, dunning `applied_to_organization`, integration resource type `sales_order_deprecated`, NetSuite `legacy_script`, `recurring_count_agg`, legacy billable metric properties, deprecated charge contexts.
 

@@ -13,9 +13,54 @@ import (
 	"github.com/google/uuid"
 )
 
+const addMembershipRoles = `-- name: AddMembershipRoles :exec
+INSERT INTO membership_roles (organization_id, membership_id, role_id, created_at)
+SELECT $1, $2, r, $3 FROM unnest($4::uuid[]) AS r
+ON CONFLICT DO NOTHING
+`
+
+type AddMembershipRolesParams struct {
+	OrganizationID uuid.UUID
+	MembershipID   uuid.UUID
+	CreatedAt      time.Time
+	RoleIds        []uuid.UUID
+}
+
+// AddMembershipRoles adds the roles a membership does not have yet; kept
+// rows are left untouched.
+func (q *Queries) AddMembershipRoles(ctx context.Context, arg AddMembershipRolesParams) error {
+	_, err := q.db.Exec(ctx, addMembershipRoles,
+		arg.OrganizationID,
+		arg.MembershipID,
+		arg.CreatedAt,
+		arg.RoleIds,
+	)
+	return err
+}
+
+const applyAPIKeyUses = `-- name: ApplyAPIKeyUses :execrows
+WITH used AS (
+  DELETE FROM api_key_uses u WHERE u.organization_id = $1
+  RETURNING u.api_key_id, u.last_used_at
+)
+UPDATE api_keys k SET last_used_at = GREATEST(k.last_used_at, used.last_used_at)
+FROM used
+WHERE k.organization_id = $1 AND k.id = used.api_key_id
+`
+
+// Moves the recorded uses of an organization's keys to their last_used_at.
+func (q *Queries) ApplyAPIKeyUses(ctx context.Context, organizationID uuid.UUID) (int64, error) {
+	result, err := q.db.Exec(ctx, applyAPIKeyUses, organizationID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const countActiveMembershipsByRole = `-- name: CountActiveMembershipsByRole :one
-SELECT count(*) FROM memberships
-WHERE organization_id = $1 AND role_id = $2 AND status = 'active'
+SELECT count(*) FROM memberships m
+JOIN membership_roles mr ON mr.organization_id = m.organization_id AND mr.membership_id = m.id
+WHERE m.organization_id = $1 AND mr.role_id = $2 AND mr.deleted_at IS NULL AND m.status = 'active'
 `
 
 type CountActiveMembershipsByRoleParams struct {
@@ -84,7 +129,7 @@ func (q *Queries) CreateAPIKey(ctx context.Context, arg CreateAPIKeyParams) (int
 
 const createInvite = `-- name: CreateInvite :execrows
 INSERT INTO invites (
-  organization_id, id, email, role_id, token_hash, status, expires_at, accepted_at, revoked_at, created_at, updated_at
+  organization_id, id, email, role_ids, token_hash, status, expires_at, accepted_at, revoked_at, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 )
@@ -95,7 +140,7 @@ type CreateInviteParams struct {
 	OrganizationID uuid.UUID
 	ID             uuid.UUID
 	Email          string
-	RoleID         uuid.UUID
+	RoleIds        []uuid.UUID
 	TokenHash      []byte
 	Status         string
 	ExpiresAt      time.Time
@@ -110,7 +155,7 @@ func (q *Queries) CreateInvite(ctx context.Context, arg CreateInviteParams) (int
 		arg.OrganizationID,
 		arg.ID,
 		arg.Email,
-		arg.RoleID,
+		arg.RoleIds,
 		arg.TokenHash,
 		arg.Status,
 		arg.ExpiresAt,
@@ -127,9 +172,9 @@ func (q *Queries) CreateInvite(ctx context.Context, arg CreateInviteParams) (int
 
 const createMembership = `-- name: CreateMembership :execrows
 INSERT INTO memberships (
-  organization_id, id, user_id, role_id, status, revoked_at, created_at, updated_at
+  organization_id, id, user_id, status, revoked_at, created_at, updated_at
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8
+  $1, $2, $3, $4, $5, $6, $7
 )
 ON CONFLICT DO NOTHING
 `
@@ -138,7 +183,6 @@ type CreateMembershipParams struct {
 	OrganizationID uuid.UUID
 	ID             uuid.UUID
 	UserID         uuid.UUID
-	RoleID         uuid.UUID
 	Status         string
 	RevokedAt      *time.Time
 	CreatedAt      time.Time
@@ -150,11 +194,55 @@ func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipPara
 		arg.OrganizationID,
 		arg.ID,
 		arg.UserID,
-		arg.RoleID,
 		arg.Status,
 		arg.RevokedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const createOIDCState = `-- name: CreateOIDCState :execrows
+INSERT INTO oidc_states (
+  key_hash, method, intent, connection_id, email, invite_token_hash, organization_name,
+  nonce, verifier, expires_at, created_at
+) VALUES (
+  $1, $2, $3, $4, $5, $6, $7,
+  $8, $9, $10, $11
+)
+ON CONFLICT DO NOTHING
+`
+
+type CreateOIDCStateParams struct {
+	KeyHash          []byte
+	Method           string
+	Intent           string
+	ConnectionID     string
+	Email            string
+	InviteTokenHash  []byte
+	OrganizationName string
+	Nonce            string
+	Verifier         string
+	ExpiresAt        time.Time
+	CreatedAt        time.Time
+}
+
+func (q *Queries) CreateOIDCState(ctx context.Context, arg CreateOIDCStateParams) (int64, error) {
+	result, err := q.db.Exec(ctx, createOIDCState,
+		arg.KeyHash,
+		arg.Method,
+		arg.Intent,
+		arg.ConnectionID,
+		arg.Email,
+		arg.InviteTokenHash,
+		arg.OrganizationName,
+		arg.Nonce,
+		arg.Verifier,
+		arg.ExpiresAt,
+		arg.CreatedAt,
 	)
 	if err != nil {
 		return 0, err
@@ -232,6 +320,49 @@ func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) (int64, 
 	return result.RowsAffected(), nil
 }
 
+const createSession = `-- name: CreateSession :execrows
+
+INSERT INTO sessions (
+  id, user_id, token_hash, method, user_agent, ip, created_at, last_seen_at, expires_at, revoked_at
+) VALUES (
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+)
+ON CONFLICT DO NOTHING
+`
+
+type CreateSessionParams struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	TokenHash  []byte
+	Method     string
+	UserAgent  string
+	Ip         string
+	CreatedAt  time.Time
+	LastSeenAt time.Time
+	ExpiresAt  time.Time
+	RevokedAt  *time.Time
+}
+
+// Sessions, OIDC states and user devices are global, like users.
+func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, createSession,
+		arg.ID,
+		arg.UserID,
+		arg.TokenHash,
+		arg.Method,
+		arg.UserAgent,
+		arg.Ip,
+		arg.CreatedAt,
+		arg.LastSeenAt,
+		arg.ExpiresAt,
+		arg.RevokedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const createUser = `-- name: CreateUser :execrows
 
 INSERT INTO users (
@@ -272,6 +403,47 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (int64, 
 	return result.RowsAffected(), nil
 }
 
+const createUserDevice = `-- name: CreateUserDevice :execrows
+INSERT INTO user_devices (
+  id, user_id, fingerprint, browser, os, device_type, last_ip_address, last_logged_at, created_at, updated_at
+) VALUES (
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+)
+ON CONFLICT DO NOTHING
+`
+
+type CreateUserDeviceParams struct {
+	ID            uuid.UUID
+	UserID        uuid.UUID
+	Fingerprint   string
+	Browser       *string
+	Os            *string
+	DeviceType    *string
+	LastIpAddress *string
+	LastLoggedAt  time.Time
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+}
+
+func (q *Queries) CreateUserDevice(ctx context.Context, arg CreateUserDeviceParams) (int64, error) {
+	result, err := q.db.Exec(ctx, createUserDevice,
+		arg.ID,
+		arg.UserID,
+		arg.Fingerprint,
+		arg.Browser,
+		arg.Os,
+		arg.DeviceType,
+		arg.LastIpAddress,
+		arg.LastLoggedAt,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteAPIKey = `-- name: DeleteAPIKey :execrows
 DELETE FROM api_keys WHERE organization_id = $1 AND id = $2
 `
@@ -283,6 +455,18 @@ type DeleteAPIKeyParams struct {
 
 func (q *Queries) DeleteAPIKey(ctx context.Context, arg DeleteAPIKeyParams) (int64, error) {
 	result, err := q.db.Exec(ctx, deleteAPIKey, arg.OrganizationID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const deleteExpiredOIDCStates = `-- name: DeleteExpiredOIDCStates :execrows
+DELETE FROM oidc_states WHERE expires_at < $1
+`
+
+func (q *Queries) DeleteExpiredOIDCStates(ctx context.Context, before time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredOIDCStates, before)
 	if err != nil {
 		return 0, err
 	}
@@ -301,17 +485,62 @@ func (q *Queries) DeleteExpiredPasswordResets(ctx context.Context, before time.T
 	return result.RowsAffected(), nil
 }
 
-const deleteRole = `-- name: DeleteRole :execrows
-DELETE FROM roles WHERE organization_id = $1 AND id = $2
+const deleteExpiredSessions = `-- name: DeleteExpiredSessions :execrows
+DELETE FROM sessions WHERE expires_at < $1 OR revoked_at < $1
 `
 
-type DeleteRoleParams struct {
+func (q *Queries) DeleteExpiredSessions(ctx context.Context, before time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredSessions, before)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const discardMembershipRoles = `-- name: DiscardMembershipRoles :exec
+UPDATE membership_roles SET deleted_at = $1
+WHERE membership_roles.organization_id = $2 AND membership_roles.membership_id = $3
+  AND membership_roles.deleted_at IS NULL
+  AND NOT (membership_roles.role_id = ANY($4::uuid[]))
+  AND NOT EXISTS (
+    SELECT 1 FROM roles r
+    WHERE r.organization_id = membership_roles.organization_id AND r.id = membership_roles.role_id AND r.deleted_at IS NOT NULL
+  )
+`
+
+type DiscardMembershipRolesParams struct {
+	DeletedAt      *time.Time
+	OrganizationID uuid.UUID
+	MembershipID   uuid.UUID
+	RoleIds        []uuid.UUID
+}
+
+// DiscardMembershipRoles soft-deletes the kept roles of a membership not in
+// role_ids. Rows of deleted roles stay kept, as they are not read (lago
+// default scopes on roles and membership_roles).
+func (q *Queries) DiscardMembershipRoles(ctx context.Context, arg DiscardMembershipRolesParams) error {
+	_, err := q.db.Exec(ctx, discardMembershipRoles,
+		arg.DeletedAt,
+		arg.OrganizationID,
+		arg.MembershipID,
+		arg.RoleIds,
+	)
+	return err
+}
+
+const discardRole = `-- name: DiscardRole :execrows
+UPDATE roles SET deleted_at = $1, updated_at = $1
+WHERE organization_id = $2 AND id = $3 AND deleted_at IS NULL
+`
+
+type DiscardRoleParams struct {
+	DeletedAt      *time.Time
 	OrganizationID uuid.UUID
 	ID             uuid.UUID
 }
 
-func (q *Queries) DeleteRole(ctx context.Context, arg DeleteRoleParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteRole, arg.OrganizationID, arg.ID)
+func (q *Queries) DiscardRole(ctx context.Context, arg DiscardRoleParams) (int64, error) {
+	result, err := q.db.Exec(ctx, discardRole, arg.DeletedAt, arg.OrganizationID, arg.ID)
 	if err != nil {
 		return 0, err
 	}
@@ -369,7 +598,7 @@ func (q *Queries) GetAPIKeyByTokenHash(ctx context.Context, tokenHash []byte) (A
 }
 
 const getActiveMembershipByUser = `-- name: GetActiveMembershipByUser :one
-SELECT organization_id, id, user_id, role_id, status, revoked_at, created_at, updated_at FROM memberships
+SELECT organization_id, id, user_id, status, revoked_at, created_at, updated_at FROM memberships
 WHERE organization_id = $1 AND user_id = $2 AND status = 'active'
 `
 
@@ -385,7 +614,6 @@ func (q *Queries) GetActiveMembershipByUser(ctx context.Context, arg GetActiveMe
 		&i.OrganizationID,
 		&i.ID,
 		&i.UserID,
-		&i.RoleID,
 		&i.Status,
 		&i.RevokedAt,
 		&i.CreatedAt,
@@ -395,7 +623,7 @@ func (q *Queries) GetActiveMembershipByUser(ctx context.Context, arg GetActiveMe
 }
 
 const getInvite = `-- name: GetInvite :one
-SELECT organization_id, id, email, role_id, token_hash, status, expires_at, accepted_at, revoked_at, created_at, updated_at FROM invites WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, email, role_ids, token_hash, status, expires_at, accepted_at, revoked_at, created_at, updated_at FROM invites WHERE organization_id = $1 AND id = $2
 `
 
 type GetInviteParams struct {
@@ -410,7 +638,7 @@ func (q *Queries) GetInvite(ctx context.Context, arg GetInviteParams) (Invite, e
 		&i.OrganizationID,
 		&i.ID,
 		&i.Email,
-		&i.RoleID,
+		&i.RoleIds,
 		&i.TokenHash,
 		&i.Status,
 		&i.ExpiresAt,
@@ -423,7 +651,7 @@ func (q *Queries) GetInvite(ctx context.Context, arg GetInviteParams) (Invite, e
 }
 
 const getInviteByTokenHash = `-- name: GetInviteByTokenHash :one
-SELECT organization_id, id, email, role_id, token_hash, status, expires_at, accepted_at, revoked_at, created_at, updated_at FROM invites WHERE token_hash = $1
+SELECT organization_id, id, email, role_ids, token_hash, status, expires_at, accepted_at, revoked_at, created_at, updated_at FROM invites WHERE token_hash = $1
 `
 
 // GetInviteByTokenHash is cross-organization (the invitee is not a member).
@@ -434,7 +662,7 @@ func (q *Queries) GetInviteByTokenHash(ctx context.Context, tokenHash []byte) (I
 		&i.OrganizationID,
 		&i.ID,
 		&i.Email,
-		&i.RoleID,
+		&i.RoleIds,
 		&i.TokenHash,
 		&i.Status,
 		&i.ExpiresAt,
@@ -447,7 +675,7 @@ func (q *Queries) GetInviteByTokenHash(ctx context.Context, tokenHash []byte) (I
 }
 
 const getMembership = `-- name: GetMembership :one
-SELECT organization_id, id, user_id, role_id, status, revoked_at, created_at, updated_at FROM memberships WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, user_id, status, revoked_at, created_at, updated_at FROM memberships WHERE organization_id = $1 AND id = $2
 `
 
 type GetMembershipParams struct {
@@ -462,7 +690,6 @@ func (q *Queries) GetMembership(ctx context.Context, arg GetMembershipParams) (M
 		&i.OrganizationID,
 		&i.ID,
 		&i.UserID,
-		&i.RoleID,
 		&i.Status,
 		&i.RevokedAt,
 		&i.CreatedAt,
@@ -490,7 +717,7 @@ func (q *Queries) GetPasswordResetByTokenHash(ctx context.Context, tokenHash []b
 }
 
 const getPendingInviteByEmail = `-- name: GetPendingInviteByEmail :one
-SELECT organization_id, id, email, role_id, token_hash, status, expires_at, accepted_at, revoked_at, created_at, updated_at FROM invites
+SELECT organization_id, id, email, role_ids, token_hash, status, expires_at, accepted_at, revoked_at, created_at, updated_at FROM invites
 WHERE organization_id = $1 AND email = $2 AND status = 'pending'
 `
 
@@ -506,7 +733,7 @@ func (q *Queries) GetPendingInviteByEmail(ctx context.Context, arg GetPendingInv
 		&i.OrganizationID,
 		&i.ID,
 		&i.Email,
-		&i.RoleID,
+		&i.RoleIds,
 		&i.TokenHash,
 		&i.Status,
 		&i.ExpiresAt,
@@ -519,7 +746,7 @@ func (q *Queries) GetPendingInviteByEmail(ctx context.Context, arg GetPendingInv
 }
 
 const getRole = `-- name: GetRole :one
-SELECT organization_id, id, code, name, description, permissions, created_at, updated_at FROM roles WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, code, name, description, permissions, created_at, updated_at, deleted_at FROM roles WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type GetRoleParams struct {
@@ -539,12 +766,13 @@ func (q *Queries) GetRole(ctx context.Context, arg GetRoleParams) (Role, error) 
 		&i.Permissions,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getRoleByCode = `-- name: GetRoleByCode :one
-SELECT organization_id, id, code, name, description, permissions, created_at, updated_at FROM roles WHERE organization_id = $1 AND code = $2
+SELECT organization_id, id, code, name, description, permissions, created_at, updated_at, deleted_at FROM roles WHERE organization_id = $1 AND code = $2 AND deleted_at IS NULL
 `
 
 type GetRoleByCodeParams struct {
@@ -564,6 +792,29 @@ func (q *Queries) GetRoleByCode(ctx context.Context, arg GetRoleByCodeParams) (R
 		&i.Permissions,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getSessionByTokenHash = `-- name: GetSessionByTokenHash :one
+SELECT id, user_id, token_hash, method, user_agent, ip, created_at, last_seen_at, expires_at, revoked_at FROM sessions WHERE token_hash = $1
+`
+
+func (q *Queries) GetSessionByTokenHash(ctx context.Context, tokenHash []byte) (Session, error) {
+	row := q.db.QueryRow(ctx, getSessionByTokenHash, tokenHash)
+	var i Session
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.TokenHash,
+		&i.Method,
+		&i.UserAgent,
+		&i.Ip,
+		&i.CreatedAt,
+		&i.LastSeenAt,
+		&i.ExpiresAt,
+		&i.RevokedAt,
 	)
 	return i, err
 }
@@ -604,6 +855,59 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const getUserDeviceByFingerprint = `-- name: GetUserDeviceByFingerprint :one
+SELECT id, user_id, fingerprint, browser, os, device_type, last_ip_address, last_logged_at, created_at, updated_at FROM user_devices WHERE user_id = $1 AND fingerprint = $2
+`
+
+type GetUserDeviceByFingerprintParams struct {
+	UserID      uuid.UUID
+	Fingerprint string
+}
+
+func (q *Queries) GetUserDeviceByFingerprint(ctx context.Context, arg GetUserDeviceByFingerprintParams) (UserDevice, error) {
+	row := q.db.QueryRow(ctx, getUserDeviceByFingerprint, arg.UserID, arg.Fingerprint)
+	var i UserDevice
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Fingerprint,
+		&i.Browser,
+		&i.Os,
+		&i.DeviceType,
+		&i.LastIpAddress,
+		&i.LastLoggedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listAPIKeyUseOrganizations = `-- name: ListAPIKeyUseOrganizations :many
+SELECT DISTINCT organization_id FROM api_key_uses ORDER BY organization_id
+`
+
+// Across organizations: the organizations with recorded uses, for the
+// usage tracking clock job.
+func (q *Queries) ListAPIKeyUseOrganizations(ctx context.Context) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listAPIKeyUseOrganizations)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var organization_id uuid.UUID
+		if err := rows.Scan(&organization_id); err != nil {
+			return nil, err
+		}
+		items = append(items, organization_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listAPIKeys = `-- name: ListAPIKeys :many
@@ -659,7 +963,7 @@ func (q *Queries) ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]Api
 }
 
 const listActiveMembershipsByUser = `-- name: ListActiveMembershipsByUser :many
-SELECT organization_id, id, user_id, role_id, status, revoked_at, created_at, updated_at FROM memberships
+SELECT organization_id, id, user_id, status, revoked_at, created_at, updated_at FROM memberships
 WHERE user_id = $1 AND status = 'active'
 ORDER BY id
 `
@@ -678,7 +982,6 @@ func (q *Queries) ListActiveMembershipsByUser(ctx context.Context, userID uuid.U
 			&i.OrganizationID,
 			&i.ID,
 			&i.UserID,
-			&i.RoleID,
 			&i.Status,
 			&i.RevokedAt,
 			&i.CreatedAt,
@@ -695,7 +998,7 @@ func (q *Queries) ListActiveMembershipsByUser(ctx context.Context, userID uuid.U
 }
 
 const listInvites = `-- name: ListInvites :many
-SELECT organization_id, id, email, role_id, token_hash, status, expires_at, accepted_at, revoked_at, created_at, updated_at FROM invites
+SELECT organization_id, id, email, role_ids, token_hash, status, expires_at, accepted_at, revoked_at, created_at, updated_at FROM invites
 WHERE organization_id = $1
   AND ($2::text IS NULL OR status = $2)
   AND ($3::uuid IS NULL OR id > $3)
@@ -728,7 +1031,7 @@ func (q *Queries) ListInvites(ctx context.Context, arg ListInvitesParams) ([]Inv
 			&i.OrganizationID,
 			&i.ID,
 			&i.Email,
-			&i.RoleID,
+			&i.RoleIds,
 			&i.TokenHash,
 			&i.Status,
 			&i.ExpiresAt,
@@ -747,13 +1050,62 @@ func (q *Queries) ListInvites(ctx context.Context, arg ListInvitesParams) ([]Inv
 	return items, nil
 }
 
+const listMembershipRoles = `-- name: ListMembershipRoles :many
+SELECT membership_roles.organization_id, membership_roles.membership_id, membership_roles.role_id FROM membership_roles
+WHERE membership_roles.organization_id = ANY($1::uuid[]) AND membership_roles.membership_id = ANY($2::uuid[])
+  AND membership_roles.deleted_at IS NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM roles r
+    WHERE r.organization_id = membership_roles.organization_id AND r.id = membership_roles.role_id AND r.deleted_at IS NOT NULL
+  )
+ORDER BY membership_roles.organization_id, membership_roles.membership_id, membership_roles.role_id
+`
+
+type ListMembershipRolesParams struct {
+	OrganizationIds []uuid.UUID
+	MembershipIds   []uuid.UUID
+}
+
+type ListMembershipRolesRow struct {
+	OrganizationID uuid.UUID
+	MembershipID   uuid.UUID
+	RoleID         uuid.UUID
+}
+
+// ListMembershipRoles returns the kept roles, not deleted, of memberships
+// of the given organizations (ListActiveMembershipsByUser spans
+// organizations).
+func (q *Queries) ListMembershipRoles(ctx context.Context, arg ListMembershipRolesParams) ([]ListMembershipRolesRow, error) {
+	rows, err := q.db.Query(ctx, listMembershipRoles, arg.OrganizationIds, arg.MembershipIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListMembershipRolesRow{}
+	for rows.Next() {
+		var i ListMembershipRolesRow
+		if err := rows.Scan(&i.OrganizationID, &i.MembershipID, &i.RoleID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listMemberships = `-- name: ListMemberships :many
-SELECT organization_id, id, user_id, role_id, status, revoked_at, created_at, updated_at FROM memberships
-WHERE organization_id = $1
-  AND ($2::text IS NULL OR status = $2)
-  AND ($3::uuid IS NULL OR role_id = $3)
-  AND ($4::uuid IS NULL OR id > $4)
-ORDER BY id
+SELECT organization_id, id, user_id, status, revoked_at, created_at, updated_at FROM memberships
+WHERE memberships.organization_id = $1
+  AND ($2::text IS NULL OR memberships.status = $2)
+  AND ($3::uuid IS NULL OR EXISTS (
+    SELECT 1 FROM membership_roles mr
+    WHERE mr.organization_id = memberships.organization_id AND mr.membership_id = memberships.id
+      AND mr.role_id = $3 AND mr.deleted_at IS NULL
+  ))
+  AND ($4::uuid IS NULL OR memberships.id > $4)
+ORDER BY memberships.id
 LIMIT $5
 `
 
@@ -784,7 +1136,6 @@ func (q *Queries) ListMemberships(ctx context.Context, arg ListMembershipsParams
 			&i.OrganizationID,
 			&i.ID,
 			&i.UserID,
-			&i.RoleID,
 			&i.Status,
 			&i.RevokedAt,
 			&i.CreatedAt,
@@ -801,8 +1152,8 @@ func (q *Queries) ListMemberships(ctx context.Context, arg ListMembershipsParams
 }
 
 const listRoles = `-- name: ListRoles :many
-SELECT organization_id, id, code, name, description, permissions, created_at, updated_at FROM roles
-WHERE organization_id = $1
+SELECT organization_id, id, code, name, description, permissions, created_at, updated_at, deleted_at FROM roles
+WHERE organization_id = $1 AND deleted_at IS NULL
   AND ($2::uuid IS NULL OR id > $2)
 ORDER BY id
 LIMIT $3
@@ -832,6 +1183,7 @@ func (q *Queries) ListRoles(ctx context.Context, arg ListRolesParams) ([]Role, e
 			&i.Permissions,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -841,6 +1193,127 @@ func (q *Queries) ListRoles(ctx context.Context, arg ListRolesParams) ([]Role, e
 		return nil, err
 	}
 	return items, nil
+}
+
+const listUserDevices = `-- name: ListUserDevices :many
+SELECT id, user_id, fingerprint, browser, os, device_type, last_ip_address, last_logged_at, created_at, updated_at FROM user_devices WHERE user_id = $1 ORDER BY id
+`
+
+func (q *Queries) ListUserDevices(ctx context.Context, userID uuid.UUID) ([]UserDevice, error) {
+	rows, err := q.db.Query(ctx, listUserDevices, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []UserDevice{}
+	for rows.Next() {
+		var i UserDevice
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Fingerprint,
+			&i.Browser,
+			&i.Os,
+			&i.DeviceType,
+			&i.LastIpAddress,
+			&i.LastLoggedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const recordAPIKeyUses = `-- name: RecordAPIKeyUses :execrows
+INSERT INTO api_key_uses (organization_id, api_key_id, last_used_at)
+SELECT k.organization_id, k.id, u.last_used_at
+FROM (SELECT unnest($1::uuid[]) AS id, unnest($2::timestamptz[]) AS last_used_at) u
+JOIN api_keys k ON k.organization_id = $3 AND k.id = u.id
+ON CONFLICT (organization_id, api_key_id) DO UPDATE
+SET last_used_at = GREATEST(api_key_uses.last_used_at, EXCLUDED.last_used_at)
+`
+
+type RecordAPIKeyUsesParams struct {
+	Ids            []uuid.UUID
+	LastUsedAts    []time.Time
+	OrganizationID uuid.UUID
+}
+
+// Records the last uses of an organization's keys, keeping the latest per
+// key; the uses of keys deleted meanwhile are dropped.
+func (q *Queries) RecordAPIKeyUses(ctx context.Context, arg RecordAPIKeyUsesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, recordAPIKeyUses, arg.Ids, arg.LastUsedAts, arg.OrganizationID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const revokeSession = `-- name: RevokeSession :execrows
+UPDATE sessions SET revoked_at = coalesce(revoked_at, $1::timestamptz) WHERE id = $2
+`
+
+type RevokeSessionParams struct {
+	RevokedAt time.Time
+	ID        uuid.UUID
+}
+
+func (q *Queries) RevokeSession(ctx context.Context, arg RevokeSessionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, revokeSession, arg.RevokedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const revokeUserSessions = `-- name: RevokeUserSessions :execrows
+UPDATE sessions SET revoked_at = $1
+WHERE user_id = $2 AND revoked_at IS NULL AND id <> $3
+`
+
+type RevokeUserSessionsParams struct {
+	RevokedAt *time.Time
+	UserID    uuid.UUID
+	Keep      uuid.UUID
+}
+
+func (q *Queries) RevokeUserSessions(ctx context.Context, arg RevokeUserSessionsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, revokeUserSessions, arg.RevokedAt, arg.UserID, arg.Keep)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const takeOIDCState = `-- name: TakeOIDCState :one
+DELETE FROM oidc_states WHERE key_hash = $1 RETURNING key_hash, method, intent, connection_id, email, invite_token_hash, organization_name, nonce, verifier, expires_at, created_at
+`
+
+// TakeOIDCState deletes the state and returns it; the repository refuses an
+// expired one.
+func (q *Queries) TakeOIDCState(ctx context.Context, keyHash []byte) (OidcState, error) {
+	row := q.db.QueryRow(ctx, takeOIDCState, keyHash)
+	var i OidcState
+	err := row.Scan(
+		&i.KeyHash,
+		&i.Method,
+		&i.Intent,
+		&i.ConnectionID,
+		&i.Email,
+		&i.InviteTokenHash,
+		&i.OrganizationName,
+		&i.Nonce,
+		&i.Verifier,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
 const touchAPIKeyLastUsed = `-- name: TouchAPIKeyLastUsed :execrows
@@ -856,6 +1329,23 @@ type TouchAPIKeyLastUsedParams struct {
 
 func (q *Queries) TouchAPIKeyLastUsed(ctx context.Context, arg TouchAPIKeyLastUsedParams) (int64, error) {
 	result, err := q.db.Exec(ctx, touchAPIKeyLastUsed, arg.LastUsedAt, arg.OrganizationID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const touchSession = `-- name: TouchSession :execrows
+UPDATE sessions SET last_seen_at = $1 WHERE id = $2
+`
+
+type TouchSessionParams struct {
+	LastSeenAt time.Time
+	ID         uuid.UUID
+}
+
+func (q *Queries) TouchSession(ctx context.Context, arg TouchSessionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, touchSession, arg.LastSeenAt, arg.ID)
 	if err != nil {
 		return 0, err
 	}
@@ -904,7 +1394,7 @@ func (q *Queries) UpdateAPIKey(ctx context.Context, arg UpdateAPIKeyParams) (int
 
 const updateInvite = `-- name: UpdateInvite :execrows
 UPDATE invites SET
-  organization_id = $1, id = $2, email = $3, role_id = $4, token_hash = $5,
+  organization_id = $1, id = $2, email = $3, role_ids = $4, token_hash = $5,
   status = $6, expires_at = $7, accepted_at = $8, revoked_at = $9,
   created_at = $10, updated_at = $11
 WHERE organization_id = $1 AND id = $2
@@ -914,7 +1404,7 @@ type UpdateInviteParams struct {
 	OrganizationID uuid.UUID
 	ID             uuid.UUID
 	Email          string
-	RoleID         uuid.UUID
+	RoleIds        []uuid.UUID
 	TokenHash      []byte
 	Status         string
 	ExpiresAt      time.Time
@@ -929,7 +1419,7 @@ func (q *Queries) UpdateInvite(ctx context.Context, arg UpdateInviteParams) (int
 		arg.OrganizationID,
 		arg.ID,
 		arg.Email,
-		arg.RoleID,
+		arg.RoleIds,
 		arg.TokenHash,
 		arg.Status,
 		arg.ExpiresAt,
@@ -946,8 +1436,8 @@ func (q *Queries) UpdateInvite(ctx context.Context, arg UpdateInviteParams) (int
 
 const updateMembership = `-- name: UpdateMembership :execrows
 UPDATE memberships SET
-  organization_id = $1, id = $2, user_id = $3, role_id = $4,
-  status = $5, revoked_at = $6, created_at = $7, updated_at = $8
+  organization_id = $1, id = $2, user_id = $3,
+  status = $4, revoked_at = $5, created_at = $6, updated_at = $7
 WHERE organization_id = $1 AND id = $2
 `
 
@@ -955,7 +1445,6 @@ type UpdateMembershipParams struct {
 	OrganizationID uuid.UUID
 	ID             uuid.UUID
 	UserID         uuid.UUID
-	RoleID         uuid.UUID
 	Status         string
 	RevokedAt      *time.Time
 	CreatedAt      time.Time
@@ -967,7 +1456,6 @@ func (q *Queries) UpdateMembership(ctx context.Context, arg UpdateMembershipPara
 		arg.OrganizationID,
 		arg.ID,
 		arg.UserID,
-		arg.RoleID,
 		arg.Status,
 		arg.RevokedAt,
 		arg.CreatedAt,
@@ -1014,7 +1502,7 @@ const updateRole = `-- name: UpdateRole :execrows
 UPDATE roles SET
   organization_id = $1, id = $2, code = $3, name = $4, description = $5,
   permissions = $6, created_at = $7, updated_at = $8
-WHERE organization_id = $1 AND id = $2
+WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type UpdateRoleParams struct {
@@ -1071,6 +1559,41 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (int64, 
 		arg.LastSignInAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const updateUserDevice = `-- name: UpdateUserDevice :execrows
+UPDATE user_devices SET
+  browser = $1, os = $2, device_type = $3,
+  last_ip_address = $4, last_logged_at = $5, updated_at = $6
+WHERE id = $7 AND user_id = $8
+`
+
+type UpdateUserDeviceParams struct {
+	Browser       *string
+	Os            *string
+	DeviceType    *string
+	LastIpAddress *string
+	LastLoggedAt  time.Time
+	UpdatedAt     time.Time
+	ID            uuid.UUID
+	UserID        uuid.UUID
+}
+
+func (q *Queries) UpdateUserDevice(ctx context.Context, arg UpdateUserDeviceParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateUserDevice,
+		arg.Browser,
+		arg.Os,
+		arg.DeviceType,
+		arg.LastIpAddress,
+		arg.LastLoggedAt,
+		arg.UpdatedAt,
+		arg.ID,
+		arg.UserID,
 	)
 	if err != nil {
 		return 0, err

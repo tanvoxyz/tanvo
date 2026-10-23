@@ -19,7 +19,7 @@ import (
 func exportFixtureMembership(e *env, org core.OrganizationID, email string) core.MembershipID {
 	e.t.Helper()
 	u := access.NewUser(core.NewID[core.UserID](e.ids), email, []byte("hash"), now)
-	m := access.NewMembership(core.NewID[core.MembershipID](e.ids), org, u.ID, access.BuiltInRoleID(permission.BuiltInRoleAdmin), now)
+	m := access.NewMembership(core.NewID[core.MembershipID](e.ids), org, u.ID, []core.RoleID{access.BuiltInRoleID(permission.BuiltInRoleAdmin)}, now)
 	e.tx(func(ctx context.Context, r port.Repos) error {
 		if err := r.Users.Create(ctx, u); err != nil {
 			return err

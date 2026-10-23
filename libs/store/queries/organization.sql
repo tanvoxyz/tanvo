@@ -4,11 +4,11 @@
 INSERT INTO organizations (
   id, name, slug, email, logo,
   address_line1, address_line2, address_city, address_state, address_zipcode, address_country,
-  authentication_methods, audit_logs_retention_days, max_wallets_per_customer, created_at, updated_at
+  authentication_methods, from_email_enabled, audit_logs_retention_days, max_wallets_per_customer, created_at, updated_at
 ) VALUES (
   @id, @name, @slug, @email, @logo,
   @address_line1, @address_line2, @address_city, @address_state, @address_zipcode, @address_country,
-  @authentication_methods, @audit_logs_retention_days, @max_wallets_per_customer, @created_at, @updated_at
+  @authentication_methods, @from_email_enabled, @audit_logs_retention_days, @max_wallets_per_customer, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
 
@@ -19,7 +19,8 @@ UPDATE organizations SET
   id = @id, name = @name, slug = @slug, email = @email, logo = @logo,
   address_line1 = @address_line1, address_line2 = @address_line2, address_city = @address_city,
   address_state = @address_state, address_zipcode = @address_zipcode, address_country = @address_country,
-  authentication_methods = @authentication_methods, audit_logs_retention_days = @audit_logs_retention_days,
+  authentication_methods = @authentication_methods, from_email_enabled = @from_email_enabled,
+  audit_logs_retention_days = @audit_logs_retention_days,
   max_wallets_per_customer = @max_wallets_per_customer, created_at = @created_at, updated_at = @updated_at
 WHERE id = @id;
 

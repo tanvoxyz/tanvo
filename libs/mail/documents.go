@@ -17,7 +17,9 @@ type DocumentEmail struct {
 	// email.
 	BillingEntity *organization.BillingEntity
 	// FromEmailEnabled sends from the billing entity's email instead of
-	// the instance sender (lago's "from_email" premium integration).
+	// the instance sender: the organization's
+	// [organization.Organization.FromEmailEnabled] (lago's "from_email"
+	// premium integration).
 	FromEmailEnabled bool
 	// Locale is the customer's applicable document locale.
 	Locale string
@@ -324,7 +326,8 @@ func (c *Composer) PaymentReceiptCreated(in PaymentReceiptEmail) (*Message, erro
 type PaymentRequestEmail struct {
 	// BillingEntity issues the request.
 	BillingEntity *organization.BillingEntity
-	// FromEmailEnabled sends from the billing entity's email.
+	// FromEmailEnabled sends from the billing entity's email
+	// ([organization.Organization.FromEmailEnabled]).
 	FromEmailEnabled bool
 	// Locale is the customer's applicable document locale.
 	Locale string

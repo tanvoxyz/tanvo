@@ -896,6 +896,58 @@ func (q *Queries) ListIntegrations(ctx context.Context, arg ListIntegrationsPara
 	return items, nil
 }
 
+const listIntegrationsByDomain = `-- name: ListIntegrationsByDomain :many
+SELECT organization_id, id, code, name, category, provider, is_default, settings, secrets, sync_invoices, sync_credit_notes, sync_payments, sync_subscriptions, created_at, updated_at FROM integrations
+WHERE category = 'auth' AND provider = $1
+  AND (lower(settings->>'domain') = lower($2::text)
+    OR settings->'additional_domains' @> jsonb_build_array(lower($2::text)))
+ORDER BY id
+`
+
+type ListIntegrationsByDomainParams struct {
+	Provider string
+	Domain   string
+}
+
+// ListIntegrationsByDomain is cross-organization (single sign-on routing):
+// the auth integrations of a provider claiming an email domain, as the
+// primary domain or one of the additional domains (stored lower-case).
+func (q *Queries) ListIntegrationsByDomain(ctx context.Context, arg ListIntegrationsByDomainParams) ([]Integration, error) {
+	rows, err := q.db.Query(ctx, listIntegrationsByDomain, arg.Provider, arg.Domain)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Integration{}
+	for rows.Next() {
+		var i Integration
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.Code,
+			&i.Name,
+			&i.Category,
+			&i.Provider,
+			&i.IsDefault,
+			&i.Settings,
+			&i.Secrets,
+			&i.SyncInvoices,
+			&i.SyncCreditNotes,
+			&i.SyncPayments,
+			&i.SyncSubscriptions,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listIntegrationsByProvider = `-- name: ListIntegrationsByProvider :many
 SELECT organization_id, id, code, name, category, provider, is_default, settings, secrets, sync_invoices, sync_credit_notes, sync_payments, sync_subscriptions, created_at, updated_at FROM integrations
 WHERE organization_id = $1 AND provider = $2

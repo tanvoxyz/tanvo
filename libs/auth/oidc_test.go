@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"net/url"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -16,10 +17,9 @@ import (
 
 type oidcEnv struct {
 	*env
-	idp    *idp
-	conns  *StaticConnections
-	states *MemoryStateStore
-	oidc   *OIDC
+	idp   *idp
+	conns *StaticConnections
+	oidc  *OIDC
 }
 
 // newOIDCEnv wires the OIDC service to a local provider; prefix is the
@@ -29,10 +29,9 @@ func newOIDCEnv(t *testing.T, prefix string, cfg ...UsersConfig) *oidcEnv {
 	e := &oidcEnv{env: newEnv(t, cfg...)}
 	e.idp = newIdP(t, e.clock, prefix)
 	e.conns = NewStaticConnections()
-	e.states = NewMemoryStateStore(e.clock)
 	google := GoogleConnection(e.idp.clientID, e.idp.clientSecret, "https://app.tanvo.test/auth/google/callback")
 	google.Issuer = e.idp.issuer
-	e.oidc = NewOIDC(e.deps, e.users, e.invites, OIDCConfig{Google: google, Connections: e.conns, States: e.states})
+	e.oidc = NewOIDC(e.deps, e.users, e.invites, OIDCConfig{Google: google, Connections: e.conns})
 	return e
 }
 
@@ -226,7 +225,7 @@ func TestOIDCGoogle(t *testing.T) {
 		{name: "register", setup: func(*oidcEnv) BeginRequest {
 			return BeginRequest{Method: google, Intent: IntentSignUp, OrganizationName: "FooBar"}
 		}, claims: email("Foo@Bar.com"), check: func(t *testing.T, e *oidcEnv, out *SignedIn) {
-			if out.User.Email != "foo@bar.com" || out.Organization.Name != "FooBar" || out.Membership.RoleID != roleID(permission.BuiltInRoleAdmin) || out.Session.Method != google {
+			if out.User.Email != "foo@bar.com" || out.Organization.Name != "FooBar" || !slices.Equal(out.Membership.RoleIDs, roleIDs(permission.BuiltInRoleAdmin)) || out.Session.Method != google {
 				t.Errorf("got = %+v", out)
 			}
 			if len(out.User.PasswordHash) != 0 {
@@ -246,7 +245,7 @@ func TestOIDCGoogle(t *testing.T) {
 			ci := newInvite(e.t, e.env, e.org(), "invited@bar.com", permission.BuiltInRoleManager)
 			return BeginRequest{Method: google, Intent: IntentAcceptInvite, InviteToken: ci.Token}
 		}, claims: email("invited@bar.com"), check: func(t *testing.T, e *oidcEnv, out *SignedIn) {
-			if out.User.Email != "invited@bar.com" || out.Membership.RoleID != roleID(permission.BuiltInRoleManager) || out.Session.Method != google || out.Token == "" {
+			if out.User.Email != "invited@bar.com" || !slices.Equal(out.Membership.RoleIDs, roleIDs(permission.BuiltInRoleManager)) || out.Session.Method != google || out.Token == "" {
 				t.Errorf("got = %+v", out)
 			}
 			if len(out.User.PasswordHash) != 0 {
@@ -301,8 +300,8 @@ func TestOIDCOrganizationLogin(t *testing.T) {
 			if out.User.Email != "gavin@hooli.com" || len(out.User.PasswordHash) != 0 || out.Session.Method != okta {
 				t.Errorf("user = %+v", out.User)
 			}
-			if m := f.e.membershipOf(out.User, f.org); m.RoleID != roleID(permission.BuiltInRoleFinance) {
-				t.Errorf("role = %s, want the connection's default role", m.RoleID)
+			if m := f.e.membershipOf(out.User, f.org); !slices.Equal(m.RoleIDs, roleIDs(permission.BuiltInRoleFinance)) {
+				t.Errorf("roles = %v, want the connection's default role", m.RoleIDs)
 			}
 		}},
 		{name: "entra creates the user and the membership", method: entraM, typed: "gavin@hooli.com", claims: email("gavin@hooli.com")},
@@ -352,7 +351,7 @@ func TestOIDCOrganizationLogin(t *testing.T) {
 		{name: "membership already exists", method: okta, setup: func(f fixture) {
 			f.e.member(f.e.user("gavin@hooli.com", "pw"), f.org, permission.BuiltInRoleAdmin)
 		}, typed: "gavin@hooli.com", claims: email("gavin@hooli.com"), check: func(t *testing.T, f fixture, out *SignedIn) {
-			if n := f.e.countMemberships(f.org); n != 1 || f.e.membershipOf(out.User, f.org).RoleID != roleID(permission.BuiltInRoleAdmin) {
+			if n := f.e.countMemberships(f.org); n != 1 || !slices.Equal(f.e.membershipOf(out.User, f.org).RoleIDs, roleIDs(permission.BuiltInRoleAdmin)) {
 				t.Errorf("memberships = %d, want the existing admin membership only", n)
 			}
 		}},
@@ -401,7 +400,7 @@ func TestOIDCOrganizationAcceptInvite(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if out.Membership.RoleID != roleID(permission.BuiltInRoleManager) || out.Session.Method != m {
+			if !slices.Equal(out.Membership.RoleIDs, roleIDs(permission.BuiltInRoleManager)) || out.Session.Method != m {
 				t.Errorf("got = %+v, want the invite's role", out.Membership)
 			}
 			if _, err := e.invites.Lookup(e.ctx, ci.Token); code(err) != "invite_not_found" {

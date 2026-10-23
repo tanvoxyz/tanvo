@@ -40,6 +40,7 @@ func organizationParams(o *organization.Organization) db.CreateOrganizationParam
 		AddressZipcode:         o.Address.Zipcode,
 		AddressCountry:         o.Address.Country,
 		AuthenticationMethods:  enumStrings(o.AuthenticationMethods),
+		FromEmailEnabled:       o.FromEmailEnabled,
 		AuditLogsRetentionDays: int32(o.AuditLogsRetentionDays), // validated small
 		MaxWalletsPerCustomer:  int32(o.MaxWalletsPerCustomer),  // validated small
 		CreatedAt:              utc(o.CreatedAt),
@@ -59,6 +60,7 @@ func organizationOf(r db.Organization) (*organization.Organization, error) {
 			State: r.AddressState, Zipcode: r.AddressZipcode, Country: r.AddressCountry,
 		},
 		AuthenticationMethods:  enumsOf[organization.AuthenticationMethod](r.AuthenticationMethods),
+		FromEmailEnabled:       r.FromEmailEnabled,
 		AuditLogsRetentionDays: int(r.AuditLogsRetentionDays),
 		MaxWalletsPerCustomer:  int(r.MaxWalletsPerCustomer),
 		CreatedAt:              utc(r.CreatedAt),

@@ -41,6 +41,12 @@ type Repos struct {
 	PasswordResets access.PasswordResetRepository
 	// APIKeys stores API keys.
 	APIKeys access.APIKeyRepository
+	// Sessions stores user sessions (domain §5.7).
+	Sessions access.SessionRepository
+	// OIDCStates stores OpenID Connect sign-ins in progress.
+	OIDCStates access.OIDCStateRepository
+	// UserDevices stores the known devices of users (domain §5.8).
+	UserDevices access.UserDeviceRepository
 
 	// Customers stores customers (domain §6).
 	Customers customer.Repository

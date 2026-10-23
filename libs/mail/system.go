@@ -158,7 +158,8 @@ type AuthenticationMethodsEmail struct {
 	OrganizationEmail string
 	// OrganizationLogoURL is the organization logo shown in the header.
 	OrganizationLogoURL string
-	// FromEmailEnabled makes the organization email the reply-to.
+	// FromEmailEnabled makes the organization email the reply-to
+	// ([organization.Organization.FromEmailEnabled]).
 	FromEmailEnabled bool
 	// Locale is the organization's document locale.
 	Locale string

@@ -3,6 +3,7 @@ package memstore
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"maps"
 	"slices"
 	"time"
@@ -17,9 +18,14 @@ type accessData struct {
 	users          *table[core.UserID, access.User]
 	memberships    *table[core.MembershipID, access.Membership]
 	roles          *table[core.RoleID, access.Role]
+	discardedRoles *table[core.RoleID, access.Role]
 	invites        *table[core.InviteID, access.Invite]
 	passwordResets *table[core.PasswordResetID, access.PasswordReset]
 	apiKeys        *table[core.APIKeyID, access.APIKey]
+	apiKeyUses     *table[core.APIKeyID, apiKeyUse]
+	sessions       *table[core.SessionID, access.Session]
+	oidcStates     map[string]access.OIDCState
+	userDevices    *table[core.UserDeviceID, access.UserDevice]
 }
 
 func newAccessData() *accessData {
@@ -28,13 +34,21 @@ func newAccessData() *accessData {
 			u.PasswordHash = slices.Clone(u.PasswordHash)
 			return u
 		}),
-		memberships: newTable[core.MembershipID, access.Membership](nil),
+		memberships: newTable[core.MembershipID](func(m access.Membership) access.Membership {
+			m.RoleIDs = slices.Clone(m.RoleIDs)
+			return m
+		}),
 		roles: newTable[core.RoleID](func(r access.Role) access.Role {
+			r.Permissions = slices.Clone(r.Permissions)
+			return r
+		}),
+		discardedRoles: newTable[core.RoleID](func(r access.Role) access.Role {
 			r.Permissions = slices.Clone(r.Permissions)
 			return r
 		}),
 		invites: newTable[core.InviteID](func(i access.Invite) access.Invite {
 			i.TokenHash = slices.Clone(i.TokenHash)
+			i.RoleIDs = slices.Clone(i.RoleIDs)
 			return i
 		}),
 		passwordResets: newTable[core.PasswordResetID](func(p access.PasswordReset) access.PasswordReset {
@@ -46,6 +60,10 @@ func newAccessData() *accessData {
 			k.Permissions = maps.Clone(k.Permissions)
 			return k
 		}),
+		apiKeyUses:  newTable[core.APIKeyID, apiKeyUse](nil),
+		sessions:    newTable[core.SessionID](cloneSession),
+		oidcStates:  map[string]access.OIDCState{},
+		userDevices: newTable[core.UserDeviceID](cloneUserDevice),
 	}
 }
 
@@ -54,9 +72,14 @@ func (d *accessData) snapshot() *accessData {
 		users:          d.users.snapshot(),
 		memberships:    d.memberships.snapshot(),
 		roles:          d.roles.snapshot(),
+		discardedRoles: d.discardedRoles.snapshot(),
 		invites:        d.invites.snapshot(),
 		passwordResets: d.passwordResets.snapshot(),
 		apiKeys:        d.apiKeys.snapshot(),
+		apiKeyUses:     d.apiKeyUses.snapshot(),
+		sessions:       d.sessions.snapshot(),
+		oidcStates:     maps.Clone(d.oidcStates),
+		userDevices:    d.userDevices.snapshot(),
 	}
 }
 
@@ -67,6 +90,9 @@ var (
 	_ access.InviteRepository        = inviteRepo{}
 	_ access.PasswordResetRepository = passwordResetRepo{}
 	_ access.APIKeyRepository        = apiKeyRepo{}
+	_ access.SessionRepository       = sessionRepo{}
+	_ access.OIDCStateRepository     = oidcStateRepo{}
+	_ access.UserDeviceRepository    = userDeviceRepo{}
 )
 
 // userRepo implements access.UserRepository.
@@ -125,7 +151,25 @@ func (r membershipRepo) duplicate(m *access.Membership) bool {
 	})
 }
 
+// kept returns m without the roles that were discarded (lago default
+// scope on roles).
+func (r membershipRepo) kept(m *access.Membership) *access.Membership {
+	m.RoleIDs = slices.DeleteFunc(m.RoleIDs, r.d.discardedRoles.has)
+	return m
+}
+
+// keptAll applies [membershipRepo.kept] to ms.
+func (r membershipRepo) keptAll(ms []*access.Membership) []*access.Membership {
+	for _, m := range ms {
+		r.kept(m)
+	}
+	return ms
+}
+
 func (r membershipRepo) Create(_ context.Context, m *access.Membership) error {
+	if m.Active() && len(m.RoleIDs) == 0 {
+		return fmt.Errorf("create membership: roles: %w", core.ErrInvalidValue)
+	}
 	if r.d.memberships.has(m.ID) {
 		return conflict("membership", "id")
 	}
@@ -137,6 +181,9 @@ func (r membershipRepo) Create(_ context.Context, m *access.Membership) error {
 }
 
 func (r membershipRepo) Update(_ context.Context, m *access.Membership) error {
+	if m.Active() && len(m.RoleIDs) == 0 {
+		return fmt.Errorf("update membership: roles: %w", core.ErrInvalidValue)
+	}
 	cur, ok := r.d.memberships.get(m.ID)
 	if !ok || cur.OrganizationID != m.OrganizationID {
 		return notFound("membership", m.ID)
@@ -144,7 +191,15 @@ func (r membershipRepo) Update(_ context.Context, m *access.Membership) error {
 	if r.duplicate(m) {
 		return conflict("membership", "user_id")
 	}
-	r.d.memberships.put(m.ID, *m)
+	// The rows of discarded roles stay, as in the store.
+	stored := *m
+	for _, id := range cur.RoleIDs {
+		if r.d.discardedRoles.has(id) {
+			stored.RoleIDs = append(stored.RoleIDs, id)
+		}
+	}
+	stored.RoleIDs = access.NormalizeRoleIDs(stored.RoleIDs)
+	r.d.memberships.put(m.ID, stored)
 	return nil
 }
 
@@ -153,7 +208,7 @@ func (r membershipRepo) Get(_ context.Context, org core.OrganizationID, id core.
 	if !ok || m.OrganizationID != org {
 		return nil, notFound("membership", id)
 	}
-	return m, nil
+	return r.kept(m), nil
 }
 
 func (r membershipRepo) GetActiveByUser(_ context.Context, org core.OrganizationID, user core.UserID) (*access.Membership, error) {
@@ -163,25 +218,25 @@ func (r membershipRepo) GetActiveByUser(_ context.Context, org core.Organization
 	if !ok {
 		return nil, notFound("membership", user)
 	}
-	return m, nil
+	return r.kept(m), nil
 }
 
 func (r membershipRepo) ListActiveByUser(_ context.Context, user core.UserID) ([]*access.Membership, error) {
-	return r.d.memberships.find(func(x *access.Membership) bool { return x.UserID == user && x.Active() }), nil
+	return r.keptAll(r.d.memberships.find(func(x *access.Membership) bool { return x.UserID == user && x.Active() })), nil
 }
 
 func (r membershipRepo) List(_ context.Context, org core.OrganizationID, f access.MembershipFilter, page core.PageRequest) (core.Page[*access.Membership], error) {
 	rows := r.d.memberships.find(func(x *access.Membership) bool {
 		return x.OrganizationID == org &&
 			(f.Status == "" || x.Status == f.Status) &&
-			(f.RoleID.IsZero() || x.RoleID == f.RoleID)
+			(f.RoleID.IsZero() || x.HasRole(f.RoleID))
 	})
-	return paginate(rows, func(x *access.Membership) core.MembershipID { return x.ID }, page)
+	return paginate(r.keptAll(rows), func(x *access.Membership) core.MembershipID { return x.ID }, page)
 }
 
 func (r membershipRepo) CountActiveByRole(_ context.Context, org core.OrganizationID, role core.RoleID) (int, error) {
 	return r.d.memberships.count(func(x *access.Membership) bool {
-		return x.OrganizationID == org && x.RoleID == role && x.Active()
+		return x.OrganizationID == org && x.HasRole(role) && x.Active()
 	}), nil
 }
 
@@ -200,7 +255,7 @@ func accessBuiltInCode(code string) bool {
 }
 
 func (r roleRepo) Create(_ context.Context, role *access.Role) error {
-	if _, builtIn := access.BuiltInRoleByID(role.ID); builtIn || r.d.roles.has(role.ID) {
+	if _, builtIn := access.BuiltInRoleByID(role.ID); builtIn || r.d.roles.has(role.ID) || r.d.discardedRoles.has(role.ID) {
 		return conflict("role", "id")
 	}
 	if r.codeTaken(role) {
@@ -222,12 +277,14 @@ func (r roleRepo) Update(_ context.Context, role *access.Role) error {
 	return nil
 }
 
-func (r roleRepo) Delete(_ context.Context, org core.OrganizationID, id core.RoleID) error {
+func (r roleRepo) Discard(_ context.Context, org core.OrganizationID, id core.RoleID, at time.Time) error {
 	cur, ok := r.d.roles.get(id)
 	if !ok || cur.OrganizationID != org {
 		return notFound("role", id)
 	}
 	r.d.roles.del(id)
+	cur.UpdatedAt = at.UTC()
+	r.d.discardedRoles.put(id, *cur)
 	return nil
 }
 
@@ -434,4 +491,54 @@ func (r apiKeyRepo) TouchLastUsed(_ context.Context, org core.OrganizationID, id
 	k.Touch(at)
 	r.d.apiKeys.put(id, *k)
 	return nil
+}
+
+// apiKeyUse is a recorded, unapplied use of an API key.
+type apiKeyUse struct {
+	org core.OrganizationID
+	id  core.APIKeyID
+	at  time.Time
+}
+
+func (r apiKeyRepo) RecordUses(_ context.Context, org core.OrganizationID, uses map[core.APIKeyID]time.Time) error {
+	for id, at := range uses {
+		if k, ok := r.d.apiKeys.get(id); !ok || k.OrganizationID != org {
+			continue
+		}
+		if cur, ok := r.d.apiKeyUses.get(id); ok && !at.After(cur.at) {
+			continue
+		}
+		r.d.apiKeyUses.put(id, apiKeyUse{org: org, id: id, at: at.UTC()})
+	}
+	return nil
+}
+
+func (r apiKeyRepo) ApplyUses(_ context.Context, org core.OrganizationID) (int, error) {
+	n := 0
+	for _, u := range r.d.apiKeyUses.find(func(x *apiKeyUse) bool { return x.org == org }) {
+		r.d.apiKeyUses.del(u.id)
+		k, ok := r.d.apiKeys.get(u.id)
+		if !ok {
+			continue
+		}
+		if k.LastUsedAt == nil || u.at.After(*k.LastUsedAt) {
+			k.Touch(u.at)
+			r.d.apiKeys.put(u.id, *k)
+		}
+		n++
+	}
+	return n, nil
+}
+
+func (r apiKeyRepo) UseOrganizations(context.Context) ([]core.OrganizationID, error) {
+	seen := map[core.OrganizationID]bool{}
+	var out []core.OrganizationID
+	for _, u := range r.d.apiKeyUses.find(func(*apiKeyUse) bool { return true }) {
+		if !seen[u.org] {
+			seen[u.org] = true
+			out = append(out, u.org)
+		}
+	}
+	slices.SortFunc(out, core.OrganizationID.Compare)
+	return out, nil
 }

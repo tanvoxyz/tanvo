@@ -24,90 +24,25 @@ import (
 const DefaultStateTTL = 10 * time.Minute
 
 // Intent is what an OpenID Connect flow does once the identity is known.
-type Intent string
+type Intent = access.OIDCIntent
 
 // Intents.
 const (
 	// IntentLogin signs in; organization connections auto-provision the
 	// user and membership, Google requires an existing member.
-	IntentLogin Intent = "login"
+	IntentLogin = access.OIDCIntentLogin
 	// IntentSignUp registers a user and an organization (Google only, as
 	// in lago).
-	IntentSignUp Intent = "sign_up"
+	IntentSignUp = access.OIDCIntentSignUp
 	// IntentAcceptInvite accepts an invite for the identity's email.
-	IntentAcceptInvite Intent = "accept_invite"
+	IntentAcceptInvite = access.OIDCIntentAcceptInvite
 )
 
 // OIDCState is the server-side state of a flow between [OIDC.Begin] and
-// [OIDC.Complete], stored under the SHA-256 of the state parameter.
-type OIDCState struct {
-	// Method is the sign-in method.
-	Method organization.AuthenticationMethod
-	// Intent is the flow's purpose.
-	Intent Intent
-	// ConnectionID is the connection chosen at the start.
-	ConnectionID string
-	// Email is the address typed at the start (empty for Google).
-	Email string
-	// InviteToken is the invite being accepted.
-	InviteToken string
-	// OrganizationName names the organization of a sign-up.
-	OrganizationName string
-	// Nonce binds the ID token to the flow.
-	Nonce string
-	// Verifier is the PKCE code verifier.
-	Verifier string
-	// ExpiresAt ends the flow's validity.
-	ExpiresAt time.Time
-}
-
-// StateStore keeps flow states; entries are single-use. apps/server backs
-// it with PostgreSQL or Redis so that any replica can finish a flow.
-type StateStore interface {
-	// Put stores st under key.
-	Put(ctx context.Context, key []byte, st OIDCState) error
-	// Take removes and returns the state under key; a missing or expired
-	// state is core.ErrNotFound.
-	Take(ctx context.Context, key []byte) (OIDCState, error)
-}
-
-// MemoryStateStore is an in-memory [StateStore].
-type MemoryStateStore struct {
-	mu     sync.Mutex
-	clock  core.Clock
-	states map[string]OIDCState
-}
-
-// NewMemoryStateStore returns an empty store expiring states by clock.
-func NewMemoryStateStore(clock core.Clock) *MemoryStateStore {
-	return &MemoryStateStore{clock: clock, states: map[string]OIDCState{}}
-}
-
-// Put implements [StateStore], dropping expired states.
-func (m *MemoryStateStore) Put(_ context.Context, key []byte, st OIDCState) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	now := m.clock.Now()
-	for k, s := range m.states {
-		if !now.Before(s.ExpiresAt) {
-			delete(m.states, k)
-		}
-	}
-	m.states[string(key)] = st
-	return nil
-}
-
-// Take implements [StateStore].
-func (m *MemoryStateStore) Take(_ context.Context, key []byte) (OIDCState, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	st, ok := m.states[string(key)]
-	delete(m.states, string(key))
-	if !ok || !m.clock.Now().Before(st.ExpiresAt) {
-		return OIDCState{}, fmt.Errorf("oidc state: %w", core.ErrNotFound)
-	}
-	return st, nil
-}
+// [OIDC.Complete], stored in the access repositories
+// ([port.Repos.OIDCStates]) under the SHA-256 of the state parameter, so
+// that any replica can finish a flow.
+type OIDCState = access.OIDCState
 
 // OIDCConfig configures [OIDC].
 type OIDCConfig struct {
@@ -115,8 +50,6 @@ type OIDCConfig struct {
 	Google *Connection
 	// Connections resolves Okta, Entra ID and generic connections.
 	Connections ConnectionResolver
-	// States keeps flow states.
-	States StateStore
 	// StateTTL bounds a flow; 0 uses [DefaultStateTTL].
 	StateTTL time.Duration
 	// HTTPClient reaches the providers. apps/server passes a client that
@@ -283,11 +216,18 @@ func (s *OIDC) Begin(ctx context.Context, req BeginRequest) (string, error) {
 	if err := errors.Join(err1, err2, err3); err != nil {
 		return "", err
 	}
-	st := OIDCState{
-		Method: req.Method, Intent: req.Intent, ConnectionID: c.ID, Email: email, InviteToken: req.InviteToken,
-		OrganizationName: req.OrganizationName, Nonce: nonce, Verifier: verifier, ExpiresAt: s.d.now().Add(s.cfg.StateTTL),
+	now := s.d.now()
+	st := &OIDCState{
+		KeyHash: HashSecret(state), Method: req.Method, Intent: req.Intent, ConnectionID: c.ID, Email: email,
+		OrganizationName: req.OrganizationName, Nonce: nonce, Verifier: verifier, ExpiresAt: now.Add(s.cfg.StateTTL), CreatedAt: now,
 	}
-	if err := s.cfg.States.Put(ctx, HashSecret(state), st); err != nil {
+	if req.Intent == IntentAcceptInvite {
+		st.InviteTokenHash = HashSecret(req.InviteToken)
+	}
+	if err := st.Validate(); err != nil {
+		return "", fmt.Errorf("oidc state: %w", err)
+	}
+	if err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error { return r.OIDCStates.Create(ctx, st) }); err != nil {
 		return "", fmt.Errorf("store oidc state: %w", err)
 	}
 	opts := []oauth2.AuthCodeOption{oidc.Nonce(nonce), oauth2.S256ChallengeOption(verifier)}
@@ -338,7 +278,12 @@ func (s *OIDC) Complete(ctx context.Context, req CallbackRequest) (*SignedIn, er
 	if req.State == "" {
 		return nil, rule(CodeStateNotFound)
 	}
-	st, err := s.cfg.States.Take(ctx, HashSecret(req.State))
+	var st *OIDCState
+	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+		var err error
+		st, err = r.OIDCStates.Take(ctx, HashSecret(req.State), s.d.now())
+		return err
+	})
 	if errors.Is(err, core.ErrNotFound) {
 		return nil, rule(CodeStateNotFound)
 	}
@@ -357,7 +302,7 @@ func (s *OIDC) Complete(ctx context.Context, req CallbackRequest) (*SignedIn, er
 	}
 	if st.Intent == IntentAcceptInvite {
 		if err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
-			_, err := pendingInvite(ctx, r, st.InviteToken)
+			_, err := pendingInviteByHash(ctx, r, st.InviteTokenHash)
 			return err
 		}); err != nil {
 			return nil, err
@@ -384,7 +329,7 @@ func (s *OIDC) Complete(ctx context.Context, req CallbackRequest) (*SignedIn, er
 	}
 }
 
-func (s *OIDC) identity(ctx context.Context, c *Connection, st OIDCState, code string) (Identity, error) {
+func (s *OIDC) identity(ctx context.Context, c *Connection, st *OIDCState, code string) (Identity, error) {
 	oc, p, err := s.oauth(ctx, c)
 	if err != nil {
 		return Identity{}, err
@@ -436,10 +381,10 @@ func (s *OIDC) identity(ctx context.Context, c *Connection, st OIDCState, code s
 	return Identity{Subject: idt.Subject, Email: email, Name: cl.Name}, nil
 }
 
-func (s *OIDC) acceptInvite(ctx context.Context, st OIDCState, id Identity, meta SessionMeta) (*SignedIn, error) {
+func (s *OIDC) acceptInvite(ctx context.Context, st *OIDCState, id Identity, meta SessionMeta) (*SignedIn, error) {
 	var out *SignedIn
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
-		inv, err := pendingInvite(ctx, r, st.InviteToken)
+		inv, err := pendingInviteByHash(ctx, r, st.InviteTokenHash)
 		if err != nil {
 			return err
 		}
@@ -535,7 +480,7 @@ func (s *OIDC) provision(ctx context.Context, r port.Repos, c *Connection, user 
 		}
 		page.Token = p.NextToken
 	}
-	m := access.NewMembership(core.NewID[core.MembershipID](s.d.IDs), c.OrganizationID, user.ID, c.DefaultRoleID, now)
+	m := access.NewMembership(core.NewID[core.MembershipID](s.d.IDs), c.OrganizationID, user.ID, []core.RoleID{c.DefaultRoleID}, now)
 	if err := r.Memberships.Create(ctx, m); err != nil {
 		return fmt.Errorf("create membership: %w", err)
 	}

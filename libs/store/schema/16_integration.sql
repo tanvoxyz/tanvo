@@ -24,11 +24,14 @@ CREATE TABLE integrations (
   CONSTRAINT integrations_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
   CONSTRAINT integrations_code_key UNIQUE (organization_id, code),
   CONSTRAINT integrations_category_check CHECK (category IN ('payment', 'accounting', 'tax', 'crm', 'auth')),
-  CONSTRAINT integrations_provider_check CHECK (provider IN ('stripe', 'adyen', 'gocardless', 'cashfree', 'moneyhash', 'flutterwave', 'netsuite', 'xero', 'anrok', 'avalara', 'hubspot', 'salesforce', 'okta', 'entra_id'))
+  CONSTRAINT integrations_provider_check CHECK (provider IN ('stripe', 'adyen', 'gocardless', 'cashfree', 'moneyhash', 'flutterwave', 'netsuite', 'xero', 'anrok', 'avalara', 'hubspot', 'salesforce', 'okta', 'entra_id', 'oidc'))
 );
 
 CREATE UNIQUE INDEX integrations_default_key ON integrations (organization_id, category) WHERE is_default;
 CREATE INDEX integrations_provider_idx ON integrations (organization_id, provider);
+-- Single sign-on routes an email domain to the auth integrations claiming it
+-- in any organization (ListIntegrationsByDomain).
+CREATE INDEX integrations_auth_domain_idx ON integrations (provider, lower(settings->>'domain')) WHERE category = 'auth';
 
 ALTER TABLE integrations ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON integrations

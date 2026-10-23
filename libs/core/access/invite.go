@@ -22,8 +22,8 @@ const (
 // PasswordResetValidity is how long a password reset token is valid.
 const PasswordResetValidity = 30 * time.Minute
 
-// Invite invites an email address to an organization with a role (domain
-// §5.4).
+// Invite invites an email address to an organization with one or more
+// roles (domain §5.4).
 type Invite struct {
 	// ID identifies the invite.
 	ID core.InviteID
@@ -31,8 +31,9 @@ type Invite struct {
 	OrganizationID core.OrganizationID
 	// Email is the invitee, normalized by [NormalizeEmail].
 	Email string
-	// RoleID is the role of the membership created on acceptance.
-	RoleID core.RoleID
+	// RoleIDs are the roles of the membership created on acceptance: at
+	// least one, sorted and unique.
+	RoleIDs []core.RoleID
 	// TokenHash is the SHA-256 of the random invite token.
 	TokenHash []byte
 	// Status is pending, accepted or revoked.
@@ -49,10 +50,11 @@ type Invite struct {
 	UpdatedAt time.Time
 }
 
-// NewInvite returns a pending invite.
-func NewInvite(id core.InviteID, org core.OrganizationID, email string, role core.RoleID, tokenHash []byte, expiresAt, now time.Time) *Invite {
+// NewInvite returns a pending invite with roles, normalized by
+// [NormalizeRoleIDs].
+func NewInvite(id core.InviteID, org core.OrganizationID, email string, roles []core.RoleID, tokenHash []byte, expiresAt, now time.Time) *Invite {
 	return &Invite{
-		ID: id, OrganizationID: org, Email: NormalizeEmail(email), RoleID: role, TokenHash: tokenHash,
+		ID: id, OrganizationID: org, Email: NormalizeEmail(email), RoleIDs: NormalizeRoleIDs(roles), TokenHash: tokenHash,
 		Status: InviteStatusPending, ExpiresAt: expiresAt, CreatedAt: now, UpdatedAt: now,
 	}
 }
@@ -64,7 +66,7 @@ func (i *Invite) Validate() error {
 	if v.Required("email", i.Email) {
 		v.Email("email", i.Email)
 	}
-	v.Check(!i.RoleID.IsZero(), "role_id", core.CodeRequired)
+	validRoleIDs(&v, i.RoleIDs)
 	v.Check(len(i.TokenHash) > 0, "token", core.CodeRequired)
 	v.Enum("status", i.Status)
 	v.Check(!i.ExpiresAt.IsZero(), "expires_at", core.CodeRequired)

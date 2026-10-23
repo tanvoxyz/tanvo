@@ -1,24 +1,35 @@
-# Ported from lago spec/models/membership_role_spec.rb (last admin) and
-# Tanvo's domain §5.2 rules. Tanvo memberships carry one role, so lago's
-# "discard a membership role" is a role change or a revocation here.
-# admins counts the organization's active admin memberships, target included.
+# Ported from lago spec/models/membership_role_spec.rb,
+# spec/services/memberships/update_service_spec.rb and
+# spec/services/memberships/revoke_service_spec.rb. Roles are built-in codes
+# or "custom" (a custom role of the organization). admins counts the
+# organization's active admin memberships, target included.
 cases:
-  - {name: revoking the last admin, source: "spec/models/membership_role_spec.rb:48", op: revoke, target_admin: true, admins: 1, code: last_admin}
-  - {name: revoking an admin when another exists, source: "spec/models/membership_role_spec.rb:75", op: revoke, target_admin: true, admins: 2}
-  - {name: revoking the last active admin when others are revoked, source: "spec/models/membership_role_spec.rb:88", op: revoke, target_admin: true, admins: 1, code: last_admin}
-  - {name: revoking own membership, source: "tanvo", op: revoke, self: true, admins: 2, code: cannot_revoke_own_membership}
-  - {name: revoking a non-admin, source: "tanvo", op: revoke, admins: 1}
-  - {name: demoting the last admin, source: "spec/models/membership_role_spec.rb:48", op: change, actor_admin: true, target_admin: true, admins: 1, code: last_admin}
-  - {name: demoting an admin when another exists, source: "spec/models/membership_role_spec.rb:75", op: change, actor_admin: true, target_admin: true, admins: 2}
-  - {name: non-admin granting admin, source: "tanvo", op: change, new_admin: true, admins: 1, code: admin_role_requires_admin}
-  - {name: admin granting admin, source: "tanvo", op: change, actor_admin: true, new_admin: true, admins: 1}
-  - {name: non-admin changing between custom roles, source: "tanvo", op: change, admins: 1}
+  - {name: revoking the last admin, source: "spec/services/memberships/revoke_service_spec.rb:71", op: revoke, target_roles: [admin], admins: 1, code: last_admin}
+  - {name: revoking the last active admin when others are revoked, source: "spec/services/memberships/revoke_service_spec.rb:89", op: revoke, target_roles: [admin], admins: 1, code: last_admin}
+  - {name: revoking an admin when another exists, source: "spec/models/membership_role_spec.rb:75", op: revoke, target_roles: [admin, custom], admins: 2}
+  - {name: revoking own membership, source: "spec/services/memberships/revoke_service_spec.rb:19", op: revoke, self: true, target_roles: [admin], admins: 2, code: cannot_revoke_own_membership}
+  - {name: revoking another membership, source: "spec/services/memberships/revoke_service_spec.rb:52", op: revoke, target_roles: [finance], admins: 1}
+  # lago revoke_service.rb:17 does not look at the target's status.
+  - {name: revoking a revoked admin with one active admin, source: "tanvo", op: revoke, revoked: true, target_roles: [admin], admins: 1, code: last_admin}
+  - {name: revoking a revoked member, source: "tanvo", op: revoke, revoked: true, target_roles: [finance], admins: 1}
+  - {name: demoting the last admin, source: "spec/services/memberships/update_service_spec.rb:78", op: change, target_roles: [admin], new_roles: [manager], admins: 1, code: last_admin}
+  - {name: discarding the last admin role of a multi-role member, source: "spec/models/membership_role_spec.rb:48", op: change, actor_admin: true, target_roles: [admin, custom], new_roles: [custom], admins: 1, code: last_admin}
+  - {name: discarding the last active admin role when others are revoked, source: "spec/models/membership_role_spec.rb:88", op: change, actor_admin: true, target_roles: [admin, custom], new_roles: [custom], admins: 1, code: last_admin}
+  - {name: discarding an admin role when another admin exists, source: "spec/models/membership_role_spec.rb:75", op: change, actor_admin: true, target_roles: [admin, custom], new_roles: [custom], admins: 2}
+  - {name: demoting an admin when another exists, source: "spec/services/memberships/update_service_spec.rb:16", op: change, target_roles: [admin], new_roles: [manager], admins: 2}
+  - {name: admin granting admin, source: "spec/services/memberships/update_service_spec.rb:35", op: change, actor_admin: true, target_roles: [manager], new_roles: [admin], admins: 1}
+  - {name: non-admin granting admin, source: "spec/services/memberships/update_service_spec.rb:57", op: change, target_roles: [manager], new_roles: [admin], admins: 1, code: cannot_grant_admin}
+  # lago app/services/memberships/update_service.rb:75-77 refuses any admin role from a non-admin actor.
+  - {name: non-admin keeping admin on an admin, source: "tanvo", op: change, target_roles: [admin], new_roles: [admin, finance], admins: 2, code: cannot_grant_admin}
+  - {name: discarding a role when another remains, source: "spec/models/membership_role_spec.rb:107", op: change, target_roles: [custom, finance], new_roles: [finance], admins: 1}
+  - {name: adding a role, source: "spec/services/memberships/update_service_spec.rb:16", op: change, target_roles: [finance], new_roles: [finance, manager], admins: 1}
 skipped:
-  - {source: "spec/models/membership_role_spec.rb:8", reason: "soft deletion of membership roles; one role per membership"}
+  - {source: "spec/models/membership_role_spec.rb:8", reason: "soft deletion of membership roles; Tanvo replaces a membership's role set (domain §23)"}
   - {source: "spec/models/membership_role_spec.rb:10", reason: "ActiveRecord associations"}
-  - {source: "spec/models/membership_role_spec.rb:20", reason: "scope .admins; MembershipRepository.CountActiveByRole, memstore tests"}
-  - {source: "spec/models/membership_role_spec.rb:101", reason: "a membership always has exactly one role"}
-  - {source: "spec/models/membership_role_spec.rb:107", reason: "a membership always has exactly one role"}
-  - {source: "spec/models/membership_role_spec.rb:115", reason: "the service resolves the role through RoleRepository.Get, scoped by organization"}
-  - {source: "spec/models/membership_role_spec.rb:122", reason: "built-in roles resolve in every organization; memstore tests"}
-  - {source: "spec/models/membership_role_spec.rb:128", reason: "database trigger; one role per membership changed with ChangeRole"}
+  - {source: "spec/models/membership_role_spec.rb:20", reason: "scope .admins; MembershipRepository.CountActiveByRole, porttest"}
+  - {source: "spec/models/membership_role_spec.rb:101", reason: "Membership.Validate requires role_ids; TestMembershipRoles"}
+  - {source: "spec/models/membership_role_spec.rb:115", reason: "auth resolves roles through RoleRepository.Get, scoped by organization; libs/auth memberships tests"}
+  - {source: "spec/models/membership_role_spec.rb:122", reason: "built-in roles resolve in every organization; memstore and porttest"}
+  - {source: "spec/models/membership_role_spec.rb:128", reason: "database trigger; the role set is replaced through ChangeRoles"}
+  - {source: "spec/services/memberships/update_service_spec.rb:93", reason: "membership not found; libs/auth memberships tests"}
+  - {source: "spec/services/memberships/update_service_spec.rb:106", reason: "unknown role codes; libs/auth memberships tests"}

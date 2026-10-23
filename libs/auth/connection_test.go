@@ -1,12 +1,16 @@
 package auth
 
 import (
+	"context"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/permission"
+	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
 
 func entra(id string, created time.Time, domains ...string) *Connection {
@@ -122,5 +126,119 @@ func TestDomainUniqueness(t *testing.T) {
 	}
 	if NormalizeDomains([]string{" A.com", "a.com", "", "b.com"})[1] != "b.com" {
 		t.Error("NormalizeDomains does not deduplicate")
+	}
+}
+
+func TestConnectionFromIntegration(t *testing.T) {
+	ids := core.UUIDv7Generator{}
+	org := core.NewID[core.OrganizationID](ids)
+	role := roleID(permission.BuiltInRoleFinance)
+	tests := []struct {
+		name      string
+		p         integration.Provider
+		s         integration.AuthSettings
+		wantErr   bool
+		method    organization.AuthenticationMethod
+		issuer    string
+		fallback  string
+		wantHosts []string
+	}{
+		{
+			name: "okta default host", p: integration.ProviderOkta,
+			s:      integration.AuthSettings{ClientID: "c", Domain: "Hooli.com", OrganizationName: "Hooli", DefaultRoleID: role},
+			method: organization.AuthenticationMethodOkta, issuer: "https://hooli.okta.com", wantHosts: []string{"hooli.com"},
+		},
+		{
+			name: "entra with additional domains", p: integration.ProviderEntraID,
+			s: integration.AuthSettings{
+				ClientID: "c", Domain: "hooli.com", AdditionalDomains: []string{"Pied.Piper.com"}, TenantID: "tenant", DefaultRoleID: role,
+			},
+			method: organization.AuthenticationMethodEntraID, issuer: "https://login.microsoftonline.com/tenant/v2.0",
+			fallback: "preferred_username", wantHosts: []string{"hooli.com", "pied.piper.com"},
+		},
+		{
+			name: "generic oidc", p: integration.ProviderOIDC,
+			s:      integration.AuthSettings{ClientID: "c", Domain: "hooli.com", Issuer: "https://id.hooli.com", DefaultRoleID: role},
+			method: organization.AuthenticationMethodOIDC, issuer: "https://id.hooli.com", wantHosts: []string{"hooli.com"},
+		},
+		{name: "missing default role", p: integration.ProviderOIDC, s: integration.AuthSettings{ClientID: "c", Domain: "hooli.com", Issuer: "https://id.hooli.com"}, wantErr: true},
+		{name: "entra without tenant", p: integration.ProviderEntraID, s: integration.AuthSettings{ClientID: "c", Domain: "hooli.com", DefaultRoleID: role}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, _ := integration.CategoryOf(tt.p)
+			i := &integration.Integration{ID: core.NewID[core.IntegrationID](ids), OrganizationID: org, Category: c, Provider: tt.p, CreatedAt: time.Now()}
+			if err := i.SetAuthSettings(tt.s); err != nil {
+				t.Fatal(err)
+			}
+			got, err := ConnectionFromIntegration(i, "secret", "https://app.tanvo.test/callback")
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ConnectionFromIntegration() error got = %v, want error = %v", err, tt.wantErr)
+			}
+			if err != nil {
+				return
+			}
+			if got.Method != tt.method || got.Issuer != tt.issuer || got.EmailFallbackClaim != tt.fallback || !slices.Equal(got.Domains, tt.wantHosts) ||
+				got.ID != i.ID.String() || got.OrganizationID != org || got.DefaultRoleID != role || got.ClientSecret != "secret" {
+				t.Errorf("ConnectionFromIntegration() got = %+v, want method %s, issuer %s, domains %v", got, tt.method, tt.issuer, tt.wantHosts)
+			}
+			if err := got.Validate(); err != nil {
+				t.Errorf("Validate() error got = %v, want = nil", err)
+			}
+		})
+	}
+}
+
+func TestIntegrationConnections(t *testing.T) {
+	e := newEnv(t)
+	o := e.org()
+	role := roleID(permission.BuiltInRoleFinance)
+	add := func(code string, s integration.AuthSettings) *integration.Integration {
+		i := &integration.Integration{
+			ID: core.NewID[core.IntegrationID](e.deps.IDs), OrganizationID: o.ID, Code: code, Name: code,
+			Category: integration.CategoryAuth, Provider: integration.ProviderEntraID, CreatedAt: e.clock.Now(), UpdatedAt: e.clock.Now(),
+		}
+		if err := i.SetAuthSettings(s); err != nil {
+			t.Fatal(err)
+		}
+		e.tx(func(ctx context.Context, r port.Repos) error { return r.Integrations.Create(ctx, i) })
+		return i
+	}
+	good := add("entra", integration.AuthSettings{ClientID: "c", Domain: "hooli.com", AdditionalDomains: []string{"piper.com"}, TenantID: "t", DefaultRoleID: role})
+	add("broken", integration.AuthSettings{ClientID: "c", Domain: "broken.com", DefaultRoleID: role})
+	res := IntegrationConnections{
+		Tx:     e.store,
+		Secret: func(context.Context, *integration.Integration) (string, error) { return "secret", nil },
+		RedirectURL: func(m organization.AuthenticationMethod) string {
+			return "https://app.tanvo.test/auth/" + string(m) + "/callback"
+		},
+	}
+	tests := []struct {
+		name    string
+		method  organization.AuthenticationMethod
+		domain  string
+		want    []string
+		wantErr bool
+	}{
+		{name: "primary domain", method: organization.AuthenticationMethodEntraID, domain: "HOOLI.com", want: []string{good.ID.String()}},
+		{name: "additional domain", method: organization.AuthenticationMethodEntraID, domain: "piper.com", want: []string{good.ID.String()}},
+		{name: "other provider", method: organization.AuthenticationMethodOkta, domain: "hooli.com"},
+		{name: "google has no integrations", method: organization.AuthenticationMethodGoogleOAuth, domain: "hooli.com"},
+		{name: "unusable integration", method: organization.AuthenticationMethodEntraID, domain: "broken.com", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := res.ByDomain(e.ctx, tt.method, tt.domain)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ByDomain() error got = %v, want error = %v", err, tt.wantErr)
+			}
+			ids := make([]string, 0, len(got))
+			for _, c := range got {
+				ids = append(ids, c.ID)
+			}
+			if !slices.Equal(ids, tt.want) && (len(ids) > 0 || len(tt.want) > 0) {
+				t.Errorf("ByDomain() got = %v, want = %v", ids, tt.want)
+			}
+		})
 	}
 }

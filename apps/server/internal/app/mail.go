@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net/url"
-	"strings"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -113,15 +111,10 @@ func (h mailJobs) handle(ctx context.Context, j *jobs.Job[auth.MailJob]) error {
 func (h mailJobs) compose(ctx context.Context, org core.OrganizationID, a auth.MailJob) (*mail.Message, error) {
 	switch a.Template {
 	case auth.MailPasswordReset:
-		// auth hands the reset link; the composer builds it from the
-		// token, which is the link's last segment.
-		u, err := url.Parse(a.Data["reset_url"])
-		if err != nil {
-			return nil, fmt.Errorf("mail: reset url: %w", err)
-		}
-		_, token, _ := strings.Cut(u.Path, "/reset-password/")
-		if token, err = url.PathUnescape(token); err != nil {
-			return nil, fmt.Errorf("mail: reset url: %w", err)
+		// auth hands the token; the composer builds the link.
+		token := a.Data["token"]
+		if token == "" {
+			return nil, fmt.Errorf("mail: password reset without token: %w", core.ErrInvalidValue)
 		}
 		return h.composer.PasswordResetRequested(mail.PasswordResetEmail{Email: a.To, Token: token})
 	case auth.MailAPIKeyCreated, auth.MailAPIKeyRotated, auth.MailAPIKeyDestroyed:

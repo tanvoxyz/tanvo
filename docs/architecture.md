@@ -179,7 +179,10 @@ Provider webhooks (`POST /webhooks/{provider}/{connection_id}`), document downlo
 ### 4.4 Authentication and Authorization
 * **Principals**: an API key (organization-scoped, hashed with SHA-256, shown once, with optional expiry, rotation with overlap, last-used tracking) or a user session (organization membership).
 * **Permissions**: strings such as `customers:read`, `invoices:write`. Roles (built-in and custom) are sets of permissions; an API key carries its own set. Every RPC declares the permission it needs in a proto option; an interceptor checks it.
-* **Users** sign in with email and password (argon2id) or OIDC (Google, Okta, Entra ID, generic). Sessions are opaque tokens stored hashed in PostgreSQL.
+* **Users** sign in with email and password (argon2id) or OIDC (Google, Okta, Entra ID, generic). Sessions are opaque tokens stored hashed in PostgreSQL (`sessions`), revocable and purged once expired ([domain §5.7](domain.md#57-session-and-sign-in-state)).
+* **OIDC** uses the authorization code flow with state, nonce and PKCE. The flow's state is a single-use row of `oidc_states`, keyed by the SHA-256 of the `state` parameter, so any replica can finish a sign-in. Google is one installation-wide connection configured from the environment; Okta, Entra ID and generic connections are `auth` integrations of an organization ([domain §17.1](domain.md#171-integration)) whose claimed email domains route sign-ins, looked up across organizations.
+* **Devices**: every sign-in records the client in `user_devices` (fingerprint = SHA-256 of the user agent); apps/server parses the user agent into browser, OS and device type. A new device is written to the security log ([domain §5.8](domain.md#58-user-device)).
+* **Emails** from libs/auth are `mail.send` jobs carrying data, not links: a password reset carries its token, and libs/mail builds the URL from the application URL.
 * **Customer portal**: short-lived signed tokens scoped to one customer.
 
 ---

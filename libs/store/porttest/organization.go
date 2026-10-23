@@ -21,6 +21,7 @@ func testOrganization(t *testing.T, h Harness) {
 		o.Logo = "blob/logo.png"
 		o.Address = core.Address{Line1: "1 Main St", City: "Paris", Zipcode: "75001", Country: "FR"}
 		o.AuthenticationMethods = []organization.AuthenticationMethod{organization.AuthenticationMethodOkta}
+		o.FromEmailEnabled = true
 		e.tx(func(ctx context.Context, r port.Repos) error {
 			noErr(t, "Create()", r.Organizations.Create(ctx, o))
 			wantErr(t, "Create() with the same ID", r.Organizations.Create(ctx, o), core.ErrConflict)

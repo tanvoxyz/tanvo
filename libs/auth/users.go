@@ -72,6 +72,10 @@ type SignedIn struct {
 	Session *Session
 	// Token is the session token, shown once.
 	Token string
+
+	// newUser is set when the flow created the user; the first device is
+	// then not logged (lago skip_log).
+	newUser bool
 }
 
 // Users registers users and signs them in with a password (lago
@@ -148,12 +152,14 @@ func (u *Users) Login(ctx context.Context, email, password string, meta SessionM
 	return u.open(ctx, &SignedIn{User: user}, organization.AuthenticationMethodEmailPassword, meta)
 }
 
+// open issues the session of s.User and records its device.
 func (u *Users) open(ctx context.Context, s *SignedIn, method organization.AuthenticationMethod, meta SessionMeta) (*SignedIn, error) {
 	tok, sess, err := u.sessions.Issue(ctx, s.User.ID, method, meta)
 	if err != nil {
 		return nil, err
 	}
 	s.Token, s.Session = tok, sess
+	u.registerDevice(ctx, s.User, meta, s.newUser)
 	return s, nil
 }
 
@@ -213,11 +219,11 @@ func (u *Users) register(ctx context.Context, email string, passwordHash []byte,
 		if err != nil {
 			return err
 		}
-		m := access.NewMembership(core.NewID[core.MembershipID](u.d.IDs), org.ID, user.ID, access.BuiltInRoleID(permission.BuiltInRoleAdmin), now)
+		m := access.NewMembership(core.NewID[core.MembershipID](u.d.IDs), org.ID, user.ID, []core.RoleID{access.BuiltInRoleID(permission.BuiltInRoleAdmin)}, now)
 		if err := r.Memberships.Create(ctx, m); err != nil {
 			return fmt.Errorf("create membership: %w", err)
 		}
-		out.User, out.Organization, out.Membership = user, org, m
+		out.User, out.Organization, out.Membership, out.newUser = user, org, m, true
 		return nil
 	})
 	if err != nil {

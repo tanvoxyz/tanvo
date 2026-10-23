@@ -51,7 +51,7 @@ func quoteFixtureParents(e *env, be *organization.BillingEntity) quoteParents {
 			if err := r.Users.Create(ctx, u); err != nil {
 				return err
 			}
-			m := access.NewMembership(core.NewID[core.MembershipID](e.ids), org, u.ID, access.BuiltInRoleID(permission.BuiltInRoleAdmin), now)
+			m := access.NewMembership(core.NewID[core.MembershipID](e.ids), org, u.ID, []core.RoleID{access.BuiltInRoleID(permission.BuiltInRoleAdmin)}, now)
 			if err := r.Memberships.Create(ctx, m); err != nil {
 				return err
 			}

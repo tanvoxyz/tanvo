@@ -26,18 +26,23 @@ type UserRepository interface {
 type MembershipFilter struct {
 	// Status keeps memberships with that status; "" keeps all.
 	Status MembershipStatus
-	// RoleID keeps memberships with that role; zero keeps all.
+	// RoleID keeps memberships having that role among their roles; zero
+	// keeps all.
 	RoleID core.RoleID
 }
 
 // MembershipRepository stores memberships.
 type MembershipRepository interface {
-	// Create inserts m; a second active membership of the same user in
-	// the organization fails with core.ErrConflict.
+	// Create inserts m with its roles; a second active membership of the
+	// same user in the organization fails with core.ErrConflict, an active
+	// membership without roles with core.ErrInvalidValue.
 	Create(ctx context.Context, m *Membership) error
-	// Update replaces the stored membership m.ID with m.
+	// Update replaces the stored membership m.ID with m. Roles of m not
+	// stored are added; stored roles not in m are soft-deleted (lago
+	// MembershipRole#discard); the roles of discarded roles are left alone.
 	Update(ctx context.Context, m *Membership) error
-	// Get returns the membership id of org, or core.ErrNotFound.
+	// Get returns the membership id of org, or core.ErrNotFound. Every read
+	// returns the membership's kept roles that are not discarded roles.
 	Get(ctx context.Context, org core.OrganizationID, id core.MembershipID) (*Membership, error)
 	// GetActiveByUser returns the active membership of user in org, or
 	// core.ErrNotFound.
@@ -48,7 +53,8 @@ type MembershipRepository interface {
 	// List returns the organization's memberships in creation order.
 	List(ctx context.Context, org core.OrganizationID, f MembershipFilter, page core.PageRequest) (core.Page[*Membership], error)
 	// CountActiveByRole returns the number of active memberships of org
-	// with role (with the admin role's ID: the active admins).
+	// having role (with the admin role's ID: the active admins, lago
+	// Organization#admin_membership_roles).
 	CountActiveByRole(ctx context.Context, org core.OrganizationID, role core.RoleID) (int, error)
 }
 
@@ -60,14 +66,18 @@ type RoleRepository interface {
 	Create(ctx context.Context, r *Role) error
 	// Update replaces the stored custom role r.ID with r.
 	Update(ctx context.Context, r *Role) error
-	// Delete removes the custom role id of org.
-	Delete(ctx context.Context, org core.OrganizationID, id core.RoleID) error
-	// Get returns the built-in role id or the custom role id of org, or
+	// Discard soft-deletes the custom role id of org at at (lago
+	// Role#discard!): a discarded role is no longer found by Get,
+	// GetByCode or List, no membership holds it any more, and its code can
+	// be reused. A built-in, unknown or already discarded role is
 	// core.ErrNotFound.
+	Discard(ctx context.Context, org core.OrganizationID, id core.RoleID, at time.Time) error
+	// Get returns the built-in role id or the kept custom role id of org,
+	// or core.ErrNotFound.
 	Get(ctx context.Context, org core.OrganizationID, id core.RoleID) (*Role, error)
-	// GetByCode returns the built-in or custom role with that code.
+	// GetByCode returns the built-in or kept custom role with that code.
 	GetByCode(ctx context.Context, org core.OrganizationID, code string) (*Role, error)
-	// List returns the built-in roles, then the organization's custom
+	// List returns the built-in roles, then the organization's kept custom
 	// roles in creation order.
 	List(ctx context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*Role], error)
 }
@@ -138,4 +148,68 @@ type APIKeyRepository interface {
 	CountNonExpiring(ctx context.Context, org core.OrganizationID) (int, error)
 	// TouchLastUsed sets the key's last_used_at to at.
 	TouchLastUsed(ctx context.Context, org core.OrganizationID, id core.APIKeyID, at time.Time) error
+	// RecordUses records the last uses of org's keys, keeping the latest
+	// recorded use of each; uses of unknown keys are dropped. They reach
+	// the keys' last_used_at with [APIKeyRepository.ApplyUses].
+	RecordUses(ctx context.Context, org core.OrganizationID, uses map[core.APIKeyID]time.Time) error
+	// ApplyUses moves the recorded uses of org's keys to their
+	// last_used_at, which only moves forward, and returns how many keys
+	// were updated.
+	ApplyUses(ctx context.Context, org core.OrganizationID) (int, error)
+	// UseOrganizations returns the organizations with recorded uses. It is
+	// not organization-scoped: it feeds the usage tracking clock job.
+	UseOrganizations(ctx context.Context) ([]core.OrganizationID, error)
+}
+
+// SessionRepository stores user sessions; they belong to users, so its
+// methods are not organization-scoped.
+type SessionRepository interface {
+	// Create inserts s; a token hash already used fails with
+	// core.ErrConflict.
+	Create(ctx context.Context, s *Session) error
+	// GetByTokenHash returns the session with that token hash, or
+	// core.ErrNotFound.
+	GetByTokenHash(ctx context.Context, tokenHash []byte) (*Session, error)
+	// Touch sets the session's last_seen_at to at, or fails with
+	// core.ErrNotFound.
+	Touch(ctx context.Context, id core.SessionID, at time.Time) error
+	// Revoke sets the session's revoked_at to at unless it is already
+	// revoked, or fails with core.ErrNotFound.
+	Revoke(ctx context.Context, id core.SessionID, at time.Time) error
+	// RevokeByUser revokes every unrevoked session of user except keep
+	// (zero keeps none) and returns how many.
+	RevokeByUser(ctx context.Context, user core.UserID, keep core.SessionID, at time.Time) (int, error)
+	// DeleteExpired removes the sessions that expired or were revoked
+	// before before, and returns how many.
+	DeleteExpired(ctx context.Context, before time.Time) (int, error)
+}
+
+// OIDCStateRepository stores the states of OpenID Connect sign-ins in
+// progress; they belong to no organization.
+type OIDCStateRepository interface {
+	// Create inserts s; a key hash already used fails with
+	// core.ErrConflict.
+	Create(ctx context.Context, s *OIDCState) error
+	// Take removes and returns the state with that key hash; a missing
+	// state, or one expired at now, is core.ErrNotFound (and removed).
+	Take(ctx context.Context, keyHash []byte, now time.Time) (*OIDCState, error)
+	// DeleteExpired removes the states expired before before and returns
+	// how many.
+	DeleteExpired(ctx context.Context, before time.Time) (int, error)
+}
+
+// UserDeviceRepository stores the known devices of users; they belong to
+// users, so its methods are not organization-scoped.
+type UserDeviceRepository interface {
+	// Create inserts d; a second device of the user with the same
+	// fingerprint fails with core.ErrConflict.
+	Create(ctx context.Context, d *UserDevice) error
+	// Update writes the client description and the last sign-in of device
+	// d.ID of user d.UserID; the fingerprint and creation are immutable.
+	Update(ctx context.Context, d *UserDevice) error
+	// GetByFingerprint returns the user's device with that fingerprint,
+	// or core.ErrNotFound.
+	GetByFingerprint(ctx context.Context, user core.UserID, fingerprint string) (*UserDevice, error)
+	// ListByUser returns the user's devices in creation order.
+	ListByUser(ctx context.Context, user core.UserID) ([]*UserDevice, error)
 }

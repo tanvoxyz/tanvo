@@ -208,7 +208,7 @@ erDiagram
 | `PaymentKind` | `provider`、`manual` | Payment |
 | `PaymentState` | `pending`、`processing`、`succeeded`、`failed` | Payment |
 | `IntegrationCategory` | `payment`、`accounting`、`tax`、`crm`、`auth` | Integration |
-| `IntegrationProvider` | `stripe`、`adyen`、`gocardless`、`cashfree`、`moneyhash`、`flutterwave`、`netsuite`、`xero`、`anrok`、`avalara`、`hubspot`、`salesforce`、`okta`、`entra_id` | Integration |
+| `IntegrationProvider` | `stripe`、`adyen`、`gocardless`、`cashfree`、`moneyhash`、`flutterwave`、`netsuite`、`xero`、`anrok`、`avalara`、`hubspot`、`salesforce`、`okta`、`entra_id`、`oidc` | Integration |
 | `MappableType` | `add_on`、`billable_metric` | IntegrationMapping |
 | `CollectionMappingType` | `fallback_item`、`coupon`、`subscription_fee`、`minimum_commitment`、`tax`、`prepaid_credit`、`credit_note`、`account`、`currencies` | IntegrationCollectionMapping |
 | `IntegrationResourceType` | `invoice`、`payment`、`credit_note`、`subscription` | IntegrationResource |
@@ -239,6 +239,7 @@ erDiagram
 | `logo` | blob 引用? | |
 | `address` | Address | |
 | `authentication_methods` | `[]AuthenticationMethod` | 至少一个 |
+| `from_email_enabled` | `bool` | 默认 false；单据从计费主体的邮箱发出 |
 | `audit_logs_retention_days` | `int` | 默认 30 |
 | `max_wallets_per_customer` | `int` | 默认 6 |
 | `created_at` | `Time` | |
@@ -296,28 +297,32 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 登录的人。字段：`email`（唯一，不区分大小写）、`password_hash`（argon2id，仅 SSO 用户没有）、`name?`、`created_at`、`last_sign_in_at?`。一个用户可以属于多个组织。
 
 ### 5.2 成员
-以某个角色把用户关联到组织。
+以一个或多个角色把用户关联到组织。
 
 | 字段 | 类型 | 规则 |
 | :--- | :--- | :--- |
 | `user_id`、`organization_id` | `ID` | 在有效成员中唯一 |
-| `role_id` | `ID` | 组织的内置或自定义角色 |
+| `role_ids` | `[]ID` | 有效期间至少一个；每个都是内置角色或组织中未删除的自定义角色（表 `membership_roles`） |
 | `status` | `MembershipStatus` | `active` → `revoked`（终态） |
 | `revoked_at` | `Time?` | |
 
 规则：
-* 组织的最后一个有效管理员不能被撤销或降级。
-* 用户不能撤销自己的成员资格。
-* 只有管理员可以授予 `admin` 角色。
+* 成员拥有其所有角色权限的并集；任一角色为 `admin` 时该成员即为管理员。
+* 修改角色会替换整个角色集合；组织中不存在的角色 ID 会被忽略，结果为空时返回 `role_not_found`。
+* `membership_roles` 行从不修改：移除角色时软删除其行（`deleted_at`），新增角色时插入新行，每个成员与角色最多有一条未删除的行。成员只列出未删除且角色未被删除的行，因此已撤销的成员可能没有角色。
+* 组织的最后一个有效管理员不能被撤销，也不能失去 `admin` 角色（`last_admin`）。撤销已撤销的成员会执行相同的检查，保留其 `revoked_at`，并再次记录日志。
+* 用户不能撤销自己的成员资格（`cannot_revoke_own_membership`）。
+* 只有管理员可以分配 `admin` 角色，即使对方已经拥有该角色（`cannot_grant_admin`）。
+* 变更会写入安全日志：`user.role_edited` 记录新增与删除的角色代码，撤销时记录 `user.deleted`。
 
 ### 5.3 角色与权限
 * 权限是形如 `<resource>:<action>` 的字符串（`customers:read`、`invoices:void` 等）。完整列表定义在 `libs/core/permission`，并记录在 API 参考中。
-* 内置角色：`admin`（全部权限）、`finance`、`manager`。内置角色不可修改。
-* 自定义角色：`code`（`string(100)`，唯一，不得为内置名称）、`name`、`description?`、`permissions []string`。被成员使用的自定义角色不能删除。
-* SSO（Okta、Entra ID、OIDC）按集成上配置的角色把身份映射为成员。**[修复]** Lago 在 Okta/Entra 注册时不论配置都分配固定角色。
+* 内置角色：`admin`（全部权限）、`finance`、`manager`。内置角色不可修改（`predefined_role`）。
+* 自定义角色：`code`（`string(100)`，在未删除的角色中唯一，不得为内置名称）、`name`、`description?`、`permissions []string`、`deleted_at?`。删除自定义角色是软删除，并以其代码记录 `role.deleted`；内置角色不能删除（`predefined_role`），有效成员使用中的自定义角色也不能删除（`role_assigned_to_members`）；已撤销的成员不计入。已删除的角色不再能被查到、列出、被任何成员持有或分配，其代码可以复用。
+* SSO（Okta、Entra ID、OIDC）按集成上配置的单个默认角色把身份映射为成员。**[修复]** Lago 创建的 Okta/Entra 成员没有任何角色。
 
 ### 5.4 邀请
-`email`、`role_id`、`token`（随机生成，存储哈希）、`status`（`pending` → `accepted` | `revoked`）、`expires_at`。接受邀请会创建（或复用）用户并建立有效成员资格。若某邮箱已有有效成员资格，则拒绝为其创建待处理邀请。
+`email`、`role_ids`（至少一个，且都须存在于组织中，否则在 `roles` 上返回 `invalid_role`；包含 `admin` 时邀请人必须是管理员，否则返回 `cannot_grant_admin`）、`token`（随机生成，存储哈希）、`status`（`pending` → `accepted` | `revoked`）、`expires_at`。接受邀请会创建（或复用）用户，并以邀请中的角色建立有效成员资格；若某个角色在邀请后被删除，接受会以 `role_not_found` 失败。只有待处理的邀请可以修改角色（`cannot_update_accepted_invite`、`cannot_update_revoked_invite`）。若某邮箱已有有效成员资格，则拒绝为其创建待处理邀请。
 
 密码重置令牌 30 分钟后过期，且只能使用一次。
 
@@ -338,6 +343,28 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 
 ### 5.6 客户门户令牌
 限定于单个客户的无状态签名令牌，有效期 12 小时，可读取该客户的发票、用量和钱包，并可修改其自身的账单信息。
+
+### 5.7 会话与登录状态
+会话是已登录用户的不透明令牌。它属于用户而非组织：组织按请求选择，不允许该会话 `method` 的组织无法通过它访问。
+
+| 字段 | 类型 | 规则 |
+| :--- | :--- | :--- |
+| `user_id` | `ID` | |
+| `token_hash` | `bytes` | 令牌的 SHA-256，唯一；令牌只显示一次 |
+| `method` | `AuthenticationMethod` | 登录方式 |
+| `user_agent`、`ip` | `string` | 登录时的客户端 |
+| `created_at`、`last_seen_at` | `Time` | `last_seen_at` 至多每分钟刷新一次 |
+| `expires_at` | `Time` | 绝对有效期终点（默认 14 天） |
+| `revoked_at` | `Time?` | 登出、重置密码或吊销时设置；不会清除 |
+
+会话在未吊销、未过期且在空闲超时（默认 24 小时）内使用过时有效。过期和已吊销的会话会被清理。
+
+OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性状态，以 `state` 参数的 SHA-256 为键：`method`（不能是 `email_password`）、`intent`（`OIDCIntent`：`login`、`sign_up`、`accept_invite`）、`connection_id`、`email`、`invite_token_hash`（`accept_invite` 时必填；不保存邀请令牌本身）、`organization_name`、`nonce`、PKCE `verifier` 和 `expires_at`（10 分钟）。读取状态即删除它；过期的状态视为不存在。
+
+**[变更]** Lago 签发 JWT，并把 OAuth 状态在 Rails 缓存中保存 90 秒；Tanvo 把会话和状态保存在 PostgreSQL 中，因此会话可以吊销，任一副本都能完成登录。
+
+### 5.8 用户设备
+用户登录过的客户端，按用户以 `fingerprint`（其 user agent 的 SHA-256 十六进制）标识；每个用户内唯一。字段：`browser?`、`os?`、`device_type?`（由服务端从 user agent 解析）、`last_ip_address?`、`last_logged_at`。每次带 user agent 的登录都会更新或创建设备；从新设备登录时，在用户的每个有效组织中记录 `user.new_device_logged_in`，但注册和通过邀请加入的新用户除外，它们由各自的事件覆盖。
 
 ---
 
@@ -1252,6 +1279,21 @@ stateDiagram-v2
 | `secrets` | 加密 JSON | 凭据、OAuth 令牌 |
 | `sync_invoices`、`sync_credit_notes`、`sync_payments`、`sync_subscriptions` | `bool` | 会计与 CRM |
 
+单点登录集成（类别 `auth`：`okta`、`entra_id`、`oidc`）把连接配置保存在 `settings` 中；客户端密钥在 `secrets` 中。
+
+| 设置 | 规则 |
+| :--- | :--- |
+| `client_id` | 必填 |
+| `domain` | 必填；路由到该连接的主邮箱域名，以小写保存 |
+| `additional_domains` | 仅 Entra ID 和通用 OIDC；至少两级的主机名，小写、去重 |
+| `organization_name` | Okta 必填；默认主机为 `<organization_name>.okta.com` |
+| `tenant_id` | Entra ID 必填；字母、数字、`.` 和 `-` |
+| `host` | 可选，覆盖服务商主机；字母、数字、`.` 和 `-` |
+| `issuer` | 通用 OIDC 必填；用于发现的 issuer URL |
+| `default_role_id` | 必填；首次登录时创建的成员的角色（§5.3） |
+
+登录会路由到其方式下、跨组织声明了邮箱域名（不区分大小写）的连接；主域名优先于附加域名，其次取最早的连接。同一方式下一个域名至多被一个连接声明。
+
 ### 17.2 集成客户
 `integration_id`、`customer_id`、`external_customer_id`、`subsidiary_id?`、`sync_with_provider bool`、`is_default`。客户至多有一个税务集成客户；其他类别允许多个连接，其中一个为默认。发出 `customer.<category>_provider_created` / `_error`。
 
@@ -1650,7 +1692,10 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
 | 代码唯一性 | 应用层检查 + 软删除作用域 | 存活行上的部分唯一索引（§2.1） |
 | 退款失败 Webhook | 名称与声明的类型不一致 | `credit_note.refund_failure`（§13.2） |
 | Adyen 通知 | 只处理第一项 | 处理每一项（§15.6） |
-| SSO 角色 | Okta/Entra 注册时分配固定角色 | 使用配置的角色（§5.3） |
+| SSO 角色 | Okta/Entra 注册时不分配角色 | 使用配置的默认角色（§5.3） |
+| 会话与 OAuth 状态 | JWT；Rails 缓存 90 秒 | PostgreSQL 中可吊销的会话和一次性状态（§5.7） |
+| SSO 域名匹配 | Okta 精确匹配，Entra ID 不区分大小写 | 所有服务商都不区分大小写（§17.1） |
+| 发件地址 | `from_email` 高级版集成 | 组织设置 `from_email_enabled`（§4.1） |
 
 **[舍弃]**（不实现）：发票类型 `add_on`、分组与分组属性、`grouped_by` 别名、发票版本门控、`organization_sequential_id`、`vat_rate` 列、遗留的 `cancelation_reason`/`incompleted_at` 列、`overriden` 别名、`event.error` Webhook、`applied_add_ons`、`organizations.webhook_url`/`api_key`/`hmac_key`、`webhooks.payload` 遗留布局、已弃用的公钥接口、催收的 `applied_to_organization`、集成资源类型 `sales_order_deprecated`、NetSuite `legacy_script`、`recurring_count_agg`、遗留的计费指标属性、已弃用的计费项上下文。
 

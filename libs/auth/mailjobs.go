@@ -15,7 +15,8 @@ const JobKindMail = "mail.send"
 
 // Mail templates the services request (lago mailers).
 const (
-	// MailPasswordReset is PasswordResetMailer#requested.
+	// MailPasswordReset is PasswordResetMailer#requested; Data["token"]
+	// is the reset token.
 	MailPasswordReset = "password_reset.requested"
 	// MailAPIKeyCreated is ApiKeyMailer#created.
 	MailAPIKeyCreated = "api_key.created"
@@ -35,7 +36,7 @@ type MailJob struct {
 	// To is the recipient for user emails (password reset); empty means
 	// the organization's admins.
 	To string `json:"to,omitempty"`
-	// Data are the template variables (reset URL, key name and prefix,
+	// Data are the template variables (reset token, key name and prefix,
 	// instant).
 	Data map[string]string `json:"data,omitempty"`
 }

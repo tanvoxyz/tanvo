@@ -38,8 +38,8 @@ const (
 	// CodeInviteAlreadyExists: a pending invite exists for the email
 	// (field: invite).
 	CodeInviteAlreadyExists = "invite_already_exists"
-	// CodeInvalidRole: the role does not exist in the organization (field:
-	// role).
+	// CodeInvalidRole: no role is given, or one does not exist in the
+	// organization (field: roles).
 	CodeInvalidRole = "invalid_role"
 	// CodeCannotUpdateAcceptedInvite: an accepted invite is immutable.
 	CodeCannotUpdateAcceptedInvite = "cannot_update_accepted_invite"

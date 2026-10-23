@@ -149,6 +149,19 @@ func (r integrationRepo) ListByProvider(ctx context.Context, org core.Organizati
 	return convAll(rows, integrationOf)
 }
 
+// ListByDomain is not organization-scoped: it routes single sign-on.
+func (r integrationRepo) ListByDomain(ctx context.Context, p integration.Provider, domain string) ([]*integration.Integration, error) {
+	q, err := r.t.queriesAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.ListIntegrationsByDomain(ctx, db.ListIntegrationsByDomainParams{Provider: string(p), Domain: domain})
+	if err != nil {
+		return nil, fmt.Errorf("list integrations by domain: %w", mapErr(err))
+	}
+	return convAll(rows, integrationOf)
+}
+
 func (r integrationRepo) List(ctx context.Context, org core.OrganizationID, f integration.Filter, page core.PageRequest) (core.Page[*integration.Integration], error) {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {

@@ -285,9 +285,11 @@ type usageKey struct {
 	id  core.APIKeyID
 }
 
-// UsageTracker collects the last use of each API key in memory and writes
-// them in batches (lago ApiKeys::TrackUsageService), so authentication
-// never writes to the database.
+// UsageTracker collects the last use of each API key in memory, so that
+// authentication never writes to the database, and flushes them to the
+// recorded uses of the store (lago-api's per-key cache entries), which the
+// hourly clock job moves to the keys' last_used_at ([DispatchUsage],
+// [ApplyUsage]; lago ApiKeys::TrackUsageService).
 type UsageTracker struct {
 	mu   sync.Mutex
 	last map[usageKey]time.Time
@@ -313,16 +315,27 @@ func (t *UsageTracker) Pending() int {
 	return len(t.last)
 }
 
-// Flush writes every recorded use with TouchLastUsed and clears them; a
-// failed write is kept for the next flush.
+// Flush records every collected use in the store (RecordUses, per
+// organization, in one transaction) and clears them; a failed write is
+// kept for the next flush. Uses of deleted keys are dropped.
 func (t *UsageTracker) Flush(ctx context.Context, tx port.Transactor) error {
 	t.mu.Lock()
 	batch := t.last
 	t.last = map[usageKey]time.Time{}
 	t.mu.Unlock()
+	if len(batch) == 0 {
+		return nil
+	}
+	byOrg := map[core.OrganizationID]map[core.APIKeyID]time.Time{}
+	for k, at := range batch {
+		if byOrg[k.org] == nil {
+			byOrg[k.org] = map[core.APIKeyID]time.Time{}
+		}
+		byOrg[k.org][k.id] = at
+	}
 	err := tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
-		for k, at := range batch {
-			if err := r.APIKeys.TouchLastUsed(ctx, k.org, k.id, at); err != nil && !errors.Is(err, core.ErrNotFound) {
+		for org, uses := range byOrg {
+			if err := r.APIKeys.RecordUses(ctx, org, uses); err != nil {
 				return fmt.Errorf("track api key usage: %w", err)
 			}
 		}

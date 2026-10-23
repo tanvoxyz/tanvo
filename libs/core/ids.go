@@ -11,6 +11,8 @@ type (
 	inviteKind                       struct{}
 	passwordResetKind                struct{}
 	apiKeyKind                       struct{}
+	sessionKind                      struct{}
+	userDeviceKind                   struct{}
 	customerKind                     struct{}
 	billableMetricKind               struct{}
 	billableMetricFilterKind         struct{}
@@ -99,6 +101,10 @@ type (
 	PasswordResetID = ID[passwordResetKind]
 	// APIKeyID identifies an API key (domain §5.5).
 	APIKeyID = ID[apiKeyKind]
+	// SessionID identifies a user session (domain §5.7).
+	SessionID = ID[sessionKind]
+	// UserDeviceID identifies a known device of a user (domain §5.8).
+	UserDeviceID = ID[userDeviceKind]
 	// CustomerID identifies a customer (domain §6).
 	CustomerID = ID[customerKind]
 	// BillableMetricID identifies a billable metric (domain §7.1).

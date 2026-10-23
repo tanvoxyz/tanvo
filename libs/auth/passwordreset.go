@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/url"
-	"strings"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/access"
@@ -19,13 +17,12 @@ type PasswordResets struct {
 	d        Deps
 	users    *Users
 	sessions *Sessions
-	front    string
 }
 
-// NewPasswordResets returns the service; reset links are frontURL
-// "/reset-password/" token.
-func NewPasswordResets(d Deps, users *Users, sessions *Sessions, frontURL string) *PasswordResets {
-	return &PasswordResets{d: d, users: users, sessions: sessions, front: strings.TrimRight(frontURL, "/")}
+// NewPasswordResets returns the service. The reset email carries the
+// token; the mail layer builds the link (lago PasswordResetMailer).
+func NewPasswordResets(d Deps, users *Users, sessions *Sessions) *PasswordResets {
+	return &PasswordResets{d: d, users: users, sessions: sessions}
 }
 
 // Request creates a reset token for the user with email and enqueues the
@@ -64,7 +61,7 @@ func (s *PasswordResets) Request(ctx context.Context, email string) (*access.Pas
 			return fmt.Errorf("create password reset: %w", err)
 		}
 		return enqueueMail(ctx, r, MailJob{Template: MailPasswordReset, OrganizationID: ms[0].OrganizationID, To: user.Email, Data: map[string]string{
-			"reset_url": s.front + "/reset-password/" + url.PathEscape(token),
+			"token": token,
 		}})
 	})
 	if err != nil {

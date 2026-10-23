@@ -32,6 +32,16 @@ SELECT * FROM integrations
 WHERE organization_id = @organization_id AND provider = @provider
 ORDER BY id;
 
+-- ListIntegrationsByDomain is cross-organization (single sign-on routing):
+-- the auth integrations of a provider claiming an email domain, as the
+-- primary domain or one of the additional domains (stored lower-case).
+-- name: ListIntegrationsByDomain :many
+SELECT * FROM integrations
+WHERE category = 'auth' AND provider = @provider
+  AND (lower(settings->>'domain') = lower(@domain::text)
+    OR settings->'additional_domains' @> jsonb_build_array(lower(@domain::text)))
+ORDER BY id;
+
 -- name: ListIntegrations :many
 SELECT * FROM integrations
 WHERE organization_id = @organization_id

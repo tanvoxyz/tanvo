@@ -13,6 +13,8 @@ const (
 	SecurityLogUser = "user"
 	// SecurityLogAPIKey covers API key changes.
 	SecurityLogAPIKey = "api_key"
+	// SecurityLogRole covers custom role changes.
+	SecurityLogRole = "role"
 )
 
 // Security log events (lago log_event).
@@ -20,12 +22,20 @@ const (
 	// EventUserSignedUp: a user registered and created an organization.
 	EventUserSignedUp = "user.signed_up"
 	// EventUserSignedIn: a user opened a session. New in Tanvo (lago logs
-	// new devices instead).
+	// new devices only).
 	EventUserSignedIn = "user.signed_in"
+	// EventNewDeviceLoggedIn: a user signed in from a device never seen
+	// before; the resources describe the client.
+	EventNewDeviceLoggedIn = "user.new_device_logged_in"
 	// EventUserInvited: an invite was created.
 	EventUserInvited = "user.invited"
 	// EventUserJoined: an invite was accepted.
 	EventUserJoined = "user.joined"
+	// EventUserRoleEdited: a membership's roles changed; the resources
+	// list the added and deleted role codes.
+	EventUserRoleEdited = "user.role_edited"
+	// EventUserDeleted: a membership was revoked.
+	EventUserDeleted = "user.deleted"
 	// EventPasswordResetRequested: a password reset was requested.
 	EventPasswordResetRequested = "user.password_reset_requested"
 	// EventPasswordEdited: a password was changed by reset.
@@ -38,6 +48,9 @@ const (
 	EventAPIKeyRotated = "api_key.rotated"
 	// EventAPIKeyDeleted: an API key was destroyed.
 	EventAPIKeyDeleted = "api_key.deleted"
+	// EventRoleDeleted: a custom role was discarded; the resources hold
+	// its code.
+	EventRoleDeleted = "role.deleted"
 )
 
 // SecurityEvent is one security log entry (parity §1.45).
@@ -46,7 +59,8 @@ type SecurityEvent struct {
 	OrganizationID core.OrganizationID
 	// UserID is the acting or affected user, if any.
 	UserID core.UserID
-	// Type is the log type ([SecurityLogUser], [SecurityLogAPIKey]).
+	// Type is the log type ([SecurityLogUser], [SecurityLogAPIKey],
+	// [SecurityLogRole]).
 	Type string
 	// Event is the event name ("user.signed_up", …).
 	Event string

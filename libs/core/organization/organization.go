@@ -38,6 +38,11 @@ type Organization struct {
 	Address core.Address
 	// AuthenticationMethods are the allowed sign-in methods; at least one.
 	AuthenticationMethods []AuthenticationMethod
+	// FromEmailEnabled sends document emails from the billing entity's
+	// email and makes the organization's email the reply-to of
+	// organization emails, instead of the instance sender (lago's
+	// "from_email" premium integration, a plain setting in Tanvo).
+	FromEmailEnabled bool
 	// AuditLogsRetentionDays is how long audit logs are kept.
 	AuditLogsRetentionDays int
 	// MaxWalletsPerCustomer bounds the active wallets of a customer.

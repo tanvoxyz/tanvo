@@ -35,7 +35,8 @@ type ResendRequest struct {
 	FeesAmount money.Decimal
 	// BillingEntity issues the document.
 	BillingEntity *organization.BillingEntity
-	// FromEmailEnabled sends from the billing entity's email.
+	// FromEmailEnabled sends from the billing entity's email
+	// ([organization.Organization.FromEmailEnabled]).
 	FromEmailEnabled bool
 	// CustomerEmails are the customer's addresses, used without To.
 	CustomerEmails []string

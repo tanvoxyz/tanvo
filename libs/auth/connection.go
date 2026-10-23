@@ -2,27 +2,29 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"regexp"
 	"slices"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
+	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
 
 // Field error codes of connections (lago Integrations::OktaIntegration and
-// EntraIdIntegration).
+// EntraIdIntegration), shared with the integration settings.
 const (
 	// CodeDomainNotUnique: another connection of the method claims the
 	// domain.
-	CodeDomainNotUnique = "domain_not_unique"
+	CodeDomainNotUnique = integration.CodeDomainNotUnique
 	// CodeTenantIDInvalid: the Entra tenant is not a URL segment.
-	CodeTenantIDInvalid = "tenant_id_invalid"
-	// CodeHostInvalid: the host is not a host name.
-	CodeHostInvalid = "host_invalid"
+	CodeTenantIDInvalid = integration.CodeTenantIDInvalid
+	// CodeHostInvalid: the host is not a URL segment.
+	CodeHostInvalid = integration.CodeHostInvalid
 )
 
 // DefaultEntraHost is the Entra ID sign-in host of the commercial cloud.
@@ -68,11 +70,6 @@ type Connection struct {
 	CreatedAt time.Time
 }
 
-var (
-	domainFormat = regexp.MustCompile(`^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$`)
-	urlSegment   = regexp.MustCompile(`^[a-zA-Z0-9.-]+$`)
-)
-
 // GoogleConnection returns the installation's Google connection.
 func GoogleConnection(clientID, clientSecret, redirectURL string) *Connection {
 	return &Connection{
@@ -105,26 +102,17 @@ func EntraIssuer(host, tenantID string) string {
 func ValidateEntraSettings(host, tenantID string) error {
 	var v core.Validator
 	if v.Required("tenant_id", tenantID) {
-		v.Check(urlSegment.MatchString(tenantID), "tenant_id", CodeTenantIDInvalid)
+		v.Check(integration.ValidURLSegment(tenantID), "tenant_id", CodeTenantIDInvalid)
 	}
 	if host != "" {
-		v.Check(urlSegment.MatchString(host), "host", CodeHostInvalid)
+		v.Check(integration.ValidURLSegment(host), "host", CodeHostInvalid)
 	}
 	return v.Err()
 }
 
 // NormalizeDomains lower-cases and trims domains, dropping blanks and
-// duplicates (lago additional_domains=).
-func NormalizeDomains(domains []string) []string {
-	out := make([]string, 0, len(domains))
-	for _, d := range domains {
-		d = strings.ToLower(strings.TrimSpace(d))
-		if d != "" && !slices.Contains(out, d) {
-			out = append(out, d)
-		}
-	}
-	return out
-}
+// duplicates ([integration.NormalizeDomains]).
+func NormalizeDomains(domains []string) []string { return integration.NormalizeDomains(domains) }
 
 // Validate checks the connection's settings: issuer, client, a role for
 // organization connections, and well-formed domains (the primary domain
@@ -142,7 +130,7 @@ func (c *Connection) Validate() error {
 		v.Check(!c.DefaultRoleID.IsZero(), "default_role_id", core.CodeRequired)
 		if v.Check(len(c.Domains) > 0, "domain", core.CodeRequired) {
 			for _, d := range c.Domains[1:] {
-				if !v.Check(domainFormat.MatchString(d), "additional_domains", core.CodeInvalidFormat) {
+				if !v.Check(integration.ValidDomain(d), "additional_domains", core.CodeInvalidFormat) {
 					break
 				}
 			}
@@ -231,6 +219,98 @@ func (s *StaticConnections) ByDomain(_ context.Context, method organization.Auth
 		if c.Method == method && c.Claims(domain) {
 			out = append(out, c)
 		}
+	}
+	return out, nil
+}
+
+// providerOf maps an organization sign-in method to its integration
+// provider; Google and passwords have none.
+func providerOf(m organization.AuthenticationMethod) (integration.Provider, bool) {
+	switch m {
+	case organization.AuthenticationMethodOkta:
+		return integration.ProviderOkta, true
+	case organization.AuthenticationMethodEntraID:
+		return integration.ProviderEntraID, true
+	case organization.AuthenticationMethodOIDC:
+		return integration.ProviderOIDC, true
+	default:
+		return "", false
+	}
+}
+
+// ConnectionFromIntegration returns the connection of a single sign-on
+// integration (Okta, Entra ID or generic OIDC) with its decrypted client
+// secret and the callback URL registered at the provider.
+func ConnectionFromIntegration(i *integration.Integration, clientSecret, redirectURL string) (*Connection, error) {
+	s, err := i.AuthSettings()
+	if err != nil {
+		return nil, err
+	}
+	if err := s.Validate(i.Provider); err != nil {
+		return nil, fmt.Errorf("integration %s: %w", i.ID, err)
+	}
+	c := &Connection{
+		ID: i.ID.String(), OrganizationID: i.OrganizationID, ClientID: s.ClientID, ClientSecret: clientSecret,
+		RedirectURL: redirectURL, Domains: s.Domains(), DefaultRoleID: s.DefaultRoleID, CreatedAt: i.CreatedAt,
+	}
+	switch i.Provider {
+	case integration.ProviderOkta:
+		c.Method, c.Issuer = organization.AuthenticationMethodOkta, OktaIssuer(s.Host, s.OrganizationName)
+	case integration.ProviderEntraID:
+		c.Method, c.Issuer = organization.AuthenticationMethodEntraID, EntraIssuer(s.Host, s.TenantID)
+		c.EmailFallbackClaim = "preferred_username"
+	default:
+		c.Method, c.Issuer = organization.AuthenticationMethodOIDC, s.Issuer
+	}
+	return c, nil
+}
+
+// IntegrationConnections is the [ConnectionResolver] over the single
+// sign-on integrations of every organization.
+type IntegrationConnections struct {
+	// Tx reads the integrations.
+	Tx port.Transactor
+	// Secret decrypts the integration's client secret.
+	Secret func(ctx context.Context, i *integration.Integration) (string, error)
+	// RedirectURL is the callback URL of a method.
+	RedirectURL func(method organization.AuthenticationMethod) string
+}
+
+var _ ConnectionResolver = IntegrationConnections{}
+
+// ByDomain implements [ConnectionResolver]. Integrations whose settings
+// are invalid or whose secret cannot be decrypted are skipped; when none
+// is usable, their errors are returned.
+func (c IntegrationConnections) ByDomain(ctx context.Context, method organization.AuthenticationMethod, domain string) ([]*Connection, error) {
+	p, ok := providerOf(method)
+	if !ok {
+		return nil, nil
+	}
+	var is []*integration.Integration
+	if err := c.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+		var err error
+		is, err = r.Integrations.ListByDomain(ctx, p, domain)
+		return err
+	}); err != nil {
+		return nil, fmt.Errorf("list connections: %w", err)
+	}
+	out := make([]*Connection, 0, len(is))
+	var errs []error
+	for _, i := range is {
+		secret, err := c.Secret(ctx, i)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("integration %s secret: %w", i.ID, err))
+			continue
+		}
+		conn, err := ConnectionFromIntegration(i, secret, c.RedirectURL(method))
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		out = append(out, conn)
+	}
+	if len(out) == 0 && len(errs) > 0 {
+		return nil, errors.Join(errs...)
 	}
 	return out, nil
 }

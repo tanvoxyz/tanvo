@@ -78,11 +78,13 @@ There are no exceptions: unreleased Lago features (for example the structured pa
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | Users and memberships (active, revoked) across organizations | `app/models/user.rb`, `app/models/membership.rb` | libs/auth | logic done | |
+| Multi-role memberships: union of the roles' permissions, at least one role | `app/models/membership.rb`, `app/models/membership_role.rb` | libs/core, libs/store, libs/auth | logic done | `membership_roles` table with soft-deleted rows; `Membership.RoleIDs`, `access.AnyGrants` |
 | Predefined roles admin, finance, manager | `app/models/role.rb`, `config/permissions.yml` | libs/auth | logic done | |
 | Custom roles with permission sets | `app/services/roles/` | libs/auth | planned | |
+| Custom role deletion: soft delete, refused for predefined roles and roles of active members | `app/services/roles/destroy_service.rb`, `app/models/role.rb` | libs/core, libs/store, libs/auth | logic done | `auth.Roles.Delete` with the `role.deleted` security log; deleted roles are hidden from lookups, listings and memberships, and their codes can be reused |
 | Permission catalog (every resource and action) | `config/permissions.yml` | libs/auth | planned | Permission strings `resource:action` declared per RPC |
-| Membership rules: cannot revoke own membership, cannot remove last admin, only admins grant admin | `app/services/memberships/` | libs/auth | logic done | |
-| Invites with token, roles, accept, revoke, update | `app/models/invite.rb`, `app/services/invites/` | libs/auth | logic done | |
+| Membership rules: cannot revoke own membership, cannot remove last admin, only admins grant admin | `app/services/memberships/` | libs/auth | logic done | `auth.Memberships` (UpdateRoles, Revoke) with `user.role_edited` and `user.deleted` security logs; revoking a revoked membership succeeds unchanged |
+| Invites with token, roles, accept, revoke, update | `app/models/invite.rb`, `app/services/invites/` | libs/auth | logic done | Several roles per invite (`role_ids`), stored as IDs rather than codes |
 | Password reset by email (30-minute token) | `app/services/password_resets/` | libs/auth | logic done | |
 | Sign-up toggle for self-hosted installations | `LAGO_DISABLE_SIGNUP`, `app/services/users_service.rb` | apps/server | planned | Configuration option |
 
@@ -92,12 +94,12 @@ There are no exceptions: unreleased Lago features (for example the structured pa
 | :--- | :--- | :--- | :--- | :--- |
 | Email and password sign-in and registration | `app/services/users_service.rb`, `app/graphql/mutations/` | libs/auth | logic done | argon2id hashes; opaque sessions instead of JWT (§3) |
 | Google sign-in, sign-up and invite acceptance | `app/services/auth/google_service.rb` | libs/auth | logic done | Through the OIDC identity provider |
-| Okta sign-in (authorize, token, userinfo, state check) | `app/services/auth/okta/` | libs/auth | logic done | OIDC connection; state stored server-side |
+| Okta sign-in (authorize, token, userinfo, state check) | `app/services/auth/okta/` | libs/auth | logic done | OIDC connection; single-use state in PostgreSQL (`oidc_states`, 10 minutes instead of 90 seconds) |
 | Entra ID sign-in with tenant and additional domains | `app/services/auth/entra_id/` | libs/auth | logic done | OIDC connection |
 | Generic OIDC provider | — | libs/auth | logic done | New in Tanvo |
-| Okta and Entra ID integration configuration (client, domain, host) | `app/models/integrations/okta_integration.rb`, `entra_id_integration.rb` | libs/auth | logic done | |
+| Okta and Entra ID integration configuration (client, domain, host) | `app/models/integrations/okta_integration.rb`, `entra_id_integration.rb` | libs/core, libs/auth | logic done | `integration.AuthSettings` (plus generic OIDC `issuer` and a required `default_role_id`); domains routed case-insensitively across organizations (`IntegrationRepository.ListByDomain`, `auth.IntegrationConnections`) |
 | Refuse removing the last enabled sign-in method | `app/services/integrations/okta/destroy_service.rb` | libs/auth | logic done | |
-| Known devices and new-device security log entry | `app/models/user_device.rb`, `app/services/user_devices/` | libs/auth | planned | |
+| Known devices and new-device security log entry | `app/models/user_device.rb`, `app/services/user_devices/` | libs/core, libs/store, libs/auth | logic done | `access.UserDevice`; user-agent parsing (`Utils::DeviceInfo`) belongs to apps/server |
 | OAuth callback for GoCardless connection | `app/services/payment_providers/gocardless_service.rb` (`LAGO_OAUTH_PROXY_URL`) | providers/gocardless | planned | Callback served by `apps/server`; no proxy |
 
 ### 1.6 API Keys and API Conventions
@@ -973,7 +975,7 @@ Each Lago clock job becomes a River periodic job or a job scheduled at the insta
 | `auto_dunning`, `manual_payments`, `issue_receipts`, `beta_payment_authorization` | premium integration | core | |
 | `api_permissions`, `custom_roles`, `security_logs` | premium integration | core | |
 | `multi_entities_pro`, `multi_entities_enterprise` | premium integration | core | No entity limit |
-| `from_email`, `remove_branding_watermark` | premium integration | core | |
+| `from_email`, `remove_branding_watermark` | premium integration | core | `from_email` is the organization setting `from_email_enabled` |
 | `events_targeting_wallets` | premium integration | core | |
 | `order_forms` | premium integration and flag | core | |
 | `revenue_share` | premium integration | core | Partner accounts and self-billing |

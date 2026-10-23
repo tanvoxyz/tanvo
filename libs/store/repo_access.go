@@ -7,6 +7,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/access"
 	"github.com/tanvoxyz/tanvo/libs/core/permission"
@@ -22,6 +24,9 @@ func (t *txState) bindAccess(r *port.Repos) {
 	r.Invites = inviteRepo{t}
 	r.PasswordResets = passwordResetRepo{t}
 	r.APIKeys = apiKeyRepo{t}
+	r.Sessions = sessionRepo{t}
+	r.OIDCStates = oidcStateRepo{t}
+	r.UserDevices = userDeviceRepo{t}
 }
 
 // userRepo implements access.UserRepository. Users are global: every
@@ -112,7 +117,6 @@ func membershipParams(m *access.Membership) db.CreateMembershipParams {
 		OrganizationID: m.OrganizationID.UUID(),
 		ID:             m.ID.UUID(),
 		UserID:         m.UserID.UUID(),
-		RoleID:         m.RoleID.UUID(),
 		Status:         string(m.Status),
 		RevokedAt:      optUTC(m.RevokedAt),
 		CreatedAt:      utc(m.CreatedAt),
@@ -125,7 +129,6 @@ func membershipOf(r db.Membership) (*access.Membership, error) {
 		ID:             idOf[core.MembershipID](r.ID),
 		OrganizationID: idOf[core.OrganizationID](r.OrganizationID),
 		UserID:         idOf[core.UserID](r.UserID),
-		RoleID:         idOf[core.RoleID](r.RoleID),
 		Status:         access.MembershipStatus(r.Status),
 		RevokedAt:      optUTC(r.RevokedAt),
 		CreatedAt:      utc(r.CreatedAt),
@@ -133,13 +136,75 @@ func membershipOf(r db.Membership) (*access.Membership, error) {
 	}, nil
 }
 
+// membershipKey identifies a membership across organizations.
+type membershipKey struct{ org, id uuid.UUID }
+
+// withRoles converts rows and attaches their roles.
+func (r membershipRepo) withRoles(ctx context.Context, q *db.Queries, rows []db.Membership) ([]*access.Membership, error) {
+	out, err := convAll(rows, membershipOf)
+	if err != nil || len(out) == 0 {
+		return out, err
+	}
+	orgs, ids := make([]uuid.UUID, len(rows)), make([]uuid.UUID, len(rows))
+	for i, row := range rows {
+		orgs[i], ids[i] = row.OrganizationID, row.ID
+	}
+	rrows, err := q.ListMembershipRoles(ctx, db.ListMembershipRolesParams{OrganizationIds: orgs, MembershipIds: ids})
+	if err != nil {
+		return nil, fmt.Errorf("list membership roles: %w", mapErr(err))
+	}
+	roles := map[membershipKey][]core.RoleID{}
+	for _, rr := range rrows {
+		k := membershipKey{rr.OrganizationID, rr.MembershipID}
+		roles[k] = append(roles[k], idOf[core.RoleID](rr.RoleID))
+	}
+	for i, m := range out {
+		m.RoleIDs = access.NormalizeRoleIDs(roles[membershipKey{rows[i].OrganizationID, rows[i].ID}])
+	}
+	return out, nil
+}
+
+// withRolesOne is [membershipRepo.withRoles] for one row.
+func (r membershipRepo) withRolesOne(ctx context.Context, q *db.Queries, row db.Membership) (*access.Membership, error) {
+	out, err := r.withRoles(ctx, q, []db.Membership{row})
+	if err != nil {
+		return nil, err
+	}
+	return out[0], nil
+}
+
+// writeRoles makes m.RoleIDs the kept roles of m: it discards the kept
+// rows of the other roles (rows are never modified otherwise, lago
+// membership_role.rb:4-7) and adds the missing ones. The rows of
+// discarded roles stay, as in lago.
+func (r membershipRepo) writeRoles(ctx context.Context, q *db.Queries, m *access.Membership) error {
+	ids := uuids(m.RoleIDs)
+	at := utc(m.UpdatedAt)
+	if err := q.DiscardMembershipRoles(ctx, db.DiscardMembershipRolesParams{DeletedAt: &at, OrganizationID: m.OrganizationID.UUID(), MembershipID: m.ID.UUID(), RoleIds: ids}); err != nil {
+		return fmt.Errorf("discard membership roles: %w", mapErr(err))
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	if err := q.AddMembershipRoles(ctx, db.AddMembershipRolesParams{OrganizationID: m.OrganizationID.UUID(), MembershipID: m.ID.UUID(), CreatedAt: utc(m.UpdatedAt), RoleIds: ids}); err != nil {
+		return fmt.Errorf("add membership roles: %w", mapErr(err))
+	}
+	return nil
+}
+
 func (r membershipRepo) Create(ctx context.Context, m *access.Membership) error {
 	q, err := r.t.queries(ctx, m.OrganizationID)
 	if err != nil {
 		return err
 	}
+	if m.Active() && len(m.RoleIDs) == 0 {
+		return fmt.Errorf("create membership: roles: %w", core.ErrInvalidValue)
+	}
 	n, err := q.CreateMembership(ctx, membershipParams(m))
-	return insertErr("membership", n, err)
+	if err := insertErr("membership", n, err); err != nil {
+		return err
+	}
+	return r.writeRoles(ctx, q, m)
 }
 
 func (r membershipRepo) Update(ctx context.Context, m *access.Membership) error {
@@ -147,13 +212,19 @@ func (r membershipRepo) Update(ctx context.Context, m *access.Membership) error 
 	if err != nil {
 		return err
 	}
+	if m.Active() && len(m.RoleIDs) == 0 {
+		return fmt.Errorf("update membership: roles: %w", core.ErrInvalidValue)
+	}
 	// One active membership per user and organization.
 	var n int64
 	err = r.t.guard(ctx, func() (err error) {
 		n, err = q.UpdateMembership(ctx, db.UpdateMembershipParams(membershipParams(m)))
 		return err
 	})
-	return updateErr("membership", m.ID, n, err)
+	if err := updateErr("membership", m.ID, n, err); err != nil {
+		return err
+	}
+	return r.writeRoles(ctx, q, m)
 }
 
 func (r membershipRepo) Get(ctx context.Context, org core.OrganizationID, id core.MembershipID) (*access.Membership, error) {
@@ -165,7 +236,7 @@ func (r membershipRepo) Get(ctx context.Context, org core.OrganizationID, id cor
 	if err != nil {
 		return nil, getErr("membership", id, err)
 	}
-	return membershipOf(row)
+	return r.withRolesOne(ctx, q, row)
 }
 
 func (r membershipRepo) GetActiveByUser(ctx context.Context, org core.OrganizationID, user core.UserID) (*access.Membership, error) {
@@ -177,7 +248,7 @@ func (r membershipRepo) GetActiveByUser(ctx context.Context, org core.Organizati
 	if err != nil {
 		return nil, getErr("membership", user, err)
 	}
-	return membershipOf(row)
+	return r.withRolesOne(ctx, q, row)
 }
 
 // ListActiveByUser is not organization-scoped: it serves sign-in.
@@ -190,7 +261,7 @@ func (r membershipRepo) ListActiveByUser(ctx context.Context, user core.UserID) 
 	if err != nil {
 		return nil, fmt.Errorf("list memberships of user %s: %w", user, mapErr(err))
 	}
-	return convAll(rows, membershipOf)
+	return r.withRoles(ctx, q, rows)
 }
 
 func (r membershipRepo) List(ctx context.Context, org core.OrganizationID, f access.MembershipFilter, page core.PageRequest) (core.Page[*access.Membership], error) {
@@ -212,7 +283,15 @@ func (r membershipRepo) List(ctx context.Context, org core.OrganizationID, f acc
 	if err != nil {
 		return core.Page[*access.Membership]{}, fmt.Errorf("list memberships: %w", mapErr(err))
 	}
-	return pageOf(rows, page, membershipOf, func(m *access.Membership) string { return m.ID.String() })
+	ms, err := r.withRoles(ctx, q, rows)
+	if err != nil {
+		return core.Page[*access.Membership]{}, err
+	}
+	byID := make(map[uuid.UUID]*access.Membership, len(ms))
+	for _, m := range ms {
+		byID[m.ID.UUID()] = m
+	}
+	return pageOf(rows, page, func(row db.Membership) (*access.Membership, error) { return byID[row.ID], nil }, func(m *access.Membership) string { return m.ID.String() })
 }
 
 func (r membershipRepo) CountActiveByRole(ctx context.Context, org core.OrganizationID, role core.RoleID) (int, error) {
@@ -304,12 +383,13 @@ func (r roleRepo) Update(ctx context.Context, role *access.Role) error {
 	return updateErr("role", role.ID, n, err)
 }
 
-func (r roleRepo) Delete(ctx context.Context, org core.OrganizationID, id core.RoleID) error {
+func (r roleRepo) Discard(ctx context.Context, org core.OrganizationID, id core.RoleID, at time.Time) error {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return err
 	}
-	n, err := q.DeleteRole(ctx, db.DeleteRoleParams{OrganizationID: org.UUID(), ID: id.UUID()})
+	at = utc(at)
+	n, err := q.DiscardRole(ctx, db.DiscardRoleParams{DeletedAt: &at, OrganizationID: org.UUID(), ID: id.UUID()})
 	return updateErr("role", id, n, err)
 }
 
@@ -384,7 +464,7 @@ func inviteParams(i *access.Invite) db.CreateInviteParams {
 		OrganizationID: i.OrganizationID.UUID(),
 		ID:             i.ID.UUID(),
 		Email:          i.Email,
-		RoleID:         i.RoleID.UUID(),
+		RoleIds:        uuids(i.RoleIDs),
 		TokenHash:      i.TokenHash,
 		Status:         string(i.Status),
 		ExpiresAt:      utc(i.ExpiresAt),
@@ -400,7 +480,7 @@ func inviteOf(r db.Invite) (*access.Invite, error) {
 		ID:             idOf[core.InviteID](r.ID),
 		OrganizationID: idOf[core.OrganizationID](r.OrganizationID),
 		Email:          r.Email,
-		RoleID:         idOf[core.RoleID](r.RoleID),
+		RoleIDs:        access.NormalizeRoleIDs(idsOf[core.RoleID](r.RoleIds)),
 		TokenHash:      r.TokenHash,
 		Status:         access.InviteStatus(r.Status),
 		ExpiresAt:      utc(r.ExpiresAt),
@@ -717,4 +797,53 @@ func (r apiKeyRepo) TouchLastUsed(ctx context.Context, org core.OrganizationID, 
 	at = utc(at)
 	n, err := q.TouchAPIKeyLastUsed(ctx, db.TouchAPIKeyLastUsedParams{OrganizationID: org.UUID(), ID: id.UUID(), LastUsedAt: &at})
 	return updateErr("api_key", id, n, err)
+}
+
+func (r apiKeyRepo) RecordUses(ctx context.Context, org core.OrganizationID, uses map[core.APIKeyID]time.Time) error {
+	if len(uses) == 0 {
+		return nil
+	}
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return err
+	}
+	p := db.RecordAPIKeyUsesParams{OrganizationID: org.UUID(), Ids: make([]uuid.UUID, 0, len(uses)), LastUsedAts: make([]time.Time, 0, len(uses))}
+	for id, at := range uses {
+		p.Ids = append(p.Ids, id.UUID())
+		p.LastUsedAts = append(p.LastUsedAts, utc(at))
+	}
+	if _, err := q.RecordAPIKeyUses(ctx, p); err != nil {
+		return fmt.Errorf("record api key uses: %w", mapErr(err))
+	}
+	return nil
+}
+
+func (r apiKeyRepo) ApplyUses(ctx context.Context, org core.OrganizationID) (int, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return 0, err
+	}
+	n, err := q.ApplyAPIKeyUses(ctx, org.UUID())
+	if err != nil {
+		return 0, fmt.Errorf("apply api key uses: %w", mapErr(err))
+	}
+	return int(n), nil
+}
+
+// UseOrganizations is not organization-scoped: it feeds the usage tracking
+// clock job.
+func (r apiKeyRepo) UseOrganizations(ctx context.Context) ([]core.OrganizationID, error) {
+	q, err := r.t.queriesAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.ListAPIKeyUseOrganizations(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list api key use organizations: %w", mapErr(err))
+	}
+	out := make([]core.OrganizationID, len(rows))
+	for i, u := range rows {
+		out[i] = idOf[core.OrganizationID](u)
+	}
+	return out, nil
 }

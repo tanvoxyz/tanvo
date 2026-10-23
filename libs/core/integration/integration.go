@@ -30,7 +30,7 @@ func CategoryOf(p Provider) (Category, bool) {
 		return CategoryTax, true
 	case ProviderHubspot, ProviderSalesforce:
 		return CategoryCRM, true
-	case ProviderOkta, ProviderEntraID:
+	case ProviderOkta, ProviderEntraID, ProviderOIDC:
 		return CategoryAuth, true
 	default:
 		return "", false

@@ -11,7 +11,6 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/access"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
-	"github.com/tanvoxyz/tanvo/libs/core/permission"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
 
@@ -54,8 +53,9 @@ type InviteRequest struct {
 	Actor core.UserID
 	// Email is the invitee.
 	Email string
-	// RoleID is the role granted on acceptance.
-	RoleID core.RoleID
+	// RoleIDs are the roles granted on acceptance: at least one, each a
+	// built-in role or a custom role of the organization.
+	RoleIDs []core.RoleID
 }
 
 // CreatedInvite is a new invite with its token, shown once.
@@ -68,10 +68,13 @@ type CreatedInvite struct {
 	URL string
 }
 
-// checkGrant refuses granting role (admin) unless actor is an active admin
-// of org (lago cannot_grant_admin).
-func checkGrant(ctx context.Context, r port.Repos, org core.OrganizationID, actor core.UserID, role *access.Role) error {
-	if actor.IsZero() || !role.Admin() {
+// checkGrant refuses granting roles that include admin unless actor is an
+// active admin of org (lago cannot_grant_admin,
+// app/services/invites/create_service.rb:56-62, update_service.rb:34-39).
+// A zero actor is a system caller and skips the check (lago
+// skip_admin_check).
+func checkGrant(ctx context.Context, r port.Repos, org core.OrganizationID, actor core.UserID, roles []core.RoleID) error {
+	if actor.IsZero() || !access.HasAdmin(roles) {
 		return nil
 	}
 	m, err := r.Memberships.GetActiveByUser(ctx, org, actor)
@@ -81,41 +84,45 @@ func checkGrant(ctx context.Context, r port.Repos, org core.OrganizationID, acto
 	if err != nil {
 		return fmt.Errorf("get membership: %w", err)
 	}
-	if access.BuiltInRoleID(permission.BuiltInRoleAdmin) != m.RoleID {
+	if !m.Admin() {
 		return rule(CodeCannotGrantAdmin)
 	}
 	return nil
 }
 
-// role returns the role id of org, or nil when it does not exist.
-func role(ctx context.Context, r port.Repos, org core.OrganizationID, id core.RoleID) (*access.Role, error) {
-	if id.IsZero() {
-		return nil, nil
+// validRoles reports whether ids is not empty and every role exists in
+// org (lago invalid_role, app/services/invites/validate_service.rb:36-46).
+func validRoles(ctx context.Context, r port.Repos, org core.OrganizationID, ids []core.RoleID) (bool, error) {
+	if len(ids) == 0 {
+		return false, nil
 	}
-	ro, err := r.Roles.Get(ctx, org, id)
-	if errors.Is(err, core.ErrNotFound) {
-		return nil, nil
+	for _, id := range ids {
+		if id.IsZero() {
+			return false, nil
+		}
+		_, err := r.Roles.Get(ctx, org, id)
+		if errors.Is(err, core.ErrNotFound) {
+			return false, nil
+		}
+		if err != nil {
+			return false, fmt.Errorf("get role: %w", err)
+		}
 	}
-	if err != nil {
-		return nil, fmt.Errorf("get role: %w", err)
-	}
-	return ro, nil
+	return true, nil
 }
 
-// Create invites an email with a role. Granting admin needs an admin
+// Create invites an email with roles. Granting admin needs an admin
 // actor; a pending invite or an active membership of the email, an
-// invalid email and an unknown role are field errors.
+// invalid email, no roles and an unknown role are field errors.
 func (s *Invites) Create(ctx context.Context, req InviteRequest) (*CreatedInvite, error) {
 	var out *CreatedInvite
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
-		ro, err := role(ctx, r, req.OrganizationID, req.RoleID)
-		if err != nil {
+		if err := checkGrant(ctx, r, req.OrganizationID, req.Actor, req.RoleIDs); err != nil {
 			return err
 		}
-		if ro != nil {
-			if err := checkGrant(ctx, r, req.OrganizationID, req.Actor, ro); err != nil {
-				return err
-			}
+		rolesOK, err := validRoles(ctx, r, req.OrganizationID, req.RoleIDs)
+		if err != nil {
+			return err
 		}
 		email := access.NormalizeEmail(req.Email)
 		var v core.Validator
@@ -132,7 +139,7 @@ func (s *Invites) Create(ctx context.Context, req InviteRequest) (*CreatedInvite
 			return err
 		}
 		v.Check(!member, "email", CodeEmailAlreadyUsed)
-		v.Check(ro != nil, "role", CodeInvalidRole)
+		v.Check(rolesOK, "roles", CodeInvalidRole)
 		if err := v.Err(); err != nil {
 			return err
 		}
@@ -141,7 +148,7 @@ func (s *Invites) Create(ctx context.Context, req InviteRequest) (*CreatedInvite
 			return err
 		}
 		now := s.d.now()
-		inv := access.NewInvite(core.NewID[core.InviteID](s.d.IDs), req.OrganizationID, email, ro.ID, HashSecret(token), now.Add(s.cfg.Validity), now)
+		inv := access.NewInvite(core.NewID[core.InviteID](s.d.IDs), req.OrganizationID, email, req.RoleIDs, HashSecret(token), now.Add(s.cfg.Validity), now)
 		if err := inv.Validate(); err != nil {
 			return err
 		}
@@ -184,8 +191,9 @@ func activeMember(ctx context.Context, r port.Repos, org core.OrganizationID, em
 	return true, nil
 }
 
-// Update changes the role of a pending invite.
-func (s *Invites) Update(ctx context.Context, org core.OrganizationID, actor core.UserID, id core.InviteID, roleID core.RoleID) (*access.Invite, error) {
+// Update replaces the roles of a pending invite (lago
+// Invites::UpdateService).
+func (s *Invites) Update(ctx context.Context, org core.OrganizationID, actor core.UserID, id core.InviteID, roleIDs []core.RoleID) (*access.Invite, error) {
 	var inv *access.Invite
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
 		var err error
@@ -203,19 +211,17 @@ func (s *Invites) Update(ctx context.Context, org core.OrganizationID, actor cor
 			return rule(CodeCannotUpdateRevokedInvite)
 		case access.InviteStatusPending:
 		}
-		ro, err := role(ctx, r, org, roleID)
+		if err := checkGrant(ctx, r, org, actor, roleIDs); err != nil {
+			return err
+		}
+		ok, err := validRoles(ctx, r, org, roleIDs)
 		if err != nil {
 			return err
 		}
-		if ro != nil {
-			if err := checkGrant(ctx, r, org, actor, ro); err != nil {
-				return err
-			}
+		if !ok {
+			return fieldError("roles", CodeInvalidRole)
 		}
-		if ro == nil {
-			return fieldError("role", CodeInvalidRole)
-		}
-		inv.RoleID, inv.UpdatedAt = ro.ID, s.d.now()
+		inv.RoleIDs, inv.UpdatedAt = access.NormalizeRoleIDs(roleIDs), s.d.now()
 		return r.Invites.Update(ctx, inv)
 	})
 	if err != nil {
@@ -253,7 +259,16 @@ func pendingInvite(ctx context.Context, r port.Repos, token string) (*access.Inv
 	if token == "" {
 		return nil, notFound("invite")
 	}
-	inv, err := r.Invites.GetByTokenHash(ctx, HashSecret(token))
+	return pendingInviteByHash(ctx, r, HashSecret(token))
+}
+
+// pendingInviteByHash returns the pending invite whose token has the
+// SHA-256 tokenHash, or "invite_not_found".
+func pendingInviteByHash(ctx context.Context, r port.Repos, tokenHash []byte) (*access.Invite, error) {
+	if len(tokenHash) == 0 {
+		return nil, notFound("invite")
+	}
+	inv, err := r.Invites.GetByTokenHash(ctx, tokenHash)
 	if errors.Is(err, core.ErrNotFound) || (err == nil && inv.Status != access.InviteStatusPending) {
 		return nil, notFound("invite")
 	}
@@ -276,7 +291,7 @@ func (s *Invites) Lookup(ctx context.Context, token string) (*access.Invite, err
 
 // Accept accepts the invite of token with a password: it creates the user
 // (or reuses the one with the invite's email), the membership with the
-// invite's role, and opens a session.
+// invite's roles, and opens a session.
 func (s *Invites) Accept(ctx context.Context, token, password string, meta SessionMeta) (*SignedIn, error) {
 	var out *SignedIn
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
@@ -319,8 +334,9 @@ func (s *Invites) accept(ctx context.Context, r port.Repos, inv *access.Invite, 
 	}
 	now := s.d.now()
 	user, err := r.Users.GetByEmail(ctx, inv.Email)
+	created := errors.Is(err, core.ErrNotFound)
 	switch {
-	case errors.Is(err, core.ErrNotFound):
+	case created:
 		user = access.NewUser(core.NewID[core.UserID](s.d.IDs), inv.Email, nil, now)
 		if withPassword {
 			if err := s.users.setPassword(user, password); err != nil {
@@ -347,7 +363,15 @@ func (s *Invites) accept(ctx context.Context, r port.Repos, inv *access.Invite, 
 	if err := r.Users.Update(ctx, user); err != nil {
 		return nil, fmt.Errorf("update user: %w", err)
 	}
-	m := access.NewMembership(core.NewID[core.MembershipID](s.d.IDs), inv.OrganizationID, user.ID, inv.RoleID, now)
+	// lago register_from_invite resolves every invite role with first!
+	// (app/services/users_service.rb:108-109): a role deleted since the
+	// invite fails the acceptance.
+	if ok, err := validRoles(ctx, r, inv.OrganizationID, inv.RoleIDs); err != nil {
+		return nil, err
+	} else if !ok {
+		return nil, notFound("role")
+	}
+	m := access.NewMembership(core.NewID[core.MembershipID](s.d.IDs), inv.OrganizationID, user.ID, inv.RoleIDs, now)
 	if err := r.Memberships.Create(ctx, m); err != nil {
 		if errors.Is(err, core.ErrConflict) {
 			return nil, fieldError("email", CodeEmailAlreadyUsed)
@@ -360,5 +384,5 @@ func (s *Invites) accept(ctx context.Context, r port.Repos, inv *access.Invite, 
 	if err := r.Invites.Update(ctx, inv); err != nil {
 		return nil, fmt.Errorf("accept invite: %w", err)
 	}
-	return &SignedIn{User: user, Organization: org, Membership: m}, nil
+	return &SignedIn{User: user, Organization: org, Membership: m, newUser: created}, nil
 }

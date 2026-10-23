@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/tanvoxyz/tanvo/libs/core/access"
@@ -18,10 +17,9 @@ func (e *env) resetToken(email string) string {
 	if len(m) != 1 {
 		e.t.Fatalf("mails = %d, want = 1", len(m))
 	}
-	u := m[0].Data["reset_url"]
-	tok, ok := strings.CutPrefix(u, "https://app.tanvo.test/reset-password/")
-	if !ok {
-		e.t.Fatalf("reset_url = %s", u)
+	tok := m[0].Data["token"]
+	if tok == "" {
+		e.t.Fatalf("token = %q, want = the reset token", tok)
 	}
 	return tok
 }

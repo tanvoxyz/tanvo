@@ -190,6 +190,9 @@ func (tx *storeTx) bind() port.Repos {
 		Invites:        inviteRepo{st.access},
 		PasswordResets: passwordResetRepo{st.access},
 		APIKeys:        apiKeyRepo{st.access},
+		Sessions:       sessionRepo{st.access},
+		OIDCStates:     oidcStateRepo{st.access},
+		UserDevices:    userDeviceRepo{st.access},
 
 		Customers: customerRepo{st.customer},
 

@@ -128,6 +128,12 @@ func (r integrationRepo) ListByProvider(_ context.Context, org core.Organization
 	}), nil
 }
 
+func (r integrationRepo) ListByDomain(_ context.Context, p integration.Provider, domain string) ([]*integration.Integration, error) {
+	return r.d.integrations.find(func(x *integration.Integration) bool {
+		return x.Category == integration.CategoryAuth && x.Provider == p && x.ClaimsDomain(domain)
+	}), nil
+}
+
 func (r integrationRepo) List(_ context.Context, org core.OrganizationID, f integration.Filter, page core.PageRequest) (core.Page[*integration.Integration], error) {
 	rows := r.d.integrations.find(func(x *integration.Integration) bool {
 		return x.OrganizationID == org && (f.Category == "" || x.Category == f.Category) && (f.Provider == "" || x.Provider == f.Provider)

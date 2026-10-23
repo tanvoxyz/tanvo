@@ -63,7 +63,7 @@ func TestAccessRepos(t *testing.T) {
 
 	// spec/models/membership_role_spec.rb:20
 	members := membershipRepo{d}
-	m := access.NewMembership(core.MustParseID[core.MembershipID]("0190a0a0-0000-7000-8000-000000000030"), org, u.ID, admin, now)
+	m := access.NewMembership(core.MustParseID[core.MembershipID]("0190a0a0-0000-7000-8000-000000000030"), org, u.ID, []core.RoleID{admin, dev.ID}, now)
 	if err := members.Create(ctx, m); err != nil {
 		t.Fatal(err)
 	}
@@ -72,8 +72,13 @@ func TestAccessRepos(t *testing.T) {
 	if err := members.Create(ctx, &m2); !errors.Is(err, core.ErrConflict) {
 		t.Errorf("Create(second active) got = %v, want = ErrConflict", err)
 	}
-	if n, _ := members.CountActiveByRole(ctx, org, admin); n != 1 {
-		t.Errorf("CountActiveByRole got = %d, want = 1", n)
+	for _, role := range []core.RoleID{admin, dev.ID} {
+		if n, _ := members.CountActiveByRole(ctx, org, role); n != 1 {
+			t.Errorf("CountActiveByRole(%s) got = %d, want = 1", role, n)
+		}
+	}
+	if p, err := members.List(ctx, org, access.MembershipFilter{RoleID: dev.ID}, core.PageRequest{}); err != nil || len(p.Items) != 1 || len(p.Items[0].RoleIDs) != 2 {
+		t.Errorf("List(role) got = %v, %v, want = the membership with both roles", p.Items, err)
 	}
 	if err := m.Revoke(now); err != nil {
 		t.Fatal(err)
@@ -89,11 +94,11 @@ func TestAccessRepos(t *testing.T) {
 	}
 
 	invites := inviteRepo{d}
-	i := access.NewInvite(core.MustParseID[core.InviteID]("0190a0a0-0000-7000-8000-000000000040"), org, "a@b.co", dev.ID, access.HashToken("i1"), now.Add(time.Hour), now)
+	i := access.NewInvite(core.MustParseID[core.InviteID]("0190a0a0-0000-7000-8000-000000000040"), org, "a@b.co", []core.RoleID{dev.ID}, access.HashToken("i1"), now.Add(time.Hour), now)
 	if err := invites.Create(ctx, i); err != nil {
 		t.Fatal(err)
 	}
-	i2 := access.NewInvite(core.MustParseID[core.InviteID]("0190a0a0-0000-7000-8000-000000000041"), org, "A@b.co", dev.ID, access.HashToken("i2"), now.Add(time.Hour), now)
+	i2 := access.NewInvite(core.MustParseID[core.InviteID]("0190a0a0-0000-7000-8000-000000000041"), org, "A@b.co", []core.RoleID{dev.ID}, access.HashToken("i2"), now.Add(time.Hour), now)
 	if err := invites.Create(ctx, i2); !errors.Is(err, core.ErrConflict) {
 		t.Errorf("Create(second pending) got = %v, want = ErrConflict", err)
 	}

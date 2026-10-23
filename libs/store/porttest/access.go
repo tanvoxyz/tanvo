@@ -2,6 +2,7 @@ package porttest
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -33,6 +34,8 @@ func apiKeyID(k *access.APIKey) core.APIKeyID             { return k.ID }
 func testAccess(t *testing.T, h Harness) {
 	adminID := access.BuiltInRoleID(permission.BuiltInRoleAdmin)
 	financeID := access.BuiltInRoleID(permission.BuiltInRoleFinance)
+	managerID := access.BuiltInRoleID(permission.BuiltInRoleManager)
+	roles := func(ids ...core.RoleID) []core.RoleID { return ids }
 
 	t.Run("users", func(t *testing.T) {
 		t.Parallel()
@@ -93,17 +96,18 @@ func testAccess(t *testing.T, h Harness) {
 		u3 := accessFixtureUser(t, e, "u3@example.test")
 		custom := accessCustomRole(e, org, "developer")
 		mid := func() core.MembershipID { return core.NewID[core.MembershipID](e.ids) }
-		m1 := access.NewMembership(mid(), org, u1.ID, adminID, now)
-		m2 := access.NewMembership(mid(), org, u2.ID, custom.ID, now)
-		m3 := access.NewMembership(mid(), org, u3.ID, adminID, now)
-		mb := access.NewMembership(mid(), other, u1.ID, financeID, now)
+		// m1 has several roles (lago membership_roles).
+		m1 := access.NewMembership(mid(), org, u1.ID, roles(custom.ID, adminID), now)
+		m2 := access.NewMembership(mid(), org, u2.ID, roles(custom.ID), now)
+		m3 := access.NewMembership(mid(), org, u3.ID, roles(adminID), now)
+		mb := access.NewMembership(mid(), other, u1.ID, roles(financeID), now)
 		e.tx(func(ctx context.Context, r port.Repos) error {
 			noErr(t, "Roles.Create()", r.Roles.Create(ctx, custom))
 			for _, m := range []*access.Membership{m1, m2, m3, mb} {
 				noErr(t, "Create()", r.Memberships.Create(ctx, m))
 			}
 			wantErr(t, "Create() with the same ID", r.Memberships.Create(ctx, m1), core.ErrConflict)
-			dup := access.NewMembership(mid(), org, u1.ID, financeID, now)
+			dup := access.NewMembership(mid(), org, u1.ID, roles(financeID), now)
 			wantErr(t, "Create() of a second active membership", r.Memberships.Create(ctx, dup), core.ErrConflict)
 
 			got, err := r.Memberships.Get(ctx, org, m2.ID)
@@ -132,13 +136,34 @@ func testAccess(t *testing.T, h Harness) {
 			equal(t, "Get() revoked", got, m2)
 			_, err = r.Memberships.GetActiveByUser(ctx, org, u2.ID)
 			wantErr(t, "GetActiveByUser() revoked", err, core.ErrNotFound)
-			m4 := access.NewMembership(mid(), org, u2.ID, financeID, at(time.Hour))
+			m4 := access.NewMembership(mid(), org, u2.ID, roles(financeID), at(time.Hour))
 			noErr(t, "Create() after revocation", r.Memberships.Create(ctx, m4))
 			reactivated := *m2
 			reactivated.Status, reactivated.RevokedAt = access.MembershipStatusActive, nil
 			wantErr(t, "Update() to a second active membership", r.Memberships.Update(ctx, &reactivated), core.ErrConflict)
-			noErr(t, "ChangeRole()", m3.ChangeRole(financeID, at(time.Minute)))
+			noErr(t, "ChangeRoles()", m3.ChangeRoles(roles(managerID, financeID), at(time.Minute)))
 			noErr(t, "Update() after a conflict", r.Memberships.Update(ctx, m3))
+			got, err = r.Memberships.Get(ctx, org, m3.ID)
+			noErr(t, "Get() with added roles", err)
+			equal(t, "Get() with added roles", got, m3)
+			noErr(t, "ChangeRoles()", m3.ChangeRoles(roles(financeID), at(2*time.Minute)))
+			noErr(t, "Update() removing a role", r.Memberships.Update(ctx, m3))
+			got, err = r.Memberships.Get(ctx, org, m3.ID)
+			noErr(t, "Get() with a removed role", err)
+			equal(t, "Get() with a removed role", got, m3)
+			// A removed role's row is discarded, so the role can be added
+			// again (lago membership_role.rb:46-50).
+			noErr(t, "ChangeRoles()", m3.ChangeRoles(roles(managerID, financeID), at(3*time.Minute)))
+			noErr(t, "Update() adding a removed role again", r.Memberships.Update(ctx, m3))
+			got, err = r.Memberships.Get(ctx, org, m3.ID)
+			noErr(t, "Get() with a role added again", err)
+			equal(t, "Get() with a role added again", got, m3)
+			noErr(t, "ChangeRoles()", m3.ChangeRoles(roles(financeID), at(4*time.Minute)))
+			noErr(t, "Update() removing a role again", r.Memberships.Update(ctx, m3))
+			noRoles := *m3
+			noRoles.RoleIDs = nil
+			wantErr(t, "Update() without roles", r.Memberships.Update(ctx, &noRoles), core.ErrInvalidValue)
+			wantErr(t, "Create() without roles", r.Memberships.Create(ctx, access.NewMembership(mid(), org, u3.ID, nil, now)), core.ErrInvalidValue)
 
 			// Cross-organization: the user's active memberships everywhere.
 			mine, err := r.Memberships.ListActiveByUser(ctx, u1.ID)
@@ -164,6 +189,10 @@ func testAccess(t *testing.T, h Harness) {
 				return r.Memberships.List(ctx, org, access.MembershipFilter{Status: access.MembershipStatusActive, RoleID: financeID}, p)
 			})
 			equal(t, "List() by role", ids(finance, membershipID), []core.MembershipID{m3.ID, m4.ID})
+			withCustom := listAll(t, 1, func(p core.PageRequest) (core.Page[*access.Membership], error) {
+				return r.Memberships.List(ctx, org, access.MembershipFilter{RoleID: custom.ID}, p)
+			})
+			equal(t, "List() by a role among several", withCustom, []*access.Membership{m1, m2})
 			p, err := r.Memberships.List(ctx, other, access.MembershipFilter{}, core.PageRequest{})
 			noErr(t, "List() of another organization", err)
 			equal(t, "List() of another organization", ids(p.Items, membershipID), []core.MembershipID{mb.ID})
@@ -172,13 +201,30 @@ func testAccess(t *testing.T, h Harness) {
 				org  core.OrganizationID
 				role core.RoleID
 				want int
-			}{{org, adminID, 1}, {org, financeID, 2}, {org, custom.ID, 0}, {other, financeID, 1}, {other, adminID, 0}} {
+			}{{org, adminID, 1}, {org, financeID, 2}, {org, custom.ID, 1}, {org, managerID, 0}, {other, financeID, 1}, {other, adminID, 0}} {
 				n, err := r.Memberships.CountActiveByRole(ctx, c.org, c.role)
 				noErr(t, "CountActiveByRole()", err)
 				if n != c.want {
 					t.Errorf("CountActiveByRole(%s) got = %d, want = %d", c.role, n, c.want)
 				}
 			}
+
+			// A discarded role is no longer among the roles of its
+			// memberships (lago default scope on roles); a revoked
+			// membership may be left without roles.
+			noErr(t, "Roles.Discard()", r.Roles.Discard(ctx, org, custom.ID, at(5*time.Minute)))
+			m1.RoleIDs, m2.RoleIDs = roles(adminID), nil
+			for _, m := range []*access.Membership{m1, m2} {
+				got, err = r.Memberships.Get(ctx, org, m.ID)
+				noErr(t, "Get() holding a discarded role", err)
+				equal(t, "Get() holding a discarded role", got, m)
+			}
+			noErr(t, "ChangeRoles()", m1.ChangeRoles(roles(adminID, financeID), at(6*time.Minute)))
+			noErr(t, "Update() holding a discarded role", r.Memberships.Update(ctx, m1))
+			got, err = r.Memberships.Get(ctx, org, m1.ID)
+			noErr(t, "Get() after Update() holding a discarded role", err)
+			equal(t, "Get() after Update() holding a discarded role", got, m1)
+			noErr(t, "Update() revoked without roles", r.Memberships.Update(ctx, m2))
 			return nil
 		})
 	})
@@ -256,13 +302,22 @@ func testAccess(t *testing.T, h Harness) {
 			noErr(t, "List() of another organization", err)
 			equal(t, "List() of another organization", ids(p.Items, roleID), []core.RoleID{builtIns[0].ID, builtIns[1].ID, builtIns[2].ID, r3.ID})
 
-			wantErr(t, "Delete() from another organization", r.Roles.Delete(ctx, other, r2.ID), core.ErrNotFound)
-			wantErr(t, "Delete() built-in", r.Roles.Delete(ctx, org, adminID), core.ErrNotFound)
-			noErr(t, "Delete()", r.Roles.Delete(ctx, org, r2.ID))
-			wantErr(t, "Delete() again", r.Roles.Delete(ctx, org, r2.ID), core.ErrNotFound)
+			wantErr(t, "Discard() from another organization", r.Roles.Discard(ctx, other, r2.ID, at(time.Hour)), core.ErrNotFound)
+			wantErr(t, "Discard() built-in", r.Roles.Discard(ctx, org, adminID, at(time.Hour)), core.ErrNotFound)
+			noErr(t, "Discard()", r.Roles.Discard(ctx, org, r2.ID, at(time.Hour)))
+			wantErr(t, "Discard() again", r.Roles.Discard(ctx, org, r2.ID, at(time.Hour)), core.ErrNotFound)
 			_, err = r.Roles.Get(ctx, org, r2.ID)
-			wantErr(t, "Get() deleted", err, core.ErrNotFound)
-			// A deleted role frees its code.
+			wantErr(t, "Get() discarded", err, core.ErrNotFound)
+			_, err = r.Roles.GetByCode(ctx, org, "support")
+			wantErr(t, "GetByCode() discarded", err, core.ErrNotFound)
+			r2.Name = "Support"
+			wantErr(t, "Update() discarded", r.Roles.Update(ctx, r2), core.ErrNotFound)
+			p, err = r.Roles.List(ctx, org, core.PageRequest{})
+			noErr(t, "List() after Discard()", err)
+			equal(t, "List() after Discard()", ids(p.Items, roleID), []core.RoleID{builtIns[0].ID, builtIns[1].ID, builtIns[2].ID, r1.ID})
+			// A discarded role frees its code (lago role.rb unique index
+			// on kept rows) but not its ID.
+			wantErr(t, "Create() with a discarded ID", r.Roles.Create(ctx, r2), core.ErrConflict)
 			noErr(t, "Create() with a freed code", r.Roles.Create(ctx, accessCustomRole(e, org, "support")))
 			return nil
 		})
@@ -274,7 +329,7 @@ func testAccess(t *testing.T, h Harness) {
 		a, b := e.twoOrgs()
 		org, other := a.OrganizationID, b.OrganizationID
 		newInvite := func(org core.OrganizationID, email, token string) *access.Invite {
-			return access.NewInvite(core.NewID[core.InviteID](e.ids), org, email, financeID, access.HashToken(token), at(48*time.Hour), now)
+			return access.NewInvite(core.NewID[core.InviteID](e.ids), org, email, roles(managerID, financeID), access.HashToken(token), at(48*time.Hour), now)
 		}
 		i1 := newInvite(org, "Carol@Example.test", "t1")
 		i2 := newInvite(org, "dave@example.test", "t2")
@@ -320,6 +375,11 @@ func testAccess(t *testing.T, h Harness) {
 			wantErr(t, "GetPendingByEmail() accepted", err, core.ErrNotFound)
 			i4 := newInvite(org, "carol@example.test", "t4")
 			noErr(t, "Create() after acceptance", r.Invites.Create(ctx, i4))
+			i4.RoleIDs, i4.UpdatedAt = roles(adminID), at(2*time.Hour)
+			noErr(t, "Update() of the roles", r.Invites.Update(ctx, i4))
+			got, err = r.Invites.Get(ctx, org, i4.ID)
+			noErr(t, "Get() after a role change", err)
+			equal(t, "Get() after a role change", got, i4)
 			pending := *i1
 			pending.Status, pending.AcceptedAt = access.InviteStatusPending, nil
 			wantErr(t, "Update() to a second pending invite", r.Invites.Update(ctx, &pending), core.ErrConflict)
@@ -464,6 +524,43 @@ func testAccess(t *testing.T, h Harness) {
 			noErr(t, "Get() after TouchLastUsed()", err)
 			equal(t, "Get() after TouchLastUsed()", got, k3)
 			wantErr(t, "TouchLastUsed() from another organization", r.APIKeys.TouchLastUsed(ctx, other, k3.ID, now), core.ErrNotFound)
+
+			// Recorded uses reach last_used_at when applied; the latest
+			// recorded use of a key wins, last_used_at only moves forward,
+			// and uses of another organization's keys are dropped.
+			noErr(t, "RecordUses()", r.APIKeys.RecordUses(ctx, org, map[core.APIKeyID]time.Time{k3.ID: at(10 * time.Minute), k1.ID: at(2 * time.Minute), kb.ID: at(3 * time.Minute)}))
+			noErr(t, "RecordUses() earlier", r.APIKeys.RecordUses(ctx, org, map[core.APIKeyID]time.Time{k3.ID: at(7 * time.Minute)}))
+			orgs, err := r.APIKeys.UseOrganizations(ctx)
+			noErr(t, "UseOrganizations()", err)
+			if !slices.Contains(orgs, org) || slices.Contains(orgs, other) {
+				t.Errorf("UseOrganizations() got = %v, want = %s and not %s", orgs, org, other)
+			}
+			applied, err := r.APIKeys.ApplyUses(ctx, org)
+			noErr(t, "ApplyUses()", err)
+			if applied != 2 {
+				t.Errorf("ApplyUses() got = %d, want = 2", applied)
+			}
+			k3.Touch(at(10 * time.Minute))
+			k1.Touch(at(2 * time.Minute))
+			for _, k := range []*access.APIKey{k1, k3} {
+				got, err = r.APIKeys.Get(ctx, org, k.ID)
+				noErr(t, "Get() after ApplyUses()", err)
+				equal(t, "Get() after ApplyUses()", got, k)
+			}
+			got, err = r.APIKeys.GetByTokenHash(ctx, access.HashToken("secret-b"))
+			noErr(t, "GetByTokenHash() after ApplyUses()", err)
+			equal(t, "use of another organization's key", got, kb)
+			applied, err = r.APIKeys.ApplyUses(ctx, org)
+			noErr(t, "ApplyUses() again", err)
+			if applied != 0 {
+				t.Errorf("ApplyUses() again got = %d, want = 0", applied)
+			}
+			noErr(t, "RecordUses() older", r.APIKeys.RecordUses(ctx, org, map[core.APIKeyID]time.Time{k3.ID: at(time.Minute)}))
+			_, err = r.APIKeys.ApplyUses(ctx, org)
+			noErr(t, "ApplyUses() older", err)
+			got, err = r.APIKeys.Get(ctx, org, k3.ID)
+			noErr(t, "Get() after an older use", err)
+			equal(t, "Get() after an older use", got, k3)
 
 			all := listAll(t, 1, func(p core.PageRequest) (core.Page[*access.APIKey], error) {
 				return r.APIKeys.List(ctx, org, access.APIKeyFilter{}, p)

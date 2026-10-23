@@ -89,6 +89,12 @@ type ApiKey struct {
 	UpdatedAt      time.Time
 }
 
+type ApiKeyUse struct {
+	OrganizationID uuid.UUID
+	ApiKeyID       uuid.UUID
+	LastUsedAt     time.Time
+}
+
 type AppliedCoupon struct {
 	OrganizationID             uuid.UUID
 	ID                         uuid.UUID
@@ -732,7 +738,7 @@ type Invite struct {
 	OrganizationID uuid.UUID
 	ID             uuid.UUID
 	Email          string
-	RoleID         uuid.UUID
+	RoleIds        []uuid.UUID
 	TokenHash      []byte
 	Status         string
 	ExpiresAt      time.Time
@@ -891,11 +897,33 @@ type Membership struct {
 	OrganizationID uuid.UUID
 	ID             uuid.UUID
 	UserID         uuid.UUID
-	RoleID         uuid.UUID
 	Status         string
 	RevokedAt      *time.Time
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+}
+
+type MembershipRole struct {
+	OrganizationID uuid.UUID
+	ID             int64
+	MembershipID   uuid.UUID
+	RoleID         uuid.UUID
+	CreatedAt      time.Time
+	DeletedAt      *time.Time
+}
+
+type OidcState struct {
+	KeyHash          []byte
+	Method           string
+	Intent           string
+	ConnectionID     string
+	Email            string
+	InviteTokenHash  []byte
+	OrganizationName string
+	Nonce            string
+	Verifier         string
+	ExpiresAt        time.Time
+	CreatedAt        time.Time
 }
 
 type Order struct {
@@ -945,6 +973,7 @@ type Organization struct {
 	AddressZipcode         string
 	AddressCountry         string
 	AuthenticationMethods  []string
+	FromEmailEnabled       bool
 	AuditLogsRetentionDays int32
 	MaxWalletsPerCustomer  int32
 	CreatedAt              time.Time
@@ -1185,6 +1214,20 @@ type Role struct {
 	Permissions    []string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	DeletedAt      *time.Time
+}
+
+type Session struct {
+	ID         uuid.UUID
+	UserID     uuid.UUID
+	TokenHash  []byte
+	Method     string
+	UserAgent  string
+	Ip         string
+	CreatedAt  time.Time
+	LastSeenAt time.Time
+	ExpiresAt  time.Time
+	RevokedAt  *time.Time
 }
 
 type Subscription struct {
@@ -1283,6 +1326,19 @@ type User struct {
 	LastSignInAt *time.Time
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+}
+
+type UserDevice struct {
+	ID            uuid.UUID
+	UserID        uuid.UUID
+	Fingerprint   string
+	Browser       *string
+	Os            *string
+	DeviceType    *string
+	LastIpAddress *string
+	LastLoggedAt  time.Time
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 type Wallet struct {

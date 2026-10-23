@@ -99,17 +99,19 @@ const (
 	ProviderOkta Provider = "okta"
 	// ProviderEntraID is "entra_id": Microsoft Entra ID identity.
 	ProviderEntraID Provider = "entra_id"
+	// ProviderOIDC is "oidc": any other OpenID Connect identity provider.
+	ProviderOIDC Provider = "oidc"
 )
 
 // ProviderValues returns every Provider, in declaration order.
 func ProviderValues() []Provider {
-	return []Provider{ProviderStripe, ProviderAdyen, ProviderGocardless, ProviderCashfree, ProviderMoneyhash, ProviderFlutterwave, ProviderNetsuite, ProviderXero, ProviderAnrok, ProviderAvalara, ProviderHubspot, ProviderSalesforce, ProviderOkta, ProviderEntraID}
+	return []Provider{ProviderStripe, ProviderAdyen, ProviderGocardless, ProviderCashfree, ProviderMoneyhash, ProviderFlutterwave, ProviderNetsuite, ProviderXero, ProviderAnrok, ProviderAvalara, ProviderHubspot, ProviderSalesforce, ProviderOkta, ProviderEntraID, ProviderOIDC}
 }
 
 // Valid reports whether v is one of the declared Provider values.
 func (v Provider) Valid() bool {
 	switch v {
-	case ProviderStripe, ProviderAdyen, ProviderGocardless, ProviderCashfree, ProviderMoneyhash, ProviderFlutterwave, ProviderNetsuite, ProviderXero, ProviderAnrok, ProviderAvalara, ProviderHubspot, ProviderSalesforce, ProviderOkta, ProviderEntraID:
+	case ProviderStripe, ProviderAdyen, ProviderGocardless, ProviderCashfree, ProviderMoneyhash, ProviderFlutterwave, ProviderNetsuite, ProviderXero, ProviderAnrok, ProviderAvalara, ProviderHubspot, ProviderSalesforce, ProviderOkta, ProviderEntraID, ProviderOIDC:
 		return true
 	default:
 		return false

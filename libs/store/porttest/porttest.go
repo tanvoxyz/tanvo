@@ -49,6 +49,7 @@ func groups() []group {
 		{"transactor", testTransactor},
 		{"organization", testOrganization},
 		{"access", testAccess},
+		{"session", testSession},
 		{"customer", testCustomer},
 		{"coupon", testCoupon},
 		{"dunning", testDunning},

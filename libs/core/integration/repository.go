@@ -36,6 +36,11 @@ type Repository interface {
 	// ListByProvider returns the integrations of a provider in creation
 	// order.
 	ListByProvider(ctx context.Context, org core.OrganizationID, p Provider) ([]*Integration, error)
+	// ListByDomain returns the integrations of the auth provider p, in
+	// every organization, whose settings claim the email domain
+	// case-insensitively (AuthSettings.Domains), in creation order. It
+	// routes single sign-on by email domain.
+	ListByDomain(ctx context.Context, p Provider, domain string) ([]*Integration, error)
 	// List returns the organization's integrations in creation order.
 	List(ctx context.Context, org core.OrganizationID, f Filter, page core.PageRequest) (core.Page[*Integration], error)
 	// Delete removes the integration id with its customers, mappings,

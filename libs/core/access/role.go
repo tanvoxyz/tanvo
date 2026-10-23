@@ -12,10 +12,12 @@ import (
 
 // Rule codes of roles (domain §5.3).
 const (
-	// CodeRoleInUse: a custom role used by a membership cannot be deleted.
-	CodeRoleInUse = "role_in_use"
-	// CodeBuiltInRoleImmutable: built-in roles cannot be changed or deleted.
-	CodeBuiltInRoleImmutable = "built_in_role_immutable"
+	// CodeRoleAssignedToMembers: a custom role of an active membership
+	// cannot be deleted (lago app/services/roles/destroy_service.rb:15).
+	CodeRoleAssignedToMembers = "role_assigned_to_members"
+	// CodePredefinedRole: built-in roles cannot be changed or deleted (lago
+	// app/services/roles/destroy_service.rb:14, update_service.rb:15).
+	CodePredefinedRole = "predefined_role"
 )
 
 // Role is a named set of permissions (domain §5.3). Built-in roles (admin,
@@ -165,19 +167,35 @@ func (r *Role) Validate() error {
 // CheckRoleUpdate refuses changes to built-in roles.
 func CheckRoleUpdate(r *Role) error {
 	if _, ok := r.BuiltIn(); ok {
-		return core.NewRuleError(CodeBuiltInRoleImmutable, "built-in roles cannot be changed")
+		return core.NewRuleError(CodePredefinedRole, "built-in roles cannot be changed")
 	}
 	return nil
 }
 
-// CheckRoleDeletion refuses deleting a built-in role or a custom role used
-// by activeMemberships memberships.
+// CheckRoleDeletion refuses deleting a built-in role or a custom role of
+// activeMemberships active memberships; revoked memberships do not count.
 func CheckRoleDeletion(r *Role, activeMemberships int) error {
 	if err := CheckRoleUpdate(r); err != nil {
 		return err
 	}
 	if activeMemberships > 0 {
-		return core.NewRuleError(CodeRoleInUse, "the role is used by a membership")
+		return core.NewRuleError(CodeRoleAssignedToMembers, "the role is assigned to members")
 	}
 	return nil
+}
+
+// AnyGrants reports whether one of roles holds p: a membership holds the
+// union of its roles' permissions (lago Membership#permissions_hash,
+// app/models/membership.rb:33-41).
+func AnyGrants(roles []*Role, p permission.Permission) bool {
+	return slices.ContainsFunc(roles, func(r *Role) bool { return r.Grants(p) })
+}
+
+// UnionPermissions returns the sorted union of the permissions roles hold.
+func UnionPermissions(roles []*Role) []permission.Permission {
+	var out []permission.Permission
+	for _, r := range roles {
+		out = append(out, r.EffectivePermissions()...)
+	}
+	return NormalizePermissions(out)
 }

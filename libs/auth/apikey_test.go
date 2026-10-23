@@ -323,6 +323,26 @@ func TestUsageTracker(t *testing.T) {
 	if err := e.usage.Flush(e.ctx, e.store); err != nil {
 		t.Fatal(err)
 	}
+	// The flush records the uses; the clock job applies them.
+	if got := e.getKey(k.Key).LastUsedAt; got != nil {
+		t.Errorf("last_used_at = %v before the clock job, want nil", got)
+	}
+	e.store.TakeJobs()
+	if n, err := DispatchUsage(e.ctx, e.store); err != nil || n != 1 {
+		t.Fatalf("DispatchUsage() got = %d %v, want = 1 <nil>", n, err)
+	}
+	var applies []port.Job
+	for _, j := range e.store.TakeJobs() {
+		if j.Kind == JobKindApplyAPIKeyUsage {
+			applies = append(applies, j)
+		}
+	}
+	if len(applies) != 1 || applies[0].OrganizationID != o.ID {
+		t.Fatalf("apply jobs got = %+v, want = one of %s", applies, o.ID)
+	}
+	if n, err := ApplyUsage(e.ctx, e.store, o.ID); err != nil || n != 1 {
+		t.Fatalf("ApplyUsage() got = %d %v, want = 1 <nil>", n, err)
+	}
 	// source: spec/services/api_keys/track_usage_service_spec.rb:16
 	if got := e.getKey(k.Key).LastUsedAt; got == nil || !got.Equal(e.clock.Now()) {
 		t.Errorf("last_used_at = %v, want = %s", got, e.clock.Now())
@@ -334,6 +354,9 @@ func TestUsageTracker(t *testing.T) {
 	// source: spec/services/api_keys/track_usage_service_spec.rb:20
 	if e.usage.Pending() != 0 {
 		t.Errorf("pending = %d after flush, want = 0", e.usage.Pending())
+	}
+	if n, err := DispatchUsage(e.ctx, e.store); err != nil || n != 0 {
+		t.Errorf("DispatchUsage() after apply got = %d %v, want = 0 <nil>", n, err)
 	}
 	// A deleted key is skipped, not an error.
 	e.usage.Record(o.ID, core.NewID[core.APIKeyID](e.deps.IDs), e.clock.Now())

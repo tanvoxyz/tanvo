@@ -15,7 +15,7 @@ func TestUsersRegister(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if out.User.Email != "user@email.com" || out.Organization.Name != "organization_name" || out.Membership.RoleID.IsZero() {
+		if out.User.Email != "user@email.com" || out.Organization.Name != "organization_name" || len(out.Membership.RoleIDs) == 0 {
 			t.Errorf("got = %+v, want a user, an organization and a membership", out)
 		}
 		if out.Token == "" || out.Session.Method != organization.AuthenticationMethodEmailPassword {

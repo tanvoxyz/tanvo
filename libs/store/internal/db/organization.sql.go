@@ -157,11 +157,11 @@ const createOrganization = `-- name: CreateOrganization :execrows
 INSERT INTO organizations (
   id, name, slug, email, logo,
   address_line1, address_line2, address_city, address_state, address_zipcode, address_country,
-  authentication_methods, audit_logs_retention_days, max_wallets_per_customer, created_at, updated_at
+  authentication_methods, from_email_enabled, audit_logs_retention_days, max_wallets_per_customer, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5,
   $6, $7, $8, $9, $10, $11,
-  $12, $13, $14, $15, $16
+  $12, $13, $14, $15, $16, $17
 )
 ON CONFLICT DO NOTHING
 `
@@ -179,6 +179,7 @@ type CreateOrganizationParams struct {
 	AddressZipcode         string
 	AddressCountry         string
 	AuthenticationMethods  []string
+	FromEmailEnabled       bool
 	AuditLogsRetentionDays int32
 	MaxWalletsPerCustomer  int32
 	CreatedAt              time.Time
@@ -200,6 +201,7 @@ func (q *Queries) CreateOrganization(ctx context.Context, arg CreateOrganization
 		arg.AddressZipcode,
 		arg.AddressCountry,
 		arg.AuthenticationMethods,
+		arg.FromEmailEnabled,
 		arg.AuditLogsRetentionDays,
 		arg.MaxWalletsPerCustomer,
 		arg.CreatedAt,
@@ -502,7 +504,7 @@ func (q *Queries) GetInvoiceCustomSectionByCode(ctx context.Context, arg GetInvo
 }
 
 const getOrganization = `-- name: GetOrganization :one
-SELECT id, name, slug, email, logo, address_line1, address_line2, address_city, address_state, address_zipcode, address_country, authentication_methods, audit_logs_retention_days, max_wallets_per_customer, created_at, updated_at FROM organizations WHERE id = $1
+SELECT id, name, slug, email, logo, address_line1, address_line2, address_city, address_state, address_zipcode, address_country, authentication_methods, from_email_enabled, audit_logs_retention_days, max_wallets_per_customer, created_at, updated_at FROM organizations WHERE id = $1
 `
 
 func (q *Queries) GetOrganization(ctx context.Context, id uuid.UUID) (Organization, error) {
@@ -521,6 +523,7 @@ func (q *Queries) GetOrganization(ctx context.Context, id uuid.UUID) (Organizati
 		&i.AddressZipcode,
 		&i.AddressCountry,
 		&i.AuthenticationMethods,
+		&i.FromEmailEnabled,
 		&i.AuditLogsRetentionDays,
 		&i.MaxWalletsPerCustomer,
 		&i.CreatedAt,
@@ -530,7 +533,7 @@ func (q *Queries) GetOrganization(ctx context.Context, id uuid.UUID) (Organizati
 }
 
 const getOrganizationBySlug = `-- name: GetOrganizationBySlug :one
-SELECT id, name, slug, email, logo, address_line1, address_line2, address_city, address_state, address_zipcode, address_country, authentication_methods, audit_logs_retention_days, max_wallets_per_customer, created_at, updated_at FROM organizations WHERE slug = $1
+SELECT id, name, slug, email, logo, address_line1, address_line2, address_city, address_state, address_zipcode, address_country, authentication_methods, from_email_enabled, audit_logs_retention_days, max_wallets_per_customer, created_at, updated_at FROM organizations WHERE slug = $1
 `
 
 func (q *Queries) GetOrganizationBySlug(ctx context.Context, slug string) (Organization, error) {
@@ -549,6 +552,7 @@ func (q *Queries) GetOrganizationBySlug(ctx context.Context, slug string) (Organ
 		&i.AddressZipcode,
 		&i.AddressCountry,
 		&i.AuthenticationMethods,
+		&i.FromEmailEnabled,
 		&i.AuditLogsRetentionDays,
 		&i.MaxWalletsPerCustomer,
 		&i.CreatedAt,
@@ -909,8 +913,9 @@ UPDATE organizations SET
   id = $1, name = $2, slug = $3, email = $4, logo = $5,
   address_line1 = $6, address_line2 = $7, address_city = $8,
   address_state = $9, address_zipcode = $10, address_country = $11,
-  authentication_methods = $12, audit_logs_retention_days = $13,
-  max_wallets_per_customer = $14, created_at = $15, updated_at = $16
+  authentication_methods = $12, from_email_enabled = $13,
+  audit_logs_retention_days = $14,
+  max_wallets_per_customer = $15, created_at = $16, updated_at = $17
 WHERE id = $1
 `
 
@@ -927,6 +932,7 @@ type UpdateOrganizationParams struct {
 	AddressZipcode         string
 	AddressCountry         string
 	AuthenticationMethods  []string
+	FromEmailEnabled       bool
 	AuditLogsRetentionDays int32
 	MaxWalletsPerCustomer  int32
 	CreatedAt              time.Time
@@ -947,6 +953,7 @@ func (q *Queries) UpdateOrganization(ctx context.Context, arg UpdateOrganization
 		arg.AddressZipcode,
 		arg.AddressCountry,
 		arg.AuthenticationMethods,
+		arg.FromEmailEnabled,
 		arg.AuditLogsRetentionDays,
 		arg.MaxWalletsPerCustomer,
 		arg.CreatedAt,

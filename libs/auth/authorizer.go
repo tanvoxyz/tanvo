@@ -40,8 +40,9 @@ type Principal struct {
 	User *access.User
 	// Membership is the user's active membership in OrganizationID.
 	Membership *access.Membership
-	// Role is the membership's role.
-	Role *access.Role
+	// Roles are the membership's roles; the user holds the union of their
+	// permissions.
+	Roles []*access.Role
 	// Session is the user's session, when authenticated by one.
 	Session *Session
 	// CustomerID is the customer of a [PrincipalPortal].
@@ -120,14 +121,14 @@ type Authorizer struct {
 func NewAuthorizer(tx port.Transactor) *Authorizer { return &Authorizer{tx: tx} }
 
 // Check returns nil when p holds permission perm, and
-// [ErrPermissionDenied] otherwise. A user holds the permissions of its
-// role; an API key holds perm when its resource and level allow
+// [ErrPermissionDenied] otherwise. A user holds the union of its roles'
+// permissions (lago Membership#permissions_hash); an API key holds perm when its resource and level allow
 // [APIResourceFor] perm (an empty permission map is full access); a portal
 // principal holds no role permission (see [Authorizer.CheckCustomer]).
 func (a *Authorizer) Check(p Principal, perm permission.Permission) error {
 	switch p.Kind {
 	case PrincipalUser:
-		if p.Role != nil && p.Membership != nil && p.Membership.Active() && p.Role.Grants(perm) {
+		if p.Membership != nil && p.Membership.Active() && access.AnyGrants(p.Roles, perm) {
 			return nil
 		}
 	case PrincipalAPIKey:
@@ -195,14 +196,31 @@ func (a *Authorizer) UserPrincipal(ctx context.Context, sess *Session, org core.
 		if sess.Method != "" && !o.AllowsAuthentication(sess.Method) {
 			return fieldError(string(sess.Method), CodeLoginMethodNotAuthorized)
 		}
-		role, err := r.Roles.Get(ctx, org, m.RoleID)
+		roles, err := membershipRoles(ctx, r, m)
 		if err != nil {
-			return fmt.Errorf("get role: %w", err)
+			return err
 		}
-		p = Principal{Kind: PrincipalUser, OrganizationID: org, User: u, Membership: m, Role: role, Session: sess}
+		p = Principal{Kind: PrincipalUser, OrganizationID: org, User: u, Membership: m, Roles: roles, Session: sess}
 		return nil
 	})
 	return p, err
+}
+
+// membershipRoles returns the roles of m. A role deleted since it was
+// assigned is skipped: it grants nothing.
+func membershipRoles(ctx context.Context, r port.Repos, m *access.Membership) ([]*access.Role, error) {
+	out := make([]*access.Role, 0, len(m.RoleIDs))
+	for _, id := range m.RoleIDs {
+		ro, err := r.Roles.Get(ctx, m.OrganizationID, id)
+		if errors.Is(err, core.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("get role: %w", err)
+		}
+		out = append(out, ro)
+	}
+	return out, nil
 }
 
 // allowedMethods returns the union of the sign-in methods of the

@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/access"
@@ -52,6 +53,8 @@ func TestAuthorizerCheck(t *testing.T) {
 	admin, _ := access.BuiltInRoleByID(roleID(permission.BuiltInRoleAdmin))
 	active := &access.Membership{Status: access.MembershipStatusActive}
 	revoked := &access.Membership{Status: access.MembershipStatusRevoked}
+	custom := access.NewCustomRole(core.MustParseID[core.RoleID]("0190a000-0000-7000-8000-000000000077"), core.MustParseID[core.OrganizationID]("0190a000-0000-7000-8000-000000000001"), "dev", "Dev", []permission.Permission{"addons:read"}, time.Time{})
+	mixed := []*access.Role{custom, finance}
 	readCustomers := &access.APIKey{Permissions: map[permission.APIResource]permission.Level{permission.APIResourceCustomer: permission.LevelRead}}
 	tests := []struct {
 		name string
@@ -59,10 +62,15 @@ func TestAuthorizerCheck(t *testing.T) {
 		perm permission.Permission
 		want error
 	}{
-		{name: "admin", p: Principal{Kind: PrincipalUser, Role: admin, Membership: active}, perm: "roles:create"},
-		{name: "finance granted", p: Principal{Kind: PrincipalUser, Role: finance, Membership: active}, perm: "invoices:read"},
-		{name: "finance denied", p: Principal{Kind: PrincipalUser, Role: finance, Membership: active}, perm: "roles:create", want: ErrPermissionDenied},
-		{name: "revoked membership", p: Principal{Kind: PrincipalUser, Role: admin, Membership: revoked}, perm: "customers:read", want: ErrPermissionDenied},
+		{name: "admin", p: Principal{Kind: PrincipalUser, Roles: []*access.Role{admin}, Membership: active}, perm: "roles:create"},
+		{name: "finance granted", p: Principal{Kind: PrincipalUser, Roles: []*access.Role{finance}, Membership: active}, perm: "invoices:read"},
+		{name: "finance denied", p: Principal{Kind: PrincipalUser, Roles: []*access.Role{finance}, Membership: active}, perm: "roles:create", want: ErrPermissionDenied},
+		{name: "revoked membership", p: Principal{Kind: PrincipalUser, Roles: []*access.Role{admin}, Membership: revoked}, perm: "customers:read", want: ErrPermissionDenied},
+		// spec/models/membership_spec.rb:124: a membership holds the union of its roles' permissions.
+		{name: "mixed roles custom permission", p: Principal{Kind: PrincipalUser, Roles: mixed, Membership: active}, perm: "addons:read"},
+		{name: "mixed roles predefined permission", p: Principal{Kind: PrincipalUser, Roles: mixed, Membership: active}, perm: "analytics:read"},
+		{name: "mixed roles disabled permission", p: Principal{Kind: PrincipalUser, Roles: mixed, Membership: active}, perm: "coupons:attach", want: ErrPermissionDenied},
+		{name: "no roles", p: Principal{Kind: PrincipalUser, Membership: active}, perm: "customers:read", want: ErrPermissionDenied},
 		{name: "full access key", p: APIKeyPrincipal(&access.APIKey{}), perm: "customers:delete"},
 		{name: "scoped key granted", p: APIKeyPrincipal(readCustomers), perm: "customers:read"},
 		{name: "scoped key write denied", p: APIKeyPrincipal(readCustomers), perm: "customers:update", want: ErrPermissionDenied},
@@ -156,7 +164,7 @@ func TestAuthorizerUserPrincipal(t *testing.T) {
 			case err != nil:
 				t.Fatal(err)
 			default:
-				if p.Kind != PrincipalUser || p.User.ID != u.ID || p.Role.ID != roleID(permission.BuiltInRoleManager) {
+				if p.Kind != PrincipalUser || p.User.ID != u.ID || len(p.Roles) != 1 || p.Roles[0].ID != roleID(permission.BuiltInRoleManager) {
 					t.Errorf("principal = %+v", p)
 				}
 				if err := e.authz.Check(p, "customers:create"); err != nil {
