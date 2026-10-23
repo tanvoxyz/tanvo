@@ -303,29 +303,29 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Single event ingestion | `app/services/events/create_service.rb` | libs/ingest | planned | |
-| Batch ingestion (up to 100 events) | `app/services/events/create_batch_service.rb` | libs/ingest | planned | |
-| Event timestamp parsing (seconds, fractional seconds, defaults to now) | `app/services/events/common_factory.rb` | libs/ingest | planned | |
-| Event fields: transaction id, external subscription id, code, properties, precise total amount | `app/models/event.rb` | libs/ingest | planned | |
-| `external_contract_id` alias of `external_subscription_id` on ingestion and event filters | `app/controllers/api/v1/events_controller.rb` | libs/ingest | planned | The explicit `external_subscription_id` wins when both are sent |
-| Deduplication by organization and transaction id | `app/services/events/create_service.rb` | libs/ingest | planned | Lago also scopes by external subscription id; Tanvo dedups per organization (§3) |
-| Request metadata on events (user agent, IP) | `app/services/events/create_service.rb` | libs/ingest | planned | |
-| Event validation (metric code, subscription, numeric field) | `app/services/events/validate_creation_service.rb` | libs/ingest | planned | |
+| Single event ingestion | `app/services/events/create_service.rb` | libs/ingest | logic done | |
+| Batch ingestion (up to 100 events) | `app/services/events/create_batch_service.rb` | libs/ingest | logic done | |
+| Event timestamp parsing (seconds, fractional seconds, defaults to now) | `app/services/events/common_factory.rb` | libs/ingest | logic done | |
+| Event fields: transaction id, external subscription id, code, properties, precise total amount | `app/models/event.rb` | libs/ingest | logic done | |
+| `external_contract_id` alias of `external_subscription_id` on ingestion and event filters | `app/controllers/api/v1/events_controller.rb` | libs/ingest | logic done | The explicit `external_subscription_id` wins when both are sent |
+| Deduplication by organization and transaction id | `app/services/events/create_service.rb` | libs/ingest | logic done | Lago also scopes by external subscription id; Tanvo dedups per organization (§3) |
+| Request metadata on events (user agent, IP) | `app/services/events/create_service.rb` | libs/ingest | in progress | |
+| Event validation (metric code, subscription, numeric field) | `app/services/events/validate_creation_service.rb` | libs/ingest | in progress | |
 | Post-validation of ingested events with `events.errors` webhook | `app/services/events/post_validation_service.rb` | libs/ingest | planned | Validation errors also returned synchronously where possible |
 | Retrieve an event and list events | `app/controllers/api/v1/events_controller.rb` | apps/server | planned | |
 | List enriched events | `app/controllers/api/v1/events_controller.rb` (`events_enriched`) | apps/server | planned | |
 | Fee estimate for an in-advance event | `app/services/fees/estimate_pay_in_advance_service.rb` | libs/billing | planned | |
 | Instant fee estimate and batch instant estimate | `app/services/fees/estimate_instant/` | libs/billing | planned | |
-| Enrichment: subscription, metric, expression, aggregated value, grouping keys, precise amount; charge lookup only to route in-advance events | `app/services/events/enrich_service.rb`, events-processor `processors/` | libs/ingest | planned | No charge or filter on the enriched row; filters are matched from the raw properties at query or bucket time |
-| Enriched events with operation type (add/remove) | `app/models/enriched_event.rb` | libs/ingest | planned | |
+| Enrichment: subscription, metric, expression, aggregated value, grouping keys, precise amount; charge lookup only to route in-advance events | `app/services/events/enrich_service.rb`, events-processor `processors/` | libs/ingest | logic done | No charge or filter on the enriched row; filters are matched from the raw properties at query or bucket time |
+| Enriched events with operation type (add/remove) | `app/models/enriched_event.rb` | libs/ingest | logic done | |
 | Re-enrichment after catalog changes | `app/services/events/re_enrich_all_service.rb` | libs/ingest | planned | |
-| Post-processing: usage monitoring, wallet refresh, target wallets, in-advance charges | `app/services/events/post_process_service.rb` | libs/ingest | planned | |
+| Post-processing: usage monitoring, wallet refresh, target wallets, in-advance charges | `app/services/events/post_process_service.rb` | libs/ingest | in progress | |
 | Events targeting a specific wallet | `app/services/events/` (`target_wallet_code`) | libs/billing | planned | |
 | In-advance charge fee creation from an event with source dedup | `app/services/fees/create_pay_in_advance_service.rb`, `app/services/events/pay_in_advance_service.rb` | libs/billing | planned | |
-| Kafka ingestion mode with consumers | events-processor `processors/` | libs/ingest | planned | Built into the `consumer` role |
-| Dead-letter topic for unprocessable events | events-processor `processors/dlq` | libs/ingest | planned | |
+| Kafka ingestion mode with consumers | events-processor `processors/` | libs/ingest | logic done | Built into the `consumer` role |
+| Dead-letter topic for unprocessable events | events-processor `processors/dlq` | libs/ingest | logic done | |
 | Source connectors for HTTP, SQS, Kinesis | events-processor connectors | libs/ingest | planned | Kafka also supported |
-| Catalog cache in consumers | events-processor (Badger cache, Debezium) | libs/ingest | planned | Change notifications instead of CDC (§3) |
+| Catalog cache in consumers | events-processor (Badger cache, Debezium) | libs/ingest | logic done | Change notifications instead of CDC (§3) |
 
 ### 1.18 Event Stores
 

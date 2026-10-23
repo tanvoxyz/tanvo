@@ -137,7 +137,7 @@ Directories are created when their step of the [roadmap](roadmap.md) starts.
 apps/server ──▶ billing ──▶ pricing / metering / tax / period / money
      │             │
      │             └──▶ core ──▶ money / period
-     ├──▶ ingest ──▶ expression(go) / core
+     ├──▶ ingest ──▶ expression(go) / metering / core
      ├──▶ store / eventstore / jobs / webhooks / documents / mail / auth ──▶ core
      ├──▶ providers/* ──▶ core
      └──▶ proto
@@ -148,7 +148,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 * `money`, `period`, `expression`, `pricing`, `metering` and `tax` are pure libraries: they depend only on each other in the order shown and on the standard library or vetted third-party packages, never on `core`, storage or I/O (except `tax`'s VIES client behind an interface).
 * `core` depends only on `money` and `period`.
 * `billing` reaches storage, events, documents and providers only through ports in `core`.
-* Infrastructure libraries depend on `core` but not on each other, with one exception: `ingest` uses `expression`.
+* Infrastructure libraries depend on `core` but not on each other, with one exception: `ingest` uses `expression` (a pure library, like `metering`, whose event type it writes). Integration tests may use another library's backends; the depguard rules exempt test files.
 * Only `apps/server` wires implementations to ports.
 * The rules are enforced by depguard in `.golangci.yml`; changing them starts with this section.
 

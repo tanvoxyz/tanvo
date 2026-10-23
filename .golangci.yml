@@ -94,6 +94,142 @@ linters:
           deny:
             - pkg: github.com/tanvoxyz/tanvo/libs/billing
               desc: "infrastructure implements ports; it does not depend on the billing engine"
+        infra-store:
+          files: ["**/libs/store/**", "!$test"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo/libs/eventstore
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/jobs
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/webhooks
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/documents
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/mail
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/auth
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/ingest
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+        infra-eventstore:
+          files: ["**/libs/eventstore/**", "!$test"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo/libs/store
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/jobs
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/webhooks
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/documents
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/mail
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/auth
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/ingest
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+        infra-jobs:
+          files: ["**/libs/jobs/**", "!$test"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo/libs/store
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/eventstore
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/webhooks
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/documents
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/mail
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/auth
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/ingest
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+        infra-webhooks:
+          files: ["**/libs/webhooks/**", "!$test"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo/libs/store
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/eventstore
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/jobs
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/documents
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/mail
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/auth
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/ingest
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+        infra-documents:
+          files: ["**/libs/documents/**", "!$test"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo/libs/store
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/eventstore
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/jobs
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/webhooks
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/mail
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/auth
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/ingest
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+        infra-mail:
+          files: ["**/libs/mail/**", "!$test"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo/libs/store
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/eventstore
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/jobs
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/webhooks
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/documents
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/auth
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/ingest
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+        infra-auth:
+          files: ["**/libs/auth/**", "!$test"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo/libs/store
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/eventstore
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/jobs
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/webhooks
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/documents
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/mail
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/ingest
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+        infra-ingest:
+          files: ["**/libs/ingest/**", "!$test"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo/libs/store
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/eventstore
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/jobs
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/webhooks
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/documents
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/mail
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/auth
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
         providers:
           list-mode: lax
           files: ["**/providers/**"]

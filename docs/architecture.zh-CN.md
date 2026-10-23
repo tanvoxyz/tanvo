@@ -137,7 +137,7 @@ tanvo/
 apps/server ──▶ billing ──▶ pricing / metering / tax / period / money
      │             │
      │             └──▶ core ──▶ money / period
-     ├──▶ ingest ──▶ expression(go) / core
+     ├──▶ ingest ──▶ expression(go) / metering / core
      ├──▶ store / eventstore / jobs / webhooks / documents / mail / auth ──▶ core
      ├──▶ providers/* ──▶ core
      └──▶ proto
@@ -148,7 +148,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 * `money`、`period`、`expression`、`pricing`、`metering` 与 `tax` 是纯函数库：它们只按图示顺序相互依赖，并依赖标准库或经过审查的第三方包，从不依赖 `core`、存储或 I/O（`tax` 位于接口之后的 VIES 客户端除外）。
 * `core` 只依赖 `money` 与 `period`。
 * `billing` 只通过 `core` 中的端口访问存储、事件、文档与提供者。
-* 基础设施库依赖 `core`，但彼此之间互不依赖，只有一个例外：`ingest` 使用 `expression`。
+* 基础设施库依赖 `core`，但彼此之间互不依赖，只有一个例外：`ingest` 使用 `expression`（与 `metering` 一样是纯库，ingest 写入的是它的事件类型）。集成测试可以使用其他库的后端；depguard 规则对测试文件豁免。
 * 只有 `apps/server` 把实现装配到端口上。
 * 这些规则由 `.golangci.yml` 中的 depguard 强制；要修改它们，先修改本节。
 

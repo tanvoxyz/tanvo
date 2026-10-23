@@ -303,29 +303,29 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 单个事件摄取 | `app/services/events/create_service.rb` | libs/ingest | 计划中 | |
-| 批量摄取（最多 100 个事件） | `app/services/events/create_batch_service.rb` | libs/ingest | 计划中 | |
-| 事件时间戳解析（秒、带小数的秒，默认取当前时间） | `app/services/events/common_factory.rb` | libs/ingest | 计划中 | |
-| 事件字段：交易 ID、外部订阅 ID、代码、属性、精确总金额 | `app/models/event.rb` | libs/ingest | 计划中 | |
-| 摄取和事件过滤中 `external_contract_id` 作为 `external_subscription_id` 的别名 | `app/controllers/api/v1/events_controller.rb` | libs/ingest | 计划中 | 两者都发送时以显式的 `external_subscription_id` 为准 |
-| 按组织与交易 ID 去重 | `app/services/events/create_service.rb` | libs/ingest | 计划中 | Lago 还按外部订阅 ID 区分；Tanvo 在组织范围内去重（§3） |
-| 事件上的请求元数据（user agent、IP） | `app/services/events/create_service.rb` | libs/ingest | 计划中 | |
-| 事件校验（指标代码、订阅、数值字段） | `app/services/events/validate_creation_service.rb` | libs/ingest | 计划中 | |
+| 单个事件摄取 | `app/services/events/create_service.rb` | libs/ingest | 逻辑已完成 | |
+| 批量摄取（最多 100 个事件） | `app/services/events/create_batch_service.rb` | libs/ingest | 逻辑已完成 | |
+| 事件时间戳解析（秒、带小数的秒，默认取当前时间） | `app/services/events/common_factory.rb` | libs/ingest | 逻辑已完成 | |
+| 事件字段：交易 ID、外部订阅 ID、代码、属性、精确总金额 | `app/models/event.rb` | libs/ingest | 逻辑已完成 | |
+| 摄取和事件过滤中 `external_contract_id` 作为 `external_subscription_id` 的别名 | `app/controllers/api/v1/events_controller.rb` | libs/ingest | 逻辑已完成 | 两者都发送时以显式的 `external_subscription_id` 为准 |
+| 按组织与交易 ID 去重 | `app/services/events/create_service.rb` | libs/ingest | 逻辑已完成 | Lago 还按外部订阅 ID 区分；Tanvo 在组织范围内去重（§3） |
+| 事件上的请求元数据（user agent、IP） | `app/services/events/create_service.rb` | libs/ingest | 进行中 | |
+| 事件校验（指标代码、订阅、数值字段） | `app/services/events/validate_creation_service.rb` | libs/ingest | 进行中 | |
 | 摄取后的事件校验与 `events.errors` webhook | `app/services/events/post_validation_service.rb` | libs/ingest | 计划中 | 能同步返回的校验错误也同步返回 |
 | 获取单个事件与列出事件 | `app/controllers/api/v1/events_controller.rb` | apps/server | 计划中 | |
 | 列出富化事件 | `app/controllers/api/v1/events_controller.rb`（`events_enriched`） | apps/server | 计划中 | |
 | 预付事件的费用估算 | `app/services/fees/estimate_pay_in_advance_service.rb` | libs/billing | 计划中 | |
 | 即时费用估算与批量即时估算 | `app/services/fees/estimate_instant/` | libs/billing | 计划中 | |
-| 富化：订阅、指标、表达式、聚合值、分组键、精确金额；查找计费项只为路由预付事件 | `app/services/events/enrich_service.rb`、events-processor `processors/` | libs/ingest | 计划中 | 富化行上没有计费项或过滤器；过滤器在查询或聚合到桶时根据原始属性匹配 |
-| 带操作类型（增加/移除）的富化事件 | `app/models/enriched_event.rb` | libs/ingest | 计划中 | |
+| 富化：订阅、指标、表达式、聚合值、分组键、精确金额；查找计费项只为路由预付事件 | `app/services/events/enrich_service.rb`、events-processor `processors/` | libs/ingest | 逻辑已完成 | 富化行上没有计费项或过滤器；过滤器在查询或聚合到桶时根据原始属性匹配 |
+| 带操作类型（增加/移除）的富化事件 | `app/models/enriched_event.rb` | libs/ingest | 逻辑已完成 | |
 | 目录变更后重新富化 | `app/services/events/re_enrich_all_service.rb` | libs/ingest | 计划中 | |
-| 后处理：用量监控、钱包刷新、目标钱包、预付计费项 | `app/services/events/post_process_service.rb` | libs/ingest | 计划中 | |
+| 后处理：用量监控、钱包刷新、目标钱包、预付计费项 | `app/services/events/post_process_service.rb` | libs/ingest | 进行中 | |
 | 指向特定钱包的事件 | `app/services/events/`（`target_wallet_code`） | libs/billing | 计划中 | |
 | 由事件创建预付计费项费用，按来源去重 | `app/services/fees/create_pay_in_advance_service.rb`、`app/services/events/pay_in_advance_service.rb` | libs/billing | 计划中 | |
-| 带消费者的 Kafka 摄取模式 | events-processor `processors/` | libs/ingest | 计划中 | 内置于 `consumer` 角色 |
-| 无法处理事件的死信主题 | events-processor `processors/dlq` | libs/ingest | 计划中 | |
+| 带消费者的 Kafka 摄取模式 | events-processor `processors/` | libs/ingest | 逻辑已完成 | 内置于 `consumer` 角色 |
+| 无法处理事件的死信主题 | events-processor `processors/dlq` | libs/ingest | 逻辑已完成 | |
 | HTTP、SQS、Kinesis 来源连接器 | events-processor 连接器 | libs/ingest | 计划中 | 也支持 Kafka |
-| 消费者中的目录缓存 | events-processor（Badger 缓存、Debezium） | libs/ingest | 计划中 | 以变更通知代替 CDC（§3） |
+| 消费者中的目录缓存 | events-processor（Badger 缓存、Debezium） | libs/ingest | 逻辑已完成 | 以变更通知代替 CDC（§3） |
 
 ### 1.18 事件存储
 

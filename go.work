@@ -4,6 +4,7 @@ use (
 	./libs/core
 	./libs/eventstore
 	./libs/expression/go
+	./libs/ingest
 	./libs/jobs
 	./libs/metering
 	./libs/money
