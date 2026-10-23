@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: jdx/mise-action@v2
+      - uses: ./.github/actions/rust-toolchain
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: libs/expression
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: pnpm install --frozen-lockfile
+      - uses: nrwl/nx-set-shas@v4
+      - uses: ./.github/actions/go-cache
+        with:
+          key: check
+          lint: true
+      # Pull requests check the affected projects, unless the CI or the
+      # toolchain changed; main and manual runs check every project.
+      - id: scope
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = pull_request ] && git diff --quiet "$NX_BASE" "$NX_HEAD" -- .github mise.toml nx.json tools; then
+            echo "cmd=affected" >> "$GITHUB_OUTPUT"
+          else
+            echo "cmd=run-many" >> "$GITHUB_OUTPUT"
+          fi
+      - run: pnpm nx ${{ steps.scope.outputs.cmd }} -t buf-lint lint tidy-check build test --output-style=static
+      - name: Generated code is up to date
+        run: |
+          pnpm nx run-many -t generate wasm --output-style=static
+          git diff --exit-code
+      - uses: ./.github/actions/go-cache
+        with:
+          key: check
+          lint: true
+          save: true

@@ -1,0 +1,38 @@
+name: Go caches
+description: >
+  Restores Go's build and module caches (and golangci-lint's when asked), or saves them.
+  Caches are saved only on pushes to main, which pull requests restore from,
+  so that pull requests do not evict them.
+inputs:
+  key:
+    description: Names the job, whose builds differ from other jobs' builds.
+    required: true
+  lint:
+    description: Also cache golangci-lint's results.
+    default: 'false'
+  save:
+    description: Save the caches instead of restoring them.
+    default: 'false'
+runs:
+  using: composite
+  steps:
+    - id: dirs
+      shell: bash
+      run: |
+        {
+          echo 'paths<<EOF'
+          go env GOCACHE GOMODCACHE
+          if [ '${{ inputs.lint }}' = true ]; then golangci-lint cache status | sed -n 's/^Dir: //p'; fi
+          echo EOF
+        } >> "$GITHUB_OUTPUT"
+    - if: inputs.save != 'true'
+      uses: actions/cache/restore@v4
+      with:
+        path: ${{ steps.dirs.outputs.paths }}
+        key: go-${{ runner.os }}-${{ runner.arch }}-${{ inputs.key }}-${{ github.sha }}
+        restore-keys: go-${{ runner.os }}-${{ runner.arch }}-${{ inputs.key }}-
+    - if: inputs.save == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: actions/cache/save@v4
+      with:
+        path: ${{ steps.dirs.outputs.paths }}
+        key: go-${{ runner.os }}-${{ runner.arch }}-${{ inputs.key }}-${{ github.sha }}

@@ -1,0 +1,11 @@
+name: Rust toolchain
+description: >
+  Installs the Rust toolchain of libs/expression/rust-toolchain.toml, with its
+  WASM target, before Nx runs Cargo: otherwise each Cargo task installs it on
+  first use, and tasks run in parallel install it over each other.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      working-directory: libs/expression
+      run: rustup toolchain install
