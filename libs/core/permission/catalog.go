@@ -62,6 +62,8 @@ func catalog() []grant {
 		{"dunning_campaigns:delete", true, false},
 		{"dunning_campaigns:read", true, true},
 		{"dunning_campaigns:update", true, false},
+		{"events:create", false, false},
+		{"events:read", false, false},
 		{"features:create", false, false},
 		{"features:delete", false, false},
 		{"features:read", false, false},

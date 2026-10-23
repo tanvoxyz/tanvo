@@ -151,7 +151,7 @@ Markers used throughout:
 
 | Enumeration | Values | Used by |
 | :--- | :--- | :--- |
-| `AuthenticationMethod` | `email_password`, `google_oauth`, `okta`, `entra_id` | Organization |
+| `AuthenticationMethod` | `email_password`, `google_oauth`, `okta`, `entra_id`, `oidc` | Organization |
 | `DocumentNumbering` | `per_customer`, `per_billing_entity` | BillingEntity |
 | `IssuingDateAnchor` | `current_period_end`, `next_period_start` | BillingEntity, Customer |
 | `IssuingDateAdjustment` | `keep_anchor`, `align_with_finalization_date` | BillingEntity, Customer |

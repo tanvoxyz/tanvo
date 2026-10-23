@@ -17,17 +17,19 @@ const (
 	AuthenticationMethodOkta AuthenticationMethod = "okta"
 	// AuthenticationMethodEntraID is "entra_id": Microsoft Entra ID single sign-on.
 	AuthenticationMethodEntraID AuthenticationMethod = "entra_id"
+	// AuthenticationMethodOIDC is "oidc": any other OpenID Connect provider.
+	AuthenticationMethodOIDC AuthenticationMethod = "oidc"
 )
 
 // AuthenticationMethodValues returns every AuthenticationMethod, in declaration order.
 func AuthenticationMethodValues() []AuthenticationMethod {
-	return []AuthenticationMethod{AuthenticationMethodEmailPassword, AuthenticationMethodGoogleOAuth, AuthenticationMethodOkta, AuthenticationMethodEntraID}
+	return []AuthenticationMethod{AuthenticationMethodEmailPassword, AuthenticationMethodGoogleOAuth, AuthenticationMethodOkta, AuthenticationMethodEntraID, AuthenticationMethodOIDC}
 }
 
 // Valid reports whether v is one of the declared AuthenticationMethod values.
 func (v AuthenticationMethod) Valid() bool {
 	switch v {
-	case AuthenticationMethodEmailPassword, AuthenticationMethodGoogleOAuth, AuthenticationMethodOkta, AuthenticationMethodEntraID:
+	case AuthenticationMethodEmailPassword, AuthenticationMethodGoogleOAuth, AuthenticationMethodOkta, AuthenticationMethodEntraID, AuthenticationMethodOIDC:
 		return true
 	default:
 		return false
