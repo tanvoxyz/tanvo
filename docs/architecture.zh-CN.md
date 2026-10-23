@@ -74,7 +74,7 @@ Tanvo 派生自 lago-api 与 lago-expression，两者都以 **GNU AGPL-3.0** 发
 | 认证 | API key（哈希存储）、OIDC（Google、Okta、Entra ID、任何 OIDC IdP）、邮箱 + 密码（argon2id）、会话 | `coreos/go-oidc`、`golang.org/x/oauth2` |
 | 授权 | 按角色与按 API key 的权限字符串 | 用户与 key 使用同一套权限模型（§4.4） |
 | 静态加密 | 对机密（提供者凭据、令牌）使用 AES-256-GCM 信封加密 | 密钥来自配置或 KMS |
-| 可观测性 | `log/slog` + OpenTelemetry（trace、metrics、logs），Prometheus 端点 | 可经由 OTel 选用 Sentry |
+| 可观测性 | **OpenTelemetry**（trace、metrics、logs），经 OTLP 导出，`log/slog` 桥接到 OTel logs；可选 Prometheus 端点 | 标准 `OTEL_*` 配置；其他后端（Sentry 等）经由 OTel Collector 接入（§15） |
 | 命令行与设置 | **Cobra** + **koanf** | 命令行参数、`TANVO_*` 环境变量、`tanvo.toml` |
 | Web UI | React + Vite + TanStack Router/Query + connect-es（`apps/web`，后期阶段） | 使用同一套 Connect 契约 |
 
@@ -356,4 +356,14 @@ Lago 高级许可证之下的功能（渐进式计费、钱包的高级规则、
 
 * 机密以 AES-256-GCM 信封加密；数据密钥由来自配置或 KMS 的密钥加密。
 * 与安全相关的操作（登录、创建 key、角色变更）写入安全日志。
-* 每个请求和任务都带有 trace；日志是带有组织 ID 与请求 ID 的结构化 `slog` 记录；指标通过 OpenTelemetry 与 `/metrics` 导出。
+* **可观测性遵循 OpenTelemetry**，覆盖 trace、metrics 与 logs：
+  * 库只依赖 OTel API，经构造函数选项接收 `TracerProvider` 与 `MeterProvider`，默认为 no-op；只有 `apps/server` 引入 SDK 与导出器（由 depguard 强制）并安装全局 provider。
+  * SDK 由标准 `OTEL_*` 环境变量配置（`OTEL_SERVICE_NAME`、`OTEL_RESOURCE_ATTRIBUTES`、`OTEL_EXPORTER_OTLP_*`、`OTEL_TRACES_SAMPLER` 等）。默认导出器是基于 gRPC 或 HTTP 的 OTLP；Prometheus `/metrics` 端点是可选的指标读取器，用于拉取式部署。
+  * resource 带有 `service.name`（`tanvo`）、`service.version`、`service.instance.id`、`deployment.environment.name` 与进程角色（`tanvo.role`）；Kubernetes 属性来自环境或 Collector。
+  * 埋点使用维护中的埋点库并遵循语义约定：API 用 `otelhttp` 与 `otelconnect`，PostgreSQL 用 `otelpgx`，franz-go 用 `kotel`，River 用其 OpenTelemetry 中间件，ClickHouse 查询与 provider 调用外包 span。名称与单位遵循语义约定（`http.server.request.duration`，单位为秒）；Tanvo 自己的指标与属性使用 `tanvo.` 前缀（`tanvo.jobs.duration`、`tanvo.ingest.events`）。
+  * 上下文以 W3C Trace Context 与 Baggage 传播，异步边界也不例外：Kafka 记录头与任务元数据携带 `traceparent`。消费者或任务处理单个请求的工作时，其 span 是生产方 span 的子 span；处理批量、分发与周期任务时，则以 span link 关联。
+  * 日志是以 JSON 写到 stdout 的 `slog` 记录，并桥接到 OTel logs（`otelslog`），带有 `trace_id` 与 `span_id`；组织、请求与任务 ID 作为属性。
+  * 组织 ID 是 span 与日志的属性（`tanvo.organization.id`），但绝不作为指标属性：指标属性的取值有界（角色、队列、任务类型、状态、provider）。按租户的分析使用 trace 与 exemplar。
+  * API key、凭据、支付信息、个人数据与事件属性绝不写入 span、指标或日志的属性。
+  * 其他后端（Sentry、Datadog 等）经由 OTel Collector 接入，而不是厂商 SDK。
+  * 健康检查（`/healthz`、`/readyz`）与遥测分开：就绪检查 PostgreSQL，消费者另检查 Kafka 连接。

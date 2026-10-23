@@ -54,6 +54,7 @@ pnpm nx show projects                              # 列出项目（名称 = 目
 ### 代码风格
 - 格式化：gofumpt + goimports（本仓库的导入单独分组），由 golangci-lint 检查。
 - 日志使用 `log/slog`（有上下文时用 `*Context` 版本）；不用 `fmt.Print*` 输出日志。
+- 遥测遵循 OpenTelemetry（[架构 §15](docs/architecture.zh-CN.md#15-安全与可观测性)）：库只使用 OTel API，经选项接收 provider；只有 `apps/server` 引入 SDK 与导出器；组织 ID 放在 span 与日志上，绝不作为指标属性。
 - 任何会阻塞或执行 I/O 的函数，第一个参数都是 `context.Context`。
 - 错误用 `fmt.Errorf("...: %w", err)` 包装，用 `errors.Is` / `errors.As` 判断；不要吞掉错误。
 - 不使用包级可变状态；依赖通过构造函数注入。

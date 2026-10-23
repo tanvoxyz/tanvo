@@ -230,6 +230,15 @@ linters:
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
             - pkg: github.com/tanvoxyz/tanvo/libs/auth
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+        otel-sdk:
+          files: ["**/libs/**", "**/providers/**", "!$test"]
+          deny:
+            - pkg: go.opentelemetry.io/otel/sdk
+              desc: "libraries use the OpenTelemetry API only; apps/server installs the SDK (architecture §15)"
+            - pkg: go.opentelemetry.io/otel/exporters
+              desc: "libraries use the OpenTelemetry API only; apps/server configures the exporters (architecture §15)"
+            - pkg: go.opentelemetry.io/contrib/exporters
+              desc: "libraries use the OpenTelemetry API only; apps/server configures the exporters (architecture §15)"
         providers:
           list-mode: lax
           files: ["**/providers/**"]

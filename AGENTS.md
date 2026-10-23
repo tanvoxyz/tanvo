@@ -54,6 +54,7 @@ Every Go module also works without Nx: `cd libs/money && mise exec -- go test ./
 ### Code Style
 - Formatting: gofumpt + goimports (this repository's imports in their own group), checked by golangci-lint.
 - Log with `log/slog` (`*Context` variants when a context is available); never `fmt.Print*` for logging.
+- Telemetry follows OpenTelemetry ([architecture §15](docs/architecture.md#15-security-and-observability)): libraries use only the OTel API and take providers through options; only `apps/server` imports the SDK and exporters; organization IDs go on spans and logs, never on metric attributes.
 - `context.Context` is the first parameter of anything that blocks or does I/O.
 - Wrap errors with `fmt.Errorf("...: %w", err)`; inspect with `errors.Is` / `errors.As`; never swallow errors.
 - No mutable package-level state; inject dependencies through constructors.

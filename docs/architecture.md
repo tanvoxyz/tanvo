@@ -74,7 +74,7 @@ Rules that follow from this:
 | Authentication | API keys (hashed), OIDC (Google, Okta, Entra ID, any OIDC IdP), email + password (argon2id), sessions | `coreos/go-oidc`, `golang.org/x/oauth2` |
 | Authorization | Permission strings per role and per API key | Same permission model for users and keys (§4.4) |
 | Encryption at rest | AES-256-GCM envelope encryption for secrets (provider credentials, tokens) | Keys from configuration or a KMS |
-| Observability | `log/slog` + OpenTelemetry (traces, metrics, logs), Prometheus endpoint | Sentry optional through OTel |
+| Observability | **OpenTelemetry** (traces, metrics, logs) over OTLP, `log/slog` bridged to OTel logs; optional Prometheus endpoint | Standard `OTEL_*` configuration; other backends (Sentry, …) through the OTel Collector (§15) |
 | Command line and settings | **Cobra** + **koanf** | Flags, `TANVO_*` environment variables, `tanvo.toml` |
 | Web UI | React + Vite + TanStack Router/Query + connect-es (`apps/web`, later phase) | Uses the same Connect contracts |
 
@@ -356,4 +356,14 @@ Self-hosted installations enable them with an offline-verifiable license key (Ed
 
 * Secrets are encrypted with AES-256-GCM envelopes; data keys are encrypted by a key from configuration or a KMS.
 * Security-relevant actions (sign-ins, key creation, role changes) are written to the security log.
-* Every request and job carries a trace; logs are structured `slog` records with the organization and request IDs; metrics are exported through OpenTelemetry and `/metrics`.
+* **Observability follows OpenTelemetry** for traces, metrics and logs:
+  * Libraries depend only on the OTel API and take their `TracerProvider` and `MeterProvider` through constructor options, no-op by default; only `apps/server` imports the SDK and the exporters (enforced by depguard) and installs the global providers.
+  * The SDK is configured by the standard `OTEL_*` environment variables (`OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_EXPORTER_OTLP_*`, `OTEL_TRACES_SAMPLER`, …). OTLP over gRPC or HTTP is the default exporter; a Prometheus `/metrics` endpoint is an optional metric reader for pull-based setups.
+  * The resource carries `service.name` (`tanvo`), `service.version`, `service.instance.id`, `deployment.environment.name` and the process role (`tanvo.role`); Kubernetes attributes come from the environment or the Collector.
+  * Instrumentation uses maintained instrumentation libraries and the semantic conventions: `otelhttp` and `otelconnect` for the API, `otelpgx` for PostgreSQL, `kotel` for franz-go, River's OpenTelemetry middleware, spans around ClickHouse queries and provider calls. Names and units follow the semantic conventions (`http.server.request.duration` in seconds); Tanvo's own instruments and attributes use the `tanvo.` prefix (`tanvo.jobs.duration`, `tanvo.ingest.events`).
+  * Context propagates as W3C Trace Context and Baggage, also across asynchronous boundaries: Kafka record headers and job metadata carry the `traceparent`. A consumer or job span is a child of the producing span when it handles one request's work, and has a span link to it for batches, fan-outs and periodic jobs.
+  * Logs are `slog` records written as JSON to stdout and bridged to OTel logs (`otelslog`), carrying `trace_id` and `span_id`; the organization, request and job IDs are attributes.
+  * The organization ID is an attribute of spans and logs (`tanvo.organization.id`) but never of metrics: metric attributes are bounded (role, queue, kind, status, provider). Per-tenant analysis uses traces and exemplars.
+  * API keys, credentials, payment details, personal data and event properties are never written to span, metric or log attributes.
+  * Other backends (Sentry, Datadog, …) are reached through the OTel Collector, not through vendor SDKs.
+  * Health (`/healthz`, `/readyz`) is separate from telemetry: readiness checks PostgreSQL and, for consumers, the Kafka connection.
