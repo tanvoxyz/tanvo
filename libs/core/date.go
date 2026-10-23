@@ -3,6 +3,8 @@ package core
 import (
 	"fmt"
 	"time"
+
+	"github.com/tanvoxyz/tanvo/libs/period"
 )
 
 // Date is a calendar date without a time zone (domain §2.2 `Date`); it is
@@ -42,9 +44,11 @@ func ParseDate(s string) (Date, error) {
 func (d Date) IsZero() bool { return d == Date{} }
 
 // Midnight returns the instant of the local midnight that starts d in loc,
-// in UTC (domain §2.3).
+// in UTC (domain §2.3). A midnight skipped by daylight saving time resolves
+// to the end of the gap, the first instant of d.
 func (d Date) Midnight(loc *time.Location) time.Time {
-	return time.Date(d.Year, d.Month, d.Day, 0, 0, 0, 0, loc).UTC()
+	// Noon always falls on d itself, whatever the zone's transitions.
+	return period.StartOfDay(time.Date(d.Year, d.Month, d.Day, 12, 0, 0, 0, loc), loc)
 }
 
 // AddDays returns d shifted by n calendar days.

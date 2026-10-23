@@ -1394,7 +1394,7 @@ This section is the specification of `libs/period`, `libs/pricing`, `libs/meteri
 
 ### 22.1 Time Zones
 * The **applicable time zone** of a subscription is: customer `timezone` → billing entity `timezone` → `UTC`. **[Change]** Lago resolves the organization's time zone in some paths; Tanvo never does.
-* Billing days, period boundaries, trial ends, issuing dates, "today" checks and day counts are computed on the wall clock of the applicable time zone. Boundaries are stored as the UTC instant of the local midnight.
+* Billing days, period boundaries, trial ends, issuing dates, "today" checks and day counts are computed on the wall clock of the applicable time zone. Boundaries are stored as the UTC instant of the local midnight; a midnight skipped by a daylight saving change resolves to the first instant of the day, the end of the gap, as ActiveSupport's `beginning_of_day` does (America/Santiago 2026-09-06 begins at 01:00 −03).
 * Days are counted as calendar days on the local wall clock, so a daylight saving change never adds or removes a billing day.
 * **Time zone change**: when the applicable time zone changes between two invoices, the next period starts at the previous invoice's `to_datetime` (not at the new zone's midnight), so no instant is billed twice or skipped. **[Change]** Lago's fix leaves a one-second gap because its ends are inclusive; half-open periods remove it.
 * Per-billing-entity numbering uses the billing entity's time zone for `YYYYMM` (§22.11).

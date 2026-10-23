@@ -155,3 +155,58 @@ func TestValidate(t *testing.T) {
 		}
 	}
 }
+
+// A day whose local midnight is skipped by a daylight saving transition
+// begins at the end of the gap, on that day, and the day before ends there.
+//
+// source: activesupport/lib/active_support/values/time_zone.rb (period_for_local resolves a nonexistent time forward)
+func TestDateStartInDSTGap(t *testing.T) {
+	santiago, err := time.LoadLocation("America/Santiago")
+	if err != nil {
+		t.Skipf("tzdata: %v", err)
+	}
+	tests := []struct {
+		name string
+		got  time.Time
+		want time.Time
+	}{
+		{"start of the gap day", date{2026, time.September, 6}.start(santiago), time.Date(2026, time.September, 6, 4, 0, 0, 0, time.UTC)},
+		{"end of the day before", date{2026, time.September, 5}.end(santiago), time.Date(2026, time.September, 6, 4, 0, 0, 0, time.UTC)},
+		{"start of an ordinary day", date{2026, time.September, 7}.start(santiago), time.Date(2026, time.September, 7, 3, 0, 0, 0, time.UTC)},
+		{"start in UTC", date{2026, time.September, 6}.start(time.UTC), time.Date(2026, time.September, 6, 0, 0, 0, 0, time.UTC)},
+	}
+	for _, tt := range tests {
+		if !tt.got.Equal(tt.want) {
+			t.Errorf("%s: got = %v, want = %v", tt.name, tt.got.UTC(), tt.want)
+		}
+	}
+}
+
+// StartOfDay and EndOfDay resolve a midnight skipped by DST forward, as
+// ActiveSupport's beginning_of_day and end_of_day do.
+func TestStartOfDay(t *testing.T) {
+	santiago, err := time.LoadLocation("America/Santiago")
+	if err != nil {
+		t.Skipf("tzdata: %v", err)
+	}
+	noon6 := time.Date(2026, time.September, 6, 16, 0, 0, 0, time.UTC) // 13:00 -03
+	noon5 := time.Date(2026, time.September, 5, 16, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name string
+		got  time.Time
+		want time.Time
+	}{
+		{"start of the gap day", StartOfDay(noon6, santiago), time.Date(2026, time.September, 6, 4, 0, 0, 0, time.UTC)},
+		{"end of the day before the gap", EndOfDay(noon5, santiago), time.Date(2026, time.September, 6, 4, 0, 0, 0, time.UTC)},
+		{"start of the day before", StartOfDay(noon5, santiago), time.Date(2026, time.September, 5, 4, 0, 0, 0, time.UTC)},
+		{"start in UTC", StartOfDay(noon6, time.UTC), time.Date(2026, time.September, 6, 0, 0, 0, 0, time.UTC)},
+	}
+	for _, tt := range tests {
+		if !tt.got.Equal(tt.want) {
+			t.Errorf("%s: got = %v, want = %v", tt.name, tt.got.UTC(), tt.want)
+		}
+		if tt.got.Location() != time.UTC {
+			t.Errorf("%s: location = %v, want = UTC", tt.name, tt.got.Location())
+		}
+	}
+}

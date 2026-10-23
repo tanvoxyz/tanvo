@@ -27,9 +27,33 @@ func daysIn(year int, month time.Month) int {
 	return time.Date(year, month+1, 0, 0, 0, 0, 0, time.UTC).Day()
 }
 
-// start returns the instant d begins in loc.
+// start returns the instant d begins in loc. When a daylight saving
+// transition skips local midnight, the day begins at the end of the gap
+// (America/Santiago 2026-09-06 begins at 01:00 -03), as ActiveSupport
+// resolves a nonexistent local time forward; time.Date may resolve it
+// backwards, onto the day before.
 func (d date) start(loc *time.Location) time.Time {
-	return time.Date(d.year, d.month, d.day, 0, 0, 0, 0, loc)
+	t := time.Date(d.year, d.month, d.day, 0, 0, 0, 0, loc)
+	if dateOf(t) != d {
+		if _, end := t.ZoneBounds(); !end.IsZero() {
+			return end
+		}
+	}
+	return t
+}
+
+// StartOfDay returns, in UTC, the instant the local day of t begins in
+// loc. A midnight skipped by a DST change resolves forward to the first
+// instant of the day (ActiveSupport beginning_of_day); time.Date would
+// resolve it onto the day before.
+func StartOfDay(t time.Time, loc *time.Location) time.Time {
+	return dateOf(t.In(loc)).start(loc).UTC()
+}
+
+// EndOfDay returns, in UTC, the instant the local day of t ends in loc:
+// the instant the next local day begins, resolved as in [StartOfDay].
+func EndOfDay(t time.Time, loc *time.Location) time.Time {
+	return dateOf(t.In(loc)).end(loc).UTC()
 }
 
 // end returns the instant d ends in loc, which is the instant the next day
