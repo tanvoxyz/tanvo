@@ -606,28 +606,105 @@ func (q *Queries) DeleteInvoiceSubscriptionsByInvoice(ctx context.Context, arg D
 	return err
 }
 
-const findInvoiceSubscription = `-- name: FindInvoiceSubscription :one
+const findInvoiceSubscriptionByCharges = `-- name: FindInvoiceSubscriptionByCharges :one
 SELECT organization_id, id, invoice_id, subscription_id, invoicing_reason, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, fixed_charges_from_datetime, fixed_charges_to_datetime, billing_timestamp, recurring, created_at FROM invoice_subscriptions
-WHERE organization_id = $1 AND subscription_id = $2
-  AND invoicing_reason = $3 AND from_datetime = $4
+WHERE organization_id = $1 AND subscription_id = $2 AND recurring
+  AND charges_from_datetime = $3 AND charges_to_datetime = $4
 ORDER BY id
 LIMIT 1
 `
 
-type FindInvoiceSubscriptionParams struct {
+type FindInvoiceSubscriptionByChargesParams struct {
+	OrganizationID uuid.UUID
+	SubscriptionID uuid.UUID
+	FromDatetime   time.Time
+	ToDatetime     time.Time
+}
+
+func (q *Queries) FindInvoiceSubscriptionByCharges(ctx context.Context, arg FindInvoiceSubscriptionByChargesParams) (InvoiceSubscription, error) {
+	row := q.db.QueryRow(ctx, findInvoiceSubscriptionByCharges,
+		arg.OrganizationID,
+		arg.SubscriptionID,
+		arg.FromDatetime,
+		arg.ToDatetime,
+	)
+	var i InvoiceSubscription
+	err := row.Scan(
+		&i.OrganizationID,
+		&i.ID,
+		&i.InvoiceID,
+		&i.SubscriptionID,
+		&i.InvoicingReason,
+		&i.FromDatetime,
+		&i.ToDatetime,
+		&i.ChargesFromDatetime,
+		&i.ChargesToDatetime,
+		&i.FixedChargesFromDatetime,
+		&i.FixedChargesToDatetime,
+		&i.BillingTimestamp,
+		&i.Recurring,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const findInvoiceSubscriptionByFixedCharges = `-- name: FindInvoiceSubscriptionByFixedCharges :one
+SELECT organization_id, id, invoice_id, subscription_id, invoicing_reason, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, fixed_charges_from_datetime, fixed_charges_to_datetime, billing_timestamp, recurring, created_at FROM invoice_subscriptions
+WHERE organization_id = $1 AND subscription_id = $2 AND recurring
+  AND fixed_charges_from_datetime = $3 AND fixed_charges_to_datetime = $4
+ORDER BY id
+LIMIT 1
+`
+
+type FindInvoiceSubscriptionByFixedChargesParams struct {
+	OrganizationID uuid.UUID
+	SubscriptionID uuid.UUID
+	FromDatetime   time.Time
+	ToDatetime     time.Time
+}
+
+func (q *Queries) FindInvoiceSubscriptionByFixedCharges(ctx context.Context, arg FindInvoiceSubscriptionByFixedChargesParams) (InvoiceSubscription, error) {
+	row := q.db.QueryRow(ctx, findInvoiceSubscriptionByFixedCharges,
+		arg.OrganizationID,
+		arg.SubscriptionID,
+		arg.FromDatetime,
+		arg.ToDatetime,
+	)
+	var i InvoiceSubscription
+	err := row.Scan(
+		&i.OrganizationID,
+		&i.ID,
+		&i.InvoiceID,
+		&i.SubscriptionID,
+		&i.InvoicingReason,
+		&i.FromDatetime,
+		&i.ToDatetime,
+		&i.ChargesFromDatetime,
+		&i.ChargesToDatetime,
+		&i.FixedChargesFromDatetime,
+		&i.FixedChargesToDatetime,
+		&i.BillingTimestamp,
+		&i.Recurring,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const findInvoiceSubscriptionByReason = `-- name: FindInvoiceSubscriptionByReason :one
+SELECT organization_id, id, invoice_id, subscription_id, invoicing_reason, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, fixed_charges_from_datetime, fixed_charges_to_datetime, billing_timestamp, recurring, created_at FROM invoice_subscriptions
+WHERE organization_id = $1 AND subscription_id = $2 AND invoicing_reason = $3
+ORDER BY id
+LIMIT 1
+`
+
+type FindInvoiceSubscriptionByReasonParams struct {
 	OrganizationID  uuid.UUID
 	SubscriptionID  uuid.UUID
 	InvoicingReason string
-	FromDatetime    time.Time
 }
 
-func (q *Queries) FindInvoiceSubscription(ctx context.Context, arg FindInvoiceSubscriptionParams) (InvoiceSubscription, error) {
-	row := q.db.QueryRow(ctx, findInvoiceSubscription,
-		arg.OrganizationID,
-		arg.SubscriptionID,
-		arg.InvoicingReason,
-		arg.FromDatetime,
-	)
+func (q *Queries) FindInvoiceSubscriptionByReason(ctx context.Context, arg FindInvoiceSubscriptionByReasonParams) (InvoiceSubscription, error) {
+	row := q.db.QueryRow(ctx, findInvoiceSubscriptionByReason, arg.OrganizationID, arg.SubscriptionID, arg.InvoicingReason)
 	var i InvoiceSubscription
 	err := row.Scan(
 		&i.OrganizationID,

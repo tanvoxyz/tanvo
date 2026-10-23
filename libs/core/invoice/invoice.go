@@ -171,7 +171,10 @@ func CanTransition(from, to Status) bool {
 	case StatusDraft:
 		return to == StatusDraft || to == StatusFinalized
 	case StatusOpen:
-		return to == StatusFinalized || to == StatusClosed
+		// open → failed: pulling the provider taxes of an invoice waiting
+		// for them failed (lago Invoices::ProviderTaxes::
+		// PullTaxesAndApplyService, status = "failed" unless draft).
+		return to == StatusFinalized || to == StatusClosed || to == StatusFailed
 	case StatusFailed:
 		return to == StatusFinalized
 	case StatusFinalized:

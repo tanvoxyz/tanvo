@@ -44,7 +44,7 @@ skipped:
   - {source: "spec/models/subscription_spec.rb:631", reason: "trial end dates are in libs/period"}
   - {source: "spec/models/subscription_spec.rb:674", reason: "in_trial_period? is in libs/period"}
   - {source: "spec/models/subscription_spec.rb:694", reason: "billing reference times are in libs/period"}
-  - {source: "spec/models/subscription_spec.rb:722", reason: "initial_started_at is ChainStart over Repository.Chain, tested in Go and by the repository suite"}
+  - {source: "spec/models/subscription_spec.rb:722", reason: "initial_started_at is computed by libs/billing (kernel initialStartedAt over the chain and the customer's subscriptions with the external ID), tested there"}
   - {source: "spec/models/subscription_spec.rb:784", reason: "downgrade dates are in libs/period"}
   - {source: "spec/models/subscription_spec.rb:937", reason: "Hubspot sync is an integration concern"}
   - {source: "spec/models/subscription_spec.rb:974", reason: "date differences in a time zone are in libs/period"}

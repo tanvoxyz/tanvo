@@ -304,6 +304,23 @@ func testSubscription(t *testing.T, h Harness) {
 			noErr(t, "ListByCustomer() from another organization", err)
 			equal(t, "ListByCustomer() from another organization", len(byCustomer), 0)
 
+			// s4 shares s1's external ID but has not started.
+			initial, err := r.Subscriptions.InitialStartedAt(ctx, org, p.customer.ID, "s1")
+			noErr(t, "InitialStartedAt()", err)
+			if initial == nil || !initial.Equal(*s1.StartedAt) {
+				t.Errorf("InitialStartedAt(): got = %v, want = %v", initial, *s1.StartedAt)
+			}
+			initial, err = r.Subscriptions.InitialStartedAt(ctx, org, p.customer.ID, "s3")
+			noErr(t, "InitialStartedAt() of a pending subscription", err)
+			if initial != nil {
+				t.Errorf("InitialStartedAt() of a pending subscription: got = %v, want = nil", *initial)
+			}
+			initial, err = r.Subscriptions.InitialStartedAt(ctx, org, p.other.ID, "s1")
+			noErr(t, "InitialStartedAt() of another customer", err)
+			if initial != nil {
+				t.Errorf("InitialStartedAt() of another customer: got = %v, want = nil", *initial)
+			}
+
 			byPlan, err := r.Subscriptions.ListActiveOrPendingByPlan(ctx, org, p.plan.ID)
 			noErr(t, "ListActiveOrPendingByPlan()", err)
 			equal(t, "ListActiveOrPendingByPlan()", ids(byPlan, subID), []core.SubscriptionID{s1.ID, s3.ID, s4.ID, s6.ID})

@@ -1,3 +1,4 @@
-h1:UKsBJWFoB5XmZzlRTP2ba5oaBqrVTncCUjecofRmbFM=
+h1:UL0yuivLwBIbU6xzeV0bFCMN6vGCYHV7uSPQDvpTyCo=
 20261023063856_init.sql h1:uZYUuHOtHpwAsZ8N5Y7hts02c+rDFtFQIs7KnC8cYHA=
 20261023064656_job_outbox_unique_org.sql h1:EYvgBwVtueYiMKEA34sjRFTySA0ueKsAQ83ccjVsi1Y=
+20261023081947_invoice_subscription_keys.sql h1:Iapy3LJtOOsXs9rkTGjAb4UBKqyaEOpYC5J+I3IWjus=

@@ -2,6 +2,7 @@ package memstore
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"slices"
 	"strings"
@@ -213,11 +214,12 @@ func (r invoiceSubscriptionRepo) Create(_ context.Context, s *invoice.Subscripti
 	if r.d.subscriptions.has(s.ID) {
 		return conflict("invoice_subscription", "id")
 	}
-	if k, ok := s.Key(); ok && r.d.subscriptions.any(func(x *invoice.Subscription) bool {
-		xk, xok := x.Key()
-		return xok && x.OrganizationID == s.OrganizationID && xk == k
-	}) {
-		return conflict("invoice_subscription", "idempotency_key")
+	for _, k := range s.Keys() {
+		if r.d.subscriptions.any(func(x *invoice.Subscription) bool {
+			return x.OrganizationID == s.OrganizationID && x.Has(k)
+		}) {
+			return conflict("invoice_subscription", "idempotency_key")
+		}
 	}
 	r.d.subscriptions.put(s.ID, *s)
 	return nil
@@ -233,11 +235,10 @@ func (r invoiceSubscriptionRepo) ListBySubscription(_ context.Context, org core.
 
 func (r invoiceSubscriptionRepo) Find(_ context.Context, org core.OrganizationID, k invoice.IdempotencyKey) (*invoice.Subscription, error) {
 	s, ok := r.d.subscriptions.first(func(x *invoice.Subscription) bool {
-		xk, _ := x.Key()
-		return x.OrganizationID == org && xk == k
+		return x.OrganizationID == org && x.Has(k)
 	})
 	if !ok {
-		return nil, notFound("invoice_subscription", stringer(k.SubscriptionID.String()+"/"+string(k.Reason)))
+		return nil, notFound("invoice_subscription", stringer(fmt.Sprintf("%s/%d", k.SubscriptionID, k.Kind)))
 	}
 	return s, nil
 }

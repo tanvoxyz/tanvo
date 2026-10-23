@@ -66,15 +66,16 @@ type Repository interface {
 // records of subscription billing (§11.1). Every method is scoped to an
 // organization.
 type SubscriptionRepository interface {
-	// Create inserts s; a periodic row (see [InvoicingReason.Periodic])
-	// whose [IdempotencyKey] is already used fails with core.ErrConflict.
+	// Create inserts s; a row one of whose [Subscription.Keys] is already
+	// used fails with core.ErrConflict.
 	Create(ctx context.Context, s *Subscription) error
 	// ListByInvoice returns the rows of one invoice in creation order.
 	ListByInvoice(ctx context.Context, org core.OrganizationID, invoice core.InvoiceID) ([]*Subscription, error)
 	// ListBySubscription returns the rows of one subscription in creation
 	// order.
 	ListBySubscription(ctx context.Context, org core.OrganizationID, subscription core.SubscriptionID) ([]*Subscription, error)
-	// Find returns the row with key k, or core.ErrNotFound.
+	// Find returns a row with key k (see [Subscription.Keys]), or
+	// core.ErrNotFound.
 	Find(ctx context.Context, org core.OrganizationID, k IdempotencyKey) (*Subscription, error)
 	// Last returns the row of the subscription with the latest period
 	// start (then timestamp), or core.ErrNotFound.

@@ -260,6 +260,27 @@ func (q *Queries) DeleteSubscriptionSections(ctx context.Context, arg DeleteSubs
 	return err
 }
 
+const getInitialSubscriptionStartedAt = `-- name: GetInitialSubscriptionStartedAt :one
+SELECT s.started_at FROM subscriptions s
+WHERE s.organization_id = $1 AND s.customer_id = $2
+  AND s.external_id = $3 AND s.started_at IS NOT NULL
+ORDER BY s.started_at
+LIMIT 1
+`
+
+type GetInitialSubscriptionStartedAtParams struct {
+	OrganizationID uuid.UUID
+	CustomerID     uuid.UUID
+	ExternalID     string
+}
+
+func (q *Queries) GetInitialSubscriptionStartedAt(ctx context.Context, arg GetInitialSubscriptionStartedAtParams) (*time.Time, error) {
+	row := q.db.QueryRow(ctx, getInitialSubscriptionStartedAt, arg.OrganizationID, arg.CustomerID, arg.ExternalID)
+	var started_at *time.Time
+	err := row.Scan(&started_at)
+	return started_at, err
+}
+
 const getLifetimeUsageByExternalID = `-- name: GetLifetimeUsageByExternalID :one
 SELECT organization_id, id, subscription_id, external_subscription_id, currency, historical_usage_amount, invoiced_usage_amount, current_usage_amount, recalculate_invoiced_usage, recalculate_current_usage, invoiced_usage_amount_refreshed_at, current_usage_amount_refreshed_at, created_at, updated_at FROM lifetime_usages
 WHERE organization_id = $1 AND external_subscription_id = $2

@@ -448,14 +448,31 @@ func (r invoiceSubscriptionRepo) Find(ctx context.Context, org core.Organization
 	if err != nil {
 		return nil, err
 	}
-	row, err := q.FindInvoiceSubscription(ctx, db.FindInvoiceSubscriptionParams{
-		OrganizationID:  org.UUID(),
-		SubscriptionID:  k.SubscriptionID.UUID(),
-		InvoicingReason: string(k.Reason),
-		FromDatetime:    utc(k.PeriodStart),
-	})
+	var row db.InvoiceSubscription
+	switch k.Kind {
+	case invoice.KeyCharges:
+		row, err = q.FindInvoiceSubscriptionByCharges(ctx, db.FindInvoiceSubscriptionByChargesParams{
+			OrganizationID: org.UUID(), SubscriptionID: k.SubscriptionID.UUID(),
+			FromDatetime: utc(k.Period.From), ToDatetime: utc(k.Period.To),
+		})
+	case invoice.KeyFixedCharges:
+		row, err = q.FindInvoiceSubscriptionByFixedCharges(ctx, db.FindInvoiceSubscriptionByFixedChargesParams{
+			OrganizationID: org.UUID(), SubscriptionID: k.SubscriptionID.UUID(),
+			FromDatetime: utc(k.Period.From), ToDatetime: utc(k.Period.To),
+		})
+	case invoice.KeyStarting, invoice.KeyTerminating:
+		reason := invoice.InvoicingReasonSubscriptionStarting
+		if k.Kind == invoice.KeyTerminating {
+			reason = invoice.InvoicingReasonSubscriptionTerminating
+		}
+		row, err = q.FindInvoiceSubscriptionByReason(ctx, db.FindInvoiceSubscriptionByReasonParams{
+			OrganizationID: org.UUID(), SubscriptionID: k.SubscriptionID.UUID(), InvoicingReason: string(reason),
+		})
+	default:
+		return nil, fmt.Errorf("find invoice subscription: %w: key kind %d", core.ErrInvalidValue, k.Kind)
+	}
 	if err != nil {
-		return nil, getErr("invoice_subscription", k.SubscriptionID.String()+"/"+string(k.Reason), err)
+		return nil, getErr("invoice_subscription", fmt.Sprintf("%s/%d", k.SubscriptionID, k.Kind), err)
 	}
 	return invoiceSubscriptionOf(row)
 }

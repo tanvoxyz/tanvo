@@ -140,7 +140,7 @@ func TestTransitionMatrix(t *testing.T) {
 	allowed := map[Status][]Status{
 		StatusGenerating: {StatusDraft, StatusOpen, StatusFinalized, StatusClosed, StatusFailed},
 		StatusDraft:      {StatusDraft, StatusFinalized},
-		StatusOpen:       {StatusFinalized, StatusClosed},
+		StatusOpen:       {StatusFinalized, StatusClosed, StatusFailed},
 		StatusFailed:     {StatusFinalized},
 		StatusFinalized:  {StatusVoided},
 	}

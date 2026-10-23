@@ -81,6 +81,13 @@ FROM subscriptions s
 WHERE s.organization_id = @organization_id AND s.external_id = @external_id
 ORDER BY s.id;
 
+-- name: GetInitialSubscriptionStartedAt :one
+SELECT s.started_at FROM subscriptions s
+WHERE s.organization_id = @organization_id AND s.customer_id = @customer_id
+  AND s.external_id = @external_id AND s.started_at IS NOT NULL
+ORDER BY s.started_at
+LIMIT 1;
+
 -- name: ListSubscriptionsByCustomer :many
 SELECT sqlc.embed(s),
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c

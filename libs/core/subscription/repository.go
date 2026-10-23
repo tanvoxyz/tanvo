@@ -46,6 +46,10 @@ type Repository interface {
 	// ListByCustomer returns the customer's subscriptions in one of
 	// statuses (all statuses when empty), in creation order.
 	ListByCustomer(ctx context.Context, org core.OrganizationID, customer core.CustomerID, statuses ...Status) ([]*Subscription, error)
+	// InitialStartedAt returns the earliest started_at of the customer's
+	// subscriptions with externalID, or nil when none has started (lago
+	// Subscription#initial_started_at).
+	InitialStartedAt(ctx context.Context, org core.OrganizationID, customer core.CustomerID, externalID string) (*time.Time, error)
 	// ListActiveOrPendingByPlan returns the plan's active and pending
 	// subscriptions (plan deletion and plan updates).
 	ListActiveOrPendingByPlan(ctx context.Context, org core.OrganizationID, plan core.PlanID) ([]*Subscription, error)

@@ -127,6 +127,19 @@ func (r subscriptionRepo) ListByCustomer(_ context.Context, org core.Organizatio
 	}), nil
 }
 
+func (r subscriptionRepo) InitialStartedAt(_ context.Context, org core.OrganizationID, customer core.CustomerID, externalID string) (*time.Time, error) {
+	var first *time.Time
+	for _, x := range r.d.subscriptions.find(func(x *subscription.Subscription) bool {
+		return x.OrganizationID == org && x.CustomerID == customer && x.ExternalID == externalID && x.StartedAt != nil
+	}) {
+		if first == nil || x.StartedAt.Before(*first) {
+			t := *x.StartedAt
+			first = &t
+		}
+	}
+	return first, nil
+}
+
 func (r subscriptionRepo) ListActiveOrPendingByPlan(_ context.Context, org core.OrganizationID, plan core.PlanID) ([]*subscription.Subscription, error) {
 	return r.d.subscriptions.find(func(x *subscription.Subscription) bool {
 		return x.OrganizationID == org && x.PlanID == plan &&

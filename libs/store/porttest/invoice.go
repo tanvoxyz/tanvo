@@ -500,8 +500,14 @@ func testInvoiceSubscriptions(t *testing.T, h Harness) {
 			noErr(t, "Create()", r.InvoiceSubscriptions.Create(ctx, s))
 		}
 		wantErr(t, "Create() same ID", r.InvoiceSubscriptions.Create(ctx, full), core.ErrConflict)
-		dup := mk(inv2.ID, p.subscriptions[0], invoice.InvoicingReasonSubscriptionPeriodic, march, now)
-		wantErr(t, "Create() same periodic key", r.InvoiceSubscriptions.Create(ctx, dup), core.ErrConflict)
+		dup := mk(inv2.ID, p.subscriptions[0], invoice.InvoicingReasonSubscriptionPeriodic, april, now)
+		dup.Recurring, dup.ChargesPeriod = true, full.ChargesPeriod
+		wantErr(t, "Create() same charges period", r.InvoiceSubscriptions.Create(ctx, dup), core.ErrConflict)
+		dup = mk(inv2.ID, p.subscriptions[0], invoice.InvoicingReasonSubscriptionPeriodic, april, now)
+		dup.Recurring, dup.ChargesPeriod, dup.FixedChargesPeriod = true, april, full.FixedChargesPeriod
+		wantErr(t, "Create() same fixed charges period", r.InvoiceSubscriptions.Create(ctx, dup), core.ErrConflict)
+		dup = mk(inv2.ID, p.subscriptions[1], invoice.InvoicingReasonSubscriptionStarting, april, now)
+		wantErr(t, "Create() second starting row", r.InvoiceSubscriptions.Create(ctx, dup), core.ErrConflict)
 
 		got, err := r.InvoiceSubscriptions.ListByInvoice(ctx, p.org, inv1.ID)
 		noErr(t, "ListByInvoice() after a conflict", err)
@@ -511,18 +517,23 @@ func testInvoiceSubscriptions(t *testing.T, h Harness) {
 		equal(t, "ListBySubscription()", ids(got, invoiceSubscriptionID), ids([]*invoice.Subscription{full, adv1, adv2, next}, invoiceSubscriptionID))
 
 		found, err := r.InvoiceSubscriptions.Find(ctx, p.org, invoice.IdempotencyKey{
-			SubscriptionID: p.subscriptions[0], Reason: invoice.InvoicingReasonSubscriptionPeriodic, PeriodStart: march.From,
+			SubscriptionID: p.subscriptions[0], Kind: invoice.KeyCharges, Period: full.ChargesPeriod,
 		})
-		noErr(t, "Find()", err)
-		equal(t, "Find()", found, full)
+		noErr(t, "Find() charges", err)
+		equal(t, "Find() charges", found, full)
 		found, err = r.InvoiceSubscriptions.Find(ctx, p.org, invoice.IdempotencyKey{
-			SubscriptionID: p.subscriptions[0], Reason: invoice.InvoicingReasonInAdvanceCharge, PeriodStart: march.From,
+			SubscriptionID: p.subscriptions[0], Kind: invoice.KeyFixedCharges, Period: march,
 		})
-		noErr(t, "Find() not periodic", err)
-		equal(t, "Find() not periodic", found.ID, adv1.ID)
+		noErr(t, "Find() fixed charges", err)
+		equal(t, "Find() fixed charges", found.ID, full.ID)
+		found, err = r.InvoiceSubscriptions.Find(ctx, p.org, invoice.IdempotencyKey{SubscriptionID: p.subscriptions[1], Kind: invoice.KeyStarting})
+		noErr(t, "Find() starting", err)
+		equal(t, "Find() starting", found.ID, minimal.ID)
 		_, err = r.InvoiceSubscriptions.Find(ctx, p.org, invoice.IdempotencyKey{
-			SubscriptionID: p.subscriptions[1], Reason: invoice.InvoicingReasonSubscriptionPeriodic, PeriodStart: march.From,
+			SubscriptionID: p.subscriptions[0], Kind: invoice.KeyCharges, Period: april,
 		})
+		wantErr(t, "Find() other charges period", err, core.ErrNotFound)
+		_, err = r.InvoiceSubscriptions.Find(ctx, p.org, invoice.IdempotencyKey{SubscriptionID: p.subscriptions[0], Kind: invoice.KeyTerminating})
 		wantErr(t, "Find() unknown", err, core.ErrNotFound)
 
 		last, err := r.InvoiceSubscriptions.Last(ctx, p.org, p.subscriptions[0])

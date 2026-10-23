@@ -1,6 +1,7 @@
 package invoice
 
 import (
+	"slices"
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -8,8 +9,7 @@ import (
 )
 
 // Subscription links an invoice to a subscription it bills (domain §11.1
-// InvoiceSubscription). It is unique per (subscription, reason, period
-// start) for periodic reasons, which makes billing idempotent.
+// InvoiceSubscription). Its [Subscription.Keys] make billing idempotent.
 type Subscription struct {
 	// ID identifies the link.
 	ID core.InvoiceSubscriptionID
@@ -35,27 +35,80 @@ type Subscription struct {
 	CreatedAt time.Time
 }
 
-// Periodic reports whether the reason is one whose (subscription, reason,
-// period start) key is unique: every reason except in_advance_charge, which
-// is idempotent per event instead.
+// Periodic reports whether the reason bills a subscription period:
+// every reason except in_advance_charge, which bills one event.
 func (r InvoicingReason) Periodic() bool {
 	return r.Valid() && r != InvoicingReasonInAdvanceCharge
 }
 
-// IdempotencyKey is the uniqueness key of a periodic invoice subscription.
+// KeyKind names one uniqueness rule of invoice subscriptions.
+type KeyKind int
+
+// The uniqueness rules of invoice subscriptions (lago's unique indexes
+// index_uniq_invoice_subscriptions_on_charges_from_to_datetime,
+// index_uniq_invoice_subscriptions_on_fixed_charges_boundaries,
+// index_unique_starting_invoice_subscription and
+// index_unique_terminating_invoice_subscription, db/structure.sql).
+const (
+	// KeyCharges: one recurring row per subscription and charges period.
+	KeyCharges KeyKind = iota + 1
+	// KeyFixedCharges: one recurring row per subscription and fixed
+	// charges period.
+	KeyFixedCharges
+	// KeyStarting: one subscription_starting row per subscription.
+	KeyStarting
+	// KeyTerminating: one subscription_terminating row per subscription.
+	KeyTerminating
+)
+
+// IdempotencyKey is one uniqueness key of an invoice subscription.
 type IdempotencyKey struct {
 	// SubscriptionID is the subscription.
 	SubscriptionID core.SubscriptionID
-	// Reason is the invoicing reason.
-	Reason InvoicingReason
-	// PeriodStart is the start of the subscription period (UTC).
-	PeriodStart time.Time
+	// Kind is the rule.
+	Kind KeyKind
+	// Period is the charges period ([KeyCharges]) or the fixed charges
+	// period ([KeyFixedCharges]), in UTC; zero for the other kinds.
+	Period period.Period
 }
 
-// Key returns the idempotency key of s and whether it applies (periodic
-// reasons only).
-func (s *Subscription) Key() (IdempotencyKey, bool) {
-	return IdempotencyKey{s.SubscriptionID, s.Reason, s.Period.From.UTC()}, s.Reason.Periodic()
+// Equal reports whether k and o are the same key.
+func (k IdempotencyKey) Equal(o IdempotencyKey) bool {
+	return k.SubscriptionID == o.SubscriptionID && k.Kind == o.Kind &&
+		k.Period.From.Equal(o.Period.From) && k.Period.To.Equal(o.Period.To)
+}
+
+// Has reports whether k is one of the keys of s.
+func (s *Subscription) Has(k IdempotencyKey) bool {
+	return slices.ContainsFunc(s.Keys(), k.Equal)
+}
+
+// Keys returns the uniqueness keys of s: a recurring row is unique per
+// charges period and per fixed charges period (each when billed, that is
+// non-zero), so that a yearly plan billing charges monthly bills every
+// month once; a starting or terminating row is unique per subscription.
+// Other rows (in-advance charges, progressive billing) have none.
+func (s *Subscription) Keys() []IdempotencyKey {
+	var out []IdempotencyKey
+	if s.Recurring {
+		if !s.ChargesPeriod.IsZero() {
+			out = append(out, IdempotencyKey{SubscriptionID: s.SubscriptionID, Kind: KeyCharges, Period: utcPeriod(s.ChargesPeriod)})
+		}
+		if !s.FixedChargesPeriod.IsZero() {
+			out = append(out, IdempotencyKey{SubscriptionID: s.SubscriptionID, Kind: KeyFixedCharges, Period: utcPeriod(s.FixedChargesPeriod)})
+		}
+	}
+	switch s.Reason {
+	case InvoicingReasonSubscriptionStarting:
+		out = append(out, IdempotencyKey{SubscriptionID: s.SubscriptionID, Kind: KeyStarting})
+	case InvoicingReasonSubscriptionTerminating:
+		out = append(out, IdempotencyKey{SubscriptionID: s.SubscriptionID, Kind: KeyTerminating})
+	}
+	return out
+}
+
+func utcPeriod(p period.Period) period.Period {
+	return period.Period{From: p.From.UTC(), To: p.To.UTC()}
 }
 
 // Validate checks the invariants of an invoice subscription.

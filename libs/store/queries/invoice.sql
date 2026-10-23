@@ -119,10 +119,23 @@ SELECT * FROM invoice_subscriptions WHERE organization_id = @organization_id AND
 -- name: ListInvoiceSubscriptionsBySubscription :many
 SELECT * FROM invoice_subscriptions WHERE organization_id = @organization_id AND subscription_id = @subscription_id ORDER BY id;
 
--- name: FindInvoiceSubscription :one
+-- name: FindInvoiceSubscriptionByCharges :one
 SELECT * FROM invoice_subscriptions
-WHERE organization_id = @organization_id AND subscription_id = @subscription_id
-  AND invoicing_reason = @invoicing_reason AND from_datetime = @from_datetime
+WHERE organization_id = @organization_id AND subscription_id = @subscription_id AND recurring
+  AND charges_from_datetime = @from_datetime AND charges_to_datetime = @to_datetime
+ORDER BY id
+LIMIT 1;
+
+-- name: FindInvoiceSubscriptionByFixedCharges :one
+SELECT * FROM invoice_subscriptions
+WHERE organization_id = @organization_id AND subscription_id = @subscription_id AND recurring
+  AND fixed_charges_from_datetime = @from_datetime AND fixed_charges_to_datetime = @to_datetime
+ORDER BY id
+LIMIT 1;
+
+-- name: FindInvoiceSubscriptionByReason :one
+SELECT * FROM invoice_subscriptions
+WHERE organization_id = @organization_id AND subscription_id = @subscription_id AND invoicing_reason = @invoicing_reason
 ORDER BY id
 LIMIT 1;
 

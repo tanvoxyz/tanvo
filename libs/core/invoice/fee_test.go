@@ -8,6 +8,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/internal/spectest"
 	"github.com/tanvoxyz/tanvo/libs/money"
+	"github.com/tanvoxyz/tanvo/libs/period"
 )
 
 func TestFeeHelpers(t *testing.T) {
@@ -122,14 +123,38 @@ func TestResolveCustomSections(t *testing.T) {
 	}
 }
 
-func TestSubscriptionKey(t *testing.T) {
+func TestSubscriptionKeys(t *testing.T) {
 	var gen core.UUIDv7Generator
 	sub := core.NewID[core.SubscriptionID](gen)
-	from := time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC)
-	s := Subscription{SubscriptionID: sub, Reason: InvoicingReasonSubscriptionPeriodic}
-	s.Period.From = from
-	if got, ok := s.Key(); !ok || got != (IdempotencyKey{SubscriptionID: sub, Reason: InvoicingReasonSubscriptionPeriodic, PeriodStart: from}) {
-		t.Errorf("Key() got = %+v, %v, want = periodic key of %s", got, ok, sub)
+	year := period.Period{From: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC), To: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)}
+	feb := period.Period{From: time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC), To: time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC)}
+	mar := period.Period{From: feb.To, To: time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)}
+	periodic := func(charges, fixed period.Period) *Subscription {
+		return &Subscription{
+			SubscriptionID: sub, Reason: InvoicingReasonSubscriptionPeriodic, Recurring: true,
+			Period: year, ChargesPeriod: charges, FixedChargesPeriod: fixed,
+		}
+	}
+	tests := []struct {
+		name string
+		s    *Subscription
+		want []IdempotencyKey
+	}{
+		{"periodic", periodic(feb, year), []IdempotencyKey{{sub, KeyCharges, feb}, {sub, KeyFixedCharges, year}}},
+		{"periodic without fixed charges", periodic(mar, period.Period{}), []IdempotencyKey{{sub, KeyCharges, mar}}},
+		{"starting", &Subscription{SubscriptionID: sub, Reason: InvoicingReasonSubscriptionStarting, Period: year}, []IdempotencyKey{{SubscriptionID: sub, Kind: KeyStarting}}},
+		{"terminating", &Subscription{SubscriptionID: sub, Reason: InvoicingReasonSubscriptionTerminating, Period: year, ChargesPeriod: feb}, []IdempotencyKey{{SubscriptionID: sub, Kind: KeyTerminating}}},
+		{"progressive billing", &Subscription{SubscriptionID: sub, Reason: InvoicingReasonProgressiveBilling, Period: year, ChargesPeriod: feb}, nil},
+		{"in advance charge", &Subscription{SubscriptionID: sub, Reason: InvoicingReasonInAdvanceCharge, Period: year, ChargesPeriod: feb}, nil},
+	}
+	for _, tt := range tests {
+		if got := tt.s.Keys(); !slices.EqualFunc(got, tt.want, IdempotencyKey.Equal) {
+			t.Errorf("%s: Keys() got = %+v, want = %+v", tt.name, got, tt.want)
+		}
+	}
+	// A yearly plan billing charges monthly: February and March differ.
+	if periodic(mar, period.Period{}).Has(IdempotencyKey{sub, KeyCharges, feb}) {
+		t.Errorf("Has() got = true for another charges period, want = false")
 	}
 	for _, r := range InvoicingReasonValues() {
 		if got, want := r.Periodic(), r != InvoicingReasonInAdvanceCharge; got != want {

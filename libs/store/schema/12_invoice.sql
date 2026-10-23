@@ -88,7 +88,7 @@ CREATE POLICY tenant_isolation ON invoices
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
 
 -- The zero period of an invoice subscription is stored as the zero instant
--- (0001-01-01 UTC), so that the idempotency key never holds a NULL.
+-- (0001-01-01 UTC), so that the idempotency keys never hold a NULL.
 CREATE TABLE invoice_subscriptions (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -111,9 +111,15 @@ CREATE TABLE invoice_subscriptions (
   CONSTRAINT invoice_subscriptions_invoicing_reason_check CHECK (invoicing_reason IN ('subscription_starting', 'subscription_periodic', 'subscription_terminating', 'in_advance_charge', 'in_advance_charge_periodic', 'progressive_billing'))
 );
 
--- The idempotency key of periodic billing (invoice.InvoicingReason.Periodic).
-CREATE UNIQUE INDEX invoice_subscriptions_idempotency_key ON invoice_subscriptions (organization_id, subscription_id, invoicing_reason, from_datetime)
-  WHERE invoicing_reason <> 'in_advance_charge';
+-- The idempotency keys of invoice.Subscription.Keys: a recurring row per
+-- charges period and per fixed charges period (when billed, that is not the
+-- zero instant), a starting and a terminating row per subscription.
+CREATE UNIQUE INDEX invoice_subscriptions_charges_key ON invoice_subscriptions (organization_id, subscription_id, charges_from_datetime, charges_to_datetime)
+  WHERE recurring AND charges_from_datetime <> '0001-01-01 00:00:00+00';
+CREATE UNIQUE INDEX invoice_subscriptions_fixed_charges_key ON invoice_subscriptions (organization_id, subscription_id, fixed_charges_from_datetime, fixed_charges_to_datetime)
+  WHERE recurring AND fixed_charges_from_datetime <> '0001-01-01 00:00:00+00';
+CREATE UNIQUE INDEX invoice_subscriptions_reason_key ON invoice_subscriptions (organization_id, subscription_id, invoicing_reason)
+  WHERE invoicing_reason IN ('subscription_starting', 'subscription_terminating');
 CREATE INDEX invoice_subscriptions_invoice_idx ON invoice_subscriptions (organization_id, invoice_id);
 CREATE INDEX invoice_subscriptions_subscription_idx ON invoice_subscriptions (organization_id, subscription_id, from_datetime);
 

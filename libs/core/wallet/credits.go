@@ -27,9 +27,13 @@ func AmountFromCredits(credits money.Decimal, currency money.Currency, rate mone
 }
 
 // CreditsFromMinor converts an amount in minor units of currency to
-// credits at rate, floored to [CreditPlaces] decimal places.
+// credits at rate, rounded half up to [CreditPlaces] decimal places: lago
+// computes amount.fdiv(rate) (app/models/wallet_credit.rb:10,31) and the
+// numeric(30,5) credit columns round it half up, so 20.00 EUR at 3 EUR per
+// credit is 6.66667 credits. Only credits entered by users are floored
+// ([NormalizeCredits], lago BigDecimal#floor(5) on the params).
 func CreditsFromMinor(amount int64, currency money.Currency, rate money.Decimal) money.Decimal {
-	return NormalizeCredits(currency.FromMinor(amount).Div(rate))
+	return currency.FromMinor(amount).Div(rate).Round(CreditPlaces, money.HalfUp)
 }
 
 // Credit is a quantity of wallet credits with its monetary amount; build it

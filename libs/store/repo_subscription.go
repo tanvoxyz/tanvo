@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -247,6 +248,23 @@ func (r subscriptionRepo) ListByCustomer(ctx context.Context, org core.Organizat
 	return convAll(rows, func(r db.ListSubscriptionsByCustomerRow) (*subscription.Subscription, error) {
 		return subscriptionOf(subscriptionRow(r))
 	})
+}
+
+func (r subscriptionRepo) InitialStartedAt(ctx context.Context, org core.OrganizationID, customer core.CustomerID, externalID string) (*time.Time, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	t, err := q.GetInitialSubscriptionStartedAt(ctx, db.GetInitialSubscriptionStartedAtParams{
+		OrganizationID: org.UUID(), CustomerID: customer.UUID(), ExternalID: externalID,
+	})
+	switch err = mapErr(err); {
+	case errors.Is(err, core.ErrNotFound):
+		return nil, nil
+	case err != nil:
+		return nil, fmt.Errorf("initial start of subscription %q of customer %s: %w", externalID, customer, err)
+	}
+	return optUTC(t), nil
 }
 
 func (r subscriptionRepo) ListActiveOrPendingByPlan(ctx context.Context, org core.OrganizationID, plan core.PlanID) ([]*subscription.Subscription, error) {
