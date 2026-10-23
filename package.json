@@ -1,0 +1,16 @@
+{
+  "name": "tanvo",
+  "version": "0.0.0",
+  "private": true,
+  "license": "AGPL-3.0-or-later",
+  "packageManager": "pnpm@12.11.2",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "nx": "mise exec -- nx"
+  },
+  "devDependencies": {
+    "nx": "23.3.0"
+  }
+}

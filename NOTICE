@@ -1,0 +1,25 @@
+Tanvo
+Copyright (C) 2026 The Tanvo Authors
+
+Tanvo is free software: you can redistribute it and/or modify it under the
+terms of the GNU Affero General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version (see LICENSE). libs/proto is licensed under the Apache License
+2.0 and ee/ under the Elastic License 2.0, as stated in those directories.
+
+Tanvo is a derivative work. It reimplements in Go and Rust the behavior of,
+and ports test cases from, the following projects, distributed under the GNU
+Affero General Public License version 3:
+
+  Lago (lago-api, lago events-processor)
+  Copyright (c) Lago, https://github.com/getlago/lago
+  https://github.com/getlago/lago-api
+
+  lago-expression
+  Copyright (c) Lago, https://github.com/getlago/lago-expression
+
+Changes: Tanvo is a new implementation with its own architecture, data model,
+API (Protobuf / Connect with REST transcoding), storage layer and job system;
+it is not compatible with Lago. Ported test cases record the upstream file
+they come from. "Lago" is a trademark of its owners; Tanvo is not affiliated
+with or endorsed by Lago.

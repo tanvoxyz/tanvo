@@ -1,0 +1,43 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "defaultBase": "main",
+  "neverConnectToCloud": true,
+  "plugins": [
+    "./tools/nx-go",
+    "./tools/nx-cargo"
+  ],
+  "namedInputs": {
+    "go": [
+      "{projectRoot}/**/*.go",
+      "{projectRoot}/go.mod",
+      "{projectRoot}/go.sum",
+      "{projectRoot}/**/*.wasm",
+      "{workspaceRoot}/go.work",
+      {
+        "env": "GOOS"
+      },
+      {
+        "env": "GOARCH"
+      },
+      {
+        "runtime": "go version"
+      }
+    ],
+    "goTestdata": [
+      "{projectRoot}/**/testdata/**/*"
+    ],
+    "goLintConfig": [
+      "{workspaceRoot}/.golangci.yml"
+    ],
+    "rust": [
+      "{projectRoot}/**/*.rs",
+      "{projectRoot}/**/*.pest",
+      "{projectRoot}/**/Cargo.toml",
+      "{projectRoot}/Cargo.lock",
+      "{projectRoot}/rust-toolchain.toml",
+      "{projectRoot}/testdata/**/*"
+    ],
+    "rustGen": []
+  },
+  "analytics": false
+}

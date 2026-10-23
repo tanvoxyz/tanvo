@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+
+# Nx
+.nx/cache/
+.nx/workspace-data/
+
+# build outputs
+dist/
+/bin/
+target/
+*.test
+*.out
+coverage/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+.env.local

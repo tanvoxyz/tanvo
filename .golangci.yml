@@ -1,0 +1,123 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard
+  enable:
+    - depguard
+    - errorlint
+    - misspell
+    - nolintlint
+    - unconvert
+    - usestdlibvars
+  settings:
+    depguard:
+      # Enforces the dependency direction in docs/architecture.md §3.2.
+      # When both allow and deny match, the longer (more specific) pattern wins.
+      # The lax rules restrict in-repo imports only; third-party packages stay
+      # allowed.
+      rules:
+        libs-not-apps:
+          files: ["**/libs/**"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo/apps
+              desc: "libs must not import apps"
+            - pkg: github.com/tanvoxyz/tanvo/providers
+              desc: "libs must not import providers; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/ee
+              desc: "libs must not import enterprise services"
+        money:
+          list-mode: lax
+          files: ["**/libs/money/**"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo
+              desc: "money is the bottom library"
+          allow: ["$gostd", github.com/tanvoxyz/tanvo/libs/money]
+        period:
+          list-mode: lax
+          files: ["**/libs/period/**"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo
+              desc: "period depends only on money"
+          allow: ["$gostd", github.com/tanvoxyz/tanvo/libs/period, github.com/tanvoxyz/tanvo/libs/money]
+        expression:
+          list-mode: lax
+          files: ["**/libs/expression/**"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo
+              desc: "expression depends only on money"
+          allow: ["$gostd", github.com/tanvoxyz/tanvo/libs/expression, github.com/tanvoxyz/tanvo/libs/money]
+        pure:
+          list-mode: lax
+          files: ["**/libs/pricing/**", "**/libs/metering/**", "**/libs/tax/**"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo
+              desc: "pure libraries depend only on money, period and each other"
+          allow:
+            - "$gostd"
+            - github.com/tanvoxyz/tanvo/libs/money
+            - github.com/tanvoxyz/tanvo/libs/period
+            - github.com/tanvoxyz/tanvo/libs/pricing
+            - github.com/tanvoxyz/tanvo/libs/metering
+            - github.com/tanvoxyz/tanvo/libs/tax
+        core:
+          list-mode: lax
+          files: ["**/libs/core/**"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo
+              desc: "core depends only on money and period"
+          allow: ["$gostd", github.com/tanvoxyz/tanvo/libs/core, github.com/tanvoxyz/tanvo/libs/money, github.com/tanvoxyz/tanvo/libs/period]
+        billing:
+          files: ["**/libs/billing/**"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo/libs/store
+              desc: "billing uses ports from libs/core; apps/server wires store"
+            - pkg: github.com/tanvoxyz/tanvo/libs/eventstore
+              desc: "billing uses the EventStore port from libs/core"
+            - pkg: github.com/tanvoxyz/tanvo/libs/jobs
+              desc: "billing uses ports from libs/core"
+            - pkg: github.com/tanvoxyz/tanvo/libs/documents
+              desc: "billing uses ports from libs/core"
+            - pkg: github.com/tanvoxyz/tanvo/libs/webhooks
+              desc: "billing uses ports from libs/core"
+        infra:
+          files:
+            - "**/libs/store/**"
+            - "**/libs/eventstore/**"
+            - "**/libs/jobs/**"
+            - "**/libs/webhooks/**"
+            - "**/libs/documents/**"
+            - "**/libs/mail/**"
+            - "**/libs/auth/**"
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo/libs/billing
+              desc: "infrastructure implements ports; it does not depend on the billing engine"
+        providers:
+          list-mode: lax
+          files: ["**/providers/**"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo
+              desc: "providers implement ports of libs/core"
+          allow: ["$gostd", github.com/tanvoxyz/tanvo/providers, github.com/tanvoxyz/tanvo/libs/core, github.com/tanvoxyz/tanvo/libs/money, github.com/tanvoxyz/tanvo/libs/period]
+        enterprise:
+          list-mode: lax
+          files: ["**/ee/**"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo
+              desc: "enterprise services (ELv2) may only use the Apache-2.0 contracts in libs/proto"
+          allow: ["$gostd", github.com/tanvoxyz/tanvo/ee, github.com/tanvoxyz/tanvo/libs/proto]
+  exclusions:
+    generated: strict
+    presets:
+      - std-error-handling
+
+formatters:
+  enable:
+    - gofumpt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/tanvoxyz/tanvo
