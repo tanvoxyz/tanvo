@@ -54,6 +54,7 @@ func TestWalletValidate(t *testing.T) {
 		CodeBlank       bool              `yaml:"code_blank"`
 		AllowedFeeTypes []string          `yaml:"allowed_fee_types"`
 		Status          *string           `yaml:"status"`
+		POLength        *int              `yaml:"po_length"`
 		Errors          []string          `yaml:"errors"`
 	}
 	for _, c := range spectest.Load[tc](t, "wallet.yaml") {
@@ -78,6 +79,7 @@ func TestWalletValidate(t *testing.T) {
 			if c.Status != nil {
 				w.Status = Status(*c.Status)
 			}
+			w.PurchaseOrderNumber = poOfLength(c.POLength)
 			if got := fieldErrors(w.Validate()); !slices.Equal(got, c.Errors) {
 				t.Errorf("Validate() errors got = %v, want = %v (%s)", got, c.Errors, c.Source)
 			}
@@ -159,11 +161,13 @@ func TestWalletPays(t *testing.T) {
 
 func TestWalletValidateForCustomer(t *testing.T) {
 	w := newTestWallet("EUR", money.NewFromInt(1))
-	if err := w.ValidateForCustomer(money.MustCurrency("EUR"), 5, 6); err != nil {
+	// The customer's currency is only a default: a wallet in another
+	// currency is accepted (wallets/create_service.rb:73-77).
+	if err := w.ValidateForCustomer(5, 6); err != nil {
 		t.Errorf("ValidateForCustomer() got = %v, want = nil", err)
 	}
-	want := []string{"currency: currencies_does_not_match", "customer_id: wallets_limit_reached"}
-	if got := fieldErrors(w.ValidateForCustomer(money.MustCurrency("USD"), 6, 6)); !slices.Equal(got, want) {
+	want := []string{"customer_id: wallets_limit_reached"}
+	if got := fieldErrors(w.ValidateForCustomer(6, 6)); !slices.Equal(got, want) {
 		t.Errorf("ValidateForCustomer() got = %v, want = %v", got, want)
 	}
 	past := testNow.Add(-time.Hour)
@@ -348,6 +352,7 @@ func TestTransactionValidate(t *testing.T) {
 		TransactionStatus *string  `yaml:"transaction_status"`
 		Remaining         *int64   `yaml:"remaining"`
 		MetadataItems     int      `yaml:"metadata_items"`
+		POLength          *int     `yaml:"po_length"`
 		Errors            []string `yaml:"errors"`
 	}
 	for _, c := range spectest.Load[tc](t, "transaction.yaml") {
@@ -376,6 +381,7 @@ func TestTransactionValidate(t *testing.T) {
 			for i := range c.MetadataItems {
 				tx.Metadata = append(tx.Metadata, core.MetadataItem{Key: fmt.Sprintf("k%d", i), Value: "v"})
 			}
+			tx.PurchaseOrderNumber = poOfLength(c.POLength)
 			if got := fieldErrors(tx.Validate()); !slices.Equal(got, c.Errors) {
 				t.Errorf("Validate() errors got = %v, want = %v (%s)", got, c.Errors, c.Source)
 			}
@@ -529,6 +535,7 @@ func TestRuleValidate(t *testing.T) {
 		Threshold  *spectest.Decimal `yaml:"threshold"`
 		Grants     bool              `yaml:"grants"`
 		Paid       *spectest.Decimal `yaml:"paid"`
+		POLength   *int              `yaml:"po_length"`
 		Errors     []string          `yaml:"errors"`
 	}
 	for _, c := range spectest.Load[tc](t, "rule.yaml") {
@@ -552,6 +559,7 @@ func TestRuleValidate(t *testing.T) {
 			if c.Paid != nil {
 				r.PaidCredits = c.Paid.Decimal
 			}
+			r.PurchaseOrderNumber = poOfLength(c.POLength)
 			if got := fieldErrors(r.Validate()); !slices.Equal(got, c.Errors) {
 				t.Errorf("Validate() errors got = %v, want = %v (%s)", got, c.Errors, c.Source)
 			}
@@ -663,5 +671,42 @@ func TestRuleTransitions(t *testing.T) {
 	last := testNow.Add(-30 * time.Minute)
 	if !ThresholdSuppressed(&last, testNow) || ThresholdSuppressed(&last, testNow.Add(time.Hour)) || ThresholdSuppressed(nil, testNow) {
 		t.Errorf("ThresholdSuppressed() got = wrong, want = suppressed only within one hour of the failure")
+	}
+}
+
+// poOfLength returns a purchase order number of n characters, or nil.
+func poOfLength(n *int) *string {
+	if n == nil {
+		return nil
+	}
+	po := strings.Repeat("p", *n)
+	return &po
+}
+
+func TestResolvePurchaseOrderNumber(t *testing.T) {
+	str := func(s string) *string { return &s }
+	w := newTestWallet("EUR", money.NewFromInt(1))
+	r := newTestRule()
+	for _, c := range []struct {
+		name, source string
+		rule, wallet *string
+		want         string
+	}{
+		{"rule wins", "spec/services/wallets/create_service_spec.rb:610", str("PO-R"), str("PO-W"), "PO-R"},
+		{"falls back to the wallet", "spec/services/wallets/create_service_spec.rb:610", nil, str("PO-W"), "PO-W"},
+		{"blank rule falls back", "spec/services/wallets/create_service_spec.rb:610", str("  "), str(" PO-W "), "PO-W"},
+		{"none", "spec/services/wallets/create_service_spec.rb:610", nil, nil, "<nil>"},
+	} {
+		r.PurchaseOrderNumber, w.PurchaseOrderNumber = c.rule, c.wallet
+		got := "<nil>"
+		if p := r.ResolvedPurchaseOrderNumber(w); p != nil {
+			got = *p
+		}
+		if got != c.want {
+			t.Errorf("%s: ResolvedPurchaseOrderNumber() got = %q, want = %q (%s)", c.name, got, c.want, c.source)
+		}
+	}
+	if got := ResolvePurchaseOrderNumber(str("PO-T"), str("PO-R"), str("PO-W")); got == nil || *got != "PO-T" {
+		t.Errorf("ResolvePurchaseOrderNumber() got = %v, want = PO-T", got)
 	}
 }

@@ -407,7 +407,7 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 * 设置按 客户 → 计费主体（时区再 → UTC）解析。**[变更]** Lago 在部分代码路径回退到组织，在另一些路径回退到计费主体；Tanvo 处处使用计费主体。
 * `currency` 是默认值，不是约束。未指定币种创建的钱包或一次性发票取该币种；币种为空时，第一个创建的计费对象设置它（订阅取其套餐币种，钱包、固定金额的已应用优惠券或一次性发票取各自的币种）；显式更新客户可以随时修改它，不影响已有对象。
 * 每个计费对象都有自己的币种：订阅取其套餐的 `currency`（§9.1），钱包（§14.1）、固定金额的已应用优惠券（§8.2）和一次性发票（§11.6）各有自己的币种。一个客户可以按多种币种计费：发票按币种拆分（§9.6），贷项通知单、固定金额优惠券和钱包只抵扣同币种的发票（§22.7），催收按币种分别计数尝试次数并检查阈值（§16.1）。
-* 客户在没有订阅、发票、已应用优惠券和钱包时是**可编辑**的。只有可编辑的客户才能修改 `external_id` 或 `account_type`。
+* 客户在没有订阅、发票、已应用的固定金额优惠券（包括已终止的；已应用的百分比优惠券不计入）和钱包时是**可编辑**的。只有可编辑的客户才能修改 `external_id` 或 `account_type`。
 * `account_type = partner`：开给该客户的发票为自开票（§11.1）。
 * 删除客户会终止其订阅（生成终止发票）、终止其钱包和已应用优惠券并将其归档；其发票保留。
 * 每个客户的咨询锁：`coupons`、`credit_notes`、`prepaid_credits`、`billing_schedule`。
@@ -806,7 +806,7 @@ stateDiagram-v2
 * 修改套餐即为升级或降级（§22.13）。
 
 ### 9.6 发票合并
-同一客户在同一时刻计费的订阅，若支付方式、币种、计费主体和采购订单号相同且都为 `consolidate_invoice = true`，则共用一张发票。因此，订阅涉及多种币种的客户每种币种收到一张周期发票。发票取该组的币种和 `purchase_order_number`。
+同一客户在同一时刻计费的订阅，若支付方式、币种、计费主体和采购订单号相同且都为 `consolidate_invoice = true`，则共用一张发票。因此，订阅涉及多种币种的客户每种币种收到一张周期发票。发票取该组的币种和 `purchase_order_number`。周期运行和套餐变更按采购订单号分别计费；单次计费请求中的订阅若带有不同的采购订单号（没有采购订单号也算不同），以 `purchase_order_number: mixed_purchase_order_numbers` 拒绝。
 
 ---
 
@@ -1124,7 +1124,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 | `metadata` | Metadata | ≤ 15 项 |
 | `settled_at`、`failed_at` | `Time?` | |
 | `invoice_requires_successful_payment` | `bool` | |
-| `purchase_order_number` | `string(255)?` | 取请求的，否则取规则的，否则取钱包的；复制到其 `credit` 发票 |
+| `purchase_order_number` | `string(255)?` | 手动交易取请求的；规则执行和初始充值取规则的，否则取钱包的；重新入账取原交易的；其 `credit` 发票取它，否则取钱包的 |
 
 规则：
 * 付费额度（`purchased`）创建一张 `credit` 发票；在其支付成功之前为 `pending`，之后为 `settled`，无论发票是否以 `open` 状态等待支付。由抵扣型贷项通知单结清的发票不算已支付，不会入账任何额度。支付失败时购买标记为 `failed`，之后支付成功仍会入账；作废 credit 发票同样将其标记为 `failed`，且之后的任何支付都不再入账（lago 作废时让购买保持 `pending`，作废发票之后若被支付仍会发放额度，`app/services/invoices/void_service.rb:30-48`、`app/jobs/invoices/prepaid_credit_job.rb:20-25`；Tanvo 将针对已作废发票的支付视为退款事宜）。
@@ -1156,7 +1156,7 @@ stateDiagram-v2
 | `started_at` | `Time?` | 第一个间隔的锚点 |
 | `expiration_at` | `Time?` | |
 | `status` | `RuleStatus` | |
-| `invoice_requires_successful_payment`、`transaction_metadata`、`transaction_name`、`ignore_paid_top_up_limits`、`purchase_order_number` | | 复制到交易上（`purchase_order_number` 回退到钱包的） |
+| `invoice_requires_successful_payment`、`transaction_metadata`、`transaction_name`、`ignore_paid_top_up_limits`、`purchase_order_number` | | 复制到交易上（`purchase_order_number` 回退到钱包的；创建和更新时均可设置，空白即无） |
 
 规则：
 * 间隔规则在从 `started_at`（或钱包创建时间）起的每个间隔边界运行，类似按客户时区的周年计划。

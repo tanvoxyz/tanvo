@@ -6,14 +6,14 @@ INSERT INTO wallets (
   balance_amount, credits_balance, ongoing_balance_amount, credits_ongoing_balance,
   ongoing_usage_balance_amount, credits_ongoing_usage_balance, consumed_amount, consumed_credits,
   paid_top_up_min_amount, paid_top_up_max_amount, invoice_requires_successful_payment, allowed_fee_types,
-  traceable, billing_entity_id, payment_method_type, payment_method_id,
+  traceable, purchase_order_number, x402_enabled, billing_entity_id, payment_method_type, payment_method_id,
   last_balance_sync_at, last_consumed_credit_at, depleted_ongoing_balance, terminated_at, created_at, updated_at
 ) VALUES (
   @organization_id, @id, @customer_id, @code, @name, @status, @currency, @rate_amount, @priority, @expiration_at,
   @balance_amount, @credits_balance, @ongoing_balance_amount, @credits_ongoing_balance,
   @ongoing_usage_balance_amount, @credits_ongoing_usage_balance, @consumed_amount, @consumed_credits,
   @paid_top_up_min_amount, @paid_top_up_max_amount, @invoice_requires_successful_payment, @allowed_fee_types,
-  @traceable, @billing_entity_id, @payment_method_type, @payment_method_id,
+  @traceable, @purchase_order_number, @x402_enabled, @billing_entity_id, @payment_method_type, @payment_method_id,
   @last_balance_sync_at, @last_consumed_credit_at, @depleted_ongoing_balance, @terminated_at, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
@@ -28,7 +28,8 @@ UPDATE wallets SET
   consumed_amount = @consumed_amount, consumed_credits = @consumed_credits,
   paid_top_up_min_amount = @paid_top_up_min_amount, paid_top_up_max_amount = @paid_top_up_max_amount,
   invoice_requires_successful_payment = @invoice_requires_successful_payment, allowed_fee_types = @allowed_fee_types,
-  traceable = @traceable, billing_entity_id = @billing_entity_id, payment_method_type = @payment_method_type,
+  traceable = @traceable, purchase_order_number = @purchase_order_number, x402_enabled = @x402_enabled,
+  billing_entity_id = @billing_entity_id, payment_method_type = @payment_method_type,
   payment_method_id = @payment_method_id, last_balance_sync_at = @last_balance_sync_at,
   last_consumed_credit_at = @last_consumed_credit_at, depleted_ongoing_balance = @depleted_ongoing_balance,
   terminated_at = @terminated_at, created_at = @created_at, updated_at = @updated_at
@@ -93,12 +94,12 @@ INSERT INTO wallet_transactions (
   organization_id, id, wallet_id, transaction_type, transaction_status, status, source, currency,
   amount, credit_amount, remaining_amount, priority, name, invoice_id, credit_note_id,
   recurring_transaction_rule_id, metadata, payment_method_type, payment_method_id,
-  invoice_requires_successful_payment, settled_at, failed_at, created_at, updated_at
+  invoice_requires_successful_payment, purchase_order_number, settled_at, failed_at, created_at, updated_at
 ) VALUES (
   @organization_id, @id, @wallet_id, @transaction_type, @transaction_status, @status, @source, @currency,
   @amount, @credit_amount, @remaining_amount, @priority, @name, @invoice_id, @credit_note_id,
   @recurring_transaction_rule_id, @metadata, @payment_method_type, @payment_method_id,
-  @invoice_requires_successful_payment, @settled_at, @failed_at, @created_at, @updated_at
+  @invoice_requires_successful_payment, @purchase_order_number, @settled_at, @failed_at, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
 
@@ -111,6 +112,7 @@ UPDATE wallet_transactions SET
   recurring_transaction_rule_id = @recurring_transaction_rule_id, metadata = @metadata,
   payment_method_type = @payment_method_type, payment_method_id = @payment_method_id,
   invoice_requires_successful_payment = @invoice_requires_successful_payment,
+  purchase_order_number = @purchase_order_number,
   settled_at = @settled_at, failed_at = @failed_at, created_at = @created_at, updated_at = @updated_at
 WHERE organization_id = @organization_id AND id = @id;
 
@@ -172,12 +174,12 @@ INSERT INTO recurring_transaction_rules (
   organization_id, id, wallet_id, "trigger", "interval", threshold_credits, method, paid_credits, granted_credits,
   target_ongoing_balance, grants_target_top_up, started_at, expiration_at, status,
   invoice_requires_successful_payment, transaction_metadata, transaction_name, ignore_paid_top_up_limits,
-  payment_method_type, payment_method_id, terminated_at, created_at, updated_at
+  purchase_order_number, payment_method_type, payment_method_id, terminated_at, created_at, updated_at
 ) VALUES (
   @organization_id, @id, @wallet_id, @trigger, @interval, @threshold_credits, @method, @paid_credits, @granted_credits,
   @target_ongoing_balance, @grants_target_top_up, @started_at, @expiration_at, @status,
   @invoice_requires_successful_payment, @transaction_metadata, @transaction_name, @ignore_paid_top_up_limits,
-  @payment_method_type, @payment_method_id, @terminated_at, @created_at, @updated_at
+  @purchase_order_number, @payment_method_type, @payment_method_id, @terminated_at, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
 
@@ -189,7 +191,8 @@ UPDATE recurring_transaction_rules SET
   grants_target_top_up = @grants_target_top_up, started_at = @started_at, expiration_at = @expiration_at,
   status = @status, invoice_requires_successful_payment = @invoice_requires_successful_payment,
   transaction_metadata = @transaction_metadata, transaction_name = @transaction_name,
-  ignore_paid_top_up_limits = @ignore_paid_top_up_limits, payment_method_type = @payment_method_type,
+  ignore_paid_top_up_limits = @ignore_paid_top_up_limits, purchase_order_number = @purchase_order_number,
+  payment_method_type = @payment_method_type,
   payment_method_id = @payment_method_id, terminated_at = @terminated_at, created_at = @created_at, updated_at = @updated_at
 WHERE organization_id = @organization_id AND id = @id;
 

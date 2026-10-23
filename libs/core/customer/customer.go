@@ -53,9 +53,13 @@ type Customer struct {
 	// ShippingAddress is the shipping address; each empty field falls back
 	// to the billing address field when printed ([Customer.EffectiveShippingAddress]).
 	ShippingAddress core.Address
-	// Currency is the currency of every subscription, wallet, applied
-	// coupon and one-off invoice of the customer; zero while unset. See
-	// [CurrencyChangeAllowed].
+	// Currency is the default currency of the customer's new billing
+	// objects, not a constraint (domain §6): a wallet or one-off invoice
+	// created without a currency takes it, and the first subscription,
+	// wallet, fixed-amount applied coupon or one-off invoice created while
+	// it is zero sets it. Subscriptions, wallets, applied coupons and
+	// invoices carry their own currency, so changing it affects none of
+	// them.
 	Currency money.Currency
 	// Timezone overrides the billing entity's time zone; nil inherits.
 	Timezone *time.Location
@@ -386,65 +390,34 @@ type Documents struct {
 	HasSubscriptions bool
 	// HasInvoices: the customer has at least one invoice.
 	HasInvoices bool
-	// HasAppliedCoupons: the customer has at least one applied coupon.
-	HasAppliedCoupons bool
+	// HasFixedAmountAppliedCoupons: the customer has at least one applied
+	// coupon with an amount, terminated or not. Applied percentage coupons
+	// carry no currency and do not count (customer.rb:281).
+	HasFixedAmountAppliedCoupons bool
 	// HasWallets: the customer has at least one wallet.
 	HasWallets bool
-	// Currencies are the currencies of its subscriptions, invoices,
-	// applied coupons and wallets.
-	Currencies []money.Currency
 }
 
 // Editable reports whether the customer has no subscriptions, invoices,
-// applied coupons and wallets (domain §6); only an editable customer can
-// change external_id or account_type.
+// fixed-amount applied coupons and wallets (domain §6,
+// customer.rb:277-283); only an editable customer can change external_id
+// or account_type.
 func Editable(d Documents) bool {
-	return !d.HasSubscriptions && !d.HasInvoices && !d.HasAppliedCoupons && !d.HasWallets
+	return !d.HasSubscriptions && !d.HasInvoices && !d.HasFixedAmountAppliedCoupons && !d.HasWallets
 }
 
-// CurrencyChangeAllowed reports whether the customer's currency can become
-// to: always when it is unset or unchanged, otherwise only while the
-// customer has no subscriptions, invoices, applied coupons or wallets in
-// another currency (domain §6).
-func (c *Customer) CurrencyChangeAllowed(to money.Currency, d Documents) bool {
-	if c.Currency.IsZero() || c.Currency.Code() == to.Code() {
-		return true
-	}
-	if !d.HasSubscriptions && !d.HasInvoices && !d.HasAppliedCoupons && !d.HasWallets {
-		return true
-	}
-	for _, cur := range d.Currencies {
-		if cur.Code() != to.Code() {
-			return false
-		}
-	}
-	return true
-}
-
-// Code of the refused customer updates.
-const (
-	// CodeNotEditable: external_id or account_type changed on a customer
-	// that is not editable.
-	CodeNotEditable = "customer_not_editable"
-	// CodeCurrencyLocked: the currency changed while documents use another.
-	CodeCurrencyLocked = "currency_locked"
-)
+// CodeNotEditable: external_id or account_type changed on a customer that
+// is not editable.
+const CodeNotEditable = "customer_not_editable"
 
 // CheckUpdate enforces the update rules of domain §6 between the stored
 // customer old and the requested next: external_id and account_type change
-// only while editable, and the currency only when [Customer.CurrencyChangeAllowed].
+// only while editable. The currency is a default and changes freely.
 func CheckUpdate(old, next *Customer, d Documents) error {
 	var v core.Validator
 	if !Editable(d) {
 		v.Check(old.ExternalID == next.ExternalID, "external_id", CodeNotEditable)
 		v.Check(old.AccountType == next.AccountType, "account_type", CodeNotEditable)
-	}
-	if !next.Currency.IsZero() || !old.Currency.IsZero() {
-		if next.Currency.IsZero() {
-			v.Add("currency", CodeCurrencyLocked)
-		} else {
-			v.Check(old.CurrencyChangeAllowed(next.Currency, d), "currency", CodeCurrencyLocked)
-		}
 	}
 	return v.Err()
 }

@@ -153,3 +153,17 @@ func (f *fixture) advanceCharges(sub *subscription.Subscription, billingAt time.
 		return f.svc.AdvanceCharges(ctx, r, f.OrgID(), []core.SubscriptionID{sub.ID}, billingAt)
 	})
 }
+
+// source: spec/services/invoices/create_pay_in_advance_charge_service_spec.rb:262
+func TestInAdvanceChargePurchaseOrderNumber(t *testing.T) {
+	ts := billingtest.Date(2026, time.January, 15, 10)
+	f, sub := inAdvance(t, ts)
+	f.UpdateSubscription(sub, func(s *subscription.Subscription) { s.PurchaseOrderNumber = new("PO-SUB-123") })
+	fs := f.charge(sub, ts)
+	if len(fs) != 1 || fs[0].InvoiceID.IsZero() {
+		t.Fatalf("fees = %d, want = one fee on an invoice", len(fs))
+	}
+	if got := f.Invoice(fs[0].InvoiceID).PurchaseOrderNumber; got == nil || *got != "PO-SUB-123" {
+		t.Errorf("purchase_order_number: got = %v, want = PO-SUB-123", got)
+	}
+}

@@ -2,6 +2,7 @@ package invoice
 
 import (
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -283,7 +284,9 @@ func TestDraftChecks(t *testing.T) {
 
 func TestInvoiceValidate(t *testing.T) {
 	base := func() *Invoice {
-		return &Invoice{Type: TypeSubscription, Status: StatusFinalized, PaymentStatus: core.PaymentStatusPending, Currency: money.MustCurrency("EUR")}
+		return &Invoice{
+			Type: TypeSubscription, Status: StatusFinalized, PaymentStatus: core.PaymentStatusPending, Currency: money.MustCurrency("EUR"),
+		}
 	}
 	if err := base().Validate(); err != nil {
 		t.Fatalf("Validate() got = %v, want = nil", err)
@@ -293,11 +296,18 @@ func TestInvoiceValidate(t *testing.T) {
 	inv.Metadata = core.Metadata{{Key: "k", Value: "v"}}
 	inv.PaymentDisputeLostAt = &testNow
 	inv.TotalAmount = -1
+	inv.NetPaymentTermDays = -1
+	po, blank := strings.Repeat("p", core.MaxPurchaseOrderNumberLength+1), ""
+	inv.PurchaseOrderNumber, inv.X402PaymentToken = &po, &blank
 	got := map[string]string{}
 	for _, fe := range core.FieldErrors(inv.Validate()) {
 		got[fe.Field] = fe.Code
 	}
-	for field, code := range map[string]string{"metadata": core.CodeForbidden, "payment_dispute_lost_at": core.CodeForbidden, "total_amount": core.CodeNegative} {
+	for field, code := range map[string]string{
+		"metadata": core.CodeForbidden, "payment_dispute_lost_at": core.CodeForbidden, "total_amount": core.CodeNegative,
+		"net_payment_term_days": core.CodeOutOfRange,
+		"purchase_order_number": core.CodeTooLong, "x402_payment_token": core.CodeRequired,
+	} {
 		if got[field] != code {
 			t.Errorf("Validate() %s got = %q, want = %q", field, got[field], code)
 		}

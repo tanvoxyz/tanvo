@@ -1,6 +1,7 @@
 package wallets_test
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -147,6 +148,12 @@ func TestCreateRule(t *testing.T) {
 				t.Errorf("rule: got = %+v", r)
 			}
 		}},
+		// source: spec/services/wallets/recurring_transaction_rules/create_service_spec.rb:55
+		{"purchase order number", threshold(func(in *wallets.RuleInput) { in.PurchaseOrderNumber = ptr(" PO-RULE-123 ") }), nil, func(t *testing.T, r *wallet.RecurringTransactionRule) {
+			if r.PurchaseOrderNumber == nil || *r.PurchaseOrderNumber != "PO-RULE-123" {
+				t.Errorf("purchase_order_number: got = %v, want = PO-RULE-123", r.PurchaseOrderNumber)
+			}
+		}},
 		// source: spec/services/wallets/recurring_transaction_rules/create_service_spec.rb:99
 		{"paid credits within limits", threshold(func(in *wallets.RuleInput) { in.PaidCredits = dec("15") }), nil, func(t *testing.T, r *wallet.RecurringTransactionRule) {
 			wantDec(t, "granted", r.GrantedCredits, "0")
@@ -275,6 +282,10 @@ func TestCreateRuleErrors(t *testing.T) {
 		{"paid credits below the minimum", func(*billingtest.Harness, core.CustomerID) wallets.RuleInput {
 			return wallets.RuleInput{Trigger: wallet.RecurringTriggerThreshold, ThresholdCredits: dec("1.0"), PaidCredits: dec("5")}
 		}, []string{"recurring_transaction_rules/invalid_recurring_rule"}},
+		// source: spec/services/wallets/recurring_transaction_rules/create_service_spec.rb:67
+		{"purchase order number too long", func(*billingtest.Harness, core.CustomerID) wallets.RuleInput {
+			return wallets.RuleInput{Trigger: wallet.RecurringTriggerThreshold, ThresholdCredits: dec("1.0"), PurchaseOrderNumber: ptr(strings.Repeat("a", 256))}
+		}, []string{"purchase_order_number/value_is_too_long"}},
 		// source: spec/services/wallets/recurring_transaction_rules/create_service_spec.rb:325
 		{"invalid payment method type", func(h *billingtest.Harness, _ core.CustomerID) wallets.RuleInput {
 			return wallets.RuleInput{
@@ -345,6 +356,36 @@ func TestUpdateRule(t *testing.T) {
 			wantDec(t, "paid", r.PaidCredits, "105")
 			if r.Interval != period.Weekly || r.Method != wallet.RecurringMethodFixed || !r.StartedAt.Equal(started) {
 				t.Errorf("rule: got = %+v", r)
+			}
+		}},
+		// source: spec/services/wallets/recurring_transaction_rules/update_service_spec.rb:45
+		{name: "updates the purchase order number", rule: func(r *wallet.RecurringTransactionRule) {
+			r.PurchaseOrderNumber = ptr("PO-OLD")
+		}, in: func(_ *billingtest.Harness, r *wallet.RecurringTransactionRule) []wallets.RuleInput {
+			return []wallets.RuleInput{weekly(r.ID, func(in *wallets.RuleInput) { in.PurchaseOrderNumber = ptr("PO-RULE-123") })}
+		}, active: 1, sameID: true, check: func(t *testing.T, r *wallet.RecurringTransactionRule) {
+			if r.PurchaseOrderNumber == nil || *r.PurchaseOrderNumber != "PO-RULE-123" {
+				t.Errorf("purchase_order_number: got = %v, want = PO-RULE-123", r.PurchaseOrderNumber)
+			}
+		}},
+		// source: tanvo (an omitted purchase order number is kept)
+		{name: "keeps the purchase order number", rule: func(r *wallet.RecurringTransactionRule) {
+			r.PurchaseOrderNumber = ptr("PO-OLD")
+		}, in: func(_ *billingtest.Harness, r *wallet.RecurringTransactionRule) []wallets.RuleInput {
+			return []wallets.RuleInput{weekly(r.ID, nil)}
+		}, active: 1, sameID: true, check: func(t *testing.T, r *wallet.RecurringTransactionRule) {
+			if r.PurchaseOrderNumber == nil || *r.PurchaseOrderNumber != "PO-OLD" {
+				t.Errorf("purchase_order_number: got = %v, want = PO-OLD", r.PurchaseOrderNumber)
+			}
+		}},
+		// source: spec/services/wallets/recurring_transaction_rules/update_service_spec.rb:156
+		{name: "replacement rule with a purchase order number", in: func(*billingtest.Harness, *wallet.RecurringTransactionRule) []wallets.RuleInput {
+			return []wallets.RuleInput{weekly(core.RecurringTransactionRuleID{}, func(in *wallets.RuleInput) {
+				in.PurchaseOrderNumber = ptr("PO-REPLACEMENT-123")
+			})}
+		}, active: 1, terminated: 1, check: func(t *testing.T, r *wallet.RecurringTransactionRule) {
+			if r.PurchaseOrderNumber == nil || *r.PurchaseOrderNumber != "PO-REPLACEMENT-123" {
+				t.Errorf("purchase_order_number: got = %v, want = PO-REPLACEMENT-123", r.PurchaseOrderNumber)
 			}
 		}},
 		// source: spec/services/wallets/recurring_transaction_rules/update_service_spec.rb:107
@@ -541,4 +582,16 @@ func TestUpdateRuleErrors(t *testing.T) {
 			wantCodes(t, err, "payment_method/invalid_payment_method")
 		})
 	}
+}
+
+func TestUpdateRulePurchaseOrderNumberTooLong(t *testing.T) {
+	// source: spec/services/wallets/recurring_transaction_rules/update_service_spec.rb:67
+	h, s := setup(t, t0)
+	w := h.Wallet(h.Customer(), "10")
+	r := addRule(h, w)
+	_, err := s.Update(h.Ctx, h.OrgID(), w.ID, wallets.UpdateInput{RecurringTransactionRules: wallets.To([]wallets.RuleInput{{
+		ID: r.ID, Trigger: wallet.RecurringTriggerInterval, Interval: period.Weekly,
+		PaidCredits: dec("105"), GrantedCredits: dec("105"), PurchaseOrderNumber: ptr(strings.Repeat("a", 256)),
+	}})})
+	wantCodes(t, err, "purchase_order_number/value_is_too_long")
 }

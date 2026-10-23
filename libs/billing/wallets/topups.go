@@ -142,6 +142,7 @@ func ruleTopUp(w *wallet.Wallet, rule *wallet.RecurringTransactionRule, source w
 		InvoiceRequiresSuccessfulPayment: &irsp,
 		IgnorePaidTopUpLimits:            rule.Method == wallet.RecurringMethodTarget || rule.IgnorePaidTopUpLimits,
 		RecurringTransactionRuleID:       rule.ID,
+		PurchaseOrderNumber:              rule.ResolvedPurchaseOrderNumber(w),
 	}
 	if rule.PaymentMethodType != "" || !rule.PaymentMethodID.IsZero() {
 		in.PaymentMethod = &PaymentMethod{Type: rule.PaymentMethodType, ID: rule.PaymentMethodID}

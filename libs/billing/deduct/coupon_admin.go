@@ -240,11 +240,11 @@ func (s *Service) ApplyCoupon(ctx context.Context, in ApplyCouponInput) (*coupon
 		if err != nil {
 			return err
 		}
-		now := s.d.Now()
-		a := coupon.Apply(c, core.NewID[core.AppliedCouponID](s.d.IDs), cust.ID, in.Overrides, now)
-		if err := coupon.CheckApplication(c, a, facts); err != nil {
+		if err := coupon.CheckApplication(c, facts); err != nil {
 			return err
 		}
+		now := s.d.Now()
+		a := coupon.Apply(c, core.NewID[core.AppliedCouponID](s.d.IDs), cust.ID, in.Overrides, now)
 		if err := a.Validate(); err != nil {
 			return err
 		}
@@ -267,8 +267,6 @@ func (s *Service) ApplyCoupon(ctx context.Context, in ApplyCouponInput) (*coupon
 // applicationFacts gathers what [coupon.CheckApplication] needs.
 func applicationFacts(ctx context.Context, r port.Repos, c *coupon.Coupon, cust *customer.Customer) (coupon.ApplicationFacts, error) {
 	org := c.OrganizationID
-	// CustomerCurrency stays zero: a customer's currency is only a default
-	// (lago Customers::UpdateCurrencyService), so no currency check applies.
 	f := coupon.ApplicationFacts{PlanMetrics: map[core.PlanID][]core.BillableMetricID{}}
 	n, err := r.AppliedCoupons.CountByCouponAndCustomer(ctx, org, c.ID, cust.ID)
 	if err != nil {

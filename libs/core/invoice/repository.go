@@ -28,8 +28,9 @@ type Filter struct {
 
 // Repository stores invoices. Every method is scoped to an organization.
 type Repository interface {
-	// Create inserts inv; a number already used in the organization (other
-	// than a draft number) fails with core.ErrConflict.
+	// Create inserts inv; a number (other than a draft number) already used
+	// in the organization, or an x402 payment token already used in any
+	// organization, fails with core.ErrConflict.
 	Create(ctx context.Context, inv *Invoice) error
 	// Update replaces the stored invoice inv.ID with inv (same uniqueness
 	// rule as Create).

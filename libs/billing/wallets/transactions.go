@@ -50,6 +50,9 @@ type TransactionInput struct {
 	RecurringTransactionRuleID core.RecurringTransactionRuleID
 	// CreditNoteID is the credit note a void refunds.
 	CreditNoteID core.CreditNoteID
+	// PurchaseOrderNumber is stored on the transactions (blank is none);
+	// their credit invoice falls back to the wallet's.
+	PurchaseOrderNumber *string
 }
 
 // CreateTransactions validates in and records its transactions under the
@@ -181,6 +184,7 @@ func (s *Service) validateTransactions(ctx context.Context, r port.Repos, org co
 	if in.Name != nil {
 		v.MaxLen("name", *in.Name, 255)
 	}
+	v.OptionalString("purchase_order_number", in.PurchaseOrderNumber, core.MaxPurchaseOrderNumberLength)
 	if w != nil {
 		if err := validatePaymentMethod(ctx, r, org, w.CustomerID, &v, in.PaymentMethod); err != nil {
 			return nil, nil, err
@@ -226,6 +230,7 @@ func (s *Service) transactionParams(w *wallet.Wallet, in *TransactionInput) *wal
 		Metadata:                         in.Metadata,
 		RecurringTransactionRuleID:       in.RecurringTransactionRuleID,
 		CreditNoteID:                     in.CreditNoteID,
+		PurchaseOrderNumber:              core.NormalizePurchaseOrderNumber(in.PurchaseOrderNumber),
 		InvoiceRequiresSuccessfulPayment: w.InvoiceRequiresSuccessfulPayment,
 		PaymentMethodType:                w.PaymentMethodType,
 		PaymentMethodID:                  w.PaymentMethodID,
@@ -503,7 +508,10 @@ func (s *Service) Recredit(ctx context.Context, org core.OrganizationID, id core
 			return nil
 		}
 		credits := t.CreditAmount
-		ts, err := s.createTransactions(ctx, r, org, &TransactionInput{WalletID: w.ID, GrantedCredits: &credits, ResetConsumedCredits: true})
+		ts, err := s.createTransactions(ctx, r, org, &TransactionInput{
+			WalletID: w.ID, GrantedCredits: &credits, ResetConsumedCredits: true,
+			PurchaseOrderNumber: t.PurchaseOrderNumber,
+		})
 		if err != nil {
 			return err
 		}

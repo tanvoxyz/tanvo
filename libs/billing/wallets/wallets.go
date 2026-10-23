@@ -68,6 +68,9 @@ type CreateInput struct {
 	PaymentMethod *PaymentMethod
 	// BillingEntityID issues the credit invoices; zero uses the customer's.
 	BillingEntityID core.BillingEntityID
+	// PurchaseOrderNumber is the wallet's default purchase order number
+	// (blank is none).
+	PurchaseOrderNumber *string
 }
 
 // Create creates a wallet (lago Wallets::CreateService), emits
@@ -155,6 +158,7 @@ func (s *Service) create(ctx context.Context, r port.Repos, org core.Organizatio
 	w.BillableMetricIDs = slices.Clone(in.BillableMetricIDs)
 	w.Traceable = !slices.ContainsFunc(actives, func(x *wallet.Wallet) bool { return !x.Traceable })
 	w.BillingEntityID = in.BillingEntityID
+	w.PurchaseOrderNumber = core.NormalizePurchaseOrderNumber(in.PurchaseOrderNumber)
 	if in.PaymentMethod != nil {
 		if in.PaymentMethod.Type != "" {
 			w.PaymentMethodType = in.PaymentMethod.Type
@@ -164,7 +168,8 @@ func (s *Service) create(ctx context.Context, r port.Repos, org core.Organizatio
 	if err := w.Validate(); err != nil {
 		return nil, err
 	}
-	if err := w.ValidateForCustomer(c.Currency, len(actives), o.MaxWalletsPerCustomer); err != nil {
+	// The customer's currency is a default, not a constraint (domain §6).
+	if err := w.ValidateForCustomer(len(actives), o.MaxWalletsPerCustomer); err != nil {
 		return nil, err
 	}
 	if c.Currency.IsZero() {
@@ -206,12 +211,23 @@ func (s *Service) create(ctx context.Context, r port.Repos, org core.Organizatio
 			Name:                  in.TransactionName,
 			Priority:              in.TransactionPriority,
 			IgnorePaidTopUpLimits: in.IgnorePaidTopUpLimitsOnCreation,
+			// lago Wallets::CreateService#schedule_top_up (create_service.rb:134).
+			PurchaseOrderNumber: initialTopUpPurchaseOrderNumber(w, rule),
 		})
 		if err != nil {
 			return nil, err
 		}
 	}
 	return r.Wallets.Get(ctx, org, w.ID)
+}
+
+// initialTopUpPurchaseOrderNumber returns the purchase order number of the
+// initial top-up: the rule's, else the wallet's.
+func initialTopUpPurchaseOrderNumber(w *wallet.Wallet, rule *wallet.RecurringTransactionRule) *string {
+	if rule != nil {
+		return rule.ResolvedPurchaseOrderNumber(w)
+	}
+	return w.PurchaseOrderNumber
 }
 
 // validateInitialCredits rejects initial credits that round to zero and a
@@ -291,6 +307,9 @@ type UpdateInput struct {
 	PaymentMethod *PaymentMethod
 	// BillingEntityID changes or clears (zero) the issuing billing entity.
 	BillingEntityID Change[core.BillingEntityID]
+	// PurchaseOrderNumber changes or clears (nil or blank) the purchase
+	// order number.
+	PurchaseOrderNumber Change[*string]
 }
 
 // Update changes an active wallet and emits wallet.updated.
@@ -374,6 +393,9 @@ func (s *Service) update(ctx context.Context, r port.Repos, org core.Organizatio
 	}
 	if in.PaidTopUpMaxAmount.Set {
 		w.PaidTopUpMaxAmount = in.PaidTopUpMaxAmount.Value
+	}
+	if in.PurchaseOrderNumber.Set {
+		w.PurchaseOrderNumber = core.NormalizePurchaseOrderNumber(in.PurchaseOrderNumber.Value)
 	}
 	if in.RecurringTransactionRules.Set {
 		if err := s.updateRules(ctx, r, w, in.RecurringTransactionRules.Value); err != nil {

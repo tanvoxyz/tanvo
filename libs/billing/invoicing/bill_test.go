@@ -1,16 +1,21 @@
 package invoicing_test
 
 import (
+	"context"
+	"errors"
+	"slices"
 	"testing"
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/billingtest"
+	"github.com/tanvoxyz/tanvo/libs/billing/invoicing"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
+	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
 )
@@ -201,6 +206,61 @@ func TestBillTerminationIgnoresNonRecurringRows(t *testing.T) {
 			is := f.invoiceSubscriptions(invs[0].ID)
 			if got := is[0].Period.From; !got.Equal(tc.wantFrom) {
 				t.Errorf("period from: got = %s, want = %s", got, tc.wantFrom)
+			}
+		})
+	}
+}
+
+func TestBillPurchaseOrderNumber(t *testing.T) {
+	po := func(s string) func(*subscription.Subscription) {
+		return func(sub *subscription.Subscription) { sub.PurchaseOrderNumber = &s }
+	}
+	tests := []struct {
+		name, source string
+		subs         [][]func(*subscription.Subscription)
+		want         []string // purchase order number of each invoice, sorted; "" for none
+		err          string   // the field:code of a rejected bill
+	}{
+		{"stamped from the subscription", "spec/services/invoices/subscription_service_spec.rb:220", [][]func(*subscription.Subscription){{po("PO-123")}}, []string{"PO-123"}, ""},
+		{"shared by the subscriptions", "spec/services/invoices/subscription_service_spec.rb:240", [][]func(*subscription.Subscription){{po("PO-1")}, {po("PO-1")}}, []string{"PO-1"}, ""},
+		{"none", "spec/services/invoices/subscription_service_spec.rb:273", [][]func(*subscription.Subscription){nil}, []string{""}, ""},
+		{"mixed", "spec/services/invoices/subscription_service_spec.rb:216", [][]func(*subscription.Subscription){{po("PO-1")}, {po("PO-2")}}, nil, "purchase_order_number:mixed_purchase_order_numbers"},
+		{"one with a number and one without", "tanvo", [][]func(*subscription.Subscription){{po("PO-1")}, nil}, nil, "purchase_order_number:mixed_purchase_order_numbers"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("source: %s", tt.source)
+			f := newFixture(t, billingDay)
+			var subs []*subscription.Subscription
+			for _, opts := range tt.subs {
+				subs = append(subs, f.subscribe(opts...))
+			}
+			if tt.err != "" {
+				req := invoicing.BillRequest{OrganizationID: f.OrgID(), BillingAt: billingDay}
+				for _, s := range subs {
+					req.Items = append(req.Items, invoicing.BillItem{SubscriptionID: s.ID, Reason: invoice.InvoicingReasonSubscriptionPeriodic})
+				}
+				err := f.Deps.Tx.InTx(f.Ctx, func(ctx context.Context, r port.Repos) error {
+					_, err := f.svc.Bill(ctx, r, req)
+					return err
+				})
+				var ve *core.ValidationError
+				if !errors.As(err, &ve) || !slices.Equal(fieldCodes(ve), []string{tt.err}) {
+					t.Fatalf("bill: got = %v, want = %s", err, tt.err)
+				}
+				return
+			}
+			var got []string
+			for _, inv := range f.bill(billingDay, invoice.InvoicingReasonSubscriptionPeriodic, subs...) {
+				p := ""
+				if n := f.Invoice(inv.ID).PurchaseOrderNumber; n != nil {
+					p = *n
+				}
+				got = append(got, p)
+			}
+			slices.Sort(got)
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("invoice purchase order numbers: got = %q, want = %q", got, tt.want)
 			}
 		})
 	}

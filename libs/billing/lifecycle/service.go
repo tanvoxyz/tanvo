@@ -102,6 +102,31 @@ func (s *Service) bill(ctx context.Context, r port.Repos, org core.OrganizationI
 	return nil
 }
 
+// billRotation bills the items of a plan change, items[i] being the item
+// of subs[i]: the previous and new subscriptions may carry different
+// purchase order numbers, so each number is billed on its own
+// (activate_service.rb:145-149).
+func (s *Service) billRotation(ctx context.Context, r port.Repos, org core.OrganizationID, billingAt time.Time, subs []*subscription.Subscription, items []invoicing.BillItem) error {
+	var order []string
+	byPO := map[string][]invoicing.BillItem{}
+	for i, sub := range subs {
+		po := ""
+		if p := core.NormalizePurchaseOrderNumber(sub.PurchaseOrderNumber); p != nil {
+			po = *p
+		}
+		if _, ok := byPO[po]; !ok {
+			order = append(order, po)
+		}
+		byPO[po] = append(byPO[po], items[i])
+	}
+	for _, po := range order {
+		if err := s.bill(ctx, r, org, billingAt, false, byPO[po]...); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // billAdvanceCharges enqueues the regrouping of the paid, non-invoiceable
 // in-advance fees of the ended subscription sub at billingAt (lago
 // BillNonInvoiceableFeesJob on termination and plan change).

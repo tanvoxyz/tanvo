@@ -2,6 +2,7 @@ package invoicing_test
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/fees"
@@ -123,5 +124,43 @@ func TestCreateOneOffWithoutFees(t *testing.T) {
 	_, err := f.svc.CreateOneOff(f.Ctx, invoicing.OneOffInput{OrganizationID: f.OrgID(), CustomerID: f.cust.ID})
 	if !errors.As(err, &re) || re.Code != invoicing.CodeNoFees {
 		t.Fatalf("err = %v, want = %s", err, invoicing.CodeNoFees)
+	}
+}
+
+func TestCreateOneOffPurchaseOrderNumber(t *testing.T) {
+	tests := []struct {
+		name, source string
+		po           *string
+		want         *string
+		wantErr      bool
+	}{
+		{"passed", "spec/services/invoices/create_one_off_service_spec.rb:75", new("PO-123"), new("PO-123"), false},
+		{"blank", "tanvo", new("  "), nil, false},
+		{"too long", "tanvo", new(strings.Repeat("a", 256)), nil, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("source: %s", tt.source)
+			f := newFixture(t, billingDay)
+			addOn := f.AddOn(1000)
+			inv, err := f.svc.CreateOneOff(f.Ctx, invoicing.OneOffInput{
+				OrganizationID: f.OrgID(), CustomerID: f.cust.ID, PurchaseOrderNumber: tt.po,
+				Fees: []fees.OneOff{{AddOnID: addOn.ID}},
+			})
+			if tt.wantErr {
+				var ve *core.ValidationError
+				if !errors.As(err, &ve) {
+					t.Fatalf("err = %v, want = a validation error", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("create: %v", err)
+			}
+			got := f.Invoice(inv.ID).PurchaseOrderNumber
+			if (got == nil) != (tt.want == nil) || (got != nil && *got != *tt.want) {
+				t.Errorf("purchase_order_number: got = %v, want = %v", got, tt.want)
+			}
+		})
 	}
 }

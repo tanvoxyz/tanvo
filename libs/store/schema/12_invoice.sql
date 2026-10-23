@@ -50,6 +50,11 @@ CREATE TABLE invoices (
   skip_automatic_payment boolean NOT NULL,
   payment_method_type text,
   payment_method_id uuid,
+  purchase_order_number text,
+  -- References x402 connections (parity §1.36); no foreign key until they
+  -- are stored.
+  x402_connection_id uuid,
+  x402_payment_token text,
   metadata jsonb NOT NULL,
   file text,
   xml_file text,
@@ -79,6 +84,9 @@ CREATE INDEX invoices_customer_idx ON invoices (organization_id, customer_id, bi
 CREATE INDEX invoices_billing_entity_idx ON invoices (organization_id, billing_entity_id);
 CREATE INDEX invoices_voided_invoice_idx ON invoices (organization_id, voided_invoice_id) WHERE voided_invoice_id IS NOT NULL;
 CREATE INDEX invoices_payment_method_idx ON invoices (organization_id, payment_method_id) WHERE payment_method_id IS NOT NULL;
+CREATE INDEX invoices_purchase_order_number_idx ON invoices (organization_id, lower(purchase_order_number)) WHERE purchase_order_number IS NOT NULL;
+-- The x402 payment token is unique across all organizations.
+CREATE UNIQUE INDEX invoices_x402_payment_token_key ON invoices (x402_payment_token) WHERE x402_payment_token IS NOT NULL;
 -- The scheduler scans: drafts to finalize or refresh, overdue candidates.
 CREATE INDEX invoices_drafts_idx ON invoices (organization_id, expected_finalization_date) WHERE status = 'draft';
 CREATE INDEX invoices_overdue_idx ON invoices (organization_id, payment_due_date) WHERE status = 'finalized' AND NOT payment_overdue;

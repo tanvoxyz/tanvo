@@ -95,6 +95,9 @@ func (s *Service) AdvanceCharges(ctx context.Context, r port.Repos, org core.Org
 		return nil, err
 	}
 	inv := kernel.NewInvoice(s.d, cenv, kindAdvanceCharges, paid[0].Currency, billingAt)
+	// The subscriptions share one grouping key, so one purchase order
+	// number (lago advance_charges_service.rb:78,120).
+	inv.PurchaseOrderNumber = core.NormalizePurchaseOrderNumber(first.PurchaseOrderNumber)
 	if err := r.Invoices.Create(ctx, inv); err != nil {
 		return nil, fmt.Errorf("create invoice: %w", err)
 	}
@@ -274,6 +277,7 @@ func (s *Service) inAdvanceInvoice(ctx context.Context, r port.Repos, env *kerne
 	cenv := env.Customer
 	inv := kernel.NewInvoice(s.d, cenv, kindInAdvance, env.Plan.Currency, ts)
 	inv.PaymentMethodType, inv.PaymentMethodID = env.Subscription.PaymentMethodType, env.Subscription.PaymentMethodID
+	inv.PurchaseOrderNumber = core.NormalizePurchaseOrderNumber(env.Subscription.PurchaseOrderNumber)
 	if err := r.Invoices.Create(ctx, inv); err != nil {
 		return nil, fmt.Errorf("create invoice: %w", err)
 	}

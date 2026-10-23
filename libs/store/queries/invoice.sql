@@ -10,7 +10,7 @@ INSERT INTO invoices (
   prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount,
   issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days,
   payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment,
-  payment_method_type, payment_method_id, metadata, file, xml_file, ready_for_payment_processing,
+  payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing,
   refresh_requested, finalized_at, voided_at, created_at, updated_at
 ) VALUES (
   @organization_id, @id, @customer_id, @billing_entity_id, @invoice_type, @status, @payment_status, @tax_status,
@@ -20,7 +20,7 @@ INSERT INTO invoices (
   @prepaid_granted_credit_amount, @prepaid_purchased_credit_amount, @total_amount, @total_paid_amount, @offsetted_amount,
   @issuing_date, @payment_due_date, @expected_finalization_date, @applied_grace_period_days, @net_payment_term_days,
   @payment_overdue, @payment_dispute_lost_at, @self_billed, @voided_invoice_id, @skip_automatic_payment,
-  @payment_method_type, @payment_method_id, @metadata, @file, @xml_file, @ready_for_payment_processing,
+  @payment_method_type, @payment_method_id, @purchase_order_number, @x402_connection_id, @x402_payment_token, @metadata, @file, @xml_file, @ready_for_payment_processing,
   @refresh_requested, @finalized_at, @voided_at, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
@@ -41,7 +41,8 @@ UPDATE invoices SET
   applied_grace_period_days = @applied_grace_period_days, net_payment_term_days = @net_payment_term_days,
   payment_overdue = @payment_overdue, payment_dispute_lost_at = @payment_dispute_lost_at, self_billed = @self_billed,
   voided_invoice_id = @voided_invoice_id, skip_automatic_payment = @skip_automatic_payment,
-  payment_method_type = @payment_method_type, payment_method_id = @payment_method_id, metadata = @metadata,
+  payment_method_type = @payment_method_type, payment_method_id = @payment_method_id,
+  purchase_order_number = @purchase_order_number, x402_connection_id = @x402_connection_id, x402_payment_token = @x402_payment_token, metadata = @metadata,
   file = @file, xml_file = @xml_file, ready_for_payment_processing = @ready_for_payment_processing,
   refresh_requested = @refresh_requested, finalized_at = @finalized_at, voided_at = @voided_at,
   created_at = @created_at, updated_at = @updated_at

@@ -27,6 +27,11 @@ type BillItem struct {
 	Reason invoice.InvoicingReason
 }
 
+// CodeMixedPurchaseOrderNumbers rejects a bill whose subscriptions of one
+// invoice carry different purchase order numbers
+// (subscription_service.rb:44-45).
+const CodeMixedPurchaseOrderNumbers = "mixed_purchase_order_numbers"
+
 // BillRequest asks for the subscription invoices of one customer at one
 // billing instant: the items are grouped per billing entity, currency and
 // consolidation setting (domain §22.2) into one invoice per group.
@@ -84,16 +89,28 @@ func (s *Service) Bill(ctx context.Context, r port.Repos, req BillRequest) ([]*i
 		}
 		existing = inv
 	}
+	// The purchase order number does not split a bill: the scheduler
+	// already groups by it (organization_billing_service.rb:556-560), and
+	// subscriptions of one invoice with different numbers are rejected
+	// (subscription_service.rb:44-45, :232-234).
 	var keys []subscription.GroupingKey
 	groups := map[subscription.GroupingKey][]*billed{}
+	pos := map[subscription.GroupingKey]string{}
 	for _, it := range req.Items {
 		env, err := kernel.LoadSubscriptionEnv(ctx, r, req.OrganizationID, it.SubscriptionID)
 		if err != nil {
 			return nil, err
 		}
 		k := subscription.Grouping(env.Subscription, env.Plan.Currency, env.Customer.Customer.BillingEntityID)
+		po := k.PurchaseOrderNumber
+		k.PurchaseOrderNumber = ""
 		if _, ok := groups[k]; !ok {
 			keys = append(keys, k)
+			pos[k] = po
+		} else if pos[k] != po {
+			var v core.Validator
+			v.Add("purchase_order_number", CodeMixedPurchaseOrderNumbers)
+			return nil, v.Err()
 		}
 		groups[k] = append(groups[k], &billed{item: it, env: env})
 	}
@@ -197,6 +214,9 @@ func (s *Service) billGroup(ctx context.Context, r port.Repos, req BillRequest, 
 		sub := rows[0].env.Subscription
 		inv = kernel.NewInvoice(s.d, cenv, k, rows[0].env.Plan.Currency, req.BillingAt)
 		inv.PaymentMethodType, inv.PaymentMethodID = sub.PaymentMethodType, sub.PaymentMethodID
+		// The group shares one purchase order number (Bill rejects mixed
+		// ones; subscription_service.rb:206).
+		inv.PurchaseOrderNumber = core.NormalizePurchaseOrderNumber(sub.PurchaseOrderNumber)
 		if err := r.Invoices.Create(ctx, inv); err != nil {
 			return nil, fmt.Errorf("create invoice: %w", err)
 		}

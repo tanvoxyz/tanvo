@@ -154,7 +154,15 @@ func (s *Service) VoidProviderTaxes(ctx context.Context, org core.OrganizationID
 // at once, ignoring the grace period. The new invoice records the voided
 // one in VoidedInvoiceID; the invoice subscriptions are not copied (their
 // idempotency keys would clash with the voided invoice's).
-func (s *Service) Regenerate(ctx context.Context, org core.OrganizationID, id core.InvoiceID) (*invoice.Invoice, error) {
+func (s *Service) Regenerate(ctx context.Context, org core.OrganizationID, id core.InvoiceID, in RegenerateInput) (*invoice.Invoice, error) {
+	po := in.PurchaseOrderNumber
+	if po != nil {
+		po = core.NormalizePurchaseOrderNumber(po)
+		var v core.Validator
+		if !v.OptionalString("purchase_order_number", po, core.MaxPurchaseOrderNumberLength) {
+			return nil, v.Err()
+		}
+	}
 	var out *invoice.Invoice
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
 		old, err := r.Invoices.Get(ctx, org, id)
@@ -164,7 +172,7 @@ func (s *Service) Regenerate(ctx context.Context, org core.OrganizationID, id co
 		if old.Status != invoice.StatusVoided {
 			return core.NewRuleError(CodeNotVoided, "only voided invoices are regenerated")
 		}
-		out, err = s.regenerateVoided(ctx, r, old)
+		out, err = s.regenerateVoided(ctx, r, old, in.PurchaseOrderNumber != nil, po)
 		return err
 	})
 	if err != nil {
@@ -173,8 +181,18 @@ func (s *Service) Regenerate(ctx context.Context, org core.OrganizationID, id co
 	return out, nil
 }
 
-// regenerateVoided is [Service.Regenerate] in the transaction of r.
-func (s *Service) regenerateVoided(ctx context.Context, r port.Repos, old *invoice.Invoice) (*invoice.Invoice, error) {
+// RegenerateInput are the options of [Service.Regenerate].
+type RegenerateInput struct {
+	// PurchaseOrderNumber replaces the voided invoice's purchase order
+	// number on the new invoice (trimmed, ≤ 255 characters); blank clears
+	// it, nil inherits it (regenerate_from_voided_service.rb:7, :295-299).
+	PurchaseOrderNumber *string
+}
+
+// regenerateVoided is [Service.Regenerate] in the transaction of r; with
+// replacePO, the new invoice takes po instead of the voided invoice's
+// purchase order number.
+func (s *Service) regenerateVoided(ctx context.Context, r port.Repos, old *invoice.Invoice, replacePO bool, po *string) (*invoice.Invoice, error) {
 	org := old.OrganizationID
 	cenv, err := kernel.LoadCustomerEnv(ctx, r, org, old.CustomerID, old.BillingEntityID)
 	if err != nil {
@@ -194,6 +212,10 @@ func (s *Service) regenerateVoided(ctx context.Context, r port.Repos, old *invoi
 	inv.VoidedInvoiceID = old.ID
 	inv.PaymentMethodType, inv.PaymentMethodID = old.PaymentMethodType, old.PaymentMethodID
 	inv.SkipAutomaticPayment = old.SkipAutomaticPayment
+	inv.PurchaseOrderNumber = old.PurchaseOrderNumber
+	if replacePO {
+		inv.PurchaseOrderNumber = po
+	}
 	if err := r.Invoices.Create(ctx, inv); err != nil {
 		return nil, fmt.Errorf("create invoice: %w", err)
 	}

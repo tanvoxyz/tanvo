@@ -33,6 +33,8 @@ func newInvoiceData() *invoiceData {
 			i.PaymentDisputeLostAt = invoiceClonePtr(i.PaymentDisputeLostAt)
 			i.FinalizedAt = invoiceClonePtr(i.FinalizedAt)
 			i.VoidedAt = invoiceClonePtr(i.VoidedAt)
+			i.PurchaseOrderNumber = invoiceClonePtr(i.PurchaseOrderNumber)
+			i.X402PaymentToken = invoiceClonePtr(i.X402PaymentToken)
 			return i
 		}),
 		subscriptions: newTable[core.InvoiceSubscriptionID, invoice.Subscription](nil),
@@ -93,6 +95,12 @@ var (
 type invoiceRepo struct{ d *invoiceData }
 
 func (r invoiceRepo) checkNumber(inv *invoice.Invoice) error {
+	// The x402 payment token is unique across all organizations.
+	if inv.X402PaymentToken != nil && r.d.invoices.any(func(x *invoice.Invoice) bool {
+		return x.ID != inv.ID && x.X402PaymentToken != nil && *x.X402PaymentToken == *inv.X402PaymentToken
+	}) {
+		return conflict("invoice", "x402_payment_token")
+	}
 	if inv.Number == "" || strings.HasSuffix(inv.Number, "-DRAFT") {
 		return nil
 	}

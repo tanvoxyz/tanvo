@@ -24,6 +24,8 @@ CREATE TABLE wallets (
   invoice_requires_successful_payment boolean NOT NULL DEFAULT false,
   allowed_fee_types text[] NOT NULL DEFAULT '{}',
   traceable boolean NOT NULL DEFAULT false,
+  purchase_order_number text,
+  x402_enabled boolean NOT NULL DEFAULT false,
   billing_entity_id uuid,
   payment_method_type text,
   -- References payment_methods; the foreign key is added in 90_fk_wallet.sql.
@@ -50,6 +52,7 @@ CREATE TABLE wallets (
 -- Codes are unique among the customer's active wallets.
 CREATE UNIQUE INDEX wallets_code_active_key ON wallets (organization_id, customer_id, code) WHERE status = 'active' AND code IS NOT NULL;
 CREATE INDEX wallets_customer_idx ON wallets (organization_id, customer_id);
+CREATE INDEX wallets_x402_enabled_idx ON wallets (organization_id, customer_id) WHERE x402_enabled;
 CREATE INDEX wallets_billing_entity_idx ON wallets (organization_id, billing_entity_id) WHERE billing_entity_id IS NOT NULL;
 CREATE INDEX wallets_payment_method_idx ON wallets (organization_id, payment_method_id) WHERE payment_method_id IS NOT NULL;
 -- Wallets due for termination at their expiration.
@@ -96,6 +99,7 @@ CREATE TABLE recurring_transaction_rules (
   transaction_metadata jsonb NOT NULL DEFAULT '[]',
   transaction_name text,
   ignore_paid_top_up_limits boolean NOT NULL DEFAULT false,
+  purchase_order_number text,
   payment_method_type text,
   -- References payment_methods; the foreign key is added in 90_fk_wallet.sql.
   payment_method_id uuid,
@@ -147,6 +151,7 @@ CREATE TABLE wallet_transactions (
   -- References payment_methods; the foreign key is added in 90_fk_wallet.sql.
   payment_method_id uuid,
   invoice_requires_successful_payment boolean NOT NULL DEFAULT false,
+  purchase_order_number text,
   settled_at timestamptz,
   failed_at timestamptz,
   created_at timestamptz NOT NULL,

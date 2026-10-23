@@ -44,6 +44,7 @@ func (s *Service) ProgressiveBilling(ctx context.Context, r port.Repos, sub *sub
 	cenv := env.Customer
 	inv := kernel.NewInvoice(s.d, cenv, kindProgressive, env.Plan.Currency, now)
 	inv.PaymentMethodType, inv.PaymentMethodID = sub.PaymentMethodType, sub.PaymentMethodID
+	inv.PurchaseOrderNumber = core.NormalizePurchaseOrderNumber(sub.PurchaseOrderNumber)
 	if err := r.Invoices.Create(ctx, inv); err != nil {
 		return nil, fmt.Errorf("create invoice: %w", err)
 	}

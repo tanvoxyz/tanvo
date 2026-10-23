@@ -128,7 +128,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 组织内的顺序编号与 slug | `app/models/customer.rb` | libs/core | 计划中 | |
 | 账单地址与收货地址 | `app/models/customer.rb` | libs/core | 计划中 | |
 | 税号、法定名称与编号 | `app/models/customer.rb` | libs/core | 计划中 | |
-| 默认货币：新计费对象的偏好，而不是约束 | `app/services/customers/update_currency_service.rb` | libs/core | 计划中 | 为空时由第一个计费对象设置；显式更新可随时修改 |
+| 默认货币：新计费对象的偏好，而不是约束 | `app/services/customers/update_currency_service.rb` | libs/core | 逻辑已完成 | 为空时由第一个计费对象设置；显式更新可随时修改 |
 | 每个客户多种货币：订阅取其套餐的货币；钱包、已应用的优惠券和一次性发票取各自的货币；发票按货币拆分 | `app/services/subscriptions/organization_billing_service.rb`（`group_by_currency`）、`app/services/wallets/create_service.rb`、`app/services/applied_coupons/create_service.rb`、`app/services/invoices/create_one_off_service.rb` | libs/billing | 逻辑已完成 | 钱包和固定金额优惠券只抵扣同货币的发票；催收按货币计数尝试次数（§1.35） |
 | 时区，回退到计费主体与组织 | `app/models/customer.rb` | libs/period | 计划中 | 各处一律按客户 → 计费主体 → 组织回退（§4） |
 | 宽限期、付款条款、文档语言及其回退 | `app/models/customer.rb` | libs/billing | 逻辑已完成 | |
@@ -582,7 +582,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
 | 钱包的增删改查（名称、代码、货币、兑换率、过期时间） | `app/models/wallet.rb`、`app/services/wallets/` | libs/billing | 逻辑已完成 | 货币属于钱包自身，默认取客户的货币 |
-| 钱包、钱包交易和周期充值规则上的采购订单号，复制到额度发票 | `app/services/wallets/create_service.rb`、`app/services/wallet_transactions/create_from_params_service.rb`、`app/models/recurring_transaction_rule.rb` | libs/billing | 计划中 | |
+| 钱包、钱包交易和周期充值规则上的采购订单号，复制到额度发票 | `app/services/wallets/create_service.rb`、`app/services/wallet_transactions/create_from_params_service.rb`、`app/models/recurring_transaction_rule.rb` | libs/billing | 逻辑已完成 | 空白即无；规则执行时取规则的，否则取钱包的 |
 | 每个客户多个钱包（默认最多 6 个），优先级 1–50 | `app/models/wallet.rb` | libs/billing | 逻辑已完成 | |
 | 充值的最小与最大值 | `app/models/wallet.rb` | libs/billing | 逻辑已完成 | |
 | 每个钱包允许的费用类型 | `app/models/wallet.rb`（`allowed_fee_types`） | libs/billing | 逻辑已完成 | |

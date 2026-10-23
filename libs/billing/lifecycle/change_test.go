@@ -89,6 +89,37 @@ func TestUpgrade(t *testing.T) {
 	}
 }
 
+func TestUpgradePurchaseOrderNumbers(t *testing.T) {
+	tests := []struct {
+		name, source string
+		newPO        *string
+		want         []string
+	}{
+		{
+			"same number bills both on one invoice", "spec/services/subscriptions/activate_service_spec.rb:673", nil,
+			[]string{"2026-03-10 12:00:01 old:subscription_terminating,new:subscription_starting"},
+		},
+		{
+			"different numbers bill one invoice each", "spec/services/subscriptions/activate_service_spec.rb:694", new("PO-2"),
+			[]string{"2026-03-10 12:00:01 old:subscription_terminating", "2026-03-10 12:00:01 new:subscription_starting"},
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Logf("source: %s", tc.source)
+			f := newFixture(t, now)
+			cur := f.name(f.Subscription(f.Customer(), f.Plan(period.Monthly, 1000), billingtest.SubscribedAt(now.AddDate(0, 0, -5))), "old")
+			f.UpdateSubscription(cur, func(s *subscription.Subscription) { s.PurchaseOrderNumber = new("PO-1") })
+			p := f.Plan(period.Monthly, 2000, inAdvance)
+			_, err := f.svc.ChangePlan(f.Ctx, lifecycle.ChangePlanInput{OrganizationID: f.OrgID(), SubscriptionID: cur.ID, PlanID: p.ID, PurchaseOrderNumber: tc.newPO})
+			if err != nil {
+				t.Fatalf("change plan: %v", err)
+			}
+			checkSlice(t, "bills", f.bills(), tc.want)
+		})
+	}
+}
+
 // source: spec/services/subscriptions/activate_service_spec.rb:712
 func TestUpgradeGated(t *testing.T) {
 	f := newFixture(t, now)

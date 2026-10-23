@@ -51,6 +51,9 @@ type RuleInput struct {
 	IgnorePaidTopUpLimits *bool
 	// PaymentMethod collects the runs' purchases.
 	PaymentMethod *PaymentMethod
+	// PurchaseOrderNumber is copied to the runs' transactions (blank is
+	// none, falling back to the wallet's); nil keeps it on update.
+	PurchaseOrderNumber *string
 }
 
 func (in *RuleInput) method() wallet.RecurringMethod {
@@ -133,6 +136,7 @@ func (s *Service) newRule(w *wallet.Wallet, in *RuleInput, walletPaid, walletGra
 		Status:               wallet.RuleStatusActive,
 		TransactionMetadata:  in.TransactionMetadata,
 		TransactionName:      blankToNil(in.TransactionName),
+		PurchaseOrderNumber:  core.NormalizePurchaseOrderNumber(in.PurchaseOrderNumber),
 		CreatedAt:            now,
 		UpdatedAt:            now,
 	}
@@ -151,6 +155,12 @@ func (s *Service) newRule(w *wallet.Wallet, in *RuleInput, walletPaid, walletGra
 	r.InvoiceRequiresSuccessfulPayment = w.InvoiceRequiresSuccessfulPayment
 	if in.InvoiceRequiresSuccessfulPayment != nil {
 		r.InvoiceRequiresSuccessfulPayment = *in.InvoiceRequiresSuccessfulPayment
+	}
+	// A purchase order number too long is reported on its own field
+	// (spec/services/wallets/recurring_transaction_rules/create_service_spec.rb:67).
+	var v core.Validator
+	if !v.OptionalString("purchase_order_number", r.PurchaseOrderNumber, core.MaxPurchaseOrderNumberLength) {
+		return nil, v.Err()
 	}
 	if r.Validate() != nil {
 		return nil, fieldError("recurring_transaction_rules", CodeInvalidRecurringRule)
@@ -284,7 +294,16 @@ func (s *Service) updatedRule(w *wallet.Wallet, rule *wallet.RecurringTransactio
 	if in.PaymentMethod != nil {
 		rule.PaymentMethodType, rule.PaymentMethodID = in.PaymentMethod.Type, in.PaymentMethod.ID
 	}
+	if in.PurchaseOrderNumber != nil {
+		rule.PurchaseOrderNumber = core.NormalizePurchaseOrderNumber(in.PurchaseOrderNumber)
+	}
 	rule.UpdatedAt = s.d.Now()
+	// A purchase order number too long is reported on its own field
+	// (spec/services/wallets/recurring_transaction_rules/update_service_spec.rb:67).
+	var v core.Validator
+	if !v.OptionalString("purchase_order_number", rule.PurchaseOrderNumber, core.MaxPurchaseOrderNumberLength) {
+		return nil, v.Err()
+	}
 	if rule.Validate() != nil {
 		return nil, fieldError("recurring_transaction_rules", CodeInvalidRecurringRule)
 	}

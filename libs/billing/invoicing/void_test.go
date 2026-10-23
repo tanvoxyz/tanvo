@@ -13,6 +13,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
+	"github.com/tanvoxyz/tanvo/libs/core/subscription"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
 )
 
@@ -95,14 +96,14 @@ func TestRegenerateFromVoided(t *testing.T) {
 	f := newFixture(t, billingDay)
 	f.UpdateBillingEntity(func(b *organization.BillingEntity) { b.InvoiceGracePeriodDays = 30 })
 	f.taxCustomer("20")
-	draft := f.billOne(f.subscribe())
+	draft := f.billOne(f.subscribe(func(s *subscription.Subscription) { s.PurchaseOrderNumber = new("PO-ORIGINAL") }))
 	if _, err := f.svc.FinalizeDraft(f.Ctx, f.OrgID(), draft.ID); err != nil {
 		t.Fatalf("finalize: %v", err)
 	}
 	if _, err := f.svc.Void(f.Ctx, f.OrgID(), draft.ID, invoicing.VoidInput{}); err != nil {
 		t.Fatalf("void: %v", err)
 	}
-	inv, err := f.svc.Regenerate(f.Ctx, f.OrgID(), draft.ID)
+	inv, err := f.svc.Regenerate(f.Ctx, f.OrgID(), draft.ID, invoicing.RegenerateInput{})
 	if err != nil {
 		t.Fatalf("regenerate: %v", err)
 	}
@@ -111,11 +112,15 @@ func TestRegenerateFromVoided(t *testing.T) {
 		t.Fatalf("status, voided = %s, %s, want = finalized, %s", inv.Status, inv.VoidedInvoiceID, draft.ID)
 	}
 	checkAmounts(t, f.Invoice(inv.ID), 1000, 200, 1200)
+	// source: spec/services/invoices/regenerate_from_voided_service_spec.rb:100
+	if got := f.Invoice(inv.ID).PurchaseOrderNumber; got == nil || *got != "PO-ORIGINAL" {
+		t.Errorf("purchase_order_number: got = %v, want = PO-ORIGINAL", got)
+	}
 	if got := len(f.Fees(inv.ID)); got != 1 {
 		t.Errorf("fees = %d, want = 1", got)
 	}
 	var re *core.RuleError
-	if _, err := f.svc.Regenerate(f.Ctx, f.OrgID(), inv.ID); !errors.As(err, &re) {
+	if _, err := f.svc.Regenerate(f.Ctx, f.OrgID(), inv.ID, invoicing.RegenerateInput{}); !errors.As(err, &re) {
 		t.Errorf("regenerate a finalized invoice: err = %v, want = a rule error", err)
 	}
 }

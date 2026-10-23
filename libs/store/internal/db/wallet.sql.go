@@ -36,12 +36,12 @@ INSERT INTO recurring_transaction_rules (
   organization_id, id, wallet_id, "trigger", "interval", threshold_credits, method, paid_credits, granted_credits,
   target_ongoing_balance, grants_target_top_up, started_at, expiration_at, status,
   invoice_requires_successful_payment, transaction_metadata, transaction_name, ignore_paid_top_up_limits,
-  payment_method_type, payment_method_id, terminated_at, created_at, updated_at
+  purchase_order_number, payment_method_type, payment_method_id, terminated_at, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8, $9,
   $10, $11, $12, $13, $14,
   $15, $16, $17, $18,
-  $19, $20, $21, $22, $23
+  $19, $20, $21, $22, $23, $24
 )
 ON CONFLICT DO NOTHING
 `
@@ -65,6 +65,7 @@ type CreateRecurringTransactionRuleParams struct {
 	TransactionMetadata              json.RawMessage
 	TransactionName                  *string
 	IgnorePaidTopUpLimits            bool
+	PurchaseOrderNumber              *string
 	PaymentMethodType                *string
 	PaymentMethodID                  *uuid.UUID
 	TerminatedAt                     *time.Time
@@ -92,6 +93,7 @@ func (q *Queries) CreateRecurringTransactionRule(ctx context.Context, arg Create
 		arg.TransactionMetadata,
 		arg.TransactionName,
 		arg.IgnorePaidTopUpLimits,
+		arg.PurchaseOrderNumber,
 		arg.PaymentMethodType,
 		arg.PaymentMethodID,
 		arg.TerminatedAt,
@@ -111,15 +113,15 @@ INSERT INTO wallets (
   balance_amount, credits_balance, ongoing_balance_amount, credits_ongoing_balance,
   ongoing_usage_balance_amount, credits_ongoing_usage_balance, consumed_amount, consumed_credits,
   paid_top_up_min_amount, paid_top_up_max_amount, invoice_requires_successful_payment, allowed_fee_types,
-  traceable, billing_entity_id, payment_method_type, payment_method_id,
+  traceable, purchase_order_number, x402_enabled, billing_entity_id, payment_method_type, payment_method_id,
   last_balance_sync_at, last_consumed_credit_at, depleted_ongoing_balance, terminated_at, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
   $11, $12, $13, $14,
   $15, $16, $17, $18,
   $19, $20, $21, $22,
-  $23, $24, $25, $26,
-  $27, $28, $29, $30, $31, $32
+  $23, $24, $25, $26, $27, $28,
+  $29, $30, $31, $32, $33, $34
 )
 ON CONFLICT DO NOTHING
 `
@@ -148,6 +150,8 @@ type CreateWalletParams struct {
 	InvoiceRequiresSuccessfulPayment bool
 	AllowedFeeTypes                  []string
 	Traceable                        bool
+	PurchaseOrderNumber              *string
+	X402Enabled                      bool
 	BillingEntityID                  *uuid.UUID
 	PaymentMethodType                *string
 	PaymentMethodID                  *uuid.UUID
@@ -185,6 +189,8 @@ func (q *Queries) CreateWallet(ctx context.Context, arg CreateWalletParams) (int
 		arg.InvoiceRequiresSuccessfulPayment,
 		arg.AllowedFeeTypes,
 		arg.Traceable,
+		arg.PurchaseOrderNumber,
+		arg.X402Enabled,
 		arg.BillingEntityID,
 		arg.PaymentMethodType,
 		arg.PaymentMethodID,
@@ -206,12 +212,12 @@ INSERT INTO wallet_transactions (
   organization_id, id, wallet_id, transaction_type, transaction_status, status, source, currency,
   amount, credit_amount, remaining_amount, priority, name, invoice_id, credit_note_id,
   recurring_transaction_rule_id, metadata, payment_method_type, payment_method_id,
-  invoice_requires_successful_payment, settled_at, failed_at, created_at, updated_at
+  invoice_requires_successful_payment, purchase_order_number, settled_at, failed_at, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8,
   $9, $10, $11, $12, $13, $14, $15,
   $16, $17, $18, $19,
-  $20, $21, $22, $23, $24
+  $20, $21, $22, $23, $24, $25
 )
 ON CONFLICT DO NOTHING
 `
@@ -237,6 +243,7 @@ type CreateWalletTransactionParams struct {
 	PaymentMethodType                *string
 	PaymentMethodID                  *uuid.UUID
 	InvoiceRequiresSuccessfulPayment bool
+	PurchaseOrderNumber              *string
 	SettledAt                        *time.Time
 	FailedAt                         *time.Time
 	CreatedAt                        time.Time
@@ -265,6 +272,7 @@ func (q *Queries) CreateWalletTransaction(ctx context.Context, arg CreateWalletT
 		arg.PaymentMethodType,
 		arg.PaymentMethodID,
 		arg.InvoiceRequiresSuccessfulPayment,
+		arg.PurchaseOrderNumber,
 		arg.SettledAt,
 		arg.FailedAt,
 		arg.CreatedAt,
@@ -343,7 +351,7 @@ func (q *Queries) DeleteWalletBillableMetrics(ctx context.Context, arg DeleteWal
 }
 
 const getPendingPurchaseWalletTransaction = `-- name: GetPendingPurchaseWalletTransaction :one
-SELECT organization_id, id, wallet_id, transaction_type, transaction_status, status, source, currency, amount, credit_amount, remaining_amount, priority, name, invoice_id, credit_note_id, recurring_transaction_rule_id, metadata, payment_method_type, payment_method_id, invoice_requires_successful_payment, settled_at, failed_at, created_at, updated_at FROM wallet_transactions
+SELECT organization_id, id, wallet_id, transaction_type, transaction_status, status, source, currency, amount, credit_amount, remaining_amount, priority, name, invoice_id, credit_note_id, recurring_transaction_rule_id, metadata, payment_method_type, payment_method_id, invoice_requires_successful_payment, purchase_order_number, settled_at, failed_at, created_at, updated_at FROM wallet_transactions
 WHERE organization_id = $1 AND recurring_transaction_rule_id = $2
   AND transaction_status = 'purchased' AND status = 'pending'
 ORDER BY id
@@ -379,6 +387,7 @@ func (q *Queries) GetPendingPurchaseWalletTransaction(ctx context.Context, arg G
 		&i.PaymentMethodType,
 		&i.PaymentMethodID,
 		&i.InvoiceRequiresSuccessfulPayment,
+		&i.PurchaseOrderNumber,
 		&i.SettledAt,
 		&i.FailedAt,
 		&i.CreatedAt,
@@ -388,7 +397,7 @@ func (q *Queries) GetPendingPurchaseWalletTransaction(ctx context.Context, arg G
 }
 
 const getRecurringTransactionRule = `-- name: GetRecurringTransactionRule :one
-SELECT organization_id, id, wallet_id, trigger, interval, threshold_credits, method, paid_credits, granted_credits, target_ongoing_balance, grants_target_top_up, started_at, expiration_at, status, invoice_requires_successful_payment, transaction_metadata, transaction_name, ignore_paid_top_up_limits, payment_method_type, payment_method_id, terminated_at, created_at, updated_at FROM recurring_transaction_rules WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, wallet_id, trigger, interval, threshold_credits, method, paid_credits, granted_credits, target_ongoing_balance, grants_target_top_up, started_at, expiration_at, status, invoice_requires_successful_payment, transaction_metadata, transaction_name, ignore_paid_top_up_limits, purchase_order_number, payment_method_type, payment_method_id, terminated_at, created_at, updated_at FROM recurring_transaction_rules WHERE organization_id = $1 AND id = $2
 `
 
 type GetRecurringTransactionRuleParams struct {
@@ -418,6 +427,7 @@ func (q *Queries) GetRecurringTransactionRule(ctx context.Context, arg GetRecurr
 		&i.TransactionMetadata,
 		&i.TransactionName,
 		&i.IgnorePaidTopUpLimits,
+		&i.PurchaseOrderNumber,
 		&i.PaymentMethodType,
 		&i.PaymentMethodID,
 		&i.TerminatedAt,
@@ -428,7 +438,7 @@ func (q *Queries) GetRecurringTransactionRule(ctx context.Context, arg GetRecurr
 }
 
 const getWallet = `-- name: GetWallet :one
-SELECT w.organization_id, w.id, w.customer_id, w.code, w.name, w.status, w.currency, w.rate_amount, w.priority, w.expiration_at, w.balance_amount, w.credits_balance, w.ongoing_balance_amount, w.credits_ongoing_balance, w.ongoing_usage_balance_amount, w.credits_ongoing_usage_balance, w.consumed_amount, w.consumed_credits, w.paid_top_up_min_amount, w.paid_top_up_max_amount, w.invoice_requires_successful_payment, w.allowed_fee_types, w.traceable, w.billing_entity_id, w.payment_method_type, w.payment_method_id, w.last_balance_sync_at, w.last_consumed_credit_at, w.depleted_ongoing_balance, w.terminated_at, w.created_at, w.updated_at,
+SELECT w.organization_id, w.id, w.customer_id, w.code, w.name, w.status, w.currency, w.rate_amount, w.priority, w.expiration_at, w.balance_amount, w.credits_balance, w.ongoing_balance_amount, w.credits_ongoing_balance, w.ongoing_usage_balance_amount, w.credits_ongoing_usage_balance, w.consumed_amount, w.consumed_credits, w.paid_top_up_min_amount, w.paid_top_up_max_amount, w.invoice_requires_successful_payment, w.allowed_fee_types, w.traceable, w.purchase_order_number, w.x402_enabled, w.billing_entity_id, w.payment_method_type, w.payment_method_id, w.last_balance_sync_at, w.last_consumed_credit_at, w.depleted_ongoing_balance, w.terminated_at, w.created_at, w.updated_at,
   ARRAY(SELECT m.billable_metric_id FROM wallet_billable_metrics m
         WHERE m.organization_id = w.organization_id AND m.wallet_id = w.id ORDER BY m.position)::uuid[] AS billable_metric_ids
 FROM wallets w
@@ -472,6 +482,8 @@ func (q *Queries) GetWallet(ctx context.Context, arg GetWalletParams) (GetWallet
 		&i.Wallet.InvoiceRequiresSuccessfulPayment,
 		&i.Wallet.AllowedFeeTypes,
 		&i.Wallet.Traceable,
+		&i.Wallet.PurchaseOrderNumber,
+		&i.Wallet.X402Enabled,
 		&i.Wallet.BillingEntityID,
 		&i.Wallet.PaymentMethodType,
 		&i.Wallet.PaymentMethodID,
@@ -487,7 +499,7 @@ func (q *Queries) GetWallet(ctx context.Context, arg GetWalletParams) (GetWallet
 }
 
 const getWalletByCode = `-- name: GetWalletByCode :one
-SELECT w.organization_id, w.id, w.customer_id, w.code, w.name, w.status, w.currency, w.rate_amount, w.priority, w.expiration_at, w.balance_amount, w.credits_balance, w.ongoing_balance_amount, w.credits_ongoing_balance, w.ongoing_usage_balance_amount, w.credits_ongoing_usage_balance, w.consumed_amount, w.consumed_credits, w.paid_top_up_min_amount, w.paid_top_up_max_amount, w.invoice_requires_successful_payment, w.allowed_fee_types, w.traceable, w.billing_entity_id, w.payment_method_type, w.payment_method_id, w.last_balance_sync_at, w.last_consumed_credit_at, w.depleted_ongoing_balance, w.terminated_at, w.created_at, w.updated_at,
+SELECT w.organization_id, w.id, w.customer_id, w.code, w.name, w.status, w.currency, w.rate_amount, w.priority, w.expiration_at, w.balance_amount, w.credits_balance, w.ongoing_balance_amount, w.credits_ongoing_balance, w.ongoing_usage_balance_amount, w.credits_ongoing_usage_balance, w.consumed_amount, w.consumed_credits, w.paid_top_up_min_amount, w.paid_top_up_max_amount, w.invoice_requires_successful_payment, w.allowed_fee_types, w.traceable, w.purchase_order_number, w.x402_enabled, w.billing_entity_id, w.payment_method_type, w.payment_method_id, w.last_balance_sync_at, w.last_consumed_credit_at, w.depleted_ongoing_balance, w.terminated_at, w.created_at, w.updated_at,
   ARRAY(SELECT m.billable_metric_id FROM wallet_billable_metrics m
         WHERE m.organization_id = w.organization_id AND m.wallet_id = w.id ORDER BY m.position)::uuid[] AS billable_metric_ids
 FROM wallets w
@@ -532,6 +544,8 @@ func (q *Queries) GetWalletByCode(ctx context.Context, arg GetWalletByCodeParams
 		&i.Wallet.InvoiceRequiresSuccessfulPayment,
 		&i.Wallet.AllowedFeeTypes,
 		&i.Wallet.Traceable,
+		&i.Wallet.PurchaseOrderNumber,
+		&i.Wallet.X402Enabled,
 		&i.Wallet.BillingEntityID,
 		&i.Wallet.PaymentMethodType,
 		&i.Wallet.PaymentMethodID,
@@ -547,7 +561,7 @@ func (q *Queries) GetWalletByCode(ctx context.Context, arg GetWalletByCodeParams
 }
 
 const getWalletTransaction = `-- name: GetWalletTransaction :one
-SELECT organization_id, id, wallet_id, transaction_type, transaction_status, status, source, currency, amount, credit_amount, remaining_amount, priority, name, invoice_id, credit_note_id, recurring_transaction_rule_id, metadata, payment_method_type, payment_method_id, invoice_requires_successful_payment, settled_at, failed_at, created_at, updated_at FROM wallet_transactions WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, wallet_id, transaction_type, transaction_status, status, source, currency, amount, credit_amount, remaining_amount, priority, name, invoice_id, credit_note_id, recurring_transaction_rule_id, metadata, payment_method_type, payment_method_id, invoice_requires_successful_payment, purchase_order_number, settled_at, failed_at, created_at, updated_at FROM wallet_transactions WHERE organization_id = $1 AND id = $2
 `
 
 type GetWalletTransactionParams struct {
@@ -579,6 +593,7 @@ func (q *Queries) GetWalletTransaction(ctx context.Context, arg GetWalletTransac
 		&i.PaymentMethodType,
 		&i.PaymentMethodID,
 		&i.InvoiceRequiresSuccessfulPayment,
+		&i.PurchaseOrderNumber,
 		&i.SettledAt,
 		&i.FailedAt,
 		&i.CreatedAt,
@@ -605,7 +620,7 @@ func (q *Queries) InsertWalletBillableMetrics(ctx context.Context, arg InsertWal
 }
 
 const listActiveIntervalRecurringTransactionRules = `-- name: ListActiveIntervalRecurringTransactionRules :many
-SELECT organization_id, id, wallet_id, trigger, interval, threshold_credits, method, paid_credits, granted_credits, target_ongoing_balance, grants_target_top_up, started_at, expiration_at, status, invoice_requires_successful_payment, transaction_metadata, transaction_name, ignore_paid_top_up_limits, payment_method_type, payment_method_id, terminated_at, created_at, updated_at FROM recurring_transaction_rules
+SELECT organization_id, id, wallet_id, trigger, interval, threshold_credits, method, paid_credits, granted_credits, target_ongoing_balance, grants_target_top_up, started_at, expiration_at, status, invoice_requires_successful_payment, transaction_metadata, transaction_name, ignore_paid_top_up_limits, purchase_order_number, payment_method_type, payment_method_id, terminated_at, created_at, updated_at FROM recurring_transaction_rules
 WHERE organization_id = $1 AND "trigger" = 'interval' AND status = 'active'
   AND (expiration_at IS NULL OR expiration_at > $2)
 ORDER BY id
@@ -644,6 +659,7 @@ func (q *Queries) ListActiveIntervalRecurringTransactionRules(ctx context.Contex
 			&i.TransactionMetadata,
 			&i.TransactionName,
 			&i.IgnorePaidTopUpLimits,
+			&i.PurchaseOrderNumber,
 			&i.PaymentMethodType,
 			&i.PaymentMethodID,
 			&i.TerminatedAt,
@@ -661,7 +677,7 @@ func (q *Queries) ListActiveIntervalRecurringTransactionRules(ctx context.Contex
 }
 
 const listActiveThresholdRecurringTransactionRules = `-- name: ListActiveThresholdRecurringTransactionRules :many
-SELECT organization_id, id, wallet_id, trigger, interval, threshold_credits, method, paid_credits, granted_credits, target_ongoing_balance, grants_target_top_up, started_at, expiration_at, status, invoice_requires_successful_payment, transaction_metadata, transaction_name, ignore_paid_top_up_limits, payment_method_type, payment_method_id, terminated_at, created_at, updated_at FROM recurring_transaction_rules
+SELECT organization_id, id, wallet_id, trigger, interval, threshold_credits, method, paid_credits, granted_credits, target_ongoing_balance, grants_target_top_up, started_at, expiration_at, status, invoice_requires_successful_payment, transaction_metadata, transaction_name, ignore_paid_top_up_limits, purchase_order_number, payment_method_type, payment_method_id, terminated_at, created_at, updated_at FROM recurring_transaction_rules
 WHERE organization_id = $1 AND wallet_id = $2 AND "trigger" = 'threshold' AND status = 'active'
   AND (expiration_at IS NULL OR expiration_at > $3)
 ORDER BY id
@@ -701,6 +717,7 @@ func (q *Queries) ListActiveThresholdRecurringTransactionRules(ctx context.Conte
 			&i.TransactionMetadata,
 			&i.TransactionName,
 			&i.IgnorePaidTopUpLimits,
+			&i.PurchaseOrderNumber,
 			&i.PaymentMethodType,
 			&i.PaymentMethodID,
 			&i.TerminatedAt,
@@ -718,7 +735,7 @@ func (q *Queries) ListActiveThresholdRecurringTransactionRules(ctx context.Conte
 }
 
 const listAvailableInboundWalletTransactions = `-- name: ListAvailableInboundWalletTransactions :many
-SELECT organization_id, id, wallet_id, transaction_type, transaction_status, status, source, currency, amount, credit_amount, remaining_amount, priority, name, invoice_id, credit_note_id, recurring_transaction_rule_id, metadata, payment_method_type, payment_method_id, invoice_requires_successful_payment, settled_at, failed_at, created_at, updated_at FROM wallet_transactions
+SELECT organization_id, id, wallet_id, transaction_type, transaction_status, status, source, currency, amount, credit_amount, remaining_amount, priority, name, invoice_id, credit_note_id, recurring_transaction_rule_id, metadata, payment_method_type, payment_method_id, invoice_requires_successful_payment, purchase_order_number, settled_at, failed_at, created_at, updated_at FROM wallet_transactions
 WHERE organization_id = $1 AND wallet_id = $2
   AND transaction_type = 'inbound' AND status = 'settled' AND remaining_amount > 0
 ORDER BY priority,
@@ -761,6 +778,7 @@ func (q *Queries) ListAvailableInboundWalletTransactions(ctx context.Context, ar
 			&i.PaymentMethodType,
 			&i.PaymentMethodID,
 			&i.InvoiceRequiresSuccessfulPayment,
+			&i.PurchaseOrderNumber,
 			&i.SettledAt,
 			&i.FailedAt,
 			&i.CreatedAt,
@@ -777,7 +795,7 @@ func (q *Queries) ListAvailableInboundWalletTransactions(ctx context.Context, ar
 }
 
 const listExpiredWallets = `-- name: ListExpiredWallets :many
-SELECT w.organization_id, w.id, w.customer_id, w.code, w.name, w.status, w.currency, w.rate_amount, w.priority, w.expiration_at, w.balance_amount, w.credits_balance, w.ongoing_balance_amount, w.credits_ongoing_balance, w.ongoing_usage_balance_amount, w.credits_ongoing_usage_balance, w.consumed_amount, w.consumed_credits, w.paid_top_up_min_amount, w.paid_top_up_max_amount, w.invoice_requires_successful_payment, w.allowed_fee_types, w.traceable, w.billing_entity_id, w.payment_method_type, w.payment_method_id, w.last_balance_sync_at, w.last_consumed_credit_at, w.depleted_ongoing_balance, w.terminated_at, w.created_at, w.updated_at,
+SELECT w.organization_id, w.id, w.customer_id, w.code, w.name, w.status, w.currency, w.rate_amount, w.priority, w.expiration_at, w.balance_amount, w.credits_balance, w.ongoing_balance_amount, w.credits_ongoing_balance, w.ongoing_usage_balance_amount, w.credits_ongoing_usage_balance, w.consumed_amount, w.consumed_credits, w.paid_top_up_min_amount, w.paid_top_up_max_amount, w.invoice_requires_successful_payment, w.allowed_fee_types, w.traceable, w.purchase_order_number, w.x402_enabled, w.billing_entity_id, w.payment_method_type, w.payment_method_id, w.last_balance_sync_at, w.last_consumed_credit_at, w.depleted_ongoing_balance, w.terminated_at, w.created_at, w.updated_at,
   ARRAY(SELECT m.billable_metric_id FROM wallet_billable_metrics m
         WHERE m.organization_id = w.organization_id AND m.wallet_id = w.id ORDER BY m.position)::uuid[] AS billable_metric_ids
 FROM wallets w
@@ -828,6 +846,8 @@ func (q *Queries) ListExpiredWallets(ctx context.Context, arg ListExpiredWallets
 			&i.Wallet.InvoiceRequiresSuccessfulPayment,
 			&i.Wallet.AllowedFeeTypes,
 			&i.Wallet.Traceable,
+			&i.Wallet.PurchaseOrderNumber,
+			&i.Wallet.X402Enabled,
 			&i.Wallet.BillingEntityID,
 			&i.Wallet.PaymentMethodType,
 			&i.Wallet.PaymentMethodID,
@@ -850,7 +870,7 @@ func (q *Queries) ListExpiredWallets(ctx context.Context, arg ListExpiredWallets
 }
 
 const listRecurringTransactionRulesByWallet = `-- name: ListRecurringTransactionRulesByWallet :many
-SELECT organization_id, id, wallet_id, trigger, interval, threshold_credits, method, paid_credits, granted_credits, target_ongoing_balance, grants_target_top_up, started_at, expiration_at, status, invoice_requires_successful_payment, transaction_metadata, transaction_name, ignore_paid_top_up_limits, payment_method_type, payment_method_id, terminated_at, created_at, updated_at FROM recurring_transaction_rules
+SELECT organization_id, id, wallet_id, trigger, interval, threshold_credits, method, paid_credits, granted_credits, target_ongoing_balance, grants_target_top_up, started_at, expiration_at, status, invoice_requires_successful_payment, transaction_metadata, transaction_name, ignore_paid_top_up_limits, purchase_order_number, payment_method_type, payment_method_id, terminated_at, created_at, updated_at FROM recurring_transaction_rules
 WHERE organization_id = $1 AND wallet_id = $2
 ORDER BY id
 `
@@ -888,6 +908,7 @@ func (q *Queries) ListRecurringTransactionRulesByWallet(ctx context.Context, arg
 			&i.TransactionMetadata,
 			&i.TransactionName,
 			&i.IgnorePaidTopUpLimits,
+			&i.PurchaseOrderNumber,
 			&i.PaymentMethodType,
 			&i.PaymentMethodID,
 			&i.TerminatedAt,
@@ -905,7 +926,7 @@ func (q *Queries) ListRecurringTransactionRulesByWallet(ctx context.Context, arg
 }
 
 const listRecurringTransactionRulesEligibleForTermination = `-- name: ListRecurringTransactionRulesEligibleForTermination :many
-SELECT organization_id, id, wallet_id, trigger, interval, threshold_credits, method, paid_credits, granted_credits, target_ongoing_balance, grants_target_top_up, started_at, expiration_at, status, invoice_requires_successful_payment, transaction_metadata, transaction_name, ignore_paid_top_up_limits, payment_method_type, payment_method_id, terminated_at, created_at, updated_at FROM recurring_transaction_rules
+SELECT organization_id, id, wallet_id, trigger, interval, threshold_credits, method, paid_credits, granted_credits, target_ongoing_balance, grants_target_top_up, started_at, expiration_at, status, invoice_requires_successful_payment, transaction_metadata, transaction_name, ignore_paid_top_up_limits, purchase_order_number, payment_method_type, payment_method_id, terminated_at, created_at, updated_at FROM recurring_transaction_rules
 WHERE organization_id = $1 AND status = 'active' AND expiration_at <= $2
 ORDER BY id
 `
@@ -943,6 +964,7 @@ func (q *Queries) ListRecurringTransactionRulesEligibleForTermination(ctx contex
 			&i.TransactionMetadata,
 			&i.TransactionName,
 			&i.IgnorePaidTopUpLimits,
+			&i.PurchaseOrderNumber,
 			&i.PaymentMethodType,
 			&i.PaymentMethodID,
 			&i.TerminatedAt,
@@ -1038,7 +1060,7 @@ func (q *Queries) ListWalletTransactionConsumptionsByOutbound(ctx context.Contex
 }
 
 const listWalletTransactions = `-- name: ListWalletTransactions :many
-SELECT organization_id, id, wallet_id, transaction_type, transaction_status, status, source, currency, amount, credit_amount, remaining_amount, priority, name, invoice_id, credit_note_id, recurring_transaction_rule_id, metadata, payment_method_type, payment_method_id, invoice_requires_successful_payment, settled_at, failed_at, created_at, updated_at FROM wallet_transactions
+SELECT organization_id, id, wallet_id, transaction_type, transaction_status, status, source, currency, amount, credit_amount, remaining_amount, priority, name, invoice_id, credit_note_id, recurring_transaction_rule_id, metadata, payment_method_type, payment_method_id, invoice_requires_successful_payment, purchase_order_number, settled_at, failed_at, created_at, updated_at FROM wallet_transactions
 WHERE organization_id = $1
   AND ($2::uuid IS NULL OR wallet_id = $2)
   AND ($3::uuid IS NULL OR invoice_id = $3)
@@ -1100,6 +1122,7 @@ func (q *Queries) ListWalletTransactions(ctx context.Context, arg ListWalletTran
 			&i.PaymentMethodType,
 			&i.PaymentMethodID,
 			&i.InvoiceRequiresSuccessfulPayment,
+			&i.PurchaseOrderNumber,
 			&i.SettledAt,
 			&i.FailedAt,
 			&i.CreatedAt,
@@ -1116,7 +1139,7 @@ func (q *Queries) ListWalletTransactions(ctx context.Context, arg ListWalletTran
 }
 
 const listWalletTransactionsByInvoice = `-- name: ListWalletTransactionsByInvoice :many
-SELECT organization_id, id, wallet_id, transaction_type, transaction_status, status, source, currency, amount, credit_amount, remaining_amount, priority, name, invoice_id, credit_note_id, recurring_transaction_rule_id, metadata, payment_method_type, payment_method_id, invoice_requires_successful_payment, settled_at, failed_at, created_at, updated_at FROM wallet_transactions
+SELECT organization_id, id, wallet_id, transaction_type, transaction_status, status, source, currency, amount, credit_amount, remaining_amount, priority, name, invoice_id, credit_note_id, recurring_transaction_rule_id, metadata, payment_method_type, payment_method_id, invoice_requires_successful_payment, purchase_order_number, settled_at, failed_at, created_at, updated_at FROM wallet_transactions
 WHERE organization_id = $1 AND invoice_id = $2
 ORDER BY id
 `
@@ -1156,6 +1179,7 @@ func (q *Queries) ListWalletTransactionsByInvoice(ctx context.Context, arg ListW
 			&i.PaymentMethodType,
 			&i.PaymentMethodID,
 			&i.InvoiceRequiresSuccessfulPayment,
+			&i.PurchaseOrderNumber,
 			&i.SettledAt,
 			&i.FailedAt,
 			&i.CreatedAt,
@@ -1172,7 +1196,7 @@ func (q *Queries) ListWalletTransactionsByInvoice(ctx context.Context, arg ListW
 }
 
 const listWallets = `-- name: ListWallets :many
-SELECT w.organization_id, w.id, w.customer_id, w.code, w.name, w.status, w.currency, w.rate_amount, w.priority, w.expiration_at, w.balance_amount, w.credits_balance, w.ongoing_balance_amount, w.credits_ongoing_balance, w.ongoing_usage_balance_amount, w.credits_ongoing_usage_balance, w.consumed_amount, w.consumed_credits, w.paid_top_up_min_amount, w.paid_top_up_max_amount, w.invoice_requires_successful_payment, w.allowed_fee_types, w.traceable, w.billing_entity_id, w.payment_method_type, w.payment_method_id, w.last_balance_sync_at, w.last_consumed_credit_at, w.depleted_ongoing_balance, w.terminated_at, w.created_at, w.updated_at,
+SELECT w.organization_id, w.id, w.customer_id, w.code, w.name, w.status, w.currency, w.rate_amount, w.priority, w.expiration_at, w.balance_amount, w.credits_balance, w.ongoing_balance_amount, w.credits_ongoing_balance, w.ongoing_usage_balance_amount, w.credits_ongoing_usage_balance, w.consumed_amount, w.consumed_credits, w.paid_top_up_min_amount, w.paid_top_up_max_amount, w.invoice_requires_successful_payment, w.allowed_fee_types, w.traceable, w.purchase_order_number, w.x402_enabled, w.billing_entity_id, w.payment_method_type, w.payment_method_id, w.last_balance_sync_at, w.last_consumed_credit_at, w.depleted_ongoing_balance, w.terminated_at, w.created_at, w.updated_at,
   ARRAY(SELECT m.billable_metric_id FROM wallet_billable_metrics m
         WHERE m.organization_id = w.organization_id AND m.wallet_id = w.id ORDER BY m.position)::uuid[] AS billable_metric_ids
 FROM wallets w
@@ -1236,6 +1260,8 @@ func (q *Queries) ListWallets(ctx context.Context, arg ListWalletsParams) ([]Lis
 			&i.Wallet.InvoiceRequiresSuccessfulPayment,
 			&i.Wallet.AllowedFeeTypes,
 			&i.Wallet.Traceable,
+			&i.Wallet.PurchaseOrderNumber,
+			&i.Wallet.X402Enabled,
 			&i.Wallet.BillingEntityID,
 			&i.Wallet.PaymentMethodType,
 			&i.Wallet.PaymentMethodID,
@@ -1258,7 +1284,7 @@ func (q *Queries) ListWallets(ctx context.Context, arg ListWalletsParams) ([]Lis
 }
 
 const listWalletsActiveForApplication = `-- name: ListWalletsActiveForApplication :many
-SELECT w.organization_id, w.id, w.customer_id, w.code, w.name, w.status, w.currency, w.rate_amount, w.priority, w.expiration_at, w.balance_amount, w.credits_balance, w.ongoing_balance_amount, w.credits_ongoing_balance, w.ongoing_usage_balance_amount, w.credits_ongoing_usage_balance, w.consumed_amount, w.consumed_credits, w.paid_top_up_min_amount, w.paid_top_up_max_amount, w.invoice_requires_successful_payment, w.allowed_fee_types, w.traceable, w.billing_entity_id, w.payment_method_type, w.payment_method_id, w.last_balance_sync_at, w.last_consumed_credit_at, w.depleted_ongoing_balance, w.terminated_at, w.created_at, w.updated_at,
+SELECT w.organization_id, w.id, w.customer_id, w.code, w.name, w.status, w.currency, w.rate_amount, w.priority, w.expiration_at, w.balance_amount, w.credits_balance, w.ongoing_balance_amount, w.credits_ongoing_balance, w.ongoing_usage_balance_amount, w.credits_ongoing_usage_balance, w.consumed_amount, w.consumed_credits, w.paid_top_up_min_amount, w.paid_top_up_max_amount, w.invoice_requires_successful_payment, w.allowed_fee_types, w.traceable, w.purchase_order_number, w.x402_enabled, w.billing_entity_id, w.payment_method_type, w.payment_method_id, w.last_balance_sync_at, w.last_consumed_credit_at, w.depleted_ongoing_balance, w.terminated_at, w.created_at, w.updated_at,
   ARRAY(SELECT m.billable_metric_id FROM wallet_billable_metrics m
         WHERE m.organization_id = w.organization_id AND m.wallet_id = w.id ORDER BY m.position)::uuid[] AS billable_metric_ids
 FROM wallets w
@@ -1309,6 +1335,8 @@ func (q *Queries) ListWalletsActiveForApplication(ctx context.Context, arg ListW
 			&i.Wallet.InvoiceRequiresSuccessfulPayment,
 			&i.Wallet.AllowedFeeTypes,
 			&i.Wallet.Traceable,
+			&i.Wallet.PurchaseOrderNumber,
+			&i.Wallet.X402Enabled,
 			&i.Wallet.BillingEntityID,
 			&i.Wallet.PaymentMethodType,
 			&i.Wallet.PaymentMethodID,
@@ -1338,8 +1366,9 @@ UPDATE recurring_transaction_rules SET
   grants_target_top_up = $11, started_at = $12, expiration_at = $13,
   status = $14, invoice_requires_successful_payment = $15,
   transaction_metadata = $16, transaction_name = $17,
-  ignore_paid_top_up_limits = $18, payment_method_type = $19,
-  payment_method_id = $20, terminated_at = $21, created_at = $22, updated_at = $23
+  ignore_paid_top_up_limits = $18, purchase_order_number = $19,
+  payment_method_type = $20,
+  payment_method_id = $21, terminated_at = $22, created_at = $23, updated_at = $24
 WHERE organization_id = $1 AND id = $2
 `
 
@@ -1362,6 +1391,7 @@ type UpdateRecurringTransactionRuleParams struct {
 	TransactionMetadata              json.RawMessage
 	TransactionName                  *string
 	IgnorePaidTopUpLimits            bool
+	PurchaseOrderNumber              *string
 	PaymentMethodType                *string
 	PaymentMethodID                  *uuid.UUID
 	TerminatedAt                     *time.Time
@@ -1389,6 +1419,7 @@ func (q *Queries) UpdateRecurringTransactionRule(ctx context.Context, arg Update
 		arg.TransactionMetadata,
 		arg.TransactionName,
 		arg.IgnorePaidTopUpLimits,
+		arg.PurchaseOrderNumber,
 		arg.PaymentMethodType,
 		arg.PaymentMethodID,
 		arg.TerminatedAt,
@@ -1411,10 +1442,11 @@ UPDATE wallets SET
   consumed_amount = $17, consumed_credits = $18,
   paid_top_up_min_amount = $19, paid_top_up_max_amount = $20,
   invoice_requires_successful_payment = $21, allowed_fee_types = $22,
-  traceable = $23, billing_entity_id = $24, payment_method_type = $25,
-  payment_method_id = $26, last_balance_sync_at = $27,
-  last_consumed_credit_at = $28, depleted_ongoing_balance = $29,
-  terminated_at = $30, created_at = $31, updated_at = $32
+  traceable = $23, purchase_order_number = $24, x402_enabled = $25,
+  billing_entity_id = $26, payment_method_type = $27,
+  payment_method_id = $28, last_balance_sync_at = $29,
+  last_consumed_credit_at = $30, depleted_ongoing_balance = $31,
+  terminated_at = $32, created_at = $33, updated_at = $34
 WHERE organization_id = $1 AND id = $2
 `
 
@@ -1442,6 +1474,8 @@ type UpdateWalletParams struct {
 	InvoiceRequiresSuccessfulPayment bool
 	AllowedFeeTypes                  []string
 	Traceable                        bool
+	PurchaseOrderNumber              *string
+	X402Enabled                      bool
 	BillingEntityID                  *uuid.UUID
 	PaymentMethodType                *string
 	PaymentMethodID                  *uuid.UUID
@@ -1478,6 +1512,8 @@ func (q *Queries) UpdateWallet(ctx context.Context, arg UpdateWalletParams) (int
 		arg.InvoiceRequiresSuccessfulPayment,
 		arg.AllowedFeeTypes,
 		arg.Traceable,
+		arg.PurchaseOrderNumber,
+		arg.X402Enabled,
 		arg.BillingEntityID,
 		arg.PaymentMethodType,
 		arg.PaymentMethodID,
@@ -1503,7 +1539,8 @@ UPDATE wallet_transactions SET
   recurring_transaction_rule_id = $16, metadata = $17,
   payment_method_type = $18, payment_method_id = $19,
   invoice_requires_successful_payment = $20,
-  settled_at = $21, failed_at = $22, created_at = $23, updated_at = $24
+  purchase_order_number = $21,
+  settled_at = $22, failed_at = $23, created_at = $24, updated_at = $25
 WHERE organization_id = $1 AND id = $2
 `
 
@@ -1528,6 +1565,7 @@ type UpdateWalletTransactionParams struct {
 	PaymentMethodType                *string
 	PaymentMethodID                  *uuid.UUID
 	InvoiceRequiresSuccessfulPayment bool
+	PurchaseOrderNumber              *string
 	SettledAt                        *time.Time
 	FailedAt                         *time.Time
 	CreatedAt                        time.Time
@@ -1556,6 +1594,7 @@ func (q *Queries) UpdateWalletTransaction(ctx context.Context, arg UpdateWalletT
 		arg.PaymentMethodType,
 		arg.PaymentMethodID,
 		arg.InvoiceRequiresSuccessfulPayment,
+		arg.PurchaseOrderNumber,
 		arg.SettledAt,
 		arg.FailedAt,
 		arg.CreatedAt,

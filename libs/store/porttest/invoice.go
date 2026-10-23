@@ -132,6 +132,10 @@ func invoiceFixtureFull(e *env, p invoiceParents, number string) *invoice.Invoic
 	inv.SkipAutomaticPayment = true
 	inv.PaymentMethodType = core.PaymentMethodTypeProvider
 	inv.PaymentMethodID = p.method
+	inv.PurchaseOrderNumber = ptr("PO-" + number)
+	inv.X402ConnectionID = core.NewID[core.X402ConnectionID](e.ids)
+	// The token is unique across organizations, so it derives from the ID.
+	inv.X402PaymentToken = ptr("x402-" + inv.ID.String())
 	inv.Metadata = core.Metadata{{Key: "po", Value: "PO-1"}, {Key: "dept", Value: "R&D"}}
 	inv.File = core.BlobRef("invoices/" + number + ".pdf")
 	inv.XMLFile = core.BlobRef("invoices/" + number + ".xml")
@@ -214,6 +218,8 @@ func testInvoiceInvoices(t *testing.T, h Harness) {
 	p := invoiceFixtureParents(e, be)
 	full := invoiceFixtureFull(e, p, "ACM-0001")
 	minimal := invoiceFixtureMinimal(e, p, at(time.Minute))
+	_, otherBE := e.org("Other")
+	other := invoiceFixtureMinimal(e, invoiceFixtureParents(e, otherBE), now)
 	e.tx(func(ctx context.Context, r port.Repos) error {
 		noErr(t, "Create() full", r.Invoices.Create(ctx, full))
 		noErr(t, "Create() minimal", r.Invoices.Create(ctx, minimal))
@@ -221,6 +227,12 @@ func testInvoiceInvoices(t *testing.T, h Harness) {
 		dup := invoiceFixtureMinimal(e, p, now)
 		dup.Number = "ACM-0001"
 		wantErr(t, "Create() same number", r.Invoices.Create(ctx, dup), core.ErrConflict)
+		dup = invoiceFixtureMinimal(e, p, now)
+		dup.X402PaymentToken = full.X402PaymentToken
+		wantErr(t, "Create() same x402 payment token", r.Invoices.Create(ctx, dup), core.ErrConflict)
+		// The token is unique across organizations (index_invoices_on_x402_payment_token).
+		other.X402PaymentToken = full.X402PaymentToken
+		wantErr(t, "Create() same x402 payment token in another organization", r.Invoices.Create(ctx, other), core.ErrConflict)
 
 		got, err := r.Invoices.Get(ctx, p.org, full.ID)
 		noErr(t, "Get() after a conflict", err)
@@ -263,6 +275,7 @@ func testInvoiceInvoices(t *testing.T, h Harness) {
 		upd.VoidedInvoiceID = minimal.ID
 		upd.PaymentMethodType = core.PaymentMethodTypeManual
 		upd.Metadata = core.Metadata{{Key: "po", Value: "PO-2"}}
+		upd.PurchaseOrderNumber = ptr("PO-2")
 		upd.UpdatedAt = at(5 * time.Hour)
 		noErr(t, "Update()", r.Invoices.Update(ctx, &upd))
 		got, err := r.Invoices.Get(ctx, p.org, full.ID)

@@ -3,6 +3,7 @@ package wallets_test
 import (
 	"context"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -178,6 +179,10 @@ func TestCreateErrors(t *testing.T) {
 		{"oversized granted credits", func(_ *billingtest.Harness, _ *customer.Customer, in *wallets.CreateInput) {
 			in.GrantedCredits = dec("1e26")
 		}, []string{"granted_credits/invalid_granted_credits", "granted_credits/invalid_amount"}},
+		// source: spec/services/wallets/create_service_spec.rb:168
+		{"purchase order number too long", func(_ *billingtest.Harness, _ *customer.Customer, in *wallets.CreateInput) {
+			in.PurchaseOrderNumber = ptr(strings.Repeat("a", 256))
+		}, []string{"purchase_order_number/value_is_too_long"}},
 		// source: spec/services/wallets/create_service_spec.rb:181
 		{"credits round to zero", func(_ *billingtest.Harness, _ *customer.Customer, in *wallets.CreateInput) {
 			in.RateAmount, in.PaidCredits, in.GrantedCredits = money.MustParse("0.01"), nil, dec("0.4")
@@ -983,6 +988,81 @@ func TestValidateLimitations(t *testing.T) {
 			}
 			_, err := s.Create(h.Ctx, h.OrgID(), in)
 			wantCodes(t, err, tt.errors...)
+		})
+	}
+}
+
+func TestCreatePurchaseOrderNumber(t *testing.T) {
+	tests := []struct {
+		name, source string
+		rulePO       *string
+		wantRule     *string
+		wantTopUpPO  string
+	}{
+		{"rule and wallet", "spec/services/wallets/create_service_spec.rb:578", ptr("PO-RULE"), ptr("PO-RULE"), "PO-RULE"},
+		{"blank rule", "spec/services/wallets/create_service_spec.rb:608", ptr("   "), nil, "PO-WALLET"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("source: %s", tt.source)
+			h, s := setup(t, t0)
+			in := createInput(eurCustomer(h))
+			in.PurchaseOrderNumber = ptr("PO-WALLET")
+			in.RecurringTransactionRules = []wallets.RuleInput{{
+				Trigger: wallet.RecurringTriggerInterval, Interval: period.Monthly, Method: wallet.RecurringMethodTarget,
+				PaidCredits: dec("10.0"), GrantedCredits: dec("5.0"), TargetOngoingBalance: dec("100.0"),
+				PurchaseOrderNumber: tt.rulePO,
+			}}
+			w, err := s.Create(h.Ctx, h.OrgID(), in)
+			if err != nil {
+				t.Fatalf("create: %v", err)
+			}
+			if got := h.ReloadWallet(w.ID).PurchaseOrderNumber; got == nil || *got != "PO-WALLET" {
+				t.Errorf("wallet purchase_order_number: got = %v, want = PO-WALLET", got)
+			}
+			if got := rules(h, w.ID)[0].PurchaseOrderNumber; (got == nil) != (tt.wantRule == nil) || (got != nil && *got != *tt.wantRule) {
+				t.Errorf("rule purchase_order_number: got = %v, want = %v", got, tt.wantRule)
+			}
+			ts := transactions(h, w.ID)
+			if len(ts) == 0 {
+				t.Fatal("transactions: got = 0, want the initial top-up")
+			}
+			for _, tr := range ts {
+				if tr.PurchaseOrderNumber == nil || *tr.PurchaseOrderNumber != tt.wantTopUpPO {
+					t.Errorf("top-up purchase_order_number: got = %v, want = %s", tr.PurchaseOrderNumber, tt.wantTopUpPO)
+				}
+			}
+		})
+	}
+}
+
+func TestUpdatePurchaseOrderNumber(t *testing.T) {
+	tests := []struct {
+		name, source string
+		in           wallets.UpdateInput
+		want         *string
+		errors       []string
+	}{
+		{"set", "spec/services/wallets/update_service_spec.rb:47", wallets.UpdateInput{PurchaseOrderNumber: wallets.To(ptr("PO-WALLET-123"))}, ptr("PO-WALLET-123"), nil},
+		{"omitted keeps it", "tanvo", wallets.UpdateInput{Name: wallets.To(ptr("x"))}, ptr("PO-OLD"), nil},
+		{"blank clears it", "tanvo", wallets.UpdateInput{PurchaseOrderNumber: wallets.To(ptr("  "))}, nil, nil},
+		{"too long", "spec/services/wallets/update_service_spec.rb:58", wallets.UpdateInput{PurchaseOrderNumber: wallets.To(ptr(strings.Repeat("a", 256)))}, ptr("PO-OLD"), []string{"purchase_order_number/value_is_too_long"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("source: %s", tt.source)
+			h, s := setup(t, t0)
+			w := h.Wallet(h.Customer(), "10", func(w *wallet.Wallet) { w.PurchaseOrderNumber = ptr("PO-OLD") })
+			_, err := s.Update(h.Ctx, h.OrgID(), w.ID, tt.in)
+			if tt.errors != nil {
+				wantCodes(t, err, tt.errors...)
+			} else if err != nil {
+				t.Fatalf("update: %v", err)
+			}
+			got := h.ReloadWallet(w.ID).PurchaseOrderNumber
+			if (got == nil) != (tt.want == nil) || (got != nil && *got != *tt.want) {
+				t.Errorf("purchase_order_number: got = %v, want = %v", got, tt.want)
+			}
 		})
 	}
 }

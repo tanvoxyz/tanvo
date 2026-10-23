@@ -407,6 +407,18 @@ func TestCreateTransactionsParams(t *testing.T) {
 				}
 			},
 		},
+		// source: spec/services/wallet_transactions/create_from_params_service_spec.rb:183
+		{
+			name: "purchase order number",
+			in:   wallets.TransactionInput{PaidCredits: dec("1"), GrantedCredits: dec("1"), PurchaseOrderNumber: ptr("PO-123")},
+			check: func(t *testing.T, ts []*wallet.Transaction) {
+				for _, tr := range ts {
+					if tr.PurchaseOrderNumber == nil || *tr.PurchaseOrderNumber != "PO-123" {
+						t.Errorf("purchase_order_number: got = %v, want = PO-123", tr.PurchaseOrderNumber)
+					}
+				}
+			},
+		},
 		// source: spec/services/wallet_transactions/create_from_params_service_spec.rb:149
 		{
 			name: "priority",
@@ -1056,10 +1068,15 @@ func TestRecredit(t *testing.T) {
 		})
 		tr := addTransaction(h, w, func(t *wallet.Transaction) {
 			t.TransactionType, t.TransactionStatus = wallet.TransactionTypeOutbound, wallet.TransactionStatusInvoiced
+			t.PurchaseOrderNumber = ptr("PO-123")
 		})
 		got, err := s.Recredit(h.Ctx, h.OrgID(), tr.ID)
 		if err != nil {
 			t.Fatal(err)
+		}
+		// source: spec/services/wallet_transactions/recredit_service_spec.rb:55
+		if got.PurchaseOrderNumber == nil || *got.PurchaseOrderNumber != "PO-123" {
+			t.Errorf("purchase_order_number: got = %v, want = PO-123", got.PurchaseOrderNumber)
 		}
 		if got.TransactionStatus != wallet.TransactionStatusGranted || !eq(got.CreditAmount, money.MustParse("10")) {
 			t.Errorf("transaction: got = (%s, %s), want = (granted, 10)", got.TransactionStatus, got.CreditAmount)

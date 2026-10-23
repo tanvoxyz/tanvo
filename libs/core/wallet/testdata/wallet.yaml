@@ -27,6 +27,8 @@ cases:
   - {name: duplicated fee type, source: "tanvo", allowed_fee_types: ["charge", "charge"], errors: ["allowed_fee_types: duplicated_value"]}
   - {name: unknown status, source: "tanvo", status: "closed", errors: ["status: invalid_value"]}
 
+  - {name: "purchase order number of 255", source: "spec/services/wallets/create_service_spec.rb:168", po_length: 255, errors: []}
+  - {name: "purchase order number of 256", source: "spec/services/wallets/create_service_spec.rb:168", po_length: 256, errors: ["purchase_order_number: value_is_too_long"]}
 skipped:
   - {source: "spec/models/wallet_spec.rb:15", reason: "ActiveRecord associations"}
   - {source: "spec/models/wallet_spec.rb:34", reason: "billing entity fallback to the customer's is resolved by the billing services, which load the customer"}

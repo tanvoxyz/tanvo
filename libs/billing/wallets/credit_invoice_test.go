@@ -204,3 +204,44 @@ func TestBillPaidCreditTruncatesUnitAmount(t *testing.T) {
 		t.Errorf("unit amount: got = %d/%s, want = 12/0.12", fees[0].UnitAmount, fees[0].PreciseUnitAmount)
 	}
 }
+
+func TestBillPaidCreditPurchaseOrderNumber(t *testing.T) {
+	cases := []struct {
+		name, source string
+		walletPO     string
+		txPO         string
+		want         string
+	}{
+		{"transaction", "spec/services/invoices/paid_credit_service_spec.rb:60", "", "PO-123", "PO-123"},
+		{"wallet", "spec/services/invoices/paid_credit_service_spec.rb:80", "PO-WALLET-123", "", "PO-WALLET-123"},
+		{"transaction over wallet", "spec/services/invoices/paid_credit_service_spec.rb:90", "PO-WALLET-123", "PO-TRANSACTION-123", "PO-TRANSACTION-123"},
+		{"neither", "tanvo", "", "", ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			t.Logf("source: %s", c.source)
+			h, s := setup(t, t0)
+			w := h.Wallet(h.Customer(), "10", func(w *wallet.Wallet) {
+				if c.walletPO != "" {
+					w.PurchaseOrderNumber = &c.walletPO
+				}
+			})
+			in := wallets.TransactionInput{WalletID: w.ID, PaidCredits: dec("10")}
+			if c.txPO != "" {
+				in.PurchaseOrderNumber = &c.txPO
+			}
+			ts, err := s.CreateTransactions(h.Ctx, h.OrgID(), in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			inv, _ := creditInvoice(h, ts[0].InvoiceID)
+			got := ""
+			if inv.PurchaseOrderNumber != nil {
+				got = *inv.PurchaseOrderNumber
+			}
+			if got != c.want {
+				t.Errorf("invoice purchase_order_number: got = %q, want = %q", got, c.want)
+			}
+		})
+	}
+}

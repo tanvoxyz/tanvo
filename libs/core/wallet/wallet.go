@@ -52,7 +52,9 @@ type Wallet struct {
 	Name *string
 	// Status is the lifecycle status.
 	Status Status
-	// Currency is the customer's currency.
+	// Currency is the wallet's own currency: the one given at creation,
+	// else the customer's default; immutable. The wallet pays only
+	// invoices in it (domain §14.1, §22.7).
 	Currency money.Currency
 	// RateAmount is the value of one credit in Currency; > 0.
 	RateAmount money.Decimal
@@ -93,6 +95,11 @@ type Wallet struct {
 	BillableMetricIDs []core.BillableMetricID
 	// Traceable records consumption per inbound transaction.
 	Traceable bool
+	// PurchaseOrderNumber is the default purchase order number of its
+	// transactions and recurring rules, ≤ 255 characters.
+	PurchaseOrderNumber *string
+	// X402Enabled lets an x402 agent top the wallet up.
+	X402Enabled bool
 	// BillingEntityID overrides the customer's billing entity for credit
 	// invoices.
 	BillingEntityID core.BillingEntityID
@@ -164,6 +171,7 @@ func (w *Wallet) Validate() error {
 	v.Check(len(w.AllowedFeeTypes) == len(dedup(w.AllowedFeeTypes)), "allowed_fee_types", core.CodeDuplicated)
 	v.Check(len(w.BillableMetricIDs) == len(dedup(w.BillableMetricIDs)), "billable_metric_ids", core.CodeDuplicated)
 	v.OptionalEnum("payment_method_type", w.PaymentMethodType)
+	v.OptionalString("purchase_order_number", w.PurchaseOrderNumber, core.MaxPurchaseOrderNumberLength)
 	return v.Err()
 }
 
@@ -177,19 +185,30 @@ func ValidateExpiration(expirationAt *time.Time, now time.Time) error {
 	return v.Err()
 }
 
-// ValidateForCustomer checks the rules that depend on the customer: the
-// wallet uses the customer's currency and a new active wallet stays within
-// maxActive (the organization's max_wallets_per_customer), given the
-// number of active wallets the customer already holds besides w.
-func (w *Wallet) ValidateForCustomer(customerCurrency money.Currency, activeWallets, maxActive int) error {
+// ValidateForCustomer checks the rules that depend on the customer: a new
+// active wallet stays within maxActive (the organization's
+// max_wallets_per_customer), given the number of active wallets the
+// customer already holds besides w. The wallet's currency need not be the
+// customer's, which is only a default (domain §6).
+func (w *Wallet) ValidateForCustomer(activeWallets, maxActive int) error {
 	var v core.Validator
-	if !customerCurrency.IsZero() {
-		v.Check(customerCurrency.Code() == w.Currency.Code(), "currency", core.CodeCurrencyMismatch)
-	}
 	if w.Status == StatusActive {
 		v.Check(activeWallets < maxActive, "customer_id", CodeTooManyWallets)
 	}
 	return v.Err()
+}
+
+// ResolvePurchaseOrderNumber returns the first of pos that is set and not
+// blank, normalized by [core.NormalizePurchaseOrderNumber], or nil: a
+// transaction's purchase order number is the request's, else the rule's,
+// else the wallet's (domain §14.2).
+func ResolvePurchaseOrderNumber(pos ...*string) *string {
+	for _, p := range pos {
+		if n := core.NormalizePurchaseOrderNumber(p); n != nil {
+			return n
+		}
+	}
+	return nil
 }
 
 // Active reports whether the wallet accepts transactions.

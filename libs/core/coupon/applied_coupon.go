@@ -22,7 +22,9 @@ type AppliedCoupon struct {
 	// Amount is the fixed discount per application, in minor units of
 	// Currency; nil for a percentage coupon.
 	Amount *int64
-	// Currency is the currency of Amount, equal to the customer's currency.
+	// Currency is the currency of Amount: the override's, else the
+	// coupon's; it need not be the customer's, and the coupon applies only
+	// to invoices in it (domain §8.2, §22.7).
 	Currency money.Currency
 	// PercentageRate is the discount in percent; nil for a fixed_amount
 	// coupon.
@@ -164,9 +166,6 @@ func (a *AppliedCoupon) Terminate(now time.Time) error {
 // ApplicationFacts are what [CheckApplication] needs to know about the
 // customer.
 type ApplicationFacts struct {
-	// CustomerCurrency is the customer's currency; zero when unset, in which
-	// case the caller sets it to the coupon's currency.
-	CustomerCurrency money.Currency
 	// AppliedCount is the number of coupons of this coupon ever applied to
 	// the customer.
 	AppliedCount int
@@ -177,11 +176,12 @@ type ApplicationFacts struct {
 	PlanMetrics map[core.PlanID][]core.BillableMetricID
 }
 
-// CheckApplication enforces the application rules of domain §8.2 for the
-// applied coupon a of coupon c. It returns a *core.RuleError
-// ([CodeCouponNotActive], [CodeNotReusable], [CodePlanOverlapping] or
-// core.CodeCurrencyMismatch).
-func CheckApplication(c *Coupon, a *AppliedCoupon, f ApplicationFacts) error {
+// CheckApplication enforces the application rules of domain §8.2 for
+// applying coupon c. It returns a *core.RuleError
+// ([CodeCouponNotActive], [CodeNotReusable] or [CodePlanOverlapping]). The
+// customer's currency is a default, not a constraint: a fixed-amount
+// coupon keeps its own currency.
+func CheckApplication(c *Coupon, f ApplicationFacts) error {
 	if c.Status != StatusActive {
 		return core.NewRuleError(CodeCouponNotActive, "coupon is terminated")
 	}
@@ -190,9 +190,6 @@ func CheckApplication(c *Coupon, a *AppliedCoupon, f ApplicationFacts) error {
 	}
 	if slices.ContainsFunc(f.Active, func(o *Coupon) bool { return Overlaps(c, o, f.PlanMetrics) }) {
 		return core.NewRuleError(CodePlanOverlapping, "an applied coupon of the customer targets the same plans or metrics")
-	}
-	if a.Amount != nil && !f.CustomerCurrency.IsZero() && a.Currency.Code() != f.CustomerCurrency.Code() {
-		return core.NewRuleError(core.CodeCurrencyMismatch, "coupon currency differs from the customer's")
 	}
 	return nil
 }

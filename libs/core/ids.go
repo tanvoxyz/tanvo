@@ -61,6 +61,7 @@ type (
 	paymentMethodKind                struct{}
 	paymentProviderCustomerKind      struct{}
 	inboundWebhookKind               struct{}
+	x402ConnectionKind               struct{}
 	dunningCampaignKind              struct{}
 	dunningCampaignThresholdKind     struct{}
 	integrationKind                  struct{}
@@ -201,6 +202,8 @@ type (
 	PaymentProviderCustomerID = ID[paymentProviderCustomerKind]
 	// InboundWebhookID identifies an inbound provider webhook (domain §15.6).
 	InboundWebhookID = ID[inboundWebhookKind]
+	// X402ConnectionID identifies an x402 connection (parity §1.36).
+	X402ConnectionID = ID[x402ConnectionKind]
 	// DunningCampaignID identifies a dunning campaign (domain §16).
 	DunningCampaignID = ID[dunningCampaignKind]
 	// DunningCampaignThresholdID identifies a dunning campaign threshold (domain §16).

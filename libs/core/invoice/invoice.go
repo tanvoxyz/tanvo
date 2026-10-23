@@ -94,6 +94,15 @@ type Invoice struct {
 	PaymentMethodType core.PaymentMethodType
 	// PaymentMethodID is the payment method to charge.
 	PaymentMethodID core.PaymentMethodID
+	// PurchaseOrderNumber is the customer's purchase order number printed
+	// on the invoice, ≤ 255 characters.
+	PurchaseOrderNumber *string
+	// X402ConnectionID is the x402 connection the invoice is payable
+	// through (parity §1.36).
+	X402ConnectionID core.X402ConnectionID
+	// X402PaymentToken is the x402 payment token, unique across all
+	// organizations when set.
+	X402PaymentToken *string
 	// Metadata is set after finalization only (≤ 5 items).
 	Metadata core.Metadata
 	// File is the rendered PDF.
@@ -150,6 +159,10 @@ func (inv *Invoice) Validate() error {
 	v.NonNegative("total_paid_amount", inv.TotalPaidAmount)
 	v.Check(inv.AppliedGracePeriodDays >= 0, "applied_grace_period_days", core.CodeOutOfRange)
 	v.Check(inv.NetPaymentTermDays >= 0, "net_payment_term_days", core.CodeOutOfRange)
+	v.OptionalString("purchase_order_number", inv.PurchaseOrderNumber, core.MaxPurchaseOrderNumberLength)
+	if inv.X402PaymentToken != nil {
+		v.Required("x402_payment_token", *inv.X402PaymentToken)
+	}
 	v.OptionalEnum("payment_method_type", inv.PaymentMethodType)
 	if len(inv.Metadata) > 0 {
 		v.Check(inv.Status != StatusDraft && inv.Status != StatusGenerating, "metadata", core.CodeForbidden)

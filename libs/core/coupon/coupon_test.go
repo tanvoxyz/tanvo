@@ -230,7 +230,7 @@ func TestCheckApplication(t *testing.T) {
 		facts        ApplicationFacts
 		want         string
 	}{
-		{"applicable", "spec/services/applied_coupons/create_service_spec.rb", newFixedCoupon(), ApplicationFacts{CustomerCurrency: usd}, ""},
+		{"applicable", "spec/services/applied_coupons/create_service_spec.rb", newFixedCoupon(), ApplicationFacts{}, ""},
 		{"customer without currency", "spec/services/applied_coupons/create_service_spec.rb", newFixedCoupon(), ApplicationFacts{}, ""},
 		{"terminated coupon", "tanvo", func() *Coupon { c := newFixedCoupon(); c.Status = StatusTerminated; return c }(), ApplicationFacts{}, CodeCouponNotActive},
 		{"reusable already applied", "spec/services/applied_coupons/create_service_spec.rb", newFixedCoupon(), ApplicationFacts{AppliedCount: 2}, ""},
@@ -239,7 +239,6 @@ func TestCheckApplication(t *testing.T) {
 			ApplicationFacts{AppliedCount: 1},
 			CodeNotReusable,
 		},
-		{"currency mismatch", "spec/services/applied_coupons/create_service_spec.rb", newFixedCoupon(), ApplicationFacts{CustomerCurrency: eur}, core.CodeCurrencyMismatch},
 		{
 			"same plan", "spec/services/applied_coupons/create_service_spec.rb", limitedTo([]int{1}, nil),
 			ApplicationFacts{Active: []*Coupon{limitedTo([]int{1, 3}, nil)}, PlanMetrics: planMetrics},
@@ -273,8 +272,7 @@ func TestCheckApplication(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := Apply(tt.coupon, testApplied, testCustomer, Overrides{}, testNow)
-			err := CheckApplication(tt.coupon, a, tt.facts)
+			err := CheckApplication(tt.coupon, tt.facts)
 			got := ""
 			if re, ok := errors.AsType[*core.RuleError](err); ok {
 				got = re.Code

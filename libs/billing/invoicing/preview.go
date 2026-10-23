@@ -158,6 +158,7 @@ func (s *Service) preview(ctx context.Context, r port.Repos, in PreviewInput) (*
 	cenv := first.Customer
 	k := subscriptionKind(reason == invoice.InvoicingReasonSubscriptionPeriodic)
 	inv := kernel.NewInvoice(s.d, cenv, k, first.Plan.Currency, billingAt)
+	inv.PurchaseOrderNumber = core.NormalizePurchaseOrderNumber(first.Subscription.PurchaseOrderNumber)
 	if err := r.Invoices.Create(ctx, inv); err != nil {
 		return nil, fmt.Errorf("create preview invoice: %w", err)
 	}

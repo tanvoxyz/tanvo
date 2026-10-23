@@ -19,8 +19,8 @@ cases:
   - {name: interval without interval, source: "tanvo", interval: "", errors: ["interval: value_is_mandatory"]}
   - {name: negative paid credits, source: "tanvo", paid: "-1", errors: ["paid_credits: value_is_negative"]}
 
+  - {name: "purchase order number of 256", source: "spec/models/recurring_transaction_rule_spec.rb:6", po_length: 256, errors: ["purchase_order_number: value_is_too_long"]}
 skipped:
-  - {source: "spec/models/recurring_transaction_rule_spec.rb:6", reason: "purchase order numbers are not part of the Tanvo rule (domain §14.3)"}
   - {source: "spec/models/recurring_transaction_rule_spec.rb:8", reason: "connection resolution is the pure payment.ResolvePaymentMethod, tested in package payment"}
   - {source: "spec/models/recurring_transaction_rule_spec.rb:12", reason: "ActiveRecord associations"}
   - {source: "spec/models/recurring_transaction_rule_spec.rb:21", reason: "enum values are covered by the generated enumeration tests and period.Interval"}

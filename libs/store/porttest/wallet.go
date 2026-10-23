@@ -121,6 +121,8 @@ func testWallet(t *testing.T, h Harness) {
 		w1.AllowedFeeTypes = []core.FeeType{core.FeeTypeCharge, core.FeeTypeSubscription}
 		w1.BillableMetricIDs = []core.BillableMetricID{m2, m1}
 		w1.Traceable = true
+		w1.PurchaseOrderNumber = ptr("PO-WALLET")
+		w1.X402Enabled = true
 		w1.BillingEntityID = a.ID
 		w1.PaymentMethodType = core.PaymentMethodTypeManual
 		w1.LastBalanceSyncAt = ptr(at(time.Minute))
@@ -330,6 +332,7 @@ func testWallet(t *testing.T, h Harness) {
 		full.Metadata = core.Metadata{{Key: "po", Value: "42", DisplayInInvoice: true}, {Key: "k", Value: "v"}}
 		full.PaymentMethodType = core.PaymentMethodTypeProvider
 		full.InvoiceRequiresSuccessfulPayment = true
+		full.PurchaseOrderNumber = ptr("PO-TX")
 		// Inbound transactions with value left, in their consumption order.
 		g1 := tx(w.ID, wallet.TransactionTypeInbound, wallet.TransactionStatusGranted, 50, at(time.Hour))
 		g1.RemainingAmount = ptr(int64(10))
@@ -503,6 +506,7 @@ func testWallet(t *testing.T, h Harness) {
 		full.TransactionMetadata = core.Metadata{{Key: "source", Value: "auto"}}
 		full.TransactionName = ptr("Monthly top-up")
 		full.IgnorePaidTopUpLimits = true
+		full.PurchaseOrderNumber = ptr("PO-RULE")
 		full.PaymentMethodType = core.PaymentMethodTypeManual
 		threshold := rule(w1, wallet.RecurringTriggerThreshold)
 		expiredInterval := rule(w2, wallet.RecurringTriggerInterval)

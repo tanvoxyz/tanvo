@@ -128,7 +128,7 @@ There are no exceptions: unreleased Lago features (for example the structured pa
 | Sequential id and slug per organization | `app/models/customer.rb` | libs/core | planned | |
 | Billing and shipping addresses | `app/models/customer.rb` | libs/core | planned | |
 | Tax identification number, legal name and number | `app/models/customer.rb` | libs/core | planned | |
-| Default currency: a preference for new billing objects, not a constraint | `app/services/customers/update_currency_service.rb` | libs/core | planned | Set by the first billing object when absent; an explicit update can change it at any time |
+| Default currency: a preference for new billing objects, not a constraint | `app/services/customers/update_currency_service.rb` | libs/core | logic done | Set by the first billing object when absent; an explicit update can change it at any time |
 | Several currencies per customer: subscriptions in their plan's currency; wallets, applied coupons and one-off invoices in their own; invoices split per currency | `app/services/subscriptions/organization_billing_service.rb` (`group_by_currency`), `app/services/wallets/create_service.rb`, `app/services/applied_coupons/create_service.rb`, `app/services/invoices/create_one_off_service.rb` | libs/billing | logic done | Wallets and fixed-amount coupons apply only to invoices in their currency; dunning counts attempts per currency (§1.35) |
 | Time zone with fallback to billing entity and organization | `app/models/customer.rb` | libs/period | planned | Fallback is customer → billing entity → organization everywhere (§4) |
 | Grace period, payment term, document locale with fallback | `app/models/customer.rb` | libs/billing | logic done | |
@@ -582,7 +582,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | Wallet CRUD (name, code, currency, rate amount, expiration) | `app/models/wallet.rb`, `app/services/wallets/` | libs/billing | logic done | The currency is the wallet's own, default the customer's |
-| Purchase order number on wallets, wallet transactions and recurring rules, copied to credit invoices | `app/services/wallets/create_service.rb`, `app/services/wallet_transactions/create_from_params_service.rb`, `app/models/recurring_transaction_rule.rb` | libs/billing | planned | |
+| Purchase order number on wallets, wallet transactions and recurring rules, copied to credit invoices | `app/services/wallets/create_service.rb`, `app/services/wallet_transactions/create_from_params_service.rb`, `app/models/recurring_transaction_rule.rb` | libs/billing | logic done | Blank is none; a rule run takes the rule's, else the wallet's |
 | Several wallets per customer (default maximum 6) with priority 1–50 | `app/models/wallet.rb` | libs/billing | logic done | |
 | Top-up minimum and maximum | `app/models/wallet.rb` | libs/billing | logic done | |
 | Allowed fee types per wallet | `app/models/wallet.rb` (`allowed_fee_types`) | libs/billing | logic done | |

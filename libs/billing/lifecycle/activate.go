@@ -244,11 +244,13 @@ func (s *Service) activateUpgrade(ctx context.Context, r port.Repos, a *activati
 	if err := update(ctx, r, sub); err != nil {
 		return err
 	}
+	subs := []*subscription.Subscription{a.previous}
 	items := []invoicing.BillItem{item(a.previous, invoice.InvoicingReasonSubscriptionTerminating)}
 	if !a.billedWhileGated() && a.billsStart(at) {
+		subs = append(subs, sub)
 		items = append(items, item(sub, invoice.InvoicingReasonSubscriptionStarting))
 	}
-	if err := s.bill(ctx, r, sub.OrganizationID, at.Add(time.Second), false, items...); err != nil {
+	if err := s.billRotation(ctx, r, sub.OrganizationID, at.Add(time.Second), subs, items); err != nil {
 		return err
 	}
 	return s.emit(ctx, webhook.EventTypeSubscriptionStarted, sub)
@@ -273,11 +275,13 @@ func (s *Service) activateDowngrade(ctx context.Context, r port.Repos, a *activa
 	if err := update(ctx, r, sub); err != nil {
 		return err
 	}
+	subs := []*subscription.Subscription{prev}
 	items := []invoicing.BillItem{item(prev, invoice.InvoicingReasonSubscriptionTerminating)}
 	if !a.billedWhileGated() && (a.env.Plan.PayInAdvance || a.inAdvanceFixed) {
+		subs = append(subs, sub)
 		items = append(items, item(sub, invoice.InvoicingReasonSubscriptionStarting))
 	}
-	if err := s.bill(ctx, r, sub.OrganizationID, at, false, items...); err != nil {
+	if err := s.billRotation(ctx, r, sub.OrganizationID, at, subs, items); err != nil {
 		return err
 	}
 	if err := s.billAdvanceCharges(ctx, r, prev, at); err != nil {

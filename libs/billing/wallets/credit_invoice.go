@@ -34,6 +34,8 @@ func (s *Service) billPaidCredit(ctx context.Context, r port.Repos, w *wallet.Wa
 	}
 	inv := kernel.NewInvoice(s.d, env, creditKind(), w.Currency, now)
 	inv.PaymentMethodType, inv.PaymentMethodID = t.PaymentMethodType, t.PaymentMethodID
+	// lago Invoices::PaidCreditService (paid_credit_service.rb:76).
+	inv.PurchaseOrderNumber = wallet.ResolvePurchaseOrderNumber(t.PurchaseOrderNumber, w.PurchaseOrderNumber)
 	if err := r.Invoices.Create(ctx, inv); err != nil {
 		return fmt.Errorf("create credit invoice: %w", err)
 	}

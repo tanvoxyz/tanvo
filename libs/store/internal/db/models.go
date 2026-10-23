@@ -787,6 +787,9 @@ type Invoice struct {
 	SkipAutomaticPayment           bool
 	PaymentMethodType              *string
 	PaymentMethodID                *uuid.UUID
+	PurchaseOrderNumber            *string
+	X402ConnectionID               *uuid.UUID
+	X402PaymentToken               *string
 	Metadata                       json.RawMessage
 	File                           *string
 	XmlFile                        *string
@@ -1181,6 +1184,7 @@ type RecurringTransactionRule struct {
 	TransactionMetadata              json.RawMessage
 	TransactionName                  *string
 	IgnorePaidTopUpLimits            bool
+	PurchaseOrderNumber              *string
 	PaymentMethodType                *string
 	PaymentMethodID                  *uuid.UUID
 	TerminatedAt                     *time.Time
@@ -1365,6 +1369,8 @@ type Wallet struct {
 	InvoiceRequiresSuccessfulPayment bool
 	AllowedFeeTypes                  []string
 	Traceable                        bool
+	PurchaseOrderNumber              *string
+	X402Enabled                      bool
 	BillingEntityID                  *uuid.UUID
 	PaymentMethodType                *string
 	PaymentMethodID                  *uuid.UUID
@@ -1404,6 +1410,7 @@ type WalletTransaction struct {
 	PaymentMethodType                *string
 	PaymentMethodID                  *uuid.UUID
 	InvoiceRequiresSuccessfulPayment bool
+	PurchaseOrderNumber              *string
 	SettledAt                        *time.Time
 	FailedAt                         *time.Time
 	CreatedAt                        time.Time

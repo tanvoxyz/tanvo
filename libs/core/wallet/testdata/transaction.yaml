@@ -22,8 +22,8 @@ cases:
   - {name: pending purchased, source: "tanvo", status: pending, transaction_status: purchased, errors: []}
   - {name: sixteen metadata items, source: "tanvo", metadata_items: 16, errors: ["metadata.items: too_many_items"]}
 
+  - {name: "purchase order number of 256", source: "spec/models/wallet_transaction_spec.rb:6", po_length: 256, errors: ["purchase_order_number: value_is_too_long"]}
 skipped:
-  - {source: "spec/models/wallet_transaction_spec.rb:6", reason: "purchase order numbers are not part of the Tanvo wallet transaction (domain §14.2)"}
   - {source: "spec/models/wallet_transaction_spec.rb:9", reason: "priority is an int inherited from the wallet and cannot be absent"}
   - {source: "spec/models/wallet_transaction_spec.rb:12", reason: "invoice_requires_successful_payment is a Go bool and cannot be null"}
   - {source: "spec/models/wallet_transaction_spec.rb:43", reason: "ActiveRecord associations"}

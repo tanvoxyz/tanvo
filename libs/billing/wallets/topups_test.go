@@ -86,6 +86,30 @@ func minTopUp(n int64) func(*wallet.Wallet) {
 	return func(w *wallet.Wallet) { w.PaidTopUpMinAmount = &n }
 }
 
+// wantPO checks the purchase order number of every run transaction; ""
+// expects none.
+func wantPO(want string) func(t *testing.T, ts []*wallet.Transaction) {
+	return func(t *testing.T, ts []*wallet.Transaction) {
+		for _, tr := range ts {
+			got := ""
+			if tr.PurchaseOrderNumber != nil {
+				got = *tr.PurchaseOrderNumber
+			}
+			if got != want {
+				t.Errorf("purchase_order_number: got = %q, want = %q", got, want)
+			}
+		}
+	}
+}
+
+func walletPO(po string) func(*wallet.Wallet) {
+	return func(w *wallet.Wallet) { w.PurchaseOrderNumber = &po }
+}
+
+func rulePO(po string) func(*wallet.RecurringTransactionRule) {
+	return func(r *wallet.RecurringTransactionRule) { r.PurchaseOrderNumber = &po }
+}
+
 func TestThresholdTopUp(t *testing.T) {
 	ago := func(d time.Duration) *time.Time { return ptr(t0.Add(-d)) }
 	failed := func(source wallet.TransactionSource, at *time.Time) func(*wallet.Transaction) {
@@ -117,6 +141,25 @@ func TestThresholdTopUp(t *testing.T) {
 					}
 				}
 			},
+		},
+		// source: spec/services/wallets/threshold_top_up_service_spec.rb:204
+		{
+			name: "rule purchase order number",
+			rule: []func(*wallet.RecurringTransactionRule){threshold("6", "10", "3"), rulePO("PO-RULE-123")},
+			want: &topUp{dec("10"), dec("3")}, check: wantPO("PO-RULE-123"),
+		},
+		// source: spec/services/wallets/threshold_top_up_service_spec.rb:227
+		{
+			name:   "wallet purchase order number under a blank rule one",
+			wallet: []func(*wallet.Wallet){walletPO("PO-WALLET-123")},
+			rule:   []func(*wallet.RecurringTransactionRule){threshold("6", "10", "3"), rulePO("   ")},
+			want:   &topUp{dec("10"), dec("3")}, check: wantPO("PO-WALLET-123"),
+		},
+		// source: spec/services/wallets/threshold_top_up_service_spec.rb:263
+		{
+			name: "no purchase order number",
+			rule: []func(*wallet.RecurringTransactionRule){threshold("6", "10", "3")},
+			want: &topUp{dec("10"), dec("3")}, check: wantPO(""),
 		},
 		// source: spec/services/wallets/threshold_top_up_service_spec.rb:64
 		{
@@ -429,6 +472,12 @@ func TestRunIntervalTopUps(t *testing.T) {
 	}{
 		// source: spec/services/wallets/create_interval_wallet_transactions_service_spec.rb:61
 		{name: "weekly on the day", created: "20 Feb 2021", at: day("18 Jun 2022"), rule: []func(*wallet.RecurringTransactionRule){interval(period.Weekly)}, want: fixed},
+		// source: spec/services/wallets/create_interval_wallet_transactions_service_spec.rb:455
+		{name: "rule purchase order number", created: "20 Feb 2021", at: day("18 Jun 2022"), rule: []func(*wallet.RecurringTransactionRule){interval(period.Weekly), rulePO("PO-RULE-123")}, want: fixed, check: wantPO("PO-RULE-123")},
+		// source: spec/services/wallets/create_interval_wallet_transactions_service_spec.rb:482
+		{name: "wallet purchase order number", created: "20 Feb 2021", at: day("18 Jun 2022"), wallet: []func(*wallet.Wallet){walletPO("PO-WALLET-123")}, rule: []func(*wallet.RecurringTransactionRule){interval(period.Weekly)}, want: fixed, check: wantPO("PO-WALLET-123")},
+		// source: spec/services/wallets/create_interval_wallet_transactions_service_spec.rb:519
+		{name: "no purchase order number", created: "20 Feb 2021", at: day("18 Jun 2022"), rule: []func(*wallet.RecurringTransactionRule){interval(period.Weekly)}, want: fixed, check: wantPO("")},
 		// source: spec/services/wallets/create_interval_wallet_transactions_service_spec.rb:69
 		{name: "weekly on another day", created: "20 Feb 2021", at: day("19 Jun 2022"), rule: []func(*wallet.RecurringTransactionRule){interval(period.Weekly)}},
 		// source: spec/services/wallets/create_interval_wallet_transactions_service_spec.rb:88

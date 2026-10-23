@@ -58,6 +58,11 @@ type Transaction struct {
 	// InvoiceRequiresSuccessfulPayment settles purchased credits only once
 	// the credit invoice is paid.
 	InvoiceRequiresSuccessfulPayment bool
+	// PurchaseOrderNumber (≤ 255 characters) is the request's on a manual
+	// transaction, the rule's resolved one on a rule top-up, and the
+	// transaction's own on a recredit; the credit invoice takes it, else the
+	// wallet's.
+	PurchaseOrderNumber *string
 	// SettledAt is set once settled.
 	SettledAt *time.Time
 	// FailedAt is set once failed.
@@ -116,6 +121,7 @@ func (t *Transaction) Validate() error {
 	}
 	v.Merge("metadata", t.Metadata.Validate(core.WalletTransactionMetadataLimits()))
 	v.OptionalEnum("payment_method_type", t.PaymentMethodType)
+	v.OptionalString("purchase_order_number", t.PurchaseOrderNumber, core.MaxPurchaseOrderNumberLength)
 	if t.Status == SettlementStatusPending {
 		v.Check(t.TransactionStatus == TransactionStatusPurchased, "status", core.CodeInvalid)
 	}

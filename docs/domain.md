@@ -407,7 +407,7 @@ Rules:
 * Settings resolve customer → billing entity (→ UTC for the time zone). **[Change]** Lago falls back to the organization in some code paths and to the billing entity in others; Tanvo uses the billing entity everywhere.
 * `currency` is a default, not a constraint. A wallet or one-off invoice created without a currency takes it; the first billing object created while it is absent sets it (a subscription with its plan's currency, a wallet, a fixed-amount applied coupon or a one-off invoice with its own); an explicit customer update can change it at any time without affecting existing objects.
 * Each billing object carries its own currency: a subscription its plan's `currency` (§9.1), a wallet (§14.1), a fixed-amount applied coupon (§8.2) and a one-off invoice (§11.6) their own. A customer can be billed in several currencies: invoices are split per currency (§9.6), credit notes, fixed-amount coupons and wallets apply only to invoices in their currency (§22.7), and dunning counts attempts and checks thresholds per currency (§16.1).
-* A customer is **editable** when it has no subscriptions, invoices, applied coupons and wallets. Only an editable customer can change `external_id` or `account_type`.
+* A customer is **editable** when it has no subscriptions, invoices, fixed-amount applied coupons (terminated ones included; applied percentage coupons do not count) and wallets. Only an editable customer can change `external_id` or `account_type`.
 * `account_type = partner`: invoices issued to the customer are self-billed (§11.1).
 * Deleting a customer terminates its subscriptions (with termination invoices), terminates its wallets and applied coupons and archives it; its invoices remain.
 * Advisory locks per customer: `coupons`, `credit_notes`, `prepaid_credits`, `billing_schedule`.
@@ -806,7 +806,7 @@ A subscription can require a successful payment of its first invoice before it b
 * Changing the plan is an upgrade or downgrade (§22.13).
 
 ### 9.6 Invoice Grouping
-Subscriptions of a customer billed at the same instant share an invoice when they have the same payment method, currency, billing entity and purchase order number and all have `consolidate_invoice = true`. A customer with subscriptions in several currencies therefore receives one periodic invoice per currency. The invoice takes the group's currency and `purchase_order_number`.
+Subscriptions of a customer billed at the same instant share an invoice when they have the same payment method, currency, billing entity and purchase order number and all have `consolidate_invoice = true`. A customer with subscriptions in several currencies therefore receives one periodic invoice per currency. The invoice takes the group's currency and `purchase_order_number`. The periodic run and plan changes bill each purchase order number separately; a single billing request whose subscriptions carry different purchase order numbers (one without counts as different) is refused with `purchase_order_number: mixed_purchase_order_numbers`.
 
 ---
 
@@ -1124,7 +1124,7 @@ Rules:
 | `metadata` | Metadata | ≤ 15 items |
 | `settled_at`, `failed_at` | `Time?` | |
 | `invoice_requires_successful_payment` | `bool` | |
-| `purchase_order_number` | `string(255)?` | the request's, else the rule's, else the wallet's; copied to its `credit` invoice |
+| `purchase_order_number` | `string(255)?` | the request's (manual), the rule's else the wallet's (rule runs and the initial top-up), the original's (recredit); its `credit` invoice takes it, else the wallet's |
 
 Rules:
 * Paid credits (`purchased`) create a `credit` invoice; they are `pending` until its payment succeeds and then `settled`, whether or not the invoice waited `open` for the payment. An invoice settled by an offset credit note is not paid and settles nothing. A payment that fails marks the purchase `failed`, and a later successful payment still settles it; voiding the credit invoice also marks it `failed`, and no later payment settles it (lago leaves the purchase `pending` on void and grants the credits if the voided invoice is paid later, `app/services/invoices/void_service.rb:30-48`, `app/jobs/invoices/prepaid_credit_job.rb:20-25`; Tanvo treats a payment against a voided invoice as a refund matter).
@@ -1156,7 +1156,7 @@ stateDiagram-v2
 | `started_at` | `Time?` | first interval anchor |
 | `expiration_at` | `Time?` | |
 | `status` | `RuleStatus` | |
-| `invoice_requires_successful_payment`, `transaction_metadata`, `transaction_name`, `ignore_paid_top_up_limits`, `purchase_order_number` | | copied to the transactions (`purchase_order_number` falls back to the wallet's) |
+| `invoice_requires_successful_payment`, `transaction_metadata`, `transaction_name`, `ignore_paid_top_up_limits`, `purchase_order_number` | | copied to the transactions (`purchase_order_number` falls back to the wallet's; set on creation and update, blank is none) |
 
 Rules:
 * Interval rules run at each interval boundary from `started_at` (or the wallet creation), like an anniversary schedule in the customer's time zone.

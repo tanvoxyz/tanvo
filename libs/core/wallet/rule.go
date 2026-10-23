@@ -58,6 +58,9 @@ type RecurringTransactionRule struct {
 	TransactionName *string
 	// IgnorePaidTopUpLimits skips the wallet's paid top-up limits.
 	IgnorePaidTopUpLimits bool
+	// PurchaseOrderNumber is copied to the transactions, ≤ 255 characters;
+	// nil falls back to the wallet's (see [RecurringTransactionRule.ResolvedPurchaseOrderNumber]).
+	PurchaseOrderNumber *string
 	// PaymentMethodType is how the credit invoices are collected; "" inherits
 	// the wallet's.
 	PaymentMethodType core.PaymentMethodType
@@ -98,9 +101,16 @@ func (r *RecurringTransactionRule) Validate() error {
 	if r.TransactionName != nil && v.Required("transaction_name", *r.TransactionName) {
 		v.MaxLen("transaction_name", *r.TransactionName, 255)
 	}
+	v.OptionalString("purchase_order_number", r.PurchaseOrderNumber, core.MaxPurchaseOrderNumberLength)
 	v.Merge("transaction_metadata", r.TransactionMetadata.Validate(core.WalletTransactionMetadataLimits()))
 	v.OptionalEnum("payment_method_type", r.PaymentMethodType)
 	return v.Err()
+}
+
+// ResolvedPurchaseOrderNumber returns the rule's purchase order number,
+// else the wallet's w (lago RecurringTransactionRule#resolved_purchase_order_number).
+func (r *RecurringTransactionRule) ResolvedPurchaseOrderNumber(w *Wallet) *string {
+	return ResolvePurchaseOrderNumber(r.PurchaseOrderNumber, w.PurchaseOrderNumber)
 }
 
 // CurrentlyActive reports whether the rule is active and not expired at

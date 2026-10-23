@@ -42,6 +42,8 @@ type OneOffInput struct {
 	PaymentMethodID core.PaymentMethodID
 	// Metadata are the invoice's key-value pairs.
 	Metadata core.Metadata
+	// PurchaseOrderNumber is printed on the invoice (blank is none).
+	PurchaseOrderNumber *string
 }
 
 // CreateOneOff issues a one-off invoice: its add-on fees, taxed with their
@@ -90,6 +92,11 @@ func (s *Service) createOneOff(ctx context.Context, r port.Repos, in OneOffInput
 	inv.SkipAutomaticPayment = in.SkipAutomaticPayment
 	inv.PaymentMethodType, inv.PaymentMethodID = in.PaymentMethodType, in.PaymentMethodID
 	inv.Metadata = in.Metadata
+	inv.PurchaseOrderNumber = core.NormalizePurchaseOrderNumber(in.PurchaseOrderNumber)
+	var v core.Validator
+	if !v.OptionalString("purchase_order_number", inv.PurchaseOrderNumber, core.MaxPurchaseOrderNumberLength) {
+		return nil, v.Err()
+	}
 	if err := r.Invoices.Create(ctx, inv); err != nil {
 		return nil, fmt.Errorf("create invoice: %w", err)
 	}
