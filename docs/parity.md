@@ -138,7 +138,7 @@ A commit that implements a feature changes its status here in the same commit ([
 | Integration customers (accounting, CRM, tax) batch create and update | `app/services/integration_customers/create_or_update_batch_service.rb` | libs/core | planned | |
 | Checkout URL to collect a payment method | `app/services/customers/generate_checkout_url_service.rb` | libs/billing | planned | |
 | Customer portal URL | `app/services/customer_portal/generate_url_service.rb` | libs/auth | planned | |
-| Locks to serialize per-customer operations (prepaid credit, payment method, credit note, coupon, billing schedule) | `app/services/customers/lock_service.rb` | libs/store | planned | PostgreSQL advisory locks |
+| Locks to serialize per-customer operations (prepaid credit, payment method, credit note, coupon, billing schedule) | `app/services/customers/lock_service.rb` | libs/store | logic done | PostgreSQL advisory locks |
 | Invoice custom sections selected or skipped per customer | `app/services/customers/manage_invoice_custom_sections_service.rb` | libs/billing | planned | |
 | Exclude from dunning and applied dunning campaign | `app/models/customer.rb` | libs/billing | planned | |
 | x402 agent address | `app/models/customer.rb` (`x402_agent_address`) | libs/core | planned | See §1.36 |

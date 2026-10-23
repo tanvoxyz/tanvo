@@ -1,0 +1,60 @@
+# sqlc compiles queries/*.sql against schema/*.sql into internal/db
+# (docs/development.md §4): pnpm nx run store:sqlc.
+version: "2"
+sql:
+  - engine: postgresql
+    schema: schema
+    queries: queries
+    strict_function_checks: true
+    gen:
+      go:
+        package: db
+        out: internal/db
+        sql_package: pgx/v5
+        emit_pointers_for_null_types: true
+        emit_empty_slices: true
+        emit_exported_queries: false
+        emit_interface: false
+        output_db_file_name: db.go
+        output_models_file_name: models.go
+        overrides:
+          - db_type: uuid
+            go_type: github.com/google/uuid.UUID
+          - db_type: uuid
+            nullable: true
+            go_type:
+              import: github.com/google/uuid
+              type: UUID
+              pointer: true
+          - db_type: pg_catalog.numeric
+            go_type: github.com/tanvoxyz/tanvo/libs/money.Decimal
+          - db_type: pg_catalog.numeric
+            nullable: true
+            go_type:
+              import: github.com/tanvoxyz/tanvo/libs/money
+              type: Decimal
+              pointer: true
+          - db_type: timestamptz
+            go_type: time.Time
+          - db_type: timestamptz
+            nullable: true
+            go_type:
+              type: time.Time
+              pointer: true
+          - db_type: date
+            go_type: time.Time
+          - db_type: date
+            nullable: true
+            go_type:
+              type: time.Time
+              pointer: true
+          - db_type: json
+            go_type: encoding/json.RawMessage
+          - db_type: json
+            nullable: true
+            go_type: encoding/json.RawMessage
+          - db_type: jsonb
+            go_type: encoding/json.RawMessage
+          - db_type: jsonb
+            nullable: true
+            go_type: encoding/json.RawMessage

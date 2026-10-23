@@ -31,7 +31,7 @@
 * Phase 0: scaffold, Nx plugins, licenses, CI and every document (with translations) are in place.
 * Phase 1 is done: `libs/money`, `libs/period` (623 ported cases), `libs/expression` (151 cases, Rust → WASM with input limits), `libs/pricing` (433 cases), `libs/metering` (478 cases, with the `storetest` conformance suite) and `libs/tax` (264 cases). [Parity](parity.md) marks their features `logic done`.
 * Phase 2: `libs/core` is done; `libs/billing` is being built.
-* Phase 3: `libs/webhooks` (signing, address guard, delivery and inbound processing) is done in logic; `libs/proto`, `libs/store` and `libs/eventstore` are being built.
+* Phase 3: `libs/proto`, `libs/eventstore` and `libs/store` (PostgreSQL schema, migrations, RLS, a transactional job outbox, and the repository conformance suite passing on memstore and PostgreSQL) are done; `libs/webhooks` is done in logic; `libs/ingest`, `libs/jobs`, `libs/documents`, `libs/mail` and `libs/auth` are being built.
 
 ## 4. After Parity: Lessons from OpenMeter and Flexprice
 

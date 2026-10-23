@@ -1,0 +1,43 @@
+{
+  "name": "store",
+  "targets": {
+    "sqlc": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "sqlc generate",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true,
+      "inputs": ["{projectRoot}/sqlc.yaml", "{projectRoot}/schema/*.sql", "{projectRoot}/queries/*.sql"],
+      "outputs": ["{projectRoot}/internal/db"]
+    },
+    "sqlc-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "sqlc diff",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true,
+      "inputs": ["{projectRoot}/sqlc.yaml", "{projectRoot}/schema/*.sql", "{projectRoot}/queries/*.sql", "{projectRoot}/internal/db/*.go"]
+    },
+    "migrate-diff": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go run ./internal/cmd/migrate-diff -name {args.name}",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "migrate-check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go run ./internal/cmd/migrate-diff -check",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true,
+      "inputs": ["go", "{projectRoot}/schema/*.sql", "{projectRoot}/migrations/*"]
+    },
+    "test": {
+      "inputs": ["go", "goTestdata", "{projectRoot}/schema/*.sql", "{projectRoot}/queries/*.sql", "{projectRoot}/migrations/*", { "env": "TANVO_TEST_POSTGRES_DSN" }, { "env": "TANVO_STORE_TEST_SCHEMA" }]
+    }
+  }
+}

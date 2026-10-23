@@ -1,0 +1,342 @@
+package store
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/google/uuid"
+
+	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/customer"
+	"github.com/tanvoxyz/tanvo/libs/core/port"
+	"github.com/tanvoxyz/tanvo/libs/store/internal/db"
+)
+
+// bindCustomer binds the repositories of the customer aggregates.
+func (t *txState) bindCustomer(r *port.Repos) {
+	r.Customers = customerRepo{t}
+}
+
+// customerRepo implements customer.Repository.
+type customerRepo struct{ t *txState }
+
+var _ customer.Repository = customerRepo{}
+
+func customerParams(c *customer.Customer) (db.CreateCustomerParams, error) {
+	attempts := c.DunningCampaignAttempts
+	if attempts == nil {
+		attempts = map[string]int{}
+	}
+	att, err := encodeJSON(attempts)
+	if err != nil {
+		return db.CreateCustomerParams{}, fmt.Errorf("customer %s: dunning attempts: %w", c.ID, err)
+	}
+	return db.CreateCustomerParams{
+		OrganizationID:               c.OrganizationID.UUID(),
+		ID:                           c.ID.UUID(),
+		ExternalID:                   c.ExternalID,
+		BillingEntityID:              c.BillingEntityID.UUID(),
+		CustomerType:                 optString(string(c.CustomerType)),
+		AccountType:                  string(c.AccountType),
+		Name:                         c.Name,
+		Firstname:                    c.Firstname,
+		Lastname:                     c.Lastname,
+		LegalName:                    c.LegalName,
+		LegalNumber:                  c.LegalNumber,
+		TaxIdentificationNumber:      c.TaxIdentificationNumber,
+		Email:                        c.Email,
+		Phone:                        c.Phone,
+		Url:                          c.URL,
+		LogoUrl:                      c.LogoURL,
+		BillingAddressLine1:          c.BillingAddress.Line1,
+		BillingAddressLine2:          c.BillingAddress.Line2,
+		BillingAddressCity:           c.BillingAddress.City,
+		BillingAddressState:          c.BillingAddress.State,
+		BillingAddressZipcode:        c.BillingAddress.Zipcode,
+		BillingAddressCountry:        c.BillingAddress.Country,
+		ShippingAddressLine1:         c.ShippingAddress.Line1,
+		ShippingAddressLine2:         c.ShippingAddress.Line2,
+		ShippingAddressCity:          c.ShippingAddress.City,
+		ShippingAddressState:         c.ShippingAddress.State,
+		ShippingAddressZipcode:       c.ShippingAddress.Zipcode,
+		ShippingAddressCountry:       c.ShippingAddress.Country,
+		Currency:                     currencyCode(c.Currency),
+		Timezone:                     locationName(c.Timezone),
+		DocumentLocale:               c.DocumentLocale,
+		InvoiceGracePeriodDays:       optInt32(c.InvoiceGracePeriodDays),
+		NetPaymentTermDays:           optInt32(c.NetPaymentTermDays),
+		FinalizeZeroAmountInvoice:    string(c.FinalizeZeroAmountInvoice),
+		IssuingDateAnchor:            optString(string(c.IssuingDateAnchor)),
+		IssuingDateAdjustment:        optString(string(c.IssuingDateAdjustment)),
+		SkipInvoiceCustomSections:    c.SkipInvoiceCustomSections,
+		AppliedDunningCampaignID:     optUUID(c.AppliedDunningCampaignID),
+		ExcludeFromDunningCampaign:   c.ExcludeFromDunningCampaign,
+		DunningCampaignAttempts:      att,
+		LastDunningCampaignAttemptAt: optUTC(c.LastDunningCampaignAttemptAt),
+		SequentialID:                 c.SequentialID,
+		Slug:                         c.Slug,
+		PaymentReceiptCounter:        c.PaymentReceiptCounter,
+		Metadata:                     encodeMetadata(c.Metadata),
+		DeletedAt:                    optUTC(c.DeletedAt),
+		CreatedAt:                    utc(c.CreatedAt),
+		UpdatedAt:                    utc(c.UpdatedAt),
+	}, nil
+}
+
+// customerRow is the common shape of the customer reads; the row types
+// sqlc generates for each query convert to it.
+type customerRow struct {
+	Customer                      db.Customer
+	TaxIds                        []uuid.UUID
+	InvoiceCustomSectionIds       []uuid.UUID
+	SystemInvoiceCustomSectionIds []uuid.UUID
+}
+
+func customerOf(row customerRow) (*customer.Customer, error) {
+	r := row.Customer
+	loc, err := location(r.Timezone)
+	if err != nil {
+		return nil, fmt.Errorf("customer %s: %w", r.ID, err)
+	}
+	cur, err := currency(r.Currency)
+	if err != nil {
+		return nil, fmt.Errorf("customer %s: %w", r.ID, err)
+	}
+	md, err := decodeMetadata(r.Metadata)
+	if err != nil {
+		return nil, fmt.Errorf("customer %s: %w", r.ID, err)
+	}
+	var attempts map[string]int
+	if err := decodeJSON(r.DunningCampaignAttempts, &attempts); err != nil {
+		return nil, fmt.Errorf("customer %s: dunning attempts: %w", r.ID, err)
+	}
+	if len(attempts) == 0 {
+		attempts = nil
+	}
+	return &customer.Customer{
+		ID:                      idOf[core.CustomerID](r.ID),
+		OrganizationID:          idOf[core.OrganizationID](r.OrganizationID),
+		ExternalID:              r.ExternalID,
+		BillingEntityID:         idOf[core.BillingEntityID](r.BillingEntityID),
+		CustomerType:            customer.Type(deref(r.CustomerType)),
+		AccountType:             customer.AccountType(r.AccountType),
+		Name:                    r.Name,
+		Firstname:               r.Firstname,
+		Lastname:                r.Lastname,
+		LegalName:               r.LegalName,
+		LegalNumber:             r.LegalNumber,
+		TaxIdentificationNumber: r.TaxIdentificationNumber,
+		Email:                   r.Email,
+		Phone:                   r.Phone,
+		URL:                     r.Url,
+		LogoURL:                 r.LogoUrl,
+		BillingAddress: core.Address{
+			Line1: r.BillingAddressLine1, Line2: r.BillingAddressLine2, City: r.BillingAddressCity,
+			State: r.BillingAddressState, Zipcode: r.BillingAddressZipcode, Country: r.BillingAddressCountry,
+		},
+		ShippingAddress: core.Address{
+			Line1: r.ShippingAddressLine1, Line2: r.ShippingAddressLine2, City: r.ShippingAddressCity,
+			State: r.ShippingAddressState, Zipcode: r.ShippingAddressZipcode, Country: r.ShippingAddressCountry,
+		},
+		Currency:                      cur,
+		Timezone:                      loc,
+		DocumentLocale:                r.DocumentLocale,
+		InvoiceGracePeriodDays:        optInt(r.InvoiceGracePeriodDays),
+		NetPaymentTermDays:            optInt(r.NetPaymentTermDays),
+		FinalizeZeroAmountInvoice:     customer.ZeroAmountFinalization(r.FinalizeZeroAmountInvoice),
+		IssuingDateAnchor:             core.IssuingDateAnchor(deref(r.IssuingDateAnchor)),
+		IssuingDateAdjustment:         core.IssuingDateAdjustment(deref(r.IssuingDateAdjustment)),
+		SkipInvoiceCustomSections:     r.SkipInvoiceCustomSections,
+		InvoiceCustomSectionIDs:       idsOf[core.InvoiceCustomSectionID](row.InvoiceCustomSectionIds),
+		SystemInvoiceCustomSectionIDs: idsOf[core.InvoiceCustomSectionID](row.SystemInvoiceCustomSectionIds),
+		AppliedDunningCampaignID:      optIDOf[core.DunningCampaignID](r.AppliedDunningCampaignID),
+		ExcludeFromDunningCampaign:    r.ExcludeFromDunningCampaign,
+		DunningCampaignAttempts:       attempts,
+		LastDunningCampaignAttemptAt:  optUTC(r.LastDunningCampaignAttemptAt),
+		SequentialID:                  r.SequentialID,
+		Slug:                          r.Slug,
+		PaymentReceiptCounter:         r.PaymentReceiptCounter,
+		Metadata:                      md,
+		TaxIDs:                        idsOf[core.TaxID](row.TaxIds),
+		DeletedAt:                     optUTC(r.DeletedAt),
+		CreatedAt:                     utc(r.CreatedAt),
+		UpdatedAt:                     utc(r.UpdatedAt),
+	}, nil
+}
+
+// customerHasLinks reports whether c has taxes or invoice custom sections.
+func customerHasLinks(c *customer.Customer) bool {
+	return len(c.TaxIDs) > 0 || len(c.InvoiceCustomSectionIDs) > 0 || len(c.SystemInvoiceCustomSectionIDs) > 0
+}
+
+// writeLinks replaces the taxes and invoice custom sections of c.
+func (r customerRepo) writeLinks(ctx context.Context, q *db.Queries, c *customer.Customer, replace bool) error {
+	org, id := c.OrganizationID.UUID(), c.ID.UUID()
+	if replace {
+		if err := q.DeleteCustomerTaxes(ctx, db.DeleteCustomerTaxesParams{OrganizationID: org, CustomerID: id}); err != nil {
+			return err
+		}
+		if err := q.DeleteCustomerSections(ctx, db.DeleteCustomerSectionsParams{OrganizationID: org, CustomerID: id}); err != nil {
+			return err
+		}
+	}
+	if len(c.TaxIDs) > 0 {
+		if err := q.InsertCustomerTaxes(ctx, db.InsertCustomerTaxesParams{OrganizationID: org, CustomerID: id, TaxIds: uuids(c.TaxIDs)}); err != nil {
+			return err
+		}
+	}
+	for _, s := range []struct {
+		system bool
+		ids    []core.InvoiceCustomSectionID
+	}{{false, c.InvoiceCustomSectionIDs}, {true, c.SystemInvoiceCustomSectionIDs}} {
+		if len(s.ids) == 0 {
+			continue
+		}
+		if err := q.InsertCustomerSections(ctx, db.InsertCustomerSectionsParams{
+			OrganizationID: org, CustomerID: id, System: s.system, SectionIds: uuids(s.ids),
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r customerRepo) Create(ctx context.Context, c *customer.Customer) error {
+	q, err := r.t.queries(ctx, c.OrganizationID)
+	if err != nil {
+		return err
+	}
+	p, err := customerParams(c)
+	if err != nil {
+		return err
+	}
+	if !customerHasLinks(c) {
+		n, err := q.CreateCustomer(ctx, p)
+		return insertErr("customer", n, err)
+	}
+	// A missing tax or section must not abort the transaction: guard the
+	// insert with its links.
+	var n int64
+	err = r.t.guard(ctx, func() error {
+		var err error
+		n, err = q.CreateCustomer(ctx, p)
+		if err != nil || n == 0 {
+			return err
+		}
+		return r.writeLinks(ctx, q, c, false)
+	})
+	return insertErr("customer", n, err)
+}
+
+func (r customerRepo) Update(ctx context.Context, c *customer.Customer) error {
+	q, err := r.t.queries(ctx, c.OrganizationID)
+	if err != nil {
+		return err
+	}
+	p, err := customerParams(c)
+	if err != nil {
+		return err
+	}
+	// The external ID is unique among live customers: guard the update so
+	// that a conflict keeps the transaction usable.
+	var n int64
+	err = r.t.guard(ctx, func() error {
+		var err error
+		n, err = q.UpdateCustomer(ctx, db.UpdateCustomerParams(p))
+		if err != nil || n == 0 {
+			return err
+		}
+		return r.writeLinks(ctx, q, c, true)
+	})
+	return updateErr("customer", c.ID, n, err)
+}
+
+func (r customerRepo) Get(ctx context.Context, org core.OrganizationID, id core.CustomerID) (*customer.Customer, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	row, err := q.GetCustomer(ctx, db.GetCustomerParams{OrganizationID: org.UUID(), ID: id.UUID()})
+	if err != nil {
+		return nil, getErr("customer", id, err)
+	}
+	return customerOf(customerRow(row))
+}
+
+func (r customerRepo) GetByExternalID(ctx context.Context, org core.OrganizationID, externalID string) (*customer.Customer, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	row, err := q.GetCustomerByExternalID(ctx, db.GetCustomerByExternalIDParams{OrganizationID: org.UUID(), ExternalID: externalID})
+	if err != nil {
+		return nil, getErr("customer", externalID, err)
+	}
+	return customerOf(customerRow(row))
+}
+
+func (r customerRepo) List(ctx context.Context, org core.OrganizationID, f customer.Filter, page core.PageRequest) (core.Page[*customer.Customer], error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return core.Page[*customer.Customer]{}, err
+	}
+	after, lim, err := pageArgs(page)
+	if err != nil {
+		return core.Page[*customer.Customer]{}, err
+	}
+	var search *string
+	if f.Search != "" {
+		search = new(likePattern(f.Search))
+	}
+	rows, err := q.ListCustomers(ctx, db.ListCustomersParams{
+		OrganizationID:   org.UUID(),
+		IncludeDeleted:   f.IncludeDeleted,
+		BillingEntityIds: uuids(f.BillingEntityIDs),
+		AccountType:      optString(string(f.AccountType)),
+		CustomerType:     optString(string(f.CustomerType)),
+		Search:           search,
+		After:            after,
+		Lim:              lim,
+	})
+	if err != nil {
+		return core.Page[*customer.Customer]{}, fmt.Errorf("list customers: %w", mapErr(err))
+	}
+	return pageOf(rows, page,
+		func(r db.ListCustomersRow) (*customer.Customer, error) { return customerOf(customerRow(r)) },
+		func(c *customer.Customer) string { return c.ID.String() })
+}
+
+func (r customerRepo) ListForDunning(ctx context.Context, org core.OrganizationID, campaign core.DunningCampaignID, page core.PageRequest) (core.Page[*customer.Customer], error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return core.Page[*customer.Customer]{}, err
+	}
+	after, lim, err := pageArgs(page)
+	if err != nil {
+		return core.Page[*customer.Customer]{}, err
+	}
+	rows, err := q.ListCustomersForDunning(ctx, db.ListCustomersForDunningParams{
+		OrganizationID: org.UUID(), Campaign: optUUID(campaign), After: after, Lim: lim,
+	})
+	if err != nil {
+		return core.Page[*customer.Customer]{}, fmt.Errorf("list customers for dunning: %w", mapErr(err))
+	}
+	return pageOf(rows, page,
+		func(r db.ListCustomersForDunningRow) (*customer.Customer, error) { return customerOf(customerRow(r)) },
+		func(c *customer.Customer) string { return c.ID.String() })
+}
+
+func (r customerRepo) ResetDunningCampaign(ctx context.Context, org core.OrganizationID, campaign core.DunningCampaignID) (int, error) {
+	if campaign.IsZero() {
+		return 0, nil
+	}
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return 0, err
+	}
+	n, err := q.ResetCustomersDunningCampaign(ctx, db.ResetCustomersDunningCampaignParams{OrganizationID: org.UUID(), Campaign: campaign.UUID()})
+	if err != nil {
+		return 0, fmt.Errorf("reset dunning campaign %s: %w", campaign, mapErr(err))
+	}
+	return int(n), nil
+}

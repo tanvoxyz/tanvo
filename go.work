@@ -9,6 +9,7 @@ use (
 	./libs/period
 	./libs/pricing
 	./libs/proto
+	./libs/store
 	./libs/tax
 	./libs/webhooks
 )

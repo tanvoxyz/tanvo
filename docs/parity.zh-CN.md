@@ -138,7 +138,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 集成客户（会计、CRM、税务）的批量创建与更新 | `app/services/integration_customers/create_or_update_batch_service.rb` | libs/core | 计划中 | |
 | 用于收集支付方式的结账 URL | `app/services/customers/generate_checkout_url_service.rb` | libs/billing | 计划中 | |
 | 客户门户 URL | `app/services/customer_portal/generate_url_service.rb` | libs/auth | 计划中 | |
-| 串行化每个客户操作的锁（预付额度、支付方式、贷项通知单、优惠券、计费调度） | `app/services/customers/lock_service.rb` | libs/store | 计划中 | PostgreSQL 咨询锁 |
+| 串行化每个客户操作的锁（预付额度、支付方式、贷项通知单、优惠券、计费调度） | `app/services/customers/lock_service.rb` | libs/store | 逻辑已完成 | PostgreSQL 咨询锁 |
 | 按客户选择或跳过发票自定义段落 | `app/services/customers/manage_invoice_custom_sections_service.rb` | libs/billing | 计划中 | |
 | 排除在催收之外与所应用的催收活动 | `app/models/customer.rb` | libs/billing | 计划中 | |
 | x402 代理地址 | `app/models/customer.rb`（`x402_agent_address`） | libs/core | 计划中 | 见 §1.36 |
