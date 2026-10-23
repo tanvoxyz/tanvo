@@ -17,7 +17,7 @@ This is the repository working guide for AI coding agents (and new developers). 
 
 Tanvo is an open-source usage-based billing and metering platform with a Go server at its core. It reimplements every non-deprecated feature of lago-api on a modern stack, without compatibility with Lago. The core is licensed under **AGPL-3.0-or-later**; `libs/proto` under Apache-2.0; `ee/` under the Elastic License 2.0 ([architecture §1.4](docs/architecture.md#14-license)).
 
-The upstream sources used as references live outside this repository: lago-api at `~/Code/frameworks/lago/api` (Rails; the parity baseline is release **v1.55.0**, with the exceptions listed in [parity](docs/parity.md#alignment-baseline)), the events processor at `~/Code/frameworks/lago/events-processor` (Go), lago-expression at `github.com/getlago/lago-expression` (Rust).
+The upstream sources used as references live outside this repository: lago-api at `~/Code/frameworks/lago/api` (Rails; the parity baseline is release **v1.55.0**, with no unreleased features; see [parity](docs/parity.md#alignment-baseline)), the events processor at `~/Code/frameworks/lago/events-processor` (Go), lago-expression at `github.com/getlago/lago-expression` (Rust).
 
 ## Environment and Common Commands
 
