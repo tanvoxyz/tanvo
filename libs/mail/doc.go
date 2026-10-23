@@ -7,7 +7,8 @@
 // authentication methods updated, admin feature toggled) plus the
 // invitation email Tanvo adds. Bodies are rendered from embedded HTML and
 // text templates in every locale lago ships (de, en, es, fr, it, nb, pt-BR,
-// sv, zh-TW), falling back to English for keys a locale lacks. Builders
+// sv, zh-TW) and in Simplified Chinese (zh-CN, a Tanvo addition), falling
+// back to English for keys a locale lacks. Builders
 // apply the billing entity's email settings and the from, reply-to and
 // recipient rules of lago's mailers; when lago would not send, they return
 // an error matching [ErrSkipped].

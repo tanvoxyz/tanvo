@@ -1,0 +1,137 @@
+# Simplified Chinese (mainland terminology). A Tanvo addition: lago-api ships
+# zh-TW only (config/application.rb:49). Keys and formats mirror zh-TW.yaml;
+# missing keys fall back to en.yml.
+date:
+    abbr_month_names:
+        - null
+        - 一月
+        - 二月
+        - 三月
+        - 四月
+        - 五月
+        - 六月
+        - 七月
+        - 八月
+        - 九月
+        - 十月
+        - 十一月
+        - 十二月
+    formats:
+        default: '%Y年%-m月%-d日'
+    month_names:
+        - null
+        - 一月
+        - 二月
+        - 三月
+        - 四月
+        - 五月
+        - 六月
+        - 七月
+        - 八月
+        - 九月
+        - 十月
+        - 十一月
+        - 十二月
+email:
+    api_key:
+        created:
+            access_warning: 如果此变更并非由您授权，请立即重置密码并删除该 API 密钥，以保护您的账户安全。
+            change_notice: 如果此变更由您团队的成员发起，您现在就可以使用此 API 密钥自动化计费流程。
+            email_info: 您收到此邮件，是因为您的 Tanvo 实例中创建了一个新的 API 密钥，而您拥有管理员权限。
+            greetings: 您好，
+            key_has_been_created: 已为您的组织 %{organization_name} 成功创建新的 API 密钥。
+            subject: 已创建新的 Tanvo API 密钥
+        destroyed:
+            access_warning: 如果此请求并非由您授权，请立即重置密码，以确保账户安全。
+            change_notice: 如果此变更由您团队的成员发起，则无需进一步操作。
+            email_info: 您收到此邮件，是因为您的 Tanvo 实例中删除了一个 API 密钥，而您拥有管理员权限。
+            greetings: 您好，
+            key_has_been_destroyed: 已删除您的组织 %{organization_name} 的一个 API 密钥。
+            subject: 已删除 Tanvo API 密钥
+        rotated:
+            access_warning: 如果此请求并非由您授权，请立即重置密码并轮换 API 密钥，以确保账户安全。
+            change_notice: 如果此变更由您团队的成员发起，则无需进一步操作。为确保计费正常运行，请尽快更新您的应用以使用新的令牌。
+            email_info: 您收到此邮件，是因为您的 Tanvo 实例中轮换了一个 API 密钥，而您拥有管理员权限。
+            greetings: 您好，
+            key_has_been_rotated: 您的组织 %{organization_name} 的 API 密钥已完成轮换！
+            subject: 您的 Tanvo API 密钥已完成轮换
+    credit_note:
+        created:
+            credit_note_from: 来自 %{billing_entity_name} 的贷项通知单
+            credit_note_number: 贷项通知单编号
+            credited_notice: 已于 %{date} 计入客户余额
+            download: 下载贷项通知单查看详情
+            invoice_number: 发票编号
+            issue_date: 开具日期
+            issued_notice: 开具于 %{date}
+            offset_invoice_notice: 发票 %{invoice_number} 已于 %{date} 冲抵
+            refunded_notice: 已于 %{date} 退款
+            subject: '您来自 %{billing_entity_name} 的贷项通知单 #%{credit_note_number}'
+    data_export:
+        completed:
+            fallback_text: 如果链接已过期，请在控制台重新生成链接。
+            greetings: 您好
+            intro: 您的 %{resource_type} 导出文件已准备就绪！您可以通过下方链接下载，链接有效期为 7 天。
+            team: Tanvo 团队
+            main_cta_label: 下载导出文件
+            subject: 您的 Tanvo %{resource_type} 导出文件已准备就绪！
+            thanks: 谢谢，
+    invoice:
+        finalized:
+            download: 下载发票查看详情
+            due_date: 应付总额 %{date}
+            invoice_from: 来自 %{billing_entity_name} 的发票
+            invoice_number: 发票编号
+            issue_date: 开具日期
+            issued_on: 开具于 %{date}
+            subject: '您来自 %{billing_entity_name} 的发票 #%{invoice_number}'
+    organization:
+        authentication_methods_updated:
+            changes: 用户 %{user_email} 对登录验证方式做了以下变更。
+            disabled: 已停用 %{login_method}
+            email_info: 如果您没有预料到此变更，请检查您的验证设置。
+            enabled: 已启用 %{login_method}
+            reasoning: 您收到此消息，是因为您是该组织的管理员。
+            subject: 您的 Tanvo 工作区登录方式已更新
+    password_reset:
+        subject: 重置您的 Tanvo 密码
+    payment_receipt:
+        created:
+            payment_receipt_from: 来自 %{billing_entity_name} 的付款收据
+            subject: '您来自 %{billing_entity_name} 的付款收据 #%{payment_receipt_number}'
+    payment_request:
+        requested:
+            already_paid: 如果您已付款，请忽略此邮件。
+            hello: 您好 %{customer_name}，
+            pay_amount: 支付余额
+            payment_terms:
+                one: 按照合同约定，我们的付款期限为 %{count} 天。
+                other: 按照合同约定，我们的付款期限为 %{count} 天。
+                zero: 按照合同约定，需在发票生成时立即付款。
+            remaining_amount: 待付金额
+            reminder_overdue_balance: 这是 %{billing_entity_name} 财务团队的提醒：部分发票已逾期。
+            subject: 您在 %{billing_entity_name} 的逾期应付款
+            thank_you: 谢谢。
+            total_amount_due: 应付总额为 %{amount}。
+    questions: 有任何问题？请通过以下方式联系我们：
+invoice:
+    total: 合计
+    total_due_amount: 应付金额
+    total_paid_amount: 已付金额
+money:
+    decimal_mark: .
+    format: '%u%n'
+    thousands_separator: ','
+password_reset:
+    email_info: 您收到此邮件，是因为有人为您的账户申请了密码重置。
+    fallback_text: 此链接将在 30 分钟后失效。如需新的密码重置链接，请访问：
+    greetings: 您好
+    intro: 很抱歉您忘记了 Tanvo 密码！别担心，您可以点击下方按钮重置密码：
+    team: Tanvo 团队
+    main_cta_label: 重置密码
+    thanks: 谢谢，
+payment_receipt:
+    download_receipt: 下载收据
+    number: 收据编号
+    paid_on: 已于 %{date} 付款（待付：%{total_due_amount}）
+    payment_date: 付款日期

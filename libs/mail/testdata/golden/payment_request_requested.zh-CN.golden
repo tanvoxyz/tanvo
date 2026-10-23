@@ -1,0 +1,77 @@
+Kind: payment_request_requested
+Locale: zh-CN
+From: "ACME Corp" <noreply@tanvo.test>
+Reply-To: "ACME Corp" <billing@acme.test>
+To: <customer@example.com>
+Cc: 
+Bcc: 
+Subject: 您在 ACME Corp 的逾期应付款
+
+==== text
+您好 Jane Doe，
+
+这是 ACME Corp 财务团队的提醒：部分发票已逾期。
+
+应付总额为 CHF 2,970.00。
+
+按照合同约定，我们的付款期限为 30 天。
+
+如果您已付款，请忽略此邮件。
+
+谢谢。
+
+待付金额: CHF 2,970.00
+支付余额: https://pay.tanvo.test/pr_1
+
+发票编号 | 应付金额
+ACME-202409-001 | CHF 999.99
+ACME-202409-002 | CHF 1,970.01
+
+==== html
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<style>
+table td { mso-line-height-rule: exactly; }
+table, td { font-family: Helvetica Neue, Helvetica, Arial; }
+.main-table { margin: auto; max-width: 600px; min-width: 600px; }
+@media screen and (max-width: 776px) { .main-table { max-width: 360px; min-width: 360px; } }
+a img { border: none; }
+a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+a, a:visited, a:hover, a:active { color: inherit; }
+</style>
+</head>
+<body style="margin: 0; padding: 0; word-spacing: normal; background-color: #f3f4f6; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+<table style="width: 100%; border: 0; margin: 0; padding: 0" cellspacing="0" cellpadding="0"><tr><td>
+<table class="main-table" cellpadding="0" cellspacing="0" style="padding: 64px 0">
+<tr><td>
+<table cellpadding="0" cellspacing="0" style="width: 100%; background-color: #fff; border: 1px solid #d9dee7; border-radius: 12px; padding: 32px;"><tr><td>
+
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">您好 Jane Doe，</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">这是 ACME Corp 财务团队的提醒：部分发票已逾期。</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">应付总额为 CHF 2,970.00。</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">按照合同约定，我们的付款期限为 30 天。</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">如果您已付款，请忽略此邮件。</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">谢谢。</div>
+<div style="padding-top: 32px;font-style: normal;font-weight: 400;font-size: 14px;line-height: 20px;color: #66758F;border-top: 1px solid #d9dee7;">待付金额</div>
+<div style="margin-bottom: 16px;font-style: normal;font-weight: 700;font-size: 32px;line-height: 40px;color: #19212E;">CHF 2,970.00</div>
+<table style="margin-bottom: 32px" width="100%" cellspacing="0" cellpadding="0"><tr><td><table cellspacing="0" cellpadding="0"><tr>
+<td style="border-radius: 12px;" bgcolor="#006CFA"><a id="payment_link" href="https://pay.tanvo.test/pr_1" style="padding: 10px 16px;font-size: 16px; color: #ffffff;text-decoration: none;display: inline-block;font-weight: 400;font-style: normal;line-height: 24px;">支付余额</a></td>
+</tr></table></td></tr></table>
+<table style="width: 100%; border-collapse: collapse;">
+<tr style="border-bottom: 1px solid #d9dee7;"><td style="font-size: 14px; font-weight: 400; line-height: 20px; text-align: left; color: #66758F; white-space: nowrap; padding: 16px 0;">发票编号</td><td style="font-size: 14px; font-weight: 400; line-height: 20px; text-align: right; color: #66758F; white-space: nowrap; padding: 16px 0;">应付金额</td></tr>
+<tr style="border-bottom: 1px solid #d9dee7;"><td style="font-size: 14px; font-weight: 400; line-height: 20px; text-align: left; padding-right: 16px; white-space: nowrap; padding: 16px 0;"><a href="https://files.tanvo.test/1.pdf" style="text-decoration: none; color: #006cfa">ACME-202409-001</a></td><td style="font-size: 14px; font-weight: 400; line-height: 20px; text-align: right; color: #19212e; white-space: nowrap; padding: 16px 0;">CHF 999.99</td></tr>
+<tr style="border-bottom: 1px solid #d9dee7;"><td style="font-size: 14px; font-weight: 400; line-height: 20px; text-align: left; padding-right: 16px; white-space: nowrap; padding: 16px 0;"><a href="https://files.tanvo.test/2.pdf" style="text-decoration: none; color: #006cfa">ACME-202409-002</a></td><td style="font-size: 14px; font-weight: 400; line-height: 20px; text-align: right; color: #19212e; white-space: nowrap; padding: 16px 0;">CHF 1,970.01</td></tr>
+</table>
+
+</td></tr></table>
+</td></tr>
+</table>
+</td></tr></table>
+</body>
+</html>
+

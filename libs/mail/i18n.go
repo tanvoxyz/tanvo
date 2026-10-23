@@ -18,10 +18,10 @@ var localeFS embed.FS
 // and the fallback for keys a locale does not translate.
 const DefaultLocale = "en"
 
-// Locales returns the shipped locales, in the order lago-api lists them
-// (config/application.rb).
+// Locales returns the shipped locales: lago-api's, in the order it lists
+// them (config/application.rb:49), then zh-CN, a Tanvo addition.
 func Locales() []string {
-	return []string{"en", "fr", "nb", "de", "it", "es", "sv", "pt-BR", "zh-TW"}
+	return []string{"en", "fr", "nb", "de", "it", "es", "sv", "pt-BR", "zh-TW", "zh-CN"}
 }
 
 // catalog holds the translations of every shipped locale.
@@ -46,9 +46,9 @@ func loadCatalog() (*catalog, error) {
 }
 
 // ResolveLocale maps a BCP 47 tag to a shipped locale: an exact match
-// (case-insensitive, "_" accepted for "-"), else the tag's language
-// ("fr-CA" → "fr"), else [DefaultLocale] — the fallbacks Rails applies
-// with config.i18n.fallbacks.
+// (case-insensitive, "_" accepted for "-"), else Chinese by script (see
+// [chineseLocale]), else the tag's language ("fr-CA" → "fr"), else
+// [DefaultLocale] — the fallbacks Rails applies with config.i18n.fallbacks.
 func ResolveLocale(tag string) string {
 	tag = strings.ReplaceAll(strings.TrimSpace(tag), "_", "-")
 	for _, l := range Locales() {
@@ -56,14 +56,31 @@ func ResolveLocale(tag string) string {
 			return l
 		}
 	}
-	if lang, _, ok := strings.Cut(tag, "-"); ok {
-		for _, l := range Locales() {
-			if strings.EqualFold(l, lang) {
-				return l
-			}
+	lang, rest, _ := strings.Cut(tag, "-")
+	if strings.EqualFold(lang, "zh") {
+		return chineseLocale(rest)
+	}
+	for _, l := range Locales() {
+		if strings.EqualFold(l, lang) {
+			return l
 		}
 	}
 	return DefaultLocale
+}
+
+// chineseLocale picks the Chinese locale for the subtags after "zh": the
+// Traditional script (Hant), or a region writing it (TW, HK, MO), gives
+// zh-TW; anything else, plain "zh" included, gives zh-CN.
+func chineseLocale(subtags string) string {
+	for st := range strings.SplitSeq(subtags, "-") {
+		switch strings.ToUpper(st) {
+		case "HANS":
+			return "zh-CN"
+		case "HANT", "TW", "HK", "MO":
+			return "zh-TW"
+		}
+	}
+	return "zh-CN"
 }
 
 func (c *catalog) lookup(locale, key string) (any, bool) {

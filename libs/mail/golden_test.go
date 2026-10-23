@@ -15,7 +15,7 @@ import (
 func goldenLocales(k Kind) []string {
 	switch k {
 	case KindInvoiceCreated, KindCreditNoteCreated, KindPaymentReceiptCreated, KindPaymentRequestRequested:
-		return []string{"en", "de", "fr", "zh-TW"}
+		return []string{"en", "de", "fr", "zh-TW", "zh-CN"}
 	default:
 		return []string{"en"}
 	}

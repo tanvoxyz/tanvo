@@ -16,6 +16,7 @@ func TestLocalizerDate(t *testing.T) {
 		{"de", "05. Mär. 2024"},
 		{"fr", "5 mars 2024"},
 		{"zh-TW", "2024年3月5日"},
+		{"zh-CN", "2024年3月5日"},
 	}
 	for _, tt := range tests {
 		got, err := c.Localizer(tt.locale).Date(d)
@@ -44,6 +45,8 @@ func TestLocalizerMoney(t *testing.T) {
 		{"fr", "1234.5", "EUR", "1 234,50 €"},
 		{"fr", "1234.5", "CHF", "1 234,50 CHF"},
 		{"zh-TW", "1234.5", "CHF", "CHF 1,234.50"},
+		{"zh-CN", "1234.5", "CHF", "CHF 1,234.50"},
+		{"zh-CN", "1234.5", "CNY", "¥1,234.50"},
 	}
 	for _, tt := range tests {
 		got, err := c.Localizer(tt.locale).Money(money.MustParse(tt.amount), tt.code)

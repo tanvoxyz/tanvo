@@ -1,0 +1,64 @@
+Kind: invoice_created
+Locale: zh-CN
+From: "ACME Corp" <noreply@tanvo.test>
+Reply-To: "ACME Corp" <billing@acme.test>
+To: <customer@example.com>
+Cc: 
+Bcc: 
+Subject: 您来自 ACME Corp 的发票 #ACME-202410-001
+Attachment: invoice-ACME-202410-001.pdf (application/pdf, 16 bytes)
+
+==== text
+来自 ACME Corp 的发票
+€1,234.50
+开具于 2024年10月3日
+
+发票编号: ACME-202410-001
+开具日期: 2024年10月3日
+
+下载发票查看详情: https://files.tanvo.test/invoice.pdf
+
+==== html
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<style>
+table td { mso-line-height-rule: exactly; }
+table, td { font-family: Helvetica Neue, Helvetica, Arial; }
+.main-table { margin: auto; max-width: 600px; min-width: 600px; }
+@media screen and (max-width: 776px) { .main-table { max-width: 360px; min-width: 360px; } }
+a img { border: none; }
+a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+a, a:visited, a:hover, a:active { color: inherit; }
+</style>
+</head>
+<body style="margin: 0; padding: 0; word-spacing: normal; background-color: #f3f4f6; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+<table style="width: 100%; border: 0; margin: 0; padding: 0" cellspacing="0" cellpadding="0"><tr><td>
+<table class="main-table" cellpadding="0" cellspacing="0" style="padding: 64px 0">
+<tr><td>
+<table cellpadding="0" cellspacing="0" style="width: 100%; background-color: #fff; border: 1px solid #d9dee7; border-radius: 12px; padding: 32px;"><tr><td>
+
+<table cellpadding="0" cellspacing="0" style="margin: auto; padding-bottom: 24px">
+<tr><td style="color: #66758f; font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; text-align: center;">来自 ACME Corp 的发票</td></tr>
+<tr><td style="color: #19212e; font-size: 32px; font-weight: 700; line-height: 40px; letter-spacing: 0em; text-align: center;">€1,234.50</td></tr>
+<tr><td style="color: #66758f; font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; text-align: center;">开具于 2024年10月3日</td></tr>
+</table>
+<table cellpadding="0" cellspacing="0" style="width: 100%; padding: 24px 0; border-top: 1px solid #d9dee7; border-bottom: 1px solid #d9dee7;"><tr><td>
+<table cellpadding="0" cellspacing="0" style="width: 100%">
+<tr><td style="font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; text-align: left; padding-right: 16px; color: #66758f; white-space: nowrap; padding-bottom: 4px;">发票编号</td><td style="font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; text-align: right; color: #19212e; white-space: nowrap; padding-bottom: 4px;">ACME-202410-001</td></tr>
+<tr><td style="font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; text-align: left; padding-right: 16px; color: #66758f; white-space: nowrap; padding-bottom: 4px;">开具日期</td><td style="font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; text-align: right; color: #19212e; white-space: nowrap; padding-bottom: 4px;">2024年10月3日</td></tr>
+</table>
+</td></tr></table>
+<table cellpadding="0" cellspacing="0" style="width: 100%; padding: 24px 0; border-bottom: 1px solid #d9dee7;"><tr><td><table cellpadding="0" cellspacing="0" style="margin: auto"><tr><td style="font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; color: #19212e;"><a style="text-decoration: none; color: #006cfa" href="https://files.tanvo.test/invoice.pdf">下载发票查看详情</a></td></tr></table></td></tr></table>
+
+</td></tr></table>
+</td></tr>
+</table>
+</td></tr></table>
+</body>
+</html>
+
