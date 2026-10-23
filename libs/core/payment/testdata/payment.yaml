@@ -1,0 +1,50 @@
+# Ported from lago spec/models/payment_spec.rb. A payment of 200 on an
+# invoice of total 10000 (nothing paid); manual payments carry reference
+# "123" unless the case sets one. errors come from Validate then
+# ValidateManual (field errors "field: code"); rule is the code of a
+# refused business rule.
+defaults: {kind: provider, amount: 200, total: 10000}
+cases:
+  - {name: manual on a subscription invoice, source: "spec/models/payment_spec.rb:67", kind: manual, errors: []}
+  - {name: manual equal to total on a subscription invoice, source: "spec/models/payment_spec.rb:75", kind: manual, amount: 10000, errors: []}
+  - {name: provider on a subscription invoice, source: "spec/models/payment_spec.rb:85", errors: []}
+  - {name: provider equal to total, source: "spec/models/payment_spec.rb:93", amount: 10000, errors: []}
+  - {name: manual differs from credit invoice total, source: "spec/models/payment_spec.rb:107", kind: manual, credit: true, errors: ["amount: invalid_amount"]}
+  - {name: manual equal to credit invoice total, source: "spec/models/payment_spec.rb:115", kind: manual, credit: true, amount: 10000, errors: []}
+  - {name: provider differs from credit invoice total, source: "spec/models/payment_spec.rb:125", credit: true, errors: []}
+  - {name: provider equal to credit invoice total, source: "spec/models/payment_spec.rb:133", credit: true, amount: 10000, errors: []}
+  - {name: manual on a payment request, source: "spec/models/payment_spec.rb:147", kind: manual, payable: payment_request, errors: []}
+  - {name: provider on a payment request, source: "spec/models/payment_spec.rb:155", payable: payment_request, errors: []}
+  - {name: provider within total, source: "spec/models/payment_spec.rb:172", errors: []}
+  - {name: provider above total, source: "spec/models/payment_spec.rb:180", amount: 10001, errors: []}
+  - {name: manual within total, source: "spec/models/payment_spec.rb:192", kind: manual, errors: []}
+  - {name: manual above total, source: "spec/models/payment_spec.rb:200", kind: manual, amount: 10001, errors: ["amount: greater_than"]}
+  - {name: manual within due after offset, source: "spec/models/payment_spec.rb:208", kind: manual, paid: 3000, offsets: 2000, amount: 5000, errors: []}
+  - {name: manual above due after offset, source: "spec/models/payment_spec.rb:215", kind: manual, paid: 3000, offsets: 2000, amount: 6000, errors: ["amount: greater_than"]}
+  - {name: manual with several offsets, source: "spec/models/payment_spec.rb:222", kind: manual, paid: 3000, offsets: 2500, amount: 4500, errors: []}
+  - {name: manual on an invoice settled by offsets, source: "spec/models/payment_spec.rb:230", kind: manual, paid: 6000, offsets: 4000, amount: 1, errors: ["amount: greater_than"]}
+  - {name: manual ignoring draft credit notes, source: "spec/models/payment_spec.rb:238", kind: manual, paid: 2000, amount: 8000, errors: []}
+  - {name: provider with succeeded payment request, source: "spec/models/payment_spec.rb:263", succeeded_request: true, errors: []}
+  - {name: provider without succeeded payment request, source: "spec/models/payment_spec.rb:271", errors: []}
+  - {name: manual with succeeded payment request, source: "spec/models/payment_spec.rb:288", kind: manual, succeeded_request: true, rule: payment_request_is_already_succeeded}
+  - {name: manual without succeeded payment request, source: "spec/models/payment_spec.rb:296", kind: manual, errors: []}
+  - {name: provider on a payment request with succeeded request, source: "spec/models/payment_spec.rb:311", payable: payment_request, succeeded_request: true, errors: []}
+  - {name: manual on a payment request with succeeded request, source: "spec/models/payment_spec.rb:321", kind: manual, payable: payment_request, succeeded_request: true, errors: []}
+  - {name: provider with reference, source: "spec/models/payment_spec.rb:333", reference: "123", errors: ["reference: value_not_allowed"]}
+  - {name: provider without reference, source: "spec/models/payment_spec.rb:339", errors: []}
+  - {name: manual without reference, source: "spec/models/payment_spec.rb:367", kind: manual, no_reference: true, errors: ["reference: value_is_mandatory"]}
+  - {name: manual with short reference, source: "spec/models/payment_spec.rb:376", kind: manual, reference: "123", errors: []}
+  - {name: manual with reference over 40, source: "spec/models/payment_spec.rb:384", kind: manual, reference_length: 41, errors: ["reference: value_is_too_long"]}
+  - {name: missing payment type, source: "spec/models/payment_spec.rb:25", kind: "", errors: ["payment_type: value_is_mandatory"]}
+
+skipped:
+  - {source: "spec/models/payment_spec.rb:15", reason: "paper_trail versioning is replaced by the audit log"}
+  - {source: "spec/models/payment_spec.rb:17", reason: "ActiveRecord associations"}
+  - {source: "spec/models/payment_spec.rb:36", reason: "Rails money-column alias"}
+  - {source: "spec/models/payment_spec.rb:46", reason: "delegation to the customer's billing entity is resolved by services"}
+  - {source: "spec/models/payment_spec.rb:345", reason: "x402 payments are not part of Tanvo's payment kinds (domain §15.1)"}
+  - {source: "spec/models/payment_spec.rb:393", reason: "invoices and invoice numbers of a payable are queries of the invoice and payment request repositories"}
+  - {source: "spec/models/payment_spec.rb:433", reason: "the provider type of a payment is the integration's, resolved through IntegrationID"}
+  - {source: "spec/models/payment_spec.rb:547", reason: "accounting sync decisions belong to the integration services"}
+  - {source: "spec/models/payment_spec.rb:636", reason: "gated subscription activation is decided by the subscription package"}
+  - {source: "spec/models/payment_spec.rb:678", reason: "ActiveRecord scopes"}

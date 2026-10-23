@@ -1,0 +1,17 @@
+# Entitlement validation (domain §7.10). Each case sets the owner of an
+# entitlement of feature "seats" and lists the field errors expected from
+# Validate.
+defaults: {plan: false, subscription: false, feature: true, errors: []}
+cases:
+  - {name: valid when only plan is present, source: "spec/models/entitlement/entitlement_spec.rb:28", plan: true}
+  - {name: valid when only subscription is present, source: "spec/models/entitlement/entitlement_spec.rb:33", subscription: true}
+  - {name: invalid when both are present, source: "spec/models/entitlement/entitlement_spec.rb:56", plan: true, subscription: true, errors: ["base: one_of_plan_or_subscription_required"]}
+  - {name: invalid when neither is present, source: "spec/models/entitlement/entitlement_spec.rb:62", errors: ["base: one_of_plan_or_subscription_required"]}
+  - {name: without feature, source: "tanvo", plan: true, feature: false, errors: ["feature_id: value_is_mandatory"]}
+skipped:
+  - {source: "spec/models/entitlement/entitlement_spec.rb:8", reason: "soft deletion"}
+  - {source: "spec/models/entitlement/entitlement_spec.rb:10", reason: "ActiveRecord associations"}
+  - {source: "spec/models/entitlement/entitlement_spec.rb:38", reason: "catalog plans are not a separate parent in Tanvo (one catalog, domain §24.2)"}
+  - {source: "spec/models/entitlement/entitlement_spec.rb:44", reason: "unsaved associations do not exist; owners are IDs"}
+  - {source: "spec/models/entitlement/entitlement_spec.rb:49", reason: "catalog plans are not a separate parent in Tanvo (one catalog, domain §24.2)"}
+  - {source: "spec/models/entitlement/entitlement_spec.rb:69", reason: "the database check constraint is tested by the libs/store suites"}

@@ -1,0 +1,17 @@
+# Ported from lago spec/models/pricing_unit_spec.rb. Each case changes a
+# valid pricing unit (code "credits", name "Credits", short name "CR") and
+# lists the field errors expected from Validate.
+defaults: {errors: []}
+cases:
+  - {name: valid pricing unit, source: "spec/models/pricing_unit_spec.rb:10"}
+  - {name: without name, source: "spec/models/pricing_unit_spec.rb:10", unit_name: "", errors: ["name: value_is_mandatory"]}
+  - {name: without code, source: "spec/models/pricing_unit_spec.rb:11", code: "", errors: ["code: value_is_mandatory"]}
+  - {name: without short name, source: "spec/models/pricing_unit_spec.rb:12", short_name: "", errors: ["short_name: value_is_mandatory"]}
+  - {name: description of 600 characters, source: "spec/models/pricing_unit_spec.rb:13", description_length: 600}
+  - {name: description of 601 characters, source: "spec/models/pricing_unit_spec.rb:13", description_length: 601, errors: ["description: value_is_too_long"]}
+  - {name: short name of 3 characters, source: "spec/models/pricing_unit_spec.rb:14", short_name: "TOK"}
+  - {name: short name of 4 characters, source: "spec/models/pricing_unit_spec.rb:14", short_name: "TOKS", errors: ["short_name: value_is_too_long"]}
+  - {name: code change, source: "tanvo", new_code: "tokens", errors: ["code: value_is_immutable"]}
+
+skipped:
+  - {source: "spec/models/pricing_unit_spec.rb:15", reason: "code uniqueness per organization is a unique index, tested by the repository suites"}

@@ -1,0 +1,11 @@
+# Ported from lago spec/models/wallet_transaction_spec.rb and
+# spec/models/wallet_transaction_consumption_spec.rb: remaining and consumed
+# amounts in credits, availability and consumption validation.
+cases:
+  - {name: remaining credits nil, check: remaining, source: "spec/models/wallet_transaction_spec.rb:141", rate: "2.00", want_remaining_credits: null}
+  - {name: remaining credits from cents, check: remaining, source: "spec/models/wallet_transaction_spec.rb:149", rate: "2.00", remaining: 5000, want_remaining_credits: "25"}
+  - {name: consumed credits from cents, check: consumed, source: "spec/models/wallet_transaction_consumption_spec.rb:64", rate: "2.00", consumed: 3000, want_consumed_credits: "15"}
+  - {name: available inbound settled, source: "spec/models/wallet_transaction_spec.rb:67", remaining: 1000, check: available, want_available: true}
+  - {name: exhausted inbound, source: "spec/models/wallet_transaction_spec.rb:67", remaining: 0, check: available, want_available: false}
+  - {name: pending inbound, source: "spec/models/wallet_transaction_spec.rb:67", remaining: 1000, status: pending, check: available, want_available: false}
+  - {name: outbound settled, source: "spec/models/wallet_transaction_spec.rb:67", type: outbound, check: available, want_available: false}

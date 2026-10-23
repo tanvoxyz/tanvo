@@ -1,0 +1,19 @@
+# Ported from lago spec/models/subscription_spec.rb: predicates and names
+# of a subscription. Times are hour offsets from now.
+cases:
+  - {name: active is not starting in the future, source: "spec/models/subscription_spec.rb:849", status: active, starting_in_the_future: false}
+  - {name: pending is starting in the future, source: "spec/models/subscription_spec.rb:857", status: pending, starting_in_the_future: true}
+  - {name: pending downgrade is not starting in the future, source: "spec/models/subscription_spec.rb:865", status: pending, has_previous: true, starting_in_the_future: false}
+  - {name: display name, source: "spec/models/subscription_spec.rb:880", sub_name: some_name, plan_name: plan, display_name: some_name, invoice_name: some_name}
+  - {name: display name falls back to the plan, source: "spec/models/subscription_spec.rb:882", sub_name: "", plan_name: plan, display_name: plan, invoice_name: plan}
+  - {name: invoice name without names, source: "spec/models/subscription_spec.rb:899", plan_name: plan, plan_invoice_display_name: "", display_name: plan, invoice_name: plan}
+  - {name: invoice name with a subscription name, source: "spec/models/subscription_spec.rb:907", sub_name: sub, plan_name: plan, display_name: sub, invoice_name: sub}
+  - {name: invoice name with a plan invoice display name, source: "spec/models/subscription_spec.rb:919", plan_name: plan, plan_invoice_display_name: shown, display_name: plan, invoice_name: shown}
+  - {name: invoice name with both, source: "spec/models/subscription_spec.rb:927", sub_name: sub, plan_name: plan, plan_invoice_display_name: shown, display_name: sub, invoice_name: sub}
+  - {name: terminated before the timestamp, source: "spec/models/subscription_spec.rb:1068", status: terminated, terminated_at: -1, at: 0, terminated_by: true}
+  - {name: terminated after the timestamp, source: "spec/models/subscription_spec.rb:1075", status: terminated, terminated_at: 1, at: 0, terminated_by: false}
+  - {name: not terminated, source: "spec/models/subscription_spec.rb:1082", status: active, at: 0, terminated_by: false}
+  - {name: own billing entity, source: "spec/models/subscription_spec.rb:127", own_billing_entity: true, billing_entity: own}
+  - {name: customer billing entity, source: "spec/models/subscription_spec.rb:136", billing_entity: customer}
+skipped:
+  - {source: "spec/models/subscription_spec.rb:101", reason: "returns the BillingEntity record; Tanvo refers to it by ID (applicable_billing_entity_id cases)"}

@@ -1,0 +1,33 @@
+# Ported from lago spec/models/fixed_charge_spec.rb. Each case changes a
+# valid standard fixed charge (code "seats", 1 unit, in arrears, not
+# prorated) and lists the field errors expected from Validate.
+defaults: {charge_model: standard, units: "1", errors: []}
+cases:
+  - {name: negative units, source: "spec/models/fixed_charge_spec.rb:22", units: "-1", errors: ["units: value_is_negative"]}
+  - {name: zero units, source: "spec/models/fixed_charge_spec.rb:22", units: "0"}
+  - {name: without charge model, source: "spec/models/fixed_charge_spec.rb:23", charge_model: "", errors: ["charge_model: value_is_mandatory"]}
+  - {name: without code, source: "spec/models/fixed_charge_spec.rb:24", code: "", errors: ["code: value_is_mandatory"]}
+  - {name: standard in advance, source: "spec/models/fixed_charge_spec.rb:265", pay_in_advance: true}
+  - {name: standard in arrears, source: "spec/models/fixed_charge_spec.rb:270"}
+  - {name: volume in advance, source: "spec/models/fixed_charge_spec.rb:277", charge_model: volume, pay_in_advance: true, errors: ["pay_in_advance: invalid_charge_model"]}
+  - {name: volume in arrears, source: "spec/models/fixed_charge_spec.rb:284", charge_model: volume}
+  - {name: graduated in advance, source: "spec/models/fixed_charge_spec.rb:291", charge_model: graduated, pay_in_advance: true}
+  - {name: graduated in arrears, source: "spec/models/fixed_charge_spec.rb:296", charge_model: graduated}
+  - {name: standard in advance prorated, source: "spec/models/fixed_charge_spec.rb:305", pay_in_advance: true, prorated: true}
+  - {name: standard in advance not prorated, source: "spec/models/fixed_charge_spec.rb:310", pay_in_advance: true}
+  - {name: standard in arrears prorated, source: "spec/models/fixed_charge_spec.rb:315", prorated: true}
+  - {name: standard in arrears not prorated, source: "spec/models/fixed_charge_spec.rb:320"}
+  - {name: volume in arrears prorated, source: "spec/models/fixed_charge_spec.rb:327", charge_model: volume, prorated: true}
+  - {name: volume in arrears not prorated, source: "spec/models/fixed_charge_spec.rb:332", charge_model: volume}
+  - {name: graduated in advance prorated, source: "spec/models/fixed_charge_spec.rb:339", charge_model: graduated, pay_in_advance: true, prorated: true, errors: ["prorated: invalid_charge_model"]}
+  - {name: graduated in advance not prorated, source: "spec/models/fixed_charge_spec.rb:346", charge_model: graduated, pay_in_advance: true}
+  - {name: graduated in arrears prorated, source: "spec/models/fixed_charge_spec.rb:351", charge_model: graduated, prorated: true}
+  - {name: graduated in arrears not prorated, source: "spec/models/fixed_charge_spec.rb:356", charge_model: graduated}
+  - {name: dynamic is not a fixed charge model, source: "tanvo", charge_model: dynamic, errors: ["charge_model: invalid_value"]}
+
+skipped:
+  - {source: "spec/models/fixed_charge_spec.rb:25", reason: "pay_in_advance is a Go bool and cannot be null"}
+  - {source: "spec/models/fixed_charge_spec.rb:26", reason: "prorated is a Go bool and cannot be null"}
+  - {source: "spec/models/fixed_charge_spec.rb:27", reason: "properties presence: an unset Properties is the empty object; per-model property validation is ported in libs/pricing"}
+  - {source: "spec/models/fixed_charge_spec.rb:31", reason: "code uniqueness per plan among original fixed charges is a partial unique index, tested by the repository suites"}
+  - {source: "spec/models/fixed_charge_spec.rb:59", reason: "per-model property validation is ported in libs/pricing"}

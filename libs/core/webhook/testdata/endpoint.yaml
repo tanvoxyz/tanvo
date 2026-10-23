@@ -1,0 +1,28 @@
+# Ported from lago spec/models/webhook_endpoint_spec.rb. Each case sets the
+# url and raw event types of a valid endpoint, normalizes the event types
+# with NormalizeEventTypes, and lists the normalized types ("all" for nil)
+# and the field errors of Validate.
+defaults: {url: "https://foo.bar", event_types: null, normalized: all, errors: []}
+cases:
+  - {name: http url, source: "spec/models/webhook_endpoint_spec.rb:39", url: "http://foo.bar"}
+  - {name: https url, source: "spec/models/webhook_endpoint_spec.rb:47", url: "https://foo.bar"}
+  - {name: url without scheme, source: "spec/models/webhook_endpoint_spec.rb:55", url: "foobar", errors: ["url: url_invalid"]}
+  - {name: missing url, source: "spec/models/webhook_endpoint_spec.rb:9", url: "", errors: ["url: value_is_mandatory"]}
+  - {name: ftp url, source: "tanvo", url: "ftp://foo.bar", errors: ["url: url_invalid"]}
+  - {name: url without host, source: "tanvo", url: "https://", errors: ["url: url_invalid"]}
+  - {name: nil event types, source: "spec/models/webhook_endpoint_spec.rb:64"}
+  - {name: empty event types, source: "spec/models/webhook_endpoint_spec.rb:72", event_types: [], normalized: []}
+  - {name: valid event types, source: "spec/models/webhook_endpoint_spec.rb:88", event_types: ["customer.updated"], normalized: ["customer.updated"]}
+  - {name: invalid event types, source: "spec/models/webhook_endpoint_spec.rb:96", event_types: ["invalid.event"], normalized: ["invalid.event"], errors: ["event_types: invalid_types"]}
+  - {name: duplicates blanks case and spaces, source: "spec/models/webhook_endpoint_spec.rb:110", event_types: [" Customer.Created ", "invoice.drafted ", " Invoice.DRAFTED", "  ", ""], normalized: ["customer.created", "invoice.drafted"]}
+  - {name: nil stays nil after normalization, source: "spec/models/webhook_endpoint_spec.rb:129"}
+  - {name: star only means all, source: "spec/models/webhook_endpoint_spec.rb:139", event_types: ["*"]}
+  - {name: star with other types, source: "spec/models/webhook_endpoint_spec.rb:149", event_types: ["*", "customer.created"], normalized: ["*", "customer.created"], errors: ["event_types: invalid_types"]}
+skipped:
+  - {source: "spec/models/webhook_endpoint_spec.rb:6", reason: "ActiveRecord associations"}
+  - {source: "spec/models/webhook_endpoint_spec.rb:14", reason: "url uniqueness per organization is a unique index, tested by the repository suites"}
+  - {source: "spec/models/webhook_endpoint_spec.rb:80", reason: "a non-array value cannot be represented by []EventType"}
+  - {source: "spec/models/webhook_endpoint_spec.rb:110", reason: "the nil-element half of the normalization case: a Go []string has no nil elements"}
+  - {source: "spec/models/webhook_endpoint_spec.rb:161", reason: "SendWebhookJob mapping; the EventType enum is the single list"}
+  - {source: "spec/models/webhook_spec.rb:18", reason: "payload and response object storage is dropped (domain §18.2): payloads are stored in the row"}
+  - {source: "spec/models/webhook_spec.rb:139", reason: "JWT and HMAC signatures are replaced by Standard Webhooks (domain §18.2), signed in libs/webhooks"}

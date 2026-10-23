@@ -1,0 +1,13 @@
+# Ported from lago spec/models/membership_spec.rb (#permissions_hash): which
+# permissions the built-in roles hold. lago's "view" action is "read".
+cases:
+  - {name: admin holds every permission, source: "spec/models/membership_spec.rb:59", role: admin, all: true}
+  - {name: finance holds analytics read, source: "spec/models/membership_spec.rb:80", role: finance, permission: "analytics:read", want: true}
+  - {name: finance lacks coupons attach, source: "spec/models/membership_spec.rb:84", role: finance, permission: "coupons:attach", want: false}
+  - {name: manager holds coupons attach, source: "spec/models/membership_spec.rb:96", role: manager, permission: "coupons:attach", want: true}
+  - {name: manager lacks pricing units read, source: "spec/models/membership_spec.rb:100", role: manager, permission: "pricing_units:read", want: false}
+  - {name: finance holds organization invoices update, source: "tanvo", role: finance, permission: "organization:invoices:update", want: true}
+  - {name: unknown permission, source: "tanvo", role: admin, permission: "foo", want: false}
+skipped:
+  - {source: "spec/models/membership_spec.rb:6", reason: "ActiveRecord associations"}
+  - {source: "spec/models/membership_spec.rb:14", reason: "ActiveRecord scope .admins; repositories count active admins"}

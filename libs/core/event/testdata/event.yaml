@@ -1,0 +1,17 @@
+# Ported from lago spec/models/event_spec.rb. Each case changes a valid
+# event (transaction_id "tr_1", code "api_calls", external subscription
+# "sub_1") and lists the field errors of Validate.
+cases:
+  - {name: valid, source: "spec/models/event_spec.rb:10", errors: []}
+  - {name: without transaction_id, source: "spec/models/event_spec.rb:10", transaction_id: "", errors: ["transaction_id: value_is_mandatory"]}
+  - {name: without code, source: "spec/models/event_spec.rb:11", code: "", errors: ["code: value_is_mandatory"]}
+  - {name: without external subscription, source: "tanvo", external_subscription_id: "", errors: ["external_subscription_id: value_is_mandatory"]}
+  - {name: transaction_id of 256 characters, source: "tanvo", transaction_id_length: 256, errors: ["transaction_id: value_is_too_long"]}
+  - {name: without timestamp, source: "tanvo", no_timestamp: true, errors: ["timestamp: value_is_mandatory"]}
+  - {name: remove operation, source: "tanvo", properties: {operation_type: remove}, errors: []}
+  - {name: unknown operation, source: "tanvo", properties: {operation_type: replace}, errors: ["properties.operation_type: invalid_value"]}
+  - {name: empty attribution label, source: "tanvo", attribution_labels: {"": x}, errors: ["attribution_labels: invalid_value"]}
+skipped:
+  - {source: "spec/models/event_spec.rb:8", reason: "ActiveRecord associations"}
+  - {source: "spec/models/event_spec.rb:13", reason: "events carry no external_customer_id in Tanvo"}
+  - {source: "spec/models/event_spec.rb:58", reason: "subscription matching is subscription.MatchEvent (subscription/testdata/match_event.yaml)"}

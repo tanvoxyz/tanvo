@@ -1,0 +1,49 @@
+# Ported from lago spec/models/charge_spec.rb. Each case builds a metric
+# (default: sum on "amount", not recurring) and a valid standard charge on
+# it (invoiceable), changes them and lists the field errors expected from
+# ValidateCharge.
+defaults: {aggregation_type: sum, charge_model: standard, invoiceable: true, errors: []}
+cases:
+  - {name: valid standard charge, source: "spec/models/charge_spec.rb:384"}
+  - {name: without code, source: "spec/models/charge_spec.rb:10", code: "", errors: ["code: value_is_mandatory"]}
+  - {name: dynamic on sum, source: "spec/models/charge_spec.rb:308", charge_model: dynamic}
+  - {name: dynamic on latest, source: "spec/models/charge_spec.rb:316", charge_model: dynamic, aggregation_type: latest, errors: ["charge_model: invalid_aggregation_type_or_charge_model"]}
+  - {name: in advance on max, source: "spec/models/charge_spec.rb:388", aggregation_type: max, pay_in_advance: true, errors: ["pay_in_advance: invalid_aggregation_type_or_charge_model"]}
+  - {name: in advance on latest, source: "spec/models/charge_spec.rb:398", aggregation_type: latest, pay_in_advance: true, errors: ["pay_in_advance: invalid_aggregation_type_or_charge_model"]}
+  - {name: in advance on weighted sum, source: "spec/models/charge_spec.rb:408", aggregation_type: weighted_sum, pay_in_advance: true, errors: ["pay_in_advance: invalid_aggregation_type_or_charge_model"]}
+  - {name: in advance volume, source: "spec/models/charge_spec.rb:418", charge_model: volume, pay_in_advance: true, errors: ["pay_in_advance: invalid_aggregation_type_or_charge_model"]}
+  - {name: no regroup in advance invoiceable, source: "spec/models/charge_spec.rb:429", pay_in_advance: true}
+  - {name: no regroup in advance not invoiceable, source: "spec/models/charge_spec.rb:429", pay_in_advance: true, invoiceable: false}
+  - {name: no regroup in arrears, source: "spec/models/charge_spec.rb:429"}
+  - {name: regroup in advance not invoiceable, source: "spec/models/charge_spec.rb:437", regroup_paid_fees: invoice, pay_in_advance: true, invoiceable: false}
+  - {name: regroup in advance invoiceable, source: "spec/models/charge_spec.rb:437", regroup_paid_fees: invoice, pay_in_advance: true, errors: ["regroup_paid_fees: only_compatible_with_pay_in_advance_and_non_invoiceable"]}
+  - {name: regroup in arrears invoiceable, source: "spec/models/charge_spec.rb:437", regroup_paid_fees: invoice, errors: ["regroup_paid_fees: only_compatible_with_pay_in_advance_and_non_invoiceable"]}
+  - {name: regroup in arrears not invoiceable, source: "spec/models/charge_spec.rb:437", regroup_paid_fees: invoice, invoiceable: false, errors: ["invoiceable: must_be_true_unless_pay_in_advance", "regroup_paid_fees: only_compatible_with_pay_in_advance_and_non_invoiceable"]}
+  - {name: minimum in arrears, source: "spec/models/charge_spec.rb:456", min_amount: 1200}
+  - {name: minimum in advance, source: "spec/models/charge_spec.rb:460", pay_in_advance: true, min_amount: 1200, errors: ["min_amount: not_compatible_with_pay_in_advance"]}
+  - {name: negative minimum, source: "tanvo", min_amount: -1, errors: ["min_amount: value_is_negative"]}
+  - {name: percentage not prorated, source: "spec/models/charge_spec.rb:473", charge_model: percentage, metric_recurring: true}
+  - {name: prorated in advance on a non-recurring metric, source: "spec/models/charge_spec.rb:477", aggregation_type: count, pay_in_advance: true, prorated: true, errors: ["prorated: invalid_billable_metric_or_charge_model"]}
+  - {name: package prorated in advance, source: "spec/models/charge_spec.rb:488", charge_model: package, metric_recurring: true, pay_in_advance: true, prorated: true, errors: ["prorated: invalid_billable_metric_or_charge_model"]}
+  - {name: percentage prorated in arrears, source: "spec/models/charge_spec.rb:497", charge_model: percentage, metric_recurring: true, prorated: true, errors: ["prorated: invalid_billable_metric_or_charge_model"]}
+  - {name: prorated on weighted sum, source: "spec/models/charge_spec.rb:506", aggregation_type: weighted_sum, metric_recurring: true, charge_model: percentage, prorated: true, errors: ["prorated: invalid_billable_metric_or_charge_model"]}
+  - {name: standard prorated in advance, source: "tanvo", metric_recurring: true, pay_in_advance: true, prorated: true}
+  - {name: volume prorated in arrears, source: "tanvo", charge_model: volume, metric_recurring: true, prorated: true}
+  - {name: graduated prorated in arrears, source: "tanvo", charge_model: graduated, metric_recurring: true, prorated: true}
+  - {name: percentage on latest, source: "tanvo", charge_model: percentage, aggregation_type: latest, errors: ["charge_model: invalid_aggregation_type_or_charge_model"]}
+  - {name: graduated percentage on latest, source: "tanvo", charge_model: graduated_percentage, aggregation_type: latest, errors: ["charge_model: invalid_aggregation_type_or_charge_model"]}
+  - {name: in advance invoiceable, source: "spec/models/charge_spec.rb:841", pay_in_advance: true}
+  - {name: in advance not invoiceable, source: "spec/models/charge_spec.rb:849", pay_in_advance: true, invoiceable: false}
+  - {name: in arrears invoiceable, source: "spec/models/charge_spec.rb:861"}
+  - {name: in arrears not invoiceable, source: "spec/models/charge_spec.rb:869", invoiceable: false, errors: ["invoiceable: must_be_true_unless_pay_in_advance"]}
+  - {name: properties not an object, source: "tanvo", properties: "[1]", errors: ["properties: invalid_value"]}
+  - {name: pricing unit with a zero rate, source: "spec/models/applied_pricing_unit_spec.rb:11", conversion_rate: "0", errors: ["applied_pricing_unit.conversion_rate: value_must_be_positive"]}
+  - {name: pricing unit with a positive rate, source: "spec/models/applied_pricing_unit_spec.rb:11", conversion_rate: "0.5"}
+
+skipped:
+  - {source: "spec/models/charge_spec.rb:27", reason: "per-model property validation is ported in libs/pricing"}
+  - {source: "spec/models/charge_spec.rb:518", reason: "the custom charge model is dropped (domain §24 item 1)"}
+  - {source: "spec/models/charge_spec.rb:805", reason: "code uniqueness per plan is a partial unique index, tested by the repository suites"}
+  - {source: "spec/models/charge_spec.rb:877", reason: "premium license gates are not part of Tanvo"}
+  - {source: "spec/models/charge_spec.rb:924", reason: "accepts_target_wallet is not part of the Tanvo charge"}
+  - {source: "spec/models/applied_pricing_unit_spec.rb:10", reason: "conversion_rate is a money.Decimal and cannot be null; zero is the unset value and is refused as not positive"}

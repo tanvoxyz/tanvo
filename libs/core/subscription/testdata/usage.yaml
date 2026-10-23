@@ -1,0 +1,18 @@
+# Ported from lago spec/models/lifetime_usage_spec.rb,
+# fixed_charge_event_spec.rb and applied_usage_threshold_spec.rb.
+cases:
+  - {name: negative current usage, source: "spec/models/lifetime_usage_spec.rb:20", entity: lifetime_usage, current: -1, errors: ["current_usage_amount: value_is_negative"]}
+  - {name: negative invoiced usage, source: "spec/models/lifetime_usage_spec.rb:28", entity: lifetime_usage, invoiced: -1, errors: ["invoiced_usage_amount: value_is_negative"]}
+  - {name: negative historical usage, source: "spec/models/lifetime_usage_spec.rb:36", entity: lifetime_usage, historical: -1, errors: ["historical_usage_amount: value_is_negative"]}
+  - {name: zero historical usage, source: "spec/models/lifetime_usage_spec.rb:36", entity: lifetime_usage, historical: 0, errors: []}
+  - {name: total, source: "spec/models/lifetime_usage_spec.rb:49", entity: lifetime_usage, historical: 100, invoiced: 200, current: 300, total: 600, errors: []}
+  - {name: negative units, source: "spec/models/fixed_charge_event_spec.rb:13", entity: fixed_charge_event, units: "-1", errors: ["units: value_is_negative"]}
+  - {name: zero units, source: "spec/models/fixed_charge_event_spec.rb:13", entity: fixed_charge_event, units: "0", errors: []}
+  - {name: negative lifetime usage amount, source: "tanvo", entity: applied_usage_threshold, current: -1, errors: ["lifetime_usage_amount: value_is_negative"]}
+  - {name: applied threshold, source: "tanvo", entity: applied_usage_threshold, current: 1000, errors: []}
+skipped:
+  - {source: "spec/models/lifetime_usage_spec.rb:8", reason: "ActiveRecord associations"}
+  - {source: "spec/models/lifetime_usage_spec.rb:10", reason: "soft deletion is not modelled; lifetime usage follows the chain"}
+  - {source: "spec/models/fixed_charge_event_spec.rb:8", reason: "soft deletion; same-day events are replaced instead (domain §7.5)"}
+  - {source: "spec/models/fixed_charge_event_spec.rb:9", reason: "ActiveRecord associations"}
+  - {source: "spec/models/applied_usage_threshold_spec.rb:8", reason: "ActiveRecord associations"}

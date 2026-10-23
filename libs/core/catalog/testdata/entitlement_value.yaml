@@ -1,0 +1,21 @@
+# Privilege values (domain §7.10): NormalizeValue on a privilege of
+# value_type with the given select options; want is the stored form, or
+# errors the field errors. [Change] booleans are stored as "true"/"false"
+# where lago stores "t"/"f".
+defaults: {select_options: [], want: "", errors: []}
+cases:
+  - {name: boolean true, source: "spec/services/entitlement/plan_entitlements_update_service-full_spec.rb:192", value_type: "boolean", value: "true", want: "true"}
+  - {name: boolean t, source: "tanvo", value_type: "boolean", value: "t", want: "true"}
+  - {name: boolean f, source: "tanvo", value_type: "boolean", value: "f", want: "false"}
+  - {name: boolean garbage, source: "tanvo", value_type: "boolean", value: "yes", errors: ["value: value_is_invalid"]}
+  - {name: string, source: "spec/services/entitlement/plan_entitlements_update_service-full_spec.rb:209", value_type: "string", value: "okta", want: "okta"}
+  - {name: integer, source: "tanvo", value_type: "integer", value: "12", want: "12"}
+  - {name: integer canonical form, source: "tanvo", value_type: "integer", value: "+007", want: "7"}
+  - {name: invalid integer, source: "spec/services/entitlement/plan_entitlements_update_service-full_spec.rb:226", value_type: "integer", value: "[12, 13]", errors: ["value: value_is_invalid"]}
+  - {name: missing value, source: "spec/services/entitlement/plan_entitlements_update_service-full_spec.rb:242", value_type: "integer", value: "", errors: ["value: value_is_mandatory"]}
+  - {name: missing value presence, source: "spec/models/entitlement/entitlement_value_spec.rb:19", value_type: "string", value: "", errors: ["value: value_is_mandatory"]}
+  - {name: select option, source: "tanvo", value_type: "select", select_options: ["email", "phone", "slack"], value: "phone", want: "phone"}
+  - {name: not in select options, source: "spec/services/entitlement/plan_entitlements_update_service-full_spec.rb:258", value_type: "select", select_options: ["email", "phone", "slack"], value: "okta", errors: ["value: value_not_in_select_options"]}
+skipped:
+  - {source: "spec/models/entitlement/entitlement_value_spec.rb:8", reason: "soft deletion"}
+  - {source: "spec/models/entitlement/entitlement_value_spec.rb:10", reason: "ActiveRecord associations; values are a map on the entitlement"}

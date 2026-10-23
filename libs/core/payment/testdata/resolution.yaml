@@ -1,0 +1,28 @@
+# Ported from lago spec/services/payment_methods/determine_service_spec.rb:
+# ResolvePaymentMethod over the levels in order (explicit request,
+# subscription, wallet transaction, recurring rule, wallet). Methods are
+# named; "default" is the customer default and "" no method. Each level is
+# {type, method}; an absent level is left out.
+cases:
+  - {name: explicit manual, source: "spec/services/payment_methods/determine_service_spec.rb:21", levels: [{type: manual}], want: "", automatic: false}
+  - {name: explicit method, source: "spec/services/payment_methods/determine_service_spec.rb:34", levels: [{type: provider, method: explicit}], want: explicit, automatic: true}
+  - {name: explicit without method, source: "spec/services/payment_methods/determine_service_spec.rb:57", levels: [{type: provider}], want: default, automatic: true}
+  - {name: subscription without method, source: "spec/services/payment_methods/determine_service_spec.rb:76", levels: [{type: provider}], want: default, automatic: true}
+  - {name: subscription method, source: "spec/services/payment_methods/determine_service_spec.rb:90", levels: [{type: provider, method: subscription}], want: subscription, automatic: true}
+  - {name: subscription manual, source: "spec/services/payment_methods/determine_service_spec.rb:103", levels: [{type: manual}], want: "", automatic: false}
+  - {name: advance charges invoice, source: "spec/services/payment_methods/determine_service_spec.rb:128", levels: [], want: default, automatic: true}
+  - {name: progressive billing invoice, source: "spec/services/payment_methods/determine_service_spec.rb:143", levels: [], want: default, automatic: true}
+  - {name: wallet transaction manual, source: "spec/services/payment_methods/determine_service_spec.rb:167", levels: [{type: manual}, {type: provider}, {type: provider, method: wallet}], want: "", automatic: false}
+  - {name: wallet transaction method, source: "spec/services/payment_methods/determine_service_spec.rb:180", levels: [{type: provider, method: transaction}, {type: provider, method: rule}, {type: provider, method: wallet}], want: transaction, automatic: true}
+  - {name: recurring rule manual, source: "spec/services/payment_methods/determine_service_spec.rb:194", levels: [{type: provider}, {type: manual}, {type: provider, method: wallet}], want: "", automatic: false}
+  - {name: recurring rule method, source: "spec/services/payment_methods/determine_service_spec.rb:207", levels: [{type: provider}, {type: provider, method: rule}, {type: provider, method: wallet}], want: rule, automatic: true}
+  - {name: no active recurring rule, source: "spec/services/payment_methods/determine_service_spec.rb:216", levels: [{type: provider}, {type: provider, method: wallet}], want: wallet, automatic: true}
+  - {name: threshold recurring rule method, source: "spec/services/payment_methods/determine_service_spec.rb:233", levels: [{type: provider}, {type: provider, method: rule}], want: rule, automatic: true}
+  - {name: wallet manual, source: "spec/services/payment_methods/determine_service_spec.rb:246", levels: [{type: provider}, {type: manual}], want: "", automatic: false}
+  - {name: wallet method, source: "spec/services/payment_methods/determine_service_spec.rb:260", levels: [{type: provider}, {type: provider, method: wallet}], want: wallet, automatic: true}
+  - {name: nothing configured, source: "spec/services/payment_methods/determine_service_spec.rb:271", levels: [{type: provider}, {type: provider}], want: default, automatic: true}
+  - {name: one-off invoice, source: "spec/services/payment_methods/determine_service_spec.rb:283", levels: [], want: default, automatic: true}
+skipped:
+  - {source: "spec/services/payment_methods/determine_service_spec.rb:44", reason: "a method ID that does not exist is a repository lookup by the caller"}
+  - {source: "spec/services/payment_methods/determine_service_spec.rb:112", reason: "an invoice without subscription or wallet transaction is a data error the billing service reports before resolution"}
+  - {source: "spec/services/payment_methods/determine_service_spec.rb:156", reason: "an invoice without subscription or wallet transaction is a data error the billing service reports before resolution"}

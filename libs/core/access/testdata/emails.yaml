@@ -1,0 +1,16 @@
+# Ported from lago spec/models/user_spec.rb and invite_spec.rb: email
+# normalization and validation shared by users and invites.
+cases:
+  - {name: user sanitizes email, source: "spec/models/user_spec.rb:24", entity: user, email: " hello@some​thing–other.com ", want_email: "hello@something-other.com"}
+  - {name: user valid, source: "spec/models/user_spec.rb:31", entity: user, email: "gavin@hooli.com", want_email: "gavin@hooli.com"}
+  - {name: user without email, source: "spec/models/user_spec.rb:35", entity: user, email: "", want_email: "", errors: ["email: value_is_mandatory"]}
+  - {name: user email lower-cased, source: "tanvo", entity: user, email: "Gavin@Hooli.COM", want_email: "gavin@hooli.com"}
+  - {name: invite sanitizes email, source: "spec/models/invite_spec.rb:31", entity: invite, email: " hello@some​thing–other.com ", want_email: "hello@something-other.com"}
+  - {name: invite valid, source: "spec/models/invite_spec.rb:45", entity: invite, email: "dinesh@hooli.com", want_email: "dinesh@hooli.com"}
+  - {name: invite wrong email format, source: "spec/models/invite_spec.rb:47", entity: invite, email: "wrong", want_email: "wrong", errors: ["email: invalid_email_format"]}
+  - {name: invite without email, source: "spec/models/invite_spec.rb:53", entity: invite, email: "", want_email: "", errors: ["email: value_is_mandatory"]}
+skipped:
+  - {source: "spec/models/user_spec.rb:10", reason: "ActiveRecord associations"}
+  - {source: "spec/models/user_spec.rb:40", reason: "password is optional in Tanvo (SSO-only users); hashing lives in the auth service"}
+  - {source: "spec/models/invite_spec.rb:59", reason: "an invite carries one role ID; role existence is checked by the service against RoleRepository"}
+  - {source: "spec/models/invite_spec.rb:65", reason: "role names resolved by the service; an invite stores one role ID"}

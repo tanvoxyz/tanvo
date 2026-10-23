@@ -1,0 +1,37 @@
+# Ported from lago spec/models/wallet_spec.rb. Each case changes a valid
+# active EUR wallet (rate 1, priority 50) and lists the field errors
+# expected from Validate ("field: code"); an empty list means valid.
+cases:
+  - {name: valid wallet, source: "spec/models/wallet_spec.rb:93", errors: []}
+  - {name: zero rate, source: "spec/models/wallet_spec.rb:94", rate: "0", errors: ["rate_amount: value_must_be_positive"]}
+  - {name: negative rate, source: "spec/models/wallet_spec.rb:94", rate: "-1", errors: ["rate_amount: value_must_be_positive"]}
+  - {name: fractional rate, source: "spec/models/wallet_spec.rb:94", rate: "0.001", errors: []}
+  - {name: no currency, source: "spec/models/wallet_spec.rb:95", currency: "", errors: ["currency: currency_invalid"]}
+  - {name: zero min top-up, source: "spec/models/wallet_spec.rb:97", min: 0, errors: ["paid_top_up_min_amount: value_must_be_positive"]}
+  - {name: positive min top-up, source: "spec/models/wallet_spec.rb:97", min: 1, errors: []}
+  - {name: zero max top-up, source: "spec/models/wallet_spec.rb:98", max: 0, errors: ["paid_top_up_max_amount: value_must_be_positive"]}
+  - {name: priority 0, source: "spec/models/wallet_spec.rb:99", priority: 0, errors: ["priority: value_is_out_of_range"]}
+  - {name: priority 1, source: "spec/models/wallet_spec.rb:99", priority: 1, errors: []}
+  - {name: priority 51, source: "spec/models/wallet_spec.rb:99", priority: 51, errors: ["priority: value_is_out_of_range"]}
+  - {name: max below min, source: "spec/models/wallet_spec.rb:101", min: 1000, max: 500, errors: ["paid_top_up_max_amount: must_be_greater_than_or_equal_min"]}
+  - {name: max equal to min, source: "spec/models/wallet_spec.rb:101", min: 1000, max: 1000, errors: []}
+  - {name: traceable negative balance, source: "spec/models/wallet_spec.rb:139", traceable: true, balance: -1, errors: ["balance_amount: value_is_negative"]}
+  - {name: traceable zero balance, source: "spec/models/wallet_spec.rb:147", traceable: true, balance: 0, errors: []}
+  - {name: traceable positive balance, source: "spec/models/wallet_spec.rb:155", traceable: true, balance: 100, errors: []}
+  - {name: non-traceable negative balance, source: "spec/models/wallet_spec.rb:167", balance: -1, errors: []}
+  - {name: non-traceable zero balance, source: "spec/models/wallet_spec.rb:175", balance: 0, errors: []}
+  - {name: non-traceable positive balance, source: "spec/models/wallet_spec.rb:183", balance: 100, errors: []}
+  - {name: code of 256 characters, source: "tanvo", code_length: 256, errors: ["code: value_is_too_long"]}
+  - {name: blank code, source: "tanvo", code_length: 0, code_blank: true, errors: ["code: value_is_mandatory"]}
+  - {name: unknown fee type, source: "tanvo", allowed_fee_types: ["nope"], errors: ["allowed_fee_types: invalid_value"]}
+  - {name: duplicated fee type, source: "tanvo", allowed_fee_types: ["charge", "charge"], errors: ["allowed_fee_types: duplicated_value"]}
+  - {name: unknown status, source: "tanvo", status: "closed", errors: ["status: invalid_value"]}
+
+skipped:
+  - {source: "spec/models/wallet_spec.rb:15", reason: "ActiveRecord associations"}
+  - {source: "spec/models/wallet_spec.rb:34", reason: "billing entity fallback to the customer's is resolved by the billing services, which load the customer"}
+  - {source: "spec/models/wallet_spec.rb:56", reason: "ActiveRecord scope with_positive_balance; the repository lists filter by status instead"}
+  - {source: "spec/models/wallet_spec.rb:96", reason: "invoice_requires_successful_payment is a Go bool and cannot be null"}
+  - {source: "spec/models/wallet_spec.rb:113", reason: "code uniqueness per customer among active wallets is enforced by the repository (memstore and store suites)"}
+  - {source: "spec/models/wallet_spec.rb:194", reason: "Rails money-column currency assignment; Tanvo stores one Currency per wallet"}
+  - {source: "spec/models/wallet_spec.rb:266", reason: "the list of columns that trigger an ongoing balance refresh is a Rails callback detail"}

@@ -1,0 +1,20 @@
+# Ported from lago spec/models/data_export_spec.rb. Each case builds an
+# invoices CSV export in a status, with or without a file, and lists the
+# field errors of Validate and, at "now", whether it is expired (expires_at
+# relative to now in hours; null for none).
+defaults: {status: pending, file: false, expires_in_hours: null, errors: [], expired: false}
+cases:
+  - {name: completed without file, source: "spec/models/data_export_spec.rb:33", status: completed, errors: ["file: value_is_mandatory"]}
+  - {name: completed with file, source: "spec/models/data_export_spec.rb:33", status: completed, file: true}
+  - {name: pending without file, source: "spec/models/data_export_spec.rb:39", status: pending}
+  - {name: processing without file, source: "spec/models/data_export_spec.rb:39", status: processing}
+  - {name: failed without file, source: "spec/models/data_export_spec.rb:39", status: failed}
+  - {name: not expired without expires_at, source: "spec/models/data_export_spec.rb:81"}
+  - {name: completed not yet expired, source: "spec/models/data_export_spec.rb:83", status: completed, file: true, expires_in_hours: 168}
+  - {name: expiration date reached, source: "spec/models/data_export_spec.rb:89", status: completed, file: true, expires_in_hours: -1, expired: true}
+  - {name: unknown resource, source: "tanvo", resource: "plans", errors: ["resource_type: invalid_value"]}
+  - {name: resource query not an object, source: "tanvo", query: "[1]", errors: ["resource_query: invalid_format"]}
+skipped:
+  - {source: "spec/models/data_export_spec.rb:6", reason: "ActiveRecord associations"}
+  - {source: "spec/models/data_export_spec.rb:96", reason: "the CSV builder of each resource lives in libs/billing exports"}
+  - {source: "spec/models/data_export_spec.rb:164", reason: "signed file URLs are produced by the blob store port"}

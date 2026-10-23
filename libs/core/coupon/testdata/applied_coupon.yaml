@@ -1,0 +1,69 @@
+# Ported from lago spec/models/applied_coupon_spec.rb, spec/services/applied_coupons/amount_service_spec.rb, spec/services/credits/applied_coupon_service_spec.rb and spec/services/applied_coupons/recredit_service_spec.rb (the rules of domain §22.7 and
+# §11.4). Each case builds an applied coupon (fixed_amount 12 USD minor
+# units, once, active unless status says otherwise) and runs op:
+#   validate        -> errors
+#   discount        -> Discount(base) = want_discount
+#   consume         -> Consume(credit), then the wants
+#   restore         -> Restore(credit, coupon_terminated), then the wants
+#   consume_restore -> Consume(credit) then Restore(credit, coupon_terminated)
+# Lago derives the remaining amount of a once coupon from its credits
+# (ignoring credits of voided invoices); Tanvo stores remaining_amount,
+# decremented by Consume and restored by Restore.
+defaults:
+  coupon_type: fixed_amount
+  amount: 12
+  frequency: once
+cases:
+  - {name: valid, source: "tanvo", op: validate, errors: []}
+  - {name: amount of 0, source: "spec/models/applied_coupon_spec.rb:27", op: validate, amount: 0, errors: []}
+  - {name: negative amount, source: "spec/models/applied_coupon_spec.rb:27", op: validate, amount: -1, errors: ["amount_cents: value_is_negative", "remaining_amount: value_is_negative"]}
+  - {name: recurring requires duration, source: "spec/models/applied_coupon_spec.rb:36", op: validate, frequency: recurring, errors: ["frequency_duration: value_is_mandatory", "frequency_duration_remaining: value_is_mandatory"]}
+  - {name: recurring duration must be positive, source: "spec/models/applied_coupon_spec.rb:37", op: validate, frequency: recurring, frequency_duration: 0, duration_remaining: 0, errors: ["frequency_duration: value_is_out_of_range"]}
+  - {name: recurring remaining of 0, source: "spec/models/applied_coupon_spec.rb:39", op: validate, frequency: recurring, frequency_duration: 3, duration_remaining: 0, errors: []}
+  - {name: recurring remaining must not be negative, source: "spec/models/applied_coupon_spec.rb:39", op: validate, frequency: recurring, frequency_duration: 3, duration_remaining: -1, errors: ["frequency_duration_remaining: value_is_out_of_range"]}
+  - {name: once without duration, source: "spec/models/applied_coupon_spec.rb:45", op: validate, errors: []}
+  - {name: forever without duration, source: "spec/models/applied_coupon_spec.rb:52", op: validate, frequency: forever, errors: []}
+  - {name: percentage above 100, source: "tanvo", op: validate, coupon_type: percentage, percentage_rate: "120", errors: ["percentage_rate: value_is_out_of_range"]}
+
+  - {name: remaining amount after a credit, source: "spec/models/applied_coupon_spec.rb:67", op: consume, amount: 50, credit: 10, want_remaining: 40, want_status: active}
+  - {name: remaining amount ignores a voided invoice, source: "spec/models/applied_coupon_spec.rb:75", op: consume_restore, amount: 50, credit: 10, want_remaining: 50, want_status: active}
+
+  - {name: fixed once, source: "spec/services/applied_coupons/amount_service_spec.rb:17", op: discount, base: 300, want_discount: 12}
+  - {name: zero base, source: "spec/services/applied_coupons/amount_service_spec.rb:24", op: discount, base: 0, want_discount: 0}
+  - {name: capped at base, source: "spec/services/applied_coupons/amount_service_spec.rb:35", op: discount, base: 6, want_discount: 6}
+  - {name: partially used, source: "spec/services/applied_coupons/amount_service_spec.rb:46", op: discount, remaining: 6, base: 300, want_discount: 6}
+  - {name: percentage, source: "spec/services/applied_coupons/amount_service_spec.rb:63", op: discount, coupon_type: percentage, percentage_rate: "20", base: 300, want_discount: 60}
+  - {name: recurring fixed, source: "spec/services/applied_coupons/amount_service_spec.rb:78", op: discount, frequency: recurring, frequency_duration: 3, base: 300, want_discount: 12}
+  - {name: recurring fixed capped at base, source: "spec/services/applied_coupons/amount_service_spec.rb:99", op: discount, frequency: recurring, frequency_duration: 3, base: 6, want_discount: 6}
+  - {name: forever fixed, source: "spec/services/applied_coupons/amount_service_spec.rb:111", op: discount, frequency: forever, base: 300, want_discount: 12}
+  - {name: forever fixed capped at base, source: "spec/services/applied_coupons/amount_service_spec.rb:132", op: discount, frequency: forever, base: 6, want_discount: 6}
+  - {name: recurring percentage, source: "spec/services/applied_coupons/amount_service_spec.rb:144", op: discount, coupon_type: percentage, percentage_rate: "20", frequency: recurring, frequency_duration: 3, base: 300, want_discount: 60}
+  - {name: percentage rounds half up, source: "tanvo", op: discount, coupon_type: percentage, percentage_rate: "10", base: 1005, want_discount: 101}
+  - {name: terminated gives nothing, source: "tanvo", op: discount, status: terminated, base: 300, want_discount: 0}
+
+  - {name: once fixed used up terminates, source: "spec/services/credits/applied_coupon_service_spec.rb:66", op: consume, credit: 12, want_remaining: 0, want_status: terminated}
+  - {name: once fixed capped does not terminate, source: "spec/services/credits/applied_coupon_service_spec.rb:97", op: consume, credit: 6, want_remaining: 6, want_status: active}
+  - {name: once fixed partially used terminates, source: "spec/services/credits/applied_coupon_service_spec.rb:144", op: consume, remaining: 6, credit: 6, want_remaining: 0, want_status: terminated}
+  - {name: once percentage terminates, source: "spec/services/credits/applied_coupon_service_spec.rb:172", op: consume, coupon_type: percentage, percentage_rate: "20", credit: 60, want_status: terminated}
+  - {name: recurring fixed decrements, source: "spec/services/credits/applied_coupon_service_spec.rb:209", op: consume, frequency: recurring, frequency_duration: 3, credit: 12, want_duration_remaining: 2, want_status: active}
+  - {name: forever never terminates, source: "spec/services/credits/applied_coupon_service_spec.rb:260", op: consume, frequency: forever, credit: 12, want_status: active}
+  - {name: recurring percentage decrements, source: "spec/services/credits/applied_coupon_service_spec.rb:313", op: consume, coupon_type: percentage, percentage_rate: "20", frequency: recurring, frequency_duration: 3, credit: 60, want_duration_remaining: 2, want_status: active}
+  - {name: recurring last period terminates, source: "spec/services/credits/applied_coupon_service_spec.rb:347", op: consume, frequency: recurring, frequency_duration: 3, duration_remaining: 1, credit: 12, want_duration_remaining: 0, want_status: terminated}
+  - {name: recurring never below 0, source: "spec/services/credits/applied_coupon_service_spec.rb:525", op: consume, frequency: recurring, frequency_duration: 3, duration_remaining: 0, credit: 12, want_duration_remaining: 0, want_status: terminated}
+
+  - {name: reactivates a terminated coupon, source: "spec/services/applied_coupons/recredit_service_spec.rb:39", op: restore, status: terminated, remaining: 0, credit: 12, want_remaining: 12, want_status: active}
+  - {name: forever is not reactivated, source: "spec/services/applied_coupons/recredit_service_spec.rb:64", op: restore, status: terminated, frequency: forever, credit: 12, want_status: terminated}
+  - {name: not reactivated when the coupon is terminated, source: "spec/services/applied_coupons/recredit_service_spec.rb:74", op: restore, status: terminated, remaining: 0, coupon_terminated: true, credit: 12, want_remaining: 12, want_status: terminated}
+  - {name: recurring gets a period back, source: "spec/services/applied_coupons/recredit_service_spec.rb:93", op: restore, frequency: recurring, frequency_duration: 3, duration_remaining: 2, credit: 12, want_duration_remaining: 3, want_status: active}
+  - {name: restore never exceeds the amount, source: "tanvo", op: restore, remaining: 10, credit: 12, want_remaining: 12, want_status: active}
+
+skipped:
+  - {source: "spec/models/applied_coupon_spec.rb:10", reason: "ActiveRecord associations"}
+  - {source: "spec/models/applied_coupon_spec.rb:21", reason: "enum declarations are generated by enumgen"}
+  - {source: "spec/models/applied_coupon_spec.rb:28", reason: "the currency is a money.Currency, so an unknown code cannot be stored"}
+  - {source: "spec/models/applied_coupon_spec.rb:80", reason: "lago's closed invoices have no Tanvo equivalent; restoring is done when voiding (domain §11.4)"}
+  - {source: "spec/services/credits/applied_coupon_service_spec.rb:35", reason: "the customer coupons lock is taken by the billing engine (domain §22.7)"}
+  - {source: "spec/services/credits/applied_coupon_service_spec.rb:105", reason: "at most one credit per coupon and invoice is enforced by the billing engine"}
+  - {source: "spec/services/credits/applied_coupon_service_spec.rb:356", reason: "currency matching of fixed-amount coupons to invoices is done by the billing engine"}
+  - {source: "spec/services/credits/applied_coupon_service_spec.rb:395", reason: "targeted fee bases are computed by the billing engine"}
+  - {source: "spec/services/applied_coupons/recredit_service_spec.rb:46", reason: "row locking is a storage concern"}

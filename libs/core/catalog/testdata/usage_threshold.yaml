@@ -1,0 +1,18 @@
+# Usage threshold validation (domain §7.9). Each case changes a valid
+# threshold of 100 cents on a plan and lists the field errors expected
+# from Validate.
+defaults: {plan: true, subscription: false, amount: 100, errors: []}
+cases:
+  - {name: valid when only plan is present, source: "spec/models/usage_threshold_spec.rb:30"}
+  - {name: valid when only subscription is present, source: "spec/models/usage_threshold_spec.rb:35", plan: false, subscription: true}
+  - {name: invalid when both are present, source: "spec/models/usage_threshold_spec.rb:40", subscription: true, errors: ["base: one_of_plan_or_subscription_required"]}
+  - {name: invalid when neither is present, source: "spec/models/usage_threshold_spec.rb:46", plan: false, errors: ["base: one_of_plan_or_subscription_required"]}
+  - {name: zero amount, source: "spec/models/usage_threshold_spec.rb:23", amount: 0, errors: ["amount: value_must_be_positive"]}
+  - {name: negative amount, source: "spec/models/usage_threshold_spec.rb:23", amount: -1, errors: ["amount: value_must_be_positive"]}
+  - {name: display name of 255 characters, source: "tanvo", display_name_length: 255}
+  - {name: display name of 256 characters, source: "tanvo", display_name_length: 256, errors: ["threshold_display_name: value_is_too_long"]}
+skipped:
+  - {source: "spec/models/usage_threshold_spec.rb:10", reason: "soft deletion"}
+  - {source: "spec/models/usage_threshold_spec.rb:12", reason: "ActiveRecord associations"}
+  - {source: "spec/models/usage_threshold_spec.rb:54", reason: "the currency is the plan's, resolved by the caller that holds the plan"}
+  - {source: "spec/models/usage_threshold_spec.rb:77", reason: "the default invoice name is a translation of libs/documents"}

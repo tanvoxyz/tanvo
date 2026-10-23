@@ -1,0 +1,31 @@
+# Ported from lago spec/models/wallet_transaction_spec.rb. Each case changes
+# a valid settled inbound granted transaction (priority 50, source manual)
+# and lists the field errors expected from Validate.
+cases:
+  - {name: valid transaction, source: "spec/models/wallet_transaction_spec.rb:8", errors: []}
+  - {name: priority 0, source: "spec/models/wallet_transaction_spec.rb:10", priority: 0, errors: ["priority: value_is_out_of_range"]}
+  - {name: priority 51, source: "spec/models/wallet_transaction_spec.rb:10", priority: 51, errors: ["priority: value_is_out_of_range"]}
+  - {name: empty name, source: "spec/models/wallet_transaction_spec.rb:11", name_length: 0, errors: ["name: value_is_mandatory"]}
+  - {name: name of 255 characters, source: "spec/models/wallet_transaction_spec.rb:11", name_length: 255, errors: []}
+  - {name: name of 256 characters, source: "spec/models/wallet_transaction_spec.rb:11", name_length: 256, errors: ["name: value_is_too_long"]}
+  - {name: missing status, source: "spec/models/wallet_transaction_spec.rb:13", status: "", errors: ["status: value_is_mandatory"]}
+  - {name: missing transaction type, source: "spec/models/wallet_transaction_spec.rb:14", type: "", errors: ["transaction_type: value_is_mandatory"]}
+  - {name: missing source, source: "spec/models/wallet_transaction_spec.rb:15", tx_source: "", errors: ["source: value_is_mandatory"]}
+  - {name: missing transaction status, source: "spec/models/wallet_transaction_spec.rb:16", transaction_status: "", errors: ["transaction_status: value_is_mandatory"]}
+  - {name: remaining on inbound, source: "spec/models/wallet_transaction_spec.rb:19", remaining: 1000, errors: []}
+  - {name: negative remaining on inbound, source: "spec/models/wallet_transaction_spec.rb:24", remaining: -100, errors: ["remaining_amount: value_is_negative"]}
+  - {name: no remaining on outbound, source: "spec/models/wallet_transaction_spec.rb:30", type: outbound, transaction_status: invoiced, errors: []}
+  - {name: remaining on outbound, source: "spec/models/wallet_transaction_spec.rb:35", type: outbound, transaction_status: invoiced, remaining: 1000, errors: ["remaining_amount: value_not_allowed"]}
+  - {name: inbound invoiced, source: "tanvo", transaction_status: invoiced, errors: ["transaction_status: invalid_value"]}
+  - {name: outbound purchased, source: "tanvo", type: outbound, transaction_status: purchased, errors: ["transaction_status: invalid_value"]}
+  - {name: pending granted, source: "tanvo", status: pending, errors: ["status: invalid_value"]}
+  - {name: pending purchased, source: "tanvo", status: pending, transaction_status: purchased, errors: []}
+  - {name: sixteen metadata items, source: "tanvo", metadata_items: 16, errors: ["metadata.items: too_many_items"]}
+
+skipped:
+  - {source: "spec/models/wallet_transaction_spec.rb:6", reason: "purchase order numbers are not part of the Tanvo wallet transaction (domain §14.2)"}
+  - {source: "spec/models/wallet_transaction_spec.rb:9", reason: "priority is an int inherited from the wallet and cannot be absent"}
+  - {source: "spec/models/wallet_transaction_spec.rb:12", reason: "invoice_requires_successful_payment is a Go bool and cannot be null"}
+  - {source: "spec/models/wallet_transaction_spec.rb:43", reason: "ActiveRecord associations"}
+  - {source: "spec/models/wallet_transaction_spec.rb:56", reason: "enum values are covered by the generated enumeration tests"}
+  - {source: "spec/models/wallet_transaction_spec.rb:67", reason: "ActiveRecord scope available_inbound; covered by Transaction.Available and the repository suites"}

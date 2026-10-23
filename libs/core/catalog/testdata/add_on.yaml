@@ -1,0 +1,17 @@
+# Ported from lago spec/models/add_on_spec.rb. Each case changes a valid
+# add-on (code "setup", name "Setup", amount 1000, EUR) and lists the field
+# errors expected from Validate. An unknown currency code cannot be held by
+# a money.Currency, so it leaves the currency unset.
+defaults: {amount: 1000, currency: EUR, errors: []}
+cases:
+  - {name: without name, source: "spec/models/add_on_spec.rb:19", add_on_name: "", errors: ["name: value_is_mandatory"]}
+  - {name: zero amount, source: "spec/models/add_on_spec.rb:20", amount: 0, errors: ["amount: value_must_be_positive"]}
+  - {name: without code, source: "spec/models/add_on_spec.rb:21", code: "", errors: ["code: value_is_mandatory"]}
+  - {name: known currency, source: "spec/models/add_on_spec.rb:31", currency: EUR}
+  - {name: unknown currency, source: "spec/models/add_on_spec.rb:39", currency: ABC, errors: ["currency: currency_invalid"]}
+  - {name: invoice name falls back to the name, source: "spec/models/add_on_spec.rb:79", want_invoice_name: Setup}
+  - {name: blank invoice display name, source: "spec/models/add_on_spec.rb:79", invoice_display_name: "", want_invoice_name: Setup}
+  - {name: invoice display name, source: "spec/models/add_on_spec.rb:87", invoice_display_name: "One-time setup", want_invoice_name: "One-time setup"}
+
+skipped:
+  - {source: "spec/models/add_on_spec.rb:48", reason: "code uniqueness among live add-ons is a partial unique index, tested by the repository suites"}

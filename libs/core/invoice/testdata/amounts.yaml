@@ -1,0 +1,26 @@
+# Ported from lago-api invoice amount helpers (spec/models/invoice_spec.rb).
+# kind: total_due | total_settled | offsettable | creditable
+cases:
+  - {name: due after partial payment, source: "spec/models/invoice_spec.rb:2771", kind: total_due, total: 1000, paid: 300, want: 700}
+  - {name: due of voided invoice, source: "spec/models/invoice_spec.rb:2775", kind: total_due, status: voided, total: 1000, paid: 300, want: 0}
+  - {name: due after offset, source: "spec/models/invoice_spec.rb:2780", kind: total_due, total: 1000, paid: 300, offset: 200, want: 500}
+  - {name: due when fully settled, source: "spec/models/invoice_spec.rb:2785", kind: total_due, total: 1000, paid: 600, offset: 400, want: 0}
+  - {name: due never negative, source: tanvo, kind: total_due, total: 1000, paid: 900, offset: 400, want: 0}
+  - {name: settled by payment, source: "spec/models/invoice_spec.rb:2795", kind: total_settled, total: 1000, paid: 600, want: 600}
+  - {name: settled by payment and offset, source: "spec/models/invoice_spec.rb:2799", kind: total_settled, total: 1000, paid: 600, offset: 250, want: 850}
+  - {name: fully settled, source: "spec/models/invoice_spec.rb:2804", kind: total_settled, total: 1000, paid: 700, offset: 300, want: 1000}
+  - {name: credit invoice pending, source: "spec/models/invoice_spec.rb:2811", kind: offsettable, type: credit, total: 1000, creditable: 0, want: 1000}
+  - {name: credit invoice failed, source: "spec/models/invoice_spec.rb:2818", kind: offsettable, type: credit, payment_status: failed, total: 1000, creditable: 0, want: 1000}
+  - {name: credit invoice fully paid, source: "spec/models/invoice_spec.rb:2823", kind: offsettable, type: credit, payment_status: succeeded, total: 1000, paid: 1000, want: 0}
+  - {name: credit invoice fully offset, source: "spec/models/invoice_spec.rb:2830", kind: offsettable, type: credit, payment_status: failed, total: 1000, offset: 1000, want: 0}
+  - {name: due below creditable, source: "spec/models/invoice_spec.rb:2839", kind: offsettable, total: 1000, paid: 300, creditable: 900, want: 700}
+  - {name: creditable below due, source: "spec/models/invoice_spec.rb:2845", kind: offsettable, total: 1000, paid: 300, creditable: 500, want: 500}
+  - {name: after previous offsets, source: "spec/models/invoice_spec.rb:2851", kind: offsettable, total: 1000, paid: 200, offset: 300, creditable: 700, want: 500}
+  - {name: creditable of draft, source: "spec/models/invoice_spec.rb:2546", kind: creditable, status: draft, sub_total_including_taxes: 200, credited: 40, want: 0}
+  - {name: creditable of finalized, source: "spec/models/invoice_spec.rb:2556", kind: creditable, sub_total_including_taxes: 200, credited: 40, want: 160}
+  - {name: creditable of credit invoice, source: "spec/models/invoice_spec.rb:2566", kind: creditable, type: credit, sub_total_including_taxes: 200, want: 0}
+skipped:
+  - {source: "spec/models/invoice_spec.rb:2536", reason: "invoice versions are dropped (no compatibility with lago)"}
+  - {source: "spec/models/invoice_spec.rb:2751", reason: "sums offsets across credit note rows; OffsettedAmount is maintained with the credit notes (memstore creditnote tests)"}
+  - {source: "spec/models/invoice_spec.rb:2755", reason: "sums offsets across credit note rows; OffsettedAmount is maintained with the credit notes"}
+  - {source: "spec/models/invoice_spec.rb:2761", reason: "sums offsets across credit note rows; drafts are excluded by the credit note repository"}

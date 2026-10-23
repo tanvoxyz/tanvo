@@ -1,0 +1,4 @@
+# Ported from lago-api credit note numbering (spec/models/credit_note_spec.rb).
+cases:
+  - {name: first credit note, source: "spec/models/credit_note_spec.rb:100", invoice_number: CUST-001, seq: 1, want: CUST-001-CN001}
+  - {name: twelfth credit note, source: tanvo, invoice_number: LAG-1234-001-002, seq: 12, want: LAG-1234-001-002-CN012}

@@ -1,0 +1,10 @@
+# Ported from lago spec/models/wallet_spec.rb: fee restrictions and the
+# paid top-up limits in credits.
+cases:
+  - {name: limited fee types, source: "spec/models/wallet_spec.rb:212", allowed_fee_types: ["charge"], limited_fee_types: true, limited_to_billable_metrics: false}
+  - {name: unlimited fee types, source: "spec/models/wallet_spec.rb:220", limited_fee_types: false, limited_to_billable_metrics: false}
+  - {name: limited to billable metrics, source: "spec/models/wallet_spec.rb:230", billable_metrics: 1, limited_fee_types: false, limited_to_billable_metrics: true}
+  - {name: not limited to billable metrics, source: "spec/models/wallet_spec.rb:238", limited_fee_types: false, limited_to_billable_metrics: false}
+  - {name: min credits from cents, source: "spec/models/wallet_spec.rb:246", rate: "25", min: 100, min_credits: "0.04"}
+  - {name: no min, source: "spec/models/wallet_spec.rb:246", rate: "25"}
+  - {name: max credits from cents, source: "spec/models/wallet_spec.rb:257", rate: "1", max: 500, max_credits: "5"}

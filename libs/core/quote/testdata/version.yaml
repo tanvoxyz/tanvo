@@ -1,0 +1,19 @@
+# Ported from lago spec/models/quote_version_spec.rb. Each case builds a
+# version in a status with or without its void reason, voided_at and
+# approved_at, and lists the field errors of Validate.
+defaults: {status: draft, void_reason: "", voided_at: false, approved_at: false, errors: []}
+cases:
+  - {name: valid by default, source: "spec/models/quote_version_spec.rb:39"}
+  - {name: voided without reason and date, source: "spec/models/quote_version_spec.rb:44", status: voided, errors: ["void_reason: value_is_mandatory", "voided_at: value_is_mandatory"]}
+  - {name: voided with reason and date, source: "spec/models/quote_version_spec.rb:44", status: voided, void_reason: manual, voided_at: true}
+  - {name: approved without approved_at, source: "spec/models/quote_version_spec.rb:55", status: approved, errors: ["approved_at: value_is_mandatory"]}
+  - {name: draft without approved_at, source: "spec/models/quote_version_spec.rb:60"}
+  - {name: void reason on a draft, source: "tanvo", void_reason: manual, errors: ["void_reason: value_not_allowed"]}
+  - {name: unknown void reason, source: "tanvo", status: voided, void_reason: lost, voided_at: true, errors: ["void_reason: invalid_value"]}
+skipped:
+  - {source: "spec/models/quote_version_spec.rb:8", reason: "the status and void_reason enums are generated and tested by enums_test"}
+  - {source: "spec/models/quote_version_spec.rb:29", reason: "ActiveRecord associations"}
+  - {source: "spec/models/quote_version_spec.rb:67", reason: "money.Currency cannot hold an unknown code; parsing rejects it"}
+  - {source: "spec/models/quote_version_spec.rb:79", reason: "version numbers come from NewVersion, tested in version_test"}
+  - {source: "spec/models/quote_version_spec.rb:94", reason: "delegation to the quote's customer"}
+  - {source: "spec/models/quote_version_spec.rb:103", reason: "billing entity fallback reads the subscription and customer, a libs/billing resolution"}

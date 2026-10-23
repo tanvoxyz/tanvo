@@ -1,0 +1,32 @@
+# Ported from lago spec/models/wallet_spec.rb:71 (in_application_order) and
+# spec/models/wallet_transaction_spec.rb:87/:105 (in_consumption_order,
+# order_by_priority). Created/expiration days are offsets from now.
+cases:
+  - name: wallets in application order
+    source: "spec/models/wallet_spec.rb:71"
+    wallets:
+      - {name: wallet_10_newer, priority: 10, created: -1}
+      - {name: wallet_5, priority: 5, created: 0}
+      - {name: wallet_10_older, priority: 10, created: -3}
+      - {name: wallet_10_expiring_later, priority: 10, created: 0, expires: 60}
+      - {name: wallet_10_expiring_sooner, priority: 10, created: -0.5, expires: 30}
+      - {name: wallet_50, priority: 50, created: -0.5}
+    want: [wallet_5, wallet_10_expiring_sooner, wallet_10_expiring_later, wallet_10_older, wallet_10_newer, wallet_50]
+  - name: transactions in consumption order
+    source: "spec/models/wallet_transaction_spec.rb:87"
+    transactions:
+      - {name: granted_priority_10, priority: 10, status: granted, created: -1}
+      - {name: purchased_priority_5, priority: 5, status: purchased, created: -2}
+      - {name: granted_priority_5, priority: 5, status: granted, created: -3}
+      - {name: granted_priority_5_newer, priority: 5, status: granted, created: -1}
+    want: [granted_priority_5, granted_priority_5_newer, purchased_priority_5, granted_priority_10]
+  - name: transactions by priority
+    source: "spec/models/wallet_transaction_spec.rb:105"
+    transactions:
+      - {name: purchased_10, priority: 10, status: purchased, created: -3}
+      - {name: granted_5, priority: 5, status: granted, created: -2}
+      - {name: granted_10, priority: 10, status: granted, created: -1}
+      - {name: voided_5, priority: 5, status: voided, created: -4}
+      - {name: invoiced_15, priority: 15, status: invoiced, created: -5}
+      - {name: granted_10_older, priority: 10, status: granted, created: -2}
+    want: [granted_5, voided_5, granted_10_older, granted_10, purchased_10, invoiced_15]

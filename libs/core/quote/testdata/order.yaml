@@ -1,0 +1,24 @@
+# Ported from lago spec/models/order_spec.rb. Each case builds an order in
+# a status with an execution mode and a scheduled execution (hours from
+# now; null for none), and lists the field errors of Validate and whether
+# it is executable at now.
+defaults: {status: created, execution_mode: "", execute_in_hours: null, executable: false, errors: []}
+cases:
+  - {name: due created order, source: "spec/models/order_spec.rb:51", execution_mode: execute, execute_in_hours: -1, executable: true}
+  - {name: created order scheduled later, source: "spec/models/order_spec.rb:51", execution_mode: execute, execute_in_hours: 1}
+  - {name: created order without schedule, source: "spec/models/order_spec.rb:51"}
+  - {name: executed order, source: "spec/models/order_spec.rb:51", status: executed, execution_mode: execute, execute_in_hours: -1}
+  - {name: failed order, source: "spec/models/order_spec.rb:51", status: failed, execute_in_hours: -1, execution_mode: execute}
+  - {name: schedule requires execution mode, source: "spec/models/order_spec.rb:59", execute_in_hours: 24, executable: false, errors: ["execution_mode: value_is_mandatory"]}
+  - {name: executed requires execution mode, source: "spec/models/order_spec.rb:65", status: executed, errors: ["execution_mode: value_is_mandatory"]}
+  - {name: created without schedule nor mode, source: "spec/models/order_spec.rb:71"}
+  - {name: executed with execute, source: "spec/models/order_spec.rb:77", status: executed, execution_mode: execute}
+  - {name: executed order only, source: "spec/models/order_spec.rb:77", status: executed, execution_mode: order_only}
+  - {name: mode without schedule, source: "spec/models/order_spec.rb:82", execution_mode: order_only}
+  - {name: unknown mode, source: "tanvo", execution_mode: execute_in_lago, errors: ["execution_mode: invalid_value"]}
+skipped:
+  - {source: "spec/models/order_spec.rb:8", reason: "the status and execution_mode enums are generated and tested by enums_test"}
+  - {source: "spec/models/order_spec.rb:24", reason: "ActiveRecord associations"}
+  - {source: "spec/models/order_spec.rb:34", reason: "activity logs are derived from domain events (domain §2.3)"}
+  - {source: "spec/models/order_spec.rb:90", reason: "sequences are allocated by the repository (NextSequence)"}
+  - {source: "spec/models/order_spec.rb:108", reason: "numbering shares FormatNumber, ported in quote.yaml; the OR prefix is tested in quote_test"}

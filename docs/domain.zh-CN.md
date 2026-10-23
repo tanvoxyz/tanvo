@@ -368,7 +368,7 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 | `skip_invoice_custom_sections` | `bool` | |
 | `applied_dunning_campaign_id` | `ID?` | |
 | `exclude_from_dunning_campaign` | `bool` | |
-| `last_dunning_campaign_attempt`、`last_dunning_campaign_attempt_at` | `int`、`Time?` | |
+| `dunning_campaign_attempts`、`last_dunning_campaign_attempt_at` | `map<币种, int>`、`Time?` | 按币种分别计数尝试次数 |
 | `sequential_id` | `int` | 创建时按计费主体分配 |
 | `slug` | `string` | `<prefix>-<sequential_id %03d>` |
 | `payment_receipt_counter` | `int` | §22.11 |
@@ -1214,7 +1214,7 @@ stateDiagram-v2
 
 规则：
 * 应用于计费主体（作为其客户的默认）或客户（覆盖）；`exclude_from_dunning_campaign` 使客户退出。
-* 每小时一次的任务对每个有适用催收活动的客户：若某阈值币种下逾期发票的 Σ `total_due_amount` ≥ 阈值、`last_dunning_campaign_attempt < max_attempts`，且距上次尝试已过 `days_between_attempts`，则创建付款请求（§15.4）并递增尝试次数。
+* 每小时一次的任务对每个有适用催收活动的客户：若某阈值币种下逾期发票的 Σ `total_due_amount` ≥ 阈值、客户在该币种下的尝试次数 < `max_attempts`，且距上次尝试已过 `days_between_attempts`，则创建付款请求（§15.4）并递增该币种的尝试次数。
 * 最后一次尝试之后发出 `dunning_campaign.finished`。
 * 修改阈值会重置余额不再匹配的客户的计数器；删除催收活动会重置使用它的客户和计费主体。
 

@@ -1,0 +1,41 @@
+# Ported from lago spec/models/coupon_spec.rb and
+# spec/models/coupon_target_spec.rb. Each case changes a valid fixed_amount
+# coupon (code "promo", name "Promo", 1000 USD minor units, once, no
+# expiration) and lists the field errors expected from Validate at
+# 2024-03-01 ("field: code"); an empty list means valid.
+cases:
+  - {name: valid fixed amount, source: "tanvo", errors: []}
+  - {name: amount must be positive, source: "spec/models/coupon_spec.rb:16", amount: 0, errors: ["amount_cents: value_must_be_positive"]}
+  - {name: amount nil allowed for percentage, source: "spec/models/coupon_spec.rb:16", coupon_type: percentage, no_amount: true, percentage_rate: "10", errors: []}
+  - {name: currency must be known, source: "spec/models/coupon_spec.rb:19", no_currency: true, errors: ["amount_currency: value_is_mandatory"]}
+  - {name: name required, source: "spec/models/coupon_spec.rb:25", coupon_name: "", errors: ["name: value_is_mandatory"]}
+  - {name: code required, source: "spec/models/coupon_spec.rb:26", code: "", errors: ["code: value_is_mandatory"]}
+  - {name: fixed amount requires amount, source: "spec/models/coupon_spec.rb:37", no_amount: true, errors: ["amount_cents: value_is_mandatory"]}
+  - {name: percentage does not require amount, source: "spec/models/coupon_spec.rb:43", coupon_type: percentage, no_amount: true, no_currency: true, percentage_rate: "10", errors: []}
+  - {name: fixed amount requires currency, source: "spec/models/coupon_spec.rb:55", no_currency: true, errors: ["amount_currency: value_is_mandatory"]}
+  - {name: percentage does not require currency, source: "spec/models/coupon_spec.rb:61", coupon_type: percentage, no_currency: true, percentage_rate: "10", errors: []}
+  - {name: fixed amount does not require rate, source: "spec/models/coupon_spec.rb:73", errors: []}
+  - {name: percentage requires rate, source: "spec/models/coupon_spec.rb:79", coupon_type: percentage, errors: ["percentage_rate: value_is_mandatory"]}
+  - {name: rate of 100, source: "tanvo", coupon_type: percentage, percentage_rate: "100", errors: []}
+  - {name: rate above 100, source: "tanvo", coupon_type: percentage, percentage_rate: "100.01", errors: ["percentage_rate: value_is_out_of_range"]}
+  - {name: rate of 0, source: "tanvo", coupon_type: percentage, percentage_rate: "0", errors: ["percentage_rate: value_is_out_of_range"]}
+  - {name: recurring requires duration, source: "spec/models/coupon_spec.rb:89", frequency: recurring, errors: ["frequency_duration: value_is_mandatory"]}
+  - {name: recurring duration must be positive, source: "spec/models/coupon_spec.rb:90", frequency: recurring, frequency_duration: 0, errors: ["frequency_duration: value_is_out_of_range"]}
+  - {name: recurring with duration, source: "spec/models/coupon_spec.rb:90", frequency: recurring, frequency_duration: 3, errors: []}
+  - {name: once does not require duration, source: "spec/models/coupon_spec.rb:96", frequency: once, errors: []}
+  - {name: forever does not require duration, source: "spec/models/coupon_spec.rb:102", frequency: forever, errors: []}
+  - {name: invalid frequency, source: "tanvo", frequency: weekly, errors: ["frequency: invalid_value"]}
+  - {name: time limit requires expiration, source: "tanvo", expiration: time_limit, errors: ["expiration_at: value_is_mandatory"]}
+  - {name: time limit in the past, source: "tanvo", expiration: time_limit, expiration_at: "2024-02-01", errors: ["expiration_at: invalid_date"]}
+  - {name: time limit in the future, source: "tanvo", expiration: time_limit, expiration_at: "2024-04-01", errors: []}
+  - {name: limited to one plan, source: "spec/models/coupon_target_spec.rb:18", plans: 1, errors: []}
+  - {name: plans and metrics at once, source: "tanvo", plans: 1, metrics: 1, errors: ["limitations: only_one_limitation_type_per_coupon_allowed"]}
+  - {name: limited to metrics, source: "tanvo", metrics: 2, errors: []}
+
+skipped:
+  - {source: "spec/models/coupon_spec.rb:10", reason: "ActiveRecord associations"}
+  - {source: "spec/models/coupon_spec.rb:12", reason: "ClickHouse associations"}
+  - {source: "spec/models/coupon_spec.rb:27", reason: "reusable is a Go bool and cannot be null"}
+  - {source: "spec/models/coupon_target_spec.rb:6", reason: "ActiveRecord associations"}
+  - {source: "spec/models/coupon_target_spec.rb:22", reason: "legacy and catalog plan targets do not exist in Tanvo; a target is a PlanID"}
+  - {source: "spec/models/coupon_target_spec.rb:31", reason: "database constraint of the legacy dual target"}

@@ -1,0 +1,39 @@
+# Ported from lago spec/models/plan_spec.rb. Each case changes a valid
+# monthly plan (code "basic", name "Basic", amount 100, EUR) and lists the
+# field errors expected from Validate; the want_* fields check the derived
+# predicates when set.
+defaults: {interval: monthly, amount: 100, errors: []}
+cases:
+  - {name: valid plan, source: "spec/models/plan_spec.rb:51"}
+  - {name: without interval, source: "spec/models/plan_spec.rb:51", interval: "", errors: ["interval: value_is_mandatory"]}
+  - {name: negative amount, source: "tanvo", amount: -1, errors: ["amount: value_is_negative"]}
+  - {name: without code, source: "tanvo", code: "", errors: ["code: value_is_mandatory"]}
+  - {name: without name, source: "tanvo", plan_name: "", errors: ["name: value_is_mandatory"]}
+  - {name: negative trial, source: "tanvo", trial_period_days: -1, errors: ["trial_period_days: value_is_out_of_range"]}
+  - {name: no trial, source: "spec/models/plan_spec.rb:95", trial_period_days: 0, want_has_trial: false}
+  - {name: trial, source: "spec/models/plan_spec.rb:95", trial_period_days: 3, want_has_trial: true}
+  - {name: pay in arrears, source: "spec/models/plan_spec.rb:602", want_pay_in_arrears: true}
+  - {name: pay in advance, source: "spec/models/plan_spec.rb:602", pay_in_advance: true, want_pay_in_arrears: false}
+  - {name: charges monthly unset on yearly, source: "spec/models/plan_spec.rb:109", interval: yearly, want_charges_monthly: false, want_either_monthly: false}
+  - {name: charges monthly false on yearly, source: "spec/models/plan_spec.rb:109", interval: yearly, bill_charges_monthly: false, want_charges_monthly: false}
+  - {name: charges monthly on yearly, source: "spec/models/plan_spec.rb:109", interval: yearly, bill_charges_monthly: true, want_charges_monthly: true, want_either_monthly: true}
+  - {name: charges monthly on semiannual, source: "spec/models/plan_spec.rb:109", interval: semiannual, bill_charges_monthly: true, want_charges_monthly: true}
+  - {name: charges monthly on monthly, source: "spec/models/plan_spec.rb:109", bill_charges_monthly: true, want_charges_monthly: false, errors: ["bill_charges_monthly: value_not_allowed"]}
+  - {name: charges monthly on quarterly, source: "spec/models/plan_spec.rb:109", interval: quarterly, bill_charges_monthly: true, want_charges_monthly: false, errors: ["bill_charges_monthly: value_not_allowed"]}
+  - {name: fixed charges monthly on yearly, source: "spec/models/plan_spec.rb:255", interval: yearly, bill_fixed_charges_monthly: true, want_fixed_monthly: true, want_either_monthly: true}
+  - {name: fixed charges monthly on semiannual, source: "spec/models/plan_spec.rb:255", interval: semiannual, bill_fixed_charges_monthly: true, want_fixed_monthly: true}
+  - {name: fixed charges monthly false on yearly, source: "spec/models/plan_spec.rb:255", interval: yearly, bill_fixed_charges_monthly: false, want_fixed_monthly: false}
+  - {name: fixed charges monthly on weekly, source: "spec/models/plan_spec.rb:255", interval: weekly, bill_fixed_charges_monthly: true, want_fixed_monthly: false, errors: ["bill_fixed_charges_monthly: value_not_allowed"]}
+  - {name: both monthly on yearly, source: "spec/models/plan_spec.rb:371", interval: yearly, bill_charges_monthly: true, bill_fixed_charges_monthly: true, want_either_monthly: true}
+  - {name: neither monthly on yearly, source: "spec/models/plan_spec.rb:371", interval: yearly, bill_charges_monthly: false, bill_fixed_charges_monthly: false, want_either_monthly: false}
+  - {name: yearly amount of a yearly plan, source: "spec/models/plan_spec.rb:410", interval: yearly, want_yearly_amount: "100"}
+  - {name: yearly amount of a monthly plan, source: "spec/models/plan_spec.rb:418", want_yearly_amount: "1200"}
+  - {name: yearly amount of a weekly plan, source: "spec/models/plan_spec.rb:426", interval: weekly, want_yearly_amount: "5200"}
+  - {name: yearly amount of a quarterly plan, source: "spec/models/plan_spec.rb:434", interval: quarterly, want_yearly_amount: "400"}
+  - {name: yearly amount of a semiannual plan, source: "spec/models/plan_spec.rb:442", interval: semiannual, want_yearly_amount: "200"}
+  - {name: invoice name, source: "spec/models/plan_spec.rb:451", invoice_display_name: "Premium", want_invoice_name: "Premium"}
+  - {name: invoice name falls back to the name, source: "spec/models/plan_spec.rb:451", want_invoice_name: "Basic"}
+
+skipped:
+  - {source: "spec/models/plan_spec.rb:42", reason: "pay_in_advance is a Go bool and cannot be null"}
+  - {source: "spec/models/plan_spec.rb:51", reason: "the amount half: amount is an int64 and cannot be null"}

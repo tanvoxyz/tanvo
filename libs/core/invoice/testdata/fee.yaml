@@ -1,0 +1,23 @@
+# Ported from lago-api fee helpers (spec/models/fee_spec.rb).
+# kind: non_zero | taxable | creditable; wallet -1 means no wallet cap.
+cases:
+  - {name: all zero, source: "spec/models/fee_spec.rb:850", kind: non_zero, want: false}
+  - {name: only units, source: "spec/models/fee_spec.rb:854", kind: non_zero, units: "1", want: true}
+  - {name: only amount, source: "spec/models/fee_spec.rb:860", kind: non_zero, amount: 100, want: true}
+  - {name: only events, source: "spec/models/fee_spec.rb:866", kind: non_zero, events_count: 2, want: true}
+  - {name: no events count, source: "spec/models/fee_spec.rb:872", kind: non_zero, want: false}
+  - {name: positive amount, source: "spec/models/fee_spec.rb:888", kind: taxable, amount: 100, want: true}
+  - {name: zero amount, source: "spec/models/fee_spec.rb:894", kind: taxable, amount: 0, want: false}
+  - {name: zero amount with units and events, source: "spec/models/fee_spec.rb:898", kind: taxable, amount: 0, units: "3", events_count: 2, want: false}
+  - {name: negative amount, source: "spec/models/fee_spec.rb:905", kind: taxable, amount: -100, want: true}
+  - {name: coupons cover the amount, source: "spec/models/fee_spec.rb:911", kind: taxable, amount: 100, coupons: "100", want: false}
+  - {name: coupons cover part of the amount, source: tanvo, kind: taxable, amount: 100, coupons: "40", want: true}
+  - {name: subscription fee, source: "spec/models/fee_spec.rb:967", kind: creditable, fee_type: subscription, amount: 1000, wallet: -1, want: 1000}
+  - {name: credit fee capped by wallet, source: "spec/models/fee_spec.rb:975", kind: creditable, fee_type: credit, amount: 1000, wallet: 500, want: 500}
+  - {name: wallet above fee remaining, source: "spec/models/fee_spec.rb:985", kind: creditable, fee_type: credit, amount: 1000, wallet: 2000, want: 1000}
+  - {name: credit note items reduce remaining, source: "spec/models/fee_spec.rb:994", kind: creditable, fee_type: credit, amount: 1000, credited: 300, wallet: 2000, want: 700}
+  - {name: coupon share is not creditable, source: tanvo, kind: creditable, fee_type: charge, amount: 1000, coupons: "199.6", credited: 300, wallet: -1, want: 500}
+  - {name: never negative, source: tanvo, kind: creditable, fee_type: charge, amount: 100, credited: 300, wallet: -1, want: 0}
+skipped:
+  - {source: "spec/models/fee_spec.rb:919", reason: "asserts charge filter associations"}
+  - {source: "spec/models/fee_spec.rb:939", reason: "compute_precise_credit_amount_cents belongs to the credit note estimate in libs/billing"}

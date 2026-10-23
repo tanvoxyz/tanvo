@@ -1,0 +1,37 @@
+# Ported from lago spec/services/dunning_campaigns/bulk_process_service_spec.rb
+# (ProcessCustomerService). The campaign has one EUR threshold of 5099, 1
+# day between attempts and 1 attempt unless the case says otherwise;
+# overdue maps currency codes to Σ overdue due amounts; last is the number
+# of days (fractional) since the last attempt, absent when none. want lists
+# the dunned currencies; attempts the counters after the decision.
+defaults: {thresholds: {EUR: 5099}, days: 1, max: 1}
+cases:
+  - {name: balance exceeds threshold, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:111", overdue: {EUR: 5100}, want: [EUR], attempts: {EUR: 1}, finished: true}
+  - {name: excluded customer, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:312", excluded: true, overdue: {EUR: 5100}, want: [], attempts: {}}
+  - {name: max attempts reached, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:151", max: 5, prior: {EUR: 5}, overdue: {EUR: 5100}, want: [], attempts: {EUR: 5}}
+  - {name: not enough days since last attempt, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:170", days: 4, last: 3, overdue: {EUR: 5100}, want: [], attempts: {}}
+  - {name: enough days since last attempt, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:189", days: 4, last: 4.00002, overdue: {EUR: 5100}, want: [EUR], attempts: {EUR: 1}, finished: true}
+  - {name: exactly the days between attempts, source: "tanvo", days: 4, last: 4, overdue: {EUR: 5100}, want: [], attempts: {}}
+  - {name: balance below threshold, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:203", overdue: {EUR: 5000}, want: [], attempts: {}}
+  - {name: balance equal to threshold, source: "tanvo", overdue: {EUR: 5099}, want: [EUR], attempts: {EUR: 1}, finished: true}
+  - {name: no threshold in the currency, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:223", thresholds: {GBP: 1}, overdue: {EUR: 5000}, want: [], attempts: {}}
+  - {name: both currencies exceed, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:539", max: 3, thresholds: {USD: 4000, EUR: 2000}, overdue: {USD: 5000, EUR: 2500}, want: [EUR, USD], attempts: {USD: 1, EUR: 1}}
+  - {name: one currency exceeds, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:560", max: 3, thresholds: {USD: 4000, EUR: 2000}, overdue: {USD: 5000, EUR: 1500}, want: [USD], attempts: {USD: 1}}
+  - {name: currency without threshold, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:575", max: 3, thresholds: {USD: 4000, EUR: 2000}, overdue: {USD: 5000, GBP: 10000}, want: [USD], attempts: {USD: 1}}
+  - {name: maxed currency within days, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:677", max: 3, days: 5, thresholds: {EUR: 500}, prior: {EUR: 3}, last: 3, overdue: {EUR: 600}, want: [], attempts: {EUR: 3}}
+  - {name: maxed currency after days, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:691", max: 3, days: 5, thresholds: {EUR: 500}, prior: {EUR: 3}, last: 6, overdue: {EUR: 600}, want: [], attempts: {EUR: 3}}
+  - {name: last attempt finishes the campaign, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:722", thresholds: {EUR: 500}, overdue: {EUR: 600}, want: [EUR], attempts: {EUR: 1}, finished: true}
+  - {name: one currency maxed another not, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:758", max: 2, thresholds: {USD: 4000, EUR: 2000}, prior: {USD: 2}, overdue: {USD: 5000, EUR: 2500}, want: [EUR], attempts: {USD: 2, EUR: 1}}
+  - {name: one maxed another below threshold, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:804", max: 3, thresholds: {USD: 4000, EUR: 8000}, prior: {USD: 3}, last: 2, overdue: {USD: 5000, EUR: 5207}, want: [], attempts: {USD: 3}}
+  - {name: one maxed another without overdue, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:843", max: 2, thresholds: {USD: 4000, EUR: 2000}, prior: {USD: 2}, last: 2, overdue: {USD: 5000}, want: [], attempts: {USD: 2}}
+  - {name: all currencies maxed, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:912", max: 3, thresholds: {USD: 4000, EUR: 8000}, prior: {USD: 3, EUR: 3}, last: 2, overdue: {USD: 5000, EUR: 10000}, want: [], attempts: {USD: 3, EUR: 3}}
+  - {name: several billing entities count once, source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:880", max: 2, thresholds: {EUR: 4000}, overdue: {EUR: 11000}, want: [EUR], attempts: {EUR: 1}}
+skipped:
+  - {source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:41", reason: "selecting customers with overdue invoices is customer.Repository.ListForDunning"}
+  - {source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:77", reason: "the auto_dunning premium flag is checked by the server's ee wiring"}
+  - {source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:129", reason: "the auto_dunning premium flag is checked by the server's ee wiring"}
+  - {source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:263", reason: "campaign selection is Applicable, tested in Go"}
+  - {source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:498", reason: "campaign selection is Applicable, tested in Go"}
+  - {source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:626", reason: "fan-out over customers and billing entities belongs to the job"}
+  - {source: "spec/services/dunning_campaigns/bulk_process_service_spec.rb:868", reason: "one payment request per billing entity is created by the job from the reached threshold"}
+  - {source: "spec/services/dunning_campaigns/process_attempt_service_spec.rb:47", reason: "payment request creation and invoice selection belong to the job; preconditions are ported in payment/testdata/request.yaml"}

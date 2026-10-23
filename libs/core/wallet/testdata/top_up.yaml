@@ -1,0 +1,16 @@
+# Ported from lago
+# spec/services/validators/wallet_transaction_amount_limits_validator_spec.rb:
+# ValidatePaidTopUp on a wallet with min 500 and max 10000 cents (rate 1,
+# EUR) unless overridden; field paid_credits.
+defaults: {min: 500, max: 10000, credits: "1.0"}
+cases:
+  - {name: ignore limits, source: "spec/services/validators/wallet_transaction_amount_limits_validator_spec.rb:30", ignore: true, errors: []}
+  - {name: no limits, source: "spec/services/validators/wallet_transaction_amount_limits_validator_spec.rb:36", min: null, max: null, errors: []}
+  - {name: zero credits, source: "spec/services/validators/wallet_transaction_amount_limits_validator_spec.rb:53", credits: "0.00", errors: ["paid_credits: invalid_amount"]}
+  - {name: zero credits ignoring limits, source: "spec/services/validators/wallet_transaction_amount_limits_validator_spec.rb:90", credits: "0", ignore: true, errors: ["paid_credits: invalid_amount"]}
+  - {name: below min, source: "spec/services/validators/wallet_transaction_amount_limits_validator_spec.rb:63", credits: "4.99", errors: ["paid_credits: amount_below_minimum"]}
+  - {name: above max, source: "spec/services/validators/wallet_transaction_amount_limits_validator_spec.rb:73", credits: "100.1", errors: ["paid_credits: amount_above_maximum"]}
+  - {name: equal to limit, source: "spec/services/validators/wallet_transaction_amount_limits_validator_spec.rb:83", credits: "5", max: 500, errors: []}
+skipped:
+  - {source: "spec/services/validators/wallet_transaction_amount_limits_validator_spec.rb:12", reason: "raise_if_invalid! is a service-result helper; ValidatePaidTopUp returns the error"}
+  - {source: "spec/services/validators/wallet_transaction_amount_limits_validator_spec.rb:43", reason: "credits are a money.Decimal and cannot be blank; the API layer rejects a missing value"}

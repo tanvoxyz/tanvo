@@ -1,0 +1,21 @@
+# Ported from lago spec/models/quote_spec.rb. Each case builds a quote of
+# an order type, with or without an amended subscription, numbered from
+# its sequence and creation year unless a number is given, and lists the
+# expected number and field errors.
+defaults: {order_type: subscription_creation, subscription: false, seq: 1, year: 2026, number: "", want_number: "QT-2026-0001", errors: []}
+cases:
+  - {name: amendment requires subscription, source: "spec/models/quote_spec.rb:42", order_type: subscription_amendment, errors: ["subscription_id: value_is_mandatory"]}
+  - {name: amendment with subscription, source: "spec/models/quote_spec.rb:42", order_type: subscription_amendment, subscription: true}
+  - {name: creation without subscription, source: "spec/models/quote_spec.rb:51"}
+  - {name: one-off without subscription, source: "spec/models/quote_spec.rb:56", order_type: one_off}
+  - {name: unknown order type, source: "tanvo", order_type: renewal, errors: ["order_type: invalid_value"]}
+  - {name: formatted number, source: "spec/models/quote_spec.rb:92", seq: 123, year: 2020, want_number: "QT-2020-0123"}
+  - {name: number from the creation year, source: "spec/models/quote_spec.rb:97", seq: 7, year: 2026, want_number: "QT-2026-0007"}
+  - {name: explicit number preserved, source: "spec/models/quote_spec.rb:107", number: "QT-CUSTOM-0001", want_number: "QT-CUSTOM-0001"}
+  - {name: sequence beyond 4 digits, source: "tanvo", seq: 12345, want_number: "QT-2026-12345"}
+skipped:
+  - {source: "spec/models/quote_spec.rb:8", reason: "the order_type enum is generated and tested by enums_test"}
+  - {source: "spec/models/quote_spec.rb:22", reason: "ActiveRecord associations"}
+  - {source: "spec/models/quote_spec.rb:36", reason: "activity logs are derived from domain events (domain §2.3)"}
+  - {source: "spec/models/quote_spec.rb:62", reason: "image content type and size are checked by the upload API"}
+  - {source: "spec/models/quote_spec.rb:74", reason: "sequences are allocated by the repository (NextSequence), tested by the repository suites"}

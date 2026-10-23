@@ -1,6 +1,7 @@
 go 1.27.1
 
 use (
+	./libs/core
 	./libs/expression/go
 	./libs/metering
 	./libs/money

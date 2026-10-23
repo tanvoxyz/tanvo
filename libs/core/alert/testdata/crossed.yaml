@@ -1,0 +1,32 @@
+# Ported from lago spec/models/usage_monitoring/alert_spec.rb
+# (#find_thresholds_crossed). The default alert has one-time thresholds
+# 10, 30, 50 and a recurring step of 100; each case evaluates a move from
+# previous to current and lists the crossed values.
+defaults: {thresholds: ["10", "30", "50"], recurring: "100", direction: increasing}
+cases:
+  - {name: only recurring increasing, source: "spec/models/usage_monitoring/alert_spec.rb:102", thresholds: [], previous: "0", current: "150", want: ["100"]}
+  - {name: only recurring decreasing, source: "spec/models/usage_monitoring/alert_spec.rb:107", thresholds: [], direction: decreasing, previous: "50", current: "-150", want: ["-100"]}
+  - {name: increasing excludes the previous value, source: "spec/models/usage_monitoring/alert_spec.rb:115", previous: "8", current: "8", want: []}
+  - {name: increasing crosses 10 and 30, source: "spec/models/usage_monitoring/alert_spec.rb:115", previous: "8", current: "30", want: ["10", "30"]}
+  - {name: increasing crosses 50, source: "spec/models/usage_monitoring/alert_spec.rb:115", previous: "31", current: "60", want: ["50"]}
+  - {name: increasing value decreases, source: "spec/models/usage_monitoring/alert_spec.rb:123", previous: "30", current: "29", want: []}
+  - {name: increasing crosses recurring, source: "spec/models/usage_monitoring/alert_spec.rb:128", previous: "33", current: "351", want: ["50", "150", "250", "350"]}
+  - {name: decreasing excludes the previous value, source: "spec/models/usage_monitoring/alert_spec.rb:137", thresholds: ["200", "500", "800"], direction: decreasing, previous: "1000", current: "1000", want: []}
+  - {name: decreasing crosses 800 and 500, source: "spec/models/usage_monitoring/alert_spec.rb:137", thresholds: ["200", "500", "800"], direction: decreasing, previous: "1000", current: "500", want: ["500", "800"]}
+  - {name: decreasing crosses 200 and recurring 100, source: "spec/models/usage_monitoring/alert_spec.rb:137", thresholds: ["200", "500", "800"], direction: decreasing, previous: "450", current: "100", want: ["100", "200"]}
+  - {name: decreasing value increases, source: "spec/models/usage_monitoring/alert_spec.rb:145", thresholds: ["200", "500", "800"], direction: decreasing, previous: "400", current: "450", want: []}
+  - {name: decreasing crosses nothing, source: "spec/models/usage_monitoring/alert_spec.rb:150", thresholds: ["200", "500", "800"], direction: decreasing, previous: "700", current: "600", want: []}
+  - {name: decreasing crosses recurring below zero, source: "spec/models/usage_monitoring/alert_spec.rb:155", thresholds: ["200", "500", "800"], direction: decreasing, previous: "600", current: "-100", want: ["-100", "0", "100", "200", "500"]}
+  - {name: no recurring threshold, source: "tanvo", recurring: null, previous: "0", current: "1000", want: ["10", "30", "50"]}
+  - {name: below the first threshold, source: "tanvo", previous: "0", current: "9.99", want: []}
+  - {name: decimal step, source: "tanvo", thresholds: [], recurring: "0.5", previous: "0.2", current: "1.7", want: ["0.5", "1", "1.5"]}
+skipped:
+  - {source: "spec/models/usage_monitoring/alert_spec.rb:8", reason: "the direction enum is generated and tested by enums_test"}
+  - {source: "spec/models/usage_monitoring/alert_spec.rb:17", reason: "ActiveRecord associations"}
+  - {source: "spec/models/usage_monitoring/alert_spec.rb:58", reason: "code uniqueness per subscription is a unique index, tested by the repository suites"}
+  - {source: "spec/models/usage_monitoring/alert_spec.rb:67", reason: "STI class lookup; Tanvo has one Alert type with a Type enum"}
+  - {source: "spec/models/usage_monitoring/alert_spec.rb:82", reason: "STI names"}
+  - {source: "spec/models/usage_monitoring/alert_spec.rb:193", reason: "find_value reads usage, a libs/billing concern"}
+  - {source: "spec/models/usage_monitoring/alert_threshold_spec.rb:14", reason: "notify_on and resolution are dropped (domain §24 item 13)"}
+  - {source: "spec/models/usage_monitoring/triggered_alert_spec.rb:8", reason: "resolved and seeded kinds are dropped (domain §24 item 13)"}
+  - {source: "spec/models/usage_monitoring/triggered_alert_spec.rb:33", reason: "resolution columns are dropped (domain §24 item 13)"}

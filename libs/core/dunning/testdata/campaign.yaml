@@ -1,0 +1,27 @@
+# Ported from lago spec/models/dunning_campaign_spec.rb and
+# spec/models/dunning_campaign_threshold_spec.rb. The campaign has one EUR
+# threshold of 1000 unless the case gives thresholds ({currency, amount}).
+cases:
+  - {name: valid, source: "spec/models/dunning_campaign_spec.rb:25", errors: []}
+  - {name: missing name, source: "spec/models/dunning_campaign_spec.rb:16", campaign_name: "", errors: ["name: value_is_mandatory"]}
+  - {name: zero days between attempts, source: "spec/models/dunning_campaign_spec.rb:18", days: 0, errors: ["days_between_attempts: value_is_out_of_range"]}
+  - {name: zero max attempts, source: "spec/models/dunning_campaign_spec.rb:19", max: 0, errors: ["max_attempts: value_is_out_of_range"]}
+  - {name: missing code, source: "tanvo", code: "", errors: ["code: value_is_mandatory"]}
+  - {name: empty bcc emails, source: "spec/models/dunning_campaign_spec.rb:30", bcc: [], errors: []}
+  - {name: valid bcc emails, source: "spec/models/dunning_campaign_spec.rb:33", bcc: [test1@example.com, test2@example.com], errors: []}
+  - {name: invalid bcc email, source: "spec/models/dunning_campaign_spec.rb:36", bcc: [test1@example.com, name.com], errors: ["bcc_emails[1]: invalid_email_format"]}
+  - {name: no thresholds, source: "tanvo", thresholds: [], errors: ["thresholds: value_is_mandatory"]}
+  - {name: threshold of zero, source: "spec/models/dunning_campaign_threshold_spec.rb:13", thresholds: [{currency: EUR, amount: 0}], errors: []}
+  - {name: negative threshold, source: "spec/models/dunning_campaign_threshold_spec.rb:13", thresholds: [{currency: EUR, amount: -1}], errors: ["thresholds[0].amount: value_is_negative"]}
+  - {name: threshold without currency, source: "spec/models/dunning_campaign_threshold_spec.rb:14", thresholds: [{currency: "", amount: 1}], errors: ["thresholds[0].currency: currency_invalid"]}
+  - {name: two currencies, source: "tanvo", thresholds: [{currency: EUR, amount: 1}, {currency: USD, amount: 1}], errors: []}
+  - {name: duplicate currency, source: "spec/models/dunning_campaign_threshold_spec.rb:20", thresholds: [{currency: EUR, amount: 1}, {currency: EUR, amount: 2}], errors: ["thresholds[1].currency: value_already_exist"]}
+skipped:
+  - {source: "spec/models/dunning_campaign_spec.rb:8", reason: "paper_trail versioning is replaced by the audit log"}
+  - {source: "spec/models/dunning_campaign_spec.rb:10", reason: "ActiveRecord associations"}
+  - {source: "spec/models/dunning_campaign_spec.rb:28", reason: "a nil list is the empty list in Go"}
+  - {source: "spec/models/dunning_campaign_spec.rb:44", reason: "code uniqueness among live campaigns is enforced by the repository (memstore and store suites)"}
+  - {source: "spec/models/dunning_campaign_spec.rb:60", reason: "the default scope is the repository's live filter"}
+  - {source: "spec/models/dunning_campaign_spec.rb:72", reason: "resetting customer counters is a customer repository update by the deletion service"}
+  - {source: "spec/models/dunning_campaign_threshold_spec.rb:10", reason: "ActiveRecord associations"}
+  - {source: "spec/models/dunning_campaign_threshold_spec.rb:29", reason: "soft-deleted thresholds are dropped from the campaign aggregate"}

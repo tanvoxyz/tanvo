@@ -1,0 +1,18 @@
+# Ported from lago spec/models/subscription_spec.rb: transitions of a
+# subscription. Times are hour offsets from now; the transition happens at
+# now (activation with started_at = start).
+cases:
+  - {name: mark as incomplete, source: "spec/models/subscription_spec.rb:396", from: pending, action: incomplete, status: incomplete, started_at: 0}
+  - {name: mark as active sets started_at, source: "spec/models/subscription_spec.rb:1023", from: pending, action: activate, start: -2, status: active, started_at: -2}
+  - {name: mark as active keeps started_at of an incomplete subscription, source: "spec/models/subscription_spec.rb:1037", from: incomplete, started: -5, action: activate, start: 0, status: active, started_at: -5}
+  - {name: mark as active with a previous subscription, source: "spec/models/subscription_spec.rb:1058", from: pending, has_previous: true, action: activate, start: 0, status: active, started_at: 0}
+  - {name: cancel pending, source: "tanvo", from: pending, action: cancel, status: canceled}
+  - {name: cancel incomplete, source: "tanvo", from: incomplete, started: -1, action: cancel, status: canceled, started_at: -1}
+  - {name: terminate active, source: "tanvo", from: active, started: -1, action: terminate, status: terminated, started_at: -1}
+  - {name: terminate pending, source: "tanvo", from: pending, action: terminate, error: true, status: pending}
+  - {name: activate terminated, source: "tanvo", from: terminated, started: -1, action: activate, start: 0, error: true, status: terminated, started_at: -1}
+  - {name: trial ended, source: "tanvo", from: active, started: -1, action: trial_ended, status: active, started_at: -1}
+  - {name: trial ended twice, source: "tanvo", from: active, started: -1, trial_ended: true, action: trial_ended, error: true, status: active, started_at: -1}
+  - {name: trial ended while pending, source: "tanvo", from: pending, action: trial_ended, error: true, status: pending}
+skipped:
+  - {source: "spec/models/subscription_spec.rb:1023", reason: "the activated_at half: Tanvo keeps only started_at (domain §9.1)"}

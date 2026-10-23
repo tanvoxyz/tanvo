@@ -1,0 +1,19 @@
+# Ported from lago spec/models/inbound_webhook_spec.rb and the retry and
+# cleanup jobs (app/jobs/clock/inbound_webhooks_*). Times are minutes after
+# reception; at is the evaluation instant.
+cases:
+  - {name: missing event type, source: "spec/models/inbound_webhook_spec.rb:10", op: validate, event_type: "", errors: ["event_type: value_is_mandatory"]}
+  - {name: missing payload, source: "spec/models/inbound_webhook_spec.rb:11", op: validate, payload: "", errors: ["payload: value_is_mandatory"]}
+  - {name: missing source, source: "spec/models/inbound_webhook_spec.rb:12", op: validate, src: "", errors: ["source: value_is_mandatory"]}
+  - {name: missing status, source: "spec/models/inbound_webhook_spec.rb:13", op: validate, status: "", errors: ["status: value_is_mandatory"]}
+  - {name: valid webhook, source: "spec/models/inbound_webhook_spec.rb:15", op: validate, errors: []}
+  - {name: new pending is due, source: "tanvo", op: retriable, at: 0, want: true}
+  - {name: processing just started, source: "tanvo", op: retriable, status: processing, processing: 0, at: 5, want: false}
+  - {name: stuck processing retried after 15 minutes, source: "tanvo", op: retriable, status: processing, processing: 0, at: 15, want: true}
+  - {name: failed retried after 15 minutes, source: "tanvo", op: retriable, status: failed, processing: 30, at: 45, want: true}
+  - {name: failed retried too soon, source: "tanvo", op: retriable, status: failed, processing: 30, at: 40, want: false}
+  - {name: last retry within the window, source: "tanvo", op: retriable, status: failed, processing: 105, at: 120, want: true}
+  - {name: no retry past the window, source: "tanvo", op: retriable, status: failed, processing: 110, at: 200, want: false}
+  - {name: succeeded never retried, source: "tanvo", op: retriable, status: succeeded, processing: 0, at: 30, want: false}
+  - {name: kept 90 days, source: "tanvo", op: expired, at: 129599, want: false}
+  - {name: deleted after 90 days, source: "tanvo", op: expired, at: 129600, want: true}

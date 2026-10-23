@@ -1,0 +1,15 @@
+# Ported from lago spec/models/payment_intent_spec.rb. Times are hours
+# after creation.
+cases:
+  - {name: valid intent, source: "spec/models/payment_intent_spec.rb:11", op: validate, errors: []}
+  - {name: missing status, source: "spec/models/payment_intent_spec.rb:11", op: validate, status: "", errors: ["status: value_is_mandatory"]}
+  - {name: missing expiration, source: "spec/models/payment_intent_spec.rb:12", op: validate, no_expiration: true, errors: ["expires_at: value_is_mandatory"]}
+  - {name: non expired, source: "spec/models/payment_intent_spec.rb:87", op: non_expired, at: 23, want: true}
+  - {name: expired at 24 hours, source: "spec/models/payment_intent_spec.rb:87", op: non_expired, at: 24, want: false}
+  - {name: active past expiration awaits expiration, source: "spec/models/payment_intent_spec.rb:102", op: awaiting_expiration, at: 25, want: true}
+  - {name: active within validity, source: "spec/models/payment_intent_spec.rb:102", op: awaiting_expiration, at: 1, want: false}
+  - {name: expired past expiration, source: "spec/models/payment_intent_spec.rb:102", op: awaiting_expiration, status: expired, at: 25, want: false}
+skipped:
+  - {source: "spec/models/payment_intent_spec.rb:6", reason: "enum values are covered by the generated enumeration tests"}
+  - {source: "spec/models/payment_intent_spec.rb:8", reason: "ActiveRecord associations"}
+  - {source: "spec/models/payment_intent_spec.rb:15", reason: "one active intent per invoice is enforced by the repository (memstore and store suites)"}

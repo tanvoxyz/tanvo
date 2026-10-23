@@ -1,0 +1,9 @@
+# Ported from lago spec/models/usage_monitoring/alert_spec.rb
+# (#formatted_crossed_thresholds and #one_time_thresholds_values).
+# One-time thresholds have codes "warn<value>"; the recurring one "rec".
+defaults: {thresholds: ["10", "30", "50"], recurring: "100"}
+cases:
+  - {name: one-time values sorted, source: "spec/models/usage_monitoring/alert_spec.rb:93", thresholds: ["30", "10", "50"], values: [], want: [], one_time: ["10", "30", "50"]}
+  - {name: one-time thresholds with codes, source: "spec/models/usage_monitoring/alert_spec.rb:163", values: ["10", "30"], want: ["warn10:10", "warn30:30"], one_time: ["10", "30", "50"]}
+  - {name: one-time wins over recurring of the same value, source: "spec/models/usage_monitoring/alert_spec.rb:174", thresholds: ["10", "15", "50"], recurring: "10", values: ["10", "15"], want: ["warn10:10", "warn15:15"], one_time: ["10", "15", "50"]}
+  - {name: unknown values are recurring, source: "spec/models/usage_monitoring/alert_spec.rb:183", values: ["40", "41", "42"], want: ["rec:40:recurring", "rec:41:recurring", "rec:42:recurring"], one_time: ["10", "30", "50"]}

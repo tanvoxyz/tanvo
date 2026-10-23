@@ -1,0 +1,31 @@
+# Ported from lago spec/models/integrations/base_integration_spec.rb and
+# spec/models/integration_customers/base_customer_spec.rb. Each case builds
+# an integration of a provider and category and lists the category the
+# provider serves ("" when unknown) and the field errors of Validate.
+defaults: {name: "", code: netsuite-1, integration_name: NetSuite, sync: false, errors: []}
+cases:
+  - {name: netsuite, source: "spec/models/integrations/base_integration_spec.rb:72", provider: netsuite, category: accounting, want_category: accounting}
+  - {name: okta, source: "spec/models/integrations/base_integration_spec.rb:78", provider: okta, category: auth, want_category: auth}
+  - {name: anrok, source: "spec/models/integrations/base_integration_spec.rb:84", provider: anrok, category: tax, want_category: tax}
+  - {name: xero, source: "spec/models/integrations/base_integration_spec.rb:90", provider: xero, category: accounting, want_category: accounting, sync: true}
+  - {name: hubspot, source: "spec/models/integrations/base_integration_spec.rb:96", provider: hubspot, category: crm, want_category: crm, sync: true}
+  - {name: salesforce, source: "spec/models/integrations/base_integration_spec.rb:102", provider: salesforce, category: crm, want_category: crm}
+  - {name: unknown provider, source: "spec/models/integrations/base_integration_spec.rb:108", provider: unknown, category: crm, want_category: "", errors: ["provider: invalid_value"]}
+  - {name: avalara is tax, source: "spec/models/integration_customers/base_customer_spec.rb:52", provider: avalara, category: tax, want_category: tax}
+  - {name: entra id, source: "tanvo", provider: entra_id, category: auth, want_category: auth}
+  - {name: stripe, source: "tanvo", provider: stripe, category: payment, want_category: payment}
+  - {name: provider of another category, source: "tanvo", provider: stripe, category: tax, want_category: payment, errors: ["provider: provider_category_mismatch"]}
+  - {name: sync flags on a tax integration, source: "tanvo", provider: anrok, category: tax, want_category: tax, sync: true, errors: ["sync_invoices: sync_not_supported"]}
+  - {name: missing name, source: "tanvo", provider: netsuite, category: accounting, want_category: accounting, integration_name: "", errors: ["name: value_is_mandatory"]}
+  - {name: missing code, source: "tanvo", provider: netsuite, category: accounting, want_category: accounting, code: "", errors: ["code: value_is_mandatory"]}
+skipped:
+  - {source: "spec/models/integrations/base_integration_spec.rb:8", reason: "paper_trail versioning is replaced by domain events (domain §2.3)"}
+  - {source: "spec/models/integrations/base_integration_spec.rb:20", reason: "ActiveRecord associations; Repository.Delete removes the dependents"}
+  - {source: "spec/models/integrations/base_integration_spec.rb:26", reason: "secrets are an encrypted envelope that core never decrypts (architecture §15)"}
+  - {source: "spec/models/integrations/base_integration_spec.rb:115", reason: "external_id_key is a provider payload detail of providers/*"}
+  - {source: "spec/models/integration_customers/base_customer_spec.rb:14", reason: "ActiveRecord associations"}
+  - {source: "spec/models/integration_customers/base_customer_spec.rb:35", reason: "integration customers carry no code in Tanvo (domain §17.2)"}
+  - {source: "spec/models/integration_customers/base_customer_spec.rb:63", reason: "STI kind scopes; ListByCustomer filters by category"}
+  - {source: "spec/models/integration_customers/base_customer_spec.rb:123", reason: "STI class lookup"}
+  - {source: "spec/models/integration_item_spec.rb:13", reason: "the item_type enum is generated and tested by enums_test"}
+  - {source: "spec/models/integration_resource_spec.rb:8", reason: "sales_order_deprecated is a deprecated resource type, left out"}

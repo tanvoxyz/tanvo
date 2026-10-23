@@ -1,0 +1,11 @@
+# Ported from lago spec/models/wallet_transaction_consumption_spec.rb:
+# Consumption.Validate against the types of the linked transactions.
+defaults: {consumed: 100, inbound_type: inbound, outbound_type: outbound}
+cases:
+  - {name: zero consumed, source: "spec/models/wallet_transaction_consumption_spec.rb:15", consumed: 0, errors: ["consumed_amount: value_must_be_positive"]}
+  - {name: positive consumed, source: "spec/models/wallet_transaction_consumption_spec.rb:15", errors: []}
+  - {name: inbound is inbound, source: "spec/models/wallet_transaction_consumption_spec.rb:23", errors: []}
+  - {name: inbound is outbound, source: "spec/models/wallet_transaction_consumption_spec.rb:31", inbound_type: outbound, errors: ["inbound_transaction_id: invalid_value"]}
+  - {name: outbound is inbound, source: "spec/models/wallet_transaction_consumption_spec.rb:54", outbound_type: inbound, errors: ["outbound_transaction_id: invalid_value"]}
+skipped:
+  - {source: "spec/models/wallet_transaction_consumption_spec.rb:6", reason: "ActiveRecord associations"}

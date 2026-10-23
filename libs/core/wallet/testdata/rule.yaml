@@ -1,0 +1,29 @@
+# Ported from lago spec/models/recurring_transaction_rule_spec.rb. Each
+# case changes a valid active fixed interval rule (monthly, paid 10,
+# granted 10) and lists the field errors expected from Validate.
+cases:
+  - {name: valid rule, source: "spec/models/recurring_transaction_rule_spec.rb:31", errors: []}
+  - {name: empty transaction name, source: "spec/models/recurring_transaction_rule_spec.rb:32", name_length: 0, errors: ["transaction_name: value_is_mandatory"]}
+  - {name: transaction name of 255, source: "spec/models/recurring_transaction_rule_spec.rb:32", name_length: 255, errors: []}
+  - {name: transaction name of 256, source: "spec/models/recurring_transaction_rule_spec.rb:32", name_length: 256, errors: ["transaction_name: value_is_too_long"]}
+  - {name: target accepts grants false, source: "spec/models/recurring_transaction_rule_spec.rb:47", method: target, target: "100", errors: []}
+  - {name: target accepts grants true, source: "spec/models/recurring_transaction_rule_spec.rb:42", method: target, target: "100", grants: true, errors: []}
+  - {name: fixed rejects grants true, source: "spec/models/recurring_transaction_rule_spec.rb:54", grants: true, errors: ["grants_target_top_up: value_not_allowed"]}
+  - {name: fixed accepts grants unset, source: "spec/models/recurring_transaction_rule_spec.rb:66", errors: []}
+  - {name: target below threshold, source: "spec/models/recurring_transaction_rule_spec.rb:75", method: target, trigger: threshold, target: "50", threshold: "100", errors: ["target_ongoing_balance: must_be_greater_than_or_equal_threshold"]}
+  - {name: target equal to threshold, source: "spec/models/recurring_transaction_rule_spec.rb:81", method: target, trigger: threshold, target: "100", threshold: "100", errors: []}
+  - {name: target above threshold, source: "spec/models/recurring_transaction_rule_spec.rb:86", method: target, trigger: threshold, target: "150", threshold: "100", errors: []}
+  - {name: interval target ignores threshold, source: "spec/models/recurring_transaction_rule_spec.rb:100", method: target, target: "50", threshold: "100", errors: []}
+  - {name: target without target balance, source: "tanvo", method: target, errors: ["target_ongoing_balance: value_is_mandatory"]}
+  - {name: threshold without threshold credits, source: "tanvo", trigger: threshold, errors: ["threshold_credits: value_is_mandatory"]}
+  - {name: interval without interval, source: "tanvo", interval: "", errors: ["interval: value_is_mandatory"]}
+  - {name: negative paid credits, source: "tanvo", paid: "-1", errors: ["paid_credits: value_is_negative"]}
+
+skipped:
+  - {source: "spec/models/recurring_transaction_rule_spec.rb:6", reason: "purchase order numbers are not part of the Tanvo rule (domain §14.3)"}
+  - {source: "spec/models/recurring_transaction_rule_spec.rb:8", reason: "connection resolution is the pure payment.ResolvePaymentMethod, tested in package payment"}
+  - {source: "spec/models/recurring_transaction_rule_spec.rb:12", reason: "ActiveRecord associations"}
+  - {source: "spec/models/recurring_transaction_rule_spec.rb:21", reason: "enum values are covered by the generated enumeration tests and period.Interval"}
+  - {source: "spec/models/recurring_transaction_rule_spec.rb:36", reason: "a nil grants_target_top_up on legacy target rows: Tanvo has no legacy rows and stores a bool"}
+  - {source: "spec/models/recurring_transaction_rule_spec.rb:60", reason: "rejecting false on a fixed rule: a Go bool cannot tell false from unset"}
+  - {source: "spec/models/recurring_transaction_rule_spec.rb:91", reason: "skipping validation of unchanged legacy rows is a Rails dirty-tracking detail; Terminate does not validate"}

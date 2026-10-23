@@ -1,0 +1,52 @@
+# Ported from lago spec/models/subscription_spec.rb. Each case changes a
+# valid active subscription (external_id "sub_1", subscription_at = now,
+# started_at = now, plan paid in arrears unless plan_pay_in_advance) and
+# lists the field errors of Validate followed by ValidateForPlan ("field:
+# code"); an empty list means valid. Times are hour offsets from now.
+cases:
+  - {name: valid, source: "spec/models/subscription_spec.rb:224", errors: []}
+  - {name: without external_id, source: "spec/models/subscription_spec.rb:224", external_id: "", errors: ["external_id: value_is_mandatory"]}
+  - {name: external_id of 256 characters, source: "tanvo", external_id_length: 256, errors: ["external_id: value_is_too_long"]}
+  - {name: credit note on an arrears plan, source: "spec/models/subscription_spec.rb:230", credit_note: "credit", errors: ["on_termination_credit_note: only_for_pay_in_advance_plans"]}
+  - {name: credit note on an in-advance plan, source: "spec/models/subscription_spec.rb:236", plan_pay_in_advance: true, credit_note: "credit", errors: []}
+  - {name: unknown credit note, source: "tanvo", plan_pay_in_advance: true, credit_note: "burn", errors: ["on_termination_credit_note: invalid_value"]}
+  - {name: incomplete without started_at, source: "spec/models/subscription_spec.rb:376", status: incomplete, unstarted: true, errors: ["started_at: started_at_is_mandatory"]}
+  - {name: pending without started_at, source: "spec/models/subscription_spec.rb:384", status: pending, unstarted: true, errors: []}
+  - {name: active without started_at, source: "tanvo", status: active, unstarted: true, errors: ["started_at: started_at_is_mandatory"]}
+  - {name: terminated without terminated_at, source: "tanvo", status: terminated, errors: ["terminated_at: value_is_mandatory"]}
+  - {name: terminated, source: "tanvo", status: terminated, terminated_at: 1, errors: []}
+  - {name: canceled without reason, source: "tanvo", status: canceled, unstarted: true, canceled_at: 0, errors: ["cancellation_reason: value_is_mandatory"]}
+  - {name: canceled, source: "tanvo", status: canceled, unstarted: true, canceled_at: 0, cancellation_reason: timeout, errors: []}
+  - {name: reason without cancellation, source: "tanvo", cancellation_reason: manual, errors: ["cancellation_reason: value_not_allowed"]}
+  - {name: ending_at before subscription_at, source: "tanvo", ending_at: -1, errors: ["ending_at: invalid_ending_at"]}
+  - {name: ending_at equal to subscription_at, source: "tanvo", ending_at: 0, errors: ["ending_at: invalid_ending_at"]}
+  - {name: ending_at after subscription_at, source: "tanvo", ending_at: 24, errors: []}
+  - {name: unknown billing time, source: "tanvo", billing_time: weekly, errors: ["billing_time: invalid_value"]}
+  - {name: manual payment with a payment method, source: "tanvo", payment_method_type: manual, payment_method_id: true, errors: ["payment_method_id: value_not_allowed"]}
+  - {name: provider payment with a payment method, source: "tanvo", payment_method_id: true, errors: []}
+  - {name: purchase order number of 256 characters, source: "tanvo", purchase_order_number_length: 256, errors: ["purchase_order_number: value_is_too_long"]}
+  - {name: purchase order number of 255 characters, source: "tanvo", purchase_order_number_length: 255, errors: []}
+  - {name: name of 256 characters, source: "tanvo", name_length: 256, errors: ["name: value_is_too_long"]}
+  - {name: duplicated invoice custom sections, source: "tanvo", duplicate_sections: true, errors: ["invoice_custom_section_ids: duplicated_value"]}
+
+skipped:
+  - {source: "spec/models/subscription_spec.rb:18", reason: "enum values are checked by the generated enum tests"}
+  - {source: "spec/models/subscription_spec.rb:45", reason: "billing_anchor_date is not a subscription field in Tanvo (domain §9.1); anchors come from libs/period"}
+  - {source: "spec/models/subscription_spec.rb:65", reason: "ActiveRecord associations"}
+  - {source: "spec/models/subscription_spec.rb:96", reason: "ClickHouse associations"}
+  - {source: "spec/models/subscription_spec.rb:146", reason: "ActiveRecord scopes; starting_in_the_future and expirable are tested as predicates and by the repository suite"}
+  - {source: "spec/models/subscription_spec.rb:190", reason: "fixed charge units overrides are fixed charge events in Tanvo (domain §7.5)"}
+  - {source: "spec/models/subscription_spec.rb:243", reason: "external_id uniqueness is a partial unique index, tested by the repository suite"}
+  - {source: "spec/models/subscription_spec.rb:369", reason: "Tanvo requires started_at once a subscription is active (domain §9.2)"}
+  - {source: "spec/models/subscription_spec.rb:509", reason: "upgraded? is in libs/period"}
+  - {source: "spec/models/subscription_spec.rb:548", reason: "downgraded? is in libs/period"}
+  - {source: "spec/models/subscription_spec.rb:589", reason: "trial end dates are in libs/period"}
+  - {source: "spec/models/subscription_spec.rb:631", reason: "trial end dates are in libs/period"}
+  - {source: "spec/models/subscription_spec.rb:674", reason: "in_trial_period? is in libs/period"}
+  - {source: "spec/models/subscription_spec.rb:694", reason: "billing reference times are in libs/period"}
+  - {source: "spec/models/subscription_spec.rb:722", reason: "initial_started_at is ChainStart over Repository.Chain, tested in Go and by the repository suite"}
+  - {source: "spec/models/subscription_spec.rb:784", reason: "downgrade dates are in libs/period"}
+  - {source: "spec/models/subscription_spec.rb:937", reason: "Hubspot sync is an integration concern"}
+  - {source: "spec/models/subscription_spec.rb:974", reason: "date differences in a time zone are in libs/period"}
+  - {source: "spec/models/subscription_spec.rb:1090", reason: "adjusted boundaries are in libs/period"}
+  - {source: "spec/models/subscription_spec.rb:1175", reason: "has_progressive_billing? reads plan thresholds; covered by ApplicableUsageThresholds"}

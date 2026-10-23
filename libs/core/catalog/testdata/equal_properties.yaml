@@ -1,0 +1,12 @@
+# Ported from lago spec/models/charge_spec.rb and fixed_charge_spec.rb
+# (#equal_properties?). Each case compares two charges (kind "charge") or
+# two fixed charges (kind "fixed_charge").
+defaults: {units_a: "2", units_b: "2"}
+cases:
+  - {name: charge models differ, source: "spec/models/charge_spec.rb:728", kind: charge, model_a: standard, properties_a: '{"amount":"100"}', model_b: percentage, properties_b: '{"rate":"1"}', want: false}
+  - {name: charge properties differ, source: "spec/models/charge_spec.rb:736", kind: charge, model_a: standard, properties_a: '{"amount":"100"}', model_b: standard, properties_b: '{"amount":"200"}', want: false}
+  - {name: charge model and properties equal, source: "spec/models/charge_spec.rb:744", kind: charge, model_a: standard, properties_a: '{"amount":"100"}', model_b: standard, properties_b: '{ "amount": "100" }', want: true}
+  - {name: fixed charge models differ, source: "spec/models/fixed_charge_spec.rb:191", kind: fixed_charge, model_a: standard, properties_a: '{"amount":"100"}', model_b: volume, properties_b: '{"amount":"100"}', want: false}
+  - {name: fixed charge properties differ, source: "spec/models/fixed_charge_spec.rb:204", kind: fixed_charge, model_a: standard, properties_a: '{"amount":"100"}', model_b: standard, properties_b: '{"amount":"200"}', want: false}
+  - {name: fixed charge units differ, source: "spec/models/fixed_charge_spec.rb:217", kind: fixed_charge, model_a: standard, properties_a: '{"amount":"100"}', model_b: standard, properties_b: '{"amount":"100"}', units_b: "99999", want: false}
+  - {name: fixed charge all equal, source: "spec/models/fixed_charge_spec.rb:230", kind: fixed_charge, model_a: standard, properties_a: '{"amount":"100"}', model_b: standard, properties_b: '{"amount":"100"}', want: true}

@@ -1,0 +1,8 @@
+# Ported from lago spec/models/subscription/activation_rule/payment_spec.rb:
+# whether a payment activation rule applies.
+cases:
+  - {name: in advance not in trial, source: "spec/models/subscription/activation_rule/payment_spec.rb:15", pay_in_advance: true, applicable: true}
+  - {name: arrears without in-advance fixed charges, source: "spec/models/subscription/activation_rule/payment_spec.rb:23", applicable: false}
+  - {name: in advance in trial, source: "spec/models/subscription/activation_rule/payment_spec.rb:29", pay_in_advance: true, in_trial: true, applicable: false}
+  - {name: trial with in-advance fixed charges, source: "spec/models/subscription/activation_rule/payment_spec.rb:37", in_trial: true, in_advance_fixed_charges: true, applicable: true}
+  - {name: in-advance fixed charges, source: "spec/models/subscription/activation_rule/payment_spec.rb:47", in_advance_fixed_charges: true, applicable: true}

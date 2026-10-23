@@ -1,0 +1,31 @@
+# Privilege validation (domain §7.10). Each case changes a valid integer
+# privilege "max" and lists the field errors expected from Validate.
+# [Change] lago's config hash ({select_options: [...]}) is the
+# SelectOptions list, so "missing key", "additional keys" and "non-array"
+# configurations cannot be represented.
+defaults: {code: "max", value_type: "integer", errors: []}
+cases:
+  - {name: valid integer, source: "spec/models/entitlement/privilege_spec.rb:114"}
+  - {name: valid string, source: "spec/models/entitlement/privilege_spec.rb:119", value_type: "string"}
+  - {name: valid boolean, source: "spec/models/entitlement/privilege_spec.rb:124", value_type: "boolean"}
+  - {name: missing code, source: "spec/models/entitlement/privilege_spec.rb:20", code: "", errors: ["code: value_is_mandatory"]}
+  - {name: code of 256 characters, source: "spec/models/entitlement/privilege_spec.rb:20", code_length: 256, errors: ["code: value_is_too_long"]}
+  - {name: name of 256 characters, source: "spec/models/entitlement/privilege_spec.rb:20", name_length: 256, errors: ["name: value_is_too_long"]}
+  - {name: missing value type, source: "spec/models/entitlement/privilege_spec.rb:20", value_type: "", errors: ["value_type: value_is_mandatory"]}
+  - {name: unknown value type, source: "spec/models/entitlement/privilege_spec.rb:20", value_type: "float", errors: ["value_type: invalid_value"]}
+  - {name: select with options, source: "spec/models/entitlement/privilege_spec.rb:34", value_type: "select", select_options: ["email", "slack"]}
+  - {name: select with empty options, source: "spec/models/entitlement/privilege_spec.rb:39", value_type: "select", select_options: [], errors: ["select_options: invalid_format"]}
+  - {name: select without options, source: "spec/models/entitlement/privilege_spec.rb:72", value_type: "select", errors: ["select_options: invalid_format"]}
+  - {name: select with a blank option, source: "spec/models/entitlement/privilege_spec.rb:66", value_type: "select", select_options: ["email", ""], errors: ["select_options: invalid_format"]}
+  - {name: select with a repeated option, source: "tanvo", value_type: "select", select_options: ["email", "email"], errors: ["select_options: invalid_format"]}
+  - {name: integer without options, source: "spec/models/entitlement/privilege_spec.rb:86"}
+  - {name: string without options, source: "spec/models/entitlement/privilege_spec.rb:91", value_type: "string", select_options: []}
+  - {name: boolean with options, source: "spec/models/entitlement/privilege_spec.rb:102", value_type: "boolean", select_options: ["a"], errors: ["select_options: invalid_format"]}
+  - {name: integer with options, source: "spec/models/entitlement/privilege_spec.rb:96", select_options: ["1"], errors: ["select_options: invalid_format"]}
+skipped:
+  - {source: "spec/models/entitlement/privilege_spec.rb:8", reason: "soft deletion"}
+  - {source: "spec/models/entitlement/privilege_spec.rb:10", reason: "ActiveRecord associations"}
+  - {source: "spec/models/entitlement/privilege_spec.rb:45", reason: "a missing select_options key cannot be represented by a list"}
+  - {source: "spec/models/entitlement/privilege_spec.rb:51", reason: "additional config keys cannot be represented by a list"}
+  - {source: "spec/models/entitlement/privilege_spec.rb:60", reason: "a non-array select_options cannot be represented by a []string"}
+  - {source: "spec/models/entitlement/privilege_spec.rb:136", reason: "code uniqueness per feature is checked by Feature.Validate (entitlement_feature.yaml) and the repository"}

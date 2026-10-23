@@ -1,0 +1,40 @@
+# Ported from lago spec/models/billable_metric_spec.rb and
+# billable_metric_filter_spec.rb. Each case changes a valid sum metric
+# (code "api_calls", name "API calls", field_name "amount"), normalizes it
+# and lists the field errors expected from Validate ("field: code"); an
+# empty list means valid. field_name_after checks Normalize ("" = cleared);
+# payable_in_advance checks PayableInAdvance.
+defaults: {aggregation_type: sum, field_name: amount, errors: []}
+cases:
+  - {name: count aggregation, source: "spec/models/billable_metric_spec.rb:36", aggregation_type: count, field_name: ""}
+  - {name: invalid aggregation type, source: "spec/models/billable_metric_spec.rb:44", aggregation_type: invalid_agg, errors: ["aggregation_type: invalid_value"]}
+  - {name: unset aggregation type, source: "tanvo", aggregation_type: "", errors: ["aggregation_type: value_is_mandatory"]}
+  - {name: count clears the field name, source: "spec/models/billable_metric_spec.rb:56", aggregation_type: count, field_name: custom_field, field_name_after: ""}
+  - {name: switching to count drops a stale field name, source: "spec/models/billable_metric_spec.rb:63", aggregation_type: count, field_name: custom_field, field_name_after: ""}
+  - {name: sum keeps the field name, source: "spec/models/billable_metric_spec.rb:71", field_name: custom_field, field_name_after: custom_field}
+  - {name: sum without field name, source: "spec/models/billable_metric_spec.rb:30", field_name: "", errors: ["field_name: value_is_mandatory"]}
+  - {name: max not recurring, source: "spec/models/billable_metric_spec.rb:83", aggregation_type: max}
+  - {name: max recurring, source: "spec/models/billable_metric_spec.rb:90", aggregation_type: max, recurring: true, errors: ["recurring: not_compatible_with_aggregation_type"]}
+  - {name: latest recurring, source: "spec/models/billable_metric_spec.rb:95", aggregation_type: latest, recurring: true, errors: ["recurring: not_compatible_with_aggregation_type"]}
+  - {name: sum recurring, source: "tanvo", recurring: true}
+  - {name: unique count recurring, source: "tanvo", aggregation_type: unique_count, recurring: true}
+  - {name: weighted sum needs an interval, source: "tanvo", aggregation_type: weighted_sum, recurring: true, errors: ["weighted_interval: value_is_mandatory"]}
+  - {name: weighted sum with seconds, source: "tanvo", aggregation_type: weighted_sum, weighted_interval: seconds, recurring: true}
+  - {name: weighted interval on sum, source: "tanvo", weighted_interval: seconds, errors: ["weighted_interval: value_not_allowed"]}
+  - {name: count payable in advance, source: "spec/models/billable_metric_spec.rb:133", aggregation_type: count, field_name: "", payable_in_advance: true}
+  - {name: sum payable in advance, source: "spec/models/billable_metric_spec.rb:133", payable_in_advance: true}
+  - {name: unique count payable in advance, source: "spec/models/billable_metric_spec.rb:133", aggregation_type: unique_count, payable_in_advance: true}
+  - {name: max not payable in advance, source: "spec/models/billable_metric_spec.rb:133", aggregation_type: max, payable_in_advance: false}
+  - {name: latest not payable in advance, source: "spec/models/billable_metric_spec.rb:133", aggregation_type: latest, payable_in_advance: false}
+  - {name: weighted sum not payable in advance, source: "spec/models/billable_metric_spec.rb:133", aggregation_type: weighted_sum, weighted_interval: seconds, payable_in_advance: false}
+  - {name: filter without key, source: "spec/models/billable_metric_filter_spec.rb:16", filters: [{key: "", values: [a]}], errors: ["filters[0].key: value_is_mandatory"]}
+  - {name: filter without values, source: "spec/models/billable_metric_filter_spec.rb:17", filters: [{key: region, values: []}], errors: ["filters[0].values: value_is_mandatory"]}
+  - {name: duplicated filter key, source: "tanvo", filters: [{key: region, values: [eu]}, {key: region, values: [us]}], errors: ["filters[1].key: duplicated_value"]}
+  - {name: duplicated filter value, source: "tanvo", filters: [{key: region, values: [eu, eu]}], errors: ["filters[0].values: duplicated_value"]}
+
+skipped:
+  - {source: "spec/models/billable_metric_spec.rb:31", reason: "custom aggregation is dropped (domain §24 item 1)"}
+  - {source: "spec/models/billable_metric_spec.rb:111", reason: "expression syntax is validated by libs/expression, which ports lago-expression's own tests"}
+  - {source: "spec/models/billable_metric_spec.rb:115", reason: "expression syntax is validated by libs/expression"}
+  - {source: "spec/models/billable_metric_spec.rb:123", reason: "expression syntax is validated by libs/expression"}
+  - {source: "spec/models/billable_metric_spec.rb:145", reason: "attached subscriptions and plans are repository queries, not entity rules"}

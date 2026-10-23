@@ -1,0 +1,38 @@
+# Ported from lago spec/models/role_spec.rb: custom role validations and
+# name normalization.
+cases:
+  - {name: normalizes name, source: "spec/models/role_spec.rb:17", code: dev, role_name: "  Senior   Developer  ", want_name: "Senior Developer"}
+  - {name: valid custom role, source: "tanvo", code: developer, role_name: Developer}
+  - {name: without code, source: "spec/models/role_spec.rb:68", code: "", role_name: Developer, errors: ["code: value_is_mandatory"]}
+  - {name: empty code, source: "spec/models/role_spec.rb:73", code: "", role_name: Developer, errors: ["code: value_is_mandatory"]}
+  - {name: code longer than 100, source: "spec/models/role_spec.rb:78", code_length: 101, role_name: Developer, errors: ["code: value_is_too_long"]}
+  - {name: code with invalid characters, source: "spec/models/role_spec.rb:83", code: "Dev-Role", role_name: Developer, errors: ["code: invalid_value"]}
+  - {name: reserved code admin, source: "spec/models/role_spec.rb:101", code: admin, role_name: Developer, errors: ["code: value_already_exist"]}
+  - {name: reserved code finance, source: "spec/models/role_spec.rb:101", code: finance, role_name: Developer, errors: ["code: value_already_exist"]}
+  - {name: reserved code manager, source: "spec/models/role_spec.rb:101", code: manager, role_name: Developer, errors: ["code: value_already_exist"]}
+  - {name: without name, source: "spec/models/role_spec.rb:108", code: dev, role_name: "", errors: ["name: value_is_mandatory"]}
+  - {name: blank name, source: "spec/models/role_spec.rb:113", code: dev, role_name: "   ", errors: ["name: value_is_mandatory"]}
+  - {name: name longer than 100, source: "spec/models/role_spec.rb:118", code: dev, name_length: 101, errors: ["name: value_is_too_long"]}
+  - {name: description longer than 255, source: "spec/models/role_spec.rb:123", code: dev, role_name: Developer, description_length: 256, errors: ["description: value_is_too_long"]}
+  - {name: empty permissions, source: "spec/models/role_spec.rb:128", code: dev, role_name: Developer, permissions: [], errors: ["permissions: value_is_mandatory"]}
+  - {name: unknown permission, source: "tanvo", code: dev, role_name: Developer, permissions: ["foo:bar"], errors: ["permissions: invalid_value"]}
+  - {name: duplicate permissions deduplicated, source: "spec/models/role_spec.rb:260", code: dev, role_name: Developer, permissions: ["customers:read", "customers:read"]}
+skipped:
+  - {source: "spec/models/role_spec.rb:8", reason: "soft deletion; custom roles are deleted once unused"}
+  - {source: "spec/models/role_spec.rb:10", reason: "ActiveRecord associations"}
+  - {source: "spec/models/role_spec.rb:31", reason: "scope .with_code; RoleRepository.GetByCode, memstore tests"}
+  - {source: "spec/models/role_spec.rb:48", reason: "scope .with_organization; RoleRepository.List serves built-ins plus the organization's roles, memstore tests"}
+  - {source: "spec/models/role_spec.rb:91", reason: "code uniqueness per organization enforced by RoleRepository (core.ErrConflict), memstore tests"}
+  - {source: "spec/models/role_spec.rb:96", reason: "code uniqueness per organization enforced by RoleRepository, memstore tests"}
+  - {source: "spec/models/role_spec.rb:138", reason: "database CHECK constraint; covered by the name validation"}
+  - {source: "spec/models/role_spec.rb:147", reason: "database constraint; built-in roles carry no stored permissions"}
+  - {source: "spec/models/role_spec.rb:156", reason: "database constraint; built-in roles carry no stored permissions"}
+  - {source: "spec/models/role_spec.rb:165", reason: "database constraint; covered by the empty permissions validation"}
+  - {source: "spec/models/role_spec.rb:174", reason: "database constraint; Permission.WellFormed in package permission"}
+  - {source: "spec/models/role_spec.rb:183", reason: "database constraint; Permission.WellFormed in package permission"}
+  - {source: "spec/models/role_spec.rb:192", reason: "database constraint; Permission.WellFormed in package permission"}
+  - {source: "spec/models/role_spec.rb:201", reason: "database constraint; Permission.WellFormed in package permission"}
+  - {source: "spec/models/role_spec.rb:210", reason: "built-in roles are not stored rows"}
+  - {source: "spec/models/role_spec.rb:224", reason: "database unique index; RoleRepository conflict, memstore tests"}
+  - {source: "spec/models/role_spec.rb:235", reason: "database trigger; CheckRoleUpdate refuses built-in changes"}
+  - {source: "spec/models/role_spec.rb:249", reason: "database trigger; repositories scope Update by organization"}

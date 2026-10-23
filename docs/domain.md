@@ -368,7 +368,7 @@ The billed party.
 | `skip_invoice_custom_sections` | `bool` | |
 | `applied_dunning_campaign_id` | `ID?` | |
 | `exclude_from_dunning_campaign` | `bool` | |
-| `last_dunning_campaign_attempt`, `last_dunning_campaign_attempt_at` | `int`, `Time?` | |
+| `dunning_campaign_attempts`, `last_dunning_campaign_attempt_at` | `map<currency, int>`, `Time?` | Attempts are counted per currency |
 | `sequential_id` | `int` | assigned on create, per billing entity |
 | `slug` | `string` | `<prefix>-<sequential_id %03d>` |
 | `payment_receipt_counter` | `int` | §22.11 |
@@ -1214,7 +1214,7 @@ Stored with `status ∈ {pending, processing, succeeded, failed}`, processed by 
 
 Rules:
 * Applied to a billing entity (default for its customers) or to a customer (override); `exclude_from_dunning_campaign` opts a customer out.
-* An hourly job, for each customer with an applicable campaign: if Σ `total_due_amount` of overdue invoices in a threshold's currency ≥ the threshold, `last_dunning_campaign_attempt < max_attempts`, and `days_between_attempts` have passed since the last attempt, it creates a payment request (§15.4) and increments the attempt counter.
+* An hourly job, for each customer with an applicable campaign: if Σ `total_due_amount` of overdue invoices in a threshold's currency ≥ the threshold, the customer's attempts in that currency < `max_attempts`, and `days_between_attempts` have passed since the last attempt, it creates a payment request (§15.4) and increments the counter of that currency.
 * After the last attempt, `dunning_campaign.finished` is emitted.
 * Changing thresholds resets the counters of customers whose balance no longer matches; deleting a campaign resets the customers and entities that used it.
 

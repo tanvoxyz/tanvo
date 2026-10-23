@@ -1,0 +1,23 @@
+# Ported from lago spec/models/payment_provider_customers/** and
+# spec/models/payment_method_spec.rb.
+cases:
+  - {name: payment method without provider id, source: "spec/models/payment_method_spec.rb:18", op: method, provider_method_id: "", errors: ["provider_method_id: value_is_mandatory"]}
+  - {name: payment method valid, source: "spec/models/payment_method_spec.rb:17", op: method, provider_method_id: "pm_123", errors: []}
+  - {name: payment method bad expiry month, source: "tanvo", op: method, provider_method_id: "pm_123", exp_month: 13, errors: ["details.exp_month: value_is_out_of_range"]}
+  - {name: provider customer valid, source: "spec/models/payment_provider_customers/base_customer_spec.rb:10", op: provider_customer, errors: []}
+  - {name: provider customer without connection, source: "tanvo", op: provider_customer, no_integration: true, errors: ["integration_id: value_is_mandatory"]}
+skipped:
+  - {source: "spec/models/payment_method_spec.rb:10", reason: "ActiveRecord associations"}
+  - {source: "spec/models/payment_method_spec.rb:15", reason: "soft deletion is Method.Delete; tested in Go"}
+  - {source: "spec/models/payment_method_spec.rb:26", reason: "the default scope is MethodRepository.GetDefault, tested by the repository suites"}
+  - {source: "spec/models/payment_method_spec.rb:46", reason: "the provider type is the integration's, resolved through IntegrationID"}
+  - {source: "spec/models/payment_provider_customers/base_customer_spec.rb:13", reason: "[Change] connections are identified by integration, one live row per (integration, customer), enforced by the repository"}
+  - {source: "spec/models/payment_provider_customers/base_customer_spec.rb:15", reason: "the reserved lago_manual code: manual collection is the payment method type, not a pseudo-connection"}
+  - {source: "spec/models/payment_provider_customers/base_customer_spec.rb:40", reason: "ActiveRecord scope by_code; connections are looked up by integration"}
+  - {source: "spec/models/payment_provider_customers/base_customer_spec.rb:52", reason: "the reserved lago_manual code: manual collection is the payment method type, not a pseudo-connection"}
+  - {source: "spec/models/payment_provider_customers/base_customer_spec.rb:66", reason: "legacy provider method IDs in settings are dropped; methods are PaymentMethod rows"}
+  - {source: "spec/models/payment_provider_customers/stripe_customer_spec.rb:10", reason: "Stripe's allowed payment method types are validated by the Stripe adapter (providers/stripe)"}
+  - {source: "spec/models/payment_provider_customers/adyen_customer_spec.rb:10", reason: "provider-specific settings belong to the provider adapters"}
+  - {source: "spec/models/payment_provider_customers/moneyhash_customer_spec.rb:10", reason: "provider-specific settings belong to the provider adapters"}
+  - {source: "spec/models/payment_provider_customers/gocardless_customer_spec.rb:10", reason: "provider-specific settings belong to the provider adapters"}
+  - {source: "spec/models/payment_provider_customers/cashfree_customer_spec.rb:10", reason: "provider-specific settings belong to the provider adapters"}

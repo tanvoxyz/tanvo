@@ -1,0 +1,9 @@
+# Ported from lago spec/models/payment_spec.rb: method_display_name and
+# card_last_digits over the provider's payment method data.
+cases:
+  - {name: empty display name, source: "spec/models/payment_spec.rb:485", display_name: "", last_digits: ""}
+  - {name: card display name, source: "spec/models/payment_spec.rb:499", type: card, brand: visa, last4: "1234", display_name: "Visa **** 1234", last_digits: "**** 1234"}
+  - {name: non-card display name, source: "spec/models/payment_spec.rb:511", type: bank_transfer, display_name: "Bank Transfer", last_digits: ""}
+  - {name: empty last digits, source: "spec/models/payment_spec.rb:523", display_name: "", last_digits: ""}
+  - {name: non-card last digits, source: "spec/models/payment_spec.rb:531", type: link, display_name: "Link", last_digits: ""}
+  - {name: card last digits, source: "spec/models/payment_spec.rb:543", type: card, brand: visa, last4: "1234", display_name: "Visa **** 1234", last_digits: "**** 1234"}

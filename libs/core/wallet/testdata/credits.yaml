@@ -1,0 +1,18 @@
+# Ported from lago spec/models/wallet_credit_spec.rb and
+# spec/services/validators/wallet_transaction_amount_limits_validator_spec.rb.
+# op new: NewCredit(credits, invoiceable); op from_minor:
+# CreditFromMinor(minor); op rounds_to_zero: RoundsToZero(credits).
+defaults: {currency: EUR, rate: "1", invoiceable: true}
+cases:
+  - {name: simple wallet credits, source: "spec/models/wallet_credit_spec.rb:16", op: new, credits: "1000", want_credits: "1000", want_amount: 100000}
+  - {name: low rate rounds invoiceable credits, source: "spec/models/wallet_credit_spec.rb:33", op: new, rate: "0.001", credits: "1034", want_credits: "1030", want_amount: 103}
+  - {name: low rate amount cents, source: "spec/models/wallet_credit_spec.rb:46", op: new, rate: "0.001", credits: "1034", want_credits: "1030", want_amount: 103}
+  - {name: from amount cents, source: "spec/models/wallet_credit_spec.rb:58", op: from_minor, minor: "10", want_credits: "0.1", want_amount: 10}
+  - {name: from amount cents with precision, source: "spec/models/wallet_credit_spec.rb:80", op: from_minor, rate: "0.001", minor: "103.4589", want_credits: "1030", want_amount: 103}
+  - {name: rounds to zero, source: "spec/models/wallet_credit_spec.rb:104", op: rounds_to_zero, rate: "0.01", credits: "0.4", want_bool: true}
+  - {name: does not round to zero, source: "spec/models/wallet_credit_spec.rb:110", op: rounds_to_zero, rate: "0.01", credits: "1.0", want_bool: false}
+  - {name: zero does not round to zero, source: "spec/models/wallet_credit_spec.rb:116", op: rounds_to_zero, rate: "0.01", credits: "0", want_bool: false}
+  - {name: three-decimal currency, source: "spec/models/wallet_credit_spec.rb:122", op: rounds_to_zero, currency: KWD, rate: "0.001", credits: "1.0", want_bool: false}
+  - {name: not invoiceable simple, source: "spec/models/wallet_credit_spec.rb:138", op: new, invoiceable: false, credits: "1000", want_credits: "1000", want_amount: 100000}
+  - {name: not invoiceable low rate keeps credits, source: "spec/models/wallet_credit_spec.rb:155", op: new, invoiceable: false, rate: "0.001", credits: "1034", want_credits: "1034", want_amount: 103}
+  - {name: credits floored to 5 places, source: "tanvo", op: new, invoiceable: false, credits: "1.123456789", want_credits: "1.12345", want_amount: 112}

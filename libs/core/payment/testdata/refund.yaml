@@ -1,0 +1,12 @@
+# Ported from lago spec/models/refund_spec.rb: a pending refund of 100 EUR
+# minor units for a payment, linked as the case says.
+cases:
+  - {name: no credit note nor refundable, source: "spec/models/refund_spec.rb:32", errors: ["refundable: value_is_mandatory"]}
+  - {name: credit note refund, source: "spec/models/refund_spec.rb:39", credit_note: true, errors: []}
+  - {name: activation expired refund, source: "spec/models/refund_spec.rb:45", reason: subscription_activation_expired, subscription: true, errors: []}
+  - {name: activation expired without subscription, source: "tanvo", reason: subscription_activation_expired, errors: ["subscription_id: value_is_mandatory"]}
+  - {name: unknown reason, source: "spec/models/refund_spec.rb:9", reason: other, credit_note: true, errors: ["reason: invalid_value"]}
+  - {name: zero amount, source: "tanvo", credit_note: true, amount: 0, errors: ["amount: value_must_be_positive"]}
+skipped:
+  - {source: "spec/models/refund_spec.rb:17", reason: "ActiveRecord associations"}
+  - {source: "spec/models/refund_spec.rb:53", reason: "an unpersisted credit note is an ActiveRecord detail; a credit note ID is set or not"}

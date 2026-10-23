@@ -1,0 +1,48 @@
+# Ported from lago spec/models/recurring_transaction_rule_spec.rb:
+# currently_active?, mark_as_terminated!, apply_min_top_up_limits,
+# compute_granted_credits and compute_paid_credits. Rules default to the
+# lago factory (fixed, interval, paid 10, granted 10); wallets to rate 1
+# EUR without limits. Expiration is in days from now.
+cases:
+  - {name: active without expiration, source: "spec/models/recurring_transaction_rule_spec.rb:123", op: currently_active, want_bool: true}
+  - {name: active expiring later, source: "spec/models/recurring_transaction_rule_spec.rb:128", op: currently_active, expires: 1, want_bool: true}
+  - {name: active expired, source: "spec/models/recurring_transaction_rule_spec.rb:133", op: currently_active, expires: -1, want_bool: false}
+  - {name: terminated, source: "spec/models/recurring_transaction_rule_spec.rb:138", op: currently_active, status: terminated, want_bool: false}
+  - {name: eligible for termination, source: "spec/models/recurring_transaction_rule_spec.rb:115", op: eligible_for_termination, expires: -1, want_bool: true}
+  - {name: future rule not eligible, source: "spec/models/recurring_transaction_rule_spec.rb:115", op: eligible_for_termination, expires: 1, want_bool: false}
+  - {name: terminated not eligible, source: "spec/models/recurring_transaction_rule_spec.rb:115", op: eligible_for_termination, status: terminated, expires: -1, want_bool: false}
+
+  - {name: min limit ignored, source: "spec/models/recurring_transaction_rule_spec.rb:178", op: apply_min, min: 1000, max: 2000, ignore: true, credits: "5", want: "5"}
+  - {name: min limit applied, source: "spec/models/recurring_transaction_rule_spec.rb:186", op: apply_min, min: 1000, max: 2000, credits: "5", want: "10"}
+  - {name: no minimum, source: "spec/models/recurring_transaction_rule_spec.rb:194", op: apply_min, credits: "5", want: "5"}
+  - {name: above max kept, source: "spec/models/recurring_transaction_rule_spec.rb:210", op: apply_min, min: 1000, max: 2000, credits: "25", want: "25"}
+
+  - {name: granted fixed, source: "spec/models/recurring_transaction_rule_spec.rb:225", op: granted, want: "10"}
+  - {name: granted target, source: "spec/models/recurring_transaction_rule_spec.rb:233", op: granted, method: target, target: "100", want: "0"}
+  - {name: granted target grants gap, source: "spec/models/recurring_transaction_rule_spec.rb:262", op: granted, method: target, grants: true, target: "101", rate: "0.5", min: 2500, wallet_ongoing: "100", want: "1"}
+  - {name: granting target pays nothing, source: "spec/models/recurring_transaction_rule_spec.rb:267", op: paid, method: target, grants: true, target: "101", rate: "0.5", min: 2500, ongoing: "100", want: "0"}
+  - {name: granted target above target, source: "spec/models/recurring_transaction_rule_spec.rb:279", op: granted, method: target, grants: true, target: "100", rate: "0.5", wallet_ongoing: "150", want: "0"}
+
+  - {name: paid fixed, source: "spec/models/recurring_transaction_rule_spec.rb:297", op: paid, rate: "0.5", min: 2500, ongoing: "100", want: "10"}
+  - {name: paid gap above one top-up, source: "spec/models/recurring_transaction_rule_spec.rb:315", op: paid, trigger: threshold, threshold: "10", paid: "50", ongoing: "-429.8", want: "450"}
+  - {name: paid gap of exactly one top-up, source: "spec/models/recurring_transaction_rule_spec.rb:322", op: paid, trigger: threshold, threshold: "10", paid: "50", ongoing: "-50", want: "100"}
+  - {name: paid gap divides exactly, source: "spec/models/recurring_transaction_rule_spec.rb:330", op: paid, trigger: threshold, threshold: "10", paid: "50", ongoing: "-100", want: "150"}
+  - {name: paid with pending top-up, source: "spec/models/recurring_transaction_rule_spec.rb:350", op: paid, trigger: threshold, threshold: "10", paid: "50", granted: "0", ongoing: "-429.8", pending: "50", want: "400"}
+  - {name: paid with granted credits, source: "spec/models/recurring_transaction_rule_spec.rb:368", op: paid, trigger: threshold, threshold: "10", paid: "50", granted: "50", ongoing: "-429.8", want: "400"}
+  - {name: paid capped by wallet max, source: "spec/models/recurring_transaction_rule_spec.rb:376", op: paid, trigger: threshold, threshold: "10", paid: "50", max: 10000, ongoing: "-429.8", want: "100"}
+  - {name: paid ignoring limits, source: "spec/models/recurring_transaction_rule_spec.rb:395", op: paid, trigger: threshold, threshold: "10", paid: "50", max: 10000, ignore: true, ongoing: "-429.8", want: "450"}
+  - {name: paid on interval trigger, source: "spec/models/recurring_transaction_rule_spec.rb:412", op: paid, threshold: "10", paid: "50", ongoing: "-429.8", want: "50"}
+  - {name: paid nothing, source: "spec/models/recurring_transaction_rule_spec.rb:429", op: paid, trigger: threshold, threshold: "10", paid: "0", ongoing: "-429.8", want: "0"}
+  - {name: paid target above, source: "spec/models/recurring_transaction_rule_spec.rb:442", op: paid, method: target, target: "99", rate: "0.5", min: 2500, ongoing: "100", want: "0"}
+  - {name: paid target equal, source: "spec/models/recurring_transaction_rule_spec.rb:450", op: paid, method: target, target: "100", rate: "0.5", min: 2500, ongoing: "100", want: "0"}
+  - {name: paid target below, source: "spec/models/recurring_transaction_rule_spec.rb:458", op: paid, method: target, target: "101", rate: "0.5", min: 2500, ongoing: "100", want: "50"}
+  - {name: paid granting target, source: "spec/models/recurring_transaction_rule_spec.rb:488", op: paid, method: target, grants: true, target: "101", rate: "0.5", min: 2500, ongoing: "100", want: "0"}
+
+  - {name: threshold reached below, source: "tanvo", op: threshold_reached, trigger: threshold, threshold: "10", ongoing: "9", want_bool: true}
+  - {name: threshold reached equal, source: "tanvo", op: threshold_reached, trigger: threshold, threshold: "10", ongoing: "10", want_bool: true}
+  - {name: threshold not reached, source: "tanvo", op: threshold_reached, trigger: threshold, threshold: "10", ongoing: "10.1", want_bool: false}
+
+skipped:
+  - {source: "spec/models/recurring_transaction_rule_spec.rb:244", reason: "nil grants_target_top_up on legacy target rows; Tanvo stores a bool"}
+  - {source: "spec/models/recurring_transaction_rule_spec.rb:471", reason: "nil grants_target_top_up on legacy target rows; Tanvo stores a bool"}
+  - {source: "spec/models/recurring_transaction_rule_spec.rb:160", reason: "nil grants_target_top_up on legacy target rows; Tanvo stores a bool"}

@@ -1,0 +1,21 @@
+# Ported from lago spec/models/usage_monitoring/alert_spec.rb (validations)
+# and the rules of UsageMonitoring::CreateAlertService. Each case changes a
+# valid current_usage_amount alert (code "my-code", subscription "sub-1",
+# thresholds 10 and 20) and lists the expected field errors.
+cases:
+  - {name: valid, source: "tanvo", errors: []}
+  - {name: billable metric required, source: "spec/models/usage_monitoring/alert_spec.rb:32", type: billable_metric_current_usage_amount, errors: ["billable_metric_id: value_is_mandatory"]}
+  - {name: wallet required, source: "spec/models/usage_monitoring/alert_spec.rb:40", type: wallet_balance_amount, subscription: "", direction: decreasing, errors: ["wallet_id: value_is_mandatory"]}
+  - {name: billable metric on a wallet alert, source: "spec/models/usage_monitoring/alert_spec.rb:48", type: wallet_balance_amount, subscription: "", wallet: true, metric: true, direction: decreasing, errors: ["billable_metric_id: value_must_be_blank"]}
+  - {name: wallet alert, source: "tanvo", type: wallet_credits_ongoing_balance, subscription: "", wallet: true, direction: decreasing, errors: []}
+  - {name: decreasing usage alert, source: "tanvo", direction: decreasing, errors: ["direction: value_not_allowed"]}
+  - {name: missing alert type, source: "tanvo", type: "", errors: ["alert_type: value_is_mandatory"]}
+  - {name: unknown alert type, source: "tanvo", type: "foo", errors: ["alert_type: invalid_value"]}
+  - {name: missing code, source: "tanvo", code: "", errors: ["code: value_is_mandatory"]}
+  - {name: missing subscription, source: "tanvo", subscription: "", errors: ["subscription_external_id: value_is_mandatory"]}
+  - {name: no thresholds, source: "tanvo", thresholds: [], errors: ["thresholds: value_is_mandatory"]}
+  - {name: 21 thresholds, source: "tanvo", threshold_count: 21, errors: ["thresholds: too_many_thresholds"]}
+  - {name: 20 thresholds, source: "tanvo", threshold_count: 20, errors: []}
+  - {name: duplicate values, source: "tanvo", thresholds: ["10", "10.0"], errors: ["thresholds: duplicate_threshold_values"]}
+  - {name: two recurring, source: "tanvo", recurring: ["5", "6"], errors: ["thresholds: too_many_items"]}
+  - {name: negative recurring, source: "tanvo", recurring: ["-5"], errors: ["thresholds[2].value: recurring_value_is_negative"]}

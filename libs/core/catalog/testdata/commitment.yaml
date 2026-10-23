@@ -1,0 +1,19 @@
+# Commitment validation and invoice name (domain §7.8). Each case changes a
+# valid minimum commitment of 1000 cents on a plan and lists the field
+# errors expected from Validate; invoice_name, when set, is the expected
+# InvoiceName().
+defaults: {plan: true, commitment_type: "minimum_commitment", amount: 1000, errors: []}
+cases:
+  - {name: valid, source: "tanvo"}
+  - {name: blank invoice display name returns the default name, source: "spec/models/commitment_spec.rb:16", invoice_name: "Minimum commitment"}
+  - {name: empty invoice display name returns the default name, source: "spec/models/commitment_spec.rb:16", display_name: "", invoice_name: "Minimum commitment"}
+  - {name: invoice display name, source: "spec/models/commitment_spec.rb:24", display_name: "Committed spend", invoice_name: "Committed spend"}
+  - {name: zero amount, source: "spec/models/commitment_spec.rb:11", amount: 0, errors: ["amount: value_must_be_positive"]}
+  - {name: negative amount, source: "spec/models/commitment_spec.rb:11", amount: -5, errors: ["amount: value_must_be_positive"]}
+  - {name: without plan, source: "tanvo", plan: false, errors: ["plan_id: value_is_mandatory"]}
+  - {name: unknown type, source: "tanvo", commitment_type: "maximum_commitment", errors: ["commitment_type: invalid_value"]}
+  - {name: missing type, source: "tanvo", commitment_type: "", errors: ["commitment_type: value_is_mandatory"]}
+  - {name: duplicated tax, source: "tanvo", duplicate_tax: true, errors: ["tax_ids: duplicated_value"]}
+skipped:
+  - {source: "spec/models/commitment_spec.rb:6", reason: "ActiveRecord associations"}
+  - {source: "spec/models/commitment_spec.rb:36", reason: "type uniqueness per plan is a repository conflict, enforced by CommitmentRepository.Create (memstore and libs/store suites)"}

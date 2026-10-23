@@ -1,0 +1,15 @@
+# Ported from lago spec/models/customer_spec.rb "#display_name" (line 514).
+# The customer may have name "ACME Inc", legal name "ACME International
+# Corporation", firstname "Thomas" and lastname "Anderson"; each case lists
+# the fields set.
+cases:
+  - {name: all fields nil, source: "spec/models/customer_spec.rb:522", fields: [], prefer_legal_name: true, want: ""}
+  - {name: name and legal name nil, source: "spec/models/customer_spec.rb:533", fields: [firstname, lastname], prefer_legal_name: true, want: "Thomas Anderson"}
+  - {name: firstname and lastname nil, source: "spec/models/customer_spec.rb:542", fields: [name, legal_name], prefer_legal_name: true, want: "ACME International Corporation"}
+  - {name: firstname and lastname nil without legal name, source: "spec/models/customer_spec.rb:550", fields: [name], prefer_legal_name: true, want: "ACME Inc"}
+  - {name: name and names, source: "spec/models/customer_spec.rb:559", fields: [name, firstname, lastname], prefer_legal_name: true, want: "ACME Inc - Thomas Anderson"}
+  - {name: name and names without legal preference, source: "spec/models/customer_spec.rb:559", fields: [name, firstname, lastname], prefer_legal_name: false, want: "ACME Inc - Thomas Anderson"}
+  - {name: legal name and names, source: "spec/models/customer_spec.rb:568", fields: [legal_name, firstname, lastname], prefer_legal_name: true, want: "ACME International Corporation - Thomas Anderson"}
+  - {name: legal name and names without legal preference, source: "spec/models/customer_spec.rb:568", fields: [legal_name, firstname, lastname], prefer_legal_name: false, want: "Thomas Anderson"}
+  - {name: all fields, source: "spec/models/customer_spec.rb:577", fields: [name, legal_name, firstname, lastname], prefer_legal_name: true, want: "ACME International Corporation - Thomas Anderson"}
+  - {name: all fields without legal preference, source: "spec/models/customer_spec.rb:577", fields: [name, legal_name, firstname, lastname], prefer_legal_name: false, want: "ACME Inc - Thomas Anderson"}

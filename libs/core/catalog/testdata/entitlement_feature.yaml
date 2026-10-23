@@ -1,0 +1,18 @@
+# Feature validation (domain §7.10). Each case changes a valid feature
+# "seats" with privileges "max" (integer) and lists the field errors
+# expected from Validate.
+defaults: {code: "seats", errors: []}
+cases:
+  - {name: valid, source: "tanvo"}
+  - {name: missing code, source: "spec/models/entitlement/feature_spec.rb:22", code: "", errors: ["code: value_is_mandatory"]}
+  - {name: code of 256 characters, source: "spec/models/entitlement/feature_spec.rb:22", code_length: 256, errors: ["code: value_is_too_long"]}
+  - {name: name of 256 characters, source: "spec/models/entitlement/feature_spec.rb:22", name_length: 256, errors: ["name: value_is_too_long"]}
+  - {name: description of 600 characters, source: "spec/models/entitlement/feature_spec.rb:22", description_length: 600}
+  - {name: description of 601 characters, source: "spec/models/entitlement/feature_spec.rb:22", description_length: 601, errors: ["description: value_is_too_long"]}
+  - {name: repeated privilege code, source: "spec/models/entitlement/privilege_spec.rb:137", repeat_privilege: true, errors: ["privileges[1].code: value_already_exist"]}
+  - {name: invalid privilege, source: "tanvo", bad_privilege: true, errors: ["privileges[1].value_type: value_is_mandatory"]}
+skipped:
+  - {source: "spec/models/entitlement/feature_spec.rb:8", reason: "soft deletion"}
+  - {source: "spec/models/entitlement/feature_spec.rb:10", reason: "ActiveRecord associations"}
+  - {source: "spec/models/entitlement/feature_spec.rb:30", reason: "subscriptions_count is a query of the API layer"}
+  - {source: "spec/models/entitlement/feature_spec.rb:57", reason: "preloading is a query of the API layer"}

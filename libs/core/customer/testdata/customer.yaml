@@ -1,0 +1,72 @@
+# Ported from lago spec/models/customer_spec.rb and
+# spec/models/metadata/customer_metadata_spec.rb. Each case changes a valid
+# customer (external ID "cust-1", a billing entity) and lists the field
+# errors expected from Validate ("field: code"); an empty list means valid.
+cases:
+  - {name: valid customer, source: "tanvo", errors: []}
+  - {name: missing external id, source: "tanvo", external_id: "", errors: ["external_id: value_is_mandatory"]}
+  - {name: document locale nil, source: "spec/models/customer_spec.rb:129", errors: []}
+  - {name: document locale en, source: "spec/models/customer_spec.rb:129", document_locale: "en", errors: []}
+  - {name: document locale empty, source: "spec/models/customer_spec.rb:129", document_locale: "", errors: ["document_locale: invalid_value"]}
+  - {name: customer type company, source: "spec/models/customer_spec.rb:141", customer_type: "company", errors: []}
+  - {name: customer type invalid, source: "spec/models/customer_spec.rb:141", customer_type: "robot", errors: ["customer_type: invalid_value"]}
+  - {name: name of 255 characters, source: "spec/models/customer_spec.rb:156", name_length: 255, errors: []}
+  - {name: name of 256 characters, source: "spec/models/customer_spec.rb:156", name_length: 256, errors: ["name: value_is_too_long"]}
+  - {name: email nil, source: "spec/models/customer_spec.rb:189", errors: []}
+  - {name: email empty string, source: "spec/models/customer_spec.rb:197", email: "", errors: []}
+  - {name: email valid, source: "spec/models/customer_spec.rb:205", email: "test@test-test.com", errors: []}
+  - {name: email invalid, source: "spec/models/customer_spec.rb:213", email: "test@test- test.com", errors: ["email: invalid_email_format"]}
+  - {name: several valid emails, source: "spec/models/customer_spec.rb:223", email: "test@test-test.com, test2@test.com", errors: []}
+  - {name: one blank email, source: "spec/models/customer_spec.rb:232", email: "test@test- test.com, test2@test.com,", errors: ["email: invalid_email_format"]}
+  - {name: trailing blank email only, source: "tanvo", email: "test@test-test.com, test2@test.com,", errors: ["email: invalid_email_format"]}
+  - {name: first email invalid, source: "spec/models/customer_spec.rb:240", email: "test@test- test.com, test2@test.com", errors: ["email: invalid_email_format"]}
+  - {name: second email invalid, source: "spec/models/customer_spec.rb:248", email: "test@test-test.com, test2@te st.com", errors: ["email: invalid_email_format"]}
+  - {name: both emails invalid, source: "spec/models/customer_spec.rb:256", email: "test@test -test.com, test2@te st.com", errors: ["email: invalid_email_format"]}
+  - {name: valid country, source: "spec/models/customer_spec.rb:275", country: "FR", errors: []}
+  - {name: invalid country, source: "spec/models/customer_spec.rb:283", country: "USA", errors: ["billing_address.country: country_code_invalid"]}
+  - {name: null country, source: "spec/models/customer_spec.rb:292", errors: []}
+  - {name: valid shipping country, source: "spec/models/customer_spec.rb:308", shipping_country: "DE", errors: []}
+  - {name: invalid shipping country, source: "spec/models/customer_spec.rb:316", shipping_country: "USA", errors: ["shipping_address.country: country_code_invalid"]}
+  - {name: null shipping country, source: "spec/models/customer_spec.rb:325", errors: []}
+  - {name: issuing date anchor nil, source: "spec/models/customer_spec.rb:334", errors: []}
+  - {name: issuing date anchor valid, source: "spec/models/customer_spec.rb:334", issuing_date_anchor: "current_period_end", errors: []}
+  - {name: issuing date anchor invalid, source: "spec/models/customer_spec.rb:334", issuing_date_anchor: "invalid", errors: ["issuing_date_anchor: invalid_value"]}
+  - {name: issuing date adjustment nil, source: "spec/models/customer_spec.rb:348", errors: []}
+  - {name: issuing date adjustment valid, source: "spec/models/customer_spec.rb:348", issuing_date_adjustment: "keep_anchor", errors: []}
+  - {name: issuing date adjustment invalid, source: "spec/models/customer_spec.rb:348", issuing_date_adjustment: "invalid", errors: ["issuing_date_adjustment: invalid_value"]}
+  - {name: account type invalid, source: "spec/models/customer_spec.rb:615", account_type: "reseller", errors: ["account_type: invalid_value"]}
+  - {name: negative grace period, source: "tanvo", grace_period_days: -1, errors: ["invoice_grace_period_days: value_is_out_of_range"]}
+  - {name: negative net payment term, source: "tanvo", net_payment_term_days: -1, errors: ["net_payment_term_days: value_is_out_of_range"]}
+  - {name: metadata unique keys, source: "spec/models/metadata/customer_metadata_spec.rb:18", metadata: [["hello", "abcdef"], ["other", "x"]], errors: []}
+  - {name: metadata duplicated key, source: "spec/models/metadata/customer_metadata_spec.rb:22", metadata: [["hello", "abcdef"], ["hello", "x"]], errors: ["metadata.items[1].key: duplicated_value"]}
+  - {name: metadata key too long, source: "spec/models/metadata/customer_metadata_spec.rb:30", metadata: [["hello-hello-hello-hello-hello", "abcdef"]], errors: ["metadata.items[0].key: value_is_too_long"]}
+  - {name: metadata value of 100 characters, source: "spec/models/metadata/customer_metadata_spec.rb:38", metadata: [["hello", "a*100"]], errors: []}
+  - {name: metadata value too long, source: "spec/models/metadata/customer_metadata_spec.rb:42", metadata: [["hello", "a*101"]], errors: ["metadata.items[0].value: value_is_too_long"]}
+  - {name: more than 5 metadata items, source: "tanvo", metadata: [["a", ""], ["b", ""], ["c", ""], ["d", ""], ["e", ""], ["f", ""]], errors: ["metadata.items: too_many_items"]}
+
+skipped:
+  - {source: "spec/models/customer_spec.rb:7", reason: "ActiveRecord associations"}
+  - {source: "spec/models/customer_spec.rb:43", reason: "ClickHouse associations"}
+  - {source: "spec/models/customer_spec.rb:51", reason: "null-byte normalizations happen in the API request decoder"}
+  - {source: "spec/models/customer_spec.rb:129", reason: "the 'foo' half: Tanvo validates BCP 47 syntax; which locales have document translations is a libs/documents concern"}
+  - {source: "spec/models/customer_spec.rb:143", reason: "the time zone is a *time.Location, so an invalid name cannot be stored; core.LoadZone rejects it"}
+  - {source: "spec/models/customer_spec.rb:164", reason: "Tanvo validates every field on each write; lago's changed-attribute shortcut has no equivalent"}
+  - {source: "spec/models/customer_spec.rb:175", reason: "Tanvo validates every field on each write; lago's changed-attribute shortcut has no equivalent"}
+  - {source: "spec/models/customer_spec.rb:407", reason: "x402 agent addresses are out of scope (deprecated in parity)"}
+  - {source: "spec/models/customer_spec.rb:446", reason: "ActiveRecord scopes; the wallet refresh flag belongs to package wallet"}
+  - {source: "spec/models/customer_spec.rb:473", reason: "ActiveRecord scope; covered by Repository.ListForDunning in the repository suites"}
+  - {source: "spec/models/customer_spec.rb:693", reason: "add-ons are applied as one-off invoices in Tanvo, so Documents.HasInvoices covers them"}
+  - {source: "spec/models/customer_spec.rb:727", reason: "VIES checks belong to package tax"}
+  - {source: "spec/models/customer_spec.rb:757", reason: "payment provider customers belong to package payment"}
+  - {source: "spec/models/customer_spec.rb:948", reason: "ActiveRecord scope"}
+  - {source: "spec/models/customer_spec.rb:1091", reason: "time zone conversion helpers are time.Time.In with ApplicableTimezone"}
+  - {source: "spec/models/customer_spec.rb:1319", reason: "overdue balances are computed from invoices by the billing engine"}
+  - {source: "spec/models/customer_spec.rb:1432", reason: "dunning resets are Repository.ResetDunningCampaign, covered by the repository suites"}
+  - {source: "spec/models/customer_spec.rb:1491", reason: "wallet refresh belongs to package wallet"}
+  - {source: "spec/models/customer_spec.rb:783", reason: "payment connection status belongs to package payment"}
+  - {source: "spec/models/customer_spec.rb:1535", reason: "tax and integration customers belong to packages tax and integration"}
+  - {source: "spec/models/customer_spec.rb:1596", reason: "address change tracking is an ActiveRecord dirty-attribute concern"}
+  - {source: "spec/models/customer_spec.rb:1625", reason: "payment methods belong to package payment"}
+  - {source: "spec/models/metadata/customer_metadata_spec.rb:49", reason: "null-byte normalizations happen in the API request decoder"}
+  - {source: "spec/models/customer/applied_tax_spec.rb:8", reason: "paper_trail and associations; customer taxes are Customer.TaxIDs"}
+  - {source: "spec/models/customer/applied_invoice_custom_section_spec.rb:10", reason: "associations; selections are Customer.InvoiceCustomSectionIDs and SystemInvoiceCustomSectionIDs"}

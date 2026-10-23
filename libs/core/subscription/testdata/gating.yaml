@@ -1,0 +1,10 @@
+# Ported from lago spec/models/subscription_spec.rb: pending_rules?,
+# gated? and payment_gated?.
+cases:
+  - {name: pending rules, source: "spec/models/subscription_spec.rb:412", status: incomplete, rules: [pending], pending_rules: true, gated: true, payment_gated: true}
+  - {name: no pending rules, source: "spec/models/subscription_spec.rb:418", status: incomplete, rules: [], pending_rules: false, gated: false, payment_gated: false}
+  - {name: satisfied rules, source: "spec/models/subscription_spec.rb:426", status: incomplete, rules: [satisfied], pending_rules: false, gated: false, payment_gated: false}
+  - {name: active with pending rules, source: "spec/models/subscription_spec.rb:446", status: active, rules: [pending], pending_rules: true, gated: false, payment_gated: false}
+  - {name: incomplete without pending rules, source: "spec/models/subscription_spec.rb:454", status: incomplete, rules: [failed], pending_rules: false, gated: false, payment_gated: false}
+  - {name: pending with pending payment rule, source: "spec/models/subscription_spec.rb:493", status: pending, rules: [pending], pending_rules: true, gated: false, payment_gated: false}
+  - {name: incomplete with no activation rules, source: "spec/models/subscription_spec.rb:502", status: incomplete, rules: [], pending_rules: false, gated: false, payment_gated: false}

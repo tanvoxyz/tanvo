@@ -1,0 +1,19 @@
+# Ported from lago spec/models/event_spec.rb (#subscription): which of the
+# subscriptions sharing an external ID an event belongs to. Times are hour
+# offsets from now; match is the index of the expected subscription, -1
+# for none.
+cases:
+  - {name: active subscription, source: "spec/models/event_spec.rb:79", at: 0, subscriptions: [{status: active, started_at: -72}], match: 0}
+  - {name: terminated subscription, source: "spec/models/event_spec.rb:94", at: -0.001, subscriptions: [{status: terminated, started_at: -72, terminated_at: 0}], match: 0}
+  - {name: terminated just after the event, source: "spec/models/event_spec.rb:103", at: -0.001, subscriptions: [{status: terminated, started_at: -72, terminated_at: -0.0009}], match: 0}
+  - {name: old terminated subscription with a new active one, source: "spec/models/event_spec.rb:124", at: -168, subscriptions: [{status: terminated, started_at: -720, terminated_at: 0}, {status: active, started_at: -24}], match: 0}
+  - {name: upgrade after the old subscription ended, source: "spec/models/event_spec.rb:146", at: -0.001, subscriptions: [{status: terminated, started_at: -720, terminated_at: -24}, {status: terminated, started_at: -168, terminated_at: 0}], match: 1}
+  - {name: terminated at the event instant, source: "tanvo", at: 0, subscriptions: [{status: terminated, started_at: -72, terminated_at: 0}], match: -1}
+  - {name: before the start, source: "tanvo", at: -100, subscriptions: [{status: active, started_at: -72}], match: -1}
+  - {name: before the start with recurring fallback, source: "tanvo", at: -100, recurring: true, subscriptions: [{status: active, started_at: -72}], match: 0}
+  - {name: incomplete never matches, source: "tanvo", at: 0, recurring: true, subscriptions: [{status: incomplete, started_at: -72}], match: -1}
+  - {name: pending and canceled never match, source: "tanvo", at: 0, subscriptions: [{status: pending}, {status: canceled}], match: -1}
+skipped:
+  - {source: "spec/models/event_spec.rb:8", reason: "ActiveRecord associations"}
+  - {source: "spec/models/event_spec.rb:13", reason: "events carry no external_customer_id in Tanvo; the customer is the subscription's"}
+  - {source: "spec/models/event_spec.rb:83", reason: "events carry no external_customer_id in Tanvo"}

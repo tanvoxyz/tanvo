@@ -1,0 +1,25 @@
+# Ported from lago spec/models/subscription/activation_rule_spec.rb,
+# subscription/activation_rule/payment_spec.rb and the activation-rule
+# predicates of subscription_spec.rb. expires_at is an hour offset from
+# now.
+cases:
+  - {name: satisfied is fulfilled, source: "spec/models/subscription/activation_rule_spec.rb:55", status: satisfied, fulfilled: true}
+  - {name: not applicable is fulfilled, source: "spec/models/subscription/activation_rule_spec.rb:55", status: not_applicable, fulfilled: true}
+  - {name: pending is not fulfilled, source: "spec/models/subscription/activation_rule_spec.rb:55", status: pending}
+  - {name: failed is rejected, source: "spec/models/subscription/activation_rule_spec.rb:73", status: failed, rejected: true}
+  - {name: expired is rejected, source: "spec/models/subscription/activation_rule_spec.rb:73", status: expired, rejected: true}
+  - {name: declined is rejected, source: "spec/models/subscription/activation_rule_spec.rb:73", status: declined, rejected: true}
+  - {name: inactive is neither, source: "spec/models/subscription/activation_rule_spec.rb:73", status: inactive}
+  - {name: pending past its expiry, source: "spec/models/subscription/activation_rule_spec.rb:87", status: pending, expires_at: -1, expirable: true}
+  - {name: pending before its expiry, source: "spec/models/subscription/activation_rule_spec.rb:87", status: pending, expires_at: 1}
+  - {name: inactive past its expiry, source: "spec/models/subscription/activation_rule_spec.rb:87", status: inactive, expires_at: -1}
+  - {name: unknown type, source: "spec/models/subscription/activation_rule_spec.rb:37", status: inactive, rule_type: approval, errors: ["type: invalid_value"]}
+  - {name: missing type, source: "spec/models/subscription/activation_rule_spec.rb:37", status: inactive, rule_type: "", errors: ["type: value_is_mandatory"]}
+  - {name: negative timeout, source: "tanvo", status: inactive, timeout_hours: -1, errors: ["timeout_hours: value_is_out_of_range"]}
+skipped:
+  - {source: "spec/models/subscription/activation_rule_spec.rb:9", reason: "enum values are checked by the generated enum tests"}
+  - {source: "spec/models/subscription/activation_rule_spec.rb:30", reason: "ActiveRecord associations"}
+  - {source: "spec/models/subscription/activation_rule_spec.rb:93", reason: "STI class resolution; Tanvo uses the rule_type enum"}
+  - {source: "spec/models/subscription/activation_rule_spec.rb:103", reason: "STI class resolution; Tanvo uses the rule_type enum"}
+  - {source: "spec/models/subscription/activation_rule_spec.rb:109", reason: "abstract base class; applicability is PaymentRuleApplicable"}
+  - {source: "spec/models/subscription/activation_rule_spec.rb:116", reason: "evaluation is a service of apps/server"}

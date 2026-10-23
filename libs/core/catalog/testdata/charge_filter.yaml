@@ -1,0 +1,19 @@
+# Ported from lago spec/models/charge_filter_value_spec.rb and
+# charge_filter_spec.rb. The metric has the filters card: [card, apple_pay]
+# and scheme: [visa, mastercard]. Each case builds a charge filter with
+# values and checks ValidateChargeFilter (errors) and, when set, the
+# display name.
+defaults: {errors: []}
+cases:
+  - {name: value of the metric filter, source: "spec/models/charge_filter_value_spec.rb:32", values: {card: [card]}}
+  - {name: value not in the metric filter, source: "spec/models/charge_filter_value_spec.rb:34", values: {card: [invalid_value]}, errors: ["values.card: invalid_value"]}
+  - {name: empty values, source: "spec/models/charge_filter_value_spec.rb:43", values: {card: []}, errors: ["values.card: value_is_mandatory"]}
+  - {name: all values sentinel, source: "spec/models/charge_filter_value_spec.rb:52", values: {card: [__ALL_FILTER_VALUES__]}}
+  - {name: key not a metric filter, source: "tanvo", values: {country: [fr]}, errors: ["values.country: invalid_value"]}
+  - {name: no key, source: "tanvo", values: {}, errors: ["values: value_is_mandatory"]}
+  - {name: invoice display name, source: "spec/models/charge_filter_spec.rb:334", values: {card: [card], scheme: [visa]}, invoice_display_name: Gandalf, want_display_name: Gandalf}
+  - {name: values joined, source: "spec/models/charge_filter_spec.rb:341", values: {card: [card], scheme: [visa]}, want_display_name: "card, visa"}
+  - {name: sentinel shows its key, source: "tanvo", values: {card: [card], scheme: [__ALL_FILTER_VALUES__]}, want_display_name: "card, scheme"}
+
+skipped:
+  - {source: "spec/models/charge_filter_spec.rb:19", reason: "per-model property validation is ported in libs/pricing"}

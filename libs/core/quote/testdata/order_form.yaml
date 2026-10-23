@@ -1,0 +1,26 @@
+# Ported from lago spec/models/order_form_spec.rb. Each case builds an
+# order form in a status with an expiry (null for none) and lists the
+# field errors of Validate and whether it is expirable at now in the
+# customer's time zone.
+defaults: {status: generated, void_reason: "", expires_at: null, now: "2026-01-15 12:00:00", timezone: UTC, expirable: false, errors: []}
+cases:
+  - {name: expired yesterday, source: "spec/models/order_form_spec.rb:53", expires_at: "2026-01-14 12:00:00", expirable: true}
+  - {name: expiring tomorrow, source: "spec/models/order_form_spec.rb:53", expires_at: "2026-01-16 12:00:00"}
+  - {name: no expiry, source: "spec/models/order_form_spec.rb:53"}
+  - {name: already expired, source: "spec/models/order_form_spec.rb:53", status: expired, void_reason: expired, expires_at: "2026-01-14 12:00:00"}
+  - {name: voided, source: "spec/models/order_form_spec.rb:53", status: voided, void_reason: manual, expires_at: "2026-01-14 12:00:00"}
+  - {name: signed, source: "spec/models/order_form_spec.rb:53", status: signed, signed: true, expires_at: "2026-01-14 12:00:00"}
+  - {name: expiry day started in the customer zone only, source: "spec/models/order_form_spec.rb:60", timezone: America/New_York, expires_at: "2026-01-16 02:00:00", now: "2026-01-15 23:30:00", expirable: true}
+  - {name: expiry day started in UTC only, source: "spec/models/order_form_spec.rb:70", timezone: America/New_York, expires_at: "2026-01-16 06:00:00", now: "2026-01-16 04:00:00"}
+  - {name: expiring later today, source: "tanvo", expires_at: "2026-01-15 23:00:00", expirable: true}
+  - {name: voided without reason, source: "spec/models/order_form_spec.rb:85", status: voided, errors: ["void_reason: value_is_mandatory"]}
+  - {name: generated without reason, source: "spec/models/order_form_spec.rb:91"}
+  - {name: signed without signed_at, source: "tanvo", status: signed, errors: ["signed_at: value_is_mandatory"]}
+skipped:
+  - {source: "spec/models/order_form_spec.rb:8", reason: "the status and void_reason enums are generated and tested by enums_test"}
+  - {source: "spec/models/order_form_spec.rb:24", reason: "ActiveRecord associations"}
+  - {source: "spec/models/order_form_spec.rb:34", reason: "activity logs are derived from domain events (domain §2.3)"}
+  - {source: "spec/models/order_form_spec.rb:98", reason: "signed document content type and size are checked by the upload API"}
+  - {source: "spec/models/order_form_spec.rb:109", reason: "sequences are allocated by the repository (NextSequence)"}
+  - {source: "spec/models/order_form_spec.rb:127", reason: "numbering shares FormatNumber, ported in quote.yaml; the OF prefix is tested in quote_test"}
+  - {source: "spec/models/order_form_spec.rb:146", reason: "signed document URLs are produced by the blob store port"}

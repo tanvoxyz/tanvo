@@ -1,0 +1,12 @@
+# Event timestamps (domain §10.1): RFC 3339 or Unix seconds with an
+# optional fraction; want is RFC 3339 in UTC, or empty for an error.
+cases:
+  - {name: rfc 3339, source: "tanvo", input: "2024-03-01T12:30:00Z", want: "2024-03-01T12:30:00Z"}
+  - {name: rfc 3339 with offset, source: "tanvo", input: "2024-03-01T12:30:00+02:00", want: "2024-03-01T10:30:00Z"}
+  - {name: rfc 3339 with fraction, source: "tanvo", input: "2024-03-01T12:30:00.123456789Z", want: "2024-03-01T12:30:00.123456Z"}
+  - {name: unix seconds, source: "tanvo", input: "1709296200", want: "2024-03-01T12:30:00Z"}
+  - {name: unix seconds with fraction, source: "tanvo", input: "1709296200.25", want: "2024-03-01T12:30:00.25Z"}
+  - {name: json number, source: "tanvo", number: "1709296200.5", want: "2024-03-01T12:30:00.5Z"}
+  - {name: float, source: "tanvo", float: 1709296200.5, want: "2024-03-01T12:30:00.5Z"}
+  - {name: garbage, source: "tanvo", input: "yesterday", want: ""}
+  - {name: bad fraction, source: "tanvo", input: "1709296200.2x", want: ""}

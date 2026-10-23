@@ -1,0 +1,45 @@
+# Ported from lago-api invoice voidable? (spec/models/invoice_spec.rb).
+# credit_note: none | voided | active (a non-voided credit note).
+cases:
+  - {name: "finalized pending paid=0 cn=voided lost=true", source: "spec/models/invoice_spec.rb:1716", status: finalized, payment_status: pending, paid: 0, credit_note: voided, dispute_lost: true, want: false}
+  - {name: "finalized failed paid=0 cn=voided lost=true", source: "spec/models/invoice_spec.rb:1724", status: finalized, payment_status: failed, paid: 0, credit_note: voided, dispute_lost: true, want: false}
+  - {name: "finalized succeeded paid=0 cn=voided lost=true", source: "spec/models/invoice_spec.rb:1732", status: finalized, payment_status: succeeded, paid: 0, credit_note: voided, dispute_lost: true, want: false}
+  - {name: "finalized pending paid=0 cn=active lost=true", source: "spec/models/invoice_spec.rb:1750", status: finalized, payment_status: pending, paid: 0, credit_note: active, dispute_lost: true, want: false}
+  - {name: "finalized failed paid=0 cn=active lost=true", source: "spec/models/invoice_spec.rb:1758", status: finalized, payment_status: failed, paid: 0, credit_note: active, dispute_lost: true, want: false}
+  - {name: "finalized succeeded paid=0 cn=active lost=true", source: "spec/models/invoice_spec.rb:1766", status: finalized, payment_status: succeeded, paid: 0, credit_note: active, dispute_lost: true, want: false}
+  - {name: "draft pending paid=0 cn=none lost=true", source: "spec/models/invoice_spec.rb:1782", status: draft, payment_status: pending, paid: 0, credit_note: none, dispute_lost: true, want: false}
+  - {name: "draft failed paid=0 cn=none lost=true", source: "spec/models/invoice_spec.rb:1790", status: draft, payment_status: failed, paid: 0, credit_note: none, dispute_lost: true, want: false}
+  - {name: "draft succeeded paid=0 cn=none lost=true", source: "spec/models/invoice_spec.rb:1798", status: draft, payment_status: succeeded, paid: 0, credit_note: none, dispute_lost: true, want: false}
+  - {name: "finalized pending paid=0 cn=none lost=true", source: "spec/models/invoice_spec.rb:1810", status: finalized, payment_status: pending, paid: 0, credit_note: none, dispute_lost: true, want: false}
+  - {name: "finalized failed paid=0 cn=none lost=true", source: "spec/models/invoice_spec.rb:1818", status: finalized, payment_status: failed, paid: 0, credit_note: none, dispute_lost: true, want: false}
+  - {name: "finalized succeeded paid=0 cn=none lost=true", source: "spec/models/invoice_spec.rb:1826", status: finalized, payment_status: succeeded, paid: 0, credit_note: none, dispute_lost: true, want: false}
+  - {name: "draft pending paid=0 cn=voided lost=false", source: "spec/models/invoice_spec.rb:1851", status: draft, payment_status: pending, paid: 0, credit_note: voided, dispute_lost: false, want: false}
+  - {name: "draft pending paid=100 cn=voided lost=false", source: "spec/models/invoice_spec.rb:1859", status: draft, payment_status: pending, paid: 100, credit_note: voided, dispute_lost: false, want: false}
+  - {name: "draft failed paid=0 cn=voided lost=false", source: "spec/models/invoice_spec.rb:1871", status: draft, payment_status: failed, paid: 0, credit_note: voided, dispute_lost: false, want: false}
+  - {name: "draft failed paid=100 cn=voided lost=false", source: "spec/models/invoice_spec.rb:1879", status: draft, payment_status: failed, paid: 100, credit_note: voided, dispute_lost: false, want: false}
+  - {name: "draft succeeded paid=0 cn=voided lost=false", source: "spec/models/invoice_spec.rb:1891", status: draft, payment_status: succeeded, paid: 0, credit_note: voided, dispute_lost: false, want: false}
+  - {name: "draft succeeded paid=100 cn=voided lost=false", source: "spec/models/invoice_spec.rb:1899", status: draft, payment_status: succeeded, paid: 100, credit_note: voided, dispute_lost: false, want: false}
+  - {name: "finalized pending paid=0 cn=voided lost=false", source: "spec/models/invoice_spec.rb:1915", status: finalized, payment_status: pending, paid: 0, credit_note: voided, dispute_lost: false, want: true}
+  - {name: "finalized pending paid=100 cn=voided lost=false", source: "spec/models/invoice_spec.rb:1923", status: finalized, payment_status: pending, paid: 100, credit_note: voided, dispute_lost: false, want: false}
+  - {name: "finalized failed paid=0 cn=voided lost=false", source: "spec/models/invoice_spec.rb:1935", status: finalized, payment_status: failed, paid: 0, credit_note: voided, dispute_lost: false, want: true}
+  - {name: "finalized failed paid=100 cn=voided lost=false", source: "spec/models/invoice_spec.rb:1943", status: finalized, payment_status: failed, paid: 100, credit_note: voided, dispute_lost: false, want: false}
+  - {name: "finalized succeeded paid=0 cn=voided lost=false", source: "spec/models/invoice_spec.rb:1955", status: finalized, payment_status: succeeded, paid: 0, credit_note: voided, dispute_lost: false, want: false}
+  - {name: "finalized succeeded paid=100 cn=voided lost=false", source: "spec/models/invoice_spec.rb:1963", status: finalized, payment_status: succeeded, paid: 100, credit_note: voided, dispute_lost: false, want: false}
+  - {name: "draft pending paid=0 cn=active lost=false", source: "spec/models/invoice_spec.rb:1985", status: draft, payment_status: pending, paid: 0, credit_note: active, dispute_lost: false, want: false}
+  - {name: "draft pending paid=100 cn=active lost=false", source: "spec/models/invoice_spec.rb:1993", status: draft, payment_status: pending, paid: 100, credit_note: active, dispute_lost: false, want: false}
+  - {name: "draft failed paid=0 cn=active lost=false", source: "spec/models/invoice_spec.rb:2005", status: draft, payment_status: failed, paid: 0, credit_note: active, dispute_lost: false, want: false}
+  - {name: "draft failed paid=100 cn=active lost=false", source: "spec/models/invoice_spec.rb:2013", status: draft, payment_status: failed, paid: 100, credit_note: active, dispute_lost: false, want: false}
+  - {name: "draft succeeded paid=0 cn=active lost=false", source: "spec/models/invoice_spec.rb:2025", status: draft, payment_status: succeeded, paid: 0, credit_note: active, dispute_lost: false, want: false}
+  - {name: "draft succeeded paid=100 cn=active lost=false", source: "spec/models/invoice_spec.rb:2033", status: draft, payment_status: succeeded, paid: 100, credit_note: active, dispute_lost: false, want: false}
+  - {name: "finalized pending paid=0 cn=active lost=false", source: "spec/models/invoice_spec.rb:2049", status: finalized, payment_status: pending, paid: 0, credit_note: active, dispute_lost: false, want: false}
+  - {name: "finalized pending paid=100 cn=active lost=false", source: "spec/models/invoice_spec.rb:2057", status: finalized, payment_status: pending, paid: 100, credit_note: active, dispute_lost: false, want: false}
+  - {name: "finalized failed paid=0 cn=active lost=false", source: "spec/models/invoice_spec.rb:2069", status: finalized, payment_status: failed, paid: 0, credit_note: active, dispute_lost: false, want: false}
+  - {name: "finalized failed paid=100 cn=active lost=false", source: "spec/models/invoice_spec.rb:2077", status: finalized, payment_status: failed, paid: 100, credit_note: active, dispute_lost: false, want: false}
+  - {name: "finalized succeeded paid=0 cn=active lost=false", source: "spec/models/invoice_spec.rb:2089", status: finalized, payment_status: succeeded, paid: 0, credit_note: active, dispute_lost: false, want: false}
+  - {name: "finalized succeeded paid=100 cn=active lost=false", source: "spec/models/invoice_spec.rb:2097", status: finalized, payment_status: succeeded, paid: 100, credit_note: active, dispute_lost: false, want: false}
+  - {name: "draft pending paid=0 cn=none lost=false", source: "spec/models/invoice_spec.rb:2114", status: draft, payment_status: pending, paid: 0, credit_note: none, dispute_lost: false, want: false}
+  - {name: "draft failed paid=0 cn=none lost=false", source: "spec/models/invoice_spec.rb:2122", status: draft, payment_status: failed, paid: 0, credit_note: none, dispute_lost: false, want: false}
+  - {name: "draft succeeded paid=0 cn=none lost=false", source: "spec/models/invoice_spec.rb:2130", status: draft, payment_status: succeeded, paid: 0, credit_note: none, dispute_lost: false, want: false}
+  - {name: "finalized pending paid=0 cn=none lost=false", source: "spec/models/invoice_spec.rb:2142", status: finalized, payment_status: pending, paid: 0, credit_note: none, dispute_lost: false, want: true}
+  - {name: "finalized failed paid=0 cn=none lost=false", source: "spec/models/invoice_spec.rb:2150", status: finalized, payment_status: failed, paid: 0, credit_note: none, dispute_lost: false, want: true}
+  - {name: "finalized succeeded paid=0 cn=none lost=false", source: "spec/models/invoice_spec.rb:2158", status: finalized, payment_status: succeeded, paid: 0, credit_note: none, dispute_lost: false, want: false}

@@ -1,0 +1,24 @@
+# Ported from lago spec/models/membership_role_spec.rb (last admin) and
+# Tanvo's domain §5.2 rules. Tanvo memberships carry one role, so lago's
+# "discard a membership role" is a role change or a revocation here.
+# admins counts the organization's active admin memberships, target included.
+cases:
+  - {name: revoking the last admin, source: "spec/models/membership_role_spec.rb:48", op: revoke, target_admin: true, admins: 1, code: last_admin}
+  - {name: revoking an admin when another exists, source: "spec/models/membership_role_spec.rb:75", op: revoke, target_admin: true, admins: 2}
+  - {name: revoking the last active admin when others are revoked, source: "spec/models/membership_role_spec.rb:88", op: revoke, target_admin: true, admins: 1, code: last_admin}
+  - {name: revoking own membership, source: "tanvo", op: revoke, self: true, admins: 2, code: cannot_revoke_own_membership}
+  - {name: revoking a non-admin, source: "tanvo", op: revoke, admins: 1}
+  - {name: demoting the last admin, source: "spec/models/membership_role_spec.rb:48", op: change, actor_admin: true, target_admin: true, admins: 1, code: last_admin}
+  - {name: demoting an admin when another exists, source: "spec/models/membership_role_spec.rb:75", op: change, actor_admin: true, target_admin: true, admins: 2}
+  - {name: non-admin granting admin, source: "tanvo", op: change, new_admin: true, admins: 1, code: admin_role_requires_admin}
+  - {name: admin granting admin, source: "tanvo", op: change, actor_admin: true, new_admin: true, admins: 1}
+  - {name: non-admin changing between custom roles, source: "tanvo", op: change, admins: 1}
+skipped:
+  - {source: "spec/models/membership_role_spec.rb:8", reason: "soft deletion of membership roles; one role per membership"}
+  - {source: "spec/models/membership_role_spec.rb:10", reason: "ActiveRecord associations"}
+  - {source: "spec/models/membership_role_spec.rb:20", reason: "scope .admins; MembershipRepository.CountActiveByRole, memstore tests"}
+  - {source: "spec/models/membership_role_spec.rb:101", reason: "a membership always has exactly one role"}
+  - {source: "spec/models/membership_role_spec.rb:107", reason: "a membership always has exactly one role"}
+  - {source: "spec/models/membership_role_spec.rb:115", reason: "the service resolves the role through RoleRepository.Get, scoped by organization"}
+  - {source: "spec/models/membership_role_spec.rb:122", reason: "built-in roles resolve in every organization; memstore tests"}
+  - {source: "spec/models/membership_role_spec.rb:128", reason: "database trigger; one role per membership changed with ChangeRole"}

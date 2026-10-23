@@ -1,0 +1,21 @@
+# Tax validation (domain §7.7). Each case changes a valid tax (code "vat",
+# name "VAT", rate 20) and lists the field errors expected from Validate
+# ("field: code"); an empty list means valid. lago's tax_spec only covers
+# associations, scopes and destruction, so the rules come from the model's
+# validations and the domain.
+defaults: {code: "vat", tax_name: "VAT", rate: "20", errors: []}
+cases:
+  - {name: valid, source: "tanvo"}
+  - {name: rate zero, source: "tanvo", rate: "0"}
+  - {name: rate one hundred, source: "tanvo", rate: "100"}
+  - {name: fractional rate, source: "tanvo", rate: "5.5"}
+  - {name: negative rate, source: "tanvo", rate: "-1", errors: ["rate: value_is_out_of_range"]}
+  - {name: rate above one hundred, source: "tanvo", rate: "100.01", errors: ["rate: value_is_out_of_range"]}
+  - {name: missing code, source: "tanvo", code: "", errors: ["code: value_is_mandatory"]}
+  - {name: missing name, source: "tanvo", tax_name: "  ", errors: ["name: value_is_mandatory"]}
+skipped:
+  - {source: "spec/models/tax_spec.rb:11", reason: "ActiveRecord associations"}
+  - {source: "spec/models/tax_spec.rb:17", reason: "soft deletion: Tanvo deletes taxes, documents keep snapshots (domain §7.7)"}
+  - {source: "spec/models/tax_spec.rb:21", reason: "ActiveRecord scopes; billing entity taxes are a list on the billing entity"}
+  - {source: "spec/models/tax_spec.rb:50", reason: "customers_count is a query of the API layer"}
+  - {source: "spec/models/tax_spec.rb:100", reason: "applied tax rows on documents are snapshots, never touched by deleting a tax"}

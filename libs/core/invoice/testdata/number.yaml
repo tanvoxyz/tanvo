@@ -1,0 +1,11 @@
+# Ported from lago-api invoice numbering (spec/models/invoice_spec.rb).
+# kind: draft | per_customer | per_billing_entity
+cases:
+  - {name: draft number, source: tanvo, kind: draft, prefix: LAG-XXXX, want: LAG-XXXX-DRAFT}
+  - {name: per customer, source: "spec/models/invoice_spec.rb:763", kind: per_customer, prefix: LAG-XXXX, customer_seq: 1, seq: 1, want: LAG-XXXX-001-001}
+  - {name: per billing entity, source: "spec/models/invoice_spec.rb:774", kind: per_billing_entity, prefix: LAG-XXXX, finalized_at: "2024-03-15T10:00:00Z", timezone: UTC, seq: 1, want: LAG-XXXX-202403-001}
+  - {name: per billing entity continues, source: "spec/models/invoice_spec.rb:790", kind: per_billing_entity, prefix: LAG-XXXX, finalized_at: "2024-03-15T10:00:00Z", timezone: UTC, seq: 16, want: LAG-XXXX-202403-016}
+  - {name: self billed per customer, source: "spec/models/invoice_spec.rb:802", kind: per_customer, prefix: LAG-XXXX, customer_seq: 27, seq: 6, want: LAG-XXXX-027-006}
+  - {name: per billing entity month in time zone, source: "spec/models/invoice_spec.rb:821", kind: per_billing_entity, prefix: LAG-XXXX, finalized_at: "2024-03-31T23:30:00Z", timezone: Asia/Tokyo, seq: 16, want: LAG-XXXX-202404-016}
+skipped:
+  - {source: "spec/models/invoice_spec.rb:756", reason: "sequence assignment is the store's NextSequentialID / NextBillingEntitySequentialID; only the formats are pure"}

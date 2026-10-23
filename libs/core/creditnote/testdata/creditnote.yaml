@@ -1,0 +1,19 @@
+# Ported from lago-api credit note helpers (spec/models/credit_note_spec.rb).
+# kind: credited | refunded | has_offset | voidable
+cases:
+  - {name: not credited, source: "spec/models/credit_note_spec.rb:133", kind: credited, want: false}
+  - {name: credited, source: "spec/models/credit_note_spec.rb:135", kind: credited, credit: 100, want: true}
+  - {name: not refunded, source: "spec/models/credit_note_spec.rb:145", kind: refunded, want: false}
+  - {name: refunded, source: tanvo, kind: refunded, refund: 100, want: true}
+  - {name: no offset, source: "spec/models/credit_note_spec.rb:156", kind: has_offset, want: false}
+  - {name: offset, source: "spec/models/credit_note_spec.rb:161", kind: has_offset, offset: 100, want: true}
+  - {name: voidable with balance, source: "spec/models/credit_note_spec.rb:374", kind: voidable, credit: 10, balance: 10, credit_status: available, want: true}
+  - {name: consumed balance, source: "spec/models/credit_note_spec.rb:376", kind: voidable, credit: 10, balance: 0, credit_status: available, want: false}
+  - {name: already voided, source: "spec/models/credit_note_spec.rb:382", kind: voidable, credit: 10, balance: 10, credit_status: voided, want: false}
+skipped:
+  - {source: "spec/models/credit_note_spec.rb:15", reason: "asserts ActiveRecord associations"}
+  - {source: "spec/models/credit_note_spec.rb:45", reason: "sequential_id assignment is the store's NextSequentialID"}
+  - {source: "spec/models/credit_note_spec.rb:107", reason: "file URLs are built by the blob store"}
+  - {source: "spec/models/credit_note_spec.rb:189", reason: "asserts the settlements association"}
+  - {source: "spec/models/credit_note_spec.rb:215", reason: "item lookups by subscription join fees; done by libs/billing"}
+  - {source: "spec/models/credit_note_spec.rb:395", reason: "computed by the credit note estimate in libs/billing; PreciseTotal is covered by a tanvo test"}

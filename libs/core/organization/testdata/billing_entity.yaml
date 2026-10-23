@@ -1,0 +1,43 @@
+# Ported from lago spec/models/billing_entity_spec.rb. Each case changes a
+# valid billing entity (code "acme", name "Acme Corp", country "FR") and
+# lists the field errors expected from Validate ("field: code"); an empty
+# list means valid. Countries are normalized (upper-cased) before
+# validation, as the setter does in lago.
+cases:
+  - {name: valid with valid attributes, source: "spec/models/billing_entity_spec.rb:85", errors: []}
+  - {name: prefix of 10 characters, source: "spec/models/billing_entity_spec.rb:89", document_number_prefix: "ABCDEFGHIJ", errors: []}
+  - {name: prefix longer than 10 characters, source: "spec/models/billing_entity_spec.rb:89", document_number_prefix: "ABCDEFGHIJK", errors: ["document_number_prefix: value_is_too_long"]}
+  - {name: empty prefix, source: "spec/models/billing_entity_spec.rb:89", document_number_prefix: "", errors: ["document_number_prefix: value_is_mandatory"]}
+  - {name: without name, source: "spec/models/billing_entity_spec.rb:94", entity_name: "", errors: ["name: value_is_mandatory"]}
+  - {name: invalid email, source: "spec/models/billing_entity_spec.rb:99", email: "foo.bar", errors: ["email: invalid_email_format"]}
+  - {name: invalid country, source: "spec/models/billing_entity_spec.rb:104", country: "ZWX", errors: ["address.country: country_code_invalid"]}
+  - {name: locale en, source: "spec/models/billing_entity_spec.rb:112", document_locale: "en", errors: []}
+  - {name: empty locale, source: "spec/models/billing_entity_spec.rb:112", document_locale: "", errors: ["document_locale: invalid_value"]}
+  - {name: footer of 601 characters, source: "spec/models/billing_entity_spec.rb:126", footer_length: 601, errors: ["invoice_footer: value_is_too_long"]}
+  - {name: footer of 600 characters, source: "tanvo", footer_length: 600, errors: []}
+  - {name: email settings, source: "spec/models/billing_entity_spec.rb:163", email_settings: ["invoice.finalized", "credit_note.created"], errors: []}
+  - {name: unsupported email setting, source: "spec/models/billing_entity_spec.rb:168", email_settings: ["email.not_permitted"], errors: ["email_settings: invalid_value"]}
+  - {name: issuing date anchor unset, source: "spec/models/billing_entity_spec.rb:183", issuing_date_anchor: "", errors: ["issuing_date_anchor: value_is_mandatory"]}
+  - {name: issuing date anchor invalid, source: "spec/models/billing_entity_spec.rb:183", issuing_date_anchor: "invalid", errors: ["issuing_date_anchor: invalid_value"]}
+  - {name: issuing date anchor current period end, source: "spec/models/billing_entity_spec.rb:183", issuing_date_anchor: "current_period_end", errors: []}
+  - {name: issuing date adjustment unset, source: "spec/models/billing_entity_spec.rb:197", issuing_date_adjustment: "", errors: ["issuing_date_adjustment: value_is_mandatory"]}
+  - {name: issuing date adjustment invalid, source: "spec/models/billing_entity_spec.rb:197", issuing_date_adjustment: "invalid", errors: ["issuing_date_adjustment: invalid_value"]}
+  - {name: issuing date adjustment keep anchor, source: "spec/models/billing_entity_spec.rb:197", issuing_date_adjustment: "keep_anchor", errors: []}
+  - {name: einvoicing without country, source: "spec/models/billing_entity_spec.rb:221", einvoicing: true, country: "", errors: ["einvoicing: country_must_be_present"]}
+  - {name: einvoicing with an unsupported country, source: "spec/models/billing_entity_spec.rb:231", einvoicing: true, country: "BR", errors: ["einvoicing: country_not_supported"]}
+  - {name: einvoicing with a supported lower-case country, source: "spec/models/billing_entity_spec.rb:241", einvoicing: true, country: "fr", errors: []}
+  - {name: no einvoicing with an unsupported country, source: "spec/models/billing_entity_spec.rb:249", einvoicing: false, country: "BR", errors: []}
+  - {name: eu tax management outside the EU, source: "tanvo", eu_tax_management: true, country: "US", errors: ["eu_tax_management: billing_entity_must_be_in_eu"]}
+  - {name: negative grace period, source: "tanvo", grace_period_days: -1, errors: ["invoice_grace_period_days: value_is_out_of_range"]}
+
+skipped:
+  - {source: "spec/models/billing_entity_spec.rb:37", reason: "code uniqueness among live rows is a partial unique index (domain §2.1), tested by the repository suites"}
+  - {source: "spec/models/billing_entity_spec.rb:62", reason: "ActiveRecord scopes"}
+  - {source: "spec/models/billing_entity_spec.rb:104", reason: "the empty-country half: an empty country means an unset address field in Tanvo (domain §4.1)"}
+  - {source: "spec/models/billing_entity_spec.rb:112", reason: "the nil and 'foo' halves: Tanvo validates BCP 47 syntax; which locales have document translations is a libs/documents concern"}
+  - {source: "spec/models/billing_entity_spec.rb:131", reason: "logo attachment size and content type are checked by the upload API, not the entity"}
+  - {source: "spec/models/billing_entity_spec.rb:158", reason: "the time zone is a *time.Location, so an invalid name cannot be stored; core.LoadZone rejects it"}
+  - {source: "spec/models/billing_entity_spec.rb:176", reason: "finalize_zero_amount_invoice is a Go bool and cannot be null"}
+  - {source: "spec/models/billing_entity_spec.rb:306", reason: "logo URLs and base64 rendering belong to libs/documents"}
+  - {source: "spec/models/billing_entity_spec.rb:355", reason: "from-email resolution belongs to libs/mail"}
+  - {source: "spec/models/billing_entity_spec.rb:372", reason: "dunning counter resets are a service of libs/billing"}

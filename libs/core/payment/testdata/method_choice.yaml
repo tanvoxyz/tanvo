@@ -1,0 +1,10 @@
+# Ported from lago spec/services/payment_methods/validate_service_spec.rb:
+# ValidateMethodChoice(type, method set, found).
+cases:
+  - {name: no payment method attribute, source: "spec/services/payment_methods/validate_service_spec.rb:30", type: "", errors: []}
+  - {name: provider with a found method, source: "spec/services/payment_methods/validate_service_spec.rb:40", type: provider, id: true, found: true, errors: []}
+  - {name: provider without method, source: "tanvo", type: provider, errors: []}
+  - {name: manual without method, source: "spec/services/payment_methods/validate_service_spec.rb:53", type: manual, errors: []}
+  - {name: invalid type, source: "spec/services/payment_methods/validate_service_spec.rb:67", type: invalid, errors: ["payment_method: invalid_payment_method"]}
+  - {name: provider with an unknown method, source: "spec/services/payment_methods/validate_service_spec.rb:81", type: provider, id: true, found: false, errors: ["payment_method: invalid_payment_method"]}
+  - {name: manual with a method, source: "spec/services/payment_requests/create_service_spec.rb:192", type: manual, id: true, found: true, errors: ["payment_method: invalid_payment_method"]}
