@@ -79,11 +79,16 @@ linters:
             - pkg: github.com/tanvoxyz/tanvo
               desc: "core depends only on money and period"
           allow: ["$gostd", github.com/tanvoxyz/tanvo/libs/core, github.com/tanvoxyz/tanvo/libs/money, github.com/tanvoxyz/tanvo/libs/period]
-        billing:
-          files: ["**/libs/billing/**"]
+        # The billing tests may use libs/store: libs/billing/storetest runs
+        # the concurrency tests on PostgreSQL.
+        billing-store:
+          files: ["**/libs/billing/**", "!$test"]
           deny:
             - pkg: github.com/tanvoxyz/tanvo/libs/store
               desc: "billing uses ports from libs/core; apps/server wires store"
+        billing:
+          files: ["**/libs/billing/**"]
+          deny:
             - pkg: github.com/tanvoxyz/tanvo/libs/eventstore
               desc: "billing uses the EventStore port from libs/core"
             - pkg: github.com/tanvoxyz/tanvo/libs/jobs

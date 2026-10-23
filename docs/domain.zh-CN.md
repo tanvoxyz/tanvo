@@ -384,6 +384,7 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 * `account_type = partner`：开给该客户的发票为自开票（§11.1）。
 * 删除客户会终止其订阅（生成终止发票）、终止其钱包和已应用优惠券并将其归档；其发票保留。
 * 每个客户的咨询锁：`coupons`、`credit_notes`、`prepaid_credits`、`billing_schedule`。
+* 加锁顺序：计费事务按同一固定顺序加锁，因此两个事务不会相互等待：客户的 `billing_schedule` 锁、订阅锁（事务只在持有 `billing_schedule` 锁时获取多个订阅锁，否则按 ID 升序获取）、事件锁、发票锁、贷项通知单锁，然后是客户的 `coupons`、`credit_notes` 和 `prepaid_credits` 锁；序列锁最后获取。需要后三者中多个锁的事务会在获取任何一个之前全部获取。**[Change]** Lago 没有全局顺序，部分场景依赖唯一索引。
 * 欧盟税务管理：当计费主体启用 `eu_tax_management` 时，在创建客户以及地址或税号变更时运行 VIES 校验，并为客户分配欧盟税（§22.10）；结果以 `customer.vies_check` 发出。
 * 支付与集成连接：见 §15.5 和 §17.2。**[变更]** 没有单一的 `payment_provider` 列；客户可以连接多个服务商，每个类别一个默认连接。
 
@@ -769,7 +770,7 @@ stateDiagram-v2
 * 规则只能在订阅为 `pending` 时修改。`payment` 规则要求一个服务商支付方式（显式指定或客户默认）。
 
 ### 9.4 试用期
-* 试用期从订阅链的起点开始（升级链中第一个订阅的 `started_at`），因此在升级和降级后延续：试用期结束 = 链起点 + `trial_period_days` 天（按客户时区）。
+* 试用期从该客户具有相同 `external_id` 的订阅中最早的 `started_at` 开始（升级链共用该 ID），因此在升级和降级后延续；以已终止订阅的外部 ID 重新创建的订阅不会获得新的试用期：试用期结束 = 该起点 + `trial_period_days` 天（按客户时区）。
 * 试用期内的天数不收基础费（§22.5）；用量计费项照常计费。
 * 试用期结束时：设置 `trial_ended_at`，发出 `subscription.trial_ended`；对预付套餐，为该周期剩余部分的基础费开票。
 
@@ -886,6 +887,7 @@ stateDiagram-v2
     draft --> [*]: 删除
     open --> finalized: 规则满足 / 税已计算
     open --> closed: 激活失败
+    open --> failed: 拉取税务服务商税额失败
     failed --> finalized: 重试成功
     finalized --> voided: 作废
 ```
@@ -932,7 +934,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 ### 11.6 发票类型
 * `subscription`：周期、开始和终止发票（§22.2–§22.14）。
 * `one_off`：按需为附加项创建的费用。每行：`add_on_code`、`units`（默认 1）、`unit_amount`（默认取附加项金额）、`name?`、`description?`、`from/to`（可选的服务期间）、`tax_codes?`（显式指定的税优先于附加项的税）。发票有自己的 `currency`（默认客户币种）和可选的 `purchase_order_number`。一次性发票不抵扣优惠券、贷项通知单或预付额度；立即定稿，并以 `invoice.one_off_created` 发出。
-* `credit`：购买钱包额度（§14.2）。每笔付费钱包交易一笔 `credit` 费用。若钱包要求支付成功，发票保持 `open` 直到支付，额度在支付后入账；发出 `invoice.paid_credit_added`。
+* `credit`：购买钱包额度（§14.2）。每笔付费钱包交易一笔 `credit` 费用。若钱包要求支付成功，发票保持 `open` 直到支付；否则立即定稿。两种情况下额度都只在支付成功后入账；发出 `invoice.paid_credit_added`。
 * `advance_charges`：在周期末，把 `regroup_paid_fees = invoice` 且已在系统外支付的预付费用归并到一张 `payment_status = succeeded` 的发票上。
 * `progressive_billing`：§22.16。
 
@@ -1098,7 +1100,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 | `purchase_order_number` | `string(255)?` | 取请求的，否则取规则的，否则取钱包的；复制到其 `credit` 发票 |
 
 规则：
-* 付费额度（`purchased`）创建一张 `credit` 发票；在发票定稿（或要求支付时在支付完成）之前为 `pending`，之后为 `settled`。
+* 付费额度（`purchased`）创建一张 `credit` 发票；在其支付成功之前为 `pending`，之后为 `settled`，无论发票是否以 `open` 状态等待支付。由抵扣型贷项通知单结清的发票不算已支付，不会入账任何额度。支付失败时购买标记为 `failed`，之后支付成功仍会入账；作废 credit 发票同样将其标记为 `failed`，且之后的任何支付都不再入账（lago 作废时让购买保持 `pending`，作废发票之后若被支付仍会发放额度，`app/services/invoices/void_service.rb:30-48`、`app/jobs/invoices/prepaid_credit_job.rb:20-25`；Tanvo 将针对已作废发票的支付视为退款事宜）。
 * 赠送额度立即入账。
 * 作废额度是一笔扣除额度的出账交易。不指定目标时，按消耗顺序从额度池中扣除。指定 `voided_transaction_id` 时，作废可追踪钱包中一笔已入账的入账交易：其全部剩余额度，或给定额度（以该剩余额度为上限）。错误：`wallet_not_traceable`、`wallet_transaction_not_found`、`no_remaining_amount`。
 * 付费充值必须遵守钱包的最小/最大限制，除非 `ignore_paid_top_up_limits = true`。
@@ -1108,7 +1110,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 stateDiagram-v2
     [*] --> pending: 购买
     [*] --> settled: 赠送 / 作废 / 已开票
-    pending --> settled: 额度发票已定稿或已支付
+    pending --> settled: 额度发票已支付
     pending --> failed: 支付失败 / 发票作废
 ```
 

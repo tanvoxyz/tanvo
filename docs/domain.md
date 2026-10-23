@@ -384,6 +384,7 @@ Rules:
 * `account_type = partner`: invoices issued to the customer are self-billed (§11.1).
 * Deleting a customer terminates its subscriptions (with termination invoices), terminates its wallets and applied coupons and archives it; its invoices remain.
 * Advisory locks per customer: `coupons`, `credit_notes`, `prepaid_credits`, `billing_schedule`.
+* Lock order: a billing transaction takes its locks in one fixed order, so that two never wait on each other: the customer's `billing_schedule` lock, subscription locks (a transaction takes several only under the `billing_schedule` lock, or else in ascending ID order), event locks, invoice locks, credit note locks, then the customer's `coupons`, `credit_notes` and `prepaid_credits` locks; sequence locks come last. A transaction that needs several of the last three takes them all before any. **[Change]** Lago has no global order and relies on unique indexes in places.
 * EU tax management: on create and on address or tax ID change, when the billing entity has `eu_tax_management`, a VIES check runs and assigns the customer's EU tax (§22.10); the result is emitted as `customer.vies_check`.
 * Payment and integration connections: see §15.5 and §17.2. **[Change]** There is no single `payment_provider` column; a customer can have connections to several providers, one default per category.
 
@@ -769,7 +770,7 @@ A subscription can require a successful payment of its first invoice before it b
 * Rules can be changed only while the subscription is `pending`. A `payment` rule requires a provider payment method (explicit or the customer default).
 
 ### 9.4 Trials
-* The trial starts at the start of the subscription chain (the `started_at` of the first subscription in the upgrade chain), so it survives upgrades and downgrades: trial end = chain start + `trial_period_days` days in the customer's time zone.
+* The trial starts at the earliest `started_at` of the customer's subscriptions with the same `external_id` (the upgrade chain shares it), so it survives upgrades and downgrades, and a subscription recreated with the external ID of a terminated one gets no fresh trial: trial end = that start + `trial_period_days` days in the customer's time zone.
 * No base fee is charged for trial days (§22.5); usage charges are billed normally.
 * At trial end: `trial_ended_at` is set, `subscription.trial_ended` is emitted and, for in-advance plans, the base fee for the rest of the period is invoiced.
 
@@ -886,6 +887,7 @@ stateDiagram-v2
     draft --> [*]: delete
     open --> finalized: rule satisfied / taxes computed
     open --> closed: activation failed
+    open --> failed: pulling provider taxes failed
     failed --> finalized: retry succeeded
     finalized --> voided: void
 ```
@@ -932,7 +934,7 @@ The order of deductions and their bases are in §22.7. No total is negative; eac
 ### 11.6 Invoice Types
 * `subscription`: periodic, starting and terminating invoices (§22.2–§22.14).
 * `one_off`: fees for add-ons created on demand. Each line: `add_on_code`, `units` (default 1), `unit_amount` (default the add-on amount), `name?`, `description?`, `from/to` (optional service period), `tax_codes?` (explicit taxes win over the add-on's). The invoice has its own `currency` (default the customer's) and an optional `purchase_order_number`. One-off invoices receive no coupons, credit notes or prepaid credits; they are finalized immediately and emitted as `invoice.one_off_created`.
-* `credit`: the purchase of wallet credits (§14.2). One `credit` fee per paid wallet transaction. If the wallet requires a successful payment, the invoice stays `open` until paid and the credits settle on payment; `invoice.paid_credit_added`.
+* `credit`: the purchase of wallet credits (§14.2). One `credit` fee per paid wallet transaction. If the wallet requires a successful payment, the invoice stays `open` until paid; otherwise it is finalized at once. Either way the credits settle only when the payment succeeds; `invoice.paid_credit_added`.
 * `advance_charges`: at the period end, in-advance fees with `regroup_paid_fees = invoice` that were paid out of band are regrouped on one invoice with `payment_status = succeeded`.
 * `progressive_billing`: §22.16.
 
@@ -1098,7 +1100,7 @@ Rules:
 | `purchase_order_number` | `string(255)?` | the request's, else the rule's, else the wallet's; copied to its `credit` invoice |
 
 Rules:
-* Paid credits (`purchased`) create a `credit` invoice; they are `pending` until the invoice is finalized (or paid, when payment is required) and then `settled`.
+* Paid credits (`purchased`) create a `credit` invoice; they are `pending` until its payment succeeds and then `settled`, whether or not the invoice waited `open` for the payment. An invoice settled by an offset credit note is not paid and settles nothing. A payment that fails marks the purchase `failed`, and a later successful payment still settles it; voiding the credit invoice also marks it `failed`, and no later payment settles it (lago leaves the purchase `pending` on void and grants the credits if the voided invoice is paid later, `app/services/invoices/void_service.rb:30-48`, `app/jobs/invoices/prepaid_credit_job.rb:20-25`; Tanvo treats a payment against a voided invoice as a refund matter).
 * Granted credits settle immediately.
 * Voided credits are an outbound transaction that removes credits. Without a target, the amount is taken from the pool in consumption order. With `voided_transaction_id`, one settled inbound transaction of a traceable wallet is voided: its whole remaining amount, or the given amount capped at that remainder. Errors: `wallet_not_traceable`, `wallet_transaction_not_found`, `no_remaining_amount`.
 * Paid top-ups must respect the wallet's min/max unless `ignore_paid_top_up_limits = true`.
@@ -1108,7 +1110,7 @@ Rules:
 stateDiagram-v2
     [*] --> pending: purchased
     [*] --> settled: granted / voided / invoiced
-    pending --> settled: credit invoice finalized or paid
+    pending --> settled: credit invoice paid
     pending --> failed: payment failed / invoice voided
 ```
 
