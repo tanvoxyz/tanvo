@@ -1,0 +1,11 @@
+# Ported verbatim from lago-api 25b8b7b09: config/locales/sv/payment_receipt.yml
+---
+sv:
+  payment_receipt:
+    document_name: Kvitto
+    download_invoice: Ladda ner faktura
+    download_receipt: Ladda ner kvitto
+    number: Kvittonummer
+    paid_on: 'Betald den %{date} (Kvar att betala: %{total_due_amount})'
+    payment_date: Betald den
+    payment_method: Betalningsmetod

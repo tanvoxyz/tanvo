@@ -1,0 +1,11 @@
+# Ported verbatim from lago-api 25b8b7b09: config/locales/de/payment_receipt.yml
+---
+de:
+  payment_receipt:
+    document_name: Quittung
+    download_invoice: Rechnung herunterladen
+    download_receipt: Quittung herunterladen
+    number: Quittungsnummer
+    paid_on: 'Bezahlt am %{date} (Restbetrag: %{total_due_amount})'
+    payment_date: Bezahlt am
+    payment_method: Zahlungsmethode

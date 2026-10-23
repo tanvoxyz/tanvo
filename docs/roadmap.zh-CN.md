@@ -31,7 +31,7 @@
 * 阶段 0：脚手架、Nx 插件、许可证、CI 与全部文档（含译本）已就位。
 * 阶段 1 已完成：`libs/money`、`libs/period`（移植 623 个用例）、`libs/expression`（151 个用例，Rust → WASM，带输入限制）、`libs/pricing`（433 个用例）、`libs/metering`（478 个用例，含 `storetest` 一致性测试套件）与 `libs/tax`（264 个用例）。[功能对齐](parity.zh-CN.md)将它们的功能标为 `逻辑已完成`。
 * 阶段 2：`libs/core` 已完成；`libs/billing` 正在构建。
-* 阶段 3：`libs/proto`、`libs/eventstore`、`libs/store`（PostgreSQL 模式、迁移、RLS、事务性任务，以及在 memstore 和 PostgreSQL 上均通过的仓储一致性测试）与 `libs/jobs`（River、周期调度、租户公平）已完成；`libs/webhooks`、`libs/ingest`、`libs/auth` 与 `libs/mail` 逻辑已完成；`libs/documents` 与 15 分钟用量桶正在构建。
+* 阶段 3：`libs/proto`、`libs/eventstore`、`libs/store`（PostgreSQL 模式、迁移、RLS、事务性任务，以及在 memstore 和 PostgreSQL 上均通过的仓储一致性测试）与 `libs/jobs`（River、周期调度、租户公平）已完成；`libs/webhooks`、`libs/ingest`、`libs/auth` 与 `libs/mail` 与 `libs/documents`（Typst PDF/A-3b、Factur-X、UBL 与 CII，含 zh-CN 在内的十种语言）逻辑已完成；15 分钟用量桶正在构建。
 * 阶段 4：`apps/server` 提供 `tanvo serve`（角色 api、worker、consumer、all）与 `tanvo migrate`，包含类型化配置、OpenTelemetry、健康与就绪检查、任务注册与周期调度，以及经 Connect 与 REST 的事件摄取，并有端到端测试覆盖；其他 API 资源与计费任务待完成。
 
 ## 4. 功能对齐之后：借鉴 OpenMeter 与 Flexprice

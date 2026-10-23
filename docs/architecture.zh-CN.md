@@ -291,6 +291,7 @@ POST /v1/events, /v1/events:batch
 
 * 发票、贷项通知单、付款收据与付款请求由作为子进程运行的 **Typst** 渲染，以文档数据的 JSON 作为输入；模板与字体嵌入在二进制中，启动时写入一个私有目录。
 * 输出为 PDF/A-3b；电子发票把其 XML（Factur-X / ZUGFeRD CII）作为附件嵌入。UBL 2.1 与 CII XML 也单独提供。
+* 字体：二进制为拉丁字母语言嵌入 Inter（SIL OFL）。模板对 zh-CN 回退到 Noto Sans CJK SC / Noto Sans SC，对 zh-TW 回退到 Noto Sans CJK TC / Noto Sans TC，这些字体不嵌入：渲染器搜索系统字体目录（或 `Options.FontPaths`），容器镜像安装 `fonts-noto-cjk`。在没有这些字体的情况下渲染 zh-CN 或 zh-TW 文档会以 `documents.ErrMissingFont` 失败，而不是输出缺字的 PDF。其他没有字体覆盖的文字（客户数据）仍会渲染，生成带警告的普通 PDF。
 * 文档通过 `BlobStore` 端口存储（本地磁盘、S3 兼容存储、GCS）。
 * 渲染在 `documents` 队列中运行；在 Tanvo Cloud 中由一个专门的 Deployment 运行该队列。
 
@@ -334,7 +335,7 @@ POST /v1/events, /v1/events:batch
 `tanvo migrate`、`tanvo admin …` 与 `tanvo version` 是单独的命令。
 
 ### 13.2 自托管
-* 最小：`tanvo serve` + PostgreSQL。Typst 与 `fonts-noto-cjk` 软件包（zh-TW 文档，§10）包含在容器镜像中；在镜像之外安装时两者都需要。
+* 最小：`tanvo serve` + PostgreSQL。Typst 与 `fonts-noto-cjk` 软件包（zh-CN 与 zh-TW 文档，§10）包含在容器镜像中；在镜像之外安装时两者都需要。
 * 可选：用于大量事件的 Redpanda/Kafka + ClickHouse，用于缓存的 Redis/Valkey，S3 兼容存储。
 * 以容器镜像和 Docker Compose 文件分发；一个 Helm chart 同时服务于自托管 Kubernetes 与 Tanvo Cloud。
 

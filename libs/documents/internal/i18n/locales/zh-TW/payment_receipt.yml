@@ -1,0 +1,11 @@
+# Ported verbatim from lago-api 25b8b7b09: config/locales/zh-TW/payment_receipt.yml
+---
+zh-TW:
+  payment_receipt:
+    document_name: 收據
+    download_invoice: 下載發票
+    download_receipt: 下載收據
+    number: 收據號碼
+    paid_on: 已於 %{date} 付款（尚需支付：%{total_due_amount}）
+    payment_date: 付款日期
+    payment_method: 付款方式

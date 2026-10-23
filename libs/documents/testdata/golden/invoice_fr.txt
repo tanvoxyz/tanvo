@@ -1,0 +1,51 @@
+--- page 1
+Facture
+Nº de facture
+LAGO-202509-002
+Date d'émission
+4 sept. 2025
+Délai de paiement
+0 jours
+De
+ACME Corporation
+123 Business St
+Suite 100
+94105, San Francisco
+CA
+United States
+billing@acme.com
+Facturé à
+Doe Corp - John Doe
+1234567890
+456 Customer Ave
+Apt 202
+New York, NY 10001
+États-Unis
+john.doe@example.com
+45,00 $
+Date d'échéance le 4 sept. 2025
+Détails de Basic Plan
+Frais de conso. du 1 sept. 2025 au 30 sept. 2025
+Unités
+Prix unitaire
+Taux de taxe
+Montant
+Basic Plan - Monthly
+1.0
+0,00 $
+0.0%
+50,00 $
+Sous total (HT)
+50,00 $
+Tax (0%)
+0,00 $
+Sous total (TTC)
+50,00 $
+Crédits gratuits
+-3,00 $
+Crédit(s) prépayé(s)
+-2,00 $
+Total
+45,00 $
+LAGO-202509-002
+Page 1 sur 1

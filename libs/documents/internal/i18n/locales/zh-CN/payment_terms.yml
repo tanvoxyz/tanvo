@@ -1,0 +1,22 @@
+# Tanvo addition: lago-api has no zh-CN locale (its available_locales,
+# config/application.rb:49, end at zh-TW). Mainland terminology, not a
+# conversion of zh-TW: 发票 (發票), 账单 (帳單), 贷项通知单 (折讓單), 税号
+# (統一編號), 增值税, 订阅 (訂閱), 用量 (使用量), 积分 (點數).
+zh-CN:
+  invoice:
+    payment_terms:
+      day_of_month:
+        following_month: 次月 %{day} 日付款
+        months_after: 发票日期后第 %{months} 个月的 %{day} 日付款
+        same_month: 当月 %{day} 日付款
+      days_end_of_month:
+        one: "%{days} 天后的月底付款"
+        other: "%{days} 天后的月底付款"
+      due_on_receipt: 见票即付
+      end_of_month: 月底前付款
+      net:
+        one: 请于 %{days} 天内付款
+        other: 请于 %{days} 天内付款
+      net_end_of_month:
+        one: 月底后 %{days} 天内付款
+        other: 月底后 %{days} 天内付款

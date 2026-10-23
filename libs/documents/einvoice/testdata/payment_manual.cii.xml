@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rsm:CrossIndustryInvoice xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100" xmlns:qdt="urn:un:unece:uncefact:data:standard:QualifiedDataType:100" xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100" xmlns:udt="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100">
+  <!--Exchange Document Context-->
+  <rsm:ExchangedDocumentContext>
+    <ram:GuidelineSpecifiedDocumentContextParameter>
+      <ram:ID>urn:cen.eu:en16931:2017</ram:ID>
+    </ram:GuidelineSpecifiedDocumentContextParameter>
+  </rsm:ExchangedDocumentContext>
+  <!--Exchange Document Header-->
+  <rsm:ExchangedDocument>
+    <ram:ID>LAG-1234-001-001</ram:ID>
+    <ram:TypeCode>202</ram:TypeCode>
+    <ram:IssueDateTime>
+      <udt:DateTimeString format="102">20251022</udt:DateTimeString>
+    </ram:IssueDateTime>
+    <ram:IncludedNote>
+      <ram:Content>Receipt for payment of EUR 146.02 received via Manual for invoice TAN-FR-2025-0042</ram:Content>
+    </ram:IncludedNote>
+  </rsm:ExchangedDocument>
+  <!--Supply Chain Trade Transaction-->
+  <rsm:SupplyChainTradeTransaction>
+    <!--Line Item 1: Payment received via Manual for invoice TAN-FR-2025-0042-->
+    <ram:IncludedSupplyChainTradeLineItem>
+      <ram:AssociatedDocumentLineDocument>
+        <ram:LineID>1</ram:LineID>
+      </ram:AssociatedDocumentLineDocument>
+      <ram:SpecifiedTradeProduct>
+        <ram:Name>Payment Received</ram:Name>
+        <ram:Description>Payment received via Manual for invoice TAN-FR-2025-0042</ram:Description>
+      </ram:SpecifiedTradeProduct>
+      <ram:SpecifiedLineTradeAgreement>
+        <ram:NetPriceProductTradePrice>
+          <ram:ChargeAmount>146.02</ram:ChargeAmount>
+        </ram:NetPriceProductTradePrice>
+      </ram:SpecifiedLineTradeAgreement>
+      <ram:SpecifiedLineTradeDelivery>
+        <ram:BilledQuantity unitCode="C62">1</ram:BilledQuantity>
+      </ram:SpecifiedLineTradeDelivery>
+      <ram:SpecifiedLineTradeSettlement>
+        <ram:ApplicableTradeTax>
+          <ram:TypeCode>VAT</ram:TypeCode>
+          <ram:CategoryCode>Z</ram:CategoryCode>
+          <ram:RateApplicablePercent>0.0</ram:RateApplicablePercent>
+        </ram:ApplicableTradeTax>
+        <ram:SpecifiedTradeSettlementLineMonetarySummation>
+          <ram:LineTotalAmount>146.02</ram:LineTotalAmount>
+        </ram:SpecifiedTradeSettlementLineMonetarySummation>
+      </ram:SpecifiedLineTradeSettlement>
+    </ram:IncludedSupplyChainTradeLineItem>
+    <!--Applicable Header Trade Agreement-->
+    <ram:ApplicableHeaderTradeAgreement>
+      <ram:SellerTradeParty>
+        <ram:ID>BE_CODE</ram:ID>
+        <ram:Name>BE Legal Name</ram:Name>
+        <ram:PostalTradeAddress>
+          <ram:PostcodeCode>60192460</ram:PostcodeCode>
+          <ram:LineOne>Rue quelque part</ram:LineOne>
+          <ram:LineTwo>Tourne au deuxième angle</ram:LineTwo>
+          <ram:CityName>Eine Stadt</ram:CityName>
+          <ram:CountryID>FR</ram:CountryID>
+        </ram:PostalTradeAddress>
+        <ram:SpecifiedTaxRegistration>
+          <ram:ID schemeID="VA">MAR1234BR</ram:ID>
+        </ram:SpecifiedTaxRegistration>
+      </ram:SellerTradeParty>
+      <ram:BuyerTradeParty>
+        <ram:Name>Its Mii</ram:Name>
+        <ram:PostalTradeAddress>
+          <ram:PostcodeCode>123654789</ram:PostcodeCode>
+          <ram:LineOne>Streets of Tomorrow</ram:LineOne>
+          <ram:LineTwo>on AC</ram:LineTwo>
+          <ram:CityName>SP</ram:CityName>
+          <ram:CountryID>BR</ram:CountryID>
+        </ram:PostalTradeAddress>
+      </ram:BuyerTradeParty>
+    </ram:ApplicableHeaderTradeAgreement>
+    <!--Applicable Header Trade Delivery-->
+    <ram:ApplicableHeaderTradeDelivery>
+      <ram:ActualDeliverySupplyChainEvent>
+        <ram:OccurrenceDateTime>
+          <udt:DateTimeString format="102">20251022</udt:DateTimeString>
+        </ram:OccurrenceDateTime>
+      </ram:ActualDeliverySupplyChainEvent>
+    </ram:ApplicableHeaderTradeDelivery>
+    <!--Applicable Header Trade Settlement-->
+    <ram:ApplicableHeaderTradeSettlement>
+      <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>
+      <!--Payment Means: Standard payment-->
+      <ram:SpecifiedTradeSettlementPaymentMeans>
+        <ram:TypeCode>1</ram:TypeCode>
+        <ram:Information>Standard payment</ram:Information>
+      </ram:SpecifiedTradeSettlementPaymentMeans>
+      <!--Tax Information 0.00% VAT-->
+      <ram:ApplicableTradeTax>
+        <ram:CalculatedAmount>0.00</ram:CalculatedAmount>
+        <ram:TypeCode>VAT</ram:TypeCode>
+        <ram:BasisAmount>146.02</ram:BasisAmount>
+        <ram:CategoryCode>Z</ram:CategoryCode>
+        <ram:RateApplicablePercent>0.00</ram:RateApplicablePercent>
+      </ram:ApplicableTradeTax>
+      <!--Payment Terms-->
+      <ram:SpecifiedTradePaymentTerms>
+        <ram:Description>Manual payment received on  2025-10-22 10:00:00 UTC</ram:Description>
+        <ram:DueDateDateTime>
+          <udt:DateTimeString format="102">20251022</udt:DateTimeString>
+        </ram:DueDateDateTime>
+      </ram:SpecifiedTradePaymentTerms>
+      <!--Monetary Summation-->
+      <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+        <ram:LineTotalAmount>146.02</ram:LineTotalAmount>
+        <ram:ChargeTotalAmount>0.00</ram:ChargeTotalAmount>
+        <ram:AllowanceTotalAmount>0.00</ram:AllowanceTotalAmount>
+        <ram:TaxBasisTotalAmount>146.02</ram:TaxBasisTotalAmount>
+        <ram:TaxTotalAmount currencyID="EUR">0.00</ram:TaxTotalAmount>
+        <ram:GrandTotalAmount>146.02</ram:GrandTotalAmount>
+        <ram:TotalPrepaidAmount>146.02</ram:TotalPrepaidAmount>
+        <ram:DuePayableAmount>0.00</ram:DuePayableAmount>
+      </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+      <!--Invoice reference-->
+      <ram:InvoiceReferencedDocument>
+        <ram:IssuerAssignedID>TAN-FR-2025-0042</ram:IssuerAssignedID>
+      </ram:InvoiceReferencedDocument>
+    </ram:ApplicableHeaderTradeSettlement>
+  </rsm:SupplyChainTradeTransaction>
+</rsm:CrossIndustryInvoice>

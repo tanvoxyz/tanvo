@@ -1,0 +1,81 @@
+# Tanvo addition: lago-api has no zh-CN locale (its available_locales,
+# config/application.rb:49, end at zh-TW). Mainland terminology, not a
+# conversion of zh-TW: 发票 (發票), 账单 (帳單), 贷项通知单 (折讓單), 税号
+# (統一編號), 增值税, 订阅 (訂閱), 用量 (使用量), 积分 (點數).
+# Date and number formats from CLDR zh-Hans-CN: dates "2024年3月5日",
+# decimal ".", grouping ",", currency pattern "¤#,##0.00" with CLDR's zh
+# currency symbols (US$, ¥, JP¥, HK$, NT$…), ISO codes otherwise.
+zh-CN:
+  date:
+    abbr_day_names:
+    - 周日
+    - 周一
+    - 周二
+    - 周三
+    - 周四
+    - 周五
+    - 周六
+    abbr_month_names:
+    - 
+    - 1月
+    - 2月
+    - 3月
+    - 4月
+    - 5月
+    - 6月
+    - 7月
+    - 8月
+    - 9月
+    - 10月
+    - 11月
+    - 12月
+    day_names:
+    - 星期日
+    - 星期一
+    - 星期二
+    - 星期三
+    - 星期四
+    - 星期五
+    - 星期六
+    formats:
+      default: "%Y年%-m月%-d日"
+    month_names:
+    - 
+    - 一月
+    - 二月
+    - 三月
+    - 四月
+    - 五月
+    - 六月
+    - 七月
+    - 八月
+    - 九月
+    - 十月
+    - 十一月
+    - 十二月
+    order:
+    - :year
+    - :month
+    - :day
+  money:
+    custom_format: "%{iso_code} %n"
+    decimal_mark: "."
+    format: "%u%n"
+    thousands_separator: ","
+    symbols:
+      AUD: AU$
+      BRL: R$
+      CAD: CA$
+      CNY: "¥"
+      EUR: "€"
+      GBP: "£"
+      HKD: HK$
+      ILS: "₪"
+      INR: "₹"
+      JPY: JP¥
+      KRW: "￦"
+      MXN: MX$
+      NZD: NZ$
+      TWD: NT$
+      USD: US$
+      VND: "₫"

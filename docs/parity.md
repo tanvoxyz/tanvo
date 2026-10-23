@@ -65,7 +65,7 @@ A commit that implements a feature changes its status here in the same commit ([
 | Issuing date anchor and adjustment settings | `app/models/billing_entity.rb` | libs/billing | planned | |
 | Finalize zero-amount invoices setting | `app/models/billing_entity.rb` | libs/billing | planned | |
 | EU tax management flag and automatic EU taxes | `app/services/billing_entities/`, `app/services/taxes/auto_generate_service.rb` | libs/tax | planned | |
-| E-invoicing enablement for supported countries (France, Germany) | `app/models/billing_entity.rb` | libs/documents | planned | |
+| E-invoicing enablement for supported countries (France, Germany) | `app/models/billing_entity.rb` | libs/documents | logic done | |
 | Email settings (which documents are emailed) and from-address | `app/models/billing_entity.rb` (`email_settings`) | libs/mail | in progress | |
 | Taxes applied to a billing entity (apply, remove, manage) | `app/services/billing_entities/taxes/` | libs/tax | planned | |
 | Applied dunning campaign per billing entity | `app/services/billing_entities/update_applied_dunning_campaign_service.rb` | libs/billing | planned | |
@@ -449,7 +449,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Statuses draft, finalized, voided, failed, pending, generating, open, closed | `app/models/invoice.rb` | libs/core | planned | |
 | Payment status (pending, succeeded, failed) and tax status | `app/models/invoice.rb` | libs/core | planned | |
 | Computed amounts (fees, coupons, taxes, credit notes, prepaid credits, progressive deductions, totals, due, paid) | `app/models/invoice.rb`, `app/services/invoices/compute_amounts_from_fees.rb` | libs/billing | planned | |
-| Tax invoice label in Australia, UAE, New Zealand, Indonesia, Singapore | `app/models/invoice.rb` | libs/documents | planned | |
+| Tax invoice label in Australia, UAE, New Zealand, Indonesia, Singapore | `app/models/invoice.rb` | libs/documents | logic done | |
 | Numbering per customer (`PREFIX-CCC-NNN`) | `app/models/invoice.rb` (numbering) | libs/billing | planned | |
 | Numbering per billing entity (`PREFIX-YYYYMM-NNN`) | `app/models/invoice.rb` (numbering) | libs/billing | planned | |
 | Draft numbering (`PREFIX-DRAFT`) | `app/models/invoice.rb` | libs/billing | planned | |
@@ -480,7 +480,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Invoice settlements (payment, credit note) | `app/models/invoice_settlement.rb` | libs/billing | planned | |
 | Invoice list filters and search | `app/queries/invoices_query.rb` | libs/store | planned | Includes the purchase order number, case-insensitive |
 | Invoice custom sections (manual, system generated) and resolution rules | `app/models/invoice_custom_section.rb`, `app/services/invoice_custom_sections/` | libs/billing | planned | Public API, not only the admin UI |
-| Download PDF and XML | `app/services/invoices/generate_pdf_service.rb` | libs/documents | planned | |
+| Download PDF and XML | `app/services/invoices/generate_pdf_service.rb` | libs/documents | logic done | |
 | Resend invoice email | `app/services/emails/resend_service.rb` | libs/mail | logic done | |
 | Payment URL for an invoice | `app/services/invoices/payments/generate_payment_url_service.rb` | libs/billing | planned | |
 | Store Salesforce id on an invoice | `app/controllers/api/v1/invoices_controller.rb` (`sync_salesforce_id`) | providers/salesforce | planned | |
@@ -717,7 +717,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Dunning processing: per-currency attempts, threshold check, payment request | `app/services/dunning_campaigns/bulk_process_service.rb`, `process_attempt_service.rb` | libs/billing | planned | |
 | Dunning webhook `dunning_campaign.finished` | `app/services/webhooks/dunning_campaigns/finished_service.rb` | libs/webhooks | planned | |
 | Payment receipts for succeeded payments, numbered per customer | `app/services/payment_receipts/create_service.rb` | libs/billing | planned | |
-| Payment receipt PDF and XML, emailed per billing entity settings | `app/services/payment_receipts/generate_pdf_service.rb`, `generate_xml_service.rb` | libs/documents | planned | |
+| Payment receipt PDF and XML, emailed per billing entity settings | `app/services/payment_receipts/generate_pdf_service.rb`, `generate_xml_service.rb` | libs/documents | logic done | |
 | Payment receipts API and resend email | `app/controllers/api/v1/payment_receipts_controller.rb` | apps/server | planned | |
 | Payment receipt webhooks `payment_receipt.created`, `payment_receipt.generated` | `app/services/webhooks/payment_receipts/` | libs/webhooks | planned | |
 | Refunds for credit notes through Stripe, GoCardless, Adyen | `app/services/credit_notes/refunds/` | providers/* | planned | |
@@ -910,16 +910,16 @@ Lago's x402 support is unfinished: only the gate check is reachable. Tanvo ports
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Invoice PDF (current template version 4 with partials) | `app/views/templates/invoices/v4/` | libs/documents | planned | Typst templates (§3) |
-| Credit note PDF | `app/views/templates/credit_notes/` | libs/documents | planned | |
-| Payment receipt PDF | `app/views/templates/payment_receipts/` | libs/documents | planned | |
+| Invoice PDF (current template version 4 with partials) | `app/views/templates/invoices/v4/` | libs/documents | logic done | Typst templates (§3) |
+| Credit note PDF | `app/views/templates/credit_notes/` | libs/documents | logic done | |
+| Payment receipt PDF | `app/views/templates/payment_receipts/` | libs/documents | logic done | |
 | Payment request email | `app/mailers/payment_request_mailer.rb`, `app/views/payment_request_mailer/requested.slim` | libs/mail | logic done | Also rendered as a document |
-| Document locales de, en, es, fr, it, nb, pt-BR, sv, zh-TW | `config/locales/` | libs/documents | planned | |
-| Branding watermark | `app/views/templates/` | libs/documents | planned | No watermark; nothing to remove |
-| UBL invoices (EN 16931, XRechnung 3.0, Peppol BIS 3) | `app/serializers/e_invoices/invoices/ubl/` | libs/documents | planned | |
-| CII invoices embedded as Factur-X / ZUGFeRD | `app/serializers/e_invoices/invoices/cii/` | libs/documents | planned | |
-| E-invoice code lists | `app/serializers/e_invoices/` | libs/documents | planned | |
-| E-invoices for credit notes and receipts | `app/serializers/e_invoices/credit_notes/`, `app/serializers/e_invoices/payments/` | libs/documents | planned | |
+| Document locales de, en, es, fr, it, nb, pt-BR, sv, zh-TW | `config/locales/` | libs/documents | logic done | Also zh-CN, a Tanvo addition; Chinese documents need a Noto CJK font (fonts-noto-cjk), else rendering fails with `ErrMissingFont` |
+| Branding watermark | `app/views/templates/` | libs/documents | logic done | No watermark; nothing to remove |
+| UBL invoices (EN 16931, XRechnung 3.0, Peppol BIS 3) | `app/serializers/e_invoices/invoices/ubl/` | libs/documents | logic done | |
+| CII invoices embedded as Factur-X / ZUGFeRD | `app/serializers/e_invoices/invoices/cii/` | libs/documents | logic done | |
+| E-invoice code lists | `app/serializers/e_invoices/` | libs/documents | logic done | |
+| E-invoices for credit notes and receipts | `app/serializers/e_invoices/credit_notes/`, `app/serializers/e_invoices/payments/` | libs/documents | logic done | |
 | Document emails (invoice, credit note, receipt, payment request) | `app/mailers/` | libs/mail | logic done | |
 | Resend document email | `app/services/emails/resend_service.rb` | libs/mail | logic done | |
 | SMTP delivery and custom from address | `config/environments/production.rb` | libs/mail | logic done | |

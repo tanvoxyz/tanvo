@@ -1,0 +1,5 @@
+# Ported verbatim from lago-api 25b8b7b09: config/locales/en/document.yml
+---
+en:
+  document:
+    page_numbering: Page %{current} of %{total}

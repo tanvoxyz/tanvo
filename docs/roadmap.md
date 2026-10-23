@@ -31,7 +31,7 @@
 * Phase 0: scaffold, Nx plugins, licenses, CI and every document (with translations) are in place.
 * Phase 1 is done: `libs/money`, `libs/period` (623 ported cases), `libs/expression` (151 cases, Rust → WASM with input limits), `libs/pricing` (433 cases), `libs/metering` (478 cases, with the `storetest` conformance suite) and `libs/tax` (264 cases). [Parity](parity.md) marks their features `logic done`.
 * Phase 2: `libs/core` is done; `libs/billing` is being built.
-* Phase 3: `libs/proto`, `libs/eventstore`, `libs/store` (PostgreSQL schema, migrations, RLS, transactional jobs, and the repository conformance suite passing on memstore and PostgreSQL) and `libs/jobs` (River, the periodic schedule, tenant fairness) are done; `libs/webhooks`, `libs/ingest`, `libs/auth` and `libs/mail` are done in logic; `libs/documents` and the 15-minute usage buckets are being built.
+* Phase 3: `libs/proto`, `libs/eventstore`, `libs/store` (PostgreSQL schema, migrations, RLS, transactional jobs, and the repository conformance suite passing on memstore and PostgreSQL) and `libs/jobs` (River, the periodic schedule, tenant fairness) are done; `libs/webhooks`, `libs/ingest`, `libs/auth` and `libs/mail` and `libs/documents` (Typst PDF/A-3b, Factur-X, UBL and CII, ten locales including zh-CN) are done in logic; the 15-minute usage buckets are being built.
 * Phase 4: `apps/server` runs `tanvo serve` (roles api, worker, consumer, all) and `tanvo migrate`, with typed configuration, OpenTelemetry, health and readiness, the job registry and periodic schedule, and event ingestion over Connect and REST, covered by an end-to-end test; the other API resources and the billing jobs are to come.
 
 ## 4. After Parity: Lessons from OpenMeter and Flexprice

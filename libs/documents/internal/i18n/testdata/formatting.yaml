@@ -1,0 +1,1317 @@
+# Formatting cases for every document locale. The expected values were
+# produced by lago-api's own formatting code (MoneyHelper.format,
+# format_with_precision and format_pricing_unit of app/views/helpers/money_helper.rb,
+# DateHelper.format, and Addressing::DefaultFormatter as called by
+# app/views/templates/invoices/v4/_customer_address.slim) run on the money
+# 6.19.0, i18n 1.14.7 and addressing 1.1.0 gems with lago-api's
+# config/locales and money-rails configuration (ROUND_HALF_UP).
+# They extend the cases of spec/views/helpers/money_helper_spec.rb and
+# spec/views/helpers/date_helper_spec.rb (source) to every locale and more
+# currencies.
+#
+# The zh-CN rows are a Tanvo locale lago-api does not have
+# (config/application.rb:49): they follow Unicode CLDR zh-Hans-CN (currency
+# pattern "¤#,##0.00" with CLDR's zh symbols, the minus before the symbol;
+# dates y年M月d日) and the addressing gem's zh-Hans formats.
+money:
+- locale: en
+  minor: 100
+  currency: USD
+  want: "$1.00"
+- locale: en
+  minor: 123456789
+  currency: USD
+  want: "$1,234,567.89"
+- locale: en
+  minor: -500
+  currency: EUR
+  want: "€-5.00"
+- locale: en
+  minor: 100
+  currency: BHD
+  want: BHD 0.100
+- locale: en
+  minor: 1234567
+  currency: JPY
+  want: "¥1,234,567"
+- locale: en
+  minor: 0
+  currency: GBP
+  want: "£0.00"
+- locale: en
+  minor: 99999
+  currency: CHF
+  want: CHF 999.99
+- locale: en
+  minor: 150050
+  currency: TWD
+  want: "$1,500.50"
+- locale: en
+  minor: -2
+  currency: CNY
+  want: "¥-0.02"
+- locale: de
+  minor: 100
+  currency: USD
+  want: "$1,00"
+- locale: de
+  minor: 123456789
+  currency: USD
+  want: "$1.234.567,89"
+- locale: de
+  minor: -500
+  currency: EUR
+  want: "€-5,00"
+- locale: de
+  minor: 100
+  currency: BHD
+  want: BHD 0,100
+- locale: de
+  minor: 1234567
+  currency: JPY
+  want: "¥1.234.567"
+- locale: de
+  minor: 0
+  currency: GBP
+  want: "£0,00"
+- locale: de
+  minor: 99999
+  currency: CHF
+  want: CHF 999,99
+- locale: de
+  minor: 150050
+  currency: TWD
+  want: "$1.500,50"
+- locale: de
+  minor: -2
+  currency: CNY
+  want: "¥-0,02"
+- locale: es
+  minor: 100
+  currency: USD
+  want: "$1.00"
+- locale: es
+  minor: 123456789
+  currency: USD
+  want: "$1,234,567.89"
+- locale: es
+  minor: -500
+  currency: EUR
+  want: "€-5.00"
+- locale: es
+  minor: 100
+  currency: BHD
+  want: BHD 0.100
+- locale: es
+  minor: 1234567
+  currency: JPY
+  want: "¥1,234,567"
+- locale: es
+  minor: 0
+  currency: GBP
+  want: "£0.00"
+- locale: es
+  minor: 99999
+  currency: CHF
+  want: CHF 999.99
+- locale: es
+  minor: 150050
+  currency: TWD
+  want: "$1,500.50"
+- locale: es
+  minor: -2
+  currency: CNY
+  want: "¥-0.02"
+- locale: fr
+  minor: 100
+  currency: USD
+  want: 1,00 $
+- locale: fr
+  minor: 123456789
+  currency: USD
+  want: 1 234 567,89 $
+- locale: fr
+  minor: -500
+  currency: EUR
+  want: "-5,00 €"
+- locale: fr
+  minor: 100
+  currency: BHD
+  want: 0,100 BHD
+- locale: fr
+  minor: 1234567
+  currency: JPY
+  want: 1 234 567 ¥
+- locale: fr
+  minor: 0
+  currency: GBP
+  want: 0,00 £
+- locale: fr
+  minor: 99999
+  currency: CHF
+  want: 999,99 CHF
+- locale: fr
+  minor: 150050
+  currency: TWD
+  want: 1 500,50 $
+- locale: fr
+  minor: -2
+  currency: CNY
+  want: "-0,02 ¥"
+- locale: it
+  minor: 100
+  currency: USD
+  want: 1,00 $
+- locale: it
+  minor: 123456789
+  currency: USD
+  want: 1.234.567,89 $
+- locale: it
+  minor: -500
+  currency: EUR
+  want: "-5,00 €"
+- locale: it
+  minor: 100
+  currency: BHD
+  want: 0,100 BHD
+- locale: it
+  minor: 1234567
+  currency: JPY
+  want: 1.234.567 ¥
+- locale: it
+  minor: 0
+  currency: GBP
+  want: 0,00 £
+- locale: it
+  minor: 99999
+  currency: CHF
+  want: 999,99 CHF
+- locale: it
+  minor: 150050
+  currency: TWD
+  want: 1.500,50 $
+- locale: it
+  minor: -2
+  currency: CNY
+  want: "-0,02 ¥"
+- locale: nb
+  minor: 100
+  currency: USD
+  want: "$1,00"
+- locale: nb
+  minor: 123456789
+  currency: USD
+  want: "$1 234 567,89"
+- locale: nb
+  minor: -500
+  currency: EUR
+  want: "€-5,00"
+- locale: nb
+  minor: 100
+  currency: BHD
+  want: BHD 0,100
+- locale: nb
+  minor: 1234567
+  currency: JPY
+  want: "¥1 234 567"
+- locale: nb
+  minor: 0
+  currency: GBP
+  want: "£0,00"
+- locale: nb
+  minor: 99999
+  currency: CHF
+  want: CHF 999,99
+- locale: nb
+  minor: 150050
+  currency: TWD
+  want: "$1 500,50"
+- locale: nb
+  minor: -2
+  currency: CNY
+  want: "¥-0,02"
+- locale: pt-BR
+  minor: 100
+  currency: USD
+  want: "$ 1,00"
+- locale: pt-BR
+  minor: 123456789
+  currency: USD
+  want: "$ 1.234.567,89"
+- locale: pt-BR
+  minor: -500
+  currency: EUR
+  want: "€ -5,00"
+- locale: pt-BR
+  minor: 100
+  currency: BHD
+  want: BHD 0,100
+- locale: pt-BR
+  minor: 1234567
+  currency: JPY
+  want: "¥ 1.234.567"
+- locale: pt-BR
+  minor: 0
+  currency: GBP
+  want: "£ 0,00"
+- locale: pt-BR
+  minor: 99999
+  currency: CHF
+  want: CHF 999,99
+- locale: pt-BR
+  minor: 150050
+  currency: TWD
+  want: "$ 1.500,50"
+- locale: pt-BR
+  minor: -2
+  currency: CNY
+  want: "¥ -0,02"
+- locale: sv
+  minor: 100
+  currency: USD
+  want: 1,00 $
+- locale: sv
+  minor: 123456789
+  currency: USD
+  want: 1 234 567,89 $
+- locale: sv
+  minor: -500
+  currency: EUR
+  want: "-5,00 €"
+- locale: sv
+  minor: 100
+  currency: BHD
+  want: 0,100 BHD
+- locale: sv
+  minor: 1234567
+  currency: JPY
+  want: 1 234 567 ¥
+- locale: sv
+  minor: 0
+  currency: GBP
+  want: 0,00 £
+- locale: sv
+  minor: 99999
+  currency: CHF
+  want: 999,99 CHF
+- locale: sv
+  minor: 150050
+  currency: TWD
+  want: 1 500,50 $
+- locale: sv
+  minor: -2
+  currency: CNY
+  want: "-0,02 ¥"
+- locale: zh-TW
+  minor: 100
+  currency: USD
+  want: "$1.00"
+- locale: zh-TW
+  minor: 123456789
+  currency: USD
+  want: "$1,234,567.89"
+- locale: zh-TW
+  minor: -500
+  currency: EUR
+  want: "€-5.00"
+- locale: zh-TW
+  minor: 100
+  currency: BHD
+  want: BHD 0.100
+- locale: zh-TW
+  minor: 1234567
+  currency: JPY
+  want: "¥1,234,567"
+- locale: zh-TW
+  minor: 0
+  currency: GBP
+  want: "£0.00"
+- locale: zh-TW
+  minor: 99999
+  currency: CHF
+  want: CHF 999.99
+- locale: zh-TW
+  minor: 150050
+  currency: TWD
+  want: "$1,500.50"
+- locale: zh-TW
+  minor: -2
+  currency: CNY
+  want: "¥-0.02"
+- locale: zh-CN
+  minor: 100
+  currency: USD
+  want: "US$1.00"
+- locale: zh-CN
+  minor: 123456789
+  currency: USD
+  want: "US$1,234,567.89"
+- locale: zh-CN
+  minor: -500
+  currency: EUR
+  want: "-€5.00"
+- locale: zh-CN
+  minor: 100
+  currency: BHD
+  want: BHD 0.100
+- locale: zh-CN
+  minor: 1234567
+  currency: JPY
+  want: "JP¥1,234,567"
+- locale: zh-CN
+  minor: 0
+  currency: GBP
+  want: "£0.00"
+- locale: zh-CN
+  minor: 99999
+  currency: CHF
+  want: CHF 999.99
+- locale: zh-CN
+  minor: 150050
+  currency: TWD
+  want: "NT$1,500.50"
+- locale: zh-CN
+  minor: -2
+  currency: CNY
+  want: "-¥0.02"
+- locale: zh-CN
+  minor: 123450
+  currency: CNY
+  want: "¥1,234.50"
+- locale: zh-CN
+  minor: 123450
+  currency: HKD
+  want: "HK$1,234.50"
+- locale: zh-CN
+  minor: 123450
+  currency: CAD
+  want: "CA$1,234.50"
+precise:
+- locale: en
+  units: '123.12345678'
+  currency: USD
+  want: "$123.123457"
+- locale: en
+  units: '0.000000012345'
+  currency: USD
+  want: "$0.000000012345"
+- locale: en
+  units: '0.100000012345'
+  currency: USD
+  want: "$0.10"
+- locale: en
+  units: '123.12345678'
+  currency: BHD
+  want: BHD 123.123457
+- locale: en
+  units: '0.100000012345'
+  currency: BHD
+  want: BHD 0.100
+- locale: en
+  units: '1234.5'
+  currency: EUR
+  want: "€1,234.50"
+- locale: en
+  units: "-0.5"
+  currency: EUR
+  want: "€-0.50"
+- locale: en
+  units: '12.3456789'
+  currency: JPY
+  want: "¥12"
+- locale: de
+  units: '123.12345678'
+  currency: USD
+  want: "$123,123457"
+- locale: de
+  units: '0.000000012345'
+  currency: USD
+  want: "$0,000000012345"
+- locale: de
+  units: '0.100000012345'
+  currency: USD
+  want: "$0,10"
+- locale: de
+  units: '123.12345678'
+  currency: BHD
+  want: BHD 123,123457
+- locale: de
+  units: '0.100000012345'
+  currency: BHD
+  want: BHD 0,100
+- locale: de
+  units: '1234.5'
+  currency: EUR
+  want: "€1.234,50"
+- locale: de
+  units: "-0.5"
+  currency: EUR
+  want: "€-0,50"
+- locale: de
+  units: '12.3456789'
+  currency: JPY
+  want: "¥12"
+- locale: es
+  units: '123.12345678'
+  currency: USD
+  want: "$123.123457"
+- locale: es
+  units: '0.000000012345'
+  currency: USD
+  want: "$0.000000012345"
+- locale: es
+  units: '0.100000012345'
+  currency: USD
+  want: "$0.10"
+- locale: es
+  units: '123.12345678'
+  currency: BHD
+  want: BHD 123.123457
+- locale: es
+  units: '0.100000012345'
+  currency: BHD
+  want: BHD 0.100
+- locale: es
+  units: '1234.5'
+  currency: EUR
+  want: "€1,234.50"
+- locale: es
+  units: "-0.5"
+  currency: EUR
+  want: "€-0.50"
+- locale: es
+  units: '12.3456789'
+  currency: JPY
+  want: "¥12"
+- locale: fr
+  units: '123.12345678'
+  currency: USD
+  want: 123,123457 $
+- locale: fr
+  units: '0.000000012345'
+  currency: USD
+  want: 0,000000012345 $
+- locale: fr
+  units: '0.100000012345'
+  currency: USD
+  want: 0,10 $
+- locale: fr
+  units: '123.12345678'
+  currency: BHD
+  want: 123,123457 BHD
+- locale: fr
+  units: '0.100000012345'
+  currency: BHD
+  want: 0,100 BHD
+- locale: fr
+  units: '1234.5'
+  currency: EUR
+  want: 1 234,50 €
+- locale: fr
+  units: "-0.5"
+  currency: EUR
+  want: "-0,50 €"
+- locale: fr
+  units: '12.3456789'
+  currency: JPY
+  want: 12 ¥
+- locale: it
+  units: '123.12345678'
+  currency: USD
+  want: 123,123457 $
+- locale: it
+  units: '0.000000012345'
+  currency: USD
+  want: 0,000000012345 $
+- locale: it
+  units: '0.100000012345'
+  currency: USD
+  want: 0,10 $
+- locale: it
+  units: '123.12345678'
+  currency: BHD
+  want: 123,123457 BHD
+- locale: it
+  units: '0.100000012345'
+  currency: BHD
+  want: 0,100 BHD
+- locale: it
+  units: '1234.5'
+  currency: EUR
+  want: 1.234,50 €
+- locale: it
+  units: "-0.5"
+  currency: EUR
+  want: "-0,50 €"
+- locale: it
+  units: '12.3456789'
+  currency: JPY
+  want: 12 ¥
+- locale: nb
+  units: '123.12345678'
+  currency: USD
+  want: "$123,123457"
+- locale: nb
+  units: '0.000000012345'
+  currency: USD
+  want: "$0,000000012345"
+- locale: nb
+  units: '0.100000012345'
+  currency: USD
+  want: "$0,10"
+- locale: nb
+  units: '123.12345678'
+  currency: BHD
+  want: BHD 123,123457
+- locale: nb
+  units: '0.100000012345'
+  currency: BHD
+  want: BHD 0,100
+- locale: nb
+  units: '1234.5'
+  currency: EUR
+  want: "€1 234,50"
+- locale: nb
+  units: "-0.5"
+  currency: EUR
+  want: "€-0,50"
+- locale: nb
+  units: '12.3456789'
+  currency: JPY
+  want: "¥12"
+- locale: pt-BR
+  units: '123.12345678'
+  currency: USD
+  want: "$ 123,123457"
+- locale: pt-BR
+  units: '0.000000012345'
+  currency: USD
+  want: "$ 0,000000012345"
+- locale: pt-BR
+  units: '0.100000012345'
+  currency: USD
+  want: "$ 0,10"
+- locale: pt-BR
+  units: '123.12345678'
+  currency: BHD
+  want: BHD 123,123457
+- locale: pt-BR
+  units: '0.100000012345'
+  currency: BHD
+  want: BHD 0,100
+- locale: pt-BR
+  units: '1234.5'
+  currency: EUR
+  want: "€ 1.234,50"
+- locale: pt-BR
+  units: "-0.5"
+  currency: EUR
+  want: "€ -0,50"
+- locale: pt-BR
+  units: '12.3456789'
+  currency: JPY
+  want: "¥ 12"
+- locale: sv
+  units: '123.12345678'
+  currency: USD
+  want: 123,123457 $
+- locale: sv
+  units: '0.000000012345'
+  currency: USD
+  want: 0,000000012345 $
+- locale: sv
+  units: '0.100000012345'
+  currency: USD
+  want: 0,10 $
+- locale: sv
+  units: '123.12345678'
+  currency: BHD
+  want: 123,123457 BHD
+- locale: sv
+  units: '0.100000012345'
+  currency: BHD
+  want: 0,100 BHD
+- locale: sv
+  units: '1234.5'
+  currency: EUR
+  want: 1 234,50 €
+- locale: sv
+  units: "-0.5"
+  currency: EUR
+  want: "-0,50 €"
+- locale: sv
+  units: '12.3456789'
+  currency: JPY
+  want: 12 ¥
+- locale: zh-TW
+  units: '123.12345678'
+  currency: USD
+  want: "$123.123457"
+- locale: zh-TW
+  units: '0.000000012345'
+  currency: USD
+  want: "$0.000000012345"
+- locale: zh-TW
+  units: '0.100000012345'
+  currency: USD
+  want: "$0.10"
+- locale: zh-TW
+  units: '123.12345678'
+  currency: BHD
+  want: BHD 123.123457
+- locale: zh-TW
+  units: '0.100000012345'
+  currency: BHD
+  want: BHD 0.100
+- locale: zh-TW
+  units: '1234.5'
+  currency: EUR
+  want: "€1,234.50"
+- locale: zh-TW
+  units: "-0.5"
+  currency: EUR
+  want: "€-0.50"
+- locale: zh-TW
+  units: '12.3456789'
+  currency: JPY
+  want: "¥12"
+- locale: zh-CN
+  units: '123.12345678'
+  currency: USD
+  want: "US$123.123457"
+- locale: zh-CN
+  units: '1234.5'
+  currency: EUR
+  want: "€1,234.50"
+- locale: zh-CN
+  units: "-0.5"
+  currency: EUR
+  want: "-€0.50"
+- locale: zh-CN
+  units: '12.3456789'
+  currency: JPY
+  want: "JP¥12"
+pricing_unit:
+- locale: en
+  units: '100'
+  precise: false
+  want: 100.00 CR
+- locale: en
+  units: '1234.5678'
+  precise: false
+  want: 1,234.5678 CR
+- locale: en
+  units: '0.000000012345'
+  precise: true
+  want: 0.000000012345 CR
+- locale: de
+  units: '100'
+  precise: false
+  want: 100,00 CR
+- locale: de
+  units: '1234.5678'
+  precise: false
+  want: 1.234,5678 CR
+- locale: de
+  units: '0.000000012345'
+  precise: true
+  want: 0,000000012345 CR
+- locale: es
+  units: '100'
+  precise: false
+  want: 100.00 CR
+- locale: es
+  units: '1234.5678'
+  precise: false
+  want: 1,234.5678 CR
+- locale: es
+  units: '0.000000012345'
+  precise: true
+  want: 0.000000012345 CR
+- locale: fr
+  units: '100'
+  precise: false
+  want: 100,00 CR
+- locale: fr
+  units: '1234.5678'
+  precise: false
+  want: 1 234,5678 CR
+- locale: fr
+  units: '0.000000012345'
+  precise: true
+  want: 0,000000012345 CR
+- locale: it
+  units: '100'
+  precise: false
+  want: 100,00 CR
+- locale: it
+  units: '1234.5678'
+  precise: false
+  want: 1.234,5678 CR
+- locale: it
+  units: '0.000000012345'
+  precise: true
+  want: 0,000000012345 CR
+- locale: nb
+  units: '100'
+  precise: false
+  want: 100,00 CR
+- locale: nb
+  units: '1234.5678'
+  precise: false
+  want: 1 234,5678 CR
+- locale: nb
+  units: '0.000000012345'
+  precise: true
+  want: 0,000000012345 CR
+- locale: pt-BR
+  units: '100'
+  precise: false
+  want: 100,00 CR
+- locale: pt-BR
+  units: '1234.5678'
+  precise: false
+  want: 1.234,5678 CR
+- locale: pt-BR
+  units: '0.000000012345'
+  precise: true
+  want: 0,000000012345 CR
+- locale: sv
+  units: '100'
+  precise: false
+  want: 100,00 CR
+- locale: sv
+  units: '1234.5678'
+  precise: false
+  want: 1 234,5678 CR
+- locale: sv
+  units: '0.000000012345'
+  precise: true
+  want: 0,000000012345 CR
+- locale: zh-TW
+  units: '100'
+  precise: false
+  want: 100.00 CR
+- locale: zh-TW
+  units: '1234.5678'
+  precise: false
+  want: 1,234.5678 CR
+- locale: zh-TW
+  units: '0.000000012345'
+  precise: true
+  want: 0.000000012345 CR
+- locale: zh-CN
+  units: '100'
+  precise: false
+  want: 100.00 CR
+- locale: zh-CN
+  units: '1234.5678'
+  precise: false
+  want: 1,234.5678 CR
+dates:
+- locale: en
+  date: '2024-01-02'
+  want: Jan 02, 2024
+- locale: en
+  date: '2025-05-31'
+  want: May 31, 2025
+- locale: en
+  date: '2023-12-25'
+  want: Dec 25, 2023
+- locale: de
+  date: '2024-01-02'
+  want: 02. Jan. 2024
+- locale: de
+  date: '2025-05-31'
+  want: 31. Mai 2025
+- locale: de
+  date: '2023-12-25'
+  want: 25. Dez. 2023
+- locale: es
+  date: '2024-01-02'
+  want: 2 de ene. de 2024
+- locale: es
+  date: '2025-05-31'
+  want: 31 de may. de 2025
+- locale: es
+  date: '2023-12-25'
+  want: 25 de dic. de 2023
+- locale: fr
+  date: '2024-01-02'
+  want: 2 janv. 2024
+- locale: fr
+  date: '2025-05-31'
+  want: 31 mai 2025
+- locale: fr
+  date: '2023-12-25'
+  want: 25 déc. 2023
+- locale: it
+  date: '2024-01-02'
+  want: 02 gen 2024
+- locale: it
+  date: '2025-05-31'
+  want: 31 mag 2025
+- locale: it
+  date: '2023-12-25'
+  want: 25 dic 2023
+- locale: nb
+  date: '2024-01-02'
+  want: 02. jan. 2024
+- locale: nb
+  date: '2025-05-31'
+  want: 31. mai 2025
+- locale: nb
+  date: '2023-12-25'
+  want: 25. des. 2023
+- locale: pt-BR
+  date: '2024-01-02'
+  want: 02/01/2024
+- locale: pt-BR
+  date: '2025-05-31'
+  want: 31/05/2025
+- locale: pt-BR
+  date: '2023-12-25'
+  want: 25/12/2023
+- locale: sv
+  date: '2024-01-02'
+  want: 02 jan. 2024
+- locale: sv
+  date: '2025-05-31'
+  want: 31 maj 2025
+- locale: sv
+  date: '2023-12-25'
+  want: 25 dec. 2023
+- locale: zh-TW
+  date: '2024-01-02'
+  want: 2024年1月2日
+- locale: zh-TW
+  date: '2025-05-31'
+  want: 2025年5月31日
+- locale: zh-TW
+  date: '2023-12-25'
+  want: 2023年12月25日
+- locale: zh-CN
+  date: '2024-01-02'
+  want: 2024年1月2日
+- locale: zh-CN
+  date: '2024-03-05'
+  want: 2024年3月5日
+- locale: zh-CN
+  date: '2023-12-25'
+  want: 2023年12月25日
+addresses:
+- address:
+    line1: 5230 Penfield Ave
+    line2: ''
+    city: Woodland Hills
+    state: CA
+    zip: '91364'
+    country: US
+  locale: en
+  address_locale: ''
+  want:
+  - 5230 Penfield Ave
+  - Woodland Hills, CA 91364
+  - United States
+- address:
+    line1: 5230 Penfield Ave
+    line2: ''
+    city: Woodland Hills
+    state: CA
+    zip: '91364'
+    country: US
+  locale: fr
+  address_locale: fr
+  want:
+  - 5230 Penfield Ave
+  - Woodland Hills, CA 91364
+  - États-Unis
+- address:
+    line1: 5230 Penfield Ave
+    line2: ''
+    city: Woodland Hills
+    state: CA
+    zip: '91364'
+    country: US
+  locale: zh-TW
+  address_locale: zh-TW
+  want:
+  - 5230 Penfield Ave
+  - Woodland Hills, CA 91364
+  - 美國
+- address:
+    line1: 5230 Penfield Ave
+    line2: ''
+    city: Woodland Hills
+    state: CA
+    zip: '91364'
+    country: US
+  locale: de
+  address_locale: de
+  want:
+  - 5230 Penfield Ave
+  - Woodland Hills, CA 91364
+  - Vereinigte Staaten
+- address:
+    line1: 12 rue de Rivoli
+    line2: Bâtiment B
+    city: Paris
+    state: ''
+    zip: '75001'
+    country: FR
+  locale: en
+  address_locale: ''
+  want:
+  - 12 rue de Rivoli
+  - Bâtiment B
+  - 75001 Paris
+  - France
+- address:
+    line1: 12 rue de Rivoli
+    line2: Bâtiment B
+    city: Paris
+    state: ''
+    zip: '75001'
+    country: FR
+  locale: fr
+  address_locale: fr
+  want:
+  - 12 rue de Rivoli
+  - Bâtiment B
+  - 75001 Paris
+  - France
+- address:
+    line1: 12 rue de Rivoli
+    line2: Bâtiment B
+    city: Paris
+    state: ''
+    zip: '75001'
+    country: FR
+  locale: zh-TW
+  address_locale: zh-TW
+  want:
+  - 12 rue de Rivoli
+  - Bâtiment B
+  - 75001 Paris
+  - 法國
+- address:
+    line1: 12 rue de Rivoli
+    line2: Bâtiment B
+    city: Paris
+    state: ''
+    zip: '75001'
+    country: FR
+  locale: de
+  address_locale: de
+  want:
+  - 12 rue de Rivoli
+  - Bâtiment B
+  - 75001 Paris
+  - Frankreich
+- address:
+    line1: 信義路五段7號
+    line2: ''
+    city: 信義區
+    state: 台北市
+    zip: '110'
+    country: TW
+  locale: en
+  address_locale: ''
+  want:
+  - 信義路五段7號
+  - 信義區, 台北市 110
+  - Taiwan
+- address:
+    line1: 信義路五段7號
+    line2: ''
+    city: 信義區
+    state: 台北市
+    zip: '110'
+    country: TW
+  locale: fr
+  address_locale: fr
+  want:
+  - 信義路五段7號
+  - 信義區, 台北市 110
+  - Taïwan
+- address:
+    line1: 信義路五段7號
+    line2: ''
+    city: 信義區
+    state: 台北市
+    zip: '110'
+    country: TW
+  locale: zh-TW
+  address_locale: zh-TW
+  want:
+  - 台灣
+  - '110'
+  - 台北市信義區
+  - 信義路五段7號
+- address:
+    line1: 信義路五段7號
+    line2: ''
+    city: 信義區
+    state: 台北市
+    zip: '110'
+    country: TW
+  locale: de
+  address_locale: de
+  want:
+  - 信義路五段7號
+  - 信義區, 台北市 110
+  - Taiwan
+- address:
+    line1: Unter den Linden 1
+    line2: ''
+    city: Berlin
+    state: ''
+    zip: '10117'
+    country: DE
+  locale: en
+  address_locale: ''
+  want:
+  - Unter den Linden 1
+  - 10117 Berlin
+  - Germany
+- address:
+    line1: Unter den Linden 1
+    line2: ''
+    city: Berlin
+    state: ''
+    zip: '10117'
+    country: DE
+  locale: fr
+  address_locale: fr
+  want:
+  - Unter den Linden 1
+  - 10117 Berlin
+  - Allemagne
+- address:
+    line1: Unter den Linden 1
+    line2: ''
+    city: Berlin
+    state: ''
+    zip: '10117'
+    country: DE
+  locale: zh-TW
+  address_locale: zh-TW
+  want:
+  - Unter den Linden 1
+  - 10117 Berlin
+  - 德國
+- address:
+    line1: Unter den Linden 1
+    line2: ''
+    city: Berlin
+    state: ''
+    zip: '10117'
+    country: DE
+  locale: de
+  address_locale: de
+  want:
+  - Unter den Linden 1
+  - 10117 Berlin
+  - Deutschland
+- address:
+    line1: Rua Augusta 100
+    line2: ''
+    city: São Paulo
+    state: SP
+    zip: 01304-000
+    country: BR
+  locale: en
+  address_locale: ''
+  want:
+  - Rua Augusta 100
+  - São Paulo-SP
+  - 01304-000
+  - Brazil
+- address:
+    line1: Rua Augusta 100
+    line2: ''
+    city: São Paulo
+    state: SP
+    zip: 01304-000
+    country: BR
+  locale: fr
+  address_locale: fr
+  want:
+  - Rua Augusta 100
+  - São Paulo-SP
+  - 01304-000
+  - Brésil
+- address:
+    line1: Rua Augusta 100
+    line2: ''
+    city: São Paulo
+    state: SP
+    zip: 01304-000
+    country: BR
+  locale: zh-TW
+  address_locale: zh-TW
+  want:
+  - Rua Augusta 100
+  - São Paulo-SP
+  - 01304-000
+  - 巴西
+- address:
+    line1: Rua Augusta 100
+    line2: ''
+    city: São Paulo
+    state: SP
+    zip: 01304-000
+    country: BR
+  locale: de
+  address_locale: de
+  want:
+  - Rua Augusta 100
+  - São Paulo-SP
+  - 01304-000
+  - Brasilien
+- address:
+    line1: 1 Main St
+    line2: ''
+    city: Somewhere
+    state: ''
+    zip: ''
+    country: XK
+  locale: en
+  address_locale: ''
+  want:
+  - 1 Main St
+  - Somewhere
+  - Kosovo
+- address:
+    line1: 1 Main St
+    line2: ''
+    city: Somewhere
+    state: ''
+    zip: ''
+    country: XK
+  locale: fr
+  address_locale: fr
+  want:
+  - 1 Main St
+  - Somewhere
+  - Kosovo
+- address:
+    line1: 1 Main St
+    line2: ''
+    city: Somewhere
+    state: ''
+    zip: ''
+    country: XK
+  locale: zh-TW
+  address_locale: zh-TW
+  want:
+  - 1 Main St
+  - Somewhere
+  - 科索沃
+- address:
+    line1: 1 Main St
+    line2: ''
+    city: Somewhere
+    state: ''
+    zip: ''
+    country: XK
+  locale: de
+  address_locale: de
+  want:
+  - 1 Main St
+  - Somewhere
+  - Kosovo
+- address:
+    line1: ''
+    line2: ''
+    city: ''
+    state: ''
+    zip: ''
+    country: ''
+  locale: en
+  address_locale: ''
+  want: []
+- address:
+    line1: ''
+    line2: ''
+    city: ''
+    state: ''
+    zip: ''
+    country: ''
+  locale: fr
+  address_locale: fr
+  want: []
+- address:
+    line1: ''
+    line2: ''
+    city: ''
+    state: ''
+    zip: ''
+    country: ''
+  locale: zh-TW
+  address_locale: zh-TW
+  want: []
+- address:
+    line1: ''
+    line2: ''
+    city: ''
+    state: ''
+    zip: ''
+    country: ''
+  locale: de
+  address_locale: de
+  want: []
+- address:
+    line1: 建国门外大街1号
+    line2: ''
+    city: 朝阳区
+    state: 北京市
+    zip: '100022'
+    country: CN
+  locale: zh-CN
+  address_locale: zh-CN
+  want:
+  - 中国
+  - '100022'
+  - 北京市朝阳区
+  - 建国门外大街1号
+- address:
+    line1: 建国门外大街1号
+    line2: ''
+    city: 朝阳区
+    state: 北京市
+    zip: '100022'
+    country: CN
+  locale: en
+  address_locale: ''
+  want:
+  - 建国门外大街1号
+  - 朝阳区
+  - 北京市, 100022
+  - China
+- address:
+    line1: 5230 Penfield Ave
+    line2: ''
+    city: Woodland Hills
+    state: CA
+    zip: '91364'
+    country: US
+  locale: zh-CN
+  address_locale: zh-CN
+  want:
+  - 5230 Penfield Ave
+  - Woodland Hills, CA 91364
+  - 美国
+- address:
+    line1: 信義路五段7號
+    line2: ''
+    city: 信義區
+    state: 台北市
+    zip: '110'
+    country: TW
+  locale: zh-CN
+  address_locale: zh-CN
+  want:
+  - 信義路五段7號
+  - 信義區, 台北市 110
+  - 台湾

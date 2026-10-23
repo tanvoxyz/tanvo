@@ -291,6 +291,7 @@ Enrichment resolves an event to its subscription(s) by `external_subscription_id
 
 * Invoices, credit notes, payment receipts and payment requests are rendered by **Typst** run as a child process with the document's data as JSON input; templates and fonts are embedded in the binary and written to a private directory at startup.
 * Output is PDF/A-3b; e-invoices embed their XML (Factur-X / ZUGFeRD CII) as an attachment. UBL 2.1 and CII XML are also served on their own.
+* Fonts: the binary embeds Inter (SIL OFL) for the Latin-script locales. The templates fall back to Noto Sans CJK SC / Noto Sans SC for zh-CN and Noto Sans CJK TC / Noto Sans TC for zh-TW, which are not embedded: the renderer searches the system font directories (or `Options.FontPaths`), and the container image installs `fonts-noto-cjk`. A zh-CN or zh-TW document rendered without one of these fonts fails with `documents.ErrMissingFont` rather than producing missing glyphs. Text in other scripts that no font covers (customer data) still renders, as a plain PDF with a warning.
 * Documents are stored through the `BlobStore` port (local disk, S3-compatible, GCS).
 * Rendering runs in the `documents` queue; in Tanvo Cloud a dedicated Deployment runs that queue.
 
@@ -334,7 +335,7 @@ The single binary `tanvo serve` runs any combination of roles:
 `tanvo migrate`, `tanvo admin …` and `tanvo version` are separate commands.
 
 ### 13.2 Self-hosted
-* Minimal: `tanvo serve` + PostgreSQL. Typst and the `fonts-noto-cjk` package (zh-TW documents, §10) are included in the container image; installations outside it need both.
+* Minimal: `tanvo serve` + PostgreSQL. Typst and the `fonts-noto-cjk` package (zh-CN and zh-TW documents, §10) are included in the container image; installations outside it need both.
 * Optional: Redpanda/Kafka + ClickHouse for high event volumes, Redis/Valkey for caching, S3-compatible storage.
 * Distributed as a container image and a Docker Compose file; a Helm chart serves both self-hosted Kubernetes and Tanvo Cloud.
 

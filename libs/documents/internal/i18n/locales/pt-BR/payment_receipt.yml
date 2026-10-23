@@ -1,0 +1,11 @@
+# Ported verbatim from lago-api 25b8b7b09: config/locales/pt-BR/payment_receipt.yml
+---
+pt-BR:
+  payment_receipt:
+    document_name: Recibo
+    download_invoice: Baixar fatura
+    download_receipt: Baixar recibo
+    number: Número do recibo
+    paid_on: 'Pago em %{date} (Restante a pagar: %{total_due_amount})'
+    payment_date: Pago em
+    payment_method: Método de pagamento

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ApplicationResponse xmlns="urn:oasis:names:specification:ubl:schema:xsd:ApplicationResponse-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <!--UBL Version and Customization-->
+  <cbc:UBLVersionID>2.1</cbc:UBLVersionID>
+  <cbc:CustomizationID>urn:oasis:names:specification:ubl:xpath:ApplicationResponse-2.4</cbc:CustomizationID>
+  <cbc:ProfileID>urn:oasis:names:specification:ubl:schema:xsd:ApplicationResponse-2</cbc:ProfileID>
+  <cbc:ID>LAG-1234-001-001</cbc:ID>
+  <cbc:IssueDate>2025-10-22</cbc:IssueDate>
+  <cbc:Note>Receipt for payment of EUR 146.02 received via stripe for invoice TAN-FR-2025-0042</cbc:Note>
+  <!--Sender Party-->
+  <cac:SenderParty>
+    <cac:PartyIdentification>
+      <cbc:ID>BE_CODE</cbc:ID>
+    </cac:PartyIdentification>
+    <cac:PartyName>
+      <cbc:Name>Billing Entity</cbc:Name>
+    </cac:PartyName>
+    <cac:PostalAddress>
+      <cbc:StreetName>Rue quelque part</cbc:StreetName>
+      <cbc:AdditionalStreetName>Tourne au deuxième angle</cbc:AdditionalStreetName>
+      <cbc:CityName>Eine Stadt</cbc:CityName>
+      <cbc:PostalZone>60192460</cbc:PostalZone>
+      <cac:Country>
+        <cbc:IdentificationCode>FR</cbc:IdentificationCode>
+      </cac:Country>
+    </cac:PostalAddress>
+    <cac:PartyTaxScheme>
+      <cbc:CompanyID>MAR1234BR</cbc:CompanyID>
+      <cac:TaxScheme>
+        <cbc:ID>VAT</cbc:ID>
+      </cac:TaxScheme>
+    </cac:PartyTaxScheme>
+    <cac:Contact>
+      <cbc:Name>Billing Entity</cbc:Name>
+      <cbc:ElectronicMail>billing@example.com</cbc:ElectronicMail>
+    </cac:Contact>
+  </cac:SenderParty>
+  <!--Receiver Party-->
+  <cac:ReceiverParty>
+    <cac:PartyName>
+      <cbc:Name>Its Mii</cbc:Name>
+    </cac:PartyName>
+    <cac:PostalAddress>
+      <cbc:StreetName>Streets of Tomorrow</cbc:StreetName>
+      <cbc:AdditionalStreetName>on AC</cbc:AdditionalStreetName>
+      <cbc:CityName>SP</cbc:CityName>
+      <cbc:PostalZone>123654789</cbc:PostalZone>
+      <cac:Country>
+        <cbc:IdentificationCode>BR</cbc:IdentificationCode>
+      </cac:Country>
+    </cac:PostalAddress>
+  </cac:ReceiverParty>
+  <!--Document Response-->
+  <cac:DocumentResponse>
+    <cac:Response>
+      <cbc:ResponseCode>PD</cbc:ResponseCode>
+      <cbc:Description>Receipt for payment of EUR 146.02 received via stripe for invoice TAN-FR-2025-0042</cbc:Description>
+      <cbc:EffectiveDate>2025-10-22</cbc:EffectiveDate>
+    </cac:Response>
+    <cac:DocumentReference>
+      <cbc:ID>TAN-FR-2025-0042</cbc:ID>
+      <cbc:IssueDate>2025-03-15</cbc:IssueDate>
+      <cbc:DocumentTypeCode>380</cbc:DocumentTypeCode>
+      <cbc:DocumentType>Invoice</cbc:DocumentType>
+      <cbc:DocumentDescription>Invoice ID from payment system: 01960000-0000-7000-8000-000000000001</cbc:DocumentDescription>
+    </cac:DocumentReference>
+  </cac:DocumentResponse>
+</ApplicationResponse>

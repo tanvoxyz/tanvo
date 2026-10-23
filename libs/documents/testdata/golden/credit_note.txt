@@ -1,0 +1,43 @@
+--- page 1
+Credit note
+Credit note number
+CN-202509-001
+Invoice number
+LAGO-202509-001
+Issue date
+Oct 05, 2025
+From
+ACME Corporation
+123 Business St
+Suite 100
+94105, San Francisco
+CA
+United States
+billing@acme.com
+Credit to
+Doe Corp - John Doe
+1234567890
+456 Customer Ave
+Apt 202
+10001, New York
+NY
+United States
+john.doe@example.com
+$20.00
+Credited on customer balance on Oct 05, 2025
+Item
+Tax rate
+Amount (excl. tax)
+Subscription - Premium Plan
+0.0%
+$20.00
+Sub total (excl. tax)
+$20.00
+Tax (0%)
+$0.00
+Credited on customer balance
+$20.00
+Total
+$20.00
+CN-202509-001
+Page 1 of 1

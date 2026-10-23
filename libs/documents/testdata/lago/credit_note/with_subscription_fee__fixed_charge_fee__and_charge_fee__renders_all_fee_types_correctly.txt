@@ -1,0 +1,53 @@
+# source: spec/views/app/views/templates/credit_notes/__snapshots__/templates_credit_notes_credit_note.slim/with_subscription_fee,_fixed_charge_fee,_and_charge_fee/renders_all_fee_types_correctly.html.snap (lago-api 25b8b7b09)
+# Visible text of the HTML snapshot, one text run per line.
+Credit note
+Credit note number
+CN-202510-001
+Invoice number
+LAGO-202509-001
+Issue date
+Oct 05, 2025
+From
+ACME Corporation
+123 Business St
+Suite 100
+94105
+,
+San Francisco
+CA
+United States
+billing@acme.com
+Credit to
+Doe Corp - John Doe
+1234567890
+456 Customer Ave
+Apt 202
+10001
+,
+New York
+NY
+United States
+john.doe@example.com
+$30.00
+Credited on customer balance on Oct 05, 2025
+Item
+Tax rate
+Amount (excl. tax)
+Subscription - Premium Plan
+0.0%
+$10.00
+Setup Fee
+0.0%
+$10.00
+API Calls
+0.0%
+$10.00
+Sub total (excl. tax)
+$30.00
+Tax (0%)
+$0.00
+Credited on customer balance
+$30.00
+Total
+$30.00
+Powered by

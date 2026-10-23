@@ -1,0 +1,5 @@
+# Ported verbatim from lago-api 25b8b7b09: config/locales/sv/document.yml
+---
+sv:
+  document:
+    page_numbering: Sida %{current} av %{total}

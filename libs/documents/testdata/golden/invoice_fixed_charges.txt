@@ -1,0 +1,178 @@
+--- page 1
+Invoice
+Invoice Number
+LAGO-202509-002
+Issue Date
+Sep 01, 2025
+Payment term
+0 days
+From
+ACME Corporation
+123 Business St
+Suite 100
+94105, San Francisco
+CA
+United States
+billing@acme.com
+Bill to
+Doe Corp - John Doe
+1234567890
+456 Customer Ave
+Apt 202
+New York, NY 10001
+United States
+john.doe@example.com
+$50.00
+Due Oct 01, 2025
+Pay in Arrears Premium Plan details
+Fees from Aug 01, 2025 to Aug 31, 2025
+Units
+Unit price
+Tax rate
+Amount
+Pay in Arrears Subscription Fee
+1.0
+$15.00
+0.0%
+$15.00
+Graduated Pay in Arrears Fixed Charge Fee
+Fee per unit for the first 10
+10
+$5.00
+0.0%
+$50.00
+Fee per unit for 11 and above
+5
+$1.00
+0.0%
+$5.00
+Flat fee for first 10
+1
+$200.00
+0.0%
+$200.00
+Flat fee for 11 and above
+1
+$300.00
+0.0%
+$300.00
+Subtotal
+$555.00
+Graduated Pay in Arrears Prorated Fixed Charge Fee
+The fee is prorated for the period; the displayed unit price is an average
+Fee per unit for the first 10
+10
+$5.00
+0.0%
+$50.00
+Fee per unit for 11 and above
+5
+$1.00
+0.0%
+$5.00
+Flat fee for first 10
+1
+$200.00
+0.0%
+$200.00
+Flat fee for 11 and above
+1
+$300.00
+0.0%
+$300.00
+Subtotal
+$555.00
+Standard Pay in Arrears Fixed Charge Fee
+1
+$85.00
+0.0%
+$85.00
+Volume Pay in Arrears Fixed Charge Fee
+Fee per unit
+75
+$2.00
+0.0%
+$150.00
+Flat fee for all units
+1
+$1.00
+0.0%
+$1.00
+Subtotal
+$151.00
+Volume Pay in Arrears Prorated Fixed Charge Fee
+The fee is prorated for the period; the displayed unit price is an average
+Fee per unit
+30
+$3.00
+0.0%
+$90.00
+Flat fee for all units
+1
+$2.00
+0.0%
+$2.00
+Subtotal
+$92.00
+Minimum Commitment Fee
+1
+$2.00
+0.0%
+$2.00
+Fees from Sep 01, 2025 to Sep 30, 2025
+Units
+Unit price
+Tax rate
+Amount
+Graduated Pay in Advance Fixed Charge Fee
+Fee per unit for the first 10
+10
+$5.00
+0.0%
+$50.00
+Fee per unit for 11 and above
+5
+$1.00
+0.0%
+$5.00
+Flat fee for first 10
+1
+$200.00
+0.0%
+$200.00
+Flat fee for 11 and above
+1
+$300.00
+0.0%
+$300.00
+Subtotal
+$555.00
+Standard Pay in Advance Fixed Charge Fee
+2
+$25.00
+0.0%
+$50.00
+Standard Pay in Advance Prorated Fixed Charge Fee
+The fee is prorated for the period; the displayed unit price is an average
+0.5
+$100.00
+0.0%
+$50.00
+Zero Pay in Advance Fixed Charge Fee
+1
+$0.00
+0.0%
+$0.00
+LAGO-202509-002
+Page 1 of 2
+--- page 2
+Subtotal (excl. tax)
+$50.00
+Tax (0%)
+$0.00
+Subtotal (incl. tax)
+$50.00
+Total
+$50.00
+LAGO-202509-002
+Page 2 of 2

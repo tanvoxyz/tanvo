@@ -1,0 +1,52 @@
+# source: spec/views/app/views/templates/invoices/v4/__snapshots__/templates_invoices_v4_self_billed.slim/with_taxes_applied/renders_correctly.html.snap (lago-api 25b8b7b09)
+# Visible text of the HTML snapshot, one text run per line.
+Self-billing invoice
+Invoice Number
+LAGO-202509-SB-004
+Issue Date
+Sep 01, 2025
+Payment term
+0 days
+From
+Doe Corp - John Doe
+1234567890
+456 Customer Ave
+Apt 202
+New York
+,
+NY
+10001
+United States
+john.doe@example.com
+Bill to
+ACME Corporation
+123 Business St
+Suite 100
+94105
+,
+San Francisco
+CA
+United States
+billing@acme.com
+$600.00
+Due Sep 15, 2025
+Item
+Units
+Unit price
+Tax rate
+Amount
+Commission
+1
+$500.00
+0.0%
+$500.00
+Subtotal (excl. tax)
+$500.00
+VAT (20.0% on $500.00)
+$100.00
+Subtotal (incl. tax)
+$600.00
+Total
+$600.00
+This self-billing invoice was issued by the client on behalf of the partner, with their consent. The partner has agreed not to issue their own invoice for this transaction.
+Powered by

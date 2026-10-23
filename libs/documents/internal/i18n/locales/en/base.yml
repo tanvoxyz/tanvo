@@ -1,0 +1,68 @@
+# Ported from lago-api 25b8b7b09: config/locales/en.yml (date, money)
+# with the English date names from rails-i18n 8.0.1 (MIT).
+en:
+  date:
+    abbr_day_names:
+    - Sun
+    - Mon
+    - Tue
+    - Wed
+    - Thu
+    - Fri
+    - Sat
+    abbr_month_names:
+    - 
+    - Jan
+    - Feb
+    - Mar
+    - Apr
+    - May
+    - Jun
+    - Jul
+    - Aug
+    - Sep
+    - Oct
+    - Nov
+    - Dec
+    day_names:
+    - Sunday
+    - Monday
+    - Tuesday
+    - Wednesday
+    - Thursday
+    - Friday
+    - Saturday
+    formats:
+      default: "%b %d, %Y"
+      long: "%B %d, %Y"
+      short: "%b %d"
+    month_names:
+    - 
+    - January
+    - February
+    - March
+    - April
+    - May
+    - June
+    - July
+    - August
+    - September
+    - October
+    - November
+    - December
+    order:
+    - year
+    - month
+    - day
+  money:
+    custom_format: "%{iso_code} %n"
+    decimal_mark: "."
+    format: "%u%n"
+    thousands_separator: ","
+  # Array#to_sentence connectors of activesupport 8.0 (MIT): lago-api ships
+  # no other locale's, so every locale falls back to these.
+  support:
+    array:
+      last_word_connector: ", and "
+      two_words_connector: " and "
+      words_connector: ", "

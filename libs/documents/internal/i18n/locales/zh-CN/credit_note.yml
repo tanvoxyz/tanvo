@@ -1,0 +1,32 @@
+# Tanvo addition: lago-api has no zh-CN locale (its available_locales,
+# config/application.rb:49, end at zh-TW). Mainland terminology, not a
+# conversion of zh-TW: 发票 (發票), 账单 (帳單), 贷项通知单 (折讓單), 税号
+# (統一編號), 增值税, 订阅 (訂閱), 用量 (使用量), 积分 (點數).
+zh-CN:
+  credit_note:
+    amount: 金额（不含税）
+    coupon_adjustment: 优惠券
+    credit_from: 开具方
+    credit_note_number: 贷项通知单编号
+    credit_to: 接收方
+    credited_notice: 已于 %{issuing_date} 计入客户余额
+    credited_on_customer_balance: 已计入客户余额
+    document_name: 贷项通知单
+    invoice_number: 发票号码
+    issue_date: 开具日期
+    issued_notice: 开具于 %{issuing_date}
+    item: 项目
+    offset_invoice: 冲抵发票 %{invoice_number}
+    offset_invoice_notice: 发票 %{invoice_number} 已于 %{issuing_date} 冲抵
+    powered_by: 技术支持
+    prepaid_credits_for_wallet: 预付积分 - %{wallet_name}
+    purchase_order_number: 采购订单号
+    refunded: 已退款
+    refunded_notice: 已于 %{issuing_date} 退款
+    self_billed:
+      footer: 本自开发票对应的贷项通知单由客户经合作伙伴同意后代为开具。合作伙伴已同意不再就此交易自行开具贷项通知单。
+    sub_total_without_tax: 小计（不含税）
+    subscription: 订阅
+    tax: "%{name}（%{amount} 的 %{rate}%）"
+    tax_rate: 税率
+    total: 合计

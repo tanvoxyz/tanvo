@@ -1,0 +1,52 @@
+--- page 1
+Receipt
+Receipt number
+RCT-202509-001
+Invoice Number
+LAGO-202509-002
+Paid on
+Sep 15, 2025
+From
+ACME Corporation
+123 Business St
+Suite 100
+94105, San Francisco
+CA
+United States
+billing@acme.com
+Bill to
+Doe Corp - John Doe
+1234567890
+456 Customer Ave
+Apt 202
+10001, New York
+NY
+United States
+john.doe@example.com
+$45.00
+Paid on Sep 15, 2025 (Remaining to pay: $0.00)
+Basic Plan details
+Fees from Sep 01, 2025 to Sep 30, 2025
+Units
+Unit price
+Tax rate
+Amount
+Basic Plan - Monthly
+1.0
+$0.00
+0.0%
+$50.00
+Subtotal (excl. tax)
+$50.00
+Tax (0%)
+$0.00
+Subtotal (incl. tax)
+$50.00
+Free credits
+-$3.00
+Prepaid credits
+-$2.00
+Total
+$45.00
+RCT-202509-001
+Page 1 of 1

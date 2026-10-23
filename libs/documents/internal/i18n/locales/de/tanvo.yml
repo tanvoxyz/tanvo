@@ -1,0 +1,4 @@
+# Tanvo additions (lago-api has no payment request PDF).
+de:
+  payment_request:
+    document_name: Zahlungsaufforderung

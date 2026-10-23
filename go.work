@@ -4,6 +4,7 @@ use (
 	./apps/server
 	./libs/auth
 	./libs/core
+	./libs/documents
 	./libs/eventstore
 	./libs/expression/go
 	./libs/ingest

@@ -1,0 +1,20 @@
+# Tanvo addition: lago-api has no zh-CN locale (its available_locales,
+# config/application.rb:49, end at zh-TW). Mainland terminology, not a
+# conversion of zh-TW: 发票 (發票), 账单 (帳單), 贷项通知单 (折讓單), 税号
+# (統一編號), 增值税, 订阅 (訂閱), 用量 (使用量), 积分 (點數).
+zh-CN:
+  email:
+    payment_request:
+      requested:
+        already_paid: 如您已完成付款，请忽略此邮件。
+        hello: 您好，%{customer_name}：
+        pay_amount: 支付余额
+        payment_terms:
+          one: 根据合同约定，我们的付款期限为 %{count} 天。
+          other: 根据合同约定，我们的付款期限为 %{count} 天。
+          zero: 根据合同约定，发票开具后须立即付款。
+        remaining_amount: 待付金额
+        reminder_overdue_balance: 这是 %{billing_entity_name} 财务团队的提醒：部分发票已逾期。
+        subject: 您在 %{billing_entity_name} 的逾期应付款
+        thank_you: 谢谢。
+        total_amount_due: 应付总额为 %{amount}。

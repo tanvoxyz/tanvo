@@ -1,0 +1,4 @@
+# Tanvo additions (lago-api has no payment request PDF).
+zh-TW:
+  payment_request:
+    document_name: 付款請求

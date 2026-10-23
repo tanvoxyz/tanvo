@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CreditNote xmlns="urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <!--UBL Version and Customization-->
+  <cbc:UBLVersionID>2.1</cbc:UBLVersionID>
+  <cbc:CustomizationID>urn:cen.eu:en16931:2017</cbc:CustomizationID>
+  <!--Invoice Header Information-->
+  <cbc:ID>TAN-FR-2025-0042-CN001</cbc:ID>
+  <cbc:IssueDate>2025-03-17</cbc:IssueDate>
+  <cbc:CreditNoteTypeCode>381</cbc:CreditNoteTypeCode>
+  <cbc:Note>Credit Note ID: 01960000-0000-7000-8000-000000000002</cbc:Note>
+  <cbc:Note>Original Invoice: TAN-FR-2025-0042</cbc:Note>
+  <cbc:Note>Reason: order_change</cbc:Note>
+  <cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
+  <!--Order Reference-->
+  <cac:OrderReference>
+    <cbc:ID>PO-2025-007</cbc:ID>
+  </cac:OrderReference>
+  <!--Reference to Original Invoice-->
+  <cac:BillingReference>
+    <cac:InvoiceDocumentReference>
+      <cbc:ID>TAN-FR-2025-0042</cbc:ID>
+      <cbc:IssueDate>2025-03-15</cbc:IssueDate>
+    </cac:InvoiceDocumentReference>
+  </cac:BillingReference>
+  <!--Supplier Party-->
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cbc:EndpointID schemeID="EM">billing@example.com</cbc:EndpointID>
+      <cac:PostalAddress>
+        <cbc:StreetName>Rue quelque part</cbc:StreetName>
+        <cbc:AdditionalStreetName>Tourne au deuxième angle</cbc:AdditionalStreetName>
+        <cbc:CityName>Eine Stadt</cbc:CityName>
+        <cbc:PostalZone>60192460</cbc:PostalZone>
+        <cac:Country>
+          <cbc:IdentificationCode>FR</cbc:IdentificationCode>
+        </cac:Country>
+      </cac:PostalAddress>
+      <cac:PartyTaxScheme>
+        <cbc:CompanyID>BR987654321</cbc:CompanyID>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:PartyTaxScheme>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>BE Legal Name</cbc:RegistrationName>
+        <cbc:CompanyID>BR987654321</cbc:CompanyID>
+      </cac:PartyLegalEntity>
+      <cac:Contact>
+        <cbc:Name>Billing Entity</cbc:Name>
+        <cbc:ElectronicMail>billing@example.com</cbc:ElectronicMail>
+      </cac:Contact>
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+  <!--Customer Party-->
+  <cac:AccountingCustomerParty>
+    <cac:Party>
+      <cbc:EndpointID schemeID="EM">customer@example.com</cbc:EndpointID>
+      <cac:PostalAddress>
+        <cbc:StreetName>Streets of Tomorrow</cbc:StreetName>
+        <cbc:AdditionalStreetName>on AC</cbc:AdditionalStreetName>
+        <cbc:CityName>SP</cbc:CityName>
+        <cbc:PostalZone>123654789</cbc:PostalZone>
+        <cac:Country>
+          <cbc:IdentificationCode>BR</cbc:IdentificationCode>
+        </cac:Country>
+      </cac:PostalAddress>
+      <cac:PartyLegalEntity>
+        <cbc:RegistrationName>Its Mii</cbc:RegistrationName>
+      </cac:PartyLegalEntity>
+      <cac:Contact>
+        <cbc:Name>Its Mii</cbc:Name>
+        <cbc:ElectronicMail>customer@example.com</cbc:ElectronicMail>
+      </cac:Contact>
+    </cac:Party>
+  </cac:AccountingCustomerParty>
+  <!--Payment Means: Standard payment-->
+  <cac:PaymentMeans>
+    <cbc:PaymentMeansCode>1</cbc:PaymentMeansCode>
+  </cac:PaymentMeans>
+  <!--Payment Terms-->
+  <cac:PaymentTerms>
+    <cbc:Note>Credit note - immediate settlement</cbc:Note>
+  </cac:PaymentTerms>
+  <!--Allowances and Charges - Discount 20.00% portion-->
+  <cac:AllowanceCharge>
+    <cbc:ChargeIndicator>true</cbc:ChargeIndicator>
+    <cbc:AllowanceChargeReason>Discount 20.00% portion</cbc:AllowanceChargeReason>
+    <cbc:Amount currencyID="EUR">5.00</cbc:Amount>
+    <cac:TaxCategory>
+      <cbc:ID>S</cbc:ID>
+      <cbc:Percent>20.00</cbc:Percent>
+      <cac:TaxScheme>
+        <cbc:ID>VAT</cbc:ID>
+      </cac:TaxScheme>
+    </cac:TaxCategory>
+  </cac:AllowanceCharge>
+  <!--Tax Total Information-->
+  <cac:TaxTotal>
+    <cbc:TaxAmount currencyID="EUR">-9.68</cbc:TaxAmount>
+    <!--Tax Information 5.50% VAT-->
+    <cac:TaxSubtotal>
+      <cbc:TaxableAmount currencyID="EUR">-12.34</cbc:TaxableAmount>
+      <cbc:TaxAmount currencyID="EUR">-0.68</cbc:TaxAmount>
+      <cac:TaxCategory>
+        <cbc:ID>S</cbc:ID>
+        <cbc:Percent>5.50</cbc:Percent>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:TaxCategory>
+    </cac:TaxSubtotal>
+    <!--Tax Information 20.00% VAT-->
+    <cac:TaxSubtotal>
+      <cbc:TaxableAmount currencyID="EUR">-45.00</cbc:TaxableAmount>
+      <cbc:TaxAmount currencyID="EUR">-9.00</cbc:TaxAmount>
+      <cac:TaxCategory>
+        <cbc:ID>S</cbc:ID>
+        <cbc:Percent>20.00</cbc:Percent>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:TaxCategory>
+    </cac:TaxSubtotal>
+  </cac:TaxTotal>
+  <!--Legal Monetary Total-->
+  <cac:LegalMonetaryTotal>
+    <cbc:LineExtensionAmount currencyID="EUR">-62.34</cbc:LineExtensionAmount>
+    <cbc:TaxExclusiveAmount currencyID="EUR">-57.34</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="EUR">-67.02</cbc:TaxInclusiveAmount>
+    <cbc:AllowanceTotalAmount currencyID="EUR">0.00</cbc:AllowanceTotalAmount>
+    <cbc:ChargeTotalAmount currencyID="EUR">5.00</cbc:ChargeTotalAmount>
+    <cbc:PrepaidAmount currencyID="EUR">0.00</cbc:PrepaidAmount>
+    <cbc:PayableAmount currencyID="EUR">-67.02</cbc:PayableAmount>
+  </cac:LegalMonetaryTotal>
+  <!--Line Item 1: API calls & <requests>-->
+  <cac:CreditNoteLine>
+    <cbc:ID>1</cbc:ID>
+    <cbc:CreditedQuantity unitCode="C62">-1234.00</cbc:CreditedQuantity>
+    <cbc:LineExtensionAmount currencyID="EUR">-12.34</cbc:LineExtensionAmount>
+    <cac:Item>
+      <cbc:Name>API calls</cbc:Name>
+      <cac:ClassifiedTaxCategory>
+        <cbc:ID>S</cbc:ID>
+        <cbc:Percent>5.5</cbc:Percent>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:ClassifiedTaxCategory>
+      <cac:AdditionalItemProperty>
+        <cbc:Name>Description</cbc:Name>
+        <cbc:Value>API calls &amp; &lt;requests&gt;</cbc:Value>
+      </cac:AdditionalItemProperty>
+    </cac:Item>
+    <cac:Price>
+      <cbc:PriceAmount currencyID="EUR">0.01</cbc:PriceAmount>
+    </cac:Price>
+  </cac:CreditNoteLine>
+  <!--Line Item 2: Monthly subscription - Premium-->
+  <cac:CreditNoteLine>
+    <cbc:ID>2</cbc:ID>
+    <cbc:CreditedQuantity unitCode="C62">-0.50</cbc:CreditedQuantity>
+    <cbc:LineExtensionAmount currencyID="EUR">-50.00</cbc:LineExtensionAmount>
+    <cac:Item>
+      <cbc:Name>Premium</cbc:Name>
+      <cac:ClassifiedTaxCategory>
+        <cbc:ID>S</cbc:ID>
+        <cbc:Percent>20.0</cbc:Percent>
+        <cac:TaxScheme>
+          <cbc:ID>VAT</cbc:ID>
+        </cac:TaxScheme>
+      </cac:ClassifiedTaxCategory>
+      <cac:AdditionalItemProperty>
+        <cbc:Name>Description</cbc:Name>
+        <cbc:Value>Monthly subscription - Premium</cbc:Value>
+      </cac:AdditionalItemProperty>
+    </cac:Item>
+    <cac:Price>
+      <cbc:PriceAmount currencyID="EUR">100.0</cbc:PriceAmount>
+    </cac:Price>
+  </cac:CreditNoteLine>
+</CreditNote>

@@ -1,0 +1,54 @@
+# source: spec/views/app/views/templates/invoices/v4/__snapshots__/templates_invoices_v4_fixed_charge.slim/with_coupon_applied/renders_correctly.html.snap (lago-api 25b8b7b09)
+# Visible text of the HTML snapshot, one text run per line.
+Invoice
+Invoice Number
+LAGO-202509-FC-002
+Issue Date
+Sep 01, 2025
+Payment term
+0 days
+From
+ACME Corporation
+123 Business St
+Suite 100
+94105
+,
+San Francisco
+CA
+United States
+billing@acme.com
+Bill to
+Doe Corp - John Doe
+1234567890
+456 Customer Ave
+Apt 202
+New York
+,
+NY
+10001
+United States
+john.doe@example.com
+$45.00
+Due Sep 15, 2025
+Monthly Plan details
+Fees from Sep 01, 2025 to Sep 30, 2025
+Units
+Unit price
+Tax rate
+Amount
+Fixed Charge with Coupon
+2
+$25.00
+0.0%
+$50.00
+10% Off Coupon (€2.00)
+-$5.00
+Subtotal (excl. tax)
+$45.00
+Tax (0%)
+$0.00
+Subtotal (incl. tax)
+$45.00
+Total
+$45.00
+Powered by

@@ -1,0 +1,43 @@
+# source: spec/views/app/views/templates/invoices/__snapshots__/templates_invoices_v4.slim/when_invoice_type_is_credit/when_wallet_transaction_has_no_name/when_wallet_has_a_name/renders_correctly.html.snap (lago-api 25b8b7b09)
+# Visible text of the HTML snapshot, one text run per line.
+Advance invoice
+Invoice Number
+LAGO-202509-001
+Issue Date
+Sep 04, 2025
+Payment term
+0 days
+From
+ACME Corporation
+123 Business St
+Suite 100
+94105
+,
+San Francisco
+CA
+United States
+billing@acme.com
+Bill to
+Doe Corp - John Doe
+1234567890
+456 Customer Ave
+Apt 202
+New York
+,
+NY
+10001
+United States
+john.doe@example.com
+$10.50
+Due Sep 04, 2025
+Item
+Units
+Unit price
+Amount
+Prepaid credits - Premium Wallet
+10.5
+1.0
+$10.50
+Total
+$10.50
+Powered by

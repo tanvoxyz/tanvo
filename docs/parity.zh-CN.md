@@ -65,7 +65,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 开票日期锚点与调整设置 | `app/models/billing_entity.rb` | libs/billing | 计划中 | |
 | 零金额发票定稿设置 | `app/models/billing_entity.rb` | libs/billing | 计划中 | |
 | 欧盟税务管理开关与自动欧盟税 | `app/services/billing_entities/`、`app/services/taxes/auto_generate_service.rb` | libs/tax | 计划中 | |
-| 在支持的国家（法国、德国）启用电子发票 | `app/models/billing_entity.rb` | libs/documents | 计划中 | |
+| 在支持的国家（法国、德国）启用电子发票 | `app/models/billing_entity.rb` | libs/documents | 逻辑已完成 | |
 | 邮件设置（哪些文档通过邮件发送）与发件地址 | `app/models/billing_entity.rb`（`email_settings`） | libs/mail | 进行中 | |
 | 应用于计费主体的税（应用、移除、管理） | `app/services/billing_entities/taxes/` | libs/tax | 计划中 | |
 | 每个计费主体所应用的催收活动 | `app/services/billing_entities/update_applied_dunning_campaign_service.rb` | libs/billing | 计划中 | |
@@ -449,7 +449,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 状态 draft、finalized、voided、failed、pending、generating、open、closed | `app/models/invoice.rb` | libs/core | 计划中 | |
 | 付款状态（pending、succeeded、failed）与税务状态 | `app/models/invoice.rb` | libs/core | 计划中 | |
 | 计算得出的金额（费用、优惠券、税、贷项通知单、预付额度、渐进式扣减、合计、应付、已付） | `app/models/invoice.rb`、`app/services/invoices/compute_amounts_from_fees.rb` | libs/billing | 计划中 | |
-| 澳大利亚、阿联酋、新西兰、印度尼西亚、新加坡的税务发票标签 | `app/models/invoice.rb` | libs/documents | 计划中 | |
+| 澳大利亚、阿联酋、新西兰、印度尼西亚、新加坡的税务发票标签 | `app/models/invoice.rb` | libs/documents | 逻辑已完成 | |
 | 按客户编号（`PREFIX-CCC-NNN`） | `app/models/invoice.rb`（编号） | libs/billing | 计划中 | |
 | 按计费主体编号（`PREFIX-YYYYMM-NNN`） | `app/models/invoice.rb`（编号） | libs/billing | 计划中 | |
 | 草稿编号（`PREFIX-DRAFT`） | `app/models/invoice.rb` | libs/billing | 计划中 | |
@@ -480,7 +480,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 发票结清（付款、贷项通知单） | `app/models/invoice_settlement.rb` | libs/billing | 计划中 | |
 | 发票列表过滤与搜索 | `app/queries/invoices_query.rb` | libs/store | 计划中 | 包括采购订单号，不区分大小写 |
 | 发票自定义段落（手动、系统生成）及其解析规则 | `app/models/invoice_custom_section.rb`、`app/services/invoice_custom_sections/` | libs/billing | 计划中 | 公开 API，而不只供管理界面使用 |
-| 下载 PDF 与 XML | `app/services/invoices/generate_pdf_service.rb` | libs/documents | 计划中 | |
+| 下载 PDF 与 XML | `app/services/invoices/generate_pdf_service.rb` | libs/documents | 逻辑已完成 | |
 | 重新发送发票邮件 | `app/services/emails/resend_service.rb` | libs/mail | 逻辑已完成 | |
 | 发票的付款 URL | `app/services/invoices/payments/generate_payment_url_service.rb` | libs/billing | 计划中 | |
 | 在发票上存储 Salesforce ID | `app/controllers/api/v1/invoices_controller.rb`（`sync_salesforce_id`） | providers/salesforce | 计划中 | |
@@ -717,7 +717,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 催收处理：按货币计尝试次数、检查阈值、发起付款请求 | `app/services/dunning_campaigns/bulk_process_service.rb`、`process_attempt_service.rb` | libs/billing | 计划中 | |
 | 催收 webhook `dunning_campaign.finished` | `app/services/webhooks/dunning_campaigns/finished_service.rb` | libs/webhooks | 计划中 | |
 | 成功付款的付款收据，按客户编号 | `app/services/payment_receipts/create_service.rb` | libs/billing | 计划中 | |
-| 付款收据 PDF 与 XML，按计费主体设置发送邮件 | `app/services/payment_receipts/generate_pdf_service.rb`、`generate_xml_service.rb` | libs/documents | 计划中 | |
+| 付款收据 PDF 与 XML，按计费主体设置发送邮件 | `app/services/payment_receipts/generate_pdf_service.rb`、`generate_xml_service.rb` | libs/documents | 逻辑已完成 | |
 | 付款收据 API 与重新发送邮件 | `app/controllers/api/v1/payment_receipts_controller.rb` | apps/server | 计划中 | |
 | 付款收据 webhook `payment_receipt.created`、`payment_receipt.generated` | `app/services/webhooks/payment_receipts/` | libs/webhooks | 计划中 | |
 | 通过 Stripe、GoCardless、Adyen 为贷项通知单退款 | `app/services/credit_notes/refunds/` | providers/* | 计划中 | |
@@ -910,16 +910,16 @@ Lago 的 x402 支持尚未完成：只有准入检查可以调用。Tanvo 移植
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 发票 PDF（当前模板第 4 版及其局部模板） | `app/views/templates/invoices/v4/` | libs/documents | 计划中 | Typst 模板（§3） |
-| 贷项通知单 PDF | `app/views/templates/credit_notes/` | libs/documents | 计划中 | |
-| 付款收据 PDF | `app/views/templates/payment_receipts/` | libs/documents | 计划中 | |
+| 发票 PDF（当前模板第 4 版及其局部模板） | `app/views/templates/invoices/v4/` | libs/documents | 逻辑已完成 | Typst 模板（§3） |
+| 贷项通知单 PDF | `app/views/templates/credit_notes/` | libs/documents | 逻辑已完成 | |
+| 付款收据 PDF | `app/views/templates/payment_receipts/` | libs/documents | 逻辑已完成 | |
 | 付款请求邮件 | `app/mailers/payment_request_mailer.rb`、`app/views/payment_request_mailer/requested.slim` | libs/mail | 逻辑已完成 | 也渲染为文档 |
-| 文档语言 de、en、es、fr、it、nb、pt-BR、sv、zh-TW | `config/locales/` | libs/documents | 计划中 | |
-| 品牌水印 | `app/views/templates/` | libs/documents | 计划中 | 没有水印，因此无需移除 |
-| UBL 发票（EN 16931、XRechnung 3.0、Peppol BIS 3） | `app/serializers/e_invoices/invoices/ubl/` | libs/documents | 计划中 | |
-| 以 Factur-X / ZUGFeRD 嵌入的 CII 发票 | `app/serializers/e_invoices/invoices/cii/` | libs/documents | 计划中 | |
-| 电子发票代码表 | `app/serializers/e_invoices/` | libs/documents | 计划中 | |
-| 贷项通知单与收据的电子发票 | `app/serializers/e_invoices/credit_notes/`、`app/serializers/e_invoices/payments/` | libs/documents | 计划中 | |
+| 文档语言 de、en、es、fr、it、nb、pt-BR、sv、zh-TW | `config/locales/` | libs/documents | 逻辑已完成 | 另有 zh-CN（Tanvo 新增）；中文文档需要 Noto CJK 字体（fonts-noto-cjk），否则渲染以 `ErrMissingFont` 失败 |
+| 品牌水印 | `app/views/templates/` | libs/documents | 逻辑已完成 | 没有水印，因此无需移除 |
+| UBL 发票（EN 16931、XRechnung 3.0、Peppol BIS 3） | `app/serializers/e_invoices/invoices/ubl/` | libs/documents | 逻辑已完成 | |
+| 以 Factur-X / ZUGFeRD 嵌入的 CII 发票 | `app/serializers/e_invoices/invoices/cii/` | libs/documents | 逻辑已完成 | |
+| 电子发票代码表 | `app/serializers/e_invoices/` | libs/documents | 逻辑已完成 | |
+| 贷项通知单与收据的电子发票 | `app/serializers/e_invoices/credit_notes/`、`app/serializers/e_invoices/payments/` | libs/documents | 逻辑已完成 | |
 | 文档邮件（发票、贷项通知单、收据、付款请求） | `app/mailers/` | libs/mail | 逻辑已完成 | |
 | 重新发送文档邮件 | `app/services/emails/resend_service.rb` | libs/mail | 逻辑已完成 | |
 | SMTP 投递与自定义发件地址 | `config/environments/production.rb` | libs/mail | 逻辑已完成 | |

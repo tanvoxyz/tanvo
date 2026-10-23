@@ -1,0 +1,52 @@
+# source: spec/views/app/views/templates/credit_notes/__snapshots__/templates_credit_notes_credit_note.slim/with_fixed_charges_having_different_tax_rates/renders_fixed_charges_with_multiple_tax_rates_in_descending_order.html.snap (lago-api 25b8b7b09)
+# Visible text of the HTML snapshot, one text run per line.
+Credit note
+Credit note number
+CN-202510-004
+Invoice number
+LAGO-202509-001
+Issue date
+Oct 05, 2025
+From
+ACME Corporation
+123 Business St
+Suite 100
+94105
+,
+San Francisco
+CA
+United States
+billing@acme.com
+Credit to
+Doe Corp - John Doe
+1234567890
+456 Customer Ave
+Apt 202
+10001
+,
+New York
+NY
+United States
+john.doe@example.com
+$23.00
+Credited on customer balance on Oct 05, 2025
+Item
+Tax rate
+Amount (excl. tax)
+Setup Fee
+20.0%
+$10.00
+Installation Fee
+20.0%
+$10.00
+Sub total (excl. tax)
+$20.00
+Sales Tax (20.0% on $10.00)
+$2.00
+VAT (10.0% on $10.00)
+$1.00
+Credited on customer balance
+$23.00
+Total
+$23.00
+Powered by

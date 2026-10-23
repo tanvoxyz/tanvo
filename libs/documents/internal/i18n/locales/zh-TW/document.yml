@@ -1,0 +1,5 @@
+# Ported verbatim from lago-api 25b8b7b09: config/locales/zh-TW/document.yml
+---
+zh-TW:
+  document:
+    page_numbering: 第 %{current} 頁，共 %{total} 頁

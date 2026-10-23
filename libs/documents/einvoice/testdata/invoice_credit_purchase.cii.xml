@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rsm:CrossIndustryInvoice xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100" xmlns:qdt="urn:un:unece:uncefact:data:standard:QualifiedDataType:100" xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100" xmlns:udt="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100">
+  <!--Exchange Document Context-->
+  <rsm:ExchangedDocumentContext>
+    <ram:GuidelineSpecifiedDocumentContextParameter>
+      <ram:ID>urn:cen.eu:en16931:2017</ram:ID>
+    </ram:GuidelineSpecifiedDocumentContextParameter>
+  </rsm:ExchangedDocumentContext>
+  <!--Exchange Document Header-->
+  <rsm:ExchangedDocument>
+    <ram:ID>TAN-FR-2025-0043</ram:ID>
+    <ram:TypeCode>386</ram:TypeCode>
+    <ram:IssueDateTime>
+      <udt:DateTimeString format="102">20250315</udt:DateTimeString>
+    </ram:IssueDateTime>
+    <ram:IncludedNote>
+      <ram:Content>Invoice ID: 01960000-0000-7000-8000-000000000001</ram:Content>
+    </ram:IncludedNote>
+  </rsm:ExchangedDocument>
+  <!--Supply Chain Trade Transaction-->
+  <rsm:SupplyChainTradeTransaction>
+    <!--Line Item 1: Prepaid credits-->
+    <ram:IncludedSupplyChainTradeLineItem>
+      <ram:AssociatedDocumentLineDocument>
+        <ram:LineID>1</ram:LineID>
+      </ram:AssociatedDocumentLineDocument>
+      <ram:SpecifiedTradeProduct>
+        <ram:Name>Main wallet</ram:Name>
+        <ram:Description>Prepaid credits</ram:Description>
+      </ram:SpecifiedTradeProduct>
+      <ram:SpecifiedLineTradeAgreement>
+        <ram:NetPriceProductTradePrice>
+          <ram:ChargeAmount>1.0</ram:ChargeAmount>
+        </ram:NetPriceProductTradePrice>
+      </ram:SpecifiedLineTradeAgreement>
+      <ram:SpecifiedLineTradeDelivery>
+        <ram:BilledQuantity unitCode="C62">50.0</ram:BilledQuantity>
+      </ram:SpecifiedLineTradeDelivery>
+      <ram:SpecifiedLineTradeSettlement>
+        <ram:ApplicableTradeTax>
+          <ram:TypeCode>VAT</ram:TypeCode>
+          <ram:CategoryCode>O</ram:CategoryCode>
+        </ram:ApplicableTradeTax>
+        <ram:SpecifiedTradeSettlementLineMonetarySummation>
+          <ram:LineTotalAmount>50.00</ram:LineTotalAmount>
+        </ram:SpecifiedTradeSettlementLineMonetarySummation>
+      </ram:SpecifiedLineTradeSettlement>
+    </ram:IncludedSupplyChainTradeLineItem>
+    <!--Applicable Header Trade Agreement-->
+    <ram:ApplicableHeaderTradeAgreement>
+      <ram:SellerTradeParty>
+        <ram:ID>BE_CODE</ram:ID>
+        <ram:Name>BE Legal Name</ram:Name>
+        <ram:PostalTradeAddress>
+          <ram:PostcodeCode>60192460</ram:PostcodeCode>
+          <ram:LineOne>Rue quelque part</ram:LineOne>
+          <ram:LineTwo>Tourne au deuxième angle</ram:LineTwo>
+          <ram:CityName>Eine Stadt</ram:CityName>
+          <ram:CountryID>FR</ram:CountryID>
+        </ram:PostalTradeAddress>
+      </ram:SellerTradeParty>
+      <ram:BuyerTradeParty>
+        <ram:Name>Its Mii</ram:Name>
+        <ram:PostalTradeAddress>
+          <ram:PostcodeCode>123654789</ram:PostcodeCode>
+          <ram:LineOne>Streets of Tomorrow</ram:LineOne>
+          <ram:LineTwo>on AC</ram:LineTwo>
+          <ram:CityName>SP</ram:CityName>
+          <ram:CountryID>BR</ram:CountryID>
+        </ram:PostalTradeAddress>
+      </ram:BuyerTradeParty>
+    </ram:ApplicableHeaderTradeAgreement>
+    <!--Applicable Header Trade Delivery-->
+    <ram:ApplicableHeaderTradeDelivery>
+      <ram:ActualDeliverySupplyChainEvent>
+        <ram:OccurrenceDateTime>
+          <udt:DateTimeString format="102">20250315</udt:DateTimeString>
+        </ram:OccurrenceDateTime>
+      </ram:ActualDeliverySupplyChainEvent>
+    </ram:ApplicableHeaderTradeDelivery>
+    <!--Applicable Header Trade Settlement-->
+    <ram:ApplicableHeaderTradeSettlement>
+      <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>
+      <!--Payment Means: Standard payment-->
+      <ram:SpecifiedTradeSettlementPaymentMeans>
+        <ram:TypeCode>1</ram:TypeCode>
+        <ram:Information>Standard payment</ram:Information>
+      </ram:SpecifiedTradeSettlementPaymentMeans>
+      <!--Tax Information 0.00% VAT-->
+      <ram:ApplicableTradeTax>
+        <ram:CalculatedAmount>0.00</ram:CalculatedAmount>
+        <ram:TypeCode>VAT</ram:TypeCode>
+        <ram:BasisAmount>50.00</ram:BasisAmount>
+        <ram:CategoryCode>O</ram:CategoryCode>
+        <ram:ExemptionReasonCode>VATEX-EU-O</ram:ExemptionReasonCode>
+      </ram:ApplicableTradeTax>
+      <!--Payment Terms-->
+      <ram:SpecifiedTradePaymentTerms>
+        <ram:Description>Payment term 0 days</ram:Description>
+        <ram:DueDateDateTime>
+          <udt:DateTimeString format="102">20250315</udt:DateTimeString>
+        </ram:DueDateDateTime>
+      </ram:SpecifiedTradePaymentTerms>
+      <!--Monetary Summation-->
+      <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+        <ram:LineTotalAmount>50.00</ram:LineTotalAmount>
+        <ram:ChargeTotalAmount>0.00</ram:ChargeTotalAmount>
+        <ram:AllowanceTotalAmount>0.00</ram:AllowanceTotalAmount>
+        <ram:TaxBasisTotalAmount>50.00</ram:TaxBasisTotalAmount>
+        <ram:TaxTotalAmount currencyID="EUR">0.00</ram:TaxTotalAmount>
+        <ram:GrandTotalAmount>50.00</ram:GrandTotalAmount>
+        <ram:TotalPrepaidAmount>0.00</ram:TotalPrepaidAmount>
+        <ram:DuePayableAmount>50.00</ram:DuePayableAmount>
+      </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+    </ram:ApplicableHeaderTradeSettlement>
+  </rsm:SupplyChainTradeTransaction>
+</rsm:CrossIndustryInvoice>

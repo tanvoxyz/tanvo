@@ -1,0 +1,8 @@
+countries.json is generated from:
+- names, address_formats: the addressing gem 1.1.0 (MIT, data from Unicode CLDR and
+  Google's address metadata), data/country/{en,de,es,fr,it,no,pt,sv,zh-Hant,zh}.json and
+  data/address_formats.json, keyed by Tanvo's document locales (nb uses CLDR "no",
+  pt-BR uses "pt", zh-TW uses "zh-Hant", zh-CN uses "zh" (zh-Hans), as the gem's locale resolution does);
+- common_names: the countries gem 8.0.3 (MIT), lib/countries/data/translations/countries-en.yaml
+  (ISO3166::Country#common_name).
+lago-api uses both gems in its invoice, credit note and receipt templates.

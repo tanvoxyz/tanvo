@@ -1,0 +1,29 @@
+--- page 1
+Payment request
+Issue Date
+Sep 20, 2025
+From
+ACME Corporation
+123 Business St
+Suite 100
+94105, San Francisco
+CA
+United States
+billing@acme.com
+Bill to
+Doe Corp - John Doe
+1234567890
+456 Customer Ave
+Apt 202
+New York, NY 10001
+United States
+john.doe@example.com
+$45.00
+The total amount due is $45.00.
+This is a reminder from the ACME Corporation finance team that some invoices are overdue.
+Invoice Number
+Amount due
+LAGO-202509-002
+$45.00
+If you have already made the payment, please disregard this email.
+Page 1 of 1

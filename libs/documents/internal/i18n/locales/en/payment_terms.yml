@@ -1,0 +1,19 @@
+# Ported from lago-api origin/feat-payment-terms-templates-changes (8ceddebb7): config/locales/en/invoice.yml (invoice.payment_terms)
+en:
+  invoice:
+    payment_terms:
+      day_of_month:
+        following_month: Due on the %{day} of the following month
+        months_after: Due on the %{day}, %{months} months after invoice
+        same_month: Due on the %{day} of this month
+      days_end_of_month:
+        one: Due %{days} day, end of month
+        other: Due %{days} days, end of month
+      due_on_receipt: Due on receipt
+      end_of_month: Due at end of month
+      net:
+        one: Payment due within %{days} day
+        other: Payment due within %{days} days
+      net_end_of_month:
+        one: Due %{days} day after end of month
+        other: Due %{days} days after end of month

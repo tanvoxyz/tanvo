@@ -1,0 +1,142 @@
+# Tanvo addition: lago-api has no zh-CN locale (its available_locales,
+# config/application.rb:49, end at zh-TW). Mainland terminology, not a
+# conversion of zh-TW: 发票 (發票), 账单 (帳單), 贷项通知单 (折讓單), 税号
+# (統一編號), 增值税, 订阅 (訂閱), 用量 (使用量), 积分 (點數).
+zh-CN:
+  invoice:
+    account_holder_name: 账户持有人姓名
+    account_number: 账号
+    account_type: 账户类型
+    all_subscriptions: 所有订阅
+    all_usage_based_fees: 所有按用量计费的费用
+    already_paid: 已付款
+    amount: 金额
+    amount_with_tax: 金额（含税）
+    amount_without_tax: 金额（不含税）
+    bank_code: 银行代码
+    bank_name: 银行名称
+    bank_transfer_info: 银行转账可能需要几个工作日才能到账。如需通过银行转账付款，请使用以下银行信息。
+    bic: BIC
+    bill_from: 开票方
+    bill_to: 账单接收方
+    branch_code: 支行代码
+    branch_name: 支行名称
+    breakdown: 明细
+    breakdown_for_days: 已使用 %{breakdown_duration} 天（共 %{breakdown_total_duration} 天）
+    breakdown_of: "%{fee_filter_display_name} 明细"
+    charges_paid_in_advance: 预付费用
+    clabe: CLABE
+    conversion_rate: 汇率
+    country: 国家/地区
+    coupons: 优惠券
+    credit_notes: 贷项通知单
+    date_from: 自
+    date_to: 至
+    details: "%{resource} 详情"
+    document_name: 发票
+    document_tax_name: 增值税发票
+    due_date: 到期日 %{date}
+    e_invoicing:
+      credit_card: 信用卡付款
+      credit_card_information: 已于 %{date} 收到信用卡付款
+      discount_reason: "%{tax_rate} 税率部分的折扣"
+      payment_information: 已使用 %{currency} %{amount} 的%{payment_label}
+      standard_payment: 标准付款
+    fee_prorated: 费用按期间比例计算，所示单价为平均值
+    fees_from_to_date: 费用期间：%{from_date} 至 %{to_date}
+    from_to_date: "%{from_date} 至 %{to_date}"
+    graduated:
+      fee_per_unit_for_the_first: 前 %{to} 个单位的单位费用
+      fee_per_unit_for_the_last: "%{from} 个单位以上的单位费用"
+      fee_per_unit_for_the_next: 第 %{from} 至 %{to} 个单位的单位费用
+      flat_fee_for_the_first: 前 %{to} 个单位的固定费用
+      flat_fee_for_the_last: "%{from} 个单位以上的固定费用"
+      flat_fee_for_the_next: 第 %{from} 至 %{to} 个单位的固定费用
+    half_year: 半年
+    iban: IBAN
+    invoice_number: 发票号码
+    issue_date: 开票日期
+    item: 项目
+    list_of_charges: "%{from} 至 %{to} 的用量费用清单"
+    month: 月
+    monthly: 按月
+    notice_full: 无论事件何时接收，单位均不按比例计费，将收取全额费用。
+    notice_prorated: 如在按月计费的计划期间内增加或移除单位，将按剩余或已使用天数占计费期总天数的比例计费。例如，在 %{days_in_month} 天的计费期内剩余 15 天时，收取期间价格的 15/%{days_in_month}；某单位使用 10 天时，收取期间价格的 10/%{days_in_month}。
+    package:
+      fee_per_package: 每套餐费用
+      fee_per_package_unit_price: 每 %{package_size} 个 %{amount}
+      free_units_for_the_first: 前 %{count} 个免费单位
+    paid_invoice: 已付款发票
+    paid_tax_invoice: 已付款增值税发票
+    pay_with_bank_transfer: 通过银行转账付款
+    payment_term: 付款条件
+    payment_term_days: "%{net_payment_term} 天"
+    percentage:
+      adjustment_per_transaction: 每笔交易的最低/最高调整
+      fee_per_transaction: 每笔交易的固定费用
+      free_units_per_transaction:
+        one: 1 笔交易的免费单位
+        other: "%{count} 笔交易的免费单位"
+      percentage_rate_on_amount: 金额费率
+    powered_by: 技术支持
+    prepaid_credit_invoice: 预付积分发票
+    prepaid_credits: 预付积分
+    prepaid_credits_with_value: 预付积分 - %{wallet_name}
+    progressive_billing_credit: 已计费用量
+    purchase_order_number: 采购订单号
+    quarter: 季度
+    quarterly: 按季度
+    reached_usage_threshold: 由于您的累计用量已达到 %{usage_amount}，超过 %{threshold_amount} 的阈值，因此生成本累进计费发票。
+    routing_number: 银行路由号
+    see_breakdown: 查看总单位明细
+    self_billed:
+      document_name: 自开发票
+      footer: 本自开发票由客户经合作伙伴同意后代为开具。合作伙伴已同意不再就此交易自行开具发票。
+    semiannual: 每半年
+    sort_code: 银行分类代码
+    sub_total: 小计
+    sub_total_with_tax: 小计（含税）
+    sub_total_without_tax: 小计（不含税）
+    subscription: 订阅
+    subscription_interval: "%{plan_interval}订阅 - %{plan_name}"
+    swift_code: SWIFT 代码
+    tax: 税额
+    tax_identification_number: 税号：%{tax_identification_number}
+    tax_name: "%{name}（%{amount} 的 %{rate}%）"
+    tax_name_only:
+      customer_exempt: 客户免税
+      juris_has_no_tax: 不征税
+      juris_not_taxed: 不征税
+      not_collecting: 不征税
+      reverse_charge: 反向征税 - 由客户承担纳税义务
+      transaction_exempt: 客户免税
+      unknown_taxation: 未知
+    tax_name_with_details: "%{name}（%{rate}%）"
+    tax_rate: 税率
+    taxes:
+      fr_tax_exempt: 根据法国《税法典》第 259-1 条，客户免税。
+      reverse_charge: 反向征税 - 由客户承担纳税义务。
+      tax_exempt: 客户免税。
+    total: 合计
+    total_credits: 积分合计
+    total_credits_with_value: 积分合计：%{credit_amount} 积分
+    total_due: 应付总额
+    total_due_amount: 应付金额
+    total_events: 事件总数：%{count}
+    total_paid_amount: 已付金额
+    total_unit: 单位总数：%{units}
+    total_unit_interval: 单位总数：%{events_count} 个事件，共 %{units}
+    true_up_details: 最低消费 %{min_amount}，按使用天数比例计算
+    true_up_metric: "%{metric} - 补差"
+    unit: 单位
+    unit_price: 单价
+    units: 数量
+    units_prorated_per_period: 每%{period}按秒比例计算的单位
+    usage_based_fees: 按用量计费的费用
+    volume:
+      fee_per_unit: 单位费用
+      flat_fee_for_all_units: 全部单位的固定费用
+    week: 周
+    weekly: 按周
+    year: 年
+    yearly: 按年
