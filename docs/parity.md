@@ -18,6 +18,16 @@
 
 Lago gates many features behind `License.premium?`, `organization.premium_integrations` or `organization.feature_flags`. Tanvo has no license checks in the AGPL core and no feature flags for shipped features. Every billing, payment, integration and access feature is part of the core. Only features that Lago runs as private cloud services become separate enterprise services under `ee/` ([Architecture §14](architecture.md#14-enterprise-edition-ee)). §1.50 maps each Lago gate.
 
+## Alignment baseline
+
+The parity target is the lago-api release **v1.55.0** (commit `25b8b7b09`, the latest Lago release when this baseline was set). Code that exists only on Lago's `main` or on unreleased branches is not a target. When Lago publishes a newer release, Tanvo moves the baseline to it in one deliberate pass and updates this section.
+
+Documented exceptions, which follow a newer Lago revision than the baseline:
+
+| Feature | Lago revision | Reason |
+| :--- | :--- | :--- |
+| Structured payment terms ([Domain §24](domain.md), item 12) | branch `feat-payment-terms-wallets` at `3b18c177c` (2026-10-07); columns from `1d56e730e`, which v1.55.0 already contains but does not read | implemented before the baseline was fixed; kept by decision of 2026-10-23 |
+
 A commit that implements a feature changes its status here in the same commit ([Development](development.md)).
 
 ---

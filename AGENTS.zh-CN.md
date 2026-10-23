@@ -17,7 +17,7 @@
 
 Tanvo 是以 Go 为服务端核心的开源用量计费与计量平台。它在现代技术栈上重新实现 lago-api 所有未废弃的功能，不兼容 Lago。核心采用 **AGPL-3.0-or-later** 许可证；`libs/proto` 采用 Apache-2.0；`ee/` 采用 Elastic License 2.0（[架构 §1.4](docs/architecture.zh-CN.md#14-许可证)）。
 
-用作参考的上游源码位于本仓库之外：lago-api 在 `~/Code/frameworks/lago/api`（Rails），事件处理器在 `~/Code/frameworks/lago/events-processor`（Go），lago-expression 在 `github.com/getlago/lago-expression`（Rust）。
+用作参考的上游源码位于本仓库之外：lago-api 在 `~/Code/frameworks/lago/api`（Rails；对齐基线是发布版本 **v1.55.0**，例外见 [parity](docs/parity.zh-CN.md#对齐基线)），事件处理器在 `~/Code/frameworks/lago/events-processor`（Go），lago-expression 在 `github.com/getlago/lago-expression`（Rust）。
 
 ## 环境与常用命令
 

@@ -18,6 +18,16 @@
 
 Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organization.feature_flags` 控制许多功能。Tanvo 的 AGPL 核心中没有许可证检查，已发布的功能也没有功能开关。所有计费、支付、集成与访问控制功能都属于核心。只有 Lago 以私有云服务形式运行的功能，才成为 `ee/` 下单独的企业服务（[架构 §14](architecture.zh-CN.md#14-企业版ee)）。§1.50 给出 Lago 每个开关的归属。
 
+## 对齐基线
+
+对齐目标是 lago-api 发布版本 **v1.55.0**（提交 `25b8b7b09`，确定基线时 Lago 的最新发布版本）。只存在于 Lago `main` 或未发布分支上的代码不是对齐目标。Lago 发布更新的版本后，Tanvo 会专门做一轮对齐，把基线移到该版本，并更新本节。
+
+以下例外有文档记录，它们对齐的是比基线更新的 Lago 版本：
+
+| 功能 | Lago 版本 | 原因 |
+| :--- | :--- | :--- |
+| 结构化付款条件（[领域模型 §24](domain.zh-CN.md) 第 12 项） | 分支 `feat-payment-terms-wallets` 的 `3b18c177c`（2026-10-07）；字段来自 `1d56e730e`，v1.55.0 已包含这些字段但未读取 | 在确定基线之前已实现；2026-10-23 决定保留 |
+
 实现某项功能的提交，在同一提交中修改它在本文中的状态（[开发指南](development.zh-CN.md)）。
 
 ---
