@@ -1,7 +1,8 @@
 -- Event ingestion log (domain §10.1).
 
 -- The append-only log of raw events (event.Log), which deduplicates them by
--- (organization, transaction_id) (domain §24 item 11). Aggregation does not
+-- (organization, external_subscription_id, transaction_id) (domain §24 item
+-- 11): one transaction ID under two subscriptions is two events. Aggregation does not
 -- read it: enriched events live in the event store (libs/eventstore). There
 -- is no foreign key to subscriptions or metrics: an event names them by
 -- external ID and code, which may not exist (post-validation errors, §10.2).
@@ -21,8 +22,11 @@ CREATE TABLE events (
   updated_at timestamptz NOT NULL,
   PRIMARY KEY (organization_id, id),
   CONSTRAINT events_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
-  CONSTRAINT events_transaction_id_key UNIQUE (organization_id, transaction_id)
+  CONSTRAINT events_subscription_transaction_id_key UNIQUE (organization_id, external_subscription_id, transaction_id)
 );
+
+-- The event API looks events up by transaction ID alone.
+CREATE INDEX events_transaction_id_idx ON events (organization_id, transaction_id);
 
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON events

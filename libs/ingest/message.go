@@ -43,7 +43,9 @@ type RawMessage struct {
 }
 
 // Key returns the partition key of m ([PartitionKey]).
-func (m *RawMessage) Key() []byte { return PartitionKey(m.OrganizationID, m.TransactionID) }
+func (m *RawMessage) Key() []byte {
+	return PartitionKey(m.OrganizationID, m.ExternalSubscriptionID, m.TransactionID)
+}
 
 // rawMessage returns the message of an accepted event.
 func rawMessage(e *event.Event, source string, md Metadata) RawMessage {

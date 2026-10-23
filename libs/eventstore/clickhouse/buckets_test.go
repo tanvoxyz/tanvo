@@ -1,7 +1,10 @@
 package clickhouse_test
 
 import (
+	"context"
 	"fmt"
+	"slices"
+	"sync"
 	"testing"
 	"time"
 
@@ -9,6 +12,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/eventstore/clickhouse"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/internal/buckettest"
+	"github.com/tanvoxyz/tanvo/libs/eventstore/internal/latency"
 	"github.com/tanvoxyz/tanvo/libs/metering"
 	"github.com/tanvoxyz/tanvo/libs/metering/storetest"
 )
@@ -53,7 +57,14 @@ func TestBucketSpecs(t *testing.T) {
 }
 
 func TestBucketMaintenance(t *testing.T) {
-	buckettest.Run(t, func(t *testing.T) buckettest.Backend { return clickhouse.New(database(t)) })
+	buckettest.Run(t, func(t *testing.T) buckettest.Backend { return clickhouse.New(database(t)) },
+		func(_ buckettest.Backend, n int) []buckettest.Backend {
+			out := make([]buckettest.Backend, n)
+			for i := range out {
+				out[i] = clickhouse.New(testDB.conn)
+			}
+			return out
+		})
 }
 
 // TestBucketRepair inserts events past the store, as a write failing
@@ -130,4 +141,94 @@ func TestBucketRepair(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestMergeOverConcurrentRecompute forces a recompute holding the events
+// of a merge to insert its rows, at the version the merge builds on, after
+// the merge read the state of the bucket: the merge must not add its
+// events to rows already holding them.
+func TestMergeOverConcurrentRecompute(t *testing.T) {
+	day := time.Date(2026, 3, 10, 10, 0, 0, 0, time.UTC)
+	def := metering.BucketDefinition{OrganizationID: "org_m", Code: "calls", Property: "value"}
+	ev := func(tx string, minute int, value string) metering.Event {
+		return metering.Event{
+			OrganizationID: "org_m", SubscriptionID: "sub_m", Code: "calls", TransactionID: tx,
+			Timestamp: day.Add(time.Duration(minute) * time.Minute), IngestedAt: day, Properties: metering.Properties{"value": value},
+		}
+	}
+	s := clickhouse.New(database(t))
+	if err := s.DefineBuckets(t.Context(), def); err != nil {
+		t.Fatal(err)
+	}
+	d, e := ev("d", 1, "2"), ev("e", 2, "3")
+	if _, err := s.Write(t.Context(), []metering.Event{d}); err != nil {
+		t.Fatal(err)
+	}
+	v, err := clickhouse.BucketVersion(t.Context(), s, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// R1 recomputes the bucket before e is stored.
+	if err := clickhouse.RecomputeAt(t.Context(), s, d, v+1, 2); err != nil {
+		t.Fatal(err)
+	}
+	var once sync.Once
+	clickhouse.SetHook(s, func(stage string) {
+		if stage != "merge: states read" {
+			return
+		}
+		once.Do(func() {
+			// R2, at the same version, reads e and inserts its rows after
+			// the write of e read the state of the bucket (R1's).
+			if err := clickhouse.RecomputeAt(context.Background(), s, e, v+1, 4); err != nil {
+				t.Error(err)
+			}
+		})
+	})
+	if dups, err := s.Write(t.Context(), []metering.Event{e}); err != nil || len(dups) != 0 {
+		t.Fatalf("write got = %v %v, want = [] <nil>", dups, err)
+	}
+	q := metering.Query{OrganizationID: "org_m", SubscriptionID: "sub_m", Code: "calls", Numeric: true, Property: "value"}
+	rows, ok, err := s.ReadBuckets(t.Context(), metering.BucketRead{Query: q, From: day, To: day.Add(time.Hour)})
+	if err != nil || !ok || len(rows) != 1 {
+		t.Fatalf("read got = %v %v %v, want one row", rows, ok, err)
+	}
+	if got, want := fmt.Sprintf("%s/%d", rows[0].Sum.Reduce(), rows[0].Count), "5/2"; got != want {
+		t.Errorf("bucket sum got = %s, want = %s", got, want)
+	}
+}
+
+// TestDuplicateHealsOnlyUnmaintained checks that a duplicate of a copy
+// whose bucket already holds it recomputes nothing.
+func TestDuplicateHealsOnlyUnmaintained(t *testing.T) {
+	day := time.Date(2026, 3, 10, 10, 0, 0, 0, time.UTC)
+	def := metering.BucketDefinition{OrganizationID: "org_h", Code: "calls", Property: "value"}
+	e := metering.Event{
+		OrganizationID: "org_h", SubscriptionID: "sub_h", Code: "calls", TransactionID: "a",
+		Timestamp: day, Properties: metering.Properties{"value": "1"},
+	}
+	s := clickhouse.New(database(t))
+	if err := s.DefineBuckets(t.Context(), def); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Write(t.Context(), []metering.Event{e}); err != nil {
+		t.Fatal(err)
+	}
+	var mu sync.Mutex
+	var stages []string
+	clickhouse.SetHook(s, func(stage string) {
+		mu.Lock()
+		stages = append(stages, stage)
+		mu.Unlock()
+	})
+	if dups, err := s.Write(t.Context(), []metering.Event{e}); err != nil || len(dups) != 1 {
+		t.Fatalf("resend got = %v %v, want = [0] <nil>", dups, err)
+	}
+	if slices.Contains(stages, "recompute") {
+		t.Errorf("stages got = %v, want no recompute", stages)
+	}
+}
+
+func TestIngestLatency(t *testing.T) {
+	latency.Run(t, "clickhouse", func(t *testing.T) latency.Backend { return clickhouse.New(database(t)) }, latency.Config{})
 }

@@ -64,16 +64,18 @@ func (q *Queries) AppendEvent(ctx context.Context, arg AppendEventParams) (int64
 }
 
 const getEvent = `-- name: GetEvent :one
-SELECT organization_id, id, transaction_id, code, external_subscription_id, timestamp, properties, precise_total_amount, attribution_labels, ingested_at, created_at, updated_at FROM events WHERE organization_id = $1 AND transaction_id = $2
+SELECT organization_id, id, transaction_id, code, external_subscription_id, timestamp, properties, precise_total_amount, attribution_labels, ingested_at, created_at, updated_at FROM events
+WHERE organization_id = $1 AND external_subscription_id = $2 AND transaction_id = $3
 `
 
 type GetEventParams struct {
-	OrganizationID uuid.UUID
-	TransactionID  string
+	OrganizationID         uuid.UUID
+	ExternalSubscriptionID string
+	TransactionID          string
 }
 
 func (q *Queries) GetEvent(ctx context.Context, arg GetEventParams) (Event, error) {
-	row := q.db.QueryRow(ctx, getEvent, arg.OrganizationID, arg.TransactionID)
+	row := q.db.QueryRow(ctx, getEvent, arg.OrganizationID, arg.ExternalSubscriptionID, arg.TransactionID)
 	var i Event
 	err := row.Scan(
 		&i.OrganizationID,
@@ -92,29 +94,67 @@ func (q *Queries) GetEvent(ctx context.Context, arg GetEventParams) (Event, erro
 	return i, err
 }
 
-const listEventTransactionIDs = `-- name: ListEventTransactionIDs :many
-SELECT transaction_id FROM events
+const getFirstEvent = `-- name: GetFirstEvent :one
+SELECT organization_id, id, transaction_id, code, external_subscription_id, timestamp, properties, precise_total_amount, attribution_labels, ingested_at, created_at, updated_at FROM events WHERE organization_id = $1 AND transaction_id = $2
+ORDER BY ingested_at, id LIMIT 1
+`
+
+type GetFirstEventParams struct {
+	OrganizationID uuid.UUID
+	TransactionID  string
+}
+
+// The earliest ingested event with that transaction ID, of any subscription.
+func (q *Queries) GetFirstEvent(ctx context.Context, arg GetFirstEventParams) (Event, error) {
+	row := q.db.QueryRow(ctx, getFirstEvent, arg.OrganizationID, arg.TransactionID)
+	var i Event
+	err := row.Scan(
+		&i.OrganizationID,
+		&i.ID,
+		&i.TransactionID,
+		&i.Code,
+		&i.ExternalSubscriptionID,
+		&i.Timestamp,
+		&i.Properties,
+		&i.PreciseTotalAmount,
+		&i.AttributionLabels,
+		&i.IngestedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listEventKeys = `-- name: ListEventKeys :many
+SELECT external_subscription_id, transaction_id FROM events
 WHERE organization_id = $1 AND transaction_id = ANY($2::text[])
 `
 
-type ListEventTransactionIDsParams struct {
+type ListEventKeysParams struct {
 	OrganizationID uuid.UUID
 	TransactionIds []string
 }
 
-func (q *Queries) ListEventTransactionIDs(ctx context.Context, arg ListEventTransactionIDsParams) ([]string, error) {
-	rows, err := q.db.Query(ctx, listEventTransactionIDs, arg.OrganizationID, arg.TransactionIds)
+type ListEventKeysRow struct {
+	ExternalSubscriptionID string
+	TransactionID          string
+}
+
+// The stored deduplication keys (subscription, transaction ID) of the
+// transaction IDs.
+func (q *Queries) ListEventKeys(ctx context.Context, arg ListEventKeysParams) ([]ListEventKeysRow, error) {
+	rows, err := q.db.Query(ctx, listEventKeys, arg.OrganizationID, arg.TransactionIds)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []string{}
+	items := []ListEventKeysRow{}
 	for rows.Next() {
-		var transaction_id string
-		if err := rows.Scan(&transaction_id); err != nil {
+		var i ListEventKeysRow
+		if err := rows.Scan(&i.ExternalSubscriptionID, &i.TransactionID); err != nil {
 			return nil, err
 		}
-		items = append(items, transaction_id)
+		items = append(items, i)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -124,36 +164,36 @@ func (q *Queries) ListEventTransactionIDs(ctx context.Context, arg ListEventTran
 
 const replaceEvent = `-- name: ReplaceEvent :execrows
 UPDATE events SET
-  code = $1, external_subscription_id = $2, timestamp = $3,
-  properties = $4, precise_total_amount = $5,
-  attribution_labels = $6, updated_at = $7
-WHERE organization_id = $8 AND transaction_id = $9
+  code = $1, timestamp = $2,
+  properties = $3, precise_total_amount = $4,
+  attribution_labels = $5, updated_at = $6
+WHERE organization_id = $7 AND external_subscription_id = $8 AND transaction_id = $9
 `
 
 type ReplaceEventParams struct {
 	Code                   string
-	ExternalSubscriptionID string
 	Timestamp              time.Time
 	Properties             json.RawMessage
 	PreciseTotalAmount     *money.Decimal
 	AttributionLabels      json.RawMessage
 	UpdatedAt              time.Time
 	OrganizationID         uuid.UUID
+	ExternalSubscriptionID string
 	TransactionID          string
 }
 
-// Replaces the event with that transaction ID, keeping its id, ingestion
+// Replaces the event of the deduplication key, keeping its id, ingestion
 // and creation instants.
 func (q *Queries) ReplaceEvent(ctx context.Context, arg ReplaceEventParams) (int64, error) {
 	result, err := q.db.Exec(ctx, replaceEvent,
 		arg.Code,
-		arg.ExternalSubscriptionID,
 		arg.Timestamp,
 		arg.Properties,
 		arg.PreciseTotalAmount,
 		arg.AttributionLabels,
 		arg.UpdatedAt,
 		arg.OrganizationID,
+		arg.ExternalSubscriptionID,
 		arg.TransactionID,
 	)
 	if err != nil {

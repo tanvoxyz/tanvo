@@ -263,15 +263,18 @@ func (s *Service) produce(ctx context.Context, events []*event.Event, md Metadat
 		return nil, errors.New("ingest: kafka mode without a producer")
 	}
 	out := make([]Outcome, len(events))
-	seen := map[string]bool{}
+	// The repeats of a deduplication key within the batch.
+	type key struct{ sub, tx string }
+	seen := map[key]bool{}
 	msgs := make([]RawMessage, 0, len(events))
 	for i, e := range events {
 		out[i].Event = e
-		if seen[e.TransactionID] {
+		k := key{e.ExternalSubscriptionID, e.TransactionID}
+		if seen[k] {
 			out[i].Duplicate = true
 			continue
 		}
-		seen[e.TransactionID] = true
+		seen[k] = true
 		msgs = append(msgs, rawMessage(e, s.cfg.Source, md))
 	}
 	if err := s.cfg.Producer.ProduceRaw(ctx, msgs); err != nil {

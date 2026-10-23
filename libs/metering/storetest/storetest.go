@@ -50,6 +50,9 @@ type Case struct {
 	Source string `json:"source"`
 	// Skip, when set, is why the case does not run.
 	Skip string `json:"skip,omitempty"`
+	// Deviation, when set, is why the expected outcome differs from the
+	// lago spec's.
+	Deviation string `json:"deviation,omitempty"`
 	// Code is the default billable metric code.
 	Code string `json:"code,omitempty"`
 	// Location is the customer's time zone.

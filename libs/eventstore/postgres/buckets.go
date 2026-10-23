@@ -24,7 +24,8 @@ var (
 // The classes of the advisory locks of the usage buckets: shared by the
 // writers and exclusive for the definers per (organization, code), and
 // exclusive per (organization, subscription, code, bucket) for the writers
-// of a bucket.
+// of a bucket. The keys hash the schema with the key, so that the event
+// stores of two schemas of a database do not contend.
 const (
 	lockDefinitions = 0x7476_0001
 	lockBucket      = 0x7476_0002
@@ -33,13 +34,13 @@ const (
 // The bucket of a timestamp expression, and the lock key of its bucket.
 const (
 	bucketOf      = `date_bin('15 minutes', %s, TIMESTAMPTZ '2001-01-01 00:00:00+00')`
-	bucketLockKey = `hashtext(%[1]s || chr(31) || %[2]s || chr(31) || %[3]s || chr(31) || extract(epoch FROM ` + bucketOf + `)::bigint::text)`
+	bucketLockKey = `hashtext('__schema__.' || %[1]s || chr(31) || %[2]s || chr(31) || %[3]s || chr(31) || extract(epoch FROM ` + bucketOf + `)::bigint::text)`
 )
 
 // lockDefinitionsSQL takes the shared definitions lock of the (organization,
 // code) pairs of the batch, in order.
 var lockDefinitionsSQL = fmt.Sprintf(`SELECT pg_advisory_xact_lock_shared(%d, k) FROM (
-	SELECT DISTINCT hashtext(o || chr(31) || c) AS k FROM unnest($1::text[], $2::text[]) AS u(o, c) ORDER BY 1
+	SELECT DISTINCT hashtext('__schema__.' || o || chr(31) || c) AS k FROM unnest($1::text[], $2::text[]) AS u(o, c) ORDER BY 1
 ) s`, lockDefinitions)
 
 // lockBucketsSQL takes the locks of the buckets of the batch whose code has
@@ -48,7 +49,7 @@ var lockDefinitionsSQL = fmt.Sprintf(`SELECT pg_advisory_xact_lock_shared(%d, k)
 var lockBucketsSQL = fmt.Sprintf(`SELECT pg_advisory_xact_lock(%d, k) FROM (
 	SELECT DISTINCT `+fmt.Sprintf(bucketLockKey, "u.o", "u.s", "u.c", "u.ts")+` AS k
 	FROM unnest($1::text[], $2::text[], $3::text[], $4::timestamptz[]) AS u(o, s, c, ts)
-	WHERE EXISTS (SELECT 1 FROM usage_bucket_definitions d WHERE d.organization_id = u.o AND d.code = u.c)
+	WHERE EXISTS (SELECT 1 FROM __schema__.usage_bucket_definitions d WHERE d.organization_id = u.o AND d.code = u.c)
 	ORDER BY 1
 ) s`, lockBucket)
 
@@ -58,8 +59,8 @@ var lockBucketsSQL = fmt.Sprintf(`SELECT pg_advisory_xact_lock(%d, k) FROM (
 func bucketRows(src, where string) string {
 	return `SELECT s.organization_id, s.subscription_id, s.code, d.definition_id,
 		` + fmt.Sprintf(bucketOf, "s.ts") + ` AS bucket,
-		usage_bucket_dimensions(s.properties, d.dimensions, d.fold) AS dimensions,
-		sha256(convert_to(usage_bucket_dimensions(s.properties, d.dimensions, d.fold)::text, 'UTF8')),
+		__schema__.usage_bucket_dimensions(s.properties, d.dimensions, d.fold) AS dimensions,
+		sha256(convert_to(__schema__.usage_bucket_dimensions(s.properties, d.dimensions, d.fold)::text, 'UTF8')),
 		count(*), coalesce(sum(s.amount), 0), max(s.ts), max(s.ingested_at),
 		count(x.value), coalesce(sum(x.value), 0), max(x.value),
 		(array_agg(x.value ORDER BY s.ts DESC, s.sequence DESC) FILTER (WHERE x.value IS NOT NULL))[1],
@@ -67,7 +68,7 @@ func bucketRows(src, where string) string {
 		(array_agg(s.sequence ORDER BY s.ts DESC, s.sequence DESC) FILTER (WHERE x.value IS NOT NULL))[1],
 		coalesce(sum(s.amount) FILTER (WHERE x.value IS NOT NULL), 0)
 	FROM ` + src + ` s
-	JOIN usage_bucket_definitions d ON d.organization_id = s.organization_id AND d.code = s.code
+	JOIN __schema__.usage_bucket_definitions d ON d.organization_id = s.organization_id AND d.code = s.code
 	CROSS JOIN LATERAL (
 		SELECT CASE WHEN d.property <> '' AND s.properties->>d.property ~ ` + numericPattern + `
 			THEN (s.properties->>d.property)::numeric END AS value
@@ -83,21 +84,21 @@ const bucketColumns = `organization_id, subscription_id, code, definition_id, bu
 // writeBucketsSQL is writeSQL adding the accepted events to their buckets.
 var writeBucketsSQL = `WITH ` + inputCTE + `,
 accepted AS (
-	INSERT INTO event_transactions (organization_id, transaction_id, "timestamp", ingested_at)
-	SELECT organization_id, transaction_id, ts, ingested_at FROM input ORDER BY ord
+	INSERT INTO __schema__.event_transactions (organization_id, subscription_id, transaction_id, code, "timestamp", ingested_at)
+	SELECT organization_id, subscription_id, transaction_id, code, ts, ingested_at FROM input ORDER BY ord
 	ON CONFLICT DO NOTHING
-	RETURNING organization_id, transaction_id
+	RETURNING organization_id, subscription_id, transaction_id
 ),
 stored AS (
-	INSERT INTO events (` + insertColumns + `)
+	INSERT INTO __schema__.events (` + insertColumns + `)
 	` + insertValues + `
-	FROM (SELECT i.* FROM input i JOIN accepted a USING (organization_id, transaction_id) ORDER BY i.ord) s
+	FROM (SELECT i.* FROM input i JOIN accepted a USING (organization_id, subscription_id, transaction_id) ORDER BY i.ord) s
 	ON CONFLICT DO NOTHING
 	RETURNING organization_id, subscription_id, code, "timestamp" AS ts, sequence, properties,
 		precise_total_amount_cents AS amount, ingested_at
 ),
 bucketed AS (
-	INSERT INTO usage_buckets AS b (` + bucketColumns + `)
+	INSERT INTO __schema__.usage_buckets AS b (` + bucketColumns + `)
 	` + bucketRows("stored", "") + `
 	ON CONFLICT (organization_id, subscription_id, code, definition_id, bucket, dimensions_hash) DO UPDATE SET
 		events_count = b.events_count + excluded.events_count,
@@ -112,7 +113,7 @@ bucketed AS (
 		latest_sequence = CASE WHEN ` + newerLatest + ` THEN excluded.latest_sequence ELSE b.latest_sequence END,
 		value_precise_total_amount_cents = b.value_precise_total_amount_cents + excluded.value_precise_total_amount_cents
 )
-SELECT organization_id, transaction_id FROM accepted`
+SELECT organization_id, subscription_id, transaction_id FROM accepted`
 
 // newerLatest reports whether the latest value of the added events is more
 // recent than the latest value of the bucket.
@@ -131,19 +132,19 @@ const touchedCTE = `touched AS (
 // that the second reads the events the replacement stored.
 const (
 	deleteTouchedSQL = `WITH ` + touchedCTE + `
-DELETE FROM usage_buckets b USING touched t
+DELETE FROM __schema__.usage_buckets b USING touched t
 WHERE b.organization_id = t.organization_id AND b.subscription_id = t.subscription_id AND b.code = t.code AND b.bucket = t.bucket`
 
 	recomputeEvents = `(
 	SELECT e.organization_id, e.subscription_id, e.code, e."timestamp" AS ts, e.sequence, e.properties,
 		e.precise_total_amount_cents AS amount, e.ingested_at
-	FROM touched t JOIN events e ON e.organization_id = t.organization_id AND e.subscription_id = t.subscription_id
+	FROM touched t JOIN __schema__.events e ON e.organization_id = t.organization_id AND e.subscription_id = t.subscription_id
 		AND e.code = t.code AND e."timestamp" >= t.bucket AND e."timestamp" < t.bucket + interval '15 minutes'
 )`
 )
 
 var recomputeTouchedSQL = `WITH ` + touchedCTE + `
-INSERT INTO usage_buckets (` + bucketColumns + `)
+INSERT INTO __schema__.usage_buckets (` + bucketColumns + `)
 ` + bucketRows(recomputeEvents, "")
 
 // The statements of a backfill chunk: the events of (organization $1,
@@ -155,38 +156,38 @@ const backfillRange = `organization_id = $1 AND code = $2 AND (subscription_id, 
 const (
 	// backfillEndSQL returns the key of the event closing a chunk of $5
 	// events from the key ($3, $4) on.
-	backfillEndSQL = `SELECT subscription_id, "timestamp" FROM events
+	backfillEndSQL = `SELECT subscription_id, "timestamp" FROM __schema__.events
 	WHERE organization_id = $1 AND code = $2 AND (subscription_id, "timestamp") >= ($3, $4)
 	ORDER BY subscription_id, "timestamp" OFFSET $5 LIMIT 1`
 	// backfillBucketsSQL returns the buckets of the events of a chunk.
 	backfillBucketsSQL = `SELECT coalesce(array_agg(s ORDER BY s, b), '{}'), coalesce(array_agg(b ORDER BY s, b), '{}') FROM (
 	SELECT DISTINCT subscription_id AS s, ` + `date_bin('15 minutes', "timestamp", TIMESTAMPTZ '2001-01-01 00:00:00+00')` + ` AS b
-	FROM events WHERE ` + backfillRange + `
+	FROM __schema__.events WHERE ` + backfillRange + `
 ) c`
 	// backfillDeleteSQL deletes the rows of definition $3 in the buckets
 	// ($4, $5) of subscriptions and bucket starts.
-	backfillDeleteSQL = `DELETE FROM usage_buckets u USING unnest($4::text[], $5::timestamptz[]) AS t(sub, start)
+	backfillDeleteSQL = `DELETE FROM __schema__.usage_buckets u USING unnest($4::text[], $5::timestamptz[]) AS t(sub, start)
 	WHERE u.organization_id = $1 AND u.code = $2 AND u.definition_id = $3 AND u.subscription_id = t.sub AND u.bucket = t.start`
 )
 
 // backfillInsertSQL aggregates the rows of definition $3 in the buckets
 // ($4, $5) again.
-var backfillInsertSQL = `INSERT INTO usage_buckets (` + bucketColumns + `)
+var backfillInsertSQL = `INSERT INTO __schema__.usage_buckets (` + bucketColumns + `)
 ` + bucketRows(`(
 	SELECT e.organization_id, e.subscription_id, e.code, e."timestamp" AS ts, e.sequence, e.properties,
 		e.precise_total_amount_cents AS amount, e.ingested_at
 	FROM unnest($4::text[], $5::timestamptz[]) AS t(s, b)
-	JOIN events e ON e.organization_id = $1 AND e.code = $2 AND e.subscription_id = t.s
+	JOIN __schema__.events e ON e.organization_id = $1 AND e.code = $2 AND e.subscription_id = t.s
 		AND e."timestamp" >= t.b AND e."timestamp" < t.b + interval '15 minutes'
 )`, "WHERE d.definition_id = $3")
 
 // lockSharedDefinitionSQL takes the definitions lock of ($1, $2) shared,
 // as a writer does; definitionInPlaceSQL, run after it in a snapshot of
 // its own, reports whether definition $3 is still in place.
-var lockSharedDefinitionSQL = fmt.Sprintf(`SELECT pg_advisory_xact_lock_shared(%d, hashtext($1 || chr(31) || $2))`, lockDefinitions)
+var lockSharedDefinitionSQL = fmt.Sprintf(`SELECT pg_advisory_xact_lock_shared(%d, hashtext('__schema__.' || $1 || chr(31) || $2))`, lockDefinitions)
 
 const definitionInPlaceSQL = `SELECT EXISTS (
-	SELECT 1 FROM usage_bucket_definitions WHERE organization_id = $1 AND code = $2 AND definition_id = $3
+	SELECT 1 FROM __schema__.usage_bucket_definitions WHERE organization_id = $1 AND code = $2 AND definition_id = $3
 )`
 
 // lockArgs returns the arrays of the lock and recomputation statements.
@@ -220,7 +221,7 @@ func (s *Store) inTx(ctx context.Context, fn func(pgx.Tx) error) error {
 }
 
 func definitionLockKey(d metering.BucketDefinition) (string, []any) {
-	return fmt.Sprintf("SELECT pg_advisory_xact_lock(%d, hashtext($1 || chr(31) || $2))", lockDefinitions),
+	return fmt.Sprintf("SELECT pg_advisory_xact_lock(%d, hashtext('__schema__.' || $1 || chr(31) || $2))", lockDefinitions),
 		[]any{d.OrganizationID, d.Code}
 }
 
@@ -261,11 +262,11 @@ func (s *Store) DefineBuckets(ctx context.Context, d metering.BucketDefinition) 
 		if _, err := tx.Exec(ctx, lock, args...); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `INSERT INTO usage_bucket_definitions (organization_id, code, definition_id, property, dimensions, fold)
+		if _, err := tx.Exec(ctx, `INSERT INTO __schema__.usage_bucket_definitions (organization_id, code, definition_id, property, dimensions, fold)
 			VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`, d.OrganizationID, d.Code, d.ID(), d.Property, d.Dimensions, fold); err != nil {
 			return err
 		}
-		return tx.QueryRow(ctx, `SELECT ready FROM usage_bucket_definitions WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
+		return tx.QueryRow(ctx, `SELECT ready FROM __schema__.usage_bucket_definitions WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
 			d.OrganizationID, d.Code, d.ID()).Scan(&ready)
 	})
 	if err != nil || ready {
@@ -274,7 +275,7 @@ func (s *Store) DefineBuckets(ctx context.Context, d metering.BucketDefinition) 
 	if err := s.backfill(ctx, d); err != nil {
 		return wrap("define buckets", err)
 	}
-	_, err = s.db.Exec(ctx, `UPDATE usage_bucket_definitions SET ready = true WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
+	_, err = s.db.Exec(ctx, `UPDATE __schema__.usage_bucket_definitions SET ready = true WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
 		d.OrganizationID, d.Code, d.ID())
 	return wrap("define buckets", err)
 }
@@ -366,11 +367,11 @@ func (s *Store) DropBuckets(ctx context.Context, d metering.BucketDefinition) er
 		if _, err := tx.Exec(ctx, lock, args...); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `DELETE FROM usage_bucket_definitions WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
+		if _, err := tx.Exec(ctx, `DELETE FROM __schema__.usage_bucket_definitions WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
 			d.OrganizationID, d.Code, d.ID()); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `DELETE FROM usage_buckets WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
+		_, err := tx.Exec(ctx, `DELETE FROM __schema__.usage_buckets WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
 			d.OrganizationID, d.Code, d.ID())
 		return err
 	})
@@ -395,7 +396,7 @@ func (s *Store) definitions(ctx context.Context, organizationID, code string, re
 		dims     []string
 		fold     []byte
 	)
-	err := s.each(ctx, `SELECT property, dimensions, fold FROM usage_bucket_definitions
+	err := s.each(ctx, `SELECT property, dimensions, fold FROM __schema__.usage_bucket_definitions
 		WHERE organization_id = $1 AND code = $2 AND (ready OR NOT $3) ORDER BY definition_id`, args{organizationID, code, ready},
 		[]any{&property, &dims, &fold}, func() error {
 			d := metering.BucketDefinition{OrganizationID: organizationID, Code: code, Property: property, Dimensions: dims}
@@ -409,7 +410,7 @@ func (s *Store) definitions(ctx context.Context, organizationID, code string, re
 }
 
 // readyDefinitionSQL reports whether a definition is in place and ready.
-const readyDefinitionSQL = `SELECT EXISTS (SELECT 1 FROM usage_bucket_definitions
+const readyDefinitionSQL = `SELECT EXISTS (SELECT 1 FROM __schema__.usage_bucket_definitions
 	WHERE organization_id = $1 AND code = $2 AND definition_id = $3 AND ready)`
 
 // ReadBuckets implements [metering.BucketReader]. It reads the ready
@@ -435,7 +436,7 @@ func (s *Store) ReadBuckets(ctx context.Context, r metering.BucketRead) ([]meter
 		"b.definition_id = " + id,
 		"b.bucket >= " + a.add(r.From.UTC()) + "::timestamptz",
 		"b.bucket < " + a.add(r.To.UTC()) + "::timestamptz",
-		`EXISTS (SELECT 1 FROM usage_bucket_definitions d
+		`EXISTS (SELECT 1 FROM __schema__.usage_bucket_definitions d
 			WHERE d.organization_id = ` + org + ` AND d.code = ` + code + ` AND d.definition_id = ` + id + ` AND d.ready)`,
 	}
 	count, amount, last := "b.events_count", "b.precise_total_amount_cents", "b.last_event_at"
@@ -461,7 +462,7 @@ func (s *Store) ReadBuckets(ctx context.Context, r metering.BucketRead) ([]meter
 	for _, k := range r.Columns {
 		cols = append(cols, "(array_agg(NULLIF(b.dimensions->>"+a.text(k)+", '') "+latestOrder)
 	}
-	sql := "SELECT " + strings.Join(cols, ", ") + " FROM usage_buckets b WHERE " + strings.Join(where, " AND ") + " " + groupBy(n) + " HAVING count(*) > 0"
+	sql := "SELECT " + strings.Join(cols, ", ") + " FROM __schema__.usage_buckets b WHERE " + strings.Join(where, " AND ") + " " + groupBy(n) + " HAVING count(*) > 0"
 	if r.PerBucket {
 		sql += fmt.Sprintf(" ORDER BY %d", n)
 	}
@@ -529,7 +530,7 @@ func (s *Store) BucketStats(ctx context.Context, d metering.BucketDefinition) (e
 	}
 	var st eventstore.BucketStats
 	err := s.db.QueryRow(ctx, `SELECT coalesce(sum(n), 0)::bigint, coalesce(max(n), 0)::bigint FROM (
-		SELECT count(*) AS n FROM usage_buckets WHERE organization_id = $1 AND code = $2 AND definition_id = $3
+		SELECT count(*) AS n FROM __schema__.usage_buckets WHERE organization_id = $1 AND code = $2 AND definition_id = $3
 		GROUP BY subscription_id, bucket
 	) b`, d.OrganizationID, d.Code, d.Normalize().ID()).Scan(&st.Rows, &st.MaxRowsPerBucket)
 	return st, wrap("bucket stats", err)

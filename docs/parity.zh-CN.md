@@ -308,7 +308,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 事件时间戳解析（秒、带小数的秒，默认取当前时间） | `app/services/events/common_factory.rb` | libs/ingest | 逻辑已完成 | |
 | 事件字段：交易 ID、外部订阅 ID、代码、属性、精确总金额 | `app/models/event.rb` | libs/ingest | 逻辑已完成 | JSON 属性中的数字保持精确，小数亦然（lago 的 JSON 解析使整数精确、小数转为浮点数）；二进制 protobuf 与 gRPC 客户端发送 double，精确值以字符串发送（[架构 §4.2](architecture.zh-CN.md#42-经由-vanguard-的-rest)） |
 | 摄取和事件过滤中 `external_contract_id` 作为 `external_subscription_id` 的别名 | `app/controllers/api/v1/events_controller.rb` | libs/ingest | 逻辑已完成 | 两者都发送时以显式的 `external_subscription_id` 为准 |
-| 按组织与交易 ID 去重 | `app/services/events/create_service.rb` | libs/ingest | 逻辑已完成 | Lago 还按外部订阅 ID 区分；Tanvo 在组织范围内去重（§3） |
+| 按组织、外部订阅 ID 与交易 ID 去重 | `app/services/events/create_service.rb`、`app/services/events/validate_creation_service.rb`、`db/structure.sql`（`index_unique_transaction_id`） | libs/ingest、libs/store、libs/eventstore | 逻辑已完成 | 所有存储使用同一个键；Lago 的 ClickHouse 存储在查询时去重，并且还以代码和时间戳为键，而 Tanvo 把在另一时间戳的重发视为重复 |
 | 事件上的请求元数据（user agent、IP） | `app/services/events/create_service.rb` | libs/ingest | 进行中 | |
 | 事件校验（指标代码、订阅、数值字段） | `app/services/events/validate_creation_service.rb` | libs/ingest | 进行中 | |
 | 摄取后的事件校验与 `events.errors` webhook | `app/services/events/post_validation_service.rb` | libs/ingest | 计划中 | 能同步返回的校验错误也同步返回 |
@@ -1083,7 +1083,6 @@ Lago 自己标记为废弃、只为旧数据保留，或作为死代码保留的
 | RisingWave 的 `usage_buckets_15m` | 由摄取消费者在 PostgreSQL 或 ClickHouse 中维护的 15 分钟用量桶 | 不需要额外系统 |
 | 带 Debezium CDC 与 Badger 缓存的独立 events-processor 服务 | 服务器 `consumer` 角色中的摄取消费者，内存目录缓存通过变更通知刷新 | 组件更少 |
 | 活动、API 与安全日志的 Kafka 管道 | `audit_events` 与写入 ClickHouse 或 PostgreSQL 的日志写入器 | 没有 Kafka 也能工作 |
-| 按组织、外部订阅 ID 与交易 ID 去重 | 按组织与交易 ID 去重 | 交易 ID 在组织内唯一 |
 | 以 Nango 作为集成中介 | `providers/*` 中直接调用供应商 API 的客户端 | 数据路径中没有第三方中介 |
 | Gotenberg HTML 转 PDF | 作为子进程运行、输出 PDF/A-3b 的 Typst | 单一二进制，可归档的 PDF |
 | 用 pdfcpu 嵌入 Factur-X XML | Typst 的 PDF/A-3 附件 | 一步渲染 |

@@ -47,17 +47,19 @@ func Prepare(events []metering.Event, now time.Time) ([]Row, error) {
 	return rows, nil
 }
 
-// TransactionKey is the ingestion deduplication key.
+// TransactionKey is the deduplication key of an event: (organization,
+// external subscription ID, transaction ID). The same transaction ID under
+// two subscriptions is two events.
 type TransactionKey struct {
-	OrganizationID, TransactionID string
+	OrganizationID, SubscriptionID, TransactionID string
 }
 
 // TransactionKeyOf returns the deduplication key of an event.
 func TransactionKeyOf(e metering.Event) TransactionKey {
-	return TransactionKey{e.OrganizationID, e.TransactionID}
+	return TransactionKey{e.OrganizationID, e.SubscriptionID, e.TransactionID}
 }
 
-// FirstPerTransaction keeps the first row of each transaction key and
+// FirstPerTransaction keeps the first row of each deduplication key and
 // returns the positions of the others.
 func FirstPerTransaction(rows []Row) (kept []Row, duplicates []int) {
 	seen := make(map[TransactionKey]bool, len(rows))
@@ -73,21 +75,15 @@ func FirstPerTransaction(rows []Row) (kept []Row, duplicates []int) {
 	return kept, duplicates
 }
 
-type eventKey struct {
-	org, sub, code, tx string
-	ts                 int64
-}
-
-// LastPerKey keeps, in order, the last row of each (organization,
-// subscription, code, transaction ID, timestamp) key.
+// LastPerKey keeps, in order, the last row of each deduplication key.
 func LastPerKey(rows []Row) []Row {
-	last := make(map[eventKey]int, len(rows))
+	last := make(map[TransactionKey]int, len(rows))
 	for i, r := range rows {
-		last[eventKey{r.OrganizationID, r.SubscriptionID, r.Code, r.TransactionID, r.Timestamp.UnixMicro()}] = i
+		last[TransactionKeyOf(r.Event)] = i
 	}
 	out := make([]Row, 0, len(last))
 	for i, r := range rows {
-		if last[eventKey{r.OrganizationID, r.SubscriptionID, r.Code, r.TransactionID, r.Timestamp.UnixMicro()}] == i {
+		if last[TransactionKeyOf(r.Event)] == i {
 			out = append(out, r)
 		}
 	}

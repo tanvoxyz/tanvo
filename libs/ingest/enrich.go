@@ -96,14 +96,40 @@ func (e *Enriched) Metering() metering.Event {
 	}
 }
 
-// Key returns the Kafka partition key of e: (organization, transaction
-// ID), the deduplication key.
-func (e *Enriched) Key() []byte { return PartitionKey(e.OrganizationID, e.TransactionID) }
+// Key returns the Kafka partition key of e on the events.enriched topic
+// ([SubscriptionPartitionKey]): (organization, external subscription ID
+// of the event payload).
+func (e *Enriched) Key() []byte {
+	return SubscriptionPartitionKey(e.OrganizationID, e.ExternalSubscriptionID)
+}
 
-// PartitionKey returns the partition key of an event: one consumer sees
-// every copy of a transaction ID.
-func PartitionKey(org core.OrganizationID, transactionID string) []byte {
-	return []byte(org.String() + "/" + transactionID)
+// PartitionKey returns the partition key of a raw event on the events.raw
+// topic: the deduplication key (organization, external subscription ID,
+// transaction ID). Every copy of a key goes through one enrichment
+// consumer, in order, and so reaches its events.enriched partition in
+// order; the events of a busy subscription still spread over the
+// enrichment consumers, which a key of (organization, subscription) would
+// not allow.
+func PartitionKey(org core.OrganizationID, externalSubscriptionID, transactionID string) []byte {
+	return []byte(org.String() + "/" + externalSubscriptionID + "/" + transactionID)
+}
+
+// SubscriptionPartitionKey returns the partition key of an enriched event
+// on the events.enriched topic: (organization, external subscription ID),
+// so that one writer consumer stores every event of a subscription, and
+// maintains its usage buckets alone. The ID is the one the event carries,
+// not the subscription enrichment resolved, so that the key depends on
+// the payload only. An event without one (validation rejects it, but a
+// connector may produce one) keys on the organization alone, the key of
+// the store's "" subscription.
+//
+// The key holds the subscription of the deduplication key: every copy of
+// a key lands on one partition, in order, and one writer consumer at a
+// time sees the first before the later ones. It also caps the throughput
+// of one subscription at one writer consumer, and the events without a
+// subscription of an organization share one key.
+func SubscriptionPartitionKey(org core.OrganizationID, externalSubscriptionID string) []byte {
+	return []byte(org.String() + "/" + externalSubscriptionID)
 }
 
 // ExpressionError reports a billable metric expression that cannot be

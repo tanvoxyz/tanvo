@@ -137,7 +137,7 @@ func (w *memWriter) Write(_ context.Context, events []metering.Event) ([]int, er
 	var dups []int
 	seen := map[string]bool{}
 	for i, e := range events {
-		k := e.OrganizationID + "/" + e.TransactionID
+		k := e.OrganizationID + "/" + e.SubscriptionID + "/" + e.TransactionID
 		if _, ok := w.stored[k]; ok || seen[k] {
 			dups = append(dups, i)
 			continue
@@ -153,7 +153,7 @@ func (w *memWriter) commit(ok bool) {
 	defer w.mu.Unlock()
 	if ok {
 		for _, e := range w.pending {
-			w.stored[e.OrganizationID+"/"+e.TransactionID] = e
+			w.stored[e.OrganizationID+"/"+e.SubscriptionID+"/"+e.TransactionID] = e
 		}
 	}
 	w.pending = nil

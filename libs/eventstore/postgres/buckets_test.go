@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/tanvoxyz/tanvo/libs/eventstore/internal/buckettest"
+	"github.com/tanvoxyz/tanvo/libs/eventstore/internal/latency"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/postgres"
 	"github.com/tanvoxyz/tanvo/libs/metering"
 	"github.com/tanvoxyz/tanvo/libs/metering/storetest"
@@ -14,7 +15,7 @@ import (
 // (backfilled).
 func bucketStore(t *testing.T, backfill bool) storetest.NewBucketStore {
 	// Small chunks make the backfill run many transactions.
-	store := postgres.New(database(t), postgres.WithBackfillChunk(3))
+	store := open(database(t), postgres.WithBackfillChunk(3))
 	return func(t *testing.T, defs []metering.BucketDefinition, events []metering.Event) (metering.Store, metering.BucketReader) {
 		truncate(t)
 		define := func() {
@@ -50,5 +51,17 @@ func TestBucketSpecs(t *testing.T) {
 }
 
 func TestBucketMaintenance(t *testing.T) {
-	buckettest.Run(t, func(t *testing.T) buckettest.Backend { return postgres.New(database(t), postgres.WithBackfillChunk(3)) })
+	buckettest.Run(t, func(t *testing.T) buckettest.Backend { return open(database(t), postgres.WithBackfillChunk(3)) },
+		func(_ buckettest.Backend, n int) []buckettest.Backend {
+			out := make([]buckettest.Backend, n)
+			for i := range out {
+				out[i] = open(testDB.pool, postgres.WithBackfillChunk(3))
+			}
+			return out
+		})
+}
+
+func TestIngestLatency(t *testing.T) {
+	latency.Run(t, "postgres", func(t *testing.T) latency.Backend { return open(database(t)) },
+		latency.Config{Writers: []int{1, 4}})
 }

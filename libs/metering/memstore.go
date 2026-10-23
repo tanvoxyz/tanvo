@@ -25,25 +25,23 @@ var _ Store = (*MemoryStore)(nil)
 
 // NewMemoryStore returns a store over the events. Events are ingested in
 // order of IngestedAt, then of the slice; an event re-sent with the same
-// transaction ID and timestamp replaces the earlier copy.
+// (organization, subscription, transaction ID) replaces the earlier copy,
+// whatever its code and timestamp.
 func NewMemoryStore(events []Event) *MemoryStore {
 	all := make([]stored, len(events))
 	for i, e := range events {
 		all[i] = stored{Event: e, seq: i}
 	}
 	slices.SortStableFunc(all, func(a, b stored) int { return a.IngestedAt.Compare(b.IngestedAt) })
-	type key struct {
-		org, sub, code, tx string
-		ts                 int64
-	}
+	type key struct{ org, sub, tx string }
 	latest := map[key]int{}
 	for i := range all {
 		all[i].seq = i
-		latest[key{all[i].OrganizationID, all[i].SubscriptionID, all[i].Code, all[i].TransactionID, all[i].Timestamp.UnixNano()}] = i
+		latest[key{all[i].OrganizationID, all[i].SubscriptionID, all[i].TransactionID}] = i
 	}
 	s := &MemoryStore{}
 	for i, e := range all {
-		if latest[key{e.OrganizationID, e.SubscriptionID, e.Code, e.TransactionID, e.Timestamp.UnixNano()}] == i {
+		if latest[key{e.OrganizationID, e.SubscriptionID, e.TransactionID}] == i {
 			s.events = append(s.events, e)
 		}
 	}

@@ -74,7 +74,7 @@ func startPostgres() (*pgxpool.Pool, func(), error) {
 	}
 	err = postgres.Migrate(ctx, pool, postgres.MigrateOptions{})
 	if err == nil {
-		_, err = pool.Exec(ctx, `CREATE TABLE IF NOT EXISTS ingest_test_log (organization_id text, transaction_id text, PRIMARY KEY (organization_id, transaction_id))`)
+		_, err = pool.Exec(ctx, `CREATE TABLE IF NOT EXISTS ingest_test_log (organization_id text, external_subscription_id text, transaction_id text, PRIMARY KEY (organization_id, external_subscription_id, transaction_id))`)
 	}
 	if err != nil {
 		pool.Close()
@@ -121,7 +121,7 @@ type pgLog struct{ tx pgx.Tx }
 
 func (l pgLog) Append(ctx context.Context, org core.OrganizationID, events []*event.Event) (accepted, duplicates []*event.Event, err error) {
 	for _, e := range events {
-		tag, err := l.tx.Exec(ctx, `INSERT INTO ingest_test_log VALUES ($1, $2) ON CONFLICT DO NOTHING`, org.String(), e.TransactionID)
+		tag, err := l.tx.Exec(ctx, `INSERT INTO ingest_test_log VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`, org.String(), e.ExternalSubscriptionID, e.TransactionID)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -134,7 +134,7 @@ func (l pgLog) Append(ctx context.Context, org core.OrganizationID, events []*ev
 	return accepted, duplicates, nil
 }
 
-func (pgLog) Get(context.Context, core.OrganizationID, string) (*event.Event, error) {
+func (pgLog) Get(context.Context, core.OrganizationID, string, string) (*event.Event, error) {
 	return nil, core.ErrNotFound
 }
 

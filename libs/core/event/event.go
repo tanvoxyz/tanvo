@@ -38,7 +38,7 @@ type Event struct {
 	// OrganizationID is the owning organization.
 	OrganizationID core.OrganizationID
 	// TransactionID is the client's idempotency key, unique per
-	// organization (≤ 255).
+	// organization and external subscription (≤ 255).
 	TransactionID string
 	// Code is the billable metric code (≤ 255).
 	Code string

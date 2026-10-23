@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -313,17 +314,19 @@ func TestCreateBatch(t *testing.T) {
 		count        int
 		txs          map[int]string
 		existing     string
+		existingSub  string // the batch's subscription when empty
 		want         []int
 	}{
-		{"consecutive", "spec/services/events/create_batch_service_spec.rb:141", 2, map[int]string{0: "d", 1: "d"}, "", []int{1}},
-		{"existing at beginning", "spec/services/events/create_batch_service_spec.rb:152", 5, map[int]string{0: "old"}, "old", []int{0}},
-		{"existing in the middle", "spec/services/events/create_batch_service_spec.rb:152", 5, map[int]string{2: "old"}, "old", []int{2}},
-		{"existing at end", "spec/services/events/create_batch_service_spec.rb:152", 5, map[int]string{4: "old"}, "old", []int{4}},
-		{"non-consecutive", "spec/services/events/create_batch_service_spec.rb:178", 4, map[int]string{0: "d", 2: "d"}, "", []int{2}},
-		{"multiple", "spec/services/events/create_batch_service_spec.rb:190", 4, map[int]string{0: "a", 1: "b", 2: "a", 3: "b"}, "", []int{2, 3}},
-		{"three", "spec/services/events/create_batch_service_spec.rb:206", 3, map[int]string{0: "d", 1: "d", 2: "d"}, "", []int{1, 2}},
-		{"existing second", "spec/services/events/create_batch_service_spec.rb:217", 2, map[int]string{1: "old"}, "old", []int{1}},
-		{"existing first", "spec/services/events/create_batch_service_spec.rb:233", 2, map[int]string{0: "old"}, "old", []int{0}},
+		{"consecutive", "spec/services/events/create_batch_service_spec.rb:141", 2, map[int]string{0: "d", 1: "d"}, "", "", []int{1}},
+		{"existing at beginning", "spec/services/events/create_batch_service_spec.rb:152", 5, map[int]string{0: "old"}, "old", "", []int{0}},
+		{"existing in the middle", "spec/services/events/create_batch_service_spec.rb:152", 5, map[int]string{2: "old"}, "old", "", []int{2}},
+		{"existing at end", "spec/services/events/create_batch_service_spec.rb:152", 5, map[int]string{4: "old"}, "old", "", []int{4}},
+		{"non-consecutive", "spec/services/events/create_batch_service_spec.rb:178", 4, map[int]string{0: "d", 2: "d"}, "", "", []int{2}},
+		{"multiple", "spec/services/events/create_batch_service_spec.rb:190", 4, map[int]string{0: "a", 1: "b", 2: "a", 3: "b"}, "", "", []int{2, 3}},
+		{"three", "spec/services/events/create_batch_service_spec.rb:206", 3, map[int]string{0: "d", 1: "d", 2: "d"}, "", "", []int{1, 2}},
+		{"existing second", "spec/services/events/create_batch_service_spec.rb:217", 2, map[int]string{1: "old"}, "old", "", []int{1}},
+		{"existing first", "spec/services/events/create_batch_service_spec.rb:233", 2, map[int]string{0: "old"}, "old", "", []int{0}},
+		{"existing under another subscription", "db/structure.sql:12094 index_unique_transaction_id", 2, map[int]string{0: "old"}, "old", "sub_other", nil},
 	}
 	for _, mode := range []Mode{ModePostgres, ModeKafka} {
 		for _, tc := range dups {
@@ -334,7 +337,8 @@ func TestCreateBatch(t *testing.T) {
 				t.Parallel()
 				h := newHarness(t, mode)
 				if tc.existing != "" {
-					if _, err := h.svc.Create(ctx, testOrg, Input{TransactionID: tc.existing, Code: "c", ExternalSubscriptionID: "s"}, Metadata{}); err != nil {
+					sub := cmp.Or(tc.existingSub, "sub_12345")
+					if _, err := h.svc.Create(ctx, testOrg, Input{TransactionID: tc.existing, Code: "c", ExternalSubscriptionID: sub}, Metadata{}); err != nil {
 						t.Fatalf("Create() error = %v", err)
 					}
 				}
@@ -439,8 +443,8 @@ func TestCreateBatch(t *testing.T) {
 					t.Errorf("message %d %s got = %v, want = %v", i, k, payload[k], v)
 				}
 			}
-			if got := string(m.Key()); got != testOrg.String()+"/"+m.TransactionID {
-				t.Errorf("key got = %q, want = org/tx", got)
+			if got, want := string(m.Key()), testOrg.String()+"/sub_12345/"+m.TransactionID; got != want {
+				t.Errorf("key got = %q, want = %q", got, want)
 			}
 			if m.Metadata == nil || *m.Metadata != md {
 				t.Errorf("metadata got = %v, want = %v", m.Metadata, md)

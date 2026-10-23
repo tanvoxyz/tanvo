@@ -27,26 +27,39 @@ type eventLogRepo struct{ d *eventData }
 
 var _ event.Log = eventLogRepo{}
 
-func (r eventLogRepo) find(org core.OrganizationID, transactionID string) (*event.Event, bool) {
-	return r.d.events.first(func(x *event.Event) bool {
-		return x.OrganizationID == org && x.TransactionID == transactionID
-	})
+// find returns the event of the deduplication key or, with sub empty, the
+// earliest ingested event with the transaction ID.
+func (r eventLogRepo) find(org core.OrganizationID, sub, transactionID string) (*event.Event, bool) {
+	var out *event.Event
+	// In ID order: the earliest ingested first, then the earliest created.
+	for _, x := range r.d.events.find(func(x *event.Event) bool {
+		return x.OrganizationID == org && x.TransactionID == transactionID && (sub == "" || x.ExternalSubscriptionID == sub)
+	}) {
+		if out == nil || x.IngestedAt.Before(out.IngestedAt) {
+			out = x
+		}
+	}
+	return out, out != nil
 }
 
+// eventKey is the deduplication key of an event of an organization.
+type eventKey struct{ sub, tx string }
+
 func (r eventLogRepo) Append(_ context.Context, org core.OrganizationID, events []*event.Event) (accepted, duplicates []*event.Event, err error) {
-	batch := map[string]bool{}
+	batch := map[eventKey]bool{}
 	for _, e := range events {
 		if e.OrganizationID != org {
 			return nil, nil, notFound("event of organization", org)
 		}
-		if _, ok := r.find(org, e.TransactionID); ok || batch[e.TransactionID] {
+		k := eventKey{e.ExternalSubscriptionID, e.TransactionID}
+		if _, ok := r.find(org, e.ExternalSubscriptionID, e.TransactionID); ok || batch[k] {
 			duplicates = append(duplicates, e)
 			continue
 		}
 		if r.d.events.has(e.ID) {
 			return nil, nil, conflict("event", "id")
 		}
-		batch[e.TransactionID] = true
+		batch[k] = true
 		accepted = append(accepted, e)
 	}
 	for _, e := range accepted {
@@ -55,8 +68,8 @@ func (r eventLogRepo) Append(_ context.Context, org core.OrganizationID, events 
 	return accepted, duplicates, nil
 }
 
-func (r eventLogRepo) Get(_ context.Context, org core.OrganizationID, transactionID string) (*event.Event, error) {
-	e, ok := r.find(org, transactionID)
+func (r eventLogRepo) Get(_ context.Context, org core.OrganizationID, externalSubscriptionID, transactionID string) (*event.Event, error) {
+	e, ok := r.find(org, externalSubscriptionID, transactionID)
 	if !ok {
 		return nil, notFound("event", stringer(transactionID))
 	}
@@ -64,7 +77,10 @@ func (r eventLogRepo) Get(_ context.Context, org core.OrganizationID, transactio
 }
 
 func (r eventLogRepo) Replace(_ context.Context, e *event.Event) error {
-	cur, ok := r.find(e.OrganizationID, e.TransactionID)
+	if e.ExternalSubscriptionID == "" {
+		return notFound("event", stringer(e.TransactionID))
+	}
+	cur, ok := r.find(e.OrganizationID, e.ExternalSubscriptionID, e.TransactionID)
 	if !ok {
 		return notFound("event", stringer(e.TransactionID))
 	}

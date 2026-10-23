@@ -117,7 +117,8 @@ info:
     ## tanvo.event.v1.EventService
 
     EventService ingests and reads usage events. Events are deduplicated per
-     organization by transaction_id.
+     organization and subscription by (external_subscription_id,
+     transaction_id): one transaction ID under two subscriptions is two events.
 
     ## tanvo.export.v1.DataExportService
 
@@ -3707,7 +3708,9 @@ paths:
       tags:
         - EventService
       summary: IngestEvent
-      description: Ingests one event. A duplicate transaction_id is accepted and ignored.
+      description: |-
+        Ingests one event. A duplicate (external_subscription_id,
+         transaction_id) is accepted and ignored.
       operationId: tanvo.event.v1.EventService.IngestEvent
       requestBody:
         description: The event.
@@ -3732,7 +3735,7 @@ paths:
       summary: ReplaceEvent
       description: |-
         Replaces an event's code, timestamp, properties or amount, keeping its
-         transaction ID; usage is recomputed and an audit entry recorded.
+         subscription and transaction ID; usage is recomputed and an audit entry recorded.
          Events already invoiced cannot be replaced.
       operationId: tanvo.event.v1.EventService.ReplaceEvent
       parameters:
@@ -3753,14 +3756,18 @@ paths:
             title: reason
             maxLength: 1024
       requestBody:
-        description: The replacement; event.transaction_id selects the event.
+        description: |-
+          The replacement; event.external_subscription_id and
+           event.transaction_id select the event.
         content:
           application/json:
             schema:
               allOf:
                 - $ref: '#/components/schemas/tanvo.event.v1.Event'
               title: event
-              description: The replacement; event.transaction_id selects the event.
+              description: |-
+                The replacement; event.external_subscription_id and
+                 event.transaction_id select the event.
       responses:
         "200":
           description: Success
@@ -3773,7 +3780,9 @@ paths:
       tags:
         - EventService
       summary: GetEvent
-      description: Returns an event by transaction ID.
+      description: |-
+        Returns an event by transaction ID, of one subscription or, without
+         one, the first ingested.
       operationId: tanvo.event.v1.EventService.GetEvent
       parameters:
         - name: transaction_id
@@ -3785,6 +3794,14 @@ paths:
           schema:
             type: string
             title: transaction_id
+        - name: external_subscription_id
+          in: query
+          description: |-
+            The subscription the event belongs to; when empty, the event first
+             ingested with the transaction ID, whatever its subscription.
+          schema:
+            type: string
+            title: external_subscription_id
       responses:
         "200":
           description: Success
@@ -23588,6 +23605,12 @@ components:
           description: |
             The event's transaction ID.
             string.code = true
+        external_subscription_id:
+          type: string
+          title: external_subscription_id
+          description: |-
+            The subscription the event belongs to; when empty, the event first
+             ingested with the transaction ID, whatever its subscription.
       title: GetEventRequest
       required:
         - transaction_id
@@ -23753,7 +23776,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/tanvo.event.v1.Event'
           title: event
-          description: The replacement; event.transaction_id selects the event.
+          description: |-
+            The replacement; event.external_subscription_id and
+             event.transaction_id select the event.
         reason:
           type: string
           title: reason
@@ -34666,7 +34691,8 @@ tags:
   - name: EventService
     description: |-
       EventService ingests and reads usage events. Events are deduplicated per
-       organization by transaction_id.
+       organization and subscription by (external_subscription_id,
+       transaction_id): one transaction ID under two subscriptions is two events.
   - name: DataExportService
     description: |-
       DataExportService starts data exports and returns their files. An

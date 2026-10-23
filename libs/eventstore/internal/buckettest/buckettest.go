@@ -196,8 +196,14 @@ func totals(t *testing.T, s Backend, numeric bool) (metering.BucketTotal, bool) 
 	return rows[0], ok
 }
 
-// Run runs the maintenance tests.
-func Run(t *testing.T, open Open) {
+// Peers returns n backends over the storage of s, as writers in other
+// processes see it: for the concurrent writers to run apart from any
+// coordination within a process.
+type Peers func(s Backend, n int) []Backend
+
+// Run runs the maintenance tests. With peers, the concurrent writers run
+// once through s and once through peers of it.
+func Run(t *testing.T, open Open, peers ...Peers) {
 	t.Run("late events", func(t *testing.T) {
 		s := open(t)
 		define(t, s, countDef, valueDef)
@@ -223,6 +229,41 @@ func Run(t *testing.T, open Open) {
 			t.Errorf("duplicates got = %v, want = [0 1 3]", dups)
 		}
 		wantSnapshot(t, check(t, s), "count=2 sum=5/2 max=4/2 last=1/2")
+	})
+	t.Run("a transaction ID under two subscriptions is two events", func(t *testing.T) {
+		s := open(t)
+		define(t, s, countDef, valueDef)
+		other := ev("a", at(10, 0), "40")
+		other.SubscriptionID = "sub_other"
+		if dups := write(t, s, ev("a", at(10, 0), "4"), other); len(dups) != 0 {
+			t.Errorf("duplicates got = %v, want = []", dups)
+		}
+		if dups := write(t, s, other, ev("a", at(11, 0), "5")); !slices.Equal(dups, []int{0, 1}) {
+			t.Errorf("duplicates got = %v, want = [0 1]", dups)
+		}
+		wantSnapshot(t, check(t, s), "count=1 sum=4/1 max=4/1 last=4/1")
+		q := metering.Query{OrganizationID: org, SubscriptionID: "sub_other", Code: code, From: day, To: day.Add(24*time.Hour - time.Millisecond)}
+		if n, err := s.Count(t.Context(), q); err != nil || n != 1 {
+			t.Errorf("other subscription count got = %d %v, want = 1 <nil>", n, err)
+		}
+	})
+	t.Run("replace moves the event", func(t *testing.T) {
+		s := open(t)
+		define(t, s, countDef, valueDef)
+		write(t, s, ev("a", at(10, 0), "4", "region", "eu"), ev("b", at(10, 5), "1", "region", "eu"))
+		// To another timestamp, in another bucket: the event leaves its
+		// bucket.
+		replace(t, s, ev("a", at(12, 0), "4", "region", "eu"))
+		wantSnapshot(t, check(t, s), "count=2 sum=5/2 max=4/2 last=4/2")
+		// To another code: the event leaves the code.
+		moved := ev("a", at(12, 0), "4", "region", "eu")
+		moved.Code = "other"
+		replace(t, s, moved)
+		wantSnapshot(t, check(t, s), "count=1 sum=1/1 max=1/1 last=1/1")
+		// The moved event is still known.
+		if dups := write(t, s, ev("a", at(9, 0), "7")); !slices.Equal(dups, []int{0}) {
+			t.Errorf("duplicates got = %v, want = [0]", dups)
+		}
 	})
 	t.Run("replace corrects the bucket", func(t *testing.T) {
 		s := open(t)
@@ -408,12 +449,27 @@ func Run(t *testing.T, open Open) {
 		}
 		check(t, s)
 	})
-	t.Run("concurrent writers", func(t *testing.T) {
+	same := func(s Backend, n int) []Backend { return slices.Repeat([]Backend{s}, n) }
+	for i, p := range append([]Peers{same}, peers...) {
+		concurrent(t, open, p, i > 0)
+	}
+}
+
+// concurrent runs writers of the same buckets concurrently, through the
+// backends of peers.
+func concurrent(t *testing.T, open Open, peers Peers, apart bool) {
+	name := "concurrent writers"
+	if apart {
+		name += " of other processes"
+	}
+	t.Run(name, func(t *testing.T) {
 		s := open(t)
 		define(t, s, countDef)
+		ws := peers(s, 8)
 		var wg sync.WaitGroup
 		errs := make(chan error, 64)
 		for w := range 8 {
+			s := ws[w]
 			wg.Go(func() {
 				for i := range 8 {
 					// Every writer hits the same few buckets, re-sends the

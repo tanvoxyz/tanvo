@@ -53,7 +53,7 @@ type EnrichedSink interface {
 }
 
 // EnrichedProducer produces to the enriched events topic, keyed by
-// (organization, transaction ID).
+// (organization, external subscription ID) ([ingest.Enriched.Key]).
 type EnrichedProducer struct {
 	// Client produces.
 	Client *kgo.Client

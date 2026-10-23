@@ -232,7 +232,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 ### 7.1 摄取路径
 ```text
 POST /v1/events, /v1/events:batch
-        │ validate, normalize, deduplicate (organization_id, transaction_id)
+        │ validate, normalize, deduplicate (organization_id, external_subscription_id, transaction_id)
         ├── mode "postgres": insert raw + enriched rows in one transaction
         └── mode "kafka":    produce to events.raw
                                └─ ingest consumers: enrich → events.enriched ─┬→ ClickHouse writer (batched)
@@ -253,10 +253,10 @@ POST /v1/events, /v1/events:batch
 ### 7.4 事件存储（libs/eventstore）
 * `EventStore` 端口提供计量库所需的聚合查询：计数、求和、最大值、最新值、带增删语义的唯一计数、按时间加权的求和、分组变体、按比例变体与明细，全部以一个计费周期和过滤器为界。
 * **PostgreSQL**：富化事件存放在按月份与组织哈希分区的表中。
-* **ClickHouse**：`events_raw` 与 `events_enriched` 为按交易去重的 `ReplacingMergeTree` 表，由摄取消费者批量写入；活动日志、API 日志与安全日志也存放在这里。聚合值按 `Decimal(76, 26)` 读取，因此摄取时拒绝整数部分超过 50 位的数值属性，而不是让 ClickHouse 把它读成零；Kafka 的分区键为（组织，交易），使每个交易只由一个消费者去重。Lago 生产原始事件时不带键（fec71c637）；这个键是刻意的差异。
+* **ClickHouse**：`events_raw`（账本，按（组织，外部订阅，事务 ID）去重）与 `events_enriched` 为 `ReplacingMergeTree` 表，由摄取消费者批量写入；活动日志、API 日志与安全日志也存放在这里。聚合值按 `Decimal(76, 26)` 读取，因此摄取时拒绝整数部分超过 50 位的数值属性，而不是让 ClickHouse 把它读成零。`events.raw` 以去重键为分区键，`events.enriched` 以（组织，外部订阅）为分区键，因此一个键的所有副本在一个分区上保持有序，同一时刻只有一个写入消费者存储某个订阅的事件并维护其桶：写入者先看到一个键的第一个副本，再看到之后的副本，写入者之间无需解析副本。这把单个订阅的吞吐量限制在一个写入消费者，且一个组织中没有订阅的事件共用一个键。Lago 生产原始事件时不带键（fec71c637）；这些键是刻意的差异。
 * **15 分钟**（UTC）的**用量桶**在两种存储中为当前用量查询提供支撑。桶定义指明指标代码、被聚合的属性与维度（其计费项的过滤键、定价分组键与展示键，并始终包含 `target_wallet_code`）；桶的行以（组织、外部订阅 ID、代码、定义、桶、维度取值）为键，过滤键中不属于指标已声明取值的值折叠为同一个"其他"值，从而限定行数，并保持计费项过滤器的精确性，因为过滤器只接受已声明的取值。行存储 `units`、`events_count`、`precise_total_amount`，以及最后事件与摄取时刻。计费项过滤器在读取时按维度匹配，因此修改计费项永远不会使用量桶过期。
 * 用量桶服务于可以跨桶合并的聚合（count、sum、max、latest）以及只需要总量的计费模型（standard、graduated、package、volume、graduated percentage、dynamic）；预付、按比例、周期性计费项、接受目标钱包的计费项以及其他聚合读取事件。查询读取窗口内的整桶，窗口两端的部分桶则从事件读取，因此结果与事件路径完全相同（lago-api 把窗口扩大到整桶，这对它安全只是因为它的桶记录内部订阅；Tanvo 的外部订阅 ID 在升级前后共用）。
-* 用量桶在存储事件的同一次写入中维护，因此没有需要等待的延迟。在 PostgreSQL 上，每次写入在其事务中、在 advisory lock 下更新涉及的桶；替换事件会重建其桶；新定义在写入者已开始维护它的同时分块回填，就绪后才服务读取。在 ClickHouse 上，每次写入以递增的版本从 `events_enriched FINAL` 重算涉及的桶，读取保留最高版本；在多副本表上，维护以 `insert_quorum` 插入、以 `select_sequential_consistency` 读取，并由周期性的 `RepairBuckets` 扫描重算最近存储事件的桶，这也修复了在存储事件与更新桶之间失败的写入。扫描的水位是写入者的时钟，因此每次从上次扫描之前留出余量开始，以覆盖写入者之间的时钟偏差。一次写入的成本随桶中已有事件数增长（在约 35 ms 的固定成本之上，每个事件约 1 µs）。
+* 用量桶在存储事件的同一次写入中维护，因此没有需要等待的延迟。在 PostgreSQL 上，每次写入在其事务中、在 advisory lock 下更新涉及的桶；替换事件会重建其桶；新定义在写入者已开始维护它的同时分块回填，就绪后才服务读取。在 ClickHouse 上，每次写入把其事件合并进涉及桶的当前行，版本加一（替换则从 `events_enriched FINAL` 重算），插入后检查冲突的写入，并重算冲突的桶；读取保留最高版本。在多副本表上，维护以 `insert_quorum` 插入、以 `select_sequential_consistency` 读取。周期性的 `RepairBuckets` 扫描是正确性所必需的，它重算最近存储事件的桶：修复在存储事件与更新桶之间失败的写入，以及被后台合并对检查隐藏的冲突。它每 5 到 15 分钟运行一次，水位（写入者的时钟）取上次扫描开始时间之前一段余量（10 分钟）。一次写入的成本与其批次及其桶的行数成正比，而不随桶中已有事件数增长。
 * `BucketStats` 报告每个定义的行数；行数过多的定义由周期任务删除，使其读取回到事件路径，而不是拒绝写入。
 
 ### 7.5 计量（libs/metering）

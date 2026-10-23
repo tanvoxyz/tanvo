@@ -66,3 +66,27 @@ func TestMarshalDeadLetter(t *testing.T) {
 		}
 	}
 }
+
+func TestPartitionKeys(t *testing.T) {
+	t.Parallel()
+	org := testOrg.String()
+	tests := []struct {
+		name string
+		got  []byte
+		want string
+	}{
+		{"raw by deduplication key", (&RawMessage{OrganizationID: testOrg, TransactionID: "tr_1", ExternalSubscriptionID: "sub_1"}).Key(), org + "/sub_1/tr_1"},
+		{"raw of another subscription", (&RawMessage{OrganizationID: testOrg, TransactionID: "tr_1", ExternalSubscriptionID: "sub_2"}).Key(), org + "/sub_2/tr_1"},
+		{"raw without a subscription", (&RawMessage{OrganizationID: testOrg, TransactionID: "tr_1"}).Key(), org + "//tr_1"},
+		{"enriched by subscription", (&Enriched{OrganizationID: testOrg, TransactionID: "tr_1", ExternalSubscriptionID: "sub_1"}).Key(), org + "/sub_1"},
+		{"enriched of another transaction", (&Enriched{OrganizationID: testOrg, TransactionID: "tr_2", ExternalSubscriptionID: "sub_1"}).Key(), org + "/sub_1"},
+		{"enriched resend with another subscription", (&Enriched{OrganizationID: testOrg, TransactionID: "tr_1", ExternalSubscriptionID: "sub_2"}).Key(), org + "/sub_2"},
+		{"enriched of an unmatched subscription", (&Enriched{OrganizationID: testOrg, TransactionID: "tr_3", ExternalSubscriptionID: "sub_x"}).Key(), org + "/sub_x"},
+		{"enriched without a subscription", (&Enriched{OrganizationID: testOrg, TransactionID: "tr_4"}).Key(), org + "/"},
+	}
+	for _, tt := range tests {
+		if string(tt.got) != tt.want {
+			t.Errorf("%s: key got = %q, want = %q", tt.name, tt.got, tt.want)
+		}
+	}
+}

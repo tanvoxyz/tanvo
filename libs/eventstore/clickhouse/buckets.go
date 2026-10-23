@@ -22,189 +22,12 @@ var (
 	_ eventstore.BucketDefiner = (*Store)(nil)
 )
 
-// bucketMicros is the width of a bucket in microseconds.
-const bucketMicros = int64(metering.BucketWidth / time.Microsecond)
-
-// bucketUs is the expression of the bucket, in microseconds since the
-// epoch, of the timestamp of an event.
-var bucketUs = fmt.Sprintf("intDiv(toUnixTimestamp64Micro(timestamp), %[1]d) * %[1]d", bucketMicros)
-
-const bucketColumns = `organization_id, code, subscription_id, definition_id, bucket, dimensions, dimensions_key,
-	events_count, precise_total_amount_cents, last_event_at, last_ingested_at,
-	value_count, units, max_value, latest_value, latest_at, latest_sequence, value_precise_total_amount_cents, version`
-
-// recomputeSQL returns the statement aggregating the events selected by
-// scope (conditions on the sorting key of events_enriched) into the rows
-// of the buckets of the definitions selected by defs, versioned by the sum
-// of the sequences of each bucket's events.
-func recomputeSQL(scope, defs string) string {
-	zero := fmt.Sprintf("toDecimal256(0, %d)", scale)
-	return `INSERT INTO usage_buckets_15m (` + bucketColumns + `)
-WITH
-ev AS (
-	SELECT organization_id, code, subscription_id, timestamp, sequence, properties,
-		precise_total_amount_cents AS amount, ingested_at, ` + bucketUs + ` AS bucket_us
-	FROM events_enriched FINAL
-	WHERE ` + scope + `
-),
-versions AS (
-	SELECT code, subscription_id, bucket_us, sum(toUInt256(sequence)) AS version FROM ev GROUP BY code, subscription_id, bucket_us
-),
-defs AS (
-	SELECT organization_id, code, definition_id, property, dimensions, fold FROM usage_bucket_definitions FINAL WHERE ` + defs + `
-),
-valued AS (
-	SELECT ev.*, d.definition_id AS definition_id,
-		mapSort(mapApply((k, v) -> (k, if(v != '' AND mapContains(d.fold, k) AND NOT has(d.fold[k], v), ` + "'" + metering.BucketOtherValue + "'" + `, v)),
-			mapFilter((k, v) -> has(d.dimensions, k), ev.properties))) AS dims,
-		d.property != '' AND match(ev.properties[d.property], ` + numericPattern + `) AS isnum,
-		toDecimal256OrZero(ev.properties[d.property], ` + fmt.Sprint(scale) + `) AS value
-	FROM ev INNER JOIN defs d ON ev.organization_id = d.organization_id AND ev.code = d.code
-),
-rows AS (
-	SELECT organization_id, code, subscription_id, definition_id, bucket_us, dims,
-		count() AS n, sum(ifNull(amount, ` + zero + `)) AS amt, max(timestamp) AS last_at, max(ingested_at) AS ingested,
-		countIf(isnum) AS vn, sumIf(value, isnum) AS units, maxIfOrNull(value, isnum) AS max_value,
-		argMaxIfOrNull(value, (timestamp, sequence), isnum) AS latest_value,
-		maxIfOrNull(timestamp, isnum) AS latest_at,
-		argMaxIf(sequence, (timestamp, sequence), isnum) AS latest_sequence,
-		sumIf(ifNull(amount, ` + zero + `), isnum) AS vamt
-	FROM valued
-	GROUP BY organization_id, code, subscription_id, definition_id, bucket_us, dims
-)
-SELECT r.organization_id, r.code, r.subscription_id, r.definition_id, fromUnixTimestamp64Micro(r.bucket_us, 'UTC'),
-	r.dims, toString(r.dims), r.n, r.amt, r.last_at, r.ingested, r.vn, r.units, r.max_value, r.latest_value,
-	r.latest_at, r.latest_sequence, r.vamt, v.version
-FROM rows r INNER JOIN versions v ON r.code = v.code AND r.subscription_id = v.subscription_id AND r.bucket_us = v.bucket_us`
-}
-
-// tombstoneSQL tombstones the rows of the touched buckets that the highest
-// version of their bucket no longer holds: rows of dimension values the
-// events of the bucket left.
-const tombstoneSQL = `INSERT INTO usage_buckets_15m (organization_id, code, subscription_id, definition_id, bucket, dimensions, dimensions_key, version, is_deleted)
-SELECT organization_id, code, subscription_id, definition_id, bucket, dimensions, dimensions_key, top, 1
-FROM (
-	SELECT organization_id, code, subscription_id, definition_id, bucket, dimensions, dimensions_key, version,
-		max(version) OVER (PARTITION BY code, subscription_id, definition_id, bucket) AS top
-	FROM usage_buckets_15m FINAL
-	WHERE organization_id = $1 AND code IN $2 AND bucket >= fromUnixTimestamp64Micro($3, 'UTC') AND bucket <= fromUnixTimestamp64Micro($4, 'UTC')
-		AND has(arrayZip(CAST($5 AS Array(String)), CAST($6 AS Array(String)), CAST($7 AS Array(Int64))), (code, subscription_id, toUnixTimestamp64Micro(bucket)))
-)
-WHERE version < top`
-
-// touched is the buckets an organization's write touched, of the codes
-// with definitions.
-type touched struct {
-	org                  string
-	codes, keyCodes      []string
-	keySubs              []string
-	keyBuckets           []int64
-	minBucket, maxBucket int64
-}
-
-// touchedBuckets returns, per organization, the buckets of the rows whose
-// code has definitions (written ready or not).
-func (s *Store) touchedBuckets(ctx context.Context, rows []row) ([]touched, error) {
-	var orgs []string
-	codes := map[string][]any{}
-	for _, r := range rows {
-		if _, ok := codes[r.OrganizationID]; !ok {
-			orgs = append(orgs, r.OrganizationID)
-		}
-		if !slices.Contains(codes[r.OrganizationID], any(r.Code)) {
-			codes[r.OrganizationID] = append(codes[r.OrganizationID], r.Code)
-		}
-	}
-	var out []touched
-	for _, org := range orgs {
-		defined := map[string]bool{}
-		var code string
-		err := s.each(ctx, `SELECT DISTINCT code FROM usage_bucket_definitions FINAL WHERE organization_id = $1 AND code IN $2`,
-			args{org, ch.GroupSet{Value: codes[org]}}, []any{&code}, func() error {
-				defined[code] = true
-				return nil
-			})
-		if err != nil {
-			return nil, err
-		}
-		if len(defined) == 0 {
-			continue
-		}
-		t := touched{org: org}
-		seen := map[string]bool{}
-		for _, r := range rows {
-			if r.OrganizationID != org || !defined[r.Code] {
-				continue
-			}
-			b := metering.BucketFloor(r.Timestamp).UnixMicro()
-			k := r.Code + "\x00" + r.SubscriptionID + "\x00" + fmt.Sprint(b)
-			if seen[k] {
-				continue
-			}
-			if len(seen) == 0 || b < t.minBucket {
-				t.minBucket = b
-			}
-			if len(seen) == 0 || b > t.maxBucket {
-				t.maxBucket = b
-			}
-			seen[k] = true
-			if !slices.Contains(t.codes, r.Code) {
-				t.codes = append(t.codes, r.Code)
-			}
-			t.keyCodes = append(t.keyCodes, r.Code)
-			t.keySubs = append(t.keySubs, r.SubscriptionID)
-			t.keyBuckets = append(t.keyBuckets, b)
-		}
-		out = append(out, t)
-	}
-	return out, nil
-}
-
-// codesSet returns the codes as a set parameter.
-func codesSet(codes []string) ch.GroupSet {
-	v := make([]any, len(codes))
-	for i, c := range codes {
-		v[i] = c
-	}
-	return ch.GroupSet{Value: v}
-}
-
-// maintain recomputes the buckets the rows touched, once inserted, and with
-// tombstones tombstones the rows they left. A writer reads the definitions
-// after its insert, so that a definition it does not see is backfilled
-// from events that include its rows.
-func (s *Store) maintain(ctx context.Context, rows []row, tombstones bool) error {
-	ctx = consistent(ctx)
-	all, err := s.touchedBuckets(ctx, rows)
-	if err != nil {
-		return fmt.Errorf("buckets: %w", err)
-	}
-	for _, t := range all {
-		var a args
-		scope := fmt.Sprintf(`organization_id = %s AND code IN %s
-		AND timestamp >= fromUnixTimestamp64Micro(%s, 'UTC') AND timestamp < fromUnixTimestamp64Micro(%s, 'UTC')
-		AND has(arrayZip(CAST(%s AS Array(String)), CAST(%s AS Array(String)), CAST(%s AS Array(Int64))), (code, subscription_id, %s))`,
-			a.add(t.org), a.add(codesSet(t.codes)), a.add(t.minBucket), a.add(t.maxBucket+bucketMicros),
-			a.add(t.keyCodes), a.add(t.keySubs), a.add(t.keyBuckets), bucketUs)
-		defs := "organization_id = " + a.add(t.org) + " AND code IN " + a.add(codesSet(t.codes))
-		if err := s.conn.Exec(ctx, recomputeSQL(scope, defs), a...); err != nil {
-			return fmt.Errorf("recompute buckets: %w", err)
-		}
-		if !tombstones {
-			continue
-		}
-		if err := s.conn.Exec(ctx, tombstoneSQL, t.org, codesSet(t.codes), t.minBucket, t.maxBucket, t.keyCodes, t.keySubs, t.keyBuckets); err != nil {
-			return fmt.Errorf("tombstone buckets: %w", err)
-		}
-	}
-	return nil
-}
-
 // consistent returns ctx with the settings of the bucket maintenance on
 // replicated tables (ReplicatedMergeTree, SharedMergeTree): inserts return
 // once a quorum of replicas holds them, and reads see every insert a quorum
-// acknowledged. Two writers recomputing a bucket then read nested sets of
-// its events, and the highest version holds them all. Tables that are not
+// acknowledged. A writer then reads every row and event another writer
+// wrote before, which the versions and the conflict checks of the bucket
+// maintenance rely on (see [Store.conflicts]). Tables that are not
 // replicated ignore both.
 func consistent(ctx context.Context) context.Context {
 	return ch.Context(ctx, ch.WithSettings(ch.Settings{
@@ -274,9 +97,11 @@ func (s *Store) writeDefinition(ctx context.Context, d metering.BucketDefinition
 
 // DefineBuckets implements [eventstore.BucketDefiner]. The definition is
 // written not ready, so that writers maintain it, then its buckets are
-// backfilled from every stored event of the code, then it is written
-// ready. A writer that missed the definition inserted its events before the
-// definition was written, hence before the backfill read them.
+// backfilled from every stored event of the code, a page of buckets at a
+// time, then it is written ready. A writer that missed the definition
+// inserted its events before the definition was written, hence before the
+// backfill read them; a writer that saw it merges into its rows or
+// recomputes them, as for any definition.
 func (s *Store) DefineBuckets(ctx context.Context, d metering.BucketDefinition) error {
 	if err := checkDefinition(d); err != nil {
 		return wrap("define buckets", err)
@@ -292,13 +117,44 @@ func (s *Store) DefineBuckets(ctx context.Context, d metering.BucketDefinition) 
 	if err := s.writeDefinition(ctx, d, false, false); err != nil {
 		return wrap("define buckets", err)
 	}
-	var a args
-	scope := "organization_id = " + a.add(d.OrganizationID) + " AND code = " + a.add(d.Code)
-	defs := scope + " AND definition_id = " + a.add(d.ID())
-	if err := s.conn.Exec(consistent(ctx), recomputeSQL(scope, defs), a...); err != nil {
+	if err := s.backfill(consistent(ctx), d); err != nil {
 		return wrap("define buckets: backfill", err)
 	}
 	return wrap("define buckets", s.writeDefinition(ctx, d, true, false))
+}
+
+// backfill recomputes the rows of the definition in every bucket holding
+// events of its code, by pages of buckets in (subscription, bucket) order.
+func (s *Store) backfill(ctx context.Context, d metering.BucketDefinition) error {
+	var (
+		after bucketKey
+		first = true
+	)
+	for {
+		page := buckets{org: d.OrganizationID}
+		a := args{d.OrganizationID, d.Code}
+		where := ""
+		if !first {
+			where = " AND (subscription_id, " + bucketUs + ") > (" + a.add(after.sub) + ", " + a.add(after.us) + ")"
+		}
+		k := bucketKey{code: d.Code}
+		err := s.each(ctx, `SELECT DISTINCT subscription_id, `+bucketUs+` AS us FROM events_enriched
+			WHERE organization_id = $1 AND code = $2`+where+` ORDER BY 1, 2 LIMIT `+fmt.Sprint(repairChunk),
+			a, []any{&k.sub, &k.us}, func() error {
+				page.keys = append(page.keys, k)
+				return nil
+			})
+		if err != nil {
+			return err
+		}
+		if len(page.keys) == 0 {
+			return nil
+		}
+		if err := s.recompute(ctx, page, d.ID()); err != nil {
+			return err
+		}
+		after, first = page.keys[len(page.keys)-1], false
+	}
 }
 
 // DropBuckets implements [eventstore.BucketDefiner].
@@ -365,7 +221,7 @@ func (s *Store) ReadBuckets(ctx context.Context, r metering.BucketRead) ([]meter
 	if q.Numeric {
 		count, amount, last = "value_count", "value_precise_total_amount_cents", "latest_at"
 	}
-	where := append([]string{"version = top", "is_deleted = 0"}, filterConditions(&a, "dimensions", q)...)
+	where := append([]string{"is_deleted = 0"}, filterConditions(&a, "dimensions", q)...)
 
 	var cols, keys []string
 	for i, k := range r.By {
@@ -386,12 +242,9 @@ func (s *Store) ReadBuckets(ctx context.Context, r metering.BucketRead) ([]meter
 		cols = append(cols, "argMaxIfOrNull(nullIf(dimensions["+a.add(k)+"], '')"+latestOf)
 	}
 	sql := `SELECT ` + strings.Join(cols, ", ") + `
-FROM (
-	SELECT *, max(version) OVER (PARTITION BY bucket) AS top
-	FROM usage_buckets_15m FINAL
-	WHERE ` + strings.Join(bounds, " AND ") + `
-)
-WHERE ` + strings.Join(where, " AND ") + `
+FROM usage_buckets_15m FINAL
+WHERE ` + strings.Join(bounds, " AND ") + `
+	AND ` + strings.Join(where, " AND ") + `
 ` + groupBy(keys) + ` HAVING count() > 0`
 	if r.PerBucket {
 		sql += " ORDER BY bucket"
@@ -460,44 +313,6 @@ WHERE ` + strings.Join(where, " AND ") + `
 	return out, true, nil
 }
 
-// repairChunk is the number of buckets a repair recomputes per statement.
-const repairChunk = 1000
-
-// RepairBuckets recomputes the buckets of the events stored with a
-// sequence at or after since (the store's sequences are the writers'
-// clocks in nanoseconds), and tombstones the rows they left. It heals the
-// buckets a write left stale: a write failing between its insert and its
-// maintenance whose retry never came, or, on replicated tables, recomputes
-// that ran against replicas missing a concurrent insert. A periodic job
-// calls it with a watermark trailing the previous run by more than the
-// longest write and the clock skew between writers.
-func (s *Store) RepairBuckets(ctx context.Context, since time.Time) error {
-	ctx = consistent(ctx)
-	var (
-		r       row
-		buckets []row
-	)
-	err := s.each(ctx, `SELECT DISTINCT e.organization_id, e.code, e.subscription_id, fromUnixTimestamp64Micro(`+bucketUs+`, 'UTC')
-		FROM events_enriched e
-		WHERE e.sequence >= $1 AND (e.organization_id, e.code) IN (
-			SELECT organization_id, code FROM usage_bucket_definitions FINAL
-		)
-		ORDER BY 1, 2, 3, 4`, args{uint64(max(since.UnixNano(), 0))},
-		[]any{&r.OrganizationID, &r.Code, &r.SubscriptionID, &r.Timestamp}, func() error {
-			buckets = append(buckets, r)
-			return nil
-		})
-	if err != nil {
-		return wrap("repair buckets", err)
-	}
-	for chunk := range slices.Chunk(buckets, repairChunk) {
-		if err := s.maintain(ctx, chunk, true); err != nil {
-			return wrap("repair buckets", err)
-		}
-	}
-	return nil
-}
-
 // BucketStats implements [eventstore.BucketDefiner].
 func (s *Store) BucketStats(ctx context.Context, d metering.BucketDefinition) (eventstore.BucketStats, error) {
 	if err := checkDefinition(d); err != nil {
@@ -505,10 +320,9 @@ func (s *Store) BucketStats(ctx context.Context, d metering.BucketDefinition) (e
 	}
 	var st eventstore.BucketStats
 	err := s.each(ctx, `SELECT toInt64(sum(n)), toInt64(max(n)) FROM (
-		SELECT count() AS n FROM (
-			SELECT subscription_id, bucket, is_deleted, version = max(version) OVER (PARTITION BY subscription_id, bucket) AS top
-			FROM usage_buckets_15m FINAL WHERE organization_id = $1 AND code = $2 AND definition_id = $3
-		) WHERE top AND is_deleted = 0 GROUP BY subscription_id, bucket
+		SELECT count() AS n FROM usage_buckets_15m FINAL
+		WHERE organization_id = $1 AND code = $2 AND definition_id = $3 AND is_deleted = 0
+		GROUP BY subscription_id, bucket
 	)`, args{d.OrganizationID, d.Code, d.Normalize().ID()}, []any{&st.Rows, &st.MaxRowsPerBucket}, func() error { return nil })
 	return st, wrap("bucket stats", err)
 }

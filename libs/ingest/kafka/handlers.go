@@ -89,7 +89,8 @@ func decodeEnriched(recs []*kgo.Record, results []Result) ([]*ingest.Enriched, [
 
 // Writer returns the handler of the enriched events topic that stores
 // events: each polled batch is one [ingest.EventWriter.Write], which drops
-// the duplicates of stored transaction IDs. After a successful write, the
+// the duplicates of stored events (by organization, external subscription
+// ID and transaction ID). After a successful write, the
 // batch's usage refresh signals go to signals (when not nil); a failed
 // signal is logged, not retried, since the periodic sweep stays
 // authoritative. A failed write retries the batch.
@@ -127,7 +128,7 @@ func Writer(w ingest.EventWriter, signals ingest.UsageSignaler, logger *slog.Log
 // InAdvance returns the handler of the enriched events topic that routes
 // in-advance events to billing; it runs in its own consumer group. A
 // failed billing retries the batch's in-advance events; the biller is
-// idempotent on (organization, transaction ID).
+// idempotent on (organization, external subscription ID, transaction ID).
 func InAdvance(b ingest.InAdvanceBiller) Handler {
 	return func(ctx context.Context, recs []*kgo.Record) []Result {
 		results := make([]Result, len(recs))

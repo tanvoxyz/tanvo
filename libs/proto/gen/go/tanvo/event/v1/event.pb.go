@@ -1755,12 +1755,13 @@ func (b0 IngestEventsResponse_builder) Build() *IngestEventsResponse {
 
 // GetEventRequest is the request of EventService.GetEvent.
 type GetEventRequest struct {
-	state                    protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_TransactionId *string                `protobuf:"bytes,1,opt,name=transaction_id,json=transactionId"`
-	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
-	XXX_presence             [1]uint32
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_TransactionId          *string                `protobuf:"bytes,1,opt,name=transaction_id,json=transactionId"`
+	xxx_hidden_ExternalSubscriptionId *string                `protobuf:"bytes,2,opt,name=external_subscription_id,json=externalSubscriptionId"`
+	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
+	XXX_presence                      [1]uint32
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *GetEventRequest) Reset() {
@@ -1798,9 +1799,24 @@ func (x *GetEventRequest) GetTransactionId() string {
 	return ""
 }
 
+func (x *GetEventRequest) GetExternalSubscriptionId() string {
+	if x != nil {
+		if x.xxx_hidden_ExternalSubscriptionId != nil {
+			return *x.xxx_hidden_ExternalSubscriptionId
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *GetEventRequest) SetTransactionId(v string) {
 	x.xxx_hidden_TransactionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *GetEventRequest) SetExternalSubscriptionId(v string) {
+	x.xxx_hidden_ExternalSubscriptionId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *GetEventRequest) HasTransactionId() bool {
@@ -1810,9 +1826,21 @@ func (x *GetEventRequest) HasTransactionId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
+func (x *GetEventRequest) HasExternalSubscriptionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
 func (x *GetEventRequest) ClearTransactionId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_TransactionId = nil
+}
+
+func (x *GetEventRequest) ClearExternalSubscriptionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ExternalSubscriptionId = nil
 }
 
 type GetEventRequest_builder struct {
@@ -1820,6 +1848,9 @@ type GetEventRequest_builder struct {
 
 	// The event's transaction ID.
 	TransactionId *string
+	// The subscription the event belongs to; when empty, the event first
+	// ingested with the transaction ID, whatever its subscription.
+	ExternalSubscriptionId *string
 }
 
 func (b0 GetEventRequest_builder) Build() *GetEventRequest {
@@ -1827,8 +1858,12 @@ func (b0 GetEventRequest_builder) Build() *GetEventRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.TransactionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
 		x.xxx_hidden_TransactionId = b.TransactionId
+	}
+	if b.ExternalSubscriptionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_ExternalSubscriptionId = b.ExternalSubscriptionId
 	}
 	return m0
 }
@@ -2477,7 +2512,8 @@ func (x *ReplaceEventRequest) ClearReason() {
 type ReplaceEventRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// The replacement; event.transaction_id selects the event.
+	// The replacement; event.external_subscription_id and
+	// event.transaction_id select the event.
 	Event *Event
 	// Why the event is replaced, kept in the audit log.
 	Reason *string
@@ -2908,10 +2944,11 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"\x06events\x18\x01 \x03(\v2\x15.tanvo.event.v1.EventB\x0e\xe2A\x01\x02\xbaH\a\x92\x01\x04\b\x01\x10dR\x06events:\xba\x01\xbaH\xb6\x01\x1a\xb3\x01\n" +
 	"\x0fevents.required\x12Cevery event needs transaction_id, external_subscription_id and code\x1a[this.events.all(e, has(e.transaction_id) && has(e.external_subscription_id) && has(e.code))\"M\n" +
 	"\x14IngestEventsResponse\x125\n" +
-	"\aresults\x18\x01 \x03(\v2\x1b.tanvo.event.v1.EventResultR\aresults\"K\n" +
+	"\aresults\x18\x01 \x03(\v2\x1b.tanvo.event.v1.EventResultR\aresults\"\x85\x01\n" +
 	"\x0fGetEventRequest\x128\n" +
 	"\x0etransaction_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe8\xa4\xca\x06\x01R\rtransactionId\"?\n" +
+	"\xc8\x01\x01r\x05\xe8\xa4\xca\x06\x01R\rtransactionId\x128\n" +
+	"\x18external_subscription_id\x18\x02 \x01(\tR\x16externalSubscriptionId\"?\n" +
 	"\x10GetEventResponse\x12+\n" +
 	"\x05event\x18\x01 \x01(\v2\x15.tanvo.event.v1.EventR\x05event\"\x87\x01\n" +
 	"\x11ListEventsRequest\x12'\n" +

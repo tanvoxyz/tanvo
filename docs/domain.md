@@ -799,7 +799,7 @@ Subscriptions of a customer billed at the same instant share an invoice when the
 
 Rules:
 * Batches contain at most 100 events; each event is validated independently.
-* **Deduplication [Change]**: the key is (organization, `transaction_id`). Lago uses (organization, external subscription, transaction ID). A re-sent known `transaction_id` is acknowledged as a duplicate and dropped; corrections go through the event replacement API. See §24, item 11.
+* **Deduplication**: the key is (organization, `external_subscription_id`, `transaction_id`), as Lago's unique index on events; one transaction ID under two subscriptions is two events. A re-sent known key is acknowledged as a duplicate and dropped, whatever its code and timestamp, in every event store; corrections go through the event replacement API, which locates the event by its key and may change its code and timestamp, not its subscription. Lago's ClickHouse store deduplicates at query time by (organization, subscription, code, transaction ID, timestamp) instead, so a re-send at another timestamp counts twice there; Tanvo keeps one semantics for both stores. See §24, item 11.
 
 ### 10.2 Enrichment and Validation
 * The event's subscription is the one with `external_id = external_subscription_id`, status `active` or `terminated`, and `started_at ≤ timestamp < terminated_at`. `pending`, `incomplete` and `canceled` subscriptions never match. For recurring metrics an event without a matching period falls back to the active subscription.
@@ -1640,7 +1640,7 @@ All numbers are assigned in the transaction that finalizes the document, under a
 | Payment amount | `total_amount` in some providers | always `total_due_amount` (§15.1) |
 | Refund status | provider status copied; `requires_action` and `canceled` rejected | mapped to `pending` and `failed` (§15.3) |
 | Receipt numbering | database trigger | same transaction, customer lock (§22.11) |
-| Event dedup key | (org, external subscription, transaction ID) | (org, transaction ID) (§10.1) |
+| ClickHouse event dedup | at query time, by (org, subscription, code, transaction ID, timestamp) | at write time, by (org, external subscription, transaction ID), as PostgreSQL (§10.1) |
 | Webhook signatures | JWT or HMAC | Standard Webhooks (§18.2) |
 | Billing schedule | hourly scans | per-subscription `next_billing_at` + reconciliation (§22.17) |
 | Deletion | `deleted_at` soft delete everywhere | lifecycle statuses + hard delete (§2.3) |
@@ -1670,7 +1670,7 @@ The questions raised while writing this model, and how Tanvo settles them. A lat
 8. **Payment receipt numbers** come from a counter on the customer row, taken under the row lock in the transaction that creates the receipt.
 9. **Lifetime usage** is maintained incrementally, from usage buckets for the charges they serve and from events for the others (architecture §7.4), with a periodic recompute as reconciliation.
 10. **Trial lengths** are whole days.
-11. **Event deduplication**: the key is (organization, `transaction_id`); the first accepted event wins, a re-send is acknowledged as a duplicate and dropped, and corrections go through event replacement on the API with an explicit audit entry. §10's replace-on-same-timestamp rule is superseded by this.
+11. **Event deduplication**: the key is (organization, `external_subscription_id`, `transaction_id`); the first accepted event wins, a re-send is acknowledged as a duplicate and dropped whatever its code and timestamp, and corrections go through event replacement on the API with an explicit audit entry. §10's replace-on-same-timestamp rule is superseded by this. *Changed on 2026-10-23*: the key was (organization, `transaction_id`); it now includes the external subscription, as Lago's does, so that clients reusing transaction IDs across subscriptions keep their events, and so that every copy of a key reaches the same ingest partition, which the per-subscription partitioning needs to deduplicate without resolving copies across writers.
 12. **Payment terms** are structured, as Lago is introducing them (columns added in 1d56e730e; the readers are still on its `feat-payment-terms-*` branches). A `PaymentTerm` is a `term_type` (`PaymentTermType`) with only the fields of its type: `days` (int ≥ 0) for `net`, `net_end_of_month` and `days_end_of_month`; `day_of_month` (1–31) and `month_offset` (0–12, default 1) for `day_of_month`; other fields are rejected. Net days are the `net` type, and Lago's `net_payment_term` integer alias is not kept. Due date from the issuing date `d`:
     * `due_on_receipt`: `d`;
     * `net`: `d + days`;

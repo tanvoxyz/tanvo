@@ -116,11 +116,13 @@ var (
 
 // EventServiceClient is a client for the tanvo.event.v1.EventService service.
 type EventServiceClient interface {
-	// Ingests one event. A duplicate transaction_id is accepted and ignored.
+	// Ingests one event. A duplicate (external_subscription_id,
+	// transaction_id) is accepted and ignored.
 	IngestEvent(context.Context, *v1.IngestEventRequest) (*v1.IngestEventResponse, error)
 	// Ingests up to 100 events; each is validated and deduplicated on its own.
 	IngestEvents(context.Context, *v1.IngestEventsRequest) (*v1.IngestEventsResponse, error)
-	// Returns an event by transaction ID.
+	// Returns an event by transaction ID, of one subscription or, without
+	// one, the first ingested.
 	GetEvent(context.Context, *v1.GetEventRequest) (*v1.GetEventResponse, error)
 	// Lists events, newest first.
 	ListEvents(context.Context, *v1.ListEventsRequest) (*v1.ListEventsResponse, error)
@@ -128,7 +130,7 @@ type EventServiceClient interface {
 	// and filter, with the computed value.
 	ListEnrichedEvents(context.Context, *v1.ListEnrichedEventsRequest) (*v1.ListEnrichedEventsResponse, error)
 	// Replaces an event's code, timestamp, properties or amount, keeping its
-	// transaction ID; usage is recomputed and an audit entry recorded.
+	// subscription and transaction ID; usage is recomputed and an audit entry recorded.
 	// Events already invoiced cannot be replaced.
 	ReplaceEvent(context.Context, *v1.ReplaceEventRequest) (*v1.ReplaceEventResponse, error)
 	// Estimates the fees an event would create on in-advance charges, without
@@ -147,11 +149,13 @@ func NewEventServiceClient(client *connect.Client) EventServiceClient {
 
 // EventServiceHandler is an implementation of the tanvo.event.v1.EventService service.
 type EventServiceHandler interface {
-	// Ingests one event. A duplicate transaction_id is accepted and ignored.
+	// Ingests one event. A duplicate (external_subscription_id,
+	// transaction_id) is accepted and ignored.
 	IngestEvent(context.Context, *v1.IngestEventRequest) (*v1.IngestEventResponse, error)
 	// Ingests up to 100 events; each is validated and deduplicated on its own.
 	IngestEvents(context.Context, *v1.IngestEventsRequest) (*v1.IngestEventsResponse, error)
-	// Returns an event by transaction ID.
+	// Returns an event by transaction ID, of one subscription or, without
+	// one, the first ingested.
 	GetEvent(context.Context, *v1.GetEventRequest) (*v1.GetEventResponse, error)
 	// Lists events, newest first.
 	ListEvents(context.Context, *v1.ListEventsRequest) (*v1.ListEventsResponse, error)
@@ -159,7 +163,7 @@ type EventServiceHandler interface {
 	// and filter, with the computed value.
 	ListEnrichedEvents(context.Context, *v1.ListEnrichedEventsRequest) (*v1.ListEnrichedEventsResponse, error)
 	// Replaces an event's code, timestamp, properties or amount, keeping its
-	// transaction ID; usage is recomputed and an audit entry recorded.
+	// subscription and transaction ID; usage is recomputed and an audit entry recorded.
 	// Events already invoiced cannot be replaced.
 	ReplaceEvent(context.Context, *v1.ReplaceEventRequest) (*v1.ReplaceEventResponse, error)
 	// Estimates the fees an event would create on in-advance charges, without

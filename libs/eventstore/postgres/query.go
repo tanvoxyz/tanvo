@@ -93,7 +93,7 @@ func newSelection(q metering.Query) (*selection, error) {
 		// The events sharing the timestamp of the closing event are
 		// selected up to it in ingestion order.
 		where = append(where, fmt.Sprintf(`(e."timestamp" < %[1]s OR e.sequence <= coalesce((
-			SELECT max(b.sequence) FROM events b WHERE %[2]s AND b."timestamp" = %[1]s AND b.transaction_id = %[3]s
+			SELECT max(b.sequence) FROM __schema__.events b WHERE %[2]s AND b."timestamp" = %[1]s AND b.transaction_id = %[3]s
 		), 9223372036854775807))`, until, strings.Join(scope, " AND "), a.add(q.UntilTransactionID)))
 	}
 
@@ -117,7 +117,7 @@ func newSelection(q metering.Query) (*selection, error) {
 		%s AS value, %s AS isnum, %s AS prop,
 		coalesce(e.properties->>'operation_type', 'add') AS op,
 		((e."timestamp" AT TIME ZONE %s)::date - DATE '1970-01-01') AS day
-	FROM events e
+	FROM __schema__.events e
 	WHERE %s
 )`, value, isnum, prop, tz, strings.Join(where, "\n\t\tAND "))
 	return s, nil

@@ -34,8 +34,10 @@ type Event struct {
 	OrganizationID string `json:"organization_id,omitempty"`
 	SubscriptionID string `json:"subscription_id,omitempty"`
 	Code           string `json:"code,omitempty"`
-	// TransactionID identifies the event. An event received again with the
-	// same transaction ID and timestamp replaces the earlier one.
+	// TransactionID identifies the event within its organization and
+	// subscription: the store holds one event per (OrganizationID,
+	// SubscriptionID, TransactionID), and a copy stored again with that key
+	// replaces the earlier one, whatever its code and timestamp.
 	TransactionID string    `json:"transaction_id,omitempty"`
 	Timestamp     time.Time `json:"timestamp"`
 	// Properties holds the event properties in their text form.

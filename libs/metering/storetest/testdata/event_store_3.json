@@ -1902,7 +1902,8 @@
       "want": 2
     },
     {
-      "name": "clickhouse count treats one transaction_id at different timestamps as distinct events",
+      "name": "one transaction_id at two timestamps of a subscription is one event, its latest copy",
+      "deviation": "Lago's ClickHouse store collapses copies by (code, organization, subscription, transaction ID, timestamp) at query time (app/services/events/stores/clickhouse_store.rb:13) and counts two; its PostgreSQL store and API reject the second (db/structure.sql:12094, validate_creation_service.rb:43-50). Tanvo keeps one event per (organization, subscription, transaction ID) in every store.",
       "source": "spec/services/events/stores/clickhouse_store_spec.rb:277",
       "events": [
         {
@@ -1927,7 +1928,7 @@
           "to": "2023-03-31T23:59:59.999999Z"
         }
       },
-      "want": 2
+      "want": 1
     },
     {
       "name": "clickhouse count excludes events outside the boundaries",

@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/tanvoxyz/tanvo/libs/eventstore/internal/benchdata"
-	"github.com/tanvoxyz/tanvo/libs/eventstore/postgres"
 )
 
 // BenchmarkQueries runs the hot aggregation queries over
@@ -14,9 +13,9 @@ func BenchmarkQueries(b *testing.B) {
 	n := benchdata.Size(b)
 	ctx := context.Background()
 	db := database(b)
-	store := postgres.New(db)
+	store := open(db)
 	benchdata.Load(ctx, b, store, n, 10_000)
-	if _, err := db.Exec(ctx, "VACUUM ANALYZE events"); err != nil {
+	if _, err := db.Exec(ctx, "VACUUM ANALYZE eventstore.events"); err != nil {
 		b.Fatal(err)
 	}
 	benchdata.Run(b, store)

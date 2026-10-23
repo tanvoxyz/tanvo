@@ -26,8 +26,9 @@ func BenchmarkQueries(b *testing.B) {
 }
 
 // BenchmarkHotBucketWrite writes one event per batch into a bucket already
-// holding n events, with a definition in place: the cost of the bucket
-// recompute a write runs, which reads every event of the touched buckets.
+// holding n events, with a definition in place: the merge a write runs
+// reads the bucket's current rows, not its events, so the cost does not
+// grow with n.
 func BenchmarkHotBucketWrite(b *testing.B) {
 	day := time.Date(2026, 3, 10, 10, 0, 0, 0, time.UTC)
 	def := metering.BucketDefinition{OrganizationID: "org_h", Code: "calls", Property: "value", Dimensions: []string{"region"}}

@@ -14,6 +14,16 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/eventstore/postgres"
 )
 
+// testSchema is the PostgreSQL schema of the event store under test: not
+// public, the search_path of the test pool, so that a statement leaving an
+// identifier unqualified fails.
+const testSchema = "eventstore"
+
+// open returns a store over db in the test schema.
+func open(db postgres.DB, opts ...postgres.Option) *postgres.Store {
+	return postgres.New(db, append([]postgres.Option{postgres.WithSchema(testSchema)}, opts...)...)
+}
+
 // testDB is the database of the integration tests: TANVO_TEST_POSTGRES_DSN
 // (a throwaway database, as the tests truncate the event tables) or a
 // postgres:18 container on the local Docker engine.
@@ -63,7 +73,7 @@ func run(m *testing.M) int {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
-	if err := postgres.Migrate(ctx, pool, postgres.MigrateOptions{}); err != nil {
+	if err := postgres.Migrate(ctx, pool, postgres.MigrateOptions{Schema: testSchema}); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
@@ -83,7 +93,7 @@ func database(t testing.TB) *pgxpool.Pool {
 
 func truncate(t testing.TB) {
 	t.Helper()
-	if _, err := testDB.pool.Exec(context.Background(), "TRUNCATE events, event_transactions, usage_buckets, usage_bucket_definitions"); err != nil {
+	if _, err := testDB.pool.Exec(context.Background(), "TRUNCATE eventstore.events, eventstore.event_transactions, eventstore.usage_buckets, eventstore.usage_bucket_definitions"); err != nil {
 		t.Fatal(err)
 	}
 }

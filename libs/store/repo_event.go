@@ -107,28 +107,31 @@ func (r eventLogRepo) Append(ctx context.Context, org core.OrganizationID, event
 	for i, e := range events {
 		txIDs[i] = e.TransactionID
 	}
-	stored, err := q.ListEventTransactionIDs(ctx, db.ListEventTransactionIDsParams{OrganizationID: org.UUID(), TransactionIds: txIDs})
+	stored, err := q.ListEventKeys(ctx, db.ListEventKeysParams{OrganizationID: org.UUID(), TransactionIds: txIDs})
 	if err != nil {
 		return nil, nil, fmt.Errorf("append events: %w", mapErr(err))
 	}
-	seen := make(map[string]bool, len(events)+len(stored))
-	for _, id := range stored {
-		seen[id] = true
+	// The deduplication keys, (external subscription, transaction ID).
+	type key struct{ sub, tx string }
+	seen := make(map[key]bool, len(events)+len(stored))
+	for _, k := range stored {
+		seen[key{k.ExternalSubscriptionID, k.TransactionID}] = true
 	}
 	for _, e := range events {
-		if seen[e.TransactionID] {
+		k := key{e.ExternalSubscriptionID, e.TransactionID}
+		if seen[k] {
 			duplicates = append(duplicates, e)
 			continue
 		}
-		seen[e.TransactionID] = true
+		seen[k] = true
 		n, err := q.AppendEvent(ctx, eventParams(e))
 		if err != nil {
 			return nil, nil, fmt.Errorf("append event %q: %w", e.TransactionID, mapErr(err))
 		}
 		if n == 0 {
-			// A concurrent transaction stored the transaction ID first, or
-			// the event's ID is taken.
-			if _, err := r.Get(ctx, org, e.TransactionID); err == nil {
+			// A concurrent transaction stored the key first, or the event's
+			// ID is taken.
+			if _, err := r.Get(ctx, org, e.ExternalSubscriptionID, e.TransactionID); err == nil {
 				duplicates = append(duplicates, e)
 				continue
 			} else if !errors.Is(err, core.ErrNotFound) {
@@ -141,12 +144,19 @@ func (r eventLogRepo) Append(ctx context.Context, org core.OrganizationID, event
 	return accepted, duplicates, nil
 }
 
-func (r eventLogRepo) Get(ctx context.Context, org core.OrganizationID, transactionID string) (*event.Event, error) {
+func (r eventLogRepo) Get(ctx context.Context, org core.OrganizationID, externalSubscriptionID, transactionID string) (*event.Event, error) {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return nil, err
 	}
-	row, err := q.GetEvent(ctx, db.GetEventParams{OrganizationID: org.UUID(), TransactionID: transactionID})
+	var row db.Event
+	if externalSubscriptionID == "" {
+		row, err = q.GetFirstEvent(ctx, db.GetFirstEventParams{OrganizationID: org.UUID(), TransactionID: transactionID})
+	} else {
+		row, err = q.GetEvent(ctx, db.GetEventParams{
+			OrganizationID: org.UUID(), ExternalSubscriptionID: externalSubscriptionID, TransactionID: transactionID,
+		})
+	}
 	if err != nil {
 		return nil, getErr("event", transactionID, err)
 	}
@@ -161,13 +171,13 @@ func (r eventLogRepo) Replace(ctx context.Context, e *event.Event) error {
 	p := eventParams(e)
 	n, err := q.ReplaceEvent(ctx, db.ReplaceEventParams{
 		Code:                   p.Code,
-		ExternalSubscriptionID: p.ExternalSubscriptionID,
 		Timestamp:              p.Timestamp,
 		Properties:             p.Properties,
 		PreciseTotalAmount:     p.PreciseTotalAmount,
 		AttributionLabels:      p.AttributionLabels,
 		UpdatedAt:              p.UpdatedAt,
 		OrganizationID:         p.OrganizationID,
+		ExternalSubscriptionID: p.ExternalSubscriptionID,
 		TransactionID:          p.TransactionID,
 	})
 	return updateErr("event", e.TransactionID, n, err)

@@ -49,8 +49,9 @@ type RawProducer interface {
 
 // InAdvanceBiller bills the events of in-advance charges (domain §22.4).
 // libs/billing implements it. Calls are at least once: the implementation
-// must be idempotent on (organization, transaction ID), as lago-api's fee
-// creation deduplicates on the event source.
+// must be idempotent on the deduplication key of the events (organization,
+// external subscription ID, transaction ID), as lago-api's fee creation
+// deduplicates on the event source.
 type InAdvanceBiller interface {
 	// BillInAdvance bills the events, which all have a subscription and
 	// [Enriched.InAdvance] set. In [ModePostgres] ctx carries the

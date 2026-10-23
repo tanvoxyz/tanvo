@@ -146,7 +146,8 @@ type UniqueCountInterval struct {
 
 // Store is the set of event queries the aggregations need. Every method
 // reads the events selected by the [Query]: the latest copy of each event
-// (by transaction ID and timestamp) of the code and subscription, within
+// (by organization, subscription and transaction ID) of the code and
+// subscription, within
 // [Query.From] and [Query.To] (or [Query.Until]), passing [Query.Filter]
 // and [Query.GroupValues], and, with [Query.Numeric], carrying a numeric
 // [Query.Property].

@@ -308,7 +308,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Event timestamp parsing (seconds, fractional seconds, defaults to now) | `app/services/events/common_factory.rb` | libs/ingest | logic done | |
 | Event fields: transaction id, external subscription id, code, properties, precise total amount | `app/models/event.rb` | libs/ingest | logic done | JSON property numbers are kept exact, decimals included (lago's JSON parsing keeps integers exact and turns decimals into floats); binary protobuf and gRPC clients send doubles, and strings for exact values ([Architecture §4.2](architecture.md#42-rest-through-vanguard)) |
 | `external_contract_id` alias of `external_subscription_id` on ingestion and event filters | `app/controllers/api/v1/events_controller.rb` | libs/ingest | logic done | The explicit `external_subscription_id` wins when both are sent |
-| Deduplication by organization and transaction id | `app/services/events/create_service.rb` | libs/ingest | logic done | Lago also scopes by external subscription id; Tanvo dedups per organization (§3) |
+| Deduplication by organization, external subscription id and transaction id | `app/services/events/create_service.rb`, `app/services/events/validate_creation_service.rb`, `db/structure.sql` (`index_unique_transaction_id`) | libs/ingest, libs/store, libs/eventstore | logic done | One key in every store; Lago's ClickHouse store deduplicates at query time and also keys on code and timestamp, where Tanvo treats a re-send at another timestamp as a duplicate |
 | Request metadata on events (user agent, IP) | `app/services/events/create_service.rb` | libs/ingest | in progress | |
 | Event validation (metric code, subscription, numeric field) | `app/services/events/validate_creation_service.rb` | libs/ingest | in progress | |
 | Post-validation of ingested events with `events.errors` webhook | `app/services/events/post_validation_service.rb` | libs/ingest | planned | Validation errors also returned synchronously where possible |
@@ -1083,7 +1083,6 @@ Items that Lago itself marks deprecated, keeps only for old data, or carries as 
 | RisingWave `usage_buckets_15m` | 15-minute usage buckets maintained by the ingest consumers in PostgreSQL or ClickHouse | No extra system |
 | Separate events-processor service with Debezium CDC and a Badger cache | Ingest consumers in the server's `consumer` role with an in-memory catalog cache refreshed by change notifications | Fewer moving parts |
 | Kafka pipeline for activity, API and security logs | `audit_events` and log writers into ClickHouse or PostgreSQL | Works without Kafka |
-| Deduplication by organization, external subscription id and transaction id | Deduplication by organization and transaction id | Transaction ids are unique per organization |
 | Nango as an integration broker | Direct vendor API clients in `providers/*` | No third-party broker in the data path |
 | Gotenberg HTML-to-PDF | Typst child process producing PDF/A-3b | Single binary, archival PDF |
 | pdfcpu to embed Factur-X XML | Typst PDF/A-3 attachments | One rendering step |

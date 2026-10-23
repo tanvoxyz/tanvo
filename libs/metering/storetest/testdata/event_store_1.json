@@ -2314,7 +2314,8 @@
       "want": 2
     },
     {
-      "name": "count with only duplicated transaction_id takes the event into account",
+      "name": "count with a transaction_id re-sent at another timestamp counts its latest copy once",
+      "deviation": "Lago runs this example for its ClickHouse store only (spec/services/events/stores/postgres_store_spec.rb:8 disables event duplication), which collapses copies by (code, organization, subscription, transaction ID, timestamp) at query time (app/services/events/stores/clickhouse_store.rb:13); its PostgreSQL store and API keep one event per (organization, subscription, transaction ID) (db/structure.sql:12094, app/services/events/validate_creation_service.rb:43-50), as Tanvo does in every store.",
       "source": "spec/services/events/stores/shared_examples/an_event_store.rb:466",
       "fixture": "standard",
       "events": [
@@ -2335,7 +2336,7 @@
           "period_days": 31
         }
       },
-      "want": 6
+      "want": 5
     },
     {
       "name": "with_grouped_by_values applies the grouped_by_values",

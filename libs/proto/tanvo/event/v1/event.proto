@@ -17,9 +17,11 @@ import "tanvo/common/v1/options.proto";
 import "tanvo/common/v1/types.proto";
 
 // EventService ingests and reads usage events. Events are deduplicated per
-// organization by transaction_id.
+// organization and subscription by (external_subscription_id,
+// transaction_id): one transaction ID under two subscriptions is two events.
 service EventService {
-  // Ingests one event. A duplicate transaction_id is accepted and ignored.
+  // Ingests one event. A duplicate (external_subscription_id,
+  // transaction_id) is accepted and ignored.
   rpc IngestEvent(IngestEventRequest) returns (IngestEventResponse) {
     option idempotency_level = IDEMPOTENT;
     option (google.api.http) = {
@@ -45,7 +47,8 @@ service EventService {
     };
   }
 
-  // Returns an event by transaction ID.
+  // Returns an event by transaction ID, of one subscription or, without
+  // one, the first ingested.
   rpc GetEvent(GetEventRequest) returns (GetEventResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
     option (google.api.http) = {get: "/v1/events/{transaction_id}"};
@@ -77,7 +80,7 @@ service EventService {
   }
 
   // Replaces an event's code, timestamp, properties or amount, keeping its
-  // transaction ID; usage is recomputed and an audit entry recorded.
+  // subscription and transaction ID; usage is recomputed and an audit entry recorded.
   // Events already invoiced cannot be replaced.
   rpc ReplaceEvent(ReplaceEventRequest) returns (ReplaceEventResponse) {
     option idempotency_level = IDEMPOTENT;
@@ -304,6 +307,9 @@ message GetEventRequest {
     (buf.validate.field).required = true,
     (buf.validate.field).string.(tanvo.common.v1.code) = true
   ];
+  // The subscription the event belongs to; when empty, the event first
+  // ingested with the transaction ID, whatever its subscription.
+  string external_subscription_id = 2;
 }
 
 // GetEventResponse is the response of EventService.GetEvent.
@@ -364,7 +370,8 @@ message ReplaceEventRequest {
     expression: "has(this.event.transaction_id) && has(this.event.external_subscription_id) && has(this.event.code)"
   };
 
-  // The replacement; event.transaction_id selects the event.
+  // The replacement; event.external_subscription_id and
+  // event.transaction_id select the event.
   Event event = 1 [
     (google.api.field_behavior) = REQUIRED,
     (buf.validate.field).required = true

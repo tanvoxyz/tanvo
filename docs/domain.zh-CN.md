@@ -799,7 +799,7 @@ stateDiagram-v2
 
 规则：
 * 每批至多 100 个事件；每个事件独立校验。
-* **去重 [变更]**：键为（组织，`transaction_id`）。Lago 使用（组织，外部订阅，事务 ID）。重发已知的 `transaction_id` 会被确认为重复并丢弃；更正通过事件替换 API 完成。见 §24，第 11 条。
+* **去重**：键为（组织，`external_subscription_id`，`transaction_id`），与 Lago 事件表的唯一索引相同；同一事务 ID 在两个订阅下是两个事件。重发已知的键会被确认为重复并丢弃，不论其代码与时间戳，所有事件存储均如此；更正通过事件替换 API 完成，它按键定位事件，可改变其代码与时间戳，但不能改变其订阅。Lago 的 ClickHouse 存储则在查询时按（组织，订阅，代码，事务 ID，时间戳）去重，因此在另一时间戳重发的事件在那里会被计两次；Tanvo 让两种存储保持同一语义。见 §24，第 11 条。
 
 ### 10.2 富化与校验
 * 事件的订阅是满足 `external_id = external_subscription_id`、状态为 `active` 或 `terminated`、且 `started_at ≤ timestamp < terminated_at` 的订阅。`pending`、`incomplete` 和 `canceled` 订阅永不匹配。对周期性计费指标，没有匹配周期的事件回退到有效订阅。
@@ -1640,7 +1640,7 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
 | 支付金额 | 部分服务商使用 `total_amount` | 始终为 `total_due_amount`（§15.1） |
 | 退款状态 | 直接复制提供者状态；`requires_action` 与 `canceled` 被拒绝 | 分别映射为 `pending` 与 `failed`（§15.3） |
 | 收据编号 | 数据库触发器 | 同一事务、客户锁（§22.11） |
-| 事件去重键 | （组织，外部订阅，事务 ID） | （组织，事务 ID）（§10.1） |
+| ClickHouse 事件去重 | 查询时按（组织，订阅，代码，事务 ID，时间戳） | 写入时按（组织，外部订阅，事务 ID），与 PostgreSQL 相同（§10.1） |
 | Webhook 签名 | JWT 或 HMAC | Standard Webhooks（§18.2） |
 | 计费调度 | 每小时扫描 | 按订阅的 `next_billing_at` + 对账（§22.17） |
 | 删除 | 处处使用 `deleted_at` 软删除 | 生命周期状态 + 物理删除（§2.3） |
@@ -1670,7 +1670,7 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
 8. **付款收据编号**来自客户行上的计数器，在创建收据的事务中持有该行锁时取得。
 9. **终身用量**增量维护：用量桶支持的计费项取自用量桶，其他计费项取自事件（架构 §7.4），并以周期性重算作为对账。
 10. **试用期长度**为整天数。
-11. **事件去重**：键为（组织，`transaction_id`）；先被接受的事件为准，重复发送会被确认为重复并丢弃，更正通过 API 的事件替换完成，并留下明确的审计记录。此条取代 §10 中“时间戳相同则替换”的规则。
+11. **事件去重**：键为（组织，`external_subscription_id`，`transaction_id`）；先被接受的事件为准，重复发送不论代码与时间戳都会被确认为重复并丢弃，更正通过 API 的事件替换完成，并留下明确的审计记录。此条取代 §10 中“时间戳相同则替换”的规则。*2026-10-23 变更*：键原为（组织，`transaction_id`）；现在与 Lago 一样包含外部订阅，使在多个订阅间复用事务 ID 的客户端不会丢失事件，并使一个键的所有副本到达同一摄取分区，这是按订阅分区时无需在写入者之间解析副本即可去重的前提。
 12. **付款条款**是结构化的，与 Lago 正在引入的一致（列在 1d56e730e 中添加；读取方仍在其 `feat-payment-terms-*` 分支上）。`PaymentTerm` 是一个 `term_type`（`PaymentTermType`）加上该类型的字段：`net`、`net_end_of_month` 和 `days_end_of_month` 有 `days`（int ≥ 0）；`day_of_month` 有 `day_of_month`（1–31）和 `month_offset`（0–12，默认 1）；其他字段被拒绝。净天数即 `net` 类型，不保留 Lago 的 `net_payment_term` 整数别名。由开票日期 `d` 计算到期日：
     * `due_on_receipt`：`d`；
     * `net`：`d + days`；
