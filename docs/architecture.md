@@ -192,6 +192,8 @@ Billing relies on exact `numeric` arithmetic, transactions spanning many tables,
 * The schema is declared in SQL under `libs/store/schema/` (one file per domain) and is the single source of truth.
 * Atlas computes versioned migrations from it into `libs/store/migrations/`; merged migrations are never modified.
 * Migrations run with `tanvo migrate` (a Kubernetes Job in Tanvo Cloud) and, for self-hosted installations, automatically at startup unless disabled.
+* The same database holds two migration histories, so that jobs can be inserted in the business transaction: Atlas owns the `public` schema, and River's own migrations (rivermigrate) own the `river` schema. River's tables stay out of Atlas so that Atlas's diff, lint and drift checks see only Tanvo's schema and a River upgrade brings its migrations without copying them by hand. `tanvo migrate` is the single entry point: it applies Atlas's migrations, then River's, each under its own advisory lock, and both are idempotent.
+* Migrations are expand-only within a release, so that the previous release keeps running during a rolling deploy; they are applied before the new release rolls out. At startup a process checks that both schemas are at the versions its binary expects and refuses to start otherwise.
 
 ### 5.3 Queries
 * sqlc generates type-safe Go from SQL in `libs/store/queries/` against the pgx/v5 driver.

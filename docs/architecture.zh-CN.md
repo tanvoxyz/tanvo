@@ -192,6 +192,8 @@ ee/* ──▶ proto        (never any other in-repo module)
 * Schema 以 SQL 声明在 `libs/store/schema/` 下（每个领域一个文件），是唯一事实来源。
 * Atlas 据此计算版本化迁移，写入 `libs/store/migrations/`；已合并的迁移不得修改。
 * 迁移通过 `tanvo migrate` 运行（在 Tanvo Cloud 中是一个 Kubernetes Job）；对于自托管安装，除非禁用，在启动时自动运行。
+* 同一个数据库中有两套迁移历史，以便任务能在业务事务中插入：Atlas 管理 `public` schema，River 自己的迁移（rivermigrate）管理 `river` schema。River 的表不纳入 Atlas，使 Atlas 的 diff、lint 与漂移检查只看到 Tanvo 的 schema，River 升级时也无需手工复制它的迁移。`tanvo migrate` 是唯一入口：先应用 Atlas 的迁移，再应用 River 的，各自在自己的 advisory lock 下执行，并且都是幂等的。
+* 一个版本内的迁移只做扩展，使滚动部署期间旧版本仍能运行；迁移在新版本上线之前应用。进程启动时检查两个 schema 是否处于其二进制期望的版本，不符则拒绝启动。
 
 ### 5.3 查询
 * sqlc 基于 pgx/v5 驱动，从 `libs/store/queries/` 中的 SQL 生成类型安全的 Go。
