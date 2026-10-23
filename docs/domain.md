@@ -33,7 +33,7 @@ This document defines Tanvo's business entities, their fields, invariants, enume
 21. [Quotes, Order Forms, Orders and Contracts](#21-quotes-order-forms-orders-and-contracts)
 22. [Billing Rules](#22-billing-rules)
 23. [Deliberate Changes from Lago](#23-deliberate-changes-from-lago)
-24. [Open Design Questions](#24-open-design-questions)
+24. [Design Decisions](#24-design-decisions)
 
 ---
 
@@ -403,7 +403,7 @@ What is measured.
 | `weighted_interval` | `WeightedInterval?` | required (= `seconds`) for `weighted_sum`, forbidden otherwise |
 | `recurring` | `bool` | forbidden for `count`, `max`, `latest` |
 | `expression` | `string?` | lago-expression; its result is written to `field_name` before aggregation |
-| `custom_aggregator` | `string?` | required for `custom` (§24, Q1) |
+| `custom_aggregator` | `string?` | not ported (§24, item 1) |
 | `rounding_function` | `RoundingFunction?` | |
 | `rounding_precision` | `int?` | default 0 when a rounding function is set; may be negative |
 | `filters` | `[]BillableMetricFilter` | |
@@ -799,7 +799,7 @@ Subscriptions of a customer billed at the same instant share an invoice when the
 
 Rules:
 * Batches contain at most 100 events; each event is validated independently.
-* **Deduplication [Change]**: the key is (organization, `transaction_id`). Lago uses (organization, external subscription, transaction ID). Re-sending a known `transaction_id` with the same timestamp replaces the stored event (correction); with a different timestamp it is rejected as a duplicate. See §24, Q11.
+* **Deduplication [Change]**: the key is (organization, `transaction_id`). Lago uses (organization, external subscription, transaction ID). A re-sent known `transaction_id` is acknowledged as a duplicate and dropped; corrections go through the event replacement API. See §24, item 11.
 
 ### 10.2 Enrichment and Validation
 * The event's subscription is the one with `external_id = external_subscription_id`, status `active` or `terminated`, and `started_at ≤ timestamp < terminated_at`. `pending`, `incomplete` and `canceled` subscriptions never match. For recurring metrics an event without a matching period falls back to the active subscription.
@@ -1338,7 +1338,7 @@ The export is built in parts (batches of rows) in the `exports` queue, concatena
 
 ## 21. Quotes, Order Forms, Orders and Contracts
 
-These features are beta in Lago and premium-gated; in Tanvo they are part of the core (§24, Q3–Q4).
+These features are beta and premium-gated in Lago. Tanvo places them in the AGPL core and models contracts as subscriptions (§24, items 3–4).
 
 ### 21.1 Quote
 * `Quote`: `number` (`QT-<YYYY>-<NNNN>`, per organization and year), `customer_id`, `order_type ∈ {subscription_creation, subscription_amendment, one_off}`, `owners []membership`, `subscription_id?` (amendments).
@@ -1358,7 +1358,7 @@ Lago's billing v2 prices products through rate cards on contracts instead of pla
 * `BillingSegment`: a priced window of a contract rate card's schedule, `status ∈ {pending, processing, done, failed}`, non-overlapping per card, invoiced in groups.
 * Fee type `product`.
 
-Tanvo's position on unifying contracts with subscriptions is open (§24, Q2); `libs/period` adopts the v2 calendar rules (half-open windows, local-midnight boundaries, DST-safe day counting) for both.
+Tanvo unifies the catalogs and models contracts as subscriptions (§24, items 2–3); `libs/period` adopts the v2 calendar rules (half-open windows, local-midnight boundaries, DST-safe day counting) for both.
 
 ---
 
@@ -1552,7 +1552,7 @@ All numbers are assigned in the transaction that finalizes the document, under a
   2. A pending downgrade is canceled.
   3. On activation, the old subscription is terminated without a termination invoice of its own; one invoice bills the old subscription's ended period in arrears (charges and arrears base fee up to the upgrade) together with the new subscription's starting fees (in-advance base fee prorated from the upgrade, in-advance fixed charges).
   4. For an in-advance old plan already billed for the current period, a credit note credits the unused days (`on_termination_credit_note` of the old subscription, default `credit`).
-  5. Day accounting: the upgrade day is billed on the new plan. In arrears Lago bills the old plan up to the day before the upgrade ("loses one day"), which matches. In advance Lago credits the old plan only from the day after the upgrade while billing the new plan from the upgrade day, so the upgrade day is paid on both plans. **[Change]** Tanvo credits the old in-advance plan for `[upgrade day, period end)`, so every day is paid once; see §24, Q7.
+  5. Day accounting: the upgrade day is billed on the new plan. In arrears Lago bills the old plan up to the day before the upgrade ("loses one day"), which matches. In advance Lago credits the old plan only from the day after the upgrade while billing the new plan from the upgrade day, so the upgrade day is paid on both plans. **[Change]** Tanvo credits the old in-advance plan for `[upgrade day, period end)`, so every day is paid once; see §24, item 7.
 * **Downgrade** (at period end): a `pending` next subscription is created (replacing any previous pending one); the current one stays active. At its next billing instant the current subscription is terminated (billed in arrears normally) and the next one is activated and billed as a new start. `subscription.updated` is emitted at the request.
 * The trial continues across both (§9.4).
 
@@ -1626,25 +1626,27 @@ All numbers are assigned in the transaction that finalizes the document, under a
 
 ---
 
-## 24. Open Design Questions
+## 24. Design Decisions
 
-1. **Custom aggregation.** Lago evaluates `custom_aggregator` as sandboxed Ruby. Tanvo needs a replacement: an extension of lago-expression in `libs/expression` (WASM, deterministic), or a WASM plugin interface. Until decided, `custom` metrics and the `custom` charge model are not accepted.
-2. **Product catalog (v2) versus plans.** Rate cards, phases and price timelines overlap plans, charges and overrides, but v2 has no usage thresholds, commitments or trials. Options: implement v1 only first and map v2 onto it later; or design one catalog that covers both (effective-dated prices, phases) and model contracts as subscriptions.
-3. **Contracts versus subscriptions.** Should a contract be a separate aggregate (Lago) or a subscription with rate-card pricing? This decides the event routing (`contracts.external_id = external_subscription_id`) and the invoicing pipeline (billing segments versus invoice subscriptions).
-4. **Quotes, order forms and orders**: core (AGPL) or `ee/`? They are beta in Lago and touch documents and e-signature.
-5. **Usage attribution (account tree).** Lago has the schema and queries but no path that populates attribution labels. Defer until the ingestion contract is defined.
-6. **Calendar proration denominator.** v1 divides by the days of the plan period containing the billed days; v2 uses the actual interval containing the window. They agree for most cases; confirm the v1 rule for upgrades and monthly-split yearly plans, where Lago keeps the full-period duration after clamping `from`.
-7. **Upgrade day.** §22.13 credits the upgrade day on the old in-advance plan, removing Lago's double-billed day. Confirm this is wanted: ported upgrade test cases need adjusted expectations. A finer alternative is to split at the upgrade instant rather than at the local day.
-8. **Payment receipts without a trigger.** Confirm the counter lives on the customer row (locked) and that receipts for concurrent payments of one customer serialize on it.
-9. **Lifetime usage refresh.** Lago flags lifetime usage for refresh and recomputes it in a periodic job; Tanvo could maintain it incrementally from usage buckets. The choice affects threshold latency and alert timing.
-10. **Trial days.** Integer days are proposed (§7.2); confirm no customer depends on fractional trials.
-11. **Event deduplication.** (org, transaction ID) prevents the same transaction ID across subscriptions, which Lago allows. `libs/metering` currently replaces an event re-sent with the same timestamp. Confirm the key and the replace-versus-reject semantics, including events re-sent after the period was invoiced.
-12. **Structured payment terms.** Lago has an unreleased `payment_term` JSON (installments, end-of-month terms). Keep `net_payment_term_days` only for now?
-13. **Alert kinds.** Lago defines resolved/seeded alert states that nothing produces. Leave them out unless a use case appears.
-14. **x402 payments.** Lago's support is partial (Base and Solana networks). Defer or implement as a provider?
-15. **Streaming destinations.** Lago streams events to Kinesis without a CRUD API. Decide whether webhook endpoints gain a "stream" kind.
-16. **Tier input.** `libs/pricing` accepts both adjacent and inclusive tiers for test porting; confirm that only adjacent tiers are exposed in the API.
-17. **Mixed-reason upgrade invoice.** One invoice holds the terminating period of the old subscription and the starting period of the new one; confirm the invoicing reasons recorded per invoice subscription and the issuing-date rule for it (treated as non-recurring).
-18. **Refund reason without producer.** Lago defines a refund reason for expired subscription activations that nothing emits; decide whether failed or expired activations refund captured payments.
-19. **Multi-connection defaults.** Confirm the resolution levels (subscription, wallet, customer, organization default) and whether `skip` at a level stops inheritance for all categories or per category.
-20. **Coupons on drafts.** Lago applies coupons only at finalization, so draft totals shown to users exclude coupons. Tanvo could show a preview deduction on drafts without consuming the coupon.
+The questions raised while writing this model, and how Tanvo settles them. A later change to one of these is recorded here.
+
+1. **Custom aggregation** is not ported: Lago deprecated it, and per-event computation is covered by expressions (§7). `custom` metrics and the `custom` charge model do not exist.
+2. **One catalog.** Plans, charges, fixed charges and overrides form one catalog with effective-dated prices; the v2 product catalog's rate cards and phases are features of it, not a second model. Usage thresholds, commitments and trials stay available everywhere.
+3. **Contracts are subscriptions** priced by rate cards, so events route by `external_subscription_id` and every invoice goes through one pipeline (invoice subscriptions); billing segments are kept as a grouping of invoice subscriptions.
+4. **Quotes, order forms and orders** are in the AGPL core, like every Lago premium feature; only Lago's private cloud services go to `ee/`.
+5. **Usage attribution** is implemented: events carry optional attribution labels in the ingestion contract, and usage queries group by them.
+6. **Calendar proration** follows Lago v1's rule (the days of the plan period containing the billed days); `libs/period`'s ported cases define it.
+7. **Upgrade day** is paid once (§22.13); ported upgrade cases carry adjusted expectations with a note.
+8. **Payment receipt numbers** come from a counter on the customer row, taken under the row lock in the transaction that creates the receipt.
+9. **Lifetime usage** is maintained incrementally from usage buckets, with a periodic recompute as reconciliation.
+10. **Trial lengths** are whole days.
+11. **Event deduplication**: the key is (organization, `transaction_id`); the first accepted event wins, a re-send is acknowledged as a duplicate and dropped, and corrections go through event replacement on the API with an explicit audit entry. §10's replace-on-same-timestamp rule is superseded by this.
+12. **Payment terms**: `net_payment_term_days` only.
+13. **Alerts**: no resolved or seeded states.
+14. **x402 payments** are implemented as a payment provider (phase 5).
+15. **Streaming destinations** get a CRUD API and are a kind of event destination beside webhook endpoints (Kafka, Kinesis, S3).
+16. **Tiers**: the API exposes adjacent tiers only.
+17. **Mixed upgrade invoice**: each invoice subscription records its own reason (`subscription_terminating`, `subscription_starting`); the invoice is issued on the upgrade date.
+18. **Expired activations** refund captured payments with that refund reason.
+19. **Payment connections** resolve subscription → wallet → customer → organization default; `skip` stops inheritance per category.
+20. **Coupons on drafts** are shown as a preview deduction without being consumed; they are applied at finalization.
