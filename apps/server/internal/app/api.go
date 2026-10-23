@@ -80,19 +80,16 @@ func newAPI(mux *http.ServeMux, d apiDeps) (*api, error) {
 	server := connect.NewServer(telemetry, rpc.Recover(), rpc.Auth(keys, auth.NewAuthorizer(d.tx)), rpc.Validate(validator))
 	eventv1connect.RegisterEventServiceHandler(server, rpc.NewEvents(d.ingest))
 
-	// JSON uses the proto field names (snake_case), on both transports.
-	json := connectproto.NewJSONCodec()
-	json.MarshalOptions.UseProtoNames = true
+	// JSON uses the proto field names (snake_case) and keeps the numbers
+	// of event properties exact, on both transports.
 	connecthttp.Mount(mux, server,
-		connecthttp.WithCodecs(connectproto.NewBinaryCodec(), json),
+		connecthttp.WithCodecs(connectproto.NewBinaryCodec(), rpc.NewJSONCodec()),
 		connecthttp.WithReadMaxBytes(int(d.maxBytes)),
 	)
 	rest := http.NewServeMux()
 	if err := vanguard.Mount(rest, server,
 		vanguard.WithCodec(func(res connectproto.TypeResolver) vanguard.RESTCodec {
-			c := vanguard.NewJSONCodec(res)
-			c.MarshalOptions.UseProtoNames = true
-			return c
+			return rpc.NewRESTCodec(res)
 		}),
 		vanguard.WithMaxReadBytes(d.maxBytes),
 	); err != nil {

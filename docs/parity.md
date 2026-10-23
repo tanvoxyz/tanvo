@@ -306,7 +306,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Single event ingestion | `app/services/events/create_service.rb` | libs/ingest | done | `EventService.IngestEvent`, `POST /v1/events`; end-to-end test in apps/server |
 | Batch ingestion (up to 100 events) | `app/services/events/create_batch_service.rb` | libs/ingest | logic done | Served by `EventService.IngestEvents`; no end-to-end test yet |
 | Event timestamp parsing (seconds, fractional seconds, defaults to now) | `app/services/events/common_factory.rb` | libs/ingest | logic done | |
-| Event fields: transaction id, external subscription id, code, properties, precise total amount | `app/models/event.rb` | libs/ingest | logic done | |
+| Event fields: transaction id, external subscription id, code, properties, precise total amount | `app/models/event.rb` | libs/ingest | logic done | JSON property numbers are kept exact, decimals included (lago's JSON parsing keeps integers exact and turns decimals into floats); binary protobuf and gRPC clients send doubles, and strings for exact values ([Architecture §4.2](architecture.md#42-rest-through-vanguard)) |
 | `external_contract_id` alias of `external_subscription_id` on ingestion and event filters | `app/controllers/api/v1/events_controller.rb` | libs/ingest | logic done | The explicit `external_subscription_id` wins when both are sent |
 | Deduplication by organization and transaction id | `app/services/events/create_service.rb` | libs/ingest | logic done | Lago also scopes by external subscription id; Tanvo dedups per organization (§3) |
 | Request metadata on events (user agent, IP) | `app/services/events/create_service.rb` | libs/ingest | in progress | |

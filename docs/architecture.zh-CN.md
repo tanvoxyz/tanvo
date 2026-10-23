@@ -167,6 +167,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 * 每个公开 RPC 都有遵循 Google AIP 资源约定的 `google.api.http` 注解：`GET /v1/customers/{customer_id}`、`POST /v1/customers`、`PATCH /v1/customers/{customer.id}`，生命周期操作使用自定义方法（`POST /v1/subscriptions/{id}:terminate`、`POST /v1/invoices/{id}:void`）。
 * Vanguard 从一个 `http.Handler` 同时提供 REST/JSON、Connect、gRPC 与 gRPC-Web。
 * 所有协议上的 JSON 都使用 proto 字段名（**snake_case**）：Connect 的 JSON 编解码器与 Vanguard 的编解码器都配置了 `UseProtoNames`。
+* 事件属性中的数字经 JSON 传输时保持精确。`Event.properties` 是 `google.protobuf.Struct`，其数字为 double，因此两个 JSON 编解码器（`apps/server/internal/rpc`）在 protojson 解码之前，把请求中各事件属性里的每个数字改写为其精确十进制文本（普通记数法，`1e3` → `"1000"`）的字符串；这正是摄取层为数字存储的文本。二进制 protobuf 与 gRPC 客户端发送 double，对 double 无法容纳的值（大于 2^53 的整数、超过 15 位有效数字）应发送字符串。
 * 资源以 Tanvo ID 寻址；在 Lago 使用客户提供的标识符（`external_id`、`code`）之处，Tanvo 将其保留为唯一、可过滤的字段，并通过以前缀开头的 `{id}` 接受它们代替 ID（`external_id:acme-42`、`code:api_calls`）。
 * 列表使用游标分页（`page_size`、`page_token`、`next_page_token`）与 AIP-160 风格的过滤器。
 * 错误是带有 `google.rpc.ErrorInfo` / `BadRequest` 详情的 Connect 错误码；REST 将其映射为 HTTP 状态码并附带 JSON 正文。

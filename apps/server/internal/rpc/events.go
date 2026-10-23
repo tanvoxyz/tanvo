@@ -129,10 +129,10 @@ func metadata(ctx context.Context) ingest.Metadata {
 	return md
 }
 
-// toInput maps an API event to the intake's input. Struct numbers are
-// doubles; they are passed on in their shortest decimal form, which
-// round-trips every value the JSON client sent with up to 15 significant
-// digits.
+// toInput maps an API event to the intake's input. The numbers of JSON
+// clients' properties arrive as strings of their exact decimal text
+// ([JSONCodec]); the Struct numbers left are the doubles of binary
+// clients, passed on in their shortest decimal form.
 func toInput(prefix string, e *eventv1.Event) (ingest.Input, []FieldViolation) {
 	in := ingest.Input{
 		TransactionID:          e.GetTransactionId(),

@@ -144,7 +144,7 @@ func TestServeSmoke(t *testing.T) {
 	}
 
 	at := time.Now().UTC().Add(-time.Minute).Truncate(time.Second)
-	body := fmt.Sprintf(`{"transaction_id":"tx-1","external_subscription_id":"sub-1","code":"api_calls","timestamp":%q,"properties":{"region":"eu","tokens":12}}`, at.Format(time.RFC3339))
+	body := fmt.Sprintf(`{"transaction_id":"tx-1","external_subscription_id":"sub-1","code":"api_calls","timestamp":%q,"properties":{"region":"eu","tokens":12,"bytes":12345678901234567890}}`, at.Format(time.RFC3339))
 	status, resp := post(t, base+"/v1/events", secret, body)
 	if status != http.StatusOK {
 		t.Fatalf("POST /v1/events status got = %d, want = 200; body %s", status, resp)
@@ -159,8 +159,8 @@ func TestServeSmoke(t *testing.T) {
 	if err := json.Unmarshal(resp, &out); err != nil {
 		t.Fatalf("response %s: %v", resp, err)
 	}
-	if out.Event.TransactionID != "tx-1" || out.Duplicate || out.Event.Properties["tokens"] != "12" {
-		t.Errorf("response got = %s, want = tx-1 accepted with tokens 12", resp)
+	if out.Event.TransactionID != "tx-1" || out.Duplicate || out.Event.Properties["tokens"] != "12" || out.Event.Properties["bytes"] != "12345678901234567890" {
+		t.Errorf("response got = %s, want = tx-1 accepted with tokens 12 and bytes 12345678901234567890", resp)
 	}
 	if status, resp := post(t, base+"/v1/events", secret, body); status != http.StatusOK || !strings.Contains(string(resp), `"duplicate":true`) {
 		t.Errorf("repeated POST got = %d %s, want = 200 duplicate", status, resp)
@@ -171,6 +171,11 @@ func TestServeSmoke(t *testing.T) {
 	if status, resp := post(t, base+"/v1/events", secret, `{"transaction_id":"tx-2","code":"api_calls"}`); status != http.StatusBadRequest {
 		t.Errorf("POST without a subscription status got = %d %s, want = 400", status, resp)
 	}
+	// Connect JSON keeps property numbers exact too.
+	batch := fmt.Sprintf(`{"events":[{"transaction_id":"tx-3","external_subscription_id":"sub-1","code":"api_calls","timestamp":%q,"properties":{"rate":0.12345678901234567890123}}]}`, at.Format(time.RFC3339))
+	if status, resp := post(t, base+"/tanvo.event.v1.EventService/IngestEvents", secret, batch); status != http.StatusOK || !strings.Contains(string(resp), `"rate":"0.12345678901234567890123"`) {
+		t.Errorf("Connect IngestEvents got = %d %s, want = 200 with rate 0.12345678901234567890123", status, resp)
+	}
 
 	n, err := srv.EventStores().For(org).Count(ctx, metering.Query{
 		OrganizationID: org.String(), Code: "api_calls", From: at.Add(-time.Hour), To: at.Add(time.Hour),
@@ -178,8 +183,8 @@ func TestServeSmoke(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Count() error = %v", err)
 	}
-	if n != 1 {
-		t.Errorf("Count() got = %d, want = 1", n)
+	if n != 2 {
+		t.Errorf("Count() got = %d, want = 2", n)
 	}
 	// The PostgreSQL event store is reachable in its own schema as well.
 	pool, err := pgxpool.New(ctx, dsn)
@@ -191,8 +196,8 @@ func TestServeSmoke(t *testing.T) {
 	if err := pool.QueryRow(ctx, "SELECT count(*) FROM eventstore.events WHERE organization_id = $1", org.String()).Scan(&stored); err != nil {
 		t.Fatalf("eventstore.events: %v", err)
 	}
-	if stored != 1 {
-		t.Errorf("eventstore.events rows got = %d, want = 1", stored)
+	if stored != 2 {
+		t.Errorf("eventstore.events rows got = %d, want = 2", stored)
 	}
 
 	stop()

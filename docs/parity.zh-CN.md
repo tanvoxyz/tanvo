@@ -306,7 +306,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 单个事件摄取 | `app/services/events/create_service.rb` | libs/ingest | 已完成 | `EventService.IngestEvent`、`POST /v1/events`；apps/server 中有端到端测试 |
 | 批量摄取（最多 100 个事件） | `app/services/events/create_batch_service.rb` | libs/ingest | 逻辑已完成 | 由 `EventService.IngestEvents` 提供；尚无端到端测试 |
 | 事件时间戳解析（秒、带小数的秒，默认取当前时间） | `app/services/events/common_factory.rb` | libs/ingest | 逻辑已完成 | |
-| 事件字段：交易 ID、外部订阅 ID、代码、属性、精确总金额 | `app/models/event.rb` | libs/ingest | 逻辑已完成 | |
+| 事件字段：交易 ID、外部订阅 ID、代码、属性、精确总金额 | `app/models/event.rb` | libs/ingest | 逻辑已完成 | JSON 属性中的数字保持精确，小数亦然（lago 的 JSON 解析使整数精确、小数转为浮点数）；二进制 protobuf 与 gRPC 客户端发送 double，精确值以字符串发送（[架构 §4.2](architecture.zh-CN.md#42-经由-vanguard-的-rest)） |
 | 摄取和事件过滤中 `external_contract_id` 作为 `external_subscription_id` 的别名 | `app/controllers/api/v1/events_controller.rb` | libs/ingest | 逻辑已完成 | 两者都发送时以显式的 `external_subscription_id` 为准 |
 | 按组织与交易 ID 去重 | `app/services/events/create_service.rb` | libs/ingest | 逻辑已完成 | Lago 还按外部订阅 ID 区分；Tanvo 在组织范围内去重（§3） |
 | 事件上的请求元数据（user agent、IP） | `app/services/events/create_service.rb` | libs/ingest | 进行中 | |

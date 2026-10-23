@@ -27,6 +27,7 @@ require (
 	github.com/tanvoxyz/tanvo/libs/jobs v0.0.0
 	github.com/tanvoxyz/tanvo/libs/mail v0.0.0
 	github.com/tanvoxyz/tanvo/libs/metering v0.0.0
+	github.com/tanvoxyz/tanvo/libs/money v0.0.0
 	github.com/tanvoxyz/tanvo/libs/proto v0.0.0
 	github.com/tanvoxyz/tanvo/libs/store v0.0.0
 	github.com/tanvoxyz/tanvo/libs/webhooks v0.0.0
@@ -92,7 +93,6 @@ require (
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/tanvoxyz/tanvo/libs/expression/go v0.0.0 // indirect
-	github.com/tanvoxyz/tanvo/libs/money v0.0.0 // indirect
 	github.com/tanvoxyz/tanvo/libs/period v0.0.0 // indirect
 	github.com/tetratelabs/wazero v1.12.0 // indirect
 	github.com/tidwall/gjson v1.19.0 // indirect
