@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
@@ -433,4 +434,37 @@ func TestShardsIsolateOrganizations(t *testing.T) {
 	if len(queuesSeen) != 2 {
 		t.Errorf("queues = %v, want both shards", queuesSeen)
 	}
+}
+
+// TestMigrateOnASmallPool runs more concurrent migrations than the pool has
+// connections: the waiters must not hold the connections the holder needs.
+func TestMigrateOnASmallPool(t *testing.T) {
+	t.Parallel()
+	if testDB.pool == nil {
+		t.Skip(testDB.skip)
+	}
+	cfg := testDB.pool.Config()
+	cfg.MaxConns = 2
+	pool, err := pgxpool.NewWithConfig(context.Background(), cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(pool.Close)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	var wg sync.WaitGroup
+	for i := range 4 {
+		name := fmt.Sprintf("river_small_pool_%d_%d", testDB.seq.Add(1), i)
+		t.Cleanup(func() {
+			if _, err := testDB.pool.Exec(context.Background(), "DROP SCHEMA IF EXISTS "+pgx.Identifier{name}.Sanitize()+" CASCADE"); err != nil {
+				t.Errorf("drop schema: %v", err)
+			}
+		})
+		wg.Go(func() {
+			if err := jobs.Migrate(ctx, pool, name); err != nil {
+				t.Errorf("Migrate(%s) = %v", name, err)
+			}
+		})
+	}
+	wg.Wait()
 }

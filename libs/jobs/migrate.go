@@ -28,11 +28,14 @@ const migrateLockKey int64 = 0x74616e766f6a6f62
 // row-level security, get their own grants.
 func Migrate(ctx context.Context, pool *pgxpool.Pool, schema string) error {
 	schema = cmp.Or(schema, DefaultSchema)
-	conn, err := pool.Acquire(ctx)
+	// The lock is held on a connection of its own, outside pool: callers
+	// waiting for it must not hold pool connections that the migrations
+	// of the holder need.
+	conn, err := pgx.ConnectConfig(ctx, pool.Config().ConnConfig.Copy())
 	if err != nil {
-		return fmt.Errorf("jobs: migrate: acquire: %w", err)
+		return fmt.Errorf("jobs: migrate: connect: %w", err)
 	}
-	defer conn.Release()
+	defer func() { _ = conn.Close(context.WithoutCancel(ctx)) }()
 	if _, err := conn.Exec(ctx, "SELECT pg_advisory_lock($1)", migrateLockKey); err != nil {
 		return fmt.Errorf("jobs: migrate: lock: %w", err)
 	}
