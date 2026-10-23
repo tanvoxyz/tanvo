@@ -1,0 +1,109 @@
+# Ported from lago spec/services/subscriptions/terminated_dates_service_spec.rb.
+# Lago mocks the probe dates service; here each case is a real subscription
+# terminated at billing_at, and TerminationDates runs at billing_at.
+# Matching against existing invoices is the caller's job, so the cases that
+# only differ by invoice rows map to the adjusted result before matching.
+defaults:
+  interval: monthly
+  billing_time: calendar
+  subscription_at: 2021-02-02
+  timezone: UTC
+  termination: true
+
+cases:
+  - name: terminated on the start date keeps the regular dates
+    source: spec/services/subscriptions/terminated_dates_service_spec.rb:51
+    billing_at: 2021-02-02
+    terminated_at: 2021-02-02
+    want: {adjusted: false}
+  - name: terminated before the charges period ended keeps the regular dates
+    source: spec/services/subscriptions/terminated_dates_service_spec.rb:80
+    billing_at: 2022-05-31T04:20:46.011Z
+    terminated_at: 2022-05-31T04:20:46.011Z
+    want:
+      adjusted: false
+      charges_from: 2022-05-01
+      charges_to: 2022-05-31T04:20:46.011Z
+  - name: terminated more than a day after the charges period ended keeps the regular dates
+    source: spec/services/subscriptions/terminated_dates_service_spec.rb:109
+    billing_at: 2022-06-03T04:20:46.011Z
+    terminated_at: 2022-06-03T04:20:46.011Z
+    want:
+      adjusted: false
+      charges_from: 2022-06-01
+      charges_to: 2022-06-03T04:20:46.011Z
+  - name: terminated the day after the period ended bills the ended period
+    source: spec/services/subscriptions/terminated_dates_service_spec.rb:206
+    billing_at: 2022-06-01T04:20:46.011Z
+    terminated_at: 2022-06-01T04:20:46.011Z
+    want:
+      adjusted: true
+      from: 2022-05-01
+      to: 2022-06-01
+      charges_from: 2022-05-01
+      charges_to: 2022-06-01
+      fixed_charges_from: 2022-05-01
+      fixed_charges_to: 2022-06-01
+  - name: yearly with monthly charges in advance terminated the day after a monthly period bills it
+    source: spec/services/subscriptions/terminated_dates_service_spec.rb:406
+    interval: yearly
+    billing_time: anniversary
+    bill_charges_monthly: true
+    pay_in_advance: true
+    billing_at: 2022-06-02T00:01:46.011Z
+    terminated_at: 2022-06-02T00:01:46.011Z
+    want:
+      adjusted: true
+      charges_from: 2022-05-02
+      charges_to: 2022-06-02
+      fixed_charges_from: null
+  # Lago also requires the yearly fixed charges period to have ended when it
+  # is filled, which it is in the first month of the year, so it keeps the
+  # regular dates and the first month of charges is never billed. Tanvo only
+  # checks fixed charges when they are billed monthly.
+  - name: yearly with monthly charges terminated the day after the first monthly period bills it
+    source: tanvo
+    interval: yearly
+    billing_time: anniversary
+    bill_charges_monthly: true
+    billing_at: 2022-03-02T04:20:46.011Z
+    terminated_at: 2022-03-02T04:20:46.011Z
+    want:
+      adjusted: true
+      charges_from: 2022-02-02
+      charges_to: 2022-03-02
+  - name: yearly with monthly fixed charges terminated the day after a monthly period keeps the regular dates
+    source: tanvo
+    interval: yearly
+    billing_time: anniversary
+    bill_fixed_charges_monthly: true
+    billing_at: 2022-06-02T04:20:46.011Z
+    terminated_at: 2022-06-02T04:20:46.011Z
+    want: {adjusted: false}
+  - name: yearly terminated the day after the yearly period bills it
+    source: tanvo
+    interval: yearly
+    billing_time: anniversary
+    bill_fixed_charges_monthly: true
+    billing_at: 2022-02-02T04:20:46.011Z
+    terminated_at: 2022-02-02T04:20:46.011Z
+    want:
+      adjusted: true
+      from: 2021-02-02
+      to: 2022-02-02
+      charges_from: 2021-02-02
+      charges_to: 2022-02-02
+      fixed_charges_from: 2022-01-02
+      fixed_charges_to: 2022-02-02
+  - name: terminated by an upgrade keeps the regular dates
+    source: spec/services/subscriptions/terminated_dates_service_spec.rb:433
+    billing_time: anniversary
+    next: upgrade
+    billing_at: 2022-06-02T04:20:46.011Z
+    terminated_at: 2022-06-02T04:20:46.011Z
+    want: {adjusted: false}
+  - name: active subscription keeps the regular dates
+    source: spec/services/subscriptions/terminated_dates_service_spec.rb:443
+    billing_time: anniversary
+    billing_at: 2022-03-07T04:20:46.011Z
+    want: {adjusted: false, from: 2022-02-02, to: 2022-03-02}

@@ -1,0 +1,97 @@
+# Ported from lago spec/services/subscriptions/billing_date_query_spec.rb.
+# Each case is billed on every billed_on instant and not on any
+# not_billed_on instant. Bare dates are midnight UTC.
+defaults:
+  billing_time: calendar
+  subscription_at: 2021-02-20
+  timezone: UTC
+
+cases:
+  - {name: weekly calendar, source: "spec/services/subscriptions/billing_date_query_spec.rb:39", interval: weekly,
+     billed_on: [2022-06-20, 2022-06-27, 2022-07-04], not_billed_on: [2022-06-21]}
+  - {name: weekly anniversary, source: "spec/services/subscriptions/billing_date_query_spec.rb:40", interval: weekly, billing_time: anniversary,
+     billed_on: [2022-06-25, 2022-07-02, 2022-07-09], not_billed_on: [2022-06-26]}
+  - {name: monthly calendar, source: "spec/services/subscriptions/billing_date_query_spec.rb:41", interval: monthly,
+     billed_on: [2022-07-01, 2022-08-01, 2022-09-01], not_billed_on: [2022-07-02]}
+  - {name: monthly anniversary, source: "spec/services/subscriptions/billing_date_query_spec.rb:42", interval: monthly, billing_time: anniversary,
+     billed_on: [2022-06-20, 2022-07-20, 2022-08-20], not_billed_on: [2022-07-21]}
+  - {name: monthly anniversary on the 31st, source: "spec/services/subscriptions/billing_date_query_spec.rb:44", interval: monthly, billing_time: anniversary,
+     subscription_at: 2021-03-31,
+     billed_on: [2023-02-28, 2024-02-29, 2023-04-30, 2023-01-31], not_billed_on: [2023-02-27]}
+  - {name: quarterly calendar, source: "spec/services/subscriptions/billing_date_query_spec.rb:51", interval: quarterly,
+     billed_on: [2022-07-01, 2022-10-01, 2023-01-01, 2030-04-01],
+     not_billed_on: [2022-02-01, 2022-03-01, 2023-12-01]}
+  - {name: quarterly anniversary in Aug Nov Feb May, source: "spec/services/subscriptions/billing_date_query_spec.rb:58", interval: quarterly, billing_time: anniversary,
+     billed_on: [2022-08-20, 2022-11-20, 2023-02-20, 2030-05-20], not_billed_on: [2022-09-20]}
+  - {name: quarterly anniversary in Jan Apr Jul Oct, source: "spec/services/subscriptions/billing_date_query_spec.rb:65", interval: quarterly, billing_time: anniversary,
+     subscription_at: 2021-01-15,
+     billed_on: [2022-07-15, 2022-10-15, 2023-01-15, 2024-04-15]}
+  - {name: quarterly anniversary in Mar Jun Sep Dec, source: "spec/services/subscriptions/billing_date_query_spec.rb:72", interval: quarterly, billing_time: anniversary,
+     subscription_at: 2021-03-15,
+     billed_on: [2022-06-15, 2022-09-15, 2022-12-15, 2023-03-15]}
+  - {name: quarterly anniversary on the 31st, source: "spec/services/subscriptions/billing_date_query_spec.rb:79", interval: quarterly, billing_time: anniversary,
+     subscription_at: 2021-05-31,
+     billed_on: [2023-02-28, 2024-02-29, 2023-11-30, 2023-08-31]}
+  - {name: quarterly anniversary on the 30th, source: "spec/services/subscriptions/billing_date_query_spec.rb:86", interval: quarterly, billing_time: anniversary,
+     subscription_at: 2021-05-30,
+     billed_on: [2023-02-28, 2024-02-29, 2023-11-30, 2023-08-30], not_billed_on: [2023-08-31]}
+  - {name: semiannual calendar, source: "spec/services/subscriptions/billing_date_query_spec.rb:93", interval: semiannual,
+     billed_on: [2022-07-01, 2023-01-01, 2030-07-01], not_billed_on: [2022-10-01]}
+  - {name: semiannual anniversary, source: "spec/services/subscriptions/billing_date_query_spec.rb:99", interval: semiannual, billing_time: anniversary,
+     billed_on: [2022-08-20, 2023-02-20, 2030-08-20], not_billed_on: [2022-11-20]}
+  - {name: semiannual anniversary on the 31st, source: "spec/services/subscriptions/billing_date_query_spec.rb:106", interval: semiannual, billing_time: anniversary,
+     subscription_at: 2021-08-31,
+     billed_on: [2023-02-28, 2024-02-29, 2023-08-31]}
+  - {name: semiannual anniversary on the 30th, source: "spec/services/subscriptions/billing_date_query_spec.rb:113", interval: semiannual, billing_time: anniversary,
+     subscription_at: 2021-08-30,
+     billed_on: [2023-02-28, 2024-02-29, 2023-08-30], not_billed_on: [2023-08-31]}
+  - {name: semiannual calendar with monthly charges, source: "spec/services/subscriptions/billing_date_query_spec.rb:120", interval: semiannual,
+     bill_charges_monthly: true,
+     billed_on: [2022-08-01], not_billed_on: [2022-08-02]}
+  - {name: semiannual anniversary with monthly charges, source: "spec/services/subscriptions/billing_date_query_spec.rb:127", interval: semiannual, billing_time: anniversary,
+     bill_charges_monthly: true,
+     billed_on: [2022-07-20], not_billed_on: [2022-07-21]}
+  - {name: semiannual anniversary on the 31st with monthly charges, source: "spec/services/subscriptions/billing_date_query_spec.rb:135", interval: semiannual, billing_time: anniversary,
+     bill_charges_monthly: true, subscription_at: 2021-08-31,
+     billed_on: [2023-02-28, 2024-02-29, 2022-06-30, 2022-07-31]}
+  - {name: semiannual calendar with monthly fixed charges, source: "spec/services/subscriptions/billing_date_query_spec.rb:143", interval: semiannual,
+     bill_fixed_charges_monthly: true,
+     billed_on: [2022-08-01, 2022-09-01], not_billed_on: [2022-08-02]}
+  - {name: semiannual anniversary with monthly fixed charges, source: "spec/services/subscriptions/billing_date_query_spec.rb:150", interval: semiannual, billing_time: anniversary,
+     bill_fixed_charges_monthly: true,
+     billed_on: [2022-07-20, 2022-08-20], not_billed_on: [2022-07-21]}
+  - {name: yearly calendar, source: "spec/services/subscriptions/billing_date_query_spec.rb:157", interval: yearly,
+     billed_on: [2023-01-01, 2024-01-01, 2030-01-01], not_billed_on: [2023-02-01, 2022-12-01]}
+  - {name: yearly anniversary, source: "spec/services/subscriptions/billing_date_query_spec.rb:163", interval: yearly, billing_time: anniversary,
+     billed_on: [2023-02-20, 2024-02-20, 2030-02-20], not_billed_on: [2023-01-20, 2023-03-20]}
+  - {name: yearly anniversary on Feb 28 of a non leap year, source: "spec/services/subscriptions/billing_date_query_spec.rb:170", interval: yearly, billing_time: anniversary,
+     subscription_at: 2021-02-28,
+     billed_on: [2023-02-28, 2024-02-28, 2030-02-28]}
+  - {name: yearly anniversary on a leap day, source: "spec/services/subscriptions/billing_date_query_spec.rb:177", interval: yearly, billing_time: anniversary,
+     subscription_at: 2020-02-29,
+     billed_on: [2023-02-28, 2024-02-29, 2030-02-28]}
+  - {name: yearly calendar with monthly charges, source: "spec/services/subscriptions/billing_date_query_spec.rb:183", interval: yearly,
+     bill_charges_monthly: true,
+     billed_on: [2022-08-01, 2022-09-01, 2022-10-01], not_billed_on: [2022-08-02, 2022-08-31]}
+  - {name: yearly anniversary with monthly charges, source: "spec/services/subscriptions/billing_date_query_spec.rb:190", interval: yearly, billing_time: anniversary,
+     bill_charges_monthly: true,
+     billed_on: [2022-07-20, 2022-08-20, 2022-09-20], not_billed_on: [2022-07-21, 2022-07-19]}
+  - {name: yearly anniversary with monthly fixed charges, source: "spec/services/subscriptions/billing_date_query_spec.rb:197", interval: yearly, billing_time: anniversary,
+     bill_fixed_charges_monthly: true,
+     billed_on: [2022-07-20, 2022-08-20], not_billed_on: [2022-07-21]}
+  - {name: yearly calendar with monthly fixed charges, source: "spec/services/subscriptions/billing_date_query_spec.rb:204", interval: yearly,
+     bill_fixed_charges_monthly: true,
+     billed_on: [2022-08-01, 2022-09-01, 2022-10-01], not_billed_on: [2022-08-02, 2022-08-31]}
+  - {name: semiannual anniversary in Jun and Dec, source: "spec/services/subscriptions/billing_date_query_spec.rb:213", interval: semiannual, billing_time: anniversary,
+     subscription_at: 2021-06-20,
+     billed_on: [2022-06-20, 2022-12-20], not_billed_on: [2022-08-20, 2022-09-20]}
+
+  # Timezone handling: monthly calendar bills on the 1st, in the location.
+  - {name: not yet the billing day in the timezone, source: "spec/services/subscriptions/billing_date_query_spec.rb:269", interval: monthly,
+     timezone: America/Chicago, not_billed_on: [2022-07-01T00:30:00Z]}
+  - {name: the billing day in the timezone, source: "spec/services/subscriptions/billing_date_query_spec.rb:278", interval: monthly,
+     timezone: America/Chicago, billed_on: [2022-07-01T12:00:00Z]}
+  - {name: already past the billing day in the timezone, source: "spec/services/subscriptions/billing_date_query_spec.rb:287", interval: monthly,
+     timezone: Pacific/Auckland, not_billed_on: [2022-07-01T18:00:00Z]}
+  - {name: not a billing day, source: "spec/services/subscriptions/billing_date_query_spec.rb:308", interval: monthly,
+     not_billed_on: [2022-07-15T12:00:00Z]}

@@ -1,0 +1,886 @@
+# Ported from lago spec/services/subscriptions/dates/semiannual_service_spec.rb.
+# Periods are half-open: lago's "23:59:59" ends are the next midnight here.
+defaults:
+  interval: semiannual
+  subscription_at: 2021-02-02
+  timezone: UTC
+
+cases:
+  # from_datetime
+  - name: from calendar is the beginning of the previous half year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:36
+    billing_time: calendar
+    billing_at: 2022-07-01
+    want: {from: 2022-01-01}
+  - name: from calendar not started
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:43
+    billing_time: calendar
+    billing_at: 2022-07-01
+    started_at: null
+    want: {from: null}
+  - name: from calendar with timezone
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:51
+    billing_time: calendar
+    billing_at: 2022-07-01
+    timezone: America/New_York
+    want: {from: 2021-07-01T04:00:00Z}
+  - name: from calendar before start date
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:59
+    billing_time: calendar
+    billing_at: 2022-07-01
+    started_at: 2022-04-07
+    want: {from: 2022-04-07}
+  - name: from calendar before start date with timezone
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:66
+    billing_time: calendar
+    billing_at: 2022-07-01
+    started_at: 2022-04-07
+    timezone: America/New_York
+    want: {from: 2022-04-06T04:00:00Z}
+  - name: from calendar just terminated
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:77
+    billing_time: calendar
+    billing_at: 2022-07-10
+    terminated_at: 2022-07-09
+    want: {from: 2022-07-01}
+  - name: from calendar just terminated in advance
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:84
+    billing_time: calendar
+    pay_in_advance: true
+    billing_at: 2022-07-10
+    terminated_at: 2022-07-09
+    want: {from: 2022-07-01}
+  - name: from anniversary is the same day in the previous half year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:96
+    billing_time: anniversary
+    subscription_at: 2021-11-02
+    billing_at: 2022-05-02
+    want: {from: 2021-11-02}
+  - name: from anniversary before start date
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:103
+    billing_time: anniversary
+    subscription_at: 2021-11-02
+    billing_at: 2022-05-02
+    started_at: 2022-02-08
+    want: {from: 2022-02-08}
+  - name: from anniversary in the first half year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:111
+    billing_time: anniversary
+    subscription_at: 2021-11-02
+    billing_at: 2022-05-02
+    want: {from: 2021-11-02}
+  - name: from anniversary on the last day of the month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:120
+    billing_time: anniversary
+    subscription_at: 2021-11-30
+    billing_at: 2022-05-31
+    want: {from: 2021-11-30}
+  - name: from anniversary just terminated
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:130
+    billing_time: anniversary
+    subscription_at: 2021-11-02
+    billing_at: 2022-05-10
+    terminated_at: 2022-05-09
+    want: {from: 2022-05-02}
+  - name: from anniversary just terminated in advance
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:137
+    billing_time: anniversary
+    pay_in_advance: true
+    subscription_at: 2021-11-02
+    billing_at: 2022-05-10
+    terminated_at: 2022-05-09
+    want: {from: 2022-05-02}
+  - name: from anniversary just terminated before the anniversary day
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:146
+    billing_time: anniversary
+    subscription_at: 2021-05-30
+    billing_at: 2022-05-29
+    terminated_at: 2022-05-09
+    want: {from: 2021-11-30}
+  - name: from anniversary just terminated in February
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:159
+    billing_time: anniversary
+    subscription_at: 2021-02-28
+    billing_at: 2022-02-27
+    terminated_at: 2022-02-25
+    want: {from: 2021-08-28}
+  - name: from anniversary in advance outside a billing month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:173
+    billing_time: anniversary
+    pay_in_advance: true
+    subscription_at: 2021-01-31
+    billing_at: 2021-04-30
+    want: {from: 2021-01-31}
+  - name: from anniversary current usage outside a billing month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:183
+    billing_time: anniversary
+    subscription_at: 2023-01-06
+    billing_at: 2023-08-08
+    current_usage: true
+    want: {from: 2023-07-06}
+  - name: from anniversary current usage outside a billing month before the anniversary day
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:193
+    billing_time: anniversary
+    subscription_at: 2023-01-06
+    billing_at: 2023-08-04
+    current_usage: true
+    want: {from: 2023-07-06}
+
+  # to_datetime
+  - name: to calendar is the end of the previous half year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:207
+    billing_time: calendar
+    billing_at: 2022-07-01
+    want: {to: 2022-07-01}
+  - name: to calendar not started
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:214
+    billing_time: calendar
+    billing_at: 2022-07-01
+    started_at: null
+    want: {to: null}
+  - name: to calendar with timezone
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:222
+    billing_time: calendar
+    billing_at: 2022-07-01
+    timezone: America/New_York
+    want: {to: 2022-01-01T05:00:00Z}
+  - name: to calendar in advance is the end of the half year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:230
+    billing_time: calendar
+    billing_at: 2022-07-01
+    pay_in_advance: true
+    want: {to: 2023-01-01}
+  - name: to calendar just terminated
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:245
+    billing_time: calendar
+    billing_at: 2022-07-01
+    terminated_at: 2022-06-27
+    want: {to: 2022-06-27}
+  - name: to calendar just terminated with timezone
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:252
+    billing_time: calendar
+    billing_at: 2022-07-01
+    terminated_at: 2022-06-27
+    timezone: America/New_York
+    want: {to: 2022-06-27}
+  - name: to anniversary is the day before in the month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:264
+    billing_time: anniversary
+    subscription_at: 2021-11-02
+    billing_at: 2022-05-02
+    want: {to: 2022-05-02}
+  - name: to anniversary in the last half of the year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:272
+    billing_time: anniversary
+    subscription_at: 2021-02-02
+    billing_at: 2022-02-02
+    want: {to: 2022-02-02}
+  - name: to anniversary when the day does not exist in the month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:281
+    billing_time: anniversary
+    subscription_at: 2021-11-30
+    billing_at: 2022-06-01
+    want: {to: 2022-05-30}
+  - name: to anniversary on the 30th of a 31-day month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:289
+    billing_time: anniversary
+    subscription_at: 2022-01-30
+    billing_at: 2022-07-30
+    want: {to: 2022-07-30}
+  - name: to anniversary on the first day of the half year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:299
+    billing_time: anniversary
+    subscription_at: 2021-10-01
+    billing_at: 2022-04-02
+    want: {to: 2022-04-01}
+  - name: to anniversary in advance is the end of the current period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:307
+    billing_time: anniversary
+    pay_in_advance: true
+    subscription_at: 2021-11-02
+    billing_at: 2022-05-02
+    want: {to: 2022-11-02}
+  - name: to anniversary just terminated
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:320
+    billing_time: anniversary
+    subscription_at: 2021-11-02
+    billing_at: 2022-05-02
+    terminated_at: 2022-04-30
+    want: {to: 2022-04-30}
+
+  # charges_from_datetime
+  - name: charges from calendar is from
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:334
+    billing_time: calendar
+    billing_at: 2022-07-01
+    want: {charges_from: =from}
+  - name: charges from calendar not started
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:341
+    billing_time: calendar
+    billing_at: 2022-07-01
+    started_at: null
+    want: {charges_from: null}
+  - name: charges from calendar with timezone
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:349
+    billing_time: calendar
+    billing_at: 2022-07-01
+    timezone: America/New_York
+    want: {charges_from: =from}
+  - name: charges from calendar after a timezone change
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:369
+    billing_time: calendar
+    billing_at: 2022-07-02
+    timezone: America/Los_Angeles
+    previous: {timezone: UTC, charges_to: 2022-01-01T00:00:00Z}
+    want: {charges_from: 2022-01-01T00:00:00Z}
+  - name: charges from calendar started in the middle of a period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:378
+    billing_time: calendar
+    billing_at: 2022-07-01
+    started_at: 2022-04-03
+    want: {charges_from: 2022-04-03}
+  - name: charges from calendar in advance is the previous period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:387
+    billing_time: calendar
+    billing_at: 2022-07-01
+    pay_in_advance: true
+    subscription_at: 2020-01-01
+    want: {charges_from: 2022-01-01}
+  - name: charges from calendar billed monthly is the previous month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:395
+    billing_time: calendar
+    billing_at: 2022-07-01
+    bill_charges_monthly: true
+    want: {charges_from: 2022-06-01}
+  - name: charges from calendar billed monthly started in the middle of a period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:403
+    billing_time: calendar
+    billing_at: 2022-01-01
+    started_at: 2022-03-03
+    bill_charges_monthly: true
+    want: {charges_from: 2022-03-03}
+  - name: charges from calendar with monthly fixed charges on a first month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:417
+    billing_time: calendar
+    subscription_at: 2020-02-02
+    billing_at: 2022-07-01
+    bill_fixed_charges_monthly: true
+    want: {charges_from: 2022-01-01}
+  - name: charges from calendar with monthly fixed charges outside a first month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:425
+    billing_time: calendar
+    subscription_at: 2020-02-02
+    billing_at: 2023-02-01
+    bill_fixed_charges_monthly: true
+    want: {charges_from: null}
+  - name: charges from calendar with monthly fixed charges outside a first month in current usage
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:432
+    billing_time: calendar
+    subscription_at: 2020-02-02
+    billing_at: 2023-02-01
+    bill_fixed_charges_monthly: true
+    current_usage: true
+    want: {charges_from: 2023-01-01}
+  - name: charges from calendar with monthly charges on a first month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:447
+    billing_time: calendar
+    subscription_at: 2020-02-02
+    billing_at: 2022-07-01
+    bill_charges_monthly: true
+    want: {charges_from: 2022-06-01}
+  - name: charges from calendar with monthly charges outside a first month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:455
+    billing_time: calendar
+    subscription_at: 2020-02-02
+    billing_at: 2023-02-01
+    bill_charges_monthly: true
+    want: {charges_from: 2023-01-01}
+  - name: charges from anniversary is from
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:466
+    billing_time: anniversary
+    billing_at: 2022-08-02
+    want: {charges_from: =from}
+  - name: charges from anniversary started in the middle of a period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:473
+    billing_time: anniversary
+    billing_at: 2022-08-02
+    started_at: 2022-05-03
+    want: {charges_from: 2022-05-03}
+  - name: charges from anniversary in advance is the previous period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:482
+    billing_time: anniversary
+    billing_at: 2022-08-02
+    pay_in_advance: true
+    subscription_at: 2020-02-02
+    want: {charges_from: 2022-02-02}
+
+  # charges_to_datetime
+  - name: charges to calendar is to
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:496
+    billing_time: calendar
+    billing_at: 2022-07-01
+    want: {charges_to: =to}
+  - name: charges to calendar not started
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:503
+    billing_time: calendar
+    billing_at: 2022-07-01
+    started_at: null
+    want: {charges_to: null}
+  - name: charges to calendar with timezone
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:511
+    billing_time: calendar
+    billing_at: 2022-07-01
+    timezone: America/New_York
+    want: {charges_to: =to}
+  - name: charges to calendar terminated in the middle of a period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:523
+    billing_time: calendar
+    billing_at: 2022-07-01
+    terminated_at: 2022-06-15
+    want: {charges_to: 2022-06-15}
+  - name: charges to calendar in advance is the end of the previous period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:531
+    billing_time: calendar
+    billing_at: 2022-07-01
+    pay_in_advance: true
+    want: {from: 2022-07-01, charges_to: 2022-07-01}
+  - name: charges to calendar billed monthly is to
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:541
+    billing_time: calendar
+    billing_at: 2022-01-01
+    bill_charges_monthly: true
+    want: {charges_to: =to, to: 2022-01-01}
+  - name: charges to calendar billed monthly terminated in the middle of a period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:551
+    billing_time: calendar
+    billing_at: 2022-03-07
+    terminated_at: 2022-03-05
+    bill_charges_monthly: true
+    want: {charges_to: 2022-03-05}
+  - name: charges to calendar billed monthly in advance
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:561
+    billing_time: calendar
+    pay_in_advance: true
+    subscription_at: 2020-02-02
+    billing_at: 2022-03-07
+    bill_charges_monthly: true
+    want: {charges_to: 2022-03-01}
+  - name: charges to calendar with monthly fixed charges on a first month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:575
+    billing_time: calendar
+    subscription_at: 2020-02-02
+    billing_at: 2022-07-01
+    bill_fixed_charges_monthly: true
+    want: {charges_to: 2022-07-01}
+  - name: charges to calendar with monthly fixed charges outside a first month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:583
+    billing_time: calendar
+    subscription_at: 2020-02-02
+    billing_at: 2023-02-01
+    bill_fixed_charges_monthly: true
+    want: {charges_to: null}
+  - name: charges to calendar with monthly fixed charges outside a first month in current usage
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:590
+    billing_time: calendar
+    subscription_at: 2020-02-02
+    billing_at: 2023-02-01
+    bill_fixed_charges_monthly: true
+    current_usage: true
+    want: {charges_to: 2023-07-01}
+  - name: charges to calendar with monthly charges on a first month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:605
+    billing_time: calendar
+    subscription_at: 2020-02-02
+    billing_at: 2022-07-01
+    bill_charges_monthly: true
+    want: {charges_to: 2022-07-01}
+  - name: charges to calendar with monthly charges outside a first month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:613
+    billing_time: calendar
+    subscription_at: 2020-02-02
+    billing_at: 2023-02-01
+    bill_charges_monthly: true
+    want: {charges_to: 2023-02-01}
+  - name: charges to anniversary is to
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:624
+    billing_time: anniversary
+    billing_at: 2022-05-02
+    want: {charges_to: =to}
+  - name: charges to anniversary terminated in the middle of a period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:635
+    billing_time: anniversary
+    billing_at: 2022-05-02
+    terminated_at: 2022-04-15
+    want: {charges_to: 2022-04-15}
+  - name: charges to anniversary in advance is the end of the previous period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:643
+    billing_time: anniversary
+    billing_at: 2022-05-02
+    pay_in_advance: true
+    want: {from: 2022-02-02, charges_to: 2022-02-02}
+
+  # fixed_charges_from_datetime
+  - name: fixed charges from calendar is from
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:657
+    billing_time: calendar
+    billing_at: 2022-07-01
+    want: {fixed_charges_from: =from}
+  - name: fixed charges from calendar not started
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:664
+    billing_time: calendar
+    billing_at: 2022-07-01
+    started_at: null
+    want: {fixed_charges_from: null}
+  - name: fixed charges from calendar with timezone
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:672
+    billing_time: calendar
+    billing_at: 2022-07-01
+    timezone: America/New_York
+    want: {fixed_charges_from: =from}
+  - name: fixed charges from calendar after a timezone change
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:692
+    billing_time: calendar
+    billing_at: 2022-07-02
+    timezone: America/Los_Angeles
+    previous: {timezone: UTC, fixed_charges_to: 2022-01-01T00:00:00Z}
+    want: {fixed_charges_from: 2022-01-01T00:00:00Z}
+  - name: fixed charges from calendar started in the middle of a period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:701
+    billing_time: calendar
+    billing_at: 2022-07-01
+    started_at: 2022-04-03
+    want: {fixed_charges_from: 2022-04-03}
+  - name: fixed charges from calendar in advance is the previous period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:710
+    billing_time: calendar
+    billing_at: 2022-07-01
+    pay_in_advance: true
+    subscription_at: 2020-01-01
+    want: {fixed_charges_from: 2022-01-01}
+  - name: fixed charges from calendar billed monthly is the previous month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:718
+    billing_time: calendar
+    billing_at: 2022-07-01
+    bill_fixed_charges_monthly: true
+    want: {fixed_charges_from: 2022-06-01}
+  - name: fixed charges from calendar billed monthly started in the middle of a period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:726
+    billing_time: calendar
+    billing_at: 2022-01-01
+    started_at: 2022-03-03
+    bill_fixed_charges_monthly: true
+    want: {fixed_charges_from: 2022-03-03}
+  - name: fixed charges from calendar billed monthly the next month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:734
+    billing_time: calendar
+    billing_at: 2022-02-01
+    bill_fixed_charges_monthly: true
+    want: {fixed_charges_from: 2022-01-01}
+  - name: fixed charges from calendar with monthly charges on a first month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:746
+    billing_time: calendar
+    billing_at: 2022-07-01
+    bill_charges_monthly: true
+    want: {fixed_charges_from: 2022-01-01}
+  - name: fixed charges from calendar with monthly charges outside a first month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:754
+    billing_time: calendar
+    billing_at: 2022-02-01
+    bill_charges_monthly: true
+    want: {fixed_charges_from: null}
+  - name: fixed charges from anniversary is from
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:765
+    billing_time: anniversary
+    billing_at: 2022-08-02
+    want: {fixed_charges_from: =from}
+  - name: fixed charges from anniversary started in the middle of a period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:772
+    billing_time: anniversary
+    billing_at: 2022-08-02
+    started_at: 2022-05-03
+    want: {fixed_charges_from: 2022-05-03}
+  - name: fixed charges from anniversary in advance is the previous period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:781
+    billing_time: anniversary
+    billing_at: 2022-08-02
+    pay_in_advance: true
+    subscription_at: 2020-02-02
+    want: {fixed_charges_from: 2022-02-02}
+
+  # fixed_charges_to_datetime
+  - name: fixed charges to calendar is to
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:795
+    billing_time: calendar
+    billing_at: 2022-07-01
+    want: {fixed_charges_to: =to}
+  - name: fixed charges to calendar not started
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:802
+    billing_time: calendar
+    billing_at: 2022-07-01
+    started_at: null
+    want: {fixed_charges_to: null}
+  - name: fixed charges to calendar with timezone
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:810
+    billing_time: calendar
+    billing_at: 2022-07-01
+    timezone: America/New_York
+    want: {fixed_charges_to: =to}
+  - name: fixed charges to calendar terminated in the middle of a period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:822
+    billing_time: calendar
+    billing_at: 2022-07-01
+    terminated_at: 2022-06-15
+    want: {fixed_charges_to: 2022-06-15}
+  - name: fixed charges to calendar in advance is the end of the previous period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:830
+    billing_time: calendar
+    billing_at: 2022-07-01
+    pay_in_advance: true
+    want: {fixed_charges_to: 2022-07-01}
+  - name: fixed charges to calendar billed monthly is to
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:840
+    billing_time: calendar
+    billing_at: 2022-01-01
+    bill_fixed_charges_monthly: true
+    want: {fixed_charges_to: =to}
+  - name: fixed charges to calendar billed monthly terminated in the middle of a period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:850
+    billing_time: calendar
+    billing_at: 2022-03-07
+    terminated_at: 2022-03-05
+    bill_fixed_charges_monthly: true
+    want: {fixed_charges_to: 2022-03-05}
+  - name: fixed charges to calendar billed monthly in advance
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:860
+    billing_time: calendar
+    pay_in_advance: true
+    subscription_at: 2020-02-02
+    billing_at: 2022-03-07
+    bill_fixed_charges_monthly: true
+    want: {fixed_charges_to: 2022-03-01}
+  - name: fixed charges to calendar billed monthly the next month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:868
+    billing_time: calendar
+    billing_at: 2022-02-01
+    bill_fixed_charges_monthly: true
+    want: {fixed_charges_to: 2022-02-01}
+  - name: fixed charges to calendar with monthly charges on a first month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:880
+    billing_time: calendar
+    billing_at: 2022-07-01
+    bill_charges_monthly: true
+    want: {fixed_charges_to: 2022-07-01}
+  - name: fixed charges to calendar with monthly charges outside a first month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:888
+    billing_time: calendar
+    billing_at: 2022-02-01
+    bill_charges_monthly: true
+    want: {fixed_charges_to: null}
+  - name: fixed charges to anniversary is to
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:899
+    billing_time: anniversary
+    billing_at: 2022-05-02
+    want: {fixed_charges_to: =to}
+  - name: fixed charges to anniversary terminated in the middle of a period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:910
+    billing_time: anniversary
+    billing_at: 2022-05-02
+    terminated_at: 2022-04-15
+    want: {fixed_charges_to: 2022-04-15}
+  - name: fixed charges to anniversary in advance is the end of the previous period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:918
+    billing_time: anniversary
+    billing_at: 2022-05-02
+    pay_in_advance: true
+    want: {fixed_charges_to: 2022-02-02}
+
+  # fixed_charges_period_to_datetime
+  - name: fixed charges period end on a run billing fixed charges
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:936
+    billing_time: calendar
+    billing_at: 2022-07-01
+    bill_charges_monthly: true
+    want: {fixed_charges_period_end: 2022-07-01, fixed_charges_to: 2022-07-01}
+  - name: fixed charges period end on a run billing only charges
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:945
+    billing_time: calendar
+    billing_at: 2022-02-01
+    bill_charges_monthly: true
+    want: {fixed_charges_period_end: 2022-01-01, fixed_charges_to: null}
+  - name: fixed charges period end not started
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:956
+    billing_time: calendar
+    billing_at: 2022-07-01
+    started_at: null
+    want: {fixed_charges_period_end: null}
+
+  # next_end_of_period
+  - name: current period end calendar is the end of the half year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:969
+    billing_time: calendar
+    billing_at: 2022-07-02
+    want: {current_period_end: 2023-01-01}
+  - name: current period end calendar with timezone
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:976
+    billing_time: calendar
+    billing_at: 2022-07-02
+    timezone: America/New_York
+    want: {current_period_end: 2023-01-01T05:00:00Z}
+  - name: current period end anniversary is the end of the billing half year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:986
+    billing_time: anniversary
+    billing_at: 2022-05-07
+    want: {current_period_end: 2022-08-02}
+  - name: current period end anniversary with timezone
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:993
+    billing_time: anniversary
+    billing_at: 2022-05-07
+    timezone: America/New_York
+    want: {current_period_end: 2022-08-01T04:00:00Z}
+  - name: current period end anniversary in the next year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1000
+    billing_time: anniversary
+    billing_at: 2021-11-02
+    want: {current_period_end: 2022-02-02}
+  - name: current period end anniversary on the last day of the period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1007
+    billing_time: anniversary
+    billing_at: 2022-02-01
+    want: {current_period_end: 2022-02-02}
+
+  # previous_beginning_of_period
+  - name: previous period start calendar
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1023
+    billing_time: calendar
+    billing_at: 2022-07-02
+    want: {previous_period_start: 2022-01-01}
+  - name: previous period start calendar with timezone
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1030
+    billing_time: calendar
+    billing_at: 2022-07-02
+    timezone: America/New_York
+    want: {previous_period_start: 2022-01-01T05:00:00Z}
+  - name: current period start calendar
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1038
+    billing_time: calendar
+    billing_at: 2022-07-02
+    want: {current_period_start: 2022-07-01}
+  - name: previous period start anniversary
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1048
+    billing_time: anniversary
+    billing_at: 2022-08-03
+    want: {previous_period_start: 2022-02-02}
+  - name: previous period start anniversary with timezone
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1055
+    billing_time: anniversary
+    billing_at: 2022-08-03
+    timezone: America/New_York
+    want: {previous_period_start: 2022-02-01T05:00:00Z}
+  - name: current period start anniversary
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1063
+    billing_time: anniversary
+    billing_at: 2022-08-03
+    want: {current_period_start: 2022-08-02}
+
+  # single_day_price
+  - name: single day price calendar
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1078
+    billing_time: calendar
+    subscription_at: 2022-01-01
+    billing_at: 2022-07-01
+    want: {period_days: 181}
+  - name: single day price calendar on a leap year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1086
+    billing_time: calendar
+    subscription_at: 2020-01-01
+    billing_at: 2020-07-01
+    want: {period_days: 182}
+  - name: single day price calendar of a subscription started in the middle of a period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1101
+    billing_time: calendar
+    subscription_at: 2024-01-01
+    started_at: 2024-09-20
+    billing_at: 2024-10-01
+    period_days_at: 2024-09-20
+    want: {period_days_at: 184}
+  - name: single day price anniversary on a leap year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1112
+    billing_time: anniversary
+    subscription_at: 2024-01-01
+    billing_at: 2024-07-01
+    want: {period_days: 182}
+  - name: single day price anniversary not on a leap year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1120
+    billing_time: anniversary
+    subscription_at: 2023-01-01
+    billing_at: 2023-07-01
+    want: {period_days: 181}
+  - name: single day price anniversary of a subscription started in the middle of a period
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1135
+    billing_time: anniversary
+    subscription_at: 2024-01-15
+    started_at: 2024-09-20
+    billing_at: 2024-10-01
+    period_days_at: 2024-09-20
+    want: {period_days_at: 184}
+
+  # charges_duration_in_days
+  - name: charges duration calendar
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1149
+    billing_time: calendar
+    billing_at: 2022-07-01
+    want: {charges_days: 181}
+  - name: charges duration calendar on a leap year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1157
+    billing_time: calendar
+    subscription_at: 2019-02-28
+    billing_at: 2020-07-01
+    want: {charges_days: 182}
+  - name: charges duration calendar billed monthly
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1165
+    billing_time: calendar
+    billing_at: 2022-07-01
+    bill_charges_monthly: true
+    want: {charges_days: 30}
+  - name: charges duration anniversary on a leap year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1176
+    billing_time: anniversary
+    subscription_at: 2024-01-01
+    billing_at: 2024-07-01
+    want: {charges_days: 182}
+  - name: charges duration anniversary not on a leap year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1184
+    billing_time: anniversary
+    subscription_at: 2023-01-01
+    billing_at: 2023-07-01
+    want: {charges_days: 181}
+  - name: charges duration anniversary billed monthly
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1192
+    billing_time: anniversary
+    subscription_at: 2024-01-01
+    billing_at: 2024-07-01
+    bill_charges_monthly: true
+    want: {charges_days: 30}
+
+  # fixed_charges_duration_in_days
+  - name: fixed charges duration calendar
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1206
+    billing_time: calendar
+    billing_at: 2022-07-01
+    want: {fixed_charges_days: 181}
+  - name: fixed charges duration calendar on a leap year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1214
+    billing_time: calendar
+    subscription_at: 2019-02-28
+    billing_at: 2020-07-01
+    want: {fixed_charges_days: 182}
+  - name: fixed charges duration calendar billed monthly
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1222
+    billing_time: calendar
+    billing_at: 2022-07-01
+    bill_fixed_charges_monthly: true
+    want: {fixed_charges_days: 30}
+  - name: fixed charges duration anniversary on a leap year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1233
+    billing_time: anniversary
+    subscription_at: 2024-01-01
+    billing_at: 2024-07-01
+    want: {fixed_charges_days: 182}
+  - name: fixed charges duration anniversary not on a leap year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1241
+    billing_time: anniversary
+    subscription_at: 2023-01-01
+    billing_at: 2023-07-01
+    want: {fixed_charges_days: 181}
+  - name: fixed charges duration anniversary billed monthly
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1249
+    billing_time: anniversary
+    subscription_at: 2024-01-01
+    billing_at: 2024-07-01
+    bill_fixed_charges_monthly: true
+    want: {fixed_charges_days: 30}
+
+  # first_month_in_semiannual_period?
+  - name: first month calendar in January
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1265
+    billing_time: calendar
+    billing_at: 2022-01-15
+    want: {first_month_of_period: true}
+  - name: first month calendar in July
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1273
+    billing_time: calendar
+    billing_at: 2022-07-15
+    want: {first_month_of_period: true}
+  - name: first month calendar in March
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1281
+    billing_time: calendar
+    billing_at: 2022-03-15
+    want: {first_month_of_period: false}
+  - name: first month anniversary in the subscription month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1294
+    billing_time: anniversary
+    subscription_at: 2021-02-10
+    billing_at: 2022-02-15
+    want: {first_month_of_period: true}
+  - name: first month anniversary six months after the subscription month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1302
+    billing_time: anniversary
+    subscription_at: 2021-02-10
+    billing_at: 2022-08-15
+    want: {first_month_of_period: true}
+  - name: first month anniversary in another month
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1310
+    billing_time: anniversary
+    subscription_at: 2021-02-10
+    billing_at: 2022-04-15
+    want: {first_month_of_period: false}
+
+  # first_month_in_first_semiannual_period?
+  - name: first month of first period calendar in January of the subscription year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1326
+    billing_time: calendar
+    subscription_at: 2021-03-15
+    billing_at: 2021-01-15
+    want: {first_month_of_first_period: true}
+  - name: first month of first period calendar in July of the subscription year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1334
+    billing_time: calendar
+    subscription_at: 2021-03-15
+    billing_at: 2021-07-15
+    want: {first_month_of_first_period: true}
+  - name: first month of first period calendar in January of another year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1342
+    billing_time: calendar
+    subscription_at: 2021-03-15
+    billing_at: 2022-01-15
+    want: {first_month_of_first_period: false}
+  - name: first month of first period calendar in March
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1350
+    billing_time: calendar
+    subscription_at: 2021-03-15
+    billing_at: 2021-03-15
+    want: {first_month_of_first_period: false}
+  - name: first month of first period anniversary in the subscription month and year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1363
+    billing_time: anniversary
+    subscription_at: 2021-02-10
+    billing_at: 2021-02-15
+    want: {first_month_of_first_period: true}
+  - name: first month of first period anniversary in the subscription month of another year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1371
+    billing_time: anniversary
+    subscription_at: 2021-02-10
+    billing_at: 2022-02-15
+    want: {first_month_of_first_period: false}
+  - name: first month of first period anniversary six months later
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1379
+    billing_time: anniversary
+    subscription_at: 2021-02-10
+    billing_at: 2021-08-15
+    want: {first_month_of_first_period: false}
+  - name: first month of first period anniversary six months later in another year
+    source: spec/services/subscriptions/dates/semiannual_service_spec.rb:1387
+    billing_time: anniversary
+    subscription_at: 2021-02-10
+    billing_at: 2022-08-15
+    want: {first_month_of_first_period: false}

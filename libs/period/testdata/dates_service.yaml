@@ -1,0 +1,62 @@
+# Ported from lago spec/services/subscriptions/dates_service_spec.rb.
+# Lago dispatches to one service class per interval; here Dates handles all
+# intervals and rejects an unknown one with ErrInvalid.
+# fixed_charge_pay_in_advance_interval is the current-usage fixed charges
+# period of the billing instant.
+defaults:
+  billing_time: anniversary
+  subscription_at: 2021-02-02
+  billing_at: 2022-03-07T04:20:46.011Z
+  timezone: UTC
+
+cases:
+  - name: weekly interval is supported
+    source: spec/services/subscriptions/dates_service_spec.rb:32
+    interval: weekly
+    want: {error: false}
+  - name: quarterly interval is supported
+    source: spec/services/subscriptions/dates_service_spec.rb:40
+    interval: quarterly
+    want: {error: false}
+  - name: monthly interval is supported
+    source: spec/services/subscriptions/dates_service_spec.rb:48
+    interval: monthly
+    want: {error: false}
+  - name: yearly interval is supported
+    source: spec/services/subscriptions/dates_service_spec.rb:56
+    interval: yearly
+    want: {error: false}
+  - name: semiannual interval is supported
+    source: spec/services/subscriptions/dates_service_spec.rb:64
+    interval: semiannual
+    want: {error: false}
+  - name: invalid interval is rejected
+    source: spec/services/subscriptions/dates_service_spec.rb:76
+    interval: invalid
+    want: {error: true}
+
+  - name: fixed charge pay in advance interval monthly
+    source: spec/services/subscriptions/dates_service_spec.rb:162
+    interval: monthly
+    current_usage: true
+    want: {fixed_charges_from: 2022-03-02, fixed_charges_to: 2022-04-02, fixed_charges_days: 31}
+  - name: fixed charge pay in advance interval yearly
+    source: spec/services/subscriptions/dates_service_spec.rb:183
+    interval: yearly
+    current_usage: true
+    want: {fixed_charges_from: 2022-02-02, fixed_charges_to: 2023-02-02, fixed_charges_days: 365}
+  - name: fixed charge pay in advance interval semiannual
+    source: spec/services/subscriptions/dates_service_spec.rb:195
+    interval: semiannual
+    current_usage: true
+    want: {fixed_charges_from: 2022-02-02, fixed_charges_to: 2022-08-02, fixed_charges_days: 181}
+  - name: fixed charge pay in advance interval quarterly
+    source: spec/services/subscriptions/dates_service_spec.rb:207
+    interval: quarterly
+    current_usage: true
+    want: {fixed_charges_from: 2022-02-02, fixed_charges_to: 2022-05-02, fixed_charges_days: 89}
+  - name: fixed charge pay in advance interval weekly
+    source: spec/services/subscriptions/dates_service_spec.rb:220
+    interval: weekly
+    current_usage: true
+    want: {fixed_charges_from: 2022-03-01, fixed_charges_to: 2022-03-08, fixed_charges_days: 7}

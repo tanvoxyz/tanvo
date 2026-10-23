@@ -1,0 +1,20 @@
+# Ported from lago spec/models/subscription_spec.rb (upgraded?, downgraded?):
+# plans are compared by their amount brought to a year. The factory plan is
+# monthly at 100 cents.
+cases:
+  - {name: same plan is an upgrade, source: "spec/models/subscription_spec.rb:527",
+     from: {interval: monthly, amount: "100"}, to: {interval: monthly, amount: "100"}, want: upgrade}
+  - {name: cheaper plan is not an upgrade, source: "spec/models/subscription_spec.rb:534",
+     from: {interval: monthly, amount: "110"}, to: {interval: monthly, amount: "100"}, want: downgrade}
+  - {name: monthly to yearly at the same amount is not an upgrade, source: "spec/models/subscription_spec.rb:543",
+     from: {interval: monthly, amount: "100"}, to: {interval: yearly, amount: "100"}, want: downgrade}
+  - {name: cheaper plan is a downgrade, source: "spec/models/subscription_spec.rb:568",
+     from: {interval: monthly, amount: "200"}, to: {interval: monthly, amount: "100"}, want: downgrade}
+  - {name: more expensive plan is not a downgrade, source: "spec/models/subscription_spec.rb:575",
+     from: {interval: monthly, amount: "90"}, to: {interval: monthly, amount: "100"}, want: upgrade}
+  - {name: yearly to monthly is not a downgrade, source: "spec/models/subscription_spec.rb:584",
+     from: {interval: yearly, amount: "200"}, to: {interval: monthly, amount: "100"}, want: upgrade}
+  - {name: weekly is brought to 52 weeks, source: tanvo (app/models/plan.rb yearly_amount_cents),
+     from: {interval: weekly, amount: "10"}, to: {interval: yearly, amount: "519.99"}, want: downgrade}
+  - {name: quarterly and semiannual, source: tanvo (app/models/plan.rb yearly_amount_cents),
+     from: {interval: quarterly, amount: "50"}, to: {interval: semiannual, amount: "100"}, want: upgrade}

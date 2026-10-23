@@ -1,0 +1,40 @@
+# Ported from lago spec/services/utils/datetime_spec.rb (date_diff_with_timezone)
+# and spec/models/concerns/billing_period_date_diff_spec.rb.
+# Lago ends are inclusive (an end at local midnight is pushed by a second so
+# that day counts); here they are exclusive, so such an end is the next
+# midnight.
+defaults:
+  timezone: UTC
+
+cases:
+  - {name: days in the timezone, source: "spec/services/utils/datetime_spec.rb:285", timezone: Europe/Paris,
+     from: 2023-08-31T23:10:00Z, to: 2023-09-30T22:59:59Z, want: 30}
+  - {name: across the end of daylight saving time, source: "spec/services/utils/datetime_spec.rb:294", timezone: Europe/Paris,
+     from: 2023-09-30T23:10:00Z, to: 2023-10-31T22:59:59Z, want: 31}
+  - {name: across the start of daylight saving time, source: "spec/services/utils/datetime_spec.rb:304", timezone: Europe/Paris,
+     from: 2023-02-28T23:10:00Z, to: 2023-03-31T21:59:59Z, want: 31}
+  - {name: whole days, source: "spec/services/utils/datetime_spec.rb:314",
+     from: 2023-12-01, to: 2023-12-08, want: 7}
+  - {name: whole days in the timezone, source: "spec/services/utils/datetime_spec.rb:324", timezone: America/New_York,
+     from: 2023-11-30T05:00:00Z, to: 2023-12-07T05:00:00Z, want: 7}
+  - {name: subscription days in the customer timezone, source: "spec/models/concerns/billing_period_date_diff_spec.rb:15", timezone: Europe/Paris, billed: true,
+     from: 2023-08-31T23:10:00Z, to: 2023-09-30T22:59:59Z, want: 30}
+  - {name: upgraded subscription days leave the upgrade day to the new subscription, source: "spec/models/concerns/billing_period_date_diff_spec.rb:34",
+     timezone: Europe/Paris, billed: true, terminated_at: 2023-09-30T22:59:59Z, next: upgrade,
+     from: 2023-08-31T23:10:00Z, to: 2023-09-30T22:59:59Z, want: 29}
+  - {name: downgraded subscription days are all billed, source: tanvo (app/models/concerns/billing_period_date_diff.rb),
+     timezone: Europe/Paris, billed: true, terminated_at: 2023-09-30T22:59:59Z, next: downgrade,
+     from: 2023-08-31T23:10:00Z, to: 2023-09-30T22:59:59Z, want: 30}
+  - {name: upgraded on the start day bills no day, source: tanvo (app/models/concerns/billing_period_date_diff.rb),
+     billed: true, terminated_at: 2023-09-01T10:00:00Z, next: upgrade,
+     from: 2023-09-01, to: 2023-09-01T10:00:00Z, want: 0}
+  - {name: spring forward day is one day, source: tanvo, timezone: America/New_York,
+     from: 2024-03-10T05:00:00Z, to: 2024-03-11T04:00:00Z, want: 1}
+  - {name: fall back day is one day, source: tanvo, timezone: America/New_York,
+     from: 2024-11-03T04:00:00Z, to: 2024-11-04T05:00:00Z, want: 1}
+  - {name: a partial day counts as a day, source: tanvo,
+     from: 2024-01-01, to: 2024-01-01T00:00:01Z, want: 1}
+  - {name: an empty period has no day, source: tanvo,
+     from: 2024-01-01, to: 2024-01-01, want: 0}
+  - {name: leap February, source: tanvo,
+     from: 2024-02-01, to: 2024-03-01, want: 29}

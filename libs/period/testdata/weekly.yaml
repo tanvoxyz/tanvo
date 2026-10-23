@@ -1,0 +1,405 @@
+# Ported from lago spec/services/subscriptions/dates/weekly_service_spec.rb.
+# Periods are half-open: lago's "23:59:59" ends are the next midnight here.
+# The subscription date 2021-02-02 is a Tuesday in UTC and a Monday in
+# America/New_York.
+defaults:
+  interval: weekly
+  subscription_at: 2021-02-02
+  billing_at: 2022-03-07
+  timezone: UTC
+
+cases:
+  # from_datetime
+  - name: from calendar is the beginning of the previous week
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:34
+    billing_time: calendar
+    want: {from: 2022-02-28}
+  - name: from calendar not started
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:42
+    billing_time: calendar
+    started_at: null
+    want: {from: null}
+  - name: from calendar with timezone
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:50
+    billing_time: calendar
+    timezone: America/New_York
+    want: {from: 2022-02-21T05:00:00Z}
+  - name: from calendar before start date
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:58
+    billing_time: calendar
+    started_at: 2022-03-01T05:00:00Z
+    want: {from: 2022-03-01}
+  - name: from calendar before start date with timezone
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:66
+    billing_time: calendar
+    started_at: 2022-03-01T05:00:00Z
+    timezone: America/New_York
+    want: {from: 2022-03-01T05:00:00Z}
+  - name: from calendar just terminated
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:76
+    billing_time: calendar
+    billing_at: 2022-03-10
+    terminated_at: 2022-03-09
+    want: {from: 2022-03-07}
+  - name: from calendar just terminated in advance
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:84
+    billing_time: calendar
+    pay_in_advance: true
+    billing_at: 2022-03-10
+    terminated_at: 2022-03-09
+    want: {from: 2022-03-07}
+  - name: from anniversary is the previous weekday
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:96
+    billing_time: anniversary
+    billing_at: 2022-03-09
+    want: {from: 2022-03-01}
+  - name: from anniversary before start date
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:104
+    billing_time: anniversary
+    billing_at: 2022-03-09
+    started_at: 2022-03-08
+    want: {from: 2022-03-08}
+  - name: from anniversary just terminated
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:113
+    billing_time: anniversary
+    billing_at: 2022-03-09
+    terminated_at: 2022-03-08
+    want: {from: 2022-03-08}
+  - name: from anniversary just terminated in advance
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:121
+    billing_time: anniversary
+    pay_in_advance: true
+    billing_at: 2022-03-09
+    terminated_at: 2022-03-08
+    want: {from: 2022-03-08}
+
+  # to_datetime
+  - name: to calendar is the end of the previous week
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:137
+    billing_time: calendar
+    want: {to: 2022-03-07}
+  - name: to calendar not started
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:144
+    billing_time: calendar
+    started_at: null
+    want: {to: null}
+  - name: to calendar with timezone
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:152
+    billing_time: calendar
+    timezone: America/New_York
+    want: {to: 2022-02-28T05:00:00Z}
+  - name: to calendar in advance is the end of the week
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:160
+    billing_time: calendar
+    pay_in_advance: true
+    want: {to: 2022-03-14}
+  - name: to calendar just terminated
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:177
+    billing_time: calendar
+    terminated_at: 2022-03-02
+    want: {to: 2022-03-02}
+  - name: to calendar just terminated with timezone
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:185
+    billing_time: calendar
+    terminated_at: 2022-03-02
+    timezone: America/New_York
+    want: {to: 2022-03-02}
+  - name: to anniversary is the end of the previous week
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:196
+    billing_time: anniversary
+    billing_at: 2022-03-09
+    want: {to: 2022-03-08}
+  - name: to anniversary in advance is the end of the current period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:203
+    billing_time: anniversary
+    pay_in_advance: true
+    billing_at: 2022-03-09
+    want: {to: 2022-03-15}
+  - name: to anniversary just terminated
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:216
+    billing_time: anniversary
+    billing_at: 2022-03-09
+    terminated_at: 2022-03-02
+    want: {to: 2022-03-02}
+
+  # charges_from_datetime
+  - name: charges from calendar is from
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:229
+    billing_time: calendar
+    want: {charges_from: =from, from: 2022-02-28}
+  - name: charges from calendar not started
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:236
+    billing_time: calendar
+    started_at: null
+    want: {charges_from: null}
+  - name: charges from calendar with timezone
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:244
+    billing_time: calendar
+    timezone: America/New_York
+    want: {charges_from: =from}
+  - name: charges from calendar after a timezone change
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:264
+    billing_time: calendar
+    billing_at: 2022-03-08
+    timezone: America/Los_Angeles
+    previous: {timezone: UTC, charges_to: 2022-02-27T23:00:00Z}
+    want: {charges_from: 2022-02-27T23:00:00Z}
+  - name: charges from calendar started in the middle of a period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:273
+    billing_time: calendar
+    started_at: 2022-03-03
+    want: {charges_from: 2022-03-03}
+  - name: charges from calendar in advance is the previous period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:281
+    billing_time: calendar
+    pay_in_advance: true
+    want: {from: 2022-03-07, charges_from: 2022-02-28}
+  - name: charges from anniversary is from
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:291
+    billing_time: anniversary
+    billing_at: 2022-03-09
+    want: {charges_from: =from}
+  - name: charges from anniversary started in the middle of a period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:298
+    billing_time: anniversary
+    billing_at: 2022-03-09
+    started_at: 2022-03-03
+    want: {charges_from: 2022-03-03}
+  - name: charges from anniversary in advance is the previous period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:306
+    billing_time: anniversary
+    pay_in_advance: true
+    billing_at: 2022-03-09
+    want: {from: 2022-03-08, charges_from: 2022-03-01}
+
+  # charges_to_datetime
+  - name: charges to calendar is to
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:319
+    billing_time: calendar
+    want: {charges_to: =to}
+  - name: charges to calendar not started
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:326
+    billing_time: calendar
+    started_at: null
+    want: {charges_to: null}
+  - name: charges to calendar with timezone
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:334
+    billing_time: calendar
+    timezone: America/New_York
+    want: {charges_to: =to}
+  - name: charges to calendar terminated in the middle of a period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:346
+    billing_time: calendar
+    terminated_at: 2022-03-06
+    want: {charges_to: 2022-03-06}
+  - name: charges to calendar in advance is the end of the previous period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:354
+    billing_time: calendar
+    pay_in_advance: true
+    want: {charges_to: 2022-03-07}
+  - name: charges to anniversary is to
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:364
+    billing_time: anniversary
+    billing_at: 2022-03-09
+    want: {charges_to: =to}
+  - name: charges to anniversary terminated in the middle of a period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:375
+    billing_time: anniversary
+    billing_at: 2022-03-09
+    terminated_at: 2022-03-06
+    want: {charges_to: 2022-03-06}
+  - name: charges to anniversary in advance is the end of the previous period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:383
+    billing_time: anniversary
+    pay_in_advance: true
+    billing_at: 2022-03-09
+    want: {charges_to: 2022-03-08}
+
+  # fixed_charges_from_datetime
+  - name: fixed charges from calendar is from
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:396
+    billing_time: calendar
+    want: {fixed_charges_from: =from}
+  - name: fixed charges from calendar not started
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:403
+    billing_time: calendar
+    started_at: null
+    want: {fixed_charges_from: null}
+  - name: fixed charges from calendar with timezone
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:411
+    billing_time: calendar
+    timezone: America/New_York
+    want: {fixed_charges_from: =from}
+  - name: fixed charges from calendar after a timezone change
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:431
+    billing_time: calendar
+    billing_at: 2022-03-08
+    timezone: America/Los_Angeles
+    previous: {timezone: UTC, fixed_charges_to: 2022-02-27T23:00:00Z}
+    want: {fixed_charges_from: 2022-02-27T23:00:00Z}
+  - name: fixed charges from calendar after a timezone change without invoice
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:443
+    billing_time: calendar
+    billing_at: 2022-03-02
+    timezone: America/Los_Angeles
+    want: {fixed_charges_from: =from}
+  - name: fixed charges from calendar started in the middle of a period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:452
+    billing_time: calendar
+    started_at: 2022-03-03
+    want: {fixed_charges_from: 2022-03-03}
+  - name: fixed charges from calendar in advance is the previous period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:460
+    billing_time: calendar
+    pay_in_advance: true
+    want: {fixed_charges_from: 2022-02-28}
+  - name: fixed charges from calendar after an upgrade is the start instant
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:475
+    billing_time: calendar
+    started_at: 2024-02-22T16:13:00Z
+    want: {fixed_charges_from: 2024-02-22T16:13:00Z}
+  - name: fixed charges from anniversary is from
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:486
+    billing_time: anniversary
+    billing_at: 2022-03-09
+    want: {fixed_charges_from: =from}
+  - name: fixed charges from anniversary started in the middle of a period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:493
+    billing_time: anniversary
+    billing_at: 2022-03-09
+    started_at: 2022-03-03
+    want: {fixed_charges_from: 2022-03-03}
+  - name: fixed charges from anniversary in advance is the previous period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:501
+    billing_time: anniversary
+    pay_in_advance: true
+    billing_at: 2022-03-09
+    want: {fixed_charges_from: 2022-03-01}
+
+  # fixed_charges_to_datetime
+  - name: fixed charges to calendar is to
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:514
+    billing_time: calendar
+    want: {fixed_charges_to: =to}
+  - name: fixed charges to calendar not started
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:521
+    billing_time: calendar
+    started_at: null
+    want: {fixed_charges_to: null, fixed_charges_period_end: null}
+  - name: fixed charges to calendar with timezone
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:529
+    billing_time: calendar
+    timezone: America/New_York
+    want: {fixed_charges_to: =to}
+  - name: fixed charges to calendar terminated in the middle of a period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:541
+    billing_time: calendar
+    terminated_at: 2022-03-06
+    want: {fixed_charges_to: 2022-03-06}
+  - name: fixed charges to calendar terminated by an upgrade
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:554
+    billing_time: calendar
+    terminated_at: 2022-03-06
+    next: upgrade
+    want: {fixed_charges_to: 2022-03-06}
+  - name: fixed charges to calendar upgraded on its start day
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:562
+    billing_time: calendar
+    started_at: 2022-03-06T10:23:00Z
+    terminated_at: 2022-03-06T12:23:00Z
+    next: upgrade
+    want: {fixed_charges_to: 2022-03-06T12:23:00Z}
+  - name: fixed charges to calendar in advance is the end of the previous period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:572
+    billing_time: calendar
+    pay_in_advance: true
+    want: {fixed_charges_to: 2022-03-07}
+  - name: fixed charges to anniversary is to
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:582
+    billing_time: anniversary
+    billing_at: 2022-03-09
+    want: {fixed_charges_to: =to}
+  - name: fixed charges to anniversary terminated in the middle of a period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:591
+    billing_time: anniversary
+    billing_at: 2022-03-09
+    terminated_at: 2022-03-06
+    want: {fixed_charges_to: 2022-03-06}
+  - name: fixed charges to anniversary in advance is the end of the previous period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:599
+    billing_time: anniversary
+    pay_in_advance: true
+    billing_at: 2022-03-09
+    want: {fixed_charges_to: 2022-03-08}
+
+  # next_end_of_period
+  - name: current period end calendar is the end of the week
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:612
+    billing_time: calendar
+    want: {current_period_end: 2022-03-14}
+  - name: current period end calendar with timezone
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:619
+    billing_time: calendar
+    timezone: America/New_York
+    want: {current_period_end: 2022-03-07T05:00:00Z}
+  - name: current period end anniversary is the end of the billing week
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:629
+    billing_time: anniversary
+    billing_at: 2022-03-08T20:00:00Z
+    want: {current_period_end: 2022-03-15}
+  - name: current period end anniversary with timezone
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:636
+    billing_time: anniversary
+    billing_at: 2022-03-08T20:00:00Z
+    timezone: America/New_York
+    want: {current_period_end: 2022-03-14T04:00:00Z}
+  - name: current period end anniversary on the last day of the period
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:644
+    billing_time: anniversary
+    want: {current_period_end: 2022-03-08}
+
+  # previous_beginning_of_period
+  - name: previous period start calendar
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:659
+    billing_time: calendar
+    want: {previous_period_start: 2022-02-28}
+  - name: previous period start calendar with timezone
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:666
+    billing_time: calendar
+    timezone: America/New_York
+    want: {previous_period_start: 2022-02-21T05:00:00Z}
+  - name: current period start calendar
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:674
+    billing_time: calendar
+    want: {current_period_start: 2022-03-07}
+  - name: previous period start anniversary
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:683
+    billing_time: anniversary
+    want: {previous_period_start: 2022-02-22}
+  - name: previous period start anniversary with timezone
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:690
+    billing_time: anniversary
+    timezone: America/New_York
+    want: {previous_period_start: 2022-02-21T05:00:00Z}
+  - name: current period start anniversary
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:698
+    billing_time: anniversary
+    want: {current_period_start: 2022-03-01}
+
+  # durations
+  - name: single day price
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:710
+    billing_time: anniversary
+    billing_at: 2022-03-08
+    day_price_of: "100"
+    want: {period_days: 7, day_price: "14.28571428571428571428571428571428571429"}
+  - name: charges duration
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:720
+    billing_time: anniversary
+    billing_at: 2022-03-08
+    want: {charges_days: 7}
+  - name: fixed charges duration
+    source: spec/services/subscriptions/dates/weekly_service_spec.rb:731
+    billing_time: anniversary
+    billing_at: 2022-03-08
+    want: {fixed_charges_days: 7}

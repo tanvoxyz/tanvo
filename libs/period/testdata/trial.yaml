@@ -1,0 +1,92 @@
+# Ported from lago spec/models/subscription_spec.rb (trial_end_date, trial_end_datetime,
+# in_trial_period?) and spec/services/subscriptions/free_trial_billing_service_spec.rb (which subscriptions
+# get trial_ended_at). Relative times ("5.days.ago") are pinned to now.
+defaults:
+  now: 2024-04-20T10:00:00Z
+  trial_days: 0
+
+cases:
+  - name: trial end is the trial days after the start
+    source: "spec/models/subscription_spec.rb:592"
+    trial_days: 3
+    started_at: 2024-04-01T10:00:00Z
+    want: {trial_end: 2024-04-04T10:00:00Z, in_trial: false, trial_end_due: true}
+  - name: no trial end without a trial
+    source: "spec/models/subscription_spec.rb:602"
+    started_at: 2024-04-01T10:00:00Z
+    want: {trial_end: null, in_trial: false, trial_end_due: false}
+  - name: trial end counts from the first subscription of the chain
+    source: "spec/models/subscription_spec.rb:622"
+    trial_days: 3
+    initial_started_at: 2024-03-20T10:00:00Z
+    started_at: 2024-04-19T00:00:00Z
+    want: {trial_end: 2024-03-23T10:00:00Z, in_trial: false}
+  - name: trial end datetime keeps the start time of day
+    source: "spec/models/subscription_spec.rb:635"
+    trial_days: 3
+    started_at: 2024-04-18T17:45:00Z
+    want: {trial_end: 2024-04-21T17:45:00Z, in_trial: true, trial_end_due: false}
+  - name: not in trial without a trial
+    source: "spec/models/subscription_spec.rb:676"
+    started_at: 2024-04-15T10:00:00Z
+    want: {in_trial: false}
+  - name: in trial
+    source: "spec/models/subscription_spec.rb:683"
+    trial_days: 10
+    started_at: 2024-04-15T10:00:00Z
+    want: {in_trial: true, trial_end_due: false}
+  - name: trial has ended
+    source: "spec/models/subscription_spec.rb:690"
+    trial_days: 2
+    started_at: 2024-04-15T10:00:00Z
+    want: {in_trial: false, trial_end_due: true}
+  - name: not in trial once the trial end was processed
+    source: tanvo (app/models/subscription.rb in_trial_period?)
+    trial_days: 10
+    started_at: 2024-04-15T10:00:00Z
+    trial_ended_at: 2024-04-16T00:00:00Z
+    want: {in_trial: false, trial_end_due: false}
+  - name: not in trial before the start
+    source: tanvo (app/models/subscription.rb in_trial_period?)
+    trial_days: 10
+    started_at: 2024-04-25T10:00:00Z
+    want: {in_trial: false, trial_end_due: false}
+
+  - name: trial end not due without a trial
+    source: "spec/services/subscriptions/free_trial_billing_service_spec.rb:14"
+    started_at: 2024-04-18T10:00:00Z
+    want: {trial_end_due: false}
+  - name: trial end not due during the trial
+    source: "spec/services/subscriptions/free_trial_billing_service_spec.rb:24"
+    trial_days: 10
+    started_at: 2024-04-18T10:00:00Z
+    want: {trial_end_due: false}
+  - name: trial end due at the trial end
+    source: "spec/services/subscriptions/free_trial_billing_service_spec.rb:32"
+    trial_days: 10
+    started_at: 2024-04-05T12:12:00Z
+    want: {trial_end: 2024-04-15T12:12:00Z, trial_end_due: true}
+  - name: trial end due after the trial end
+    source: "spec/services/subscriptions/free_trial_billing_service_spec.rb:32"
+    trial_days: 10
+    started_at: 2024-04-05T10:00:00Z
+    want: {trial_end_due: true}
+  - name: trial end due through the first subscription of the chain
+    source: "spec/services/subscriptions/free_trial_billing_service_spec.rb:42"
+    trial_days: 10
+    initial_started_at: 2024-04-10T09:00:00Z
+    started_at: 2024-04-14T10:00:00Z
+    want: {trial_end: 2024-04-20T09:00:00Z, trial_end_due: true}
+  - name: trial end due regardless of the timezone
+    source: "spec/services/subscriptions/free_trial_billing_service_spec.rb:56"
+    trial_days: 10
+    timezone: America/Los_Angeles
+    now: 2024-03-11T13:03:00Z
+    started_at: 2024-03-01T12:00:00Z
+    want: {trial_end: 2024-03-11T12:00:00Z, trial_end_due: true}
+  - name: trial end datetime counts from the first subscription of the chain
+    source: "spec/models/subscription_spec.rb:665"
+    trial_days: 3
+    initial_started_at: 2024-03-20T08:30:00Z
+    started_at: 2024-04-19T00:00:00Z
+    want: {trial_end: 2024-03-23T08:30:00Z}
