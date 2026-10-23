@@ -1,7 +1,7 @@
 # Tanvo addition: lago-api has no zh-CN locale (its available_locales,
 # config/application.rb:49, end at zh-TW). Mainland terminology, not a
 # conversion of zh-TW: 发票 (發票), 账单 (帳單), 贷项通知单 (折讓單), 税号
-# (統一編號), 增值税, 订阅 (訂閱), 用量 (使用量), 积分 (點數).
+# (統一編號), 增值税, 订阅 (訂閱), 用量 (使用量), 点数 (點數).
 zh-CN:
   invoice:
     account_holder_name: 账户持有人姓名
@@ -79,9 +79,9 @@ zh-CN:
         other: "%{count} 笔交易的免费单位"
       percentage_rate_on_amount: 金额费率
     powered_by: 技术支持
-    prepaid_credit_invoice: 预付积分发票
-    prepaid_credits: 预付积分
-    prepaid_credits_with_value: 预付积分 - %{wallet_name}
+    prepaid_credit_invoice: 预付点数发票
+    prepaid_credits: 预付点数
+    prepaid_credits_with_value: 预付点数 - %{wallet_name}
     progressive_billing_credit: 已计费用量
     purchase_order_number: 采购订单号
     quarter: 季度
@@ -118,8 +118,8 @@ zh-CN:
       reverse_charge: 反向征税 - 由客户承担纳税义务。
       tax_exempt: 客户免税。
     total: 合计
-    total_credits: 积分合计
-    total_credits_with_value: 积分合计：%{credit_amount} 积分
+    total_credits: 点数合计
+    total_credits_with_value: 点数合计：%{credit_amount} 点
     total_due: 应付总额
     total_due_amount: 应付金额
     total_events: 事件总数：%{count}
