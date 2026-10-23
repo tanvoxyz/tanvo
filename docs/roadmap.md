@@ -17,8 +17,8 @@
 | Phase | Contents | Completion criteria | Status |
 | :--- | :--- | :--- | :--- |
 | 0. Foundations | Monorepo, Nx plugins, mise, lint rules, licenses, documents, CI | `pnpm nx run-many -t build test lint` passes in CI | In progress |
-| 1. Pure libraries (L0/L1) | `libs/money`, `libs/period`, `libs/expression` (Rust → WASM, Go host), `libs/pricing`, `libs/metering` (with the in-memory store and `storetest`), `libs/tax` | Every pure spec of their areas ported or listed as skipped with a reason | In progress: `money` done |
-| 2. Domain core (L2) | `libs/core` (entities, repository interfaces, services' contracts), `libs/billing` (invoice generation, fees, credits, coupons, wallets, progressive billing, credit notes, commitments, thresholds, prorations, upgrades and downgrades) | Billing specs ported as pure decisions over in-memory repositories | Not started |
+| 1. Pure libraries (L0/L1) | `libs/money`, `libs/period`, `libs/expression` (Rust → WASM, Go host), `libs/pricing`, `libs/metering` (with the in-memory store and `storetest`), `libs/tax` | Every pure spec of their areas ported or listed as skipped with a reason | Done |
+| 2. Domain core (L2) | `libs/core` (entities, repository interfaces, services' contracts), `libs/billing` (invoice generation, fees, credits, coupons, wallets, progressive billing, credit notes, commitments, thresholds, prorations, upgrades and downgrades) | Billing specs ported as pure decisions over in-memory repositories | In progress: `core` |
 | 3. Infrastructure (L3) | `libs/proto` (API contracts), `libs/store` (PostgreSQL schema, sqlc, RLS), `libs/eventstore` (PostgreSQL, ClickHouse), `libs/ingest` (HTTP batch, Kafka/Redpanda), `libs/jobs` (River, schedules), `libs/webhooks`, `libs/documents` (Typst, Factur-X/UBL), `libs/mail`, `libs/auth` | Conformance suites pass on every implementation; documents' golden tests pass | Not started |
 | 4. Server (L4) | `apps/server`: Connect + REST (Vanguard), OpenAPI, roles api/worker/consumer/all, configuration, health, metrics, migrations | End-to-end tests of every API resource and of a full billing cycle | Not started |
 | 5. Providers | Payment providers (Stripe, Adyen, GoCardless, Cashfree, Flutterwave, Moneyhash), accounting/CRM/tax integrations, streaming destinations | Recorded-fixture tests per provider; webhooks end to end | Not started |
@@ -27,5 +27,6 @@
 
 ## 3. Current Status
 
-* Phase 0: scaffold, Nx plugins, licenses, `architecture`, `development`, `testing` and this document are in place; `domain`, `parity`, CI and the translations are being written.
-* Phase 1: `libs/money` is complete (exact decimals, ISO 4217 table, rounding modes, minor units, allocation). `libs/period`, `libs/expression`, `libs/pricing` and `libs/metering` are in progress.
+* Phase 0: scaffold, Nx plugins, licenses, CI and every document (with translations) are in place.
+* Phase 1 is done: `libs/money`, `libs/period` (623 ported cases), `libs/expression` (151 cases, Rust → WASM with input limits), `libs/pricing` (433 cases), `libs/metering` (478 cases, with the `storetest` conformance suite) and `libs/tax` (264 cases). [Parity](parity.md) marks their features `logic done`.
+* Phase 2: `libs/core` is being built; `libs/billing` follows.

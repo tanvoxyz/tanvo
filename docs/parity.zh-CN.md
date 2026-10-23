@@ -13,7 +13,7 @@
 * **功能**：每个可以单独测试的行为占一行（每个计费模型、每种聚合类型、每组 webhook 事件、每项提供者能力）。
 * **Lago 源码**：实现该功能的主要文件或目录；测试从对应的 `spec/` 路径移植（[测试策略 §2](testing.zh-CN.md)）。
 * **Tanvo 模块**：拥有该逻辑的模块（[架构 §3](architecture.zh-CN.md#3-仓库结构)）。API 层位于 `libs/proto` 与 `apps/server`，持久化位于 `libs/store`；这些不言自明，除非它们是主要工作，否则不再重复。
-* **状态**：`已完成`（已实现并带有移植的测试）、`进行中`（所属的库正在构建）、`计划中`（尚未开始）。
+* **状态**：`已完成`（已实现并带有移植的测试）、`逻辑已完成`（计算已在所属的库中实现并带有移植的测试；持久化、API 或任务尚待完成）、`进行中`（所属的库正在构建）、`计划中`（尚未开始）。
 * **说明**：Tanvo 有意与 Lago 不同之处。没有说明的行与 Lago 行为一致，适用于所有地方的 API 约定除外（§3.1）。
 
 Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organization.feature_flags` 控制许多功能。Tanvo 的 AGPL 核心中没有许可证检查，已发布的功能也没有功能开关。所有计费、支付、集成与访问控制功能都属于核心。只有 Lago 以私有云服务形式运行的功能，才成为 `ee/` 下单独的企业服务（[架构 §14](architecture.zh-CN.md#14-企业版ee)）。§1.50 给出 Lago 每个开关的归属。
@@ -125,7 +125,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 账单地址与收货地址 | `app/models/customer.rb` | libs/core | 计划中 | |
 | 税号、法定名称与编号 | `app/models/customer.rb` | libs/core | 计划中 | |
 | 货币（开票后锁定） | `app/services/customers/update_service.rb` | libs/core | 计划中 | |
-| 时区，回退到计费主体与组织 | `app/models/customer.rb` | libs/period | 进行中 | 各处一律按客户 → 计费主体 → 组织回退（§4） |
+| 时区，回退到计费主体与组织 | `app/models/customer.rb` | libs/period | 计划中 | 各处一律按客户 → 计费主体 → 组织回退（§4） |
 | 宽限期、净付款期限、文档语言及其回退 | `app/models/customer.rb` | libs/billing | 计划中 | |
 | 零金额发票定稿：继承、跳过、定稿 | `app/models/customer.rb` | libs/billing | 计划中 | |
 | 开票日期锚点与调整的覆盖 | `app/models/customer.rb` | libs/billing | 计划中 | |
@@ -147,21 +147,21 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
 | 计费指标的增删改查（名称、代码、描述、字段名） | `app/models/billable_metric.rb`、`app/services/billable_metrics/` | libs/core | 计划中 | |
-| 聚合 `count_agg` | `app/services/billable_metrics/aggregations/count_service.rb` | libs/metering | 进行中 | |
-| 聚合 `sum_agg` | `app/services/billable_metrics/aggregations/sum_service.rb` | libs/metering | 进行中 | |
-| 聚合 `max_agg` | `app/services/billable_metrics/aggregations/max_service.rb` | libs/metering | 进行中 | |
-| 带增加与移除操作的聚合 `unique_count_agg` | `app/services/billable_metrics/aggregations/unique_count_service.rb` | libs/metering | 进行中 | |
-| 在加权区间上的聚合 `weighted_sum_agg` | `app/services/billable_metrics/aggregations/weighted_sum_service.rb` | libs/metering | 进行中 | |
-| 聚合 `latest_agg` | `app/services/billable_metrics/aggregations/latest_service.rb` | libs/metering | 进行中 | |
-| 跨计费周期结转的循环指标（count、max、latest 不允许） | `app/models/billable_metric.rb`、`app/services/billable_metrics/aggregations/` | libs/metering | 进行中 | |
-| 按比例求和 | `app/services/billable_metrics/prorated_aggregations/sum_service.rb` | libs/metering | 进行中 | |
-| 按比例唯一计数 | `app/services/billable_metrics/prorated_aggregations/unique_count_service.rb` | libs/metering | 进行中 | |
-| 按比例求和与唯一计数的明细 | `app/services/billable_metrics/breakdown/` | libs/metering | 进行中 | |
-| 按定价分组键分组聚合 | `app/services/billable_metrics/aggregations/base_service.rb` | libs/metering | 进行中 | |
-| 预付计费项的逐事件聚合 | `app/services/billable_metrics/aggregations/`（`per_event_aggregation`） | libs/metering | 进行中 | |
-| 聚合值的舍入（round、floor、ceil，带精度） | `app/services/billable_metrics/aggregations/apply_rounding_service.rb` | libs/metering | 进行中 | |
-| 指标上的表达式 | `app/models/billable_metric.rb`（`expression`） | libs/expression | 进行中 | |
-| 表达式求值 API（用样例事件测试表达式） | `app/services/billable_metrics/evaluate_expression_service.rb` | libs/expression | 进行中 | |
+| 聚合 `count_agg` | `app/services/billable_metrics/aggregations/count_service.rb` | libs/metering | 逻辑已完成 | |
+| 聚合 `sum_agg` | `app/services/billable_metrics/aggregations/sum_service.rb` | libs/metering | 逻辑已完成 | |
+| 聚合 `max_agg` | `app/services/billable_metrics/aggregations/max_service.rb` | libs/metering | 逻辑已完成 | |
+| 带增加与移除操作的聚合 `unique_count_agg` | `app/services/billable_metrics/aggregations/unique_count_service.rb` | libs/metering | 逻辑已完成 | |
+| 在加权区间上的聚合 `weighted_sum_agg` | `app/services/billable_metrics/aggregations/weighted_sum_service.rb` | libs/metering | 逻辑已完成 | |
+| 聚合 `latest_agg` | `app/services/billable_metrics/aggregations/latest_service.rb` | libs/metering | 逻辑已完成 | |
+| 跨计费周期结转的循环指标（count、max、latest 不允许） | `app/models/billable_metric.rb`、`app/services/billable_metrics/aggregations/` | libs/metering | 逻辑已完成 | |
+| 按比例求和 | `app/services/billable_metrics/prorated_aggregations/sum_service.rb` | libs/metering | 逻辑已完成 | |
+| 按比例唯一计数 | `app/services/billable_metrics/prorated_aggregations/unique_count_service.rb` | libs/metering | 逻辑已完成 | |
+| 按比例求和与唯一计数的明细 | `app/services/billable_metrics/breakdown/` | libs/metering | 逻辑已完成 | |
+| 按定价分组键分组聚合 | `app/services/billable_metrics/aggregations/base_service.rb` | libs/metering | 逻辑已完成 | |
+| 预付计费项的逐事件聚合 | `app/services/billable_metrics/aggregations/`（`per_event_aggregation`） | libs/metering | 逻辑已完成 | |
+| 聚合值的舍入（round、floor、ceil，带精度） | `app/services/billable_metrics/aggregations/apply_rounding_service.rb` | libs/metering | 逻辑已完成 | |
+| 指标上的表达式 | `app/models/billable_metric.rb`（`expression`） | libs/expression | 逻辑已完成 | |
+| 表达式求值 API（用样例事件测试表达式） | `app/services/billable_metrics/evaluate_expression_service.rb` | libs/expression | 逻辑已完成 | |
 | 指标被套餐使用后的字段锁定 | `app/services/billable_metrics/update_service.rb` | libs/core | 计划中 | |
 | 删除指标：移除计费项与告警、刷新草稿、删除事件 | `app/services/billable_metrics/destroy_service.rb`、`app/jobs/billable_metrics/delete_events_job.rb` | libs/billing | 计划中 | |
 | 指标过滤器（键及允许的值）与批量更新 | `app/services/billable_metric_filters/create_or_update_batch_service.rb` | libs/core | 计划中 | 移除一个值时同步裁剪依赖它的计费项过滤器 |
@@ -170,26 +170,26 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 小数运算（+、-、*、/）与括号 | lago-expression `expression-core` | libs/expression | 进行中 | |
-| 事件字段：`event.timestamp`、`event.code`、`event.properties.<name>` | lago-expression `expression-core` | libs/expression | 进行中 | |
-| 字符串字面量与 `concat` | lago-expression `expression-core` | libs/expression | 进行中 | |
-| 带精度的 `round`、`ceil`、`floor` | lago-expression `expression-core` | libs/expression | 进行中 | |
-| `least`、`greatest` | lago-expression `expression-core` | libs/expression | 进行中 | |
-| 创建指标时校验表达式 | `app/services/billable_metrics/create_service.rb` | libs/expression | 进行中 | |
-| 摄取时求值以得到聚合字段 | `app/services/events/calculate_expression_service.rb` | libs/expression | 进行中 | 在 wazero 上的 WASM 中批量求值 |
-| 浏览器中使用同一求值器做预览 | lago-expression `expression-js` | libs/expression | 进行中 | wasm-bindgen 构建 |
+| 小数运算（+、-、*、/）与括号 | lago-expression `expression-core` | libs/expression | 逻辑已完成 | |
+| 事件字段：`event.timestamp`、`event.code`、`event.properties.<name>` | lago-expression `expression-core` | libs/expression | 逻辑已完成 | |
+| 字符串字面量与 `concat` | lago-expression `expression-core` | libs/expression | 逻辑已完成 | |
+| 带精度的 `round`、`ceil`、`floor` | lago-expression `expression-core` | libs/expression | 逻辑已完成 | |
+| `least`、`greatest` | lago-expression `expression-core` | libs/expression | 逻辑已完成 | |
+| 创建指标时校验表达式 | `app/services/billable_metrics/create_service.rb` | libs/expression | 逻辑已完成 | |
+| 摄取时求值以得到聚合字段 | `app/services/events/calculate_expression_service.rb` | libs/expression | 逻辑已完成 | 在 wazero 上的 WASM 中批量求值 |
+| 浏览器中使用同一求值器做预览 | lago-expression `expression-js` | libs/expression | 计划中 | wasm-bindgen 构建 |
 
 ### 1.10 套餐
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
 | 套餐的增删改查（名称、代码、描述、发票显示名称、元数据） | `app/models/plan.rb`、`app/services/plans/` | libs/core | 计划中 | |
-| 间隔：每周、每月、每季度、每半年、每年 | `app/models/plan.rb` | libs/period | 进行中 | |
+| 间隔：每周、每月、每季度、每半年、每年 | `app/models/plan.rb` | libs/period | 逻辑已完成 | |
 | 订阅费金额与货币 | `app/models/plan.rb` | libs/billing | 计划中 | |
 | 订阅费预付或后付 | `app/models/plan.rb`（`pay_in_advance`） | libs/billing | 计划中 | |
-| 以天为单位的试用期 | `app/models/plan.rb` | libs/period | 进行中 | |
-| 年度、半年度与季度套餐按月计费计费项 | `app/models/plan.rb`（`bill_charges_monthly`） | libs/period | 进行中 | |
-| 按月计费固定计费项 | `app/models/plan.rb`（`bill_fixed_charges_monthly`） | libs/period | 进行中 | |
+| 以天为单位的试用期 | `app/models/plan.rb` | libs/period | 逻辑已完成 | |
+| 年度、半年度与季度套餐按月计费计费项 | `app/models/plan.rb`（`bill_charges_monthly`） | libs/period | 逻辑已完成 | |
+| 按月计费固定计费项 | `app/models/plan.rb`（`bill_fixed_charges_monthly`） | libs/period | 逻辑已完成 | |
 | 应用于套餐的税 | `app/services/plans/apply_taxes_service.rb` | libs/tax | 计划中 | |
 | 用于区分升级与降级的年度金额 | `app/models/plan.rb`（`yearly_amount_cents`） | libs/billing | 计划中 | |
 | 按订阅覆盖套餐（子套餐） | `app/services/plans/override_service.rb` | libs/billing | 计划中 | |
@@ -203,27 +203,27 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 计费模型 standard（单价） | `app/services/charge_models/standard_service.rb` | libs/pricing | 进行中 | |
-| 计费模型 graduated（各档分别计价，每档可有固定费用） | `app/services/charge_models/graduated_service.rb` | libs/pricing | 进行中 | |
-| 计费模型 package（包大小、免费单位） | `app/services/charge_models/package_service.rb` | libs/pricing | 进行中 | |
-| 计费模型 percentage（费率、每个事件的固定金额、按事件数与按总量的免费单位、每笔交易的最小与最大值） | `app/services/charge_models/percentage_service.rb` | libs/pricing | 进行中 | |
-| 计费模型 volume（全部用量按达到的档位计价） | `app/services/charge_models/volume_service.rb` | libs/pricing | 进行中 | |
-| 计费模型 graduated percentage | `app/services/charge_models/graduated_percentage_service.rb` | libs/pricing | 进行中 | |
-| 计费模型 dynamic（价格来自事件的 `precise_total_amount_cents`） | `app/services/charge_models/dynamic_service.rb` | libs/pricing | 进行中 | |
-| 分组计费项（每个定价分组一个金额） | `app/services/charge_models/grouped_service.rb` | libs/pricing | 进行中 | |
-| 逐事件增量计算预付金额 | `app/services/charges/apply_pay_in_advance_charge_model_service.rb` | libs/pricing | 进行中 | |
-| 周期结束时的预计金额 | `app/services/charge_models/`（预测） | libs/pricing | 进行中 | |
-| 用于展示的按档与按单位金额明细 | `app/services/charge_models/`（`amount_details`） | libs/pricing | 进行中 | |
-| 档位区间校验（区间相邻，最后一档开放） | `app/services/charges/validators/` | libs/pricing | 进行中 | 只有一种区间约定；不保留 Lago v1 的包含式 +1 区间（§3） |
-| 各计费模型的默认属性 | `app/services/charge_models/build_default_properties_service.rb` | libs/pricing | 进行中 | |
+| 计费模型 standard（单价） | `app/services/charge_models/standard_service.rb` | libs/pricing | 逻辑已完成 | |
+| 计费模型 graduated（各档分别计价，每档可有固定费用） | `app/services/charge_models/graduated_service.rb` | libs/pricing | 逻辑已完成 | |
+| 计费模型 package（包大小、免费单位） | `app/services/charge_models/package_service.rb` | libs/pricing | 逻辑已完成 | |
+| 计费模型 percentage（费率、每个事件的固定金额、按事件数与按总量的免费单位、每笔交易的最小与最大值） | `app/services/charge_models/percentage_service.rb` | libs/pricing | 逻辑已完成 | |
+| 计费模型 volume（全部用量按达到的档位计价） | `app/services/charge_models/volume_service.rb` | libs/pricing | 逻辑已完成 | |
+| 计费模型 graduated percentage | `app/services/charge_models/graduated_percentage_service.rb` | libs/pricing | 逻辑已完成 | |
+| 计费模型 dynamic（价格来自事件的 `precise_total_amount_cents`） | `app/services/charge_models/dynamic_service.rb` | libs/pricing | 逻辑已完成 | |
+| 分组计费项（每个定价分组一个金额） | `app/services/charge_models/grouped_service.rb` | libs/pricing | 逻辑已完成 | |
+| 逐事件增量计算预付金额 | `app/services/charges/apply_pay_in_advance_charge_model_service.rb` | libs/pricing | 逻辑已完成 | |
+| 周期结束时的预计金额 | `app/services/charge_models/`（预测） | libs/pricing | 逻辑已完成 | |
+| 用于展示的按档与按单位金额明细 | `app/services/charge_models/`（`amount_details`） | libs/pricing | 逻辑已完成 | |
+| 档位区间校验（区间相邻，最后一档开放） | `app/services/charges/validators/` | libs/pricing | 逻辑已完成 | 只有一种区间约定；不保留 Lago v1 的包含式 +1 区间（§3） |
+| 各计费模型的默认属性 | `app/services/charge_models/build_default_properties_service.rb` | libs/pricing | 逻辑已完成 | |
 | 预付计费项 | `app/models/charge.rb`（`pay_in_advance`） | libs/billing | 计划中 | |
 | 预付计费项的可开票开关（不开发票的费用） | `app/models/charge.rb`（`invoiceable`） | libs/billing | 计划中 | |
 | 已付的预付费用在下一张发票上重新汇总 | `app/models/charge.rb`（`regroup_paid_fees`） | libs/billing | 计划中 | |
 | 计费项最低金额及补差费用 | `app/models/charge.rb`（`min_amount_cents`）、`app/services/fees/create_true_up_service.rb` | libs/billing | 计划中 | |
-| 按比例计算的计费项（循环指标） | `app/models/charge.rb`（`prorated`） | libs/pricing | 进行中 | |
+| 按比例计算的计费项（循环指标） | `app/models/charge.rb`（`prorated`） | libs/pricing | 逻辑已完成 | |
 | 可以指向某个钱包的计费项 | `app/models/charge.rb`（`accepts_target_wallet`） | libs/billing | 计划中 | |
 | 计费项代码生成 | `app/services/charges/` | libs/core | 计划中 | |
-| 定价分组键（按键聚合） | `app/models/charge.rb`（`pricing_group_keys`） | libs/pricing | 进行中 | |
+| 定价分组键（按键聚合） | `app/models/charge.rb`（`pricing_group_keys`） | libs/pricing | 逻辑已完成 | |
 | 展示分组键（最多两个，只用于展示） | `app/models/charge.rb`（`presentation_group_keys`） | libs/billing | 计划中 | |
 | 计费项的发票显示名称 | `app/models/charge.rb` | libs/billing | 计划中 | |
 | 每个计费项的税 | `app/services/charges/apply_taxes_service.rb` | libs/tax | 计划中 | |
@@ -233,11 +233,11 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 带有自身属性的计费项过滤器 | `app/models/charge_filter.rb`、`app/services/charge_filters/` | libs/pricing | 进行中 | |
-| 全部取值通配符（`__ALL_FILTER_VALUES__`） | `app/models/charge_filter_value.rb` | libs/pricing | 进行中 | |
-| 过滤器优先级（最具体的过滤器胜出） | `app/services/events/billing_period_filters/matching_and_ignored_service.rb` | libs/pricing | 进行中 | |
-| 事件与过滤器匹配，未匹配事件归入默认桶 | `app/services/charge_filters/event_matching_service.rb` | libs/pricing | 进行中 | |
-| 为计费周期查询最小化被忽略的过滤器 | `app/services/charge_filters/`（`MinimizeIgnoredFilters`） | libs/pricing | 进行中 | |
+| 带有自身属性的计费项过滤器 | `app/models/charge_filter.rb`、`app/services/charge_filters/` | libs/metering | 逻辑已完成 | |
+| 全部取值通配符（`__ALL_FILTER_VALUES__`） | `app/models/charge_filter_value.rb` | libs/metering | 逻辑已完成 | |
+| 过滤器优先级（最具体的过滤器胜出） | `app/services/events/billing_period_filters/matching_and_ignored_service.rb` | libs/metering | 逻辑已完成 | |
+| 事件与过滤器匹配，未匹配事件归入默认桶 | `app/services/charge_filters/event_matching_service.rb` | libs/metering | 逻辑已完成 | |
+| 为计费周期查询最小化被忽略的过滤器 | `app/services/charge_filters/`（`MinimizeIgnoredFilters`） | libs/metering | 逻辑已完成 | |
 | 过滤器代码（slug 加哈希） | `app/models/charge_filter.rb` | libs/core | 计划中 | |
 | 把过滤器变更级联到子套餐 | `app/services/charge_filters/create_or_update_batch_service.rb` | libs/billing | 计划中 | 只保留带代码的路径（§2） |
 
@@ -247,9 +247,9 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | :--- | :--- | :--- | :--- | :--- |
 | 附加项的增删改查（金额、货币、发票显示名称、税） | `app/models/add_on.rb`、`app/services/add_ons/` | libs/core | 计划中 | |
 | 套餐上的固定计费项（基于附加项，带单位数） | `app/models/fixed_charge.rb`、`app/services/fixed_charges/` | libs/billing | 计划中 | |
-| 固定计费项的计费模型 standard、graduated、volume | `app/services/fixed_charges/` | libs/pricing | 进行中 | |
+| 固定计费项的计费模型 standard、graduated、volume | `app/services/fixed_charges/` | libs/pricing | 逻辑已完成 | |
 | 预付固定计费项 | `app/services/invoices/create_pay_in_advance_fixed_charges_service.rb` | libs/billing | 计划中 | |
-| 按比例计算的固定计费项 | `app/models/fixed_charge.rb`（`prorated`） | libs/period | 进行中 | |
+| 按比例计算的固定计费项 | `app/models/fixed_charge.rb`（`prorated`） | libs/period | 逻辑已完成 | |
 | 按订阅覆盖单位数 | `app/services/fixed_charges/override_service.rb` | libs/billing | 计划中 | |
 | 单位数变更立即生效或在下一周期生效 | `app/models/fixed_charge.rb`（`apply_units_immediately`） | libs/billing | 计划中 | |
 | 记录单位数随时间变化的固定计费项事件 | `app/models/fixed_charge_event.rb`、`app/services/fixed_charges/emit_events_service.rb` | libs/billing | 计划中 | |
@@ -265,12 +265,12 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | :--- | :--- | :--- | :--- | :--- |
 | 产品类别 | `app/models/product_category.rb` | libs/core | 计划中 | |
 | 产品（计量型、固定型） | `app/models/product.rb` | libs/core | 计划中 | |
-| 产品过滤器与过滤器取值 | `app/models/product_filter.rb` | libs/pricing | 进行中 | |
+| 产品过滤器与过滤器取值 | `app/models/product_filter.rb` | libs/pricing | 计划中 | |
 | 费率卡（计费时机、按比例计算、发票展示、重新汇总、定价单位、锁定） | `app/models/rate_card.rb` | libs/core | 计划中 | |
-| 时间线上的费率卡费率（`effective_from`） | `app/models/rate_card_rate.rb` | libs/pricing | 进行中 | |
-| 费率模型及其与产品类型的兼容性 | `app/services/rate_card_rates/`（`ModelCompatibility`） | libs/pricing | 进行中 | |
-| 每个费率的计费间隔数与单位 | `app/models/rate_card_rate.rb` | libs/period | 进行中 | |
-| 区间规范化 | `app/services/rate_card_rates/`（`NormalizeRanges`） | libs/pricing | 进行中 | |
+| 时间线上的费率卡费率（`effective_from`） | `app/models/rate_card_rate.rb` | libs/pricing | 计划中 | |
+| 费率模型及其与产品类型的兼容性 | `app/services/rate_card_rates/`（`ModelCompatibility`） | libs/pricing | 计划中 | |
+| 每个费率的计费间隔数与单位 | `app/models/rate_card_rate.rb` | libs/period | 计划中 | |
+| 区间规范化 | `app/services/rate_card_rates/`（`NormalizeRanges`） | libs/pricing | 计划中 | |
 | 目录套餐与套餐费率卡 | `app/models/catalog_plan.rb`、`app/models/plan_rate_card.rb` | libs/core | 计划中 | |
 | 费率阶段（爬坡）及其不变量 | `app/models/rate_phase.rb` | libs/billing | 计划中 | |
 | 费率覆盖 | `app/models/rate_override.rb` | libs/billing | 计划中 | |
@@ -282,7 +282,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
 | 定价单位（名称、代码、最多 3 个字符的简称、描述） | `app/models/pricing_unit.rb`、`app/services/pricing_units/` | libs/core | 计划中 | 公开 API，而不只供管理界面使用 |
-| 以定价单位计价并带换算率的计费项 | `app/models/applied_pricing_unit.rb` | libs/pricing | 进行中 | |
+| 以定价单位计价并带换算率的计费项 | `app/models/applied_pricing_unit.rb` | libs/pricing | 逻辑已完成 | |
 | 在费用上记录定价单位用量 | `app/models/pricing_unit_usage.rb` | libs/billing | 计划中 | |
 
 ### 1.16 权益
@@ -335,7 +335,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 存储查询上的计费周期过滤 | `app/services/events/stores/` | libs/eventstore | 计划中 | |
 | ClickHouse 原始表、富化表与死信表 | `db/clickhouse_migrate/` | libs/eventstore | 计划中 | |
 | 预聚合用量桶（Lago 中为 15 分钟） | `app/models/clickhouse/usage_bucket.rb`、`app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | 计划中 | 由 Tanvo 自己构建的小时桶（§3） |
-| 循环指标的缓存聚合 | `app/models/cached_aggregation.rb` | libs/metering | 进行中 | |
+| 循环指标的缓存聚合 | `app/models/cached_aggregation.rb` | libs/metering | 逻辑已完成 | |
 
 ### 1.19 用量
 
@@ -360,7 +360,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
 | 状态 pending、active、terminated、canceled、incomplete | `app/models/subscription.rb` | libs/core | 计划中 | |
-| 计费时间：自然周期或周年 | `app/models/subscription.rb` | libs/period | 进行中 | |
+| 计费时间：自然周期或周年 | `app/models/subscription.rb` | libs/period | 逻辑已完成 | |
 | 订阅开始日期（过去或未来）与结束日期 | `app/services/subscriptions/create_service.rb` | libs/billing | 计划中 | |
 | 订阅名称与外部 ID | `app/models/subscription.rb` | libs/core | 计划中 | |
 | 创建订阅时覆盖套餐 | `app/services/subscriptions/create_service.rb`、`app/services/plans/override_service.rb` | libs/billing | 计划中 | |
@@ -385,7 +385,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 在结束日期终止 | `app/jobs/clock/terminate_ended_subscriptions_job.rb` | libs/billing | 计划中 | |
 | incomplete 订阅过期 | `app/jobs/clock/expire_incomplete_subscriptions_job.rb` | libs/billing | 计划中 | |
 | 结束日期前的终止提醒（默认 15 天与 45 天） | `app/jobs/clock/subscriptions_to_be_terminated_job.rb` | libs/billing | 计划中 | |
-| 跨升级保留试用期（保留最初的开始日期） | `app/models/subscription.rb`（`trial_end_date`） | libs/period | 进行中 | |
+| 跨升级保留试用期（保留最初的开始日期） | `app/models/subscription.rb`（`trial_end_date`） | libs/period | 逻辑已完成 | |
 | 试用结束检测与免费试用计费 | `app/jobs/clock/free_trial_subscriptions_biller_job.rb` | libs/billing | 计划中 | |
 | 周期计费选择（今天哪些订阅需要计费） | `app/services/subscriptions/organization_billing_service.rb` | libs/billing | 计划中 | 按订阅调度的任务加对账（§3） |
 | 同一张发票上一起计费的订阅分组 | `app/services/subscriptions/organization_billing_service.rb` | libs/billing | 计划中 | |
@@ -396,20 +396,20 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 每周周期边界，自然周期与周年 | `app/services/subscriptions/dates/weekly_service.rb` | libs/period | 进行中 | |
-| 每月周期边界，自然周期与周年（月末周年日） | `app/services/subscriptions/dates/monthly_service.rb` | libs/period | 进行中 | |
-| 每季度周期边界 | `app/services/subscriptions/dates/quarterly_service.rb` | libs/period | 进行中 | |
-| 每半年周期边界 | `app/services/subscriptions/dates/semiannual_service.rb` | libs/period | 进行中 | |
-| 每年周期边界 | `app/services/subscriptions/dates/yearly_service.rb` | libs/period | 进行中 | |
-| 计费项周期边界，包括较长套餐上的按月计费项 | `app/services/subscriptions/dates_service.rb`（`charges_from_datetime`、`charges_to_datetime`） | libs/period | 进行中 | 连续的半开区间（§4） |
-| 固定计费项周期边界 | `app/services/subscriptions/dates_service.rb` | libs/period | 进行中 | |
-| 对边界应用时区 | `app/services/subscriptions/dates_service.rb` | libs/period | 进行中 | IANA 时区，显式的 `*time.Location` |
-| 单日价格与周期天数 | `app/services/subscriptions/dates_service.rb` | libs/period | 进行中 | |
-| 终止当日的边界 | `app/services/subscriptions/dates_service.rb` | libs/period | 进行中 | |
-| 订阅费按比例计算（首个周期、终止、升级、完整周期） | `app/services/fees/subscription_service.rb` | libs/period | 进行中 | |
-| 发票订阅的计费周期边界 | `app/models/billing_period_boundaries.rb` | libs/period | 进行中 | |
-| 跨时区的日期差 | `app/services/utils/datetime.rb`（`date_diff_with_timezone`） | libs/period | 进行中 | |
-| 上一个与下一个计费日期 | `app/services/subscriptions/dates_service.rb` | libs/period | 进行中 | |
+| 每周周期边界，自然周期与周年 | `app/services/subscriptions/dates/weekly_service.rb` | libs/period | 逻辑已完成 | |
+| 每月周期边界，自然周期与周年（月末周年日） | `app/services/subscriptions/dates/monthly_service.rb` | libs/period | 逻辑已完成 | |
+| 每季度周期边界 | `app/services/subscriptions/dates/quarterly_service.rb` | libs/period | 逻辑已完成 | |
+| 每半年周期边界 | `app/services/subscriptions/dates/semiannual_service.rb` | libs/period | 逻辑已完成 | |
+| 每年周期边界 | `app/services/subscriptions/dates/yearly_service.rb` | libs/period | 逻辑已完成 | |
+| 计费项周期边界，包括较长套餐上的按月计费项 | `app/services/subscriptions/dates_service.rb`（`charges_from_datetime`、`charges_to_datetime`） | libs/period | 逻辑已完成 | 连续的半开区间（§4） |
+| 固定计费项周期边界 | `app/services/subscriptions/dates_service.rb` | libs/period | 逻辑已完成 | |
+| 对边界应用时区 | `app/services/subscriptions/dates_service.rb` | libs/period | 逻辑已完成 | IANA 时区，显式的 `*time.Location` |
+| 单日价格与周期天数 | `app/services/subscriptions/dates_service.rb` | libs/period | 逻辑已完成 | |
+| 终止当日的边界 | `app/services/subscriptions/dates_service.rb` | libs/period | 逻辑已完成 | |
+| 订阅费按比例计算（首个周期、终止、升级、完整周期） | `app/services/fees/subscription_service.rb` | libs/period | 逻辑已完成 | |
+| 发票订阅的计费周期边界 | `app/models/billing_period_boundaries.rb` | libs/period | 逻辑已完成 | |
+| 跨时区的日期差 | `app/services/utils/datetime.rb`（`date_diff_with_timezone`） | libs/period | 逻辑已完成 | |
+| 上一个与下一个计费日期 | `app/services/subscriptions/dates_service.rb` | libs/period | 逻辑已完成 | |
 
 ### 1.22 合同与计费片段
 
@@ -417,7 +417,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | :--- | :--- | :--- | :--- | :--- |
 | 状态为 pending、active、terminated、canceled 的合同 | `app/models/contract.rb`、`app/services/contracts/` | libs/core | 计划中 | |
 | 合同费率卡 | `app/models/contract_rate_card.rb`、`app/services/contract_rate_cards/` | libs/billing | 计划中 | |
-| 合同计费数学：间隔、日历、天数、周期、阶段、片段、周期遍历器、计划表 | `app/services/billing/` | libs/period | 进行中 | |
+| 合同计费数学：间隔、日历、天数、周期、阶段、片段、周期遍历器、计划表 | `app/services/billing/` | libs/period | 计划中 | |
 | 合同激活 | `app/jobs/clock/activate_contracts_job.rb` | libs/billing | 计划中 | |
 | 创建计费片段 | `app/services/billing_segments/`、`app/jobs/clock/create_billing_segments_job.rb` | libs/billing | 计划中 | |
 | 处理计费片段并排除重叠 | `app/jobs/clock/process_billing_segments_job.rb` | libs/billing | 计划中 | |
@@ -497,14 +497,14 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | :--- | :--- | :--- | :--- | :--- |
 | 税的增删改查（名称、代码、税率、描述） | `app/models/tax.rb`、`app/services/taxes/` | libs/tax | 计划中 | |
 | 计费主体、客户、套餐、计费项、固定计费项、附加项、承诺消费上的税 | `app/models/` 中的关联表 | libs/tax | 计划中 | |
-| 税的解析顺序（显式、附加项、计费项、固定计费项、承诺消费、套餐、客户、计费主体） | `app/services/fees/apply_taxes_service.rb` | libs/tax | 计划中 | |
-| 发票上应用的税，带计税基础与分摊 | `app/services/invoices/apply_taxes_service.rb` | libs/tax | 计划中 | |
-| 贷项通知单上应用的税 | `app/services/credit_notes/apply_taxes_service.rb` | libs/tax | 计划中 | |
-| 提供者计算的税（Anrok、Avalara），带特殊代码与基础税率 | `app/services/invoices/apply_provider_taxes_service.rb` | libs/tax | 计划中 | |
-| 各国欧盟增值税税率及例外 | `app/services/taxes/`（ibericode 税率） | libs/tax | 计划中 | |
-| 为组织自动生成欧盟税 | `app/services/taxes/auto_generate_service.rb` | libs/tax | 计划中 | |
-| 按客户的欧盟税判定（境内、欧盟内 B2B 反向征税、B2C、欧盟外） | `app/services/customers/eu_auto_taxes_service.rb` | libs/tax | 计划中 | |
-| 带重试与退避的 VIES 增值税号检查 | `app/services/customers/vies_check_service.rb` | libs/tax | 计划中 | |
+| 税的解析顺序（显式、附加项、计费项、固定计费项、承诺消费、套餐、客户、计费主体） | `app/services/fees/apply_taxes_service.rb` | libs/tax | 逻辑已完成 | |
+| 发票上应用的税，带计税基础与分摊 | `app/services/invoices/apply_taxes_service.rb` | libs/tax | 逻辑已完成 | |
+| 贷项通知单上应用的税 | `app/services/credit_notes/apply_taxes_service.rb` | libs/tax | 逻辑已完成 | |
+| 提供者计算的税（Anrok、Avalara），带特殊代码与基础税率 | `app/services/invoices/apply_provider_taxes_service.rb` | libs/tax | 逻辑已完成 | |
+| 各国欧盟增值税税率及例外 | `app/services/taxes/`（ibericode 税率） | libs/tax | 逻辑已完成 | |
+| 为组织自动生成欧盟税 | `app/services/taxes/auto_generate_service.rb` | libs/tax | 逻辑已完成 | |
+| 按客户的欧盟税判定（境内、欧盟内 B2B 反向征税、B2C、欧盟外） | `app/services/customers/eu_auto_taxes_service.rb` | libs/tax | 逻辑已完成 | |
+| 带重试与退避的 VIES 增值税号检查 | `app/services/customers/vies_check_service.rb` | libs/tax | 逻辑已完成 | |
 | 在待定的 VIES 检查完成前挂起发票 | `app/models/pending_vies_check.rb` | libs/billing | 计划中 | |
 | VIES webhook `customer.vies_check` | `app/services/webhooks/customers/vies_check_service.rb` | libs/webhooks | 计划中 | |
 | 税务提供者错误 webhook `customer.tax_provider_error`、`fee.tax_provider_error` | `app/services/webhooks/integrations/taxes/` | libs/webhooks | 计划中 | |
@@ -543,7 +543,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 状态 draft、finalized | `app/models/credit_note.rb` | libs/core | 计划中 | |
 | 编号 `INVOICE-CNnnn` | `app/models/credit_note.rb` | libs/billing | 计划中 | |
 | 按费用的贷项通知单条目 | `app/models/credit_note_item.rb` | libs/billing | 计划中 | |
-| 带分摊与舍入调整的税 | `app/services/credit_notes/apply_taxes_service.rb` | libs/tax | 计划中 | |
+| 带分摊与舍入调整的税 | `app/services/credit_notes/apply_taxes_service.rb` | libs/tax | 逻辑已完成 | |
 | 校验可贷记与可退款金额 | `app/services/credit_notes/validate_service.rb` | libs/billing | 计划中 | 执行所有检查，包括 Lago 从未调用的检查（§4） |
 | 结清发票的抵销 | `app/services/credit_notes/create_service.rb`、`app/models/invoice_settlement.rb` | libs/billing | 计划中 | |
 | 通过支付提供者退款 | `app/services/credit_notes/refunds/` | libs/billing | 计划中 | 见 §1.35 |
@@ -587,8 +587,8 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | :--- | :--- | :--- | :--- | :--- |
 | 每个套餐的最低承诺消费，可按订阅覆盖 | `app/models/commitment.rb`、`app/services/commitments/` | libs/billing | 计划中 | |
 | 用量低于承诺消费时的补差费用 | `app/services/commitments/minimum/calculate_true_up_fee_service.rb` | libs/billing | 计划中 | |
-| 预付与后付的承诺消费周期 | `app/services/commitments/` | libs/period | 进行中 | |
-| 不完整周期的按比例系数 | `app/services/commitments/` | libs/period | 进行中 | |
+| 预付与后付的承诺消费周期 | `app/services/commitments/` | libs/billing | 计划中 | |
+| 不完整周期的按比例系数 | `app/services/commitments/` | libs/billing | 计划中 | |
 | 发票预览中的承诺消费 | `app/services/invoices/preview_service.rb` | libs/billing | 计划中 | |
 | 承诺消费的税 | `app/services/commitments/apply_taxes_service.rb` | libs/tax | 计划中 | |
 
@@ -1103,3 +1103,4 @@ Lago 自己标记为废弃、只为旧数据保留，或作为死代码保留的
 | 入队失败时硬删除事件行，因为唯一索引不考虑 `deleted_at` | `app/services/events/create_service.rb` | 事件写入与后续工作在一个事务中提交，无需撤销 |
 | Webhook 清理删除投递行，却不删除其存储的载荷对象 | `app/jobs/clock/webhooks_cleanup_job.rb` | 载荷随投递一起删除 |
 | Cashfree 结账 URL 静默地什么也不返回 | `app/services/payment_provider_customers/cashfree_service.rb` | 不支持的操作返回明确的 `unimplemented` 错误 |
+| 欧盟特殊地区的邮编模式在邮编的任意位置匹配，导致里斯本 `1940123` 得到马德拉的增值税率 | `app/services/customers/eu_auto_taxes_service.rb` | 模式只匹配规范化邮编的开头 |

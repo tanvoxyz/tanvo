@@ -13,7 +13,7 @@
 * **Feature**: one row per behavior that can be tested on its own (each charge model, each aggregation type, each webhook event group, each provider capability).
 * **Lago source**: the main file or directory implementing it; tests are ported from the matching `spec/` path ([Testing §2](testing.md)).
 * **Tanvo module**: the module that owns the logic ([Architecture §3](architecture.md#3-repository-structure)). API surfaces live in `libs/proto` and `apps/server`; persistence in `libs/store`. Those are implied and not repeated unless they are the main work.
-* **Status**: `done` (implemented with ported tests), `in progress` (the owning library is being built), `planned` (not started).
+* **Status**: `done` (implemented with ported tests), `logic done` (the computation is implemented with ported tests in its library; persistence, API or jobs are still to come), `in progress` (the owning library is being built), `planned` (not started).
 * **Notes**: where Tanvo deliberately differs from Lago. A row without a note behaves as in Lago, apart from the API conventions that apply everywhere (§3.1).
 
 Lago gates many features behind `License.premium?`, `organization.premium_integrations` or `organization.feature_flags`. Tanvo has no license checks in the AGPL core and no feature flags for shipped features. Every billing, payment, integration and access feature is part of the core. Only features that Lago runs as private cloud services become separate enterprise services under `ee/` ([Architecture §14](architecture.md#14-enterprise-edition-ee)). §1.50 maps each Lago gate.
@@ -125,7 +125,7 @@ A commit that implements a feature changes its status here in the same commit ([
 | Billing and shipping addresses | `app/models/customer.rb` | libs/core | planned | |
 | Tax identification number, legal name and number | `app/models/customer.rb` | libs/core | planned | |
 | Currency (locked once billed) | `app/services/customers/update_service.rb` | libs/core | planned | |
-| Time zone with fallback to billing entity and organization | `app/models/customer.rb` | libs/period | in progress | Fallback is customer → billing entity → organization everywhere (§4) |
+| Time zone with fallback to billing entity and organization | `app/models/customer.rb` | libs/period | planned | Fallback is customer → billing entity → organization everywhere (§4) |
 | Grace period, net payment term, document locale with fallback | `app/models/customer.rb` | libs/billing | planned | |
 | Finalize zero-amount invoice: inherit, skip, finalize | `app/models/customer.rb` | libs/billing | planned | |
 | Invoice issuing date anchor and adjustment overrides | `app/models/customer.rb` | libs/billing | planned | |
@@ -147,21 +147,21 @@ A commit that implements a feature changes its status here in the same commit ([
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | Billable metric CRUD (name, code, description, field name) | `app/models/billable_metric.rb`, `app/services/billable_metrics/` | libs/core | planned | |
-| Aggregation `count_agg` | `app/services/billable_metrics/aggregations/count_service.rb` | libs/metering | in progress | |
-| Aggregation `sum_agg` | `app/services/billable_metrics/aggregations/sum_service.rb` | libs/metering | in progress | |
-| Aggregation `max_agg` | `app/services/billable_metrics/aggregations/max_service.rb` | libs/metering | in progress | |
-| Aggregation `unique_count_agg` with add and remove operations | `app/services/billable_metrics/aggregations/unique_count_service.rb` | libs/metering | in progress | |
-| Aggregation `weighted_sum_agg` over a weighted interval | `app/services/billable_metrics/aggregations/weighted_sum_service.rb` | libs/metering | in progress | |
-| Aggregation `latest_agg` | `app/services/billable_metrics/aggregations/latest_service.rb` | libs/metering | in progress | |
-| Recurring metrics carried over billing periods (not allowed for count, max, latest) | `app/models/billable_metric.rb`, `app/services/billable_metrics/aggregations/` | libs/metering | in progress | |
-| Prorated sum | `app/services/billable_metrics/prorated_aggregations/sum_service.rb` | libs/metering | in progress | |
-| Prorated unique count | `app/services/billable_metrics/prorated_aggregations/unique_count_service.rb` | libs/metering | in progress | |
-| Breakdown of prorated sum and unique count | `app/services/billable_metrics/breakdown/` | libs/metering | in progress | |
-| Grouped aggregation by pricing group keys | `app/services/billable_metrics/aggregations/base_service.rb` | libs/metering | in progress | |
-| Per-event aggregation for in-advance charges | `app/services/billable_metrics/aggregations/` (`per_event_aggregation`) | libs/metering | in progress | |
-| Rounding of the aggregated value (round, floor, ceil with precision) | `app/services/billable_metrics/aggregations/apply_rounding_service.rb` | libs/metering | in progress | |
-| Expression attached to a metric | `app/models/billable_metric.rb` (`expression`) | libs/expression | in progress | |
-| Evaluate expression API (test an expression against a sample event) | `app/services/billable_metrics/evaluate_expression_service.rb` | libs/expression | in progress | |
+| Aggregation `count_agg` | `app/services/billable_metrics/aggregations/count_service.rb` | libs/metering | logic done | |
+| Aggregation `sum_agg` | `app/services/billable_metrics/aggregations/sum_service.rb` | libs/metering | logic done | |
+| Aggregation `max_agg` | `app/services/billable_metrics/aggregations/max_service.rb` | libs/metering | logic done | |
+| Aggregation `unique_count_agg` with add and remove operations | `app/services/billable_metrics/aggregations/unique_count_service.rb` | libs/metering | logic done | |
+| Aggregation `weighted_sum_agg` over a weighted interval | `app/services/billable_metrics/aggregations/weighted_sum_service.rb` | libs/metering | logic done | |
+| Aggregation `latest_agg` | `app/services/billable_metrics/aggregations/latest_service.rb` | libs/metering | logic done | |
+| Recurring metrics carried over billing periods (not allowed for count, max, latest) | `app/models/billable_metric.rb`, `app/services/billable_metrics/aggregations/` | libs/metering | logic done | |
+| Prorated sum | `app/services/billable_metrics/prorated_aggregations/sum_service.rb` | libs/metering | logic done | |
+| Prorated unique count | `app/services/billable_metrics/prorated_aggregations/unique_count_service.rb` | libs/metering | logic done | |
+| Breakdown of prorated sum and unique count | `app/services/billable_metrics/breakdown/` | libs/metering | logic done | |
+| Grouped aggregation by pricing group keys | `app/services/billable_metrics/aggregations/base_service.rb` | libs/metering | logic done | |
+| Per-event aggregation for in-advance charges | `app/services/billable_metrics/aggregations/` (`per_event_aggregation`) | libs/metering | logic done | |
+| Rounding of the aggregated value (round, floor, ceil with precision) | `app/services/billable_metrics/aggregations/apply_rounding_service.rb` | libs/metering | logic done | |
+| Expression attached to a metric | `app/models/billable_metric.rb` (`expression`) | libs/expression | logic done | |
+| Evaluate expression API (test an expression against a sample event) | `app/services/billable_metrics/evaluate_expression_service.rb` | libs/expression | logic done | |
 | Field locks once a metric is used by a plan | `app/services/billable_metrics/update_service.rb` | libs/core | planned | |
 | Destroy metric: removes charges and alerts, refreshes drafts, deletes events | `app/services/billable_metrics/destroy_service.rb`, `app/jobs/billable_metrics/delete_events_job.rb` | libs/billing | planned | |
 | Metric filters (key with allowed values) and batch update | `app/services/billable_metric_filters/create_or_update_batch_service.rb` | libs/core | planned | Removing a value trims dependent charge filters |
@@ -170,26 +170,26 @@ A commit that implements a feature changes its status here in the same commit ([
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Decimal arithmetic (+, -, *, /) and parentheses | lago-expression `expression-core` | libs/expression | in progress | |
-| Event fields: `event.timestamp`, `event.code`, `event.properties.<name>` | lago-expression `expression-core` | libs/expression | in progress | |
-| String literals and `concat` | lago-expression `expression-core` | libs/expression | in progress | |
-| `round`, `ceil`, `floor` with precision | lago-expression `expression-core` | libs/expression | in progress | |
-| `least`, `greatest` | lago-expression `expression-core` | libs/expression | in progress | |
-| Validation of an expression at metric creation | `app/services/billable_metrics/create_service.rb` | libs/expression | in progress | |
-| Evaluation during ingestion to produce the aggregated field | `app/services/events/calculate_expression_service.rb` | libs/expression | in progress | Batch evaluation over WASM on wazero |
-| Same evaluator in the browser for previews | lago-expression `expression-js` | libs/expression | in progress | wasm-bindgen build |
+| Decimal arithmetic (+, -, *, /) and parentheses | lago-expression `expression-core` | libs/expression | logic done | |
+| Event fields: `event.timestamp`, `event.code`, `event.properties.<name>` | lago-expression `expression-core` | libs/expression | logic done | |
+| String literals and `concat` | lago-expression `expression-core` | libs/expression | logic done | |
+| `round`, `ceil`, `floor` with precision | lago-expression `expression-core` | libs/expression | logic done | |
+| `least`, `greatest` | lago-expression `expression-core` | libs/expression | logic done | |
+| Validation of an expression at metric creation | `app/services/billable_metrics/create_service.rb` | libs/expression | logic done | |
+| Evaluation during ingestion to produce the aggregated field | `app/services/events/calculate_expression_service.rb` | libs/expression | logic done | Batch evaluation over WASM on wazero |
+| Same evaluator in the browser for previews | lago-expression `expression-js` | libs/expression | planned | wasm-bindgen build |
 
 ### 1.10 Plans
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | Plan CRUD (name, code, description, invoice display name, metadata) | `app/models/plan.rb`, `app/services/plans/` | libs/core | planned | |
-| Intervals weekly, monthly, quarterly, semiannual, yearly | `app/models/plan.rb` | libs/period | in progress | |
+| Intervals weekly, monthly, quarterly, semiannual, yearly | `app/models/plan.rb` | libs/period | logic done | |
 | Subscription fee amount and currency | `app/models/plan.rb` | libs/billing | planned | |
 | Subscription fee paid in advance or in arrears | `app/models/plan.rb` (`pay_in_advance`) | libs/billing | planned | |
-| Trial period in days | `app/models/plan.rb` | libs/period | in progress | |
-| Bill charges monthly on yearly, semiannual and quarterly plans | `app/models/plan.rb` (`bill_charges_monthly`) | libs/period | in progress | |
-| Bill fixed charges monthly | `app/models/plan.rb` (`bill_fixed_charges_monthly`) | libs/period | in progress | |
+| Trial period in days | `app/models/plan.rb` | libs/period | logic done | |
+| Bill charges monthly on yearly, semiannual and quarterly plans | `app/models/plan.rb` (`bill_charges_monthly`) | libs/period | logic done | |
+| Bill fixed charges monthly | `app/models/plan.rb` (`bill_fixed_charges_monthly`) | libs/period | logic done | |
 | Taxes applied to a plan | `app/services/plans/apply_taxes_service.rb` | libs/tax | planned | |
 | Yearly amount used to classify upgrades and downgrades | `app/models/plan.rb` (`yearly_amount_cents`) | libs/billing | planned | |
 | Plan overrides per subscription (child plans) | `app/services/plans/override_service.rb` | libs/billing | planned | |
@@ -203,27 +203,27 @@ A commit that implements a feature changes its status here in the same commit ([
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Charge model standard (unit price) | `app/services/charge_models/standard_service.rb` | libs/pricing | in progress | |
-| Charge model graduated (tiers priced separately, flat fee per tier) | `app/services/charge_models/graduated_service.rb` | libs/pricing | in progress | |
-| Charge model package (package size, free units) | `app/services/charge_models/package_service.rb` | libs/pricing | in progress | |
-| Charge model percentage (rate, fixed amount per event, free units per events and per total, per-transaction min and max) | `app/services/charge_models/percentage_service.rb` | libs/pricing | in progress | |
-| Charge model volume (whole volume priced at the reached tier) | `app/services/charge_models/volume_service.rb` | libs/pricing | in progress | |
-| Charge model graduated percentage | `app/services/charge_models/graduated_percentage_service.rb` | libs/pricing | in progress | |
-| Charge model dynamic (price from the event's `precise_total_amount_cents`) | `app/services/charge_models/dynamic_service.rb` | libs/pricing | in progress | |
-| Grouped charges (one amount per pricing group) | `app/services/charge_models/grouped_service.rb` | libs/pricing | in progress | |
-| Incremental in-advance computation per event | `app/services/charges/apply_pay_in_advance_charge_model_service.rb` | libs/pricing | in progress | |
-| Projected amount at end of period | `app/services/charge_models/` (projection) | libs/pricing | in progress | |
-| Amount details per tier and per unit for display | `app/services/charge_models/` (`amount_details`) | libs/pricing | in progress | |
-| Tier range validation (adjacent ranges, last open) | `app/services/charges/validators/` | libs/pricing | in progress | One range convention; Lago's v1 inclusive +1 ranges not kept (§3) |
-| Default properties per charge model | `app/services/charge_models/build_default_properties_service.rb` | libs/pricing | in progress | |
+| Charge model standard (unit price) | `app/services/charge_models/standard_service.rb` | libs/pricing | logic done | |
+| Charge model graduated (tiers priced separately, flat fee per tier) | `app/services/charge_models/graduated_service.rb` | libs/pricing | logic done | |
+| Charge model package (package size, free units) | `app/services/charge_models/package_service.rb` | libs/pricing | logic done | |
+| Charge model percentage (rate, fixed amount per event, free units per events and per total, per-transaction min and max) | `app/services/charge_models/percentage_service.rb` | libs/pricing | logic done | |
+| Charge model volume (whole volume priced at the reached tier) | `app/services/charge_models/volume_service.rb` | libs/pricing | logic done | |
+| Charge model graduated percentage | `app/services/charge_models/graduated_percentage_service.rb` | libs/pricing | logic done | |
+| Charge model dynamic (price from the event's `precise_total_amount_cents`) | `app/services/charge_models/dynamic_service.rb` | libs/pricing | logic done | |
+| Grouped charges (one amount per pricing group) | `app/services/charge_models/grouped_service.rb` | libs/pricing | logic done | |
+| Incremental in-advance computation per event | `app/services/charges/apply_pay_in_advance_charge_model_service.rb` | libs/pricing | logic done | |
+| Projected amount at end of period | `app/services/charge_models/` (projection) | libs/pricing | logic done | |
+| Amount details per tier and per unit for display | `app/services/charge_models/` (`amount_details`) | libs/pricing | logic done | |
+| Tier range validation (adjacent ranges, last open) | `app/services/charges/validators/` | libs/pricing | logic done | One range convention; Lago's v1 inclusive +1 ranges not kept (§3) |
+| Default properties per charge model | `app/services/charge_models/build_default_properties_service.rb` | libs/pricing | logic done | |
 | Pay-in-advance charges | `app/models/charge.rb` (`pay_in_advance`) | libs/billing | planned | |
 | Invoiceable flag for in-advance charges (fees without invoices) | `app/models/charge.rb` (`invoiceable`) | libs/billing | planned | |
 | Regroup paid in-advance fees on the next invoice | `app/models/charge.rb` (`regroup_paid_fees`) | libs/billing | planned | |
 | Minimum amount per charge with true-up fee | `app/models/charge.rb` (`min_amount_cents`), `app/services/fees/create_true_up_service.rb` | libs/billing | planned | |
-| Prorated charges (recurring metrics) | `app/models/charge.rb` (`prorated`) | libs/pricing | in progress | |
+| Prorated charges (recurring metrics) | `app/models/charge.rb` (`prorated`) | libs/pricing | logic done | |
 | Charges that may target a wallet | `app/models/charge.rb` (`accepts_target_wallet`) | libs/billing | planned | |
 | Charge code generation | `app/services/charges/` | libs/core | planned | |
-| Pricing group keys (aggregate per key) | `app/models/charge.rb` (`pricing_group_keys`) | libs/pricing | in progress | |
+| Pricing group keys (aggregate per key) | `app/models/charge.rb` (`pricing_group_keys`) | libs/pricing | logic done | |
 | Presentation group keys (at most two, display only) | `app/models/charge.rb` (`presentation_group_keys`) | libs/billing | planned | |
 | Charge invoice display name | `app/models/charge.rb` | libs/billing | planned | |
 | Taxes per charge | `app/services/charges/apply_taxes_service.rb` | libs/tax | planned | |
@@ -233,11 +233,11 @@ A commit that implements a feature changes its status here in the same commit ([
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Charge filters with their own properties | `app/models/charge_filter.rb`, `app/services/charge_filters/` | libs/pricing | in progress | |
-| All-values wildcard (`__ALL_FILTER_VALUES__`) | `app/models/charge_filter_value.rb` | libs/pricing | in progress | |
-| Filter precedence (most specific filter wins) | `app/services/events/billing_period_filters/matching_and_ignored_service.rb` | libs/pricing | in progress | |
-| Event matching to filters, default bucket for unmatched events | `app/services/charge_filters/event_matching_service.rb` | libs/pricing | in progress | |
-| Minimizing ignored filters for billing-period queries | `app/services/charge_filters/` (`MinimizeIgnoredFilters`) | libs/pricing | in progress | |
+| Charge filters with their own properties | `app/models/charge_filter.rb`, `app/services/charge_filters/` | libs/metering | logic done | |
+| All-values wildcard (`__ALL_FILTER_VALUES__`) | `app/models/charge_filter_value.rb` | libs/metering | logic done | |
+| Filter precedence (most specific filter wins) | `app/services/events/billing_period_filters/matching_and_ignored_service.rb` | libs/metering | logic done | |
+| Event matching to filters, default bucket for unmatched events | `app/services/charge_filters/event_matching_service.rb` | libs/metering | logic done | |
+| Minimizing ignored filters for billing-period queries | `app/services/charge_filters/` (`MinimizeIgnoredFilters`) | libs/metering | logic done | |
 | Filter code (slug plus hash) | `app/models/charge_filter.rb` | libs/core | planned | |
 | Cascade filter changes to child plans | `app/services/charge_filters/create_or_update_batch_service.rb` | libs/billing | planned | Coded path only (§2) |
 
@@ -247,9 +247,9 @@ A commit that implements a feature changes its status here in the same commit ([
 | :--- | :--- | :--- | :--- | :--- |
 | Add-on CRUD (amount, currency, invoice display name, taxes) | `app/models/add_on.rb`, `app/services/add_ons/` | libs/core | planned | |
 | Fixed charges on plans (add-on based, units) | `app/models/fixed_charge.rb`, `app/services/fixed_charges/` | libs/billing | planned | |
-| Fixed charge models standard, graduated, volume | `app/services/fixed_charges/` | libs/pricing | in progress | |
+| Fixed charge models standard, graduated, volume | `app/services/fixed_charges/` | libs/pricing | logic done | |
 | Pay-in-advance fixed charges | `app/services/invoices/create_pay_in_advance_fixed_charges_service.rb` | libs/billing | planned | |
-| Prorated fixed charges | `app/models/fixed_charge.rb` (`prorated`) | libs/period | in progress | |
+| Prorated fixed charges | `app/models/fixed_charge.rb` (`prorated`) | libs/period | logic done | |
 | Units overrides per subscription | `app/services/fixed_charges/override_service.rb` | libs/billing | planned | |
 | Apply unit changes immediately or at next period | `app/models/fixed_charge.rb` (`apply_units_immediately`) | libs/billing | planned | |
 | Fixed charge events recording unit changes over time | `app/models/fixed_charge_event.rb`, `app/services/fixed_charges/emit_events_service.rb` | libs/billing | planned | |
@@ -265,12 +265,12 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | :--- | :--- | :--- | :--- | :--- |
 | Product categories | `app/models/product_category.rb` | libs/core | planned | |
 | Products (metered, fixed) | `app/models/product.rb` | libs/core | planned | |
-| Product filters and filter values | `app/models/product_filter.rb` | libs/pricing | in progress | |
+| Product filters and filter values | `app/models/product_filter.rb` | libs/pricing | planned | |
 | Rate cards (billing timing, proration, display on invoice, regroup, pricing unit, locks) | `app/models/rate_card.rb` | libs/core | planned | |
-| Rate card rates on a timeline (`effective_from`) | `app/models/rate_card_rate.rb` | libs/pricing | in progress | |
-| Rate models and their compatibility with product kinds | `app/services/rate_card_rates/` (`ModelCompatibility`) | libs/pricing | in progress | |
-| Billing interval count and unit per rate | `app/models/rate_card_rate.rb` | libs/period | in progress | |
-| Range normalization | `app/services/rate_card_rates/` (`NormalizeRanges`) | libs/pricing | in progress | |
+| Rate card rates on a timeline (`effective_from`) | `app/models/rate_card_rate.rb` | libs/pricing | planned | |
+| Rate models and their compatibility with product kinds | `app/services/rate_card_rates/` (`ModelCompatibility`) | libs/pricing | planned | |
+| Billing interval count and unit per rate | `app/models/rate_card_rate.rb` | libs/period | planned | |
+| Range normalization | `app/services/rate_card_rates/` (`NormalizeRanges`) | libs/pricing | planned | |
 | Catalog plans and plan rate cards | `app/models/catalog_plan.rb`, `app/models/plan_rate_card.rb` | libs/core | planned | |
 | Rate phases (ramps) and their invariants | `app/models/rate_phase.rb` | libs/billing | planned | |
 | Rate overrides | `app/models/rate_override.rb` | libs/billing | planned | |
@@ -282,7 +282,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | Pricing units (name, code, short name of at most 3 characters, description) | `app/models/pricing_unit.rb`, `app/services/pricing_units/` | libs/core | planned | Public API, not only the admin UI |
-| Charges priced in a pricing unit with a conversion rate | `app/models/applied_pricing_unit.rb` | libs/pricing | in progress | |
+| Charges priced in a pricing unit with a conversion rate | `app/models/applied_pricing_unit.rb` | libs/pricing | logic done | |
 | Pricing unit usage recorded on fees | `app/models/pricing_unit_usage.rb` | libs/billing | planned | |
 
 ### 1.16 Entitlements
@@ -335,7 +335,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Billing-period filters on store queries | `app/services/events/stores/` | libs/eventstore | planned | |
 | ClickHouse raw, enriched and dead-letter tables | `db/clickhouse_migrate/` | libs/eventstore | planned | |
 | Pre-aggregated usage buckets (15 minutes in Lago) | `app/models/clickhouse/usage_bucket.rb`, `app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | planned | Hourly buckets built by Tanvo itself (§3) |
-| Cached aggregations for recurring metrics | `app/models/cached_aggregation.rb` | libs/metering | in progress | |
+| Cached aggregations for recurring metrics | `app/models/cached_aggregation.rb` | libs/metering | logic done | |
 
 ### 1.19 Usage
 
@@ -360,7 +360,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | Statuses pending, active, terminated, canceled, incomplete | `app/models/subscription.rb` | libs/core | planned | |
-| Billing time calendar or anniversary | `app/models/subscription.rb` | libs/period | in progress | |
+| Billing time calendar or anniversary | `app/models/subscription.rb` | libs/period | logic done | |
 | Subscription start date (past or future) and ending date | `app/services/subscriptions/create_service.rb` | libs/billing | planned | |
 | Subscription name and external id | `app/models/subscription.rb` | libs/core | planned | |
 | Plan overrides at subscription creation | `app/services/subscriptions/create_service.rb`, `app/services/plans/override_service.rb` | libs/billing | planned | |
@@ -385,7 +385,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Termination at ending date | `app/jobs/clock/terminate_ended_subscriptions_job.rb` | libs/billing | planned | |
 | Expiry of incomplete subscriptions | `app/jobs/clock/expire_incomplete_subscriptions_job.rb` | libs/billing | planned | |
 | Termination alerts before ending date (default 15 and 45 days) | `app/jobs/clock/subscriptions_to_be_terminated_job.rb` | libs/billing | planned | |
-| Trials across upgrades (initial start date kept) | `app/models/subscription.rb` (`trial_end_date`) | libs/period | in progress | |
+| Trials across upgrades (initial start date kept) | `app/models/subscription.rb` (`trial_end_date`) | libs/period | logic done | |
 | Trial end detection and free-trial billing | `app/jobs/clock/free_trial_subscriptions_biller_job.rb` | libs/billing | planned | |
 | Periodic billing selection (which subscriptions bill today) | `app/services/subscriptions/organization_billing_service.rb` | libs/billing | planned | Per-subscription scheduled jobs plus reconciliation (§3) |
 | Grouping of subscriptions billed together on one invoice | `app/services/subscriptions/organization_billing_service.rb` | libs/billing | planned | |
@@ -396,20 +396,20 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Weekly period boundaries, calendar and anniversary | `app/services/subscriptions/dates/weekly_service.rb` | libs/period | in progress | |
-| Monthly period boundaries, calendar and anniversary (end-of-month anniversaries) | `app/services/subscriptions/dates/monthly_service.rb` | libs/period | in progress | |
-| Quarterly period boundaries | `app/services/subscriptions/dates/quarterly_service.rb` | libs/period | in progress | |
-| Semiannual period boundaries | `app/services/subscriptions/dates/semiannual_service.rb` | libs/period | in progress | |
-| Yearly period boundaries | `app/services/subscriptions/dates/yearly_service.rb` | libs/period | in progress | |
-| Charge period boundaries, including monthly charges on longer plans | `app/services/subscriptions/dates_service.rb` (`charges_from_datetime`, `charges_to_datetime`) | libs/period | in progress | Contiguous half-open periods (§4) |
-| Fixed charge period boundaries | `app/services/subscriptions/dates_service.rb` | libs/period | in progress | |
-| Time zone application to boundaries | `app/services/subscriptions/dates_service.rb` | libs/period | in progress | IANA zones, explicit `*time.Location` |
-| Single-day price and number of days in period | `app/services/subscriptions/dates_service.rb` | libs/period | in progress | |
-| Termination-day boundaries | `app/services/subscriptions/dates_service.rb` | libs/period | in progress | |
-| Subscription fee proration (first period, termination, upgrade, full period) | `app/services/fees/subscription_service.rb` | libs/period | in progress | |
-| Billing period boundaries for invoice subscriptions | `app/models/billing_period_boundaries.rb` | libs/period | in progress | |
-| Date differences across time zones | `app/services/utils/datetime.rb` (`date_diff_with_timezone`) | libs/period | in progress | |
-| Previous and next billing dates | `app/services/subscriptions/dates_service.rb` | libs/period | in progress | |
+| Weekly period boundaries, calendar and anniversary | `app/services/subscriptions/dates/weekly_service.rb` | libs/period | logic done | |
+| Monthly period boundaries, calendar and anniversary (end-of-month anniversaries) | `app/services/subscriptions/dates/monthly_service.rb` | libs/period | logic done | |
+| Quarterly period boundaries | `app/services/subscriptions/dates/quarterly_service.rb` | libs/period | logic done | |
+| Semiannual period boundaries | `app/services/subscriptions/dates/semiannual_service.rb` | libs/period | logic done | |
+| Yearly period boundaries | `app/services/subscriptions/dates/yearly_service.rb` | libs/period | logic done | |
+| Charge period boundaries, including monthly charges on longer plans | `app/services/subscriptions/dates_service.rb` (`charges_from_datetime`, `charges_to_datetime`) | libs/period | logic done | Contiguous half-open periods (§4) |
+| Fixed charge period boundaries | `app/services/subscriptions/dates_service.rb` | libs/period | logic done | |
+| Time zone application to boundaries | `app/services/subscriptions/dates_service.rb` | libs/period | logic done | IANA zones, explicit `*time.Location` |
+| Single-day price and number of days in period | `app/services/subscriptions/dates_service.rb` | libs/period | logic done | |
+| Termination-day boundaries | `app/services/subscriptions/dates_service.rb` | libs/period | logic done | |
+| Subscription fee proration (first period, termination, upgrade, full period) | `app/services/fees/subscription_service.rb` | libs/period | logic done | |
+| Billing period boundaries for invoice subscriptions | `app/models/billing_period_boundaries.rb` | libs/period | logic done | |
+| Date differences across time zones | `app/services/utils/datetime.rb` (`date_diff_with_timezone`) | libs/period | logic done | |
+| Previous and next billing dates | `app/services/subscriptions/dates_service.rb` | libs/period | logic done | |
 
 ### 1.22 Contracts and Billing Segments
 
@@ -417,7 +417,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | :--- | :--- | :--- | :--- | :--- |
 | Contracts with statuses pending, active, terminated, canceled | `app/models/contract.rb`, `app/services/contracts/` | libs/core | planned | |
 | Contract rate cards | `app/models/contract_rate_card.rb`, `app/services/contract_rate_cards/` | libs/billing | planned | |
-| Contract billing math: intervals, calendar, days, cycles, phases, segments, cycle walker, schedule | `app/services/billing/` | libs/period | in progress | |
+| Contract billing math: intervals, calendar, days, cycles, phases, segments, cycle walker, schedule | `app/services/billing/` | libs/period | planned | |
 | Contract activation | `app/jobs/clock/activate_contracts_job.rb` | libs/billing | planned | |
 | Billing segments creation | `app/services/billing_segments/`, `app/jobs/clock/create_billing_segments_job.rb` | libs/billing | planned | |
 | Billing segments processing with overlap exclusion | `app/jobs/clock/process_billing_segments_job.rb` | libs/billing | planned | |
@@ -497,14 +497,14 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | :--- | :--- | :--- | :--- | :--- |
 | Tax CRUD (name, code, rate, description) | `app/models/tax.rb`, `app/services/taxes/` | libs/tax | planned | |
 | Taxes on billing entities, customers, plans, charges, fixed charges, add-ons, commitments | join tables in `app/models/` | libs/tax | planned | |
-| Tax resolution order (explicit, add-on, charge, fixed charge, commitment, plan, customer, billing entity) | `app/services/fees/apply_taxes_service.rb` | libs/tax | planned | |
-| Invoice applied taxes with taxable base and allocation | `app/services/invoices/apply_taxes_service.rb` | libs/tax | planned | |
-| Credit note applied taxes | `app/services/credit_notes/apply_taxes_service.rb` | libs/tax | planned | |
-| Provider-computed taxes (Anrok, Avalara) with special codes and base rate | `app/services/invoices/apply_provider_taxes_service.rb` | libs/tax | planned | |
-| EU VAT rates per country with exceptions | `app/services/taxes/` (ibericode rates) | libs/tax | planned | |
-| Automatic EU taxes for an organization | `app/services/taxes/auto_generate_service.rb` | libs/tax | planned | |
-| EU tax decision per customer (domestic, intra-EU B2B reverse charge, B2C, outside EU) | `app/services/customers/eu_auto_taxes_service.rb` | libs/tax | planned | |
-| VIES VAT number check with retries and backoff | `app/services/customers/vies_check_service.rb` | libs/tax | planned | |
+| Tax resolution order (explicit, add-on, charge, fixed charge, commitment, plan, customer, billing entity) | `app/services/fees/apply_taxes_service.rb` | libs/tax | logic done | |
+| Invoice applied taxes with taxable base and allocation | `app/services/invoices/apply_taxes_service.rb` | libs/tax | logic done | |
+| Credit note applied taxes | `app/services/credit_notes/apply_taxes_service.rb` | libs/tax | logic done | |
+| Provider-computed taxes (Anrok, Avalara) with special codes and base rate | `app/services/invoices/apply_provider_taxes_service.rb` | libs/tax | logic done | |
+| EU VAT rates per country with exceptions | `app/services/taxes/` (ibericode rates) | libs/tax | logic done | |
+| Automatic EU taxes for an organization | `app/services/taxes/auto_generate_service.rb` | libs/tax | logic done | |
+| EU tax decision per customer (domestic, intra-EU B2B reverse charge, B2C, outside EU) | `app/services/customers/eu_auto_taxes_service.rb` | libs/tax | logic done | |
+| VIES VAT number check with retries and backoff | `app/services/customers/vies_check_service.rb` | libs/tax | logic done | |
 | Invoice held until a pending VIES check completes | `app/models/pending_vies_check.rb` | libs/billing | planned | |
 | VIES webhook `customer.vies_check` | `app/services/webhooks/customers/vies_check_service.rb` | libs/webhooks | planned | |
 | Tax provider error webhooks `customer.tax_provider_error`, `fee.tax_provider_error` | `app/services/webhooks/integrations/taxes/` | libs/webhooks | planned | |
@@ -543,7 +543,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Draft, finalized statuses | `app/models/credit_note.rb` | libs/core | planned | |
 | Numbering `INVOICE-CNnnn` | `app/models/credit_note.rb` | libs/billing | planned | |
 | Credit note items per fee | `app/models/credit_note_item.rb` | libs/billing | planned | |
-| Taxes with allocation and rounding adjustment | `app/services/credit_notes/apply_taxes_service.rb` | libs/tax | planned | |
+| Taxes with allocation and rounding adjustment | `app/services/credit_notes/apply_taxes_service.rb` | libs/tax | logic done | |
 | Validation of creditable and refundable amounts | `app/services/credit_notes/validate_service.rb` | libs/billing | planned | All checks enforced, including those Lago never calls (§4) |
 | Offsets settling an invoice | `app/services/credit_notes/create_service.rb`, `app/models/invoice_settlement.rb` | libs/billing | planned | |
 | Refunds through payment providers | `app/services/credit_notes/refunds/` | libs/billing | planned | See §1.35 |
@@ -587,8 +587,8 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | :--- | :--- | :--- | :--- | :--- |
 | Minimum commitment per plan with override per subscription | `app/models/commitment.rb`, `app/services/commitments/` | libs/billing | planned | |
 | True-up fee when usage is below the commitment | `app/services/commitments/minimum/calculate_true_up_fee_service.rb` | libs/billing | planned | |
-| In-advance and in-arrears commitment periods | `app/services/commitments/` | libs/period | in progress | |
-| Proration coefficient for partial periods | `app/services/commitments/` | libs/period | in progress | |
+| In-advance and in-arrears commitment periods | `app/services/commitments/` | libs/billing | planned | |
+| Proration coefficient for partial periods | `app/services/commitments/` | libs/billing | planned | |
 | Commitment in invoice previews | `app/services/invoices/preview_service.rb` | libs/billing | planned | |
 | Taxes on commitments | `app/services/commitments/apply_taxes_service.rb` | libs/tax | planned | |
 
@@ -1103,3 +1103,4 @@ Ported tests encode the corrected behavior and cite the Lago location.
 | Event rows are hard-deleted when enqueuing fails because the unique index ignores `deleted_at` | `app/services/events/create_service.rb` | Event write and follow-up work commit in one transaction; nothing to undo |
 | Webhook cleanup deletes delivery rows but not their stored payload blobs | `app/jobs/clock/webhooks_cleanup_job.rb` | Payloads are deleted with their deliveries |
 | Cashfree checkout URL silently returns nothing | `app/services/payment_provider_customers/cashfree_service.rb` | Unsupported operations return an explicit `unimplemented` error |
+| EU territory postcode patterns match anywhere in the zipcode, so Lisbon `1940123` gets Madeira's VAT rate | `app/services/customers/eu_auto_taxes_service.rb` | Patterns match the start of the normalized zipcode |
