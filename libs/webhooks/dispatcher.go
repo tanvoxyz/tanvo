@@ -24,7 +24,21 @@ const (
 	// KindDeliver makes one attempt of a delivery; its arguments are
 	// [DeliveryArgs].
 	KindDeliver = "webhook.deliver"
+	// KindPurge deletes an organization's deliveries past their retention;
+	// its arguments are [PurgeArgs].
+	KindPurge = "webhook.purge"
 )
+
+// PurgeArgs are the arguments of a [KindPurge] job.
+type PurgeArgs struct {
+	// Cutoff is the creation instant before which deliveries are deleted:
+	// the clock tick minus [webhook.Retention].
+	Cutoff time.Time `json:"cutoff"`
+}
+
+// PurgeBatch is the number of deliveries a purge deletes per transaction
+// (lago-api's Clock::WebhooksCleanupJob batch size).
+const PurgeBatch = 1000
 
 // EventArgs are the arguments of a [KindFanOut] job.
 type EventArgs struct {
@@ -305,17 +319,54 @@ func (p *Dispatcher) Sweep(ctx context.Context, limit int) (int, error) {
 	return n, nil
 }
 
-// Purge deletes the deliveries older than [webhook.Retention] and returns
-// how many.
-func (p *Dispatcher) Purge(ctx context.Context) (int, error) {
+// DispatchPurges runs the webhook retention clock job of the tick at now:
+// it enqueues a [KindPurge] job for every organization with webhook
+// endpoints (deliveries are deleted with their endpoint), and returns how
+// many. Each organization's deletes run in its own job, under its
+// row-level security scope.
+func (p *Dispatcher) DispatchPurges(ctx context.Context, now time.Time) (int, error) {
 	var n int
 	err := p.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
-		var err error
-		n, err = r.WebhookDeliveries.PurgeBefore(ctx, p.Clock.Now().Add(-webhook.Retention))
-		return err
+		orgs, err := r.WebhookEndpoints.Organizations(ctx)
+		if err != nil {
+			return err
+		}
+		args := PurgeArgs{Cutoff: now.UTC().Add(-webhook.Retention)}
+		jobs := make([]port.Job, 0, len(orgs))
+		for _, org := range orgs {
+			job, err := newJob(KindPurge, org, args, time.Time{}, KindPurge)
+			if err != nil {
+				return err
+			}
+			jobs = append(jobs, job)
+		}
+		n = len(jobs)
+		return r.Jobs.Enqueue(ctx, jobs...)
 	})
 	if err != nil {
-		return 0, fmt.Errorf("purge webhooks: %w", err)
+		return 0, fmt.Errorf("dispatch webhook purges: %w", err)
 	}
 	return n, nil
+}
+
+// Purge runs a [KindPurge] job: it deletes org's deliveries last updated
+// before the cutoff, [PurgeBatch] per transaction, and returns how many
+// (Clock::WebhooksCleanupJob).
+func (p *Dispatcher) Purge(ctx context.Context, org core.OrganizationID, args PurgeArgs) (int, error) {
+	total := 0
+	for {
+		var n int
+		err := p.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+			var err error
+			n, err = r.WebhookDeliveries.PurgeBefore(ctx, org, args.Cutoff, PurgeBatch)
+			return err
+		})
+		if err != nil {
+			return total, fmt.Errorf("purge webhooks: %w", err)
+		}
+		total += n
+		if n < PurgeBatch {
+			return total, nil
+		}
+	}
 }

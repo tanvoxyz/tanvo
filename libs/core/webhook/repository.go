@@ -30,6 +30,10 @@ type EndpointRepository interface {
 	// Delete removes the endpoint id and its deliveries, or fails with
 	// core.ErrNotFound.
 	Delete(ctx context.Context, org core.OrganizationID, id core.WebhookEndpointID) error
+	// Organizations returns the organizations with endpoints, which hold
+	// every delivery. It is not organization-scoped: it feeds the
+	// retention purge's dispatch.
+	Organizations(ctx context.Context) ([]core.OrganizationID, error)
 }
 
 // DeliveryFilter narrows [DeliveryRepository.ListByEndpoint].
@@ -54,9 +58,9 @@ type DeliveryRepository interface {
 	// organization whose next attempt is due at now ([Delivery.Due]),
 	// earliest due first; it feeds the dispatcher sweep.
 	ListDue(ctx context.Context, now time.Time, limit int) ([]*Delivery, error)
-	// PurgeBefore deletes the deliveries of every organization created
+	// PurgeBefore deletes up to limit deliveries of org last updated
 	// before cutoff (now − [Retention]) and returns how many.
-	PurgeBefore(ctx context.Context, cutoff time.Time) (int, error)
+	PurgeBefore(ctx context.Context, org core.OrganizationID, cutoff time.Time, limit int) (int, error)
 }
 
 // EventRepository stores domain events.

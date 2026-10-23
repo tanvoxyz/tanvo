@@ -75,8 +75,8 @@ CREATE TABLE webhook_deliveries (
 CREATE INDEX webhook_deliveries_endpoint_idx ON webhook_deliveries (organization_id, webhook_endpoint_id, id);
 -- The dispatcher sweep, across organizations.
 CREATE INDEX webhook_deliveries_due_idx ON webhook_deliveries (next_attempt_at) WHERE status IN ('pending', 'retrying') AND next_attempt_at IS NOT NULL;
--- The retention purge, across organizations.
-CREATE INDEX webhook_deliveries_created_at_idx ON webhook_deliveries (created_at);
+-- The retention purge, one organization at a time.
+CREATE INDEX webhook_deliveries_updated_at_idx ON webhook_deliveries (organization_id, updated_at) INCLUDE (id);
 
 ALTER TABLE webhook_deliveries ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON webhook_deliveries

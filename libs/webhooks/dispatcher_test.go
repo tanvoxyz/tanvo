@@ -398,8 +398,26 @@ func TestSweepAndPurge(t *testing.T) {
 		t.Errorf("second sweep: got = %d, want = 0", n)
 	}
 	f.clock.advance(webhook.Retention + time.Second)
-	if n, err := f.disp.Purge(context.Background()); err != nil || n != 1 {
+	n, err = f.disp.DispatchPurges(context.Background(), f.clock.Now())
+	if err != nil || n != 1 {
+		t.Fatalf("DispatchPurges: got = %d %v, want = 1", n, err)
+	}
+	purges := f.store.TakeJobs()
+	if len(purges) != 1 || purges[0].Kind != KindPurge || purges[0].OrganizationID != f.org || purges[0].Queue != port.QueueWebhooks {
+		t.Fatalf("purge jobs got = %+v, want = one %s job of %s", purges, KindPurge, f.org)
+	}
+	var pa PurgeArgs
+	if err := json.Unmarshal(purges[0].Args, &pa); err != nil {
+		t.Fatal(err)
+	}
+	if want := f.clock.Now().Add(-webhook.Retention); !pa.Cutoff.Equal(want) {
+		t.Errorf("purge cutoff got = %v, want = %v", pa.Cutoff, want)
+	}
+	if n, err := f.disp.Purge(context.Background(), f.org, pa); err != nil || n != 1 {
 		t.Errorf("Purge: got = %d %v, want = 1", n, err)
+	}
+	if got := f.deliveries(ep); len(got) != 0 {
+		t.Errorf("deliveries after purge got = %d, want = 0", len(got))
 	}
 }
 

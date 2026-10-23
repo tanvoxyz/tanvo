@@ -75,8 +75,20 @@ ORDER BY next_attempt_at, id
 LIMIT sqlc.narg(lim)::integer;
 
 -- name: PurgeWebhookDeliveries :execrows
--- Across organizations: the retention purge.
-DELETE FROM webhook_deliveries WHERE created_at < @cutoff;
+-- The retention purge of one organization, a batch at a time, on the last
+-- change (an index-only scan of webhook_deliveries_updated_at_idx).
+DELETE FROM webhook_deliveries w
+WHERE w.organization_id = sqlc.arg(organization_id) AND w.id IN (
+  SELECT d.id FROM webhook_deliveries d
+  WHERE d.organization_id = sqlc.arg(organization_id) AND d.updated_at < sqlc.arg(cutoff)
+  LIMIT sqlc.arg(lim)
+);
+
+-- name: ListWebhookEndpointOrganizations :many
+-- Across organizations: the organizations with endpoints, which hold every
+-- delivery (deliveries are deleted with their endpoint), for the retention
+-- purge's dispatch.
+SELECT DISTINCT organization_id FROM webhook_endpoints ORDER BY organization_id;
 
 -- name: RecordDomainEvent :execrows
 INSERT INTO domain_events (

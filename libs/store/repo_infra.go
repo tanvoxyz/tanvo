@@ -62,6 +62,9 @@ func (s sequences) Next(ctx context.Context, org core.OrganizationID, k port.Seq
 type jobEnqueuer struct{ t *txState }
 
 func (j jobEnqueuer) Enqueue(ctx context.Context, jobs ...port.Job) error {
+	if len(jobs) == 0 {
+		return nil
+	}
 	for _, job := range jobs {
 		if job.Kind == "" || !job.Queue.Valid() || job.OrganizationID.IsZero() || job.MaxAttempts < 0 {
 			return fmt.Errorf("enqueue %q: %w", job.Kind, core.ErrInvalidValue)

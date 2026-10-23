@@ -110,7 +110,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 按资源（读、写）设置每个密钥的权限 | `app/models/api_key.rb`（`RESOURCES`） | libs/auth | 逻辑已完成 | 与角色使用相同的权限字符串 |
 | 密钥过期与轮换 | `app/services/api_keys/rotate_service.rb` | libs/auth | 逻辑已完成 | 轮换时旧密钥在一个重叠窗口内仍然有效 |
 | 拒绝删除最后一个不过期的密钥 | `app/services/api_keys/destroy_service.rb` | libs/auth | 逻辑已完成 | |
-| 最近使用时间跟踪 | `app/jobs/clock/api_keys/track_usage_job.rb` | libs/auth | 逻辑已完成 | |
+| 最近使用时间跟踪 | `app/jobs/clock/api_keys/track_usage_job.rb` | libs/auth | 已完成 | API 角色在内存中收集使用记录，每分钟记录到 `api_key_uses`（lago 在每个请求中写入 Rails 缓存，`app/controllers/api/base_controller.rb:59`）；每小时 :15 的 clock 任务为每个有使用记录的组织入队一个任务，把记录移到 `last_used_at`（从不回退） |
 | 密钥创建、轮换或删除时发送邮件 | `app/mailers/api_key_mailer.rb` | libs/mail | 逻辑已完成 | 由 `mail.send` 任务（apps/server）发送给组织管理员 |
 | 写请求的幂等性 | `app/models/idempotency_record.rb`、`app/services/idempotency_records/` | apps/server | 计划中 | `Idempotency-Key` 请求头；响应保留 24 小时 |
 | 健康与就绪端点 | `config/routes.rb`（`/health`、`/ready`） | apps/server | 已完成 | `/healthz`、`/readyz`；就绪检查 PostgreSQL、事件存储，以及使用时的 ClickHouse 与 Kafka |
@@ -794,7 +794,7 @@ Lago 的 x402 支持尚未完成：只有准入检查可以调用。Tanvo 移植
 | 带响应、状态与重试次数的投递记录 | `app/models/webhook.rb` | libs/webhooks | 逻辑已完成 | |
 | 手动重试某次投递 | `app/services/webhooks/retry_service.rb` | libs/webhooks | 逻辑已完成 | |
 | 带过滤（状态、事件类型、搜索）的投递列表 | `app/graphql/resolvers/webhooks_resolver.rb` | libs/webhooks | 计划中 | |
-| 90 天后清理投递记录 | `app/jobs/clock/webhooks_cleanup_job.rb` | libs/webhooks | 已完成 | 每日 clock 任务已在 apps/server 中装配 |
+| 90 天后清理投递记录 | `app/jobs/clock/webhooks_cleanup_job.rb` | libs/webhooks | 已完成 | 每日 clock 任务为每个有端点的组织入队一个清除任务，在该组织的行级安全范围内每个事务删除 1 000 条投递；lago 在 clock 任务中删除所有组织的记录（`app/jobs/clock/webhooks_cleanup_job.rb:19`）。与 lago 一致，保留期从 `updated_at` 起算，使用索引 `(organization_id, updated_at) INCLUDE (id)` |
 | Webhook 端点 API | `app/controllers/api/v1/webhook_endpoints_controller.rb` | apps/server | 计划中 | |
 | 事件组 计费指标：`billable_metric.created`、`updated`、`deleted` | `app/services/webhooks/billable_metrics/` | libs/webhooks | 计划中 | |
 | 事件组 套餐：`plan.created`、`updated`、`deleted` | `app/services/webhooks/plans/` | libs/webhooks | 计划中 | |
@@ -940,7 +940,7 @@ Lago 的每个时钟任务都成为一个 River 周期任务，或一个在到�
 | 终止已结束的订阅、校验事件（每小时 :05） | `clock.rb` | libs/jobs | 进行中 | |
 | 订阅计费（每小时 :10） | `clock.rb`（`SubscriptionsBiller`） | libs/jobs | 进行中 | 按订阅的任务加每小时对账 |
 | 创建与处理计费片段（每小时 :12、:17） | `clock.rb` | libs/jobs | 进行中 | |
-| API 密钥使用情况、每日用量（每小时 :15） | `clock.rb` | libs/jobs | 进行中 | |
+| API 密钥使用情况、每日用量（每小时 :15） | `clock.rb` | libs/jobs | 进行中 | API 密钥使用情况已装配 |
 | incomplete 订阅过期、定稿发票（每小时 :20） | `clock.rb` | libs/jobs | 进行中 | |
 | 把发票标记为逾期（每小时 :25） | `clock.rb` | libs/jobs | 进行中 | |
 | 重试生成发票、终止优惠券（每小时 :30） | `clock.rb` | libs/jobs | 进行中 | |
@@ -950,7 +950,7 @@ Lago 的每个时钟任务都成为一个 River 周期任务，或一个在到�
 | 终止提醒、终止循环规则（每小时 :50） | `clock.rb` | libs/jobs | 进行中 | |
 | 按间隔的钱包充值（每小时 :55） | `clock.rb` | libs/jobs | 进行中 | |
 | 重试失败的发票、重试入站 webhook（每 15 分钟） | `clock.rb` | libs/jobs | 进行中 | |
-| 清理 webhook、入站 webhook 与删除记录（每天） | `clock.rb` | libs/jobs | 进行中 | webhook 投递清理已装配；入站 webhook 与删除记录清理待完成 |
+| 清理 webhook、入站 webhook 与删除记录（每天） | `clock.rb` | libs/jobs | 进行中 | webhook 投递清理已装配，每个组织一个清除任务；入站 webhook 与删除记录清理待完成 |
 | 消费订阅刷新队列（每 10 秒） | `clock.rb` | libs/jobs | 计划中 | 由消费者中的变更通知代替 |
 | 按工作负载划分的队列 | `config/sidekiq/` | libs/jobs | 逻辑已完成 | River 队列按组织分片，并按组织使用令牌桶；周期任务运行在不分片的 `clock` 队列上 |
 
@@ -1101,6 +1101,7 @@ Lago 自己标记为废弃、只为旧数据保留，或作为死代码保留的
 | `LAGO_CREATE_ORG` 初始化变量 | `tanvo admin bootstrap` | 显式命令 |
 | 提供者回调的 OAuth 代理 | 回调由 `apps/server` 提供 | 自包含 |
 | 基于 Redis 的 `throttling` gem | 按提供者的令牌桶 | 没有 Redis 也能工作 |
+| API 密钥最近使用时间在每个请求中写入 Rails 缓存，每小时复制 | 每个 API 进程收集使用记录，每分钟记录到 `api_key_uses`，每小时按组织应用 | 没有 Redis 也能工作；按组织的工作受行级安全约束 |
 | Yabeda 指标 | OpenTelemetry 与 `/metrics` | 标准化的监测 |
 
 ---

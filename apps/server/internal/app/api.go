@@ -16,6 +16,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/tanvoxyz/tanvo/apps/server/internal/clientip"
 	"github.com/tanvoxyz/tanvo/apps/server/internal/rpc"
 	"github.com/tanvoxyz/tanvo/libs/auth"
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -24,11 +25,11 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/event/v1/eventv1connect"
 )
 
-// usageFlushInterval is how often the API role writes the last use of API
-// keys (lago's clock api_keys_track_usage runs hourly). The uses are
-// collected in the API process, so the API process writes them, rather
-// than the clock job of a worker.
-const usageFlushInterval = time.Hour
+// usageFlushInterval is how often the API role records the uses of API
+// keys it collected in memory (lago-api's per-request cache writes); the
+// hourly clock job (jobs.KindTrackAPIKeyUsage) moves them to the keys'
+// last_used_at.
+const usageFlushInterval = time.Minute
 
 // finalFlushTimeout bounds the flush of API key uses at shutdown.
 const finalFlushTimeout = 10 * time.Second
@@ -54,6 +55,8 @@ type apiDeps struct {
 	log      *slog.Logger
 	tp       trace.TracerProvider
 	mp       metric.MeterProvider
+	// trustedProxies report client addresses besides the default ones.
+	trustedProxies clientip.Proxies
 }
 
 // newAPI mounts the API on mux. Every RPC passes through the
@@ -78,7 +81,7 @@ func newAPI(mux *http.ServeMux, d apiDeps) (*api, error) {
 		return nil, err
 	}
 	server := connect.NewServer(telemetry, rpc.Recover(), rpc.Auth(keys, auth.NewAuthorizer(d.tx)), rpc.Validate(validator))
-	eventv1connect.RegisterEventServiceHandler(server, rpc.NewEvents(d.ingest))
+	eventv1connect.RegisterEventServiceHandler(server, rpc.NewEvents(d.ingest, clientip.New(d.trustedProxies...)))
 
 	// JSON uses the proto field names (snake_case) and keeps the numbers
 	// of event properties exact, on both transports.

@@ -19,6 +19,7 @@ import (
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 
+	"github.com/tanvoxyz/tanvo/apps/server/internal/clientip"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/postgres"
@@ -135,6 +136,11 @@ type Config struct {
 	HTTPReadHeaderTimeout time.Duration `koanf:"http_read_header_timeout"`
 	// HTTPMaxBodyBytes bounds a request body.
 	HTTPMaxBodyBytes int64 `koanf:"http_max_body_bytes"`
+	// TrustedProxies are the proxies, addresses or CIDR ranges, trusted
+	// to report the client address in X-Forwarded-For and Client-Ip, in
+	// addition to the loopback and private ranges
+	// ([clientip.DefaultTrusted]).
+	TrustedProxies clientip.Proxies `koanf:"trusted_proxies"`
 	// ShutdownTimeout bounds the graceful shutdown.
 	ShutdownTimeout time.Duration `koanf:"shutdown_timeout"`
 	// MetricsEndpoint serves OpenTelemetry metrics in the Prometheus

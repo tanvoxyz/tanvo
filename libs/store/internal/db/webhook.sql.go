@@ -421,6 +421,33 @@ func (q *Queries) ListWebhookDeliveriesByEndpoint(ctx context.Context, arg ListW
 	return items, nil
 }
 
+const listWebhookEndpointOrganizations = `-- name: ListWebhookEndpointOrganizations :many
+SELECT DISTINCT organization_id FROM webhook_endpoints ORDER BY organization_id
+`
+
+// Across organizations: the organizations with endpoints, which hold every
+// delivery (deliveries are deleted with their endpoint), for the retention
+// purge's dispatch.
+func (q *Queries) ListWebhookEndpointOrganizations(ctx context.Context) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listWebhookEndpointOrganizations)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var organization_id uuid.UUID
+		if err := rows.Scan(&organization_id); err != nil {
+			return nil, err
+		}
+		items = append(items, organization_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listWebhookEndpoints = `-- name: ListWebhookEndpoints :many
 SELECT organization_id, id, url, name, event_types, secret, created_at, updated_at FROM webhook_endpoints
 WHERE organization_id = $1
@@ -465,12 +492,24 @@ func (q *Queries) ListWebhookEndpoints(ctx context.Context, arg ListWebhookEndpo
 }
 
 const purgeWebhookDeliveries = `-- name: PurgeWebhookDeliveries :execrows
-DELETE FROM webhook_deliveries WHERE created_at < $1
+DELETE FROM webhook_deliveries w
+WHERE w.organization_id = $1 AND w.id IN (
+  SELECT d.id FROM webhook_deliveries d
+  WHERE d.organization_id = $1 AND d.updated_at < $2
+  LIMIT $3
+)
 `
 
-// Across organizations: the retention purge.
-func (q *Queries) PurgeWebhookDeliveries(ctx context.Context, cutoff time.Time) (int64, error) {
-	result, err := q.db.Exec(ctx, purgeWebhookDeliveries, cutoff)
+type PurgeWebhookDeliveriesParams struct {
+	OrganizationID uuid.UUID
+	Cutoff         time.Time
+	Lim            int32
+}
+
+// The retention purge of one organization, a batch at a time, on the last
+// change (an index-only scan of webhook_deliveries_updated_at_idx).
+func (q *Queries) PurgeWebhookDeliveries(ctx context.Context, arg PurgeWebhookDeliveriesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, purgeWebhookDeliveries, arg.OrganizationID, arg.Cutoff, arg.Lim)
 	if err != nil {
 		return 0, err
 	}

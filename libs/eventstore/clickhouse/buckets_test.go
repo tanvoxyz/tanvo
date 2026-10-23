@@ -118,6 +118,12 @@ func TestBucketRepair(t *testing.T) {
 				t.Fatal(err)
 			}
 		}},
+		{"first recent repair", func(t *testing.T, s *clickhouse.Store, _ metering.Event, _ time.Time) {
+			// Without a previous run, every bucket is repaired.
+			if err := s.RepairRecentBuckets(t.Context(), clickhouse.RepairMargin); err != nil {
+				t.Fatal(err)
+			}
+		}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -141,6 +147,40 @@ func TestBucketRepair(t *testing.T) {
 			}
 		})
 	}
+
+	// RepairRecentBuckets repairs from the start of the previous run (minus
+	// a margin, none here, as the bucket's first event is written just
+	// before the first run), kept in bucket_repairs across stores.
+	t.Run("recent repair since the previous run", func(t *testing.T) {
+		conn := database(t)
+		s := clickhouse.New(conn)
+		if err := s.DefineBuckets(t.Context(), def); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := s.Write(t.Context(), []metering.Event{ev("a", 1, "2")}); err != nil {
+			t.Fatal(err)
+		}
+		if err := s.RepairRecentBuckets(t.Context(), 0); err != nil {
+			t.Fatal(err)
+		}
+		// Stored an hour before the previous run.
+		orphan(t, conn, ev("b", 2, "3"), uint64(time.Now().Add(-time.Hour).UnixNano()))
+		next := clickhouse.New(conn)
+		if err := next.RepairRecentBuckets(t.Context(), 0); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := sum(t, next), "2/1"; got != want {
+			t.Errorf("sum after a repair missing an old event got = %s, want = %s", got, want)
+		}
+		// Stored after the previous run.
+		orphan(t, conn, ev("c", 3, "10"), uint64(time.Now().UnixNano()))
+		if err := next.RepairRecentBuckets(t.Context(), 0); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := sum(t, next), "15/3"; got != want {
+			t.Errorf("sum after a repair of a recent event got = %s, want = %s", got, want)
+		}
+	})
 }
 
 // TestMergeOverConcurrentRecompute forces a recompute holding the events

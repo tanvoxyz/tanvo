@@ -110,7 +110,7 @@ There are no exceptions: unreleased Lago features (for example the structured pa
 | Per-key permissions by resource (read, write) | `app/models/api_key.rb` (`RESOURCES`) | libs/auth | logic done | Same permission strings as roles |
 | Key expiry and rotation | `app/services/api_keys/rotate_service.rb` | libs/auth | logic done | Rotation keeps the old key valid for an overlap window |
 | Refuse destroying the last non-expiring key | `app/services/api_keys/destroy_service.rb` | libs/auth | logic done | |
-| Last-used tracking | `app/jobs/clock/api_keys/track_usage_job.rb` | libs/auth | logic done | |
+| Last-used tracking | `app/jobs/clock/api_keys/track_usage_job.rb` | libs/auth | done | The API role collects uses in memory and records them every minute in `api_key_uses` (lago writes the Rails cache on each request, `app/controllers/api/base_controller.rb:59`); the hourly :15 clock job enqueues one job per organization with recorded uses, which moves them to `last_used_at` (never backwards) |
 | Emails when keys are created, rotated or destroyed | `app/mailers/api_key_mailer.rb` | libs/mail | logic done | Sent to the organization's admins by the `mail.send` job (apps/server) |
 | Idempotency of write requests | `app/models/idempotency_record.rb`, `app/services/idempotency_records/` | apps/server | planned | `Idempotency-Key` header; responses kept 24 hours |
 | Health and readiness endpoints | `config/routes.rb` (`/health`, `/ready`) | apps/server | done | `/healthz`, `/readyz`; readiness checks PostgreSQL, the event store and, when used, ClickHouse and Kafka |
@@ -794,7 +794,7 @@ Lago's x402 support is unfinished: only the gate check is reachable. Tanvo ports
 | Delivery records with response, status, retries | `app/models/webhook.rb` | libs/webhooks | logic done | |
 | Manual retry of a delivery | `app/services/webhooks/retry_service.rb` | libs/webhooks | logic done | |
 | Delivery list with filters (status, event type, search) | `app/graphql/resolvers/webhooks_resolver.rb` | libs/webhooks | planned | |
-| Delivery cleanup after 90 days | `app/jobs/clock/webhooks_cleanup_job.rb` | libs/webhooks | done | Daily clock job wired in apps/server |
+| Delivery cleanup after 90 days | `app/jobs/clock/webhooks_cleanup_job.rb` | libs/webhooks | done | The daily clock job enqueues one purge job per organization with endpoints, deleting 1 000 deliveries per transaction under the organization's row-level security; lago deletes every organization's rows from the clock job (`app/jobs/clock/webhooks_cleanup_job.rb:19`). Like lago, retention is counted from `updated_at`, on the index `(organization_id, updated_at) INCLUDE (id)` |
 | Webhook endpoints API | `app/controllers/api/v1/webhook_endpoints_controller.rb` | apps/server | planned | |
 | Event group billable metrics: `billable_metric.created`, `updated`, `deleted` | `app/services/webhooks/billable_metrics/` | libs/webhooks | planned | |
 | Event group plans: `plan.created`, `updated`, `deleted` | `app/services/webhooks/plans/` | libs/webhooks | planned | |
@@ -940,7 +940,7 @@ Each Lago clock job becomes a River periodic job or a job scheduled at the insta
 | Terminate ended subscriptions, validate events (hourly :05) | `clock.rb` | libs/jobs | in progress | |
 | Subscription billing (hourly :10) | `clock.rb` (`SubscriptionsBiller`) | libs/jobs | in progress | Per-subscription jobs plus hourly reconciliation |
 | Billing segments create and process (hourly :12, :17) | `clock.rb` | libs/jobs | in progress | |
-| API key usage, daily usages (hourly :15) | `clock.rb` | libs/jobs | in progress | |
+| API key usage, daily usages (hourly :15) | `clock.rb` | libs/jobs | in progress | API key usage wired |
 | Expire incomplete subscriptions, finalize invoices (hourly :20) | `clock.rb` | libs/jobs | in progress | |
 | Mark invoices overdue (hourly :25) | `clock.rb` | libs/jobs | in progress | |
 | Retry generating invoices, terminate coupons (hourly :30) | `clock.rb` | libs/jobs | in progress | |
@@ -950,7 +950,7 @@ Each Lago clock job becomes a River periodic job or a job scheduled at the insta
 | Termination alerts, terminate recurring rules (hourly :50) | `clock.rb` | libs/jobs | in progress | |
 | Interval wallet top-ups (hourly :55) | `clock.rb` | libs/jobs | in progress | |
 | Retry failed invoices, retry inbound webhooks (every 15 minutes) | `clock.rb` | libs/jobs | in progress | |
-| Webhook, inbound webhook, deletion record cleanups (daily) | `clock.rb` | libs/jobs | in progress | Webhook delivery cleanup wired; inbound webhook and deletion record cleanups to come |
+| Webhook, inbound webhook, deletion record cleanups (daily) | `clock.rb` | libs/jobs | in progress | Webhook delivery cleanup wired, one purge job per organization; inbound webhook and deletion record cleanups to come |
 | Subscription refresh queue consumption (every 10 seconds) | `clock.rb` | libs/jobs | planned | Change notifications in the consumer |
 | Queues per workload | `config/sidekiq/` | libs/jobs | logic done | River queues sharded by organization, with per-organization token buckets; periodic jobs on an unsharded `clock` queue |
 
@@ -1101,6 +1101,7 @@ Items that Lago itself marks deprecated, keeps only for old data, or carries as 
 | `LAGO_CREATE_ORG` bootstrap variables | `tanvo admin bootstrap` | Explicit command |
 | OAuth proxy for provider callbacks | Callbacks served by `apps/server` | Self-contained |
 | `throttling` gem with Redis | Per-provider token buckets | Works without Redis |
+| API key last use written to the Rails cache per request, copied hourly | Uses collected per API process, recorded every minute in `api_key_uses`, applied hourly per organization | Works without Redis; per-organization work under row-level security |
 | Yabeda metrics | OpenTelemetry and `/metrics` | Standard instrumentation |
 
 ---

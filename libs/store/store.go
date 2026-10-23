@@ -124,3 +124,20 @@ func (s *Store) InTx(ctx context.Context, fn func(ctx context.Context, r port.Re
 	}
 	return nil
 }
+
+// InPgxTx is [Store.InTx] that also hands fn the pgx transaction the
+// repositories are bound to, for the stores outside this package that write
+// in the same transaction (the PostgreSQL event store of the ingest path).
+// Statements fn runs on tx bypass the repositories: they must not change
+// tanvo.organization_id, and the row-level security scope the repositories
+// set is not theirs to rely on. A nested call joins the transaction
+// carried by ctx.
+func (s *Store) InPgxTx(ctx context.Context, fn func(ctx context.Context, r port.Repos, tx pgx.Tx) error) error {
+	return s.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+		t, ok := ctx.Value(txKey{}).(*txState)
+		if !ok || t.store != s {
+			return errors.New("store: transaction not in context")
+		}
+		return fn(ctx, r, t.tx)
+	})
+}

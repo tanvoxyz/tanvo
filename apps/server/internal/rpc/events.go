@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"net"
 	"slices"
 	"strconv"
 	"time"
@@ -15,6 +14,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
+	"github.com/tanvoxyz/tanvo/apps/server/internal/clientip"
 	"github.com/tanvoxyz/tanvo/libs/auth"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/event"
@@ -38,12 +38,16 @@ type Events struct {
 	eventv1connect.UnimplementedEventServiceHandler
 
 	ingest Ingester
+	ips    *clientip.Resolver
 }
 
 var _ eventv1connect.EventServiceHandler = (*Events)(nil)
 
-// NewEvents returns the event service over in.
-func NewEvents(in Ingester) *Events { return &Events{ingest: in} }
+// NewEvents returns the event service over in; ips resolves the client
+// address recorded in the events' metadata.
+func NewEvents(in Ingester, ips *clientip.Resolver) *Events {
+	return &Events{ingest: in, ips: ips}
+}
 
 // IngestEvent implements EventService.IngestEvent.
 func (s *Events) IngestEvent(ctx context.Context, req *eventv1.IngestEventRequest) (*eventv1.IngestEventResponse, error) {
@@ -55,7 +59,7 @@ func (s *Events) IngestEvent(ctx context.Context, req *eventv1.IngestEventReques
 	if len(v) > 0 {
 		return nil, InvalidArgument("invalid event", v)
 	}
-	out, err := s.ingest.Create(ctx, p.OrganizationID, in, metadata(ctx))
+	out, err := s.ingest.Create(ctx, p.OrganizationID, in, s.metadata(ctx))
 	if v, ok := validationViolations("event.", err); ok {
 		return nil, InvalidArgument("invalid event", v)
 	}
@@ -83,7 +87,7 @@ func (s *Events) IngestEvents(ctx context.Context, req *eventv1.IngestEventsRequ
 	if len(violations) > 0 {
 		return nil, InvalidArgument("invalid events", violations)
 	}
-	out, err := s.ingest.CreateBatch(ctx, p.OrganizationID, ins, metadata(ctx))
+	out, err := s.ingest.CreateBatch(ctx, p.OrganizationID, ins, s.metadata(ctx))
 	var be *ingest.BatchError
 	if errors.As(err, &be) {
 		for _, i := range slices.Sorted(maps.Keys(be.Errors)) {
@@ -117,16 +121,16 @@ func principal(ctx context.Context) (auth.Principal, error) {
 	return p, nil
 }
 
-func metadata(ctx context.Context) ingest.Metadata {
+// metadata returns the request metadata of an event request: the user
+// agent and the client address, resolved like Rails' request.remote_ip
+// (events_controller.rb event_metadata).
+func (s *Events) metadata(ctx context.Context) ingest.Metadata {
 	info, ok := connect.CallInfoForServerContext(ctx)
 	if !ok {
 		return ingest.Metadata{}
 	}
-	md := ingest.Metadata{UserAgent: info.RequestHeader().Get("User-Agent"), IPAddress: info.PeerAddr}
-	if host, _, err := net.SplitHostPort(info.PeerAddr); err == nil {
-		md.IPAddress = host
-	}
-	return md
+	h := info.RequestHeader()
+	return ingest.Metadata{UserAgent: h.Get("User-Agent"), IPAddress: s.ips.Resolve(info.PeerAddr, h)}
 }
 
 // toInput maps an API event to the intake's input. The numbers of JSON

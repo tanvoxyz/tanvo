@@ -94,13 +94,19 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		a.health.add("clickhouse", a.ch.Ping)
 	}
 
-	// The store, whose jobs commit with its transactions, and the jobs.
+	// The store, whose jobs commit with its transactions, the event
+	// stores, and the jobs.
 	sopts := []store.Option{store.WithJobInserter(jobInserter(func() *jobs.Client { return a.jobs }))}
 	if cfg.DatabaseRowLevelSecurity {
 		sopts = append(sopts, store.WithRowLevelSecurity())
 	}
 	a.store = store.New(a.pool, sopts...)
-	reg, err := newRegistry(jobHandlers{webhooks: newDispatcher(cfg, a.store, tp, mp)})
+	modeOf, err := ingestModes(cfg)
+	if err != nil {
+		return nil, err
+	}
+	a.stores = newEventStores(a.pool, cfg.EventStoreSchema, a.ch, modeOf, tp)
+	reg, err := newRegistry(jobHandlers{webhooks: newDispatcher(cfg, a.store, tp, mp), tx: a.store, stores: a.stores, mp: mp})
 	if err != nil {
 		return nil, err
 	}
@@ -115,12 +121,7 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		return nil, err
 	}
 
-	// Event stores and Kafka.
-	modeOf, err := ingestModes(cfg)
-	if err != nil {
-		return nil, err
-	}
-	a.stores = newEventStores(a.pool, cfg.EventStoreSchema, a.ch, modeOf)
+	// Kafka.
 	ktel := kafkaTelemetry{tp: tp, mp: mp, propagator: tel.Propagator}
 	if (o.Roles.Has(config.RoleAPI) && cfg.KafkaUsed()) || o.Roles.Has(config.RoleConsumer) {
 		if a.producer, err = newKafkaClient(cfg, ktel, ""); err != nil {
@@ -152,7 +153,7 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		if err != nil {
 			return nil, err
 		}
-		if a.api, err = newAPI(mux, apiDeps{tx: a.store, ingest: svc, maxBytes: cfg.HTTPMaxBodyBytes, log: a.log, tp: tp, mp: mp}); err != nil {
+		if a.api, err = newAPI(mux, apiDeps{tx: a.store, ingest: svc, maxBytes: cfg.HTTPMaxBodyBytes, trustedProxies: cfg.TrustedProxies, log: a.log, tp: tp, mp: mp}); err != nil {
 			return nil, err
 		}
 	}

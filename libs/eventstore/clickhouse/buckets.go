@@ -187,6 +187,27 @@ func (s *Store) BucketDefinitions(ctx context.Context, organizationID, code stri
 	return out, nil
 }
 
+// AllBucketDefinitions implements [eventstore.BucketDefiner].
+func (s *Store) AllBucketDefinitions(ctx context.Context) ([]metering.BucketDefinition, error) {
+	var (
+		out                 []metering.BucketDefinition
+		org, code, property string
+		dims                []string
+		fold                map[string][]string
+	)
+	err := s.each(ctx, `SELECT organization_id, code, property, dimensions, fold FROM usage_bucket_definitions FINAL
+		ORDER BY organization_id, code, definition_id`,
+		nil, []any{&org, &code, &property, &dims, &fold}, func() error {
+			d := metering.BucketDefinition{OrganizationID: org, Code: code, Property: property, Dimensions: slices.Clone(dims)}
+			if len(fold) > 0 {
+				d.Values = maps.Clone(fold)
+			}
+			out = append(out, d.Normalize())
+			return nil
+		})
+	return out, wrap("all bucket definitions", err)
+}
+
 // ReadBuckets implements [metering.BucketReader]. It reads the ready
 // definitions only.
 func (s *Store) ReadBuckets(ctx context.Context, r metering.BucketRead) ([]metering.BucketTotal, bool, error) {

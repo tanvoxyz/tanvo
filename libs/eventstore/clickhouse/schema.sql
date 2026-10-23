@@ -113,3 +113,14 @@ ENGINE = ReplacingMergeTree(version, is_deleted)
 PARTITION BY toYYYYMM(bucket)
 ORDER BY (organization_id, code, subscription_id, definition_id, bucket, dimensions_key)
 ;
+-- The runs of Store.RepairRecentBuckets: each completed run's start, in
+-- the clock of the ingestion sequences (nanoseconds), so that the next
+-- run repairs the events stored since, minus a margin.
+CREATE TABLE IF NOT EXISTS bucket_repairs (
+    started UInt64,
+    finished DateTime64(6, 'UTC')
+)
+ENGINE = MergeTree
+ORDER BY started
+TTL finished + INTERVAL 30 DAY
+;

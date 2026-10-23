@@ -62,17 +62,15 @@ func migrateAll(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, conn
 }
 
 // checkSchemas verifies, without changing anything, that the PostgreSQL
-// schemas were migrated: River's fully (its migrator validates the
-// applied versions), the store's and the event store's by their
-// bookkeeping tables. ClickHouse is not checked: its DDL is idempotent and
+// schemas were migrated: the store's and River's by their applied
+// versions (the store accepts versions of a newer release, for rolling
+// deploys of expand-only migrations), the event store's by its
+// bookkeeping table. ClickHouse is not checked: its DDL is idempotent and
 // applied by `tanvo migrate`.
 func checkSchemas(ctx context.Context, cfg config.Config, pool *pgxpool.Pool) error {
 	var errs []error
-	var ok bool
-	if err := pool.QueryRow(ctx, "SELECT to_regclass('public.tanvo_schema_revisions') IS NOT NULL").Scan(&ok); err != nil {
-		errs = append(errs, fmt.Errorf("store: check schema: %w", err))
-	} else if !ok {
-		errs = append(errs, errors.New("store: the database is not migrated (run tanvo migrate)"))
+	if err := store.CheckSchema(ctx, pool); err != nil {
+		errs = append(errs, err)
 	}
 	if err := jobs.CheckSchema(ctx, pool, cfg.JobsSchema); err != nil {
 		errs = append(errs, err)

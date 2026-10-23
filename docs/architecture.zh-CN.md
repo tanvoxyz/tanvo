@@ -198,7 +198,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 * 迁移通过 `tanvo migrate` 运行（在 Tanvo Cloud 中是一个 Kubernetes Job）；对于自托管安装，除非禁用，在启动时自动运行。
 * 同一个数据库中有两套迁移历史，以便任务能在业务事务中插入：Atlas 管理 `public` schema，River 自己的迁移（rivermigrate）管理 `river` schema。River 的表不纳入 Atlas，使 Atlas 的 diff、lint 与漂移检查只看到 Tanvo 的 schema，River 升级时也无需手工复制它的迁移。`tanvo migrate` 是唯一入口：先应用 Atlas 的迁移，再应用 River 的，各自在自己的 advisory lock 下执行，并且都是幂等的。
 * PostgreSQL 事件存储（§7）在自己的 schema（默认 `eventstore`）中有第三套迁移历史：它的迁移是幂等的 DDL，由同一命令应用，并同时创建未来几个月的分区；配置了 ClickHouse 时，`tanvo migrate` 也会应用 ClickHouse 的 schema。
-* 一个版本内的迁移只做扩展，使滚动部署期间旧版本仍能运行；迁移在新版本上线之前应用。进程启动时检查 schema 是否已应用，否则拒绝启动：目前检查 River 的迁移是否全部应用，以及 Atlas 的版本表与事件存储是否存在。
+* 一个版本内的迁移只做扩展，使滚动部署期间旧版本仍能运行；迁移在新版本上线之前应用。进程启动时检查 schema 是否已应用，否则拒绝启动：River 的每个迁移，以及本版本的每个 Atlas 迁移及其校验和（`store.CheckSchema`；接受更新版本的迁移，如滚动部署期间）都已应用，且事件存储存在。
 
 ### 5.3 查询
 * sqlc 基于 pgx/v5 驱动，从 `libs/store/queries/` 中的 SQL 生成类型安全的 Go。
@@ -259,8 +259,8 @@ POST /v1/events, /v1/events:batch
 * **ClickHouse**：`events_raw`（账本，按（组织，外部订阅，事务 ID）去重）与 `events_enriched` 为 `ReplacingMergeTree` 表，由摄取消费者批量写入；活动日志、API 日志与安全日志也存放在这里。聚合值按 `Decimal(76, 26)` 读取，因此摄取时拒绝整数部分超过 50 位的数值属性，而不是让 ClickHouse 把它读成零。`events.raw` 以去重键为分区键，`events.enriched` 以（组织，外部订阅）为分区键，因此一个键的所有副本在一个分区上保持有序，同一时刻只有一个写入消费者存储某个订阅的事件并维护其桶：写入者先看到一个键的第一个副本，再看到之后的副本，写入者之间无需解析副本。这把单个订阅的吞吐量限制在一个写入消费者，且一个组织中没有订阅的事件共用一个键。Lago 生产原始事件时不带键（fec71c637）；这些键是刻意的差异。
 * **15 分钟**（UTC）的**用量桶**在两种存储中为当前用量查询提供支撑。桶定义指明指标代码、被聚合的属性与维度（其计费项的过滤键、定价分组键与展示键，并始终包含 `target_wallet_code`）；桶的行以（组织、外部订阅 ID、代码、定义、桶、维度取值）为键，过滤键中不属于指标已声明取值的值折叠为同一个"其他"值，从而限定行数，并保持计费项过滤器的精确性，因为过滤器只接受已声明的取值。行存储 `units`、`events_count`、`precise_total_amount`，以及最后事件与摄取时刻。计费项过滤器在读取时按维度匹配，因此修改计费项永远不会使用量桶过期。
 * 用量桶服务于可以跨桶合并的聚合（count、sum、max、latest）以及只需要总量的计费模型（standard、graduated、package、volume、graduated percentage、dynamic）；预付、按比例、周期性计费项、接受目标钱包的计费项以及其他聚合读取事件。查询读取窗口内的整桶，窗口两端的部分桶则从事件读取，因此结果与事件路径完全相同（lago-api 把窗口扩大到整桶，这对它安全只是因为它的桶记录内部订阅；Tanvo 的外部订阅 ID 在升级前后共用）。
-* 用量桶在存储事件的同一次写入中维护，因此没有需要等待的延迟。在 PostgreSQL 上，每次写入在其事务中、在 advisory lock 下更新涉及的桶；替换事件会重建其桶；新定义在写入者已开始维护它的同时分块回填，就绪后才服务读取。在 ClickHouse 上，每次写入把其事件合并进涉及桶的当前行，版本加一（替换则从 `events_enriched FINAL` 重算），插入后检查冲突的写入，并重算冲突的桶；读取保留最高版本。在多副本表上，维护以 `insert_quorum` 插入、以 `select_sequential_consistency` 读取。周期性的 `RepairBuckets` 扫描是正确性所必需的，它重算最近存储事件的桶：修复在存储事件与更新桶之间失败的写入，以及被后台合并对检查隐藏的冲突。它每 5 到 15 分钟运行一次，水位（写入者的时钟）取上次扫描开始时间之前一段余量（10 分钟）。一次写入的成本与其批次及其桶的行数成正比，而不随桶中已有事件数增长。
-* `BucketStats` 报告每个定义的行数；行数过多的定义由周期任务删除，使其读取回到事件路径，而不是拒绝写入。
+* 用量桶在存储事件的同一次写入中维护，因此没有需要等待的延迟。在 PostgreSQL 上，每次写入在其事务中、在 advisory lock 下更新涉及的桶；替换事件会重建其桶；新定义在写入者已开始维护它的同时分块回填，就绪后才服务读取。在 ClickHouse 上，每次写入把其事件合并进涉及桶的当前行，版本加一（替换则从 `events_enriched FINAL` 重算），插入后检查冲突的写入，并重算冲突的桶；读取保留最高版本。在多副本表上，维护以 `insert_quorum` 插入、以 `select_sequential_consistency` 读取。周期性的 `RepairBuckets` 扫描是正确性所必需的，它重算最近存储事件的桶：修复在存储事件与更新桶之间失败的写入，以及被后台合并对检查隐藏的冲突。它每 10 分钟运行一次（`clock.repair_usage_buckets`），水位（写入者的时钟）取上次扫描开始时间之前一段余量（10 分钟）；每次完成的扫描把其开始时间记录在 ClickHouse 中（`bucket_repairs`，保留 30 天），使水位在重启与领导者切换后依然有效，首次扫描修复所有桶。一次写入的成本与其批次及其桶的行数成正比，而不随桶中已有事件数增长。
+* `BucketStats` 报告每个定义的行数；每小时运行的 `clock.report_usage_bucket_stats` 任务将其记入直方图（按存储区分，从不按组织），并在某个定义的单个订阅单个桶超过 10 000 行时记录警告。删除行数过多的定义（使其读取回到事件路径，而不是拒绝写入）将在计费管理定义之后自动化。
 
 ### 7.5 计量（libs/metering）
 `metering` 在事件的 `iter.Seq` 上，或在 `EventStore` 返回的聚合结果上实现聚合语义（包括按比例计算、跨周期结转的循环指标、舍入），使同一套规则在内存中用移植的 lago-api 用例测试，在生产中则在数据库中运行。
@@ -284,7 +284,7 @@ POST /v1/events, /v1/events:batch
 * `libs/store` 通过 River 的 `InsertTx` 在自己的 `pgx.Tx` 上插入任务（`store.WithJobInserter`），因此回滚后不会留下任务；没有设置插入器时，任务写入 `job_outbox` 表，由中继转发。River 的表位于它自己的 `river` 模式中，由 River 迁移（这些表保存所有组织的任务，不带行级安全）。唯一键按组织和任务类型限定。
 * **重试**：没有被该任务类型的任何规则归类的错误不会重试，因为任务可能已经在事务之外产生了效果（一次付款、一封邮件、一次服务商调用），再运行一次会重复这些效果。每种任务类型声明哪些错误可以安全重试，以及次数和退避方式（`ErrRetriable` 20 次、锁冲突与序号冲突、服务商限流）。带错误停止重试的任务在 River 中保持 `cancelled` 状态，保留下来供排查和手动重试，并在监控中计为失败。
 * 队列按工作负载分开（`billing`、`payments`、`webhooks`、`documents`、`integrations`、`exports`、`default`），各有自己的并发度，使一个部署可以按队列运行 worker。
-* 周期任务（对账、过期、催收、清理）是由 River 选举出的领导者插入的 River 周期任务；不需要单独的时钟进程。它们运行在独立的 `clock` 队列上，不分片、不使用令牌桶，由每个携带调度表的进程消费。周期任务只做扫描和分发：它把到期的工作作为相关组织的任务放入各工作负载队列，以本次触发的时间作为这些任务的"当前时间"，并带上唯一键，使积压期间的多次触发不会产生重复任务。因此工作负载队列的积压不会推迟调度，一个组织的失败也不会阻止其他组织。保留期清理没有按组织划分的工作，它们的分批删除直接在周期任务中执行。
+* 周期任务（对账、过期、催收、清理）是由 River 选举出的领导者插入的 River 周期任务；不需要单独的时钟进程。它们运行在独立的 `clock` 队列上，不分片、不使用令牌桶，由每个携带调度表的进程消费。周期任务只做扫描和分发：它把到期的工作作为相关组织的任务放入各工作负载队列，以本次触发的时间作为这些任务的"当前时间"，并带上唯一键，使积压期间的多次触发不会产生重复任务。因此工作负载队列的积压不会推迟调度，一个组织的失败也不会阻止其他组织。受行级安全约束的表的保留期清理同样按组织分发任务（webhook 投递）；其余清理的分批删除直接在周期任务中执行。除 lago-api 的调度表外，Tanvo 还有自己的周期任务：webhook 扫描，以及用量桶的修复与报告（§7.4、§11）。
 * **租户公平**：任务带有其所属组织；通过按组织哈希对队列分片，以及在入队时使用令牌桶，限制每个组织的并发，使一个租户无法使其他租户饥饿。令牌桶按进程计，因此有多个 API 副本时，一个组织的实际速率是各副本速率之和。
 * 逐事件的工作（富化、大量的预付计费项）在 Kafka 消费者中运行，而不在 River 中。
 * 基于 Redis 的队列是以后的选项，位于同一个窄接口之后（经由 outbox 的事务内入队、延迟、周期任务与唯一任务）；只有在测量表明 PostgreSQL 成为瓶颈时才会加入。
@@ -304,6 +304,7 @@ POST /v1/events, /v1/events:batch
 ## 11. Webhook（libs/webhooks）
 
 * **出站**：每个组织都有 webhook 端点；每个被订阅的领域事件都作为一个 River 任务投递，带有重试与指数退避，按 Standard Webhooks 规范签名，投递尝试会被记录且可以重放。
+* 投递保留 90 天：每日清理（`clock.clean_webhooks`）为每个有端点的组织入队一个清除任务，在该组织的行级安全范围内删除最后更新早于截止时间的投递，每个事务 1 000 条。每 5 分钟一次的扫描（`clock.sweep_webhooks`）为丢失了任务的到期投递重新入队。
 * **入站**：提供者 webhook 经过验证、存储，并由任务处理；失败会重试，并保留以供检查。
 * 除非明确允许，否则拒绝私有网络目标（SSRF 防护）。
 
@@ -363,13 +364,13 @@ POST /v1/events, /v1/events:batch
 
 1. 加载并校验配置（§13.5），一次报告全部问题，并安装遥测（§15）。
 2. 打开 PostgreSQL 连接池；设置了 `TANVO_CLICKHOUSE_URL` 时打开 ClickHouse 连接。
-3. 应用 schema（`TANVO_MIGRATE_ON_START`，自托管默认开启），或检查 schema 并在不符时拒绝启动（§5.2）。PostgreSQL 事件存储位于自己的 schema（`TANVO_EVENTSTORE_SCHEMA`，默认 `eventstore`），与 store 的原始事件日志（`public.events`）分开；事件存储以该 schema 限定其每个表、函数与锁键（`postgres.WithSchema`），在主连接池和摄取事务中都是如此，因此没有连接会改变 `search_path`。
+3. 应用 schema（`TANVO_MIGRATE_ON_START`，自托管默认开启），或检查 schema 并在不符时拒绝启动（§5.2）。PostgreSQL 事件存储位于自己的 schema（`TANVO_EVENTSTORE_SCHEMA`，默认 `eventstore`），与 store 的原始事件日志（`public.events`）分开；事件存储以该 schema 限定其每个表、函数与锁键（`postgres.WithSchema`），在主连接池和摄取事务中都是如此（`store.InPgxTx` 把 store 事务的 `pgx.Tx` 交给事件存储），因此没有连接会改变 `search_path`。
 4. 以 River 作为任务插入器构建 store（任务随业务事务一同提交），注册已装配服务的任务类型，并创建 River 客户端：`worker` 角色在配置的队列与 clock 队列上运行 worker，其他角色只插入。
 5. 按组织的摄取模式选择其事件存储：postgres 模式用 PostgreSQL，kafka 模式用 ClickHouse。
 6. 当有组织经 Kafka 摄取或运行 `consumer` 角色时创建 Kafka 生产者；`consumer` 角色还运行富化（`<prefix>-enrich`：raw → enriched）与 ClickHouse 写入（`<prefix>-write`：enriched → ClickHouse，用量信号）两个消费者组。
 7. 每个角色都提供 HTTP：`/healthz`（存活）、`/readyz`（PostgreSQL、事件存储连接池，以及使用时的 ClickHouse 与 Kafka；关闭期间返回不可用）、启用时的 `/metrics`；`api` 角色另提供 Connect handler 及其在 `/v1/` 下的 REST 转码（Vanguard），依次经过遥测、panic 恢复、API key 认证与按各 RPC 访问选项的授权、protovalidate 校验等拦截器。
 
-收到 SIGINT 或 SIGTERM 后，进程在 `TANVO_SHUTDOWN_TIMEOUT` 内关闭：就绪检查变为不可用，HTTP 服务器排空请求，worker 完成手头任务，消费者提交并停止，API 角色写入它收集的 API key 使用记录（平时每小时写入一次），最后关闭连接。
+收到 SIGINT 或 SIGTERM 后，进程在 `TANVO_SHUTDOWN_TIMEOUT` 内关闭：就绪检查变为不可用，HTTP 服务器排空请求，worker 完成手头任务，消费者提交并停止，API 角色记录它收集的 API key 使用记录（平时每分钟记录一次，存于 `api_key_uses`；每小时运行的 `clock.track_api_key_usage` 任务按组织把它们应用到密钥上），最后关闭连接。
 
 ### 13.5 配置
 配置项是 `TANVO_*` 环境变量，可叠加一个可选的 TOML 文件（`--config` 或 `TANVO_CONFIG`），其键为去掉前缀的小写变量名；环境变量优先。未知的 `TANVO_*` 变量与文件键会记录为警告。列表以逗号分隔。OpenTelemetry 由标准 `OTEL_*` 变量配置（§15）。
@@ -383,6 +384,7 @@ POST /v1/events, /v1/events:batch
 | `TANVO_HTTP_ADDR` | `:8080` | 监听地址（API、健康检查、指标） |
 | `TANVO_HTTP_READ_HEADER_TIMEOUT` | `10s` | 读取请求头的时限 |
 | `TANVO_HTTP_MAX_BODY_BYTES` | `8388608` | 请求体大小上限 |
+| `TANVO_TRUSTED_PROXIES` | 空 | 除回环与私有地址段外，额外受信任、可报告客户端地址的代理（地址或 CIDR 段，逗号分隔） |
 | `TANVO_SHUTDOWN_TIMEOUT` | `30s` | 优雅关闭的时限 |
 | `TANVO_METRICS_ENDPOINT` | `false` | 在 `/metrics` 以 Prometheus 格式提供指标 |
 | `TANVO_DATABASE_URL` | 必填 | PostgreSQL URL（`postgres://…`） |
@@ -442,7 +444,7 @@ Lago 高级许可证之下的功能（渐进式计费、钱包的高级规则、
   * 库只依赖 OTel API，经构造函数选项接收 `TracerProvider` 与 `MeterProvider`，默认为 no-op；只有 `apps/server` 引入 SDK 与导出器（由 depguard 强制）并安装全局 provider。
   * SDK 由标准 `OTEL_*` 环境变量配置（`OTEL_SERVICE_NAME`、`OTEL_RESOURCE_ATTRIBUTES`、`OTEL_EXPORTER_OTLP_*`、`OTEL_TRACES_SAMPLER` 等）。默认导出器是基于 gRPC 或 HTTP 的 OTLP；Prometheus `/metrics` 端点是可选的指标读取器，用于拉取式部署。
   * resource 带有 `service.name`（`tanvo`）、`service.version`、`service.instance.id`、`deployment.environment.name` 与进程角色（`tanvo.role`）；Kubernetes 属性来自环境或 Collector。
-  * 埋点使用维护中的埋点库并遵循语义约定：API 用 `otelhttp` 与一个遵循 RPC 语义约定的 Connect 拦截器，PostgreSQL 用 `otelpgx`，franz-go 用 `kotel`，River 用其 OpenTelemetry 中间件，ClickHouse 查询与 provider 调用外包 span。名称与单位遵循语义约定（`http.server.request.duration`，单位为秒）；Tanvo 自己的指标与属性使用 `tanvo.` 前缀（`tanvo.jobs.duration`、`tanvo.ingest.events`）。
+  * 埋点使用维护中的埋点库并遵循语义约定：API 用 `otelhttp` 与一个遵循 RPC 语义约定的 Connect 拦截器，PostgreSQL 用 `otelpgx`，franz-go 用 `kotel`，River 用其 OpenTelemetry 中间件，ClickHouse 语句（`clickhouse.WithTracerProvider`：`db.system.name`、`db.operation.name`、`db.collection.name` 与参数化的 `db.query.text`）与 provider 调用外包 span。名称与单位遵循语义约定（`http.server.request.duration`，单位为秒）；Tanvo 自己的指标与属性使用 `tanvo.` 前缀（`tanvo.jobs.duration`、`tanvo.ingest.events`）。
   * 上下文以 W3C Trace Context 与 Baggage 传播，异步边界也不例外：Kafka 记录头与任务元数据携带 `traceparent`。消费者或任务处理单个请求的工作时，其 span 是生产方 span 的子 span；处理批量、分发与周期任务时，则以 span link 关联。
   * 日志是以 JSON 写到 stdout 的 `slog` 记录，并桥接到 OTel logs（`otelslog`），带有 `trace_id` 与 `span_id`；组织、请求与任务 ID 作为属性。
   * 组织 ID 是 span 与日志的属性（`tanvo.organization.id`），但绝不作为指标属性：指标属性的取值有界（角色、队列、任务类型、状态、provider）。按租户的分析使用 trace 与 exemplar。

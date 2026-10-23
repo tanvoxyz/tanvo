@@ -409,6 +409,27 @@ func (s *Store) definitions(ctx context.Context, organizationID, code string, re
 	return out, err
 }
 
+// AllBucketDefinitions implements [eventstore.BucketDefiner].
+func (s *Store) AllBucketDefinitions(ctx context.Context) ([]metering.BucketDefinition, error) {
+	var (
+		out                 []metering.BucketDefinition
+		org, code, property string
+		dims                []string
+		fold                []byte
+	)
+	err := s.each(ctx, `SELECT organization_id, code, property, dimensions, fold FROM __schema__.usage_bucket_definitions
+		ORDER BY organization_id, code, definition_id`, nil,
+		[]any{&org, &code, &property, &dims, &fold}, func() error {
+			d := metering.BucketDefinition{OrganizationID: org, Code: code, Property: property, Dimensions: dims}
+			if err := json.Unmarshal(fold, &d.Values); err != nil {
+				return fmt.Errorf("fold of definition: %w", err)
+			}
+			out = append(out, d.Normalize())
+			return nil
+		})
+	return out, wrap("all bucket definitions", err)
+}
+
 // readyDefinitionSQL reports whether a definition is in place and ready.
 const readyDefinitionSQL = `SELECT EXISTS (SELECT 1 FROM __schema__.usage_bucket_definitions
 	WHERE organization_id = $1 AND code = $2 AND definition_id = $3 AND ready)`

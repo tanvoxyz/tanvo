@@ -21,6 +21,10 @@ type BucketDefiner interface {
 	// BucketDefinitions returns the definitions of an organization's
 	// billable metric code, ready or still backfilling.
 	BucketDefinitions(ctx context.Context, organizationID, code string) ([]metering.BucketDefinition, error)
+	// AllBucketDefinitions returns the definitions of every organization
+	// and code, ready or still backfilling, ordered by organization, code
+	// and ID: the operator's view, to watch their [BucketStats].
+	AllBucketDefinitions(ctx context.Context) ([]metering.BucketDefinition, error)
 	// BucketStats returns the size of the buckets of a definition, to watch
 	// their cardinality: a definition whose rows grow too many (pricing
 	// group or breakdown values without bounds) is better dropped, which

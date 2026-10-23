@@ -42,6 +42,7 @@ func TestLoadTypes(t *testing.T) {
 		"TANVO_KAFKA_BROKERS=a:9092,b:9092",
 		"TANVO_LOG_LEVEL=DEBUG",
 		"TANVO_INGEST_KAFKA_ORGANIZATIONS=0192f3a4-6b7c-7d8e-9f01-23456789abcd",
+		"TANVO_TRUSTED_PROXIES=203.0.113.7, 2001:db8::/32",
 	}})
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
@@ -67,11 +68,18 @@ func TestLoadTypes(t *testing.T) {
 	if !cfg.KafkaUsed() {
 		t.Error("KafkaUsed() got = false, want = true")
 	}
+	var proxies []string
+	for _, p := range cfg.TrustedProxies {
+		proxies = append(proxies, p.String())
+	}
+	if want := []string{"203.0.113.7/32", "2001:db8::/32"}; !slices.Equal(proxies, want) {
+		t.Errorf("TrustedProxies got = %v, want = %v", proxies, want)
+	}
 }
 
 func TestLoadFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "tanvo.toml")
-	body := "database_url = \"postgres://file/tanvo\"\nhttp_addr = \":9000\"\nworker_queues = [\"default\"]\nshutdown_timeout = \"5s\"\nbogus = 1\n"
+	body := "database_url = \"postgres://file/tanvo\"\nhttp_addr = \":9000\"\nworker_queues = [\"default\"]\ntrusted_proxies = [\"10.9.0.0/16\"]\nshutdown_timeout = \"5s\"\nbogus = 1\n"
 	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -87,6 +95,9 @@ func TestLoadFile(t *testing.T) {
 	}
 	if cfg.ShutdownTimeout != 5*time.Second || !slices.Equal(cfg.WorkerQueues, []string{"default"}) {
 		t.Errorf("file values got = %v %v, want = 5s [default]", cfg.ShutdownTimeout, cfg.WorkerQueues)
+	}
+	if len(cfg.TrustedProxies) != 1 || cfg.TrustedProxies[0].String() != "10.9.0.0/16" {
+		t.Errorf("TrustedProxies got = %v, want = [10.9.0.0/16]", cfg.TrustedProxies)
 	}
 	if len(warnings) != 1 || !strings.Contains(warnings[0], "bogus") {
 		t.Errorf("warnings got = %v, want = the unknown key bogus", warnings)
@@ -127,6 +138,7 @@ func TestLoadInvalid(t *testing.T) {
 		{"sasl without user", []string{dsn, "TANVO_KAFKA_SASL_MECHANISM=plain"}, "TANVO_KAFKA_SASL_USERNAME"},
 		{"smtp without from", []string{dsn, "TANVO_SMTP_HOST=smtp.example.com"}, "TANVO_MAIL_FROM"},
 		{"smtp security", []string{dsn, "TANVO_SMTP_HOST=smtp.example.com", "TANVO_MAIL_FROM=a@b.c", "TANVO_SMTP_SECURITY=ssl"}, "TANVO_SMTP_SECURITY"},
+		{"bad trusted proxy", []string{dsn, "TANVO_TRUSTED_PROXIES=lb.internal"}, "trusted_proxies"},
 		{"clickhouse scheme", []string{dsn, "TANVO_CLICKHOUSE_URL=http://ch"}, "TANVO_CLICKHOUSE_URL"},
 	}
 	for _, tt := range tests {

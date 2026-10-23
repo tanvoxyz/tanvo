@@ -3,6 +3,7 @@ package porttest
 import (
 	"context"
 	"encoding/json"
+	"slices"
 	"testing"
 	"time"
 
@@ -264,14 +265,40 @@ func testWebhook(t *testing.T, h Harness) {
 		})
 
 		e.tx(func(ctx context.Context, r port.Repos) error {
-			// Deliveries created before the cutoff go, in every organization.
-			_, err := r.WebhookDeliveries.PurgeBefore(ctx, now)
+			// The organizations with endpoints hold every delivery.
+			orgs, err := r.WebhookEndpoints.Organizations(ctx)
+			noErr(t, "Organizations()", err)
+			if !slices.Contains(orgs, org) || !slices.Contains(orgs, other) {
+				t.Errorf("Organizations() got = %v, want = %s and %s among them", orgs, org, other)
+			}
+			// Deliveries last updated before the cutoff go, an organization
+			// and a batch at a time: d1 and d4; d2 and d3, created before
+			// it but updated after, stay.
+			cutoff := at(30 * time.Second)
+			n, err := r.WebhookDeliveries.PurgeBefore(ctx, org, cutoff, 1)
 			noErr(t, "PurgeBefore()", err)
+			if n != 1 {
+				t.Errorf("PurgeBefore() got = %d, want = 1", n)
+			}
+			n, err = r.WebhookDeliveries.PurgeBefore(ctx, org, cutoff, 10)
+			noErr(t, "PurgeBefore() the rest", err)
+			if n != 1 {
+				t.Errorf("PurgeBefore() the rest got = %d, want = 1", n)
+			}
+			n, err = r.WebhookDeliveries.PurgeBefore(ctx, org, cutoff, 10)
+			noErr(t, "PurgeBefore() again", err)
+			if n != 0 {
+				t.Errorf("PurgeBefore() again got = %d, want = 0", n)
+			}
+			_, err = r.WebhookDeliveries.Get(ctx, other, dOther.ID)
+			noErr(t, "Get() of another organization before its purge", err)
+			_, err = r.WebhookDeliveries.PurgeBefore(ctx, other, cutoff, 100)
+			noErr(t, "PurgeBefore() of another organization", err)
 			for _, x := range []struct {
 				org  core.OrganizationID
 				id   core.WebhookID
 				gone bool
-			}{{org, d4.ID, true}, {other, dOther.ID, true}, {org, d1.ID, false}, {org, d2.ID, false}, {org, d3.ID, false}} {
+			}{{org, d4.ID, true}, {other, dOther.ID, true}, {org, d1.ID, true}, {org, d2.ID, false}, {org, d3.ID, false}} {
 				_, err := r.WebhookDeliveries.Get(ctx, x.org, x.id)
 				if x.gone {
 					wantErr(t, "Get() purged", err, core.ErrNotFound)
@@ -282,7 +309,7 @@ func testWebhook(t *testing.T, h Harness) {
 
 			// Deleting an endpoint deletes its deliveries.
 			noErr(t, "WebhookEndpoints.Delete()", r.WebhookEndpoints.Delete(ctx, org, ep1.ID))
-			_, err = r.WebhookDeliveries.Get(ctx, org, d1.ID)
+			_, err = r.WebhookDeliveries.Get(ctx, org, d2.ID)
 			wantErr(t, "Get() of a deleted endpoint", err, core.ErrNotFound)
 			return nil
 		})

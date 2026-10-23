@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -160,6 +161,24 @@ func (r webhookEndpointRepo) Delete(ctx context.Context, org core.OrganizationID
 	return updateErr("webhook_endpoint", id, n, err)
 }
 
+// Organizations is not organization-scoped: it feeds the retention purge's
+// dispatch.
+func (r webhookEndpointRepo) Organizations(ctx context.Context) ([]core.OrganizationID, error) {
+	q, err := r.t.queriesAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.ListWebhookEndpointOrganizations(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list webhook endpoint organizations: %w", mapErr(err))
+	}
+	out := make([]core.OrganizationID, len(rows))
+	for i, u := range rows {
+		out[i] = idOf[core.OrganizationID](u)
+	}
+	return out, nil
+}
+
 // webhookDeliveryRepo implements webhook.DeliveryRepository.
 type webhookDeliveryRepo struct{ t *txState }
 
@@ -284,14 +303,15 @@ func (r webhookDeliveryRepo) ListDue(ctx context.Context, now time.Time, limit i
 	return convAll(rows, webhookDeliveryOf)
 }
 
-// PurgeBefore is not organization-scoped: it enforces the retention of
-// every organization.
-func (r webhookDeliveryRepo) PurgeBefore(ctx context.Context, cutoff time.Time) (int, error) {
-	q, err := r.t.queriesAll(ctx)
+func (r webhookDeliveryRepo) PurgeBefore(ctx context.Context, org core.OrganizationID, cutoff time.Time, limit int) (int, error) {
+	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return 0, err
 	}
-	n, err := q.PurgeWebhookDeliveries(ctx, utc(cutoff))
+	if limit <= 0 || limit > math.MaxInt32 {
+		return 0, fmt.Errorf("purge webhook deliveries: limit %d: %w", limit, core.ErrInvalidValue)
+	}
+	n, err := q.PurgeWebhookDeliveries(ctx, db.PurgeWebhookDeliveriesParams{OrganizationID: org.UUID(), Cutoff: utc(cutoff), Lim: int32(limit)})
 	if err != nil {
 		return 0, fmt.Errorf("purge webhook deliveries: %w", mapErr(err))
 	}

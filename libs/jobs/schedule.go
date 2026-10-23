@@ -86,9 +86,9 @@ type Periodic struct {
 	// Timing is when it runs.
 	Timing Timing
 	// Source is the lago-api clockwork entry ("clock.rb
-	// schedule:activate_subscriptions").
+	// schedule:activate_subscriptions"); empty for Tanvo's own entries.
 	Source string
-	// Job is the lago-api job class file.
+	// Job is the lago-api job class file; empty for Tanvo's own entries.
 	Job string
 }
 
@@ -128,6 +128,20 @@ const (
 	KindCleanRecordDeletions             = "clock.clean_record_deletions"
 )
 
+// Periodic job kinds of Tanvo's own, without a lago-api clock entry.
+const (
+	// KindSweepWebhooks enqueues the deliveries whose attempt is due and
+	// has no job (a job lost with a failed enqueue or a restored backup).
+	KindSweepWebhooks = "clock.sweep_webhooks"
+	// KindRepairUsageBuckets repairs the ClickHouse usage buckets of the
+	// events stored since the previous run (eventstore/clickhouse
+	// Store.RepairRecentBuckets).
+	KindRepairUsageBuckets = "clock.repair_usage_buckets"
+	// KindReportUsageBucketStats reports the size of the usage buckets of
+	// every definition, to watch their cardinality.
+	KindReportUsageBucketStats = "clock.report_usage_bucket_stats"
+)
+
 // Schedule returns lago-api's clock schedule (clock.rb at 25b8b7b09) as
 // periodic jobs, in the order of clock.rb. Differences:
 //
@@ -147,6 +161,9 @@ const (
 //     terminate_wallets, free_trial_subscriptions_biller), where one
 //     failing record stops the run for the records after it; the others
 //     already dispatch per record or organization.
+//
+// Tanvo's own entries follow, without a Source: the webhook sweep and the
+// event store's bucket maintenance, which lago-api does not have.
 func Schedule() []Periodic {
 	const rb = "clock.rb schedule:"
 	const dir = "app/jobs/clock/"
@@ -183,5 +200,9 @@ func Schedule() []Periodic {
 		{KindProcessDunningCampaigns, port.QueuePayments, HourlyAt(45), rb + "process_dunning_campaigns", dir + "process_dunning_campaigns_job.rb"},
 		{KindRetryFailedInvoices, port.QueueBilling, Every(15 * time.Minute), rb + "retry_failed_invoices", dir + "retry_failed_invoices_job.rb"},
 		{KindRetryInboundWebhooks, port.QueuePayments, Every(15 * time.Minute), rb + "retry_inbound_webhooks", dir + "inbound_webhooks_retry_job.rb"},
+
+		{KindSweepWebhooks, port.QueueWebhooks, Every(5 * time.Minute), "", ""},
+		{KindRepairUsageBuckets, port.QueueDefault, Every(10 * time.Minute), "", ""},
+		{KindReportUsageBucketStats, port.QueueDefault, HourlyAt(0), "", ""},
 	}
 }

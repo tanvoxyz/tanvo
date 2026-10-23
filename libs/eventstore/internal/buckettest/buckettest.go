@@ -339,6 +339,26 @@ func Run(t *testing.T, open Open, peers ...Peers) {
 			t.Errorf("sum after redefinition got = %s %v, want = 2 true", tot.Sum, ok)
 		}
 	})
+	t.Run("all definitions", func(t *testing.T) {
+		s := open(t)
+		other := metering.BucketDefinition{OrganizationID: "org_a", Code: "zeta", Property: "value"}
+		define(t, s, valueDef, other, countDef)
+		if err := s.DropBuckets(t.Context(), countDef); err != nil {
+			t.Fatal(err)
+		}
+		defs, err := s.AllBucketDefinitions(t.Context())
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got []string
+		for _, d := range defs {
+			got = append(got, d.OrganizationID+"/"+d.Code+"/"+d.ID())
+		}
+		want := []string{"org_a/zeta/" + other.Normalize().ID(), org + "/" + code + "/" + valueDef.Normalize().ID()}
+		if !slices.Equal(got, want) {
+			t.Errorf("all definitions got = %v, want = %v", got, want)
+		}
+	})
 	t.Run("codes without definitions", func(t *testing.T) {
 		s := open(t)
 		define(t, s, valueDef)

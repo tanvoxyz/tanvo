@@ -106,6 +106,19 @@ func (r webhookEndpointRepo) Delete(_ context.Context, org core.OrganizationID, 
 	return nil
 }
 
+func (r webhookEndpointRepo) Organizations(context.Context) ([]core.OrganizationID, error) {
+	seen := map[core.OrganizationID]bool{}
+	var out []core.OrganizationID
+	for _, e := range r.d.endpoints.find(func(*webhook.Endpoint) bool { return true }) {
+		if !seen[e.OrganizationID] {
+			seen[e.OrganizationID] = true
+			out = append(out, e.OrganizationID)
+		}
+	}
+	slices.SortFunc(out, core.OrganizationID.Compare)
+	return out, nil
+}
+
 // webhookDeliveryRepo implements webhook.DeliveryRepository.
 type webhookDeliveryRepo struct{ d *webhookData }
 
@@ -152,8 +165,16 @@ func (r webhookDeliveryRepo) ListDue(_ context.Context, now time.Time, limit int
 	return rows, nil
 }
 
-func (r webhookDeliveryRepo) PurgeBefore(_ context.Context, cutoff time.Time) (int, error) {
-	return r.d.deliveries.deleteWhere(func(x *webhook.Delivery) bool { return x.CreatedAt.Before(cutoff) }), nil
+func (r webhookDeliveryRepo) PurgeBefore(_ context.Context, org core.OrganizationID, cutoff time.Time, limit int) (int, error) {
+	n := 0
+	for _, x := range r.d.deliveries.find(func(x *webhook.Delivery) bool { return x.OrganizationID == org && x.UpdatedAt.Before(cutoff) }) {
+		if limit > 0 && n >= limit {
+			break
+		}
+		r.d.deliveries.del(x.ID)
+		n++
+	}
+	return n, nil
 }
 
 // domainEventRepo implements webhook.EventRepository.

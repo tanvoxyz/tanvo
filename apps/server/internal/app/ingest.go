@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/twmb/franz-go/pkg/kgo"
 
 	"github.com/tanvoxyz/tanvo/apps/server/internal/config"
@@ -15,6 +16,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/eventstore/postgres"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
 	"github.com/tanvoxyz/tanvo/libs/ingest/kafka"
+	"github.com/tanvoxyz/tanvo/libs/store"
 )
 
 // ingestModes returns the ingestion mode of each organization
@@ -52,12 +54,12 @@ func newCatalog(tx port.Transactor) *ingest.Cache {
 // kafka mode produces to the raw topic with producer (nil when no
 // organization ingests through Kafka). In-advance billing and usage
 // signals are not wired yet (libs/billing).
-func newIngestService(cfg config.Config, tx port.Transactor, modeOf func(core.OrganizationID) ingest.Mode, producer *kgo.Client) (*ingest.Service, error) {
+func newIngestService(cfg config.Config, st *store.Store, modeOf func(core.OrganizationID) ingest.Mode, producer *kgo.Client) (*ingest.Service, error) {
 	ic := ingest.Config{
-		Catalog:  newCatalog(tx),
+		Catalog:  newCatalog(st),
 		Mode:     ingest.Mode(cfg.IngestMode),
 		ModeFor:  modeOf,
-		Postgres: txStore{tx: tx, schema: cfg.EventStoreSchema},
+		Postgres: txStore{store: st, schema: cfg.EventStoreSchema},
 	}
 	if producer != nil {
 		ic.Producer = kafka.RawProducer{Client: producer, Topic: topics(cfg).Raw}
@@ -70,9 +72,10 @@ func newIngestService(cfg config.Config, tx port.Transactor, modeOf func(core.Or
 }
 
 // txStore is the storage of postgres mode: the store's raw event log and
-// the PostgreSQL event store, written in one store transaction.
+// the PostgreSQL event store over the same pgx transaction, so that both
+// commit together.
 type txStore struct {
-	tx     port.Transactor
+	store  *store.Store
 	schema string
 }
 
@@ -80,11 +83,7 @@ var _ ingest.TxStore = txStore{}
 
 // InTx implements [ingest.TxStore].
 func (s txStore) InTx(ctx context.Context, fn func(ctx context.Context, log event.Log, enriched ingest.EventWriter) error) error {
-	return s.tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
-		tx, err := captureTx(ctx, r)
-		if err != nil {
-			return err
-		}
+	return s.store.InPgxTx(ctx, func(ctx context.Context, r port.Repos, tx pgx.Tx) error {
 		return fn(ctx, r.Events, postgres.New(tx, postgres.WithSchema(s.schema)))
 	})
 }

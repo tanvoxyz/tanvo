@@ -82,6 +82,14 @@ var lagoClock = map[string]string{
 	"retry_inbound_webhooks":                     "every 15m0s",
 }
 
+// tanvoClock is the schedule of Tanvo's own entries, without a lago-api
+// clock entry: kind → timing.
+var tanvoClock = map[string]string{
+	jobs.KindSweepWebhooks:          "every 5m0s",
+	jobs.KindRepairUsageBuckets:     "every 10m0s",
+	jobs.KindReportUsageBucketStats: "hourly at :00",
+}
+
 func TestScheduleMatchesLagoClock(t *testing.T) {
 	t.Parallel()
 	kinds := map[string]bool{}
@@ -93,6 +101,12 @@ func TestScheduleMatchesLagoClock(t *testing.T) {
 		kinds[p.Kind] = true
 		if !strings.HasPrefix(p.Kind, "clock.") || !p.Queue.Valid() {
 			t.Errorf("%s: kind or queue %q invalid", p.Kind, p.Queue)
+		}
+		if want, ok := tanvoClock[p.Kind]; ok {
+			if p.Source != "" || p.Job != "" || p.Timing.String() != want {
+				t.Errorf("%s: source, job, timing got = %q, %q, %s, want = Tanvo's own, %s", p.Kind, p.Source, p.Job, p.Timing, want)
+			}
+			continue
 		}
 		name, ok := strings.CutPrefix(p.Source, "clock.rb schedule:")
 		if !ok {
@@ -106,6 +120,11 @@ func TestScheduleMatchesLagoClock(t *testing.T) {
 	for name := range lagoClock {
 		if !names[name] {
 			t.Errorf("lago clock entry %s is not scheduled", name)
+		}
+	}
+	for kind := range tanvoClock {
+		if !kinds[kind] {
+			t.Errorf("Tanvo clock entry %s is not scheduled", kind)
 		}
 	}
 }
@@ -124,6 +143,9 @@ func TestScheduleSources(t *testing.T) {
 		t.Skipf("no lago-api checkout: %v", err)
 	}
 	for _, p := range jobs.Schedule() {
+		if p.Source == "" {
+			continue
+		}
 		name := strings.TrimPrefix(p.Source, "clock.rb ")
 		if !strings.Contains(string(clock), `"`+name+`"`) {
 			t.Errorf("%s: %s not in clock.rb", p.Kind, name)

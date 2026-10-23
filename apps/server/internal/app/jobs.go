@@ -18,8 +18,10 @@ import (
 
 	"github.com/tanvoxyz/tanvo/apps/server/internal/config"
 	"github.com/tanvoxyz/tanvo/apps/server/internal/logctx"
+	"github.com/tanvoxyz/tanvo/libs/auth"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
+	"github.com/tanvoxyz/tanvo/libs/eventstore/clickhouse"
 	"github.com/tanvoxyz/tanvo/libs/jobs"
 	"github.com/tanvoxyz/tanvo/libs/webhooks"
 )
@@ -27,19 +29,37 @@ import (
 // jobHandlers are the services whose jobs the worker role runs.
 type jobHandlers struct {
 	webhooks *webhooks.Dispatcher
+	tx       port.Transactor
+	stores   *EventStores
+	mp       metric.MeterProvider
 }
+
+// sweepLimit is the number of due webhook deliveries a sweep enqueues.
+const sweepLimit = 1000
 
 // newRegistry registers the job kinds this server can run. Only kinds
 // whose service is wired are registered; the periodic schedule of
 // libs/jobs leaves out the clock kinds without a handler.
 func newRegistry(h jobHandlers) (*jobs.Registry, error) {
 	reg := jobs.NewRegistry()
+	for _, register := range []func(*jobs.Registry) error{h.registerWebhooks, h.registerAPIKeyUsage, h.registerUsageBuckets} {
+		if err := register(reg); err != nil {
+			return nil, err
+		}
+	}
+	return reg, nil
+}
+
+// registerWebhooks registers the outgoing webhook kinds: the fan-out and
+// the attempts, the retention clock job and its per-organization purges,
+// and the sweep of due deliveries without a job.
+func (h jobHandlers) registerWebhooks(reg *jobs.Registry) error {
 	d := h.webhooks
 	if err := jobs.Register(reg, jobs.Kind{Name: webhooks.KindFanOut},
 		jobs.HandlerFunc[webhooks.EventArgs](func(ctx context.Context, j *jobs.Job[webhooks.EventArgs]) error {
 			return d.FanOut(ctx, j.OrganizationID, j.Args)
 		})); err != nil {
-		return nil, err
+		return err
 	}
 	// A delivery attempt that fails is recorded and its next attempt is
 	// enqueued by the dispatcher, with the backoff of the delivery; the
@@ -48,23 +68,83 @@ func newRegistry(h jobHandlers) (*jobs.Registry, error) {
 		jobs.HandlerFunc[webhooks.DeliveryArgs](func(ctx context.Context, j *jobs.Job[webhooks.DeliveryArgs]) error {
 			return d.Deliver(ctx, j.OrganizationID, j.Args)
 		})); err != nil {
-		return nil, err
+		return err
 	}
-	// Webhook retention is a bounded maintenance delete with no
-	// per-organization work, so it runs in the clock handler (see
-	// jobs.Periodic).
+	// Retention runs per organization, under its row-level security
+	// scope: the clock job dispatches the purges.
 	if err := jobs.Register(reg, jobs.Kind{Name: jobs.KindCleanWebhooks},
-		jobs.HandlerFunc[struct{}](func(ctx context.Context, _ *jobs.Job[struct{}]) error {
-			n, err := d.Purge(ctx)
+		jobs.HandlerFunc[struct{}](func(ctx context.Context, j *jobs.Job[struct{}]) error {
+			n, err := d.DispatchPurges(ctx, j.ScheduledAt)
+			if err != nil {
+				return err
+			}
+			slog.InfoContext(ctx, "webhooks: dispatched purges", "organizations", n)
+			return nil
+		})); err != nil {
+		return err
+	}
+	if err := jobs.Register(reg, jobs.Kind{Name: webhooks.KindPurge},
+		jobs.HandlerFunc[webhooks.PurgeArgs](func(ctx context.Context, j *jobs.Job[webhooks.PurgeArgs]) error {
+			n, err := d.Purge(ctx, j.OrganizationID, j.Args)
 			if err != nil {
 				return err
 			}
 			slog.InfoContext(ctx, "webhooks: purged deliveries", "count", n)
 			return nil
 		})); err != nil {
-		return nil, err
+		return err
 	}
-	return reg, nil
+	return jobs.Register(reg, jobs.Kind{Name: jobs.KindSweepWebhooks},
+		jobs.HandlerFunc[struct{}](func(ctx context.Context, _ *jobs.Job[struct{}]) error {
+			n, err := d.Sweep(ctx, sweepLimit)
+			if err != nil {
+				return err
+			}
+			if n > 0 {
+				slog.WarnContext(ctx, "webhooks: enqueued due deliveries without a job", "count", n)
+			}
+			return nil
+		}))
+}
+
+// registerAPIKeyUsage registers the API key usage clock job and its
+// per-organization jobs, which move the uses the API role recorded to the
+// keys' last_used_at.
+func (h jobHandlers) registerAPIKeyUsage(reg *jobs.Registry) error {
+	if err := jobs.Register(reg, jobs.Kind{Name: jobs.KindTrackAPIKeyUsage},
+		jobs.HandlerFunc[struct{}](func(ctx context.Context, _ *jobs.Job[struct{}]) error {
+			_, err := auth.DispatchUsage(ctx, h.tx)
+			return err
+		})); err != nil {
+		return err
+	}
+	return jobs.Register(reg, jobs.Kind{Name: auth.JobKindApplyAPIKeyUsage},
+		jobs.HandlerFunc[struct{}](func(ctx context.Context, j *jobs.Job[struct{}]) error {
+			_, err := auth.ApplyUsage(ctx, h.tx, j.OrganizationID)
+			return err
+		}))
+}
+
+// registerUsageBuckets registers the event stores' bucket maintenance:
+// the ClickHouse repair, when ClickHouse is configured, and the bucket
+// size report.
+func (h jobHandlers) registerUsageBuckets(reg *jobs.Registry) error {
+	if ch := h.stores.ClickHouse(); ch != nil {
+		if err := jobs.Register(reg, jobs.Kind{Name: jobs.KindRepairUsageBuckets},
+			jobs.HandlerFunc[struct{}](func(ctx context.Context, _ *jobs.Job[struct{}]) error {
+				return ch.RepairRecentBuckets(ctx, clickhouse.RepairMargin)
+			})); err != nil {
+			return err
+		}
+	}
+	report, err := newBucketStatsReport(h.stores, h.mp)
+	if err != nil {
+		return err
+	}
+	return jobs.Register(reg, jobs.Kind{Name: jobs.KindReportUsageBucketStats},
+		jobs.HandlerFunc[struct{}](func(ctx context.Context, _ *jobs.Job[struct{}]) error {
+			return report.run(ctx)
+		}))
 }
 
 // newJobs creates the River client of the roles: a working client on
@@ -114,20 +194,11 @@ func jobContext() rivertype.Middleware {
 	})
 }
 
-// txCaptureKey marks a context whose store transaction is captured by the
-// job inserter (see [captureTx]).
-type txCaptureKey struct{}
-
 // jobInserter is the store's JobInserter: it inserts the jobs with the
 // River client in the store's transaction, so that they commit with it.
-// An empty enqueue on a context made by [captureTx] hands the
-// transaction to the caller instead.
 func jobInserter(client func() *jobs.Client) func(ctx context.Context, tx pgx.Tx, js []port.Job) error {
 	return func(ctx context.Context, tx pgx.Tx, js []port.Job) error {
 		if len(js) == 0 {
-			if p, ok := ctx.Value(txCaptureKey{}).(*pgx.Tx); ok {
-				*p = tx
-			}
 			return nil
 		}
 		c := client()
@@ -136,18 +207,4 @@ func jobInserter(client func() *jobs.Client) func(ctx context.Context, tx pgx.Tx
 		}
 		return c.InsertTx(ctx, tx, js)
 	}
-}
-
-// captureTx returns the pgx transaction of the store transaction r
-// belongs to. The store does not expose it; an empty enqueue through the
-// store's job inserter reveals it.
-func captureTx(ctx context.Context, r port.Repos) (pgx.Tx, error) {
-	var tx pgx.Tx
-	if err := r.Jobs.Enqueue(context.WithValue(ctx, txCaptureKey{}, &tx)); err != nil {
-		return nil, err
-	}
-	if tx == nil {
-		return nil, fmt.Errorf("store: transaction not available: %w", core.ErrInvalidValue)
-	}
-	return tx, nil
 }

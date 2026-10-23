@@ -3,9 +3,11 @@ package store
 import (
 	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"strings"
 
 	"ariga.io/atlas/sql/migrate"
 	"github.com/jackc/pgx/v5"
@@ -93,6 +95,58 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 		}
 	}
 	return nil
+}
+
+// CheckSchema verifies, without changing anything, that the database has
+// applied every embedded migration, unmodified: it compares the versions
+// and checksums recorded in tanvo_schema_revisions with the migrations of
+// this binary. Versions the binary does not know are accepted, as a
+// database migrated by a newer release serves the previous one during a
+// rolling deploy (migrations are expand-only within a release); [Migrate]
+// refuses them.
+func CheckSchema(ctx context.Context, pool *pgxpool.Pool) error {
+	files, sum, err := migrations()
+	if err != nil {
+		return err
+	}
+	conn, err := pool.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("store: check schema: acquire: %w", err)
+	}
+	defer conn.Release()
+	var exists bool
+	if err := conn.QueryRow(ctx, "SELECT to_regclass($1) IS NOT NULL", "public."+revisionsTable).Scan(&exists); err != nil {
+		return fmt.Errorf("store: check schema: %w", err)
+	}
+	if !exists {
+		return errors.New("store: the database is not migrated (run tanvo migrate)")
+	}
+	applied, err := appliedRevisions(ctx, conn.Conn())
+	if err != nil {
+		return err
+	}
+	var missing, modified []string
+	for _, f := range files {
+		checksum, err := sum.SumByName(f.Name())
+		if err != nil {
+			return fmt.Errorf("store: check schema: checksum of %s: %w", f.Name(), err)
+		}
+		prev, ok := applied[f.Version()]
+		switch {
+		case !ok:
+			missing = append(missing, f.Version())
+		case prev != checksum:
+			modified = append(modified, f.Version())
+		}
+	}
+	var errs []error
+	if len(missing) > 0 {
+		errs = append(errs, fmt.Errorf("store: migrations %s are not applied (run tanvo migrate)", strings.Join(missing, ", ")))
+	}
+	if len(modified) > 0 {
+		errs = append(errs, fmt.Errorf("store: applied migrations %s differ from this version's", strings.Join(modified, ", ")))
+	}
+	return errors.Join(errs...)
 }
 
 // migrations returns the embedded migration files in version order and
