@@ -130,9 +130,11 @@ func (r *ActivationRule) Rejected() bool {
 	}
 }
 
-// Expirable reports whether the rule is pending past its expiry at now.
+// Expirable reports whether the rule is pending and its expiry is at or
+// before now (lago Subscription::ActivationRule.expirable,
+// app/models/subscription/activation_rule.rb:35).
 func (r *ActivationRule) Expirable(now time.Time) bool {
-	return r.Status == ActivationRuleStatusPending && r.ExpiresAt != nil && r.ExpiresAt.Before(now)
+	return r.Status == ActivationRuleStatusPending && r.ExpiresAt != nil && !r.ExpiresAt.After(now)
 }
 
 // ActivationFacts are the facts about an activation that decide whether a

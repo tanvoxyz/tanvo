@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/creditnotes"
 	"github.com/tanvoxyz/tanvo/libs/billing/deduct"
@@ -66,6 +67,23 @@ type settleOptions struct {
 	plans map[core.SubscriptionID]*catalog.Plan
 	// resolver resolves the fees' taxes; nil builds one.
 	resolver *kernel.TaxResolver
+	// previewCreditNote is the termination credit note a preview credits
+	// before the stored credit notes (preview_options.go).
+	previewCreditNote *previewNote
+	// vies holds the invoice while its customer's VIES check is in
+	// progress ([Service.holdForVIES]), at the call sites of lago
+	// Invoices::ComputeTaxesAndTotalsService.
+	vies bool
+	// keep keeps the deductions before taxes already applied to the
+	// invoice (progressive billing credits and coupons, with the fees'
+	// coupon shares) and recomputes only its taxes and totals (lago
+	// Invoices::ComputeAmountsFromFees).
+	keep bool
+	// draftTaxes asks the provider for the taxes of a draft, which it does
+	// not record, for an invoice that stays open (lago
+	// Integrations::Aggregator::Taxes::Invoices::CreateDraftService for a
+	// gated invoice).
+	draftTaxes bool
 }
 
 // settled is the outcome of [Service.settle].
@@ -78,9 +96,14 @@ type settled struct {
 	taxFailure error
 	// pending is true while the provider computes the taxes.
 	pending bool
+	// vies is true when the taxes are pending because the customer's VIES
+	// check is in progress (pending is then true too).
+	vies bool
 	// gated is true when a pending payment rule of a billed subscription
 	// holds the invoice open (domain §9.3).
 	gated bool
+	// credits are the credits computed by a preview.
+	credits []*invoice.Credit
 }
 
 // settle applies the deductions and the taxes of inv, whose fees are fees,
@@ -90,7 +113,11 @@ type settled struct {
 func (s *Service) settle(ctx context.Context, r port.Repos, env *kernel.CustomerEnv, inv *invoice.Invoice, fees []*invoice.Fee, o settleOptions) (settled, error) {
 	dopts := deduct.Options{Draft: o.draft, Preview: o.preview, Plans: o.plans}
 	var before deduct.BeforeTaxes
-	if !o.aggregate {
+	switch {
+	case o.aggregate:
+	case o.keep:
+		before = deduct.BeforeTaxes{ProgressiveBillingCredit: inv.ProgressiveBillingCreditAmount, Coupons: inv.CouponsAmount}
+	default:
 		var err error
 		if before, err = s.deduct.ApplyBeforeTaxes(ctx, r, env, inv, fees, dopts); err != nil {
 			return settled{}, err
@@ -102,7 +129,11 @@ func (s *Service) settle(ctx context.Context, r port.Repos, env *kernel.Customer
 		resolver = kernel.NewTaxResolver(r, env)
 	}
 	ded := invoice.Deductions{ProgressiveBillingCredit: before.ProgressiveBillingCredit, Coupons: before.Coupons}
-	res, err := resolver.Compute(ctx, s.d, kernel.TaxInput{Invoice: inv, Fees: fees, Deductions: ded, AggregateFeeTaxes: o.aggregate, Draft: o.draft, Inline: o.preview})
+	var res kernel.TaxOutcome
+	err := s.holdForVIES(ctx, r, env, resolver, inv, fees, o)
+	if err == nil {
+		res, err = resolver.Compute(ctx, s.d, kernel.TaxInput{Invoice: inv, Fees: fees, Deductions: ded, AggregateFeeTaxes: o.aggregate, Draft: o.draft || o.draftTaxes, Inline: o.preview})
+	}
 	switch {
 	case err == nil:
 		inv.ApplyTotals(res.Totals)
@@ -111,6 +142,7 @@ func (s *Service) settle(ctx context.Context, r port.Repos, env *kernel.Customer
 		out.appliedTaxes = res.AppliedTaxes
 	case errors.Is(err, kernel.ErrTaxesPending):
 		out.pending = true
+		out.vies = errors.Is(err, errVIESPending)
 		inv.TaxStatus = invoice.TaxStatusPending
 		applyUntaxed(inv, fees, ded)
 	case errors.Is(err, kernel.ErrTaxProvider):
@@ -123,18 +155,35 @@ func (s *Service) settle(ctx context.Context, r port.Repos, env *kernel.Customer
 	if out.appliedTaxes == nil {
 		out.appliedTaxes = []*invoice.AppliedTax{}
 	}
-	if inv.TaxStatus == invoice.TaxStatusSucceeded && !o.aggregate {
-		// The progressive credit notes exist before the credit notes are
-		// applied, so the invoice consumes them (lago
-		// Credits::ProgressiveBillingService before CreditNoteService).
-		if !o.draft && !o.preview {
-			if err := s.creditProgressive(ctx, r, inv.OrganizationID, before.ProgressiveCreditNotes); err != nil {
-				return settled{}, err
-			}
-		}
-		if _, err := s.deduct.ApplyAfterTaxes(ctx, r, env, inv, fees, out.appliedTaxes, dopts); err != nil {
+	if !o.aggregate && !o.draft && !o.preview {
+		// The progressive credit notes are issued with the progressive
+		// billing credits, whether the taxes are computed or wait (for the
+		// provider or a VIES check), since a held invoice keeps its
+		// deductions before taxes (lago Credits::ProgressiveBillingService
+		// before Invoices::ComputeTaxesAndTotalsService,
+		// app/services/invoices/calculate_fees_service.rb:53-56). They
+		// exist before the credit notes are applied, so the invoice
+		// consumes them (lago CreditNoteService after them).
+		if err := s.creditProgressive(ctx, r, inv.OrganizationID, before.ProgressiveCreditNotes); err != nil {
 			return settled{}, err
 		}
+	}
+	if inv.TaxStatus == invoice.TaxStatusSucceeded && !o.aggregate {
+		if o.preview && o.previewCreditNote != nil {
+			if c := o.previewCreditNote.credit(s.d, inv); c != nil {
+				out.credits = append(out.credits, c)
+			}
+		}
+		after, err := s.deduct.ApplyAfterTaxes(ctx, r, env, inv, fees, out.appliedTaxes, dopts)
+		if err != nil {
+			return settled{}, err
+		}
+		if o.preview {
+			out.credits = append(out.credits, after.Credits...)
+		}
+	}
+	if o.preview {
+		out.credits = append(slices.Clone(before.Credits), out.credits...)
 	}
 	if inv.TotalAmount == 0 {
 		inv.PaymentStatus = core.PaymentStatusSucceeded
@@ -176,9 +225,22 @@ func applyUntaxed(inv *invoice.Invoice, fees []*invoice.Fee, ded invoice.Deducti
 	inv.TaxesRate = money.Zero
 }
 
-// saveError stores an error detail of inv with code.
+// saveError stores an error detail of inv with code. Its details hold the
+// provider's error code under code and, for a tax_error, its message,
+// when it has one, under "tax_error_message" (lago
+// app/services/invoices/provider_taxes/pull_taxes_and_apply_service.rb:164-178,
+// void_service.rb:67-79); a failure that is not a [kernel.TaxProviderError] has the code
+// "internal_error" and its text as the message.
 func (s *Service) saveError(ctx context.Context, r port.Repos, inv *invoice.Invoice, code invoice.ErrorCode, cause error) error {
-	details, err := json.Marshal(map[string]string{"error": cause.Error()})
+	pe := &kernel.TaxProviderError{Code: "internal_error", Message: cause.Error()}
+	if p := (*kernel.TaxProviderError)(nil); errors.As(cause, &p) {
+		pe = p
+	}
+	payload := map[string]string{string(code): pe.Code}
+	if code == invoice.ErrorCodeTaxError && pe.Message != "" {
+		payload["tax_error_message"] = pe.Message
+	}
+	details, err := json.Marshal(payload)
 	if err != nil {
 		return fmt.Errorf("encode error detail: %w", err)
 	}

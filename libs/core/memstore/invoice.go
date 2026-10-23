@@ -8,7 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 )
@@ -22,6 +25,7 @@ type invoiceData struct {
 	adjustedFees   *table[core.AdjustedFeeID, invoice.AdjustedFee]
 	settlements    *table[core.InvoiceSettlementID, invoice.Settlement]
 	customSections *table[core.InvoiceCustomSectionID, invoice.CustomSection]
+	sectionCopies  *table[core.AppliedInvoiceCustomSectionID, invoice.AppliedCustomSection]
 	errorDetails   *table[core.ErrorDetailID, invoice.ErrorDetail]
 	credits        *table[core.InvoiceCreditID, invoice.Credit]
 }
@@ -51,6 +55,13 @@ func newInvoiceData() *invoiceData {
 		customSections: newTable[core.InvoiceCustomSectionID](func(s invoice.CustomSection) invoice.CustomSection {
 			s.DisplayName = invoiceClonePtr(s.DisplayName)
 			s.Details = invoiceClonePtr(s.Details)
+			s.Description = invoiceClonePtr(s.Description)
+			s.DeletedAt = invoiceClonePtr(s.DeletedAt)
+			return s
+		}),
+		sectionCopies: newTable[core.AppliedInvoiceCustomSectionID](func(s invoice.AppliedCustomSection) invoice.AppliedCustomSection {
+			s.DisplayName = invoiceClonePtr(s.DisplayName)
+			s.Details = invoiceClonePtr(s.Details)
 			return s
 		}),
 		errorDetails: newTable[core.ErrorDetailID](func(e invoice.ErrorDetail) invoice.ErrorDetail {
@@ -70,6 +81,7 @@ func (d *invoiceData) snapshot() *invoiceData {
 		adjustedFees:   d.adjustedFees.snapshot(),
 		settlements:    d.settlements.snapshot(),
 		customSections: d.customSections.snapshot(),
+		sectionCopies:  d.sectionCopies.snapshot(),
 		errorDetails:   d.errorDetails.snapshot(),
 		credits:        d.credits.snapshot(),
 	}
@@ -155,6 +167,14 @@ func (r invoiceRepo) GetByNumber(_ context.Context, org core.OrganizationID, num
 	inv, ok := r.d.invoices.first(func(x *invoice.Invoice) bool { return x.OrganizationID == org && x.Number == number })
 	if !ok {
 		return nil, notFound("invoice", stringer(number))
+	}
+	return inv, nil
+}
+
+func (r invoiceRepo) GetRegenerated(_ context.Context, org core.OrganizationID, voided core.InvoiceID) (*invoice.Invoice, error) {
+	inv, ok := r.d.invoices.first(func(x *invoice.Invoice) bool { return x.OrganizationID == org && x.VoidedInvoiceID == voided })
+	if !ok {
+		return nil, notFound("invoice", voided)
 	}
 	return inv, nil
 }
@@ -311,6 +331,30 @@ func (r invoiceRepo) ListRefreshRequested(_ context.Context, org core.Organizati
 	}), nil
 }
 
+func (r invoiceRepo) RequestRefreshByMetric(_ context.Context, org core.OrganizationID, metric core.BillableMetricID) (int, error) {
+	plans := map[core.PlanID]bool{}
+	for _, c := range r.st.catalog.charges.find(func(c *catalog.Charge) bool {
+		return c.OrganizationID == org && c.BillableMetricID == metric
+	}) {
+		plans[c.PlanID] = true
+	}
+	billed := map[core.InvoiceID]bool{}
+	for _, is := range r.d.subscriptions.find(func(is *invoice.Subscription) bool { return is.OrganizationID == org }) {
+		if s, ok := r.st.subscription.subscriptions.get(is.SubscriptionID); ok && plans[s.PlanID] {
+			billed[is.InvoiceID] = true
+		}
+	}
+	n := 0
+	for _, x := range r.d.invoices.find(func(x *invoice.Invoice) bool {
+		return x.OrganizationID == org && x.Status == invoice.StatusDraft && billed[x.ID]
+	}) {
+		x.RefreshRequested = true
+		r.d.invoices.put(x.ID, *x)
+		n++
+	}
+	return n, nil
+}
+
 func (r invoiceRepo) ListOverdueCandidates(_ context.Context, org core.OrganizationID, date core.Date) ([]*invoice.Invoice, error) {
 	return r.d.invoices.find(func(x *invoice.Invoice) bool { return x.OrganizationID == org && x.OverdueCandidate(date) }), nil
 }
@@ -403,6 +447,14 @@ func (r invoiceSubscriptionRepo) DeleteByInvoice(_ context.Context, org core.Org
 	return nil
 }
 
+func (r invoiceSubscriptionRepo) MarkRegenerated(_ context.Context, org core.OrganizationID, inv, regenerated core.InvoiceID) error {
+	for _, x := range r.d.subscriptions.find(func(x *invoice.Subscription) bool { return x.OrganizationID == org && x.InvoiceID == inv }) {
+		x.RegeneratedInvoiceID = regenerated
+		r.d.subscriptions.put(x.ID, *x)
+	}
+	return nil
+}
+
 // feeRepo implements invoice.FeeRepository.
 type feeRepo struct {
 	d  *invoiceData
@@ -419,7 +471,7 @@ func (r feeRepo) Create(_ context.Context, f *invoice.Fee) error {
 
 func (r feeRepo) Update(_ context.Context, f *invoice.Fee) error {
 	cur, ok := r.d.fees.get(f.ID)
-	if !ok || cur.OrganizationID != f.OrganizationID {
+	if !ok || cur.OrganizationID != f.OrganizationID || cur.DeletedAt != nil {
 		return notFound("fee", f.ID)
 	}
 	r.d.fees.put(f.ID, *f)
@@ -428,47 +480,142 @@ func (r feeRepo) Update(_ context.Context, f *invoice.Fee) error {
 
 func (r feeRepo) Get(_ context.Context, org core.OrganizationID, id core.FeeID) (*invoice.Fee, error) {
 	f, ok := r.d.fees.get(id)
-	if !ok || f.OrganizationID != org {
+	if !ok || f.OrganizationID != org || f.DeletedAt != nil {
 		return nil, notFound("fee", id)
 	}
 	return f, nil
 }
 
 func (r feeRepo) List(_ context.Context, org core.OrganizationID, f invoice.FeeFilter, page core.PageRequest) (core.Page[*invoice.Fee], error) {
+	if err := f.Validate(); err != nil {
+		return core.Page[*invoice.Fee]{}, fmt.Errorf("list fees: %w", err)
+	}
 	rows := r.d.fees.find(func(x *invoice.Fee) bool {
-		return x.OrganizationID == org &&
+		return x.OrganizationID == org && x.DeletedAt == nil &&
 			(f.InvoiceID.IsZero() || x.InvoiceID == f.InvoiceID) &&
 			(f.SubscriptionID.IsZero() || x.SubscriptionID == f.SubscriptionID) &&
 			(f.ChargeID.IsZero() || x.ChargeID == f.ChargeID) &&
-			(len(f.Types) == 0 || slices.Contains(f.Types, x.Type))
+			(len(f.Types) == 0 || slices.Contains(f.Types, x.Type)) &&
+			(len(f.PaymentStatuses) == 0 || slices.Contains(f.PaymentStatuses, x.PaymentStatus)) &&
+			(f.Currency.IsZero() || x.Currency == f.Currency) &&
+			(f.EventTransactionID == "" || x.PayInAdvanceEventTransactionID == f.EventTransactionID) &&
+			r.feeCustomerMatches(x, f) &&
+			r.feeSubscriptionMatches(x, f) &&
+			r.feeMetricMatches(x, f) &&
+			inTimeRange(&x.CreatedAt, f.CreatedFrom, f.CreatedTo) &&
+			inTimeRange(x.SucceededAt, f.SucceededFrom, f.SucceededTo) &&
+			inTimeRange(x.FailedAt, f.FailedFrom, f.FailedTo) &&
+			inTimeRange(x.RefundedAt, f.RefundedFrom, f.RefundedTo)
 	})
-	return paginate(rows, func(x *invoice.Fee) core.FeeID { return x.ID }, page)
+	// Oldest first, then by ID (fees_query.rb:33).
+	return paginateOldest(rows, func(x *invoice.Fee) (time.Time, uuid.UUID) { return x.CreatedAt, x.ID.UUID() }, page)
+}
+
+// inTimeRange reports whether t is in [from, to] (zero bounds unset); a
+// nil t is in no bounded range.
+func inTimeRange(t *time.Time, from, to time.Time) bool {
+	if from.IsZero() && to.IsZero() {
+		return true
+	}
+	return t != nil && (from.IsZero() || !t.Before(from)) && (to.IsZero() || !t.After(to))
+}
+
+// feeCustomerMatches applies the customer filters: the customer of the
+// fee's invoice, else of its subscription.
+func (r feeRepo) feeCustomerMatches(x *invoice.Fee, f invoice.FeeFilter) bool {
+	if f.CustomerID.IsZero() && f.CustomerExternalID == "" {
+		return true
+	}
+	var id core.CustomerID
+	if !x.InvoiceID.IsZero() {
+		inv, ok := r.d.invoices.get(x.InvoiceID)
+		if !ok {
+			return false
+		}
+		id = inv.CustomerID
+	} else {
+		sub, ok := r.st.subscription.subscriptions.get(x.SubscriptionID)
+		if !ok {
+			return false
+		}
+		id = sub.CustomerID
+	}
+	if !f.CustomerID.IsZero() && id != f.CustomerID {
+		return false
+	}
+	if f.CustomerExternalID != "" {
+		c, ok := r.st.customer.customers.get(id)
+		if !ok || c.DeletedAt != nil || c.ExternalID != f.CustomerExternalID {
+			return false
+		}
+	}
+	return true
+}
+
+// feeSubscriptionMatches applies SubscriptionExternalID.
+func (r feeRepo) feeSubscriptionMatches(x *invoice.Fee, f invoice.FeeFilter) bool {
+	if f.SubscriptionExternalID == "" {
+		return true
+	}
+	sub, ok := r.st.subscription.subscriptions.get(x.SubscriptionID)
+	return ok && sub.ExternalID == f.SubscriptionExternalID
+}
+
+// feeMetricMatches applies BillableMetricCode.
+func (r feeRepo) feeMetricMatches(x *invoice.Fee, f invoice.FeeFilter) bool {
+	if f.BillableMetricCode == "" {
+		return true
+	}
+	c, ok := r.st.catalog.charges.get(x.ChargeID)
+	if !ok {
+		return false
+	}
+	m, ok := r.st.catalog.metrics.get(c.BillableMetricID)
+	return ok && m.Code == f.BillableMetricCode
+}
+
+func (r feeRepo) Discard(_ context.Context, org core.OrganizationID, id core.FeeID, at time.Time) error {
+	f, ok := r.d.fees.get(id)
+	if !ok || f.OrganizationID != org || f.DeletedAt != nil {
+		return notFound("fee", id)
+	}
+	if !f.InvoiceID.IsZero() {
+		return conflict("fee", "attached to an invoice")
+	}
+	at = at.UTC()
+	f.DeletedAt, f.UpdatedAt = &at, at
+	r.d.fees.put(id, *f)
+	return nil
 }
 
 func (r feeRepo) ListByInvoice(_ context.Context, org core.OrganizationID, inv core.InvoiceID) ([]*invoice.Fee, error) {
-	return r.d.fees.find(func(x *invoice.Fee) bool { return x.OrganizationID == org && x.InvoiceID == inv }), nil
+	return r.d.fees.find(func(x *invoice.Fee) bool {
+		return x.OrganizationID == org && x.DeletedAt == nil && x.InvoiceID == inv
+	}), nil
 }
 
 func (r feeRepo) ListBySubscriptionPeriod(_ context.Context, org core.OrganizationID, sub core.SubscriptionID, from time.Time) ([]*invoice.Fee, error) {
 	return r.d.fees.find(func(x *invoice.Fee) bool {
-		return x.OrganizationID == org && x.SubscriptionID == sub && x.Properties.From.Equal(from)
+		return x.OrganizationID == org && x.DeletedAt == nil && x.SubscriptionID == sub && x.Properties.From.Equal(from)
 	}), nil
 }
 
 func (r feeRepo) ListUnbilledInAdvance(_ context.Context, org core.OrganizationID, before time.Time) ([]*invoice.Fee, error) {
 	return r.d.fees.find(func(x *invoice.Fee) bool {
-		return x.OrganizationID == org && x.InvoiceID.IsZero() && x.PayInAdvance && x.Invoiceable &&
+		return x.OrganizationID == org && x.DeletedAt == nil && x.InvoiceID.IsZero() && x.PayInAdvance && x.Invoiceable &&
 			x.PaymentStatus == invoice.FeePaymentStatusSucceeded && x.CreatedAt.Before(before)
 	}), nil
 }
 
 func (r feeRepo) ListByCharge(_ context.Context, org core.OrganizationID, charge core.ChargeID) ([]*invoice.Fee, error) {
-	return r.d.fees.find(func(x *invoice.Fee) bool { return x.OrganizationID == org && x.ChargeID == charge }), nil
+	return r.d.fees.find(func(x *invoice.Fee) bool {
+		return x.OrganizationID == org && x.DeletedAt == nil && x.ChargeID == charge
+	}), nil
 }
 
 func (r feeRepo) ListByEventTransaction(_ context.Context, org core.OrganizationID, sub core.SubscriptionID, transactionID string) ([]*invoice.Fee, error) {
 	return r.d.fees.find(func(x *invoice.Fee) bool {
-		return x.OrganizationID == org && x.SubscriptionID == sub && x.PayInAdvanceEventTransactionID == transactionID
+		return x.OrganizationID == org && x.DeletedAt == nil && x.SubscriptionID == sub && x.PayInAdvanceEventTransactionID == transactionID
 	}), nil
 }
 
@@ -552,7 +699,7 @@ type invoiceCustomSectionRepo struct{ d *invoiceData }
 
 func (r invoiceCustomSectionRepo) checkCode(s *invoice.CustomSection) error {
 	if r.d.customSections.any(func(x *invoice.CustomSection) bool {
-		return x.ID != s.ID && x.OrganizationID == s.OrganizationID && x.Code == s.Code
+		return x.ID != s.ID && x.OrganizationID == s.OrganizationID && x.Code == s.Code && x.DeletedAt == nil && s.DeletedAt == nil
 	}) {
 		return conflict("invoice_custom_section", "code")
 	}
@@ -572,7 +719,7 @@ func (r invoiceCustomSectionRepo) Create(_ context.Context, s *invoice.CustomSec
 
 func (r invoiceCustomSectionRepo) Update(_ context.Context, s *invoice.CustomSection) error {
 	cur, ok := r.d.customSections.get(s.ID)
-	if !ok || cur.OrganizationID != s.OrganizationID {
+	if !ok || cur.OrganizationID != s.OrganizationID || cur.DeletedAt != nil {
 		return notFound("invoice_custom_section", s.ID)
 	}
 	if err := r.checkCode(s); err != nil {
@@ -584,14 +731,16 @@ func (r invoiceCustomSectionRepo) Update(_ context.Context, s *invoice.CustomSec
 
 func (r invoiceCustomSectionRepo) Get(_ context.Context, org core.OrganizationID, id core.InvoiceCustomSectionID) (*invoice.CustomSection, error) {
 	s, ok := r.d.customSections.get(id)
-	if !ok || s.OrganizationID != org {
+	if !ok || s.OrganizationID != org || s.DeletedAt != nil {
 		return nil, notFound("invoice_custom_section", id)
 	}
 	return s, nil
 }
 
 func (r invoiceCustomSectionRepo) GetByCode(_ context.Context, org core.OrganizationID, code string) (*invoice.CustomSection, error) {
-	s, ok := r.d.customSections.first(func(x *invoice.CustomSection) bool { return x.OrganizationID == org && x.Code == code })
+	s, ok := r.d.customSections.first(func(x *invoice.CustomSection) bool {
+		return x.OrganizationID == org && x.Code == code && x.DeletedAt == nil
+	})
 	if !ok {
 		return nil, notFound("invoice_custom_section", stringer(code))
 	}
@@ -599,20 +748,33 @@ func (r invoiceCustomSectionRepo) GetByCode(_ context.Context, org core.Organiza
 }
 
 func (r invoiceCustomSectionRepo) ListByIDs(_ context.Context, org core.OrganizationID, ids []core.InvoiceCustomSectionID) ([]*invoice.CustomSection, error) {
-	return r.d.customSections.find(func(x *invoice.CustomSection) bool { return x.OrganizationID == org && slices.Contains(ids, x.ID) }), nil
+	return r.d.customSections.find(func(x *invoice.CustomSection) bool {
+		return x.OrganizationID == org && x.DeletedAt == nil && slices.Contains(ids, x.ID)
+	}), nil
 }
 
 func (r invoiceCustomSectionRepo) List(_ context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*invoice.CustomSection], error) {
-	rows := r.d.customSections.find(func(x *invoice.CustomSection) bool { return x.OrganizationID == org })
+	rows := r.d.customSections.find(func(x *invoice.CustomSection) bool { return x.OrganizationID == org && x.DeletedAt == nil })
 	return paginate(rows, func(x *invoice.CustomSection) core.InvoiceCustomSectionID { return x.ID }, page)
 }
 
-func (r invoiceCustomSectionRepo) Delete(_ context.Context, org core.OrganizationID, id core.InvoiceCustomSectionID) error {
+func (r invoiceCustomSectionRepo) ListManual(_ context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*invoice.CustomSection], error) {
+	rows := r.d.customSections.find(func(x *invoice.CustomSection) bool {
+		return x.OrganizationID == org && x.SectionType == invoice.CustomSectionTypeManual && x.DeletedAt == nil
+	})
+	return paginateByName(rows, func(x *invoice.CustomSection) nameKey { return nameKey{x.Name, x.CreatedAt, x.ID.UUID()} }, page)
+}
+
+// Delete soft-deletes the section; the selections keep its ID, which no
+// read resolves any more (the ports do not document the cascade).
+func (r invoiceCustomSectionRepo) Delete(_ context.Context, org core.OrganizationID, id core.InvoiceCustomSectionID, at time.Time) error {
 	s, ok := r.d.customSections.get(id)
-	if !ok || s.OrganizationID != org {
+	if !ok || s.OrganizationID != org || s.DeletedAt != nil {
 		return notFound("invoice_custom_section", id)
 	}
-	r.d.customSections.del(id)
+	s.DeletedAt = &at
+	s.UpdatedAt = at
+	r.d.customSections.put(id, *s)
 	return nil
 }
 

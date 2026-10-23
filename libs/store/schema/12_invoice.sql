@@ -70,7 +70,7 @@ CREATE TABLE invoices (
   CONSTRAINT invoices_billing_entity_fkey FOREIGN KEY (organization_id, billing_entity_id) REFERENCES billing_entities (organization_id, id),
   CONSTRAINT invoices_voided_invoice_fkey FOREIGN KEY (organization_id, voided_invoice_id) REFERENCES invoices (organization_id, id),
   CONSTRAINT invoices_invoice_type_check CHECK (invoice_type IN ('subscription', 'credit', 'one_off', 'advance_charges', 'progressive_billing')),
-  CONSTRAINT invoices_status_check CHECK (status IN ('generating', 'draft', 'open', 'finalized', 'closed', 'voided', 'failed')),
+  CONSTRAINT invoices_status_check CHECK (status IN ('generating', 'draft', 'open', 'finalized', 'closed', 'voided', 'failed', 'deleted')),
   CONSTRAINT invoices_payment_status_check CHECK (payment_status IN ('pending', 'succeeded', 'failed')),
   CONSTRAINT invoices_tax_status_check CHECK (tax_status IN ('pending', 'succeeded', 'failed')),
   CONSTRAINT invoices_payment_method_type_check CHECK (payment_method_type IN ('provider', 'manual')),
@@ -90,6 +90,7 @@ CREATE UNIQUE INDEX invoices_x402_payment_token_key ON invoices (x402_payment_to
 -- The scheduler scans: drafts to finalize or refresh, overdue candidates.
 CREATE INDEX invoices_drafts_idx ON invoices (organization_id, expected_finalization_date) WHERE status = 'draft';
 CREATE INDEX invoices_overdue_idx ON invoices (organization_id, payment_due_date) WHERE status = 'finalized' AND NOT payment_overdue;
+CREATE INDEX invoices_generating_idx ON invoices (organization_id, created_at) WHERE status = 'generating';
 
 ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON invoices
@@ -111,23 +112,28 @@ CREATE TABLE invoice_subscriptions (
   fixed_charges_to_datetime timestamptz NOT NULL,
   billing_timestamp timestamptz NOT NULL,
   recurring boolean NOT NULL,
+  regenerated_invoice_id uuid,
   created_at timestamptz NOT NULL,
   PRIMARY KEY (organization_id, id),
   CONSTRAINT invoice_subscriptions_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
   CONSTRAINT invoice_subscriptions_invoice_fkey FOREIGN KEY (organization_id, invoice_id) REFERENCES invoices (organization_id, id) ON DELETE CASCADE,
   CONSTRAINT invoice_subscriptions_subscription_fkey FOREIGN KEY (organization_id, subscription_id) REFERENCES subscriptions (organization_id, id),
+  CONSTRAINT invoice_subscriptions_regenerated_invoice_fkey FOREIGN KEY (organization_id, regenerated_invoice_id) REFERENCES invoices (organization_id, id) ON DELETE SET NULL (regenerated_invoice_id),
   CONSTRAINT invoice_subscriptions_invoicing_reason_check CHECK (invoicing_reason IN ('subscription_starting', 'subscription_periodic', 'subscription_terminating', 'in_advance_charge', 'in_advance_charge_periodic', 'progressive_billing'))
 );
 
 -- The idempotency keys of invoice.Subscription.Keys: a recurring row per
 -- charges period and per fixed charges period (when billed, that is not the
--- zero instant), a starting and a terminating row per subscription.
+-- zero instant), a starting and a terminating row per subscription. The rows
+-- of a voided invoice that was regenerated (regenerated_invoice_id) give
+-- their keys to the regenerated invoice's copies.
 CREATE UNIQUE INDEX invoice_subscriptions_charges_key ON invoice_subscriptions (organization_id, subscription_id, charges_from_datetime, charges_to_datetime)
-  WHERE recurring AND charges_from_datetime <> '0001-01-01 00:00:00+00';
+  WHERE recurring AND charges_from_datetime <> '0001-01-01 00:00:00+00' AND regenerated_invoice_id IS NULL;
 CREATE UNIQUE INDEX invoice_subscriptions_fixed_charges_key ON invoice_subscriptions (organization_id, subscription_id, fixed_charges_from_datetime, fixed_charges_to_datetime)
-  WHERE recurring AND fixed_charges_from_datetime <> '0001-01-01 00:00:00+00';
+  WHERE recurring AND fixed_charges_from_datetime <> '0001-01-01 00:00:00+00' AND regenerated_invoice_id IS NULL;
 CREATE UNIQUE INDEX invoice_subscriptions_reason_key ON invoice_subscriptions (organization_id, subscription_id, invoicing_reason)
-  WHERE invoicing_reason IN ('subscription_starting', 'subscription_terminating');
+  WHERE invoicing_reason IN ('subscription_starting', 'subscription_terminating') AND regenerated_invoice_id IS NULL;
+CREATE INDEX invoice_subscriptions_regenerated_invoice_idx ON invoice_subscriptions (organization_id, regenerated_invoice_id) WHERE regenerated_invoice_id IS NOT NULL;
 CREATE INDEX invoice_subscriptions_invoice_idx ON invoice_subscriptions (organization_id, invoice_id);
 CREATE INDEX invoice_subscriptions_subscription_idx ON invoice_subscriptions (organization_id, subscription_id, from_datetime);
 
@@ -183,6 +189,9 @@ CREATE TABLE fees (
   fixed_charges_to_datetime timestamptz NOT NULL,
   fixed_charges_duration_days integer NOT NULL,
   true_up_parent_fee_id uuid,
+  -- The root fee of a void and regenerate chain: the fee of the first
+  -- voided invoice that this fee was copied from.
+  original_fee_id uuid,
   pricing_unit_usage jsonb,
   applied_taxes jsonb NOT NULL,
   presentation_breakdowns jsonb NOT NULL,
@@ -193,11 +202,14 @@ CREATE TABLE fees (
   refunded_at timestamptz,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
+  -- The discard instant of an unbilled fee; every read skips discarded fees.
+  deleted_at timestamptz,
   PRIMARY KEY (organization_id, id),
   CONSTRAINT fees_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
   CONSTRAINT fees_invoice_fkey FOREIGN KEY (organization_id, invoice_id) REFERENCES invoices (organization_id, id) ON DELETE CASCADE,
   CONSTRAINT fees_subscription_fkey FOREIGN KEY (organization_id, subscription_id) REFERENCES subscriptions (organization_id, id),
   CONSTRAINT fees_true_up_parent_fee_fkey FOREIGN KEY (organization_id, true_up_parent_fee_id) REFERENCES fees (organization_id, id) ON DELETE CASCADE,
+  CONSTRAINT fees_original_fee_fkey FOREIGN KEY (organization_id, original_fee_id) REFERENCES fees (organization_id, id) ON DELETE SET NULL (original_fee_id),
   CONSTRAINT fees_fee_type_check CHECK (fee_type IN ('subscription', 'charge', 'fixed_charge', 'add_on', 'credit', 'commitment', 'product')),
   CONSTRAINT fees_payment_status_check CHECK (payment_status IN ('pending', 'succeeded', 'failed', 'refunded')),
   CONSTRAINT fees_currency_check CHECK (currency <> ''),
@@ -211,11 +223,12 @@ CREATE INDEX fees_subscription_idx ON fees (organization_id, subscription_id, fr
 CREATE INDEX fees_charge_idx ON fees (organization_id, charge_id) WHERE charge_id IS NOT NULL;
 CREATE INDEX fees_wallet_transaction_idx ON fees (organization_id, wallet_transaction_id) WHERE wallet_transaction_id IS NOT NULL;
 CREATE INDEX fees_true_up_parent_fee_idx ON fees (organization_id, true_up_parent_fee_id) WHERE true_up_parent_fee_id IS NOT NULL;
+CREATE INDEX fees_original_fee_idx ON fees (organization_id, original_fee_id) WHERE original_fee_id IS NOT NULL;
 CREATE INDEX fees_event_transaction_idx ON fees (organization_id, subscription_id, pay_in_advance_event_transaction_id)
   WHERE pay_in_advance_event_transaction_id IS NOT NULL;
 -- The unbilled pay-in-advance fees regrouped by advance-charges invoices.
 CREATE INDEX fees_unbilled_in_advance_idx ON fees (organization_id, created_at)
-  WHERE invoice_id IS NULL AND pay_in_advance AND invoiceable AND payment_status = 'succeeded';
+  WHERE invoice_id IS NULL AND pay_in_advance AND invoiceable AND payment_status = 'succeeded' AND deleted_at IS NULL;
 
 ALTER TABLE fees ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON fees
@@ -368,4 +381,26 @@ CREATE INDEX invoice_credits_progressive_billing_invoice_idx ON invoice_credits 
 
 ALTER TABLE invoice_credits ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON invoice_credits
+  USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
+
+-- The copies of the custom sections printed on an invoice, taken when the
+-- invoice is created (domain §11.9).
+CREATE TABLE applied_invoice_custom_sections (
+  organization_id uuid NOT NULL,
+  id uuid NOT NULL,
+  invoice_id uuid NOT NULL,
+  code text NOT NULL,
+  name text NOT NULL,
+  display_name text,
+  details text,
+  created_at timestamptz NOT NULL,
+  PRIMARY KEY (organization_id, id),
+  CONSTRAINT applied_invoice_custom_sections_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
+  CONSTRAINT applied_invoice_custom_sections_invoice_fkey FOREIGN KEY (organization_id, invoice_id) REFERENCES invoices (organization_id, id) ON DELETE CASCADE
+);
+
+CREATE INDEX applied_invoice_custom_sections_invoice_idx ON applied_invoice_custom_sections (organization_id, invoice_id);
+
+ALTER TABLE applied_invoice_custom_sections ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON applied_invoice_custom_sections
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');

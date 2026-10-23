@@ -18,12 +18,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
-
-	"github.com/tanvoxyz/tanvo/apps/server/internal/logctx"
-	"github.com/tanvoxyz/tanvo/libs/auth"
-	"github.com/tanvoxyz/tanvo/libs/core/access"
-	"github.com/tanvoxyz/tanvo/libs/core/permission"
-	commonv1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/common/v1"
 )
 
 // scope is the instrumentation scope of the RPC telemetry.
@@ -105,91 +99,11 @@ func splitProcedure(p string) (service, method string) {
 	return p, ""
 }
 
-// KeyAuthenticator resolves an API key secret (libs/auth APIKeys).
-type KeyAuthenticator interface {
-	// Authenticate returns the active key whose secret is secret, or
-	// auth.ErrUnauthenticated.
-	Authenticate(ctx context.Context, secret string) (*access.APIKey, error)
-}
-
-type principalKey struct{}
-
-// Principal returns the principal the [Auth] interceptor authenticated.
-func Principal(ctx context.Context) (auth.Principal, bool) {
-	p, ok := ctx.Value(principalKey{}).(auth.Principal)
-	return p, ok
-}
-
-// WithPrincipal returns ctx carrying p, as [Auth] does.
-func WithPrincipal(ctx context.Context, p auth.Principal) context.Context {
-	return context.WithValue(ctx, principalKey{}, p)
-}
-
-// Auth enforces the tanvo.common.v1.access option of each RPC
-// (architecture §4.4): anonymous RPCs pass; the others need an API key in
-// "Authorization: Bearer <key>" granted the RPC's api_resource at the
-// read level for NO_SIDE_EFFECTS RPCs and the write level otherwise. An
-// RPC without the option is refused. The organization of the principal
-// is put on the span and on the logs of the request.
-func Auth(keys KeyAuthenticator, authz *auth.Authorizer) connect.ServerInterceptor {
-	return func(next connect.ServerFunc) connect.ServerFunc {
-		return func(ctx context.Context, spec connect.Spec, stream connect.ServerStream) error {
-			md, ok := spec.Schema.(protoreflect.MethodDescriptor)
-			if !ok {
-				return connect.NewError(connect.CodePermissionDenied, "procedure has no access rule")
-			}
-			rule, _ := proto.GetExtension(md.Options(), commonv1.E_Access).(*commonv1.Access)
-			if rule == nil {
-				return connect.NewError(connect.CodePermissionDenied, "procedure has no access rule")
-			}
-			if rule.GetAnonymous() {
-				return next(ctx, spec, stream)
-			}
-			info, _ := connect.CallInfoForServerContext(ctx)
-			secret, ok := bearer(info)
-			if !ok {
-				return connect.NewError(connect.CodeUnauthenticated, "missing API key: send Authorization: Bearer <key>")
-			}
-			key, err := keys.Authenticate(ctx, secret)
-			if err != nil {
-				return Error(ctx, err)
-			}
-			p := auth.APIKeyPrincipal(key)
-			span := trace.SpanFromContext(ctx)
-			span.SetAttributes(attribute.String(logctx.OrganizationKey, p.OrganizationID.String()))
-			ctx = logctx.With(WithPrincipal(ctx, p), slog.String(logctx.OrganizationKey, p.OrganizationID.String()))
-			if rule.GetApiResource() == "" {
-				return connect.NewError(connect.CodePermissionDenied, "API keys cannot call this procedure")
-			}
-			level := permission.LevelWrite
-			if idempotency(md) == descriptorpb.MethodOptions_NO_SIDE_EFFECTS {
-				level = permission.LevelRead
-			}
-			if err := authz.CheckAPI(p, permission.APIResource(rule.GetApiResource()), level); err != nil {
-				return Error(ctx, err)
-			}
-			return next(ctx, spec, stream)
-		}
-	}
-}
-
-func idempotency(md protoreflect.MethodDescriptor) descriptorpb.MethodOptions_IdempotencyLevel {
+func idempotencyLevel(md protoreflect.MethodDescriptor) descriptorpb.MethodOptions_IdempotencyLevel {
 	if o, ok := md.Options().(*descriptorpb.MethodOptions); ok {
 		return o.GetIdempotencyLevel()
 	}
 	return descriptorpb.MethodOptions_IDEMPOTENCY_UNKNOWN
-}
-
-func bearer(info *connect.CallInfo) (string, bool) {
-	if info == nil {
-		return "", false
-	}
-	scheme, token, ok := strings.Cut(strings.TrimSpace(info.RequestHeader().Get("Authorization")), " ")
-	if !ok || !strings.EqualFold(scheme, "Bearer") {
-		return "", false
-	}
-	token = strings.TrimSpace(token)
-	return token, token != ""
 }
 
 // Validate checks every request message with protovalidate and rejects

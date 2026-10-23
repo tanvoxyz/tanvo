@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/coupon"
 )
@@ -40,11 +42,11 @@ type couponRepo struct{ d *couponData }
 var _ coupon.Repository = couponRepo{}
 
 func (r couponRepo) check(c *coupon.Coupon) error {
-	if c.Status != coupon.StatusActive {
+	if c.Deleted() {
 		return nil
 	}
 	if r.d.coupons.any(func(x *coupon.Coupon) bool {
-		return x.ID != c.ID && x.OrganizationID == c.OrganizationID && x.Status == coupon.StatusActive && x.Code == c.Code
+		return x.ID != c.ID && x.OrganizationID == c.OrganizationID && !x.Deleted() && x.Code == c.Code
 	}) {
 		return conflict("coupon", "code")
 	}
@@ -84,7 +86,7 @@ func (r couponRepo) Get(_ context.Context, org core.OrganizationID, id core.Coup
 
 func (r couponRepo) GetByCode(_ context.Context, org core.OrganizationID, code string) (*coupon.Coupon, error) {
 	c, ok := r.d.coupons.first(func(x *coupon.Coupon) bool {
-		return x.OrganizationID == org && x.Status == coupon.StatusActive && x.Code == code
+		return x.OrganizationID == org && !x.Deleted() && x.Code == code
 	})
 	if !ok {
 		return nil, notFound("coupon", stringer(code))
@@ -95,21 +97,29 @@ func (r couponRepo) GetByCode(_ context.Context, org core.OrganizationID, code s
 func (r couponRepo) List(_ context.Context, org core.OrganizationID, f coupon.Filter, page core.PageRequest) (core.Page[*coupon.Coupon], error) {
 	search := strings.ToLower(f.Search)
 	rows := r.d.coupons.find(func(x *coupon.Coupon) bool {
-		if x.OrganizationID != org || (f.Status != "" && x.Status != f.Status) {
+		if x.OrganizationID != org || x.Deleted() || (f.Status != "" && x.Status != f.Status) {
 			return false
 		}
 		return search == "" || strings.Contains(strings.ToLower(x.Code), search) || strings.Contains(strings.ToLower(x.Name), search)
 	})
+	if f.Order == core.OrderRecent {
+		return paginateCouponsRecent(rows, page)
+	}
 	return paginate(rows, couponKey, page)
 }
 
 func (r couponRepo) ListExpired(_ context.Context, now time.Time, page core.PageRequest) (core.Page[*coupon.Coupon], error) {
-	rows := r.d.coupons.find(func(x *coupon.Coupon) bool { return x.Status == coupon.StatusActive && x.Expired(now) })
+	rows := r.d.coupons.find(func(x *coupon.Coupon) bool {
+		return x.Status == coupon.StatusActive && !x.Deleted() && x.Expired(now)
+	})
 	return paginate(rows, couponKey, page)
 }
 
 // appliedCouponRepo implements coupon.AppliedRepository.
-type appliedCouponRepo struct{ d *couponData }
+type appliedCouponRepo struct {
+	d  *couponData
+	cu *customerData
+}
 
 var _ coupon.AppliedRepository = appliedCouponRepo{}
 
@@ -167,9 +177,54 @@ func (r appliedCouponRepo) List(_ context.Context, org core.OrganizationID, f co
 			f.Status != "" && x.Status != f.Status:
 			return false
 		}
-		return true
+		if f.KeptCustomers {
+			if c, ok := r.cu.customers.get(x.CustomerID); !ok || c.Deleted() {
+				return false
+			}
+		}
+		if len(f.CouponIDs) == 0 && len(f.CouponCodes) == 0 {
+			return true
+		}
+		if slices.Contains(f.CouponIDs, x.CouponID) {
+			return true
+		}
+		c, ok := r.d.coupons.get(x.CouponID)
+		return ok && slices.Contains(f.CouponCodes, c.Code)
 	})
+	if f.Order == core.OrderRecent {
+		return paginateRecent(rows, func(a *coupon.AppliedCoupon) (time.Time, uuid.UUID) { return a.CreatedAt, a.ID.UUID() }, page)
+	}
 	return paginate(rows, func(a *coupon.AppliedCoupon) core.AppliedCouponID { return a.ID }, page)
 }
 
 func couponKey(c *coupon.Coupon) core.CouponID { return c.ID }
+
+// paginateCouponsRecent cuts rows into the page asked by req in the
+// core.OrderRecent order of coupon.Repository.List.
+func paginateCouponsRecent(rows []*coupon.Coupon, req core.PageRequest) (core.Page[*coupon.Coupon], error) {
+	var at coupon.RecentPosition
+	if req.Token != "" {
+		c, err := core.DecodeCursor(req.Token)
+		if err != nil {
+			return core.Page[*coupon.Coupon]{}, err
+		}
+		if at, err = coupon.ParseRecentPosition(c.Key); err != nil {
+			return core.Page[*coupon.Coupon]{}, err
+		}
+	}
+	slices.SortStableFunc(rows, func(a, b *coupon.Coupon) int {
+		if c := coupon.PositionOf(a).Compare(coupon.PositionOf(b)); c != 0 {
+			return c
+		}
+		return strings.Compare(a.ID.String(), b.ID.String())
+	})
+	cursor := func(c *coupon.Coupon) core.Cursor {
+		return core.Cursor{Key: coupon.PositionOf(c).Key(), ID: c.ID.UUID()}
+	}
+	return paginateSorted(rows, cursor, func(c *coupon.Coupon, cur core.Cursor) bool {
+		if n := coupon.PositionOf(c).Compare(at); n != 0 {
+			return n > 0
+		}
+		return c.ID.String() > cur.ID.String()
+	}, req)
+}

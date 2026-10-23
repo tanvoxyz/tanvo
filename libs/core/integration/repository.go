@@ -2,6 +2,7 @@ package integration
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -19,8 +20,10 @@ type Filter struct {
 // Repository stores integrations. Every method is scoped to an
 // organization.
 type Repository interface {
-	// Create inserts i; a code already used in the organization, or a
-	// second default of the category, fails with core.ErrConflict.
+	// Create inserts i; a code already used in the organization by a live
+	// payment integration (for a payment integration) or by another
+	// integration (for the others), or a second default of the category,
+	// fails with core.ErrConflict.
 	Create(ctx context.Context, i *Integration) error
 	// Update replaces the stored integration i.ID with i (same uniqueness
 	// rules as Create).
@@ -43,6 +46,11 @@ type Repository interface {
 	ListByDomain(ctx context.Context, p Provider, domain string) ([]*Integration, error)
 	// List returns the organization's integrations in creation order.
 	List(ctx context.Context, org core.OrganizationID, f Filter, page core.PageRequest) (core.Page[*Integration], error)
+	// Discard marks the payment integration id deleted at at, with its
+	// live payment provider customers, or fails with core.ErrNotFound;
+	// every read leaves discarded integrations out and their code can be
+	// reused.
+	Discard(ctx context.Context, org core.OrganizationID, id core.IntegrationID, at time.Time) error
 	// Delete removes the integration id with its customers, mappings,
 	// items and resources, or fails with core.ErrNotFound; one still
 	// referenced by payment provider customers, payment methods, payments,
@@ -113,8 +121,8 @@ type CollectionMappingRepository interface {
 type ItemFilter struct {
 	// ItemType keeps one item type; "" keeps all.
 	ItemType ItemType
-	// Search keeps items whose external id or name contains it
-	// (case-insensitive); "" keeps all.
+	// Search keeps items whose external id, name or account code contains
+	// it (case-insensitive; lago IntegrationItemsQuery); "" keeps all.
 	Search string
 }
 
@@ -124,7 +132,9 @@ type ItemRepository interface {
 	// item type, external id), which keeps its ID and creation instant; a
 	// new item with the ID of another item fails with core.ErrConflict.
 	Upsert(ctx context.Context, i *Item) error
-	// List returns the items of an integration in creation order.
+	// List returns the items of an integration by external name (byte
+	// order, unnamed last), then newest first, then by ID (lago
+	// IntegrationItemsQuery).
 	List(ctx context.Context, org core.OrganizationID, integration core.IntegrationID, f ItemFilter, page core.PageRequest) (core.Page[*Item], error)
 	// DeleteByType removes the items of one type of an integration (before
 	// a catalog refresh) and returns how many.
@@ -140,4 +150,7 @@ type ResourceRepository interface {
 	Find(ctx context.Context, org core.OrganizationID, integration core.IntegrationID, t ResourceType, syncableID uuid.UUID) (*Resource, error)
 	// Delete removes the record id, or fails with core.ErrNotFound.
 	Delete(ctx context.Context, org core.OrganizationID, id core.IntegrationResourceID) error
+	// ExistsForSyncable reports whether the local object syncableID is
+	// synced to any integration.
+	ExistsForSyncable(ctx context.Context, org core.OrganizationID, syncableID uuid.UUID) (bool, error)
 }

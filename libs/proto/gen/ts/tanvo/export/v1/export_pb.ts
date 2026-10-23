@@ -15,18 +15,14 @@ import { file_buf_validate_validate } from "../../../buf/validate/validate_pb.js
 import { file_google_api_annotations } from "../../../google/api/annotations_pb.js";
 import { file_google_api_field_behavior } from "../../../google/api/field_behavior_pb.js";
 import { file_google_api_resource } from "../../../google/api/resource_pb.js";
-import type { Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import { file_tanvo_common_v1_options } from "../../common/v1/options_pb.js";
-import type { Document } from "../../common/v1/types_pb.js";
-import { file_tanvo_common_v1_types } from "../../common/v1/types_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file tanvo/export/v1/export.proto.
  */
 export const file_tanvo_export_v1_export: GenFile = /*@__PURE__*/
-  fileDesc("Chx0YW52by9leHBvcnQvdjEvZXhwb3J0LnByb3RvEg90YW52by5leHBvcnQudjEimwQKCkRhdGFFeHBvcnQSEAoCaWQYASABKAlCBOJBAQgSMQoGZm9ybWF0GAIgASgOMiEudGFudm8uZXhwb3J0LnYxLkRhdGFFeHBvcnRGb3JtYXQSOgoNcmVzb3VyY2VfdHlwZRgDIAEoDjIjLnRhbnZvLmV4cG9ydC52MS5EYXRhRXhwb3J0UmVzb3VyY2USDgoGZmlsdGVyGAQgASgJEg4KBnNlYXJjaBgFIAEoCRIxCgZzdGF0dXMYBiABKA4yIS50YW52by5leHBvcnQudjEuRGF0YUV4cG9ydFN0YXR1cxInCgRmaWxlGAcgASgLMhkudGFudm8uY29tbW9uLnYxLkRvY3VtZW50Ei4KCnN0YXJ0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGNvbXBsZXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKZXhwaXJlc19hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKY3JlYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXA6TupBSwoUdGFudm8ueHl6L0RhdGFFeHBvcnQSGmRhdGFfZXhwb3J0cy97ZGF0YV9leHBvcnR9KgtkYXRhRXhwb3J0czIKZGF0YUV4cG9ydCKIAQoVRXhwb3J0SW52b2ljZXNSZXF1ZXN0EjsKBmZvcm1hdBgBIAEoDjIhLnRhbnZvLmV4cG9ydC52MS5EYXRhRXhwb3J0Rm9ybWF0Qgi6SAWCAQIQARIYCgZmaWx0ZXIYAiABKAlCCLpIBXIDGIAQEhgKBnNlYXJjaBgDIAEoCUIIukgFcgMY/wEiSgoWRXhwb3J0SW52b2ljZXNSZXNwb25zZRIwCgtkYXRhX2V4cG9ydBgBIAEoCzIbLnRhbnZvLmV4cG9ydC52MS5EYXRhRXhwb3J0IosBChhFeHBvcnRJbnZvaWNlRmVlc1JlcXVlc3QSOwoGZm9ybWF0GAEgASgOMiEudGFudm8uZXhwb3J0LnYxLkRhdGFFeHBvcnRGb3JtYXRCCLpIBYIBAhABEhgKBmZpbHRlchgCIAEoCUIIukgFcgMYgBASGAoGc2VhcmNoGAMgASgJQgi6SAVyAxj/ASJNChlFeHBvcnRJbnZvaWNlRmVlc1Jlc3BvbnNlEjAKC2RhdGFfZXhwb3J0GAEgASgLMhsudGFudm8uZXhwb3J0LnYxLkRhdGFFeHBvcnQiiwEKGEV4cG9ydENyZWRpdE5vdGVzUmVxdWVzdBI7CgZmb3JtYXQYASABKA4yIS50YW52by5leHBvcnQudjEuRGF0YUV4cG9ydEZvcm1hdEIIukgFggECEAESGAoGZmlsdGVyGAIgASgJQgi6SAVyAxiAEBIYCgZzZWFyY2gYAyABKAlCCLpIBXIDGP8BIk0KGUV4cG9ydENyZWRpdE5vdGVzUmVzcG9uc2USMAoLZGF0YV9leHBvcnQYASABKAsyGy50YW52by5leHBvcnQudjEuRGF0YUV4cG9ydCKPAQocRXhwb3J0Q3JlZGl0Tm90ZUl0ZW1zUmVxdWVzdBI7CgZmb3JtYXQYASABKA4yIS50YW52by5leHBvcnQudjEuRGF0YUV4cG9ydEZvcm1hdEIIukgFggECEAESGAoGZmlsdGVyGAIgASgJQgi6SAVyAxiAEBIYCgZzZWFyY2gYAyABKAlCCLpIBXIDGP8BIlEKHUV4cG9ydENyZWRpdE5vdGVJdGVtc1Jlc3BvbnNlEjAKC2RhdGFfZXhwb3J0GAEgASgLMhsudGFudm8uZXhwb3J0LnYxLkRhdGFFeHBvcnQiPwoUR2V0RGF0YUV4cG9ydFJlcXVlc3QSJwoOZGF0YV9leHBvcnRfaWQYASABKAlCD+JBAQK6SAjIAQFyA7ABASJJChVHZXREYXRhRXhwb3J0UmVzcG9uc2USMAoLZGF0YV9leHBvcnQYASABKAsyGy50YW52by5leHBvcnQudjEuRGF0YUV4cG9ydCpSChBEYXRhRXhwb3J0Rm9ybWF0EiIKHkRBVEFfRVhQT1JUX0ZPUk1BVF9VTlNQRUNJRklFRBAAEhoKFkRBVEFfRVhQT1JUX0ZPUk1BVF9DU1YQASq6AQoQRGF0YUV4cG9ydFN0YXR1cxIiCh5EQVRBX0VYUE9SVF9TVEFUVVNfVU5TUEVDSUZJRUQQABIeChpEQVRBX0VYUE9SVF9TVEFUVVNfUEVORElORxABEiEKHURBVEFfRVhQT1JUX1NUQVRVU19QUk9DRVNTSU5HEAISIAocREFUQV9FWFBPUlRfU1RBVFVTX0NPTVBMRVRFRBADEh0KGURBVEFfRVhQT1JUX1NUQVRVU19GQUlMRUQQBCrXAQoSRGF0YUV4cG9ydFJlc291cmNlEiQKIERBVEFfRVhQT1JUX1JFU09VUkNFX1VOU1BFQ0lGSUVEEAASIQodREFUQV9FWFBPUlRfUkVTT1VSQ0VfSU5WT0lDRVMQARIlCiFEQVRBX0VYUE9SVF9SRVNPVVJDRV9JTlZPSUNFX0ZFRVMQAhIlCiFEQVRBX0VYUE9SVF9SRVNPVVJDRV9DUkVESVRfTk9URVMQAxIqCiZEQVRBX0VYUE9SVF9SRVNPVVJDRV9DUkVESVRfTk9URV9JVEVNUxAEMs4GChFEYXRhRXhwb3J0U2VydmljZRKWAQoORXhwb3J0SW52b2ljZXMSJi50YW52by5leHBvcnQudjEuRXhwb3J0SW52b2ljZXNSZXF1ZXN0GicudGFudm8uZXhwb3J0LnYxLkV4cG9ydEludm9pY2VzUmVzcG9uc2UiM8rzGBEKD2ludm9pY2VzOmV4cG9ydILT5JMCGDoBKiITL3YxL2ludm9pY2VzOmV4cG9ydBKkAQoRRXhwb3J0SW52b2ljZUZlZXMSKS50YW52by5leHBvcnQudjEuRXhwb3J0SW52b2ljZUZlZXNSZXF1ZXN0GioudGFudm8uZXhwb3J0LnYxLkV4cG9ydEludm9pY2VGZWVzUmVzcG9uc2UiOMrzGBEKD2ludm9pY2VzOmV4cG9ydILT5JMCHToBKiIYL3YxL2ludm9pY2VzL2ZlZXM6ZXhwb3J0EqcBChFFeHBvcnRDcmVkaXROb3RlcxIpLnRhbnZvLmV4cG9ydC52MS5FeHBvcnRDcmVkaXROb3Rlc1JlcXVlc3QaKi50YW52by5leHBvcnQudjEuRXhwb3J0Q3JlZGl0Tm90ZXNSZXNwb25zZSI7yvMYFQoTY3JlZGl0X25vdGVzOmV4cG9ydILT5JMCHDoBKiIXL3YxL2NyZWRpdF9ub3RlczpleHBvcnQSuQEKFUV4cG9ydENyZWRpdE5vdGVJdGVtcxItLnRhbnZvLmV4cG9ydC52MS5FeHBvcnRDcmVkaXROb3RlSXRlbXNSZXF1ZXN0Gi4udGFudm8uZXhwb3J0LnYxLkV4cG9ydENyZWRpdE5vdGVJdGVtc1Jlc3BvbnNlIkHK8xgVChNjcmVkaXRfbm90ZXM6ZXhwb3J0gtPkkwIiOgEqIh0vdjEvY3JlZGl0X25vdGVzL2l0ZW1zOmV4cG9ydBKSAQoNR2V0RGF0YUV4cG9ydBIlLnRhbnZvLmV4cG9ydC52MS5HZXREYXRhRXhwb3J0UmVxdWVzdBomLnRhbnZvLmV4cG9ydC52MS5HZXREYXRhRXhwb3J0UmVzcG9uc2UiMpACAcrzGAIgAYLT5JMCIxIhL3YxL2RhdGFfZXhwb3J0cy97ZGF0YV9leHBvcnRfaWR9QsYBChNjb20udGFudm8uZXhwb3J0LnYxQgtFeHBvcnRQcm90b1ABWkRnaXRodWIuY29tL3RhbnZveHl6L3RhbnZvL2xpYnMvcHJvdG8vZ2VuL2dvL3RhbnZvL2V4cG9ydC92MTtleHBvcnR2MaICA1RFWKoCD1RhbnZvLkV4cG9ydC5WMcoCD1RhbnZvXEV4cG9ydFxWMeICG1RhbnZvXEV4cG9ydFxWMVxHUEJNZXRhZGF0YeoCEVRhbnZvOjpFeHBvcnQ6OlYxYghlZGl0aW9uc3DoBw", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_timestamp, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
+  fileDesc("Chx0YW52by9leHBvcnQvdjEvZXhwb3J0LnByb3RvEg90YW52by5leHBvcnQudjEijAIKCkRhdGFFeHBvcnQSEAoCaWQYASABKAlCBOJBAQgSMQoGc3RhdHVzGAYgASgOMiEudGFudm8uZXhwb3J0LnYxLkRhdGFFeHBvcnRTdGF0dXM6TupBSwoUdGFudm8ueHl6L0RhdGFFeHBvcnQSGmRhdGFfZXhwb3J0cy97ZGF0YV9leHBvcnR9KgtkYXRhRXhwb3J0czIKZGF0YUV4cG9ydEoECAIQBkoECAcQDFIGZm9ybWF0Ug1yZXNvdXJjZV90eXBlUgZmaWx0ZXJSBnNlYXJjaFIEZmlsZVIKc3RhcnRlZF9hdFIMY29tcGxldGVkX2F0UgpleHBpcmVzX2F0UgpjcmVhdGVkX2F0IogBChVFeHBvcnRJbnZvaWNlc1JlcXVlc3QSOwoGZm9ybWF0GAEgASgOMiEudGFudm8uZXhwb3J0LnYxLkRhdGFFeHBvcnRGb3JtYXRCCLpIBYIBAhABEhgKBmZpbHRlchgCIAEoCUIIukgFcgMYgBASGAoGc2VhcmNoGAMgASgJQgi6SAVyAxj/ASJKChZFeHBvcnRJbnZvaWNlc1Jlc3BvbnNlEjAKC2RhdGFfZXhwb3J0GAEgASgLMhsudGFudm8uZXhwb3J0LnYxLkRhdGFFeHBvcnQiiwEKGEV4cG9ydEludm9pY2VGZWVzUmVxdWVzdBI7CgZmb3JtYXQYASABKA4yIS50YW52by5leHBvcnQudjEuRGF0YUV4cG9ydEZvcm1hdEIIukgFggECEAESGAoGZmlsdGVyGAIgASgJQgi6SAVyAxiAEBIYCgZzZWFyY2gYAyABKAlCCLpIBXIDGP8BIk0KGUV4cG9ydEludm9pY2VGZWVzUmVzcG9uc2USMAoLZGF0YV9leHBvcnQYASABKAsyGy50YW52by5leHBvcnQudjEuRGF0YUV4cG9ydCKLAQoYRXhwb3J0Q3JlZGl0Tm90ZXNSZXF1ZXN0EjsKBmZvcm1hdBgBIAEoDjIhLnRhbnZvLmV4cG9ydC52MS5EYXRhRXhwb3J0Rm9ybWF0Qgi6SAWCAQIQARIYCgZmaWx0ZXIYAiABKAlCCLpIBXIDGIAQEhgKBnNlYXJjaBgDIAEoCUIIukgFcgMY/wEiTQoZRXhwb3J0Q3JlZGl0Tm90ZXNSZXNwb25zZRIwCgtkYXRhX2V4cG9ydBgBIAEoCzIbLnRhbnZvLmV4cG9ydC52MS5EYXRhRXhwb3J0Io8BChxFeHBvcnRDcmVkaXROb3RlSXRlbXNSZXF1ZXN0EjsKBmZvcm1hdBgBIAEoDjIhLnRhbnZvLmV4cG9ydC52MS5EYXRhRXhwb3J0Rm9ybWF0Qgi6SAWCAQIQARIYCgZmaWx0ZXIYAiABKAlCCLpIBXIDGIAQEhgKBnNlYXJjaBgDIAEoCUIIukgFcgMY/wEiUQodRXhwb3J0Q3JlZGl0Tm90ZUl0ZW1zUmVzcG9uc2USMAoLZGF0YV9leHBvcnQYASABKAsyGy50YW52by5leHBvcnQudjEuRGF0YUV4cG9ydCpSChBEYXRhRXhwb3J0Rm9ybWF0EiIKHkRBVEFfRVhQT1JUX0ZPUk1BVF9VTlNQRUNJRklFRBAAEhoKFkRBVEFfRVhQT1JUX0ZPUk1BVF9DU1YQASq6AQoQRGF0YUV4cG9ydFN0YXR1cxIiCh5EQVRBX0VYUE9SVF9TVEFUVVNfVU5TUEVDSUZJRUQQABIeChpEQVRBX0VYUE9SVF9TVEFUVVNfUEVORElORxABEiEKHURBVEFfRVhQT1JUX1NUQVRVU19QUk9DRVNTSU5HEAISIAocREFUQV9FWFBPUlRfU1RBVFVTX0NPTVBMRVRFRBADEh0KGURBVEFfRVhQT1JUX1NUQVRVU19GQUlMRUQQBDK5BQoRRGF0YUV4cG9ydFNlcnZpY2USlgEKDkV4cG9ydEludm9pY2VzEiYudGFudm8uZXhwb3J0LnYxLkV4cG9ydEludm9pY2VzUmVxdWVzdBonLnRhbnZvLmV4cG9ydC52MS5FeHBvcnRJbnZvaWNlc1Jlc3BvbnNlIjPK8xgRCg9pbnZvaWNlczpleHBvcnSC0+STAhg6ASoiEy92MS9pbnZvaWNlczpleHBvcnQSpAEKEUV4cG9ydEludm9pY2VGZWVzEikudGFudm8uZXhwb3J0LnYxLkV4cG9ydEludm9pY2VGZWVzUmVxdWVzdBoqLnRhbnZvLmV4cG9ydC52MS5FeHBvcnRJbnZvaWNlRmVlc1Jlc3BvbnNlIjjK8xgRCg9pbnZvaWNlczpleHBvcnSC0+STAh06ASoiGC92MS9pbnZvaWNlcy9mZWVzOmV4cG9ydBKnAQoRRXhwb3J0Q3JlZGl0Tm90ZXMSKS50YW52by5leHBvcnQudjEuRXhwb3J0Q3JlZGl0Tm90ZXNSZXF1ZXN0GioudGFudm8uZXhwb3J0LnYxLkV4cG9ydENyZWRpdE5vdGVzUmVzcG9uc2UiO8rzGBUKE2NyZWRpdF9ub3RlczpleHBvcnSC0+STAhw6ASoiFy92MS9jcmVkaXRfbm90ZXM6ZXhwb3J0ErkBChVFeHBvcnRDcmVkaXROb3RlSXRlbXMSLS50YW52by5leHBvcnQudjEuRXhwb3J0Q3JlZGl0Tm90ZUl0ZW1zUmVxdWVzdBouLnRhbnZvLmV4cG9ydC52MS5FeHBvcnRDcmVkaXROb3RlSXRlbXNSZXNwb25zZSJByvMYFQoTY3JlZGl0X25vdGVzOmV4cG9ydILT5JMCIjoBKiIdL3YxL2NyZWRpdF9ub3Rlcy9pdGVtczpleHBvcnRCxgEKE2NvbS50YW52by5leHBvcnQudjFCC0V4cG9ydFByb3RvUAFaRGdpdGh1Yi5jb20vdGFudm94eXovdGFudm8vbGlicy9wcm90by9nZW4vZ28vdGFudm8vZXhwb3J0L3YxO2V4cG9ydHYxogIDVEVYqgIPVGFudm8uRXhwb3J0LlYxygIPVGFudm9cRXhwb3J0XFYx4gIbVGFudm9cRXhwb3J0XFYxXEdQQk1ldGFkYXRh6gIRVGFudm86OkV4cG9ydDo6VjFiCGVkaXRpb25zcOgH", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_tanvo_common_v1_options]);
 
 /**
  * DataExport is a background export of records to a file.
@@ -42,74 +38,11 @@ export type DataExport = Message<"tanvo.export.v1.DataExport"> & {
   id: string;
 
   /**
-   * The file format.
-   *
-   * @generated from field: tanvo.export.v1.DataExportFormat format = 2;
-   */
-  format: DataExportFormat;
-
-  /**
-   * What the export contains.
-   *
-   * @generated from field: tanvo.export.v1.DataExportResource resource_type = 3;
-   */
-  resourceType: DataExportResource;
-
-  /**
-   * The AIP-160 filter and search of the export.
-   *
-   * @generated from field: string filter = 4;
-   */
-  filter: string;
-
-  /**
-   * The search of the export.
-   *
-   * @generated from field: string search = 5;
-   */
-  search: string;
-
-  /**
    * The state.
    *
    * @generated from field: tanvo.export.v1.DataExportStatus status = 6;
    */
   status: DataExportStatus;
-
-  /**
-   * The file, once completed and until it expires.
-   *
-   * @generated from field: tanvo.common.v1.Document file = 7;
-   */
-  file?: Document | undefined;
-
-  /**
-   * When building started.
-   *
-   * @generated from field: google.protobuf.Timestamp started_at = 8;
-   */
-  startedAt?: Timestamp | undefined;
-
-  /**
-   * When building completed.
-   *
-   * @generated from field: google.protobuf.Timestamp completed_at = 9;
-   */
-  completedAt?: Timestamp | undefined;
-
-  /**
-   * When the file expires.
-   *
-   * @generated from field: google.protobuf.Timestamp expires_at = 10;
-   */
-  expiresAt?: Timestamp | undefined;
-
-  /**
-   * When the export was created.
-   *
-   * @generated from field: google.protobuf.Timestamp created_at = 11;
-   */
-  createdAt?: Timestamp | undefined;
 };
 
 /**
@@ -345,48 +278,6 @@ export const ExportCreditNoteItemsResponseSchema: GenMessage<ExportCreditNoteIte
   messageDesc(file_tanvo_export_v1_export, 8);
 
 /**
- * GetDataExportRequest is the request of DataExportService.GetDataExport.
- *
- * @generated from message tanvo.export.v1.GetDataExportRequest
- */
-export type GetDataExportRequest = Message<"tanvo.export.v1.GetDataExportRequest"> & {
-  /**
-   * The export's ID.
-   *
-   * @generated from field: string data_export_id = 1;
-   */
-  dataExportId: string;
-};
-
-/**
- * Describes the message tanvo.export.v1.GetDataExportRequest.
- * Use `create(GetDataExportRequestSchema)` to create a new message.
- */
-export const GetDataExportRequestSchema: GenMessage<GetDataExportRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_export_v1_export, 9);
-
-/**
- * GetDataExportResponse is the response of DataExportService.GetDataExport.
- *
- * @generated from message tanvo.export.v1.GetDataExportResponse
- */
-export type GetDataExportResponse = Message<"tanvo.export.v1.GetDataExportResponse"> & {
-  /**
-   * The export.
-   *
-   * @generated from field: tanvo.export.v1.DataExport data_export = 1;
-   */
-  dataExport?: DataExport | undefined;
-};
-
-/**
- * Describes the message tanvo.export.v1.GetDataExportResponse.
- * Use `create(GetDataExportResponseSchema)` to create a new message.
- */
-export const GetDataExportResponseSchema: GenMessage<GetDataExportResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_export_v1_export, 10);
-
-/**
  * DataExportFormat is the file format of an export.
  *
  * @generated from enum tanvo.export.v1.DataExportFormat
@@ -462,56 +353,8 @@ export const DataExportStatusSchema: GenEnum<DataExportStatus> = /*@__PURE__*/
   enumDesc(file_tanvo_export_v1_export, 1);
 
 /**
- * DataExportResource is what an export contains.
- *
- * @generated from enum tanvo.export.v1.DataExportResource
- */
-export enum DataExportResource {
-  /**
-   * Not set.
-   *
-   * @generated from enum value: DATA_EXPORT_RESOURCE_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * Invoices.
-   *
-   * @generated from enum value: DATA_EXPORT_RESOURCE_INVOICES = 1;
-   */
-  INVOICES = 1,
-
-  /**
-   * Invoice fees.
-   *
-   * @generated from enum value: DATA_EXPORT_RESOURCE_INVOICE_FEES = 2;
-   */
-  INVOICE_FEES = 2,
-
-  /**
-   * Credit notes.
-   *
-   * @generated from enum value: DATA_EXPORT_RESOURCE_CREDIT_NOTES = 3;
-   */
-  CREDIT_NOTES = 3,
-
-  /**
-   * Credit note items.
-   *
-   * @generated from enum value: DATA_EXPORT_RESOURCE_CREDIT_NOTE_ITEMS = 4;
-   */
-  CREDIT_NOTE_ITEMS = 4,
-}
-
-/**
- * Describes the enum tanvo.export.v1.DataExportResource.
- */
-export const DataExportResourceSchema: GenEnum<DataExportResource> = /*@__PURE__*/
-  enumDesc(file_tanvo_export_v1_export, 2);
-
-/**
- * DataExportService starts data exports and returns their files. An
- * export is started by a member; its file expires after 7 days.
+ * DataExportService starts data exports. An export is started by a
+ * member, who receives the file by email; the file expires after 7 days.
  *
  * @generated from service tanvo.export.v1.DataExportService
  */
@@ -555,17 +398,6 @@ export const DataExportService: GenService<{
     methodKind: "unary";
     input: typeof ExportCreditNoteItemsRequestSchema;
     output: typeof ExportCreditNoteItemsResponseSchema;
-  },
-  /**
-   * Returns an export and, once completed, a signed URL of its file. Only
-   * the member who started it can read it.
-   *
-   * @generated from rpc tanvo.export.v1.DataExportService.GetDataExport
-   */
-  getDataExport: {
-    methodKind: "unary";
-    input: typeof GetDataExportRequestSchema;
-    output: typeof GetDataExportResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_tanvo_export_v1_export, 0);

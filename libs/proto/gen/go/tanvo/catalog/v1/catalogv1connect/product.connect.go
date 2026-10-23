@@ -195,10 +195,11 @@ type ProductServiceClient interface {
 	GetProduct(context.Context, *v1.GetProductRequest) (*v1.GetProductResponse, error)
 	// Lists products.
 	ListProducts(context.Context, *v1.ListProductsRequest) (*v1.ListProductsResponse, error)
-	// Updates a product; the type and the sold metric or add-on are
-	// immutable.
+	// Updates a product; the type and the sold metric are immutable, and
+	// the code and category are locked once a plan prices the product.
 	UpdateProduct(context.Context, *v1.UpdateProductRequest) (*v1.UpdateProductResponse, error)
-	// Deletes a product that no rate card prices.
+	// Deletes a product, with its filters and rate cards, that no plan
+	// prices.
 	DeleteProduct(context.Context, *v1.DeleteProductRequest) (*v1.DeleteProductResponse, error)
 	// Creates a filter of a metered product.
 	CreateProductFilter(context.Context, *v1.CreateProductFilterRequest) (*v1.CreateProductFilterResponse, error)
@@ -208,7 +209,8 @@ type ProductServiceClient interface {
 	ListProductFilters(context.Context, *v1.ListProductFiltersRequest) (*v1.ListProductFiltersResponse, error)
 	// Updates a product filter.
 	UpdateProductFilter(context.Context, *v1.UpdateProductFilterRequest) (*v1.UpdateProductFilterResponse, error)
-	// Deletes a product filter that no rate card prices.
+	// Deletes a product filter, with its rate cards, of a product no plan
+	// prices.
 	DeleteProductFilter(context.Context, *v1.DeleteProductFilterRequest) (*v1.DeleteProductFilterResponse, error)
 	// Creates a product category.
 	CreateProductCategory(context.Context, *v1.CreateProductCategoryRequest) (*v1.CreateProductCategoryResponse, error)
@@ -218,7 +220,8 @@ type ProductServiceClient interface {
 	ListProductCategories(context.Context, *v1.ListProductCategoriesRequest) (*v1.ListProductCategoriesResponse, error)
 	// Updates a product category.
 	UpdateProductCategory(context.Context, *v1.UpdateProductCategoryRequest) (*v1.UpdateProductCategoryResponse, error)
-	// Deletes a product category; its products become uncategorized.
+	// Deletes a product category with its products, unless a plan prices
+	// one of them.
 	DeleteProductCategory(context.Context, *v1.DeleteProductCategoryRequest) (*v1.DeleteProductCategoryResponse, error)
 }
 
@@ -236,10 +239,11 @@ type ProductServiceHandler interface {
 	GetProduct(context.Context, *v1.GetProductRequest) (*v1.GetProductResponse, error)
 	// Lists products.
 	ListProducts(context.Context, *v1.ListProductsRequest) (*v1.ListProductsResponse, error)
-	// Updates a product; the type and the sold metric or add-on are
-	// immutable.
+	// Updates a product; the type and the sold metric are immutable, and
+	// the code and category are locked once a plan prices the product.
 	UpdateProduct(context.Context, *v1.UpdateProductRequest) (*v1.UpdateProductResponse, error)
-	// Deletes a product that no rate card prices.
+	// Deletes a product, with its filters and rate cards, that no plan
+	// prices.
 	DeleteProduct(context.Context, *v1.DeleteProductRequest) (*v1.DeleteProductResponse, error)
 	// Creates a filter of a metered product.
 	CreateProductFilter(context.Context, *v1.CreateProductFilterRequest) (*v1.CreateProductFilterResponse, error)
@@ -249,7 +253,8 @@ type ProductServiceHandler interface {
 	ListProductFilters(context.Context, *v1.ListProductFiltersRequest) (*v1.ListProductFiltersResponse, error)
 	// Updates a product filter.
 	UpdateProductFilter(context.Context, *v1.UpdateProductFilterRequest) (*v1.UpdateProductFilterResponse, error)
-	// Deletes a product filter that no rate card prices.
+	// Deletes a product filter, with its rate cards, of a product no plan
+	// prices.
 	DeleteProductFilter(context.Context, *v1.DeleteProductFilterRequest) (*v1.DeleteProductFilterResponse, error)
 	// Creates a product category.
 	CreateProductCategory(context.Context, *v1.CreateProductCategoryRequest) (*v1.CreateProductCategoryResponse, error)
@@ -259,7 +264,8 @@ type ProductServiceHandler interface {
 	ListProductCategories(context.Context, *v1.ListProductCategoriesRequest) (*v1.ListProductCategoriesResponse, error)
 	// Updates a product category.
 	UpdateProductCategory(context.Context, *v1.UpdateProductCategoryRequest) (*v1.UpdateProductCategoryResponse, error)
-	// Deletes a product category; its products become uncategorized.
+	// Deletes a product category with its products, unless a plan prices
+	// one of them.
 	DeleteProductCategory(context.Context, *v1.DeleteProductCategoryRequest) (*v1.DeleteProductCategoryResponse, error)
 }
 

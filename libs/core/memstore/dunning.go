@@ -2,6 +2,7 @@ package memstore
 
 import (
 	"context"
+	"fmt"
 	"slices"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -86,8 +87,14 @@ func (r dunningCampaignRepo) GetByCode(_ context.Context, org core.OrganizationI
 }
 
 func (r dunningCampaignRepo) List(_ context.Context, org core.OrganizationID, f dunning.Filter, page core.PageRequest) (core.Page[*dunning.Campaign], error) {
+	if !f.Order.Valid() {
+		return core.Page[*dunning.Campaign]{}, fmt.Errorf("list dunning campaigns: %w: order", core.ErrInvalidValue)
+	}
 	rows := r.d.campaigns.find(func(x *dunning.Campaign) bool {
-		if x.OrganizationID != org || x.Deleted() {
+		if x.OrganizationID != org || x.Deleted() || !matchesNameOrCode(f.Search, x.Name, x.Code) {
+			return false
+		}
+		if f.Applied != nil && (x.ID == f.AppliedID) != *f.Applied {
 			return false
 		}
 		if len(f.Currencies) == 0 {
@@ -97,5 +104,8 @@ func (r dunningCampaignRepo) List(_ context.Context, org core.OrganizationID, f 
 			return slices.Contains(f.Currencies, t.Currency.Code())
 		})
 	})
+	if f.Order == core.OrderRecent {
+		return paginateByName(rows, func(x *dunning.Campaign) nameKey { return nameKey{x.Name, x.CreatedAt, x.ID.UUID()} }, page)
+	}
 	return paginate(rows, func(x *dunning.Campaign) core.DunningCampaignID { return x.ID }, page)
 }

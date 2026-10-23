@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -59,6 +60,7 @@ func alertOf(r db.Alert, ths []alert.Threshold) (*alert.Alert, error) {
 		LastProcessedAt:        optUTC(r.LastProcessedAt),
 		CreatedAt:              utc(r.CreatedAt),
 		UpdatedAt:              utc(r.UpdatedAt),
+		DeletedAt:              optUTC(r.DeletedAt),
 	}, nil
 }
 
@@ -273,13 +275,29 @@ func (r alertRepo) List(ctx context.Context, org core.OrganizationID, f alert.Fi
 	return core.Page[*alert.Alert]{Items: alerts}, nil
 }
 
-func (r alertRepo) Delete(ctx context.Context, org core.OrganizationID, id core.AlertID) error {
+func (r alertRepo) Discard(ctx context.Context, org core.OrganizationID, id core.AlertID, at time.Time) error {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return err
 	}
-	n, err := q.DeleteAlert(ctx, db.DeleteAlertParams{OrganizationID: org.UUID(), ID: id.UUID()})
+	if _, err := q.GetAlert(ctx, db.GetAlertParams{OrganizationID: org.UUID(), ID: id.UUID()}); err != nil {
+		return getErr("alert", id, err)
+	}
+	if err := q.DeleteAlertThresholds(ctx, db.DeleteAlertThresholdsParams{OrganizationID: org.UUID(), AlertID: id.UUID()}); err != nil {
+		return err
+	}
+	n, err := q.DiscardAlert(ctx, db.DiscardAlertParams{OrganizationID: org.UUID(), ID: id.UUID(), DeletedAt: new(at.UTC())})
 	return updateErr("alert", id, n, err)
+}
+
+func (r alertRepo) DiscardByBillableMetric(ctx context.Context, org core.OrganizationID, metric core.BillableMetricID, at time.Time) (int64, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return 0, err
+	}
+	return q.DiscardAlertsByBillableMetric(ctx, db.DiscardAlertsByBillableMetricParams{
+		OrganizationID: org.UUID(), BillableMetricID: new(metric.UUID()), DeletedAt: new(at.UTC()),
+	})
 }
 
 // triggeredAlertRepo implements alert.TriggeredAlertRepository.

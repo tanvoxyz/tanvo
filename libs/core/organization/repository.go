@@ -2,6 +2,7 @@ package organization
 
 import (
 	"context"
+	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 )
@@ -18,6 +19,10 @@ type Repository interface {
 	// GetBySlug returns the organization with that slug, or
 	// core.ErrNotFound.
 	GetBySlug(ctx context.Context, slug string) (*Organization, error)
+	// WithWork returns, in ascending order, the organizations with due
+	// work w at the instant at ([Work]); an undeclared w or a zero at
+	// fails with core.ErrInvalidValue ([CheckWork]).
+	WithWork(ctx context.Context, w Work, at time.Time) ([]core.OrganizationID, error)
 }
 
 // BillingEntityFilter narrows [BillingEntityRepository.List].

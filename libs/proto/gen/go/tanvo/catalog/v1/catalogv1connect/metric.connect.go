@@ -91,10 +91,9 @@ var (
 	})
 	billableMetricServiceEvaluateExpressionSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
-			StreamType:       connect.StreamTypeUnary,
-			Schema:           v1.File_tanvo_catalog_v1_metric_proto.Services().ByName("BillableMetricService").Methods().ByName("EvaluateExpression"),
-			Procedure:        BillableMetricServiceEvaluateExpressionProcedure,
-			IdempotencyLevel: connect.IdempotencyNoSideEffects,
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_catalog_v1_metric_proto.Services().ByName("BillableMetricService").Methods().ByName("EvaluateExpression"),
+			Procedure:  BillableMetricServiceEvaluateExpressionProcedure,
 		}
 	})
 )
@@ -111,11 +110,14 @@ type BillableMetricServiceClient interface {
 	// description and filters may change; removing a filter value trims the
 	// charge filters that use it.
 	UpdateBillableMetric(context.Context, *v1.UpdateBillableMetricRequest) (*v1.UpdateBillableMetricResponse, error)
-	// Deletes a billable metric: removes its charges and alerts, refreshes
-	// draft invoices and deletes its events.
+	// Deletes a billable metric: the metric is soft-deleted (history still
+	// names it and its code is free again), its charges and alerts are
+	// removed and the draft invoices billing it are refreshed. Its events
+	// are kept.
 	DeleteBillableMetric(context.Context, *v1.DeleteBillableMetricRequest) (*v1.DeleteBillableMetricResponse, error)
 	// Evaluates an expression against a sample event, to test it before
-	// saving a metric.
+	// saving a metric. It changes nothing, but needs write access to
+	// billable metrics, like creating one.
 	EvaluateExpression(context.Context, *v1.EvaluateExpressionRequest) (*v1.EvaluateExpressionResponse, error)
 }
 
@@ -138,11 +140,14 @@ type BillableMetricServiceHandler interface {
 	// description and filters may change; removing a filter value trims the
 	// charge filters that use it.
 	UpdateBillableMetric(context.Context, *v1.UpdateBillableMetricRequest) (*v1.UpdateBillableMetricResponse, error)
-	// Deletes a billable metric: removes its charges and alerts, refreshes
-	// draft invoices and deletes its events.
+	// Deletes a billable metric: the metric is soft-deleted (history still
+	// names it and its code is free again), its charges and alerts are
+	// removed and the draft invoices billing it are refreshed. Its events
+	// are kept.
 	DeleteBillableMetric(context.Context, *v1.DeleteBillableMetricRequest) (*v1.DeleteBillableMetricResponse, error)
 	// Evaluates an expression against a sample event, to test it before
-	// saving a metric.
+	// saving a metric. It changes nothing, but needs write access to
+	// billable metrics, like creating one.
 	EvaluateExpression(context.Context, *v1.EvaluateExpressionRequest) (*v1.EvaluateExpressionResponse, error)
 }
 

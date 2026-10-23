@@ -76,6 +76,59 @@ func (x BillingTiming) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
+// RateStatus is where a rate stands on its card's timeline.
+type RateStatus int32
+
+const (
+	// Not set.
+	RateStatus_RATE_STATUS_UNSPECIFIED RateStatus = 0
+	// Takes effect later; fully editable and deletable.
+	RateStatus_RATE_STATUS_PENDING RateStatus = 1
+	// In effect: the latest rate whose effective date has passed; only its
+	// prices change.
+	RateStatus_RATE_STATUS_ACTIVE RateStatus = 2
+	// Superseded by a later rate in effect; frozen.
+	RateStatus_RATE_STATUS_TERMINATED RateStatus = 3
+)
+
+// Enum value maps for RateStatus.
+var (
+	RateStatus_name = map[int32]string{
+		0: "RATE_STATUS_UNSPECIFIED",
+		1: "RATE_STATUS_PENDING",
+		2: "RATE_STATUS_ACTIVE",
+		3: "RATE_STATUS_TERMINATED",
+	}
+	RateStatus_value = map[string]int32{
+		"RATE_STATUS_UNSPECIFIED": 0,
+		"RATE_STATUS_PENDING":     1,
+		"RATE_STATUS_ACTIVE":      2,
+		"RATE_STATUS_TERMINATED":  3,
+	}
+)
+
+func (x RateStatus) Enum() *RateStatus {
+	p := new(RateStatus)
+	*p = x
+	return p
+}
+
+func (x RateStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (RateStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_tanvo_catalog_v1_rate_card_proto_enumTypes[1].Descriptor()
+}
+
+func (RateStatus) Type() protoreflect.EnumType {
+	return &file_tanvo_catalog_v1_rate_card_proto_enumTypes[1]
+}
+
+func (x RateStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
 // IntervalUnit is the unit of a rate's billing interval.
 type IntervalUnit int32
 
@@ -121,11 +174,11 @@ func (x IntervalUnit) String() string {
 }
 
 func (IntervalUnit) Descriptor() protoreflect.EnumDescriptor {
-	return file_tanvo_catalog_v1_rate_card_proto_enumTypes[1].Descriptor()
+	return file_tanvo_catalog_v1_rate_card_proto_enumTypes[2].Descriptor()
 }
 
 func (IntervalUnit) Type() protoreflect.EnumType {
-	return &file_tanvo_catalog_v1_rate_card_proto_enumTypes[1]
+	return &file_tanvo_catalog_v1_rate_card_proto_enumTypes[2]
 }
 
 func (x IntervalUnit) Number() protoreflect.EnumNumber {
@@ -256,6 +309,7 @@ type Rate struct {
 	xxx_hidden_PricingUnitConversionRate *string                `protobuf:"bytes,8,opt,name=pricing_unit_conversion_rate,json=pricingUnitConversionRate"`
 	xxx_hidden_CreatedAt                 *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt                 *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_Status                    RateStatus             `protobuf:"varint,11,opt,name=status,enum=tanvo.catalog.v1.RateStatus"`
 	XXX_raceDetectHookData               protoimpl.RaceDetectHookData
 	XXX_presence                         [1]uint32
 	unknownFields                        protoimpl.UnknownFields
@@ -371,14 +425,23 @@ func (x *Rate) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Rate) GetStatus() RateStatus {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 10) {
+			return x.xxx_hidden_Status
+		}
+	}
+	return RateStatus_RATE_STATUS_UNSPECIFIED
+}
+
 func (x *Rate) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 11)
 }
 
 func (x *Rate) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 11)
 }
 
 func (x *Rate) SetEffectiveFrom(v *timestamppb.Timestamp) {
@@ -387,7 +450,7 @@ func (x *Rate) SetEffectiveFrom(v *timestamppb.Timestamp) {
 
 func (x *Rate) SetRateModel(v ChargeModel) {
 	x.xxx_hidden_RateModel = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 11)
 }
 
 func (x *Rate) SetProperties(v *ChargeProperties) {
@@ -396,7 +459,7 @@ func (x *Rate) SetProperties(v *ChargeProperties) {
 
 func (x *Rate) SetMinAmount(v string) {
 	x.xxx_hidden_MinAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 11)
 }
 
 func (x *Rate) SetBillingInterval(v *BillingInterval) {
@@ -405,7 +468,7 @@ func (x *Rate) SetBillingInterval(v *BillingInterval) {
 
 func (x *Rate) SetPricingUnitConversionRate(v string) {
 	x.xxx_hidden_PricingUnitConversionRate = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 11)
 }
 
 func (x *Rate) SetCreatedAt(v *timestamppb.Timestamp) {
@@ -414,6 +477,11 @@ func (x *Rate) SetCreatedAt(v *timestamppb.Timestamp) {
 
 func (x *Rate) SetUpdatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_UpdatedAt = v
+}
+
+func (x *Rate) SetStatus(v RateStatus) {
+	x.xxx_hidden_Status = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 11)
 }
 
 func (x *Rate) HasId() bool {
@@ -486,6 +554,13 @@ func (x *Rate) HasUpdatedAt() bool {
 	return x.xxx_hidden_UpdatedAt != nil
 }
 
+func (x *Rate) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
+}
+
 func (x *Rate) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -531,6 +606,11 @@ func (x *Rate) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = nil
 }
 
+func (x *Rate) ClearStatus() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	x.xxx_hidden_Status = RateStatus_RATE_STATUS_UNSPECIFIED
+}
+
 type Rate_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -538,14 +618,16 @@ type Rate_builder struct {
 	Id *string
 	// The code, unique within the rate card.
 	Code *string
-	// When the rate takes effect.
+	// When the rate takes effect: not before today in the organization's
+	// time zone; at midnight UTC on an arrears rate card.
 	EffectiveFrom *timestamppb.Timestamp
 	// The pricing model; metered products accept every model, fixed
 	// products standard, graduated and volume.
 	RateModel *ChargeModel
 	// The prices; the set model matches rate_model.
 	Properties *ChargeProperties
-	// The minimum amount per billing interval.
+	// The minimum amount per billing interval, in the rate card's currency;
+	// arrears rate cards only.
 	MinAmount *string
 	// The billing interval.
 	BillingInterval *BillingInterval
@@ -555,6 +637,8 @@ type Rate_builder struct {
 	CreatedAt *timestamppb.Timestamp
 	// When the rate last changed.
 	UpdatedAt *timestamppb.Timestamp
+	// Where the rate stands on the timeline.
+	Status *RateStatus
 }
 
 func (b0 Rate_builder) Build() *Rate {
@@ -562,30 +646,34 @@ func (b0 Rate_builder) Build() *Rate {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 11)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 11)
 		x.xxx_hidden_Code = b.Code
 	}
 	x.xxx_hidden_EffectiveFrom = b.EffectiveFrom
 	if b.RateModel != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 11)
 		x.xxx_hidden_RateModel = *b.RateModel
 	}
 	x.xxx_hidden_Properties = b.Properties
 	if b.MinAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 11)
 		x.xxx_hidden_MinAmount = b.MinAmount
 	}
 	x.xxx_hidden_BillingInterval = b.BillingInterval
 	if b.PricingUnitConversionRate != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 11)
 		x.xxx_hidden_PricingUnitConversionRate = b.PricingUnitConversionRate
 	}
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
+	if b.Status != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 11)
+		x.xxx_hidden_Status = *b.Status
+	}
 	return m0
 }
 
@@ -605,9 +693,11 @@ type RateCard struct {
 	xxx_hidden_RegroupPaidFees  RegroupPaidFees        `protobuf:"varint,11,opt,name=regroup_paid_fees,json=regroupPaidFees,enum=tanvo.catalog.v1.RegroupPaidFees"`
 	xxx_hidden_PricingUnitId    *string                `protobuf:"bytes,12,opt,name=pricing_unit_id,json=pricingUnitId"`
 	xxx_hidden_Rates            *[]*Rate               `protobuf:"bytes,13,rep,name=rates"`
-	xxx_hidden_Locked           bool                   `protobuf:"varint,14,opt,name=locked"`
 	xxx_hidden_CreatedAt        *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt        *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_TaxIds           []string               `protobuf:"bytes,17,rep,name=tax_ids,json=taxIds"`
+	xxx_hidden_RatesCount       int32                  `protobuf:"varint,18,opt,name=rates_count,json=ratesCount"`
+	xxx_hidden_ActiveRate       *Rate                  `protobuf:"bytes,19,opt,name=active_rate,json=activeRate"`
 	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
 	XXX_presence                [1]uint32
 	unknownFields               protoimpl.UnknownFields
@@ -760,13 +850,6 @@ func (x *RateCard) GetRates() []*Rate {
 	return nil
 }
 
-func (x *RateCard) GetLocked() bool {
-	if x != nil {
-		return x.xxx_hidden_Locked
-	}
-	return false
-}
-
 func (x *RateCard) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_CreatedAt
@@ -781,73 +864,89 @@ func (x *RateCard) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *RateCard) GetTaxIds() []string {
+	if x != nil {
+		return x.xxx_hidden_TaxIds
+	}
+	return nil
+}
+
+func (x *RateCard) GetRatesCount() int32 {
+	if x != nil {
+		return x.xxx_hidden_RatesCount
+	}
+	return 0
+}
+
+func (x *RateCard) GetActiveRate() *Rate {
+	if x != nil {
+		return x.xxx_hidden_ActiveRate
+	}
+	return nil
+}
+
 func (x *RateCard) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 18)
 }
 
 func (x *RateCard) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 18)
 }
 
 func (x *RateCard) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 18)
 }
 
 func (x *RateCard) SetDescription(v string) {
 	x.xxx_hidden_Description = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 18)
 }
 
 func (x *RateCard) SetProductId(v string) {
 	x.xxx_hidden_ProductId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 18)
 }
 
 func (x *RateCard) SetProductFilterId(v string) {
 	x.xxx_hidden_ProductFilterId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 18)
 }
 
 func (x *RateCard) SetCurrency(v string) {
 	x.xxx_hidden_Currency = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 18)
 }
 
 func (x *RateCard) SetBillingTiming(v BillingTiming) {
 	x.xxx_hidden_BillingTiming = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 18)
 }
 
 func (x *RateCard) SetProration(v bool) {
 	x.xxx_hidden_Proration = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 18)
 }
 
 func (x *RateCard) SetDisplayOnInvoice(v bool) {
 	x.xxx_hidden_DisplayOnInvoice = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 18)
 }
 
 func (x *RateCard) SetRegroupPaidFees(v RegroupPaidFees) {
 	x.xxx_hidden_RegroupPaidFees = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 18)
 }
 
 func (x *RateCard) SetPricingUnitId(v string) {
 	x.xxx_hidden_PricingUnitId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 18)
 }
 
 func (x *RateCard) SetRates(v []*Rate) {
 	x.xxx_hidden_Rates = &v
-}
-
-func (x *RateCard) SetLocked(v bool) {
-	x.xxx_hidden_Locked = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 16)
 }
 
 func (x *RateCard) SetCreatedAt(v *timestamppb.Timestamp) {
@@ -856,6 +955,19 @@ func (x *RateCard) SetCreatedAt(v *timestamppb.Timestamp) {
 
 func (x *RateCard) SetUpdatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_UpdatedAt = v
+}
+
+func (x *RateCard) SetTaxIds(v []string) {
+	x.xxx_hidden_TaxIds = v
+}
+
+func (x *RateCard) SetRatesCount(v int32) {
+	x.xxx_hidden_RatesCount = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 18)
+}
+
+func (x *RateCard) SetActiveRate(v *Rate) {
+	x.xxx_hidden_ActiveRate = v
 }
 
 func (x *RateCard) HasId() bool {
@@ -942,13 +1054,6 @@ func (x *RateCard) HasPricingUnitId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
 }
 
-func (x *RateCard) HasLocked() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 13)
-}
-
 func (x *RateCard) HasCreatedAt() bool {
 	if x == nil {
 		return false
@@ -961,6 +1066,20 @@ func (x *RateCard) HasUpdatedAt() bool {
 		return false
 	}
 	return x.xxx_hidden_UpdatedAt != nil
+}
+
+func (x *RateCard) HasRatesCount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 16)
+}
+
+func (x *RateCard) HasActiveRate() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ActiveRate != nil
 }
 
 func (x *RateCard) ClearId() {
@@ -1023,17 +1142,21 @@ func (x *RateCard) ClearPricingUnitId() {
 	x.xxx_hidden_PricingUnitId = nil
 }
 
-func (x *RateCard) ClearLocked() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
-	x.xxx_hidden_Locked = false
-}
-
 func (x *RateCard) ClearCreatedAt() {
 	x.xxx_hidden_CreatedAt = nil
 }
 
 func (x *RateCard) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = nil
+}
+
+func (x *RateCard) ClearRatesCount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 16)
+	x.xxx_hidden_RatesCount = 0
+}
+
+func (x *RateCard) ClearActiveRate() {
+	x.xxx_hidden_ActiveRate = nil
 }
 
 type RateCard_builder struct {
@@ -1064,16 +1187,19 @@ type RateCard_builder struct {
 	RegroupPaidFees *RegroupPaidFees
 	// The pricing unit (ID or `code:<code>`) the rates are expressed in.
 	PricingUnitId *string
-	// The rates, by effective date; on create only, then managed with the
-	// rate RPCs.
+	// The first rates; on create only, then managed with the rate RPCs.
 	Rates []*Rate
-	// Marks rate cards a plan or contract uses, whose product, currency and
-	// billing timing are locked.
-	Locked *bool
 	// When the rate card was created.
 	CreatedAt *timestamppb.Timestamp
 	// When the rate card last changed.
 	UpdatedAt *timestamppb.Timestamp
+	// The taxes (IDs or `code:<code>`); on update, the set list replaces
+	// them and an empty one removes them.
+	TaxIds []string
+	// The number of rates.
+	RatesCount *int32
+	// The rate in effect; unset before the first rate takes effect.
+	ActiveRate *Rate
 }
 
 func (b0 RateCard_builder) Build() *RateCard {
@@ -1081,60 +1207,62 @@ func (b0 RateCard_builder) Build() *RateCard {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 18)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 18)
 		x.xxx_hidden_Code = b.Code
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 18)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Description != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 18)
 		x.xxx_hidden_Description = b.Description
 	}
 	if b.ProductId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 18)
 		x.xxx_hidden_ProductId = b.ProductId
 	}
 	if b.ProductFilterId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 18)
 		x.xxx_hidden_ProductFilterId = b.ProductFilterId
 	}
 	if b.Currency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 18)
 		x.xxx_hidden_Currency = b.Currency
 	}
 	if b.BillingTiming != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 18)
 		x.xxx_hidden_BillingTiming = *b.BillingTiming
 	}
 	if b.Proration != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 18)
 		x.xxx_hidden_Proration = *b.Proration
 	}
 	if b.DisplayOnInvoice != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 18)
 		x.xxx_hidden_DisplayOnInvoice = *b.DisplayOnInvoice
 	}
 	if b.RegroupPaidFees != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 18)
 		x.xxx_hidden_RegroupPaidFees = *b.RegroupPaidFees
 	}
 	if b.PricingUnitId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 18)
 		x.xxx_hidden_PricingUnitId = b.PricingUnitId
 	}
 	x.xxx_hidden_Rates = &b.Rates
-	if b.Locked != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 16)
-		x.xxx_hidden_Locked = *b.Locked
-	}
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
+	x.xxx_hidden_TaxIds = b.TaxIds
+	if b.RatesCount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 18)
+		x.xxx_hidden_RatesCount = *b.RatesCount
+	}
+	x.xxx_hidden_ActiveRate = b.ActiveRate
 	return m0
 }
 
@@ -1538,7 +1666,8 @@ type RatePhase_builder struct {
 	Code *string
 	// The display name.
 	Name *string
-	// The order of the phase, from 0.
+	// The place of the phase, from 1. On create, unset appends the phase
+	// (before an open-ended last phase when the new one is not).
 	Position *int32
 	// The number of billing interval cycles; unset only on the last phase.
 	BillingIntervalCycleCount *int32
@@ -1576,18 +1705,19 @@ func (b0 RatePhase_builder) Build() *RatePhase {
 
 // PlanRateCard applies a rate card to a plan.
 type PlanRateCard struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id          *string                `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_PlanId      *string                `protobuf:"bytes,2,opt,name=plan_id,json=planId"`
-	xxx_hidden_RateCardId  *string                `protobuf:"bytes,3,opt,name=rate_card_id,json=rateCardId"`
-	xxx_hidden_Units       *string                `protobuf:"bytes,4,opt,name=units"`
-	xxx_hidden_Phases      *[]*RatePhase          `protobuf:"bytes,5,rep,name=phases"`
-	xxx_hidden_CreatedAt   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt"`
-	xxx_hidden_UpdatedAt   *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id              *string                `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_PlanId          *string                `protobuf:"bytes,2,opt,name=plan_id,json=planId"`
+	xxx_hidden_RateCardId      *string                `protobuf:"bytes,3,opt,name=rate_card_id,json=rateCardId"`
+	xxx_hidden_Units           *string                `protobuf:"bytes,4,opt,name=units"`
+	xxx_hidden_RatePhases      *[]*RatePhase          `protobuf:"bytes,5,rep,name=rate_phases,json=ratePhases"`
+	xxx_hidden_CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt       *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_RatePhasesCount int32                  `protobuf:"varint,8,opt,name=rate_phases_count,json=ratePhasesCount"`
+	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
+	XXX_presence               [1]uint32
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *PlanRateCard) Reset() {
@@ -1655,10 +1785,10 @@ func (x *PlanRateCard) GetUnits() string {
 	return ""
 }
 
-func (x *PlanRateCard) GetPhases() []*RatePhase {
+func (x *PlanRateCard) GetRatePhases() []*RatePhase {
 	if x != nil {
-		if x.xxx_hidden_Phases != nil {
-			return *x.xxx_hidden_Phases
+		if x.xxx_hidden_RatePhases != nil {
+			return *x.xxx_hidden_RatePhases
 		}
 	}
 	return nil
@@ -1678,28 +1808,35 @@ func (x *PlanRateCard) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *PlanRateCard) GetRatePhasesCount() int32 {
+	if x != nil {
+		return x.xxx_hidden_RatePhasesCount
+	}
+	return 0
+}
+
 func (x *PlanRateCard) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
 }
 
 func (x *PlanRateCard) SetPlanId(v string) {
 	x.xxx_hidden_PlanId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
 }
 
 func (x *PlanRateCard) SetRateCardId(v string) {
 	x.xxx_hidden_RateCardId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
 }
 
 func (x *PlanRateCard) SetUnits(v string) {
 	x.xxx_hidden_Units = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
 }
 
-func (x *PlanRateCard) SetPhases(v []*RatePhase) {
-	x.xxx_hidden_Phases = &v
+func (x *PlanRateCard) SetRatePhases(v []*RatePhase) {
+	x.xxx_hidden_RatePhases = &v
 }
 
 func (x *PlanRateCard) SetCreatedAt(v *timestamppb.Timestamp) {
@@ -1708,6 +1845,11 @@ func (x *PlanRateCard) SetCreatedAt(v *timestamppb.Timestamp) {
 
 func (x *PlanRateCard) SetUpdatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_UpdatedAt = v
+}
+
+func (x *PlanRateCard) SetRatePhasesCount(v int32) {
+	x.xxx_hidden_RatePhasesCount = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
 }
 
 func (x *PlanRateCard) HasId() bool {
@@ -1752,6 +1894,13 @@ func (x *PlanRateCard) HasUpdatedAt() bool {
 	return x.xxx_hidden_UpdatedAt != nil
 }
 
+func (x *PlanRateCard) HasRatePhasesCount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
 func (x *PlanRateCard) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -1780,6 +1929,11 @@ func (x *PlanRateCard) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = nil
 }
 
+func (x *PlanRateCard) ClearRatePhasesCount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_RatePhasesCount = 0
+}
+
 type PlanRateCard_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1791,12 +1945,16 @@ type PlanRateCard_builder struct {
 	RateCardId *string
 	// The number of units, for fixed products.
 	Units *string
-	// The phases, by position; empty bills the rate card's rates throughout.
-	Phases []*RatePhase
+	// The phases, by position: positions 1 to n, only the last one
+	// open-ended. Unset on create starts on a single open-ended phase coded
+	// `default`. Set on create, then managed with the rate phase RPCs.
+	RatePhases []*RatePhase
 	// When the plan rate card was created.
 	CreatedAt *timestamppb.Timestamp
 	// When the plan rate card last changed.
 	UpdatedAt *timestamppb.Timestamp
+	// The number of phases.
+	RatePhasesCount *int32
 }
 
 func (b0 PlanRateCard_builder) Build() *PlanRateCard {
@@ -1804,24 +1962,28 @@ func (b0 PlanRateCard_builder) Build() *PlanRateCard {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.PlanId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
 		x.xxx_hidden_PlanId = b.PlanId
 	}
 	if b.RateCardId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
 		x.xxx_hidden_RateCardId = b.RateCardId
 	}
 	if b.Units != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
 		x.xxx_hidden_Units = b.Units
 	}
-	x.xxx_hidden_Phases = &b.Phases
+	x.xxx_hidden_RatePhases = &b.RatePhases
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
+	if b.RatePhasesCount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		x.xxx_hidden_RatePhasesCount = *b.RatePhasesCount
+	}
 	return m0
 }
 
@@ -2265,8 +2427,8 @@ type ListRateCardsRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `product_id`, `product_filter_id`, `currency`
-	// and `billing_timing`.
+	// An AIP-160 filter over `product_id`, `product_filter_id`,
+	// `product_category_id` and `without_product_category` (a boolean).
 	Filter *string
 	// A search over the name and code.
 	Search *string
@@ -2641,9 +2803,10 @@ func (b0 DeleteRateCardRequest_builder) Build() *DeleteRateCardRequest {
 
 // DeleteRateCardResponse is the response of RateCardService.DeleteRateCard.
 type DeleteRateCardResponse struct {
-	state         protoimpl.MessageState `protogen:"opaque.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RateCard *RateCard              `protobuf:"bytes,1,opt,name=rate_card,json=rateCard"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
 }
 
 func (x *DeleteRateCardResponse) Reset() {
@@ -2671,15 +2834,40 @@ func (x *DeleteRateCardResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+func (x *DeleteRateCardResponse) GetRateCard() *RateCard {
+	if x != nil {
+		return x.xxx_hidden_RateCard
+	}
+	return nil
+}
+
+func (x *DeleteRateCardResponse) SetRateCard(v *RateCard) {
+	x.xxx_hidden_RateCard = v
+}
+
+func (x *DeleteRateCardResponse) HasRateCard() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_RateCard != nil
+}
+
+func (x *DeleteRateCardResponse) ClearRateCard() {
+	x.xxx_hidden_RateCard = nil
+}
+
 type DeleteRateCardResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// The deleted rate card.
+	RateCard *RateCard
 }
 
 func (b0 DeleteRateCardResponse_builder) Build() *DeleteRateCardResponse {
 	m0 := &DeleteRateCardResponse{}
 	b, x := &b0, m0
 	_, _ = b, x
+	x.xxx_hidden_RateCard = b.RateCard
 	return m0
 }
 
@@ -3603,9 +3791,10 @@ func (b0 DeleteRateRequest_builder) Build() *DeleteRateRequest {
 
 // DeleteRateResponse is the response of RateCardService.DeleteRate.
 type DeleteRateResponse struct {
-	state         protoimpl.MessageState `protogen:"opaque.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Rate *Rate                  `protobuf:"bytes,1,opt,name=rate"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *DeleteRateResponse) Reset() {
@@ -3633,15 +3822,40 @@ func (x *DeleteRateResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+func (x *DeleteRateResponse) GetRate() *Rate {
+	if x != nil {
+		return x.xxx_hidden_Rate
+	}
+	return nil
+}
+
+func (x *DeleteRateResponse) SetRate(v *Rate) {
+	x.xxx_hidden_Rate = v
+}
+
+func (x *DeleteRateResponse) HasRate() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Rate != nil
+}
+
+func (x *DeleteRateResponse) ClearRate() {
+	x.xxx_hidden_Rate = nil
+}
+
 type DeleteRateResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// The deleted rate.
+	Rate *Rate
 }
 
 func (b0 DeleteRateResponse_builder) Build() *DeleteRateResponse {
 	m0 := &DeleteRateResponse{}
 	b, x := &b0, m0
 	_, _ = b, x
+	x.xxx_hidden_Rate = b.Rate
 	return m0
 }
 
@@ -4362,7 +4576,7 @@ type UpdatePlanRateCardRequest_builder struct {
 	PlanId *string
 	// The new values; plan_rate_card.id selects the plan rate card.
 	PlanRateCard *PlanRateCard
-	// The fields to update; empty updates every field that is set.
+	// The fields to update; units is editable.
 	UpdateMask *fieldmaskpb.FieldMask
 }
 
@@ -4565,9 +4779,10 @@ func (b0 DeletePlanRateCardRequest_builder) Build() *DeletePlanRateCardRequest {
 
 // DeletePlanRateCardResponse is the response of PlanRateCardService.DeletePlanRateCard.
 type DeletePlanRateCardResponse struct {
-	state         protoimpl.MessageState `protogen:"opaque.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PlanRateCard *PlanRateCard          `protobuf:"bytes,1,opt,name=plan_rate_card,json=planRateCard"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *DeletePlanRateCardResponse) Reset() {
@@ -4595,15 +4810,880 @@ func (x *DeletePlanRateCardResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+func (x *DeletePlanRateCardResponse) GetPlanRateCard() *PlanRateCard {
+	if x != nil {
+		return x.xxx_hidden_PlanRateCard
+	}
+	return nil
+}
+
+func (x *DeletePlanRateCardResponse) SetPlanRateCard(v *PlanRateCard) {
+	x.xxx_hidden_PlanRateCard = v
+}
+
+func (x *DeletePlanRateCardResponse) HasPlanRateCard() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_PlanRateCard != nil
+}
+
+func (x *DeletePlanRateCardResponse) ClearPlanRateCard() {
+	x.xxx_hidden_PlanRateCard = nil
+}
+
 type DeletePlanRateCardResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// The deleted plan rate card.
+	PlanRateCard *PlanRateCard
 }
 
 func (b0 DeletePlanRateCardResponse_builder) Build() *DeletePlanRateCardResponse {
 	m0 := &DeletePlanRateCardResponse{}
 	b, x := &b0, m0
 	_, _ = b, x
+	x.xxx_hidden_PlanRateCard = b.PlanRateCard
+	return m0
+}
+
+// ListRatePhasesRequest is the request of PlanRateCardService.ListRatePhases.
+type ListRatePhasesRequest struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PlanId         *string                `protobuf:"bytes,1,opt,name=plan_id,json=planId"`
+	xxx_hidden_PlanRateCardId *string                `protobuf:"bytes,2,opt,name=plan_rate_card_id,json=planRateCardId"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *ListRatePhasesRequest) Reset() {
+	*x = ListRatePhasesRequest{}
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRatePhasesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRatePhasesRequest) ProtoMessage() {}
+
+func (x *ListRatePhasesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ListRatePhasesRequest) GetPlanId() string {
+	if x != nil {
+		if x.xxx_hidden_PlanId != nil {
+			return *x.xxx_hidden_PlanId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ListRatePhasesRequest) GetPlanRateCardId() string {
+	if x != nil {
+		if x.xxx_hidden_PlanRateCardId != nil {
+			return *x.xxx_hidden_PlanRateCardId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ListRatePhasesRequest) SetPlanId(v string) {
+	x.xxx_hidden_PlanId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *ListRatePhasesRequest) SetPlanRateCardId(v string) {
+	x.xxx_hidden_PlanRateCardId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ListRatePhasesRequest) HasPlanId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListRatePhasesRequest) HasPlanRateCardId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListRatePhasesRequest) ClearPlanId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_PlanId = nil
+}
+
+func (x *ListRatePhasesRequest) ClearPlanRateCardId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_PlanRateCardId = nil
+}
+
+type ListRatePhasesRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The plan's ID or `code:<code>`.
+	PlanId *string
+	// The plan rate card's ID, or `code:<code>` of its rate card.
+	PlanRateCardId *string
+}
+
+func (b0 ListRatePhasesRequest_builder) Build() *ListRatePhasesRequest {
+	m0 := &ListRatePhasesRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.PlanId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_PlanId = b.PlanId
+	}
+	if b.PlanRateCardId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_PlanRateCardId = b.PlanRateCardId
+	}
+	return m0
+}
+
+// ListRatePhasesResponse is the response of PlanRateCardService.ListRatePhases.
+type ListRatePhasesResponse struct {
+	state                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RatePhases *[]*RatePhase          `protobuf:"bytes,1,rep,name=rate_phases,json=ratePhases"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *ListRatePhasesResponse) Reset() {
+	*x = ListRatePhasesResponse{}
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRatePhasesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRatePhasesResponse) ProtoMessage() {}
+
+func (x *ListRatePhasesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ListRatePhasesResponse) GetRatePhases() []*RatePhase {
+	if x != nil {
+		if x.xxx_hidden_RatePhases != nil {
+			return *x.xxx_hidden_RatePhases
+		}
+	}
+	return nil
+}
+
+func (x *ListRatePhasesResponse) SetRatePhases(v []*RatePhase) {
+	x.xxx_hidden_RatePhases = &v
+}
+
+type ListRatePhasesResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The phases, by position.
+	RatePhases []*RatePhase
+}
+
+func (b0 ListRatePhasesResponse_builder) Build() *ListRatePhasesResponse {
+	m0 := &ListRatePhasesResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_RatePhases = &b.RatePhases
+	return m0
+}
+
+// CreateRatePhaseRequest is the request of PlanRateCardService.CreateRatePhase.
+type CreateRatePhaseRequest struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PlanId         *string                `protobuf:"bytes,1,opt,name=plan_id,json=planId"`
+	xxx_hidden_PlanRateCardId *string                `protobuf:"bytes,2,opt,name=plan_rate_card_id,json=planRateCardId"`
+	xxx_hidden_RatePhase      *RatePhase             `protobuf:"bytes,3,opt,name=rate_phase,json=ratePhase"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *CreateRatePhaseRequest) Reset() {
+	*x = CreateRatePhaseRequest{}
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateRatePhaseRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateRatePhaseRequest) ProtoMessage() {}
+
+func (x *CreateRatePhaseRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CreateRatePhaseRequest) GetPlanId() string {
+	if x != nil {
+		if x.xxx_hidden_PlanId != nil {
+			return *x.xxx_hidden_PlanId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreateRatePhaseRequest) GetPlanRateCardId() string {
+	if x != nil {
+		if x.xxx_hidden_PlanRateCardId != nil {
+			return *x.xxx_hidden_PlanRateCardId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreateRatePhaseRequest) GetRatePhase() *RatePhase {
+	if x != nil {
+		return x.xxx_hidden_RatePhase
+	}
+	return nil
+}
+
+func (x *CreateRatePhaseRequest) SetPlanId(v string) {
+	x.xxx_hidden_PlanId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *CreateRatePhaseRequest) SetPlanRateCardId(v string) {
+	x.xxx_hidden_PlanRateCardId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *CreateRatePhaseRequest) SetRatePhase(v *RatePhase) {
+	x.xxx_hidden_RatePhase = v
+}
+
+func (x *CreateRatePhaseRequest) HasPlanId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateRatePhaseRequest) HasPlanRateCardId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CreateRatePhaseRequest) HasRatePhase() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_RatePhase != nil
+}
+
+func (x *CreateRatePhaseRequest) ClearPlanId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_PlanId = nil
+}
+
+func (x *CreateRatePhaseRequest) ClearPlanRateCardId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_PlanRateCardId = nil
+}
+
+func (x *CreateRatePhaseRequest) ClearRatePhase() {
+	x.xxx_hidden_RatePhase = nil
+}
+
+type CreateRatePhaseRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The plan's ID or `code:<code>`.
+	PlanId *string
+	// The plan rate card's ID, or `code:<code>` of its rate card.
+	PlanRateCardId *string
+	// The phase to add.
+	RatePhase *RatePhase
+}
+
+func (b0 CreateRatePhaseRequest_builder) Build() *CreateRatePhaseRequest {
+	m0 := &CreateRatePhaseRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.PlanId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_PlanId = b.PlanId
+	}
+	if b.PlanRateCardId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_PlanRateCardId = b.PlanRateCardId
+	}
+	x.xxx_hidden_RatePhase = b.RatePhase
+	return m0
+}
+
+// CreateRatePhaseResponse is the response of PlanRateCardService.CreateRatePhase.
+type CreateRatePhaseResponse struct {
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RatePhase *RatePhase             `protobuf:"bytes,1,opt,name=rate_phase,json=ratePhase"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *CreateRatePhaseResponse) Reset() {
+	*x = CreateRatePhaseResponse{}
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateRatePhaseResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateRatePhaseResponse) ProtoMessage() {}
+
+func (x *CreateRatePhaseResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CreateRatePhaseResponse) GetRatePhase() *RatePhase {
+	if x != nil {
+		return x.xxx_hidden_RatePhase
+	}
+	return nil
+}
+
+func (x *CreateRatePhaseResponse) SetRatePhase(v *RatePhase) {
+	x.xxx_hidden_RatePhase = v
+}
+
+func (x *CreateRatePhaseResponse) HasRatePhase() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_RatePhase != nil
+}
+
+func (x *CreateRatePhaseResponse) ClearRatePhase() {
+	x.xxx_hidden_RatePhase = nil
+}
+
+type CreateRatePhaseResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The created phase.
+	RatePhase *RatePhase
+}
+
+func (b0 CreateRatePhaseResponse_builder) Build() *CreateRatePhaseResponse {
+	m0 := &CreateRatePhaseResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_RatePhase = b.RatePhase
+	return m0
+}
+
+// UpdateRatePhaseRequest is the request of PlanRateCardService.UpdateRatePhase.
+type UpdateRatePhaseRequest struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PlanId         *string                `protobuf:"bytes,1,opt,name=plan_id,json=planId"`
+	xxx_hidden_PlanRateCardId *string                `protobuf:"bytes,2,opt,name=plan_rate_card_id,json=planRateCardId"`
+	xxx_hidden_RatePhase      *RatePhase             `protobuf:"bytes,3,opt,name=rate_phase,json=ratePhase"`
+	xxx_hidden_UpdateMask     *fieldmaskpb.FieldMask `protobuf:"bytes,4,opt,name=update_mask,json=updateMask"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *UpdateRatePhaseRequest) Reset() {
+	*x = UpdateRatePhaseRequest{}
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateRatePhaseRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateRatePhaseRequest) ProtoMessage() {}
+
+func (x *UpdateRatePhaseRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *UpdateRatePhaseRequest) GetPlanId() string {
+	if x != nil {
+		if x.xxx_hidden_PlanId != nil {
+			return *x.xxx_hidden_PlanId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *UpdateRatePhaseRequest) GetPlanRateCardId() string {
+	if x != nil {
+		if x.xxx_hidden_PlanRateCardId != nil {
+			return *x.xxx_hidden_PlanRateCardId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *UpdateRatePhaseRequest) GetRatePhase() *RatePhase {
+	if x != nil {
+		return x.xxx_hidden_RatePhase
+	}
+	return nil
+}
+
+func (x *UpdateRatePhaseRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
+	if x != nil {
+		return x.xxx_hidden_UpdateMask
+	}
+	return nil
+}
+
+func (x *UpdateRatePhaseRequest) SetPlanId(v string) {
+	x.xxx_hidden_PlanId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *UpdateRatePhaseRequest) SetPlanRateCardId(v string) {
+	x.xxx_hidden_PlanRateCardId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *UpdateRatePhaseRequest) SetRatePhase(v *RatePhase) {
+	x.xxx_hidden_RatePhase = v
+}
+
+func (x *UpdateRatePhaseRequest) SetUpdateMask(v *fieldmaskpb.FieldMask) {
+	x.xxx_hidden_UpdateMask = v
+}
+
+func (x *UpdateRatePhaseRequest) HasPlanId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *UpdateRatePhaseRequest) HasPlanRateCardId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *UpdateRatePhaseRequest) HasRatePhase() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_RatePhase != nil
+}
+
+func (x *UpdateRatePhaseRequest) HasUpdateMask() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_UpdateMask != nil
+}
+
+func (x *UpdateRatePhaseRequest) ClearPlanId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_PlanId = nil
+}
+
+func (x *UpdateRatePhaseRequest) ClearPlanRateCardId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_PlanRateCardId = nil
+}
+
+func (x *UpdateRatePhaseRequest) ClearRatePhase() {
+	x.xxx_hidden_RatePhase = nil
+}
+
+func (x *UpdateRatePhaseRequest) ClearUpdateMask() {
+	x.xxx_hidden_UpdateMask = nil
+}
+
+type UpdateRatePhaseRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The plan's ID or `code:<code>`.
+	PlanId *string
+	// The plan rate card's ID, or `code:<code>` of its rate card.
+	PlanRateCardId *string
+	// The new values; rate_phase.id (an ID or `code:<code>`) selects the
+	// phase.
+	RatePhase *RatePhase
+	// The fields to update; empty updates every field that is set.
+	UpdateMask *fieldmaskpb.FieldMask
+}
+
+func (b0 UpdateRatePhaseRequest_builder) Build() *UpdateRatePhaseRequest {
+	m0 := &UpdateRatePhaseRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.PlanId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_PlanId = b.PlanId
+	}
+	if b.PlanRateCardId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_PlanRateCardId = b.PlanRateCardId
+	}
+	x.xxx_hidden_RatePhase = b.RatePhase
+	x.xxx_hidden_UpdateMask = b.UpdateMask
+	return m0
+}
+
+// UpdateRatePhaseResponse is the response of PlanRateCardService.UpdateRatePhase.
+type UpdateRatePhaseResponse struct {
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RatePhase *RatePhase             `protobuf:"bytes,1,opt,name=rate_phase,json=ratePhase"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *UpdateRatePhaseResponse) Reset() {
+	*x = UpdateRatePhaseResponse{}
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateRatePhaseResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateRatePhaseResponse) ProtoMessage() {}
+
+func (x *UpdateRatePhaseResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *UpdateRatePhaseResponse) GetRatePhase() *RatePhase {
+	if x != nil {
+		return x.xxx_hidden_RatePhase
+	}
+	return nil
+}
+
+func (x *UpdateRatePhaseResponse) SetRatePhase(v *RatePhase) {
+	x.xxx_hidden_RatePhase = v
+}
+
+func (x *UpdateRatePhaseResponse) HasRatePhase() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_RatePhase != nil
+}
+
+func (x *UpdateRatePhaseResponse) ClearRatePhase() {
+	x.xxx_hidden_RatePhase = nil
+}
+
+type UpdateRatePhaseResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The updated phase.
+	RatePhase *RatePhase
+}
+
+func (b0 UpdateRatePhaseResponse_builder) Build() *UpdateRatePhaseResponse {
+	m0 := &UpdateRatePhaseResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_RatePhase = b.RatePhase
+	return m0
+}
+
+// DeleteRatePhaseRequest is the request of PlanRateCardService.DeleteRatePhase.
+type DeleteRatePhaseRequest struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PlanId         *string                `protobuf:"bytes,1,opt,name=plan_id,json=planId"`
+	xxx_hidden_PlanRateCardId *string                `protobuf:"bytes,2,opt,name=plan_rate_card_id,json=planRateCardId"`
+	xxx_hidden_RatePhaseId    *string                `protobuf:"bytes,3,opt,name=rate_phase_id,json=ratePhaseId"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *DeleteRatePhaseRequest) Reset() {
+	*x = DeleteRatePhaseRequest{}
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteRatePhaseRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteRatePhaseRequest) ProtoMessage() {}
+
+func (x *DeleteRatePhaseRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeleteRatePhaseRequest) GetPlanId() string {
+	if x != nil {
+		if x.xxx_hidden_PlanId != nil {
+			return *x.xxx_hidden_PlanId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeleteRatePhaseRequest) GetPlanRateCardId() string {
+	if x != nil {
+		if x.xxx_hidden_PlanRateCardId != nil {
+			return *x.xxx_hidden_PlanRateCardId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeleteRatePhaseRequest) GetRatePhaseId() string {
+	if x != nil {
+		if x.xxx_hidden_RatePhaseId != nil {
+			return *x.xxx_hidden_RatePhaseId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeleteRatePhaseRequest) SetPlanId(v string) {
+	x.xxx_hidden_PlanId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *DeleteRatePhaseRequest) SetPlanRateCardId(v string) {
+	x.xxx_hidden_PlanRateCardId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *DeleteRatePhaseRequest) SetRatePhaseId(v string) {
+	x.xxx_hidden_RatePhaseId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *DeleteRatePhaseRequest) HasPlanId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteRatePhaseRequest) HasPlanRateCardId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *DeleteRatePhaseRequest) HasRatePhaseId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *DeleteRatePhaseRequest) ClearPlanId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_PlanId = nil
+}
+
+func (x *DeleteRatePhaseRequest) ClearPlanRateCardId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_PlanRateCardId = nil
+}
+
+func (x *DeleteRatePhaseRequest) ClearRatePhaseId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_RatePhaseId = nil
+}
+
+type DeleteRatePhaseRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The plan's ID or `code:<code>`.
+	PlanId *string
+	// The plan rate card's ID, or `code:<code>` of its rate card.
+	PlanRateCardId *string
+	// The phase's ID or `code:<code>`.
+	RatePhaseId *string
+}
+
+func (b0 DeleteRatePhaseRequest_builder) Build() *DeleteRatePhaseRequest {
+	m0 := &DeleteRatePhaseRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.PlanId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_PlanId = b.PlanId
+	}
+	if b.PlanRateCardId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_PlanRateCardId = b.PlanRateCardId
+	}
+	if b.RatePhaseId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_RatePhaseId = b.RatePhaseId
+	}
+	return m0
+}
+
+// DeleteRatePhaseResponse is the response of PlanRateCardService.DeleteRatePhase.
+type DeleteRatePhaseResponse struct {
+	state                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_RatePhase *RatePhase             `protobuf:"bytes,1,opt,name=rate_phase,json=ratePhase"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
+}
+
+func (x *DeleteRatePhaseResponse) Reset() {
+	*x = DeleteRatePhaseResponse{}
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteRatePhaseResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteRatePhaseResponse) ProtoMessage() {}
+
+func (x *DeleteRatePhaseResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_rate_card_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeleteRatePhaseResponse) GetRatePhase() *RatePhase {
+	if x != nil {
+		return x.xxx_hidden_RatePhase
+	}
+	return nil
+}
+
+func (x *DeleteRatePhaseResponse) SetRatePhase(v *RatePhase) {
+	x.xxx_hidden_RatePhase = v
+}
+
+func (x *DeleteRatePhaseResponse) HasRatePhase() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_RatePhase != nil
+}
+
+func (x *DeleteRatePhaseResponse) ClearRatePhase() {
+	x.xxx_hidden_RatePhase = nil
+}
+
+type DeleteRatePhaseResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The deleted rate phase.
+	RatePhase *RatePhase
+}
+
+func (b0 DeleteRatePhaseResponse_builder) Build() *DeleteRatePhaseResponse {
+	m0 := &DeleteRatePhaseResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_RatePhase = b.RatePhase
 	return m0
 }
 
@@ -4614,11 +5694,10 @@ const file_tanvo_catalog_v1_rate_card_proto_rawDesc = "" +
 	" tanvo/catalog/v1/rate_card.proto\x12\x10tanvo.catalog.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/catalog/v1/charge.proto\x1a\x1dtanvo/common/v1/options.proto\"{\n" +
 	"\x0fBillingInterval\x12$\n" +
 	"\x05count\x18\x01 \x01(\x05B\x0e\xe2A\x01\x02\xbaH\a\x1a\x05\x18\xe8\a(\x01R\x05count\x12B\n" +
-	"\x04unit\x18\x02 \x01(\x0e2\x1e.tanvo.catalog.v1.IntervalUnitB\x0e\xe2A\x01\x02\xbaH\a\x82\x01\x04\x10\x01 \x00R\x04unit\"\xe9\x04\n" +
+	"\x04unit\x18\x02 \x01(\x0e2\x1e.tanvo.catalog.v1.IntervalUnitB\x0e\xe2A\x01\x02\xbaH\a\x82\x01\x04\x10\x01 \x00R\x04unit\"\xa9\x05\n" +
 	"\x04Rate\x12\x14\n" +
-	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\x1e\n" +
-	"\x04code\x18\x02 \x01(\tB\n" +
-	"\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x04code\x12G\n" +
+	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\"\n" +
+	"\x04code\x18\x02 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x04code\x12G\n" +
 	"\x0eeffective_from\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x02R\reffectiveFrom\x12J\n" +
 	"\n" +
 	"rate_model\x18\x04 \x01(\x0e2\x1d.tanvo.catalog.v1.ChargeModelB\f\xe2A\x01\x02\xbaH\x05\x82\x01\x02\x10\x01R\trateModel\x12H\n" +
@@ -4635,7 +5714,8 @@ const file_tanvo_catalog_v1_rate_card_proto_rawDesc = "" +
 	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
 	"updated_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\"\xf0\x06\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x12:\n" +
+	"\x06status\x18\v \x01(\x0e2\x1c.tanvo.catalog.v1.RateStatusB\x04\xe2A\x01\x03R\x06status\"\xf6\a\n" +
 	"\bRateCard\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\"\n" +
 	"\x04code\x18\x02 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x04code\x12\"\n" +
@@ -4652,14 +5732,18 @@ const file_tanvo_catalog_v1_rate_card_proto_rawDesc = "" +
 	" \x01(\bR\x10displayOnInvoice\x12W\n" +
 	"\x11regroup_paid_fees\x18\v \x01(\x0e2!.tanvo.catalog.v1.RegroupPaidFeesB\b\xbaH\x05\x82\x01\x02\x10\x01R\x0fregroupPaidFees\x122\n" +
 	"\x0fpricing_unit_id\x18\f \x01(\tB\n" +
-	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\rpricingUnitId\x126\n" +
-	"\x05rates\x18\r \x03(\v2\x16.tanvo.catalog.v1.RateB\b\xbaH\x05\x92\x01\x02\x10dR\x05rates\x12\x1c\n" +
-	"\x06locked\x18\x0e \x01(\bB\x04\xe2A\x01\x03R\x06locked\x12?\n" +
+	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\rpricingUnitId\x12:\n" +
+	"\x05rates\x18\r \x03(\v2\x16.tanvo.catalog.v1.RateB\f\xe2A\x01\x04\xbaH\x05\x92\x01\x02\x10dR\x05rates\x12?\n" +
 	"\n" +
 	"created_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:D\xeaAA\n" +
-	"\x12tanvo.xyz/RateCard\x12\x16rate_cards/{rate_card}*\trateCards2\brateCard\"\xea\x02\n" +
+	"updated_at\x18\x10 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x12*\n" +
+	"\atax_ids\x18\x11 \x03(\tB\x11\xbaH\x0e\x92\x01\v\x102\"\ar\x05\xe0\xa4\xca\x06\x01R\x06taxIds\x12%\n" +
+	"\vrates_count\x18\x12 \x01(\x05B\x04\xe2A\x01\x03R\n" +
+	"ratesCount\x12=\n" +
+	"\vactive_rate\x18\x13 \x01(\v2\x16.tanvo.catalog.v1.RateB\x04\xe2A\x01\x03R\n" +
+	"activeRate:D\xeaAA\n" +
+	"\x12tanvo.xyz/RateCard\x12\x16rate_cards/{rate_card}*\trateCards2\brateCardJ\x04\b\x0e\x10\x0fR\x06locked\"\xea\x02\n" +
 	"\fRateOverride\x12J\n" +
 	"\n" +
 	"rate_model\x18\x01 \x01(\x0e2\x1d.tanvo.catalog.v1.ChargeModelB\f\xe2A\x01\x02\xbaH\x05\x82\x01\x02\x10\x01R\trateModel\x12H\n" +
@@ -4671,26 +5755,28 @@ const file_tanvo_catalog_v1_rate_card_proto_rawDesc = "" +
 	"\xbaH\ar\x05Ф\xca\x06\x01R\tminAmount\x12L\n" +
 	"\x10billing_interval\x18\x04 \x01(\v2!.tanvo.catalog.v1.BillingIntervalR\x0fbillingInterval\x12K\n" +
 	"\x1cpricing_unit_conversion_rate\x18\x05 \x01(\tB\n" +
-	"\xbaH\ar\x05Ф\xca\x06\x01R\x19pricingUnitConversionRate\"\x9b\x02\n" +
+	"\xbaH\ar\x05Ф\xca\x06\x01R\x19pricingUnitConversionRate\"\x8e\x02\n" +
 	"\tRatePhase\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\"\n" +
 	"\x04code\x18\x02 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x04code\x12\x1c\n" +
-	"\x04name\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x04name\x12'\n" +
-	"\bposition\x18\x04 \x01(\x05B\v\xe2A\x01\x02\xbaH\x04\x1a\x02(\x00R\bposition\x12H\n" +
+	"\x04name\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x04name\x12\x1a\n" +
+	"\bposition\x18\x04 \x01(\x05R\bposition\x12H\n" +
 	"\x1cbilling_interval_cycle_count\x18\x05 \x01(\x05B\a\xbaH\x04\x1a\x02(\x01R\x19billingIntervalCycleCount\x12C\n" +
-	"\rrate_override\x18\x06 \x01(\v2\x1e.tanvo.catalog.v1.RateOverrideR\frateOverride\"\xbd\x03\n" +
+	"\rrate_override\x18\x06 \x01(\v2\x1e.tanvo.catalog.v1.RateOverrideR\frateOverride\"\xf8\x03\n" +
 	"\fPlanRateCard\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\x1d\n" +
 	"\aplan_id\x18\x02 \x01(\tB\x04\xe2A\x01\x03R\x06planId\x121\n" +
 	"\frate_card_id\x18\x03 \x01(\tB\x0f\xe2A\x02\x02\x05\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\n" +
 	"rateCardId\x12 \n" +
 	"\x05units\x18\x04 \x01(\tB\n" +
-	"\xbaH\ar\x05Ф\xca\x06\x01R\x05units\x12=\n" +
-	"\x06phases\x18\x05 \x03(\v2\x1b.tanvo.catalog.v1.RatePhaseB\b\xbaH\x05\x92\x01\x02\x102R\x06phases\x12?\n" +
+	"\xbaH\ar\x05Ф\xca\x06\x01R\x05units\x12F\n" +
+	"\vrate_phases\x18\x05 \x03(\v2\x1b.tanvo.catalog.v1.RatePhaseB\b\xbaH\x05\x92\x01\x02\x102R\n" +
+	"ratePhases\x12?\n" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:b\xeaA_\n" +
+	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x120\n" +
+	"\x11rate_phases_count\x18\b \x01(\x05B\x04\xe2A\x01\x03R\x0fratePhasesCount:b\xeaA_\n" +
 	"\x16tanvo.xyz/PlanRateCard\x12(plans/{plan}/rate_cards/{plan_rate_card}*\rplanRateCards2\fplanRateCard\"\xa4\x02\n" +
 	"\x15CreateRateCardRequest\x12C\n" +
 	"\trate_card\x18\x01 \x01(\v2\x1a.tanvo.catalog.v1.RateCardB\n" +
@@ -4726,8 +5812,9 @@ const file_tanvo_catalog_v1_rate_card_proto_rawDesc = "" +
 	"\x15DeleteRateCardRequest\x123\n" +
 	"\frate_card_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\n" +
-	"rateCardId\"\x18\n" +
-	"\x16DeleteRateCardResponse\"\xdf\x02\n" +
+	"rateCardId\"Q\n" +
+	"\x16DeleteRateCardResponse\x127\n" +
+	"\trate_card\x18\x01 \x01(\v2\x1a.tanvo.catalog.v1.RateCardR\brateCard\"\xdf\x02\n" +
 	"\x11CreateRateRequest\x123\n" +
 	"\frate_card_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\n" +
@@ -4772,8 +5859,9 @@ const file_tanvo_catalog_v1_rate_card_proto_rawDesc = "" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\n" +
 	"rateCardId\x12*\n" +
 	"\arate_id\x18\x02 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x06rateId\"\x14\n" +
-	"\x12DeleteRateResponse\"\x8d\x02\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x06rateId\"@\n" +
+	"\x12DeleteRateResponse\x12*\n" +
+	"\x04rate\x18\x01 \x01(\v2\x16.tanvo.catalog.v1.RateR\x04rate\"\x8d\x02\n" +
 	"\x19CreatePlanRateCardRequest\x12*\n" +
 	"\aplan_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x06planId\x12P\n" +
@@ -4813,12 +5901,62 @@ const file_tanvo_catalog_v1_rate_card_proto_rawDesc = "" +
 	"\aplan_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x06planId\x12<\n" +
 	"\x11plan_rate_card_id\x18\x02 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0eplanRateCardId\"\x1c\n" +
-	"\x1aDeletePlanRateCardResponse*g\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0eplanRateCardId\"b\n" +
+	"\x1aDeletePlanRateCardResponse\x12D\n" +
+	"\x0eplan_rate_card\x18\x01 \x01(\v2\x1e.tanvo.catalog.v1.PlanRateCardR\fplanRateCard\"\x81\x01\n" +
+	"\x15ListRatePhasesRequest\x12*\n" +
+	"\aplan_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x06planId\x12<\n" +
+	"\x11plan_rate_card_id\x18\x02 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0eplanRateCardId\"V\n" +
+	"\x16ListRatePhasesResponse\x12<\n" +
+	"\vrate_phases\x18\x01 \x03(\v2\x1b.tanvo.catalog.v1.RatePhaseR\n" +
+	"ratePhases\"\xca\x01\n" +
+	"\x16CreateRatePhaseRequest\x12*\n" +
+	"\aplan_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x06planId\x12<\n" +
+	"\x11plan_rate_card_id\x18\x02 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0eplanRateCardId\x12F\n" +
+	"\n" +
+	"rate_phase\x18\x03 \x01(\v2\x1b.tanvo.catalog.v1.RatePhaseB\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\tratePhase\"U\n" +
+	"\x17CreateRatePhaseResponse\x12:\n" +
+	"\n" +
+	"rate_phase\x18\x01 \x01(\v2\x1b.tanvo.catalog.v1.RatePhaseR\tratePhase\"\xd1\x02\n" +
+	"\x16UpdateRatePhaseRequest\x12*\n" +
+	"\aplan_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x06planId\x12<\n" +
+	"\x11plan_rate_card_id\x18\x02 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0eplanRateCardId\x12F\n" +
+	"\n" +
+	"rate_phase\x18\x03 \x01(\v2\x1b.tanvo.catalog.v1.RatePhaseB\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\tratePhase\x12;\n" +
+	"\vupdate_mask\x18\x04 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
+	"updateMask:H\xbaHE\x1aC\n" +
+	"\rrate_phase.id\x12\x19rate_phase.id is required\x1a\x17has(this.rate_phase.id)\"U\n" +
+	"\x17UpdateRatePhaseResponse\x12:\n" +
+	"\n" +
+	"rate_phase\x18\x01 \x01(\v2\x1b.tanvo.catalog.v1.RatePhaseR\tratePhase\"\xb9\x01\n" +
+	"\x16DeleteRatePhaseRequest\x12*\n" +
+	"\aplan_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x06planId\x12<\n" +
+	"\x11plan_rate_card_id\x18\x02 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0eplanRateCardId\x125\n" +
+	"\rrate_phase_id\x18\x03 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\vratePhaseId\"U\n" +
+	"\x17DeleteRatePhaseResponse\x12:\n" +
+	"\n" +
+	"rate_phase\x18\x01 \x01(\v2\x1b.tanvo.catalog.v1.RatePhaseR\tratePhase*g\n" +
 	"\rBillingTiming\x12\x1e\n" +
 	"\x1aBILLING_TIMING_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16BILLING_TIMING_ARREARS\x10\x01\x12\x1a\n" +
-	"\x16BILLING_TIMING_ADVANCE\x10\x02*\x8d\x01\n" +
+	"\x16BILLING_TIMING_ADVANCE\x10\x02*v\n" +
+	"\n" +
+	"RateStatus\x12\x1b\n" +
+	"\x17RATE_STATUS_UNSPECIFIED\x10\x00\x12\x17\n" +
+	"\x13RATE_STATUS_PENDING\x10\x01\x12\x16\n" +
+	"\x12RATE_STATUS_ACTIVE\x10\x02\x12\x1a\n" +
+	"\x16RATE_STATUS_TERMINATED\x10\x03*\x8d\x01\n" +
 	"\fIntervalUnit\x12\x1d\n" +
 	"\x19INTERVAL_UNIT_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11INTERVAL_UNIT_DAY\x10\x01\x12\x16\n" +
@@ -4848,7 +5986,7 @@ const file_tanvo_catalog_v1_rate_card_proto_rawDesc = "" +
 	"\x11rate_cards:update*\trate_card\x82\xd3\xe4\x93\x025:\x04rate2-/v1/rate_cards/{rate_card_id}/rates/{rate.id}\x12\xb0\x01\n" +
 	"\n" +
 	"DeleteRate\x12#.tanvo.catalog.v1.DeleteRateRequest\x1a$.tanvo.catalog.v1.DeleteRateResponse\"W\xca\xf3\x18\x1e\n" +
-	"\x11rate_cards:update*\trate_card\x82\xd3\xe4\x93\x02/*-/v1/rate_cards/{rate_card_id}/rates/{rate_id}2\x93\b\n" +
+	"\x11rate_cards:update*\trate_card\x82\xd3\xe4\x93\x02/*-/v1/rate_cards/{rate_card_id}/rates/{rate_id}2\x96\x0f\n" +
 	"\x13PlanRateCardService\x12\xc9\x01\n" +
 	"\x12CreatePlanRateCard\x12+.tanvo.catalog.v1.CreatePlanRateCardRequest\x1a,.tanvo.catalog.v1.CreatePlanRateCardResponse\"X\xca\xf3\x18\x1e\n" +
 	"\fplans:update*\x0eplan_rate_card\x82\xd3\xe4\x93\x020:\x0eplan_rate_card\"\x1e/v1/plans/{plan_id}/rate_cards\x12\xc5\x01\n" +
@@ -4861,132 +5999,172 @@ const file_tanvo_catalog_v1_rate_card_proto_rawDesc = "" +
 	"\x12UpdatePlanRateCard\x12+.tanvo.catalog.v1.UpdatePlanRateCardRequest\x1a,.tanvo.catalog.v1.UpdatePlanRateCardResponse\"l\xca\xf3\x18\x1e\n" +
 	"\fplans:update*\x0eplan_rate_card\x82\xd3\xe4\x93\x02D:\x0eplan_rate_card22/v1/plans/{plan_id}/rate_cards/{plan_rate_card.id}\x12\xcd\x01\n" +
 	"\x12DeletePlanRateCard\x12+.tanvo.catalog.v1.DeletePlanRateCardRequest\x1a,.tanvo.catalog.v1.DeletePlanRateCardResponse\"\\\xca\xf3\x18\x1e\n" +
-	"\fplans:update*\x0eplan_rate_card\x82\xd3\xe4\x93\x024*2/v1/plans/{plan_id}/rate_cards/{plan_rate_card_id}B\xcf\x01\n" +
+	"\fplans:update*\x0eplan_rate_card\x82\xd3\xe4\x93\x024*2/v1/plans/{plan_id}/rate_cards/{plan_rate_card_id}\x12\xce\x01\n" +
+	"\x0eListRatePhases\x12'.tanvo.catalog.v1.ListRatePhasesRequest\x1a(.tanvo.catalog.v1.ListRatePhasesResponse\"i\xca\xf3\x18\x1c\n" +
+	"\n" +
+	"plans:read*\x0eplan_rate_card\x82\xd3\xe4\x93\x02@\x12>/v1/plans/{plan_id}/rate_cards/{plan_rate_card_id}/rate_phases\x90\x02\x01\x12\xdc\x01\n" +
+	"\x0fCreateRatePhase\x12(.tanvo.catalog.v1.CreateRatePhaseRequest\x1a).tanvo.catalog.v1.CreateRatePhaseResponse\"t\xca\xf3\x18\x1e\n" +
+	"\fplans:update*\x0eplan_rate_card\x82\xd3\xe4\x93\x02L:\n" +
+	"rate_phase\">/v1/plans/{plan_id}/rate_cards/{plan_rate_card_id}/rate_phases\x12\xed\x01\n" +
+	"\x0fUpdateRatePhase\x12(.tanvo.catalog.v1.UpdateRatePhaseRequest\x1a).tanvo.catalog.v1.UpdateRatePhaseResponse\"\x84\x01\xca\xf3\x18\x1e\n" +
+	"\fplans:update*\x0eplan_rate_card\x82\xd3\xe4\x93\x02\\:\n" +
+	"rate_phase2N/v1/plans/{plan_id}/rate_cards/{plan_rate_card_id}/rate_phases/{rate_phase.id}\x12\xe0\x01\n" +
+	"\x0fDeleteRatePhase\x12(.tanvo.catalog.v1.DeleteRatePhaseRequest\x1a).tanvo.catalog.v1.DeleteRatePhaseResponse\"x\xca\xf3\x18\x1e\n" +
+	"\fplans:update*\x0eplan_rate_card\x82\xd3\xe4\x93\x02P*N/v1/plans/{plan_id}/rate_cards/{plan_rate_card_id}/rate_phases/{rate_phase_id}B\xcf\x01\n" +
 	"\x14com.tanvo.catalog.v1B\rRateCardProtoP\x01ZFgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/catalog/v1;catalogv1\xa2\x02\x03TCX\xaa\x02\x10Tanvo.Catalog.V1\xca\x02\x10Tanvo\\Catalog\\V1\xe2\x02\x1cTanvo\\Catalog\\V1\\GPBMetadata\xea\x02\x12Tanvo::Catalog::V1b\beditionsp\xe8\a"
 
-var file_tanvo_catalog_v1_rate_card_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_tanvo_catalog_v1_rate_card_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
+var file_tanvo_catalog_v1_rate_card_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_tanvo_catalog_v1_rate_card_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
 var file_tanvo_catalog_v1_rate_card_proto_goTypes = []any{
 	(BillingTiming)(0),                 // 0: tanvo.catalog.v1.BillingTiming
-	(IntervalUnit)(0),                  // 1: tanvo.catalog.v1.IntervalUnit
-	(*BillingInterval)(nil),            // 2: tanvo.catalog.v1.BillingInterval
-	(*Rate)(nil),                       // 3: tanvo.catalog.v1.Rate
-	(*RateCard)(nil),                   // 4: tanvo.catalog.v1.RateCard
-	(*RateOverride)(nil),               // 5: tanvo.catalog.v1.RateOverride
-	(*RatePhase)(nil),                  // 6: tanvo.catalog.v1.RatePhase
-	(*PlanRateCard)(nil),               // 7: tanvo.catalog.v1.PlanRateCard
-	(*CreateRateCardRequest)(nil),      // 8: tanvo.catalog.v1.CreateRateCardRequest
-	(*CreateRateCardResponse)(nil),     // 9: tanvo.catalog.v1.CreateRateCardResponse
-	(*GetRateCardRequest)(nil),         // 10: tanvo.catalog.v1.GetRateCardRequest
-	(*GetRateCardResponse)(nil),        // 11: tanvo.catalog.v1.GetRateCardResponse
-	(*ListRateCardsRequest)(nil),       // 12: tanvo.catalog.v1.ListRateCardsRequest
-	(*ListRateCardsResponse)(nil),      // 13: tanvo.catalog.v1.ListRateCardsResponse
-	(*UpdateRateCardRequest)(nil),      // 14: tanvo.catalog.v1.UpdateRateCardRequest
-	(*UpdateRateCardResponse)(nil),     // 15: tanvo.catalog.v1.UpdateRateCardResponse
-	(*DeleteRateCardRequest)(nil),      // 16: tanvo.catalog.v1.DeleteRateCardRequest
-	(*DeleteRateCardResponse)(nil),     // 17: tanvo.catalog.v1.DeleteRateCardResponse
-	(*CreateRateRequest)(nil),          // 18: tanvo.catalog.v1.CreateRateRequest
-	(*CreateRateResponse)(nil),         // 19: tanvo.catalog.v1.CreateRateResponse
-	(*GetRateRequest)(nil),             // 20: tanvo.catalog.v1.GetRateRequest
-	(*GetRateResponse)(nil),            // 21: tanvo.catalog.v1.GetRateResponse
-	(*ListRatesRequest)(nil),           // 22: tanvo.catalog.v1.ListRatesRequest
-	(*ListRatesResponse)(nil),          // 23: tanvo.catalog.v1.ListRatesResponse
-	(*UpdateRateRequest)(nil),          // 24: tanvo.catalog.v1.UpdateRateRequest
-	(*UpdateRateResponse)(nil),         // 25: tanvo.catalog.v1.UpdateRateResponse
-	(*DeleteRateRequest)(nil),          // 26: tanvo.catalog.v1.DeleteRateRequest
-	(*DeleteRateResponse)(nil),         // 27: tanvo.catalog.v1.DeleteRateResponse
-	(*CreatePlanRateCardRequest)(nil),  // 28: tanvo.catalog.v1.CreatePlanRateCardRequest
-	(*CreatePlanRateCardResponse)(nil), // 29: tanvo.catalog.v1.CreatePlanRateCardResponse
-	(*GetPlanRateCardRequest)(nil),     // 30: tanvo.catalog.v1.GetPlanRateCardRequest
-	(*GetPlanRateCardResponse)(nil),    // 31: tanvo.catalog.v1.GetPlanRateCardResponse
-	(*ListPlanRateCardsRequest)(nil),   // 32: tanvo.catalog.v1.ListPlanRateCardsRequest
-	(*ListPlanRateCardsResponse)(nil),  // 33: tanvo.catalog.v1.ListPlanRateCardsResponse
-	(*UpdatePlanRateCardRequest)(nil),  // 34: tanvo.catalog.v1.UpdatePlanRateCardRequest
-	(*UpdatePlanRateCardResponse)(nil), // 35: tanvo.catalog.v1.UpdatePlanRateCardResponse
-	(*DeletePlanRateCardRequest)(nil),  // 36: tanvo.catalog.v1.DeletePlanRateCardRequest
-	(*DeletePlanRateCardResponse)(nil), // 37: tanvo.catalog.v1.DeletePlanRateCardResponse
-	(*timestamppb.Timestamp)(nil),      // 38: google.protobuf.Timestamp
-	(ChargeModel)(0),                   // 39: tanvo.catalog.v1.ChargeModel
-	(*ChargeProperties)(nil),           // 40: tanvo.catalog.v1.ChargeProperties
-	(RegroupPaidFees)(0),               // 41: tanvo.catalog.v1.RegroupPaidFees
-	(*fieldmaskpb.FieldMask)(nil),      // 42: google.protobuf.FieldMask
+	(RateStatus)(0),                    // 1: tanvo.catalog.v1.RateStatus
+	(IntervalUnit)(0),                  // 2: tanvo.catalog.v1.IntervalUnit
+	(*BillingInterval)(nil),            // 3: tanvo.catalog.v1.BillingInterval
+	(*Rate)(nil),                       // 4: tanvo.catalog.v1.Rate
+	(*RateCard)(nil),                   // 5: tanvo.catalog.v1.RateCard
+	(*RateOverride)(nil),               // 6: tanvo.catalog.v1.RateOverride
+	(*RatePhase)(nil),                  // 7: tanvo.catalog.v1.RatePhase
+	(*PlanRateCard)(nil),               // 8: tanvo.catalog.v1.PlanRateCard
+	(*CreateRateCardRequest)(nil),      // 9: tanvo.catalog.v1.CreateRateCardRequest
+	(*CreateRateCardResponse)(nil),     // 10: tanvo.catalog.v1.CreateRateCardResponse
+	(*GetRateCardRequest)(nil),         // 11: tanvo.catalog.v1.GetRateCardRequest
+	(*GetRateCardResponse)(nil),        // 12: tanvo.catalog.v1.GetRateCardResponse
+	(*ListRateCardsRequest)(nil),       // 13: tanvo.catalog.v1.ListRateCardsRequest
+	(*ListRateCardsResponse)(nil),      // 14: tanvo.catalog.v1.ListRateCardsResponse
+	(*UpdateRateCardRequest)(nil),      // 15: tanvo.catalog.v1.UpdateRateCardRequest
+	(*UpdateRateCardResponse)(nil),     // 16: tanvo.catalog.v1.UpdateRateCardResponse
+	(*DeleteRateCardRequest)(nil),      // 17: tanvo.catalog.v1.DeleteRateCardRequest
+	(*DeleteRateCardResponse)(nil),     // 18: tanvo.catalog.v1.DeleteRateCardResponse
+	(*CreateRateRequest)(nil),          // 19: tanvo.catalog.v1.CreateRateRequest
+	(*CreateRateResponse)(nil),         // 20: tanvo.catalog.v1.CreateRateResponse
+	(*GetRateRequest)(nil),             // 21: tanvo.catalog.v1.GetRateRequest
+	(*GetRateResponse)(nil),            // 22: tanvo.catalog.v1.GetRateResponse
+	(*ListRatesRequest)(nil),           // 23: tanvo.catalog.v1.ListRatesRequest
+	(*ListRatesResponse)(nil),          // 24: tanvo.catalog.v1.ListRatesResponse
+	(*UpdateRateRequest)(nil),          // 25: tanvo.catalog.v1.UpdateRateRequest
+	(*UpdateRateResponse)(nil),         // 26: tanvo.catalog.v1.UpdateRateResponse
+	(*DeleteRateRequest)(nil),          // 27: tanvo.catalog.v1.DeleteRateRequest
+	(*DeleteRateResponse)(nil),         // 28: tanvo.catalog.v1.DeleteRateResponse
+	(*CreatePlanRateCardRequest)(nil),  // 29: tanvo.catalog.v1.CreatePlanRateCardRequest
+	(*CreatePlanRateCardResponse)(nil), // 30: tanvo.catalog.v1.CreatePlanRateCardResponse
+	(*GetPlanRateCardRequest)(nil),     // 31: tanvo.catalog.v1.GetPlanRateCardRequest
+	(*GetPlanRateCardResponse)(nil),    // 32: tanvo.catalog.v1.GetPlanRateCardResponse
+	(*ListPlanRateCardsRequest)(nil),   // 33: tanvo.catalog.v1.ListPlanRateCardsRequest
+	(*ListPlanRateCardsResponse)(nil),  // 34: tanvo.catalog.v1.ListPlanRateCardsResponse
+	(*UpdatePlanRateCardRequest)(nil),  // 35: tanvo.catalog.v1.UpdatePlanRateCardRequest
+	(*UpdatePlanRateCardResponse)(nil), // 36: tanvo.catalog.v1.UpdatePlanRateCardResponse
+	(*DeletePlanRateCardRequest)(nil),  // 37: tanvo.catalog.v1.DeletePlanRateCardRequest
+	(*DeletePlanRateCardResponse)(nil), // 38: tanvo.catalog.v1.DeletePlanRateCardResponse
+	(*ListRatePhasesRequest)(nil),      // 39: tanvo.catalog.v1.ListRatePhasesRequest
+	(*ListRatePhasesResponse)(nil),     // 40: tanvo.catalog.v1.ListRatePhasesResponse
+	(*CreateRatePhaseRequest)(nil),     // 41: tanvo.catalog.v1.CreateRatePhaseRequest
+	(*CreateRatePhaseResponse)(nil),    // 42: tanvo.catalog.v1.CreateRatePhaseResponse
+	(*UpdateRatePhaseRequest)(nil),     // 43: tanvo.catalog.v1.UpdateRatePhaseRequest
+	(*UpdateRatePhaseResponse)(nil),    // 44: tanvo.catalog.v1.UpdateRatePhaseResponse
+	(*DeleteRatePhaseRequest)(nil),     // 45: tanvo.catalog.v1.DeleteRatePhaseRequest
+	(*DeleteRatePhaseResponse)(nil),    // 46: tanvo.catalog.v1.DeleteRatePhaseResponse
+	(*timestamppb.Timestamp)(nil),      // 47: google.protobuf.Timestamp
+	(ChargeModel)(0),                   // 48: tanvo.catalog.v1.ChargeModel
+	(*ChargeProperties)(nil),           // 49: tanvo.catalog.v1.ChargeProperties
+	(RegroupPaidFees)(0),               // 50: tanvo.catalog.v1.RegroupPaidFees
+	(*fieldmaskpb.FieldMask)(nil),      // 51: google.protobuf.FieldMask
 }
 var file_tanvo_catalog_v1_rate_card_proto_depIdxs = []int32{
-	1,  // 0: tanvo.catalog.v1.BillingInterval.unit:type_name -> tanvo.catalog.v1.IntervalUnit
-	38, // 1: tanvo.catalog.v1.Rate.effective_from:type_name -> google.protobuf.Timestamp
-	39, // 2: tanvo.catalog.v1.Rate.rate_model:type_name -> tanvo.catalog.v1.ChargeModel
-	40, // 3: tanvo.catalog.v1.Rate.properties:type_name -> tanvo.catalog.v1.ChargeProperties
-	2,  // 4: tanvo.catalog.v1.Rate.billing_interval:type_name -> tanvo.catalog.v1.BillingInterval
-	38, // 5: tanvo.catalog.v1.Rate.created_at:type_name -> google.protobuf.Timestamp
-	38, // 6: tanvo.catalog.v1.Rate.updated_at:type_name -> google.protobuf.Timestamp
-	0,  // 7: tanvo.catalog.v1.RateCard.billing_timing:type_name -> tanvo.catalog.v1.BillingTiming
-	41, // 8: tanvo.catalog.v1.RateCard.regroup_paid_fees:type_name -> tanvo.catalog.v1.RegroupPaidFees
-	3,  // 9: tanvo.catalog.v1.RateCard.rates:type_name -> tanvo.catalog.v1.Rate
-	38, // 10: tanvo.catalog.v1.RateCard.created_at:type_name -> google.protobuf.Timestamp
-	38, // 11: tanvo.catalog.v1.RateCard.updated_at:type_name -> google.protobuf.Timestamp
-	39, // 12: tanvo.catalog.v1.RateOverride.rate_model:type_name -> tanvo.catalog.v1.ChargeModel
-	40, // 13: tanvo.catalog.v1.RateOverride.properties:type_name -> tanvo.catalog.v1.ChargeProperties
-	2,  // 14: tanvo.catalog.v1.RateOverride.billing_interval:type_name -> tanvo.catalog.v1.BillingInterval
-	5,  // 15: tanvo.catalog.v1.RatePhase.rate_override:type_name -> tanvo.catalog.v1.RateOverride
-	6,  // 16: tanvo.catalog.v1.PlanRateCard.phases:type_name -> tanvo.catalog.v1.RatePhase
-	38, // 17: tanvo.catalog.v1.PlanRateCard.created_at:type_name -> google.protobuf.Timestamp
-	38, // 18: tanvo.catalog.v1.PlanRateCard.updated_at:type_name -> google.protobuf.Timestamp
-	4,  // 19: tanvo.catalog.v1.CreateRateCardRequest.rate_card:type_name -> tanvo.catalog.v1.RateCard
-	4,  // 20: tanvo.catalog.v1.CreateRateCardResponse.rate_card:type_name -> tanvo.catalog.v1.RateCard
-	4,  // 21: tanvo.catalog.v1.GetRateCardResponse.rate_card:type_name -> tanvo.catalog.v1.RateCard
-	4,  // 22: tanvo.catalog.v1.ListRateCardsResponse.rate_cards:type_name -> tanvo.catalog.v1.RateCard
-	4,  // 23: tanvo.catalog.v1.UpdateRateCardRequest.rate_card:type_name -> tanvo.catalog.v1.RateCard
-	42, // 24: tanvo.catalog.v1.UpdateRateCardRequest.update_mask:type_name -> google.protobuf.FieldMask
-	4,  // 25: tanvo.catalog.v1.UpdateRateCardResponse.rate_card:type_name -> tanvo.catalog.v1.RateCard
-	3,  // 26: tanvo.catalog.v1.CreateRateRequest.rate:type_name -> tanvo.catalog.v1.Rate
-	3,  // 27: tanvo.catalog.v1.CreateRateResponse.rate:type_name -> tanvo.catalog.v1.Rate
-	3,  // 28: tanvo.catalog.v1.GetRateResponse.rate:type_name -> tanvo.catalog.v1.Rate
-	3,  // 29: tanvo.catalog.v1.ListRatesResponse.rates:type_name -> tanvo.catalog.v1.Rate
-	3,  // 30: tanvo.catalog.v1.UpdateRateRequest.rate:type_name -> tanvo.catalog.v1.Rate
-	42, // 31: tanvo.catalog.v1.UpdateRateRequest.update_mask:type_name -> google.protobuf.FieldMask
-	3,  // 32: tanvo.catalog.v1.UpdateRateResponse.rate:type_name -> tanvo.catalog.v1.Rate
-	7,  // 33: tanvo.catalog.v1.CreatePlanRateCardRequest.plan_rate_card:type_name -> tanvo.catalog.v1.PlanRateCard
-	7,  // 34: tanvo.catalog.v1.CreatePlanRateCardResponse.plan_rate_card:type_name -> tanvo.catalog.v1.PlanRateCard
-	7,  // 35: tanvo.catalog.v1.GetPlanRateCardResponse.plan_rate_card:type_name -> tanvo.catalog.v1.PlanRateCard
-	7,  // 36: tanvo.catalog.v1.ListPlanRateCardsResponse.plan_rate_cards:type_name -> tanvo.catalog.v1.PlanRateCard
-	7,  // 37: tanvo.catalog.v1.UpdatePlanRateCardRequest.plan_rate_card:type_name -> tanvo.catalog.v1.PlanRateCard
-	42, // 38: tanvo.catalog.v1.UpdatePlanRateCardRequest.update_mask:type_name -> google.protobuf.FieldMask
-	7,  // 39: tanvo.catalog.v1.UpdatePlanRateCardResponse.plan_rate_card:type_name -> tanvo.catalog.v1.PlanRateCard
-	8,  // 40: tanvo.catalog.v1.RateCardService.CreateRateCard:input_type -> tanvo.catalog.v1.CreateRateCardRequest
-	10, // 41: tanvo.catalog.v1.RateCardService.GetRateCard:input_type -> tanvo.catalog.v1.GetRateCardRequest
-	12, // 42: tanvo.catalog.v1.RateCardService.ListRateCards:input_type -> tanvo.catalog.v1.ListRateCardsRequest
-	14, // 43: tanvo.catalog.v1.RateCardService.UpdateRateCard:input_type -> tanvo.catalog.v1.UpdateRateCardRequest
-	16, // 44: tanvo.catalog.v1.RateCardService.DeleteRateCard:input_type -> tanvo.catalog.v1.DeleteRateCardRequest
-	18, // 45: tanvo.catalog.v1.RateCardService.CreateRate:input_type -> tanvo.catalog.v1.CreateRateRequest
-	20, // 46: tanvo.catalog.v1.RateCardService.GetRate:input_type -> tanvo.catalog.v1.GetRateRequest
-	22, // 47: tanvo.catalog.v1.RateCardService.ListRates:input_type -> tanvo.catalog.v1.ListRatesRequest
-	24, // 48: tanvo.catalog.v1.RateCardService.UpdateRate:input_type -> tanvo.catalog.v1.UpdateRateRequest
-	26, // 49: tanvo.catalog.v1.RateCardService.DeleteRate:input_type -> tanvo.catalog.v1.DeleteRateRequest
-	28, // 50: tanvo.catalog.v1.PlanRateCardService.CreatePlanRateCard:input_type -> tanvo.catalog.v1.CreatePlanRateCardRequest
-	30, // 51: tanvo.catalog.v1.PlanRateCardService.GetPlanRateCard:input_type -> tanvo.catalog.v1.GetPlanRateCardRequest
-	32, // 52: tanvo.catalog.v1.PlanRateCardService.ListPlanRateCards:input_type -> tanvo.catalog.v1.ListPlanRateCardsRequest
-	34, // 53: tanvo.catalog.v1.PlanRateCardService.UpdatePlanRateCard:input_type -> tanvo.catalog.v1.UpdatePlanRateCardRequest
-	36, // 54: tanvo.catalog.v1.PlanRateCardService.DeletePlanRateCard:input_type -> tanvo.catalog.v1.DeletePlanRateCardRequest
-	9,  // 55: tanvo.catalog.v1.RateCardService.CreateRateCard:output_type -> tanvo.catalog.v1.CreateRateCardResponse
-	11, // 56: tanvo.catalog.v1.RateCardService.GetRateCard:output_type -> tanvo.catalog.v1.GetRateCardResponse
-	13, // 57: tanvo.catalog.v1.RateCardService.ListRateCards:output_type -> tanvo.catalog.v1.ListRateCardsResponse
-	15, // 58: tanvo.catalog.v1.RateCardService.UpdateRateCard:output_type -> tanvo.catalog.v1.UpdateRateCardResponse
-	17, // 59: tanvo.catalog.v1.RateCardService.DeleteRateCard:output_type -> tanvo.catalog.v1.DeleteRateCardResponse
-	19, // 60: tanvo.catalog.v1.RateCardService.CreateRate:output_type -> tanvo.catalog.v1.CreateRateResponse
-	21, // 61: tanvo.catalog.v1.RateCardService.GetRate:output_type -> tanvo.catalog.v1.GetRateResponse
-	23, // 62: tanvo.catalog.v1.RateCardService.ListRates:output_type -> tanvo.catalog.v1.ListRatesResponse
-	25, // 63: tanvo.catalog.v1.RateCardService.UpdateRate:output_type -> tanvo.catalog.v1.UpdateRateResponse
-	27, // 64: tanvo.catalog.v1.RateCardService.DeleteRate:output_type -> tanvo.catalog.v1.DeleteRateResponse
-	29, // 65: tanvo.catalog.v1.PlanRateCardService.CreatePlanRateCard:output_type -> tanvo.catalog.v1.CreatePlanRateCardResponse
-	31, // 66: tanvo.catalog.v1.PlanRateCardService.GetPlanRateCard:output_type -> tanvo.catalog.v1.GetPlanRateCardResponse
-	33, // 67: tanvo.catalog.v1.PlanRateCardService.ListPlanRateCards:output_type -> tanvo.catalog.v1.ListPlanRateCardsResponse
-	35, // 68: tanvo.catalog.v1.PlanRateCardService.UpdatePlanRateCard:output_type -> tanvo.catalog.v1.UpdatePlanRateCardResponse
-	37, // 69: tanvo.catalog.v1.PlanRateCardService.DeletePlanRateCard:output_type -> tanvo.catalog.v1.DeletePlanRateCardResponse
-	55, // [55:70] is the sub-list for method output_type
-	40, // [40:55] is the sub-list for method input_type
-	40, // [40:40] is the sub-list for extension type_name
-	40, // [40:40] is the sub-list for extension extendee
-	0,  // [0:40] is the sub-list for field type_name
+	2,  // 0: tanvo.catalog.v1.BillingInterval.unit:type_name -> tanvo.catalog.v1.IntervalUnit
+	47, // 1: tanvo.catalog.v1.Rate.effective_from:type_name -> google.protobuf.Timestamp
+	48, // 2: tanvo.catalog.v1.Rate.rate_model:type_name -> tanvo.catalog.v1.ChargeModel
+	49, // 3: tanvo.catalog.v1.Rate.properties:type_name -> tanvo.catalog.v1.ChargeProperties
+	3,  // 4: tanvo.catalog.v1.Rate.billing_interval:type_name -> tanvo.catalog.v1.BillingInterval
+	47, // 5: tanvo.catalog.v1.Rate.created_at:type_name -> google.protobuf.Timestamp
+	47, // 6: tanvo.catalog.v1.Rate.updated_at:type_name -> google.protobuf.Timestamp
+	1,  // 7: tanvo.catalog.v1.Rate.status:type_name -> tanvo.catalog.v1.RateStatus
+	0,  // 8: tanvo.catalog.v1.RateCard.billing_timing:type_name -> tanvo.catalog.v1.BillingTiming
+	50, // 9: tanvo.catalog.v1.RateCard.regroup_paid_fees:type_name -> tanvo.catalog.v1.RegroupPaidFees
+	4,  // 10: tanvo.catalog.v1.RateCard.rates:type_name -> tanvo.catalog.v1.Rate
+	47, // 11: tanvo.catalog.v1.RateCard.created_at:type_name -> google.protobuf.Timestamp
+	47, // 12: tanvo.catalog.v1.RateCard.updated_at:type_name -> google.protobuf.Timestamp
+	4,  // 13: tanvo.catalog.v1.RateCard.active_rate:type_name -> tanvo.catalog.v1.Rate
+	48, // 14: tanvo.catalog.v1.RateOverride.rate_model:type_name -> tanvo.catalog.v1.ChargeModel
+	49, // 15: tanvo.catalog.v1.RateOverride.properties:type_name -> tanvo.catalog.v1.ChargeProperties
+	3,  // 16: tanvo.catalog.v1.RateOverride.billing_interval:type_name -> tanvo.catalog.v1.BillingInterval
+	6,  // 17: tanvo.catalog.v1.RatePhase.rate_override:type_name -> tanvo.catalog.v1.RateOverride
+	7,  // 18: tanvo.catalog.v1.PlanRateCard.rate_phases:type_name -> tanvo.catalog.v1.RatePhase
+	47, // 19: tanvo.catalog.v1.PlanRateCard.created_at:type_name -> google.protobuf.Timestamp
+	47, // 20: tanvo.catalog.v1.PlanRateCard.updated_at:type_name -> google.protobuf.Timestamp
+	5,  // 21: tanvo.catalog.v1.CreateRateCardRequest.rate_card:type_name -> tanvo.catalog.v1.RateCard
+	5,  // 22: tanvo.catalog.v1.CreateRateCardResponse.rate_card:type_name -> tanvo.catalog.v1.RateCard
+	5,  // 23: tanvo.catalog.v1.GetRateCardResponse.rate_card:type_name -> tanvo.catalog.v1.RateCard
+	5,  // 24: tanvo.catalog.v1.ListRateCardsResponse.rate_cards:type_name -> tanvo.catalog.v1.RateCard
+	5,  // 25: tanvo.catalog.v1.UpdateRateCardRequest.rate_card:type_name -> tanvo.catalog.v1.RateCard
+	51, // 26: tanvo.catalog.v1.UpdateRateCardRequest.update_mask:type_name -> google.protobuf.FieldMask
+	5,  // 27: tanvo.catalog.v1.UpdateRateCardResponse.rate_card:type_name -> tanvo.catalog.v1.RateCard
+	5,  // 28: tanvo.catalog.v1.DeleteRateCardResponse.rate_card:type_name -> tanvo.catalog.v1.RateCard
+	4,  // 29: tanvo.catalog.v1.CreateRateRequest.rate:type_name -> tanvo.catalog.v1.Rate
+	4,  // 30: tanvo.catalog.v1.CreateRateResponse.rate:type_name -> tanvo.catalog.v1.Rate
+	4,  // 31: tanvo.catalog.v1.GetRateResponse.rate:type_name -> tanvo.catalog.v1.Rate
+	4,  // 32: tanvo.catalog.v1.ListRatesResponse.rates:type_name -> tanvo.catalog.v1.Rate
+	4,  // 33: tanvo.catalog.v1.UpdateRateRequest.rate:type_name -> tanvo.catalog.v1.Rate
+	51, // 34: tanvo.catalog.v1.UpdateRateRequest.update_mask:type_name -> google.protobuf.FieldMask
+	4,  // 35: tanvo.catalog.v1.UpdateRateResponse.rate:type_name -> tanvo.catalog.v1.Rate
+	4,  // 36: tanvo.catalog.v1.DeleteRateResponse.rate:type_name -> tanvo.catalog.v1.Rate
+	8,  // 37: tanvo.catalog.v1.CreatePlanRateCardRequest.plan_rate_card:type_name -> tanvo.catalog.v1.PlanRateCard
+	8,  // 38: tanvo.catalog.v1.CreatePlanRateCardResponse.plan_rate_card:type_name -> tanvo.catalog.v1.PlanRateCard
+	8,  // 39: tanvo.catalog.v1.GetPlanRateCardResponse.plan_rate_card:type_name -> tanvo.catalog.v1.PlanRateCard
+	8,  // 40: tanvo.catalog.v1.ListPlanRateCardsResponse.plan_rate_cards:type_name -> tanvo.catalog.v1.PlanRateCard
+	8,  // 41: tanvo.catalog.v1.UpdatePlanRateCardRequest.plan_rate_card:type_name -> tanvo.catalog.v1.PlanRateCard
+	51, // 42: tanvo.catalog.v1.UpdatePlanRateCardRequest.update_mask:type_name -> google.protobuf.FieldMask
+	8,  // 43: tanvo.catalog.v1.UpdatePlanRateCardResponse.plan_rate_card:type_name -> tanvo.catalog.v1.PlanRateCard
+	8,  // 44: tanvo.catalog.v1.DeletePlanRateCardResponse.plan_rate_card:type_name -> tanvo.catalog.v1.PlanRateCard
+	7,  // 45: tanvo.catalog.v1.ListRatePhasesResponse.rate_phases:type_name -> tanvo.catalog.v1.RatePhase
+	7,  // 46: tanvo.catalog.v1.CreateRatePhaseRequest.rate_phase:type_name -> tanvo.catalog.v1.RatePhase
+	7,  // 47: tanvo.catalog.v1.CreateRatePhaseResponse.rate_phase:type_name -> tanvo.catalog.v1.RatePhase
+	7,  // 48: tanvo.catalog.v1.UpdateRatePhaseRequest.rate_phase:type_name -> tanvo.catalog.v1.RatePhase
+	51, // 49: tanvo.catalog.v1.UpdateRatePhaseRequest.update_mask:type_name -> google.protobuf.FieldMask
+	7,  // 50: tanvo.catalog.v1.UpdateRatePhaseResponse.rate_phase:type_name -> tanvo.catalog.v1.RatePhase
+	7,  // 51: tanvo.catalog.v1.DeleteRatePhaseResponse.rate_phase:type_name -> tanvo.catalog.v1.RatePhase
+	9,  // 52: tanvo.catalog.v1.RateCardService.CreateRateCard:input_type -> tanvo.catalog.v1.CreateRateCardRequest
+	11, // 53: tanvo.catalog.v1.RateCardService.GetRateCard:input_type -> tanvo.catalog.v1.GetRateCardRequest
+	13, // 54: tanvo.catalog.v1.RateCardService.ListRateCards:input_type -> tanvo.catalog.v1.ListRateCardsRequest
+	15, // 55: tanvo.catalog.v1.RateCardService.UpdateRateCard:input_type -> tanvo.catalog.v1.UpdateRateCardRequest
+	17, // 56: tanvo.catalog.v1.RateCardService.DeleteRateCard:input_type -> tanvo.catalog.v1.DeleteRateCardRequest
+	19, // 57: tanvo.catalog.v1.RateCardService.CreateRate:input_type -> tanvo.catalog.v1.CreateRateRequest
+	21, // 58: tanvo.catalog.v1.RateCardService.GetRate:input_type -> tanvo.catalog.v1.GetRateRequest
+	23, // 59: tanvo.catalog.v1.RateCardService.ListRates:input_type -> tanvo.catalog.v1.ListRatesRequest
+	25, // 60: tanvo.catalog.v1.RateCardService.UpdateRate:input_type -> tanvo.catalog.v1.UpdateRateRequest
+	27, // 61: tanvo.catalog.v1.RateCardService.DeleteRate:input_type -> tanvo.catalog.v1.DeleteRateRequest
+	29, // 62: tanvo.catalog.v1.PlanRateCardService.CreatePlanRateCard:input_type -> tanvo.catalog.v1.CreatePlanRateCardRequest
+	31, // 63: tanvo.catalog.v1.PlanRateCardService.GetPlanRateCard:input_type -> tanvo.catalog.v1.GetPlanRateCardRequest
+	33, // 64: tanvo.catalog.v1.PlanRateCardService.ListPlanRateCards:input_type -> tanvo.catalog.v1.ListPlanRateCardsRequest
+	35, // 65: tanvo.catalog.v1.PlanRateCardService.UpdatePlanRateCard:input_type -> tanvo.catalog.v1.UpdatePlanRateCardRequest
+	37, // 66: tanvo.catalog.v1.PlanRateCardService.DeletePlanRateCard:input_type -> tanvo.catalog.v1.DeletePlanRateCardRequest
+	39, // 67: tanvo.catalog.v1.PlanRateCardService.ListRatePhases:input_type -> tanvo.catalog.v1.ListRatePhasesRequest
+	41, // 68: tanvo.catalog.v1.PlanRateCardService.CreateRatePhase:input_type -> tanvo.catalog.v1.CreateRatePhaseRequest
+	43, // 69: tanvo.catalog.v1.PlanRateCardService.UpdateRatePhase:input_type -> tanvo.catalog.v1.UpdateRatePhaseRequest
+	45, // 70: tanvo.catalog.v1.PlanRateCardService.DeleteRatePhase:input_type -> tanvo.catalog.v1.DeleteRatePhaseRequest
+	10, // 71: tanvo.catalog.v1.RateCardService.CreateRateCard:output_type -> tanvo.catalog.v1.CreateRateCardResponse
+	12, // 72: tanvo.catalog.v1.RateCardService.GetRateCard:output_type -> tanvo.catalog.v1.GetRateCardResponse
+	14, // 73: tanvo.catalog.v1.RateCardService.ListRateCards:output_type -> tanvo.catalog.v1.ListRateCardsResponse
+	16, // 74: tanvo.catalog.v1.RateCardService.UpdateRateCard:output_type -> tanvo.catalog.v1.UpdateRateCardResponse
+	18, // 75: tanvo.catalog.v1.RateCardService.DeleteRateCard:output_type -> tanvo.catalog.v1.DeleteRateCardResponse
+	20, // 76: tanvo.catalog.v1.RateCardService.CreateRate:output_type -> tanvo.catalog.v1.CreateRateResponse
+	22, // 77: tanvo.catalog.v1.RateCardService.GetRate:output_type -> tanvo.catalog.v1.GetRateResponse
+	24, // 78: tanvo.catalog.v1.RateCardService.ListRates:output_type -> tanvo.catalog.v1.ListRatesResponse
+	26, // 79: tanvo.catalog.v1.RateCardService.UpdateRate:output_type -> tanvo.catalog.v1.UpdateRateResponse
+	28, // 80: tanvo.catalog.v1.RateCardService.DeleteRate:output_type -> tanvo.catalog.v1.DeleteRateResponse
+	30, // 81: tanvo.catalog.v1.PlanRateCardService.CreatePlanRateCard:output_type -> tanvo.catalog.v1.CreatePlanRateCardResponse
+	32, // 82: tanvo.catalog.v1.PlanRateCardService.GetPlanRateCard:output_type -> tanvo.catalog.v1.GetPlanRateCardResponse
+	34, // 83: tanvo.catalog.v1.PlanRateCardService.ListPlanRateCards:output_type -> tanvo.catalog.v1.ListPlanRateCardsResponse
+	36, // 84: tanvo.catalog.v1.PlanRateCardService.UpdatePlanRateCard:output_type -> tanvo.catalog.v1.UpdatePlanRateCardResponse
+	38, // 85: tanvo.catalog.v1.PlanRateCardService.DeletePlanRateCard:output_type -> tanvo.catalog.v1.DeletePlanRateCardResponse
+	40, // 86: tanvo.catalog.v1.PlanRateCardService.ListRatePhases:output_type -> tanvo.catalog.v1.ListRatePhasesResponse
+	42, // 87: tanvo.catalog.v1.PlanRateCardService.CreateRatePhase:output_type -> tanvo.catalog.v1.CreateRatePhaseResponse
+	44, // 88: tanvo.catalog.v1.PlanRateCardService.UpdateRatePhase:output_type -> tanvo.catalog.v1.UpdateRatePhaseResponse
+	46, // 89: tanvo.catalog.v1.PlanRateCardService.DeleteRatePhase:output_type -> tanvo.catalog.v1.DeleteRatePhaseResponse
+	71, // [71:90] is the sub-list for method output_type
+	52, // [52:71] is the sub-list for method input_type
+	52, // [52:52] is the sub-list for extension type_name
+	52, // [52:52] is the sub-list for extension extendee
+	0,  // [0:52] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_catalog_v1_rate_card_proto_init() }
@@ -5000,8 +6178,8 @@ func file_tanvo_catalog_v1_rate_card_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_catalog_v1_rate_card_proto_rawDesc), len(file_tanvo_catalog_v1_rate_card_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   36,
+			NumEnums:      3,
+			NumMessages:   44,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

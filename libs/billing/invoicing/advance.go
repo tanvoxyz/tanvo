@@ -111,6 +111,10 @@ func (s *Service) AdvanceCharges(ctx context.Context, r port.Repos, org core.Org
 	if err != nil {
 		return nil, err
 	}
+	// advance_charges_service.rb:102: the customer's sections.
+	if err := s.applyCustomSections(ctx, r, cenv, inv, nil); err != nil {
+		return nil, err
+	}
 	inv.PaymentStatus = core.PaymentStatusSucceeded
 	if err := s.finish(ctx, r, cenv, inv, kindAdvanceCharges, st, modeNew); err != nil {
 		return nil, err
@@ -301,9 +305,14 @@ func (s *Service) inAdvanceInvoice(ctx context.Context, r port.Repos, env *kerne
 			return nil, fmt.Errorf("create fee: %w", err)
 		}
 	}
+	// The subscription's selection, applied before the taxes
+	// (create_pay_in_advance_charge_service.rb:30-35).
+	if err := s.applyCustomSections(ctx, r, cenv, inv, nil, kernel.SubscriptionSectionResource(env.Subscription)); err != nil {
+		return nil, err
+	}
 	resolver := kernel.NewTaxResolver(r, cenv)
 	resolver.SetPlan(env.Subscription.ID, env.Plan)
-	st, err := s.settle(ctx, r, cenv, inv, fs, settleOptions{resolver: resolver})
+	st, err := s.settle(ctx, r, cenv, inv, fs, settleOptions{resolver: resolver, vies: true})
 	if err != nil {
 		return nil, err
 	}

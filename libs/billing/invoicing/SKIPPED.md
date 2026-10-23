@@ -15,7 +15,7 @@ Cases from `spec/services/invoices/**` (customer_usage and lifetime excluded) an
 - `calculate_fees_service_spec.rb` (138): the fee rules of `fees.go` (trials, upgrades, yearly charges billed monthly, in-advance plans, fixed charges, commitments) are ported but only the main paths are tested.
 - `create_invoice_subscription_service_spec.rb` (11): boundaries per reason; covered indirectly.
 - `create_pay_in_advance_fixed_charges_service_spec.rb` (54): pay-in-advance fixed charges are billed through `Bill` (starting invoices); no dedicated service.
-- `finalize_batch_service_spec.rb`, `retry_batch_service_spec.rb`: batch wrappers; `FinalizeDueDrafts` is tested.
+- `finalize_batch_service_spec.rb`: batch wrapper; `FinalizeDueDrafts` is tested.
 - `transition_to_final_status_service_spec.rb` (9): finalize/close per billing entity and customer settings; `TestBillZeroAmount` covers the three main rows.
 - `preview/*` (6 files): plan-change and termination previews, coupon previews and subscription lookups; `Preview` covers persisted, new and terminated subscriptions without input coupons.
 - `refresh_draft_service_spec.rb:90` (upgrade invoices), `:175`/`:183` (credit notes re-attached to new fees).
@@ -24,7 +24,7 @@ Cases from `spec/services/invoices/**` (customer_usage and lifetime excluded) an
 ## Not implemented (see the deviations of the report)
 - Gated subscriptions and activation rules (`subscription_service_spec.rb:912`, `retry_service_spec.rb:118`).
 - Invoice custom sections (`apply_invoice_custom_sections_service_spec.rb`, every "custom sections" context).
-- Purchase order numbers, integrations (Hubspot, NetSuite, Salesforce, Segment), activity logs, revenue analytics, VIES checks (`ensure_completed_vies_check_service_spec.rb`, `finalize_pending_vies_invoice_service_spec.rb`), premium email settings.
+- Purchase order numbers, integrations (Hubspot, NetSuite, Salesforce, Segment), activity logs, revenue analytics, premium email settings.
 - Billing segments and contracts (`create_pay_in_advance_charge_service_spec.rb:150`).
 - Concurrency guards (stale object, lock acquisition, racing voids).
 - Void with a credit note (`void_service_spec.rb:203`).

@@ -18,6 +18,7 @@ import (
 func (t *txState) bindExport(r *port.Repos) {
 	r.DataExports = dataExportRepo{t}
 	r.DataExportParts = dataExportPartRepo{t}
+	r.RecordDeletions = recordDeletionRepo{t}
 }
 
 // dataExportRepo implements export.Repository.

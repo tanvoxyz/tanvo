@@ -430,13 +430,20 @@ func TestServeKafka(t *testing.T) {
 // checks the server exits cleanly.
 func serve(t *testing.T, environ []string, logs *lockedBuffer) (srv *app.App, base string, stop func()) {
 	t.Helper()
+	return serveWith(t, environ, logs, nil)
+}
+
+// serveWith is [serve] with the billing clock clock (nil: the system
+// clock).
+func serveWith(t *testing.T, environ []string, logs *lockedBuffer, clock core.Clock) (srv *app.App, base string, stop func()) {
+	t.Helper()
 	ctx := t.Context()
 	serveCtx, cancel := context.WithCancel(ctx)
 	started := make(chan *app.App, 1)
 	done := make(chan error, 1)
 	go func() {
 		done <- cli.Run(serveCtx, []string{"serve", "--role", "all"}, cli.Env{
-			Environ: environ, Stdout: logs, Started: func(a *app.App) { started <- a },
+			Environ: environ, Stdout: logs, Started: func(a *app.App) { started <- a }, Clock: clock,
 		})
 	}()
 	select {

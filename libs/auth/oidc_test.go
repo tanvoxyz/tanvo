@@ -31,7 +31,7 @@ func newOIDCEnv(t *testing.T, prefix string, cfg ...UsersConfig) *oidcEnv {
 	e.conns = NewStaticConnections()
 	google := GoogleConnection(e.idp.clientID, e.idp.clientSecret, "https://app.tanvo.test/auth/google/callback")
 	google.Issuer = e.idp.issuer
-	e.oidc = NewOIDC(e.deps, e.users, e.invites, OIDCConfig{Google: google, Connections: e.conns})
+	e.oidc = NewOIDC(e.deps, e.users, e.invites, OIDCConfig{Google: google, Connections: e.conns, AllowInsecure: true})
 	return e
 }
 

@@ -542,3 +542,34 @@ func TestMigrateOnASmallPool(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestTrigger(t *testing.T) {
+	t.Parallel()
+	_, s := schema(t)
+	var runs atomic.Int64
+	reg := jobs.NewRegistry()
+	jobs.MustRegister(reg, jobs.Kind{Name: jobs.KindFinalizeInvoices}, jobs.HandlerFunc[struct{}](func(_ context.Context, j *jobs.Job[struct{}]) error {
+		if j.Queue != jobs.ClockQueue || !j.OrganizationID.IsZero() {
+			t.Errorf("triggered job queue = %s, org = %v, want = %s, none", j.Queue, j.OrganizationID, jobs.ClockQueue)
+		}
+		runs.Add(1)
+		return nil
+	}))
+	jobs.MustRegister(reg, jobs.Kind{Name: "test.work"}, noop())
+	c := newClient(t, s, reg, jobs.Config{Work: []port.Queue{port.QueueBilling}})
+	start(t, c)
+	tests := []struct {
+		kind string
+		want error
+	}{
+		{jobs.KindFinalizeInvoices, nil},
+		{jobs.KindBillSubscriptions, core.ErrNotFound},
+		{"test.work", core.ErrNotFound},
+	}
+	for _, tt := range tests {
+		if err := c.Trigger(context.Background(), tt.kind); !errors.Is(err, tt.want) {
+			t.Errorf("Trigger(%s) = %v, want = %v", tt.kind, err, tt.want)
+		}
+	}
+	eventually(t, 20*time.Second, "the triggered run", func() bool { return runs.Load() == 1 })
+}

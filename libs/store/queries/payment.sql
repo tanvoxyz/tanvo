@@ -46,12 +46,44 @@ WHERE organization_id = @organization_id AND payment_request_id = @payment_reque
 ORDER BY id;
 
 -- name: ListPayments :many
-SELECT * FROM payments
-WHERE organization_id = @organization_id
-  AND (sqlc.narg(customer_id)::uuid IS NULL OR customer_id = sqlc.narg(customer_id))
-  AND (sqlc.narg(status)::text IS NULL OR status = sqlc.narg(status))
-  AND (sqlc.narg(after)::uuid IS NULL OR id > sqlc.narg(after))
-ORDER BY id
+-- The payment list (payment.Filter). @invoice_id matches the invoice's own
+-- payments and those of the payment requests including it; @visible drops
+-- the payments of generating invoices; @search is a LIKE pattern matched
+-- against the provider payment ID, the reference, the invoice number
+-- (unless @invoice_id is set) and the customer's names, external ID and
+-- email (unless @customer_id is set), @search_id the payment ID; @recent
+-- lists by created_at, newest first, then by id ascending
+-- (base_query.rb:111-112); its cursor is (@after_at, @after).
+SELECT p.* FROM payments p
+WHERE p.organization_id = @organization_id
+  AND (sqlc.narg(customer_id)::uuid IS NULL OR p.customer_id = sqlc.narg(customer_id))
+  AND (sqlc.narg(status)::text IS NULL OR p.status = sqlc.narg(status))
+  AND (sqlc.narg(currency)::text IS NULL OR p.currency = sqlc.narg(currency))
+  AND (sqlc.narg(invoice_id)::uuid IS NULL OR p.invoice_id = sqlc.narg(invoice_id)
+       OR EXISTS (SELECT 1 FROM payment_request_invoices l
+                  WHERE l.organization_id = p.organization_id AND l.payment_request_id = p.payment_request_id
+                    AND l.invoice_id = sqlc.narg(invoice_id)))
+  AND (NOT @visible::boolean OR p.invoice_id IS NULL OR EXISTS (
+       SELECT 1 FROM invoices i WHERE i.organization_id = p.organization_id AND i.id = p.invoice_id
+         AND i.status NOT IN ('generating', 'deleted')))
+  AND (sqlc.narg(search)::text IS NULL
+       OR p.provider_payment_id ILIKE sqlc.narg(search)
+       OR p.reference ILIKE sqlc.narg(search)
+       OR (sqlc.narg(search_id)::uuid IS NOT NULL AND p.id = sqlc.narg(search_id))
+       OR (sqlc.narg(invoice_id)::uuid IS NULL AND EXISTS (
+            SELECT 1 FROM invoices i WHERE i.organization_id = p.organization_id AND i.id = p.invoice_id
+              AND i.number ILIKE sqlc.narg(search)))
+       OR (sqlc.narg(customer_id)::uuid IS NULL AND EXISTS (
+            SELECT 1 FROM customers c WHERE c.organization_id = p.organization_id AND c.id = p.customer_id
+              AND c.deleted_at IS NULL
+              AND (c.name ILIKE sqlc.narg(search) OR c.firstname ILIKE sqlc.narg(search)
+                   OR c.lastname ILIKE sqlc.narg(search) OR c.external_id ILIKE sqlc.narg(search)
+                   OR c.email ILIKE sqlc.narg(search)))))
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR (@recent::boolean AND (p.created_at < sqlc.narg(after_at)::timestamptz
+                                 OR (p.created_at = sqlc.narg(after_at)::timestamptz AND p.id > sqlc.narg(after))))
+       OR (NOT @recent::boolean AND p.id > sqlc.narg(after)))
+ORDER BY CASE WHEN @recent::boolean THEN p.created_at END DESC, p.id
 LIMIT @lim;
 
 -- name: CreatePaymentReceipt :execrows
@@ -75,10 +107,24 @@ SELECT * FROM payment_receipts WHERE organization_id = @organization_id AND id =
 SELECT * FROM payment_receipts WHERE organization_id = @organization_id AND payment_id = @payment_id;
 
 -- name: ListPaymentReceipts :many
-SELECT * FROM payment_receipts
-WHERE organization_id = @organization_id
-  AND (sqlc.narg(after)::uuid IS NULL OR id > sqlc.narg(after))
-ORDER BY id
+-- The receipt list (payment.ReceiptFilter). @invoice_id matches the
+-- receipts of the invoice's payments and of the payments of the payment
+-- requests including it; @recent lists by created_at, newest first, then
+-- by id ascending (base_query.rb:111-112); its cursor is (@after_at,
+-- @after).
+SELECT r.* FROM payment_receipts r
+WHERE r.organization_id = @organization_id
+  AND (sqlc.narg(invoice_id)::uuid IS NULL OR EXISTS (
+       SELECT 1 FROM payments p WHERE p.organization_id = r.organization_id AND p.id = r.payment_id
+         AND (p.invoice_id = sqlc.narg(invoice_id)
+              OR EXISTS (SELECT 1 FROM payment_request_invoices l
+                         WHERE l.organization_id = p.organization_id AND l.payment_request_id = p.payment_request_id
+                           AND l.invoice_id = sqlc.narg(invoice_id)))))
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR (@recent::boolean AND (r.created_at < sqlc.narg(after_at)::timestamptz
+                                 OR (r.created_at = sqlc.narg(after_at)::timestamptz AND r.id > sqlc.narg(after))))
+       OR (NOT @recent::boolean AND r.id > sqlc.narg(after)))
+ORDER BY CASE WHEN @recent::boolean THEN r.created_at END DESC, r.id
 LIMIT @lim;
 
 -- name: CreateRefund :execrows
@@ -147,6 +193,10 @@ FROM payment_requests r
 WHERE r.organization_id = @organization_id AND r.id = @id;
 
 -- name: ListPaymentRequests :many
+-- The payment request list (payment.RequestFilter). @billing_entity_ids
+-- keeps the requests including an invoice of one of the billing entities;
+-- @recent lists by created_at, newest first, then by id ascending
+-- (base_query.rb:111-112); its cursor is (@after_at, @after).
 SELECT sqlc.embed(r),
   ARRAY(SELECT i.invoice_id FROM payment_request_invoices i
         WHERE i.organization_id = r.organization_id AND i.payment_request_id = r.id ORDER BY i.position)::uuid[] AS invoice_ids
@@ -154,8 +204,17 @@ FROM payment_requests r
 WHERE r.organization_id = @organization_id
   AND (sqlc.narg(customer_id)::uuid IS NULL OR r.customer_id = sqlc.narg(customer_id))
   AND (sqlc.narg(payment_status)::text IS NULL OR r.payment_status = sqlc.narg(payment_status))
-  AND (sqlc.narg(after)::uuid IS NULL OR r.id > sqlc.narg(after))
-ORDER BY r.id
+  AND (sqlc.narg(currency)::text IS NULL OR r.currency = sqlc.narg(currency))
+  AND (cardinality(@billing_entity_ids::uuid[]) = 0 OR EXISTS (
+       SELECT 1 FROM payment_request_invoices l
+       JOIN invoices i ON i.organization_id = l.organization_id AND i.id = l.invoice_id
+       WHERE l.organization_id = r.organization_id AND l.payment_request_id = r.id
+         AND i.billing_entity_id = ANY(@billing_entity_ids::uuid[])))
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR (@recent::boolean AND (r.created_at < sqlc.narg(after_at)::timestamptz
+                                 OR (r.created_at = sqlc.narg(after_at)::timestamptz AND r.id > sqlc.narg(after))))
+       OR (NOT @recent::boolean AND r.id > sqlc.narg(after)))
+ORDER BY CASE WHEN @recent::boolean THEN r.created_at END DESC, r.id
 LIMIT @lim;
 
 -- name: ListPaymentRequestsByInvoice :many

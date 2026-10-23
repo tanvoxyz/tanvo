@@ -192,8 +192,22 @@ func (cn *CreditNote) Validate() error {
 }
 
 // CanTransition reports whether the document status may move from from to
-// to: only draft → finalized.
-func CanTransition(from, to Status) bool { return from == StatusDraft && to == StatusFinalized }
+// to: draft → finalized | deleted.
+func CanTransition(from, to Status) bool {
+	return from == StatusDraft && (to == StatusFinalized || to == StatusDeleted)
+}
+
+// MarkDeleted soft-deletes the draft credit note at now (lago
+// CreditNote#deleted!); any other status fails with a
+// [core.TransitionError].
+func (cn *CreditNote) MarkDeleted(now time.Time) error {
+	if !CanTransition(cn.Status, StatusDeleted) {
+		return &core.TransitionError{Entity: "credit_note", From: string(cn.Status), To: string(StatusDeleted)}
+	}
+	cn.Status = StatusDeleted
+	cn.UpdatedAt = now
+	return nil
+}
 
 // CanTransitionCredit reports whether the credit status may move from from
 // to to: available → consumed | voided, and consumed → available when a

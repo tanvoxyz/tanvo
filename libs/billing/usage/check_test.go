@@ -136,7 +136,7 @@ func TestRefreshAndCheck(t *testing.T) {
 	f.UsageThreshold(f.plan, 1500, false)
 	f.events(f.sub, 2, now.Add(-time.Hour))
 	c := billingtest.Read(f.Harness, func(ctx context.Context, r port.Repos) (usage.Crossing, error) {
-		return f.svc.RefreshAndCheck(ctx, r, f.OrgID(), f.sub.ID)
+		return f.svc.RefreshAndCheck(ctx, r, f.OrgID(), f.sub.ID, nil)
 	})
 	if got := amounts(c.Thresholds); !slices.Equal(got, []int64{1500}) || c.LifetimeUsage.CurrentUsageAmount != 2000 {
 		t.Errorf("got crossed = %v, current = %d, want = [1500], 2000", got, c.LifetimeUsage.CurrentUsageAmount)

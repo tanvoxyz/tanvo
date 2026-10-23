@@ -914,10 +914,10 @@ type SecurityLog struct {
 	xxx_hidden_LogType     *string                `protobuf:"bytes,2,opt,name=log_type,json=logType"`
 	xxx_hidden_LogEvent    *string                `protobuf:"bytes,3,opt,name=log_event,json=logEvent"`
 	xxx_hidden_UserEmail   *string                `protobuf:"bytes,4,opt,name=user_email,json=userEmail"`
-	xxx_hidden_ApiKeyId    *string                `protobuf:"bytes,5,opt,name=api_key_id,json=apiKeyId"`
 	xxx_hidden_Resources   *structpb.Struct       `protobuf:"bytes,6,opt,name=resources"`
 	xxx_hidden_DeviceInfo  *structpb.Struct       `protobuf:"bytes,7,opt,name=device_info,json=deviceInfo"`
 	xxx_hidden_LoggedAt    *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=logged_at,json=loggedAt"`
+	xxx_hidden_CreatedAt   *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -989,16 +989,6 @@ func (x *SecurityLog) GetUserEmail() string {
 	return ""
 }
 
-func (x *SecurityLog) GetApiKeyId() string {
-	if x != nil {
-		if x.xxx_hidden_ApiKeyId != nil {
-			return *x.xxx_hidden_ApiKeyId
-		}
-		return ""
-	}
-	return ""
-}
-
 func (x *SecurityLog) GetResources() *structpb.Struct {
 	if x != nil {
 		return x.xxx_hidden_Resources
@@ -1016,6 +1006,13 @@ func (x *SecurityLog) GetDeviceInfo() *structpb.Struct {
 func (x *SecurityLog) GetLoggedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_LoggedAt
+	}
+	return nil
+}
+
+func (x *SecurityLog) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
 	}
 	return nil
 }
@@ -1040,11 +1037,6 @@ func (x *SecurityLog) SetUserEmail(v string) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
 }
 
-func (x *SecurityLog) SetApiKeyId(v string) {
-	x.xxx_hidden_ApiKeyId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
-}
-
 func (x *SecurityLog) SetResources(v *structpb.Struct) {
 	x.xxx_hidden_Resources = v
 }
@@ -1055,6 +1047,10 @@ func (x *SecurityLog) SetDeviceInfo(v *structpb.Struct) {
 
 func (x *SecurityLog) SetLoggedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_LoggedAt = v
+}
+
+func (x *SecurityLog) SetCreatedAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_CreatedAt = v
 }
 
 func (x *SecurityLog) HasLogId() bool {
@@ -1085,13 +1081,6 @@ func (x *SecurityLog) HasUserEmail() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
-func (x *SecurityLog) HasApiKeyId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
-}
-
 func (x *SecurityLog) HasResources() bool {
 	if x == nil {
 		return false
@@ -1111,6 +1100,13 @@ func (x *SecurityLog) HasLoggedAt() bool {
 		return false
 	}
 	return x.xxx_hidden_LoggedAt != nil
+}
+
+func (x *SecurityLog) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_CreatedAt != nil
 }
 
 func (x *SecurityLog) ClearLogId() {
@@ -1133,11 +1129,6 @@ func (x *SecurityLog) ClearUserEmail() {
 	x.xxx_hidden_UserEmail = nil
 }
 
-func (x *SecurityLog) ClearApiKeyId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_ApiKeyId = nil
-}
-
 func (x *SecurityLog) ClearResources() {
 	x.xxx_hidden_Resources = nil
 }
@@ -1148,6 +1139,10 @@ func (x *SecurityLog) ClearDeviceInfo() {
 
 func (x *SecurityLog) ClearLoggedAt() {
 	x.xxx_hidden_LoggedAt = nil
+}
+
+func (x *SecurityLog) ClearCreatedAt() {
+	x.xxx_hidden_CreatedAt = nil
 }
 
 type SecurityLog_builder struct {
@@ -1161,14 +1156,14 @@ type SecurityLog_builder struct {
 	LogEvent *string
 	// The member who made the change.
 	UserEmail *string
-	// The API key used.
-	ApiKeyId *string
 	// The objects concerned and their changes.
 	Resources *structpb.Struct
 	// The device: IP address, user agent, browser and OS.
 	DeviceInfo *structpb.Struct
 	// When the change happened.
 	LoggedAt *timestamppb.Timestamp
+	// When the log was stored.
+	CreatedAt *timestamppb.Timestamp
 }
 
 func (b0 SecurityLog_builder) Build() *SecurityLog {
@@ -1191,13 +1186,10 @@ func (b0 SecurityLog_builder) Build() *SecurityLog {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
 		x.xxx_hidden_UserEmail = b.UserEmail
 	}
-	if b.ApiKeyId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
-		x.xxx_hidden_ApiKeyId = b.ApiKeyId
-	}
 	x.xxx_hidden_Resources = b.Resources
 	x.xxx_hidden_DeviceInfo = b.DeviceInfo
 	x.xxx_hidden_LoggedAt = b.LoggedAt
+	x.xxx_hidden_CreatedAt = b.CreatedAt
 	return m0
 }
 
@@ -1473,9 +1465,11 @@ type ListActivityLogsRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `activity_type`, `activity_source`,
-	// `user_email`, `api_key_id`, `resource_id`, `resource_type`,
-	// `external_customer_id`, `external_subscription_id` and `logged_at`.
+	// An AIP-160 filter: equalities on `activity_id`, `activity_type`,
+	// `activity_source`, `user_email`, `api_key_id`, `resource_id`,
+	// `resource_type` (each with several values joined by OR),
+	// `external_customer_id` and `external_subscription_id`, and bounds on
+	// `logged_at` (`logged_at >= "2025-01-01T00:00:00Z"`).
 	Filter *string
 }
 
@@ -1867,8 +1861,11 @@ type ListApiLogsRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `api_key_id`, `http_method`, `http_status`,
-	// `request_path` and `logged_at`.
+	// An AIP-160 filter: equalities on `request_id`, `api_key_id`,
+	// `http_method`, `http_status` (a status code, or `succeeded` for codes
+	// below 400 and `failed` for the others), `request_path` (`*` matches
+	// any characters) and `client` (each with several values joined by OR)
+	// and `api_version`, and bounds on `logged_at`.
 	Filter *string
 }
 
@@ -2260,8 +2257,9 @@ type ListSecurityLogsRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `log_type`, `log_event`, `user_email`,
-	// `api_key_id` and `logged_at`.
+	// An AIP-160 filter: equalities on `user_id`, `api_key_id`, `log_type`
+	// and `log_event` (each with several values joined by OR), and bounds on
+	// `logged_at`, of which an upper bound (`logged_at <= …`) is required.
 	Filter *string
 }
 
@@ -2423,20 +2421,21 @@ const file_tanvo_log_v1_log_proto_rawDesc = "" +
 	" \x01(\tR\n" +
 	"apiVersion\x127\n" +
 	"\tlogged_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\bloggedAt::\xeaA7\n" +
-	"\x10tanvo.xyz/ApiLog\x12\x12api_logs/{api_log}*\aapiLogs2\x06apiLog\"\x9e\x03\n" +
+	"\x10tanvo.xyz/ApiLog\x12\x12api_logs/{api_log}*\aapiLogs2\x06apiLog\"\xcd\x03\n" +
 	"\vSecurityLog\x12\x1b\n" +
 	"\x06log_id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x05logId\x12\x19\n" +
 	"\blog_type\x18\x02 \x01(\tR\alogType\x12\x1b\n" +
 	"\tlog_event\x18\x03 \x01(\tR\blogEvent\x12\x1d\n" +
 	"\n" +
-	"user_email\x18\x04 \x01(\tR\tuserEmail\x12\x1c\n" +
-	"\n" +
-	"api_key_id\x18\x05 \x01(\tR\bapiKeyId\x125\n" +
+	"user_email\x18\x04 \x01(\tR\tuserEmail\x125\n" +
 	"\tresources\x18\x06 \x01(\v2\x17.google.protobuf.StructR\tresources\x128\n" +
 	"\vdevice_info\x18\a \x01(\v2\x17.google.protobuf.StructR\n" +
 	"deviceInfo\x127\n" +
-	"\tlogged_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\bloggedAt:S\xeaAP\n" +
-	"\x15tanvo.xyz/SecurityLog\x12\x1csecurity_logs/{security_log}*\fsecurityLogs2\vsecurityLog\"I\n" +
+	"\tlogged_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\bloggedAt\x129\n" +
+	"\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt:S\xeaAP\n" +
+	"\x15tanvo.xyz/SecurityLog\x12\x1csecurity_logs/{security_log}*\fsecurityLogs2\vsecurityLogJ\x04\b\x05\x10\x06R\n" +
+	"api_key_id\"I\n" +
 	"\x15GetActivityLogRequest\x120\n" +
 	"\vactivity_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\n" +
 	"activityId\"V\n" +
@@ -2532,29 +2531,30 @@ var file_tanvo_log_v1_log_proto_depIdxs = []int32{
 	16, // 7: tanvo.log.v1.SecurityLog.resources:type_name -> google.protobuf.Struct
 	16, // 8: tanvo.log.v1.SecurityLog.device_info:type_name -> google.protobuf.Struct
 	17, // 9: tanvo.log.v1.SecurityLog.logged_at:type_name -> google.protobuf.Timestamp
-	1,  // 10: tanvo.log.v1.GetActivityLogResponse.activity_log:type_name -> tanvo.log.v1.ActivityLog
-	1,  // 11: tanvo.log.v1.ListActivityLogsResponse.activity_logs:type_name -> tanvo.log.v1.ActivityLog
-	2,  // 12: tanvo.log.v1.GetApiLogResponse.api_log:type_name -> tanvo.log.v1.ApiLog
-	2,  // 13: tanvo.log.v1.ListApiLogsResponse.api_logs:type_name -> tanvo.log.v1.ApiLog
-	3,  // 14: tanvo.log.v1.GetSecurityLogResponse.security_log:type_name -> tanvo.log.v1.SecurityLog
-	3,  // 15: tanvo.log.v1.ListSecurityLogsResponse.security_logs:type_name -> tanvo.log.v1.SecurityLog
-	4,  // 16: tanvo.log.v1.LogService.GetActivityLog:input_type -> tanvo.log.v1.GetActivityLogRequest
-	6,  // 17: tanvo.log.v1.LogService.ListActivityLogs:input_type -> tanvo.log.v1.ListActivityLogsRequest
-	8,  // 18: tanvo.log.v1.LogService.GetApiLog:input_type -> tanvo.log.v1.GetApiLogRequest
-	10, // 19: tanvo.log.v1.LogService.ListApiLogs:input_type -> tanvo.log.v1.ListApiLogsRequest
-	12, // 20: tanvo.log.v1.LogService.GetSecurityLog:input_type -> tanvo.log.v1.GetSecurityLogRequest
-	14, // 21: tanvo.log.v1.LogService.ListSecurityLogs:input_type -> tanvo.log.v1.ListSecurityLogsRequest
-	5,  // 22: tanvo.log.v1.LogService.GetActivityLog:output_type -> tanvo.log.v1.GetActivityLogResponse
-	7,  // 23: tanvo.log.v1.LogService.ListActivityLogs:output_type -> tanvo.log.v1.ListActivityLogsResponse
-	9,  // 24: tanvo.log.v1.LogService.GetApiLog:output_type -> tanvo.log.v1.GetApiLogResponse
-	11, // 25: tanvo.log.v1.LogService.ListApiLogs:output_type -> tanvo.log.v1.ListApiLogsResponse
-	13, // 26: tanvo.log.v1.LogService.GetSecurityLog:output_type -> tanvo.log.v1.GetSecurityLogResponse
-	15, // 27: tanvo.log.v1.LogService.ListSecurityLogs:output_type -> tanvo.log.v1.ListSecurityLogsResponse
-	22, // [22:28] is the sub-list for method output_type
-	16, // [16:22] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	17, // 10: tanvo.log.v1.SecurityLog.created_at:type_name -> google.protobuf.Timestamp
+	1,  // 11: tanvo.log.v1.GetActivityLogResponse.activity_log:type_name -> tanvo.log.v1.ActivityLog
+	1,  // 12: tanvo.log.v1.ListActivityLogsResponse.activity_logs:type_name -> tanvo.log.v1.ActivityLog
+	2,  // 13: tanvo.log.v1.GetApiLogResponse.api_log:type_name -> tanvo.log.v1.ApiLog
+	2,  // 14: tanvo.log.v1.ListApiLogsResponse.api_logs:type_name -> tanvo.log.v1.ApiLog
+	3,  // 15: tanvo.log.v1.GetSecurityLogResponse.security_log:type_name -> tanvo.log.v1.SecurityLog
+	3,  // 16: tanvo.log.v1.ListSecurityLogsResponse.security_logs:type_name -> tanvo.log.v1.SecurityLog
+	4,  // 17: tanvo.log.v1.LogService.GetActivityLog:input_type -> tanvo.log.v1.GetActivityLogRequest
+	6,  // 18: tanvo.log.v1.LogService.ListActivityLogs:input_type -> tanvo.log.v1.ListActivityLogsRequest
+	8,  // 19: tanvo.log.v1.LogService.GetApiLog:input_type -> tanvo.log.v1.GetApiLogRequest
+	10, // 20: tanvo.log.v1.LogService.ListApiLogs:input_type -> tanvo.log.v1.ListApiLogsRequest
+	12, // 21: tanvo.log.v1.LogService.GetSecurityLog:input_type -> tanvo.log.v1.GetSecurityLogRequest
+	14, // 22: tanvo.log.v1.LogService.ListSecurityLogs:input_type -> tanvo.log.v1.ListSecurityLogsRequest
+	5,  // 23: tanvo.log.v1.LogService.GetActivityLog:output_type -> tanvo.log.v1.GetActivityLogResponse
+	7,  // 24: tanvo.log.v1.LogService.ListActivityLogs:output_type -> tanvo.log.v1.ListActivityLogsResponse
+	9,  // 25: tanvo.log.v1.LogService.GetApiLog:output_type -> tanvo.log.v1.GetApiLogResponse
+	11, // 26: tanvo.log.v1.LogService.ListApiLogs:output_type -> tanvo.log.v1.ListApiLogsResponse
+	13, // 27: tanvo.log.v1.LogService.GetSecurityLog:output_type -> tanvo.log.v1.GetSecurityLogResponse
+	15, // 28: tanvo.log.v1.LogService.ListSecurityLogs:output_type -> tanvo.log.v1.ListSecurityLogsResponse
+	23, // [23:29] is the sub-list for method output_type
+	17, // [17:23] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_log_v1_log_proto_init() }

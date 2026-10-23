@@ -38,13 +38,15 @@ CREATE TABLE organizations (
   from_email_enabled boolean NOT NULL DEFAULT false,
   audit_logs_retention_days integer NOT NULL,
   max_wallets_per_customer integer NOT NULL,
+  document_number_prefix text NOT NULL,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
   PRIMARY KEY (id),
   CONSTRAINT organizations_slug_key UNIQUE (slug),
   CONSTRAINT organizations_authentication_methods_check CHECK (authentication_methods <@ ARRAY['email_password', 'google_oauth', 'okta', 'entra_id', 'oidc']::text[]),
   CONSTRAINT organizations_audit_logs_retention_days_check CHECK (audit_logs_retention_days > 0),
-  CONSTRAINT organizations_max_wallets_per_customer_check CHECK (max_wallets_per_customer > 0)
+  CONSTRAINT organizations_max_wallets_per_customer_check CHECK (max_wallets_per_customer > 0),
+  CONSTRAINT organizations_document_number_prefix_check CHECK (char_length(document_number_prefix) BETWEEN 1 AND 10)
 );
 
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
@@ -113,14 +115,18 @@ CREATE TABLE invoice_custom_sections (
   name text NOT NULL,
   display_name text,
   details text,
+  description text,
   section_type text NOT NULL,
+  deleted_at timestamptz,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
   PRIMARY KEY (organization_id, id),
   CONSTRAINT invoice_custom_sections_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
-  CONSTRAINT invoice_custom_sections_code_key UNIQUE (organization_id, code),
   CONSTRAINT invoice_custom_sections_section_type_check CHECK (section_type IN ('manual', 'system_generated'))
 );
+
+-- Codes are unique among live sections; deleted ones are kept.
+CREATE UNIQUE INDEX invoice_custom_sections_code_key ON invoice_custom_sections (organization_id, code) WHERE deleted_at IS NULL;
 
 ALTER TABLE invoice_custom_sections ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON invoice_custom_sections
@@ -162,7 +168,7 @@ CREATE TABLE job_outbox (
   created_at timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (id),
   CONSTRAINT job_outbox_kind_check CHECK (kind <> ''),
-  CONSTRAINT job_outbox_queue_check CHECK (queue IN ('billing', 'payments', 'webhooks', 'documents', 'integrations', 'exports', 'default')),
+  CONSTRAINT job_outbox_queue_check CHECK (queue IN ('billing', 'payments', 'webhooks', 'documents', 'integrations', 'exports', 'alerts', 'alerts_high_priority', 'wallets', 'default')),
   CONSTRAINT job_outbox_max_attempts_check CHECK (max_attempts >= 0)
 );
 

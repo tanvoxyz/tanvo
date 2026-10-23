@@ -14,6 +14,8 @@ import (
 type exportData struct {
 	exports *table[core.DataExportID, export.DataExport]
 	parts   *table[core.DataExportPartID, export.Part]
+	// deletions are the record deletions (export.RecordDeletion).
+	deletions *table[core.RecordDeletionID, export.RecordDeletion]
 }
 
 func newExportData() *exportData {
@@ -22,6 +24,7 @@ func newExportData() *exportData {
 			e.ResourceQuery = slices.Clone(e.ResourceQuery)
 			return e
 		}),
+		deletions: newTable[core.RecordDeletionID](func(x export.RecordDeletion) export.RecordDeletion { return x }),
 		parts: newTable[core.DataExportPartID](func(p export.Part) export.Part {
 			p.ObjectIDs = slices.Clone(p.ObjectIDs)
 			return p
@@ -30,7 +33,7 @@ func newExportData() *exportData {
 }
 
 func (d *exportData) snapshot() *exportData {
-	return &exportData{exports: d.exports.snapshot(), parts: d.parts.snapshot()}
+	return &exportData{exports: d.exports.snapshot(), parts: d.parts.snapshot(), deletions: d.deletions.snapshot()}
 }
 
 // dataExportRepo implements export.Repository.

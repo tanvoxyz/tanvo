@@ -11,6 +11,17 @@ type Filter struct {
 	// Currencies keeps the campaigns with a threshold in one of these
 	// currency codes; empty keeps all.
 	Currencies []string
+	// Search keeps the campaigns whose name or code contains the trimmed
+	// term, case-insensitively.
+	Search string
+	// Applied, when set, keeps the campaign AppliedID only (true) or every
+	// other campaign (false); a zero AppliedID is no campaign.
+	Applied *bool
+	// AppliedID is the campaign Applied compares with.
+	AppliedID core.DunningCampaignID
+	// Order is the list order; core.OrderRecent lists by name (byte
+	// order), then newest first, then by ID.
+	Order core.ListOrder
 }
 
 // Repository stores dunning campaigns with their thresholds.
@@ -26,6 +37,7 @@ type Repository interface {
 	// GetByCode returns the live campaign with code; core.ErrNotFound when
 	// none.
 	GetByCode(ctx context.Context, org core.OrganizationID, code string) (*Campaign, error)
-	// List returns the live campaigns matching f in creation order.
+	// List returns the live campaigns matching f in the order f.Order; an
+	// invalid order fails with core.ErrInvalidValue.
 	List(ctx context.Context, org core.OrganizationID, f Filter, page core.PageRequest) (core.Page[*Campaign], error)
 }

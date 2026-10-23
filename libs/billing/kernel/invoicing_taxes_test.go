@@ -3,6 +3,7 @@ package kernel
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
@@ -63,5 +64,23 @@ func TestTaxCallAsksAgainWhenRequestChanged(t *testing.T) {
 				t.Errorf("provider calls = %d, want = %d", p.calls, tt.wantCalls)
 			}
 		})
+	}
+}
+
+// source: app/services/integrations/aggregator/taxes/base_service.rb:113-115
+func TestTaxContention(t *testing.T) {
+	for _, tt := range []struct {
+		err  error
+		want bool
+	}{
+		{&TaxProviderError{Code: "validationError", Message: "You've exceeded your API limit of 10 per second"}, true},
+		{&TaxProviderError{Code: "x", Message: "resource contention on the server"}, true},
+		{&TaxProviderError{Code: "productExternalIdUnknown"}, false},
+		{&TaxProviderError{Code: "x", Message: "api limit"}, false},
+		{errors.New("API limit"), false},
+	} {
+		if got := errors.Is(fmt.Errorf("wrapped: %w", tt.err), ErrTaxContention); got != tt.want {
+			t.Errorf("errors.Is(%v, ErrTaxContention) got = %v, want = %v", tt.err, got, tt.want)
+		}
 	}
 }

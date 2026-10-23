@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -180,7 +181,21 @@ func (r dunningCampaignRepo) List(ctx context.Context, org core.OrganizationID, 
 	if err != nil {
 		return core.Page[*dunning.Campaign]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	if !f.Order.Valid() {
+		return core.Page[*dunning.Campaign]{}, fmt.Errorf("list dunning campaigns: %w: order", core.ErrInvalidValue)
+	}
+	byName := f.Order == core.OrderRecent
+	var (
+		after     *uuid.UUID
+		afterName *string
+		afterAt   *time.Time
+		lim       int32
+	)
+	if byName {
+		after, afterName, afterAt, lim, err = nameCursorArgs(page)
+	} else {
+		after, lim, err = pageArgs(page)
+	}
 	if err != nil {
 		return core.Page[*dunning.Campaign]{}, err
 	}
@@ -189,7 +204,9 @@ func (r dunningCampaignRepo) List(ctx context.Context, org core.OrganizationID, 
 		currencies = []string{}
 	}
 	rows, err := q.ListDunningCampaigns(ctx, db.ListDunningCampaignsParams{
-		OrganizationID: org.UUID(), Currencies: currencies, After: after, Lim: lim,
+		OrganizationID: org.UUID(), Currencies: currencies, Search: searchArg(f.Search),
+		Applied: f.Applied, AppliedID: optUUID(f.AppliedID),
+		After: after, ByName: byName, AfterName: afterName, AfterAt: afterAt, Lim: lim,
 	})
 	if err != nil {
 		return core.Page[*dunning.Campaign]{}, fmt.Errorf("list dunning campaigns: %w", mapErr(err))
@@ -198,5 +215,10 @@ func (r dunningCampaignRepo) List(ctx context.Context, org core.OrganizationID, 
 		func(r db.ListDunningCampaignsRow) (*dunning.Campaign, error) {
 			return dunningCampaignOf(dunningCampaignRow(r))
 		},
-		func(c *dunning.Campaign) string { return c.ID.String() })
+		func(c *dunning.Campaign) string {
+			if byName {
+				return nameToken(c.Name, c.CreatedAt, c.ID.UUID())
+			}
+			return c.ID.String()
+		})
 }

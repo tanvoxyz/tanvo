@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -43,6 +44,10 @@ func TestLoadTypes(t *testing.T) {
 		"TANVO_LOG_LEVEL=DEBUG",
 		"TANVO_INGEST_KAFKA_ORGANIZATIONS=0192f3a4-6b7c-7d8e-9f01-23456789abcd",
 		"TANVO_TRUSTED_PROXIES=203.0.113.7, 2001:db8::/32",
+		"TANVO_SUBSCRIPTION_TERMINATION_ALERT_DAYS=1",
+		"TANVO_DAILY_USAGE_SCHEDULING_JITTER=10m",
+		"TANVO_DISABLE_EVENTS_VALIDATION=true",
+		"TANVO_JOBS_QUEUE_CONCURRENCY=alerts=20, wallets = 5",
 	}})
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
@@ -55,6 +60,18 @@ func TestLoadTypes(t *testing.T) {
 	}
 	if cfg.DatabaseMaxConns != 12 {
 		t.Errorf("DatabaseMaxConns got = %d, want = 12", cfg.DatabaseMaxConns)
+	}
+	if !slices.Equal(cfg.SubscriptionTerminationAlertDays, []int{1}) {
+		t.Errorf("SubscriptionTerminationAlertDays got = %v, want = [1]", cfg.SubscriptionTerminationAlertDays)
+	}
+	if cfg.DailyUsageSchedulingJitter != 10*time.Minute {
+		t.Errorf("DailyUsageSchedulingJitter got = %v, want = 10m", cfg.DailyUsageSchedulingJitter)
+	}
+	if !cfg.DisableEventsValidation {
+		t.Errorf("DisableEventsValidation got = false, want = true")
+	}
+	if got, err := cfg.QueueConcurrency(); err != nil || !maps.Equal(got, map[port.Queue]int{port.QueueAlerts: 20, port.QueueWallets: 5}) {
+		t.Errorf("QueueConcurrency() got = %v, %v, want = map[alerts:20 wallets:5]", got, err)
 	}
 	if got := cfg.Queues(); !slices.Equal(got, []port.Queue{port.QueueBilling, port.QueueWebhooks}) {
 		t.Errorf("Queues() got = %v, want = [billing webhooks]", got)
@@ -128,6 +145,9 @@ func TestLoadInvalid(t *testing.T) {
 		{"bad format", []string{dsn, "TANVO_LOG_FORMAT=xml"}, "TANVO_LOG_FORMAT"},
 		{"bad addr", []string{dsn, "TANVO_HTTP_ADDR=8080"}, "TANVO_HTTP_ADDR"},
 		{"bad queue", []string{dsn, "TANVO_WORKER_QUEUES=billing,nope"}, `unknown queue "nope"`},
+		{"bad queue concurrency queue", []string{dsn, "TANVO_JOBS_QUEUE_CONCURRENCY=nope=2"}, "TANVO_JOBS_QUEUE_CONCURRENCY"},
+		{"bad queue concurrency workers", []string{dsn, "TANVO_JOBS_QUEUE_CONCURRENCY=alerts=0"}, "TANVO_JOBS_QUEUE_CONCURRENCY"},
+		{"repeated queue concurrency", []string{dsn, "TANVO_JOBS_QUEUE_CONCURRENCY=alerts=2,alerts=3"}, "given twice"},
 		{"bad mode", []string{dsn, "TANVO_INGEST_MODE=sqs"}, "TANVO_INGEST_MODE"},
 		{"bad role", []string{dsn, "TANVO_ROLE=web"}, "TANVO_ROLE"},
 		{"bad org", []string{dsn, "TANVO_INGEST_KAFKA_ORGANIZATIONS=acme"}, "not an organization ID"},
@@ -138,8 +158,12 @@ func TestLoadInvalid(t *testing.T) {
 		{"sasl without user", []string{dsn, "TANVO_KAFKA_SASL_MECHANISM=plain"}, "TANVO_KAFKA_SASL_USERNAME"},
 		{"smtp without from", []string{dsn, "TANVO_SMTP_HOST=smtp.example.com"}, "TANVO_MAIL_FROM"},
 		{"smtp security", []string{dsn, "TANVO_SMTP_HOST=smtp.example.com", "TANVO_MAIL_FROM=a@b.c", "TANVO_SMTP_SECURITY=ssl"}, "TANVO_SMTP_SECURITY"},
+		{"google without secret", []string{dsn, "TANVO_APP_URL=https://app.example.com", "TANVO_GOOGLE_AUTH_CLIENT_ID=id"}, "TANVO_GOOGLE_AUTH_CLIENT_ID"},
+		{"google without app url", []string{dsn, "TANVO_GOOGLE_AUTH_CLIENT_ID=id", "TANVO_GOOGLE_AUTH_CLIENT_SECRET=s"}, "TANVO_APP_URL"},
 		{"bad trusted proxy", []string{dsn, "TANVO_TRUSTED_PROXIES=lb.internal"}, "trusted_proxies"},
 		{"clickhouse scheme", []string{dsn, "TANVO_CLICKHOUSE_URL=http://ch"}, "TANVO_CLICKHOUSE_URL"},
+		{"secret key not base64", []string{dsn, "TANVO_SECRET_KEY=not base64!"}, "TANVO_SECRET_KEY"},
+		{"short secret key", []string{dsn, "TANVO_SECRET_KEY=c2hvcnQ="}, "want at least 32"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -231,5 +255,21 @@ func TestResolveRoles(t *testing.T) {
 				t.Errorf("ResolveRoles() got = %s, want = %s", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestSecretKeyBytes(t *testing.T) {
+	key := strings.Repeat("A", 44) // 33 bytes of zeros, base64
+	c, _, err := config.Load(config.Source{Environ: []string{dsn, "TANVO_SECRET_KEY=" + key}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := c.SecretKeyBytes()
+	if err != nil || len(b) != 33 {
+		t.Errorf("SecretKeyBytes() got = %d bytes, %v, want = 33 bytes", len(b), err)
+	}
+	c.SecretKey = ""
+	if b, err := c.SecretKeyBytes(); b != nil || err != nil {
+		t.Errorf("SecretKeyBytes() unset got = %v, %v, want = nil, nil", b, err)
 	}
 }

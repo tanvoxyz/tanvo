@@ -149,6 +149,8 @@ message ListPricingUnitsRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // A search over the name and code.
+  string search = 3 [(buf.validate.field).string.max_len = 255];
 }
 
 // ListPricingUnitsResponse is the response of PricingUnitService.ListPricingUnits.

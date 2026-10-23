@@ -2,7 +2,9 @@ package memstore
 
 import (
 	"context"
+	"fmt"
 	"slices"
+	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/event"
@@ -36,7 +38,11 @@ func (d *eventData) snapshot() *eventData {
 }
 
 // eventLogRepo implements event.Log.
-type eventLogRepo struct{ d *eventData }
+type eventLogRepo struct {
+	d *eventData
+	// c holds the billable metrics post-validation checks events against.
+	c *catalogData
+}
 
 var _ event.Log = eventLogRepo{}
 
@@ -89,16 +95,38 @@ func (r eventLogRepo) Get(_ context.Context, org core.OrganizationID, externalSu
 	return e, nil
 }
 
-func (r eventLogRepo) Replace(_ context.Context, e *event.Event) error {
-	if e.ExternalSubscriptionID == "" {
-		return notFound("event", stringer(e.TransactionID))
+func (r eventLogRepo) List(_ context.Context, org core.OrganizationID, f event.ListFilter, page core.PageRequest) (core.Page[*event.Event], error) {
+	if page.Token != "" {
+		c, err := core.DecodeCursor(page.Token)
+		if err != nil {
+			return core.Page[*event.Event]{}, err
+		}
+		if _, err := time.Parse(time.RFC3339Nano, c.Key); err != nil {
+			return core.Page[*event.Event]{}, fmt.Errorf("%w: page token", core.ErrInvalidValue)
+		}
 	}
-	cur, ok := r.find(e.OrganizationID, e.ExternalSubscriptionID, e.TransactionID)
-	if !ok {
-		return notFound("event", stringer(e.TransactionID))
-	}
-	n := *e.Clone()
-	n.ID, n.IngestedAt, n.CreatedAt, n.Metadata = cur.ID, cur.IngestedAt, cur.CreatedAt, cur.Metadata
-	r.d.events.put(n.ID, n)
-	return nil
+	rows := r.d.events.find(func(x *event.Event) bool {
+		return x.OrganizationID == org &&
+			(f.Code == "" || x.Code == f.Code) &&
+			(f.ExternalSubscriptionID == "" || x.ExternalSubscriptionID == f.ExternalSubscriptionID) &&
+			(f.TimestampFrom == nil || !x.Timestamp.Before(*f.TimestampFrom)) &&
+			(f.TimestampTo == nil || !x.Timestamp.After(*f.TimestampTo))
+	})
+	slices.SortFunc(rows, func(a, b *event.Event) int {
+		if c := b.Timestamp.Compare(a.Timestamp); c != 0 {
+			return c
+		}
+		return b.ID.Compare(a.ID)
+	})
+	return paginateSorted(rows,
+		func(x *event.Event) core.Cursor {
+			return core.Cursor{Key: x.Timestamp.UTC().Format(time.RFC3339Nano), ID: x.ID.UUID()}
+		},
+		func(x *event.Event, c core.Cursor) bool {
+			at, _ := time.Parse(time.RFC3339Nano, c.Key) // checked above
+			if !x.Timestamp.Equal(at) {
+				return x.Timestamp.Before(at)
+			}
+			return x.ID.UUID().String() < c.ID.String()
+		}, page)
 }

@@ -22,13 +22,6 @@ func (t *txState) bindQuote(r *port.Repos) {
 	r.Orders = orderRepo{t}
 }
 
-// quoteYear returns the bounds [start, end) of a UTC calendar year, the
-// scope of the sequential ids.
-func quoteYear(year int) (start, end time.Time) {
-	start = time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
-	return start, start.AddDate(1, 0, 0)
-}
-
 // quoteLimit converts the limit of a scan; zero or less means no limit.
 func quoteLimit(limit int) int32 {
 	if limit <= 0 || limit > math.MaxInt32 {
@@ -59,9 +52,31 @@ func quoteParams(x *quote.Quote) db.CreateQuoteParams {
 		CustomerID:     x.CustomerID.UUID(),
 		OrderType:      string(x.OrderType),
 		SubscriptionID: optUUID(x.SubscriptionID),
+		Images:         blobStrings(x.Images),
 		CreatedAt:      utc(x.CreatedAt),
 		UpdatedAt:      utc(x.UpdatedAt),
 	}
+}
+
+// blobStrings returns refs as a text[] value, never NULL.
+func blobStrings(refs []core.BlobRef) []string {
+	out := make([]string, len(refs))
+	for i, r := range refs {
+		out[i] = string(r)
+	}
+	return out
+}
+
+// blobRefs returns the refs of a text[] value, nil when empty.
+func blobRefs(s []string) []core.BlobRef {
+	if len(s) == 0 {
+		return nil
+	}
+	out := make([]core.BlobRef, len(s))
+	for i, r := range s {
+		out[i] = core.BlobRef(r)
+	}
+	return out
 }
 
 // quoteRow is the common shape of the quote reads.
@@ -81,6 +96,7 @@ func quoteOf(row quoteRow) (*quote.Quote, error) {
 		OrderType:      quote.OrderType(r.OrderType),
 		Owners:         idsOf[core.MembershipID](row.OwnerIds),
 		SubscriptionID: optIDOf[core.SubscriptionID](r.SubscriptionID),
+		Images:         blobRefs(r.Images),
 		CreatedAt:      utc(r.CreatedAt),
 		UpdatedAt:      utc(r.UpdatedAt),
 	}, nil
@@ -156,13 +172,12 @@ func (r quoteRepo) GetByNumber(ctx context.Context, org core.OrganizationID, num
 	return quoteOf(quoteRow(row))
 }
 
-func (r quoteRepo) NextSequence(ctx context.Context, org core.OrganizationID, year int) (int, error) {
+func (r quoteRepo) NextSequence(ctx context.Context, org core.OrganizationID) (int, error) {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return 0, err
 	}
-	start, end := quoteYear(year)
-	n, err := q.NextQuoteSequence(ctx, db.NextQuoteSequenceParams{OrganizationID: org.UUID(), YearStart: start, YearEnd: end})
+	n, err := q.NextQuoteSequence(ctx, org.UUID())
 	if err != nil {
 		return 0, fmt.Errorf("next quote sequence: %w", mapErr(err))
 	}
@@ -174,24 +189,30 @@ func (r quoteRepo) List(ctx context.Context, org core.OrganizationID, f quote.Fi
 	if err != nil {
 		return core.Page[*quote.Quote]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	after, afterAt, lim, err := timeCursorArgs(page)
 	if err != nil {
 		return core.Page[*quote.Quote]{}, err
 	}
 	rows, err := q.ListQuotes(ctx, db.ListQuotesParams{
-		OrganizationID: org.UUID(),
-		CustomerID:     optUUID(f.CustomerID),
-		OrderTypes:     enumStrings(f.OrderTypes),
-		OwnerID:        optUUID(f.OwnerID),
-		After:          after,
-		Lim:            lim,
+		OrganizationID:      org.UUID(),
+		CustomerIds:         uuids(f.CustomerIDs),
+		ExternalCustomerIds: nonNil(f.ExternalCustomerIDs),
+		Numbers:             nonNil(f.Numbers),
+		Statuses:            enumStrings(f.Statuses),
+		FromAt:              optUTC(f.From),
+		ToAt:                optUTC(f.To),
+		OwnerIds:            uuids(f.OwnerIDs),
+		OrderTypes:          enumStrings(f.OrderTypes),
+		After:               after,
+		AfterAt:             afterAt,
+		Lim:                 lim,
 	})
 	if err != nil {
 		return core.Page[*quote.Quote]{}, fmt.Errorf("list quotes: %w", mapErr(err))
 	}
 	return pageOf(rows, page,
 		func(r db.ListQuotesRow) (*quote.Quote, error) { return quoteOf(quoteRow(r)) },
-		func(x *quote.Quote) string { return x.ID.String() })
+		func(x *quote.Quote) string { return recentCursor(x.CreatedAt, x.ID.UUID()) })
 }
 
 // quoteVersionRepo implements quote.VersionRepository.
@@ -201,19 +222,21 @@ var _ quote.VersionRepository = quoteVersionRepo{}
 
 func quoteVersionParams(v *quote.Version) db.CreateQuoteVersionParams {
 	return db.CreateQuoteVersionParams{
-		OrganizationID:  v.OrganizationID.UUID(),
-		ID:              v.ID.UUID(),
-		QuoteID:         v.QuoteID.UUID(),
-		Version:         int32(v.Version), //nolint:gosec // versions are small
-		Status:          string(v.Status),
-		VoidReason:      optString(string(v.VoidReason)),
-		Content:         quoteJSON(v.Content),
-		Currency:        currencyCode(v.Currency),
-		BillingEntityID: optUUID(v.BillingEntityID),
-		ApprovedAt:      optUTC(v.ApprovedAt),
-		VoidedAt:        optUTC(v.VoidedAt),
-		CreatedAt:       utc(v.CreatedAt),
-		UpdatedAt:       utc(v.UpdatedAt),
+		OrganizationID:   v.OrganizationID.UUID(),
+		ID:               v.ID.UUID(),
+		QuoteID:          v.QuoteID.UUID(),
+		Version:          int32(v.Version), //nolint:gosec // versions are small
+		Status:           string(v.Status),
+		VoidReason:       optString(string(v.VoidReason)),
+		Content:          v.Content,
+		BillingItems:     quoteJSON(v.BillingItems),
+		MentionVariables: quoteJSON(v.MentionVariables),
+		Currency:         currencyCode(v.Currency),
+		BillingEntityID:  optUUID(v.BillingEntityID),
+		ApprovedAt:       optUTC(v.ApprovedAt),
+		VoidedAt:         optUTC(v.VoidedAt),
+		CreatedAt:        utc(v.CreatedAt),
+		UpdatedAt:        utc(v.UpdatedAt),
 	}
 }
 
@@ -223,19 +246,21 @@ func quoteVersionOf(r db.QuoteVersion) (*quote.Version, error) {
 		return nil, fmt.Errorf("quote version %s: %w", r.ID, err)
 	}
 	return &quote.Version{
-		ID:              idOf[core.QuoteVersionID](r.ID),
-		OrganizationID:  idOf[core.OrganizationID](r.OrganizationID),
-		QuoteID:         idOf[core.QuoteID](r.QuoteID),
-		Version:         int(r.Version),
-		Status:          quote.VersionStatus(r.Status),
-		VoidReason:      quote.VersionVoidReason(deref(r.VoidReason)),
-		Content:         rawJSON(r.Content),
-		Currency:        cur,
-		BillingEntityID: optIDOf[core.BillingEntityID](r.BillingEntityID),
-		ApprovedAt:      optUTC(r.ApprovedAt),
-		VoidedAt:        optUTC(r.VoidedAt),
-		CreatedAt:       utc(r.CreatedAt),
-		UpdatedAt:       utc(r.UpdatedAt),
+		ID:               idOf[core.QuoteVersionID](r.ID),
+		OrganizationID:   idOf[core.OrganizationID](r.OrganizationID),
+		QuoteID:          idOf[core.QuoteID](r.QuoteID),
+		Version:          int(r.Version),
+		Status:           quote.VersionStatus(r.Status),
+		VoidReason:       quote.VersionVoidReason(deref(r.VoidReason)),
+		Content:          r.Content,
+		BillingItems:     rawJSON(r.BillingItems),
+		MentionVariables: rawJSON(r.MentionVariables),
+		Currency:         cur,
+		BillingEntityID:  optIDOf[core.BillingEntityID](r.BillingEntityID),
+		ApprovedAt:       optUTC(r.ApprovedAt),
+		VoidedAt:         optUTC(r.VoidedAt),
+		CreatedAt:        utc(r.CreatedAt),
+		UpdatedAt:        utc(r.UpdatedAt),
 	}, nil
 }
 
@@ -316,7 +341,6 @@ func orderFormParams(f *quote.OrderForm) db.CreateOrderFormParams {
 		VoidReason:     optString(string(f.VoidReason)),
 		ExpiresAt:      optUTC(f.ExpiresAt),
 		SignedAt:       optUTC(f.SignedAt),
-		SignedBy:       f.SignedBy,
 		SignedDocument: optString(string(f.SignedDocument)),
 		VoidedAt:       optUTC(f.VoidedAt),
 		CreatedAt:      utc(f.CreatedAt),
@@ -336,7 +360,6 @@ func orderFormOf(r db.OrderForm) (*quote.OrderForm, error) {
 		VoidReason:     quote.OrderFormVoidReason(deref(r.VoidReason)),
 		ExpiresAt:      optUTC(r.ExpiresAt),
 		SignedAt:       optUTC(r.SignedAt),
-		SignedBy:       r.SignedBy,
 		SignedDocument: core.BlobRef(deref(r.SignedDocument)),
 		VoidedAt:       optUTC(r.VoidedAt),
 		CreatedAt:      utc(r.CreatedAt),
@@ -402,13 +425,12 @@ func (r orderFormRepo) GetByVersion(ctx context.Context, org core.OrganizationID
 	return orderFormOf(row)
 }
 
-func (r orderFormRepo) NextSequence(ctx context.Context, org core.OrganizationID, year int) (int, error) {
+func (r orderFormRepo) NextSequence(ctx context.Context, org core.OrganizationID) (int, error) {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return 0, err
 	}
-	start, end := quoteYear(year)
-	n, err := q.NextOrderFormSequence(ctx, db.NextOrderFormSequenceParams{OrganizationID: org.UUID(), YearStart: start, YearEnd: end})
+	n, err := q.NextOrderFormSequence(ctx, org.UUID())
 	if err != nil {
 		return 0, fmt.Errorf("next order form sequence: %w", mapErr(err))
 	}
@@ -420,7 +442,7 @@ func (r orderFormRepo) List(ctx context.Context, org core.OrganizationID, f quot
 	if err != nil {
 		return core.Page[*quote.OrderForm]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	after, afterAt, lim, err := timeCursorArgs(page)
 	if err != nil {
 		return core.Page[*quote.OrderForm]{}, err
 	}
@@ -428,13 +450,22 @@ func (r orderFormRepo) List(ctx context.Context, org core.OrganizationID, f quot
 		OrganizationID: org.UUID(),
 		CustomerID:     optUUID(f.CustomerID),
 		Statuses:       enumStrings(f.Statuses),
+		Number:         optString(f.Number),
+		Search:         searchArg(f.Search),
+		CreatedFrom:    optUTC(f.CreatedFrom),
+		CreatedTo:      optUTC(f.CreatedTo),
+		ExpiresFrom:    optUTC(f.ExpiresFrom),
+		ExpiresTo:      optUTC(f.ExpiresTo),
+		QuoteNumber:    optString(f.QuoteNumber),
+		OwnerID:        optUUID(f.OwnerID),
 		After:          after,
+		AfterAt:        afterAt,
 		Lim:            lim,
 	})
 	if err != nil {
 		return core.Page[*quote.OrderForm]{}, fmt.Errorf("list order forms: %w", mapErr(err))
 	}
-	return pageOf(rows, page, orderFormOf, func(x *quote.OrderForm) string { return x.ID.String() })
+	return pageOf(rows, page, orderFormOf, func(x *quote.OrderForm) string { return recentCursor(x.CreatedAt, x.ID.UUID()) })
 }
 
 // ListExpiring scans every organization.
@@ -538,13 +569,12 @@ func (r orderRepo) GetByNumber(ctx context.Context, org core.OrganizationID, num
 	return orderOf(row)
 }
 
-func (r orderRepo) NextSequence(ctx context.Context, org core.OrganizationID, year int) (int, error) {
+func (r orderRepo) NextSequence(ctx context.Context, org core.OrganizationID) (int, error) {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return 0, err
 	}
-	start, end := quoteYear(year)
-	n, err := q.NextOrderSequence(ctx, db.NextOrderSequenceParams{OrganizationID: org.UUID(), YearStart: start, YearEnd: end})
+	n, err := q.NextOrderSequence(ctx, org.UUID())
 	if err != nil {
 		return 0, fmt.Errorf("next order sequence: %w", mapErr(err))
 	}
@@ -556,21 +586,31 @@ func (r orderRepo) List(ctx context.Context, org core.OrganizationID, f quote.Or
 	if err != nil {
 		return core.Page[*quote.Order]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	after, afterAt, lim, err := timeCursorArgs(page)
 	if err != nil {
 		return core.Page[*quote.Order]{}, err
 	}
 	rows, err := q.ListOrders(ctx, db.ListOrdersParams{
-		OrganizationID: org.UUID(),
-		CustomerID:     optUUID(f.CustomerID),
-		Statuses:       enumStrings(f.Statuses),
-		After:          after,
-		Lim:            lim,
+		OrganizationID:  org.UUID(),
+		CustomerID:      optUUID(f.CustomerID),
+		Statuses:        enumStrings(f.Statuses),
+		ExecutionModes:  enumStrings(f.ExecutionModes),
+		Number:          optString(f.Number),
+		Search:          searchArg(f.Search),
+		ExecutedFrom:    optUTC(f.ExecutedFrom),
+		ExecutedTo:      optUTC(f.ExecutedTo),
+		OrderFormNumber: optString(f.OrderFormNumber),
+		QuoteNumber:     optString(f.QuoteNumber),
+		OwnerID:         optUUID(f.OwnerID),
+		OrderTypes:      enumStrings(f.OrderTypes),
+		After:           after,
+		AfterAt:         afterAt,
+		Lim:             lim,
 	})
 	if err != nil {
 		return core.Page[*quote.Order]{}, fmt.Errorf("list orders: %w", mapErr(err))
 	}
-	return pageOf(rows, page, orderOf, func(x *quote.Order) string { return x.ID.String() })
+	return pageOf(rows, page, orderOf, func(x *quote.Order) string { return recentCursor(x.CreatedAt, x.ID.UUID()) })
 }
 
 // ListExecutable scans every organization.
@@ -585,4 +625,9 @@ func (r orderRepo) ListExecutable(ctx context.Context, now time.Time, limit int)
 		return nil, fmt.Errorf("list executable orders: %w", mapErr(err))
 	}
 	return convAll(rows, orderOf)
+}
+
+// recentCursor is the page token of a row in a newest-first list.
+func recentCursor(at time.Time, id uuid.UUID) string {
+	return core.Cursor{Key: at.UTC().Format(time.RFC3339Nano), ID: id}.Encode()
 }

@@ -195,6 +195,7 @@ type Cache struct {
 	now     func() time.Time
 	mu      sync.Mutex
 	gen     map[core.OrganizationID]uint64
+	epoch   uint64
 	metrics table[metricKey, *catalog.BillableMetric]
 	subs    table[subscriptionKey, []*subscription.Subscription]
 	charges table[chargesKey, []*catalog.Charge]
@@ -232,14 +233,14 @@ func lookup[K comparable, V any](ctx context.Context, c *Cache, org core.Organiz
 		c.mu.Unlock()
 		return v, nil
 	}
-	gen := c.gen[org]
+	gen, epoch := c.gen[org], c.epoch
 	c.mu.Unlock()
 	v, err := load(ctx)
 	if err != nil {
 		return v, err
 	}
 	c.mu.Lock()
-	if c.gen[org] == gen {
+	if c.gen[org] == gen && c.epoch == epoch {
 		t.put(k, v, now.Add(c.ttl), c.limit)
 	}
 	c.mu.Unlock()
@@ -265,6 +266,18 @@ func (c *Cache) Charges(ctx context.Context, org core.OrganizationID, plan core.
 	return lookup(ctx, c, org, &c.charges, chargesKey{org, plan, metric}, func(ctx context.Context) ([]*catalog.Charge, error) {
 		return c.next.Charges(ctx, org, plan, metric)
 	})
+}
+
+// Purge drops every entry, for when change notifications may have been
+// missed (a lost notification connection). Loads running concurrently do
+// not store their results.
+func (c *Cache) Purge() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.epoch++
+	clear(c.metrics.m)
+	clear(c.subs.m)
+	clear(c.charges.m)
 }
 
 // Invalidate drops the entries a change makes stale. Loads running

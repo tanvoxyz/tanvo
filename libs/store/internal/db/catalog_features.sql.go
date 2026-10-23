@@ -245,23 +245,6 @@ func (q *Queries) DeleteEntitlementRemoval(ctx context.Context, arg DeleteEntitl
 	return result.RowsAffected(), nil
 }
 
-const deleteUsageThreshold = `-- name: DeleteUsageThreshold :execrows
-DELETE FROM usage_thresholds WHERE organization_id = $1 AND id = $2
-`
-
-type DeleteUsageThresholdParams struct {
-	OrganizationID uuid.UUID
-	ID             uuid.UUID
-}
-
-func (q *Queries) DeleteUsageThreshold(ctx context.Context, arg DeleteUsageThresholdParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteUsageThreshold, arg.OrganizationID, arg.ID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
 const discardEntitlement = `-- name: DiscardEntitlement :execrows
 UPDATE entitlements SET deleted_at = $1::timestamptz, updated_at = $1::timestamptz
 WHERE organization_id = $2 AND id = $3 AND deleted_at IS NULL
@@ -359,6 +342,25 @@ func (q *Queries) DiscardFeaturePrivileges(ctx context.Context, arg DiscardFeatu
 		return nil, err
 	}
 	return items, nil
+}
+
+const discardUsageThreshold = `-- name: DiscardUsageThreshold :execrows
+UPDATE usage_thresholds SET deleted_at = $1, updated_at = $1
+WHERE organization_id = $2 AND id = $3 AND deleted_at IS NULL
+`
+
+type DiscardUsageThresholdParams struct {
+	DeletedAt      *time.Time
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+}
+
+func (q *Queries) DiscardUsageThreshold(ctx context.Context, arg DiscardUsageThresholdParams) (int64, error) {
+	result, err := q.db.Exec(ctx, discardUsageThreshold, arg.DeletedAt, arg.OrganizationID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const getCommitment = `-- name: GetCommitment :one
@@ -509,7 +511,7 @@ func (q *Queries) GetFeatureByCode(ctx context.Context, arg GetFeatureByCodePara
 }
 
 const getUsageThreshold = `-- name: GetUsageThreshold :one
-SELECT organization_id, id, plan_id, subscription_id, amount, recurring, threshold_display_name, created_at, updated_at FROM usage_thresholds WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, plan_id, subscription_id, amount, recurring, threshold_display_name, created_at, updated_at, deleted_at FROM usage_thresholds WHERE organization_id = $1 AND id = $2
 `
 
 type GetUsageThresholdParams struct {
@@ -517,6 +519,7 @@ type GetUsageThresholdParams struct {
 	ID             uuid.UUID
 }
 
+// Kept or discarded: invoices reference discarded thresholds.
 func (q *Queries) GetUsageThreshold(ctx context.Context, arg GetUsageThresholdParams) (UsageThreshold, error) {
 	row := q.db.QueryRow(ctx, getUsageThreshold, arg.OrganizationID, arg.ID)
 	var i UsageThreshold
@@ -530,6 +533,7 @@ func (q *Queries) GetUsageThreshold(ctx context.Context, arg GetUsageThresholdPa
 		&i.ThresholdDisplayName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -668,6 +672,47 @@ func (q *Queries) ListEntitlementRemovalsBySubscription(ctx context.Context, arg
 	return items, nil
 }
 
+const listEntitlementsByFeature = `-- name: ListEntitlementsByFeature :many
+SELECT organization_id, id, feature_id, plan_id, subscription_id, privilege_values, created_at, updated_at, deleted_at FROM entitlements
+WHERE organization_id = $1 AND feature_id = $2 AND deleted_at IS NULL
+ORDER BY id
+`
+
+type ListEntitlementsByFeatureParams struct {
+	OrganizationID uuid.UUID
+	FeatureID      uuid.UUID
+}
+
+func (q *Queries) ListEntitlementsByFeature(ctx context.Context, arg ListEntitlementsByFeatureParams) ([]Entitlement, error) {
+	rows, err := q.db.Query(ctx, listEntitlementsByFeature, arg.OrganizationID, arg.FeatureID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Entitlement{}
+	for rows.Next() {
+		var i Entitlement
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.FeatureID,
+			&i.PlanID,
+			&i.SubscriptionID,
+			&i.PrivilegeValues,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listEntitlementsByPlan = `-- name: ListEntitlementsByPlan :many
 SELECT organization_id, id, feature_id, plan_id, subscription_id, privilege_values, created_at, updated_at, deleted_at FROM entitlements
 WHERE organization_id = $1 AND plan_id = $2 AND deleted_at IS NULL
@@ -792,21 +837,40 @@ func (q *Queries) ListFeaturePrivileges(ctx context.Context, arg ListFeaturePriv
 }
 
 const listFeatures = `-- name: ListFeatures :many
-SELECT organization_id, id, code, name, description, created_at, updated_at, deleted_at FROM features
-WHERE organization_id = $1 AND deleted_at IS NULL
-  AND ($2::uuid IS NULL OR id > $2)
-ORDER BY id
-LIMIT $3
+SELECT organization_id, id, code, name, description, created_at, updated_at, deleted_at FROM features f
+WHERE f.organization_id = $1 AND f.deleted_at IS NULL
+  AND ($2::text IS NULL OR f.name ILIKE $2 OR f.code ILIKE $2
+       OR f.description ILIKE $2)
+  AND ($3::uuid IS NULL
+       OR ($4::boolean AND (f.created_at < $5::timestamptz
+                                 OR (f.created_at = $5::timestamptz AND f.id > $3)))
+       OR (NOT $4::boolean AND f.id > $3))
+ORDER BY CASE WHEN $4::boolean THEN f.created_at END DESC, f.id
+LIMIT $6
 `
 
 type ListFeaturesParams struct {
 	OrganizationID uuid.UUID
+	Search         *string
 	After          *uuid.UUID
+	Recent         bool
+	AfterAt        *time.Time
 	Lim            int32
 }
 
+// @search matches the name, code or description (lago
+// Entitlement::FeaturesQuery); @recent lists by created_at, newest first,
+// then by id ascending (base_query.rb:111-112), with the cursor
+// (@after_at, @after).
 func (q *Queries) ListFeatures(ctx context.Context, arg ListFeaturesParams) ([]Feature, error) {
-	rows, err := q.db.Query(ctx, listFeatures, arg.OrganizationID, arg.After, arg.Lim)
+	rows, err := q.db.Query(ctx, listFeatures,
+		arg.OrganizationID,
+		arg.Search,
+		arg.After,
+		arg.Recent,
+		arg.AfterAt,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -875,8 +939,8 @@ func (q *Queries) ListFeaturesByIDs(ctx context.Context, arg ListFeaturesByIDsPa
 }
 
 const listUsageThresholdsByPlan = `-- name: ListUsageThresholdsByPlan :many
-SELECT organization_id, id, plan_id, subscription_id, amount, recurring, threshold_display_name, created_at, updated_at FROM usage_thresholds
-WHERE organization_id = $1 AND plan_id = $2
+SELECT organization_id, id, plan_id, subscription_id, amount, recurring, threshold_display_name, created_at, updated_at, deleted_at FROM usage_thresholds
+WHERE organization_id = $1 AND plan_id = $2 AND deleted_at IS NULL
 ORDER BY recurring, amount, id
 `
 
@@ -904,6 +968,7 @@ func (q *Queries) ListUsageThresholdsByPlan(ctx context.Context, arg ListUsageTh
 			&i.ThresholdDisplayName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -916,8 +981,8 @@ func (q *Queries) ListUsageThresholdsByPlan(ctx context.Context, arg ListUsageTh
 }
 
 const listUsageThresholdsBySubscription = `-- name: ListUsageThresholdsBySubscription :many
-SELECT organization_id, id, plan_id, subscription_id, amount, recurring, threshold_display_name, created_at, updated_at FROM usage_thresholds
-WHERE organization_id = $1 AND subscription_id = $2
+SELECT organization_id, id, plan_id, subscription_id, amount, recurring, threshold_display_name, created_at, updated_at, deleted_at FROM usage_thresholds
+WHERE organization_id = $1 AND subscription_id = $2 AND deleted_at IS NULL
 ORDER BY recurring, amount, id
 `
 
@@ -945,6 +1010,7 @@ func (q *Queries) ListUsageThresholdsBySubscription(ctx context.Context, arg Lis
 			&i.ThresholdDisplayName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1131,7 +1197,7 @@ UPDATE usage_thresholds SET
   organization_id = $1, id = $2, plan_id = $3, subscription_id = $4,
   amount = $5, recurring = $6, threshold_display_name = $7,
   created_at = $8, updated_at = $9
-WHERE organization_id = $1 AND id = $2
+WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type UpdateUsageThresholdParams struct {

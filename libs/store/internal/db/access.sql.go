@@ -914,15 +914,20 @@ const listAPIKeys = `-- name: ListAPIKeys :many
 SELECT organization_id, id, name, token_hash, prefix, permissions, expires_at, last_used_at, created_at, updated_at FROM api_keys
 WHERE organization_id = $1
   AND ($2::timestamptz IS NULL OR expires_at IS NULL OR expires_at > $2)
-  AND ($3::uuid IS NULL OR id > $3)
-ORDER BY id
-LIMIT $4
+  -- Oldest first, then by id (api_keys_resolver.rb:18); the cursor is
+  -- (@after_at, @after).
+  AND ($3::uuid IS NULL
+       OR created_at > $4::timestamptz
+       OR (created_at = $4::timestamptz AND id > $3))
+ORDER BY created_at, id
+LIMIT $5
 `
 
 type ListAPIKeysParams struct {
 	OrganizationID uuid.UUID
 	ActiveAt       *time.Time
 	After          *uuid.UUID
+	AfterAt        *time.Time
 	Lim            int32
 }
 
@@ -931,6 +936,7 @@ func (q *Queries) ListAPIKeys(ctx context.Context, arg ListAPIKeysParams) ([]Api
 		arg.OrganizationID,
 		arg.ActiveAt,
 		arg.After,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {
@@ -1001,15 +1007,26 @@ const listInvites = `-- name: ListInvites :many
 SELECT organization_id, id, email, role_ids, token_hash, status, expires_at, accepted_at, revoked_at, created_at, updated_at FROM invites
 WHERE organization_id = $1
   AND ($2::text IS NULL OR status = $2)
-  AND ($3::uuid IS NULL OR id > $3)
-ORDER BY id
-LIMIT $4
+  AND (cardinality($3::uuid[]) = 0 OR role_ids && $3::uuid[])
+  AND ($4::text IS NULL OR strpos(lower(email), lower($4)) > 0)
+  -- @recent lists the newest first, then by id (invites_query.rb,
+  -- base_query.rb:111-112); its cursor is (@after_at, @after).
+  AND ($5::uuid IS NULL
+       OR ($6::boolean AND (created_at < $7::timestamptz
+                                 OR (created_at = $7::timestamptz AND id > $5)))
+       OR (NOT $6::boolean AND id > $5))
+ORDER BY CASE WHEN $6::boolean THEN created_at END DESC, id
+LIMIT $8
 `
 
 type ListInvitesParams struct {
 	OrganizationID uuid.UUID
 	Status         *string
+	RoleIds        []uuid.UUID
+	Search         *string
 	After          *uuid.UUID
+	Recent         bool
+	AfterAt        *time.Time
 	Lim            int32
 }
 
@@ -1017,7 +1034,11 @@ func (q *Queries) ListInvites(ctx context.Context, arg ListInvitesParams) ([]Inv
 	rows, err := q.db.Query(ctx, listInvites,
 		arg.OrganizationID,
 		arg.Status,
+		arg.RoleIds,
+		arg.Search,
 		arg.After,
+		arg.Recent,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {
@@ -1104,16 +1125,38 @@ WHERE memberships.organization_id = $1
     WHERE mr.organization_id = memberships.organization_id AND mr.membership_id = memberships.id
       AND mr.role_id = $3 AND mr.deleted_at IS NULL
   ))
-  AND ($4::uuid IS NULL OR memberships.id > $4)
-ORDER BY memberships.id
-LIMIT $5
+  AND (cardinality($4::uuid[]) = 0 OR EXISTS (
+    SELECT 1 FROM membership_roles mr
+    WHERE mr.organization_id = memberships.organization_id AND mr.membership_id = memberships.id
+      AND mr.role_id = ANY($4::uuid[]) AND mr.deleted_at IS NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM roles r
+        WHERE r.organization_id = mr.organization_id AND r.id = mr.role_id AND r.deleted_at IS NOT NULL
+      )
+  ))
+  AND ($5::text IS NULL OR EXISTS (
+    SELECT 1 FROM users u
+    WHERE u.id = memberships.user_id AND strpos(lower(u.email), lower($5)) > 0
+  ))
+  -- @recent lists the newest first, then by id (memberships_query.rb,
+  -- base_query.rb:111-112); its cursor is (@after_at, @after).
+  AND ($6::uuid IS NULL
+       OR ($7::boolean AND (memberships.created_at < $8::timestamptz
+                                 OR (memberships.created_at = $8::timestamptz AND memberships.id > $6)))
+       OR (NOT $7::boolean AND memberships.id > $6))
+ORDER BY CASE WHEN $7::boolean THEN memberships.created_at END DESC, memberships.id
+LIMIT $9
 `
 
 type ListMembershipsParams struct {
 	OrganizationID uuid.UUID
 	Status         *string
 	RoleID         *uuid.UUID
+	RoleIds        []uuid.UUID
+	Search         *string
 	After          *uuid.UUID
+	Recent         bool
+	AfterAt        *time.Time
 	Lim            int32
 }
 
@@ -1122,7 +1165,11 @@ func (q *Queries) ListMemberships(ctx context.Context, arg ListMembershipsParams
 		arg.OrganizationID,
 		arg.Status,
 		arg.RoleID,
+		arg.RoleIds,
+		arg.Search,
 		arg.After,
+		arg.Recent,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {

@@ -1,0 +1,267 @@
+# Ported from lago spec/services/daily_usages/compute_diff_service_spec.rb.
+# previous, current and want are usage snapshots in their stored JSON form
+# (subscription.UsageSnapshot); a missing previous is lago's nil
+# previous_daily_usage. Charge IDs a, b and c of the spec are the UUIDs
+# ...000a, ...000b and ...000c. lago's grouped_by nil value is "" (fees
+# store a missing group value as ""). The cases where lago looks the
+# previous snapshot up in the database are ported in
+# libs/billing/dailyusage (previous_test.go).
+cases:
+  - name: computes the diff between the two daily usages
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:170"
+    previous:
+      {from_datetime: "2022-07-01T00:00:00Z", to_datetime: "2022-07-31T23:59:59Z", issuing_date: "2022-08-01", currency: EUR,
+       amount_cents: 100, taxes_amount_cents: 15, total_amount_cents: 115,
+       charges_usage: [
+         {units: "1.0", total_aggregated_units: "0", events_count: 5, amount_cents: 100, amount_currency: EUR,
+          charge: {id: 1a901a90-1a90-1a90-1a90-1a901a901a90, charge_model: graduated, invoice_display_name: Setup},
+          billable_metric: {id: 1a901a90-1a90-1a90-1a90-1a901a901a90, name: Storage, code: storage, aggregation_type: sum_agg},
+          filters: [{units: "1.0", total_aggregated_units: "0", events_count: 5, amount_cents: 100, invoice_display_name: AWS eu-east-1, values: {region: [us-east-1]}, presentation_breakdowns: []}],
+          grouped_usage: [
+            {units: "1.0", total_aggregated_units: "0", events_count: 5, amount_cents: 100, grouped_by: {country: ""}, presentation_breakdowns: [],
+             filters: [{units: "1.0", total_aggregated_units: "0", events_count: 5, amount_cents: 100, invoice_display_name: AWS eu-east-1, values: {region: [us-east-1]}, presentation_breakdowns: []}]}],
+          presentation_breakdowns: []}]}
+    current:
+      {from_datetime: "2022-07-01T00:00:00Z", to_datetime: "2022-07-31T23:59:59Z", issuing_date: "2022-08-02", currency: EUR,
+       amount_cents: 123, taxes_amount_cents: 20, total_amount_cents: 143,
+       charges_usage: [
+         {units: "1.5", total_aggregated_units: "0", events_count: 11, amount_cents: 123, amount_currency: EUR,
+          charge: {id: 1a901a90-1a90-1a90-1a90-1a901a901a90, charge_model: graduated, invoice_display_name: Setup},
+          billable_metric: {id: 1a901a90-1a90-1a90-1a90-1a901a901a90, name: Storage, code: storage, aggregation_type: sum_agg},
+          filters: [
+            {units: "1.4", total_aggregated_units: "0", events_count: 10, amount_cents: 122, invoice_display_name: AWS eu-east-1, values: {region: [us-east-1]}, presentation_breakdowns: []},
+            {units: "0.1", total_aggregated_units: "0", events_count: 1, amount_cents: 1, invoice_display_name: AWS eu-east-2, values: {region: [us-east-2]}, presentation_breakdowns: []}],
+          grouped_usage: [
+            {units: "1.1", total_aggregated_units: "0", events_count: 6, amount_cents: 101, grouped_by: {country: ""}, presentation_breakdowns: [],
+             filters: [
+               {units: "1.0", total_aggregated_units: "0", events_count: 5, amount_cents: 100, invoice_display_name: AWS eu-east-1, values: {region: [us-east-1]}, presentation_breakdowns: []},
+               {units: "0.1", total_aggregated_units: "0", events_count: 1, amount_cents: 1, invoice_display_name: AWS eu-east-2, values: {region: [us-east-2]}, presentation_breakdowns: []}]},
+            {units: "0.4", total_aggregated_units: "0", events_count: 5, amount_cents: 22, grouped_by: {country: us}, presentation_breakdowns: [],
+             filters: [{units: "0.4", total_aggregated_units: "0", events_count: 5, amount_cents: 22, invoice_display_name: AWS eu-east-1, values: {region: [us-east-1]}, presentation_breakdowns: []}]}],
+          presentation_breakdowns: []}]}
+    want:
+      {from_datetime: "2022-07-01T00:00:00Z", to_datetime: "2022-07-31T23:59:59Z", issuing_date: "2022-08-02", currency: EUR,
+       amount_cents: 23, taxes_amount_cents: 5, total_amount_cents: 28,
+       charges_usage: [
+         {units: "0.5", total_aggregated_units: "0", events_count: 6, amount_cents: 23, amount_currency: EUR,
+          charge: {id: 1a901a90-1a90-1a90-1a90-1a901a901a90, charge_model: graduated, invoice_display_name: Setup},
+          billable_metric: {id: 1a901a90-1a90-1a90-1a90-1a901a901a90, name: Storage, code: storage, aggregation_type: sum_agg},
+          filters: [
+            {units: "0.4", total_aggregated_units: "0", events_count: 5, amount_cents: 22, invoice_display_name: AWS eu-east-1, values: {region: [us-east-1]}, presentation_breakdowns: []},
+            {units: "0.1", total_aggregated_units: "0", events_count: 1, amount_cents: 1, invoice_display_name: AWS eu-east-2, values: {region: [us-east-2]}, presentation_breakdowns: []}],
+          grouped_usage: [
+            {units: "0.1", total_aggregated_units: "0", events_count: 1, amount_cents: 1, grouped_by: {country: ""}, presentation_breakdowns: [],
+             filters: [
+               {units: "0.0", total_aggregated_units: "0", events_count: 0, amount_cents: 0, invoice_display_name: AWS eu-east-1, values: {region: [us-east-1]}, presentation_breakdowns: []},
+               {units: "0.1", total_aggregated_units: "0", events_count: 1, amount_cents: 1, invoice_display_name: AWS eu-east-2, values: {region: [us-east-2]}, presentation_breakdowns: []}]},
+            {units: "0.4", total_aggregated_units: "0", events_count: 5, amount_cents: 22, grouped_by: {country: us}, presentation_breakdowns: [],
+             filters: [{units: "0.4", total_aggregated_units: "0", events_count: 5, amount_cents: 22, invoice_display_name: AWS eu-east-1, values: {region: [us-east-1]}, presentation_breakdowns: []}]}],
+          presentation_breakdowns: []}]}
+
+  - name: a deleted charge is ignored and its taxes are not deducted
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:336"
+    previous:
+      {amount_cents: 300, taxes_amount_cents: 30, total_amount_cents: 330, charges_usage: [
+        {units: "1.0", events_count: 5, amount_cents: 100, charge: {id: 00000000-0000-0000-0000-00000000000a}},
+        {units: "2.0", events_count: 10, amount_cents: 200, charge: {id: 00000000-0000-0000-0000-00000000000c}}]}
+    current:
+      {amount_cents: 150, taxes_amount_cents: 15, total_amount_cents: 165, charges_usage: [
+        {units: "1.5", events_count: 8, amount_cents: 150, charge: {id: 00000000-0000-0000-0000-00000000000a}}]}
+    want:
+      {amount_cents: 50, taxes_amount_cents: 5, total_amount_cents: 55, charges_usage: [
+        {units: "0.5", events_count: 3, amount_cents: 50, charge: {id: 00000000-0000-0000-0000-00000000000a}}]}
+
+  - name: a new charge is kept whole
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:420"
+    previous:
+      {amount_cents: 100, taxes_amount_cents: 10, total_amount_cents: 110, charges_usage: [
+        {units: "1.0", events_count: 5, amount_cents: 100, charge: {id: 00000000-0000-0000-0000-00000000000a}}]}
+    current:
+      {amount_cents: 200, taxes_amount_cents: 20, total_amount_cents: 220, charges_usage: [
+        {units: "1.5", events_count: 8, amount_cents: 150, charge: {id: 00000000-0000-0000-0000-00000000000a}},
+        {units: "0.5", events_count: 3, amount_cents: 50, charge: {id: 00000000-0000-0000-0000-00000000000b}}]}
+    want:
+      {amount_cents: 100, taxes_amount_cents: 10, total_amount_cents: 110, charges_usage: [
+        {units: "0.5", events_count: 3, amount_cents: 50, charge: {id: 00000000-0000-0000-0000-00000000000a}},
+        {units: "0.5", events_count: 3, amount_cents: 50, charge: {id: 00000000-0000-0000-0000-00000000000b}}]}
+
+  - name: no previous taxes are deducted when no charge overlaps
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:499"
+    previous:
+      {amount_cents: 100, taxes_amount_cents: 10, total_amount_cents: 110, charges_usage: [
+        {units: "1.0", events_count: 5, amount_cents: 100, charge: {id: 00000000-0000-0000-0000-00000000000a}}]}
+    current:
+      {amount_cents: 80, taxes_amount_cents: 8, total_amount_cents: 88, charges_usage: [
+        {units: "2.0", events_count: 4, amount_cents: 80, charge: {id: 00000000-0000-0000-0000-00000000000b}}]}
+    want:
+      {amount_cents: 80, taxes_amount_cents: 8, total_amount_cents: 88, charges_usage: [
+        {units: "2.0", events_count: 4, amount_cents: 80, charge: {id: 00000000-0000-0000-0000-00000000000b}}]}
+
+  - name: a zero previous amount deducts the whole previous taxes
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:567"
+    previous:
+      {amount_cents: 0, taxes_amount_cents: 0, total_amount_cents: 0, charges_usage: [
+        {units: "0.0", events_count: 0, amount_cents: 0, charge: {id: 00000000-0000-0000-0000-00000000000a}}]}
+    current:
+      {amount_cents: 50, taxes_amount_cents: 5, total_amount_cents: 55, charges_usage: [
+        {units: "1.0", events_count: 3, amount_cents: 50, charge: {id: 00000000-0000-0000-0000-00000000000a}}]}
+    want:
+      {amount_cents: 50, taxes_amount_cents: 5, total_amount_cents: 55, charges_usage: [
+        {units: "1.0", events_count: 3, amount_cents: 50, charge: {id: 00000000-0000-0000-0000-00000000000a}}]}
+
+  - name: taxes are prorated on the overlapping charges
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:653"
+    previous:
+      {amount_cents: 300, taxes_amount_cents: 30, total_amount_cents: 330, charges_usage: [
+        {units: "1.0", events_count: 5, amount_cents: 100, charge: {id: 00000000-0000-0000-0000-00000000000a}},
+        {units: "3.0", events_count: 10, amount_cents: 200, charge: {id: 00000000-0000-0000-0000-00000000000b}}]}
+    current:
+      {amount_cents: 250, taxes_amount_cents: 25, total_amount_cents: 275, charges_usage: [
+        {units: "2.0", events_count: 8, amount_cents: 200, charge: {id: 00000000-0000-0000-0000-00000000000a}},
+        {units: "1.0", events_count: 2, amount_cents: 50, charge: {id: 00000000-0000-0000-0000-00000000000c}}]}
+    want:
+      {amount_cents: 150, taxes_amount_cents: 15, total_amount_cents: 165, charges_usage: [
+        {units: "1.0", events_count: 3, amount_cents: 100, charge: {id: 00000000-0000-0000-0000-00000000000a}},
+        {units: "1.0", events_count: 2, amount_cents: 50, charge: {id: 00000000-0000-0000-0000-00000000000c}}]}
+
+  - name: a nil previous returns the current usage
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:827"
+    current:
+      {amount_cents: 123, taxes_amount_cents: 20, total_amount_cents: 143, charges_usage: [
+        {units: "1.5", events_count: 11, amount_cents: 123, charge: {id: 1a901a90-1a90-1a90-1a90-1a901a901a90},
+         filters: [{units: "1.4", events_count: 10, amount_cents: 122, values: {region: [us-east-1]}}]}]}
+    want:
+      {amount_cents: 123, taxes_amount_cents: 20, total_amount_cents: 143, charges_usage: [
+        {units: "1.5", events_count: 11, amount_cents: 123, charge: {id: 1a901a90-1a90-1a90-1a90-1a901a901a90},
+         filters: [{units: "1.4", events_count: 10, amount_cents: 122, values: {region: [us-east-1]}}]}]}
+
+  - name: charge presentation breakdowns are diffed by presentation values
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:906"
+    previous:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a},
+        presentation_breakdowns: [{presentation_by: {region: us}, units: "1.0"}]}]}
+    current:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a},
+        presentation_breakdowns: [{presentation_by: {region: us}, units: "1.1"}, {presentation_by: {region: eu}, units: "0.4"}]}]}
+    want:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a},
+        presentation_breakdowns: [{presentation_by: {region: us}, units: "0.1"}, {presentation_by: {region: eu}, units: "0.4"}]}]}
+
+  - name: grouped presentation breakdowns are diffed by presentation values
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:965"
+    previous:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, grouped_usage: [
+        {units: "0.0", grouped_by: {country: ""}, presentation_breakdowns: [{presentation_by: {region: us-east-1}, units: "1.0"}]}]}]}
+    current:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, grouped_usage: [
+        {units: "0.0", grouped_by: {country: ""}, presentation_breakdowns: [{presentation_by: {region: us-east-1}, units: "1.0"}, {presentation_by: {region: us-east-2}, units: "0.1"}]},
+        {units: "0.0", grouped_by: {country: us}, presentation_breakdowns: [{presentation_by: {region: us-east-1}, units: "0.4"}]}]}]}
+    want:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, grouped_usage: [
+        {units: "0.0", grouped_by: {country: ""}, presentation_breakdowns: [{presentation_by: {region: us-east-1}, units: "0.0"}, {presentation_by: {region: us-east-2}, units: "0.1"}]},
+        {units: "0.0", grouped_by: {country: us}, presentation_breakdowns: [{presentation_by: {region: us-east-1}, units: "0.4"}]}]}]}
+
+  - name: presentation breakdowns of a deleted charge are ignored
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:1022"
+    previous:
+      {charges_usage: [
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, presentation_breakdowns: [{presentation_by: {region: us}, units: "1.0"}]},
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000c}, presentation_breakdowns: [{presentation_by: {region: us}, units: "2.0"}]}]}
+    current:
+      {charges_usage: [
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, presentation_breakdowns: [{presentation_by: {region: us}, units: "1.5"}, {presentation_by: {region: eu}, units: "0.2"}]}]}
+    want:
+      {charges_usage: [
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, presentation_breakdowns: [{presentation_by: {region: us}, units: "0.5"}, {presentation_by: {region: eu}, units: "0.2"}]}]}
+
+  - name: presentation breakdowns of a new charge are kept
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:1068"
+    previous:
+      {charges_usage: [
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, presentation_breakdowns: [{presentation_by: {region: us}, units: "1.0"}]}]}
+    current:
+      {charges_usage: [
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, presentation_breakdowns: [{presentation_by: {region: us}, units: "1.5"}]},
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000b}, presentation_breakdowns: [{presentation_by: {region: eu}, units: "0.5"}]}]}
+    want:
+      {charges_usage: [
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, presentation_breakdowns: [{presentation_by: {region: us}, units: "0.5"}]},
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000b}, presentation_breakdowns: [{presentation_by: {region: eu}, units: "0.5"}]}]}
+
+  - name: presentation breakdowns are not diffed without an overlapping charge
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:1110"
+    previous:
+      {charges_usage: [
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, presentation_breakdowns: [{presentation_by: {region: us}, units: "1.0"}]}]}
+    current:
+      {charges_usage: [
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000b}, presentation_breakdowns: [{presentation_by: {region: us}, units: "2.0"}]}]}
+    want:
+      {charges_usage: [
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000b}, presentation_breakdowns: [{presentation_by: {region: us}, units: "2.0"}]}]}
+
+  - name: presentation breakdowns with charges added and deleted
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:1159"
+    previous:
+      {charges_usage: [
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, presentation_breakdowns: [{presentation_by: {region: us}, units: "1.0"}]},
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000b}, presentation_breakdowns: [{presentation_by: {region: us}, units: "3.0"}]}]}
+    current:
+      {charges_usage: [
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, presentation_breakdowns: [{presentation_by: {region: us}, units: "2.0"}]},
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000c}, presentation_breakdowns: [{presentation_by: {region: eu}, units: "1.0"}]}]}
+    want:
+      {charges_usage: [
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, presentation_breakdowns: [{presentation_by: {region: us}, units: "1.0"}]},
+        {units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000c}, presentation_breakdowns: [{presentation_by: {region: eu}, units: "1.0"}]}]}
+
+  - name: filter presentation breakdowns are diffed
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:1212"
+    previous:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, filters: [
+        {units: "0.0", values: {region: [us]}, presentation_breakdowns: [{presentation_by: {provider: aws}, units: "1.0"}]}]}]}
+    current:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, filters: [
+        {units: "0.0", values: {region: [us]}, presentation_breakdowns: [{presentation_by: {provider: aws}, units: "1.1"}, {presentation_by: {provider: gcp}, units: "0.4"}]}]}]}
+    want:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, filters: [
+        {units: "0.0", values: {region: [us]}, presentation_breakdowns: [{presentation_by: {provider: aws}, units: "0.1"}, {presentation_by: {provider: gcp}, units: "0.4"}]}]}]}
+
+  - name: grouped filter presentation breakdowns are diffed
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:1276"
+    previous:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, grouped_usage: [
+        {units: "0.0", grouped_by: {country: us}, presentation_breakdowns: [], filters: [
+          {units: "0.0", values: {region: [east]}, presentation_breakdowns: [{presentation_by: {provider: aws}, units: "0.3"}]}]}]}]}
+    current:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, grouped_usage: [
+        {units: "0.0", grouped_by: {country: us}, presentation_breakdowns: [], filters: [
+          {units: "0.0", values: {region: [east]}, presentation_breakdowns: [{presentation_by: {provider: aws}, units: "0.5"}, {presentation_by: {provider: gcp}, units: "0.2"}]}]}]}]}
+    want:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, grouped_usage: [
+        {units: "0.0", grouped_by: {country: us}, presentation_breakdowns: [], filters: [
+          {units: "0.0", values: {region: [east]}, presentation_breakdowns: [{presentation_by: {provider: aws}, units: "0.2"}, {presentation_by: {provider: gcp}, units: "0.2"}]}]}]}]}
+
+  - name: a nil previous keeps the presentation breakdowns
+    source: "spec/services/daily_usages/compute_diff_service_spec.rb:1309"
+    current:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, presentation_breakdowns: [{presentation_by: {region: us}, units: "1.5"}]}]}
+    want:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a}, presentation_breakdowns: [{presentation_by: {region: us}, units: "1.5"}]}]}
+
+  - name: a presentation group missing a key matches only a missing key
+    source: "tanvo"
+    previous:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a},
+        presentation_breakdowns: [{presentation_by: {region: null}, units: "1.0"}, {presentation_by: {region: ""}, units: "2.0"}]}]}
+    current:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a},
+        presentation_breakdowns: [{presentation_by: {region: null}, units: "1.5"}]}]}
+    want:
+      {charges_usage: [{units: "0.0", charge: {id: 00000000-0000-0000-0000-00000000000a},
+        presentation_breakdowns: [{presentation_by: {region: null}, units: "0.5"}]}]}
+skipped:
+  - {source: "spec/services/daily_usages/compute_diff_service_spec.rb:753", reason: "database lookup of the previous snapshot; ported in libs/billing/dailyusage"}
+  - {source: "spec/services/daily_usages/compute_diff_service_spec.rb:787", reason: "database lookup of the previous snapshot; ported in libs/billing/dailyusage"}
+  - {source: "spec/services/daily_usages/compute_diff_service_spec.rb:818", reason: "database lookup of the previous snapshot; ported in libs/billing/dailyusage"}
+  - {source: "spec/services/daily_usages/compute_diff_service_spec.rb:1369", reason: "database lookup of the previous snapshot; ported in libs/billing/dailyusage"}

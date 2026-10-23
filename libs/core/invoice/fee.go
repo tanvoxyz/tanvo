@@ -172,6 +172,10 @@ type Fee struct {
 	Properties FeeProperties
 	// TrueUpParentFeeID is the charge fee a true-up fee completes.
 	TrueUpParentFeeID core.FeeID
+	// OriginalFeeID is the root fee of a void and regenerate chain: the
+	// fee of the first voided invoice this fee was copied from (lago
+	// fees.original_fee_id).
+	OriginalFeeID core.FeeID
 	// PricingUnitUsage records the amount in a pricing unit.
 	PricingUnitUsage *PricingUnitUsage
 	// AppliedTaxes are the tax snapshots and amounts of the fee.
@@ -193,6 +197,10 @@ type Fee struct {
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
 	UpdatedAt time.Time
+	// DeletedAt is the instant the unbilled fee was discarded;
+	// repositories return only fees not discarded, so it is nil on every
+	// read.
+	DeletedAt *time.Time
 }
 
 // FeeAppliedTax is a tax applied to a fee: a snapshot of the tax and the

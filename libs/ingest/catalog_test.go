@@ -73,9 +73,13 @@ func TestCache(t *testing.T) {
 	lookups()
 	calls(12)
 
+	c.Purge()
+	lookups()
+	calls(16)
+
 	now = now.Add(2 * time.Minute)
 	lookups()
-	calls(16) // expired
+	calls(20) // expired
 }
 
 func TestCacheLimit(t *testing.T) {

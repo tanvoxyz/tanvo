@@ -45,6 +45,10 @@ type FixedCharge struct {
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
 	UpdatedAt time.Time
+	// DeletedAt is the instant the fixed charge was discarded (nil while kept);
+	// a discarded one is read by ID only, for the fees
+	// that reference it (lago fixed_charge.rb default_scope kept).
+	DeletedAt *time.Time
 }
 
 // IsChild reports whether the fixed charge belongs to an override plan.
@@ -91,6 +95,7 @@ func (f *FixedCharge) NewOverride(id core.FixedChargeID, plan core.PlanID, now t
 	o.ParentID = f.ID
 	o.CreatedAt = now
 	o.UpdatedAt = now
+	o.DeletedAt = nil
 	return o
 }
 
@@ -99,5 +104,6 @@ func (f *FixedCharge) Clone() *FixedCharge {
 	o := *f
 	o.Properties = f.Properties.Clone()
 	o.TaxIDs = slices.Clone(f.TaxIDs)
+	o.DeletedAt = clonePtr(f.DeletedAt)
 	return &o
 }

@@ -107,7 +107,10 @@ func TestRegenerateFromVoided(t *testing.T) {
 	if _, err := f.svc.Void(f.Ctx, f.OrgID(), draft.ID, invoicing.VoidInput{}); err != nil {
 		t.Fatalf("void: %v", err)
 	}
-	inv, err := f.svc.Regenerate(f.Ctx, f.OrgID(), draft.ID, invoicing.RegenerateInput{})
+	fee := f.Fees(draft.ID)[0]
+	inv, err := f.svc.Regenerate(f.Ctx, f.OrgID(), draft.ID, invoicing.RegenerateInput{
+		Fees: []invoicing.RegeneratedFee{{FeeID: fee.ID, Units: &fee.Units}},
+	})
 	if err != nil {
 		t.Fatalf("regenerate: %v", err)
 	}
@@ -228,7 +231,7 @@ func TestRegeneratePendingTaxesDates(t *testing.T) {
 	f.Taxes.Customers = map[core.CustomerID]bool{f.cust.ID: true}
 	f.Taxes.Compute = providerTaxes("0.1")
 	voided := f.billOne(f.subscribe())
-	if _, err := f.svc.Retry(f.Ctx, f.OrgID(), voided.ID); err != nil {
+	if _, err := f.svc.PullTaxes(f.Ctx, f.OrgID(), voided.ID); err != nil {
 		t.Fatalf("pull taxes: %v", err)
 	}
 	if _, err := f.svc.Void(f.Ctx, f.OrgID(), voided.ID, invoicing.VoidInput{}); err != nil {
@@ -237,7 +240,10 @@ func TestRegeneratePendingTaxesDates(t *testing.T) {
 	f.UpdateCustomer(f.cust, func(c *customer.Customer) { c.InvoiceGracePeriodDays, c.NetPaymentTermDays = new(3), new(5) })
 	f.Clock.Set(billingtest.Date(2026, time.March, 10))
 	f.Taxes.Compute = pendingTaxes
-	inv, err := f.svc.Regenerate(f.Ctx, f.OrgID(), voided.ID, invoicing.RegenerateInput{})
+	fee := f.Fees(voided.ID)[0]
+	inv, err := f.svc.Regenerate(f.Ctx, f.OrgID(), voided.ID, invoicing.RegenerateInput{
+		Fees: []invoicing.RegeneratedFee{{FeeID: fee.ID, Units: &fee.Units}},
+	})
 	if err != nil {
 		t.Fatalf("regenerate: %v", err)
 	}
@@ -259,7 +265,7 @@ func TestVoidProviderTaxes(t *testing.T) {
 	f.Taxes.Customers = map[core.CustomerID]bool{f.cust.ID: true}
 	f.Taxes.Compute = providerTaxes("0.1")
 	inv := f.billOne(f.subscribe())
-	if _, err := f.svc.Retry(f.Ctx, f.OrgID(), inv.ID); err != nil {
+	if _, err := f.svc.PullTaxes(f.Ctx, f.OrgID(), inv.ID); err != nil {
 		t.Fatalf("pull taxes: %v", err)
 	}
 	if _, err := f.svc.Void(f.Ctx, f.OrgID(), inv.ID, invoicing.VoidInput{}); err != nil {

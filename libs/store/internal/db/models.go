@@ -12,6 +12,23 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
+type ActivityLog struct {
+	OrganizationID         uuid.UUID
+	ID                     uuid.UUID
+	UserID                 *uuid.UUID
+	ApiKeyID               *uuid.UUID
+	ActivityType           string
+	ActivitySource         string
+	ActivityObject         json.RawMessage
+	ActivityObjectChanges  json.RawMessage
+	ResourceID             uuid.UUID
+	ResourceType           string
+	ExternalCustomerID     *string
+	ExternalSubscriptionID *string
+	LoggedAt               time.Time
+	CreatedAt              time.Time
+}
+
 type AddOn struct {
 	OrganizationID     uuid.UUID
 	ID                 uuid.UUID
@@ -23,6 +40,7 @@ type AddOn struct {
 	Currency           string
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
+	DeletedAt          *time.Time
 }
 
 type AddOnTax struct {
@@ -68,6 +86,7 @@ type Alert struct {
 	LastProcessedAt        *time.Time
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
+	DeletedAt              *time.Time
 }
 
 type AlertThreshold struct {
@@ -99,6 +118,22 @@ type ApiKeyUse struct {
 	LastUsedAt     time.Time
 }
 
+type ApiLog struct {
+	OrganizationID  uuid.UUID
+	ID              uuid.UUID
+	ApiKeyID        uuid.UUID
+	Client          string
+	HttpMethod      string
+	HttpStatus      int32
+	RequestOrigin   string
+	RequestPath     string
+	RequestBody     json.RawMessage
+	RequestResponse json.RawMessage
+	ApiVersion      string
+	LoggedAt        time.Time
+	CreatedAt       time.Time
+}
+
 type AppliedCoupon struct {
 	OrganizationID             uuid.UUID
 	ID                         uuid.UUID
@@ -115,6 +150,17 @@ type AppliedCoupon struct {
 	TerminatedAt               *time.Time
 	CreatedAt                  time.Time
 	UpdatedAt                  time.Time
+}
+
+type AppliedInvoiceCustomSection struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+	InvoiceID      uuid.UUID
+	Code           string
+	Name           string
+	DisplayName    *string
+	Details        *string
+	CreatedAt      time.Time
 }
 
 type AppliedUsageThreshold struct {
@@ -143,6 +189,7 @@ type BillableMetric struct {
 	RoundingPrecision *int32
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
+	DeletedAt         *time.Time
 }
 
 type BillableMetricFilter struct {
@@ -152,6 +199,7 @@ type BillableMetricFilter struct {
 	Key              string
 	FilterValues     []string
 	Position         int32
+	DeletedAt        *time.Time
 }
 
 type BillingEntity struct {
@@ -241,6 +289,7 @@ type Charge struct {
 	ConversionRate       *money.Decimal
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
+	DeletedAt            *time.Time
 }
 
 type ChargeFilter struct {
@@ -253,6 +302,7 @@ type ChargeFilter struct {
 	Code               string
 	Position           int32
 	CreatedAt          time.Time
+	DeletedAt          *time.Time
 }
 
 type ChargeTax struct {
@@ -304,6 +354,7 @@ type Coupon struct {
 	ExpirationAt      *time.Time
 	Status            string
 	TerminatedAt      *time.Time
+	DeletedAt         *time.Time
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }
@@ -427,6 +478,9 @@ type Customer struct {
 	Slug                         string
 	PaymentReceiptCounter        int64
 	Metadata                     json.RawMessage
+	AwaitingWalletRefresh        bool
+	WalletRefreshGeneration      int64
+	WalletRefreshClaimed         int64
 	DeletedAt                    *time.Time
 	CreatedAt                    time.Time
 	UpdatedAt                    time.Time
@@ -445,6 +499,22 @@ type CustomerTax struct {
 	CustomerID     uuid.UUID
 	TaxID          uuid.UUID
 	Position       int32
+}
+
+type DailyUsage struct {
+	OrganizationID         uuid.UUID
+	ID                     uuid.UUID
+	CustomerID             uuid.UUID
+	SubscriptionID         uuid.UUID
+	ExternalSubscriptionID string
+	Usage                  json.RawMessage
+	UsageDiff              json.RawMessage
+	FromDatetime           time.Time
+	ToDatetime             time.Time
+	RefreshedAt            time.Time
+	UsageDate              time.Time
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
 }
 
 type DataExport struct {
@@ -610,6 +680,7 @@ type Fee struct {
 	FixedChargesToDatetime         time.Time
 	FixedChargesDurationDays       int32
 	TrueUpParentFeeID              *uuid.UUID
+	OriginalFeeID                  *uuid.UUID
 	PricingUnitUsage               json.RawMessage
 	AppliedTaxes                   json.RawMessage
 	PresentationBreakdowns         json.RawMessage
@@ -620,6 +691,7 @@ type Fee struct {
 	RefundedAt                     *time.Time
 	CreatedAt                      time.Time
 	UpdatedAt                      time.Time
+	DeletedAt                      *time.Time
 }
 
 type FixedCharge struct {
@@ -637,6 +709,7 @@ type FixedCharge struct {
 	InvoiceDisplayName *string
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
+	DeletedAt          *time.Time
 }
 
 type FixedChargeEvent struct {
@@ -656,6 +729,27 @@ type FixedChargeTax struct {
 	FixedChargeID  uuid.UUID
 	TaxID          uuid.UUID
 	Position       int32
+}
+
+type FixedChargeUnitsOverride struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+	SubscriptionID uuid.UUID
+	FixedChargeID  uuid.UUID
+	Units          money.Decimal
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	DeletedAt      *time.Time
+}
+
+type IdempotencyKey struct {
+	OrganizationID uuid.UUID
+	Key            string
+	Procedure      string
+	RequestHash    []byte
+	Response       []byte
+	CreatedAt      time.Time
+	ExpiresAt      time.Time
 }
 
 type InboundWebhook struct {
@@ -690,6 +784,7 @@ type Integration struct {
 	SyncSubscriptions bool
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
+	DeletedAt         *time.Time
 }
 
 type IntegrationCollectionMapping struct {
@@ -865,7 +960,9 @@ type InvoiceCustomSection struct {
 	Name           string
 	DisplayName    *string
 	Details        *string
+	Description    *string
 	SectionType    string
+	DeletedAt      *time.Time
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -905,6 +1002,7 @@ type InvoiceSubscription struct {
 	FixedChargesToDatetime   time.Time
 	BillingTimestamp         time.Time
 	Recurring                bool
+	RegeneratedInvoiceID     *uuid.UUID
 	CreatedAt                time.Time
 }
 
@@ -997,7 +1095,6 @@ type OrderForm struct {
 	VoidReason     *string
 	ExpiresAt      *time.Time
 	SignedAt       *time.Time
-	SignedBy       *string
 	SignedDocument *string
 	VoidedAt       *time.Time
 	CreatedAt      time.Time
@@ -1020,6 +1117,7 @@ type Organization struct {
 	FromEmailEnabled       bool
 	AuditLogsRetentionDays int32
 	MaxWalletsPerCustomer  int32
+	DocumentNumberPrefix   string
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
 }
@@ -1132,6 +1230,19 @@ type PaymentRequestInvoice struct {
 	Position         int32
 }
 
+type PendingViesCheck struct {
+	OrganizationID          uuid.UUID
+	CustomerID              uuid.UUID
+	BillingEntityID         uuid.UUID
+	TaxIdentificationNumber *string
+	AttemptsCount           int32
+	LastAttemptAt           *time.Time
+	LastErrorType           *string
+	LastErrorMessage        *string
+	CreatedAt               time.Time
+	UpdatedAt               time.Time
+}
+
 type Plan struct {
 	OrganizationID          uuid.UUID
 	ID                      uuid.UUID
@@ -1153,6 +1264,17 @@ type Plan struct {
 	UpdatedAt               time.Time
 }
 
+type PlanRateCard struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+	PlanID         uuid.UUID
+	RateCardID     uuid.UUID
+	Units          *money.Decimal
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	DeletedAt      *time.Time
+}
+
 type PlanTax struct {
 	OrganizationID uuid.UUID
 	PlanID         uuid.UUID
@@ -1171,6 +1293,56 @@ type PricingUnit struct {
 	UpdatedAt      time.Time
 }
 
+type Product struct {
+	OrganizationID     uuid.UUID
+	ID                 uuid.UUID
+	ProductCategoryID  *uuid.UUID
+	BillableMetricID   *uuid.UUID
+	ProductType        string
+	Code               string
+	Name               string
+	Description        *string
+	InvoiceDisplayName *string
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	DeletedAt          *time.Time
+}
+
+type ProductCategory struct {
+	OrganizationID     uuid.UUID
+	ID                 uuid.UUID
+	Code               string
+	Name               string
+	Description        *string
+	InvoiceDisplayName *string
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	DeletedAt          *time.Time
+}
+
+type ProductFilter struct {
+	OrganizationID     uuid.UUID
+	ID                 uuid.UUID
+	ProductID          uuid.UUID
+	Code               string
+	Name               string
+	Description        *string
+	InvoiceDisplayName *string
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	DeletedAt          *time.Time
+}
+
+type ProductFilterValue struct {
+	OrganizationID         uuid.UUID
+	ID                     int64
+	ProductFilterID        uuid.UUID
+	Position               int32
+	BillableMetricFilterID uuid.UUID
+	Value                  *string
+	DeletedAt              *time.Time
+}
+
 type Quote struct {
 	OrganizationID uuid.UUID
 	ID             uuid.UUID
@@ -1179,6 +1351,7 @@ type Quote struct {
 	CustomerID     uuid.UUID
 	OrderType      string
 	SubscriptionID *uuid.UUID
+	Images         []string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -1191,19 +1364,93 @@ type QuoteOwner struct {
 }
 
 type QuoteVersion struct {
-	OrganizationID  uuid.UUID
-	ID              uuid.UUID
-	QuoteID         uuid.UUID
-	Version         int32
-	Status          string
-	VoidReason      *string
-	Content         []byte
-	Currency        *string
-	BillingEntityID *uuid.UUID
-	ApprovedAt      *time.Time
-	VoidedAt        *time.Time
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	OrganizationID   uuid.UUID
+	ID               uuid.UUID
+	QuoteID          uuid.UUID
+	Version          int32
+	Status           string
+	VoidReason       *string
+	Content          *string
+	BillingItems     []byte
+	MentionVariables []byte
+	Currency         *string
+	BillingEntityID  *uuid.UUID
+	ApprovedAt       *time.Time
+	VoidedAt         *time.Time
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+type RateCard struct {
+	OrganizationID   uuid.UUID
+	ID               uuid.UUID
+	ProductID        uuid.UUID
+	ProductFilterID  *uuid.UUID
+	Code             string
+	Name             string
+	Description      *string
+	Currency         string
+	BillingTiming    string
+	Proration        bool
+	DisplayOnInvoice bool
+	RegroupPaidFees  *string
+	PricingUnitID    *uuid.UUID
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	DeletedAt        *time.Time
+}
+
+type RateCardRate struct {
+	OrganizationID            uuid.UUID
+	ID                        uuid.UUID
+	RateCardID                uuid.UUID
+	Code                      string
+	EffectiveFrom             time.Time
+	RateModel                 string
+	Properties                []byte
+	MinAmount                 int64
+	BillingIntervalCount      int32
+	BillingIntervalUnit       string
+	PricingUnitConversionRate *money.Decimal
+	CreatedAt                 time.Time
+	UpdatedAt                 time.Time
+	DeletedAt                 *time.Time
+}
+
+type RateCardTax struct {
+	OrganizationID uuid.UUID
+	RateCardID     uuid.UUID
+	TaxID          uuid.UUID
+	Position       int32
+}
+
+type RatePhase struct {
+	OrganizationID                    uuid.UUID
+	ID                                uuid.UUID
+	PlanRateCardID                    uuid.UUID
+	Code                              string
+	Position                          int32
+	Name                              *string
+	BillingIntervalCycleCount         *int32
+	OverrideRateModel                 *string
+	OverrideProperties                []byte
+	OverrideMinAmount                 *int64
+	OverrideBillingIntervalCount      *int32
+	OverrideBillingIntervalUnit       *string
+	OverridePricingUnitConversionRate *money.Decimal
+	CreatedAt                         time.Time
+	UpdatedAt                         time.Time
+	DeletedAt                         *time.Time
+}
+
+type RecordDeletion struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+	RecordTable    string
+	RecordID       uuid.UUID
+	DeletedAt      time.Time
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
 }
 
 type RecurringTransactionRule struct {
@@ -1262,6 +1509,19 @@ type Role struct {
 	DeletedAt      *time.Time
 }
 
+type SecurityLog struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+	UserID         *uuid.UUID
+	ApiKeyID       *uuid.UUID
+	LogType        string
+	LogEvent       string
+	Resources      json.RawMessage
+	DeviceInfo     json.RawMessage
+	LoggedAt       time.Time
+	CreatedAt      time.Time
+}
+
 type Session struct {
 	ID         uuid.UUID
 	UserID     uuid.UUID
@@ -1302,6 +1562,8 @@ type Subscription struct {
 	BillingEntityID            *uuid.UUID
 	SkipInvoiceCustomSections  bool
 	NextBillingAt              *time.Time
+	SkipDailyUsage             bool
+	LastReceivedEventOn        *time.Time
 	CreatedAt                  time.Time
 	UpdatedAt                  time.Time
 }
@@ -1335,6 +1597,7 @@ type Tax struct {
 	AutoGenerated  bool
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	DeletedAt      *time.Time
 }
 
 type TriggeredAlert struct {
@@ -1351,6 +1614,33 @@ type TriggeredAlert struct {
 	UpdatedAt         time.Time
 }
 
+type UsageAttributionType struct {
+	OrganizationID  uuid.UUID
+	ID              uuid.UUID
+	Code            string
+	Name            *string
+	Description     *string
+	AttributionKeys []string
+	Role            string
+	ParentID        *uuid.UUID
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	DeletedAt       *time.Time
+}
+
+type UsageAttributionValue struct {
+	OrganizationID         uuid.UUID
+	ID                     uuid.UUID
+	UsageAttributionTypeID uuid.UUID
+	CustomerID             uuid.UUID
+	ParentID               *uuid.UUID
+	Value                  string
+	LastSeenAt             *time.Time
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+	DeletedAt              *time.Time
+}
+
 type UsageThreshold struct {
 	OrganizationID       uuid.UUID
 	ID                   uuid.UUID
@@ -1361,6 +1651,7 @@ type UsageThreshold struct {
 	ThresholdDisplayName *string
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
+	DeletedAt            *time.Time
 }
 
 type User struct {

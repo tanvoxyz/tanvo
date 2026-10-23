@@ -76,3 +76,21 @@ func (e *RuleError) Error() string {
 
 // Is reports whether target is [ErrNotAllowed].
 func (e *RuleError) Is(target error) bool { return target == ErrNotAllowed }
+
+// NotFoundError reports a missing resource with the stable code
+// "<resource>_not_found" ("billable_metric_not_found"), which the API
+// returns as the error reason. It matches [ErrNotFound] with errors.Is.
+type NotFoundError struct {
+	// Resource names the missing resource in snake_case
+	// ("billable_metric").
+	Resource string
+}
+
+// NotFound returns a *NotFoundError for resource.
+func NotFound(resource string) *NotFoundError { return &NotFoundError{Resource: resource} }
+
+// Error implements error.
+func (e *NotFoundError) Error() string { return e.Resource + "_not_found" }
+
+// Is reports whether target is [ErrNotFound].
+func (e *NotFoundError) Is(target error) bool { return target == ErrNotFound }

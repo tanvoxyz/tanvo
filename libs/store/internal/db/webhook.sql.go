@@ -317,6 +317,47 @@ func (q *Queries) ListDueWebhookDeliveries(ctx context.Context, arg ListDueWebho
 	return items, nil
 }
 
+const listObjectsWithDomainEventSince = `-- name: ListObjectsWithDomainEventSince :many
+SELECT DISTINCT object_id FROM domain_events
+WHERE organization_id = $1 AND event_type = $2 AND object_type = $3
+  AND object_id = ANY($4::uuid[]) AND occurred_at >= $5
+ORDER BY object_id
+`
+
+type ListObjectsWithDomainEventSinceParams struct {
+	OrganizationID uuid.UUID
+	EventType      string
+	ObjectType     string
+	ObjectIds      []uuid.UUID
+	Since          time.Time
+}
+
+func (q *Queries) ListObjectsWithDomainEventSince(ctx context.Context, arg ListObjectsWithDomainEventSinceParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listObjectsWithDomainEventSince,
+		arg.OrganizationID,
+		arg.EventType,
+		arg.ObjectType,
+		arg.ObjectIds,
+		arg.Since,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var object_id uuid.UUID
+		if err := rows.Scan(&object_id); err != nil {
+			return nil, err
+		}
+		items = append(items, object_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listSubscribedWebhookEndpoints = `-- name: ListSubscribedWebhookEndpoints :many
 SELECT organization_id, id, url, name, event_types, secret, created_at, updated_at FROM webhook_endpoints
 WHERE organization_id = $1
@@ -363,9 +404,25 @@ SELECT organization_id, id, webhook_endpoint_id, event_id, event_type, object_ty
 WHERE organization_id = $1 AND webhook_endpoint_id = $2
   AND (cardinality($3::text[]) = 0 OR status = ANY($3::text[]))
   AND (cardinality($4::text[]) = 0 OR event_type = ANY($4::text[]))
-  AND ($5::uuid IS NULL OR id > $5)
-ORDER BY id
-LIMIT $6
+  AND ($5::text IS NULL OR id::text ILIKE $5 OR object_id::text ILIKE $5)
+  -- The HTTP status filter (webhooks_query.rb:62-78): a code in one of the
+  -- ranges (@http_mins[i]..@http_maxs[i]), or, with @http_timeout, no
+  -- response on a failed delivery (webhooks_query.rb:70-72).
+  AND ((cardinality($6::int[]) = 0 AND NOT $7::boolean)
+       OR EXISTS (SELECT 1 FROM generate_subscripts($6::int[], 1) AS k
+                  WHERE http_status BETWEEN ($6::int[])[k] AND ($8::int[])[k])
+       OR ($7::boolean AND http_status IS NULL AND status = 'failed'))
+  AND ($9::timestamptz IS NULL OR updated_at >= $9)
+  AND ($10::timestamptz IS NULL OR updated_at <= $10)
+  -- @recent lists the last updated first, then by id ascending
+  -- (webhooks_query.rb:10, base_query.rb:111-112); its cursor is
+  -- (@after_at, @after).
+  AND ($11::uuid IS NULL
+       OR ($12::boolean AND (updated_at < $13::timestamptz
+                                 OR (updated_at = $13::timestamptz AND id > $11)))
+       OR (NOT $12::boolean AND id > $11))
+ORDER BY CASE WHEN $12::boolean THEN updated_at END DESC, id
+LIMIT $14
 `
 
 type ListWebhookDeliveriesByEndpointParams struct {
@@ -373,7 +430,15 @@ type ListWebhookDeliveriesByEndpointParams struct {
 	WebhookEndpointID uuid.UUID
 	Statuses          []string
 	EventTypes        []string
+	Search            *string
+	HttpMins          []int32
+	HttpTimeout       bool
+	HttpMaxs          []int32
+	UpdatedFrom       *time.Time
+	UpdatedTo         *time.Time
 	After             *uuid.UUID
+	Recent            bool
+	AfterAt           *time.Time
 	Lim               int32
 }
 
@@ -383,7 +448,15 @@ func (q *Queries) ListWebhookDeliveriesByEndpoint(ctx context.Context, arg ListW
 		arg.WebhookEndpointID,
 		arg.Statuses,
 		arg.EventTypes,
+		arg.Search,
+		arg.HttpMins,
+		arg.HttpTimeout,
+		arg.HttpMaxs,
+		arg.UpdatedFrom,
+		arg.UpdatedTo,
 		arg.After,
+		arg.Recent,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {

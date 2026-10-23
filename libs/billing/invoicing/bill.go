@@ -66,8 +66,22 @@ type billed struct {
 // their follow-up jobs are enqueued. A periodic subscription already
 // billed for its period is skipped (the idempotency key of §11.1). A tax
 // provider failure is not an error: the invoice is returned failed (or
-// draft) with a tax_error detail, and [Service.Retry] finishes it.
+// draft) with a tax_error detail, and [Service.Retry] reopens it for
+// [Service.PullTaxes].
 func (s *Service) Bill(ctx context.Context, r port.Repos, req BillRequest) ([]*invoice.Invoice, error) {
+	return s.bill(ctx, r, req, false)
+}
+
+// bill runs [Service.Bill]; with reserve it stops once each group's
+// generating invoice and invoice subscriptions are written, without fees,
+// and returns the generating invoices, reusing those a former reservation
+// of the same subscriptions and periods left (lago
+// Invoices::SubscriptionService#create_generating_invoice, committed
+// before the fees, app/services/invoices/subscription_service.rb:48).
+func (s *Service) bill(ctx context.Context, r port.Repos, req BillRequest, reserve bool) ([]*invoice.Invoice, error) {
+	if reserve && !req.InvoiceID.IsZero() {
+		return nil, fmt.Errorf("reserve invoice %s: %w: already reserved", req.InvoiceID, core.ErrInvalidValue)
+	}
 	ids := make([]core.SubscriptionID, 0, len(req.Items))
 	for _, it := range req.Items {
 		ids = append(ids, it.SubscriptionID)
@@ -82,7 +96,7 @@ func (s *Service) Bill(ctx context.Context, r port.Repos, req BillRequest) ([]*i
 			return nil, err
 		}
 		if inv.Status == invoice.StatusFailed {
-			if err := s.retry(ctx, r, inv); err != nil {
+			if err := s.reopen(ctx, r, inv); err != nil {
 				return nil, err
 			}
 			return []*invoice.Invoice{inv}, nil
@@ -119,7 +133,7 @@ func (s *Service) Bill(ctx context.Context, r port.Repos, req BillRequest) ([]*i
 	}
 	var out []*invoice.Invoice
 	for _, k := range keys {
-		inv, err := s.billGroup(ctx, r, req, groups[k], existing)
+		inv, err := s.billGroup(ctx, r, req, groups[k], existing, reserve)
 		if err != nil {
 			return nil, err
 		}
@@ -153,8 +167,8 @@ func (s *Service) resetGenerating(ctx context.Context, r port.Repos, org core.Or
 	return inv, nil
 }
 
-// clearInvoice deletes the fees, invoice subscriptions, applied taxes and
-// error details of inv.
+// clearInvoice deletes the fees, invoice subscriptions, applied taxes,
+// error details and applied custom sections of inv.
 func (s *Service) clearInvoice(ctx context.Context, r port.Repos, inv *invoice.Invoice) error {
 	org := inv.OrganizationID
 	if err := r.Fees.DeleteByInvoice(ctx, org, inv.ID); err != nil {
@@ -169,12 +183,17 @@ func (s *Service) clearInvoice(ctx context.Context, r port.Repos, inv *invoice.I
 	if err := r.ErrorDetails.DeleteByInvoice(ctx, org, inv.ID, ""); err != nil {
 		return fmt.Errorf("delete error details of invoice %s: %w", inv.ID, err)
 	}
+	// refresh_draft_service.rb:129.
+	if err := r.AppliedInvoiceCustomSections.DeleteByInvoice(ctx, org, inv.ID); err != nil {
+		return fmt.Errorf("delete custom sections of invoice %s: %w", inv.ID, err)
+	}
 	return nil
 }
 
 // billGroup generates the invoice of one group of subscriptions (lago
-// Invoices::SubscriptionService), into existing when retrying.
-func (s *Service) billGroup(ctx context.Context, r port.Repos, req BillRequest, group []*billed, existing *invoice.Invoice) (*invoice.Invoice, error) {
+// Invoices::SubscriptionService), into existing when retrying; with
+// reserve it only writes the generating invoice (see [Service.bill]).
+func (s *Service) billGroup(ctx context.Context, r port.Repos, req BillRequest, group []*billed, existing *invoice.Invoice, reserve bool) (*invoice.Invoice, error) {
 	org := req.OrganizationID
 	recurring, active := true, false
 	for _, b := range group {
@@ -194,11 +213,22 @@ func (s *Service) billGroup(ctx context.Context, r port.Repos, req BillRequest, 
 			continue
 		}
 		if existing == nil {
-			billed, err := rowExists(ctx, r, org, b.is)
+			row, err := findRow(ctx, r, org, b.is)
 			if err != nil {
 				return nil, err
 			}
-			if billed {
+			if row != nil {
+				if reserve {
+					// A former reservation whose generation failed: its
+					// retry generates the whole group again.
+					inv, err := r.Invoices.Get(ctx, org, row.InvoiceID)
+					if err != nil {
+						return nil, fmt.Errorf("load invoice %s: %w", row.InvoiceID, err)
+					}
+					if inv.Status == invoice.StatusGenerating {
+						return inv, nil
+					}
+				}
 				continue
 			}
 		}
@@ -227,6 +257,9 @@ func (s *Service) billGroup(ctx context.Context, r port.Repos, req BillRequest, 
 			return nil, fmt.Errorf("create invoice subscription of %s: %w", b.env.Subscription.ID, err)
 		}
 	}
+	if reserve {
+		return inv, nil
+	}
 	return s.generate(ctx, r, inv, cenv, k, rows, req.SkipCharges, modeNew, nil)
 }
 
@@ -246,15 +279,32 @@ func (s *Service) generate(ctx context.Context, r port.Repos, inv *invoice.Invoi
 		subs[i] = b.env.Subscription.ID
 	}
 	draft := mode != modeFinalize && inv.Status != invoice.StatusFailed && k.UsesGracePeriod && inv.AppliedGracePeriodDays > 0
-	st, err := s.settle(ctx, r, cenv, inv, fs, settleOptions{draft: draft, resolver: resolver})
+	st, err := s.settle(ctx, r, cenv, inv, fs, settleOptions{draft: draft, resolver: resolver, vies: true})
 	if err != nil {
 		return nil, err
 	}
 	if st.gated, err = gated(ctx, r, rows); err != nil {
 		return nil, err
 	}
+	// A new invoice follows its subscriptions' selections
+	// (subscription_service.rb:61-64); a refreshed draft is applied the
+	// customer's (refresh_draft_service.rb:63).
+	var sections []kernel.CustomSectionResource
+	if mode == modeNew {
+		for _, b := range rows {
+			sections = append(sections, kernel.SubscriptionSectionResource(b.env.Subscription))
+		}
+	}
+	if err := s.applyCustomSections(ctx, r, cenv, inv, nil, sections...); err != nil {
+		return nil, err
+	}
 	if err := s.emitFees(ctx, standalone); err != nil {
 		return nil, err
+	}
+	if mode == modeNew {
+		if err := fillDailyUsage(ctx, r, inv, rows); err != nil {
+			return nil, err
+		}
 	}
 	if beforeFinish != nil {
 		if err := beforeFinish(ctx, r); err != nil {
@@ -268,8 +318,24 @@ func (s *Service) generate(ctx context.Context, r port.Repos, inv *invoice.Invoi
 		if err := s.flagLifetimeUsage(ctx, r, inv.OrganizationID, subs); err != nil {
 			return nil, err
 		}
+	} else if mode == modeNew {
+		// A new draft counts in the wallets' ongoing balances (lago
+		// app/services/invoices/subscription_service.rb:78).
+		if err := flagWalletRefresh(ctx, r, inv); err != nil {
+			return nil, err
+		}
 	}
 	return inv, nil
+}
+
+// flagWalletRefresh flags the customer of inv as awaiting the refresh of
+// its wallets' ongoing balances, which the periodic sweep performs (lago
+// Customer#flag_wallets_for_refresh).
+func flagWalletRefresh(ctx context.Context, r port.Repos, inv *invoice.Invoice) error {
+	if err := r.Customers.FlagWalletRefresh(ctx, inv.OrganizationID, inv.CustomerID); err != nil {
+		return fmt.Errorf("flag wallet refresh of customer %s: %w", inv.CustomerID, err)
+	}
+	return nil
 }
 
 // gated reports whether a pending payment rule of a subscription of rows
@@ -380,19 +446,19 @@ func chargesCovered(ctx context.Context, r port.Repos, env *kernel.SubscriptionE
 // samePeriod reports whether a and b have the same bounds.
 func samePeriod(a, b period.Period) bool { return a.From.Equal(b.From) && a.To.Equal(b.To) }
 
-// rowExists reports whether a row with one of the idempotency keys of is
-// exists (lago's invoice_subscriptions unique indexes).
-func rowExists(ctx context.Context, r port.Repos, org core.OrganizationID, is *invoice.Subscription) (bool, error) {
+// findRow returns the row with one of the idempotency keys of is, or nil
+// when there is none (lago's invoice_subscriptions unique indexes).
+func findRow(ctx context.Context, r port.Repos, org core.OrganizationID, is *invoice.Subscription) (*invoice.Subscription, error) {
 	for _, k := range is.Keys() {
-		_, err := r.InvoiceSubscriptions.Find(ctx, org, k)
+		row, err := r.InvoiceSubscriptions.Find(ctx, org, k)
 		switch {
 		case err == nil:
-			return true, nil
+			return row, nil
 		case !errors.Is(err, core.ErrNotFound):
-			return false, fmt.Errorf("find invoice of subscription %s: %w", is.SubscriptionID, err)
+			return nil, fmt.Errorf("find invoice of subscription %s: %w", is.SubscriptionID, err)
 		}
 	}
-	return false, nil
+	return nil, nil
 }
 
 // lockSubscriptions takes the billing_schedule lock of the customers of
@@ -426,4 +492,18 @@ func lockSubscriptions(ctx context.Context, r port.Repos, org core.OrganizationI
 		}
 	}
 	return nil
+}
+
+// fillDailyUsage enqueues the daily usage fill of the periodic and
+// terminating subscriptions of a new invoice, before its tax outcome is
+// known (lago Invoices::SubscriptionService#fill_daily_usage,
+// app/services/invoices/subscription_service.rb:90 and 257-270).
+func fillDailyUsage(ctx context.Context, r port.Repos, inv *invoice.Invoice, rows []*billed) error {
+	var subs []core.SubscriptionID
+	for _, b := range rows {
+		if slices.Contains(kernel.DailyUsageInvoiceReasons, b.item.Reason) {
+			subs = append(subs, b.env.Subscription.ID)
+		}
+	}
+	return kernel.EnqueueFillDailyUsage(ctx, r, inv, subs)
 }

@@ -5,8 +5,8 @@
 //
 // Source: tanvo/event/v1/event.proto
 
-// Package tanvo.event.v1 is the API of usage events: ingestion, retrieval,
-// replacement and fee estimates.
+// Package tanvo.event.v1 is the API of usage events: ingestion, retrieval and
+// fee estimates.
 package eventv1connect
 
 import (
@@ -40,8 +40,6 @@ const (
 	// EventServiceListEnrichedEventsProcedure is the procedure name of the EventService's
 	// ListEnrichedEvents RPC.
 	EventServiceListEnrichedEventsProcedure = "/tanvo.event.v1.EventService/ListEnrichedEvents"
-	// EventServiceReplaceEventProcedure is the procedure name of the EventService's ReplaceEvent RPC.
-	EventServiceReplaceEventProcedure = "/tanvo.event.v1.EventService/ReplaceEvent"
 	// EventServiceEstimateFeesProcedure is the procedure name of the EventService's EstimateFees RPC.
 	EventServiceEstimateFeesProcedure = "/tanvo.event.v1.EventService/EstimateFees"
 	// EventServiceEstimateInstantFeesProcedure is the procedure name of the EventService's
@@ -90,14 +88,6 @@ var (
 			IdempotencyLevel: connect.IdempotencyNoSideEffects,
 		}
 	})
-	eventServiceReplaceEventSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType:       connect.StreamTypeUnary,
-			Schema:           v1.File_tanvo_event_v1_event_proto.Services().ByName("EventService").Methods().ByName("ReplaceEvent"),
-			Procedure:        EventServiceReplaceEventProcedure,
-			IdempotencyLevel: connect.IdempotencyIdempotent,
-		}
-	})
 	eventServiceEstimateFeesSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -129,10 +119,6 @@ type EventServiceClient interface {
 	// Lists enriched events: events resolved to their subscription, charge
 	// and filter, with the computed value.
 	ListEnrichedEvents(context.Context, *v1.ListEnrichedEventsRequest) (*v1.ListEnrichedEventsResponse, error)
-	// Replaces an event's code, timestamp, properties or amount, keeping its
-	// subscription and transaction ID; usage is recomputed and an audit entry recorded.
-	// Events already invoiced cannot be replaced.
-	ReplaceEvent(context.Context, *v1.ReplaceEventRequest) (*v1.ReplaceEventResponse, error)
 	// Estimates the fees an event would create on in-advance charges, without
 	// storing it.
 	EstimateFees(context.Context, *v1.EstimateFeesRequest) (*v1.EstimateFeesResponse, error)
@@ -162,10 +148,6 @@ type EventServiceHandler interface {
 	// Lists enriched events: events resolved to their subscription, charge
 	// and filter, with the computed value.
 	ListEnrichedEvents(context.Context, *v1.ListEnrichedEventsRequest) (*v1.ListEnrichedEventsResponse, error)
-	// Replaces an event's code, timestamp, properties or amount, keeping its
-	// subscription and transaction ID; usage is recomputed and an audit entry recorded.
-	// Events already invoiced cannot be replaced.
-	ReplaceEvent(context.Context, *v1.ReplaceEventRequest) (*v1.ReplaceEventResponse, error)
 	// Estimates the fees an event would create on in-advance charges, without
 	// storing it.
 	EstimateFees(context.Context, *v1.EstimateFeesRequest) (*v1.EstimateFeesResponse, error)
@@ -184,7 +166,6 @@ func RegisterEventServiceHandler(server *connect.Server, svc EventServiceHandler
 		connect.Method{Spec: eventServiceGetEventSpec(), Handler: adapter.getEvent},
 		connect.Method{Spec: eventServiceListEventsSpec(), Handler: adapter.listEvents},
 		connect.Method{Spec: eventServiceListEnrichedEventsSpec(), Handler: adapter.listEnrichedEvents},
-		connect.Method{Spec: eventServiceReplaceEventSpec(), Handler: adapter.replaceEvent},
 		connect.Method{Spec: eventServiceEstimateFeesSpec(), Handler: adapter.estimateFees},
 		connect.Method{Spec: eventServiceEstimateInstantFeesSpec(), Handler: adapter.estimateInstantFees},
 	)
@@ -211,10 +192,6 @@ func (UnimplementedEventServiceHandler) ListEvents(context.Context, *v1.ListEven
 
 func (UnimplementedEventServiceHandler) ListEnrichedEvents(context.Context, *v1.ListEnrichedEventsRequest) (*v1.ListEnrichedEventsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.event.v1.EventService.ListEnrichedEvents is not implemented")
-}
-
-func (UnimplementedEventServiceHandler) ReplaceEvent(context.Context, *v1.ReplaceEventRequest) (*v1.ReplaceEventResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.event.v1.EventService.ReplaceEvent is not implemented")
 }
 
 func (UnimplementedEventServiceHandler) EstimateFees(context.Context, *v1.EstimateFeesRequest) (*v1.EstimateFeesResponse, error) {
@@ -264,14 +241,6 @@ func (c *eventServiceClient) ListEvents(ctx context.Context, req *v1.ListEventsR
 func (c *eventServiceClient) ListEnrichedEvents(ctx context.Context, req *v1.ListEnrichedEventsRequest) (*v1.ListEnrichedEventsResponse, error) {
 	var res v1.ListEnrichedEventsResponse
 	if err := c.client.CallUnary(ctx, eventServiceListEnrichedEventsSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *eventServiceClient) ReplaceEvent(ctx context.Context, req *v1.ReplaceEventRequest) (*v1.ReplaceEventResponse, error) {
-	var res v1.ReplaceEventResponse
-	if err := c.client.CallUnary(ctx, eventServiceReplaceEventSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -349,18 +318,6 @@ func (h eventServiceHandler) listEnrichedEvents(ctx context.Context, _ connect.S
 		return err
 	}
 	res, err := h.svc.ListEnrichedEvents(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h eventServiceHandler) replaceEvent(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.ReplaceEventRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.ReplaceEvent(ctx, &req)
 	if err != nil {
 		return err
 	}

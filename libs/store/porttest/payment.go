@@ -272,6 +272,8 @@ func testPayment(t *testing.T, h Harness) {
 		p4.ProviderPaymentID = ptr("pi_3")
 		pOther := paymentFixtureProvider(e, pb, pb.invoices[0])
 		pOther.ProviderPaymentID = ptr("pi_3")
+		// Creation times with a tie, for the recent order.
+		p1.CreatedAt, p2.CreatedAt, p3.CreatedAt = at(-2*time.Minute), at(-time.Minute), at(-time.Minute)
 		paymentCreate(t, e, p1, p2, p3, p4)
 		paymentCreate(t, e, pOther)
 
@@ -312,6 +314,21 @@ func testPayment(t *testing.T, h Harness) {
 			{"customer", payment.Filter{CustomerID: pa.customers[1]}, []*payment.Payment{p4}},
 			{"status", payment.Filter{Status: payment.StatePending}, []*payment.Payment{p3, p4}},
 			{"customer and status", payment.Filter{CustomerID: pa.customers[0], Status: payment.StateSucceeded}, []*payment.Payment{p2}},
+			{"invoice", payment.Filter{InvoiceID: pa.invoices[0]}, []*payment.Payment{p1, p2, p3}},
+			{"invoice through a request", payment.Filter{InvoiceID: pa.invoices[1]}, []*payment.Payment{p4}},
+			{"currency", payment.Filter{Currency: paymentEUR}, []*payment.Payment{p1, p2, p3, p4}},
+			{"other currency", payment.Filter{Currency: money.MustCurrency("GBP")}, nil},
+			{"visible", payment.Filter{Visible: true}, []*payment.Payment{p1, p2, p3, p4}},
+			{"recent", payment.Filter{Order: core.OrderRecent}, []*payment.Payment{p4, p2, p3, p1}},
+			{"search provider payment ID", payment.Filter{Search: " PI_3 "}, []*payment.Payment{p3, p4}},
+			{"search reference", payment.Filter{Search: "WIRE"}, []*payment.Payment{p2}},
+			{"search ID", payment.Filter{Search: p1.ID.String()}, []*payment.Payment{p1}},
+			{"search partial ID", payment.Filter{Search: p1.ID.String()[24:]}, nil},
+			{"search invoice number", payment.Filter{Search: "pay-001"}, []*payment.Payment{p1, p2, p3}},
+			{"search invoice number with invoice", payment.Filter{Search: "PAY-001", InvoiceID: pa.invoices[1]}, nil},
+			{"search customer external ID", payment.Filter{Search: "pay-cust-1"}, []*payment.Payment{p4}},
+			{"search customer external ID with customer", payment.Filter{Search: "pay-cust-1", CustomerID: pa.customers[0]}, nil},
+			{"search no match", payment.Filter{Search: "nothing"}, nil},
 		}
 		for _, c := range cases {
 			e.tx(func(ctx context.Context, r port.Repos) error {
@@ -347,7 +364,7 @@ func testPayment(t *testing.T, h Harness) {
 		r1 := &payment.Receipt{
 			ID: core.NewID[core.PaymentReceiptID](e.ids), OrganizationID: pa.org, PaymentID: p1.ID,
 			BillingEntityID: pa.be, Number: "CUST-RCPT-000001", File: "blob/r1.pdf", XMLFile: "blob/r1.xml",
-			CreatedAt: now, UpdatedAt: now,
+			CreatedAt: at(-time.Minute), UpdatedAt: now,
 		}
 		r2 := &payment.Receipt{
 			ID: core.NewID[core.PaymentReceiptID](e.ids), OrganizationID: pa.org, PaymentID: p2.ID,
@@ -406,11 +423,27 @@ func testPayment(t *testing.T, h Harness) {
 		})
 		e.tx(func(ctx context.Context, r port.Repos) error {
 			got := listAll(t, 1, func(pr core.PageRequest) (core.Page[*payment.Receipt], error) {
-				return r.PaymentReceipts.List(ctx, pa.org, pr)
+				return r.PaymentReceipts.List(ctx, pa.org, payment.ReceiptFilter{}, pr)
 			})
 			equal(t, "List()", got, []*payment.Receipt{r1, r2})
+			for _, c := range []struct {
+				name string
+				f    payment.ReceiptFilter
+				want []*payment.Receipt
+			}{
+				{"invoice", payment.ReceiptFilter{InvoiceID: pa.invoices[0]}, []*payment.Receipt{r1}},
+				{"recent", payment.ReceiptFilter{Order: core.OrderRecent}, []*payment.Receipt{r2, r1}},
+			} {
+				got = listAll(t, 1, func(pr core.PageRequest) (core.Page[*payment.Receipt], error) {
+					return r.PaymentReceipts.List(ctx, pa.org, c.f, pr)
+				})
+				equal(t, "List() "+c.name, len(got), len(c.want))
+				for i := range got {
+					equal(t, "List() "+c.name, got[i].ID, c.want[i].ID)
+				}
+			}
 			got = listAll(t, 5, func(pr core.PageRequest) (core.Page[*payment.Receipt], error) {
-				return r.PaymentReceipts.List(ctx, pb.org, pr)
+				return r.PaymentReceipts.List(ctx, pb.org, payment.ReceiptFilter{}, pr)
 			})
 			equal(t, "List() other org", got, []*payment.Receipt{rOther})
 			return nil
@@ -534,6 +567,7 @@ func testPayment(t *testing.T, h Harness) {
 		r1.PaymentMethodType = core.PaymentMethodTypeProvider
 		r1.PaymentMethodID = m.ID
 		r1.ReadyForPaymentProcessing = true
+		r1.CreatedAt = at(-time.Minute) // r2 and r3 tie, for the recent order
 		r2 := paymentFixtureRequest(e, pa, pa.invoices[1])
 		r2.CustomerID = pa.customers[1]
 		r2.PaymentStatus = core.PaymentStatusFailed
@@ -592,6 +626,12 @@ func testPayment(t *testing.T, h Harness) {
 			{"customer", payment.RequestFilter{CustomerID: pa.customers[0]}, []*payment.Request{r1, r3}},
 			{"payment status", payment.RequestFilter{PaymentStatus: core.PaymentStatusFailed}, []*payment.Request{r2}},
 			{"both", payment.RequestFilter{CustomerID: pa.customers[0], PaymentStatus: core.PaymentStatusPending}, []*payment.Request{r3}},
+			{"currency", payment.RequestFilter{Currency: paymentEUR}, []*payment.Request{r1, r2, r3}},
+			{"other currency", payment.RequestFilter{Currency: money.MustCurrency("GBP")}, nil},
+			{"billing entity", payment.RequestFilter{BillingEntityIDs: []core.BillingEntityID{pa.be}}, []*payment.Request{r1, r2, r3}},
+			{"other billing entity", payment.RequestFilter{BillingEntityIDs: []core.BillingEntityID{pb.be}}, nil},
+			{"billing entities", payment.RequestFilter{BillingEntityIDs: []core.BillingEntityID{pb.be, pa.be}}, []*payment.Request{r1, r2, r3}},
+			{"recent", payment.RequestFilter{Order: core.OrderRecent}, []*payment.Request{r2, r3, r1}},
 		}
 		for _, c := range cases {
 			e.tx(func(ctx context.Context, r port.Repos) error {

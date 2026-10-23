@@ -11,6 +11,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/integration"
+	"github.com/tanvoxyz/tanvo/libs/core/payment"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
 
@@ -184,6 +185,62 @@ func testIntegration(t *testing.T, h Harness) {
 			wantErr(t, "Delete() again", r.Integrations.Delete(ctx, org, ns2.ID), core.ErrNotFound)
 			_, err = r.Integrations.Get(ctx, org, ns2.ID)
 			wantErr(t, "Get() deleted", err, core.ErrNotFound)
+			return nil
+		})
+	})
+
+	// source: spec/services/payment_providers/destroy_service_spec.rb:18
+	t.Run("payment integration discard", func(t *testing.T) {
+		t.Parallel()
+		e := newEnv(t, h)
+		a, _ := e.twoOrgs()
+		org := a.OrganizationID
+		stripe := integrationFixture(e, org, "stripe1", integration.ProviderStripe)
+		other := integrationFixture(e, org, "stripe2", integration.ProviderStripe)
+		integrationFixtureCreate(e, stripe, other)
+		custs := integrationFixtureCustomers(e, org, a.ID, "c1")
+		ppc := func(i *integration.Integration) *payment.ProviderCustomer {
+			return &payment.ProviderCustomer{
+				ID: core.NewID[core.PaymentProviderCustomerID](e.ids), OrganizationID: org,
+				CustomerID: custs[0], IntegrationID: i.ID, CreatedAt: now, UpdatedAt: now,
+			}
+		}
+		gone, kept := ppc(stripe), ppc(other)
+		e.tx(func(ctx context.Context, r port.Repos) error {
+			noErr(t, "PaymentProviderCustomers.Create()", r.PaymentProviderCustomers.Create(ctx, gone))
+			noErr(t, "PaymentProviderCustomers.Create()", r.PaymentProviderCustomers.Create(ctx, kept))
+
+			noErr(t, "Discard()", r.Integrations.Discard(ctx, org, stripe.ID, at(time.Hour)))
+			wantErr(t, "Discard() again", r.Integrations.Discard(ctx, org, stripe.ID, at(time.Hour)), core.ErrNotFound)
+			_, err := r.Integrations.Get(ctx, org, stripe.ID)
+			wantErr(t, "Get() discarded", err, core.ErrNotFound)
+			_, err = r.Integrations.GetByCode(ctx, org, "stripe1")
+			wantErr(t, "GetByCode() discarded", err, core.ErrNotFound)
+			all := listAll(t, 5, func(p core.PageRequest) (core.Page[*integration.Integration], error) {
+				return r.Integrations.List(ctx, org, integration.Filter{}, p)
+			})
+			equal(t, "List() after Discard()", ids(all, integrationID), []core.IntegrationID{other.ID})
+
+			// The live provider customers of the discarded connection are
+			// discarded with it.
+			pcs, err := r.PaymentProviderCustomers.ListByIntegration(ctx, org, stripe.ID)
+			noErr(t, "ListByIntegration() of the discarded integration", err)
+			equal(t, "ListByIntegration() of the discarded integration", pcs, []*payment.ProviderCustomer{})
+			pcs, err = r.PaymentProviderCustomers.ListByIntegration(ctx, org, other.ID)
+			noErr(t, "ListByIntegration() of the other integration", err)
+			equal(t, "ListByIntegration() of the other integration", ids(pcs, func(c *payment.ProviderCustomer) core.PaymentProviderCustomerID { return c.ID }),
+				[]core.PaymentProviderCustomerID{kept.ID})
+
+			// The code of a discarded payment provider is free again
+			// (index_integrations_on_code_and_organization_id, scoped to
+			// the live payment providers).
+			again := integrationFixture(e, org, "stripe1", integration.ProviderStripe)
+			noErr(t, "Create() with the code of a discarded integration", r.Integrations.Create(ctx, again))
+			dup := integrationFixture(e, org, "stripe2", integration.ProviderStripe)
+			wantErr(t, "Create() with a live payment code", r.Integrations.Create(ctx, dup), core.ErrConflict)
+			// Payment and other integrations have separate code scopes.
+			ns := integrationFixture(e, org, "stripe2", integration.ProviderNetsuite)
+			noErr(t, "Create() of an accounting integration with a payment code", r.Integrations.Create(ctx, ns))
 			return nil
 		})
 	})
@@ -568,7 +625,9 @@ func testIntegration(t *testing.T, h Harness) {
 			all := listAll(t, 2, func(p core.PageRequest) (core.Page[*integration.Item], error) {
 				return r.IntegrationItems.List(ctx, org, ns.ID, integration.ItemFilter{}, p)
 			})
-			equal(t, "List()", all, []*integration.Item{i1, i2, i3, i4})
+			// By external name, the items without one last
+			// (source: app/queries/integration_items_query.rb:10).
+			equal(t, "List()", all, []*integration.Item{i1, i2, i4, i3})
 
 			// Upsert of a cached (integration, type, external id) replaces
 			// it and keeps its id and creation instant.
@@ -635,7 +694,7 @@ func testIntegration(t *testing.T, h Harness) {
 			all = listAll(t, 10, func(p core.PageRequest) (core.Page[*integration.Item], error) {
 				return r.IntegrationItems.List(ctx, org, ns.ID, integration.ItemFilter{}, p)
 			})
-			equal(t, "List() after DeleteByType()", all, []*integration.Item{i3, i4})
+			equal(t, "List() after DeleteByType()", all, []*integration.Item{i4, i3})
 			all = listAll(t, 10, func(p core.PageRequest) (core.Page[*integration.Item], error) {
 				return r.IntegrationItems.List(ctx, org, xero.ID, integration.ItemFilter{}, p)
 			})
@@ -676,6 +735,12 @@ func testIntegration(t *testing.T, h Harness) {
 			wantErr(t, "Find() unknown", err, core.ErrNotFound)
 			_, err = r.IntegrationResources.Find(ctx, other, ns.ID, integration.ResourceTypeInvoice, invoiceID)
 			wantErr(t, "Find() from another organization", err, core.ErrNotFound)
+			exists, err := r.IntegrationResources.ExistsForSyncable(ctx, org, invoiceID)
+			noErr(t, "ExistsForSyncable()", err)
+			equal(t, "ExistsForSyncable()", exists, true)
+			exists, err = r.IntegrationResources.ExistsForSyncable(ctx, other, invoiceID)
+			noErr(t, "ExistsForSyncable() from another organization", err)
+			equal(t, "ExistsForSyncable() from another organization", exists, false)
 			wantErr(t, "Delete() from another organization", r.IntegrationResources.Delete(ctx, other, r1.ID), core.ErrNotFound)
 
 			noErr(t, "Delete()", r.IntegrationResources.Delete(ctx, org, r1.ID))

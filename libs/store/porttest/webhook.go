@@ -1,6 +1,7 @@
 package porttest
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"slices"
@@ -214,6 +215,14 @@ func testWebhook(t *testing.T, h Harness) {
 				{"event types", webhook.DeliveryFilter{EventTypes: []webhook.EventType{webhook.EventTypeInvoiceVoided}}, []core.WebhookID{d2.ID}},
 				{"both", webhook.DeliveryFilter{Statuses: []webhook.Status{webhook.StatusSucceeded}, EventTypes: []webhook.EventType{webhook.EventTypeInvoiceCreated}}, []core.WebhookID{d3.ID}},
 				{"no match", webhook.DeliveryFilter{Statuses: []webhook.Status{webhook.StatusFailed}}, []core.WebhookID{}},
+				// source: spec/queries/webhooks_query_spec.rb:136-176
+				{"http class", webhook.DeliveryFilter{HTTPStatus: webhook.HTTPStatusFilter{Ranges: []webhook.HTTPStatusRange{{Min: 500, Max: 599}}}}, []core.WebhookID{d2.ID}},
+				{"http codes", webhook.DeliveryFilter{HTTPStatus: webhook.HTTPStatusFilter{Ranges: []webhook.HTTPStatusRange{{Min: 200, Max: 205}, {Min: 404, Max: 404}}}}, []core.WebhookID{d3.ID}},
+				{"http timeout", webhook.DeliveryFilter{HTTPStatus: webhook.HTTPStatusFilter{Timeout: true}}, []core.WebhookID{}},
+				// source: app/queries/webhooks_query.rb:54-59
+				{"updated from", webhook.DeliveryFilter{UpdatedFrom: ptr(at(30 * time.Second))}, []core.WebhookID{d2.ID, d3.ID}},
+				{"updated to", webhook.DeliveryFilter{UpdatedTo: ptr(at(30 * time.Second))}, []core.WebhookID{d1.ID}},
+				{"updated range", webhook.DeliveryFilter{UpdatedFrom: ptr(at(time.Minute)), UpdatedTo: ptr(at(time.Minute))}, []core.WebhookID{d2.ID, d3.ID}},
 			} {
 				got := listAll(t, 2, func(p core.PageRequest) (core.Page[*webhook.Delivery], error) {
 					return r.WebhookDeliveries.ListByEndpoint(ctx, org, ep1.ID, tc.f, p)
@@ -360,6 +369,34 @@ func testWebhook(t *testing.T, h Harness) {
 				return r.DomainEvents.ListByObject(ctx, other, "invoice", another, p)
 			})
 			equal(t, "ListByObject() of another organization's object", list, []*webhook.Event{})
+
+			// ObjectsWithEventSince: e1 (object, now) and e3 (another, +2s).
+			both := []uuid.UUID{object, another}
+			slices.SortFunc(both, func(x, y uuid.UUID) int { return bytes.Compare(x[:], y[:]) })
+			for _, tc := range []struct {
+				name       string
+				org        core.OrganizationID
+				t          webhook.EventType
+				objectType string
+				ids        []uuid.UUID
+				since      time.Time
+				want       []uuid.UUID
+			}{
+				{"since now", org, webhook.EventTypeInvoiceCreated, "invoice", []uuid.UUID{another, object, uuid.New()}, now, both},
+				{"since a second later", org, webhook.EventTypeInvoiceCreated, "invoice", both, at(time.Second), []uuid.UUID{another}},
+				{"at the occurrence", org, webhook.EventTypeInvoiceGenerated, "invoice", both, at(time.Second), []uuid.UUID{object}},
+				{"other object type", org, webhook.EventTypeInvoiceCreated, "customer", both, now, nil},
+				{"not asked", org, webhook.EventTypeInvoiceCreated, "invoice", []uuid.UUID{another}, now, []uuid.UUID{another}},
+				{"other organization", other, webhook.EventTypeInvoiceCreated, "invoice", both, now, []uuid.UUID{object}},
+				{"no ids", org, webhook.EventTypeInvoiceCreated, "invoice", nil, now, nil},
+			} {
+				got, err := r.DomainEvents.ObjectsWithEventSince(ctx, tc.org, tc.t, tc.objectType, tc.ids, tc.since)
+				noErr(t, "ObjectsWithEventSince() "+tc.name, err)
+				if len(got) == 0 {
+					got = nil
+				}
+				equal(t, "ObjectsWithEventSince() "+tc.name, got, tc.want)
+			}
 			return nil
 		})
 	})

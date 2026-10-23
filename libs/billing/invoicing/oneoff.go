@@ -40,10 +40,13 @@ type OneOffInput struct {
 	PaymentMethodType core.PaymentMethodType
 	// PaymentMethodID is the explicit payment method.
 	PaymentMethodID core.PaymentMethodID
-	// Metadata are the invoice's key-value pairs.
-	Metadata core.Metadata
 	// PurchaseOrderNumber is printed on the invoice (blank is none).
 	PurchaseOrderNumber *string
+	// SkipInvoiceCustomSections prints no custom section.
+	SkipInvoiceCustomSections bool
+	// InvoiceCustomSectionIDs are the custom sections printed; none
+	// prints the customer's ([Service.applyCustomSections]).
+	InvoiceCustomSectionIDs []core.InvoiceCustomSectionID
 }
 
 // CreateOneOff issues a one-off invoice: its add-on fees, taxed with their
@@ -91,7 +94,6 @@ func (s *Service) createOneOff(ctx context.Context, r port.Repos, in OneOffInput
 	inv := kernel.NewInvoice(s.d, cenv, kindOneOff, cur, s.d.Now())
 	inv.SkipAutomaticPayment = in.SkipAutomaticPayment
 	inv.PaymentMethodType, inv.PaymentMethodID = in.PaymentMethodType, in.PaymentMethodID
-	inv.Metadata = in.Metadata
 	inv.PurchaseOrderNumber = core.NormalizePurchaseOrderNumber(in.PurchaseOrderNumber)
 	var v core.Validator
 	if !v.OptionalString("purchase_order_number", inv.PurchaseOrderNumber, core.MaxPurchaseOrderNumberLength) {
@@ -104,6 +106,13 @@ func (s *Service) createOneOff(ctx context.Context, r port.Repos, in OneOffInput
 	if err != nil {
 		return nil, err
 	}
+	// The custom sections are applied before the taxes (lago
+	// app/services/invoices/create_one_off_service.rb:58-62).
+	if !in.SkipInvoiceCustomSections {
+		if err := s.applyCustomSections(ctx, r, cenv, inv, in.InvoiceCustomSectionIDs); err != nil {
+			return nil, err
+		}
+	}
 	resolver := kernel.NewTaxResolver(r, cenv)
 	fs := make([]*invoice.Fee, len(ofs))
 	for i, of := range ofs {
@@ -115,7 +124,7 @@ func (s *Service) createOneOff(ctx context.Context, r port.Repos, in OneOffInput
 		}
 		fs[i] = of.Fee
 	}
-	st, err := s.settle(ctx, r, cenv, inv, fs, settleOptions{resolver: resolver})
+	st, err := s.settle(ctx, r, cenv, inv, fs, settleOptions{resolver: resolver, vies: true})
 	if err != nil {
 		return nil, err
 	}

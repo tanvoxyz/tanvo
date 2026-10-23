@@ -2,9 +2,11 @@ package memstore
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -62,13 +64,15 @@ type integrationRepo struct {
 }
 
 func (r integrationRepo) check(i *integration.Integration) error {
+	payment := i.Category == integration.CategoryPayment
 	if r.d.integrations.any(func(x *integration.Integration) bool {
-		return x.ID != i.ID && x.OrganizationID == i.OrganizationID && x.Code == i.Code
+		return x.ID != i.ID && x.OrganizationID == i.OrganizationID && x.Code == i.Code &&
+			(x.Category == integration.CategoryPayment) == payment && (!payment || x.DeletedAt == nil)
 	}) {
 		return conflict("integration", "code")
 	}
 	if integration.DefaultConflict(i, r.d.integrations.find(func(x *integration.Integration) bool {
-		return x.OrganizationID == i.OrganizationID
+		return x.OrganizationID == i.OrganizationID && x.DeletedAt == nil
 	})) {
 		return conflict("integration", "is_default")
 	}
@@ -88,7 +92,7 @@ func (r integrationRepo) Create(_ context.Context, i *integration.Integration) e
 
 func (r integrationRepo) Update(_ context.Context, i *integration.Integration) error {
 	cur, ok := r.d.integrations.get(i.ID)
-	if !ok || cur.OrganizationID != i.OrganizationID {
+	if !ok || cur.OrganizationID != i.OrganizationID || cur.DeletedAt != nil {
 		return notFound("integration", i.ID)
 	}
 	if err := r.check(i); err != nil {
@@ -100,7 +104,7 @@ func (r integrationRepo) Update(_ context.Context, i *integration.Integration) e
 
 func (r integrationRepo) Get(_ context.Context, org core.OrganizationID, id core.IntegrationID) (*integration.Integration, error) {
 	i, ok := r.d.integrations.get(id)
-	if !ok || i.OrganizationID != org {
+	if !ok || i.OrganizationID != org || i.DeletedAt != nil {
 		return nil, notFound("integration", id)
 	}
 	return i, nil
@@ -108,7 +112,7 @@ func (r integrationRepo) Get(_ context.Context, org core.OrganizationID, id core
 
 func (r integrationRepo) GetByCode(_ context.Context, org core.OrganizationID, code string) (*integration.Integration, error) {
 	i, ok := r.d.integrations.first(func(x *integration.Integration) bool {
-		return x.OrganizationID == org && x.Code == code
+		return x.OrganizationID == org && x.Code == code && x.DeletedAt == nil
 	})
 	if !ok {
 		return nil, notFound("integration", stringer(code))
@@ -118,7 +122,7 @@ func (r integrationRepo) GetByCode(_ context.Context, org core.OrganizationID, c
 
 func (r integrationRepo) GetDefault(_ context.Context, org core.OrganizationID, c integration.Category) (*integration.Integration, error) {
 	i, ok := r.d.integrations.first(func(x *integration.Integration) bool {
-		return x.OrganizationID == org && x.Category == c && x.IsDefault
+		return x.OrganizationID == org && x.Category == c && x.IsDefault && x.DeletedAt == nil
 	})
 	if !ok {
 		return nil, notFound("integration", stringer("default "+string(c)))
@@ -128,26 +132,44 @@ func (r integrationRepo) GetDefault(_ context.Context, org core.OrganizationID, 
 
 func (r integrationRepo) ListByProvider(_ context.Context, org core.OrganizationID, p integration.Provider) ([]*integration.Integration, error) {
 	return r.d.integrations.find(func(x *integration.Integration) bool {
-		return x.OrganizationID == org && x.Provider == p
+		return x.OrganizationID == org && x.Provider == p && x.DeletedAt == nil
 	}), nil
 }
 
 func (r integrationRepo) ListByDomain(_ context.Context, p integration.Provider, domain string) ([]*integration.Integration, error) {
 	return r.d.integrations.find(func(x *integration.Integration) bool {
-		return x.Category == integration.CategoryAuth && x.Provider == p && x.ClaimsDomain(domain)
+		return x.Category == integration.CategoryAuth && x.Provider == p && x.DeletedAt == nil && x.ClaimsDomain(domain)
 	}), nil
 }
 
 func (r integrationRepo) List(_ context.Context, org core.OrganizationID, f integration.Filter, page core.PageRequest) (core.Page[*integration.Integration], error) {
 	rows := r.d.integrations.find(func(x *integration.Integration) bool {
-		return x.OrganizationID == org && (f.Category == "" || x.Category == f.Category) && (f.Provider == "" || x.Provider == f.Provider)
+		return x.OrganizationID == org && x.DeletedAt == nil &&
+			(f.Category == "" || x.Category == f.Category) && (f.Provider == "" || x.Provider == f.Provider)
 	})
 	return paginate(rows, func(x *integration.Integration) core.IntegrationID { return x.ID }, page)
 }
 
+func (r integrationRepo) Discard(_ context.Context, org core.OrganizationID, id core.IntegrationID, at time.Time) error {
+	i, ok := r.d.integrations.get(id)
+	if !ok || i.OrganizationID != org || i.DeletedAt != nil {
+		return notFound("integration", id)
+	}
+	at = at.UTC()
+	i.DeletedAt, i.UpdatedAt = &at, at
+	r.d.integrations.put(id, *i)
+	for _, c := range r.st.payment.providerCustomers.find(func(x *payment.ProviderCustomer) bool {
+		return x.OrganizationID == org && x.IntegrationID == id && x.DeletedAt == nil
+	}) {
+		c.DeletedAt, c.UpdatedAt = &at, at
+		r.st.payment.providerCustomers.put(c.ID, *c)
+	}
+	return nil
+}
+
 func (r integrationRepo) Delete(_ context.Context, org core.OrganizationID, id core.IntegrationID) error {
 	i, ok := r.d.integrations.get(id)
-	if !ok || i.OrganizationID != org {
+	if !ok || i.OrganizationID != org || i.DeletedAt != nil {
 		return notFound("integration", id)
 	}
 	pay := r.st.payment
@@ -379,9 +401,71 @@ func (r integrationItemRepo) List(_ context.Context, org core.OrganizationID, in
 			return false
 		}
 		return q == "" || strings.Contains(strings.ToLower(x.ExternalID), q) ||
-			(x.ExternalName != nil && strings.Contains(strings.ToLower(*x.ExternalName), q))
+			(x.ExternalName != nil && strings.Contains(strings.ToLower(*x.ExternalName), q)) ||
+			(x.ExternalAccountCode != nil && strings.Contains(strings.ToLower(*x.ExternalAccountCode), q))
 	})
-	return paginate(rows, func(x *integration.Item) core.IntegrationItemID { return x.ID }, page)
+	return paginateItems(rows, page)
+}
+
+// itemKey orders items by external name (byte order, unnamed last), then
+// newest first, then by ID, as the store does.
+func itemKey(x *integration.Item) (named bool, k nameKey) {
+	k = nameKey{at: x.CreatedAt, id: x.ID.UUID()}
+	if x.ExternalName != nil {
+		named, k.name = true, *x.ExternalName
+	}
+	return named, k
+}
+
+func compareItems(an bool, a nameKey, bn bool, b nameKey) int {
+	if an != bn {
+		if an {
+			return -1
+		}
+		return 1
+	}
+	return compareNameKeys(a, b)
+}
+
+// itemCursor encodes the position of x like the store's itemToken.
+func itemCursor(x *integration.Item) core.Cursor {
+	named, k := itemKey(x)
+	n := "!"
+	if named {
+		n = "=" + k.name
+	}
+	return core.Cursor{Key: k.at.UTC().Format(time.RFC3339Nano) + " " + n, ID: k.id}
+}
+
+func paginateItems(rows []*integration.Item, req core.PageRequest) (core.Page[*integration.Item], error) {
+	var (
+		afterNamed bool
+		after      nameKey
+	)
+	if req.Token != "" {
+		c, err := core.DecodeCursor(req.Token)
+		if err != nil {
+			return core.Page[*integration.Item]{}, err
+		}
+		at, name, ok := strings.Cut(c.Key, " ")
+		t, perr := time.Parse(time.RFC3339Nano, at)
+		if !ok || perr != nil || name == "" || (name[0] != '=' && name != "!") {
+			return core.Page[*integration.Item]{}, fmt.Errorf("%w: page token", core.ErrInvalidValue)
+		}
+		after = nameKey{at: t, id: c.ID}
+		if name[0] == '=' {
+			afterNamed, after.name = true, name[1:]
+		}
+	}
+	slices.SortStableFunc(rows, func(a, b *integration.Item) int {
+		an, ak := itemKey(a)
+		bn, bk := itemKey(b)
+		return compareItems(an, ak, bn, bk)
+	})
+	return paginateSorted(rows, itemCursor, func(x *integration.Item, _ core.Cursor) bool {
+		n, k := itemKey(x)
+		return compareItems(n, k, afterNamed, after) > 0
+	}, req)
 }
 
 func (r integrationItemRepo) DeleteByType(_ context.Context, org core.OrganizationID, integrationID core.IntegrationID, t integration.ItemType) (int, error) {
@@ -423,6 +507,12 @@ func (r integrationResourceRepo) Delete(_ context.Context, org core.Organization
 	}
 	r.d.resources.del(id)
 	return nil
+}
+
+func (r integrationResourceRepo) ExistsForSyncable(_ context.Context, org core.OrganizationID, syncableID uuid.UUID) (bool, error) {
+	return r.d.resources.any(func(x *integration.Resource) bool {
+		return x.OrganizationID == org && x.SyncableID == syncableID
+	}), nil
 }
 
 var (

@@ -2,6 +2,7 @@ package alert
 
 import (
 	"context"
+	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 )
@@ -45,9 +46,14 @@ type Repository interface {
 	ListByBillableMetric(ctx context.Context, org core.OrganizationID, metric core.BillableMetricID) ([]*Alert, error)
 	// List returns the organization's alerts in creation order.
 	List(ctx context.Context, org core.OrganizationID, f Filter, page core.PageRequest) (core.Page[*Alert], error)
-	// Delete removes the alert id and its thresholds, or fails with
+	// Discard deletes the thresholds of the kept alert id and soft-deletes
+	// it at at (lago destroy_alert_service.rb:15-17), or fails with
 	// core.ErrNotFound. Triggered alerts are kept.
-	Delete(ctx context.Context, org core.OrganizationID, id core.AlertID) error
+	Discard(ctx context.Context, org core.OrganizationID, id core.AlertID, at time.Time) error
+	// DiscardByBillableMetric soft-deletes at at the kept alerts watching
+	// metric, keeping their thresholds (lago
+	// billable_metrics/destroy_service.rb:35), and returns how many.
+	DiscardByBillableMetric(ctx context.Context, org core.OrganizationID, metric core.BillableMetricID, at time.Time) (int64, error)
 }
 
 // TriggeredFilter narrows [TriggeredAlertRepository.List].

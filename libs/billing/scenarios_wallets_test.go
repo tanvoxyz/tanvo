@@ -52,11 +52,13 @@ func TestWalletBalanceRecalculation(t *testing.T) {
 	sub := s.walSubscribe(c, p)
 
 	s.travelTo(billingtest.Date(2022, 12, 6))
-	s.ingest(sub, m.Code, "total", "5")
+	s.walIngestTracked(sub, m.Code, "total", "5")
 	if got := len(s.walSubInvoices(c, sub)); got != 0 {
 		t.Errorf("invoices: got = %d, want = 0", got)
 	}
+	s.walExpectAwaiting(c, true) // balance_spec.rb:96
 	s.walRefresh(c)
+	s.walExpectAwaiting(c, false) // balance_spec.rb:98
 	s.walExpect(w, walBalances{Balance: 1000, OngoingBalance: 500, OngoingUsage: 500, Credits: "10", CreditsOngoing: "5", CreditsOngoingUsage: "5"})
 	if got := len(s.walTransactions(w)); got != 1 {
 		t.Errorf("transactions: got = %d, want = 1", got)
@@ -68,12 +70,16 @@ func TestWalletBalanceRecalculation(t *testing.T) {
 	if len(invs) != 1 || invs[0].Status != invoice.StatusDraft {
 		t.Fatalf("invoices: got = %d, want = 1 draft", len(invs))
 	}
+	s.walExpectAwaiting(c, true) // balance_spec.rb:118
 	s.walRefresh(c)
+	s.walExpectAwaiting(c, false) // balance_spec.rb:120
 	s.walExpect(w, walBalances{Balance: 1000, OngoingBalance: 400, OngoingUsage: 600, Credits: "10", CreditsOngoing: "4", CreditsOngoingUsage: "6"})
 
 	s.travelTo(billingtest.Date(2023, 1, 6))
-	s.ingest(sub, m.Code, "total", "3")
+	s.walIngestTracked(sub, m.Code, "total", "3")
+	s.walExpectAwaiting(c, true) // balance_spec.rb:136
 	s.walRefresh(c)
+	s.walExpectAwaiting(c, false) // balance_spec.rb:138
 	s.walExpect(w, walBalances{Balance: 1000, OngoingBalance: 100, OngoingUsage: 900, Credits: "10", CreditsOngoing: "1", CreditsOngoingUsage: "9"})
 
 	s.travelTo(billingtest.Date(2023, 1, 11))
@@ -88,6 +94,31 @@ func TestWalletBalanceRecalculation(t *testing.T) {
 		t.Fatalf("transactions: got = %d, want = 2", len(txs))
 	}
 	s.walExpectTx(txs[1], walInvoicedTx("6", "6"))
+}
+
+// walExpectAwaiting checks whether customer c awaits the refresh of its
+// wallets' ongoing balances (lago customer.awaiting_wallet_refresh).
+func (s *scenario) walExpectAwaiting(c *customer.Customer, want bool) {
+	s.T.Helper()
+	got := false
+	s.tx(func(ctx context.Context, r port.Repos) error {
+		p, err := r.Customers.ListAwaitingWalletRefresh(ctx, s.OrgID(), core.PageRequest{Size: core.MaxPageSize})
+		got = slices.Contains(p.Items, c.ID)
+		return err
+	})
+	if got != want {
+		s.T.Errorf("awaiting_wallet_refresh: got = %t, want = %t", got, want)
+	}
+}
+
+// walIngestTracked is [scenario.ingest] followed by the usage tracking of
+// the event's post-processing (lago Events::PostProcessService), whose
+// refresh job is dropped: the test refreshes the wallets itself.
+func (s *scenario) walIngestTracked(sub *subscription.Subscription, code string, props ...string) {
+	s.T.Helper()
+	s.ingest(sub, code, props...)
+	s.must(s.E.TrackUsage(s.Ctx, s.OrgID(), sub.CustomerID, []core.SubscriptionID{sub.ID}))
+	s.Store.TakeJobs()
 }
 
 // walInAdvance makes a charge paid in advance.

@@ -42,6 +42,8 @@ const (
 	AlertServiceUpdateAlertProcedure = "/tanvo.alert.v1.AlertService/UpdateAlert"
 	// AlertServiceDeleteAlertProcedure is the procedure name of the AlertService's DeleteAlert RPC.
 	AlertServiceDeleteAlertProcedure = "/tanvo.alert.v1.AlertService/DeleteAlert"
+	// AlertServiceDeleteAlertsProcedure is the procedure name of the AlertService's DeleteAlerts RPC.
+	AlertServiceDeleteAlertsProcedure = "/tanvo.alert.v1.AlertService/DeleteAlerts"
 	// AlertServiceListTriggeredAlertsProcedure is the procedure name of the AlertService's
 	// ListTriggeredAlerts RPC.
 	AlertServiceListTriggeredAlertsProcedure = "/tanvo.alert.v1.AlertService/ListTriggeredAlerts"
@@ -92,6 +94,13 @@ var (
 			Procedure:  AlertServiceDeleteAlertProcedure,
 		}
 	})
+	alertServiceDeleteAlertsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_alert_v1_alert_proto.Services().ByName("AlertService").Methods().ByName("DeleteAlerts"),
+			Procedure:  AlertServiceDeleteAlertsProcedure,
+		}
+	})
 	alertServiceListTriggeredAlertsSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType:       connect.StreamTypeUnary,
@@ -116,6 +125,8 @@ type AlertServiceClient interface {
 	UpdateAlert(context.Context, *v1.UpdateAlertRequest) (*v1.UpdateAlertResponse, error)
 	// Deletes an alert.
 	DeleteAlert(context.Context, *v1.DeleteAlertRequest) (*v1.DeleteAlertResponse, error)
+	// Deletes every alert of a subscription or a wallet.
+	DeleteAlerts(context.Context, *v1.DeleteAlertsRequest) (*v1.DeleteAlertsResponse, error)
 	// Lists the times alerts were triggered, newest first.
 	ListTriggeredAlerts(context.Context, *v1.ListTriggeredAlertsRequest) (*v1.ListTriggeredAlertsResponse, error)
 }
@@ -140,6 +151,8 @@ type AlertServiceHandler interface {
 	UpdateAlert(context.Context, *v1.UpdateAlertRequest) (*v1.UpdateAlertResponse, error)
 	// Deletes an alert.
 	DeleteAlert(context.Context, *v1.DeleteAlertRequest) (*v1.DeleteAlertResponse, error)
+	// Deletes every alert of a subscription or a wallet.
+	DeleteAlerts(context.Context, *v1.DeleteAlertsRequest) (*v1.DeleteAlertsResponse, error)
 	// Lists the times alerts were triggered, newest first.
 	ListTriggeredAlerts(context.Context, *v1.ListTriggeredAlertsRequest) (*v1.ListTriggeredAlertsResponse, error)
 }
@@ -155,6 +168,7 @@ func RegisterAlertServiceHandler(server *connect.Server, svc AlertServiceHandler
 		connect.Method{Spec: alertServiceListAlertsSpec(), Handler: adapter.listAlerts},
 		connect.Method{Spec: alertServiceUpdateAlertSpec(), Handler: adapter.updateAlert},
 		connect.Method{Spec: alertServiceDeleteAlertSpec(), Handler: adapter.deleteAlert},
+		connect.Method{Spec: alertServiceDeleteAlertsSpec(), Handler: adapter.deleteAlerts},
 		connect.Method{Spec: alertServiceListTriggeredAlertsSpec(), Handler: adapter.listTriggeredAlerts},
 	)
 }
@@ -184,6 +198,10 @@ func (UnimplementedAlertServiceHandler) UpdateAlert(context.Context, *v1.UpdateA
 
 func (UnimplementedAlertServiceHandler) DeleteAlert(context.Context, *v1.DeleteAlertRequest) (*v1.DeleteAlertResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.alert.v1.AlertService.DeleteAlert is not implemented")
+}
+
+func (UnimplementedAlertServiceHandler) DeleteAlerts(context.Context, *v1.DeleteAlertsRequest) (*v1.DeleteAlertsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.alert.v1.AlertService.DeleteAlerts is not implemented")
 }
 
 func (UnimplementedAlertServiceHandler) ListTriggeredAlerts(context.Context, *v1.ListTriggeredAlertsRequest) (*v1.ListTriggeredAlertsResponse, error) {
@@ -237,6 +255,14 @@ func (c *alertServiceClient) UpdateAlert(ctx context.Context, req *v1.UpdateAler
 func (c *alertServiceClient) DeleteAlert(ctx context.Context, req *v1.DeleteAlertRequest) (*v1.DeleteAlertResponse, error) {
 	var res v1.DeleteAlertResponse
 	if err := c.client.CallUnary(ctx, alertServiceDeleteAlertSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *alertServiceClient) DeleteAlerts(ctx context.Context, req *v1.DeleteAlertsRequest) (*v1.DeleteAlertsResponse, error) {
+	var res v1.DeleteAlertsResponse
+	if err := c.client.CallUnary(ctx, alertServiceDeleteAlertsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -318,6 +344,18 @@ func (h alertServiceHandler) deleteAlert(ctx context.Context, _ connect.Spec, st
 		return err
 	}
 	res, err := h.svc.DeleteAlert(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h alertServiceHandler) deleteAlerts(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteAlertsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteAlerts(ctx, &req)
 	if err != nil {
 		return err
 	}

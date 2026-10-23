@@ -191,6 +191,14 @@ func testInvoice(t *testing.T, h Harness) {
 		t.Parallel()
 		testInvoiceSubscriptions(t, h)
 	})
+	t.Run("applied custom sections", func(t *testing.T) {
+		t.Parallel()
+		testAppliedInvoiceCustomSections(t, h)
+	})
+	t.Run("refresh by metric", func(t *testing.T) {
+		t.Parallel()
+		testInvoiceRefreshByMetric(t, h)
+	})
 	t.Run("fees", func(t *testing.T) {
 		t.Parallel()
 		testInvoiceFees(t, h)
@@ -438,6 +446,15 @@ func testInvoiceQueries(t *testing.T, h Harness) {
 		n, err = r.Invoices.NextBillingEntitySequentialID(ctx, p.org, core.NewID[core.BillingEntityID](e.ids))
 		noErr(t, "NextBillingEntitySequentialID() no invoice", err)
 		equal(t, "NextBillingEntitySequentialID() no invoice", n, int64(1))
+
+		// A lost dispute leaves the overdue candidates
+		// (mark_invoices_as_payment_overdue_job.rb:12).
+		lost := *fOverdue
+		lost.PaymentDisputeLostAt = ptr(now)
+		noErr(t, "Update() dispute lost", r.Invoices.Update(ctx, &lost))
+		overdue, err = r.Invoices.ListOverdueCandidates(ctx, p.org, today)
+		noErr(t, "ListOverdueCandidates() dispute lost", err)
+		equal(t, "ListOverdueCandidates() dispute lost", ids(overdue, invoiceID), []core.InvoiceID{fSelf.ID})
 		return nil
 	})
 }
@@ -480,6 +497,52 @@ func testInvoiceDeleteDraft(t *testing.T, h Harness) {
 		subs, err := r.InvoiceSubscriptions.ListByInvoice(ctx, p.org, draft.ID)
 		noErr(t, "InvoiceSubscriptions.ListByInvoice() of a deleted draft", err)
 		equal(t, "InvoiceSubscriptions.ListByInvoice() of a deleted draft", len(subs), 0)
+		return nil
+	})
+}
+
+// testInvoiceRefreshByMetric checks RequestRefreshByMetric: only the
+// drafts billing a subscription whose plan charges the metric are flagged.
+func testInvoiceRefreshByMetric(t *testing.T, h Harness) {
+	e := newEnv(t, h)
+	_, be := e.org("Acme")
+	_, beB := e.org("Other")
+	p := invoiceFixtureParents(e, be)
+	billed := invoiceFixtureMinimal(e, p, now)
+	unbilled := invoiceFixtureMinimal(e, p, at(time.Minute))
+	finalized := invoiceFixtureMinimal(e, p, at(2*time.Minute))
+	invoiceFixtureCreate(e, billed, unbilled, finalized)
+	e.tx(func(ctx context.Context, r port.Repos) error {
+		sub, err := r.Subscriptions.Get(ctx, p.org, p.subscriptions[0])
+		noErr(t, "Subscriptions.Get()", err)
+		metric := catalogFixtureMetric(e, p.org, "refresh")
+		other := catalogFixtureMetric(e, p.org, "other")
+		for _, m := range []*catalog.BillableMetric{metric, other} {
+			noErr(t, "Metrics.Create()", r.Metrics.Create(ctx, m))
+		}
+		noErr(t, "Charges.Create()", r.Charges.Create(ctx, catalogFixtureCharge(e, p.org, sub.PlanID, metric.ID, "refresh")))
+		for i, inv := range []*invoice.Invoice{billed, finalized} {
+			noErr(t, "InvoiceSubscriptions.Create()", r.InvoiceSubscriptions.Create(ctx, &invoice.Subscription{
+				ID: core.NewID[core.InvoiceSubscriptionID](e.ids), OrganizationID: p.org, InvoiceID: inv.ID, SubscriptionID: sub.ID,
+				Reason: invoice.InvoicingReasonInAdvanceCharge, Timestamp: at(time.Duration(i+1) * time.Hour), CreatedAt: now,
+			}))
+		}
+		finalized.Status = invoice.StatusFinalized
+		finalized.Number = "ACM-001"
+		noErr(t, "Invoices.Update()", r.Invoices.Update(ctx, finalized))
+
+		n, err := r.Invoices.RequestRefreshByMetric(ctx, beB.OrganizationID, metric.ID)
+		noErr(t, "RequestRefreshByMetric() from another organization", err)
+		equal(t, "RequestRefreshByMetric() from another organization", n, 0)
+		n, err = r.Invoices.RequestRefreshByMetric(ctx, p.org, other.ID)
+		noErr(t, "RequestRefreshByMetric() of an uncharged metric", err)
+		equal(t, "RequestRefreshByMetric() of an uncharged metric", n, 0)
+		n, err = r.Invoices.RequestRefreshByMetric(ctx, p.org, metric.ID)
+		noErr(t, "RequestRefreshByMetric()", err)
+		equal(t, "RequestRefreshByMetric()", n, 1)
+		got, err := r.Invoices.ListRefreshRequested(ctx, p.org)
+		noErr(t, "ListRefreshRequested()", err)
+		equal(t, "ListRefreshRequested()", ids(got, invoiceID), []core.InvoiceID{billed.ID})
 		return nil
 	})
 }
@@ -563,6 +626,24 @@ func testInvoiceSubscriptions(t *testing.T, h Harness) {
 		equal(t, "Last() after a delete", last.ID, full.ID)
 		// The key is free again.
 		noErr(t, "Create() freed key", r.InvoiceSubscriptions.Create(ctx, next))
+
+		// A regenerated invoice's rows give their keys to the copies.
+		noErr(t, "MarkRegenerated()", r.InvoiceSubscriptions.MarkRegenerated(ctx, p.org, inv1.ID, inv2.ID))
+		got, err = r.InvoiceSubscriptions.ListByInvoice(ctx, p.org, inv1.ID)
+		noErr(t, "ListByInvoice() regenerated", err)
+		for _, s := range got {
+			equal(t, "ListByInvoice() regenerated RegeneratedInvoiceID", s.RegeneratedInvoiceID, inv2.ID)
+		}
+		_, err = r.InvoiceSubscriptions.Find(ctx, p.org, invoice.IdempotencyKey{SubscriptionID: p.subscriptions[1], Kind: invoice.KeyStarting})
+		wantErr(t, "Find() regenerated starting", err, core.ErrNotFound)
+		copied := *full
+		copied.ID, copied.InvoiceID = core.NewID[core.InvoiceSubscriptionID](e.ids), inv2.ID
+		noErr(t, "Create() copy of a regenerated row", r.InvoiceSubscriptions.Create(ctx, &copied))
+		found, err = r.InvoiceSubscriptions.Find(ctx, p.org, invoice.IdempotencyKey{
+			SubscriptionID: p.subscriptions[0], Kind: invoice.KeyCharges, Period: full.ChargesPeriod,
+		})
+		noErr(t, "Find() copy", err)
+		equal(t, "Find() copy", found.ID, copied.ID)
 		return nil
 	})
 }
@@ -681,7 +762,7 @@ func testInvoiceFees(t *testing.T, h Harness) {
 			got := listAll(t, 2, func(pr core.PageRequest) (core.Page[*invoice.Fee], error) {
 				return r.Fees.List(ctx, p.org, c.f, pr)
 			})
-			equal(t, "List() by "+c.name, ids(got, invoiceFeeID), ids(c.want, invoiceFeeID))
+			equal(t, "List() by "+c.name, ids(got, invoiceFeeID), ids(feesOldestFirst(c.want), invoiceFeeID))
 		}
 
 		byInv, err := r.Fees.ListByInvoice(ctx, p.org, inv1.ID)

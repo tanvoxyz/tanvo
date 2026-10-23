@@ -449,9 +449,13 @@ func testSubscription(t *testing.T, h Harness) {
 			expired, err := r.Subscriptions.ListIncompleteWithExpiredRules(ctx, org, now)
 			noErr(t, "ListIncompleteWithExpiredRules()", err)
 			equal(t, "ListIncompleteWithExpiredRules()", ids(expired, subID), []core.SubscriptionID{s.ID})
+			// Expirable at its expiry (activation_rule.rb:35), not before.
 			expired, err = r.Subscriptions.ListIncompleteWithExpiredRules(ctx, org, at(-time.Hour))
 			noErr(t, "ListIncompleteWithExpiredRules() at expiry", err)
-			equal(t, "ListIncompleteWithExpiredRules() at expiry", len(expired), 0)
+			equal(t, "ListIncompleteWithExpiredRules() at expiry", ids(expired, subID), []core.SubscriptionID{s.ID})
+			expired, err = r.Subscriptions.ListIncompleteWithExpiredRules(ctx, org, at(-time.Hour-time.Second))
+			noErr(t, "ListIncompleteWithExpiredRules() before expiry", err)
+			equal(t, "ListIncompleteWithExpiredRules() before expiry", len(expired), 0)
 
 			r1 := subscription.NewActivationRule(org, core.NewID[core.ActivationRuleID](e.ids), s.ID, subscription.ActivationRuleTypePayment, 0, at(time.Second))
 			r2 := subscription.NewActivationRule(org, core.NewID[core.ActivationRuleID](e.ids), s.ID, subscription.ActivationRuleTypePayment, 5, at(time.Second))
@@ -667,6 +671,9 @@ func testSubscription(t *testing.T, h Harness) {
 			noErr(t, "Upsert() flagged", r.LifetimeUsages.Upsert(ctx, moved))
 			l2.RecalculateCurrentUsage = true
 			noErr(t, "Upsert() flagged current", r.LifetimeUsages.Upsert(ctx, l2))
+			equal(t, "ListToRecalculate() ignores a current usage flag", list(), []*subscription.LifetimeUsage{moved})
+			l2.RecalculateInvoicedUsage = true
+			noErr(t, "Upsert() flagged invoiced", r.LifetimeUsages.Upsert(ctx, l2))
 			equal(t, "ListToRecalculate()", list(), []*subscription.LifetimeUsage{moved, l2})
 			op, err := r.LifetimeUsages.ListToRecalculate(ctx, other.org, core.PageRequest{})
 			noErr(t, "ListToRecalculate() of another organization", err)

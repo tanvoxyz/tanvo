@@ -2,6 +2,7 @@ package invoicing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/deduct"
@@ -141,6 +142,11 @@ func (s *Service) VoidProviderTaxes(ctx context.Context, org core.OrganizationID
 			return fmt.Errorf("clear tax voiding errors of invoice %s: %w", inv.ID, err)
 		}
 		if err := s.d.Taxes.VoidInvoice(ctx, c, inv); err != nil {
+			if errors.Is(err, kernel.ErrTaxContention) {
+				// Retried by the job (lago
+				// app/services/integrations/aggregator/taxes/invoices/base_service.rb:87).
+				return fmt.Errorf("void taxes of invoice %s: %w", inv.ID, err)
+			}
 			return s.saveError(ctx, r, inv, invoice.ErrorCodeTaxVoidingError, err)
 		}
 		return nil
@@ -149,31 +155,17 @@ func (s *Service) VoidProviderTaxes(ctx context.Context, org core.OrganizationID
 }
 
 // Regenerate creates a new invoice from the voided invoice id (lago
-// Invoices::RegenerateFromVoidedService): the fees are copied without
-// their taxes and deductions, then deducted, taxed and finalized again
-// at once, ignoring the grace period. The new invoice records the voided
-// one in VoidedInvoiceID; the invoice subscriptions are not copied (their
-// idempotency keys would clash with the voided invoice's).
+// Invoices::RegenerateFromVoidedService): it bills the subscriptions of
+// the voided invoice, whose invoice subscriptions it takes over, with the
+// fees of in.Fees ([RegeneratedFee]) and the voided invoice's applied
+// usage thresholds, then deducts, taxes and finalizes them at once,
+// ignoring the grace period. The new invoice records the voided one in
+// VoidedInvoiceID.
 func (s *Service) Regenerate(ctx context.Context, org core.OrganizationID, id core.InvoiceID, in RegenerateInput) (*invoice.Invoice, error) {
-	po := in.PurchaseOrderNumber
-	if po != nil {
-		po = core.NormalizePurchaseOrderNumber(po)
-		var v core.Validator
-		if !v.OptionalString("purchase_order_number", po, core.MaxPurchaseOrderNumberLength) {
-			return nil, v.Err()
-		}
-	}
 	var out *invoice.Invoice
-	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
-		old, err := r.Invoices.Get(ctx, org, id)
-		if err != nil {
-			return fmt.Errorf("load invoice %s: %w", id, err)
-		}
-		if old.Status != invoice.StatusVoided {
-			return core.NewRuleError(CodeNotVoided, "only voided invoices are regenerated")
-		}
-		out, err = s.regenerateVoided(ctx, r, old, in.PurchaseOrderNumber != nil, po)
-		return err
+	err := s.inRegeneration(ctx, org, id, in, func(_ context.Context, _ port.Repos, inv *invoice.Invoice) error {
+		out = inv
+		return nil
 	})
 	if err != nil {
 		return nil, err
@@ -181,24 +173,63 @@ func (s *Service) Regenerate(ctx context.Context, org core.OrganizationID, id co
 	return out, nil
 }
 
+// inRegeneration validates in, regenerates the voided invoice id in a
+// transaction and runs then on the new invoice in it.
+func (s *Service) inRegeneration(ctx context.Context, org core.OrganizationID, id core.InvoiceID, in RegenerateInput, then func(context.Context, port.Repos, *invoice.Invoice) error) error {
+	po := in.PurchaseOrderNumber
+	if po != nil {
+		po = core.NormalizePurchaseOrderNumber(po)
+		var v core.Validator
+		if !v.OptionalString("purchase_order_number", po, core.MaxPurchaseOrderNumberLength) {
+			return v.Err()
+		}
+	}
+	if err := validateRegeneratedFees(in.Fees); err != nil {
+		return err
+	}
+	return s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+		old, err := r.Invoices.Get(ctx, org, id)
+		if err == nil && !(invoice.Filter{}).Lists(old.Status) {
+			err = core.ErrNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("load invoice %s: %w", id, asNotFound(err, "invoice"))
+		}
+		if old.Status != invoice.StatusVoided {
+			return core.NewRuleError(CodeNotVoided, "only voided invoices are regenerated")
+		}
+		inv, err := s.regenerateVoided(ctx, r, old, in.PurchaseOrderNumber != nil, po, in.Fees)
+		if err != nil {
+			return err
+		}
+		return then(ctx, r, inv)
+	})
+}
+
+// errDryRun rolls back the transaction of a preview.
+var errDryRun = errors.New("invoicing: dry run")
+
 // RegenerateInput are the options of [Service.Regenerate].
 type RegenerateInput struct {
 	// PurchaseOrderNumber replaces the voided invoice's purchase order
 	// number on the new invoice (trimmed, ≤ 255 characters); blank clears
 	// it, nil inherits it (regenerate_from_voided_service.rb:7, :295-299).
 	PurchaseOrderNumber *string
+	// Fees are the fees of the new invoice; the voided invoice's fees not
+	// listed are left out.
+	Fees []RegeneratedFee
 }
 
 // regenerateVoided is [Service.Regenerate] in the transaction of r; with
 // replacePO, the new invoice takes po instead of the voided invoice's
-// purchase order number.
-func (s *Service) regenerateVoided(ctx context.Context, r port.Repos, old *invoice.Invoice, replacePO bool, po *string) (*invoice.Invoice, error) {
+// purchase order number; params are its fees.
+func (s *Service) regenerateVoided(ctx context.Context, r port.Repos, old *invoice.Invoice, replacePO bool, po *string, params []RegeneratedFee) (*invoice.Invoice, error) {
 	org := old.OrganizationID
 	cenv, err := kernel.LoadCustomerEnv(ctx, r, org, old.CustomerID, old.BillingEntityID)
 	if err != nil {
 		return nil, err
 	}
-	iss, err := r.InvoiceSubscriptions.ListByInvoice(ctx, org, old.ID)
+	oldSubs, err := r.InvoiceSubscriptions.ListByInvoice(ctx, org, old.ID)
 	if err != nil {
 		return nil, fmt.Errorf("load subscriptions of invoice %s: %w", old.ID, err)
 	}
@@ -206,7 +237,6 @@ func (s *Service) regenerateVoided(ctx context.Context, r port.Repos, old *invoi
 	if err != nil {
 		return nil, fmt.Errorf("load fees of invoice %s: %w", old.ID, err)
 	}
-	k := kindOf(old, iss)
 	// The generating dates, kept while taxes are pending, come from the
 	// voided invoice's creation as a non-recurring invoice, with the grace
 	// period for subscription invoices only (lago
@@ -225,24 +255,26 @@ func (s *Service) regenerateVoided(ctx context.Context, r port.Repos, old *invoi
 	if err := r.Invoices.Create(ctx, inv); err != nil {
 		return nil, fmt.Errorf("create invoice: %w", err)
 	}
-	now := s.d.Now()
-	fs := make([]*invoice.Fee, 0, len(oldFees))
-	for _, of := range oldFees {
-		f := *of
-		f.ID = core.NewID[core.FeeID](s.d.IDs)
-		f.InvoiceID = inv.ID
-		f.CreatedAt, f.UpdatedAt = now, now
-		resetFeeTaxes([]*invoice.Fee{&f})
-		if err := r.Fees.Create(ctx, &f); err != nil {
-			return nil, fmt.Errorf("create fee: %w", err)
-		}
-		fs = append(fs, &f)
+	iss, err := s.copyRegeneratedSubscriptions(ctx, r, old, inv, oldSubs)
+	if err != nil {
+		return nil, err
+	}
+	k := kindOf(old, iss)
+	fs, err := s.regeneratedFees(ctx, r, inv, oldFees, params)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.copyAppliedUsageThresholds(ctx, r, old, inv); err != nil {
+		return nil, err
+	}
+	if err := s.applyCustomSections(ctx, r, cenv, inv, nil); err != nil {
+		return nil, err
 	}
 	resolver, err := s.planResolver(ctx, r, cenv, iss)
 	if err != nil {
 		return nil, err
 	}
-	st, err := s.settle(ctx, r, cenv, inv, fs, settleOptions{aggregate: inv.Type == invoice.TypeAdvanceCharges, resolver: resolver})
+	st, err := s.settle(ctx, r, cenv, inv, fs, settleOptions{aggregate: inv.Type == invoice.TypeAdvanceCharges, resolver: resolver, vies: true})
 	if err != nil {
 		return nil, err
 	}
@@ -258,4 +290,54 @@ func (s *Service) regenerateVoided(ctx context.Context, r port.Repos, old *invoi
 		return nil, err
 	}
 	return inv, nil
+}
+
+// copyRegeneratedSubscriptions gives the invoice subscriptions old of the
+// voided invoice to inv, regenerated from it (lago
+// Invoices::RegenerateFromVoidedService#create_invoice_subscriptions):
+// the voided rows record inv, releasing their keys, and inv gets copies.
+func (s *Service) copyRegeneratedSubscriptions(ctx context.Context, r port.Repos, voided, inv *invoice.Invoice, old []*invoice.Subscription) ([]*invoice.Subscription, error) {
+	if len(old) == 0 {
+		return nil, nil
+	}
+	if err := r.InvoiceSubscriptions.MarkRegenerated(ctx, inv.OrganizationID, voided.ID, inv.ID); err != nil {
+		return nil, fmt.Errorf("release subscriptions of invoice %s: %w", voided.ID, err)
+	}
+	out := make([]*invoice.Subscription, 0, len(old))
+	for _, o := range old {
+		c := *o
+		c.ID = core.NewID[core.InvoiceSubscriptionID](s.d.IDs)
+		c.InvoiceID = inv.ID
+		c.RegeneratedInvoiceID = core.InvoiceID{}
+		c.CreatedAt = s.d.Now()
+		if err := r.InvoiceSubscriptions.Create(ctx, &c); err != nil {
+			return nil, fmt.Errorf("copy invoice subscription %s: %w", o.ID, err)
+		}
+		out = append(out, &c)
+	}
+	return out, nil
+}
+
+// copyAppliedUsageThresholds copies the applied usage thresholds of the
+// voided progressive billing invoice onto inv, regenerated from it (lago
+// Invoices::RegenerateFromVoidedService#assign_applied_usage_thresholds).
+func (s *Service) copyAppliedUsageThresholds(ctx context.Context, r port.Repos, voided, inv *invoice.Invoice) error {
+	if voided.Type != invoice.TypeProgressiveBilling {
+		return nil
+	}
+	as, err := r.AppliedUsageThresholds.ListByInvoice(ctx, inv.OrganizationID, voided.ID)
+	if err != nil {
+		return fmt.Errorf("list applied usage thresholds of invoice %s: %w", voided.ID, err)
+	}
+	now := s.d.Now()
+	for _, a := range as {
+		c := *a
+		c.ID = core.NewID[core.AppliedUsageThresholdID](s.d.IDs)
+		c.InvoiceID = inv.ID
+		c.CreatedAt, c.UpdatedAt = now, now
+		if err := r.AppliedUsageThresholds.Create(ctx, &c); err != nil {
+			return fmt.Errorf("copy applied usage threshold %s: %w", a.ID, err)
+		}
+	}
+	return nil
 }

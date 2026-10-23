@@ -31,6 +31,12 @@ type Subscription struct {
 	Timestamp time.Time
 	// Recurring tells whether the invoice is a periodic one.
 	Recurring bool
+	// RegeneratedInvoiceID is the invoice regenerated from this row's
+	// voided invoice, which bills the subscription in its place; zero
+	// otherwise. A regenerated row has no [Subscription.Keys] (lago
+	// invoice_subscriptions.regenerated_invoice_id, whose unique indexes
+	// skip such rows).
+	RegeneratedInvoiceID core.InvoiceID
 	// CreatedAt is the creation instant.
 	CreatedAt time.Time
 }
@@ -87,9 +93,13 @@ func (s *Subscription) Has(k IdempotencyKey) bool {
 // charges period and per fixed charges period (each when billed, that is
 // non-zero), so that a yearly plan billing charges monthly bills every
 // month once; a starting or terminating row is unique per subscription.
-// Other rows (in-advance charges, progressive billing) have none.
+// Other rows (in-advance charges, progressive billing) and the rows of a
+// regenerated invoice have none.
 func (s *Subscription) Keys() []IdempotencyKey {
 	var out []IdempotencyKey
+	if !s.RegeneratedInvoiceID.IsZero() {
+		return nil
+	}
 	if s.Recurring {
 		if !s.ChargesPeriod.IsZero() {
 			out = append(out, IdempotencyKey{SubscriptionID: s.SubscriptionID, Kind: KeyCharges, Period: utcPeriod(s.ChargesPeriod)})

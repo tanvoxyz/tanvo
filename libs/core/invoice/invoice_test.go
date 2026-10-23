@@ -140,9 +140,9 @@ func TestNumbers(t *testing.T) {
 func TestTransitionMatrix(t *testing.T) {
 	allowed := map[Status][]Status{
 		StatusGenerating: {StatusDraft, StatusOpen, StatusFinalized, StatusClosed, StatusFailed},
-		StatusDraft:      {StatusDraft, StatusFinalized},
+		StatusDraft:      {StatusDraft, StatusFinalized, StatusDeleted},
 		StatusOpen:       {StatusFinalized, StatusClosed, StatusFailed},
-		StatusFailed:     {StatusFinalized},
+		StatusFailed:     {StatusOpen, StatusClosed},
 		StatusFinalized:  {StatusVoided},
 	}
 	for _, from := range StatusValues() {
@@ -271,6 +271,8 @@ func TestDraftChecks(t *testing.T) {
 		{"due today is not overdue", Invoice{Status: StatusFinalized, PaymentStatus: core.PaymentStatusPending, PaymentDueDate: today}, false, false},
 		{"paid is not overdue", Invoice{Status: StatusFinalized, PaymentStatus: core.PaymentStatusSucceeded, PaymentDueDate: today.AddDays(-1)}, false, false},
 		{"already overdue", Invoice{Status: StatusFinalized, PaymentOverdue: true, PaymentDueDate: today.AddDays(-1)}, false, false},
+		// spec/jobs/clock/mark_invoices_as_payment_overdue_job_spec.rb:15: a lost dispute is not overdue.
+		{"dispute lost is not overdue", Invoice{Status: StatusFinalized, PaymentStatus: core.PaymentStatusPending, PaymentDueDate: today.AddDays(-1), PaymentDisputeLostAt: &time.Time{}}, false, false},
 	}
 	for _, tt := range tests {
 		if got := tt.inv.FinalizationDue(today); got != tt.fin {

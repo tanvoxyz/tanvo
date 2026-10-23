@@ -122,3 +122,21 @@ pnpm nx graph                                       # 依赖图
 * 不加 `Co-Authored-By` trailer。
 * 功能提交更新[功能对齐](parity.zh-CN.md)；阶段变化时更新[路线图](roadmap.zh-CN.md)。
 * 贡献需要签署 CLA（[架构 §1.4](architecture.zh-CN.md#14-许可证)）。
+
+---
+
+## 8. RPC 指南
+
+分层见[架构 §4.6](architecture.zh-CN.md#46-服务端分层)；`BillableMetricService`（`libs/billing/metrics`、`apps/server/internal/rpc/metrics.go`、`metrics_test.go`）是参考实现。实现一个服务的步骤：
+
+1. **阅读 Lago 源码**（对齐目标 v1.55.0）：控制器、其服务、序列化器与 request spec。列出每一处偏离及其 `file:line`。
+2. **编写领域服务**，放在 `libs/billing/<area>`（或所属的库）中：一个基于 `kernel.Deps` 的 `Service`，每个操作一个方法，各自在一个 `Store.InTx` 中执行，用 `core.Validator` 校验，并在同一事务中通过 `Deps.Webhooks` 发出 webhook、通过 `Repos.Jobs` 入队任务。把 service spec 移植为它在 `memstore` 上的测试，并带 `source:` 行。
+3. **编写 handler**，放在 `apps/server/internal/rpc/<service>.go`：嵌入生成的 `Unimplemented…Handler`，用 `principal(ctx)` 读取主体，并使用以下辅助函数：
+   * 引用：`Lookup{ByID, ByCode, ByExternalID}.Find(ctx, field, ref)`，只接受 ID 的字段用 `ParseID`；
+   * 列表：`Page(size, token)`、`Items(page, convert)`、`ParseFilter` + `Equalities` + `FilterEnum` / `FilterBool` / `FilterSingle`；
+   * 更新：`UpdatePaths(mask, allowed, set)`，以资源的 `Has…` 判断字段是否出现；
+   * 值：`Opt`、`OptInt`、`Timestamp` / `Time`、`Date` / `FromDate`、`Money` / `FromMoney`、`Decimal` / `ParseDecimal`、`Metadata`、`Struct`、`NewEnum`；
+   * 错误：返回 `Error(ctx, err)`；如 `metricError` 那样，用 `validationViolations` 把服务的字段路径加上请求消息的前缀。
+4. **注册** handler 到 `newAPI`（`apps/server/internal/app/api.go`）；拦截器负责访问选项、校验与幂等。
+5. **移植 request spec** 到 `apps/server/internal/rpc/<service>_test.go`，使用 `rpctest`：`s := rpctest.New(t)` 在全新数据库上启动 API，并带有一个组织、一个完全访问的 key（`s.APIKey`）、一个管理员用户及其会话（`s.Session`）；用 `s.Fixtures`（billingtest）创建测试数据，调用 `s.REST(t, cred, method, path, body)` 或基于 `s.Connect(cred)` 的生成客户端，用 `s.Webhooks(t)` 读取发出的 webhook。用受限权限创建的 key 覆盖 `requires API permission` 示例。设置 `TANVO_STORE_TEST_SCHEMA=source` 时加载 schema 源文件而非迁移。
+6. **更新** [对齐表](parity.zh-CN.md) 及其译文。

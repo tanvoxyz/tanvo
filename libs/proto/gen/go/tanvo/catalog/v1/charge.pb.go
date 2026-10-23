@@ -2127,7 +2127,8 @@ type ChargeFilter_builder struct {
 	// The generated code (slug and hash of the values).
 	Code *string
 	// The matched values per metric filter key; `__ALL_FILTER_VALUES__`
-	// matches every value of the key.
+	// matches every value of the key. Required on create; an update leaves
+	// them unchanged.
 	Values map[string]*FilterValues
 	// The prices of matched events.
 	Properties *ChargeProperties
@@ -4640,6 +4641,258 @@ func (b0 ListChargeFiltersResponse_builder) Build() *ListChargeFiltersResponse {
 	return m0
 }
 
+// GetChargeFilterRequest is the request of ChargeService.GetChargeFilter.
+type GetChargeFilterRequest struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PlanId         *string                `protobuf:"bytes,1,opt,name=plan_id,json=planId"`
+	xxx_hidden_SubscriptionId *string                `protobuf:"bytes,2,opt,name=subscription_id,json=subscriptionId"`
+	xxx_hidden_ChargeId       *string                `protobuf:"bytes,3,opt,name=charge_id,json=chargeId"`
+	xxx_hidden_FilterId       *string                `protobuf:"bytes,4,opt,name=filter_id,json=filterId"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *GetChargeFilterRequest) Reset() {
+	*x = GetChargeFilterRequest{}
+	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetChargeFilterRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetChargeFilterRequest) ProtoMessage() {}
+
+func (x *GetChargeFilterRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GetChargeFilterRequest) GetPlanId() string {
+	if x != nil {
+		if x.xxx_hidden_PlanId != nil {
+			return *x.xxx_hidden_PlanId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *GetChargeFilterRequest) GetSubscriptionId() string {
+	if x != nil {
+		if x.xxx_hidden_SubscriptionId != nil {
+			return *x.xxx_hidden_SubscriptionId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *GetChargeFilterRequest) GetChargeId() string {
+	if x != nil {
+		if x.xxx_hidden_ChargeId != nil {
+			return *x.xxx_hidden_ChargeId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *GetChargeFilterRequest) GetFilterId() string {
+	if x != nil {
+		if x.xxx_hidden_FilterId != nil {
+			return *x.xxx_hidden_FilterId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *GetChargeFilterRequest) SetPlanId(v string) {
+	x.xxx_hidden_PlanId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *GetChargeFilterRequest) SetSubscriptionId(v string) {
+	x.xxx_hidden_SubscriptionId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *GetChargeFilterRequest) SetChargeId(v string) {
+	x.xxx_hidden_ChargeId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *GetChargeFilterRequest) SetFilterId(v string) {
+	x.xxx_hidden_FilterId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *GetChargeFilterRequest) HasPlanId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetChargeFilterRequest) HasSubscriptionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GetChargeFilterRequest) HasChargeId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *GetChargeFilterRequest) HasFilterId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *GetChargeFilterRequest) ClearPlanId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_PlanId = nil
+}
+
+func (x *GetChargeFilterRequest) ClearSubscriptionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_SubscriptionId = nil
+}
+
+func (x *GetChargeFilterRequest) ClearChargeId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ChargeId = nil
+}
+
+func (x *GetChargeFilterRequest) ClearFilterId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_FilterId = nil
+}
+
+type GetChargeFilterRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The plan (ID or `code:<code>`).
+	PlanId *string
+	// The subscription (ID or `external_id:<external_id>`).
+	SubscriptionId *string
+	// The charge's ID or `code:<code>`.
+	ChargeId *string
+	// The filter's ID.
+	FilterId *string
+}
+
+func (b0 GetChargeFilterRequest_builder) Build() *GetChargeFilterRequest {
+	m0 := &GetChargeFilterRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.PlanId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_PlanId = b.PlanId
+	}
+	if b.SubscriptionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_SubscriptionId = b.SubscriptionId
+	}
+	if b.ChargeId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_ChargeId = b.ChargeId
+	}
+	if b.FilterId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_FilterId = b.FilterId
+	}
+	return m0
+}
+
+// GetChargeFilterResponse is the response of ChargeService.GetChargeFilter.
+type GetChargeFilterResponse struct {
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Filter *ChargeFilter          `protobuf:"bytes,1,opt,name=filter"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *GetChargeFilterResponse) Reset() {
+	*x = GetChargeFilterResponse{}
+	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetChargeFilterResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetChargeFilterResponse) ProtoMessage() {}
+
+func (x *GetChargeFilterResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GetChargeFilterResponse) GetFilter() *ChargeFilter {
+	if x != nil {
+		return x.xxx_hidden_Filter
+	}
+	return nil
+}
+
+func (x *GetChargeFilterResponse) SetFilter(v *ChargeFilter) {
+	x.xxx_hidden_Filter = v
+}
+
+func (x *GetChargeFilterResponse) HasFilter() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Filter != nil
+}
+
+func (x *GetChargeFilterResponse) ClearFilter() {
+	x.xxx_hidden_Filter = nil
+}
+
+type GetChargeFilterResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The filter.
+	Filter *ChargeFilter
+}
+
+func (b0 GetChargeFilterResponse_builder) Build() *GetChargeFilterResponse {
+	m0 := &GetChargeFilterResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Filter = b.Filter
+	return m0
+}
+
 // UpdateChargeFilterRequest is the request of ChargeService.UpdateChargeFilter.
 type UpdateChargeFilterRequest struct {
 	state                     protoimpl.MessageState `protogen:"opaque.v1"`
@@ -4657,7 +4910,7 @@ type UpdateChargeFilterRequest struct {
 
 func (x *UpdateChargeFilterRequest) Reset() {
 	*x = UpdateChargeFilterRequest{}
-	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[30]
+	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4669,7 +4922,7 @@ func (x *UpdateChargeFilterRequest) String() string {
 func (*UpdateChargeFilterRequest) ProtoMessage() {}
 
 func (x *UpdateChargeFilterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[30]
+	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4881,7 +5134,7 @@ type UpdateChargeFilterResponse struct {
 
 func (x *UpdateChargeFilterResponse) Reset() {
 	*x = UpdateChargeFilterResponse{}
-	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[31]
+	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4893,7 +5146,7 @@ func (x *UpdateChargeFilterResponse) String() string {
 func (*UpdateChargeFilterResponse) ProtoMessage() {}
 
 func (x *UpdateChargeFilterResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[31]
+	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4957,7 +5210,7 @@ type DeleteChargeFilterRequest struct {
 
 func (x *DeleteChargeFilterRequest) Reset() {
 	*x = DeleteChargeFilterRequest{}
-	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[32]
+	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4969,7 +5222,7 @@ func (x *DeleteChargeFilterRequest) String() string {
 func (*DeleteChargeFilterRequest) ProtoMessage() {}
 
 func (x *DeleteChargeFilterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[32]
+	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5163,7 +5416,7 @@ type DeleteChargeFilterResponse struct {
 
 func (x *DeleteChargeFilterResponse) Reset() {
 	*x = DeleteChargeFilterResponse{}
-	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[33]
+	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5175,7 +5428,7 @@ func (x *DeleteChargeFilterResponse) String() string {
 func (*DeleteChargeFilterResponse) ProtoMessage() {}
 
 func (x *DeleteChargeFilterResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[33]
+	mi := &file_tanvo_catalog_v1_charge_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5268,11 +5521,11 @@ const file_tanvo_catalog_v1_charge_proto_rawDesc = "" +
 	"\x05model\"\x85\x01\n" +
 	"\x12AppliedPricingUnit\x126\n" +
 	"\x0fpricing_unit_id\x18\x01 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\rpricingUnitId\x127\n" +
-	"\x0fconversion_rate\x18\x02 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05Ф\xca\x06\x01R\x0econversionRate\"\xb4\x03\n" +
+	"\x0fconversion_rate\x18\x02 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05Ф\xca\x06\x01R\x0econversionRate\"\xb2\x03\n" +
 	"\fChargeFilter\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\x18\n" +
-	"\x04code\x18\x02 \x01(\tB\x04\xe2A\x01\x03R\x04code\x12R\n" +
-	"\x06values\x18\x03 \x03(\v2*.tanvo.catalog.v1.ChargeFilter.ValuesEntryB\x0e\xe2A\x01\x02\xbaH\a\x9a\x01\x04\b\x01\x102R\x06values\x12H\n" +
+	"\x04code\x18\x02 \x01(\tB\x04\xe2A\x01\x03R\x04code\x12P\n" +
+	"\x06values\x18\x03 \x03(\v2*.tanvo.catalog.v1.ChargeFilter.ValuesEntryB\f\xe2A\x01\x02\xbaH\x05\x9a\x01\x02\x102R\x06values\x12H\n" +
 	"\n" +
 	"properties\x18\x04 \x01(\v2\".tanvo.catalog.v1.ChargePropertiesB\x04\xe2A\x01\x02R\n" +
 	"properties\x12:\n" +
@@ -5400,7 +5653,18 @@ const file_tanvo_catalog_v1_charge_proto_rawDesc = "" +
 	"\rcharge.parent\x126exactly one of plan_id and subscription_id is required\x1a.has(this.plan_id) != has(this.subscription_id)\"}\n" +
 	"\x19ListChargeFiltersResponse\x128\n" +
 	"\afilters\x18\x01 \x03(\v2\x1e.tanvo.catalog.v1.ChargeFilterR\afilters\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x88\x04\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xce\x02\n" +
+	"\x16GetChargeFilterRequest\x12#\n" +
+	"\aplan_id\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\x06planId\x123\n" +
+	"\x0fsubscription_id\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\x0esubscriptionId\x12.\n" +
+	"\tcharge_id\x18\x03 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\bchargeId\x12,\n" +
+	"\tfilter_id\x18\x04 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\bfilterId:|\xbaHy\x1aw\n" +
+	"\rcharge.parent\x126exactly one of plan_id and subscription_id is required\x1a.has(this.plan_id) != has(this.subscription_id)\"Q\n" +
+	"\x17GetChargeFilterResponse\x126\n" +
+	"\x06filter\x18\x01 \x01(\v2\x1e.tanvo.catalog.v1.ChargeFilterR\x06filter\"\x88\x04\n" +
 	"\x19UpdateChargeFilterRequest\x12#\n" +
 	"\aplan_id\x18\x01 \x01(\tB\n" +
 	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\x06planId\x123\n" +
@@ -5439,7 +5703,7 @@ const file_tanvo_catalog_v1_charge_proto_rawDesc = "" +
 	"\x14CHARGE_MODEL_DYNAMIC\x10\a*S\n" +
 	"\x0fRegroupPaidFees\x12!\n" +
 	"\x1dREGROUP_PAID_FEES_UNSPECIFIED\x10\x00\x12\x1d\n" +
-	"\x19REGROUP_PAID_FEES_INVOICE\x10\x012\xe5\x11\n" +
+	"\x19REGROUP_PAID_FEES_INVOICE\x10\x012\xfd\x13\n" +
 	"\rChargeService\x12\xdb\x01\n" +
 	"\fCreateCharge\x12%.tanvo.catalog.v1.CreateChargeRequest\x1a&.tanvo.catalog.v1.CreateChargeResponse\"|\xca\xf3\x18\x16\n" +
 	"\x0echarges:create*\x04plan\x82\xd3\xe4\x93\x02\\:\x06chargeZ5:\x06charge\"+/v1/subscriptions/{subscription_id}/charges\"\x1b/v1/plans/{plan_id}/charges\x12\xda\x01\n" +
@@ -5457,7 +5721,10 @@ const file_tanvo_catalog_v1_charge_proto_rawDesc = "" +
 	"\x0echarges:update*\x04plan\x82\xd3\xe4\x93\x02\x84\x01:\x06filterZI:\x06filter\"?/v1/subscriptions/{subscription_id}/charges/{charge_id}/filters\"//v1/plans/{plan_id}/charges/{charge_id}/filters\x12\x82\x02\n" +
 	"\x11ListChargeFilters\x12*.tanvo.catalog.v1.ListChargeFiltersRequest\x1a+.tanvo.catalog.v1.ListChargeFiltersResponse\"\x93\x01\xca\xf3\x18\x12\n" +
 	"\n" +
-	"plans:read*\x04plan\x82\xd3\xe4\x93\x02tZA\x12?/v1/subscriptions/{subscription_id}/charges/{charge_id}/filters\x12//v1/plans/{plan_id}/charges/{charge_id}/filters\x90\x02\x01\x12\xaf\x02\n" +
+	"plans:read*\x04plan\x82\xd3\xe4\x93\x02tZA\x12?/v1/subscriptions/{subscription_id}/charges/{charge_id}/filters\x12//v1/plans/{plan_id}/charges/{charge_id}/filters\x90\x02\x01\x12\x95\x02\n" +
+	"\x0fGetChargeFilter\x12(.tanvo.catalog.v1.GetChargeFilterRequest\x1a).tanvo.catalog.v1.GetChargeFilterResponse\"\xac\x01\xca\xf3\x18\x12\n" +
+	"\n" +
+	"plans:read*\x04plan\x82\xd3\xe4\x93\x02\x8c\x01ZM\x12K/v1/subscriptions/{subscription_id}/charges/{charge_id}/filters/{filter_id}\x12;/v1/plans/{plan_id}/charges/{charge_id}/filters/{filter_id}\x90\x02\x01\x12\xaf\x02\n" +
 	"\x12UpdateChargeFilter\x12+.tanvo.catalog.v1.UpdateChargeFilterRequest\x1a,.tanvo.catalog.v1.UpdateChargeFilterResponse\"\xbd\x01\xca\xf3\x18\x16\n" +
 	"\x0echarges:update*\x04plan\x82\xd3\xe4\x93\x02\x9c\x01:\x06filterZU:\x06filter2K/v1/subscriptions/{subscription_id}/charges/{charge_id}/filters/{filter.id}2;/v1/plans/{plan_id}/charges/{charge_id}/filters/{filter.id}\x12\x9f\x02\n" +
 	"\x12DeleteChargeFilter\x12+.tanvo.catalog.v1.DeleteChargeFilterRequest\x1a,.tanvo.catalog.v1.DeleteChargeFilterResponse\"\xad\x01\xca\xf3\x18\x16\n" +
@@ -5465,7 +5732,7 @@ const file_tanvo_catalog_v1_charge_proto_rawDesc = "" +
 	"\x14com.tanvo.catalog.v1B\vChargeProtoP\x01ZFgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/catalog/v1;catalogv1\xa2\x02\x03TCX\xaa\x02\x10Tanvo.Catalog.V1\xca\x02\x10Tanvo\\Catalog\\V1\xe2\x02\x1cTanvo\\Catalog\\V1\\GPBMetadata\xea\x02\x12Tanvo::Catalog::V1b\beditionsp\xe8\a"
 
 var file_tanvo_catalog_v1_charge_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_tanvo_catalog_v1_charge_proto_msgTypes = make([]protoimpl.MessageInfo, 35)
+var file_tanvo_catalog_v1_charge_proto_msgTypes = make([]protoimpl.MessageInfo, 37)
 var file_tanvo_catalog_v1_charge_proto_goTypes = []any{
 	(ChargeModel)(0),                      // 0: tanvo.catalog.v1.ChargeModel
 	(RegroupPaidFees)(0),                  // 1: tanvo.catalog.v1.RegroupPaidFees
@@ -5499,13 +5766,15 @@ var file_tanvo_catalog_v1_charge_proto_goTypes = []any{
 	(*CreateChargeFilterResponse)(nil),    // 29: tanvo.catalog.v1.CreateChargeFilterResponse
 	(*ListChargeFiltersRequest)(nil),      // 30: tanvo.catalog.v1.ListChargeFiltersRequest
 	(*ListChargeFiltersResponse)(nil),     // 31: tanvo.catalog.v1.ListChargeFiltersResponse
-	(*UpdateChargeFilterRequest)(nil),     // 32: tanvo.catalog.v1.UpdateChargeFilterRequest
-	(*UpdateChargeFilterResponse)(nil),    // 33: tanvo.catalog.v1.UpdateChargeFilterResponse
-	(*DeleteChargeFilterRequest)(nil),     // 34: tanvo.catalog.v1.DeleteChargeFilterRequest
-	(*DeleteChargeFilterResponse)(nil),    // 35: tanvo.catalog.v1.DeleteChargeFilterResponse
-	nil,                                   // 36: tanvo.catalog.v1.ChargeFilter.ValuesEntry
-	(*timestamppb.Timestamp)(nil),         // 37: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),         // 38: google.protobuf.FieldMask
+	(*GetChargeFilterRequest)(nil),        // 32: tanvo.catalog.v1.GetChargeFilterRequest
+	(*GetChargeFilterResponse)(nil),       // 33: tanvo.catalog.v1.GetChargeFilterResponse
+	(*UpdateChargeFilterRequest)(nil),     // 34: tanvo.catalog.v1.UpdateChargeFilterRequest
+	(*UpdateChargeFilterResponse)(nil),    // 35: tanvo.catalog.v1.UpdateChargeFilterResponse
+	(*DeleteChargeFilterRequest)(nil),     // 36: tanvo.catalog.v1.DeleteChargeFilterRequest
+	(*DeleteChargeFilterResponse)(nil),    // 37: tanvo.catalog.v1.DeleteChargeFilterResponse
+	nil,                                   // 38: tanvo.catalog.v1.ChargeFilter.ValuesEntry
+	(*timestamppb.Timestamp)(nil),         // 39: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),         // 40: google.protobuf.FieldMask
 }
 var file_tanvo_catalog_v1_charge_proto_depIdxs = []int32{
 	2,  // 0: tanvo.catalog.v1.Grouping.presentation_group_keys:type_name -> tanvo.catalog.v1.PresentationGroupKey
@@ -5520,53 +5789,56 @@ var file_tanvo_catalog_v1_charge_proto_depIdxs = []int32{
 	11, // 9: tanvo.catalog.v1.ChargeProperties.graduated_percentage:type_name -> tanvo.catalog.v1.GraduatedPercentageProperties
 	12, // 10: tanvo.catalog.v1.ChargeProperties.dynamic:type_name -> tanvo.catalog.v1.DynamicProperties
 	3,  // 11: tanvo.catalog.v1.ChargeProperties.grouping:type_name -> tanvo.catalog.v1.Grouping
-	36, // 12: tanvo.catalog.v1.ChargeFilter.values:type_name -> tanvo.catalog.v1.ChargeFilter.ValuesEntry
+	38, // 12: tanvo.catalog.v1.ChargeFilter.values:type_name -> tanvo.catalog.v1.ChargeFilter.ValuesEntry
 	13, // 13: tanvo.catalog.v1.ChargeFilter.properties:type_name -> tanvo.catalog.v1.ChargeProperties
-	37, // 14: tanvo.catalog.v1.ChargeFilter.created_at:type_name -> google.protobuf.Timestamp
+	39, // 14: tanvo.catalog.v1.ChargeFilter.created_at:type_name -> google.protobuf.Timestamp
 	0,  // 15: tanvo.catalog.v1.Charge.charge_model:type_name -> tanvo.catalog.v1.ChargeModel
 	13, // 16: tanvo.catalog.v1.Charge.properties:type_name -> tanvo.catalog.v1.ChargeProperties
 	15, // 17: tanvo.catalog.v1.Charge.filters:type_name -> tanvo.catalog.v1.ChargeFilter
 	1,  // 18: tanvo.catalog.v1.Charge.regroup_paid_fees:type_name -> tanvo.catalog.v1.RegroupPaidFees
 	14, // 19: tanvo.catalog.v1.Charge.applied_pricing_unit:type_name -> tanvo.catalog.v1.AppliedPricingUnit
-	37, // 20: tanvo.catalog.v1.Charge.created_at:type_name -> google.protobuf.Timestamp
-	37, // 21: tanvo.catalog.v1.Charge.updated_at:type_name -> google.protobuf.Timestamp
+	39, // 20: tanvo.catalog.v1.Charge.created_at:type_name -> google.protobuf.Timestamp
+	39, // 21: tanvo.catalog.v1.Charge.updated_at:type_name -> google.protobuf.Timestamp
 	17, // 22: tanvo.catalog.v1.CreateChargeRequest.charge:type_name -> tanvo.catalog.v1.Charge
 	17, // 23: tanvo.catalog.v1.CreateChargeResponse.charge:type_name -> tanvo.catalog.v1.Charge
 	17, // 24: tanvo.catalog.v1.GetChargeResponse.charge:type_name -> tanvo.catalog.v1.Charge
 	17, // 25: tanvo.catalog.v1.ListChargesResponse.charges:type_name -> tanvo.catalog.v1.Charge
 	17, // 26: tanvo.catalog.v1.UpdateChargeRequest.charge:type_name -> tanvo.catalog.v1.Charge
-	38, // 27: tanvo.catalog.v1.UpdateChargeRequest.update_mask:type_name -> google.protobuf.FieldMask
+	40, // 27: tanvo.catalog.v1.UpdateChargeRequest.update_mask:type_name -> google.protobuf.FieldMask
 	17, // 28: tanvo.catalog.v1.UpdateChargeResponse.charge:type_name -> tanvo.catalog.v1.Charge
 	15, // 29: tanvo.catalog.v1.CreateChargeFilterRequest.filter:type_name -> tanvo.catalog.v1.ChargeFilter
 	15, // 30: tanvo.catalog.v1.CreateChargeFilterResponse.filter:type_name -> tanvo.catalog.v1.ChargeFilter
 	15, // 31: tanvo.catalog.v1.ListChargeFiltersResponse.filters:type_name -> tanvo.catalog.v1.ChargeFilter
-	15, // 32: tanvo.catalog.v1.UpdateChargeFilterRequest.filter:type_name -> tanvo.catalog.v1.ChargeFilter
-	38, // 33: tanvo.catalog.v1.UpdateChargeFilterRequest.update_mask:type_name -> google.protobuf.FieldMask
-	15, // 34: tanvo.catalog.v1.UpdateChargeFilterResponse.filter:type_name -> tanvo.catalog.v1.ChargeFilter
-	16, // 35: tanvo.catalog.v1.ChargeFilter.ValuesEntry.value:type_name -> tanvo.catalog.v1.FilterValues
-	18, // 36: tanvo.catalog.v1.ChargeService.CreateCharge:input_type -> tanvo.catalog.v1.CreateChargeRequest
-	20, // 37: tanvo.catalog.v1.ChargeService.GetCharge:input_type -> tanvo.catalog.v1.GetChargeRequest
-	22, // 38: tanvo.catalog.v1.ChargeService.ListCharges:input_type -> tanvo.catalog.v1.ListChargesRequest
-	24, // 39: tanvo.catalog.v1.ChargeService.UpdateCharge:input_type -> tanvo.catalog.v1.UpdateChargeRequest
-	26, // 40: tanvo.catalog.v1.ChargeService.DeleteCharge:input_type -> tanvo.catalog.v1.DeleteChargeRequest
-	28, // 41: tanvo.catalog.v1.ChargeService.CreateChargeFilter:input_type -> tanvo.catalog.v1.CreateChargeFilterRequest
-	30, // 42: tanvo.catalog.v1.ChargeService.ListChargeFilters:input_type -> tanvo.catalog.v1.ListChargeFiltersRequest
-	32, // 43: tanvo.catalog.v1.ChargeService.UpdateChargeFilter:input_type -> tanvo.catalog.v1.UpdateChargeFilterRequest
-	34, // 44: tanvo.catalog.v1.ChargeService.DeleteChargeFilter:input_type -> tanvo.catalog.v1.DeleteChargeFilterRequest
-	19, // 45: tanvo.catalog.v1.ChargeService.CreateCharge:output_type -> tanvo.catalog.v1.CreateChargeResponse
-	21, // 46: tanvo.catalog.v1.ChargeService.GetCharge:output_type -> tanvo.catalog.v1.GetChargeResponse
-	23, // 47: tanvo.catalog.v1.ChargeService.ListCharges:output_type -> tanvo.catalog.v1.ListChargesResponse
-	25, // 48: tanvo.catalog.v1.ChargeService.UpdateCharge:output_type -> tanvo.catalog.v1.UpdateChargeResponse
-	27, // 49: tanvo.catalog.v1.ChargeService.DeleteCharge:output_type -> tanvo.catalog.v1.DeleteChargeResponse
-	29, // 50: tanvo.catalog.v1.ChargeService.CreateChargeFilter:output_type -> tanvo.catalog.v1.CreateChargeFilterResponse
-	31, // 51: tanvo.catalog.v1.ChargeService.ListChargeFilters:output_type -> tanvo.catalog.v1.ListChargeFiltersResponse
-	33, // 52: tanvo.catalog.v1.ChargeService.UpdateChargeFilter:output_type -> tanvo.catalog.v1.UpdateChargeFilterResponse
-	35, // 53: tanvo.catalog.v1.ChargeService.DeleteChargeFilter:output_type -> tanvo.catalog.v1.DeleteChargeFilterResponse
-	45, // [45:54] is the sub-list for method output_type
-	36, // [36:45] is the sub-list for method input_type
-	36, // [36:36] is the sub-list for extension type_name
-	36, // [36:36] is the sub-list for extension extendee
-	0,  // [0:36] is the sub-list for field type_name
+	15, // 32: tanvo.catalog.v1.GetChargeFilterResponse.filter:type_name -> tanvo.catalog.v1.ChargeFilter
+	15, // 33: tanvo.catalog.v1.UpdateChargeFilterRequest.filter:type_name -> tanvo.catalog.v1.ChargeFilter
+	40, // 34: tanvo.catalog.v1.UpdateChargeFilterRequest.update_mask:type_name -> google.protobuf.FieldMask
+	15, // 35: tanvo.catalog.v1.UpdateChargeFilterResponse.filter:type_name -> tanvo.catalog.v1.ChargeFilter
+	16, // 36: tanvo.catalog.v1.ChargeFilter.ValuesEntry.value:type_name -> tanvo.catalog.v1.FilterValues
+	18, // 37: tanvo.catalog.v1.ChargeService.CreateCharge:input_type -> tanvo.catalog.v1.CreateChargeRequest
+	20, // 38: tanvo.catalog.v1.ChargeService.GetCharge:input_type -> tanvo.catalog.v1.GetChargeRequest
+	22, // 39: tanvo.catalog.v1.ChargeService.ListCharges:input_type -> tanvo.catalog.v1.ListChargesRequest
+	24, // 40: tanvo.catalog.v1.ChargeService.UpdateCharge:input_type -> tanvo.catalog.v1.UpdateChargeRequest
+	26, // 41: tanvo.catalog.v1.ChargeService.DeleteCharge:input_type -> tanvo.catalog.v1.DeleteChargeRequest
+	28, // 42: tanvo.catalog.v1.ChargeService.CreateChargeFilter:input_type -> tanvo.catalog.v1.CreateChargeFilterRequest
+	30, // 43: tanvo.catalog.v1.ChargeService.ListChargeFilters:input_type -> tanvo.catalog.v1.ListChargeFiltersRequest
+	32, // 44: tanvo.catalog.v1.ChargeService.GetChargeFilter:input_type -> tanvo.catalog.v1.GetChargeFilterRequest
+	34, // 45: tanvo.catalog.v1.ChargeService.UpdateChargeFilter:input_type -> tanvo.catalog.v1.UpdateChargeFilterRequest
+	36, // 46: tanvo.catalog.v1.ChargeService.DeleteChargeFilter:input_type -> tanvo.catalog.v1.DeleteChargeFilterRequest
+	19, // 47: tanvo.catalog.v1.ChargeService.CreateCharge:output_type -> tanvo.catalog.v1.CreateChargeResponse
+	21, // 48: tanvo.catalog.v1.ChargeService.GetCharge:output_type -> tanvo.catalog.v1.GetChargeResponse
+	23, // 49: tanvo.catalog.v1.ChargeService.ListCharges:output_type -> tanvo.catalog.v1.ListChargesResponse
+	25, // 50: tanvo.catalog.v1.ChargeService.UpdateCharge:output_type -> tanvo.catalog.v1.UpdateChargeResponse
+	27, // 51: tanvo.catalog.v1.ChargeService.DeleteCharge:output_type -> tanvo.catalog.v1.DeleteChargeResponse
+	29, // 52: tanvo.catalog.v1.ChargeService.CreateChargeFilter:output_type -> tanvo.catalog.v1.CreateChargeFilterResponse
+	31, // 53: tanvo.catalog.v1.ChargeService.ListChargeFilters:output_type -> tanvo.catalog.v1.ListChargeFiltersResponse
+	33, // 54: tanvo.catalog.v1.ChargeService.GetChargeFilter:output_type -> tanvo.catalog.v1.GetChargeFilterResponse
+	35, // 55: tanvo.catalog.v1.ChargeService.UpdateChargeFilter:output_type -> tanvo.catalog.v1.UpdateChargeFilterResponse
+	37, // 56: tanvo.catalog.v1.ChargeService.DeleteChargeFilter:output_type -> tanvo.catalog.v1.DeleteChargeFilterResponse
+	47, // [47:57] is the sub-list for method output_type
+	37, // [37:47] is the sub-list for method input_type
+	37, // [37:37] is the sub-list for extension type_name
+	37, // [37:37] is the sub-list for extension extendee
+	0,  // [0:37] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_catalog_v1_charge_proto_init() }
@@ -5589,7 +5861,7 @@ func file_tanvo_catalog_v1_charge_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_catalog_v1_charge_proto_rawDesc), len(file_tanvo_catalog_v1_charge_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   35,
+			NumMessages:   37,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

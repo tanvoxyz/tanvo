@@ -178,14 +178,17 @@ message SecurityLog {
   string log_event = 3;
   // The member who made the change.
   string user_email = 4;
-  // The API key used.
-  string api_key_id = 5;
   // The objects concerned and their changes.
   google.protobuf.Struct resources = 6;
   // The device: IP address, user agent, browser and OS.
   google.protobuf.Struct device_info = 7;
   // When the change happened.
   google.protobuf.Timestamp logged_at = 8;
+  // When the log was stored.
+  google.protobuf.Timestamp created_at = 9;
+
+  reserved 5;
+  reserved api_key_id;
 }
 
 // GetActivityLogRequest is the request of LogService.GetActivityLog.
@@ -213,9 +216,11 @@ message ListActivityLogsRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 2 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `activity_type`, `activity_source`,
-  // `user_email`, `api_key_id`, `resource_id`, `resource_type`,
-  // `external_customer_id`, `external_subscription_id` and `logged_at`.
+  // An AIP-160 filter: equalities on `activity_id`, `activity_type`,
+  // `activity_source`, `user_email`, `api_key_id`, `resource_id`,
+  // `resource_type` (each with several values joined by OR),
+  // `external_customer_id` and `external_subscription_id`, and bounds on
+  // `logged_at` (`logged_at >= "2025-01-01T00:00:00Z"`).
   string filter = 3 [(buf.validate.field).string.max_len = 2048];
 }
 
@@ -252,8 +257,11 @@ message ListApiLogsRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 2 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `api_key_id`, `http_method`, `http_status`,
-  // `request_path` and `logged_at`.
+  // An AIP-160 filter: equalities on `request_id`, `api_key_id`,
+  // `http_method`, `http_status` (a status code, or `succeeded` for codes
+  // below 400 and `failed` for the others), `request_path` (`*` matches
+  // any characters) and `client` (each with several values joined by OR)
+  // and `api_version`, and bounds on `logged_at`.
   string filter = 3 [(buf.validate.field).string.max_len = 2048];
 }
 
@@ -290,8 +298,9 @@ message ListSecurityLogsRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 2 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `log_type`, `log_event`, `user_email`,
-  // `api_key_id` and `logged_at`.
+  // An AIP-160 filter: equalities on `user_id`, `api_key_id`, `log_type`
+  // and `log_event` (each with several values joined by OR), and bounds on
+  // `logged_at`, of which an upper bound (`logged_at <= …`) is required.
   string filter = 3 [(buf.validate.field).string.max_len = 2048];
 }
 

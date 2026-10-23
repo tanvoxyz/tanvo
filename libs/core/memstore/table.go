@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 )
@@ -124,28 +128,6 @@ func (t *table[K, V]) deleteWhere(pred func(*V) bool) int {
 	return n
 }
 
-// deleteRestricted removes the rows matching pred, like deleteWhere, unless
-// a row that stays has a parent (by parentOf) among the removed ones: then
-// nothing is removed and it fails with core.ErrConflict, as a restricting
-// self-referencing foreign key of the store does.
-func (t *table[K, V]) deleteRestricted(entity string, pred func(*V) bool, parentOf func(*V) K) (int, error) {
-	gone := map[K]bool{}
-	for k, v := range t.rows {
-		if pred(&v) {
-			gone[k] = true
-		}
-	}
-	for k, v := range t.rows {
-		if !gone[k] && gone[parentOf(&v)] {
-			return 0, conflict(entity, "still referenced by an override")
-		}
-	}
-	for k := range gone {
-		delete(t.rows, k)
-	}
-	return len(gone), nil
-}
-
 // paginate cuts rows (already in key order) into the page asked by req,
 // using the key of the last item as the cursor.
 func paginate[K interface {
@@ -250,4 +232,74 @@ func paginateDesc[K interface {
 		p.NextToken = key(rows[end-1]).String()
 	}
 	return p, nil
+}
+
+// paginateRecent cuts rows into the page asked by req in the order of the
+// API's lists: by creation instant, newest first, then by ID ascending
+// (lago base_query.rb:111-112). key returns the creation instant and ID of
+// a row; the page token is a [core.Cursor] over them.
+func paginateRecent[V any](rows []*V, key func(*V) (time.Time, uuid.UUID), req core.PageRequest) (core.Page[*V], error) {
+	var at time.Time
+	if req.Token != "" {
+		c, err := core.DecodeCursor(req.Token)
+		if err != nil {
+			return core.Page[*V]{}, err
+		}
+		if at, err = time.Parse(time.RFC3339Nano, c.Key); err != nil {
+			return core.Page[*V]{}, fmt.Errorf("%w: page token", core.ErrInvalidValue)
+		}
+	}
+	slices.SortStableFunc(rows, func(a, b *V) int {
+		ta, ia := key(a)
+		tb, ib := key(b)
+		if c := tb.Compare(ta); c != 0 {
+			return c
+		}
+		return strings.Compare(ia.String(), ib.String())
+	})
+	cursor := func(x *V) core.Cursor {
+		t, id := key(x)
+		return core.Cursor{Key: t.UTC().Format(time.RFC3339Nano), ID: id}
+	}
+	return paginateSorted(rows, cursor, func(x *V, c core.Cursor) bool {
+		t, id := key(x)
+		if !t.Equal(at) {
+			return t.Before(at)
+		}
+		return id.String() > c.ID.String()
+	}, req)
+}
+
+// paginateOldest is [paginateRecent] in creation order, oldest first, then
+// by ID ascending (lago api_keys_resolver.rb:18).
+func paginateOldest[V any](rows []*V, key func(*V) (time.Time, uuid.UUID), req core.PageRequest) (core.Page[*V], error) {
+	var at time.Time
+	if req.Token != "" {
+		c, err := core.DecodeCursor(req.Token)
+		if err != nil {
+			return core.Page[*V]{}, err
+		}
+		if at, err = time.Parse(time.RFC3339Nano, c.Key); err != nil {
+			return core.Page[*V]{}, fmt.Errorf("%w: page token", core.ErrInvalidValue)
+		}
+	}
+	slices.SortStableFunc(rows, func(a, b *V) int {
+		ta, ia := key(a)
+		tb, ib := key(b)
+		if c := ta.Compare(tb); c != 0 {
+			return c
+		}
+		return strings.Compare(ia.String(), ib.String())
+	})
+	cursor := func(x *V) core.Cursor {
+		t, id := key(x)
+		return core.Cursor{Key: t.UTC().Format(time.RFC3339Nano), ID: id}
+	}
+	return paginateSorted(rows, cursor, func(x *V, c core.Cursor) bool {
+		t, id := key(x)
+		if !t.Equal(at) {
+			return t.After(at)
+		}
+		return id.String() > c.ID.String()
+	}, req)
 }

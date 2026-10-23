@@ -98,7 +98,8 @@ type Customer struct {
 	DunningCampaignAttempts map[string]int
 	// LastDunningCampaignAttemptAt is the instant of the last attempt.
 	LastDunningCampaignAttemptAt *time.Time
-	// SequentialID is assigned on create, per billing entity.
+	// SequentialID is assigned on create, per organization; deleted
+	// customers keep their number.
 	SequentialID int64
 	// Slug is "<prefix>-<sequential_id %03d>", see [Slug].
 	Slug string
@@ -200,7 +201,7 @@ func (c *Customer) SelfBilled() bool { return c.AccountType == AccountTypePartne
 func Slug(prefix string, seq int64) string { return fmt.Sprintf("%s-%03d", prefix, seq) }
 
 // AssignSequence sets the sequential ID and the slug derived from the
-// billing entity's document number prefix.
+// organization's document number prefix.
 func (c *Customer) AssignSequence(seq int64, prefix string) {
 	c.SequentialID = seq
 	c.Slug = Slug(prefix, seq)
@@ -406,20 +407,18 @@ func Editable(d Documents) bool {
 	return !d.HasSubscriptions && !d.HasInvoices && !d.HasFixedAmountAppliedCoupons && !d.HasWallets
 }
 
-// CodeNotEditable: external_id or account_type changed on a customer that
-// is not editable.
-const CodeNotEditable = "customer_not_editable"
-
-// CheckUpdate enforces the update rules of domain §6 between the stored
-// customer old and the requested next: external_id and account_type change
-// only while editable. The currency is a default and changes freely.
-func CheckUpdate(old, next *Customer, d Documents) error {
-	var v core.Validator
-	if !Editable(d) {
-		v.Check(old.ExternalID == next.ExternalID, "external_id", CodeNotEditable)
-		v.Check(old.AccountType == next.AccountType, "account_type", CodeNotEditable)
+// KeepLocked restores on next the fields of old that only an editable
+// customer can change (domain §6): external_id and account_type keep
+// their stored values when the customer is no longer editable, the
+// requested change being ignored as lago does (update_service.rb:103-109,
+// upsert_from_api_service.rb:81). The currency is a default and changes
+// freely.
+func KeepLocked(old, next *Customer, d Documents) {
+	if Editable(d) {
+		return
 	}
-	return v.Err()
+	next.ExternalID = old.ExternalID
+	next.AccountType = old.AccountType
 }
 
 func present(s *string) string {

@@ -13,8 +13,6 @@ import { file_google_api_field_behavior } from "../../../google/api/field_behavi
 import { file_google_api_resource } from "../../../google/api/resource_pb.js";
 import type { FieldMask, Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_field_mask, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
-import type { FilterValues } from "./charge_pb.js";
-import { file_tanvo_catalog_v1_charge } from "./charge_pb.js";
 import { file_tanvo_common_v1_options } from "../../common/v1/options_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -22,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file tanvo/catalog/v1/product.proto.
  */
 export const file_tanvo_catalog_v1_product: GenFile = /*@__PURE__*/
-  fileDesc("Ch50YW52by9jYXRhbG9nL3YxL3Byb2R1Y3QucHJvdG8SEHRhbnZvLmNhdGFsb2cudjEi/QIKD1Byb2R1Y3RDYXRlZ29yeRIQCgJpZBgBIAEoCUIE4kEBCBIcCgRjb2RlGAIgASgJQg7iQQECukgHcgXopMoGARIcCgRuYW1lGAMgASgJQg7iQQECukgHcgUQARj/ARIdCgtkZXNjcmlwdGlvbhgEIAEoCUIIukgFcgMYgAgSJgoUaW52b2ljZV9kaXNwbGF5X25hbWUYBSABKAlCCLpIBXIDGP8BEjQKCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCnVwZGF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDOmnqQWYKGXRhbnZvLnh5ei9Qcm9kdWN0Q2F0ZWdvcnkSJXByb2R1Y3RfY2F0ZWdvcmllcy97cHJvZHVjdF9jYXRlZ29yeX0qEXByb2R1Y3RDYXRlZ29yaWVzMg9wcm9kdWN0Q2F0ZWdvcnkiiwYKB1Byb2R1Y3QSEAoCaWQYASABKAlCBOJBAQgSHAoEY29kZRgCIAEoCUIO4kEBArpIB3IF6KTKBgESHAoEbmFtZRgDIAEoCUIO4kEBArpIB3IFEAEY/wESJgoUaW52b2ljZV9kaXNwbGF5X25hbWUYBCABKAlCCLpIBXIDGP8BEh0KC2Rlc2NyaXB0aW9uGAUgASgJQgi6SAVyAxiAIBJCCgxwcm9kdWN0X3R5cGUYBiABKA4yHS50YW52by5jYXRhbG9nLnYxLlByb2R1Y3RUeXBlQg3iQQICBbpIBYIBAhABEicKE3Byb2R1Y3RfY2F0ZWdvcnlfaWQYByABKAlCCrpIB3IF4KTKBgESKgoSYmlsbGFibGVfbWV0cmljX2lkGAggASgJQg7iQQEFukgHcgXgpMoGARIhCglhZGRfb25faWQYCSABKAlCDuJBAQW6SAdyBeCkygYBEjQKCmNyZWF0ZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCnVwZGF0ZWRfYXQYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDOsIC6kE6ChF0YW52by54eXovUHJvZHVjdBIScHJvZHVjdHMve3Byb2R1Y3R9Kghwcm9kdWN0czIHcHJvZHVjdLpIgQIa/gEKDnByb2R1Y3Quc291cmNlEkhhIG1ldGVyZWQgcHJvZHVjdCBuZWVkcyBiaWxsYWJsZV9tZXRyaWNfaWQgYW5kIGEgZml4ZWQgcHJvZHVjdCBhZGRfb25faWQaoQEhaGFzKHRoaXMucHJvZHVjdF90eXBlKSB8fCAodGhpcy5wcm9kdWN0X3R5cGUgPT0gMSA/IGhhcyh0aGlzLmJpbGxhYmxlX21ldHJpY19pZCkgJiYgIWhhcyh0aGlzLmFkZF9vbl9pZCkgOiBoYXModGhpcy5hZGRfb25faWQpICYmICFoYXModGhpcy5iaWxsYWJsZV9tZXRyaWNfaWQpKSKOBAoNUHJvZHVjdEZpbHRlchIQCgJpZBgBIAEoCUIE4kEBCBIcCgRjb2RlGAIgASgJQg7iQQECukgHcgXopMoGARIcCgRuYW1lGAMgASgJQg7iQQECukgHcgUQARj/ARIdCgtkZXNjcmlwdGlvbhgEIAEoCUIIukgFcgMYgAgSJgoUaW52b2ljZV9kaXNwbGF5X25hbWUYBSABKAlCCLpIBXIDGP8BEksKBnZhbHVlcxgGIAMoCzIrLnRhbnZvLmNhdGFsb2cudjEuUHJvZHVjdEZpbHRlci5WYWx1ZXNFbnRyeUIO4kEBArpIB5oBBAgBEDISNAoKY3JlYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNAoKdXBkYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMaTQoLVmFsdWVzRW50cnkSCwoDa2V5GAEgASgJEi0KBXZhbHVlGAIgASgLMh4udGFudm8uY2F0YWxvZy52MS5GaWx0ZXJWYWx1ZXM6AjgBOmDqQV0KF3RhbnZvLnh5ei9Qcm9kdWN0RmlsdGVyEiNwcm9kdWN0cy97cHJvZHVjdH0vZmlsdGVycy97ZmlsdGVyfSoOcHJvZHVjdEZpbHRlcnMyDXByb2R1Y3RGaWx0ZXIi6AEKFENyZWF0ZVByb2R1Y3RSZXF1ZXN0EjYKB3Byb2R1Y3QYASABKAsyGS50YW52by5jYXRhbG9nLnYxLlByb2R1Y3RCCuJBAQK6SAPIAQE6lwG6SJMBGpABChBwcm9kdWN0LnJlcXVpcmVkEihjb2RlLCBuYW1lIGFuZCBwcm9kdWN0X3R5cGUgYXJlIHJlcXVpcmVkGlJoYXModGhpcy5wcm9kdWN0LmNvZGUpICYmIGhhcyh0aGlzLnByb2R1Y3QubmFtZSkgJiYgaGFzKHRoaXMucHJvZHVjdC5wcm9kdWN0X3R5cGUpIkMKFUNyZWF0ZVByb2R1Y3RSZXNwb25zZRIqCgdwcm9kdWN0GAEgASgLMhkudGFudm8uY2F0YWxvZy52MS5Qcm9kdWN0IjoKEUdldFByb2R1Y3RSZXF1ZXN0EiUKCnByb2R1Y3RfaWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBIkAKEkdldFByb2R1Y3RSZXNwb25zZRIqCgdwcm9kdWN0GAEgASgLMhkudGFudm8uY2F0YWxvZy52MS5Qcm9kdWN0IoYBChNMaXN0UHJvZHVjdHNSZXF1ZXN0Eh0KCXBhZ2Vfc2l6ZRgBIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACBIYCgZmaWx0ZXIYAyABKAlCCLpIBXIDGIAQEhgKBnNlYXJjaBgEIAEoCUIIukgFcgMY/wEiXAoUTGlzdFByb2R1Y3RzUmVzcG9uc2USKwoIcHJvZHVjdHMYASADKAsyGS50YW52by5jYXRhbG9nLnYxLlByb2R1Y3QSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIsABChRVcGRhdGVQcm9kdWN0UmVxdWVzdBI2Cgdwcm9kdWN0GAEgASgLMhkudGFudm8uY2F0YWxvZy52MS5Qcm9kdWN0QgriQQECukgDyAEBEi8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzazo/ukg8GjoKCnByb2R1Y3QuaWQSFnByb2R1Y3QuaWQgaXMgcmVxdWlyZWQaFGhhcyh0aGlzLnByb2R1Y3QuaWQpIkMKFVVwZGF0ZVByb2R1Y3RSZXNwb25zZRIqCgdwcm9kdWN0GAEgASgLMhkudGFudm8uY2F0YWxvZy52MS5Qcm9kdWN0Ij0KFERlbGV0ZVByb2R1Y3RSZXF1ZXN0EiUKCnByb2R1Y3RfaWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBIhcKFURlbGV0ZVByb2R1Y3RSZXNwb25zZSKPAgoaQ3JlYXRlUHJvZHVjdEZpbHRlclJlcXVlc3QSJQoKcHJvZHVjdF9pZBgBIAEoCUIR4kEBArpICsgBAXIF4KTKBgESOwoGZmlsdGVyGAIgASgLMh8udGFudm8uY2F0YWxvZy52MS5Qcm9kdWN0RmlsdGVyQgriQQECukgDyAEBOowBukiIARqFAQoPZmlsdGVyLnJlcXVpcmVkEiJjb2RlLCBuYW1lIGFuZCB2YWx1ZXMgYXJlIHJlcXVpcmVkGk5oYXModGhpcy5maWx0ZXIuY29kZSkgJiYgaGFzKHRoaXMuZmlsdGVyLm5hbWUpICYmIHNpemUodGhpcy5maWx0ZXIudmFsdWVzKSA+IDAiTgobQ3JlYXRlUHJvZHVjdEZpbHRlclJlc3BvbnNlEi8KBmZpbHRlchgBIAEoCzIfLnRhbnZvLmNhdGFsb2cudjEuUHJvZHVjdEZpbHRlciJmChdHZXRQcm9kdWN0RmlsdGVyUmVxdWVzdBIlCgpwcm9kdWN0X2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGARIkCglmaWx0ZXJfaWQYAiABKAlCEeJBAQK6SArIAQFyBeCkygYBIksKGEdldFByb2R1Y3RGaWx0ZXJSZXNwb25zZRIvCgZmaWx0ZXIYASABKAsyHy50YW52by5jYXRhbG9nLnYxLlByb2R1Y3RGaWx0ZXIifwoZTGlzdFByb2R1Y3RGaWx0ZXJzUmVxdWVzdBIlCgpwcm9kdWN0X2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGARIdCglwYWdlX3NpemUYAiABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgiZwoaTGlzdFByb2R1Y3RGaWx0ZXJzUmVzcG9uc2USMAoHZmlsdGVycxgBIAMoCzIfLnRhbnZvLmNhdGFsb2cudjEuUHJvZHVjdEZpbHRlchIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAki7wEKGlVwZGF0ZVByb2R1Y3RGaWx0ZXJSZXF1ZXN0EiUKCnByb2R1Y3RfaWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBEjsKBmZpbHRlchgCIAEoCzIfLnRhbnZvLmNhdGFsb2cudjEuUHJvZHVjdEZpbHRlckIK4kEBArpIA8gBARIvCgt1cGRhdGVfbWFzaxgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2s6PLpIORo3CglmaWx0ZXIuaWQSFWZpbHRlci5pZCBpcyByZXF1aXJlZBoTaGFzKHRoaXMuZmlsdGVyLmlkKSJOChtVcGRhdGVQcm9kdWN0RmlsdGVyUmVzcG9uc2USLwoGZmlsdGVyGAEgASgLMh8udGFudm8uY2F0YWxvZy52MS5Qcm9kdWN0RmlsdGVyImkKGkRlbGV0ZVByb2R1Y3RGaWx0ZXJSZXF1ZXN0EiUKCnByb2R1Y3RfaWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBEiQKCWZpbHRlcl9pZBgCIAEoCUIR4kEBArpICsgBAXIF4KTKBgEiHQobRGVsZXRlUHJvZHVjdEZpbHRlclJlc3BvbnNlIuoBChxDcmVhdGVQcm9kdWN0Q2F0ZWdvcnlSZXF1ZXN0EkcKEHByb2R1Y3RfY2F0ZWdvcnkYASABKAsyIS50YW52by5jYXRhbG9nLnYxLlByb2R1Y3RDYXRlZ29yeUIK4kEBArpIA8gBATqAAbpIfRp7Chlwcm9kdWN0X2NhdGVnb3J5LnJlcXVpcmVkEhpjb2RlIGFuZCBuYW1lIGFyZSByZXF1aXJlZBpCaGFzKHRoaXMucHJvZHVjdF9jYXRlZ29yeS5jb2RlKSAmJiBoYXModGhpcy5wcm9kdWN0X2NhdGVnb3J5Lm5hbWUpIlwKHUNyZWF0ZVByb2R1Y3RDYXRlZ29yeVJlc3BvbnNlEjsKEHByb2R1Y3RfY2F0ZWdvcnkYASABKAsyIS50YW52by5jYXRhbG9nLnYxLlByb2R1Y3RDYXRlZ29yeSJLChlHZXRQcm9kdWN0Q2F0ZWdvcnlSZXF1ZXN0Ei4KE3Byb2R1Y3RfY2F0ZWdvcnlfaWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBIlkKGkdldFByb2R1Y3RDYXRlZ29yeVJlc3BvbnNlEjsKEHByb2R1Y3RfY2F0ZWdvcnkYASABKAsyIS50YW52by5jYXRhbG9nLnYxLlByb2R1Y3RDYXRlZ29yeSJbChxMaXN0UHJvZHVjdENhdGVnb3JpZXNSZXF1ZXN0Eh0KCXBhZ2Vfc2l6ZRgBIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACCJ3Ch1MaXN0UHJvZHVjdENhdGVnb3JpZXNSZXNwb25zZRI9ChJwcm9kdWN0X2NhdGVnb3JpZXMYASADKAsyIS50YW52by5jYXRhbG9nLnYxLlByb2R1Y3RDYXRlZ29yeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAki9AEKHFVwZGF0ZVByb2R1Y3RDYXRlZ29yeVJlcXVlc3QSRwoQcHJvZHVjdF9jYXRlZ29yeRgBIAEoCzIhLnRhbnZvLmNhdGFsb2cudjEuUHJvZHVjdENhdGVnb3J5QgriQQECukgDyAEBEi8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzazpaukhXGlUKE3Byb2R1Y3RfY2F0ZWdvcnkuaWQSH3Byb2R1Y3RfY2F0ZWdvcnkuaWQgaXMgcmVxdWlyZWQaHWhhcyh0aGlzLnByb2R1Y3RfY2F0ZWdvcnkuaWQpIlwKHVVwZGF0ZVByb2R1Y3RDYXRlZ29yeVJlc3BvbnNlEjsKEHByb2R1Y3RfY2F0ZWdvcnkYASABKAsyIS50YW52by5jYXRhbG9nLnYxLlByb2R1Y3RDYXRlZ29yeSJOChxEZWxldGVQcm9kdWN0Q2F0ZWdvcnlSZXF1ZXN0Ei4KE3Byb2R1Y3RfY2F0ZWdvcnlfaWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBIh8KHURlbGV0ZVByb2R1Y3RDYXRlZ29yeVJlc3BvbnNlKl0KC1Byb2R1Y3RUeXBlEhwKGFBST0RVQ1RfVFlQRV9VTlNQRUNJRklFRBAAEhgKFFBST0RVQ1RfVFlQRV9NRVRFUkVEEAESFgoSUFJPRFVDVF9UWVBFX0ZJWEVEEAIykBcKDlByb2R1Y3RTZXJ2aWNlEp0BCg1DcmVhdGVQcm9kdWN0EiYudGFudm8uY2F0YWxvZy52MS5DcmVhdGVQcm9kdWN0UmVxdWVzdBonLnRhbnZvLmNhdGFsb2cudjEuQ3JlYXRlUHJvZHVjdFJlc3BvbnNlIjvK8xgaCg9wcm9kdWN0czpjcmVhdGUqB3Byb2R1Y3SC0+STAhc6B3Byb2R1Y3QiDC92MS9wcm9kdWN0cxKZAQoKR2V0UHJvZHVjdBIjLnRhbnZvLmNhdGFsb2cudjEuR2V0UHJvZHVjdFJlcXVlc3QaJC50YW52by5jYXRhbG9nLnYxLkdldFByb2R1Y3RSZXNwb25zZSJAkAIByvMYGAoNcHJvZHVjdHM6cmVhZCoHcHJvZHVjdILT5JMCGxIZL3YxL3Byb2R1Y3RzL3twcm9kdWN0X2lkfRKSAQoMTGlzdFByb2R1Y3RzEiUudGFudm8uY2F0YWxvZy52MS5MaXN0UHJvZHVjdHNSZXF1ZXN0GiYudGFudm8uY2F0YWxvZy52MS5MaXN0UHJvZHVjdHNSZXNwb25zZSIzkAIByvMYGAoNcHJvZHVjdHM6cmVhZCoHcHJvZHVjdILT5JMCDhIML3YxL3Byb2R1Y3RzEqoBCg1VcGRhdGVQcm9kdWN0EiYudGFudm8uY2F0YWxvZy52MS5VcGRhdGVQcm9kdWN0UmVxdWVzdBonLnRhbnZvLmNhdGFsb2cudjEuVXBkYXRlUHJvZHVjdFJlc3BvbnNlIkjK8xgaCg9wcm9kdWN0czp1cGRhdGUqB3Byb2R1Y3SC0+STAiQ6B3Byb2R1Y3QyGS92MS9wcm9kdWN0cy97cHJvZHVjdC5pZH0SoQEKDURlbGV0ZVByb2R1Y3QSJi50YW52by5jYXRhbG9nLnYxLkRlbGV0ZVByb2R1Y3RSZXF1ZXN0GicudGFudm8uY2F0YWxvZy52MS5EZWxldGVQcm9kdWN0UmVzcG9uc2UiP8rzGBoKD3Byb2R1Y3RzOmRlbGV0ZSoHcHJvZHVjdILT5JMCGyoZL3YxL3Byb2R1Y3RzL3twcm9kdWN0X2lkfRLKAQoTQ3JlYXRlUHJvZHVjdEZpbHRlchIsLnRhbnZvLmNhdGFsb2cudjEuQ3JlYXRlUHJvZHVjdEZpbHRlclJlcXVlc3QaLS50YW52by5jYXRhbG9nLnYxLkNyZWF0ZVByb2R1Y3RGaWx0ZXJSZXNwb25zZSJWyvMYIQoWcHJvZHVjdF9maWx0ZXJzOmNyZWF0ZSoHcHJvZHVjdILT5JMCKzoGZmlsdGVyIiEvdjEvcHJvZHVjdHMve3Byb2R1Y3RfaWR9L2ZpbHRlcnMSxgEKEEdldFByb2R1Y3RGaWx0ZXISKS50YW52by5jYXRhbG9nLnYxLkdldFByb2R1Y3RGaWx0ZXJSZXF1ZXN0GioudGFudm8uY2F0YWxvZy52MS5HZXRQcm9kdWN0RmlsdGVyUmVzcG9uc2UiW5ACAcrzGB8KFHByb2R1Y3RfZmlsdGVyczpyZWFkKgdwcm9kdWN0gtPkkwIvEi0vdjEvcHJvZHVjdHMve3Byb2R1Y3RfaWR9L2ZpbHRlcnMve2ZpbHRlcl9pZH0SwAEKEkxpc3RQcm9kdWN0RmlsdGVycxIrLnRhbnZvLmNhdGFsb2cudjEuTGlzdFByb2R1Y3RGaWx0ZXJzUmVxdWVzdBosLnRhbnZvLmNhdGFsb2cudjEuTGlzdFByb2R1Y3RGaWx0ZXJzUmVzcG9uc2UiT5ACAcrzGB8KFHByb2R1Y3RfZmlsdGVyczpyZWFkKgdwcm9kdWN0gtPkkwIjEiEvdjEvcHJvZHVjdHMve3Byb2R1Y3RfaWR9L2ZpbHRlcnMS1gEKE1VwZGF0ZVByb2R1Y3RGaWx0ZXISLC50YW52by5jYXRhbG9nLnYxLlVwZGF0ZVByb2R1Y3RGaWx0ZXJSZXF1ZXN0Gi0udGFudm8uY2F0YWxvZy52MS5VcGRhdGVQcm9kdWN0RmlsdGVyUmVzcG9uc2UiYsrzGCEKFnByb2R1Y3RfZmlsdGVyczp1cGRhdGUqB3Byb2R1Y3SC0+STAjc6BmZpbHRlcjItL3YxL3Byb2R1Y3RzL3twcm9kdWN0X2lkfS9maWx0ZXJzL3tmaWx0ZXIuaWR9Es4BChNEZWxldGVQcm9kdWN0RmlsdGVyEiwudGFudm8uY2F0YWxvZy52MS5EZWxldGVQcm9kdWN0RmlsdGVyUmVxdWVzdBotLnRhbnZvLmNhdGFsb2cudjEuRGVsZXRlUHJvZHVjdEZpbHRlclJlc3BvbnNlIlrK8xghChZwcm9kdWN0X2ZpbHRlcnM6ZGVsZXRlKgdwcm9kdWN0gtPkkwIvKi0vdjEvcHJvZHVjdHMve3Byb2R1Y3RfaWR9L2ZpbHRlcnMve2ZpbHRlcl9pZH0S2wEKFUNyZWF0ZVByb2R1Y3RDYXRlZ29yeRIuLnRhbnZvLmNhdGFsb2cudjEuQ3JlYXRlUHJvZHVjdENhdGVnb3J5UmVxdWVzdBovLnRhbnZvLmNhdGFsb2cudjEuQ3JlYXRlUHJvZHVjdENhdGVnb3J5UmVzcG9uc2UiYcrzGC0KGXByb2R1Y3RfY2F0ZWdvcmllczpjcmVhdGUqEHByb2R1Y3RfY2F0ZWdvcnmC0+STAio6EHByb2R1Y3RfY2F0ZWdvcnkiFi92MS9wcm9kdWN0X2NhdGVnb3JpZXMS1wEKEkdldFByb2R1Y3RDYXRlZ29yeRIrLnRhbnZvLmNhdGFsb2cudjEuR2V0UHJvZHVjdENhdGVnb3J5UmVxdWVzdBosLnRhbnZvLmNhdGFsb2cudjEuR2V0UHJvZHVjdENhdGVnb3J5UmVzcG9uc2UiZpACAcrzGCsKF3Byb2R1Y3RfY2F0ZWdvcmllczpyZWFkKhBwcm9kdWN0X2NhdGVnb3J5gtPkkwIuEiwvdjEvcHJvZHVjdF9jYXRlZ29yaWVzL3twcm9kdWN0X2NhdGVnb3J5X2lkfRLKAQoVTGlzdFByb2R1Y3RDYXRlZ29yaWVzEi4udGFudm8uY2F0YWxvZy52MS5MaXN0UHJvZHVjdENhdGVnb3JpZXNSZXF1ZXN0Gi8udGFudm8uY2F0YWxvZy52MS5MaXN0UHJvZHVjdENhdGVnb3JpZXNSZXNwb25zZSJQkAIByvMYKwoXcHJvZHVjdF9jYXRlZ29yaWVzOnJlYWQqEHByb2R1Y3RfY2F0ZWdvcnmC0+STAhgSFi92MS9wcm9kdWN0X2NhdGVnb3JpZXMS8QEKFVVwZGF0ZVByb2R1Y3RDYXRlZ29yeRIuLnRhbnZvLmNhdGFsb2cudjEuVXBkYXRlUHJvZHVjdENhdGVnb3J5UmVxdWVzdBovLnRhbnZvLmNhdGFsb2cudjEuVXBkYXRlUHJvZHVjdENhdGVnb3J5UmVzcG9uc2Uid8rzGC0KGXByb2R1Y3RfY2F0ZWdvcmllczp1cGRhdGUqEHByb2R1Y3RfY2F0ZWdvcnmC0+STAkA6EHByb2R1Y3RfY2F0ZWdvcnkyLC92MS9wcm9kdWN0X2NhdGVnb3JpZXMve3Byb2R1Y3RfY2F0ZWdvcnkuaWR9Et8BChVEZWxldGVQcm9kdWN0Q2F0ZWdvcnkSLi50YW52by5jYXRhbG9nLnYxLkRlbGV0ZVByb2R1Y3RDYXRlZ29yeVJlcXVlc3QaLy50YW52by5jYXRhbG9nLnYxLkRlbGV0ZVByb2R1Y3RDYXRlZ29yeVJlc3BvbnNlImXK8xgtChlwcm9kdWN0X2NhdGVnb3JpZXM6ZGVsZXRlKhBwcm9kdWN0X2NhdGVnb3J5gtPkkwIuKiwvdjEvcHJvZHVjdF9jYXRlZ29yaWVzL3twcm9kdWN0X2NhdGVnb3J5X2lkfULOAQoUY29tLnRhbnZvLmNhdGFsb2cudjFCDFByb2R1Y3RQcm90b1ABWkZnaXRodWIuY29tL3RhbnZveHl6L3RhbnZvL2xpYnMvcHJvdG8vZ2VuL2dvL3RhbnZvL2NhdGFsb2cvdjE7Y2F0YWxvZ3YxogIDVENYqgIQVGFudm8uQ2F0YWxvZy5WMcoCEFRhbnZvXENhdGFsb2dcVjHiAhxUYW52b1xDYXRhbG9nXFYxXEdQQk1ldGFkYXRh6gISVGFudm86OkNhdGFsb2c6OlYxYghlZGl0aW9uc3DoBw", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_tanvo_catalog_v1_charge, file_tanvo_common_v1_options]);
+  fileDesc("Ch50YW52by9jYXRhbG9nL3YxL3Byb2R1Y3QucHJvdG8SEHRhbnZvLmNhdGFsb2cudjEimwMKD1Byb2R1Y3RDYXRlZ29yeRIQCgJpZBgBIAEoCUIE4kEBCBIcCgRjb2RlGAIgASgJQg7iQQECukgHcgXopMoGARIcCgRuYW1lGAMgASgJQg7iQQECukgHcgUQARj/ARIdCgtkZXNjcmlwdGlvbhgEIAEoCUIIukgFcgMYgAgSJgoUaW52b2ljZV9kaXNwbGF5X25hbWUYBSABKAlCCLpIBXIDGP8BEjQKCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCnVwZGF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEhwKDnByb2R1Y3RzX2NvdW50GAggASgFQgTiQQEDOmnqQWYKGXRhbnZvLnh5ei9Qcm9kdWN0Q2F0ZWdvcnkSJXByb2R1Y3RfY2F0ZWdvcmllcy97cHJvZHVjdF9jYXRlZ29yeX0qEXByb2R1Y3RDYXRlZ29yaWVzMg9wcm9kdWN0Q2F0ZWdvcnkikAQKB1Byb2R1Y3QSEAoCaWQYASABKAlCBOJBAQgSHAoEY29kZRgCIAEoCUIO4kEBArpIB3IF6KTKBgESHAoEbmFtZRgDIAEoCUIO4kEBArpIB3IFEAEY/wESJgoUaW52b2ljZV9kaXNwbGF5X25hbWUYBCABKAlCCLpIBXIDGP8BEh0KC2Rlc2NyaXB0aW9uGAUgASgJQgi6SAVyAxiAIBJCCgxwcm9kdWN0X3R5cGUYBiABKA4yHS50YW52by5jYXRhbG9nLnYxLlByb2R1Y3RUeXBlQg3iQQICBbpIBYIBAhABEicKE3Byb2R1Y3RfY2F0ZWdvcnlfaWQYByABKAlCCrpIB3IF4KTKBgESKgoSYmlsbGFibGVfbWV0cmljX2lkGAggASgJQg7iQQEFukgHcgXgpMoGARI0CgpjcmVhdGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxI0Cgp1cGRhdGVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxIbCg1maWx0ZXJzX2NvdW50GAwgASgFQgTiQQEDOj3qQToKEXRhbnZvLnh5ei9Qcm9kdWN0EhJwcm9kdWN0cy97cHJvZHVjdH0qCHByb2R1Y3RzMgdwcm9kdWN0SgQICRAKUglhZGRfb25faWQivAMKDVByb2R1Y3RGaWx0ZXISEAoCaWQYASABKAlCBOJBAQgSHAoEY29kZRgCIAEoCUIO4kEBArpIB3IF6KTKBgESHAoEbmFtZRgDIAEoCUIO4kEBArpIB3IFEAEY/wESHQoLZGVzY3JpcHRpb24YBCABKAlCCLpIBXIDGIAIEiYKFGludm9pY2VfZGlzcGxheV9uYW1lGAUgASgJQgi6SAVyAxj/ARJCCgZ2YWx1ZXMYCSADKAsyJC50YW52by5jYXRhbG9nLnYxLlByb2R1Y3RGaWx0ZXJWYWx1ZUIM4kEBArpIBZIBAhBkEjQKCmNyZWF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCnVwZGF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDOmDqQV0KF3RhbnZvLnh5ei9Qcm9kdWN0RmlsdGVyEiNwcm9kdWN0cy97cHJvZHVjdH0vZmlsdGVycy97ZmlsdGVyfSoOcHJvZHVjdEZpbHRlcnMyDXByb2R1Y3RGaWx0ZXJKBAgGEAciSgoSUHJvZHVjdEZpbHRlclZhbHVlEhsKA2tleRgBIAEoCUIO4kEBArpIB3IFEAEY/wESFwoFdmFsdWUYAiABKAlCCLpIBXIDGP8BIugBChRDcmVhdGVQcm9kdWN0UmVxdWVzdBI2Cgdwcm9kdWN0GAEgASgLMhkudGFudm8uY2F0YWxvZy52MS5Qcm9kdWN0QgriQQECukgDyAEBOpcBukiTARqQAQoQcHJvZHVjdC5yZXF1aXJlZBIoY29kZSwgbmFtZSBhbmQgcHJvZHVjdF90eXBlIGFyZSByZXF1aXJlZBpSaGFzKHRoaXMucHJvZHVjdC5jb2RlKSAmJiBoYXModGhpcy5wcm9kdWN0Lm5hbWUpICYmIGhhcyh0aGlzLnByb2R1Y3QucHJvZHVjdF90eXBlKSJDChVDcmVhdGVQcm9kdWN0UmVzcG9uc2USKgoHcHJvZHVjdBgBIAEoCzIZLnRhbnZvLmNhdGFsb2cudjEuUHJvZHVjdCI6ChFHZXRQcm9kdWN0UmVxdWVzdBIlCgpwcm9kdWN0X2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGASJAChJHZXRQcm9kdWN0UmVzcG9uc2USKgoHcHJvZHVjdBgBIAEoCzIZLnRhbnZvLmNhdGFsb2cudjEuUHJvZHVjdCKGAQoTTGlzdFByb2R1Y3RzUmVxdWVzdBIdCglwYWdlX3NpemUYASABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgCIAEoCUIIukgFcgMYgAgSGAoGZmlsdGVyGAMgASgJQgi6SAVyAxiAEBIYCgZzZWFyY2gYBCABKAlCCLpIBXIDGP8BIlwKFExpc3RQcm9kdWN0c1Jlc3BvbnNlEisKCHByb2R1Y3RzGAEgAygLMhkudGFudm8uY2F0YWxvZy52MS5Qcm9kdWN0EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSLAAQoUVXBkYXRlUHJvZHVjdFJlcXVlc3QSNgoHcHJvZHVjdBgBIAEoCzIZLnRhbnZvLmNhdGFsb2cudjEuUHJvZHVjdEIK4kEBArpIA8gBARIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2s6P7pIPBo6Cgpwcm9kdWN0LmlkEhZwcm9kdWN0LmlkIGlzIHJlcXVpcmVkGhRoYXModGhpcy5wcm9kdWN0LmlkKSJDChVVcGRhdGVQcm9kdWN0UmVzcG9uc2USKgoHcHJvZHVjdBgBIAEoCzIZLnRhbnZvLmNhdGFsb2cudjEuUHJvZHVjdCI9ChREZWxldGVQcm9kdWN0UmVxdWVzdBIlCgpwcm9kdWN0X2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGASJDChVEZWxldGVQcm9kdWN0UmVzcG9uc2USKgoHcHJvZHVjdBgBIAEoCzIZLnRhbnZvLmNhdGFsb2cudjEuUHJvZHVjdCKPAgoaQ3JlYXRlUHJvZHVjdEZpbHRlclJlcXVlc3QSJQoKcHJvZHVjdF9pZBgBIAEoCUIR4kEBArpICsgBAXIF4KTKBgESOwoGZmlsdGVyGAIgASgLMh8udGFudm8uY2F0YWxvZy52MS5Qcm9kdWN0RmlsdGVyQgriQQECukgDyAEBOowBukiIARqFAQoPZmlsdGVyLnJlcXVpcmVkEiJjb2RlLCBuYW1lIGFuZCB2YWx1ZXMgYXJlIHJlcXVpcmVkGk5oYXModGhpcy5maWx0ZXIuY29kZSkgJiYgaGFzKHRoaXMuZmlsdGVyLm5hbWUpICYmIHNpemUodGhpcy5maWx0ZXIudmFsdWVzKSA+IDAiTgobQ3JlYXRlUHJvZHVjdEZpbHRlclJlc3BvbnNlEi8KBmZpbHRlchgBIAEoCzIfLnRhbnZvLmNhdGFsb2cudjEuUHJvZHVjdEZpbHRlciJmChdHZXRQcm9kdWN0RmlsdGVyUmVxdWVzdBIlCgpwcm9kdWN0X2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGARIkCglmaWx0ZXJfaWQYAiABKAlCEeJBAQK6SArIAQFyBeCkygYBIksKGEdldFByb2R1Y3RGaWx0ZXJSZXNwb25zZRIvCgZmaWx0ZXIYASABKAsyHy50YW52by5jYXRhbG9nLnYxLlByb2R1Y3RGaWx0ZXIimQEKGUxpc3RQcm9kdWN0RmlsdGVyc1JlcXVlc3QSJQoKcHJvZHVjdF9pZBgBIAEoCUIR4kEBArpICsgBAXIF4KTKBgESHQoJcGFnZV9zaXplGAIgASgFQgq6SAcaBRjoBygAEhwKCnBhZ2VfdG9rZW4YAyABKAlCCLpIBXIDGIAIEhgKBnNlYXJjaBgEIAEoCUIIukgFcgMY/wEiZwoaTGlzdFByb2R1Y3RGaWx0ZXJzUmVzcG9uc2USMAoHZmlsdGVycxgBIAMoCzIfLnRhbnZvLmNhdGFsb2cudjEuUHJvZHVjdEZpbHRlchIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAki7wEKGlVwZGF0ZVByb2R1Y3RGaWx0ZXJSZXF1ZXN0EiUKCnByb2R1Y3RfaWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBEjsKBmZpbHRlchgCIAEoCzIfLnRhbnZvLmNhdGFsb2cudjEuUHJvZHVjdEZpbHRlckIK4kEBArpIA8gBARIvCgt1cGRhdGVfbWFzaxgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2s6PLpIORo3CglmaWx0ZXIuaWQSFWZpbHRlci5pZCBpcyByZXF1aXJlZBoTaGFzKHRoaXMuZmlsdGVyLmlkKSJOChtVcGRhdGVQcm9kdWN0RmlsdGVyUmVzcG9uc2USLwoGZmlsdGVyGAEgASgLMh8udGFudm8uY2F0YWxvZy52MS5Qcm9kdWN0RmlsdGVyImkKGkRlbGV0ZVByb2R1Y3RGaWx0ZXJSZXF1ZXN0EiUKCnByb2R1Y3RfaWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBEiQKCWZpbHRlcl9pZBgCIAEoCUIR4kEBArpICsgBAXIF4KTKBgEiTgobRGVsZXRlUHJvZHVjdEZpbHRlclJlc3BvbnNlEi8KBmZpbHRlchgBIAEoCzIfLnRhbnZvLmNhdGFsb2cudjEuUHJvZHVjdEZpbHRlciLqAQocQ3JlYXRlUHJvZHVjdENhdGVnb3J5UmVxdWVzdBJHChBwcm9kdWN0X2NhdGVnb3J5GAEgASgLMiEudGFudm8uY2F0YWxvZy52MS5Qcm9kdWN0Q2F0ZWdvcnlCCuJBAQK6SAPIAQE6gAG6SH0aewoZcHJvZHVjdF9jYXRlZ29yeS5yZXF1aXJlZBIaY29kZSBhbmQgbmFtZSBhcmUgcmVxdWlyZWQaQmhhcyh0aGlzLnByb2R1Y3RfY2F0ZWdvcnkuY29kZSkgJiYgaGFzKHRoaXMucHJvZHVjdF9jYXRlZ29yeS5uYW1lKSJcCh1DcmVhdGVQcm9kdWN0Q2F0ZWdvcnlSZXNwb25zZRI7ChBwcm9kdWN0X2NhdGVnb3J5GAEgASgLMiEudGFudm8uY2F0YWxvZy52MS5Qcm9kdWN0Q2F0ZWdvcnkiSwoZR2V0UHJvZHVjdENhdGVnb3J5UmVxdWVzdBIuChNwcm9kdWN0X2NhdGVnb3J5X2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGASJZChpHZXRQcm9kdWN0Q2F0ZWdvcnlSZXNwb25zZRI7ChBwcm9kdWN0X2NhdGVnb3J5GAEgASgLMiEudGFudm8uY2F0YWxvZy52MS5Qcm9kdWN0Q2F0ZWdvcnkidQocTGlzdFByb2R1Y3RDYXRlZ29yaWVzUmVxdWVzdBIdCglwYWdlX3NpemUYASABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgCIAEoCUIIukgFcgMYgAgSGAoGc2VhcmNoGAMgASgJQgi6SAVyAxj/ASJ3Ch1MaXN0UHJvZHVjdENhdGVnb3JpZXNSZXNwb25zZRI9ChJwcm9kdWN0X2NhdGVnb3JpZXMYASADKAsyIS50YW52by5jYXRhbG9nLnYxLlByb2R1Y3RDYXRlZ29yeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAki9AEKHFVwZGF0ZVByb2R1Y3RDYXRlZ29yeVJlcXVlc3QSRwoQcHJvZHVjdF9jYXRlZ29yeRgBIAEoCzIhLnRhbnZvLmNhdGFsb2cudjEuUHJvZHVjdENhdGVnb3J5QgriQQECukgDyAEBEi8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzazpaukhXGlUKE3Byb2R1Y3RfY2F0ZWdvcnkuaWQSH3Byb2R1Y3RfY2F0ZWdvcnkuaWQgaXMgcmVxdWlyZWQaHWhhcyh0aGlzLnByb2R1Y3RfY2F0ZWdvcnkuaWQpIlwKHVVwZGF0ZVByb2R1Y3RDYXRlZ29yeVJlc3BvbnNlEjsKEHByb2R1Y3RfY2F0ZWdvcnkYASABKAsyIS50YW52by5jYXRhbG9nLnYxLlByb2R1Y3RDYXRlZ29yeSJOChxEZWxldGVQcm9kdWN0Q2F0ZWdvcnlSZXF1ZXN0Ei4KE3Byb2R1Y3RfY2F0ZWdvcnlfaWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBIlwKHURlbGV0ZVByb2R1Y3RDYXRlZ29yeVJlc3BvbnNlEjsKEHByb2R1Y3RfY2F0ZWdvcnkYASABKAsyIS50YW52by5jYXRhbG9nLnYxLlByb2R1Y3RDYXRlZ29yeSpdCgtQcm9kdWN0VHlwZRIcChhQUk9EVUNUX1RZUEVfVU5TUEVDSUZJRUQQABIYChRQUk9EVUNUX1RZUEVfTUVURVJFRBABEhYKElBST0RVQ1RfVFlQRV9GSVhFRBACMpAXCg5Qcm9kdWN0U2VydmljZRKdAQoNQ3JlYXRlUHJvZHVjdBImLnRhbnZvLmNhdGFsb2cudjEuQ3JlYXRlUHJvZHVjdFJlcXVlc3QaJy50YW52by5jYXRhbG9nLnYxLkNyZWF0ZVByb2R1Y3RSZXNwb25zZSI7yvMYGgoPcHJvZHVjdHM6Y3JlYXRlKgdwcm9kdWN0gtPkkwIXOgdwcm9kdWN0IgwvdjEvcHJvZHVjdHMSmQEKCkdldFByb2R1Y3QSIy50YW52by5jYXRhbG9nLnYxLkdldFByb2R1Y3RSZXF1ZXN0GiQudGFudm8uY2F0YWxvZy52MS5HZXRQcm9kdWN0UmVzcG9uc2UiQJACAcrzGBgKDXByb2R1Y3RzOnJlYWQqB3Byb2R1Y3SC0+STAhsSGS92MS9wcm9kdWN0cy97cHJvZHVjdF9pZH0SkgEKDExpc3RQcm9kdWN0cxIlLnRhbnZvLmNhdGFsb2cudjEuTGlzdFByb2R1Y3RzUmVxdWVzdBomLnRhbnZvLmNhdGFsb2cudjEuTGlzdFByb2R1Y3RzUmVzcG9uc2UiM5ACAcrzGBgKDXByb2R1Y3RzOnJlYWQqB3Byb2R1Y3SC0+STAg4SDC92MS9wcm9kdWN0cxKqAQoNVXBkYXRlUHJvZHVjdBImLnRhbnZvLmNhdGFsb2cudjEuVXBkYXRlUHJvZHVjdFJlcXVlc3QaJy50YW52by5jYXRhbG9nLnYxLlVwZGF0ZVByb2R1Y3RSZXNwb25zZSJIyvMYGgoPcHJvZHVjdHM6dXBkYXRlKgdwcm9kdWN0gtPkkwIkOgdwcm9kdWN0MhkvdjEvcHJvZHVjdHMve3Byb2R1Y3QuaWR9EqEBCg1EZWxldGVQcm9kdWN0EiYudGFudm8uY2F0YWxvZy52MS5EZWxldGVQcm9kdWN0UmVxdWVzdBonLnRhbnZvLmNhdGFsb2cudjEuRGVsZXRlUHJvZHVjdFJlc3BvbnNlIj/K8xgaCg9wcm9kdWN0czpkZWxldGUqB3Byb2R1Y3SC0+STAhsqGS92MS9wcm9kdWN0cy97cHJvZHVjdF9pZH0SygEKE0NyZWF0ZVByb2R1Y3RGaWx0ZXISLC50YW52by5jYXRhbG9nLnYxLkNyZWF0ZVByb2R1Y3RGaWx0ZXJSZXF1ZXN0Gi0udGFudm8uY2F0YWxvZy52MS5DcmVhdGVQcm9kdWN0RmlsdGVyUmVzcG9uc2UiVsrzGCEKFnByb2R1Y3RfZmlsdGVyczpjcmVhdGUqB3Byb2R1Y3SC0+STAis6BmZpbHRlciIhL3YxL3Byb2R1Y3RzL3twcm9kdWN0X2lkfS9maWx0ZXJzEsYBChBHZXRQcm9kdWN0RmlsdGVyEikudGFudm8uY2F0YWxvZy52MS5HZXRQcm9kdWN0RmlsdGVyUmVxdWVzdBoqLnRhbnZvLmNhdGFsb2cudjEuR2V0UHJvZHVjdEZpbHRlclJlc3BvbnNlIluQAgHK8xgfChRwcm9kdWN0X2ZpbHRlcnM6cmVhZCoHcHJvZHVjdILT5JMCLxItL3YxL3Byb2R1Y3RzL3twcm9kdWN0X2lkfS9maWx0ZXJzL3tmaWx0ZXJfaWR9EsABChJMaXN0UHJvZHVjdEZpbHRlcnMSKy50YW52by5jYXRhbG9nLnYxLkxpc3RQcm9kdWN0RmlsdGVyc1JlcXVlc3QaLC50YW52by5jYXRhbG9nLnYxLkxpc3RQcm9kdWN0RmlsdGVyc1Jlc3BvbnNlIk+QAgHK8xgfChRwcm9kdWN0X2ZpbHRlcnM6cmVhZCoHcHJvZHVjdILT5JMCIxIhL3YxL3Byb2R1Y3RzL3twcm9kdWN0X2lkfS9maWx0ZXJzEtYBChNVcGRhdGVQcm9kdWN0RmlsdGVyEiwudGFudm8uY2F0YWxvZy52MS5VcGRhdGVQcm9kdWN0RmlsdGVyUmVxdWVzdBotLnRhbnZvLmNhdGFsb2cudjEuVXBkYXRlUHJvZHVjdEZpbHRlclJlc3BvbnNlImLK8xghChZwcm9kdWN0X2ZpbHRlcnM6dXBkYXRlKgdwcm9kdWN0gtPkkwI3OgZmaWx0ZXIyLS92MS9wcm9kdWN0cy97cHJvZHVjdF9pZH0vZmlsdGVycy97ZmlsdGVyLmlkfRLOAQoTRGVsZXRlUHJvZHVjdEZpbHRlchIsLnRhbnZvLmNhdGFsb2cudjEuRGVsZXRlUHJvZHVjdEZpbHRlclJlcXVlc3QaLS50YW52by5jYXRhbG9nLnYxLkRlbGV0ZVByb2R1Y3RGaWx0ZXJSZXNwb25zZSJayvMYIQoWcHJvZHVjdF9maWx0ZXJzOmRlbGV0ZSoHcHJvZHVjdILT5JMCLyotL3YxL3Byb2R1Y3RzL3twcm9kdWN0X2lkfS9maWx0ZXJzL3tmaWx0ZXJfaWR9EtsBChVDcmVhdGVQcm9kdWN0Q2F0ZWdvcnkSLi50YW52by5jYXRhbG9nLnYxLkNyZWF0ZVByb2R1Y3RDYXRlZ29yeVJlcXVlc3QaLy50YW52by5jYXRhbG9nLnYxLkNyZWF0ZVByb2R1Y3RDYXRlZ29yeVJlc3BvbnNlImHK8xgtChlwcm9kdWN0X2NhdGVnb3JpZXM6Y3JlYXRlKhBwcm9kdWN0X2NhdGVnb3J5gtPkkwIqOhBwcm9kdWN0X2NhdGVnb3J5IhYvdjEvcHJvZHVjdF9jYXRlZ29yaWVzEtcBChJHZXRQcm9kdWN0Q2F0ZWdvcnkSKy50YW52by5jYXRhbG9nLnYxLkdldFByb2R1Y3RDYXRlZ29yeVJlcXVlc3QaLC50YW52by5jYXRhbG9nLnYxLkdldFByb2R1Y3RDYXRlZ29yeVJlc3BvbnNlImaQAgHK8xgrChdwcm9kdWN0X2NhdGVnb3JpZXM6cmVhZCoQcHJvZHVjdF9jYXRlZ29yeYLT5JMCLhIsL3YxL3Byb2R1Y3RfY2F0ZWdvcmllcy97cHJvZHVjdF9jYXRlZ29yeV9pZH0SygEKFUxpc3RQcm9kdWN0Q2F0ZWdvcmllcxIuLnRhbnZvLmNhdGFsb2cudjEuTGlzdFByb2R1Y3RDYXRlZ29yaWVzUmVxdWVzdBovLnRhbnZvLmNhdGFsb2cudjEuTGlzdFByb2R1Y3RDYXRlZ29yaWVzUmVzcG9uc2UiUJACAcrzGCsKF3Byb2R1Y3RfY2F0ZWdvcmllczpyZWFkKhBwcm9kdWN0X2NhdGVnb3J5gtPkkwIYEhYvdjEvcHJvZHVjdF9jYXRlZ29yaWVzEvEBChVVcGRhdGVQcm9kdWN0Q2F0ZWdvcnkSLi50YW52by5jYXRhbG9nLnYxLlVwZGF0ZVByb2R1Y3RDYXRlZ29yeVJlcXVlc3QaLy50YW52by5jYXRhbG9nLnYxLlVwZGF0ZVByb2R1Y3RDYXRlZ29yeVJlc3BvbnNlInfK8xgtChlwcm9kdWN0X2NhdGVnb3JpZXM6dXBkYXRlKhBwcm9kdWN0X2NhdGVnb3J5gtPkkwJAOhBwcm9kdWN0X2NhdGVnb3J5MiwvdjEvcHJvZHVjdF9jYXRlZ29yaWVzL3twcm9kdWN0X2NhdGVnb3J5LmlkfRLfAQoVRGVsZXRlUHJvZHVjdENhdGVnb3J5Ei4udGFudm8uY2F0YWxvZy52MS5EZWxldGVQcm9kdWN0Q2F0ZWdvcnlSZXF1ZXN0Gi8udGFudm8uY2F0YWxvZy52MS5EZWxldGVQcm9kdWN0Q2F0ZWdvcnlSZXNwb25zZSJlyvMYLQoZcHJvZHVjdF9jYXRlZ29yaWVzOmRlbGV0ZSoQcHJvZHVjdF9jYXRlZ29yeYLT5JMCLiosL3YxL3Byb2R1Y3RfY2F0ZWdvcmllcy97cHJvZHVjdF9jYXRlZ29yeV9pZH1CzgEKFGNvbS50YW52by5jYXRhbG9nLnYxQgxQcm9kdWN0UHJvdG9QAVpGZ2l0aHViLmNvbS90YW52b3h5ei90YW52by9saWJzL3Byb3RvL2dlbi9nby90YW52by9jYXRhbG9nL3YxO2NhdGFsb2d2MaICA1RDWKoCEFRhbnZvLkNhdGFsb2cuVjHKAhBUYW52b1xDYXRhbG9nXFYx4gIcVGFudm9cQ2F0YWxvZ1xWMVxHUEJNZXRhZGF0YeoCElRhbnZvOjpDYXRhbG9nOjpWMWIIZWRpdGlvbnNw6Ac", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_tanvo_common_v1_options]);
 
 /**
  * ProductCategory groups products.
@@ -78,6 +76,13 @@ export type ProductCategory = Message<"tanvo.catalog.v1.ProductCategory"> & {
    * @generated from field: google.protobuf.Timestamp updated_at = 7;
    */
   updatedAt?: Timestamp | undefined;
+
+  /**
+   * The number of the category's products.
+   *
+   * @generated from field: int32 products_count = 8;
+   */
+  productsCount: number;
 };
 
 /**
@@ -143,18 +148,12 @@ export type Product = Message<"tanvo.catalog.v1.Product"> & {
   productCategoryId: string;
 
   /**
-   * The sold billable metric (ID or `code:<code>`), for metered products.
+   * The sold billable metric (ID or `code:<code>`): required on metered
+   * products, refused on fixed ones.
    *
    * @generated from field: string billable_metric_id = 8;
    */
   billableMetricId: string;
-
-  /**
-   * The sold add-on (ID or `code:<code>`), for fixed products.
-   *
-   * @generated from field: string add_on_id = 9;
-   */
-  addOnId: string;
 
   /**
    * When the product was created.
@@ -169,6 +168,13 @@ export type Product = Message<"tanvo.catalog.v1.Product"> & {
    * @generated from field: google.protobuf.Timestamp updated_at = 11;
    */
   updatedAt?: Timestamp | undefined;
+
+  /**
+   * The number of the product's filters.
+   *
+   * @generated from field: int32 filters_count = 12;
+   */
+  filtersCount: number;
 };
 
 /**
@@ -221,11 +227,13 @@ export type ProductFilter = Message<"tanvo.catalog.v1.ProductFilter"> & {
   invoiceDisplayName: string;
 
   /**
-   * The matched values per metric filter key.
+   * The matched values of the metric's filters: a key with a value
+   * matches that value, a key alone every value of the key. The set is
+   * unique within the product.
    *
-   * @generated from field: map<string, tanvo.catalog.v1.FilterValues> values = 6;
+   * @generated from field: repeated tanvo.catalog.v1.ProductFilterValue values = 9;
    */
-  values: { [key: string]: FilterValues };
+  values: ProductFilterValue[];
 
   /**
    * When the filter was created.
@@ -250,6 +258,35 @@ export const ProductFilterSchema: GenMessage<ProductFilter> = /*@__PURE__*/
   messageDesc(file_tanvo_catalog_v1_product, 2);
 
 /**
+ * ProductFilterValue selects events of a product filter by one of its
+ * metric's filters.
+ *
+ * @generated from message tanvo.catalog.v1.ProductFilterValue
+ */
+export type ProductFilterValue = Message<"tanvo.catalog.v1.ProductFilterValue"> & {
+  /**
+   * The key of the metric's filter.
+   *
+   * @generated from field: string key = 1;
+   */
+  key: string;
+
+  /**
+   * One of the key's values; unset matches every value of the key.
+   *
+   * @generated from field: string value = 2;
+   */
+  value: string;
+};
+
+/**
+ * Describes the message tanvo.catalog.v1.ProductFilterValue.
+ * Use `create(ProductFilterValueSchema)` to create a new message.
+ */
+export const ProductFilterValueSchema: GenMessage<ProductFilterValue> = /*@__PURE__*/
+  messageDesc(file_tanvo_catalog_v1_product, 3);
+
+/**
  * CreateProductRequest is the request of ProductService.CreateProduct.
  *
  * @generated from message tanvo.catalog.v1.CreateProductRequest
@@ -268,7 +305,7 @@ export type CreateProductRequest = Message<"tanvo.catalog.v1.CreateProductReques
  * Use `create(CreateProductRequestSchema)` to create a new message.
  */
 export const CreateProductRequestSchema: GenMessage<CreateProductRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 3);
+  messageDesc(file_tanvo_catalog_v1_product, 4);
 
 /**
  * CreateProductResponse is the response of ProductService.CreateProduct.
@@ -289,7 +326,7 @@ export type CreateProductResponse = Message<"tanvo.catalog.v1.CreateProductRespo
  * Use `create(CreateProductResponseSchema)` to create a new message.
  */
 export const CreateProductResponseSchema: GenMessage<CreateProductResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 4);
+  messageDesc(file_tanvo_catalog_v1_product, 5);
 
 /**
  * GetProductRequest is the request of ProductService.GetProduct.
@@ -310,7 +347,7 @@ export type GetProductRequest = Message<"tanvo.catalog.v1.GetProductRequest"> & 
  * Use `create(GetProductRequestSchema)` to create a new message.
  */
 export const GetProductRequestSchema: GenMessage<GetProductRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 5);
+  messageDesc(file_tanvo_catalog_v1_product, 6);
 
 /**
  * GetProductResponse is the response of ProductService.GetProduct.
@@ -331,7 +368,7 @@ export type GetProductResponse = Message<"tanvo.catalog.v1.GetProductResponse"> 
  * Use `create(GetProductResponseSchema)` to create a new message.
  */
 export const GetProductResponseSchema: GenMessage<GetProductResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 6);
+  messageDesc(file_tanvo_catalog_v1_product, 7);
 
 /**
  * ListProductsRequest is the request of ProductService.ListProducts.
@@ -354,8 +391,8 @@ export type ListProductsRequest = Message<"tanvo.catalog.v1.ListProductsRequest"
   pageToken: string;
 
   /**
-   * An AIP-160 filter over `product_type`, `product_category_id`,
-   * `billable_metric_id` and `add_on_id`.
+   * An AIP-160 filter over `product_type`, `product_category_id` and
+   * `without_product_category` (a boolean).
    *
    * @generated from field: string filter = 3;
    */
@@ -374,7 +411,7 @@ export type ListProductsRequest = Message<"tanvo.catalog.v1.ListProductsRequest"
  * Use `create(ListProductsRequestSchema)` to create a new message.
  */
 export const ListProductsRequestSchema: GenMessage<ListProductsRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 7);
+  messageDesc(file_tanvo_catalog_v1_product, 8);
 
 /**
  * ListProductsResponse is the response of ProductService.ListProducts.
@@ -402,7 +439,7 @@ export type ListProductsResponse = Message<"tanvo.catalog.v1.ListProductsRespons
  * Use `create(ListProductsResponseSchema)` to create a new message.
  */
 export const ListProductsResponseSchema: GenMessage<ListProductsResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 8);
+  messageDesc(file_tanvo_catalog_v1_product, 9);
 
 /**
  * UpdateProductRequest is the request of ProductService.UpdateProduct.
@@ -430,7 +467,7 @@ export type UpdateProductRequest = Message<"tanvo.catalog.v1.UpdateProductReques
  * Use `create(UpdateProductRequestSchema)` to create a new message.
  */
 export const UpdateProductRequestSchema: GenMessage<UpdateProductRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 9);
+  messageDesc(file_tanvo_catalog_v1_product, 10);
 
 /**
  * UpdateProductResponse is the response of ProductService.UpdateProduct.
@@ -451,7 +488,7 @@ export type UpdateProductResponse = Message<"tanvo.catalog.v1.UpdateProductRespo
  * Use `create(UpdateProductResponseSchema)` to create a new message.
  */
 export const UpdateProductResponseSchema: GenMessage<UpdateProductResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 10);
+  messageDesc(file_tanvo_catalog_v1_product, 11);
 
 /**
  * DeleteProductRequest is the request of ProductService.DeleteProduct.
@@ -472,7 +509,7 @@ export type DeleteProductRequest = Message<"tanvo.catalog.v1.DeleteProductReques
  * Use `create(DeleteProductRequestSchema)` to create a new message.
  */
 export const DeleteProductRequestSchema: GenMessage<DeleteProductRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 11);
+  messageDesc(file_tanvo_catalog_v1_product, 12);
 
 /**
  * DeleteProductResponse is the response of ProductService.DeleteProduct.
@@ -480,6 +517,12 @@ export const DeleteProductRequestSchema: GenMessage<DeleteProductRequest> = /*@_
  * @generated from message tanvo.catalog.v1.DeleteProductResponse
  */
 export type DeleteProductResponse = Message<"tanvo.catalog.v1.DeleteProductResponse"> & {
+  /**
+   * The deleted product.
+   *
+   * @generated from field: tanvo.catalog.v1.Product product = 1;
+   */
+  product?: Product | undefined;
 };
 
 /**
@@ -487,7 +530,7 @@ export type DeleteProductResponse = Message<"tanvo.catalog.v1.DeleteProductRespo
  * Use `create(DeleteProductResponseSchema)` to create a new message.
  */
 export const DeleteProductResponseSchema: GenMessage<DeleteProductResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 12);
+  messageDesc(file_tanvo_catalog_v1_product, 13);
 
 /**
  * CreateProductFilterRequest is the request of ProductService.CreateProductFilter.
@@ -515,7 +558,7 @@ export type CreateProductFilterRequest = Message<"tanvo.catalog.v1.CreateProduct
  * Use `create(CreateProductFilterRequestSchema)` to create a new message.
  */
 export const CreateProductFilterRequestSchema: GenMessage<CreateProductFilterRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 13);
+  messageDesc(file_tanvo_catalog_v1_product, 14);
 
 /**
  * CreateProductFilterResponse is the response of ProductService.CreateProductFilter.
@@ -536,7 +579,7 @@ export type CreateProductFilterResponse = Message<"tanvo.catalog.v1.CreateProduc
  * Use `create(CreateProductFilterResponseSchema)` to create a new message.
  */
 export const CreateProductFilterResponseSchema: GenMessage<CreateProductFilterResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 14);
+  messageDesc(file_tanvo_catalog_v1_product, 15);
 
 /**
  * GetProductFilterRequest is the request of ProductService.GetProductFilter.
@@ -564,7 +607,7 @@ export type GetProductFilterRequest = Message<"tanvo.catalog.v1.GetProductFilter
  * Use `create(GetProductFilterRequestSchema)` to create a new message.
  */
 export const GetProductFilterRequestSchema: GenMessage<GetProductFilterRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 15);
+  messageDesc(file_tanvo_catalog_v1_product, 16);
 
 /**
  * GetProductFilterResponse is the response of ProductService.GetProductFilter.
@@ -585,7 +628,7 @@ export type GetProductFilterResponse = Message<"tanvo.catalog.v1.GetProductFilte
  * Use `create(GetProductFilterResponseSchema)` to create a new message.
  */
 export const GetProductFilterResponseSchema: GenMessage<GetProductFilterResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 16);
+  messageDesc(file_tanvo_catalog_v1_product, 17);
 
 /**
  * ListProductFiltersRequest is the request of ProductService.ListProductFilters.
@@ -613,6 +656,13 @@ export type ListProductFiltersRequest = Message<"tanvo.catalog.v1.ListProductFil
    * @generated from field: string page_token = 3;
    */
   pageToken: string;
+
+  /**
+   * Keeps the filters whose name or code contains the term.
+   *
+   * @generated from field: string search = 4;
+   */
+  search: string;
 };
 
 /**
@@ -620,7 +670,7 @@ export type ListProductFiltersRequest = Message<"tanvo.catalog.v1.ListProductFil
  * Use `create(ListProductFiltersRequestSchema)` to create a new message.
  */
 export const ListProductFiltersRequestSchema: GenMessage<ListProductFiltersRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 17);
+  messageDesc(file_tanvo_catalog_v1_product, 18);
 
 /**
  * ListProductFiltersResponse is the response of ProductService.ListProductFilters.
@@ -648,7 +698,7 @@ export type ListProductFiltersResponse = Message<"tanvo.catalog.v1.ListProductFi
  * Use `create(ListProductFiltersResponseSchema)` to create a new message.
  */
 export const ListProductFiltersResponseSchema: GenMessage<ListProductFiltersResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 18);
+  messageDesc(file_tanvo_catalog_v1_product, 19);
 
 /**
  * UpdateProductFilterRequest is the request of ProductService.UpdateProductFilter.
@@ -683,7 +733,7 @@ export type UpdateProductFilterRequest = Message<"tanvo.catalog.v1.UpdateProduct
  * Use `create(UpdateProductFilterRequestSchema)` to create a new message.
  */
 export const UpdateProductFilterRequestSchema: GenMessage<UpdateProductFilterRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 19);
+  messageDesc(file_tanvo_catalog_v1_product, 20);
 
 /**
  * UpdateProductFilterResponse is the response of ProductService.UpdateProductFilter.
@@ -704,7 +754,7 @@ export type UpdateProductFilterResponse = Message<"tanvo.catalog.v1.UpdateProduc
  * Use `create(UpdateProductFilterResponseSchema)` to create a new message.
  */
 export const UpdateProductFilterResponseSchema: GenMessage<UpdateProductFilterResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 20);
+  messageDesc(file_tanvo_catalog_v1_product, 21);
 
 /**
  * DeleteProductFilterRequest is the request of ProductService.DeleteProductFilter.
@@ -732,7 +782,7 @@ export type DeleteProductFilterRequest = Message<"tanvo.catalog.v1.DeleteProduct
  * Use `create(DeleteProductFilterRequestSchema)` to create a new message.
  */
 export const DeleteProductFilterRequestSchema: GenMessage<DeleteProductFilterRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 21);
+  messageDesc(file_tanvo_catalog_v1_product, 22);
 
 /**
  * DeleteProductFilterResponse is the response of ProductService.DeleteProductFilter.
@@ -740,6 +790,12 @@ export const DeleteProductFilterRequestSchema: GenMessage<DeleteProductFilterReq
  * @generated from message tanvo.catalog.v1.DeleteProductFilterResponse
  */
 export type DeleteProductFilterResponse = Message<"tanvo.catalog.v1.DeleteProductFilterResponse"> & {
+  /**
+   * The deleted product filter.
+   *
+   * @generated from field: tanvo.catalog.v1.ProductFilter filter = 1;
+   */
+  filter?: ProductFilter | undefined;
 };
 
 /**
@@ -747,7 +803,7 @@ export type DeleteProductFilterResponse = Message<"tanvo.catalog.v1.DeleteProduc
  * Use `create(DeleteProductFilterResponseSchema)` to create a new message.
  */
 export const DeleteProductFilterResponseSchema: GenMessage<DeleteProductFilterResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 22);
+  messageDesc(file_tanvo_catalog_v1_product, 23);
 
 /**
  * CreateProductCategoryRequest is the request of ProductService.CreateProductCategory.
@@ -768,7 +824,7 @@ export type CreateProductCategoryRequest = Message<"tanvo.catalog.v1.CreateProdu
  * Use `create(CreateProductCategoryRequestSchema)` to create a new message.
  */
 export const CreateProductCategoryRequestSchema: GenMessage<CreateProductCategoryRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 23);
+  messageDesc(file_tanvo_catalog_v1_product, 24);
 
 /**
  * CreateProductCategoryResponse is the response of ProductService.CreateProductCategory.
@@ -789,7 +845,7 @@ export type CreateProductCategoryResponse = Message<"tanvo.catalog.v1.CreateProd
  * Use `create(CreateProductCategoryResponseSchema)` to create a new message.
  */
 export const CreateProductCategoryResponseSchema: GenMessage<CreateProductCategoryResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 24);
+  messageDesc(file_tanvo_catalog_v1_product, 25);
 
 /**
  * GetProductCategoryRequest is the request of ProductService.GetProductCategory.
@@ -810,7 +866,7 @@ export type GetProductCategoryRequest = Message<"tanvo.catalog.v1.GetProductCate
  * Use `create(GetProductCategoryRequestSchema)` to create a new message.
  */
 export const GetProductCategoryRequestSchema: GenMessage<GetProductCategoryRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 25);
+  messageDesc(file_tanvo_catalog_v1_product, 26);
 
 /**
  * GetProductCategoryResponse is the response of ProductService.GetProductCategory.
@@ -831,7 +887,7 @@ export type GetProductCategoryResponse = Message<"tanvo.catalog.v1.GetProductCat
  * Use `create(GetProductCategoryResponseSchema)` to create a new message.
  */
 export const GetProductCategoryResponseSchema: GenMessage<GetProductCategoryResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 26);
+  messageDesc(file_tanvo_catalog_v1_product, 27);
 
 /**
  * ListProductCategoriesRequest is the request of ProductService.ListProductCategories.
@@ -852,6 +908,13 @@ export type ListProductCategoriesRequest = Message<"tanvo.catalog.v1.ListProduct
    * @generated from field: string page_token = 2;
    */
   pageToken: string;
+
+  /**
+   * A search over the name and code.
+   *
+   * @generated from field: string search = 3;
+   */
+  search: string;
 };
 
 /**
@@ -859,7 +922,7 @@ export type ListProductCategoriesRequest = Message<"tanvo.catalog.v1.ListProduct
  * Use `create(ListProductCategoriesRequestSchema)` to create a new message.
  */
 export const ListProductCategoriesRequestSchema: GenMessage<ListProductCategoriesRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 27);
+  messageDesc(file_tanvo_catalog_v1_product, 28);
 
 /**
  * ListProductCategoriesResponse is the response of ProductService.ListProductCategories.
@@ -887,7 +950,7 @@ export type ListProductCategoriesResponse = Message<"tanvo.catalog.v1.ListProduc
  * Use `create(ListProductCategoriesResponseSchema)` to create a new message.
  */
 export const ListProductCategoriesResponseSchema: GenMessage<ListProductCategoriesResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 28);
+  messageDesc(file_tanvo_catalog_v1_product, 29);
 
 /**
  * UpdateProductCategoryRequest is the request of ProductService.UpdateProductCategory.
@@ -916,7 +979,7 @@ export type UpdateProductCategoryRequest = Message<"tanvo.catalog.v1.UpdateProdu
  * Use `create(UpdateProductCategoryRequestSchema)` to create a new message.
  */
 export const UpdateProductCategoryRequestSchema: GenMessage<UpdateProductCategoryRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 29);
+  messageDesc(file_tanvo_catalog_v1_product, 30);
 
 /**
  * UpdateProductCategoryResponse is the response of ProductService.UpdateProductCategory.
@@ -937,7 +1000,7 @@ export type UpdateProductCategoryResponse = Message<"tanvo.catalog.v1.UpdateProd
  * Use `create(UpdateProductCategoryResponseSchema)` to create a new message.
  */
 export const UpdateProductCategoryResponseSchema: GenMessage<UpdateProductCategoryResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 30);
+  messageDesc(file_tanvo_catalog_v1_product, 31);
 
 /**
  * DeleteProductCategoryRequest is the request of ProductService.DeleteProductCategory.
@@ -958,7 +1021,7 @@ export type DeleteProductCategoryRequest = Message<"tanvo.catalog.v1.DeleteProdu
  * Use `create(DeleteProductCategoryRequestSchema)` to create a new message.
  */
 export const DeleteProductCategoryRequestSchema: GenMessage<DeleteProductCategoryRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 31);
+  messageDesc(file_tanvo_catalog_v1_product, 32);
 
 /**
  * DeleteProductCategoryResponse is the response of ProductService.DeleteProductCategory.
@@ -966,6 +1029,12 @@ export const DeleteProductCategoryRequestSchema: GenMessage<DeleteProductCategor
  * @generated from message tanvo.catalog.v1.DeleteProductCategoryResponse
  */
 export type DeleteProductCategoryResponse = Message<"tanvo.catalog.v1.DeleteProductCategoryResponse"> & {
+  /**
+   * The deleted product category.
+   *
+   * @generated from field: tanvo.catalog.v1.ProductCategory product_category = 1;
+   */
+  productCategory?: ProductCategory | undefined;
 };
 
 /**
@@ -973,7 +1042,7 @@ export type DeleteProductCategoryResponse = Message<"tanvo.catalog.v1.DeleteProd
  * Use `create(DeleteProductCategoryResponseSchema)` to create a new message.
  */
 export const DeleteProductCategoryResponseSchema: GenMessage<DeleteProductCategoryResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_catalog_v1_product, 32);
+  messageDesc(file_tanvo_catalog_v1_product, 33);
 
 /**
  * ProductType is what a product sells.
@@ -996,7 +1065,7 @@ export enum ProductType {
   METERED = 1,
 
   /**
-   * Units of an add-on.
+   * Units, with no metric.
    *
    * @generated from enum value: PRODUCT_TYPE_FIXED = 2;
    */
@@ -1012,7 +1081,7 @@ export const ProductTypeSchema: GenEnum<ProductType> = /*@__PURE__*/
 /**
  * ProductService manages the product catalog's products, their filters and
  * the categories that group them. A metered product sells a billable
- * metric; a fixed product sells an add-on.
+ * metric; a fixed product sells units.
  *
  * @generated from service tanvo.catalog.v1.ProductService
  */
@@ -1048,8 +1117,8 @@ export const ProductService: GenService<{
     output: typeof ListProductsResponseSchema;
   },
   /**
-   * Updates a product; the type and the sold metric or add-on are
-   * immutable.
+   * Updates a product; the type and the sold metric are immutable, and
+   * the code and category are locked once a plan prices the product.
    *
    * @generated from rpc tanvo.catalog.v1.ProductService.UpdateProduct
    */
@@ -1059,7 +1128,8 @@ export const ProductService: GenService<{
     output: typeof UpdateProductResponseSchema;
   },
   /**
-   * Deletes a product that no rate card prices.
+   * Deletes a product, with its filters and rate cards, that no plan
+   * prices.
    *
    * @generated from rpc tanvo.catalog.v1.ProductService.DeleteProduct
    */
@@ -1109,7 +1179,8 @@ export const ProductService: GenService<{
     output: typeof UpdateProductFilterResponseSchema;
   },
   /**
-   * Deletes a product filter that no rate card prices.
+   * Deletes a product filter, with its rate cards, of a product no plan
+   * prices.
    *
    * @generated from rpc tanvo.catalog.v1.ProductService.DeleteProductFilter
    */
@@ -1159,7 +1230,8 @@ export const ProductService: GenService<{
     output: typeof UpdateProductCategoryResponseSchema;
   },
   /**
-   * Deletes a product category; its products become uncategorized.
+   * Deletes a product category with its products, unless a plan prices
+   * one of them.
    *
    * @generated from rpc tanvo.catalog.v1.ProductService.DeleteProductCategory
    */

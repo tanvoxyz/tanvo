@@ -59,8 +59,26 @@ WHERE memberships.organization_id = @organization_id
     WHERE mr.organization_id = memberships.organization_id AND mr.membership_id = memberships.id
       AND mr.role_id = sqlc.narg(role_id) AND mr.deleted_at IS NULL
   ))
-  AND (sqlc.narg(after)::uuid IS NULL OR memberships.id > sqlc.narg(after))
-ORDER BY memberships.id
+  AND (cardinality(@role_ids::uuid[]) = 0 OR EXISTS (
+    SELECT 1 FROM membership_roles mr
+    WHERE mr.organization_id = memberships.organization_id AND mr.membership_id = memberships.id
+      AND mr.role_id = ANY(@role_ids::uuid[]) AND mr.deleted_at IS NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM roles r
+        WHERE r.organization_id = mr.organization_id AND r.id = mr.role_id AND r.deleted_at IS NOT NULL
+      )
+  ))
+  AND (sqlc.narg(search)::text IS NULL OR EXISTS (
+    SELECT 1 FROM users u
+    WHERE u.id = memberships.user_id AND strpos(lower(u.email), lower(sqlc.narg(search))) > 0
+  ))
+  -- @recent lists the newest first, then by id (memberships_query.rb,
+  -- base_query.rb:111-112); its cursor is (@after_at, @after).
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR (@recent::boolean AND (memberships.created_at < sqlc.narg(after_at)::timestamptz
+                                 OR (memberships.created_at = sqlc.narg(after_at)::timestamptz AND memberships.id > sqlc.narg(after))))
+       OR (NOT @recent::boolean AND memberships.id > sqlc.narg(after)))
+ORDER BY CASE WHEN @recent::boolean THEN memberships.created_at END DESC, memberships.id
 LIMIT @lim;
 
 -- name: CountActiveMembershipsByRole :one
@@ -162,8 +180,15 @@ WHERE organization_id = @organization_id AND email = @email AND status = 'pendin
 SELECT * FROM invites
 WHERE organization_id = @organization_id
   AND (sqlc.narg(status)::text IS NULL OR status = sqlc.narg(status))
-  AND (sqlc.narg(after)::uuid IS NULL OR id > sqlc.narg(after))
-ORDER BY id
+  AND (cardinality(@role_ids::uuid[]) = 0 OR role_ids && @role_ids::uuid[])
+  AND (sqlc.narg(search)::text IS NULL OR strpos(lower(email), lower(sqlc.narg(search))) > 0)
+  -- @recent lists the newest first, then by id (invites_query.rb,
+  -- base_query.rb:111-112); its cursor is (@after_at, @after).
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR (@recent::boolean AND (created_at < sqlc.narg(after_at)::timestamptz
+                                 OR (created_at = sqlc.narg(after_at)::timestamptz AND id > sqlc.narg(after))))
+       OR (NOT @recent::boolean AND id > sqlc.narg(after)))
+ORDER BY CASE WHEN @recent::boolean THEN created_at END DESC, id
 LIMIT @lim;
 
 -- name: CreatePasswordReset :execrows
@@ -215,8 +240,12 @@ SELECT * FROM api_keys WHERE token_hash = @token_hash;
 SELECT * FROM api_keys
 WHERE organization_id = @organization_id
   AND (sqlc.narg(active_at)::timestamptz IS NULL OR expires_at IS NULL OR expires_at > sqlc.narg(active_at))
-  AND (sqlc.narg(after)::uuid IS NULL OR id > sqlc.narg(after))
-ORDER BY id
+  -- Oldest first, then by id (api_keys_resolver.rb:18); the cursor is
+  -- (@after_at, @after).
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR created_at > sqlc.narg(after_at)::timestamptz
+       OR (created_at = sqlc.narg(after_at)::timestamptz AND id > sqlc.narg(after)))
+ORDER BY created_at, id
 LIMIT @lim;
 
 -- name: CountNonExpiringAPIKeys :one

@@ -55,7 +55,7 @@ func (u *Users) registerDevice(ctx context.Context, user *access.User, meta Sess
 		return
 	}
 	for _, m := range ms {
-		u.d.record(ctx, SecurityEvent{OrganizationID: m.OrganizationID, UserID: user.ID, Type: SecurityLogUser, Event: EventNewDeviceLoggedIn, Resources: map[string]any{
+		u.d.record(ctx, SecurityEvent{OrganizationID: m.OrganizationID, UserID: user.ID, Type: SecurityLogUser, Event: EventNewDeviceLoggedIn, DeviceInfo: map[string]any{
 			"user_agent": meta.UserAgent, "ip_address": meta.IP, "browser": meta.Browser, "os": meta.OS, "device_type": meta.DeviceType,
 		}})
 	}

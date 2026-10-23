@@ -130,4 +130,25 @@ type Repository interface {
 	// counters of every customer that uses campaign (domain §16: deleting a
 	// campaign resets its customers), returning how many changed.
 	ResetDunningCampaign(ctx context.Context, org core.OrganizationID, campaign core.DunningCampaignID) (int, error)
+	// FlagWalletRefresh marks customer id as awaiting the refresh of its
+	// wallets' ongoing balances and bumps its refresh generation, when it
+	// has an active wallet (domain §14.1); otherwise it does nothing. A
+	// customer already flagged since the last ClaimWalletRefresh is not
+	// written (lago writes only a changed flag, app/models/customer.rb:385-389):
+	// the flag is only held against that claim until the transaction ends.
+	FlagWalletRefresh(ctx context.Context, org core.OrganizationID, id core.CustomerID) error
+	// ClaimWalletRefresh starts a refresh of customer id: it waits for
+	// every transaction that flagged it, so that a refresh reading the
+	// usage after the claim committed sees their events, marks the current
+	// refresh generation claimed, so that later flags bump it, and returns
+	// it, or core.ErrNotFound. It runs in a transaction of its own, before
+	// the usage is read.
+	ClaimWalletRefresh(ctx context.Context, org core.OrganizationID, id core.CustomerID) (int64, error)
+	// ClearWalletRefresh clears the flag of customer id when its refresh
+	// generation is still gen, so that a flag raised after a refresh read
+	// gen survives that refresh.
+	ClearWalletRefresh(ctx context.Context, org core.OrganizationID, id core.CustomerID, gen int64) error
+	// ListAwaitingWalletRefresh returns the IDs of the non-deleted flagged
+	// customers that have an active wallet, in ID order.
+	ListAwaitingWalletRefresh(ctx context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[core.CustomerID], error)
 }

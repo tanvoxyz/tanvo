@@ -3,6 +3,8 @@ package porttest
 import (
 	"context"
 	"encoding/json"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -167,6 +169,30 @@ func quoteSortByID[T any, I interface{ Compare(I) int }](id func(T) I) cmp.Optio
 	return cmpopts.SortSlices(func(a, b T) bool { return id(a).Compare(id(b)) < 0 })
 }
 
+// quoteNextSeq returns 1 + the highest sequence of rows.
+func quoteNextSeq[T any](rows []T, seq func(T) int) int {
+	n := 0
+	for _, x := range rows {
+		n = max(n, seq(x))
+	}
+	return n + 1
+}
+
+// quoteRecent returns rows in the order of the lists: newest first, then
+// by ID.
+func quoteRecent[T any](rows []T, key func(T) (time.Time, string)) []T {
+	out := slices.Clone(rows)
+	slices.SortStableFunc(out, func(a, b T) int {
+		ta, ia := key(a)
+		tb, ib := key(b)
+		if c := tb.Compare(ta); c != 0 {
+			return c
+		}
+		return strings.Compare(ia, ib)
+	})
+	return out
+}
+
 func testQuote(t *testing.T, h Harness) {
 	t.Run("quotes", func(t *testing.T) {
 		t.Parallel()
@@ -276,15 +302,16 @@ func testQuote(t *testing.T, h Harness) {
 			for _, q := range qs {
 				noErr(t, "Create()", r.Quotes.Create(ctx, q))
 			}
+			// Sequences run per organization, whatever the year
+			// (app/models/concerns/sequenced.rb:24-28).
 			for _, tc := range []struct {
 				org  core.OrganizationID
-				year int
 				want int
-			}{{org, 2025, 4}, {org, 2024, 6}, {org, 2023, 1}, {pb.org, 2025, 1}} {
-				got, err := r.Quotes.NextSequence(ctx, tc.org, tc.year)
+			}{{org, quoteNextSeq(qs, func(x *quote.Quote) int { return x.SequentialID })}, {pb.org, 1}} {
+				got, err := r.Quotes.NextSequence(ctx, tc.org)
 				noErr(t, "NextSequence()", err)
 				if got != tc.want {
-					t.Errorf("NextSequence(%d) got = %d, want = %d", tc.year, got, tc.want)
+					t.Errorf("NextSequence() got = %d, want = %d", got, tc.want)
 				}
 			}
 			return nil
@@ -297,16 +324,19 @@ func testQuote(t *testing.T, h Harness) {
 			want []*quote.Quote
 		}{
 			{"all", quote.Filter{}, qs},
-			{"customer", quote.Filter{CustomerID: p.customers[1]}, []*quote.Quote{qs[1], qs[3]}},
+			{"customer", quote.Filter{CustomerIDs: []core.CustomerID{p.customers[1]}}, []*quote.Quote{qs[1], qs[3]}},
 			{"order types", quote.Filter{OrderTypes: []quote.OrderType{quote.OrderTypeOneOff, quote.OrderTypeSubscriptionAmendment}}, []*quote.Quote{qs[1], qs[2]}},
-			{"owner", quote.Filter{OwnerID: p.owners[0]}, []*quote.Quote{qs[0], qs[1]}},
-			{"combined", quote.Filter{CustomerID: p.customers[1], OwnerID: p.owners[1], OrderTypes: []quote.OrderType{quote.OrderTypeSubscriptionCreation}}, []*quote.Quote{qs[3]}},
-			{"owner of another organization", quote.Filter{OwnerID: pb.owners[0]}, nil},
+			{"owner", quote.Filter{OwnerIDs: []core.MembershipID{p.owners[0]}}, []*quote.Quote{qs[0], qs[1]}},
+			{"combined", quote.Filter{CustomerIDs: []core.CustomerID{p.customers[1]}, OwnerIDs: []core.MembershipID{p.owners[1]}, OrderTypes: []quote.OrderType{quote.OrderTypeSubscriptionCreation}}, []*quote.Quote{qs[3]}},
+			{"owner of another organization", quote.Filter{OwnerIDs: []core.MembershipID{pb.owners[0]}}, nil},
+			{"numbers", quote.Filter{Numbers: []string{qs[2].Number}}, []*quote.Quote{qs[2]}},
+			{"created range", quote.Filter{From: &lastYear, To: &lastYear}, []*quote.Quote{qs[2]}},
 		} {
 			e.tx(func(ctx context.Context, r port.Repos) error {
 				got := listAll(t, 1, func(pr core.PageRequest) (core.Page[*quote.Quote], error) {
 					return r.Quotes.List(ctx, org, tc.f, pr)
 				})
+				tc.want = quoteRecent(tc.want, func(x *quote.Quote) (time.Time, string) { return x.CreatedAt, x.ID.String() })
 				equal(t, "List() "+tc.name, ids(got, qid), ids(tc.want, qid))
 				if tc.name == "all" {
 					equal(t, "List() all items", got, tc.want)
@@ -330,7 +360,9 @@ func testQuote(t *testing.T, h Harness) {
 			noErr(t, "Create() quote", r.Quotes.Create(ctx, empty))
 
 			v1 := quoteFixtureVersion(e, q, 1, quote.VersionStatusDraft)
-			v1.Content = json.RawMessage(`{"plan_code": "pro", "overrides": {"amount_cents": 1200}, "add_ons": [1, 2]}`)
+			v1.BillingItems = json.RawMessage(`{"plans": [{"id": "pro", "overrides": {"amountCents": 1200}}], "addOns": [1, 2]}`)
+			v1.Content = ptr("Dear {{customer_name}},")
+			v1.MentionVariables = json.RawMessage(`{"customer_name": "Acme"}`)
 			v1.Currency = money.MustCurrency("EUR")
 			v1.BillingEntityID = p.be
 			noErr(t, "Create()", r.QuoteVersions.Create(ctx, v1))
@@ -410,7 +442,6 @@ func testQuote(t *testing.T, h Harness) {
 		full.Status = quote.OrderFormStatusSigned
 		full.ExpiresAt = ptr(at(72 * time.Hour))
 		full.SignedAt = ptr(at(time.Hour))
-		full.SignedBy = ptr("Jane Doe")
 		full.SignedDocument = "blob/signed.pdf"
 		bare := quoteFixtureForm(e, p, vs[1], 5, now)
 		e.tx(func(ctx context.Context, r port.Repos) error {
@@ -448,7 +479,7 @@ func testQuote(t *testing.T, h Harness) {
 			got, err = r.OrderForms.Get(ctx, org, bare.ID)
 			noErr(t, "Get() after Update()", err)
 			equal(t, "Get() after Update()", got, bare)
-			full.SignedBy, full.SignedDocument, full.ExpiresAt = nil, "", nil
+			full.SignedDocument, full.ExpiresAt = "", nil
 			noErr(t, "Update() full", r.OrderForms.Update(ctx, full))
 			got, err = r.OrderForms.Get(ctx, org, full.ID)
 			noErr(t, "Get() full after Update()", err)
@@ -513,15 +544,16 @@ func testQuote(t *testing.T, h Harness) {
 			for _, f := range append(append([]*quote.OrderForm{}, fs...), fb...) {
 				noErr(t, "Create()", r.OrderForms.Create(ctx, f))
 			}
+			// Sequences run per organization, whatever the year
+			// (app/models/concerns/sequenced.rb:24-28).
 			for _, tc := range []struct {
 				org  core.OrganizationID
-				year int
 				want int
-			}{{org, 2025, 4}, {org, 2024, 10}, {org, 2026, 1}, {pb.org, 2025, 3}} {
-				got, err := r.OrderForms.NextSequence(ctx, tc.org, tc.year)
+			}{{org, quoteNextSeq(fs, func(x *quote.OrderForm) int { return x.SequentialID })}, {pb.org, quoteNextSeq(fb, func(x *quote.OrderForm) int { return x.SequentialID })}} {
+				got, err := r.OrderForms.NextSequence(ctx, tc.org)
 				noErr(t, "NextSequence()", err)
 				if got != tc.want {
-					t.Errorf("NextSequence(%d) got = %d, want = %d", tc.year, got, tc.want)
+					t.Errorf("NextSequence() got = %d, want = %d", got, tc.want)
 				}
 			}
 
@@ -554,6 +586,7 @@ func testQuote(t *testing.T, h Harness) {
 				got := listAll(t, 1, func(pr core.PageRequest) (core.Page[*quote.OrderForm], error) {
 					return r.OrderForms.List(ctx, org, tc.f, pr)
 				})
+				tc.want = quoteRecent(tc.want, func(x *quote.OrderForm) (time.Time, string) { return x.CreatedAt, x.ID.String() })
 				equal(t, "List() "+tc.name, ids(got, fid), ids(tc.want, fid))
 				if tc.name == "all" {
 					equal(t, "List() all items", got, tc.want)
@@ -686,15 +719,16 @@ func testQuote(t *testing.T, h Harness) {
 			for _, o := range append(append([]*quote.Order{}, ords...), ob...) {
 				noErr(t, "Create()", r.Orders.Create(ctx, o))
 			}
+			// Sequences run per organization, whatever the year
+			// (app/models/concerns/sequenced.rb:24-28).
 			for _, tc := range []struct {
 				org  core.OrganizationID
-				year int
 				want int
-			}{{org, 2025, 4}, {org, 2024, 8}, {org, 2026, 1}, {pb.org, 2025, 2}} {
-				got, err := r.Orders.NextSequence(ctx, tc.org, tc.year)
+			}{{org, quoteNextSeq(ords, func(x *quote.Order) int { return x.SequentialID })}, {pb.org, quoteNextSeq(ob, func(x *quote.Order) int { return x.SequentialID })}} {
+				got, err := r.Orders.NextSequence(ctx, tc.org)
 				noErr(t, "NextSequence()", err)
 				if got != tc.want {
-					t.Errorf("NextSequence(%d) got = %d, want = %d", tc.year, got, tc.want)
+					t.Errorf("NextSequence() got = %d, want = %d", got, tc.want)
 				}
 			}
 
@@ -726,6 +760,7 @@ func testQuote(t *testing.T, h Harness) {
 				got := listAll(t, 1, func(pr core.PageRequest) (core.Page[*quote.Order], error) {
 					return r.Orders.List(ctx, org, tc.f, pr)
 				})
+				tc.want = quoteRecent(tc.want, func(x *quote.Order) (time.Time, string) { return x.CreatedAt, x.ID.String() })
 				equal(t, "List() "+tc.name, ids(got, oid), ids(tc.want, oid))
 				if tc.name == "all" {
 					equal(t, "List() all items", got, tc.want)

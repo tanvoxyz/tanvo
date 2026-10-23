@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"strings"
 	"sync"
@@ -33,10 +34,28 @@ const DefaultEntraHost = "login.microsoftonline.com"
 // GoogleIssuer is Google's OpenID Connect issuer.
 const GoogleIssuer = "https://accounts.google.com"
 
+// EmailVerification is how a connection treats the email_verified claim.
+type EmailVerification int
+
+// EmailVerification values.
+const (
+	// EmailVerifiedUnlessFalse refuses an identity whose email_verified
+	// is false and accepts one without the claim: the behaviour of the
+	// Google, Okta and Entra ID presets (Entra ID sends no such claim).
+	EmailVerifiedUnlessFalse EmailVerification = iota
+	// EmailVerifiedRequired requires email_verified to be true: the
+	// default of generic connections.
+	EmailVerifiedRequired
+	// EmailVerifiedIgnored ignores the claim (allow_unverified_email).
+	EmailVerifiedIgnored
+)
+
 // Connection is one OpenID Connect identity provider configuration. Google
 // is one connection for the installation (no organization, no domains);
 // Okta, Entra ID and generic connections belong to an organization and
-// claim email domains, which route sign-ins to them.
+// claim email domains, which route sign-ins to them. The presets differ
+// only in how their issuer is built and which claims they read; the
+// protocol is the same for all.
 type Connection struct {
 	// ID identifies the connection (the integration's ID, or "google").
 	ID string
@@ -63,9 +82,20 @@ type Connection struct {
 	// Scopes are requested in addition to "openid"; nil requests "email"
 	// and "profile".
 	Scopes []string
+	// EmailClaim is the claim read as the email; "" is "email".
+	EmailClaim string
 	// EmailFallbackClaim is read when the identity has no email claim
 	// ("preferred_username" for Entra ID).
 	EmailFallbackClaim string
+	// NameClaim is the claim read as the display name; "" is "name".
+	NameClaim string
+	// EmailVerification is how the email_verified claim is checked.
+	EmailVerification EmailVerification
+	// TokenAuthMethod is how the client authenticates at the token
+	// endpoint; "" follows the provider's discovery document.
+	TokenAuthMethod integration.TokenAuthMethod
+	// AuthParams are extra authorization request parameters.
+	AuthParams map[string]string
 	// CreatedAt orders connections claiming the same domain.
 	CreatedAt time.Time
 }
@@ -259,8 +289,20 @@ func ConnectionFromIntegration(i *integration.Integration, clientSecret, redirec
 	case integration.ProviderEntraID:
 		c.Method, c.Issuer = organization.AuthenticationMethodEntraID, EntraIssuer(s.Host, s.TenantID)
 		c.EmailFallbackClaim = "preferred_username"
+	case integration.ProviderOIDC:
+		c.Method, c.Issuer = organization.AuthenticationMethodOIDC, s.IssuerURL
+		c.Scopes = slices.Clone(s.Scopes)
+		if len(c.Scopes) == 0 {
+			c.Scopes = slices.Clone(integration.DefaultScopes)
+		}
+		c.EmailClaim, c.NameClaim, c.TokenAuthMethod = s.EmailClaim, s.NameClaim, s.TokenAuthMethod
+		c.AuthParams = maps.Clone(s.AuthorizationParams)
+		c.EmailVerification = EmailVerifiedRequired
+		if s.AllowUnverifiedEmail {
+			c.EmailVerification = EmailVerifiedIgnored
+		}
 	default:
-		c.Method, c.Issuer = organization.AuthenticationMethodOIDC, s.Issuer
+		return nil, fmt.Errorf("integration %s: provider %s: %w", i.ID, i.Provider, core.ErrInvalidValue)
 	}
 	return c, nil
 }

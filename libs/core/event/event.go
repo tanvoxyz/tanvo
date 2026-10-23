@@ -60,7 +60,7 @@ type Event struct {
 	IngestedAt time.Time
 	// CreatedAt is the creation instant.
 	CreatedAt time.Time
-	// UpdatedAt is the instant of the last change (a replacement).
+	// UpdatedAt is the instant of the last change.
 	UpdatedAt time.Time
 }
 

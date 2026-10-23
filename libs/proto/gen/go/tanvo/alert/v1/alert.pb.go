@@ -2463,6 +2463,164 @@ func (b0 DeleteAlertResponse_builder) Build() *DeleteAlertResponse {
 	return m0
 }
 
+// DeleteAlertsRequest is the request of AlertService.DeleteAlerts.
+type DeleteAlertsRequest struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_SubscriptionId *string                `protobuf:"bytes,1,opt,name=subscription_id,json=subscriptionId"`
+	xxx_hidden_WalletId       *string                `protobuf:"bytes,2,opt,name=wallet_id,json=walletId"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *DeleteAlertsRequest) Reset() {
+	*x = DeleteAlertsRequest{}
+	mi := &file_tanvo_alert_v1_alert_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteAlertsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteAlertsRequest) ProtoMessage() {}
+
+func (x *DeleteAlertsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_alert_v1_alert_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeleteAlertsRequest) GetSubscriptionId() string {
+	if x != nil {
+		if x.xxx_hidden_SubscriptionId != nil {
+			return *x.xxx_hidden_SubscriptionId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeleteAlertsRequest) GetWalletId() string {
+	if x != nil {
+		if x.xxx_hidden_WalletId != nil {
+			return *x.xxx_hidden_WalletId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeleteAlertsRequest) SetSubscriptionId(v string) {
+	x.xxx_hidden_SubscriptionId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *DeleteAlertsRequest) SetWalletId(v string) {
+	x.xxx_hidden_WalletId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *DeleteAlertsRequest) HasSubscriptionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteAlertsRequest) HasWalletId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *DeleteAlertsRequest) ClearSubscriptionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_SubscriptionId = nil
+}
+
+func (x *DeleteAlertsRequest) ClearWalletId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_WalletId = nil
+}
+
+type DeleteAlertsRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The subscription's ID or `external_id:<external_id>`.
+	SubscriptionId *string
+	// The wallet's ID.
+	WalletId *string
+}
+
+func (b0 DeleteAlertsRequest_builder) Build() *DeleteAlertsRequest {
+	m0 := &DeleteAlertsRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.SubscriptionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_SubscriptionId = b.SubscriptionId
+	}
+	if b.WalletId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_WalletId = b.WalletId
+	}
+	return m0
+}
+
+// DeleteAlertsResponse is the response of AlertService.DeleteAlerts.
+type DeleteAlertsResponse struct {
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteAlertsResponse) Reset() {
+	*x = DeleteAlertsResponse{}
+	mi := &file_tanvo_alert_v1_alert_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteAlertsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteAlertsResponse) ProtoMessage() {}
+
+func (x *DeleteAlertsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_alert_v1_alert_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+type DeleteAlertsResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+}
+
+func (b0 DeleteAlertsResponse_builder) Build() *DeleteAlertsResponse {
+	m0 := &DeleteAlertsResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	return m0
+}
+
 // ListTriggeredAlertsRequest is the request of AlertService.ListTriggeredAlerts.
 type ListTriggeredAlertsRequest struct {
 	state                     protoimpl.MessageState `protogen:"opaque.v1"`
@@ -2479,7 +2637,7 @@ type ListTriggeredAlertsRequest struct {
 
 func (x *ListTriggeredAlertsRequest) Reset() {
 	*x = ListTriggeredAlertsRequest{}
-	mi := &file_tanvo_alert_v1_alert_proto_msgTypes[15]
+	mi := &file_tanvo_alert_v1_alert_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2491,7 +2649,7 @@ func (x *ListTriggeredAlertsRequest) String() string {
 func (*ListTriggeredAlertsRequest) ProtoMessage() {}
 
 func (x *ListTriggeredAlertsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_alert_v1_alert_proto_msgTypes[15]
+	mi := &file_tanvo_alert_v1_alert_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2689,7 +2847,7 @@ type ListTriggeredAlertsResponse struct {
 
 func (x *ListTriggeredAlertsResponse) Reset() {
 	*x = ListTriggeredAlertsResponse{}
-	mi := &file_tanvo_alert_v1_alert_proto_msgTypes[16]
+	mi := &file_tanvo_alert_v1_alert_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2701,7 +2859,7 @@ func (x *ListTriggeredAlertsResponse) String() string {
 func (*ListTriggeredAlertsResponse) ProtoMessage() {}
 
 func (x *ListTriggeredAlertsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_alert_v1_alert_proto_msgTypes[16]
+	mi := &file_tanvo_alert_v1_alert_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2878,7 +3036,13 @@ const file_tanvo_alert_v1_alert_proto_rawDesc = "" +
 	"\balert_id\x18\x03 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\aalertId:v\xbaHs\x1aq\n" +
 	"\valert.owner\x120set exactly one of subscription_id and wallet_id\x1a0has(this.subscription_id) != has(this.wallet_id)\"\x15\n" +
-	"\x13DeleteAlertResponse\"\xe4\x02\n" +
+	"\x13DeleteAlertResponse\"\xe9\x01\n" +
+	"\x13DeleteAlertsRequest\x123\n" +
+	"\x0fsubscription_id\x18\x01 \x01(\tB\n" +
+	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\x0esubscriptionId\x12%\n" +
+	"\twallet_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\bwalletId:v\xbaHs\x1aq\n" +
+	"\valert.owner\x120set exactly one of subscription_id and wallet_id\x1a0has(this.subscription_id) != has(this.wallet_id)\"\x16\n" +
+	"\x14DeleteAlertsResponse\"\xe4\x02\n" +
 	"\x1aListTriggeredAlertsRequest\x123\n" +
 	"\x0fsubscription_id\x18\x01 \x01(\tB\n" +
 	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\x0esubscriptionId\x12%\n" +
@@ -2906,7 +3070,7 @@ const file_tanvo_alert_v1_alert_proto_rawDesc = "" +
 	"\x0eAlertDirection\x12\x1f\n" +
 	"\x1bALERT_DIRECTION_UNSPECIFIED\x10\x00\x12\x1e\n" +
 	"\x1aALERT_DIRECTION_INCREASING\x10\x01\x12\x1e\n" +
-	"\x1aALERT_DIRECTION_DECREASING\x10\x022\xf7\f\n" +
+	"\x1aALERT_DIRECTION_DECREASING\x10\x022\xca\x0e\n" +
 	"\fAlertService\x12\xdc\x01\n" +
 	"\vCreateAlert\x12\".tanvo.alert.v1.CreateAlertRequest\x1a#.tanvo.alert.v1.CreateAlertResponse\"\x83\x01\xca\xf3\x18\x1d\n" +
 	"\x14subscriptions:update*\x05alert\x82\xd3\xe4\x93\x02\\:\x05alertZ':\x05alert\"\x1e/v1/wallets/{wallet_id}/alerts\"*/v1/subscriptions/{subscription_id}/alerts\x12\x80\x02\n" +
@@ -2920,14 +3084,16 @@ const file_tanvo_alert_v1_alert_proto_rawDesc = "" +
 	"\vUpdateAlert\x12\".tanvo.alert.v1.UpdateAlertRequest\x1a#.tanvo.alert.v1.UpdateAlertResponse\"\x99\x01\xca\xf3\x18\x1d\n" +
 	"\x14subscriptions:update*\x05alert\x82\xd3\xe4\x93\x02r:\x05alertZ2:\x05alert2)/v1/wallets/{wallet_id}/alerts/{alert.id}25/v1/subscriptions/{subscription_id}/alerts/{alert.id}\x12\xe4\x01\n" +
 	"\vDeleteAlert\x12\".tanvo.alert.v1.DeleteAlertRequest\x1a#.tanvo.alert.v1.DeleteAlertResponse\"\x8b\x01\xca\xf3\x18\x1d\n" +
-	"\x14subscriptions:update*\x05alert\x82\xd3\xe4\x93\x02dZ+*)/v1/wallets/{wallet_id}/alerts/{alert_id}*5/v1/subscriptions/{subscription_id}/alerts/{alert_id}\x12\xfb\x01\n" +
+	"\x14subscriptions:update*\x05alert\x82\xd3\xe4\x93\x02dZ+*)/v1/wallets/{wallet_id}/alerts/{alert_id}*5/v1/subscriptions/{subscription_id}/alerts/{alert_id}\x12\xd0\x01\n" +
+	"\fDeleteAlerts\x12#.tanvo.alert.v1.DeleteAlertsRequest\x1a$.tanvo.alert.v1.DeleteAlertsResponse\"u\xca\xf3\x18\x1d\n" +
+	"\x14subscriptions:update*\x05alert\x82\xd3\xe4\x93\x02NZ *\x1e/v1/wallets/{wallet_id}/alerts**/v1/subscriptions/{subscription_id}/alerts\x12\xfb\x01\n" +
 	"\x13ListTriggeredAlerts\x12*.tanvo.alert.v1.ListTriggeredAlertsRequest\x1a+.tanvo.alert.v1.ListTriggeredAlertsResponse\"\x8a\x01\xca\xf3\x18\x1b\n" +
 	"\x12subscriptions:read*\x05alert\x82\xd3\xe4\x93\x02bZ*\x12(/v1/wallets/{wallet_id}/triggered_alerts\x124/v1/subscriptions/{subscription_id}/triggered_alerts\x90\x02\x01B\xbe\x01\n" +
 	"\x12com.tanvo.alert.v1B\n" +
 	"AlertProtoP\x01ZBgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/alert/v1;alertv1\xa2\x02\x03TAX\xaa\x02\x0eTanvo.Alert.V1\xca\x02\x0eTanvo\\Alert\\V1\xe2\x02\x1aTanvo\\Alert\\V1\\GPBMetadata\xea\x02\x10Tanvo::Alert::V1b\beditionsp\xe8\a"
 
 var file_tanvo_alert_v1_alert_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_tanvo_alert_v1_alert_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_tanvo_alert_v1_alert_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_tanvo_alert_v1_alert_proto_goTypes = []any{
 	(AlertType)(0),                      // 0: tanvo.alert.v1.AlertType
 	(AlertDirection)(0),                 // 1: tanvo.alert.v1.AlertDirection
@@ -2946,21 +3112,23 @@ var file_tanvo_alert_v1_alert_proto_goTypes = []any{
 	(*UpdateAlertResponse)(nil),         // 14: tanvo.alert.v1.UpdateAlertResponse
 	(*DeleteAlertRequest)(nil),          // 15: tanvo.alert.v1.DeleteAlertRequest
 	(*DeleteAlertResponse)(nil),         // 16: tanvo.alert.v1.DeleteAlertResponse
-	(*ListTriggeredAlertsRequest)(nil),  // 17: tanvo.alert.v1.ListTriggeredAlertsRequest
-	(*ListTriggeredAlertsResponse)(nil), // 18: tanvo.alert.v1.ListTriggeredAlertsResponse
-	(*timestamppb.Timestamp)(nil),       // 19: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),       // 20: google.protobuf.FieldMask
+	(*DeleteAlertsRequest)(nil),         // 17: tanvo.alert.v1.DeleteAlertsRequest
+	(*DeleteAlertsResponse)(nil),        // 18: tanvo.alert.v1.DeleteAlertsResponse
+	(*ListTriggeredAlertsRequest)(nil),  // 19: tanvo.alert.v1.ListTriggeredAlertsRequest
+	(*ListTriggeredAlertsResponse)(nil), // 20: tanvo.alert.v1.ListTriggeredAlertsResponse
+	(*timestamppb.Timestamp)(nil),       // 21: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),       // 22: google.protobuf.FieldMask
 }
 var file_tanvo_alert_v1_alert_proto_depIdxs = []int32{
 	0,  // 0: tanvo.alert.v1.Alert.alert_type:type_name -> tanvo.alert.v1.AlertType
 	1,  // 1: tanvo.alert.v1.Alert.direction:type_name -> tanvo.alert.v1.AlertDirection
 	2,  // 2: tanvo.alert.v1.Alert.thresholds:type_name -> tanvo.alert.v1.AlertThreshold
-	19, // 3: tanvo.alert.v1.Alert.last_processed_at:type_name -> google.protobuf.Timestamp
-	19, // 4: tanvo.alert.v1.Alert.created_at:type_name -> google.protobuf.Timestamp
-	19, // 5: tanvo.alert.v1.Alert.updated_at:type_name -> google.protobuf.Timestamp
+	21, // 3: tanvo.alert.v1.Alert.last_processed_at:type_name -> google.protobuf.Timestamp
+	21, // 4: tanvo.alert.v1.Alert.created_at:type_name -> google.protobuf.Timestamp
+	21, // 5: tanvo.alert.v1.Alert.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 6: tanvo.alert.v1.TriggeredAlert.alert_type:type_name -> tanvo.alert.v1.AlertType
 	2,  // 7: tanvo.alert.v1.TriggeredAlert.crossed_thresholds:type_name -> tanvo.alert.v1.AlertThreshold
-	19, // 8: tanvo.alert.v1.TriggeredAlert.triggered_at:type_name -> google.protobuf.Timestamp
+	21, // 8: tanvo.alert.v1.TriggeredAlert.triggered_at:type_name -> google.protobuf.Timestamp
 	3,  // 9: tanvo.alert.v1.CreateAlertRequest.alert:type_name -> tanvo.alert.v1.Alert
 	3,  // 10: tanvo.alert.v1.CreateAlertResponse.alert:type_name -> tanvo.alert.v1.Alert
 	3,  // 11: tanvo.alert.v1.BatchCreateAlertsRequest.alerts:type_name -> tanvo.alert.v1.Alert
@@ -2968,7 +3136,7 @@ var file_tanvo_alert_v1_alert_proto_depIdxs = []int32{
 	3,  // 13: tanvo.alert.v1.GetAlertResponse.alert:type_name -> tanvo.alert.v1.Alert
 	3,  // 14: tanvo.alert.v1.ListAlertsResponse.alerts:type_name -> tanvo.alert.v1.Alert
 	3,  // 15: tanvo.alert.v1.UpdateAlertRequest.alert:type_name -> tanvo.alert.v1.Alert
-	20, // 16: tanvo.alert.v1.UpdateAlertRequest.update_mask:type_name -> google.protobuf.FieldMask
+	22, // 16: tanvo.alert.v1.UpdateAlertRequest.update_mask:type_name -> google.protobuf.FieldMask
 	3,  // 17: tanvo.alert.v1.UpdateAlertResponse.alert:type_name -> tanvo.alert.v1.Alert
 	4,  // 18: tanvo.alert.v1.ListTriggeredAlertsResponse.triggered_alerts:type_name -> tanvo.alert.v1.TriggeredAlert
 	5,  // 19: tanvo.alert.v1.AlertService.CreateAlert:input_type -> tanvo.alert.v1.CreateAlertRequest
@@ -2977,16 +3145,18 @@ var file_tanvo_alert_v1_alert_proto_depIdxs = []int32{
 	11, // 22: tanvo.alert.v1.AlertService.ListAlerts:input_type -> tanvo.alert.v1.ListAlertsRequest
 	13, // 23: tanvo.alert.v1.AlertService.UpdateAlert:input_type -> tanvo.alert.v1.UpdateAlertRequest
 	15, // 24: tanvo.alert.v1.AlertService.DeleteAlert:input_type -> tanvo.alert.v1.DeleteAlertRequest
-	17, // 25: tanvo.alert.v1.AlertService.ListTriggeredAlerts:input_type -> tanvo.alert.v1.ListTriggeredAlertsRequest
-	6,  // 26: tanvo.alert.v1.AlertService.CreateAlert:output_type -> tanvo.alert.v1.CreateAlertResponse
-	8,  // 27: tanvo.alert.v1.AlertService.BatchCreateAlerts:output_type -> tanvo.alert.v1.BatchCreateAlertsResponse
-	10, // 28: tanvo.alert.v1.AlertService.GetAlert:output_type -> tanvo.alert.v1.GetAlertResponse
-	12, // 29: tanvo.alert.v1.AlertService.ListAlerts:output_type -> tanvo.alert.v1.ListAlertsResponse
-	14, // 30: tanvo.alert.v1.AlertService.UpdateAlert:output_type -> tanvo.alert.v1.UpdateAlertResponse
-	16, // 31: tanvo.alert.v1.AlertService.DeleteAlert:output_type -> tanvo.alert.v1.DeleteAlertResponse
-	18, // 32: tanvo.alert.v1.AlertService.ListTriggeredAlerts:output_type -> tanvo.alert.v1.ListTriggeredAlertsResponse
-	26, // [26:33] is the sub-list for method output_type
-	19, // [19:26] is the sub-list for method input_type
+	17, // 25: tanvo.alert.v1.AlertService.DeleteAlerts:input_type -> tanvo.alert.v1.DeleteAlertsRequest
+	19, // 26: tanvo.alert.v1.AlertService.ListTriggeredAlerts:input_type -> tanvo.alert.v1.ListTriggeredAlertsRequest
+	6,  // 27: tanvo.alert.v1.AlertService.CreateAlert:output_type -> tanvo.alert.v1.CreateAlertResponse
+	8,  // 28: tanvo.alert.v1.AlertService.BatchCreateAlerts:output_type -> tanvo.alert.v1.BatchCreateAlertsResponse
+	10, // 29: tanvo.alert.v1.AlertService.GetAlert:output_type -> tanvo.alert.v1.GetAlertResponse
+	12, // 30: tanvo.alert.v1.AlertService.ListAlerts:output_type -> tanvo.alert.v1.ListAlertsResponse
+	14, // 31: tanvo.alert.v1.AlertService.UpdateAlert:output_type -> tanvo.alert.v1.UpdateAlertResponse
+	16, // 32: tanvo.alert.v1.AlertService.DeleteAlert:output_type -> tanvo.alert.v1.DeleteAlertResponse
+	18, // 33: tanvo.alert.v1.AlertService.DeleteAlerts:output_type -> tanvo.alert.v1.DeleteAlertsResponse
+	20, // 34: tanvo.alert.v1.AlertService.ListTriggeredAlerts:output_type -> tanvo.alert.v1.ListTriggeredAlertsResponse
+	27, // [27:35] is the sub-list for method output_type
+	19, // [19:27] is the sub-list for method input_type
 	19, // [19:19] is the sub-list for extension type_name
 	19, // [19:19] is the sub-list for extension extendee
 	0,  // [0:19] is the sub-list for field type_name
@@ -3003,7 +3173,7 @@ func file_tanvo_alert_v1_alert_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_alert_v1_alert_proto_rawDesc), len(file_tanvo_alert_v1_alert_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   17,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

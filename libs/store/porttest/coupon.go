@@ -2,6 +2,7 @@ package porttest
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -59,7 +60,7 @@ func testCoupon(t *testing.T, h Harness) {
 			equal(t, "List() of another organization", len(p.Items), 0)
 			noErr(t, "Create() with the code in another organization", r.Coupons.Create(ctx, couponFixtureFixed(e, b.OrganizationID, "fixed")))
 
-			// Codes are unique among active coupons.
+			// Codes are unique among the coupons that are not deleted.
 			wantErr(t, "Create() with a taken code", r.Coupons.Create(ctx, couponFixtureFixed(e, org, "fixed")), core.ErrConflict)
 			pct.Code = "fixed"
 			wantErr(t, "Update() to a taken code", r.Coupons.Update(ctx, pct), core.ErrConflict)
@@ -87,14 +88,29 @@ func testCoupon(t *testing.T, h Harness) {
 			equal(t, "Get() percentage after Update()", got, pct)
 			wantErr(t, "Update() unknown", r.Coupons.Update(ctx, couponFixtureFixed(e, org, "missing")), core.ErrNotFound)
 
-			// A terminated coupon frees its code and stays readable.
+			// A terminated coupon keeps its code and stays readable by code.
 			noErr(t, "Terminate()", fixed.Terminate(at(time.Hour)))
 			noErr(t, "Update() terminated", r.Coupons.Update(ctx, fixed))
 			got, err = r.Coupons.Get(ctx, org, fixed.ID)
 			noErr(t, "Get() terminated", err)
 			equal(t, "Get() terminated", got, fixed)
+			got, err = r.Coupons.GetByCode(ctx, org, "fixed")
+			noErr(t, "GetByCode() terminated", err)
+			equal(t, "GetByCode() terminated", got, fixed)
+			wantErr(t, "Create() with the code of a terminated coupon", r.Coupons.Create(ctx, couponFixtureFixed(e, org, "fixed")), core.ErrConflict)
+
+			// A deleted coupon frees its code, stays readable by ID and
+			// leaves the lists.
+			fixed.Delete(at(2 * time.Hour))
+			noErr(t, "Update() deleted", r.Coupons.Update(ctx, fixed))
+			got, err = r.Coupons.Get(ctx, org, fixed.ID)
+			noErr(t, "Get() deleted", err)
+			equal(t, "Get() deleted", got, fixed)
 			_, err = r.Coupons.GetByCode(ctx, org, "fixed")
-			wantErr(t, "GetByCode() terminated", err, core.ErrNotFound)
+			wantErr(t, "GetByCode() deleted", err, core.ErrNotFound)
+			p, err = r.Coupons.List(ctx, org, coupon.Filter{}, core.PageRequest{})
+			noErr(t, "List() without the deleted coupon", err)
+			equal(t, "List() without the deleted coupon", ids(p.Items, func(c *coupon.Coupon) core.CouponID { return c.ID }), []core.CouponID{pct.ID})
 			again := couponFixtureFixed(e, org, "fixed")
 			noErr(t, "Create() with a freed code", r.Coupons.Create(ctx, again))
 			got, err = r.Coupons.GetByCode(ctx, org, "fixed")
@@ -199,6 +215,54 @@ func testCoupon(t *testing.T, h Harness) {
 		})
 	})
 
+	t.Run("list recent", func(t *testing.T) {
+		t.Parallel()
+		e := newEnv(t, h)
+		_, a := e.org("Acme")
+		org := a.OrganizationID
+		mk := func(code string, created time.Duration, expires *time.Duration, terminated bool) *coupon.Coupon {
+			c := couponFixtureFixed(e, org, code)
+			c.CreatedAt, c.UpdatedAt = at(created), at(created)
+			if expires != nil {
+				c.Expiration = coupon.ExpirationTimeLimit
+				c.ExpirationAt = ptr(at(*expires))
+			}
+			if terminated {
+				noErr(t, "Terminate()", c.Terminate(at(created)))
+			}
+			return c
+		}
+		day, week := 24*time.Hour, 7*24*time.Hour
+		older := mk("older", time.Minute, nil, false)
+		newer := mk("newer", time.Hour, nil, false)
+		sameTime := mk("same-time", time.Hour, nil, false)
+		expiresLater := mk("expires-later", 0, &week, false)
+		expiresSooner := mk("expires-sooner", 0, &day, false)
+		terminated := mk("terminated", 2*time.Hour, nil, true)
+		deleted := mk("deleted", 3*time.Hour, nil, false)
+		deleted.Delete(at(3 * time.Hour))
+		// Same instant: by ID.
+		first, second := newer, sameTime
+		if second.ID.String() < first.ID.String() {
+			first, second = second, first
+		}
+		want := []*coupon.Coupon{first, second, older, expiresSooner, expiresLater, terminated}
+		e.tx(func(ctx context.Context, r port.Repos) error {
+			for _, c := range []*coupon.Coupon{older, newer, sameTime, expiresLater, expiresSooner, terminated, deleted} {
+				noErr(t, "Create()", r.Coupons.Create(ctx, c))
+			}
+			for _, size := range []int{1, 2, 10} {
+				got := listAll(t, size, func(p core.PageRequest) (core.Page[*coupon.Coupon], error) {
+					return r.Coupons.List(ctx, org, coupon.Filter{Order: core.OrderRecent}, p)
+				})
+				equal(t, fmt.Sprintf("List() recent by %d", size), got, want)
+			}
+			_, err := r.Coupons.List(ctx, org, coupon.Filter{Order: core.OrderRecent}, core.PageRequest{Token: core.Cursor{Key: "bad"}.Encode()})
+			wantErr(t, "List() recent with a bad token", err, core.ErrInvalidValue)
+			return nil
+		})
+	})
+
 	t.Run("expired", func(t *testing.T) {
 		t.Parallel()
 		e := newEnv(t, h)
@@ -212,12 +276,14 @@ func testCoupon(t *testing.T, h Harness) {
 		pastA := expiring(a.OrganizationID, "past", -time.Hour)
 		exactlyB := expiring(b.OrganizationID, "exact", 0)
 		pastB := expiring(b.OrganizationID, "past", -time.Minute)
+		deleted := expiring(a.OrganizationID, "deleted", -time.Hour)
+		deleted.Delete(now)
 		future := expiring(a.OrganizationID, "future", time.Second)
 		terminated := expiring(a.OrganizationID, "terminated", -time.Hour)
 		noErr(t, "Terminate()", terminated.Terminate(now))
 		unlimited := couponFixtureFixed(e, a.OrganizationID, "unlimited")
 		e.tx(func(ctx context.Context, r port.Repos) error {
-			for _, c := range []*coupon.Coupon{pastA, exactlyB, pastB, future, terminated, unlimited} {
+			for _, c := range []*coupon.Coupon{pastA, exactlyB, pastB, future, terminated, unlimited, deleted} {
 				noErr(t, "Create()", r.Coupons.Create(ctx, c))
 			}
 			got := listAll(t, 1, func(p core.PageRequest) (core.Page[*coupon.Coupon], error) {
@@ -337,6 +403,12 @@ func testCoupon(t *testing.T, h Harness) {
 				{"coupon", coupon.AppliedFilter{CouponID: fixed.ID}, []*coupon.AppliedCoupon{ac1, ac3, ac4}},
 				{"status", coupon.AppliedFilter{Status: coupon.StatusTerminated}, []*coupon.AppliedCoupon{ac1}},
 				{"customer, coupon and status", coupon.AppliedFilter{CustomerID: cust1.ID, CouponID: fixed.ID, Status: coupon.StatusActive}, []*coupon.AppliedCoupon{ac3}},
+				{"coupon IDs", coupon.AppliedFilter{CouponIDs: []core.CouponID{pct.ID}}, []*coupon.AppliedCoupon{ac2}},
+				{"coupon codes", coupon.AppliedFilter{CouponCodes: []string{"fixed"}}, []*coupon.AppliedCoupon{ac1, ac3, ac4}},
+				{"coupon IDs or codes", coupon.AppliedFilter{CouponIDs: []core.CouponID{pct.ID}, CouponCodes: []string{"nope", "fixed"}}, []*coupon.AppliedCoupon{ac1, ac2, ac3, ac4}},
+				{"unknown coupon code", coupon.AppliedFilter{CouponCodes: []string{"nope"}}, nil},
+				{"kept customers", coupon.AppliedFilter{KeptCustomers: true, CouponID: fixed.ID}, []*coupon.AppliedCoupon{ac1, ac3, ac4}},
+				{"recent", coupon.AppliedFilter{Order: core.OrderRecent}, []*coupon.AppliedCoupon{ac3, ac1, ac2, ac4}},
 			} {
 				got := listAll(t, 1, func(p core.PageRequest) (core.Page[*coupon.AppliedCoupon], error) {
 					return r.AppliedCoupons.List(ctx, org, tc.f, p)
@@ -346,6 +418,17 @@ func testCoupon(t *testing.T, h Harness) {
 			p, err := r.AppliedCoupons.List(ctx, b.OrganizationID, coupon.AppliedFilter{CustomerID: cust1.ID}, core.PageRequest{})
 			noErr(t, "List() from another organization", err)
 			equal(t, "List() from another organization", len(p.Items), 0)
+
+			// Deleting a customer hides its applications from the lists
+			// that keep only live customers; deleting a coupon does not.
+			noErr(t, "Customers.Archive()", cust2.Archive(at(5*time.Hour)))
+			noErr(t, "Customers.Update()", r.Customers.Update(ctx, cust2))
+			fixed.Delete(at(5 * time.Hour))
+			noErr(t, "Coupons.Update() deleted", r.Coupons.Update(ctx, fixed))
+			got2 := listAll(t, 1, func(p core.PageRequest) (core.Page[*coupon.AppliedCoupon], error) {
+				return r.AppliedCoupons.List(ctx, org, coupon.AppliedFilter{KeptCustomers: true, CouponCodes: []string{"fixed"}}, p)
+			})
+			equal(t, "List() of live customers", ids(got2, acID), []core.AppliedCouponID{ac1.ID, ac3.ID})
 			return nil
 		})
 	})

@@ -15,6 +15,8 @@ const (
 	SecurityLogAPIKey = "api_key"
 	// SecurityLogRole covers custom role changes.
 	SecurityLogRole = "role"
+	// SecurityLogIntegration covers integration changes.
+	SecurityLogIntegration = "integration"
 )
 
 // Security log events (lago log_event).
@@ -51,6 +53,16 @@ const (
 	// EventRoleDeleted: a custom role was discarded; the resources hold
 	// its code.
 	EventRoleDeleted = "role.deleted"
+	// EventIntegrationCreated: an integration was created; the resources
+	// hold its name and provider (lago integrations/create_service.rb:23).
+	EventIntegrationCreated = "integration.created"
+	// EventIntegrationUpdated: an integration changed; the resources also
+	// hold each changed setting as {deleted, added}, never the secrets
+	// (lago integrations/update_service.rb:23).
+	EventIntegrationUpdated = "integration.updated"
+	// EventIntegrationDeleted: an integration was deleted (lago
+	// integrations/destroy_service.rb:27).
+	EventIntegrationDeleted = "integration.deleted"
 )
 
 // SecurityEvent is one security log entry (parity §1.45).
@@ -67,6 +79,10 @@ type SecurityEvent struct {
 	// Resources describes the affected objects; never secrets, only the
 	// last characters of keys.
 	Resources map[string]any
+	// DeviceInfo describes the client device (user_agent, ip_address,
+	// browser, os, device_type); nil takes the client of the request, as
+	// lago's CurrentContext.device_info.
+	DeviceInfo map[string]any
 	// At is the instant of the event; zero means now.
 	At time.Time
 }

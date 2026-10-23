@@ -26,7 +26,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file tanvo/analytics/v1/analytics.proto.
  */
 export const file_tanvo_analytics_v1_analytics: GenFile = /*@__PURE__*/
-  fileDesc("CiJ0YW52by9hbmFseXRpY3MvdjEvYW5hbHl0aWNzLnByb3RvEhJ0YW52by5hbmFseXRpY3MudjEikQEKDkFuYWx5dGljc1Njb3BlEhwKCGN1cnJlbmN5GAEgASgJQgq6SAdyBdikygYBEiUKEWJpbGxpbmdfZW50aXR5X2lkGAIgASgJQgq6SAdyBeCkygYBEh8KC2N1c3RvbWVyX2lkGAMgASgJQgq6SAdyBeCkygYBEhkKBm1vbnRocxgEIAEoBUIJukgGGgQYeCgAInAKDFJldmVudWVQb2ludBIgCgVtb250aBgBIAEoCzIRLmdvb2dsZS50eXBlLkRhdGUSJgoGYW1vdW50GAIgASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5EhYKDmludm9pY2VzX2NvdW50GAMgASgDIksKFkdldEdyb3NzUmV2ZW51ZVJlcXVlc3QSMQoFc2NvcGUYASABKAsyIi50YW52by5hbmFseXRpY3MudjEuQW5hbHl0aWNzU2NvcGUiSwoXR2V0R3Jvc3NSZXZlbnVlUmVzcG9uc2USMAoGcG9pbnRzGAEgAygLMiAudGFudm8uYW5hbHl0aWNzLnYxLlJldmVudWVQb2ludCJCCg1HZXRNcnJSZXF1ZXN0EjEKBXNjb3BlGAEgASgLMiIudGFudm8uYW5hbHl0aWNzLnYxLkFuYWx5dGljc1Njb3BlIkIKDkdldE1yclJlc3BvbnNlEjAKBnBvaW50cxgBIAMoCzIgLnRhbnZvLmFuYWx5dGljcy52MS5SZXZlbnVlUG9pbnQisgEKFkludm9pY2VDb2xsZWN0aW9uUG9pbnQSIAoFbW9udGgYASABKAsyES5nb29nbGUudHlwZS5EYXRlEjYKDnBheW1lbnRfc3RhdHVzGAIgASgOMh4udGFudm8uY29tbW9uLnYxLlBheW1lbnRTdGF0dXMSJgoGYW1vdW50GAMgASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5EhYKDmludm9pY2VzX2NvdW50GAQgASgDIlAKG0dldEludm9pY2VDb2xsZWN0aW9uUmVxdWVzdBIxCgVzY29wZRgBIAEoCzIiLnRhbnZvLmFuYWx5dGljcy52MS5BbmFseXRpY3NTY29wZSJaChxHZXRJbnZvaWNlQ29sbGVjdGlvblJlc3BvbnNlEjoKBnBvaW50cxgBIAMoCzIqLnRhbnZvLmFuYWx5dGljcy52MS5JbnZvaWNlQ29sbGVjdGlvblBvaW50InMKEkludm9pY2VkVXNhZ2VQb2ludBIgCgVtb250aBgBIAEoCzIRLmdvb2dsZS50eXBlLkRhdGUSEwoLbWV0cmljX2NvZGUYAiABKAkSJgoGYW1vdW50GAMgASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5IkwKF0dldEludm9pY2VkVXNhZ2VSZXF1ZXN0EjEKBXNjb3BlGAEgASgLMiIudGFudm8uYW5hbHl0aWNzLnYxLkFuYWx5dGljc1Njb3BlIlIKGEdldEludm9pY2VkVXNhZ2VSZXNwb25zZRI2CgZwb2ludHMYASADKAsyJi50YW52by5hbmFseXRpY3MudjEuSW52b2ljZWRVc2FnZVBvaW50InQKE092ZXJkdWVCYWxhbmNlUG9pbnQSIAoFbW9udGgYASABKAsyES5nb29nbGUudHlwZS5EYXRlEiYKBmFtb3VudBgCIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRITCgtpbnZvaWNlX2lkcxgDIAMoCSJNChhHZXRPdmVyZHVlQmFsYW5jZVJlcXVlc3QSMQoFc2NvcGUYASABKAsyIi50YW52by5hbmFseXRpY3MudjEuQW5hbHl0aWNzU2NvcGUiVAoZR2V0T3ZlcmR1ZUJhbGFuY2VSZXNwb25zZRI3CgZwb2ludHMYASADKAsyJy50YW52by5hbmFseXRpY3MudjEuT3ZlcmR1ZUJhbGFuY2VQb2ludDKMBwoQQW5hbHl0aWNzU2VydmljZRKwAQoPR2V0R3Jvc3NSZXZlbnVlEioudGFudm8uYW5hbHl0aWNzLnYxLkdldEdyb3NzUmV2ZW51ZVJlcXVlc3QaKy50YW52by5hbmFseXRpY3MudjEuR2V0R3Jvc3NSZXZlbnVlUmVzcG9uc2UiRJACAcrzGBoKDmFuYWx5dGljczpyZWFkKghhbmFseXRpY4LT5JMCHRIbL3YxL2FuYWx5dGljcy9ncm9zc19yZXZlbnVlEosBCgZHZXRNcnISIS50YW52by5hbmFseXRpY3MudjEuR2V0TXJyUmVxdWVzdBoiLnRhbnZvLmFuYWx5dGljcy52MS5HZXRNcnJSZXNwb25zZSI6kAIByvMYGgoOYW5hbHl0aWNzOnJlYWQqCGFuYWx5dGljgtPkkwITEhEvdjEvYW5hbHl0aWNzL21ychLEAQoUR2V0SW52b2ljZUNvbGxlY3Rpb24SLy50YW52by5hbmFseXRpY3MudjEuR2V0SW52b2ljZUNvbGxlY3Rpb25SZXF1ZXN0GjAudGFudm8uYW5hbHl0aWNzLnYxLkdldEludm9pY2VDb2xsZWN0aW9uUmVzcG9uc2UiSZACAcrzGBoKDmFuYWx5dGljczpyZWFkKghhbmFseXRpY4LT5JMCIhIgL3YxL2FuYWx5dGljcy9pbnZvaWNlX2NvbGxlY3Rpb24StAEKEEdldEludm9pY2VkVXNhZ2USKy50YW52by5hbmFseXRpY3MudjEuR2V0SW52b2ljZWRVc2FnZVJlcXVlc3QaLC50YW52by5hbmFseXRpY3MudjEuR2V0SW52b2ljZWRVc2FnZVJlc3BvbnNlIkWQAgHK8xgaCg5hbmFseXRpY3M6cmVhZCoIYW5hbHl0aWOC0+STAh4SHC92MS9hbmFseXRpY3MvaW52b2ljZWRfdXNhZ2USuAEKEUdldE92ZXJkdWVCYWxhbmNlEiwudGFudm8uYW5hbHl0aWNzLnYxLkdldE92ZXJkdWVCYWxhbmNlUmVxdWVzdBotLnRhbnZvLmFuYWx5dGljcy52MS5HZXRPdmVyZHVlQmFsYW5jZVJlc3BvbnNlIkaQAgHK8xgaCg5hbmFseXRpY3M6cmVhZCoIYW5hbHl0aWOC0+STAh8SHS92MS9hbmFseXRpY3Mvb3ZlcmR1ZV9iYWxhbmNlQt4BChZjb20udGFudm8uYW5hbHl0aWNzLnYxQg5BbmFseXRpY3NQcm90b1ABWkpnaXRodWIuY29tL3RhbnZveHl6L3RhbnZvL2xpYnMvcHJvdG8vZ2VuL2dvL3RhbnZvL2FuYWx5dGljcy92MTthbmFseXRpY3N2MaICA1RBWKoCElRhbnZvLkFuYWx5dGljcy5WMcoCElRhbnZvXEFuYWx5dGljc1xWMeICHlRhbnZvXEFuYWx5dGljc1xWMVxHUEJNZXRhZGF0YeoCFFRhbnZvOjpBbmFseXRpY3M6OlYxYghlZGl0aW9uc3DoBw", [file_buf_validate_validate, file_google_api_annotations, file_google_type_date, file_tanvo_common_v1_enums, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
+  fileDesc("CiJ0YW52by9hbmFseXRpY3MvdjEvYW5hbHl0aWNzLnByb3RvEhJ0YW52by5hbmFseXRpY3MudjEigwEKDkFuYWx5dGljc1Njb3BlEhwKCGN1cnJlbmN5GAEgASgJQgq6SAdyBdikygYBEiUKEWJpbGxpbmdfZW50aXR5X2lkGAIgASgJQgq6SAdyBeCkygYBEhkKBm1vbnRocxgEIAEoBUIJukgGGgQYeCgASgQIAxAEUgtjdXN0b21lcl9pZCKLAQoMUmV2ZW51ZVBvaW50EiAKBW1vbnRoGAEgASgLMhEuZ29vZ2xlLnR5cGUuRGF0ZRImCgZhbW91bnQYAiABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSFgoOaW52b2ljZXNfY291bnQYAyABKAMSGQoRYmlsbGluZ19lbnRpdHlfaWQYBCABKAkibAoWR2V0R3Jvc3NSZXZlbnVlUmVxdWVzdBIxCgVzY29wZRgBIAEoCzIiLnRhbnZvLmFuYWx5dGljcy52MS5BbmFseXRpY3NTY29wZRIfCgtjdXN0b21lcl9pZBgCIAEoCUIKukgHcgXgpMoGASJLChdHZXRHcm9zc1JldmVudWVSZXNwb25zZRIwCgZwb2ludHMYASADKAsyIC50YW52by5hbmFseXRpY3MudjEuUmV2ZW51ZVBvaW50IkIKDUdldE1yclJlcXVlc3QSMQoFc2NvcGUYASABKAsyIi50YW52by5hbmFseXRpY3MudjEuQW5hbHl0aWNzU2NvcGUiQgoOR2V0TXJyUmVzcG9uc2USMAoGcG9pbnRzGAEgAygLMiAudGFudm8uYW5hbHl0aWNzLnYxLlJldmVudWVQb2ludCKyAQoWSW52b2ljZUNvbGxlY3Rpb25Qb2ludBIgCgVtb250aBgBIAEoCzIRLmdvb2dsZS50eXBlLkRhdGUSNgoOcGF5bWVudF9zdGF0dXMYAiABKA4yHi50YW52by5jb21tb24udjEuUGF5bWVudFN0YXR1cxImCgZhbW91bnQYAyABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSFgoOaW52b2ljZXNfY291bnQYBCABKAMibwobR2V0SW52b2ljZUNvbGxlY3Rpb25SZXF1ZXN0EjEKBXNjb3BlGAEgASgLMiIudGFudm8uYW5hbHl0aWNzLnYxLkFuYWx5dGljc1Njb3BlEh0KFWlzX2N1c3RvbWVyX3Rpbl9lbXB0eRgCIAEoCCJaChxHZXRJbnZvaWNlQ29sbGVjdGlvblJlc3BvbnNlEjoKBnBvaW50cxgBIAMoCzIqLnRhbnZvLmFuYWx5dGljcy52MS5JbnZvaWNlQ29sbGVjdGlvblBvaW50InMKEkludm9pY2VkVXNhZ2VQb2ludBIgCgVtb250aBgBIAEoCzIRLmdvb2dsZS50eXBlLkRhdGUSEwoLbWV0cmljX2NvZGUYAiABKAkSJgoGYW1vdW50GAMgASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5IkwKF0dldEludm9pY2VkVXNhZ2VSZXF1ZXN0EjEKBXNjb3BlGAEgASgLMiIudGFudm8uYW5hbHl0aWNzLnYxLkFuYWx5dGljc1Njb3BlIlIKGEdldEludm9pY2VkVXNhZ2VSZXNwb25zZRI2CgZwb2ludHMYASADKAsyJi50YW52by5hbmFseXRpY3MudjEuSW52b2ljZWRVc2FnZVBvaW50Io8BChNPdmVyZHVlQmFsYW5jZVBvaW50EiAKBW1vbnRoGAEgASgLMhEuZ29vZ2xlLnR5cGUuRGF0ZRImCgZhbW91bnQYAiABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSEwoLaW52b2ljZV9pZHMYAyADKAkSGQoRYmlsbGluZ19lbnRpdHlfaWQYBCABKAkijQEKGEdldE92ZXJkdWVCYWxhbmNlUmVxdWVzdBIxCgVzY29wZRgBIAEoCzIiLnRhbnZvLmFuYWx5dGljcy52MS5BbmFseXRpY3NTY29wZRIdChVpc19jdXN0b21lcl90aW5fZW1wdHkYAiABKAgSHwoLY3VzdG9tZXJfaWQYAyABKAlCCrpIB3IF4KTKBgEiVAoZR2V0T3ZlcmR1ZUJhbGFuY2VSZXNwb25zZRI3CgZwb2ludHMYASADKAsyJy50YW52by5hbmFseXRpY3MudjEuT3ZlcmR1ZUJhbGFuY2VQb2ludDKMBwoQQW5hbHl0aWNzU2VydmljZRKwAQoPR2V0R3Jvc3NSZXZlbnVlEioudGFudm8uYW5hbHl0aWNzLnYxLkdldEdyb3NzUmV2ZW51ZVJlcXVlc3QaKy50YW52by5hbmFseXRpY3MudjEuR2V0R3Jvc3NSZXZlbnVlUmVzcG9uc2UiRJACAcrzGBoKDmFuYWx5dGljczpyZWFkKghhbmFseXRpY4LT5JMCHRIbL3YxL2FuYWx5dGljcy9ncm9zc19yZXZlbnVlEosBCgZHZXRNcnISIS50YW52by5hbmFseXRpY3MudjEuR2V0TXJyUmVxdWVzdBoiLnRhbnZvLmFuYWx5dGljcy52MS5HZXRNcnJSZXNwb25zZSI6kAIByvMYGgoOYW5hbHl0aWNzOnJlYWQqCGFuYWx5dGljgtPkkwITEhEvdjEvYW5hbHl0aWNzL21ychLEAQoUR2V0SW52b2ljZUNvbGxlY3Rpb24SLy50YW52by5hbmFseXRpY3MudjEuR2V0SW52b2ljZUNvbGxlY3Rpb25SZXF1ZXN0GjAudGFudm8uYW5hbHl0aWNzLnYxLkdldEludm9pY2VDb2xsZWN0aW9uUmVzcG9uc2UiSZACAcrzGBoKDmFuYWx5dGljczpyZWFkKghhbmFseXRpY4LT5JMCIhIgL3YxL2FuYWx5dGljcy9pbnZvaWNlX2NvbGxlY3Rpb24StAEKEEdldEludm9pY2VkVXNhZ2USKy50YW52by5hbmFseXRpY3MudjEuR2V0SW52b2ljZWRVc2FnZVJlcXVlc3QaLC50YW52by5hbmFseXRpY3MudjEuR2V0SW52b2ljZWRVc2FnZVJlc3BvbnNlIkWQAgHK8xgaCg5hbmFseXRpY3M6cmVhZCoIYW5hbHl0aWOC0+STAh4SHC92MS9hbmFseXRpY3MvaW52b2ljZWRfdXNhZ2USuAEKEUdldE92ZXJkdWVCYWxhbmNlEiwudGFudm8uYW5hbHl0aWNzLnYxLkdldE92ZXJkdWVCYWxhbmNlUmVxdWVzdBotLnRhbnZvLmFuYWx5dGljcy52MS5HZXRPdmVyZHVlQmFsYW5jZVJlc3BvbnNlIkaQAgHK8xgaCg5hbmFseXRpY3M6cmVhZCoIYW5hbHl0aWOC0+STAh8SHS92MS9hbmFseXRpY3Mvb3ZlcmR1ZV9iYWxhbmNlQt4BChZjb20udGFudm8uYW5hbHl0aWNzLnYxQg5BbmFseXRpY3NQcm90b1ABWkpnaXRodWIuY29tL3RhbnZveHl6L3RhbnZvL2xpYnMvcHJvdG8vZ2VuL2dvL3RhbnZvL2FuYWx5dGljcy92MTthbmFseXRpY3N2MaICA1RBWKoCElRhbnZvLkFuYWx5dGljcy5WMcoCElRhbnZvXEFuYWx5dGljc1xWMeICHlRhbnZvXEFuYWx5dGljc1xWMVxHUEJNZXRhZGF0YeoCFFRhbnZvOjpBbmFseXRpY3M6OlYxYghlZGl0aW9uc3DoBw", [file_buf_validate_validate, file_google_api_annotations, file_google_type_date, file_tanvo_common_v1_enums, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
 
 /**
  * AnalyticsScope restricts an analytics series.
@@ -49,13 +49,6 @@ export type AnalyticsScope = Message<"tanvo.analytics.v1.AnalyticsScope"> & {
   billingEntityId: string;
 
   /**
-   * The customer (ID or `external_id:<external_id>`).
-   *
-   * @generated from field: string customer_id = 3;
-   */
-  customerId: string;
-
-  /**
    * The number of months; 12 by default.
    *
    * @generated from field: int32 months = 4;
@@ -71,7 +64,8 @@ export const AnalyticsScopeSchema: GenMessage<AnalyticsScope> = /*@__PURE__*/
   messageDesc(file_tanvo_analytics_v1_analytics, 0);
 
 /**
- * RevenuePoint is the amount of one month in one currency.
+ * RevenuePoint is the amount of one month in one currency (and, for the
+ * gross revenue, one billing entity).
  *
  * @generated from message tanvo.analytics.v1.RevenuePoint
  */
@@ -96,6 +90,14 @@ export type RevenuePoint = Message<"tanvo.analytics.v1.RevenuePoint"> & {
    * @generated from field: int64 invoices_count = 3;
    */
   invoicesCount: bigint;
+
+  /**
+   * The billing entity of the invoices and fees counted; set by
+   * GetGrossRevenue only.
+   *
+   * @generated from field: string billing_entity_id = 4;
+   */
+  billingEntityId: string;
 };
 
 /**
@@ -117,6 +119,14 @@ export type GetGrossRevenueRequest = Message<"tanvo.analytics.v1.GetGrossRevenue
    * @generated from field: tanvo.analytics.v1.AnalyticsScope scope = 1;
    */
   scope?: AnalyticsScope | undefined;
+
+  /**
+   * The customer (ID or `external_id:<external_id>`); every customer by
+   * default.
+   *
+   * @generated from field: string customer_id = 2;
+   */
+  customerId: string;
 };
 
 /**
@@ -244,6 +254,14 @@ export type GetInvoiceCollectionRequest = Message<"tanvo.analytics.v1.GetInvoice
    * @generated from field: tanvo.analytics.v1.AnalyticsScope scope = 1;
    */
   scope?: AnalyticsScope | undefined;
+
+  /**
+   * Keeps the invoices of customers without (true) or with (false) a tax
+   * identification number; every customer when not set.
+   *
+   * @generated from field: bool is_customer_tin_empty = 2;
+   */
+  isCustomerTinEmpty: boolean;
 };
 
 /**
@@ -354,7 +372,7 @@ export const GetInvoicedUsageResponseSchema: GenMessage<GetInvoicedUsageResponse
 
 /**
  * OverdueBalancePoint is the overdue balance at the end of one month in
- * one currency.
+ * one currency for one billing entity.
  *
  * @generated from message tanvo.analytics.v1.OverdueBalancePoint
  */
@@ -379,6 +397,13 @@ export type OverdueBalancePoint = Message<"tanvo.analytics.v1.OverdueBalancePoin
    * @generated from field: repeated string invoice_ids = 3;
    */
   invoiceIds: string[];
+
+  /**
+   * The billing entity of the overdue invoices.
+   *
+   * @generated from field: string billing_entity_id = 4;
+   */
+  billingEntityId: string;
 };
 
 /**
@@ -400,6 +425,22 @@ export type GetOverdueBalanceRequest = Message<"tanvo.analytics.v1.GetOverdueBal
    * @generated from field: tanvo.analytics.v1.AnalyticsScope scope = 1;
    */
   scope?: AnalyticsScope | undefined;
+
+  /**
+   * Keeps the invoices of customers without (true) or with (false) a tax
+   * identification number; every customer when not set.
+   *
+   * @generated from field: bool is_customer_tin_empty = 2;
+   */
+  isCustomerTinEmpty: boolean;
+
+  /**
+   * The customer (ID or `external_id:<external_id>`); every customer by
+   * default.
+   *
+   * @generated from field: string customer_id = 3;
+   */
+  customerId: string;
 };
 
 /**
@@ -432,9 +473,8 @@ export const GetOverdueBalanceResponseSchema: GenMessage<GetOverdueBalanceRespon
 
 /**
  * AnalyticsService returns monthly analytics series. Every series covers
- * the last `months` months (12 by default), oldest first, in the
- * organization's time zone, and can be restricted to one currency,
- * billing entity or customer.
+ * the last `months` months (12 by default), oldest first, in UTC, and
+ * can be restricted to one currency, billing entity or customer.
  *
  * @generated from service tanvo.analytics.v1.AnalyticsService
  */

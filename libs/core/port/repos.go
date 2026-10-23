@@ -3,6 +3,9 @@ package port
 import (
 	"github.com/tanvoxyz/tanvo/libs/core/access"
 	"github.com/tanvoxyz/tanvo/libs/core/alert"
+	"github.com/tanvoxyz/tanvo/libs/core/analytics"
+	"github.com/tanvoxyz/tanvo/libs/core/attribution"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/coupon"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
@@ -10,6 +13,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/dunning"
 	"github.com/tanvoxyz/tanvo/libs/core/event"
 	"github.com/tanvoxyz/tanvo/libs/core/export"
+	"github.com/tanvoxyz/tanvo/libs/core/idempotency"
 	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
@@ -50,6 +54,9 @@ type Repos struct {
 
 	// Customers stores customers (domain §6).
 	Customers customer.Repository
+	// PendingVIESChecks stores the VIES checks waiting to be retried
+	// (domain §22.10).
+	PendingVIESChecks customer.PendingVIESCheckRepository
 
 	// Metrics stores billable metrics and their filters (domain §7.1).
 	Metrics catalog.MetricRepository
@@ -73,6 +80,19 @@ type Repos struct {
 	Features catalog.FeatureRepository
 	// Entitlements stores entitlements and their removals.
 	Entitlements catalog.EntitlementRepository
+	// ProductCategories stores product categories (domain §21.4).
+	ProductCategories catalog.ProductCategoryRepository
+	// Products stores products (domain §21.4).
+	Products catalog.ProductRepository
+	// ProductFilters stores product filters (domain §21.4).
+	ProductFilters catalog.ProductFilterRepository
+	// RateCards stores rate cards (domain §21.4).
+	RateCards catalog.RateCardRepository
+	// Rates stores the rates of rate cards (domain §21.4).
+	Rates catalog.RateRepository
+	// PlanRateCards stores the rate cards of plans and their phases
+	// (domain §21.4).
+	PlanRateCards catalog.PlanRateCardRepository
 
 	// Coupons stores coupons (domain §8).
 	Coupons coupon.Repository
@@ -85,10 +105,15 @@ type Repos struct {
 	ActivationRules subscription.ActivationRuleRepository
 	// FixedChargeEvents stores fixed charge unit changes (domain §7.5).
 	FixedChargeEvents subscription.FixedChargeEventRepository
+	// FixedChargeUnitsOverrides stores the fixed charge units overridden per
+	// subscription (domain §7.5).
+	FixedChargeUnitsOverrides subscription.FixedChargeUnitsOverrideRepository
 	// AppliedUsageThresholds stores crossed usage thresholds (domain §7.9).
 	AppliedUsageThresholds subscription.AppliedUsageThresholdRepository
 	// LifetimeUsages stores lifetime usage (domain §10.3).
 	LifetimeUsages subscription.LifetimeUsageRepository
+	// DailyUsages stores the daily usage snapshots of subscriptions.
+	DailyUsages subscription.DailyUsageRepository
 
 	// Events is the ingestion log deduplicating events (domain §10.1).
 	Events event.Log
@@ -110,6 +135,9 @@ type Repos struct {
 	InvoiceSettlements invoice.SettlementRepository
 	// InvoiceCustomSections stores invoice custom sections (domain §11.9).
 	InvoiceCustomSections invoice.CustomSectionRepository
+	// AppliedInvoiceCustomSections stores the custom sections printed on
+	// invoices (domain §11.9).
+	AppliedInvoiceCustomSections invoice.AppliedCustomSectionRepository
 	// ErrorDetails stores invoice error details.
 	ErrorDetails invoice.ErrorDetailRepository
 	// Credits stores the coupon, credit-note and progressive-billing
@@ -175,6 +203,11 @@ type Repos struct {
 	DataExports export.Repository
 	// DataExportParts stores data export parts.
 	DataExportParts export.PartRepository
+	// RecordDeletions reads the tombstones of deleted rows (parity §1.49).
+	RecordDeletions export.RecordDeletionRepository
+
+	// Analytics computes the analytics reports (parity §1.44).
+	Analytics analytics.Repository
 
 	// Quotes stores quotes (domain §21).
 	Quotes quote.Repository
@@ -184,6 +217,22 @@ type Repos struct {
 	OrderForms quote.OrderFormRepository
 	// Orders stores orders.
 	Orders quote.OrderRepository
+
+	// UsageAttributionTypes stores usage attribution types (parity §1.42).
+	UsageAttributionTypes attribution.TypeRepository
+	// UsageAttributionValues stores usage attribution values.
+	UsageAttributionValues attribution.ValueRepository
+
+	// IdempotencyKeys stores the responses of requests made with an
+	// Idempotency-Key header (architecture §4.2).
+	IdempotencyKeys idempotency.Repository
+
+	// SecurityLogs stores security logs (parity §1.45).
+	SecurityLogs auditlog.SecurityLogRepository
+	// APILogs stores the logs of API-key write requests.
+	APILogs auditlog.APILogRepository
+	// ActivityLogs stores resource activity logs.
+	ActivityLogs auditlog.ActivityLogRepository
 
 	// Locks takes transaction-scoped advisory locks.
 	Locks Locker

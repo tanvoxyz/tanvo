@@ -154,33 +154,22 @@ func TestExpired(t *testing.T) {
 	}
 }
 
-func TestCheckUpdate(t *testing.T) {
-	tests := []struct {
-		name    string
-		applied bool
-		change  func(*Coupon)
-		want    []string
-	}{
-		{"not applied amount change", false, func(c *Coupon) { c.Amount = ptr[int64](5) }, []string{}},
-		{"applied name, description and expiration", true, func(c *Coupon) {
-			c.Name, c.Description = "New", ptr("text")
-			c.Expiration, c.ExpirationAt = ExpirationTimeLimit, ptr(testNow)
-		}, []string{}},
-		{"applied amount change", true, func(c *Coupon) { c.Amount = ptr[int64](5) }, []string{"amount_cents: coupon_already_applied"}},
-		{"applied same amount value", true, func(c *Coupon) { c.Amount = ptr[int64](1000) }, []string{}},
-		{"applied code and currency change", true, func(c *Coupon) { c.Code, c.Currency = "other", eur }, []string{"code: coupon_already_applied", "amount_currency: coupon_already_applied"}},
-		{"applied frequency change", true, func(c *Coupon) { c.Frequency, c.FrequencyDuration = FrequencyRecurring, ptr(2) }, []string{"frequency: coupon_already_applied", "frequency_duration: coupon_already_applied"}},
-		{"applied plans change", true, func(c *Coupon) { c.LimitedPlanIDs = []core.PlanID{planID(1)} }, []string{"limited_plans: coupon_already_applied"}},
-		{"applied reusable change", true, func(c *Coupon) { c.Reusable = false }, []string{"reusable: coupon_already_applied"}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			old, next := newFixedCoupon(), newFixedCoupon()
-			tt.change(next)
-			if got := fieldErrors(CheckUpdate(old, next, tt.applied)); !slices.Equal(got, tt.want) {
-				t.Errorf("CheckUpdate() errors got = %v, want = %v", got, tt.want)
-			}
-		})
+// source: spec/services/coupons/update_service_spec.rb:32
+func TestKeepLocked(t *testing.T) {
+	old, next := newFixedCoupon(), newFixedCoupon()
+	next.Name, next.Description = "New", ptr("text")
+	next.Expiration, next.ExpirationAt = ExpirationTimeLimit, ptr(testNow)
+	next.Code, next.Amount, next.Currency, next.Reusable = "other", ptr[int64](5), eur, false
+	next.Frequency, next.FrequencyDuration = FrequencyRecurring, ptr(2)
+	next.LimitedPlanIDs = []core.PlanID{planID(1)}
+	KeepLocked(old, next)
+	want := newFixedCoupon()
+	want.Name, want.Description = "New", ptr("text")
+	want.Expiration, want.ExpirationAt = ExpirationTimeLimit, ptr(testNow)
+	if next.Code != want.Code || *next.Amount != *want.Amount || next.Currency != want.Currency || next.Reusable != want.Reusable ||
+		next.Frequency != want.Frequency || next.FrequencyDuration != nil || len(next.LimitedPlanIDs) != 0 ||
+		next.Name != "New" || *next.Description != "text" || next.Expiration != ExpirationTimeLimit {
+		t.Errorf("KeepLocked() got = %+v, want = %+v", next, want)
 	}
 }
 
@@ -232,12 +221,19 @@ func TestCheckApplication(t *testing.T) {
 	}{
 		{"applicable", "spec/services/applied_coupons/create_service_spec.rb", newFixedCoupon(), ApplicationFacts{}, ""},
 		{"customer without currency", "spec/services/applied_coupons/create_service_spec.rb", newFixedCoupon(), ApplicationFacts{}, ""},
-		{"terminated coupon", "tanvo", func() *Coupon { c := newFixedCoupon(); c.Status = StatusTerminated; return c }(), ApplicationFacts{}, CodeCouponNotActive},
+		{"terminated coupon", "spec/services/applied_coupons/create_service_spec.rb:211", func() *Coupon { c := newFixedCoupon(); c.Status = StatusTerminated; return c }(), ApplicationFacts{}, "coupon_not_found"},
+		{"deleted coupon", "app/models/coupon.rb:67", func() *Coupon { c := newFixedCoupon(); c.Delete(testNow); return c }(), ApplicationFacts{}, "coupon_not_found"},
 		{"reusable already applied", "spec/services/applied_coupons/create_service_spec.rb", newFixedCoupon(), ApplicationFacts{AppliedCount: 2}, ""},
 		{
 			"not reusable already applied", "spec/services/applied_coupons/create_service_spec.rb", func() *Coupon { c := newFixedCoupon(); c.Reusable = false; return c }(),
 			ApplicationFacts{AppliedCount: 1},
-			CodeNotReusable,
+			"coupon: " + CodeNotReusable,
+		},
+		{
+			"overlap before reuse", "app/services/applied_coupons/create_service.rb:68-72",
+			func() *Coupon { c := limitedTo([]int{1}, nil); c.Reusable = false; return c }(),
+			ApplicationFacts{AppliedCount: 1, Active: []*Coupon{limitedTo([]int{1}, nil)}, PlanMetrics: planMetrics},
+			CodePlanOverlapping,
 		},
 		{
 			"same plan", "spec/services/applied_coupons/create_service_spec.rb", limitedTo([]int{1}, nil),
@@ -276,14 +272,18 @@ func TestCheckApplication(t *testing.T) {
 			got := ""
 			if re, ok := errors.AsType[*core.RuleError](err); ok {
 				got = re.Code
+				if !errors.Is(err, core.ErrNotAllowed) {
+					t.Errorf("CheckApplication() got = %v, want = matching %v", err, core.ErrNotAllowed)
+				}
+			} else if errors.Is(err, core.ErrNotFound) {
+				got = err.Error()
+			} else if fe := fieldErrors(err); len(fe) > 0 {
+				got = fe[0]
 			} else if err != nil {
-				t.Fatalf("CheckApplication() got = %v, want = a *core.RuleError", err)
+				t.Fatalf("CheckApplication() got = %v, want = a rule, not found or validation error", err)
 			}
 			if got != tt.want {
-				t.Errorf("CheckApplication() code got = %q, want = %q (%s)", got, tt.want, tt.source)
-			}
-			if err != nil && !errors.Is(err, core.ErrNotAllowed) {
-				t.Errorf("CheckApplication() got = %v, want = matching %v", err, core.ErrNotAllowed)
+				t.Errorf("CheckApplication() got = %q, want = %q (%s)", got, tt.want, tt.source)
 			}
 		})
 	}

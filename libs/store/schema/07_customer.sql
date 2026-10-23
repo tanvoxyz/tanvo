@@ -50,6 +50,14 @@ CREATE TABLE customers (
   slug text NOT NULL DEFAULT '',
   payment_receipt_counter bigint NOT NULL DEFAULT 0,
   metadata jsonb NOT NULL DEFAULT '[]',
+  -- Set while the ongoing balances of the customer's wallets await a
+  -- refresh; wallet_refresh_generation grows when a flag is raised, so
+  -- that a refresh clears only the flag it observed, and
+  -- wallet_refresh_claimed is the generation the last refresh started
+  -- from: a signal while the flag is raised and unclaimed writes nothing.
+  awaiting_wallet_refresh boolean NOT NULL DEFAULT false,
+  wallet_refresh_generation bigint NOT NULL DEFAULT 0,
+  wallet_refresh_claimed bigint NOT NULL DEFAULT 0,
   deleted_at timestamptz,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
@@ -70,6 +78,7 @@ CREATE TABLE customers (
 -- External IDs are unique among non-deleted customers.
 CREATE UNIQUE INDEX customers_external_id_live_key ON customers (organization_id, external_id) WHERE deleted_at IS NULL;
 CREATE INDEX customers_billing_entity_idx ON customers (organization_id, billing_entity_id);
+CREATE INDEX customers_awaiting_wallet_refresh_idx ON customers (organization_id, id) WHERE awaiting_wallet_refresh;
 CREATE INDEX customers_applied_dunning_campaign_idx ON customers (organization_id, applied_dunning_campaign_id) WHERE applied_dunning_campaign_id IS NOT NULL;
 
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
@@ -113,4 +122,32 @@ CREATE INDEX customer_invoice_custom_sections_section_idx ON customer_invoice_cu
 
 ALTER TABLE customer_invoice_custom_sections ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON customer_invoice_custom_sections
+  USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
+
+-- The VIES check of a customer's VAT number waiting to be (re)tried
+-- (domain §22.10): at most one per customer, kept while the customer's EU
+-- tax is undecided and removed when the check completes or is no longer
+-- needed. last_error_type is the tax.VIESErrorType of the last failure.
+CREATE TABLE pending_vies_checks (
+  organization_id uuid NOT NULL,
+  customer_id uuid NOT NULL,
+  billing_entity_id uuid NOT NULL,
+  tax_identification_number text,
+  attempts_count integer NOT NULL DEFAULT 0,
+  last_attempt_at timestamptz,
+  last_error_type text,
+  last_error_message text,
+  created_at timestamptz NOT NULL,
+  updated_at timestamptz NOT NULL,
+  PRIMARY KEY (organization_id, customer_id),
+  CONSTRAINT pending_vies_checks_customer_fkey FOREIGN KEY (organization_id, customer_id) REFERENCES customers (organization_id, id) ON DELETE CASCADE,
+  CONSTRAINT pending_vies_checks_billing_entity_fkey FOREIGN KEY (organization_id, billing_entity_id) REFERENCES billing_entities (organization_id, id),
+  CONSTRAINT pending_vies_checks_attempts_count_check CHECK (attempts_count >= 0),
+  CONSTRAINT pending_vies_checks_last_error_type_check CHECK (last_error_type IN ('rate_limit', 'timeout', 'blocked', 'invalid_requester', 'service_unavailable', 'member_state_unavailable', 'unknown'))
+);
+
+CREATE INDEX pending_vies_checks_billing_entity_idx ON pending_vies_checks (organization_id, billing_entity_id);
+
+ALTER TABLE pending_vies_checks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON pending_vies_checks
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');

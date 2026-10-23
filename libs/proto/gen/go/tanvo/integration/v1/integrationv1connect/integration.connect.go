@@ -78,9 +78,6 @@ const (
 	// IntegrationServiceDeleteCollectionMappingProcedure is the procedure name of the
 	// IntegrationService's DeleteCollectionMapping RPC.
 	IntegrationServiceDeleteCollectionMappingProcedure = "/tanvo.integration.v1.IntegrationService/DeleteCollectionMapping"
-	// IntegrationServiceListIntegrationResourcesProcedure is the procedure name of the
-	// IntegrationService's ListIntegrationResources RPC.
-	IntegrationServiceListIntegrationResourcesProcedure = "/tanvo.integration.v1.IntegrationService/ListIntegrationResources"
 )
 
 var (
@@ -204,28 +201,22 @@ var (
 			Procedure:  IntegrationServiceDeleteCollectionMappingProcedure,
 		}
 	})
-	integrationServiceListIntegrationResourcesSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType:       connect.StreamTypeUnary,
-			Schema:           v1.File_tanvo_integration_v1_integration_proto.Services().ByName("IntegrationService").Methods().ByName("ListIntegrationResources"),
-			Procedure:        IntegrationServiceListIntegrationResourcesProcedure,
-			IdempotencyLevel: connect.IdempotencyNoSideEffects,
-		}
-	})
 )
 
 // IntegrationServiceClient is a client for the tanvo.integration.v1.IntegrationService service.
 type IntegrationServiceClient interface {
-	// Connects a provider. Providers connected by OAuth start in the
-	// pending state; complete them with CompleteIntegrationOauth.
+	// Connects a provider. Providers connected by OAuth are completed with
+	// CompleteIntegrationOauth.
 	CreateIntegration(context.Context, *v1.CreateIntegrationRequest) (*v1.CreateIntegrationResponse, error)
 	// Returns an integration.
 	GetIntegration(context.Context, *v1.GetIntegrationRequest) (*v1.GetIntegrationResponse, error)
 	// Lists integrations.
 	ListIntegrations(context.Context, *v1.ListIntegrationsRequest) (*v1.ListIntegrationsResponse, error)
-	// Updates an integration's name, sync settings or credentials.
+	// Updates an integration's code, name, sync settings or credentials.
 	UpdateIntegration(context.Context, *v1.UpdateIntegrationRequest) (*v1.UpdateIntegrationResponse, error)
-	// Disconnects a provider; customers are unlinked from it.
+	// Disconnects a provider. Payment providers are discarded and their
+	// customers unlinked; other integrations are removed with their mappings
+	// and synced records.
 	DeleteIntegration(context.Context, *v1.DeleteIntegrationRequest) (*v1.DeleteIntegrationResponse, error)
 	// Returns the provider's authorization URL of an OAuth integration.
 	StartIntegrationOauth(context.Context, *v1.StartIntegrationOauthRequest) (*v1.StartIntegrationOauthResponse, error)
@@ -253,8 +244,6 @@ type IntegrationServiceClient interface {
 	UpsertCollectionMapping(context.Context, *v1.UpsertCollectionMappingRequest) (*v1.UpsertCollectionMappingResponse, error)
 	// Deletes a collection mapping.
 	DeleteCollectionMapping(context.Context, *v1.DeleteCollectionMappingRequest) (*v1.DeleteCollectionMappingResponse, error)
-	// Lists the records synced to the provider with their external IDs.
-	ListIntegrationResources(context.Context, *v1.ListIntegrationResourcesRequest) (*v1.ListIntegrationResourcesResponse, error)
 }
 
 // NewIntegrationServiceClient constructs a client for the tanvo.integration.v1.IntegrationService
@@ -266,16 +255,18 @@ func NewIntegrationServiceClient(client *connect.Client) IntegrationServiceClien
 // IntegrationServiceHandler is an implementation of the tanvo.integration.v1.IntegrationService
 // service.
 type IntegrationServiceHandler interface {
-	// Connects a provider. Providers connected by OAuth start in the
-	// pending state; complete them with CompleteIntegrationOauth.
+	// Connects a provider. Providers connected by OAuth are completed with
+	// CompleteIntegrationOauth.
 	CreateIntegration(context.Context, *v1.CreateIntegrationRequest) (*v1.CreateIntegrationResponse, error)
 	// Returns an integration.
 	GetIntegration(context.Context, *v1.GetIntegrationRequest) (*v1.GetIntegrationResponse, error)
 	// Lists integrations.
 	ListIntegrations(context.Context, *v1.ListIntegrationsRequest) (*v1.ListIntegrationsResponse, error)
-	// Updates an integration's name, sync settings or credentials.
+	// Updates an integration's code, name, sync settings or credentials.
 	UpdateIntegration(context.Context, *v1.UpdateIntegrationRequest) (*v1.UpdateIntegrationResponse, error)
-	// Disconnects a provider; customers are unlinked from it.
+	// Disconnects a provider. Payment providers are discarded and their
+	// customers unlinked; other integrations are removed with their mappings
+	// and synced records.
 	DeleteIntegration(context.Context, *v1.DeleteIntegrationRequest) (*v1.DeleteIntegrationResponse, error)
 	// Returns the provider's authorization URL of an OAuth integration.
 	StartIntegrationOauth(context.Context, *v1.StartIntegrationOauthRequest) (*v1.StartIntegrationOauthResponse, error)
@@ -303,8 +294,6 @@ type IntegrationServiceHandler interface {
 	UpsertCollectionMapping(context.Context, *v1.UpsertCollectionMappingRequest) (*v1.UpsertCollectionMappingResponse, error)
 	// Deletes a collection mapping.
 	DeleteCollectionMapping(context.Context, *v1.DeleteCollectionMappingRequest) (*v1.DeleteCollectionMappingResponse, error)
-	// Lists the records synced to the provider with their external IDs.
-	ListIntegrationResources(context.Context, *v1.ListIntegrationResourcesRequest) (*v1.ListIntegrationResourcesResponse, error)
 }
 
 // RegisterIntegrationServiceHandler registers svc as the tanvo.integration.v1.IntegrationService
@@ -328,7 +317,6 @@ func RegisterIntegrationServiceHandler(server *connect.Server, svc IntegrationSe
 		connect.Method{Spec: integrationServiceListCollectionMappingsSpec(), Handler: adapter.listCollectionMappings},
 		connect.Method{Spec: integrationServiceUpsertCollectionMappingSpec(), Handler: adapter.upsertCollectionMapping},
 		connect.Method{Spec: integrationServiceDeleteCollectionMappingSpec(), Handler: adapter.deleteCollectionMapping},
-		connect.Method{Spec: integrationServiceListIntegrationResourcesSpec(), Handler: adapter.listIntegrationResources},
 	)
 }
 
@@ -397,10 +385,6 @@ func (UnimplementedIntegrationServiceHandler) UpsertCollectionMapping(context.Co
 
 func (UnimplementedIntegrationServiceHandler) DeleteCollectionMapping(context.Context, *v1.DeleteCollectionMappingRequest) (*v1.DeleteCollectionMappingResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.integration.v1.IntegrationService.DeleteCollectionMapping is not implemented")
-}
-
-func (UnimplementedIntegrationServiceHandler) ListIntegrationResources(context.Context, *v1.ListIntegrationResourcesRequest) (*v1.ListIntegrationResourcesResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.integration.v1.IntegrationService.ListIntegrationResources is not implemented")
 }
 
 type integrationServiceClient struct {
@@ -530,14 +514,6 @@ func (c *integrationServiceClient) UpsertCollectionMapping(ctx context.Context, 
 func (c *integrationServiceClient) DeleteCollectionMapping(ctx context.Context, req *v1.DeleteCollectionMappingRequest) (*v1.DeleteCollectionMappingResponse, error) {
 	var res v1.DeleteCollectionMappingResponse
 	if err := c.client.CallUnary(ctx, integrationServiceDeleteCollectionMappingSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *integrationServiceClient) ListIntegrationResources(ctx context.Context, req *v1.ListIntegrationResourcesRequest) (*v1.ListIntegrationResourcesResponse, error) {
-	var res v1.ListIntegrationResourcesResponse
-	if err := c.client.CallUnary(ctx, integrationServiceListIntegrationResourcesSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -731,18 +707,6 @@ func (h integrationServiceHandler) deleteCollectionMapping(ctx context.Context, 
 		return err
 	}
 	res, err := h.svc.DeleteCollectionMapping(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h integrationServiceHandler) listIntegrationResources(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.ListIntegrationResourcesRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.ListIntegrationResources(ctx, &req)
 	if err != nil {
 		return err
 	}

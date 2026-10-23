@@ -129,3 +129,63 @@ func TestPortalGenerateURL(t *testing.T) {
 		t.Errorf("other organization = %s, want = customer_not_found", code(err))
 	}
 }
+
+func TestPortalAuthenticator(t *testing.T) {
+	e := newEnv(t)
+	o := e.org()
+	cus := customer.New(o.ID, core.NewID[core.CustomerID](e.deps.IDs), "cus_1", core.BillingEntityID{}, e.clock.Now())
+	gone := customer.New(o.ID, core.NewID[core.CustomerID](e.deps.IDs), "cus_2", core.BillingEntityID{}, e.clock.Now())
+	e.tx(func(ctx context.Context, r port.Repos) error {
+		if err := r.Customers.Create(ctx, cus); err != nil {
+			return err
+		}
+		return r.Customers.Create(ctx, gone)
+	})
+	p := newPortal(t, e.clock, map[string][]byte{"k1": portalKey1}, "k1")
+	a := PortalAuthenticator{Tokens: p, Tx: e.store}
+	live, _, err := p.Issue(o.ID, cus.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	deleted, _, err := p.Issue(o.ID, gone.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	unknown, _, err := p.Issue(o.ID, core.NewID[core.CustomerID](e.deps.IDs))
+	if err != nil {
+		t.Fatal(err)
+	}
+	e.tx(func(ctx context.Context, r port.Repos) error {
+		at := e.clock.Now()
+		gone.DeletedAt = &at
+		return r.Customers.Update(ctx, gone)
+	})
+	if _, err := p.GenerateURL(e.ctx, e.store, o.ID, gone.ID); code(err) != "customer_not_found" {
+		t.Errorf("GenerateURL(deleted) got = %s, want = customer_not_found", code(err))
+	}
+	tests := []struct {
+		name  string
+		token string
+		ok    bool
+	}{
+		{name: "live customer", token: live, ok: true},
+		// lago CustomerPortalUser finds the customer through its kept scope.
+		{name: "deleted customer", token: deleted},
+		{name: "unknown customer", token: unknown},
+		{name: "garbage", token: "x.y"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c, err := a.Verify(e.ctx, tt.token)
+			if tt.ok {
+				if err != nil || c.CustomerID != cus.ID {
+					t.Errorf("Verify() got = %+v, %v, want = %s", c, err, cus.ID)
+				}
+				return
+			}
+			if !errors.Is(err, ErrUnauthenticated) {
+				t.Errorf("Verify() error got = %v, want = %v", err, ErrUnauthenticated)
+			}
+		})
+	}
+}

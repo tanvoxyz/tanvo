@@ -5,8 +5,8 @@
 //
 // Source: tanvo/webhook/v1/webhook.proto
 
-// Package tanvo.webhook.v1 is the API of event destinations: webhook
-// endpoints, their deliveries and streaming destinations.
+// Package tanvo.webhook.v1 is the API of webhook endpoints and their
+// deliveries.
 package webhookv1connect
 
 import (
@@ -19,9 +19,6 @@ import (
 const (
 	// WebhookServiceName is the fully-qualified name of the WebhookService service.
 	WebhookServiceName = "tanvo.webhook.v1.WebhookService"
-	// StreamingDestinationServiceName is the fully-qualified name of the StreamingDestinationService
-	// service.
-	StreamingDestinationServiceName = "tanvo.webhook.v1.StreamingDestinationService"
 )
 
 // These constants are the procedure names of the RPCs defined in this package. They're exposed at
@@ -47,9 +44,6 @@ const (
 	// WebhookServiceDeleteWebhookEndpointProcedure is the procedure name of the WebhookService's
 	// DeleteWebhookEndpoint RPC.
 	WebhookServiceDeleteWebhookEndpointProcedure = "/tanvo.webhook.v1.WebhookService/DeleteWebhookEndpoint"
-	// WebhookServiceRotateWebhookEndpointSecretProcedure is the procedure name of the WebhookService's
-	// RotateWebhookEndpointSecret RPC.
-	WebhookServiceRotateWebhookEndpointSecretProcedure = "/tanvo.webhook.v1.WebhookService/RotateWebhookEndpointSecret"
 	// WebhookServiceListWebhookEventTypesProcedure is the procedure name of the WebhookService's
 	// ListWebhookEventTypes RPC.
 	WebhookServiceListWebhookEventTypesProcedure = "/tanvo.webhook.v1.WebhookService/ListWebhookEventTypes"
@@ -62,24 +56,6 @@ const (
 	// WebhookServiceRetryWebhookDeliveryProcedure is the procedure name of the WebhookService's
 	// RetryWebhookDelivery RPC.
 	WebhookServiceRetryWebhookDeliveryProcedure = "/tanvo.webhook.v1.WebhookService/RetryWebhookDelivery"
-	// StreamingDestinationServiceCreateStreamingDestinationProcedure is the procedure name of the
-	// StreamingDestinationService's CreateStreamingDestination RPC.
-	StreamingDestinationServiceCreateStreamingDestinationProcedure = "/tanvo.webhook.v1.StreamingDestinationService/CreateStreamingDestination"
-	// StreamingDestinationServiceGetStreamingDestinationProcedure is the procedure name of the
-	// StreamingDestinationService's GetStreamingDestination RPC.
-	StreamingDestinationServiceGetStreamingDestinationProcedure = "/tanvo.webhook.v1.StreamingDestinationService/GetStreamingDestination"
-	// StreamingDestinationServiceListStreamingDestinationsProcedure is the procedure name of the
-	// StreamingDestinationService's ListStreamingDestinations RPC.
-	StreamingDestinationServiceListStreamingDestinationsProcedure = "/tanvo.webhook.v1.StreamingDestinationService/ListStreamingDestinations"
-	// StreamingDestinationServiceUpdateStreamingDestinationProcedure is the procedure name of the
-	// StreamingDestinationService's UpdateStreamingDestination RPC.
-	StreamingDestinationServiceUpdateStreamingDestinationProcedure = "/tanvo.webhook.v1.StreamingDestinationService/UpdateStreamingDestination"
-	// StreamingDestinationServiceDeleteStreamingDestinationProcedure is the procedure name of the
-	// StreamingDestinationService's DeleteStreamingDestination RPC.
-	StreamingDestinationServiceDeleteStreamingDestinationProcedure = "/tanvo.webhook.v1.StreamingDestinationService/DeleteStreamingDestination"
-	// StreamingDestinationServiceListStreamingDeliveriesProcedure is the procedure name of the
-	// StreamingDestinationService's ListStreamingDeliveries RPC.
-	StreamingDestinationServiceListStreamingDeliveriesProcedure = "/tanvo.webhook.v1.StreamingDestinationService/ListStreamingDeliveries"
 )
 
 var (
@@ -118,13 +94,6 @@ var (
 			StreamType: connect.StreamTypeUnary,
 			Schema:     v1.File_tanvo_webhook_v1_webhook_proto.Services().ByName("WebhookService").Methods().ByName("DeleteWebhookEndpoint"),
 			Procedure:  WebhookServiceDeleteWebhookEndpointProcedure,
-		}
-	})
-	webhookServiceRotateWebhookEndpointSecretSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_tanvo_webhook_v1_webhook_proto.Services().ByName("WebhookService").Methods().ByName("RotateWebhookEndpointSecret"),
-			Procedure:  WebhookServiceRotateWebhookEndpointSecretProcedure,
 		}
 	})
 	webhookServiceListWebhookEventTypesSpec = sync.OnceValue(func() connect.Spec {
@@ -172,14 +141,12 @@ type WebhookServiceClient interface {
 	UpdateWebhookEndpoint(context.Context, *v1.UpdateWebhookEndpointRequest) (*v1.UpdateWebhookEndpointResponse, error)
 	// Deletes a webhook endpoint.
 	DeleteWebhookEndpoint(context.Context, *v1.DeleteWebhookEndpointRequest) (*v1.DeleteWebhookEndpointResponse, error)
-	// Replaces the signing secret of an endpoint; the previous secret keeps
-	// signing alongside the new one during the overlap.
-	RotateWebhookEndpointSecret(context.Context, *v1.RotateWebhookEndpointSecretRequest) (*v1.RotateWebhookEndpointSecretResponse, error)
 	// Lists the event types endpoints can subscribe to.
 	ListWebhookEventTypes(context.Context, *v1.ListWebhookEventTypesRequest) (*v1.ListWebhookEventTypesResponse, error)
 	// Returns a delivery.
 	GetWebhookDelivery(context.Context, *v1.GetWebhookDeliveryRequest) (*v1.GetWebhookDeliveryResponse, error)
-	// Lists the deliveries of an endpoint, newest first; kept 90 days.
+	// Lists the deliveries of an endpoint, the last updated first; kept 90
+	// days.
 	ListWebhookDeliveries(context.Context, *v1.ListWebhookDeliveriesRequest) (*v1.ListWebhookDeliveriesResponse, error)
 	// Sends a failed delivery again.
 	RetryWebhookDelivery(context.Context, *v1.RetryWebhookDeliveryRequest) (*v1.RetryWebhookDeliveryResponse, error)
@@ -203,14 +170,12 @@ type WebhookServiceHandler interface {
 	UpdateWebhookEndpoint(context.Context, *v1.UpdateWebhookEndpointRequest) (*v1.UpdateWebhookEndpointResponse, error)
 	// Deletes a webhook endpoint.
 	DeleteWebhookEndpoint(context.Context, *v1.DeleteWebhookEndpointRequest) (*v1.DeleteWebhookEndpointResponse, error)
-	// Replaces the signing secret of an endpoint; the previous secret keeps
-	// signing alongside the new one during the overlap.
-	RotateWebhookEndpointSecret(context.Context, *v1.RotateWebhookEndpointSecretRequest) (*v1.RotateWebhookEndpointSecretResponse, error)
 	// Lists the event types endpoints can subscribe to.
 	ListWebhookEventTypes(context.Context, *v1.ListWebhookEventTypesRequest) (*v1.ListWebhookEventTypesResponse, error)
 	// Returns a delivery.
 	GetWebhookDelivery(context.Context, *v1.GetWebhookDeliveryRequest) (*v1.GetWebhookDeliveryResponse, error)
-	// Lists the deliveries of an endpoint, newest first; kept 90 days.
+	// Lists the deliveries of an endpoint, the last updated first; kept 90
+	// days.
 	ListWebhookDeliveries(context.Context, *v1.ListWebhookDeliveriesRequest) (*v1.ListWebhookDeliveriesResponse, error)
 	// Sends a failed delivery again.
 	RetryWebhookDelivery(context.Context, *v1.RetryWebhookDeliveryRequest) (*v1.RetryWebhookDeliveryResponse, error)
@@ -226,7 +191,6 @@ func RegisterWebhookServiceHandler(server *connect.Server, svc WebhookServiceHan
 		connect.Method{Spec: webhookServiceListWebhookEndpointsSpec(), Handler: adapter.listWebhookEndpoints},
 		connect.Method{Spec: webhookServiceUpdateWebhookEndpointSpec(), Handler: adapter.updateWebhookEndpoint},
 		connect.Method{Spec: webhookServiceDeleteWebhookEndpointSpec(), Handler: adapter.deleteWebhookEndpoint},
-		connect.Method{Spec: webhookServiceRotateWebhookEndpointSecretSpec(), Handler: adapter.rotateWebhookEndpointSecret},
 		connect.Method{Spec: webhookServiceListWebhookEventTypesSpec(), Handler: adapter.listWebhookEventTypes},
 		connect.Method{Spec: webhookServiceGetWebhookDeliverySpec(), Handler: adapter.getWebhookDelivery},
 		connect.Method{Spec: webhookServiceListWebhookDeliveriesSpec(), Handler: adapter.listWebhookDeliveries},
@@ -255,10 +219,6 @@ func (UnimplementedWebhookServiceHandler) UpdateWebhookEndpoint(context.Context,
 
 func (UnimplementedWebhookServiceHandler) DeleteWebhookEndpoint(context.Context, *v1.DeleteWebhookEndpointRequest) (*v1.DeleteWebhookEndpointResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.webhook.v1.WebhookService.DeleteWebhookEndpoint is not implemented")
-}
-
-func (UnimplementedWebhookServiceHandler) RotateWebhookEndpointSecret(context.Context, *v1.RotateWebhookEndpointSecretRequest) (*v1.RotateWebhookEndpointSecretResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.webhook.v1.WebhookService.RotateWebhookEndpointSecret is not implemented")
 }
 
 func (UnimplementedWebhookServiceHandler) ListWebhookEventTypes(context.Context, *v1.ListWebhookEventTypesRequest) (*v1.ListWebhookEventTypesResponse, error) {
@@ -316,14 +276,6 @@ func (c *webhookServiceClient) UpdateWebhookEndpoint(ctx context.Context, req *v
 func (c *webhookServiceClient) DeleteWebhookEndpoint(ctx context.Context, req *v1.DeleteWebhookEndpointRequest) (*v1.DeleteWebhookEndpointResponse, error) {
 	var res v1.DeleteWebhookEndpointResponse
 	if err := c.client.CallUnary(ctx, webhookServiceDeleteWebhookEndpointSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *webhookServiceClient) RotateWebhookEndpointSecret(ctx context.Context, req *v1.RotateWebhookEndpointSecretRequest) (*v1.RotateWebhookEndpointSecretResponse, error) {
-	var res v1.RotateWebhookEndpointSecretResponse
-	if err := c.client.CallUnary(ctx, webhookServiceRotateWebhookEndpointSecretSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -423,18 +375,6 @@ func (h webhookServiceHandler) deleteWebhookEndpoint(ctx context.Context, _ conn
 	return stream.Send(res)
 }
 
-func (h webhookServiceHandler) rotateWebhookEndpointSecret(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.RotateWebhookEndpointSecretRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.RotateWebhookEndpointSecret(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
 func (h webhookServiceHandler) listWebhookEventTypes(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
 	var req v1.ListWebhookEventTypesRequest
 	if err := stream.Receive(&req); err != nil {
@@ -477,264 +417,6 @@ func (h webhookServiceHandler) retryWebhookDelivery(ctx context.Context, _ conne
 		return err
 	}
 	res, err := h.svc.RetryWebhookDelivery(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-var (
-	streamingDestinationServiceCreateStreamingDestinationSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_tanvo_webhook_v1_webhook_proto.Services().ByName("StreamingDestinationService").Methods().ByName("CreateStreamingDestination"),
-			Procedure:  StreamingDestinationServiceCreateStreamingDestinationProcedure,
-		}
-	})
-	streamingDestinationServiceGetStreamingDestinationSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType:       connect.StreamTypeUnary,
-			Schema:           v1.File_tanvo_webhook_v1_webhook_proto.Services().ByName("StreamingDestinationService").Methods().ByName("GetStreamingDestination"),
-			Procedure:        StreamingDestinationServiceGetStreamingDestinationProcedure,
-			IdempotencyLevel: connect.IdempotencyNoSideEffects,
-		}
-	})
-	streamingDestinationServiceListStreamingDestinationsSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType:       connect.StreamTypeUnary,
-			Schema:           v1.File_tanvo_webhook_v1_webhook_proto.Services().ByName("StreamingDestinationService").Methods().ByName("ListStreamingDestinations"),
-			Procedure:        StreamingDestinationServiceListStreamingDestinationsProcedure,
-			IdempotencyLevel: connect.IdempotencyNoSideEffects,
-		}
-	})
-	streamingDestinationServiceUpdateStreamingDestinationSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_tanvo_webhook_v1_webhook_proto.Services().ByName("StreamingDestinationService").Methods().ByName("UpdateStreamingDestination"),
-			Procedure:  StreamingDestinationServiceUpdateStreamingDestinationProcedure,
-		}
-	})
-	streamingDestinationServiceDeleteStreamingDestinationSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_tanvo_webhook_v1_webhook_proto.Services().ByName("StreamingDestinationService").Methods().ByName("DeleteStreamingDestination"),
-			Procedure:  StreamingDestinationServiceDeleteStreamingDestinationProcedure,
-		}
-	})
-	streamingDestinationServiceListStreamingDeliveriesSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType:       connect.StreamTypeUnary,
-			Schema:           v1.File_tanvo_webhook_v1_webhook_proto.Services().ByName("StreamingDestinationService").Methods().ByName("ListStreamingDeliveries"),
-			Procedure:        StreamingDestinationServiceListStreamingDeliveriesProcedure,
-			IdempotencyLevel: connect.IdempotencyNoSideEffects,
-		}
-	})
-)
-
-// StreamingDestinationServiceClient is a client for the
-// tanvo.webhook.v1.StreamingDestinationService service.
-type StreamingDestinationServiceClient interface {
-	// Creates a streaming destination.
-	CreateStreamingDestination(context.Context, *v1.CreateStreamingDestinationRequest) (*v1.CreateStreamingDestinationResponse, error)
-	// Returns a streaming destination.
-	GetStreamingDestination(context.Context, *v1.GetStreamingDestinationRequest) (*v1.GetStreamingDestinationResponse, error)
-	// Lists streaming destinations.
-	ListStreamingDestinations(context.Context, *v1.ListStreamingDestinationsRequest) (*v1.ListStreamingDestinationsResponse, error)
-	// Updates a streaming destination.
-	UpdateStreamingDestination(context.Context, *v1.UpdateStreamingDestinationRequest) (*v1.UpdateStreamingDestinationResponse, error)
-	// Deletes a streaming destination.
-	DeleteStreamingDestination(context.Context, *v1.DeleteStreamingDestinationRequest) (*v1.DeleteStreamingDestinationResponse, error)
-	// Lists the delivery log of a destination, newest first.
-	ListStreamingDeliveries(context.Context, *v1.ListStreamingDeliveriesRequest) (*v1.ListStreamingDeliveriesResponse, error)
-}
-
-// NewStreamingDestinationServiceClient constructs a client for the
-// tanvo.webhook.v1.StreamingDestinationService service. Multiple service clients may share a single
-// connect.Client.
-func NewStreamingDestinationServiceClient(client *connect.Client) StreamingDestinationServiceClient {
-	return &streamingDestinationServiceClient{client: client}
-}
-
-// StreamingDestinationServiceHandler is an implementation of the
-// tanvo.webhook.v1.StreamingDestinationService service.
-type StreamingDestinationServiceHandler interface {
-	// Creates a streaming destination.
-	CreateStreamingDestination(context.Context, *v1.CreateStreamingDestinationRequest) (*v1.CreateStreamingDestinationResponse, error)
-	// Returns a streaming destination.
-	GetStreamingDestination(context.Context, *v1.GetStreamingDestinationRequest) (*v1.GetStreamingDestinationResponse, error)
-	// Lists streaming destinations.
-	ListStreamingDestinations(context.Context, *v1.ListStreamingDestinationsRequest) (*v1.ListStreamingDestinationsResponse, error)
-	// Updates a streaming destination.
-	UpdateStreamingDestination(context.Context, *v1.UpdateStreamingDestinationRequest) (*v1.UpdateStreamingDestinationResponse, error)
-	// Deletes a streaming destination.
-	DeleteStreamingDestination(context.Context, *v1.DeleteStreamingDestinationRequest) (*v1.DeleteStreamingDestinationResponse, error)
-	// Lists the delivery log of a destination, newest first.
-	ListStreamingDeliveries(context.Context, *v1.ListStreamingDeliveriesRequest) (*v1.ListStreamingDeliveriesResponse, error)
-}
-
-// RegisterStreamingDestinationServiceHandler registers svc as the
-// tanvo.webhook.v1.StreamingDestinationService implementation on server.
-func RegisterStreamingDestinationServiceHandler(server *connect.Server, svc StreamingDestinationServiceHandler) {
-	adapter := streamingDestinationServiceHandler{svc: svc}
-	server.Register(
-		connect.Method{Spec: streamingDestinationServiceCreateStreamingDestinationSpec(), Handler: adapter.createStreamingDestination},
-		connect.Method{Spec: streamingDestinationServiceGetStreamingDestinationSpec(), Handler: adapter.getStreamingDestination},
-		connect.Method{Spec: streamingDestinationServiceListStreamingDestinationsSpec(), Handler: adapter.listStreamingDestinations},
-		connect.Method{Spec: streamingDestinationServiceUpdateStreamingDestinationSpec(), Handler: adapter.updateStreamingDestination},
-		connect.Method{Spec: streamingDestinationServiceDeleteStreamingDestinationSpec(), Handler: adapter.deleteStreamingDestination},
-		connect.Method{Spec: streamingDestinationServiceListStreamingDeliveriesSpec(), Handler: adapter.listStreamingDeliveries},
-	)
-}
-
-// UnimplementedStreamingDestinationServiceHandler returns CodeUnimplemented from all methods.
-type UnimplementedStreamingDestinationServiceHandler struct{}
-
-func (UnimplementedStreamingDestinationServiceHandler) CreateStreamingDestination(context.Context, *v1.CreateStreamingDestinationRequest) (*v1.CreateStreamingDestinationResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.webhook.v1.StreamingDestinationService.CreateStreamingDestination is not implemented")
-}
-
-func (UnimplementedStreamingDestinationServiceHandler) GetStreamingDestination(context.Context, *v1.GetStreamingDestinationRequest) (*v1.GetStreamingDestinationResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.webhook.v1.StreamingDestinationService.GetStreamingDestination is not implemented")
-}
-
-func (UnimplementedStreamingDestinationServiceHandler) ListStreamingDestinations(context.Context, *v1.ListStreamingDestinationsRequest) (*v1.ListStreamingDestinationsResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.webhook.v1.StreamingDestinationService.ListStreamingDestinations is not implemented")
-}
-
-func (UnimplementedStreamingDestinationServiceHandler) UpdateStreamingDestination(context.Context, *v1.UpdateStreamingDestinationRequest) (*v1.UpdateStreamingDestinationResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.webhook.v1.StreamingDestinationService.UpdateStreamingDestination is not implemented")
-}
-
-func (UnimplementedStreamingDestinationServiceHandler) DeleteStreamingDestination(context.Context, *v1.DeleteStreamingDestinationRequest) (*v1.DeleteStreamingDestinationResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.webhook.v1.StreamingDestinationService.DeleteStreamingDestination is not implemented")
-}
-
-func (UnimplementedStreamingDestinationServiceHandler) ListStreamingDeliveries(context.Context, *v1.ListStreamingDeliveriesRequest) (*v1.ListStreamingDeliveriesResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.webhook.v1.StreamingDestinationService.ListStreamingDeliveries is not implemented")
-}
-
-type streamingDestinationServiceClient struct {
-	client *connect.Client
-}
-
-func (c *streamingDestinationServiceClient) CreateStreamingDestination(ctx context.Context, req *v1.CreateStreamingDestinationRequest) (*v1.CreateStreamingDestinationResponse, error) {
-	var res v1.CreateStreamingDestinationResponse
-	if err := c.client.CallUnary(ctx, streamingDestinationServiceCreateStreamingDestinationSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *streamingDestinationServiceClient) GetStreamingDestination(ctx context.Context, req *v1.GetStreamingDestinationRequest) (*v1.GetStreamingDestinationResponse, error) {
-	var res v1.GetStreamingDestinationResponse
-	if err := c.client.CallUnary(ctx, streamingDestinationServiceGetStreamingDestinationSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *streamingDestinationServiceClient) ListStreamingDestinations(ctx context.Context, req *v1.ListStreamingDestinationsRequest) (*v1.ListStreamingDestinationsResponse, error) {
-	var res v1.ListStreamingDestinationsResponse
-	if err := c.client.CallUnary(ctx, streamingDestinationServiceListStreamingDestinationsSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *streamingDestinationServiceClient) UpdateStreamingDestination(ctx context.Context, req *v1.UpdateStreamingDestinationRequest) (*v1.UpdateStreamingDestinationResponse, error) {
-	var res v1.UpdateStreamingDestinationResponse
-	if err := c.client.CallUnary(ctx, streamingDestinationServiceUpdateStreamingDestinationSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *streamingDestinationServiceClient) DeleteStreamingDestination(ctx context.Context, req *v1.DeleteStreamingDestinationRequest) (*v1.DeleteStreamingDestinationResponse, error) {
-	var res v1.DeleteStreamingDestinationResponse
-	if err := c.client.CallUnary(ctx, streamingDestinationServiceDeleteStreamingDestinationSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *streamingDestinationServiceClient) ListStreamingDeliveries(ctx context.Context, req *v1.ListStreamingDeliveriesRequest) (*v1.ListStreamingDeliveriesResponse, error) {
-	var res v1.ListStreamingDeliveriesResponse
-	if err := c.client.CallUnary(ctx, streamingDestinationServiceListStreamingDeliveriesSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-type streamingDestinationServiceHandler struct {
-	svc StreamingDestinationServiceHandler
-}
-
-func (h streamingDestinationServiceHandler) createStreamingDestination(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.CreateStreamingDestinationRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.CreateStreamingDestination(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h streamingDestinationServiceHandler) getStreamingDestination(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.GetStreamingDestinationRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.GetStreamingDestination(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h streamingDestinationServiceHandler) listStreamingDestinations(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.ListStreamingDestinationsRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.ListStreamingDestinations(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h streamingDestinationServiceHandler) updateStreamingDestination(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.UpdateStreamingDestinationRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.UpdateStreamingDestination(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h streamingDestinationServiceHandler) deleteStreamingDestination(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.DeleteStreamingDestinationRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.DeleteStreamingDestination(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h streamingDestinationServiceHandler) listStreamingDeliveries(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.ListStreamingDeliveriesRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.ListStreamingDeliveries(ctx, &req)
 	if err != nil {
 		return err
 	}

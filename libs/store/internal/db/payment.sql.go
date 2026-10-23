@@ -1097,21 +1097,45 @@ func (q *Queries) ListPaymentProviderCustomersByIntegration(ctx context.Context,
 }
 
 const listPaymentReceipts = `-- name: ListPaymentReceipts :many
-SELECT organization_id, id, payment_id, billing_entity_id, number, file, xml_file, created_at, updated_at FROM payment_receipts
-WHERE organization_id = $1
-  AND ($2::uuid IS NULL OR id > $2)
-ORDER BY id
-LIMIT $3
+SELECT r.organization_id, r.id, r.payment_id, r.billing_entity_id, r.number, r.file, r.xml_file, r.created_at, r.updated_at FROM payment_receipts r
+WHERE r.organization_id = $1
+  AND ($2::uuid IS NULL OR EXISTS (
+       SELECT 1 FROM payments p WHERE p.organization_id = r.organization_id AND p.id = r.payment_id
+         AND (p.invoice_id = $2
+              OR EXISTS (SELECT 1 FROM payment_request_invoices l
+                         WHERE l.organization_id = p.organization_id AND l.payment_request_id = p.payment_request_id
+                           AND l.invoice_id = $2))))
+  AND ($3::uuid IS NULL
+       OR ($4::boolean AND (r.created_at < $5::timestamptz
+                                 OR (r.created_at = $5::timestamptz AND r.id > $3)))
+       OR (NOT $4::boolean AND r.id > $3))
+ORDER BY CASE WHEN $4::boolean THEN r.created_at END DESC, r.id
+LIMIT $6
 `
 
 type ListPaymentReceiptsParams struct {
 	OrganizationID uuid.UUID
+	InvoiceID      *uuid.UUID
 	After          *uuid.UUID
+	Recent         bool
+	AfterAt        *time.Time
 	Lim            int32
 }
 
+// The receipt list (payment.ReceiptFilter). @invoice_id matches the
+// receipts of the invoice's payments and of the payments of the payment
+// requests including it; @recent lists by created_at, newest first, then
+// by id ascending (base_query.rb:111-112); its cursor is (@after_at,
+// @after).
 func (q *Queries) ListPaymentReceipts(ctx context.Context, arg ListPaymentReceiptsParams) ([]PaymentReceipt, error) {
-	rows, err := q.db.Query(ctx, listPaymentReceipts, arg.OrganizationID, arg.After, arg.Lim)
+	rows, err := q.db.Query(ctx, listPaymentReceipts,
+		arg.OrganizationID,
+		arg.InvoiceID,
+		arg.After,
+		arg.Recent,
+		arg.AfterAt,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1148,17 +1172,30 @@ FROM payment_requests r
 WHERE r.organization_id = $1
   AND ($2::uuid IS NULL OR r.customer_id = $2)
   AND ($3::text IS NULL OR r.payment_status = $3)
-  AND ($4::uuid IS NULL OR r.id > $4)
-ORDER BY r.id
-LIMIT $5
+  AND ($4::text IS NULL OR r.currency = $4)
+  AND (cardinality($5::uuid[]) = 0 OR EXISTS (
+       SELECT 1 FROM payment_request_invoices l
+       JOIN invoices i ON i.organization_id = l.organization_id AND i.id = l.invoice_id
+       WHERE l.organization_id = r.organization_id AND l.payment_request_id = r.id
+         AND i.billing_entity_id = ANY($5::uuid[])))
+  AND ($6::uuid IS NULL
+       OR ($7::boolean AND (r.created_at < $8::timestamptz
+                                 OR (r.created_at = $8::timestamptz AND r.id > $6)))
+       OR (NOT $7::boolean AND r.id > $6))
+ORDER BY CASE WHEN $7::boolean THEN r.created_at END DESC, r.id
+LIMIT $9
 `
 
 type ListPaymentRequestsParams struct {
-	OrganizationID uuid.UUID
-	CustomerID     *uuid.UUID
-	PaymentStatus  *string
-	After          *uuid.UUID
-	Lim            int32
+	OrganizationID   uuid.UUID
+	CustomerID       *uuid.UUID
+	PaymentStatus    *string
+	Currency         *string
+	BillingEntityIds []uuid.UUID
+	After            *uuid.UUID
+	Recent           bool
+	AfterAt          *time.Time
+	Lim              int32
 }
 
 type ListPaymentRequestsRow struct {
@@ -1166,12 +1203,20 @@ type ListPaymentRequestsRow struct {
 	InvoiceIds     []uuid.UUID
 }
 
+// The payment request list (payment.RequestFilter). @billing_entity_ids
+// keeps the requests including an invoice of one of the billing entities;
+// @recent lists by created_at, newest first, then by id ascending
+// (base_query.rb:111-112); its cursor is (@after_at, @after).
 func (q *Queries) ListPaymentRequests(ctx context.Context, arg ListPaymentRequestsParams) ([]ListPaymentRequestsRow, error) {
 	rows, err := q.db.Query(ctx, listPaymentRequests,
 		arg.OrganizationID,
 		arg.CustomerID,
 		arg.PaymentStatus,
+		arg.Currency,
+		arg.BillingEntityIds,
 		arg.After,
+		arg.Recent,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {
@@ -1266,29 +1311,75 @@ func (q *Queries) ListPaymentRequestsByInvoice(ctx context.Context, arg ListPaym
 }
 
 const listPayments = `-- name: ListPayments :many
-SELECT organization_id, id, payable_type, invoice_id, payment_request_id, customer_id, payment_kind, status, provider_status, amount, currency, reference, paid_at, integration_id, provider_payment_id, provider_payment_method_id, provider_payment_data, provider_method_details, payment_method_id, created_at, updated_at FROM payments
-WHERE organization_id = $1
-  AND ($2::uuid IS NULL OR customer_id = $2)
-  AND ($3::text IS NULL OR status = $3)
-  AND ($4::uuid IS NULL OR id > $4)
-ORDER BY id
-LIMIT $5
+SELECT p.organization_id, p.id, p.payable_type, p.invoice_id, p.payment_request_id, p.customer_id, p.payment_kind, p.status, p.provider_status, p.amount, p.currency, p.reference, p.paid_at, p.integration_id, p.provider_payment_id, p.provider_payment_method_id, p.provider_payment_data, p.provider_method_details, p.payment_method_id, p.created_at, p.updated_at FROM payments p
+WHERE p.organization_id = $1
+  AND ($2::uuid IS NULL OR p.customer_id = $2)
+  AND ($3::text IS NULL OR p.status = $3)
+  AND ($4::text IS NULL OR p.currency = $4)
+  AND ($5::uuid IS NULL OR p.invoice_id = $5
+       OR EXISTS (SELECT 1 FROM payment_request_invoices l
+                  WHERE l.organization_id = p.organization_id AND l.payment_request_id = p.payment_request_id
+                    AND l.invoice_id = $5))
+  AND (NOT $6::boolean OR p.invoice_id IS NULL OR EXISTS (
+       SELECT 1 FROM invoices i WHERE i.organization_id = p.organization_id AND i.id = p.invoice_id
+         AND i.status NOT IN ('generating', 'deleted')))
+  AND ($7::text IS NULL
+       OR p.provider_payment_id ILIKE $7
+       OR p.reference ILIKE $7
+       OR ($8::uuid IS NOT NULL AND p.id = $8)
+       OR ($5::uuid IS NULL AND EXISTS (
+            SELECT 1 FROM invoices i WHERE i.organization_id = p.organization_id AND i.id = p.invoice_id
+              AND i.number ILIKE $7))
+       OR ($2::uuid IS NULL AND EXISTS (
+            SELECT 1 FROM customers c WHERE c.organization_id = p.organization_id AND c.id = p.customer_id
+              AND c.deleted_at IS NULL
+              AND (c.name ILIKE $7 OR c.firstname ILIKE $7
+                   OR c.lastname ILIKE $7 OR c.external_id ILIKE $7
+                   OR c.email ILIKE $7))))
+  AND ($9::uuid IS NULL
+       OR ($10::boolean AND (p.created_at < $11::timestamptz
+                                 OR (p.created_at = $11::timestamptz AND p.id > $9)))
+       OR (NOT $10::boolean AND p.id > $9))
+ORDER BY CASE WHEN $10::boolean THEN p.created_at END DESC, p.id
+LIMIT $12
 `
 
 type ListPaymentsParams struct {
 	OrganizationID uuid.UUID
 	CustomerID     *uuid.UUID
 	Status         *string
+	Currency       *string
+	InvoiceID      *uuid.UUID
+	Visible        bool
+	Search         *string
+	SearchID       *uuid.UUID
 	After          *uuid.UUID
+	Recent         bool
+	AfterAt        *time.Time
 	Lim            int32
 }
 
+// The payment list (payment.Filter). @invoice_id matches the invoice's own
+// payments and those of the payment requests including it; @visible drops
+// the payments of generating invoices; @search is a LIKE pattern matched
+// against the provider payment ID, the reference, the invoice number
+// (unless @invoice_id is set) and the customer's names, external ID and
+// email (unless @customer_id is set), @search_id the payment ID; @recent
+// lists by created_at, newest first, then by id ascending
+// (base_query.rb:111-112); its cursor is (@after_at, @after).
 func (q *Queries) ListPayments(ctx context.Context, arg ListPaymentsParams) ([]Payment, error) {
 	rows, err := q.db.Query(ctx, listPayments,
 		arg.OrganizationID,
 		arg.CustomerID,
 		arg.Status,
+		arg.Currency,
+		arg.InvoiceID,
+		arg.Visible,
+		arg.Search,
+		arg.SearchID,
 		arg.After,
+		arg.Recent,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {

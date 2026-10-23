@@ -19,7 +19,6 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/event"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
-	"github.com/tanvoxyz/tanvo/libs/metering"
 	eventv1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/event/v1"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/event/v1/eventv1connect"
 )
@@ -32,13 +31,16 @@ type Ingester interface {
 	CreateBatch(ctx context.Context, org core.OrganizationID, ins []ingest.Input, md ingest.Metadata) ([]ingest.Outcome, error)
 }
 
-// Events serves tanvo.event.v1.EventService: the ingestion RPCs. The
-// other RPCs answer Unimplemented.
+// Events serves tanvo.event.v1.EventService: the ingestion RPCs, the
+// reads with an [EventReader] and the estimates with a [FeeEstimator].
+// ListEnrichedEvents answers Unimplemented.
 type Events struct {
 	eventv1connect.UnimplementedEventServiceHandler
 
-	ingest Ingester
-	ips    *clientip.Resolver
+	ingest    Ingester
+	ips       *clientip.Resolver
+	reader    EventReader
+	estimator FeeEstimator
 }
 
 var _ eventv1connect.EventServiceHandler = (*Events)(nil)
@@ -165,9 +167,6 @@ func toInput(prefix string, e *eventv1.Event) (ingest.Input, []FieldViolation) {
 			violations = append(violations, FieldViolation{Field: prefix + "properties." + k, Reason: core.CodeInvalid, Description: "properties are strings, numbers, booleans or nulls"})
 		}
 	}
-	if e.HasTargetWalletCode() {
-		props[metering.TargetWalletCodeProperty] = e.GetTargetWalletCode()
-	}
 	if len(props) > 0 {
 		in.Properties = props
 	}
@@ -178,13 +177,15 @@ func toProto(e *event.Event) *eventv1.Event {
 	if e == nil {
 		return nil
 	}
-	id := e.ID.String()
 	b := eventv1.Event_builder{
-		Id:                     &id,
 		TransactionId:          &e.TransactionID,
 		ExternalSubscriptionId: &e.ExternalSubscriptionID,
 		Code:                   &e.Code,
 		Timestamp:              timestamppb.New(e.Timestamp),
+	}
+	// The ClickHouse ledger keeps no event ID.
+	if !e.ID.IsZero() {
+		b.Id = new(e.ID.String())
 	}
 	if len(e.Properties) > 0 {
 		fields := make(map[string]*structpb.Value, len(e.Properties))

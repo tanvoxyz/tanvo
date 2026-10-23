@@ -43,6 +43,9 @@ const (
 	// ChargeServiceListChargeFiltersProcedure is the procedure name of the ChargeService's
 	// ListChargeFilters RPC.
 	ChargeServiceListChargeFiltersProcedure = "/tanvo.catalog.v1.ChargeService/ListChargeFilters"
+	// ChargeServiceGetChargeFilterProcedure is the procedure name of the ChargeService's
+	// GetChargeFilter RPC.
+	ChargeServiceGetChargeFilterProcedure = "/tanvo.catalog.v1.ChargeService/GetChargeFilter"
 	// ChargeServiceUpdateChargeFilterProcedure is the procedure name of the ChargeService's
 	// UpdateChargeFilter RPC.
 	ChargeServiceUpdateChargeFilterProcedure = "/tanvo.catalog.v1.ChargeService/UpdateChargeFilter"
@@ -104,6 +107,14 @@ var (
 			IdempotencyLevel: connect.IdempotencyNoSideEffects,
 		}
 	})
+	chargeServiceGetChargeFilterSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType:       connect.StreamTypeUnary,
+			Schema:           v1.File_tanvo_catalog_v1_charge_proto.Services().ByName("ChargeService").Methods().ByName("GetChargeFilter"),
+			Procedure:        ChargeServiceGetChargeFilterProcedure,
+			IdempotencyLevel: connect.IdempotencyNoSideEffects,
+		}
+	})
 	chargeServiceUpdateChargeFilterSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -137,6 +148,8 @@ type ChargeServiceClient interface {
 	CreateChargeFilter(context.Context, *v1.CreateChargeFilterRequest) (*v1.CreateChargeFilterResponse, error)
 	// Lists the filters of a charge.
 	ListChargeFilters(context.Context, *v1.ListChargeFiltersRequest) (*v1.ListChargeFiltersResponse, error)
+	// Returns one filter of a charge.
+	GetChargeFilter(context.Context, *v1.GetChargeFilterRequest) (*v1.GetChargeFilterResponse, error)
 	// Updates a charge filter.
 	UpdateChargeFilter(context.Context, *v1.UpdateChargeFilterRequest) (*v1.UpdateChargeFilterResponse, error)
 	// Removes a filter from a charge.
@@ -166,6 +179,8 @@ type ChargeServiceHandler interface {
 	CreateChargeFilter(context.Context, *v1.CreateChargeFilterRequest) (*v1.CreateChargeFilterResponse, error)
 	// Lists the filters of a charge.
 	ListChargeFilters(context.Context, *v1.ListChargeFiltersRequest) (*v1.ListChargeFiltersResponse, error)
+	// Returns one filter of a charge.
+	GetChargeFilter(context.Context, *v1.GetChargeFilterRequest) (*v1.GetChargeFilterResponse, error)
 	// Updates a charge filter.
 	UpdateChargeFilter(context.Context, *v1.UpdateChargeFilterRequest) (*v1.UpdateChargeFilterResponse, error)
 	// Removes a filter from a charge.
@@ -184,6 +199,7 @@ func RegisterChargeServiceHandler(server *connect.Server, svc ChargeServiceHandl
 		connect.Method{Spec: chargeServiceDeleteChargeSpec(), Handler: adapter.deleteCharge},
 		connect.Method{Spec: chargeServiceCreateChargeFilterSpec(), Handler: adapter.createChargeFilter},
 		connect.Method{Spec: chargeServiceListChargeFiltersSpec(), Handler: adapter.listChargeFilters},
+		connect.Method{Spec: chargeServiceGetChargeFilterSpec(), Handler: adapter.getChargeFilter},
 		connect.Method{Spec: chargeServiceUpdateChargeFilterSpec(), Handler: adapter.updateChargeFilter},
 		connect.Method{Spec: chargeServiceDeleteChargeFilterSpec(), Handler: adapter.deleteChargeFilter},
 	)
@@ -218,6 +234,10 @@ func (UnimplementedChargeServiceHandler) CreateChargeFilter(context.Context, *v1
 
 func (UnimplementedChargeServiceHandler) ListChargeFilters(context.Context, *v1.ListChargeFiltersRequest) (*v1.ListChargeFiltersResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.catalog.v1.ChargeService.ListChargeFilters is not implemented")
+}
+
+func (UnimplementedChargeServiceHandler) GetChargeFilter(context.Context, *v1.GetChargeFilterRequest) (*v1.GetChargeFilterResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.catalog.v1.ChargeService.GetChargeFilter is not implemented")
 }
 
 func (UnimplementedChargeServiceHandler) UpdateChargeFilter(context.Context, *v1.UpdateChargeFilterRequest) (*v1.UpdateChargeFilterResponse, error) {
@@ -283,6 +303,14 @@ func (c *chargeServiceClient) CreateChargeFilter(ctx context.Context, req *v1.Cr
 func (c *chargeServiceClient) ListChargeFilters(ctx context.Context, req *v1.ListChargeFiltersRequest) (*v1.ListChargeFiltersResponse, error) {
 	var res v1.ListChargeFiltersResponse
 	if err := c.client.CallUnary(ctx, chargeServiceListChargeFiltersSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *chargeServiceClient) GetChargeFilter(ctx context.Context, req *v1.GetChargeFilterRequest) (*v1.GetChargeFilterResponse, error) {
+	var res v1.GetChargeFilterResponse
+	if err := c.client.CallUnary(ctx, chargeServiceGetChargeFilterSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -384,6 +412,18 @@ func (h chargeServiceHandler) listChargeFilters(ctx context.Context, _ connect.S
 		return err
 	}
 	res, err := h.svc.ListChargeFilters(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h chargeServiceHandler) getChargeFilter(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetChargeFilterRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetChargeFilter(ctx, &req)
 	if err != nil {
 		return err
 	}

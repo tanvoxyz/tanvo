@@ -68,6 +68,16 @@ service FeatureService {
       api_resource: "feature"
     };
   }
+
+  // Removes one privilege from a feature, and its values from every
+  // entitlement.
+  rpc DeleteFeaturePrivilege(DeleteFeaturePrivilegeRequest) returns (DeleteFeaturePrivilegeResponse) {
+    option (google.api.http) = {delete: "/v1/features/{feature_id}/privileges/{privilege_code}"};
+    option (tanvo.common.v1.access) = {
+      permission: "features:update"
+      api_resource: "feature"
+    };
+  }
 }
 
 // EntitlementService manages the features granted by plans and the
@@ -371,6 +381,28 @@ message DeleteFeatureRequest {
 // DeleteFeatureResponse is the response of FeatureService.DeleteFeature.
 message DeleteFeatureResponse {
   // The deleted feature.
+  Feature feature = 1;
+}
+
+// DeleteFeaturePrivilegeRequest is the request of FeatureService.DeleteFeaturePrivilege.
+message DeleteFeaturePrivilegeRequest {
+  // The feature's ID or `code:<code>`.
+  string feature_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The privilege's code.
+  string privilege_code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+}
+
+// DeleteFeaturePrivilegeResponse is the response of FeatureService.DeleteFeaturePrivilege.
+message DeleteFeaturePrivilegeResponse {
+  // The feature without the privilege.
   Feature feature = 1;
 }
 

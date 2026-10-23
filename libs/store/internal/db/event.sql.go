@@ -366,40 +366,129 @@ func (q *Queries) ListEventKeys(ctx context.Context, arg ListEventKeysParams) ([
 	return items, nil
 }
 
-const replaceEvent = `-- name: ReplaceEvent :execrows
-UPDATE events SET
-  code = $1, timestamp = $2,
-  properties = $3, precise_total_amount = $4,
-  updated_at = $5
-WHERE organization_id = $6 AND external_subscription_id = $7 AND transaction_id = $8
+const listEventValidationErrors = `-- name: ListEventValidationErrors :many
+WITH matched AS (
+  SELECT e.transaction_id, e.properties, m.id AS metric_id, m.aggregation_type, m.field_name, m.deleted_at
+  FROM events e
+  LEFT JOIN billable_metrics m ON m.organization_id = e.organization_id AND m.code = e.code
+  WHERE e.organization_id = $1
+    AND e.created_at >= $2::timestamptz AND e.created_at < $3::timestamptz
+)
+SELECT 'invalid_code'::text AS kind, transaction_id FROM matched WHERE metric_id IS NULL
+UNION
+SELECT 'missing_aggregation_property'::text, transaction_id FROM matched
+WHERE metric_id IS NOT NULL AND deleted_at IS NULL AND aggregation_type <> 'count'
+  AND (properties ->> field_name IS NULL
+       OR (aggregation_type IN ('sum', 'max', 'weighted_sum', 'latest')
+           AND NOT (properties ->> field_name ~ '^-?\d+(\.\d+)?$')))
+UNION
+SELECT 'invalid_filter_values'::text, mt.transaction_id FROM matched mt
+JOIN billable_metric_filters f ON f.organization_id = $1 AND f.billable_metric_id = mt.metric_id
+WHERE mt.deleted_at IS NULL AND (mt.properties -> f.key) IS NOT NULL
+  AND NOT ((mt.properties ->> f.key) = ANY (f.filter_values))
+ORDER BY kind, transaction_id
 `
 
-type ReplaceEventParams struct {
-	Code                   string
-	Timestamp              time.Time
-	Properties             json.RawMessage
-	PreciseTotalAmount     *money.Decimal
-	UpdatedAt              time.Time
-	OrganizationID         uuid.UUID
-	ExternalSubscriptionID string
-	TransactionID          string
+type ListEventValidationErrorsParams struct {
+	OrganizationID uuid.UUID
+	FromAt         time.Time
+	ToAt           time.Time
 }
 
-// Replaces the event of the deduplication key, keeping its id, ingestion
-// and creation instants and the metadata of the request that ingested it.
-func (q *Queries) ReplaceEvent(ctx context.Context, arg ReplaceEventParams) (int64, error) {
-	result, err := q.db.Exec(ctx, replaceEvent,
-		arg.Code,
-		arg.Timestamp,
-		arg.Properties,
-		arg.PreciseTotalAmount,
-		arg.UpdatedAt,
+type ListEventValidationErrorsRow struct {
+	Kind          string
+	TransactionID string
+}
+
+// The post-validation errors of the events created in [@from_at, @to_at)
+// (event.ValidationErrors, lago db/views/last_hour_events_mv_v04.sql): the
+// metrics are joined on the code alone, discarded ones included, and an
+// event whose metrics are all discarded is not checked.
+func (q *Queries) ListEventValidationErrors(ctx context.Context, arg ListEventValidationErrorsParams) ([]ListEventValidationErrorsRow, error) {
+	rows, err := q.db.Query(ctx, listEventValidationErrors, arg.OrganizationID, arg.FromAt, arg.ToAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListEventValidationErrorsRow{}
+	for rows.Next() {
+		var i ListEventValidationErrorsRow
+		if err := rows.Scan(&i.Kind, &i.TransactionID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listEvents = `-- name: ListEvents :many
+SELECT organization_id, id, transaction_id, code, external_subscription_id, timestamp, properties, precise_total_amount, ingested_at, created_at, updated_at, metadata FROM events
+WHERE organization_id = $1
+  AND ($2::text IS NULL OR code = $2)
+  AND ($3::text IS NULL OR external_subscription_id = $3)
+  AND ($4::timestamptz IS NULL OR timestamp >= $4)
+  AND ($5::timestamptz IS NULL OR timestamp <= $5)
+  AND ($6::uuid IS NULL
+       OR timestamp < $7::timestamptz
+       OR (timestamp = $7::timestamptz AND id < $6))
+ORDER BY timestamp DESC, id DESC
+LIMIT $8
+`
+
+type ListEventsParams struct {
+	OrganizationID         uuid.UUID
+	Code                   *string
+	ExternalSubscriptionID *string
+	TimestampFrom          *time.Time
+	TimestampTo            *time.Time
+	After                  *uuid.UUID
+	AfterAt                *time.Time
+	Lim                    int32
+}
+
+// Newest first: by timestamp descending, then id descending
+// (events_query.rb:22); the cursor is (@after_at, @after).
+func (q *Queries) ListEvents(ctx context.Context, arg ListEventsParams) ([]Event, error) {
+	rows, err := q.db.Query(ctx, listEvents,
 		arg.OrganizationID,
+		arg.Code,
 		arg.ExternalSubscriptionID,
-		arg.TransactionID,
+		arg.TimestampFrom,
+		arg.TimestampTo,
+		arg.After,
+		arg.AfterAt,
+		arg.Lim,
 	)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return result.RowsAffected(), nil
+	defer rows.Close()
+	items := []Event{}
+	for rows.Next() {
+		var i Event
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.TransactionID,
+			&i.Code,
+			&i.ExternalSubscriptionID,
+			&i.Timestamp,
+			&i.Properties,
+			&i.PreciseTotalAmount,
+			&i.IngestedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Metadata,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

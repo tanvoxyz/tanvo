@@ -37,7 +37,10 @@ func (d *organizationData) snapshot() *organizationData {
 }
 
 // organizationRepo implements organization.Repository.
-type organizationRepo struct{ d *organizationData }
+type organizationRepo struct {
+	d  *organizationData
+	st *state
+}
 
 func (r organizationRepo) Create(_ context.Context, o *organization.Organization) error {
 	if r.d.organizations.has(o.ID) {

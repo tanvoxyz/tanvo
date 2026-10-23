@@ -267,22 +267,54 @@ func (r webhookDeliveryRepo) ListByEndpoint(ctx context.Context, org core.Organi
 	if err != nil {
 		return core.Page[*webhook.Delivery]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	if !f.Order.Valid() {
+		return core.Page[*webhook.Delivery]{}, fmt.Errorf("list webhook deliveries: %w: order", core.ErrInvalidValue)
+	}
+	recent := f.Order == core.OrderRecent
+	var (
+		after   *uuid.UUID
+		afterAt *time.Time
+		lim     int32
+	)
+	if recent {
+		after, afterAt, lim, err = timeCursorArgs(page)
+	} else {
+		after, lim, err = pageArgs(page)
+	}
 	if err != nil {
 		return core.Page[*webhook.Delivery]{}, err
+	}
+	mins := make([]int32, 0, len(f.HTTPStatus.Ranges))
+	maxs := make([]int32, 0, len(f.HTTPStatus.Ranges))
+	for _, r := range f.HTTPStatus.Ranges {
+		mins = append(mins, int32(r.Min)) //nolint:gosec // three-digit codes
+		maxs = append(maxs, int32(r.Max)) //nolint:gosec // three-digit codes
 	}
 	rows, err := q.ListWebhookDeliveriesByEndpoint(ctx, db.ListWebhookDeliveriesByEndpointParams{
 		OrganizationID:    org.UUID(),
 		WebhookEndpointID: endpoint.UUID(),
 		Statuses:          enumStrings(f.Statuses),
 		EventTypes:        enumStrings(f.EventTypes),
+		Search:            searchArg(f.Search),
+		HttpMins:          mins,
+		HttpMaxs:          maxs,
+		HttpTimeout:       f.HTTPStatus.Timeout,
+		UpdatedFrom:       f.UpdatedFrom,
+		UpdatedTo:         f.UpdatedTo,
 		After:             after,
+		Recent:            recent,
+		AfterAt:           afterAt,
 		Lim:               lim,
 	})
 	if err != nil {
 		return core.Page[*webhook.Delivery]{}, fmt.Errorf("list webhook deliveries: %w", mapErr(err))
 	}
-	return pageOf(rows, page, webhookDeliveryOf, func(d *webhook.Delivery) string { return d.ID.String() })
+	return pageOf(rows, page, webhookDeliveryOf, func(d *webhook.Delivery) string {
+		if recent {
+			return core.Cursor{Key: d.UpdatedAt.UTC().Format(time.RFC3339Nano), ID: d.ID.UUID()}.Encode()
+		}
+		return d.ID.String()
+	})
 }
 
 // ListDue is not organization-scoped: it feeds the dispatcher sweep.
@@ -362,6 +394,23 @@ func (r domainEventRepo) Get(ctx context.Context, org core.OrganizationID, id co
 		return nil, getErr("domain_event", id, err)
 	}
 	return domainEventOf(row)
+}
+
+func (r domainEventRepo) ObjectsWithEventSince(ctx context.Context, org core.OrganizationID, t webhook.EventType, objectType string, objectIDs []uuid.UUID, since time.Time) ([]uuid.UUID, error) {
+	if len(objectIDs) == 0 {
+		return nil, nil
+	}
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.ListObjectsWithDomainEventSince(ctx, db.ListObjectsWithDomainEventSinceParams{
+		OrganizationID: org.UUID(), EventType: string(t), ObjectType: objectType, ObjectIds: objectIDs, Since: utc(since),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list objects with domain events: %w", mapErr(err))
+	}
+	return rows, nil
 }
 
 func (r domainEventRepo) ListByObject(ctx context.Context, org core.OrganizationID, objectType string, objectID uuid.UUID, page core.PageRequest) (core.Page[*webhook.Event], error) {

@@ -18,7 +18,8 @@ type Tax struct {
 	ID core.TaxID
 	// OrganizationID is the owning organization.
 	OrganizationID core.OrganizationID
-	// Code is unique in the organization, ≤ 255 characters.
+	// Code is unique among the kept taxes of the organization, ≤ 255
+	// characters.
 	Code string
 	// Name is required, ≤ 255 characters.
 	Name string
@@ -33,6 +34,10 @@ type Tax struct {
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
 	UpdatedAt time.Time
+	// DeletedAt is the instant the tax was discarded (nil while kept);
+	// a discarded one is read by ID only (lago tax.rb
+	// default_scope kept).
+	DeletedAt *time.Time
 }
 
 // Validate checks the invariants of domain §7.7.

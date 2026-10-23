@@ -160,15 +160,15 @@ func TestVersionVoid(t *testing.T) {
 // Ported from lago QuoteVersions::CloneService.
 func TestNewVersion(t *testing.T) {
 	q := &Quote{ID: quoteID}
-	v1 := FirstVersion(versionID(1), q, json.RawMessage(`{"plan":"p"}`), testNow)
+	v1 := FirstVersion(versionID(1), q, json.RawMessage(`{"plans":[]}`), testNow)
 	_ = v1.Void(VersionVoidReasonManual, testNow)
-	v2 := &Version{ID: versionID(2), QuoteID: quoteID, Version: 2, Status: VersionStatusDraft, Content: json.RawMessage(`{"plan":"q"}`)}
+	v2 := &Version{ID: versionID(2), QuoteID: quoteID, Version: 2, Status: VersionStatusDraft, BillingItems: json.RawMessage(`{"plan":"q"}`)}
 	next, superseded, err := NewVersion(versionID(3), v1, []*Version{v1, v2}, testNow)
 	if err != nil {
 		t.Fatalf("NewVersion() = %v", err)
 	}
-	if next.Version != 3 || next.Status != VersionStatusDraft || string(next.Content) != `{"plan":"p"}` {
-		t.Errorf("next = v%d %s %s, want = v3 draft cloned from v1", next.Version, next.Status, next.Content)
+	if next.Version != 3 || next.Status != VersionStatusDraft || string(next.BillingItems) != `{"plans":[]}` {
+		t.Errorf("next = v%d %s %s, want = v3 draft cloned from v1", next.Version, next.Status, next.BillingItems)
 	}
 	if superseded != v2 || v2.Status != VersionStatusVoided || v2.VoidReason != VersionVoidReasonSuperseded {
 		t.Errorf("superseded = %v, v2 = %s %s, want = v2 voided as superseded", superseded, v2.Status, v2.VoidReason)
@@ -259,7 +259,7 @@ func TestOrderFormLifecycle(t *testing.T) {
 		v.Status != VersionStatusVoided || v.VoidReason != VersionVoidReasonCascadeOfExpired {
 		t.Errorf("after Expire: form %s/%s, version %s/%s, want = expired/expired, voided/cascade_of_expired", f.Status, f.VoidReason, v.Status, v.VoidReason)
 	}
-	if err := f.Sign(nil, "", testNow); !errors.Is(err, core.ErrInvalidTransition) {
+	if err := f.Sign("", testNow); !errors.Is(err, core.ErrInvalidTransition) {
 		t.Errorf("Sign() when expired = %v, want = ErrInvalidTransition", err)
 	}
 
@@ -277,8 +277,7 @@ func TestOrderFormLifecycle(t *testing.T) {
 
 	v = approvedVersion()
 	f, _ = NewOrderForm(core.MustParseID[core.OrderFormID]("0190a0a0-0000-7000-8000-000000000012"), q, v, nil, testNow)
-	signer := "Jane Doe"
-	if err := f.Sign(&signer, "docs/signed.pdf", testNow); err != nil || f.Status != OrderFormStatusSigned || *f.SignedBy != signer {
+	if err := f.Sign("docs/signed.pdf", testNow); err != nil || f.Status != OrderFormStatusSigned || f.SignedDocument != "docs/signed.pdf" {
 		t.Fatalf("Sign() = %v, status = %s", err, f.Status)
 	}
 	if err := f.Expire(v, testNow); !errors.Is(err, core.ErrInvalidTransition) || v.Status != VersionStatusApproved {
@@ -329,7 +328,9 @@ func TestOrder(t *testing.T) {
 func TestOrderLifecycle(t *testing.T) {
 	for _, from := range OrderStatusValues() {
 		for _, to := range OrderStatusValues() {
-			want := from == OrderStatusCreated && to != OrderStatusCreated
+			// A failed order is executed again on request
+			// (app/services/orders/base_execute_service.rb:71-82).
+			want := from != OrderStatusExecuted && to != OrderStatusCreated
 			if got := CanTransitionOrder(from, to); got != want {
 				t.Errorf("CanTransitionOrder(%s, %s) = %v, want = %v", from, to, got, want)
 			}

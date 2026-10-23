@@ -104,8 +104,11 @@ func TestDelete(t *testing.T) {
 				eq(t, "status", h.ReloadCreditNote(id).Status, creditnote.StatusFinalized)
 			default:
 				must(t, err)
-				_, err := creditnotesGet(h, id)
-				wantNotFound(t, err)
+				got, err := creditnotesGet(h, id)
+				must(t, err)
+				eq(t, "status", got.Status, creditnote.StatusDeleted)
+				// A deleted credit note is no longer found, not even as a draft.
+				wantNotFound(t, svc.Delete(h.Ctx, h.OrgID(), id))
 			}
 		})
 	}

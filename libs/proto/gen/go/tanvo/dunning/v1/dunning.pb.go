@@ -34,10 +34,13 @@ const (
 // DunningThreshold is the overdue balance in one currency that starts a
 // campaign.
 type DunningThreshold struct {
-	state             protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Amount *v1.Money              `protobuf:"bytes,1,opt,name=amount"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Amount      *v1.Money              `protobuf:"bytes,1,opt,name=amount"`
+	xxx_hidden_Id          *string                `protobuf:"bytes,2,opt,name=id"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DunningThreshold) Reset() {
@@ -72,8 +75,23 @@ func (x *DunningThreshold) GetAmount() *v1.Money {
 	return nil
 }
 
+func (x *DunningThreshold) GetId() string {
+	if x != nil {
+		if x.xxx_hidden_Id != nil {
+			return *x.xxx_hidden_Id
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *DunningThreshold) SetAmount(v *v1.Money) {
 	x.xxx_hidden_Amount = v
+}
+
+func (x *DunningThreshold) SetId(v string) {
+	x.xxx_hidden_Id = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *DunningThreshold) HasAmount() bool {
@@ -83,8 +101,20 @@ func (x *DunningThreshold) HasAmount() bool {
 	return x.xxx_hidden_Amount != nil
 }
 
+func (x *DunningThreshold) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
 func (x *DunningThreshold) ClearAmount() {
 	x.xxx_hidden_Amount = nil
+}
+
+func (x *DunningThreshold) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Id = nil
 }
 
 type DunningThreshold_builder struct {
@@ -92,6 +122,10 @@ type DunningThreshold_builder struct {
 
 	// The overdue balance.
 	Amount *v1.Money
+	// The threshold's ID, ignored on create. On update, a threshold with
+	// the ID of one of the campaign's is changed in place, any other is
+	// added, and the campaign's thresholds left out are removed.
+	Id *string
 }
 
 func (b0 DunningThreshold_builder) Build() *DunningThreshold {
@@ -99,27 +133,32 @@ func (b0 DunningThreshold_builder) Build() *DunningThreshold {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Amount = b.Amount
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Id = b.Id
+	}
 	return m0
 }
 
 // DunningCampaign sends payment requests for overdue balances.
 type DunningCampaign struct {
-	state                          protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id                  *string                `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Code                *string                `protobuf:"bytes,2,opt,name=code"`
-	xxx_hidden_Name                *string                `protobuf:"bytes,3,opt,name=name"`
-	xxx_hidden_Description         *string                `protobuf:"bytes,4,opt,name=description"`
-	xxx_hidden_DaysBetweenAttempts int32                  `protobuf:"varint,5,opt,name=days_between_attempts,json=daysBetweenAttempts"`
-	xxx_hidden_MaxAttempts         int32                  `protobuf:"varint,6,opt,name=max_attempts,json=maxAttempts"`
-	xxx_hidden_BccEmails           []string               `protobuf:"bytes,7,rep,name=bcc_emails,json=bccEmails"`
-	xxx_hidden_Thresholds          *[]*DunningThreshold   `protobuf:"bytes,8,rep,name=thresholds"`
-	xxx_hidden_CustomersCount      int32                  `protobuf:"varint,9,opt,name=customers_count,json=customersCount"`
-	xxx_hidden_CreatedAt           *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt"`
-	xxx_hidden_UpdatedAt           *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt"`
-	XXX_raceDetectHookData         protoimpl.RaceDetectHookData
-	XXX_presence                   [1]uint32
-	unknownFields                  protoimpl.UnknownFields
-	sizeCache                      protoimpl.SizeCache
+	state                            protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id                    *string                `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Code                  *string                `protobuf:"bytes,2,opt,name=code"`
+	xxx_hidden_Name                  *string                `protobuf:"bytes,3,opt,name=name"`
+	xxx_hidden_Description           *string                `protobuf:"bytes,4,opt,name=description"`
+	xxx_hidden_DaysBetweenAttempts   int32                  `protobuf:"varint,5,opt,name=days_between_attempts,json=daysBetweenAttempts"`
+	xxx_hidden_MaxAttempts           int32                  `protobuf:"varint,6,opt,name=max_attempts,json=maxAttempts"`
+	xxx_hidden_BccEmails             []string               `protobuf:"bytes,7,rep,name=bcc_emails,json=bccEmails"`
+	xxx_hidden_Thresholds            *[]*DunningThreshold   `protobuf:"bytes,8,rep,name=thresholds"`
+	xxx_hidden_CustomersCount        int32                  `protobuf:"varint,9,opt,name=customers_count,json=customersCount"`
+	xxx_hidden_CreatedAt             *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt             *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_AppliedToOrganization bool                   `protobuf:"varint,12,opt,name=applied_to_organization,json=appliedToOrganization"`
+	XXX_raceDetectHookData           protoimpl.RaceDetectHookData
+	XXX_presence                     [1]uint32
+	unknownFields                    protoimpl.UnknownFields
+	sizeCache                        protoimpl.SizeCache
 }
 
 func (x *DunningCampaign) Reset() {
@@ -238,34 +277,41 @@ func (x *DunningCampaign) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *DunningCampaign) GetAppliedToOrganization() bool {
+	if x != nil {
+		return x.xxx_hidden_AppliedToOrganization
+	}
+	return false
+}
+
 func (x *DunningCampaign) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 12)
 }
 
 func (x *DunningCampaign) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 12)
 }
 
 func (x *DunningCampaign) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 12)
 }
 
 func (x *DunningCampaign) SetDescription(v string) {
 	x.xxx_hidden_Description = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 12)
 }
 
 func (x *DunningCampaign) SetDaysBetweenAttempts(v int32) {
 	x.xxx_hidden_DaysBetweenAttempts = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 12)
 }
 
 func (x *DunningCampaign) SetMaxAttempts(v int32) {
 	x.xxx_hidden_MaxAttempts = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 12)
 }
 
 func (x *DunningCampaign) SetBccEmails(v []string) {
@@ -278,7 +324,7 @@ func (x *DunningCampaign) SetThresholds(v []*DunningThreshold) {
 
 func (x *DunningCampaign) SetCustomersCount(v int32) {
 	x.xxx_hidden_CustomersCount = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 12)
 }
 
 func (x *DunningCampaign) SetCreatedAt(v *timestamppb.Timestamp) {
@@ -287,6 +333,11 @@ func (x *DunningCampaign) SetCreatedAt(v *timestamppb.Timestamp) {
 
 func (x *DunningCampaign) SetUpdatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_UpdatedAt = v
+}
+
+func (x *DunningCampaign) SetAppliedToOrganization(v bool) {
+	x.xxx_hidden_AppliedToOrganization = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 12)
 }
 
 func (x *DunningCampaign) HasId() bool {
@@ -352,6 +403,13 @@ func (x *DunningCampaign) HasUpdatedAt() bool {
 	return x.xxx_hidden_UpdatedAt != nil
 }
 
+func (x *DunningCampaign) HasAppliedToOrganization() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
+}
+
 func (x *DunningCampaign) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -395,6 +453,11 @@ func (x *DunningCampaign) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = nil
 }
 
+func (x *DunningCampaign) ClearAppliedToOrganization() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
+	x.xxx_hidden_AppliedToOrganization = false
+}
+
 type DunningCampaign_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -420,6 +483,11 @@ type DunningCampaign_builder struct {
 	CreatedAt *timestamppb.Timestamp
 	// When the campaign last changed.
 	UpdatedAt *timestamppb.Timestamp
+	// Whether the organization's default billing entity applies the
+	// campaign. Setting it on create or update applies the campaign to it,
+	// or, when false on update, removes it if applied, resetting the dunning
+	// attempts of the customers falling back to it.
+	AppliedToOrganization *bool
 }
 
 func (b0 DunningCampaign_builder) Build() *DunningCampaign {
@@ -427,37 +495,41 @@ func (b0 DunningCampaign_builder) Build() *DunningCampaign {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 12)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 12)
 		x.xxx_hidden_Code = b.Code
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 12)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Description != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 12)
 		x.xxx_hidden_Description = b.Description
 	}
 	if b.DaysBetweenAttempts != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 12)
 		x.xxx_hidden_DaysBetweenAttempts = *b.DaysBetweenAttempts
 	}
 	if b.MaxAttempts != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 12)
 		x.xxx_hidden_MaxAttempts = *b.MaxAttempts
 	}
 	x.xxx_hidden_BccEmails = b.BccEmails
 	x.xxx_hidden_Thresholds = &b.Thresholds
 	if b.CustomersCount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 12)
 		x.xxx_hidden_CustomersCount = *b.CustomersCount
 	}
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
+	if b.AppliedToOrganization != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 12)
+		x.xxx_hidden_AppliedToOrganization = *b.AppliedToOrganization
+	}
 	return m0
 }
 
@@ -901,7 +973,8 @@ type ListDunningCampaignsRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `currency` (campaigns with a threshold in it).
+	// An AIP-160 filter over `currency` (campaigns with a threshold in it)
+	// and `applied_to_organization` (true or false).
 	Filter *string
 	// A search over the name and code.
 	Search *string
@@ -1322,10 +1395,11 @@ var File_tanvo_dunning_v1_dunning_proto protoreflect.FileDescriptor
 
 const file_tanvo_dunning_v1_dunning_proto_rawDesc = "" +
 	"\n" +
-	"\x1etanvo/dunning/v1/dunning.proto\x12\x10tanvo.dunning.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"N\n" +
+	"\x1etanvo/dunning/v1/dunning.proto\x12\x10tanvo.dunning.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"h\n" +
 	"\x10DunningThreshold\x12:\n" +
 	"\x06amount\x18\x01 \x01(\v2\x16.tanvo.common.v1.MoneyB\n" +
-	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x06amount\"\x94\x06\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x06amount\x12\x18\n" +
+	"\x02id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\"\xcc\x06\n" +
 	"\x0fDunningCampaign\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12#\n" +
 	"\x04code\x18\x02 \x01(\tB\x0f\xe2A\x02\x02\x05\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x04code\x12\"\n" +
@@ -1344,7 +1418,8 @@ const file_tanvo_dunning_v1_dunning_proto_rawDesc = "" +
 	"created_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:g\xeaAd\n" +
+	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x126\n" +
+	"\x17applied_to_organization\x18\f \x01(\bR\x15appliedToOrganization:g\xeaAd\n" +
 	"\x19tanvo.xyz/DunningCampaign\x12$dunning_campaigns/{dunning_campaign}*\x10dunningCampaigns2\x0fdunningCampaign\"\xbc\x03\n" +
 	"\x1cCreateDunningCampaignRequest\x12X\n" +
 	"\x10dunning_campaign\x18\x01 \x01(\v2!.tanvo.dunning.v1.DunningCampaignB\n" +

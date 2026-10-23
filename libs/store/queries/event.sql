@@ -25,14 +25,46 @@ WHERE organization_id = @organization_id AND external_subscription_id = @externa
 SELECT * FROM events WHERE organization_id = @organization_id AND transaction_id = @transaction_id
 ORDER BY ingested_at, id LIMIT 1;
 
--- name: ReplaceEvent :execrows
--- Replaces the event of the deduplication key, keeping its id, ingestion
--- and creation instants and the metadata of the request that ingested it.
-UPDATE events SET
-  code = @code, timestamp = @timestamp,
-  properties = @properties, precise_total_amount = @precise_total_amount,
-  updated_at = @updated_at
-WHERE organization_id = @organization_id AND external_subscription_id = @external_subscription_id AND transaction_id = @transaction_id;
+-- name: ListEvents :many
+-- Newest first: by timestamp descending, then id descending
+-- (events_query.rb:22); the cursor is (@after_at, @after).
+SELECT * FROM events
+WHERE organization_id = @organization_id
+  AND (sqlc.narg(code)::text IS NULL OR code = sqlc.narg(code))
+  AND (sqlc.narg(external_subscription_id)::text IS NULL OR external_subscription_id = sqlc.narg(external_subscription_id))
+  AND (sqlc.narg(timestamp_from)::timestamptz IS NULL OR timestamp >= sqlc.narg(timestamp_from))
+  AND (sqlc.narg(timestamp_to)::timestamptz IS NULL OR timestamp <= sqlc.narg(timestamp_to))
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR timestamp < sqlc.narg(after_at)::timestamptz
+       OR (timestamp = sqlc.narg(after_at)::timestamptz AND id < sqlc.narg(after)))
+ORDER BY timestamp DESC, id DESC
+LIMIT @lim;
+
+-- name: ListEventValidationErrors :many
+-- The post-validation errors of the events created in [@from_at, @to_at)
+-- (event.ValidationErrors, lago db/views/last_hour_events_mv_v04.sql): the
+-- metrics are joined on the code alone, discarded ones included, and an
+-- event whose metrics are all discarded is not checked.
+WITH matched AS (
+  SELECT e.transaction_id, e.properties, m.id AS metric_id, m.aggregation_type, m.field_name, m.deleted_at
+  FROM events e
+  LEFT JOIN billable_metrics m ON m.organization_id = e.organization_id AND m.code = e.code
+  WHERE e.organization_id = @organization_id
+    AND e.created_at >= @from_at::timestamptz AND e.created_at < @to_at::timestamptz
+)
+SELECT 'invalid_code'::text AS kind, transaction_id FROM matched WHERE metric_id IS NULL
+UNION
+SELECT 'missing_aggregation_property'::text, transaction_id FROM matched
+WHERE metric_id IS NOT NULL AND deleted_at IS NULL AND aggregation_type <> 'count'
+  AND (properties ->> field_name IS NULL
+       OR (aggregation_type IN ('sum', 'max', 'weighted_sum', 'latest')
+           AND NOT (properties ->> field_name ~ '^-?\d+(\.\d+)?$')))
+UNION
+SELECT 'invalid_filter_values'::text, mt.transaction_id FROM matched mt
+JOIN billable_metric_filters f ON f.organization_id = @organization_id AND f.billable_metric_id = mt.metric_id
+WHERE mt.deleted_at IS NULL AND (mt.properties -> f.key) IS NOT NULL
+  AND NOT ((mt.properties ->> f.key) = ANY (f.filter_values))
+ORDER BY kind, transaction_id;
 
 -- name: CreateCachedAggregation :execrows
 INSERT INTO cached_aggregations (

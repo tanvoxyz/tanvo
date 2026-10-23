@@ -169,13 +169,23 @@ type Repository interface {
 	// ListByIDs returns the invoices with these IDs in creation order;
 	// unknown IDs are ignored.
 	ListByIDs(ctx context.Context, org core.OrganizationID, ids []core.InvoiceID) ([]*Invoice, error)
+	// GetRegenerated returns the invoice regenerated from the voided
+	// invoice voided (the one whose VoidedInvoiceID it is), or
+	// core.ErrNotFound.
+	GetRegenerated(ctx context.Context, org core.OrganizationID, voided core.InvoiceID) (*Invoice, error)
 	// ListDraftsToFinalize returns the drafts whose expected finalization
 	// date is on or before date (or unset), across all customers.
 	ListDraftsToFinalize(ctx context.Context, org core.OrganizationID, date core.Date) ([]*Invoice, error)
 	// ListRefreshRequested returns the drafts flagged for refresh.
 	ListRefreshRequested(ctx context.Context, org core.OrganizationID) ([]*Invoice, error)
+	// RequestRefreshByMetric flags for refresh every draft billing a
+	// subscription whose plan has a charge on the metric, and returns how
+	// many drafts it flagged (lago Invoice.draft.joins(plans:
+	// :billable_metrics)).
+	RequestRefreshByMetric(ctx context.Context, org core.OrganizationID, metric core.BillableMetricID) (int, error)
 	// ListOverdueCandidates returns the finalized, not-overdue invoices not
-	// fully paid whose payment due date is before date.
+	// fully paid and without a lost dispute whose payment due date is
+	// before date ([Invoice.OverdueCandidate]), in ID order.
 	ListOverdueCandidates(ctx context.Context, org core.OrganizationID, date core.Date) ([]*Invoice, error)
 	// NextSequentialID returns the next per-(customer, billing entity)
 	// sequence: 1 + the largest assigned one.
@@ -213,6 +223,9 @@ type SubscriptionRepository interface {
 	Last(ctx context.Context, org core.OrganizationID, subscription core.SubscriptionID) (*Subscription, error)
 	// DeleteByInvoice deletes the rows of one invoice.
 	DeleteByInvoice(ctx context.Context, org core.OrganizationID, invoice core.InvoiceID) error
+	// MarkRegenerated sets the RegeneratedInvoiceID of the rows of the
+	// voided invoice to regenerated, releasing their keys.
+	MarkRegenerated(ctx context.Context, org core.OrganizationID, invoice, regenerated core.InvoiceID) error
 }
 
 // FeeFilter narrows [FeeRepository.List]; zero fields do not filter.
@@ -225,6 +238,51 @@ type FeeFilter struct {
 	ChargeID core.ChargeID
 	// Types keeps the fees of one of these types.
 	Types []core.FeeType
+	// PaymentStatuses keeps the fees in one of these payment statuses.
+	PaymentStatuses []FeePaymentStatus
+	// Currency keeps the fees in that currency.
+	Currency money.Currency
+	// CustomerID keeps the fees of one customer: the customer of their
+	// invoice, or of their subscription for fees not invoiced (lago
+	// Fee.from_customer).
+	CustomerID core.CustomerID
+	// CustomerExternalID keeps the fees of the non-deleted customer with
+	// that external ID, as CustomerID does.
+	CustomerExternalID string
+	// SubscriptionExternalID keeps the fees of the subscriptions with that
+	// external ID.
+	SubscriptionExternalID string
+	// BillableMetricCode keeps the charge fees whose charge prices a metric
+	// (deleted or not) with that code.
+	BillableMetricCode string
+	// EventTransactionID keeps the in-advance fees created for that event
+	// transaction ID.
+	EventTransactionID string
+	// CreatedFrom and CreatedTo keep the fees created in [from, to], each
+	// bound unset when zero.
+	CreatedFrom, CreatedTo time.Time
+	// SucceededFrom and SucceededTo bound SucceededAt likewise.
+	SucceededFrom, SucceededTo time.Time
+	// FailedFrom and FailedTo bound FailedAt likewise.
+	FailedFrom, FailedTo time.Time
+	// RefundedFrom and RefundedTo bound RefundedAt likewise.
+	RefundedFrom, RefundedTo time.Time
+}
+
+// Validate checks the declared enumeration values and the currency of the
+// filter.
+func (f FeeFilter) Validate() error {
+	var v core.Validator
+	for i, t := range f.Types {
+		v.Enum(fmt.Sprintf("fee_type[%d]", i), t)
+	}
+	for i, s := range f.PaymentStatuses {
+		v.Enum(fmt.Sprintf("payment_status[%d]", i), s)
+	}
+	if !f.Currency.IsZero() {
+		v.Currency("currency", f.Currency)
+	}
+	return v.Err()
 }
 
 // FeeRepository stores fees with their applied taxes. Every method is
@@ -236,8 +294,14 @@ type FeeRepository interface {
 	Update(ctx context.Context, f *Fee) error
 	// Get returns the fee id of org, or core.ErrNotFound.
 	Get(ctx context.Context, org core.OrganizationID, id core.FeeID) (*Fee, error)
-	// List returns the fees matching f in creation order.
+	// List returns the fees matching f in creation order; an invalid
+	// filter fails with core.ErrInvalidValue.
 	List(ctx context.Context, org core.OrganizationID, f FeeFilter, page core.PageRequest) (core.Page[*Fee], error)
+	// Discard discards the fee id not attached to an invoice at the
+	// instant at, after which no read returns it; an invoiced fee fails
+	// with core.ErrConflict and a missing or discarded one with
+	// core.ErrNotFound.
+	Discard(ctx context.Context, org core.OrganizationID, id core.FeeID, at time.Time) error
 	// ListByInvoice returns all fees of one invoice in creation order.
 	ListByInvoice(ctx context.Context, org core.OrganizationID, invoice core.InvoiceID) ([]*Fee, error)
 	// ListBySubscriptionPeriod returns the fees of a subscription whose
@@ -305,8 +369,14 @@ type CustomSectionRepository interface {
 	ListByIDs(ctx context.Context, org core.OrganizationID, ids []core.InvoiceCustomSectionID) ([]*CustomSection, error)
 	// List returns the organization's sections in creation order.
 	List(ctx context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*CustomSection], error)
-	// Delete deletes the section id, or fails with core.ErrNotFound.
-	Delete(ctx context.Context, org core.OrganizationID, id core.InvoiceCustomSectionID) error
+	// ListManual returns the organization's manual sections by name (byte
+	// order), then newest first, then by ID: the list of the API.
+	ListManual(ctx context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*CustomSection], error)
+	// Delete soft-deletes the live section id at at and removes it from
+	// the selections of billing entities, customers and subscriptions, or
+	// fails with core.ErrNotFound. Every other method sees live sections
+	// only, and a live section's code is unique.
+	Delete(ctx context.Context, org core.OrganizationID, id core.InvoiceCustomSectionID, at time.Time) error
 }
 
 // ErrorDetailRepository stores invoice error details.

@@ -1,9 +1,11 @@
 -- Integrations, integration customers, mappings, items, resources (domain §17).
 
--- An integration is unique per organization by code, and is the default of
--- its category at most once. Settings are the non-secret provider settings
--- (a JSON object); secrets are the encrypted credentials, opaque to the
--- store.
+-- An integration's code is unique per organization among the live payment
+-- providers, and among the other integrations; an integration is the
+-- default of its category at most once. Payment providers are discarded
+-- (deleted_at) rather than deleted, as payments keep referencing them.
+-- Settings are the non-secret provider settings (a JSON object); secrets
+-- are the encrypted credentials, opaque to the store.
 CREATE TABLE integrations (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -20,14 +22,16 @@ CREATE TABLE integrations (
   sync_subscriptions boolean NOT NULL DEFAULT false,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
+  deleted_at timestamptz,
   PRIMARY KEY (organization_id, id),
   CONSTRAINT integrations_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
-  CONSTRAINT integrations_code_key UNIQUE (organization_id, code),
   CONSTRAINT integrations_category_check CHECK (category IN ('payment', 'accounting', 'tax', 'crm', 'auth')),
   CONSTRAINT integrations_provider_check CHECK (provider IN ('stripe', 'adyen', 'gocardless', 'cashfree', 'moneyhash', 'flutterwave', 'netsuite', 'xero', 'anrok', 'avalara', 'hubspot', 'salesforce', 'okta', 'entra_id', 'oidc'))
 );
 
-CREATE UNIQUE INDEX integrations_default_key ON integrations (organization_id, category) WHERE is_default;
+CREATE UNIQUE INDEX integrations_payment_code_key ON integrations (organization_id, code) WHERE category = 'payment' AND deleted_at IS NULL;
+CREATE UNIQUE INDEX integrations_other_code_key ON integrations (organization_id, code) WHERE category <> 'payment';
+CREATE UNIQUE INDEX integrations_default_key ON integrations (organization_id, category) WHERE is_default AND deleted_at IS NULL;
 CREATE INDEX integrations_provider_idx ON integrations (organization_id, provider);
 -- Single sign-on routes an email domain to the auth integrations claiming it
 -- in any organization (ListIntegrationsByDomain).

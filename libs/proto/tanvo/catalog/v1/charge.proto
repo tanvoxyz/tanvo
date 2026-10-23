@@ -116,6 +116,19 @@ service ChargeService {
     };
   }
 
+  // Returns one filter of a charge.
+  rpc GetChargeFilter(GetChargeFilterRequest) returns (GetChargeFilterResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/plans/{plan_id}/charges/{charge_id}/filters/{filter_id}"
+      additional_bindings: {get: "/v1/subscriptions/{subscription_id}/charges/{charge_id}/filters/{filter_id}"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:read"
+      api_resource: "plan"
+    };
+  }
+
   // Updates a charge filter.
   rpc UpdateChargeFilter(UpdateChargeFilterRequest) returns (UpdateChargeFilterResponse) {
     option (google.api.http) = {
@@ -372,13 +385,11 @@ message ChargeFilter {
   // The generated code (slug and hash of the values).
   string code = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
   // The matched values per metric filter key; `__ALL_FILTER_VALUES__`
-  // matches every value of the key.
+  // matches every value of the key. Required on create; an update leaves
+  // them unchanged.
   map<string, FilterValues> values = 3 [
     (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).map = {
-      min_pairs: 1
-      max_pairs: 50
-    }
+    (buf.validate.field).map.max_pairs = 50
   ];
   // The prices of matched events.
   ChargeProperties properties = 4 [(google.api.field_behavior) = REQUIRED];
@@ -674,6 +685,38 @@ message ListChargeFiltersResponse {
   repeated ChargeFilter filters = 1;
   // The token of the next page; empty on the last page.
   string next_page_token = 2;
+}
+
+// GetChargeFilterRequest is the request of ChargeService.GetChargeFilter.
+message GetChargeFilterRequest {
+  option (buf.validate.message).cel = {
+    id: "charge.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The charge's ID or `code:<code>`.
+  string charge_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The filter's ID.
+  string filter_id = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetChargeFilterResponse is the response of ChargeService.GetChargeFilter.
+message GetChargeFilterResponse {
+  // The filter.
+  ChargeFilter filter = 1;
 }
 
 // UpdateChargeFilterRequest is the request of ChargeService.UpdateChargeFilter.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/event"
@@ -171,21 +172,59 @@ func (r eventLogRepo) Get(ctx context.Context, org core.OrganizationID, external
 	return eventOf(row)
 }
 
-func (r eventLogRepo) Replace(ctx context.Context, e *event.Event) error {
-	q, err := r.t.queries(ctx, e.OrganizationID)
+func (r eventLogRepo) List(ctx context.Context, org core.OrganizationID, f event.ListFilter, page core.PageRequest) (core.Page[*event.Event], error) {
+	q, err := r.t.queries(ctx, org)
 	if err != nil {
-		return err
+		return core.Page[*event.Event]{}, err
 	}
-	p := eventParams(e)
-	n, err := q.ReplaceEvent(ctx, db.ReplaceEventParams{
-		Code:                   p.Code,
-		Timestamp:              p.Timestamp,
-		Properties:             p.Properties,
-		PreciseTotalAmount:     p.PreciseTotalAmount,
-		UpdatedAt:              p.UpdatedAt,
-		OrganizationID:         p.OrganizationID,
-		ExternalSubscriptionID: p.ExternalSubscriptionID,
-		TransactionID:          p.TransactionID,
+	after, afterAt, lim, err := timeCursorArgs(page)
+	if err != nil {
+		return core.Page[*event.Event]{}, err
+	}
+	p := db.ListEventsParams{OrganizationID: org.UUID(), After: after, AfterAt: afterAt, Lim: lim}
+	if f.Code != "" {
+		p.Code = &f.Code
+	}
+	if f.ExternalSubscriptionID != "" {
+		p.ExternalSubscriptionID = &f.ExternalSubscriptionID
+	}
+	if f.TimestampFrom != nil {
+		t := utc(*f.TimestampFrom)
+		p.TimestampFrom = &t
+	}
+	if f.TimestampTo != nil {
+		t := utc(*f.TimestampTo)
+		p.TimestampTo = &t
+	}
+	rows, err := q.ListEvents(ctx, p)
+	if err != nil {
+		return core.Page[*event.Event]{}, fmt.Errorf("list events: %w", mapErr(err))
+	}
+	return pageOf(rows, page, eventOf, func(e *event.Event) string {
+		return core.Cursor{Key: e.Timestamp.UTC().Format(time.RFC3339Nano), ID: e.ID.UUID()}.Encode()
 	})
-	return updateErr("event", e.TransactionID, n, err)
+}
+
+func (r eventLogRepo) ValidationErrors(ctx context.Context, org core.OrganizationID, from, to time.Time) (event.ValidationErrors, error) {
+	var out event.ValidationErrors
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return out, err
+	}
+	rows, err := q.ListEventValidationErrors(ctx, db.ListEventValidationErrorsParams{OrganizationID: org.UUID(), FromAt: from.UTC(), ToAt: to.UTC()})
+	if err != nil {
+		return out, fmt.Errorf("list event validation errors: %w", mapErr(err))
+	}
+	for _, x := range rows {
+		switch x.Kind {
+		case "invalid_code":
+			out.InvalidCode = append(out.InvalidCode, x.TransactionID)
+		case "missing_aggregation_property":
+			out.MissingAggregationProperty = append(out.MissingAggregationProperty, x.TransactionID)
+		case "invalid_filter_values":
+			out.InvalidFilterValues = append(out.InvalidFilterValues, x.TransactionID)
+		}
+	}
+	out.Normalize()
+	return out, nil
 }

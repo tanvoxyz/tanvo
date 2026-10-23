@@ -104,6 +104,18 @@ service AlertService {
     };
   }
 
+  // Deletes every alert of a subscription or a wallet.
+  rpc DeleteAlerts(DeleteAlertsRequest) returns (DeleteAlertsResponse) {
+    option (google.api.http) = {
+      delete: "/v1/subscriptions/{subscription_id}/alerts"
+      additional_bindings: {delete: "/v1/wallets/{wallet_id}/alerts"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "subscriptions:update"
+      api_resource: "alert"
+    };
+  }
+
   // Lists the times alerts were triggered, newest first.
   rpc ListTriggeredAlerts(ListTriggeredAlertsRequest) returns (ListTriggeredAlertsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
@@ -417,6 +429,23 @@ message DeleteAlertRequest {
 
 // DeleteAlertResponse is the response of AlertService.DeleteAlert.
 message DeleteAlertResponse {}
+
+// DeleteAlertsRequest is the request of AlertService.DeleteAlerts.
+message DeleteAlertsRequest {
+  option (buf.validate.message).cel = {
+    id: "alert.owner"
+    message: "set exactly one of subscription_id and wallet_id"
+    expression: "has(this.subscription_id) != has(this.wallet_id)"
+  };
+
+  // The subscription's ID or `external_id:<external_id>`.
+  string subscription_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The wallet's ID.
+  string wallet_id = 2 [(buf.validate.field).string.uuid = true];
+}
+
+// DeleteAlertsResponse is the response of AlertService.DeleteAlerts.
+message DeleteAlertsResponse {}
 
 // ListTriggeredAlertsRequest is the request of AlertService.ListTriggeredAlerts.
 message ListTriggeredAlertsRequest {

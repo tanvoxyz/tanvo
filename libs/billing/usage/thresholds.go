@@ -158,9 +158,11 @@ func (s *Service) CheckThresholds(ctx context.Context, r port.Repos, sub *subscr
 
 // RefreshAndCheck recomputes the lifetime usage of subscription id, then
 // checks its thresholds (lago LifetimeUsages::RecalculateAndCheckJob,
-// without the invoice).
-func (s *Service) RefreshAndCheck(ctx context.Context, r port.Repos, org core.OrganizationID, id core.SubscriptionID) (Crossing, error) {
-	lu, err := s.RefreshLifetimeUsage(ctx, r, org, id, nil)
+// without the invoice). current is the current usage already computed
+// without taxes, or nil to compute it (lago recalculate_and_check_job.rb:27,
+// current_usage:).
+func (s *Service) RefreshAndCheck(ctx context.Context, r port.Repos, org core.OrganizationID, id core.SubscriptionID, current *Usage) (Crossing, error) {
+	lu, err := s.RefreshLifetimeUsage(ctx, r, org, id, current)
 	if err != nil {
 		return Crossing{}, err
 	}

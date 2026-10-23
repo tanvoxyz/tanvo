@@ -42,9 +42,6 @@ const (
 	// DataExportServiceExportCreditNoteItemsProcedure is the procedure name of the DataExportService's
 	// ExportCreditNoteItems RPC.
 	DataExportServiceExportCreditNoteItemsProcedure = "/tanvo.export.v1.DataExportService/ExportCreditNoteItems"
-	// DataExportServiceGetDataExportProcedure is the procedure name of the DataExportService's
-	// GetDataExport RPC.
-	DataExportServiceGetDataExportProcedure = "/tanvo.export.v1.DataExportService/GetDataExport"
 )
 
 var (
@@ -76,14 +73,6 @@ var (
 			Procedure:  DataExportServiceExportCreditNoteItemsProcedure,
 		}
 	})
-	dataExportServiceGetDataExportSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType:       connect.StreamTypeUnary,
-			Schema:           v1.File_tanvo_export_v1_export_proto.Services().ByName("DataExportService").Methods().ByName("GetDataExport"),
-			Procedure:        DataExportServiceGetDataExportProcedure,
-			IdempotencyLevel: connect.IdempotencyNoSideEffects,
-		}
-	})
 )
 
 // DataExportServiceClient is a client for the tanvo.export.v1.DataExportService service.
@@ -96,9 +85,6 @@ type DataExportServiceClient interface {
 	ExportCreditNotes(context.Context, *v1.ExportCreditNotesRequest) (*v1.ExportCreditNotesResponse, error)
 	// Exports the items of the credit notes matching a filter.
 	ExportCreditNoteItems(context.Context, *v1.ExportCreditNoteItemsRequest) (*v1.ExportCreditNoteItemsResponse, error)
-	// Returns an export and, once completed, a signed URL of its file. Only
-	// the member who started it can read it.
-	GetDataExport(context.Context, *v1.GetDataExportRequest) (*v1.GetDataExportResponse, error)
 }
 
 // NewDataExportServiceClient constructs a client for the tanvo.export.v1.DataExportService service.
@@ -117,9 +103,6 @@ type DataExportServiceHandler interface {
 	ExportCreditNotes(context.Context, *v1.ExportCreditNotesRequest) (*v1.ExportCreditNotesResponse, error)
 	// Exports the items of the credit notes matching a filter.
 	ExportCreditNoteItems(context.Context, *v1.ExportCreditNoteItemsRequest) (*v1.ExportCreditNoteItemsResponse, error)
-	// Returns an export and, once completed, a signed URL of its file. Only
-	// the member who started it can read it.
-	GetDataExport(context.Context, *v1.GetDataExportRequest) (*v1.GetDataExportResponse, error)
 }
 
 // RegisterDataExportServiceHandler registers svc as the tanvo.export.v1.DataExportService
@@ -131,7 +114,6 @@ func RegisterDataExportServiceHandler(server *connect.Server, svc DataExportServ
 		connect.Method{Spec: dataExportServiceExportInvoiceFeesSpec(), Handler: adapter.exportInvoiceFees},
 		connect.Method{Spec: dataExportServiceExportCreditNotesSpec(), Handler: adapter.exportCreditNotes},
 		connect.Method{Spec: dataExportServiceExportCreditNoteItemsSpec(), Handler: adapter.exportCreditNoteItems},
-		connect.Method{Spec: dataExportServiceGetDataExportSpec(), Handler: adapter.getDataExport},
 	)
 }
 
@@ -152,10 +134,6 @@ func (UnimplementedDataExportServiceHandler) ExportCreditNotes(context.Context, 
 
 func (UnimplementedDataExportServiceHandler) ExportCreditNoteItems(context.Context, *v1.ExportCreditNoteItemsRequest) (*v1.ExportCreditNoteItemsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.export.v1.DataExportService.ExportCreditNoteItems is not implemented")
-}
-
-func (UnimplementedDataExportServiceHandler) GetDataExport(context.Context, *v1.GetDataExportRequest) (*v1.GetDataExportResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.export.v1.DataExportService.GetDataExport is not implemented")
 }
 
 type dataExportServiceClient struct {
@@ -189,14 +167,6 @@ func (c *dataExportServiceClient) ExportCreditNotes(ctx context.Context, req *v1
 func (c *dataExportServiceClient) ExportCreditNoteItems(ctx context.Context, req *v1.ExportCreditNoteItemsRequest) (*v1.ExportCreditNoteItemsResponse, error) {
 	var res v1.ExportCreditNoteItemsResponse
 	if err := c.client.CallUnary(ctx, dataExportServiceExportCreditNoteItemsSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *dataExportServiceClient) GetDataExport(ctx context.Context, req *v1.GetDataExportRequest) (*v1.GetDataExportResponse, error) {
-	var res v1.GetDataExportResponse
-	if err := c.client.CallUnary(ctx, dataExportServiceGetDataExportSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -246,18 +216,6 @@ func (h dataExportServiceHandler) exportCreditNoteItems(ctx context.Context, _ c
 		return err
 	}
 	res, err := h.svc.ExportCreditNoteItems(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h dataExportServiceHandler) getDataExport(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.GetDataExportRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.GetDataExport(ctx, &req)
 	if err != nil {
 		return err
 	}

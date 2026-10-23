@@ -16,6 +16,12 @@ const (
 	JobBillSubscriptions = "billing.bill_subscriptions"
 	// JobBillSubscription bills a group of subscriptions of one customer.
 	JobBillSubscription = "billing.bill_subscription"
+	// JobRetryGeneratingInvoices enqueues a [JobBillSubscription] for every
+	// subscription invoice of an organization left generating a day
+	// before the clock instant (lago
+	// Clock::RetryGeneratingSubscriptionInvoicesJob); its args are
+	// [InstantArgs].
+	JobRetryGeneratingInvoices = "billing.retry_generating_invoices"
 	// JobFinalizeDraft finalizes a draft invoice whose grace period ended.
 	JobFinalizeDraft = "billing.finalize_draft"
 	// JobRefreshDraft recomputes a draft invoice.
@@ -23,7 +29,7 @@ const (
 	// JobCreateInAdvanceChargeFees bills an event of pay-in-advance
 	// charges.
 	JobCreateInAdvanceChargeFees = "billing.create_in_advance_charge_fees"
-	// JobPullProviderTaxes retries the taxes of an invoice waiting for its
+	// JobPullProviderTaxes pulls the taxes of an invoice waiting for its
 	// tax provider.
 	JobPullProviderTaxes = "billing.pull_provider_taxes"
 	// JobVoidProviderTaxes tells the tax provider a finalized invoice was
@@ -58,6 +64,17 @@ const (
 	JobFinalizeDueDrafts = "billing.finalize_due_drafts"
 	// JobRefreshFlaggedDrafts refreshes the drafts flagged for refresh.
 	JobRefreshFlaggedDrafts = "billing.refresh_flagged_drafts"
+	// JobRetryTaxFailedInvoices retries the failed invoices of an
+	// organization whose tax error tells of the tax provider's API limit
+	// (lago Clock::RetryFailedInvoicesJob).
+	JobRetryTaxFailedInvoices = "billing.retry_tax_failed_invoices"
+	// JobRetryInvoices retries the failed invoices of an organization
+	// listed in its [InvoiceIDsArgs] (lago Invoices::RetryAllJob).
+	JobRetryInvoices = "billing.retry_invoices"
+	// JobRetryInvoicePayments retries the payments of the invoices of an
+	// organization listed in its [InvoiceIDsArgs] (lago
+	// Invoices::Payments::RetryAllJob).
+	JobRetryInvoicePayments = "billing.retry_invoice_payments"
 
 	// JobCreateInvoicePayment collects the payment of a finalized invoice.
 	JobCreateInvoicePayment = "payments.create_invoice_payment"
@@ -94,6 +111,19 @@ type InvoiceArgs struct {
 	// from the sweep's instant, not from when a worker ran it. Zero means
 	// the worker's clock.
 	At time.Time `json:"at,omitzero"`
+	// PaymentMethodType and PaymentMethodID override the payment method
+	// of a [JobCreateInvoicePayment] retried with one (lago
+	// PaymentMethods::DetermineService payment_method_params); zero
+	// derives it from the invoice.
+	PaymentMethodType core.PaymentMethodType `json:"payment_method_type,omitempty"`
+	// PaymentMethodID is the override payment method.
+	PaymentMethodID core.PaymentMethodID `json:"payment_method_id,omitzero"`
+}
+
+// InvoiceIDsArgs are the args of jobs about several invoices.
+type InvoiceIDsArgs struct {
+	// InvoiceIDs are the invoices.
+	InvoiceIDs []core.InvoiceID `json:"invoice_ids"`
 }
 
 // CreditNoteArgs are the args of jobs about one credit note.
@@ -143,12 +173,34 @@ type InstantArgs struct {
 // QueueOf returns the queue of a job kind.
 func QueueOf(kind string) port.Queue {
 	switch kind {
-	case JobCreateInvoicePayment:
+	case JobCreateInvoicePayment, JobProcessDunningCampaigns, JobProcessDunningCustomer, JobProcessDunningAttempt:
 		return port.QueuePayments
 	case JobGenerateInvoiceDocument, JobGenerateCreditNoteDocument:
 		return port.QueueDocuments
 	case JobPullProviderTaxes, JobVoidProviderTaxes, JobReportCreditNoteTaxes:
 		return port.QueueIntegrations
+	case JobProcessSubscriptionActivity, JobProcessLifetimeUsageAlert:
+		// lago app/jobs/usage_monitoring/process_subscription_activity_job.rb:6-10
+		// and process_lifetime_usage_alert_job.rb:6-10.
+		return port.QueueAlerts
+	case JobProcessWalletAlerts:
+		// lago app/jobs/usage_monitoring/process_wallet_alerts_job.rb:5-10.
+		return port.QueueAlertsHighPriority
+	case JobRefreshWalletOngoingBalance:
+		// lago app/jobs/customers/refresh_wallet_job.rb:6-11.
+		return port.QueueWallets
+	case JobComputeDailyUsage, JobFillDailyUsageFromInvoice, JobFillDailyUsageHistory, JobRebuildDailyUsageHistory:
+		// lago runs them on the low_priority and long_running queues
+		// (app/jobs/daily_usages/), away from billing.
+		return port.QueueDefault
+	case JobValidateEvents, JobCleanRecordDeletions:
+		// lago runs Events::PostValidationJob on the default queue
+		// (app/jobs/events/post_validation_job.rb:5-11) and the record
+		// deletion cleanup is housekeeping, away from billing.
+		return port.QueueDefault
+	case JobDestroyMetricFilters:
+		// lago app/jobs/billable_metric_filters/destroy_all_job.rb:5.
+		return port.QueueDefault
 	default:
 		return port.QueueBilling
 	}

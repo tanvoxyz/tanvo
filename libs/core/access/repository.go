@@ -29,6 +29,15 @@ type MembershipFilter struct {
 	// RoleID keeps memberships having that role among their roles; zero
 	// keeps all.
 	RoleID core.RoleID
+	// RoleIDs keeps memberships having one of these roles among their
+	// roles; empty keeps all (lago MembershipsQuery role_ids).
+	RoleIDs []core.RoleID
+	// Search keeps memberships whose user's email contains it,
+	// case-insensitively; "" keeps all (lago MembershipsQuery search_term).
+	Search string
+	// Order is the list order; [core.OrderRecent] lists by creation,
+	// newest first, then by ID.
+	Order core.ListOrder
 }
 
 // MembershipRepository stores memberships.
@@ -86,6 +95,15 @@ type RoleRepository interface {
 type InviteFilter struct {
 	// Status keeps invites with that status; "" keeps all.
 	Status InviteStatus
+	// RoleIDs keeps invites granting one of these roles; empty keeps all
+	// (lago InvitesQuery role_ids).
+	RoleIDs []core.RoleID
+	// Search keeps invites whose email contains it, case-insensitively;
+	// "" keeps all (lago InvitesQuery search_term).
+	Search string
+	// Order is the list order; [core.OrderRecent] lists by creation,
+	// newest first, then by ID.
+	Order core.ListOrder
 }
 
 // InviteRepository stores invites.

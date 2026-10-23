@@ -3,8 +3,8 @@
 
 edition = "2023";
 
-// Package tanvo.event.v1 is the API of usage events: ingestion, retrieval,
-// replacement and fee estimates.
+// Package tanvo.event.v1 is the API of usage events: ingestion, retrieval and
+// fee estimates.
 package tanvo.event.v1;
 
 import "buf/validate/validate.proto";
@@ -79,21 +79,6 @@ service EventService {
     };
   }
 
-  // Replaces an event's code, timestamp, properties or amount, keeping its
-  // subscription and transaction ID; usage is recomputed and an audit entry recorded.
-  // Events already invoiced cannot be replaced.
-  rpc ReplaceEvent(ReplaceEventRequest) returns (ReplaceEventResponse) {
-    option idempotency_level = IDEMPOTENT;
-    option (google.api.http) = {
-      put: "/v1/events/{event.transaction_id}"
-      body: "event"
-    };
-    option (tanvo.common.v1.access) = {
-      permission: "events:create"
-      api_resource: "event"
-    };
-  }
-
   // Estimates the fees an event would create on in-advance charges, without
   // storing it.
   rpc EstimateFees(EstimateFeesRequest) returns (EstimateFeesResponse) {
@@ -164,14 +149,13 @@ message Event {
   google.protobuf.Struct properties = 6;
   // The amount of a dynamic charge, as a decimal.
   string precise_total_amount = 7 [(buf.validate.field).string.(tanvo.common.v1.decimal) = true];
-  // The code of the wallet the event's usage is deducted from.
-  string target_wallet_code = 8 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
   // The User-Agent of the ingestion request.
   string user_agent = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
   // The client IP of the ingestion request.
   string ip_address = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
-  // The validation errors found after ingestion, keyed by field.
-  map<string, string> errors = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+  reserved 8, 12;
+  reserved target_wallet_code, errors;
+
   // When the event was ingested.
   google.protobuf.Timestamp created_at = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
@@ -317,9 +301,13 @@ message ListEventsRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 2 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `code`, `external_subscription_id`, `timestamp`
-  // and `attributions.<type>`.
+  // An AIP-160 filter over `code`, `external_subscription_id` and
+  // `timestamp`.
   string filter = 3 [(buf.validate.field).string.max_len = 2048];
+  // Lists the events from the start of the latest subscription with the
+  // filter's `external_subscription_id`, in place of a lower `timestamp`
+  // bound; without that subscription, the filter applies as is.
+  bool timestamp_from_started_at = 4;
 }
 
 // ListEventsResponse is the response of EventService.ListEvents.
@@ -350,30 +338,6 @@ message ListEnrichedEventsResponse {
   repeated EnrichedEvent enriched_events = 1;
   // The token of the next page; empty on the last page.
   string next_page_token = 2;
-}
-
-// ReplaceEventRequest is the request of EventService.ReplaceEvent.
-message ReplaceEventRequest {
-  option (buf.validate.message).cel = {
-    id: "event.required"
-    message: "transaction_id, external_subscription_id and code are required"
-    expression: "has(this.event.transaction_id) && has(this.event.external_subscription_id) && has(this.event.code)"
-  };
-
-  // The replacement; event.external_subscription_id and
-  // event.transaction_id select the event.
-  Event event = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true
-  ];
-  // Why the event is replaced, kept in the audit log.
-  string reason = 2 [(buf.validate.field).string.max_len = 1024];
-}
-
-// ReplaceEventResponse is the response of EventService.ReplaceEvent.
-message ReplaceEventResponse {
-  // The replaced event.
-  Event event = 1;
 }
 
 // EstimateFeesRequest is the request of EventService.EstimateFees.

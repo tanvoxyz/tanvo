@@ -36,7 +36,6 @@ type AnalyticsScope struct {
 	state                      protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Currency        *string                `protobuf:"bytes,1,opt,name=currency"`
 	xxx_hidden_BillingEntityId *string                `protobuf:"bytes,2,opt,name=billing_entity_id,json=billingEntityId"`
-	xxx_hidden_CustomerId      *string                `protobuf:"bytes,3,opt,name=customer_id,json=customerId"`
 	xxx_hidden_Months          int32                  `protobuf:"varint,4,opt,name=months"`
 	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
 	XXX_presence               [1]uint32
@@ -89,16 +88,6 @@ func (x *AnalyticsScope) GetBillingEntityId() string {
 	return ""
 }
 
-func (x *AnalyticsScope) GetCustomerId() string {
-	if x != nil {
-		if x.xxx_hidden_CustomerId != nil {
-			return *x.xxx_hidden_CustomerId
-		}
-		return ""
-	}
-	return ""
-}
-
 func (x *AnalyticsScope) GetMonths() int32 {
 	if x != nil {
 		return x.xxx_hidden_Months
@@ -108,22 +97,17 @@ func (x *AnalyticsScope) GetMonths() int32 {
 
 func (x *AnalyticsScope) SetCurrency(v string) {
 	x.xxx_hidden_Currency = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
 func (x *AnalyticsScope) SetBillingEntityId(v string) {
 	x.xxx_hidden_BillingEntityId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
-}
-
-func (x *AnalyticsScope) SetCustomerId(v string) {
-	x.xxx_hidden_CustomerId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
 }
 
 func (x *AnalyticsScope) SetMonths(v int32) {
 	x.xxx_hidden_Months = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
 func (x *AnalyticsScope) HasCurrency() bool {
@@ -140,18 +124,11 @@ func (x *AnalyticsScope) HasBillingEntityId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *AnalyticsScope) HasCustomerId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
 func (x *AnalyticsScope) HasMonths() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
 func (x *AnalyticsScope) ClearCurrency() {
@@ -164,13 +141,8 @@ func (x *AnalyticsScope) ClearBillingEntityId() {
 	x.xxx_hidden_BillingEntityId = nil
 }
 
-func (x *AnalyticsScope) ClearCustomerId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_CustomerId = nil
-}
-
 func (x *AnalyticsScope) ClearMonths() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
 	x.xxx_hidden_Months = 0
 }
 
@@ -181,8 +153,6 @@ type AnalyticsScope_builder struct {
 	Currency *string
 	// The billing entity (ID or `code:<code>`).
 	BillingEntityId *string
-	// The customer (ID or `external_id:<external_id>`).
-	CustomerId *string
 	// The number of months; 12 by default.
 	Months *int32
 }
@@ -192,34 +162,32 @@ func (b0 AnalyticsScope_builder) Build() *AnalyticsScope {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Currency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_Currency = b.Currency
 	}
 	if b.BillingEntityId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
 		x.xxx_hidden_BillingEntityId = b.BillingEntityId
 	}
-	if b.CustomerId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
-		x.xxx_hidden_CustomerId = b.CustomerId
-	}
 	if b.Months != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
 		x.xxx_hidden_Months = *b.Months
 	}
 	return m0
 }
 
-// RevenuePoint is the amount of one month in one currency.
+// RevenuePoint is the amount of one month in one currency (and, for the
+// gross revenue, one billing entity).
 type RevenuePoint struct {
-	state                    protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Month         *date.Date             `protobuf:"bytes,1,opt,name=month"`
-	xxx_hidden_Amount        *v1.Money              `protobuf:"bytes,2,opt,name=amount"`
-	xxx_hidden_InvoicesCount int64                  `protobuf:"varint,3,opt,name=invoices_count,json=invoicesCount"`
-	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
-	XXX_presence             [1]uint32
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Month           *date.Date             `protobuf:"bytes,1,opt,name=month"`
+	xxx_hidden_Amount          *v1.Money              `protobuf:"bytes,2,opt,name=amount"`
+	xxx_hidden_InvoicesCount   int64                  `protobuf:"varint,3,opt,name=invoices_count,json=invoicesCount"`
+	xxx_hidden_BillingEntityId *string                `protobuf:"bytes,4,opt,name=billing_entity_id,json=billingEntityId"`
+	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
+	XXX_presence               [1]uint32
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *RevenuePoint) Reset() {
@@ -268,6 +236,16 @@ func (x *RevenuePoint) GetInvoicesCount() int64 {
 	return 0
 }
 
+func (x *RevenuePoint) GetBillingEntityId() string {
+	if x != nil {
+		if x.xxx_hidden_BillingEntityId != nil {
+			return *x.xxx_hidden_BillingEntityId
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *RevenuePoint) SetMonth(v *date.Date) {
 	x.xxx_hidden_Month = v
 }
@@ -278,7 +256,12 @@ func (x *RevenuePoint) SetAmount(v *v1.Money) {
 
 func (x *RevenuePoint) SetInvoicesCount(v int64) {
 	x.xxx_hidden_InvoicesCount = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *RevenuePoint) SetBillingEntityId(v string) {
+	x.xxx_hidden_BillingEntityId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *RevenuePoint) HasMonth() bool {
@@ -302,6 +285,13 @@ func (x *RevenuePoint) HasInvoicesCount() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *RevenuePoint) HasBillingEntityId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *RevenuePoint) ClearMonth() {
 	x.xxx_hidden_Month = nil
 }
@@ -315,6 +305,11 @@ func (x *RevenuePoint) ClearInvoicesCount() {
 	x.xxx_hidden_InvoicesCount = 0
 }
 
+func (x *RevenuePoint) ClearBillingEntityId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_BillingEntityId = nil
+}
+
 type RevenuePoint_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -324,6 +319,9 @@ type RevenuePoint_builder struct {
 	Amount *v1.Money
 	// The number of invoices counted.
 	InvoicesCount *int64
+	// The billing entity of the invoices and fees counted; set by
+	// GetGrossRevenue only.
+	BillingEntityId *string
 }
 
 func (b0 RevenuePoint_builder) Build() *RevenuePoint {
@@ -333,18 +331,25 @@ func (b0 RevenuePoint_builder) Build() *RevenuePoint {
 	x.xxx_hidden_Month = b.Month
 	x.xxx_hidden_Amount = b.Amount
 	if b.InvoicesCount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_InvoicesCount = *b.InvoicesCount
+	}
+	if b.BillingEntityId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_BillingEntityId = b.BillingEntityId
 	}
 	return m0
 }
 
 // GetGrossRevenueRequest is the request of AnalyticsService.GetGrossRevenue.
 type GetGrossRevenueRequest struct {
-	state            protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Scope *AnalyticsScope        `protobuf:"bytes,1,opt,name=scope"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Scope       *AnalyticsScope        `protobuf:"bytes,1,opt,name=scope"`
+	xxx_hidden_CustomerId  *string                `protobuf:"bytes,2,opt,name=customer_id,json=customerId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetGrossRevenueRequest) Reset() {
@@ -379,8 +384,23 @@ func (x *GetGrossRevenueRequest) GetScope() *AnalyticsScope {
 	return nil
 }
 
+func (x *GetGrossRevenueRequest) GetCustomerId() string {
+	if x != nil {
+		if x.xxx_hidden_CustomerId != nil {
+			return *x.xxx_hidden_CustomerId
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *GetGrossRevenueRequest) SetScope(v *AnalyticsScope) {
 	x.xxx_hidden_Scope = v
+}
+
+func (x *GetGrossRevenueRequest) SetCustomerId(v string) {
+	x.xxx_hidden_CustomerId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *GetGrossRevenueRequest) HasScope() bool {
@@ -390,8 +410,20 @@ func (x *GetGrossRevenueRequest) HasScope() bool {
 	return x.xxx_hidden_Scope != nil
 }
 
+func (x *GetGrossRevenueRequest) HasCustomerId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
 func (x *GetGrossRevenueRequest) ClearScope() {
 	x.xxx_hidden_Scope = nil
+}
+
+func (x *GetGrossRevenueRequest) ClearCustomerId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_CustomerId = nil
 }
 
 type GetGrossRevenueRequest_builder struct {
@@ -399,6 +431,9 @@ type GetGrossRevenueRequest_builder struct {
 
 	// The scope.
 	Scope *AnalyticsScope
+	// The customer (ID or `external_id:<external_id>`); every customer by
+	// default.
+	CustomerId *string
 }
 
 func (b0 GetGrossRevenueRequest_builder) Build() *GetGrossRevenueRequest {
@@ -406,6 +441,10 @@ func (b0 GetGrossRevenueRequest_builder) Build() *GetGrossRevenueRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Scope = b.Scope
+	if b.CustomerId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_CustomerId = b.CustomerId
+	}
 	return m0
 }
 
@@ -766,10 +805,13 @@ func (b0 InvoiceCollectionPoint_builder) Build() *InvoiceCollectionPoint {
 
 // GetInvoiceCollectionRequest is the request of AnalyticsService.GetInvoiceCollection.
 type GetInvoiceCollectionRequest struct {
-	state            protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Scope *AnalyticsScope        `protobuf:"bytes,1,opt,name=scope"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Scope              *AnalyticsScope        `protobuf:"bytes,1,opt,name=scope"`
+	xxx_hidden_IsCustomerTinEmpty bool                   `protobuf:"varint,2,opt,name=is_customer_tin_empty,json=isCustomerTinEmpty"`
+	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
+	XXX_presence                  [1]uint32
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *GetInvoiceCollectionRequest) Reset() {
@@ -804,8 +846,20 @@ func (x *GetInvoiceCollectionRequest) GetScope() *AnalyticsScope {
 	return nil
 }
 
+func (x *GetInvoiceCollectionRequest) GetIsCustomerTinEmpty() bool {
+	if x != nil {
+		return x.xxx_hidden_IsCustomerTinEmpty
+	}
+	return false
+}
+
 func (x *GetInvoiceCollectionRequest) SetScope(v *AnalyticsScope) {
 	x.xxx_hidden_Scope = v
+}
+
+func (x *GetInvoiceCollectionRequest) SetIsCustomerTinEmpty(v bool) {
+	x.xxx_hidden_IsCustomerTinEmpty = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *GetInvoiceCollectionRequest) HasScope() bool {
@@ -815,8 +869,20 @@ func (x *GetInvoiceCollectionRequest) HasScope() bool {
 	return x.xxx_hidden_Scope != nil
 }
 
+func (x *GetInvoiceCollectionRequest) HasIsCustomerTinEmpty() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
 func (x *GetInvoiceCollectionRequest) ClearScope() {
 	x.xxx_hidden_Scope = nil
+}
+
+func (x *GetInvoiceCollectionRequest) ClearIsCustomerTinEmpty() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_IsCustomerTinEmpty = false
 }
 
 type GetInvoiceCollectionRequest_builder struct {
@@ -824,6 +890,9 @@ type GetInvoiceCollectionRequest_builder struct {
 
 	// The scope.
 	Scope *AnalyticsScope
+	// Keeps the invoices of customers without (true) or with (false) a tax
+	// identification number; every customer when not set.
+	IsCustomerTinEmpty *bool
 }
 
 func (b0 GetInvoiceCollectionRequest_builder) Build() *GetInvoiceCollectionRequest {
@@ -831,6 +900,10 @@ func (b0 GetInvoiceCollectionRequest_builder) Build() *GetInvoiceCollectionReque
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Scope = b.Scope
+	if b.IsCustomerTinEmpty != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_IsCustomerTinEmpty = *b.IsCustomerTinEmpty
+	}
 	return m0
 }
 
@@ -1160,14 +1233,17 @@ func (b0 GetInvoicedUsageResponse_builder) Build() *GetInvoicedUsageResponse {
 }
 
 // OverdueBalancePoint is the overdue balance at the end of one month in
-// one currency.
+// one currency for one billing entity.
 type OverdueBalancePoint struct {
-	state                 protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Month      *date.Date             `protobuf:"bytes,1,opt,name=month"`
-	xxx_hidden_Amount     *v1.Money              `protobuf:"bytes,2,opt,name=amount"`
-	xxx_hidden_InvoiceIds []string               `protobuf:"bytes,3,rep,name=invoice_ids,json=invoiceIds"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Month           *date.Date             `protobuf:"bytes,1,opt,name=month"`
+	xxx_hidden_Amount          *v1.Money              `protobuf:"bytes,2,opt,name=amount"`
+	xxx_hidden_InvoiceIds      []string               `protobuf:"bytes,3,rep,name=invoice_ids,json=invoiceIds"`
+	xxx_hidden_BillingEntityId *string                `protobuf:"bytes,4,opt,name=billing_entity_id,json=billingEntityId"`
+	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
+	XXX_presence               [1]uint32
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *OverdueBalancePoint) Reset() {
@@ -1216,6 +1292,16 @@ func (x *OverdueBalancePoint) GetInvoiceIds() []string {
 	return nil
 }
 
+func (x *OverdueBalancePoint) GetBillingEntityId() string {
+	if x != nil {
+		if x.xxx_hidden_BillingEntityId != nil {
+			return *x.xxx_hidden_BillingEntityId
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *OverdueBalancePoint) SetMonth(v *date.Date) {
 	x.xxx_hidden_Month = v
 }
@@ -1226,6 +1312,11 @@ func (x *OverdueBalancePoint) SetAmount(v *v1.Money) {
 
 func (x *OverdueBalancePoint) SetInvoiceIds(v []string) {
 	x.xxx_hidden_InvoiceIds = v
+}
+
+func (x *OverdueBalancePoint) SetBillingEntityId(v string) {
+	x.xxx_hidden_BillingEntityId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *OverdueBalancePoint) HasMonth() bool {
@@ -1242,12 +1333,24 @@ func (x *OverdueBalancePoint) HasAmount() bool {
 	return x.xxx_hidden_Amount != nil
 }
 
+func (x *OverdueBalancePoint) HasBillingEntityId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *OverdueBalancePoint) ClearMonth() {
 	x.xxx_hidden_Month = nil
 }
 
 func (x *OverdueBalancePoint) ClearAmount() {
 	x.xxx_hidden_Amount = nil
+}
+
+func (x *OverdueBalancePoint) ClearBillingEntityId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_BillingEntityId = nil
 }
 
 type OverdueBalancePoint_builder struct {
@@ -1259,6 +1362,8 @@ type OverdueBalancePoint_builder struct {
 	Amount *v1.Money
 	// The overdue invoices.
 	InvoiceIds []string
+	// The billing entity of the overdue invoices.
+	BillingEntityId *string
 }
 
 func (b0 OverdueBalancePoint_builder) Build() *OverdueBalancePoint {
@@ -1268,15 +1373,23 @@ func (b0 OverdueBalancePoint_builder) Build() *OverdueBalancePoint {
 	x.xxx_hidden_Month = b.Month
 	x.xxx_hidden_Amount = b.Amount
 	x.xxx_hidden_InvoiceIds = b.InvoiceIds
+	if b.BillingEntityId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_BillingEntityId = b.BillingEntityId
+	}
 	return m0
 }
 
 // GetOverdueBalanceRequest is the request of AnalyticsService.GetOverdueBalance.
 type GetOverdueBalanceRequest struct {
-	state            protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Scope *AnalyticsScope        `protobuf:"bytes,1,opt,name=scope"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state                         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Scope              *AnalyticsScope        `protobuf:"bytes,1,opt,name=scope"`
+	xxx_hidden_IsCustomerTinEmpty bool                   `protobuf:"varint,2,opt,name=is_customer_tin_empty,json=isCustomerTinEmpty"`
+	xxx_hidden_CustomerId         *string                `protobuf:"bytes,3,opt,name=customer_id,json=customerId"`
+	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
+	XXX_presence                  [1]uint32
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *GetOverdueBalanceRequest) Reset() {
@@ -1311,8 +1424,35 @@ func (x *GetOverdueBalanceRequest) GetScope() *AnalyticsScope {
 	return nil
 }
 
+func (x *GetOverdueBalanceRequest) GetIsCustomerTinEmpty() bool {
+	if x != nil {
+		return x.xxx_hidden_IsCustomerTinEmpty
+	}
+	return false
+}
+
+func (x *GetOverdueBalanceRequest) GetCustomerId() string {
+	if x != nil {
+		if x.xxx_hidden_CustomerId != nil {
+			return *x.xxx_hidden_CustomerId
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *GetOverdueBalanceRequest) SetScope(v *AnalyticsScope) {
 	x.xxx_hidden_Scope = v
+}
+
+func (x *GetOverdueBalanceRequest) SetIsCustomerTinEmpty(v bool) {
+	x.xxx_hidden_IsCustomerTinEmpty = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *GetOverdueBalanceRequest) SetCustomerId(v string) {
+	x.xxx_hidden_CustomerId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
 func (x *GetOverdueBalanceRequest) HasScope() bool {
@@ -1322,8 +1462,32 @@ func (x *GetOverdueBalanceRequest) HasScope() bool {
 	return x.xxx_hidden_Scope != nil
 }
 
+func (x *GetOverdueBalanceRequest) HasIsCustomerTinEmpty() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *GetOverdueBalanceRequest) HasCustomerId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
 func (x *GetOverdueBalanceRequest) ClearScope() {
 	x.xxx_hidden_Scope = nil
+}
+
+func (x *GetOverdueBalanceRequest) ClearIsCustomerTinEmpty() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_IsCustomerTinEmpty = false
+}
+
+func (x *GetOverdueBalanceRequest) ClearCustomerId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_CustomerId = nil
 }
 
 type GetOverdueBalanceRequest_builder struct {
@@ -1331,6 +1495,12 @@ type GetOverdueBalanceRequest_builder struct {
 
 	// The scope.
 	Scope *AnalyticsScope
+	// Keeps the invoices of customers without (true) or with (false) a tax
+	// identification number; every customer when not set.
+	IsCustomerTinEmpty *bool
+	// The customer (ID or `external_id:<external_id>`); every customer by
+	// default.
+	CustomerId *string
 }
 
 func (b0 GetOverdueBalanceRequest_builder) Build() *GetOverdueBalanceRequest {
@@ -1338,6 +1508,14 @@ func (b0 GetOverdueBalanceRequest_builder) Build() *GetOverdueBalanceRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Scope = b.Scope
+	if b.IsCustomerTinEmpty != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_IsCustomerTinEmpty = *b.IsCustomerTinEmpty
+	}
+	if b.CustomerId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_CustomerId = b.CustomerId
+	}
 	return m0
 }
 
@@ -1406,22 +1584,23 @@ var File_tanvo_analytics_v1_analytics_proto protoreflect.FileDescriptor
 
 const file_tanvo_analytics_v1_analytics_proto_rawDesc = "" +
 	"\n" +
-	"\"tanvo/analytics/v1/analytics.proto\x12\x12tanvo.analytics.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x16google/type/date.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xc0\x01\n" +
+	"\"tanvo/analytics/v1/analytics.proto\x12\x12tanvo.analytics.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x16google/type/date.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xa6\x01\n" +
 	"\x0eAnalyticsScope\x12&\n" +
 	"\bcurrency\x18\x01 \x01(\tB\n" +
 	"\xbaH\ar\x05ؤ\xca\x06\x01R\bcurrency\x126\n" +
 	"\x11billing_entity_id\x18\x02 \x01(\tB\n" +
-	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\x0fbillingEntityId\x12+\n" +
-	"\vcustomer_id\x18\x03 \x01(\tB\n" +
-	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\n" +
-	"customerId\x12!\n" +
-	"\x06months\x18\x04 \x01(\x05B\t\xbaH\x06\x1a\x04\x18x(\x00R\x06months\"\x8e\x01\n" +
+	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\x0fbillingEntityId\x12!\n" +
+	"\x06months\x18\x04 \x01(\x05B\t\xbaH\x06\x1a\x04\x18x(\x00R\x06monthsJ\x04\b\x03\x10\x04R\vcustomer_id\"\xba\x01\n" +
 	"\fRevenuePoint\x12'\n" +
 	"\x05month\x18\x01 \x01(\v2\x11.google.type.DateR\x05month\x12.\n" +
 	"\x06amount\x18\x02 \x01(\v2\x16.tanvo.common.v1.MoneyR\x06amount\x12%\n" +
-	"\x0einvoices_count\x18\x03 \x01(\x03R\rinvoicesCount\"R\n" +
+	"\x0einvoices_count\x18\x03 \x01(\x03R\rinvoicesCount\x12*\n" +
+	"\x11billing_entity_id\x18\x04 \x01(\tR\x0fbillingEntityId\"\x7f\n" +
 	"\x16GetGrossRevenueRequest\x128\n" +
-	"\x05scope\x18\x01 \x01(\v2\".tanvo.analytics.v1.AnalyticsScopeR\x05scope\"S\n" +
+	"\x05scope\x18\x01 \x01(\v2\".tanvo.analytics.v1.AnalyticsScopeR\x05scope\x12+\n" +
+	"\vcustomer_id\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\n" +
+	"customerId\"S\n" +
 	"\x17GetGrossRevenueResponse\x128\n" +
 	"\x06points\x18\x01 \x03(\v2 .tanvo.analytics.v1.RevenuePointR\x06points\"I\n" +
 	"\rGetMrrRequest\x128\n" +
@@ -1432,9 +1611,10 @@ const file_tanvo_analytics_v1_analytics_proto_rawDesc = "" +
 	"\x05month\x18\x01 \x01(\v2\x11.google.type.DateR\x05month\x12E\n" +
 	"\x0epayment_status\x18\x02 \x01(\x0e2\x1e.tanvo.common.v1.PaymentStatusR\rpaymentStatus\x12.\n" +
 	"\x06amount\x18\x03 \x01(\v2\x16.tanvo.common.v1.MoneyR\x06amount\x12%\n" +
-	"\x0einvoices_count\x18\x04 \x01(\x03R\rinvoicesCount\"W\n" +
+	"\x0einvoices_count\x18\x04 \x01(\x03R\rinvoicesCount\"\x8a\x01\n" +
 	"\x1bGetInvoiceCollectionRequest\x128\n" +
-	"\x05scope\x18\x01 \x01(\v2\".tanvo.analytics.v1.AnalyticsScopeR\x05scope\"b\n" +
+	"\x05scope\x18\x01 \x01(\v2\".tanvo.analytics.v1.AnalyticsScopeR\x05scope\x121\n" +
+	"\x15is_customer_tin_empty\x18\x02 \x01(\bR\x12isCustomerTinEmpty\"b\n" +
 	"\x1cGetInvoiceCollectionResponse\x12B\n" +
 	"\x06points\x18\x01 \x03(\v2*.tanvo.analytics.v1.InvoiceCollectionPointR\x06points\"\x8e\x01\n" +
 	"\x12InvoicedUsagePoint\x12'\n" +
@@ -1445,14 +1625,19 @@ const file_tanvo_analytics_v1_analytics_proto_rawDesc = "" +
 	"\x17GetInvoicedUsageRequest\x128\n" +
 	"\x05scope\x18\x01 \x01(\v2\".tanvo.analytics.v1.AnalyticsScopeR\x05scope\"Z\n" +
 	"\x18GetInvoicedUsageResponse\x12>\n" +
-	"\x06points\x18\x01 \x03(\v2&.tanvo.analytics.v1.InvoicedUsagePointR\x06points\"\x8f\x01\n" +
+	"\x06points\x18\x01 \x03(\v2&.tanvo.analytics.v1.InvoicedUsagePointR\x06points\"\xbb\x01\n" +
 	"\x13OverdueBalancePoint\x12'\n" +
 	"\x05month\x18\x01 \x01(\v2\x11.google.type.DateR\x05month\x12.\n" +
 	"\x06amount\x18\x02 \x01(\v2\x16.tanvo.common.v1.MoneyR\x06amount\x12\x1f\n" +
 	"\vinvoice_ids\x18\x03 \x03(\tR\n" +
-	"invoiceIds\"T\n" +
+	"invoiceIds\x12*\n" +
+	"\x11billing_entity_id\x18\x04 \x01(\tR\x0fbillingEntityId\"\xb4\x01\n" +
 	"\x18GetOverdueBalanceRequest\x128\n" +
-	"\x05scope\x18\x01 \x01(\v2\".tanvo.analytics.v1.AnalyticsScopeR\x05scope\"\\\n" +
+	"\x05scope\x18\x01 \x01(\v2\".tanvo.analytics.v1.AnalyticsScopeR\x05scope\x121\n" +
+	"\x15is_customer_tin_empty\x18\x02 \x01(\bR\x12isCustomerTinEmpty\x12+\n" +
+	"\vcustomer_id\x18\x03 \x01(\tB\n" +
+	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\n" +
+	"customerId\"\\\n" +
 	"\x19GetOverdueBalanceResponse\x12?\n" +
 	"\x06points\x18\x01 \x03(\v2'.tanvo.analytics.v1.OverdueBalancePointR\x06points2\x8c\a\n" +
 	"\x10AnalyticsService\x12\xb0\x01\n" +

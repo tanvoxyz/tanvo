@@ -38,7 +38,8 @@ const (
 	SsoProvider_SSO_PROVIDER_OKTA SsoProvider = 1
 	// Microsoft Entra ID.
 	SsoProvider_SSO_PROVIDER_ENTRA_ID SsoProvider = 2
-	// Any other OpenID Connect provider, configured by issuer URL.
+	// Any other OpenID Connect provider, configured by its issuer URL (a
+	// Tanvo extension).
 	SsoProvider_SSO_PROVIDER_OIDC SsoProvider = 3
 )
 
@@ -80,6 +81,56 @@ func (x SsoProvider) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
+// TokenEndpointAuthMethod is how a generic connection's client
+// authenticates at the token endpoint.
+type TokenEndpointAuthMethod int32
+
+const (
+	// Follow the provider's discovery document: the first of the two
+	// methods below it lists, client_secret_basic when it lists none.
+	TokenEndpointAuthMethod_TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED TokenEndpointAuthMethod = 0
+	// HTTP Basic authentication.
+	TokenEndpointAuthMethod_TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC TokenEndpointAuthMethod = 1
+	// Credentials in the request body.
+	TokenEndpointAuthMethod_TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST TokenEndpointAuthMethod = 2
+)
+
+// Enum value maps for TokenEndpointAuthMethod.
+var (
+	TokenEndpointAuthMethod_name = map[int32]string{
+		0: "TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED",
+		1: "TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC",
+		2: "TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST",
+	}
+	TokenEndpointAuthMethod_value = map[string]int32{
+		"TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED":         0,
+		"TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC": 1,
+		"TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST":  2,
+	}
+)
+
+func (x TokenEndpointAuthMethod) Enum() *TokenEndpointAuthMethod {
+	p := new(TokenEndpointAuthMethod)
+	*p = x
+	return p
+}
+
+func (x TokenEndpointAuthMethod) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TokenEndpointAuthMethod) Descriptor() protoreflect.EnumDescriptor {
+	return file_tanvo_access_v1_auth_proto_enumTypes[1].Descriptor()
+}
+
+func (TokenEndpointAuthMethod) Type() protoreflect.EnumType {
+	return &file_tanvo_access_v1_auth_proto_enumTypes[1]
+}
+
+func (x TokenEndpointAuthMethod) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
 // OidcProvider is the provider of an OpenID Connect sign-in.
 type OidcProvider int32
 
@@ -117,11 +168,11 @@ func (x OidcProvider) String() string {
 }
 
 func (OidcProvider) Descriptor() protoreflect.EnumDescriptor {
-	return file_tanvo_access_v1_auth_proto_enumTypes[1].Descriptor()
+	return file_tanvo_access_v1_auth_proto_enumTypes[2].Descriptor()
 }
 
 func (OidcProvider) Type() protoreflect.EnumType {
-	return &file_tanvo_access_v1_auth_proto_enumTypes[1]
+	return &file_tanvo_access_v1_auth_proto_enumTypes[2]
 }
 
 func (x OidcProvider) Number() protoreflect.EnumNumber {
@@ -169,11 +220,11 @@ func (x OidcIntent) String() string {
 }
 
 func (OidcIntent) Descriptor() protoreflect.EnumDescriptor {
-	return file_tanvo_access_v1_auth_proto_enumTypes[2].Descriptor()
+	return file_tanvo_access_v1_auth_proto_enumTypes[3].Descriptor()
 }
 
 func (OidcIntent) Type() protoreflect.EnumType {
-	return &file_tanvo_access_v1_auth_proto_enumTypes[2]
+	return &file_tanvo_access_v1_auth_proto_enumTypes[3]
 }
 
 func (x OidcIntent) Number() protoreflect.EnumNumber {
@@ -486,21 +537,30 @@ func (b0 OrganizationAccess_builder) Build() *OrganizationAccess {
 // SsoConnection is an OpenID Connect provider configured for an
 // organization.
 type SsoConnection struct {
-	state                        protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id                *string                `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Provider          SsoProvider            `protobuf:"varint,2,opt,name=provider,enum=tanvo.access.v1.SsoProvider"`
-	xxx_hidden_Domain            *string                `protobuf:"bytes,3,opt,name=domain"`
-	xxx_hidden_AdditionalDomains []string               `protobuf:"bytes,4,rep,name=additional_domains,json=additionalDomains"`
-	xxx_hidden_ClientId          *string                `protobuf:"bytes,5,opt,name=client_id,json=clientId"`
-	xxx_hidden_ClientSecret      *string                `protobuf:"bytes,6,opt,name=client_secret,json=clientSecret"`
-	xxx_hidden_IssuerUrl         *string                `protobuf:"bytes,7,opt,name=issuer_url,json=issuerUrl"`
-	xxx_hidden_TenantId          *string                `protobuf:"bytes,8,opt,name=tenant_id,json=tenantId"`
-	xxx_hidden_CreatedAt         *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt"`
-	xxx_hidden_UpdatedAt         *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt"`
-	XXX_raceDetectHookData       protoimpl.RaceDetectHookData
-	XXX_presence                 [1]uint32
-	unknownFields                protoimpl.UnknownFields
-	sizeCache                    protoimpl.SizeCache
+	state                              protoimpl.MessageState  `protogen:"opaque.v1"`
+	xxx_hidden_Id                      *string                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Provider                SsoProvider             `protobuf:"varint,2,opt,name=provider,enum=tanvo.access.v1.SsoProvider"`
+	xxx_hidden_Domain                  *string                 `protobuf:"bytes,3,opt,name=domain"`
+	xxx_hidden_AdditionalDomains       []string                `protobuf:"bytes,4,rep,name=additional_domains,json=additionalDomains"`
+	xxx_hidden_ClientId                *string                 `protobuf:"bytes,5,opt,name=client_id,json=clientId"`
+	xxx_hidden_ClientSecret            *string                 `protobuf:"bytes,6,opt,name=client_secret,json=clientSecret"`
+	xxx_hidden_IssuerUrl               *string                 `protobuf:"bytes,7,opt,name=issuer_url,json=issuerUrl"`
+	xxx_hidden_TenantId                *string                 `protobuf:"bytes,8,opt,name=tenant_id,json=tenantId"`
+	xxx_hidden_CreatedAt               *timestamppb.Timestamp  `protobuf:"bytes,9,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt               *timestamppb.Timestamp  `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_OrganizationName        *string                 `protobuf:"bytes,11,opt,name=organization_name,json=organizationName"`
+	xxx_hidden_Host                    *string                 `protobuf:"bytes,12,opt,name=host"`
+	xxx_hidden_DefaultRoleCode         *string                 `protobuf:"bytes,13,opt,name=default_role_code,json=defaultRoleCode"`
+	xxx_hidden_TokenEndpointAuthMethod TokenEndpointAuthMethod `protobuf:"varint,14,opt,name=token_endpoint_auth_method,json=tokenEndpointAuthMethod,enum=tanvo.access.v1.TokenEndpointAuthMethod"`
+	xxx_hidden_Scopes                  []string                `protobuf:"bytes,15,rep,name=scopes"`
+	xxx_hidden_EmailClaim              *string                 `protobuf:"bytes,16,opt,name=email_claim,json=emailClaim"`
+	xxx_hidden_NameClaim               *string                 `protobuf:"bytes,17,opt,name=name_claim,json=nameClaim"`
+	xxx_hidden_RequireVerifiedEmail    bool                    `protobuf:"varint,18,opt,name=require_verified_email,json=requireVerifiedEmail"`
+	xxx_hidden_AuthorizationParams     map[string]string       `protobuf:"bytes,19,rep,name=authorization_params,json=authorizationParams" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	XXX_raceDetectHookData             protoimpl.RaceDetectHookData
+	XXX_presence                       [1]uint32
+	unknownFields                      protoimpl.UnknownFields
+	sizeCache                          protoimpl.SizeCache
 }
 
 func (x *SsoConnection) Reset() {
@@ -618,19 +678,99 @@ func (x *SsoConnection) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *SsoConnection) GetOrganizationName() string {
+	if x != nil {
+		if x.xxx_hidden_OrganizationName != nil {
+			return *x.xxx_hidden_OrganizationName
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *SsoConnection) GetHost() string {
+	if x != nil {
+		if x.xxx_hidden_Host != nil {
+			return *x.xxx_hidden_Host
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *SsoConnection) GetDefaultRoleCode() string {
+	if x != nil {
+		if x.xxx_hidden_DefaultRoleCode != nil {
+			return *x.xxx_hidden_DefaultRoleCode
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *SsoConnection) GetTokenEndpointAuthMethod() TokenEndpointAuthMethod {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 13) {
+			return x.xxx_hidden_TokenEndpointAuthMethod
+		}
+	}
+	return TokenEndpointAuthMethod_TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED
+}
+
+func (x *SsoConnection) GetScopes() []string {
+	if x != nil {
+		return x.xxx_hidden_Scopes
+	}
+	return nil
+}
+
+func (x *SsoConnection) GetEmailClaim() string {
+	if x != nil {
+		if x.xxx_hidden_EmailClaim != nil {
+			return *x.xxx_hidden_EmailClaim
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *SsoConnection) GetNameClaim() string {
+	if x != nil {
+		if x.xxx_hidden_NameClaim != nil {
+			return *x.xxx_hidden_NameClaim
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *SsoConnection) GetRequireVerifiedEmail() bool {
+	if x != nil {
+		return x.xxx_hidden_RequireVerifiedEmail
+	}
+	return false
+}
+
+func (x *SsoConnection) GetAuthorizationParams() map[string]string {
+	if x != nil {
+		return x.xxx_hidden_AuthorizationParams
+	}
+	return nil
+}
+
 func (x *SsoConnection) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 19)
 }
 
 func (x *SsoConnection) SetProvider(v SsoProvider) {
 	x.xxx_hidden_Provider = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 19)
 }
 
 func (x *SsoConnection) SetDomain(v string) {
 	x.xxx_hidden_Domain = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 19)
 }
 
 func (x *SsoConnection) SetAdditionalDomains(v []string) {
@@ -639,22 +779,22 @@ func (x *SsoConnection) SetAdditionalDomains(v []string) {
 
 func (x *SsoConnection) SetClientId(v string) {
 	x.xxx_hidden_ClientId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 19)
 }
 
 func (x *SsoConnection) SetClientSecret(v string) {
 	x.xxx_hidden_ClientSecret = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 19)
 }
 
 func (x *SsoConnection) SetIssuerUrl(v string) {
 	x.xxx_hidden_IssuerUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 19)
 }
 
 func (x *SsoConnection) SetTenantId(v string) {
 	x.xxx_hidden_TenantId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 19)
 }
 
 func (x *SsoConnection) SetCreatedAt(v *timestamppb.Timestamp) {
@@ -663,6 +803,49 @@ func (x *SsoConnection) SetCreatedAt(v *timestamppb.Timestamp) {
 
 func (x *SsoConnection) SetUpdatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_UpdatedAt = v
+}
+
+func (x *SsoConnection) SetOrganizationName(v string) {
+	x.xxx_hidden_OrganizationName = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 19)
+}
+
+func (x *SsoConnection) SetHost(v string) {
+	x.xxx_hidden_Host = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 19)
+}
+
+func (x *SsoConnection) SetDefaultRoleCode(v string) {
+	x.xxx_hidden_DefaultRoleCode = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 19)
+}
+
+func (x *SsoConnection) SetTokenEndpointAuthMethod(v TokenEndpointAuthMethod) {
+	x.xxx_hidden_TokenEndpointAuthMethod = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 19)
+}
+
+func (x *SsoConnection) SetScopes(v []string) {
+	x.xxx_hidden_Scopes = v
+}
+
+func (x *SsoConnection) SetEmailClaim(v string) {
+	x.xxx_hidden_EmailClaim = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 19)
+}
+
+func (x *SsoConnection) SetNameClaim(v string) {
+	x.xxx_hidden_NameClaim = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 19)
+}
+
+func (x *SsoConnection) SetRequireVerifiedEmail(v bool) {
+	x.xxx_hidden_RequireVerifiedEmail = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 19)
+}
+
+func (x *SsoConnection) SetAuthorizationParams(v map[string]string) {
+	x.xxx_hidden_AuthorizationParams = v
 }
 
 func (x *SsoConnection) HasId() bool {
@@ -728,6 +911,55 @@ func (x *SsoConnection) HasUpdatedAt() bool {
 	return x.xxx_hidden_UpdatedAt != nil
 }
 
+func (x *SsoConnection) HasOrganizationName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
+}
+
+func (x *SsoConnection) HasHost() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
+}
+
+func (x *SsoConnection) HasDefaultRoleCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 12)
+}
+
+func (x *SsoConnection) HasTokenEndpointAuthMethod() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 13)
+}
+
+func (x *SsoConnection) HasEmailClaim() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 15)
+}
+
+func (x *SsoConnection) HasNameClaim() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 16)
+}
+
+func (x *SsoConnection) HasRequireVerifiedEmail() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 17)
+}
+
 func (x *SsoConnection) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -771,6 +1003,41 @@ func (x *SsoConnection) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = nil
 }
 
+func (x *SsoConnection) ClearOrganizationName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	x.xxx_hidden_OrganizationName = nil
+}
+
+func (x *SsoConnection) ClearHost() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
+	x.xxx_hidden_Host = nil
+}
+
+func (x *SsoConnection) ClearDefaultRoleCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 12)
+	x.xxx_hidden_DefaultRoleCode = nil
+}
+
+func (x *SsoConnection) ClearTokenEndpointAuthMethod() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
+	x.xxx_hidden_TokenEndpointAuthMethod = TokenEndpointAuthMethod_TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED
+}
+
+func (x *SsoConnection) ClearEmailClaim() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 15)
+	x.xxx_hidden_EmailClaim = nil
+}
+
+func (x *SsoConnection) ClearNameClaim() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 16)
+	x.xxx_hidden_NameClaim = nil
+}
+
+func (x *SsoConnection) ClearRequireVerifiedEmail() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 17)
+	x.xxx_hidden_RequireVerifiedEmail = false
+}
+
 type SsoConnection_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -780,21 +1047,49 @@ type SsoConnection_builder struct {
 	Provider *SsoProvider
 	// The email domain that routes sign-ins to this connection.
 	Domain *string
-	// Further email domains routed to this connection (Entra ID).
+	// Further email domains routed to this connection (Entra ID and generic
+	// OIDC); duplicates are dropped.
 	AdditionalDomains []string
 	// The OAuth client ID.
 	ClientId *string
 	// The OAuth client secret; write only.
 	ClientSecret *string
-	// The issuer URL (`https://acme.okta.com`), for Okta and other OIDC
-	// providers.
+	// The issuer URL of a generic OIDC connection; required for it and
+	// refused for the others. Creating or changing it fetches
+	// `<issuer_url>/.well-known/openid-configuration`, whose issuer must
+	// equal it exactly.
 	IssuerUrl *string
-	// The Entra ID tenant ID.
+	// The Entra ID tenant ID; required for Entra ID.
 	TenantId *string
 	// When the connection was created.
 	CreatedAt *timestamppb.Timestamp
 	// When the connection last changed.
 	UpdatedAt *timestamppb.Timestamp
+	// The Okta organization; required for Okta, it names the default host
+	// `<organization_name>.okta.com`.
+	OrganizationName *string
+	// The provider host, when not the default one (an Okta custom domain,
+	// an Entra ID national cloud).
+	Host *string
+	// The code of the role given to the members a first sign-in creates;
+	// required.
+	DefaultRoleCode *string
+	// How the client authenticates at the token endpoint (generic OIDC).
+	TokenEndpointAuthMethod *TokenEndpointAuthMethod
+	// The requested scopes (generic OIDC); `openid` is always requested.
+	// Empty requests `openid email profile`.
+	Scopes []string
+	// The claim read as the email (generic OIDC); empty is `email`.
+	EmailClaim *string
+	// The claim read as the display name (generic OIDC); empty is `name`.
+	NameClaim *string
+	// Whether the email_verified claim must be true (generic OIDC);
+	// unset is true. Google, Okta and Entra ID refuse only an email the
+	// provider says is not verified.
+	RequireVerifiedEmail *bool
+	// Extra authorization request parameters (generic OIDC), such as
+	// `prompt` or `acr_values`; the flow's own parameters are refused.
+	AuthorizationParams map[string]string
 }
 
 func (b0 SsoConnection_builder) Build() *SsoConnection {
@@ -802,36 +1097,66 @@ func (b0 SsoConnection_builder) Build() *SsoConnection {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 19)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.Provider != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 19)
 		x.xxx_hidden_Provider = *b.Provider
 	}
 	if b.Domain != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 19)
 		x.xxx_hidden_Domain = b.Domain
 	}
 	x.xxx_hidden_AdditionalDomains = b.AdditionalDomains
 	if b.ClientId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 19)
 		x.xxx_hidden_ClientId = b.ClientId
 	}
 	if b.ClientSecret != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 19)
 		x.xxx_hidden_ClientSecret = b.ClientSecret
 	}
 	if b.IssuerUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 19)
 		x.xxx_hidden_IssuerUrl = b.IssuerUrl
 	}
 	if b.TenantId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 19)
 		x.xxx_hidden_TenantId = b.TenantId
 	}
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
+	if b.OrganizationName != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 19)
+		x.xxx_hidden_OrganizationName = b.OrganizationName
+	}
+	if b.Host != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 19)
+		x.xxx_hidden_Host = b.Host
+	}
+	if b.DefaultRoleCode != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 19)
+		x.xxx_hidden_DefaultRoleCode = b.DefaultRoleCode
+	}
+	if b.TokenEndpointAuthMethod != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 19)
+		x.xxx_hidden_TokenEndpointAuthMethod = *b.TokenEndpointAuthMethod
+	}
+	x.xxx_hidden_Scopes = b.Scopes
+	if b.EmailClaim != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 19)
+		x.xxx_hidden_EmailClaim = b.EmailClaim
+	}
+	if b.NameClaim != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 19)
+		x.xxx_hidden_NameClaim = b.NameClaim
+	}
+	if b.RequireVerifiedEmail != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 19)
+		x.xxx_hidden_RequireVerifiedEmail = *b.RequireVerifiedEmail
+	}
+	x.xxx_hidden_AuthorizationParams = b.AuthorizationParams
 	return m0
 }
 
@@ -3689,23 +4014,36 @@ const file_tanvo_access_v1_auth_proto_rawDesc = "" +
 	"\x11organization_name\x18\x02 \x01(\tR\x10organizationName\x12#\n" +
 	"\rmembership_id\x18\x03 \x01(\tR\fmembershipId\x12\x1b\n" +
 	"\trole_code\x18\x04 \x01(\tR\broleCode\x12 \n" +
-	"\vpermissions\x18\x05 \x03(\tR\vpermissions\"\xe5\x04\n" +
+	"\vpermissions\x18\x05 \x03(\tR\vpermissions\"\xe2\t\n" +
 	"\rSsoConnection\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12G\n" +
 	"\bprovider\x18\x02 \x01(\x0e2\x1c.tanvo.access.v1.SsoProviderB\r\xe2A\x02\x02\x05\xbaH\x05\x82\x01\x02\x10\x01R\bprovider\x12#\n" +
-	"\x06domain\x18\x03 \x01(\tB\v\xe2A\x01\x02\xbaH\x04r\x02h\x01R\x06domain\x12?\n" +
-	"\x12additional_domains\x18\x04 \x03(\tB\x10\xbaH\r\x92\x01\n" +
-	"\x102\x18\x01\"\x04r\x02h\x01R\x11additionalDomains\x12+\n" +
+	"\x06domain\x18\x03 \x01(\tB\v\xe2A\x01\x02\xbaH\x04r\x02h\x01R\x06domain\x12=\n" +
+	"\x12additional_domains\x18\x04 \x03(\tB\x0e\xbaH\v\x92\x01\b\x102\"\x04r\x02h\x01R\x11additionalDomains\x12+\n" +
 	"\tclient_id\x18\x05 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\x10\x01\x18\xff\x01R\bclientId\x121\n" +
 	"\rclient_secret\x18\x06 \x01(\tB\f\xe2A\x01\x04\xbaH\x05r\x03\x18\x80\bR\fclientSecret\x12'\n" +
 	"\n" +
-	"issuer_url\x18\a \x01(\tB\b\xbaH\x05r\x03\x88\x01\x01R\tissuerUrl\x12%\n" +
+	"issuer_url\x18\a \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\tissuerUrl\x12%\n" +
 	"\ttenant_id\x18\b \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\btenantId\x12?\n" +
 	"\n" +
 	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
 	"updated_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:]\xeaAZ\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x125\n" +
+	"\x11organization_name\x18\v \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x10organizationName\x12\x1c\n" +
+	"\x04host\x18\f \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x04host\x124\n" +
+	"\x11default_role_code\x18\r \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x0fdefaultRoleCode\x12o\n" +
+	"\x1atoken_endpoint_auth_method\x18\x0e \x01(\x0e2(.tanvo.access.v1.TokenEndpointAuthMethodB\b\xbaH\x05\x82\x01\x02\x10\x01R\x17tokenEndpointAuthMethod\x12)\n" +
+	"\x06scopes\x18\x0f \x03(\tB\x11\xbaH\x0e\x92\x01\v\x10\x14\"\ar\x05\x10\x01\x18\x80\x01R\x06scopes\x12)\n" +
+	"\vemail_claim\x18\x10 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\n" +
+	"emailClaim\x12'\n" +
+	"\n" +
+	"name_claim\x18\x11 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x01R\tnameClaim\x124\n" +
+	"\x16require_verified_email\x18\x12 \x01(\bR\x14requireVerifiedEmail\x12\x83\x01\n" +
+	"\x14authorization_params\x18\x13 \x03(\v27.tanvo.access.v1.SsoConnection.AuthorizationParamsEntryB\x17\xbaH\x14\x9a\x01\x11\x10\x14\"\x06r\x04\x10\x01\x18@*\x05r\x03\x18\x80\bR\x13authorizationParams\x1aF\n" +
+	"\x18AuthorizationParamsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:]\xeaAZ\n" +
 	"\x17tanvo.xyz/SsoConnection\x12 sso_connections/{sso_connection}*\x0essoConnections2\rssoConnection\"\xa6\x01\n" +
 	"\rSignUpRequest\x12'\n" +
 	"\x05email\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
@@ -3772,11 +4110,11 @@ const file_tanvo_access_v1_auth_proto_rawDesc = "" +
 	"\x04user\x18\x01 \x01(\v2\x15.tanvo.access.v1.UserR\x04user\x12I\n" +
 	"\rorganizations\x18\x02 \x03(\v2#.tanvo.access.v1.OrganizationAccessR\rorganizations\"\x10\n" +
 	"\x0eSignOutRequest\"\x11\n" +
-	"\x0fSignOutResponse\"\xe5\x02\n" +
+	"\x0fSignOutResponse\"\xa6\x03\n" +
 	"\x1aCreateSsoConnectionRequest\x12Q\n" +
 	"\x0esso_connection\x18\x01 \x01(\v2\x1e.tanvo.access.v1.SsoConnectionB\n" +
-	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\rssoConnection:\xf3\x01\xbaH\xef\x01\x1a\xec\x01\n" +
-	"\x17sso_connection.required\x12:provider, domain, client_id and client_secret are required\x1a\x94\x01has(this.sso_connection.provider) && has(this.sso_connection.domain) && has(this.sso_connection.client_id) && has(this.sso_connection.client_secret)\"d\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\rssoConnection:\xb4\x02\xbaH\xb0\x02\x1a\xad\x02\n" +
+	"\x17sso_connection.required\x12Mprovider, domain, client_id, client_secret and default_role_code are required\x1a\xc2\x01has(this.sso_connection.provider) && has(this.sso_connection.domain) && has(this.sso_connection.client_id) && has(this.sso_connection.client_secret) && has(this.sso_connection.default_role_code)\"d\n" +
 	"\x1bCreateSsoConnectionResponse\x12E\n" +
 	"\x0esso_connection\x18\x01 \x01(\v2\x1e.tanvo.access.v1.SsoConnectionR\rssoConnection\"V\n" +
 	"\x17GetSsoConnectionRequest\x12;\n" +
@@ -3806,7 +4144,11 @@ const file_tanvo_access_v1_auth_proto_rawDesc = "" +
 	"\x18SSO_PROVIDER_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11SSO_PROVIDER_OKTA\x10\x01\x12\x19\n" +
 	"\x15SSO_PROVIDER_ENTRA_ID\x10\x02\x12\x15\n" +
-	"\x11SSO_PROVIDER_OIDC\x10\x03*^\n" +
+	"\x11SSO_PROVIDER_OIDC\x10\x03*\xac\x01\n" +
+	"\x17TokenEndpointAuthMethod\x12*\n" +
+	"&TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED\x10\x00\x122\n" +
+	".TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC\x10\x01\x121\n" +
+	"-TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST\x10\x02*^\n" +
 	"\fOidcProvider\x12\x1d\n" +
 	"\x19OIDC_PROVIDER_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14OIDC_PROVIDER_GOOGLE\x10\x01\x12\x15\n" +
@@ -3841,114 +4183,118 @@ const file_tanvo_access_v1_auth_proto_rawDesc = "" +
 	"\x1dauthentication_methods:update\x82\xd3\xe4\x93\x02)*'/v1/sso_connections/{sso_connection_id}B\xc4\x01\n" +
 	"\x13com.tanvo.access.v1B\tAuthProtoP\x01ZDgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/access/v1;accessv1\xa2\x02\x03TAX\xaa\x02\x0fTanvo.Access.V1\xca\x02\x0fTanvo\\Access\\V1\xe2\x02\x1bTanvo\\Access\\V1\\GPBMetadata\xea\x02\x11Tanvo::Access::V1b\beditionsp\xe8\a"
 
-var file_tanvo_access_v1_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_tanvo_access_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_tanvo_access_v1_auth_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_tanvo_access_v1_auth_proto_msgTypes = make([]protoimpl.MessageInfo, 34)
 var file_tanvo_access_v1_auth_proto_goTypes = []any{
 	(SsoProvider)(0),                     // 0: tanvo.access.v1.SsoProvider
-	(OidcProvider)(0),                    // 1: tanvo.access.v1.OidcProvider
-	(OidcIntent)(0),                      // 2: tanvo.access.v1.OidcIntent
-	(*Session)(nil),                      // 3: tanvo.access.v1.Session
-	(*OrganizationAccess)(nil),           // 4: tanvo.access.v1.OrganizationAccess
-	(*SsoConnection)(nil),                // 5: tanvo.access.v1.SsoConnection
-	(*SignUpRequest)(nil),                // 6: tanvo.access.v1.SignUpRequest
-	(*SignUpResponse)(nil),               // 7: tanvo.access.v1.SignUpResponse
-	(*SignInWithPasswordRequest)(nil),    // 8: tanvo.access.v1.SignInWithPasswordRequest
-	(*SignInWithPasswordResponse)(nil),   // 9: tanvo.access.v1.SignInWithPasswordResponse
-	(*StartOidcSignInRequest)(nil),       // 10: tanvo.access.v1.StartOidcSignInRequest
-	(*StartOidcSignInResponse)(nil),      // 11: tanvo.access.v1.StartOidcSignInResponse
-	(*CompleteOidcSignInRequest)(nil),    // 12: tanvo.access.v1.CompleteOidcSignInRequest
-	(*CompleteOidcSignInResponse)(nil),   // 13: tanvo.access.v1.CompleteOidcSignInResponse
-	(*LookupInviteRequest)(nil),          // 14: tanvo.access.v1.LookupInviteRequest
-	(*LookupInviteResponse)(nil),         // 15: tanvo.access.v1.LookupInviteResponse
-	(*AcceptInviteRequest)(nil),          // 16: tanvo.access.v1.AcceptInviteRequest
-	(*AcceptInviteResponse)(nil),         // 17: tanvo.access.v1.AcceptInviteResponse
-	(*RequestPasswordResetRequest)(nil),  // 18: tanvo.access.v1.RequestPasswordResetRequest
-	(*RequestPasswordResetResponse)(nil), // 19: tanvo.access.v1.RequestPasswordResetResponse
-	(*ResetPasswordRequest)(nil),         // 20: tanvo.access.v1.ResetPasswordRequest
-	(*ResetPasswordResponse)(nil),        // 21: tanvo.access.v1.ResetPasswordResponse
-	(*GetCurrentUserRequest)(nil),        // 22: tanvo.access.v1.GetCurrentUserRequest
-	(*GetCurrentUserResponse)(nil),       // 23: tanvo.access.v1.GetCurrentUserResponse
-	(*SignOutRequest)(nil),               // 24: tanvo.access.v1.SignOutRequest
-	(*SignOutResponse)(nil),              // 25: tanvo.access.v1.SignOutResponse
-	(*CreateSsoConnectionRequest)(nil),   // 26: tanvo.access.v1.CreateSsoConnectionRequest
-	(*CreateSsoConnectionResponse)(nil),  // 27: tanvo.access.v1.CreateSsoConnectionResponse
-	(*GetSsoConnectionRequest)(nil),      // 28: tanvo.access.v1.GetSsoConnectionRequest
-	(*GetSsoConnectionResponse)(nil),     // 29: tanvo.access.v1.GetSsoConnectionResponse
-	(*ListSsoConnectionsRequest)(nil),    // 30: tanvo.access.v1.ListSsoConnectionsRequest
-	(*ListSsoConnectionsResponse)(nil),   // 31: tanvo.access.v1.ListSsoConnectionsResponse
-	(*UpdateSsoConnectionRequest)(nil),   // 32: tanvo.access.v1.UpdateSsoConnectionRequest
-	(*UpdateSsoConnectionResponse)(nil),  // 33: tanvo.access.v1.UpdateSsoConnectionResponse
-	(*DeleteSsoConnectionRequest)(nil),   // 34: tanvo.access.v1.DeleteSsoConnectionRequest
-	(*DeleteSsoConnectionResponse)(nil),  // 35: tanvo.access.v1.DeleteSsoConnectionResponse
-	(*timestamppb.Timestamp)(nil),        // 36: google.protobuf.Timestamp
-	(*User)(nil),                         // 37: tanvo.access.v1.User
-	(*fieldmaskpb.FieldMask)(nil),        // 38: google.protobuf.FieldMask
+	(TokenEndpointAuthMethod)(0),         // 1: tanvo.access.v1.TokenEndpointAuthMethod
+	(OidcProvider)(0),                    // 2: tanvo.access.v1.OidcProvider
+	(OidcIntent)(0),                      // 3: tanvo.access.v1.OidcIntent
+	(*Session)(nil),                      // 4: tanvo.access.v1.Session
+	(*OrganizationAccess)(nil),           // 5: tanvo.access.v1.OrganizationAccess
+	(*SsoConnection)(nil),                // 6: tanvo.access.v1.SsoConnection
+	(*SignUpRequest)(nil),                // 7: tanvo.access.v1.SignUpRequest
+	(*SignUpResponse)(nil),               // 8: tanvo.access.v1.SignUpResponse
+	(*SignInWithPasswordRequest)(nil),    // 9: tanvo.access.v1.SignInWithPasswordRequest
+	(*SignInWithPasswordResponse)(nil),   // 10: tanvo.access.v1.SignInWithPasswordResponse
+	(*StartOidcSignInRequest)(nil),       // 11: tanvo.access.v1.StartOidcSignInRequest
+	(*StartOidcSignInResponse)(nil),      // 12: tanvo.access.v1.StartOidcSignInResponse
+	(*CompleteOidcSignInRequest)(nil),    // 13: tanvo.access.v1.CompleteOidcSignInRequest
+	(*CompleteOidcSignInResponse)(nil),   // 14: tanvo.access.v1.CompleteOidcSignInResponse
+	(*LookupInviteRequest)(nil),          // 15: tanvo.access.v1.LookupInviteRequest
+	(*LookupInviteResponse)(nil),         // 16: tanvo.access.v1.LookupInviteResponse
+	(*AcceptInviteRequest)(nil),          // 17: tanvo.access.v1.AcceptInviteRequest
+	(*AcceptInviteResponse)(nil),         // 18: tanvo.access.v1.AcceptInviteResponse
+	(*RequestPasswordResetRequest)(nil),  // 19: tanvo.access.v1.RequestPasswordResetRequest
+	(*RequestPasswordResetResponse)(nil), // 20: tanvo.access.v1.RequestPasswordResetResponse
+	(*ResetPasswordRequest)(nil),         // 21: tanvo.access.v1.ResetPasswordRequest
+	(*ResetPasswordResponse)(nil),        // 22: tanvo.access.v1.ResetPasswordResponse
+	(*GetCurrentUserRequest)(nil),        // 23: tanvo.access.v1.GetCurrentUserRequest
+	(*GetCurrentUserResponse)(nil),       // 24: tanvo.access.v1.GetCurrentUserResponse
+	(*SignOutRequest)(nil),               // 25: tanvo.access.v1.SignOutRequest
+	(*SignOutResponse)(nil),              // 26: tanvo.access.v1.SignOutResponse
+	(*CreateSsoConnectionRequest)(nil),   // 27: tanvo.access.v1.CreateSsoConnectionRequest
+	(*CreateSsoConnectionResponse)(nil),  // 28: tanvo.access.v1.CreateSsoConnectionResponse
+	(*GetSsoConnectionRequest)(nil),      // 29: tanvo.access.v1.GetSsoConnectionRequest
+	(*GetSsoConnectionResponse)(nil),     // 30: tanvo.access.v1.GetSsoConnectionResponse
+	(*ListSsoConnectionsRequest)(nil),    // 31: tanvo.access.v1.ListSsoConnectionsRequest
+	(*ListSsoConnectionsResponse)(nil),   // 32: tanvo.access.v1.ListSsoConnectionsResponse
+	(*UpdateSsoConnectionRequest)(nil),   // 33: tanvo.access.v1.UpdateSsoConnectionRequest
+	(*UpdateSsoConnectionResponse)(nil),  // 34: tanvo.access.v1.UpdateSsoConnectionResponse
+	(*DeleteSsoConnectionRequest)(nil),   // 35: tanvo.access.v1.DeleteSsoConnectionRequest
+	(*DeleteSsoConnectionResponse)(nil),  // 36: tanvo.access.v1.DeleteSsoConnectionResponse
+	nil,                                  // 37: tanvo.access.v1.SsoConnection.AuthorizationParamsEntry
+	(*timestamppb.Timestamp)(nil),        // 38: google.protobuf.Timestamp
+	(*User)(nil),                         // 39: tanvo.access.v1.User
+	(*fieldmaskpb.FieldMask)(nil),        // 40: google.protobuf.FieldMask
 }
 var file_tanvo_access_v1_auth_proto_depIdxs = []int32{
-	36, // 0: tanvo.access.v1.Session.expires_at:type_name -> google.protobuf.Timestamp
+	38, // 0: tanvo.access.v1.Session.expires_at:type_name -> google.protobuf.Timestamp
 	0,  // 1: tanvo.access.v1.SsoConnection.provider:type_name -> tanvo.access.v1.SsoProvider
-	36, // 2: tanvo.access.v1.SsoConnection.created_at:type_name -> google.protobuf.Timestamp
-	36, // 3: tanvo.access.v1.SsoConnection.updated_at:type_name -> google.protobuf.Timestamp
-	3,  // 4: tanvo.access.v1.SignUpResponse.session:type_name -> tanvo.access.v1.Session
-	37, // 5: tanvo.access.v1.SignUpResponse.user:type_name -> tanvo.access.v1.User
-	4,  // 6: tanvo.access.v1.SignUpResponse.organization:type_name -> tanvo.access.v1.OrganizationAccess
-	3,  // 7: tanvo.access.v1.SignInWithPasswordResponse.session:type_name -> tanvo.access.v1.Session
-	37, // 8: tanvo.access.v1.SignInWithPasswordResponse.user:type_name -> tanvo.access.v1.User
-	4,  // 9: tanvo.access.v1.SignInWithPasswordResponse.organizations:type_name -> tanvo.access.v1.OrganizationAccess
-	1,  // 10: tanvo.access.v1.StartOidcSignInRequest.provider:type_name -> tanvo.access.v1.OidcProvider
-	2,  // 11: tanvo.access.v1.StartOidcSignInRequest.intent:type_name -> tanvo.access.v1.OidcIntent
-	3,  // 12: tanvo.access.v1.CompleteOidcSignInResponse.session:type_name -> tanvo.access.v1.Session
-	37, // 13: tanvo.access.v1.CompleteOidcSignInResponse.user:type_name -> tanvo.access.v1.User
-	4,  // 14: tanvo.access.v1.CompleteOidcSignInResponse.organizations:type_name -> tanvo.access.v1.OrganizationAccess
-	3,  // 15: tanvo.access.v1.AcceptInviteResponse.session:type_name -> tanvo.access.v1.Session
-	37, // 16: tanvo.access.v1.AcceptInviteResponse.user:type_name -> tanvo.access.v1.User
-	4,  // 17: tanvo.access.v1.AcceptInviteResponse.organization:type_name -> tanvo.access.v1.OrganizationAccess
-	3,  // 18: tanvo.access.v1.ResetPasswordResponse.session:type_name -> tanvo.access.v1.Session
-	37, // 19: tanvo.access.v1.ResetPasswordResponse.user:type_name -> tanvo.access.v1.User
-	37, // 20: tanvo.access.v1.GetCurrentUserResponse.user:type_name -> tanvo.access.v1.User
-	4,  // 21: tanvo.access.v1.GetCurrentUserResponse.organizations:type_name -> tanvo.access.v1.OrganizationAccess
-	5,  // 22: tanvo.access.v1.CreateSsoConnectionRequest.sso_connection:type_name -> tanvo.access.v1.SsoConnection
-	5,  // 23: tanvo.access.v1.CreateSsoConnectionResponse.sso_connection:type_name -> tanvo.access.v1.SsoConnection
-	5,  // 24: tanvo.access.v1.GetSsoConnectionResponse.sso_connection:type_name -> tanvo.access.v1.SsoConnection
-	5,  // 25: tanvo.access.v1.ListSsoConnectionsResponse.sso_connections:type_name -> tanvo.access.v1.SsoConnection
-	5,  // 26: tanvo.access.v1.UpdateSsoConnectionRequest.sso_connection:type_name -> tanvo.access.v1.SsoConnection
-	38, // 27: tanvo.access.v1.UpdateSsoConnectionRequest.update_mask:type_name -> google.protobuf.FieldMask
-	5,  // 28: tanvo.access.v1.UpdateSsoConnectionResponse.sso_connection:type_name -> tanvo.access.v1.SsoConnection
-	6,  // 29: tanvo.access.v1.AuthService.SignUp:input_type -> tanvo.access.v1.SignUpRequest
-	8,  // 30: tanvo.access.v1.AuthService.SignInWithPassword:input_type -> tanvo.access.v1.SignInWithPasswordRequest
-	10, // 31: tanvo.access.v1.AuthService.StartOidcSignIn:input_type -> tanvo.access.v1.StartOidcSignInRequest
-	12, // 32: tanvo.access.v1.AuthService.CompleteOidcSignIn:input_type -> tanvo.access.v1.CompleteOidcSignInRequest
-	14, // 33: tanvo.access.v1.AuthService.LookupInvite:input_type -> tanvo.access.v1.LookupInviteRequest
-	16, // 34: tanvo.access.v1.AuthService.AcceptInvite:input_type -> tanvo.access.v1.AcceptInviteRequest
-	18, // 35: tanvo.access.v1.AuthService.RequestPasswordReset:input_type -> tanvo.access.v1.RequestPasswordResetRequest
-	20, // 36: tanvo.access.v1.AuthService.ResetPassword:input_type -> tanvo.access.v1.ResetPasswordRequest
-	22, // 37: tanvo.access.v1.AuthService.GetCurrentUser:input_type -> tanvo.access.v1.GetCurrentUserRequest
-	24, // 38: tanvo.access.v1.AuthService.SignOut:input_type -> tanvo.access.v1.SignOutRequest
-	26, // 39: tanvo.access.v1.SsoConnectionService.CreateSsoConnection:input_type -> tanvo.access.v1.CreateSsoConnectionRequest
-	28, // 40: tanvo.access.v1.SsoConnectionService.GetSsoConnection:input_type -> tanvo.access.v1.GetSsoConnectionRequest
-	30, // 41: tanvo.access.v1.SsoConnectionService.ListSsoConnections:input_type -> tanvo.access.v1.ListSsoConnectionsRequest
-	32, // 42: tanvo.access.v1.SsoConnectionService.UpdateSsoConnection:input_type -> tanvo.access.v1.UpdateSsoConnectionRequest
-	34, // 43: tanvo.access.v1.SsoConnectionService.DeleteSsoConnection:input_type -> tanvo.access.v1.DeleteSsoConnectionRequest
-	7,  // 44: tanvo.access.v1.AuthService.SignUp:output_type -> tanvo.access.v1.SignUpResponse
-	9,  // 45: tanvo.access.v1.AuthService.SignInWithPassword:output_type -> tanvo.access.v1.SignInWithPasswordResponse
-	11, // 46: tanvo.access.v1.AuthService.StartOidcSignIn:output_type -> tanvo.access.v1.StartOidcSignInResponse
-	13, // 47: tanvo.access.v1.AuthService.CompleteOidcSignIn:output_type -> tanvo.access.v1.CompleteOidcSignInResponse
-	15, // 48: tanvo.access.v1.AuthService.LookupInvite:output_type -> tanvo.access.v1.LookupInviteResponse
-	17, // 49: tanvo.access.v1.AuthService.AcceptInvite:output_type -> tanvo.access.v1.AcceptInviteResponse
-	19, // 50: tanvo.access.v1.AuthService.RequestPasswordReset:output_type -> tanvo.access.v1.RequestPasswordResetResponse
-	21, // 51: tanvo.access.v1.AuthService.ResetPassword:output_type -> tanvo.access.v1.ResetPasswordResponse
-	23, // 52: tanvo.access.v1.AuthService.GetCurrentUser:output_type -> tanvo.access.v1.GetCurrentUserResponse
-	25, // 53: tanvo.access.v1.AuthService.SignOut:output_type -> tanvo.access.v1.SignOutResponse
-	27, // 54: tanvo.access.v1.SsoConnectionService.CreateSsoConnection:output_type -> tanvo.access.v1.CreateSsoConnectionResponse
-	29, // 55: tanvo.access.v1.SsoConnectionService.GetSsoConnection:output_type -> tanvo.access.v1.GetSsoConnectionResponse
-	31, // 56: tanvo.access.v1.SsoConnectionService.ListSsoConnections:output_type -> tanvo.access.v1.ListSsoConnectionsResponse
-	33, // 57: tanvo.access.v1.SsoConnectionService.UpdateSsoConnection:output_type -> tanvo.access.v1.UpdateSsoConnectionResponse
-	35, // 58: tanvo.access.v1.SsoConnectionService.DeleteSsoConnection:output_type -> tanvo.access.v1.DeleteSsoConnectionResponse
-	44, // [44:59] is the sub-list for method output_type
-	29, // [29:44] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	38, // 2: tanvo.access.v1.SsoConnection.created_at:type_name -> google.protobuf.Timestamp
+	38, // 3: tanvo.access.v1.SsoConnection.updated_at:type_name -> google.protobuf.Timestamp
+	1,  // 4: tanvo.access.v1.SsoConnection.token_endpoint_auth_method:type_name -> tanvo.access.v1.TokenEndpointAuthMethod
+	37, // 5: tanvo.access.v1.SsoConnection.authorization_params:type_name -> tanvo.access.v1.SsoConnection.AuthorizationParamsEntry
+	4,  // 6: tanvo.access.v1.SignUpResponse.session:type_name -> tanvo.access.v1.Session
+	39, // 7: tanvo.access.v1.SignUpResponse.user:type_name -> tanvo.access.v1.User
+	5,  // 8: tanvo.access.v1.SignUpResponse.organization:type_name -> tanvo.access.v1.OrganizationAccess
+	4,  // 9: tanvo.access.v1.SignInWithPasswordResponse.session:type_name -> tanvo.access.v1.Session
+	39, // 10: tanvo.access.v1.SignInWithPasswordResponse.user:type_name -> tanvo.access.v1.User
+	5,  // 11: tanvo.access.v1.SignInWithPasswordResponse.organizations:type_name -> tanvo.access.v1.OrganizationAccess
+	2,  // 12: tanvo.access.v1.StartOidcSignInRequest.provider:type_name -> tanvo.access.v1.OidcProvider
+	3,  // 13: tanvo.access.v1.StartOidcSignInRequest.intent:type_name -> tanvo.access.v1.OidcIntent
+	4,  // 14: tanvo.access.v1.CompleteOidcSignInResponse.session:type_name -> tanvo.access.v1.Session
+	39, // 15: tanvo.access.v1.CompleteOidcSignInResponse.user:type_name -> tanvo.access.v1.User
+	5,  // 16: tanvo.access.v1.CompleteOidcSignInResponse.organizations:type_name -> tanvo.access.v1.OrganizationAccess
+	4,  // 17: tanvo.access.v1.AcceptInviteResponse.session:type_name -> tanvo.access.v1.Session
+	39, // 18: tanvo.access.v1.AcceptInviteResponse.user:type_name -> tanvo.access.v1.User
+	5,  // 19: tanvo.access.v1.AcceptInviteResponse.organization:type_name -> tanvo.access.v1.OrganizationAccess
+	4,  // 20: tanvo.access.v1.ResetPasswordResponse.session:type_name -> tanvo.access.v1.Session
+	39, // 21: tanvo.access.v1.ResetPasswordResponse.user:type_name -> tanvo.access.v1.User
+	39, // 22: tanvo.access.v1.GetCurrentUserResponse.user:type_name -> tanvo.access.v1.User
+	5,  // 23: tanvo.access.v1.GetCurrentUserResponse.organizations:type_name -> tanvo.access.v1.OrganizationAccess
+	6,  // 24: tanvo.access.v1.CreateSsoConnectionRequest.sso_connection:type_name -> tanvo.access.v1.SsoConnection
+	6,  // 25: tanvo.access.v1.CreateSsoConnectionResponse.sso_connection:type_name -> tanvo.access.v1.SsoConnection
+	6,  // 26: tanvo.access.v1.GetSsoConnectionResponse.sso_connection:type_name -> tanvo.access.v1.SsoConnection
+	6,  // 27: tanvo.access.v1.ListSsoConnectionsResponse.sso_connections:type_name -> tanvo.access.v1.SsoConnection
+	6,  // 28: tanvo.access.v1.UpdateSsoConnectionRequest.sso_connection:type_name -> tanvo.access.v1.SsoConnection
+	40, // 29: tanvo.access.v1.UpdateSsoConnectionRequest.update_mask:type_name -> google.protobuf.FieldMask
+	6,  // 30: tanvo.access.v1.UpdateSsoConnectionResponse.sso_connection:type_name -> tanvo.access.v1.SsoConnection
+	7,  // 31: tanvo.access.v1.AuthService.SignUp:input_type -> tanvo.access.v1.SignUpRequest
+	9,  // 32: tanvo.access.v1.AuthService.SignInWithPassword:input_type -> tanvo.access.v1.SignInWithPasswordRequest
+	11, // 33: tanvo.access.v1.AuthService.StartOidcSignIn:input_type -> tanvo.access.v1.StartOidcSignInRequest
+	13, // 34: tanvo.access.v1.AuthService.CompleteOidcSignIn:input_type -> tanvo.access.v1.CompleteOidcSignInRequest
+	15, // 35: tanvo.access.v1.AuthService.LookupInvite:input_type -> tanvo.access.v1.LookupInviteRequest
+	17, // 36: tanvo.access.v1.AuthService.AcceptInvite:input_type -> tanvo.access.v1.AcceptInviteRequest
+	19, // 37: tanvo.access.v1.AuthService.RequestPasswordReset:input_type -> tanvo.access.v1.RequestPasswordResetRequest
+	21, // 38: tanvo.access.v1.AuthService.ResetPassword:input_type -> tanvo.access.v1.ResetPasswordRequest
+	23, // 39: tanvo.access.v1.AuthService.GetCurrentUser:input_type -> tanvo.access.v1.GetCurrentUserRequest
+	25, // 40: tanvo.access.v1.AuthService.SignOut:input_type -> tanvo.access.v1.SignOutRequest
+	27, // 41: tanvo.access.v1.SsoConnectionService.CreateSsoConnection:input_type -> tanvo.access.v1.CreateSsoConnectionRequest
+	29, // 42: tanvo.access.v1.SsoConnectionService.GetSsoConnection:input_type -> tanvo.access.v1.GetSsoConnectionRequest
+	31, // 43: tanvo.access.v1.SsoConnectionService.ListSsoConnections:input_type -> tanvo.access.v1.ListSsoConnectionsRequest
+	33, // 44: tanvo.access.v1.SsoConnectionService.UpdateSsoConnection:input_type -> tanvo.access.v1.UpdateSsoConnectionRequest
+	35, // 45: tanvo.access.v1.SsoConnectionService.DeleteSsoConnection:input_type -> tanvo.access.v1.DeleteSsoConnectionRequest
+	8,  // 46: tanvo.access.v1.AuthService.SignUp:output_type -> tanvo.access.v1.SignUpResponse
+	10, // 47: tanvo.access.v1.AuthService.SignInWithPassword:output_type -> tanvo.access.v1.SignInWithPasswordResponse
+	12, // 48: tanvo.access.v1.AuthService.StartOidcSignIn:output_type -> tanvo.access.v1.StartOidcSignInResponse
+	14, // 49: tanvo.access.v1.AuthService.CompleteOidcSignIn:output_type -> tanvo.access.v1.CompleteOidcSignInResponse
+	16, // 50: tanvo.access.v1.AuthService.LookupInvite:output_type -> tanvo.access.v1.LookupInviteResponse
+	18, // 51: tanvo.access.v1.AuthService.AcceptInvite:output_type -> tanvo.access.v1.AcceptInviteResponse
+	20, // 52: tanvo.access.v1.AuthService.RequestPasswordReset:output_type -> tanvo.access.v1.RequestPasswordResetResponse
+	22, // 53: tanvo.access.v1.AuthService.ResetPassword:output_type -> tanvo.access.v1.ResetPasswordResponse
+	24, // 54: tanvo.access.v1.AuthService.GetCurrentUser:output_type -> tanvo.access.v1.GetCurrentUserResponse
+	26, // 55: tanvo.access.v1.AuthService.SignOut:output_type -> tanvo.access.v1.SignOutResponse
+	28, // 56: tanvo.access.v1.SsoConnectionService.CreateSsoConnection:output_type -> tanvo.access.v1.CreateSsoConnectionResponse
+	30, // 57: tanvo.access.v1.SsoConnectionService.GetSsoConnection:output_type -> tanvo.access.v1.GetSsoConnectionResponse
+	32, // 58: tanvo.access.v1.SsoConnectionService.ListSsoConnections:output_type -> tanvo.access.v1.ListSsoConnectionsResponse
+	34, // 59: tanvo.access.v1.SsoConnectionService.UpdateSsoConnection:output_type -> tanvo.access.v1.UpdateSsoConnectionResponse
+	36, // 60: tanvo.access.v1.SsoConnectionService.DeleteSsoConnection:output_type -> tanvo.access.v1.DeleteSsoConnectionResponse
+	46, // [46:61] is the sub-list for method output_type
+	31, // [31:46] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_access_v1_auth_proto_init() }
@@ -3962,8 +4308,8 @@ func file_tanvo_access_v1_auth_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_access_v1_auth_proto_rawDesc), len(file_tanvo_access_v1_auth_proto_rawDesc)),
-			NumEnums:      3,
-			NumMessages:   33,
+			NumEnums:      4,
+			NumMessages:   34,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

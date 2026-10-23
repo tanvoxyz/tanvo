@@ -516,6 +516,11 @@ message Subscription {
   google.protobuf.Timestamp created_at = 37 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the subscription last changed.
   google.protobuf.Timestamp updated_at = 38 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The progressive billing thresholds: on create and update, the
+  // subscription's own thresholds, which replace its own and exclude
+  // plan_overrides.usage_thresholds; on read, the thresholds that apply
+  // (its own, else its plan's, else the original plan's).
+  repeated tanvo.catalog.v1.UsageThreshold usage_thresholds = 39 [(buf.validate.field).repeated.max_items = 50];
 }
 
 // UsageThresholdProgress is a threshold and the lifetime usage still needed

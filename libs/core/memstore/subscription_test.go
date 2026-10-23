@@ -194,7 +194,7 @@ func TestSubscriptionRepos(t *testing.T) {
 		t.Fatal(err)
 	}
 	moved := *l
-	moved.ID, moved.SubscriptionID, moved.RecalculateCurrentUsage = core.NewID[core.LifetimeUsageID](ids), next.ID, true
+	moved.ID, moved.SubscriptionID, moved.RecalculateInvoicedUsage = core.NewID[core.LifetimeUsageID](ids), next.ID, true
 	if err := usages.Upsert(ctx, &moved); err != nil {
 		t.Fatal(err)
 	}

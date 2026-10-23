@@ -117,7 +117,7 @@ type PaymentServiceClient interface {
 	CreatePayment(context.Context, *v1.CreatePaymentRequest) (*v1.CreatePaymentResponse, error)
 	// Returns a payment.
 	GetPayment(context.Context, *v1.GetPaymentRequest) (*v1.GetPaymentResponse, error)
-	// Lists payments, newest first.
+	// Lists payments, newest first, then by ID.
 	ListPayments(context.Context, *v1.ListPaymentsRequest) (*v1.ListPaymentsResponse, error)
 	// Lists refunds, newest first.
 	ListRefunds(context.Context, *v1.ListRefundsRequest) (*v1.ListRefundsResponse, error)
@@ -135,7 +135,7 @@ type PaymentServiceHandler interface {
 	CreatePayment(context.Context, *v1.CreatePaymentRequest) (*v1.CreatePaymentResponse, error)
 	// Returns a payment.
 	GetPayment(context.Context, *v1.GetPaymentRequest) (*v1.GetPaymentResponse, error)
-	// Lists payments, newest first.
+	// Lists payments, newest first, then by ID.
 	ListPayments(context.Context, *v1.ListPaymentsRequest) (*v1.ListPaymentsResponse, error)
 	// Lists refunds, newest first.
 	ListRefunds(context.Context, *v1.ListRefundsRequest) (*v1.ListRefundsResponse, error)
@@ -435,7 +435,7 @@ type PaymentRequestServiceClient interface {
 	CreatePaymentRequest(context.Context, *v1.CreatePaymentRequestRequest) (*v1.CreatePaymentRequestResponse, error)
 	// Returns a payment request.
 	GetPaymentRequest(context.Context, *v1.GetPaymentRequestRequest) (*v1.GetPaymentRequestResponse, error)
-	// Lists payment requests, newest first.
+	// Lists payment requests, newest first, then by ID.
 	ListPaymentRequests(context.Context, *v1.ListPaymentRequestsRequest) (*v1.ListPaymentRequestsResponse, error)
 }
 
@@ -452,7 +452,7 @@ type PaymentRequestServiceHandler interface {
 	CreatePaymentRequest(context.Context, *v1.CreatePaymentRequestRequest) (*v1.CreatePaymentRequestResponse, error)
 	// Returns a payment request.
 	GetPaymentRequest(context.Context, *v1.GetPaymentRequestRequest) (*v1.GetPaymentRequestResponse, error)
-	// Lists payment requests, newest first.
+	// Lists payment requests, newest first, then by ID.
 	ListPaymentRequests(context.Context, *v1.ListPaymentRequestsRequest) (*v1.ListPaymentRequestsResponse, error)
 }
 
@@ -585,7 +585,7 @@ var (
 type PaymentReceiptServiceClient interface {
 	// Returns a payment receipt.
 	GetPaymentReceipt(context.Context, *v1.GetPaymentReceiptRequest) (*v1.GetPaymentReceiptResponse, error)
-	// Lists payment receipts, newest first.
+	// Lists payment receipts, newest first, then by ID.
 	ListPaymentReceipts(context.Context, *v1.ListPaymentReceiptsRequest) (*v1.ListPaymentReceiptsResponse, error)
 	// Returns signed URLs of the receipt's PDF and XML.
 	DownloadPaymentReceipt(context.Context, *v1.DownloadPaymentReceiptRequest) (*v1.DownloadPaymentReceiptResponse, error)
@@ -604,7 +604,7 @@ func NewPaymentReceiptServiceClient(client *connect.Client) PaymentReceiptServic
 type PaymentReceiptServiceHandler interface {
 	// Returns a payment receipt.
 	GetPaymentReceipt(context.Context, *v1.GetPaymentReceiptRequest) (*v1.GetPaymentReceiptResponse, error)
-	// Lists payment receipts, newest first.
+	// Lists payment receipts, newest first, then by ID.
 	ListPaymentReceipts(context.Context, *v1.ListPaymentReceiptsRequest) (*v1.ListPaymentReceiptsResponse, error)
 	// Returns signed URLs of the receipt's PDF and XML.
 	DownloadPaymentReceipt(context.Context, *v1.DownloadPaymentReceiptRequest) (*v1.DownloadPaymentReceiptResponse, error)

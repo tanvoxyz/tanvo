@@ -50,8 +50,8 @@ type BillableMetric struct {
 	// FieldName is the event property aggregated; required unless the
 	// aggregation is count; locked once used.
 	FieldName *string
-	// WeightedInterval is required (seconds) for weighted_sum and forbidden
-	// otherwise; locked once used.
+	// WeightedInterval is required (seconds) for weighted_sum and kept but
+	// not read on the other types; locked once used.
 	WeightedInterval WeightedInterval
 	// Recurring carries the value over periods; forbidden for count, max and
 	// latest; locked once used.
@@ -71,6 +71,10 @@ type BillableMetric struct {
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
 	UpdatedAt time.Time
+	// DeletedAt is the instant the metric was discarded; repositories
+	// return only kept metrics, so it is set only on the metric a delete
+	// returns.
+	DeletedAt *time.Time
 }
 
 // MetricFilter is a filter of a billable metric: an event property and its
@@ -133,10 +137,12 @@ func (m *BillableMetric) Validate() error {
 		} else {
 			v.Check(hasField, "field_name", core.CodeRequired)
 		}
+		// Lago checks the interval's inclusion only for weighted_sum and
+		// keeps it, unchecked, on the other types (billable_metric.rb:59-61).
 		if m.AggregationType == AggregationTypeWeightedSum {
-			v.Enum("weighted_interval", m.WeightedInterval)
+			v.Check(m.WeightedInterval.Valid(), "weighted_interval", core.CodeInvalid)
 		} else {
-			v.Check(m.WeightedInterval == "", "weighted_interval", core.CodeForbidden)
+			v.OptionalEnum("weighted_interval", m.WeightedInterval)
 		}
 		if m.Recurring {
 			switch m.AggregationType {

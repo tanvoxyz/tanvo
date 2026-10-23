@@ -44,6 +44,10 @@ type PreviewInput struct {
 	// New are subscriptions not stored (their PlanID, SubscriptionAt and
 	// BillingTime at least); ignored when SubscriptionIDs are given.
 	New []*subscription.Subscription
+
+	// sim simulates a request of [Service.PreviewRequest] in the
+	// rolled-back transaction; nil for a plain preview.
+	sim *previewSim
 }
 
 // Preview is a computed invoice that was not stored.
@@ -56,6 +60,11 @@ type Preview struct {
 	Taxes []*invoice.AppliedTax
 	// Subscriptions are its invoice subscriptions.
 	Subscriptions []*invoice.Subscription
+	// Credits are its coupon and credit note credits (computed only).
+	Credits []*invoice.Credit
+
+	// view is the API view built in the transaction ([Service.PreviewRequest]).
+	view *InvoiceView
 }
 
 // errPreview rolls back the transaction of a preview.
@@ -84,6 +93,14 @@ func (s *Service) preview(ctx context.Context, r port.Repos, in PreviewInput) (*
 	org := in.OrganizationID
 	persisted := len(in.SubscriptionIDs) > 0
 	ids := in.SubscriptionIDs
+	var simStarting map[core.SubscriptionID]bool
+	if in.sim != nil {
+		var err error
+		if ids, simStarting, err = in.sim.prepare(ctx, r, s, in); err != nil {
+			return nil, err
+		}
+		persisted = persisted || simStarting != nil
+	}
 	if !persisted {
 		if len(in.New) == 0 {
 			return nil, core.NewRuleError(CodeNoSubscriptions, "a preview needs subscriptions")
@@ -123,7 +140,9 @@ func (s *Service) preview(ctx context.Context, r port.Repos, in PreviewInput) (*
 		rows[i] = &billed{env: env}
 	}
 	starting := map[core.SubscriptionID]bool{}
-	if persisted {
+	if simStarting != nil {
+		starting = simStarting
+	} else if persisted {
 		var err error
 		if rows, starting, err = s.previewDowngrades(ctx, r, org, rows); err != nil {
 			return nil, err
@@ -153,6 +172,14 @@ func (s *Service) preview(ctx context.Context, r port.Repos, in PreviewInput) (*
 		}
 		if core.DateOf(at, b.env.Location()) != core.DateOf(billingAt, first.Location()) {
 			return nil, core.NewRuleError(CodePreviewBillingPeriods, "the subscriptions are billed on different days")
+		}
+	}
+	// The termination credit note returns the last stored subscription
+	// fee, so it is computed before the preview's own fees.
+	var note *previewNote
+	if in.sim != nil {
+		if note, err = in.sim.terminationNote(ctx, r, s); err != nil {
+			return nil, err
 		}
 	}
 	cenv := first.Customer
@@ -193,18 +220,34 @@ func (s *Service) preview(ctx context.Context, r port.Repos, in PreviewInput) (*
 				used = append(used, b)
 			}
 		}
-		if fs, _, err = s.subscriptionFees(ctx, r, inv, used, !persisted); err != nil {
+		// The fees of a termination are those of an invoice created when
+		// the subscription terminates (lago PreviewService
+		// #should_create_subscription_fee?: none for a plan paid in advance).
+		created := inv.CreatedAt
+		if reason == invoice.InvoicingReasonSubscriptionTerminating && billingAt.After(created) {
+			inv.CreatedAt = billingAt
+		}
+		fs, _, err = s.subscriptionFees(ctx, r, inv, used, !persisted)
+		inv.CreatedAt = created
+		if err != nil {
 			return nil, err
 		}
 	}
-	st, err := s.settle(ctx, r, cenv, inv, fs, settleOptions{preview: true, plans: plans, resolver: resolver})
+	opts := settleOptions{preview: true, plans: plans, resolver: resolver, previewCreditNote: note}
+	st, err := s.settle(ctx, r, cenv, inv, fs, opts)
 	if err != nil {
 		return nil, err
 	}
 	if st.taxFailure != nil {
 		return nil, st.taxFailure
 	}
-	return &Preview{Invoice: inv, Fees: fs, Taxes: st.appliedTaxes, Subscriptions: iss}, nil
+	p := &Preview{Invoice: inv, Fees: fs, Taxes: st.appliedTaxes, Subscriptions: iss, Credits: st.credits}
+	if in.sim != nil {
+		if p.view, err = in.sim.view(ctx, r, p, rows, opts.previewCreditNote); err != nil {
+			return nil, err
+		}
+	}
+	return p, nil
 }
 
 // previewDowngrades simulates, in the rolled-back transaction of r, the

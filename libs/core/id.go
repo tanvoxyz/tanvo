@@ -28,6 +28,15 @@ type identifier[I any] interface {
 
 func (id ID[K]) withUUID(u uuid.UUID) ID[K] { return ID[K]{u} }
 
+// Identifier is satisfied by every identifier alias ([CustomerID], …); it
+// lets code outside this package write functions generic over identifiers
+// that call [ParseID] or [NewID].
+type Identifier[I any] interface {
+	identifier[I]
+	// UUID returns the underlying UUID.
+	UUID() uuid.UUID
+}
+
 // NewID returns a fresh identifier of type I from g:
 //
 //	id := core.NewID[core.CustomerID](gen)

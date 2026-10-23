@@ -24,6 +24,11 @@ func (t *txState) bind() port.Repos {
 	t.bindIntegration(&r)
 	t.bindWebhook(&r)
 	t.bindExport(&r)
+	t.bindAnalytics(&r)
 	t.bindQuote(&r)
+	t.bindIdempotency(&r)
+	t.bindAuditLog(&r)
+	t.bindAttribution(&r)
+	t.bindProductCatalog(&r)
 	return r
 }

@@ -30,10 +30,11 @@ func inTx[T any](ctx context.Context, tx port.Transactor, fn func(ctx context.Co
 	return out, nil
 }
 
-// get loads the credit note id; draft says whether a draft is found.
+// get loads the credit note id; draft says whether a draft is found. A
+// deleted credit note is never found (lago not_deleted).
 func get(ctx context.Context, r port.Repos, org core.OrganizationID, id core.CreditNoteID, draft bool) (*creditnote.CreditNote, error) {
 	cn, err := r.CreditNotes.Get(ctx, org, id)
-	if errors.Is(err, core.ErrNotFound) || (err == nil && !draft && cn.Status == creditnote.StatusDraft) {
+	if errors.Is(err, core.ErrNotFound) || (err == nil && (cn.Status == creditnote.StatusDeleted || !draft && cn.Status == creditnote.StatusDraft)) {
 		return nil, notFound("credit_note", id)
 	}
 	if err != nil {
@@ -69,7 +70,8 @@ func (s *Service) Void(ctx context.Context, org core.OrganizationID, id core.Cre
 	})
 }
 
-// Delete deletes a draft credit note.
+// Delete soft-deletes a draft credit note: it moves to the hidden,
+// terminal deleted status (lago CreditNotes::DeleteService).
 func (s *Service) Delete(ctx context.Context, org core.OrganizationID, id core.CreditNoteID) error {
 	return s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
 		cn, err := get(ctx, r, org, id, true)
@@ -79,7 +81,10 @@ func (s *Service) Delete(ctx context.Context, org core.OrganizationID, id core.C
 		if cn.Status != creditnote.StatusDraft {
 			return rule(CodeNotDeletable, "only draft credit notes can be deleted")
 		}
-		if err := r.CreditNotes.Delete(ctx, org, id); err != nil {
+		if err := cn.MarkDeleted(s.d.Now()); err != nil {
+			return fmt.Errorf("delete credit note %s: %w", id, err)
+		}
+		if err := r.CreditNotes.Update(ctx, cn); err != nil {
 			return fmt.Errorf("delete credit note %s: %w", id, err)
 		}
 		return nil
@@ -107,16 +112,20 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.C
 		}
 		now := s.d.Now()
 		changed := false
-		if in.RefundStatus != nil && *in.RefundStatus != cn.RefundStatus {
+		// Assigning succeeded stamps refunded_at again even when the status
+		// is unchanged (app/services/credit_notes/update_service.rb:19-22).
+		if in.RefundStatus != nil {
 			var v core.Validator
 			if !v.Enum("refund_status", *in.RefundStatus) {
 				return nil, v.Err()
+			}
+			if *in.RefundStatus != cn.RefundStatus || *in.RefundStatus == core.RefundStatusSucceeded {
+				changed = true
 			}
 			cn.RefundStatus = *in.RefundStatus
 			if cn.RefundStatus == core.RefundStatusSucceeded {
 				cn.RefundedAt = &now
 			}
-			changed = true
 		}
 		if in.Metadata != nil {
 			md := mergeMetadata(cn.Metadata, *in.Metadata, in.MergeMetadata)

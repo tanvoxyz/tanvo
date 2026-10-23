@@ -14,16 +14,11 @@ const (
 	// metrics, not both.
 	CodeOnlyOneLimitationType = "only_one_limitation_type_per_coupon_allowed"
 	// CodeNotReusable: a non-reusable coupon is already applied to the
-	// customer.
+	// customer (a validation error on field "coupon").
 	CodeNotReusable = "coupon_is_not_reusable"
 	// CodePlanOverlapping: an active applied coupon of the customer already
 	// targets one of the same plans or metrics.
 	CodePlanOverlapping = "plan_overlapping"
-	// CodeCouponNotActive: the coupon is terminated.
-	CodeCouponNotActive = "coupon_not_active"
-	// CodeAppliedCouponLocked: a field other than name, description and
-	// expiration changed on an applied coupon.
-	CodeAppliedCouponLocked = "coupon_already_applied"
 )
 
 // Coupon is a discount that can be applied to customers (domain §8.1).
@@ -32,7 +27,8 @@ type Coupon struct {
 	ID core.CouponID
 	// OrganizationID is the owning organization.
 	OrganizationID core.OrganizationID
-	// Code is unique among live coupons; required, ≤ 255 characters.
+	// Code is unique among the organization's coupons that are not
+	// deleted; required, ≤ 255 characters.
 	Code string
 	// Name is required, ≤ 255 characters.
 	Name string
@@ -70,6 +66,10 @@ type Coupon struct {
 	Status Status
 	// TerminatedAt is set when terminated.
 	TerminatedAt *time.Time
+	// DeletedAt is set when deleted: a deleted coupon keeps its status,
+	// is hidden from reads by code and from lists, and frees its code; its
+	// applied coupons still reference it.
+	DeletedAt *time.Time
 	// CreatedAt is the creation instant.
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
@@ -165,25 +165,25 @@ func (c *Coupon) Terminate(now time.Time) error {
 	return nil
 }
 
-// CheckUpdate enforces that once a coupon is applied only its name,
-// description and expiration change (domain §8.1). It returns a
-// *core.ValidationError listing each locked field that changed.
-func CheckUpdate(old, next *Coupon, applied bool) error {
-	if !applied {
-		return nil
-	}
-	var v core.Validator
-	v.Check(old.Code == next.Code, "code", CodeAppliedCouponLocked)
-	v.Check(old.Type == next.Type, "coupon_type", CodeAppliedCouponLocked)
-	v.Check(equalPtr(old.Amount, next.Amount), "amount_cents", CodeAppliedCouponLocked)
-	v.Check(old.Currency.Code() == next.Currency.Code(), "amount_currency", CodeAppliedCouponLocked)
-	v.Check(equalDecimalPtr(old.PercentageRate, next.PercentageRate), "percentage_rate", CodeAppliedCouponLocked)
-	v.Check(old.Frequency == next.Frequency, "frequency", CodeAppliedCouponLocked)
-	v.Check(equalPtr(old.FrequencyDuration, next.FrequencyDuration), "frequency_duration", CodeAppliedCouponLocked)
-	v.Check(old.Reusable == next.Reusable, "reusable", CodeAppliedCouponLocked)
-	v.Check(slices.Equal(old.LimitedPlanIDs, next.LimitedPlanIDs), "limited_plans", CodeAppliedCouponLocked)
-	v.Check(slices.Equal(old.LimitedBillableMetricIDs, next.LimitedBillableMetricIDs), "limited_billable_metrics", CodeAppliedCouponLocked)
-	return v.Err()
+// Deleted reports whether the coupon is deleted.
+func (c *Coupon) Deleted() bool { return c.DeletedAt != nil }
+
+// Delete marks the coupon deleted at now; its status is unchanged.
+func (c *Coupon) Delete(now time.Time) {
+	c.DeletedAt = &now
+	c.UpdatedAt = now
+}
+
+// KeepLocked gives next the fields of old that are locked once a coupon
+// is applied: every field but the name, description and expiration
+// (domain §8.1). Changes to locked fields are ignored, not rejected (lago
+// Coupons::UpdateService).
+func KeepLocked(old, next *Coupon) {
+	next.Code, next.Type = old.Code, old.Type
+	next.Amount, next.Currency, next.PercentageRate = old.Amount, old.Currency, old.PercentageRate
+	next.Frequency, next.FrequencyDuration, next.Reusable = old.Frequency, old.FrequencyDuration, old.Reusable
+	next.LimitedPlanIDs = slices.Clone(old.LimitedPlanIDs)
+	next.LimitedBillableMetricIDs = slices.Clone(old.LimitedBillableMetricIDs)
 }
 
 func hasDuplicates[T comparable](s []T) bool {
@@ -195,18 +195,4 @@ func hasDuplicates[T comparable](s []T) bool {
 		seen[x] = true
 	}
 	return false
-}
-
-func equalPtr[T comparable](a, b *T) bool {
-	if a == nil || b == nil {
-		return a == b
-	}
-	return *a == *b
-}
-
-func equalDecimalPtr(a, b *money.Decimal) bool {
-	if a == nil || b == nil {
-		return a == b
-	}
-	return a.Equal(*b)
 }

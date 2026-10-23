@@ -40,7 +40,7 @@ service PaymentService {
     };
   }
 
-  // Lists payments, newest first.
+  // Lists payments, newest first, then by ID.
   rpc ListPayments(ListPaymentsRequest) returns (ListPaymentsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
     option (google.api.http) = {
@@ -125,7 +125,7 @@ service PaymentRequestService {
     };
   }
 
-  // Lists payment requests, newest first.
+  // Lists payment requests, newest first, then by ID.
   rpc ListPaymentRequests(ListPaymentRequestsRequest) returns (ListPaymentRequestsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
     option (google.api.http) = {
@@ -151,7 +151,7 @@ service PaymentReceiptService {
     };
   }
 
-  // Lists payment receipts, newest first.
+  // Lists payment receipts, newest first, then by ID.
   rpc ListPaymentReceipts(ListPaymentReceiptsRequest) returns (ListPaymentReceiptsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
     option (google.api.http) = {get: "/v1/payment_receipts"};
@@ -194,8 +194,8 @@ enum PaymentKind {
   PAYMENT_KIND_PROVIDER = 1;
   // Recorded by hand.
   PAYMENT_KIND_MANUAL = 2;
-  // Settled on-chain through x402.
-  PAYMENT_KIND_X402 = 3;
+  reserved 3;
+  reserved PAYMENT_KIND_X402;
 }
 
 // PayableType is what a payment pays.
@@ -441,7 +441,9 @@ message GetPaymentResponse {
 
 // ListPaymentsRequest is the request of PaymentService.ListPayments.
 message ListPaymentsRequest {
-  // Restricts the list to one customer (ID or `external_id:<external_id>`).
+  // Lists the payments of this customer (ID or `external_id:<external_id>`),
+  // which must exist. To narrow the list to a customer that may not exist,
+  // filter on `customer_id` instead.
   string customer_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
   // The maximum number of results; 20 by default, at most 1000.
   int32 page_size = 2 [(buf.validate.field).int32 = {
@@ -450,9 +452,16 @@ message ListPaymentsRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 3 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `invoice_id`, `payment_request_id`, `status`
-  // and `kind`.
+  // An AIP-160 filter over `customer_id` (an ID or
+  // `external_id:<external_id>`; one that names no customer lists nothing),
+  // `invoice_id` (payments of the invoice, made directly or through a
+  // payment request) and `currency`.
   string filter = 4 [(buf.validate.field).string.max_len = 2048];
+  // A search over the payment ID, the provider payment ID, the reference,
+  // the invoice number (without an `invoice_id` filter) and the customer's
+  // name, first name, last name, external ID and email (without a
+  // customer).
+  string search = 5 [(buf.validate.field).string.max_len = 255];
 }
 
 // ListPaymentsResponse is the response of PaymentService.ListPayments.
@@ -606,7 +615,9 @@ message GetPaymentRequestResponse {
 
 // ListPaymentRequestsRequest is the request of PaymentRequestService.ListPaymentRequests.
 message ListPaymentRequestsRequest {
-  // Restricts the list to one customer (ID or `external_id:<external_id>`).
+  // Lists the payment requests of this customer (ID or
+  // `external_id:<external_id>`), which must exist. To narrow the list to a
+  // customer that may not exist, filter on `customer_id` instead.
   string customer_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
   // The maximum number of results; 20 by default, at most 1000.
   int32 page_size = 2 [(buf.validate.field).int32 = {
@@ -615,7 +626,11 @@ message ListPaymentRequestsRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 3 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `payment_status` and `dunning_campaign_id`.
+  // An AIP-160 filter over `customer_id` (an ID or
+  // `external_id:<external_id>`; one that names no customer lists nothing),
+  // `payment_status`, `currency` and `billing_entity_id` (an ID or
+  // `code:<code>`; the requests including an invoice of one of the billing
+  // entities).
   string filter = 4 [(buf.validate.field).string.max_len = 2048];
 }
 
@@ -652,7 +667,8 @@ message ListPaymentReceiptsRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 2 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `invoice_id`, `payment_id` and `customer_id`.
+  // An AIP-160 filter over `invoice_id` (receipts of the invoice's
+  // payments, made directly or through a payment request).
   string filter = 3 [(buf.validate.field).string.max_len = 2048];
 }
 

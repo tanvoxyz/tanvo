@@ -36,7 +36,7 @@ const (
 	ProductType_PRODUCT_TYPE_UNSPECIFIED ProductType = 0
 	// Usage of a billable metric.
 	ProductType_PRODUCT_TYPE_METERED ProductType = 1
-	// Units of an add-on.
+	// Units, with no metric.
 	ProductType_PRODUCT_TYPE_FIXED ProductType = 2
 )
 
@@ -86,6 +86,7 @@ type ProductCategory struct {
 	xxx_hidden_InvoiceDisplayName *string                `protobuf:"bytes,5,opt,name=invoice_display_name,json=invoiceDisplayName"`
 	xxx_hidden_CreatedAt          *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt          *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_ProductsCount      int32                  `protobuf:"varint,8,opt,name=products_count,json=productsCount"`
 	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
 	XXX_presence                  [1]uint32
 	unknownFields                 protoimpl.UnknownFields
@@ -181,29 +182,36 @@ func (x *ProductCategory) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *ProductCategory) GetProductsCount() int32 {
+	if x != nil {
+		return x.xxx_hidden_ProductsCount
+	}
+	return 0
+}
+
 func (x *ProductCategory) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
 }
 
 func (x *ProductCategory) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
 }
 
 func (x *ProductCategory) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
 }
 
 func (x *ProductCategory) SetDescription(v string) {
 	x.xxx_hidden_Description = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
 }
 
 func (x *ProductCategory) SetInvoiceDisplayName(v string) {
 	x.xxx_hidden_InvoiceDisplayName = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
 }
 
 func (x *ProductCategory) SetCreatedAt(v *timestamppb.Timestamp) {
@@ -212,6 +220,11 @@ func (x *ProductCategory) SetCreatedAt(v *timestamppb.Timestamp) {
 
 func (x *ProductCategory) SetUpdatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_UpdatedAt = v
+}
+
+func (x *ProductCategory) SetProductsCount(v int32) {
+	x.xxx_hidden_ProductsCount = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
 }
 
 func (x *ProductCategory) HasId() bool {
@@ -263,6 +276,13 @@ func (x *ProductCategory) HasUpdatedAt() bool {
 	return x.xxx_hidden_UpdatedAt != nil
 }
 
+func (x *ProductCategory) HasProductsCount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
 func (x *ProductCategory) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -296,6 +316,11 @@ func (x *ProductCategory) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = nil
 }
 
+func (x *ProductCategory) ClearProductsCount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_ProductsCount = 0
+}
+
 type ProductCategory_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -313,6 +338,8 @@ type ProductCategory_builder struct {
 	CreatedAt *timestamppb.Timestamp
 	// When the category last changed.
 	UpdatedAt *timestamppb.Timestamp
+	// The number of the category's products.
+	ProductsCount *int32
 }
 
 func (b0 ProductCategory_builder) Build() *ProductCategory {
@@ -320,27 +347,31 @@ func (b0 ProductCategory_builder) Build() *ProductCategory {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
 		x.xxx_hidden_Code = b.Code
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Description != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
 		x.xxx_hidden_Description = b.Description
 	}
 	if b.InvoiceDisplayName != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
 		x.xxx_hidden_InvoiceDisplayName = b.InvoiceDisplayName
 	}
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
+	if b.ProductsCount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		x.xxx_hidden_ProductsCount = *b.ProductsCount
+	}
 	return m0
 }
 
@@ -355,9 +386,9 @@ type Product struct {
 	xxx_hidden_ProductType        ProductType            `protobuf:"varint,6,opt,name=product_type,json=productType,enum=tanvo.catalog.v1.ProductType"`
 	xxx_hidden_ProductCategoryId  *string                `protobuf:"bytes,7,opt,name=product_category_id,json=productCategoryId"`
 	xxx_hidden_BillableMetricId   *string                `protobuf:"bytes,8,opt,name=billable_metric_id,json=billableMetricId"`
-	xxx_hidden_AddOnId            *string                `protobuf:"bytes,9,opt,name=add_on_id,json=addOnId"`
 	xxx_hidden_CreatedAt          *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt          *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_FiltersCount       int32                  `protobuf:"varint,12,opt,name=filters_count,json=filtersCount"`
 	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
 	XXX_presence                  [1]uint32
 	unknownFields                 protoimpl.UnknownFields
@@ -468,16 +499,6 @@ func (x *Product) GetBillableMetricId() string {
 	return ""
 }
 
-func (x *Product) GetAddOnId() string {
-	if x != nil {
-		if x.xxx_hidden_AddOnId != nil {
-			return *x.xxx_hidden_AddOnId
-		}
-		return ""
-	}
-	return ""
-}
-
 func (x *Product) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_CreatedAt
@@ -490,6 +511,13 @@ func (x *Product) GetUpdatedAt() *timestamppb.Timestamp {
 		return x.xxx_hidden_UpdatedAt
 	}
 	return nil
+}
+
+func (x *Product) GetFiltersCount() int32 {
+	if x != nil {
+		return x.xxx_hidden_FiltersCount
+	}
+	return 0
 }
 
 func (x *Product) SetId(v string) {
@@ -532,17 +560,17 @@ func (x *Product) SetBillableMetricId(v string) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 11)
 }
 
-func (x *Product) SetAddOnId(v string) {
-	x.xxx_hidden_AddOnId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 11)
-}
-
 func (x *Product) SetCreatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_CreatedAt = v
 }
 
 func (x *Product) SetUpdatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_UpdatedAt = v
+}
+
+func (x *Product) SetFiltersCount(v int32) {
+	x.xxx_hidden_FiltersCount = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 11)
 }
 
 func (x *Product) HasId() bool {
@@ -601,13 +629,6 @@ func (x *Product) HasBillableMetricId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
 }
 
-func (x *Product) HasAddOnId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
-}
-
 func (x *Product) HasCreatedAt() bool {
 	if x == nil {
 		return false
@@ -620,6 +641,13 @@ func (x *Product) HasUpdatedAt() bool {
 		return false
 	}
 	return x.xxx_hidden_UpdatedAt != nil
+}
+
+func (x *Product) HasFiltersCount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
 }
 
 func (x *Product) ClearId() {
@@ -662,17 +690,17 @@ func (x *Product) ClearBillableMetricId() {
 	x.xxx_hidden_BillableMetricId = nil
 }
 
-func (x *Product) ClearAddOnId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
-	x.xxx_hidden_AddOnId = nil
-}
-
 func (x *Product) ClearCreatedAt() {
 	x.xxx_hidden_CreatedAt = nil
 }
 
 func (x *Product) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = nil
+}
+
+func (x *Product) ClearFiltersCount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	x.xxx_hidden_FiltersCount = 0
 }
 
 type Product_builder struct {
@@ -692,14 +720,15 @@ type Product_builder struct {
 	ProductType *ProductType
 	// The category (ID or `code:<code>`).
 	ProductCategoryId *string
-	// The sold billable metric (ID or `code:<code>`), for metered products.
+	// The sold billable metric (ID or `code:<code>`): required on metered
+	// products, refused on fixed ones.
 	BillableMetricId *string
-	// The sold add-on (ID or `code:<code>`), for fixed products.
-	AddOnId *string
 	// When the product was created.
 	CreatedAt *timestamppb.Timestamp
 	// When the product last changed.
 	UpdatedAt *timestamppb.Timestamp
+	// The number of the product's filters.
+	FiltersCount *int32
 }
 
 func (b0 Product_builder) Build() *Product {
@@ -738,27 +767,27 @@ func (b0 Product_builder) Build() *Product {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 11)
 		x.xxx_hidden_BillableMetricId = b.BillableMetricId
 	}
-	if b.AddOnId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 11)
-		x.xxx_hidden_AddOnId = b.AddOnId
-	}
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
+	if b.FiltersCount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 11)
+		x.xxx_hidden_FiltersCount = *b.FiltersCount
+	}
 	return m0
 }
 
 // ProductFilter is a priced subset of a metered product's events, by the
 // values of its metric's filters.
 type ProductFilter struct {
-	state                         protoimpl.MessageState   `protogen:"opaque.v1"`
-	xxx_hidden_Id                 *string                  `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Code               *string                  `protobuf:"bytes,2,opt,name=code"`
-	xxx_hidden_Name               *string                  `protobuf:"bytes,3,opt,name=name"`
-	xxx_hidden_Description        *string                  `protobuf:"bytes,4,opt,name=description"`
-	xxx_hidden_InvoiceDisplayName *string                  `protobuf:"bytes,5,opt,name=invoice_display_name,json=invoiceDisplayName"`
-	xxx_hidden_Values             map[string]*FilterValues `protobuf:"bytes,6,rep,name=values" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	xxx_hidden_CreatedAt          *timestamppb.Timestamp   `protobuf:"bytes,7,opt,name=created_at,json=createdAt"`
-	xxx_hidden_UpdatedAt          *timestamppb.Timestamp   `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt"`
+	state                         protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id                 *string                `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Code               *string                `protobuf:"bytes,2,opt,name=code"`
+	xxx_hidden_Name               *string                `protobuf:"bytes,3,opt,name=name"`
+	xxx_hidden_Description        *string                `protobuf:"bytes,4,opt,name=description"`
+	xxx_hidden_InvoiceDisplayName *string                `protobuf:"bytes,5,opt,name=invoice_display_name,json=invoiceDisplayName"`
+	xxx_hidden_Values             *[]*ProductFilterValue `protobuf:"bytes,9,rep,name=values"`
+	xxx_hidden_CreatedAt          *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt          *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=updated_at,json=updatedAt"`
 	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
 	XXX_presence                  [1]uint32
 	unknownFields                 protoimpl.UnknownFields
@@ -840,9 +869,11 @@ func (x *ProductFilter) GetInvoiceDisplayName() string {
 	return ""
 }
 
-func (x *ProductFilter) GetValues() map[string]*FilterValues {
+func (x *ProductFilter) GetValues() []*ProductFilterValue {
 	if x != nil {
-		return x.xxx_hidden_Values
+		if x.xxx_hidden_Values != nil {
+			return *x.xxx_hidden_Values
+		}
 	}
 	return nil
 }
@@ -886,8 +917,8 @@ func (x *ProductFilter) SetInvoiceDisplayName(v string) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
 }
 
-func (x *ProductFilter) SetValues(v map[string]*FilterValues) {
-	x.xxx_hidden_Values = v
+func (x *ProductFilter) SetValues(v []*ProductFilterValue) {
+	x.xxx_hidden_Values = &v
 }
 
 func (x *ProductFilter) SetCreatedAt(v *timestamppb.Timestamp) {
@@ -993,8 +1024,10 @@ type ProductFilter_builder struct {
 	Description *string
 	// The name printed on invoices.
 	InvoiceDisplayName *string
-	// The matched values per metric filter key.
-	Values map[string]*FilterValues
+	// The matched values of the metric's filters: a key with a value
+	// matches that value, a key alone every value of the key. The set is
+	// unique within the product.
+	Values []*ProductFilterValue
 	// When the filter was created.
 	CreatedAt *timestamppb.Timestamp
 	// When the filter last changed.
@@ -1025,9 +1058,124 @@ func (b0 ProductFilter_builder) Build() *ProductFilter {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
 		x.xxx_hidden_InvoiceDisplayName = b.InvoiceDisplayName
 	}
-	x.xxx_hidden_Values = b.Values
+	x.xxx_hidden_Values = &b.Values
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
+	return m0
+}
+
+// ProductFilterValue selects events of a product filter by one of its
+// metric's filters.
+type ProductFilterValue struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Key         *string                `protobuf:"bytes,1,opt,name=key"`
+	xxx_hidden_Value       *string                `protobuf:"bytes,2,opt,name=value"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *ProductFilterValue) Reset() {
+	*x = ProductFilterValue{}
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ProductFilterValue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ProductFilterValue) ProtoMessage() {}
+
+func (x *ProductFilterValue) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ProductFilterValue) GetKey() string {
+	if x != nil {
+		if x.xxx_hidden_Key != nil {
+			return *x.xxx_hidden_Key
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ProductFilterValue) GetValue() string {
+	if x != nil {
+		if x.xxx_hidden_Value != nil {
+			return *x.xxx_hidden_Value
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ProductFilterValue) SetKey(v string) {
+	x.xxx_hidden_Key = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *ProductFilterValue) SetValue(v string) {
+	x.xxx_hidden_Value = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ProductFilterValue) HasKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ProductFilterValue) HasValue() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ProductFilterValue) ClearKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Key = nil
+}
+
+func (x *ProductFilterValue) ClearValue() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Value = nil
+}
+
+type ProductFilterValue_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The key of the metric's filter.
+	Key *string
+	// One of the key's values; unset matches every value of the key.
+	Value *string
+}
+
+func (b0 ProductFilterValue_builder) Build() *ProductFilterValue {
+	m0 := &ProductFilterValue{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Key != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Key = b.Key
+	}
+	if b.Value != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Value = b.Value
+	}
 	return m0
 }
 
@@ -1041,7 +1189,7 @@ type CreateProductRequest struct {
 
 func (x *CreateProductRequest) Reset() {
 	*x = CreateProductRequest{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[3]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1053,7 +1201,7 @@ func (x *CreateProductRequest) String() string {
 func (*CreateProductRequest) ProtoMessage() {}
 
 func (x *CreateProductRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[3]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1111,7 +1259,7 @@ type CreateProductResponse struct {
 
 func (x *CreateProductResponse) Reset() {
 	*x = CreateProductResponse{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[4]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1123,7 +1271,7 @@ func (x *CreateProductResponse) String() string {
 func (*CreateProductResponse) ProtoMessage() {}
 
 func (x *CreateProductResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[4]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1183,7 +1331,7 @@ type GetProductRequest struct {
 
 func (x *GetProductRequest) Reset() {
 	*x = GetProductRequest{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[5]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1195,7 +1343,7 @@ func (x *GetProductRequest) String() string {
 func (*GetProductRequest) ProtoMessage() {}
 
 func (x *GetProductRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[5]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1261,7 +1409,7 @@ type GetProductResponse struct {
 
 func (x *GetProductResponse) Reset() {
 	*x = GetProductResponse{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[6]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1273,7 +1421,7 @@ func (x *GetProductResponse) String() string {
 func (*GetProductResponse) ProtoMessage() {}
 
 func (x *GetProductResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[6]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1336,7 +1484,7 @@ type ListProductsRequest struct {
 
 func (x *ListProductsRequest) Reset() {
 	*x = ListProductsRequest{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[7]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1348,7 +1496,7 @@ func (x *ListProductsRequest) String() string {
 func (*ListProductsRequest) ProtoMessage() {}
 
 func (x *ListProductsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[7]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1471,8 +1619,8 @@ type ListProductsRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `product_type`, `product_category_id`,
-	// `billable_metric_id` and `add_on_id`.
+	// An AIP-160 filter over `product_type`, `product_category_id` and
+	// `without_product_category` (a boolean).
 	Filter *string
 	// A search over the name and code.
 	Search *string
@@ -1514,7 +1662,7 @@ type ListProductsResponse struct {
 
 func (x *ListProductsResponse) Reset() {
 	*x = ListProductsResponse{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[8]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1526,7 +1674,7 @@ func (x *ListProductsResponse) String() string {
 func (*ListProductsResponse) ProtoMessage() {}
 
 func (x *ListProductsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[8]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1609,7 +1757,7 @@ type UpdateProductRequest struct {
 
 func (x *UpdateProductRequest) Reset() {
 	*x = UpdateProductRequest{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[9]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1621,7 +1769,7 @@ func (x *UpdateProductRequest) String() string {
 func (*UpdateProductRequest) ProtoMessage() {}
 
 func (x *UpdateProductRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[9]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1704,7 +1852,7 @@ type UpdateProductResponse struct {
 
 func (x *UpdateProductResponse) Reset() {
 	*x = UpdateProductResponse{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[10]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1716,7 +1864,7 @@ func (x *UpdateProductResponse) String() string {
 func (*UpdateProductResponse) ProtoMessage() {}
 
 func (x *UpdateProductResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[10]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1776,7 +1924,7 @@ type DeleteProductRequest struct {
 
 func (x *DeleteProductRequest) Reset() {
 	*x = DeleteProductRequest{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[11]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1788,7 +1936,7 @@ func (x *DeleteProductRequest) String() string {
 func (*DeleteProductRequest) ProtoMessage() {}
 
 func (x *DeleteProductRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[11]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1846,14 +1994,15 @@ func (b0 DeleteProductRequest_builder) Build() *DeleteProductRequest {
 
 // DeleteProductResponse is the response of ProductService.DeleteProduct.
 type DeleteProductResponse struct {
-	state         protoimpl.MessageState `protogen:"opaque.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Product *Product               `protobuf:"bytes,1,opt,name=product"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *DeleteProductResponse) Reset() {
 	*x = DeleteProductResponse{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[12]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1865,7 +2014,7 @@ func (x *DeleteProductResponse) String() string {
 func (*DeleteProductResponse) ProtoMessage() {}
 
 func (x *DeleteProductResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[12]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1876,15 +2025,40 @@ func (x *DeleteProductResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+func (x *DeleteProductResponse) GetProduct() *Product {
+	if x != nil {
+		return x.xxx_hidden_Product
+	}
+	return nil
+}
+
+func (x *DeleteProductResponse) SetProduct(v *Product) {
+	x.xxx_hidden_Product = v
+}
+
+func (x *DeleteProductResponse) HasProduct() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Product != nil
+}
+
+func (x *DeleteProductResponse) ClearProduct() {
+	x.xxx_hidden_Product = nil
+}
+
 type DeleteProductResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// The deleted product.
+	Product *Product
 }
 
 func (b0 DeleteProductResponse_builder) Build() *DeleteProductResponse {
 	m0 := &DeleteProductResponse{}
 	b, x := &b0, m0
 	_, _ = b, x
+	x.xxx_hidden_Product = b.Product
 	return m0
 }
 
@@ -1901,7 +2075,7 @@ type CreateProductFilterRequest struct {
 
 func (x *CreateProductFilterRequest) Reset() {
 	*x = CreateProductFilterRequest{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[13]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1913,7 +2087,7 @@ func (x *CreateProductFilterRequest) String() string {
 func (*CreateProductFilterRequest) ProtoMessage() {}
 
 func (x *CreateProductFilterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[13]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2004,7 +2178,7 @@ type CreateProductFilterResponse struct {
 
 func (x *CreateProductFilterResponse) Reset() {
 	*x = CreateProductFilterResponse{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[14]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2016,7 +2190,7 @@ func (x *CreateProductFilterResponse) String() string {
 func (*CreateProductFilterResponse) ProtoMessage() {}
 
 func (x *CreateProductFilterResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[14]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2077,7 +2251,7 @@ type GetProductFilterRequest struct {
 
 func (x *GetProductFilterRequest) Reset() {
 	*x = GetProductFilterRequest{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[15]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2089,7 +2263,7 @@ func (x *GetProductFilterRequest) String() string {
 func (*GetProductFilterRequest) ProtoMessage() {}
 
 func (x *GetProductFilterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[15]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2188,7 +2362,7 @@ type GetProductFilterResponse struct {
 
 func (x *GetProductFilterResponse) Reset() {
 	*x = GetProductFilterResponse{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[16]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2200,7 +2374,7 @@ func (x *GetProductFilterResponse) String() string {
 func (*GetProductFilterResponse) ProtoMessage() {}
 
 func (x *GetProductFilterResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[16]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2254,6 +2428,7 @@ type ListProductFiltersRequest struct {
 	xxx_hidden_ProductId   *string                `protobuf:"bytes,1,opt,name=product_id,json=productId"`
 	xxx_hidden_PageSize    int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize"`
 	xxx_hidden_PageToken   *string                `protobuf:"bytes,3,opt,name=page_token,json=pageToken"`
+	xxx_hidden_Search      *string                `protobuf:"bytes,4,opt,name=search"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -2262,7 +2437,7 @@ type ListProductFiltersRequest struct {
 
 func (x *ListProductFiltersRequest) Reset() {
 	*x = ListProductFiltersRequest{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[17]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2274,7 +2449,7 @@ func (x *ListProductFiltersRequest) String() string {
 func (*ListProductFiltersRequest) ProtoMessage() {}
 
 func (x *ListProductFiltersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[17]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2312,19 +2487,34 @@ func (x *ListProductFiltersRequest) GetPageToken() string {
 	return ""
 }
 
+func (x *ListProductFiltersRequest) GetSearch() string {
+	if x != nil {
+		if x.xxx_hidden_Search != nil {
+			return *x.xxx_hidden_Search
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *ListProductFiltersRequest) SetProductId(v string) {
 	x.xxx_hidden_ProductId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *ListProductFiltersRequest) SetPageSize(v int32) {
 	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *ListProductFiltersRequest) SetPageToken(v string) {
 	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *ListProductFiltersRequest) SetSearch(v string) {
+	x.xxx_hidden_Search = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *ListProductFiltersRequest) HasProductId() bool {
@@ -2348,6 +2538,13 @@ func (x *ListProductFiltersRequest) HasPageToken() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *ListProductFiltersRequest) HasSearch() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *ListProductFiltersRequest) ClearProductId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_ProductId = nil
@@ -2363,6 +2560,11 @@ func (x *ListProductFiltersRequest) ClearPageToken() {
 	x.xxx_hidden_PageToken = nil
 }
 
+func (x *ListProductFiltersRequest) ClearSearch() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Search = nil
+}
+
 type ListProductFiltersRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -2372,6 +2574,8 @@ type ListProductFiltersRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
+	// Keeps the filters whose name or code contains the term.
+	Search *string
 }
 
 func (b0 ListProductFiltersRequest_builder) Build() *ListProductFiltersRequest {
@@ -2379,16 +2583,20 @@ func (b0 ListProductFiltersRequest_builder) Build() *ListProductFiltersRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.ProductId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_ProductId = b.ProductId
 	}
 	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_PageSize = *b.PageSize
 	}
 	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_PageToken = b.PageToken
+	}
+	if b.Search != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_Search = b.Search
 	}
 	return m0
 }
@@ -2406,7 +2614,7 @@ type ListProductFiltersResponse struct {
 
 func (x *ListProductFiltersResponse) Reset() {
 	*x = ListProductFiltersResponse{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[18]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2418,7 +2626,7 @@ func (x *ListProductFiltersResponse) String() string {
 func (*ListProductFiltersResponse) ProtoMessage() {}
 
 func (x *ListProductFiltersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[18]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2504,7 +2712,7 @@ type UpdateProductFilterRequest struct {
 
 func (x *UpdateProductFilterRequest) Reset() {
 	*x = UpdateProductFilterRequest{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[19]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2516,7 +2724,7 @@ func (x *UpdateProductFilterRequest) String() string {
 func (*UpdateProductFilterRequest) ProtoMessage() {}
 
 func (x *UpdateProductFilterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[19]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2632,7 +2840,7 @@ type UpdateProductFilterResponse struct {
 
 func (x *UpdateProductFilterResponse) Reset() {
 	*x = UpdateProductFilterResponse{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[20]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2644,7 +2852,7 @@ func (x *UpdateProductFilterResponse) String() string {
 func (*UpdateProductFilterResponse) ProtoMessage() {}
 
 func (x *UpdateProductFilterResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[20]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2705,7 +2913,7 @@ type DeleteProductFilterRequest struct {
 
 func (x *DeleteProductFilterRequest) Reset() {
 	*x = DeleteProductFilterRequest{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[21]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2717,7 +2925,7 @@ func (x *DeleteProductFilterRequest) String() string {
 func (*DeleteProductFilterRequest) ProtoMessage() {}
 
 func (x *DeleteProductFilterRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[21]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2808,14 +3016,15 @@ func (b0 DeleteProductFilterRequest_builder) Build() *DeleteProductFilterRequest
 
 // DeleteProductFilterResponse is the response of ProductService.DeleteProductFilter.
 type DeleteProductFilterResponse struct {
-	state         protoimpl.MessageState `protogen:"opaque.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Filter *ProductFilter         `protobuf:"bytes,1,opt,name=filter"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *DeleteProductFilterResponse) Reset() {
 	*x = DeleteProductFilterResponse{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[22]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2827,7 +3036,7 @@ func (x *DeleteProductFilterResponse) String() string {
 func (*DeleteProductFilterResponse) ProtoMessage() {}
 
 func (x *DeleteProductFilterResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[22]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2838,15 +3047,40 @@ func (x *DeleteProductFilterResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+func (x *DeleteProductFilterResponse) GetFilter() *ProductFilter {
+	if x != nil {
+		return x.xxx_hidden_Filter
+	}
+	return nil
+}
+
+func (x *DeleteProductFilterResponse) SetFilter(v *ProductFilter) {
+	x.xxx_hidden_Filter = v
+}
+
+func (x *DeleteProductFilterResponse) HasFilter() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Filter != nil
+}
+
+func (x *DeleteProductFilterResponse) ClearFilter() {
+	x.xxx_hidden_Filter = nil
+}
+
 type DeleteProductFilterResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// The deleted product filter.
+	Filter *ProductFilter
 }
 
 func (b0 DeleteProductFilterResponse_builder) Build() *DeleteProductFilterResponse {
 	m0 := &DeleteProductFilterResponse{}
 	b, x := &b0, m0
 	_, _ = b, x
+	x.xxx_hidden_Filter = b.Filter
 	return m0
 }
 
@@ -2860,7 +3094,7 @@ type CreateProductCategoryRequest struct {
 
 func (x *CreateProductCategoryRequest) Reset() {
 	*x = CreateProductCategoryRequest{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[23]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2872,7 +3106,7 @@ func (x *CreateProductCategoryRequest) String() string {
 func (*CreateProductCategoryRequest) ProtoMessage() {}
 
 func (x *CreateProductCategoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[23]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2930,7 +3164,7 @@ type CreateProductCategoryResponse struct {
 
 func (x *CreateProductCategoryResponse) Reset() {
 	*x = CreateProductCategoryResponse{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[24]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2942,7 +3176,7 @@ func (x *CreateProductCategoryResponse) String() string {
 func (*CreateProductCategoryResponse) ProtoMessage() {}
 
 func (x *CreateProductCategoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[24]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3002,7 +3236,7 @@ type GetProductCategoryRequest struct {
 
 func (x *GetProductCategoryRequest) Reset() {
 	*x = GetProductCategoryRequest{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[25]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3014,7 +3248,7 @@ func (x *GetProductCategoryRequest) String() string {
 func (*GetProductCategoryRequest) ProtoMessage() {}
 
 func (x *GetProductCategoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[25]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3080,7 +3314,7 @@ type GetProductCategoryResponse struct {
 
 func (x *GetProductCategoryResponse) Reset() {
 	*x = GetProductCategoryResponse{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[26]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3092,7 +3326,7 @@ func (x *GetProductCategoryResponse) String() string {
 func (*GetProductCategoryResponse) ProtoMessage() {}
 
 func (x *GetProductCategoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[26]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3145,6 +3379,7 @@ type ListProductCategoriesRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_PageSize    int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize"`
 	xxx_hidden_PageToken   *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken"`
+	xxx_hidden_Search      *string                `protobuf:"bytes,3,opt,name=search"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -3153,7 +3388,7 @@ type ListProductCategoriesRequest struct {
 
 func (x *ListProductCategoriesRequest) Reset() {
 	*x = ListProductCategoriesRequest{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[27]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3165,7 +3400,7 @@ func (x *ListProductCategoriesRequest) String() string {
 func (*ListProductCategoriesRequest) ProtoMessage() {}
 
 func (x *ListProductCategoriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[27]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3193,14 +3428,29 @@ func (x *ListProductCategoriesRequest) GetPageToken() string {
 	return ""
 }
 
+func (x *ListProductCategoriesRequest) GetSearch() string {
+	if x != nil {
+		if x.xxx_hidden_Search != nil {
+			return *x.xxx_hidden_Search
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *ListProductCategoriesRequest) SetPageSize(v int32) {
 	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
 func (x *ListProductCategoriesRequest) SetPageToken(v string) {
 	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *ListProductCategoriesRequest) SetSearch(v string) {
+	x.xxx_hidden_Search = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
 func (x *ListProductCategoriesRequest) HasPageSize() bool {
@@ -3217,6 +3467,13 @@ func (x *ListProductCategoriesRequest) HasPageToken() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
+func (x *ListProductCategoriesRequest) HasSearch() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
 func (x *ListProductCategoriesRequest) ClearPageSize() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_PageSize = 0
@@ -3227,6 +3484,11 @@ func (x *ListProductCategoriesRequest) ClearPageToken() {
 	x.xxx_hidden_PageToken = nil
 }
 
+func (x *ListProductCategoriesRequest) ClearSearch() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Search = nil
+}
+
 type ListProductCategoriesRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -3234,6 +3496,8 @@ type ListProductCategoriesRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
+	// A search over the name and code.
+	Search *string
 }
 
 func (b0 ListProductCategoriesRequest_builder) Build() *ListProductCategoriesRequest {
@@ -3241,12 +3505,16 @@ func (b0 ListProductCategoriesRequest_builder) Build() *ListProductCategoriesReq
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_PageSize = *b.PageSize
 	}
 	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
 		x.xxx_hidden_PageToken = b.PageToken
+	}
+	if b.Search != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_Search = b.Search
 	}
 	return m0
 }
@@ -3264,7 +3532,7 @@ type ListProductCategoriesResponse struct {
 
 func (x *ListProductCategoriesResponse) Reset() {
 	*x = ListProductCategoriesResponse{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[28]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3276,7 +3544,7 @@ func (x *ListProductCategoriesResponse) String() string {
 func (*ListProductCategoriesResponse) ProtoMessage() {}
 
 func (x *ListProductCategoriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[28]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3359,7 +3627,7 @@ type UpdateProductCategoryRequest struct {
 
 func (x *UpdateProductCategoryRequest) Reset() {
 	*x = UpdateProductCategoryRequest{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[29]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3371,7 +3639,7 @@ func (x *UpdateProductCategoryRequest) String() string {
 func (*UpdateProductCategoryRequest) ProtoMessage() {}
 
 func (x *UpdateProductCategoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[29]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3455,7 +3723,7 @@ type UpdateProductCategoryResponse struct {
 
 func (x *UpdateProductCategoryResponse) Reset() {
 	*x = UpdateProductCategoryResponse{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[30]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3467,7 +3735,7 @@ func (x *UpdateProductCategoryResponse) String() string {
 func (*UpdateProductCategoryResponse) ProtoMessage() {}
 
 func (x *UpdateProductCategoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[30]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3527,7 +3795,7 @@ type DeleteProductCategoryRequest struct {
 
 func (x *DeleteProductCategoryRequest) Reset() {
 	*x = DeleteProductCategoryRequest{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[31]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3539,7 +3807,7 @@ func (x *DeleteProductCategoryRequest) String() string {
 func (*DeleteProductCategoryRequest) ProtoMessage() {}
 
 func (x *DeleteProductCategoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[31]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3597,14 +3865,15 @@ func (b0 DeleteProductCategoryRequest_builder) Build() *DeleteProductCategoryReq
 
 // DeleteProductCategoryResponse is the response of ProductService.DeleteProductCategory.
 type DeleteProductCategoryResponse struct {
-	state         protoimpl.MessageState `protogen:"opaque.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ProductCategory *ProductCategory       `protobuf:"bytes,1,opt,name=product_category,json=productCategory"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *DeleteProductCategoryResponse) Reset() {
 	*x = DeleteProductCategoryResponse{}
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[32]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3616,7 +3885,7 @@ func (x *DeleteProductCategoryResponse) String() string {
 func (*DeleteProductCategoryResponse) ProtoMessage() {}
 
 func (x *DeleteProductCategoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[32]
+	mi := &file_tanvo_catalog_v1_product_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3627,15 +3896,40 @@ func (x *DeleteProductCategoryResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+func (x *DeleteProductCategoryResponse) GetProductCategory() *ProductCategory {
+	if x != nil {
+		return x.xxx_hidden_ProductCategory
+	}
+	return nil
+}
+
+func (x *DeleteProductCategoryResponse) SetProductCategory(v *ProductCategory) {
+	x.xxx_hidden_ProductCategory = v
+}
+
+func (x *DeleteProductCategoryResponse) HasProductCategory() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ProductCategory != nil
+}
+
+func (x *DeleteProductCategoryResponse) ClearProductCategory() {
+	x.xxx_hidden_ProductCategory = nil
+}
+
 type DeleteProductCategoryResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// The deleted product category.
+	ProductCategory *ProductCategory
 }
 
 func (b0 DeleteProductCategoryResponse_builder) Build() *DeleteProductCategoryResponse {
 	m0 := &DeleteProductCategoryResponse{}
 	b, x := &b0, m0
 	_, _ = b, x
+	x.xxx_hidden_ProductCategory = b.ProductCategory
 	return m0
 }
 
@@ -3643,7 +3937,7 @@ var File_tanvo_catalog_v1_product_proto protoreflect.FileDescriptor
 
 const file_tanvo_catalog_v1_product_proto_rawDesc = "" +
 	"\n" +
-	"\x1etanvo/catalog/v1/product.proto\x12\x10tanvo.catalog.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/catalog/v1/charge.proto\x1a\x1dtanvo/common/v1/options.proto\"\xc4\x03\n" +
+	"\x1etanvo/catalog/v1/product.proto\x12\x10tanvo.catalog.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\"\xf1\x03\n" +
 	"\x0fProductCategory\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\"\n" +
 	"\x04code\x18\x02 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x04code\x12\"\n" +
@@ -3653,8 +3947,9 @@ const file_tanvo_catalog_v1_product_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:i\xeaAf\n" +
-	"\x19tanvo.xyz/ProductCategory\x12%product_categories/{product_category}*\x11productCategories2\x0fproductCategory\"\x8d\a\n" +
+	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x12+\n" +
+	"\x0eproducts_count\x18\b \x01(\x05B\x04\xe2A\x01\x03R\rproductsCount:i\xeaAf\n" +
+	"\x19tanvo.xyz/ProductCategory\x12%product_categories/{product_category}*\x11productCategories2\x0fproductCategory\"\x97\x05\n" +
 	"\aProduct\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\"\n" +
 	"\x04code\x18\x02 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x04code\x12\"\n" +
@@ -3664,30 +3959,30 @@ const file_tanvo_catalog_v1_product_proto_rawDesc = "" +
 	"\fproduct_type\x18\x06 \x01(\x0e2\x1d.tanvo.catalog.v1.ProductTypeB\r\xe2A\x02\x02\x05\xbaH\x05\x82\x01\x02\x10\x01R\vproductType\x12:\n" +
 	"\x13product_category_id\x18\a \x01(\tB\n" +
 	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\x11productCategoryId\x12<\n" +
-	"\x12billable_metric_id\x18\b \x01(\tB\x0e\xe2A\x01\x05\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\x10billableMetricId\x12*\n" +
-	"\tadd_on_id\x18\t \x01(\tB\x0e\xe2A\x01\x05\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\aaddOnId\x12?\n" +
+	"\x12billable_metric_id\x18\b \x01(\tB\x0e\xe2A\x01\x05\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\x10billableMetricId\x12?\n" +
 	"\n" +
 	"created_at\x18\n" +
 	" \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:\xc2\x02\xeaA:\n" +
-	"\x11tanvo.xyz/Product\x12\x12products/{product}*\bproducts2\aproduct\xbaH\x81\x02\x1a\xfe\x01\n" +
-	"\x0eproduct.source\x12Ha metered product needs billable_metric_id and a fixed product add_on_id\x1a\xa1\x01!has(this.product_type) || (this.product_type == 1 ? has(this.billable_metric_id) && !has(this.add_on_id) : has(this.add_on_id) && !has(this.billable_metric_id))\"\xe9\x04\n" +
+	"updated_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x12)\n" +
+	"\rfilters_count\x18\f \x01(\x05B\x04\xe2A\x01\x03R\ffiltersCount:=\xeaA:\n" +
+	"\x11tanvo.xyz/Product\x12\x12products/{product}*\bproducts2\aproductJ\x04\b\t\x10\n" +
+	"R\tadd_on_id\"\x8b\x04\n" +
 	"\rProductFilter\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\"\n" +
 	"\x04code\x18\x02 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x04code\x12\"\n" +
 	"\x04name\x18\x03 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\x10\x01\x18\xff\x01R\x04name\x12*\n" +
 	"\vdescription\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\vdescription\x12:\n" +
-	"\x14invoice_display_name\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x12invoiceDisplayName\x12S\n" +
-	"\x06values\x18\x06 \x03(\v2+.tanvo.catalog.v1.ProductFilter.ValuesEntryB\x0e\xe2A\x01\x02\xbaH\a\x9a\x01\x04\b\x01\x102R\x06values\x12?\n" +
+	"\x14invoice_display_name\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x12invoiceDisplayName\x12J\n" +
+	"\x06values\x18\t \x03(\v2$.tanvo.catalog.v1.ProductFilterValueB\f\xe2A\x01\x02\xbaH\x05\x92\x01\x02\x10dR\x06values\x12?\n" +
 	"\n" +
 	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x1aY\n" +
-	"\vValuesEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x124\n" +
-	"\x05value\x18\x02 \x01(\v2\x1e.tanvo.catalog.v1.FilterValuesR\x05value:\x028\x01:`\xeaA]\n" +
-	"\x17tanvo.xyz/ProductFilter\x12#products/{product}/filters/{filter}*\x0eproductFilters2\rproductFilter\"\xf1\x01\n" +
+	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:`\xeaA]\n" +
+	"\x17tanvo.xyz/ProductFilter\x12#products/{product}/filters/{filter}*\x0eproductFilters2\rproductFilterJ\x04\b\x06\x10\a\"V\n" +
+	"\x12ProductFilterValue\x12 \n" +
+	"\x03key\x18\x01 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\x10\x01\x18\xff\x01R\x03key\x12\x1e\n" +
+	"\x05value\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x05value\"\xf1\x01\n" +
 	"\x14CreateProductRequest\x12?\n" +
 	"\aproduct\x18\x01 \x01(\v2\x19.tanvo.catalog.v1.ProductB\n" +
 	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\aproduct:\x97\x01\xbaH\x93\x01\x1a\x90\x01\n" +
@@ -3722,8 +4017,9 @@ const file_tanvo_catalog_v1_product_proto_rawDesc = "" +
 	"\x14DeleteProductRequest\x120\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\tproductId\"\x17\n" +
-	"\x15DeleteProductResponse\"\xa2\x02\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\tproductId\"L\n" +
+	"\x15DeleteProductResponse\x123\n" +
+	"\aproduct\x18\x01 \x01(\v2\x19.tanvo.catalog.v1.ProductR\aproduct\"\xa2\x02\n" +
 	"\x1aCreateProductFilterRequest\x120\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
@@ -3740,7 +4036,7 @@ const file_tanvo_catalog_v1_product_proto_rawDesc = "" +
 	"\tfilter_id\x18\x02 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\bfilterId\"S\n" +
 	"\x18GetProductFilterResponse\x127\n" +
-	"\x06filter\x18\x01 \x01(\v2\x1f.tanvo.catalog.v1.ProductFilterR\x06filter\"\x9f\x01\n" +
+	"\x06filter\x18\x01 \x01(\v2\x1f.tanvo.catalog.v1.ProductFilterR\x06filter\"\xc1\x01\n" +
 	"\x19ListProductFiltersRequest\x120\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
@@ -3748,7 +4044,8 @@ const file_tanvo_catalog_v1_product_proto_rawDesc = "" +
 	"\tpage_size\x18\x02 \x01(\x05B\n" +
 	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x7f\n" +
+	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12 \n" +
+	"\x06search\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x06search\"\x7f\n" +
 	"\x1aListProductFiltersResponse\x129\n" +
 	"\afilters\x18\x01 \x03(\v2\x1f.tanvo.catalog.v1.ProductFilterR\afilters\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x8e\x02\n" +
@@ -3768,8 +4065,9 @@ const file_tanvo_catalog_v1_product_proto_rawDesc = "" +
 	"product_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\tproductId\x12.\n" +
 	"\tfilter_id\x18\x02 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\bfilterId\"\x1d\n" +
-	"\x1bDeleteProductFilterResponse\"\xfb\x01\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\bfilterId\"V\n" +
+	"\x1bDeleteProductFilterResponse\x127\n" +
+	"\x06filter\x18\x01 \x01(\v2\x1f.tanvo.catalog.v1.ProductFilterR\x06filter\"\xfb\x01\n" +
 	"\x1cCreateProductCategoryRequest\x12X\n" +
 	"\x10product_category\x18\x01 \x01(\v2!.tanvo.catalog.v1.ProductCategoryB\n" +
 	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x0fproductCategory:\x80\x01\xbaH}\x1a{\n" +
@@ -3780,12 +4078,13 @@ const file_tanvo_catalog_v1_product_proto_rawDesc = "" +
 	"\x13product_category_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x11productCategoryId\"j\n" +
 	"\x1aGetProductCategoryResponse\x12L\n" +
-	"\x10product_category\x18\x01 \x01(\v2!.tanvo.catalog.v1.ProductCategoryR\x0fproductCategory\"p\n" +
+	"\x10product_category\x18\x01 \x01(\v2!.tanvo.catalog.v1.ProductCategoryR\x0fproductCategory\"\x92\x01\n" +
 	"\x1cListProductCategoriesRequest\x12'\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\n" +
 	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x99\x01\n" +
+	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12 \n" +
+	"\x06search\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x06search\"\x99\x01\n" +
 	"\x1dListProductCategoriesResponse\x12P\n" +
 	"\x12product_categories\x18\x01 \x03(\v2!.tanvo.catalog.v1.ProductCategoryR\x11productCategories\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x91\x02\n" +
@@ -3799,8 +4098,9 @@ const file_tanvo_catalog_v1_product_proto_rawDesc = "" +
 	"\x10product_category\x18\x01 \x01(\v2!.tanvo.catalog.v1.ProductCategoryR\x0fproductCategory\"a\n" +
 	"\x1cDeleteProductCategoryRequest\x12A\n" +
 	"\x13product_category_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x11productCategoryId\"\x1f\n" +
-	"\x1dDeleteProductCategoryResponse*]\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x11productCategoryId\"m\n" +
+	"\x1dDeleteProductCategoryResponse\x12L\n" +
+	"\x10product_category\x18\x01 \x01(\v2!.tanvo.catalog.v1.ProductCategoryR\x0fproductCategory*]\n" +
 	"\vProductType\x12\x1c\n" +
 	"\x18PRODUCT_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14PRODUCT_TYPE_METERED\x10\x01\x12\x16\n" +
@@ -3846,40 +4146,39 @@ var file_tanvo_catalog_v1_product_proto_goTypes = []any{
 	(*ProductCategory)(nil),               // 1: tanvo.catalog.v1.ProductCategory
 	(*Product)(nil),                       // 2: tanvo.catalog.v1.Product
 	(*ProductFilter)(nil),                 // 3: tanvo.catalog.v1.ProductFilter
-	(*CreateProductRequest)(nil),          // 4: tanvo.catalog.v1.CreateProductRequest
-	(*CreateProductResponse)(nil),         // 5: tanvo.catalog.v1.CreateProductResponse
-	(*GetProductRequest)(nil),             // 6: tanvo.catalog.v1.GetProductRequest
-	(*GetProductResponse)(nil),            // 7: tanvo.catalog.v1.GetProductResponse
-	(*ListProductsRequest)(nil),           // 8: tanvo.catalog.v1.ListProductsRequest
-	(*ListProductsResponse)(nil),          // 9: tanvo.catalog.v1.ListProductsResponse
-	(*UpdateProductRequest)(nil),          // 10: tanvo.catalog.v1.UpdateProductRequest
-	(*UpdateProductResponse)(nil),         // 11: tanvo.catalog.v1.UpdateProductResponse
-	(*DeleteProductRequest)(nil),          // 12: tanvo.catalog.v1.DeleteProductRequest
-	(*DeleteProductResponse)(nil),         // 13: tanvo.catalog.v1.DeleteProductResponse
-	(*CreateProductFilterRequest)(nil),    // 14: tanvo.catalog.v1.CreateProductFilterRequest
-	(*CreateProductFilterResponse)(nil),   // 15: tanvo.catalog.v1.CreateProductFilterResponse
-	(*GetProductFilterRequest)(nil),       // 16: tanvo.catalog.v1.GetProductFilterRequest
-	(*GetProductFilterResponse)(nil),      // 17: tanvo.catalog.v1.GetProductFilterResponse
-	(*ListProductFiltersRequest)(nil),     // 18: tanvo.catalog.v1.ListProductFiltersRequest
-	(*ListProductFiltersResponse)(nil),    // 19: tanvo.catalog.v1.ListProductFiltersResponse
-	(*UpdateProductFilterRequest)(nil),    // 20: tanvo.catalog.v1.UpdateProductFilterRequest
-	(*UpdateProductFilterResponse)(nil),   // 21: tanvo.catalog.v1.UpdateProductFilterResponse
-	(*DeleteProductFilterRequest)(nil),    // 22: tanvo.catalog.v1.DeleteProductFilterRequest
-	(*DeleteProductFilterResponse)(nil),   // 23: tanvo.catalog.v1.DeleteProductFilterResponse
-	(*CreateProductCategoryRequest)(nil),  // 24: tanvo.catalog.v1.CreateProductCategoryRequest
-	(*CreateProductCategoryResponse)(nil), // 25: tanvo.catalog.v1.CreateProductCategoryResponse
-	(*GetProductCategoryRequest)(nil),     // 26: tanvo.catalog.v1.GetProductCategoryRequest
-	(*GetProductCategoryResponse)(nil),    // 27: tanvo.catalog.v1.GetProductCategoryResponse
-	(*ListProductCategoriesRequest)(nil),  // 28: tanvo.catalog.v1.ListProductCategoriesRequest
-	(*ListProductCategoriesResponse)(nil), // 29: tanvo.catalog.v1.ListProductCategoriesResponse
-	(*UpdateProductCategoryRequest)(nil),  // 30: tanvo.catalog.v1.UpdateProductCategoryRequest
-	(*UpdateProductCategoryResponse)(nil), // 31: tanvo.catalog.v1.UpdateProductCategoryResponse
-	(*DeleteProductCategoryRequest)(nil),  // 32: tanvo.catalog.v1.DeleteProductCategoryRequest
-	(*DeleteProductCategoryResponse)(nil), // 33: tanvo.catalog.v1.DeleteProductCategoryResponse
-	nil,                                   // 34: tanvo.catalog.v1.ProductFilter.ValuesEntry
+	(*ProductFilterValue)(nil),            // 4: tanvo.catalog.v1.ProductFilterValue
+	(*CreateProductRequest)(nil),          // 5: tanvo.catalog.v1.CreateProductRequest
+	(*CreateProductResponse)(nil),         // 6: tanvo.catalog.v1.CreateProductResponse
+	(*GetProductRequest)(nil),             // 7: tanvo.catalog.v1.GetProductRequest
+	(*GetProductResponse)(nil),            // 8: tanvo.catalog.v1.GetProductResponse
+	(*ListProductsRequest)(nil),           // 9: tanvo.catalog.v1.ListProductsRequest
+	(*ListProductsResponse)(nil),          // 10: tanvo.catalog.v1.ListProductsResponse
+	(*UpdateProductRequest)(nil),          // 11: tanvo.catalog.v1.UpdateProductRequest
+	(*UpdateProductResponse)(nil),         // 12: tanvo.catalog.v1.UpdateProductResponse
+	(*DeleteProductRequest)(nil),          // 13: tanvo.catalog.v1.DeleteProductRequest
+	(*DeleteProductResponse)(nil),         // 14: tanvo.catalog.v1.DeleteProductResponse
+	(*CreateProductFilterRequest)(nil),    // 15: tanvo.catalog.v1.CreateProductFilterRequest
+	(*CreateProductFilterResponse)(nil),   // 16: tanvo.catalog.v1.CreateProductFilterResponse
+	(*GetProductFilterRequest)(nil),       // 17: tanvo.catalog.v1.GetProductFilterRequest
+	(*GetProductFilterResponse)(nil),      // 18: tanvo.catalog.v1.GetProductFilterResponse
+	(*ListProductFiltersRequest)(nil),     // 19: tanvo.catalog.v1.ListProductFiltersRequest
+	(*ListProductFiltersResponse)(nil),    // 20: tanvo.catalog.v1.ListProductFiltersResponse
+	(*UpdateProductFilterRequest)(nil),    // 21: tanvo.catalog.v1.UpdateProductFilterRequest
+	(*UpdateProductFilterResponse)(nil),   // 22: tanvo.catalog.v1.UpdateProductFilterResponse
+	(*DeleteProductFilterRequest)(nil),    // 23: tanvo.catalog.v1.DeleteProductFilterRequest
+	(*DeleteProductFilterResponse)(nil),   // 24: tanvo.catalog.v1.DeleteProductFilterResponse
+	(*CreateProductCategoryRequest)(nil),  // 25: tanvo.catalog.v1.CreateProductCategoryRequest
+	(*CreateProductCategoryResponse)(nil), // 26: tanvo.catalog.v1.CreateProductCategoryResponse
+	(*GetProductCategoryRequest)(nil),     // 27: tanvo.catalog.v1.GetProductCategoryRequest
+	(*GetProductCategoryResponse)(nil),    // 28: tanvo.catalog.v1.GetProductCategoryResponse
+	(*ListProductCategoriesRequest)(nil),  // 29: tanvo.catalog.v1.ListProductCategoriesRequest
+	(*ListProductCategoriesResponse)(nil), // 30: tanvo.catalog.v1.ListProductCategoriesResponse
+	(*UpdateProductCategoryRequest)(nil),  // 31: tanvo.catalog.v1.UpdateProductCategoryRequest
+	(*UpdateProductCategoryResponse)(nil), // 32: tanvo.catalog.v1.UpdateProductCategoryResponse
+	(*DeleteProductCategoryRequest)(nil),  // 33: tanvo.catalog.v1.DeleteProductCategoryRequest
+	(*DeleteProductCategoryResponse)(nil), // 34: tanvo.catalog.v1.DeleteProductCategoryResponse
 	(*timestamppb.Timestamp)(nil),         // 35: google.protobuf.Timestamp
 	(*fieldmaskpb.FieldMask)(nil),         // 36: google.protobuf.FieldMask
-	(*FilterValues)(nil),                  // 37: tanvo.catalog.v1.FilterValues
 }
 var file_tanvo_catalog_v1_product_proto_depIdxs = []int32{
 	35, // 0: tanvo.catalog.v1.ProductCategory.created_at:type_name -> google.protobuf.Timestamp
@@ -3887,7 +4186,7 @@ var file_tanvo_catalog_v1_product_proto_depIdxs = []int32{
 	0,  // 2: tanvo.catalog.v1.Product.product_type:type_name -> tanvo.catalog.v1.ProductType
 	35, // 3: tanvo.catalog.v1.Product.created_at:type_name -> google.protobuf.Timestamp
 	35, // 4: tanvo.catalog.v1.Product.updated_at:type_name -> google.protobuf.Timestamp
-	34, // 5: tanvo.catalog.v1.ProductFilter.values:type_name -> tanvo.catalog.v1.ProductFilter.ValuesEntry
+	4,  // 5: tanvo.catalog.v1.ProductFilter.values:type_name -> tanvo.catalog.v1.ProductFilterValue
 	35, // 6: tanvo.catalog.v1.ProductFilter.created_at:type_name -> google.protobuf.Timestamp
 	35, // 7: tanvo.catalog.v1.ProductFilter.updated_at:type_name -> google.protobuf.Timestamp
 	2,  // 8: tanvo.catalog.v1.CreateProductRequest.product:type_name -> tanvo.catalog.v1.Product
@@ -3897,56 +4196,58 @@ var file_tanvo_catalog_v1_product_proto_depIdxs = []int32{
 	2,  // 12: tanvo.catalog.v1.UpdateProductRequest.product:type_name -> tanvo.catalog.v1.Product
 	36, // 13: tanvo.catalog.v1.UpdateProductRequest.update_mask:type_name -> google.protobuf.FieldMask
 	2,  // 14: tanvo.catalog.v1.UpdateProductResponse.product:type_name -> tanvo.catalog.v1.Product
-	3,  // 15: tanvo.catalog.v1.CreateProductFilterRequest.filter:type_name -> tanvo.catalog.v1.ProductFilter
-	3,  // 16: tanvo.catalog.v1.CreateProductFilterResponse.filter:type_name -> tanvo.catalog.v1.ProductFilter
-	3,  // 17: tanvo.catalog.v1.GetProductFilterResponse.filter:type_name -> tanvo.catalog.v1.ProductFilter
-	3,  // 18: tanvo.catalog.v1.ListProductFiltersResponse.filters:type_name -> tanvo.catalog.v1.ProductFilter
-	3,  // 19: tanvo.catalog.v1.UpdateProductFilterRequest.filter:type_name -> tanvo.catalog.v1.ProductFilter
-	36, // 20: tanvo.catalog.v1.UpdateProductFilterRequest.update_mask:type_name -> google.protobuf.FieldMask
-	3,  // 21: tanvo.catalog.v1.UpdateProductFilterResponse.filter:type_name -> tanvo.catalog.v1.ProductFilter
-	1,  // 22: tanvo.catalog.v1.CreateProductCategoryRequest.product_category:type_name -> tanvo.catalog.v1.ProductCategory
-	1,  // 23: tanvo.catalog.v1.CreateProductCategoryResponse.product_category:type_name -> tanvo.catalog.v1.ProductCategory
-	1,  // 24: tanvo.catalog.v1.GetProductCategoryResponse.product_category:type_name -> tanvo.catalog.v1.ProductCategory
-	1,  // 25: tanvo.catalog.v1.ListProductCategoriesResponse.product_categories:type_name -> tanvo.catalog.v1.ProductCategory
-	1,  // 26: tanvo.catalog.v1.UpdateProductCategoryRequest.product_category:type_name -> tanvo.catalog.v1.ProductCategory
-	36, // 27: tanvo.catalog.v1.UpdateProductCategoryRequest.update_mask:type_name -> google.protobuf.FieldMask
-	1,  // 28: tanvo.catalog.v1.UpdateProductCategoryResponse.product_category:type_name -> tanvo.catalog.v1.ProductCategory
-	37, // 29: tanvo.catalog.v1.ProductFilter.ValuesEntry.value:type_name -> tanvo.catalog.v1.FilterValues
-	4,  // 30: tanvo.catalog.v1.ProductService.CreateProduct:input_type -> tanvo.catalog.v1.CreateProductRequest
-	6,  // 31: tanvo.catalog.v1.ProductService.GetProduct:input_type -> tanvo.catalog.v1.GetProductRequest
-	8,  // 32: tanvo.catalog.v1.ProductService.ListProducts:input_type -> tanvo.catalog.v1.ListProductsRequest
-	10, // 33: tanvo.catalog.v1.ProductService.UpdateProduct:input_type -> tanvo.catalog.v1.UpdateProductRequest
-	12, // 34: tanvo.catalog.v1.ProductService.DeleteProduct:input_type -> tanvo.catalog.v1.DeleteProductRequest
-	14, // 35: tanvo.catalog.v1.ProductService.CreateProductFilter:input_type -> tanvo.catalog.v1.CreateProductFilterRequest
-	16, // 36: tanvo.catalog.v1.ProductService.GetProductFilter:input_type -> tanvo.catalog.v1.GetProductFilterRequest
-	18, // 37: tanvo.catalog.v1.ProductService.ListProductFilters:input_type -> tanvo.catalog.v1.ListProductFiltersRequest
-	20, // 38: tanvo.catalog.v1.ProductService.UpdateProductFilter:input_type -> tanvo.catalog.v1.UpdateProductFilterRequest
-	22, // 39: tanvo.catalog.v1.ProductService.DeleteProductFilter:input_type -> tanvo.catalog.v1.DeleteProductFilterRequest
-	24, // 40: tanvo.catalog.v1.ProductService.CreateProductCategory:input_type -> tanvo.catalog.v1.CreateProductCategoryRequest
-	26, // 41: tanvo.catalog.v1.ProductService.GetProductCategory:input_type -> tanvo.catalog.v1.GetProductCategoryRequest
-	28, // 42: tanvo.catalog.v1.ProductService.ListProductCategories:input_type -> tanvo.catalog.v1.ListProductCategoriesRequest
-	30, // 43: tanvo.catalog.v1.ProductService.UpdateProductCategory:input_type -> tanvo.catalog.v1.UpdateProductCategoryRequest
-	32, // 44: tanvo.catalog.v1.ProductService.DeleteProductCategory:input_type -> tanvo.catalog.v1.DeleteProductCategoryRequest
-	5,  // 45: tanvo.catalog.v1.ProductService.CreateProduct:output_type -> tanvo.catalog.v1.CreateProductResponse
-	7,  // 46: tanvo.catalog.v1.ProductService.GetProduct:output_type -> tanvo.catalog.v1.GetProductResponse
-	9,  // 47: tanvo.catalog.v1.ProductService.ListProducts:output_type -> tanvo.catalog.v1.ListProductsResponse
-	11, // 48: tanvo.catalog.v1.ProductService.UpdateProduct:output_type -> tanvo.catalog.v1.UpdateProductResponse
-	13, // 49: tanvo.catalog.v1.ProductService.DeleteProduct:output_type -> tanvo.catalog.v1.DeleteProductResponse
-	15, // 50: tanvo.catalog.v1.ProductService.CreateProductFilter:output_type -> tanvo.catalog.v1.CreateProductFilterResponse
-	17, // 51: tanvo.catalog.v1.ProductService.GetProductFilter:output_type -> tanvo.catalog.v1.GetProductFilterResponse
-	19, // 52: tanvo.catalog.v1.ProductService.ListProductFilters:output_type -> tanvo.catalog.v1.ListProductFiltersResponse
-	21, // 53: tanvo.catalog.v1.ProductService.UpdateProductFilter:output_type -> tanvo.catalog.v1.UpdateProductFilterResponse
-	23, // 54: tanvo.catalog.v1.ProductService.DeleteProductFilter:output_type -> tanvo.catalog.v1.DeleteProductFilterResponse
-	25, // 55: tanvo.catalog.v1.ProductService.CreateProductCategory:output_type -> tanvo.catalog.v1.CreateProductCategoryResponse
-	27, // 56: tanvo.catalog.v1.ProductService.GetProductCategory:output_type -> tanvo.catalog.v1.GetProductCategoryResponse
-	29, // 57: tanvo.catalog.v1.ProductService.ListProductCategories:output_type -> tanvo.catalog.v1.ListProductCategoriesResponse
-	31, // 58: tanvo.catalog.v1.ProductService.UpdateProductCategory:output_type -> tanvo.catalog.v1.UpdateProductCategoryResponse
-	33, // 59: tanvo.catalog.v1.ProductService.DeleteProductCategory:output_type -> tanvo.catalog.v1.DeleteProductCategoryResponse
-	45, // [45:60] is the sub-list for method output_type
-	30, // [30:45] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	2,  // 15: tanvo.catalog.v1.DeleteProductResponse.product:type_name -> tanvo.catalog.v1.Product
+	3,  // 16: tanvo.catalog.v1.CreateProductFilterRequest.filter:type_name -> tanvo.catalog.v1.ProductFilter
+	3,  // 17: tanvo.catalog.v1.CreateProductFilterResponse.filter:type_name -> tanvo.catalog.v1.ProductFilter
+	3,  // 18: tanvo.catalog.v1.GetProductFilterResponse.filter:type_name -> tanvo.catalog.v1.ProductFilter
+	3,  // 19: tanvo.catalog.v1.ListProductFiltersResponse.filters:type_name -> tanvo.catalog.v1.ProductFilter
+	3,  // 20: tanvo.catalog.v1.UpdateProductFilterRequest.filter:type_name -> tanvo.catalog.v1.ProductFilter
+	36, // 21: tanvo.catalog.v1.UpdateProductFilterRequest.update_mask:type_name -> google.protobuf.FieldMask
+	3,  // 22: tanvo.catalog.v1.UpdateProductFilterResponse.filter:type_name -> tanvo.catalog.v1.ProductFilter
+	3,  // 23: tanvo.catalog.v1.DeleteProductFilterResponse.filter:type_name -> tanvo.catalog.v1.ProductFilter
+	1,  // 24: tanvo.catalog.v1.CreateProductCategoryRequest.product_category:type_name -> tanvo.catalog.v1.ProductCategory
+	1,  // 25: tanvo.catalog.v1.CreateProductCategoryResponse.product_category:type_name -> tanvo.catalog.v1.ProductCategory
+	1,  // 26: tanvo.catalog.v1.GetProductCategoryResponse.product_category:type_name -> tanvo.catalog.v1.ProductCategory
+	1,  // 27: tanvo.catalog.v1.ListProductCategoriesResponse.product_categories:type_name -> tanvo.catalog.v1.ProductCategory
+	1,  // 28: tanvo.catalog.v1.UpdateProductCategoryRequest.product_category:type_name -> tanvo.catalog.v1.ProductCategory
+	36, // 29: tanvo.catalog.v1.UpdateProductCategoryRequest.update_mask:type_name -> google.protobuf.FieldMask
+	1,  // 30: tanvo.catalog.v1.UpdateProductCategoryResponse.product_category:type_name -> tanvo.catalog.v1.ProductCategory
+	1,  // 31: tanvo.catalog.v1.DeleteProductCategoryResponse.product_category:type_name -> tanvo.catalog.v1.ProductCategory
+	5,  // 32: tanvo.catalog.v1.ProductService.CreateProduct:input_type -> tanvo.catalog.v1.CreateProductRequest
+	7,  // 33: tanvo.catalog.v1.ProductService.GetProduct:input_type -> tanvo.catalog.v1.GetProductRequest
+	9,  // 34: tanvo.catalog.v1.ProductService.ListProducts:input_type -> tanvo.catalog.v1.ListProductsRequest
+	11, // 35: tanvo.catalog.v1.ProductService.UpdateProduct:input_type -> tanvo.catalog.v1.UpdateProductRequest
+	13, // 36: tanvo.catalog.v1.ProductService.DeleteProduct:input_type -> tanvo.catalog.v1.DeleteProductRequest
+	15, // 37: tanvo.catalog.v1.ProductService.CreateProductFilter:input_type -> tanvo.catalog.v1.CreateProductFilterRequest
+	17, // 38: tanvo.catalog.v1.ProductService.GetProductFilter:input_type -> tanvo.catalog.v1.GetProductFilterRequest
+	19, // 39: tanvo.catalog.v1.ProductService.ListProductFilters:input_type -> tanvo.catalog.v1.ListProductFiltersRequest
+	21, // 40: tanvo.catalog.v1.ProductService.UpdateProductFilter:input_type -> tanvo.catalog.v1.UpdateProductFilterRequest
+	23, // 41: tanvo.catalog.v1.ProductService.DeleteProductFilter:input_type -> tanvo.catalog.v1.DeleteProductFilterRequest
+	25, // 42: tanvo.catalog.v1.ProductService.CreateProductCategory:input_type -> tanvo.catalog.v1.CreateProductCategoryRequest
+	27, // 43: tanvo.catalog.v1.ProductService.GetProductCategory:input_type -> tanvo.catalog.v1.GetProductCategoryRequest
+	29, // 44: tanvo.catalog.v1.ProductService.ListProductCategories:input_type -> tanvo.catalog.v1.ListProductCategoriesRequest
+	31, // 45: tanvo.catalog.v1.ProductService.UpdateProductCategory:input_type -> tanvo.catalog.v1.UpdateProductCategoryRequest
+	33, // 46: tanvo.catalog.v1.ProductService.DeleteProductCategory:input_type -> tanvo.catalog.v1.DeleteProductCategoryRequest
+	6,  // 47: tanvo.catalog.v1.ProductService.CreateProduct:output_type -> tanvo.catalog.v1.CreateProductResponse
+	8,  // 48: tanvo.catalog.v1.ProductService.GetProduct:output_type -> tanvo.catalog.v1.GetProductResponse
+	10, // 49: tanvo.catalog.v1.ProductService.ListProducts:output_type -> tanvo.catalog.v1.ListProductsResponse
+	12, // 50: tanvo.catalog.v1.ProductService.UpdateProduct:output_type -> tanvo.catalog.v1.UpdateProductResponse
+	14, // 51: tanvo.catalog.v1.ProductService.DeleteProduct:output_type -> tanvo.catalog.v1.DeleteProductResponse
+	16, // 52: tanvo.catalog.v1.ProductService.CreateProductFilter:output_type -> tanvo.catalog.v1.CreateProductFilterResponse
+	18, // 53: tanvo.catalog.v1.ProductService.GetProductFilter:output_type -> tanvo.catalog.v1.GetProductFilterResponse
+	20, // 54: tanvo.catalog.v1.ProductService.ListProductFilters:output_type -> tanvo.catalog.v1.ListProductFiltersResponse
+	22, // 55: tanvo.catalog.v1.ProductService.UpdateProductFilter:output_type -> tanvo.catalog.v1.UpdateProductFilterResponse
+	24, // 56: tanvo.catalog.v1.ProductService.DeleteProductFilter:output_type -> tanvo.catalog.v1.DeleteProductFilterResponse
+	26, // 57: tanvo.catalog.v1.ProductService.CreateProductCategory:output_type -> tanvo.catalog.v1.CreateProductCategoryResponse
+	28, // 58: tanvo.catalog.v1.ProductService.GetProductCategory:output_type -> tanvo.catalog.v1.GetProductCategoryResponse
+	30, // 59: tanvo.catalog.v1.ProductService.ListProductCategories:output_type -> tanvo.catalog.v1.ListProductCategoriesResponse
+	32, // 60: tanvo.catalog.v1.ProductService.UpdateProductCategory:output_type -> tanvo.catalog.v1.UpdateProductCategoryResponse
+	34, // 61: tanvo.catalog.v1.ProductService.DeleteProductCategory:output_type -> tanvo.catalog.v1.DeleteProductCategoryResponse
+	47, // [47:62] is the sub-list for method output_type
+	32, // [32:47] is the sub-list for method input_type
+	32, // [32:32] is the sub-list for extension type_name
+	32, // [32:32] is the sub-list for extension extendee
+	0,  // [0:32] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_catalog_v1_product_proto_init() }
@@ -3954,7 +4255,6 @@ func file_tanvo_catalog_v1_product_proto_init() {
 	if File_tanvo_catalog_v1_product_proto != nil {
 		return
 	}
-	file_tanvo_catalog_v1_charge_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

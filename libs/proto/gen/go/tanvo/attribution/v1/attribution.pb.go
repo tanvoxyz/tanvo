@@ -8,8 +8,8 @@
 // source: tanvo/attribution/v1/attribution.proto
 
 // Package tanvo.attribution.v1 is the API of usage attribution: types of
-// labels events carry (teams, projects, end users), the values seen per
-// customer, and usage broken down by them.
+// labels events carry (teams, projects, end users) and usage broken down
+// by them.
 
 package attributionv1
 
@@ -141,6 +141,7 @@ type UsageAttributionType struct {
 	xxx_hidden_ParentId        *string                `protobuf:"bytes,7,opt,name=parent_id,json=parentId"`
 	xxx_hidden_CreatedAt       *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt       *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_ParentCode      *string                `protobuf:"bytes,10,opt,name=parent_code,json=parentCode"`
 	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
 	XXX_presence               [1]uint32
 	unknownFields              protoimpl.UnknownFields
@@ -252,24 +253,34 @@ func (x *UsageAttributionType) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *UsageAttributionType) GetParentCode() string {
+	if x != nil {
+		if x.xxx_hidden_ParentCode != nil {
+			return *x.xxx_hidden_ParentCode
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *UsageAttributionType) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 10)
 }
 
 func (x *UsageAttributionType) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 10)
 }
 
 func (x *UsageAttributionType) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 10)
 }
 
 func (x *UsageAttributionType) SetDescription(v string) {
 	x.xxx_hidden_Description = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 10)
 }
 
 func (x *UsageAttributionType) SetAttributionKeys(v []string) {
@@ -278,12 +289,12 @@ func (x *UsageAttributionType) SetAttributionKeys(v []string) {
 
 func (x *UsageAttributionType) SetRole(v UsageAttributionRole) {
 	x.xxx_hidden_Role = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 10)
 }
 
 func (x *UsageAttributionType) SetParentId(v string) {
 	x.xxx_hidden_ParentId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 10)
 }
 
 func (x *UsageAttributionType) SetCreatedAt(v *timestamppb.Timestamp) {
@@ -292,6 +303,11 @@ func (x *UsageAttributionType) SetCreatedAt(v *timestamppb.Timestamp) {
 
 func (x *UsageAttributionType) SetUpdatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_UpdatedAt = v
+}
+
+func (x *UsageAttributionType) SetParentCode(v string) {
+	x.xxx_hidden_ParentCode = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 10)
 }
 
 func (x *UsageAttributionType) HasId() bool {
@@ -350,6 +366,13 @@ func (x *UsageAttributionType) HasUpdatedAt() bool {
 	return x.xxx_hidden_UpdatedAt != nil
 }
 
+func (x *UsageAttributionType) HasParentCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
+}
+
 func (x *UsageAttributionType) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -388,12 +411,17 @@ func (x *UsageAttributionType) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = nil
 }
 
+func (x *UsageAttributionType) ClearParentCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	x.xxx_hidden_ParentCode = nil
+}
+
 type UsageAttributionType_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	// The type's ID.
 	Id *string
-	// The unique code.
+	// The unique code; frozen once usage was attributed to the type.
 	Code *string
 	// The display name.
 	Name *string
@@ -410,6 +438,8 @@ type UsageAttributionType_builder struct {
 	CreatedAt *timestamppb.Timestamp
 	// When the type last changed.
 	UpdatedAt *timestamppb.Timestamp
+	// The parent type's code; it may be a deleted type's.
+	ParentCode *string
 }
 
 func (b0 UsageAttributionType_builder) Build() *UsageAttributionType {
@@ -417,301 +447,36 @@ func (b0 UsageAttributionType_builder) Build() *UsageAttributionType {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 10)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 10)
 		x.xxx_hidden_Code = b.Code
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 10)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Description != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 10)
 		x.xxx_hidden_Description = b.Description
 	}
 	x.xxx_hidden_AttributionKeys = b.AttributionKeys
 	if b.Role != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 10)
 		x.xxx_hidden_Role = *b.Role
 	}
 	if b.ParentId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 10)
 		x.xxx_hidden_ParentId = b.ParentId
 	}
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
-	return m0
-}
-
-// UsageAttributionValue is one value of a type seen in a customer's
-// events.
-type UsageAttributionValue struct {
-	state                             protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id                     *string                `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_UsageAttributionTypeId *string                `protobuf:"bytes,2,opt,name=usage_attribution_type_id,json=usageAttributionTypeId"`
-	xxx_hidden_CustomerId             *string                `protobuf:"bytes,3,opt,name=customer_id,json=customerId"`
-	xxx_hidden_Value                  *string                `protobuf:"bytes,4,opt,name=value"`
-	xxx_hidden_ParentId               *string                `protobuf:"bytes,5,opt,name=parent_id,json=parentId"`
-	xxx_hidden_LastSeenAt             *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=last_seen_at,json=lastSeenAt"`
-	xxx_hidden_CreatedAt              *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt"`
-	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
-	XXX_presence                      [1]uint32
-	unknownFields                     protoimpl.UnknownFields
-	sizeCache                         protoimpl.SizeCache
-}
-
-func (x *UsageAttributionValue) Reset() {
-	*x = UsageAttributionValue{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[1]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UsageAttributionValue) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UsageAttributionValue) ProtoMessage() {}
-
-func (x *UsageAttributionValue) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[1]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+	if b.ParentCode != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 10)
+		x.xxx_hidden_ParentCode = b.ParentCode
 	}
-	return mi.MessageOf(x)
-}
-
-func (x *UsageAttributionValue) GetId() string {
-	if x != nil {
-		if x.xxx_hidden_Id != nil {
-			return *x.xxx_hidden_Id
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *UsageAttributionValue) GetUsageAttributionTypeId() string {
-	if x != nil {
-		if x.xxx_hidden_UsageAttributionTypeId != nil {
-			return *x.xxx_hidden_UsageAttributionTypeId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *UsageAttributionValue) GetCustomerId() string {
-	if x != nil {
-		if x.xxx_hidden_CustomerId != nil {
-			return *x.xxx_hidden_CustomerId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *UsageAttributionValue) GetValue() string {
-	if x != nil {
-		if x.xxx_hidden_Value != nil {
-			return *x.xxx_hidden_Value
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *UsageAttributionValue) GetParentId() string {
-	if x != nil {
-		if x.xxx_hidden_ParentId != nil {
-			return *x.xxx_hidden_ParentId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *UsageAttributionValue) GetLastSeenAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_LastSeenAt
-	}
-	return nil
-}
-
-func (x *UsageAttributionValue) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_CreatedAt
-	}
-	return nil
-}
-
-func (x *UsageAttributionValue) SetId(v string) {
-	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
-}
-
-func (x *UsageAttributionValue) SetUsageAttributionTypeId(v string) {
-	x.xxx_hidden_UsageAttributionTypeId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
-}
-
-func (x *UsageAttributionValue) SetCustomerId(v string) {
-	x.xxx_hidden_CustomerId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
-}
-
-func (x *UsageAttributionValue) SetValue(v string) {
-	x.xxx_hidden_Value = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
-}
-
-func (x *UsageAttributionValue) SetParentId(v string) {
-	x.xxx_hidden_ParentId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
-}
-
-func (x *UsageAttributionValue) SetLastSeenAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_LastSeenAt = v
-}
-
-func (x *UsageAttributionValue) SetCreatedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_CreatedAt = v
-}
-
-func (x *UsageAttributionValue) HasId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *UsageAttributionValue) HasUsageAttributionTypeId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *UsageAttributionValue) HasCustomerId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *UsageAttributionValue) HasValue() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
-}
-
-func (x *UsageAttributionValue) HasParentId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
-}
-
-func (x *UsageAttributionValue) HasLastSeenAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_LastSeenAt != nil
-}
-
-func (x *UsageAttributionValue) HasCreatedAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_CreatedAt != nil
-}
-
-func (x *UsageAttributionValue) ClearId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Id = nil
-}
-
-func (x *UsageAttributionValue) ClearUsageAttributionTypeId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_UsageAttributionTypeId = nil
-}
-
-func (x *UsageAttributionValue) ClearCustomerId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_CustomerId = nil
-}
-
-func (x *UsageAttributionValue) ClearValue() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_Value = nil
-}
-
-func (x *UsageAttributionValue) ClearParentId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_ParentId = nil
-}
-
-func (x *UsageAttributionValue) ClearLastSeenAt() {
-	x.xxx_hidden_LastSeenAt = nil
-}
-
-func (x *UsageAttributionValue) ClearCreatedAt() {
-	x.xxx_hidden_CreatedAt = nil
-}
-
-type UsageAttributionValue_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The value's ID.
-	Id *string
-	// The type.
-	UsageAttributionTypeId *string
-	// The customer.
-	CustomerId *string
-	// The value.
-	Value *string
-	// The parent value, for a HIERARCHICAL type.
-	ParentId *string
-	// When the value was last seen in an event.
-	LastSeenAt *timestamppb.Timestamp
-	// When the value was first seen.
-	CreatedAt *timestamppb.Timestamp
-}
-
-func (b0 UsageAttributionValue_builder) Build() *UsageAttributionValue {
-	m0 := &UsageAttributionValue{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
-		x.xxx_hidden_Id = b.Id
-	}
-	if b.UsageAttributionTypeId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
-		x.xxx_hidden_UsageAttributionTypeId = b.UsageAttributionTypeId
-	}
-	if b.CustomerId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
-		x.xxx_hidden_CustomerId = b.CustomerId
-	}
-	if b.Value != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
-		x.xxx_hidden_Value = b.Value
-	}
-	if b.ParentId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
-		x.xxx_hidden_ParentId = b.ParentId
-	}
-	x.xxx_hidden_LastSeenAt = b.LastSeenAt
-	x.xxx_hidden_CreatedAt = b.CreatedAt
 	return m0
 }
 
@@ -725,7 +490,7 @@ type Values struct {
 
 func (x *Values) Reset() {
 	*x = Values{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[2]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -737,7 +502,7 @@ func (x *Values) String() string {
 func (*Values) ProtoMessage() {}
 
 func (x *Values) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[2]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -794,7 +559,7 @@ type AttributedChargeUsage struct {
 
 func (x *AttributedChargeUsage) Reset() {
 	*x = AttributedChargeUsage{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[3]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -806,7 +571,7 @@ func (x *AttributedChargeUsage) String() string {
 func (*AttributedChargeUsage) ProtoMessage() {}
 
 func (x *AttributedChargeUsage) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[3]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1110,7 +875,7 @@ type AttributedAggregate struct {
 
 func (x *AttributedAggregate) Reset() {
 	*x = AttributedAggregate{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[4]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1122,7 +887,7 @@ func (x *AttributedAggregate) String() string {
 func (*AttributedAggregate) ProtoMessage() {}
 
 func (x *AttributedAggregate) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[4]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1230,7 +995,7 @@ type AttributedUsageRow struct {
 
 func (x *AttributedUsageRow) Reset() {
 	*x = AttributedUsageRow{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[5]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1242,7 +1007,7 @@ func (x *AttributedUsageRow) String() string {
 func (*AttributedUsageRow) ProtoMessage() {}
 
 func (x *AttributedUsageRow) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[5]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1363,7 +1128,7 @@ type CreateUsageAttributionTypeRequest struct {
 
 func (x *CreateUsageAttributionTypeRequest) Reset() {
 	*x = CreateUsageAttributionTypeRequest{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[6]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1375,7 +1140,7 @@ func (x *CreateUsageAttributionTypeRequest) String() string {
 func (*CreateUsageAttributionTypeRequest) ProtoMessage() {}
 
 func (x *CreateUsageAttributionTypeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[6]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1433,7 +1198,7 @@ type CreateUsageAttributionTypeResponse struct {
 
 func (x *CreateUsageAttributionTypeResponse) Reset() {
 	*x = CreateUsageAttributionTypeResponse{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[7]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1445,7 +1210,7 @@ func (x *CreateUsageAttributionTypeResponse) String() string {
 func (*CreateUsageAttributionTypeResponse) ProtoMessage() {}
 
 func (x *CreateUsageAttributionTypeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[7]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1505,7 +1270,7 @@ type GetUsageAttributionTypeRequest struct {
 
 func (x *GetUsageAttributionTypeRequest) Reset() {
 	*x = GetUsageAttributionTypeRequest{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[8]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1517,7 +1282,7 @@ func (x *GetUsageAttributionTypeRequest) String() string {
 func (*GetUsageAttributionTypeRequest) ProtoMessage() {}
 
 func (x *GetUsageAttributionTypeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[8]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1583,7 +1348,7 @@ type GetUsageAttributionTypeResponse struct {
 
 func (x *GetUsageAttributionTypeResponse) Reset() {
 	*x = GetUsageAttributionTypeResponse{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[9]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1595,7 +1360,7 @@ func (x *GetUsageAttributionTypeResponse) String() string {
 func (*GetUsageAttributionTypeResponse) ProtoMessage() {}
 
 func (x *GetUsageAttributionTypeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[9]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1649,6 +1414,7 @@ type ListUsageAttributionTypesRequest struct {
 	xxx_hidden_PageSize    int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize"`
 	xxx_hidden_PageToken   *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken"`
 	xxx_hidden_Filter      *string                `protobuf:"bytes,3,opt,name=filter"`
+	xxx_hidden_Search      *string                `protobuf:"bytes,4,opt,name=search"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -1657,7 +1423,7 @@ type ListUsageAttributionTypesRequest struct {
 
 func (x *ListUsageAttributionTypesRequest) Reset() {
 	*x = ListUsageAttributionTypesRequest{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[10]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1669,7 +1435,7 @@ func (x *ListUsageAttributionTypesRequest) String() string {
 func (*ListUsageAttributionTypesRequest) ProtoMessage() {}
 
 func (x *ListUsageAttributionTypesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[10]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1707,19 +1473,34 @@ func (x *ListUsageAttributionTypesRequest) GetFilter() string {
 	return ""
 }
 
+func (x *ListUsageAttributionTypesRequest) GetSearch() string {
+	if x != nil {
+		if x.xxx_hidden_Search != nil {
+			return *x.xxx_hidden_Search
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *ListUsageAttributionTypesRequest) SetPageSize(v int32) {
 	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *ListUsageAttributionTypesRequest) SetPageToken(v string) {
 	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *ListUsageAttributionTypesRequest) SetFilter(v string) {
 	x.xxx_hidden_Filter = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *ListUsageAttributionTypesRequest) SetSearch(v string) {
+	x.xxx_hidden_Search = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *ListUsageAttributionTypesRequest) HasPageSize() bool {
@@ -1743,6 +1524,13 @@ func (x *ListUsageAttributionTypesRequest) HasFilter() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *ListUsageAttributionTypesRequest) HasSearch() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *ListUsageAttributionTypesRequest) ClearPageSize() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_PageSize = 0
@@ -1758,6 +1546,11 @@ func (x *ListUsageAttributionTypesRequest) ClearFilter() {
 	x.xxx_hidden_Filter = nil
 }
 
+func (x *ListUsageAttributionTypesRequest) ClearSearch() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Search = nil
+}
+
 type ListUsageAttributionTypesRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1765,8 +1558,13 @@ type ListUsageAttributionTypesRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `role` and `parent_id`.
+	// An AIP-160 filter: `role` (=) and `root` (= true keeps the types
+	// without a parent or whose parent was deleted, = false the others),
+	// joined by AND.
 	Filter *string
+	// Keeps the types whose code or name contains this text,
+	// case-insensitively.
+	Search *string
 }
 
 func (b0 ListUsageAttributionTypesRequest_builder) Build() *ListUsageAttributionTypesRequest {
@@ -1774,16 +1572,20 @@ func (b0 ListUsageAttributionTypesRequest_builder) Build() *ListUsageAttribution
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_PageSize = *b.PageSize
 	}
 	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_PageToken = b.PageToken
 	}
 	if b.Filter != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_Filter = b.Filter
+	}
+	if b.Search != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_Search = b.Search
 	}
 	return m0
 }
@@ -1801,7 +1603,7 @@ type ListUsageAttributionTypesResponse struct {
 
 func (x *ListUsageAttributionTypesResponse) Reset() {
 	*x = ListUsageAttributionTypesResponse{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[11]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1813,7 +1615,7 @@ func (x *ListUsageAttributionTypesResponse) String() string {
 func (*ListUsageAttributionTypesResponse) ProtoMessage() {}
 
 func (x *ListUsageAttributionTypesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[11]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1896,7 +1698,7 @@ type UpdateUsageAttributionTypeRequest struct {
 
 func (x *UpdateUsageAttributionTypeRequest) Reset() {
 	*x = UpdateUsageAttributionTypeRequest{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[12]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1908,7 +1710,7 @@ func (x *UpdateUsageAttributionTypeRequest) String() string {
 func (*UpdateUsageAttributionTypeRequest) ProtoMessage() {}
 
 func (x *UpdateUsageAttributionTypeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[12]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1992,7 +1794,7 @@ type UpdateUsageAttributionTypeResponse struct {
 
 func (x *UpdateUsageAttributionTypeResponse) Reset() {
 	*x = UpdateUsageAttributionTypeResponse{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[13]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2004,7 +1806,7 @@ func (x *UpdateUsageAttributionTypeResponse) String() string {
 func (*UpdateUsageAttributionTypeResponse) ProtoMessage() {}
 
 func (x *UpdateUsageAttributionTypeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[13]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2064,7 +1866,7 @@ type DeleteUsageAttributionTypeRequest struct {
 
 func (x *DeleteUsageAttributionTypeRequest) Reset() {
 	*x = DeleteUsageAttributionTypeRequest{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[14]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2076,7 +1878,7 @@ func (x *DeleteUsageAttributionTypeRequest) String() string {
 func (*DeleteUsageAttributionTypeRequest) ProtoMessage() {}
 
 func (x *DeleteUsageAttributionTypeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[14]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2141,7 +1943,7 @@ type DeleteUsageAttributionTypeResponse struct {
 
 func (x *DeleteUsageAttributionTypeResponse) Reset() {
 	*x = DeleteUsageAttributionTypeResponse{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[15]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2153,7 +1955,7 @@ func (x *DeleteUsageAttributionTypeResponse) String() string {
 func (*DeleteUsageAttributionTypeResponse) ProtoMessage() {}
 
 func (x *DeleteUsageAttributionTypeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[15]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2173,316 +1975,6 @@ func (b0 DeleteUsageAttributionTypeResponse_builder) Build() *DeleteUsageAttribu
 	m0 := &DeleteUsageAttributionTypeResponse{}
 	b, x := &b0, m0
 	_, _ = b, x
-	return m0
-}
-
-// ListUsageAttributionValuesRequest is the request of UsageAttributionService.ListUsageAttributionValues.
-type ListUsageAttributionValuesRequest struct {
-	state                             protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_CustomerId             *string                `protobuf:"bytes,1,opt,name=customer_id,json=customerId"`
-	xxx_hidden_UsageAttributionTypeId *string                `protobuf:"bytes,2,opt,name=usage_attribution_type_id,json=usageAttributionTypeId"`
-	xxx_hidden_PageSize               int32                  `protobuf:"varint,3,opt,name=page_size,json=pageSize"`
-	xxx_hidden_PageToken              *string                `protobuf:"bytes,4,opt,name=page_token,json=pageToken"`
-	xxx_hidden_Search                 *string                `protobuf:"bytes,5,opt,name=search"`
-	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
-	XXX_presence                      [1]uint32
-	unknownFields                     protoimpl.UnknownFields
-	sizeCache                         protoimpl.SizeCache
-}
-
-func (x *ListUsageAttributionValuesRequest) Reset() {
-	*x = ListUsageAttributionValuesRequest{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[16]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListUsageAttributionValuesRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListUsageAttributionValuesRequest) ProtoMessage() {}
-
-func (x *ListUsageAttributionValuesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[16]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ListUsageAttributionValuesRequest) GetCustomerId() string {
-	if x != nil {
-		if x.xxx_hidden_CustomerId != nil {
-			return *x.xxx_hidden_CustomerId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListUsageAttributionValuesRequest) GetUsageAttributionTypeId() string {
-	if x != nil {
-		if x.xxx_hidden_UsageAttributionTypeId != nil {
-			return *x.xxx_hidden_UsageAttributionTypeId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListUsageAttributionValuesRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.xxx_hidden_PageSize
-	}
-	return 0
-}
-
-func (x *ListUsageAttributionValuesRequest) GetPageToken() string {
-	if x != nil {
-		if x.xxx_hidden_PageToken != nil {
-			return *x.xxx_hidden_PageToken
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListUsageAttributionValuesRequest) GetSearch() string {
-	if x != nil {
-		if x.xxx_hidden_Search != nil {
-			return *x.xxx_hidden_Search
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListUsageAttributionValuesRequest) SetCustomerId(v string) {
-	x.xxx_hidden_CustomerId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
-}
-
-func (x *ListUsageAttributionValuesRequest) SetUsageAttributionTypeId(v string) {
-	x.xxx_hidden_UsageAttributionTypeId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
-}
-
-func (x *ListUsageAttributionValuesRequest) SetPageSize(v int32) {
-	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
-}
-
-func (x *ListUsageAttributionValuesRequest) SetPageToken(v string) {
-	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
-}
-
-func (x *ListUsageAttributionValuesRequest) SetSearch(v string) {
-	x.xxx_hidden_Search = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
-}
-
-func (x *ListUsageAttributionValuesRequest) HasCustomerId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *ListUsageAttributionValuesRequest) HasUsageAttributionTypeId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ListUsageAttributionValuesRequest) HasPageSize() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *ListUsageAttributionValuesRequest) HasPageToken() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
-}
-
-func (x *ListUsageAttributionValuesRequest) HasSearch() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
-}
-
-func (x *ListUsageAttributionValuesRequest) ClearCustomerId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_CustomerId = nil
-}
-
-func (x *ListUsageAttributionValuesRequest) ClearUsageAttributionTypeId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_UsageAttributionTypeId = nil
-}
-
-func (x *ListUsageAttributionValuesRequest) ClearPageSize() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_PageSize = 0
-}
-
-func (x *ListUsageAttributionValuesRequest) ClearPageToken() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_PageToken = nil
-}
-
-func (x *ListUsageAttributionValuesRequest) ClearSearch() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_Search = nil
-}
-
-type ListUsageAttributionValuesRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The customer (ID or `external_id:<external_id>`).
-	CustomerId *string
-	// The type (ID or `code:<code>`).
-	UsageAttributionTypeId *string
-	// The maximum number of results; 20 by default, at most 1000.
-	PageSize *int32
-	// The next_page_token of the previous page.
-	PageToken *string
-	// A search over the values.
-	Search *string
-}
-
-func (b0 ListUsageAttributionValuesRequest_builder) Build() *ListUsageAttributionValuesRequest {
-	m0 := &ListUsageAttributionValuesRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.CustomerId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
-		x.xxx_hidden_CustomerId = b.CustomerId
-	}
-	if b.UsageAttributionTypeId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
-		x.xxx_hidden_UsageAttributionTypeId = b.UsageAttributionTypeId
-	}
-	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
-		x.xxx_hidden_PageSize = *b.PageSize
-	}
-	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
-		x.xxx_hidden_PageToken = b.PageToken
-	}
-	if b.Search != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
-		x.xxx_hidden_Search = b.Search
-	}
-	return m0
-}
-
-// ListUsageAttributionValuesResponse is the response of UsageAttributionService.ListUsageAttributionValues.
-type ListUsageAttributionValuesResponse struct {
-	state                             protoimpl.MessageState    `protogen:"opaque.v1"`
-	xxx_hidden_UsageAttributionValues *[]*UsageAttributionValue `protobuf:"bytes,1,rep,name=usage_attribution_values,json=usageAttributionValues"`
-	xxx_hidden_NextPageToken          *string                   `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken"`
-	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
-	XXX_presence                      [1]uint32
-	unknownFields                     protoimpl.UnknownFields
-	sizeCache                         protoimpl.SizeCache
-}
-
-func (x *ListUsageAttributionValuesResponse) Reset() {
-	*x = ListUsageAttributionValuesResponse{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[17]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListUsageAttributionValuesResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListUsageAttributionValuesResponse) ProtoMessage() {}
-
-func (x *ListUsageAttributionValuesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[17]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ListUsageAttributionValuesResponse) GetUsageAttributionValues() []*UsageAttributionValue {
-	if x != nil {
-		if x.xxx_hidden_UsageAttributionValues != nil {
-			return *x.xxx_hidden_UsageAttributionValues
-		}
-	}
-	return nil
-}
-
-func (x *ListUsageAttributionValuesResponse) GetNextPageToken() string {
-	if x != nil {
-		if x.xxx_hidden_NextPageToken != nil {
-			return *x.xxx_hidden_NextPageToken
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListUsageAttributionValuesResponse) SetUsageAttributionValues(v []*UsageAttributionValue) {
-	x.xxx_hidden_UsageAttributionValues = &v
-}
-
-func (x *ListUsageAttributionValuesResponse) SetNextPageToken(v string) {
-	x.xxx_hidden_NextPageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
-}
-
-func (x *ListUsageAttributionValuesResponse) HasNextPageToken() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ListUsageAttributionValuesResponse) ClearNextPageToken() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_NextPageToken = nil
-}
-
-type ListUsageAttributionValuesResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The values of this page, most recently seen first.
-	UsageAttributionValues []*UsageAttributionValue
-	// The token of the next page; empty on the last page.
-	NextPageToken *string
-}
-
-func (b0 ListUsageAttributionValuesResponse_builder) Build() *ListUsageAttributionValuesResponse {
-	m0 := &ListUsageAttributionValuesResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_UsageAttributionValues = &b.UsageAttributionValues
-	if b.NextPageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_NextPageToken = b.NextPageToken
-	}
 	return m0
 }
 
@@ -2509,7 +2001,7 @@ type GetAttributedUsageRequest struct {
 
 func (x *GetAttributedUsageRequest) Reset() {
 	*x = GetAttributedUsageRequest{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[18]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2521,7 +2013,7 @@ func (x *GetAttributedUsageRequest) String() string {
 func (*GetAttributedUsageRequest) ProtoMessage() {}
 
 func (x *GetAttributedUsageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[18]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2902,7 +2394,7 @@ type GetAttributedUsageResponse struct {
 
 func (x *GetAttributedUsageResponse) Reset() {
 	*x = GetAttributedUsageResponse{}
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[19]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2914,7 +2406,7 @@ func (x *GetAttributedUsageResponse) String() string {
 func (*GetAttributedUsageResponse) ProtoMessage() {}
 
 func (x *GetAttributedUsageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[19]
+	mi := &file_tanvo_attribution_v1_attribution_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3196,10 +2688,10 @@ var File_tanvo_attribution_v1_attribution_proto protoreflect.FileDescriptor
 
 const file_tanvo_attribution_v1_attribution_proto_rawDesc = "" +
 	"\n" +
-	"&tanvo/attribution/v1/attribution.proto\x12\x14tanvo.attribution.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xdd\x04\n" +
+	"&tanvo/attribution/v1/attribution.proto\x12\x14tanvo.attribution.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\x83\x05\n" +
 	"\x14UsageAttributionType\x12\x14\n" +
-	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12#\n" +
-	"\x04code\x18\x02 \x01(\tB\x0f\xe2A\x02\x02\x05\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x04code\x12\x1c\n" +
+	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\"\n" +
+	"\x04code\x18\x02 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x04code\x12\x1c\n" +
 	"\x04name\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x04name\x12*\n" +
 	"\vdescription\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\vdescription\x12B\n" +
 	"\x10attribution_keys\x18\x05 \x03(\tB\x17\xe2A\x01\x02\xbaH\x10\x92\x01\r\x10\x04\x18\x01\"\ar\x05\x10\x01\x18\xff\x01R\x0fattributionKeys\x12L\n" +
@@ -3209,19 +2701,11 @@ const file_tanvo_attribution_v1_attribution_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:\x82\x01\xeaA\x7f\n" +
-	"\x1etanvo.xyz/UsageAttributionType\x120usage_attribution_types/{usage_attribution_type}*\x15usageAttributionTypes2\x14usageAttributionType\"\xaf\x02\n" +
-	"\x15UsageAttributionValue\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x129\n" +
-	"\x19usage_attribution_type_id\x18\x02 \x01(\tR\x16usageAttributionTypeId\x12\x1f\n" +
-	"\vcustomer_id\x18\x03 \x01(\tR\n" +
-	"customerId\x12\x14\n" +
-	"\x05value\x18\x04 \x01(\tR\x05value\x12\x1b\n" +
-	"\tparent_id\x18\x05 \x01(\tR\bparentId\x12<\n" +
-	"\flast_seen_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"lastSeenAt\x129\n" +
-	"\n" +
-	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"1\n" +
+	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x12%\n" +
+	"\vparent_code\x18\n" +
+	" \x01(\tB\x04\xe2A\x01\x03R\n" +
+	"parentCode:\x82\x01\xeaA\x7f\n" +
+	"\x1etanvo.xyz/UsageAttributionType\x120usage_attribution_types/{usage_attribution_type}*\x15usageAttributionTypes2\x14usageAttributionType\"1\n" +
 	"\x06Values\x12'\n" +
 	"\x06values\x18\x01 \x03(\tB\x0f\xbaH\f\x92\x01\t\x10d\"\x05r\x03\x18\xff\x01R\x06values\"\xb1\x04\n" +
 	"\x15AttributedChargeUsage\x12\x1b\n" +
@@ -3257,13 +2741,14 @@ const file_tanvo_attribution_v1_attribution_proto_rawDesc = "" +
 	"\x19usage_attribution_type_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x16usageAttributionTypeId\"\x83\x01\n" +
 	"\x1fGetUsageAttributionTypeResponse\x12`\n" +
-	"\x16usage_attribution_type\x18\x01 \x01(\v2*.tanvo.attribution.v1.UsageAttributionTypeR\x14usageAttributionType\"\x96\x01\n" +
+	"\x16usage_attribution_type\x18\x01 \x01(\v2*.tanvo.attribution.v1.UsageAttributionTypeR\x14usageAttributionType\"\xb8\x01\n" +
 	" ListUsageAttributionTypesRequest\x12'\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\n" +
 	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12 \n" +
-	"\x06filter\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\"\xaf\x01\n" +
+	"\x06filter\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\x12 \n" +
+	"\x06search\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x06search\"\xaf\x01\n" +
 	"!ListUsageAttributionTypesResponse\x12b\n" +
 	"\x17usage_attribution_types\x18\x01 \x03(\v2*.tanvo.attribution.v1.UsageAttributionTypeR\x15usageAttributionTypes\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xbc\x02\n" +
@@ -3278,21 +2763,7 @@ const file_tanvo_attribution_v1_attribution_proto_rawDesc = "" +
 	"!DeleteUsageAttributionTypeRequest\x12L\n" +
 	"\x19usage_attribution_type_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x16usageAttributionTypeId\"$\n" +
-	"\"DeleteUsageAttributionTypeResponse\"\x99\x02\n" +
-	"!ListUsageAttributionValuesRequest\x122\n" +
-	"\vcustomer_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\n" +
-	"customerId\x12L\n" +
-	"\x19usage_attribution_type_id\x18\x02 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x16usageAttributionTypeId\x12'\n" +
-	"\tpage_size\x18\x03 \x01(\x05B\n" +
-	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
-	"\n" +
-	"page_token\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12 \n" +
-	"\x06search\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x06search\"\xb3\x01\n" +
-	"\"ListUsageAttributionValuesResponse\x12e\n" +
-	"\x18usage_attribution_values\x18\x01 \x03(\v2+.tanvo.attribution.v1.UsageAttributionValueR\x16usageAttributionValues\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x8f\x06\n" +
+	"\"DeleteUsageAttributionTypeResponse\"\x8f\x06\n" +
 	"\x19GetAttributedUsageRequest\x122\n" +
 	"\vcustomer_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\n" +
@@ -3334,7 +2805,7 @@ const file_tanvo_attribution_v1_attribution_proto_rawDesc = "" +
 	"\x10AttributionBasis\x12!\n" +
 	"\x1dATTRIBUTION_BASIS_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17ATTRIBUTION_BASIS_UNITS\x10\x01\x12\x1c\n" +
-	"\x18ATTRIBUTION_BASIS_AMOUNT\x10\x022\xe1\x0e\n" +
+	"\x18ATTRIBUTION_BASIS_AMOUNT\x10\x022\xd4\f\n" +
 	"\x17UsageAttributionService\x12\x88\x02\n" +
 	"\x1aCreateUsageAttributionType\x127.tanvo.attribution.v1.CreateUsageAttributionTypeRequest\x1a8.tanvo.attribution.v1.CreateUsageAttributionTypeResponse\"w\xca\xf3\x188\n" +
 	"\x1eusage_attribution_types:create*\x16usage_attribution_type\x82\xd3\xe4\x93\x025:\x16usage_attribution_type\"\x1b/v1/usage_attribution_types\x12\x84\x02\n" +
@@ -3345,94 +2816,84 @@ const file_tanvo_attribution_v1_attribution_proto_rawDesc = "" +
 	"\x1aUpdateUsageAttributionType\x127.tanvo.attribution.v1.UpdateUsageAttributionTypeRequest\x1a8.tanvo.attribution.v1.UpdateUsageAttributionTypeResponse\"\x93\x01\xca\xf3\x188\n" +
 	"\x1eusage_attribution_types:update*\x16usage_attribution_type\x82\xd3\xe4\x93\x02Q:\x16usage_attribution_type27/v1/usage_attribution_types/{usage_attribution_type.id}\x12\x8c\x02\n" +
 	"\x1aDeleteUsageAttributionType\x127.tanvo.attribution.v1.DeleteUsageAttributionTypeRequest\x1a8.tanvo.attribution.v1.DeleteUsageAttributionTypeResponse\"{\xca\xf3\x188\n" +
-	"\x1eusage_attribution_types:delete*\x16usage_attribution_type\x82\xd3\xe4\x93\x029*7/v1/usage_attribution_types/{usage_attribution_type_id}\x12\x8a\x02\n" +
-	"\x1aListUsageAttributionValues\x127.tanvo.attribution.v1.ListUsageAttributionValuesRequest\x1a8.tanvo.attribution.v1.ListUsageAttributionValuesResponse\"y\xca\xf3\x186\n" +
-	"\x1cusage_attribution_types:read*\x16usage_attribution_type\x82\xd3\xe4\x93\x026\x124/v1/customers/{customer_id}/usage_attribution_values\x90\x02\x01\x12\xfe\x01\n" +
+	"\x1eusage_attribution_types:delete*\x16usage_attribution_type\x82\xd3\xe4\x93\x029*7/v1/usage_attribution_types/{usage_attribution_type_id}\x12\xfe\x01\n" +
 	"\x12GetAttributedUsage\x12/.tanvo.attribution.v1.GetAttributedUsageRequest\x1a0.tanvo.attribution.v1.GetAttributedUsageResponse\"\x84\x01\xca\xf3\x18)\n" +
 	"\x15attributed_usage:read*\x10attributed_usage\x82\xd3\xe4\x93\x02N\x12L/v1/customers/{customer_id}/subscriptions/{subscription_id}/usage:attributed\x90\x02\x01B\xee\x01\n" +
 	"\x18com.tanvo.attribution.v1B\x10AttributionProtoP\x01ZNgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/attribution/v1;attributionv1\xa2\x02\x03TAX\xaa\x02\x14Tanvo.Attribution.V1\xca\x02\x14Tanvo\\Attribution\\V1\xe2\x02 Tanvo\\Attribution\\V1\\GPBMetadata\xea\x02\x16Tanvo::Attribution::V1b\beditionsp\xe8\a"
 
 var file_tanvo_attribution_v1_attribution_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_tanvo_attribution_v1_attribution_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_tanvo_attribution_v1_attribution_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_tanvo_attribution_v1_attribution_proto_goTypes = []any{
 	(UsageAttributionRole)(0),                  // 0: tanvo.attribution.v1.UsageAttributionRole
 	(AttributionBasis)(0),                      // 1: tanvo.attribution.v1.AttributionBasis
 	(*UsageAttributionType)(nil),               // 2: tanvo.attribution.v1.UsageAttributionType
-	(*UsageAttributionValue)(nil),              // 3: tanvo.attribution.v1.UsageAttributionValue
-	(*Values)(nil),                             // 4: tanvo.attribution.v1.Values
-	(*AttributedChargeUsage)(nil),              // 5: tanvo.attribution.v1.AttributedChargeUsage
-	(*AttributedAggregate)(nil),                // 6: tanvo.attribution.v1.AttributedAggregate
-	(*AttributedUsageRow)(nil),                 // 7: tanvo.attribution.v1.AttributedUsageRow
-	(*CreateUsageAttributionTypeRequest)(nil),  // 8: tanvo.attribution.v1.CreateUsageAttributionTypeRequest
-	(*CreateUsageAttributionTypeResponse)(nil), // 9: tanvo.attribution.v1.CreateUsageAttributionTypeResponse
-	(*GetUsageAttributionTypeRequest)(nil),     // 10: tanvo.attribution.v1.GetUsageAttributionTypeRequest
-	(*GetUsageAttributionTypeResponse)(nil),    // 11: tanvo.attribution.v1.GetUsageAttributionTypeResponse
-	(*ListUsageAttributionTypesRequest)(nil),   // 12: tanvo.attribution.v1.ListUsageAttributionTypesRequest
-	(*ListUsageAttributionTypesResponse)(nil),  // 13: tanvo.attribution.v1.ListUsageAttributionTypesResponse
-	(*UpdateUsageAttributionTypeRequest)(nil),  // 14: tanvo.attribution.v1.UpdateUsageAttributionTypeRequest
-	(*UpdateUsageAttributionTypeResponse)(nil), // 15: tanvo.attribution.v1.UpdateUsageAttributionTypeResponse
-	(*DeleteUsageAttributionTypeRequest)(nil),  // 16: tanvo.attribution.v1.DeleteUsageAttributionTypeRequest
-	(*DeleteUsageAttributionTypeResponse)(nil), // 17: tanvo.attribution.v1.DeleteUsageAttributionTypeResponse
-	(*ListUsageAttributionValuesRequest)(nil),  // 18: tanvo.attribution.v1.ListUsageAttributionValuesRequest
-	(*ListUsageAttributionValuesResponse)(nil), // 19: tanvo.attribution.v1.ListUsageAttributionValuesResponse
-	(*GetAttributedUsageRequest)(nil),          // 20: tanvo.attribution.v1.GetAttributedUsageRequest
-	(*GetAttributedUsageResponse)(nil),         // 21: tanvo.attribution.v1.GetAttributedUsageResponse
-	nil,                                        // 22: tanvo.attribution.v1.AttributedChargeUsage.ChargeFilterValuesEntry
-	nil,                                        // 23: tanvo.attribution.v1.GetAttributedUsageRequest.FiltersEntry
-	(*timestamppb.Timestamp)(nil),              // 24: google.protobuf.Timestamp
-	(*v1.Money)(nil),                           // 25: tanvo.common.v1.Money
-	(*fieldmaskpb.FieldMask)(nil),              // 26: google.protobuf.FieldMask
-	(*v1.DateTimeRange)(nil),                   // 27: tanvo.common.v1.DateTimeRange
+	(*Values)(nil),                             // 3: tanvo.attribution.v1.Values
+	(*AttributedChargeUsage)(nil),              // 4: tanvo.attribution.v1.AttributedChargeUsage
+	(*AttributedAggregate)(nil),                // 5: tanvo.attribution.v1.AttributedAggregate
+	(*AttributedUsageRow)(nil),                 // 6: tanvo.attribution.v1.AttributedUsageRow
+	(*CreateUsageAttributionTypeRequest)(nil),  // 7: tanvo.attribution.v1.CreateUsageAttributionTypeRequest
+	(*CreateUsageAttributionTypeResponse)(nil), // 8: tanvo.attribution.v1.CreateUsageAttributionTypeResponse
+	(*GetUsageAttributionTypeRequest)(nil),     // 9: tanvo.attribution.v1.GetUsageAttributionTypeRequest
+	(*GetUsageAttributionTypeResponse)(nil),    // 10: tanvo.attribution.v1.GetUsageAttributionTypeResponse
+	(*ListUsageAttributionTypesRequest)(nil),   // 11: tanvo.attribution.v1.ListUsageAttributionTypesRequest
+	(*ListUsageAttributionTypesResponse)(nil),  // 12: tanvo.attribution.v1.ListUsageAttributionTypesResponse
+	(*UpdateUsageAttributionTypeRequest)(nil),  // 13: tanvo.attribution.v1.UpdateUsageAttributionTypeRequest
+	(*UpdateUsageAttributionTypeResponse)(nil), // 14: tanvo.attribution.v1.UpdateUsageAttributionTypeResponse
+	(*DeleteUsageAttributionTypeRequest)(nil),  // 15: tanvo.attribution.v1.DeleteUsageAttributionTypeRequest
+	(*DeleteUsageAttributionTypeResponse)(nil), // 16: tanvo.attribution.v1.DeleteUsageAttributionTypeResponse
+	(*GetAttributedUsageRequest)(nil),          // 17: tanvo.attribution.v1.GetAttributedUsageRequest
+	(*GetAttributedUsageResponse)(nil),         // 18: tanvo.attribution.v1.GetAttributedUsageResponse
+	nil,                                        // 19: tanvo.attribution.v1.AttributedChargeUsage.ChargeFilterValuesEntry
+	nil,                                        // 20: tanvo.attribution.v1.GetAttributedUsageRequest.FiltersEntry
+	(*timestamppb.Timestamp)(nil),              // 21: google.protobuf.Timestamp
+	(*v1.Money)(nil),                           // 22: tanvo.common.v1.Money
+	(*fieldmaskpb.FieldMask)(nil),              // 23: google.protobuf.FieldMask
+	(*v1.DateTimeRange)(nil),                   // 24: tanvo.common.v1.DateTimeRange
 }
 var file_tanvo_attribution_v1_attribution_proto_depIdxs = []int32{
 	0,  // 0: tanvo.attribution.v1.UsageAttributionType.role:type_name -> tanvo.attribution.v1.UsageAttributionRole
-	24, // 1: tanvo.attribution.v1.UsageAttributionType.created_at:type_name -> google.protobuf.Timestamp
-	24, // 2: tanvo.attribution.v1.UsageAttributionType.updated_at:type_name -> google.protobuf.Timestamp
-	24, // 3: tanvo.attribution.v1.UsageAttributionValue.last_seen_at:type_name -> google.protobuf.Timestamp
-	24, // 4: tanvo.attribution.v1.UsageAttributionValue.created_at:type_name -> google.protobuf.Timestamp
-	22, // 5: tanvo.attribution.v1.AttributedChargeUsage.charge_filter_values:type_name -> tanvo.attribution.v1.AttributedChargeUsage.ChargeFilterValuesEntry
-	25, // 6: tanvo.attribution.v1.AttributedChargeUsage.amount:type_name -> tanvo.common.v1.Money
-	25, // 7: tanvo.attribution.v1.AttributedAggregate.amount:type_name -> tanvo.common.v1.Money
-	5,  // 8: tanvo.attribution.v1.AttributedAggregate.charges_usage:type_name -> tanvo.attribution.v1.AttributedChargeUsage
-	6,  // 9: tanvo.attribution.v1.AttributedUsageRow.usage:type_name -> tanvo.attribution.v1.AttributedAggregate
-	2,  // 10: tanvo.attribution.v1.CreateUsageAttributionTypeRequest.usage_attribution_type:type_name -> tanvo.attribution.v1.UsageAttributionType
-	2,  // 11: tanvo.attribution.v1.CreateUsageAttributionTypeResponse.usage_attribution_type:type_name -> tanvo.attribution.v1.UsageAttributionType
-	2,  // 12: tanvo.attribution.v1.GetUsageAttributionTypeResponse.usage_attribution_type:type_name -> tanvo.attribution.v1.UsageAttributionType
-	2,  // 13: tanvo.attribution.v1.ListUsageAttributionTypesResponse.usage_attribution_types:type_name -> tanvo.attribution.v1.UsageAttributionType
-	2,  // 14: tanvo.attribution.v1.UpdateUsageAttributionTypeRequest.usage_attribution_type:type_name -> tanvo.attribution.v1.UsageAttributionType
-	26, // 15: tanvo.attribution.v1.UpdateUsageAttributionTypeRequest.update_mask:type_name -> google.protobuf.FieldMask
-	2,  // 16: tanvo.attribution.v1.UpdateUsageAttributionTypeResponse.usage_attribution_type:type_name -> tanvo.attribution.v1.UsageAttributionType
-	3,  // 17: tanvo.attribution.v1.ListUsageAttributionValuesResponse.usage_attribution_values:type_name -> tanvo.attribution.v1.UsageAttributionValue
-	23, // 18: tanvo.attribution.v1.GetAttributedUsageRequest.filters:type_name -> tanvo.attribution.v1.GetAttributedUsageRequest.FiltersEntry
-	24, // 19: tanvo.attribution.v1.GetAttributedUsageRequest.from_time:type_name -> google.protobuf.Timestamp
-	24, // 20: tanvo.attribution.v1.GetAttributedUsageRequest.to_time:type_name -> google.protobuf.Timestamp
-	1,  // 21: tanvo.attribution.v1.GetAttributedUsageRequest.basis:type_name -> tanvo.attribution.v1.AttributionBasis
-	1,  // 22: tanvo.attribution.v1.GetAttributedUsageResponse.basis:type_name -> tanvo.attribution.v1.AttributionBasis
-	27, // 23: tanvo.attribution.v1.GetAttributedUsageResponse.period:type_name -> tanvo.common.v1.DateTimeRange
-	7,  // 24: tanvo.attribution.v1.GetAttributedUsageResponse.rows:type_name -> tanvo.attribution.v1.AttributedUsageRow
-	6,  // 25: tanvo.attribution.v1.GetAttributedUsageResponse.unattributed:type_name -> tanvo.attribution.v1.AttributedAggregate
-	6,  // 26: tanvo.attribution.v1.GetAttributedUsageResponse.totals:type_name -> tanvo.attribution.v1.AttributedAggregate
-	4,  // 27: tanvo.attribution.v1.AttributedChargeUsage.ChargeFilterValuesEntry.value:type_name -> tanvo.attribution.v1.Values
-	4,  // 28: tanvo.attribution.v1.GetAttributedUsageRequest.FiltersEntry.value:type_name -> tanvo.attribution.v1.Values
-	8,  // 29: tanvo.attribution.v1.UsageAttributionService.CreateUsageAttributionType:input_type -> tanvo.attribution.v1.CreateUsageAttributionTypeRequest
-	10, // 30: tanvo.attribution.v1.UsageAttributionService.GetUsageAttributionType:input_type -> tanvo.attribution.v1.GetUsageAttributionTypeRequest
-	12, // 31: tanvo.attribution.v1.UsageAttributionService.ListUsageAttributionTypes:input_type -> tanvo.attribution.v1.ListUsageAttributionTypesRequest
-	14, // 32: tanvo.attribution.v1.UsageAttributionService.UpdateUsageAttributionType:input_type -> tanvo.attribution.v1.UpdateUsageAttributionTypeRequest
-	16, // 33: tanvo.attribution.v1.UsageAttributionService.DeleteUsageAttributionType:input_type -> tanvo.attribution.v1.DeleteUsageAttributionTypeRequest
-	18, // 34: tanvo.attribution.v1.UsageAttributionService.ListUsageAttributionValues:input_type -> tanvo.attribution.v1.ListUsageAttributionValuesRequest
-	20, // 35: tanvo.attribution.v1.UsageAttributionService.GetAttributedUsage:input_type -> tanvo.attribution.v1.GetAttributedUsageRequest
-	9,  // 36: tanvo.attribution.v1.UsageAttributionService.CreateUsageAttributionType:output_type -> tanvo.attribution.v1.CreateUsageAttributionTypeResponse
-	11, // 37: tanvo.attribution.v1.UsageAttributionService.GetUsageAttributionType:output_type -> tanvo.attribution.v1.GetUsageAttributionTypeResponse
-	13, // 38: tanvo.attribution.v1.UsageAttributionService.ListUsageAttributionTypes:output_type -> tanvo.attribution.v1.ListUsageAttributionTypesResponse
-	15, // 39: tanvo.attribution.v1.UsageAttributionService.UpdateUsageAttributionType:output_type -> tanvo.attribution.v1.UpdateUsageAttributionTypeResponse
-	17, // 40: tanvo.attribution.v1.UsageAttributionService.DeleteUsageAttributionType:output_type -> tanvo.attribution.v1.DeleteUsageAttributionTypeResponse
-	19, // 41: tanvo.attribution.v1.UsageAttributionService.ListUsageAttributionValues:output_type -> tanvo.attribution.v1.ListUsageAttributionValuesResponse
-	21, // 42: tanvo.attribution.v1.UsageAttributionService.GetAttributedUsage:output_type -> tanvo.attribution.v1.GetAttributedUsageResponse
-	36, // [36:43] is the sub-list for method output_type
-	29, // [29:36] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	21, // 1: tanvo.attribution.v1.UsageAttributionType.created_at:type_name -> google.protobuf.Timestamp
+	21, // 2: tanvo.attribution.v1.UsageAttributionType.updated_at:type_name -> google.protobuf.Timestamp
+	19, // 3: tanvo.attribution.v1.AttributedChargeUsage.charge_filter_values:type_name -> tanvo.attribution.v1.AttributedChargeUsage.ChargeFilterValuesEntry
+	22, // 4: tanvo.attribution.v1.AttributedChargeUsage.amount:type_name -> tanvo.common.v1.Money
+	22, // 5: tanvo.attribution.v1.AttributedAggregate.amount:type_name -> tanvo.common.v1.Money
+	4,  // 6: tanvo.attribution.v1.AttributedAggregate.charges_usage:type_name -> tanvo.attribution.v1.AttributedChargeUsage
+	5,  // 7: tanvo.attribution.v1.AttributedUsageRow.usage:type_name -> tanvo.attribution.v1.AttributedAggregate
+	2,  // 8: tanvo.attribution.v1.CreateUsageAttributionTypeRequest.usage_attribution_type:type_name -> tanvo.attribution.v1.UsageAttributionType
+	2,  // 9: tanvo.attribution.v1.CreateUsageAttributionTypeResponse.usage_attribution_type:type_name -> tanvo.attribution.v1.UsageAttributionType
+	2,  // 10: tanvo.attribution.v1.GetUsageAttributionTypeResponse.usage_attribution_type:type_name -> tanvo.attribution.v1.UsageAttributionType
+	2,  // 11: tanvo.attribution.v1.ListUsageAttributionTypesResponse.usage_attribution_types:type_name -> tanvo.attribution.v1.UsageAttributionType
+	2,  // 12: tanvo.attribution.v1.UpdateUsageAttributionTypeRequest.usage_attribution_type:type_name -> tanvo.attribution.v1.UsageAttributionType
+	23, // 13: tanvo.attribution.v1.UpdateUsageAttributionTypeRequest.update_mask:type_name -> google.protobuf.FieldMask
+	2,  // 14: tanvo.attribution.v1.UpdateUsageAttributionTypeResponse.usage_attribution_type:type_name -> tanvo.attribution.v1.UsageAttributionType
+	20, // 15: tanvo.attribution.v1.GetAttributedUsageRequest.filters:type_name -> tanvo.attribution.v1.GetAttributedUsageRequest.FiltersEntry
+	21, // 16: tanvo.attribution.v1.GetAttributedUsageRequest.from_time:type_name -> google.protobuf.Timestamp
+	21, // 17: tanvo.attribution.v1.GetAttributedUsageRequest.to_time:type_name -> google.protobuf.Timestamp
+	1,  // 18: tanvo.attribution.v1.GetAttributedUsageRequest.basis:type_name -> tanvo.attribution.v1.AttributionBasis
+	1,  // 19: tanvo.attribution.v1.GetAttributedUsageResponse.basis:type_name -> tanvo.attribution.v1.AttributionBasis
+	24, // 20: tanvo.attribution.v1.GetAttributedUsageResponse.period:type_name -> tanvo.common.v1.DateTimeRange
+	6,  // 21: tanvo.attribution.v1.GetAttributedUsageResponse.rows:type_name -> tanvo.attribution.v1.AttributedUsageRow
+	5,  // 22: tanvo.attribution.v1.GetAttributedUsageResponse.unattributed:type_name -> tanvo.attribution.v1.AttributedAggregate
+	5,  // 23: tanvo.attribution.v1.GetAttributedUsageResponse.totals:type_name -> tanvo.attribution.v1.AttributedAggregate
+	3,  // 24: tanvo.attribution.v1.AttributedChargeUsage.ChargeFilterValuesEntry.value:type_name -> tanvo.attribution.v1.Values
+	3,  // 25: tanvo.attribution.v1.GetAttributedUsageRequest.FiltersEntry.value:type_name -> tanvo.attribution.v1.Values
+	7,  // 26: tanvo.attribution.v1.UsageAttributionService.CreateUsageAttributionType:input_type -> tanvo.attribution.v1.CreateUsageAttributionTypeRequest
+	9,  // 27: tanvo.attribution.v1.UsageAttributionService.GetUsageAttributionType:input_type -> tanvo.attribution.v1.GetUsageAttributionTypeRequest
+	11, // 28: tanvo.attribution.v1.UsageAttributionService.ListUsageAttributionTypes:input_type -> tanvo.attribution.v1.ListUsageAttributionTypesRequest
+	13, // 29: tanvo.attribution.v1.UsageAttributionService.UpdateUsageAttributionType:input_type -> tanvo.attribution.v1.UpdateUsageAttributionTypeRequest
+	15, // 30: tanvo.attribution.v1.UsageAttributionService.DeleteUsageAttributionType:input_type -> tanvo.attribution.v1.DeleteUsageAttributionTypeRequest
+	17, // 31: tanvo.attribution.v1.UsageAttributionService.GetAttributedUsage:input_type -> tanvo.attribution.v1.GetAttributedUsageRequest
+	8,  // 32: tanvo.attribution.v1.UsageAttributionService.CreateUsageAttributionType:output_type -> tanvo.attribution.v1.CreateUsageAttributionTypeResponse
+	10, // 33: tanvo.attribution.v1.UsageAttributionService.GetUsageAttributionType:output_type -> tanvo.attribution.v1.GetUsageAttributionTypeResponse
+	12, // 34: tanvo.attribution.v1.UsageAttributionService.ListUsageAttributionTypes:output_type -> tanvo.attribution.v1.ListUsageAttributionTypesResponse
+	14, // 35: tanvo.attribution.v1.UsageAttributionService.UpdateUsageAttributionType:output_type -> tanvo.attribution.v1.UpdateUsageAttributionTypeResponse
+	16, // 36: tanvo.attribution.v1.UsageAttributionService.DeleteUsageAttributionType:output_type -> tanvo.attribution.v1.DeleteUsageAttributionTypeResponse
+	18, // 37: tanvo.attribution.v1.UsageAttributionService.GetAttributedUsage:output_type -> tanvo.attribution.v1.GetAttributedUsageResponse
+	32, // [32:38] is the sub-list for method output_type
+	26, // [26:32] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_attribution_v1_attribution_proto_init() }
@@ -3446,7 +2907,7 @@ func file_tanvo_attribution_v1_attribution_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_attribution_v1_attribution_proto_rawDesc), len(file_tanvo_attribution_v1_attribution_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   22,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

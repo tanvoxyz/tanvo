@@ -134,7 +134,7 @@ Directories are created when their step of the [roadmap](roadmap.md) starts.
 ### 3.2 Dependency Direction
 
 ```text
-apps/server ──▶ billing ──▶ pricing / metering / tax / period / money
+apps/server ──▶ billing ──▶ pricing / metering / tax / period / money / expression(go)
      │             │
      │             └──▶ core ──▶ money / period
      ├──▶ ingest ──▶ expression(go) / metering / core
@@ -147,7 +147,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 
 * `money`, `period`, `expression`, `pricing`, `metering` and `tax` are pure libraries: they depend only on each other in the order shown and on the standard library or vetted third-party packages, never on `core`, storage or I/O (except `tax`'s VIES client behind an interface).
 * `core` depends only on `money` and `period`.
-* `billing` reaches storage, events, documents and providers only through ports in `core`.
+* `billing` reaches storage, events, documents and providers only through ports in `core`; it evaluates metric expressions with `expression` (a pure library).
 * Infrastructure libraries depend on `core` but not on each other, with one exception: `ingest` uses `expression` (a pure library, like `metering`, whose event type it writes). Integration tests may use another library's backends; the depguard rules exempt test files.
 * Only `apps/server` wires implementations to ports.
 * The rules are enforced by depguard in `.golangci.yml`; changing them starts with this section.
@@ -171,7 +171,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 * Resources are addressed by Tanvo IDs; where Lago used customer-provided identifiers (`external_id`, `code`), Tanvo keeps them as unique, filterable fields and accepts them in place of an ID through an `{id}` that starts with a prefix (`external_id:acme-42`, `code:api_calls`).
 * Lists use cursor pagination (`page_size`, `page_token`, `next_page_token`) and AIP-160 style filters.
 * Errors are Connect error codes with `google.rpc.ErrorInfo` / `BadRequest` details; REST maps them to HTTP status codes with a JSON body.
-* Writes accept an `Idempotency-Key` header; responses are stored for 24 hours per organization and key.
+* Writes accept an `Idempotency-Key` header ([§4.5](#45-idempotency)).
 
 ### 4.3 Non-RPC HTTP
 Provider webhooks (`POST /webhooks/{provider}/{connection_id}`), document downloads (`GET /documents/{id}`), health (`/healthz`, `/readyz`) and metrics (`/metrics`) are plain `net/http` handlers.
@@ -181,9 +181,30 @@ Provider webhooks (`POST /webhooks/{provider}/{connection_id}`), document downlo
 * **Permissions**: strings such as `customers:read`, `invoices:write`. Roles (built-in and custom) are sets of permissions; an API key carries its own set. Every RPC declares the permission it needs in a proto option; an interceptor checks it.
 * **Users** sign in with email and password (argon2id) or OIDC (Google, Okta, Entra ID, generic). Sessions are opaque tokens stored hashed in PostgreSQL (`sessions`), revocable and purged once expired ([domain §5.7](domain.md#57-session-and-sign-in-state)).
 * **OIDC** uses the authorization code flow with state, nonce and PKCE. The flow's state is a single-use row of `oidc_states`, keyed by the SHA-256 of the `state` parameter, so any replica can finish a sign-in. Google is one installation-wide connection configured from the environment; Okta, Entra ID and generic connections are `auth` integrations of an organization ([domain §17.1](domain.md#171-integration)) whose claimed email domains route sign-ins, looked up across organizations.
+* **OIDC client**: one standards-based client in libs/auth (go-oidc and x/oauth2) serves every connection; Google, Okta and Entra ID are presets that fix the issuer, scopes and claim rules, and a generic `oidc` connection (a Tanvo extension) takes any OpenID provider by `issuer_url`.
+  * *Discovery*: `/.well-known/openid-configuration` must report exactly the configured issuer, offer the `code` response type and an accepted signing algorithm, and use https for the issuer and every endpoint unless `TANVO_OIDC_ALLOW_PRIVATE` (dev mode). Documents are cached per issuer for 1 hour and kept when a refetch fails.
+  * *Keys*: the JWKS is cached for 1 hour; a token with an unknown `kid` refetches it at most once a minute, so key rotation needs no restart and forged `kid`s cannot flood the provider.
+  * *Network*: apps/server injects the SSRF-guarded client of libs/webhooks (private, loopback and link-local addresses refused unless `TANVO_OIDC_ALLOW_PRIVATE`; redirects never followed); every response is capped at 1 MiB and every request at 10 seconds.
+  * *ID tokens*: signatures in the RS, ES and PS families or EdDSA (never `none`, never HMAC); `iss`, `aud`, `azp` when there are several audiences, `exp`, `nbf` and `iat` with 30 seconds of leeway, and the nonce compared in constant time. The token endpoint auth method is the connection's, else the first of `client_secret_basic` and `client_secret_post` in discovery.
+  * *Identity*: the email and name come from configurable claims (default `email`, `name`); generic connections require `email_verified` to be true unless `allow_unverified_email`, while the presets keep their behaviour (refused only when false). Userinfo is fetched when the email or a required `email_verified` is missing; its `sub` must match.
+  * *Configuration*: creating or updating a generic connection fetches discovery once and fails with a field error on `issuer_url` (`https_required`, `issuer_unreachable`, `issuer_mismatch`, `discovery_incomplete`) or `token_endpoint_auth_method` (`unsupported_by_provider`). Extra authorization parameters may not override protocol parameters (`state`, `nonce`, `redirect_uri`, …).
 * **Devices**: every sign-in records the client in `user_devices` (fingerprint = SHA-256 of the user agent); apps/server parses the user agent into browser, OS and device type. A new device is written to the security log ([domain §5.8](domain.md#58-user-device)).
 * **Emails** from libs/auth are `mail.send` jobs carrying data, not links: a password reset carries its token, and libs/mail builds the URL from the application URL.
-* **Customer portal**: short-lived signed tokens scoped to one customer.
+* **Customer portal**: short-lived signed tokens scoped to one customer (HMAC-SHA256, 12 hours, key derived from `TANVO_SECRET_KEY`), sent as the bearer credential of `portal` RPCs; a token is accepted only while its customer exists and is not deleted.
+* **Credentials on the wire**: every credential is `Authorization: Bearer <token>`. An API key acts in its organization. A session acts in the organization named by the `X-Tanvo-Organization` header, where the user must have an active membership and the organization must allow the session's sign-in method; without the header it can call only the RPCs marked `authenticated` (current user, sign-out, server information, data export download) and fails elsewhere with `PermissionDenied` / `organization_required`.
+* **Access rules**: the `tanvo.common.v1.access` option of each RPC is one of `anonymous`, `portal`, `authenticated` or a `permission` (with an `api_resource` when API keys may call it). An API key needs `read` on the resource for `NO_SIDE_EFFECTS` RPCs and `write` otherwise; a refusal is `PermissionDenied` with the reason `<level>_action_not_allowed_for_<resource>`.
+* **Session purge**: the hourly clock job `clock.purge_sessions` deletes the sessions expired or revoked more than 24 hours earlier.
+
+### 4.5 Idempotency
+* A unary RPC with side effects called with an `Idempotency-Key` header (at most 255 bytes) by an API key or a session acting in an organization is run once per organization and key. The interceptor, after authentication and validation, claims the key in `idempotency_keys` with the procedure and the SHA-256 of the deterministic request encoding; the successful response is stored and replayed to every retry for 24 hours after the first request.
+* A retry with another RPC or request fails with `InvalidArgument` / `idempotency_key_reused`; one sent while the first is running fails with `Aborted` / `idempotency_key_in_progress` (a claim expires after 5 minutes, so a crashed request frees its key). A failed request releases the key, so the client can retry it.
+* `NO_SIDE_EFFECTS`, streaming and anonymous RPCs ignore the header. The hourly clock job `clock.purge_idempotency_keys` enqueues a per-organization `idempotency.purge` job that deletes the expired records.
+
+### 4.6 Server Layering
+* **Domain services** live in the libraries: `libs/billing/<area>` (catalog, customers, subscriptions, invoices, …) and `libs/auth`. A service takes `kernel.Deps` (or `auth.Deps`), runs each operation in one `Store.InTx` with its jobs and webhooks, validates with `core.Validator` (field errors carry Lago-style codes such as `value_already_exist`), and returns domain types. It knows nothing of proto or HTTP and is tested on `memstore`.
+* **RPC handlers** (`apps/server/internal/rpc`) are thin: they read the principal, convert the request with the shared helpers (references, filters, pagination, update masks, money, times, enums), call one service method, convert the result and map errors with `rpc.Error`. They hold no business rules.
+* **Wiring** (`apps/server/internal/app/api.go`) builds the services over the store and registers every handler behind the shared interceptors: telemetry, panic recovery, authentication and authorization, protovalidate, idempotency.
+* **Tests**: services port Lago's service specs; handlers port its request specs against a real server (`apps/server/internal/rpctest`), over REST and Connect. The step-by-step playbook is in [development §8](development.md#8-rpc-playbook) and the `rpc` package comment.
 
 ---
 
@@ -216,7 +237,7 @@ Billing relies on exact `numeric` arithmetic, transactions spanning many tables,
 * Amounts in minor units are `bigint`; precise amounts, unit prices and quantities are `numeric`.
 * Enumerations are `text` with `CHECK` constraints, mirrored by Go string types.
 * Deletion is explicit: resources with a lifecycle have a status (`terminated`, `archived`, `voided`); hard deletes are used where nothing references the row. There is no blanket soft delete.
-* Changes that clients audit are recorded as domain events in an `audit_events` table in the same transaction, which also feeds webhooks and activity logs.
+* Changes that clients are notified of are recorded as domain events in the `domain_events` table in the same transaction, which feeds webhooks; activity logs are written to `activity_logs` by the activity producer (`auditlog.ActivityLogger`, through `kernel.Deps.ActivityLogs`), also in the same transaction.
 
 ---
 
@@ -245,10 +266,11 @@ POST /v1/events, /v1/events:batch
 * The mode is a per-installation setting with per-organization overrides in Tanvo Cloud.
 * Each event keeps the metadata of its API request, the `User-Agent` and the client address: in the raw log (`public.events.metadata`) on the PostgreSQL path, and in ClickHouse's `events_raw` on the Kafka path, which carries it in the raw and enriched messages. lago-api keeps it only in PostgreSQL (its Kafka payload leaves it out); the API returns it as the event's `user_agent` and `ip_address`. The client address is resolved like Rails' `request.remote_ip`: the nearest `X-Forwarded-For` (then `Client-Ip`) address that is not a trusted proxy, the headers being read only when the peer is one; trusted are the loopback and private ranges and `TANVO_TRUSTED_PROXIES`.
 * Connectors for SQS, Kinesis, HTTP and Kafka sources produce to `events.raw` (Redpanda Connect configurations or a built-in consumer).
-* **Usage refresh signals** carry the customer, the subscriptions and the event watermark. Signals are sent after the events are stored, and the usage buckets are maintained in the same write, so a signal never runs ahead of the buckets (on replicated ClickHouse the refresh reads with sequential consistency). The wallet refresh consumer collapses a poll batch into one refresh per customer with wallets and leaves signals older than 30 seconds to the 5-minute sweep, which stays authoritative ([Domain §14.1](domain.md#141-wallet)).
+* **Usage refresh signals** carry the customer, the subscriptions and the event watermark. Signals are sent after the events are stored, and the usage buckets are maintained in the same write, so a signal never runs ahead of the buckets (on replicated ClickHouse the refresh reads with sequential consistency). Each signal goes to billing, in the ingestion transaction on the PostgreSQL path and through the `usage.refresh` consumer on the Kafka path: it schedules the activity of each subscription (lifetime usage, usage thresholds and alerts, one delayed job per subscription and minute, so a signal that arrives while a run is in progress lands in the next minute's job; a failed run is retried at once, four attempts in all, like lago-api's `ProcessSubscriptionActivityJob`), flags the customer `awaiting_wallet_refresh` and enqueues the refresh of its wallets (one pending job per customer). The wallet refresh does not wait for the buckets. lago-api's realtime wallet refresh (`app/services/wallets/realtime_refresh_service.rb:9-13, 31-34, 70-94`) polls its buckets for up to 5 seconds before refreshing, because its trigger and its bucket upsert are two unordered sinks of the same stream epoch, and a refresh on buckets that have not caught up would write a stale balance and clear the flag the sweep selects on. It gives up at once on a watermark more than 30 seconds old, since that means the consumer is behind rather than ClickHouse, and leaves the customer flagged for the sweep. Only the wallet refresh does this; the subscription activity has no such check. Tanvo sends the signal after the bucket write, so the buckets of a signal are always caught up, the refresh never reads a stale balance, and no signal needs to be deferred to the sweep. The 5-minute sweeps of the flagged lifetime usages and customers stay authoritative ([Domain §14.1](domain.md#141-wallet)).
+* **In-advance charges** are billed after the event is stored, since their fee aggregates over the stored events: in the ingestion transaction on the PostgreSQL path, and by the ClickHouse writer for the records it stored on the Kafka path. Either enqueues one billing job per event, unique on its subscription and transaction ID. lago-api bills them from a separate topic, 15 seconds later to let ClickHouse merge (`app/consumers/events_charged_in_advance_consumer.rb`, `app/services/events/stores/clickhouse_store.rb:11`).
 
 ### 7.2 Enrichment
-Enrichment resolves an event to its subscription(s) by `external_subscription_id` / `external_customer_id` and timestamp and to the billable metric by `code`, evaluates the metric's expression, extracts the aggregated value, the grouping keys and the precise amount, and writes **one enriched row per event**, with no charge or filter column. It looks up the metric's charges only to decide whether the event goes to in-advance billing. Charge filters are matched from the raw properties when usage is queried and when usage buckets are maintained, not by expanding the event into one row per filter: lago-api dropped its expanded table (`events_enriched_expanded`) in September 2026 for this reason, since a catalog change would otherwise require rewriting stored events and the row count grew with the number of filters. The ingest consumers keep an in-memory cache of the catalog, refreshed through change notifications.
+Enrichment resolves an event to its subscription(s) by `external_subscription_id` / `external_customer_id` and timestamp and to the billable metric by `code`, evaluates the metric's expression, extracts the aggregated value, the grouping keys and the precise amount, and writes **one enriched row per event**, with no charge or filter column. It looks up the metric's charges only to decide whether the event goes to in-advance billing. Charge filters are matched from the raw properties when usage is queried and when usage buckets are maintained, not by expanding the event into one row per filter: lago-api dropped its expanded table (`events_enriched_expanded`) in September 2026 for this reason, since a catalog change would otherwise require rewriting stored events and the row count grew with the number of filters. The API and ingest consumers keep an in-memory cache of the catalog (metrics, charges, subscriptions). Every store transaction that changes it sends `pg_notify('tanvo_catalog_changes', …)` before it commits, so the notification is delivered on commit and never for a rolled-back write; each process LISTENs and evicts the organization's entries, purges the whole cache whenever it (re)connects, and the writing process evicts at once after commit. A TTL bounds staleness should a notification still be missed. A renamed subscription evicts its old external ID too. LISTEN holds one connection per process in session state, so `TANVO_DATABASE_URL` must reach PostgreSQL directly or through a pooler in session mode; PgBouncer in transaction mode does not deliver notifications to a listener. ClickHouse and Kafka modes read the catalog from PostgreSQL as well, so the same channel covers them.
 
 ### 7.3 Expressions (libs/expression)
 * The language is lago-expression's: decimal arithmetic, `event.timestamp`, `event.code`, `event.properties.<name>`, strings, `concat`, `round`, `ceil`, `floor`, `least`, `greatest`.
@@ -284,10 +306,10 @@ Enrichment resolves an event to its subscription(s) by `external_subscription_id
 * **River** runs every background job; jobs are enqueued in the same transaction as the state change that requires them.
 * `libs/store` inserts jobs through River's `InsertTx` on its own `pgx.Tx` (`store.WithJobInserter`), so a rollback leaves no job; without an inserter they go to the `job_outbox` table for a relay. River's tables live in their own `river` schema, migrated by River (they hold every organization's jobs and carry no row-level security). A unique key is scoped by organization and kind.
 * **Retries**: an error that no rule of its kind classifies is not retried, since a job may have had effects outside its transaction (a payment, an email, a provider call) that a second run would repeat. Each kind declares the errors safe to retry, with their attempts and backoff (`ErrRetriable` 20 times, lock and sequence conflicts, provider rate limits). A job that stops retrying with an error is left `cancelled` in River, kept for inspection and manual retry, and counts as a failure in monitoring.
-* Queues separate workloads (`billing`, `payments`, `webhooks`, `documents`, `integrations`, `exports`, `default`), each with its own concurrency, so that a deployment can run workers per queue.
+* Queues separate workloads (`billing`, `payments`, `webhooks`, `documents`, `integrations`, `exports`, `alerts`, `alerts_high_priority`, `wallets`, `default`), each with its own concurrency, so that a deployment can run workers per queue; `TANVO_JOBS_QUEUE_CONCURRENCY` overrides the concurrency of any of them. The subscription activity and lifetime usage alerts run on `alerts`, the wallet alerts on `alerts_high_priority` and the wallet balance refresh on `wallets`, as in lago-api (`app/jobs/usage_monitoring/process_subscription_activity_job.rb`, `process_lifetime_usage_alert_job.rb`, `process_wallet_alerts_job.rb`, `app/jobs/customers/refresh_wallet_job.rb`), so that a backlog of usage refreshes does not delay billing. lago-api uses these queues only when `SIDEKIQ_ALERTS` or `SIDEKIQ_WALLETS` is set and otherwise falls back to `default` or `low_priority`; Tanvo always uses them, since a deployment that does not size them separately still works them with the defaults.
 * Periodic jobs (reconciliation, expirations, dunning, cleanups) are River periodic jobs inserted by its elected leader; no separate clock process is needed. They run on their own `clock` queue, unsharded and without token buckets, worked by every process that carries the schedule. A periodic job only scans and dispatches: it enqueues the due work as jobs of the organizations concerned on the workload queues, with the tick's time as their "now" and a unique key so that ticks over a backlog add no duplicates. A backlog on a workload queue therefore does not delay the schedule, and a failure in one organization does not stop the others. Retention cleanups of tables under row-level security dispatch one job per organization as well (webhook deliveries); the others run their batched deletes in the periodic job itself. Besides lago-api's schedule, Tanvo has its own periodic jobs: the webhook sweep and the usage bucket repair and report (§7.4, §11).
 * **Tenant fairness**: jobs carry the organization; per-organization concurrency is bounded by sharding queues by organization hash and by token buckets at enqueue time, so that one tenant cannot starve others. The token buckets are per process, so with several API replicas an organization's effective rate is the sum of theirs.
-* Per-event work (enrichment, in-advance charges at high volume) runs in the Kafka consumers, not in River.
+* Per-event work (enrichment, the ClickHouse write) runs in the Kafka consumers, not in River; the consumers enqueue the per-event billing (in-advance charges) and the per-subscription activity as River jobs.
 * A Redis-backed queue is a later option behind the same narrow interface (transactional enqueue through an outbox, delays, periodic and unique jobs); it is added only if measurements show PostgreSQL as the bottleneck.
 
 ---
@@ -345,7 +367,7 @@ The single binary `tanvo serve` runs any combination of roles:
 | :--- | :--- |
 | `api` | Connect/REST server, provider webhooks, document downloads |
 | `worker` | River workers for the queues it is given (`--queues`) |
-| `consumer` | Kafka consumers: enrichment, ClickHouse writer, in-advance charges |
+| `consumer` | Kafka consumers: enrichment, ClickHouse writer with in-advance charges, usage refresh |
 | `all` | Everything (default for self-hosted installations); `consumer` only when Kafka brokers are configured |
 
 `tanvo migrate`, `tanvo admin …` and `tanvo version` are separate commands.
@@ -396,6 +418,10 @@ Settings are `TANVO_*` environment variables over an optional TOML file (`--conf
 | `TANVO_WORKER_QUEUES` | every queue | Queues of the `worker` role; `--queues` overrides it |
 | `TANVO_JOBS_DISABLE_PERIODIC` | `false` | Keep the workers out of the periodic schedule |
 | `TANVO_JOBS_CLOCK_CONCURRENCY` | library default | Concurrency of the clock queue |
+| `TANVO_JOBS_QUEUE_CONCURRENCY` | library defaults | Comma-separated `queue=n` overrides of the workload queues' concurrency (1 to 10000), e.g. `alerts=20,wallets=5` |
+| `TANVO_SUBSCRIPTION_TERMINATION_ALERT_DAYS` | `15,45` | Days before its ending date a subscription gets `subscription.termination_alert` (comma-separated); empty sends none |
+| `TANVO_DAILY_USAGE_SCHEDULING_JITTER` | 30 minutes | Window the daily usage computations of one hourly run are spread over |
+| `TANVO_DISABLE_EVENTS_VALIDATION` | false | Leaves the hourly post-validation of events (`events.errors`) out of the schedule |
 | `TANVO_INGEST_MODE` | `postgres` | Default ingestion mode, `postgres` or `kafka` |
 | `TANVO_INGEST_KAFKA_ORGANIZATIONS` | | Organizations ingesting through Kafka whatever the mode |
 | `TANVO_INGEST_POSTGRES_ORGANIZATIONS` | | Organizations ingesting in PostgreSQL whatever the mode |
@@ -414,6 +440,7 @@ Settings are `TANVO_*` environment variables over an optional TOML file (`--conf
 | `TANVO_KAFKA_TOPIC_PARTITIONS` | `6` | Partitions of created topics |
 | `TANVO_KAFKA_TOPIC_REPLICAS` | `-1` | Replication factor of created topics (broker default) |
 | `TANVO_WEBHOOKS_ALLOW_PRIVATE` | `false` | Let deliveries reach private addresses and plain HTTP |
+| `TANVO_OIDC_ALLOW_PRIVATE` | `false` | Let OIDC providers be reached at private addresses and over plain HTTP (dev mode) |
 | `TANVO_WEBHOOKS_TIMEOUT` | `30s` | Bound on one delivery attempt |
 | `TANVO_APP_URL` | | Web console URL used in email links |
 | `TANVO_MAIL_FROM` | | Sender address; required with `TANVO_SMTP_HOST` |
@@ -421,6 +448,9 @@ Settings are `TANVO_*` environment variables over an optional TOML file (`--conf
 | `TANVO_SMTP_PORT` | `587` | SMTP port |
 | `TANVO_SMTP_USERNAME`, `TANVO_SMTP_PASSWORD` | | SMTP credentials |
 | `TANVO_SMTP_SECURITY` | `starttls` | `starttls`, `starttls_optional`, `tls` or `none` |
+| `TANVO_DISABLE_SIGNUP` | `false` | turns off self sign-up |
+| `TANVO_GOOGLE_AUTH_CLIENT_ID`, `TANVO_GOOGLE_AUTH_CLIENT_SECRET` | | OAuth client of Google sign-in, redirected to `TANVO_APP_URL/auth/google/callback`; unset disables it |
+| `TANVO_SECRET_KEY` | | installation secret, base64 of at least 32 bytes; HKDF-SHA256 derives the key signing customer portal tokens and the AES-256-GCM key sealing integration secrets (SSO client secrets) from it. Unset disables the customer portal and the SSO connections; changing it invalidates portal links and makes sealed secrets undecryptable |
 
 ---
 
@@ -439,7 +469,7 @@ Self-hosted installations enable them with an offline-verifiable license key (Ed
 
 ## 15. Security and Observability
 
-* Secrets are encrypted with AES-256-GCM envelopes; data keys are encrypted by a key from configuration or a KMS.
+* Secrets are encrypted with AES-256-GCM envelopes; data keys are encrypted by a key from configuration or a KMS. Today `auth.SecretBox` seals integration secrets with one AES-256-GCM key derived from `TANVO_SECRET_KEY` (HKDF-SHA256), with the organization ID as additional data; envelopes and KMS keys come later.
 * Security-relevant actions (sign-ins, key creation, role changes) are written to the security log.
 * **Observability follows OpenTelemetry** for traces, metrics and logs:
   * Libraries depend only on the OTel API and take their `TracerProvider` and `MeterProvider` through constructor options, no-op by default; only `apps/server` imports the SDK and the exporters (enforced by depguard) and installs the global providers.

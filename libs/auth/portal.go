@@ -140,16 +140,9 @@ func (t *PortalTokens) Verify(token string) (PortalClaims, error) {
 
 // GenerateURL returns the portal URL of customer (lago
 // CustomerPortal::GenerateUrlService): FrontURL "/customer-portal/" token.
-// An unknown customer fails with "customer_not_found".
+// An unknown or deleted customer fails with "customer_not_found".
 func (t *PortalTokens) GenerateURL(ctx context.Context, tx port.Transactor, org core.OrganizationID, customer core.CustomerID) (string, error) {
-	err := tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
-		_, err := r.Customers.Get(ctx, org, customer)
-		if errors.Is(err, core.ErrNotFound) {
-			return notFound("customer")
-		}
-		return err
-	})
-	if err != nil {
+	if err := liveCustomer(ctx, tx, org, customer); err != nil {
 		return "", err
 	}
 	tok, _, err := t.Issue(org, customer)
@@ -157,4 +150,59 @@ func (t *PortalTokens) GenerateURL(ctx context.Context, tx port.Transactor, org 
 		return "", err
 	}
 	return t.front + "/customer-portal/" + url.PathEscape(tok), nil
+}
+
+// GenerateExpiringURL is [PortalTokens.GenerateURL] that also returns
+// when the URL's token expires.
+func (t *PortalTokens) GenerateExpiringURL(ctx context.Context, tx port.Transactor, org core.OrganizationID, customer core.CustomerID) (string, time.Time, error) {
+	if err := liveCustomer(ctx, tx, org, customer); err != nil {
+		return "", time.Time{}, err
+	}
+	tok, claims, err := t.Issue(org, customer)
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	return t.front + "/customer-portal/" + url.PathEscape(tok), claims.ExpiresAt, nil
+}
+
+// PortalAuthenticator authenticates customer portal tokens: a token is
+// accepted while its signature and expiry are valid and its customer
+// exists and is not deleted, as lago's CustomerPortalUser concern finds
+// the customer through its kept scope (Customer.find_by(id:)).
+type PortalAuthenticator struct {
+	// Tokens verifies the tokens.
+	Tokens *PortalTokens
+	// Tx reads the customers.
+	Tx port.Transactor
+}
+
+// Verify returns the claims of a valid token whose customer is live, or
+// [ErrUnauthenticated].
+func (a PortalAuthenticator) Verify(ctx context.Context, token string) (PortalClaims, error) {
+	c, err := a.Tokens.Verify(token)
+	if err != nil {
+		return PortalClaims{}, err
+	}
+	if err := liveCustomer(ctx, a.Tx, c.OrganizationID, c.CustomerID); err != nil {
+		if ErrorCode(err) == "customer_not_found" {
+			return PortalClaims{}, ErrUnauthenticated
+		}
+		return PortalClaims{}, err
+	}
+	return c, nil
+}
+
+// liveCustomer checks that customer of org exists and is not deleted;
+// otherwise it fails with "customer_not_found".
+func liveCustomer(ctx context.Context, tx port.Transactor, org core.OrganizationID, customer core.CustomerID) error {
+	return tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+		c, err := r.Customers.Get(ctx, org, customer)
+		if errors.Is(err, core.ErrNotFound) || (err == nil && c.DeletedAt != nil) {
+			return notFound("customer")
+		}
+		if err != nil {
+			return fmt.Errorf("load customer: %w", err)
+		}
+		return nil
+	})
 }

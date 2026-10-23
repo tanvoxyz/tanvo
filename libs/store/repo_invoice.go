@@ -29,6 +29,7 @@ func (t *txState) bindInvoice(r *port.Repos) {
 	r.InvoiceSettlements = invoiceSettlementRepo{t}
 	r.ErrorDetails = invoiceErrorDetailRepo{t}
 	r.Credits = invoiceCreditRepo{t}
+	r.AppliedInvoiceCustomSections = appliedCustomSectionRepo{t}
 }
 
 // invoiceDateCol returns the date column of d (NULL for the zero date).
@@ -259,6 +260,18 @@ func (r invoiceRepo) GetByNumber(ctx context.Context, org core.OrganizationID, n
 	return invoiceOf(row)
 }
 
+func (r invoiceRepo) GetRegenerated(ctx context.Context, org core.OrganizationID, voided core.InvoiceID) (*invoice.Invoice, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	row, err := q.GetRegeneratedInvoice(ctx, db.GetRegeneratedInvoiceParams{OrganizationID: org.UUID(), VoidedInvoiceID: new(voided.UUID())})
+	if err != nil {
+		return nil, getErr("invoice", voided, err)
+	}
+	return invoiceOf(row)
+}
+
 func (r invoiceRepo) List(ctx context.Context, org core.OrganizationID, f invoice.Filter, page core.PageRequest) (core.Page[*invoice.Invoice], error) {
 	if err := f.Validate(); err != nil {
 		return core.Page[*invoice.Invoice]{}, fmt.Errorf("list invoices: %w", err)
@@ -401,6 +414,18 @@ func (r invoiceRepo) ListRefreshRequested(ctx context.Context, org core.Organiza
 	return invoiceRows("list refresh requested", rows, err)
 }
 
+func (r invoiceRepo) RequestRefreshByMetric(ctx context.Context, org core.OrganizationID, metric core.BillableMetricID) (int, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return 0, err
+	}
+	n, err := q.RequestInvoiceRefreshByMetric(ctx, db.RequestInvoiceRefreshByMetricParams{OrganizationID: org.UUID(), BillableMetricID: metric.UUID()})
+	if err != nil {
+		return 0, fmt.Errorf("request refresh of drafts charging metric %s: %w", metric, mapErr(err))
+	}
+	return int(n), nil
+}
+
 func (r invoiceRepo) ListOverdueCandidates(ctx context.Context, org core.OrganizationID, date core.Date) ([]*invoice.Invoice, error) {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
@@ -447,6 +472,9 @@ func (r invoiceRepo) DeleteDraft(ctx context.Context, org core.OrganizationID, i
 	if err := invoiceStatusErr("invoice", id, status, err); err != nil {
 		return err
 	}
+	if err := r.t.trackInvoice(ctx, q, org, id); err != nil {
+		return err
+	}
 	// The draft's own rows cascade; a row of another aggregate still
 	// pointing at it (a payment, a wallet transaction) refuses the delete.
 	var n int64
@@ -475,6 +503,8 @@ func invoiceSubscriptionOf(r db.InvoiceSubscription) (*invoice.Subscription, err
 		Timestamp:          utc(r.BillingTimestamp),
 		Recurring:          r.Recurring,
 		CreatedAt:          utc(r.CreatedAt),
+
+		RegeneratedInvoiceID: optIDOf[core.InvoiceID](r.RegeneratedInvoiceID),
 	}, nil
 }
 
@@ -497,6 +527,7 @@ func (r invoiceSubscriptionRepo) Create(ctx context.Context, s *invoice.Subscrip
 		FixedChargesToDatetime:   utc(s.FixedChargesPeriod.To),
 		BillingTimestamp:         utc(s.Timestamp),
 		Recurring:                s.Recurring,
+		RegeneratedInvoiceID:     optUUID(s.RegeneratedInvoiceID),
 		CreatedAt:                utc(s.CreatedAt),
 	})
 	return insertErr("invoice_subscription", n, err)
@@ -581,10 +612,26 @@ func (r invoiceSubscriptionRepo) DeleteByInvoice(ctx context.Context, org core.O
 	if err != nil {
 		return err
 	}
+	if err := r.t.trackInvoice(ctx, q, org, inv); err != nil {
+		return err
+	}
 	if err := q.DeleteInvoiceSubscriptionsByInvoice(ctx, db.DeleteInvoiceSubscriptionsByInvoiceParams{
 		OrganizationID: org.UUID(), InvoiceID: inv.UUID(),
 	}); err != nil {
 		return fmt.Errorf("delete invoice subscriptions: %w", mapErr(err))
+	}
+	return nil
+}
+
+func (r invoiceSubscriptionRepo) MarkRegenerated(ctx context.Context, org core.OrganizationID, inv, regenerated core.InvoiceID) error {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return err
+	}
+	if err := q.MarkInvoiceSubscriptionsRegenerated(ctx, db.MarkInvoiceSubscriptionsRegeneratedParams{
+		OrganizationID: org.UUID(), InvoiceID: inv.UUID(), RegeneratedInvoiceID: optUUID(regenerated),
+	}); err != nil {
+		return fmt.Errorf("mark invoice subscriptions regenerated: %w", mapErr(err))
 	}
 	return nil
 }
@@ -691,6 +738,7 @@ func feeParams(f *invoice.Fee) (db.CreateFeeParams, error) {
 		FixedChargesToDatetime:         utc(f.Properties.FixedChargesTo),
 		FixedChargesDurationDays:       int32(f.Properties.FixedChargesDurationDays), // a period length in days
 		TrueUpParentFeeID:              optUUID(f.TrueUpParentFeeID),
+		OriginalFeeID:                  optUUID(f.OriginalFeeID),
 		PricingUnitUsage:               unitUsage,
 		AppliedTaxes:                   taxesJSON,
 		PresentationBreakdowns:         breakdownsJSON,
@@ -787,6 +835,7 @@ func feeOf(r db.Fee) (*invoice.Fee, error) {
 			FixedChargesDurationDays: int(r.FixedChargesDurationDays),
 		},
 		TrueUpParentFeeID:              optIDOf[core.FeeID](r.TrueUpParentFeeID),
+		OriginalFeeID:                  optIDOf[core.FeeID](r.OriginalFeeID),
 		PricingUnitUsage:               unitUsage,
 		PayInAdvanceEventID:            optIDOf[core.EventID](r.PayInAdvanceEventID),
 		PayInAdvanceEventTransactionID: deref(r.PayInAdvanceEventTransactionID),
@@ -795,6 +844,7 @@ func feeOf(r db.Fee) (*invoice.Fee, error) {
 		RefundedAt:                     optUTC(r.RefundedAt),
 		CreatedAt:                      utc(r.CreatedAt),
 		UpdatedAt:                      utc(r.UpdatedAt),
+		DeletedAt:                      optUTC(r.DeletedAt),
 	}
 	if len(breakdowns) > 0 {
 		f.PresentationBreakdowns = make([]invoice.PresentationBreakdown, len(breakdowns))
@@ -865,23 +915,75 @@ func (r feeRepo) List(ctx context.Context, org core.OrganizationID, f invoice.Fe
 	if err != nil {
 		return core.Page[*invoice.Fee]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	if err := f.Validate(); err != nil {
+		return core.Page[*invoice.Fee]{}, err
+	}
+	afterAt, after, lim, err := logPageArgs(page)
 	if err != nil {
 		return core.Page[*invoice.Fee]{}, err
 	}
 	rows, err := q.ListFees(ctx, db.ListFeesParams{
-		OrganizationID: org.UUID(),
-		InvoiceID:      optUUID(f.InvoiceID),
-		SubscriptionID: optUUID(f.SubscriptionID),
-		ChargeID:       optUUID(f.ChargeID),
-		Types:          enumStrings(f.Types),
-		After:          after,
-		Lim:            lim,
+		OrganizationID:         org.UUID(),
+		InvoiceID:              optUUID(f.InvoiceID),
+		SubscriptionID:         optUUID(f.SubscriptionID),
+		ChargeID:               optUUID(f.ChargeID),
+		Types:                  enumStrings(f.Types),
+		PaymentStatuses:        enumStrings(f.PaymentStatuses),
+		Currency:               currencyCode(f.Currency),
+		EventTransactionID:     optString(f.EventTransactionID),
+		CustomerID:             optUUID(f.CustomerID),
+		CustomerExternalID:     optString(f.CustomerExternalID),
+		SubscriptionExternalID: optString(f.SubscriptionExternalID),
+		BillableMetricCode:     optString(f.BillableMetricCode),
+		CreatedFrom:            optInstant(f.CreatedFrom),
+		CreatedTo:              optInstant(f.CreatedTo),
+		SucceededFrom:          optInstant(f.SucceededFrom),
+		SucceededTo:            optInstant(f.SucceededTo),
+		FailedFrom:             optInstant(f.FailedFrom),
+		FailedTo:               optInstant(f.FailedTo),
+		RefundedFrom:           optInstant(f.RefundedFrom),
+		RefundedTo:             optInstant(f.RefundedTo),
+		AfterAt:                afterAt,
+		After:                  after,
+		Lim:                    lim,
 	})
 	if err != nil {
 		return core.Page[*invoice.Fee]{}, fmt.Errorf("list fees: %w", mapErr(err))
 	}
-	return pageOf(rows, page, feeOf, func(f *invoice.Fee) string { return f.ID.String() })
+	return pageOf(rows, page, feeOf, func(f *invoice.Fee) string { return logToken(f.CreatedAt, f.ID.UUID()) })
+}
+
+func (r feeRepo) Discard(ctx context.Context, org core.OrganizationID, id core.FeeID, at time.Time) error {
+	f, err := r.Get(ctx, org, id)
+	if err != nil {
+		return err
+	}
+	if !f.InvoiceID.IsZero() {
+		return fmt.Errorf("fee %s: attached to an invoice: %w", id, core.ErrConflict)
+	}
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return err
+	}
+	n, err := q.DiscardUninvoicedFee(ctx, db.DiscardUninvoicedFeeParams{
+		OrganizationID: org.UUID(), ID: id.UUID(), DeletedAt: new(at.UTC()),
+	})
+	if err != nil {
+		return fmt.Errorf("discard fee %s: %w", id, mapErr(err))
+	}
+	if n == 0 {
+		return fmt.Errorf("fee %s: %w", id, core.ErrNotFound)
+	}
+	return nil
+}
+
+// optInstant returns t in UTC, or nil when t is zero.
+func optInstant(t time.Time) *time.Time {
+	if t.IsZero() {
+		return nil
+	}
+	u := t.UTC()
+	return &u
 }
 
 func (r feeRepo) ListByInvoice(ctx context.Context, org core.OrganizationID, inv core.InvoiceID) ([]*invoice.Fee, error) {
@@ -937,6 +1039,9 @@ func (r feeRepo) DeleteByInvoice(ctx context.Context, org core.OrganizationID, i
 	if err != nil {
 		return err
 	}
+	if err := r.t.trackInvoice(ctx, q, org, inv); err != nil {
+		return err
+	}
 	u := inv.UUID()
 	// A fee still credited by a credit note item violates a foreign key:
 	// guard it so that the transaction stays usable.
@@ -980,6 +1085,9 @@ func invoiceAppliedTaxOf(r db.InvoiceAppliedTax) (*invoice.AppliedTax, error) {
 func (r invoiceAppliedTaxRepo) ReplaceForInvoice(ctx context.Context, org core.OrganizationID, inv core.InvoiceID, taxes []*invoice.AppliedTax) error {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
+		return err
+	}
+	if err := r.t.trackInvoice(ctx, q, org, inv); err != nil {
 		return err
 	}
 	if err := q.DeleteInvoiceAppliedTaxes(ctx, db.DeleteInvoiceAppliedTaxesParams{OrganizationID: org.UUID(), InvoiceID: inv.UUID()}); err != nil {

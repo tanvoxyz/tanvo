@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
@@ -16,6 +17,55 @@ import (
 // ErrTaxProvider wraps a failure of the tax provider; the invoice then
 // fails with the tax_error code (domain §17.4).
 var ErrTaxProvider = errors.New("billing: tax provider error")
+
+// ErrTaxContention marks a tax provider failure caused by its rate limit
+// or by contention on its side (lago
+// Integrations::Aggregator::ServerContentionError,
+// app/services/integrations/aggregator/taxes/base_service.rb:68): it is
+// not wrapped in [ErrTaxProvider], so the invoice is left unchanged and
+// the job asking the provider is retried.
+var ErrTaxContention = errors.New("billing: tax provider contention")
+
+// TaxProviderError is a failure a tax provider reports, with its code and
+// message; the tax_error detail of the invoice records both (lago
+// PullTaxesAndApplyService#create_error_detail). Its message classifies
+// it as [ErrTaxContention] with [TaxContention].
+type TaxProviderError struct {
+	// Code is the provider's error code.
+	Code string
+	// Message is the provider's error message.
+	Message string
+}
+
+// Error returns the code and the message.
+func (e *TaxProviderError) Error() string {
+	if e.Message == "" {
+		return "tax provider: " + e.Code
+	}
+	return "tax provider: " + e.Code + ": " + e.Message
+}
+
+// Is reports whether e is a contention failure, for target
+// [ErrTaxContention].
+func (e *TaxProviderError) Is(target error) bool {
+	return target == ErrTaxContention && TaxContention(e.Message)
+}
+
+// TaxContention reports whether a tax provider's error message tells of
+// its rate limit or of contention (lago
+// app/services/integrations/aggregator/taxes/base_service.rb:113-115).
+func TaxContention(message string) bool {
+	return strings.Contains(message, "API limit") || strings.Contains(message, "resource contention")
+}
+
+// providerFailure wraps the failure err of a tax provider call: in
+// [ErrTaxProvider], unless it is a contention failure.
+func providerFailure(err error) error {
+	if errors.Is(err, ErrTaxContention) {
+		return fmt.Errorf("compute taxes: %w", err)
+	}
+	return fmt.Errorf("%w: %w", ErrTaxProvider, err)
+}
 
 // TaxResolver resolves the taxes of fees (domain §22.10), caching the
 // catalog objects it loads. It is bound to one transaction.
@@ -58,6 +108,13 @@ func (t *TaxResolver) SetExplicit(f core.FeeID, taxes []core.TaxID) {
 		taxes = []core.TaxID{}
 	}
 	t.explicitTaxes[f] = taxes
+}
+
+// Explicit returns the explicit taxes recorded for the fee f with
+// [TaxResolver.SetExplicit], and whether any were.
+func (t *TaxResolver) Explicit(f core.FeeID) ([]core.TaxID, bool) {
+	taxes, ok := t.explicitTaxes[f]
+	return taxes, ok
 }
 
 // Candidates returns the tax lists the fee f can inherit.
@@ -336,7 +393,7 @@ func (t *TaxResolver) Compute(ctx context.Context, d *Deps, in TaxInput) (TaxOut
 				}
 			}
 			if err != nil {
-				return TaxOutcome{}, fmt.Errorf("%w: %w", ErrTaxProvider, err)
+				return TaxOutcome{}, providerFailure(err)
 			}
 			useProvider = true
 			results = make(map[string]*tax.ProviderTaxResult, len(res))

@@ -135,3 +135,31 @@ func TestOrganizationValidate(t *testing.T) {
 		t.Errorf("Validate() errors got = %v, want = %v", got, want)
 	}
 }
+
+func TestOrganizationDocumentNumberPrefix(t *testing.T) {
+	id := core.MustParseID[core.OrganizationID]("0190a0a0-0000-7000-8000-00000000abcd")
+	// source: spec/models/organization_spec.rb:273
+	if got := New(id, "Lago", testNow).DocumentNumberPrefix; got != "LAG-ABCD" {
+		t.Errorf("New(Lago).DocumentNumberPrefix got = %q, want = %q", got, "LAG-ABCD")
+	}
+	// The first three characters are kept as they are, upper-cased.
+	if got := DefaultOrganizationDocumentNumberPrefix("1-ab", id); got != "1-A-ABCD" {
+		t.Errorf("DefaultOrganizationDocumentNumberPrefix(1-ab) got = %q, want = %q", got, "1-A-ABCD")
+	}
+	tests := []struct {
+		prefix string
+		want   []string
+	}{
+		{"ORG-55", []string{}}, // spec/models/customer_spec.rb:1136
+		{"", []string{"document_number_prefix: value_is_mandatory"}},
+		{strings.Repeat("A", 11), []string{"document_number_prefix: value_is_too_long"}}, // app/models/organization.rb:185
+		{"org-55", []string{"document_number_prefix: invalid_format"}},
+	}
+	for _, tt := range tests {
+		o := New(id, "Lago", testNow)
+		o.DocumentNumberPrefix = tt.prefix
+		if got := fieldErrors(o.Validate()); !slices.Equal(got, tt.want) {
+			t.Errorf("Validate(%q) errors got = %v, want = %v", tt.prefix, got, tt.want)
+		}
+	}
+}

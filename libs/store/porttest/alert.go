@@ -108,12 +108,39 @@ func testAlert(t *testing.T, h Harness) {
 			moved.OrganizationID = other.org
 			wantErr(t, "Update() through another organization", r.Alerts.Update(ctx, &moved), core.ErrNotFound)
 			wantErr(t, "Update() unknown", r.Alerts.Update(ctx, alertFixture(e, org, "sub_1", "x", alert.TypeCurrentUsageAmount)), core.ErrNotFound)
-			wantErr(t, "Delete() from another organization", r.Alerts.Delete(ctx, other.org, full.ID), core.ErrNotFound)
+			wantErr(t, "Discard() from another organization", r.Alerts.Discard(ctx, other.org, full.ID, now), core.ErrNotFound)
 
-			noErr(t, "Delete()", r.Alerts.Delete(ctx, org, full.ID))
+			noErr(t, "Discard()", r.Alerts.Discard(ctx, org, full.ID, at(time.Hour)))
 			_, err = r.Alerts.Get(ctx, org, full.ID)
-			wantErr(t, "Get() after Delete()", err, core.ErrNotFound)
-			wantErr(t, "Delete() twice", r.Alerts.Delete(ctx, org, full.ID), core.ErrNotFound)
+			wantErr(t, "Get() after Discard()", err, core.ErrNotFound)
+			_, err = r.Alerts.GetBySubscriptionCode(ctx, org, "sub_1", "usage")
+			wantErr(t, "GetBySubscriptionCode() after Discard()", err, core.ErrNotFound)
+			wantErr(t, "Update() after Discard()", r.Alerts.Update(ctx, full), core.ErrNotFound)
+			wantErr(t, "Discard() twice", r.Alerts.Discard(ctx, org, full.ID, now), core.ErrNotFound)
+			sub1, err := r.Alerts.ListBySubscription(ctx, org, "sub_1")
+			noErr(t, "ListBySubscription() after Discard()", err)
+			equal(t, "ListBySubscription() after Discard()", len(sub1), 0)
+			// A discarded alert frees its code.
+			again := alertFixture(e, org, "sub_1", "usage", alert.TypeCurrentUsageAmount)
+			noErr(t, "Create() with a discarded code", r.Alerts.Create(ctx, again))
+
+			// Discarding a metric's alerts leaves the others.
+			watching := alertFixture(e, org, "sub_3", "units", alert.TypeBillableMetricCurrentUsageUnits)
+			watching.BillableMetricID = metric.ID
+			noErr(t, "Create() watching the metric", r.Alerts.Create(ctx, watching))
+			n, err := r.Alerts.DiscardByBillableMetric(ctx, org, metric.ID, at(time.Hour))
+			noErr(t, "DiscardByBillableMetric()", err)
+			equal(t, "DiscardByBillableMetric()", n, int64(1))
+			byMetric, err := r.Alerts.ListByBillableMetric(ctx, org, metric.ID)
+			noErr(t, "ListByBillableMetric() after DiscardByBillableMetric()", err)
+			equal(t, "ListByBillableMetric() after DiscardByBillableMetric()", len(byMetric), 0)
+			_, err = r.Alerts.Get(ctx, org, watching.ID)
+			wantErr(t, "Get() after DiscardByBillableMetric()", err, core.ErrNotFound)
+			_, err = r.Alerts.Get(ctx, org, again.ID)
+			noErr(t, "Get() of an alert not watching the metric", err)
+			n, err = r.Alerts.DiscardByBillableMetric(ctx, org, metric.ID, at(time.Hour))
+			noErr(t, "DiscardByBillableMetric() twice", err)
+			equal(t, "DiscardByBillableMetric() twice", n, int64(0))
 			return nil
 		})
 	})
@@ -298,9 +325,9 @@ func testAlert(t *testing.T, h Harness) {
 			noErr(t, "List() of another organization", err)
 			equal(t, "List() of another organization", len(op.Items), 0)
 
-			// Deleting an alert keeps its triggered alerts.
-			noErr(t, "Alerts.Delete()", r.Alerts.Delete(ctx, org, sa.ID))
-			equal(t, "List() by alert after Delete()", list(alert.TriggeredFilter{AlertID: sa.ID}), []core.TriggeredAlertID{t1.ID, t3.ID})
+			// Discarding an alert keeps its triggered alerts.
+			noErr(t, "Alerts.Discard()", r.Alerts.Discard(ctx, org, sa.ID, now))
+			equal(t, "List() by alert after Discard()", list(alert.TriggeredFilter{AlertID: sa.ID}), []core.TriggeredAlertID{t1.ID, t3.ID})
 			return nil
 		})
 	})

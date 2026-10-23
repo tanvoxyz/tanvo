@@ -17,8 +17,7 @@ type Order struct {
 	OrganizationID core.OrganizationID
 	// Number is unique per organization, see [FormatNumber].
 	Number string
-	// SequentialID is the sequence of the number, per organization and
-	// year.
+	// SequentialID is the sequence of the number, per organization.
 	SequentialID int
 	// CustomerID is the customer.
 	CustomerID core.CustomerID
@@ -92,10 +91,13 @@ func (o *Order) Validate() error {
 
 var orderTransitions = map[OrderStatus][]OrderStatus{
 	OrderStatusCreated: {OrderStatusExecuted, OrderStatusFailed},
+	OrderStatusFailed:  {OrderStatusExecuted, OrderStatusFailed},
 }
 
 // CanTransitionOrder reports whether an order may go from one status to
-// another: created → executed | failed.
+// another: created | failed → executed | failed. A failed order is
+// executed again only on request (lago Orders::BaseExecuteService,
+// app/services/orders/base_execute_service.rb:71-82).
 func CanTransitionOrder(from, to OrderStatus) bool {
 	return slices.Contains(orderTransitions[from], to)
 }
@@ -128,7 +130,7 @@ func (o *Order) Fail(record json.RawMessage, now time.Time) error {
 	if err := o.to(OrderStatusFailed, now); err != nil {
 		return err
 	}
-	o.ExecutionRecord = slices.Clone(record)
+	o.ExecutedAt, o.ExecutionRecord = nil, slices.Clone(record)
 	return nil
 }
 

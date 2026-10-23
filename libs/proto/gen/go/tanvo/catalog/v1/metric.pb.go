@@ -275,7 +275,7 @@ type MetricFilter_builder struct {
 
 	// The event property key.
 	Key *string
-	// The allowed values.
+	// The allowed values; duplicates are dropped.
 	Values []string
 }
 
@@ -1967,10 +1967,10 @@ var File_tanvo_catalog_v1_metric_proto protoreflect.FileDescriptor
 
 const file_tanvo_catalog_v1_metric_proto_rawDesc = "" +
 	"\n" +
-	"\x1dtanvo/catalog/v1/metric.proto\x12\x10tanvo.catalog.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\"`\n" +
+	"\x1dtanvo/catalog/v1/metric.proto\x12\x10tanvo.catalog.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\"^\n" +
 	"\fMetricFilter\x12 \n" +
-	"\x03key\x18\x01 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\x10\x01\x18\xff\x01R\x03key\x12.\n" +
-	"\x06values\x18\x02 \x03(\tB\x16\xbaH\x13\x92\x01\x10\b\x01\x10\xe8\a\x18\x01\"\ar\x05\x10\x01\x18\xff\x01R\x06values\"\xb0\n" +
+	"\x03key\x18\x01 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\x10\x01\x18\xff\x01R\x03key\x12,\n" +
+	"\x06values\x18\x02 \x03(\tB\x14\xbaH\x11\x92\x01\x0e\b\x01\x10\xe8\a\"\ar\x05\x10\x01\x18\xff\x01R\x06values\"\xb0\n" +
 	"\n" +
 	"\x0eBillableMetric\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\"\n" +
@@ -2059,7 +2059,7 @@ const file_tanvo_catalog_v1_metric_proto_rawDesc = "" +
 	"\x1dROUNDING_FUNCTION_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17ROUNDING_FUNCTION_ROUND\x10\x01\x12\x1b\n" +
 	"\x17ROUNDING_FUNCTION_FLOOR\x10\x02\x12\x1a\n" +
-	"\x16ROUNDING_FUNCTION_CEIL\x10\x032\x98\n" +
+	"\x16ROUNDING_FUNCTION_CEIL\x10\x032\x97\n" +
 	"\n" +
 	"\x15BillableMetricService\x12\xd2\x01\n" +
 	"\x14CreateBillableMetric\x12-.tanvo.catalog.v1.CreateBillableMetricRequest\x1a..tanvo.catalog.v1.CreateBillableMetricResponse\"[\xca\xf3\x18*\n" +
@@ -2071,9 +2071,9 @@ const file_tanvo_catalog_v1_metric_proto_rawDesc = "" +
 	"\x14UpdateBillableMetric\x12-.tanvo.catalog.v1.UpdateBillableMetricRequest\x1a..tanvo.catalog.v1.UpdateBillableMetricResponse\"p\xca\xf3\x18*\n" +
 	"\x17billable_metrics:update*\x0fbillable_metric\x82\xd3\xe4\x93\x02<:\x0fbillable_metric2)/v1/billable_metrics/{billable_metric.id}\x12\xd6\x01\n" +
 	"\x14DeleteBillableMetric\x12-.tanvo.catalog.v1.DeleteBillableMetricRequest\x1a..tanvo.catalog.v1.DeleteBillableMetricResponse\"_\xca\xf3\x18*\n" +
-	"\x17billable_metrics:delete*\x0fbillable_metric\x82\xd3\xe4\x93\x02+*)/v1/billable_metrics/{billable_metric_id}\x12\xd3\x01\n" +
-	"\x12EvaluateExpression\x12+.tanvo.catalog.v1.EvaluateExpressionRequest\x1a,.tanvo.catalog.v1.EvaluateExpressionResponse\"b\xca\xf3\x18(\n" +
-	"\x15billable_metrics:read*\x0fbillable_metric\x82\xd3\xe4\x93\x02-:\x01*\"(/v1/billable_metrics:evaluate_expression\x90\x02\x01B\xcd\x01\n" +
+	"\x17billable_metrics:delete*\x0fbillable_metric\x82\xd3\xe4\x93\x02+*)/v1/billable_metrics/{billable_metric_id}\x12\xd2\x01\n" +
+	"\x12EvaluateExpression\x12+.tanvo.catalog.v1.EvaluateExpressionRequest\x1a,.tanvo.catalog.v1.EvaluateExpressionResponse\"a\xca\xf3\x18*\n" +
+	"\x17billable_metrics:create*\x0fbillable_metric\x82\xd3\xe4\x93\x02-:\x01*\"(/v1/billable_metrics:evaluate_expressionB\xcd\x01\n" +
 	"\x14com.tanvo.catalog.v1B\vMetricProtoP\x01ZFgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/catalog/v1;catalogv1\xa2\x02\x03TCX\xaa\x02\x10Tanvo.Catalog.V1\xca\x02\x10Tanvo\\Catalog\\V1\xe2\x02\x1cTanvo\\Catalog\\V1\\GPBMetadata\xea\x02\x12Tanvo::Catalog::V1b\beditionsp\xe8\a"
 
 var file_tanvo_catalog_v1_metric_proto_enumTypes = make([]protoimpl.EnumInfo, 3)

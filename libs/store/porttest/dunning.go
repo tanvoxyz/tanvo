@@ -122,6 +122,10 @@ func testDunning(t *testing.T, h Harness) {
 				{"one currency", dunning.Filter{Currencies: []string{"EUR"}}, []*dunning.Campaign{c1, c2}},
 				{"currencies", dunning.Filter{Currencies: []string{"GBP", "USD"}}, []*dunning.Campaign{c2, c3}},
 				{"unused currency", dunning.Filter{Currencies: []string{"CHF"}}, nil},
+				{"applied", dunning.Filter{Applied: ptr(true), AppliedID: c2.ID}, []*dunning.Campaign{c2}},
+				{"not applied", dunning.Filter{Applied: ptr(false), AppliedID: c2.ID}, []*dunning.Campaign{c1, c3}},
+				{"applied, none", dunning.Filter{Applied: ptr(true)}, nil},
+				{"not applied, none", dunning.Filter{Applied: ptr(false)}, []*dunning.Campaign{c1, c2, c3}},
 			} {
 				got := listAll(t, 1, func(p core.PageRequest) (core.Page[*dunning.Campaign], error) {
 					return r.DunningCampaigns.List(ctx, org, tc.f, p)

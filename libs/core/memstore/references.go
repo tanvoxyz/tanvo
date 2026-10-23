@@ -108,6 +108,7 @@ func (st *state) deleteInvoice(org core.OrganizationID, id core.InvoiceID) error
 	d.adjustedFees.deleteWhere(func(x *invoice.AdjustedFee) bool { return x.InvoiceID == id })
 	d.settlements.deleteWhere(func(x *invoice.Settlement) bool { return x.InvoiceID == id })
 	d.errorDetails.deleteWhere(func(x *invoice.ErrorDetail) bool { return x.InvoiceID == id })
+	d.sectionCopies.deleteWhere(func(x *invoice.AppliedCustomSection) bool { return x.InvoiceID == id })
 	d.credits.deleteWhere(func(x *invoice.Credit) bool { return x.InvoiceID == id })
 	st.subscription.appliedUsageThresholds.deleteWhere(func(x *subscription.AppliedUsageThreshold) bool { return x.InvoiceID == id })
 	st.creditNote.creditNotes.deleteWhere(func(x *creditnote.CreditNote) bool { return creditNotes[x.ID] })

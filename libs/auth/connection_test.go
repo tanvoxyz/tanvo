@@ -158,10 +158,10 @@ func TestConnectionFromIntegration(t *testing.T) {
 		},
 		{
 			name: "generic oidc", p: integration.ProviderOIDC,
-			s:      integration.AuthSettings{ClientID: "c", Domain: "hooli.com", Issuer: "https://id.hooli.com", DefaultRoleID: role},
+			s:      integration.AuthSettings{ClientID: "c", Domain: "hooli.com", IssuerURL: "https://id.hooli.com", DefaultRoleID: role},
 			method: organization.AuthenticationMethodOIDC, issuer: "https://id.hooli.com", wantHosts: []string{"hooli.com"},
 		},
-		{name: "missing default role", p: integration.ProviderOIDC, s: integration.AuthSettings{ClientID: "c", Domain: "hooli.com", Issuer: "https://id.hooli.com"}, wantErr: true},
+		{name: "missing default role", p: integration.ProviderOIDC, s: integration.AuthSettings{ClientID: "c", Domain: "hooli.com", IssuerURL: "https://id.hooli.com"}, wantErr: true},
 		{name: "entra without tenant", p: integration.ProviderEntraID, s: integration.AuthSettings{ClientID: "c", Domain: "hooli.com", DefaultRoleID: role}, wantErr: true},
 	}
 	for _, tt := range tests {

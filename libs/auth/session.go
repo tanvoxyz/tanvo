@@ -152,7 +152,9 @@ func (s *Sessions) RevokeUser(ctx context.Context, user core.UserID, keep Sessio
 
 // Purge deletes the sessions that expired or were revoked before now
 // minus retain, and the expired sign-in states; it returns how many
-// sessions and states it removed. apps/server runs it periodically.
+// sessions and states it removed. apps/server runs it periodically. Lago
+// has no purge because its JWT sessions are not stored; Tanvo's opaque
+// sessions are, so they must be removed.
 func (s *Sessions) Purge(ctx context.Context, retain time.Duration) (sessions, states int, err error) {
 	now := s.d.now()
 	err = s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {

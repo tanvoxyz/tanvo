@@ -15,7 +15,7 @@ func TestEventLog(t *testing.T) {
 	now := time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC)
 	ids := core.UUIDv7Generator{}
 	d := newEventData()
-	log := eventLogRepo{d}
+	log := eventLogRepo{d: d}
 	org, other := core.NewID[core.OrganizationID](ids), core.NewID[core.OrganizationID](ids)
 	ev := func(org core.OrganizationID, tx, value string) *event.Event {
 		return &event.Event{
@@ -49,21 +49,6 @@ func TestEventLog(t *testing.T) {
 		t.Errorf("Get shares storage: got = %s, want = 1", again.Properties["value"])
 	}
 
-	snap := eventLogRepo{d.snapshot()}
-	fix := ev(org, "tr_1", "10")
-	fix.IngestedAt = now.Add(time.Hour)
-	if err := log.Replace(ctx, fix); err != nil {
-		t.Fatal(err)
-	}
-	if got, _ := log.Get(ctx, org, "sub_1", "tr_1"); got.Properties["value"] != "10" || got.ID == fix.ID || !got.IngestedAt.Equal(now) {
-		t.Errorf("Replace: got = %+v, want = value 10 with the stored ID and ingestion time", got)
-	}
-	if old, _ := snap.Get(ctx, org, "sub_1", "tr_1"); old.Properties["value"] != "1" {
-		t.Errorf("snapshot after Replace: got = %s, want = 1", old.Properties["value"])
-	}
-	if err := log.Replace(ctx, ev(org, "tr_404", "0")); !errors.Is(err, core.ErrNotFound) {
-		t.Errorf("Replace(unknown): got = %v, want = ErrNotFound", err)
-	}
 	if _, err := log.Get(ctx, org, "sub_1", "tr_404"); !errors.Is(err, core.ErrNotFound) {
 		t.Errorf("Get(unknown): got = %v, want = ErrNotFound", err)
 	}
@@ -104,7 +89,7 @@ func TestEventLogDeduplicationKey(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			log := eventLogRepo{newEventData()}
+			log := eventLogRepo{d: newEventData()}
 			if _, _, err := log.Append(ctx, org, tt.stored); err != nil {
 				t.Fatal(err)
 			}
@@ -118,8 +103,8 @@ func TestEventLogDeduplicationKey(t *testing.T) {
 		})
 	}
 
-	t.Run("lookup and replacement", func(t *testing.T) {
-		log := eventLogRepo{newEventData()}
+	t.Run("lookup", func(t *testing.T) {
+		log := eventLogRepo{d: newEventData()}
 		a, b := ev("sub_2", "tr_1", now, now.Add(time.Minute)), ev("sub_1", "tr_1", now, now)
 		if accepted, _, err := log.Append(ctx, org, []*event.Event{a, b}); err != nil || len(accepted) != 2 {
 			t.Fatalf("Append got = %d %v, want = 2 <nil>", len(accepted), err)
@@ -129,19 +114,6 @@ func TestEventLogDeduplicationKey(t *testing.T) {
 			if err != nil || got.ExternalSubscriptionID != tt.want {
 				t.Errorf("Get(%q) got = %v %v, want = %s", tt.sub, got, err, tt.want)
 			}
-		}
-		fix := ev("sub_2", "tr_1", now.Add(time.Hour), now)
-		if err := log.Replace(ctx, fix); err != nil {
-			t.Fatal(err)
-		}
-		if got, _ := log.Get(ctx, org, "sub_1", "tr_1"); !got.Timestamp.Equal(now) {
-			t.Errorf("Replace touched another subscription: got = %v, want = %v", got.Timestamp, now)
-		}
-		if got, _ := log.Get(ctx, org, "sub_2", "tr_1"); !got.Timestamp.Equal(now.Add(time.Hour)) || got.ID != a.ID {
-			t.Errorf("Replace got = %+v, want = the stored event moved", got)
-		}
-		if err := log.Replace(ctx, ev("sub_3", "tr_1", now, now)); !errors.Is(err, core.ErrNotFound) {
-			t.Errorf("Replace(other subscription) got = %v, want = ErrNotFound", err)
 		}
 	})
 }

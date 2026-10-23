@@ -54,6 +54,10 @@ type Charge struct {
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
 	UpdatedAt time.Time
+	// DeletedAt is the instant the charge was discarded (nil while kept);
+	// a discarded charge is read by ID only, for the fees that
+	// reference it (lago charge.rb default_scope kept).
+	DeletedAt *time.Time
 }
 
 // AppliedPricingUnit is the pricing unit a charge is priced in, with the
@@ -227,10 +231,12 @@ func (c *Charge) NewOverride(id core.ChargeID, plan core.PlanID, filterID func()
 	o.ParentID = c.ID
 	o.CreatedAt = now
 	o.UpdatedAt = now
+	o.DeletedAt = nil
 	for i := range o.Filters {
 		o.Filters[i].ID = filterID()
 		o.Filters[i].ChargeID = id
 		o.Filters[i].CreatedAt = now
+		o.Filters[i].DeletedAt = nil
 	}
 	return o
 }
@@ -239,6 +245,7 @@ func chargeClone(c *Charge) *Charge {
 	o := *c
 	o.Properties = c.Properties.Clone()
 	o.TaxIDs = slices.Clone(c.TaxIDs)
+	o.DeletedAt = clonePtr(c.DeletedAt)
 	if c.AppliedPricingUnit != nil {
 		a := *c.AppliedPricingUnit
 		o.AppliedPricingUnit = &a
@@ -255,3 +262,12 @@ func chargeClone(c *Charge) *Charge {
 
 // Clone returns a deep copy of c.
 func (c *Charge) Clone() *Charge { return chargeClone(c) }
+
+// clonePtr returns a copy of *p, or nil.
+func clonePtr[T any](p *T) *T {
+	if p == nil {
+		return nil
+	}
+	v := *p
+	return &v
+}

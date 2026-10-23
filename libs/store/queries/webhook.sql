@@ -62,8 +62,24 @@ SELECT * FROM webhook_deliveries
 WHERE organization_id = @organization_id AND webhook_endpoint_id = @webhook_endpoint_id
   AND (cardinality(@statuses::text[]) = 0 OR status = ANY(@statuses::text[]))
   AND (cardinality(@event_types::text[]) = 0 OR event_type = ANY(@event_types::text[]))
-  AND (sqlc.narg(after)::uuid IS NULL OR id > sqlc.narg(after))
-ORDER BY id
+  AND (sqlc.narg(search)::text IS NULL OR id::text ILIKE sqlc.narg(search) OR object_id::text ILIKE sqlc.narg(search))
+  -- The HTTP status filter (webhooks_query.rb:62-78): a code in one of the
+  -- ranges (@http_mins[i]..@http_maxs[i]), or, with @http_timeout, no
+  -- response on a failed delivery (webhooks_query.rb:70-72).
+  AND ((cardinality(@http_mins::int[]) = 0 AND NOT @http_timeout::boolean)
+       OR EXISTS (SELECT 1 FROM generate_subscripts(@http_mins::int[], 1) AS k
+                  WHERE http_status BETWEEN (@http_mins::int[])[k] AND (@http_maxs::int[])[k])
+       OR (@http_timeout::boolean AND http_status IS NULL AND status = 'failed'))
+  AND (sqlc.narg(updated_from)::timestamptz IS NULL OR updated_at >= sqlc.narg(updated_from))
+  AND (sqlc.narg(updated_to)::timestamptz IS NULL OR updated_at <= sqlc.narg(updated_to))
+  -- @recent lists the last updated first, then by id ascending
+  -- (webhooks_query.rb:10, base_query.rb:111-112); its cursor is
+  -- (@after_at, @after).
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR (@recent::boolean AND (updated_at < sqlc.narg(after_at)::timestamptz
+                                 OR (updated_at = sqlc.narg(after_at)::timestamptz AND id > sqlc.narg(after))))
+       OR (NOT @recent::boolean AND id > sqlc.narg(after)))
+ORDER BY CASE WHEN @recent::boolean THEN updated_at END DESC, id
 LIMIT @lim;
 
 -- name: ListDueWebhookDeliveries :many
@@ -100,6 +116,12 @@ ON CONFLICT DO NOTHING;
 
 -- name: GetDomainEvent :one
 SELECT * FROM domain_events WHERE organization_id = @organization_id AND id = @id;
+
+-- name: ListObjectsWithDomainEventSince :many
+SELECT DISTINCT object_id FROM domain_events
+WHERE organization_id = @organization_id AND event_type = @event_type AND object_type = @object_type
+  AND object_id = ANY(@object_ids::uuid[]) AND occurred_at >= @since
+ORDER BY object_id;
 
 -- name: ListDomainEventsByObject :many
 SELECT * FROM domain_events

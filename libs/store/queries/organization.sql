@@ -4,11 +4,11 @@
 INSERT INTO organizations (
   id, name, slug, email, logo,
   address_line1, address_line2, address_city, address_state, address_zipcode, address_country,
-  authentication_methods, from_email_enabled, audit_logs_retention_days, max_wallets_per_customer, created_at, updated_at
+  authentication_methods, from_email_enabled, audit_logs_retention_days, max_wallets_per_customer, document_number_prefix, created_at, updated_at
 ) VALUES (
   @id, @name, @slug, @email, @logo,
   @address_line1, @address_line2, @address_city, @address_state, @address_zipcode, @address_country,
-  @authentication_methods, @from_email_enabled, @audit_logs_retention_days, @max_wallets_per_customer, @created_at, @updated_at
+  @authentication_methods, @from_email_enabled, @audit_logs_retention_days, @max_wallets_per_customer, @document_number_prefix, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
 
@@ -21,7 +21,8 @@ UPDATE organizations SET
   address_state = @address_state, address_zipcode = @address_zipcode, address_country = @address_country,
   authentication_methods = @authentication_methods, from_email_enabled = @from_email_enabled,
   audit_logs_retention_days = @audit_logs_retention_days,
-  max_wallets_per_customer = @max_wallets_per_customer, created_at = @created_at, updated_at = @updated_at
+  max_wallets_per_customer = @max_wallets_per_customer, document_number_prefix = @document_number_prefix,
+  created_at = @created_at, updated_at = @updated_at
 WHERE id = @id;
 
 -- name: GetOrganization :one
@@ -122,35 +123,63 @@ FROM unnest(@section_ids::uuid[]) WITH ORDINALITY AS s(id, ord);
 
 -- name: CreateInvoiceCustomSection :execrows
 INSERT INTO invoice_custom_sections (
-  organization_id, id, code, name, display_name, details, section_type, created_at, updated_at
+  organization_id, id, code, name, display_name, details, description, section_type, deleted_at, created_at, updated_at
 ) VALUES (
-  @organization_id, @id, @code, @name, @display_name, @details, @section_type, @created_at, @updated_at
+  @organization_id, @id, @code, @name, @display_name, @details, @description, @section_type, @deleted_at, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
 
 -- name: UpdateInvoiceCustomSection :execrows
 UPDATE invoice_custom_sections SET
   organization_id = @organization_id, id = @id, code = @code, name = @name, display_name = @display_name, details = @details,
-  section_type = @section_type, created_at = @created_at, updated_at = @updated_at
-WHERE organization_id = @organization_id AND id = @id;
+  description = @description, section_type = @section_type, deleted_at = @deleted_at, created_at = @created_at, updated_at = @updated_at
+WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;
 
 -- name: GetInvoiceCustomSection :one
-SELECT * FROM invoice_custom_sections WHERE organization_id = @organization_id AND id = @id;
+SELECT * FROM invoice_custom_sections WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;
 
 -- name: GetInvoiceCustomSectionByCode :one
-SELECT * FROM invoice_custom_sections WHERE organization_id = @organization_id AND code = @code;
+SELECT * FROM invoice_custom_sections WHERE organization_id = @organization_id AND code = @code AND deleted_at IS NULL;
 
 -- name: ListInvoiceCustomSectionsByIDs :many
 SELECT * FROM invoice_custom_sections
-WHERE organization_id = @organization_id AND id = ANY(@ids::uuid[])
+WHERE organization_id = @organization_id AND id = ANY(@ids::uuid[]) AND deleted_at IS NULL
 ORDER BY id;
 
 -- name: ListInvoiceCustomSections :many
 SELECT * FROM invoice_custom_sections
-WHERE organization_id = @organization_id
+WHERE organization_id = @organization_id AND deleted_at IS NULL
   AND (sqlc.narg(after)::uuid IS NULL OR id > sqlc.narg(after))
 ORDER BY id
 LIMIT @lim;
 
+-- name: ListManualInvoiceCustomSections :many
+-- Lists the manual sections by name (byte order), then by created_at,
+-- newest first, then by id; the cursor is (@after_name, @after_at, @after).
+SELECT * FROM invoice_custom_sections
+WHERE organization_id = @organization_id AND section_type = 'manual' AND deleted_at IS NULL
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR name COLLATE "C" > sqlc.narg(after_name)::text COLLATE "C"
+       OR (name = sqlc.narg(after_name)::text
+           AND (created_at < sqlc.narg(after_at)::timestamptz
+                OR (created_at = sqlc.narg(after_at)::timestamptz AND id > sqlc.narg(after)))))
+ORDER BY name COLLATE "C", created_at DESC, id
+LIMIT @lim;
+
 -- name: DeleteInvoiceCustomSection :execrows
-DELETE FROM invoice_custom_sections WHERE organization_id = @organization_id AND id = @id;
+-- Soft-deletes the live section; the Deselect*InvoiceCustomSection queries
+-- remove it from the selections.
+UPDATE invoice_custom_sections SET deleted_at = @deleted_at, updated_at = @deleted_at
+WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;
+
+-- name: DeselectBillingEntitiesInvoiceCustomSection :exec
+DELETE FROM billing_entity_invoice_custom_sections
+WHERE organization_id = @organization_id AND invoice_custom_section_id = @id;
+
+-- name: DeselectCustomersInvoiceCustomSection :exec
+DELETE FROM customer_invoice_custom_sections
+WHERE organization_id = @organization_id AND invoice_custom_section_id = @id;
+
+-- name: DeselectSubscriptionsInvoiceCustomSection :exec
+DELETE FROM subscription_invoice_custom_sections
+WHERE organization_id = @organization_id AND invoice_custom_section_id = @id;

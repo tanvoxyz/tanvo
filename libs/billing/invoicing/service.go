@@ -25,6 +25,7 @@ type Service struct {
 	deduct         *deduct.Service
 	creditNotes    *creditnotes.Service
 	creditInvoices CreditInvoiceHandler
+	statuses       StatusResolver
 }
 
 // New returns the service over the checked dependencies d, with its own

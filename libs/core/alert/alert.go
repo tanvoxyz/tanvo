@@ -118,6 +118,9 @@ type Alert struct {
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
 	UpdatedAt time.Time
+	// DeletedAt is the instant the alert was discarded; repositories
+	// return only alerts not discarded, so it is nil on every read.
+	DeletedAt *time.Time
 }
 
 // Validate checks the invariants of domain §19.1.

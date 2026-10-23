@@ -61,22 +61,24 @@ UPDATE usage_thresholds SET
   organization_id = @organization_id, id = @id, plan_id = @plan_id, subscription_id = @subscription_id,
   amount = @amount, recurring = @recurring, threshold_display_name = @threshold_display_name,
   created_at = @created_at, updated_at = @updated_at
-WHERE organization_id = @organization_id AND id = @id;
+WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;
 
--- name: DeleteUsageThreshold :execrows
-DELETE FROM usage_thresholds WHERE organization_id = @organization_id AND id = @id;
+-- name: DiscardUsageThreshold :execrows
+UPDATE usage_thresholds SET deleted_at = @deleted_at, updated_at = @deleted_at
+WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;
 
 -- name: GetUsageThreshold :one
+-- Kept or discarded: invoices reference discarded thresholds.
 SELECT * FROM usage_thresholds WHERE organization_id = @organization_id AND id = @id;
 
 -- name: ListUsageThresholdsByPlan :many
 SELECT * FROM usage_thresholds
-WHERE organization_id = @organization_id AND plan_id = @plan_id
+WHERE organization_id = @organization_id AND plan_id = @plan_id AND deleted_at IS NULL
 ORDER BY recurring, amount, id;
 
 -- name: ListUsageThresholdsBySubscription :many
 SELECT * FROM usage_thresholds
-WHERE organization_id = @organization_id AND subscription_id = @subscription_id
+WHERE organization_id = @organization_id AND subscription_id = @subscription_id AND deleted_at IS NULL
 ORDER BY recurring, amount, id;
 
 -- name: CreateFeature :execrows
@@ -109,10 +111,19 @@ WHERE organization_id = @organization_id AND id = ANY(@ids::uuid[]) AND deleted_
 ORDER BY id;
 
 -- name: ListFeatures :many
-SELECT * FROM features
-WHERE organization_id = @organization_id AND deleted_at IS NULL
-  AND (sqlc.narg(after)::uuid IS NULL OR id > sqlc.narg(after))
-ORDER BY id
+-- @search matches the name, code or description (lago
+-- Entitlement::FeaturesQuery); @recent lists by created_at, newest first,
+-- then by id ascending (base_query.rb:111-112), with the cursor
+-- (@after_at, @after).
+SELECT * FROM features f
+WHERE f.organization_id = @organization_id AND f.deleted_at IS NULL
+  AND (sqlc.narg(search)::text IS NULL OR f.name ILIKE sqlc.narg(search) OR f.code ILIKE sqlc.narg(search)
+       OR f.description ILIKE sqlc.narg(search))
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR (@recent::boolean AND (f.created_at < sqlc.narg(after_at)::timestamptz
+                                 OR (f.created_at = sqlc.narg(after_at)::timestamptz AND f.id > sqlc.narg(after))))
+       OR (NOT @recent::boolean AND f.id > sqlc.narg(after)))
+ORDER BY CASE WHEN @recent::boolean THEN f.created_at END DESC, f.id
 LIMIT @lim;
 
 -- name: ListFeaturePrivileges :many
@@ -182,6 +193,11 @@ ORDER BY id;
 -- name: ListEntitlementsBySubscription :many
 SELECT * FROM entitlements
 WHERE organization_id = @organization_id AND subscription_id = @subscription_id AND deleted_at IS NULL
+ORDER BY id;
+
+-- name: ListEntitlementsByFeature :many
+SELECT * FROM entitlements
+WHERE organization_id = @organization_id AND feature_id = @feature_id AND deleted_at IS NULL
 ORDER BY id;
 
 -- name: CreateEntitlementRemoval :execrows

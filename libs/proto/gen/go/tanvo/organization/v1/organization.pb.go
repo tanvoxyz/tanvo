@@ -45,7 +45,8 @@ const (
 	AuthenticationMethod_AUTHENTICATION_METHOD_OKTA AuthenticationMethod = 3
 	// Microsoft Entra ID, through its OIDC integration.
 	AuthenticationMethod_AUTHENTICATION_METHOD_ENTRA_ID AuthenticationMethod = 4
-	// Any other OpenID Connect provider, through an SSO connection.
+	// A generic OpenID Connect provider, through an SSO connection (a
+	// Tanvo extension).
 	AuthenticationMethod_AUTHENTICATION_METHOD_OIDC AuthenticationMethod = 5
 )
 
@@ -107,6 +108,7 @@ type Organization struct {
 	xxx_hidden_MaxWalletsPerCustomer  int32                  `protobuf:"varint,10,opt,name=max_wallets_per_customer,json=maxWalletsPerCustomer"`
 	xxx_hidden_CreatedAt              *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt              *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_DocumentNumberPrefix   *string                `protobuf:"bytes,13,opt,name=document_number_prefix,json=documentNumberPrefix"`
 	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
 	XXX_presence                      [1]uint32
 	unknownFields                     protoimpl.UnknownFields
@@ -237,24 +239,34 @@ func (x *Organization) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Organization) GetDocumentNumberPrefix() string {
+	if x != nil {
+		if x.xxx_hidden_DocumentNumberPrefix != nil {
+			return *x.xxx_hidden_DocumentNumberPrefix
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *Organization) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 13)
 }
 
 func (x *Organization) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 13)
 }
 
 func (x *Organization) SetSlug(v string) {
 	x.xxx_hidden_Slug = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 13)
 }
 
 func (x *Organization) SetEmail(v string) {
 	x.xxx_hidden_Email = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 13)
 }
 
 func (x *Organization) SetAddress(v *v1.Address) {
@@ -266,12 +278,12 @@ func (x *Organization) SetLogo(v []byte) {
 		v = []byte{}
 	}
 	x.xxx_hidden_Logo = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 13)
 }
 
 func (x *Organization) SetLogoUrl(v string) {
 	x.xxx_hidden_LogoUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 13)
 }
 
 func (x *Organization) SetAuthenticationMethods(v []AuthenticationMethod) {
@@ -280,12 +292,12 @@ func (x *Organization) SetAuthenticationMethods(v []AuthenticationMethod) {
 
 func (x *Organization) SetAuditLogsRetentionDays(v int32) {
 	x.xxx_hidden_AuditLogsRetentionDays = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 13)
 }
 
 func (x *Organization) SetMaxWalletsPerCustomer(v int32) {
 	x.xxx_hidden_MaxWalletsPerCustomer = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 13)
 }
 
 func (x *Organization) SetCreatedAt(v *timestamppb.Timestamp) {
@@ -294,6 +306,11 @@ func (x *Organization) SetCreatedAt(v *timestamppb.Timestamp) {
 
 func (x *Organization) SetUpdatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_UpdatedAt = v
+}
+
+func (x *Organization) SetDocumentNumberPrefix(v string) {
+	x.xxx_hidden_DocumentNumberPrefix = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 13)
 }
 
 func (x *Organization) HasId() bool {
@@ -373,6 +390,13 @@ func (x *Organization) HasUpdatedAt() bool {
 	return x.xxx_hidden_UpdatedAt != nil
 }
 
+func (x *Organization) HasDocumentNumberPrefix() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 12)
+}
+
 func (x *Organization) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -425,27 +449,32 @@ func (x *Organization) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = nil
 }
 
+func (x *Organization) ClearDocumentNumberPrefix() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 12)
+	x.xxx_hidden_DocumentNumberPrefix = nil
+}
+
 type Organization_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	// The organization's ID.
 	Id *string
-	// The display name.
+	// The display name, set at sign-up.
 	Name *string
-	// The URL slug, lowercase and unique, derived from the name; used in
-	// customer portal URLs.
+	// The URL slug, lowercase and unique, derived from the name at sign-up;
+	// used in customer portal URLs.
 	Slug *string
 	// The contact email address.
 	Email *string
 	// The postal address.
 	Address *v1.Address
-	// A new logo image (PNG, JPEG or SVG, at most 800 KB); write only.
+	// A new logo image (PNG or JPEG, at most 800 KB); write only.
 	Logo []byte
 	// The URL of the stored logo.
 	LogoUrl *string
 	// The allowed sign-in methods; at least one.
 	AuthenticationMethods []AuthenticationMethod
-	// How long activity logs are kept, in days; default 30.
+	// How long activity and API logs are kept, in days; default 30.
 	AuditLogsRetentionDays *int32
 	// The maximum number of active wallets per customer; default 6.
 	MaxWalletsPerCustomer *int32
@@ -453,6 +482,10 @@ type Organization_builder struct {
 	CreatedAt *timestamppb.Timestamp
 	// When the organization last changed.
 	UpdatedAt *timestamppb.Timestamp
+	// The prefix of customer slugs, 1–10 characters, stored upper-cased;
+	// defaults to the first 3 characters of the name and the last 4 of the
+	// ID.
+	DocumentNumberPrefix *string
 }
 
 func (b0 Organization_builder) Build() *Organization {
@@ -460,41 +493,45 @@ func (b0 Organization_builder) Build() *Organization {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 13)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 13)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Slug != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 13)
 		x.xxx_hidden_Slug = b.Slug
 	}
 	if b.Email != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 13)
 		x.xxx_hidden_Email = b.Email
 	}
 	x.xxx_hidden_Address = b.Address
 	if b.Logo != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 13)
 		x.xxx_hidden_Logo = b.Logo
 	}
 	if b.LogoUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 13)
 		x.xxx_hidden_LogoUrl = b.LogoUrl
 	}
 	x.xxx_hidden_AuthenticationMethods = b.AuthenticationMethods
 	if b.AuditLogsRetentionDays != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 13)
 		x.xxx_hidden_AuditLogsRetentionDays = *b.AuditLogsRetentionDays
 	}
 	if b.MaxWalletsPerCustomer != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 13)
 		x.xxx_hidden_MaxWalletsPerCustomer = *b.MaxWalletsPerCustomer
 	}
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
+	if b.DocumentNumberPrefix != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 13)
+		x.xxx_hidden_DocumentNumberPrefix = b.DocumentNumberPrefix
+	}
 	return m0
 }
 
@@ -827,8 +864,6 @@ type GetServerInfoResponse struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Version     *string                `protobuf:"bytes,1,opt,name=version"`
 	xxx_hidden_Revision    *string                `protobuf:"bytes,2,opt,name=revision"`
-	xxx_hidden_BuildTime   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=build_time,json=buildTime"`
-	xxx_hidden_Roles       []string               `protobuf:"bytes,4,rep,name=roles"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -880,36 +915,14 @@ func (x *GetServerInfoResponse) GetRevision() string {
 	return ""
 }
 
-func (x *GetServerInfoResponse) GetBuildTime() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_BuildTime
-	}
-	return nil
-}
-
-func (x *GetServerInfoResponse) GetRoles() []string {
-	if x != nil {
-		return x.xxx_hidden_Roles
-	}
-	return nil
-}
-
 func (x *GetServerInfoResponse) SetVersion(v string) {
 	x.xxx_hidden_Version = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
 }
 
 func (x *GetServerInfoResponse) SetRevision(v string) {
 	x.xxx_hidden_Revision = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
-}
-
-func (x *GetServerInfoResponse) SetBuildTime(v *timestamppb.Timestamp) {
-	x.xxx_hidden_BuildTime = v
-}
-
-func (x *GetServerInfoResponse) SetRoles(v []string) {
-	x.xxx_hidden_Roles = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *GetServerInfoResponse) HasVersion() bool {
@@ -926,13 +939,6 @@ func (x *GetServerInfoResponse) HasRevision() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *GetServerInfoResponse) HasBuildTime() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_BuildTime != nil
-}
-
 func (x *GetServerInfoResponse) ClearVersion() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Version = nil
@@ -943,10 +949,6 @@ func (x *GetServerInfoResponse) ClearRevision() {
 	x.xxx_hidden_Revision = nil
 }
 
-func (x *GetServerInfoResponse) ClearBuildTime() {
-	x.xxx_hidden_BuildTime = nil
-}
-
 type GetServerInfoResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -954,10 +956,6 @@ type GetServerInfoResponse_builder struct {
 	Version *string
 	// The source revision the server was built from.
 	Revision *string
-	// When the server was built.
-	BuildTime *timestamppb.Timestamp
-	// The roles this process runs (`api`, `worker`, `consumer`).
-	Roles []string
 }
 
 func (b0 GetServerInfoResponse_builder) Build() *GetServerInfoResponse {
@@ -965,15 +963,13 @@ func (b0 GetServerInfoResponse_builder) Build() *GetServerInfoResponse {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Version != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
 		x.xxx_hidden_Version = b.Version
 	}
 	if b.Revision != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
 		x.xxx_hidden_Revision = b.Revision
 	}
-	x.xxx_hidden_BuildTime = b.BuildTime
-	x.xxx_hidden_Roles = b.Roles
 	return m0
 }
 
@@ -981,25 +977,26 @@ var File_tanvo_organization_v1_organization_proto protoreflect.FileDescriptor
 
 const file_tanvo_organization_v1_organization_proto_rawDesc = "" +
 	"\n" +
-	"(tanvo/organization/v1/organization.proto\x12\x15tanvo.organization.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xb9\x05\n" +
+	"(tanvo/organization/v1/organization.proto\x12\x15tanvo.organization.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xea\x05\n" +
 	"\fOrganization\x12\x14\n" +
-	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\"\n" +
-	"\x04name\x18\x02 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\x10\x01\x18\xff\x01R\x04name\x12\x18\n" +
-	"\x04slug\x18\x03 \x01(\tB\x04\xe2A\x01\x03R\x04slug\x12 \n" +
+	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\x18\n" +
+	"\x04name\x18\x02 \x01(\tB\x04\xe2A\x01\x03R\x04name\x12\x1d\n" +
+	"\x04slug\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18?R\x04slug\x12 \n" +
 	"\x05email\x18\x04 \x01(\tB\n" +
 	"\xbaH\ar\x05\x18\xff\x01`\x01R\x05email\x122\n" +
 	"\aaddress\x18\x05 \x01(\v2\x18.tanvo.common.v1.AddressR\aaddress\x12!\n" +
 	"\x04logo\x18\x06 \x01(\fB\r\xe2A\x01\x04\xbaH\x06z\x04\x18\x80\x802R\x04logo\x12\x1f\n" +
 	"\blogo_url\x18\a \x01(\tB\x04\xe2A\x01\x03R\alogoUrl\x12u\n" +
-	"\x16authentication_methods\x18\b \x03(\x0e2+.tanvo.organization.v1.AuthenticationMethodB\x11\xbaH\x0e\x92\x01\v\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\x15authenticationMethods\x12E\n" +
-	"\x19audit_logs_retention_days\x18\t \x01(\x05B\n" +
-	"\xbaH\a\x1a\x05\x18\xc2\x1c(\x01R\x16auditLogsRetentionDays\x12B\n" +
+	"\x16authentication_methods\x18\b \x03(\x0e2+.tanvo.organization.v1.AuthenticationMethodB\x11\xbaH\x0e\x92\x01\v\x18\x01\"\a\x82\x01\x04\x10\x01 \x00R\x15authenticationMethods\x12?\n" +
+	"\x19audit_logs_retention_days\x18\t \x01(\x05B\x04\xe2A\x01\x03R\x16auditLogsRetentionDays\x12=\n" +
 	"\x18max_wallets_per_customer\x18\n" +
-	" \x01(\x05B\t\xbaH\x06\x1a\x04\x18d(\x01R\x15maxWalletsPerCustomer\x12?\n" +
+	" \x01(\x05B\x04\xe2A\x01\x03R\x15maxWalletsPerCustomer\x12?\n" +
 	"\n" +
 	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:7\xeaA4\n" +
+	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x12?\n" +
+	"\x16document_number_prefix\x18\r \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18\n" +
+	"R\x14documentNumberPrefix:7\xeaA4\n" +
 	"\x16tanvo.xyz/Organization\x12\forganization2\forganization\"\x18\n" +
 	"\x16GetOrganizationRequest\"b\n" +
 	"\x17GetOrganizationResponse\x12G\n" +
@@ -1011,13 +1008,10 @@ const file_tanvo_organization_v1_organization_proto_rawDesc = "" +
 	"updateMask\"e\n" +
 	"\x1aUpdateOrganizationResponse\x12G\n" +
 	"\forganization\x18\x01 \x01(\v2#.tanvo.organization.v1.OrganizationR\forganization\"\x16\n" +
-	"\x14GetServerInfoRequest\"\x9e\x01\n" +
+	"\x14GetServerInfoRequest\"M\n" +
 	"\x15GetServerInfoResponse\x12\x18\n" +
 	"\aversion\x18\x01 \x01(\tR\aversion\x12\x1a\n" +
-	"\brevision\x18\x02 \x01(\tR\brevision\x129\n" +
-	"\n" +
-	"build_time\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tbuildTime\x12\x14\n" +
-	"\x05roles\x18\x04 \x03(\tR\x05roles*\xf3\x01\n" +
+	"\brevision\x18\x02 \x01(\tR\brevision*\xf3\x01\n" +
 	"\x14AuthenticationMethod\x12%\n" +
 	"!AUTHENTICATION_METHOD_UNSPECIFIED\x10\x00\x12(\n" +
 	"$AUTHENTICATION_METHOD_EMAIL_PASSWORD\x10\x01\x12&\n" +
@@ -1058,18 +1052,17 @@ var file_tanvo_organization_v1_organization_proto_depIdxs = []int32{
 	1,  // 5: tanvo.organization.v1.UpdateOrganizationRequest.organization:type_name -> tanvo.organization.v1.Organization
 	10, // 6: tanvo.organization.v1.UpdateOrganizationRequest.update_mask:type_name -> google.protobuf.FieldMask
 	1,  // 7: tanvo.organization.v1.UpdateOrganizationResponse.organization:type_name -> tanvo.organization.v1.Organization
-	9,  // 8: tanvo.organization.v1.GetServerInfoResponse.build_time:type_name -> google.protobuf.Timestamp
-	2,  // 9: tanvo.organization.v1.OrganizationService.GetOrganization:input_type -> tanvo.organization.v1.GetOrganizationRequest
-	4,  // 10: tanvo.organization.v1.OrganizationService.UpdateOrganization:input_type -> tanvo.organization.v1.UpdateOrganizationRequest
-	6,  // 11: tanvo.organization.v1.ServerService.GetServerInfo:input_type -> tanvo.organization.v1.GetServerInfoRequest
-	3,  // 12: tanvo.organization.v1.OrganizationService.GetOrganization:output_type -> tanvo.organization.v1.GetOrganizationResponse
-	5,  // 13: tanvo.organization.v1.OrganizationService.UpdateOrganization:output_type -> tanvo.organization.v1.UpdateOrganizationResponse
-	7,  // 14: tanvo.organization.v1.ServerService.GetServerInfo:output_type -> tanvo.organization.v1.GetServerInfoResponse
-	12, // [12:15] is the sub-list for method output_type
-	9,  // [9:12] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	2,  // 8: tanvo.organization.v1.OrganizationService.GetOrganization:input_type -> tanvo.organization.v1.GetOrganizationRequest
+	4,  // 9: tanvo.organization.v1.OrganizationService.UpdateOrganization:input_type -> tanvo.organization.v1.UpdateOrganizationRequest
+	6,  // 10: tanvo.organization.v1.ServerService.GetServerInfo:input_type -> tanvo.organization.v1.GetServerInfoRequest
+	3,  // 11: tanvo.organization.v1.OrganizationService.GetOrganization:output_type -> tanvo.organization.v1.GetOrganizationResponse
+	5,  // 12: tanvo.organization.v1.OrganizationService.UpdateOrganization:output_type -> tanvo.organization.v1.UpdateOrganizationResponse
+	7,  // 13: tanvo.organization.v1.ServerService.GetServerInfo:output_type -> tanvo.organization.v1.GetServerInfoResponse
+	11, // [11:14] is the sub-list for method output_type
+	8,  // [8:11] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_organization_v1_organization_proto_init() }

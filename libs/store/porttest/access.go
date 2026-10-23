@@ -193,6 +193,18 @@ func testAccess(t *testing.T, h Harness) {
 				return r.Memberships.List(ctx, org, access.MembershipFilter{RoleID: custom.ID}, p)
 			})
 			equal(t, "List() by a role among several", withCustom, []*access.Membership{m1, m2})
+			anyRole := listAll(t, 1, func(p core.PageRequest) (core.Page[*access.Membership], error) {
+				return r.Memberships.List(ctx, org, access.MembershipFilter{RoleIDs: roles(custom.ID, managerID)}, p)
+			})
+			equal(t, "List() by any of several roles", ids(anyRole, membershipID), []core.MembershipID{m1.ID, m2.ID})
+			byEmail := listAll(t, 1, func(p core.PageRequest) (core.Page[*access.Membership], error) {
+				return r.Memberships.List(ctx, org, access.MembershipFilter{Search: "U2@"}, p)
+			})
+			equal(t, "List() by email", ids(byEmail, membershipID), []core.MembershipID{m2.ID, m4.ID})
+			recent := listAll(t, 1, func(p core.PageRequest) (core.Page[*access.Membership], error) {
+				return r.Memberships.List(ctx, org, access.MembershipFilter{Order: core.OrderRecent}, p)
+			})
+			equal(t, "List() newest first", ids(recent, membershipID), []core.MembershipID{m4.ID, m1.ID, m2.ID, m3.ID})
 			p, err := r.Memberships.List(ctx, other, access.MembershipFilter{}, core.PageRequest{})
 			noErr(t, "List() of another organization", err)
 			equal(t, "List() of another organization", ids(p.Items, membershipID), []core.MembershipID{mb.ID})
@@ -405,6 +417,24 @@ func testAccess(t *testing.T, h Harness) {
 					return r.Invites.List(ctx, org, access.InviteFilter{Status: status}, p)
 				})
 				equal(t, "List() "+string(status), ids(got, inviteID), want)
+			}
+			byRole := listAll(t, 1, func(p core.PageRequest) (core.Page[*access.Invite], error) {
+				return r.Invites.List(ctx, org, access.InviteFilter{RoleIDs: roles(adminID, core.NewID[core.RoleID](e.ids))}, p)
+			})
+			equal(t, "List() by role", ids(byRole, inviteID), []core.InviteID{i4.ID})
+			byEmail := listAll(t, 1, func(p core.PageRequest) (core.Page[*access.Invite], error) {
+				return r.Invites.List(ctx, org, access.InviteFilter{Search: "CAROL", Status: access.InviteStatusPending}, p)
+			})
+			equal(t, "List() by email", ids(byEmail, inviteID), []core.InviteID{i4.ID})
+			recentInvites := listAll(t, 1, func(p core.PageRequest) (core.Page[*access.Invite], error) {
+				return r.Invites.List(ctx, org, access.InviteFilter{Order: core.OrderRecent, Status: access.InviteStatusPending}, p)
+			})
+			equal(t, "List() newest first", len(recentInvites) > 0, true)
+			for i := 1; i < len(recentInvites); i++ {
+				a, b := recentInvites[i-1], recentInvites[i]
+				if a.CreatedAt.Before(b.CreatedAt) || (a.CreatedAt.Equal(b.CreatedAt) && a.ID.String() > b.ID.String()) {
+					t.Errorf("List() newest first: %s before %s", a.ID, b.ID)
+				}
 			}
 			p, err := r.Invites.List(ctx, other, access.InviteFilter{}, core.PageRequest{})
 			noErr(t, "List() of another organization", err)

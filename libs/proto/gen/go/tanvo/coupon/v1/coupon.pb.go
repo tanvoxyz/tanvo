@@ -248,6 +248,10 @@ type Coupon struct {
 	xxx_hidden_TerminatedAt             *timestamppb.Timestamp `protobuf:"bytes,16,opt,name=terminated_at,json=terminatedAt"`
 	xxx_hidden_CreatedAt                *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt                *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_LimitedPlans             bool                   `protobuf:"varint,19,opt,name=limited_plans,json=limitedPlans"`
+	xxx_hidden_LimitedBillableMetrics   bool                   `protobuf:"varint,20,opt,name=limited_billable_metrics,json=limitedBillableMetrics"`
+	xxx_hidden_PlanCodes                []string               `protobuf:"bytes,21,rep,name=plan_codes,json=planCodes"`
+	xxx_hidden_BillableMetricCodes      []string               `protobuf:"bytes,22,rep,name=billable_metric_codes,json=billableMetricCodes"`
 	XXX_raceDetectHookData              protoimpl.RaceDetectHookData
 	XXX_presence                        [1]uint32
 	unknownFields                       protoimpl.UnknownFields
@@ -428,29 +432,57 @@ func (x *Coupon) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Coupon) GetLimitedPlans() bool {
+	if x != nil {
+		return x.xxx_hidden_LimitedPlans
+	}
+	return false
+}
+
+func (x *Coupon) GetLimitedBillableMetrics() bool {
+	if x != nil {
+		return x.xxx_hidden_LimitedBillableMetrics
+	}
+	return false
+}
+
+func (x *Coupon) GetPlanCodes() []string {
+	if x != nil {
+		return x.xxx_hidden_PlanCodes
+	}
+	return nil
+}
+
+func (x *Coupon) GetBillableMetricCodes() []string {
+	if x != nil {
+		return x.xxx_hidden_BillableMetricCodes
+	}
+	return nil
+}
+
 func (x *Coupon) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 18)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 22)
 }
 
 func (x *Coupon) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 18)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 22)
 }
 
 func (x *Coupon) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 18)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 22)
 }
 
 func (x *Coupon) SetDescription(v string) {
 	x.xxx_hidden_Description = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 18)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 22)
 }
 
 func (x *Coupon) SetCouponType(v CouponType) {
 	x.xxx_hidden_CouponType = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 18)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 22)
 }
 
 func (x *Coupon) SetAmount(v *v1.Money) {
@@ -459,27 +491,27 @@ func (x *Coupon) SetAmount(v *v1.Money) {
 
 func (x *Coupon) SetPercentageRate(v string) {
 	x.xxx_hidden_PercentageRate = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 18)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 22)
 }
 
 func (x *Coupon) SetFrequency(v CouponFrequency) {
 	x.xxx_hidden_Frequency = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 18)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 22)
 }
 
 func (x *Coupon) SetFrequencyDuration(v int32) {
 	x.xxx_hidden_FrequencyDuration = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 18)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 22)
 }
 
 func (x *Coupon) SetReusable(v bool) {
 	x.xxx_hidden_Reusable = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 18)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 22)
 }
 
 func (x *Coupon) SetExpiration(v CouponExpiration) {
 	x.xxx_hidden_Expiration = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 18)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 22)
 }
 
 func (x *Coupon) SetExpirationAt(v *timestamppb.Timestamp) {
@@ -496,7 +528,7 @@ func (x *Coupon) SetLimitedBillableMetricIds(v []string) {
 
 func (x *Coupon) SetStatus(v CouponStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 18)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 22)
 }
 
 func (x *Coupon) SetTerminatedAt(v *timestamppb.Timestamp) {
@@ -509,6 +541,24 @@ func (x *Coupon) SetCreatedAt(v *timestamppb.Timestamp) {
 
 func (x *Coupon) SetUpdatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_UpdatedAt = v
+}
+
+func (x *Coupon) SetLimitedPlans(v bool) {
+	x.xxx_hidden_LimitedPlans = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 22)
+}
+
+func (x *Coupon) SetLimitedBillableMetrics(v bool) {
+	x.xxx_hidden_LimitedBillableMetrics = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 22)
+}
+
+func (x *Coupon) SetPlanCodes(v []string) {
+	x.xxx_hidden_PlanCodes = v
+}
+
+func (x *Coupon) SetBillableMetricCodes(v []string) {
+	x.xxx_hidden_BillableMetricCodes = v
 }
 
 func (x *Coupon) HasId() bool {
@@ -623,6 +673,20 @@ func (x *Coupon) HasUpdatedAt() bool {
 	return x.xxx_hidden_UpdatedAt != nil
 }
 
+func (x *Coupon) HasLimitedPlans() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 18)
+}
+
+func (x *Coupon) HasLimitedBillableMetrics() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 19)
+}
+
 func (x *Coupon) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -698,6 +762,16 @@ func (x *Coupon) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = nil
 }
 
+func (x *Coupon) ClearLimitedPlans() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 18)
+	x.xxx_hidden_LimitedPlans = false
+}
+
+func (x *Coupon) ClearLimitedBillableMetrics() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 19)
+	x.xxx_hidden_LimitedBillableMetrics = false
+}
+
 type Coupon_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -738,6 +812,14 @@ type Coupon_builder struct {
 	CreatedAt *timestamppb.Timestamp
 	// When the coupon last changed.
 	UpdatedAt *timestamppb.Timestamp
+	// Whether the coupon is limited to plans.
+	LimitedPlans *bool
+	// Whether the coupon is limited to billable metrics.
+	LimitedBillableMetrics *bool
+	// The codes of the limited plans that are not override plans.
+	PlanCodes []string
+	// The codes of the limited billable metrics.
+	BillableMetricCodes []string
 }
 
 func (b0 Coupon_builder) Build() *Coupon {
@@ -745,75 +827,93 @@ func (b0 Coupon_builder) Build() *Coupon {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 18)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 22)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 18)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 22)
 		x.xxx_hidden_Code = b.Code
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 18)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 22)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Description != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 18)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 22)
 		x.xxx_hidden_Description = b.Description
 	}
 	if b.CouponType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 18)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 22)
 		x.xxx_hidden_CouponType = *b.CouponType
 	}
 	x.xxx_hidden_Amount = b.Amount
 	if b.PercentageRate != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 18)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 22)
 		x.xxx_hidden_PercentageRate = b.PercentageRate
 	}
 	if b.Frequency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 18)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 22)
 		x.xxx_hidden_Frequency = *b.Frequency
 	}
 	if b.FrequencyDuration != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 18)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 22)
 		x.xxx_hidden_FrequencyDuration = *b.FrequencyDuration
 	}
 	if b.Reusable != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 18)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 22)
 		x.xxx_hidden_Reusable = *b.Reusable
 	}
 	if b.Expiration != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 18)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 22)
 		x.xxx_hidden_Expiration = *b.Expiration
 	}
 	x.xxx_hidden_ExpirationAt = b.ExpirationAt
 	x.xxx_hidden_LimitedPlanIds = b.LimitedPlanIds
 	x.xxx_hidden_LimitedBillableMetricIds = b.LimitedBillableMetricIds
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 18)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 22)
 		x.xxx_hidden_Status = *b.Status
 	}
 	x.xxx_hidden_TerminatedAt = b.TerminatedAt
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
+	if b.LimitedPlans != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 22)
+		x.xxx_hidden_LimitedPlans = *b.LimitedPlans
+	}
+	if b.LimitedBillableMetrics != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 22)
+		x.xxx_hidden_LimitedBillableMetrics = *b.LimitedBillableMetrics
+	}
+	x.xxx_hidden_PlanCodes = b.PlanCodes
+	x.xxx_hidden_BillableMetricCodes = b.BillableMetricCodes
 	return m0
 }
 
 // AppliedCoupon is a coupon applied to a customer.
 type AppliedCoupon struct {
-	state                                 protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id                         *string                `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_CouponId                   *string                `protobuf:"bytes,2,opt,name=coupon_id,json=couponId"`
-	xxx_hidden_CustomerId                 *string                `protobuf:"bytes,3,opt,name=customer_id,json=customerId"`
-	xxx_hidden_Amount                     *v1.Money              `protobuf:"bytes,4,opt,name=amount"`
-	xxx_hidden_PercentageRate             *string                `protobuf:"bytes,5,opt,name=percentage_rate,json=percentageRate"`
-	xxx_hidden_Frequency                  CouponFrequency        `protobuf:"varint,6,opt,name=frequency,enum=tanvo.coupon.v1.CouponFrequency"`
-	xxx_hidden_FrequencyDuration          int32                  `protobuf:"varint,7,opt,name=frequency_duration,json=frequencyDuration"`
-	xxx_hidden_FrequencyDurationRemaining int32                  `protobuf:"varint,8,opt,name=frequency_duration_remaining,json=frequencyDurationRemaining"`
-	xxx_hidden_RemainingAmount            *v1.Money              `protobuf:"bytes,9,opt,name=remaining_amount,json=remainingAmount"`
-	xxx_hidden_Status                     CouponStatus           `protobuf:"varint,10,opt,name=status,enum=tanvo.coupon.v1.CouponStatus"`
-	xxx_hidden_TerminatedAt               *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=terminated_at,json=terminatedAt"`
-	xxx_hidden_CreatedAt                  *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=created_at,json=createdAt"`
-	xxx_hidden_UpdatedAt                  *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt"`
+	state                                 protoimpl.MessageState  `protogen:"opaque.v1"`
+	xxx_hidden_Id                         *string                 `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_CouponId                   *string                 `protobuf:"bytes,2,opt,name=coupon_id,json=couponId"`
+	xxx_hidden_CustomerId                 *string                 `protobuf:"bytes,3,opt,name=customer_id,json=customerId"`
+	xxx_hidden_Amount                     *v1.Money               `protobuf:"bytes,4,opt,name=amount"`
+	xxx_hidden_PercentageRate             *string                 `protobuf:"bytes,5,opt,name=percentage_rate,json=percentageRate"`
+	xxx_hidden_Frequency                  CouponFrequency         `protobuf:"varint,6,opt,name=frequency,enum=tanvo.coupon.v1.CouponFrequency"`
+	xxx_hidden_FrequencyDuration          int32                   `protobuf:"varint,7,opt,name=frequency_duration,json=frequencyDuration"`
+	xxx_hidden_FrequencyDurationRemaining int32                   `protobuf:"varint,8,opt,name=frequency_duration_remaining,json=frequencyDurationRemaining"`
+	xxx_hidden_RemainingAmount            *v1.Money               `protobuf:"bytes,9,opt,name=remaining_amount,json=remainingAmount"`
+	xxx_hidden_Status                     CouponStatus            `protobuf:"varint,10,opt,name=status,enum=tanvo.coupon.v1.CouponStatus"`
+	xxx_hidden_TerminatedAt               *timestamppb.Timestamp  `protobuf:"bytes,11,opt,name=terminated_at,json=terminatedAt"`
+	xxx_hidden_CreatedAt                  *timestamppb.Timestamp  `protobuf:"bytes,12,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt                  *timestamppb.Timestamp  `protobuf:"bytes,13,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_CouponCode                 *string                 `protobuf:"bytes,14,opt,name=coupon_code,json=couponCode"`
+	xxx_hidden_CouponName                 *string                 `protobuf:"bytes,15,opt,name=coupon_name,json=couponName"`
+	xxx_hidden_CouponDescription          *string                 `protobuf:"bytes,16,opt,name=coupon_description,json=couponDescription"`
+	xxx_hidden_CouponStatus               CouponStatus            `protobuf:"varint,17,opt,name=coupon_status,json=couponStatus,enum=tanvo.coupon.v1.CouponStatus"`
+	xxx_hidden_CouponDeletedAt            *timestamppb.Timestamp  `protobuf:"bytes,18,opt,name=coupon_deleted_at,json=couponDeletedAt"`
+	xxx_hidden_ExternalCustomerId         *string                 `protobuf:"bytes,19,opt,name=external_customer_id,json=externalCustomerId"`
+	xxx_hidden_ExpirationAt               *timestamppb.Timestamp  `protobuf:"bytes,20,opt,name=expiration_at,json=expirationAt"`
+	xxx_hidden_Credits                    *[]*AppliedCouponCredit `protobuf:"bytes,21,rep,name=credits"`
 	XXX_raceDetectHookData                protoimpl.RaceDetectHookData
 	XXX_presence                          [1]uint32
 	unknownFields                         protoimpl.UnknownFields
@@ -952,19 +1052,91 @@ func (x *AppliedCoupon) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *AppliedCoupon) GetCouponCode() string {
+	if x != nil {
+		if x.xxx_hidden_CouponCode != nil {
+			return *x.xxx_hidden_CouponCode
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *AppliedCoupon) GetCouponName() string {
+	if x != nil {
+		if x.xxx_hidden_CouponName != nil {
+			return *x.xxx_hidden_CouponName
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *AppliedCoupon) GetCouponDescription() string {
+	if x != nil {
+		if x.xxx_hidden_CouponDescription != nil {
+			return *x.xxx_hidden_CouponDescription
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *AppliedCoupon) GetCouponStatus() CouponStatus {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 16) {
+			return x.xxx_hidden_CouponStatus
+		}
+	}
+	return CouponStatus_COUPON_STATUS_UNSPECIFIED
+}
+
+func (x *AppliedCoupon) GetCouponDeletedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_CouponDeletedAt
+	}
+	return nil
+}
+
+func (x *AppliedCoupon) GetExternalCustomerId() string {
+	if x != nil {
+		if x.xxx_hidden_ExternalCustomerId != nil {
+			return *x.xxx_hidden_ExternalCustomerId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *AppliedCoupon) GetExpirationAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_ExpirationAt
+	}
+	return nil
+}
+
+func (x *AppliedCoupon) GetCredits() []*AppliedCouponCredit {
+	if x != nil {
+		if x.xxx_hidden_Credits != nil {
+			return *x.xxx_hidden_Credits
+		}
+	}
+	return nil
+}
+
 func (x *AppliedCoupon) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 21)
 }
 
 func (x *AppliedCoupon) SetCouponId(v string) {
 	x.xxx_hidden_CouponId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 21)
 }
 
 func (x *AppliedCoupon) SetCustomerId(v string) {
 	x.xxx_hidden_CustomerId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 21)
 }
 
 func (x *AppliedCoupon) SetAmount(v *v1.Money) {
@@ -973,22 +1145,22 @@ func (x *AppliedCoupon) SetAmount(v *v1.Money) {
 
 func (x *AppliedCoupon) SetPercentageRate(v string) {
 	x.xxx_hidden_PercentageRate = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 21)
 }
 
 func (x *AppliedCoupon) SetFrequency(v CouponFrequency) {
 	x.xxx_hidden_Frequency = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 21)
 }
 
 func (x *AppliedCoupon) SetFrequencyDuration(v int32) {
 	x.xxx_hidden_FrequencyDuration = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 21)
 }
 
 func (x *AppliedCoupon) SetFrequencyDurationRemaining(v int32) {
 	x.xxx_hidden_FrequencyDurationRemaining = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 21)
 }
 
 func (x *AppliedCoupon) SetRemainingAmount(v *v1.Money) {
@@ -997,7 +1169,7 @@ func (x *AppliedCoupon) SetRemainingAmount(v *v1.Money) {
 
 func (x *AppliedCoupon) SetStatus(v CouponStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 21)
 }
 
 func (x *AppliedCoupon) SetTerminatedAt(v *timestamppb.Timestamp) {
@@ -1010,6 +1182,43 @@ func (x *AppliedCoupon) SetCreatedAt(v *timestamppb.Timestamp) {
 
 func (x *AppliedCoupon) SetUpdatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_UpdatedAt = v
+}
+
+func (x *AppliedCoupon) SetCouponCode(v string) {
+	x.xxx_hidden_CouponCode = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 21)
+}
+
+func (x *AppliedCoupon) SetCouponName(v string) {
+	x.xxx_hidden_CouponName = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 21)
+}
+
+func (x *AppliedCoupon) SetCouponDescription(v string) {
+	x.xxx_hidden_CouponDescription = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 21)
+}
+
+func (x *AppliedCoupon) SetCouponStatus(v CouponStatus) {
+	x.xxx_hidden_CouponStatus = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 21)
+}
+
+func (x *AppliedCoupon) SetCouponDeletedAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_CouponDeletedAt = v
+}
+
+func (x *AppliedCoupon) SetExternalCustomerId(v string) {
+	x.xxx_hidden_ExternalCustomerId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 21)
+}
+
+func (x *AppliedCoupon) SetExpirationAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_ExpirationAt = v
+}
+
+func (x *AppliedCoupon) SetCredits(v []*AppliedCouponCredit) {
+	x.xxx_hidden_Credits = &v
 }
 
 func (x *AppliedCoupon) HasId() bool {
@@ -1103,6 +1312,55 @@ func (x *AppliedCoupon) HasUpdatedAt() bool {
 	return x.xxx_hidden_UpdatedAt != nil
 }
 
+func (x *AppliedCoupon) HasCouponCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 13)
+}
+
+func (x *AppliedCoupon) HasCouponName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 14)
+}
+
+func (x *AppliedCoupon) HasCouponDescription() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 15)
+}
+
+func (x *AppliedCoupon) HasCouponStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 16)
+}
+
+func (x *AppliedCoupon) HasCouponDeletedAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_CouponDeletedAt != nil
+}
+
+func (x *AppliedCoupon) HasExternalCustomerId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 18)
+}
+
+func (x *AppliedCoupon) HasExpirationAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ExpirationAt != nil
+}
+
 func (x *AppliedCoupon) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -1163,6 +1421,39 @@ func (x *AppliedCoupon) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = nil
 }
 
+func (x *AppliedCoupon) ClearCouponCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
+	x.xxx_hidden_CouponCode = nil
+}
+
+func (x *AppliedCoupon) ClearCouponName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 14)
+	x.xxx_hidden_CouponName = nil
+}
+
+func (x *AppliedCoupon) ClearCouponDescription() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 15)
+	x.xxx_hidden_CouponDescription = nil
+}
+
+func (x *AppliedCoupon) ClearCouponStatus() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 16)
+	x.xxx_hidden_CouponStatus = CouponStatus_COUPON_STATUS_UNSPECIFIED
+}
+
+func (x *AppliedCoupon) ClearCouponDeletedAt() {
+	x.xxx_hidden_CouponDeletedAt = nil
+}
+
+func (x *AppliedCoupon) ClearExternalCustomerId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 18)
+	x.xxx_hidden_ExternalCustomerId = nil
+}
+
+func (x *AppliedCoupon) ClearExpirationAt() {
+	x.xxx_hidden_ExpirationAt = nil
+}
+
 type AppliedCoupon_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1192,6 +1483,23 @@ type AppliedCoupon_builder struct {
 	CreatedAt *timestamppb.Timestamp
 	// When the applied coupon last changed.
 	UpdatedAt *timestamppb.Timestamp
+	// The coupon's code.
+	CouponCode *string
+	// The coupon's name.
+	CouponName *string
+	// The coupon's description.
+	CouponDescription *string
+	// The coupon's state.
+	CouponStatus *CouponStatus
+	// When the coupon was deleted.
+	CouponDeletedAt *timestamppb.Timestamp
+	// The customer's external ID.
+	ExternalCustomerId *string
+	// When the coupon expires.
+	ExpirationAt *timestamppb.Timestamp
+	// The invoice credits of the applied coupon, in creation order; listed
+	// applied coupons only.
+	Credits []*AppliedCouponCredit
 }
 
 func (b0 AppliedCoupon_builder) Build() *AppliedCoupon {
@@ -1199,42 +1507,270 @@ func (b0 AppliedCoupon_builder) Build() *AppliedCoupon {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 21)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.CouponId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 21)
 		x.xxx_hidden_CouponId = b.CouponId
 	}
 	if b.CustomerId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 21)
 		x.xxx_hidden_CustomerId = b.CustomerId
 	}
 	x.xxx_hidden_Amount = b.Amount
 	if b.PercentageRate != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 21)
 		x.xxx_hidden_PercentageRate = b.PercentageRate
 	}
 	if b.Frequency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 21)
 		x.xxx_hidden_Frequency = *b.Frequency
 	}
 	if b.FrequencyDuration != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 21)
 		x.xxx_hidden_FrequencyDuration = *b.FrequencyDuration
 	}
 	if b.FrequencyDurationRemaining != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 21)
 		x.xxx_hidden_FrequencyDurationRemaining = *b.FrequencyDurationRemaining
 	}
 	x.xxx_hidden_RemainingAmount = b.RemainingAmount
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 21)
 		x.xxx_hidden_Status = *b.Status
 	}
 	x.xxx_hidden_TerminatedAt = b.TerminatedAt
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
+	if b.CouponCode != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 21)
+		x.xxx_hidden_CouponCode = b.CouponCode
+	}
+	if b.CouponName != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 21)
+		x.xxx_hidden_CouponName = b.CouponName
+	}
+	if b.CouponDescription != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 21)
+		x.xxx_hidden_CouponDescription = b.CouponDescription
+	}
+	if b.CouponStatus != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 21)
+		x.xxx_hidden_CouponStatus = *b.CouponStatus
+	}
+	x.xxx_hidden_CouponDeletedAt = b.CouponDeletedAt
+	if b.ExternalCustomerId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 21)
+		x.xxx_hidden_ExternalCustomerId = b.ExternalCustomerId
+	}
+	x.xxx_hidden_ExpirationAt = b.ExpirationAt
+	x.xxx_hidden_Credits = &b.Credits
+	return m0
+}
+
+// AppliedCouponCredit is the deduction of an applied coupon from an
+// invoice.
+type AppliedCouponCredit struct {
+	state                           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id                   *string                `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Amount               *v1.Money              `protobuf:"bytes,2,opt,name=amount"`
+	xxx_hidden_BeforeTaxes          bool                   `protobuf:"varint,3,opt,name=before_taxes,json=beforeTaxes"`
+	xxx_hidden_InvoiceId            *string                `protobuf:"bytes,4,opt,name=invoice_id,json=invoiceId"`
+	xxx_hidden_InvoicePaymentStatus v1.PaymentStatus       `protobuf:"varint,5,opt,name=invoice_payment_status,json=invoicePaymentStatus,enum=tanvo.common.v1.PaymentStatus"`
+	XXX_raceDetectHookData          protoimpl.RaceDetectHookData
+	XXX_presence                    [1]uint32
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
+}
+
+func (x *AppliedCouponCredit) Reset() {
+	*x = AppliedCouponCredit{}
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AppliedCouponCredit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppliedCouponCredit) ProtoMessage() {}
+
+func (x *AppliedCouponCredit) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *AppliedCouponCredit) GetId() string {
+	if x != nil {
+		if x.xxx_hidden_Id != nil {
+			return *x.xxx_hidden_Id
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *AppliedCouponCredit) GetAmount() *v1.Money {
+	if x != nil {
+		return x.xxx_hidden_Amount
+	}
+	return nil
+}
+
+func (x *AppliedCouponCredit) GetBeforeTaxes() bool {
+	if x != nil {
+		return x.xxx_hidden_BeforeTaxes
+	}
+	return false
+}
+
+func (x *AppliedCouponCredit) GetInvoiceId() string {
+	if x != nil {
+		if x.xxx_hidden_InvoiceId != nil {
+			return *x.xxx_hidden_InvoiceId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *AppliedCouponCredit) GetInvoicePaymentStatus() v1.PaymentStatus {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 4) {
+			return x.xxx_hidden_InvoicePaymentStatus
+		}
+	}
+	return v1.PaymentStatus(0)
+}
+
+func (x *AppliedCouponCredit) SetId(v string) {
+	x.xxx_hidden_Id = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
+}
+
+func (x *AppliedCouponCredit) SetAmount(v *v1.Money) {
+	x.xxx_hidden_Amount = v
+}
+
+func (x *AppliedCouponCredit) SetBeforeTaxes(v bool) {
+	x.xxx_hidden_BeforeTaxes = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+}
+
+func (x *AppliedCouponCredit) SetInvoiceId(v string) {
+	x.xxx_hidden_InvoiceId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *AppliedCouponCredit) SetInvoicePaymentStatus(v v1.PaymentStatus) {
+	x.xxx_hidden_InvoicePaymentStatus = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
+}
+
+func (x *AppliedCouponCredit) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *AppliedCouponCredit) HasAmount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Amount != nil
+}
+
+func (x *AppliedCouponCredit) HasBeforeTaxes() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *AppliedCouponCredit) HasInvoiceId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *AppliedCouponCredit) HasInvoicePaymentStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *AppliedCouponCredit) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = nil
+}
+
+func (x *AppliedCouponCredit) ClearAmount() {
+	x.xxx_hidden_Amount = nil
+}
+
+func (x *AppliedCouponCredit) ClearBeforeTaxes() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_BeforeTaxes = false
+}
+
+func (x *AppliedCouponCredit) ClearInvoiceId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_InvoiceId = nil
+}
+
+func (x *AppliedCouponCredit) ClearInvoicePaymentStatus() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_InvoicePaymentStatus = v1.PaymentStatus_PAYMENT_STATUS_UNSPECIFIED
+}
+
+type AppliedCouponCredit_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The credit's ID.
+	Id *string
+	// The amount deducted.
+	Amount *v1.Money
+	// Whether the amount is deducted before taxes.
+	BeforeTaxes *bool
+	// The credited invoice.
+	InvoiceId *string
+	// The payment state of the credited invoice.
+	InvoicePaymentStatus *v1.PaymentStatus
+}
+
+func (b0 AppliedCouponCredit_builder) Build() *AppliedCouponCredit {
+	m0 := &AppliedCouponCredit{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
+		x.xxx_hidden_Id = b.Id
+	}
+	x.xxx_hidden_Amount = b.Amount
+	if b.BeforeTaxes != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		x.xxx_hidden_BeforeTaxes = *b.BeforeTaxes
+	}
+	if b.InvoiceId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		x.xxx_hidden_InvoiceId = b.InvoiceId
+	}
+	if b.InvoicePaymentStatus != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_InvoicePaymentStatus = *b.InvoicePaymentStatus
+	}
 	return m0
 }
 
@@ -1248,7 +1784,7 @@ type CreateCouponRequest struct {
 
 func (x *CreateCouponRequest) Reset() {
 	*x = CreateCouponRequest{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[2]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1260,7 +1796,7 @@ func (x *CreateCouponRequest) String() string {
 func (*CreateCouponRequest) ProtoMessage() {}
 
 func (x *CreateCouponRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[2]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1318,7 +1854,7 @@ type CreateCouponResponse struct {
 
 func (x *CreateCouponResponse) Reset() {
 	*x = CreateCouponResponse{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[3]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1330,7 +1866,7 @@ func (x *CreateCouponResponse) String() string {
 func (*CreateCouponResponse) ProtoMessage() {}
 
 func (x *CreateCouponResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[3]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1390,7 +1926,7 @@ type GetCouponRequest struct {
 
 func (x *GetCouponRequest) Reset() {
 	*x = GetCouponRequest{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[4]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1402,7 +1938,7 @@ func (x *GetCouponRequest) String() string {
 func (*GetCouponRequest) ProtoMessage() {}
 
 func (x *GetCouponRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[4]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1468,7 +2004,7 @@ type GetCouponResponse struct {
 
 func (x *GetCouponResponse) Reset() {
 	*x = GetCouponResponse{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[5]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1480,7 +2016,7 @@ func (x *GetCouponResponse) String() string {
 func (*GetCouponResponse) ProtoMessage() {}
 
 func (x *GetCouponResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[5]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1543,7 +2079,7 @@ type ListCouponsRequest struct {
 
 func (x *ListCouponsRequest) Reset() {
 	*x = ListCouponsRequest{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[6]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1555,7 +2091,7 @@ func (x *ListCouponsRequest) String() string {
 func (*ListCouponsRequest) ProtoMessage() {}
 
 func (x *ListCouponsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[6]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1678,7 +2214,7 @@ type ListCouponsRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `status` and `coupon_type`.
+	// An AIP-160 filter over `status`.
 	Filter *string
 	// A search over the name and code.
 	Search *string
@@ -1720,7 +2256,7 @@ type ListCouponsResponse struct {
 
 func (x *ListCouponsResponse) Reset() {
 	*x = ListCouponsResponse{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[7]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1732,7 +2268,7 @@ func (x *ListCouponsResponse) String() string {
 func (*ListCouponsResponse) ProtoMessage() {}
 
 func (x *ListCouponsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[7]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1815,7 +2351,7 @@ type UpdateCouponRequest struct {
 
 func (x *UpdateCouponRequest) Reset() {
 	*x = UpdateCouponRequest{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[8]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1827,7 +2363,7 @@ func (x *UpdateCouponRequest) String() string {
 func (*UpdateCouponRequest) ProtoMessage() {}
 
 func (x *UpdateCouponRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[8]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1910,7 +2446,7 @@ type UpdateCouponResponse struct {
 
 func (x *UpdateCouponResponse) Reset() {
 	*x = UpdateCouponResponse{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[9]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1922,7 +2458,7 @@ func (x *UpdateCouponResponse) String() string {
 func (*UpdateCouponResponse) ProtoMessage() {}
 
 func (x *UpdateCouponResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[9]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1982,7 +2518,7 @@ type TerminateCouponRequest struct {
 
 func (x *TerminateCouponRequest) Reset() {
 	*x = TerminateCouponRequest{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[10]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1994,7 +2530,7 @@ func (x *TerminateCouponRequest) String() string {
 func (*TerminateCouponRequest) ProtoMessage() {}
 
 func (x *TerminateCouponRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[10]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2060,7 +2596,7 @@ type TerminateCouponResponse struct {
 
 func (x *TerminateCouponResponse) Reset() {
 	*x = TerminateCouponResponse{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[11]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2072,7 +2608,7 @@ func (x *TerminateCouponResponse) String() string {
 func (*TerminateCouponResponse) ProtoMessage() {}
 
 func (x *TerminateCouponResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[11]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2132,7 +2668,7 @@ type DeleteCouponRequest struct {
 
 func (x *DeleteCouponRequest) Reset() {
 	*x = DeleteCouponRequest{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[12]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2144,7 +2680,7 @@ func (x *DeleteCouponRequest) String() string {
 func (*DeleteCouponRequest) ProtoMessage() {}
 
 func (x *DeleteCouponRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[12]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2202,14 +2738,15 @@ func (b0 DeleteCouponRequest_builder) Build() *DeleteCouponRequest {
 
 // DeleteCouponResponse is the response of CouponService.DeleteCoupon.
 type DeleteCouponResponse struct {
-	state         protoimpl.MessageState `protogen:"opaque.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Coupon *Coupon                `protobuf:"bytes,1,opt,name=coupon"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *DeleteCouponResponse) Reset() {
 	*x = DeleteCouponResponse{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[13]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2221,7 +2758,7 @@ func (x *DeleteCouponResponse) String() string {
 func (*DeleteCouponResponse) ProtoMessage() {}
 
 func (x *DeleteCouponResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[13]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2232,15 +2769,40 @@ func (x *DeleteCouponResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+func (x *DeleteCouponResponse) GetCoupon() *Coupon {
+	if x != nil {
+		return x.xxx_hidden_Coupon
+	}
+	return nil
+}
+
+func (x *DeleteCouponResponse) SetCoupon(v *Coupon) {
+	x.xxx_hidden_Coupon = v
+}
+
+func (x *DeleteCouponResponse) HasCoupon() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Coupon != nil
+}
+
+func (x *DeleteCouponResponse) ClearCoupon() {
+	x.xxx_hidden_Coupon = nil
+}
+
 type DeleteCouponResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// The deleted coupon.
+	Coupon *Coupon
 }
 
 func (b0 DeleteCouponResponse_builder) Build() *DeleteCouponResponse {
 	m0 := &DeleteCouponResponse{}
 	b, x := &b0, m0
 	_, _ = b, x
+	x.xxx_hidden_Coupon = b.Coupon
 	return m0
 }
 
@@ -2254,7 +2816,7 @@ type ApplyCouponRequest struct {
 
 func (x *ApplyCouponRequest) Reset() {
 	*x = ApplyCouponRequest{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[14]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2266,7 +2828,7 @@ func (x *ApplyCouponRequest) String() string {
 func (*ApplyCouponRequest) ProtoMessage() {}
 
 func (x *ApplyCouponRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[14]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2324,7 +2886,7 @@ type ApplyCouponResponse struct {
 
 func (x *ApplyCouponResponse) Reset() {
 	*x = ApplyCouponResponse{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[15]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2336,7 +2898,7 @@ func (x *ApplyCouponResponse) String() string {
 func (*ApplyCouponResponse) ProtoMessage() {}
 
 func (x *ApplyCouponResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[15]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2396,7 +2958,7 @@ type GetAppliedCouponRequest struct {
 
 func (x *GetAppliedCouponRequest) Reset() {
 	*x = GetAppliedCouponRequest{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[16]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2408,7 +2970,7 @@ func (x *GetAppliedCouponRequest) String() string {
 func (*GetAppliedCouponRequest) ProtoMessage() {}
 
 func (x *GetAppliedCouponRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[16]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2474,7 +3036,7 @@ type GetAppliedCouponResponse struct {
 
 func (x *GetAppliedCouponResponse) Reset() {
 	*x = GetAppliedCouponResponse{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[17]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2486,7 +3048,7 @@ func (x *GetAppliedCouponResponse) String() string {
 func (*GetAppliedCouponResponse) ProtoMessage() {}
 
 func (x *GetAppliedCouponResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[17]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2549,7 +3111,7 @@ type ListAppliedCouponsRequest struct {
 
 func (x *ListAppliedCouponsRequest) Reset() {
 	*x = ListAppliedCouponsRequest{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[18]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2561,7 +3123,7 @@ func (x *ListAppliedCouponsRequest) String() string {
 func (*ListAppliedCouponsRequest) ProtoMessage() {}
 
 func (x *ListAppliedCouponsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[18]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2726,7 +3288,7 @@ type ListAppliedCouponsResponse struct {
 
 func (x *ListAppliedCouponsResponse) Reset() {
 	*x = ListAppliedCouponsResponse{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[19]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2738,7 +3300,7 @@ func (x *ListAppliedCouponsResponse) String() string {
 func (*ListAppliedCouponsResponse) ProtoMessage() {}
 
 func (x *ListAppliedCouponsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[19]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2822,7 +3384,7 @@ type TerminateAppliedCouponRequest struct {
 
 func (x *TerminateAppliedCouponRequest) Reset() {
 	*x = TerminateAppliedCouponRequest{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[20]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2834,7 +3396,7 @@ func (x *TerminateAppliedCouponRequest) String() string {
 func (*TerminateAppliedCouponRequest) ProtoMessage() {}
 
 func (x *TerminateAppliedCouponRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[20]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2900,7 +3462,7 @@ type TerminateAppliedCouponResponse struct {
 
 func (x *TerminateAppliedCouponResponse) Reset() {
 	*x = TerminateAppliedCouponResponse{}
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[21]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2912,7 +3474,7 @@ func (x *TerminateAppliedCouponResponse) String() string {
 func (*TerminateAppliedCouponResponse) ProtoMessage() {}
 
 func (x *TerminateAppliedCouponResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[21]
+	mi := &file_tanvo_coupon_v1_coupon_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2964,7 +3526,7 @@ var File_tanvo_coupon_v1_coupon_proto protoreflect.FileDescriptor
 
 const file_tanvo_coupon_v1_coupon_proto_rawDesc = "" +
 	"\n" +
-	"\x1ctanvo/coupon/v1/coupon.proto\x12\x0ftanvo.coupon.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xf5\f\n" +
+	"\x1ctanvo/coupon/v1/coupon.proto\x12\x0ftanvo.coupon.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xbf\x0e\n" +
 	"\x06Coupon\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\"\n" +
 	"\x04code\x18\x02 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x04code\x12\"\n" +
@@ -2990,11 +3552,17 @@ const file_tanvo_coupon_v1_coupon_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:\xe6\x04\xeaA5\n" +
+	"updated_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x12)\n" +
+	"\rlimited_plans\x18\x13 \x01(\bB\x04\xe2A\x01\x03R\flimitedPlans\x12>\n" +
+	"\x18limited_billable_metrics\x18\x14 \x01(\bB\x04\xe2A\x01\x03R\x16limitedBillableMetrics\x12#\n" +
+	"\n" +
+	"plan_codes\x18\x15 \x03(\tB\x04\xe2A\x01\x03R\tplanCodes\x128\n" +
+	"\x15billable_metric_codes\x18\x16 \x03(\tB\x04\xe2A\x01\x03R\x13billableMetricCodes:\xe6\x04\xeaA5\n" +
 	"\x10tanvo.xyz/Coupon\x12\x10coupons/{coupon}*\acoupons2\x06coupon\xbaH\xaa\x04\x1a\xf1\x01\n" +
 	"\rcoupon.amount\x12Ja FIXED_AMOUNT coupon needs amount and a PERCENTAGE coupon percentage_rate\x1a\x93\x01!has(this.coupon_type) || (this.coupon_type == 1 ? has(this.amount) && !has(this.percentage_rate) : has(this.percentage_rate) && !has(this.amount))\x1a\x9e\x01\n" +
 	"\x19coupon.frequency_duration\x124frequency_duration is required for RECURRING coupons\x1aK!has(this.frequency) || this.frequency != 2 || has(this.frequency_duration)\x1a\x92\x01\n" +
-	"\x14coupon.expiration_at\x120expiration_at is required for TIME_LIMIT coupons\x1aH!has(this.expiration) || this.expiration != 2 || has(this.expiration_at)\"\xe2\x06\n" +
+	"\x14coupon.expiration_at\x120expiration_at is required for TIME_LIMIT coupons\x1aH!has(this.expiration) || this.expiration != 2 || has(this.expiration_at)\"\xc2\n" +
+	"\n" +
 	"\rAppliedCoupon\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12,\n" +
 	"\tcoupon_id\x18\x02 \x01(\tB\x0f\xe2A\x02\x02\x05\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\bcouponId\x120\n" +
@@ -3013,8 +3581,25 @@ const file_tanvo_coupon_v1_coupon_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:]\xeaAZ\n" +
-	"\x17tanvo.xyz/AppliedCoupon\x12 applied_coupons/{applied_coupon}*\x0eappliedCoupons2\rappliedCoupon\"\x8f\x02\n" +
+	"updated_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x12%\n" +
+	"\vcoupon_code\x18\x0e \x01(\tB\x04\xe2A\x01\x03R\n" +
+	"couponCode\x12%\n" +
+	"\vcoupon_name\x18\x0f \x01(\tB\x04\xe2A\x01\x03R\n" +
+	"couponName\x123\n" +
+	"\x12coupon_description\x18\x10 \x01(\tB\x04\xe2A\x01\x03R\x11couponDescription\x12H\n" +
+	"\rcoupon_status\x18\x11 \x01(\x0e2\x1d.tanvo.coupon.v1.CouponStatusB\x04\xe2A\x01\x03R\fcouponStatus\x12L\n" +
+	"\x11coupon_deleted_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\x0fcouponDeletedAt\x126\n" +
+	"\x14external_customer_id\x18\x13 \x01(\tB\x04\xe2A\x01\x03R\x12externalCustomerId\x12E\n" +
+	"\rexpiration_at\x18\x14 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\fexpirationAt\x12D\n" +
+	"\acredits\x18\x15 \x03(\v2$.tanvo.coupon.v1.AppliedCouponCreditB\x04\xe2A\x01\x03R\acredits:]\xeaAZ\n" +
+	"\x17tanvo.xyz/AppliedCoupon\x12 applied_coupons/{applied_coupon}*\x0eappliedCoupons2\rappliedCoupon\"\xed\x01\n" +
+	"\x13AppliedCouponCredit\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
+	"\x06amount\x18\x02 \x01(\v2\x16.tanvo.common.v1.MoneyR\x06amount\x12!\n" +
+	"\fbefore_taxes\x18\x03 \x01(\bR\vbeforeTaxes\x12\x1d\n" +
+	"\n" +
+	"invoice_id\x18\x04 \x01(\tR\tinvoiceId\x12T\n" +
+	"\x16invoice_payment_status\x18\x05 \x01(\x0e2\x1e.tanvo.common.v1.PaymentStatusR\x14invoicePaymentStatus\"\x8f\x02\n" +
 	"\x13CreateCouponRequest\x12;\n" +
 	"\x06coupon\x18\x01 \x01(\v2\x17.tanvo.coupon.v1.CouponB\n" +
 	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x06coupon:\xba\x01\xbaH\xb6\x01\x1a\xb3\x01\n" +
@@ -3051,8 +3636,9 @@ const file_tanvo_coupon_v1_coupon_proto_rawDesc = "" +
 	"\x06coupon\x18\x01 \x01(\v2\x17.tanvo.coupon.v1.CouponR\x06coupon\"E\n" +
 	"\x13DeleteCouponRequest\x12.\n" +
 	"\tcoupon_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\bcouponId\"\x16\n" +
-	"\x14DeleteCouponResponse\"\xfe\x01\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\bcouponId\"G\n" +
+	"\x14DeleteCouponResponse\x12/\n" +
+	"\x06coupon\x18\x01 \x01(\v2\x17.tanvo.coupon.v1.CouponR\x06coupon\"\xfe\x01\n" +
 	"\x12ApplyCouponRequest\x12Q\n" +
 	"\x0eapplied_coupon\x18\x01 \x01(\v2\x1e.tanvo.coupon.v1.AppliedCouponB\n" +
 	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\rappliedCoupon:\x94\x01\xbaH\x90\x01\x1a\x8d\x01\n" +
@@ -3121,7 +3707,7 @@ const file_tanvo_coupon_v1_coupon_proto_rawDesc = "" +
 	"\x13com.tanvo.coupon.v1B\vCouponProtoP\x01ZDgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/coupon/v1;couponv1\xa2\x02\x03TCX\xaa\x02\x0fTanvo.Coupon.V1\xca\x02\x0fTanvo\\Coupon\\V1\xe2\x02\x1bTanvo\\Coupon\\V1\\GPBMetadata\xea\x02\x11Tanvo::Coupon::V1b\beditionsp\xe8\a"
 
 var file_tanvo_coupon_v1_coupon_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_tanvo_coupon_v1_coupon_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_tanvo_coupon_v1_coupon_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_tanvo_coupon_v1_coupon_proto_goTypes = []any{
 	(CouponType)(0),                        // 0: tanvo.coupon.v1.CouponType
 	(CouponFrequency)(0),                   // 1: tanvo.coupon.v1.CouponFrequency
@@ -3129,85 +3715,94 @@ var file_tanvo_coupon_v1_coupon_proto_goTypes = []any{
 	(CouponStatus)(0),                      // 3: tanvo.coupon.v1.CouponStatus
 	(*Coupon)(nil),                         // 4: tanvo.coupon.v1.Coupon
 	(*AppliedCoupon)(nil),                  // 5: tanvo.coupon.v1.AppliedCoupon
-	(*CreateCouponRequest)(nil),            // 6: tanvo.coupon.v1.CreateCouponRequest
-	(*CreateCouponResponse)(nil),           // 7: tanvo.coupon.v1.CreateCouponResponse
-	(*GetCouponRequest)(nil),               // 8: tanvo.coupon.v1.GetCouponRequest
-	(*GetCouponResponse)(nil),              // 9: tanvo.coupon.v1.GetCouponResponse
-	(*ListCouponsRequest)(nil),             // 10: tanvo.coupon.v1.ListCouponsRequest
-	(*ListCouponsResponse)(nil),            // 11: tanvo.coupon.v1.ListCouponsResponse
-	(*UpdateCouponRequest)(nil),            // 12: tanvo.coupon.v1.UpdateCouponRequest
-	(*UpdateCouponResponse)(nil),           // 13: tanvo.coupon.v1.UpdateCouponResponse
-	(*TerminateCouponRequest)(nil),         // 14: tanvo.coupon.v1.TerminateCouponRequest
-	(*TerminateCouponResponse)(nil),        // 15: tanvo.coupon.v1.TerminateCouponResponse
-	(*DeleteCouponRequest)(nil),            // 16: tanvo.coupon.v1.DeleteCouponRequest
-	(*DeleteCouponResponse)(nil),           // 17: tanvo.coupon.v1.DeleteCouponResponse
-	(*ApplyCouponRequest)(nil),             // 18: tanvo.coupon.v1.ApplyCouponRequest
-	(*ApplyCouponResponse)(nil),            // 19: tanvo.coupon.v1.ApplyCouponResponse
-	(*GetAppliedCouponRequest)(nil),        // 20: tanvo.coupon.v1.GetAppliedCouponRequest
-	(*GetAppliedCouponResponse)(nil),       // 21: tanvo.coupon.v1.GetAppliedCouponResponse
-	(*ListAppliedCouponsRequest)(nil),      // 22: tanvo.coupon.v1.ListAppliedCouponsRequest
-	(*ListAppliedCouponsResponse)(nil),     // 23: tanvo.coupon.v1.ListAppliedCouponsResponse
-	(*TerminateAppliedCouponRequest)(nil),  // 24: tanvo.coupon.v1.TerminateAppliedCouponRequest
-	(*TerminateAppliedCouponResponse)(nil), // 25: tanvo.coupon.v1.TerminateAppliedCouponResponse
-	(*v1.Money)(nil),                       // 26: tanvo.common.v1.Money
-	(*timestamppb.Timestamp)(nil),          // 27: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),          // 28: google.protobuf.FieldMask
+	(*AppliedCouponCredit)(nil),            // 6: tanvo.coupon.v1.AppliedCouponCredit
+	(*CreateCouponRequest)(nil),            // 7: tanvo.coupon.v1.CreateCouponRequest
+	(*CreateCouponResponse)(nil),           // 8: tanvo.coupon.v1.CreateCouponResponse
+	(*GetCouponRequest)(nil),               // 9: tanvo.coupon.v1.GetCouponRequest
+	(*GetCouponResponse)(nil),              // 10: tanvo.coupon.v1.GetCouponResponse
+	(*ListCouponsRequest)(nil),             // 11: tanvo.coupon.v1.ListCouponsRequest
+	(*ListCouponsResponse)(nil),            // 12: tanvo.coupon.v1.ListCouponsResponse
+	(*UpdateCouponRequest)(nil),            // 13: tanvo.coupon.v1.UpdateCouponRequest
+	(*UpdateCouponResponse)(nil),           // 14: tanvo.coupon.v1.UpdateCouponResponse
+	(*TerminateCouponRequest)(nil),         // 15: tanvo.coupon.v1.TerminateCouponRequest
+	(*TerminateCouponResponse)(nil),        // 16: tanvo.coupon.v1.TerminateCouponResponse
+	(*DeleteCouponRequest)(nil),            // 17: tanvo.coupon.v1.DeleteCouponRequest
+	(*DeleteCouponResponse)(nil),           // 18: tanvo.coupon.v1.DeleteCouponResponse
+	(*ApplyCouponRequest)(nil),             // 19: tanvo.coupon.v1.ApplyCouponRequest
+	(*ApplyCouponResponse)(nil),            // 20: tanvo.coupon.v1.ApplyCouponResponse
+	(*GetAppliedCouponRequest)(nil),        // 21: tanvo.coupon.v1.GetAppliedCouponRequest
+	(*GetAppliedCouponResponse)(nil),       // 22: tanvo.coupon.v1.GetAppliedCouponResponse
+	(*ListAppliedCouponsRequest)(nil),      // 23: tanvo.coupon.v1.ListAppliedCouponsRequest
+	(*ListAppliedCouponsResponse)(nil),     // 24: tanvo.coupon.v1.ListAppliedCouponsResponse
+	(*TerminateAppliedCouponRequest)(nil),  // 25: tanvo.coupon.v1.TerminateAppliedCouponRequest
+	(*TerminateAppliedCouponResponse)(nil), // 26: tanvo.coupon.v1.TerminateAppliedCouponResponse
+	(*v1.Money)(nil),                       // 27: tanvo.common.v1.Money
+	(*timestamppb.Timestamp)(nil),          // 28: google.protobuf.Timestamp
+	(v1.PaymentStatus)(0),                  // 29: tanvo.common.v1.PaymentStatus
+	(*fieldmaskpb.FieldMask)(nil),          // 30: google.protobuf.FieldMask
 }
 var file_tanvo_coupon_v1_coupon_proto_depIdxs = []int32{
 	0,  // 0: tanvo.coupon.v1.Coupon.coupon_type:type_name -> tanvo.coupon.v1.CouponType
-	26, // 1: tanvo.coupon.v1.Coupon.amount:type_name -> tanvo.common.v1.Money
+	27, // 1: tanvo.coupon.v1.Coupon.amount:type_name -> tanvo.common.v1.Money
 	1,  // 2: tanvo.coupon.v1.Coupon.frequency:type_name -> tanvo.coupon.v1.CouponFrequency
 	2,  // 3: tanvo.coupon.v1.Coupon.expiration:type_name -> tanvo.coupon.v1.CouponExpiration
-	27, // 4: tanvo.coupon.v1.Coupon.expiration_at:type_name -> google.protobuf.Timestamp
+	28, // 4: tanvo.coupon.v1.Coupon.expiration_at:type_name -> google.protobuf.Timestamp
 	3,  // 5: tanvo.coupon.v1.Coupon.status:type_name -> tanvo.coupon.v1.CouponStatus
-	27, // 6: tanvo.coupon.v1.Coupon.terminated_at:type_name -> google.protobuf.Timestamp
-	27, // 7: tanvo.coupon.v1.Coupon.created_at:type_name -> google.protobuf.Timestamp
-	27, // 8: tanvo.coupon.v1.Coupon.updated_at:type_name -> google.protobuf.Timestamp
-	26, // 9: tanvo.coupon.v1.AppliedCoupon.amount:type_name -> tanvo.common.v1.Money
+	28, // 6: tanvo.coupon.v1.Coupon.terminated_at:type_name -> google.protobuf.Timestamp
+	28, // 7: tanvo.coupon.v1.Coupon.created_at:type_name -> google.protobuf.Timestamp
+	28, // 8: tanvo.coupon.v1.Coupon.updated_at:type_name -> google.protobuf.Timestamp
+	27, // 9: tanvo.coupon.v1.AppliedCoupon.amount:type_name -> tanvo.common.v1.Money
 	1,  // 10: tanvo.coupon.v1.AppliedCoupon.frequency:type_name -> tanvo.coupon.v1.CouponFrequency
-	26, // 11: tanvo.coupon.v1.AppliedCoupon.remaining_amount:type_name -> tanvo.common.v1.Money
+	27, // 11: tanvo.coupon.v1.AppliedCoupon.remaining_amount:type_name -> tanvo.common.v1.Money
 	3,  // 12: tanvo.coupon.v1.AppliedCoupon.status:type_name -> tanvo.coupon.v1.CouponStatus
-	27, // 13: tanvo.coupon.v1.AppliedCoupon.terminated_at:type_name -> google.protobuf.Timestamp
-	27, // 14: tanvo.coupon.v1.AppliedCoupon.created_at:type_name -> google.protobuf.Timestamp
-	27, // 15: tanvo.coupon.v1.AppliedCoupon.updated_at:type_name -> google.protobuf.Timestamp
-	4,  // 16: tanvo.coupon.v1.CreateCouponRequest.coupon:type_name -> tanvo.coupon.v1.Coupon
-	4,  // 17: tanvo.coupon.v1.CreateCouponResponse.coupon:type_name -> tanvo.coupon.v1.Coupon
-	4,  // 18: tanvo.coupon.v1.GetCouponResponse.coupon:type_name -> tanvo.coupon.v1.Coupon
-	4,  // 19: tanvo.coupon.v1.ListCouponsResponse.coupons:type_name -> tanvo.coupon.v1.Coupon
-	4,  // 20: tanvo.coupon.v1.UpdateCouponRequest.coupon:type_name -> tanvo.coupon.v1.Coupon
-	28, // 21: tanvo.coupon.v1.UpdateCouponRequest.update_mask:type_name -> google.protobuf.FieldMask
-	4,  // 22: tanvo.coupon.v1.UpdateCouponResponse.coupon:type_name -> tanvo.coupon.v1.Coupon
-	4,  // 23: tanvo.coupon.v1.TerminateCouponResponse.coupon:type_name -> tanvo.coupon.v1.Coupon
-	5,  // 24: tanvo.coupon.v1.ApplyCouponRequest.applied_coupon:type_name -> tanvo.coupon.v1.AppliedCoupon
-	5,  // 25: tanvo.coupon.v1.ApplyCouponResponse.applied_coupon:type_name -> tanvo.coupon.v1.AppliedCoupon
-	5,  // 26: tanvo.coupon.v1.GetAppliedCouponResponse.applied_coupon:type_name -> tanvo.coupon.v1.AppliedCoupon
-	5,  // 27: tanvo.coupon.v1.ListAppliedCouponsResponse.applied_coupons:type_name -> tanvo.coupon.v1.AppliedCoupon
-	5,  // 28: tanvo.coupon.v1.TerminateAppliedCouponResponse.applied_coupon:type_name -> tanvo.coupon.v1.AppliedCoupon
-	6,  // 29: tanvo.coupon.v1.CouponService.CreateCoupon:input_type -> tanvo.coupon.v1.CreateCouponRequest
-	8,  // 30: tanvo.coupon.v1.CouponService.GetCoupon:input_type -> tanvo.coupon.v1.GetCouponRequest
-	10, // 31: tanvo.coupon.v1.CouponService.ListCoupons:input_type -> tanvo.coupon.v1.ListCouponsRequest
-	12, // 32: tanvo.coupon.v1.CouponService.UpdateCoupon:input_type -> tanvo.coupon.v1.UpdateCouponRequest
-	14, // 33: tanvo.coupon.v1.CouponService.TerminateCoupon:input_type -> tanvo.coupon.v1.TerminateCouponRequest
-	16, // 34: tanvo.coupon.v1.CouponService.DeleteCoupon:input_type -> tanvo.coupon.v1.DeleteCouponRequest
-	18, // 35: tanvo.coupon.v1.CouponService.ApplyCoupon:input_type -> tanvo.coupon.v1.ApplyCouponRequest
-	20, // 36: tanvo.coupon.v1.CouponService.GetAppliedCoupon:input_type -> tanvo.coupon.v1.GetAppliedCouponRequest
-	22, // 37: tanvo.coupon.v1.CouponService.ListAppliedCoupons:input_type -> tanvo.coupon.v1.ListAppliedCouponsRequest
-	24, // 38: tanvo.coupon.v1.CouponService.TerminateAppliedCoupon:input_type -> tanvo.coupon.v1.TerminateAppliedCouponRequest
-	7,  // 39: tanvo.coupon.v1.CouponService.CreateCoupon:output_type -> tanvo.coupon.v1.CreateCouponResponse
-	9,  // 40: tanvo.coupon.v1.CouponService.GetCoupon:output_type -> tanvo.coupon.v1.GetCouponResponse
-	11, // 41: tanvo.coupon.v1.CouponService.ListCoupons:output_type -> tanvo.coupon.v1.ListCouponsResponse
-	13, // 42: tanvo.coupon.v1.CouponService.UpdateCoupon:output_type -> tanvo.coupon.v1.UpdateCouponResponse
-	15, // 43: tanvo.coupon.v1.CouponService.TerminateCoupon:output_type -> tanvo.coupon.v1.TerminateCouponResponse
-	17, // 44: tanvo.coupon.v1.CouponService.DeleteCoupon:output_type -> tanvo.coupon.v1.DeleteCouponResponse
-	19, // 45: tanvo.coupon.v1.CouponService.ApplyCoupon:output_type -> tanvo.coupon.v1.ApplyCouponResponse
-	21, // 46: tanvo.coupon.v1.CouponService.GetAppliedCoupon:output_type -> tanvo.coupon.v1.GetAppliedCouponResponse
-	23, // 47: tanvo.coupon.v1.CouponService.ListAppliedCoupons:output_type -> tanvo.coupon.v1.ListAppliedCouponsResponse
-	25, // 48: tanvo.coupon.v1.CouponService.TerminateAppliedCoupon:output_type -> tanvo.coupon.v1.TerminateAppliedCouponResponse
-	39, // [39:49] is the sub-list for method output_type
-	29, // [29:39] is the sub-list for method input_type
-	29, // [29:29] is the sub-list for extension type_name
-	29, // [29:29] is the sub-list for extension extendee
-	0,  // [0:29] is the sub-list for field type_name
+	28, // 13: tanvo.coupon.v1.AppliedCoupon.terminated_at:type_name -> google.protobuf.Timestamp
+	28, // 14: tanvo.coupon.v1.AppliedCoupon.created_at:type_name -> google.protobuf.Timestamp
+	28, // 15: tanvo.coupon.v1.AppliedCoupon.updated_at:type_name -> google.protobuf.Timestamp
+	3,  // 16: tanvo.coupon.v1.AppliedCoupon.coupon_status:type_name -> tanvo.coupon.v1.CouponStatus
+	28, // 17: tanvo.coupon.v1.AppliedCoupon.coupon_deleted_at:type_name -> google.protobuf.Timestamp
+	28, // 18: tanvo.coupon.v1.AppliedCoupon.expiration_at:type_name -> google.protobuf.Timestamp
+	6,  // 19: tanvo.coupon.v1.AppliedCoupon.credits:type_name -> tanvo.coupon.v1.AppliedCouponCredit
+	27, // 20: tanvo.coupon.v1.AppliedCouponCredit.amount:type_name -> tanvo.common.v1.Money
+	29, // 21: tanvo.coupon.v1.AppliedCouponCredit.invoice_payment_status:type_name -> tanvo.common.v1.PaymentStatus
+	4,  // 22: tanvo.coupon.v1.CreateCouponRequest.coupon:type_name -> tanvo.coupon.v1.Coupon
+	4,  // 23: tanvo.coupon.v1.CreateCouponResponse.coupon:type_name -> tanvo.coupon.v1.Coupon
+	4,  // 24: tanvo.coupon.v1.GetCouponResponse.coupon:type_name -> tanvo.coupon.v1.Coupon
+	4,  // 25: tanvo.coupon.v1.ListCouponsResponse.coupons:type_name -> tanvo.coupon.v1.Coupon
+	4,  // 26: tanvo.coupon.v1.UpdateCouponRequest.coupon:type_name -> tanvo.coupon.v1.Coupon
+	30, // 27: tanvo.coupon.v1.UpdateCouponRequest.update_mask:type_name -> google.protobuf.FieldMask
+	4,  // 28: tanvo.coupon.v1.UpdateCouponResponse.coupon:type_name -> tanvo.coupon.v1.Coupon
+	4,  // 29: tanvo.coupon.v1.TerminateCouponResponse.coupon:type_name -> tanvo.coupon.v1.Coupon
+	4,  // 30: tanvo.coupon.v1.DeleteCouponResponse.coupon:type_name -> tanvo.coupon.v1.Coupon
+	5,  // 31: tanvo.coupon.v1.ApplyCouponRequest.applied_coupon:type_name -> tanvo.coupon.v1.AppliedCoupon
+	5,  // 32: tanvo.coupon.v1.ApplyCouponResponse.applied_coupon:type_name -> tanvo.coupon.v1.AppliedCoupon
+	5,  // 33: tanvo.coupon.v1.GetAppliedCouponResponse.applied_coupon:type_name -> tanvo.coupon.v1.AppliedCoupon
+	5,  // 34: tanvo.coupon.v1.ListAppliedCouponsResponse.applied_coupons:type_name -> tanvo.coupon.v1.AppliedCoupon
+	5,  // 35: tanvo.coupon.v1.TerminateAppliedCouponResponse.applied_coupon:type_name -> tanvo.coupon.v1.AppliedCoupon
+	7,  // 36: tanvo.coupon.v1.CouponService.CreateCoupon:input_type -> tanvo.coupon.v1.CreateCouponRequest
+	9,  // 37: tanvo.coupon.v1.CouponService.GetCoupon:input_type -> tanvo.coupon.v1.GetCouponRequest
+	11, // 38: tanvo.coupon.v1.CouponService.ListCoupons:input_type -> tanvo.coupon.v1.ListCouponsRequest
+	13, // 39: tanvo.coupon.v1.CouponService.UpdateCoupon:input_type -> tanvo.coupon.v1.UpdateCouponRequest
+	15, // 40: tanvo.coupon.v1.CouponService.TerminateCoupon:input_type -> tanvo.coupon.v1.TerminateCouponRequest
+	17, // 41: tanvo.coupon.v1.CouponService.DeleteCoupon:input_type -> tanvo.coupon.v1.DeleteCouponRequest
+	19, // 42: tanvo.coupon.v1.CouponService.ApplyCoupon:input_type -> tanvo.coupon.v1.ApplyCouponRequest
+	21, // 43: tanvo.coupon.v1.CouponService.GetAppliedCoupon:input_type -> tanvo.coupon.v1.GetAppliedCouponRequest
+	23, // 44: tanvo.coupon.v1.CouponService.ListAppliedCoupons:input_type -> tanvo.coupon.v1.ListAppliedCouponsRequest
+	25, // 45: tanvo.coupon.v1.CouponService.TerminateAppliedCoupon:input_type -> tanvo.coupon.v1.TerminateAppliedCouponRequest
+	8,  // 46: tanvo.coupon.v1.CouponService.CreateCoupon:output_type -> tanvo.coupon.v1.CreateCouponResponse
+	10, // 47: tanvo.coupon.v1.CouponService.GetCoupon:output_type -> tanvo.coupon.v1.GetCouponResponse
+	12, // 48: tanvo.coupon.v1.CouponService.ListCoupons:output_type -> tanvo.coupon.v1.ListCouponsResponse
+	14, // 49: tanvo.coupon.v1.CouponService.UpdateCoupon:output_type -> tanvo.coupon.v1.UpdateCouponResponse
+	16, // 50: tanvo.coupon.v1.CouponService.TerminateCoupon:output_type -> tanvo.coupon.v1.TerminateCouponResponse
+	18, // 51: tanvo.coupon.v1.CouponService.DeleteCoupon:output_type -> tanvo.coupon.v1.DeleteCouponResponse
+	20, // 52: tanvo.coupon.v1.CouponService.ApplyCoupon:output_type -> tanvo.coupon.v1.ApplyCouponResponse
+	22, // 53: tanvo.coupon.v1.CouponService.GetAppliedCoupon:output_type -> tanvo.coupon.v1.GetAppliedCouponResponse
+	24, // 54: tanvo.coupon.v1.CouponService.ListAppliedCoupons:output_type -> tanvo.coupon.v1.ListAppliedCouponsResponse
+	26, // 55: tanvo.coupon.v1.CouponService.TerminateAppliedCoupon:output_type -> tanvo.coupon.v1.TerminateAppliedCouponResponse
+	46, // [46:56] is the sub-list for method output_type
+	36, // [36:46] is the sub-list for method input_type
+	36, // [36:36] is the sub-list for extension type_name
+	36, // [36:36] is the sub-list for extension extendee
+	0,  // [0:36] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_coupon_v1_coupon_proto_init() }
@@ -3221,7 +3816,7 @@ func file_tanvo_coupon_v1_coupon_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_coupon_v1_coupon_proto_rawDesc), len(file_tanvo_coupon_v1_coupon_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   22,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

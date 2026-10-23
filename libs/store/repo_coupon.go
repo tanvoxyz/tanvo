@@ -42,6 +42,7 @@ func couponParams(c *coupon.Coupon) db.CreateCouponParams {
 		ExpirationAt:      optUTC(c.ExpirationAt),
 		Status:            string(c.Status),
 		TerminatedAt:      optUTC(c.TerminatedAt),
+		DeletedAt:         optUTC(c.DeletedAt),
 		CreatedAt:         utc(c.CreatedAt),
 		UpdatedAt:         utc(c.UpdatedAt),
 	}
@@ -90,6 +91,7 @@ func couponOf(row couponRow) (*coupon.Coupon, error) {
 		LimitedBillableMetricIDs: idsOf[core.BillableMetricID](row.BillableMetricIds),
 		Status:                   coupon.Status(r.Status),
 		TerminatedAt:             optUTC(r.TerminatedAt),
+		DeletedAt:                optUTC(r.DeletedAt),
 		CreatedAt:                utc(r.CreatedAt),
 		UpdatedAt:                utc(r.UpdatedAt),
 	}, nil
@@ -151,7 +153,7 @@ func (r couponRepo) Update(ctx context.Context, c *coupon.Coupon) error {
 		return err
 	}
 	p := couponParams(c)
-	// The code is unique among active coupons: guard the update so that a
+	// The code is unique among the coupons that are not deleted: guard the update so that a
 	// conflict keeps the transaction usable.
 	var n int64
 	err = r.t.guard(ctx, func() error {
@@ -194,23 +196,58 @@ func (r couponRepo) List(ctx context.Context, org core.OrganizationID, f coupon.
 	if err != nil {
 		return core.Page[*coupon.Coupon]{}, err
 	}
-	after, lim, err := pageArgs(page)
-	if err != nil {
-		return core.Page[*coupon.Coupon]{}, err
+	if !f.Order.Valid() {
+		return core.Page[*coupon.Coupon]{}, fmt.Errorf("list coupons: %w: order", core.ErrInvalidValue)
 	}
+	recent := f.Order == core.OrderRecent
 	var search *string
 	if f.Search != "" {
 		search = new(likePattern(f.Search))
 	}
-	rows, err := q.ListCoupons(ctx, db.ListCouponsParams{
-		OrganizationID: org.UUID(), Status: optString(string(f.Status)), Search: search, After: after, Lim: lim,
-	})
+	p := db.ListCouponsParams{OrganizationID: org.UUID(), Status: optString(string(f.Status)), Search: search, Recent: recent}
+	if recent {
+		err = couponCursorArgs(page, &p)
+	} else {
+		p.After, p.Lim, err = pageArgs(page)
+	}
+	if err != nil {
+		return core.Page[*coupon.Coupon]{}, err
+	}
+	rows, err := q.ListCoupons(ctx, p)
 	if err != nil {
 		return core.Page[*coupon.Coupon]{}, fmt.Errorf("list coupons: %w", mapErr(err))
 	}
 	return pageOf(rows, page,
 		func(r db.ListCouponsRow) (*coupon.Coupon, error) { return couponOf(couponRow(r)) },
-		func(c *coupon.Coupon) string { return c.ID.String() })
+		func(c *coupon.Coupon) string {
+			if recent {
+				return core.Cursor{Key: coupon.PositionOf(c).Key(), ID: c.ID.UUID()}.Encode()
+			}
+			return c.ID.String()
+		})
+}
+
+// couponCursorArgs sets the cursor and row limit of a coupon list in the
+// core.OrderRecent order.
+func couponCursorArgs(page core.PageRequest, p *db.ListCouponsParams) error {
+	p.Lim = int32(page.Limit()) + 1 // Limit is at most core.MaxPageSize
+	if page.Token == "" {
+		return nil
+	}
+	c, err := core.DecodeCursor(page.Token)
+	if err != nil {
+		return err
+	}
+	pos, err := coupon.ParseRecentPosition(c.Key)
+	if err != nil {
+		return err
+	}
+	p.After = &c.ID
+	p.AfterStatus = new(string(pos.Status))
+	p.AfterExpiration = new(string(pos.Expiration))
+	p.AfterExpirationAt = optUTC(pos.ExpirationAt)
+	p.AfterAt = new(utc(pos.CreatedAt))
+	return nil
 }
 
 // ListExpired is not organization-scoped: the termination job scans every
@@ -366,7 +403,20 @@ func (r appliedCouponRepo) List(ctx context.Context, org core.OrganizationID, f 
 	if err != nil {
 		return core.Page[*coupon.AppliedCoupon]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	if !f.Order.Valid() {
+		return core.Page[*coupon.AppliedCoupon]{}, fmt.Errorf("list applied coupons: %w: order", core.ErrInvalidValue)
+	}
+	recent := f.Order == core.OrderRecent
+	var (
+		after   *uuid.UUID
+		afterAt *time.Time
+		lim     int32
+	)
+	if recent {
+		after, afterAt, lim, err = timeCursorArgs(page)
+	} else {
+		after, lim, err = pageArgs(page)
+	}
 	if err != nil {
 		return core.Page[*coupon.AppliedCoupon]{}, err
 	}
@@ -375,11 +425,21 @@ func (r appliedCouponRepo) List(ctx context.Context, org core.OrganizationID, f 
 		CustomerID:     optUUID(f.CustomerID),
 		CouponID:       optUUID(f.CouponID),
 		Status:         optString(string(f.Status)),
+		CouponIds:      uuids(f.CouponIDs),
+		CouponCodes:    nonNil(f.CouponCodes),
+		KeptCustomers:  f.KeptCustomers,
 		After:          after,
+		Recent:         recent,
+		AfterAt:        afterAt,
 		Lim:            lim,
 	})
 	if err != nil {
 		return core.Page[*coupon.AppliedCoupon]{}, fmt.Errorf("list applied coupons: %w", mapErr(err))
 	}
-	return pageOf(rows, page, appliedCouponOf, func(a *coupon.AppliedCoupon) string { return a.ID.String() })
+	return pageOf(rows, page, appliedCouponOf, func(a *coupon.AppliedCoupon) string {
+		if recent {
+			return core.Cursor{Key: a.CreatedAt.UTC().Format(time.RFC3339Nano), ID: a.ID.UUID()}.Encode()
+		}
+		return a.ID.String()
+	})
 }

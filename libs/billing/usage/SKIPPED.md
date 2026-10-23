@@ -10,7 +10,9 @@ Cases of the lago specs listed in the porting brief that are not ported to `usag
 | 85 | Does not query adjusted fees | Covered by `fees.Options.SkipAdjustedFees`, set unconditionally. |
 | 187–416 | Tax provider integration (single line item per grouped charge, non-taxable fees excluded, rate dilution, provider error) | Owned by `kernel.TaxResolver.Compute` and the tax provider; usage only passes the in-memory invoice with `Draft: true`. |
 | 533–600 | `filter_by_charge_code`, `filter_by_group` | Only `ChargeIDs` filtering is offered; the API layer resolves codes to IDs. Group filtering is not ported (lago UsageFilters). |
-| 609–839 | `full_usage` (granular lifetime usage, premium) | Not ported: the full-usage window needs the granular lifetime usage feature, which Tanvo has no organization flag for. |
+| 620–638 | `full_usage` without the granular lifetime usage integration | Tanvo has no premium gates (domain §4.1): `Options.FullUsage` is allowed whenever the charge filter and the proration rules allow it (ported in `full_test.go`). |
+| 674–694 | `full_usage` with `filter_by_charge_code` | Only `ChargeIDs` filtering is offered. |
+| 784–839 | `full_usage` cache entries | No charge cache in usage (see the cache row). |
 | 851–884 | `skip_grouping` | Not ported (presentation filter of lago UsageFilters). |
 | 1071–1600 | Usage buckets vs events store (ClickHouse) | Belongs to the metering store; usage reads `kernel.Deps.Events` like the fees package. |
 
@@ -26,7 +28,7 @@ Cases of the lago specs listed in the porting brief that are not ported to `usag
 
 ## spec/services/usage_monitoring/**
 
-All files test alerts (create/update/destroy, process alert, wallet and lifetime alerts, subscription activity tracking). Alerts are out of the `usage` scope (thresholds only); none of these 169 examples is ported here.
+All files test alerts (create/update/destroy, process alert, wallet and lifetime alerts, subscription activity tracking). Alerts are out of the `usage` scope (thresholds only); they are ported, where billing evaluates them, in libs/billing (`scenarios_monitoring_test.go`, `scenarios_alerts_test.go`, `scenarios_alerts_wallets_test.go`).
 
 ## spec/services/usage_thresholds/**
 

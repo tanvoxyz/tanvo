@@ -18,8 +18,10 @@ type subscriptionData struct {
 	subscriptions          *table[core.SubscriptionID, subscription.Subscription]
 	activationRules        *table[core.ActivationRuleID, subscription.ActivationRule]
 	fixedChargeEvents      *table[core.FixedChargeEventID, subscription.FixedChargeEvent]
+	unitsOverrides         *table[core.FixedChargeUnitsOverrideID, subscription.FixedChargeUnitsOverride]
 	appliedUsageThresholds *table[core.AppliedUsageThresholdID, subscription.AppliedUsageThreshold]
 	lifetimeUsages         *table[core.LifetimeUsageID, subscription.LifetimeUsage]
+	dailyUsages            *table[core.DailyUsageID, subscription.DailyUsage]
 }
 
 func newSubscriptionData() *subscriptionData {
@@ -30,8 +32,10 @@ func newSubscriptionData() *subscriptionData {
 		}),
 		activationRules:        newTable[core.ActivationRuleID, subscription.ActivationRule](nil),
 		fixedChargeEvents:      newTable[core.FixedChargeEventID, subscription.FixedChargeEvent](nil),
+		unitsOverrides:         newTable[core.FixedChargeUnitsOverrideID](cloneUnitsOverride),
 		appliedUsageThresholds: newTable[core.AppliedUsageThresholdID, subscription.AppliedUsageThreshold](nil),
 		lifetimeUsages:         newTable[core.LifetimeUsageID, subscription.LifetimeUsage](nil),
+		dailyUsages:            newTable[core.DailyUsageID](cloneDailyUsage),
 	}
 }
 
@@ -40,8 +44,10 @@ func (d *subscriptionData) snapshot() *subscriptionData {
 		subscriptions:          d.subscriptions.snapshot(),
 		activationRules:        d.activationRules.snapshot(),
 		fixedChargeEvents:      d.fixedChargeEvents.snapshot(),
+		unitsOverrides:         d.unitsOverrides.snapshot(),
 		appliedUsageThresholds: d.appliedUsageThresholds.snapshot(),
 		lifetimeUsages:         d.lifetimeUsages.snapshot(),
+		dailyUsages:            d.dailyUsages.snapshot(),
 	}
 }
 
@@ -72,7 +78,9 @@ func (r subscriptionRepo) Create(_ context.Context, s *subscription.Subscription
 	if err := r.checkExternalID(s); err != nil {
 		return err
 	}
-	r.d.subscriptions.put(s.ID, *s)
+	stored := *s
+	stored.LastReceivedEventOn = nil
+	r.d.subscriptions.put(s.ID, stored)
 	return nil
 }
 
@@ -84,7 +92,9 @@ func (r subscriptionRepo) Update(_ context.Context, s *subscription.Subscription
 	if err := r.checkExternalID(s); err != nil {
 		return err
 	}
-	r.d.subscriptions.put(s.ID, *s)
+	stored := *s
+	stored.LastReceivedEventOn = cur.LastReceivedEventOn
+	r.d.subscriptions.put(s.ID, stored)
 	return nil
 }
 
@@ -463,7 +473,7 @@ func (r lifetimeUsageRepo) Upsert(_ context.Context, l *subscription.LifetimeUsa
 
 func (r lifetimeUsageRepo) ListToRecalculate(_ context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*subscription.LifetimeUsage], error) {
 	rows := r.d.lifetimeUsages.find(func(x *subscription.LifetimeUsage) bool {
-		return x.OrganizationID == org && (x.RecalculateInvoicedUsage || x.RecalculateCurrentUsage)
+		return x.OrganizationID == org && x.RecalculateInvoicedUsage
 	})
 	return paginate(rows, func(x *subscription.LifetimeUsage) core.LifetimeUsageID { return x.ID }, page)
 }

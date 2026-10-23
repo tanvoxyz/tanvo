@@ -591,6 +591,7 @@ type ListPricingUnitsRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_PageSize    int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize"`
 	xxx_hidden_PageToken   *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken"`
+	xxx_hidden_Search      *string                `protobuf:"bytes,3,opt,name=search"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -639,14 +640,29 @@ func (x *ListPricingUnitsRequest) GetPageToken() string {
 	return ""
 }
 
+func (x *ListPricingUnitsRequest) GetSearch() string {
+	if x != nil {
+		if x.xxx_hidden_Search != nil {
+			return *x.xxx_hidden_Search
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *ListPricingUnitsRequest) SetPageSize(v int32) {
 	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
 func (x *ListPricingUnitsRequest) SetPageToken(v string) {
 	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *ListPricingUnitsRequest) SetSearch(v string) {
+	x.xxx_hidden_Search = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
 func (x *ListPricingUnitsRequest) HasPageSize() bool {
@@ -663,6 +679,13 @@ func (x *ListPricingUnitsRequest) HasPageToken() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
+func (x *ListPricingUnitsRequest) HasSearch() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
 func (x *ListPricingUnitsRequest) ClearPageSize() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_PageSize = 0
@@ -673,6 +696,11 @@ func (x *ListPricingUnitsRequest) ClearPageToken() {
 	x.xxx_hidden_PageToken = nil
 }
 
+func (x *ListPricingUnitsRequest) ClearSearch() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Search = nil
+}
+
 type ListPricingUnitsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -680,6 +708,8 @@ type ListPricingUnitsRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
+	// A search over the name and code.
+	Search *string
 }
 
 func (b0 ListPricingUnitsRequest_builder) Build() *ListPricingUnitsRequest {
@@ -687,12 +717,16 @@ func (b0 ListPricingUnitsRequest_builder) Build() *ListPricingUnitsRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_PageSize = *b.PageSize
 	}
 	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
 		x.xxx_hidden_PageToken = b.PageToken
+	}
+	if b.Search != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_Search = b.Search
 	}
 	return m0
 }
@@ -988,12 +1022,13 @@ const file_tanvo_catalog_v1_pricing_unit_proto_rawDesc = "" +
 	"\x0fpricing_unit_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\rpricingUnitId\"Z\n" +
 	"\x16GetPricingUnitResponse\x12@\n" +
-	"\fpricing_unit\x18\x01 \x01(\v2\x1d.tanvo.catalog.v1.PricingUnitR\vpricingUnit\"k\n" +
+	"\fpricing_unit\x18\x01 \x01(\v2\x1d.tanvo.catalog.v1.PricingUnitR\vpricingUnit\"\x8d\x01\n" +
 	"\x17ListPricingUnitsRequest\x12'\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\n" +
 	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x86\x01\n" +
+	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12 \n" +
+	"\x06search\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x06search\"\x86\x01\n" +
 	"\x18ListPricingUnitsResponse\x12B\n" +
 	"\rpricing_units\x18\x01 \x03(\v2\x1d.tanvo.catalog.v1.PricingUnitR\fpricingUnits\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xf5\x01\n" +

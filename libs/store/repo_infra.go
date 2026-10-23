@@ -97,6 +97,17 @@ func (j jobEnqueuer) Enqueue(ctx context.Context, jobs ...port.Job) error {
 	return nil
 }
 
+// QueueNow returns clock_timestamp(), the clock the job queue schedules
+// by, so that callers place unique keys by the queue's clock
+// ([port.QueueClock]).
+func (j jobEnqueuer) QueueNow(ctx context.Context) (time.Time, error) {
+	var at time.Time
+	if err := j.t.tx.QueryRow(ctx, "SELECT clock_timestamp()").Scan(&at); err != nil {
+		return time.Time{}, fmt.Errorf("queue clock: %w", mapErr(err))
+	}
+	return at.UTC(), nil
+}
+
 func jobOf(r db.JobOutbox) port.Job {
 	j := port.Job{
 		Kind:           r.Kind,

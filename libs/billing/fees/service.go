@@ -68,6 +68,11 @@ type Options struct {
 	// Cache returns the cached aggregations of a scope; nil means none are
 	// kept.
 	Cache func(sc event.CachedAggregationScope) metering.CachedAggregations
+	// MaxTimestamp, when set, caps the events read at that instant
+	// (inclusive): the end of the day of a daily usage history fill (lago
+	// BillingPeriodBoundaries#max_timestamp,
+	// app/services/invoices/customer_usage_service.rb:141-148).
+	MaxTimestamp time.Time
 }
 
 // CachedAggregation is a running aggregation state to store after a fee

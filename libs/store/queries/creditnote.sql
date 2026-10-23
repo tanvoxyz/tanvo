@@ -130,7 +130,7 @@ SELECT i.fee_id, SUM(i.amount)::bigint AS amount
 FROM credit_note_items i
 JOIN credit_notes c ON c.organization_id = i.organization_id AND c.id = i.credit_note_id
 WHERE i.organization_id = @organization_id AND i.fee_id = ANY(@fee_ids::uuid[])
-  AND c.credit_status IS DISTINCT FROM 'voided'
+  AND c.credit_status IS DISTINCT FROM 'voided' AND c.status <> 'deleted'
 GROUP BY i.fee_id;
 
 -- name: MaxCreditNoteSequentialID :one

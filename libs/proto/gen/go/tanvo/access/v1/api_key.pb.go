@@ -669,7 +669,8 @@ type ApiKey_builder struct {
 	Prefix *string
 	// The granted resources; empty grants write access to every resource.
 	Grants []*ApiKeyGrant
-	// When the key stops working; unset keys never expire.
+	// When the key stops working; unset keys never expire. Set by
+	// RotateApiKey on the replaced key.
 	ExpiresAt *timestamppb.Timestamp
 	// When the key was last used, to the hour.
 	LastUsedAt *timestamppb.Timestamp
@@ -1515,11 +1516,10 @@ func (b0 RotateApiKeyRequest_builder) Build() *RotateApiKeyRequest {
 
 // RotateApiKeyResponse is the response of ApiKeyService.RotateApiKey.
 type RotateApiKeyResponse struct {
-	state                     protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_ApiKey         *ApiKey                `protobuf:"bytes,1,opt,name=api_key,json=apiKey"`
-	xxx_hidden_PreviousApiKey *ApiKey                `protobuf:"bytes,2,opt,name=previous_api_key,json=previousApiKey"`
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ApiKey *ApiKey                `protobuf:"bytes,1,opt,name=api_key,json=apiKey"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *RotateApiKeyResponse) Reset() {
@@ -1554,19 +1554,8 @@ func (x *RotateApiKeyResponse) GetApiKey() *ApiKey {
 	return nil
 }
 
-func (x *RotateApiKeyResponse) GetPreviousApiKey() *ApiKey {
-	if x != nil {
-		return x.xxx_hidden_PreviousApiKey
-	}
-	return nil
-}
-
 func (x *RotateApiKeyResponse) SetApiKey(v *ApiKey) {
 	x.xxx_hidden_ApiKey = v
-}
-
-func (x *RotateApiKeyResponse) SetPreviousApiKey(v *ApiKey) {
-	x.xxx_hidden_PreviousApiKey = v
 }
 
 func (x *RotateApiKeyResponse) HasApiKey() bool {
@@ -1576,19 +1565,8 @@ func (x *RotateApiKeyResponse) HasApiKey() bool {
 	return x.xxx_hidden_ApiKey != nil
 }
 
-func (x *RotateApiKeyResponse) HasPreviousApiKey() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_PreviousApiKey != nil
-}
-
 func (x *RotateApiKeyResponse) ClearApiKey() {
 	x.xxx_hidden_ApiKey = nil
-}
-
-func (x *RotateApiKeyResponse) ClearPreviousApiKey() {
-	x.xxx_hidden_PreviousApiKey = nil
 }
 
 type RotateApiKeyResponse_builder struct {
@@ -1596,8 +1574,6 @@ type RotateApiKeyResponse_builder struct {
 
 	// The new key, with its secret.
 	ApiKey *ApiKey
-	// The old key, with its new expiry.
-	PreviousApiKey *ApiKey
 }
 
 func (b0 RotateApiKeyResponse_builder) Build() *RotateApiKeyResponse {
@@ -1605,7 +1581,6 @@ func (b0 RotateApiKeyResponse_builder) Build() *RotateApiKeyResponse {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_ApiKey = b.ApiKey
-	x.xxx_hidden_PreviousApiKey = b.PreviousApiKey
 	return m0
 }
 
@@ -1740,15 +1715,15 @@ const file_tanvo_access_v1_api_key_proto_rawDesc = "" +
 	"\x1dtanvo/access/v1/api_key.proto\x12\x0ftanvo.access.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x1egoogle/protobuf/duration.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\"\xa0\x01\n" +
 	"\vApiKeyGrant\x12I\n" +
 	"\bresource\x18\x01 \x01(\x0e2\x1c.tanvo.access.v1.ApiResourceB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01\x82\x01\x02\x10\x01R\bresource\x12F\n" +
-	"\x05level\x18\x02 \x01(\x0e2\x1f.tanvo.access.v1.ApiAccessLevelB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01\x82\x01\x02\x10\x01R\x05level\"\xf5\x03\n" +
+	"\x05level\x18\x02 \x01(\x0e2\x1f.tanvo.access.v1.ApiAccessLevelB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01\x82\x01\x02\x10\x01R\x05level\"\xfb\x03\n" +
 	"\x06ApiKey\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\x1c\n" +
 	"\x04name\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x04name\x12\x1c\n" +
 	"\x06secret\x18\x03 \x01(\tB\x04\xe2A\x01\x03R\x06secret\x12\x1c\n" +
 	"\x06prefix\x18\x04 \x01(\tB\x04\xe2A\x01\x03R\x06prefix\x12>\n" +
-	"\x06grants\x18\x05 \x03(\v2\x1c.tanvo.access.v1.ApiKeyGrantB\b\xbaH\x05\x92\x01\x02\x10@R\x06grants\x129\n" +
+	"\x06grants\x18\x05 \x03(\v2\x1c.tanvo.access.v1.ApiKeyGrantB\b\xbaH\x05\x92\x01\x02\x10@R\x06grants\x12?\n" +
 	"\n" +
-	"expires_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12B\n" +
+	"expires_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\texpiresAt\x12B\n" +
 	"\flast_used_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\n" +
 	"lastUsedAt\x12?\n" +
 	"\n" +
@@ -1787,10 +1762,9 @@ const file_tanvo_access_v1_api_key_proto_rawDesc = "" +
 	"\n" +
 	"api_key_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\bapiKeyId\x12D\n" +
 	"\aoverlap\x18\x02 \x01(\v2\x19.google.protobuf.DurationB\x0f\xbaH\f\xaa\x01\t\"\x05\b\x80\x9a\x9e\x012\x00R\aoverlap\x12\x1c\n" +
-	"\x04name\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x04name\"\x8b\x01\n" +
+	"\x04name\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x04name\"H\n" +
 	"\x14RotateApiKeyResponse\x120\n" +
-	"\aapi_key\x18\x01 \x01(\v2\x17.tanvo.access.v1.ApiKeyR\x06apiKey\x12A\n" +
-	"\x10previous_api_key\x18\x02 \x01(\v2\x17.tanvo.access.v1.ApiKeyR\x0epreviousApiKey\"D\n" +
+	"\aapi_key\x18\x01 \x01(\v2\x17.tanvo.access.v1.ApiKeyR\x06apiKey\"D\n" +
 	"\x13DeleteApiKeyRequest\x12-\n" +
 	"\n" +
 	"api_key_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\bapiKeyId\"\x16\n" +
@@ -1901,24 +1875,23 @@ var file_tanvo_access_v1_api_key_proto_depIdxs = []int32{
 	3,  // 13: tanvo.access.v1.UpdateApiKeyResponse.api_key:type_name -> tanvo.access.v1.ApiKey
 	18, // 14: tanvo.access.v1.RotateApiKeyRequest.overlap:type_name -> google.protobuf.Duration
 	3,  // 15: tanvo.access.v1.RotateApiKeyResponse.api_key:type_name -> tanvo.access.v1.ApiKey
-	3,  // 16: tanvo.access.v1.RotateApiKeyResponse.previous_api_key:type_name -> tanvo.access.v1.ApiKey
-	4,  // 17: tanvo.access.v1.ApiKeyService.CreateApiKey:input_type -> tanvo.access.v1.CreateApiKeyRequest
-	6,  // 18: tanvo.access.v1.ApiKeyService.GetApiKey:input_type -> tanvo.access.v1.GetApiKeyRequest
-	8,  // 19: tanvo.access.v1.ApiKeyService.ListApiKeys:input_type -> tanvo.access.v1.ListApiKeysRequest
-	10, // 20: tanvo.access.v1.ApiKeyService.UpdateApiKey:input_type -> tanvo.access.v1.UpdateApiKeyRequest
-	12, // 21: tanvo.access.v1.ApiKeyService.RotateApiKey:input_type -> tanvo.access.v1.RotateApiKeyRequest
-	14, // 22: tanvo.access.v1.ApiKeyService.DeleteApiKey:input_type -> tanvo.access.v1.DeleteApiKeyRequest
-	5,  // 23: tanvo.access.v1.ApiKeyService.CreateApiKey:output_type -> tanvo.access.v1.CreateApiKeyResponse
-	7,  // 24: tanvo.access.v1.ApiKeyService.GetApiKey:output_type -> tanvo.access.v1.GetApiKeyResponse
-	9,  // 25: tanvo.access.v1.ApiKeyService.ListApiKeys:output_type -> tanvo.access.v1.ListApiKeysResponse
-	11, // 26: tanvo.access.v1.ApiKeyService.UpdateApiKey:output_type -> tanvo.access.v1.UpdateApiKeyResponse
-	13, // 27: tanvo.access.v1.ApiKeyService.RotateApiKey:output_type -> tanvo.access.v1.RotateApiKeyResponse
-	15, // 28: tanvo.access.v1.ApiKeyService.DeleteApiKey:output_type -> tanvo.access.v1.DeleteApiKeyResponse
-	23, // [23:29] is the sub-list for method output_type
-	17, // [17:23] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	4,  // 16: tanvo.access.v1.ApiKeyService.CreateApiKey:input_type -> tanvo.access.v1.CreateApiKeyRequest
+	6,  // 17: tanvo.access.v1.ApiKeyService.GetApiKey:input_type -> tanvo.access.v1.GetApiKeyRequest
+	8,  // 18: tanvo.access.v1.ApiKeyService.ListApiKeys:input_type -> tanvo.access.v1.ListApiKeysRequest
+	10, // 19: tanvo.access.v1.ApiKeyService.UpdateApiKey:input_type -> tanvo.access.v1.UpdateApiKeyRequest
+	12, // 20: tanvo.access.v1.ApiKeyService.RotateApiKey:input_type -> tanvo.access.v1.RotateApiKeyRequest
+	14, // 21: tanvo.access.v1.ApiKeyService.DeleteApiKey:input_type -> tanvo.access.v1.DeleteApiKeyRequest
+	5,  // 22: tanvo.access.v1.ApiKeyService.CreateApiKey:output_type -> tanvo.access.v1.CreateApiKeyResponse
+	7,  // 23: tanvo.access.v1.ApiKeyService.GetApiKey:output_type -> tanvo.access.v1.GetApiKeyResponse
+	9,  // 24: tanvo.access.v1.ApiKeyService.ListApiKeys:output_type -> tanvo.access.v1.ListApiKeysResponse
+	11, // 25: tanvo.access.v1.ApiKeyService.UpdateApiKey:output_type -> tanvo.access.v1.UpdateApiKeyResponse
+	13, // 26: tanvo.access.v1.ApiKeyService.RotateApiKey:output_type -> tanvo.access.v1.RotateApiKeyResponse
+	15, // 27: tanvo.access.v1.ApiKeyService.DeleteApiKey:output_type -> tanvo.access.v1.DeleteApiKeyResponse
+	22, // [22:28] is the sub-list for method output_type
+	16, // [16:22] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_access_v1_api_key_proto_init() }

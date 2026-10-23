@@ -110,23 +110,6 @@ func (q *Queries) CreateTriggeredAlert(ctx context.Context, arg CreateTriggeredA
 	return result.RowsAffected(), nil
 }
 
-const deleteAlert = `-- name: DeleteAlert :execrows
-DELETE FROM alerts WHERE organization_id = $1 AND id = $2
-`
-
-type DeleteAlertParams struct {
-	OrganizationID uuid.UUID
-	ID             uuid.UUID
-}
-
-func (q *Queries) DeleteAlert(ctx context.Context, arg DeleteAlertParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteAlert, arg.OrganizationID, arg.ID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
 const deleteAlertThresholds = `-- name: DeleteAlertThresholds :exec
 DELETE FROM alert_thresholds WHERE organization_id = $1 AND alert_id = $2
 `
@@ -141,8 +124,50 @@ func (q *Queries) DeleteAlertThresholds(ctx context.Context, arg DeleteAlertThre
 	return err
 }
 
+const discardAlert = `-- name: DiscardAlert :execrows
+UPDATE alerts SET deleted_at = $1, updated_at = $1
+WHERE organization_id = $2 AND id = $3 AND deleted_at IS NULL
+`
+
+type DiscardAlertParams struct {
+	DeletedAt      *time.Time
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+}
+
+// Soft-deletes a kept alert (lago alert.discard!, destroy_alert_service.rb:17);
+// the caller deletes its thresholds first.
+func (q *Queries) DiscardAlert(ctx context.Context, arg DiscardAlertParams) (int64, error) {
+	result, err := q.db.Exec(ctx, discardAlert, arg.DeletedAt, arg.OrganizationID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const discardAlertsByBillableMetric = `-- name: DiscardAlertsByBillableMetric :execrows
+UPDATE alerts SET deleted_at = $1, updated_at = $1
+WHERE organization_id = $2 AND billable_metric_id = $3 AND deleted_at IS NULL
+`
+
+type DiscardAlertsByBillableMetricParams struct {
+	DeletedAt        *time.Time
+	OrganizationID   uuid.UUID
+	BillableMetricID *uuid.UUID
+}
+
+// Soft-deletes the kept alerts watching a metric, keeping their thresholds
+// (lago metric.alerts.update_all(deleted_at:), billable_metrics/destroy_service.rb:35).
+func (q *Queries) DiscardAlertsByBillableMetric(ctx context.Context, arg DiscardAlertsByBillableMetricParams) (int64, error) {
+	result, err := q.db.Exec(ctx, discardAlertsByBillableMetric, arg.DeletedAt, arg.OrganizationID, arg.BillableMetricID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getAlert = `-- name: GetAlert :one
-SELECT organization_id, id, code, name, alert_type, subscription_external_id, wallet_id, billable_metric_id, direction, previous_value, last_processed_at, created_at, updated_at FROM alerts WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, code, name, alert_type, subscription_external_id, wallet_id, billable_metric_id, direction, previous_value, last_processed_at, created_at, updated_at, deleted_at FROM alerts WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type GetAlertParams struct {
@@ -167,14 +192,15 @@ func (q *Queries) GetAlert(ctx context.Context, arg GetAlertParams) (Alert, erro
 		&i.LastProcessedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getAlertBySubscriptionCode = `-- name: GetAlertBySubscriptionCode :one
-SELECT organization_id, id, code, name, alert_type, subscription_external_id, wallet_id, billable_metric_id, direction, previous_value, last_processed_at, created_at, updated_at FROM alerts
+SELECT organization_id, id, code, name, alert_type, subscription_external_id, wallet_id, billable_metric_id, direction, previous_value, last_processed_at, created_at, updated_at, deleted_at FROM alerts
 WHERE organization_id = $1 AND wallet_id IS NULL
-  AND subscription_external_id = $2 AND code = $3
+  AND subscription_external_id = $2 AND code = $3 AND deleted_at IS NULL
 `
 
 type GetAlertBySubscriptionCodeParams struct {
@@ -200,12 +226,14 @@ func (q *Queries) GetAlertBySubscriptionCode(ctx context.Context, arg GetAlertBy
 		&i.LastProcessedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getAlertByWalletCode = `-- name: GetAlertByWalletCode :one
-SELECT organization_id, id, code, name, alert_type, subscription_external_id, wallet_id, billable_metric_id, direction, previous_value, last_processed_at, created_at, updated_at FROM alerts WHERE organization_id = $1 AND wallet_id = $2 AND code = $3
+SELECT organization_id, id, code, name, alert_type, subscription_external_id, wallet_id, billable_metric_id, direction, previous_value, last_processed_at, created_at, updated_at, deleted_at FROM alerts
+WHERE organization_id = $1 AND wallet_id = $2 AND code = $3 AND deleted_at IS NULL
 `
 
 type GetAlertByWalletCodeParams struct {
@@ -231,6 +259,7 @@ func (q *Queries) GetAlertByWalletCode(ctx context.Context, arg GetAlertByWallet
 		&i.LastProcessedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -335,8 +364,8 @@ func (q *Queries) ListAlertThresholds(ctx context.Context, arg ListAlertThreshol
 }
 
 const listAlerts = `-- name: ListAlerts :many
-SELECT organization_id, id, code, name, alert_type, subscription_external_id, wallet_id, billable_metric_id, direction, previous_value, last_processed_at, created_at, updated_at FROM alerts
-WHERE organization_id = $1
+SELECT organization_id, id, code, name, alert_type, subscription_external_id, wallet_id, billable_metric_id, direction, previous_value, last_processed_at, created_at, updated_at, deleted_at FROM alerts
+WHERE organization_id = $1 AND deleted_at IS NULL
   AND ($2::text IS NULL OR subscription_external_id = $2)
   AND ($3::uuid IS NULL OR wallet_id = $3)
   AND (cardinality($4::text[]) = 0 OR alert_type = ANY($4::text[]))
@@ -384,6 +413,7 @@ func (q *Queries) ListAlerts(ctx context.Context, arg ListAlertsParams) ([]Alert
 			&i.LastProcessedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -396,7 +426,9 @@ func (q *Queries) ListAlerts(ctx context.Context, arg ListAlertsParams) ([]Alert
 }
 
 const listAlertsByBillableMetric = `-- name: ListAlertsByBillableMetric :many
-SELECT organization_id, id, code, name, alert_type, subscription_external_id, wallet_id, billable_metric_id, direction, previous_value, last_processed_at, created_at, updated_at FROM alerts WHERE organization_id = $1 AND billable_metric_id = $2 ORDER BY id
+SELECT organization_id, id, code, name, alert_type, subscription_external_id, wallet_id, billable_metric_id, direction, previous_value, last_processed_at, created_at, updated_at, deleted_at FROM alerts
+WHERE organization_id = $1 AND billable_metric_id = $2 AND deleted_at IS NULL
+ORDER BY id
 `
 
 type ListAlertsByBillableMetricParams struct {
@@ -427,6 +459,7 @@ func (q *Queries) ListAlertsByBillableMetric(ctx context.Context, arg ListAlerts
 			&i.LastProcessedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -439,8 +472,9 @@ func (q *Queries) ListAlertsByBillableMetric(ctx context.Context, arg ListAlerts
 }
 
 const listAlertsBySubscription = `-- name: ListAlertsBySubscription :many
-SELECT organization_id, id, code, name, alert_type, subscription_external_id, wallet_id, billable_metric_id, direction, previous_value, last_processed_at, created_at, updated_at FROM alerts
+SELECT organization_id, id, code, name, alert_type, subscription_external_id, wallet_id, billable_metric_id, direction, previous_value, last_processed_at, created_at, updated_at, deleted_at FROM alerts
 WHERE organization_id = $1 AND wallet_id IS NULL AND subscription_external_id = $2
+  AND deleted_at IS NULL
 ORDER BY id
 `
 
@@ -472,6 +506,7 @@ func (q *Queries) ListAlertsBySubscription(ctx context.Context, arg ListAlertsBy
 			&i.LastProcessedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -484,7 +519,9 @@ func (q *Queries) ListAlertsBySubscription(ctx context.Context, arg ListAlertsBy
 }
 
 const listAlertsByWallet = `-- name: ListAlertsByWallet :many
-SELECT organization_id, id, code, name, alert_type, subscription_external_id, wallet_id, billable_metric_id, direction, previous_value, last_processed_at, created_at, updated_at FROM alerts WHERE organization_id = $1 AND wallet_id = $2 ORDER BY id
+SELECT organization_id, id, code, name, alert_type, subscription_external_id, wallet_id, billable_metric_id, direction, previous_value, last_processed_at, created_at, updated_at, deleted_at FROM alerts
+WHERE organization_id = $1 AND wallet_id = $2 AND deleted_at IS NULL
+ORDER BY id
 `
 
 type ListAlertsByWalletParams struct {
@@ -515,6 +552,7 @@ func (q *Queries) ListAlertsByWallet(ctx context.Context, arg ListAlertsByWallet
 			&i.LastProcessedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -591,7 +629,7 @@ UPDATE alerts SET
   subscription_external_id = $6, wallet_id = $7,
   billable_metric_id = $8, direction = $9, previous_value = $10,
   last_processed_at = $11, created_at = $12, updated_at = $13
-WHERE organization_id = $1 AND id = $2
+WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type UpdateAlertParams struct {

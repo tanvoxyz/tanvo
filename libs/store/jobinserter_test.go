@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -51,5 +52,45 @@ func TestJobInserter(t *testing.T) {
 	})
 	if !errors.Is(err, core.ErrInvalidValue) || len(got) != 1 {
 		t.Errorf("invalid job: got = %v (%d inserted), want = ErrInvalidValue", err, len(got))
+	}
+}
+
+// TestQueueClock checks that the store's job enqueuer reads the database
+// clock the job queue schedules by, advancing within a transaction
+// (clock_timestamp(), not the transaction start).
+func TestQueueClock(t *testing.T) {
+	db := pgtest.New(t, template)
+	s, err := store.Open(t.Context(), db.AdminDSN)
+	if err != nil {
+		t.Fatalf("Open() error got = %v, want = nil", err)
+	}
+	t.Cleanup(s.Pool().Close)
+	before := time.Now().Add(-time.Minute)
+	err = s.InTx(t.Context(), func(ctx context.Context, r port.Repos) error {
+		qc, ok := r.Jobs.(port.QueueClock)
+		if !ok {
+			t.Fatalf("Jobs got = %T, want = a port.QueueClock", r.Jobs)
+		}
+		first, err := qc.QueueNow(ctx)
+		if err != nil {
+			return err
+		}
+		if _, err := s.Pool().Exec(ctx, "SELECT pg_sleep(0.01)"); err != nil {
+			return err
+		}
+		second, err := qc.QueueNow(ctx)
+		if err != nil {
+			return err
+		}
+		if first.Location() != time.UTC || first.Before(before) || first.After(time.Now().Add(time.Minute)) {
+			t.Errorf("QueueNow() got = %v, want = about now in UTC", first)
+		}
+		if !second.After(first) {
+			t.Errorf("QueueNow() second got = %v, want = after %v", second, first)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("InTx() error got = %v, want = nil", err)
 	}
 }

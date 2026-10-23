@@ -118,6 +118,10 @@ type Repository interface {
 	// ListIncompleteWithExpiredRules returns the incomplete subscriptions
 	// having a pending activation rule expired at now.
 	ListIncompleteWithExpiredRules(ctx context.Context, org core.OrganizationID, now time.Time) ([]*Subscription, error)
+	// RecordEventReceived sets the LastReceivedEventOn of the subscription
+	// id to day when it is active and its day differs; otherwise it does
+	// nothing (lago UsageMonitoring::TrackSubscriptionActivityService).
+	RecordEventReceived(ctx context.Context, org core.OrganizationID, id core.SubscriptionID, day core.Date) error
 }
 
 // ActivationRuleRepository stores activation rules. Every method is
@@ -170,7 +174,33 @@ type LifetimeUsageRepository interface {
 	// Upsert inserts l, or replaces the chain's record (same external
 	// subscription ID), keeping the stored ID.
 	Upsert(ctx context.Context, l *LifetimeUsage) error
-	// ListToRecalculate returns the records flagged for recalculation in
-	// creation order.
+	// ListToRecalculate returns the records whose invoiced usage is flagged
+	// for recalculation, in creation order.
 	ListToRecalculate(ctx context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*LifetimeUsage], error)
+}
+
+// DailyUsageRepository stores daily usage snapshots. Every method is
+// scoped to an organization.
+type DailyUsageRepository interface {
+	// Create inserts d.
+	Create(ctx context.Context, d *DailyUsage) error
+	// GetByDate returns the first snapshot of the subscription for day, or
+	// core.ErrNotFound.
+	GetByDate(ctx context.Context, org core.OrganizationID, sub core.SubscriptionID, day core.Date) (*DailyUsage, error)
+	// GetByPeriodAndDate returns the first snapshot of the subscription for
+	// day with the charges period [from, to), or core.ErrNotFound.
+	GetByPeriodAndDate(ctx context.Context, org core.OrganizationID, sub core.SubscriptionID, from, to time.Time, day core.Date) (*DailyUsage, error)
+	// Previous returns the snapshot of the subscription with the charges
+	// period [from, to) and the latest day before day, or
+	// core.ErrNotFound.
+	Previous(ctx context.Context, org core.OrganizationID, sub core.SubscriptionID, from, to time.Time, day core.Date) (*DailyUsage, error)
+	// ListDaysBetween returns the subscriptions and days of the snapshots
+	// whose day is in [from, to], ordered by subscription then day.
+	ListDaysBetween(ctx context.Context, org core.OrganizationID, from, to core.Date) ([]DailyUsageDay, error)
+	// ListBySubscription returns the subscription's snapshots in creation
+	// order.
+	ListBySubscription(ctx context.Context, org core.OrganizationID, sub core.SubscriptionID, page core.PageRequest) (core.Page[*DailyUsage], error)
+	// DeleteFrom deletes up to limit snapshots of the subscriptions subs
+	// whose day is from or later, and returns how many.
+	DeleteFrom(ctx context.Context, org core.OrganizationID, subs []core.SubscriptionID, from core.Date, limit int) (int, error)
 }

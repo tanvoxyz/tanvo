@@ -15,11 +15,10 @@ package exportv1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/common/v1"
+	_ "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/common/v1"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	unsafe "unsafe"
 )
@@ -131,80 +130,15 @@ func (x DataExportStatus) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// DataExportResource is what an export contains.
-type DataExportResource int32
-
-const (
-	// Not set.
-	DataExportResource_DATA_EXPORT_RESOURCE_UNSPECIFIED DataExportResource = 0
-	// Invoices.
-	DataExportResource_DATA_EXPORT_RESOURCE_INVOICES DataExportResource = 1
-	// Invoice fees.
-	DataExportResource_DATA_EXPORT_RESOURCE_INVOICE_FEES DataExportResource = 2
-	// Credit notes.
-	DataExportResource_DATA_EXPORT_RESOURCE_CREDIT_NOTES DataExportResource = 3
-	// Credit note items.
-	DataExportResource_DATA_EXPORT_RESOURCE_CREDIT_NOTE_ITEMS DataExportResource = 4
-)
-
-// Enum value maps for DataExportResource.
-var (
-	DataExportResource_name = map[int32]string{
-		0: "DATA_EXPORT_RESOURCE_UNSPECIFIED",
-		1: "DATA_EXPORT_RESOURCE_INVOICES",
-		2: "DATA_EXPORT_RESOURCE_INVOICE_FEES",
-		3: "DATA_EXPORT_RESOURCE_CREDIT_NOTES",
-		4: "DATA_EXPORT_RESOURCE_CREDIT_NOTE_ITEMS",
-	}
-	DataExportResource_value = map[string]int32{
-		"DATA_EXPORT_RESOURCE_UNSPECIFIED":       0,
-		"DATA_EXPORT_RESOURCE_INVOICES":          1,
-		"DATA_EXPORT_RESOURCE_INVOICE_FEES":      2,
-		"DATA_EXPORT_RESOURCE_CREDIT_NOTES":      3,
-		"DATA_EXPORT_RESOURCE_CREDIT_NOTE_ITEMS": 4,
-	}
-)
-
-func (x DataExportResource) Enum() *DataExportResource {
-	p := new(DataExportResource)
-	*p = x
-	return p
-}
-
-func (x DataExportResource) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (DataExportResource) Descriptor() protoreflect.EnumDescriptor {
-	return file_tanvo_export_v1_export_proto_enumTypes[2].Descriptor()
-}
-
-func (DataExportResource) Type() protoreflect.EnumType {
-	return &file_tanvo_export_v1_export_proto_enumTypes[2]
-}
-
-func (x DataExportResource) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
 // DataExport is a background export of records to a file.
 type DataExport struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id           *string                `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Format       DataExportFormat       `protobuf:"varint,2,opt,name=format,enum=tanvo.export.v1.DataExportFormat"`
-	xxx_hidden_ResourceType DataExportResource     `protobuf:"varint,3,opt,name=resource_type,json=resourceType,enum=tanvo.export.v1.DataExportResource"`
-	xxx_hidden_Filter       *string                `protobuf:"bytes,4,opt,name=filter"`
-	xxx_hidden_Search       *string                `protobuf:"bytes,5,opt,name=search"`
-	xxx_hidden_Status       DataExportStatus       `protobuf:"varint,6,opt,name=status,enum=tanvo.export.v1.DataExportStatus"`
-	xxx_hidden_File         *v1.Document           `protobuf:"bytes,7,opt,name=file"`
-	xxx_hidden_StartedAt    *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=started_at,json=startedAt"`
-	xxx_hidden_CompletedAt  *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=completed_at,json=completedAt"`
-	xxx_hidden_ExpiresAt    *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=expires_at,json=expiresAt"`
-	xxx_hidden_CreatedAt    *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id          *string                `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Status      DataExportStatus       `protobuf:"varint,6,opt,name=status,enum=tanvo.export.v1.DataExportStatus"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *DataExport) Reset() {
@@ -242,136 +176,23 @@ func (x *DataExport) GetId() string {
 	return ""
 }
 
-func (x *DataExport) GetFormat() DataExportFormat {
-	if x != nil {
-		if protoimpl.X.Present(&(x.XXX_presence[0]), 1) {
-			return x.xxx_hidden_Format
-		}
-	}
-	return DataExportFormat_DATA_EXPORT_FORMAT_UNSPECIFIED
-}
-
-func (x *DataExport) GetResourceType() DataExportResource {
-	if x != nil {
-		if protoimpl.X.Present(&(x.XXX_presence[0]), 2) {
-			return x.xxx_hidden_ResourceType
-		}
-	}
-	return DataExportResource_DATA_EXPORT_RESOURCE_UNSPECIFIED
-}
-
-func (x *DataExport) GetFilter() string {
-	if x != nil {
-		if x.xxx_hidden_Filter != nil {
-			return *x.xxx_hidden_Filter
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *DataExport) GetSearch() string {
-	if x != nil {
-		if x.xxx_hidden_Search != nil {
-			return *x.xxx_hidden_Search
-		}
-		return ""
-	}
-	return ""
-}
-
 func (x *DataExport) GetStatus() DataExportStatus {
 	if x != nil {
-		if protoimpl.X.Present(&(x.XXX_presence[0]), 5) {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 1) {
 			return x.xxx_hidden_Status
 		}
 	}
 	return DataExportStatus_DATA_EXPORT_STATUS_UNSPECIFIED
 }
 
-func (x *DataExport) GetFile() *v1.Document {
-	if x != nil {
-		return x.xxx_hidden_File
-	}
-	return nil
-}
-
-func (x *DataExport) GetStartedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_StartedAt
-	}
-	return nil
-}
-
-func (x *DataExport) GetCompletedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_CompletedAt
-	}
-	return nil
-}
-
-func (x *DataExport) GetExpiresAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_ExpiresAt
-	}
-	return nil
-}
-
-func (x *DataExport) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_CreatedAt
-	}
-	return nil
-}
-
 func (x *DataExport) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 11)
-}
-
-func (x *DataExport) SetFormat(v DataExportFormat) {
-	x.xxx_hidden_Format = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 11)
-}
-
-func (x *DataExport) SetResourceType(v DataExportResource) {
-	x.xxx_hidden_ResourceType = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 11)
-}
-
-func (x *DataExport) SetFilter(v string) {
-	x.xxx_hidden_Filter = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 11)
-}
-
-func (x *DataExport) SetSearch(v string) {
-	x.xxx_hidden_Search = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
 }
 
 func (x *DataExport) SetStatus(v DataExportStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 11)
-}
-
-func (x *DataExport) SetFile(v *v1.Document) {
-	x.xxx_hidden_File = v
-}
-
-func (x *DataExport) SetStartedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_StartedAt = v
-}
-
-func (x *DataExport) SetCompletedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_CompletedAt = v
-}
-
-func (x *DataExport) SetExpiresAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_ExpiresAt = v
-}
-
-func (x *DataExport) SetCreatedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_CreatedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *DataExport) HasId() bool {
@@ -381,74 +202,11 @@ func (x *DataExport) HasId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *DataExport) HasFormat() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *DataExport) HasResourceType() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *DataExport) HasFilter() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
-}
-
-func (x *DataExport) HasSearch() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
-}
-
 func (x *DataExport) HasStatus() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
-}
-
-func (x *DataExport) HasFile() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_File != nil
-}
-
-func (x *DataExport) HasStartedAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_StartedAt != nil
-}
-
-func (x *DataExport) HasCompletedAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_CompletedAt != nil
-}
-
-func (x *DataExport) HasExpiresAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_ExpiresAt != nil
-}
-
-func (x *DataExport) HasCreatedAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_CreatedAt != nil
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
 func (x *DataExport) ClearId() {
@@ -456,49 +214,9 @@ func (x *DataExport) ClearId() {
 	x.xxx_hidden_Id = nil
 }
 
-func (x *DataExport) ClearFormat() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_Format = DataExportFormat_DATA_EXPORT_FORMAT_UNSPECIFIED
-}
-
-func (x *DataExport) ClearResourceType() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_ResourceType = DataExportResource_DATA_EXPORT_RESOURCE_UNSPECIFIED
-}
-
-func (x *DataExport) ClearFilter() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_Filter = nil
-}
-
-func (x *DataExport) ClearSearch() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_Search = nil
-}
-
 func (x *DataExport) ClearStatus() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
 	x.xxx_hidden_Status = DataExportStatus_DATA_EXPORT_STATUS_UNSPECIFIED
-}
-
-func (x *DataExport) ClearFile() {
-	x.xxx_hidden_File = nil
-}
-
-func (x *DataExport) ClearStartedAt() {
-	x.xxx_hidden_StartedAt = nil
-}
-
-func (x *DataExport) ClearCompletedAt() {
-	x.xxx_hidden_CompletedAt = nil
-}
-
-func (x *DataExport) ClearExpiresAt() {
-	x.xxx_hidden_ExpiresAt = nil
-}
-
-func (x *DataExport) ClearCreatedAt() {
-	x.xxx_hidden_CreatedAt = nil
 }
 
 type DataExport_builder struct {
@@ -506,26 +224,8 @@ type DataExport_builder struct {
 
 	// The export's ID.
 	Id *string
-	// The file format.
-	Format *DataExportFormat
-	// What the export contains.
-	ResourceType *DataExportResource
-	// The AIP-160 filter and search of the export.
-	Filter *string
-	// The search of the export.
-	Search *string
 	// The state.
 	Status *DataExportStatus
-	// The file, once completed and until it expires.
-	File *v1.Document
-	// When building started.
-	StartedAt *timestamppb.Timestamp
-	// When building completed.
-	CompletedAt *timestamppb.Timestamp
-	// When the file expires.
-	ExpiresAt *timestamppb.Timestamp
-	// When the export was created.
-	CreatedAt *timestamppb.Timestamp
 }
 
 func (b0 DataExport_builder) Build() *DataExport {
@@ -533,34 +233,13 @@ func (b0 DataExport_builder) Build() *DataExport {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
 		x.xxx_hidden_Id = b.Id
 	}
-	if b.Format != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 11)
-		x.xxx_hidden_Format = *b.Format
-	}
-	if b.ResourceType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 11)
-		x.xxx_hidden_ResourceType = *b.ResourceType
-	}
-	if b.Filter != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 11)
-		x.xxx_hidden_Filter = b.Filter
-	}
-	if b.Search != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 11)
-		x.xxx_hidden_Search = b.Search
-	}
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
 		x.xxx_hidden_Status = *b.Status
 	}
-	x.xxx_hidden_File = b.File
-	x.xxx_hidden_StartedAt = b.StartedAt
-	x.xxx_hidden_CompletedAt = b.CompletedAt
-	x.xxx_hidden_ExpiresAt = b.ExpiresAt
-	x.xxx_hidden_CreatedAt = b.CreatedAt
 	return m0
 }
 
@@ -1433,180 +1112,20 @@ func (b0 ExportCreditNoteItemsResponse_builder) Build() *ExportCreditNoteItemsRe
 	return m0
 }
 
-// GetDataExportRequest is the request of DataExportService.GetDataExport.
-type GetDataExportRequest struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_DataExportId *string                `protobuf:"bytes,1,opt,name=data_export_id,json=dataExportId"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
-}
-
-func (x *GetDataExportRequest) Reset() {
-	*x = GetDataExportRequest{}
-	mi := &file_tanvo_export_v1_export_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetDataExportRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetDataExportRequest) ProtoMessage() {}
-
-func (x *GetDataExportRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_export_v1_export_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *GetDataExportRequest) GetDataExportId() string {
-	if x != nil {
-		if x.xxx_hidden_DataExportId != nil {
-			return *x.xxx_hidden_DataExportId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *GetDataExportRequest) SetDataExportId(v string) {
-	x.xxx_hidden_DataExportId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *GetDataExportRequest) HasDataExportId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *GetDataExportRequest) ClearDataExportId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_DataExportId = nil
-}
-
-type GetDataExportRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The export's ID.
-	DataExportId *string
-}
-
-func (b0 GetDataExportRequest_builder) Build() *GetDataExportRequest {
-	m0 := &GetDataExportRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.DataExportId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_DataExportId = b.DataExportId
-	}
-	return m0
-}
-
-// GetDataExportResponse is the response of DataExportService.GetDataExport.
-type GetDataExportResponse struct {
-	state                 protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_DataExport *DataExport            `protobuf:"bytes,1,opt,name=data_export,json=dataExport"`
-	unknownFields         protoimpl.UnknownFields
-	sizeCache             protoimpl.SizeCache
-}
-
-func (x *GetDataExportResponse) Reset() {
-	*x = GetDataExportResponse{}
-	mi := &file_tanvo_export_v1_export_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetDataExportResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetDataExportResponse) ProtoMessage() {}
-
-func (x *GetDataExportResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_export_v1_export_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *GetDataExportResponse) GetDataExport() *DataExport {
-	if x != nil {
-		return x.xxx_hidden_DataExport
-	}
-	return nil
-}
-
-func (x *GetDataExportResponse) SetDataExport(v *DataExport) {
-	x.xxx_hidden_DataExport = v
-}
-
-func (x *GetDataExportResponse) HasDataExport() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_DataExport != nil
-}
-
-func (x *GetDataExportResponse) ClearDataExport() {
-	x.xxx_hidden_DataExport = nil
-}
-
-type GetDataExportResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The export.
-	DataExport *DataExport
-}
-
-func (b0 GetDataExportResponse_builder) Build() *GetDataExportResponse {
-	m0 := &GetDataExportResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_DataExport = b.DataExport
-	return m0
-}
-
 var File_tanvo_export_v1_export_proto protoreflect.FileDescriptor
 
 const file_tanvo_export_v1_export_proto_rawDesc = "" +
 	"\n" +
-	"\x1ctanvo/export/v1/export.proto\x12\x0ftanvo.export.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\x81\x05\n" +
+	"\x1ctanvo/export/v1/export.proto\x12\x0ftanvo.export.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x1dtanvo/common/v1/options.proto\"\x98\x02\n" +
 	"\n" +
 	"DataExport\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x129\n" +
-	"\x06format\x18\x02 \x01(\x0e2!.tanvo.export.v1.DataExportFormatR\x06format\x12H\n" +
-	"\rresource_type\x18\x03 \x01(\x0e2#.tanvo.export.v1.DataExportResourceR\fresourceType\x12\x16\n" +
-	"\x06filter\x18\x04 \x01(\tR\x06filter\x12\x16\n" +
-	"\x06search\x18\x05 \x01(\tR\x06search\x129\n" +
-	"\x06status\x18\x06 \x01(\x0e2!.tanvo.export.v1.DataExportStatusR\x06status\x12-\n" +
-	"\x04file\x18\a \x01(\v2\x19.tanvo.common.v1.DocumentR\x04file\x129\n" +
-	"\n" +
-	"started_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
-	"\fcompleted_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x129\n" +
-	"\n" +
-	"expires_at\x18\n" +
-	" \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x129\n" +
-	"\n" +
-	"created_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt:N\xeaAK\n" +
+	"\x06status\x18\x06 \x01(\x0e2!.tanvo.export.v1.DataExportStatusR\x06status:N\xeaAK\n" +
 	"\x14tanvo.xyz/DataExport\x12\x1adata_exports/{data_export}*\vdataExports2\n" +
-	"dataExport\"\xa0\x01\n" +
+	"dataExportJ\x04\b\x02\x10\x06J\x04\b\a\x10\fR\x06formatR\rresource_typeR\x06filterR\x06searchR\x04fileR\n" +
+	"started_atR\fcompleted_atR\n" +
+	"expires_atR\n" +
+	"created_at\"\xa0\x01\n" +
 	"\x15ExportInvoicesRequest\x12C\n" +
 	"\x06format\x18\x01 \x01(\x0e2!.tanvo.export.v1.DataExportFormatB\b\xbaH\x05\x82\x01\x02\x10\x01R\x06format\x12 \n" +
 	"\x06filter\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\x12 \n" +
@@ -1634,11 +1153,6 @@ const file_tanvo_export_v1_export_proto_rawDesc = "" +
 	"\x06search\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x06search\"]\n" +
 	"\x1dExportCreditNoteItemsResponse\x12<\n" +
 	"\vdata_export\x18\x01 \x01(\v2\x1b.tanvo.export.v1.DataExportR\n" +
-	"dataExport\"M\n" +
-	"\x14GetDataExportRequest\x125\n" +
-	"\x0edata_export_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\fdataExportId\"U\n" +
-	"\x15GetDataExportResponse\x12<\n" +
-	"\vdata_export\x18\x01 \x01(\v2\x1b.tanvo.export.v1.DataExportR\n" +
 	"dataExport*R\n" +
 	"\x10DataExportFormat\x12\"\n" +
 	"\x1eDATA_EXPORT_FORMAT_UNSPECIFIED\x10\x00\x12\x1a\n" +
@@ -1648,13 +1162,7 @@ const file_tanvo_export_v1_export_proto_rawDesc = "" +
 	"\x1aDATA_EXPORT_STATUS_PENDING\x10\x01\x12!\n" +
 	"\x1dDATA_EXPORT_STATUS_PROCESSING\x10\x02\x12 \n" +
 	"\x1cDATA_EXPORT_STATUS_COMPLETED\x10\x03\x12\x1d\n" +
-	"\x19DATA_EXPORT_STATUS_FAILED\x10\x04*\xd7\x01\n" +
-	"\x12DataExportResource\x12$\n" +
-	" DATA_EXPORT_RESOURCE_UNSPECIFIED\x10\x00\x12!\n" +
-	"\x1dDATA_EXPORT_RESOURCE_INVOICES\x10\x01\x12%\n" +
-	"!DATA_EXPORT_RESOURCE_INVOICE_FEES\x10\x02\x12%\n" +
-	"!DATA_EXPORT_RESOURCE_CREDIT_NOTES\x10\x03\x12*\n" +
-	"&DATA_EXPORT_RESOURCE_CREDIT_NOTE_ITEMS\x10\x042\xce\x06\n" +
+	"\x19DATA_EXPORT_STATUS_FAILED\x10\x042\xb9\x05\n" +
 	"\x11DataExportService\x12\x96\x01\n" +
 	"\x0eExportInvoices\x12&.tanvo.export.v1.ExportInvoicesRequest\x1a'.tanvo.export.v1.ExportInvoicesResponse\"3\xca\xf3\x18\x11\n" +
 	"\x0finvoices:export\x82\xd3\xe4\x93\x02\x18:\x01*\"\x13/v1/invoices:export\x12\xa4\x01\n" +
@@ -1663,63 +1171,47 @@ const file_tanvo_export_v1_export_proto_rawDesc = "" +
 	"\x11ExportCreditNotes\x12).tanvo.export.v1.ExportCreditNotesRequest\x1a*.tanvo.export.v1.ExportCreditNotesResponse\";\xca\xf3\x18\x15\n" +
 	"\x13credit_notes:export\x82\xd3\xe4\x93\x02\x1c:\x01*\"\x17/v1/credit_notes:export\x12\xb9\x01\n" +
 	"\x15ExportCreditNoteItems\x12-.tanvo.export.v1.ExportCreditNoteItemsRequest\x1a..tanvo.export.v1.ExportCreditNoteItemsResponse\"A\xca\xf3\x18\x15\n" +
-	"\x13credit_notes:export\x82\xd3\xe4\x93\x02\":\x01*\"\x1d/v1/credit_notes/items:export\x12\x92\x01\n" +
-	"\rGetDataExport\x12%.tanvo.export.v1.GetDataExportRequest\x1a&.tanvo.export.v1.GetDataExportResponse\"2\xca\xf3\x18\x02 \x01\x82\xd3\xe4\x93\x02#\x12!/v1/data_exports/{data_export_id}\x90\x02\x01B\xc6\x01\n" +
+	"\x13credit_notes:export\x82\xd3\xe4\x93\x02\":\x01*\"\x1d/v1/credit_notes/items:exportB\xc6\x01\n" +
 	"\x13com.tanvo.export.v1B\vExportProtoP\x01ZDgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/export/v1;exportv1\xa2\x02\x03TEX\xaa\x02\x0fTanvo.Export.V1\xca\x02\x0fTanvo\\Export\\V1\xe2\x02\x1bTanvo\\Export\\V1\\GPBMetadata\xea\x02\x11Tanvo::Export::V1b\beditionsp\xe8\a"
 
-var file_tanvo_export_v1_export_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_tanvo_export_v1_export_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_tanvo_export_v1_export_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_tanvo_export_v1_export_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_tanvo_export_v1_export_proto_goTypes = []any{
 	(DataExportFormat)(0),                 // 0: tanvo.export.v1.DataExportFormat
 	(DataExportStatus)(0),                 // 1: tanvo.export.v1.DataExportStatus
-	(DataExportResource)(0),               // 2: tanvo.export.v1.DataExportResource
-	(*DataExport)(nil),                    // 3: tanvo.export.v1.DataExport
-	(*ExportInvoicesRequest)(nil),         // 4: tanvo.export.v1.ExportInvoicesRequest
-	(*ExportInvoicesResponse)(nil),        // 5: tanvo.export.v1.ExportInvoicesResponse
-	(*ExportInvoiceFeesRequest)(nil),      // 6: tanvo.export.v1.ExportInvoiceFeesRequest
-	(*ExportInvoiceFeesResponse)(nil),     // 7: tanvo.export.v1.ExportInvoiceFeesResponse
-	(*ExportCreditNotesRequest)(nil),      // 8: tanvo.export.v1.ExportCreditNotesRequest
-	(*ExportCreditNotesResponse)(nil),     // 9: tanvo.export.v1.ExportCreditNotesResponse
-	(*ExportCreditNoteItemsRequest)(nil),  // 10: tanvo.export.v1.ExportCreditNoteItemsRequest
-	(*ExportCreditNoteItemsResponse)(nil), // 11: tanvo.export.v1.ExportCreditNoteItemsResponse
-	(*GetDataExportRequest)(nil),          // 12: tanvo.export.v1.GetDataExportRequest
-	(*GetDataExportResponse)(nil),         // 13: tanvo.export.v1.GetDataExportResponse
-	(*v1.Document)(nil),                   // 14: tanvo.common.v1.Document
-	(*timestamppb.Timestamp)(nil),         // 15: google.protobuf.Timestamp
+	(*DataExport)(nil),                    // 2: tanvo.export.v1.DataExport
+	(*ExportInvoicesRequest)(nil),         // 3: tanvo.export.v1.ExportInvoicesRequest
+	(*ExportInvoicesResponse)(nil),        // 4: tanvo.export.v1.ExportInvoicesResponse
+	(*ExportInvoiceFeesRequest)(nil),      // 5: tanvo.export.v1.ExportInvoiceFeesRequest
+	(*ExportInvoiceFeesResponse)(nil),     // 6: tanvo.export.v1.ExportInvoiceFeesResponse
+	(*ExportCreditNotesRequest)(nil),      // 7: tanvo.export.v1.ExportCreditNotesRequest
+	(*ExportCreditNotesResponse)(nil),     // 8: tanvo.export.v1.ExportCreditNotesResponse
+	(*ExportCreditNoteItemsRequest)(nil),  // 9: tanvo.export.v1.ExportCreditNoteItemsRequest
+	(*ExportCreditNoteItemsResponse)(nil), // 10: tanvo.export.v1.ExportCreditNoteItemsResponse
 }
 var file_tanvo_export_v1_export_proto_depIdxs = []int32{
-	0,  // 0: tanvo.export.v1.DataExport.format:type_name -> tanvo.export.v1.DataExportFormat
-	2,  // 1: tanvo.export.v1.DataExport.resource_type:type_name -> tanvo.export.v1.DataExportResource
-	1,  // 2: tanvo.export.v1.DataExport.status:type_name -> tanvo.export.v1.DataExportStatus
-	14, // 3: tanvo.export.v1.DataExport.file:type_name -> tanvo.common.v1.Document
-	15, // 4: tanvo.export.v1.DataExport.started_at:type_name -> google.protobuf.Timestamp
-	15, // 5: tanvo.export.v1.DataExport.completed_at:type_name -> google.protobuf.Timestamp
-	15, // 6: tanvo.export.v1.DataExport.expires_at:type_name -> google.protobuf.Timestamp
-	15, // 7: tanvo.export.v1.DataExport.created_at:type_name -> google.protobuf.Timestamp
-	0,  // 8: tanvo.export.v1.ExportInvoicesRequest.format:type_name -> tanvo.export.v1.DataExportFormat
-	3,  // 9: tanvo.export.v1.ExportInvoicesResponse.data_export:type_name -> tanvo.export.v1.DataExport
-	0,  // 10: tanvo.export.v1.ExportInvoiceFeesRequest.format:type_name -> tanvo.export.v1.DataExportFormat
-	3,  // 11: tanvo.export.v1.ExportInvoiceFeesResponse.data_export:type_name -> tanvo.export.v1.DataExport
-	0,  // 12: tanvo.export.v1.ExportCreditNotesRequest.format:type_name -> tanvo.export.v1.DataExportFormat
-	3,  // 13: tanvo.export.v1.ExportCreditNotesResponse.data_export:type_name -> tanvo.export.v1.DataExport
-	0,  // 14: tanvo.export.v1.ExportCreditNoteItemsRequest.format:type_name -> tanvo.export.v1.DataExportFormat
-	3,  // 15: tanvo.export.v1.ExportCreditNoteItemsResponse.data_export:type_name -> tanvo.export.v1.DataExport
-	3,  // 16: tanvo.export.v1.GetDataExportResponse.data_export:type_name -> tanvo.export.v1.DataExport
-	4,  // 17: tanvo.export.v1.DataExportService.ExportInvoices:input_type -> tanvo.export.v1.ExportInvoicesRequest
-	6,  // 18: tanvo.export.v1.DataExportService.ExportInvoiceFees:input_type -> tanvo.export.v1.ExportInvoiceFeesRequest
-	8,  // 19: tanvo.export.v1.DataExportService.ExportCreditNotes:input_type -> tanvo.export.v1.ExportCreditNotesRequest
-	10, // 20: tanvo.export.v1.DataExportService.ExportCreditNoteItems:input_type -> tanvo.export.v1.ExportCreditNoteItemsRequest
-	12, // 21: tanvo.export.v1.DataExportService.GetDataExport:input_type -> tanvo.export.v1.GetDataExportRequest
-	5,  // 22: tanvo.export.v1.DataExportService.ExportInvoices:output_type -> tanvo.export.v1.ExportInvoicesResponse
-	7,  // 23: tanvo.export.v1.DataExportService.ExportInvoiceFees:output_type -> tanvo.export.v1.ExportInvoiceFeesResponse
-	9,  // 24: tanvo.export.v1.DataExportService.ExportCreditNotes:output_type -> tanvo.export.v1.ExportCreditNotesResponse
-	11, // 25: tanvo.export.v1.DataExportService.ExportCreditNoteItems:output_type -> tanvo.export.v1.ExportCreditNoteItemsResponse
-	13, // 26: tanvo.export.v1.DataExportService.GetDataExport:output_type -> tanvo.export.v1.GetDataExportResponse
-	22, // [22:27] is the sub-list for method output_type
-	17, // [17:22] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	1,  // 0: tanvo.export.v1.DataExport.status:type_name -> tanvo.export.v1.DataExportStatus
+	0,  // 1: tanvo.export.v1.ExportInvoicesRequest.format:type_name -> tanvo.export.v1.DataExportFormat
+	2,  // 2: tanvo.export.v1.ExportInvoicesResponse.data_export:type_name -> tanvo.export.v1.DataExport
+	0,  // 3: tanvo.export.v1.ExportInvoiceFeesRequest.format:type_name -> tanvo.export.v1.DataExportFormat
+	2,  // 4: tanvo.export.v1.ExportInvoiceFeesResponse.data_export:type_name -> tanvo.export.v1.DataExport
+	0,  // 5: tanvo.export.v1.ExportCreditNotesRequest.format:type_name -> tanvo.export.v1.DataExportFormat
+	2,  // 6: tanvo.export.v1.ExportCreditNotesResponse.data_export:type_name -> tanvo.export.v1.DataExport
+	0,  // 7: tanvo.export.v1.ExportCreditNoteItemsRequest.format:type_name -> tanvo.export.v1.DataExportFormat
+	2,  // 8: tanvo.export.v1.ExportCreditNoteItemsResponse.data_export:type_name -> tanvo.export.v1.DataExport
+	3,  // 9: tanvo.export.v1.DataExportService.ExportInvoices:input_type -> tanvo.export.v1.ExportInvoicesRequest
+	5,  // 10: tanvo.export.v1.DataExportService.ExportInvoiceFees:input_type -> tanvo.export.v1.ExportInvoiceFeesRequest
+	7,  // 11: tanvo.export.v1.DataExportService.ExportCreditNotes:input_type -> tanvo.export.v1.ExportCreditNotesRequest
+	9,  // 12: tanvo.export.v1.DataExportService.ExportCreditNoteItems:input_type -> tanvo.export.v1.ExportCreditNoteItemsRequest
+	4,  // 13: tanvo.export.v1.DataExportService.ExportInvoices:output_type -> tanvo.export.v1.ExportInvoicesResponse
+	6,  // 14: tanvo.export.v1.DataExportService.ExportInvoiceFees:output_type -> tanvo.export.v1.ExportInvoiceFeesResponse
+	8,  // 15: tanvo.export.v1.DataExportService.ExportCreditNotes:output_type -> tanvo.export.v1.ExportCreditNotesResponse
+	10, // 16: tanvo.export.v1.DataExportService.ExportCreditNoteItems:output_type -> tanvo.export.v1.ExportCreditNoteItemsResponse
+	13, // [13:17] is the sub-list for method output_type
+	9,  // [9:13] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_export_v1_export_proto_init() }
@@ -1732,8 +1224,8 @@ func file_tanvo_export_v1_export_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_export_v1_export_proto_rawDesc), len(file_tanvo_export_v1_export_proto_rawDesc)),
-			NumEnums:      3,
-			NumMessages:   11,
+			NumEnums:      2,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

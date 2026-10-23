@@ -68,6 +68,12 @@ const (
 	// InvoiceServiceRetryInvoicePaymentProcedure is the procedure name of the InvoiceService's
 	// RetryInvoicePayment RPC.
 	InvoiceServiceRetryInvoicePaymentProcedure = "/tanvo.invoice.v1.InvoiceService/RetryInvoicePayment"
+	// InvoiceServiceRetryAllInvoicesProcedure is the procedure name of the InvoiceService's
+	// RetryAllInvoices RPC.
+	InvoiceServiceRetryAllInvoicesProcedure = "/tanvo.invoice.v1.InvoiceService/RetryAllInvoices"
+	// InvoiceServiceRetryAllInvoicePaymentsProcedure is the procedure name of the InvoiceService's
+	// RetryAllInvoicePayments RPC.
+	InvoiceServiceRetryAllInvoicePaymentsProcedure = "/tanvo.invoice.v1.InvoiceService/RetryAllInvoicePayments"
 	// InvoiceServiceRetryInvoiceSyncProcedure is the procedure name of the InvoiceService's
 	// RetryInvoiceSync RPC.
 	InvoiceServiceRetryInvoiceSyncProcedure = "/tanvo.invoice.v1.InvoiceService/RetryInvoiceSync"
@@ -206,6 +212,20 @@ var (
 			Procedure:  InvoiceServiceRetryInvoicePaymentProcedure,
 		}
 	})
+	invoiceServiceRetryAllInvoicesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_invoice_v1_invoice_proto.Services().ByName("InvoiceService").Methods().ByName("RetryAllInvoices"),
+			Procedure:  InvoiceServiceRetryAllInvoicesProcedure,
+		}
+	})
+	invoiceServiceRetryAllInvoicePaymentsSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_invoice_v1_invoice_proto.Services().ByName("InvoiceService").Methods().ByName("RetryAllInvoicePayments"),
+			Procedure:  InvoiceServiceRetryAllInvoicePaymentsProcedure,
+		}
+	})
 	invoiceServiceRetryInvoiceSyncSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -287,6 +307,12 @@ type InvoiceServiceClient interface {
 	RetryInvoice(context.Context, *v1.RetryInvoiceRequest) (*v1.RetryInvoiceResponse, error)
 	// Retries the payment of a finalized, unpaid invoice.
 	RetryInvoicePayment(context.Context, *v1.RetryInvoicePaymentRequest) (*v1.RetryInvoicePaymentResponse, error)
+	// Retries every failed invoice, in the background.
+	RetryAllInvoices(context.Context, *v1.RetryAllInvoicesRequest) (*v1.RetryAllInvoicesResponse, error)
+	// Retries the payment of every finalized invoice whose payment is
+	// pending or failed and that no payment provider is processing, in the
+	// background.
+	RetryAllInvoicePayments(context.Context, *v1.RetryAllInvoicePaymentsRequest) (*v1.RetryAllInvoicePaymentsResponse, error)
 	// Retries the synchronization of an invoice with the customer's
 	// accounting, CRM or tax integrations.
 	RetryInvoiceSync(context.Context, *v1.RetryInvoiceSyncRequest) (*v1.RetryInvoiceSyncResponse, error)
@@ -342,6 +368,12 @@ type InvoiceServiceHandler interface {
 	RetryInvoice(context.Context, *v1.RetryInvoiceRequest) (*v1.RetryInvoiceResponse, error)
 	// Retries the payment of a finalized, unpaid invoice.
 	RetryInvoicePayment(context.Context, *v1.RetryInvoicePaymentRequest) (*v1.RetryInvoicePaymentResponse, error)
+	// Retries every failed invoice, in the background.
+	RetryAllInvoices(context.Context, *v1.RetryAllInvoicesRequest) (*v1.RetryAllInvoicesResponse, error)
+	// Retries the payment of every finalized invoice whose payment is
+	// pending or failed and that no payment provider is processing, in the
+	// background.
+	RetryAllInvoicePayments(context.Context, *v1.RetryAllInvoicePaymentsRequest) (*v1.RetryAllInvoicePaymentsResponse, error)
 	// Retries the synchronization of an invoice with the customer's
 	// accounting, CRM or tax integrations.
 	RetryInvoiceSync(context.Context, *v1.RetryInvoiceSyncRequest) (*v1.RetryInvoiceSyncResponse, error)
@@ -379,6 +411,8 @@ func RegisterInvoiceServiceHandler(server *connect.Server, svc InvoiceServiceHan
 		connect.Method{Spec: invoiceServiceRegenerateInvoiceSpec(), Handler: adapter.regenerateInvoice},
 		connect.Method{Spec: invoiceServiceRetryInvoiceSpec(), Handler: adapter.retryInvoice},
 		connect.Method{Spec: invoiceServiceRetryInvoicePaymentSpec(), Handler: adapter.retryInvoicePayment},
+		connect.Method{Spec: invoiceServiceRetryAllInvoicesSpec(), Handler: adapter.retryAllInvoices},
+		connect.Method{Spec: invoiceServiceRetryAllInvoicePaymentsSpec(), Handler: adapter.retryAllInvoicePayments},
 		connect.Method{Spec: invoiceServiceRetryInvoiceSyncSpec(), Handler: adapter.retryInvoiceSync},
 		connect.Method{Spec: invoiceServiceLoseInvoiceDisputeSpec(), Handler: adapter.loseInvoiceDispute},
 		connect.Method{Spec: invoiceServiceDownloadInvoiceSpec(), Handler: adapter.downloadInvoice},
@@ -438,6 +472,14 @@ func (UnimplementedInvoiceServiceHandler) RetryInvoice(context.Context, *v1.Retr
 
 func (UnimplementedInvoiceServiceHandler) RetryInvoicePayment(context.Context, *v1.RetryInvoicePaymentRequest) (*v1.RetryInvoicePaymentResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.invoice.v1.InvoiceService.RetryInvoicePayment is not implemented")
+}
+
+func (UnimplementedInvoiceServiceHandler) RetryAllInvoices(context.Context, *v1.RetryAllInvoicesRequest) (*v1.RetryAllInvoicesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.invoice.v1.InvoiceService.RetryAllInvoices is not implemented")
+}
+
+func (UnimplementedInvoiceServiceHandler) RetryAllInvoicePayments(context.Context, *v1.RetryAllInvoicePaymentsRequest) (*v1.RetryAllInvoicePaymentsResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.invoice.v1.InvoiceService.RetryAllInvoicePayments is not implemented")
 }
 
 func (UnimplementedInvoiceServiceHandler) RetryInvoiceSync(context.Context, *v1.RetryInvoiceSyncRequest) (*v1.RetryInvoiceSyncResponse, error) {
@@ -563,6 +605,22 @@ func (c *invoiceServiceClient) RetryInvoice(ctx context.Context, req *v1.RetryIn
 func (c *invoiceServiceClient) RetryInvoicePayment(ctx context.Context, req *v1.RetryInvoicePaymentRequest) (*v1.RetryInvoicePaymentResponse, error) {
 	var res v1.RetryInvoicePaymentResponse
 	if err := c.client.CallUnary(ctx, invoiceServiceRetryInvoicePaymentSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *invoiceServiceClient) RetryAllInvoices(ctx context.Context, req *v1.RetryAllInvoicesRequest) (*v1.RetryAllInvoicesResponse, error) {
+	var res v1.RetryAllInvoicesResponse
+	if err := c.client.CallUnary(ctx, invoiceServiceRetryAllInvoicesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *invoiceServiceClient) RetryAllInvoicePayments(ctx context.Context, req *v1.RetryAllInvoicePaymentsRequest) (*v1.RetryAllInvoicePaymentsResponse, error) {
+	var res v1.RetryAllInvoicePaymentsResponse
+	if err := c.client.CallUnary(ctx, invoiceServiceRetryAllInvoicePaymentsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -770,6 +828,30 @@ func (h invoiceServiceHandler) retryInvoicePayment(ctx context.Context, _ connec
 	return stream.Send(res)
 }
 
+func (h invoiceServiceHandler) retryAllInvoices(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RetryAllInvoicesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RetryAllInvoices(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h invoiceServiceHandler) retryAllInvoicePayments(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RetryAllInvoicePaymentsRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RetryAllInvoicePayments(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
 func (h invoiceServiceHandler) retryInvoiceSync(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
 	var req v1.RetryInvoiceSyncRequest
 	if err := stream.Receive(&req); err != nil {
@@ -905,12 +987,12 @@ var (
 type FeeServiceClient interface {
 	// Returns a fee.
 	GetFee(context.Context, *v1.GetFeeRequest) (*v1.GetFeeResponse, error)
-	// Lists fees.
+	// Lists fees, oldest first.
 	ListFees(context.Context, *v1.ListFeesRequest) (*v1.ListFeesResponse, error)
 	// Updates the payment status of an in-advance fee not attached to an
 	// invoice.
 	UpdateFee(context.Context, *v1.UpdateFeeRequest) (*v1.UpdateFeeResponse, error)
-	// Deletes an in-advance fee not attached to an invoice.
+	// Discards an in-advance fee not attached to an invoice and returns it.
 	DeleteFee(context.Context, *v1.DeleteFeeRequest) (*v1.DeleteFeeResponse, error)
 	// Adjusts a fee of a draft invoice: its display name, units or unit
 	// price. Setting fee_id or a charge creates the fee when it is missing.
@@ -929,12 +1011,12 @@ func NewFeeServiceClient(client *connect.Client) FeeServiceClient {
 type FeeServiceHandler interface {
 	// Returns a fee.
 	GetFee(context.Context, *v1.GetFeeRequest) (*v1.GetFeeResponse, error)
-	// Lists fees.
+	// Lists fees, oldest first.
 	ListFees(context.Context, *v1.ListFeesRequest) (*v1.ListFeesResponse, error)
 	// Updates the payment status of an in-advance fee not attached to an
 	// invoice.
 	UpdateFee(context.Context, *v1.UpdateFeeRequest) (*v1.UpdateFeeResponse, error)
-	// Deletes an in-advance fee not attached to an invoice.
+	// Discards an in-advance fee not attached to an invoice and returns it.
 	DeleteFee(context.Context, *v1.DeleteFeeRequest) (*v1.DeleteFeeResponse, error)
 	// Adjusts a fee of a draft invoice: its display name, units or unit
 	// price. Setting fee_id or a charge creates the fee when it is missing.

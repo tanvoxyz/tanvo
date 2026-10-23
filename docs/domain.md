@@ -140,7 +140,7 @@ Markers used throughout:
 * **Money**: monetary amounts at rest are `Money` (minor units) when final and `Decimal` ("precise") while they are still inputs to later computations (fee amounts before rounding, unit prices, credits). The rounding rules are in §22.9. Never `float64`.
 * **Time**: instants are stored in UTC; dates and period boundaries are computed in the applicable time zone (§22.1) and stored as the UTC instants of local midnights.
 * **Periods** are half-open `[from, to)`. **[Change]** Lago stores inclusive ends at 23:59:59.999999; Tanvo stores the next local midnight.
-* **Deletion**: resources with a lifecycle carry a status (`terminated`, `archived`, `voided`, `deleted`); unreferenced rows are hard-deleted. Plans are never removed: a deleted plan is kept with the `deleted` status (§7.2), hidden from lookups by code and from lists, and its code is free again. Features, privileges and entitlements are soft-deleted (`deleted_at`, §7.10). The store refuses (`conflict`) to hard-delete a row still referenced. **[Change]** There is no blanket `deleted_at` soft delete.
+* **Deletion**: resources with a lifecycle carry a status (`terminated`, `archived`, `voided`, `deleted`); unreferenced rows are hard-deleted. Plans are never removed: a deleted plan is kept with the `deleted` status (§7.2), hidden from lookups by code and from lists, and its code is free again. Charges, charge filters, fixed charges, add-ons, taxes, usage thresholds, coupons, features, privileges, entitlements and the product catalog (categories, products, product filters and their values, rate cards, rates, plan rate cards and rate phases, §21.4) are soft-deleted (`deleted_at`): a discarded row is no longer found by code or listed and its code is free again, while documents that reference it still read it by ID. The store refuses (`conflict`) to hard-delete a row still referenced. **[Change]** There is no blanket `deleted_at` soft delete.
 * **Metadata** is replaced as a whole on update (the list sent replaces the stored list).
 * **Audit**: every state change named in this document emits a domain event in the same transaction; webhooks (§18) and activity logs are derived from them.
 * **Locks**: operations that read and write a customer's balances (coupons, credit notes, prepaid credits, wallets) take the customer's advisory lock named in each section; billing runs lock the subscription.
@@ -151,7 +151,7 @@ Markers used throughout:
 
 | Enumeration | Values | Used by |
 | :--- | :--- | :--- |
-| `AuthenticationMethod` | `email_password`, `google_oauth`, `okta`, `entra_id`, `oidc` | Organization |
+| `AuthenticationMethod` | `email_password`, `google_oauth`, `okta`, `entra_id`, `oidc` (generic, a Tanvo extension) | Organization |
 | `DocumentNumbering` | `per_customer`, `per_billing_entity` | BillingEntity |
 | `IssuingDateAnchor` | `current_period_end`, `next_period_start` | BillingEntity, Customer |
 | `IssuingDateAdjustment` | `keep_anchor`, `align_with_finalization_date` | BillingEntity, Customer |
@@ -186,13 +186,13 @@ Markers used throughout:
 | `ActivationRuleStatus` | `inactive`, `pending`, `satisfied`, `not_applicable`, `declined`, `failed`, `expired` | SubscriptionActivationRule |
 | `OperationType` | `add`, `remove` | Event (unique count) |
 | `InvoiceType` | `subscription`, `credit`, `one_off`, `advance_charges`, `progressive_billing` | Invoice |
-| `InvoiceStatus` | `generating`, `draft`, `open`, `finalized`, `closed`, `voided`, `failed` | Invoice |
+| `InvoiceStatus` | `generating`, `draft`, `open`, `finalized`, `closed`, `voided`, `failed`, `deleted` | Invoice |
 | `PaymentStatus` | `pending`, `succeeded`, `failed` | Invoice, PaymentRequest |
 | `TaxStatus` | `pending`, `succeeded`, `failed` | Invoice |
 | `InvoicingReason` | `subscription_starting`, `subscription_periodic`, `subscription_terminating`, `in_advance_charge`, `in_advance_charge_periodic`, `progressive_billing` | InvoiceSubscription |
 | `FeeType` | `subscription`, `charge`, `fixed_charge`, `add_on`, `credit`, `commitment`, `product` | Fee |
 | `FeePaymentStatus` | `pending`, `succeeded`, `failed`, `refunded` | Fee |
-| `CreditNoteStatus` | `draft`, `finalized` | CreditNote |
+| `CreditNoteStatus` | `draft`, `finalized`, `deleted` | CreditNote |
 | `CreditStatus` | `available`, `consumed`, `voided` | CreditNote |
 | `RefundStatus` | `pending`, `succeeded`, `failed` | CreditNote, Refund |
 | `CreditNoteReason` | `duplicated_charge`, `product_unsatisfactory`, `order_change`, `order_cancellation`, `fraudulent_charge`, `other` | CreditNote |
@@ -220,7 +220,7 @@ Markers used throughout:
 
 Enumerations specific to one feature (inbound webhook status, quote status, contract status and so on) are defined in their sections.
 
-**[Dropped]** Invoice status `deleted` as a stored status (a deleted draft is removed, §11.7); invoice type `add_on` (replaced by `one_off`); fee type `add_on` invoices outside one-off invoices; the `overriden` alias of overridden plans; `group`/`group_properties` (replaced by charge filters); the `grouped_by` charge property alias (replaced by `pricing_group_keys`); `recurring_count_agg`; integration resource type `sales_order_deprecated`.
+**[Dropped]** Invoice type `add_on` (replaced by `one_off`); fee type `add_on` invoices outside one-off invoices; the `overriden` alias of overridden plans; `group`/`group_properties` (replaced by charge filters); the `grouped_by` charge property alias (replaced by `pricing_group_keys`); `recurring_count_agg`; integration resource type `sales_order_deprecated`.
 
 ---
 
@@ -241,11 +241,12 @@ The tenant. All other entities belong to exactly one organization.
 | `from_email_enabled` | `bool` | default false; documents are sent from the billing entity's email |
 | `audit_logs_retention_days` | `int` | default 30 |
 | `max_wallets_per_customer` | `int` | default 6 |
+| `document_number_prefix` | `string(10)` | 1–10 characters, upper-cased; default first 3 characters of name (upper-cased) + `-` + last 4 characters of the id; prefixes customer slugs (§6) |
 | `created_at` | `Time` | |
 
 Address (shared value object): `line1`, `line2`, `city`, `state`, `zipcode`, `country` (ISO 3166-1 alpha-2). All optional; `country` is validated.
 
-**[Change]** The organization carries no billing settings. Lago duplicates timezone, currency, grace period, net payment term, document numbering, prefix, invoice footer, document locale, tax ID, EU tax management and email settings on the organization and the billing entity; in Tanvo the billing entity is authoritative and the organization keeps only identity and access settings. Every organization has at least one billing entity, created with it.
+**[Change]** The organization carries no billing settings. Lago duplicates timezone, currency, grace period, net payment term, document numbering, prefix, invoice footer, document locale, tax ID, EU tax management and email settings on the organization and the billing entity; in Tanvo the billing entity is authoritative and the organization keeps only identity and access settings, plus the document number prefix that customer slugs use, as in lago. Every organization has at least one billing entity, created with it.
 
 **[Change]** There are no premium gates in the core: every feature in this document is available to every organization. Analytics and the assistant live in `ee/` ([architecture §14](architecture.md#14-enterprise-edition-ee)).
 
@@ -396,8 +397,8 @@ The billed party.
 | `applied_dunning_campaign_id` | `ID?` | |
 | `exclude_from_dunning_campaign` | `bool` | |
 | `dunning_campaign_attempts`, `last_dunning_campaign_attempt_at` | `map<currency, int>`, `Time?` | Attempts are counted per currency |
-| `sequential_id` | `int` | assigned on create, per billing entity |
-| `slug` | `string` | `<prefix>-<sequential_id %03d>` |
+| `sequential_id` | `int` | assigned on create, per organization; deleted customers keep their number |
+| `slug` | `string` | `<organization document_number_prefix>-<sequential_id %03d>` |
 | `payment_receipt_counter` | `int` | §22.11 |
 | `metadata` | Metadata | ≤ 5 items; key ≤ 20, value ≤ 100; `display_in_invoice bool` |
 | `deleted_at` | `Time?` | customers are archived, not hard-deleted, once they have documents |
@@ -411,7 +412,7 @@ Rules:
 * Deleting a customer terminates its subscriptions (with termination invoices), terminates its wallets and applied coupons and archives it; its invoices remain.
 * Advisory locks per customer: `coupons`, `credit_notes`, `prepaid_credits`, `billing_schedule`.
 * Lock order: a billing transaction takes its locks in one fixed order, so that two never wait on each other: the customer's `billing_schedule` lock, subscription locks (a transaction takes several only under the `billing_schedule` lock, or else in ascending ID order), event locks, invoice locks, credit note locks, then the customer's `coupons`, `credit_notes` and `prepaid_credits` locks; sequence locks come last. A transaction that needs several of the last three takes them all before any. **[Change]** Lago has no global order and relies on unique indexes in places.
-* EU tax management: on create and on address or tax ID change, when the billing entity has `eu_tax_management`, a VIES check runs and assigns the customer's EU tax (§22.10); the result is emitted as `customer.vies_check`.
+* EU tax management: on create and on address or tax ID change, when the billing entity has `eu_tax_management`, the customer's EU tax is decided (§22.10). A customer with a tax ID outside a territory with its own VAT gets it from an asynchronous VIES check, whose result is emitted as `customer.vies_check`.
 * Payment and integration connections: see §15.5 and §17.2. **[Change]** There is no single `payment_provider` column; a customer can have connections to several providers, one default per category.
 
 ---
@@ -424,24 +425,24 @@ What is measured.
 
 | Field | Type | Rules |
 | :--- | :--- | :--- |
-| `code` | `string(255)` | unique |
+| `code` | `string(255)` | unique among live metrics |
 | `name` | `string(255)` | required |
 | `description` | `string?` | |
 | `aggregation_type` | `AggregationType` | required |
 | `field_name` | `string?` | the event property aggregated; required unless `count` |
-| `weighted_interval` | `WeightedInterval?` | required (= `seconds`) for `weighted_sum`, forbidden otherwise |
+| `weighted_interval` | `WeightedInterval?` | must be `seconds` for `weighted_sum`; kept unchecked on other types |
 | `recurring` | `bool` | forbidden for `count`, `max`, `latest` |
 | `expression` | `string?` | lago-expression; its result is written to `field_name` before aggregation |
 | `rounding_function` | `RoundingFunction?` | |
 | `rounding_precision` | `int?` | default 0 when a rounding function is set; may be negative |
 | `filters` | `[]BillableMetricFilter` | |
 
-`BillableMetricFilter`: `key string(255)` (the event property), `values []string` (non-empty, unique). Keys are unique per metric.
+`BillableMetricFilter`: `key string(255)` (the event property), `values []string` (non-empty; duplicates are dropped). Keys are unique per metric.
 
 Rules:
 * Once the metric is used by a charge, `code`, `aggregation_type`, `weighted_interval`, `field_name`, `recurring`, `rounding_function`, `rounding_precision` and `expression` are locked.
 * Removing a filter value deletes the charge filter values that use it; removing a filter key deletes the charge filters that reference it. Both are refused (`referenced_by_product_filter`) when a rate card's product filter uses the value or key: a priced rate card is never reshaped by a metric edit.
-* Deleting a metric deletes its charges (and their filters) from every plan and recomputes draft invoices; it is refused (`referenced_by_product_filter`) while a rate card's product filter uses the metric. Its events are kept.
+* Deleting a metric discards it (`deleted_at`): reads no longer find it and its code can be reused. Its charges (and their filters) are discarded from every plan, its alerts are discarded (their thresholds kept), and draft invoices are recomputed; its filters and the coupon and wallet targets that name it stay with the discarded row. It is refused (`referenced_by_product_filter`) while a rate card's product filter uses the metric. Its events are kept.
 * Payable in advance: only `count`, `sum` and `unique_count` metrics can back in-advance charges.
 
 Aggregation semantics (implemented in `libs/metering`):
@@ -631,7 +632,7 @@ A charge priced in a pricing unit carries `conversion_rate > 0` (fiat per pricin
 | `description` | `string?` | |
 | `auto_generated` | `bool` | created by EU tax management; read-only |
 
-Taxes are attached to billing entities, customers, plans, charges, fixed charges, add-ons and commitments; resolution is in §22.10. Changing a rate refreshes draft invoices that use the tax. Deleting a tax detaches it everywhere; issued documents keep their applied-tax snapshots (code, name, rate, amount).
+Taxes are attached to billing entities, customers, plans, charges, fixed charges, add-ons and commitments; resolution is in §22.10. Changing a rate refreshes draft invoices that use the tax. Deleting a tax discards it (`deleted_at`) and detaches it everywhere; issued documents keep their applied-tax snapshots (code, name, rate, amount).
 
 **[Dropped]** `vat_rate` columns.
 
@@ -684,7 +685,7 @@ Effective entitlements of a subscription = the plan's entitlements − the subsc
 
 | Field | Type | Rules |
 | :--- | :--- | :--- |
-| `code` | `string(255)` | unique |
+| `code` | `string(255)` | unique among coupons that are not deleted |
 | `name` | `string(255)` | |
 | `description` | `string?` | |
 | `coupon_type` | `CouponType` | |
@@ -698,11 +699,13 @@ Effective entitlements of a subscription = the plan's entitlements − the subsc
 | `limited_plans` | `[]PlanID` | |
 | `limited_billable_metrics` | `[]MetricID` | targets plans **or** metrics, not both |
 | `status` | `CouponStatus` | `active` → `terminated` |
+| `deleted_at` | `Time?` | set on deletion |
 
 Rules:
-* Once applied, only `name`, `description` and the expiration can change.
+* Once applied, only `name`, `description` and the expiration change; changes to the other fields, the limitations included, are ignored.
+* Until applied, giving the billable metric limitations removes the plan limitations, and the other way round; giving both fails with `only_one_limitation_type_per_coupon_allowed`.
 * A coupon past `expiration_at` is terminated by a periodic job; terminating a coupon does not affect applied coupons.
-* Deleting a coupon terminates it and its applied coupons.
+* Deleting a coupon sets `deleted_at` and keeps its status: it can no longer be read or applied, its code is free again, and its active applied coupons are terminated. Its applied coupons stay listed.
 
 ### 8.2 Applied Coupon
 
@@ -717,7 +720,8 @@ Rules:
 | `terminated_at` | `Time?` | |
 
 Rules:
-* A non-reusable coupon can be applied to a customer once (error `coupon_is_not_reusable`).
+* Only an active coupon that is not deleted can be applied (error `coupon_not_found`), and only to a customer that is not deleted (error `customer_not_found`).
+* A non-reusable coupon can be applied to a customer once (error `coupon_is_not_reusable` on `coupon`); the plan overlap below is checked first.
 * A plan-limited coupon cannot be applied if an active applied coupon of the customer already targets one of the same plans (error `plan_overlapping`).
 * A `fixed_amount` applied coupon carries its own currency, which need not be the customer's; it applies only to invoices in that currency (§22.7). A `percentage` coupon applies to invoices in any currency. A coupon has one currency; applying it in another currency is done with an amount and currency override.
 * Application to invoices is in §22.7.
@@ -828,12 +832,12 @@ Subscriptions of a customer billed at the same instant share an invoice when the
 
 Rules:
 * Batches contain at most 100 events; each event is validated independently.
-* **Deduplication**: the key is (organization, `external_subscription_id`, `transaction_id`), as Lago's unique index on events; one transaction ID under two subscriptions is two events. A re-sent known key is acknowledged as a duplicate and dropped, whatever its code and timestamp, in every event store; corrections go through the event replacement API, which locates the event by its key and may change its code and timestamp, not its subscription. Lago's ClickHouse store deduplicates at query time by (organization, subscription, code, transaction ID, timestamp) instead, so a re-send at another timestamp counts twice there; Tanvo keeps one semantics for both stores. See §24, item 11.
+* **Deduplication**: the key is (organization, `external_subscription_id`, `transaction_id`), as Lago's unique index on events; one transaction ID under two subscriptions is two events. A re-sent known key is acknowledged as a duplicate and dropped, whatever its code and timestamp, in every event store. Lago's ClickHouse store deduplicates at query time by (organization, subscription, code, transaction ID, timestamp) instead, so a re-send at another timestamp counts twice there; Tanvo keeps one semantics for both stores. See §24, item 11.
 
 ### 10.2 Enrichment and Validation
 * The event's subscription is the one with `external_id = external_subscription_id`, status `active` or `terminated`, and `started_at ≤ timestamp < terminated_at`. `pending`, `incomplete` and `canceled` subscriptions never match. For recurring metrics an event without a matching period falls back to the active subscription.
 * If the metric has an `expression`, it is evaluated and its result is stored in `properties[field_name]`.
-* Post-validation errors are recorded and reported in the `events.errors` webhook (batched): `invalid_code` (no metric with that code), `missing_aggregation_property` (`field_name` absent), `invalid_filter_values` (a filter property with a value outside the filter's values).
+* Post-validation errors are reported hourly in one `events.errors` webhook per organization with webhook endpoints, covering the events created in the previous clock hour (`event.ValidationErrors`): `invalid_code` (no metric, kept or discarded, with that code), `missing_aggregation_property` (`field_name` absent, or not a decimal number `^-?\d+(\.\d+)?$` for `sum`, `max`, `weighted_sum` and `latest`), `invalid_filter_values` (a filter property with a value outside the filter's values). An event whose code names only discarded metrics is not checked.
 * One enriched row is written per event, carrying the subscription, the metric, the expression result, the aggregated value, the grouping keys and the precise amount. Enrichment looks up the metric's charges only to decide whether an in-advance charge applies; it stores no charge or filter. The matching charge filter (or the default bucket) is resolved from the raw properties when usage is queried or bucketed ([architecture §7.2](architecture.md#72-enrichment)).
 * In-advance charges produce a fee per event (§22.4).
 
@@ -849,7 +853,7 @@ Rules:
 * **Cached aggregations**: the running aggregation state of a charge (or charge filter) of an external subscription, per pricing group: `timestamp`, `event_transaction_id?`, `grouped_by`, `current_aggregation`, `max_aggregation`, `max_aggregation_with_proration`, `presentation_breakdowns`. Each pay-in-advance event stores one (the state after it), and a recurring metric billed in arrears stores one per period end, at most once per charge, group and instant. A recurring state carries only `current_aggregation`; the other values are null when the aggregation did not produce them, and an aggregation that reads a missing value fails, as Lago's `BigDecimal(nil)` raises. Later in-advance events and the next periods (current usage included) start from the latest state in their period; while an event is priced, states of that event and states without an event transaction are left out (SQL inequality, `app/services/billable_metrics/aggregations/base_service.rb:223`). The lookups filter by charge filter only when one is set, so a charge's default bucket reads the states of all its filters (`base_service.rb:224`, `weighted_sum_service.rb:143`); a recurring state is created unless one exists for the exact filter (`app/services/fees/charge_service.rb:532-539`). As in Lago, the states reference charges and filters without foreign keys. **[Change]** Lago's `current_amount` (custom aggregations, §24 item 1) is not kept.
 * **Past usage**: fees of invoiced periods, read from invoices.
 * **Lifetime usage**: per subscription chain, `historical_usage` (imported) + `invoiced_usage` + `current_usage`; refreshed when events arrive and after invoicing; it drives usage thresholds (§22.16) and lifetime alerts (§19).
-* Daily usage time series are an `ee/` analytics feature.
+* **Daily usage**: per subscription and day in the customer's time zone, the usage of the current period and its difference from the previous day (`usage`, `usage_diff`, `refreshed_at`, `usage_date`), computed by the hourly clock for the organizations entering a new day (unless the subscription skips daily usage), filled from each subscription invoice for the last day of its periods, and backfilled on demand; it is core data, and only its dashboards are an `ee/` analytics feature.
 
 ---
 
@@ -918,7 +922,7 @@ stateDiagram-v2
     open --> finalized: rule satisfied / taxes computed
     open --> closed: activation failed
     open --> failed: pulling provider taxes failed
-    failed --> finalized: retry succeeded
+    failed --> open: retry (taxes pulled again)
     finalized --> voided: void
 ```
 
@@ -971,7 +975,7 @@ The order of deductions and their bases are in §22.7. No total is negative; eac
 **[Dropped]** Invoice type `add_on`, invoice versions (`version_number` gates), `organization_sequential_id` (replaced by `billing_entity_sequential_id`).
 
 ### 11.7 Deleting Drafts
-A draft invoice can be deleted unless it has been synced to an external system (`invoice_synced_to_external_system`). Its draft credit notes are deleted with it (one that cannot be deleted refuses the whole operation, `credit_note_not_deletable`), its fees are removed, and `invoice.deleted` is emitted. The periods it covered are not billed again: the subscription continues from its next period. **[Change]** Lago keeps a `deleted` status row; Tanvo removes the draft and keeps only the audit event.
+A draft invoice can be deleted unless it has been synced to an external system (`invoice_synced_to_external_system`). Its draft credit notes move to the `deleted` status with it (one that cannot be deleted refuses the whole operation, `credit_note_not_deletable`), it moves to the terminal `deleted` status, invisible to every read and list, keeping its fees and subscription periods, and `invoice.deleted` is emitted. The periods it covered are not billed again: the subscription continues from its next period.
 
 ### 11.8 Documents
 Finalized invoices, credit notes, payment receipts and payment requests are rendered as PDF/A-3b; when the billing entity has `einvoicing`, the e-invoice XML (Factur-X / ZUGFeRD CII for FR and DE) is embedded and also stored separately ([architecture §10](architecture.md#10-documents-libsdocuments)). Documents are rendered in `document_locale` (customer → billing entity).
@@ -1071,7 +1075,7 @@ On a draft invoice, a fee can be adjusted: display name only, units only (the pr
 * Refunds go through the invoice's payment provider; `refund_status` follows the provider refund. **[Fix]** Lago emits a webhook whose name differs from its declared type; Tanvo emits `credit_note.refund_failure`.
 * **Estimate**: given items, returns the computed amounts without creating anything.
 * `credit_note.created` and, after the PDF is rendered, `credit_note.generated` are emitted.
-* Draft credit notes exist only for automatic credit notes created on draft invoices (progressive billing); they are finalized with the invoice.
+* Draft credit notes exist only for automatic credit notes created on draft invoices (progressive billing); they are finalized with the invoice, or move to the terminal, invisible `deleted` status when the invoice is deleted.
 
 ### 13.3 Automatic Credit Notes
 * **Termination** of an in-advance subscription (§22.14): the unused part of the paid base fee and in-advance fixed charges, split according to `on_termination_credit_note`: `credit` (balance), `refund` (refund up to what was paid, the rest as credit), `offset` (offset against the invoice's due amount, the rest as credit), `skip` (none).
@@ -1113,7 +1117,7 @@ On a draft invoice, a fee can be adjusted: display name only, units only (the pr
 Rules:
 * Terminating a wallet (manually or at `expiration_at`) terminates its recurring rules; no further transactions are accepted.
 * **Ongoing usage allocation**: the usage not yet invoiced (current usage, plus draft invoice fees after coupons, minus progressive-billing and paid in-advance fees, per fee key and currency) is spread over the customer's active wallets of that currency in the §22.7 order, honoring `allowed_fee_types` and `billable_metric_ids`. Each wallet takes up to its balance before the next is used; the last applicable wallet takes the overflow and may go negative. A wallet with an active threshold rule takes everything it is applicable to, so that its rule fires. Each wallet's ongoing balances are its balance minus its allocation.
-* Ongoing balances are refreshed from the usage refresh signals of ingestion, which are sent once the events and their usage buckets are stored, and by a 5-minute sweep that remains authoritative.
+* Ongoing balances are refreshed from the usage refresh signals of ingestion, which are sent once the events and their usage buckets are stored, and by a 5-minute sweep that remains authoritative. Ingestion, invoice refreshes and wallet changes flag the customer `awaiting_wallet_refresh` when it has an active wallet; the sweep refreshes the flagged customers, and a refresh clears the flag only when no new flag was raised while it ran (a per-customer refresh generation). A flag on a customer already flagged and not yet claimed by a refresh writes nothing, as lago's unchanged `update!` does (`app/models/customer.rb:385-389`); a flag raised after a refresh claimed the generation bumps it once, so the signal is never lost.
 * `wallet.depleted_ongoing_balance` is emitted when the ongoing balance reaches 0.
 * Balances change only through transactions under the customer's `prepaid_credits` lock.
 
@@ -1264,15 +1268,15 @@ Stored with `status ∈ {pending, processing, succeeded, failed}`, processed by 
 | `days_between_attempts` | `int` | ≥ 1 |
 | `max_attempts` | `int` | ≥ 1 |
 | `bcc_emails` | `[]string` | |
-| `thresholds` | `[]{currency, amount Money}` | at least one; one per currency |
+| `thresholds` | `[]{id, currency, amount Money}` | at least one on create; one per currency |
 
 Rules:
 * Applied to a billing entity (default for its customers) or to a customer (override); `exclude_from_dunning_campaign` opts a customer out.
 * An hourly job, for each customer with an applicable campaign: if Σ `total_due_amount` of overdue invoices in a threshold's currency ≥ the threshold, the customer's attempts in that currency < `max_attempts`, and `days_between_attempts` have passed since the last attempt, it creates a payment request (§15.4) and increments the counter of that currency.
 * After the last attempt, `dunning_campaign.finished` is emitted.
-* Changing thresholds resets the counters of customers whose balance no longer matches; deleting a campaign resets the customers and entities that used it.
-
-**[Dropped]** `applied_to_organization` (replaced by billing entity assignment).
+* Deleting a campaign resets the customers and entities that used it.
+* `applied_to_organization` reads and sets the default billing entity's campaign: setting it on create or update applies the campaign there (false on update removes it) and, when that changes the entity's campaign, resets the attempts of the customers falling back to it. Lists filter on it.
+* Updating thresholds matches them by ID: a threshold with the ID of one of the campaign's is changed in place, any other is added, and those left out are removed, so a campaign may end with none. Removing one or changing an existing one resets the customers whose balance no longer matches.
 
 ---
 
@@ -1297,11 +1301,16 @@ Single sign-on integrations (category `auth`: `okta`, `entra_id`, `oidc`) keep t
 | :--- | :--- |
 | `client_id` | required |
 | `domain` | required; the primary email domain routed to the connection, stored lower-case |
-| `additional_domains` | Entra ID and generic OIDC only; host names with at least two labels, lower-case, deduplicated |
+| `additional_domains` | Entra ID and generic OIDC; host names with at least two labels, lower-case, deduplicated |
 | `organization_name` | required for Okta; the default host is `<organization_name>.okta.com` |
 | `tenant_id` | required for Entra ID; letters, digits, `.` and `-` |
 | `host` | optional provider host override; letters, digits, `.` and `-` |
-| `issuer` | required for generic OIDC; the discovery issuer URL |
+| `issuer_url` | generic OIDC only, required; http(s) URL without query, fragment or user info, at most 2048 characters; discovery must report exactly this issuer |
+| `token_endpoint_auth_method` | generic OIDC only; `client_secret_basic` or `client_secret_post`; empty follows discovery |
+| `scopes` | generic OIDC only; at most 20 scope tokens; empty means `openid email profile` |
+| `email_claim`, `name_claim` | generic OIDC only; claim names; empty means `email` and `name` |
+| `allow_unverified_email` | generic OIDC only; when false (the default) `email_verified` must be true |
+| `authorization_params` | generic OIDC only; at most 20 extra authorization request parameters; protocol parameters (`client_id`, `redirect_uri`, `response_type`, `response_mode`, `scope`, `state`, `nonce`, `code_challenge`, `code_challenge_method`, `login_hint`, `request`, `request_uri`) are refused |
 | `default_role_id` | required; role of memberships created at first sign-in (§5.3) |
 
 A sign-in is routed to the connections of its method claiming the email's domain, case-insensitively, across organizations; a primary domain wins over an additional one, then the oldest connection. A domain is claimed by at most one connection of a method.
@@ -1372,7 +1381,7 @@ Payloads use the same resource representation as the API.
 
 | Field | Type | Rules |
 | :--- | :--- | :--- |
-| `code` | `string(255)` | unique per subscription (or wallet) |
+| `code` | `string(255)` | unique per subscription (or wallet) among alerts not deleted |
 | `name` | `string?` | |
 | `alert_type` | Enum, below | |
 | `subscription_external_id` or `wallet_id` | | by type |
@@ -1381,6 +1390,7 @@ Payloads use the same resource representation as the API.
 | `thresholds` | `[]{code?, value Decimal, recurring bool}` | 1–20; at most one recurring; values unique |
 | `previous_value` | `Decimal` | last evaluated value |
 | `last_processed_at` | `Time?` | |
+| `deleted_at` | `Time?` | soft delete: deleting an alert deletes its thresholds and discards it; triggered alerts are kept |
 
 Alert types: `current_usage_amount`, `billable_metric_current_usage_amount`, `billable_metric_current_usage_units`, `lifetime_usage_amount`, `billable_metric_lifetime_usage_units`, `wallet_balance_amount`, `wallet_credits_balance`, `wallet_ongoing_balance_amount`, `wallet_credits_ongoing_balance`.
 
@@ -1413,12 +1423,13 @@ These features are beta and premium-gated in Lago. Tanvo places them in the AGPL
 * `Quote`: `number` (`QT-<YYYY>-<NNNN>`, per organization and year), `customer_id`, `order_type ∈ {subscription_creation, subscription_amendment, one_off}`, `owners []membership`, `subscription_id?` (amendments).
 * `QuoteVersion`: `version int`, `status ∈ {draft, approved, voided}`, `void_reason ∈ {manual, superseded, cascade_of_expired, cascade_of_voided}?`, `content` (the proposed plan, overrides, add-ons, dates), `approved_at`, `voided_at`. At most one non-voided version per quote; creating a new version voids the previous one as `superseded`.
 * Approving a version creates an order form.
+* Only a draft version can be edited, approved or cloned into a new draft; cloning is refused once any version is approved. Approval checks the billing items for completeness and snapshots the mention variables. The changes of a quote, its versions, order forms and orders run under a lock per quote (`libs/billing/quotes`).
 
 ### 21.2 Order Form
-`number` (`OF-<YYYY>-<NNNN>`), `quote_version_id`, `status ∈ {generated, signed, expired, voided}`, `void_reason ∈ {manual, expired, invalid}?`, `expires_at`, `signed_at`, `signed_by`. Expiry voids the order form and cascades to the quote version (`cascade_of_expired`). Signing creates an order.
+`number` (`OF-<YYYY>-<NNNN>`), `quote_version_id`, `status ∈ {generated, signed, expired, voided}`, `void_reason ∈ {manual, expired, invalid}?`, `expires_at`, `signed_at`, `signed_by`. Expiry voids the order form and cascades to the quote version (`cascade_of_expired`). Signing creates an order. It may attach a signed document (a data URI of up to 10 MB, stored in the blob store) and set the order's execution mode and `execute_at`. `execute_at` must be in the future and before the deal expires (`after_deal_expiration`).
 
 ### 21.3 Order
-`number` (`OR-<YYYY>-<NNNN>`), `order_form_id`, `status ∈ {created, executed, failed}`, `execution_mode ∈ {execute, order_only}`, `executed_at`. Executing applies the quote content: creates or amends the subscription, or issues a one-off invoice. `order_only` records the order without applying it.
+`number` (`OR-<YYYY>-<NNNN>`), `order_form_id`, `status ∈ {created, executed, failed}`, `execution_mode ∈ {execute, order_only}`, `executed_at`. Executing applies the quote content: creates or amends the subscription, or issues a one-off invoice. `order_only` records the order without applying it. A created order's execution mode and `execute_at` can be edited. The execution record (`executed_at`, `execution_mode`, `invoice_id`, `subscription_ids`, `terminated_subscription_ids`, `applied_coupon_ids`, `wallet_ids`, `errors`) lists what was created. When the execution fails, it rolls back and the order becomes `failed` with the error codes; a failed order can be executed again. An hourly clock job executes the created orders whose `execute_at` is reached.
 
 ### 21.4 Contracts (Product Catalog)
 Lago's billing v2 prices products through rate cards on contracts instead of plans on subscriptions:
@@ -1586,7 +1597,8 @@ Zero-decimal (JPY, KRW, …) and three-decimal (BHD, KWD, …) currencies use th
   * valid VIES number, same country → the country's standard tax, or the exception tax when the postcode matches;
   * no VIES number, EU country → that country's standard (or exception) tax; no country → the billing entity country's standard tax;
   * non-EU country → `eu_tax_exempt`.
-  * While a VIES check is pending (retried with backoff up to hourly), the customer's invoices wait in `open` with `tax_status = pending`.
+  * A customer with a tax ID outside a territory gets no EU tax until a VIES check answers. The check is a **pending VIES check** (one per customer: tax ID, billing entity, attempts count, last attempt instant, last error type `rate_limit` | `timeout` | `blocked` | `invalid_requester` | `service_unavailable` | `member_state_unavailable` | `unknown`, last error message) and the job `customers.vies_check`. Rescheduling resets the attempts; deciding the tax without VIES deletes the check. When VIES answers, the customer's taxes become the decided EU tax, its drafts are refreshed and the check is deleted; a VIES failure counts an attempt and retries after 5, 5, 10, 20, 40 minutes, then hourly. Every answer or failure is emitted as `customer.vies_check`, whose `vies_check` is the VIES lookup, or `valid: false` with `valid_format` and, on a failure, `error`.
+  * While a VIES check is pending, the customer's invoices wait untaxed with `tax_status = pending`: in `open` when finalizing, in `draft` otherwise. Once the check completes, each open one is finalized by the job `billing.finalize_pending_vies_invoice` with the decided taxes; a gated one stays open and gets its payment.
 * **Provider taxes**: §17.4.
 
 ### 22.11 Numbering
@@ -1699,7 +1711,6 @@ All numbers are assigned in the transaction that finalizes the document, under a
 | Billing schedule | hourly scans | per-subscription `next_billing_at` + reconciliation (§22.17) |
 | Deletion | `deleted_at` soft delete everywhere | lifecycle statuses + hard delete (§2.3) |
 | Plan deletion | `deleted_at` | `deleted` status (§7.2) |
-| Deleted drafts | `deleted` status row | removed; audit event kept (§11.7) |
 | One-off pending taxes | status `pending` | status `open` (§11.2) |
 | EU tax codes | `lago_eu_*` | `eu_*` (§22.10) |
 | Code uniqueness | application checks + soft-delete scopes | partial unique indexes on live rows (§2.1) |
@@ -1710,7 +1721,7 @@ All numbers are assigned in the transaction that finalizes the document, under a
 | SSO domain matching | exact for Okta, case-insensitive for Entra ID | case-insensitive for every provider (§17.1) |
 | Sender address | `from_email` premium integration | `from_email_enabled` organization setting (§4.1) |
 
-**Dropped** (not implemented): invoice type `add_on`, groups and group properties, `grouped_by` alias, invoice version gates, `organization_sequential_id`, `vat_rate` columns, `cancelation_reason`/`incompleted_at` legacy columns, the `overriden` alias, the `event.error` webhook, `applied_add_ons`, `organizations.webhook_url`/`api_key`/`hmac_key`, the `webhooks.payload` legacy layout, the deprecated public-key endpoint, dunning `applied_to_organization`, integration resource type `sales_order_deprecated`, NetSuite `legacy_script`, `recurring_count_agg`, legacy billable metric properties, deprecated charge contexts.
+**Dropped** (not implemented): invoice type `add_on`, groups and group properties, `grouped_by` alias, invoice version gates, `organization_sequential_id`, `vat_rate` columns, `cancelation_reason`/`incompleted_at` legacy columns, the `overriden` alias, the `event.error` webhook, `applied_add_ons`, `organizations.webhook_url`/`api_key`/`hmac_key`, the `webhooks.payload` legacy layout, the deprecated public-key endpoint, integration resource type `sales_order_deprecated`, NetSuite `legacy_script`, `recurring_count_agg`, legacy billable metric properties, deprecated charge contexts.
 
 ---
 
@@ -1728,11 +1739,11 @@ The questions raised while writing this model, and how Tanvo settles them. A lat
 8. **Payment receipt numbers** come from a counter on the customer row, taken under the row lock in the transaction that creates the receipt.
 9. **Lifetime usage** is maintained incrementally, from usage buckets for the charges they serve and from events for the others (architecture §7.4), with a periodic recompute as reconciliation.
 10. **Trial lengths** are whole days.
-11. **Event deduplication**: the key is (organization, `external_subscription_id`, `transaction_id`); the first accepted event wins, a re-send is acknowledged as a duplicate and dropped whatever its code and timestamp, and corrections go through event replacement on the API with an explicit audit entry. §10's replace-on-same-timestamp rule is superseded by this. *Changed on 2026-10-23*: the key was (organization, `transaction_id`); it now includes the external subscription, as Lago's does, so that clients reusing transaction IDs across subscriptions keep their events, and so that every copy of a key reaches the same ingest partition, which the per-subscription partitioning needs to deduplicate without resolving copies across writers.
+11. **Event deduplication**: the key is (organization, `external_subscription_id`, `transaction_id`); the first accepted event wins, a re-send is acknowledged as a duplicate and dropped whatever its code and timestamp. §10's replace-on-same-timestamp rule is superseded by this. *Changed on 2026-10-23*: the key was (organization, `transaction_id`); it now includes the external subscription, as Lago's does, so that clients reusing transaction IDs across subscriptions keep their events, and so that every copy of a key reaches the same ingest partition, which the per-subscription partitioning needs to deduplicate without resolving copies across writers.
 12. **Payment terms** are an integer net payment term in days (≥ 0), as in Lago v1.55.0: `net_payment_term_days` on the billing entity (default 0) and on the customer (`null` inherits the billing entity's). The invoice snapshots the applicable term, and its due date is the issuing date plus that many days. Lago's `payment_term` and `payment_term_source` columns (1d56e730e) are not read by v1.55.0 and are not modelled; the structured payment terms that will use them are unreleased and not implemented.
 13. **Alerts**: no resolved or seeded states. In v1.55.0 the triggered alert's `kind` (`triggered`, `resolved`, `seeded`), `in_alarm_thresholds` and `fully_resolved` columns exist, but nothing writes a resolved or seeded alert and no `alert.resolved` webhook is sent.
 14. **x402 payments** cover what v1.55.0 reaches: the gate check (route check, balance check, payment requirements) over connections configured outside the API, on the networks and USDC assets it supports. The settlement services (verify, settle, payment digest) and the on-chain readers exist in v1.55.0 but nothing calls them; Tanvo does not wire them to an API, a job or reconciliation either. The settlement's payment digest and transaction hash are unique across all organizations, a deliberate exception to tenant-scoped uniqueness (the other is the invoice's `x402_payment_token`, §11.1): two organizations sharing a payout address must not both be credited for one transfer (Lago 18a741762).
-15. **Streaming destinations** get a CRUD API and are a kind of event destination beside webhook endpoints (Kafka, Kinesis, S3).
+15. **Streaming destinations** are a kind of event destination beside webhook endpoints, configured by the operator: v1.55.0 has no API to create them. *Changed on 2026-10-24*: they had a CRUD API (Kafka, Kinesis, S3), beyond the baseline.
 16. **Tiers**: the API exposes adjacent tiers only.
 17. **Mixed upgrade invoice**: each invoice subscription records its own reason (`subscription_terminating`, `subscription_starting`); the invoice is issued on the upgrade date.
 18. **Expired activations** refund captured payments with that refund reason.

@@ -6,8 +6,8 @@
 /* eslint-disable */
 
 // Package tanvo.attribution.v1 is the API of usage attribution: types of
-// labels events carry (teams, projects, end users), the values seen per
-// customer, and usage broken down by them.
+// labels events carry (teams, projects, end users) and usage broken down
+// by them.
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
@@ -26,7 +26,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file tanvo/attribution/v1/attribution.proto.
  */
 export const file_tanvo_attribution_v1_attribution: GenFile = /*@__PURE__*/
-  fileDesc("CiZ0YW52by9hdHRyaWJ1dGlvbi92MS9hdHRyaWJ1dGlvbi5wcm90bxIUdGFudm8uYXR0cmlidXRpb24udjEiiQQKFFVzYWdlQXR0cmlidXRpb25UeXBlEhAKAmlkGAEgASgJQgTiQQEIEh0KBGNvZGUYAiABKAlCD+JBAgIFukgHcgXopMoGARIWCgRuYW1lGAMgASgJQgi6SAVyAxj/ARIdCgtkZXNjcmlwdGlvbhgEIAEoCUIIukgFcgMYgAgSMQoQYXR0cmlidXRpb25fa2V5cxgFIAMoCUIX4kEBArpIEJIBDRAEGAEiB3IFEAEY/wESRgoEcm9sZRgGIAEoDjIqLnRhbnZvLmF0dHJpYnV0aW9uLnYxLlVzYWdlQXR0cmlidXRpb25Sb2xlQgziQQECukgFggECEAESHQoJcGFyZW50X2lkGAcgASgJQgq6SAdyBeCkygYBEjQKCmNyZWF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCnVwZGF0ZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDOoIB6kF/Ch50YW52by54eXovVXNhZ2VBdHRyaWJ1dGlvblR5cGUSMHVzYWdlX2F0dHJpYnV0aW9uX3R5cGVzL3t1c2FnZV9hdHRyaWJ1dGlvbl90eXBlfSoVdXNhZ2VBdHRyaWJ1dGlvblR5cGVzMhR1c2FnZUF0dHJpYnV0aW9uVHlwZSLfAQoVVXNhZ2VBdHRyaWJ1dGlvblZhbHVlEgoKAmlkGAEgASgJEiEKGXVzYWdlX2F0dHJpYnV0aW9uX3R5cGVfaWQYAiABKAkSEwoLY3VzdG9tZXJfaWQYAyABKAkSDQoFdmFsdWUYBCABKAkSEQoJcGFyZW50X2lkGAUgASgJEjAKDGxhc3Rfc2Vlbl9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKY3JlYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiKQoGVmFsdWVzEh8KBnZhbHVlcxgBIAMoCUIPukgMkgEJEGQiBXIDGP8BIqMDChVBdHRyaWJ1dGVkQ2hhcmdlVXNhZ2USEQoJY2hhcmdlX2lkGAEgASgJEhMKC2NoYXJnZV9jb2RlGAIgASgJEhMKC21ldHJpY19jb2RlGAMgASgJEhgKEGNoYXJnZV9maWx0ZXJfaWQYBCABKAkSYQoUY2hhcmdlX2ZpbHRlcl92YWx1ZXMYBSADKAsyQy50YW52by5hdHRyaWJ1dGlvbi52MS5BdHRyaWJ1dGVkQ2hhcmdlVXNhZ2UuQ2hhcmdlRmlsdGVyVmFsdWVzRW50cnkSKgoiY2hhcmdlX2ZpbHRlcl9pbnZvaWNlX2Rpc3BsYXlfbmFtZRgGIAEoCRINCgV1bml0cxgHIAEoCRImCgZhbW91bnQYCCABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSFAoMZXZlbnRzX2NvdW50GAkgASgDGlcKF0NoYXJnZUZpbHRlclZhbHVlc0VudHJ5EgsKA2tleRgBIAEoCRIrCgV2YWx1ZRgCIAEoCzIcLnRhbnZvLmF0dHJpYnV0aW9uLnYxLlZhbHVlczoCOAEilwEKE0F0dHJpYnV0ZWRBZ2dyZWdhdGUSJgoGYW1vdW50GAEgASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5EhQKDGV2ZW50c19jb3VudBgCIAEoAxJCCg1jaGFyZ2VzX3VzYWdlGAMgAygLMisudGFudm8uYXR0cmlidXRpb24udjEuQXR0cmlidXRlZENoYXJnZVVzYWdlImsKEkF0dHJpYnV0ZWRVc2FnZVJvdxINCgV2YWx1ZRgBIAEoCRIMCgRyYW5rGAIgASgFEjgKBXVzYWdlGAMgASgLMikudGFudm8uYXR0cmlidXRpb24udjEuQXR0cmlidXRlZEFnZ3JlZ2F0ZSLfAgohQ3JlYXRlVXNhZ2VBdHRyaWJ1dGlvblR5cGVSZXF1ZXN0ElYKFnVzYWdlX2F0dHJpYnV0aW9uX3R5cGUYASABKAsyKi50YW52by5hdHRyaWJ1dGlvbi52MS5Vc2FnZUF0dHJpYnV0aW9uVHlwZUIK4kEBArpIA8gBATrhAbpI3QEa2gEKH3VzYWdlX2F0dHJpYnV0aW9uX3R5cGUucmVxdWlyZWQSLGNvZGUsIGF0dHJpYnV0aW9uX2tleXMgYW5kIHJvbGUgYXJlIHJlcXVpcmVkGogBaGFzKHRoaXMudXNhZ2VfYXR0cmlidXRpb25fdHlwZS5jb2RlKSAmJiBzaXplKHRoaXMudXNhZ2VfYXR0cmlidXRpb25fdHlwZS5hdHRyaWJ1dGlvbl9rZXlzKSA+IDAgJiYgaGFzKHRoaXMudXNhZ2VfYXR0cmlidXRpb25fdHlwZS5yb2xlKSJwCiJDcmVhdGVVc2FnZUF0dHJpYnV0aW9uVHlwZVJlc3BvbnNlEkoKFnVzYWdlX2F0dHJpYnV0aW9uX3R5cGUYASABKAsyKi50YW52by5hdHRyaWJ1dGlvbi52MS5Vc2FnZUF0dHJpYnV0aW9uVHlwZSJWCh5HZXRVc2FnZUF0dHJpYnV0aW9uVHlwZVJlcXVlc3QSNAoZdXNhZ2VfYXR0cmlidXRpb25fdHlwZV9pZBgBIAEoCUIR4kEBArpICsgBAXIF4KTKBgEibQofR2V0VXNhZ2VBdHRyaWJ1dGlvblR5cGVSZXNwb25zZRJKChZ1c2FnZV9hdHRyaWJ1dGlvbl90eXBlGAEgASgLMioudGFudm8uYXR0cmlidXRpb24udjEuVXNhZ2VBdHRyaWJ1dGlvblR5cGUieQogTGlzdFVzYWdlQXR0cmlidXRpb25UeXBlc1JlcXVlc3QSHQoJcGFnZV9zaXplGAEgASgFQgq6SAcaBRjoBygAEhwKCnBhZ2VfdG9rZW4YAiABKAlCCLpIBXIDGIAIEhgKBmZpbHRlchgDIAEoCUIIukgFcgMYgBAiiQEKIUxpc3RVc2FnZUF0dHJpYnV0aW9uVHlwZXNSZXNwb25zZRJLChd1c2FnZV9hdHRyaWJ1dGlvbl90eXBlcxgBIAMoCzIqLnRhbnZvLmF0dHJpYnV0aW9uLnYxLlVzYWdlQXR0cmlidXRpb25UeXBlEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSKaAgohVXBkYXRlVXNhZ2VBdHRyaWJ1dGlvblR5cGVSZXF1ZXN0ElYKFnVzYWdlX2F0dHJpYnV0aW9uX3R5cGUYASABKAsyKi50YW52by5hdHRyaWJ1dGlvbi52MS5Vc2FnZUF0dHJpYnV0aW9uVHlwZUIK4kEBArpIA8gBARIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2s6bLpIaRpnChl1c2FnZV9hdHRyaWJ1dGlvbl90eXBlLmlkEiV1c2FnZV9hdHRyaWJ1dGlvbl90eXBlLmlkIGlzIHJlcXVpcmVkGiNoYXModGhpcy51c2FnZV9hdHRyaWJ1dGlvbl90eXBlLmlkKSJwCiJVcGRhdGVVc2FnZUF0dHJpYnV0aW9uVHlwZVJlc3BvbnNlEkoKFnVzYWdlX2F0dHJpYnV0aW9uX3R5cGUYASABKAsyKi50YW52by5hdHRyaWJ1dGlvbi52MS5Vc2FnZUF0dHJpYnV0aW9uVHlwZSJZCiFEZWxldGVVc2FnZUF0dHJpYnV0aW9uVHlwZVJlcXVlc3QSNAoZdXNhZ2VfYXR0cmlidXRpb25fdHlwZV9pZBgBIAEoCUIR4kEBArpICsgBAXIF4KTKBgEiJAoiRGVsZXRlVXNhZ2VBdHRyaWJ1dGlvblR5cGVSZXNwb25zZSLYAQohTGlzdFVzYWdlQXR0cmlidXRpb25WYWx1ZXNSZXF1ZXN0EiYKC2N1c3RvbWVyX2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGARI0Chl1c2FnZV9hdHRyaWJ1dGlvbl90eXBlX2lkGAIgASgJQhHiQQECukgKyAEBcgXgpMoGARIdCglwYWdlX3NpemUYAyABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgEIAEoCUIIukgFcgMYgAgSGAoGc2VhcmNoGAUgASgJQgi6SAVyAxj/ASKMAQoiTGlzdFVzYWdlQXR0cmlidXRpb25WYWx1ZXNSZXNwb25zZRJNChh1c2FnZV9hdHRyaWJ1dGlvbl92YWx1ZXMYASADKAsyKy50YW52by5hdHRyaWJ1dGlvbi52MS5Vc2FnZUF0dHJpYnV0aW9uVmFsdWUSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIoEFChlHZXRBdHRyaWJ1dGVkVXNhZ2VSZXF1ZXN0EiYKC2N1c3RvbWVyX2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGARIqCg9zdWJzY3JpcHRpb25faWQYAiABKAlCEeJBAQK6SArIAQFyBeCkygYBEiMKCGdyb3VwX2J5GAMgASgJQhHiQQECukgKyAEBcgXopMoGARJXCgdmaWx0ZXJzGAQgAygLMjwudGFudm8uYXR0cmlidXRpb24udjEuR2V0QXR0cmlidXRlZFVzYWdlUmVxdWVzdC5GaWx0ZXJzRW50cnlCCLpIBZoBAhAEEi0KCWZyb21fdGltZRgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKwoHdG9fdGltZRgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKQoMY2hhcmdlX2NvZGVzGAcgAygJQhO6SBCSAQ0QZBgBIgdyBeikygYBEiUKEXNwbGl0X2NoYXJnZV9jb2RlGAggASgJQgq6SAdyBeikygYBEhgKBnNlYXJjaBgJIAEoCUIIukgFcgMY/wESPwoFYmFzaXMYCiABKA4yJi50YW52by5hdHRyaWJ1dGlvbi52MS5BdHRyaWJ1dGlvbkJhc2lzQgi6SAWCAQIQARIdCglwYWdlX3NpemUYCyABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgMIAEoCUIIukgFcgMYgAgaTAoMRmlsdGVyc0VudHJ5EgsKA2tleRgBIAEoCRIrCgV2YWx1ZRgCIAEoCzIcLnRhbnZvLmF0dHJpYnV0aW9uLnYxLlZhbHVlczoCOAEijQMKGkdldEF0dHJpYnV0ZWRVc2FnZVJlc3BvbnNlEhcKD3N1YnNjcmlwdGlvbl9pZBgBIAEoCRIQCghncm91cF9ieRgCIAEoCRI1CgViYXNpcxgDIAEoDjImLnRhbnZvLmF0dHJpYnV0aW9uLnYxLkF0dHJpYnV0aW9uQmFzaXMSLgoGcGVyaW9kGAQgASgLMh4udGFudm8uY29tbW9uLnYxLkRhdGVUaW1lUmFuZ2USEAoIY3VycmVuY3kYBSABKAkSNgoEcm93cxgGIAMoCzIoLnRhbnZvLmF0dHJpYnV0aW9uLnYxLkF0dHJpYnV0ZWRVc2FnZVJvdxI/Cgx1bmF0dHJpYnV0ZWQYByABKAsyKS50YW52by5hdHRyaWJ1dGlvbi52MS5BdHRyaWJ1dGVkQWdncmVnYXRlEjkKBnRvdGFscxgIIAEoCzIpLnRhbnZvLmF0dHJpYnV0aW9uLnYxLkF0dHJpYnV0ZWRBZ2dyZWdhdGUSFwoPbmV4dF9wYWdlX3Rva2VuGAkgASgJKogBChRVc2FnZUF0dHJpYnV0aW9uUm9sZRImCiJVU0FHRV9BVFRSSUJVVElPTl9ST0xFX1VOU1BFQ0lGSUVEEAASJwojVVNBR0VfQVRUUklCVVRJT05fUk9MRV9ISUVSQVJDSElDQUwQARIfChtVU0FHRV9BVFRSSUJVVElPTl9ST0xFX0ZMQVQQAipwChBBdHRyaWJ1dGlvbkJhc2lzEiEKHUFUVFJJQlVUSU9OX0JBU0lTX1VOU1BFQ0lGSUVEEAASGwoXQVRUUklCVVRJT05fQkFTSVNfVU5JVFMQARIcChhBVFRSSUJVVElPTl9CQVNJU19BTU9VTlQQAjLhDgoXVXNhZ2VBdHRyaWJ1dGlvblNlcnZpY2USiAIKGkNyZWF0ZVVzYWdlQXR0cmlidXRpb25UeXBlEjcudGFudm8uYXR0cmlidXRpb24udjEuQ3JlYXRlVXNhZ2VBdHRyaWJ1dGlvblR5cGVSZXF1ZXN0GjgudGFudm8uYXR0cmlidXRpb24udjEuQ3JlYXRlVXNhZ2VBdHRyaWJ1dGlvblR5cGVSZXNwb25zZSJ3yvMYOAoedXNhZ2VfYXR0cmlidXRpb25fdHlwZXM6Y3JlYXRlKhZ1c2FnZV9hdHRyaWJ1dGlvbl90eXBlgtPkkwI1OhZ1c2FnZV9hdHRyaWJ1dGlvbl90eXBlIhsvdjEvdXNhZ2VfYXR0cmlidXRpb25fdHlwZXMShAIKF0dldFVzYWdlQXR0cmlidXRpb25UeXBlEjQudGFudm8uYXR0cmlidXRpb24udjEuR2V0VXNhZ2VBdHRyaWJ1dGlvblR5cGVSZXF1ZXN0GjUudGFudm8uYXR0cmlidXRpb24udjEuR2V0VXNhZ2VBdHRyaWJ1dGlvblR5cGVSZXNwb25zZSJ8kAIByvMYNgocdXNhZ2VfYXR0cmlidXRpb25fdHlwZXM6cmVhZCoWdXNhZ2VfYXR0cmlidXRpb25fdHlwZYLT5JMCORI3L3YxL3VzYWdlX2F0dHJpYnV0aW9uX3R5cGVzL3t1c2FnZV9hdHRyaWJ1dGlvbl90eXBlX2lkfRLuAQoZTGlzdFVzYWdlQXR0cmlidXRpb25UeXBlcxI2LnRhbnZvLmF0dHJpYnV0aW9uLnYxLkxpc3RVc2FnZUF0dHJpYnV0aW9uVHlwZXNSZXF1ZXN0GjcudGFudm8uYXR0cmlidXRpb24udjEuTGlzdFVzYWdlQXR0cmlidXRpb25UeXBlc1Jlc3BvbnNlImCQAgHK8xg2Chx1c2FnZV9hdHRyaWJ1dGlvbl90eXBlczpyZWFkKhZ1c2FnZV9hdHRyaWJ1dGlvbl90eXBlgtPkkwIdEhsvdjEvdXNhZ2VfYXR0cmlidXRpb25fdHlwZXMSpQIKGlVwZGF0ZVVzYWdlQXR0cmlidXRpb25UeXBlEjcudGFudm8uYXR0cmlidXRpb24udjEuVXBkYXRlVXNhZ2VBdHRyaWJ1dGlvblR5cGVSZXF1ZXN0GjgudGFudm8uYXR0cmlidXRpb24udjEuVXBkYXRlVXNhZ2VBdHRyaWJ1dGlvblR5cGVSZXNwb25zZSKTAcrzGDgKHnVzYWdlX2F0dHJpYnV0aW9uX3R5cGVzOnVwZGF0ZSoWdXNhZ2VfYXR0cmlidXRpb25fdHlwZYLT5JMCUToWdXNhZ2VfYXR0cmlidXRpb25fdHlwZTI3L3YxL3VzYWdlX2F0dHJpYnV0aW9uX3R5cGVzL3t1c2FnZV9hdHRyaWJ1dGlvbl90eXBlLmlkfRKMAgoaRGVsZXRlVXNhZ2VBdHRyaWJ1dGlvblR5cGUSNy50YW52by5hdHRyaWJ1dGlvbi52MS5EZWxldGVVc2FnZUF0dHJpYnV0aW9uVHlwZVJlcXVlc3QaOC50YW52by5hdHRyaWJ1dGlvbi52MS5EZWxldGVVc2FnZUF0dHJpYnV0aW9uVHlwZVJlc3BvbnNlInvK8xg4Ch51c2FnZV9hdHRyaWJ1dGlvbl90eXBlczpkZWxldGUqFnVzYWdlX2F0dHJpYnV0aW9uX3R5cGWC0+STAjkqNy92MS91c2FnZV9hdHRyaWJ1dGlvbl90eXBlcy97dXNhZ2VfYXR0cmlidXRpb25fdHlwZV9pZH0SigIKGkxpc3RVc2FnZUF0dHJpYnV0aW9uVmFsdWVzEjcudGFudm8uYXR0cmlidXRpb24udjEuTGlzdFVzYWdlQXR0cmlidXRpb25WYWx1ZXNSZXF1ZXN0GjgudGFudm8uYXR0cmlidXRpb24udjEuTGlzdFVzYWdlQXR0cmlidXRpb25WYWx1ZXNSZXNwb25zZSJ5kAIByvMYNgocdXNhZ2VfYXR0cmlidXRpb25fdHlwZXM6cmVhZCoWdXNhZ2VfYXR0cmlidXRpb25fdHlwZYLT5JMCNhI0L3YxL2N1c3RvbWVycy97Y3VzdG9tZXJfaWR9L3VzYWdlX2F0dHJpYnV0aW9uX3ZhbHVlcxL+AQoSR2V0QXR0cmlidXRlZFVzYWdlEi8udGFudm8uYXR0cmlidXRpb24udjEuR2V0QXR0cmlidXRlZFVzYWdlUmVxdWVzdBowLnRhbnZvLmF0dHJpYnV0aW9uLnYxLkdldEF0dHJpYnV0ZWRVc2FnZVJlc3BvbnNlIoQBkAIByvMYKQoVYXR0cmlidXRlZF91c2FnZTpyZWFkKhBhdHRyaWJ1dGVkX3VzYWdlgtPkkwJOEkwvdjEvY3VzdG9tZXJzL3tjdXN0b21lcl9pZH0vc3Vic2NyaXB0aW9ucy97c3Vic2NyaXB0aW9uX2lkfS91c2FnZTphdHRyaWJ1dGVkQu4BChhjb20udGFudm8uYXR0cmlidXRpb24udjFCEEF0dHJpYnV0aW9uUHJvdG9QAVpOZ2l0aHViLmNvbS90YW52b3h5ei90YW52by9saWJzL3Byb3RvL2dlbi9nby90YW52by9hdHRyaWJ1dGlvbi92MTthdHRyaWJ1dGlvbnYxogIDVEFYqgIUVGFudm8uQXR0cmlidXRpb24uVjHKAhRUYW52b1xBdHRyaWJ1dGlvblxWMeICIFRhbnZvXEF0dHJpYnV0aW9uXFYxXEdQQk1ldGFkYXRh6gIWVGFudm86OkF0dHJpYnV0aW9uOjpWMWIIZWRpdGlvbnNw6Ac", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
+  fileDesc("CiZ0YW52by9hdHRyaWJ1dGlvbi92MS9hdHRyaWJ1dGlvbi5wcm90bxIUdGFudm8uYXR0cmlidXRpb24udjEiowQKFFVzYWdlQXR0cmlidXRpb25UeXBlEhAKAmlkGAEgASgJQgTiQQEIEhwKBGNvZGUYAiABKAlCDuJBAQK6SAdyBeikygYBEhYKBG5hbWUYAyABKAlCCLpIBXIDGP8BEh0KC2Rlc2NyaXB0aW9uGAQgASgJQgi6SAVyAxiACBIxChBhdHRyaWJ1dGlvbl9rZXlzGAUgAygJQhfiQQECukgQkgENEAQYASIHcgUQARj/ARJGCgRyb2xlGAYgASgOMioudGFudm8uYXR0cmlidXRpb24udjEuVXNhZ2VBdHRyaWJ1dGlvblJvbGVCDOJBAQK6SAWCAQIQARIdCglwYXJlbnRfaWQYByABKAlCCrpIB3IF4KTKBgESNAoKY3JlYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNAoKdXBkYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSGQoLcGFyZW50X2NvZGUYCiABKAlCBOJBAQM6ggHqQX8KHnRhbnZvLnh5ei9Vc2FnZUF0dHJpYnV0aW9uVHlwZRIwdXNhZ2VfYXR0cmlidXRpb25fdHlwZXMve3VzYWdlX2F0dHJpYnV0aW9uX3R5cGV9KhV1c2FnZUF0dHJpYnV0aW9uVHlwZXMyFHVzYWdlQXR0cmlidXRpb25UeXBlIikKBlZhbHVlcxIfCgZ2YWx1ZXMYASADKAlCD7pIDJIBCRBkIgVyAxj/ASKjAwoVQXR0cmlidXRlZENoYXJnZVVzYWdlEhEKCWNoYXJnZV9pZBgBIAEoCRITCgtjaGFyZ2VfY29kZRgCIAEoCRITCgttZXRyaWNfY29kZRgDIAEoCRIYChBjaGFyZ2VfZmlsdGVyX2lkGAQgASgJEmEKFGNoYXJnZV9maWx0ZXJfdmFsdWVzGAUgAygLMkMudGFudm8uYXR0cmlidXRpb24udjEuQXR0cmlidXRlZENoYXJnZVVzYWdlLkNoYXJnZUZpbHRlclZhbHVlc0VudHJ5EioKImNoYXJnZV9maWx0ZXJfaW52b2ljZV9kaXNwbGF5X25hbWUYBiABKAkSDQoFdW5pdHMYByABKAkSJgoGYW1vdW50GAggASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5EhQKDGV2ZW50c19jb3VudBgJIAEoAxpXChdDaGFyZ2VGaWx0ZXJWYWx1ZXNFbnRyeRILCgNrZXkYASABKAkSKwoFdmFsdWUYAiABKAsyHC50YW52by5hdHRyaWJ1dGlvbi52MS5WYWx1ZXM6AjgBIpcBChNBdHRyaWJ1dGVkQWdncmVnYXRlEiYKBmFtb3VudBgBIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRIUCgxldmVudHNfY291bnQYAiABKAMSQgoNY2hhcmdlc191c2FnZRgDIAMoCzIrLnRhbnZvLmF0dHJpYnV0aW9uLnYxLkF0dHJpYnV0ZWRDaGFyZ2VVc2FnZSJrChJBdHRyaWJ1dGVkVXNhZ2VSb3cSDQoFdmFsdWUYASABKAkSDAoEcmFuaxgCIAEoBRI4CgV1c2FnZRgDIAEoCzIpLnRhbnZvLmF0dHJpYnV0aW9uLnYxLkF0dHJpYnV0ZWRBZ2dyZWdhdGUi3wIKIUNyZWF0ZVVzYWdlQXR0cmlidXRpb25UeXBlUmVxdWVzdBJWChZ1c2FnZV9hdHRyaWJ1dGlvbl90eXBlGAEgASgLMioudGFudm8uYXR0cmlidXRpb24udjEuVXNhZ2VBdHRyaWJ1dGlvblR5cGVCCuJBAQK6SAPIAQE64QG6SN0BGtoBCh91c2FnZV9hdHRyaWJ1dGlvbl90eXBlLnJlcXVpcmVkEixjb2RlLCBhdHRyaWJ1dGlvbl9rZXlzIGFuZCByb2xlIGFyZSByZXF1aXJlZBqIAWhhcyh0aGlzLnVzYWdlX2F0dHJpYnV0aW9uX3R5cGUuY29kZSkgJiYgc2l6ZSh0aGlzLnVzYWdlX2F0dHJpYnV0aW9uX3R5cGUuYXR0cmlidXRpb25fa2V5cykgPiAwICYmIGhhcyh0aGlzLnVzYWdlX2F0dHJpYnV0aW9uX3R5cGUucm9sZSkicAoiQ3JlYXRlVXNhZ2VBdHRyaWJ1dGlvblR5cGVSZXNwb25zZRJKChZ1c2FnZV9hdHRyaWJ1dGlvbl90eXBlGAEgASgLMioudGFudm8uYXR0cmlidXRpb24udjEuVXNhZ2VBdHRyaWJ1dGlvblR5cGUiVgoeR2V0VXNhZ2VBdHRyaWJ1dGlvblR5cGVSZXF1ZXN0EjQKGXVzYWdlX2F0dHJpYnV0aW9uX3R5cGVfaWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBIm0KH0dldFVzYWdlQXR0cmlidXRpb25UeXBlUmVzcG9uc2USSgoWdXNhZ2VfYXR0cmlidXRpb25fdHlwZRgBIAEoCzIqLnRhbnZvLmF0dHJpYnV0aW9uLnYxLlVzYWdlQXR0cmlidXRpb25UeXBlIpMBCiBMaXN0VXNhZ2VBdHRyaWJ1dGlvblR5cGVzUmVxdWVzdBIdCglwYWdlX3NpemUYASABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgCIAEoCUIIukgFcgMYgAgSGAoGZmlsdGVyGAMgASgJQgi6SAVyAxiAEBIYCgZzZWFyY2gYBCABKAlCCLpIBXIDGP8BIokBCiFMaXN0VXNhZ2VBdHRyaWJ1dGlvblR5cGVzUmVzcG9uc2USSwoXdXNhZ2VfYXR0cmlidXRpb25fdHlwZXMYASADKAsyKi50YW52by5hdHRyaWJ1dGlvbi52MS5Vc2FnZUF0dHJpYnV0aW9uVHlwZRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkimgIKIVVwZGF0ZVVzYWdlQXR0cmlidXRpb25UeXBlUmVxdWVzdBJWChZ1c2FnZV9hdHRyaWJ1dGlvbl90eXBlGAEgASgLMioudGFudm8uYXR0cmlidXRpb24udjEuVXNhZ2VBdHRyaWJ1dGlvblR5cGVCCuJBAQK6SAPIAQESLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrOmy6SGkaZwoZdXNhZ2VfYXR0cmlidXRpb25fdHlwZS5pZBIldXNhZ2VfYXR0cmlidXRpb25fdHlwZS5pZCBpcyByZXF1aXJlZBojaGFzKHRoaXMudXNhZ2VfYXR0cmlidXRpb25fdHlwZS5pZCkicAoiVXBkYXRlVXNhZ2VBdHRyaWJ1dGlvblR5cGVSZXNwb25zZRJKChZ1c2FnZV9hdHRyaWJ1dGlvbl90eXBlGAEgASgLMioudGFudm8uYXR0cmlidXRpb24udjEuVXNhZ2VBdHRyaWJ1dGlvblR5cGUiWQohRGVsZXRlVXNhZ2VBdHRyaWJ1dGlvblR5cGVSZXF1ZXN0EjQKGXVzYWdlX2F0dHJpYnV0aW9uX3R5cGVfaWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBIiQKIkRlbGV0ZVVzYWdlQXR0cmlidXRpb25UeXBlUmVzcG9uc2UigQUKGUdldEF0dHJpYnV0ZWRVc2FnZVJlcXVlc3QSJgoLY3VzdG9tZXJfaWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBEioKD3N1YnNjcmlwdGlvbl9pZBgCIAEoCUIR4kEBArpICsgBAXIF4KTKBgESIwoIZ3JvdXBfYnkYAyABKAlCEeJBAQK6SArIAQFyBeikygYBElcKB2ZpbHRlcnMYBCADKAsyPC50YW52by5hdHRyaWJ1dGlvbi52MS5HZXRBdHRyaWJ1dGVkVXNhZ2VSZXF1ZXN0LkZpbHRlcnNFbnRyeUIIukgFmgECEAQSLQoJZnJvbV90aW1lGAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIrCgd0b190aW1lGAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIpCgxjaGFyZ2VfY29kZXMYByADKAlCE7pIEJIBDRBkGAEiB3IF6KTKBgESJQoRc3BsaXRfY2hhcmdlX2NvZGUYCCABKAlCCrpIB3IF6KTKBgESGAoGc2VhcmNoGAkgASgJQgi6SAVyAxj/ARI/CgViYXNpcxgKIAEoDjImLnRhbnZvLmF0dHJpYnV0aW9uLnYxLkF0dHJpYnV0aW9uQmFzaXNCCLpIBYIBAhABEh0KCXBhZ2Vfc2l6ZRgLIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAwgASgJQgi6SAVyAxiACBpMCgxGaWx0ZXJzRW50cnkSCwoDa2V5GAEgASgJEisKBXZhbHVlGAIgASgLMhwudGFudm8uYXR0cmlidXRpb24udjEuVmFsdWVzOgI4ASKNAwoaR2V0QXR0cmlidXRlZFVzYWdlUmVzcG9uc2USFwoPc3Vic2NyaXB0aW9uX2lkGAEgASgJEhAKCGdyb3VwX2J5GAIgASgJEjUKBWJhc2lzGAMgASgOMiYudGFudm8uYXR0cmlidXRpb24udjEuQXR0cmlidXRpb25CYXNpcxIuCgZwZXJpb2QYBCABKAsyHi50YW52by5jb21tb24udjEuRGF0ZVRpbWVSYW5nZRIQCghjdXJyZW5jeRgFIAEoCRI2CgRyb3dzGAYgAygLMigudGFudm8uYXR0cmlidXRpb24udjEuQXR0cmlidXRlZFVzYWdlUm93Ej8KDHVuYXR0cmlidXRlZBgHIAEoCzIpLnRhbnZvLmF0dHJpYnV0aW9uLnYxLkF0dHJpYnV0ZWRBZ2dyZWdhdGUSOQoGdG90YWxzGAggASgLMikudGFudm8uYXR0cmlidXRpb24udjEuQXR0cmlidXRlZEFnZ3JlZ2F0ZRIXCg9uZXh0X3BhZ2VfdG9rZW4YCSABKAkqiAEKFFVzYWdlQXR0cmlidXRpb25Sb2xlEiYKIlVTQUdFX0FUVFJJQlVUSU9OX1JPTEVfVU5TUEVDSUZJRUQQABInCiNVU0FHRV9BVFRSSUJVVElPTl9ST0xFX0hJRVJBUkNISUNBTBABEh8KG1VTQUdFX0FUVFJJQlVUSU9OX1JPTEVfRkxBVBACKnAKEEF0dHJpYnV0aW9uQmFzaXMSIQodQVRUUklCVVRJT05fQkFTSVNfVU5TUEVDSUZJRUQQABIbChdBVFRSSUJVVElPTl9CQVNJU19VTklUUxABEhwKGEFUVFJJQlVUSU9OX0JBU0lTX0FNT1VOVBACMtQMChdVc2FnZUF0dHJpYnV0aW9uU2VydmljZRKIAgoaQ3JlYXRlVXNhZ2VBdHRyaWJ1dGlvblR5cGUSNy50YW52by5hdHRyaWJ1dGlvbi52MS5DcmVhdGVVc2FnZUF0dHJpYnV0aW9uVHlwZVJlcXVlc3QaOC50YW52by5hdHRyaWJ1dGlvbi52MS5DcmVhdGVVc2FnZUF0dHJpYnV0aW9uVHlwZVJlc3BvbnNlInfK8xg4Ch51c2FnZV9hdHRyaWJ1dGlvbl90eXBlczpjcmVhdGUqFnVzYWdlX2F0dHJpYnV0aW9uX3R5cGWC0+STAjU6FnVzYWdlX2F0dHJpYnV0aW9uX3R5cGUiGy92MS91c2FnZV9hdHRyaWJ1dGlvbl90eXBlcxKEAgoXR2V0VXNhZ2VBdHRyaWJ1dGlvblR5cGUSNC50YW52by5hdHRyaWJ1dGlvbi52MS5HZXRVc2FnZUF0dHJpYnV0aW9uVHlwZVJlcXVlc3QaNS50YW52by5hdHRyaWJ1dGlvbi52MS5HZXRVc2FnZUF0dHJpYnV0aW9uVHlwZVJlc3BvbnNlInyQAgHK8xg2Chx1c2FnZV9hdHRyaWJ1dGlvbl90eXBlczpyZWFkKhZ1c2FnZV9hdHRyaWJ1dGlvbl90eXBlgtPkkwI5EjcvdjEvdXNhZ2VfYXR0cmlidXRpb25fdHlwZXMve3VzYWdlX2F0dHJpYnV0aW9uX3R5cGVfaWR9Eu4BChlMaXN0VXNhZ2VBdHRyaWJ1dGlvblR5cGVzEjYudGFudm8uYXR0cmlidXRpb24udjEuTGlzdFVzYWdlQXR0cmlidXRpb25UeXBlc1JlcXVlc3QaNy50YW52by5hdHRyaWJ1dGlvbi52MS5MaXN0VXNhZ2VBdHRyaWJ1dGlvblR5cGVzUmVzcG9uc2UiYJACAcrzGDYKHHVzYWdlX2F0dHJpYnV0aW9uX3R5cGVzOnJlYWQqFnVzYWdlX2F0dHJpYnV0aW9uX3R5cGWC0+STAh0SGy92MS91c2FnZV9hdHRyaWJ1dGlvbl90eXBlcxKlAgoaVXBkYXRlVXNhZ2VBdHRyaWJ1dGlvblR5cGUSNy50YW52by5hdHRyaWJ1dGlvbi52MS5VcGRhdGVVc2FnZUF0dHJpYnV0aW9uVHlwZVJlcXVlc3QaOC50YW52by5hdHRyaWJ1dGlvbi52MS5VcGRhdGVVc2FnZUF0dHJpYnV0aW9uVHlwZVJlc3BvbnNlIpMByvMYOAoedXNhZ2VfYXR0cmlidXRpb25fdHlwZXM6dXBkYXRlKhZ1c2FnZV9hdHRyaWJ1dGlvbl90eXBlgtPkkwJROhZ1c2FnZV9hdHRyaWJ1dGlvbl90eXBlMjcvdjEvdXNhZ2VfYXR0cmlidXRpb25fdHlwZXMve3VzYWdlX2F0dHJpYnV0aW9uX3R5cGUuaWR9EowCChpEZWxldGVVc2FnZUF0dHJpYnV0aW9uVHlwZRI3LnRhbnZvLmF0dHJpYnV0aW9uLnYxLkRlbGV0ZVVzYWdlQXR0cmlidXRpb25UeXBlUmVxdWVzdBo4LnRhbnZvLmF0dHJpYnV0aW9uLnYxLkRlbGV0ZVVzYWdlQXR0cmlidXRpb25UeXBlUmVzcG9uc2Uie8rzGDgKHnVzYWdlX2F0dHJpYnV0aW9uX3R5cGVzOmRlbGV0ZSoWdXNhZ2VfYXR0cmlidXRpb25fdHlwZYLT5JMCOSo3L3YxL3VzYWdlX2F0dHJpYnV0aW9uX3R5cGVzL3t1c2FnZV9hdHRyaWJ1dGlvbl90eXBlX2lkfRL+AQoSR2V0QXR0cmlidXRlZFVzYWdlEi8udGFudm8uYXR0cmlidXRpb24udjEuR2V0QXR0cmlidXRlZFVzYWdlUmVxdWVzdBowLnRhbnZvLmF0dHJpYnV0aW9uLnYxLkdldEF0dHJpYnV0ZWRVc2FnZVJlc3BvbnNlIoQBkAIByvMYKQoVYXR0cmlidXRlZF91c2FnZTpyZWFkKhBhdHRyaWJ1dGVkX3VzYWdlgtPkkwJOEkwvdjEvY3VzdG9tZXJzL3tjdXN0b21lcl9pZH0vc3Vic2NyaXB0aW9ucy97c3Vic2NyaXB0aW9uX2lkfS91c2FnZTphdHRyaWJ1dGVkQu4BChhjb20udGFudm8uYXR0cmlidXRpb24udjFCEEF0dHJpYnV0aW9uUHJvdG9QAVpOZ2l0aHViLmNvbS90YW52b3h5ei90YW52by9saWJzL3Byb3RvL2dlbi9nby90YW52by9hdHRyaWJ1dGlvbi92MTthdHRyaWJ1dGlvbnYxogIDVEFYqgIUVGFudm8uQXR0cmlidXRpb24uVjHKAhRUYW52b1xBdHRyaWJ1dGlvblxWMeICIFRhbnZvXEF0dHJpYnV0aW9uXFYxXEdQQk1ldGFkYXRh6gIWVGFudm86OkF0dHJpYnV0aW9uOjpWMWIIZWRpdGlvbnNw6Ac", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
 
 /**
  * UsageAttributionType is a kind of label events carry.
@@ -42,7 +42,7 @@ export type UsageAttributionType = Message<"tanvo.attribution.v1.UsageAttributio
   id: string;
 
   /**
-   * The unique code.
+   * The unique code; frozen once usage was attributed to the type.
    *
    * @generated from field: string code = 2;
    */
@@ -97,6 +97,13 @@ export type UsageAttributionType = Message<"tanvo.attribution.v1.UsageAttributio
    * @generated from field: google.protobuf.Timestamp updated_at = 9;
    */
   updatedAt?: Timestamp | undefined;
+
+  /**
+   * The parent type's code; it may be a deleted type's.
+   *
+   * @generated from field: string parent_code = 10;
+   */
+  parentCode: string;
 };
 
 /**
@@ -105,70 +112,6 @@ export type UsageAttributionType = Message<"tanvo.attribution.v1.UsageAttributio
  */
 export const UsageAttributionTypeSchema: GenMessage<UsageAttributionType> = /*@__PURE__*/
   messageDesc(file_tanvo_attribution_v1_attribution, 0);
-
-/**
- * UsageAttributionValue is one value of a type seen in a customer's
- * events.
- *
- * @generated from message tanvo.attribution.v1.UsageAttributionValue
- */
-export type UsageAttributionValue = Message<"tanvo.attribution.v1.UsageAttributionValue"> & {
-  /**
-   * The value's ID.
-   *
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * The type.
-   *
-   * @generated from field: string usage_attribution_type_id = 2;
-   */
-  usageAttributionTypeId: string;
-
-  /**
-   * The customer.
-   *
-   * @generated from field: string customer_id = 3;
-   */
-  customerId: string;
-
-  /**
-   * The value.
-   *
-   * @generated from field: string value = 4;
-   */
-  value: string;
-
-  /**
-   * The parent value, for a HIERARCHICAL type.
-   *
-   * @generated from field: string parent_id = 5;
-   */
-  parentId: string;
-
-  /**
-   * When the value was last seen in an event.
-   *
-   * @generated from field: google.protobuf.Timestamp last_seen_at = 6;
-   */
-  lastSeenAt?: Timestamp | undefined;
-
-  /**
-   * When the value was first seen.
-   *
-   * @generated from field: google.protobuf.Timestamp created_at = 7;
-   */
-  createdAt?: Timestamp | undefined;
-};
-
-/**
- * Describes the message tanvo.attribution.v1.UsageAttributionValue.
- * Use `create(UsageAttributionValueSchema)` to create a new message.
- */
-export const UsageAttributionValueSchema: GenMessage<UsageAttributionValue> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 1);
 
 /**
  * Values is a list of label or filter values.
@@ -189,7 +132,7 @@ export type Values = Message<"tanvo.attribution.v1.Values"> & {
  * Use `create(ValuesSchema)` to create a new message.
  */
 export const ValuesSchema: GenMessage<Values> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 2);
+  messageDesc(file_tanvo_attribution_v1_attribution, 1);
 
 /**
  * AttributedChargeUsage is the usage of one charge (and filter) in a row.
@@ -266,7 +209,7 @@ export type AttributedChargeUsage = Message<"tanvo.attribution.v1.AttributedChar
  * Use `create(AttributedChargeUsageSchema)` to create a new message.
  */
 export const AttributedChargeUsageSchema: GenMessage<AttributedChargeUsage> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 3);
+  messageDesc(file_tanvo_attribution_v1_attribution, 2);
 
 /**
  * AttributedAggregate is usage summed over charges.
@@ -301,7 +244,7 @@ export type AttributedAggregate = Message<"tanvo.attribution.v1.AttributedAggreg
  * Use `create(AttributedAggregateSchema)` to create a new message.
  */
 export const AttributedAggregateSchema: GenMessage<AttributedAggregate> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 4);
+  messageDesc(file_tanvo_attribution_v1_attribution, 3);
 
 /**
  * AttributedUsageRow is the usage of one attribution value.
@@ -336,7 +279,7 @@ export type AttributedUsageRow = Message<"tanvo.attribution.v1.AttributedUsageRo
  * Use `create(AttributedUsageRowSchema)` to create a new message.
  */
 export const AttributedUsageRowSchema: GenMessage<AttributedUsageRow> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 5);
+  messageDesc(file_tanvo_attribution_v1_attribution, 4);
 
 /**
  * CreateUsageAttributionTypeRequest is the request of UsageAttributionService.CreateUsageAttributionType.
@@ -357,7 +300,7 @@ export type CreateUsageAttributionTypeRequest = Message<"tanvo.attribution.v1.Cr
  * Use `create(CreateUsageAttributionTypeRequestSchema)` to create a new message.
  */
 export const CreateUsageAttributionTypeRequestSchema: GenMessage<CreateUsageAttributionTypeRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 6);
+  messageDesc(file_tanvo_attribution_v1_attribution, 5);
 
 /**
  * CreateUsageAttributionTypeResponse is the response of UsageAttributionService.CreateUsageAttributionType.
@@ -378,7 +321,7 @@ export type CreateUsageAttributionTypeResponse = Message<"tanvo.attribution.v1.C
  * Use `create(CreateUsageAttributionTypeResponseSchema)` to create a new message.
  */
 export const CreateUsageAttributionTypeResponseSchema: GenMessage<CreateUsageAttributionTypeResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 7);
+  messageDesc(file_tanvo_attribution_v1_attribution, 6);
 
 /**
  * GetUsageAttributionTypeRequest is the request of UsageAttributionService.GetUsageAttributionType.
@@ -399,7 +342,7 @@ export type GetUsageAttributionTypeRequest = Message<"tanvo.attribution.v1.GetUs
  * Use `create(GetUsageAttributionTypeRequestSchema)` to create a new message.
  */
 export const GetUsageAttributionTypeRequestSchema: GenMessage<GetUsageAttributionTypeRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 8);
+  messageDesc(file_tanvo_attribution_v1_attribution, 7);
 
 /**
  * GetUsageAttributionTypeResponse is the response of UsageAttributionService.GetUsageAttributionType.
@@ -420,7 +363,7 @@ export type GetUsageAttributionTypeResponse = Message<"tanvo.attribution.v1.GetU
  * Use `create(GetUsageAttributionTypeResponseSchema)` to create a new message.
  */
 export const GetUsageAttributionTypeResponseSchema: GenMessage<GetUsageAttributionTypeResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 9);
+  messageDesc(file_tanvo_attribution_v1_attribution, 8);
 
 /**
  * ListUsageAttributionTypesRequest is the request of UsageAttributionService.ListUsageAttributionTypes.
@@ -443,11 +386,21 @@ export type ListUsageAttributionTypesRequest = Message<"tanvo.attribution.v1.Lis
   pageToken: string;
 
   /**
-   * An AIP-160 filter over `role` and `parent_id`.
+   * An AIP-160 filter: `role` (=) and `root` (= true keeps the types
+   * without a parent or whose parent was deleted, = false the others),
+   * joined by AND.
    *
    * @generated from field: string filter = 3;
    */
   filter: string;
+
+  /**
+   * Keeps the types whose code or name contains this text,
+   * case-insensitively.
+   *
+   * @generated from field: string search = 4;
+   */
+  search: string;
 };
 
 /**
@@ -455,7 +408,7 @@ export type ListUsageAttributionTypesRequest = Message<"tanvo.attribution.v1.Lis
  * Use `create(ListUsageAttributionTypesRequestSchema)` to create a new message.
  */
 export const ListUsageAttributionTypesRequestSchema: GenMessage<ListUsageAttributionTypesRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 10);
+  messageDesc(file_tanvo_attribution_v1_attribution, 9);
 
 /**
  * ListUsageAttributionTypesResponse is the response of UsageAttributionService.ListUsageAttributionTypes.
@@ -483,7 +436,7 @@ export type ListUsageAttributionTypesResponse = Message<"tanvo.attribution.v1.Li
  * Use `create(ListUsageAttributionTypesResponseSchema)` to create a new message.
  */
 export const ListUsageAttributionTypesResponseSchema: GenMessage<ListUsageAttributionTypesResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 11);
+  messageDesc(file_tanvo_attribution_v1_attribution, 10);
 
 /**
  * UpdateUsageAttributionTypeRequest is the request of UsageAttributionService.UpdateUsageAttributionType.
@@ -512,7 +465,7 @@ export type UpdateUsageAttributionTypeRequest = Message<"tanvo.attribution.v1.Up
  * Use `create(UpdateUsageAttributionTypeRequestSchema)` to create a new message.
  */
 export const UpdateUsageAttributionTypeRequestSchema: GenMessage<UpdateUsageAttributionTypeRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 12);
+  messageDesc(file_tanvo_attribution_v1_attribution, 11);
 
 /**
  * UpdateUsageAttributionTypeResponse is the response of UsageAttributionService.UpdateUsageAttributionType.
@@ -533,7 +486,7 @@ export type UpdateUsageAttributionTypeResponse = Message<"tanvo.attribution.v1.U
  * Use `create(UpdateUsageAttributionTypeResponseSchema)` to create a new message.
  */
 export const UpdateUsageAttributionTypeResponseSchema: GenMessage<UpdateUsageAttributionTypeResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 13);
+  messageDesc(file_tanvo_attribution_v1_attribution, 12);
 
 /**
  * DeleteUsageAttributionTypeRequest is the request of UsageAttributionService.DeleteUsageAttributionType.
@@ -554,7 +507,7 @@ export type DeleteUsageAttributionTypeRequest = Message<"tanvo.attribution.v1.De
  * Use `create(DeleteUsageAttributionTypeRequestSchema)` to create a new message.
  */
 export const DeleteUsageAttributionTypeRequestSchema: GenMessage<DeleteUsageAttributionTypeRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 14);
+  messageDesc(file_tanvo_attribution_v1_attribution, 13);
 
 /**
  * DeleteUsageAttributionTypeResponse is the response of UsageAttributionService.DeleteUsageAttributionType.
@@ -569,84 +522,7 @@ export type DeleteUsageAttributionTypeResponse = Message<"tanvo.attribution.v1.D
  * Use `create(DeleteUsageAttributionTypeResponseSchema)` to create a new message.
  */
 export const DeleteUsageAttributionTypeResponseSchema: GenMessage<DeleteUsageAttributionTypeResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 15);
-
-/**
- * ListUsageAttributionValuesRequest is the request of UsageAttributionService.ListUsageAttributionValues.
- *
- * @generated from message tanvo.attribution.v1.ListUsageAttributionValuesRequest
- */
-export type ListUsageAttributionValuesRequest = Message<"tanvo.attribution.v1.ListUsageAttributionValuesRequest"> & {
-  /**
-   * The customer (ID or `external_id:<external_id>`).
-   *
-   * @generated from field: string customer_id = 1;
-   */
-  customerId: string;
-
-  /**
-   * The type (ID or `code:<code>`).
-   *
-   * @generated from field: string usage_attribution_type_id = 2;
-   */
-  usageAttributionTypeId: string;
-
-  /**
-   * The maximum number of results; 20 by default, at most 1000.
-   *
-   * @generated from field: int32 page_size = 3;
-   */
-  pageSize: number;
-
-  /**
-   * The next_page_token of the previous page.
-   *
-   * @generated from field: string page_token = 4;
-   */
-  pageToken: string;
-
-  /**
-   * A search over the values.
-   *
-   * @generated from field: string search = 5;
-   */
-  search: string;
-};
-
-/**
- * Describes the message tanvo.attribution.v1.ListUsageAttributionValuesRequest.
- * Use `create(ListUsageAttributionValuesRequestSchema)` to create a new message.
- */
-export const ListUsageAttributionValuesRequestSchema: GenMessage<ListUsageAttributionValuesRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 16);
-
-/**
- * ListUsageAttributionValuesResponse is the response of UsageAttributionService.ListUsageAttributionValues.
- *
- * @generated from message tanvo.attribution.v1.ListUsageAttributionValuesResponse
- */
-export type ListUsageAttributionValuesResponse = Message<"tanvo.attribution.v1.ListUsageAttributionValuesResponse"> & {
-  /**
-   * The values of this page, most recently seen first.
-   *
-   * @generated from field: repeated tanvo.attribution.v1.UsageAttributionValue usage_attribution_values = 1;
-   */
-  usageAttributionValues: UsageAttributionValue[];
-
-  /**
-   * The token of the next page; empty on the last page.
-   *
-   * @generated from field: string next_page_token = 2;
-   */
-  nextPageToken: string;
-};
-
-/**
- * Describes the message tanvo.attribution.v1.ListUsageAttributionValuesResponse.
- * Use `create(ListUsageAttributionValuesResponseSchema)` to create a new message.
- */
-export const ListUsageAttributionValuesResponseSchema: GenMessage<ListUsageAttributionValuesResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 17);
+  messageDesc(file_tanvo_attribution_v1_attribution, 14);
 
 /**
  * GetAttributedUsageRequest is the request of UsageAttributionService.GetAttributedUsage.
@@ -744,7 +620,7 @@ export type GetAttributedUsageRequest = Message<"tanvo.attribution.v1.GetAttribu
  * Use `create(GetAttributedUsageRequestSchema)` to create a new message.
  */
 export const GetAttributedUsageRequestSchema: GenMessage<GetAttributedUsageRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 18);
+  messageDesc(file_tanvo_attribution_v1_attribution, 15);
 
 /**
  * GetAttributedUsageResponse is the response of UsageAttributionService.GetAttributedUsage.
@@ -821,7 +697,7 @@ export type GetAttributedUsageResponse = Message<"tanvo.attribution.v1.GetAttrib
  * Use `create(GetAttributedUsageResponseSchema)` to create a new message.
  */
 export const GetAttributedUsageResponseSchema: GenMessage<GetAttributedUsageResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_attribution_v1_attribution, 19);
+  messageDesc(file_tanvo_attribution_v1_attribution, 16);
 
 /**
  * UsageAttributionRole is how the values of a type relate.
@@ -893,8 +769,8 @@ export const AttributionBasisSchema: GenEnum<AttributionBasis> = /*@__PURE__*/
   enumDesc(file_tanvo_attribution_v1_attribution, 1);
 
 /**
- * UsageAttributionService manages attribution types and values and
- * queries attributed usage.
+ * UsageAttributionService manages attribution types and queries
+ * attributed usage.
  *
  * @generated from service tanvo.attribution.v1.UsageAttributionService
  */
@@ -920,7 +796,7 @@ export const UsageAttributionService: GenService<{
     output: typeof GetUsageAttributionTypeResponseSchema;
   },
   /**
-   * Lists attribution types by code.
+   * Lists attribution types, newest first.
    *
    * @generated from rpc tanvo.attribution.v1.UsageAttributionService.ListUsageAttributionTypes
    */
@@ -948,16 +824,6 @@ export const UsageAttributionService: GenService<{
     methodKind: "unary";
     input: typeof DeleteUsageAttributionTypeRequestSchema;
     output: typeof DeleteUsageAttributionTypeResponseSchema;
-  },
-  /**
-   * Lists the values of a type seen in a customer's events.
-   *
-   * @generated from rpc tanvo.attribution.v1.UsageAttributionService.ListUsageAttributionValues
-   */
-  listUsageAttributionValues: {
-    methodKind: "unary";
-    input: typeof ListUsageAttributionValuesRequestSchema;
-    output: typeof ListUsageAttributionValuesResponseSchema;
   },
   /**
    * Returns a subscription's usage in a period grouped by the values of

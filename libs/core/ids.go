@@ -22,6 +22,7 @@ type (
 	addOnKind                        struct{}
 	fixedChargeKind                  struct{}
 	fixedChargeEventKind             struct{}
+	fixedChargeUnitsOverrideKind     struct{}
 	pricingUnitKind                  struct{}
 	taxKind                          struct{}
 	commitmentKind                   struct{}
@@ -36,6 +37,7 @@ type (
 	subscriptionKind                 struct{}
 	activationRuleKind               struct{}
 	lifetimeUsageKind                struct{}
+	dailyUsageKind                   struct{}
 	eventKind                        struct{}
 	cachedAggregationKind            struct{}
 	invoiceKind                      struct{}
@@ -43,6 +45,7 @@ type (
 	invoiceAppliedTaxKind            struct{}
 	invoiceSettlementKind            struct{}
 	invoiceCustomSectionKind         struct{}
+	appliedInvoiceCustomSectionKind  struct{}
 	errorDetailKind                  struct{}
 	feeKind                          struct{}
 	feeAppliedTaxKind                struct{}
@@ -79,11 +82,21 @@ type (
 	triggeredAlertKind               struct{}
 	dataExportKind                   struct{}
 	dataExportPartKind               struct{}
+	recordDeletionKind               struct{}
 	quoteKind                        struct{}
 	quoteVersionKind                 struct{}
 	orderFormKind                    struct{}
 	orderKind                        struct{}
 	auditEventKind                   struct{}
+	usageAttributionTypeKind         struct{}
+	usageAttributionValueKind        struct{}
+	productCategoryKind              struct{}
+	productKind                      struct{}
+	productFilterKind                struct{}
+	rateCardKind                     struct{}
+	rateCardRateKind                 struct{}
+	planRateCardKind                 struct{}
+	ratePhaseKind                    struct{}
 )
 
 // Typed identifiers of every entity of the domain.
@@ -126,6 +139,9 @@ type (
 	FixedChargeID = ID[fixedChargeKind]
 	// FixedChargeEventID identifies a fixed charge units event (domain §7.5).
 	FixedChargeEventID = ID[fixedChargeEventKind]
+	// FixedChargeUnitsOverrideID identifies the units of a fixed charge
+	// overridden for one subscription (domain §7.5).
+	FixedChargeUnitsOverrideID = ID[fixedChargeUnitsOverrideKind]
 	// PricingUnitID identifies a pricing unit (domain §7.6).
 	PricingUnitID = ID[pricingUnitKind]
 	// TaxID identifies a tax (domain §7.7).
@@ -154,6 +170,8 @@ type (
 	ActivationRuleID = ID[activationRuleKind]
 	// LifetimeUsageID identifies the lifetime usage record of a subscription chain (domain §10.3).
 	LifetimeUsageID = ID[lifetimeUsageKind]
+	// DailyUsageID identifies the daily usage snapshot of a subscription.
+	DailyUsageID = ID[dailyUsageKind]
 	// EventID identifies an ingested event (domain §10.1).
 	EventID = ID[eventKind]
 	// CachedAggregationID identifies a cached aggregation state of a charge (domain §10.3).
@@ -168,6 +186,9 @@ type (
 	InvoiceSettlementID = ID[invoiceSettlementKind]
 	// InvoiceCustomSectionID identifies an invoice custom section (domain §11.9).
 	InvoiceCustomSectionID = ID[invoiceCustomSectionKind]
+	// AppliedInvoiceCustomSectionID identifies the copy of a custom section
+	// printed on an invoice (domain §11.9).
+	AppliedInvoiceCustomSectionID = ID[appliedInvoiceCustomSectionKind]
 	// ErrorDetailID identifies an error detail recorded on a document (parity §1.49).
 	ErrorDetailID = ID[errorDetailKind]
 	// FeeID identifies a fee (domain §12).
@@ -240,6 +261,8 @@ type (
 	DataExportID = ID[dataExportKind]
 	// DataExportPartID identifies a part of a data export (domain §20).
 	DataExportPartID = ID[dataExportPartKind]
+	// RecordDeletionID identifies a record deletion (parity §1.49).
+	RecordDeletionID = ID[recordDeletionKind]
 	// QuoteID identifies a quote (domain §21.1).
 	QuoteID = ID[quoteKind]
 	// QuoteVersionID identifies a quote version (domain §21.1).
@@ -250,4 +273,22 @@ type (
 	OrderID = ID[orderKind]
 	// AuditEventID identifies a recorded domain event (domain §2.3).
 	AuditEventID = ID[auditEventKind]
+	// UsageAttributionTypeID identifies a usage attribution type (parity §1.42).
+	UsageAttributionTypeID = ID[usageAttributionTypeKind]
+	// UsageAttributionValueID identifies a usage attribution value.
+	UsageAttributionValueID = ID[usageAttributionValueKind]
+	// ProductCategoryID identifies a product category (parity §1.14).
+	ProductCategoryID = ID[productCategoryKind]
+	// ProductID identifies a product of the product catalog.
+	ProductID = ID[productKind]
+	// ProductFilterID identifies a product filter.
+	ProductFilterID = ID[productFilterKind]
+	// RateCardID identifies a rate card.
+	RateCardID = ID[rateCardKind]
+	// RateCardRateID identifies a rate of a rate card.
+	RateCardRateID = ID[rateCardRateKind]
+	// PlanRateCardID identifies a rate card applied to a plan.
+	PlanRateCardID = ID[planRateCardKind]
+	// RatePhaseID identifies a phase of a plan rate card.
+	RatePhaseID = ID[ratePhaseKind]
 )

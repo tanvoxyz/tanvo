@@ -45,7 +45,12 @@ type state struct {
 	alert        *alertData
 	export       *exportData
 	quote        *quoteData
+	idempotency  *idempotencyData
+	auditLog     *auditLogData
+	attribution  *attributionData
 	sequences    map[storeSequenceKey]int64
+
+	productCatalog *productCatalogData
 }
 
 type storeSequenceKey struct {
@@ -73,7 +78,12 @@ func newState() *state {
 		alert:        newAlertData(),
 		export:       newExportData(),
 		quote:        newQuoteData(),
+		idempotency:  newIdempotencyData(),
+		auditLog:     newAuditLogData(),
+		attribution:  newAttributionData(),
 		sequences:    map[storeSequenceKey]int64{},
+
+		productCatalog: newProductCatalogData(),
 	}
 }
 
@@ -97,7 +107,12 @@ func (s *state) snapshot() *state {
 		alert:        s.alert.snapshot(),
 		export:       s.export.snapshot(),
 		quote:        s.quote.snapshot(),
+		idempotency:  s.idempotency.snapshot(),
+		auditLog:     s.auditLog.snapshot(),
+		attribution:  s.attribution.snapshot(),
 		sequences:    maps.Clone(s.sequences),
+
+		productCatalog: s.productCatalog.snapshot(),
 	}
 }
 
@@ -129,6 +144,7 @@ func (s *Store) InTx(ctx context.Context, fn func(ctx context.Context, r port.Re
 	if err := fn(context.WithValue(ctx, storeTxKey{}, tx), tx.repos); err != nil {
 		return err
 	}
+	recordDeletions(s.st, tx.st)
 	s.st = tx.st
 	s.jobs = append(s.jobs, tx.jobs...)
 	return nil
@@ -181,7 +197,7 @@ var _ port.WebhookEmitter = (*Store)(nil)
 func (tx *storeTx) bind() port.Repos {
 	st := tx.st
 	return port.Repos{
-		Organizations:   organizationRepo{st.organization},
+		Organizations:   organizationRepo{st.organization, st},
 		BillingEntities: billingEntityRepo{st.organization},
 
 		Users:          userRepo{st.access},
@@ -194,7 +210,8 @@ func (tx *storeTx) bind() port.Repos {
 		OIDCStates:     oidcStateRepo{st.access},
 		UserDevices:    userDeviceRepo{st.access},
 
-		Customers: customerRepo{st.customer, st},
+		Customers:         customerRepo{st.customer, st},
+		PendingVIESChecks: pendingVIESCheckRepo{st.customer, st},
 
 		Metrics:         metricRepo{st.catalog},
 		Plans:           planRepo{st.catalog},
@@ -202,22 +219,25 @@ func (tx *storeTx) bind() port.Repos {
 		FixedCharges:    fixedChargeRepo{st.catalog},
 		AddOns:          addOnRepo{st.catalog},
 		PricingUnits:    pricingUnitRepo{st.catalog},
-		Taxes:           taxRepo{st.catalogPart2},
+		Taxes:           taxRepo{st.catalogPart2, st},
 		Commitments:     commitmentRepo{st.catalogPart2},
 		UsageThresholds: usageThresholdRepo{st.catalogPart2},
 		Features:        featureRepo{st.catalogPart2},
 		Entitlements:    entitlementRepo{st.catalogPart2},
 
 		Coupons:        couponRepo{st.coupon},
-		AppliedCoupons: appliedCouponRepo{st.coupon},
+		AppliedCoupons: appliedCouponRepo{st.coupon, st.customer},
 
 		Subscriptions:          subscriptionRepo{st.subscription, st},
 		ActivationRules:        activationRuleRepo{st.subscription},
 		FixedChargeEvents:      fixedChargeEventRepo{st.subscription},
 		AppliedUsageThresholds: appliedUsageThresholdRepo{st.subscription},
 		LifetimeUsages:         lifetimeUsageRepo{st.subscription},
+		DailyUsages:            dailyUsageRepo{st.subscription},
 
-		Events:             eventLogRepo{st.event},
+		FixedChargeUnitsOverrides: unitsOverrideRepo{st.subscription},
+
+		Events:             eventLogRepo{d: st.event, c: st.catalog},
 		CachedAggregations: cachedAggregationRepo{st.event},
 
 		Invoices:              invoiceRepo{st.invoice, st},
@@ -230,16 +250,18 @@ func (tx *storeTx) bind() port.Repos {
 		ErrorDetails:          errorDetailRepo{st.invoice},
 		Credits:               invoiceCreditRepo{st.invoice},
 
+		AppliedInvoiceCustomSections: appliedCustomSectionRepo{st.invoice},
+
 		CreditNotes: creditNoteRepo{st.creditNote, st},
 
 		Wallets:                   walletRepo{st.wallet},
 		WalletTransactions:        walletTransactionRepo{st.wallet},
 		RecurringTransactionRules: recurringRuleRepo{st.wallet},
 
-		Payments:                 paymentRepo{st.payment},
-		PaymentReceipts:          paymentReceiptRepo{st.payment},
+		Payments:                 paymentRepo{st.payment, st},
+		PaymentReceipts:          paymentReceiptRepo{st.payment, st},
 		Refunds:                  refundRepo{st.payment},
-		PaymentRequests:          paymentRequestRepo{st.payment},
+		PaymentRequests:          paymentRequestRepo{st.payment, st},
 		PaymentMethods:           paymentMethodRepo{st.payment},
 		PaymentProviderCustomers: providerCustomerRepo{st.payment},
 		PaymentIntents:           paymentIntentRepo{st.payment},
@@ -263,11 +285,29 @@ func (tx *storeTx) bind() port.Repos {
 
 		DataExports:     dataExportRepo{st.export},
 		DataExportParts: dataExportPartRepo{st.export},
+		RecordDeletions: recordDeletionRepo{st.export},
+		Analytics:       analyticsRepo{},
 
-		Quotes:        quoteRepo{st.quote},
+		Quotes:        quoteRepo{st.quote, st},
 		QuoteVersions: quoteVersionRepo{st.quote},
 		OrderForms:    orderFormRepo{st.quote},
 		Orders:        orderRepo{st.quote},
+
+		UsageAttributionTypes:  attributionTypeRepo{st.attribution},
+		UsageAttributionValues: attributionValueRepo{st.attribution},
+
+		ProductCategories: productCategoryRepo{st.productCatalog},
+		Products:          productRepo{st.productCatalog},
+		ProductFilters:    productFilterRepo{st.productCatalog, st},
+		RateCards:         rateCardRepo{st.productCatalog},
+		Rates:             rateRepo{st.productCatalog},
+		PlanRateCards:     planRateCardRepo{st.productCatalog},
+
+		IdempotencyKeys: idempotencyRepo{st.idempotency},
+
+		SecurityLogs: securityLogRepo{st.auditLog},
+		APILogs:      apiLogRepo{st.auditLog},
+		ActivityLogs: activityLogRepo{st.auditLog},
 
 		Locks:     storeLocker{},
 		Sequences: storeSequences{tx},

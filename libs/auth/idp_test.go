@@ -43,6 +43,38 @@ type idp struct {
 	ttl      time.Duration // ID token lifetime (default one hour)
 	tamper   bool          // corrupts the ID token signature
 	userinfo map[string]any
+
+	kid          string            // key ID of the signing key (default "k1")
+	retired      []jose.JSONWebKey // earlier keys still published
+	signKID      string            // replaces the kid header of ID tokens
+	unsigned     bool              // issues alg "none" ID tokens
+	tokenIssuer  string            // replaces the issuer in ID tokens
+	discIssuer   string            // replaces the issuer in discovery
+	discovery2   map[string]any    // merged into the discovery document
+	jwksFetches  int               // key set requests served
+	tokenAuth    string            // how the last token request authenticated: basic or post
+	extraClaims  map[string]any    // merged into ID tokens
+	authorizeLog []url.Values      // authorization requests seen
+}
+
+// rotate makes a new key the signing key, keeping the old one published.
+func (p *idp) rotate(kid string) {
+	p.t.Helper()
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		p.t.Fatal(err)
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.retired = append(p.retired, jose.JSONWebKey{Key: &p.key.PublicKey, KeyID: p.signingKID(), Algorithm: "RS256", Use: "sig"})
+	p.key, p.kid = key, kid
+}
+
+func (p *idp) signingKID() string {
+	if p.kid == "" {
+		return "k1"
+	}
+	return p.kid
 }
 
 type idpGrant struct {
@@ -77,16 +109,27 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 }
 
 func (p *idp) discovery(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	doc := map[string]any{
 		"issuer": p.issuer, "authorization_endpoint": p.issuer + "/authorize", "token_endpoint": p.issuer + "/token",
 		"jwks_uri": p.issuer + "/keys", "userinfo_endpoint": p.issuer + "/userinfo",
 		"response_types_supported": []string{"code"}, "subject_types_supported": []string{"public"},
 		"id_token_signing_alg_values_supported": []string{"RS256"}, "code_challenge_methods_supported": []string{"S256"},
-	})
+	}
+	if p.discIssuer != "" {
+		doc["issuer"] = p.discIssuer
+	}
+	maps.Copy(doc, p.discovery2)
+	writeJSON(w, http.StatusOK, doc)
 }
 
 func (p *idp) keys(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, jose.JSONWebKeySet{Keys: []jose.JSONWebKey{{Key: &p.key.PublicKey, KeyID: "k1", Algorithm: "RS256", Use: "sig"}}})
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.jwksFetches++
+	keys := append([]jose.JSONWebKey{{Key: &p.key.PublicKey, KeyID: p.signingKID(), Algorithm: "RS256", Use: "sig"}}, p.retired...)
+	writeJSON(w, http.StatusOK, jose.JSONWebKeySet{Keys: keys})
 }
 
 // authorize plays the user consenting at the provider: it checks the
@@ -110,6 +153,7 @@ func (p *idp) authorize(authURL string, claims map[string]any) (state, code stri
 	}
 	code = rand.Text()
 	p.mu.Lock()
+	p.authorizeLog = append(p.authorizeLog, q)
 	p.codes[code] = idpGrant{challenge: q.Get("code_challenge"), nonce: q.Get("nonce"), redirect: q.Get("redirect_uri"), claims: claims}
 	p.mu.Unlock()
 	return q.Get("state"), code
@@ -121,9 +165,13 @@ func (p *idp) token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id, secret, ok := r.BasicAuth()
+	auth := "basic"
 	if !ok {
-		id, secret = r.PostForm.Get("client_id"), r.PostForm.Get("client_secret")
+		id, secret, auth = r.PostForm.Get("client_id"), r.PostForm.Get("client_secret"), "post"
 	}
+	p.mu.Lock()
+	p.tokenAuth = auth
+	p.mu.Unlock()
 	if id != p.clientID || secret != p.clientSecret {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid_client"})
 		return
@@ -153,16 +201,32 @@ func (p *idp) token(w http.ResponseWriter, r *http.Request) {
 	if p.audience != "" {
 		claims["aud"] = p.audience
 	}
-	maps.Copy(claims, g.claims)
-	signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: p.key}, (&jose.SignerOptions{}).WithType("JWT").WithHeader("kid", "k1"))
-	if err != nil {
-		p.t.Error(err)
-		return
+	if p.tokenIssuer != "" {
+		claims["iss"] = p.tokenIssuer
 	}
-	raw, err := jwt.Signed(signer).Claims(claims).Serialize()
-	if err != nil {
-		p.t.Error(err)
-		return
+	maps.Copy(claims, p.extraClaims)
+	maps.Copy(claims, g.claims)
+	p.mu.Lock()
+	key, kid := p.key, p.signingKID()
+	p.mu.Unlock()
+	if p.signKID != "" {
+		kid = p.signKID
+	}
+	var raw string
+	if p.unsigned {
+		h, _ := json.Marshal(map[string]string{"alg": "none", "typ": "JWT"})
+		b, _ := json.Marshal(claims)
+		raw = base64.RawURLEncoding.EncodeToString(h) + "." + base64.RawURLEncoding.EncodeToString(b) + "."
+	} else {
+		signer, err := jose.NewSigner(jose.SigningKey{Algorithm: jose.RS256, Key: key}, (&jose.SignerOptions{}).WithType("JWT").WithHeader("kid", kid))
+		if err != nil {
+			p.t.Error(err)
+			return
+		}
+		if raw, err = jwt.Signed(signer).Claims(claims).Serialize(); err != nil {
+			p.t.Error(err)
+			return
+		}
 	}
 	if p.tamper {
 		raw = raw[:len(raw)-4] + "AAAA"

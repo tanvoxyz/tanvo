@@ -30,6 +30,10 @@ CREATE TABLE events (
 
 -- The event API looks events up by transaction ID alone.
 CREATE INDEX events_transaction_id_idx ON events (organization_id, transaction_id);
+-- The event API's list, newest first.
+CREATE INDEX events_timestamp_idx ON events (organization_id, timestamp DESC, id DESC);
+-- The hourly post-validation reads the events created in the past hour.
+CREATE INDEX events_created_at_idx ON events (organization_id, created_at);
 
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON events

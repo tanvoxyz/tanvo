@@ -79,16 +79,16 @@ func (c *Campaign) Validate() error {
 	for i, e := range c.BCCEmails {
 		v.Email(fmt.Sprintf("bcc_emails[%d]", i), e)
 	}
-	if v.Check(len(c.Thresholds) > 0, "thresholds", core.CodeRequired) {
-		seen := map[string]bool{}
-		for i, t := range c.Thresholds {
-			p := fmt.Sprintf("thresholds[%d]", i)
-			if v.Currency(p+".currency", t.Currency) {
-				v.Check(!seen[t.Currency.Code()], p+".currency", core.CodeAlreadyExists)
-				seen[t.Currency.Code()] = true
-			}
-			v.NonNegative(p+".amount", t.Amount)
+	// A campaign may lose all its thresholds on update; only creation
+	// requires one (app/services/dunning_campaigns/create_service.rb:16).
+	seen := map[string]bool{}
+	for i, t := range c.Thresholds {
+		p := fmt.Sprintf("thresholds[%d]", i)
+		if v.Currency(p+".currency", t.Currency) {
+			v.Check(!seen[t.Currency.Code()], p+".currency", core.CodeAlreadyExists)
+			seen[t.Currency.Code()] = true
 		}
+		v.NonNegative(p+".amount", t.Amount)
 	}
 	return v.Err()
 }

@@ -138,7 +138,13 @@ func (pgLog) Get(context.Context, core.OrganizationID, string, string) (*event.E
 	return nil, core.ErrNotFound
 }
 
-func (pgLog) Replace(context.Context, *event.Event) error { return core.ErrNotFound }
+func (pgLog) List(context.Context, core.OrganizationID, event.ListFilter, core.PageRequest) (core.Page[*event.Event], error) {
+	return core.Page[*event.Event]{}, nil
+}
+
+func (pgLog) ValidationErrors(context.Context, core.OrganizationID, time.Time, time.Time) (event.ValidationErrors, error) {
+	return event.ValidationErrors{}, nil
+}
 
 type staticCatalog struct {
 	metric *catalog.BillableMetric

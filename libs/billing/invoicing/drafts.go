@@ -120,7 +120,7 @@ func (s *Service) finalizeDraft(ctx context.Context, r port.Repos, inv *invoice.
 	if err != nil {
 		return err
 	}
-	st, err := s.settle(ctx, r, cenv, inv, fs, settleOptions{resolver: resolver})
+	st, err := s.settle(ctx, r, cenv, inv, fs, settleOptions{resolver: resolver, vies: true})
 	if err != nil {
 		return err
 	}
@@ -133,6 +133,7 @@ func (s *Service) finalizeDraft(ctx context.Context, r port.Repos, inv *invoice.
 // deleted, then the subscriptions are billed again at the same instants.
 func (s *Service) regenerate(ctx context.Context, r port.Repos, inv *invoice.Invoice, mode genMode) error {
 	org := inv.OrganizationID
+	oldTotal := inv.TotalAmount
 	old, err := r.InvoiceSubscriptions.ListByInvoice(ctx, org, inv.ID)
 	if err != nil {
 		return fmt.Errorf("load subscriptions of invoice %s: %w", inv.ID, err)
@@ -192,6 +193,12 @@ func (s *Service) regenerate(ctx context.Context, r port.Repos, inv *invoice.Inv
 	})
 	if _, err := s.generate(ctx, r, inv, cenv, k, rows, skipCharges, mode, refreshNotes); err != nil {
 		return err
+	}
+	// lago app/services/invoices/refresh_draft_service.rb:73-76.
+	if inv.TotalAmount != oldTotal {
+		if err := flagWalletRefresh(ctx, r, inv); err != nil {
+			return err
+		}
 	}
 	// The regenerated fees keep the invoice's creation instant, so a
 	// refresh does not look like a fee billed today (lago
@@ -280,7 +287,10 @@ func (s *Service) finish(ctx context.Context, r port.Repos, cenv *kernel.Custome
 	if err := s.conclude(ctx, r, cenv, inv, k, st, mode == modeFinalize); err != nil {
 		return err
 	}
-	if st.taxFailure != nil {
+	// An invoice held for a VIES check waits for the check, which
+	// finalizes it (vies_check_job.rb:44-55): nothing pulls its taxes, and
+	// a new draft is announced (subscription_service.rb:93-97).
+	if st.taxFailure != nil || st.vies {
 		if inv.Status == invoice.StatusDraft && mode == modeNew {
 			return kernel.Emit(ctx, s.d, inv.OrganizationID, webhook.EventTypeInvoiceDrafted, "invoice", kernel.ObjectID(inv.ID), inv)
 		}

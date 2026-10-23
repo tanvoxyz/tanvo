@@ -206,8 +206,9 @@ message ApiKey {
   string prefix = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
   // The granted resources; empty grants write access to every resource.
   repeated ApiKeyGrant grants = 5 [(buf.validate.field).repeated.max_items = 64];
-  // When the key stops working; unset keys never expire.
-  google.protobuf.Timestamp expires_at = 6;
+  // When the key stops working; unset keys never expire. Set by
+  // RotateApiKey on the replaced key.
+  google.protobuf.Timestamp expires_at = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the key was last used, to the hour.
   google.protobuf.Timestamp last_used_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the key was created.
@@ -312,8 +313,6 @@ message RotateApiKeyRequest {
 message RotateApiKeyResponse {
   // The new key, with its secret.
   ApiKey api_key = 1;
-  // The old key, with its new expiry.
-  ApiKey previous_api_key = 2;
 }
 
 // DeleteApiKeyRequest is the request of ApiKeyService.DeleteApiKey.

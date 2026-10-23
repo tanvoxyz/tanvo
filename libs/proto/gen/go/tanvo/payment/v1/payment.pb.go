@@ -40,8 +40,6 @@ const (
 	PaymentKind_PAYMENT_KIND_PROVIDER PaymentKind = 1
 	// Recorded by hand.
 	PaymentKind_PAYMENT_KIND_MANUAL PaymentKind = 2
-	// Settled on-chain through x402.
-	PaymentKind_PAYMENT_KIND_X402 PaymentKind = 3
 )
 
 // Enum value maps for PaymentKind.
@@ -50,13 +48,11 @@ var (
 		0: "PAYMENT_KIND_UNSPECIFIED",
 		1: "PAYMENT_KIND_PROVIDER",
 		2: "PAYMENT_KIND_MANUAL",
-		3: "PAYMENT_KIND_X402",
 	}
 	PaymentKind_value = map[string]int32{
 		"PAYMENT_KIND_UNSPECIFIED": 0,
 		"PAYMENT_KIND_PROVIDER":    1,
 		"PAYMENT_KIND_MANUAL":      2,
-		"PAYMENT_KIND_X402":        3,
 	}
 )
 
@@ -2720,6 +2716,7 @@ type ListPaymentsRequest struct {
 	xxx_hidden_PageSize    int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize"`
 	xxx_hidden_PageToken   *string                `protobuf:"bytes,3,opt,name=page_token,json=pageToken"`
 	xxx_hidden_Filter      *string                `protobuf:"bytes,4,opt,name=filter"`
+	xxx_hidden_Search      *string                `protobuf:"bytes,5,opt,name=search"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -2788,24 +2785,39 @@ func (x *ListPaymentsRequest) GetFilter() string {
 	return ""
 }
 
+func (x *ListPaymentsRequest) GetSearch() string {
+	if x != nil {
+		if x.xxx_hidden_Search != nil {
+			return *x.xxx_hidden_Search
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *ListPaymentsRequest) SetCustomerId(v string) {
 	x.xxx_hidden_CustomerId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
 }
 
 func (x *ListPaymentsRequest) SetPageSize(v int32) {
 	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
 }
 
 func (x *ListPaymentsRequest) SetPageToken(v string) {
 	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
 }
 
 func (x *ListPaymentsRequest) SetFilter(v string) {
 	x.xxx_hidden_Filter = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+}
+
+func (x *ListPaymentsRequest) SetSearch(v string) {
+	x.xxx_hidden_Search = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
 }
 
 func (x *ListPaymentsRequest) HasCustomerId() bool {
@@ -2836,6 +2848,13 @@ func (x *ListPaymentsRequest) HasFilter() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
+func (x *ListPaymentsRequest) HasSearch() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
 func (x *ListPaymentsRequest) ClearCustomerId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_CustomerId = nil
@@ -2856,18 +2875,32 @@ func (x *ListPaymentsRequest) ClearFilter() {
 	x.xxx_hidden_Filter = nil
 }
 
+func (x *ListPaymentsRequest) ClearSearch() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Search = nil
+}
+
 type ListPaymentsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// Restricts the list to one customer (ID or `external_id:<external_id>`).
+	// Lists the payments of this customer (ID or `external_id:<external_id>`),
+	// which must exist. To narrow the list to a customer that may not exist,
+	// filter on `customer_id` instead.
 	CustomerId *string
 	// The maximum number of results; 20 by default, at most 1000.
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `invoice_id`, `payment_request_id`, `status`
-	// and `kind`.
+	// An AIP-160 filter over `customer_id` (an ID or
+	// `external_id:<external_id>`; one that names no customer lists nothing),
+	// `invoice_id` (payments of the invoice, made directly or through a
+	// payment request) and `currency`.
 	Filter *string
+	// A search over the payment ID, the provider payment ID, the reference,
+	// the invoice number (without an `invoice_id` filter) and the customer's
+	// name, first name, last name, external ID and email (without a
+	// customer).
+	Search *string
 }
 
 func (b0 ListPaymentsRequest_builder) Build() *ListPaymentsRequest {
@@ -2875,20 +2908,24 @@ func (b0 ListPaymentsRequest_builder) Build() *ListPaymentsRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.CustomerId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
 		x.xxx_hidden_CustomerId = b.CustomerId
 	}
 	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
 		x.xxx_hidden_PageSize = *b.PageSize
 	}
 	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
 		x.xxx_hidden_PageToken = b.PageToken
 	}
 	if b.Filter != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
 		x.xxx_hidden_Filter = b.Filter
+	}
+	if b.Search != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
+		x.xxx_hidden_Search = b.Search
 	}
 	return m0
 }
@@ -4379,13 +4416,19 @@ func (x *ListPaymentRequestsRequest) ClearFilter() {
 type ListPaymentRequestsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// Restricts the list to one customer (ID or `external_id:<external_id>`).
+	// Lists the payment requests of this customer (ID or
+	// `external_id:<external_id>`), which must exist. To narrow the list to a
+	// customer that may not exist, filter on `customer_id` instead.
 	CustomerId *string
 	// The maximum number of results; 20 by default, at most 1000.
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `payment_status` and `dunning_campaign_id`.
+	// An AIP-160 filter over `customer_id` (an ID or
+	// `external_id:<external_id>`; one that names no customer lists nothing),
+	// `payment_status`, `currency` and `billing_entity_id` (an ID or
+	// `code:<code>`; the requests including an invoice of one of the billing
+	// entities).
 	Filter *string
 }
 
@@ -4781,7 +4824,8 @@ type ListPaymentReceiptsRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `invoice_id`, `payment_id` and `customer_id`.
+	// An AIP-160 filter over `invoice_id` (receipts of the invoice's
+	// payments, made directly or through a payment request).
 	Filter *string
 }
 
@@ -5322,7 +5366,7 @@ const file_tanvo_payment_v1_payment_proto_rawDesc = "" +
 	"\n" +
 	"payment_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\tpaymentId\"I\n" +
 	"\x12GetPaymentResponse\x123\n" +
-	"\apayment\x18\x01 \x01(\v2\x19.tanvo.payment.v1.PaymentR\apayment\"\xb6\x01\n" +
+	"\apayment\x18\x01 \x01(\v2\x19.tanvo.payment.v1.PaymentR\apayment\"\xd8\x01\n" +
 	"\x13ListPaymentsRequest\x12+\n" +
 	"\vcustomer_id\x18\x01 \x01(\tB\n" +
 	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\n" +
@@ -5331,7 +5375,8 @@ const file_tanvo_payment_v1_payment_proto_rawDesc = "" +
 	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
 	"\n" +
 	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12 \n" +
-	"\x06filter\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\"u\n" +
+	"\x06filter\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\x12 \n" +
+	"\x06search\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x06search\"u\n" +
 	"\x14ListPaymentsResponse\x125\n" +
 	"\bpayments\x18\x01 \x03(\v2\x19.tanvo.payment.v1.PaymentR\bpayments\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x88\x01\n" +
@@ -5417,12 +5462,11 @@ const file_tanvo_payment_v1_payment_proto_rawDesc = "" +
 	"\x1bResendPaymentReceiptRequest\x12=\n" +
 	"\x12payment_receipt_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\x10paymentReceiptId\x12\x1e\n" +
 	"\x02to\x18\x02 \x03(\tB\x0e\xbaH\v\x92\x01\b\x10\x14\"\x04r\x02`\x01R\x02to\"\x1e\n" +
-	"\x1cResendPaymentReceiptResponse*v\n" +
+	"\x1cResendPaymentReceiptResponse*x\n" +
 	"\vPaymentKind\x12\x1c\n" +
 	"\x18PAYMENT_KIND_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15PAYMENT_KIND_PROVIDER\x10\x01\x12\x17\n" +
-	"\x13PAYMENT_KIND_MANUAL\x10\x02\x12\x15\n" +
-	"\x11PAYMENT_KIND_X402\x10\x03*g\n" +
+	"\x13PAYMENT_KIND_MANUAL\x10\x02\"\x04\b\x03\x10\x03*\x11PAYMENT_KIND_X402*g\n" +
 	"\vPayableType\x12\x1c\n" +
 	"\x18PAYABLE_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14PAYABLE_TYPE_INVOICE\x10\x01\x12 \n" +

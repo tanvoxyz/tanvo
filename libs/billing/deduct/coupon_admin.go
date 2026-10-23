@@ -2,6 +2,7 @@ package deduct
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -16,88 +17,102 @@ import (
 // CreateCoupon validates and stores a new coupon (lago
 // Coupons::CreateService): its limitations must name existing plans or
 // billable metrics of its organization, and not both. A zero ID is
-// assigned; the status starts active.
+// assigned; the status starts active. The checks run in lago's order: the
+// expiration date, the limitations, then the coupon's fields.
 func (s *Service) CreateCoupon(ctx context.Context, c *coupon.Coupon) error {
 	now := s.d.Now()
 	if c.ID.IsZero() {
 		c.ID = core.NewID[core.CouponID](s.d.IDs)
 	}
-	c.Status, c.TerminatedAt = coupon.StatusActive, nil
+	c.Status, c.TerminatedAt, c.DeletedAt = coupon.StatusActive, nil, nil
 	c.CreatedAt, c.UpdatedAt = now, now
-	if err := c.Validate(now); err != nil {
+	if err := checkExpirationAt(c, now); err != nil {
 		return err
 	}
 	return s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
 		if err := checkLimitations(ctx, r, c); err != nil {
 			return err
 		}
+		if err := c.Validate(now); err != nil {
+			return err
+		}
 		if err := r.Coupons.Create(ctx, c); err != nil {
-			return fmt.Errorf("create coupon: %w", err)
+			return couponCodeConflict(fmt.Errorf("create coupon: %w", err))
 		}
 		return nil
 	})
 }
 
 // checkLimitations verifies that the plans and billable metrics a coupon
-// is limited to exist.
+// is limited to exist (core.NotFound("plans") or
+// core.NotFound("billable_metrics")) and that they are not both set (a
+// [coupon.CodeOnlyOneLimitationType] rule error).
 func checkLimitations(ctx context.Context, r port.Repos, c *coupon.Coupon) error {
 	if c.LimitedToPlans() {
 		plans, err := r.Plans.ListByIDs(ctx, c.OrganizationID, c.LimitedPlanIDs)
-		if err != nil {
+		if err != nil && !errors.Is(err, core.ErrNotFound) {
 			return fmt.Errorf("list plans: %w", err)
 		}
-		if len(plans) != len(c.LimitedPlanIDs) {
-			return fmt.Errorf("coupon plans: %w", core.ErrNotFound)
+		if err != nil || len(plans) != len(c.LimitedPlanIDs) {
+			return core.NotFound("plans")
 		}
 	}
 	if c.LimitedToBillableMetrics() {
 		metrics, err := r.Metrics.ListByIDs(ctx, c.OrganizationID, c.LimitedBillableMetricIDs)
-		if err != nil {
+		if err != nil && !errors.Is(err, core.ErrNotFound) {
 			return fmt.Errorf("list billable metrics: %w", err)
 		}
-		if len(metrics) != len(c.LimitedBillableMetricIDs) {
-			return fmt.Errorf("coupon billable metrics: %w", core.ErrNotFound)
+		if err != nil || len(metrics) != len(c.LimitedBillableMetricIDs) {
+			return core.NotFound("billable_metrics")
 		}
+	}
+	if c.LimitedToPlans() && c.LimitedToBillableMetrics() {
+		return core.NewRuleError(coupon.CodeOnlyOneLimitationType, "a coupon is limited to plans or billable metrics, not both")
 	}
 	return nil
 }
 
 // UpdateCoupon changes a coupon with fn (lago Coupons::UpdateService). Once
 // the coupon has been applied, only its name, description and expiration
-// may change ([coupon.CheckUpdate]); otherwise its limitations are checked
-// as on creation.
+// change and changes to the other fields are ignored ([coupon.KeepLocked]);
+// otherwise its limitations are checked as on creation. The checks run in
+// lago's order: the expiration date, the limitations, then the coupon's
+// fields.
 func (s *Service) UpdateCoupon(ctx context.Context, org core.OrganizationID, id core.CouponID, fn func(*coupon.Coupon)) (*coupon.Coupon, error) {
 	var out *coupon.Coupon
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
-		old, err := r.Coupons.Get(ctx, org, id)
+		old, err := keptCoupon(ctx, r, org, id)
 		if err != nil {
-			return fmt.Errorf("get coupon %s: %w", id, err)
+			return err
 		}
 		next := *old
 		next.LimitedPlanIDs = slices.Clone(old.LimitedPlanIDs)
 		next.LimitedBillableMetricIDs = slices.Clone(old.LimitedBillableMetricIDs)
 		fn(&next)
-		next.ID, next.OrganizationID, next.Status, next.TerminatedAt, next.CreatedAt = old.ID, old.OrganizationID, old.Status, old.TerminatedAt, old.CreatedAt
+		next.ID, next.OrganizationID, next.Status, next.TerminatedAt, next.DeletedAt, next.CreatedAt = old.ID, old.OrganizationID, old.Status, old.TerminatedAt, old.DeletedAt, old.CreatedAt
+		now := s.d.Now()
+		if !equalTime(old.ExpirationAt, next.ExpirationAt) {
+			if err := checkExpirationAt(&next, now); err != nil {
+				return err
+			}
+		}
 		page, err := r.AppliedCoupons.List(ctx, org, coupon.AppliedFilter{CouponID: id}, core.PageRequest{Size: 1})
 		if err != nil {
 			return fmt.Errorf("list applications of coupon %s: %w", id, err)
 		}
-		applied := len(page.Items) > 0
-		if err := coupon.CheckUpdate(old, &next, applied); err != nil {
+		if len(page.Items) > 0 {
+			coupon.KeepLocked(old, &next)
+		} else if err := checkLimitations(ctx, r, &next); err != nil {
 			return err
 		}
-		now := s.d.Now()
-		if err := next.Validate(now); err != nil {
+		// The expiration date was checked when it changed: a stored one is
+		// not rechecked.
+		if err := next.Validate(time.Time{}); err != nil {
 			return err
-		}
-		if !applied {
-			if err := checkLimitations(ctx, r, &next); err != nil {
-				return err
-			}
 		}
 		next.UpdatedAt = now
 		if err := r.Coupons.Update(ctx, &next); err != nil {
-			return fmt.Errorf("update coupon %s: %w", id, err)
+			return couponCodeConflict(fmt.Errorf("update coupon %s: %w", id, err))
 		}
 		out = &next
 		return nil
@@ -110,9 +125,9 @@ func (s *Service) UpdateCoupon(ctx context.Context, org core.OrganizationID, id 
 func (s *Service) TerminateCoupon(ctx context.Context, org core.OrganizationID, id core.CouponID) (*coupon.Coupon, error) {
 	var out *coupon.Coupon
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
-		c, err := r.Coupons.Get(ctx, org, id)
+		c, err := keptCoupon(ctx, r, org, id)
 		if err != nil {
-			return fmt.Errorf("get coupon %s: %w", id, err)
+			return err
 		}
 		if c.Status != coupon.StatusTerminated {
 			if err := c.Terminate(s.d.Now()); err != nil {
@@ -128,25 +143,20 @@ func (s *Service) TerminateCoupon(ctx context.Context, org core.OrganizationID, 
 	return out, err
 }
 
-// DestroyCoupon removes a coupon from use (lago Coupons::DestroyService):
-// the coupon is terminated and so are its active applied coupons. libs/core
-// has no deleted state for coupons, so the coupon stays listed as
-// terminated.
+// DestroyCoupon deletes a coupon (lago Coupons::DestroyService): the
+// coupon keeps its status, leaves the lists and frees its code, and its
+// active applied coupons are terminated.
 func (s *Service) DestroyCoupon(ctx context.Context, org core.OrganizationID, id core.CouponID) (*coupon.Coupon, error) {
 	var out *coupon.Coupon
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
-		c, err := r.Coupons.Get(ctx, org, id)
+		c, err := keptCoupon(ctx, r, org, id)
 		if err != nil {
-			return fmt.Errorf("get coupon %s: %w", id, err)
+			return err
 		}
 		now := s.d.Now()
-		if c.Status != coupon.StatusTerminated {
-			if err := c.Terminate(now); err != nil {
-				return err
-			}
-			if err := r.Coupons.Update(ctx, c); err != nil {
-				return fmt.Errorf("update coupon %s: %w", id, err)
-			}
+		c.Delete(now)
+		if err := r.Coupons.Update(ctx, c); err != nil {
+			return fmt.Errorf("update coupon %s: %w", id, err)
 		}
 		applied, err := r.AppliedCoupons.ListActiveByCoupon(ctx, org, id)
 		if err != nil {
@@ -216,8 +226,9 @@ type ApplyCouponInput struct {
 
 // ApplyCoupon applies a coupon to a customer (lago
 // AppliedCoupons::CreateService) under the customer's coupons lock: the
-// coupon must be active, reusable or never applied to the customer, not
-// overlap the plans or metrics of the customer's active coupons. A fixed
+// coupon must be active and not deleted, not overlap the plans or metrics
+// of the customer's active coupons, and be reusable or never applied to
+// the customer ([coupon.CheckApplication]). A fixed
 // amount coupon keeps its own currency, which becomes the customer's
 // default currency when the customer has none; the customer's currency is
 // a default, not a constraint (multi-currency customers).
@@ -226,6 +237,9 @@ func (s *Service) ApplyCoupon(ctx context.Context, in ApplyCouponInput) (*coupon
 	org := in.OrganizationID
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
 		cust, err := r.Customers.Get(ctx, org, in.CustomerID)
+		if errors.Is(err, core.ErrNotFound) || (err == nil && cust.Deleted()) {
+			return core.NotFound("customer")
+		}
 		if err != nil {
 			return fmt.Errorf("get customer %s: %w", in.CustomerID, err)
 		}
@@ -309,6 +323,9 @@ func (s *Service) TerminateAppliedCoupon(ctx context.Context, org core.Organizat
 	var out *coupon.AppliedCoupon
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
 		a, err := r.AppliedCoupons.Get(ctx, org, id)
+		if errors.Is(err, core.ErrNotFound) {
+			return core.NotFound("applied_coupon")
+		}
 		if err != nil {
 			return fmt.Errorf("get applied coupon %s: %w", id, err)
 		}

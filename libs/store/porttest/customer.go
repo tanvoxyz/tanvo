@@ -136,7 +136,7 @@ func testCustomer(t *testing.T, h Harness) {
 
 			// Deleting a section removes it from the customer. memstore keeps
 			// the dangling ID (the ports do not document the cascade).
-			noErr(t, "InvoiceCustomSections.Delete()", r.InvoiceCustomSections.Delete(ctx, org, s2.ID))
+			noErr(t, "InvoiceCustomSections.Delete()", r.InvoiceCustomSections.Delete(ctx, org, s2.ID, now))
 			got, err = r.Customers.Get(ctx, org, c.ID)
 			noErr(t, "Get() after deleting a section", err)
 			if h.Name != "memstore" {

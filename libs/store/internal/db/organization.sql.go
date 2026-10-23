@@ -115,9 +115,9 @@ func (q *Queries) CreateBillingEntity(ctx context.Context, arg CreateBillingEnti
 
 const createInvoiceCustomSection = `-- name: CreateInvoiceCustomSection :execrows
 INSERT INTO invoice_custom_sections (
-  organization_id, id, code, name, display_name, details, section_type, created_at, updated_at
+  organization_id, id, code, name, display_name, details, description, section_type, deleted_at, created_at, updated_at
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 )
 ON CONFLICT DO NOTHING
 `
@@ -129,7 +129,9 @@ type CreateInvoiceCustomSectionParams struct {
 	Name           string
 	DisplayName    *string
 	Details        *string
+	Description    *string
 	SectionType    string
+	DeletedAt      *time.Time
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -142,7 +144,9 @@ func (q *Queries) CreateInvoiceCustomSection(ctx context.Context, arg CreateInvo
 		arg.Name,
 		arg.DisplayName,
 		arg.Details,
+		arg.Description,
 		arg.SectionType,
+		arg.DeletedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -157,11 +161,11 @@ const createOrganization = `-- name: CreateOrganization :execrows
 INSERT INTO organizations (
   id, name, slug, email, logo,
   address_line1, address_line2, address_city, address_state, address_zipcode, address_country,
-  authentication_methods, from_email_enabled, audit_logs_retention_days, max_wallets_per_customer, created_at, updated_at
+  authentication_methods, from_email_enabled, audit_logs_retention_days, max_wallets_per_customer, document_number_prefix, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5,
   $6, $7, $8, $9, $10, $11,
-  $12, $13, $14, $15, $16, $17
+  $12, $13, $14, $15, $16, $17, $18
 )
 ON CONFLICT DO NOTHING
 `
@@ -182,6 +186,7 @@ type CreateOrganizationParams struct {
 	FromEmailEnabled       bool
 	AuditLogsRetentionDays int32
 	MaxWalletsPerCustomer  int32
+	DocumentNumberPrefix   string
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
 }
@@ -204,6 +209,7 @@ func (q *Queries) CreateOrganization(ctx context.Context, arg CreateOrganization
 		arg.FromEmailEnabled,
 		arg.AuditLogsRetentionDays,
 		arg.MaxWalletsPerCustomer,
+		arg.DocumentNumberPrefix,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -242,20 +248,69 @@ func (q *Queries) DeleteBillingEntityTaxes(ctx context.Context, arg DeleteBillin
 }
 
 const deleteInvoiceCustomSection = `-- name: DeleteInvoiceCustomSection :execrows
-DELETE FROM invoice_custom_sections WHERE organization_id = $1 AND id = $2
+UPDATE invoice_custom_sections SET deleted_at = $1, updated_at = $1
+WHERE organization_id = $2 AND id = $3 AND deleted_at IS NULL
 `
 
 type DeleteInvoiceCustomSectionParams struct {
+	DeletedAt      *time.Time
 	OrganizationID uuid.UUID
 	ID             uuid.UUID
 }
 
+// Soft-deletes the live section; the Deselect*InvoiceCustomSection queries
+// remove it from the selections.
 func (q *Queries) DeleteInvoiceCustomSection(ctx context.Context, arg DeleteInvoiceCustomSectionParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteInvoiceCustomSection, arg.OrganizationID, arg.ID)
+	result, err := q.db.Exec(ctx, deleteInvoiceCustomSection, arg.DeletedAt, arg.OrganizationID, arg.ID)
 	if err != nil {
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const deselectBillingEntitiesInvoiceCustomSection = `-- name: DeselectBillingEntitiesInvoiceCustomSection :exec
+DELETE FROM billing_entity_invoice_custom_sections
+WHERE organization_id = $1 AND invoice_custom_section_id = $2
+`
+
+type DeselectBillingEntitiesInvoiceCustomSectionParams struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+}
+
+func (q *Queries) DeselectBillingEntitiesInvoiceCustomSection(ctx context.Context, arg DeselectBillingEntitiesInvoiceCustomSectionParams) error {
+	_, err := q.db.Exec(ctx, deselectBillingEntitiesInvoiceCustomSection, arg.OrganizationID, arg.ID)
+	return err
+}
+
+const deselectCustomersInvoiceCustomSection = `-- name: DeselectCustomersInvoiceCustomSection :exec
+DELETE FROM customer_invoice_custom_sections
+WHERE organization_id = $1 AND invoice_custom_section_id = $2
+`
+
+type DeselectCustomersInvoiceCustomSectionParams struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+}
+
+func (q *Queries) DeselectCustomersInvoiceCustomSection(ctx context.Context, arg DeselectCustomersInvoiceCustomSectionParams) error {
+	_, err := q.db.Exec(ctx, deselectCustomersInvoiceCustomSection, arg.OrganizationID, arg.ID)
+	return err
+}
+
+const deselectSubscriptionsInvoiceCustomSection = `-- name: DeselectSubscriptionsInvoiceCustomSection :exec
+DELETE FROM subscription_invoice_custom_sections
+WHERE organization_id = $1 AND invoice_custom_section_id = $2
+`
+
+type DeselectSubscriptionsInvoiceCustomSectionParams struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+}
+
+func (q *Queries) DeselectSubscriptionsInvoiceCustomSection(ctx context.Context, arg DeselectSubscriptionsInvoiceCustomSectionParams) error {
+	_, err := q.db.Exec(ctx, deselectSubscriptionsInvoiceCustomSection, arg.OrganizationID, arg.ID)
+	return err
 }
 
 const getBillingEntity = `-- name: GetBillingEntity :one
@@ -452,7 +507,7 @@ func (q *Queries) GetDefaultBillingEntity(ctx context.Context, organizationID uu
 }
 
 const getInvoiceCustomSection = `-- name: GetInvoiceCustomSection :one
-SELECT organization_id, id, code, name, display_name, details, section_type, created_at, updated_at FROM invoice_custom_sections WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, code, name, display_name, details, description, section_type, deleted_at, created_at, updated_at FROM invoice_custom_sections WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type GetInvoiceCustomSectionParams struct {
@@ -470,7 +525,9 @@ func (q *Queries) GetInvoiceCustomSection(ctx context.Context, arg GetInvoiceCus
 		&i.Name,
 		&i.DisplayName,
 		&i.Details,
+		&i.Description,
 		&i.SectionType,
+		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -478,7 +535,7 @@ func (q *Queries) GetInvoiceCustomSection(ctx context.Context, arg GetInvoiceCus
 }
 
 const getInvoiceCustomSectionByCode = `-- name: GetInvoiceCustomSectionByCode :one
-SELECT organization_id, id, code, name, display_name, details, section_type, created_at, updated_at FROM invoice_custom_sections WHERE organization_id = $1 AND code = $2
+SELECT organization_id, id, code, name, display_name, details, description, section_type, deleted_at, created_at, updated_at FROM invoice_custom_sections WHERE organization_id = $1 AND code = $2 AND deleted_at IS NULL
 `
 
 type GetInvoiceCustomSectionByCodeParams struct {
@@ -496,7 +553,9 @@ func (q *Queries) GetInvoiceCustomSectionByCode(ctx context.Context, arg GetInvo
 		&i.Name,
 		&i.DisplayName,
 		&i.Details,
+		&i.Description,
 		&i.SectionType,
+		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -504,7 +563,7 @@ func (q *Queries) GetInvoiceCustomSectionByCode(ctx context.Context, arg GetInvo
 }
 
 const getOrganization = `-- name: GetOrganization :one
-SELECT id, name, slug, email, logo, address_line1, address_line2, address_city, address_state, address_zipcode, address_country, authentication_methods, from_email_enabled, audit_logs_retention_days, max_wallets_per_customer, created_at, updated_at FROM organizations WHERE id = $1
+SELECT id, name, slug, email, logo, address_line1, address_line2, address_city, address_state, address_zipcode, address_country, authentication_methods, from_email_enabled, audit_logs_retention_days, max_wallets_per_customer, document_number_prefix, created_at, updated_at FROM organizations WHERE id = $1
 `
 
 func (q *Queries) GetOrganization(ctx context.Context, id uuid.UUID) (Organization, error) {
@@ -526,6 +585,7 @@ func (q *Queries) GetOrganization(ctx context.Context, id uuid.UUID) (Organizati
 		&i.FromEmailEnabled,
 		&i.AuditLogsRetentionDays,
 		&i.MaxWalletsPerCustomer,
+		&i.DocumentNumberPrefix,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -533,7 +593,7 @@ func (q *Queries) GetOrganization(ctx context.Context, id uuid.UUID) (Organizati
 }
 
 const getOrganizationBySlug = `-- name: GetOrganizationBySlug :one
-SELECT id, name, slug, email, logo, address_line1, address_line2, address_city, address_state, address_zipcode, address_country, authentication_methods, from_email_enabled, audit_logs_retention_days, max_wallets_per_customer, created_at, updated_at FROM organizations WHERE slug = $1
+SELECT id, name, slug, email, logo, address_line1, address_line2, address_city, address_state, address_zipcode, address_country, authentication_methods, from_email_enabled, audit_logs_retention_days, max_wallets_per_customer, document_number_prefix, created_at, updated_at FROM organizations WHERE slug = $1
 `
 
 func (q *Queries) GetOrganizationBySlug(ctx context.Context, slug string) (Organization, error) {
@@ -555,6 +615,7 @@ func (q *Queries) GetOrganizationBySlug(ctx context.Context, slug string) (Organ
 		&i.FromEmailEnabled,
 		&i.AuditLogsRetentionDays,
 		&i.MaxWalletsPerCustomer,
+		&i.DocumentNumberPrefix,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -686,8 +747,8 @@ func (q *Queries) ListBillingEntities(ctx context.Context, arg ListBillingEntiti
 }
 
 const listInvoiceCustomSections = `-- name: ListInvoiceCustomSections :many
-SELECT organization_id, id, code, name, display_name, details, section_type, created_at, updated_at FROM invoice_custom_sections
-WHERE organization_id = $1
+SELECT organization_id, id, code, name, display_name, details, description, section_type, deleted_at, created_at, updated_at FROM invoice_custom_sections
+WHERE organization_id = $1 AND deleted_at IS NULL
   AND ($2::uuid IS NULL OR id > $2)
 ORDER BY id
 LIMIT $3
@@ -715,7 +776,9 @@ func (q *Queries) ListInvoiceCustomSections(ctx context.Context, arg ListInvoice
 			&i.Name,
 			&i.DisplayName,
 			&i.Details,
+			&i.Description,
 			&i.SectionType,
+			&i.DeletedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -730,8 +793,8 @@ func (q *Queries) ListInvoiceCustomSections(ctx context.Context, arg ListInvoice
 }
 
 const listInvoiceCustomSectionsByIDs = `-- name: ListInvoiceCustomSectionsByIDs :many
-SELECT organization_id, id, code, name, display_name, details, section_type, created_at, updated_at FROM invoice_custom_sections
-WHERE organization_id = $1 AND id = ANY($2::uuid[])
+SELECT organization_id, id, code, name, display_name, details, description, section_type, deleted_at, created_at, updated_at FROM invoice_custom_sections
+WHERE organization_id = $1 AND id = ANY($2::uuid[]) AND deleted_at IS NULL
 ORDER BY id
 `
 
@@ -756,7 +819,69 @@ func (q *Queries) ListInvoiceCustomSectionsByIDs(ctx context.Context, arg ListIn
 			&i.Name,
 			&i.DisplayName,
 			&i.Details,
+			&i.Description,
 			&i.SectionType,
+			&i.DeletedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listManualInvoiceCustomSections = `-- name: ListManualInvoiceCustomSections :many
+SELECT organization_id, id, code, name, display_name, details, description, section_type, deleted_at, created_at, updated_at FROM invoice_custom_sections
+WHERE organization_id = $1 AND section_type = 'manual' AND deleted_at IS NULL
+  AND ($2::uuid IS NULL
+       OR name COLLATE "C" > $3::text COLLATE "C"
+       OR (name = $3::text
+           AND (created_at < $4::timestamptz
+                OR (created_at = $4::timestamptz AND id > $2))))
+ORDER BY name COLLATE "C", created_at DESC, id
+LIMIT $5
+`
+
+type ListManualInvoiceCustomSectionsParams struct {
+	OrganizationID uuid.UUID
+	After          *uuid.UUID
+	AfterName      *string
+	AfterAt        *time.Time
+	Lim            int32
+}
+
+// Lists the manual sections by name (byte order), then by created_at,
+// newest first, then by id; the cursor is (@after_name, @after_at, @after).
+func (q *Queries) ListManualInvoiceCustomSections(ctx context.Context, arg ListManualInvoiceCustomSectionsParams) ([]InvoiceCustomSection, error) {
+	rows, err := q.db.Query(ctx, listManualInvoiceCustomSections,
+		arg.OrganizationID,
+		arg.After,
+		arg.AfterName,
+		arg.AfterAt,
+		arg.Lim,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []InvoiceCustomSection{}
+	for rows.Next() {
+		var i InvoiceCustomSection
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.Code,
+			&i.Name,
+			&i.DisplayName,
+			&i.Details,
+			&i.Description,
+			&i.SectionType,
+			&i.DeletedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -872,8 +997,8 @@ func (q *Queries) UpdateBillingEntity(ctx context.Context, arg UpdateBillingEnti
 const updateInvoiceCustomSection = `-- name: UpdateInvoiceCustomSection :execrows
 UPDATE invoice_custom_sections SET
   organization_id = $1, id = $2, code = $3, name = $4, display_name = $5, details = $6,
-  section_type = $7, created_at = $8, updated_at = $9
-WHERE organization_id = $1 AND id = $2
+  description = $7, section_type = $8, deleted_at = $9, created_at = $10, updated_at = $11
+WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type UpdateInvoiceCustomSectionParams struct {
@@ -883,7 +1008,9 @@ type UpdateInvoiceCustomSectionParams struct {
 	Name           string
 	DisplayName    *string
 	Details        *string
+	Description    *string
 	SectionType    string
+	DeletedAt      *time.Time
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -896,7 +1023,9 @@ func (q *Queries) UpdateInvoiceCustomSection(ctx context.Context, arg UpdateInvo
 		arg.Name,
 		arg.DisplayName,
 		arg.Details,
+		arg.Description,
 		arg.SectionType,
+		arg.DeletedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -915,7 +1044,8 @@ UPDATE organizations SET
   address_state = $9, address_zipcode = $10, address_country = $11,
   authentication_methods = $12, from_email_enabled = $13,
   audit_logs_retention_days = $14,
-  max_wallets_per_customer = $15, created_at = $16, updated_at = $17
+  max_wallets_per_customer = $15, document_number_prefix = $16,
+  created_at = $17, updated_at = $18
 WHERE id = $1
 `
 
@@ -935,6 +1065,7 @@ type UpdateOrganizationParams struct {
 	FromEmailEnabled       bool
 	AuditLogsRetentionDays int32
 	MaxWalletsPerCustomer  int32
+	DocumentNumberPrefix   string
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
 }
@@ -956,6 +1087,7 @@ func (q *Queries) UpdateOrganization(ctx context.Context, arg UpdateOrganization
 		arg.FromEmailEnabled,
 		arg.AuditLogsRetentionDays,
 		arg.MaxWalletsPerCustomer,
+		arg.DocumentNumberPrefix,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

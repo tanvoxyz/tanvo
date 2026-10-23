@@ -54,6 +54,7 @@ CREATE TABLE usage_thresholds (
   threshold_display_name text,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
+  deleted_at timestamptz,
   PRIMARY KEY (organization_id, id),
   CONSTRAINT usage_thresholds_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
   CONSTRAINT usage_thresholds_plan_fkey FOREIGN KEY (organization_id, plan_id) REFERENCES plans (organization_id, id),
@@ -61,12 +62,14 @@ CREATE TABLE usage_thresholds (
   CONSTRAINT usage_thresholds_amount_check CHECK (amount > 0)
 );
 
-CREATE INDEX usage_thresholds_plan_idx ON usage_thresholds (organization_id, plan_id) WHERE plan_id IS NOT NULL;
-CREATE INDEX usage_thresholds_subscription_idx ON usage_thresholds (organization_id, subscription_id) WHERE subscription_id IS NOT NULL;
-CREATE UNIQUE INDEX usage_thresholds_plan_amount_key ON usage_thresholds (organization_id, plan_id, amount) WHERE plan_id IS NOT NULL AND NOT recurring;
-CREATE UNIQUE INDEX usage_thresholds_plan_recurring_key ON usage_thresholds (organization_id, plan_id) WHERE plan_id IS NOT NULL AND recurring;
-CREATE UNIQUE INDEX usage_thresholds_subscription_amount_key ON usage_thresholds (organization_id, subscription_id, amount) WHERE subscription_id IS NOT NULL AND NOT recurring;
-CREATE UNIQUE INDEX usage_thresholds_subscription_recurring_key ON usage_thresholds (organization_id, subscription_id) WHERE subscription_id IS NOT NULL AND recurring;
+-- Thresholds are soft-deleted (deleted_at, lago usage_threshold.rb): the
+-- uniqueness rules hold among kept thresholds.
+CREATE INDEX usage_thresholds_plan_idx ON usage_thresholds (organization_id, plan_id) WHERE plan_id IS NOT NULL AND deleted_at IS NULL;
+CREATE INDEX usage_thresholds_subscription_idx ON usage_thresholds (organization_id, subscription_id) WHERE subscription_id IS NOT NULL AND deleted_at IS NULL;
+CREATE UNIQUE INDEX usage_thresholds_plan_amount_key ON usage_thresholds (organization_id, plan_id, amount) WHERE plan_id IS NOT NULL AND NOT recurring AND deleted_at IS NULL;
+CREATE UNIQUE INDEX usage_thresholds_plan_recurring_key ON usage_thresholds (organization_id, plan_id) WHERE plan_id IS NOT NULL AND recurring AND deleted_at IS NULL;
+CREATE UNIQUE INDEX usage_thresholds_subscription_amount_key ON usage_thresholds (organization_id, subscription_id, amount) WHERE subscription_id IS NOT NULL AND NOT recurring AND deleted_at IS NULL;
+CREATE UNIQUE INDEX usage_thresholds_subscription_recurring_key ON usage_thresholds (organization_id, subscription_id) WHERE subscription_id IS NOT NULL AND recurring AND deleted_at IS NULL;
 
 ALTER TABLE usage_thresholds ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON usage_thresholds

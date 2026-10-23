@@ -8,6 +8,16 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 )
 
+// Image limits of [Quote.Images] (lago Quote::IMAGE_CONTENT_TYPES and
+// IMAGE_MAX_SIZE, app/models/quote.rb:14-15).
+const (
+	// ImageMaxSize is the largest image, in bytes (exclusive).
+	ImageMaxSize = 5 << 20
+)
+
+// ImageContentTypes are the accepted image types.
+var ImageContentTypes = []string{"image/png", "image/jpeg", "image/webp", "image/gif"}
+
 // Number prefixes.
 const (
 	// QuotePrefix starts quote numbers.
@@ -49,8 +59,7 @@ type Quote struct {
 	OrganizationID core.OrganizationID
 	// Number is unique per organization, see [FormatNumber].
 	Number string
-	// SequentialID is the sequence of the number, per organization and
-	// year.
+	// SequentialID is the sequence of the number, per organization.
 	SequentialID int
 	// CustomerID is the customer the quote is for.
 	CustomerID core.CustomerID
@@ -58,8 +67,11 @@ type Quote struct {
 	OrderType OrderType
 	// Owners are the members responsible for the quote.
 	Owners []core.MembershipID
-	// SubscriptionID is the amended subscription (amendments only).
+	// SubscriptionID is the amended subscription (required for
+	// amendments).
 	SubscriptionID core.SubscriptionID
+	// Images are the images uploaded for the content, in upload order.
+	Images []core.BlobRef
 	// CreatedAt is the creation instant.
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.

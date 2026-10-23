@@ -33,11 +33,15 @@ func (h *Harness) Customer(opts ...func(*customer.Customer)) *customer.Customer 
 	c.Currency = USD
 	apply(c, opts)
 	h.Do(func(ctx context.Context, r port.Repos) error {
-		seq, err := r.Sequences.Next(ctx, h.OrgID(), port.SequenceKey{Name: port.SequenceCustomer, Scope: c.BillingEntityID.UUID()})
+		o, err := r.Organizations.Get(ctx, h.OrgID())
 		if err != nil {
 			return err
 		}
-		c.AssignSequence(seq, h.BillingEntity.DocumentNumberPrefix)
+		seq, err := r.Sequences.Next(ctx, h.OrgID(), port.SequenceKey{Name: port.SequenceCustomer})
+		if err != nil {
+			return err
+		}
+		c.AssignSequence(seq, o.DocumentNumberPrefix)
 		return r.Customers.Create(ctx, c)
 	})
 	return c

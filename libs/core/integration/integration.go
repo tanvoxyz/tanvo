@@ -72,6 +72,9 @@ type Integration struct {
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
 	UpdatedAt time.Time
+	// DeletedAt is set once a payment integration is discarded
+	// ([Repository.Discard]); repositories never return discarded ones.
+	DeletedAt *time.Time
 }
 
 // Validate checks the invariants of domain §17.1.

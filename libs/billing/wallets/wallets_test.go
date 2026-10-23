@@ -84,6 +84,10 @@ func TestCreate(t *testing.T) {
 	if got := h.JobKinds(); !slices.Contains(got, kernel.JobRefreshWalletOngoingBalance) {
 		t.Errorf("jobs: got = %v, want a refresh", got)
 	}
+	// source: spec/services/wallets/create_service_spec.rb:67
+	if !awaitingRefresh(h, c.ID) {
+		t.Errorf("awaiting_wallet_refresh: got = false, want = true")
+	}
 	// source: spec/services/wallets/create_service_spec.rb:127
 	if !w.Traceable {
 		t.Errorf("traceable: got = false, want = true")
@@ -958,6 +962,40 @@ func TestTerminate(t *testing.T) {
 	if got := countWebhooks(h, webhook.EventTypeWalletTerminated); got != 1 {
 		t.Errorf("wallet.terminated: got = %d, want = 1", got)
 	}
+	// source: spec/services/wallets/terminate_service_spec.rb:39,81
+	if awaitingRefresh(h, w.CustomerID) {
+		t.Errorf("awaiting_wallet_refresh after terminating the last wallet: got = true, want = false")
+	}
+}
+
+func TestTerminateFlagsRefresh(t *testing.T) {
+	// source: spec/services/wallets/terminate_service_spec.rb:34
+	h, s := setup(t, t0)
+	c := h.Customer()
+	w := h.Wallet(c, "10")
+	h.Wallet(c, "5")
+	if awaitingRefresh(h, c.ID) {
+		t.Fatalf("awaiting_wallet_refresh before: got = true, want = false")
+	}
+	if _, err := s.Terminate(h.Ctx, h.OrgID(), w.ID); err != nil {
+		t.Fatalf("terminate: %v", err)
+	}
+	if !awaitingRefresh(h, c.ID) {
+		t.Errorf("awaiting_wallet_refresh: got = false, want = true")
+	}
+}
+
+// awaitingRefresh reports whether customer c awaits the refresh of its
+// wallets' ongoing balances (lago customer.awaiting_wallet_refresh).
+func awaitingRefresh(h *billingtest.Harness, c core.CustomerID) bool {
+	h.T.Helper()
+	got := false
+	h.Do(func(ctx context.Context, r port.Repos) error {
+		p, err := r.Customers.ListAwaitingWalletRefresh(ctx, h.OrgID(), core.PageRequest{Size: core.MaxPageSize})
+		got = slices.Contains(p.Items, c)
+		return err
+	})
+	return got
 }
 
 func TestValidateLimitations(t *testing.T) {

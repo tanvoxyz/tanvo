@@ -136,8 +136,24 @@ func (inv *Invoice) TotalDueAmount() int64 {
 func (inv *Invoice) TotalSettledAmount() int64 { return inv.TotalPaidAmount + inv.OffsettedAmount }
 
 // Visible reports whether the API shows the invoice (every status except
-// generating).
-func (inv *Invoice) Visible() bool { return inv.Status != StatusGenerating }
+// generating and deleted).
+func (inv *Invoice) Visible() bool {
+	return inv.Status != StatusGenerating && inv.Status != StatusDeleted
+}
+
+// GeneratingRetryAge is how long a subscription invoice stays generating
+// before the hourly retry generates it again (lago
+// Clock::RetryGeneratingSubscriptionInvoicesJob::THRESHOLD,
+// app/jobs/clock/retry_generating_subscription_invoices_job.rb:7).
+const GeneratingRetryAge = 24 * time.Hour
+
+// StuckGenerating reports whether inv is a subscription invoice still
+// generating [GeneratingRetryAge] before at; the retry also skips the
+// ones with an invoice_generation_error detail, which an operator looks
+// at (retry_generating_subscription_invoices_job.rb:10-11).
+func (inv *Invoice) StuckGenerating(at time.Time) bool {
+	return inv.Type == TypeSubscription && inv.Status == StatusGenerating && inv.CreatedAt.Before(at.Add(-GeneratingRetryAge))
+}
 
 // Validate checks the invariants of domain §11.1.
 func (inv *Invoice) Validate() error {
@@ -182,14 +198,20 @@ func CanTransition(from, to Status) bool {
 	case StatusGenerating:
 		return to == StatusDraft || to == StatusOpen || to == StatusFinalized || to == StatusClosed || to == StatusFailed
 	case StatusDraft:
-		return to == StatusDraft || to == StatusFinalized
+		// draft → deleted: deleting a draft (lago Invoice#mark_as_deleted).
+		return to == StatusDraft || to == StatusFinalized || to == StatusDeleted
 	case StatusOpen:
 		// open → failed: pulling the provider taxes of an invoice waiting
 		// for them failed (lago Invoices::ProviderTaxes::
 		// PullTaxesAndApplyService, status = "failed" unless draft).
 		return to == StatusFinalized || to == StatusClosed || to == StatusFailed
 	case StatusFailed:
-		return to == StatusFinalized
+		// failed → open: retrying the invoice waits for its taxes again
+		// (lago Invoices::RetryService, retry_service.rb:37-38).
+		// failed → closed: canceling an incomplete subscription closes its
+		// gating invoice even when its taxes failed (lago
+		// Subscriptions::ActivationRules::CancelService, cancel_service.rb:60-65).
+		return to == StatusOpen || to == StatusClosed
 	case StatusFinalized:
 		return to == StatusVoided
 	default:
@@ -257,10 +279,13 @@ func (inv *Invoice) MarkDisputeLost(now time.Time) error {
 }
 
 // OverdueCandidate reports whether the overdue job marks the invoice on
-// date today (§11.5): finalized, not fully paid, past its due date.
+// date today (§11.5): finalized, not fully paid, without a lost dispute,
+// past its due date (lago Clock::MarkInvoicesAsPaymentOverdueJob,
+// app/jobs/clock/mark_invoices_as_payment_overdue_job.rb:8-13).
 func (inv *Invoice) OverdueCandidate(today core.Date) bool {
 	return inv.Status == StatusFinalized && inv.PaymentStatus != core.PaymentStatusSucceeded &&
-		!inv.PaymentOverdue && !inv.PaymentDueDate.IsZero() && inv.PaymentDueDate.Before(today)
+		!inv.PaymentOverdue && inv.PaymentDisputeLostAt == nil &&
+		!inv.PaymentDueDate.IsZero() && inv.PaymentDueDate.Before(today)
 }
 
 // FinalizationDue reports whether a draft must be finalized on date today

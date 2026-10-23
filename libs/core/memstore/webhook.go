@@ -1,8 +1,11 @@
 package memstore
 
 import (
+	"bytes"
 	"context"
+	"maps"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -148,11 +151,19 @@ func (r webhookDeliveryRepo) Get(_ context.Context, org core.OrganizationID, id 
 }
 
 func (r webhookDeliveryRepo) ListByEndpoint(_ context.Context, org core.OrganizationID, endpoint core.WebhookEndpointID, f webhook.DeliveryFilter, page core.PageRequest) (core.Page[*webhook.Delivery], error) {
+	search := strings.ToLower(core.SearchTerm(f.Search))
 	rows := r.d.deliveries.find(func(x *webhook.Delivery) bool {
 		return x.OrganizationID == org && x.EndpointID == endpoint &&
 			(len(f.Statuses) == 0 || slices.Contains(f.Statuses, x.Status)) &&
-			(len(f.EventTypes) == 0 || slices.Contains(f.EventTypes, x.EventType))
+			(len(f.EventTypes) == 0 || slices.Contains(f.EventTypes, x.EventType)) &&
+			(search == "" || strings.Contains(x.ID.String(), search) || strings.Contains(x.ObjectID.String(), search)) &&
+			f.HTTPStatus.Matches(x) &&
+			(f.UpdatedFrom == nil || !x.UpdatedAt.Before(*f.UpdatedFrom)) &&
+			(f.UpdatedTo == nil || !x.UpdatedAt.After(*f.UpdatedTo))
 	})
+	if f.Order == core.OrderRecent {
+		return paginateRecent(rows, func(x *webhook.Delivery) (time.Time, uuid.UUID) { return x.UpdatedAt, x.ID.UUID() }, page)
+	}
 	return paginate(rows, func(x *webhook.Delivery) core.WebhookID { return x.ID }, page)
 }
 
@@ -201,6 +212,20 @@ func (r domainEventRepo) ListByObject(_ context.Context, org core.OrganizationID
 		return x.OrganizationID == org && x.ObjectType == objectType && x.ObjectID == objectID
 	})
 	return paginate(rows, func(x *webhook.Event) core.AuditEventID { return x.ID }, page)
+}
+
+func (r domainEventRepo) ObjectsWithEventSince(_ context.Context, org core.OrganizationID, t webhook.EventType, objectType string, objectIDs []uuid.UUID, since time.Time) ([]uuid.UUID, error) {
+	seen := map[uuid.UUID]bool{}
+	r.d.events.find(func(x *webhook.Event) bool {
+		if x.OrganizationID == org && x.Type == t && x.ObjectType == objectType &&
+			slices.Contains(objectIDs, x.ObjectID) && !x.OccurredAt.Before(since) {
+			seen[x.ObjectID] = true
+		}
+		return false
+	})
+	out := slices.Collect(maps.Keys(seen))
+	slices.SortFunc(out, func(a, b uuid.UUID) int { return bytes.Compare(a[:], b[:]) })
+	return out, nil
 }
 
 var (

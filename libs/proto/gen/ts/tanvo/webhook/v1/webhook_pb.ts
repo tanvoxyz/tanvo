@@ -5,8 +5,8 @@
 // @generated from file tanvo/webhook/v1/webhook.proto (package tanvo.webhook.v1, edition 2023)
 /* eslint-disable */
 
-// Package tanvo.webhook.v1 is the API of event destinations: webhook
-// endpoints, their deliveries and streaming destinations.
+// Package tanvo.webhook.v1 is the API of webhook endpoints and their
+// deliveries.
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
@@ -14,8 +14,8 @@ import { file_buf_validate_validate } from "../../../buf/validate/validate_pb.js
 import { file_google_api_annotations } from "../../../google/api/annotations_pb.js";
 import { file_google_api_field_behavior } from "../../../google/api/field_behavior_pb.js";
 import { file_google_api_resource } from "../../../google/api/resource_pb.js";
-import type { Duration, FieldMask, Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_duration, file_google_protobuf_field_mask, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { FieldMask, Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_field_mask, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import { file_tanvo_common_v1_options } from "../../common/v1/options_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -23,7 +23,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file tanvo/webhook/v1/webhook.proto.
  */
 export const file_tanvo_webhook_v1_webhook: GenFile = /*@__PURE__*/
-  fileDesc("Ch50YW52by93ZWJob29rL3YxL3dlYmhvb2sucHJvdG8SEHRhbnZvLndlYmhvb2sudjEijgMKD1dlYmhvb2tFbmRwb2ludBIQCgJpZBgBIAEoCUIE4kEBCBIcCgN1cmwYAiABKAlCD+JBAQK6SAhyBhiAEIgBARIWCgRuYW1lGAMgASgJQgi6SAVyAxj/ARJICgtldmVudF90eXBlcxgEIAMoCUIzukgwkgEtEMgBGAEiJnIkMiJeW2Etel1bYS16X10qKFwuW2Etel1bYS16XzAtOV0qKSskEhQKBnNlY3JldBgFIAEoCUIE4kEBAxI0CgpjcmVhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxI0Cgp1cGRhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAzpn6kFkChl0YW52by54eXovV2ViaG9va0VuZHBvaW50EiR3ZWJob29rX2VuZHBvaW50cy97d2ViaG9va19lbmRwb2ludH0qEHdlYmhvb2tFbmRwb2ludHMyD3dlYmhvb2tFbmRwb2ludCJHChBXZWJob29rRXZlbnRUeXBlEgwKBG5hbWUYASABKAkSEAoIY2F0ZWdvcnkYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkijAMKD1dlYmhvb2tEZWxpdmVyeRIKCgJpZBgBIAEoCRIbChN3ZWJob29rX2VuZHBvaW50X2lkGAIgASgJEhIKCmV2ZW50X3R5cGUYAyABKAkSEwoLb2JqZWN0X3R5cGUYBCABKAkSEQoJb2JqZWN0X2lkGAUgASgJEg8KB3BheWxvYWQYBiABKAwSMAoGc3RhdHVzGAcgASgOMiAudGFudm8ud2ViaG9vay52MS5EZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgIIAEoBRITCgtodHRwX3N0YXR1cxgJIAEoBRIQCghyZXNwb25zZRgKIAEoCRIzCg9sYXN0X2F0dGVtcHRfYXQYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKD25leHRfYXR0ZW1wdF9hdBgMIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKY3JlYXRlZF9hdBgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAi4gEKEEthZmthRGVzdGluYXRpb24SJAoHYnJva2VycxgBIAMoCUITukgQkgENCAEQFCIHcgUQARj/ARIZCgV0b3BpYxgCIAEoCUIKukgHcgUQARj5ARJECg5zYXNsX21lY2hhbmlzbRgDIAEoCUIsukgpcidSAFIFUExBSU5SDVNDUkFNLVNIQS0yNTZSDVNDUkFNLVNIQS01MTISGgoIdXNlcm5hbWUYBCABKAlCCLpIBXIDGP8BEh4KCHBhc3N3b3JkGAUgASgJQgziQQEEukgFcgMYgAgSCwoDdGxzGAYgASgIIqcBChJLaW5lc2lzRGVzdGluYXRpb24SGgoGc3RyZWFtGAEgASgJQgq6SAdyBRABGIAQEhkKBnJlZ2lvbhgCIAEoCUIJukgGcgQQARhAEhoKCHJvbGVfYXJuGAMgASgJQgi6SAVyAxiAEBIdCgtleHRlcm5hbF9pZBgEIAEoCUIIukgFcgMYyAkSHwoNcGFydGl0aW9uX2tleRgFIAEoCUIIukgFcgMY/wEi3gEKDVMzRGVzdGluYXRpb24SGQoGYnVja2V0GAEgASgJQgm6SAZyBBADGD8SGAoGcHJlZml4GAIgASgJQgi6SAVyAxiACBIZCgZyZWdpb24YAyABKAlCCbpIBnIEEAEYQBIaCghyb2xlX2FybhgEIAEoCUIIukgFcgMYgBASHQoLZXh0ZXJuYWxfaWQYBSABKAlCCLpIBXIDGMgJEkIKDmZsdXNoX2ludGVydmFsGAYgASgLMhkuZ29vZ2xlLnByb3RvYnVmLkR1cmF0aW9uQg+6SAyqAQkiAwiQHDICCAoi7AQKFFN0cmVhbWluZ0Rlc3RpbmF0aW9uEhAKAmlkGAEgASgJQgTiQQEIEhwKBG5hbWUYAiABKAlCDuJBAQK6SAdyBRABGP8BEksKC2V2ZW50X3R5cGVzGAMgAygJQjbiQQECukgvkgEsEDIYASImciQyIl5bYS16XVthLXpfXSooXC5bYS16XVthLXpfMC05XSopKyQSLwoRZXhjbHVkZWRfcGxhbl9pZHMYBCADKAlCFLpIEZIBDhDIARgBIgdyBeCkygYBEhAKCGRpc2FibGVkGAUgASgIEjMKBWthZmthGAogASgLMiIudGFudm8ud2ViaG9vay52MS5LYWZrYURlc3RpbmF0aW9uSAASNwoHa2luZXNpcxgLIAEoCzIkLnRhbnZvLndlYmhvb2sudjEuS2luZXNpc0Rlc3RpbmF0aW9uSAASLQoCczMYDCABKAsyHy50YW52by53ZWJob29rLnYxLlMzRGVzdGluYXRpb25IABI0CgpjcmVhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxI0Cgp1cGRhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAzqAAepBfQoedGFudm8ueHl6L1N0cmVhbWluZ0Rlc3RpbmF0aW9uEi5zdHJlYW1pbmdfZGVzdGluYXRpb25zL3tzdHJlYW1pbmdfZGVzdGluYXRpb259KhVzdHJlYW1pbmdEZXN0aW5hdGlvbnMyFHN0cmVhbWluZ0Rlc3RpbmF0aW9uQggKBnRhcmdldCL0AQoRU3RyZWFtaW5nRGVsaXZlcnkSCgoCaWQYASABKAkSIAoYc3RyZWFtaW5nX2Rlc3RpbmF0aW9uX2lkGAIgASgJEhIKCmV2ZW50X3R5cGUYAyABKAkSEQoJb2JqZWN0X2lkGAQgASgJEjkKBnN0YXR1cxgFIAEoDjIpLnRhbnZvLndlYmhvb2sudjEuU3RyZWFtaW5nRGVsaXZlcnlTdGF0dXMSEAoIYXR0ZW1wdHMYBiABKAUSDQoFZXJyb3IYByABKAkSLgoKY3JlYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAitQEKHENyZWF0ZVdlYmhvb2tFbmRwb2ludFJlcXVlc3QSRwoQd2ViaG9va19lbmRwb2ludBgBIAEoCzIhLnRhbnZvLndlYmhvb2sudjEuV2ViaG9va0VuZHBvaW50QgriQQECukgDyAEBOky6SEkaRwoUd2ViaG9va19lbmRwb2ludC51cmwSD3VybCBpcyByZXF1aXJlZBoeaGFzKHRoaXMud2ViaG9va19lbmRwb2ludC51cmwpIlwKHUNyZWF0ZVdlYmhvb2tFbmRwb2ludFJlc3BvbnNlEjsKEHdlYmhvb2tfZW5kcG9pbnQYASABKAsyIS50YW52by53ZWJob29rLnYxLldlYmhvb2tFbmRwb2ludCJJChlHZXRXZWJob29rRW5kcG9pbnRSZXF1ZXN0EiwKE3dlYmhvb2tfZW5kcG9pbnRfaWQYASABKAlCD+JBAQK6SAjIAQFyA7ABASJZChpHZXRXZWJob29rRW5kcG9pbnRSZXNwb25zZRI7ChB3ZWJob29rX2VuZHBvaW50GAEgASgLMiEudGFudm8ud2ViaG9vay52MS5XZWJob29rRW5kcG9pbnQiWgobTGlzdFdlYmhvb2tFbmRwb2ludHNSZXF1ZXN0Eh0KCXBhZ2Vfc2l6ZRgBIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACCJ1ChxMaXN0V2ViaG9va0VuZHBvaW50c1Jlc3BvbnNlEjwKEXdlYmhvb2tfZW5kcG9pbnRzGAEgAygLMiEudGFudm8ud2ViaG9vay52MS5XZWJob29rRW5kcG9pbnQSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIvQBChxVcGRhdGVXZWJob29rRW5kcG9pbnRSZXF1ZXN0EkcKEHdlYmhvb2tfZW5kcG9pbnQYASABKAsyIS50YW52by53ZWJob29rLnYxLldlYmhvb2tFbmRwb2ludEIK4kEBArpIA8gBARIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2s6WrpIVxpVChN3ZWJob29rX2VuZHBvaW50LmlkEh93ZWJob29rX2VuZHBvaW50LmlkIGlzIHJlcXVpcmVkGh1oYXModGhpcy53ZWJob29rX2VuZHBvaW50LmlkKSJcCh1VcGRhdGVXZWJob29rRW5kcG9pbnRSZXNwb25zZRI7ChB3ZWJob29rX2VuZHBvaW50GAEgASgLMiEudGFudm8ud2ViaG9vay52MS5XZWJob29rRW5kcG9pbnQiTAocRGVsZXRlV2ViaG9va0VuZHBvaW50UmVxdWVzdBIsChN3ZWJob29rX2VuZHBvaW50X2lkGAEgASgJQg/iQQECukgIyAEBcgOwAQEiHwodRGVsZXRlV2ViaG9va0VuZHBvaW50UmVzcG9uc2UijgEKIlJvdGF0ZVdlYmhvb2tFbmRwb2ludFNlY3JldFJlcXVlc3QSLAoTd2ViaG9va19lbmRwb2ludF9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBEjoKB292ZXJsYXAYAiABKAsyGS5nb29nbGUucHJvdG9idWYuRHVyYXRpb25CDrpIC6oBCCIECID1JDIAImIKI1JvdGF0ZVdlYmhvb2tFbmRwb2ludFNlY3JldFJlc3BvbnNlEjsKEHdlYmhvb2tfZW5kcG9pbnQYASABKAsyIS50YW52by53ZWJob29rLnYxLldlYmhvb2tFbmRwb2ludCIeChxMaXN0V2ViaG9va0V2ZW50VHlwZXNSZXF1ZXN0IlgKHUxpc3RXZWJob29rRXZlbnRUeXBlc1Jlc3BvbnNlEjcKC2V2ZW50X3R5cGVzGAEgAygLMiIudGFudm8ud2ViaG9vay52MS5XZWJob29rRXZlbnRUeXBlIm8KGUdldFdlYmhvb2tEZWxpdmVyeVJlcXVlc3QSLAoTd2ViaG9va19lbmRwb2ludF9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBEiQKC2RlbGl2ZXJ5X2lkGAIgASgJQg/iQQECukgIyAEBcgOwAQEiUQoaR2V0V2ViaG9va0RlbGl2ZXJ5UmVzcG9uc2USMwoIZGVsaXZlcnkYASABKAsyIS50YW52by53ZWJob29rLnYxLldlYmhvb2tEZWxpdmVyeSK9AQocTGlzdFdlYmhvb2tEZWxpdmVyaWVzUmVxdWVzdBIsChN3ZWJob29rX2VuZHBvaW50X2lkGAEgASgJQg/iQQECukgIyAEBcgOwAQESHQoJcGFnZV9zaXplGAIgASgFQgq6SAcaBRjoBygAEhwKCnBhZ2VfdG9rZW4YAyABKAlCCLpIBXIDGIAIEhgKBmZpbHRlchgEIAEoCUIIukgFcgMYgBASGAoGc2VhcmNoGAUgASgJQgi6SAVyAxj/ASJvCh1MaXN0V2ViaG9va0RlbGl2ZXJpZXNSZXNwb25zZRI1CgpkZWxpdmVyaWVzGAEgAygLMiEudGFudm8ud2ViaG9vay52MS5XZWJob29rRGVsaXZlcnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJInEKG1JldHJ5V2ViaG9va0RlbGl2ZXJ5UmVxdWVzdBIsChN3ZWJob29rX2VuZHBvaW50X2lkGAEgASgJQg/iQQECukgIyAEBcgOwAQESJAoLZGVsaXZlcnlfaWQYAiABKAlCD+JBAQK6SAjIAQFyA7ABASJTChxSZXRyeVdlYmhvb2tEZWxpdmVyeVJlc3BvbnNlEjMKCGRlbGl2ZXJ5GAEgASgLMiEudGFudm8ud2ViaG9vay52MS5XZWJob29rRGVsaXZlcnkipAMKIUNyZWF0ZVN0cmVhbWluZ0Rlc3RpbmF0aW9uUmVxdWVzdBJRChVzdHJlYW1pbmdfZGVzdGluYXRpb24YASABKAsyJi50YW52by53ZWJob29rLnYxLlN0cmVhbWluZ0Rlc3RpbmF0aW9uQgriQQECukgDyAEBOqsCukinAhqkAgoec3RyZWFtaW5nX2Rlc3RpbmF0aW9uLnJlcXVpcmVkEituYW1lLCBldmVudF90eXBlcyBhbmQgYSB0YXJnZXQgYXJlIHJlcXVpcmVkGtQBaGFzKHRoaXMuc3RyZWFtaW5nX2Rlc3RpbmF0aW9uLm5hbWUpICYmIHNpemUodGhpcy5zdHJlYW1pbmdfZGVzdGluYXRpb24uZXZlbnRfdHlwZXMpID4gMCAmJiAoaGFzKHRoaXMuc3RyZWFtaW5nX2Rlc3RpbmF0aW9uLmthZmthKSB8fCBoYXModGhpcy5zdHJlYW1pbmdfZGVzdGluYXRpb24ua2luZXNpcykgfHwgaGFzKHRoaXMuc3RyZWFtaW5nX2Rlc3RpbmF0aW9uLnMzKSkiawoiQ3JlYXRlU3RyZWFtaW5nRGVzdGluYXRpb25SZXNwb25zZRJFChVzdHJlYW1pbmdfZGVzdGluYXRpb24YASABKAsyJi50YW52by53ZWJob29rLnYxLlN0cmVhbWluZ0Rlc3RpbmF0aW9uIlMKHkdldFN0cmVhbWluZ0Rlc3RpbmF0aW9uUmVxdWVzdBIxChhzdHJlYW1pbmdfZGVzdGluYXRpb25faWQYASABKAlCD+JBAQK6SAjIAQFyA7ABASJoCh9HZXRTdHJlYW1pbmdEZXN0aW5hdGlvblJlc3BvbnNlEkUKFXN0cmVhbWluZ19kZXN0aW5hdGlvbhgBIAEoCzImLnRhbnZvLndlYmhvb2sudjEuU3RyZWFtaW5nRGVzdGluYXRpb24iXwogTGlzdFN0cmVhbWluZ0Rlc3RpbmF0aW9uc1JlcXVlc3QSHQoJcGFnZV9zaXplGAEgASgFQgq6SAcaBRjoBygAEhwKCnBhZ2VfdG9rZW4YAiABKAlCCLpIBXIDGIAIIoQBCiFMaXN0U3RyZWFtaW5nRGVzdGluYXRpb25zUmVzcG9uc2USRgoWc3RyZWFtaW5nX2Rlc3RpbmF0aW9ucxgBIAMoCzImLnRhbnZvLndlYmhvb2sudjEuU3RyZWFtaW5nRGVzdGluYXRpb24SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIpICCiFVcGRhdGVTdHJlYW1pbmdEZXN0aW5hdGlvblJlcXVlc3QSUQoVc3RyZWFtaW5nX2Rlc3RpbmF0aW9uGAEgASgLMiYudGFudm8ud2ViaG9vay52MS5TdHJlYW1pbmdEZXN0aW5hdGlvbkIK4kEBArpIA8gBARIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2s6abpIZhpkChhzdHJlYW1pbmdfZGVzdGluYXRpb24uaWQSJHN0cmVhbWluZ19kZXN0aW5hdGlvbi5pZCBpcyByZXF1aXJlZBoiaGFzKHRoaXMuc3RyZWFtaW5nX2Rlc3RpbmF0aW9uLmlkKSJrCiJVcGRhdGVTdHJlYW1pbmdEZXN0aW5hdGlvblJlc3BvbnNlEkUKFXN0cmVhbWluZ19kZXN0aW5hdGlvbhgBIAEoCzImLnRhbnZvLndlYmhvb2sudjEuU3RyZWFtaW5nRGVzdGluYXRpb24iVgohRGVsZXRlU3RyZWFtaW5nRGVzdGluYXRpb25SZXF1ZXN0EjEKGHN0cmVhbWluZ19kZXN0aW5hdGlvbl9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBIiQKIkRlbGV0ZVN0cmVhbWluZ0Rlc3RpbmF0aW9uUmVzcG9uc2UiqgEKHkxpc3RTdHJlYW1pbmdEZWxpdmVyaWVzUmVxdWVzdBIxChhzdHJlYW1pbmdfZGVzdGluYXRpb25faWQYASABKAlCD+JBAQK6SAjIAQFyA7ABARIdCglwYWdlX3NpemUYAiABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgSGAoGZmlsdGVyGAQgASgJQgi6SAVyAxiAECJzCh9MaXN0U3RyZWFtaW5nRGVsaXZlcmllc1Jlc3BvbnNlEjcKCmRlbGl2ZXJpZXMYASADKAsyIy50YW52by53ZWJob29rLnYxLlN0cmVhbWluZ0RlbGl2ZXJ5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSqnAQoORGVsaXZlcnlTdGF0dXMSHwobREVMSVZFUllfU1RBVFVTX1VOU1BFQ0lGSUVEEAASGwoXREVMSVZFUllfU1RBVFVTX1BFTkRJTkcQARIcChhERUxJVkVSWV9TVEFUVVNfUkVUUllJTkcQAhIdChlERUxJVkVSWV9TVEFUVVNfU1VDQ0VFREVEEAMSGgoWREVMSVZFUllfU1RBVFVTX0ZBSUxFRBAEKosCChdTdHJlYW1pbmdEZWxpdmVyeVN0YXR1cxIpCiVTVFJFQU1JTkdfREVMSVZFUllfU1RBVFVTX1VOU1BFQ0lGSUVEEAASJwojU1RSRUFNSU5HX0RFTElWRVJZX1NUQVRVU19ERUxJVkVSRUQQARIlCiFTVFJFQU1JTkdfREVMSVZFUllfU1RBVFVTX1NLSVBQRUQQAhIkCiBTVFJFQU1JTkdfREVMSVZFUllfU1RBVFVTX0ZBSUxFRBADEigKJFNUUkVBTUlOR19ERUxJVkVSWV9TVEFUVVNfU1VQRVJTRURFRBAEEiUKIVNUUkVBTUlOR19ERUxJVkVSWV9TVEFUVVNfRFJPUFBFRBAFMs4RCg5XZWJob29rU2VydmljZRLSAQoVQ3JlYXRlV2ViaG9va0VuZHBvaW50Ei4udGFudm8ud2ViaG9vay52MS5DcmVhdGVXZWJob29rRW5kcG9pbnRSZXF1ZXN0Gi8udGFudm8ud2ViaG9vay52MS5DcmVhdGVXZWJob29rRW5kcG9pbnRSZXNwb25zZSJYyvMYJQoRZGV2ZWxvcGVyczptYW5hZ2UqEHdlYmhvb2tfZW5kcG9pbnSC0+STAik6EHdlYmhvb2tfZW5kcG9pbnQiFS92MS93ZWJob29rX2VuZHBvaW50cxLQAQoSR2V0V2ViaG9va0VuZHBvaW50EisudGFudm8ud2ViaG9vay52MS5HZXRXZWJob29rRW5kcG9pbnRSZXF1ZXN0GiwudGFudm8ud2ViaG9vay52MS5HZXRXZWJob29rRW5kcG9pbnRSZXNwb25zZSJfkAIByvMYJQoRZGV2ZWxvcGVyczptYW5hZ2UqEHdlYmhvb2tfZW5kcG9pbnSC0+STAi0SKy92MS93ZWJob29rX2VuZHBvaW50cy97d2ViaG9va19lbmRwb2ludF9pZH0SwAEKFExpc3RXZWJob29rRW5kcG9pbnRzEi0udGFudm8ud2ViaG9vay52MS5MaXN0V2ViaG9va0VuZHBvaW50c1JlcXVlc3QaLi50YW52by53ZWJob29rLnYxLkxpc3RXZWJob29rRW5kcG9pbnRzUmVzcG9uc2UiSZACAcrzGCUKEWRldmVsb3BlcnM6bWFuYWdlKhB3ZWJob29rX2VuZHBvaW50gtPkkwIXEhUvdjEvd2ViaG9va19lbmRwb2ludHMS6AEKFVVwZGF0ZVdlYmhvb2tFbmRwb2ludBIuLnRhbnZvLndlYmhvb2sudjEuVXBkYXRlV2ViaG9va0VuZHBvaW50UmVxdWVzdBovLnRhbnZvLndlYmhvb2sudjEuVXBkYXRlV2ViaG9va0VuZHBvaW50UmVzcG9uc2UibsrzGCUKEWRldmVsb3BlcnM6bWFuYWdlKhB3ZWJob29rX2VuZHBvaW50gtPkkwI/OhB3ZWJob29rX2VuZHBvaW50MisvdjEvd2ViaG9va19lbmRwb2ludHMve3dlYmhvb2tfZW5kcG9pbnQuaWR9EtYBChVEZWxldGVXZWJob29rRW5kcG9pbnQSLi50YW52by53ZWJob29rLnYxLkRlbGV0ZVdlYmhvb2tFbmRwb2ludFJlcXVlc3QaLy50YW52by53ZWJob29rLnYxLkRlbGV0ZVdlYmhvb2tFbmRwb2ludFJlc3BvbnNlIlzK8xglChFkZXZlbG9wZXJzOm1hbmFnZSoQd2ViaG9va19lbmRwb2ludILT5JMCLSorL3YxL3dlYmhvb2tfZW5kcG9pbnRzL3t3ZWJob29rX2VuZHBvaW50X2lkfRL5AQobUm90YXRlV2ViaG9va0VuZHBvaW50U2VjcmV0EjQudGFudm8ud2ViaG9vay52MS5Sb3RhdGVXZWJob29rRW5kcG9pbnRTZWNyZXRSZXF1ZXN0GjUudGFudm8ud2ViaG9vay52MS5Sb3RhdGVXZWJob29rRW5kcG9pbnRTZWNyZXRSZXNwb25zZSJtyvMYJQoRZGV2ZWxvcGVyczptYW5hZ2UqEHdlYmhvb2tfZW5kcG9pbnSC0+STAj46ASoiOS92MS93ZWJob29rX2VuZHBvaW50cy97d2ViaG9va19lbmRwb2ludF9pZH06cm90YXRlX3NlY3JldBLFAQoVTGlzdFdlYmhvb2tFdmVudFR5cGVzEi4udGFudm8ud2ViaG9vay52MS5MaXN0V2ViaG9va0V2ZW50VHlwZXNSZXF1ZXN0Gi8udGFudm8ud2ViaG9vay52MS5MaXN0V2ViaG9va0V2ZW50VHlwZXNSZXNwb25zZSJLkAIByvMYJQoRZGV2ZWxvcGVyczptYW5hZ2UqEHdlYmhvb2tfZW5kcG9pbnSC0+STAhkSFy92MS93ZWJob29rX2V2ZW50X3R5cGVzEukBChJHZXRXZWJob29rRGVsaXZlcnkSKy50YW52by53ZWJob29rLnYxLkdldFdlYmhvb2tEZWxpdmVyeVJlcXVlc3QaLC50YW52by53ZWJob29rLnYxLkdldFdlYmhvb2tEZWxpdmVyeVJlc3BvbnNlIniQAgHK8xglChFkZXZlbG9wZXJzOm1hbmFnZSoQd2ViaG9va19lbmRwb2ludILT5JMCRhJEL3YxL3dlYmhvb2tfZW5kcG9pbnRzL3t3ZWJob29rX2VuZHBvaW50X2lkfS9kZWxpdmVyaWVzL3tkZWxpdmVyeV9pZH0S5AEKFUxpc3RXZWJob29rRGVsaXZlcmllcxIuLnRhbnZvLndlYmhvb2sudjEuTGlzdFdlYmhvb2tEZWxpdmVyaWVzUmVxdWVzdBovLnRhbnZvLndlYmhvb2sudjEuTGlzdFdlYmhvb2tEZWxpdmVyaWVzUmVzcG9uc2UiapACAcrzGCUKEWRldmVsb3BlcnM6bWFuYWdlKhB3ZWJob29rX2VuZHBvaW50gtPkkwI4EjYvdjEvd2ViaG9va19lbmRwb2ludHMve3dlYmhvb2tfZW5kcG9pbnRfaWR9L2RlbGl2ZXJpZXMS9QEKFFJldHJ5V2ViaG9va0RlbGl2ZXJ5Ei0udGFudm8ud2ViaG9vay52MS5SZXRyeVdlYmhvb2tEZWxpdmVyeVJlcXVlc3QaLi50YW52by53ZWJob29rLnYxLlJldHJ5V2ViaG9va0RlbGl2ZXJ5UmVzcG9uc2UifsrzGCUKEWRldmVsb3BlcnM6bWFuYWdlKhB3ZWJob29rX2VuZHBvaW50gtPkkwJPOgEqIkovdjEvd2ViaG9va19lbmRwb2ludHMve3dlYmhvb2tfZW5kcG9pbnRfaWR9L2RlbGl2ZXJpZXMve2RlbGl2ZXJ5X2lkfTpyZXRyeTLUCgobU3RyZWFtaW5nRGVzdGluYXRpb25TZXJ2aWNlEtkBChpDcmVhdGVTdHJlYW1pbmdEZXN0aW5hdGlvbhIzLnRhbnZvLndlYmhvb2sudjEuQ3JlYXRlU3RyZWFtaW5nRGVzdGluYXRpb25SZXF1ZXN0GjQudGFudm8ud2ViaG9vay52MS5DcmVhdGVTdHJlYW1pbmdEZXN0aW5hdGlvblJlc3BvbnNlIlDK8xgTChFkZXZlbG9wZXJzOm1hbmFnZYLT5JMCMzoVc3RyZWFtaW5nX2Rlc3RpbmF0aW9uIhovdjEvc3RyZWFtaW5nX2Rlc3RpbmF0aW9ucxLXAQoXR2V0U3RyZWFtaW5nRGVzdGluYXRpb24SMC50YW52by53ZWJob29rLnYxLkdldFN0cmVhbWluZ0Rlc3RpbmF0aW9uUmVxdWVzdBoxLnRhbnZvLndlYmhvb2sudjEuR2V0U3RyZWFtaW5nRGVzdGluYXRpb25SZXNwb25zZSJXkAIByvMYEwoRZGV2ZWxvcGVyczptYW5hZ2WC0+STAjcSNS92MS9zdHJlYW1pbmdfZGVzdGluYXRpb25zL3tzdHJlYW1pbmdfZGVzdGluYXRpb25faWR9EsIBChlMaXN0U3RyZWFtaW5nRGVzdGluYXRpb25zEjIudGFudm8ud2ViaG9vay52MS5MaXN0U3RyZWFtaW5nRGVzdGluYXRpb25zUmVxdWVzdBozLnRhbnZvLndlYmhvb2sudjEuTGlzdFN0cmVhbWluZ0Rlc3RpbmF0aW9uc1Jlc3BvbnNlIjyQAgHK8xgTChFkZXZlbG9wZXJzOm1hbmFnZYLT5JMCHBIaL3YxL3N0cmVhbWluZ19kZXN0aW5hdGlvbnMS9AEKGlVwZGF0ZVN0cmVhbWluZ0Rlc3RpbmF0aW9uEjMudGFudm8ud2ViaG9vay52MS5VcGRhdGVTdHJlYW1pbmdEZXN0aW5hdGlvblJlcXVlc3QaNC50YW52by53ZWJob29rLnYxLlVwZGF0ZVN0cmVhbWluZ0Rlc3RpbmF0aW9uUmVzcG9uc2Uia8rzGBMKEWRldmVsb3BlcnM6bWFuYWdlgtPkkwJOOhVzdHJlYW1pbmdfZGVzdGluYXRpb24yNS92MS9zdHJlYW1pbmdfZGVzdGluYXRpb25zL3tzdHJlYW1pbmdfZGVzdGluYXRpb24uaWR9Et0BChpEZWxldGVTdHJlYW1pbmdEZXN0aW5hdGlvbhIzLnRhbnZvLndlYmhvb2sudjEuRGVsZXRlU3RyZWFtaW5nRGVzdGluYXRpb25SZXF1ZXN0GjQudGFudm8ud2ViaG9vay52MS5EZWxldGVTdHJlYW1pbmdEZXN0aW5hdGlvblJlc3BvbnNlIlTK8xgTChFkZXZlbG9wZXJzOm1hbmFnZYLT5JMCNyo1L3YxL3N0cmVhbWluZ19kZXN0aW5hdGlvbnMve3N0cmVhbWluZ19kZXN0aW5hdGlvbl9pZH0S4gEKF0xpc3RTdHJlYW1pbmdEZWxpdmVyaWVzEjAudGFudm8ud2ViaG9vay52MS5MaXN0U3RyZWFtaW5nRGVsaXZlcmllc1JlcXVlc3QaMS50YW52by53ZWJob29rLnYxLkxpc3RTdHJlYW1pbmdEZWxpdmVyaWVzUmVzcG9uc2UiYpACAcrzGBMKEWRldmVsb3BlcnM6bWFuYWdlgtPkkwJCEkAvdjEvc3RyZWFtaW5nX2Rlc3RpbmF0aW9ucy97c3RyZWFtaW5nX2Rlc3RpbmF0aW9uX2lkfS9kZWxpdmVyaWVzQs4BChRjb20udGFudm8ud2ViaG9vay52MUIMV2ViaG9va1Byb3RvUAFaRmdpdGh1Yi5jb20vdGFudm94eXovdGFudm8vbGlicy9wcm90by9nZW4vZ28vdGFudm8vd2ViaG9vay92MTt3ZWJob29rdjGiAgNUV1iqAhBUYW52by5XZWJob29rLlYxygIQVGFudm9cV2ViaG9va1xWMeICHFRhbnZvXFdlYmhvb2tcVjFcR1BCTWV0YWRhdGHqAhJUYW52bzo6V2ViaG9vazo6VjFiCGVkaXRpb25zcOgH", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_duration, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_tanvo_common_v1_options]);
+  fileDesc("Ch50YW52by93ZWJob29rL3YxL3dlYmhvb2sucHJvdG8SEHRhbnZvLndlYmhvb2sudjEijgMKD1dlYmhvb2tFbmRwb2ludBIQCgJpZBgBIAEoCUIE4kEBCBIcCgN1cmwYAiABKAlCD+JBAQK6SAhyBhiAEIgBARIWCgRuYW1lGAMgASgJQgi6SAVyAxj/ARJICgtldmVudF90eXBlcxgEIAMoCUIzukgwkgEtEMgBGAEiJnIkMiJeW2Etel1bYS16X10qKFwuW2Etel1bYS16XzAtOV0qKSskEhQKBnNlY3JldBgFIAEoCUIE4kEBAxI0CgpjcmVhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxI0Cgp1cGRhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAzpn6kFkChl0YW52by54eXovV2ViaG9va0VuZHBvaW50EiR3ZWJob29rX2VuZHBvaW50cy97d2ViaG9va19lbmRwb2ludH0qEHdlYmhvb2tFbmRwb2ludHMyD3dlYmhvb2tFbmRwb2ludCJHChBXZWJob29rRXZlbnRUeXBlEgwKBG5hbWUYASABKAkSEAoIY2F0ZWdvcnkYAiABKAkSEwoLZGVzY3JpcHRpb24YAyABKAkijAMKD1dlYmhvb2tEZWxpdmVyeRIKCgJpZBgBIAEoCRIbChN3ZWJob29rX2VuZHBvaW50X2lkGAIgASgJEhIKCmV2ZW50X3R5cGUYAyABKAkSEwoLb2JqZWN0X3R5cGUYBCABKAkSEQoJb2JqZWN0X2lkGAUgASgJEg8KB3BheWxvYWQYBiABKAwSMAoGc3RhdHVzGAcgASgOMiAudGFudm8ud2ViaG9vay52MS5EZWxpdmVyeVN0YXR1cxIQCghhdHRlbXB0cxgIIAEoBRITCgtodHRwX3N0YXR1cxgJIAEoBRIQCghyZXNwb25zZRgKIAEoCRIzCg9sYXN0X2F0dGVtcHRfYXQYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKD25leHRfYXR0ZW1wdF9hdBgMIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKY3JlYXRlZF9hdBgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAitQEKHENyZWF0ZVdlYmhvb2tFbmRwb2ludFJlcXVlc3QSRwoQd2ViaG9va19lbmRwb2ludBgBIAEoCzIhLnRhbnZvLndlYmhvb2sudjEuV2ViaG9va0VuZHBvaW50QgriQQECukgDyAEBOky6SEkaRwoUd2ViaG9va19lbmRwb2ludC51cmwSD3VybCBpcyByZXF1aXJlZBoeaGFzKHRoaXMud2ViaG9va19lbmRwb2ludC51cmwpIlwKHUNyZWF0ZVdlYmhvb2tFbmRwb2ludFJlc3BvbnNlEjsKEHdlYmhvb2tfZW5kcG9pbnQYASABKAsyIS50YW52by53ZWJob29rLnYxLldlYmhvb2tFbmRwb2ludCJJChlHZXRXZWJob29rRW5kcG9pbnRSZXF1ZXN0EiwKE3dlYmhvb2tfZW5kcG9pbnRfaWQYASABKAlCD+JBAQK6SAjIAQFyA7ABASJZChpHZXRXZWJob29rRW5kcG9pbnRSZXNwb25zZRI7ChB3ZWJob29rX2VuZHBvaW50GAEgASgLMiEudGFudm8ud2ViaG9vay52MS5XZWJob29rRW5kcG9pbnQiWgobTGlzdFdlYmhvb2tFbmRwb2ludHNSZXF1ZXN0Eh0KCXBhZ2Vfc2l6ZRgBIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACCJ1ChxMaXN0V2ViaG9va0VuZHBvaW50c1Jlc3BvbnNlEjwKEXdlYmhvb2tfZW5kcG9pbnRzGAEgAygLMiEudGFudm8ud2ViaG9vay52MS5XZWJob29rRW5kcG9pbnQSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIvQBChxVcGRhdGVXZWJob29rRW5kcG9pbnRSZXF1ZXN0EkcKEHdlYmhvb2tfZW5kcG9pbnQYASABKAsyIS50YW52by53ZWJob29rLnYxLldlYmhvb2tFbmRwb2ludEIK4kEBArpIA8gBARIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2s6WrpIVxpVChN3ZWJob29rX2VuZHBvaW50LmlkEh93ZWJob29rX2VuZHBvaW50LmlkIGlzIHJlcXVpcmVkGh1oYXModGhpcy53ZWJob29rX2VuZHBvaW50LmlkKSJcCh1VcGRhdGVXZWJob29rRW5kcG9pbnRSZXNwb25zZRI7ChB3ZWJob29rX2VuZHBvaW50GAEgASgLMiEudGFudm8ud2ViaG9vay52MS5XZWJob29rRW5kcG9pbnQiTAocRGVsZXRlV2ViaG9va0VuZHBvaW50UmVxdWVzdBIsChN3ZWJob29rX2VuZHBvaW50X2lkGAEgASgJQg/iQQECukgIyAEBcgOwAQEiHwodRGVsZXRlV2ViaG9va0VuZHBvaW50UmVzcG9uc2UiHgocTGlzdFdlYmhvb2tFdmVudFR5cGVzUmVxdWVzdCJYCh1MaXN0V2ViaG9va0V2ZW50VHlwZXNSZXNwb25zZRI3CgtldmVudF90eXBlcxgBIAMoCzIiLnRhbnZvLndlYmhvb2sudjEuV2ViaG9va0V2ZW50VHlwZSJvChlHZXRXZWJob29rRGVsaXZlcnlSZXF1ZXN0EiwKE3dlYmhvb2tfZW5kcG9pbnRfaWQYASABKAlCD+JBAQK6SAjIAQFyA7ABARIkCgtkZWxpdmVyeV9pZBgCIAEoCUIP4kEBArpICMgBAXIDsAEBIlEKGkdldFdlYmhvb2tEZWxpdmVyeVJlc3BvbnNlEjMKCGRlbGl2ZXJ5GAEgASgLMiEudGFudm8ud2ViaG9vay52MS5XZWJob29rRGVsaXZlcnkivQEKHExpc3RXZWJob29rRGVsaXZlcmllc1JlcXVlc3QSLAoTd2ViaG9va19lbmRwb2ludF9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBEh0KCXBhZ2Vfc2l6ZRgCIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACBIYCgZmaWx0ZXIYBCABKAlCCLpIBXIDGIAQEhgKBnNlYXJjaBgFIAEoCUIIukgFcgMY/wEibwodTGlzdFdlYmhvb2tEZWxpdmVyaWVzUmVzcG9uc2USNQoKZGVsaXZlcmllcxgBIAMoCzIhLnRhbnZvLndlYmhvb2sudjEuV2ViaG9va0RlbGl2ZXJ5EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSJxChtSZXRyeVdlYmhvb2tEZWxpdmVyeVJlcXVlc3QSLAoTd2ViaG9va19lbmRwb2ludF9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBEiQKC2RlbGl2ZXJ5X2lkGAIgASgJQg/iQQECukgIyAEBcgOwAQEiUwocUmV0cnlXZWJob29rRGVsaXZlcnlSZXNwb25zZRIzCghkZWxpdmVyeRgBIAEoCzIhLnRhbnZvLndlYmhvb2sudjEuV2ViaG9va0RlbGl2ZXJ5KqcBCg5EZWxpdmVyeVN0YXR1cxIfChtERUxJVkVSWV9TVEFUVVNfVU5TUEVDSUZJRUQQABIbChdERUxJVkVSWV9TVEFUVVNfUEVORElORxABEhwKGERFTElWRVJZX1NUQVRVU19SRVRSWUlORxACEh0KGURFTElWRVJZX1NUQVRVU19TVUNDRUVERUQQAxIaChZERUxJVkVSWV9TVEFUVVNfRkFJTEVEEAQy0g8KDldlYmhvb2tTZXJ2aWNlEtIBChVDcmVhdGVXZWJob29rRW5kcG9pbnQSLi50YW52by53ZWJob29rLnYxLkNyZWF0ZVdlYmhvb2tFbmRwb2ludFJlcXVlc3QaLy50YW52by53ZWJob29rLnYxLkNyZWF0ZVdlYmhvb2tFbmRwb2ludFJlc3BvbnNlIljK8xglChFkZXZlbG9wZXJzOm1hbmFnZSoQd2ViaG9va19lbmRwb2ludILT5JMCKToQd2ViaG9va19lbmRwb2ludCIVL3YxL3dlYmhvb2tfZW5kcG9pbnRzEtABChJHZXRXZWJob29rRW5kcG9pbnQSKy50YW52by53ZWJob29rLnYxLkdldFdlYmhvb2tFbmRwb2ludFJlcXVlc3QaLC50YW52by53ZWJob29rLnYxLkdldFdlYmhvb2tFbmRwb2ludFJlc3BvbnNlIl+QAgHK8xglChFkZXZlbG9wZXJzOm1hbmFnZSoQd2ViaG9va19lbmRwb2ludILT5JMCLRIrL3YxL3dlYmhvb2tfZW5kcG9pbnRzL3t3ZWJob29rX2VuZHBvaW50X2lkfRLAAQoUTGlzdFdlYmhvb2tFbmRwb2ludHMSLS50YW52by53ZWJob29rLnYxLkxpc3RXZWJob29rRW5kcG9pbnRzUmVxdWVzdBouLnRhbnZvLndlYmhvb2sudjEuTGlzdFdlYmhvb2tFbmRwb2ludHNSZXNwb25zZSJJkAIByvMYJQoRZGV2ZWxvcGVyczptYW5hZ2UqEHdlYmhvb2tfZW5kcG9pbnSC0+STAhcSFS92MS93ZWJob29rX2VuZHBvaW50cxLoAQoVVXBkYXRlV2ViaG9va0VuZHBvaW50Ei4udGFudm8ud2ViaG9vay52MS5VcGRhdGVXZWJob29rRW5kcG9pbnRSZXF1ZXN0Gi8udGFudm8ud2ViaG9vay52MS5VcGRhdGVXZWJob29rRW5kcG9pbnRSZXNwb25zZSJuyvMYJQoRZGV2ZWxvcGVyczptYW5hZ2UqEHdlYmhvb2tfZW5kcG9pbnSC0+STAj86EHdlYmhvb2tfZW5kcG9pbnQyKy92MS93ZWJob29rX2VuZHBvaW50cy97d2ViaG9va19lbmRwb2ludC5pZH0S1gEKFURlbGV0ZVdlYmhvb2tFbmRwb2ludBIuLnRhbnZvLndlYmhvb2sudjEuRGVsZXRlV2ViaG9va0VuZHBvaW50UmVxdWVzdBovLnRhbnZvLndlYmhvb2sudjEuRGVsZXRlV2ViaG9va0VuZHBvaW50UmVzcG9uc2UiXMrzGCUKEWRldmVsb3BlcnM6bWFuYWdlKhB3ZWJob29rX2VuZHBvaW50gtPkkwItKisvdjEvd2ViaG9va19lbmRwb2ludHMve3dlYmhvb2tfZW5kcG9pbnRfaWR9EsUBChVMaXN0V2ViaG9va0V2ZW50VHlwZXMSLi50YW52by53ZWJob29rLnYxLkxpc3RXZWJob29rRXZlbnRUeXBlc1JlcXVlc3QaLy50YW52by53ZWJob29rLnYxLkxpc3RXZWJob29rRXZlbnRUeXBlc1Jlc3BvbnNlIkuQAgHK8xglChFkZXZlbG9wZXJzOm1hbmFnZSoQd2ViaG9va19lbmRwb2ludILT5JMCGRIXL3YxL3dlYmhvb2tfZXZlbnRfdHlwZXMS6QEKEkdldFdlYmhvb2tEZWxpdmVyeRIrLnRhbnZvLndlYmhvb2sudjEuR2V0V2ViaG9va0RlbGl2ZXJ5UmVxdWVzdBosLnRhbnZvLndlYmhvb2sudjEuR2V0V2ViaG9va0RlbGl2ZXJ5UmVzcG9uc2UieJACAcrzGCUKEWRldmVsb3BlcnM6bWFuYWdlKhB3ZWJob29rX2VuZHBvaW50gtPkkwJGEkQvdjEvd2ViaG9va19lbmRwb2ludHMve3dlYmhvb2tfZW5kcG9pbnRfaWR9L2RlbGl2ZXJpZXMve2RlbGl2ZXJ5X2lkfRLkAQoVTGlzdFdlYmhvb2tEZWxpdmVyaWVzEi4udGFudm8ud2ViaG9vay52MS5MaXN0V2ViaG9va0RlbGl2ZXJpZXNSZXF1ZXN0Gi8udGFudm8ud2ViaG9vay52MS5MaXN0V2ViaG9va0RlbGl2ZXJpZXNSZXNwb25zZSJqkAIByvMYJQoRZGV2ZWxvcGVyczptYW5hZ2UqEHdlYmhvb2tfZW5kcG9pbnSC0+STAjgSNi92MS93ZWJob29rX2VuZHBvaW50cy97d2ViaG9va19lbmRwb2ludF9pZH0vZGVsaXZlcmllcxL1AQoUUmV0cnlXZWJob29rRGVsaXZlcnkSLS50YW52by53ZWJob29rLnYxLlJldHJ5V2ViaG9va0RlbGl2ZXJ5UmVxdWVzdBouLnRhbnZvLndlYmhvb2sudjEuUmV0cnlXZWJob29rRGVsaXZlcnlSZXNwb25zZSJ+yvMYJQoRZGV2ZWxvcGVyczptYW5hZ2UqEHdlYmhvb2tfZW5kcG9pbnSC0+STAk86ASoiSi92MS93ZWJob29rX2VuZHBvaW50cy97d2ViaG9va19lbmRwb2ludF9pZH0vZGVsaXZlcmllcy97ZGVsaXZlcnlfaWR9OnJldHJ5Qs4BChRjb20udGFudm8ud2ViaG9vay52MUIMV2ViaG9va1Byb3RvUAFaRmdpdGh1Yi5jb20vdGFudm94eXovdGFudm8vbGlicy9wcm90by9nZW4vZ28vdGFudm8vd2ViaG9vay92MTt3ZWJob29rdjGiAgNUV1iqAhBUYW52by5XZWJob29rLlYxygIQVGFudm9cV2ViaG9va1xWMeICHFRhbnZvXFdlYmhvb2tcVjFcR1BCTWV0YWRhdGHqAhJUYW52bzo6V2ViaG9vazo6VjFiCGVkaXRpb25zcOgH", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_tanvo_common_v1_options]);
 
 /**
  * WebhookEndpoint receives signed event payloads over HTTP.
@@ -60,7 +60,7 @@ export type WebhookEndpoint = Message<"tanvo.webhook.v1.WebhookEndpoint"> & {
   eventTypes: string[];
 
   /**
-   * The signing secret (`whsec_…`); returned on create and rotation only.
+   * The signing secret (`whsec_…`); returned on create only.
    *
    * @generated from field: string secret = 5;
    */
@@ -229,336 +229,6 @@ export const WebhookDeliverySchema: GenMessage<WebhookDelivery> = /*@__PURE__*/
   messageDesc(file_tanvo_webhook_v1_webhook, 2);
 
 /**
- * KafkaDestination writes to a Kafka topic.
- *
- * @generated from message tanvo.webhook.v1.KafkaDestination
- */
-export type KafkaDestination = Message<"tanvo.webhook.v1.KafkaDestination"> & {
-  /**
-   * The bootstrap servers, `host:port`.
-   *
-   * @generated from field: repeated string brokers = 1;
-   */
-  brokers: string[];
-
-  /**
-   * The topic.
-   *
-   * @generated from field: string topic = 2;
-   */
-  topic: string;
-
-  /**
-   * The SASL mechanism (`PLAIN`, `SCRAM-SHA-256`, `SCRAM-SHA-512`); none
-   * when empty.
-   *
-   * @generated from field: string sasl_mechanism = 3;
-   */
-  saslMechanism: string;
-
-  /**
-   * The SASL user name.
-   *
-   * @generated from field: string username = 4;
-   */
-  username: string;
-
-  /**
-   * The SASL password; write only.
-   *
-   * @generated from field: string password = 5;
-   */
-  password: string;
-
-  /**
-   * Connects with TLS.
-   *
-   * @generated from field: bool tls = 6;
-   */
-  tls: boolean;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.KafkaDestination.
- * Use `create(KafkaDestinationSchema)` to create a new message.
- */
-export const KafkaDestinationSchema: GenMessage<KafkaDestination> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 3);
-
-/**
- * KinesisDestination writes to an Amazon Kinesis data stream.
- *
- * @generated from message tanvo.webhook.v1.KinesisDestination
- */
-export type KinesisDestination = Message<"tanvo.webhook.v1.KinesisDestination"> & {
-  /**
-   * The stream name or ARN.
-   *
-   * @generated from field: string stream = 1;
-   */
-  stream: string;
-
-  /**
-   * The AWS region.
-   *
-   * @generated from field: string region = 2;
-   */
-  region: string;
-
-  /**
-   * The IAM role assumed to write.
-   *
-   * @generated from field: string role_arn = 3;
-   */
-  roleArn: string;
-
-  /**
-   * The external ID of the role assumption.
-   *
-   * @generated from field: string external_id = 4;
-   */
-  externalId: string;
-
-  /**
-   * The payload field used as partition key; the customer ID by default.
-   *
-   * @generated from field: string partition_key = 5;
-   */
-  partitionKey: string;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.KinesisDestination.
- * Use `create(KinesisDestinationSchema)` to create a new message.
- */
-export const KinesisDestinationSchema: GenMessage<KinesisDestination> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 4);
-
-/**
- * S3Destination writes batches of events to S3 objects.
- *
- * @generated from message tanvo.webhook.v1.S3Destination
- */
-export type S3Destination = Message<"tanvo.webhook.v1.S3Destination"> & {
-  /**
-   * The bucket.
-   *
-   * @generated from field: string bucket = 1;
-   */
-  bucket: string;
-
-  /**
-   * The key prefix.
-   *
-   * @generated from field: string prefix = 2;
-   */
-  prefix: string;
-
-  /**
-   * The AWS region.
-   *
-   * @generated from field: string region = 3;
-   */
-  region: string;
-
-  /**
-   * The IAM role assumed to write.
-   *
-   * @generated from field: string role_arn = 4;
-   */
-  roleArn: string;
-
-  /**
-   * The external ID of the role assumption.
-   *
-   * @generated from field: string external_id = 5;
-   */
-  externalId: string;
-
-  /**
-   * How long events are batched before an object is written; 1 minute by
-   * default.
-   *
-   * @generated from field: google.protobuf.Duration flush_interval = 6;
-   */
-  flushInterval?: Duration | undefined;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.S3Destination.
- * Use `create(S3DestinationSchema)` to create a new message.
- */
-export const S3DestinationSchema: GenMessage<S3Destination> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 5);
-
-/**
- * StreamingDestination receives event types claimed from webhook
- * endpoints; each event type has at most one destination.
- *
- * @generated from message tanvo.webhook.v1.StreamingDestination
- */
-export type StreamingDestination = Message<"tanvo.webhook.v1.StreamingDestination"> & {
-  /**
-   * The destination's ID.
-   *
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * A display name.
-   *
-   * @generated from field: string name = 2;
-   */
-  name: string;
-
-  /**
-   * The event types claimed (`customer_usage.refreshed.v1`,
-   * `customer_full_usage.refreshed.v1`).
-   *
-   * @generated from field: repeated string event_types = 3;
-   */
-  eventTypes: string[];
-
-  /**
-   * Plans whose subscriptions are left out of full-usage events (IDs or
-   * `code:<code>`).
-   *
-   * @generated from field: repeated string excluded_plan_ids = 4;
-   */
-  excludedPlanIds: string[];
-
-  /**
-   * Pauses delivery.
-   *
-   * @generated from field: bool disabled = 5;
-   */
-  disabled: boolean;
-
-  /**
-   * The target.
-   *
-   * @generated from oneof tanvo.webhook.v1.StreamingDestination.target
-   */
-  target: {
-    /**
-     * Kafka.
-     *
-     * @generated from field: tanvo.webhook.v1.KafkaDestination kafka = 10;
-     */
-    value: KafkaDestination;
-    case: "kafka";
-  } | {
-    /**
-     * Amazon Kinesis.
-     *
-     * @generated from field: tanvo.webhook.v1.KinesisDestination kinesis = 11;
-     */
-    value: KinesisDestination;
-    case: "kinesis";
-  } | {
-    /**
-     * Amazon S3.
-     *
-     * @generated from field: tanvo.webhook.v1.S3Destination s3 = 12;
-     */
-    value: S3Destination;
-    case: "s3";
-  } | { case: undefined; value?: undefined };
-
-  /**
-   * When the destination was created.
-   *
-   * @generated from field: google.protobuf.Timestamp created_at = 6;
-   */
-  createdAt?: Timestamp | undefined;
-
-  /**
-   * When the destination last changed.
-   *
-   * @generated from field: google.protobuf.Timestamp updated_at = 7;
-   */
-  updatedAt?: Timestamp | undefined;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.StreamingDestination.
- * Use `create(StreamingDestinationSchema)` to create a new message.
- */
-export const StreamingDestinationSchema: GenMessage<StreamingDestination> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 6);
-
-/**
- * StreamingDelivery is a log entry of a streaming destination.
- *
- * @generated from message tanvo.webhook.v1.StreamingDelivery
- */
-export type StreamingDelivery = Message<"tanvo.webhook.v1.StreamingDelivery"> & {
-  /**
-   * The entry's ID.
-   *
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * The destination.
-   *
-   * @generated from field: string streaming_destination_id = 2;
-   */
-  streamingDestinationId: string;
-
-  /**
-   * The event type.
-   *
-   * @generated from field: string event_type = 3;
-   */
-  eventType: string;
-
-  /**
-   * The ID of the object the event is about.
-   *
-   * @generated from field: string object_id = 4;
-   */
-  objectId: string;
-
-  /**
-   * The outcome.
-   *
-   * @generated from field: tanvo.webhook.v1.StreamingDeliveryStatus status = 5;
-   */
-  status: StreamingDeliveryStatus;
-
-  /**
-   * The number of attempts.
-   *
-   * @generated from field: int32 attempts = 6;
-   */
-  attempts: number;
-
-  /**
-   * The error of a failed write.
-   *
-   * @generated from field: string error = 7;
-   */
-  error: string;
-
-  /**
-   * When the entry was recorded.
-   *
-   * @generated from field: google.protobuf.Timestamp created_at = 8;
-   */
-  createdAt?: Timestamp | undefined;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.StreamingDelivery.
- * Use `create(StreamingDeliverySchema)` to create a new message.
- */
-export const StreamingDeliverySchema: GenMessage<StreamingDelivery> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 7);
-
-/**
  * CreateWebhookEndpointRequest is the request of WebhookService.CreateWebhookEndpoint.
  *
  * @generated from message tanvo.webhook.v1.CreateWebhookEndpointRequest
@@ -577,7 +247,7 @@ export type CreateWebhookEndpointRequest = Message<"tanvo.webhook.v1.CreateWebho
  * Use `create(CreateWebhookEndpointRequestSchema)` to create a new message.
  */
 export const CreateWebhookEndpointRequestSchema: GenMessage<CreateWebhookEndpointRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 8);
+  messageDesc(file_tanvo_webhook_v1_webhook, 3);
 
 /**
  * CreateWebhookEndpointResponse is the response of WebhookService.CreateWebhookEndpoint.
@@ -598,7 +268,7 @@ export type CreateWebhookEndpointResponse = Message<"tanvo.webhook.v1.CreateWebh
  * Use `create(CreateWebhookEndpointResponseSchema)` to create a new message.
  */
 export const CreateWebhookEndpointResponseSchema: GenMessage<CreateWebhookEndpointResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 9);
+  messageDesc(file_tanvo_webhook_v1_webhook, 4);
 
 /**
  * GetWebhookEndpointRequest is the request of WebhookService.GetWebhookEndpoint.
@@ -619,7 +289,7 @@ export type GetWebhookEndpointRequest = Message<"tanvo.webhook.v1.GetWebhookEndp
  * Use `create(GetWebhookEndpointRequestSchema)` to create a new message.
  */
 export const GetWebhookEndpointRequestSchema: GenMessage<GetWebhookEndpointRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 10);
+  messageDesc(file_tanvo_webhook_v1_webhook, 5);
 
 /**
  * GetWebhookEndpointResponse is the response of WebhookService.GetWebhookEndpoint.
@@ -640,7 +310,7 @@ export type GetWebhookEndpointResponse = Message<"tanvo.webhook.v1.GetWebhookEnd
  * Use `create(GetWebhookEndpointResponseSchema)` to create a new message.
  */
 export const GetWebhookEndpointResponseSchema: GenMessage<GetWebhookEndpointResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 11);
+  messageDesc(file_tanvo_webhook_v1_webhook, 6);
 
 /**
  * ListWebhookEndpointsRequest is the request of WebhookService.ListWebhookEndpoints.
@@ -668,7 +338,7 @@ export type ListWebhookEndpointsRequest = Message<"tanvo.webhook.v1.ListWebhookE
  * Use `create(ListWebhookEndpointsRequestSchema)` to create a new message.
  */
 export const ListWebhookEndpointsRequestSchema: GenMessage<ListWebhookEndpointsRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 12);
+  messageDesc(file_tanvo_webhook_v1_webhook, 7);
 
 /**
  * ListWebhookEndpointsResponse is the response of WebhookService.ListWebhookEndpoints.
@@ -696,7 +366,7 @@ export type ListWebhookEndpointsResponse = Message<"tanvo.webhook.v1.ListWebhook
  * Use `create(ListWebhookEndpointsResponseSchema)` to create a new message.
  */
 export const ListWebhookEndpointsResponseSchema: GenMessage<ListWebhookEndpointsResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 13);
+  messageDesc(file_tanvo_webhook_v1_webhook, 8);
 
 /**
  * UpdateWebhookEndpointRequest is the request of WebhookService.UpdateWebhookEndpoint.
@@ -724,7 +394,7 @@ export type UpdateWebhookEndpointRequest = Message<"tanvo.webhook.v1.UpdateWebho
  * Use `create(UpdateWebhookEndpointRequestSchema)` to create a new message.
  */
 export const UpdateWebhookEndpointRequestSchema: GenMessage<UpdateWebhookEndpointRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 14);
+  messageDesc(file_tanvo_webhook_v1_webhook, 9);
 
 /**
  * UpdateWebhookEndpointResponse is the response of WebhookService.UpdateWebhookEndpoint.
@@ -745,7 +415,7 @@ export type UpdateWebhookEndpointResponse = Message<"tanvo.webhook.v1.UpdateWebh
  * Use `create(UpdateWebhookEndpointResponseSchema)` to create a new message.
  */
 export const UpdateWebhookEndpointResponseSchema: GenMessage<UpdateWebhookEndpointResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 15);
+  messageDesc(file_tanvo_webhook_v1_webhook, 10);
 
 /**
  * DeleteWebhookEndpointRequest is the request of WebhookService.DeleteWebhookEndpoint.
@@ -766,7 +436,7 @@ export type DeleteWebhookEndpointRequest = Message<"tanvo.webhook.v1.DeleteWebho
  * Use `create(DeleteWebhookEndpointRequestSchema)` to create a new message.
  */
 export const DeleteWebhookEndpointRequestSchema: GenMessage<DeleteWebhookEndpointRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 16);
+  messageDesc(file_tanvo_webhook_v1_webhook, 11);
 
 /**
  * DeleteWebhookEndpointResponse is the response of WebhookService.DeleteWebhookEndpoint.
@@ -781,57 +451,7 @@ export type DeleteWebhookEndpointResponse = Message<"tanvo.webhook.v1.DeleteWebh
  * Use `create(DeleteWebhookEndpointResponseSchema)` to create a new message.
  */
 export const DeleteWebhookEndpointResponseSchema: GenMessage<DeleteWebhookEndpointResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 17);
-
-/**
- * RotateWebhookEndpointSecretRequest is the request of WebhookService.RotateWebhookEndpointSecret.
- *
- * @generated from message tanvo.webhook.v1.RotateWebhookEndpointSecretRequest
- */
-export type RotateWebhookEndpointSecretRequest = Message<"tanvo.webhook.v1.RotateWebhookEndpointSecretRequest"> & {
-  /**
-   * The endpoint's ID.
-   *
-   * @generated from field: string webhook_endpoint_id = 1;
-   */
-  webhookEndpointId: string;
-
-  /**
-   * How long the previous secret keeps signing; none by default, at most
-   * 7 days.
-   *
-   * @generated from field: google.protobuf.Duration overlap = 2;
-   */
-  overlap?: Duration | undefined;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.RotateWebhookEndpointSecretRequest.
- * Use `create(RotateWebhookEndpointSecretRequestSchema)` to create a new message.
- */
-export const RotateWebhookEndpointSecretRequestSchema: GenMessage<RotateWebhookEndpointSecretRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 18);
-
-/**
- * RotateWebhookEndpointSecretResponse is the response of WebhookService.RotateWebhookEndpointSecret.
- *
- * @generated from message tanvo.webhook.v1.RotateWebhookEndpointSecretResponse
- */
-export type RotateWebhookEndpointSecretResponse = Message<"tanvo.webhook.v1.RotateWebhookEndpointSecretResponse"> & {
-  /**
-   * The endpoint, with its new secret.
-   *
-   * @generated from field: tanvo.webhook.v1.WebhookEndpoint webhook_endpoint = 1;
-   */
-  webhookEndpoint?: WebhookEndpoint | undefined;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.RotateWebhookEndpointSecretResponse.
- * Use `create(RotateWebhookEndpointSecretResponseSchema)` to create a new message.
- */
-export const RotateWebhookEndpointSecretResponseSchema: GenMessage<RotateWebhookEndpointSecretResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 19);
+  messageDesc(file_tanvo_webhook_v1_webhook, 12);
 
 /**
  * ListWebhookEventTypesRequest is the request of WebhookService.ListWebhookEventTypes.
@@ -846,7 +466,7 @@ export type ListWebhookEventTypesRequest = Message<"tanvo.webhook.v1.ListWebhook
  * Use `create(ListWebhookEventTypesRequestSchema)` to create a new message.
  */
 export const ListWebhookEventTypesRequestSchema: GenMessage<ListWebhookEventTypesRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 20);
+  messageDesc(file_tanvo_webhook_v1_webhook, 13);
 
 /**
  * ListWebhookEventTypesResponse is the response of WebhookService.ListWebhookEventTypes.
@@ -867,7 +487,7 @@ export type ListWebhookEventTypesResponse = Message<"tanvo.webhook.v1.ListWebhoo
  * Use `create(ListWebhookEventTypesResponseSchema)` to create a new message.
  */
 export const ListWebhookEventTypesResponseSchema: GenMessage<ListWebhookEventTypesResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 21);
+  messageDesc(file_tanvo_webhook_v1_webhook, 14);
 
 /**
  * GetWebhookDeliveryRequest is the request of WebhookService.GetWebhookDelivery.
@@ -895,7 +515,7 @@ export type GetWebhookDeliveryRequest = Message<"tanvo.webhook.v1.GetWebhookDeli
  * Use `create(GetWebhookDeliveryRequestSchema)` to create a new message.
  */
 export const GetWebhookDeliveryRequestSchema: GenMessage<GetWebhookDeliveryRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 22);
+  messageDesc(file_tanvo_webhook_v1_webhook, 15);
 
 /**
  * GetWebhookDeliveryResponse is the response of WebhookService.GetWebhookDelivery.
@@ -916,7 +536,7 @@ export type GetWebhookDeliveryResponse = Message<"tanvo.webhook.v1.GetWebhookDel
  * Use `create(GetWebhookDeliveryResponseSchema)` to create a new message.
  */
 export const GetWebhookDeliveryResponseSchema: GenMessage<GetWebhookDeliveryResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 23);
+  messageDesc(file_tanvo_webhook_v1_webhook, 16);
 
 /**
  * ListWebhookDeliveriesRequest is the request of WebhookService.ListWebhookDeliveries.
@@ -946,14 +566,18 @@ export type ListWebhookDeliveriesRequest = Message<"tanvo.webhook.v1.ListWebhook
   pageToken: string;
 
   /**
-   * An AIP-160 filter over `status`, `event_type` and `created_at`.
+   * An AIP-160 filter: equalities on `status`, `event_type` and
+   * `http_status` (each with several values joined by OR), and bounds on
+   * `updated_at` (`updated_at >= "2025-01-01T00:00:00Z"`, with >= and
+   * <=). An `http_status` value is a code (`404`), a class (`"5xx"`), a
+   * range (`"200-204"`) or `timeout`: no response on a failed delivery.
    *
    * @generated from field: string filter = 4;
    */
   filter: string;
 
   /**
-   * A search over the object ID and event type.
+   * A search over the delivery ID and the object ID.
    *
    * @generated from field: string search = 5;
    */
@@ -965,7 +589,7 @@ export type ListWebhookDeliveriesRequest = Message<"tanvo.webhook.v1.ListWebhook
  * Use `create(ListWebhookDeliveriesRequestSchema)` to create a new message.
  */
 export const ListWebhookDeliveriesRequestSchema: GenMessage<ListWebhookDeliveriesRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 24);
+  messageDesc(file_tanvo_webhook_v1_webhook, 17);
 
 /**
  * ListWebhookDeliveriesResponse is the response of WebhookService.ListWebhookDeliveries.
@@ -993,7 +617,7 @@ export type ListWebhookDeliveriesResponse = Message<"tanvo.webhook.v1.ListWebhoo
  * Use `create(ListWebhookDeliveriesResponseSchema)` to create a new message.
  */
 export const ListWebhookDeliveriesResponseSchema: GenMessage<ListWebhookDeliveriesResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 25);
+  messageDesc(file_tanvo_webhook_v1_webhook, 18);
 
 /**
  * RetryWebhookDeliveryRequest is the request of WebhookService.RetryWebhookDelivery.
@@ -1021,7 +645,7 @@ export type RetryWebhookDeliveryRequest = Message<"tanvo.webhook.v1.RetryWebhook
  * Use `create(RetryWebhookDeliveryRequestSchema)` to create a new message.
  */
 export const RetryWebhookDeliveryRequestSchema: GenMessage<RetryWebhookDeliveryRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 26);
+  messageDesc(file_tanvo_webhook_v1_webhook, 19);
 
 /**
  * RetryWebhookDeliveryResponse is the response of WebhookService.RetryWebhookDelivery.
@@ -1042,302 +666,7 @@ export type RetryWebhookDeliveryResponse = Message<"tanvo.webhook.v1.RetryWebhoo
  * Use `create(RetryWebhookDeliveryResponseSchema)` to create a new message.
  */
 export const RetryWebhookDeliveryResponseSchema: GenMessage<RetryWebhookDeliveryResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 27);
-
-/**
- * CreateStreamingDestinationRequest is the request of StreamingDestinationService.CreateStreamingDestination.
- *
- * @generated from message tanvo.webhook.v1.CreateStreamingDestinationRequest
- */
-export type CreateStreamingDestinationRequest = Message<"tanvo.webhook.v1.CreateStreamingDestinationRequest"> & {
-  /**
-   * The destination to create.
-   *
-   * @generated from field: tanvo.webhook.v1.StreamingDestination streaming_destination = 1;
-   */
-  streamingDestination?: StreamingDestination | undefined;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.CreateStreamingDestinationRequest.
- * Use `create(CreateStreamingDestinationRequestSchema)` to create a new message.
- */
-export const CreateStreamingDestinationRequestSchema: GenMessage<CreateStreamingDestinationRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 28);
-
-/**
- * CreateStreamingDestinationResponse is the response of StreamingDestinationService.CreateStreamingDestination.
- *
- * @generated from message tanvo.webhook.v1.CreateStreamingDestinationResponse
- */
-export type CreateStreamingDestinationResponse = Message<"tanvo.webhook.v1.CreateStreamingDestinationResponse"> & {
-  /**
-   * The created destination.
-   *
-   * @generated from field: tanvo.webhook.v1.StreamingDestination streaming_destination = 1;
-   */
-  streamingDestination?: StreamingDestination | undefined;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.CreateStreamingDestinationResponse.
- * Use `create(CreateStreamingDestinationResponseSchema)` to create a new message.
- */
-export const CreateStreamingDestinationResponseSchema: GenMessage<CreateStreamingDestinationResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 29);
-
-/**
- * GetStreamingDestinationRequest is the request of StreamingDestinationService.GetStreamingDestination.
- *
- * @generated from message tanvo.webhook.v1.GetStreamingDestinationRequest
- */
-export type GetStreamingDestinationRequest = Message<"tanvo.webhook.v1.GetStreamingDestinationRequest"> & {
-  /**
-   * The destination's ID.
-   *
-   * @generated from field: string streaming_destination_id = 1;
-   */
-  streamingDestinationId: string;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.GetStreamingDestinationRequest.
- * Use `create(GetStreamingDestinationRequestSchema)` to create a new message.
- */
-export const GetStreamingDestinationRequestSchema: GenMessage<GetStreamingDestinationRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 30);
-
-/**
- * GetStreamingDestinationResponse is the response of StreamingDestinationService.GetStreamingDestination.
- *
- * @generated from message tanvo.webhook.v1.GetStreamingDestinationResponse
- */
-export type GetStreamingDestinationResponse = Message<"tanvo.webhook.v1.GetStreamingDestinationResponse"> & {
-  /**
-   * The destination.
-   *
-   * @generated from field: tanvo.webhook.v1.StreamingDestination streaming_destination = 1;
-   */
-  streamingDestination?: StreamingDestination | undefined;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.GetStreamingDestinationResponse.
- * Use `create(GetStreamingDestinationResponseSchema)` to create a new message.
- */
-export const GetStreamingDestinationResponseSchema: GenMessage<GetStreamingDestinationResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 31);
-
-/**
- * ListStreamingDestinationsRequest is the request of StreamingDestinationService.ListStreamingDestinations.
- *
- * @generated from message tanvo.webhook.v1.ListStreamingDestinationsRequest
- */
-export type ListStreamingDestinationsRequest = Message<"tanvo.webhook.v1.ListStreamingDestinationsRequest"> & {
-  /**
-   * The maximum number of results; 20 by default, at most 1000.
-   *
-   * @generated from field: int32 page_size = 1;
-   */
-  pageSize: number;
-
-  /**
-   * The next_page_token of the previous page.
-   *
-   * @generated from field: string page_token = 2;
-   */
-  pageToken: string;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.ListStreamingDestinationsRequest.
- * Use `create(ListStreamingDestinationsRequestSchema)` to create a new message.
- */
-export const ListStreamingDestinationsRequestSchema: GenMessage<ListStreamingDestinationsRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 32);
-
-/**
- * ListStreamingDestinationsResponse is the response of StreamingDestinationService.ListStreamingDestinations.
- *
- * @generated from message tanvo.webhook.v1.ListStreamingDestinationsResponse
- */
-export type ListStreamingDestinationsResponse = Message<"tanvo.webhook.v1.ListStreamingDestinationsResponse"> & {
-  /**
-   * The destinations of this page.
-   *
-   * @generated from field: repeated tanvo.webhook.v1.StreamingDestination streaming_destinations = 1;
-   */
-  streamingDestinations: StreamingDestination[];
-
-  /**
-   * The token of the next page; empty on the last page.
-   *
-   * @generated from field: string next_page_token = 2;
-   */
-  nextPageToken: string;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.ListStreamingDestinationsResponse.
- * Use `create(ListStreamingDestinationsResponseSchema)` to create a new message.
- */
-export const ListStreamingDestinationsResponseSchema: GenMessage<ListStreamingDestinationsResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 33);
-
-/**
- * UpdateStreamingDestinationRequest is the request of StreamingDestinationService.UpdateStreamingDestination.
- *
- * @generated from message tanvo.webhook.v1.UpdateStreamingDestinationRequest
- */
-export type UpdateStreamingDestinationRequest = Message<"tanvo.webhook.v1.UpdateStreamingDestinationRequest"> & {
-  /**
-   * The new values; streaming_destination.id selects the destination.
-   *
-   * @generated from field: tanvo.webhook.v1.StreamingDestination streaming_destination = 1;
-   */
-  streamingDestination?: StreamingDestination | undefined;
-
-  /**
-   * The fields to update; empty updates every field that is set.
-   *
-   * @generated from field: google.protobuf.FieldMask update_mask = 2;
-   */
-  updateMask?: FieldMask | undefined;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.UpdateStreamingDestinationRequest.
- * Use `create(UpdateStreamingDestinationRequestSchema)` to create a new message.
- */
-export const UpdateStreamingDestinationRequestSchema: GenMessage<UpdateStreamingDestinationRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 34);
-
-/**
- * UpdateStreamingDestinationResponse is the response of StreamingDestinationService.UpdateStreamingDestination.
- *
- * @generated from message tanvo.webhook.v1.UpdateStreamingDestinationResponse
- */
-export type UpdateStreamingDestinationResponse = Message<"tanvo.webhook.v1.UpdateStreamingDestinationResponse"> & {
-  /**
-   * The updated destination.
-   *
-   * @generated from field: tanvo.webhook.v1.StreamingDestination streaming_destination = 1;
-   */
-  streamingDestination?: StreamingDestination | undefined;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.UpdateStreamingDestinationResponse.
- * Use `create(UpdateStreamingDestinationResponseSchema)` to create a new message.
- */
-export const UpdateStreamingDestinationResponseSchema: GenMessage<UpdateStreamingDestinationResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 35);
-
-/**
- * DeleteStreamingDestinationRequest is the request of StreamingDestinationService.DeleteStreamingDestination.
- *
- * @generated from message tanvo.webhook.v1.DeleteStreamingDestinationRequest
- */
-export type DeleteStreamingDestinationRequest = Message<"tanvo.webhook.v1.DeleteStreamingDestinationRequest"> & {
-  /**
-   * The destination's ID.
-   *
-   * @generated from field: string streaming_destination_id = 1;
-   */
-  streamingDestinationId: string;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.DeleteStreamingDestinationRequest.
- * Use `create(DeleteStreamingDestinationRequestSchema)` to create a new message.
- */
-export const DeleteStreamingDestinationRequestSchema: GenMessage<DeleteStreamingDestinationRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 36);
-
-/**
- * DeleteStreamingDestinationResponse is the response of StreamingDestinationService.DeleteStreamingDestination.
- *
- * @generated from message tanvo.webhook.v1.DeleteStreamingDestinationResponse
- */
-export type DeleteStreamingDestinationResponse = Message<"tanvo.webhook.v1.DeleteStreamingDestinationResponse"> & {
-};
-
-/**
- * Describes the message tanvo.webhook.v1.DeleteStreamingDestinationResponse.
- * Use `create(DeleteStreamingDestinationResponseSchema)` to create a new message.
- */
-export const DeleteStreamingDestinationResponseSchema: GenMessage<DeleteStreamingDestinationResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 37);
-
-/**
- * ListStreamingDeliveriesRequest is the request of StreamingDestinationService.ListStreamingDeliveries.
- *
- * @generated from message tanvo.webhook.v1.ListStreamingDeliveriesRequest
- */
-export type ListStreamingDeliveriesRequest = Message<"tanvo.webhook.v1.ListStreamingDeliveriesRequest"> & {
-  /**
-   * The destination's ID.
-   *
-   * @generated from field: string streaming_destination_id = 1;
-   */
-  streamingDestinationId: string;
-
-  /**
-   * The maximum number of results; 20 by default, at most 1000.
-   *
-   * @generated from field: int32 page_size = 2;
-   */
-  pageSize: number;
-
-  /**
-   * The next_page_token of the previous page.
-   *
-   * @generated from field: string page_token = 3;
-   */
-  pageToken: string;
-
-  /**
-   * An AIP-160 filter over `status`, `event_type` and `created_at`.
-   *
-   * @generated from field: string filter = 4;
-   */
-  filter: string;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.ListStreamingDeliveriesRequest.
- * Use `create(ListStreamingDeliveriesRequestSchema)` to create a new message.
- */
-export const ListStreamingDeliveriesRequestSchema: GenMessage<ListStreamingDeliveriesRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 38);
-
-/**
- * ListStreamingDeliveriesResponse is the response of StreamingDestinationService.ListStreamingDeliveries.
- *
- * @generated from message tanvo.webhook.v1.ListStreamingDeliveriesResponse
- */
-export type ListStreamingDeliveriesResponse = Message<"tanvo.webhook.v1.ListStreamingDeliveriesResponse"> & {
-  /**
-   * The log entries of this page.
-   *
-   * @generated from field: repeated tanvo.webhook.v1.StreamingDelivery deliveries = 1;
-   */
-  deliveries: StreamingDelivery[];
-
-  /**
-   * The token of the next page; empty on the last page.
-   *
-   * @generated from field: string next_page_token = 2;
-   */
-  nextPageToken: string;
-};
-
-/**
- * Describes the message tanvo.webhook.v1.ListStreamingDeliveriesResponse.
- * Use `create(ListStreamingDeliveriesResponseSchema)` to create a new message.
- */
-export const ListStreamingDeliveriesResponseSchema: GenMessage<ListStreamingDeliveriesResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_webhook_v1_webhook, 39);
+  messageDesc(file_tanvo_webhook_v1_webhook, 20);
 
 /**
  * DeliveryStatus is the state of a webhook delivery.
@@ -1386,61 +715,6 @@ export enum DeliveryStatus {
  */
 export const DeliveryStatusSchema: GenEnum<DeliveryStatus> = /*@__PURE__*/
   enumDesc(file_tanvo_webhook_v1_webhook, 0);
-
-/**
- * StreamingDeliveryStatus is the outcome of a streaming delivery.
- *
- * @generated from enum tanvo.webhook.v1.StreamingDeliveryStatus
- */
-export enum StreamingDeliveryStatus {
-  /**
-   * Not set.
-   *
-   * @generated from enum value: STREAMING_DELIVERY_STATUS_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * Written to the destination.
-   *
-   * @generated from enum value: STREAMING_DELIVERY_STATUS_DELIVERED = 1;
-   */
-  DELIVERED = 1,
-
-  /**
-   * Not sent: the destination excludes it.
-   *
-   * @generated from enum value: STREAMING_DELIVERY_STATUS_SKIPPED = 2;
-   */
-  SKIPPED = 2,
-
-  /**
-   * The write failed.
-   *
-   * @generated from enum value: STREAMING_DELIVERY_STATUS_FAILED = 3;
-   */
-  FAILED = 3,
-
-  /**
-   * Replaced by a newer event for the same object before sending.
-   *
-   * @generated from enum value: STREAMING_DELIVERY_STATUS_SUPERSEDED = 4;
-   */
-  SUPERSEDED = 4,
-
-  /**
-   * Dropped after the last attempt.
-   *
-   * @generated from enum value: STREAMING_DELIVERY_STATUS_DROPPED = 5;
-   */
-  DROPPED = 5,
-}
-
-/**
- * Describes the enum tanvo.webhook.v1.StreamingDeliveryStatus.
- */
-export const StreamingDeliveryStatusSchema: GenEnum<StreamingDeliveryStatus> = /*@__PURE__*/
-  enumDesc(file_tanvo_webhook_v1_webhook, 1);
 
 /**
  * WebhookService manages webhook endpoints and their deliveries. Payloads
@@ -1500,17 +774,6 @@ export const WebhookService: GenService<{
     output: typeof DeleteWebhookEndpointResponseSchema;
   },
   /**
-   * Replaces the signing secret of an endpoint; the previous secret keeps
-   * signing alongside the new one during the overlap.
-   *
-   * @generated from rpc tanvo.webhook.v1.WebhookService.RotateWebhookEndpointSecret
-   */
-  rotateWebhookEndpointSecret: {
-    methodKind: "unary";
-    input: typeof RotateWebhookEndpointSecretRequestSchema;
-    output: typeof RotateWebhookEndpointSecretResponseSchema;
-  },
-  /**
    * Lists the event types endpoints can subscribe to.
    *
    * @generated from rpc tanvo.webhook.v1.WebhookService.ListWebhookEventTypes
@@ -1531,7 +794,8 @@ export const WebhookService: GenService<{
     output: typeof GetWebhookDeliveryResponseSchema;
   },
   /**
-   * Lists the deliveries of an endpoint, newest first; kept 90 days.
+   * Lists the deliveries of an endpoint, the last updated first; kept 90
+   * days.
    *
    * @generated from rpc tanvo.webhook.v1.WebhookService.ListWebhookDeliveries
    */
@@ -1552,75 +816,4 @@ export const WebhookService: GenService<{
   },
 }> = /*@__PURE__*/
   serviceDesc(file_tanvo_webhook_v1_webhook, 0);
-
-/**
- * StreamingDestinationService manages streaming destinations: Kafka,
- * Kinesis or S3 targets that receive high-volume event types (usage
- * refreshes) instead of webhook endpoints.
- *
- * @generated from service tanvo.webhook.v1.StreamingDestinationService
- */
-export const StreamingDestinationService: GenService<{
-  /**
-   * Creates a streaming destination.
-   *
-   * @generated from rpc tanvo.webhook.v1.StreamingDestinationService.CreateStreamingDestination
-   */
-  createStreamingDestination: {
-    methodKind: "unary";
-    input: typeof CreateStreamingDestinationRequestSchema;
-    output: typeof CreateStreamingDestinationResponseSchema;
-  },
-  /**
-   * Returns a streaming destination.
-   *
-   * @generated from rpc tanvo.webhook.v1.StreamingDestinationService.GetStreamingDestination
-   */
-  getStreamingDestination: {
-    methodKind: "unary";
-    input: typeof GetStreamingDestinationRequestSchema;
-    output: typeof GetStreamingDestinationResponseSchema;
-  },
-  /**
-   * Lists streaming destinations.
-   *
-   * @generated from rpc tanvo.webhook.v1.StreamingDestinationService.ListStreamingDestinations
-   */
-  listStreamingDestinations: {
-    methodKind: "unary";
-    input: typeof ListStreamingDestinationsRequestSchema;
-    output: typeof ListStreamingDestinationsResponseSchema;
-  },
-  /**
-   * Updates a streaming destination.
-   *
-   * @generated from rpc tanvo.webhook.v1.StreamingDestinationService.UpdateStreamingDestination
-   */
-  updateStreamingDestination: {
-    methodKind: "unary";
-    input: typeof UpdateStreamingDestinationRequestSchema;
-    output: typeof UpdateStreamingDestinationResponseSchema;
-  },
-  /**
-   * Deletes a streaming destination.
-   *
-   * @generated from rpc tanvo.webhook.v1.StreamingDestinationService.DeleteStreamingDestination
-   */
-  deleteStreamingDestination: {
-    methodKind: "unary";
-    input: typeof DeleteStreamingDestinationRequestSchema;
-    output: typeof DeleteStreamingDestinationResponseSchema;
-  },
-  /**
-   * Lists the delivery log of a destination, newest first.
-   *
-   * @generated from rpc tanvo.webhook.v1.StreamingDestinationService.ListStreamingDeliveries
-   */
-  listStreamingDeliveries: {
-    methodKind: "unary";
-    input: typeof ListStreamingDeliveriesRequestSchema;
-    output: typeof ListStreamingDeliveriesResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_tanvo_webhook_v1_webhook, 1);
 

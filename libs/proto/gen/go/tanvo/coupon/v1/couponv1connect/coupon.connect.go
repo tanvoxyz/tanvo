@@ -146,7 +146,8 @@ type CouponServiceClient interface {
 	// Terminates a coupon: it can no longer be applied; applied coupons keep
 	// running.
 	TerminateCoupon(context.Context, *v1.TerminateCouponRequest) (*v1.TerminateCouponResponse, error)
-	// Deletes a coupon that was never applied.
+	// Deletes a coupon: it can no longer be applied or read, its code is
+	// free again, and its active applications are terminated.
 	DeleteCoupon(context.Context, *v1.DeleteCouponRequest) (*v1.DeleteCouponResponse, error)
 	// Applies a coupon to a customer, with optional overrides.
 	ApplyCoupon(context.Context, *v1.ApplyCouponRequest) (*v1.ApplyCouponResponse, error)
@@ -178,7 +179,8 @@ type CouponServiceHandler interface {
 	// Terminates a coupon: it can no longer be applied; applied coupons keep
 	// running.
 	TerminateCoupon(context.Context, *v1.TerminateCouponRequest) (*v1.TerminateCouponResponse, error)
-	// Deletes a coupon that was never applied.
+	// Deletes a coupon: it can no longer be applied or read, its code is
+	// free again, and its active applications are terminated.
 	DeleteCoupon(context.Context, *v1.DeleteCouponRequest) (*v1.DeleteCouponResponse, error)
 	// Applies a coupon to a customer, with optional overrides.
 	ApplyCoupon(context.Context, *v1.ApplyCouponRequest) (*v1.ApplyCouponResponse, error)

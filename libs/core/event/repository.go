@@ -2,6 +2,7 @@ package event
 
 import (
 	"context"
+	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 )
@@ -24,11 +25,23 @@ type Log interface {
 	// transaction ID, as the event API looks events up by transaction ID
 	// alone.
 	Get(ctx context.Context, org core.OrganizationID, externalSubscriptionID, transactionID string) (*Event, error)
-	// Replace replaces the stored event of e's deduplication key
-	// (external_subscription_id, transaction_id) by e (the event
-	// correction API), keeping its ID, ingestion time and the metadata of
-	// the request that ingested it; a missing event
-	// fails with core.ErrNotFound. A replacement cannot move an event to
-	// another subscription: that is another event.
-	Replace(ctx context.Context, e *Event) error
+	// List returns the events of org matching f, newest first: by
+	// timestamp descending, then by ID descending (the event API's list,
+	// lago EventsQuery).
+	List(ctx context.Context, org core.OrganizationID, f ListFilter, page core.PageRequest) (core.Page[*Event], error)
+	// ValidationErrors returns the post-validation errors of the events of
+	// org created in [from, to) (domain §10.2, [ValidationErrors]).
+	ValidationErrors(ctx context.Context, org core.OrganizationID, from, to time.Time) (ValidationErrors, error)
+}
+
+// ListFilter selects the events of [Log.List]; zero fields do not filter.
+type ListFilter struct {
+	// Code keeps the events of a billable metric code.
+	Code string
+	// ExternalSubscriptionID keeps the events of an external subscription.
+	ExternalSubscriptionID string
+	// TimestampFrom keeps the events at or after the instant.
+	TimestampFrom *time.Time
+	// TimestampTo keeps the events at or before the instant.
+	TimestampTo *time.Time
 }

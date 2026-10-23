@@ -228,7 +228,7 @@ var paritySections = map[string][]string{
 	"1.37": {"tanvo.integration.v1.IntegrationService"},
 	"1.38": {"tanvo.webhook.v1.WebhookService"},
 	"1.39": nil,
-	"1.40": {"tanvo.webhook.v1.StreamingDestinationService"},
+	"1.40": nil,
 	"1.41": {"tanvo.quote.v1.QuoteService", "tanvo.quote.v1.OrderFormService", "tanvo.quote.v1.OrderService"},
 	"1.42": {"tanvo.attribution.v1.UsageAttributionService"},
 	"1.43": {"tanvo.export.v1.DataExportService"},

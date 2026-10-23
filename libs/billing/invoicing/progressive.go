@@ -94,9 +94,13 @@ func (s *Service) ProgressiveBilling(ctx context.Context, r port.Repos, sub *sub
 			return nil, fmt.Errorf("apply usage threshold %s: %w", t.ID, err)
 		}
 	}
+	// progressive_billing_service.rb:36: the customer's sections.
+	if err := s.applyCustomSections(ctx, r, cenv, inv, nil); err != nil {
+		return nil, err
+	}
 	resolver := kernel.NewTaxResolver(r, cenv)
 	resolver.SetPlan(sub.ID, env.Plan)
-	st, err := s.settle(ctx, r, cenv, inv, fs, settleOptions{resolver: resolver})
+	st, err := s.settle(ctx, r, cenv, inv, fs, settleOptions{resolver: resolver, vies: true})
 	if err != nil {
 		return nil, err
 	}

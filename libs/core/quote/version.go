@@ -24,9 +24,16 @@ type Version struct {
 	Status VersionStatus
 	// VoidReason is set once voided.
 	VoidReason VersionVoidReason
-	// Content is the proposal: plan, overrides, add-ons and dates, as a
-	// JSON object decoded by libs/billing.
-	Content json.RawMessage
+	// Content is the document of the proposal (rich text with mention
+	// placeholders); nil when unset.
+	Content *string
+	// BillingItems are the quoted plans, coupons, wallet credits and
+	// add-ons, a JSON object decoded and validated by libs/billing; nil
+	// when unset.
+	BillingItems json.RawMessage
+	// MentionVariables are the values of the content's placeholders frozen
+	// at approval, a JSON object; nil until approved.
+	MentionVariables json.RawMessage
 	// Currency is the currency of the deal; unset until known.
 	Currency money.Currency
 	// BillingEntityID names the issuer; zero follows the amended
@@ -49,8 +56,11 @@ func (v *Version) Validate() error {
 	val.Check(v.Version >= 1, "version", core.CodeOutOfRange)
 	val.Enum("status", v.Status)
 	val.OptionalEnum("void_reason", v.VoidReason)
-	if len(v.Content) > 0 {
-		val.Check(json.Valid(v.Content), "content", core.CodeInvalidFormat)
+	if len(v.BillingItems) > 0 {
+		val.Check(json.Valid(v.BillingItems), "billing_items", core.CodeInvalidFormat)
+	}
+	if len(v.MentionVariables) > 0 {
+		val.Check(json.Valid(v.MentionVariables), "mention_variables", core.CodeInvalidFormat)
 	}
 	switch v.Status {
 	case VersionStatusVoided:
@@ -117,15 +127,16 @@ func (v *Version) Void(reason VersionVoidReason, now time.Time) error {
 	return nil
 }
 
-// FirstVersion returns version 1 of a quote, a draft.
-func FirstVersion(id core.QuoteVersionID, q *Quote, content json.RawMessage, now time.Time) *Version {
+// FirstVersion returns version 1 of a quote, a draft with the given
+// billing items.
+func FirstVersion(id core.QuoteVersionID, q *Quote, billingItems json.RawMessage, now time.Time) *Version {
 	return &Version{
 		ID:             id,
 		OrganizationID: q.OrganizationID,
 		QuoteID:        q.ID,
 		Version:        1,
 		Status:         VersionStatusDraft,
-		Content:        slices.Clone(content),
+		BillingItems:   slices.Clone(billingItems),
 		CreatedAt:      now,
 		UpdatedAt:      now,
 	}
@@ -135,7 +146,8 @@ func FirstVersion(id core.QuoteVersionID, q *Quote, content json.RawMessage, now
 // (lago QuoteVersions::CloneService) given every version of the quote. It
 // fails with [CodeNotClonable] while a version is approved; the active
 // draft, if any, is voided as superseded and returned so the caller saves
-// both in one transaction.
+// both in one transaction. The mention variables, frozen at approval, are
+// not carried over (clone_service.rb:57-66).
 func NewVersion(id core.QuoteVersionID, source *Version, versions []*Version, now time.Time) (next, superseded *Version, err error) {
 	last := 0
 	for _, v := range versions {
@@ -159,7 +171,8 @@ func NewVersion(id core.QuoteVersionID, source *Version, versions []*Version, no
 		QuoteID:         source.QuoteID,
 		Version:         last + 1,
 		Status:          VersionStatusDraft,
-		Content:         slices.Clone(source.Content),
+		Content:         cloneString(source.Content),
+		BillingItems:    slices.Clone(source.BillingItems),
 		Currency:        source.Currency,
 		BillingEntityID: source.BillingEntityID,
 		CreatedAt:       now,
@@ -180,4 +193,12 @@ func CheckSingleActive(candidate *Version, versions []*Version) error {
 		return core.NewRuleError(CodeActiveVersionExists, "a quote has at most one draft or approved version")
 	}
 	return nil
+}
+
+func cloneString(s *string) *string {
+	if s == nil {
+		return nil
+	}
+	c := *s
+	return &c
 }

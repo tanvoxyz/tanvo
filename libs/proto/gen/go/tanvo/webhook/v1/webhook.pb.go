@@ -7,8 +7,8 @@
 // 	protoc        (unknown)
 // source: tanvo/webhook/v1/webhook.proto
 
-// Package tanvo.webhook.v1 is the API of event destinations: webhook
-// endpoints, their deliveries and streaming destinations.
+// Package tanvo.webhook.v1 is the API of webhook endpoints and their
+// deliveries.
 
 package webhookv1
 
@@ -18,7 +18,6 @@ import (
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
@@ -85,66 +84,6 @@ func (DeliveryStatus) Type() protoreflect.EnumType {
 }
 
 func (x DeliveryStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// StreamingDeliveryStatus is the outcome of a streaming delivery.
-type StreamingDeliveryStatus int32
-
-const (
-	// Not set.
-	StreamingDeliveryStatus_STREAMING_DELIVERY_STATUS_UNSPECIFIED StreamingDeliveryStatus = 0
-	// Written to the destination.
-	StreamingDeliveryStatus_STREAMING_DELIVERY_STATUS_DELIVERED StreamingDeliveryStatus = 1
-	// Not sent: the destination excludes it.
-	StreamingDeliveryStatus_STREAMING_DELIVERY_STATUS_SKIPPED StreamingDeliveryStatus = 2
-	// The write failed.
-	StreamingDeliveryStatus_STREAMING_DELIVERY_STATUS_FAILED StreamingDeliveryStatus = 3
-	// Replaced by a newer event for the same object before sending.
-	StreamingDeliveryStatus_STREAMING_DELIVERY_STATUS_SUPERSEDED StreamingDeliveryStatus = 4
-	// Dropped after the last attempt.
-	StreamingDeliveryStatus_STREAMING_DELIVERY_STATUS_DROPPED StreamingDeliveryStatus = 5
-)
-
-// Enum value maps for StreamingDeliveryStatus.
-var (
-	StreamingDeliveryStatus_name = map[int32]string{
-		0: "STREAMING_DELIVERY_STATUS_UNSPECIFIED",
-		1: "STREAMING_DELIVERY_STATUS_DELIVERED",
-		2: "STREAMING_DELIVERY_STATUS_SKIPPED",
-		3: "STREAMING_DELIVERY_STATUS_FAILED",
-		4: "STREAMING_DELIVERY_STATUS_SUPERSEDED",
-		5: "STREAMING_DELIVERY_STATUS_DROPPED",
-	}
-	StreamingDeliveryStatus_value = map[string]int32{
-		"STREAMING_DELIVERY_STATUS_UNSPECIFIED": 0,
-		"STREAMING_DELIVERY_STATUS_DELIVERED":   1,
-		"STREAMING_DELIVERY_STATUS_SKIPPED":     2,
-		"STREAMING_DELIVERY_STATUS_FAILED":      3,
-		"STREAMING_DELIVERY_STATUS_SUPERSEDED":  4,
-		"STREAMING_DELIVERY_STATUS_DROPPED":     5,
-	}
-)
-
-func (x StreamingDeliveryStatus) Enum() *StreamingDeliveryStatus {
-	p := new(StreamingDeliveryStatus)
-	*p = x
-	return p
-}
-
-func (x StreamingDeliveryStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (StreamingDeliveryStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_tanvo_webhook_v1_webhook_proto_enumTypes[1].Descriptor()
-}
-
-func (StreamingDeliveryStatus) Type() protoreflect.EnumType {
-	return &file_tanvo_webhook_v1_webhook_proto_enumTypes[1]
-}
-
-func (x StreamingDeliveryStatus) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
@@ -363,7 +302,7 @@ type WebhookEndpoint_builder struct {
 	Name *string
 	// The event types delivered; all by default.
 	EventTypes []string
-	// The signing secret (`whsec_…`); returned on create and rotation only.
+	// The signing secret (`whsec_…`); returned on create only.
 	Secret *string
 	// When the endpoint was created.
 	CreatedAt *timestamppb.Timestamp
@@ -1002,1410 +941,6 @@ func (b0 WebhookDelivery_builder) Build() *WebhookDelivery {
 	return m0
 }
 
-// KafkaDestination writes to a Kafka topic.
-type KafkaDestination struct {
-	state                    protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Brokers       []string               `protobuf:"bytes,1,rep,name=brokers"`
-	xxx_hidden_Topic         *string                `protobuf:"bytes,2,opt,name=topic"`
-	xxx_hidden_SaslMechanism *string                `protobuf:"bytes,3,opt,name=sasl_mechanism,json=saslMechanism"`
-	xxx_hidden_Username      *string                `protobuf:"bytes,4,opt,name=username"`
-	xxx_hidden_Password      *string                `protobuf:"bytes,5,opt,name=password"`
-	xxx_hidden_Tls           bool                   `protobuf:"varint,6,opt,name=tls"`
-	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
-	XXX_presence             [1]uint32
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
-}
-
-func (x *KafkaDestination) Reset() {
-	*x = KafkaDestination{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *KafkaDestination) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*KafkaDestination) ProtoMessage() {}
-
-func (x *KafkaDestination) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *KafkaDestination) GetBrokers() []string {
-	if x != nil {
-		return x.xxx_hidden_Brokers
-	}
-	return nil
-}
-
-func (x *KafkaDestination) GetTopic() string {
-	if x != nil {
-		if x.xxx_hidden_Topic != nil {
-			return *x.xxx_hidden_Topic
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *KafkaDestination) GetSaslMechanism() string {
-	if x != nil {
-		if x.xxx_hidden_SaslMechanism != nil {
-			return *x.xxx_hidden_SaslMechanism
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *KafkaDestination) GetUsername() string {
-	if x != nil {
-		if x.xxx_hidden_Username != nil {
-			return *x.xxx_hidden_Username
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *KafkaDestination) GetPassword() string {
-	if x != nil {
-		if x.xxx_hidden_Password != nil {
-			return *x.xxx_hidden_Password
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *KafkaDestination) GetTls() bool {
-	if x != nil {
-		return x.xxx_hidden_Tls
-	}
-	return false
-}
-
-func (x *KafkaDestination) SetBrokers(v []string) {
-	x.xxx_hidden_Brokers = v
-}
-
-func (x *KafkaDestination) SetTopic(v string) {
-	x.xxx_hidden_Topic = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
-}
-
-func (x *KafkaDestination) SetSaslMechanism(v string) {
-	x.xxx_hidden_SaslMechanism = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
-}
-
-func (x *KafkaDestination) SetUsername(v string) {
-	x.xxx_hidden_Username = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
-}
-
-func (x *KafkaDestination) SetPassword(v string) {
-	x.xxx_hidden_Password = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
-}
-
-func (x *KafkaDestination) SetTls(v bool) {
-	x.xxx_hidden_Tls = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
-}
-
-func (x *KafkaDestination) HasTopic() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *KafkaDestination) HasSaslMechanism() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *KafkaDestination) HasUsername() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
-}
-
-func (x *KafkaDestination) HasPassword() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
-}
-
-func (x *KafkaDestination) HasTls() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
-}
-
-func (x *KafkaDestination) ClearTopic() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_Topic = nil
-}
-
-func (x *KafkaDestination) ClearSaslMechanism() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_SaslMechanism = nil
-}
-
-func (x *KafkaDestination) ClearUsername() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_Username = nil
-}
-
-func (x *KafkaDestination) ClearPassword() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_Password = nil
-}
-
-func (x *KafkaDestination) ClearTls() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
-	x.xxx_hidden_Tls = false
-}
-
-type KafkaDestination_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The bootstrap servers, `host:port`.
-	Brokers []string
-	// The topic.
-	Topic *string
-	// The SASL mechanism (`PLAIN`, `SCRAM-SHA-256`, `SCRAM-SHA-512`); none
-	// when empty.
-	SaslMechanism *string
-	// The SASL user name.
-	Username *string
-	// The SASL password; write only.
-	Password *string
-	// Connects with TLS.
-	Tls *bool
-}
-
-func (b0 KafkaDestination_builder) Build() *KafkaDestination {
-	m0 := &KafkaDestination{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_Brokers = b.Brokers
-	if b.Topic != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
-		x.xxx_hidden_Topic = b.Topic
-	}
-	if b.SaslMechanism != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
-		x.xxx_hidden_SaslMechanism = b.SaslMechanism
-	}
-	if b.Username != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
-		x.xxx_hidden_Username = b.Username
-	}
-	if b.Password != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
-		x.xxx_hidden_Password = b.Password
-	}
-	if b.Tls != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
-		x.xxx_hidden_Tls = *b.Tls
-	}
-	return m0
-}
-
-// KinesisDestination writes to an Amazon Kinesis data stream.
-type KinesisDestination struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Stream       *string                `protobuf:"bytes,1,opt,name=stream"`
-	xxx_hidden_Region       *string                `protobuf:"bytes,2,opt,name=region"`
-	xxx_hidden_RoleArn      *string                `protobuf:"bytes,3,opt,name=role_arn,json=roleArn"`
-	xxx_hidden_ExternalId   *string                `protobuf:"bytes,4,opt,name=external_id,json=externalId"`
-	xxx_hidden_PartitionKey *string                `protobuf:"bytes,5,opt,name=partition_key,json=partitionKey"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
-}
-
-func (x *KinesisDestination) Reset() {
-	*x = KinesisDestination{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *KinesisDestination) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*KinesisDestination) ProtoMessage() {}
-
-func (x *KinesisDestination) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *KinesisDestination) GetStream() string {
-	if x != nil {
-		if x.xxx_hidden_Stream != nil {
-			return *x.xxx_hidden_Stream
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *KinesisDestination) GetRegion() string {
-	if x != nil {
-		if x.xxx_hidden_Region != nil {
-			return *x.xxx_hidden_Region
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *KinesisDestination) GetRoleArn() string {
-	if x != nil {
-		if x.xxx_hidden_RoleArn != nil {
-			return *x.xxx_hidden_RoleArn
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *KinesisDestination) GetExternalId() string {
-	if x != nil {
-		if x.xxx_hidden_ExternalId != nil {
-			return *x.xxx_hidden_ExternalId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *KinesisDestination) GetPartitionKey() string {
-	if x != nil {
-		if x.xxx_hidden_PartitionKey != nil {
-			return *x.xxx_hidden_PartitionKey
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *KinesisDestination) SetStream(v string) {
-	x.xxx_hidden_Stream = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 5)
-}
-
-func (x *KinesisDestination) SetRegion(v string) {
-	x.xxx_hidden_Region = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
-}
-
-func (x *KinesisDestination) SetRoleArn(v string) {
-	x.xxx_hidden_RoleArn = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
-}
-
-func (x *KinesisDestination) SetExternalId(v string) {
-	x.xxx_hidden_ExternalId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
-}
-
-func (x *KinesisDestination) SetPartitionKey(v string) {
-	x.xxx_hidden_PartitionKey = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
-}
-
-func (x *KinesisDestination) HasStream() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *KinesisDestination) HasRegion() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *KinesisDestination) HasRoleArn() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *KinesisDestination) HasExternalId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
-}
-
-func (x *KinesisDestination) HasPartitionKey() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
-}
-
-func (x *KinesisDestination) ClearStream() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Stream = nil
-}
-
-func (x *KinesisDestination) ClearRegion() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_Region = nil
-}
-
-func (x *KinesisDestination) ClearRoleArn() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_RoleArn = nil
-}
-
-func (x *KinesisDestination) ClearExternalId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_ExternalId = nil
-}
-
-func (x *KinesisDestination) ClearPartitionKey() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_PartitionKey = nil
-}
-
-type KinesisDestination_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The stream name or ARN.
-	Stream *string
-	// The AWS region.
-	Region *string
-	// The IAM role assumed to write.
-	RoleArn *string
-	// The external ID of the role assumption.
-	ExternalId *string
-	// The payload field used as partition key; the customer ID by default.
-	PartitionKey *string
-}
-
-func (b0 KinesisDestination_builder) Build() *KinesisDestination {
-	m0 := &KinesisDestination{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Stream != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 5)
-		x.xxx_hidden_Stream = b.Stream
-	}
-	if b.Region != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
-		x.xxx_hidden_Region = b.Region
-	}
-	if b.RoleArn != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
-		x.xxx_hidden_RoleArn = b.RoleArn
-	}
-	if b.ExternalId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
-		x.xxx_hidden_ExternalId = b.ExternalId
-	}
-	if b.PartitionKey != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
-		x.xxx_hidden_PartitionKey = b.PartitionKey
-	}
-	return m0
-}
-
-// S3Destination writes batches of events to S3 objects.
-type S3Destination struct {
-	state                    protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Bucket        *string                `protobuf:"bytes,1,opt,name=bucket"`
-	xxx_hidden_Prefix        *string                `protobuf:"bytes,2,opt,name=prefix"`
-	xxx_hidden_Region        *string                `protobuf:"bytes,3,opt,name=region"`
-	xxx_hidden_RoleArn       *string                `protobuf:"bytes,4,opt,name=role_arn,json=roleArn"`
-	xxx_hidden_ExternalId    *string                `protobuf:"bytes,5,opt,name=external_id,json=externalId"`
-	xxx_hidden_FlushInterval *durationpb.Duration   `protobuf:"bytes,6,opt,name=flush_interval,json=flushInterval"`
-	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
-	XXX_presence             [1]uint32
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
-}
-
-func (x *S3Destination) Reset() {
-	*x = S3Destination{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *S3Destination) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*S3Destination) ProtoMessage() {}
-
-func (x *S3Destination) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *S3Destination) GetBucket() string {
-	if x != nil {
-		if x.xxx_hidden_Bucket != nil {
-			return *x.xxx_hidden_Bucket
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *S3Destination) GetPrefix() string {
-	if x != nil {
-		if x.xxx_hidden_Prefix != nil {
-			return *x.xxx_hidden_Prefix
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *S3Destination) GetRegion() string {
-	if x != nil {
-		if x.xxx_hidden_Region != nil {
-			return *x.xxx_hidden_Region
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *S3Destination) GetRoleArn() string {
-	if x != nil {
-		if x.xxx_hidden_RoleArn != nil {
-			return *x.xxx_hidden_RoleArn
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *S3Destination) GetExternalId() string {
-	if x != nil {
-		if x.xxx_hidden_ExternalId != nil {
-			return *x.xxx_hidden_ExternalId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *S3Destination) GetFlushInterval() *durationpb.Duration {
-	if x != nil {
-		return x.xxx_hidden_FlushInterval
-	}
-	return nil
-}
-
-func (x *S3Destination) SetBucket(v string) {
-	x.xxx_hidden_Bucket = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
-}
-
-func (x *S3Destination) SetPrefix(v string) {
-	x.xxx_hidden_Prefix = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
-}
-
-func (x *S3Destination) SetRegion(v string) {
-	x.xxx_hidden_Region = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
-}
-
-func (x *S3Destination) SetRoleArn(v string) {
-	x.xxx_hidden_RoleArn = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
-}
-
-func (x *S3Destination) SetExternalId(v string) {
-	x.xxx_hidden_ExternalId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
-}
-
-func (x *S3Destination) SetFlushInterval(v *durationpb.Duration) {
-	x.xxx_hidden_FlushInterval = v
-}
-
-func (x *S3Destination) HasBucket() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *S3Destination) HasPrefix() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *S3Destination) HasRegion() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *S3Destination) HasRoleArn() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
-}
-
-func (x *S3Destination) HasExternalId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
-}
-
-func (x *S3Destination) HasFlushInterval() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_FlushInterval != nil
-}
-
-func (x *S3Destination) ClearBucket() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Bucket = nil
-}
-
-func (x *S3Destination) ClearPrefix() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_Prefix = nil
-}
-
-func (x *S3Destination) ClearRegion() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_Region = nil
-}
-
-func (x *S3Destination) ClearRoleArn() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_RoleArn = nil
-}
-
-func (x *S3Destination) ClearExternalId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_ExternalId = nil
-}
-
-func (x *S3Destination) ClearFlushInterval() {
-	x.xxx_hidden_FlushInterval = nil
-}
-
-type S3Destination_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The bucket.
-	Bucket *string
-	// The key prefix.
-	Prefix *string
-	// The AWS region.
-	Region *string
-	// The IAM role assumed to write.
-	RoleArn *string
-	// The external ID of the role assumption.
-	ExternalId *string
-	// How long events are batched before an object is written; 1 minute by
-	// default.
-	FlushInterval *durationpb.Duration
-}
-
-func (b0 S3Destination_builder) Build() *S3Destination {
-	m0 := &S3Destination{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Bucket != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
-		x.xxx_hidden_Bucket = b.Bucket
-	}
-	if b.Prefix != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
-		x.xxx_hidden_Prefix = b.Prefix
-	}
-	if b.Region != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
-		x.xxx_hidden_Region = b.Region
-	}
-	if b.RoleArn != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
-		x.xxx_hidden_RoleArn = b.RoleArn
-	}
-	if b.ExternalId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
-		x.xxx_hidden_ExternalId = b.ExternalId
-	}
-	x.xxx_hidden_FlushInterval = b.FlushInterval
-	return m0
-}
-
-// StreamingDestination receives event types claimed from webhook
-// endpoints; each event type has at most one destination.
-type StreamingDestination struct {
-	state                      protoimpl.MessageState        `protogen:"opaque.v1"`
-	xxx_hidden_Id              *string                       `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Name            *string                       `protobuf:"bytes,2,opt,name=name"`
-	xxx_hidden_EventTypes      []string                      `protobuf:"bytes,3,rep,name=event_types,json=eventTypes"`
-	xxx_hidden_ExcludedPlanIds []string                      `protobuf:"bytes,4,rep,name=excluded_plan_ids,json=excludedPlanIds"`
-	xxx_hidden_Disabled        bool                          `protobuf:"varint,5,opt,name=disabled"`
-	xxx_hidden_Target          isStreamingDestination_Target `protobuf_oneof:"target"`
-	xxx_hidden_CreatedAt       *timestamppb.Timestamp        `protobuf:"bytes,6,opt,name=created_at,json=createdAt"`
-	xxx_hidden_UpdatedAt       *timestamppb.Timestamp        `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt"`
-	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
-	XXX_presence               [1]uint32
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
-}
-
-func (x *StreamingDestination) Reset() {
-	*x = StreamingDestination{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[6]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StreamingDestination) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StreamingDestination) ProtoMessage() {}
-
-func (x *StreamingDestination) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[6]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *StreamingDestination) GetId() string {
-	if x != nil {
-		if x.xxx_hidden_Id != nil {
-			return *x.xxx_hidden_Id
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *StreamingDestination) GetName() string {
-	if x != nil {
-		if x.xxx_hidden_Name != nil {
-			return *x.xxx_hidden_Name
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *StreamingDestination) GetEventTypes() []string {
-	if x != nil {
-		return x.xxx_hidden_EventTypes
-	}
-	return nil
-}
-
-func (x *StreamingDestination) GetExcludedPlanIds() []string {
-	if x != nil {
-		return x.xxx_hidden_ExcludedPlanIds
-	}
-	return nil
-}
-
-func (x *StreamingDestination) GetDisabled() bool {
-	if x != nil {
-		return x.xxx_hidden_Disabled
-	}
-	return false
-}
-
-func (x *StreamingDestination) GetKafka() *KafkaDestination {
-	if x != nil {
-		if x, ok := x.xxx_hidden_Target.(*streamingDestination_Kafka); ok {
-			return x.Kafka
-		}
-	}
-	return nil
-}
-
-func (x *StreamingDestination) GetKinesis() *KinesisDestination {
-	if x != nil {
-		if x, ok := x.xxx_hidden_Target.(*streamingDestination_Kinesis); ok {
-			return x.Kinesis
-		}
-	}
-	return nil
-}
-
-func (x *StreamingDestination) GetS3() *S3Destination {
-	if x != nil {
-		if x, ok := x.xxx_hidden_Target.(*streamingDestination_S3); ok {
-			return x.S3
-		}
-	}
-	return nil
-}
-
-func (x *StreamingDestination) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_CreatedAt
-	}
-	return nil
-}
-
-func (x *StreamingDestination) GetUpdatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_UpdatedAt
-	}
-	return nil
-}
-
-func (x *StreamingDestination) SetId(v string) {
-	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
-}
-
-func (x *StreamingDestination) SetName(v string) {
-	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
-}
-
-func (x *StreamingDestination) SetEventTypes(v []string) {
-	x.xxx_hidden_EventTypes = v
-}
-
-func (x *StreamingDestination) SetExcludedPlanIds(v []string) {
-	x.xxx_hidden_ExcludedPlanIds = v
-}
-
-func (x *StreamingDestination) SetDisabled(v bool) {
-	x.xxx_hidden_Disabled = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
-}
-
-func (x *StreamingDestination) SetKafka(v *KafkaDestination) {
-	if v == nil {
-		x.xxx_hidden_Target = nil
-		return
-	}
-	x.xxx_hidden_Target = &streamingDestination_Kafka{v}
-}
-
-func (x *StreamingDestination) SetKinesis(v *KinesisDestination) {
-	if v == nil {
-		x.xxx_hidden_Target = nil
-		return
-	}
-	x.xxx_hidden_Target = &streamingDestination_Kinesis{v}
-}
-
-func (x *StreamingDestination) SetS3(v *S3Destination) {
-	if v == nil {
-		x.xxx_hidden_Target = nil
-		return
-	}
-	x.xxx_hidden_Target = &streamingDestination_S3{v}
-}
-
-func (x *StreamingDestination) SetCreatedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_CreatedAt = v
-}
-
-func (x *StreamingDestination) SetUpdatedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_UpdatedAt = v
-}
-
-func (x *StreamingDestination) HasId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *StreamingDestination) HasName() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *StreamingDestination) HasDisabled() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
-}
-
-func (x *StreamingDestination) HasTarget() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_Target != nil
-}
-
-func (x *StreamingDestination) HasKafka() bool {
-	if x == nil {
-		return false
-	}
-	_, ok := x.xxx_hidden_Target.(*streamingDestination_Kafka)
-	return ok
-}
-
-func (x *StreamingDestination) HasKinesis() bool {
-	if x == nil {
-		return false
-	}
-	_, ok := x.xxx_hidden_Target.(*streamingDestination_Kinesis)
-	return ok
-}
-
-func (x *StreamingDestination) HasS3() bool {
-	if x == nil {
-		return false
-	}
-	_, ok := x.xxx_hidden_Target.(*streamingDestination_S3)
-	return ok
-}
-
-func (x *StreamingDestination) HasCreatedAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_CreatedAt != nil
-}
-
-func (x *StreamingDestination) HasUpdatedAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_UpdatedAt != nil
-}
-
-func (x *StreamingDestination) ClearId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Id = nil
-}
-
-func (x *StreamingDestination) ClearName() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_Name = nil
-}
-
-func (x *StreamingDestination) ClearDisabled() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_Disabled = false
-}
-
-func (x *StreamingDestination) ClearTarget() {
-	x.xxx_hidden_Target = nil
-}
-
-func (x *StreamingDestination) ClearKafka() {
-	if _, ok := x.xxx_hidden_Target.(*streamingDestination_Kafka); ok {
-		x.xxx_hidden_Target = nil
-	}
-}
-
-func (x *StreamingDestination) ClearKinesis() {
-	if _, ok := x.xxx_hidden_Target.(*streamingDestination_Kinesis); ok {
-		x.xxx_hidden_Target = nil
-	}
-}
-
-func (x *StreamingDestination) ClearS3() {
-	if _, ok := x.xxx_hidden_Target.(*streamingDestination_S3); ok {
-		x.xxx_hidden_Target = nil
-	}
-}
-
-func (x *StreamingDestination) ClearCreatedAt() {
-	x.xxx_hidden_CreatedAt = nil
-}
-
-func (x *StreamingDestination) ClearUpdatedAt() {
-	x.xxx_hidden_UpdatedAt = nil
-}
-
-const StreamingDestination_Target_not_set_case case_StreamingDestination_Target = 0
-const StreamingDestination_Kafka_case case_StreamingDestination_Target = 10
-const StreamingDestination_Kinesis_case case_StreamingDestination_Target = 11
-const StreamingDestination_S3_case case_StreamingDestination_Target = 12
-
-func (x *StreamingDestination) WhichTarget() case_StreamingDestination_Target {
-	if x == nil {
-		return StreamingDestination_Target_not_set_case
-	}
-	switch x.xxx_hidden_Target.(type) {
-	case *streamingDestination_Kafka:
-		return StreamingDestination_Kafka_case
-	case *streamingDestination_Kinesis:
-		return StreamingDestination_Kinesis_case
-	case *streamingDestination_S3:
-		return StreamingDestination_S3_case
-	default:
-		return StreamingDestination_Target_not_set_case
-	}
-}
-
-type StreamingDestination_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The destination's ID.
-	Id *string
-	// A display name.
-	Name *string
-	// The event types claimed (`customer_usage.refreshed.v1`,
-	// `customer_full_usage.refreshed.v1`).
-	EventTypes []string
-	// Plans whose subscriptions are left out of full-usage events (IDs or
-	// `code:<code>`).
-	ExcludedPlanIds []string
-	// Pauses delivery.
-	Disabled *bool
-	// The target.
-
-	// Fields of oneof xxx_hidden_Target:
-	// Kafka.
-	Kafka *KafkaDestination
-	// Amazon Kinesis.
-	Kinesis *KinesisDestination
-	// Amazon S3.
-	S3 *S3Destination
-	// -- end of xxx_hidden_Target
-	// When the destination was created.
-	CreatedAt *timestamppb.Timestamp
-	// When the destination last changed.
-	UpdatedAt *timestamppb.Timestamp
-}
-
-func (b0 StreamingDestination_builder) Build() *StreamingDestination {
-	m0 := &StreamingDestination{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
-		x.xxx_hidden_Id = b.Id
-	}
-	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
-		x.xxx_hidden_Name = b.Name
-	}
-	x.xxx_hidden_EventTypes = b.EventTypes
-	x.xxx_hidden_ExcludedPlanIds = b.ExcludedPlanIds
-	if b.Disabled != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
-		x.xxx_hidden_Disabled = *b.Disabled
-	}
-	if b.Kafka != nil {
-		x.xxx_hidden_Target = &streamingDestination_Kafka{b.Kafka}
-	}
-	if b.Kinesis != nil {
-		x.xxx_hidden_Target = &streamingDestination_Kinesis{b.Kinesis}
-	}
-	if b.S3 != nil {
-		x.xxx_hidden_Target = &streamingDestination_S3{b.S3}
-	}
-	x.xxx_hidden_CreatedAt = b.CreatedAt
-	x.xxx_hidden_UpdatedAt = b.UpdatedAt
-	return m0
-}
-
-type case_StreamingDestination_Target protoreflect.FieldNumber
-
-func (x case_StreamingDestination_Target) String() string {
-	md := file_tanvo_webhook_v1_webhook_proto_msgTypes[6].Descriptor()
-	if x == 0 {
-		return "not set"
-	}
-	return protoimpl.X.MessageFieldStringOf(md, protoreflect.FieldNumber(x))
-}
-
-type isStreamingDestination_Target interface {
-	isStreamingDestination_Target()
-}
-
-type streamingDestination_Kafka struct {
-	// Kafka.
-	Kafka *KafkaDestination `protobuf:"bytes,10,opt,name=kafka,oneof"`
-}
-
-type streamingDestination_Kinesis struct {
-	// Amazon Kinesis.
-	Kinesis *KinesisDestination `protobuf:"bytes,11,opt,name=kinesis,oneof"`
-}
-
-type streamingDestination_S3 struct {
-	// Amazon S3.
-	S3 *S3Destination `protobuf:"bytes,12,opt,name=s3,oneof"`
-}
-
-func (*streamingDestination_Kafka) isStreamingDestination_Target() {}
-
-func (*streamingDestination_Kinesis) isStreamingDestination_Target() {}
-
-func (*streamingDestination_S3) isStreamingDestination_Target() {}
-
-// StreamingDelivery is a log entry of a streaming destination.
-type StreamingDelivery struct {
-	state                             protoimpl.MessageState  `protogen:"opaque.v1"`
-	xxx_hidden_Id                     *string                 `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_StreamingDestinationId *string                 `protobuf:"bytes,2,opt,name=streaming_destination_id,json=streamingDestinationId"`
-	xxx_hidden_EventType              *string                 `protobuf:"bytes,3,opt,name=event_type,json=eventType"`
-	xxx_hidden_ObjectId               *string                 `protobuf:"bytes,4,opt,name=object_id,json=objectId"`
-	xxx_hidden_Status                 StreamingDeliveryStatus `protobuf:"varint,5,opt,name=status,enum=tanvo.webhook.v1.StreamingDeliveryStatus"`
-	xxx_hidden_Attempts               int32                   `protobuf:"varint,6,opt,name=attempts"`
-	xxx_hidden_Error                  *string                 `protobuf:"bytes,7,opt,name=error"`
-	xxx_hidden_CreatedAt              *timestamppb.Timestamp  `protobuf:"bytes,8,opt,name=created_at,json=createdAt"`
-	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
-	XXX_presence                      [1]uint32
-	unknownFields                     protoimpl.UnknownFields
-	sizeCache                         protoimpl.SizeCache
-}
-
-func (x *StreamingDelivery) Reset() {
-	*x = StreamingDelivery{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *StreamingDelivery) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*StreamingDelivery) ProtoMessage() {}
-
-func (x *StreamingDelivery) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[7]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *StreamingDelivery) GetId() string {
-	if x != nil {
-		if x.xxx_hidden_Id != nil {
-			return *x.xxx_hidden_Id
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *StreamingDelivery) GetStreamingDestinationId() string {
-	if x != nil {
-		if x.xxx_hidden_StreamingDestinationId != nil {
-			return *x.xxx_hidden_StreamingDestinationId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *StreamingDelivery) GetEventType() string {
-	if x != nil {
-		if x.xxx_hidden_EventType != nil {
-			return *x.xxx_hidden_EventType
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *StreamingDelivery) GetObjectId() string {
-	if x != nil {
-		if x.xxx_hidden_ObjectId != nil {
-			return *x.xxx_hidden_ObjectId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *StreamingDelivery) GetStatus() StreamingDeliveryStatus {
-	if x != nil {
-		if protoimpl.X.Present(&(x.XXX_presence[0]), 4) {
-			return x.xxx_hidden_Status
-		}
-	}
-	return StreamingDeliveryStatus_STREAMING_DELIVERY_STATUS_UNSPECIFIED
-}
-
-func (x *StreamingDelivery) GetAttempts() int32 {
-	if x != nil {
-		return x.xxx_hidden_Attempts
-	}
-	return 0
-}
-
-func (x *StreamingDelivery) GetError() string {
-	if x != nil {
-		if x.xxx_hidden_Error != nil {
-			return *x.xxx_hidden_Error
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *StreamingDelivery) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_CreatedAt
-	}
-	return nil
-}
-
-func (x *StreamingDelivery) SetId(v string) {
-	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
-}
-
-func (x *StreamingDelivery) SetStreamingDestinationId(v string) {
-	x.xxx_hidden_StreamingDestinationId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
-}
-
-func (x *StreamingDelivery) SetEventType(v string) {
-	x.xxx_hidden_EventType = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
-}
-
-func (x *StreamingDelivery) SetObjectId(v string) {
-	x.xxx_hidden_ObjectId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
-}
-
-func (x *StreamingDelivery) SetStatus(v StreamingDeliveryStatus) {
-	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
-}
-
-func (x *StreamingDelivery) SetAttempts(v int32) {
-	x.xxx_hidden_Attempts = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
-}
-
-func (x *StreamingDelivery) SetError(v string) {
-	x.xxx_hidden_Error = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
-}
-
-func (x *StreamingDelivery) SetCreatedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_CreatedAt = v
-}
-
-func (x *StreamingDelivery) HasId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *StreamingDelivery) HasStreamingDestinationId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *StreamingDelivery) HasEventType() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *StreamingDelivery) HasObjectId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
-}
-
-func (x *StreamingDelivery) HasStatus() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
-}
-
-func (x *StreamingDelivery) HasAttempts() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
-}
-
-func (x *StreamingDelivery) HasError() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
-}
-
-func (x *StreamingDelivery) HasCreatedAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_CreatedAt != nil
-}
-
-func (x *StreamingDelivery) ClearId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Id = nil
-}
-
-func (x *StreamingDelivery) ClearStreamingDestinationId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_StreamingDestinationId = nil
-}
-
-func (x *StreamingDelivery) ClearEventType() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_EventType = nil
-}
-
-func (x *StreamingDelivery) ClearObjectId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_ObjectId = nil
-}
-
-func (x *StreamingDelivery) ClearStatus() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_Status = StreamingDeliveryStatus_STREAMING_DELIVERY_STATUS_UNSPECIFIED
-}
-
-func (x *StreamingDelivery) ClearAttempts() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
-	x.xxx_hidden_Attempts = 0
-}
-
-func (x *StreamingDelivery) ClearError() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
-	x.xxx_hidden_Error = nil
-}
-
-func (x *StreamingDelivery) ClearCreatedAt() {
-	x.xxx_hidden_CreatedAt = nil
-}
-
-type StreamingDelivery_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The entry's ID.
-	Id *string
-	// The destination.
-	StreamingDestinationId *string
-	// The event type.
-	EventType *string
-	// The ID of the object the event is about.
-	ObjectId *string
-	// The outcome.
-	Status *StreamingDeliveryStatus
-	// The number of attempts.
-	Attempts *int32
-	// The error of a failed write.
-	Error *string
-	// When the entry was recorded.
-	CreatedAt *timestamppb.Timestamp
-}
-
-func (b0 StreamingDelivery_builder) Build() *StreamingDelivery {
-	m0 := &StreamingDelivery{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
-		x.xxx_hidden_Id = b.Id
-	}
-	if b.StreamingDestinationId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
-		x.xxx_hidden_StreamingDestinationId = b.StreamingDestinationId
-	}
-	if b.EventType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
-		x.xxx_hidden_EventType = b.EventType
-	}
-	if b.ObjectId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
-		x.xxx_hidden_ObjectId = b.ObjectId
-	}
-	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
-		x.xxx_hidden_Status = *b.Status
-	}
-	if b.Attempts != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
-		x.xxx_hidden_Attempts = *b.Attempts
-	}
-	if b.Error != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
-		x.xxx_hidden_Error = b.Error
-	}
-	x.xxx_hidden_CreatedAt = b.CreatedAt
-	return m0
-}
-
 // CreateWebhookEndpointRequest is the request of WebhookService.CreateWebhookEndpoint.
 type CreateWebhookEndpointRequest struct {
 	state                      protoimpl.MessageState `protogen:"opaque.v1"`
@@ -2416,7 +951,7 @@ type CreateWebhookEndpointRequest struct {
 
 func (x *CreateWebhookEndpointRequest) Reset() {
 	*x = CreateWebhookEndpointRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[8]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2428,7 +963,7 @@ func (x *CreateWebhookEndpointRequest) String() string {
 func (*CreateWebhookEndpointRequest) ProtoMessage() {}
 
 func (x *CreateWebhookEndpointRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[8]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2486,7 +1021,7 @@ type CreateWebhookEndpointResponse struct {
 
 func (x *CreateWebhookEndpointResponse) Reset() {
 	*x = CreateWebhookEndpointResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[9]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2498,7 +1033,7 @@ func (x *CreateWebhookEndpointResponse) String() string {
 func (*CreateWebhookEndpointResponse) ProtoMessage() {}
 
 func (x *CreateWebhookEndpointResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[9]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2558,7 +1093,7 @@ type GetWebhookEndpointRequest struct {
 
 func (x *GetWebhookEndpointRequest) Reset() {
 	*x = GetWebhookEndpointRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[10]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2570,7 +1105,7 @@ func (x *GetWebhookEndpointRequest) String() string {
 func (*GetWebhookEndpointRequest) ProtoMessage() {}
 
 func (x *GetWebhookEndpointRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[10]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2636,7 +1171,7 @@ type GetWebhookEndpointResponse struct {
 
 func (x *GetWebhookEndpointResponse) Reset() {
 	*x = GetWebhookEndpointResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[11]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2648,7 +1183,7 @@ func (x *GetWebhookEndpointResponse) String() string {
 func (*GetWebhookEndpointResponse) ProtoMessage() {}
 
 func (x *GetWebhookEndpointResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[11]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2709,7 +1244,7 @@ type ListWebhookEndpointsRequest struct {
 
 func (x *ListWebhookEndpointsRequest) Reset() {
 	*x = ListWebhookEndpointsRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[12]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2721,7 +1256,7 @@ func (x *ListWebhookEndpointsRequest) String() string {
 func (*ListWebhookEndpointsRequest) ProtoMessage() {}
 
 func (x *ListWebhookEndpointsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[12]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2820,7 +1355,7 @@ type ListWebhookEndpointsResponse struct {
 
 func (x *ListWebhookEndpointsResponse) Reset() {
 	*x = ListWebhookEndpointsResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[13]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2832,7 +1367,7 @@ func (x *ListWebhookEndpointsResponse) String() string {
 func (*ListWebhookEndpointsResponse) ProtoMessage() {}
 
 func (x *ListWebhookEndpointsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[13]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2915,7 +1450,7 @@ type UpdateWebhookEndpointRequest struct {
 
 func (x *UpdateWebhookEndpointRequest) Reset() {
 	*x = UpdateWebhookEndpointRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[14]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2927,7 +1462,7 @@ func (x *UpdateWebhookEndpointRequest) String() string {
 func (*UpdateWebhookEndpointRequest) ProtoMessage() {}
 
 func (x *UpdateWebhookEndpointRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[14]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3010,7 +1545,7 @@ type UpdateWebhookEndpointResponse struct {
 
 func (x *UpdateWebhookEndpointResponse) Reset() {
 	*x = UpdateWebhookEndpointResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[15]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3022,7 +1557,7 @@ func (x *UpdateWebhookEndpointResponse) String() string {
 func (*UpdateWebhookEndpointResponse) ProtoMessage() {}
 
 func (x *UpdateWebhookEndpointResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[15]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3082,7 +1617,7 @@ type DeleteWebhookEndpointRequest struct {
 
 func (x *DeleteWebhookEndpointRequest) Reset() {
 	*x = DeleteWebhookEndpointRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[16]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3094,7 +1629,7 @@ func (x *DeleteWebhookEndpointRequest) String() string {
 func (*DeleteWebhookEndpointRequest) ProtoMessage() {}
 
 func (x *DeleteWebhookEndpointRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[16]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3159,7 +1694,7 @@ type DeleteWebhookEndpointResponse struct {
 
 func (x *DeleteWebhookEndpointResponse) Reset() {
 	*x = DeleteWebhookEndpointResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[17]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3171,7 +1706,7 @@ func (x *DeleteWebhookEndpointResponse) String() string {
 func (*DeleteWebhookEndpointResponse) ProtoMessage() {}
 
 func (x *DeleteWebhookEndpointResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[17]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3194,183 +1729,6 @@ func (b0 DeleteWebhookEndpointResponse_builder) Build() *DeleteWebhookEndpointRe
 	return m0
 }
 
-// RotateWebhookEndpointSecretRequest is the request of WebhookService.RotateWebhookEndpointSecret.
-type RotateWebhookEndpointSecretRequest struct {
-	state                        protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_WebhookEndpointId *string                `protobuf:"bytes,1,opt,name=webhook_endpoint_id,json=webhookEndpointId"`
-	xxx_hidden_Overlap           *durationpb.Duration   `protobuf:"bytes,2,opt,name=overlap"`
-	XXX_raceDetectHookData       protoimpl.RaceDetectHookData
-	XXX_presence                 [1]uint32
-	unknownFields                protoimpl.UnknownFields
-	sizeCache                    protoimpl.SizeCache
-}
-
-func (x *RotateWebhookEndpointSecretRequest) Reset() {
-	*x = RotateWebhookEndpointSecretRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[18]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RotateWebhookEndpointSecretRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RotateWebhookEndpointSecretRequest) ProtoMessage() {}
-
-func (x *RotateWebhookEndpointSecretRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[18]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *RotateWebhookEndpointSecretRequest) GetWebhookEndpointId() string {
-	if x != nil {
-		if x.xxx_hidden_WebhookEndpointId != nil {
-			return *x.xxx_hidden_WebhookEndpointId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *RotateWebhookEndpointSecretRequest) GetOverlap() *durationpb.Duration {
-	if x != nil {
-		return x.xxx_hidden_Overlap
-	}
-	return nil
-}
-
-func (x *RotateWebhookEndpointSecretRequest) SetWebhookEndpointId(v string) {
-	x.xxx_hidden_WebhookEndpointId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
-}
-
-func (x *RotateWebhookEndpointSecretRequest) SetOverlap(v *durationpb.Duration) {
-	x.xxx_hidden_Overlap = v
-}
-
-func (x *RotateWebhookEndpointSecretRequest) HasWebhookEndpointId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *RotateWebhookEndpointSecretRequest) HasOverlap() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_Overlap != nil
-}
-
-func (x *RotateWebhookEndpointSecretRequest) ClearWebhookEndpointId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_WebhookEndpointId = nil
-}
-
-func (x *RotateWebhookEndpointSecretRequest) ClearOverlap() {
-	x.xxx_hidden_Overlap = nil
-}
-
-type RotateWebhookEndpointSecretRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The endpoint's ID.
-	WebhookEndpointId *string
-	// How long the previous secret keeps signing; none by default, at most
-	// 7 days.
-	Overlap *durationpb.Duration
-}
-
-func (b0 RotateWebhookEndpointSecretRequest_builder) Build() *RotateWebhookEndpointSecretRequest {
-	m0 := &RotateWebhookEndpointSecretRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.WebhookEndpointId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
-		x.xxx_hidden_WebhookEndpointId = b.WebhookEndpointId
-	}
-	x.xxx_hidden_Overlap = b.Overlap
-	return m0
-}
-
-// RotateWebhookEndpointSecretResponse is the response of WebhookService.RotateWebhookEndpointSecret.
-type RotateWebhookEndpointSecretResponse struct {
-	state                      protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_WebhookEndpoint *WebhookEndpoint       `protobuf:"bytes,1,opt,name=webhook_endpoint,json=webhookEndpoint"`
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
-}
-
-func (x *RotateWebhookEndpointSecretResponse) Reset() {
-	*x = RotateWebhookEndpointSecretResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[19]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RotateWebhookEndpointSecretResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RotateWebhookEndpointSecretResponse) ProtoMessage() {}
-
-func (x *RotateWebhookEndpointSecretResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[19]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *RotateWebhookEndpointSecretResponse) GetWebhookEndpoint() *WebhookEndpoint {
-	if x != nil {
-		return x.xxx_hidden_WebhookEndpoint
-	}
-	return nil
-}
-
-func (x *RotateWebhookEndpointSecretResponse) SetWebhookEndpoint(v *WebhookEndpoint) {
-	x.xxx_hidden_WebhookEndpoint = v
-}
-
-func (x *RotateWebhookEndpointSecretResponse) HasWebhookEndpoint() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_WebhookEndpoint != nil
-}
-
-func (x *RotateWebhookEndpointSecretResponse) ClearWebhookEndpoint() {
-	x.xxx_hidden_WebhookEndpoint = nil
-}
-
-type RotateWebhookEndpointSecretResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The endpoint, with its new secret.
-	WebhookEndpoint *WebhookEndpoint
-}
-
-func (b0 RotateWebhookEndpointSecretResponse_builder) Build() *RotateWebhookEndpointSecretResponse {
-	m0 := &RotateWebhookEndpointSecretResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_WebhookEndpoint = b.WebhookEndpoint
-	return m0
-}
-
 // ListWebhookEventTypesRequest is the request of WebhookService.ListWebhookEventTypes.
 type ListWebhookEventTypesRequest struct {
 	state         protoimpl.MessageState `protogen:"opaque.v1"`
@@ -3380,7 +1738,7 @@ type ListWebhookEventTypesRequest struct {
 
 func (x *ListWebhookEventTypesRequest) Reset() {
 	*x = ListWebhookEventTypesRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[20]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3392,7 +1750,7 @@ func (x *ListWebhookEventTypesRequest) String() string {
 func (*ListWebhookEventTypesRequest) ProtoMessage() {}
 
 func (x *ListWebhookEventTypesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[20]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3425,7 +1783,7 @@ type ListWebhookEventTypesResponse struct {
 
 func (x *ListWebhookEventTypesResponse) Reset() {
 	*x = ListWebhookEventTypesResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[21]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3437,7 +1795,7 @@ func (x *ListWebhookEventTypesResponse) String() string {
 func (*ListWebhookEventTypesResponse) ProtoMessage() {}
 
 func (x *ListWebhookEventTypesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[21]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3489,7 +1847,7 @@ type GetWebhookDeliveryRequest struct {
 
 func (x *GetWebhookDeliveryRequest) Reset() {
 	*x = GetWebhookDeliveryRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[22]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3501,7 +1859,7 @@ func (x *GetWebhookDeliveryRequest) String() string {
 func (*GetWebhookDeliveryRequest) ProtoMessage() {}
 
 func (x *GetWebhookDeliveryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[22]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3600,7 +1958,7 @@ type GetWebhookDeliveryResponse struct {
 
 func (x *GetWebhookDeliveryResponse) Reset() {
 	*x = GetWebhookDeliveryResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[23]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3612,7 +1970,7 @@ func (x *GetWebhookDeliveryResponse) String() string {
 func (*GetWebhookDeliveryResponse) ProtoMessage() {}
 
 func (x *GetWebhookDeliveryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[23]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3676,7 +2034,7 @@ type ListWebhookDeliveriesRequest struct {
 
 func (x *ListWebhookDeliveriesRequest) Reset() {
 	*x = ListWebhookDeliveriesRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[24]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3688,7 +2046,7 @@ func (x *ListWebhookDeliveriesRequest) String() string {
 func (*ListWebhookDeliveriesRequest) ProtoMessage() {}
 
 func (x *ListWebhookDeliveriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[24]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3840,9 +2198,13 @@ type ListWebhookDeliveriesRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `status`, `event_type` and `created_at`.
+	// An AIP-160 filter: equalities on `status`, `event_type` and
+	// `http_status` (each with several values joined by OR), and bounds on
+	// `updated_at` (`updated_at >= "2025-01-01T00:00:00Z"`, with >= and
+	// <=). An `http_status` value is a code (`404`), a class (`"5xx"`), a
+	// range (`"200-204"`) or `timeout`: no response on a failed delivery.
 	Filter *string
-	// A search over the object ID and event type.
+	// A search over the delivery ID and the object ID.
 	Search *string
 }
 
@@ -3886,7 +2248,7 @@ type ListWebhookDeliveriesResponse struct {
 
 func (x *ListWebhookDeliveriesResponse) Reset() {
 	*x = ListWebhookDeliveriesResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[25]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3898,7 +2260,7 @@ func (x *ListWebhookDeliveriesResponse) String() string {
 func (*ListWebhookDeliveriesResponse) ProtoMessage() {}
 
 func (x *ListWebhookDeliveriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[25]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3983,7 +2345,7 @@ type RetryWebhookDeliveryRequest struct {
 
 func (x *RetryWebhookDeliveryRequest) Reset() {
 	*x = RetryWebhookDeliveryRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[26]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3995,7 +2357,7 @@ func (x *RetryWebhookDeliveryRequest) String() string {
 func (*RetryWebhookDeliveryRequest) ProtoMessage() {}
 
 func (x *RetryWebhookDeliveryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[26]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4094,7 +2456,7 @@ type RetryWebhookDeliveryResponse struct {
 
 func (x *RetryWebhookDeliveryResponse) Reset() {
 	*x = RetryWebhookDeliveryResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[27]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4106,7 +2468,7 @@ func (x *RetryWebhookDeliveryResponse) String() string {
 func (*RetryWebhookDeliveryResponse) ProtoMessage() {}
 
 func (x *RetryWebhookDeliveryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[27]
+	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4154,1075 +2516,11 @@ func (b0 RetryWebhookDeliveryResponse_builder) Build() *RetryWebhookDeliveryResp
 	return m0
 }
 
-// CreateStreamingDestinationRequest is the request of StreamingDestinationService.CreateStreamingDestination.
-type CreateStreamingDestinationRequest struct {
-	state                           protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_StreamingDestination *StreamingDestination  `protobuf:"bytes,1,opt,name=streaming_destination,json=streamingDestination"`
-	unknownFields                   protoimpl.UnknownFields
-	sizeCache                       protoimpl.SizeCache
-}
-
-func (x *CreateStreamingDestinationRequest) Reset() {
-	*x = CreateStreamingDestinationRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[28]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateStreamingDestinationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateStreamingDestinationRequest) ProtoMessage() {}
-
-func (x *CreateStreamingDestinationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[28]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *CreateStreamingDestinationRequest) GetStreamingDestination() *StreamingDestination {
-	if x != nil {
-		return x.xxx_hidden_StreamingDestination
-	}
-	return nil
-}
-
-func (x *CreateStreamingDestinationRequest) SetStreamingDestination(v *StreamingDestination) {
-	x.xxx_hidden_StreamingDestination = v
-}
-
-func (x *CreateStreamingDestinationRequest) HasStreamingDestination() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_StreamingDestination != nil
-}
-
-func (x *CreateStreamingDestinationRequest) ClearStreamingDestination() {
-	x.xxx_hidden_StreamingDestination = nil
-}
-
-type CreateStreamingDestinationRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The destination to create.
-	StreamingDestination *StreamingDestination
-}
-
-func (b0 CreateStreamingDestinationRequest_builder) Build() *CreateStreamingDestinationRequest {
-	m0 := &CreateStreamingDestinationRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_StreamingDestination = b.StreamingDestination
-	return m0
-}
-
-// CreateStreamingDestinationResponse is the response of StreamingDestinationService.CreateStreamingDestination.
-type CreateStreamingDestinationResponse struct {
-	state                           protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_StreamingDestination *StreamingDestination  `protobuf:"bytes,1,opt,name=streaming_destination,json=streamingDestination"`
-	unknownFields                   protoimpl.UnknownFields
-	sizeCache                       protoimpl.SizeCache
-}
-
-func (x *CreateStreamingDestinationResponse) Reset() {
-	*x = CreateStreamingDestinationResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[29]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateStreamingDestinationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateStreamingDestinationResponse) ProtoMessage() {}
-
-func (x *CreateStreamingDestinationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[29]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *CreateStreamingDestinationResponse) GetStreamingDestination() *StreamingDestination {
-	if x != nil {
-		return x.xxx_hidden_StreamingDestination
-	}
-	return nil
-}
-
-func (x *CreateStreamingDestinationResponse) SetStreamingDestination(v *StreamingDestination) {
-	x.xxx_hidden_StreamingDestination = v
-}
-
-func (x *CreateStreamingDestinationResponse) HasStreamingDestination() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_StreamingDestination != nil
-}
-
-func (x *CreateStreamingDestinationResponse) ClearStreamingDestination() {
-	x.xxx_hidden_StreamingDestination = nil
-}
-
-type CreateStreamingDestinationResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The created destination.
-	StreamingDestination *StreamingDestination
-}
-
-func (b0 CreateStreamingDestinationResponse_builder) Build() *CreateStreamingDestinationResponse {
-	m0 := &CreateStreamingDestinationResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_StreamingDestination = b.StreamingDestination
-	return m0
-}
-
-// GetStreamingDestinationRequest is the request of StreamingDestinationService.GetStreamingDestination.
-type GetStreamingDestinationRequest struct {
-	state                             protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_StreamingDestinationId *string                `protobuf:"bytes,1,opt,name=streaming_destination_id,json=streamingDestinationId"`
-	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
-	XXX_presence                      [1]uint32
-	unknownFields                     protoimpl.UnknownFields
-	sizeCache                         protoimpl.SizeCache
-}
-
-func (x *GetStreamingDestinationRequest) Reset() {
-	*x = GetStreamingDestinationRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[30]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetStreamingDestinationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetStreamingDestinationRequest) ProtoMessage() {}
-
-func (x *GetStreamingDestinationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[30]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *GetStreamingDestinationRequest) GetStreamingDestinationId() string {
-	if x != nil {
-		if x.xxx_hidden_StreamingDestinationId != nil {
-			return *x.xxx_hidden_StreamingDestinationId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *GetStreamingDestinationRequest) SetStreamingDestinationId(v string) {
-	x.xxx_hidden_StreamingDestinationId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *GetStreamingDestinationRequest) HasStreamingDestinationId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *GetStreamingDestinationRequest) ClearStreamingDestinationId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_StreamingDestinationId = nil
-}
-
-type GetStreamingDestinationRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The destination's ID.
-	StreamingDestinationId *string
-}
-
-func (b0 GetStreamingDestinationRequest_builder) Build() *GetStreamingDestinationRequest {
-	m0 := &GetStreamingDestinationRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.StreamingDestinationId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_StreamingDestinationId = b.StreamingDestinationId
-	}
-	return m0
-}
-
-// GetStreamingDestinationResponse is the response of StreamingDestinationService.GetStreamingDestination.
-type GetStreamingDestinationResponse struct {
-	state                           protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_StreamingDestination *StreamingDestination  `protobuf:"bytes,1,opt,name=streaming_destination,json=streamingDestination"`
-	unknownFields                   protoimpl.UnknownFields
-	sizeCache                       protoimpl.SizeCache
-}
-
-func (x *GetStreamingDestinationResponse) Reset() {
-	*x = GetStreamingDestinationResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[31]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *GetStreamingDestinationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*GetStreamingDestinationResponse) ProtoMessage() {}
-
-func (x *GetStreamingDestinationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[31]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *GetStreamingDestinationResponse) GetStreamingDestination() *StreamingDestination {
-	if x != nil {
-		return x.xxx_hidden_StreamingDestination
-	}
-	return nil
-}
-
-func (x *GetStreamingDestinationResponse) SetStreamingDestination(v *StreamingDestination) {
-	x.xxx_hidden_StreamingDestination = v
-}
-
-func (x *GetStreamingDestinationResponse) HasStreamingDestination() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_StreamingDestination != nil
-}
-
-func (x *GetStreamingDestinationResponse) ClearStreamingDestination() {
-	x.xxx_hidden_StreamingDestination = nil
-}
-
-type GetStreamingDestinationResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The destination.
-	StreamingDestination *StreamingDestination
-}
-
-func (b0 GetStreamingDestinationResponse_builder) Build() *GetStreamingDestinationResponse {
-	m0 := &GetStreamingDestinationResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_StreamingDestination = b.StreamingDestination
-	return m0
-}
-
-// ListStreamingDestinationsRequest is the request of StreamingDestinationService.ListStreamingDestinations.
-type ListStreamingDestinationsRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_PageSize    int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize"`
-	xxx_hidden_PageToken   *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *ListStreamingDestinationsRequest) Reset() {
-	*x = ListStreamingDestinationsRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[32]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListStreamingDestinationsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListStreamingDestinationsRequest) ProtoMessage() {}
-
-func (x *ListStreamingDestinationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[32]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ListStreamingDestinationsRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.xxx_hidden_PageSize
-	}
-	return 0
-}
-
-func (x *ListStreamingDestinationsRequest) GetPageToken() string {
-	if x != nil {
-		if x.xxx_hidden_PageToken != nil {
-			return *x.xxx_hidden_PageToken
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListStreamingDestinationsRequest) SetPageSize(v int32) {
-	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
-}
-
-func (x *ListStreamingDestinationsRequest) SetPageToken(v string) {
-	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
-}
-
-func (x *ListStreamingDestinationsRequest) HasPageSize() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *ListStreamingDestinationsRequest) HasPageToken() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ListStreamingDestinationsRequest) ClearPageSize() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_PageSize = 0
-}
-
-func (x *ListStreamingDestinationsRequest) ClearPageToken() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_PageToken = nil
-}
-
-type ListStreamingDestinationsRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The maximum number of results; 20 by default, at most 1000.
-	PageSize *int32
-	// The next_page_token of the previous page.
-	PageToken *string
-}
-
-func (b0 ListStreamingDestinationsRequest_builder) Build() *ListStreamingDestinationsRequest {
-	m0 := &ListStreamingDestinationsRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
-		x.xxx_hidden_PageSize = *b.PageSize
-	}
-	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_PageToken = b.PageToken
-	}
-	return m0
-}
-
-// ListStreamingDestinationsResponse is the response of StreamingDestinationService.ListStreamingDestinations.
-type ListStreamingDestinationsResponse struct {
-	state                            protoimpl.MessageState   `protogen:"opaque.v1"`
-	xxx_hidden_StreamingDestinations *[]*StreamingDestination `protobuf:"bytes,1,rep,name=streaming_destinations,json=streamingDestinations"`
-	xxx_hidden_NextPageToken         *string                  `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken"`
-	XXX_raceDetectHookData           protoimpl.RaceDetectHookData
-	XXX_presence                     [1]uint32
-	unknownFields                    protoimpl.UnknownFields
-	sizeCache                        protoimpl.SizeCache
-}
-
-func (x *ListStreamingDestinationsResponse) Reset() {
-	*x = ListStreamingDestinationsResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[33]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListStreamingDestinationsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListStreamingDestinationsResponse) ProtoMessage() {}
-
-func (x *ListStreamingDestinationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[33]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ListStreamingDestinationsResponse) GetStreamingDestinations() []*StreamingDestination {
-	if x != nil {
-		if x.xxx_hidden_StreamingDestinations != nil {
-			return *x.xxx_hidden_StreamingDestinations
-		}
-	}
-	return nil
-}
-
-func (x *ListStreamingDestinationsResponse) GetNextPageToken() string {
-	if x != nil {
-		if x.xxx_hidden_NextPageToken != nil {
-			return *x.xxx_hidden_NextPageToken
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListStreamingDestinationsResponse) SetStreamingDestinations(v []*StreamingDestination) {
-	x.xxx_hidden_StreamingDestinations = &v
-}
-
-func (x *ListStreamingDestinationsResponse) SetNextPageToken(v string) {
-	x.xxx_hidden_NextPageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
-}
-
-func (x *ListStreamingDestinationsResponse) HasNextPageToken() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ListStreamingDestinationsResponse) ClearNextPageToken() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_NextPageToken = nil
-}
-
-type ListStreamingDestinationsResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The destinations of this page.
-	StreamingDestinations []*StreamingDestination
-	// The token of the next page; empty on the last page.
-	NextPageToken *string
-}
-
-func (b0 ListStreamingDestinationsResponse_builder) Build() *ListStreamingDestinationsResponse {
-	m0 := &ListStreamingDestinationsResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_StreamingDestinations = &b.StreamingDestinations
-	if b.NextPageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_NextPageToken = b.NextPageToken
-	}
-	return m0
-}
-
-// UpdateStreamingDestinationRequest is the request of StreamingDestinationService.UpdateStreamingDestination.
-type UpdateStreamingDestinationRequest struct {
-	state                           protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_StreamingDestination *StreamingDestination  `protobuf:"bytes,1,opt,name=streaming_destination,json=streamingDestination"`
-	xxx_hidden_UpdateMask           *fieldmaskpb.FieldMask `protobuf:"bytes,2,opt,name=update_mask,json=updateMask"`
-	unknownFields                   protoimpl.UnknownFields
-	sizeCache                       protoimpl.SizeCache
-}
-
-func (x *UpdateStreamingDestinationRequest) Reset() {
-	*x = UpdateStreamingDestinationRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[34]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateStreamingDestinationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateStreamingDestinationRequest) ProtoMessage() {}
-
-func (x *UpdateStreamingDestinationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[34]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *UpdateStreamingDestinationRequest) GetStreamingDestination() *StreamingDestination {
-	if x != nil {
-		return x.xxx_hidden_StreamingDestination
-	}
-	return nil
-}
-
-func (x *UpdateStreamingDestinationRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
-	if x != nil {
-		return x.xxx_hidden_UpdateMask
-	}
-	return nil
-}
-
-func (x *UpdateStreamingDestinationRequest) SetStreamingDestination(v *StreamingDestination) {
-	x.xxx_hidden_StreamingDestination = v
-}
-
-func (x *UpdateStreamingDestinationRequest) SetUpdateMask(v *fieldmaskpb.FieldMask) {
-	x.xxx_hidden_UpdateMask = v
-}
-
-func (x *UpdateStreamingDestinationRequest) HasStreamingDestination() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_StreamingDestination != nil
-}
-
-func (x *UpdateStreamingDestinationRequest) HasUpdateMask() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_UpdateMask != nil
-}
-
-func (x *UpdateStreamingDestinationRequest) ClearStreamingDestination() {
-	x.xxx_hidden_StreamingDestination = nil
-}
-
-func (x *UpdateStreamingDestinationRequest) ClearUpdateMask() {
-	x.xxx_hidden_UpdateMask = nil
-}
-
-type UpdateStreamingDestinationRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The new values; streaming_destination.id selects the destination.
-	StreamingDestination *StreamingDestination
-	// The fields to update; empty updates every field that is set.
-	UpdateMask *fieldmaskpb.FieldMask
-}
-
-func (b0 UpdateStreamingDestinationRequest_builder) Build() *UpdateStreamingDestinationRequest {
-	m0 := &UpdateStreamingDestinationRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_StreamingDestination = b.StreamingDestination
-	x.xxx_hidden_UpdateMask = b.UpdateMask
-	return m0
-}
-
-// UpdateStreamingDestinationResponse is the response of StreamingDestinationService.UpdateStreamingDestination.
-type UpdateStreamingDestinationResponse struct {
-	state                           protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_StreamingDestination *StreamingDestination  `protobuf:"bytes,1,opt,name=streaming_destination,json=streamingDestination"`
-	unknownFields                   protoimpl.UnknownFields
-	sizeCache                       protoimpl.SizeCache
-}
-
-func (x *UpdateStreamingDestinationResponse) Reset() {
-	*x = UpdateStreamingDestinationResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[35]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateStreamingDestinationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateStreamingDestinationResponse) ProtoMessage() {}
-
-func (x *UpdateStreamingDestinationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[35]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *UpdateStreamingDestinationResponse) GetStreamingDestination() *StreamingDestination {
-	if x != nil {
-		return x.xxx_hidden_StreamingDestination
-	}
-	return nil
-}
-
-func (x *UpdateStreamingDestinationResponse) SetStreamingDestination(v *StreamingDestination) {
-	x.xxx_hidden_StreamingDestination = v
-}
-
-func (x *UpdateStreamingDestinationResponse) HasStreamingDestination() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_StreamingDestination != nil
-}
-
-func (x *UpdateStreamingDestinationResponse) ClearStreamingDestination() {
-	x.xxx_hidden_StreamingDestination = nil
-}
-
-type UpdateStreamingDestinationResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The updated destination.
-	StreamingDestination *StreamingDestination
-}
-
-func (b0 UpdateStreamingDestinationResponse_builder) Build() *UpdateStreamingDestinationResponse {
-	m0 := &UpdateStreamingDestinationResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_StreamingDestination = b.StreamingDestination
-	return m0
-}
-
-// DeleteStreamingDestinationRequest is the request of StreamingDestinationService.DeleteStreamingDestination.
-type DeleteStreamingDestinationRequest struct {
-	state                             protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_StreamingDestinationId *string                `protobuf:"bytes,1,opt,name=streaming_destination_id,json=streamingDestinationId"`
-	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
-	XXX_presence                      [1]uint32
-	unknownFields                     protoimpl.UnknownFields
-	sizeCache                         protoimpl.SizeCache
-}
-
-func (x *DeleteStreamingDestinationRequest) Reset() {
-	*x = DeleteStreamingDestinationRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[36]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteStreamingDestinationRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteStreamingDestinationRequest) ProtoMessage() {}
-
-func (x *DeleteStreamingDestinationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[36]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *DeleteStreamingDestinationRequest) GetStreamingDestinationId() string {
-	if x != nil {
-		if x.xxx_hidden_StreamingDestinationId != nil {
-			return *x.xxx_hidden_StreamingDestinationId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *DeleteStreamingDestinationRequest) SetStreamingDestinationId(v string) {
-	x.xxx_hidden_StreamingDestinationId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *DeleteStreamingDestinationRequest) HasStreamingDestinationId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *DeleteStreamingDestinationRequest) ClearStreamingDestinationId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_StreamingDestinationId = nil
-}
-
-type DeleteStreamingDestinationRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The destination's ID.
-	StreamingDestinationId *string
-}
-
-func (b0 DeleteStreamingDestinationRequest_builder) Build() *DeleteStreamingDestinationRequest {
-	m0 := &DeleteStreamingDestinationRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.StreamingDestinationId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_StreamingDestinationId = b.StreamingDestinationId
-	}
-	return m0
-}
-
-// DeleteStreamingDestinationResponse is the response of StreamingDestinationService.DeleteStreamingDestination.
-type DeleteStreamingDestinationResponse struct {
-	state         protoimpl.MessageState `protogen:"opaque.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeleteStreamingDestinationResponse) Reset() {
-	*x = DeleteStreamingDestinationResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[37]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteStreamingDestinationResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteStreamingDestinationResponse) ProtoMessage() {}
-
-func (x *DeleteStreamingDestinationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[37]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-type DeleteStreamingDestinationResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-}
-
-func (b0 DeleteStreamingDestinationResponse_builder) Build() *DeleteStreamingDestinationResponse {
-	m0 := &DeleteStreamingDestinationResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	return m0
-}
-
-// ListStreamingDeliveriesRequest is the request of StreamingDestinationService.ListStreamingDeliveries.
-type ListStreamingDeliveriesRequest struct {
-	state                             protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_StreamingDestinationId *string                `protobuf:"bytes,1,opt,name=streaming_destination_id,json=streamingDestinationId"`
-	xxx_hidden_PageSize               int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize"`
-	xxx_hidden_PageToken              *string                `protobuf:"bytes,3,opt,name=page_token,json=pageToken"`
-	xxx_hidden_Filter                 *string                `protobuf:"bytes,4,opt,name=filter"`
-	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
-	XXX_presence                      [1]uint32
-	unknownFields                     protoimpl.UnknownFields
-	sizeCache                         protoimpl.SizeCache
-}
-
-func (x *ListStreamingDeliveriesRequest) Reset() {
-	*x = ListStreamingDeliveriesRequest{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[38]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListStreamingDeliveriesRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListStreamingDeliveriesRequest) ProtoMessage() {}
-
-func (x *ListStreamingDeliveriesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[38]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ListStreamingDeliveriesRequest) GetStreamingDestinationId() string {
-	if x != nil {
-		if x.xxx_hidden_StreamingDestinationId != nil {
-			return *x.xxx_hidden_StreamingDestinationId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListStreamingDeliveriesRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.xxx_hidden_PageSize
-	}
-	return 0
-}
-
-func (x *ListStreamingDeliveriesRequest) GetPageToken() string {
-	if x != nil {
-		if x.xxx_hidden_PageToken != nil {
-			return *x.xxx_hidden_PageToken
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListStreamingDeliveriesRequest) GetFilter() string {
-	if x != nil {
-		if x.xxx_hidden_Filter != nil {
-			return *x.xxx_hidden_Filter
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListStreamingDeliveriesRequest) SetStreamingDestinationId(v string) {
-	x.xxx_hidden_StreamingDestinationId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
-}
-
-func (x *ListStreamingDeliveriesRequest) SetPageSize(v int32) {
-	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
-}
-
-func (x *ListStreamingDeliveriesRequest) SetPageToken(v string) {
-	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
-}
-
-func (x *ListStreamingDeliveriesRequest) SetFilter(v string) {
-	x.xxx_hidden_Filter = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
-}
-
-func (x *ListStreamingDeliveriesRequest) HasStreamingDestinationId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *ListStreamingDeliveriesRequest) HasPageSize() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ListStreamingDeliveriesRequest) HasPageToken() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *ListStreamingDeliveriesRequest) HasFilter() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
-}
-
-func (x *ListStreamingDeliveriesRequest) ClearStreamingDestinationId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_StreamingDestinationId = nil
-}
-
-func (x *ListStreamingDeliveriesRequest) ClearPageSize() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_PageSize = 0
-}
-
-func (x *ListStreamingDeliveriesRequest) ClearPageToken() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_PageToken = nil
-}
-
-func (x *ListStreamingDeliveriesRequest) ClearFilter() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_Filter = nil
-}
-
-type ListStreamingDeliveriesRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The destination's ID.
-	StreamingDestinationId *string
-	// The maximum number of results; 20 by default, at most 1000.
-	PageSize *int32
-	// The next_page_token of the previous page.
-	PageToken *string
-	// An AIP-160 filter over `status`, `event_type` and `created_at`.
-	Filter *string
-}
-
-func (b0 ListStreamingDeliveriesRequest_builder) Build() *ListStreamingDeliveriesRequest {
-	m0 := &ListStreamingDeliveriesRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.StreamingDestinationId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
-		x.xxx_hidden_StreamingDestinationId = b.StreamingDestinationId
-	}
-	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
-		x.xxx_hidden_PageSize = *b.PageSize
-	}
-	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
-		x.xxx_hidden_PageToken = b.PageToken
-	}
-	if b.Filter != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
-		x.xxx_hidden_Filter = b.Filter
-	}
-	return m0
-}
-
-// ListStreamingDeliveriesResponse is the response of StreamingDestinationService.ListStreamingDeliveries.
-type ListStreamingDeliveriesResponse struct {
-	state                    protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Deliveries    *[]*StreamingDelivery  `protobuf:"bytes,1,rep,name=deliveries"`
-	xxx_hidden_NextPageToken *string                `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken"`
-	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
-	XXX_presence             [1]uint32
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
-}
-
-func (x *ListStreamingDeliveriesResponse) Reset() {
-	*x = ListStreamingDeliveriesResponse{}
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[39]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListStreamingDeliveriesResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListStreamingDeliveriesResponse) ProtoMessage() {}
-
-func (x *ListStreamingDeliveriesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_webhook_v1_webhook_proto_msgTypes[39]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ListStreamingDeliveriesResponse) GetDeliveries() []*StreamingDelivery {
-	if x != nil {
-		if x.xxx_hidden_Deliveries != nil {
-			return *x.xxx_hidden_Deliveries
-		}
-	}
-	return nil
-}
-
-func (x *ListStreamingDeliveriesResponse) GetNextPageToken() string {
-	if x != nil {
-		if x.xxx_hidden_NextPageToken != nil {
-			return *x.xxx_hidden_NextPageToken
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListStreamingDeliveriesResponse) SetDeliveries(v []*StreamingDelivery) {
-	x.xxx_hidden_Deliveries = &v
-}
-
-func (x *ListStreamingDeliveriesResponse) SetNextPageToken(v string) {
-	x.xxx_hidden_NextPageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
-}
-
-func (x *ListStreamingDeliveriesResponse) HasNextPageToken() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ListStreamingDeliveriesResponse) ClearNextPageToken() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_NextPageToken = nil
-}
-
-type ListStreamingDeliveriesResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The log entries of this page.
-	Deliveries []*StreamingDelivery
-	// The token of the next page; empty on the last page.
-	NextPageToken *string
-}
-
-func (b0 ListStreamingDeliveriesResponse_builder) Build() *ListStreamingDeliveriesResponse {
-	m0 := &ListStreamingDeliveriesResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_Deliveries = &b.Deliveries
-	if b.NextPageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_NextPageToken = b.NextPageToken
-	}
-	return m0
-}
-
 var File_tanvo_webhook_v1_webhook_proto protoreflect.FileDescriptor
 
 const file_tanvo_webhook_v1_webhook_proto_rawDesc = "" +
 	"\n" +
-	"\x1etanvo/webhook/v1/webhook.proto\x12\x10tanvo.webhook.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x1egoogle/protobuf/duration.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\"\xc7\x03\n" +
+	"\x1etanvo/webhook/v1/webhook.proto\x12\x10tanvo.webhook.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\"\xc7\x03\n" +
 	"\x0fWebhookEndpoint\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12!\n" +
 	"\x03url\x18\x02 \x01(\tB\x0f\xe2A\x01\x02\xbaH\br\x06\x18\x80\x10\x88\x01\x01R\x03url\x12\x1c\n" +
@@ -5257,60 +2555,7 @@ const file_tanvo_webhook_v1_webhook_proto_rawDesc = "" +
 	"\x0flast_attempt_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\rlastAttemptAt\x12B\n" +
 	"\x0fnext_attempt_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\rnextAttemptAt\x129\n" +
 	"\n" +
-	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x9a\x02\n" +
-	"\x10KafkaDestination\x12-\n" +
-	"\abrokers\x18\x01 \x03(\tB\x13\xbaH\x10\x92\x01\r\b\x01\x10\x14\"\ar\x05\x10\x01\x18\xff\x01R\abrokers\x12 \n" +
-	"\x05topic\x18\x02 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\x01\x18\xf9\x01R\x05topic\x12S\n" +
-	"\x0esasl_mechanism\x18\x03 \x01(\tB,\xbaH)r'R\x00R\x05PLAINR\rSCRAM-SHA-256R\rSCRAM-SHA-512R\rsaslMechanism\x12$\n" +
-	"\busername\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\busername\x12(\n" +
-	"\bpassword\x18\x05 \x01(\tB\f\xe2A\x01\x04\xbaH\x05r\x03\x18\x80\bR\bpassword\x12\x10\n" +
-	"\x03tls\x18\x06 \x01(\bR\x03tls\"\xda\x01\n" +
-	"\x12KinesisDestination\x12\"\n" +
-	"\x06stream\x18\x01 \x01(\tB\n" +
-	"\xbaH\ar\x05\x10\x01\x18\x80\x10R\x06stream\x12!\n" +
-	"\x06region\x18\x02 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x06region\x12#\n" +
-	"\brole_arn\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\aroleArn\x12)\n" +
-	"\vexternal_id\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\xc8\tR\n" +
-	"externalId\x12-\n" +
-	"\rpartition_key\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\fpartitionKey\"\x9a\x02\n" +
-	"\rS3Destination\x12!\n" +
-	"\x06bucket\x18\x01 \x01(\tB\t\xbaH\x06r\x04\x10\x03\x18?R\x06bucket\x12 \n" +
-	"\x06prefix\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\x06prefix\x12!\n" +
-	"\x06region\x18\x03 \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18@R\x06region\x12#\n" +
-	"\brole_arn\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\aroleArn\x12)\n" +
-	"\vexternal_id\x18\x05 \x01(\tB\b\xbaH\x05r\x03\x18\xc8\tR\n" +
-	"externalId\x12Q\n" +
-	"\x0eflush_interval\x18\x06 \x01(\v2\x19.google.protobuf.DurationB\x0f\xbaH\f\xaa\x01\t\"\x03\b\x90\x1c2\x02\b\n" +
-	"R\rflushInterval\"\xc7\x05\n" +
-	"\x14StreamingDestination\x12\x14\n" +
-	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\"\n" +
-	"\x04name\x18\x02 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\x10\x01\x18\xff\x01R\x04name\x12W\n" +
-	"\vevent_types\x18\x03 \x03(\tB6\xe2A\x01\x02\xbaH/\x92\x01,\x102\x18\x01\"&r$2\"^[a-z][a-z_]*(\\.[a-z][a-z_0-9]*)+$R\n" +
-	"eventTypes\x12@\n" +
-	"\x11excluded_plan_ids\x18\x04 \x03(\tB\x14\xbaH\x11\x92\x01\x0e\x10\xc8\x01\x18\x01\"\ar\x05\xe0\xa4\xca\x06\x01R\x0fexcludedPlanIds\x12\x1a\n" +
-	"\bdisabled\x18\x05 \x01(\bR\bdisabled\x12:\n" +
-	"\x05kafka\x18\n" +
-	" \x01(\v2\".tanvo.webhook.v1.KafkaDestinationH\x00R\x05kafka\x12@\n" +
-	"\akinesis\x18\v \x01(\v2$.tanvo.webhook.v1.KinesisDestinationH\x00R\akinesis\x121\n" +
-	"\x02s3\x18\f \x01(\v2\x1f.tanvo.webhook.v1.S3DestinationH\x00R\x02s3\x12?\n" +
-	"\n" +
-	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
-	"\n" +
-	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:\x80\x01\xeaA}\n" +
-	"\x1etanvo.xyz/StreamingDestination\x12.streaming_destinations/{streaming_destination}*\x15streamingDestinations2\x14streamingDestinationB\b\n" +
-	"\x06target\"\xc9\x02\n" +
-	"\x11StreamingDelivery\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x128\n" +
-	"\x18streaming_destination_id\x18\x02 \x01(\tR\x16streamingDestinationId\x12\x1d\n" +
-	"\n" +
-	"event_type\x18\x03 \x01(\tR\teventType\x12\x1b\n" +
-	"\tobject_id\x18\x04 \x01(\tR\bobjectId\x12A\n" +
-	"\x06status\x18\x05 \x01(\x0e2).tanvo.webhook.v1.StreamingDeliveryStatusR\x06status\x12\x1a\n" +
-	"\battempts\x18\x06 \x01(\x05R\battempts\x12\x14\n" +
-	"\x05error\x18\a \x01(\tR\x05error\x129\n" +
-	"\n" +
-	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xc6\x01\n" +
+	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xc6\x01\n" +
 	"\x1cCreateWebhookEndpointRequest\x12X\n" +
 	"\x10webhook_endpoint\x18\x01 \x01(\v2!.tanvo.webhook.v1.WebhookEndpointB\n" +
 	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x0fwebhookEndpoint:L\xbaHI\x1aG\n" +
@@ -5339,12 +2584,7 @@ const file_tanvo_webhook_v1_webhook_proto_rawDesc = "" +
 	"\x10webhook_endpoint\x18\x01 \x01(\v2!.tanvo.webhook.v1.WebhookEndpointR\x0fwebhookEndpoint\"_\n" +
 	"\x1cDeleteWebhookEndpointRequest\x12?\n" +
 	"\x13webhook_endpoint_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\x11webhookEndpointId\"\x1f\n" +
-	"\x1dDeleteWebhookEndpointResponse\"\xaa\x01\n" +
-	"\"RotateWebhookEndpointSecretRequest\x12?\n" +
-	"\x13webhook_endpoint_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\x11webhookEndpointId\x12C\n" +
-	"\aoverlap\x18\x02 \x01(\v2\x19.google.protobuf.DurationB\x0e\xbaH\v\xaa\x01\b\"\x04\b\x80\xf5$2\x00R\aoverlap\"s\n" +
-	"#RotateWebhookEndpointSecretResponse\x12L\n" +
-	"\x10webhook_endpoint\x18\x01 \x01(\v2!.tanvo.webhook.v1.WebhookEndpointR\x0fwebhookEndpoint\"\x1e\n" +
+	"\x1dDeleteWebhookEndpointResponse\"\x1e\n" +
 	"\x1cListWebhookEventTypesRequest\"d\n" +
 	"\x1dListWebhookEventTypesResponse\x12C\n" +
 	"\vevent_types\x18\x01 \x03(\v2\".tanvo.webhook.v1.WebhookEventTypeR\n" +
@@ -5373,61 +2613,13 @@ const file_tanvo_webhook_v1_webhook_proto_rawDesc = "" +
 	"\vdelivery_id\x18\x02 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\n" +
 	"deliveryId\"]\n" +
 	"\x1cRetryWebhookDeliveryResponse\x12=\n" +
-	"\bdelivery\x18\x01 \x01(\v2!.tanvo.webhook.v1.WebhookDeliveryR\bdelivery\"\xba\x03\n" +
-	"!CreateStreamingDestinationRequest\x12g\n" +
-	"\x15streaming_destination\x18\x01 \x01(\v2&.tanvo.webhook.v1.StreamingDestinationB\n" +
-	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x14streamingDestination:\xab\x02\xbaH\xa7\x02\x1a\xa4\x02\n" +
-	"\x1estreaming_destination.required\x12+name, event_types and a target are required\x1a\xd4\x01has(this.streaming_destination.name) && size(this.streaming_destination.event_types) > 0 && (has(this.streaming_destination.kafka) || has(this.streaming_destination.kinesis) || has(this.streaming_destination.s3))\"\x81\x01\n" +
-	"\"CreateStreamingDestinationResponse\x12[\n" +
-	"\x15streaming_destination\x18\x01 \x01(\v2&.tanvo.webhook.v1.StreamingDestinationR\x14streamingDestination\"k\n" +
-	"\x1eGetStreamingDestinationRequest\x12I\n" +
-	"\x18streaming_destination_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\x16streamingDestinationId\"~\n" +
-	"\x1fGetStreamingDestinationResponse\x12[\n" +
-	"\x15streaming_destination\x18\x01 \x01(\v2&.tanvo.webhook.v1.StreamingDestinationR\x14streamingDestination\"t\n" +
-	" ListStreamingDestinationsRequest\x12'\n" +
-	"\tpage_size\x18\x01 \x01(\x05B\n" +
-	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
-	"\n" +
-	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\xaa\x01\n" +
-	"!ListStreamingDestinationsResponse\x12]\n" +
-	"\x16streaming_destinations\x18\x01 \x03(\v2&.tanvo.webhook.v1.StreamingDestinationR\x15streamingDestinations\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb4\x02\n" +
-	"!UpdateStreamingDestinationRequest\x12g\n" +
-	"\x15streaming_destination\x18\x01 \x01(\v2&.tanvo.webhook.v1.StreamingDestinationB\n" +
-	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x14streamingDestination\x12;\n" +
-	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
-	"updateMask:i\xbaHf\x1ad\n" +
-	"\x18streaming_destination.id\x12$streaming_destination.id is required\x1a\"has(this.streaming_destination.id)\"\x81\x01\n" +
-	"\"UpdateStreamingDestinationResponse\x12[\n" +
-	"\x15streaming_destination\x18\x01 \x01(\v2&.tanvo.webhook.v1.StreamingDestinationR\x14streamingDestination\"n\n" +
-	"!DeleteStreamingDestinationRequest\x12I\n" +
-	"\x18streaming_destination_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\x16streamingDestinationId\"$\n" +
-	"\"DeleteStreamingDestinationResponse\"\xdf\x01\n" +
-	"\x1eListStreamingDeliveriesRequest\x12I\n" +
-	"\x18streaming_destination_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\x16streamingDestinationId\x12'\n" +
-	"\tpage_size\x18\x02 \x01(\x05B\n" +
-	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
-	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12 \n" +
-	"\x06filter\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\"\x8e\x01\n" +
-	"\x1fListStreamingDeliveriesResponse\x12C\n" +
-	"\n" +
-	"deliveries\x18\x01 \x03(\v2#.tanvo.webhook.v1.StreamingDeliveryR\n" +
-	"deliveries\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken*\xa7\x01\n" +
+	"\bdelivery\x18\x01 \x01(\v2!.tanvo.webhook.v1.WebhookDeliveryR\bdelivery*\xa7\x01\n" +
 	"\x0eDeliveryStatus\x12\x1f\n" +
 	"\x1bDELIVERY_STATUS_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17DELIVERY_STATUS_PENDING\x10\x01\x12\x1c\n" +
 	"\x18DELIVERY_STATUS_RETRYING\x10\x02\x12\x1d\n" +
 	"\x19DELIVERY_STATUS_SUCCEEDED\x10\x03\x12\x1a\n" +
-	"\x16DELIVERY_STATUS_FAILED\x10\x04*\x8b\x02\n" +
-	"\x17StreamingDeliveryStatus\x12)\n" +
-	"%STREAMING_DELIVERY_STATUS_UNSPECIFIED\x10\x00\x12'\n" +
-	"#STREAMING_DELIVERY_STATUS_DELIVERED\x10\x01\x12%\n" +
-	"!STREAMING_DELIVERY_STATUS_SKIPPED\x10\x02\x12$\n" +
-	" STREAMING_DELIVERY_STATUS_FAILED\x10\x03\x12(\n" +
-	"$STREAMING_DELIVERY_STATUS_SUPERSEDED\x10\x04\x12%\n" +
-	"!STREAMING_DELIVERY_STATUS_DROPPED\x10\x052\xce\x11\n" +
+	"\x16DELIVERY_STATUS_FAILED\x10\x042\xd2\x0f\n" +
 	"\x0eWebhookService\x12\xd2\x01\n" +
 	"\x15CreateWebhookEndpoint\x12..tanvo.webhook.v1.CreateWebhookEndpointRequest\x1a/.tanvo.webhook.v1.CreateWebhookEndpointResponse\"X\xca\xf3\x18%\n" +
 	"\x11developers:manage*\x10webhook_endpoint\x82\xd3\xe4\x93\x02):\x10webhook_endpoint\"\x15/v1/webhook_endpoints\x12\xd0\x01\n" +
@@ -5438,9 +2630,7 @@ const file_tanvo_webhook_v1_webhook_proto_rawDesc = "" +
 	"\x15UpdateWebhookEndpoint\x12..tanvo.webhook.v1.UpdateWebhookEndpointRequest\x1a/.tanvo.webhook.v1.UpdateWebhookEndpointResponse\"n\xca\xf3\x18%\n" +
 	"\x11developers:manage*\x10webhook_endpoint\x82\xd3\xe4\x93\x02?:\x10webhook_endpoint2+/v1/webhook_endpoints/{webhook_endpoint.id}\x12\xd6\x01\n" +
 	"\x15DeleteWebhookEndpoint\x12..tanvo.webhook.v1.DeleteWebhookEndpointRequest\x1a/.tanvo.webhook.v1.DeleteWebhookEndpointResponse\"\\\xca\xf3\x18%\n" +
-	"\x11developers:manage*\x10webhook_endpoint\x82\xd3\xe4\x93\x02-*+/v1/webhook_endpoints/{webhook_endpoint_id}\x12\xf9\x01\n" +
-	"\x1bRotateWebhookEndpointSecret\x124.tanvo.webhook.v1.RotateWebhookEndpointSecretRequest\x1a5.tanvo.webhook.v1.RotateWebhookEndpointSecretResponse\"m\xca\xf3\x18%\n" +
-	"\x11developers:manage*\x10webhook_endpoint\x82\xd3\xe4\x93\x02>:\x01*\"9/v1/webhook_endpoints/{webhook_endpoint_id}:rotate_secret\x12\xc5\x01\n" +
+	"\x11developers:manage*\x10webhook_endpoint\x82\xd3\xe4\x93\x02-*+/v1/webhook_endpoints/{webhook_endpoint_id}\x12\xc5\x01\n" +
 	"\x15ListWebhookEventTypes\x12..tanvo.webhook.v1.ListWebhookEventTypesRequest\x1a/.tanvo.webhook.v1.ListWebhookEventTypesResponse\"K\xca\xf3\x18%\n" +
 	"\x11developers:manage*\x10webhook_endpoint\x82\xd3\xe4\x93\x02\x19\x12\x17/v1/webhook_event_types\x90\x02\x01\x12\xe9\x01\n" +
 	"\x12GetWebhookDelivery\x12+.tanvo.webhook.v1.GetWebhookDeliveryRequest\x1a,.tanvo.webhook.v1.GetWebhookDeliveryResponse\"x\xca\xf3\x18%\n" +
@@ -5448,145 +2638,78 @@ const file_tanvo_webhook_v1_webhook_proto_rawDesc = "" +
 	"\x15ListWebhookDeliveries\x12..tanvo.webhook.v1.ListWebhookDeliveriesRequest\x1a/.tanvo.webhook.v1.ListWebhookDeliveriesResponse\"j\xca\xf3\x18%\n" +
 	"\x11developers:manage*\x10webhook_endpoint\x82\xd3\xe4\x93\x028\x126/v1/webhook_endpoints/{webhook_endpoint_id}/deliveries\x90\x02\x01\x12\xf5\x01\n" +
 	"\x14RetryWebhookDelivery\x12-.tanvo.webhook.v1.RetryWebhookDeliveryRequest\x1a..tanvo.webhook.v1.RetryWebhookDeliveryResponse\"~\xca\xf3\x18%\n" +
-	"\x11developers:manage*\x10webhook_endpoint\x82\xd3\xe4\x93\x02O:\x01*\"J/v1/webhook_endpoints/{webhook_endpoint_id}/deliveries/{delivery_id}:retry2\xd4\n" +
-	"\n" +
-	"\x1bStreamingDestinationService\x12\xd9\x01\n" +
-	"\x1aCreateStreamingDestination\x123.tanvo.webhook.v1.CreateStreamingDestinationRequest\x1a4.tanvo.webhook.v1.CreateStreamingDestinationResponse\"P\xca\xf3\x18\x13\n" +
-	"\x11developers:manage\x82\xd3\xe4\x93\x023:\x15streaming_destination\"\x1a/v1/streaming_destinations\x12\xd7\x01\n" +
-	"\x17GetStreamingDestination\x120.tanvo.webhook.v1.GetStreamingDestinationRequest\x1a1.tanvo.webhook.v1.GetStreamingDestinationResponse\"W\xca\xf3\x18\x13\n" +
-	"\x11developers:manage\x82\xd3\xe4\x93\x027\x125/v1/streaming_destinations/{streaming_destination_id}\x90\x02\x01\x12\xc2\x01\n" +
-	"\x19ListStreamingDestinations\x122.tanvo.webhook.v1.ListStreamingDestinationsRequest\x1a3.tanvo.webhook.v1.ListStreamingDestinationsResponse\"<\xca\xf3\x18\x13\n" +
-	"\x11developers:manage\x82\xd3\xe4\x93\x02\x1c\x12\x1a/v1/streaming_destinations\x90\x02\x01\x12\xf4\x01\n" +
-	"\x1aUpdateStreamingDestination\x123.tanvo.webhook.v1.UpdateStreamingDestinationRequest\x1a4.tanvo.webhook.v1.UpdateStreamingDestinationResponse\"k\xca\xf3\x18\x13\n" +
-	"\x11developers:manage\x82\xd3\xe4\x93\x02N:\x15streaming_destination25/v1/streaming_destinations/{streaming_destination.id}\x12\xdd\x01\n" +
-	"\x1aDeleteStreamingDestination\x123.tanvo.webhook.v1.DeleteStreamingDestinationRequest\x1a4.tanvo.webhook.v1.DeleteStreamingDestinationResponse\"T\xca\xf3\x18\x13\n" +
-	"\x11developers:manage\x82\xd3\xe4\x93\x027*5/v1/streaming_destinations/{streaming_destination_id}\x12\xe2\x01\n" +
-	"\x17ListStreamingDeliveries\x120.tanvo.webhook.v1.ListStreamingDeliveriesRequest\x1a1.tanvo.webhook.v1.ListStreamingDeliveriesResponse\"b\xca\xf3\x18\x13\n" +
-	"\x11developers:manage\x82\xd3\xe4\x93\x02B\x12@/v1/streaming_destinations/{streaming_destination_id}/deliveries\x90\x02\x01B\xce\x01\n" +
+	"\x11developers:manage*\x10webhook_endpoint\x82\xd3\xe4\x93\x02O:\x01*\"J/v1/webhook_endpoints/{webhook_endpoint_id}/deliveries/{delivery_id}:retryB\xce\x01\n" +
 	"\x14com.tanvo.webhook.v1B\fWebhookProtoP\x01ZFgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/webhook/v1;webhookv1\xa2\x02\x03TWX\xaa\x02\x10Tanvo.Webhook.V1\xca\x02\x10Tanvo\\Webhook\\V1\xe2\x02\x1cTanvo\\Webhook\\V1\\GPBMetadata\xea\x02\x12Tanvo::Webhook::V1b\beditionsp\xe8\a"
 
-var file_tanvo_webhook_v1_webhook_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_tanvo_webhook_v1_webhook_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
+var file_tanvo_webhook_v1_webhook_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_tanvo_webhook_v1_webhook_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_tanvo_webhook_v1_webhook_proto_goTypes = []any{
-	(DeliveryStatus)(0),                         // 0: tanvo.webhook.v1.DeliveryStatus
-	(StreamingDeliveryStatus)(0),                // 1: tanvo.webhook.v1.StreamingDeliveryStatus
-	(*WebhookEndpoint)(nil),                     // 2: tanvo.webhook.v1.WebhookEndpoint
-	(*WebhookEventType)(nil),                    // 3: tanvo.webhook.v1.WebhookEventType
-	(*WebhookDelivery)(nil),                     // 4: tanvo.webhook.v1.WebhookDelivery
-	(*KafkaDestination)(nil),                    // 5: tanvo.webhook.v1.KafkaDestination
-	(*KinesisDestination)(nil),                  // 6: tanvo.webhook.v1.KinesisDestination
-	(*S3Destination)(nil),                       // 7: tanvo.webhook.v1.S3Destination
-	(*StreamingDestination)(nil),                // 8: tanvo.webhook.v1.StreamingDestination
-	(*StreamingDelivery)(nil),                   // 9: tanvo.webhook.v1.StreamingDelivery
-	(*CreateWebhookEndpointRequest)(nil),        // 10: tanvo.webhook.v1.CreateWebhookEndpointRequest
-	(*CreateWebhookEndpointResponse)(nil),       // 11: tanvo.webhook.v1.CreateWebhookEndpointResponse
-	(*GetWebhookEndpointRequest)(nil),           // 12: tanvo.webhook.v1.GetWebhookEndpointRequest
-	(*GetWebhookEndpointResponse)(nil),          // 13: tanvo.webhook.v1.GetWebhookEndpointResponse
-	(*ListWebhookEndpointsRequest)(nil),         // 14: tanvo.webhook.v1.ListWebhookEndpointsRequest
-	(*ListWebhookEndpointsResponse)(nil),        // 15: tanvo.webhook.v1.ListWebhookEndpointsResponse
-	(*UpdateWebhookEndpointRequest)(nil),        // 16: tanvo.webhook.v1.UpdateWebhookEndpointRequest
-	(*UpdateWebhookEndpointResponse)(nil),       // 17: tanvo.webhook.v1.UpdateWebhookEndpointResponse
-	(*DeleteWebhookEndpointRequest)(nil),        // 18: tanvo.webhook.v1.DeleteWebhookEndpointRequest
-	(*DeleteWebhookEndpointResponse)(nil),       // 19: tanvo.webhook.v1.DeleteWebhookEndpointResponse
-	(*RotateWebhookEndpointSecretRequest)(nil),  // 20: tanvo.webhook.v1.RotateWebhookEndpointSecretRequest
-	(*RotateWebhookEndpointSecretResponse)(nil), // 21: tanvo.webhook.v1.RotateWebhookEndpointSecretResponse
-	(*ListWebhookEventTypesRequest)(nil),        // 22: tanvo.webhook.v1.ListWebhookEventTypesRequest
-	(*ListWebhookEventTypesResponse)(nil),       // 23: tanvo.webhook.v1.ListWebhookEventTypesResponse
-	(*GetWebhookDeliveryRequest)(nil),           // 24: tanvo.webhook.v1.GetWebhookDeliveryRequest
-	(*GetWebhookDeliveryResponse)(nil),          // 25: tanvo.webhook.v1.GetWebhookDeliveryResponse
-	(*ListWebhookDeliveriesRequest)(nil),        // 26: tanvo.webhook.v1.ListWebhookDeliveriesRequest
-	(*ListWebhookDeliveriesResponse)(nil),       // 27: tanvo.webhook.v1.ListWebhookDeliveriesResponse
-	(*RetryWebhookDeliveryRequest)(nil),         // 28: tanvo.webhook.v1.RetryWebhookDeliveryRequest
-	(*RetryWebhookDeliveryResponse)(nil),        // 29: tanvo.webhook.v1.RetryWebhookDeliveryResponse
-	(*CreateStreamingDestinationRequest)(nil),   // 30: tanvo.webhook.v1.CreateStreamingDestinationRequest
-	(*CreateStreamingDestinationResponse)(nil),  // 31: tanvo.webhook.v1.CreateStreamingDestinationResponse
-	(*GetStreamingDestinationRequest)(nil),      // 32: tanvo.webhook.v1.GetStreamingDestinationRequest
-	(*GetStreamingDestinationResponse)(nil),     // 33: tanvo.webhook.v1.GetStreamingDestinationResponse
-	(*ListStreamingDestinationsRequest)(nil),    // 34: tanvo.webhook.v1.ListStreamingDestinationsRequest
-	(*ListStreamingDestinationsResponse)(nil),   // 35: tanvo.webhook.v1.ListStreamingDestinationsResponse
-	(*UpdateStreamingDestinationRequest)(nil),   // 36: tanvo.webhook.v1.UpdateStreamingDestinationRequest
-	(*UpdateStreamingDestinationResponse)(nil),  // 37: tanvo.webhook.v1.UpdateStreamingDestinationResponse
-	(*DeleteStreamingDestinationRequest)(nil),   // 38: tanvo.webhook.v1.DeleteStreamingDestinationRequest
-	(*DeleteStreamingDestinationResponse)(nil),  // 39: tanvo.webhook.v1.DeleteStreamingDestinationResponse
-	(*ListStreamingDeliveriesRequest)(nil),      // 40: tanvo.webhook.v1.ListStreamingDeliveriesRequest
-	(*ListStreamingDeliveriesResponse)(nil),     // 41: tanvo.webhook.v1.ListStreamingDeliveriesResponse
-	(*timestamppb.Timestamp)(nil),               // 42: google.protobuf.Timestamp
-	(*durationpb.Duration)(nil),                 // 43: google.protobuf.Duration
-	(*fieldmaskpb.FieldMask)(nil),               // 44: google.protobuf.FieldMask
+	(DeliveryStatus)(0),                   // 0: tanvo.webhook.v1.DeliveryStatus
+	(*WebhookEndpoint)(nil),               // 1: tanvo.webhook.v1.WebhookEndpoint
+	(*WebhookEventType)(nil),              // 2: tanvo.webhook.v1.WebhookEventType
+	(*WebhookDelivery)(nil),               // 3: tanvo.webhook.v1.WebhookDelivery
+	(*CreateWebhookEndpointRequest)(nil),  // 4: tanvo.webhook.v1.CreateWebhookEndpointRequest
+	(*CreateWebhookEndpointResponse)(nil), // 5: tanvo.webhook.v1.CreateWebhookEndpointResponse
+	(*GetWebhookEndpointRequest)(nil),     // 6: tanvo.webhook.v1.GetWebhookEndpointRequest
+	(*GetWebhookEndpointResponse)(nil),    // 7: tanvo.webhook.v1.GetWebhookEndpointResponse
+	(*ListWebhookEndpointsRequest)(nil),   // 8: tanvo.webhook.v1.ListWebhookEndpointsRequest
+	(*ListWebhookEndpointsResponse)(nil),  // 9: tanvo.webhook.v1.ListWebhookEndpointsResponse
+	(*UpdateWebhookEndpointRequest)(nil),  // 10: tanvo.webhook.v1.UpdateWebhookEndpointRequest
+	(*UpdateWebhookEndpointResponse)(nil), // 11: tanvo.webhook.v1.UpdateWebhookEndpointResponse
+	(*DeleteWebhookEndpointRequest)(nil),  // 12: tanvo.webhook.v1.DeleteWebhookEndpointRequest
+	(*DeleteWebhookEndpointResponse)(nil), // 13: tanvo.webhook.v1.DeleteWebhookEndpointResponse
+	(*ListWebhookEventTypesRequest)(nil),  // 14: tanvo.webhook.v1.ListWebhookEventTypesRequest
+	(*ListWebhookEventTypesResponse)(nil), // 15: tanvo.webhook.v1.ListWebhookEventTypesResponse
+	(*GetWebhookDeliveryRequest)(nil),     // 16: tanvo.webhook.v1.GetWebhookDeliveryRequest
+	(*GetWebhookDeliveryResponse)(nil),    // 17: tanvo.webhook.v1.GetWebhookDeliveryResponse
+	(*ListWebhookDeliveriesRequest)(nil),  // 18: tanvo.webhook.v1.ListWebhookDeliveriesRequest
+	(*ListWebhookDeliveriesResponse)(nil), // 19: tanvo.webhook.v1.ListWebhookDeliveriesResponse
+	(*RetryWebhookDeliveryRequest)(nil),   // 20: tanvo.webhook.v1.RetryWebhookDeliveryRequest
+	(*RetryWebhookDeliveryResponse)(nil),  // 21: tanvo.webhook.v1.RetryWebhookDeliveryResponse
+	(*timestamppb.Timestamp)(nil),         // 22: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),         // 23: google.protobuf.FieldMask
 }
 var file_tanvo_webhook_v1_webhook_proto_depIdxs = []int32{
-	42, // 0: tanvo.webhook.v1.WebhookEndpoint.created_at:type_name -> google.protobuf.Timestamp
-	42, // 1: tanvo.webhook.v1.WebhookEndpoint.updated_at:type_name -> google.protobuf.Timestamp
+	22, // 0: tanvo.webhook.v1.WebhookEndpoint.created_at:type_name -> google.protobuf.Timestamp
+	22, // 1: tanvo.webhook.v1.WebhookEndpoint.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: tanvo.webhook.v1.WebhookDelivery.status:type_name -> tanvo.webhook.v1.DeliveryStatus
-	42, // 3: tanvo.webhook.v1.WebhookDelivery.last_attempt_at:type_name -> google.protobuf.Timestamp
-	42, // 4: tanvo.webhook.v1.WebhookDelivery.next_attempt_at:type_name -> google.protobuf.Timestamp
-	42, // 5: tanvo.webhook.v1.WebhookDelivery.created_at:type_name -> google.protobuf.Timestamp
-	43, // 6: tanvo.webhook.v1.S3Destination.flush_interval:type_name -> google.protobuf.Duration
-	5,  // 7: tanvo.webhook.v1.StreamingDestination.kafka:type_name -> tanvo.webhook.v1.KafkaDestination
-	6,  // 8: tanvo.webhook.v1.StreamingDestination.kinesis:type_name -> tanvo.webhook.v1.KinesisDestination
-	7,  // 9: tanvo.webhook.v1.StreamingDestination.s3:type_name -> tanvo.webhook.v1.S3Destination
-	42, // 10: tanvo.webhook.v1.StreamingDestination.created_at:type_name -> google.protobuf.Timestamp
-	42, // 11: tanvo.webhook.v1.StreamingDestination.updated_at:type_name -> google.protobuf.Timestamp
-	1,  // 12: tanvo.webhook.v1.StreamingDelivery.status:type_name -> tanvo.webhook.v1.StreamingDeliveryStatus
-	42, // 13: tanvo.webhook.v1.StreamingDelivery.created_at:type_name -> google.protobuf.Timestamp
-	2,  // 14: tanvo.webhook.v1.CreateWebhookEndpointRequest.webhook_endpoint:type_name -> tanvo.webhook.v1.WebhookEndpoint
-	2,  // 15: tanvo.webhook.v1.CreateWebhookEndpointResponse.webhook_endpoint:type_name -> tanvo.webhook.v1.WebhookEndpoint
-	2,  // 16: tanvo.webhook.v1.GetWebhookEndpointResponse.webhook_endpoint:type_name -> tanvo.webhook.v1.WebhookEndpoint
-	2,  // 17: tanvo.webhook.v1.ListWebhookEndpointsResponse.webhook_endpoints:type_name -> tanvo.webhook.v1.WebhookEndpoint
-	2,  // 18: tanvo.webhook.v1.UpdateWebhookEndpointRequest.webhook_endpoint:type_name -> tanvo.webhook.v1.WebhookEndpoint
-	44, // 19: tanvo.webhook.v1.UpdateWebhookEndpointRequest.update_mask:type_name -> google.protobuf.FieldMask
-	2,  // 20: tanvo.webhook.v1.UpdateWebhookEndpointResponse.webhook_endpoint:type_name -> tanvo.webhook.v1.WebhookEndpoint
-	43, // 21: tanvo.webhook.v1.RotateWebhookEndpointSecretRequest.overlap:type_name -> google.protobuf.Duration
-	2,  // 22: tanvo.webhook.v1.RotateWebhookEndpointSecretResponse.webhook_endpoint:type_name -> tanvo.webhook.v1.WebhookEndpoint
-	3,  // 23: tanvo.webhook.v1.ListWebhookEventTypesResponse.event_types:type_name -> tanvo.webhook.v1.WebhookEventType
-	4,  // 24: tanvo.webhook.v1.GetWebhookDeliveryResponse.delivery:type_name -> tanvo.webhook.v1.WebhookDelivery
-	4,  // 25: tanvo.webhook.v1.ListWebhookDeliveriesResponse.deliveries:type_name -> tanvo.webhook.v1.WebhookDelivery
-	4,  // 26: tanvo.webhook.v1.RetryWebhookDeliveryResponse.delivery:type_name -> tanvo.webhook.v1.WebhookDelivery
-	8,  // 27: tanvo.webhook.v1.CreateStreamingDestinationRequest.streaming_destination:type_name -> tanvo.webhook.v1.StreamingDestination
-	8,  // 28: tanvo.webhook.v1.CreateStreamingDestinationResponse.streaming_destination:type_name -> tanvo.webhook.v1.StreamingDestination
-	8,  // 29: tanvo.webhook.v1.GetStreamingDestinationResponse.streaming_destination:type_name -> tanvo.webhook.v1.StreamingDestination
-	8,  // 30: tanvo.webhook.v1.ListStreamingDestinationsResponse.streaming_destinations:type_name -> tanvo.webhook.v1.StreamingDestination
-	8,  // 31: tanvo.webhook.v1.UpdateStreamingDestinationRequest.streaming_destination:type_name -> tanvo.webhook.v1.StreamingDestination
-	44, // 32: tanvo.webhook.v1.UpdateStreamingDestinationRequest.update_mask:type_name -> google.protobuf.FieldMask
-	8,  // 33: tanvo.webhook.v1.UpdateStreamingDestinationResponse.streaming_destination:type_name -> tanvo.webhook.v1.StreamingDestination
-	9,  // 34: tanvo.webhook.v1.ListStreamingDeliveriesResponse.deliveries:type_name -> tanvo.webhook.v1.StreamingDelivery
-	10, // 35: tanvo.webhook.v1.WebhookService.CreateWebhookEndpoint:input_type -> tanvo.webhook.v1.CreateWebhookEndpointRequest
-	12, // 36: tanvo.webhook.v1.WebhookService.GetWebhookEndpoint:input_type -> tanvo.webhook.v1.GetWebhookEndpointRequest
-	14, // 37: tanvo.webhook.v1.WebhookService.ListWebhookEndpoints:input_type -> tanvo.webhook.v1.ListWebhookEndpointsRequest
-	16, // 38: tanvo.webhook.v1.WebhookService.UpdateWebhookEndpoint:input_type -> tanvo.webhook.v1.UpdateWebhookEndpointRequest
-	18, // 39: tanvo.webhook.v1.WebhookService.DeleteWebhookEndpoint:input_type -> tanvo.webhook.v1.DeleteWebhookEndpointRequest
-	20, // 40: tanvo.webhook.v1.WebhookService.RotateWebhookEndpointSecret:input_type -> tanvo.webhook.v1.RotateWebhookEndpointSecretRequest
-	22, // 41: tanvo.webhook.v1.WebhookService.ListWebhookEventTypes:input_type -> tanvo.webhook.v1.ListWebhookEventTypesRequest
-	24, // 42: tanvo.webhook.v1.WebhookService.GetWebhookDelivery:input_type -> tanvo.webhook.v1.GetWebhookDeliveryRequest
-	26, // 43: tanvo.webhook.v1.WebhookService.ListWebhookDeliveries:input_type -> tanvo.webhook.v1.ListWebhookDeliveriesRequest
-	28, // 44: tanvo.webhook.v1.WebhookService.RetryWebhookDelivery:input_type -> tanvo.webhook.v1.RetryWebhookDeliveryRequest
-	30, // 45: tanvo.webhook.v1.StreamingDestinationService.CreateStreamingDestination:input_type -> tanvo.webhook.v1.CreateStreamingDestinationRequest
-	32, // 46: tanvo.webhook.v1.StreamingDestinationService.GetStreamingDestination:input_type -> tanvo.webhook.v1.GetStreamingDestinationRequest
-	34, // 47: tanvo.webhook.v1.StreamingDestinationService.ListStreamingDestinations:input_type -> tanvo.webhook.v1.ListStreamingDestinationsRequest
-	36, // 48: tanvo.webhook.v1.StreamingDestinationService.UpdateStreamingDestination:input_type -> tanvo.webhook.v1.UpdateStreamingDestinationRequest
-	38, // 49: tanvo.webhook.v1.StreamingDestinationService.DeleteStreamingDestination:input_type -> tanvo.webhook.v1.DeleteStreamingDestinationRequest
-	40, // 50: tanvo.webhook.v1.StreamingDestinationService.ListStreamingDeliveries:input_type -> tanvo.webhook.v1.ListStreamingDeliveriesRequest
-	11, // 51: tanvo.webhook.v1.WebhookService.CreateWebhookEndpoint:output_type -> tanvo.webhook.v1.CreateWebhookEndpointResponse
-	13, // 52: tanvo.webhook.v1.WebhookService.GetWebhookEndpoint:output_type -> tanvo.webhook.v1.GetWebhookEndpointResponse
-	15, // 53: tanvo.webhook.v1.WebhookService.ListWebhookEndpoints:output_type -> tanvo.webhook.v1.ListWebhookEndpointsResponse
-	17, // 54: tanvo.webhook.v1.WebhookService.UpdateWebhookEndpoint:output_type -> tanvo.webhook.v1.UpdateWebhookEndpointResponse
-	19, // 55: tanvo.webhook.v1.WebhookService.DeleteWebhookEndpoint:output_type -> tanvo.webhook.v1.DeleteWebhookEndpointResponse
-	21, // 56: tanvo.webhook.v1.WebhookService.RotateWebhookEndpointSecret:output_type -> tanvo.webhook.v1.RotateWebhookEndpointSecretResponse
-	23, // 57: tanvo.webhook.v1.WebhookService.ListWebhookEventTypes:output_type -> tanvo.webhook.v1.ListWebhookEventTypesResponse
-	25, // 58: tanvo.webhook.v1.WebhookService.GetWebhookDelivery:output_type -> tanvo.webhook.v1.GetWebhookDeliveryResponse
-	27, // 59: tanvo.webhook.v1.WebhookService.ListWebhookDeliveries:output_type -> tanvo.webhook.v1.ListWebhookDeliveriesResponse
-	29, // 60: tanvo.webhook.v1.WebhookService.RetryWebhookDelivery:output_type -> tanvo.webhook.v1.RetryWebhookDeliveryResponse
-	31, // 61: tanvo.webhook.v1.StreamingDestinationService.CreateStreamingDestination:output_type -> tanvo.webhook.v1.CreateStreamingDestinationResponse
-	33, // 62: tanvo.webhook.v1.StreamingDestinationService.GetStreamingDestination:output_type -> tanvo.webhook.v1.GetStreamingDestinationResponse
-	35, // 63: tanvo.webhook.v1.StreamingDestinationService.ListStreamingDestinations:output_type -> tanvo.webhook.v1.ListStreamingDestinationsResponse
-	37, // 64: tanvo.webhook.v1.StreamingDestinationService.UpdateStreamingDestination:output_type -> tanvo.webhook.v1.UpdateStreamingDestinationResponse
-	39, // 65: tanvo.webhook.v1.StreamingDestinationService.DeleteStreamingDestination:output_type -> tanvo.webhook.v1.DeleteStreamingDestinationResponse
-	41, // 66: tanvo.webhook.v1.StreamingDestinationService.ListStreamingDeliveries:output_type -> tanvo.webhook.v1.ListStreamingDeliveriesResponse
-	51, // [51:67] is the sub-list for method output_type
-	35, // [35:51] is the sub-list for method input_type
-	35, // [35:35] is the sub-list for extension type_name
-	35, // [35:35] is the sub-list for extension extendee
-	0,  // [0:35] is the sub-list for field type_name
+	22, // 3: tanvo.webhook.v1.WebhookDelivery.last_attempt_at:type_name -> google.protobuf.Timestamp
+	22, // 4: tanvo.webhook.v1.WebhookDelivery.next_attempt_at:type_name -> google.protobuf.Timestamp
+	22, // 5: tanvo.webhook.v1.WebhookDelivery.created_at:type_name -> google.protobuf.Timestamp
+	1,  // 6: tanvo.webhook.v1.CreateWebhookEndpointRequest.webhook_endpoint:type_name -> tanvo.webhook.v1.WebhookEndpoint
+	1,  // 7: tanvo.webhook.v1.CreateWebhookEndpointResponse.webhook_endpoint:type_name -> tanvo.webhook.v1.WebhookEndpoint
+	1,  // 8: tanvo.webhook.v1.GetWebhookEndpointResponse.webhook_endpoint:type_name -> tanvo.webhook.v1.WebhookEndpoint
+	1,  // 9: tanvo.webhook.v1.ListWebhookEndpointsResponse.webhook_endpoints:type_name -> tanvo.webhook.v1.WebhookEndpoint
+	1,  // 10: tanvo.webhook.v1.UpdateWebhookEndpointRequest.webhook_endpoint:type_name -> tanvo.webhook.v1.WebhookEndpoint
+	23, // 11: tanvo.webhook.v1.UpdateWebhookEndpointRequest.update_mask:type_name -> google.protobuf.FieldMask
+	1,  // 12: tanvo.webhook.v1.UpdateWebhookEndpointResponse.webhook_endpoint:type_name -> tanvo.webhook.v1.WebhookEndpoint
+	2,  // 13: tanvo.webhook.v1.ListWebhookEventTypesResponse.event_types:type_name -> tanvo.webhook.v1.WebhookEventType
+	3,  // 14: tanvo.webhook.v1.GetWebhookDeliveryResponse.delivery:type_name -> tanvo.webhook.v1.WebhookDelivery
+	3,  // 15: tanvo.webhook.v1.ListWebhookDeliveriesResponse.deliveries:type_name -> tanvo.webhook.v1.WebhookDelivery
+	3,  // 16: tanvo.webhook.v1.RetryWebhookDeliveryResponse.delivery:type_name -> tanvo.webhook.v1.WebhookDelivery
+	4,  // 17: tanvo.webhook.v1.WebhookService.CreateWebhookEndpoint:input_type -> tanvo.webhook.v1.CreateWebhookEndpointRequest
+	6,  // 18: tanvo.webhook.v1.WebhookService.GetWebhookEndpoint:input_type -> tanvo.webhook.v1.GetWebhookEndpointRequest
+	8,  // 19: tanvo.webhook.v1.WebhookService.ListWebhookEndpoints:input_type -> tanvo.webhook.v1.ListWebhookEndpointsRequest
+	10, // 20: tanvo.webhook.v1.WebhookService.UpdateWebhookEndpoint:input_type -> tanvo.webhook.v1.UpdateWebhookEndpointRequest
+	12, // 21: tanvo.webhook.v1.WebhookService.DeleteWebhookEndpoint:input_type -> tanvo.webhook.v1.DeleteWebhookEndpointRequest
+	14, // 22: tanvo.webhook.v1.WebhookService.ListWebhookEventTypes:input_type -> tanvo.webhook.v1.ListWebhookEventTypesRequest
+	16, // 23: tanvo.webhook.v1.WebhookService.GetWebhookDelivery:input_type -> tanvo.webhook.v1.GetWebhookDeliveryRequest
+	18, // 24: tanvo.webhook.v1.WebhookService.ListWebhookDeliveries:input_type -> tanvo.webhook.v1.ListWebhookDeliveriesRequest
+	20, // 25: tanvo.webhook.v1.WebhookService.RetryWebhookDelivery:input_type -> tanvo.webhook.v1.RetryWebhookDeliveryRequest
+	5,  // 26: tanvo.webhook.v1.WebhookService.CreateWebhookEndpoint:output_type -> tanvo.webhook.v1.CreateWebhookEndpointResponse
+	7,  // 27: tanvo.webhook.v1.WebhookService.GetWebhookEndpoint:output_type -> tanvo.webhook.v1.GetWebhookEndpointResponse
+	9,  // 28: tanvo.webhook.v1.WebhookService.ListWebhookEndpoints:output_type -> tanvo.webhook.v1.ListWebhookEndpointsResponse
+	11, // 29: tanvo.webhook.v1.WebhookService.UpdateWebhookEndpoint:output_type -> tanvo.webhook.v1.UpdateWebhookEndpointResponse
+	13, // 30: tanvo.webhook.v1.WebhookService.DeleteWebhookEndpoint:output_type -> tanvo.webhook.v1.DeleteWebhookEndpointResponse
+	15, // 31: tanvo.webhook.v1.WebhookService.ListWebhookEventTypes:output_type -> tanvo.webhook.v1.ListWebhookEventTypesResponse
+	17, // 32: tanvo.webhook.v1.WebhookService.GetWebhookDelivery:output_type -> tanvo.webhook.v1.GetWebhookDeliveryResponse
+	19, // 33: tanvo.webhook.v1.WebhookService.ListWebhookDeliveries:output_type -> tanvo.webhook.v1.ListWebhookDeliveriesResponse
+	21, // 34: tanvo.webhook.v1.WebhookService.RetryWebhookDelivery:output_type -> tanvo.webhook.v1.RetryWebhookDeliveryResponse
+	26, // [26:35] is the sub-list for method output_type
+	17, // [17:26] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_webhook_v1_webhook_proto_init() }
@@ -5594,20 +2717,15 @@ func file_tanvo_webhook_v1_webhook_proto_init() {
 	if File_tanvo_webhook_v1_webhook_proto != nil {
 		return
 	}
-	file_tanvo_webhook_v1_webhook_proto_msgTypes[6].OneofWrappers = []any{
-		(*streamingDestination_Kafka)(nil),
-		(*streamingDestination_Kinesis)(nil),
-		(*streamingDestination_S3)(nil),
-	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_webhook_v1_webhook_proto_rawDesc), len(file_tanvo_webhook_v1_webhook_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   40,
+			NumEnums:      1,
+			NumMessages:   21,
 			NumExtensions: 0,
-			NumServices:   2,
+			NumServices:   1,
 		},
 		GoTypes:           file_tanvo_webhook_v1_webhook_proto_goTypes,
 		DependencyIndexes: file_tanvo_webhook_v1_webhook_proto_depIdxs,

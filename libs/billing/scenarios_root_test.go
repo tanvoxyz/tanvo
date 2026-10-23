@@ -782,7 +782,9 @@ func rootPBSetup(t *testing.T, threshold int64, cur money.Currency) (*scenario, 
 // 20 (lago update_plan with no charges, then with one again).
 func rootRecreateCharge(s *scenario, p *catalog.Plan, m *catalog.BillableMetric, old *catalog.Charge) *catalog.Charge {
 	s.travelTo(billingtest.Date(2025, 1, 21))
-	s.tx(func(ctx context.Context, r port.Repos) error { return r.Charges.Delete(ctx, s.OrgID(), old.ID) })
+	s.tx(func(ctx context.Context, r port.Repos) error {
+		return r.Charges.Discard(ctx, s.OrgID(), old.ID, s.Now())
+	})
 	return s.Charge(p, m, catalog.ChargeModelStandard, `{"amount":"1"}`)
 }
 

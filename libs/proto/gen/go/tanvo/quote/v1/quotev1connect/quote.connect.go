@@ -45,6 +45,11 @@ const (
 	// QuoteServiceListQuoteVersionsProcedure is the procedure name of the QuoteService's
 	// ListQuoteVersions RPC.
 	QuoteServiceListQuoteVersionsProcedure = "/tanvo.quote.v1.QuoteService/ListQuoteVersions"
+	// QuoteServiceAddQuoteImageProcedure is the procedure name of the QuoteService's AddQuoteImage RPC.
+	QuoteServiceAddQuoteImageProcedure = "/tanvo.quote.v1.QuoteService/AddQuoteImage"
+	// QuoteServiceGetQuoteVersionProcedure is the procedure name of the QuoteService's GetQuoteVersion
+	// RPC.
+	QuoteServiceGetQuoteVersionProcedure = "/tanvo.quote.v1.QuoteService/GetQuoteVersion"
 	// QuoteServiceUpdateQuoteVersionProcedure is the procedure name of the QuoteService's
 	// UpdateQuoteVersion RPC.
 	QuoteServiceUpdateQuoteVersionProcedure = "/tanvo.quote.v1.QuoteService/UpdateQuoteVersion"
@@ -69,9 +74,6 @@ const (
 	// OrderFormServiceVoidOrderFormProcedure is the procedure name of the OrderFormService's
 	// VoidOrderForm RPC.
 	OrderFormServiceVoidOrderFormProcedure = "/tanvo.quote.v1.OrderFormService/VoidOrderForm"
-	// OrderFormServiceDownloadOrderFormProcedure is the procedure name of the OrderFormService's
-	// DownloadOrderForm RPC.
-	OrderFormServiceDownloadOrderFormProcedure = "/tanvo.quote.v1.OrderFormService/DownloadOrderForm"
 	// OrderServiceGetOrderProcedure is the procedure name of the OrderService's GetOrder RPC.
 	OrderServiceGetOrderProcedure = "/tanvo.quote.v1.OrderService/GetOrder"
 	// OrderServiceListOrdersProcedure is the procedure name of the OrderService's ListOrders RPC.
@@ -121,6 +123,21 @@ var (
 			IdempotencyLevel: connect.IdempotencyNoSideEffects,
 		}
 	})
+	quoteServiceAddQuoteImageSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_quote_v1_quote_proto.Services().ByName("QuoteService").Methods().ByName("AddQuoteImage"),
+			Procedure:  QuoteServiceAddQuoteImageProcedure,
+		}
+	})
+	quoteServiceGetQuoteVersionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType:       connect.StreamTypeUnary,
+			Schema:           v1.File_tanvo_quote_v1_quote_proto.Services().ByName("QuoteService").Methods().ByName("GetQuoteVersion"),
+			Procedure:        QuoteServiceGetQuoteVersionProcedure,
+			IdempotencyLevel: connect.IdempotencyNoSideEffects,
+		}
+	})
 	quoteServiceUpdateQuoteVersionSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -163,6 +180,11 @@ type QuoteServiceClient interface {
 	UpdateQuote(context.Context, *v1.UpdateQuoteRequest) (*v1.UpdateQuoteResponse, error)
 	// Lists the versions of a quote.
 	ListQuoteVersions(context.Context, *v1.ListQuoteVersionsRequest) (*v1.ListQuoteVersionsResponse, error)
+	// Uploads an image (PNG, JPEG, WebP or GIF, under 5 MB) for a quote's
+	// content and returns its ID and URL.
+	AddQuoteImage(context.Context, *v1.AddQuoteImageRequest) (*v1.AddQuoteImageResponse, error)
+	// Returns a quote version.
+	GetQuoteVersion(context.Context, *v1.GetQuoteVersionRequest) (*v1.GetQuoteVersionResponse, error)
 	// Updates the content of a draft version.
 	UpdateQuoteVersion(context.Context, *v1.UpdateQuoteVersionRequest) (*v1.UpdateQuoteVersionResponse, error)
 	// Creates a new draft version from the latest one, superseding it.
@@ -192,6 +214,11 @@ type QuoteServiceHandler interface {
 	UpdateQuote(context.Context, *v1.UpdateQuoteRequest) (*v1.UpdateQuoteResponse, error)
 	// Lists the versions of a quote.
 	ListQuoteVersions(context.Context, *v1.ListQuoteVersionsRequest) (*v1.ListQuoteVersionsResponse, error)
+	// Uploads an image (PNG, JPEG, WebP or GIF, under 5 MB) for a quote's
+	// content and returns its ID and URL.
+	AddQuoteImage(context.Context, *v1.AddQuoteImageRequest) (*v1.AddQuoteImageResponse, error)
+	// Returns a quote version.
+	GetQuoteVersion(context.Context, *v1.GetQuoteVersionRequest) (*v1.GetQuoteVersionResponse, error)
 	// Updates the content of a draft version.
 	UpdateQuoteVersion(context.Context, *v1.UpdateQuoteVersionRequest) (*v1.UpdateQuoteVersionResponse, error)
 	// Creates a new draft version from the latest one, superseding it.
@@ -213,6 +240,8 @@ func RegisterQuoteServiceHandler(server *connect.Server, svc QuoteServiceHandler
 		connect.Method{Spec: quoteServiceListQuotesSpec(), Handler: adapter.listQuotes},
 		connect.Method{Spec: quoteServiceUpdateQuoteSpec(), Handler: adapter.updateQuote},
 		connect.Method{Spec: quoteServiceListQuoteVersionsSpec(), Handler: adapter.listQuoteVersions},
+		connect.Method{Spec: quoteServiceAddQuoteImageSpec(), Handler: adapter.addQuoteImage},
+		connect.Method{Spec: quoteServiceGetQuoteVersionSpec(), Handler: adapter.getQuoteVersion},
 		connect.Method{Spec: quoteServiceUpdateQuoteVersionSpec(), Handler: adapter.updateQuoteVersion},
 		connect.Method{Spec: quoteServiceCloneQuoteVersionSpec(), Handler: adapter.cloneQuoteVersion},
 		connect.Method{Spec: quoteServiceApproveQuoteVersionSpec(), Handler: adapter.approveQuoteVersion},
@@ -241,6 +270,14 @@ func (UnimplementedQuoteServiceHandler) UpdateQuote(context.Context, *v1.UpdateQ
 
 func (UnimplementedQuoteServiceHandler) ListQuoteVersions(context.Context, *v1.ListQuoteVersionsRequest) (*v1.ListQuoteVersionsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.quote.v1.QuoteService.ListQuoteVersions is not implemented")
+}
+
+func (UnimplementedQuoteServiceHandler) AddQuoteImage(context.Context, *v1.AddQuoteImageRequest) (*v1.AddQuoteImageResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.quote.v1.QuoteService.AddQuoteImage is not implemented")
+}
+
+func (UnimplementedQuoteServiceHandler) GetQuoteVersion(context.Context, *v1.GetQuoteVersionRequest) (*v1.GetQuoteVersionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.quote.v1.QuoteService.GetQuoteVersion is not implemented")
 }
 
 func (UnimplementedQuoteServiceHandler) UpdateQuoteVersion(context.Context, *v1.UpdateQuoteVersionRequest) (*v1.UpdateQuoteVersionResponse, error) {
@@ -298,6 +335,22 @@ func (c *quoteServiceClient) UpdateQuote(ctx context.Context, req *v1.UpdateQuot
 func (c *quoteServiceClient) ListQuoteVersions(ctx context.Context, req *v1.ListQuoteVersionsRequest) (*v1.ListQuoteVersionsResponse, error) {
 	var res v1.ListQuoteVersionsResponse
 	if err := c.client.CallUnary(ctx, quoteServiceListQuoteVersionsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *quoteServiceClient) AddQuoteImage(ctx context.Context, req *v1.AddQuoteImageRequest) (*v1.AddQuoteImageResponse, error) {
+	var res v1.AddQuoteImageResponse
+	if err := c.client.CallUnary(ctx, quoteServiceAddQuoteImageSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *quoteServiceClient) GetQuoteVersion(ctx context.Context, req *v1.GetQuoteVersionRequest) (*v1.GetQuoteVersionResponse, error) {
+	var res v1.GetQuoteVersionResponse
+	if err := c.client.CallUnary(ctx, quoteServiceGetQuoteVersionSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -397,6 +450,30 @@ func (h quoteServiceHandler) listQuoteVersions(ctx context.Context, _ connect.Sp
 	return stream.Send(res)
 }
 
+func (h quoteServiceHandler) addQuoteImage(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.AddQuoteImageRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.AddQuoteImage(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h quoteServiceHandler) getQuoteVersion(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetQuoteVersionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetQuoteVersion(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
 func (h quoteServiceHandler) updateQuoteVersion(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
 	var req v1.UpdateQuoteVersionRequest
 	if err := stream.Receive(&req); err != nil {
@@ -476,13 +553,6 @@ var (
 			Procedure:  OrderFormServiceVoidOrderFormProcedure,
 		}
 	})
-	orderFormServiceDownloadOrderFormSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_tanvo_quote_v1_quote_proto.Services().ByName("OrderFormService").Methods().ByName("DownloadOrderForm"),
-			Procedure:  OrderFormServiceDownloadOrderFormProcedure,
-		}
-	})
 )
 
 // OrderFormServiceClient is a client for the tanvo.quote.v1.OrderFormService service.
@@ -495,8 +565,6 @@ type OrderFormServiceClient interface {
 	SignOrderForm(context.Context, *v1.SignOrderFormRequest) (*v1.SignOrderFormResponse, error)
 	// Voids an order form.
 	VoidOrderForm(context.Context, *v1.VoidOrderFormRequest) (*v1.VoidOrderFormResponse, error)
-	// Returns a signed URL of the order form document.
-	DownloadOrderForm(context.Context, *v1.DownloadOrderFormRequest) (*v1.DownloadOrderFormResponse, error)
 }
 
 // NewOrderFormServiceClient constructs a client for the tanvo.quote.v1.OrderFormService service.
@@ -515,8 +583,6 @@ type OrderFormServiceHandler interface {
 	SignOrderForm(context.Context, *v1.SignOrderFormRequest) (*v1.SignOrderFormResponse, error)
 	// Voids an order form.
 	VoidOrderForm(context.Context, *v1.VoidOrderFormRequest) (*v1.VoidOrderFormResponse, error)
-	// Returns a signed URL of the order form document.
-	DownloadOrderForm(context.Context, *v1.DownloadOrderFormRequest) (*v1.DownloadOrderFormResponse, error)
 }
 
 // RegisterOrderFormServiceHandler registers svc as the tanvo.quote.v1.OrderFormService
@@ -528,7 +594,6 @@ func RegisterOrderFormServiceHandler(server *connect.Server, svc OrderFormServic
 		connect.Method{Spec: orderFormServiceListOrderFormsSpec(), Handler: adapter.listOrderForms},
 		connect.Method{Spec: orderFormServiceSignOrderFormSpec(), Handler: adapter.signOrderForm},
 		connect.Method{Spec: orderFormServiceVoidOrderFormSpec(), Handler: adapter.voidOrderForm},
-		connect.Method{Spec: orderFormServiceDownloadOrderFormSpec(), Handler: adapter.downloadOrderForm},
 	)
 }
 
@@ -549,10 +614,6 @@ func (UnimplementedOrderFormServiceHandler) SignOrderForm(context.Context, *v1.S
 
 func (UnimplementedOrderFormServiceHandler) VoidOrderForm(context.Context, *v1.VoidOrderFormRequest) (*v1.VoidOrderFormResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.quote.v1.OrderFormService.VoidOrderForm is not implemented")
-}
-
-func (UnimplementedOrderFormServiceHandler) DownloadOrderForm(context.Context, *v1.DownloadOrderFormRequest) (*v1.DownloadOrderFormResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.quote.v1.OrderFormService.DownloadOrderForm is not implemented")
 }
 
 type orderFormServiceClient struct {
@@ -586,14 +647,6 @@ func (c *orderFormServiceClient) SignOrderForm(ctx context.Context, req *v1.Sign
 func (c *orderFormServiceClient) VoidOrderForm(ctx context.Context, req *v1.VoidOrderFormRequest) (*v1.VoidOrderFormResponse, error) {
 	var res v1.VoidOrderFormResponse
 	if err := c.client.CallUnary(ctx, orderFormServiceVoidOrderFormSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *orderFormServiceClient) DownloadOrderForm(ctx context.Context, req *v1.DownloadOrderFormRequest) (*v1.DownloadOrderFormResponse, error) {
-	var res v1.DownloadOrderFormResponse
-	if err := c.client.CallUnary(ctx, orderFormServiceDownloadOrderFormSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -643,18 +696,6 @@ func (h orderFormServiceHandler) voidOrderForm(ctx context.Context, _ connect.Sp
 		return err
 	}
 	res, err := h.svc.VoidOrderForm(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h orderFormServiceHandler) downloadOrderForm(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.DownloadOrderFormRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.DownloadOrderForm(ctx, &req)
 	if err != nil {
 		return err
 	}

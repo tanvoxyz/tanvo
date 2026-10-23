@@ -92,8 +92,23 @@ func (s *Service) RefreshOngoingBalances(ctx context.Context, org core.Organizat
 		var (
 			seen []*wallet.Wallet
 			fees []UsageFee
+			gen  int64
 		)
+		// The refresh is claimed, in a transaction of its own, before the
+		// usage is read: the claim waits for the transactions that flagged
+		// the customer, and a flag raised by later events survives this
+		// refresh.
 		err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+			var err error
+			if gen, err = r.Customers.ClaimWalletRefresh(ctx, org, c); err != nil {
+				return fmt.Errorf("claim wallet refresh of customer %s: %w", c, err)
+			}
+			return nil
+		})
+		if err != nil {
+			return nil, err
+		}
+		err = s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
 			var err error
 			if seen, err = r.Wallets.ListActiveForApplication(ctx, org, c); err != nil {
 				return fmt.Errorf("list wallets of customer %s: %w", c, err)
@@ -125,7 +140,15 @@ func (s *Service) RefreshOngoingBalances(ctx context.Context, org core.Organizat
 				return nil
 			}
 			out = ws
-			return s.allocate(ctx, r, org, ws, fees)
+			if err := s.allocate(ctx, r, org, ws, fees); err != nil {
+				return err
+			}
+			// lago app/services/customers/refresh_wallets_service.rb:36 clears
+			// awaiting_wallet_refresh once the balances are saved.
+			if err := r.Customers.ClearWalletRefresh(ctx, org, c, gen); err != nil {
+				return fmt.Errorf("clear wallet refresh of customer %s: %w", c, err)
+			}
+			return nil
 		})
 		if err != nil {
 			return nil, err
@@ -209,10 +232,14 @@ func (s *Service) refreshWallet(ctx context.Context, r port.Repos, w *wallet.Wal
 		}
 	}
 	if changed && threshold {
-		return kernel.Enqueue(ctx, r, w.OrganizationID, kernel.JobWalletThresholdTopUp, kernel.WalletArgs{WalletID: w.ID},
-			w.ID.String(), s.d.Now().Add(thresholdTopUpDelay))
+		if err := kernel.Enqueue(ctx, r, w.OrganizationID, kernel.JobWalletThresholdTopUp, kernel.WalletArgs{WalletID: w.ID},
+			w.ID.String(), s.d.Now().Add(thresholdTopUpDelay)); err != nil {
+			return err
+		}
 	}
-	return nil
+	// lago app/services/wallets/balance/update_ongoing_service.rb:27,
+	// whether or not the balances changed.
+	return kernel.EnqueueWalletAlerts(ctx, r, w)
 }
 
 // minorToCredits converts an amount of the wallet's currency to credits,

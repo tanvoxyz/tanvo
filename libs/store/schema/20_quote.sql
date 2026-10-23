@@ -2,8 +2,8 @@
 --
 -- A quote has numbered versions, at most one of them draft or approved; an
 -- approved version has at most one order form, and a signed order form at
--- most one order. Numbers are unique per organization; sequential ids come
--- from NextSequence (per organization and creation year) under a lock.
+-- most one order. Numbers and sequential ids are unique per organization;
+-- sequential ids come from NextSequence under a lock.
 
 CREATE TABLE quotes (
   organization_id uuid NOT NULL,
@@ -13,6 +13,8 @@ CREATE TABLE quotes (
   customer_id uuid NOT NULL,
   order_type text NOT NULL,
   subscription_id uuid,
+  -- The images uploaded for the content (blob references).
+  images text[] NOT NULL DEFAULT '{}',
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
   PRIMARY KEY (organization_id, id),
@@ -20,13 +22,14 @@ CREATE TABLE quotes (
   CONSTRAINT quotes_customer_fkey FOREIGN KEY (organization_id, customer_id) REFERENCES customers (organization_id, id),
   CONSTRAINT quotes_subscription_fkey FOREIGN KEY (organization_id, subscription_id) REFERENCES subscriptions (organization_id, id),
   CONSTRAINT quotes_number_key UNIQUE (organization_id, number),
+  CONSTRAINT quotes_sequential_id_key UNIQUE (organization_id, sequential_id),
   CONSTRAINT quotes_order_type_check CHECK (order_type IN ('subscription_creation', 'subscription_amendment', 'one_off')),
   CONSTRAINT quotes_sequential_id_check CHECK (sequential_id >= 0)
 );
 
 CREATE INDEX quotes_customer_idx ON quotes (organization_id, customer_id);
 CREATE INDEX quotes_subscription_idx ON quotes (organization_id, subscription_id) WHERE subscription_id IS NOT NULL;
-CREATE INDEX quotes_created_at_idx ON quotes (organization_id, created_at);
+CREATE INDEX quotes_created_at_idx ON quotes (organization_id, created_at, id);
 
 ALTER TABLE quotes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON quotes
@@ -56,8 +59,12 @@ CREATE TABLE quote_versions (
   version integer NOT NULL,
   status text NOT NULL,
   void_reason text,
-  -- The proposal, decoded by libs/billing, kept verbatim.
-  content json,
+  -- The document of the proposal.
+  content text,
+  -- The quoted items, decoded by libs/billing, kept verbatim.
+  billing_items json,
+  -- The placeholder values frozen at approval.
+  mention_variables json,
   currency text,
   billing_entity_id uuid,
   approved_at timestamptz,
@@ -93,7 +100,6 @@ CREATE TABLE order_forms (
   void_reason text,
   expires_at timestamptz,
   signed_at timestamptz,
-  signed_by text,
   signed_document text,
   voided_at timestamptz,
   created_at timestamptz NOT NULL,
@@ -103,6 +109,7 @@ CREATE TABLE order_forms (
   CONSTRAINT order_forms_customer_fkey FOREIGN KEY (organization_id, customer_id) REFERENCES customers (organization_id, id),
   CONSTRAINT order_forms_quote_version_fkey FOREIGN KEY (organization_id, quote_version_id) REFERENCES quote_versions (organization_id, id),
   CONSTRAINT order_forms_number_key UNIQUE (organization_id, number),
+  CONSTRAINT order_forms_sequential_id_key UNIQUE (organization_id, sequential_id),
   -- A quote version has at most one order form.
   CONSTRAINT order_forms_quote_version_key UNIQUE (organization_id, quote_version_id),
   CONSTRAINT order_forms_status_check CHECK (status IN ('generated', 'signed', 'expired', 'voided')),
@@ -111,7 +118,7 @@ CREATE TABLE order_forms (
 );
 
 CREATE INDEX order_forms_customer_idx ON order_forms (organization_id, customer_id);
-CREATE INDEX order_forms_created_at_idx ON order_forms (organization_id, created_at);
+CREATE INDEX order_forms_created_at_idx ON order_forms (organization_id, created_at, id);
 -- The expiry scan across organizations.
 CREATE INDEX order_forms_expiring_idx ON order_forms (expires_at) WHERE status = 'generated' AND expires_at IS NOT NULL;
 
@@ -139,6 +146,7 @@ CREATE TABLE orders (
   CONSTRAINT orders_customer_fkey FOREIGN KEY (organization_id, customer_id) REFERENCES customers (organization_id, id),
   CONSTRAINT orders_order_form_fkey FOREIGN KEY (organization_id, order_form_id) REFERENCES order_forms (organization_id, id),
   CONSTRAINT orders_number_key UNIQUE (organization_id, number),
+  CONSTRAINT orders_sequential_id_key UNIQUE (organization_id, sequential_id),
   -- An order form has at most one order.
   CONSTRAINT orders_order_form_key UNIQUE (organization_id, order_form_id),
   CONSTRAINT orders_status_check CHECK (status IN ('created', 'executed', 'failed')),
@@ -147,7 +155,7 @@ CREATE TABLE orders (
 );
 
 CREATE INDEX orders_customer_idx ON orders (organization_id, customer_id);
-CREATE INDEX orders_created_at_idx ON orders (organization_id, created_at);
+CREATE INDEX orders_created_at_idx ON orders (organization_id, created_at, id);
 -- The execution scan across organizations.
 CREATE INDEX orders_executable_idx ON orders (execute_at) WHERE status = 'created' AND execute_at IS NOT NULL;
 

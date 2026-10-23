@@ -149,7 +149,8 @@ type CustomerServiceClient interface {
 	ListCustomers(context.Context, *v1.ListCustomersRequest) (*v1.ListCustomersResponse, error)
 	// Updates a customer. With allow_missing and an `external_id:` reference
 	// in customer.id, creates the customer when it does not exist (upsert).
-	// The currency is locked once the customer is billed.
+	// The currency is a preference for new billing objects and may change
+	// at any time.
 	UpdateCustomer(context.Context, *v1.UpdateCustomerRequest) (*v1.UpdateCustomerResponse, error)
 	// Deletes a customer: terminates its subscriptions and wallets and
 	// finalizes its draft invoices.
@@ -185,7 +186,8 @@ type CustomerServiceHandler interface {
 	ListCustomers(context.Context, *v1.ListCustomersRequest) (*v1.ListCustomersResponse, error)
 	// Updates a customer. With allow_missing and an `external_id:` reference
 	// in customer.id, creates the customer when it does not exist (upsert).
-	// The currency is locked once the customer is billed.
+	// The currency is a preference for new billing objects and may change
+	// at any time.
 	UpdateCustomer(context.Context, *v1.UpdateCustomerRequest) (*v1.UpdateCustomerResponse, error)
 	// Deletes a customer: terminates its subscriptions and wallets and
 	// finalizes its draft invoices.

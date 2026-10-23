@@ -84,3 +84,15 @@ func LockCreditNote(ctx context.Context, r port.Repos, org core.OrganizationID, 
 	}
 	return nil
 }
+
+// LockAlert takes the row lock of alert id: an evaluation reads the
+// alert's previous value and thresholds and records its outcome under it,
+// and an edit of the alert rewrites them under it (lago alert.with_lock,
+// app/services/usage_monitoring/process_alert_service.rb:18). It is
+// outside the billing lock order, as no billing transaction takes it.
+func LockAlert(ctx context.Context, r port.Repos, org core.OrganizationID, id core.AlertID) error {
+	if err := r.Locks.Lock(ctx, org, port.LockKey{Scope: "alert", ID: id.UUID()}); err != nil {
+		return fmt.Errorf("lock alert %s: %w", id, err)
+	}
+	return nil
+}

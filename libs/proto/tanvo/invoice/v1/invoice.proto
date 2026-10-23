@@ -17,6 +17,7 @@ import "google/type/date.proto";
 import "tanvo/common/v1/enums.proto";
 import "tanvo/common/v1/options.proto";
 import "tanvo/common/v1/types.proto";
+import "tanvo/coupon/v1/coupon.proto";
 
 // InvoiceService manages invoices.
 service InvoiceService {
@@ -163,6 +164,32 @@ service InvoiceService {
     };
   }
 
+  // Retries every failed invoice, in the background.
+  rpc RetryAllInvoices(RetryAllInvoicesRequest) returns (RetryAllInvoicesResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices:retry_all"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "invoice"
+    };
+  }
+
+  // Retries the payment of every finalized invoice whose payment is
+  // pending or failed and that no payment provider is processing, in the
+  // background.
+  rpc RetryAllInvoicePayments(RetryAllInvoicePaymentsRequest) returns (RetryAllInvoicePaymentsResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices:retry_all_payments"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "invoice"
+    };
+  }
+
   // Retries the synchronization of an invoice with the customer's
   // accounting, CRM or tax integrations.
   rpc RetryInvoiceSync(RetryInvoiceSyncRequest) returns (RetryInvoiceSyncResponse) {
@@ -265,13 +292,10 @@ service FeeService {
     };
   }
 
-  // Lists fees.
+  // Lists fees, oldest first.
   rpc ListFees(ListFeesRequest) returns (ListFeesResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
-    option (google.api.http) = {
-      get: "/v1/fees"
-      additional_bindings: {get: "/v1/invoices/{invoice_id}/fees"}
-    };
+    option (google.api.http) = {get: "/v1/fees"};
     option (tanvo.common.v1.access) = {
       permission: "invoices:read"
       api_resource: "fee"
@@ -291,7 +315,7 @@ service FeeService {
     };
   }
 
-  // Deletes an in-advance fee not attached to an invoice.
+  // Discards an in-advance fee not attached to an invoice and returns it.
   rpc DeleteFee(DeleteFeeRequest) returns (DeleteFeeResponse) {
     option (google.api.http) = {delete: "/v1/fees/{fee_id}"};
     option (tanvo.common.v1.access) = {
@@ -419,6 +443,8 @@ enum InvoiceStatus {
   INVOICE_STATUS_FAILED = 7;
   // Held until taxes or a VIES check complete.
   INVOICE_STATUS_PENDING = 8;
+  // A deleted draft: kept with its fees, invisible, terminal.
+  INVOICE_STATUS_DELETED = 9;
 }
 
 // TaxStatus is the state of provider tax computation.
@@ -638,6 +664,9 @@ message Fee {
   google.protobuf.Timestamp refunded_at = 41 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the fee was created.
   google.protobuf.Timestamp created_at = 42 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The fee of a voided invoice this fee was regenerated from, the first
+  // of the chain.
+  string original_fee_id = 43 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // FeeTier is the part of a fee priced by one tier.
@@ -797,8 +826,8 @@ message Invoice {
   // Key-value metadata: at most 5 items, keys of at most 20 and values of
   // at most 140 characters.
   repeated tanvo.common.v1.MetadataItem metadata = 37 [(buf.validate.field).repeated.max_items = 5];
-  // Metadata per fee, keyed by fee ID: at most 50 keys per fee.
-  map<string, InvoiceItemMetadata> item_metadata = 38 [(buf.validate.field).map.max_pairs = 500];
+  reserved 38;
+  reserved item_metadata;
   // The subscriptions billed.
   repeated InvoiceSubscription subscriptions = 39 [(google.api.field_behavior) = OUTPUT_ONLY];
   // The fees.
@@ -825,23 +854,27 @@ message Invoice {
   google.protobuf.Timestamp created_at = 50 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the invoice last changed.
   google.protobuf.Timestamp updated_at = 51 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The invoice custom sections applied, as they stood when applied.
+  repeated AppliedInvoiceCustomSection applied_invoice_custom_sections = 52 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The customer's purchase order number.
+  string purchase_order_number = 53 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
-// InvoiceItemMetadata is the metadata of one invoice fee.
-message InvoiceItemMetadata {
-  // The values, keyed by name.
-  map<string, string> values = 1 [(buf.validate.field).map = {
-    max_pairs: 50
-    keys: {
-      string: {
-        min_len: 1
-        max_len: 100
-      }
-    }
-    values: {
-      string: {max_len: 1024}
-    }
-  }];
+// AppliedInvoiceCustomSection is an invoice custom section as it stood
+// when applied to an invoice.
+message AppliedInvoiceCustomSection {
+  // The applied section's ID.
+  string id = 1;
+  // The section's code.
+  string code = 2;
+  // The section's internal name.
+  string name = 3;
+  // The title printed.
+  string display_name = 4;
+  // The text printed.
+  string details = 5;
+  // When the section was applied.
+  google.protobuf.Timestamp created_at = 6;
 }
 
 // InvoiceCustomSection is text printed on invoices.
@@ -879,6 +912,8 @@ message InvoiceCustomSection {
   google.protobuf.Timestamp created_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the section last changed.
   google.protobuf.Timestamp updated_at = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Free text, not printed.
+  string description = 9 [(buf.validate.field).string.max_len = 4096];
 }
 
 // OneOffFee is a fee of a one-off invoice.
@@ -909,22 +944,34 @@ message OneOffFee {
   tanvo.common.v1.DateTimeRange period = 7;
 }
 
-// RegeneratedFee adjusts a fee of a voided invoice for its regeneration.
+// RegeneratedFee is a fee of the invoice regenerated from a voided one.
+// Only the fees listed are regenerated, a fee listed twice twice. A fee_id
+// copies that fee of the voided invoice; without one, a fee is built for
+// the subscription_id and charge_id (and charge_filter_id), empty unless
+// units are given.
 message RegeneratedFee {
   // The fee of the voided invoice.
-  string fee_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.uuid = true
-  ];
+  string fee_id = 1 [(buf.validate.field).string.uuid = true];
   // The new units.
   string units = 2 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
   // The new unit price.
   string unit_amount = 3 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
   // The new invoice line name.
   string invoice_display_name = 4 [(buf.validate.field).string.max_len = 255];
-  // Leaves the fee out of the new invoice.
-  bool remove = 5;
+  reserved 5;
+  reserved remove;
+  // The subscription of a fee without fee_id.
+  string subscription_id = 6 [(buf.validate.field).string.uuid = true];
+  // The charge of a fee without fee_id.
+  string charge_id = 7 [(buf.validate.field).string.uuid = true];
+  // The charge filter of a fee without fee_id.
+  string charge_filter_id = 8 [(buf.validate.field).string.uuid = true];
+  // The fixed charge; accepted and ignored.
+  string fixed_charge_id = 9 [(buf.validate.field).string.uuid = true];
+  // The add-on; accepted and ignored.
+  string add_on_id = 10 [(buf.validate.field).string.uuid = true];
+  // A description; accepted and ignored.
+  string description = 11 [(buf.validate.field).string.max_len = 1024];
 }
 
 // PreviewSubscription describes a subscription to preview.
@@ -977,8 +1024,10 @@ message CreateInvoiceRequest {
       string: {[tanvo.common.v1.ref]: true}
     }
   }];
-  // Metadata.
-  repeated tanvo.common.v1.MetadataItem metadata = 10 [(buf.validate.field).repeated.max_items = 5];
+  reserved 10;
+  reserved metadata;
+  // The customer's purchase order number.
+  string purchase_order_number = 11 [(buf.validate.field).string.max_len = 255];
 }
 
 // CreateInvoiceResponse is the response of InvoiceService.CreateInvoice.
@@ -1017,7 +1066,7 @@ message ListInvoicesRequest {
   // An AIP-160 filter over `status`, `payment_status`, `invoice_type`,
   // `currency`, `billing_entity_id`, `issuing_date`, `amount`,
   // `payment_overdue`, `payment_dispute_lost`, `self_billed`,
-  // `partially_paid`, `subscription_id` and `metadata.<key>`.
+  // `partially_paid`, `purchase_order_number` and `metadata.<key>`.
   string filter = 4 [(buf.validate.field).string.max_len = 2048];
   // A search over the number, customer name, external ID and email.
   string search = 5 [(buf.validate.field).string.max_len = 255];
@@ -1128,8 +1177,8 @@ message VoidInvoiceRequest {
 message VoidInvoiceResponse {
   // The voided invoice.
   Invoice invoice = 1;
-  // The credit note issued, with generate_credit_note.
-  string credit_note_id = 2;
+  reserved 2;
+  reserved credit_note_id;
 }
 
 // RegenerateInvoiceRequest is the request of InvoiceService.RegenerateInvoice.
@@ -1140,10 +1189,15 @@ message RegenerateInvoiceRequest {
     (buf.validate.field).required = true,
     (buf.validate.field).string.uuid = true
   ];
-  // The fee adjustments.
+  // The fees of the new invoice.
   repeated RegeneratedFee fees = 2 [(buf.validate.field).repeated.max_items = 1000];
-  // Previews the new invoice without storing it.
+  // Previews the invoice regenerated from the voided one as it stands,
+  // taxed again, without storing anything; fees and
+  // purchase_order_number are ignored.
   bool validate_only = 3;
+  // The customer's purchase order number of the new invoice; the voided
+  // invoice's when not set.
+  string purchase_order_number = 4 [(buf.validate.field).string.max_len = 255];
 }
 
 // RegenerateInvoiceResponse is the response of InvoiceService.RegenerateInvoice.
@@ -1176,10 +1230,32 @@ message RetryInvoicePaymentRequest {
     (buf.validate.field).required = true,
     (buf.validate.field).string.uuid = true
   ];
+  // The payment method kind to retry with; the invoice's by default.
+  tanvo.common.v1.PaymentMethodType payment_method_type = 2 [(buf.validate.field).enum.defined_only = true];
+  // The payment method, for PROVIDER.
+  string payment_method_id = 3 [(buf.validate.field).string.uuid = true];
 }
 
 // RetryInvoicePaymentResponse is the response of InvoiceService.RetryInvoicePayment.
 message RetryInvoicePaymentResponse {}
+
+// RetryAllInvoicesRequest is the request of InvoiceService.RetryAllInvoices.
+message RetryAllInvoicesRequest {}
+
+// RetryAllInvoicesResponse is the response of InvoiceService.RetryAllInvoices.
+message RetryAllInvoicesResponse {
+  // The number of failed invoices queued.
+  int32 queued_count = 1;
+}
+
+// RetryAllInvoicePaymentsRequest is the request of InvoiceService.RetryAllInvoicePayments.
+message RetryAllInvoicePaymentsRequest {}
+
+// RetryAllInvoicePaymentsResponse is the response of InvoiceService.RetryAllInvoicePayments.
+message RetryAllInvoicePaymentsResponse {
+  // The number of invoices whose payment is queued.
+  int32 queued_count = 1;
+}
 
 // RetryInvoiceSyncRequest is the request of InvoiceService.RetryInvoiceSync.
 message RetryInvoiceSyncRequest {
@@ -1286,12 +1362,10 @@ message PreviewInvoiceRequest {
     expression: "(has(this.subscription) ? 1 : 0) + (has(this.terminated_at) ? 1 : 0) + (has(this.plan_id) ? 1 : 0) <= 1"
   };
 
-  // The customer (ID or `external_id:<external_id>`).
-  string customer_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.(tanvo.common.v1.ref) = true
-  ];
+  // The customer (ID or `external_id:<external_id>`); a customer that
+  // does not exist yet when unset, which only a new subscription can
+  // preview.
+  string customer_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
   // Previews a new subscription.
   PreviewSubscription subscription = 2;
   // The existing subscriptions to preview (IDs or
@@ -1318,6 +1392,44 @@ message PreviewInvoiceRequest {
   }];
   // The billing entity (ID or `code:<code>`).
   string billing_entity_id = 7 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // Customer attributes that override the stored ones for the preview.
+  PreviewCustomer customer = 8;
+  // Coupons to apply, given by their attributes: a coupon whose code
+  // exists is that coupon, any other is built from the attributes and
+  // applies only when they describe a valid coupon. They follow
+  // coupon_ids and apply when the customer has no active coupon.
+  repeated tanvo.coupon.v1.Coupon coupons = 9 [(buf.validate.field).repeated.max_items = 20];
+}
+
+// PreviewCustomer holds the customer attributes of a preview; unset
+// fields keep the stored value.
+message PreviewCustomer {
+  // The name.
+  string name = 1 [(buf.validate.field).string.max_len = 255];
+  // The tax identification number.
+  string tax_identification_number = 2 [(buf.validate.field).string.max_len = 255];
+  // The ISO 4217 currency.
+  string currency = 3 [(buf.validate.field).string.(tanvo.common.v1.currency) = true];
+  // The IANA time zone.
+  string timezone = 4 [(buf.validate.field).string.max_len = 64];
+  // The billing address; set fields replace the stored ones.
+  tanvo.common.v1.Address billing_address = 5;
+  // The shipping address; set fields replace the stored ones.
+  tanvo.common.v1.Address shipping_address = 6;
+  // Integrations that sync the customer (anrok, avalara, xero, hubspot or
+  // salesforce), added to the stored ones.
+  repeated PreviewIntegrationCustomer integration_customers = 7 [(buf.validate.field).repeated.max_items = 10];
+}
+
+// PreviewIntegrationCustomer links the customer of a preview to an
+// integration.
+message PreviewIntegrationCustomer {
+  // The integration (ID or `code:<code>`).
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
 }
 
 // PreviewInvoiceResponse is the response of InvoiceService.PreviewInvoice.
@@ -1372,8 +1484,9 @@ message GetFeeResponse {
 
 // ListFeesRequest is the request of FeeService.ListFees.
 message ListFeesRequest {
-  // Restricts the list to one invoice.
-  string invoice_id = 1 [(buf.validate.field).string.uuid = true];
+  reserved 1;
+  reserved invoice_id;
+
   // The maximum number of results; 20 by default, at most 1000.
   int32 page_size = 2 [(buf.validate.field).int32 = {
     gte: 0
@@ -1382,9 +1495,10 @@ message ListFeesRequest {
   // The next_page_token of the previous page.
   string page_token = 3 [(buf.validate.field).string.max_len = 1024];
   // An AIP-160 filter over `fee_type`, `payment_status`, `currency`,
-  // `customer_id`, `subscription_id`, `billable_metric_code`,
-  // `pay_in_advance`, `created_at`, `succeeded_at`, `failed_at` and
-  // `refunded_at`.
+  // `customer_id` and `subscription_id` (an ID or `external_id:<id>`),
+  // `billable_metric_code`, `event_transaction_id`, and `created_at`,
+  // `succeeded_at`, `failed_at` and `refunded_at` (RFC 3339, with >= and
+  // <=).
   string filter = 4 [(buf.validate.field).string.max_len = 2048];
 }
 
@@ -1430,7 +1544,10 @@ message DeleteFeeRequest {
 }
 
 // DeleteFeeResponse is the response of FeeService.DeleteFee.
-message DeleteFeeResponse {}
+message DeleteFeeResponse {
+  // The discarded fee.
+  Fee fee = 1;
+}
 
 // AdjustFeeRequest is the request of FeeService.AdjustFee.
 message AdjustFeeRequest {

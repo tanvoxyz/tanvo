@@ -140,6 +140,13 @@ const (
 	// KindReportUsageBucketStats reports the size of the usage buckets of
 	// every definition, to watch their cardinality.
 	KindReportUsageBucketStats = "clock.report_usage_bucket_stats"
+	// KindPurgeSessions deletes the expired and revoked user sessions and
+	// the expired OpenID Connect sign-in states (libs/auth
+	// Sessions.Purge).
+	KindPurgeSessions = "clock.purge_sessions"
+	// KindPurgeIdempotencyKeys enqueues the purge of the expired API
+	// idempotency keys of each organization that has some.
+	KindPurgeIdempotencyKeys = "clock.purge_idempotency_keys"
 )
 
 // Schedule returns lago-api's clock schedule (clock.rb at 25b8b7b09) as
@@ -162,8 +169,9 @@ const (
 //     failing record stops the run for the records after it; the others
 //     already dispatch per record or organization.
 //
-// Tanvo's own entries follow, without a Source: the webhook sweep and the
-// event store's bucket maintenance, which lago-api does not have.
+// Tanvo's own entries follow, without a Source: the webhook sweep, the
+// event store's bucket maintenance and the purges of sessions and API
+// idempotency keys, which lago-api does not have.
 func Schedule() []Periodic {
 	const rb = "clock.rb schedule:"
 	const dir = "app/jobs/clock/"
@@ -204,5 +212,7 @@ func Schedule() []Periodic {
 		{KindSweepWebhooks, port.QueueWebhooks, Every(5 * time.Minute), "", ""},
 		{KindRepairUsageBuckets, port.QueueDefault, Every(10 * time.Minute), "", ""},
 		{KindReportUsageBucketStats, port.QueueDefault, HourlyAt(0), "", ""},
+		{KindPurgeSessions, port.QueueDefault, HourlyAt(7), "", ""},
+		{KindPurgeIdempotencyKeys, port.QueueDefault, HourlyAt(37), "", ""},
 	}
 }

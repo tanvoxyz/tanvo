@@ -43,6 +43,9 @@ const (
 	// FeatureServiceDeleteFeatureProcedure is the procedure name of the FeatureService's DeleteFeature
 	// RPC.
 	FeatureServiceDeleteFeatureProcedure = "/tanvo.catalog.v1.FeatureService/DeleteFeature"
+	// FeatureServiceDeleteFeaturePrivilegeProcedure is the procedure name of the FeatureService's
+	// DeleteFeaturePrivilege RPC.
+	FeatureServiceDeleteFeaturePrivilegeProcedure = "/tanvo.catalog.v1.FeatureService/DeleteFeaturePrivilege"
 	// EntitlementServiceListEntitlementsProcedure is the procedure name of the EntitlementService's
 	// ListEntitlements RPC.
 	EntitlementServiceListEntitlementsProcedure = "/tanvo.catalog.v1.EntitlementService/ListEntitlements"
@@ -101,6 +104,13 @@ var (
 			Procedure:  FeatureServiceDeleteFeatureProcedure,
 		}
 	})
+	featureServiceDeleteFeaturePrivilegeSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_catalog_v1_feature_proto.Services().ByName("FeatureService").Methods().ByName("DeleteFeaturePrivilege"),
+			Procedure:  FeatureServiceDeleteFeaturePrivilegeProcedure,
+		}
+	})
 )
 
 // FeatureServiceClient is a client for the tanvo.catalog.v1.FeatureService service.
@@ -116,6 +126,9 @@ type FeatureServiceClient interface {
 	UpdateFeature(context.Context, *v1.UpdateFeatureRequest) (*v1.UpdateFeatureResponse, error)
 	// Deletes a feature and the entitlements that grant it.
 	DeleteFeature(context.Context, *v1.DeleteFeatureRequest) (*v1.DeleteFeatureResponse, error)
+	// Removes one privilege from a feature, and its values from every
+	// entitlement.
+	DeleteFeaturePrivilege(context.Context, *v1.DeleteFeaturePrivilegeRequest) (*v1.DeleteFeaturePrivilegeResponse, error)
 }
 
 // NewFeatureServiceClient constructs a client for the tanvo.catalog.v1.FeatureService service.
@@ -137,6 +150,9 @@ type FeatureServiceHandler interface {
 	UpdateFeature(context.Context, *v1.UpdateFeatureRequest) (*v1.UpdateFeatureResponse, error)
 	// Deletes a feature and the entitlements that grant it.
 	DeleteFeature(context.Context, *v1.DeleteFeatureRequest) (*v1.DeleteFeatureResponse, error)
+	// Removes one privilege from a feature, and its values from every
+	// entitlement.
+	DeleteFeaturePrivilege(context.Context, *v1.DeleteFeaturePrivilegeRequest) (*v1.DeleteFeaturePrivilegeResponse, error)
 }
 
 // RegisterFeatureServiceHandler registers svc as the tanvo.catalog.v1.FeatureService implementation
@@ -149,6 +165,7 @@ func RegisterFeatureServiceHandler(server *connect.Server, svc FeatureServiceHan
 		connect.Method{Spec: featureServiceListFeaturesSpec(), Handler: adapter.listFeatures},
 		connect.Method{Spec: featureServiceUpdateFeatureSpec(), Handler: adapter.updateFeature},
 		connect.Method{Spec: featureServiceDeleteFeatureSpec(), Handler: adapter.deleteFeature},
+		connect.Method{Spec: featureServiceDeleteFeaturePrivilegeSpec(), Handler: adapter.deleteFeaturePrivilege},
 	)
 }
 
@@ -173,6 +190,10 @@ func (UnimplementedFeatureServiceHandler) UpdateFeature(context.Context, *v1.Upd
 
 func (UnimplementedFeatureServiceHandler) DeleteFeature(context.Context, *v1.DeleteFeatureRequest) (*v1.DeleteFeatureResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.catalog.v1.FeatureService.DeleteFeature is not implemented")
+}
+
+func (UnimplementedFeatureServiceHandler) DeleteFeaturePrivilege(context.Context, *v1.DeleteFeaturePrivilegeRequest) (*v1.DeleteFeaturePrivilegeResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.catalog.v1.FeatureService.DeleteFeaturePrivilege is not implemented")
 }
 
 type featureServiceClient struct {
@@ -214,6 +235,14 @@ func (c *featureServiceClient) UpdateFeature(ctx context.Context, req *v1.Update
 func (c *featureServiceClient) DeleteFeature(ctx context.Context, req *v1.DeleteFeatureRequest) (*v1.DeleteFeatureResponse, error) {
 	var res v1.DeleteFeatureResponse
 	if err := c.client.CallUnary(ctx, featureServiceDeleteFeatureSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *featureServiceClient) DeleteFeaturePrivilege(ctx context.Context, req *v1.DeleteFeaturePrivilegeRequest) (*v1.DeleteFeaturePrivilegeResponse, error) {
+	var res v1.DeleteFeaturePrivilegeResponse
+	if err := c.client.CallUnary(ctx, featureServiceDeleteFeaturePrivilegeSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -275,6 +304,18 @@ func (h featureServiceHandler) deleteFeature(ctx context.Context, _ connect.Spec
 		return err
 	}
 	res, err := h.svc.DeleteFeature(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h featureServiceHandler) deleteFeaturePrivilege(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteFeaturePrivilegeRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteFeaturePrivilege(ctx, &req)
 	if err != nil {
 		return err
 	}

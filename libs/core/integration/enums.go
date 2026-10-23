@@ -99,7 +99,8 @@ const (
 	ProviderOkta Provider = "okta"
 	// ProviderEntraID is "entra_id": Microsoft Entra ID identity.
 	ProviderEntraID Provider = "entra_id"
-	// ProviderOIDC is "oidc": any other OpenID Connect identity provider.
+	// ProviderOIDC is "oidc": a generic OpenID Connect identity provider
+	// (Tanvo extension).
 	ProviderOIDC Provider = "oidc"
 )
 

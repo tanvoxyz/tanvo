@@ -21,8 +21,8 @@ import "tanvo/customer/v1/customer.proto";
 // provider several times; integrations are addressed by ID or
 // `code:<code>`.
 service IntegrationService {
-  // Connects a provider. Providers connected by OAuth start in the
-  // pending state; complete them with CompleteIntegrationOauth.
+  // Connects a provider. Providers connected by OAuth are completed with
+  // CompleteIntegrationOauth.
   rpc CreateIntegration(CreateIntegrationRequest) returns (CreateIntegrationResponse) {
     option (google.api.http) = {
       post: "/v1/integrations"
@@ -45,7 +45,7 @@ service IntegrationService {
     option (tanvo.common.v1.access) = {permission: "organization:integrations:read"};
   }
 
-  // Updates an integration's name, sync settings or credentials.
+  // Updates an integration's code, name, sync settings or credentials.
   rpc UpdateIntegration(UpdateIntegrationRequest) returns (UpdateIntegrationResponse) {
     option (google.api.http) = {
       patch: "/v1/integrations/{integration.id}"
@@ -54,7 +54,9 @@ service IntegrationService {
     option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
   }
 
-  // Disconnects a provider; customers are unlinked from it.
+  // Disconnects a provider. Payment providers are discarded and their
+  // customers unlinked; other integrations are removed with their mappings
+  // and synced records.
   rpc DeleteIntegration(DeleteIntegrationRequest) returns (DeleteIntegrationResponse) {
     option (google.api.http) = {delete: "/v1/integrations/{integration_id}"};
     option (tanvo.common.v1.access) = {permission: "organization:integrations:delete"};
@@ -150,13 +152,6 @@ service IntegrationService {
     option (google.api.http) = {delete: "/v1/integrations/{integration_id}/collection_mappings/{collection_mapping_id}"};
     option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
   }
-
-  // Lists the records synced to the provider with their external IDs.
-  rpc ListIntegrationResources(ListIntegrationResourcesRequest) returns (ListIntegrationResourcesResponse) {
-    option idempotency_level = NO_SIDE_EFFECTS;
-    option (google.api.http) = {get: "/v1/integrations/{integration_id}/resources"};
-    option (tanvo.common.v1.access) = {permission: "organization:integrations:read"};
-  }
 }
 
 // IntegrationProvider is the provider of an integration.
@@ -187,18 +182,6 @@ enum IntegrationProvider {
   INTEGRATION_PROVIDER_HUBSPOT = 11;
   // Salesforce (CRM).
   INTEGRATION_PROVIDER_SALESFORCE = 12;
-}
-
-// IntegrationStatus is the state of an integration.
-enum IntegrationStatus {
-  // Not set.
-  INTEGRATION_STATUS_UNSPECIFIED = 0;
-  // Waiting for the OAuth authorization.
-  INTEGRATION_STATUS_PENDING = 1;
-  // Connected.
-  INTEGRATION_STATUS_ACTIVE = 2;
-  // The provider rejected the credentials.
-  INTEGRATION_STATUS_ERROR = 3;
 }
 
 // MappableType is the kind of object an item mapping maps.
@@ -247,20 +230,6 @@ enum IntegrationItemType {
   INTEGRATION_ITEM_TYPE_ACCOUNT = 3;
 }
 
-// IntegrationResourceType is the kind of a synced record.
-enum IntegrationResourceType {
-  // Not set.
-  INTEGRATION_RESOURCE_TYPE_UNSPECIFIED = 0;
-  // An invoice.
-  INTEGRATION_RESOURCE_TYPE_INVOICE = 1;
-  // A payment.
-  INTEGRATION_RESOURCE_TYPE_PAYMENT = 2;
-  // A credit note.
-  INTEGRATION_RESOURCE_TYPE_CREDIT_NOTE = 3;
-  // A subscription.
-  INTEGRATION_RESOURCE_TYPE_SUBSCRIPTION = 4;
-}
-
 // HubspotTargetedObject is the HubSpot object customers become.
 enum HubspotTargetedObject {
   // Not set.
@@ -283,8 +252,13 @@ message StripeSettings {
     uri: true
     max_len: 1024
   }];
-  // The ID of the webhook endpoint registered at Stripe.
-  string webhook_endpoint_id = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Authenticates card payments with 3-D Secure.
+  bool supports_3ds = 4;
+  // Asks customers to accept the terms of service at checkout.
+  bool require_terms_of_service_consent = 5;
+
+  reserved 3;
+  reserved webhook_endpoint_id;
 }
 
 // AdyenSettings connects Adyen.
@@ -353,16 +327,14 @@ message FlutterwaveSettings {
     (google.api.field_behavior) = INPUT_ONLY,
     (buf.validate.field).string.max_len = 1024
   ];
-  // The webhook secret hash; write only.
-  string webhook_secret = 2 [
-    (google.api.field_behavior) = INPUT_ONLY,
-    (buf.validate.field).string.max_len = 1024
-  ];
   // The URL customers return to after payment.
   string success_redirect_url = 3 [(buf.validate.field).string = {
     uri: true
     max_len: 1024
   }];
+
+  reserved 2;
+  reserved webhook_secret;
 }
 
 // NetsuiteSettings connects NetSuite with token-based authentication.
@@ -392,8 +364,8 @@ message NetsuiteSettings {
 
 // XeroSettings connects Xero by OAuth.
 message XeroSettings {
-  // The Xero organization connected.
-  string tenant_id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  reserved 1;
+  reserved tenant_id;
 }
 
 // AnrokSettings connects Anrok.
@@ -403,8 +375,8 @@ message AnrokSettings {
     (google.api.field_behavior) = INPUT_ONLY,
     (buf.validate.field).string.max_len = 1024
   ];
-  // The seller account ID.
-  string external_account_id = 2 [(buf.validate.field).string.max_len = 255];
+  // The seller account ID: the API key's part before its slash.
+  string external_account_id = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // AvalaraSettings connects Avalara.
@@ -450,7 +422,6 @@ message Integration {
   // The unique code.
   string code = 2 [
     (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE,
     (buf.validate.field).string.(tanvo.common.v1.code) = true
   ];
   // The display name.
@@ -465,10 +436,6 @@ message Integration {
   IntegrationProvider provider = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
   // The family.
   tanvo.customer.v1.IntegrationCategory category = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
-  // The state.
-  IntegrationStatus status = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
-  // Marks the organization's default integration of its category.
-  bool is_default = 7;
   // Syncs finalized invoices.
   bool sync_invoices = 8;
   // Syncs credit notes.
@@ -504,14 +471,13 @@ message Integration {
     // Salesforce.
     SalesforceSettings salesforce = 31;
   }
-  // The URL the provider sends webhooks to, for payment providers.
-  string webhook_url = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
-  // The last error reported by the provider.
-  string last_error = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the integration was created.
   google.protobuf.Timestamp created_at = 14 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the integration last changed.
   google.protobuf.Timestamp updated_at = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  reserved 6, 7, 12, 13;
+  reserved status, is_default, webhook_url, last_error;
 }
 
 // IntegrationItem is an item, tax item or account of a provider.
@@ -598,18 +564,6 @@ message CollectionMapping {
   }];
 }
 
-// IntegrationResource is a record synced to a provider.
-message IntegrationResource {
-  // The kind of record.
-  IntegrationResourceType resource_type = 1;
-  // The record's ID in Tanvo.
-  string syncable_id = 2;
-  // The record's ID in the provider.
-  string external_id = 3;
-  // When it was synced.
-  google.protobuf.Timestamp created_at = 4;
-}
-
 // CreateIntegrationRequest is the request of IntegrationService.CreateIntegration.
 message CreateIntegrationRequest {
   option (buf.validate.message).cel = {
@@ -656,7 +610,7 @@ message ListIntegrationsRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 2 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `category`, `provider` and `status`.
+  // An AIP-160 filter over `category` and `provider`.
   string filter = 3 [(buf.validate.field).string.max_len = 2048];
 }
 
@@ -960,30 +914,3 @@ message DeleteCollectionMappingRequest {
 
 // DeleteCollectionMappingResponse is the response of IntegrationService.DeleteCollectionMapping.
 message DeleteCollectionMappingResponse {}
-
-// ListIntegrationResourcesRequest is the request of IntegrationService.ListIntegrationResources.
-message ListIntegrationResourcesRequest {
-  // The integration's ID or `code:<code>`.
-  string integration_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.(tanvo.common.v1.ref) = true
-  ];
-  // The maximum number of results; 20 by default, at most 1000.
-  int32 page_size = 2 [(buf.validate.field).int32 = {
-    gte: 0
-    lte: 1000
-  }];
-  // The next_page_token of the previous page.
-  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `resource_type` and `syncable_id`.
-  string filter = 4 [(buf.validate.field).string.max_len = 2048];
-}
-
-// ListIntegrationResourcesResponse is the response of IntegrationService.ListIntegrationResources.
-message ListIntegrationResourcesResponse {
-  // The synced records of this page.
-  repeated IntegrationResource resources = 1;
-  // The token of the next page; empty on the last page.
-  string next_page_token = 2;
-}

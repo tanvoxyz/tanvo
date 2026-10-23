@@ -164,8 +164,21 @@ enum SsoProvider {
   SSO_PROVIDER_OKTA = 1;
   // Microsoft Entra ID.
   SSO_PROVIDER_ENTRA_ID = 2;
-  // Any other OpenID Connect provider, configured by issuer URL.
+  // Any other OpenID Connect provider, configured by its issuer URL (a
+  // Tanvo extension).
   SSO_PROVIDER_OIDC = 3;
+}
+
+// TokenEndpointAuthMethod is how a generic connection's client
+// authenticates at the token endpoint.
+enum TokenEndpointAuthMethod {
+  // Follow the provider's discovery document: the first of the two
+  // methods below it lists, client_secret_basic when it lists none.
+  TOKEN_ENDPOINT_AUTH_METHOD_UNSPECIFIED = 0;
+  // HTTP Basic authentication.
+  TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_BASIC = 1;
+  // Credentials in the request body.
+  TOKEN_ENDPOINT_AUTH_METHOD_CLIENT_SECRET_POST = 2;
 }
 
 // OidcProvider is the provider of an OpenID Connect sign-in.
@@ -235,9 +248,9 @@ message SsoConnection {
     (google.api.field_behavior) = REQUIRED,
     (buf.validate.field).string.hostname = true
   ];
-  // Further email domains routed to this connection (Entra ID).
+  // Further email domains routed to this connection (Entra ID and generic
+  // OIDC); duplicates are dropped.
   repeated string additional_domains = 4 [(buf.validate.field).repeated = {
-    unique: true
     max_items: 50
     items: {
       string: {hostname: true}
@@ -256,15 +269,61 @@ message SsoConnection {
     (google.api.field_behavior) = INPUT_ONLY,
     (buf.validate.field).string.max_len = 1024
   ];
-  // The issuer URL (`https://acme.okta.com`), for Okta and other OIDC
-  // providers.
-  string issuer_url = 7 [(buf.validate.field).string.uri = true];
-  // The Entra ID tenant ID.
+  // The issuer URL of a generic OIDC connection; required for it and
+  // refused for the others. Creating or changing it fetches
+  // `<issuer_url>/.well-known/openid-configuration`, whose issuer must
+  // equal it exactly.
+  string issuer_url = 7 [(buf.validate.field).string.max_len = 2048];
+  // The Entra ID tenant ID; required for Entra ID.
   string tenant_id = 8 [(buf.validate.field).string.max_len = 255];
   // When the connection was created.
   google.protobuf.Timestamp created_at = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the connection last changed.
   google.protobuf.Timestamp updated_at = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The Okta organization; required for Okta, it names the default host
+  // `<organization_name>.okta.com`.
+  string organization_name = 11 [(buf.validate.field).string.max_len = 255];
+  // The provider host, when not the default one (an Okta custom domain,
+  // an Entra ID national cloud).
+  string host = 12 [(buf.validate.field).string.max_len = 255];
+  // The code of the role given to the members a first sign-in creates;
+  // required.
+  string default_role_code = 13 [(buf.validate.field).string.max_len = 255];
+  // How the client authenticates at the token endpoint (generic OIDC).
+  TokenEndpointAuthMethod token_endpoint_auth_method = 14 [(buf.validate.field).enum.defined_only = true];
+  // The requested scopes (generic OIDC); `openid` is always requested.
+  // Empty requests `openid email profile`.
+  repeated string scopes = 15 [(buf.validate.field).repeated = {
+    max_items: 20
+    items: {
+      string: {
+        min_len: 1
+        max_len: 128
+      }
+    }
+  }];
+  // The claim read as the email (generic OIDC); empty is `email`.
+  string email_claim = 16 [(buf.validate.field).string.max_len = 128];
+  // The claim read as the display name (generic OIDC); empty is `name`.
+  string name_claim = 17 [(buf.validate.field).string.max_len = 128];
+  // Whether the email_verified claim must be true (generic OIDC);
+  // unset is true. Google, Okta and Entra ID refuse only an email the
+  // provider says is not verified.
+  bool require_verified_email = 18;
+  // Extra authorization request parameters (generic OIDC), such as
+  // `prompt` or `acr_values`; the flow's own parameters are refused.
+  map<string, string> authorization_params = 19 [(buf.validate.field).map = {
+    max_pairs: 20
+    keys: {
+      string: {
+        min_len: 1
+        max_len: 64
+      }
+    }
+    values: {
+      string: {max_len: 1024}
+    }
+  }];
 }
 
 // SignUpRequest is the request of AuthService.SignUp.
@@ -516,8 +575,8 @@ message SignOutResponse {}
 message CreateSsoConnectionRequest {
   option (buf.validate.message).cel = {
     id: "sso_connection.required"
-    message: "provider, domain, client_id and client_secret are required"
-    expression: "has(this.sso_connection.provider) && has(this.sso_connection.domain) && has(this.sso_connection.client_id) && has(this.sso_connection.client_secret)"
+    message: "provider, domain, client_id, client_secret and default_role_code are required"
+    expression: "has(this.sso_connection.provider) && has(this.sso_connection.domain) && has(this.sso_connection.client_id) && has(this.sso_connection.client_secret) && has(this.sso_connection.default_role_code)"
   };
 
   // The connection to create.

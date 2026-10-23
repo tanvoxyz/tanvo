@@ -2,8 +2,10 @@
 
 -- Alerts (domain §19.1) watch a subscription (by external ID, usage types)
 -- or a wallet (wallet types). The code is unique per subscription or
--- wallet, and a wallet has at most one alert per type. An alert watching a
--- deleted billable metric goes with it.
+-- wallet, and a wallet has at most one alert per type. Alerts are
+-- soft-deleted (deleted_at, lago usage_monitoring/alert.rb:5-7,30): every
+-- read and unique key covers only the rows not deleted, and an alert
+-- watching a discarded billable metric is discarded with it.
 CREATE TABLE alerts (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -18,6 +20,7 @@ CREATE TABLE alerts (
   last_processed_at timestamptz,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
+  deleted_at timestamptz,
   PRIMARY KEY (organization_id, id),
   CONSTRAINT alerts_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
   CONSTRAINT alerts_wallet_fkey FOREIGN KEY (organization_id, wallet_id) REFERENCES wallets (organization_id, id),
@@ -31,13 +34,13 @@ CREATE TABLE alerts (
 );
 
 CREATE UNIQUE INDEX alerts_subscription_code_key ON alerts (organization_id, subscription_external_id, code)
-  WHERE wallet_id IS NULL;
+  WHERE wallet_id IS NULL AND deleted_at IS NULL;
 CREATE UNIQUE INDEX alerts_wallet_code_key ON alerts (organization_id, wallet_id, code)
-  WHERE wallet_id IS NOT NULL;
+  WHERE wallet_id IS NOT NULL AND deleted_at IS NULL;
 CREATE UNIQUE INDEX alerts_wallet_alert_type_key ON alerts (organization_id, wallet_id, alert_type)
-  WHERE wallet_id IS NOT NULL;
+  WHERE wallet_id IS NOT NULL AND deleted_at IS NULL;
 CREATE INDEX alerts_billable_metric_idx ON alerts (organization_id, billable_metric_id)
-  WHERE billable_metric_id IS NOT NULL;
+  WHERE billable_metric_id IS NOT NULL AND deleted_at IS NULL;
 
 ALTER TABLE alerts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON alerts

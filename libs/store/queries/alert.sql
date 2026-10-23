@@ -16,7 +16,7 @@ UPDATE alerts SET
   subscription_external_id = @subscription_external_id, wallet_id = @wallet_id,
   billable_metric_id = @billable_metric_id, direction = @direction, previous_value = @previous_value,
   last_processed_at = @last_processed_at, created_at = @created_at, updated_at = @updated_at
-WHERE organization_id = @organization_id AND id = @id;
+WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;
 
 -- name: DeleteAlertThresholds :exec
 DELETE FROM alert_thresholds WHERE organization_id = @organization_id AND alert_id = @alert_id;
@@ -37,30 +37,36 @@ WHERE organization_id = @organization_id AND alert_id = ANY(@alert_ids::uuid[])
 ORDER BY alert_id, position;
 
 -- name: GetAlert :one
-SELECT * FROM alerts WHERE organization_id = @organization_id AND id = @id;
+SELECT * FROM alerts WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;
 
 -- name: GetAlertBySubscriptionCode :one
 SELECT * FROM alerts
 WHERE organization_id = @organization_id AND wallet_id IS NULL
-  AND subscription_external_id = @subscription_external_id AND code = @code;
+  AND subscription_external_id = @subscription_external_id AND code = @code AND deleted_at IS NULL;
 
 -- name: GetAlertByWalletCode :one
-SELECT * FROM alerts WHERE organization_id = @organization_id AND wallet_id = @wallet_id AND code = @code;
+SELECT * FROM alerts
+WHERE organization_id = @organization_id AND wallet_id = @wallet_id AND code = @code AND deleted_at IS NULL;
 
 -- name: ListAlertsBySubscription :many
 SELECT * FROM alerts
 WHERE organization_id = @organization_id AND wallet_id IS NULL AND subscription_external_id = @subscription_external_id
+  AND deleted_at IS NULL
 ORDER BY id;
 
 -- name: ListAlertsByWallet :many
-SELECT * FROM alerts WHERE organization_id = @organization_id AND wallet_id = @wallet_id ORDER BY id;
+SELECT * FROM alerts
+WHERE organization_id = @organization_id AND wallet_id = @wallet_id AND deleted_at IS NULL
+ORDER BY id;
 
 -- name: ListAlertsByBillableMetric :many
-SELECT * FROM alerts WHERE organization_id = @organization_id AND billable_metric_id = @billable_metric_id ORDER BY id;
+SELECT * FROM alerts
+WHERE organization_id = @organization_id AND billable_metric_id = @billable_metric_id AND deleted_at IS NULL
+ORDER BY id;
 
 -- name: ListAlerts :many
 SELECT * FROM alerts
-WHERE organization_id = @organization_id
+WHERE organization_id = @organization_id AND deleted_at IS NULL
   AND (sqlc.narg(subscription_external_id)::text IS NULL OR subscription_external_id = sqlc.narg(subscription_external_id))
   AND (sqlc.narg(wallet_id)::uuid IS NULL OR wallet_id = sqlc.narg(wallet_id))
   AND (cardinality(@alert_types::text[]) = 0 OR alert_type = ANY(@alert_types::text[]))
@@ -68,8 +74,17 @@ WHERE organization_id = @organization_id
 ORDER BY id
 LIMIT @lim;
 
--- name: DeleteAlert :execrows
-DELETE FROM alerts WHERE organization_id = @organization_id AND id = @id;
+-- name: DiscardAlert :execrows
+-- Soft-deletes a kept alert (lago alert.discard!, destroy_alert_service.rb:17);
+-- the caller deletes its thresholds first.
+UPDATE alerts SET deleted_at = @deleted_at, updated_at = @deleted_at
+WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;
+
+-- name: DiscardAlertsByBillableMetric :execrows
+-- Soft-deletes the kept alerts watching a metric, keeping their thresholds
+-- (lago metric.alerts.update_all(deleted_at:), billable_metrics/destroy_service.rb:35).
+UPDATE alerts SET deleted_at = @deleted_at, updated_at = @deleted_at
+WHERE organization_id = @organization_id AND billable_metric_id = @billable_metric_id AND deleted_at IS NULL;
 
 -- name: CreateTriggeredAlert :execrows
 INSERT INTO triggered_alerts (

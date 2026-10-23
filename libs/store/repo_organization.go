@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -43,6 +44,7 @@ func organizationParams(o *organization.Organization) db.CreateOrganizationParam
 		FromEmailEnabled:       o.FromEmailEnabled,
 		AuditLogsRetentionDays: int32(o.AuditLogsRetentionDays), // validated small
 		MaxWalletsPerCustomer:  int32(o.MaxWalletsPerCustomer),  // validated small
+		DocumentNumberPrefix:   o.DocumentNumberPrefix,
 		CreatedAt:              utc(o.CreatedAt),
 		UpdatedAt:              utc(o.UpdatedAt),
 	}
@@ -63,6 +65,7 @@ func organizationOf(r db.Organization) (*organization.Organization, error) {
 		FromEmailEnabled:       r.FromEmailEnabled,
 		AuditLogsRetentionDays: int(r.AuditLogsRetentionDays),
 		MaxWalletsPerCustomer:  int(r.MaxWalletsPerCustomer),
+		DocumentNumberPrefix:   r.DocumentNumberPrefix,
 		CreatedAt:              utc(r.CreatedAt),
 		UpdatedAt:              utc(r.UpdatedAt),
 	}, nil
@@ -346,7 +349,9 @@ func invoiceCustomSectionParams(s *invoice.CustomSection) db.CreateInvoiceCustom
 		Name:           s.Name,
 		DisplayName:    s.DisplayName,
 		Details:        s.Details,
+		Description:    s.Description,
 		SectionType:    string(s.SectionType),
+		DeletedAt:      optUTC(s.DeletedAt),
 		CreatedAt:      utc(s.CreatedAt),
 		UpdatedAt:      utc(s.UpdatedAt),
 	}
@@ -360,7 +365,9 @@ func invoiceCustomSectionOf(r db.InvoiceCustomSection) (*invoice.CustomSection, 
 		Name:           r.Name,
 		DisplayName:    r.DisplayName,
 		Details:        r.Details,
+		Description:    r.Description,
 		SectionType:    invoice.CustomSectionType(r.SectionType),
+		DeletedAt:      optUTC(r.DeletedAt),
 		CreatedAt:      utc(r.CreatedAt),
 		UpdatedAt:      utc(r.UpdatedAt),
 	}, nil
@@ -424,6 +431,26 @@ func (r invoiceCustomSectionRepo) ListByIDs(ctx context.Context, org core.Organi
 	return convAll(rows, invoiceCustomSectionOf)
 }
 
+func (r invoiceCustomSectionRepo) ListManual(ctx context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*invoice.CustomSection], error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return core.Page[*invoice.CustomSection]{}, err
+	}
+	after, afterName, afterAt, lim, err := nameCursorArgs(page)
+	if err != nil {
+		return core.Page[*invoice.CustomSection]{}, err
+	}
+	rows, err := q.ListManualInvoiceCustomSections(ctx, db.ListManualInvoiceCustomSectionsParams{
+		OrganizationID: org.UUID(), After: after, AfterName: afterName, AfterAt: afterAt, Lim: lim,
+	})
+	if err != nil {
+		return core.Page[*invoice.CustomSection]{}, fmt.Errorf("list manual invoice custom sections: %w", mapErr(err))
+	}
+	return pageOf(rows, page, invoiceCustomSectionOf, func(s *invoice.CustomSection) string {
+		return nameToken(s.Name, s.CreatedAt, s.ID.UUID())
+	})
+}
+
 func (r invoiceCustomSectionRepo) List(ctx context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*invoice.CustomSection], error) {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
@@ -440,15 +467,24 @@ func (r invoiceCustomSectionRepo) List(ctx context.Context, org core.Organizatio
 	return pageOf(rows, page, invoiceCustomSectionOf, func(s *invoice.CustomSection) string { return s.ID.String() })
 }
 
-func (r invoiceCustomSectionRepo) Delete(ctx context.Context, org core.OrganizationID, id core.InvoiceCustomSectionID) error {
+func (r invoiceCustomSectionRepo) Delete(ctx context.Context, org core.OrganizationID, id core.InvoiceCustomSectionID, at time.Time) error {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return err
 	}
 	var n int64
 	err = r.t.guard(ctx, func() (err error) {
-		n, err = q.DeleteInvoiceCustomSection(ctx, db.DeleteInvoiceCustomSectionParams{OrganizationID: org.UUID(), ID: id.UUID()})
-		return err
+		n, err = q.DeleteInvoiceCustomSection(ctx, db.DeleteInvoiceCustomSectionParams{DeletedAt: optUTC(&at), OrganizationID: org.UUID(), ID: id.UUID()})
+		if err != nil || n == 0 {
+			return err
+		}
+		if err = q.DeselectBillingEntitiesInvoiceCustomSection(ctx, db.DeselectBillingEntitiesInvoiceCustomSectionParams{OrganizationID: org.UUID(), ID: id.UUID()}); err != nil {
+			return err
+		}
+		if err = q.DeselectCustomersInvoiceCustomSection(ctx, db.DeselectCustomersInvoiceCustomSectionParams{OrganizationID: org.UUID(), ID: id.UUID()}); err != nil {
+			return err
+		}
+		return q.DeselectSubscriptionsInvoiceCustomSection(ctx, db.DeselectSubscriptionsInvoiceCustomSectionParams{OrganizationID: org.UUID(), ID: id.UUID()})
 	})
 	return updateErr("invoice_custom_section", id, n, err)
 }

@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -16,6 +17,7 @@ import (
 // bindCustomer binds the repositories of the customer aggregates.
 func (t *txState) bindCustomer(r *port.Repos) {
 	r.Customers = customerRepo{t}
+	r.PendingVIESChecks = pendingVIESCheckRepo{t}
 }
 
 // customerRepo implements customer.Repository.
@@ -376,4 +378,70 @@ func (r customerRepo) ResetDunningCampaign(ctx context.Context, org core.Organiz
 		return 0, fmt.Errorf("reset dunning campaign %s: %w", campaign, mapErr(err))
 	}
 	return int(n), nil
+}
+
+func (r customerRepo) FlagWalletRefresh(ctx context.Context, org core.OrganizationID, id core.CustomerID) error {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return err
+	}
+	// A flag raised and not yet claimed by a refresh needs no write: the
+	// key share lock keeps that refresh's claim waiting until this
+	// transaction ends (lago writes only a changed flag,
+	// app/models/customer.rb:385-389).
+	pending, err := q.LockCustomerWalletRefreshPending(ctx, db.LockCustomerWalletRefreshPendingParams{OrganizationID: org.UUID(), ID: id.UUID()})
+	if err != nil {
+		if errors.Is(mapErr(err), core.ErrNotFound) {
+			return nil
+		}
+		return fmt.Errorf("flag wallet refresh of customer %s: %w", id, mapErr(err))
+	}
+	if pending {
+		return nil
+	}
+	if err := q.FlagCustomerWalletRefresh(ctx, db.FlagCustomerWalletRefreshParams{OrganizationID: org.UUID(), ID: id.UUID()}); err != nil {
+		return fmt.Errorf("flag wallet refresh of customer %s: %w", id, mapErr(err))
+	}
+	return nil
+}
+
+func (r customerRepo) ClaimWalletRefresh(ctx context.Context, org core.OrganizationID, id core.CustomerID) (int64, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return 0, err
+	}
+	gen, err := q.ClaimCustomerWalletRefresh(ctx, db.ClaimCustomerWalletRefreshParams{OrganizationID: org.UUID(), ID: id.UUID()})
+	if err != nil {
+		return 0, fmt.Errorf("claim wallet refresh of customer %s: %w", id, mapErr(err))
+	}
+	return gen, nil
+}
+
+func (r customerRepo) ClearWalletRefresh(ctx context.Context, org core.OrganizationID, id core.CustomerID, gen int64) error {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return err
+	}
+	if err := q.ClearCustomerWalletRefresh(ctx, db.ClearCustomerWalletRefreshParams{OrganizationID: org.UUID(), ID: id.UUID(), Generation: gen}); err != nil {
+		return fmt.Errorf("clear wallet refresh of customer %s: %w", id, mapErr(err))
+	}
+	return nil
+}
+
+func (r customerRepo) ListAwaitingWalletRefresh(ctx context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[core.CustomerID], error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return core.Page[core.CustomerID]{}, err
+	}
+	after, lim, err := pageArgs(page)
+	if err != nil {
+		return core.Page[core.CustomerID]{}, err
+	}
+	rows, err := q.ListCustomersAwaitingWalletRefresh(ctx, db.ListCustomersAwaitingWalletRefreshParams{OrganizationID: org.UUID(), After: after, Lim: lim})
+	if err != nil {
+		return core.Page[core.CustomerID]{}, fmt.Errorf("list customers awaiting wallet refresh: %w", mapErr(err))
+	}
+	return pageOf(rows, page,
+		func(u uuid.UUID) (core.CustomerID, error) { return idOf[core.CustomerID](u), nil },
+		core.CustomerID.String)
 }

@@ -93,6 +93,14 @@ type Subscription struct {
 	// NextBillingAt is the next local midnight at which the subscription
 	// has something to bill ([Change] domain §22.17).
 	NextBillingAt *time.Time
+	// SkipDailyUsage excludes the subscription from the daily usage
+	// snapshots ([DailyUsage]).
+	SkipDailyUsage bool
+	// LastReceivedEventOn is the day, in the customer's time zone, the
+	// active subscription last received usage; nil before its first. Only
+	// [Repository.RecordEventReceived] writes it: Create and Update leave
+	// the stored value, so a concurrent ingestion is never overwritten.
+	LastReceivedEventOn *core.Date
 	// CreatedAt is the creation instant.
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.

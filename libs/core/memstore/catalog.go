@@ -2,7 +2,12 @@ package memstore
 
 import (
 	"context"
+	"fmt"
 	"slices"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
@@ -27,6 +32,7 @@ func newCatalogData() *catalogData {
 			m.FieldName = catalogClonePtr(m.FieldName)
 			m.Expression = catalogClonePtr(m.Expression)
 			m.RoundingPrecision = catalogClonePtr(m.RoundingPrecision)
+			m.DeletedAt = catalogClonePtr(m.DeletedAt)
 			m.Filters = slices.Clone(m.Filters)
 			for i := range m.Filters {
 				m.Filters[i].Values = slices.Clone(m.Filters[i].Values)
@@ -59,6 +65,7 @@ func newCatalogData() *catalogData {
 			a.InvoiceDisplayName = catalogClonePtr(a.InvoiceDisplayName)
 			a.Description = catalogClonePtr(a.Description)
 			a.TaxIDs = slices.Clone(a.TaxIDs)
+			a.DeletedAt = catalogClonePtr(a.DeletedAt)
 			return a
 		}),
 		pricingUnits: newTable[core.PricingUnitID](func(p catalog.PricingUnit) catalog.PricingUnit {
@@ -111,7 +118,7 @@ type metricRepo struct{ d *catalogData }
 
 func (r metricRepo) check(m *catalog.BillableMetric) error {
 	if r.d.metrics.any(func(x *catalog.BillableMetric) bool {
-		return x.ID != m.ID && x.OrganizationID == m.OrganizationID && x.Code == m.Code
+		return x.ID != m.ID && x.OrganizationID == m.OrganizationID && x.DeletedAt == nil && x.Code == m.Code
 	}) {
 		return conflict("billable_metric", "code")
 	}
@@ -131,7 +138,7 @@ func (r metricRepo) Create(_ context.Context, m *catalog.BillableMetric) error {
 
 func (r metricRepo) Update(_ context.Context, m *catalog.BillableMetric) error {
 	cur, ok := r.d.metrics.get(m.ID)
-	if !ok || cur.OrganizationID != m.OrganizationID {
+	if !ok || cur.OrganizationID != m.OrganizationID || cur.DeletedAt != nil {
 		return notFound("billable_metric", m.ID)
 	}
 	if err := r.check(m); err != nil {
@@ -141,18 +148,37 @@ func (r metricRepo) Update(_ context.Context, m *catalog.BillableMetric) error {
 	return nil
 }
 
-func (r metricRepo) Delete(ctx context.Context, org core.OrganizationID, id core.BillableMetricID) error {
-	if _, err := r.Get(ctx, org, id); err != nil {
+func (r metricRepo) Discard(ctx context.Context, org core.OrganizationID, id core.BillableMetricID, at time.Time) error {
+	m, err := r.Get(ctx, org, id)
+	if err != nil {
 		return err
 	}
-	if r.d.charges.any(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.BillableMetricID == id }) {
-		return conflict("billable_metric", "still referenced by charges")
-	}
-	r.d.metrics.del(id)
+	at = at.UTC()
+	m.DeletedAt, m.UpdatedAt = &at, at
+	r.d.metrics.put(id, *m)
 	return nil
 }
 
+func (r metricRepo) DiscardFilters(_ context.Context, org core.OrganizationID, id core.BillableMetricID, _ time.Time) (int, error) {
+	m, ok := r.d.metrics.get(id)
+	if !ok || m.OrganizationID != org {
+		return 0, nil
+	}
+	n := len(m.Filters)
+	m.Filters = nil
+	r.d.metrics.put(id, *m)
+	return n, nil
+}
+
 func (r metricRepo) Get(_ context.Context, org core.OrganizationID, id core.BillableMetricID) (*catalog.BillableMetric, error) {
+	m, ok := r.d.metrics.get(id)
+	if !ok || m.OrganizationID != org || m.DeletedAt != nil {
+		return nil, notFound("billable_metric", id)
+	}
+	return m, nil
+}
+
+func (r metricRepo) GetWithDiscarded(_ context.Context, org core.OrganizationID, id core.BillableMetricID) (*catalog.BillableMetric, error) {
 	m, ok := r.d.metrics.get(id)
 	if !ok || m.OrganizationID != org {
 		return nil, notFound("billable_metric", id)
@@ -161,7 +187,9 @@ func (r metricRepo) Get(_ context.Context, org core.OrganizationID, id core.Bill
 }
 
 func (r metricRepo) GetByCode(_ context.Context, org core.OrganizationID, code string) (*catalog.BillableMetric, error) {
-	m, ok := r.d.metrics.first(func(x *catalog.BillableMetric) bool { return x.OrganizationID == org && x.Code == code })
+	m, ok := r.d.metrics.first(func(x *catalog.BillableMetric) bool {
+		return x.OrganizationID == org && x.DeletedAt == nil && x.Code == code
+	})
 	if !ok {
 		return nil, notFound("billable_metric", stringer(code))
 	}
@@ -169,7 +197,9 @@ func (r metricRepo) GetByCode(_ context.Context, org core.OrganizationID, code s
 }
 
 func (r metricRepo) ListByIDs(_ context.Context, org core.OrganizationID, ids []core.BillableMetricID) ([]*catalog.BillableMetric, error) {
-	return catalogByIDs(r.d.metrics, "billable_metric", ids, func(m *catalog.BillableMetric) bool { return m.OrganizationID == org })
+	return catalogByIDs(r.d.metrics, "billable_metric", ids, func(m *catalog.BillableMetric) bool {
+		return m.OrganizationID == org && m.DeletedAt == nil
+	})
 }
 
 func (r metricRepo) ListByCodes(ctx context.Context, org core.OrganizationID, codes []string) ([]*catalog.BillableMetric, error) {
@@ -185,12 +215,18 @@ func (r metricRepo) ListByCodes(ctx context.Context, org core.OrganizationID, co
 }
 
 func (r metricRepo) InUse(_ context.Context, org core.OrganizationID, id core.BillableMetricID) (bool, error) {
-	return r.d.charges.any(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.BillableMetricID == id }), nil
+	return r.d.charges.any(func(c *catalog.Charge) bool {
+		return c.OrganizationID == org && c.DeletedAt == nil && c.BillableMetricID == id
+	}), nil
 }
 
 func (r metricRepo) List(_ context.Context, org core.OrganizationID, f catalog.MetricListFilter, page core.PageRequest) (core.Page[*catalog.BillableMetric], error) {
+	if !f.Order.Valid() {
+		return core.Page[*catalog.BillableMetric]{}, fmt.Errorf("list billable metrics: %w: order", core.ErrInvalidValue)
+	}
+	search := strings.ToLower(core.SearchTerm(f.Search))
 	rows := r.d.metrics.find(func(m *catalog.BillableMetric) bool {
-		if m.OrganizationID != org {
+		if m.OrganizationID != org || m.DeletedAt != nil {
 			return false
 		}
 		if len(f.AggregationTypes) > 0 && !slices.Contains(f.AggregationTypes, m.AggregationType) {
@@ -200,12 +236,15 @@ func (r metricRepo) List(_ context.Context, org core.OrganizationID, f catalog.M
 			return false
 		}
 		if !f.PlanID.IsZero() && !r.d.charges.any(func(c *catalog.Charge) bool {
-			return c.OrganizationID == org && c.PlanID == f.PlanID && c.BillableMetricID == m.ID
+			return c.OrganizationID == org && c.DeletedAt == nil && c.PlanID == f.PlanID && c.BillableMetricID == m.ID
 		}) {
 			return false
 		}
-		return true
+		return search == "" || strings.Contains(strings.ToLower(m.Name), search) || strings.Contains(strings.ToLower(m.Code), search)
 	})
+	if f.Order == core.OrderRecent {
+		return paginateRecent(rows, func(m *catalog.BillableMetric) (time.Time, uuid.UUID) { return m.CreatedAt, m.ID.UUID() }, page)
+	}
 	return paginate(rows, func(m *catalog.BillableMetric) core.BillableMetricID { return m.ID }, page)
 }
 
@@ -276,19 +315,28 @@ func (r planRepo) ListChildren(_ context.Context, org core.OrganizationID, paren
 }
 
 func (r planRepo) List(_ context.Context, org core.OrganizationID, f catalog.PlanListFilter, page core.PageRequest) (core.Page[*catalog.Plan], error) {
+	if !f.Order.Valid() {
+		return core.Page[*catalog.Plan]{}, fmt.Errorf("list plans: %w: order", core.ErrInvalidValue)
+	}
 	rows := r.d.plans.find(func(p *catalog.Plan) bool {
 		return p.OrganizationID == org && (f.IncludeChildren || p.IsParent()) &&
-			(len(f.Statuses) == 0 && !p.Deleted() || slices.Contains(f.Statuses, p.Status))
+			(len(f.Statuses) == 0 && !p.Deleted() || slices.Contains(f.Statuses, p.Status)) &&
+			matchesNameOrCode(f.Search, p.Name, p.Code)
 	})
+	if f.Order == core.OrderRecent {
+		return paginateByName(rows, func(p *catalog.Plan) nameKey { return nameKey{p.Name, p.CreatedAt, p.ID.UUID()} }, page)
+	}
 	return paginate(rows, func(p *catalog.Plan) core.PlanID { return p.ID }, page)
 }
 
-// chargeRepo implements catalog.ChargeRepository.
+// chargeRepo implements catalog.ChargeRepository. A stored charge holds
+// its discarded filters too; reads return kept ones only.
 type chargeRepo struct{ d *catalogData }
 
 func (r chargeRepo) check(c *catalog.Charge) error {
 	if c.ParentID.IsZero() && r.d.charges.any(func(x *catalog.Charge) bool {
-		return x.ID != c.ID && x.OrganizationID == c.OrganizationID && x.PlanID == c.PlanID && x.ParentID.IsZero() && x.Code == c.Code
+		return x.ID != c.ID && x.DeletedAt == nil && x.OrganizationID == c.OrganizationID && x.PlanID == c.PlanID &&
+			x.ParentID.IsZero() && x.Code == c.Code
 	}) {
 		return conflict("charge", "code")
 	}
@@ -305,6 +353,21 @@ func (r chargeRepo) check(c *catalog.Charge) error {
 	return nil
 }
 
+// keptCharge strips the discarded filters of the stored charge c.
+func keptCharge(c *catalog.Charge) *catalog.Charge {
+	c.Filters = slices.DeleteFunc(c.Filters, func(f catalog.ChargeFilter) bool { return f.DeletedAt != nil })
+	return c
+}
+
+// keptCharges keeps the kept charges of cs, with their kept filters.
+func keptCharges(cs []*catalog.Charge) []*catalog.Charge {
+	cs = slices.DeleteFunc(cs, func(c *catalog.Charge) bool { return c.DeletedAt != nil })
+	for _, c := range cs {
+		keptCharge(c)
+	}
+	return cs
+}
+
 func (r chargeRepo) Create(_ context.Context, c *catalog.Charge) error {
 	if r.d.charges.has(c.ID) {
 		return conflict("charge", "id")
@@ -318,36 +381,59 @@ func (r chargeRepo) Create(_ context.Context, c *catalog.Charge) error {
 
 func (r chargeRepo) Update(_ context.Context, c *catalog.Charge) error {
 	cur, ok := r.d.charges.get(c.ID)
-	if !ok || cur.OrganizationID != c.OrganizationID {
+	if !ok || cur.OrganizationID != c.OrganizationID || cur.DeletedAt != nil {
 		return notFound("charge", c.ID)
 	}
 	if err := r.check(c); err != nil {
 		return err
 	}
-	r.d.charges.put(c.ID, *c)
+	stored := c.Clone()
+	for _, f := range cur.Filters {
+		if slices.ContainsFunc(c.Filters, func(x catalog.ChargeFilter) bool { return x.ID == f.ID }) {
+			continue
+		}
+		if f.DeletedAt == nil {
+			at := c.UpdatedAt
+			f.DeletedAt = &at
+		}
+		stored.Filters = append(stored.Filters, f)
+	}
+	r.d.charges.put(c.ID, *stored)
 	return nil
 }
 
-func (r chargeRepo) Delete(ctx context.Context, org core.OrganizationID, id core.ChargeID) error {
-	if _, err := r.Get(ctx, org, id); err != nil {
-		return err
+// discard discards the kept charges matching pred, with their kept
+// filters, and returns how many; touch also sets UpdatedAt.
+func (r chargeRepo) discard(pred func(*catalog.Charge) bool, at time.Time, touch bool) int {
+	cs := r.d.charges.find(func(c *catalog.Charge) bool { return c.DeletedAt == nil && pred(c) })
+	for _, c := range cs {
+		c.DeletedAt = &at
+		if touch {
+			c.UpdatedAt = at
+		}
+		for i := range c.Filters {
+			if c.Filters[i].DeletedAt == nil {
+				c.Filters[i].DeletedAt = &at
+			}
+		}
+		r.d.charges.put(c.ID, *c)
 	}
-	_, err := r.delete(func(c *catalog.Charge) bool { return c.ID == id })
-	return err
+	return len(cs)
 }
 
-// delete removes the charges matching pred; an override charge left
-// behind with its parent among them fails with core.ErrConflict.
-func (r chargeRepo) delete(pred func(*catalog.Charge) bool) (int, error) {
-	return r.d.charges.deleteRestricted("charge", pred, func(c *catalog.Charge) core.ChargeID { return c.ParentID })
+func (r chargeRepo) Discard(_ context.Context, org core.OrganizationID, id core.ChargeID, at time.Time) error {
+	if r.discard(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.ID == id }, at, true) == 0 {
+		return notFound("charge", id)
+	}
+	return nil
 }
 
-func (r chargeRepo) DeleteByPlan(_ context.Context, org core.OrganizationID, plan core.PlanID) (int, error) {
-	return r.delete(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.PlanID == plan })
+func (r chargeRepo) DiscardByPlan(_ context.Context, org core.OrganizationID, plan core.PlanID, at time.Time) (int, error) {
+	return r.discard(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.PlanID == plan }, at, false), nil
 }
 
-func (r chargeRepo) DeleteByMetric(_ context.Context, org core.OrganizationID, metric core.BillableMetricID) (int, error) {
-	return r.delete(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.BillableMetricID == metric })
+func (r chargeRepo) DiscardByMetric(_ context.Context, org core.OrganizationID, metric core.BillableMetricID, at time.Time) (int, error) {
+	return r.discard(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.BillableMetricID == metric }, at, false), nil
 }
 
 func (r chargeRepo) Get(_ context.Context, org core.OrganizationID, id core.ChargeID) (*catalog.Charge, error) {
@@ -355,17 +441,17 @@ func (r chargeRepo) Get(_ context.Context, org core.OrganizationID, id core.Char
 	if !ok || c.OrganizationID != org {
 		return nil, notFound("charge", id)
 	}
-	return c, nil
+	return keptCharge(c), nil
 }
 
 func (r chargeRepo) GetByCode(_ context.Context, org core.OrganizationID, plan core.PlanID, code string) (*catalog.Charge, error) {
 	c, ok := r.d.charges.first(func(x *catalog.Charge) bool {
-		return x.OrganizationID == org && x.PlanID == plan && x.Code == code
+		return x.OrganizationID == org && x.DeletedAt == nil && x.PlanID == plan && x.Code == code
 	})
 	if !ok {
 		return nil, notFound("charge", stringer(code))
 	}
-	return c, nil
+	return keptCharge(c), nil
 }
 
 func (r chargeRepo) GetFilter(_ context.Context, org core.OrganizationID, id core.ChargeFilterID) (*catalog.ChargeFilter, error) {
@@ -380,21 +466,26 @@ func (r chargeRepo) GetFilter(_ context.Context, org core.OrganizationID, id cor
 }
 
 func (r chargeRepo) ListByPlan(_ context.Context, org core.OrganizationID, plan core.PlanID) ([]*catalog.Charge, error) {
-	return r.d.charges.find(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.PlanID == plan }), nil
+	return keptCharges(r.d.charges.find(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.PlanID == plan })), nil
 }
 
 func (r chargeRepo) ListByMetric(_ context.Context, org core.OrganizationID, metric core.BillableMetricID) ([]*catalog.Charge, error) {
-	return r.d.charges.find(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.BillableMetricID == metric }), nil
+	return keptCharges(r.d.charges.find(func(c *catalog.Charge) bool {
+		return c.OrganizationID == org && c.BillableMetricID == metric
+	})), nil
 }
 
 func (r chargeRepo) ListChildren(_ context.Context, org core.OrganizationID, parent core.ChargeID) ([]*catalog.Charge, error) {
-	return r.d.charges.find(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.ParentID == parent }), nil
+	return keptCharges(r.d.charges.find(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.ParentID == parent })), nil
 }
 
 func (r chargeRepo) ListFilters(ctx context.Context, org core.OrganizationID, charge core.ChargeID) ([]*catalog.ChargeFilter, error) {
 	c, err := r.Get(ctx, org, charge)
 	if err != nil {
 		return nil, err
+	}
+	if c.DeletedAt != nil {
+		return nil, notFound("charge", charge)
 	}
 	out := make([]*catalog.ChargeFilter, len(c.Filters))
 	for i := range c.Filters {
@@ -414,7 +505,8 @@ type fixedChargeRepo struct{ d *catalogData }
 
 func (r fixedChargeRepo) check(f *catalog.FixedCharge) error {
 	if f.ParentID.IsZero() && r.d.fixedCharges.any(func(x *catalog.FixedCharge) bool {
-		return x.ID != f.ID && x.OrganizationID == f.OrganizationID && x.PlanID == f.PlanID && x.ParentID.IsZero() && x.Code == f.Code
+		return x.ID != f.ID && x.DeletedAt == nil && x.OrganizationID == f.OrganizationID && x.PlanID == f.PlanID &&
+			x.ParentID.IsZero() && x.Code == f.Code
 	}) {
 		return conflict("fixed_charge", "code")
 	}
@@ -434,7 +526,7 @@ func (r fixedChargeRepo) Create(_ context.Context, f *catalog.FixedCharge) error
 
 func (r fixedChargeRepo) Update(_ context.Context, f *catalog.FixedCharge) error {
 	cur, ok := r.d.fixedCharges.get(f.ID)
-	if !ok || cur.OrganizationID != f.OrganizationID {
+	if !ok || cur.OrganizationID != f.OrganizationID || cur.DeletedAt != nil {
 		return notFound("fixed_charge", f.ID)
 	}
 	if err := r.check(f); err != nil {
@@ -444,26 +536,33 @@ func (r fixedChargeRepo) Update(_ context.Context, f *catalog.FixedCharge) error
 	return nil
 }
 
-func (r fixedChargeRepo) Delete(ctx context.Context, org core.OrganizationID, id core.FixedChargeID) error {
-	if _, err := r.Get(ctx, org, id); err != nil {
-		return err
+// discard discards the kept fixed charges matching pred and returns how
+// many; touch also sets UpdatedAt.
+func (r fixedChargeRepo) discard(pred func(*catalog.FixedCharge) bool, at time.Time, touch bool) int {
+	fs := r.d.fixedCharges.find(func(f *catalog.FixedCharge) bool { return f.DeletedAt == nil && pred(f) })
+	for _, f := range fs {
+		f.DeletedAt = &at
+		if touch {
+			f.UpdatedAt = at
+		}
+		r.d.fixedCharges.put(f.ID, *f)
 	}
-	_, err := r.delete(func(f *catalog.FixedCharge) bool { return f.ID == id })
-	return err
+	return len(fs)
 }
 
-// delete removes the fixed charges matching pred; an override fixed charge
-// left behind with its parent among them fails with core.ErrConflict.
-func (r fixedChargeRepo) delete(pred func(*catalog.FixedCharge) bool) (int, error) {
-	return r.d.fixedCharges.deleteRestricted("fixed_charge", pred, func(f *catalog.FixedCharge) core.FixedChargeID { return f.ParentID })
+func (r fixedChargeRepo) Discard(_ context.Context, org core.OrganizationID, id core.FixedChargeID, at time.Time) error {
+	if r.discard(func(f *catalog.FixedCharge) bool { return f.OrganizationID == org && f.ID == id }, at, true) == 0 {
+		return notFound("fixed_charge", id)
+	}
+	return nil
 }
 
-func (r fixedChargeRepo) DeleteByPlan(_ context.Context, org core.OrganizationID, plan core.PlanID) (int, error) {
-	return r.delete(func(f *catalog.FixedCharge) bool { return f.OrganizationID == org && f.PlanID == plan })
+func (r fixedChargeRepo) DiscardByPlan(_ context.Context, org core.OrganizationID, plan core.PlanID, at time.Time) (int, error) {
+	return r.discard(func(f *catalog.FixedCharge) bool { return f.OrganizationID == org && f.PlanID == plan }, at, false), nil
 }
 
-func (r fixedChargeRepo) DeleteByAddOn(_ context.Context, org core.OrganizationID, addOn core.AddOnID) (int, error) {
-	return r.delete(func(f *catalog.FixedCharge) bool { return f.OrganizationID == org && f.AddOnID == addOn })
+func (r fixedChargeRepo) DiscardByAddOn(_ context.Context, org core.OrganizationID, addOn core.AddOnID, at time.Time) (int, error) {
+	return r.discard(func(f *catalog.FixedCharge) bool { return f.OrganizationID == org && f.AddOnID == addOn }, at, false), nil
 }
 
 func (r fixedChargeRepo) Get(_ context.Context, org core.OrganizationID, id core.FixedChargeID) (*catalog.FixedCharge, error) {
@@ -476,7 +575,7 @@ func (r fixedChargeRepo) Get(_ context.Context, org core.OrganizationID, id core
 
 func (r fixedChargeRepo) GetByCode(_ context.Context, org core.OrganizationID, plan core.PlanID, code string) (*catalog.FixedCharge, error) {
 	f, ok := r.d.fixedCharges.first(func(x *catalog.FixedCharge) bool {
-		return x.OrganizationID == org && x.PlanID == plan && x.Code == code
+		return x.OrganizationID == org && x.DeletedAt == nil && x.PlanID == plan && x.Code == code
 	})
 	if !ok {
 		return nil, notFound("fixed_charge", stringer(code))
@@ -485,15 +584,21 @@ func (r fixedChargeRepo) GetByCode(_ context.Context, org core.OrganizationID, p
 }
 
 func (r fixedChargeRepo) ListByPlan(_ context.Context, org core.OrganizationID, plan core.PlanID) ([]*catalog.FixedCharge, error) {
-	return r.d.fixedCharges.find(func(f *catalog.FixedCharge) bool { return f.OrganizationID == org && f.PlanID == plan }), nil
+	return r.d.fixedCharges.find(func(f *catalog.FixedCharge) bool {
+		return f.OrganizationID == org && f.DeletedAt == nil && f.PlanID == plan
+	}), nil
 }
 
 func (r fixedChargeRepo) ListByAddOn(_ context.Context, org core.OrganizationID, addOn core.AddOnID) ([]*catalog.FixedCharge, error) {
-	return r.d.fixedCharges.find(func(f *catalog.FixedCharge) bool { return f.OrganizationID == org && f.AddOnID == addOn }), nil
+	return r.d.fixedCharges.find(func(f *catalog.FixedCharge) bool {
+		return f.OrganizationID == org && f.DeletedAt == nil && f.AddOnID == addOn
+	}), nil
 }
 
 func (r fixedChargeRepo) ListChildren(_ context.Context, org core.OrganizationID, parent core.FixedChargeID) ([]*catalog.FixedCharge, error) {
-	return r.d.fixedCharges.find(func(f *catalog.FixedCharge) bool { return f.OrganizationID == org && f.ParentID == parent }), nil
+	return r.d.fixedCharges.find(func(f *catalog.FixedCharge) bool {
+		return f.OrganizationID == org && f.DeletedAt == nil && f.ParentID == parent
+	}), nil
 }
 
 // addOnRepo implements catalog.AddOnRepository.
@@ -501,7 +606,7 @@ type addOnRepo struct{ d *catalogData }
 
 func (r addOnRepo) check(a *catalog.AddOn) error {
 	if r.d.addOns.any(func(x *catalog.AddOn) bool {
-		return x.ID != a.ID && x.OrganizationID == a.OrganizationID && x.Code == a.Code
+		return x.ID != a.ID && x.DeletedAt == nil && x.OrganizationID == a.OrganizationID && x.Code == a.Code
 	}) {
 		return conflict("add_on", "code")
 	}
@@ -521,7 +626,7 @@ func (r addOnRepo) Create(_ context.Context, a *catalog.AddOn) error {
 
 func (r addOnRepo) Update(_ context.Context, a *catalog.AddOn) error {
 	cur, ok := r.d.addOns.get(a.ID)
-	if !ok || cur.OrganizationID != a.OrganizationID {
+	if !ok || cur.OrganizationID != a.OrganizationID || cur.DeletedAt != nil {
 		return notFound("add_on", a.ID)
 	}
 	if err := r.check(a); err != nil {
@@ -531,14 +636,16 @@ func (r addOnRepo) Update(_ context.Context, a *catalog.AddOn) error {
 	return nil
 }
 
-func (r addOnRepo) Delete(ctx context.Context, org core.OrganizationID, id core.AddOnID) error {
-	if _, err := r.Get(ctx, org, id); err != nil {
+func (r addOnRepo) Discard(ctx context.Context, org core.OrganizationID, id core.AddOnID, at time.Time) error {
+	a, err := r.Get(ctx, org, id)
+	if err != nil {
 		return err
 	}
-	if r.d.fixedCharges.any(func(f *catalog.FixedCharge) bool { return f.OrganizationID == org && f.AddOnID == id }) {
-		return conflict("add_on", "still referenced by fixed charges")
+	if a.DeletedAt != nil {
+		return notFound("add_on", id)
 	}
-	r.d.addOns.del(id)
+	a.DeletedAt, a.UpdatedAt = &at, at
+	r.d.addOns.put(id, *a)
 	return nil
 }
 
@@ -551,7 +658,9 @@ func (r addOnRepo) Get(_ context.Context, org core.OrganizationID, id core.AddOn
 }
 
 func (r addOnRepo) GetByCode(_ context.Context, org core.OrganizationID, code string) (*catalog.AddOn, error) {
-	a, ok := r.d.addOns.first(func(x *catalog.AddOn) bool { return x.OrganizationID == org && x.Code == code })
+	a, ok := r.d.addOns.first(func(x *catalog.AddOn) bool {
+		return x.OrganizationID == org && x.DeletedAt == nil && x.Code == code
+	})
 	if !ok {
 		return nil, notFound("add_on", stringer(code))
 	}
@@ -559,11 +668,19 @@ func (r addOnRepo) GetByCode(_ context.Context, org core.OrganizationID, code st
 }
 
 func (r addOnRepo) ListByIDs(_ context.Context, org core.OrganizationID, ids []core.AddOnID) ([]*catalog.AddOn, error) {
-	return catalogByIDs(r.d.addOns, "add_on", ids, func(a *catalog.AddOn) bool { return a.OrganizationID == org })
+	return catalogByIDs(r.d.addOns, "add_on", ids, func(a *catalog.AddOn) bool { return a.OrganizationID == org && a.DeletedAt == nil })
 }
 
-func (r addOnRepo) List(_ context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*catalog.AddOn], error) {
-	rows := r.d.addOns.find(func(a *catalog.AddOn) bool { return a.OrganizationID == org })
+func (r addOnRepo) List(_ context.Context, org core.OrganizationID, f catalog.AddOnFilter, page core.PageRequest) (core.Page[*catalog.AddOn], error) {
+	if !f.Order.Valid() {
+		return core.Page[*catalog.AddOn]{}, fmt.Errorf("list add-ons: %w: order", core.ErrInvalidValue)
+	}
+	rows := r.d.addOns.find(func(a *catalog.AddOn) bool {
+		return a.OrganizationID == org && a.DeletedAt == nil && matchesNameOrCode(f.Search, a.Name, a.Code)
+	})
+	if f.Order == core.OrderRecent {
+		return paginateRecent(rows, func(a *catalog.AddOn) (time.Time, uuid.UUID) { return a.CreatedAt, a.ID.UUID() }, page)
+	}
 	return paginate(rows, func(a *catalog.AddOn) core.AddOnID { return a.ID }, page)
 }
 
@@ -618,8 +735,16 @@ func (r pricingUnitRepo) GetByCode(_ context.Context, org core.OrganizationID, c
 	return p, nil
 }
 
-func (r pricingUnitRepo) List(_ context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*catalog.PricingUnit], error) {
-	rows := r.d.pricingUnits.find(func(p *catalog.PricingUnit) bool { return p.OrganizationID == org })
+func (r pricingUnitRepo) List(_ context.Context, org core.OrganizationID, f catalog.PricingUnitFilter, page core.PageRequest) (core.Page[*catalog.PricingUnit], error) {
+	if !f.Order.Valid() {
+		return core.Page[*catalog.PricingUnit]{}, fmt.Errorf("list pricing units: %w: order", core.ErrInvalidValue)
+	}
+	rows := r.d.pricingUnits.find(func(p *catalog.PricingUnit) bool {
+		return p.OrganizationID == org && matchesNameOrCode(f.Search, p.Name, p.Code)
+	})
+	if f.Order == core.OrderRecent {
+		return paginateByName(rows, func(p *catalog.PricingUnit) nameKey { return nameKey{p.Name, p.CreatedAt, p.ID.UUID()} }, page)
+	}
 	return paginate(rows, func(p *catalog.PricingUnit) core.PricingUnitID { return p.ID }, page)
 }
 

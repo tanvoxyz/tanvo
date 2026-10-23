@@ -12,12 +12,10 @@ import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/api/resource.proto";
-import "google/protobuf/timestamp.proto";
 import "tanvo/common/v1/options.proto";
-import "tanvo/common/v1/types.proto";
 
-// DataExportService starts data exports and returns their files. An
-// export is started by a member; its file expires after 7 days.
+// DataExportService starts data exports. An export is started by a
+// member, who receives the file by email; the file expires after 7 days.
 service DataExportService {
   // Exports the invoices matching a filter.
   rpc ExportInvoices(ExportInvoicesRequest) returns (ExportInvoicesResponse) {
@@ -54,14 +52,6 @@ service DataExportService {
     };
     option (tanvo.common.v1.access) = {permission: "credit_notes:export"};
   }
-
-  // Returns an export and, once completed, a signed URL of its file. Only
-  // the member who started it can read it.
-  rpc GetDataExport(GetDataExportRequest) returns (GetDataExportResponse) {
-    option idempotency_level = NO_SIDE_EFFECTS;
-    option (google.api.http) = {get: "/v1/data_exports/{data_export_id}"};
-    option (tanvo.common.v1.access) = {authenticated: true};
-  }
 }
 
 // DataExportFormat is the file format of an export.
@@ -86,20 +76,6 @@ enum DataExportStatus {
   DATA_EXPORT_STATUS_FAILED = 4;
 }
 
-// DataExportResource is what an export contains.
-enum DataExportResource {
-  // Not set.
-  DATA_EXPORT_RESOURCE_UNSPECIFIED = 0;
-  // Invoices.
-  DATA_EXPORT_RESOURCE_INVOICES = 1;
-  // Invoice fees.
-  DATA_EXPORT_RESOURCE_INVOICE_FEES = 2;
-  // Credit notes.
-  DATA_EXPORT_RESOURCE_CREDIT_NOTES = 3;
-  // Credit note items.
-  DATA_EXPORT_RESOURCE_CREDIT_NOTE_ITEMS = 4;
-}
-
 // DataExport is a background export of records to a file.
 message DataExport {
   option (google.api.resource) = {
@@ -111,26 +87,11 @@ message DataExport {
 
   // The export's ID.
   string id = 1 [(google.api.field_behavior) = IDENTIFIER];
-  // The file format.
-  DataExportFormat format = 2;
-  // What the export contains.
-  DataExportResource resource_type = 3;
-  // The AIP-160 filter and search of the export.
-  string filter = 4;
-  // The search of the export.
-  string search = 5;
   // The state.
   DataExportStatus status = 6;
-  // The file, once completed and until it expires.
-  tanvo.common.v1.Document file = 7;
-  // When building started.
-  google.protobuf.Timestamp started_at = 8;
-  // When building completed.
-  google.protobuf.Timestamp completed_at = 9;
-  // When the file expires.
-  google.protobuf.Timestamp expires_at = 10;
-  // When the export was created.
-  google.protobuf.Timestamp created_at = 11;
+
+  reserved 2 to 5, 7 to 11;
+  reserved format, resource_type, filter, search, file, started_at, completed_at, expires_at, created_at;
 }
 
 // ExportInvoicesRequest is the request of DataExportService.ExportInvoices.
@@ -195,21 +156,5 @@ message ExportCreditNoteItemsRequest {
 // ExportCreditNoteItemsResponse is the response of DataExportService.ExportCreditNoteItems.
 message ExportCreditNoteItemsResponse {
   // The export started.
-  DataExport data_export = 1;
-}
-
-// GetDataExportRequest is the request of DataExportService.GetDataExport.
-message GetDataExportRequest {
-  // The export's ID.
-  string data_export_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.uuid = true
-  ];
-}
-
-// GetDataExportResponse is the response of DataExportService.GetDataExport.
-message GetDataExportResponse {
-  // The export.
   DataExport data_export = 1;
 }

@@ -78,6 +78,12 @@ func (s *Service) billPaidCredit(ctx context.Context, r port.Repos, w *wallet.Wa
 	}
 
 	inv.ApplyTotals(invoice.ComputeTotals([]int64{fee.Amount}, invoice.Deductions{}))
+	// paid_credit_service.rb:29-32: the wallet transaction's resource
+	// (WalletTransaction#invoice_custom_section_resource). Wallets and
+	// their transactions select no sections yet, so the customer's apply.
+	if err := kernel.ApplyCustomSections(ctx, s.d, r, env, inv, nil, []kernel.CustomSectionResource{{}}); err != nil {
+		return err
+	}
 	if t.InvoiceRequiresSuccessfulPayment {
 		if err := inv.Transition(invoice.StatusOpen, now); err != nil {
 			return fmt.Errorf("open credit invoice %s: %w", inv.ID, err)

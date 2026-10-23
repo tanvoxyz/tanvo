@@ -65,11 +65,7 @@ func TestCreateCoupon(t *testing.T) {
 			mutate: func(h *billingtest.Harness, c *coupon.Coupon, _ *catalog.Plan, _ *catalog.BillableMetric) {
 				h.FixedAmountCoupon(10, func(o *coupon.Coupon) { o.Code = c.Code })
 			},
-			wantErr: func(t *testing.T, err error) {
-				if !errors.Is(err, core.ErrConflict) {
-					t.Fatalf("got error = %v, want = %v", err, core.ErrConflict)
-				}
-			},
+			wantErr: func(t *testing.T, err error) { wantValidation(t, err, "code", core.CodeAlreadyExists) },
 		},
 		// source: spec/services/coupons/create_service_spec.rb:99
 		{
@@ -104,7 +100,7 @@ func TestCreateCoupon(t *testing.T) {
 			mutate: func(_ *billingtest.Harness, c *coupon.Coupon, p *catalog.Plan, m *catalog.BillableMetric) {
 				c.LimitedPlanIDs, c.LimitedBillableMetricIDs = []core.PlanID{p.ID}, []core.BillableMetricID{m.ID}
 			},
-			wantErr: func(t *testing.T, err error) { wantValidation(t, err, "limitations", coupon.CodeOnlyOneLimitationType) },
+			wantErr: func(t *testing.T, err error) { wantRule(t, err, coupon.CodeOnlyOneLimitationType) },
 		},
 		// source: spec/services/coupons/create_service_spec.rb:308
 		{
@@ -257,7 +253,7 @@ func TestUpdateCoupon(t *testing.T) {
 			fn: func(_ *billingtest.Harness, c *coupon.Coupon, _ []*catalog.Plan, m []*catalog.BillableMetric) {
 				c.LimitedBillableMetricIDs = []core.BillableMetricID{m[0].ID}
 			},
-			wantErr: func(t *testing.T, err error) { wantValidation(t, err, "limitations", coupon.CodeOnlyOneLimitationType) },
+			wantErr: func(t *testing.T, err error) { wantRule(t, err, coupon.CodeOnlyOneLimitationType) },
 		},
 		// source: spec/services/coupons/update_service_spec.rb:181
 		{
@@ -271,14 +267,15 @@ func TestUpdateCoupon(t *testing.T) {
 				}
 			},
 		},
-		// Deviation: lago ignores locked fields once applied; Tanvo rejects
-		// them (domain §8.1).
+		// source: spec/services/coupons/update_service_spec.rb:32
 		{
 			name: "amount of an applied coupon", applied: true,
 			fn: func(_ *billingtest.Harness, c *coupon.Coupon, _ []*catalog.Plan, _ []*catalog.BillableMetric) {
 				c.Amount = ptr[int64](50)
 			},
-			wantErr: func(t *testing.T, err error) { wantValidation(t, err, "amount_cents", coupon.CodeAppliedCouponLocked) },
+			check: func(t *testing.T, got *coupon.Coupon, _ []*catalog.Plan, _ []*catalog.BillableMetric) {
+				eq(t, "amount", *got.Amount, int64(10))
+			},
 		},
 		{
 			name: "name of an applied coupon", applied: true,
@@ -335,7 +332,8 @@ func TestDestroyCoupon(t *testing.T) {
 	a := f.h.ApplyCoupon(c, f.cust)
 	got, err := f.s.DestroyCoupon(f.h.Ctx, f.h.OrgID(), c.ID)
 	mustOK(t, err)
-	eq(t, "coupon status", got.Status, coupon.StatusTerminated)
+	eq(t, "coupon status", got.Status, coupon.StatusActive)
+	eq(t, "coupon deleted", got.Deleted(), true)
 	eq(t, "applied coupon status", f.h.ReloadAppliedCoupon(a.ID).Status, coupon.StatusTerminated)
 }
 
@@ -477,7 +475,7 @@ func TestApplyCouponToCustomer(t *testing.T) {
 			coupon: func(h *billingtest.Harness, _ *catalog.Plan, _ *catalog.BillableMetric) *coupon.Coupon {
 				return h.FixedAmountCoupon(100, func(c *coupon.Coupon) { c.Reusable = false })
 			},
-			wantErr: func(t *testing.T, err error) { wantRule(t, err, coupon.CodeNotReusable) },
+			wantErr: func(t *testing.T, err error) { wantValidation(t, err, "coupon", coupon.CodeNotReusable) },
 		},
 		// source: spec/services/applied_coupons/create_service_spec.rb:164
 		{
@@ -513,7 +511,6 @@ func TestApplyCouponToCustomer(t *testing.T) {
 			wantErr: func(t *testing.T, err error) { wantRule(t, err, coupon.CodePlanOverlapping) },
 		},
 		// source: spec/services/applied_coupons/create_service_spec.rb:214
-		// lago answers coupon_not_found; Tanvo names the rule.
 		{
 			name: "terminated coupon",
 			coupon: func(h *billingtest.Harness, _ *catalog.Plan, _ *catalog.BillableMetric) *coupon.Coupon {
@@ -522,7 +519,11 @@ func TestApplyCouponToCustomer(t *testing.T) {
 					c.Status, c.TerminatedAt = coupon.StatusTerminated, &now
 				})
 			},
-			wantErr: func(t *testing.T, err error) { wantRule(t, err, coupon.CodeCouponNotActive) },
+			wantErr: func(t *testing.T, err error) {
+				if !errors.Is(err, core.ErrNotFound) || err.Error() != "coupon_not_found" {
+					t.Fatalf("got error = %v, want = coupon_not_found", err)
+				}
+			},
 		},
 		// source: spec/services/applied_coupons/create_service_spec.rb:226
 		{

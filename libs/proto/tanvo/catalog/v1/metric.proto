@@ -67,8 +67,10 @@ service BillableMetricService {
     };
   }
 
-  // Deletes a billable metric: removes its charges and alerts, refreshes
-  // draft invoices and deletes its events.
+  // Deletes a billable metric: the metric is soft-deleted (history still
+  // names it and its code is free again), its charges and alerts are
+  // removed and the draft invoices billing it are refreshed. Its events
+  // are kept.
   rpc DeleteBillableMetric(DeleteBillableMetricRequest) returns (DeleteBillableMetricResponse) {
     option (google.api.http) = {delete: "/v1/billable_metrics/{billable_metric_id}"};
     option (tanvo.common.v1.access) = {
@@ -78,15 +80,15 @@ service BillableMetricService {
   }
 
   // Evaluates an expression against a sample event, to test it before
-  // saving a metric.
+  // saving a metric. It changes nothing, but needs write access to
+  // billable metrics, like creating one.
   rpc EvaluateExpression(EvaluateExpressionRequest) returns (EvaluateExpressionResponse) {
-    option idempotency_level = NO_SIDE_EFFECTS;
     option (google.api.http) = {
       post: "/v1/billable_metrics:evaluate_expression"
       body: "*"
     };
     option (tanvo.common.v1.access) = {
-      permission: "billable_metrics:read"
+      permission: "billable_metrics:create"
       api_resource: "billable_metric"
     };
   }
@@ -142,11 +144,10 @@ message MetricFilter {
       max_len: 255
     }
   ];
-  // The allowed values.
+  // The allowed values; duplicates are dropped.
   repeated string values = 2 [(buf.validate.field).repeated = {
     min_items: 1
     max_items: 1000
-    unique: true
     items: {
       string: {
         min_len: 1

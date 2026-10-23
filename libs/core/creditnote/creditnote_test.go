@@ -80,9 +80,16 @@ func TestNumber(t *testing.T) {
 func TestTransitionMatrices(t *testing.T) {
 	for _, from := range StatusValues() {
 		for _, to := range StatusValues() {
-			want := from == StatusDraft && to == StatusFinalized
+			want := from == StatusDraft && (to == StatusFinalized || to == StatusDeleted)
 			if got := CanTransition(from, to); got != want {
 				t.Errorf("CanTransition(%s, %s) got = %v, want = %v", from, to, got, want)
+			}
+			if to == StatusDeleted {
+				// source: spec/services/credit_notes/delete_service_spec.rb:14
+				cn := &CreditNote{Status: from}
+				if err := cn.MarkDeleted(testNow); (err == nil) != want || want && (cn.Status != StatusDeleted || !cn.UpdatedAt.Equal(testNow)) {
+					t.Errorf("MarkDeleted(%s) got = %v, %s, want ok = %v", from, err, cn.Status, want)
+				}
 			}
 			cn := &CreditNote{Status: from}
 			if err := cn.Finalize(testNow); to == StatusFinalized && (err == nil) != want {

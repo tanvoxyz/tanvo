@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tanvoxyz/tanvo/libs/billing/deduct"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
@@ -58,46 +57,90 @@ func resetFeeTaxes(fs []*invoice.Fee) {
 	}
 }
 
-// Retry finishes an invoice whose taxes failed or are pending (lago
-// Invoices::RetryService and ProviderTaxes::PullTaxesAndApplyService): it
-// gives back the deductions applied so far, taxes and deducts the stored
-// fees again and finalizes the invoice (a draft stays a draft). It
-// returns the invoice, still failed or pending when the provider fails
-// again.
+// Retry reopens the failed invoice id and queues the pull of its taxes
+// (lago Invoices::RetryService): the invoice is open again with its taxes
+// pending, under its lock, and [kernel.JobPullProviderTaxes] runs
+// [Service.PullTaxes]. Another status fails with [CodeInvalidStatus].
+//
+// source: app/services/invoices/retry_service.rb:13-41
+func (s *Service) Retry(ctx context.Context, org core.OrganizationID, id core.InvoiceID) (*invoice.Invoice, error) {
+	return s.onInvoice(ctx, org, id, func(ctx context.Context, r port.Repos, inv *invoice.Invoice) error {
+		if inv.Status != invoice.StatusFailed {
+			return fmt.Errorf("retry invoice %s: %w", inv.ID, core.NewRuleError(CodeInvalidStatus, "only failed invoices are retried"))
+		}
+		return s.reopen(ctx, r, inv)
+	})
+}
+
+// reopen is [Service.Retry] of the failed inv in the transaction of r.
+// Tanvo has no pending status: the invoice waits open, gated or not
+// (retry_service.rb:37-38).
+func (s *Service) reopen(ctx context.Context, r port.Repos, inv *invoice.Invoice) error {
+	now := s.d.Now()
+	if err := inv.Transition(invoice.StatusOpen, now); err != nil {
+		return fmt.Errorf("retry invoice %s: %w", inv.ID, err)
+	}
+	inv.TaxStatus = invoice.TaxStatusPending
+	inv.UpdatedAt = now
+	if err := r.Invoices.Update(ctx, inv); err != nil {
+		return fmt.Errorf("save invoice %s: %w", inv.ID, err)
+	}
+	return kernel.Enqueue(ctx, r, inv.OrganizationID, kernel.JobPullProviderTaxes, kernel.InvoiceArgs{InvoiceID: inv.ID}, "invoice:"+inv.ID.String(), now)
+}
+
+// PullTaxes applies the provider taxes of the invoice id waiting for them
+// (lago Invoices::ProviderTaxes::PullTaxesAndApplyService): the
+// deductions already applied are kept and only the taxes and totals are
+// computed, then credit notes and prepaid credits are applied (not on a
+// draft or one-off invoice) and the invoice is finalized (a draft stays a
+// draft and is announced ready to finalize). An invoice that is not open
+// or a draft with pending taxes is left as it is; a customer the provider
+// does not tax fails with a [core.NotFoundError] of integration_customer. When the provider fails, the
+// invoice fails (a draft keeps its status) with the taxes failed.
 //
 // The provider is called between two transactions, never inside one
 // (lago PullTaxesAndApplyService): a first run records what the provider
 // is asked and rolls back, the provider is called, and a second run
 // applies its answer, or starts over when the invoice changed meanwhile.
-func (s *Service) Retry(ctx context.Context, org core.OrganizationID, id core.InvoiceID) (*invoice.Invoice, error) {
+func (s *Service) PullTaxes(ctx context.Context, org core.OrganizationID, id core.InvoiceID) (*invoice.Invoice, error) {
 	call := &kernel.TaxCall{}
 	tctx := kernel.WithTaxCall(ctx, call)
 	for range maxTaxCalls {
-		inv, err := s.onInvoice(tctx, org, id, s.retry)
+		inv, err := s.onInvoice(tctx, org, id, s.pullTaxes)
 		if !errors.Is(err, kernel.ErrTaxCall) {
 			return inv, err
 		}
 		call.Call(ctx, s.d.Taxes)
 	}
-	return nil, fmt.Errorf("retry invoice %s: changed during %d tax provider calls: %w", id, maxTaxCalls, kernel.ErrTaxCall)
+	return nil, fmt.Errorf("pull taxes of invoice %s: changed during %d tax provider calls: %w", id, maxTaxCalls, kernel.ErrTaxCall)
 }
 
-// maxTaxCalls bounds the provider calls of one [Service.Retry].
+// maxTaxCalls bounds the provider calls of one [Service.PullTaxes].
 const maxTaxCalls = 3
 
-// retry is [Service.Retry] in the transaction of r.
-func (s *Service) retry(ctx context.Context, r port.Repos, inv *invoice.Invoice) error {
-	switch {
-	case inv.Status == invoice.StatusFailed,
-		inv.TaxStatus == invoice.TaxStatusPending && (inv.Status == invoice.StatusOpen || inv.Status == invoice.StatusDraft),
-		inv.TaxStatus == invoice.TaxStatusFailed && inv.Status == invoice.StatusDraft:
-	default:
-		return fmt.Errorf("retry invoice %s: %w", inv.ID, core.NewRuleError("not_retryable", "the invoice has no tax to retry"))
-	}
+// pullTaxes is [Service.PullTaxes] in the transaction of r.
+//
+// source: app/services/invoices/provider_taxes/pull_taxes_and_apply_service.rb:14-90
+func (s *Service) pullTaxes(ctx context.Context, r port.Repos, inv *invoice.Invoice) error {
 	org := inv.OrganizationID
 	cenv, err := kernel.LoadCustomerEnv(ctx, r, org, inv.CustomerID, inv.BillingEntityID)
 	if err != nil {
 		return err
+	}
+	// pull_taxes_and_apply_service.rb:16.
+	on := false
+	if s.d.Taxes != nil {
+		if on, err = s.d.Taxes.Enabled(ctx, cenv.Customer); err != nil {
+			return fmt.Errorf("pull taxes of invoice %s: %w: %w", inv.ID, kernel.ErrTaxProvider, err)
+		}
+	}
+	if !on {
+		return fmt.Errorf("pull taxes of invoice %s: %w", inv.ID, core.NotFound("integration_customer"))
+	}
+	// pull_taxes_and_apply_service.rb:17-18; Tanvo has no pending status.
+	draft := inv.Status == invoice.StatusDraft
+	if (!draft && inv.Status != invoice.StatusOpen) || inv.TaxStatus != invoice.TaxStatusPending {
+		return nil
 	}
 	iss, err := r.InvoiceSubscriptions.ListByInvoice(ctx, org, inv.ID)
 	if err != nil {
@@ -107,45 +150,40 @@ func (s *Service) retry(ctx context.Context, r port.Repos, inv *invoice.Invoice)
 	if err != nil {
 		return fmt.Errorf("load fees of invoice %s: %w", inv.ID, err)
 	}
-	draft := inv.Status == invoice.StatusDraft
-	if draft {
-		err = s.deduct.ResetDraft(ctx, r, inv)
-	} else {
-		err = s.giveBack(ctx, r, inv)
+	// The provider taxes every fee again (lago Fees::ApplyProviderTaxesService);
+	// the progressive billing credits and coupons applied are kept
+	// (pull_taxes_and_apply_service.rb:48, lago Invoices::ComputeAmountsFromFees).
+	for _, f := range fs {
+		resetTaxesOnly(f)
 	}
-	if err != nil {
-		return err
-	}
-	resetFeeTaxes(fs)
 	resolver, err := s.planResolver(ctx, r, cenv, iss)
 	if err != nil {
 		return err
 	}
-	k := kindOf(inv, iss)
-	st, err := s.settle(ctx, r, cenv, inv, fs, settleOptions{draft: draft, aggregate: inv.Type == invoice.TypeAdvanceCharges, resolver: resolver})
+	// A gated invoice asks for draft taxes (pull_taxes_and_apply_service.rb:21-25).
+	gated := false
+	if !draft {
+		gate, _, err := gatingSubscription(ctx, r, org, iss)
+		if err != nil {
+			return err
+		}
+		gated = gate != nil
+	}
+	st, err := s.settle(ctx, r, cenv, inv, fs, settleOptions{draft: draft, aggregate: inv.Type == invoice.TypeAdvanceCharges, resolver: resolver, keep: true, draftTaxes: gated})
 	if err != nil {
 		return err
 	}
-	mode := modeFinalize
 	if draft {
-		mode = modeRefresh
+		if err := s.finish(ctx, r, cenv, inv, kindOf(inv, iss), st, modeRefresh); err != nil {
+			return err
+		}
+		if st.pending {
+			return nil
+		}
+		// pull_taxes_and_apply_service.rb:32,76-77,94-97.
+		return kernel.Emit(ctx, s.d, org, webhook.EventTypeInvoiceReadyToFinalize, "invoice", kernel.ObjectID(inv.ID), inv)
 	}
-	return s.finish(ctx, r, cenv, inv, k, st, mode)
-}
-
-// giveBack returns what the deductions of a non-draft invoice consumed
-// before it is deducted again, and deletes its credits.
-func (s *Service) giveBack(ctx context.Context, r port.Repos, inv *invoice.Invoice) error {
-	if _, err := s.deduct.Restore(ctx, r, inv, deduct.RestoreOptions{}); err != nil {
-		return err
-	}
-	if err := r.Credits.DeleteByInvoice(ctx, inv.OrganizationID, inv.ID); err != nil {
-		return fmt.Errorf("delete credits of invoice %s: %w", inv.ID, err)
-	}
-	inv.ProgressiveBillingCreditAmount, inv.CouponsAmount = 0, 0
-	inv.CreditNotesAmount, inv.PrepaidCreditAmount = 0, 0
-	inv.PrepaidGrantedCreditAmount, inv.PrepaidPurchasedCreditAmount = 0, 0
-	return nil
+	return s.finishHeld(ctx, r, cenv, inv, iss, st)
 }
 
 // planResolver returns a tax resolver knowing the plans of the invoice's

@@ -140,3 +140,40 @@ DELETE FROM customer_invoice_custom_sections WHERE organization_id = @organizati
 INSERT INTO customer_invoice_custom_sections (organization_id, customer_id, system, invoice_custom_section_id, position)
 SELECT @organization_id, @customer_id, @system::boolean, s.id, s.ord
 FROM unnest(@section_ids::uuid[]) WITH ORDINALITY AS s(id, ord);
+
+-- name: FlagCustomerWalletRefresh :exec
+UPDATE customers c SET awaiting_wallet_refresh = true, wallet_refresh_generation = c.wallet_refresh_generation + 1
+WHERE c.organization_id = @organization_id AND c.id = @id
+  AND EXISTS (SELECT 1 FROM wallets w
+              WHERE w.organization_id = c.organization_id AND w.customer_id = c.id AND w.status = 'active');
+
+-- name: LockCustomerWalletRefreshPending :one
+-- FOR KEY SHARE does not block other signals nor customer updates, only
+-- the FOR UPDATE of ClaimCustomerWalletRefresh, which so waits for every
+-- signal that skipped its write.
+SELECT (awaiting_wallet_refresh AND wallet_refresh_claimed <> wallet_refresh_generation)::boolean AS pending
+FROM customers WHERE organization_id = @organization_id AND id = @id
+FOR KEY SHARE;
+
+-- name: ClaimCustomerWalletRefresh :one
+WITH locked AS (
+  SELECT l.id AS locked_id FROM customers l
+  WHERE l.organization_id = @organization_id::uuid AND l.id = @id::uuid FOR UPDATE
+)
+UPDATE customers c SET wallet_refresh_claimed = c.wallet_refresh_generation
+FROM locked
+WHERE c.organization_id = @organization_id::uuid AND c.id = locked.locked_id
+RETURNING c.wallet_refresh_generation;
+
+-- name: ClearCustomerWalletRefresh :exec
+UPDATE customers SET awaiting_wallet_refresh = false
+WHERE organization_id = @organization_id AND id = @id AND wallet_refresh_generation = @generation;
+
+-- name: ListCustomersAwaitingWalletRefresh :many
+SELECT c.id FROM customers c
+WHERE c.organization_id = @organization_id AND c.awaiting_wallet_refresh AND c.deleted_at IS NULL
+  AND EXISTS (SELECT 1 FROM wallets w
+              WHERE w.organization_id = c.organization_id AND w.customer_id = c.id AND w.status = 'active')
+  AND (sqlc.narg(after)::uuid IS NULL OR c.id > sqlc.narg(after))
+ORDER BY c.id
+LIMIT @lim;

@@ -333,11 +333,12 @@ type Membership struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Id          *string                `protobuf:"bytes,1,opt,name=id"`
 	xxx_hidden_User        *User                  `protobuf:"bytes,2,opt,name=user"`
-	xxx_hidden_RoleId      *string                `protobuf:"bytes,3,opt,name=role_id,json=roleId"`
+	xxx_hidden_RoleIds     []string               `protobuf:"bytes,3,rep,name=role_ids,json=roleIds"`
 	xxx_hidden_Status      MembershipStatus       `protobuf:"varint,4,opt,name=status,enum=tanvo.access.v1.MembershipStatus"`
 	xxx_hidden_RevokedAt   *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=revoked_at,json=revokedAt"`
 	xxx_hidden_CreatedAt   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt   *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_Permissions []string               `protobuf:"bytes,8,rep,name=permissions"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -386,14 +387,11 @@ func (x *Membership) GetUser() *User {
 	return nil
 }
 
-func (x *Membership) GetRoleId() string {
+func (x *Membership) GetRoleIds() []string {
 	if x != nil {
-		if x.xxx_hidden_RoleId != nil {
-			return *x.xxx_hidden_RoleId
-		}
-		return ""
+		return x.xxx_hidden_RoleIds
 	}
-	return ""
+	return nil
 }
 
 func (x *Membership) GetStatus() MembershipStatus {
@@ -426,23 +424,29 @@ func (x *Membership) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Membership) GetPermissions() []string {
+	if x != nil {
+		return x.xxx_hidden_Permissions
+	}
+	return nil
+}
+
 func (x *Membership) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
 }
 
 func (x *Membership) SetUser(v *User) {
 	x.xxx_hidden_User = v
 }
 
-func (x *Membership) SetRoleId(v string) {
-	x.xxx_hidden_RoleId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+func (x *Membership) SetRoleIds(v []string) {
+	x.xxx_hidden_RoleIds = v
 }
 
 func (x *Membership) SetStatus(v MembershipStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
 }
 
 func (x *Membership) SetRevokedAt(v *timestamppb.Timestamp) {
@@ -457,6 +461,10 @@ func (x *Membership) SetUpdatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_UpdatedAt = v
 }
 
+func (x *Membership) SetPermissions(v []string) {
+	x.xxx_hidden_Permissions = v
+}
+
 func (x *Membership) HasId() bool {
 	if x == nil {
 		return false
@@ -469,13 +477,6 @@ func (x *Membership) HasUser() bool {
 		return false
 	}
 	return x.xxx_hidden_User != nil
-}
-
-func (x *Membership) HasRoleId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
 func (x *Membership) HasStatus() bool {
@@ -515,11 +516,6 @@ func (x *Membership) ClearUser() {
 	x.xxx_hidden_User = nil
 }
 
-func (x *Membership) ClearRoleId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_RoleId = nil
-}
-
 func (x *Membership) ClearStatus() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
 	x.xxx_hidden_Status = MembershipStatus_MEMBERSHIP_STATUS_UNSPECIFIED
@@ -544,8 +540,9 @@ type Membership_builder struct {
 	Id *string
 	// The member.
 	User *User
-	// The ID or `code:<code>` of the member's role.
-	RoleId *string
+	// The IDs or `code:<code>` of the member's roles; the member holds the
+	// union of their permissions. Responses carry the role IDs.
+	RoleIds []string
 	// The state.
 	Status *MembershipStatus
 	// When the membership was revoked.
@@ -554,6 +551,8 @@ type Membership_builder struct {
 	CreatedAt *timestamppb.Timestamp
 	// When the membership last changed.
 	UpdatedAt *timestamppb.Timestamp
+	// The permissions the member holds, sorted.
+	Permissions []string
 }
 
 func (b0 Membership_builder) Build() *Membership {
@@ -561,21 +560,19 @@ func (b0 Membership_builder) Build() *Membership {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
 		x.xxx_hidden_Id = b.Id
 	}
 	x.xxx_hidden_User = b.User
-	if b.RoleId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
-		x.xxx_hidden_RoleId = b.RoleId
-	}
+	x.xxx_hidden_RoleIds = b.RoleIds
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
 		x.xxx_hidden_Status = *b.Status
 	}
 	x.xxx_hidden_RevokedAt = b.RevokedAt
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
+	x.xxx_hidden_Permissions = b.Permissions
 	return m0
 }
 
@@ -860,154 +857,12 @@ func (b0 Role_builder) Build() *Role {
 	return m0
 }
 
-// Permission is one entry of the permission catalog.
-type Permission struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Name        *string                `protobuf:"bytes,1,opt,name=name"`
-	xxx_hidden_Finance     bool                   `protobuf:"varint,2,opt,name=finance"`
-	xxx_hidden_Manager     bool                   `protobuf:"varint,3,opt,name=manager"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *Permission) Reset() {
-	*x = Permission{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Permission) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Permission) ProtoMessage() {}
-
-func (x *Permission) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *Permission) GetName() string {
-	if x != nil {
-		if x.xxx_hidden_Name != nil {
-			return *x.xxx_hidden_Name
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *Permission) GetFinance() bool {
-	if x != nil {
-		return x.xxx_hidden_Finance
-	}
-	return false
-}
-
-func (x *Permission) GetManager() bool {
-	if x != nil {
-		return x.xxx_hidden_Manager
-	}
-	return false
-}
-
-func (x *Permission) SetName(v string) {
-	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
-}
-
-func (x *Permission) SetFinance(v bool) {
-	x.xxx_hidden_Finance = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
-}
-
-func (x *Permission) SetManager(v bool) {
-	x.xxx_hidden_Manager = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
-}
-
-func (x *Permission) HasName() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *Permission) HasFinance() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *Permission) HasManager() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *Permission) ClearName() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Name = nil
-}
-
-func (x *Permission) ClearFinance() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_Finance = false
-}
-
-func (x *Permission) ClearManager() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_Manager = false
-}
-
-type Permission_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The permission string (`customers:read`).
-	Name *string
-	// Marks the permissions the built-in finance role holds.
-	Finance *bool
-	// Marks the permissions the built-in manager role holds.
-	Manager *bool
-}
-
-func (b0 Permission_builder) Build() *Permission {
-	m0 := &Permission{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
-		x.xxx_hidden_Name = b.Name
-	}
-	if b.Finance != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
-		x.xxx_hidden_Finance = *b.Finance
-	}
-	if b.Manager != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
-		x.xxx_hidden_Manager = *b.Manager
-	}
-	return m0
-}
-
 // Invite asks a person to join the organization.
 type Invite struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Id          *string                `protobuf:"bytes,1,opt,name=id"`
 	xxx_hidden_Email       *string                `protobuf:"bytes,2,opt,name=email"`
-	xxx_hidden_RoleId      *string                `protobuf:"bytes,3,opt,name=role_id,json=roleId"`
+	xxx_hidden_RoleIds     []string               `protobuf:"bytes,3,rep,name=role_ids,json=roleIds"`
 	xxx_hidden_Status      InviteStatus           `protobuf:"varint,4,opt,name=status,enum=tanvo.access.v1.InviteStatus"`
 	xxx_hidden_AcceptUrl   *string                `protobuf:"bytes,5,opt,name=accept_url,json=acceptUrl"`
 	xxx_hidden_ExpiresAt   *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=expires_at,json=expiresAt"`
@@ -1022,7 +877,7 @@ type Invite struct {
 
 func (x *Invite) Reset() {
 	*x = Invite{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[4]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1034,7 +889,7 @@ func (x *Invite) String() string {
 func (*Invite) ProtoMessage() {}
 
 func (x *Invite) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[4]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1065,14 +920,11 @@ func (x *Invite) GetEmail() string {
 	return ""
 }
 
-func (x *Invite) GetRoleId() string {
+func (x *Invite) GetRoleIds() []string {
 	if x != nil {
-		if x.xxx_hidden_RoleId != nil {
-			return *x.xxx_hidden_RoleId
-		}
-		return ""
+		return x.xxx_hidden_RoleIds
 	}
-	return ""
+	return nil
 }
 
 func (x *Invite) GetStatus() InviteStatus {
@@ -1132,9 +984,8 @@ func (x *Invite) SetEmail(v string) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
 }
 
-func (x *Invite) SetRoleId(v string) {
-	x.xxx_hidden_RoleId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
+func (x *Invite) SetRoleIds(v []string) {
+	x.xxx_hidden_RoleIds = v
 }
 
 func (x *Invite) SetStatus(v InviteStatus) {
@@ -1175,13 +1026,6 @@ func (x *Invite) HasEmail() bool {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *Invite) HasRoleId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
 func (x *Invite) HasStatus() bool {
@@ -1236,11 +1080,6 @@ func (x *Invite) ClearEmail() {
 	x.xxx_hidden_Email = nil
 }
 
-func (x *Invite) ClearRoleId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_RoleId = nil
-}
-
 func (x *Invite) ClearStatus() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
 	x.xxx_hidden_Status = InviteStatus_INVITE_STATUS_UNSPECIFIED
@@ -1274,8 +1113,9 @@ type Invite_builder struct {
 	Id *string
 	// The invited email address.
 	Email *string
-	// The ID or `code:<code>` of the role granted on acceptance.
-	RoleId *string
+	// The IDs or `code:<code>` of the roles granted on acceptance.
+	// Responses carry the role IDs.
+	RoleIds []string
 	// The state.
 	Status *InviteStatus
 	// The accept link, returned only by CreateInvite.
@@ -1302,10 +1142,7 @@ func (b0 Invite_builder) Build() *Invite {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
 		x.xxx_hidden_Email = b.Email
 	}
-	if b.RoleId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
-		x.xxx_hidden_RoleId = b.RoleId
-	}
+	x.xxx_hidden_RoleIds = b.RoleIds
 	if b.Status != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
 		x.xxx_hidden_Status = *b.Status
@@ -1322,11 +1159,13 @@ func (b0 Invite_builder) Build() *Invite {
 }
 
 // ListMembershipsRequest is the request of MemberService.ListMemberships.
+// Only active memberships are listed.
 type ListMembershipsRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_PageSize    int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize"`
 	xxx_hidden_PageToken   *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken"`
 	xxx_hidden_Filter      *string                `protobuf:"bytes,3,opt,name=filter"`
+	xxx_hidden_Search      *string                `protobuf:"bytes,4,opt,name=search"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -1335,7 +1174,7 @@ type ListMembershipsRequest struct {
 
 func (x *ListMembershipsRequest) Reset() {
 	*x = ListMembershipsRequest{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[5]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1347,7 +1186,7 @@ func (x *ListMembershipsRequest) String() string {
 func (*ListMembershipsRequest) ProtoMessage() {}
 
 func (x *ListMembershipsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[5]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1385,19 +1224,34 @@ func (x *ListMembershipsRequest) GetFilter() string {
 	return ""
 }
 
+func (x *ListMembershipsRequest) GetSearch() string {
+	if x != nil {
+		if x.xxx_hidden_Search != nil {
+			return *x.xxx_hidden_Search
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *ListMembershipsRequest) SetPageSize(v int32) {
 	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *ListMembershipsRequest) SetPageToken(v string) {
 	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *ListMembershipsRequest) SetFilter(v string) {
 	x.xxx_hidden_Filter = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *ListMembershipsRequest) SetSearch(v string) {
+	x.xxx_hidden_Search = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *ListMembershipsRequest) HasPageSize() bool {
@@ -1421,6 +1275,13 @@ func (x *ListMembershipsRequest) HasFilter() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *ListMembershipsRequest) HasSearch() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *ListMembershipsRequest) ClearPageSize() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_PageSize = 0
@@ -1436,6 +1297,11 @@ func (x *ListMembershipsRequest) ClearFilter() {
 	x.xxx_hidden_Filter = nil
 }
 
+func (x *ListMembershipsRequest) ClearSearch() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Search = nil
+}
+
 type ListMembershipsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1443,8 +1309,11 @@ type ListMembershipsRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `status` and `role_id`.
+	// An AIP-160 filter over `role_id` (several joined by OR): memberships
+	// having one of the roles.
 	Filter *string
+	// A case-insensitive substring of the member's email.
+	Search *string
 }
 
 func (b0 ListMembershipsRequest_builder) Build() *ListMembershipsRequest {
@@ -1452,16 +1321,20 @@ func (b0 ListMembershipsRequest_builder) Build() *ListMembershipsRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_PageSize = *b.PageSize
 	}
 	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_PageToken = b.PageToken
 	}
 	if b.Filter != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_Filter = b.Filter
+	}
+	if b.Search != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_Search = b.Search
 	}
 	return m0
 }
@@ -1471,6 +1344,7 @@ type ListMembershipsResponse struct {
 	state                    protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Memberships   *[]*Membership         `protobuf:"bytes,1,rep,name=memberships"`
 	xxx_hidden_NextPageToken *string                `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken"`
+	xxx_hidden_AdminCount    int32                  `protobuf:"varint,3,opt,name=admin_count,json=adminCount"`
 	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
 	XXX_presence             [1]uint32
 	unknownFields            protoimpl.UnknownFields
@@ -1479,7 +1353,7 @@ type ListMembershipsResponse struct {
 
 func (x *ListMembershipsResponse) Reset() {
 	*x = ListMembershipsResponse{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[6]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1491,7 +1365,7 @@ func (x *ListMembershipsResponse) String() string {
 func (*ListMembershipsResponse) ProtoMessage() {}
 
 func (x *ListMembershipsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[6]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1521,13 +1395,25 @@ func (x *ListMembershipsResponse) GetNextPageToken() string {
 	return ""
 }
 
+func (x *ListMembershipsResponse) GetAdminCount() int32 {
+	if x != nil {
+		return x.xxx_hidden_AdminCount
+	}
+	return 0
+}
+
 func (x *ListMembershipsResponse) SetMemberships(v []*Membership) {
 	x.xxx_hidden_Memberships = &v
 }
 
 func (x *ListMembershipsResponse) SetNextPageToken(v string) {
 	x.xxx_hidden_NextPageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *ListMembershipsResponse) SetAdminCount(v int32) {
+	x.xxx_hidden_AdminCount = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
 func (x *ListMembershipsResponse) HasNextPageToken() bool {
@@ -1537,9 +1423,21 @@ func (x *ListMembershipsResponse) HasNextPageToken() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
+func (x *ListMembershipsResponse) HasAdminCount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
 func (x *ListMembershipsResponse) ClearNextPageToken() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
 	x.xxx_hidden_NextPageToken = nil
+}
+
+func (x *ListMembershipsResponse) ClearAdminCount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_AdminCount = 0
 }
 
 type ListMembershipsResponse_builder struct {
@@ -1549,6 +1447,8 @@ type ListMembershipsResponse_builder struct {
 	Memberships []*Membership
 	// The token of the next page; empty on the last page.
 	NextPageToken *string
+	// The organization's number of active admins.
+	AdminCount *int32
 }
 
 func (b0 ListMembershipsResponse_builder) Build() *ListMembershipsResponse {
@@ -1557,8 +1457,12 @@ func (b0 ListMembershipsResponse_builder) Build() *ListMembershipsResponse {
 	_, _ = b, x
 	x.xxx_hidden_Memberships = &b.Memberships
 	if b.NextPageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
 		x.xxx_hidden_NextPageToken = b.NextPageToken
+	}
+	if b.AdminCount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_AdminCount = *b.AdminCount
 	}
 	return m0
 }
@@ -1575,7 +1479,7 @@ type GetMembershipRequest struct {
 
 func (x *GetMembershipRequest) Reset() {
 	*x = GetMembershipRequest{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[7]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1587,7 +1491,7 @@ func (x *GetMembershipRequest) String() string {
 func (*GetMembershipRequest) ProtoMessage() {}
 
 func (x *GetMembershipRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[7]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1653,7 +1557,7 @@ type GetMembershipResponse struct {
 
 func (x *GetMembershipResponse) Reset() {
 	*x = GetMembershipResponse{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[8]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1665,7 +1569,7 @@ func (x *GetMembershipResponse) String() string {
 func (*GetMembershipResponse) ProtoMessage() {}
 
 func (x *GetMembershipResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[8]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1724,7 +1628,7 @@ type UpdateMembershipRequest struct {
 
 func (x *UpdateMembershipRequest) Reset() {
 	*x = UpdateMembershipRequest{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[9]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1736,7 +1640,7 @@ func (x *UpdateMembershipRequest) String() string {
 func (*UpdateMembershipRequest) ProtoMessage() {}
 
 func (x *UpdateMembershipRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[9]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1796,7 +1700,8 @@ type UpdateMembershipRequest_builder struct {
 
 	// The new values; membership.id selects the membership.
 	Membership *Membership
-	// The fields to update (`role_id`); empty updates every field that is set.
+	// The fields to update (`role_ids`); empty updates every field that is
+	// set.
 	UpdateMask *fieldmaskpb.FieldMask
 }
 
@@ -1819,7 +1724,7 @@ type UpdateMembershipResponse struct {
 
 func (x *UpdateMembershipResponse) Reset() {
 	*x = UpdateMembershipResponse{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[10]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1831,7 +1736,7 @@ func (x *UpdateMembershipResponse) String() string {
 func (*UpdateMembershipResponse) ProtoMessage() {}
 
 func (x *UpdateMembershipResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[10]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1891,7 +1796,7 @@ type RevokeMembershipRequest struct {
 
 func (x *RevokeMembershipRequest) Reset() {
 	*x = RevokeMembershipRequest{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[11]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1903,7 +1808,7 @@ func (x *RevokeMembershipRequest) String() string {
 func (*RevokeMembershipRequest) ProtoMessage() {}
 
 func (x *RevokeMembershipRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[11]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1969,7 +1874,7 @@ type RevokeMembershipResponse struct {
 
 func (x *RevokeMembershipResponse) Reset() {
 	*x = RevokeMembershipResponse{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[12]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1981,7 +1886,7 @@ func (x *RevokeMembershipResponse) String() string {
 func (*RevokeMembershipResponse) ProtoMessage() {}
 
 func (x *RevokeMembershipResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[12]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2039,7 +1944,7 @@ type CreateRoleRequest struct {
 
 func (x *CreateRoleRequest) Reset() {
 	*x = CreateRoleRequest{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[13]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2051,7 +1956,7 @@ func (x *CreateRoleRequest) String() string {
 func (*CreateRoleRequest) ProtoMessage() {}
 
 func (x *CreateRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[13]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2109,7 +2014,7 @@ type CreateRoleResponse struct {
 
 func (x *CreateRoleResponse) Reset() {
 	*x = CreateRoleResponse{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[14]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2121,7 +2026,7 @@ func (x *CreateRoleResponse) String() string {
 func (*CreateRoleResponse) ProtoMessage() {}
 
 func (x *CreateRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[14]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2181,7 +2086,7 @@ type GetRoleRequest struct {
 
 func (x *GetRoleRequest) Reset() {
 	*x = GetRoleRequest{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[15]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2193,7 +2098,7 @@ func (x *GetRoleRequest) String() string {
 func (*GetRoleRequest) ProtoMessage() {}
 
 func (x *GetRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[15]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2259,7 +2164,7 @@ type GetRoleResponse struct {
 
 func (x *GetRoleResponse) Reset() {
 	*x = GetRoleResponse{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[16]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2271,7 +2176,7 @@ func (x *GetRoleResponse) String() string {
 func (*GetRoleResponse) ProtoMessage() {}
 
 func (x *GetRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[16]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2332,7 +2237,7 @@ type ListRolesRequest struct {
 
 func (x *ListRolesRequest) Reset() {
 	*x = ListRolesRequest{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[17]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2344,7 +2249,7 @@ func (x *ListRolesRequest) String() string {
 func (*ListRolesRequest) ProtoMessage() {}
 
 func (x *ListRolesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[17]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2443,7 +2348,7 @@ type ListRolesResponse struct {
 
 func (x *ListRolesResponse) Reset() {
 	*x = ListRolesResponse{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[18]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2455,7 +2360,7 @@ func (x *ListRolesResponse) String() string {
 func (*ListRolesResponse) ProtoMessage() {}
 
 func (x *ListRolesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[18]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2538,7 +2443,7 @@ type UpdateRoleRequest struct {
 
 func (x *UpdateRoleRequest) Reset() {
 	*x = UpdateRoleRequest{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[19]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2550,7 +2455,7 @@ func (x *UpdateRoleRequest) String() string {
 func (*UpdateRoleRequest) ProtoMessage() {}
 
 func (x *UpdateRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[19]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2633,7 +2538,7 @@ type UpdateRoleResponse struct {
 
 func (x *UpdateRoleResponse) Reset() {
 	*x = UpdateRoleResponse{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[20]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2645,7 +2550,7 @@ func (x *UpdateRoleResponse) String() string {
 func (*UpdateRoleResponse) ProtoMessage() {}
 
 func (x *UpdateRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[20]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2705,7 +2610,7 @@ type DeleteRoleRequest struct {
 
 func (x *DeleteRoleRequest) Reset() {
 	*x = DeleteRoleRequest{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[21]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2717,7 +2622,7 @@ func (x *DeleteRoleRequest) String() string {
 func (*DeleteRoleRequest) ProtoMessage() {}
 
 func (x *DeleteRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[21]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2782,7 +2687,7 @@ type DeleteRoleResponse struct {
 
 func (x *DeleteRoleResponse) Reset() {
 	*x = DeleteRoleResponse{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[22]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2794,7 +2699,7 @@ func (x *DeleteRoleResponse) String() string {
 func (*DeleteRoleResponse) ProtoMessage() {}
 
 func (x *DeleteRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[22]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2817,111 +2722,6 @@ func (b0 DeleteRoleResponse_builder) Build() *DeleteRoleResponse {
 	return m0
 }
 
-// ListPermissionsRequest is the request of MemberService.ListPermissions.
-type ListPermissionsRequest struct {
-	state         protoimpl.MessageState `protogen:"opaque.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ListPermissionsRequest) Reset() {
-	*x = ListPermissionsRequest{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[23]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListPermissionsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListPermissionsRequest) ProtoMessage() {}
-
-func (x *ListPermissionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[23]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-type ListPermissionsRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-}
-
-func (b0 ListPermissionsRequest_builder) Build() *ListPermissionsRequest {
-	m0 := &ListPermissionsRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	return m0
-}
-
-// ListPermissionsResponse is the response of MemberService.ListPermissions.
-type ListPermissionsResponse struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Permissions *[]*Permission         `protobuf:"bytes,1,rep,name=permissions"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *ListPermissionsResponse) Reset() {
-	*x = ListPermissionsResponse{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[24]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListPermissionsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListPermissionsResponse) ProtoMessage() {}
-
-func (x *ListPermissionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[24]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ListPermissionsResponse) GetPermissions() []*Permission {
-	if x != nil {
-		if x.xxx_hidden_Permissions != nil {
-			return *x.xxx_hidden_Permissions
-		}
-	}
-	return nil
-}
-
-func (x *ListPermissionsResponse) SetPermissions(v []*Permission) {
-	x.xxx_hidden_Permissions = &v
-}
-
-type ListPermissionsResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// Every permission, sorted by name.
-	Permissions []*Permission
-}
-
-func (b0 ListPermissionsResponse_builder) Build() *ListPermissionsResponse {
-	m0 := &ListPermissionsResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_Permissions = &b.Permissions
-	return m0
-}
-
 // CreateInviteRequest is the request of MemberService.CreateInvite.
 type CreateInviteRequest struct {
 	state             protoimpl.MessageState `protogen:"opaque.v1"`
@@ -2932,7 +2732,7 @@ type CreateInviteRequest struct {
 
 func (x *CreateInviteRequest) Reset() {
 	*x = CreateInviteRequest{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[25]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2944,7 +2744,7 @@ func (x *CreateInviteRequest) String() string {
 func (*CreateInviteRequest) ProtoMessage() {}
 
 func (x *CreateInviteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[25]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3002,7 +2802,7 @@ type CreateInviteResponse struct {
 
 func (x *CreateInviteResponse) Reset() {
 	*x = CreateInviteResponse{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[26]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3014,7 +2814,7 @@ func (x *CreateInviteResponse) String() string {
 func (*CreateInviteResponse) ProtoMessage() {}
 
 func (x *CreateInviteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[26]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3062,12 +2862,14 @@ func (b0 CreateInviteResponse_builder) Build() *CreateInviteResponse {
 	return m0
 }
 
-// ListInvitesRequest is the request of MemberService.ListInvites.
+// ListInvitesRequest is the request of MemberService.ListInvites. Only
+// pending invites are listed.
 type ListInvitesRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_PageSize    int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize"`
 	xxx_hidden_PageToken   *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken"`
 	xxx_hidden_Filter      *string                `protobuf:"bytes,3,opt,name=filter"`
+	xxx_hidden_Search      *string                `protobuf:"bytes,4,opt,name=search"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -3076,7 +2878,7 @@ type ListInvitesRequest struct {
 
 func (x *ListInvitesRequest) Reset() {
 	*x = ListInvitesRequest{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[27]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3088,7 +2890,7 @@ func (x *ListInvitesRequest) String() string {
 func (*ListInvitesRequest) ProtoMessage() {}
 
 func (x *ListInvitesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[27]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3126,19 +2928,34 @@ func (x *ListInvitesRequest) GetFilter() string {
 	return ""
 }
 
+func (x *ListInvitesRequest) GetSearch() string {
+	if x != nil {
+		if x.xxx_hidden_Search != nil {
+			return *x.xxx_hidden_Search
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *ListInvitesRequest) SetPageSize(v int32) {
 	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *ListInvitesRequest) SetPageToken(v string) {
 	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *ListInvitesRequest) SetFilter(v string) {
 	x.xxx_hidden_Filter = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *ListInvitesRequest) SetSearch(v string) {
+	x.xxx_hidden_Search = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *ListInvitesRequest) HasPageSize() bool {
@@ -3162,6 +2979,13 @@ func (x *ListInvitesRequest) HasFilter() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *ListInvitesRequest) HasSearch() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *ListInvitesRequest) ClearPageSize() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_PageSize = 0
@@ -3177,6 +3001,11 @@ func (x *ListInvitesRequest) ClearFilter() {
 	x.xxx_hidden_Filter = nil
 }
 
+func (x *ListInvitesRequest) ClearSearch() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Search = nil
+}
+
 type ListInvitesRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -3184,8 +3013,11 @@ type ListInvitesRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `status` and `email`.
+	// An AIP-160 filter over `role_id` (several joined by OR): invites
+	// granting one of the roles.
 	Filter *string
+	// A case-insensitive substring of the invited email.
+	Search *string
 }
 
 func (b0 ListInvitesRequest_builder) Build() *ListInvitesRequest {
@@ -3193,16 +3025,20 @@ func (b0 ListInvitesRequest_builder) Build() *ListInvitesRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_PageSize = *b.PageSize
 	}
 	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_PageToken = b.PageToken
 	}
 	if b.Filter != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_Filter = b.Filter
+	}
+	if b.Search != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_Search = b.Search
 	}
 	return m0
 }
@@ -3220,7 +3056,7 @@ type ListInvitesResponse struct {
 
 func (x *ListInvitesResponse) Reset() {
 	*x = ListInvitesResponse{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[28]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3232,7 +3068,7 @@ func (x *ListInvitesResponse) String() string {
 func (*ListInvitesResponse) ProtoMessage() {}
 
 func (x *ListInvitesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[28]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3315,7 +3151,7 @@ type UpdateInviteRequest struct {
 
 func (x *UpdateInviteRequest) Reset() {
 	*x = UpdateInviteRequest{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[29]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3327,7 +3163,7 @@ func (x *UpdateInviteRequest) String() string {
 func (*UpdateInviteRequest) ProtoMessage() {}
 
 func (x *UpdateInviteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[29]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3387,7 +3223,8 @@ type UpdateInviteRequest_builder struct {
 
 	// The new values; invite.id selects the invite.
 	Invite *Invite
-	// The fields to update (`role_id`); empty updates every field that is set.
+	// The fields to update (`role_ids`); empty updates every field that is
+	// set.
 	UpdateMask *fieldmaskpb.FieldMask
 }
 
@@ -3410,7 +3247,7 @@ type UpdateInviteResponse struct {
 
 func (x *UpdateInviteResponse) Reset() {
 	*x = UpdateInviteResponse{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[30]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3422,7 +3259,7 @@ func (x *UpdateInviteResponse) String() string {
 func (*UpdateInviteResponse) ProtoMessage() {}
 
 func (x *UpdateInviteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[30]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3482,7 +3319,7 @@ type RevokeInviteRequest struct {
 
 func (x *RevokeInviteRequest) Reset() {
 	*x = RevokeInviteRequest{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[31]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3494,7 +3331,7 @@ func (x *RevokeInviteRequest) String() string {
 func (*RevokeInviteRequest) ProtoMessage() {}
 
 func (x *RevokeInviteRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[31]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3560,7 +3397,7 @@ type RevokeInviteResponse struct {
 
 func (x *RevokeInviteResponse) Reset() {
 	*x = RevokeInviteResponse{}
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[32]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3572,7 +3409,7 @@ func (x *RevokeInviteResponse) String() string {
 func (*RevokeInviteResponse) ProtoMessage() {}
 
 func (x *RevokeInviteResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_access_v1_member_proto_msgTypes[32]
+	mi := &file_tanvo_access_v1_member_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3632,19 +3469,20 @@ const file_tanvo_access_v1_member_proto_rawDesc = "" +
 	"\x0flast_sign_in_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\flastSignInAt\x12?\n" +
 	"\n" +
 	"created_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt:.\xeaA+\n" +
-	"\x0etanvo.xyz/User\x12\fusers/{user}*\x05users2\x04user\"\xce\x03\n" +
+	"\x0etanvo.xyz/User\x12\fusers/{user}*\x05users2\x04user\"\xff\x03\n" +
 	"\n" +
 	"Membership\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12/\n" +
-	"\x04user\x18\x02 \x01(\v2\x15.tanvo.access.v1.UserB\x04\xe2A\x01\x03R\x04user\x12'\n" +
-	"\arole_id\x18\x03 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\x06roleId\x12?\n" +
+	"\x04user\x18\x02 \x01(\v2\x15.tanvo.access.v1.UserB\x04\xe2A\x01\x03R\x04user\x120\n" +
+	"\brole_ids\x18\x03 \x03(\tB\x15\xe2A\x01\x02\xbaH\x0e\x92\x01\v\x10d\"\ar\x05\xe0\xa4\xca\x06\x01R\aroleIds\x12?\n" +
 	"\x06status\x18\x04 \x01(\x0e2!.tanvo.access.v1.MembershipStatusB\x04\xe2A\x01\x03R\x06status\x12?\n" +
 	"\n" +
 	"revoked_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\trevokedAt\x12?\n" +
 	"\n" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:L\xeaAI\n" +
+	"updated_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x12&\n" +
+	"\vpermissions\x18\b \x03(\tB\x04\xe2A\x01\x03R\vpermissions:L\xeaAI\n" +
 	"\x14tanvo.xyz/Membership\x12\x18memberships/{membership}*\vmemberships2\n" +
 	"membership\"\xbf\x03\n" +
 	"\x04Role\x12\x14\n" +
@@ -3658,16 +3496,11 @@ const file_tanvo_access_v1_member_proto_rawDesc = "" +
 	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
 	"updated_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:.\xeaA+\n" +
-	"\x0etanvo.xyz/Role\x12\froles/{role}*\x05roles2\x04role\"T\n" +
-	"\n" +
-	"Permission\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
-	"\afinance\x18\x02 \x01(\bR\afinance\x12\x18\n" +
-	"\amanager\x18\x03 \x01(\bR\amanager\"\x90\x04\n" +
+	"\x0etanvo.xyz/Role\x12\froles/{role}*\x05roles2\x04role\"\x99\x04\n" +
 	"\x06Invite\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12%\n" +
-	"\x05email\x18\x02 \x01(\tB\x0f\xe2A\x02\x02\x05\xbaH\ar\x05\x18\xff\x01`\x01R\x05email\x12'\n" +
-	"\arole_id\x18\x03 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\x06roleId\x12;\n" +
+	"\x05email\x18\x02 \x01(\tB\x0f\xe2A\x02\x02\x05\xbaH\ar\x05\x18\xff\x01`\x01R\x05email\x120\n" +
+	"\brole_ids\x18\x03 \x03(\tB\x15\xe2A\x01\x02\xbaH\x0e\x92\x01\v\x10d\"\ar\x05\xe0\xa4\xca\x06\x01R\aroleIds\x12;\n" +
 	"\x06status\x18\x04 \x01(\x0e2\x1d.tanvo.access.v1.InviteStatusB\x04\xe2A\x01\x03R\x06status\x12#\n" +
 	"\n" +
 	"accept_url\x18\x05 \x01(\tB\x04\xe2A\x01\x03R\tacceptUrl\x12?\n" +
@@ -3679,16 +3512,19 @@ const file_tanvo_access_v1_member_proto_rawDesc = "" +
 	"revoked_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\trevokedAt\x12?\n" +
 	"\n" +
 	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt:8\xeaA5\n" +
-	"\x10tanvo.xyz/Invite\x12\x10invites/{invite}*\ainvites2\x06invite\"\x8c\x01\n" +
+	"\x10tanvo.xyz/Invite\x12\x10invites/{invite}*\ainvites2\x06invite\"\xae\x01\n" +
 	"\x16ListMembershipsRequest\x12'\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\n" +
 	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12 \n" +
-	"\x06filter\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\"\x80\x01\n" +
+	"\x06filter\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\x12 \n" +
+	"\x06search\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x06search\"\xa1\x01\n" +
 	"\x17ListMembershipsResponse\x12=\n" +
 	"\vmemberships\x18\x01 \x03(\v2\x1b.tanvo.access.v1.MembershipR\vmemberships\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"L\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
+	"\vadmin_count\x18\x03 \x01(\x05R\n" +
+	"adminCount\"L\n" +
 	"\x14GetMembershipRequest\x124\n" +
 	"\rmembership_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\fmembershipId\"T\n" +
 	"\x15GetMembershipResponse\x12;\n" +
@@ -3743,22 +3579,20 @@ const file_tanvo_access_v1_member_proto_rawDesc = "" +
 	"\x11DeleteRoleRequest\x12*\n" +
 	"\arole_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x06roleId\"\x14\n" +
-	"\x12DeleteRoleResponse\"\x18\n" +
-	"\x16ListPermissionsRequest\"X\n" +
-	"\x17ListPermissionsResponse\x12=\n" +
-	"\vpermissions\x18\x01 \x03(\v2\x1b.tanvo.access.v1.PermissionR\vpermissions\"\xc4\x01\n" +
+	"\x12DeleteRoleResponse\"\xcb\x01\n" +
 	"\x13CreateInviteRequest\x12;\n" +
 	"\x06invite\x18\x01 \x01(\v2\x17.tanvo.access.v1.InviteB\n" +
-	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x06invite:p\xbaHm\x1ak\n" +
-	"\x15invite.email_and_role\x12\x1eemail and role_id are required\x1a2has(this.invite.email) && has(this.invite.role_id)\"G\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x06invite:w\xbaHt\x1ar\n" +
+	"\x15invite.email_and_role\x12\x1femail and role_ids are required\x1a8has(this.invite.email) && size(this.invite.role_ids) > 0\"G\n" +
 	"\x14CreateInviteResponse\x12/\n" +
-	"\x06invite\x18\x01 \x01(\v2\x17.tanvo.access.v1.InviteR\x06invite\"\x88\x01\n" +
+	"\x06invite\x18\x01 \x01(\v2\x17.tanvo.access.v1.InviteR\x06invite\"\xaa\x01\n" +
 	"\x12ListInvitesRequest\x12'\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\n" +
 	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12 \n" +
-	"\x06filter\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\"p\n" +
+	"\x06filter\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\x12 \n" +
+	"\x06search\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x06search\"p\n" +
 	"\x13ListInvitesResponse\x121\n" +
 	"\ainvites\x18\x01 \x03(\v2\x17.tanvo.access.v1.InviteR\ainvites\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xcd\x01\n" +
@@ -3782,7 +3616,7 @@ const file_tanvo_access_v1_member_proto_rawDesc = "" +
 	"\x19INVITE_STATUS_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15INVITE_STATUS_PENDING\x10\x01\x12\x1a\n" +
 	"\x16INVITE_STATUS_ACCEPTED\x10\x02\x12\x19\n" +
-	"\x15INVITE_STATUS_REVOKED\x10\x032\xfd\x10\n" +
+	"\x15INVITE_STATUS_REVOKED\x10\x032\xea\x0f\n" +
 	"\rMemberService\x12\x9f\x01\n" +
 	"\x0fListMemberships\x12'.tanvo.access.v1.ListMembershipsRequest\x1a(.tanvo.access.v1.ListMembershipsResponse\"9\xca\xf3\x18\x1b\n" +
 	"\x19organization:members:read\x82\xd3\xe4\x93\x02\x11\x12\x0f/v1/memberships\x90\x02\x01\x12\xa9\x01\n" +
@@ -3792,7 +3626,7 @@ const file_tanvo_access_v1_member_proto_rawDesc = "" +
 	"\x1borganization:members:update\x82\xd3\xe4\x93\x02-:\n" +
 	"membership2\x1f/v1/memberships/{membership.id}\x12\xbb\x01\n" +
 	"\x10RevokeMembership\x12(.tanvo.access.v1.RevokeMembershipRequest\x1a).tanvo.access.v1.RevokeMembershipResponse\"R\xca\xf3\x18\x1d\n" +
-	"\x1borganization:members:delete\x82\xd3\xe4\x93\x02+:\x01*\"&/v1/memberships/{membership_id}:revoke\x12\x80\x01\n" +
+	"\x1borganization:members:update\x82\xd3\xe4\x93\x02+:\x01*\"&/v1/memberships/{membership_id}:revoke\x12\x80\x01\n" +
 	"\n" +
 	"CreateRole\x12\".tanvo.access.v1.CreateRoleRequest\x1a#.tanvo.access.v1.CreateRoleResponse\")\xca\xf3\x18\x0e\n" +
 	"\froles:create\x82\xd3\xe4\x93\x02\x11:\x04role\"\t/v1/roles\x12|\n" +
@@ -3807,10 +3641,7 @@ const file_tanvo_access_v1_member_proto_rawDesc = "" +
 	"\froles:update\x82\xd3\xe4\x93\x02\x1b:\x04role2\x13/v1/roles/{role.id}\x12\x84\x01\n" +
 	"\n" +
 	"DeleteRole\x12\".tanvo.access.v1.DeleteRoleRequest\x1a#.tanvo.access.v1.DeleteRoleResponse\"-\xca\xf3\x18\x0e\n" +
-	"\froles:delete\x82\xd3\xe4\x93\x02\x15*\x13/v1/roles/{role_id}\x12\x90\x01\n" +
-	"\x0fListPermissions\x12'.tanvo.access.v1.ListPermissionsRequest\x1a(.tanvo.access.v1.ListPermissionsResponse\"*\xca\xf3\x18\f\n" +
-	"\n" +
-	"roles:read\x82\xd3\xe4\x93\x02\x11\x12\x0f/v1/permissions\x90\x02\x01\x12\x99\x01\n" +
+	"\froles:delete\x82\xd3\xe4\x93\x02\x15*\x13/v1/roles/{role_id}\x12\x99\x01\n" +
 	"\fCreateInvite\x12$.tanvo.access.v1.CreateInviteRequest\x1a%.tanvo.access.v1.CreateInviteResponse\"<\xca\xf3\x18\x1d\n" +
 	"\x1borganization:members:create\x82\xd3\xe4\x93\x02\x15:\x06invite\"\v/v1/invites\x12\x8f\x01\n" +
 	"\vListInvites\x12#.tanvo.access.v1.ListInvitesRequest\x1a$.tanvo.access.v1.ListInvitesResponse\"5\xca\xf3\x18\x1b\n" +
@@ -3822,65 +3653,62 @@ const file_tanvo_access_v1_member_proto_rawDesc = "" +
 	"\x13com.tanvo.access.v1B\vMemberProtoP\x01ZDgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/access/v1;accessv1\xa2\x02\x03TAX\xaa\x02\x0fTanvo.Access.V1\xca\x02\x0fTanvo\\Access\\V1\xe2\x02\x1bTanvo\\Access\\V1\\GPBMetadata\xea\x02\x11Tanvo::Access::V1b\beditionsp\xe8\a"
 
 var file_tanvo_access_v1_member_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_tanvo_access_v1_member_proto_msgTypes = make([]protoimpl.MessageInfo, 33)
+var file_tanvo_access_v1_member_proto_msgTypes = make([]protoimpl.MessageInfo, 30)
 var file_tanvo_access_v1_member_proto_goTypes = []any{
 	(MembershipStatus)(0),            // 0: tanvo.access.v1.MembershipStatus
 	(InviteStatus)(0),                // 1: tanvo.access.v1.InviteStatus
 	(*User)(nil),                     // 2: tanvo.access.v1.User
 	(*Membership)(nil),               // 3: tanvo.access.v1.Membership
 	(*Role)(nil),                     // 4: tanvo.access.v1.Role
-	(*Permission)(nil),               // 5: tanvo.access.v1.Permission
-	(*Invite)(nil),                   // 6: tanvo.access.v1.Invite
-	(*ListMembershipsRequest)(nil),   // 7: tanvo.access.v1.ListMembershipsRequest
-	(*ListMembershipsResponse)(nil),  // 8: tanvo.access.v1.ListMembershipsResponse
-	(*GetMembershipRequest)(nil),     // 9: tanvo.access.v1.GetMembershipRequest
-	(*GetMembershipResponse)(nil),    // 10: tanvo.access.v1.GetMembershipResponse
-	(*UpdateMembershipRequest)(nil),  // 11: tanvo.access.v1.UpdateMembershipRequest
-	(*UpdateMembershipResponse)(nil), // 12: tanvo.access.v1.UpdateMembershipResponse
-	(*RevokeMembershipRequest)(nil),  // 13: tanvo.access.v1.RevokeMembershipRequest
-	(*RevokeMembershipResponse)(nil), // 14: tanvo.access.v1.RevokeMembershipResponse
-	(*CreateRoleRequest)(nil),        // 15: tanvo.access.v1.CreateRoleRequest
-	(*CreateRoleResponse)(nil),       // 16: tanvo.access.v1.CreateRoleResponse
-	(*GetRoleRequest)(nil),           // 17: tanvo.access.v1.GetRoleRequest
-	(*GetRoleResponse)(nil),          // 18: tanvo.access.v1.GetRoleResponse
-	(*ListRolesRequest)(nil),         // 19: tanvo.access.v1.ListRolesRequest
-	(*ListRolesResponse)(nil),        // 20: tanvo.access.v1.ListRolesResponse
-	(*UpdateRoleRequest)(nil),        // 21: tanvo.access.v1.UpdateRoleRequest
-	(*UpdateRoleResponse)(nil),       // 22: tanvo.access.v1.UpdateRoleResponse
-	(*DeleteRoleRequest)(nil),        // 23: tanvo.access.v1.DeleteRoleRequest
-	(*DeleteRoleResponse)(nil),       // 24: tanvo.access.v1.DeleteRoleResponse
-	(*ListPermissionsRequest)(nil),   // 25: tanvo.access.v1.ListPermissionsRequest
-	(*ListPermissionsResponse)(nil),  // 26: tanvo.access.v1.ListPermissionsResponse
-	(*CreateInviteRequest)(nil),      // 27: tanvo.access.v1.CreateInviteRequest
-	(*CreateInviteResponse)(nil),     // 28: tanvo.access.v1.CreateInviteResponse
-	(*ListInvitesRequest)(nil),       // 29: tanvo.access.v1.ListInvitesRequest
-	(*ListInvitesResponse)(nil),      // 30: tanvo.access.v1.ListInvitesResponse
-	(*UpdateInviteRequest)(nil),      // 31: tanvo.access.v1.UpdateInviteRequest
-	(*UpdateInviteResponse)(nil),     // 32: tanvo.access.v1.UpdateInviteResponse
-	(*RevokeInviteRequest)(nil),      // 33: tanvo.access.v1.RevokeInviteRequest
-	(*RevokeInviteResponse)(nil),     // 34: tanvo.access.v1.RevokeInviteResponse
-	(*timestamppb.Timestamp)(nil),    // 35: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),    // 36: google.protobuf.FieldMask
+	(*Invite)(nil),                   // 5: tanvo.access.v1.Invite
+	(*ListMembershipsRequest)(nil),   // 6: tanvo.access.v1.ListMembershipsRequest
+	(*ListMembershipsResponse)(nil),  // 7: tanvo.access.v1.ListMembershipsResponse
+	(*GetMembershipRequest)(nil),     // 8: tanvo.access.v1.GetMembershipRequest
+	(*GetMembershipResponse)(nil),    // 9: tanvo.access.v1.GetMembershipResponse
+	(*UpdateMembershipRequest)(nil),  // 10: tanvo.access.v1.UpdateMembershipRequest
+	(*UpdateMembershipResponse)(nil), // 11: tanvo.access.v1.UpdateMembershipResponse
+	(*RevokeMembershipRequest)(nil),  // 12: tanvo.access.v1.RevokeMembershipRequest
+	(*RevokeMembershipResponse)(nil), // 13: tanvo.access.v1.RevokeMembershipResponse
+	(*CreateRoleRequest)(nil),        // 14: tanvo.access.v1.CreateRoleRequest
+	(*CreateRoleResponse)(nil),       // 15: tanvo.access.v1.CreateRoleResponse
+	(*GetRoleRequest)(nil),           // 16: tanvo.access.v1.GetRoleRequest
+	(*GetRoleResponse)(nil),          // 17: tanvo.access.v1.GetRoleResponse
+	(*ListRolesRequest)(nil),         // 18: tanvo.access.v1.ListRolesRequest
+	(*ListRolesResponse)(nil),        // 19: tanvo.access.v1.ListRolesResponse
+	(*UpdateRoleRequest)(nil),        // 20: tanvo.access.v1.UpdateRoleRequest
+	(*UpdateRoleResponse)(nil),       // 21: tanvo.access.v1.UpdateRoleResponse
+	(*DeleteRoleRequest)(nil),        // 22: tanvo.access.v1.DeleteRoleRequest
+	(*DeleteRoleResponse)(nil),       // 23: tanvo.access.v1.DeleteRoleResponse
+	(*CreateInviteRequest)(nil),      // 24: tanvo.access.v1.CreateInviteRequest
+	(*CreateInviteResponse)(nil),     // 25: tanvo.access.v1.CreateInviteResponse
+	(*ListInvitesRequest)(nil),       // 26: tanvo.access.v1.ListInvitesRequest
+	(*ListInvitesResponse)(nil),      // 27: tanvo.access.v1.ListInvitesResponse
+	(*UpdateInviteRequest)(nil),      // 28: tanvo.access.v1.UpdateInviteRequest
+	(*UpdateInviteResponse)(nil),     // 29: tanvo.access.v1.UpdateInviteResponse
+	(*RevokeInviteRequest)(nil),      // 30: tanvo.access.v1.RevokeInviteRequest
+	(*RevokeInviteResponse)(nil),     // 31: tanvo.access.v1.RevokeInviteResponse
+	(*timestamppb.Timestamp)(nil),    // 32: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),    // 33: google.protobuf.FieldMask
 }
 var file_tanvo_access_v1_member_proto_depIdxs = []int32{
-	35, // 0: tanvo.access.v1.User.last_sign_in_at:type_name -> google.protobuf.Timestamp
-	35, // 1: tanvo.access.v1.User.created_at:type_name -> google.protobuf.Timestamp
+	32, // 0: tanvo.access.v1.User.last_sign_in_at:type_name -> google.protobuf.Timestamp
+	32, // 1: tanvo.access.v1.User.created_at:type_name -> google.protobuf.Timestamp
 	2,  // 2: tanvo.access.v1.Membership.user:type_name -> tanvo.access.v1.User
 	0,  // 3: tanvo.access.v1.Membership.status:type_name -> tanvo.access.v1.MembershipStatus
-	35, // 4: tanvo.access.v1.Membership.revoked_at:type_name -> google.protobuf.Timestamp
-	35, // 5: tanvo.access.v1.Membership.created_at:type_name -> google.protobuf.Timestamp
-	35, // 6: tanvo.access.v1.Membership.updated_at:type_name -> google.protobuf.Timestamp
-	35, // 7: tanvo.access.v1.Role.created_at:type_name -> google.protobuf.Timestamp
-	35, // 8: tanvo.access.v1.Role.updated_at:type_name -> google.protobuf.Timestamp
+	32, // 4: tanvo.access.v1.Membership.revoked_at:type_name -> google.protobuf.Timestamp
+	32, // 5: tanvo.access.v1.Membership.created_at:type_name -> google.protobuf.Timestamp
+	32, // 6: tanvo.access.v1.Membership.updated_at:type_name -> google.protobuf.Timestamp
+	32, // 7: tanvo.access.v1.Role.created_at:type_name -> google.protobuf.Timestamp
+	32, // 8: tanvo.access.v1.Role.updated_at:type_name -> google.protobuf.Timestamp
 	1,  // 9: tanvo.access.v1.Invite.status:type_name -> tanvo.access.v1.InviteStatus
-	35, // 10: tanvo.access.v1.Invite.expires_at:type_name -> google.protobuf.Timestamp
-	35, // 11: tanvo.access.v1.Invite.accepted_at:type_name -> google.protobuf.Timestamp
-	35, // 12: tanvo.access.v1.Invite.revoked_at:type_name -> google.protobuf.Timestamp
-	35, // 13: tanvo.access.v1.Invite.created_at:type_name -> google.protobuf.Timestamp
+	32, // 10: tanvo.access.v1.Invite.expires_at:type_name -> google.protobuf.Timestamp
+	32, // 11: tanvo.access.v1.Invite.accepted_at:type_name -> google.protobuf.Timestamp
+	32, // 12: tanvo.access.v1.Invite.revoked_at:type_name -> google.protobuf.Timestamp
+	32, // 13: tanvo.access.v1.Invite.created_at:type_name -> google.protobuf.Timestamp
 	3,  // 14: tanvo.access.v1.ListMembershipsResponse.memberships:type_name -> tanvo.access.v1.Membership
 	3,  // 15: tanvo.access.v1.GetMembershipResponse.membership:type_name -> tanvo.access.v1.Membership
 	3,  // 16: tanvo.access.v1.UpdateMembershipRequest.membership:type_name -> tanvo.access.v1.Membership
-	36, // 17: tanvo.access.v1.UpdateMembershipRequest.update_mask:type_name -> google.protobuf.FieldMask
+	33, // 17: tanvo.access.v1.UpdateMembershipRequest.update_mask:type_name -> google.protobuf.FieldMask
 	3,  // 18: tanvo.access.v1.UpdateMembershipResponse.membership:type_name -> tanvo.access.v1.Membership
 	3,  // 19: tanvo.access.v1.RevokeMembershipResponse.membership:type_name -> tanvo.access.v1.Membership
 	4,  // 20: tanvo.access.v1.CreateRoleRequest.role:type_name -> tanvo.access.v1.Role
@@ -3888,49 +3716,46 @@ var file_tanvo_access_v1_member_proto_depIdxs = []int32{
 	4,  // 22: tanvo.access.v1.GetRoleResponse.role:type_name -> tanvo.access.v1.Role
 	4,  // 23: tanvo.access.v1.ListRolesResponse.roles:type_name -> tanvo.access.v1.Role
 	4,  // 24: tanvo.access.v1.UpdateRoleRequest.role:type_name -> tanvo.access.v1.Role
-	36, // 25: tanvo.access.v1.UpdateRoleRequest.update_mask:type_name -> google.protobuf.FieldMask
+	33, // 25: tanvo.access.v1.UpdateRoleRequest.update_mask:type_name -> google.protobuf.FieldMask
 	4,  // 26: tanvo.access.v1.UpdateRoleResponse.role:type_name -> tanvo.access.v1.Role
-	5,  // 27: tanvo.access.v1.ListPermissionsResponse.permissions:type_name -> tanvo.access.v1.Permission
-	6,  // 28: tanvo.access.v1.CreateInviteRequest.invite:type_name -> tanvo.access.v1.Invite
-	6,  // 29: tanvo.access.v1.CreateInviteResponse.invite:type_name -> tanvo.access.v1.Invite
-	6,  // 30: tanvo.access.v1.ListInvitesResponse.invites:type_name -> tanvo.access.v1.Invite
-	6,  // 31: tanvo.access.v1.UpdateInviteRequest.invite:type_name -> tanvo.access.v1.Invite
-	36, // 32: tanvo.access.v1.UpdateInviteRequest.update_mask:type_name -> google.protobuf.FieldMask
-	6,  // 33: tanvo.access.v1.UpdateInviteResponse.invite:type_name -> tanvo.access.v1.Invite
-	6,  // 34: tanvo.access.v1.RevokeInviteResponse.invite:type_name -> tanvo.access.v1.Invite
-	7,  // 35: tanvo.access.v1.MemberService.ListMemberships:input_type -> tanvo.access.v1.ListMembershipsRequest
-	9,  // 36: tanvo.access.v1.MemberService.GetMembership:input_type -> tanvo.access.v1.GetMembershipRequest
-	11, // 37: tanvo.access.v1.MemberService.UpdateMembership:input_type -> tanvo.access.v1.UpdateMembershipRequest
-	13, // 38: tanvo.access.v1.MemberService.RevokeMembership:input_type -> tanvo.access.v1.RevokeMembershipRequest
-	15, // 39: tanvo.access.v1.MemberService.CreateRole:input_type -> tanvo.access.v1.CreateRoleRequest
-	17, // 40: tanvo.access.v1.MemberService.GetRole:input_type -> tanvo.access.v1.GetRoleRequest
-	19, // 41: tanvo.access.v1.MemberService.ListRoles:input_type -> tanvo.access.v1.ListRolesRequest
-	21, // 42: tanvo.access.v1.MemberService.UpdateRole:input_type -> tanvo.access.v1.UpdateRoleRequest
-	23, // 43: tanvo.access.v1.MemberService.DeleteRole:input_type -> tanvo.access.v1.DeleteRoleRequest
-	25, // 44: tanvo.access.v1.MemberService.ListPermissions:input_type -> tanvo.access.v1.ListPermissionsRequest
-	27, // 45: tanvo.access.v1.MemberService.CreateInvite:input_type -> tanvo.access.v1.CreateInviteRequest
-	29, // 46: tanvo.access.v1.MemberService.ListInvites:input_type -> tanvo.access.v1.ListInvitesRequest
-	31, // 47: tanvo.access.v1.MemberService.UpdateInvite:input_type -> tanvo.access.v1.UpdateInviteRequest
-	33, // 48: tanvo.access.v1.MemberService.RevokeInvite:input_type -> tanvo.access.v1.RevokeInviteRequest
-	8,  // 49: tanvo.access.v1.MemberService.ListMemberships:output_type -> tanvo.access.v1.ListMembershipsResponse
-	10, // 50: tanvo.access.v1.MemberService.GetMembership:output_type -> tanvo.access.v1.GetMembershipResponse
-	12, // 51: tanvo.access.v1.MemberService.UpdateMembership:output_type -> tanvo.access.v1.UpdateMembershipResponse
-	14, // 52: tanvo.access.v1.MemberService.RevokeMembership:output_type -> tanvo.access.v1.RevokeMembershipResponse
-	16, // 53: tanvo.access.v1.MemberService.CreateRole:output_type -> tanvo.access.v1.CreateRoleResponse
-	18, // 54: tanvo.access.v1.MemberService.GetRole:output_type -> tanvo.access.v1.GetRoleResponse
-	20, // 55: tanvo.access.v1.MemberService.ListRoles:output_type -> tanvo.access.v1.ListRolesResponse
-	22, // 56: tanvo.access.v1.MemberService.UpdateRole:output_type -> tanvo.access.v1.UpdateRoleResponse
-	24, // 57: tanvo.access.v1.MemberService.DeleteRole:output_type -> tanvo.access.v1.DeleteRoleResponse
-	26, // 58: tanvo.access.v1.MemberService.ListPermissions:output_type -> tanvo.access.v1.ListPermissionsResponse
-	28, // 59: tanvo.access.v1.MemberService.CreateInvite:output_type -> tanvo.access.v1.CreateInviteResponse
-	30, // 60: tanvo.access.v1.MemberService.ListInvites:output_type -> tanvo.access.v1.ListInvitesResponse
-	32, // 61: tanvo.access.v1.MemberService.UpdateInvite:output_type -> tanvo.access.v1.UpdateInviteResponse
-	34, // 62: tanvo.access.v1.MemberService.RevokeInvite:output_type -> tanvo.access.v1.RevokeInviteResponse
-	49, // [49:63] is the sub-list for method output_type
-	35, // [35:49] is the sub-list for method input_type
-	35, // [35:35] is the sub-list for extension type_name
-	35, // [35:35] is the sub-list for extension extendee
-	0,  // [0:35] is the sub-list for field type_name
+	5,  // 27: tanvo.access.v1.CreateInviteRequest.invite:type_name -> tanvo.access.v1.Invite
+	5,  // 28: tanvo.access.v1.CreateInviteResponse.invite:type_name -> tanvo.access.v1.Invite
+	5,  // 29: tanvo.access.v1.ListInvitesResponse.invites:type_name -> tanvo.access.v1.Invite
+	5,  // 30: tanvo.access.v1.UpdateInviteRequest.invite:type_name -> tanvo.access.v1.Invite
+	33, // 31: tanvo.access.v1.UpdateInviteRequest.update_mask:type_name -> google.protobuf.FieldMask
+	5,  // 32: tanvo.access.v1.UpdateInviteResponse.invite:type_name -> tanvo.access.v1.Invite
+	5,  // 33: tanvo.access.v1.RevokeInviteResponse.invite:type_name -> tanvo.access.v1.Invite
+	6,  // 34: tanvo.access.v1.MemberService.ListMemberships:input_type -> tanvo.access.v1.ListMembershipsRequest
+	8,  // 35: tanvo.access.v1.MemberService.GetMembership:input_type -> tanvo.access.v1.GetMembershipRequest
+	10, // 36: tanvo.access.v1.MemberService.UpdateMembership:input_type -> tanvo.access.v1.UpdateMembershipRequest
+	12, // 37: tanvo.access.v1.MemberService.RevokeMembership:input_type -> tanvo.access.v1.RevokeMembershipRequest
+	14, // 38: tanvo.access.v1.MemberService.CreateRole:input_type -> tanvo.access.v1.CreateRoleRequest
+	16, // 39: tanvo.access.v1.MemberService.GetRole:input_type -> tanvo.access.v1.GetRoleRequest
+	18, // 40: tanvo.access.v1.MemberService.ListRoles:input_type -> tanvo.access.v1.ListRolesRequest
+	20, // 41: tanvo.access.v1.MemberService.UpdateRole:input_type -> tanvo.access.v1.UpdateRoleRequest
+	22, // 42: tanvo.access.v1.MemberService.DeleteRole:input_type -> tanvo.access.v1.DeleteRoleRequest
+	24, // 43: tanvo.access.v1.MemberService.CreateInvite:input_type -> tanvo.access.v1.CreateInviteRequest
+	26, // 44: tanvo.access.v1.MemberService.ListInvites:input_type -> tanvo.access.v1.ListInvitesRequest
+	28, // 45: tanvo.access.v1.MemberService.UpdateInvite:input_type -> tanvo.access.v1.UpdateInviteRequest
+	30, // 46: tanvo.access.v1.MemberService.RevokeInvite:input_type -> tanvo.access.v1.RevokeInviteRequest
+	7,  // 47: tanvo.access.v1.MemberService.ListMemberships:output_type -> tanvo.access.v1.ListMembershipsResponse
+	9,  // 48: tanvo.access.v1.MemberService.GetMembership:output_type -> tanvo.access.v1.GetMembershipResponse
+	11, // 49: tanvo.access.v1.MemberService.UpdateMembership:output_type -> tanvo.access.v1.UpdateMembershipResponse
+	13, // 50: tanvo.access.v1.MemberService.RevokeMembership:output_type -> tanvo.access.v1.RevokeMembershipResponse
+	15, // 51: tanvo.access.v1.MemberService.CreateRole:output_type -> tanvo.access.v1.CreateRoleResponse
+	17, // 52: tanvo.access.v1.MemberService.GetRole:output_type -> tanvo.access.v1.GetRoleResponse
+	19, // 53: tanvo.access.v1.MemberService.ListRoles:output_type -> tanvo.access.v1.ListRolesResponse
+	21, // 54: tanvo.access.v1.MemberService.UpdateRole:output_type -> tanvo.access.v1.UpdateRoleResponse
+	23, // 55: tanvo.access.v1.MemberService.DeleteRole:output_type -> tanvo.access.v1.DeleteRoleResponse
+	25, // 56: tanvo.access.v1.MemberService.CreateInvite:output_type -> tanvo.access.v1.CreateInviteResponse
+	27, // 57: tanvo.access.v1.MemberService.ListInvites:output_type -> tanvo.access.v1.ListInvitesResponse
+	29, // 58: tanvo.access.v1.MemberService.UpdateInvite:output_type -> tanvo.access.v1.UpdateInviteResponse
+	31, // 59: tanvo.access.v1.MemberService.RevokeInvite:output_type -> tanvo.access.v1.RevokeInviteResponse
+	47, // [47:60] is the sub-list for method output_type
+	34, // [34:47] is the sub-list for method input_type
+	34, // [34:34] is the sub-list for extension type_name
+	34, // [34:34] is the sub-list for extension extendee
+	0,  // [0:34] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_access_v1_member_proto_init() }
@@ -3944,7 +3769,7 @@ func file_tanvo_access_v1_member_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_access_v1_member_proto_rawDesc), len(file_tanvo_access_v1_member_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   33,
+			NumMessages:   30,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

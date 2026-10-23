@@ -13,6 +13,7 @@ import "google/api/field_behavior.proto";
 import "google/api/resource.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/enums.proto";
 import "tanvo/common/v1/options.proto";
 import "tanvo/common/v1/types.proto";
 
@@ -76,7 +77,8 @@ service CouponService {
     };
   }
 
-  // Deletes a coupon that was never applied.
+  // Deletes a coupon: it can no longer be applied or read, its code is
+  // free again, and its active applications are terminated.
   rpc DeleteCoupon(DeleteCouponRequest) returns (DeleteCouponResponse) {
     option (google.api.http) = {delete: "/v1/coupons/{coupon_id}"};
     option (tanvo.common.v1.access) = {
@@ -267,6 +269,14 @@ message Coupon {
   google.protobuf.Timestamp created_at = 17 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the coupon last changed.
   google.protobuf.Timestamp updated_at = 18 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Whether the coupon is limited to plans.
+  bool limited_plans = 19 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Whether the coupon is limited to billable metrics.
+  bool limited_billable_metrics = 20 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The codes of the limited plans that are not override plans.
+  repeated string plan_codes = 21 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The codes of the limited billable metrics.
+  repeated string billable_metric_codes = 22 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // AppliedCoupon is a coupon applied to a customer.
@@ -312,6 +322,38 @@ message AppliedCoupon {
   google.protobuf.Timestamp created_at = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the applied coupon last changed.
   google.protobuf.Timestamp updated_at = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The coupon's code.
+  string coupon_code = 14 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The coupon's name.
+  string coupon_name = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The coupon's description.
+  string coupon_description = 16 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The coupon's state.
+  CouponStatus coupon_status = 17 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the coupon was deleted.
+  google.protobuf.Timestamp coupon_deleted_at = 18 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The customer's external ID.
+  string external_customer_id = 19 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the coupon expires.
+  google.protobuf.Timestamp expiration_at = 20 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The invoice credits of the applied coupon, in creation order; listed
+  // applied coupons only.
+  repeated AppliedCouponCredit credits = 21 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// AppliedCouponCredit is the deduction of an applied coupon from an
+// invoice.
+message AppliedCouponCredit {
+  // The credit's ID.
+  string id = 1;
+  // The amount deducted.
+  tanvo.common.v1.Money amount = 2;
+  // Whether the amount is deducted before taxes.
+  bool before_taxes = 3;
+  // The credited invoice.
+  string invoice_id = 4;
+  // The payment state of the credited invoice.
+  tanvo.common.v1.PaymentStatus invoice_payment_status = 5;
 }
 
 // CreateCouponRequest is the request of CouponService.CreateCoupon.
@@ -360,7 +402,7 @@ message ListCouponsRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 2 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `status` and `coupon_type`.
+  // An AIP-160 filter over `status`.
   string filter = 3 [(buf.validate.field).string.max_len = 2048];
   // A search over the name and code.
   string search = 4 [(buf.validate.field).string.max_len = 255];
@@ -424,7 +466,10 @@ message DeleteCouponRequest {
 }
 
 // DeleteCouponResponse is the response of CouponService.DeleteCoupon.
-message DeleteCouponResponse {}
+message DeleteCouponResponse {
+  // The deleted coupon.
+  Coupon coupon = 1;
+}
 
 // ApplyCouponRequest is the request of CouponService.ApplyCoupon.
 message ApplyCouponRequest {

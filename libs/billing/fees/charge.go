@@ -164,6 +164,9 @@ func (cc *chargeContext) request(env *kernel.SubscriptionEnv, bk bucket, b perio
 	if opts.Cache != nil {
 		req.Cache = opts.Cache(cc.cacheScope(env, bk, bk.isDefault))
 	}
+	if !opts.MaxTimestamp.IsZero() {
+		req.MaxTimestamp = opts.MaxTimestamp
+	}
 	return req
 }
 

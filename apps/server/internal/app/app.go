@@ -16,6 +16,8 @@ import (
 
 	"github.com/tanvoxyz/tanvo/apps/server/internal/config"
 	"github.com/tanvoxyz/tanvo/apps/server/internal/telemetry"
+	"github.com/tanvoxyz/tanvo/libs/billing"
+	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/jobs"
 	"github.com/tanvoxyz/tanvo/libs/store"
 )
@@ -34,6 +36,10 @@ type Options struct {
 	// Listener, when set, serves HTTP instead of listening on
 	// TANVO_HTTP_ADDR.
 	Listener net.Listener
+	// Clock, when set, is the billing clock instead of the system clock,
+	// and the instant of the billing clock jobs instead of their tick. It
+	// is a test hook: production never sets it.
+	Clock core.Clock
 }
 
 // App is a wired server process.
@@ -47,10 +53,12 @@ type App struct {
 	ch        driver.Conn
 	store     *store.Store
 	jobs      *jobs.Client
+	billing   *billing.Engine
 	stores    *EventStores
 	producer  *kgo.Client
 	consumers *consumers
 	api       *api
+	changes   *catalogChanges
 	health    *health
 	server    *http.Server
 	listener  net.Listener
@@ -90,13 +98,17 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		return nil, err
 	}
 	a.health.add("postgres", a.pool.Ping)
+	a.changes = newCatalogChanges(a.pool, a.log)
 	if a.ch != nil {
 		a.health.add("clickhouse", a.ch.Ping)
 	}
 
 	// The store, whose jobs commit with its transactions, the event
 	// stores, and the jobs.
-	sopts := []store.Option{store.WithJobInserter(jobInserter(func() *jobs.Client { return a.jobs }))}
+	sopts := []store.Option{
+		store.WithJobInserter(jobInserter(func() *jobs.Client { return a.jobs })),
+		store.WithCatalogChanges(a.changes.committed),
+	}
 	if cfg.DatabaseRowLevelSecurity {
 		sopts = append(sopts, store.WithRowLevelSecurity())
 	}
@@ -106,8 +118,18 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		return nil, err
 	}
 	a.stores = newEventStores(a.pool, cfg.EventStoreSchema, a.ch, modeOf, tp)
-	reg, err := newRegistry(jobHandlers{webhooks: newDispatcher(cfg, a.store, tp, mp), tx: a.store, stores: a.stores, mp: mp})
+	var clock core.Clock = core.SystemClock{}
+	if o.Clock != nil {
+		clock = o.Clock
+	}
+	reg, err := newRegistry(jobHandlers{webhooks: newDispatcher(cfg, a.store, tp, mp), tx: a.store, stores: a.stores, mp: mp, clock: clock})
 	if err != nil {
+		return nil, err
+	}
+	if a.billing, err = newBilling(cfg, a.store, a.stores, clock, a.log); err != nil {
+		return nil, err
+	}
+	if err := (billingJobs{engine: a.billing, tx: a.store, clock: o.Clock, log: a.log}).register(reg); err != nil {
 		return nil, err
 	}
 	composer, sender, err := newMailer(cfg, a.log, tp)
@@ -133,7 +155,7 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		a.health.add("kafka", a.producer.Ping)
 	}
 	if o.Roles.Has(config.RoleConsumer) {
-		if a.consumers, err = newConsumers(cfg, a.store, a.stores.ClickHouse(), a.producer, ktel, a.log); err != nil {
+		if a.consumers, err = newConsumers(cfg, a.store, a.stores.ClickHouse(), a.billing, a.producer, ktel, a.log, a.changes); err != nil {
 			return nil, err
 		}
 	}
@@ -149,11 +171,24 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		if cfg.KafkaUsed() {
 			producer = a.producer
 		}
-		svc, err := newIngestService(cfg, a.store, modeOf, producer)
+		svc, err := newIngestService(cfg, a.store, a.billing, modeOf, producer, a.changes)
 		if err != nil {
 			return nil, err
 		}
-		if a.api, err = newAPI(mux, apiDeps{tx: a.store, ingest: svc, maxBytes: cfg.HTTPMaxBodyBytes, trustedProxies: cfg.TrustedProxies, log: a.log, tp: tp, mp: mp}); err != nil {
+		reader, err := newEventReader(cfg, a.store, modeOf, a.stores.ClickHouse())
+		if err != nil {
+			return nil, err
+		}
+		secretKey, err := cfg.SecretKeyBytes()
+		if err != nil {
+			return nil, err
+		}
+		if a.api, err = newAPI(mux, APIOptions{
+			Tx: a.store, Ingest: svc, EventReader: reader, Billing: a.billing, MaxBytes: cfg.HTTPMaxBodyBytes, TrustedProxies: cfg.TrustedProxies,
+			Log: a.log, TracerProvider: tp, MeterProvider: mp, Clock: clock, AppURL: cfg.AppURL,
+			DisableSignup: cfg.DisableSignup, GoogleClientID: cfg.GoogleAuthClientID, GoogleClientSecret: cfg.GoogleAuthClientSecret,
+			WebhooksAllowPrivate: cfg.WebhooksAllowPrivate, OIDCAllowPrivate: cfg.OIDCAllowPrivate, SecretKey: secretKey,
+		}); err != nil {
 			return nil, err
 		}
 	}
@@ -187,11 +222,17 @@ func (a *App) Addr() net.Addr { return a.listener.Addr() }
 // EventStores returns the event store selector.
 func (a *App) EventStores() *EventStores { return a.stores }
 
+// Jobs returns the jobs client.
+func (a *App) Jobs() *jobs.Client { return a.jobs }
+
+// Billing returns the billing engine.
+func (a *App) Billing() *billing.Engine { return a.billing }
+
 // Run runs the roles until ctx ends or a component fails, then shuts
 // down within TANVO_SHUTDOWN_TIMEOUT: readiness turns unavailable, the
 // HTTP server drains its requests, the workers finish their jobs, the
-// consumers commit and stop, the API key uses are written, and the
-// connections close. It returns the component's failure, if any.
+// consumers commit and stop, the API key uses and API logs are written,
+// and the connections close. It returns the component's failure, if any.
 func (a *App) Run(ctx context.Context) error {
 	defer a.close()
 	runCtx, stop := context.WithCancel(context.WithoutCancel(ctx))
@@ -216,6 +257,10 @@ func (a *App) Run(ctx context.Context) error {
 	}
 	if a.api != nil {
 		g.Go(func() error { return a.api.runUsageFlush(gctx) })
+		g.Go(func() error { return a.api.runAPILogs(gctx) })
+	}
+	if a.api != nil || a.consumers != nil {
+		g.Go(func() error { return a.changes.run(gctx) })
 	}
 	a.log.InfoContext(ctx, "tanvo: serving", "roles", a.roles.String(), "addr", a.Addr().String())
 

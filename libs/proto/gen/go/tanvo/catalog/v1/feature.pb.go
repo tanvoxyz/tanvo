@@ -1739,6 +1739,190 @@ func (b0 DeleteFeatureResponse_builder) Build() *DeleteFeatureResponse {
 	return m0
 }
 
+// DeleteFeaturePrivilegeRequest is the request of FeatureService.DeleteFeaturePrivilege.
+type DeleteFeaturePrivilegeRequest struct {
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_FeatureId     *string                `protobuf:"bytes,1,opt,name=feature_id,json=featureId"`
+	xxx_hidden_PrivilegeCode *string                `protobuf:"bytes,2,opt,name=privilege_code,json=privilegeCode"`
+	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
+	XXX_presence             [1]uint32
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
+}
+
+func (x *DeleteFeaturePrivilegeRequest) Reset() {
+	*x = DeleteFeaturePrivilegeRequest{}
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteFeaturePrivilegeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteFeaturePrivilegeRequest) ProtoMessage() {}
+
+func (x *DeleteFeaturePrivilegeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeleteFeaturePrivilegeRequest) GetFeatureId() string {
+	if x != nil {
+		if x.xxx_hidden_FeatureId != nil {
+			return *x.xxx_hidden_FeatureId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeleteFeaturePrivilegeRequest) GetPrivilegeCode() string {
+	if x != nil {
+		if x.xxx_hidden_PrivilegeCode != nil {
+			return *x.xxx_hidden_PrivilegeCode
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeleteFeaturePrivilegeRequest) SetFeatureId(v string) {
+	x.xxx_hidden_FeatureId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *DeleteFeaturePrivilegeRequest) SetPrivilegeCode(v string) {
+	x.xxx_hidden_PrivilegeCode = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *DeleteFeaturePrivilegeRequest) HasFeatureId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteFeaturePrivilegeRequest) HasPrivilegeCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *DeleteFeaturePrivilegeRequest) ClearFeatureId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_FeatureId = nil
+}
+
+func (x *DeleteFeaturePrivilegeRequest) ClearPrivilegeCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_PrivilegeCode = nil
+}
+
+type DeleteFeaturePrivilegeRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The feature's ID or `code:<code>`.
+	FeatureId *string
+	// The privilege's code.
+	PrivilegeCode *string
+}
+
+func (b0 DeleteFeaturePrivilegeRequest_builder) Build() *DeleteFeaturePrivilegeRequest {
+	m0 := &DeleteFeaturePrivilegeRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.FeatureId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_FeatureId = b.FeatureId
+	}
+	if b.PrivilegeCode != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_PrivilegeCode = b.PrivilegeCode
+	}
+	return m0
+}
+
+// DeleteFeaturePrivilegeResponse is the response of FeatureService.DeleteFeaturePrivilege.
+type DeleteFeaturePrivilegeResponse struct {
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Feature *Feature               `protobuf:"bytes,1,opt,name=feature"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *DeleteFeaturePrivilegeResponse) Reset() {
+	*x = DeleteFeaturePrivilegeResponse{}
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteFeaturePrivilegeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteFeaturePrivilegeResponse) ProtoMessage() {}
+
+func (x *DeleteFeaturePrivilegeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeleteFeaturePrivilegeResponse) GetFeature() *Feature {
+	if x != nil {
+		return x.xxx_hidden_Feature
+	}
+	return nil
+}
+
+func (x *DeleteFeaturePrivilegeResponse) SetFeature(v *Feature) {
+	x.xxx_hidden_Feature = v
+}
+
+func (x *DeleteFeaturePrivilegeResponse) HasFeature() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Feature != nil
+}
+
+func (x *DeleteFeaturePrivilegeResponse) ClearFeature() {
+	x.xxx_hidden_Feature = nil
+}
+
+type DeleteFeaturePrivilegeResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The feature without the privilege.
+	Feature *Feature
+}
+
+func (b0 DeleteFeaturePrivilegeResponse_builder) Build() *DeleteFeaturePrivilegeResponse {
+	m0 := &DeleteFeaturePrivilegeResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Feature = b.Feature
+	return m0
+}
+
 // ListEntitlementsRequest is the request of EntitlementService.ListEntitlements.
 type ListEntitlementsRequest struct {
 	state                     protoimpl.MessageState `protogen:"opaque.v1"`
@@ -1752,7 +1936,7 @@ type ListEntitlementsRequest struct {
 
 func (x *ListEntitlementsRequest) Reset() {
 	*x = ListEntitlementsRequest{}
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[14]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1764,7 +1948,7 @@ func (x *ListEntitlementsRequest) String() string {
 func (*ListEntitlementsRequest) ProtoMessage() {}
 
 func (x *ListEntitlementsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[14]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1863,7 +2047,7 @@ type ListEntitlementsResponse struct {
 
 func (x *ListEntitlementsResponse) Reset() {
 	*x = ListEntitlementsResponse{}
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[15]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1875,7 +2059,7 @@ func (x *ListEntitlementsResponse) String() string {
 func (*ListEntitlementsResponse) ProtoMessage() {}
 
 func (x *ListEntitlementsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[15]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1928,7 +2112,7 @@ type GetEntitlementRequest struct {
 
 func (x *GetEntitlementRequest) Reset() {
 	*x = GetEntitlementRequest{}
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[16]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1940,7 +2124,7 @@ func (x *GetEntitlementRequest) String() string {
 func (*GetEntitlementRequest) ProtoMessage() {}
 
 func (x *GetEntitlementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[16]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2072,7 +2256,7 @@ type GetEntitlementResponse struct {
 
 func (x *GetEntitlementResponse) Reset() {
 	*x = GetEntitlementResponse{}
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[17]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2084,7 +2268,7 @@ func (x *GetEntitlementResponse) String() string {
 func (*GetEntitlementResponse) ProtoMessage() {}
 
 func (x *GetEntitlementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[17]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2146,7 +2330,7 @@ type ReplaceEntitlementsRequest struct {
 
 func (x *ReplaceEntitlementsRequest) Reset() {
 	*x = ReplaceEntitlementsRequest{}
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[18]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2158,7 +2342,7 @@ func (x *ReplaceEntitlementsRequest) String() string {
 func (*ReplaceEntitlementsRequest) ProtoMessage() {}
 
 func (x *ReplaceEntitlementsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[18]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2273,7 +2457,7 @@ type ReplaceEntitlementsResponse struct {
 
 func (x *ReplaceEntitlementsResponse) Reset() {
 	*x = ReplaceEntitlementsResponse{}
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[19]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2285,7 +2469,7 @@ func (x *ReplaceEntitlementsResponse) String() string {
 func (*ReplaceEntitlementsResponse) ProtoMessage() {}
 
 func (x *ReplaceEntitlementsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[19]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2338,7 +2522,7 @@ type UpsertEntitlementRequest struct {
 
 func (x *UpsertEntitlementRequest) Reset() {
 	*x = UpsertEntitlementRequest{}
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[20]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2350,7 +2534,7 @@ func (x *UpsertEntitlementRequest) String() string {
 func (*UpsertEntitlementRequest) ProtoMessage() {}
 
 func (x *UpsertEntitlementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[20]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2474,7 +2658,7 @@ type UpsertEntitlementResponse struct {
 
 func (x *UpsertEntitlementResponse) Reset() {
 	*x = UpsertEntitlementResponse{}
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[21]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2486,7 +2670,7 @@ func (x *UpsertEntitlementResponse) String() string {
 func (*UpsertEntitlementResponse) ProtoMessage() {}
 
 func (x *UpsertEntitlementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[21]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2548,7 +2732,7 @@ type DeleteEntitlementRequest struct {
 
 func (x *DeleteEntitlementRequest) Reset() {
 	*x = DeleteEntitlementRequest{}
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[22]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2560,7 +2744,7 @@ func (x *DeleteEntitlementRequest) String() string {
 func (*DeleteEntitlementRequest) ProtoMessage() {}
 
 func (x *DeleteEntitlementRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[22]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2691,7 +2875,7 @@ type DeleteEntitlementResponse struct {
 
 func (x *DeleteEntitlementResponse) Reset() {
 	*x = DeleteEntitlementResponse{}
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[23]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2703,7 +2887,7 @@ func (x *DeleteEntitlementResponse) String() string {
 func (*DeleteEntitlementResponse) ProtoMessage() {}
 
 func (x *DeleteEntitlementResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[23]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2741,7 +2925,7 @@ type DeleteEntitlementPrivilegeRequest struct {
 
 func (x *DeleteEntitlementPrivilegeRequest) Reset() {
 	*x = DeleteEntitlementPrivilegeRequest{}
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[24]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2753,7 +2937,7 @@ func (x *DeleteEntitlementPrivilegeRequest) String() string {
 func (*DeleteEntitlementPrivilegeRequest) ProtoMessage() {}
 
 func (x *DeleteEntitlementPrivilegeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[24]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2918,7 +3102,7 @@ type DeleteEntitlementPrivilegeResponse struct {
 
 func (x *DeleteEntitlementPrivilegeResponse) Reset() {
 	*x = DeleteEntitlementPrivilegeResponse{}
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[25]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2930,7 +3114,7 @@ func (x *DeleteEntitlementPrivilegeResponse) String() string {
 func (*DeleteEntitlementPrivilegeResponse) ProtoMessage() {}
 
 func (x *DeleteEntitlementPrivilegeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[25]
+	mi := &file_tanvo_catalog_v1_feature_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3050,6 +3234,14 @@ const file_tanvo_catalog_v1_feature_proto_rawDesc = "" +
 	"feature_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\tfeatureId\"L\n" +
 	"\x15DeleteFeatureResponse\x123\n" +
+	"\afeature\x18\x01 \x01(\v2\x19.tanvo.catalog.v1.FeatureR\afeature\"\x8b\x01\n" +
+	"\x1dDeleteFeaturePrivilegeRequest\x120\n" +
+	"\n" +
+	"feature_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\tfeatureId\x128\n" +
+	"\x0eprivilege_code\x18\x02 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe8\xa4\xca\x06\x01R\rprivilegeCode\"U\n" +
+	"\x1eDeleteFeaturePrivilegeResponse\x123\n" +
 	"\afeature\x18\x01 \x01(\v2\x19.tanvo.catalog.v1.FeatureR\afeature\"\xf7\x01\n" +
 	"\x17ListEntitlementsRequest\x12#\n" +
 	"\aplan_id\x18\x01 \x01(\tB\n" +
@@ -3122,7 +3314,7 @@ const file_tanvo_catalog_v1_feature_proto_rawDesc = "" +
 	"\x11EntitlementSource\x12\"\n" +
 	"\x1eENTITLEMENT_SOURCE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17ENTITLEMENT_SOURCE_PLAN\x10\x01\x12#\n" +
-	"\x1fENTITLEMENT_SOURCE_SUBSCRIPTION\x10\x022\xb2\x06\n" +
+	"\x1fENTITLEMENT_SOURCE_SUBSCRIPTION\x10\x022\x8d\b\n" +
 	"\x0eFeatureService\x12\x9d\x01\n" +
 	"\rCreateFeature\x12&.tanvo.catalog.v1.CreateFeatureRequest\x1a'.tanvo.catalog.v1.CreateFeatureResponse\";\xca\xf3\x18\x1a\n" +
 	"\x0ffeatures:create*\afeature\x82\xd3\xe4\x93\x02\x17:\afeature\"\f/v1/features\x12\x99\x01\n" +
@@ -3134,7 +3326,9 @@ const file_tanvo_catalog_v1_feature_proto_rawDesc = "" +
 	"\rUpdateFeature\x12&.tanvo.catalog.v1.UpdateFeatureRequest\x1a'.tanvo.catalog.v1.UpdateFeatureResponse\"H\xca\xf3\x18\x1a\n" +
 	"\x0ffeatures:update*\afeature\x82\xd3\xe4\x93\x02$:\afeature2\x19/v1/features/{feature.id}\x12\xa1\x01\n" +
 	"\rDeleteFeature\x12&.tanvo.catalog.v1.DeleteFeatureRequest\x1a'.tanvo.catalog.v1.DeleteFeatureResponse\"?\xca\xf3\x18\x1a\n" +
-	"\x0ffeatures:delete*\afeature\x82\xd3\xe4\x93\x02\x1b*\x19/v1/features/{feature_id}2\xf9\f\n" +
+	"\x0ffeatures:delete*\afeature\x82\xd3\xe4\x93\x02\x1b*\x19/v1/features/{feature_id}\x12\xd8\x01\n" +
+	"\x16DeleteFeaturePrivilege\x12/.tanvo.catalog.v1.DeleteFeaturePrivilegeRequest\x1a0.tanvo.catalog.v1.DeleteFeaturePrivilegeResponse\"[\xca\xf3\x18\x1a\n" +
+	"\x0ffeatures:update*\afeature\x82\xd3\xe4\x93\x027*5/v1/features/{feature_id}/privileges/{privilege_code}2\xf9\f\n" +
 	"\x12EntitlementService\x12\xe6\x01\n" +
 	"\x10ListEntitlements\x12).tanvo.catalog.v1.ListEntitlementsRequest\x1a*.tanvo.catalog.v1.ListEntitlementsResponse\"{\xca\xf3\x18\x18\n" +
 	"\rfeatures:read*\afeature\x82\xd3\xe4\x93\x02VZ2\x120/v1/subscriptions/{subscription_id}/entitlements\x12 /v1/plans/{plan_id}/entitlements\x90\x02\x01\x12\xfb\x01\n" +
@@ -3151,7 +3345,7 @@ const file_tanvo_catalog_v1_feature_proto_rawDesc = "" +
 	"\x14com.tanvo.catalog.v1B\fFeatureProtoP\x01ZFgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/catalog/v1;catalogv1\xa2\x02\x03TCX\xaa\x02\x10Tanvo.Catalog.V1\xca\x02\x10Tanvo\\Catalog\\V1\xe2\x02\x1cTanvo\\Catalog\\V1\\GPBMetadata\xea\x02\x12Tanvo::Catalog::V1b\beditionsp\xe8\a"
 
 var file_tanvo_catalog_v1_feature_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_tanvo_catalog_v1_feature_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_tanvo_catalog_v1_feature_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
 var file_tanvo_catalog_v1_feature_proto_goTypes = []any{
 	(PrivilegeValueType)(0),                    // 0: tanvo.catalog.v1.PrivilegeValueType
 	(EntitlementSource)(0),                     // 1: tanvo.catalog.v1.EntitlementSource
@@ -3169,26 +3363,28 @@ var file_tanvo_catalog_v1_feature_proto_goTypes = []any{
 	(*UpdateFeatureResponse)(nil),              // 13: tanvo.catalog.v1.UpdateFeatureResponse
 	(*DeleteFeatureRequest)(nil),               // 14: tanvo.catalog.v1.DeleteFeatureRequest
 	(*DeleteFeatureResponse)(nil),              // 15: tanvo.catalog.v1.DeleteFeatureResponse
-	(*ListEntitlementsRequest)(nil),            // 16: tanvo.catalog.v1.ListEntitlementsRequest
-	(*ListEntitlementsResponse)(nil),           // 17: tanvo.catalog.v1.ListEntitlementsResponse
-	(*GetEntitlementRequest)(nil),              // 18: tanvo.catalog.v1.GetEntitlementRequest
-	(*GetEntitlementResponse)(nil),             // 19: tanvo.catalog.v1.GetEntitlementResponse
-	(*ReplaceEntitlementsRequest)(nil),         // 20: tanvo.catalog.v1.ReplaceEntitlementsRequest
-	(*ReplaceEntitlementsResponse)(nil),        // 21: tanvo.catalog.v1.ReplaceEntitlementsResponse
-	(*UpsertEntitlementRequest)(nil),           // 22: tanvo.catalog.v1.UpsertEntitlementRequest
-	(*UpsertEntitlementResponse)(nil),          // 23: tanvo.catalog.v1.UpsertEntitlementResponse
-	(*DeleteEntitlementRequest)(nil),           // 24: tanvo.catalog.v1.DeleteEntitlementRequest
-	(*DeleteEntitlementResponse)(nil),          // 25: tanvo.catalog.v1.DeleteEntitlementResponse
-	(*DeleteEntitlementPrivilegeRequest)(nil),  // 26: tanvo.catalog.v1.DeleteEntitlementPrivilegeRequest
-	(*DeleteEntitlementPrivilegeResponse)(nil), // 27: tanvo.catalog.v1.DeleteEntitlementPrivilegeResponse
-	(*timestamppb.Timestamp)(nil),              // 28: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),              // 29: google.protobuf.FieldMask
+	(*DeleteFeaturePrivilegeRequest)(nil),      // 16: tanvo.catalog.v1.DeleteFeaturePrivilegeRequest
+	(*DeleteFeaturePrivilegeResponse)(nil),     // 17: tanvo.catalog.v1.DeleteFeaturePrivilegeResponse
+	(*ListEntitlementsRequest)(nil),            // 18: tanvo.catalog.v1.ListEntitlementsRequest
+	(*ListEntitlementsResponse)(nil),           // 19: tanvo.catalog.v1.ListEntitlementsResponse
+	(*GetEntitlementRequest)(nil),              // 20: tanvo.catalog.v1.GetEntitlementRequest
+	(*GetEntitlementResponse)(nil),             // 21: tanvo.catalog.v1.GetEntitlementResponse
+	(*ReplaceEntitlementsRequest)(nil),         // 22: tanvo.catalog.v1.ReplaceEntitlementsRequest
+	(*ReplaceEntitlementsResponse)(nil),        // 23: tanvo.catalog.v1.ReplaceEntitlementsResponse
+	(*UpsertEntitlementRequest)(nil),           // 24: tanvo.catalog.v1.UpsertEntitlementRequest
+	(*UpsertEntitlementResponse)(nil),          // 25: tanvo.catalog.v1.UpsertEntitlementResponse
+	(*DeleteEntitlementRequest)(nil),           // 26: tanvo.catalog.v1.DeleteEntitlementRequest
+	(*DeleteEntitlementResponse)(nil),          // 27: tanvo.catalog.v1.DeleteEntitlementResponse
+	(*DeleteEntitlementPrivilegeRequest)(nil),  // 28: tanvo.catalog.v1.DeleteEntitlementPrivilegeRequest
+	(*DeleteEntitlementPrivilegeResponse)(nil), // 29: tanvo.catalog.v1.DeleteEntitlementPrivilegeResponse
+	(*timestamppb.Timestamp)(nil),              // 30: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),              // 31: google.protobuf.FieldMask
 }
 var file_tanvo_catalog_v1_feature_proto_depIdxs = []int32{
 	0,  // 0: tanvo.catalog.v1.Privilege.value_type:type_name -> tanvo.catalog.v1.PrivilegeValueType
 	2,  // 1: tanvo.catalog.v1.Feature.privileges:type_name -> tanvo.catalog.v1.Privilege
-	28, // 2: tanvo.catalog.v1.Feature.created_at:type_name -> google.protobuf.Timestamp
-	28, // 3: tanvo.catalog.v1.Feature.updated_at:type_name -> google.protobuf.Timestamp
+	30, // 2: tanvo.catalog.v1.Feature.created_at:type_name -> google.protobuf.Timestamp
+	30, // 3: tanvo.catalog.v1.Feature.updated_at:type_name -> google.protobuf.Timestamp
 	1,  // 4: tanvo.catalog.v1.PrivilegeValue.source:type_name -> tanvo.catalog.v1.EntitlementSource
 	4,  // 5: tanvo.catalog.v1.Entitlement.privileges:type_name -> tanvo.catalog.v1.PrivilegeValue
 	1,  // 6: tanvo.catalog.v1.Entitlement.source:type_name -> tanvo.catalog.v1.EntitlementSource
@@ -3197,43 +3393,46 @@ var file_tanvo_catalog_v1_feature_proto_depIdxs = []int32{
 	3,  // 9: tanvo.catalog.v1.GetFeatureResponse.feature:type_name -> tanvo.catalog.v1.Feature
 	3,  // 10: tanvo.catalog.v1.ListFeaturesResponse.features:type_name -> tanvo.catalog.v1.Feature
 	3,  // 11: tanvo.catalog.v1.UpdateFeatureRequest.feature:type_name -> tanvo.catalog.v1.Feature
-	29, // 12: tanvo.catalog.v1.UpdateFeatureRequest.update_mask:type_name -> google.protobuf.FieldMask
+	31, // 12: tanvo.catalog.v1.UpdateFeatureRequest.update_mask:type_name -> google.protobuf.FieldMask
 	3,  // 13: tanvo.catalog.v1.UpdateFeatureResponse.feature:type_name -> tanvo.catalog.v1.Feature
 	3,  // 14: tanvo.catalog.v1.DeleteFeatureResponse.feature:type_name -> tanvo.catalog.v1.Feature
-	5,  // 15: tanvo.catalog.v1.ListEntitlementsResponse.entitlements:type_name -> tanvo.catalog.v1.Entitlement
-	5,  // 16: tanvo.catalog.v1.GetEntitlementResponse.entitlement:type_name -> tanvo.catalog.v1.Entitlement
-	5,  // 17: tanvo.catalog.v1.ReplaceEntitlementsRequest.entitlements:type_name -> tanvo.catalog.v1.Entitlement
-	5,  // 18: tanvo.catalog.v1.ReplaceEntitlementsResponse.entitlements:type_name -> tanvo.catalog.v1.Entitlement
-	5,  // 19: tanvo.catalog.v1.UpsertEntitlementRequest.entitlement:type_name -> tanvo.catalog.v1.Entitlement
-	5,  // 20: tanvo.catalog.v1.UpsertEntitlementResponse.entitlement:type_name -> tanvo.catalog.v1.Entitlement
-	5,  // 21: tanvo.catalog.v1.DeleteEntitlementPrivilegeResponse.entitlement:type_name -> tanvo.catalog.v1.Entitlement
-	6,  // 22: tanvo.catalog.v1.FeatureService.CreateFeature:input_type -> tanvo.catalog.v1.CreateFeatureRequest
-	8,  // 23: tanvo.catalog.v1.FeatureService.GetFeature:input_type -> tanvo.catalog.v1.GetFeatureRequest
-	10, // 24: tanvo.catalog.v1.FeatureService.ListFeatures:input_type -> tanvo.catalog.v1.ListFeaturesRequest
-	12, // 25: tanvo.catalog.v1.FeatureService.UpdateFeature:input_type -> tanvo.catalog.v1.UpdateFeatureRequest
-	14, // 26: tanvo.catalog.v1.FeatureService.DeleteFeature:input_type -> tanvo.catalog.v1.DeleteFeatureRequest
-	16, // 27: tanvo.catalog.v1.EntitlementService.ListEntitlements:input_type -> tanvo.catalog.v1.ListEntitlementsRequest
-	18, // 28: tanvo.catalog.v1.EntitlementService.GetEntitlement:input_type -> tanvo.catalog.v1.GetEntitlementRequest
-	20, // 29: tanvo.catalog.v1.EntitlementService.ReplaceEntitlements:input_type -> tanvo.catalog.v1.ReplaceEntitlementsRequest
-	22, // 30: tanvo.catalog.v1.EntitlementService.UpsertEntitlement:input_type -> tanvo.catalog.v1.UpsertEntitlementRequest
-	24, // 31: tanvo.catalog.v1.EntitlementService.DeleteEntitlement:input_type -> tanvo.catalog.v1.DeleteEntitlementRequest
-	26, // 32: tanvo.catalog.v1.EntitlementService.DeleteEntitlementPrivilege:input_type -> tanvo.catalog.v1.DeleteEntitlementPrivilegeRequest
-	7,  // 33: tanvo.catalog.v1.FeatureService.CreateFeature:output_type -> tanvo.catalog.v1.CreateFeatureResponse
-	9,  // 34: tanvo.catalog.v1.FeatureService.GetFeature:output_type -> tanvo.catalog.v1.GetFeatureResponse
-	11, // 35: tanvo.catalog.v1.FeatureService.ListFeatures:output_type -> tanvo.catalog.v1.ListFeaturesResponse
-	13, // 36: tanvo.catalog.v1.FeatureService.UpdateFeature:output_type -> tanvo.catalog.v1.UpdateFeatureResponse
-	15, // 37: tanvo.catalog.v1.FeatureService.DeleteFeature:output_type -> tanvo.catalog.v1.DeleteFeatureResponse
-	17, // 38: tanvo.catalog.v1.EntitlementService.ListEntitlements:output_type -> tanvo.catalog.v1.ListEntitlementsResponse
-	19, // 39: tanvo.catalog.v1.EntitlementService.GetEntitlement:output_type -> tanvo.catalog.v1.GetEntitlementResponse
-	21, // 40: tanvo.catalog.v1.EntitlementService.ReplaceEntitlements:output_type -> tanvo.catalog.v1.ReplaceEntitlementsResponse
-	23, // 41: tanvo.catalog.v1.EntitlementService.UpsertEntitlement:output_type -> tanvo.catalog.v1.UpsertEntitlementResponse
-	25, // 42: tanvo.catalog.v1.EntitlementService.DeleteEntitlement:output_type -> tanvo.catalog.v1.DeleteEntitlementResponse
-	27, // 43: tanvo.catalog.v1.EntitlementService.DeleteEntitlementPrivilege:output_type -> tanvo.catalog.v1.DeleteEntitlementPrivilegeResponse
-	33, // [33:44] is the sub-list for method output_type
-	22, // [22:33] is the sub-list for method input_type
-	22, // [22:22] is the sub-list for extension type_name
-	22, // [22:22] is the sub-list for extension extendee
-	0,  // [0:22] is the sub-list for field type_name
+	3,  // 15: tanvo.catalog.v1.DeleteFeaturePrivilegeResponse.feature:type_name -> tanvo.catalog.v1.Feature
+	5,  // 16: tanvo.catalog.v1.ListEntitlementsResponse.entitlements:type_name -> tanvo.catalog.v1.Entitlement
+	5,  // 17: tanvo.catalog.v1.GetEntitlementResponse.entitlement:type_name -> tanvo.catalog.v1.Entitlement
+	5,  // 18: tanvo.catalog.v1.ReplaceEntitlementsRequest.entitlements:type_name -> tanvo.catalog.v1.Entitlement
+	5,  // 19: tanvo.catalog.v1.ReplaceEntitlementsResponse.entitlements:type_name -> tanvo.catalog.v1.Entitlement
+	5,  // 20: tanvo.catalog.v1.UpsertEntitlementRequest.entitlement:type_name -> tanvo.catalog.v1.Entitlement
+	5,  // 21: tanvo.catalog.v1.UpsertEntitlementResponse.entitlement:type_name -> tanvo.catalog.v1.Entitlement
+	5,  // 22: tanvo.catalog.v1.DeleteEntitlementPrivilegeResponse.entitlement:type_name -> tanvo.catalog.v1.Entitlement
+	6,  // 23: tanvo.catalog.v1.FeatureService.CreateFeature:input_type -> tanvo.catalog.v1.CreateFeatureRequest
+	8,  // 24: tanvo.catalog.v1.FeatureService.GetFeature:input_type -> tanvo.catalog.v1.GetFeatureRequest
+	10, // 25: tanvo.catalog.v1.FeatureService.ListFeatures:input_type -> tanvo.catalog.v1.ListFeaturesRequest
+	12, // 26: tanvo.catalog.v1.FeatureService.UpdateFeature:input_type -> tanvo.catalog.v1.UpdateFeatureRequest
+	14, // 27: tanvo.catalog.v1.FeatureService.DeleteFeature:input_type -> tanvo.catalog.v1.DeleteFeatureRequest
+	16, // 28: tanvo.catalog.v1.FeatureService.DeleteFeaturePrivilege:input_type -> tanvo.catalog.v1.DeleteFeaturePrivilegeRequest
+	18, // 29: tanvo.catalog.v1.EntitlementService.ListEntitlements:input_type -> tanvo.catalog.v1.ListEntitlementsRequest
+	20, // 30: tanvo.catalog.v1.EntitlementService.GetEntitlement:input_type -> tanvo.catalog.v1.GetEntitlementRequest
+	22, // 31: tanvo.catalog.v1.EntitlementService.ReplaceEntitlements:input_type -> tanvo.catalog.v1.ReplaceEntitlementsRequest
+	24, // 32: tanvo.catalog.v1.EntitlementService.UpsertEntitlement:input_type -> tanvo.catalog.v1.UpsertEntitlementRequest
+	26, // 33: tanvo.catalog.v1.EntitlementService.DeleteEntitlement:input_type -> tanvo.catalog.v1.DeleteEntitlementRequest
+	28, // 34: tanvo.catalog.v1.EntitlementService.DeleteEntitlementPrivilege:input_type -> tanvo.catalog.v1.DeleteEntitlementPrivilegeRequest
+	7,  // 35: tanvo.catalog.v1.FeatureService.CreateFeature:output_type -> tanvo.catalog.v1.CreateFeatureResponse
+	9,  // 36: tanvo.catalog.v1.FeatureService.GetFeature:output_type -> tanvo.catalog.v1.GetFeatureResponse
+	11, // 37: tanvo.catalog.v1.FeatureService.ListFeatures:output_type -> tanvo.catalog.v1.ListFeaturesResponse
+	13, // 38: tanvo.catalog.v1.FeatureService.UpdateFeature:output_type -> tanvo.catalog.v1.UpdateFeatureResponse
+	15, // 39: tanvo.catalog.v1.FeatureService.DeleteFeature:output_type -> tanvo.catalog.v1.DeleteFeatureResponse
+	17, // 40: tanvo.catalog.v1.FeatureService.DeleteFeaturePrivilege:output_type -> tanvo.catalog.v1.DeleteFeaturePrivilegeResponse
+	19, // 41: tanvo.catalog.v1.EntitlementService.ListEntitlements:output_type -> tanvo.catalog.v1.ListEntitlementsResponse
+	21, // 42: tanvo.catalog.v1.EntitlementService.GetEntitlement:output_type -> tanvo.catalog.v1.GetEntitlementResponse
+	23, // 43: tanvo.catalog.v1.EntitlementService.ReplaceEntitlements:output_type -> tanvo.catalog.v1.ReplaceEntitlementsResponse
+	25, // 44: tanvo.catalog.v1.EntitlementService.UpsertEntitlement:output_type -> tanvo.catalog.v1.UpsertEntitlementResponse
+	27, // 45: tanvo.catalog.v1.EntitlementService.DeleteEntitlement:output_type -> tanvo.catalog.v1.DeleteEntitlementResponse
+	29, // 46: tanvo.catalog.v1.EntitlementService.DeleteEntitlementPrivilege:output_type -> tanvo.catalog.v1.DeleteEntitlementPrivilegeResponse
+	35, // [35:47] is the sub-list for method output_type
+	23, // [23:35] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_catalog_v1_feature_proto_init() }
@@ -3247,7 +3446,7 @@ func file_tanvo_catalog_v1_feature_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_catalog_v1_feature_proto_rawDesc), len(file_tanvo_catalog_v1_feature_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   26,
+			NumMessages:   28,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

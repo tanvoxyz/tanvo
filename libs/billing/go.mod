@@ -6,6 +6,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/tanvoxyz/tanvo/libs/core v0.0.0
+	github.com/tanvoxyz/tanvo/libs/expression/go v0.0.0
 	github.com/tanvoxyz/tanvo/libs/metering v0.0.0
 	github.com/tanvoxyz/tanvo/libs/money v0.0.0
 	github.com/tanvoxyz/tanvo/libs/period v0.0.0
@@ -20,7 +21,9 @@ require (
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	github.com/tetratelabs/wazero v1.12.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 )
 
@@ -37,3 +40,5 @@ replace github.com/tanvoxyz/tanvo/libs/metering => ../metering
 replace github.com/tanvoxyz/tanvo/libs/tax => ../tax
 
 replace github.com/tanvoxyz/tanvo/libs/store => ../store
+
+replace github.com/tanvoxyz/tanvo/libs/expression/go => ../expression/go

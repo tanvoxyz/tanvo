@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -164,9 +166,29 @@ type Config struct {
 	WorkerQueues []string `koanf:"worker_queues"`
 	// JobsDisablePeriodic keeps the workers out of the periodic schedule.
 	JobsDisablePeriodic bool `koanf:"jobs_disable_periodic"`
+	// DisableEventsValidation leaves the hourly post-validation of events
+	// out of the periodic schedule (lago LAGO_DISABLE_EVENTS_VALIDATION,
+	// clock.rb:201).
+	DisableEventsValidation bool `koanf:"disable_events_validation"`
 	// JobsClockConcurrency is the concurrency of the clock queue; 0 is
 	// the library default.
 	JobsClockConcurrency int `koanf:"jobs_clock_concurrency"`
+	// JobsQueueConcurrency overrides the concurrency of queues, as
+	// "queue=workers" pairs ("alerts=20,wallets=5"); the other queues keep
+	// the library default (lago sets its workers per queue, for instance
+	// SIDEKIQ_ALERTS and SIDEKIQ_WALLETS, app/jobs/usage_monitoring/ and
+	// app/jobs/customers/refresh_wallet_job.rb:6-11).
+	JobsQueueConcurrency []string `koanf:"jobs_queue_concurrency"`
+
+	// SubscriptionTerminationAlertDays are the days before its ending_at
+	// a subscription gets subscription.termination_alert (lago
+	// LAGO_SUBSCRIPTION_TERMINATION_ALERT_SENT_AT_DAYS, 15 and 45 by
+	// default); empty sends none.
+	SubscriptionTerminationAlertDays []int `koanf:"subscription_termination_alert_days"`
+	// DailyUsageSchedulingJitter is the window the daily usage
+	// computations of one clock run are spread over (lago
+	// LAGO_DAILY_USAGE_SCHEDULING_JITTER_SECONDS); 0 is 30 minutes.
+	DailyUsageSchedulingJitter time.Duration `koanf:"daily_usage_scheduling_jitter"`
 
 	// IngestMode is the default ingestion mode, postgres or kafka.
 	IngestMode string `koanf:"ingest_mode"`
@@ -217,6 +239,10 @@ type Config struct {
 	WebhooksAllowPrivate bool `koanf:"webhooks_allow_private"`
 	// WebhooksTimeout bounds one delivery attempt; 0 is the default.
 	WebhooksTimeout time.Duration `koanf:"webhooks_timeout"`
+	// OIDCAllowPrivate lets OpenID Connect providers (single sign-on
+	// discovery, keys, tokens) use plain HTTP and private addresses, for
+	// development against a local provider.
+	OIDCAllowPrivate bool `koanf:"oidc_allow_private"`
 
 	// AppURL is the web console URL used in email links.
 	AppURL string `koanf:"app_url"`
@@ -233,6 +259,41 @@ type Config struct {
 	SMTPPassword string `koanf:"smtp_password"`
 	// SMTPSecurity is starttls, starttls_optional, tls or none.
 	SMTPSecurity string `koanf:"smtp_security"`
+
+	// DisableSignup turns off self sign-up (lago LAGO_DISABLE_SIGNUP).
+	DisableSignup bool `koanf:"disable_signup"`
+	// GoogleAuthClientID and GoogleAuthClientSecret are the OAuth client
+	// of Google sign-in (lago GOOGLE_AUTH_CLIENT_ID and
+	// GOOGLE_AUTH_CLIENT_SECRET); unset disables it. Google redirects to
+	// AppURL + "/auth/google/callback".
+	GoogleAuthClientID string `koanf:"google_auth_client_id"`
+	// GoogleAuthClientSecret is the OAuth client secret of Google sign-in.
+	GoogleAuthClientSecret string `koanf:"google_auth_client_secret"`
+	// SecretKey is the installation's secret, base64 of at least 32
+	// bytes (lago SECRET_KEY_BASE). The keys that sign customer portal
+	// tokens and encrypt the secrets kept at rest (integration
+	// credentials) are derived from it; unset disables the customer portal
+	// and the SSO connections. Changing it invalidates the portal links
+	// and makes the stored secrets undecryptable.
+	SecretKey string `koanf:"secret_key"`
+}
+
+// minSecretKeyBytes is the minimum size of the decoded SecretKey.
+const minSecretKeyBytes = 32
+
+// SecretKeyBytes returns the decoded SecretKey, nil when unset.
+func (c Config) SecretKeyBytes() ([]byte, error) {
+	if c.SecretKey == "" {
+		return nil, nil
+	}
+	b, err := base64.StdEncoding.DecodeString(c.SecretKey)
+	if err != nil {
+		return nil, fmt.Errorf("secret_key: want base64: %w", err)
+	}
+	if len(b) < minSecretKeyBytes {
+		return nil, fmt.Errorf("secret_key: got %d bytes, want at least %d", len(b), minSecretKeyBytes)
+	}
+	return b, nil
 }
 
 // Defaults returns the configuration before any source is read.
@@ -256,6 +317,8 @@ func Defaults() Config {
 		KafkaTopicReplicas:       -1,
 		SMTPPort:                 587,
 		SMTPSecurity:             string(mail.SecuritySTARTTLS),
+
+		SubscriptionTerminationAlertDays: []int{15, 45},
 	}
 }
 
@@ -353,6 +416,7 @@ func trimAll(in []string) []string {
 func (c *Config) normalize() {
 	c.Role = trimAll(c.Role)
 	c.WorkerQueues = trimAll(c.WorkerQueues)
+	c.JobsQueueConcurrency = trimAll(c.JobsQueueConcurrency)
 	c.KafkaBrokers = trimAll(c.KafkaBrokers)
 	c.IngestKafkaOrganizations = trimAll(c.IngestKafkaOrganizations)
 	c.IngestPostgresOrganizations = trimAll(c.IngestPostgresOrganizations)
@@ -390,6 +454,14 @@ func (c Config) Validate() error {
 	if c.ShutdownTimeout <= 0 {
 		bad("shutdown_timeout", "must be positive")
 	}
+	for _, d := range c.SubscriptionTerminationAlertDays {
+		if d < 0 {
+			bad("subscription_termination_alert_days", "%d: must not be negative", d)
+		}
+	}
+	if c.DailyUsageSchedulingJitter < 0 {
+		bad("daily_usage_scheduling_jitter", "must not be negative")
+	}
 	if c.DatabaseURL == "" {
 		bad("database_url", "required")
 	} else if u, err := url.Parse(c.DatabaseURL); err != nil || (u.Scheme != "postgres" && u.Scheme != "postgresql") {
@@ -417,6 +489,9 @@ func (c Config) Validate() error {
 	}
 	if c.JobsClockConcurrency < 0 {
 		bad("jobs_clock_concurrency", "must not be negative")
+	}
+	if _, err := c.QueueConcurrency(); err != nil {
+		bad("jobs_queue_concurrency", "%v", err)
 	}
 	if m := ingest.Mode(c.IngestMode); m != ingest.ModePostgres && m != ingest.ModeKafka {
 		bad("ingest_mode", "%q: want postgres or kafka", c.IngestMode)
@@ -463,6 +538,15 @@ func (c Config) Validate() error {
 		if u, err := url.Parse(c.AppURL); err != nil || u.Scheme == "" || u.Host == "" {
 			bad("app_url", "want an absolute URL")
 		}
+	}
+	if (c.GoogleAuthClientID == "") != (c.GoogleAuthClientSecret == "") {
+		bad("google_auth_client_id", "set with %sGOOGLE_AUTH_CLIENT_SECRET, or neither", EnvPrefix)
+	}
+	if c.GoogleAuthClientID != "" && c.AppURL == "" {
+		bad("app_url", "required with %sGOOGLE_AUTH_CLIENT_ID", EnvPrefix)
+	}
+	if _, err := c.SecretKeyBytes(); err != nil {
+		bad("secret_key", "%v", err)
 	}
 	if c.SMTPHost != "" {
 		if c.MailFrom == "" {
@@ -523,6 +607,29 @@ func (c Config) Queues() []port.Queue {
 		out[i] = port.Queue(q)
 	}
 	return out
+}
+
+// QueueConcurrency returns the concurrency overrides of
+// JobsQueueConcurrency by queue, or an error naming the first malformed
+// pair: an unknown or repeated queue, or workers not in [1, 10000].
+func (c Config) QueueConcurrency() (map[port.Queue]int, error) {
+	out := map[port.Queue]int{}
+	for _, kv := range c.JobsQueueConcurrency {
+		name, n, ok := strings.Cut(kv, "=")
+		q := port.Queue(strings.TrimSpace(name))
+		if !ok || !q.Valid() {
+			return nil, fmt.Errorf("%q: want queue=workers with a known queue", kv)
+		}
+		if _, dup := out[q]; dup {
+			return nil, fmt.Errorf("%q: queue %s given twice", kv, q)
+		}
+		w, err := strconv.Atoi(strings.TrimSpace(n))
+		if err != nil || w < 1 || w > 10_000 {
+			return nil, fmt.Errorf("%q: workers must be an integer in [1, 10000]", kv)
+		}
+		out[q] = w
+	}
+	return out, nil
 }
 
 // identifier reports whether s is a plain lower-case SQL identifier.

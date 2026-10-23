@@ -16,9 +16,8 @@ import "tanvo/common/v1/options.proto";
 import "tanvo/common/v1/types.proto";
 
 // AnalyticsService returns monthly analytics series. Every series covers
-// the last `months` months (12 by default), oldest first, in the
-// organization's time zone, and can be restricted to one currency,
-// billing entity or customer.
+// the last `months` months (12 by default), oldest first, in UTC, and
+// can be restricted to one currency, billing entity or customer.
 service AnalyticsService {
   // Returns the gross revenue per month: finalized invoice totals net of
   // credit notes.
@@ -79,8 +78,8 @@ message AnalyticsScope {
   string currency = 1 [(buf.validate.field).string.(tanvo.common.v1.currency) = true];
   // The billing entity (ID or `code:<code>`).
   string billing_entity_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
-  // The customer (ID or `external_id:<external_id>`).
-  string customer_id = 3 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  reserved 3;
+  reserved customer_id;
   // The number of months; 12 by default.
   int32 months = 4 [(buf.validate.field).int32 = {
     gte: 0
@@ -88,7 +87,8 @@ message AnalyticsScope {
   }];
 }
 
-// RevenuePoint is the amount of one month in one currency.
+// RevenuePoint is the amount of one month in one currency (and, for the
+// gross revenue, one billing entity).
 message RevenuePoint {
   // The first day of the month.
   google.type.Date month = 1;
@@ -96,12 +96,18 @@ message RevenuePoint {
   tanvo.common.v1.Money amount = 2;
   // The number of invoices counted.
   int64 invoices_count = 3;
+  // The billing entity of the invoices and fees counted; set by
+  // GetGrossRevenue only.
+  string billing_entity_id = 4;
 }
 
 // GetGrossRevenueRequest is the request of AnalyticsService.GetGrossRevenue.
 message GetGrossRevenueRequest {
   // The scope.
   AnalyticsScope scope = 1;
+  // The customer (ID or `external_id:<external_id>`); every customer by
+  // default.
+  string customer_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
 }
 
 // GetGrossRevenueResponse is the response of AnalyticsService.GetGrossRevenue.
@@ -139,6 +145,9 @@ message InvoiceCollectionPoint {
 message GetInvoiceCollectionRequest {
   // The scope.
   AnalyticsScope scope = 1;
+  // Keeps the invoices of customers without (true) or with (false) a tax
+  // identification number; every customer when not set.
+  bool is_customer_tin_empty = 2;
 }
 
 // GetInvoiceCollectionResponse is the response of AnalyticsService.GetInvoiceCollection.
@@ -171,7 +180,7 @@ message GetInvoicedUsageResponse {
 }
 
 // OverdueBalancePoint is the overdue balance at the end of one month in
-// one currency.
+// one currency for one billing entity.
 message OverdueBalancePoint {
   // The first day of the month.
   google.type.Date month = 1;
@@ -179,12 +188,20 @@ message OverdueBalancePoint {
   tanvo.common.v1.Money amount = 2;
   // The overdue invoices.
   repeated string invoice_ids = 3;
+  // The billing entity of the overdue invoices.
+  string billing_entity_id = 4;
 }
 
 // GetOverdueBalanceRequest is the request of AnalyticsService.GetOverdueBalance.
 message GetOverdueBalanceRequest {
   // The scope.
   AnalyticsScope scope = 1;
+  // Keeps the invoices of customers without (true) or with (false) a tax
+  // identification number; every customer when not set.
+  bool is_customer_tin_empty = 2;
+  // The customer (ID or `external_id:<external_id>`); every customer by
+  // default.
+  string customer_id = 3 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
 }
 
 // GetOverdueBalanceResponse is the response of AnalyticsService.GetOverdueBalance.

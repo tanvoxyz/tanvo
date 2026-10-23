@@ -2,6 +2,8 @@ package porttest
 
 import (
 	"context"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -134,11 +136,11 @@ func testCatalog(t *testing.T, h Harness) {
 			noErr(t, "Create() in another organization", r.PricingUnits.Create(ctx, ob))
 
 			all := listAll(t, 2, func(p core.PageRequest) (core.Page[*catalog.PricingUnit], error) {
-				return r.PricingUnits.List(ctx, org, p)
+				return r.PricingUnits.List(ctx, org, catalog.PricingUnitFilter{}, p)
 			})
 			equal(t, "List()", all, []*catalog.PricingUnit{u1, u2, u3})
 			other2 := listAll(t, 2, func(p core.PageRequest) (core.Page[*catalog.PricingUnit], error) {
-				return r.PricingUnits.List(ctx, b.OrganizationID, p)
+				return r.PricingUnits.List(ctx, b.OrganizationID, catalog.PricingUnitFilter{}, p)
 			})
 			equal(t, "List() of another organization", ids(other2, catalogPricingUnitID), []core.PricingUnitID{ob.ID})
 			return nil
@@ -212,6 +214,14 @@ func testCatalog(t *testing.T, h Harness) {
 			got, err = r.Metrics.Get(ctx, org, count.ID)
 			noErr(t, "Get() after removing filters", err)
 			equal(t, "Get() after removing filters", got, count)
+			// A removed key is discarded, so a new filter can take it again.
+			count.Filters = []catalog.MetricFilter{{ID: core.NewID[core.BillableMetricFilterID](e.ids), Key: "k", Values: []string{"w"}}}
+			noErr(t, "Update() re-adding a removed key", r.Metrics.Update(ctx, count))
+			got, err = r.Metrics.Get(ctx, org, count.ID)
+			noErr(t, "Get() after re-adding a removed key", err)
+			equal(t, "Get() after re-adding a removed key", got, count)
+			count.Filters = nil
+			noErr(t, "Update() removing the filter again", r.Metrics.Update(ctx, count))
 
 			byIDs, err := r.Metrics.ListByIDs(ctx, org, []core.BillableMetricID{sum.ID, full.ID})
 			noErr(t, "ListByIDs()", err)
@@ -240,7 +250,7 @@ func testCatalog(t *testing.T, h Harness) {
 			other := *sum
 			other.OrganizationID = ob
 			wantErr(t, "Update() through another organization", r.Metrics.Update(ctx, &other), core.ErrNotFound)
-			wantErr(t, "Delete() from another organization", r.Metrics.Delete(ctx, ob, sum.ID), core.ErrNotFound)
+			wantErr(t, "Discard() from another organization", r.Metrics.Discard(ctx, ob, sum.ID, at(time.Hour)), core.ErrNotFound)
 			obm := catalogFixtureMetric(e, ob, "storage")
 			noErr(t, "Create() in another organization", r.Metrics.Create(ctx, obm))
 			p, err := r.Metrics.List(ctx, ob, catalog.MetricListFilter{}, core.PageRequest{})
@@ -262,6 +272,21 @@ func testCatalog(t *testing.T, h Harness) {
 				[]core.BillableMetricID{count.ID, sum.ID})
 			equal(t, "List() recurring", list(catalog.MetricListFilter{Recurring: ptr(true)}), []core.BillableMetricID{full.ID})
 			equal(t, "List() not recurring", list(catalog.MetricListFilter{Recurring: ptr(false)}), []core.BillableMetricID{count.ID, sum.ID})
+			equal(t, "List() searching a name", list(catalog.MetricListFilter{Search: " STOR "}), []core.BillableMetricID{full.ID})
+			equal(t, "List() searching a code", list(catalog.MetricListFilter{Search: "byt"}), []core.BillableMetricID{sum.ID})
+			equal(t, "List() searching a wildcard", list(catalog.MetricListFilter{Search: "%"}), []core.BillableMetricID{})
+			recent := slices.Clone(all)
+			slices.SortStableFunc(recent, func(a, b *catalog.BillableMetric) int {
+				if c := b.CreatedAt.Compare(a.CreatedAt); c != 0 {
+					return c
+				}
+				return strings.Compare(a.ID.String(), b.ID.String())
+			})
+			equal(t, "List() recent first", list(catalog.MetricListFilter{Order: core.OrderRecent}), ids(recent, catalogMetricID))
+			_, err = r.Metrics.List(ctx, org, catalog.MetricListFilter{Order: core.OrderRecent}, core.PageRequest{Token: full.ID.String()})
+			wantErr(t, "List() recent first with an ID token", err, core.ErrInvalidValue)
+			_, err = r.Metrics.List(ctx, org, catalog.MetricListFilter{Order: core.ListOrder(9)}, core.PageRequest{})
+			wantErr(t, "List() in an undeclared order", err, core.ErrInvalidValue)
 
 			// InUse and the plan filter follow the charges.
 			plan := catalogFixturePlan(e, org, "starter")
@@ -281,18 +306,42 @@ func testCatalog(t *testing.T, h Harness) {
 			equal(t, "List() of a plan", list(catalog.MetricListFilter{PlanID: plan.ID}), []core.BillableMetricID{sum.ID})
 			equal(t, "List() of a plan, recurring", list(catalog.MetricListFilter{PlanID: plan.ID, Recurring: ptr(true)}), []core.BillableMetricID{})
 
-			// Delete. The services delete a metric's charges first; the
-			// store refuses to leave them dangling.
-			wantErr(t, "Delete() of a metric with charges", r.Metrics.Delete(ctx, org, sum.ID), core.ErrConflict)
-			n, err := r.Charges.DeleteByMetric(ctx, org, sum.ID)
-			noErr(t, "Charges.DeleteByMetric()", err)
-			equal(t, "Charges.DeleteByMetric()", n, 1)
-			noErr(t, "Delete()", r.Metrics.Delete(ctx, org, sum.ID))
-			wantErr(t, "Delete() again", r.Metrics.Delete(ctx, org, sum.ID), core.ErrNotFound)
+			// Discard. The services discard a metric's charges with it.
+			n, err := r.Charges.DiscardByMetric(ctx, org, sum.ID, at(time.Hour))
+			noErr(t, "Charges.DiscardByMetric()", err)
+			equal(t, "Charges.DiscardByMetric()", n, 1)
+			used, err = r.Metrics.InUse(ctx, org, sum.ID)
+			noErr(t, "InUse() after Charges.DiscardByMetric()", err)
+			equal(t, "InUse() after Charges.DiscardByMetric()", used, false)
+			noErr(t, "Discard()", r.Metrics.Discard(ctx, org, sum.ID, at(time.Hour)))
+			wantErr(t, "Discard() again", r.Metrics.Discard(ctx, org, sum.ID, at(2*time.Hour)), core.ErrNotFound)
 			_, err = r.Metrics.Get(ctx, org, sum.ID)
-			wantErr(t, "Get() deleted", err, core.ErrNotFound)
-			noErr(t, "Delete() with filters", r.Metrics.Delete(ctx, org, full.ID))
-			// A deleted metric frees its code.
+			wantErr(t, "Get() discarded", err, core.ErrNotFound)
+			_, err = r.Metrics.GetByCode(ctx, org, sum.Code)
+			wantErr(t, "GetByCode() discarded", err, core.ErrNotFound)
+			_, err = r.Metrics.ListByIDs(ctx, org, []core.BillableMetricID{sum.ID})
+			wantErr(t, "ListByIDs() discarded", err, core.ErrNotFound)
+			_, err = r.Metrics.ListByCodes(ctx, org, []string{sum.Code})
+			wantErr(t, "ListByCodes() discarded", err, core.ErrNotFound)
+			wantErr(t, "Update() discarded", r.Metrics.Update(ctx, sum), core.ErrNotFound)
+			equal(t, "List() without the discarded metric", list(catalog.MetricListFilter{}), []core.BillableMetricID{full.ID, count.ID})
+			noErr(t, "Discard() with filters", r.Metrics.Discard(ctx, org, full.ID, at(time.Hour)))
+			got, err = r.Metrics.GetWithDiscarded(ctx, org, full.ID)
+			noErr(t, "GetWithDiscarded() before DiscardFilters()", err)
+			equal(t, "filters before DiscardFilters()", len(got.Filters), 2)
+			nf, err := r.Metrics.DiscardFilters(ctx, ob, full.ID, at(2*time.Hour))
+			noErr(t, "DiscardFilters() from another organization", err)
+			equal(t, "DiscardFilters() from another organization", nf, 0)
+			nf, err = r.Metrics.DiscardFilters(ctx, org, full.ID, at(2*time.Hour))
+			noErr(t, "DiscardFilters()", err)
+			equal(t, "DiscardFilters()", nf, 2)
+			got, err = r.Metrics.GetWithDiscarded(ctx, org, full.ID)
+			noErr(t, "GetWithDiscarded() after DiscardFilters()", err)
+			equal(t, "filters after DiscardFilters()", len(got.Filters), 0)
+			nf, err = r.Metrics.DiscardFilters(ctx, org, full.ID, at(3*time.Hour))
+			noErr(t, "DiscardFilters() again", err)
+			equal(t, "DiscardFilters() again", nf, 0)
+			// A discarded metric frees its code.
 			noErr(t, "Create() with a freed code", r.Metrics.Create(ctx, catalogFixtureMetric(e, org, "storage")))
 			return nil
 		})
@@ -398,6 +447,14 @@ func testCatalog(t *testing.T, h Harness) {
 				return r.Plans.List(ctx, org, catalog.PlanListFilter{IncludeChildren: true}, p)
 			})
 			equal(t, "List() items", all, []*catalog.Plan{full, basic, child, child2})
+			byName := catalog.PlanListFilter{Statuses: []catalog.PlanStatus{catalog.PlanStatusActive, catalog.PlanStatusPendingDeletion}, Order: core.OrderRecent}
+			equal(t, "List() by name", list(byName), []core.PlanID{basic.ID, full.ID})
+			byName.Search = "PREM"
+			equal(t, "List() searched", list(byName), []core.PlanID{full.ID})
+			byName.Search = "basic"
+			equal(t, "List() searched by code", list(byName), []core.PlanID{basic.ID})
+			_, err = r.Plans.List(ctx, org, catalog.PlanListFilter{Order: core.ListOrder(9)}, core.PageRequest{})
+			wantErr(t, "List() with an invalid order", err, core.ErrInvalidValue)
 
 			// Isolation.
 			_, err = r.Plans.Get(ctx, ob, full.ID)
@@ -471,7 +528,9 @@ func testCatalog(t *testing.T, h Harness) {
 			equal(t, "ListByIDs()", byIDs, []*catalog.AddOn{third, full})
 			_, err = r.AddOns.ListByIDs(ctx, org, []core.AddOnID{core.NewID[core.AddOnID](e.ids)})
 			wantErr(t, "ListByIDs() with a missing ID", err, core.ErrNotFound)
-			all := listAll(t, 2, func(p core.PageRequest) (core.Page[*catalog.AddOn], error) { return r.AddOns.List(ctx, org, p) })
+			all := listAll(t, 2, func(p core.PageRequest) (core.Page[*catalog.AddOn], error) {
+				return r.AddOns.List(ctx, org, catalog.AddOnFilter{}, p)
+			})
 			equal(t, "List()", all, []*catalog.AddOn{full, bare, third})
 
 			// Isolation.
@@ -484,17 +543,28 @@ func testCatalog(t *testing.T, h Harness) {
 			other := *bare
 			other.OrganizationID = ob
 			wantErr(t, "Update() through another organization", r.AddOns.Update(ctx, &other), core.ErrNotFound)
-			wantErr(t, "Delete() from another organization", r.AddOns.Delete(ctx, ob, bare.ID), core.ErrNotFound)
+			wantErr(t, "Discard() from another organization", r.AddOns.Discard(ctx, ob, bare.ID, at(time.Hour)), core.ErrNotFound)
 			oba := catalogFixtureAddOn(e, ob, "setup")
 			noErr(t, "Create() in another organization", r.AddOns.Create(ctx, oba))
-			p, err := r.AddOns.List(ctx, ob, core.PageRequest{})
+			p, err := r.AddOns.List(ctx, ob, catalog.AddOnFilter{}, core.PageRequest{})
 			noErr(t, "List() of another organization", err)
 			equal(t, "List() of another organization", ids(p.Items, catalogAddOnID), []core.AddOnID{oba.ID})
 
-			noErr(t, "Delete()", r.AddOns.Delete(ctx, org, full.ID))
-			wantErr(t, "Delete() again", r.AddOns.Delete(ctx, org, full.ID), core.ErrNotFound)
-			_, err = r.AddOns.Get(ctx, org, full.ID)
-			wantErr(t, "Get() deleted", err, core.ErrNotFound)
+			// Discards keep the row for Get only.
+			noErr(t, "Discard()", r.AddOns.Discard(ctx, org, full.ID, at(time.Hour)))
+			wantErr(t, "Discard() again", r.AddOns.Discard(ctx, org, full.ID, at(2*time.Hour)), core.ErrNotFound)
+			got, err = r.AddOns.Get(ctx, org, full.ID)
+			noErr(t, "Get() discarded", err)
+			equal(t, "Get() discarded", got.DeletedAt, ptr(at(time.Hour)))
+			equal(t, "Get() discarded, updated_at", got.UpdatedAt, at(time.Hour))
+			_, err = r.AddOns.GetByCode(ctx, org, "setup")
+			wantErr(t, "GetByCode() discarded", err, core.ErrNotFound)
+			_, err = r.AddOns.ListByIDs(ctx, org, []core.AddOnID{full.ID})
+			wantErr(t, "ListByIDs() discarded", err, core.ErrNotFound)
+			wantErr(t, "Update() discarded", r.AddOns.Update(ctx, full), core.ErrNotFound)
+			p, err = r.AddOns.List(ctx, org, catalog.AddOnFilter{}, core.PageRequest{})
+			noErr(t, "List() after Discard()", err)
+			equal(t, "List() after Discard()", ids(p.Items, catalogAddOnID), []core.AddOnID{bare.ID, third.ID})
 			noErr(t, "Create() with a freed code", r.AddOns.Create(ctx, catalogFixtureAddOn(e, org, "setup")))
 			return nil
 		})
@@ -610,8 +680,13 @@ func testCatalog(t *testing.T, h Harness) {
 			got, err = r.Charges.Get(ctx, org, full.ID)
 			noErr(t, "Get() after Update()", err)
 			equal(t, "Get() after Update()", got, full)
-			_, err = r.Charges.GetFilter(ctx, org, fAll.ID)
-			wantErr(t, "GetFilter() of a removed filter", err, core.ErrNotFound)
+			removed, err := r.Charges.GetFilter(ctx, org, fAll.ID)
+			noErr(t, "GetFilter() of a removed filter", err)
+			equal(t, "GetFilter() of a removed filter", removed.DeletedAt, ptr(at(time.Minute)))
+			filters, err = r.Charges.ListFilters(ctx, org, full.ID)
+			noErr(t, "ListFilters() after Update()", err)
+			equal(t, "ListFilters() after Update()", ids(filters, func(f *catalog.ChargeFilter) core.ChargeFilterID { return f.ID }),
+				[]core.ChargeFilterID{fEU.ID, fUS.ID})
 			bare.Code = "calls"
 			wantErr(t, "Update() to a taken code", r.Charges.Update(ctx, bare), core.ErrConflict)
 			bare.Code = "users"
@@ -651,33 +726,48 @@ func testCatalog(t *testing.T, h Harness) {
 			other := *bare
 			other.OrganizationID = ob
 			wantErr(t, "Update() through another organization", r.Charges.Update(ctx, &other), core.ErrNotFound)
-			wantErr(t, "Delete() from another organization", r.Charges.Delete(ctx, ob, bare.ID), core.ErrNotFound)
-			n, err := r.Charges.DeleteByPlan(ctx, ob, plan.ID)
-			noErr(t, "DeleteByPlan() from another organization", err)
-			equal(t, "DeleteByPlan() from another organization", n, 0)
-			n, err = r.Charges.DeleteByMetric(ctx, ob, metric.ID)
-			noErr(t, "DeleteByMetric() from another organization", err)
-			equal(t, "DeleteByMetric() from another organization", n, 0)
+			wantErr(t, "Discard() from another organization", r.Charges.Discard(ctx, ob, bare.ID, at(time.Hour)), core.ErrNotFound)
+			n, err := r.Charges.DiscardByPlan(ctx, ob, plan.ID, at(time.Hour))
+			noErr(t, "DiscardByPlan() from another organization", err)
+			equal(t, "DiscardByPlan() from another organization", n, 0)
+			n, err = r.Charges.DiscardByMetric(ctx, ob, metric.ID, at(time.Hour))
+			noErr(t, "DiscardByMetric() from another organization", err)
+			equal(t, "DiscardByMetric() from another organization", n, 0)
 
-			// Deletes: override charges first.
-			wantErr(t, "Delete() of a charge with an override", r.Charges.Delete(ctx, org, full.ID), core.ErrConflict)
-			_, err = r.Charges.Get(ctx, org, full.ID)
-			noErr(t, "Get() after a refused Delete()", err)
-			noErr(t, "Delete() override", r.Charges.Delete(ctx, org, child.ID))
-			noErr(t, "Delete()", r.Charges.Delete(ctx, org, full.ID))
-			wantErr(t, "Delete() again", r.Charges.Delete(ctx, org, full.ID), core.ErrNotFound)
-			_, err = r.Charges.GetFilter(ctx, org, fEU.ID)
-			wantErr(t, "GetFilter() of a deleted charge", err, core.ErrNotFound)
+			// Discards keep the rows for Get and GetFilter only; an override
+			// stays kept when its parent goes.
+			noErr(t, "Discard()", r.Charges.Discard(ctx, org, full.ID, at(time.Hour)))
+			wantErr(t, "Discard() again", r.Charges.Discard(ctx, org, full.ID, at(2*time.Hour)), core.ErrNotFound)
+			got, err = r.Charges.Get(ctx, org, full.ID)
+			noErr(t, "Get() discarded", err)
+			equal(t, "Get() discarded", got.DeletedAt, ptr(at(time.Hour)))
+			equal(t, "Get() discarded, updated_at", got.UpdatedAt, at(time.Hour))
+			equal(t, "Get() discarded, filters", got.Filters, []catalog.ChargeFilter{})
+			removed, err = r.Charges.GetFilter(ctx, org, fEU.ID)
+			noErr(t, "GetFilter() of a discarded charge", err)
+			equal(t, "GetFilter() of a discarded charge", removed.DeletedAt, ptr(at(time.Hour)))
+			got, err = r.Charges.GetByCode(ctx, org, plan.ID, "calls")
+			noErr(t, "GetByCode() discarded", err)
+			equal(t, "GetByCode() discarded finds the kept override", got.ID, child.ID)
+			_, err = r.Charges.ListFilters(ctx, org, full.ID)
+			wantErr(t, "ListFilters() of a discarded charge", err, core.ErrNotFound)
+			wantErr(t, "Update() discarded", r.Charges.Update(ctx, full), core.ErrNotFound)
+			children, err = r.Charges.ListChildren(ctx, org, full.ID)
+			noErr(t, "ListChildren() of a discarded charge", err)
+			equal(t, "ListChildren() of a discarded charge", ids(children, catalogChargeID), []core.ChargeID{child.ID})
 			noErr(t, "Create() with a freed code", r.Charges.Create(ctx, catalogFixtureCharge(e, org, plan.ID, metric.ID, "calls")))
-			n, err = r.Charges.DeleteByPlan(ctx, org, plan.ID)
-			noErr(t, "DeleteByPlan()", err)
-			equal(t, "DeleteByPlan()", n, 2)
-			n, err = r.Charges.DeleteByMetric(ctx, org, metric.ID)
-			noErr(t, "DeleteByMetric()", err)
-			equal(t, "DeleteByMetric()", n, 1)
+			n, err = r.Charges.DiscardByPlan(ctx, org, plan.ID, at(2*time.Hour))
+			noErr(t, "DiscardByPlan()", err)
+			equal(t, "DiscardByPlan()", n, 3)
+			n, err = r.Charges.DiscardByMetric(ctx, org, metric.ID, at(3*time.Hour))
+			noErr(t, "DiscardByMetric()", err)
+			equal(t, "DiscardByMetric()", n, 1)
 			byMetric, err = r.Charges.ListByMetric(ctx, org, metric.ID)
-			noErr(t, "ListByMetric() after deletes", err)
-			equal(t, "ListByMetric() after deletes", byMetric, []*catalog.Charge{})
+			noErr(t, "ListByMetric() after discards", err)
+			equal(t, "ListByMetric() after discards", byMetric, []*catalog.Charge{})
+			byPlan, err = r.Charges.ListByPlan(ctx, org, plan.ID)
+			noErr(t, "ListByPlan() after discards", err)
+			equal(t, "ListByPlan() after discards", byPlan, []*catalog.Charge{})
 			return nil
 		})
 	})
@@ -774,33 +864,40 @@ func testCatalog(t *testing.T, h Harness) {
 			other := *bare
 			other.OrganizationID = ob
 			wantErr(t, "Update() through another organization", r.FixedCharges.Update(ctx, &other), core.ErrNotFound)
-			wantErr(t, "Delete() from another organization", r.FixedCharges.Delete(ctx, ob, bare.ID), core.ErrNotFound)
-			n, err := r.FixedCharges.DeleteByPlan(ctx, ob, plan.ID)
-			noErr(t, "DeleteByPlan() from another organization", err)
-			equal(t, "DeleteByPlan() from another organization", n, 0)
-			n, err = r.FixedCharges.DeleteByAddOn(ctx, ob, seats.ID)
-			noErr(t, "DeleteByAddOn() from another organization", err)
-			equal(t, "DeleteByAddOn() from another organization", n, 0)
+			wantErr(t, "Discard() from another organization", r.FixedCharges.Discard(ctx, ob, bare.ID, at(time.Hour)), core.ErrNotFound)
+			n, err := r.FixedCharges.DiscardByPlan(ctx, ob, plan.ID, at(time.Hour))
+			noErr(t, "DiscardByPlan() from another organization", err)
+			equal(t, "DiscardByPlan() from another organization", n, 0)
+			n, err = r.FixedCharges.DiscardByAddOn(ctx, ob, seats.ID, at(time.Hour))
+			noErr(t, "DiscardByAddOn() from another organization", err)
+			equal(t, "DiscardByAddOn() from another organization", n, 0)
 
-			// Deletes. An add-on's fixed charges go first, and override fixed
-			// charges before their parent.
-			wantErr(t, "AddOns.Delete() of an add-on with fixed charges", r.AddOns.Delete(ctx, org, seats.ID), core.ErrConflict)
-			wantErr(t, "Delete() of a fixed charge with an override", r.FixedCharges.Delete(ctx, org, full.ID), core.ErrConflict)
-			_, err = r.FixedCharges.Get(ctx, org, full.ID)
-			noErr(t, "Get() after a refused Delete()", err)
-			noErr(t, "Delete() override", r.FixedCharges.Delete(ctx, org, child.ID))
-			noErr(t, "Delete()", r.FixedCharges.Delete(ctx, org, full.ID))
-			wantErr(t, "Delete() again", r.FixedCharges.Delete(ctx, org, full.ID), core.ErrNotFound)
+			// Discards keep the row for Get only; an override stays kept
+			// when its parent goes.
+			noErr(t, "Discard()", r.FixedCharges.Discard(ctx, org, full.ID, at(time.Hour)))
+			wantErr(t, "Discard() again", r.FixedCharges.Discard(ctx, org, full.ID, at(2*time.Hour)), core.ErrNotFound)
+			got, err = r.FixedCharges.Get(ctx, org, full.ID)
+			noErr(t, "Get() discarded", err)
+			equal(t, "Get() discarded", got.DeletedAt, ptr(at(time.Hour)))
+			got, err = r.FixedCharges.GetByCode(ctx, org, plan.ID, "seats")
+			noErr(t, "GetByCode() discarded", err)
+			equal(t, "GetByCode() discarded finds the kept override", got.ID, child.ID)
+			wantErr(t, "Update() discarded", r.FixedCharges.Update(ctx, full), core.ErrNotFound)
+			children, err = r.FixedCharges.ListChildren(ctx, org, full.ID)
+			noErr(t, "ListChildren() of a discarded fixed charge", err)
+			equal(t, "ListChildren() of a discarded fixed charge", ids(children, func(f *catalog.FixedCharge) core.FixedChargeID { return f.ID }),
+				[]core.FixedChargeID{child.ID})
 			noErr(t, "Create() with a freed code", r.FixedCharges.Create(ctx, catalogFixtureFixedCharge(e, org, plan.ID, seats.ID, "seats")))
-			n, err = r.FixedCharges.DeleteByPlan(ctx, org, plan.ID)
-			noErr(t, "DeleteByPlan()", err)
-			equal(t, "DeleteByPlan()", n, 2)
-			n, err = r.FixedCharges.DeleteByAddOn(ctx, org, seats.ID)
-			noErr(t, "DeleteByAddOn()", err)
-			equal(t, "DeleteByAddOn()", n, 1)
+			n, err = r.FixedCharges.DiscardByPlan(ctx, org, plan.ID, at(2*time.Hour))
+			noErr(t, "DiscardByPlan()", err)
+			equal(t, "DiscardByPlan()", n, 3)
+			n, err = r.FixedCharges.DiscardByAddOn(ctx, org, seats.ID, at(3*time.Hour))
+			noErr(t, "DiscardByAddOn()", err)
+			equal(t, "DiscardByAddOn()", n, 1)
 			byAddOn, err = r.FixedCharges.ListByAddOn(ctx, org, seats.ID)
-			noErr(t, "ListByAddOn() after deletes", err)
-			equal(t, "ListByAddOn() after deletes", byAddOn, []*catalog.FixedCharge{})
+			noErr(t, "ListByAddOn() after discards", err)
+			equal(t, "ListByAddOn() after discards", byAddOn, []*catalog.FixedCharge{})
+			noErr(t, "AddOns.Discard() of an add-on with discarded fixed charges", r.AddOns.Discard(ctx, org, seats.ID, at(3*time.Hour)))
 			return nil
 		})
 	})

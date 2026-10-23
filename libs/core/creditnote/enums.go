@@ -13,17 +13,20 @@ const (
 	StatusDraft Status = "draft"
 	// StatusFinalized is "finalized": issued.
 	StatusFinalized Status = "finalized"
+	// StatusDeleted is "deleted": a draft deleted with its draft invoice,
+	// kept and hidden (lago CreditNotes::DeleteService); terminal.
+	StatusDeleted Status = "deleted"
 )
 
 // StatusValues returns every Status, in declaration order.
 func StatusValues() []Status {
-	return []Status{StatusDraft, StatusFinalized}
+	return []Status{StatusDraft, StatusFinalized, StatusDeleted}
 }
 
 // Valid reports whether v is one of the declared Status values.
 func (v Status) Valid() bool {
 	switch v {
-	case StatusDraft, StatusFinalized:
+	case StatusDraft, StatusFinalized, StatusDeleted:
 		return true
 	default:
 		return false

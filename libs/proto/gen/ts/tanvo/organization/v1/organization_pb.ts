@@ -25,7 +25,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file tanvo/organization/v1/organization.proto.
  */
 export const file_tanvo_organization_v1_organization: GenFile = /*@__PURE__*/
-  fileDesc("Cih0YW52by9vcmdhbml6YXRpb24vdjEvb3JnYW5pemF0aW9uLnByb3RvEhV0YW52by5vcmdhbml6YXRpb24udjEirgQKDE9yZ2FuaXphdGlvbhIQCgJpZBgBIAEoCUIE4kEBCBIcCgRuYW1lGAIgASgJQg7iQQECukgHcgUQARj/ARISCgRzbHVnGAMgASgJQgTiQQEDEhkKBWVtYWlsGAQgASgJQgq6SAdyBRj/AWABEikKB2FkZHJlc3MYBSABKAsyGC50YW52by5jb21tb24udjEuQWRkcmVzcxIbCgRsb2dvGAYgASgMQg3iQQEEukgGegQYgIAyEhYKCGxvZ29fdXJsGAcgASgJQgTiQQEDEl4KFmF1dGhlbnRpY2F0aW9uX21ldGhvZHMYCCADKA4yKy50YW52by5vcmdhbml6YXRpb24udjEuQXV0aGVudGljYXRpb25NZXRob2RCEbpIDpIBCxgBIgeCAQQQASAAEi0KGWF1ZGl0X2xvZ3NfcmV0ZW50aW9uX2RheXMYCSABKAVCCrpIBxoFGMIcKAESKwoYbWF4X3dhbGxldHNfcGVyX2N1c3RvbWVyGAogASgFQgm6SAYaBBhkKAESNAoKY3JlYXRlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNAoKdXBkYXRlZF9hdBgMIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQM6N+pBNAoWdGFudm8ueHl6L09yZ2FuaXphdGlvbhIMb3JnYW5pemF0aW9uMgxvcmdhbml6YXRpb24iGAoWR2V0T3JnYW5pemF0aW9uUmVxdWVzdCJUChdHZXRPcmdhbml6YXRpb25SZXNwb25zZRI5Cgxvcmdhbml6YXRpb24YASABKAsyIy50YW52by5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uIpMBChlVcGRhdGVPcmdhbml6YXRpb25SZXF1ZXN0EkUKDG9yZ2FuaXphdGlvbhgBIAEoCzIjLnRhbnZvLm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb25CCuJBAQK6SAPIAQESLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrIlcKGlVwZGF0ZU9yZ2FuaXphdGlvblJlc3BvbnNlEjkKDG9yZ2FuaXphdGlvbhgBIAEoCzIjLnRhbnZvLm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb24iFgoUR2V0U2VydmVySW5mb1JlcXVlc3QieQoVR2V0U2VydmVySW5mb1Jlc3BvbnNlEg8KB3ZlcnNpb24YASABKAkSEAoIcmV2aXNpb24YAiABKAkSLgoKYnVpbGRfdGltZRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFcm9sZXMYBCADKAkq8wEKFEF1dGhlbnRpY2F0aW9uTWV0aG9kEiUKIUFVVEhFTlRJQ0FUSU9OX01FVEhPRF9VTlNQRUNJRklFRBAAEigKJEFVVEhFTlRJQ0FUSU9OX01FVEhPRF9FTUFJTF9QQVNTV09SRBABEiYKIkFVVEhFTlRJQ0FUSU9OX01FVEhPRF9HT09HTEVfT0FVVEgQAhIeChpBVVRIRU5USUNBVElPTl9NRVRIT0RfT0tUQRADEiIKHkFVVEhFTlRJQ0FUSU9OX01FVEhPRF9FTlRSQV9JRBAEEh4KGkFVVEhFTlRJQ0FUSU9OX01FVEhPRF9PSURDEAUylQMKE09yZ2FuaXphdGlvblNlcnZpY2USsgEKD0dldE9yZ2FuaXphdGlvbhItLnRhbnZvLm9yZ2FuaXphdGlvbi52MS5HZXRPcmdhbml6YXRpb25SZXF1ZXN0Gi4udGFudm8ub3JnYW5pemF0aW9uLnYxLkdldE9yZ2FuaXphdGlvblJlc3BvbnNlIkCQAgHK8xghChFvcmdhbml6YXRpb246cmVhZCoMb3JnYW5pemF0aW9ugtPkkwISEhAvdjEvb3JnYW5pemF0aW9uEsgBChJVcGRhdGVPcmdhbml6YXRpb24SMC50YW52by5vcmdhbml6YXRpb24udjEuVXBkYXRlT3JnYW5pemF0aW9uUmVxdWVzdBoxLnRhbnZvLm9yZ2FuaXphdGlvbi52MS5VcGRhdGVPcmdhbml6YXRpb25SZXNwb25zZSJNyvMYIwoTb3JnYW5pemF0aW9uOnVwZGF0ZSoMb3JnYW5pemF0aW9ugtPkkwIgOgxvcmdhbml6YXRpb24yEC92MS9vcmdhbml6YXRpb24yngEKDVNlcnZlclNlcnZpY2USjAEKDUdldFNlcnZlckluZm8SKy50YW52by5vcmdhbml6YXRpb24udjEuR2V0U2VydmVySW5mb1JlcXVlc3QaLC50YW52by5vcmdhbml6YXRpb24udjEuR2V0U2VydmVySW5mb1Jlc3BvbnNlIiCQAgHK8xgCIAGC0+STAhESDy92MS9zZXJ2ZXJfaW5mb0L2AQoZY29tLnRhbnZvLm9yZ2FuaXphdGlvbi52MUIRT3JnYW5pemF0aW9uUHJvdG9QAVpQZ2l0aHViLmNvbS90YW52b3h5ei90YW52by9saWJzL3Byb3RvL2dlbi9nby90YW52by9vcmdhbml6YXRpb24vdjE7b3JnYW5pemF0aW9udjGiAgNUT1iqAhVUYW52by5Pcmdhbml6YXRpb24uVjHKAhVUYW52b1xPcmdhbml6YXRpb25cVjHiAiFUYW52b1xPcmdhbml6YXRpb25cVjFcR1BCTWV0YWRhdGHqAhdUYW52bzo6T3JnYW5pemF0aW9uOjpWMWIIZWRpdGlvbnNw6Ac", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
+  fileDesc("Cih0YW52by9vcmdhbml6YXRpb24vdjEvb3JnYW5pemF0aW9uLnByb3RvEhV0YW52by5vcmdhbml6YXRpb24udjEiyQQKDE9yZ2FuaXphdGlvbhIQCgJpZBgBIAEoCUIE4kEBCBISCgRuYW1lGAIgASgJQgTiQQEDEhcKBHNsdWcYAyABKAlCCbpIBnIEEAEYPxIZCgVlbWFpbBgEIAEoCUIKukgHcgUY/wFgARIpCgdhZGRyZXNzGAUgASgLMhgudGFudm8uY29tbW9uLnYxLkFkZHJlc3MSGwoEbG9nbxgGIAEoDEIN4kEBBLpIBnoEGICAMhIWCghsb2dvX3VybBgHIAEoCUIE4kEBAxJeChZhdXRoZW50aWNhdGlvbl9tZXRob2RzGAggAygOMisudGFudm8ub3JnYW5pemF0aW9uLnYxLkF1dGhlbnRpY2F0aW9uTWV0aG9kQhG6SA6SAQsYASIHggEEEAEgABInChlhdWRpdF9sb2dzX3JldGVudGlvbl9kYXlzGAkgASgFQgTiQQEDEiYKGG1heF93YWxsZXRzX3Blcl9jdXN0b21lchgKIAEoBUIE4kEBAxI0CgpjcmVhdGVkX2F0GAsgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxI0Cgp1cGRhdGVkX2F0GAwgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxIpChZkb2N1bWVudF9udW1iZXJfcHJlZml4GA0gASgJQgm6SAZyBBABGAo6N+pBNAoWdGFudm8ueHl6L09yZ2FuaXphdGlvbhIMb3JnYW5pemF0aW9uMgxvcmdhbml6YXRpb24iGAoWR2V0T3JnYW5pemF0aW9uUmVxdWVzdCJUChdHZXRPcmdhbml6YXRpb25SZXNwb25zZRI5Cgxvcmdhbml6YXRpb24YASABKAsyIy50YW52by5vcmdhbml6YXRpb24udjEuT3JnYW5pemF0aW9uIpMBChlVcGRhdGVPcmdhbml6YXRpb25SZXF1ZXN0EkUKDG9yZ2FuaXphdGlvbhgBIAEoCzIjLnRhbnZvLm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb25CCuJBAQK6SAPIAQESLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrIlcKGlVwZGF0ZU9yZ2FuaXphdGlvblJlc3BvbnNlEjkKDG9yZ2FuaXphdGlvbhgBIAEoCzIjLnRhbnZvLm9yZ2FuaXphdGlvbi52MS5Pcmdhbml6YXRpb24iFgoUR2V0U2VydmVySW5mb1JlcXVlc3QiOgoVR2V0U2VydmVySW5mb1Jlc3BvbnNlEg8KB3ZlcnNpb24YASABKAkSEAoIcmV2aXNpb24YAiABKAkq8wEKFEF1dGhlbnRpY2F0aW9uTWV0aG9kEiUKIUFVVEhFTlRJQ0FUSU9OX01FVEhPRF9VTlNQRUNJRklFRBAAEigKJEFVVEhFTlRJQ0FUSU9OX01FVEhPRF9FTUFJTF9QQVNTV09SRBABEiYKIkFVVEhFTlRJQ0FUSU9OX01FVEhPRF9HT09HTEVfT0FVVEgQAhIeChpBVVRIRU5USUNBVElPTl9NRVRIT0RfT0tUQRADEiIKHkFVVEhFTlRJQ0FUSU9OX01FVEhPRF9FTlRSQV9JRBAEEh4KGkFVVEhFTlRJQ0FUSU9OX01FVEhPRF9PSURDEAUylQMKE09yZ2FuaXphdGlvblNlcnZpY2USsgEKD0dldE9yZ2FuaXphdGlvbhItLnRhbnZvLm9yZ2FuaXphdGlvbi52MS5HZXRPcmdhbml6YXRpb25SZXF1ZXN0Gi4udGFudm8ub3JnYW5pemF0aW9uLnYxLkdldE9yZ2FuaXphdGlvblJlc3BvbnNlIkCQAgHK8xghChFvcmdhbml6YXRpb246cmVhZCoMb3JnYW5pemF0aW9ugtPkkwISEhAvdjEvb3JnYW5pemF0aW9uEsgBChJVcGRhdGVPcmdhbml6YXRpb24SMC50YW52by5vcmdhbml6YXRpb24udjEuVXBkYXRlT3JnYW5pemF0aW9uUmVxdWVzdBoxLnRhbnZvLm9yZ2FuaXphdGlvbi52MS5VcGRhdGVPcmdhbml6YXRpb25SZXNwb25zZSJNyvMYIwoTb3JnYW5pemF0aW9uOnVwZGF0ZSoMb3JnYW5pemF0aW9ugtPkkwIgOgxvcmdhbml6YXRpb24yEC92MS9vcmdhbml6YXRpb24yngEKDVNlcnZlclNlcnZpY2USjAEKDUdldFNlcnZlckluZm8SKy50YW52by5vcmdhbml6YXRpb24udjEuR2V0U2VydmVySW5mb1JlcXVlc3QaLC50YW52by5vcmdhbml6YXRpb24udjEuR2V0U2VydmVySW5mb1Jlc3BvbnNlIiCQAgHK8xgCIAGC0+STAhESDy92MS9zZXJ2ZXJfaW5mb0L2AQoZY29tLnRhbnZvLm9yZ2FuaXphdGlvbi52MUIRT3JnYW5pemF0aW9uUHJvdG9QAVpQZ2l0aHViLmNvbS90YW52b3h5ei90YW52by9saWJzL3Byb3RvL2dlbi9nby90YW52by9vcmdhbml6YXRpb24vdjE7b3JnYW5pemF0aW9udjGiAgNUT1iqAhVUYW52by5Pcmdhbml6YXRpb24uVjHKAhVUYW52b1xPcmdhbml6YXRpb25cVjHiAiFUYW52b1xPcmdhbml6YXRpb25cVjFcR1BCTWV0YWRhdGHqAhdUYW52bzo6T3JnYW5pemF0aW9uOjpWMWIIZWRpdGlvbnNw6Ac", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
 
 /**
  * Organization is the tenant. It carries identity and access settings
@@ -42,15 +42,15 @@ export type Organization = Message<"tanvo.organization.v1.Organization"> & {
   id: string;
 
   /**
-   * The display name.
+   * The display name, set at sign-up.
    *
    * @generated from field: string name = 2;
    */
   name: string;
 
   /**
-   * The URL slug, lowercase and unique, derived from the name; used in
-   * customer portal URLs.
+   * The URL slug, lowercase and unique, derived from the name at sign-up;
+   * used in customer portal URLs.
    *
    * @generated from field: string slug = 3;
    */
@@ -71,7 +71,7 @@ export type Organization = Message<"tanvo.organization.v1.Organization"> & {
   address?: Address | undefined;
 
   /**
-   * A new logo image (PNG, JPEG or SVG, at most 800 KB); write only.
+   * A new logo image (PNG or JPEG, at most 800 KB); write only.
    *
    * @generated from field: bytes logo = 6;
    */
@@ -92,7 +92,7 @@ export type Organization = Message<"tanvo.organization.v1.Organization"> & {
   authenticationMethods: AuthenticationMethod[];
 
   /**
-   * How long activity logs are kept, in days; default 30.
+   * How long activity and API logs are kept, in days; default 30.
    *
    * @generated from field: int32 audit_logs_retention_days = 9;
    */
@@ -118,6 +118,15 @@ export type Organization = Message<"tanvo.organization.v1.Organization"> & {
    * @generated from field: google.protobuf.Timestamp updated_at = 12;
    */
   updatedAt?: Timestamp | undefined;
+
+  /**
+   * The prefix of customer slugs, 1–10 characters, stored upper-cased;
+   * defaults to the first 3 characters of the name and the last 4 of the
+   * ID.
+   *
+   * @generated from field: string document_number_prefix = 13;
+   */
+  documentNumberPrefix: string;
 };
 
 /**
@@ -246,20 +255,6 @@ export type GetServerInfoResponse = Message<"tanvo.organization.v1.GetServerInfo
    * @generated from field: string revision = 2;
    */
   revision: string;
-
-  /**
-   * When the server was built.
-   *
-   * @generated from field: google.protobuf.Timestamp build_time = 3;
-   */
-  buildTime?: Timestamp | undefined;
-
-  /**
-   * The roles this process runs (`api`, `worker`, `consumer`).
-   *
-   * @generated from field: repeated string roles = 4;
-   */
-  roles: string[];
 };
 
 /**
@@ -311,7 +306,8 @@ export enum AuthenticationMethod {
   ENTRA_ID = 4,
 
   /**
-   * Any other OpenID Connect provider, through an SSO connection.
+   * A generic OpenID Connect provider, through an SSO connection (a
+   * Tanvo extension).
    *
    * @generated from enum value: AUTHENTICATION_METHOD_OIDC = 5;
    */

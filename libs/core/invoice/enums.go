@@ -85,17 +85,20 @@ const (
 	StatusVoided Status = "voided"
 	// StatusFailed is "failed": the tax computation failed; can be retried.
 	StatusFailed Status = "failed"
+	// StatusDeleted is "deleted": a deleted draft, kept with its fees and
+	// subscription periods; invisible to the API; terminal.
+	StatusDeleted Status = "deleted"
 )
 
 // StatusValues returns every Status, in declaration order.
 func StatusValues() []Status {
-	return []Status{StatusGenerating, StatusDraft, StatusOpen, StatusFinalized, StatusClosed, StatusVoided, StatusFailed}
+	return []Status{StatusGenerating, StatusDraft, StatusOpen, StatusFinalized, StatusClosed, StatusVoided, StatusFailed, StatusDeleted}
 }
 
 // Valid reports whether v is one of the declared Status values.
 func (v Status) Valid() bool {
 	switch v {
-	case StatusGenerating, StatusDraft, StatusOpen, StatusFinalized, StatusClosed, StatusVoided, StatusFailed:
+	case StatusGenerating, StatusDraft, StatusOpen, StatusFinalized, StatusClosed, StatusVoided, StatusFailed, StatusDeleted:
 		return true
 	default:
 		return false

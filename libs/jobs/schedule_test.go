@@ -88,6 +88,8 @@ var tanvoClock = map[string]string{
 	jobs.KindSweepWebhooks:          "every 5m0s",
 	jobs.KindRepairUsageBuckets:     "every 10m0s",
 	jobs.KindReportUsageBucketStats: "hourly at :00",
+	jobs.KindPurgeSessions:          "hourly at :07",
+	jobs.KindPurgeIdempotencyKeys:   "hourly at :37",
 }
 
 func TestScheduleMatchesLagoClock(t *testing.T) {

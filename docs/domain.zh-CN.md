@@ -140,7 +140,7 @@ erDiagram
 * **金额**：最终金额以 `Money`（最小单位）存储；仍作为后续计算输入的值（取整前的费用金额、单价、额度）以 `Decimal`（“精确值”）存储。取整规则见 §22.9。绝不使用 `float64`。
 * **时间**：时刻以 UTC 存储；日期和周期边界在适用时区（§22.1）中计算，并以本地午夜对应的 UTC 时刻存储。
 * **周期**为左闭右开区间 `[from, to)`。**[变更]** Lago 以 23:59:59.999999 存储闭区间终点；Tanvo 存储下一个本地午夜。
-* **删除**：有生命周期的资源带有状态（`terminated`、`archived`、`voided`、`deleted`）；无引用的行直接物理删除。套餐从不移除：已删除的套餐以 `deleted` 状态保留（§7.2），不再出现在按 code 的查找和列表中，其 code 可再次使用。功能、特权项和权益采用软删除（`deleted_at`，§7.10）。存储层拒绝（`conflict`）物理删除仍被引用的行。**[变更]** 没有全局的 `deleted_at` 软删除。
+* **删除**：有生命周期的资源带有状态（`terminated`、`archived`、`voided`、`deleted`）；无引用的行直接物理删除。套餐从不移除：已删除的套餐以 `deleted` 状态保留（§7.2），不再出现在按 code 的查找和列表中，其 code 可再次使用。计费项、计费项过滤器、固定计费项、附加项、税、用量阈值、优惠券、功能、特权项、权益以及产品目录（类别、产品、产品过滤器及其取值、费率卡、费率、套餐费率卡与费率阶段，§21.4）采用软删除（`deleted_at`）：被丢弃的行不再能按 code 查到或被列出，其 code 可再次使用，引用它的单据仍可按 ID 读取它。存储层拒绝（`conflict`）物理删除仍被引用的行。**[变更]** 没有全局的 `deleted_at` 软删除。
 * **元数据**在更新时整体替换（传入的列表替换已存储的列表）。
 * **审计**：本文档中提到的每次状态变更都在同一事务中产生领域事件；Webhook（§18）和活动日志由其派生。
 * **锁**：读写客户余额的操作（优惠券、贷项通知单、预付额度、钱包）获取各章节指明的客户咨询锁；计费运行锁定订阅。
@@ -151,7 +151,7 @@ erDiagram
 
 | 枚举 | 取值 | 使用者 |
 | :--- | :--- | :--- |
-| `AuthenticationMethod` | `email_password`、`google_oauth`、`okta`、`entra_id`、`oidc` | Organization |
+| `AuthenticationMethod` | `email_password`、`google_oauth`、`okta`、`entra_id`、`oidc`（通用，Tanvo 扩展） | Organization |
 | `DocumentNumbering` | `per_customer`、`per_billing_entity` | BillingEntity |
 | `IssuingDateAnchor` | `current_period_end`、`next_period_start` | BillingEntity、Customer |
 | `IssuingDateAdjustment` | `keep_anchor`、`align_with_finalization_date` | BillingEntity、Customer |
@@ -186,13 +186,13 @@ erDiagram
 | `ActivationRuleStatus` | `inactive`、`pending`、`satisfied`、`not_applicable`、`declined`、`failed`、`expired` | SubscriptionActivationRule |
 | `OperationType` | `add`、`remove` | Event（去重计数） |
 | `InvoiceType` | `subscription`、`credit`、`one_off`、`advance_charges`、`progressive_billing` | Invoice |
-| `InvoiceStatus` | `generating`、`draft`、`open`、`finalized`、`closed`、`voided`、`failed` | Invoice |
+| `InvoiceStatus` | `generating`、`draft`、`open`、`finalized`、`closed`、`voided`、`failed`、`deleted` | Invoice |
 | `PaymentStatus` | `pending`、`succeeded`、`failed` | Invoice、PaymentRequest |
 | `TaxStatus` | `pending`、`succeeded`、`failed` | Invoice |
 | `InvoicingReason` | `subscription_starting`、`subscription_periodic`、`subscription_terminating`、`in_advance_charge`、`in_advance_charge_periodic`、`progressive_billing` | InvoiceSubscription |
 | `FeeType` | `subscription`、`charge`、`fixed_charge`、`add_on`、`credit`、`commitment`、`product` | Fee |
 | `FeePaymentStatus` | `pending`、`succeeded`、`failed`、`refunded` | Fee |
-| `CreditNoteStatus` | `draft`、`finalized` | CreditNote |
+| `CreditNoteStatus` | `draft`、`finalized`、`deleted` | CreditNote |
 | `CreditStatus` | `available`、`consumed`、`voided` | CreditNote |
 | `RefundStatus` | `pending`、`succeeded`、`failed` | CreditNote、Refund |
 | `CreditNoteReason` | `duplicated_charge`、`product_unsatisfactory`、`order_change`、`order_cancellation`、`fraudulent_charge`、`other` | CreditNote |
@@ -220,7 +220,7 @@ erDiagram
 
 只属于某一功能的枚举（入站 Webhook 状态、报价单状态、合同状态等）在各自章节中定义。
 
-**[舍弃]** 作为存储状态的发票状态 `deleted`（删除的草稿直接移除，§11.7）；发票类型 `add_on`（由 `one_off` 取代）；一次性发票之外的 `add_on` 类型费用发票；覆盖套餐的 `overriden` 别名；`group`/`group_properties`（由计费项过滤器取代）；计费项属性别名 `grouped_by`（由 `pricing_group_keys` 取代）；`recurring_count_agg`；集成资源类型 `sales_order_deprecated`。
+**[舍弃]** 发票类型 `add_on`（由 `one_off` 取代）；一次性发票之外的 `add_on` 类型费用发票；覆盖套餐的 `overriden` 别名；`group`/`group_properties`（由计费项过滤器取代）；计费项属性别名 `grouped_by`（由 `pricing_group_keys` 取代）；`recurring_count_agg`；集成资源类型 `sales_order_deprecated`。
 
 ---
 
@@ -241,11 +241,12 @@ erDiagram
 | `from_email_enabled` | `bool` | 默认 false；单据从计费主体的邮箱发出 |
 | `audit_logs_retention_days` | `int` | 默认 30 |
 | `max_wallets_per_customer` | `int` | 默认 6 |
+| `document_number_prefix` | `string(10)` | 1–10 个字符，大写存储；默认取名称的前 3 个字符（大写）+ `-` + id 的后 4 个字符；用作客户 slug 的前缀（§6） |
 | `created_at` | `Time` | |
 
 Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`、`country`（ISO 3166-1 alpha-2）。全部可选；`country` 会被校验。
 
-**[变更]** 组织不承载计费设置。Lago 在组织和计费主体上重复存储时区、币种、宽限期、净付款期限、单据编号方式、前缀、发票页脚、单据语言、税号、欧盟税务管理和邮件设置；在 Tanvo 中计费主体是唯一权威来源，组织只保留身份与访问设置。每个组织至少有一个计费主体，随组织一起创建。
+**[变更]** 组织不承载计费设置。Lago 在组织和计费主体上重复存储时区、币种、宽限期、净付款期限、单据编号方式、前缀、发票页脚、单据语言、税号、欧盟税务管理和邮件设置；在 Tanvo 中计费主体是唯一权威来源，组织只保留身份与访问设置，以及与 lago 一样用作客户 slug 前缀的文档编号前缀。每个组织至少有一个计费主体，随组织一起创建。
 
 **[变更]** 核心中没有高级版门槛：本文档中的每个功能对每个组织都可用。分析与助手位于 `ee/`（[架构 §14](architecture.zh-CN.md#14-企业版ee)）。
 
@@ -396,8 +397,8 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 | `applied_dunning_campaign_id` | `ID?` | |
 | `exclude_from_dunning_campaign` | `bool` | |
 | `dunning_campaign_attempts`、`last_dunning_campaign_attempt_at` | `map<币种, int>`、`Time?` | 按币种分别计数尝试次数 |
-| `sequential_id` | `int` | 创建时按计费主体分配 |
-| `slug` | `string` | `<prefix>-<sequential_id %03d>` |
+| `sequential_id` | `int` | 创建时按组织分配；已删除的客户保留其编号 |
+| `slug` | `string` | `<组织 document_number_prefix>-<sequential_id %03d>` |
 | `payment_receipt_counter` | `int` | §22.11 |
 | `metadata` | Metadata | ≤ 5 项；键 ≤ 20，值 ≤ 100；`display_in_invoice bool` |
 | `deleted_at` | `Time?` | 有单据的客户只归档，不物理删除 |
@@ -411,7 +412,7 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 * 删除客户会终止其订阅（生成终止发票）、终止其钱包和已应用优惠券并将其归档；其发票保留。
 * 每个客户的咨询锁：`coupons`、`credit_notes`、`prepaid_credits`、`billing_schedule`。
 * 加锁顺序：计费事务按同一固定顺序加锁，因此两个事务不会相互等待：客户的 `billing_schedule` 锁、订阅锁（事务只在持有 `billing_schedule` 锁时获取多个订阅锁，否则按 ID 升序获取）、事件锁、发票锁、贷项通知单锁，然后是客户的 `coupons`、`credit_notes` 和 `prepaid_credits` 锁；序列锁最后获取。需要后三者中多个锁的事务会在获取任何一个之前全部获取。**[Change]** Lago 没有全局顺序，部分场景依赖唯一索引。
-* 欧盟税务管理：当计费主体启用 `eu_tax_management` 时，在创建客户以及地址或税号变更时运行 VIES 校验，并为客户分配欧盟税（§22.10）；结果以 `customer.vies_check` 发出。
+* 欧盟税务管理：当计费主体启用 `eu_tax_management` 时，在创建客户以及地址或税号变更时决定客户的欧盟税（§22.10）。有税号且不在自有增值税地区的客户，其欧盟税来自异步的 VIES 校验，结果以 `customer.vies_check` 发出。
 * 支付与集成连接：见 §15.5 和 §17.2。**[变更]** 没有单一的 `payment_provider` 列；客户可以连接多个服务商，每个类别一个默认连接。
 
 ---
@@ -424,24 +425,24 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 
 | 字段 | 类型 | 规则 |
 | :--- | :--- | :--- |
-| `code` | `string(255)` | 唯一 |
+| `code` | `string(255)` | 在存活的指标中唯一 |
 | `name` | `string(255)` | 必填 |
 | `description` | `string?` | |
 | `aggregation_type` | `AggregationType` | 必填 |
 | `field_name` | `string?` | 被聚合的事件属性；`count` 以外必填 |
-| `weighted_interval` | `WeightedInterval?` | `weighted_sum` 必填（= `seconds`），其他类型禁止 |
+| `weighted_interval` | `WeightedInterval?` | `weighted_sum` 必须为 `seconds`；其他类型上保留且不校验 |
 | `recurring` | `bool` | `count`、`max`、`latest` 禁止 |
 | `expression` | `string?` | lago-expression；其结果在聚合前写入 `field_name` |
 | `rounding_function` | `RoundingFunction?` | |
 | `rounding_precision` | `int?` | 设置取整函数时默认 0；可以为负 |
 | `filters` | `[]BillableMetricFilter` | |
 
-`BillableMetricFilter`：`key string(255)`（事件属性）、`values []string`（非空、不重复）。每个计费指标内键唯一。
+`BillableMetricFilter`：`key string(255)`（事件属性）、`values []string`（非空；重复值被去除）。每个计费指标内键唯一。
 
 规则：
 * 计费指标一旦被计费项使用，`code`、`aggregation_type`、`weighted_interval`、`field_name`、`recurring`、`rounding_function`、`rounding_precision` 和 `expression` 即被锁定。
 * 删除过滤器的某个值会删除使用该值的计费项过滤器取值；删除过滤器的键会删除引用该键的计费项过滤器。当费率卡的产品过滤器使用该取值或键时，两者都被拒绝（`referenced_by_product_filter`）：已定价的费率卡绝不会因计费指标的修改而被改变。
-* 删除计费指标会从所有套餐中删除其计费项（及其过滤器），并重新计算草稿发票；当费率卡的产品过滤器使用该计费指标时被拒绝（`referenced_by_product_filter`）。其事件保留。
+* 删除计费指标会将其软删除（`deleted_at`）：读取时不再能找到它，其代码可以重新使用。其计费项（及其过滤器）从所有套餐中被丢弃（软删除），其告警被软删除（阈值保留），草稿发票被重新计算；其过滤器以及指向它的优惠券与钱包目标随软删除的记录保留。当费率卡的产品过滤器使用该计费指标时被拒绝（`referenced_by_product_filter`）。其事件保留。
 * 可预付：只有 `count`、`sum` 和 `unique_count` 计费指标可以支撑预付计费项。
 
 聚合语义（在 `libs/metering` 中实现）：
@@ -631,7 +632,7 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 | `description` | `string?` | |
 | `auto_generated` | `bool` | 由欧盟税务管理创建；只读 |
 
-税挂接在计费主体、客户、套餐、计费项、固定计费项、附加项和承诺消费上；解析规则见 §22.10。修改税率会刷新使用该税的草稿发票。删除税会在各处解除挂接；已开具的单据保留其已应用税快照（代码、名称、税率、金额）。
+税挂接在计费主体、客户、套餐、计费项、固定计费项、附加项和承诺消费上；解析规则见 §22.10。修改税率会刷新使用该税的草稿发票。删除税会将其软删除（`deleted_at`）并在各处解除挂接；已开具的单据保留其已应用税快照（代码、名称、税率、金额）。
 
 **[舍弃]** `vat_rate` 列。
 
@@ -684,7 +685,7 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 
 | 字段 | 类型 | 规则 |
 | :--- | :--- | :--- |
-| `code` | `string(255)` | 唯一 |
+| `code` | `string(255)` | 在未删除的优惠券中唯一 |
 | `name` | `string(255)` | |
 | `description` | `string?` | |
 | `coupon_type` | `CouponType` | |
@@ -698,11 +699,13 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 | `limited_plans` | `[]PlanID` | |
 | `limited_billable_metrics` | `[]MetricID` | 适用对象为套餐**或**计费指标，不能同时 |
 | `status` | `CouponStatus` | `active` → `terminated` |
+| `deleted_at` | `Time?` | 删除时设置 |
 
 规则：
-* 一旦被应用，只能修改 `name`、`description` 和过期设置。
+* 一旦被应用，只有 `name`、`description` 和过期设置会被修改；对其他字段（包括适用对象）的修改会被忽略。
+* 被应用之前，给出计费指标适用对象会移除套餐适用对象，反之亦然；同时给出两者则失败，错误为 `only_one_limitation_type_per_coupon_allowed`。
 * 超过 `expiration_at` 的优惠券由周期任务终止；终止优惠券不影响已应用的优惠券。
-* 删除优惠券会终止它及其已应用优惠券。
+* 删除优惠券会设置 `deleted_at` 并保留其状态：它不能再被读取或应用，其代码可再次使用，其生效中的已应用优惠券会被终止。其已应用优惠券仍会被列出。
 
 ### 8.2 已应用优惠券
 
@@ -717,7 +720,8 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 | `terminated_at` | `Time?` | |
 
 规则：
-* 不可复用的优惠券对一个客户只能应用一次（错误 `coupon_is_not_reusable`）。
+* 只有生效且未删除的优惠券可以应用（错误 `coupon_not_found`），且只能应用于未删除的客户（错误 `customer_not_found`）。
+* 不可复用的优惠券对一个客户只能应用一次（`coupon` 上的错误 `coupon_is_not_reusable`）；先检查下文的套餐重叠。
 * 若客户已有一个有效的已应用优惠券针对相同套餐，则不能再应用限定套餐的优惠券（错误 `plan_overlapping`）。
 * `fixed_amount` 的已应用优惠券有自己的币种，不必等于客户币种；它只用于该币种的发票（§22.7）。`percentage` 优惠券用于任何币种的发票。一张优惠券只有一种币种；以其他币种应用时，通过金额和币种覆盖实现。
 * 在发票上的应用见 §22.7。
@@ -828,12 +832,12 @@ stateDiagram-v2
 
 规则：
 * 每批至多 100 个事件；每个事件独立校验。
-* **去重**：键为（组织，`external_subscription_id`，`transaction_id`），与 Lago 事件表的唯一索引相同；同一事务 ID 在两个订阅下是两个事件。重发已知的键会被确认为重复并丢弃，不论其代码与时间戳，所有事件存储均如此；更正通过事件替换 API 完成，它按键定位事件，可改变其代码与时间戳，但不能改变其订阅。Lago 的 ClickHouse 存储则在查询时按（组织，订阅，代码，事务 ID，时间戳）去重，因此在另一时间戳重发的事件在那里会被计两次；Tanvo 让两种存储保持同一语义。见 §24，第 11 条。
+* **去重**：键为（组织，`external_subscription_id`，`transaction_id`），与 Lago 事件表的唯一索引相同；同一事务 ID 在两个订阅下是两个事件。重发已知的键会被确认为重复并丢弃，不论其代码与时间戳，所有事件存储均如此。Lago 的 ClickHouse 存储则在查询时按（组织，订阅，代码，事务 ID，时间戳）去重，因此在另一时间戳重发的事件在那里会被计两次；Tanvo 让两种存储保持同一语义。见 §24，第 11 条。
 
 ### 10.2 富化与校验
 * 事件的订阅是满足 `external_id = external_subscription_id`、状态为 `active` 或 `terminated`、且 `started_at ≤ timestamp < terminated_at` 的订阅。`pending`、`incomplete` 和 `canceled` 订阅永不匹配。对周期性计费指标，没有匹配周期的事件回退到有效订阅。
 * 若计费指标有 `expression`，则对其求值并把结果存入 `properties[field_name]`。
-* 后置校验错误被记录，并在 `events.errors` Webhook 中（批量）报告：`invalid_code`（没有该代码的计费指标）、`missing_aggregation_property`（缺少 `field_name`）、`invalid_filter_values`（过滤器属性的取值不在过滤器取值内）。
+* 后置校验错误每小时为每个有 webhook 端点的组织以一个 `events.errors` Webhook 报告，覆盖上一个整点小时内创建的事件（`event.ValidationErrors`）：`invalid_code`（没有该代码的计费指标，无论保留或已弃用）、`missing_aggregation_property`（缺少 `field_name`，或对 `sum`、`max`、`weighted_sum` 与 `latest` 而言不是十进制数 `^-?\d+(\.\d+)?$`）、`invalid_filter_values`（过滤器属性的取值不在过滤器取值内）。代码只对应已弃用指标的事件不做检查。
 * 每个事件写入一行富化记录，包含订阅、计费指标、表达式结果、聚合值、分组键和精确金额。富化只为判断是否适用预付计费项而查找计费指标的计费项；不存储任何计费项或过滤器。匹配的计费项过滤器（或默认桶）在查询用量或聚合到用量桶时根据原始属性确定（[架构 §7.2](architecture.zh-CN.md#72-富化)）。
 * 预付计费项为每个事件产生一笔费用（§22.4）。
 
@@ -849,7 +853,7 @@ stateDiagram-v2
 * **缓存聚合**：某外部订阅的某计费项（或计费项过滤器）按定价分组的运行中聚合状态：`timestamp`、`event_transaction_id?`、`grouped_by`、`current_aggregation`、`max_aggregation`、`max_aggregation_with_proration`、`presentation_breakdowns`。每个预付事件保存一条（该事件之后的状态）；后付的循环指标在每个周期末保存一条，每个计费项、分组和时刻至多一条。循环状态只带 `current_aggregation`；聚合未产生的其他值为 null，读取缺失值的聚合会失败，与 Lago 的 `BigDecimal(nil)` 抛错一致。之后的预付事件和下一周期（包括当前用量）从其周期内最新的状态开始；为某事件计价时，排除该事件的状态以及没有事件交易号的状态（SQL 不等比较，`app/services/billable_metrics/aggregations/base_service.rb:223`）。查找仅在设置了计费项过滤器时才按其过滤，因此计费项的默认桶会读取其所有过滤器的状态（`base_service.rb:224`、`weighted_sum_service.rb:143`）；循环状态仅在不存在完全相同过滤器的状态时才创建（`app/services/fees/charge_service.rb:532-539`）。与 Lago 一致，状态引用计费项与过滤器但不设外键。**[变更]** 不保留 Lago 的 `current_amount`（自定义聚合，§24 第 1 项）。
 * **历史用量**：已开票周期的费用，从发票读取。
 * **生命周期用量**：按订阅链计算，`historical_usage`（导入）+ `invoiced_usage` + `current_usage`；在事件到达和开票后刷新；驱动用量阈值（§22.16）和生命周期告警（§19）。
-* 每日用量时间序列是 `ee/` 中的分析功能。
+* **每日用量**：按订阅及客户时区中的日，记录当前周期的用量及其与前一日的差值（`usage`、`usage_diff`、`refreshed_at`、`usage_date`）；由每小时的时钟为进入新一天的组织计算（订阅跳过每日用量时除外），由每张订阅发票为其周期的最后一天回填，也可按需补全历史；它属于核心数据，只有其仪表盘是 `ee/` 中的分析功能。
 
 ---
 
@@ -918,7 +922,7 @@ stateDiagram-v2
     open --> finalized: 规则满足 / 税已计算
     open --> closed: 激活失败
     open --> failed: 拉取税务服务商税额失败
-    failed --> finalized: 重试成功
+    failed --> open: 重试（再次拉取税额）
     finalized --> voided: 作废
 ```
 
@@ -971,7 +975,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 **[舍弃]** 发票类型 `add_on`、发票版本（`version_number` 门控）、`organization_sequential_id`（由 `billing_entity_sequential_id` 取代）。
 
 ### 11.7 删除草稿
-草稿发票可以删除，除非它已同步到外部系统（`invoice_synced_to_external_system`）。其草稿贷项通知单一并删除（任何一张无法删除时整个操作被拒绝，`credit_note_not_deletable`），其费用被移除，并发出 `invoice.deleted`。它覆盖的周期不再计费：订阅从下一个周期继续。**[变更]** Lago 保留一行 `deleted` 状态的记录；Tanvo 移除草稿，只保留审计事件。
+草稿发票可以删除，除非它已同步到外部系统（`invoice_synced_to_external_system`）。其草稿贷项通知单一并进入 `deleted` 状态（任何一张无法删除时整个操作被拒绝，`credit_note_not_deletable`），发票进入终态 `deleted`，对所有读取与列表不可见，保留其费用与订阅周期，并发出 `invoice.deleted`。它覆盖的周期不再计费：订阅从下一个周期继续。
 
 ### 11.8 单据
 已定稿的发票、贷项通知单、付款收据和付款请求渲染为 PDF/A-3b；计费主体启用 `einvoicing` 时，电子发票 XML（FR 和 DE 使用 Factur-X / ZUGFeRD CII）被嵌入并单独存储（[架构 §10](architecture.zh-CN.md#10-文档libsdocuments)）。单据以 `document_locale`（客户 → 计费主体）渲染。
@@ -1071,7 +1075,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 * 退款通过发票的支付服务商进行；`refund_status` 跟随服务商侧的退款。**[修复]** Lago 发出的 Webhook 名称与其声明的类型不一致；Tanvo 发出 `credit_note.refund_failure`。
 * **估算**：给定明细，返回计算后的金额而不创建任何对象。
 * 发出 `credit_note.created`，PDF 渲染完成后发出 `credit_note.generated`。
-* 草稿贷项通知单只出现在为草稿发票创建的自动贷项通知单（渐进式计费）中；随发票一起定稿。
+* 草稿贷项通知单只出现在为草稿发票创建的自动贷项通知单（渐进式计费）中；随发票一起定稿，或在发票删除时进入终态且不可见的 `deleted` 状态。
 
 ### 13.3 自动贷项通知单
 * 预付订阅的**终止**（§22.14）：已支付的基础费和预付固定计费项中未使用的部分，按 `on_termination_credit_note` 拆分：`credit`（计入余额）、`refund`（在已支付范围内退款，其余计入额度）、`offset`（冲抵发票的应付金额，其余计入额度）、`skip`（不创建）。
@@ -1113,7 +1117,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 规则：
 * 终止钱包（手动或在 `expiration_at`）会终止其周期充值规则；之后不再接受交易。
 * **进行中用量分配**：尚未开票的用量（当前用量，加上扣除优惠券后的草稿发票费用，减去渐进式计费和已支付的预付费用，按费用键和币种）按 §22.7 的顺序分配到客户该币种的有效钱包上，遵守 `allowed_fee_types` 和 `billable_metric_ids`。每个钱包最多取到其余额，然后才使用下一个；最后一个适用的钱包承担溢出部分，可以变为负数。有有效阈值规则的钱包承担其适用的全部用量，以便其规则触发。每个钱包的进行中余额为其余额减去其分配额。
-* 进行中余额由摄取的用量刷新信号刷新，信号在事件及其用量桶存储之后才发出；5 分钟一次的全量扫描仍是权威来源。
+* 进行中余额由摄取的用量刷新信号刷新，信号在事件及其用量桶存储之后才发出；5 分钟一次的扫描仍是权威来源。摄取、发票刷新和钱包变更在客户有活跃钱包时把它标记为 `awaiting_wallet_refresh`；扫描刷新被标记的客户，刷新只在其运行期间没有新标记时才清除标记（按客户的刷新代数判断）。对已被标记且尚未被刷新认领的客户再次标记不会写入任何内容，与 lago 未变更的 `update!` 相同（`app/models/customer.rb:385-389`）；在刷新认领代数之后发出的标记会把代数增加一次，因此信号不会丢失。
 * 进行中余额降到 0 时发出 `wallet.depleted_ongoing_balance`。
 * 余额只能在客户的 `prepaid_credits` 锁下通过交易改变。
 
@@ -1264,15 +1268,15 @@ stateDiagram-v2
 | `days_between_attempts` | `int` | ≥ 1 |
 | `max_attempts` | `int` | ≥ 1 |
 | `bcc_emails` | `[]string` | |
-| `thresholds` | `[]{currency, amount Money}` | 至少一个；每个币种一个 |
+| `thresholds` | `[]{id, currency, amount Money}` | 创建时至少一个；每个币种一个 |
 
 规则：
 * 应用于计费主体（作为其客户的默认）或客户（覆盖）；`exclude_from_dunning_campaign` 使客户退出。
 * 每小时一次的任务对每个有适用催收活动的客户：若某阈值币种下逾期发票的 Σ `total_due_amount` ≥ 阈值、客户在该币种下的尝试次数 < `max_attempts`，且距上次尝试已过 `days_between_attempts`，则创建付款请求（§15.4）并递增该币种的尝试次数。
 * 最后一次尝试之后发出 `dunning_campaign.finished`。
-* 修改阈值会重置余额不再匹配的客户的计数器；删除催收活动会重置使用它的客户和计费主体。
-
-**[舍弃]** `applied_to_organization`（由按计费主体指定取代）。
+* 删除催收活动会重置使用它的客户和计费主体。
+* `applied_to_organization` 读取并设置默认计费主体的催收活动：在创建或更新时设置它会将该活动应用到默认计费主体（更新时为 false 则移除），当这改变了该主体的活动时，重置回退到它的客户的尝试次数。列表可按它筛选。
+* 更新阈值时按 ID 匹配：带有该活动某个阈值 ID 的阈值被原地修改，其他阈值被新增，未列出的阈值被移除，因此活动最终可以没有阈值。移除阈值或修改已有阈值会重置余额不再匹配的客户。
 
 ---
 
@@ -1297,11 +1301,16 @@ stateDiagram-v2
 | :--- | :--- |
 | `client_id` | 必填 |
 | `domain` | 必填；路由到该连接的主邮箱域名，以小写保存 |
-| `additional_domains` | 仅 Entra ID 和通用 OIDC；至少两级的主机名，小写、去重 |
+| `additional_domains` | Entra ID 与通用 OIDC；至少两级的主机名，小写、去重 |
 | `organization_name` | Okta 必填；默认主机为 `<organization_name>.okta.com` |
 | `tenant_id` | Entra ID 必填；字母、数字、`.` 和 `-` |
 | `host` | 可选，覆盖服务商主机；字母、数字、`.` 和 `-` |
-| `issuer` | 通用 OIDC 必填；用于发现的 issuer URL |
+| `issuer_url` | 仅通用 OIDC，必填；不带查询、片段与用户信息的 http(s) URL，至多 2048 个字符；发现文档报告的 issuer 必须与之完全相同 |
+| `token_endpoint_auth_method` | 仅通用 OIDC；`client_secret_basic` 或 `client_secret_post`；为空时遵循发现文档 |
+| `scopes` | 仅通用 OIDC；至多 20 个 scope；为空表示 `openid email profile` |
+| `email_claim`、`name_claim` | 仅通用 OIDC；声明名；为空表示 `email` 和 `name` |
+| `allow_unverified_email` | 仅通用 OIDC；为假（默认）时 `email_verified` 必须为真 |
+| `authorization_params` | 仅通用 OIDC；至多 20 个附加授权请求参数；拒绝协议参数（`client_id`、`redirect_uri`、`response_type`、`response_mode`、`scope`、`state`、`nonce`、`code_challenge`、`code_challenge_method`、`login_hint`、`request`、`request_uri`） |
 | `default_role_id` | 必填；首次登录时创建的成员的角色（§5.3） |
 
 登录会路由到其方式下、跨组织声明了邮箱域名（不区分大小写）的连接；主域名优先于附加域名，其次取最早的连接。同一方式下一个域名至多被一个连接声明。
@@ -1372,7 +1381,7 @@ Anrok 和 Avalara 为发票和贷项通知单计税。计税待完成时，发�
 
 | 字段 | 类型 | 规则 |
 | :--- | :--- | :--- |
-| `code` | `string(255)` | 在订阅（或钱包）内唯一 |
+| `code` | `string(255)` | 在订阅（或钱包）内、未删除的告警中唯一 |
 | `name` | `string?` | |
 | `alert_type` | 枚举，见下 | |
 | `subscription_external_id` 或 `wallet_id` | | 按类型 |
@@ -1381,6 +1390,7 @@ Anrok 和 Avalara 为发票和贷项通知单计税。计税待完成时，发�
 | `thresholds` | `[]{code?, value Decimal, recurring bool}` | 1–20 个；至多一个周期性阈值；取值唯一 |
 | `previous_value` | `Decimal` | 上次评估的值 |
 | `last_processed_at` | `Time?` | |
+| `deleted_at` | `Time?` | 软删除：删除告警会删除其阈值并软删除告警；已触发的告警保留 |
 
 告警类型：`current_usage_amount`、`billable_metric_current_usage_amount`、`billable_metric_current_usage_units`、`lifetime_usage_amount`、`billable_metric_lifetime_usage_units`、`wallet_balance_amount`、`wallet_credits_balance`、`wallet_ongoing_balance_amount`、`wallet_credits_ongoing_balance`。
 
@@ -1413,12 +1423,13 @@ Anrok 和 Avalara 为发票和贷项通知单计税。计税待完成时，发�
 * `Quote`：`number`（`QT-<YYYY>-<NNNN>`，按组织和年份）、`customer_id`、`order_type ∈ {subscription_creation, subscription_amendment, one_off}`、`owners []membership`、`subscription_id?`（修订时）。
 * `QuoteVersion`：`version int`、`status ∈ {draft, approved, voided}`、`void_reason ∈ {manual, superseded, cascade_of_expired, cascade_of_voided}?`、`content`（拟议的套餐、覆盖、附加项、日期）、`approved_at`、`voided_at`。每个报价单至多一个未作废的版本；创建新版本会以 `superseded` 作废上一个版本。
 * 批准一个版本会创建订购单。
+* 只有草稿版本可以编辑、批准或克隆为新草稿；任一版本已批准后拒绝克隆。批准时检查计费项是否完整，并快照提及变量。报价单及其版本、订购单和订单的变更在每个报价单的锁下进行（`libs/billing/quotes`）。
 
 ### 21.2 订购单
-`number`（`OF-<YYYY>-<NNNN>`）、`quote_version_id`、`status ∈ {generated, signed, expired, voided}`、`void_reason ∈ {manual, expired, invalid}?`、`expires_at`、`signed_at`、`signed_by`。过期会作废订购单，并级联到报价单版本（`cascade_of_expired`）。签署会创建订单。
+`number`（`OF-<YYYY>-<NNNN>`）、`quote_version_id`、`status ∈ {generated, signed, expired, voided}`、`void_reason ∈ {manual, expired, invalid}?`、`expires_at`、`signed_at`、`signed_by`。过期会作废订购单，并级联到报价单版本（`cascade_of_expired`）。签署会创建订单。签署时可附加签署文件（不超过 10 MB 的 data URI，存于 blob 存储），并设置订单的执行模式与 `execute_at`。`execute_at` 必须在将来，且早于交易过期（`after_deal_expiration`）。
 
 ### 21.3 订单
-`number`（`OR-<YYYY>-<NNNN>`）、`order_form_id`、`status ∈ {created, executed, failed}`、`execution_mode ∈ {execute, order_only}`、`executed_at`。执行会应用报价内容：创建或修订订阅，或开具一次性发票。`order_only` 只记录订单而不应用。
+`number`（`OR-<YYYY>-<NNNN>`）、`order_form_id`、`status ∈ {created, executed, failed}`、`execution_mode ∈ {execute, order_only}`、`executed_at`。执行会应用报价内容：创建或修订订阅，或开具一次性发票。`order_only` 只记录订单而不应用。已创建订单的执行模式与 `execute_at` 可以编辑。执行记录（`executed_at`、`execution_mode`、`invoice_id`、`subscription_ids`、`terminated_subscription_ids`、`applied_coupon_ids`、`wallet_ids`、`errors`）列出创建了什么。执行失败时回滚，订单变为 `failed` 并记下错误码；失败的订单可以再次执行。每小时的时钟任务执行 `execute_at` 已到的已创建订单。
 
 ### 21.4 合同（产品目录）
 Lago 的计费 v2 通过合同上的费率卡为产品定价，而不是通过订阅上的套餐：
@@ -1586,7 +1597,8 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
   * VIES 号码有效，且国家相同 → 该国标准税，邮编匹配时为例外税；
   * 没有 VIES 号码、欧盟国家 → 该国的标准（或例外）税；没有国家 → 计费主体所在国的标准税；
   * 非欧盟国家 → `eu_tax_exempt`。
-  * VIES 校验待完成期间（以退避方式重试，最长间隔一小时），客户的发票停在 `open` 且 `tax_status = pending`。
+  * 有税号且不在特殊地区的客户在 VIES 答复前不分配欧盟税。该校验是一条**待定 VIES 校验**（每个客户一条：税号、计费主体、尝试次数、最近尝试时间、最近错误类型 `rate_limit` | `timeout` | `blocked` | `invalid_requester` | `service_unavailable` | `member_state_unavailable` | `unknown`、最近错误信息）及任务 `customers.vies_check`。重新安排会重置尝试次数；无需 VIES 即决定税时删除该校验。VIES 答复后，客户的税变为所决定的欧盟税，其草稿刷新，校验删除；VIES 失败计一次尝试，并在 5、5、10、20、40 分钟后重试，之后每小时一次。每次答复或失败都以 `customer.vies_check` 发出，其 `vies_check` 为 VIES 查询结果，或 `valid: false` 加 `valid_format`，失败时还有 `error`。
+  * VIES 校验待完成期间，客户的发票不计税并以 `tax_status = pending` 等待：定稿时停在 `open`，否则停在 `draft`。校验完成后，每张 open 发票由任务 `billing.finalize_pending_vies_invoice` 按已决定的税定稿；门控发票保持 `open` 并发起付款。
 * **服务商计税**：§17.4。
 
 ### 22.11 编号
@@ -1699,7 +1711,6 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
 | 计费调度 | 每小时扫描 | 按订阅的 `next_billing_at` + 对账（§22.17） |
 | 删除 | 处处使用 `deleted_at` 软删除 | 生命周期状态 + 物理删除（§2.3） |
 | 套餐删除 | `deleted_at` | `deleted` 状态（§7.2） |
-| 删除的草稿 | 保留 `deleted` 状态的行 | 移除；保留审计事件（§11.7） |
 | 一次性发票待计税 | 状态 `pending` | 状态 `open`（§11.2） |
 | 欧盟税码 | `lago_eu_*` | `eu_*`（§22.10） |
 | 代码唯一性 | 应用层检查 + 软删除作用域 | 存活行上的部分唯一索引（§2.1） |
@@ -1710,7 +1721,7 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
 | SSO 域名匹配 | Okta 精确匹配，Entra ID 不区分大小写 | 所有服务商都不区分大小写（§17.1） |
 | 发件地址 | `from_email` 高级版集成 | 组织设置 `from_email_enabled`（§4.1） |
 
-**[舍弃]**（不实现）：发票类型 `add_on`、分组与分组属性、`grouped_by` 别名、发票版本门控、`organization_sequential_id`、`vat_rate` 列、遗留的 `cancelation_reason`/`incompleted_at` 列、`overriden` 别名、`event.error` Webhook、`applied_add_ons`、`organizations.webhook_url`/`api_key`/`hmac_key`、`webhooks.payload` 遗留布局、已弃用的公钥接口、催收的 `applied_to_organization`、集成资源类型 `sales_order_deprecated`、NetSuite `legacy_script`、`recurring_count_agg`、遗留的计费指标属性、已弃用的计费项上下文。
+**[舍弃]**（不实现）：发票类型 `add_on`、分组与分组属性、`grouped_by` 别名、发票版本门控、`organization_sequential_id`、`vat_rate` 列、遗留的 `cancelation_reason`/`incompleted_at` 列、`overriden` 别名、`event.error` Webhook、`applied_add_ons`、`organizations.webhook_url`/`api_key`/`hmac_key`、`webhooks.payload` 遗留布局、已弃用的公钥接口、集成资源类型 `sales_order_deprecated`、NetSuite `legacy_script`、`recurring_count_agg`、遗留的计费指标属性、已弃用的计费项上下文。
 
 ---
 
@@ -1728,11 +1739,11 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
 8. **付款收据编号**来自客户行上的计数器，在创建收据的事务中持有该行锁时取得。
 9. **终身用量**增量维护：用量桶支持的计费项取自用量桶，其他计费项取自事件（架构 §7.4），并以周期性重算作为对账。
 10. **试用期长度**为整天数。
-11. **事件去重**：键为（组织，`external_subscription_id`，`transaction_id`）；先被接受的事件为准，重复发送不论代码与时间戳都会被确认为重复并丢弃，更正通过 API 的事件替换完成，并留下明确的审计记录。此条取代 §10 中“时间戳相同则替换”的规则。*2026-10-23 变更*：键原为（组织，`transaction_id`）；现在与 Lago 一样包含外部订阅，使在多个订阅间复用事务 ID 的客户端不会丢失事件，并使一个键的所有副本到达同一摄取分区，这是按订阅分区时无需在写入者之间解析副本即可去重的前提。
+11. **事件去重**：键为（组织，`external_subscription_id`，`transaction_id`）；先被接受的事件为准，重复发送不论代码与时间戳都会被确认为重复并丢弃。此条取代 §10 中“时间戳相同则替换”的规则。*2026-10-23 变更*：键原为（组织，`transaction_id`）；现在与 Lago 一样包含外部订阅，使在多个订阅间复用事务 ID 的客户端不会丢失事件，并使一个键的所有副本到达同一摄取分区，这是按订阅分区时无需在写入者之间解析副本即可去重的前提。
 12. **付款条款**是以天计的整数净付款期限（≥ 0），与 Lago v1.55.0 一致：计费主体上的 `net_payment_term_days`（默认 0）和客户上的 `net_payment_term_days`（`null` 继承计费主体的值）。发票快照适用的期限，到期日为开票日期加上该天数。Lago 的 `payment_term` 和 `payment_term_source` 列（1d56e730e）在 v1.55.0 中没有读取方，不予建模；将使用它们的结构化付款条款尚未发布，不予实现。
 13. **告警**：没有已解决或种子状态。v1.55.0 中已触发告警的 `kind`（`triggered`、`resolved`、`seeded`）、`in_alarm_thresholds` 和 `fully_resolved` 列存在，但没有任何代码写入已解决或种子告警，也不发送 `alert.resolved` webhook。
 14. **x402 支付**覆盖 v1.55.0 可达的部分：准入检查（路由检查、余额检查、付款要求），所用的连接在 API 之外配置，网络和 USDC 资产为其支持的范围。结算服务（核验、结算、付款摘要）和链上读取在 v1.55.0 中存在但没有调用方；Tanvo 同样不把它们接入 API、任务或对账。结算的支付摘要和交易哈希在所有组织间唯一，这是租户范围唯一性的一个刻意例外（另一个是发票的 `x402_payment_token`，§11.1）：共用收款地址的两个组织不能为同一笔转账都入账（Lago 18a741762）。
-15. **流式目的地**提供 CRUD API，是与 webhook 端点并列的一种事件目的地（Kafka、Kinesis、S3）。
+15. **流式目的地**是与 webhook 端点并列的一种事件目的地，由运维方配置：v1.55.0 没有创建它们的 API。*2026-10-24 变更*：此前提供 CRUD API（Kafka、Kinesis、S3），超出基线。
 16. **分层**：API 只暴露相邻分层。
 17. **混合升级发票**：每个发票订阅记录自己的原因（`subscription_terminating`、`subscription_starting`）；发票在升级日期开具。
 18. **过期的激活**以该退款原因退还已捕获的付款。

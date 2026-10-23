@@ -27,6 +27,15 @@ type txState struct {
 	// scope is the current value of tanvo.organization_id ("" when unset).
 	scope string
 	repos port.Repos
+	// catalog are the catalog changes to notify before the commit.
+	catalog []CatalogChange
+	// deleted are the tracked rows the transaction may have deleted, whose
+	// record deletions are written before the commit (record_deletion.go).
+	deleted map[trackedRow]core.OrganizationID
+	// trackedInvoices and trackedCreditNotes are the parents whose tracked
+	// rows are in deleted.
+	trackedInvoices    map[core.InvoiceID]bool
+	trackedCreditNotes map[core.CreditNoteID]bool
 }
 
 // setScope sets tanvo.organization_id to v for the rest of the transaction

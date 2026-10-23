@@ -64,10 +64,10 @@ func (q *Queries) CreateOrder(ctx context.Context, arg CreateOrderParams) (int64
 const createOrderForm = `-- name: CreateOrderForm :execrows
 INSERT INTO order_forms (
   organization_id, id, number, sequential_id, customer_id, quote_version_id, status, void_reason,
-  expires_at, signed_at, signed_by, signed_document, voided_at, created_at, updated_at
+  expires_at, signed_at, signed_document, voided_at, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8,
-  $9, $10, $11, $12, $13, $14, $15
+  $9, $10, $11, $12, $13, $14
 )
 ON CONFLICT DO NOTHING
 `
@@ -83,7 +83,6 @@ type CreateOrderFormParams struct {
 	VoidReason     *string
 	ExpiresAt      *time.Time
 	SignedAt       *time.Time
-	SignedBy       *string
 	SignedDocument *string
 	VoidedAt       *time.Time
 	CreatedAt      time.Time
@@ -102,7 +101,6 @@ func (q *Queries) CreateOrderForm(ctx context.Context, arg CreateOrderFormParams
 		arg.VoidReason,
 		arg.ExpiresAt,
 		arg.SignedAt,
-		arg.SignedBy,
 		arg.SignedDocument,
 		arg.VoidedAt,
 		arg.CreatedAt,
@@ -117,9 +115,9 @@ func (q *Queries) CreateOrderForm(ctx context.Context, arg CreateOrderFormParams
 const createQuote = `-- name: CreateQuote :execrows
 
 INSERT INTO quotes (
-  organization_id, id, number, sequential_id, customer_id, order_type, subscription_id, created_at, updated_at
+  organization_id, id, number, sequential_id, customer_id, order_type, subscription_id, images, created_at, updated_at
 ) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9
+  $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 )
 ON CONFLICT DO NOTHING
 `
@@ -132,6 +130,7 @@ type CreateQuoteParams struct {
 	CustomerID     uuid.UUID
 	OrderType      string
 	SubscriptionID *uuid.UUID
+	Images         []string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -146,6 +145,7 @@ func (q *Queries) CreateQuote(ctx context.Context, arg CreateQuoteParams) (int64
 		arg.CustomerID,
 		arg.OrderType,
 		arg.SubscriptionID,
+		arg.Images,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -157,29 +157,31 @@ func (q *Queries) CreateQuote(ctx context.Context, arg CreateQuoteParams) (int64
 
 const createQuoteVersion = `-- name: CreateQuoteVersion :execrows
 INSERT INTO quote_versions (
-  organization_id, id, quote_id, version, status, void_reason, content, currency, billing_entity_id,
-  approved_at, voided_at, created_at, updated_at
+  organization_id, id, quote_id, version, status, void_reason, content, billing_items, mention_variables,
+  currency, billing_entity_id, approved_at, voided_at, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8, $9,
-  $10, $11, $12, $13
+  $10, $11, $12, $13, $14, $15
 )
 ON CONFLICT DO NOTHING
 `
 
 type CreateQuoteVersionParams struct {
-	OrganizationID  uuid.UUID
-	ID              uuid.UUID
-	QuoteID         uuid.UUID
-	Version         int32
-	Status          string
-	VoidReason      *string
-	Content         []byte
-	Currency        *string
-	BillingEntityID *uuid.UUID
-	ApprovedAt      *time.Time
-	VoidedAt        *time.Time
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	OrganizationID   uuid.UUID
+	ID               uuid.UUID
+	QuoteID          uuid.UUID
+	Version          int32
+	Status           string
+	VoidReason       *string
+	Content          *string
+	BillingItems     []byte
+	MentionVariables []byte
+	Currency         *string
+	BillingEntityID  *uuid.UUID
+	ApprovedAt       *time.Time
+	VoidedAt         *time.Time
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 func (q *Queries) CreateQuoteVersion(ctx context.Context, arg CreateQuoteVersionParams) (int64, error) {
@@ -191,6 +193,8 @@ func (q *Queries) CreateQuoteVersion(ctx context.Context, arg CreateQuoteVersion
 		arg.Status,
 		arg.VoidReason,
 		arg.Content,
+		arg.BillingItems,
+		arg.MentionVariables,
 		arg.Currency,
 		arg.BillingEntityID,
 		arg.ApprovedAt,
@@ -219,7 +223,7 @@ func (q *Queries) DeleteQuoteOwners(ctx context.Context, arg DeleteQuoteOwnersPa
 }
 
 const getCurrentQuoteVersion = `-- name: GetCurrentQuoteVersion :one
-SELECT organization_id, id, quote_id, version, status, void_reason, content, currency, billing_entity_id, approved_at, voided_at, created_at, updated_at FROM quote_versions
+SELECT organization_id, id, quote_id, version, status, void_reason, content, billing_items, mention_variables, currency, billing_entity_id, approved_at, voided_at, created_at, updated_at FROM quote_versions
 WHERE organization_id = $1 AND quote_id = $2
 ORDER BY version DESC
 LIMIT 1
@@ -241,6 +245,8 @@ func (q *Queries) GetCurrentQuoteVersion(ctx context.Context, arg GetCurrentQuot
 		&i.Status,
 		&i.VoidReason,
 		&i.Content,
+		&i.BillingItems,
+		&i.MentionVariables,
 		&i.Currency,
 		&i.BillingEntityID,
 		&i.ApprovedAt,
@@ -312,7 +318,7 @@ func (q *Queries) GetOrderByNumber(ctx context.Context, arg GetOrderByNumberPara
 }
 
 const getOrderForm = `-- name: GetOrderForm :one
-SELECT organization_id, id, number, sequential_id, customer_id, quote_version_id, status, void_reason, expires_at, signed_at, signed_by, signed_document, voided_at, created_at, updated_at FROM order_forms WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, number, sequential_id, customer_id, quote_version_id, status, void_reason, expires_at, signed_at, signed_document, voided_at, created_at, updated_at FROM order_forms WHERE organization_id = $1 AND id = $2
 `
 
 type GetOrderFormParams struct {
@@ -334,7 +340,6 @@ func (q *Queries) GetOrderForm(ctx context.Context, arg GetOrderFormParams) (Ord
 		&i.VoidReason,
 		&i.ExpiresAt,
 		&i.SignedAt,
-		&i.SignedBy,
 		&i.SignedDocument,
 		&i.VoidedAt,
 		&i.CreatedAt,
@@ -344,7 +349,7 @@ func (q *Queries) GetOrderForm(ctx context.Context, arg GetOrderFormParams) (Ord
 }
 
 const getOrderFormByNumber = `-- name: GetOrderFormByNumber :one
-SELECT organization_id, id, number, sequential_id, customer_id, quote_version_id, status, void_reason, expires_at, signed_at, signed_by, signed_document, voided_at, created_at, updated_at FROM order_forms WHERE organization_id = $1 AND number = $2
+SELECT organization_id, id, number, sequential_id, customer_id, quote_version_id, status, void_reason, expires_at, signed_at, signed_document, voided_at, created_at, updated_at FROM order_forms WHERE organization_id = $1 AND number = $2
 `
 
 type GetOrderFormByNumberParams struct {
@@ -366,7 +371,6 @@ func (q *Queries) GetOrderFormByNumber(ctx context.Context, arg GetOrderFormByNu
 		&i.VoidReason,
 		&i.ExpiresAt,
 		&i.SignedAt,
-		&i.SignedBy,
 		&i.SignedDocument,
 		&i.VoidedAt,
 		&i.CreatedAt,
@@ -376,7 +380,7 @@ func (q *Queries) GetOrderFormByNumber(ctx context.Context, arg GetOrderFormByNu
 }
 
 const getOrderFormByVersion = `-- name: GetOrderFormByVersion :one
-SELECT organization_id, id, number, sequential_id, customer_id, quote_version_id, status, void_reason, expires_at, signed_at, signed_by, signed_document, voided_at, created_at, updated_at FROM order_forms WHERE organization_id = $1 AND quote_version_id = $2
+SELECT organization_id, id, number, sequential_id, customer_id, quote_version_id, status, void_reason, expires_at, signed_at, signed_document, voided_at, created_at, updated_at FROM order_forms WHERE organization_id = $1 AND quote_version_id = $2
 `
 
 type GetOrderFormByVersionParams struct {
@@ -398,7 +402,6 @@ func (q *Queries) GetOrderFormByVersion(ctx context.Context, arg GetOrderFormByV
 		&i.VoidReason,
 		&i.ExpiresAt,
 		&i.SignedAt,
-		&i.SignedBy,
 		&i.SignedDocument,
 		&i.VoidedAt,
 		&i.CreatedAt,
@@ -408,7 +411,7 @@ func (q *Queries) GetOrderFormByVersion(ctx context.Context, arg GetOrderFormByV
 }
 
 const getQuote = `-- name: GetQuote :one
-SELECT q.organization_id, q.id, q.number, q.sequential_id, q.customer_id, q.order_type, q.subscription_id, q.created_at, q.updated_at,
+SELECT q.organization_id, q.id, q.number, q.sequential_id, q.customer_id, q.order_type, q.subscription_id, q.images, q.created_at, q.updated_at,
   ARRAY(SELECT o.membership_id FROM quote_owners o
         WHERE o.organization_id = q.organization_id AND o.quote_id = q.id ORDER BY o.position)::uuid[] AS owner_ids
 FROM quotes q
@@ -436,6 +439,7 @@ func (q *Queries) GetQuote(ctx context.Context, arg GetQuoteParams) (GetQuoteRow
 		&i.Quote.CustomerID,
 		&i.Quote.OrderType,
 		&i.Quote.SubscriptionID,
+		&i.Quote.Images,
 		&i.Quote.CreatedAt,
 		&i.Quote.UpdatedAt,
 		&i.OwnerIds,
@@ -444,7 +448,7 @@ func (q *Queries) GetQuote(ctx context.Context, arg GetQuoteParams) (GetQuoteRow
 }
 
 const getQuoteByNumber = `-- name: GetQuoteByNumber :one
-SELECT q.organization_id, q.id, q.number, q.sequential_id, q.customer_id, q.order_type, q.subscription_id, q.created_at, q.updated_at,
+SELECT q.organization_id, q.id, q.number, q.sequential_id, q.customer_id, q.order_type, q.subscription_id, q.images, q.created_at, q.updated_at,
   ARRAY(SELECT o.membership_id FROM quote_owners o
         WHERE o.organization_id = q.organization_id AND o.quote_id = q.id ORDER BY o.position)::uuid[] AS owner_ids
 FROM quotes q
@@ -472,6 +476,7 @@ func (q *Queries) GetQuoteByNumber(ctx context.Context, arg GetQuoteByNumberPara
 		&i.Quote.CustomerID,
 		&i.Quote.OrderType,
 		&i.Quote.SubscriptionID,
+		&i.Quote.Images,
 		&i.Quote.CreatedAt,
 		&i.Quote.UpdatedAt,
 		&i.OwnerIds,
@@ -480,7 +485,7 @@ func (q *Queries) GetQuoteByNumber(ctx context.Context, arg GetQuoteByNumberPara
 }
 
 const getQuoteVersion = `-- name: GetQuoteVersion :one
-SELECT organization_id, id, quote_id, version, status, void_reason, content, currency, billing_entity_id, approved_at, voided_at, created_at, updated_at FROM quote_versions WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, quote_id, version, status, void_reason, content, billing_items, mention_variables, currency, billing_entity_id, approved_at, voided_at, created_at, updated_at FROM quote_versions WHERE organization_id = $1 AND id = $2
 `
 
 type GetQuoteVersionParams struct {
@@ -499,6 +504,8 @@ func (q *Queries) GetQuoteVersion(ctx context.Context, arg GetQuoteVersionParams
 		&i.Status,
 		&i.VoidReason,
 		&i.Content,
+		&i.BillingItems,
+		&i.MentionVariables,
 		&i.Currency,
 		&i.BillingEntityID,
 		&i.ApprovedAt,
@@ -574,7 +581,7 @@ func (q *Queries) ListExecutableOrders(ctx context.Context, arg ListExecutableOr
 }
 
 const listExpiringOrderForms = `-- name: ListExpiringOrderForms :many
-SELECT organization_id, id, number, sequential_id, customer_id, quote_version_id, status, void_reason, expires_at, signed_at, signed_by, signed_document, voided_at, created_at, updated_at FROM order_forms
+SELECT organization_id, id, number, sequential_id, customer_id, quote_version_id, status, void_reason, expires_at, signed_at, signed_document, voided_at, created_at, updated_at FROM order_forms
 WHERE status = 'generated' AND expires_at IS NOT NULL AND expires_at < $1
 ORDER BY id
 LIMIT $2
@@ -606,7 +613,6 @@ func (q *Queries) ListExpiringOrderForms(ctx context.Context, arg ListExpiringOr
 			&i.VoidReason,
 			&i.ExpiresAt,
 			&i.SignedAt,
-			&i.SignedBy,
 			&i.SignedDocument,
 			&i.VoidedAt,
 			&i.CreatedAt,
@@ -623,29 +629,64 @@ func (q *Queries) ListExpiringOrderForms(ctx context.Context, arg ListExpiringOr
 }
 
 const listOrderForms = `-- name: ListOrderForms :many
-SELECT organization_id, id, number, sequential_id, customer_id, quote_version_id, status, void_reason, expires_at, signed_at, signed_by, signed_document, voided_at, created_at, updated_at FROM order_forms
-WHERE organization_id = $1
-  AND ($2::uuid IS NULL OR customer_id = $2)
-  AND (cardinality($3::text[]) = 0 OR status = ANY($3::text[]))
-  AND ($4::uuid IS NULL OR id > $4)
-ORDER BY id
-LIMIT $5
+SELECT f.organization_id, f.id, f.number, f.sequential_id, f.customer_id, f.quote_version_id, f.status, f.void_reason, f.expires_at, f.signed_at, f.signed_document, f.voided_at, f.created_at, f.updated_at FROM order_forms f
+WHERE f.organization_id = $1
+  AND ($2::uuid IS NULL OR f.customer_id = $2)
+  AND (cardinality($3::text[]) = 0 OR f.status = ANY($3::text[]))
+  AND ($4::text IS NULL OR f.number = $4)
+  AND ($5::text IS NULL OR f.number ILIKE $5)
+  AND ($6::timestamptz IS NULL OR f.created_at >= $6)
+  AND ($7::timestamptz IS NULL OR f.created_at <= $7)
+  AND ($8::timestamptz IS NULL OR f.expires_at >= $8)
+  AND ($9::timestamptz IS NULL OR f.expires_at <= $9)
+  AND (($10::text IS NULL AND $11::uuid IS NULL) OR EXISTS (
+        SELECT 1 FROM quote_versions v JOIN quotes q ON q.organization_id = v.organization_id AND q.id = v.quote_id
+        WHERE v.organization_id = f.organization_id AND v.id = f.quote_version_id
+          AND ($10::text IS NULL OR q.number = $10)
+          AND ($11::uuid IS NULL OR EXISTS (
+                SELECT 1 FROM quote_owners o
+                WHERE o.organization_id = q.organization_id AND o.quote_id = q.id AND o.membership_id = $11))))
+  AND ($12::uuid IS NULL
+       OR f.created_at < $13::timestamptz
+       OR (f.created_at = $13::timestamptz AND f.id > $12))
+ORDER BY f.created_at DESC, f.id
+LIMIT $14
 `
 
 type ListOrderFormsParams struct {
 	OrganizationID uuid.UUID
 	CustomerID     *uuid.UUID
 	Statuses       []string
+	Number         *string
+	Search         *string
+	CreatedFrom    *time.Time
+	CreatedTo      *time.Time
+	ExpiresFrom    *time.Time
+	ExpiresTo      *time.Time
+	QuoteNumber    *string
+	OwnerID        *uuid.UUID
 	After          *uuid.UUID
+	AfterAt        *time.Time
 	Lim            int32
 }
 
+// Filters of order_forms_query.rb:19-31; by created_at, newest first, then
+// by id, the cursor being (@after_at, @after).
 func (q *Queries) ListOrderForms(ctx context.Context, arg ListOrderFormsParams) ([]OrderForm, error) {
 	rows, err := q.db.Query(ctx, listOrderForms,
 		arg.OrganizationID,
 		arg.CustomerID,
 		arg.Statuses,
+		arg.Number,
+		arg.Search,
+		arg.CreatedFrom,
+		arg.CreatedTo,
+		arg.ExpiresFrom,
+		arg.ExpiresTo,
+		arg.QuoteNumber,
+		arg.OwnerID,
 		arg.After,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {
@@ -666,7 +707,6 @@ func (q *Queries) ListOrderForms(ctx context.Context, arg ListOrderFormsParams) 
 			&i.VoidReason,
 			&i.ExpiresAt,
 			&i.SignedAt,
-			&i.SignedBy,
 			&i.SignedDocument,
 			&i.VoidedAt,
 			&i.CreatedAt,
@@ -683,29 +723,70 @@ func (q *Queries) ListOrderForms(ctx context.Context, arg ListOrderFormsParams) 
 }
 
 const listOrders = `-- name: ListOrders :many
-SELECT organization_id, id, number, sequential_id, customer_id, order_form_id, status, execution_mode, execute_at, executed_at, execution_record, created_at, updated_at FROM orders
-WHERE organization_id = $1
-  AND ($2::uuid IS NULL OR customer_id = $2)
-  AND (cardinality($3::text[]) = 0 OR status = ANY($3::text[]))
-  AND ($4::uuid IS NULL OR id > $4)
-ORDER BY id
-LIMIT $5
+SELECT o.organization_id, o.id, o.number, o.sequential_id, o.customer_id, o.order_form_id, o.status, o.execution_mode, o.execute_at, o.executed_at, o.execution_record, o.created_at, o.updated_at FROM orders o
+WHERE o.organization_id = $1
+  AND ($2::uuid IS NULL OR o.customer_id = $2)
+  AND (cardinality($3::text[]) = 0 OR o.status = ANY($3::text[]))
+  AND (cardinality($4::text[]) = 0 OR o.execution_mode = ANY($4::text[]))
+  AND ($5::text IS NULL OR o.number = $5)
+  AND ($6::text IS NULL OR o.number ILIKE $6)
+  AND ($7::timestamptz IS NULL OR o.executed_at >= $7)
+  AND ($8::timestamptz IS NULL OR o.executed_at <= $8)
+  AND (($9::text IS NULL AND $10::text IS NULL
+        AND $11::uuid IS NULL AND cardinality($12::text[]) = 0) OR EXISTS (
+        SELECT 1 FROM order_forms f
+        JOIN quote_versions v ON v.organization_id = f.organization_id AND v.id = f.quote_version_id
+        JOIN quotes q ON q.organization_id = v.organization_id AND q.id = v.quote_id
+        WHERE f.organization_id = o.organization_id AND f.id = o.order_form_id
+          AND ($9::text IS NULL OR f.number = $9)
+          AND ($10::text IS NULL OR q.number = $10)
+          AND (cardinality($12::text[]) = 0 OR q.order_type = ANY($12::text[]))
+          AND ($11::uuid IS NULL OR EXISTS (
+                SELECT 1 FROM quote_owners qo
+                WHERE qo.organization_id = q.organization_id AND qo.quote_id = q.id AND qo.membership_id = $11))))
+  AND ($13::uuid IS NULL
+       OR o.created_at < $14::timestamptz
+       OR (o.created_at = $14::timestamptz AND o.id > $13))
+ORDER BY o.created_at DESC, o.id
+LIMIT $15
 `
 
 type ListOrdersParams struct {
-	OrganizationID uuid.UUID
-	CustomerID     *uuid.UUID
-	Statuses       []string
-	After          *uuid.UUID
-	Lim            int32
+	OrganizationID  uuid.UUID
+	CustomerID      *uuid.UUID
+	Statuses        []string
+	ExecutionModes  []string
+	Number          *string
+	Search          *string
+	ExecutedFrom    *time.Time
+	ExecutedTo      *time.Time
+	OrderFormNumber *string
+	QuoteNumber     *string
+	OwnerID         *uuid.UUID
+	OrderTypes      []string
+	After           *uuid.UUID
+	AfterAt         *time.Time
+	Lim             int32
 }
 
+// Filters of orders_query.rb:20-32; by created_at, newest first, then by
+// id, the cursor being (@after_at, @after).
 func (q *Queries) ListOrders(ctx context.Context, arg ListOrdersParams) ([]Order, error) {
 	rows, err := q.db.Query(ctx, listOrders,
 		arg.OrganizationID,
 		arg.CustomerID,
 		arg.Statuses,
+		arg.ExecutionModes,
+		arg.Number,
+		arg.Search,
+		arg.ExecutedFrom,
+		arg.ExecutedTo,
+		arg.OrderFormNumber,
+		arg.QuoteNumber,
+		arg.OwnerID,
+		arg.OrderTypes,
 		arg.After,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {
@@ -741,7 +822,7 @@ func (q *Queries) ListOrders(ctx context.Context, arg ListOrdersParams) ([]Order
 }
 
 const listQuoteVersionsByQuote = `-- name: ListQuoteVersionsByQuote :many
-SELECT organization_id, id, quote_id, version, status, void_reason, content, currency, billing_entity_id, approved_at, voided_at, created_at, updated_at FROM quote_versions
+SELECT organization_id, id, quote_id, version, status, void_reason, content, billing_items, mention_variables, currency, billing_entity_id, approved_at, voided_at, created_at, updated_at FROM quote_versions
 WHERE organization_id = $1 AND quote_id = $2
 ORDER BY version DESC
 `
@@ -768,6 +849,8 @@ func (q *Queries) ListQuoteVersionsByQuote(ctx context.Context, arg ListQuoteVer
 			&i.Status,
 			&i.VoidReason,
 			&i.Content,
+			&i.BillingItems,
+			&i.MentionVariables,
 			&i.Currency,
 			&i.BillingEntityID,
 			&i.ApprovedAt,
@@ -786,28 +869,47 @@ func (q *Queries) ListQuoteVersionsByQuote(ctx context.Context, arg ListQuoteVer
 }
 
 const listQuotes = `-- name: ListQuotes :many
-SELECT q.organization_id, q.id, q.number, q.sequential_id, q.customer_id, q.order_type, q.subscription_id, q.created_at, q.updated_at,
+SELECT q.organization_id, q.id, q.number, q.sequential_id, q.customer_id, q.order_type, q.subscription_id, q.images, q.created_at, q.updated_at,
   ARRAY(SELECT o.membership_id FROM quote_owners o
         WHERE o.organization_id = q.organization_id AND o.quote_id = q.id ORDER BY o.position)::uuid[] AS owner_ids
 FROM quotes q
 WHERE q.organization_id = $1
-  AND ($2::uuid IS NULL OR q.customer_id = $2)
-  AND (cardinality($3::text[]) = 0 OR q.order_type = ANY($3::text[]))
-  AND ($4::uuid IS NULL OR EXISTS (
+  AND (cardinality($2::uuid[]) = 0 OR q.customer_id = ANY($2::uuid[]))
+  AND (cardinality($3::text[]) = 0 OR EXISTS (
+        SELECT 1 FROM customers c
+        WHERE c.organization_id = q.organization_id AND c.id = q.customer_id
+          AND c.external_id = ANY($3::text[])))
+  AND (cardinality($4::text[]) = 0 OR q.number = ANY($4::text[]))
+  AND (cardinality($5::text[]) = 0 OR (
+        SELECT v.status FROM quote_versions v
+        WHERE v.organization_id = q.organization_id AND v.quote_id = q.id
+        ORDER BY v.version DESC LIMIT 1) = ANY($5::text[]))
+  AND ($6::timestamptz IS NULL OR q.created_at >= $6)
+  AND ($7::timestamptz IS NULL OR q.created_at <= $7)
+  AND (cardinality($8::uuid[]) = 0 OR EXISTS (
         SELECT 1 FROM quote_owners o
-        WHERE o.organization_id = q.organization_id AND o.quote_id = q.id AND o.membership_id = $4))
-  AND ($5::uuid IS NULL OR q.id > $5)
-ORDER BY q.id
-LIMIT $6
+        WHERE o.organization_id = q.organization_id AND o.quote_id = q.id AND o.membership_id = ANY($8::uuid[])))
+  AND (cardinality($9::text[]) = 0 OR q.order_type = ANY($9::text[]))
+  AND ($10::uuid IS NULL
+       OR q.created_at < $11::timestamptz
+       OR (q.created_at = $11::timestamptz AND q.id > $10))
+ORDER BY q.created_at DESC, q.id
+LIMIT $12
 `
 
 type ListQuotesParams struct {
-	OrganizationID uuid.UUID
-	CustomerID     *uuid.UUID
-	OrderTypes     []string
-	OwnerID        *uuid.UUID
-	After          *uuid.UUID
-	Lim            int32
+	OrganizationID      uuid.UUID
+	CustomerIds         []uuid.UUID
+	ExternalCustomerIds []string
+	Numbers             []string
+	Statuses            []string
+	FromAt              *time.Time
+	ToAt                *time.Time
+	OwnerIds            []uuid.UUID
+	OrderTypes          []string
+	After               *uuid.UUID
+	AfterAt             *time.Time
+	Lim                 int32
 }
 
 type ListQuotesRow struct {
@@ -815,13 +917,21 @@ type ListQuotesRow struct {
 	OwnerIds []uuid.UUID
 }
 
+// Filters of quotes_query.rb:9-17; by created_at, newest first, then by id
+// (quotes_query.rb:20), the cursor being (@after_at, @after).
 func (q *Queries) ListQuotes(ctx context.Context, arg ListQuotesParams) ([]ListQuotesRow, error) {
 	rows, err := q.db.Query(ctx, listQuotes,
 		arg.OrganizationID,
-		arg.CustomerID,
+		arg.CustomerIds,
+		arg.ExternalCustomerIds,
+		arg.Numbers,
+		arg.Statuses,
+		arg.FromAt,
+		arg.ToAt,
+		arg.OwnerIds,
 		arg.OrderTypes,
-		arg.OwnerID,
 		arg.After,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {
@@ -839,6 +949,7 @@ func (q *Queries) ListQuotes(ctx context.Context, arg ListQuotesParams) ([]ListQ
 			&i.Quote.CustomerID,
 			&i.Quote.OrderType,
 			&i.Quote.SubscriptionID,
+			&i.Quote.Images,
 			&i.Quote.CreatedAt,
 			&i.Quote.UpdatedAt,
 			&i.OwnerIds,
@@ -856,17 +967,11 @@ func (q *Queries) ListQuotes(ctx context.Context, arg ListQuotesParams) ([]ListQ
 const nextOrderFormSequence = `-- name: NextOrderFormSequence :one
 SELECT (COALESCE(MAX(sequential_id), 0) + 1)::integer AS next
 FROM order_forms
-WHERE organization_id = $1 AND created_at >= $2 AND created_at < $3
+WHERE organization_id = $1
 `
 
-type NextOrderFormSequenceParams struct {
-	OrganizationID uuid.UUID
-	YearStart      time.Time
-	YearEnd        time.Time
-}
-
-func (q *Queries) NextOrderFormSequence(ctx context.Context, arg NextOrderFormSequenceParams) (int32, error) {
-	row := q.db.QueryRow(ctx, nextOrderFormSequence, arg.OrganizationID, arg.YearStart, arg.YearEnd)
+func (q *Queries) NextOrderFormSequence(ctx context.Context, organizationID uuid.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, nextOrderFormSequence, organizationID)
 	var next int32
 	err := row.Scan(&next)
 	return next, err
@@ -875,17 +980,11 @@ func (q *Queries) NextOrderFormSequence(ctx context.Context, arg NextOrderFormSe
 const nextOrderSequence = `-- name: NextOrderSequence :one
 SELECT (COALESCE(MAX(sequential_id), 0) + 1)::integer AS next
 FROM orders
-WHERE organization_id = $1 AND created_at >= $2 AND created_at < $3
+WHERE organization_id = $1
 `
 
-type NextOrderSequenceParams struct {
-	OrganizationID uuid.UUID
-	YearStart      time.Time
-	YearEnd        time.Time
-}
-
-func (q *Queries) NextOrderSequence(ctx context.Context, arg NextOrderSequenceParams) (int32, error) {
-	row := q.db.QueryRow(ctx, nextOrderSequence, arg.OrganizationID, arg.YearStart, arg.YearEnd)
+func (q *Queries) NextOrderSequence(ctx context.Context, organizationID uuid.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, nextOrderSequence, organizationID)
 	var next int32
 	err := row.Scan(&next)
 	return next, err
@@ -894,17 +993,11 @@ func (q *Queries) NextOrderSequence(ctx context.Context, arg NextOrderSequencePa
 const nextQuoteSequence = `-- name: NextQuoteSequence :one
 SELECT (COALESCE(MAX(sequential_id), 0) + 1)::integer AS next
 FROM quotes
-WHERE organization_id = $1 AND created_at >= $2 AND created_at < $3
+WHERE organization_id = $1
 `
 
-type NextQuoteSequenceParams struct {
-	OrganizationID uuid.UUID
-	YearStart      time.Time
-	YearEnd        time.Time
-}
-
-func (q *Queries) NextQuoteSequence(ctx context.Context, arg NextQuoteSequenceParams) (int32, error) {
-	row := q.db.QueryRow(ctx, nextQuoteSequence, arg.OrganizationID, arg.YearStart, arg.YearEnd)
+func (q *Queries) NextQuoteSequence(ctx context.Context, organizationID uuid.UUID) (int32, error) {
+	row := q.db.QueryRow(ctx, nextQuoteSequence, organizationID)
 	var next int32
 	err := row.Scan(&next)
 	return next, err
@@ -961,8 +1054,8 @@ const updateOrderForm = `-- name: UpdateOrderForm :execrows
 UPDATE order_forms SET
   organization_id = $1, id = $2, number = $3, sequential_id = $4,
   customer_id = $5, quote_version_id = $6, status = $7, void_reason = $8,
-  expires_at = $9, signed_at = $10, signed_by = $11, signed_document = $12,
-  voided_at = $13, created_at = $14, updated_at = $15
+  expires_at = $9, signed_at = $10, signed_document = $11,
+  voided_at = $12, created_at = $13, updated_at = $14
 WHERE organization_id = $1 AND id = $2
 `
 
@@ -977,7 +1070,6 @@ type UpdateOrderFormParams struct {
 	VoidReason     *string
 	ExpiresAt      *time.Time
 	SignedAt       *time.Time
-	SignedBy       *string
 	SignedDocument *string
 	VoidedAt       *time.Time
 	CreatedAt      time.Time
@@ -996,7 +1088,6 @@ func (q *Queries) UpdateOrderForm(ctx context.Context, arg UpdateOrderFormParams
 		arg.VoidReason,
 		arg.ExpiresAt,
 		arg.SignedAt,
-		arg.SignedBy,
 		arg.SignedDocument,
 		arg.VoidedAt,
 		arg.CreatedAt,
@@ -1011,8 +1102,8 @@ func (q *Queries) UpdateOrderForm(ctx context.Context, arg UpdateOrderFormParams
 const updateQuote = `-- name: UpdateQuote :execrows
 UPDATE quotes SET
   organization_id = $1, id = $2, number = $3, sequential_id = $4,
-  customer_id = $5, order_type = $6, subscription_id = $7,
-  created_at = $8, updated_at = $9
+  customer_id = $5, order_type = $6, subscription_id = $7, images = $8,
+  created_at = $9, updated_at = $10
 WHERE organization_id = $1 AND id = $2
 `
 
@@ -1024,6 +1115,7 @@ type UpdateQuoteParams struct {
 	CustomerID     uuid.UUID
 	OrderType      string
 	SubscriptionID *uuid.UUID
+	Images         []string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
@@ -1037,6 +1129,7 @@ func (q *Queries) UpdateQuote(ctx context.Context, arg UpdateQuoteParams) (int64
 		arg.CustomerID,
 		arg.OrderType,
 		arg.SubscriptionID,
+		arg.Images,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -1049,25 +1142,28 @@ func (q *Queries) UpdateQuote(ctx context.Context, arg UpdateQuoteParams) (int64
 const updateQuoteVersion = `-- name: UpdateQuoteVersion :execrows
 UPDATE quote_versions SET
   organization_id = $1, id = $2, quote_id = $3, version = $4, status = $5,
-  void_reason = $6, content = $7, currency = $8, billing_entity_id = $9,
-  approved_at = $10, voided_at = $11, created_at = $12, updated_at = $13
+  void_reason = $6, content = $7, billing_items = $8,
+  mention_variables = $9, currency = $10, billing_entity_id = $11,
+  approved_at = $12, voided_at = $13, created_at = $14, updated_at = $15
 WHERE organization_id = $1 AND id = $2
 `
 
 type UpdateQuoteVersionParams struct {
-	OrganizationID  uuid.UUID
-	ID              uuid.UUID
-	QuoteID         uuid.UUID
-	Version         int32
-	Status          string
-	VoidReason      *string
-	Content         []byte
-	Currency        *string
-	BillingEntityID *uuid.UUID
-	ApprovedAt      *time.Time
-	VoidedAt        *time.Time
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	OrganizationID   uuid.UUID
+	ID               uuid.UUID
+	QuoteID          uuid.UUID
+	Version          int32
+	Status           string
+	VoidReason       *string
+	Content          *string
+	BillingItems     []byte
+	MentionVariables []byte
+	Currency         *string
+	BillingEntityID  *uuid.UUID
+	ApprovedAt       *time.Time
+	VoidedAt         *time.Time
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 func (q *Queries) UpdateQuoteVersion(ctx context.Context, arg UpdateQuoteVersionParams) (int64, error) {
@@ -1079,6 +1175,8 @@ func (q *Queries) UpdateQuoteVersion(ctx context.Context, arg UpdateQuoteVersion
 		arg.Status,
 		arg.VoidReason,
 		arg.Content,
+		arg.BillingItems,
+		arg.MentionVariables,
 		arg.Currency,
 		arg.BillingEntityID,
 		arg.ApprovedAt,

@@ -18,6 +18,7 @@ import (
 	"github.com/tanvoxyz/tanvo/apps/server/internal/buildinfo"
 	"github.com/tanvoxyz/tanvo/apps/server/internal/config"
 	"github.com/tanvoxyz/tanvo/apps/server/internal/telemetry"
+	"github.com/tanvoxyz/tanvo/libs/core"
 )
 
 // telemetryFlushTimeout bounds the flush of telemetry at exit.
@@ -34,6 +35,9 @@ type Env struct {
 	// Started, when set, receives the server once it is wired, before it
 	// runs (tests read its address).
 	Started func(*app.App)
+	// Clock, when set, is the server's billing clock ([app.Options.Clock]);
+	// a test hook.
+	Clock core.Clock
 }
 
 // Run runs the command line args (without the program name) until ctx
@@ -128,7 +132,7 @@ func newServe(env *Env, file *string) *cobra.Command {
 					return fmt.Errorf("--queues: %w", err)
 				}
 			}
-			a, err := app.New(ctx, app.Options{Config: cfg, Roles: rs, Telemetry: tel})
+			a, err := app.New(ctx, app.Options{Config: cfg, Roles: rs, Telemetry: tel, Clock: env.Clock})
 			if err != nil {
 				tel.Logger.ErrorContext(ctx, "tanvo: start", "error", err)
 				return err

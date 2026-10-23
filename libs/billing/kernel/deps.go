@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
@@ -36,8 +37,20 @@ type Deps struct {
 	// Refunds sends credit-note refunds to payment providers; nil means
 	// refunds stay pending until a provider is wired.
 	Refunds RefundGateway
+	// ActivityLogs records the activity logs of resource changes; nil
+	// records none ([Deps.LogActivity]).
+	ActivityLogs auditlog.ActivityLogger
 	// Logger logs; nil means slog.Default().
 	Logger *slog.Logger
+	// Transient reports an error the job's retry policy runs again with
+	// the same args (lock, serialization and sequence conflicts, lago's
+	// retry_on of BillSubscriptionJob, app/jobs/bill_subscription_job.rb:13-14);
+	// nil means errors wrapping core.ErrConflict.
+	Transient func(error) bool
+	// DailyUsageJitter is the window the daily usage computations of one
+	// run are spread over at random; zero or negative means
+	// [DefaultDailyUsageJitter].
+	DailyUsageJitter time.Duration
 }
 
 // ErrMissingDependency reports a required dependency left nil.
@@ -61,6 +74,14 @@ func (d *Deps) Check() error {
 		d.Logger = slog.Default()
 	}
 	return nil
+}
+
+// IsTransient reports whether err is transient ([Deps.Transient]).
+func (d *Deps) IsTransient(err error) bool {
+	if d.Transient != nil {
+		return d.Transient(err)
+	}
+	return errors.Is(err, core.ErrConflict)
 }
 
 // Now returns the current instant in UTC.

@@ -3,6 +3,8 @@ package store
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -75,6 +77,7 @@ func integrationOf(r db.Integration) (*integration.Integration, error) {
 		SyncSubscriptions: r.SyncSubscriptions,
 		CreatedAt:         utc(r.CreatedAt),
 		UpdatedAt:         utc(r.UpdatedAt),
+		DeletedAt:         optUTC(r.DeletedAt),
 	}, nil
 }
 
@@ -182,6 +185,21 @@ func (r integrationRepo) List(ctx context.Context, org core.OrganizationID, f in
 		return core.Page[*integration.Integration]{}, fmt.Errorf("list integrations: %w", mapErr(err))
 	}
 	return pageOf(rows, page, integrationOf, func(i *integration.Integration) string { return i.ID.String() })
+}
+
+// Discard marks the payment integration deleted with its provider
+// customers.
+func (r integrationRepo) Discard(ctx context.Context, org core.OrganizationID, id core.IntegrationID, at time.Time) error {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return err
+	}
+	var n int64
+	err = r.t.guard(ctx, func() (err error) {
+		n, err = q.DiscardIntegration(ctx, db.DiscardIntegrationParams{Now: utc(at), OrganizationID: org.UUID(), ID: id.UUID()})
+		return err
+	})
+	return updateErr("integration", id, n, err)
 }
 
 // Delete removes the integration; its customers, mappings, items and
@@ -591,7 +609,7 @@ func (r integrationItemRepo) List(ctx context.Context, org core.OrganizationID, 
 	if err != nil {
 		return core.Page[*integration.Item]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	after, afterName, afterAt, lim, err := itemCursorArgs(page)
 	if err != nil {
 		return core.Page[*integration.Item]{}, err
 	}
@@ -602,12 +620,50 @@ func (r integrationItemRepo) List(ctx context.Context, org core.OrganizationID, 
 	}
 	rows, err := q.ListIntegrationItems(ctx, db.ListIntegrationItemsParams{
 		OrganizationID: org.UUID(), IntegrationID: integrationID.UUID(),
-		ItemType: integrationOptEnum(f.ItemType), Search: search, After: after, Lim: lim,
+		ItemType: integrationOptEnum(f.ItemType), Search: search,
+		After: after, AfterName: afterName, AfterAt: afterAt, Lim: lim,
 	})
 	if err != nil {
 		return core.Page[*integration.Item]{}, fmt.Errorf("list integration items: %w", mapErr(err))
 	}
-	return pageOf(rows, page, integrationItemOf, func(i *integration.Item) string { return i.ID.String() })
+	return pageOf(rows, page, integrationItemOf, func(i *integration.Item) string {
+		return itemToken(i.ExternalName, i.CreatedAt, i.ID.UUID())
+	})
+}
+
+// itemCursorArgs returns the cursor and row limit of the items list, by
+// external name (NULLs last), then by creation instant, newest first,
+// then by ID (see [itemToken]); afterName is nil after an unnamed item.
+func itemCursorArgs(p core.PageRequest) (after *uuid.UUID, afterName *string, afterAt *time.Time, lim int32, err error) {
+	lim = int32(p.Limit()) + 1 // Limit is at most core.MaxPageSize
+	if p.Token == "" {
+		return nil, nil, nil, lim, nil
+	}
+	c, err := core.DecodeCursor(p.Token)
+	if err != nil {
+		return nil, nil, nil, 0, err
+	}
+	at, name, ok := strings.Cut(c.Key, " ")
+	t, perr := time.Parse(time.RFC3339Nano, at)
+	if !ok || perr != nil || name == "" || (name[0] != '=' && name != "!") {
+		return nil, nil, nil, 0, fmt.Errorf("%w: page token", core.ErrInvalidValue)
+	}
+	if name[0] == '=' {
+		n := name[1:]
+		afterName = &n
+	}
+	return &c.ID, afterName, &t, lim, nil
+}
+
+// itemToken returns the page token of the items list after the item with
+// that name, creation instant and ID; its key is the instant (RFC 3339),
+// a space, then "=" and the name, or "!" for no name.
+func itemToken(name *string, at time.Time, id uuid.UUID) string {
+	n := "!"
+	if name != nil {
+		n = "=" + *name
+	}
+	return core.Cursor{Key: at.UTC().Format(time.RFC3339Nano) + " " + n, ID: id}.Encode()
 }
 
 func (r integrationItemRepo) DeleteByType(ctx context.Context, org core.OrganizationID, integrationID core.IntegrationID, t integration.ItemType) (int, error) {
@@ -681,4 +737,16 @@ func (r integrationResourceRepo) Delete(ctx context.Context, org core.Organizati
 	}
 	n, err := q.DeleteIntegrationResource(ctx, db.DeleteIntegrationResourceParams{OrganizationID: org.UUID(), ID: id.UUID()})
 	return updateErr("integration_resource", id, n, err)
+}
+
+func (r integrationResourceRepo) ExistsForSyncable(ctx context.Context, org core.OrganizationID, syncableID uuid.UUID) (bool, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return false, err
+	}
+	ok, err := q.IntegrationResourceExistsForSyncable(ctx, db.IntegrationResourceExistsForSyncableParams{OrganizationID: org.UUID(), SyncableID: syncableID})
+	if err != nil {
+		return false, fmt.Errorf("find integration resources of %s: %w", syncableID, mapErr(err))
+	}
+	return ok, nil
 }

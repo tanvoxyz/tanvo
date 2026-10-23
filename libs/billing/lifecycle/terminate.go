@@ -89,7 +89,8 @@ func (s *Service) terminate(ctx context.Context, r port.Repos, env *kernel.Subsc
 	sub := env.Subscription
 	switch subscription.TerminationFor(sub.Status) {
 	case subscription.TerminationDecline:
-		return true, s.decline(ctx, r, sub, o.at)
+		// cancel_incomplete (terminate_service.rb:111-116).
+		return true, s.cancelIncomplete(ctx, r, sub, subscription.ActivationRuleStatusDeclined, subscription.CancellationReasonManual, o.at)
 	case subscription.TerminationRefused:
 		if sub.Status == subscription.StatusCanceled {
 			return false, core.NewRuleError(CodeSubscriptionCanceled, "the subscription is canceled")
@@ -137,35 +138,6 @@ func (s *Service) terminate(ctx context.Context, r port.Repos, env *kernel.Subsc
 		}
 	}
 	return true, s.emit(ctx, webhook.EventTypeSubscriptionTerminated, sub)
-}
-
-// decline cancels an incomplete subscription manually and declines its
-// pending rules (domain §9.3).
-//
-// source: app/services/subscriptions/activation_rules/cancel_service.rb
-func (s *Service) decline(ctx context.Context, r port.Repos, sub *subscription.Subscription, at time.Time) error {
-	rules, err := r.ActivationRules.ListBySubscription(ctx, sub.OrganizationID, sub.ID)
-	if err != nil {
-		return fmt.Errorf("load activation rules of %s: %w", sub.ID, err)
-	}
-	for _, rule := range rules {
-		if rule.Status != subscription.ActivationRuleStatusPending {
-			continue
-		}
-		if err := rule.Decline(at); err != nil {
-			return fmt.Errorf("decline activation rule %s: %w", rule.ID, err)
-		}
-		if err := r.ActivationRules.Update(ctx, rule); err != nil {
-			return fmt.Errorf("update activation rule %s: %w", rule.ID, err)
-		}
-	}
-	if err := sub.Cancel(at, subscription.CancellationReasonManual); err != nil {
-		return fmt.Errorf("cancel subscription %s: %w", sub.ID, err)
-	}
-	if err := update(ctx, r, sub); err != nil {
-		return err
-	}
-	return s.emit(ctx, webhook.EventTypeSubscriptionCanceled, sub)
 }
 
 // cancelPending cancels a pending subscription (a future start or a

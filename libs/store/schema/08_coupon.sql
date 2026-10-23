@@ -18,6 +18,7 @@ CREATE TABLE coupons (
   expiration_at timestamptz,
   status text NOT NULL,
   terminated_at timestamptz,
+  deleted_at timestamptz,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
   PRIMARY KEY (organization_id, id),
@@ -28,11 +29,11 @@ CREATE TABLE coupons (
   CONSTRAINT coupons_status_check CHECK (status IN ('active', 'terminated'))
 );
 
--- Codes are unique among active coupons.
-CREATE UNIQUE INDEX coupons_code_active_key ON coupons (organization_id, code) WHERE status = 'active';
+-- Codes are unique among the coupons that are not deleted.
+CREATE UNIQUE INDEX coupons_code_kept_key ON coupons (organization_id, code) WHERE deleted_at IS NULL;
 -- The periodic termination job scans the expiring active coupons of every
 -- organization.
-CREATE INDEX coupons_expiration_at_idx ON coupons (expiration_at) WHERE status = 'active' AND expiration = 'time_limit';
+CREATE INDEX coupons_expiration_at_idx ON coupons (expiration_at) WHERE status = 'active' AND expiration = 'time_limit' AND deleted_at IS NULL;
 
 ALTER TABLE coupons ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON coupons

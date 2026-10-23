@@ -1,11 +1,15 @@
 package auth
 
 import (
+	"cmp"
 	"context"
+	"crypto/subtle"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -15,6 +19,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/access"
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
@@ -48,28 +53,45 @@ type OIDCState = access.OIDCState
 type OIDCConfig struct {
 	// Google is the installation's Google connection; nil disables Google.
 	Google *Connection
-	// Connections resolves Okta, Entra ID and generic connections.
+	// Connections resolves the organizations' Okta, Entra ID and generic
+	// connections.
 	Connections ConnectionResolver
 	// StateTTL bounds a flow; 0 uses [DefaultStateTTL].
 	StateTTL time.Duration
 	// HTTPClient reaches the providers. apps/server passes a client that
-	// refuses private addresses (lago block_private_addresses); nil uses
-	// http.DefaultClient.
+	// refuses private addresses unless allowed (lago
+	// block_private_addresses); nil uses http.DefaultClient. Responses
+	// are bounded to [MaxProviderResponseBytes] and requests to
+	// [DefaultProviderTimeout] when the client sets no timeout.
 	HTTPClient *http.Client
+	// AllowInsecure accepts plain http issuers and endpoints, for
+	// development; https is required otherwise.
+	AllowInsecure bool
+	// DiscoveryTTL, JWKSTTL and JWKSMinRefresh tune the provider caches;
+	// zero uses [DefaultDiscoveryTTL], [DefaultJWKSTTL] and
+	// [DefaultJWKSMinRefresh].
+	DiscoveryTTL time.Duration
+	// JWKSTTL is how long a key set is reused.
+	JWKSTTL time.Duration
+	// JWKSMinRefresh is the least time between unknown-key refetches.
+	JWKSMinRefresh time.Duration
 }
 
-// OIDC signs users in with OpenID Connect providers: Google, Okta, Entra
-// ID and generic ones (lago Auth::GoogleService, Auth::Okta::*,
-// Auth::EntraId::*), using the authorization code flow with state, nonce
-// and PKCE.
+// OIDC signs users in with OpenID Connect providers (lago
+// Auth::GoogleService, Auth::Okta::*, Auth::EntraId::*): one standard
+// client of the authorization code flow with state, nonce and PKCE
+// (S256), over discovered and cached provider metadata and keys. Google,
+// Okta and Entra ID are presets of a [Connection]; a generic connection
+// names its issuer and may tune scopes, claims and parameters.
 type OIDC struct {
 	d       Deps
 	users   *Users
 	invites *Invites
 	cfg     OIDCConfig
+	client  *http.Client
 
 	mu        sync.Mutex
-	providers map[string]*oidc.Provider
+	providers map[string]*discovered
 }
 
 // NewOIDC returns the OpenID Connect service.
@@ -80,7 +102,19 @@ func NewOIDC(d Deps, users *Users, invites *Invites, cfg OIDCConfig) *OIDC {
 	if cfg.HTTPClient == nil {
 		cfg.HTTPClient = http.DefaultClient
 	}
-	return &OIDC{d: d, users: users, invites: invites, cfg: cfg, providers: map[string]*oidc.Provider{}}
+	if cfg.DiscoveryTTL <= 0 {
+		cfg.DiscoveryTTL = DefaultDiscoveryTTL
+	}
+	if cfg.JWKSTTL <= 0 {
+		cfg.JWKSTTL = DefaultJWKSTTL
+	}
+	if cfg.JWKSMinRefresh <= 0 {
+		cfg.JWKSMinRefresh = DefaultJWKSMinRefresh
+	}
+	return &OIDC{
+		d: d, users: users, invites: invites, cfg: cfg, client: providerClient(cfg.HTTPClient),
+		providers: map[string]*discovered{},
+	}
 }
 
 // BeginRequest starts a flow.
@@ -134,22 +168,11 @@ func (s *OIDC) connection(ctx context.Context, method organization.Authenticatio
 	return c, nil
 }
 
-func (s *OIDC) provider(ctx context.Context, issuer string) (*oidc.Provider, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if p, ok := s.providers[issuer]; ok {
-		return p, nil
-	}
-	p, err := oidc.NewProvider(oidc.ClientContext(ctx, s.cfg.HTTPClient), issuer)
-	if err != nil {
-		return nil, fmt.Errorf("discover %s: %w", issuer, err)
-	}
-	s.providers[issuer] = p
-	return p, nil
-}
-
-func (s *OIDC) oauth(ctx context.Context, c *Connection) (*oauth2.Config, *oidc.Provider, error) {
-	p, err := s.provider(ctx, c.Issuer)
+// oauth returns the OAuth client of c over its provider's metadata: the
+// token endpoint authentication is the connection's or, without one, the
+// provider's first of client_secret_basic and client_secret_post.
+func (s *OIDC) oauth(ctx context.Context, c *Connection) (*oauth2.Config, *discovered, error) {
+	d, err := s.provider(ctx, c.Issuer)
 	if err != nil {
 		s.d.logger().WarnContext(ctx, "oidc discovery", "issuer", c.Issuer, "error", err)
 		return nil, nil, rule(CodeOIDCRequestError)
@@ -158,10 +181,15 @@ func (s *OIDC) oauth(ctx context.Context, c *Connection) (*oauth2.Config, *oidc.
 	if scopes == nil {
 		scopes = []string{"email", "profile"}
 	}
+	ep := d.provider.Endpoint()
+	ep.AuthStyle = oauth2.AuthStyleInHeader
+	if cmp.Or(c.TokenAuthMethod, d.tokenStyle) == integration.TokenAuthClientSecretPost {
+		ep.AuthStyle = oauth2.AuthStyleInParams
+	}
 	return &oauth2.Config{
-		ClientID: c.ClientID, ClientSecret: c.ClientSecret, RedirectURL: c.RedirectURL, Endpoint: p.Endpoint(),
+		ClientID: c.ClientID, ClientSecret: c.ClientSecret, RedirectURL: c.RedirectURL, Endpoint: ep,
 		Scopes: append([]string{oidc.ScopeOpenID}, slices.DeleteFunc(slices.Clone(scopes), func(x string) bool { return x == oidc.ScopeOpenID })...),
-	}, p, nil
+	}, d, nil
 }
 
 // Begin validates the request, stores the flow's state and returns the
@@ -230,7 +258,11 @@ func (s *OIDC) Begin(ctx context.Context, req BeginRequest) (string, error) {
 	if err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error { return r.OIDCStates.Create(ctx, st) }); err != nil {
 		return "", fmt.Errorf("store oidc state: %w", err)
 	}
-	opts := []oauth2.AuthCodeOption{oidc.Nonce(nonce), oauth2.S256ChallengeOption(verifier)}
+	opts := make([]oauth2.AuthCodeOption, 0, len(c.AuthParams)+3)
+	for _, k := range slices.Sorted(maps.Keys(c.AuthParams)) {
+		opts = append(opts, oauth2.SetAuthURLParam(k, c.AuthParams[k]))
+	}
+	opts = append(opts, oidc.Nonce(nonce), oauth2.S256ChallengeOption(verifier))
 	if email != "" {
 		opts = append(opts, oauth2.SetAuthURLParam("login_hint", email))
 	}
@@ -255,20 +287,6 @@ type Identity struct {
 	Email string
 	// Name is the display name, if given.
 	Name string
-}
-
-type idClaims struct {
-	Email             string `json:"email"`
-	EmailVerified     *bool  `json:"email_verified"`
-	PreferredUsername string `json:"preferred_username"`
-	Name              string `json:"name"`
-}
-
-func (c idClaims) emailFor(conn *Connection) string {
-	if c.Email == "" && conn.EmailFallbackClaim == "preferred_username" {
-		return c.PreferredUsername
-	}
-	return c.Email
 }
 
 // Complete exchanges the code, verifies the ID token (signature, issuer,
@@ -329,12 +347,87 @@ func (s *OIDC) Complete(ctx context.Context, req CallbackRequest) (*SignedIn, er
 	}
 }
 
+// identityClaims are an identity's claims, from the ID token completed
+// by userinfo, read through the connection's claim mapping.
+type identityClaims map[string]any
+
+func (cl identityClaims) str(name string) string {
+	v, _ := cl[name].(string)
+	return v
+}
+
+// email is the connection's email claim, or its fallback claim when
+// empty.
+func (cl identityClaims) email(c *Connection) string {
+	if e := cl.str(cmp.Or(c.EmailClaim, integration.DefaultEmailClaim)); e != "" || c.EmailFallbackClaim == "" {
+		return e
+	}
+	return cl.str(c.EmailFallbackClaim)
+}
+
+// verified is the email_verified claim, a boolean or (as some providers
+// send it) the string "true" or "false"; ok is false when it is missing
+// or of another type.
+func (cl identityClaims) verified() (verified, ok bool) {
+	switch v := cl["email_verified"].(type) {
+	case bool:
+		return v, true
+	case string:
+		b, err := strconv.ParseBool(v)
+		return b, err == nil
+	default:
+		return false, false
+	}
+}
+
+// complete reports whether the claims satisfy the connection: an email
+// and, when it must be verified, the email_verified claim.
+func (cl identityClaims) complete(c *Connection) bool {
+	_, hasVerified := cl.verified()
+	return cl.email(c) != "" && (c.EmailVerification != EmailVerifiedRequired || hasVerified)
+}
+
+// numericDate reads a JWT NumericDate claim.
+func (cl identityClaims) numericDate(name string) (time.Time, bool) {
+	f, ok := cl[name].(float64)
+	if !ok {
+		return time.Time{}, false
+	}
+	return time.Unix(int64(f), 0), true
+}
+
+// checkTimes checks exp (required), nbf and iat (required) with
+// [ClockSkew] of leeway, and the authorized party: with several
+// audiences azp must be present, and when present it must be the
+// client (OpenID Connect Core §3.1.3.7).
+func (cl identityClaims) checkTimes(now time.Time, idt *oidc.IDToken, clientID string) error {
+	if idt.Expiry.IsZero() || !now.Before(idt.Expiry.Add(ClockSkew)) {
+		return fmt.Errorf("id token expired at %v", idt.Expiry)
+	}
+	if nbf, ok := cl.numericDate("nbf"); ok && now.Add(ClockSkew).Before(nbf) {
+		return fmt.Errorf("id token not valid before %v", nbf)
+	}
+	if iat, ok := cl.numericDate("iat"); !ok || now.Add(ClockSkew).Before(iat) {
+		return fmt.Errorf("id token issued at %v, in the future or missing", iat)
+	}
+	azp := cl.str("azp")
+	if (len(idt.Audience) > 1 && azp == "") || (azp != "" && azp != clientID) {
+		return fmt.Errorf("id token authorized party %q is not the client", azp)
+	}
+	return nil
+}
+
+// identity exchanges the code with the PKCE verifier and verifies the ID
+// token: the signature against the provider's keys with an accepted
+// algorithm, the issuer, the audience and authorized party, the time
+// claims and the nonce. Userinfo completes the claims when the email or
+// a required email_verified is missing; its subject must be the token's.
 func (s *OIDC) identity(ctx context.Context, c *Connection, st *OIDCState, code string) (Identity, error) {
-	oc, p, err := s.oauth(ctx, c)
+	oc, d, err := s.oauth(ctx, c)
 	if err != nil {
 		return Identity{}, err
 	}
-	hctx := oidc.ClientContext(ctx, s.cfg.HTTPClient)
+	hctx := oidc.ClientContext(ctx, s.client)
 	tok, err := oc.Exchange(hctx, code, oauth2.VerifierOption(st.Verifier))
 	if err != nil {
 		s.d.logger().WarnContext(ctx, "oidc code exchange", "issuer", c.Issuer, "error", err)
@@ -344,41 +437,60 @@ func (s *OIDC) identity(ctx context.Context, c *Connection, st *OIDCState, code 
 	if raw == "" {
 		return Identity{}, rule(CodeOIDCInvalidToken)
 	}
-	idt, err := p.VerifierContext(hctx, &oidc.Config{ClientID: c.ClientID, Now: s.d.Clock.Now}).Verify(hctx, raw)
+	verifier := oidc.NewVerifier(c.Issuer, d.keys, &oidc.Config{
+		ClientID: c.ClientID, SupportedSigningAlgs: d.algs, SkipExpiryCheck: true, Now: s.d.Clock.Now,
+	})
+	idt, err := verifier.Verify(hctx, raw)
 	if err != nil {
 		s.d.logger().WarnContext(ctx, "oidc id token", "issuer", c.Issuer, "error", err)
 		return Identity{}, rule(CodeOIDCInvalidToken)
 	}
-	if idt.Nonce != st.Nonce {
-		return Identity{}, rule(CodeOIDCInvalidToken)
-	}
-	var cl idClaims
+	cl := identityClaims{}
 	if err := idt.Claims(&cl); err != nil {
 		return Identity{}, rule(CodeOIDCInvalidToken)
 	}
-	if cl.emailFor(c) == "" && p.UserInfoEndpoint() != "" {
-		ui, err := p.UserInfo(hctx, oauth2.StaticTokenSource(tok))
+	if err := cl.checkTimes(s.d.now(), idt, c.ClientID); err != nil {
+		s.d.logger().WarnContext(ctx, "oidc id token", "issuer", c.Issuer, "error", err)
+		return Identity{}, rule(CodeOIDCInvalidToken)
+	}
+	if subtle.ConstantTimeCompare([]byte(idt.Nonce), []byte(st.Nonce)) != 1 {
+		return Identity{}, rule(CodeOIDCInvalidToken)
+	}
+	if !cl.complete(c) && d.provider.UserInfoEndpoint() != "" {
+		ui, err := d.provider.UserInfo(hctx, oauth2.StaticTokenSource(tok))
 		if err != nil {
 			s.d.logger().WarnContext(ctx, "oidc userinfo", "issuer", c.Issuer, "error", err)
 			return Identity{}, rule(UserinfoErrorCode(providerName(c.Method)))
 		}
-		var uc idClaims
+		uc := identityClaims{}
 		if err := ui.Claims(&uc); err != nil {
 			return Identity{}, rule(UserinfoErrorCode(providerName(c.Method)))
 		}
 		if ui.Subject != idt.Subject {
 			return Identity{}, rule(CodeOIDCInvalidToken)
 		}
-		cl = uc
+		for k, v := range uc {
+			if cur, ok := cl[k]; !ok || cur == "" {
+				cl[k] = v
+			}
+		}
 	}
-	email := access.NormalizeEmail(cl.emailFor(c))
+	email := access.NormalizeEmail(cl.email(c))
 	if email == "" {
 		return Identity{}, rule(UserinfoErrorCode(providerName(c.Method)))
 	}
-	if cl.EmailVerified != nil && !*cl.EmailVerified {
-		return Identity{}, rule(CodeOIDCEmailNotVerified)
+	switch verified, ok := cl.verified(); c.EmailVerification {
+	case EmailVerifiedRequired:
+		if !ok || !verified {
+			return Identity{}, rule(CodeOIDCEmailNotVerified)
+		}
+	case EmailVerifiedIgnored:
+	default:
+		if ok && !verified {
+			return Identity{}, rule(CodeOIDCEmailNotVerified)
+		}
 	}
-	return Identity{Subject: idt.Subject, Email: email, Name: cl.Name}, nil
+	return Identity{Subject: idt.Subject, Email: email, Name: cl.str(cmp.Or(c.NameClaim, integration.DefaultNameClaim))}, nil
 }
 
 func (s *OIDC) acceptInvite(ctx context.Context, st *OIDCState, id Identity, meta SessionMeta) (*SignedIn, error) {

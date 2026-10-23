@@ -2,10 +2,11 @@
 -- charges and charge filters, fixed charges (domain §7.1–§7.6), with the tax
 -- lists of plans, add-ons, charges and fixed charges (domain §22.10).
 --
--- Rows are deleted, not soft-deleted: the repositories remove them and the
--- services delete the dependent rows first (a metric's charges, a plan's
--- override plans, charges and fixed charges, an add-on's fixed charges), so
--- the references below refuse a delete that would leave a dangling row.
+-- Rows are deleted, not soft-deleted, except billable metrics (below): the
+-- repositories remove them and the services delete the dependent rows first
+-- (a metric's charges, a plan's override plans, charges and fixed charges,
+-- an add-on's fixed charges), so the references below refuse a delete that
+-- would leave a dangling row.
 -- Filters and tax lists belong to their parent and go with it. Deleting a
 -- tax removes it from the lists.
 
@@ -27,6 +28,10 @@ ALTER TABLE pricing_units ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON pricing_units
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
 
+-- Billable metrics are soft-deleted (deleted_at, lago billable_metric.rb:5-9
+-- and destroy_service.rb:33): a deleted metric keeps its row and its filters
+-- so history can still name it, reads see kept rows only, and a code is
+-- unique among the kept metrics of the organization.
 CREATE TABLE billable_metrics (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -42,19 +47,24 @@ CREATE TABLE billable_metrics (
   rounding_precision integer,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
+  deleted_at timestamptz,
   PRIMARY KEY (organization_id, id),
   CONSTRAINT billable_metrics_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
-  CONSTRAINT billable_metrics_code_key UNIQUE (organization_id, code),
   CONSTRAINT billable_metrics_aggregation_type_check CHECK (aggregation_type IN ('count', 'sum', 'max', 'unique_count', 'weighted_sum', 'latest')),
   CONSTRAINT billable_metrics_weighted_interval_check CHECK (weighted_interval IN ('seconds')),
   CONSTRAINT billable_metrics_rounding_function_check CHECK (rounding_function IN ('round', 'floor', 'ceil'))
 );
 
+CREATE UNIQUE INDEX billable_metrics_code_key ON billable_metrics (organization_id, code) WHERE deleted_at IS NULL;
+
 ALTER TABLE billable_metrics ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON billable_metrics
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
 
--- The filters of a metric, in their order; keys are unique per metric.
+-- The filters of a metric, in their order; keys are unique among the kept
+-- filters of a metric. A filter removed from its metric, or the filters of
+-- a deleted metric, are discarded (deleted_at), so product filter values
+-- and history keep naming them.
 CREATE TABLE billable_metric_filters (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -62,10 +72,12 @@ CREATE TABLE billable_metric_filters (
   key text NOT NULL,
   filter_values text[] NOT NULL,
   position integer NOT NULL,
+  deleted_at timestamptz,
   PRIMARY KEY (organization_id, id),
-  CONSTRAINT billable_metric_filters_billable_metric_fkey FOREIGN KEY (organization_id, billable_metric_id) REFERENCES billable_metrics (organization_id, id) ON DELETE CASCADE,
-  CONSTRAINT billable_metric_filters_key_key UNIQUE (organization_id, billable_metric_id, key)
+  CONSTRAINT billable_metric_filters_billable_metric_fkey FOREIGN KEY (organization_id, billable_metric_id) REFERENCES billable_metrics (organization_id, id) ON DELETE CASCADE
 );
+
+CREATE UNIQUE INDEX billable_metric_filters_key_idx ON billable_metric_filters (organization_id, billable_metric_id, key) WHERE deleted_at IS NULL;
 
 ALTER TABLE billable_metric_filters ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON billable_metric_filters
@@ -127,6 +139,8 @@ ALTER TABLE plan_taxes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON plan_taxes
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
 
+-- Add-ons are soft-deleted (deleted_at, lago add_on.rb): a discarded one
+-- stays for the fees that reference it, and frees its code.
 CREATE TABLE add_ons (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -138,10 +152,12 @@ CREATE TABLE add_ons (
   currency text NOT NULL,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
+  deleted_at timestamptz,
   PRIMARY KEY (organization_id, id),
-  CONSTRAINT add_ons_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
-  CONSTRAINT add_ons_code_key UNIQUE (organization_id, code)
+  CONSTRAINT add_ons_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id)
 );
+
+CREATE UNIQUE INDEX add_ons_code_key ON add_ons (organization_id, code) WHERE deleted_at IS NULL;
 
 ALTER TABLE add_ons ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON add_ons
@@ -163,6 +179,8 @@ ALTER TABLE add_on_taxes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON add_on_taxes
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
 
+-- Charges are soft-deleted (deleted_at, lago charge.rb): a discarded one
+-- stays for the fees that reference it, and frees its code.
 CREATE TABLE charges (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -183,6 +201,7 @@ CREATE TABLE charges (
   conversion_rate numeric,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
+  deleted_at timestamptz,
   PRIMARY KEY (organization_id, id),
   CONSTRAINT charges_plan_fkey FOREIGN KEY (organization_id, plan_id) REFERENCES plans (organization_id, id),
   CONSTRAINT charges_parent_fkey FOREIGN KEY (organization_id, parent_id) REFERENCES charges (organization_id, id),
@@ -196,11 +215,12 @@ CREATE TABLE charges (
   CONSTRAINT charges_parent_id_check CHECK (parent_id <> id)
 );
 
--- Codes are unique among a plan's charges that are not override copies.
-CREATE UNIQUE INDEX charges_code_key ON charges (organization_id, plan_id, code) WHERE parent_id IS NULL;
-CREATE INDEX charges_plan_idx ON charges (organization_id, plan_id);
-CREATE INDEX charges_billable_metric_idx ON charges (organization_id, billable_metric_id);
-CREATE INDEX charges_parent_idx ON charges (organization_id, parent_id) WHERE parent_id IS NOT NULL;
+-- Codes are unique among a plan's kept charges that are not override
+-- copies.
+CREATE UNIQUE INDEX charges_code_key ON charges (organization_id, plan_id, code) WHERE parent_id IS NULL AND deleted_at IS NULL;
+CREATE INDEX charges_plan_idx ON charges (organization_id, plan_id) WHERE deleted_at IS NULL;
+CREATE INDEX charges_billable_metric_idx ON charges (organization_id, billable_metric_id) WHERE deleted_at IS NULL;
+CREATE INDEX charges_parent_idx ON charges (organization_id, parent_id) WHERE parent_id IS NOT NULL AND deleted_at IS NULL;
 CREATE INDEX charges_applied_pricing_unit_idx ON charges (organization_id, applied_pricing_unit_id) WHERE applied_pricing_unit_id IS NOT NULL;
 
 ALTER TABLE charges ENABLE ROW LEVEL SECURITY;
@@ -208,8 +228,11 @@ CREATE POLICY tenant_isolation ON charges
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
 
 -- The filters of a charge, in their order. values maps metric filter keys to
--- the allowed values (filter_values, a store-encoded jsonb object); codes are unique per
--- charge (an empty code is not yet assigned).
+-- the allowed values (filter_values, a store-encoded jsonb object; lago
+-- charge_filter_values); codes are unique among the kept filters of a
+-- charge (an empty code is not yet assigned). Filters are soft-deleted
+-- (deleted_at, lago charge_filter.rb and charge_filter_value.rb) and stay
+-- for the fees that reference them.
 CREATE TABLE charge_filters (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -220,12 +243,13 @@ CREATE TABLE charge_filters (
   code text NOT NULL DEFAULT '',
   position integer NOT NULL,
   created_at timestamptz NOT NULL,
+  deleted_at timestamptz,
   PRIMARY KEY (organization_id, id),
   CONSTRAINT charge_filters_charge_fkey FOREIGN KEY (organization_id, charge_id) REFERENCES charges (organization_id, id) ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX charge_filters_code_key ON charge_filters (organization_id, charge_id, code) WHERE code <> '';
-CREATE INDEX charge_filters_charge_idx ON charge_filters (organization_id, charge_id, position);
+CREATE UNIQUE INDEX charge_filters_code_key ON charge_filters (organization_id, charge_id, code) WHERE code <> '' AND deleted_at IS NULL;
+CREATE INDEX charge_filters_charge_idx ON charge_filters (organization_id, charge_id, position) WHERE deleted_at IS NULL;
 
 ALTER TABLE charge_filters ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON charge_filters
@@ -247,6 +271,8 @@ ALTER TABLE charge_taxes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON charge_taxes
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
 
+-- Fixed charges are soft-deleted (deleted_at, lago fixed_charge.rb): a
+-- discarded one stays for the fees that reference it, and frees its code.
 CREATE TABLE fixed_charges (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -263,6 +289,7 @@ CREATE TABLE fixed_charges (
   invoice_display_name text,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
+  deleted_at timestamptz,
   PRIMARY KEY (organization_id, id),
   CONSTRAINT fixed_charges_plan_fkey FOREIGN KEY (organization_id, plan_id) REFERENCES plans (organization_id, id),
   CONSTRAINT fixed_charges_parent_fkey FOREIGN KEY (organization_id, parent_id) REFERENCES fixed_charges (organization_id, id),
@@ -272,12 +299,12 @@ CREATE TABLE fixed_charges (
   CONSTRAINT fixed_charges_parent_id_check CHECK (parent_id <> id)
 );
 
--- Codes are unique among a plan's fixed charges that are not override
+-- Codes are unique among a plan's kept fixed charges that are not override
 -- copies.
-CREATE UNIQUE INDEX fixed_charges_code_key ON fixed_charges (organization_id, plan_id, code) WHERE parent_id IS NULL;
-CREATE INDEX fixed_charges_plan_idx ON fixed_charges (organization_id, plan_id);
-CREATE INDEX fixed_charges_add_on_idx ON fixed_charges (organization_id, add_on_id);
-CREATE INDEX fixed_charges_parent_idx ON fixed_charges (organization_id, parent_id) WHERE parent_id IS NOT NULL;
+CREATE UNIQUE INDEX fixed_charges_code_key ON fixed_charges (organization_id, plan_id, code) WHERE parent_id IS NULL AND deleted_at IS NULL;
+CREATE INDEX fixed_charges_plan_idx ON fixed_charges (organization_id, plan_id) WHERE deleted_at IS NULL;
+CREATE INDEX fixed_charges_add_on_idx ON fixed_charges (organization_id, add_on_id) WHERE deleted_at IS NULL;
+CREATE INDEX fixed_charges_parent_idx ON fixed_charges (organization_id, parent_id) WHERE parent_id IS NOT NULL AND deleted_at IS NULL;
 
 ALTER TABLE fixed_charges ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON fixed_charges

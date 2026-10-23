@@ -41,12 +41,17 @@ type ChargeFilter struct {
 	// CreatedAt is the creation instant; it orders filters of equal
 	// specificity.
 	CreatedAt time.Time
+	// DeletedAt is the instant the filter was discarded (nil while kept);
+	// a discarded filter is read by ID only, for the fees that
+	// reference it (lago charge_filter.rb default_scope kept).
+	DeletedAt *time.Time
 }
 
 // Clone returns a deep copy of f.
 func (f ChargeFilter) Clone() ChargeFilter {
 	f.Values = chargeFilterCloneValues(f.Values)
 	f.Properties = f.Properties.Clone()
+	f.DeletedAt = clonePtr(f.DeletedAt)
 	return f
 }
 
@@ -246,14 +251,16 @@ func (f *ChargeFilter) DisplayName(sep string) string {
 }
 
 // TrimChargeFilter applies a change of the metric's filters to f (domain
-// §7.1): values the metric no longer allows are removed from f. It reports
-// whether f survives; a filter that references a removed key, or whose key
-// is left without values, is deleted by the caller.
+// §7.1), as lago's BillableMetricFilters::CreateOrUpdateBatchService
+// (app/services/billable_metric_filters/create_or_update_batch_service.rb:41-63,
+// 121-177) does to the filter's values: a removed key leaves f, with its
+// [AllFilterValues] sentinel if any; on a kept key, the values the metric
+// no longer allows are removed, and a key left without values leaves f. A
+// sentinel of a kept key is kept. It reports whether f survives: a filter
+// left without any key is deleted by the caller.
 func TrimChargeFilter(f *ChargeFilter, change MetricFilterChange) bool {
 	for _, k := range change.RemovedKeys {
-		if _, ok := f.Values[k]; ok {
-			return false
-		}
+		delete(f.Values, k)
 	}
 	for k, removed := range change.RemovedValues {
 		vs, ok := f.Values[k]
@@ -262,9 +269,10 @@ func TrimChargeFilter(f *ChargeFilter, change MetricFilterChange) bool {
 		}
 		vs = slices.DeleteFunc(vs, func(s string) bool { return slices.Contains(removed, s) })
 		if len(vs) == 0 {
-			return false
+			delete(f.Values, k)
+			continue
 		}
 		f.Values[k] = vs
 	}
-	return true
+	return len(f.Values) > 0
 }

@@ -1,10 +1,11 @@
 // Package tax computes the taxes of fees, invoices and credit notes.
 //
 // It is a pure library: every function takes plain values and returns plain
-// values, with no I/O. Amounts are in minor units of the invoice currency
-// ("cents"): rounded amounts are int64, unrounded ("precise") amounts are
-// [money.Decimal]. Tax rates are percentages (20 means 20 %), except the
-// rates tax providers return, which are fractions (0.2).
+// values, with no I/O (except [VIESClient]). Amounts are in minor units of
+// the invoice currency ("cents"): rounded amounts are int64, unrounded
+// ("precise") amounts are [money.Decimal]. Tax rates are percentages (20
+// means 20 %), except the rates tax providers return, which are fractions
+// (0.2).
 //
 // The package covers:
 //
@@ -22,8 +23,9 @@
 //     [ApplyProviderFeeTaxes], [ApplyProviderInvoiceTaxes]);
 //   - EU VAT: the embedded rate table ([LookupEURates], [EUTaxes]), the
 //     automatic tax decision ([ResolveEUTax], [ResolveEUTaxAfterVIES]) and
-//     VAT number syntax ([ValidVATNumberSyntax]); the VIES lookup itself is
-//     I/O and lives with the caller, which passes its outcome as a
+//     VAT number syntax ([ValidVATNumberSyntax]); the VIES lookup is the
+//     package's only I/O, behind the [VIESChecker] interface ([VIESClient]
+//     over the VIES web service), and its outcome is passed back as a
 //     [VIESResult];
 //   - the per-rate tax subtotals and categories of e-invoices
 //     ([InvoiceTaxSubtotals], [CreditNoteTaxSubtotals]).

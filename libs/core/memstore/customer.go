@@ -10,12 +10,24 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
+	"github.com/tanvoxyz/tanvo/libs/core/wallet"
 	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
 // customerData holds the tables of package customer.
 type customerData struct {
 	customers *table[core.CustomerID, customer.Customer]
+	// walletRefresh holds the wallet refresh flags of the customers.
+	walletRefresh *table[core.CustomerID, walletRefresh]
+	// pendingVIES holds the pending VIES checks of the customers.
+	pendingVIES *table[core.CustomerID, customer.PendingVIESCheck]
+}
+
+// walletRefresh is the wallet refresh state of a customer.
+type walletRefresh struct {
+	awaiting   bool
+	generation int64
+	claimed    int64
 }
 
 func newCustomerData() *customerData {
@@ -27,11 +39,13 @@ func newCustomerData() *customerData {
 			c.TaxIDs = slices.Clone(c.TaxIDs)
 			return c
 		}),
+		walletRefresh: newTable[core.CustomerID, walletRefresh](nil),
+		pendingVIES:   newTable[core.CustomerID, customer.PendingVIESCheck](nil),
 	}
 }
 
 func (d *customerData) snapshot() *customerData {
-	return &customerData{customers: d.customers.snapshot()}
+	return &customerData{customers: d.customers.snapshot(), walletRefresh: d.walletRefresh.snapshot(), pendingVIES: d.pendingVIES.snapshot()}
 }
 
 // customerRepo implements customer.Repository; st is the whole
@@ -184,6 +198,72 @@ func (r customerRepo) ResetDunningCampaign(_ context.Context, org core.Organizat
 		r.d.customers.put(c.ID, *c)
 	}
 	return len(rows), nil
+}
+
+// hasActiveWallet reports whether customer id of org has an active wallet.
+func (r customerRepo) hasActiveWallet(org core.OrganizationID, id core.CustomerID) bool {
+	return r.st.wallet.wallets.any(func(w *wallet.Wallet) bool {
+		return w.OrganizationID == org && w.CustomerID == id && w.Status == wallet.StatusActive
+	})
+}
+
+func (r customerRepo) FlagWalletRefresh(_ context.Context, org core.OrganizationID, id core.CustomerID) error {
+	c, ok := r.d.customers.get(id)
+	if !ok || c.OrganizationID != org || !r.hasActiveWallet(org, id) {
+		return nil
+	}
+	f, _ := r.d.walletRefresh.get(id)
+	if f == nil {
+		f = &walletRefresh{}
+	}
+	if f.awaiting && f.claimed != f.generation {
+		return nil
+	}
+	r.d.walletRefresh.put(id, walletRefresh{awaiting: true, generation: f.generation + 1, claimed: f.claimed})
+	return nil
+}
+
+func (r customerRepo) ClaimWalletRefresh(_ context.Context, org core.OrganizationID, id core.CustomerID) (int64, error) {
+	c, ok := r.d.customers.get(id)
+	if !ok || c.OrganizationID != org {
+		return 0, notFound("customer", id)
+	}
+	f, ok := r.d.walletRefresh.get(id)
+	if !ok {
+		return 0, nil
+	}
+	r.d.walletRefresh.put(id, walletRefresh{awaiting: f.awaiting, generation: f.generation, claimed: f.generation})
+	return f.generation, nil
+}
+
+func (r customerRepo) ClearWalletRefresh(_ context.Context, org core.OrganizationID, id core.CustomerID, gen int64) error {
+	c, ok := r.d.customers.get(id)
+	if !ok || c.OrganizationID != org {
+		return nil
+	}
+	if f, ok := r.d.walletRefresh.get(id); ok && f.generation == gen {
+		r.d.walletRefresh.put(id, walletRefresh{generation: gen, claimed: f.claimed})
+	}
+	return nil
+}
+
+func (r customerRepo) ListAwaitingWalletRefresh(_ context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[core.CustomerID], error) {
+	rows := r.d.customers.find(func(x *customer.Customer) bool {
+		if x.OrganizationID != org || x.Deleted() {
+			return false
+		}
+		f, ok := r.d.walletRefresh.get(x.ID)
+		return ok && f.awaiting && r.hasActiveWallet(org, x.ID)
+	})
+	p, err := paginate(rows, customerKey, page)
+	if err != nil {
+		return core.Page[core.CustomerID]{}, err
+	}
+	ids := make([]core.CustomerID, len(p.Items))
+	for i, c := range p.Items {
+		ids[i] = c.ID
+	}
+	return core.Page[core.CustomerID]{Items: ids, NextToken: p.NextToken}, nil
 }
 
 func customerKey(c *customer.Customer) core.CustomerID { return c.ID }

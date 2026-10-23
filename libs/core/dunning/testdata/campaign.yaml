@@ -10,7 +10,7 @@ cases:
   - {name: empty bcc emails, source: "spec/models/dunning_campaign_spec.rb:30", bcc: [], errors: []}
   - {name: valid bcc emails, source: "spec/models/dunning_campaign_spec.rb:33", bcc: [test1@example.com, test2@example.com], errors: []}
   - {name: invalid bcc email, source: "spec/models/dunning_campaign_spec.rb:36", bcc: [test1@example.com, name.com], errors: ["bcc_emails[1]: invalid_email_format"]}
-  - {name: no thresholds, source: "tanvo", thresholds: [], errors: ["thresholds: value_is_mandatory"]}
+  - {name: no thresholds, source: "spec/services/dunning_campaigns/update_service_spec.rb:402", thresholds: [], errors: []}
   - {name: threshold of zero, source: "spec/models/dunning_campaign_threshold_spec.rb:13", thresholds: [{currency: EUR, amount: 0}], errors: []}
   - {name: negative threshold, source: "spec/models/dunning_campaign_threshold_spec.rb:13", thresholds: [{currency: EUR, amount: -1}], errors: ["thresholds[0].amount: value_is_negative"]}
   - {name: threshold without currency, source: "spec/models/dunning_campaign_threshold_spec.rb:14", thresholds: [{currency: "", amount: 1}], errors: ["thresholds[0].currency: currency_invalid"]}

@@ -68,6 +68,10 @@ message DunningThreshold {
     (google.api.field_behavior) = REQUIRED,
     (buf.validate.field).required = true
   ];
+  // The threshold's ID, ignored on create. On update, a threshold with
+  // the ID of one of the campaign's is changed in place, any other is
+  // added, and the campaign's thresholds left out are removed.
+  string id = 2 [(buf.validate.field).string.uuid = true];
 }
 
 // DunningCampaign sends payment requests for overdue balances.
@@ -136,6 +140,11 @@ message DunningCampaign {
   google.protobuf.Timestamp created_at = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the campaign last changed.
   google.protobuf.Timestamp updated_at = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Whether the organization's default billing entity applies the
+  // campaign. Setting it on create or update applies the campaign to it,
+  // or, when false on update, removes it if applied, resetting the dunning
+  // attempts of the customers falling back to it.
+  bool applied_to_organization = 12;
 }
 
 // CreateDunningCampaignRequest is the request of DunningCampaignService.CreateDunningCampaign.
@@ -184,7 +193,8 @@ message ListDunningCampaignsRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 2 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `currency` (campaigns with a threshold in it).
+  // An AIP-160 filter over `currency` (campaigns with a threshold in it)
+  // and `applied_to_organization` (true or false).
   string filter = 3 [(buf.validate.field).string.max_len = 2048];
   // A search over the name and code.
   string search = 4 [(buf.validate.field).string.max_len = 255];

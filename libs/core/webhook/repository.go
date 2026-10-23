@@ -42,6 +42,20 @@ type DeliveryFilter struct {
 	Statuses []Status
 	// EventTypes keeps deliveries of these event types; empty keeps all.
 	EventTypes []EventType
+	// Search keeps deliveries whose ID or object ID contains it
+	// (case-insensitive); "" keeps all.
+	Search string
+	// HTTPStatus keeps deliveries by the HTTP status of their last attempt.
+	HTTPStatus HTTPStatusFilter
+	// UpdatedFrom keeps deliveries last updated at or after it; nil keeps
+	// all.
+	UpdatedFrom *time.Time
+	// UpdatedTo keeps deliveries last updated at or before it; nil keeps
+	// all.
+	UpdatedTo *time.Time
+	// Order is creation order, or [core.OrderRecent]: the last updated
+	// first, then by ID (lago WebhooksQuery).
+	Order core.ListOrder
 }
 
 // DeliveryRepository stores webhook deliveries.
@@ -72,4 +86,7 @@ type EventRepository interface {
 	Get(ctx context.Context, org core.OrganizationID, id core.AuditEventID) (*Event, error)
 	// ListByObject returns the events of one object in occurrence order.
 	ListByObject(ctx context.Context, org core.OrganizationID, objectType string, objectID uuid.UUID, page core.PageRequest) (core.Page[*Event], error)
+	// ObjectsWithEventSince returns, among objectIDs of objectType, those
+	// with an event of type t that occurred at or after since, in ID order.
+	ObjectsWithEventSince(ctx context.Context, org core.OrganizationID, t EventType, objectType string, objectIDs []uuid.UUID, since time.Time) ([]uuid.UUID, error)
 }

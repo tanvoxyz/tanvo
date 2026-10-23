@@ -43,7 +43,7 @@ CREATE TABLE credit_notes (
   CONSTRAINT credit_notes_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
   CONSTRAINT credit_notes_invoice_fkey FOREIGN KEY (organization_id, invoice_id) REFERENCES invoices (organization_id, id) ON DELETE CASCADE,
   CONSTRAINT credit_notes_customer_fkey FOREIGN KEY (organization_id, customer_id) REFERENCES customers (organization_id, id),
-  CONSTRAINT credit_notes_status_check CHECK (status IN ('draft', 'finalized')),
+  CONSTRAINT credit_notes_status_check CHECK (status IN ('draft', 'finalized', 'deleted')),
   CONSTRAINT credit_notes_credit_status_check CHECK (credit_status IN ('available', 'consumed', 'voided')),
   CONSTRAINT credit_notes_refund_status_check CHECK (refund_status IN ('pending', 'succeeded', 'failed')),
   CONSTRAINT credit_notes_reason_check CHECK (reason IN ('duplicated_charge', 'product_unsatisfactory', 'order_change', 'order_cancellation', 'fraudulent_charge', 'other')),

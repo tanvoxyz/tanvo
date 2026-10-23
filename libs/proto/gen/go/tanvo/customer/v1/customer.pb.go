@@ -2330,10 +2330,15 @@ type ListCustomersRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `billing_entity_id`, `customer_type`,
-	// `account_type`, `currency`, `billing_address.country`,
-	// `billing_address.state`, `billing_address.zipcode`,
-	// `has_tax_identification_number`, `metadata.<key>` and `deleted`.
+	// An AIP-160 filter over `external_id`, `billing_entity_id`,
+	// `customer_type`, `has_customer_type`, `account_type`, `currency`,
+	// `billing_address.country`, `billing_address.state`,
+	// `billing_address.zipcode`, `has_tax_identification_number`,
+	// `metadata.<key>`, `deleted` (true also lists deleted customers),
+	// `active_subscriptions_count_from` and `active_subscriptions_count_to`
+	// (equal bounds keep that count, two bounds the counts between them
+	// inclusive, a lone from the counts above it and a lone to the counts
+	// below it).
 	Filter *string
 	// A full-text search over the name, legal name, external ID, email and
 	// names.

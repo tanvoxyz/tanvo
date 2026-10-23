@@ -213,18 +213,47 @@ func (r paymentRepo) List(ctx context.Context, org core.OrganizationID, f paymen
 	if err != nil {
 		return core.Page[*payment.Payment]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	if !f.Order.Valid() {
+		return core.Page[*payment.Payment]{}, fmt.Errorf("list payments: %w: order", core.ErrInvalidValue)
+	}
+	after, afterAt, lim, recent, err := paymentListArgs(f.Order, page)
 	if err != nil {
 		return core.Page[*payment.Payment]{}, err
 	}
+	var searchID *uuid.UUID
+	if id, ok := payment.SearchID(core.SearchTerm(f.Search)); ok {
+		searchID = new(id.UUID())
+	}
 	rows, err := q.ListPayments(ctx, db.ListPaymentsParams{
 		OrganizationID: org.UUID(), CustomerID: optUUID(f.CustomerID), Status: paymentOptEnum(f.Status),
-		After: after, Lim: lim,
+		Currency: currencyCode(f.Currency), InvoiceID: optUUID(f.InvoiceID), Visible: f.Visible,
+		Search: searchArg(f.Search), SearchID: searchID,
+		After: after, Recent: recent, AfterAt: afterAt, Lim: lim,
 	})
 	if err != nil {
 		return core.Page[*payment.Payment]{}, fmt.Errorf("list payments: %w", mapErr(err))
 	}
-	return pageOf(rows, page, paymentOf, func(p *payment.Payment) string { return p.ID.String() })
+	return pageOf(rows, page, paymentOf, func(p *payment.Payment) string { return paymentListToken(recent, p.CreatedAt, p.ID.UUID()) })
+}
+
+// paymentListArgs returns the cursor and row limit of a payment list: in
+// ID order, or with core.OrderRecent by creation time, newest first, then
+// by ID (see [timeCursorArgs]).
+func paymentListArgs(order core.ListOrder, p core.PageRequest) (after *uuid.UUID, afterAt *time.Time, lim int32, recent bool, err error) {
+	if order == core.OrderRecent {
+		after, afterAt, lim, err = timeCursorArgs(p)
+		return after, afterAt, lim, true, err
+	}
+	after, lim, err = pageArgs(p)
+	return after, nil, lim, false, err
+}
+
+// paymentListToken returns the page token after a row of a payment list.
+func paymentListToken(recent bool, createdAt time.Time, id uuid.UUID) string {
+	if recent {
+		return core.Cursor{Key: createdAt.UTC().Format(time.RFC3339Nano), ID: id}.Encode()
+	}
+	return id.String()
 }
 
 // paymentReceiptRepo implements payment.ReceiptRepository.
@@ -307,20 +336,26 @@ func (r paymentReceiptRepo) GetByPayment(ctx context.Context, org core.Organizat
 	return paymentReceiptOf(row)
 }
 
-func (r paymentReceiptRepo) List(ctx context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*payment.Receipt], error) {
+func (r paymentReceiptRepo) List(ctx context.Context, org core.OrganizationID, f payment.ReceiptFilter, page core.PageRequest) (core.Page[*payment.Receipt], error) {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return core.Page[*payment.Receipt]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	if !f.Order.Valid() {
+		return core.Page[*payment.Receipt]{}, fmt.Errorf("list payment receipts: %w: order", core.ErrInvalidValue)
+	}
+	after, afterAt, lim, recent, err := paymentListArgs(f.Order, page)
 	if err != nil {
 		return core.Page[*payment.Receipt]{}, err
 	}
-	rows, err := q.ListPaymentReceipts(ctx, db.ListPaymentReceiptsParams{OrganizationID: org.UUID(), After: after, Lim: lim})
+	rows, err := q.ListPaymentReceipts(ctx, db.ListPaymentReceiptsParams{
+		OrganizationID: org.UUID(), InvoiceID: optUUID(f.InvoiceID),
+		After: after, Recent: recent, AfterAt: afterAt, Lim: lim,
+	})
 	if err != nil {
 		return core.Page[*payment.Receipt]{}, fmt.Errorf("list payment receipts: %w", mapErr(err))
 	}
-	return pageOf(rows, page, paymentReceiptOf, func(x *payment.Receipt) string { return x.ID.String() })
+	return pageOf(rows, page, paymentReceiptOf, func(x *payment.Receipt) string { return paymentListToken(recent, x.CreatedAt, x.ID.UUID()) })
 }
 
 // refundRepo implements payment.RefundRepository.
@@ -558,13 +593,17 @@ func (r paymentRequestRepo) List(ctx context.Context, org core.OrganizationID, f
 	if err != nil {
 		return core.Page[*payment.Request]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	if !f.Order.Valid() {
+		return core.Page[*payment.Request]{}, fmt.Errorf("list payment requests: %w: order", core.ErrInvalidValue)
+	}
+	after, afterAt, lim, recent, err := paymentListArgs(f.Order, page)
 	if err != nil {
 		return core.Page[*payment.Request]{}, err
 	}
 	rows, err := q.ListPaymentRequests(ctx, db.ListPaymentRequestsParams{
 		OrganizationID: org.UUID(), CustomerID: optUUID(f.CustomerID), PaymentStatus: paymentOptEnum(f.PaymentStatus),
-		After: after, Lim: lim,
+		Currency: currencyCode(f.Currency), BillingEntityIds: uuids(f.BillingEntityIDs),
+		After: after, Recent: recent, AfterAt: afterAt, Lim: lim,
 	})
 	if err != nil {
 		return core.Page[*payment.Request]{}, fmt.Errorf("list payment requests: %w", mapErr(err))
@@ -573,7 +612,7 @@ func (r paymentRequestRepo) List(ctx context.Context, org core.OrganizationID, f
 		func(r db.ListPaymentRequestsRow) (*payment.Request, error) {
 			return paymentRequestOf(paymentRequestRow(r))
 		},
-		func(x *payment.Request) string { return x.ID.String() })
+		func(x *payment.Request) string { return paymentListToken(recent, x.CreatedAt, x.ID.UUID()) })
 }
 
 func (r paymentRequestRepo) ListByInvoice(ctx context.Context, org core.OrganizationID, invoice core.InvoiceID) ([]*payment.Request, error) {

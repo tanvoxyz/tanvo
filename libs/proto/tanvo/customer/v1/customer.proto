@@ -55,7 +55,8 @@ service CustomerService {
 
   // Updates a customer. With allow_missing and an `external_id:` reference
   // in customer.id, creates the customer when it does not exist (upsert).
-  // The currency is locked once the customer is billed.
+  // The currency is a preference for new billing objects and may change
+  // at any time.
   rpc UpdateCustomer(UpdateCustomerRequest) returns (UpdateCustomerResponse) {
     option (google.api.http) = {
       patch: "/v1/customers/{customer.id}"
@@ -392,10 +393,15 @@ message ListCustomersRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 2 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `billing_entity_id`, `customer_type`,
-  // `account_type`, `currency`, `billing_address.country`,
-  // `billing_address.state`, `billing_address.zipcode`,
-  // `has_tax_identification_number`, `metadata.<key>` and `deleted`.
+  // An AIP-160 filter over `external_id`, `billing_entity_id`,
+  // `customer_type`, `has_customer_type`, `account_type`, `currency`,
+  // `billing_address.country`, `billing_address.state`,
+  // `billing_address.zipcode`, `has_tax_identification_number`,
+  // `metadata.<key>`, `deleted` (true also lists deleted customers),
+  // `active_subscriptions_count_from` and `active_subscriptions_count_to`
+  // (equal bounds keep that count, two bounds the counts between them
+  // inclusive, a lone from the counts above it and a lone to the counts
+  // below it).
   string filter = 3 [(buf.validate.field).string.max_len = 2048];
   // A full-text search over the name, legal name, external ID, email and
   // names.

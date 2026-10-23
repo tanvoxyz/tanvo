@@ -17,7 +17,8 @@ const (
 	AuthenticationMethodOkta AuthenticationMethod = "okta"
 	// AuthenticationMethodEntraID is "entra_id": Microsoft Entra ID single sign-on.
 	AuthenticationMethodEntraID AuthenticationMethod = "entra_id"
-	// AuthenticationMethodOIDC is "oidc": any other OpenID Connect provider.
+	// AuthenticationMethodOIDC is "oidc": a generic OpenID Connect
+	// provider, through an organization's SSO connection (Tanvo extension).
 	AuthenticationMethodOIDC AuthenticationMethod = "oidc"
 )
 

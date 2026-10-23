@@ -17,7 +17,7 @@ import (
 const billableMetricInUse = `-- name: BillableMetricInUse :one
 SELECT EXISTS (
   SELECT 1 FROM charges c
-  WHERE c.organization_id = $1 AND c.billable_metric_id = $2
+  WHERE c.organization_id = $1 AND c.billable_metric_id = $2 AND c.deleted_at IS NULL
 ) AS in_use
 `
 
@@ -350,23 +350,6 @@ func (q *Queries) CreatePricingUnit(ctx context.Context, arg CreatePricingUnitPa
 	return result.RowsAffected(), nil
 }
 
-const deleteAddOn = `-- name: DeleteAddOn :execrows
-DELETE FROM add_ons WHERE organization_id = $1 AND id = $2
-`
-
-type DeleteAddOnParams struct {
-	OrganizationID uuid.UUID
-	ID             uuid.UUID
-}
-
-func (q *Queries) DeleteAddOn(ctx context.Context, arg DeleteAddOnParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteAddOn, arg.OrganizationID, arg.ID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
 const deleteAddOnTaxes = `-- name: DeleteAddOnTaxes :exec
 DELETE FROM add_on_taxes WHERE organization_id = $1 AND add_on_id = $2
 `
@@ -378,68 +361,6 @@ type DeleteAddOnTaxesParams struct {
 
 func (q *Queries) DeleteAddOnTaxes(ctx context.Context, arg DeleteAddOnTaxesParams) error {
 	_, err := q.db.Exec(ctx, deleteAddOnTaxes, arg.OrganizationID, arg.AddOnID)
-	return err
-}
-
-const deleteBillableMetric = `-- name: DeleteBillableMetric :execrows
-DELETE FROM billable_metrics WHERE organization_id = $1 AND id = $2
-`
-
-type DeleteBillableMetricParams struct {
-	OrganizationID uuid.UUID
-	ID             uuid.UUID
-}
-
-func (q *Queries) DeleteBillableMetric(ctx context.Context, arg DeleteBillableMetricParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteBillableMetric, arg.OrganizationID, arg.ID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const deleteBillableMetricFilters = `-- name: DeleteBillableMetricFilters :exec
-DELETE FROM billable_metric_filters WHERE organization_id = $1 AND billable_metric_id = $2
-`
-
-type DeleteBillableMetricFiltersParams struct {
-	OrganizationID   uuid.UUID
-	BillableMetricID uuid.UUID
-}
-
-func (q *Queries) DeleteBillableMetricFilters(ctx context.Context, arg DeleteBillableMetricFiltersParams) error {
-	_, err := q.db.Exec(ctx, deleteBillableMetricFilters, arg.OrganizationID, arg.BillableMetricID)
-	return err
-}
-
-const deleteCharge = `-- name: DeleteCharge :execrows
-DELETE FROM charges WHERE organization_id = $1 AND id = $2
-`
-
-type DeleteChargeParams struct {
-	OrganizationID uuid.UUID
-	ID             uuid.UUID
-}
-
-func (q *Queries) DeleteCharge(ctx context.Context, arg DeleteChargeParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteCharge, arg.OrganizationID, arg.ID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const deleteChargeFilters = `-- name: DeleteChargeFilters :exec
-DELETE FROM charge_filters WHERE organization_id = $1 AND charge_id = $2
-`
-
-type DeleteChargeFiltersParams struct {
-	OrganizationID uuid.UUID
-	ChargeID       uuid.UUID
-}
-
-func (q *Queries) DeleteChargeFilters(ctx context.Context, arg DeleteChargeFiltersParams) error {
-	_, err := q.db.Exec(ctx, deleteChargeFilters, arg.OrganizationID, arg.ChargeID)
 	return err
 }
 
@@ -457,57 +378,6 @@ func (q *Queries) DeleteChargeTaxes(ctx context.Context, arg DeleteChargeTaxesPa
 	return err
 }
 
-const deleteChargesByMetric = `-- name: DeleteChargesByMetric :execrows
-DELETE FROM charges WHERE organization_id = $1 AND billable_metric_id = $2
-`
-
-type DeleteChargesByMetricParams struct {
-	OrganizationID   uuid.UUID
-	BillableMetricID uuid.UUID
-}
-
-func (q *Queries) DeleteChargesByMetric(ctx context.Context, arg DeleteChargesByMetricParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteChargesByMetric, arg.OrganizationID, arg.BillableMetricID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const deleteChargesByPlan = `-- name: DeleteChargesByPlan :execrows
-DELETE FROM charges WHERE organization_id = $1 AND plan_id = $2
-`
-
-type DeleteChargesByPlanParams struct {
-	OrganizationID uuid.UUID
-	PlanID         uuid.UUID
-}
-
-func (q *Queries) DeleteChargesByPlan(ctx context.Context, arg DeleteChargesByPlanParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteChargesByPlan, arg.OrganizationID, arg.PlanID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const deleteFixedCharge = `-- name: DeleteFixedCharge :execrows
-DELETE FROM fixed_charges WHERE organization_id = $1 AND id = $2
-`
-
-type DeleteFixedChargeParams struct {
-	OrganizationID uuid.UUID
-	ID             uuid.UUID
-}
-
-func (q *Queries) DeleteFixedCharge(ctx context.Context, arg DeleteFixedChargeParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteFixedCharge, arg.OrganizationID, arg.ID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
 const deleteFixedChargeTaxes = `-- name: DeleteFixedChargeTaxes :exec
 DELETE FROM fixed_charge_taxes WHERE organization_id = $1 AND fixed_charge_id = $2
 `
@@ -520,40 +390,6 @@ type DeleteFixedChargeTaxesParams struct {
 func (q *Queries) DeleteFixedChargeTaxes(ctx context.Context, arg DeleteFixedChargeTaxesParams) error {
 	_, err := q.db.Exec(ctx, deleteFixedChargeTaxes, arg.OrganizationID, arg.FixedChargeID)
 	return err
-}
-
-const deleteFixedChargesByAddOn = `-- name: DeleteFixedChargesByAddOn :execrows
-DELETE FROM fixed_charges WHERE organization_id = $1 AND add_on_id = $2
-`
-
-type DeleteFixedChargesByAddOnParams struct {
-	OrganizationID uuid.UUID
-	AddOnID        uuid.UUID
-}
-
-func (q *Queries) DeleteFixedChargesByAddOn(ctx context.Context, arg DeleteFixedChargesByAddOnParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteFixedChargesByAddOn, arg.OrganizationID, arg.AddOnID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const deleteFixedChargesByPlan = `-- name: DeleteFixedChargesByPlan :execrows
-DELETE FROM fixed_charges WHERE organization_id = $1 AND plan_id = $2
-`
-
-type DeleteFixedChargesByPlanParams struct {
-	OrganizationID uuid.UUID
-	PlanID         uuid.UUID
-}
-
-func (q *Queries) DeleteFixedChargesByPlan(ctx context.Context, arg DeleteFixedChargesByPlanParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteFixedChargesByPlan, arg.OrganizationID, arg.PlanID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
 }
 
 const deletePlanTaxes = `-- name: DeletePlanTaxes :exec
@@ -570,8 +406,202 @@ func (q *Queries) DeletePlanTaxes(ctx context.Context, arg DeletePlanTaxesParams
 	return err
 }
 
+const discardAddOn = `-- name: DiscardAddOn :execrows
+UPDATE add_ons SET deleted_at = $1, updated_at = $1
+WHERE organization_id = $2 AND id = $3 AND deleted_at IS NULL
+`
+
+type DiscardAddOnParams struct {
+	DeletedAt      *time.Time
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+}
+
+func (q *Queries) DiscardAddOn(ctx context.Context, arg DiscardAddOnParams) (int64, error) {
+	result, err := q.db.Exec(ctx, discardAddOn, arg.DeletedAt, arg.OrganizationID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const discardBillableMetric = `-- name: DiscardBillableMetric :execrows
+UPDATE billable_metrics SET deleted_at = $1, updated_at = $1
+WHERE organization_id = $2 AND id = $3 AND deleted_at IS NULL
+`
+
+type DiscardBillableMetricParams struct {
+	DeletedAt      *time.Time
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+}
+
+// Soft-deletes a kept metric (lago metric.discard!, destroy_service.rb:33).
+func (q *Queries) DiscardBillableMetric(ctx context.Context, arg DiscardBillableMetricParams) (int64, error) {
+	result, err := q.db.Exec(ctx, discardBillableMetric, arg.DeletedAt, arg.OrganizationID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const discardBillableMetricFilters = `-- name: DiscardBillableMetricFilters :execrows
+UPDATE billable_metric_filters SET deleted_at = $1
+WHERE organization_id = $2 AND billable_metric_id = $3 AND deleted_at IS NULL
+  AND NOT (id = ANY($4::uuid[]))
+`
+
+type DiscardBillableMetricFiltersParams struct {
+	DeletedAt        *time.Time
+	OrganizationID   uuid.UUID
+	BillableMetricID uuid.UUID
+	KeptIds          []uuid.UUID
+}
+
+func (q *Queries) DiscardBillableMetricFilters(ctx context.Context, arg DiscardBillableMetricFiltersParams) (int64, error) {
+	result, err := q.db.Exec(ctx, discardBillableMetricFilters,
+		arg.DeletedAt,
+		arg.OrganizationID,
+		arg.BillableMetricID,
+		arg.KeptIds,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const discardChargeFiltersExcept = `-- name: DiscardChargeFiltersExcept :exec
+UPDATE charge_filters SET deleted_at = $1
+WHERE organization_id = $2 AND charge_id = $3 AND deleted_at IS NULL
+  AND NOT (id = ANY($4::uuid[]))
+`
+
+type DiscardChargeFiltersExceptParams struct {
+	DeletedAt      *time.Time
+	OrganizationID uuid.UUID
+	ChargeID       uuid.UUID
+	KeepIds        []uuid.UUID
+}
+
+// Discards the kept filters of the charge missing from @keep_ids (lago
+// ChargeFilters::CreateOrUpdateBatchService).
+func (q *Queries) DiscardChargeFiltersExcept(ctx context.Context, arg DiscardChargeFiltersExceptParams) error {
+	_, err := q.db.Exec(ctx, discardChargeFiltersExcept,
+		arg.DeletedAt,
+		arg.OrganizationID,
+		arg.ChargeID,
+		arg.KeepIds,
+	)
+	return err
+}
+
+const discardChargeFiltersOfCharges = `-- name: DiscardChargeFiltersOfCharges :exec
+UPDATE charge_filters f SET deleted_at = $1
+FROM charges c
+WHERE f.organization_id = $2 AND f.deleted_at IS NULL
+  AND c.organization_id = f.organization_id AND c.id = f.charge_id AND c.deleted_at IS NULL
+  AND ($3::uuid IS NULL OR c.id = $3)
+  AND ($4::uuid IS NULL OR c.plan_id = $4)
+  AND ($5::uuid IS NULL OR c.billable_metric_id = $5)
+`
+
+type DiscardChargeFiltersOfChargesParams struct {
+	DeletedAt        *time.Time
+	OrganizationID   uuid.UUID
+	ID               *uuid.UUID
+	PlanID           *uuid.UUID
+	BillableMetricID *uuid.UUID
+}
+
+// Discards the kept filters of the kept charges selected as in
+// DiscardCharges; run it first.
+func (q *Queries) DiscardChargeFiltersOfCharges(ctx context.Context, arg DiscardChargeFiltersOfChargesParams) error {
+	_, err := q.db.Exec(ctx, discardChargeFiltersOfCharges,
+		arg.DeletedAt,
+		arg.OrganizationID,
+		arg.ID,
+		arg.PlanID,
+		arg.BillableMetricID,
+	)
+	return err
+}
+
+const discardCharges = `-- name: DiscardCharges :execrows
+UPDATE charges SET deleted_at = $1,
+  updated_at = CASE WHEN $2::boolean THEN $1 ELSE updated_at END
+WHERE organization_id = $3 AND deleted_at IS NULL
+  AND ($4::uuid IS NULL OR id = $4)
+  AND ($5::uuid IS NULL OR plan_id = $5)
+  AND ($6::uuid IS NULL OR billable_metric_id = $6)
+`
+
+type DiscardChargesParams struct {
+	DeletedAt        *time.Time
+	Touch            bool
+	OrganizationID   uuid.UUID
+	ID               *uuid.UUID
+	PlanID           *uuid.UUID
+	BillableMetricID *uuid.UUID
+}
+
+// Discards the kept charges with the ID @id, of the plan @plan_id or of
+// the metric @billable_metric_id (one is set); @touch also sets
+// updated_at, as a single discard does (lago discard!, while update_all
+// leaves it).
+func (q *Queries) DiscardCharges(ctx context.Context, arg DiscardChargesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, discardCharges,
+		arg.DeletedAt,
+		arg.Touch,
+		arg.OrganizationID,
+		arg.ID,
+		arg.PlanID,
+		arg.BillableMetricID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const discardFixedCharges = `-- name: DiscardFixedCharges :execrows
+UPDATE fixed_charges SET deleted_at = $1,
+  updated_at = CASE WHEN $2::boolean THEN $1 ELSE updated_at END
+WHERE organization_id = $3 AND deleted_at IS NULL
+  AND ($4::uuid IS NULL OR id = $4)
+  AND ($5::uuid IS NULL OR plan_id = $5)
+  AND ($6::uuid IS NULL OR add_on_id = $6)
+`
+
+type DiscardFixedChargesParams struct {
+	DeletedAt      *time.Time
+	Touch          bool
+	OrganizationID uuid.UUID
+	ID             *uuid.UUID
+	PlanID         *uuid.UUID
+	AddOnID        *uuid.UUID
+}
+
+// Discards the kept fixed charges with the ID @id, of the plan @plan_id or
+// of the add-on @add_on_id (one is set); @touch also sets updated_at, as a
+// single discard does.
+func (q *Queries) DiscardFixedCharges(ctx context.Context, arg DiscardFixedChargesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, discardFixedCharges,
+		arg.DeletedAt,
+		arg.Touch,
+		arg.OrganizationID,
+		arg.ID,
+		arg.PlanID,
+		arg.AddOnID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getAddOn = `-- name: GetAddOn :one
-SELECT a.organization_id, a.id, a.code, a.name, a.invoice_display_name, a.description, a.amount, a.currency, a.created_at, a.updated_at,
+SELECT a.organization_id, a.id, a.code, a.name, a.invoice_display_name, a.description, a.amount, a.currency, a.created_at, a.updated_at, a.deleted_at,
   ARRAY(SELECT t.tax_id FROM add_on_taxes t
         WHERE t.organization_id = a.organization_id AND t.add_on_id = a.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM add_ons a
@@ -588,6 +618,7 @@ type GetAddOnRow struct {
 	TaxIds []uuid.UUID
 }
 
+// Kept or discarded: fees reference discarded rows.
 func (q *Queries) GetAddOn(ctx context.Context, arg GetAddOnParams) (GetAddOnRow, error) {
 	row := q.db.QueryRow(ctx, getAddOn, arg.OrganizationID, arg.ID)
 	var i GetAddOnRow
@@ -602,17 +633,18 @@ func (q *Queries) GetAddOn(ctx context.Context, arg GetAddOnParams) (GetAddOnRow
 		&i.AddOn.Currency,
 		&i.AddOn.CreatedAt,
 		&i.AddOn.UpdatedAt,
+		&i.AddOn.DeletedAt,
 		&i.TaxIds,
 	)
 	return i, err
 }
 
 const getAddOnByCode = `-- name: GetAddOnByCode :one
-SELECT a.organization_id, a.id, a.code, a.name, a.invoice_display_name, a.description, a.amount, a.currency, a.created_at, a.updated_at,
+SELECT a.organization_id, a.id, a.code, a.name, a.invoice_display_name, a.description, a.amount, a.currency, a.created_at, a.updated_at, a.deleted_at,
   ARRAY(SELECT t.tax_id FROM add_on_taxes t
         WHERE t.organization_id = a.organization_id AND t.add_on_id = a.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM add_ons a
-WHERE a.organization_id = $1 AND a.code = $2
+WHERE a.organization_id = $1 AND a.code = $2 AND a.deleted_at IS NULL
 `
 
 type GetAddOnByCodeParams struct {
@@ -639,13 +671,14 @@ func (q *Queries) GetAddOnByCode(ctx context.Context, arg GetAddOnByCodeParams) 
 		&i.AddOn.Currency,
 		&i.AddOn.CreatedAt,
 		&i.AddOn.UpdatedAt,
+		&i.AddOn.DeletedAt,
 		&i.TaxIds,
 	)
 	return i, err
 }
 
 const getBillableMetric = `-- name: GetBillableMetric :one
-SELECT organization_id, id, code, name, description, aggregation_type, field_name, weighted_interval, recurring, expression, rounding_function, rounding_precision, created_at, updated_at FROM billable_metrics WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, code, name, description, aggregation_type, field_name, weighted_interval, recurring, expression, rounding_function, rounding_precision, created_at, updated_at, deleted_at FROM billable_metrics WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type GetBillableMetricParams struct {
@@ -671,12 +704,13 @@ func (q *Queries) GetBillableMetric(ctx context.Context, arg GetBillableMetricPa
 		&i.RoundingPrecision,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getBillableMetricByCode = `-- name: GetBillableMetricByCode :one
-SELECT organization_id, id, code, name, description, aggregation_type, field_name, weighted_interval, recurring, expression, rounding_function, rounding_precision, created_at, updated_at FROM billable_metrics WHERE organization_id = $1 AND code = $2
+SELECT organization_id, id, code, name, description, aggregation_type, field_name, weighted_interval, recurring, expression, rounding_function, rounding_precision, created_at, updated_at, deleted_at FROM billable_metrics WHERE organization_id = $1 AND code = $2 AND deleted_at IS NULL
 `
 
 type GetBillableMetricByCodeParams struct {
@@ -702,12 +736,45 @@ func (q *Queries) GetBillableMetricByCode(ctx context.Context, arg GetBillableMe
 		&i.RoundingPrecision,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getBillableMetricWithDiscarded = `-- name: GetBillableMetricWithDiscarded :one
+SELECT organization_id, id, code, name, description, aggregation_type, field_name, weighted_interval, recurring, expression, rounding_function, rounding_precision, created_at, updated_at, deleted_at FROM billable_metrics WHERE organization_id = $1 AND id = $2
+`
+
+type GetBillableMetricWithDiscardedParams struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+}
+
+func (q *Queries) GetBillableMetricWithDiscarded(ctx context.Context, arg GetBillableMetricWithDiscardedParams) (BillableMetric, error) {
+	row := q.db.QueryRow(ctx, getBillableMetricWithDiscarded, arg.OrganizationID, arg.ID)
+	var i BillableMetric
+	err := row.Scan(
+		&i.OrganizationID,
+		&i.ID,
+		&i.Code,
+		&i.Name,
+		&i.Description,
+		&i.AggregationType,
+		&i.FieldName,
+		&i.WeightedInterval,
+		&i.Recurring,
+		&i.Expression,
+		&i.RoundingFunction,
+		&i.RoundingPrecision,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getCharge = `-- name: GetCharge :one
-SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at,
+SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at, c.deleted_at,
   ARRAY(SELECT t.tax_id FROM charge_taxes t
         WHERE t.organization_id = c.organization_id AND t.charge_id = c.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM charges c
@@ -724,6 +791,7 @@ type GetChargeRow struct {
 	TaxIds []uuid.UUID
 }
 
+// Kept or discarded: fees reference discarded rows.
 func (q *Queries) GetCharge(ctx context.Context, arg GetChargeParams) (GetChargeRow, error) {
 	row := q.db.QueryRow(ctx, getCharge, arg.OrganizationID, arg.ID)
 	var i GetChargeRow
@@ -746,17 +814,18 @@ func (q *Queries) GetCharge(ctx context.Context, arg GetChargeParams) (GetCharge
 		&i.Charge.ConversionRate,
 		&i.Charge.CreatedAt,
 		&i.Charge.UpdatedAt,
+		&i.Charge.DeletedAt,
 		&i.TaxIds,
 	)
 	return i, err
 }
 
 const getChargeByCode = `-- name: GetChargeByCode :one
-SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at,
+SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at, c.deleted_at,
   ARRAY(SELECT t.tax_id FROM charge_taxes t
         WHERE t.organization_id = c.organization_id AND t.charge_id = c.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM charges c
-WHERE c.organization_id = $1 AND c.plan_id = $2 AND c.code = $3
+WHERE c.organization_id = $1 AND c.plan_id = $2 AND c.code = $3 AND c.deleted_at IS NULL
 ORDER BY c.id
 LIMIT 1
 `
@@ -794,13 +863,14 @@ func (q *Queries) GetChargeByCode(ctx context.Context, arg GetChargeByCodeParams
 		&i.Charge.ConversionRate,
 		&i.Charge.CreatedAt,
 		&i.Charge.UpdatedAt,
+		&i.Charge.DeletedAt,
 		&i.TaxIds,
 	)
 	return i, err
 }
 
 const getChargeFilter = `-- name: GetChargeFilter :one
-SELECT organization_id, id, charge_id, filter_values, properties, invoice_display_name, code, position, created_at FROM charge_filters WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, charge_id, filter_values, properties, invoice_display_name, code, position, created_at, deleted_at FROM charge_filters WHERE organization_id = $1 AND id = $2
 `
 
 type GetChargeFilterParams struct {
@@ -808,6 +878,7 @@ type GetChargeFilterParams struct {
 	ID             uuid.UUID
 }
 
+// Kept or discarded: fees reference discarded filters.
 func (q *Queries) GetChargeFilter(ctx context.Context, arg GetChargeFilterParams) (ChargeFilter, error) {
 	row := q.db.QueryRow(ctx, getChargeFilter, arg.OrganizationID, arg.ID)
 	var i ChargeFilter
@@ -821,12 +892,13 @@ func (q *Queries) GetChargeFilter(ctx context.Context, arg GetChargeFilterParams
 		&i.Code,
 		&i.Position,
 		&i.CreatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getFixedCharge = `-- name: GetFixedCharge :one
-SELECT f.organization_id, f.id, f.plan_id, f.parent_id, f.code, f.add_on_id, f.charge_model, f.properties, f.units, f.pay_in_advance, f.prorated, f.invoice_display_name, f.created_at, f.updated_at,
+SELECT f.organization_id, f.id, f.plan_id, f.parent_id, f.code, f.add_on_id, f.charge_model, f.properties, f.units, f.pay_in_advance, f.prorated, f.invoice_display_name, f.created_at, f.updated_at, f.deleted_at,
   ARRAY(SELECT t.tax_id FROM fixed_charge_taxes t
         WHERE t.organization_id = f.organization_id AND t.fixed_charge_id = f.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM fixed_charges f
@@ -843,6 +915,7 @@ type GetFixedChargeRow struct {
 	TaxIds      []uuid.UUID
 }
 
+// Kept or discarded: fees reference discarded rows.
 func (q *Queries) GetFixedCharge(ctx context.Context, arg GetFixedChargeParams) (GetFixedChargeRow, error) {
 	row := q.db.QueryRow(ctx, getFixedCharge, arg.OrganizationID, arg.ID)
 	var i GetFixedChargeRow
@@ -861,17 +934,18 @@ func (q *Queries) GetFixedCharge(ctx context.Context, arg GetFixedChargeParams) 
 		&i.FixedCharge.InvoiceDisplayName,
 		&i.FixedCharge.CreatedAt,
 		&i.FixedCharge.UpdatedAt,
+		&i.FixedCharge.DeletedAt,
 		&i.TaxIds,
 	)
 	return i, err
 }
 
 const getFixedChargeByCode = `-- name: GetFixedChargeByCode :one
-SELECT f.organization_id, f.id, f.plan_id, f.parent_id, f.code, f.add_on_id, f.charge_model, f.properties, f.units, f.pay_in_advance, f.prorated, f.invoice_display_name, f.created_at, f.updated_at,
+SELECT f.organization_id, f.id, f.plan_id, f.parent_id, f.code, f.add_on_id, f.charge_model, f.properties, f.units, f.pay_in_advance, f.prorated, f.invoice_display_name, f.created_at, f.updated_at, f.deleted_at,
   ARRAY(SELECT t.tax_id FROM fixed_charge_taxes t
         WHERE t.organization_id = f.organization_id AND t.fixed_charge_id = f.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM fixed_charges f
-WHERE f.organization_id = $1 AND f.plan_id = $2 AND f.code = $3
+WHERE f.organization_id = $1 AND f.plan_id = $2 AND f.code = $3 AND f.deleted_at IS NULL
 ORDER BY f.id
 LIMIT 1
 `
@@ -905,6 +979,7 @@ func (q *Queries) GetFixedChargeByCode(ctx context.Context, arg GetFixedChargeBy
 		&i.FixedCharge.InvoiceDisplayName,
 		&i.FixedCharge.CreatedAt,
 		&i.FixedCharge.UpdatedAt,
+		&i.FixedCharge.DeletedAt,
 		&i.TaxIds,
 	)
 	return i, err
@@ -1068,67 +1143,6 @@ func (q *Queries) InsertAddOnTaxes(ctx context.Context, arg InsertAddOnTaxesPara
 	return err
 }
 
-const insertBillableMetricFilter = `-- name: InsertBillableMetricFilter :exec
-INSERT INTO billable_metric_filters (organization_id, id, billable_metric_id, key, filter_values, position)
-VALUES ($1, $2, $3, $4, $5, $6)
-`
-
-type InsertBillableMetricFilterParams struct {
-	OrganizationID   uuid.UUID
-	ID               uuid.UUID
-	BillableMetricID uuid.UUID
-	Key              string
-	FilterValues     []string
-	Position         int32
-}
-
-func (q *Queries) InsertBillableMetricFilter(ctx context.Context, arg InsertBillableMetricFilterParams) error {
-	_, err := q.db.Exec(ctx, insertBillableMetricFilter,
-		arg.OrganizationID,
-		arg.ID,
-		arg.BillableMetricID,
-		arg.Key,
-		arg.FilterValues,
-		arg.Position,
-	)
-	return err
-}
-
-const insertChargeFilter = `-- name: InsertChargeFilter :exec
-INSERT INTO charge_filters (
-  organization_id, id, charge_id, filter_values, properties, invoice_display_name, code, position, created_at
-) VALUES (
-  $1, $2, $3, $4, $5, $6, $7, $8, $9
-)
-`
-
-type InsertChargeFilterParams struct {
-	OrganizationID     uuid.UUID
-	ID                 uuid.UUID
-	ChargeID           uuid.UUID
-	FilterValues       json.RawMessage
-	Properties         []byte
-	InvoiceDisplayName *string
-	Code               string
-	Position           int32
-	CreatedAt          time.Time
-}
-
-func (q *Queries) InsertChargeFilter(ctx context.Context, arg InsertChargeFilterParams) error {
-	_, err := q.db.Exec(ctx, insertChargeFilter,
-		arg.OrganizationID,
-		arg.ID,
-		arg.ChargeID,
-		arg.FilterValues,
-		arg.Properties,
-		arg.InvoiceDisplayName,
-		arg.Code,
-		arg.Position,
-		arg.CreatedAt,
-	)
-	return err
-}
-
 const insertChargeTaxes = `-- name: InsertChargeTaxes :exec
 INSERT INTO charge_taxes (organization_id, charge_id, tax_id, position)
 SELECT $1, $2, t.id, t.ord
@@ -1181,19 +1195,26 @@ func (q *Queries) InsertPlanTaxes(ctx context.Context, arg InsertPlanTaxesParams
 }
 
 const listAddOns = `-- name: ListAddOns :many
-SELECT a.organization_id, a.id, a.code, a.name, a.invoice_display_name, a.description, a.amount, a.currency, a.created_at, a.updated_at,
+SELECT a.organization_id, a.id, a.code, a.name, a.invoice_display_name, a.description, a.amount, a.currency, a.created_at, a.updated_at, a.deleted_at,
   ARRAY(SELECT t.tax_id FROM add_on_taxes t
         WHERE t.organization_id = a.organization_id AND t.add_on_id = a.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM add_ons a
-WHERE a.organization_id = $1
-  AND ($2::uuid IS NULL OR a.id > $2)
-ORDER BY a.id
-LIMIT $3
+WHERE a.organization_id = $1 AND a.deleted_at IS NULL
+  AND ($2::text IS NULL OR a.name ILIKE $2 OR a.code ILIKE $2)
+  AND ($3::uuid IS NULL
+       OR ($4::boolean AND (a.created_at < $5::timestamptz
+                                 OR (a.created_at = $5::timestamptz AND a.id > $3)))
+       OR (NOT $4::boolean AND a.id > $3))
+ORDER BY CASE WHEN $4::boolean THEN a.created_at END DESC, a.id
+LIMIT $6
 `
 
 type ListAddOnsParams struct {
 	OrganizationID uuid.UUID
+	Search         *string
 	After          *uuid.UUID
+	Recent         bool
+	AfterAt        *time.Time
 	Lim            int32
 }
 
@@ -1202,8 +1223,18 @@ type ListAddOnsRow struct {
 	TaxIds []uuid.UUID
 }
 
+// @recent lists by created_at, newest first, then by id ascending
+// (add_ons_query.rb, base_query.rb:111-112); its cursor is (@after_at,
+// @after).
 func (q *Queries) ListAddOns(ctx context.Context, arg ListAddOnsParams) ([]ListAddOnsRow, error) {
-	rows, err := q.db.Query(ctx, listAddOns, arg.OrganizationID, arg.After, arg.Lim)
+	rows, err := q.db.Query(ctx, listAddOns,
+		arg.OrganizationID,
+		arg.Search,
+		arg.After,
+		arg.Recent,
+		arg.AfterAt,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -1222,6 +1253,7 @@ func (q *Queries) ListAddOns(ctx context.Context, arg ListAddOnsParams) ([]ListA
 			&i.AddOn.Currency,
 			&i.AddOn.CreatedAt,
 			&i.AddOn.UpdatedAt,
+			&i.AddOn.DeletedAt,
 			&i.TaxIds,
 		); err != nil {
 			return nil, err
@@ -1235,11 +1267,11 @@ func (q *Queries) ListAddOns(ctx context.Context, arg ListAddOnsParams) ([]ListA
 }
 
 const listAddOnsByIDs = `-- name: ListAddOnsByIDs :many
-SELECT a.organization_id, a.id, a.code, a.name, a.invoice_display_name, a.description, a.amount, a.currency, a.created_at, a.updated_at,
+SELECT a.organization_id, a.id, a.code, a.name, a.invoice_display_name, a.description, a.amount, a.currency, a.created_at, a.updated_at, a.deleted_at,
   ARRAY(SELECT t.tax_id FROM add_on_taxes t
         WHERE t.organization_id = a.organization_id AND t.add_on_id = a.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM add_ons a
-WHERE a.organization_id = $1 AND a.id = ANY($2::uuid[])
+WHERE a.organization_id = $1 AND a.id = ANY($2::uuid[]) AND a.deleted_at IS NULL
 ORDER BY a.id
 `
 
@@ -1273,6 +1305,7 @@ func (q *Queries) ListAddOnsByIDs(ctx context.Context, arg ListAddOnsByIDsParams
 			&i.AddOn.Currency,
 			&i.AddOn.CreatedAt,
 			&i.AddOn.UpdatedAt,
+			&i.AddOn.DeletedAt,
 			&i.TaxIds,
 		); err != nil {
 			return nil, err
@@ -1286,8 +1319,8 @@ func (q *Queries) ListAddOnsByIDs(ctx context.Context, arg ListAddOnsByIDsParams
 }
 
 const listBillableMetricFilters = `-- name: ListBillableMetricFilters :many
-SELECT organization_id, id, billable_metric_id, key, filter_values, position FROM billable_metric_filters
-WHERE organization_id = $1 AND billable_metric_id = ANY($2::uuid[])
+SELECT organization_id, id, billable_metric_id, key, filter_values, position, deleted_at FROM billable_metric_filters
+WHERE organization_id = $1 AND billable_metric_id = ANY($2::uuid[]) AND deleted_at IS NULL
 ORDER BY billable_metric_id, position
 `
 
@@ -1312,6 +1345,7 @@ func (q *Queries) ListBillableMetricFilters(ctx context.Context, arg ListBillabl
 			&i.Key,
 			&i.FilterValues,
 			&i.Position,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1324,17 +1358,22 @@ func (q *Queries) ListBillableMetricFilters(ctx context.Context, arg ListBillabl
 }
 
 const listBillableMetrics = `-- name: ListBillableMetrics :many
-SELECT organization_id, id, code, name, description, aggregation_type, field_name, weighted_interval, recurring, expression, rounding_function, rounding_precision, created_at, updated_at FROM billable_metrics m
-WHERE m.organization_id = $1
+SELECT organization_id, id, code, name, description, aggregation_type, field_name, weighted_interval, recurring, expression, rounding_function, rounding_precision, created_at, updated_at, deleted_at FROM billable_metrics m
+WHERE m.organization_id = $1 AND m.deleted_at IS NULL
   AND (cardinality($2::text[]) = 0 OR m.aggregation_type = ANY($2::text[]))
   AND ($3::boolean IS NULL OR m.recurring = $3)
   AND ($4::uuid IS NULL OR EXISTS (
     SELECT 1 FROM charges c
     WHERE c.organization_id = m.organization_id AND c.plan_id = $4 AND c.billable_metric_id = m.id
+      AND c.deleted_at IS NULL
   ))
-  AND ($5::uuid IS NULL OR m.id > $5)
-ORDER BY m.id
-LIMIT $6
+  AND ($5::text IS NULL OR m.name ILIKE $5 OR m.code ILIKE $5)
+  AND ($6::uuid IS NULL
+       OR ($7::boolean AND (m.created_at < $8::timestamptz
+                                 OR (m.created_at = $8::timestamptz AND m.id > $6)))
+       OR (NOT $7::boolean AND m.id > $6))
+ORDER BY CASE WHEN $7::boolean THEN m.created_at END DESC, m.id
+LIMIT $9
 `
 
 type ListBillableMetricsParams struct {
@@ -1342,17 +1381,25 @@ type ListBillableMetricsParams struct {
 	AggregationTypes []string
 	Recurring        *bool
 	PlanID           *uuid.UUID
+	Search           *string
 	After            *uuid.UUID
+	Recent           bool
+	AfterAt          *time.Time
 	Lim              int32
 }
 
+// @recent lists by created_at, newest first, then by id ascending
+// (base_query.rb:111-112); its cursor is (@after_at, @after).
 func (q *Queries) ListBillableMetrics(ctx context.Context, arg ListBillableMetricsParams) ([]BillableMetric, error) {
 	rows, err := q.db.Query(ctx, listBillableMetrics,
 		arg.OrganizationID,
 		arg.AggregationTypes,
 		arg.Recurring,
 		arg.PlanID,
+		arg.Search,
 		arg.After,
+		arg.Recent,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {
@@ -1377,6 +1424,7 @@ func (q *Queries) ListBillableMetrics(ctx context.Context, arg ListBillableMetri
 			&i.RoundingPrecision,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1389,8 +1437,8 @@ func (q *Queries) ListBillableMetrics(ctx context.Context, arg ListBillableMetri
 }
 
 const listBillableMetricsByCodes = `-- name: ListBillableMetricsByCodes :many
-SELECT organization_id, id, code, name, description, aggregation_type, field_name, weighted_interval, recurring, expression, rounding_function, rounding_precision, created_at, updated_at FROM billable_metrics
-WHERE organization_id = $1 AND code = ANY($2::text[])
+SELECT organization_id, id, code, name, description, aggregation_type, field_name, weighted_interval, recurring, expression, rounding_function, rounding_precision, created_at, updated_at, deleted_at FROM billable_metrics
+WHERE organization_id = $1 AND code = ANY($2::text[]) AND deleted_at IS NULL
 ORDER BY id
 `
 
@@ -1423,6 +1471,7 @@ func (q *Queries) ListBillableMetricsByCodes(ctx context.Context, arg ListBillab
 			&i.RoundingPrecision,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1435,8 +1484,8 @@ func (q *Queries) ListBillableMetricsByCodes(ctx context.Context, arg ListBillab
 }
 
 const listBillableMetricsByIDs = `-- name: ListBillableMetricsByIDs :many
-SELECT organization_id, id, code, name, description, aggregation_type, field_name, weighted_interval, recurring, expression, rounding_function, rounding_precision, created_at, updated_at FROM billable_metrics
-WHERE organization_id = $1 AND id = ANY($2::uuid[])
+SELECT organization_id, id, code, name, description, aggregation_type, field_name, weighted_interval, recurring, expression, rounding_function, rounding_precision, created_at, updated_at, deleted_at FROM billable_metrics
+WHERE organization_id = $1 AND id = ANY($2::uuid[]) AND deleted_at IS NULL
 ORDER BY id
 `
 
@@ -1469,6 +1518,7 @@ func (q *Queries) ListBillableMetricsByIDs(ctx context.Context, arg ListBillable
 			&i.RoundingPrecision,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1481,11 +1531,11 @@ func (q *Queries) ListBillableMetricsByIDs(ctx context.Context, arg ListBillable
 }
 
 const listChargeChildren = `-- name: ListChargeChildren :many
-SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at,
+SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at, c.deleted_at,
   ARRAY(SELECT t.tax_id FROM charge_taxes t
         WHERE t.organization_id = c.organization_id AND t.charge_id = c.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM charges c
-WHERE c.organization_id = $1 AND c.parent_id = $2
+WHERE c.organization_id = $1 AND c.parent_id = $2 AND c.deleted_at IS NULL
 ORDER BY c.id
 `
 
@@ -1527,6 +1577,7 @@ func (q *Queries) ListChargeChildren(ctx context.Context, arg ListChargeChildren
 			&i.Charge.ConversionRate,
 			&i.Charge.CreatedAt,
 			&i.Charge.UpdatedAt,
+			&i.Charge.DeletedAt,
 			&i.TaxIds,
 		); err != nil {
 			return nil, err
@@ -1540,8 +1591,8 @@ func (q *Queries) ListChargeChildren(ctx context.Context, arg ListChargeChildren
 }
 
 const listChargeFilters = `-- name: ListChargeFilters :many
-SELECT organization_id, id, charge_id, filter_values, properties, invoice_display_name, code, position, created_at FROM charge_filters
-WHERE organization_id = $1 AND charge_id = $2
+SELECT organization_id, id, charge_id, filter_values, properties, invoice_display_name, code, position, created_at, deleted_at FROM charge_filters
+WHERE organization_id = $1 AND charge_id = $2 AND deleted_at IS NULL
 ORDER BY created_at, id
 `
 
@@ -1569,6 +1620,7 @@ func (q *Queries) ListChargeFilters(ctx context.Context, arg ListChargeFiltersPa
 			&i.Code,
 			&i.Position,
 			&i.CreatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1581,8 +1633,8 @@ func (q *Queries) ListChargeFilters(ctx context.Context, arg ListChargeFiltersPa
 }
 
 const listChargeFiltersByCharges = `-- name: ListChargeFiltersByCharges :many
-SELECT organization_id, id, charge_id, filter_values, properties, invoice_display_name, code, position, created_at FROM charge_filters
-WHERE organization_id = $1 AND charge_id = ANY($2::uuid[])
+SELECT organization_id, id, charge_id, filter_values, properties, invoice_display_name, code, position, created_at, deleted_at FROM charge_filters
+WHERE organization_id = $1 AND charge_id = ANY($2::uuid[]) AND deleted_at IS NULL
 ORDER BY charge_id, position
 `
 
@@ -1610,6 +1662,7 @@ func (q *Queries) ListChargeFiltersByCharges(ctx context.Context, arg ListCharge
 			&i.Code,
 			&i.Position,
 			&i.CreatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1622,11 +1675,11 @@ func (q *Queries) ListChargeFiltersByCharges(ctx context.Context, arg ListCharge
 }
 
 const listChargesByMetric = `-- name: ListChargesByMetric :many
-SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at,
+SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at, c.deleted_at,
   ARRAY(SELECT t.tax_id FROM charge_taxes t
         WHERE t.organization_id = c.organization_id AND t.charge_id = c.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM charges c
-WHERE c.organization_id = $1 AND c.billable_metric_id = $2
+WHERE c.organization_id = $1 AND c.billable_metric_id = $2 AND c.deleted_at IS NULL
 ORDER BY c.id
 `
 
@@ -1668,6 +1721,7 @@ func (q *Queries) ListChargesByMetric(ctx context.Context, arg ListChargesByMetr
 			&i.Charge.ConversionRate,
 			&i.Charge.CreatedAt,
 			&i.Charge.UpdatedAt,
+			&i.Charge.DeletedAt,
 			&i.TaxIds,
 		); err != nil {
 			return nil, err
@@ -1681,11 +1735,11 @@ func (q *Queries) ListChargesByMetric(ctx context.Context, arg ListChargesByMetr
 }
 
 const listChargesByPlan = `-- name: ListChargesByPlan :many
-SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at,
+SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at, c.deleted_at,
   ARRAY(SELECT t.tax_id FROM charge_taxes t
         WHERE t.organization_id = c.organization_id AND t.charge_id = c.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM charges c
-WHERE c.organization_id = $1 AND c.plan_id = $2
+WHERE c.organization_id = $1 AND c.plan_id = $2 AND c.deleted_at IS NULL
 ORDER BY c.id
 `
 
@@ -1727,6 +1781,7 @@ func (q *Queries) ListChargesByPlan(ctx context.Context, arg ListChargesByPlanPa
 			&i.Charge.ConversionRate,
 			&i.Charge.CreatedAt,
 			&i.Charge.UpdatedAt,
+			&i.Charge.DeletedAt,
 			&i.TaxIds,
 		); err != nil {
 			return nil, err
@@ -1740,11 +1795,11 @@ func (q *Queries) ListChargesByPlan(ctx context.Context, arg ListChargesByPlanPa
 }
 
 const listFixedChargeChildren = `-- name: ListFixedChargeChildren :many
-SELECT f.organization_id, f.id, f.plan_id, f.parent_id, f.code, f.add_on_id, f.charge_model, f.properties, f.units, f.pay_in_advance, f.prorated, f.invoice_display_name, f.created_at, f.updated_at,
+SELECT f.organization_id, f.id, f.plan_id, f.parent_id, f.code, f.add_on_id, f.charge_model, f.properties, f.units, f.pay_in_advance, f.prorated, f.invoice_display_name, f.created_at, f.updated_at, f.deleted_at,
   ARRAY(SELECT t.tax_id FROM fixed_charge_taxes t
         WHERE t.organization_id = f.organization_id AND t.fixed_charge_id = f.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM fixed_charges f
-WHERE f.organization_id = $1 AND f.parent_id = $2
+WHERE f.organization_id = $1 AND f.parent_id = $2 AND f.deleted_at IS NULL
 ORDER BY f.id
 `
 
@@ -1782,6 +1837,7 @@ func (q *Queries) ListFixedChargeChildren(ctx context.Context, arg ListFixedChar
 			&i.FixedCharge.InvoiceDisplayName,
 			&i.FixedCharge.CreatedAt,
 			&i.FixedCharge.UpdatedAt,
+			&i.FixedCharge.DeletedAt,
 			&i.TaxIds,
 		); err != nil {
 			return nil, err
@@ -1795,11 +1851,11 @@ func (q *Queries) ListFixedChargeChildren(ctx context.Context, arg ListFixedChar
 }
 
 const listFixedChargesByAddOn = `-- name: ListFixedChargesByAddOn :many
-SELECT f.organization_id, f.id, f.plan_id, f.parent_id, f.code, f.add_on_id, f.charge_model, f.properties, f.units, f.pay_in_advance, f.prorated, f.invoice_display_name, f.created_at, f.updated_at,
+SELECT f.organization_id, f.id, f.plan_id, f.parent_id, f.code, f.add_on_id, f.charge_model, f.properties, f.units, f.pay_in_advance, f.prorated, f.invoice_display_name, f.created_at, f.updated_at, f.deleted_at,
   ARRAY(SELECT t.tax_id FROM fixed_charge_taxes t
         WHERE t.organization_id = f.organization_id AND t.fixed_charge_id = f.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM fixed_charges f
-WHERE f.organization_id = $1 AND f.add_on_id = $2
+WHERE f.organization_id = $1 AND f.add_on_id = $2 AND f.deleted_at IS NULL
 ORDER BY f.id
 `
 
@@ -1837,6 +1893,7 @@ func (q *Queries) ListFixedChargesByAddOn(ctx context.Context, arg ListFixedChar
 			&i.FixedCharge.InvoiceDisplayName,
 			&i.FixedCharge.CreatedAt,
 			&i.FixedCharge.UpdatedAt,
+			&i.FixedCharge.DeletedAt,
 			&i.TaxIds,
 		); err != nil {
 			return nil, err
@@ -1850,11 +1907,11 @@ func (q *Queries) ListFixedChargesByAddOn(ctx context.Context, arg ListFixedChar
 }
 
 const listFixedChargesByPlan = `-- name: ListFixedChargesByPlan :many
-SELECT f.organization_id, f.id, f.plan_id, f.parent_id, f.code, f.add_on_id, f.charge_model, f.properties, f.units, f.pay_in_advance, f.prorated, f.invoice_display_name, f.created_at, f.updated_at,
+SELECT f.organization_id, f.id, f.plan_id, f.parent_id, f.code, f.add_on_id, f.charge_model, f.properties, f.units, f.pay_in_advance, f.prorated, f.invoice_display_name, f.created_at, f.updated_at, f.deleted_at,
   ARRAY(SELECT t.tax_id FROM fixed_charge_taxes t
         WHERE t.organization_id = f.organization_id AND t.fixed_charge_id = f.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM fixed_charges f
-WHERE f.organization_id = $1 AND f.plan_id = $2
+WHERE f.organization_id = $1 AND f.plan_id = $2 AND f.deleted_at IS NULL
 ORDER BY f.id
 `
 
@@ -1892,6 +1949,7 @@ func (q *Queries) ListFixedChargesByPlan(ctx context.Context, arg ListFixedCharg
 			&i.FixedCharge.InvoiceDisplayName,
 			&i.FixedCharge.CreatedAt,
 			&i.FixedCharge.UpdatedAt,
+			&i.FixedCharge.DeletedAt,
 			&i.TaxIds,
 		); err != nil {
 			return nil, err
@@ -1973,16 +2031,27 @@ WHERE p.organization_id = $1
   AND ($2::boolean OR p.parent_id IS NULL)
   AND (CASE WHEN cardinality($3::text[]) = 0 THEN p.status <> 'deleted'
        ELSE p.status = ANY($3::text[]) END)
-  AND ($4::uuid IS NULL OR p.id > $4)
-ORDER BY p.id
-LIMIT $5
+  AND ($4::text IS NULL OR p.name ILIKE $4 OR p.code ILIKE $4)
+  AND ($5::uuid IS NULL
+       OR ($6::boolean AND (p.name COLLATE "C" > $7::text COLLATE "C"
+                                  OR (p.name = $7::text
+                                      AND (p.created_at < $8::timestamptz
+                                           OR (p.created_at = $8::timestamptz AND p.id > $5)))))
+       OR (NOT $6::boolean AND p.id > $5))
+ORDER BY CASE WHEN $6::boolean THEN p.name COLLATE "C" END,
+  CASE WHEN $6::boolean THEN p.created_at END DESC, p.id
+LIMIT $9
 `
 
 type ListPlansParams struct {
 	OrganizationID  uuid.UUID
 	IncludeChildren bool
 	Statuses        []string
+	Search          *string
 	After           *uuid.UUID
+	ByName          bool
+	AfterName       *string
+	AfterAt         *time.Time
 	Lim             int32
 }
 
@@ -1991,12 +2060,19 @@ type ListPlansRow struct {
 	TaxIds []uuid.UUID
 }
 
+// @by_name lists by name (byte order), then by created_at, newest first,
+// then by id (plans_query.rb:8-12); its cursor is (@after_name, @after_at,
+// @after).
 func (q *Queries) ListPlans(ctx context.Context, arg ListPlansParams) ([]ListPlansRow, error) {
 	rows, err := q.db.Query(ctx, listPlans,
 		arg.OrganizationID,
 		arg.IncludeChildren,
 		arg.Statuses,
+		arg.Search,
 		arg.After,
+		arg.ByName,
+		arg.AfterName,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {
@@ -2099,19 +2175,41 @@ func (q *Queries) ListPlansByIDs(ctx context.Context, arg ListPlansByIDsParams) 
 const listPricingUnits = `-- name: ListPricingUnits :many
 SELECT organization_id, id, code, name, short_name, description, created_at, updated_at FROM pricing_units
 WHERE organization_id = $1
-  AND ($2::uuid IS NULL OR id > $2)
-ORDER BY id
-LIMIT $3
+  AND ($2::text IS NULL OR name ILIKE $2 OR code ILIKE $2)
+  AND ($3::uuid IS NULL
+       OR ($4::boolean AND (name COLLATE "C" > $5::text COLLATE "C"
+                                  OR (name = $5::text
+                                      AND (created_at < $6::timestamptz
+                                           OR (created_at = $6::timestamptz AND id > $3)))))
+       OR (NOT $4::boolean AND id > $3))
+ORDER BY CASE WHEN $4::boolean THEN name COLLATE "C" END,
+  CASE WHEN $4::boolean THEN created_at END DESC, id
+LIMIT $7
 `
 
 type ListPricingUnitsParams struct {
 	OrganizationID uuid.UUID
+	Search         *string
 	After          *uuid.UUID
+	ByName         bool
+	AfterName      *string
+	AfterAt        *time.Time
 	Lim            int32
 }
 
+// @by_name lists by name (byte order), then by created_at, newest first,
+// then by id (pricing_units_query.rb:8-11); its cursor is (@after_name,
+// @after_at, @after).
 func (q *Queries) ListPricingUnits(ctx context.Context, arg ListPricingUnitsParams) ([]PricingUnit, error) {
-	rows, err := q.db.Query(ctx, listPricingUnits, arg.OrganizationID, arg.After, arg.Lim)
+	rows, err := q.db.Query(ctx, listPricingUnits,
+		arg.OrganizationID,
+		arg.Search,
+		arg.After,
+		arg.ByName,
+		arg.AfterName,
+		arg.AfterAt,
+		arg.Lim,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -2143,7 +2241,7 @@ const updateAddOn = `-- name: UpdateAddOn :execrows
 UPDATE add_ons SET
   organization_id = $1, id = $2, code = $3, name = $4, invoice_display_name = $5,
   description = $6, amount = $7, currency = $8, created_at = $9, updated_at = $10
-WHERE organization_id = $1 AND id = $2
+WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type UpdateAddOnParams struct {
@@ -2184,7 +2282,7 @@ UPDATE billable_metrics SET
   aggregation_type = $6, field_name = $7, weighted_interval = $8,
   recurring = $9, expression = $10, rounding_function = $11,
   rounding_precision = $12, created_at = $13, updated_at = $14
-WHERE organization_id = $1 AND id = $2
+WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type UpdateBillableMetricParams struct {
@@ -2235,7 +2333,7 @@ UPDATE charges SET
   prorated = $12, min_amount = $13, invoice_display_name = $14,
   applied_pricing_unit_id = $15, conversion_rate = $16,
   created_at = $17, updated_at = $18
-WHERE organization_id = $1 AND id = $2
+WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type UpdateChargeParams struct {
@@ -2292,7 +2390,7 @@ UPDATE fixed_charges SET
   add_on_id = $6, charge_model = $7, properties = $8, units = $9,
   pay_in_advance = $10, prorated = $11, invoice_display_name = $12,
   created_at = $13, updated_at = $14
-WHERE organization_id = $1 AND id = $2
+WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type UpdateFixedChargeParams struct {
@@ -2426,4 +2524,70 @@ func (q *Queries) UpdatePricingUnit(ctx context.Context, arg UpdatePricingUnitPa
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const upsertBillableMetricFilter = `-- name: UpsertBillableMetricFilter :exec
+INSERT INTO billable_metric_filters (organization_id, id, billable_metric_id, key, filter_values, position)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (organization_id, id) DO UPDATE SET key = EXCLUDED.key, filter_values = EXCLUDED.filter_values, position = EXCLUDED.position
+`
+
+type UpsertBillableMetricFilterParams struct {
+	OrganizationID   uuid.UUID
+	ID               uuid.UUID
+	BillableMetricID uuid.UUID
+	Key              string
+	FilterValues     []string
+	Position         int32
+}
+
+func (q *Queries) UpsertBillableMetricFilter(ctx context.Context, arg UpsertBillableMetricFilterParams) error {
+	_, err := q.db.Exec(ctx, upsertBillableMetricFilter,
+		arg.OrganizationID,
+		arg.ID,
+		arg.BillableMetricID,
+		arg.Key,
+		arg.FilterValues,
+		arg.Position,
+	)
+	return err
+}
+
+const upsertChargeFilter = `-- name: UpsertChargeFilter :exec
+INSERT INTO charge_filters (
+  organization_id, id, charge_id, filter_values, properties, invoice_display_name, code, position, created_at
+) VALUES (
+  $1, $2, $3, $4, $5, $6, $7, $8, $9
+)
+ON CONFLICT (organization_id, id) DO UPDATE SET
+  filter_values = EXCLUDED.filter_values, properties = EXCLUDED.properties,
+  invoice_display_name = EXCLUDED.invoice_display_name, code = EXCLUDED.code, position = EXCLUDED.position
+WHERE charge_filters.charge_id = EXCLUDED.charge_id AND charge_filters.deleted_at IS NULL
+`
+
+type UpsertChargeFilterParams struct {
+	OrganizationID     uuid.UUID
+	ID                 uuid.UUID
+	ChargeID           uuid.UUID
+	FilterValues       json.RawMessage
+	Properties         []byte
+	InvoiceDisplayName *string
+	Code               string
+	Position           int32
+	CreatedAt          time.Time
+}
+
+func (q *Queries) UpsertChargeFilter(ctx context.Context, arg UpsertChargeFilterParams) error {
+	_, err := q.db.Exec(ctx, upsertChargeFilter,
+		arg.OrganizationID,
+		arg.ID,
+		arg.ChargeID,
+		arg.FilterValues,
+		arg.Properties,
+		arg.InvoiceDisplayName,
+		arg.Code,
+		arg.Position,
+		arg.CreatedAt,
+	)
+	return err
 }

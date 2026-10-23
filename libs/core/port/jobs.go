@@ -25,19 +25,29 @@ const (
 	QueueIntegrations Queue = "integrations"
 	// QueueExports runs data exports.
 	QueueExports Queue = "exports"
+	// QueueAlerts runs the subscription activities and usage alerts (lago
+	// alerts, app/jobs/usage_monitoring/process_subscription_activity_job.rb:6-10).
+	QueueAlerts Queue = "alerts"
+	// QueueAlertsHighPriority runs the wallet alerts (lago
+	// alerts_high_priority, app/jobs/usage_monitoring/process_wallet_alerts_job.rb:5-10).
+	QueueAlertsHighPriority Queue = "alerts_high_priority"
+	// QueueWallets runs the refreshes of wallets' ongoing balances (lago
+	// wallets, app/jobs/customers/refresh_wallet_job.rb:6-11).
+	QueueWallets Queue = "wallets"
 	// QueueDefault runs everything else.
 	QueueDefault Queue = "default"
 )
 
 // QueueValues returns every queue, in declaration order.
 func QueueValues() []Queue {
-	return []Queue{QueueBilling, QueuePayments, QueueWebhooks, QueueDocuments, QueueIntegrations, QueueExports, QueueDefault}
+	return []Queue{QueueBilling, QueuePayments, QueueWebhooks, QueueDocuments, QueueIntegrations, QueueExports, QueueAlerts, QueueAlertsHighPriority, QueueWallets, QueueDefault}
 }
 
 // Valid reports whether q is a declared queue.
 func (q Queue) Valid() bool {
 	switch q {
-	case QueueBilling, QueuePayments, QueueWebhooks, QueueDocuments, QueueIntegrations, QueueExports, QueueDefault:
+	case QueueBilling, QueuePayments, QueueWebhooks, QueueDocuments, QueueIntegrations, QueueExports,
+		QueueAlerts, QueueAlertsHighPriority, QueueWallets, QueueDefault:
 		return true
 	default:
 		return false
@@ -66,6 +76,16 @@ type Job struct {
 	UniqueKey string
 	// MaxAttempts bounds the retries; 0 uses the queue's default.
 	MaxAttempts int
+}
+
+// QueueClock is implemented by a [JobEnqueuer] whose queue starts the
+// jobs by a clock of its own (the database's): QueueNow returns that
+// clock's current instant, read in the transaction, so a caller can place
+// a RunAt or a unique key relative to when the queue will run the job
+// rather than to its own, possibly skewed, clock.
+type QueueClock interface {
+	// QueueNow returns the queue clock's current instant in UTC.
+	QueueNow(ctx context.Context) (time.Time, error)
 }
 
 // JobEnqueuer enqueues jobs in the current transaction: a job becomes

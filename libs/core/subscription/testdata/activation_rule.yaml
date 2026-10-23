@@ -11,6 +11,7 @@ cases:
   - {name: declined is rejected, source: "spec/models/subscription/activation_rule_spec.rb:73", status: declined, rejected: true}
   - {name: inactive is neither, source: "spec/models/subscription/activation_rule_spec.rb:73", status: inactive}
   - {name: pending past its expiry, source: "spec/models/subscription/activation_rule_spec.rb:87", status: pending, expires_at: -1, expirable: true}
+  - {name: "pending at its expiry (expires_at <= now, activation_rule.rb:35)", source: "tanvo", status: pending, expires_at: 0, expirable: true}
   - {name: pending before its expiry, source: "spec/models/subscription/activation_rule_spec.rb:87", status: pending, expires_at: 1}
   - {name: inactive past its expiry, source: "spec/models/subscription/activation_rule_spec.rb:87", status: inactive, expires_at: -1}
   - {name: unknown type, source: "spec/models/subscription/activation_rule_spec.rb:37", status: inactive, rule_type: approval, errors: ["type: invalid_value"]}

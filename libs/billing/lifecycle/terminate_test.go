@@ -95,16 +95,17 @@ func TestTerminateRefused(t *testing.T) {
 // source: spec/services/subscriptions/terminate_service_spec.rb:157
 func TestTerminateIncompleteDeclines(t *testing.T) {
 	f := newFixture(t, now)
-	sub := f.pending(f.Plan(period.Monthly, 1000, inAdvance))
-	f.UpdateSubscription(sub, func(s *subscription.Subscription) { must(t, s.MarkIncomplete(now)) })
-	f.rule(sub, subscription.ActivationRuleStatusPending)
+	sub, inv := f.incomplete(invoice.StatusOpen)
 	must(t, f.terminate(sub, func(in *lifecycle.TerminateInput) {
 		in.OnTerminationInvoice = subscription.TerminationInvoiceGenerate
 	}))
 	got := f.reload(sub.ID)
 	check(t, "status", got.Status, subscription.StatusCanceled)
 	check(t, "reason", got.CancellationReason, subscription.CancellationReasonManual)
+	check(t, "terminated_at", got.TerminatedAt == nil, true)
+	// source: spec/services/subscriptions/terminate_service_spec.rb:176
 	checkSlice(t, "rules", f.rules(sub), []subscription.ActivationRuleStatus{subscription.ActivationRuleStatusDeclined})
+	check(t, "invoice status", f.Invoice(inv.ID).Status, invoice.StatusClosed)
 	checkSlice(t, "bills", f.bills(), nil)
 	checkSlice(t, "webhooks", f.Webhooks(), hooks(webhook.EventTypeSubscriptionCanceled))
 }

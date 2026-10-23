@@ -32,6 +32,10 @@ type AddOn struct {
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
 	UpdatedAt time.Time
+	// DeletedAt is the instant the add-on was discarded (nil while kept);
+	// a discarded one is read by ID only, for the fees that
+	// reference it (lago add_on.rb default_scope kept).
+	DeletedAt *time.Time
 }
 
 // InvoiceName returns the name printed on invoices.

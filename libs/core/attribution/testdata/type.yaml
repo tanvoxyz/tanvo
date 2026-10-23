@@ -1,0 +1,33 @@
+# Ported from lago spec/models/usage_attribution_type_spec.rb. Each case
+# builds a type from its fields (keys before NormalizeKeys; parent: true
+# gives it a parent) and lists the normalized keys and the field errors
+# of Validate. The checks against other types are ported in the service
+# tests (libs/billing/attribution).
+defaults: {code: user, display: "", role: hierarchical, keys: [user_id], parent: false, want_keys: null, errors: []}
+cases:
+  - {name: valid hierarchical type, source: "spec/models/usage_attribution_type_spec.rb:137"}
+  - {name: missing code, source: "spec/models/usage_attribution_type_spec.rb:40", code: "", errors: ["code: value_is_mandatory"]}
+  - {name: missing keys, source: "spec/models/usage_attribution_type_spec.rb:40", keys: [], errors: ["attribution_keys: value_is_mandatory"]}
+  - {name: code of 255 characters, source: "spec/models/usage_attribution_type_spec.rb:40", code: "ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}
+  - {name: code of 256 characters, source: "spec/models/usage_attribution_type_spec.rb:40", code: "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", errors: ["code: value_is_too_long"]}
+  - {name: name of 256 characters, source: "spec/models/usage_attribution_type_spec.rb:40", display: "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn", errors: ["name: value_is_too_long"]}
+  - {name: more keys than the maximum, source: "spec/models/usage_attribution_type_spec.rb:102", keys: [user_id_0, user_id_1, user_id_2, user_id_3, user_id_4], errors: ["attribution_keys: value_is_too_long"]}
+  - {name: four keys, source: "tanvo", keys: [a, b, c, d]}
+  - {name: key longer than 255 characters, source: "spec/models/usage_attribution_type_spec.rb:110", keys: ["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"], errors: ["attribution_keys: value_is_too_long"]}
+  - {name: keys stripped compacted and deduped, source: "spec/models/usage_attribution_type_spec.rb:117", keys: ["  user_id  ", "", user_id, userId], want_keys: [user_id, userId]}
+  - {name: blank keys only, source: "spec/models/usage_attribution_type_spec.rb:123", keys: ["  "], want_keys: [], errors: ["attribution_keys: value_is_mandatory"]}
+  - {name: flat type without parent, source: "spec/models/usage_attribution_type_spec.rb:141", role: flat}
+  - {name: flat type with a parent, source: "spec/models/usage_attribution_type_spec.rb:146", role: flat, parent: true, errors: ["parent_id: forbidden_for_flat_role"]}
+  - {name: hierarchical type with a parent, source: "spec/models/usage_attribution_type_spec.rb:137", parent: true}
+  - {name: unknown role, source: "spec/services/usage_attribution_types/create_service_spec.rb:120", role: unknown, errors: ["role: invalid_value"]}
+  - {name: missing role, source: "tanvo", role: "", errors: ["role: value_is_mandatory"]}
+skipped:
+  - {source: "spec/models/usage_attribution_type_spec.rb:8", reason: "the role enum is tested by TestRole"}
+  - {source: "spec/models/usage_attribution_type_spec.rb:18", reason: "ActiveRecord associations"}
+  - {source: "spec/models/usage_attribution_type_spec.rb:27", reason: "a deleted parent is still read by TypeRepository.GetMany (store porttest)"}
+  - {source: "spec/models/usage_attribution_type_spec.rb:46", reason: "code uniqueness is checked by the service and the store (libs/billing/attribution, porttest)"}
+  - {source: "spec/models/usage_attribution_type_spec.rb:70", reason: "attribution key overlap is checked by the service against TypeRepository.KeysTaken"}
+  - {source: "spec/models/usage_attribution_type_spec.rb:153", reason: "the parent's role is checked by the service"}
+  - {source: "spec/models/usage_attribution_type_spec.rb:161", reason: "types are read within one organization: a foreign parent is not found"}
+  - {source: "spec/models/usage_attribution_type_spec.rb:169", reason: "cycles are checked by the service"}
+  - {source: "spec/models/usage_attribution_type_spec.rb:186", reason: "soft deletion is tested by the store porttest"}

@@ -222,6 +222,21 @@ func Enqueue(ctx context.Context, r port.Repos, org core.OrganizationID, kind st
 	return nil
 }
 
+// QueueNow returns the current instant of the clock the job queue of r
+// starts jobs by ([port.QueueClock]), or fallback when the queue keeps no
+// clock of its own.
+func QueueNow(ctx context.Context, r port.Repos, fallback time.Time) (time.Time, error) {
+	c, ok := r.Jobs.(port.QueueClock)
+	if !ok {
+		return fallback, nil
+	}
+	at, err := c.QueueNow(ctx)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("read the queue clock: %w", err)
+	}
+	return at, nil
+}
+
 // ScopeUUID returns a deterministic identifier for a pair of objects, used
 // as the scope of sequences counted per pair.
 func ScopeUUID(a, b uuid.UUID) uuid.UUID {

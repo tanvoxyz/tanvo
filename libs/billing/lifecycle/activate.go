@@ -198,6 +198,9 @@ func (s *Service) gate(ctx context.Context, r port.Repos, a *activation, at time
 	if err := update(ctx, r, sub); err != nil {
 		return err
 	}
+	if err := s.emitFixedChargeEvents(ctx, r, a.env); err != nil {
+		return err
+	}
 	if subscription.PaymentGated(sub, a.rules) {
 		if err := s.bill(ctx, r, sub.OrganizationID, at, true, item(sub, invoice.InvoicingReasonSubscriptionStarting)); err != nil {
 			return err
@@ -215,6 +218,9 @@ func (s *Service) activateStandalone(ctx context.Context, r port.Repos, a *activ
 		return fmt.Errorf("activate subscription %s: %w", sub.ID, err)
 	}
 	if err := update(ctx, r, sub); err != nil {
+		return err
+	}
+	if err := s.emitActivationEvents(ctx, r, a); err != nil {
 		return err
 	}
 	if !a.billedWhileGated() && a.billsStart(at) {
@@ -242,6 +248,9 @@ func (s *Service) activateUpgrade(ctx context.Context, r port.Repos, a *activati
 		return fmt.Errorf("activate subscription %s: %w", sub.ID, err)
 	}
 	if err := update(ctx, r, sub); err != nil {
+		return err
+	}
+	if err := s.emitActivationEvents(ctx, r, a); err != nil {
 		return err
 	}
 	subs := []*subscription.Subscription{a.previous}
@@ -273,6 +282,9 @@ func (s *Service) activateDowngrade(ctx context.Context, r port.Repos, a *activa
 		return fmt.Errorf("activate subscription %s: %w", sub.ID, err)
 	}
 	if err := update(ctx, r, sub); err != nil {
+		return err
+	}
+	if err := s.emitActivationEvents(ctx, r, a); err != nil {
 		return err
 	}
 	subs := []*subscription.Subscription{prev}

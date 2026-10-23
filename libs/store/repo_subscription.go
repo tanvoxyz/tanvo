@@ -21,8 +21,10 @@ func (t *txState) bindSubscription(r *port.Repos) {
 	r.Subscriptions = subscriptionRepo{t}
 	r.ActivationRules = activationRuleRepo{t}
 	r.FixedChargeEvents = fixedChargeEventRepo{t}
+	r.FixedChargeUnitsOverrides = unitsOverrideRepo{t}
 	r.AppliedUsageThresholds = appliedUsageThresholdRepo{t}
 	r.LifetimeUsages = lifetimeUsageRepo{t}
+	r.DailyUsages = dailyUsageRepo{t}
 }
 
 // subscriptionRepo implements subscription.Repository.
@@ -58,6 +60,7 @@ func subscriptionParams(s *subscription.Subscription) db.CreateSubscriptionParam
 		BillingEntityID:            optUUID(s.BillingEntityID),
 		SkipInvoiceCustomSections:  s.SkipInvoiceCustomSections,
 		NextBillingAt:              optUTC(s.NextBillingAt),
+		SkipDailyUsage:             s.SkipDailyUsage,
 		CreatedAt:                  utc(s.CreatedAt),
 		UpdatedAt:                  utc(s.UpdatedAt),
 	}
@@ -104,6 +107,8 @@ func subscriptionOf(row subscriptionRow) (*subscription.Subscription, error) {
 		SkipInvoiceCustomSections:  r.SkipInvoiceCustomSections,
 		InvoiceCustomSectionIDs:    idsOf[core.InvoiceCustomSectionID](row.InvoiceCustomSectionIds),
 		NextBillingAt:              optUTC(r.NextBillingAt),
+		SkipDailyUsage:             r.SkipDailyUsage,
+		LastReceivedEventOn:        optDateOf(r.LastReceivedEventOn),
 		CreatedAt:                  utc(r.CreatedAt),
 		UpdatedAt:                  utc(r.UpdatedAt),
 	}, nil
@@ -141,7 +146,7 @@ func (r subscriptionRepo) Create(ctx context.Context, s *subscription.Subscripti
 		}
 		return r.writeSections(ctx, q, s, false)
 	})
-	return insertErr("subscription", n, err)
+	return r.t.noteCatalog(insertErr("subscription", n, err), CatalogChange{OrganizationID: s.OrganizationID, Kind: CatalogSubscription, Key: s.ExternalID})
 }
 
 func (r subscriptionRepo) Update(ctx context.Context, s *subscription.Subscription) error {
@@ -149,16 +154,24 @@ func (r subscriptionRepo) Update(ctx context.Context, s *subscription.Subscripti
 	if err != nil {
 		return err
 	}
-	var n int64
+	var previous string
 	err = r.t.guard(ctx, func() error {
 		var err error
-		n, err = q.UpdateSubscription(ctx, db.UpdateSubscriptionParams(subscriptionParams(s)))
-		if err != nil || n == 0 {
+		previous, err = q.UpdateSubscription(ctx, db.UpdateSubscriptionParams(subscriptionParams(s)))
+		if err != nil {
 			return err
 		}
 		return r.writeSections(ctx, q, s, true)
 	})
-	return updateErr("subscription", s.ID, n, err)
+	if err != nil {
+		return getErr("subscription", s.ID, err)
+	}
+	// A renamed subscription expires the cache entry of its old external
+	// ID as well as of the new one.
+	if previous != s.ExternalID {
+		_ = r.t.noteCatalog(nil, CatalogChange{OrganizationID: s.OrganizationID, Kind: CatalogSubscription, Key: previous})
+	}
+	return r.t.noteCatalog(nil, CatalogChange{OrganizationID: s.OrganizationID, Kind: CatalogSubscription, Key: s.ExternalID})
 }
 
 func (r subscriptionRepo) Get(ctx context.Context, org core.OrganizationID, id core.SubscriptionID) (*subscription.Subscription, error) {

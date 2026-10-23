@@ -49,9 +49,6 @@ const (
 	MemberServiceUpdateRoleProcedure = "/tanvo.access.v1.MemberService/UpdateRole"
 	// MemberServiceDeleteRoleProcedure is the procedure name of the MemberService's DeleteRole RPC.
 	MemberServiceDeleteRoleProcedure = "/tanvo.access.v1.MemberService/DeleteRole"
-	// MemberServiceListPermissionsProcedure is the procedure name of the MemberService's
-	// ListPermissions RPC.
-	MemberServiceListPermissionsProcedure = "/tanvo.access.v1.MemberService/ListPermissions"
 	// MemberServiceCreateInviteProcedure is the procedure name of the MemberService's CreateInvite RPC.
 	MemberServiceCreateInviteProcedure = "/tanvo.access.v1.MemberService/CreateInvite"
 	// MemberServiceListInvitesProcedure is the procedure name of the MemberService's ListInvites RPC.
@@ -130,14 +127,6 @@ var (
 			Procedure:  MemberServiceDeleteRoleProcedure,
 		}
 	})
-	memberServiceListPermissionsSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType:       connect.StreamTypeUnary,
-			Schema:           v1.File_tanvo_access_v1_member_proto.Services().ByName("MemberService").Methods().ByName("ListPermissions"),
-			Procedure:        MemberServiceListPermissionsProcedure,
-			IdempotencyLevel: connect.IdempotencyNoSideEffects,
-		}
-	})
 	memberServiceCreateInviteSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -171,12 +160,12 @@ var (
 
 // MemberServiceClient is a client for the tanvo.access.v1.MemberService service.
 type MemberServiceClient interface {
-	// Lists the organization's memberships with their users.
+	// Lists the organization's active memberships with their users.
 	ListMemberships(context.Context, *v1.ListMembershipsRequest) (*v1.ListMembershipsResponse, error)
 	// Returns a membership.
 	GetMembership(context.Context, *v1.GetMembershipRequest) (*v1.GetMembershipResponse, error)
-	// Changes a membership's role. Only admins grant the admin role, and the
-	// last admin keeps it.
+	// Replaces a membership's roles. Only admins grant the admin role, and
+	// the last admin keeps it.
 	UpdateMembership(context.Context, *v1.UpdateMembershipRequest) (*v1.UpdateMembershipResponse, error)
 	// Revokes a membership. Members cannot revoke their own membership, and
 	// the last admin cannot be revoked.
@@ -191,11 +180,9 @@ type MemberServiceClient interface {
 	UpdateRole(context.Context, *v1.UpdateRoleRequest) (*v1.UpdateRoleResponse, error)
 	// Deletes a custom role that no membership or invite uses.
 	DeleteRole(context.Context, *v1.DeleteRoleRequest) (*v1.DeleteRoleResponse, error)
-	// Lists the permission catalog: every permission a role may hold.
-	ListPermissions(context.Context, *v1.ListPermissionsRequest) (*v1.ListPermissionsResponse, error)
 	// Invites a person by email; the invite email carries the accept link.
 	CreateInvite(context.Context, *v1.CreateInviteRequest) (*v1.CreateInviteResponse, error)
-	// Lists invites.
+	// Lists pending invites.
 	ListInvites(context.Context, *v1.ListInvitesRequest) (*v1.ListInvitesResponse, error)
 	// Changes a pending invite's role.
 	UpdateInvite(context.Context, *v1.UpdateInviteRequest) (*v1.UpdateInviteResponse, error)
@@ -211,12 +198,12 @@ func NewMemberServiceClient(client *connect.Client) MemberServiceClient {
 
 // MemberServiceHandler is an implementation of the tanvo.access.v1.MemberService service.
 type MemberServiceHandler interface {
-	// Lists the organization's memberships with their users.
+	// Lists the organization's active memberships with their users.
 	ListMemberships(context.Context, *v1.ListMembershipsRequest) (*v1.ListMembershipsResponse, error)
 	// Returns a membership.
 	GetMembership(context.Context, *v1.GetMembershipRequest) (*v1.GetMembershipResponse, error)
-	// Changes a membership's role. Only admins grant the admin role, and the
-	// last admin keeps it.
+	// Replaces a membership's roles. Only admins grant the admin role, and
+	// the last admin keeps it.
 	UpdateMembership(context.Context, *v1.UpdateMembershipRequest) (*v1.UpdateMembershipResponse, error)
 	// Revokes a membership. Members cannot revoke their own membership, and
 	// the last admin cannot be revoked.
@@ -231,11 +218,9 @@ type MemberServiceHandler interface {
 	UpdateRole(context.Context, *v1.UpdateRoleRequest) (*v1.UpdateRoleResponse, error)
 	// Deletes a custom role that no membership or invite uses.
 	DeleteRole(context.Context, *v1.DeleteRoleRequest) (*v1.DeleteRoleResponse, error)
-	// Lists the permission catalog: every permission a role may hold.
-	ListPermissions(context.Context, *v1.ListPermissionsRequest) (*v1.ListPermissionsResponse, error)
 	// Invites a person by email; the invite email carries the accept link.
 	CreateInvite(context.Context, *v1.CreateInviteRequest) (*v1.CreateInviteResponse, error)
-	// Lists invites.
+	// Lists pending invites.
 	ListInvites(context.Context, *v1.ListInvitesRequest) (*v1.ListInvitesResponse, error)
 	// Changes a pending invite's role.
 	UpdateInvite(context.Context, *v1.UpdateInviteRequest) (*v1.UpdateInviteResponse, error)
@@ -257,7 +242,6 @@ func RegisterMemberServiceHandler(server *connect.Server, svc MemberServiceHandl
 		connect.Method{Spec: memberServiceListRolesSpec(), Handler: adapter.listRoles},
 		connect.Method{Spec: memberServiceUpdateRoleSpec(), Handler: adapter.updateRole},
 		connect.Method{Spec: memberServiceDeleteRoleSpec(), Handler: adapter.deleteRole},
-		connect.Method{Spec: memberServiceListPermissionsSpec(), Handler: adapter.listPermissions},
 		connect.Method{Spec: memberServiceCreateInviteSpec(), Handler: adapter.createInvite},
 		connect.Method{Spec: memberServiceListInvitesSpec(), Handler: adapter.listInvites},
 		connect.Method{Spec: memberServiceUpdateInviteSpec(), Handler: adapter.updateInvite},
@@ -302,10 +286,6 @@ func (UnimplementedMemberServiceHandler) UpdateRole(context.Context, *v1.UpdateR
 
 func (UnimplementedMemberServiceHandler) DeleteRole(context.Context, *v1.DeleteRoleRequest) (*v1.DeleteRoleResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.access.v1.MemberService.DeleteRole is not implemented")
-}
-
-func (UnimplementedMemberServiceHandler) ListPermissions(context.Context, *v1.ListPermissionsRequest) (*v1.ListPermissionsResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.access.v1.MemberService.ListPermissions is not implemented")
 }
 
 func (UnimplementedMemberServiceHandler) CreateInvite(context.Context, *v1.CreateInviteRequest) (*v1.CreateInviteResponse, error) {
@@ -395,14 +375,6 @@ func (c *memberServiceClient) UpdateRole(ctx context.Context, req *v1.UpdateRole
 func (c *memberServiceClient) DeleteRole(ctx context.Context, req *v1.DeleteRoleRequest) (*v1.DeleteRoleResponse, error) {
 	var res v1.DeleteRoleResponse
 	if err := c.client.CallUnary(ctx, memberServiceDeleteRoleSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *memberServiceClient) ListPermissions(ctx context.Context, req *v1.ListPermissionsRequest) (*v1.ListPermissionsResponse, error) {
-	var res v1.ListPermissionsResponse
-	if err := c.client.CallUnary(ctx, memberServiceListPermissionsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -544,18 +516,6 @@ func (h memberServiceHandler) deleteRole(ctx context.Context, _ connect.Spec, st
 		return err
 	}
 	res, err := h.svc.DeleteRole(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h memberServiceHandler) listPermissions(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.ListPermissionsRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.ListPermissions(ctx, &req)
 	if err != nil {
 		return err
 	}

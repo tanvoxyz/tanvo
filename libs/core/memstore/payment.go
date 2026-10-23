@@ -2,8 +2,12 @@ package memstore
 
 import (
 	"context"
+	"fmt"
 	"slices"
+	"strings"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/payment"
@@ -60,7 +64,10 @@ func (d *paymentData) snapshot() *paymentData {
 }
 
 // paymentRepo implements payment.Repository.
-type paymentRepo struct{ d *paymentData }
+type paymentRepo struct {
+	d  *paymentData
+	st *state // the whole transaction state, for the list filters
+}
 
 var _ payment.Repository = paymentRepo{}
 
@@ -126,16 +133,77 @@ func (r paymentRepo) ListByPayable(_ context.Context, org core.OrganizationID, p
 }
 
 func (r paymentRepo) List(_ context.Context, org core.OrganizationID, f payment.Filter, page core.PageRequest) (core.Page[*payment.Payment], error) {
+	if !f.Order.Valid() {
+		return core.Page[*payment.Payment]{}, fmt.Errorf("list payments: %w: order", core.ErrInvalidValue)
+	}
 	rows := r.d.payments.find(func(x *payment.Payment) bool {
-		return x.OrganizationID == org &&
-			(f.CustomerID.IsZero() || x.CustomerID == f.CustomerID) &&
-			(f.Status == "" || x.Status == f.Status)
+		if x.OrganizationID != org ||
+			!f.CustomerID.IsZero() && x.CustomerID != f.CustomerID ||
+			f.Status != "" && x.Status != f.Status ||
+			!f.Currency.IsZero() && x.Currency.Code() != f.Currency.Code() ||
+			!f.InvoiceID.IsZero() && !paysInvoice(r.d, x, f.InvoiceID) ||
+			!r.matchesSearch(x, f) {
+			return false
+		}
+		if f.Visible && !x.Payable.InvoiceID.IsZero() {
+			inv, ok := r.st.invoice.invoices.get(x.Payable.InvoiceID)
+			return ok && inv.Visible()
+		}
+		return true
 	})
+	if f.Order == core.OrderRecent {
+		return paginateRecent(rows, func(x *payment.Payment) (time.Time, uuid.UUID) { return x.CreatedAt, x.ID.UUID() }, page)
+	}
 	return paginate(rows, func(x *payment.Payment) core.PaymentID { return x.ID }, page)
 }
 
+// matchesSearch reports whether x matches the search term of f (see
+// [payment.Filter.Search]).
+func (r paymentRepo) matchesSearch(x *payment.Payment, f payment.Filter) bool {
+	term := core.SearchTerm(f.Search)
+	if term == "" {
+		return true
+	}
+	if id, ok := payment.SearchID(term); ok && x.ID == id {
+		return true
+	}
+	term = strings.ToLower(term)
+	contains := func(s *string) bool { return s != nil && strings.Contains(strings.ToLower(*s), term) }
+	if contains(x.ProviderPaymentID) || contains(x.Reference) {
+		return true
+	}
+	if f.InvoiceID.IsZero() && !x.Payable.InvoiceID.IsZero() {
+		if inv, ok := r.st.invoice.invoices.get(x.Payable.InvoiceID); ok && contains(&inv.Number) {
+			return true
+		}
+	}
+	if f.CustomerID.IsZero() {
+		if c, ok := r.st.customer.customers.get(x.CustomerID); ok && !c.Deleted() &&
+			(contains(c.Name) || contains(c.Firstname) || contains(c.Lastname) || contains(&c.ExternalID) || contains(c.Email)) {
+			return true
+		}
+	}
+	return false
+}
+
+// paysInvoice reports whether p pays inv, directly or through a payment
+// request including it.
+func paysInvoice(d *paymentData, p *payment.Payment, inv core.InvoiceID) bool {
+	if p.Payable.InvoiceID == inv {
+		return true
+	}
+	if p.Payable.PaymentRequestID.IsZero() {
+		return false
+	}
+	req, ok := d.requests.get(p.Payable.PaymentRequestID)
+	return ok && slices.Contains(req.InvoiceIDs, inv)
+}
+
 // paymentReceiptRepo implements payment.ReceiptRepository.
-type paymentReceiptRepo struct{ d *paymentData }
+type paymentReceiptRepo struct {
+	d  *paymentData
+	st *state
+}
 
 var _ payment.ReceiptRepository = paymentReceiptRepo{}
 
@@ -194,8 +262,23 @@ func (r paymentReceiptRepo) GetByPayment(_ context.Context, org core.Organizatio
 	return x, nil
 }
 
-func (r paymentReceiptRepo) List(_ context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*payment.Receipt], error) {
-	rows := r.d.receipts.find(func(y *payment.Receipt) bool { return y.OrganizationID == org })
+func (r paymentReceiptRepo) List(_ context.Context, org core.OrganizationID, f payment.ReceiptFilter, page core.PageRequest) (core.Page[*payment.Receipt], error) {
+	if !f.Order.Valid() {
+		return core.Page[*payment.Receipt]{}, fmt.Errorf("list payment receipts: %w: order", core.ErrInvalidValue)
+	}
+	rows := r.d.receipts.find(func(y *payment.Receipt) bool {
+		if y.OrganizationID != org {
+			return false
+		}
+		if f.InvoiceID.IsZero() {
+			return true
+		}
+		p, ok := r.d.payments.get(y.PaymentID)
+		return ok && paysInvoice(r.d, p, f.InvoiceID)
+	})
+	if f.Order == core.OrderRecent {
+		return paginateRecent(rows, func(y *payment.Receipt) (time.Time, uuid.UUID) { return y.CreatedAt, y.ID.UUID() }, page)
+	}
 	return paginate(rows, func(y *payment.Receipt) core.PaymentReceiptID { return y.ID }, page)
 }
 
@@ -253,7 +336,10 @@ func (r refundRepo) ListByPayment(_ context.Context, org core.OrganizationID, p 
 }
 
 // paymentRequestRepo implements payment.RequestRepository.
-type paymentRequestRepo struct{ d *paymentData }
+type paymentRequestRepo struct {
+	d  *paymentData
+	st *state // the whole transaction state, for the list filters
+}
 
 var _ payment.RequestRepository = paymentRequestRepo{}
 
@@ -283,11 +369,22 @@ func (r paymentRequestRepo) Get(_ context.Context, org core.OrganizationID, id c
 }
 
 func (r paymentRequestRepo) List(_ context.Context, org core.OrganizationID, f payment.RequestFilter, page core.PageRequest) (core.Page[*payment.Request], error) {
+	if !f.Order.Valid() {
+		return core.Page[*payment.Request]{}, fmt.Errorf("list payment requests: %w: order", core.ErrInvalidValue)
+	}
 	rows := r.d.requests.find(func(y *payment.Request) bool {
 		return y.OrganizationID == org &&
 			(f.CustomerID.IsZero() || y.CustomerID == f.CustomerID) &&
-			(f.PaymentStatus == "" || y.PaymentStatus == f.PaymentStatus)
+			(f.PaymentStatus == "" || y.PaymentStatus == f.PaymentStatus) &&
+			(f.Currency.IsZero() || y.Currency.Code() == f.Currency.Code()) &&
+			(len(f.BillingEntityIDs) == 0 || slices.ContainsFunc(y.InvoiceIDs, func(id core.InvoiceID) bool {
+				inv, ok := r.st.invoice.invoices.get(id)
+				return ok && slices.Contains(f.BillingEntityIDs, inv.BillingEntityID)
+			}))
 	})
+	if f.Order == core.OrderRecent {
+		return paginateRecent(rows, func(y *payment.Request) (time.Time, uuid.UUID) { return y.CreatedAt, y.ID.UUID() }, page)
+	}
 	return paginate(rows, func(y *payment.Request) core.PaymentRequestID { return y.ID }, page)
 }
 

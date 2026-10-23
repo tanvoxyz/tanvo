@@ -96,9 +96,12 @@ func TestDiffMetricFiltersAndTrim(t *testing.T) {
 		keep   bool
 		after  []string
 	}{
+		// source: spec/services/billable_metric_filters/create_or_update_batch_service_spec.rb:322
 		{"trims a removed value", map[string][]string{"region": {"eu", "apac"}}, true, []string{"eu"}},
 		{"drops a filter left without values", map[string][]string{"region": {"apac"}}, false, nil},
-		{"drops a filter on a removed key", map[string][]string{"region": {"eu"}, "tier": {"a"}}, false, nil},
+		{"drops a removed key and keeps the filter", map[string][]string{"region": {"eu"}, "tier": {"a"}}, true, []string{"eu"}},
+		{"drops a filter whose only key is removed", map[string][]string{"tier": {AllFilterValues}}, false, nil},
+		{"drops a filter whose keys are all removed or emptied", map[string][]string{"region": {"apac"}, "tier": {"a"}}, false, nil},
 		{"keeps the sentinel", map[string][]string{"region": {AllFilterValues}}, true, []string{AllFilterValues}},
 	}
 	for _, tt := range tests {

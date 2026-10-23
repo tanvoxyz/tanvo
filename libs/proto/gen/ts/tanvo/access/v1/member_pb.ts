@@ -20,7 +20,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file tanvo/access/v1/member.proto.
  */
 export const file_tanvo_access_v1_member: GenFile = /*@__PURE__*/
-  fileDesc("Chx0YW52by9hY2Nlc3MvdjEvbWVtYmVyLnByb3RvEg90YW52by5hY2Nlc3MudjEi5gEKBFVzZXISEAoCaWQYASABKAlCBOJBAQgSEwoFZW1haWwYAiABKAlCBOJBAQMSFgoEbmFtZRgDIAEoCUIIukgFcgMY/wESOQoPbGFzdF9zaWduX2luX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxI0CgpjcmVhdGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAzou6kErCg50YW52by54eXovVXNlchIMdXNlcnMve3VzZXJ9KgV1c2VyczIEdXNlciKTAwoKTWVtYmVyc2hpcBIQCgJpZBgBIAEoCUIE4kEBCBIpCgR1c2VyGAIgASgLMhUudGFudm8uYWNjZXNzLnYxLlVzZXJCBOJBAQMSHwoHcm9sZV9pZBgDIAEoCUIO4kEBArpIB3IF4KTKBgESNwoGc3RhdHVzGAQgASgOMiEudGFudm8uYWNjZXNzLnYxLk1lbWJlcnNoaXBTdGF0dXNCBOJBAQMSNAoKcmV2b2tlZF9hdBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNAoKY3JlYXRlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNAoKdXBkYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQM6TOpBSQoUdGFudm8ueHl6L01lbWJlcnNoaXASGG1lbWJlcnNoaXBzL3ttZW1iZXJzaGlwfSoLbWVtYmVyc2hpcHMyCm1lbWJlcnNoaXAi9gIKBFJvbGUSEAoCaWQYASABKAlCBOJBAQgSMAoEY29kZRgCIAEoCUIi4kECAgW6SBpyGDIWXlthLXpdW2EtejAtOV9dezAsOTl9JBIbCgRuYW1lGAMgASgJQg3iQQECukgGcgQQARhkEh0KC2Rlc2NyaXB0aW9uGAQgASgJQgi6SAVyAxj/ARI6CgtwZXJtaXNzaW9ucxgFIAMoCUIlukgikgEfEPQDGAEiGHIWMhReW2Etel9dKyg6W2Etel9dKykrJBIWCghidWlsdF9pbhgGIAEoCEIE4kEBAxI0CgpjcmVhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxI0Cgp1cGRhdGVkX2F0GAggASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAzou6kErCg50YW52by54eXovUm9sZRIMcm9sZXMve3JvbGV9KgVyb2xlczIEcm9sZSI8CgpQZXJtaXNzaW9uEgwKBG5hbWUYASABKAkSDwoHZmluYW5jZRgCIAEoCBIPCgdtYW5hZ2VyGAMgASgIIr0DCgZJbnZpdGUSEAoCaWQYASABKAlCBOJBAQgSHgoFZW1haWwYAiABKAlCD+JBAgIFukgHcgUY/wFgARIfCgdyb2xlX2lkGAMgASgJQg7iQQECukgHcgXgpMoGARIzCgZzdGF0dXMYBCABKA4yHS50YW52by5hY2Nlc3MudjEuSW52aXRlU3RhdHVzQgTiQQEDEhgKCmFjY2VwdF91cmwYBSABKAlCBOJBAQMSNAoKZXhwaXJlc19hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNQoLYWNjZXB0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCnJldm9rZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCmNyZWF0ZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDOjjqQTUKEHRhbnZvLnh5ei9JbnZpdGUSEGludml0ZXMve2ludml0ZX0qB2ludml0ZXMyBmludml0ZSJvChZMaXN0TWVtYmVyc2hpcHNSZXF1ZXN0Eh0KCXBhZ2Vfc2l6ZRgBIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACBIYCgZmaWx0ZXIYAyABKAlCCLpIBXIDGIAQImQKF0xpc3RNZW1iZXJzaGlwc1Jlc3BvbnNlEjAKC21lbWJlcnNoaXBzGAEgAygLMhsudGFudm8uYWNjZXNzLnYxLk1lbWJlcnNoaXASFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIj4KFEdldE1lbWJlcnNoaXBSZXF1ZXN0EiYKDW1lbWJlcnNoaXBfaWQYASABKAlCD+JBAQK6SAjIAQFyA7ABASJIChVHZXRNZW1iZXJzaGlwUmVzcG9uc2USLwoKbWVtYmVyc2hpcBgBIAEoCzIbLnRhbnZvLmFjY2Vzcy52MS5NZW1iZXJzaGlwItEBChdVcGRhdGVNZW1iZXJzaGlwUmVxdWVzdBI7CgptZW1iZXJzaGlwGAEgASgLMhsudGFudm8uYWNjZXNzLnYxLk1lbWJlcnNoaXBCCuJBAQK6SAPIAQESLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrOki6SEUaQwoNbWVtYmVyc2hpcC5pZBIZbWVtYmVyc2hpcC5pZCBpcyByZXF1aXJlZBoXaGFzKHRoaXMubWVtYmVyc2hpcC5pZCkiSwoYVXBkYXRlTWVtYmVyc2hpcFJlc3BvbnNlEi8KCm1lbWJlcnNoaXAYASABKAsyGy50YW52by5hY2Nlc3MudjEuTWVtYmVyc2hpcCJBChdSZXZva2VNZW1iZXJzaGlwUmVxdWVzdBImCg1tZW1iZXJzaGlwX2lkGAEgASgJQg/iQQECukgIyAEBcgOwAQEiSwoYUmV2b2tlTWVtYmVyc2hpcFJlc3BvbnNlEi8KCm1lbWJlcnNoaXAYASABKAsyGy50YW52by5hY2Nlc3MudjEuTWVtYmVyc2hpcCKnAQoRQ3JlYXRlUm9sZVJlcXVlc3QSLwoEcm9sZRgBIAEoCzIVLnRhbnZvLmFjY2Vzcy52MS5Sb2xlQgriQQECukgDyAEBOmG6SF4aXAoScm9sZS5jb2RlX2FuZF9uYW1lEhpjb2RlIGFuZCBuYW1lIGFyZSByZXF1aXJlZBoqaGFzKHRoaXMucm9sZS5jb2RlKSAmJiBoYXModGhpcy5yb2xlLm5hbWUpIjkKEkNyZWF0ZVJvbGVSZXNwb25zZRIjCgRyb2xlGAEgASgLMhUudGFudm8uYWNjZXNzLnYxLlJvbGUiNAoOR2V0Um9sZVJlcXVlc3QSIgoHcm9sZV9pZBgBIAEoCUIR4kEBArpICsgBAXIF4KTKBgEiNgoPR2V0Um9sZVJlc3BvbnNlEiMKBHJvbGUYASABKAsyFS50YW52by5hY2Nlc3MudjEuUm9sZSJPChBMaXN0Um9sZXNSZXF1ZXN0Eh0KCXBhZ2Vfc2l6ZRgBIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACCJSChFMaXN0Um9sZXNSZXNwb25zZRIkCgVyb2xlcxgBIAMoCzIVLnRhbnZvLmFjY2Vzcy52MS5Sb2xlEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSKtAQoRVXBkYXRlUm9sZVJlcXVlc3QSLwoEcm9sZRgBIAEoCzIVLnRhbnZvLmFjY2Vzcy52MS5Sb2xlQgriQQECukgDyAEBEi8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzazo2ukgzGjEKB3JvbGUuaWQSE3JvbGUuaWQgaXMgcmVxdWlyZWQaEWhhcyh0aGlzLnJvbGUuaWQpIjkKElVwZGF0ZVJvbGVSZXNwb25zZRIjCgRyb2xlGAEgASgLMhUudGFudm8uYWNjZXNzLnYxLlJvbGUiNwoRRGVsZXRlUm9sZVJlcXVlc3QSIgoHcm9sZV9pZBgBIAEoCUIR4kEBArpICsgBAXIF4KTKBgEiFAoSRGVsZXRlUm9sZVJlc3BvbnNlIhgKFkxpc3RQZXJtaXNzaW9uc1JlcXVlc3QiSwoXTGlzdFBlcm1pc3Npb25zUmVzcG9uc2USMAoLcGVybWlzc2lvbnMYASADKAsyGy50YW52by5hY2Nlc3MudjEuUGVybWlzc2lvbiK8AQoTQ3JlYXRlSW52aXRlUmVxdWVzdBIzCgZpbnZpdGUYASABKAsyFy50YW52by5hY2Nlc3MudjEuSW52aXRlQgriQQECukgDyAEBOnC6SG0aawoVaW52aXRlLmVtYWlsX2FuZF9yb2xlEh5lbWFpbCBhbmQgcm9sZV9pZCBhcmUgcmVxdWlyZWQaMmhhcyh0aGlzLmludml0ZS5lbWFpbCkgJiYgaGFzKHRoaXMuaW52aXRlLnJvbGVfaWQpIj8KFENyZWF0ZUludml0ZVJlc3BvbnNlEicKBmludml0ZRgBIAEoCzIXLnRhbnZvLmFjY2Vzcy52MS5JbnZpdGUiawoSTGlzdEludml0ZXNSZXF1ZXN0Eh0KCXBhZ2Vfc2l6ZRgBIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACBIYCgZmaWx0ZXIYAyABKAlCCLpIBXIDGIAQIlgKE0xpc3RJbnZpdGVzUmVzcG9uc2USKAoHaW52aXRlcxgBIAMoCzIXLnRhbnZvLmFjY2Vzcy52MS5JbnZpdGUSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIrkBChNVcGRhdGVJbnZpdGVSZXF1ZXN0EjMKBmludml0ZRgBIAEoCzIXLnRhbnZvLmFjY2Vzcy52MS5JbnZpdGVCCuJBAQK6SAPIAQESLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrOjy6SDkaNwoJaW52aXRlLmlkEhVpbnZpdGUuaWQgaXMgcmVxdWlyZWQaE2hhcyh0aGlzLmludml0ZS5pZCkiPwoUVXBkYXRlSW52aXRlUmVzcG9uc2USJwoGaW52aXRlGAEgASgLMhcudGFudm8uYWNjZXNzLnYxLkludml0ZSI5ChNSZXZva2VJbnZpdGVSZXF1ZXN0EiIKCWludml0ZV9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBIj8KFFJldm9rZUludml0ZVJlc3BvbnNlEicKBmludml0ZRgBIAEoCzIXLnRhbnZvLmFjY2Vzcy52MS5JbnZpdGUqcgoQTWVtYmVyc2hpcFN0YXR1cxIhCh1NRU1CRVJTSElQX1NUQVRVU19VTlNQRUNJRklFRBAAEhwKGE1FTUJFUlNISVBfU1RBVFVTX0FDVElWRRABEh0KGU1FTUJFUlNISVBfU1RBVFVTX1JFVk9LRUQQAip/CgxJbnZpdGVTdGF0dXMSHQoZSU5WSVRFX1NUQVRVU19VTlNQRUNJRklFRBAAEhkKFUlOVklURV9TVEFUVVNfUEVORElORxABEhoKFklOVklURV9TVEFUVVNfQUNDRVBURUQQAhIZChVJTlZJVEVfU1RBVFVTX1JFVk9LRUQQAzL9EAoNTWVtYmVyU2VydmljZRKfAQoPTGlzdE1lbWJlcnNoaXBzEicudGFudm8uYWNjZXNzLnYxLkxpc3RNZW1iZXJzaGlwc1JlcXVlc3QaKC50YW52by5hY2Nlc3MudjEuTGlzdE1lbWJlcnNoaXBzUmVzcG9uc2UiOZACAcrzGBsKGW9yZ2FuaXphdGlvbjptZW1iZXJzOnJlYWSC0+STAhESDy92MS9tZW1iZXJzaGlwcxKpAQoNR2V0TWVtYmVyc2hpcBIlLnRhbnZvLmFjY2Vzcy52MS5HZXRNZW1iZXJzaGlwUmVxdWVzdBomLnRhbnZvLmFjY2Vzcy52MS5HZXRNZW1iZXJzaGlwUmVzcG9uc2UiSZACAcrzGBsKGW9yZ2FuaXphdGlvbjptZW1iZXJzOnJlYWSC0+STAiESHy92MS9tZW1iZXJzaGlwcy97bWVtYmVyc2hpcF9pZH0SvQEKEFVwZGF0ZU1lbWJlcnNoaXASKC50YW52by5hY2Nlc3MudjEuVXBkYXRlTWVtYmVyc2hpcFJlcXVlc3QaKS50YW52by5hY2Nlc3MudjEuVXBkYXRlTWVtYmVyc2hpcFJlc3BvbnNlIlTK8xgdChtvcmdhbml6YXRpb246bWVtYmVyczp1cGRhdGWC0+STAi06Cm1lbWJlcnNoaXAyHy92MS9tZW1iZXJzaGlwcy97bWVtYmVyc2hpcC5pZH0SuwEKEFJldm9rZU1lbWJlcnNoaXASKC50YW52by5hY2Nlc3MudjEuUmV2b2tlTWVtYmVyc2hpcFJlcXVlc3QaKS50YW52by5hY2Nlc3MudjEuUmV2b2tlTWVtYmVyc2hpcFJlc3BvbnNlIlLK8xgdChtvcmdhbml6YXRpb246bWVtYmVyczpkZWxldGWC0+STAis6ASoiJi92MS9tZW1iZXJzaGlwcy97bWVtYmVyc2hpcF9pZH06cmV2b2tlEoABCgpDcmVhdGVSb2xlEiIudGFudm8uYWNjZXNzLnYxLkNyZWF0ZVJvbGVSZXF1ZXN0GiMudGFudm8uYWNjZXNzLnYxLkNyZWF0ZVJvbGVSZXNwb25zZSIpyvMYDgoMcm9sZXM6Y3JlYXRlgtPkkwIROgRyb2xlIgkvdjEvcm9sZXMSfAoHR2V0Um9sZRIfLnRhbnZvLmFjY2Vzcy52MS5HZXRSb2xlUmVxdWVzdBogLnRhbnZvLmFjY2Vzcy52MS5HZXRSb2xlUmVzcG9uc2UiLpACAcrzGAwKCnJvbGVzOnJlYWSC0+STAhUSEy92MS9yb2xlcy97cm9sZV9pZH0SeAoJTGlzdFJvbGVzEiEudGFudm8uYWNjZXNzLnYxLkxpc3RSb2xlc1JlcXVlc3QaIi50YW52by5hY2Nlc3MudjEuTGlzdFJvbGVzUmVzcG9uc2UiJJACAcrzGAwKCnJvbGVzOnJlYWSC0+STAgsSCS92MS9yb2xlcxKKAQoKVXBkYXRlUm9sZRIiLnRhbnZvLmFjY2Vzcy52MS5VcGRhdGVSb2xlUmVxdWVzdBojLnRhbnZvLmFjY2Vzcy52MS5VcGRhdGVSb2xlUmVzcG9uc2UiM8rzGA4KDHJvbGVzOnVwZGF0ZYLT5JMCGzoEcm9sZTITL3YxL3JvbGVzL3tyb2xlLmlkfRKEAQoKRGVsZXRlUm9sZRIiLnRhbnZvLmFjY2Vzcy52MS5EZWxldGVSb2xlUmVxdWVzdBojLnRhbnZvLmFjY2Vzcy52MS5EZWxldGVSb2xlUmVzcG9uc2UiLcrzGA4KDHJvbGVzOmRlbGV0ZYLT5JMCFSoTL3YxL3JvbGVzL3tyb2xlX2lkfRKQAQoPTGlzdFBlcm1pc3Npb25zEicudGFudm8uYWNjZXNzLnYxLkxpc3RQZXJtaXNzaW9uc1JlcXVlc3QaKC50YW52by5hY2Nlc3MudjEuTGlzdFBlcm1pc3Npb25zUmVzcG9uc2UiKpACAcrzGAwKCnJvbGVzOnJlYWSC0+STAhESDy92MS9wZXJtaXNzaW9ucxKZAQoMQ3JlYXRlSW52aXRlEiQudGFudm8uYWNjZXNzLnYxLkNyZWF0ZUludml0ZVJlcXVlc3QaJS50YW52by5hY2Nlc3MudjEuQ3JlYXRlSW52aXRlUmVzcG9uc2UiPMrzGB0KG29yZ2FuaXphdGlvbjptZW1iZXJzOmNyZWF0ZYLT5JMCFToGaW52aXRlIgsvdjEvaW52aXRlcxKPAQoLTGlzdEludml0ZXMSIy50YW52by5hY2Nlc3MudjEuTGlzdEludml0ZXNSZXF1ZXN0GiQudGFudm8uYWNjZXNzLnYxLkxpc3RJbnZpdGVzUmVzcG9uc2UiNZACAcrzGBsKGW9yZ2FuaXphdGlvbjptZW1iZXJzOnJlYWSC0+STAg0SCy92MS9pbnZpdGVzEqUBCgxVcGRhdGVJbnZpdGUSJC50YW52by5hY2Nlc3MudjEuVXBkYXRlSW52aXRlUmVxdWVzdBolLnRhbnZvLmFjY2Vzcy52MS5VcGRhdGVJbnZpdGVSZXNwb25zZSJIyvMYHQobb3JnYW5pemF0aW9uOm1lbWJlcnM6dXBkYXRlgtPkkwIhOgZpbnZpdGUyFy92MS9pbnZpdGVzL3tpbnZpdGUuaWR9EqcBCgxSZXZva2VJbnZpdGUSJC50YW52by5hY2Nlc3MudjEuUmV2b2tlSW52aXRlUmVxdWVzdBolLnRhbnZvLmFjY2Vzcy52MS5SZXZva2VJbnZpdGVSZXNwb25zZSJKyvMYHQobb3JnYW5pemF0aW9uOm1lbWJlcnM6ZGVsZXRlgtPkkwIjOgEqIh4vdjEvaW52aXRlcy97aW52aXRlX2lkfTpyZXZva2VCxgEKE2NvbS50YW52by5hY2Nlc3MudjFCC01lbWJlclByb3RvUAFaRGdpdGh1Yi5jb20vdGFudm94eXovdGFudm8vbGlicy9wcm90by9nZW4vZ28vdGFudm8vYWNjZXNzL3YxO2FjY2Vzc3YxogIDVEFYqgIPVGFudm8uQWNjZXNzLlYxygIPVGFudm9cQWNjZXNzXFYx4gIbVGFudm9cQWNjZXNzXFYxXEdQQk1ldGFkYXRh6gIRVGFudm86OkFjY2Vzczo6VjFiCGVkaXRpb25zcOgH", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_tanvo_common_v1_options]);
+  fileDesc("Chx0YW52by9hY2Nlc3MvdjEvbWVtYmVyLnByb3RvEg90YW52by5hY2Nlc3MudjEi5gEKBFVzZXISEAoCaWQYASABKAlCBOJBAQgSEwoFZW1haWwYAiABKAlCBOJBAQMSFgoEbmFtZRgDIAEoCUIIukgFcgMY/wESOQoPbGFzdF9zaWduX2luX2F0GAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxI0CgpjcmVhdGVkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAzou6kErCg50YW52by54eXovVXNlchIMdXNlcnMve3VzZXJ9KgV1c2VyczIEdXNlciK2AwoKTWVtYmVyc2hpcBIQCgJpZBgBIAEoCUIE4kEBCBIpCgR1c2VyGAIgASgLMhUudGFudm8uYWNjZXNzLnYxLlVzZXJCBOJBAQMSJwoIcm9sZV9pZHMYAyADKAlCFeJBAQK6SA6SAQsQZCIHcgXgpMoGARI3CgZzdGF0dXMYBCABKA4yIS50YW52by5hY2Nlc3MudjEuTWVtYmVyc2hpcFN0YXR1c0IE4kEBAxI0CgpyZXZva2VkX2F0GAUgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxI0CgpjcmVhdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxI0Cgp1cGRhdGVkX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxIZCgtwZXJtaXNzaW9ucxgIIAMoCUIE4kEBAzpM6kFJChR0YW52by54eXovTWVtYmVyc2hpcBIYbWVtYmVyc2hpcHMve21lbWJlcnNoaXB9KgttZW1iZXJzaGlwczIKbWVtYmVyc2hpcCL2AgoEUm9sZRIQCgJpZBgBIAEoCUIE4kEBCBIwCgRjb2RlGAIgASgJQiLiQQICBbpIGnIYMhZeW2Etel1bYS16MC05X117MCw5OX0kEhsKBG5hbWUYAyABKAlCDeJBAQK6SAZyBBABGGQSHQoLZGVzY3JpcHRpb24YBCABKAlCCLpIBXIDGP8BEjoKC3Blcm1pc3Npb25zGAUgAygJQiW6SCKSAR8Q9AMYASIYchYyFF5bYS16X10rKDpbYS16X10rKSskEhYKCGJ1aWx0X2luGAYgASgIQgTiQQEDEjQKCmNyZWF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCnVwZGF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDOi7qQSsKDnRhbnZvLnh5ei9Sb2xlEgxyb2xlcy97cm9sZX0qBXJvbGVzMgRyb2xlIsUDCgZJbnZpdGUSEAoCaWQYASABKAlCBOJBAQgSHgoFZW1haWwYAiABKAlCD+JBAgIFukgHcgUY/wFgARInCghyb2xlX2lkcxgDIAMoCUIV4kEBArpIDpIBCxBkIgdyBeCkygYBEjMKBnN0YXR1cxgEIAEoDjIdLnRhbnZvLmFjY2Vzcy52MS5JbnZpdGVTdGF0dXNCBOJBAQMSGAoKYWNjZXB0X3VybBgFIAEoCUIE4kEBAxI0CgpleHBpcmVzX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxI1CgthY2NlcHRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNAoKcmV2b2tlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNAoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQM6OOpBNQoQdGFudm8ueHl6L0ludml0ZRIQaW52aXRlcy97aW52aXRlfSoHaW52aXRlczIGaW52aXRlIokBChZMaXN0TWVtYmVyc2hpcHNSZXF1ZXN0Eh0KCXBhZ2Vfc2l6ZRgBIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACBIYCgZmaWx0ZXIYAyABKAlCCLpIBXIDGIAQEhgKBnNlYXJjaBgEIAEoCUIIukgFcgMY/wEieQoXTGlzdE1lbWJlcnNoaXBzUmVzcG9uc2USMAoLbWVtYmVyc2hpcHMYASADKAsyGy50YW52by5hY2Nlc3MudjEuTWVtYmVyc2hpcBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkSEwoLYWRtaW5fY291bnQYAyABKAUiPgoUR2V0TWVtYmVyc2hpcFJlcXVlc3QSJgoNbWVtYmVyc2hpcF9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBIkgKFUdldE1lbWJlcnNoaXBSZXNwb25zZRIvCgptZW1iZXJzaGlwGAEgASgLMhsudGFudm8uYWNjZXNzLnYxLk1lbWJlcnNoaXAi0QEKF1VwZGF0ZU1lbWJlcnNoaXBSZXF1ZXN0EjsKCm1lbWJlcnNoaXAYASABKAsyGy50YW52by5hY2Nlc3MudjEuTWVtYmVyc2hpcEIK4kEBArpIA8gBARIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2s6SLpIRRpDCg1tZW1iZXJzaGlwLmlkEhltZW1iZXJzaGlwLmlkIGlzIHJlcXVpcmVkGhdoYXModGhpcy5tZW1iZXJzaGlwLmlkKSJLChhVcGRhdGVNZW1iZXJzaGlwUmVzcG9uc2USLwoKbWVtYmVyc2hpcBgBIAEoCzIbLnRhbnZvLmFjY2Vzcy52MS5NZW1iZXJzaGlwIkEKF1Jldm9rZU1lbWJlcnNoaXBSZXF1ZXN0EiYKDW1lbWJlcnNoaXBfaWQYASABKAlCD+JBAQK6SAjIAQFyA7ABASJLChhSZXZva2VNZW1iZXJzaGlwUmVzcG9uc2USLwoKbWVtYmVyc2hpcBgBIAEoCzIbLnRhbnZvLmFjY2Vzcy52MS5NZW1iZXJzaGlwIqcBChFDcmVhdGVSb2xlUmVxdWVzdBIvCgRyb2xlGAEgASgLMhUudGFudm8uYWNjZXNzLnYxLlJvbGVCCuJBAQK6SAPIAQE6YbpIXhpcChJyb2xlLmNvZGVfYW5kX25hbWUSGmNvZGUgYW5kIG5hbWUgYXJlIHJlcXVpcmVkGipoYXModGhpcy5yb2xlLmNvZGUpICYmIGhhcyh0aGlzLnJvbGUubmFtZSkiOQoSQ3JlYXRlUm9sZVJlc3BvbnNlEiMKBHJvbGUYASABKAsyFS50YW52by5hY2Nlc3MudjEuUm9sZSI0Cg5HZXRSb2xlUmVxdWVzdBIiCgdyb2xlX2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGASI2Cg9HZXRSb2xlUmVzcG9uc2USIwoEcm9sZRgBIAEoCzIVLnRhbnZvLmFjY2Vzcy52MS5Sb2xlIk8KEExpc3RSb2xlc1JlcXVlc3QSHQoJcGFnZV9zaXplGAEgASgFQgq6SAcaBRjoBygAEhwKCnBhZ2VfdG9rZW4YAiABKAlCCLpIBXIDGIAIIlIKEUxpc3RSb2xlc1Jlc3BvbnNlEiQKBXJvbGVzGAEgAygLMhUudGFudm8uYWNjZXNzLnYxLlJvbGUSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIq0BChFVcGRhdGVSb2xlUmVxdWVzdBIvCgRyb2xlGAEgASgLMhUudGFudm8uYWNjZXNzLnYxLlJvbGVCCuJBAQK6SAPIAQESLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrOja6SDMaMQoHcm9sZS5pZBITcm9sZS5pZCBpcyByZXF1aXJlZBoRaGFzKHRoaXMucm9sZS5pZCkiOQoSVXBkYXRlUm9sZVJlc3BvbnNlEiMKBHJvbGUYASABKAsyFS50YW52by5hY2Nlc3MudjEuUm9sZSI3ChFEZWxldGVSb2xlUmVxdWVzdBIiCgdyb2xlX2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGASIUChJEZWxldGVSb2xlUmVzcG9uc2UiwwEKE0NyZWF0ZUludml0ZVJlcXVlc3QSMwoGaW52aXRlGAEgASgLMhcudGFudm8uYWNjZXNzLnYxLkludml0ZUIK4kEBArpIA8gBATp3ukh0GnIKFWludml0ZS5lbWFpbF9hbmRfcm9sZRIfZW1haWwgYW5kIHJvbGVfaWRzIGFyZSByZXF1aXJlZBo4aGFzKHRoaXMuaW52aXRlLmVtYWlsKSAmJiBzaXplKHRoaXMuaW52aXRlLnJvbGVfaWRzKSA+IDAiPwoUQ3JlYXRlSW52aXRlUmVzcG9uc2USJwoGaW52aXRlGAEgASgLMhcudGFudm8uYWNjZXNzLnYxLkludml0ZSKFAQoSTGlzdEludml0ZXNSZXF1ZXN0Eh0KCXBhZ2Vfc2l6ZRgBIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACBIYCgZmaWx0ZXIYAyABKAlCCLpIBXIDGIAQEhgKBnNlYXJjaBgEIAEoCUIIukgFcgMY/wEiWAoTTGlzdEludml0ZXNSZXNwb25zZRIoCgdpbnZpdGVzGAEgAygLMhcudGFudm8uYWNjZXNzLnYxLkludml0ZRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkiuQEKE1VwZGF0ZUludml0ZVJlcXVlc3QSMwoGaW52aXRlGAEgASgLMhcudGFudm8uYWNjZXNzLnYxLkludml0ZUIK4kEBArpIA8gBARIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2s6PLpIORo3CglpbnZpdGUuaWQSFWludml0ZS5pZCBpcyByZXF1aXJlZBoTaGFzKHRoaXMuaW52aXRlLmlkKSI/ChRVcGRhdGVJbnZpdGVSZXNwb25zZRInCgZpbnZpdGUYASABKAsyFy50YW52by5hY2Nlc3MudjEuSW52aXRlIjkKE1Jldm9rZUludml0ZVJlcXVlc3QSIgoJaW52aXRlX2lkGAEgASgJQg/iQQECukgIyAEBcgOwAQEiPwoUUmV2b2tlSW52aXRlUmVzcG9uc2USJwoGaW52aXRlGAEgASgLMhcudGFudm8uYWNjZXNzLnYxLkludml0ZSpyChBNZW1iZXJzaGlwU3RhdHVzEiEKHU1FTUJFUlNISVBfU1RBVFVTX1VOU1BFQ0lGSUVEEAASHAoYTUVNQkVSU0hJUF9TVEFUVVNfQUNUSVZFEAESHQoZTUVNQkVSU0hJUF9TVEFUVVNfUkVWT0tFRBACKn8KDEludml0ZVN0YXR1cxIdChlJTlZJVEVfU1RBVFVTX1VOU1BFQ0lGSUVEEAASGQoVSU5WSVRFX1NUQVRVU19QRU5ESU5HEAESGgoWSU5WSVRFX1NUQVRVU19BQ0NFUFRFRBACEhkKFUlOVklURV9TVEFUVVNfUkVWT0tFRBADMuoPCg1NZW1iZXJTZXJ2aWNlEp8BCg9MaXN0TWVtYmVyc2hpcHMSJy50YW52by5hY2Nlc3MudjEuTGlzdE1lbWJlcnNoaXBzUmVxdWVzdBooLnRhbnZvLmFjY2Vzcy52MS5MaXN0TWVtYmVyc2hpcHNSZXNwb25zZSI5kAIByvMYGwoZb3JnYW5pemF0aW9uOm1lbWJlcnM6cmVhZILT5JMCERIPL3YxL21lbWJlcnNoaXBzEqkBCg1HZXRNZW1iZXJzaGlwEiUudGFudm8uYWNjZXNzLnYxLkdldE1lbWJlcnNoaXBSZXF1ZXN0GiYudGFudm8uYWNjZXNzLnYxLkdldE1lbWJlcnNoaXBSZXNwb25zZSJJkAIByvMYGwoZb3JnYW5pemF0aW9uOm1lbWJlcnM6cmVhZILT5JMCIRIfL3YxL21lbWJlcnNoaXBzL3ttZW1iZXJzaGlwX2lkfRK9AQoQVXBkYXRlTWVtYmVyc2hpcBIoLnRhbnZvLmFjY2Vzcy52MS5VcGRhdGVNZW1iZXJzaGlwUmVxdWVzdBopLnRhbnZvLmFjY2Vzcy52MS5VcGRhdGVNZW1iZXJzaGlwUmVzcG9uc2UiVMrzGB0KG29yZ2FuaXphdGlvbjptZW1iZXJzOnVwZGF0ZYLT5JMCLToKbWVtYmVyc2hpcDIfL3YxL21lbWJlcnNoaXBzL3ttZW1iZXJzaGlwLmlkfRK7AQoQUmV2b2tlTWVtYmVyc2hpcBIoLnRhbnZvLmFjY2Vzcy52MS5SZXZva2VNZW1iZXJzaGlwUmVxdWVzdBopLnRhbnZvLmFjY2Vzcy52MS5SZXZva2VNZW1iZXJzaGlwUmVzcG9uc2UiUsrzGB0KG29yZ2FuaXphdGlvbjptZW1iZXJzOnVwZGF0ZYLT5JMCKzoBKiImL3YxL21lbWJlcnNoaXBzL3ttZW1iZXJzaGlwX2lkfTpyZXZva2USgAEKCkNyZWF0ZVJvbGUSIi50YW52by5hY2Nlc3MudjEuQ3JlYXRlUm9sZVJlcXVlc3QaIy50YW52by5hY2Nlc3MudjEuQ3JlYXRlUm9sZVJlc3BvbnNlIinK8xgOCgxyb2xlczpjcmVhdGWC0+STAhE6BHJvbGUiCS92MS9yb2xlcxJ8CgdHZXRSb2xlEh8udGFudm8uYWNjZXNzLnYxLkdldFJvbGVSZXF1ZXN0GiAudGFudm8uYWNjZXNzLnYxLkdldFJvbGVSZXNwb25zZSIukAIByvMYDAoKcm9sZXM6cmVhZILT5JMCFRITL3YxL3JvbGVzL3tyb2xlX2lkfRJ4CglMaXN0Um9sZXMSIS50YW52by5hY2Nlc3MudjEuTGlzdFJvbGVzUmVxdWVzdBoiLnRhbnZvLmFjY2Vzcy52MS5MaXN0Um9sZXNSZXNwb25zZSIkkAIByvMYDAoKcm9sZXM6cmVhZILT5JMCCxIJL3YxL3JvbGVzEooBCgpVcGRhdGVSb2xlEiIudGFudm8uYWNjZXNzLnYxLlVwZGF0ZVJvbGVSZXF1ZXN0GiMudGFudm8uYWNjZXNzLnYxLlVwZGF0ZVJvbGVSZXNwb25zZSIzyvMYDgoMcm9sZXM6dXBkYXRlgtPkkwIbOgRyb2xlMhMvdjEvcm9sZXMve3JvbGUuaWR9EoQBCgpEZWxldGVSb2xlEiIudGFudm8uYWNjZXNzLnYxLkRlbGV0ZVJvbGVSZXF1ZXN0GiMudGFudm8uYWNjZXNzLnYxLkRlbGV0ZVJvbGVSZXNwb25zZSItyvMYDgoMcm9sZXM6ZGVsZXRlgtPkkwIVKhMvdjEvcm9sZXMve3JvbGVfaWR9EpkBCgxDcmVhdGVJbnZpdGUSJC50YW52by5hY2Nlc3MudjEuQ3JlYXRlSW52aXRlUmVxdWVzdBolLnRhbnZvLmFjY2Vzcy52MS5DcmVhdGVJbnZpdGVSZXNwb25zZSI8yvMYHQobb3JnYW5pemF0aW9uOm1lbWJlcnM6Y3JlYXRlgtPkkwIVOgZpbnZpdGUiCy92MS9pbnZpdGVzEo8BCgtMaXN0SW52aXRlcxIjLnRhbnZvLmFjY2Vzcy52MS5MaXN0SW52aXRlc1JlcXVlc3QaJC50YW52by5hY2Nlc3MudjEuTGlzdEludml0ZXNSZXNwb25zZSI1kAIByvMYGwoZb3JnYW5pemF0aW9uOm1lbWJlcnM6cmVhZILT5JMCDRILL3YxL2ludml0ZXMSpQEKDFVwZGF0ZUludml0ZRIkLnRhbnZvLmFjY2Vzcy52MS5VcGRhdGVJbnZpdGVSZXF1ZXN0GiUudGFudm8uYWNjZXNzLnYxLlVwZGF0ZUludml0ZVJlc3BvbnNlIkjK8xgdChtvcmdhbml6YXRpb246bWVtYmVyczp1cGRhdGWC0+STAiE6Bmludml0ZTIXL3YxL2ludml0ZXMve2ludml0ZS5pZH0SpwEKDFJldm9rZUludml0ZRIkLnRhbnZvLmFjY2Vzcy52MS5SZXZva2VJbnZpdGVSZXF1ZXN0GiUudGFudm8uYWNjZXNzLnYxLlJldm9rZUludml0ZVJlc3BvbnNlIkrK8xgdChtvcmdhbml6YXRpb246bWVtYmVyczpkZWxldGWC0+STAiM6ASoiHi92MS9pbnZpdGVzL3tpbnZpdGVfaWR9OnJldm9rZULGAQoTY29tLnRhbnZvLmFjY2Vzcy52MUILTWVtYmVyUHJvdG9QAVpEZ2l0aHViLmNvbS90YW52b3h5ei90YW52by9saWJzL3Byb3RvL2dlbi9nby90YW52by9hY2Nlc3MvdjE7YWNjZXNzdjGiAgNUQViqAg9UYW52by5BY2Nlc3MuVjHKAg9UYW52b1xBY2Nlc3NcVjHiAhtUYW52b1xBY2Nlc3NcVjFcR1BCTWV0YWRhdGHqAhFUYW52bzo6QWNjZXNzOjpWMWIIZWRpdGlvbnNw6Ac", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_tanvo_common_v1_options]);
 
 /**
  * User is a person who may belong to several organizations.
@@ -92,11 +92,12 @@ export type Membership = Message<"tanvo.access.v1.Membership"> & {
   user?: User | undefined;
 
   /**
-   * The ID or `code:<code>` of the member's role.
+   * The IDs or `code:<code>` of the member's roles; the member holds the
+   * union of their permissions. Responses carry the role IDs.
    *
-   * @generated from field: string role_id = 3;
+   * @generated from field: repeated string role_ids = 3;
    */
-  roleId: string;
+  roleIds: string[];
 
   /**
    * The state.
@@ -125,6 +126,13 @@ export type Membership = Message<"tanvo.access.v1.Membership"> & {
    * @generated from field: google.protobuf.Timestamp updated_at = 7;
    */
   updatedAt?: Timestamp | undefined;
+
+  /**
+   * The permissions the member holds, sorted.
+   *
+   * @generated from field: repeated string permissions = 8;
+   */
+  permissions: string[];
 };
 
 /**
@@ -206,41 +214,6 @@ export const RoleSchema: GenMessage<Role> = /*@__PURE__*/
   messageDesc(file_tanvo_access_v1_member, 2);
 
 /**
- * Permission is one entry of the permission catalog.
- *
- * @generated from message tanvo.access.v1.Permission
- */
-export type Permission = Message<"tanvo.access.v1.Permission"> & {
-  /**
-   * The permission string (`customers:read`).
-   *
-   * @generated from field: string name = 1;
-   */
-  name: string;
-
-  /**
-   * Marks the permissions the built-in finance role holds.
-   *
-   * @generated from field: bool finance = 2;
-   */
-  finance: boolean;
-
-  /**
-   * Marks the permissions the built-in manager role holds.
-   *
-   * @generated from field: bool manager = 3;
-   */
-  manager: boolean;
-};
-
-/**
- * Describes the message tanvo.access.v1.Permission.
- * Use `create(PermissionSchema)` to create a new message.
- */
-export const PermissionSchema: GenMessage<Permission> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 3);
-
-/**
  * Invite asks a person to join the organization.
  *
  * @generated from message tanvo.access.v1.Invite
@@ -261,11 +234,12 @@ export type Invite = Message<"tanvo.access.v1.Invite"> & {
   email: string;
 
   /**
-   * The ID or `code:<code>` of the role granted on acceptance.
+   * The IDs or `code:<code>` of the roles granted on acceptance.
+   * Responses carry the role IDs.
    *
-   * @generated from field: string role_id = 3;
+   * @generated from field: repeated string role_ids = 3;
    */
-  roleId: string;
+  roleIds: string[];
 
   /**
    * The state.
@@ -315,10 +289,11 @@ export type Invite = Message<"tanvo.access.v1.Invite"> & {
  * Use `create(InviteSchema)` to create a new message.
  */
 export const InviteSchema: GenMessage<Invite> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 4);
+  messageDesc(file_tanvo_access_v1_member, 3);
 
 /**
  * ListMembershipsRequest is the request of MemberService.ListMemberships.
+ * Only active memberships are listed.
  *
  * @generated from message tanvo.access.v1.ListMembershipsRequest
  */
@@ -338,11 +313,19 @@ export type ListMembershipsRequest = Message<"tanvo.access.v1.ListMembershipsReq
   pageToken: string;
 
   /**
-   * An AIP-160 filter over `status` and `role_id`.
+   * An AIP-160 filter over `role_id` (several joined by OR): memberships
+   * having one of the roles.
    *
    * @generated from field: string filter = 3;
    */
   filter: string;
+
+  /**
+   * A case-insensitive substring of the member's email.
+   *
+   * @generated from field: string search = 4;
+   */
+  search: string;
 };
 
 /**
@@ -350,7 +333,7 @@ export type ListMembershipsRequest = Message<"tanvo.access.v1.ListMembershipsReq
  * Use `create(ListMembershipsRequestSchema)` to create a new message.
  */
 export const ListMembershipsRequestSchema: GenMessage<ListMembershipsRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 5);
+  messageDesc(file_tanvo_access_v1_member, 4);
 
 /**
  * ListMembershipsResponse is the response of MemberService.ListMemberships.
@@ -371,6 +354,13 @@ export type ListMembershipsResponse = Message<"tanvo.access.v1.ListMembershipsRe
    * @generated from field: string next_page_token = 2;
    */
   nextPageToken: string;
+
+  /**
+   * The organization's number of active admins.
+   *
+   * @generated from field: int32 admin_count = 3;
+   */
+  adminCount: number;
 };
 
 /**
@@ -378,7 +368,7 @@ export type ListMembershipsResponse = Message<"tanvo.access.v1.ListMembershipsRe
  * Use `create(ListMembershipsResponseSchema)` to create a new message.
  */
 export const ListMembershipsResponseSchema: GenMessage<ListMembershipsResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 6);
+  messageDesc(file_tanvo_access_v1_member, 5);
 
 /**
  * GetMembershipRequest is the request of MemberService.GetMembership.
@@ -399,7 +389,7 @@ export type GetMembershipRequest = Message<"tanvo.access.v1.GetMembershipRequest
  * Use `create(GetMembershipRequestSchema)` to create a new message.
  */
 export const GetMembershipRequestSchema: GenMessage<GetMembershipRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 7);
+  messageDesc(file_tanvo_access_v1_member, 6);
 
 /**
  * GetMembershipResponse is the response of MemberService.GetMembership.
@@ -420,7 +410,7 @@ export type GetMembershipResponse = Message<"tanvo.access.v1.GetMembershipRespon
  * Use `create(GetMembershipResponseSchema)` to create a new message.
  */
 export const GetMembershipResponseSchema: GenMessage<GetMembershipResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 8);
+  messageDesc(file_tanvo_access_v1_member, 7);
 
 /**
  * UpdateMembershipRequest is the request of MemberService.UpdateMembership.
@@ -436,7 +426,8 @@ export type UpdateMembershipRequest = Message<"tanvo.access.v1.UpdateMembershipR
   membership?: Membership | undefined;
 
   /**
-   * The fields to update (`role_id`); empty updates every field that is set.
+   * The fields to update (`role_ids`); empty updates every field that is
+   * set.
    *
    * @generated from field: google.protobuf.FieldMask update_mask = 2;
    */
@@ -448,7 +439,7 @@ export type UpdateMembershipRequest = Message<"tanvo.access.v1.UpdateMembershipR
  * Use `create(UpdateMembershipRequestSchema)` to create a new message.
  */
 export const UpdateMembershipRequestSchema: GenMessage<UpdateMembershipRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 9);
+  messageDesc(file_tanvo_access_v1_member, 8);
 
 /**
  * UpdateMembershipResponse is the response of MemberService.UpdateMembership.
@@ -469,7 +460,7 @@ export type UpdateMembershipResponse = Message<"tanvo.access.v1.UpdateMembership
  * Use `create(UpdateMembershipResponseSchema)` to create a new message.
  */
 export const UpdateMembershipResponseSchema: GenMessage<UpdateMembershipResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 10);
+  messageDesc(file_tanvo_access_v1_member, 9);
 
 /**
  * RevokeMembershipRequest is the request of MemberService.RevokeMembership.
@@ -490,7 +481,7 @@ export type RevokeMembershipRequest = Message<"tanvo.access.v1.RevokeMembershipR
  * Use `create(RevokeMembershipRequestSchema)` to create a new message.
  */
 export const RevokeMembershipRequestSchema: GenMessage<RevokeMembershipRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 11);
+  messageDesc(file_tanvo_access_v1_member, 10);
 
 /**
  * RevokeMembershipResponse is the response of MemberService.RevokeMembership.
@@ -511,7 +502,7 @@ export type RevokeMembershipResponse = Message<"tanvo.access.v1.RevokeMembership
  * Use `create(RevokeMembershipResponseSchema)` to create a new message.
  */
 export const RevokeMembershipResponseSchema: GenMessage<RevokeMembershipResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 12);
+  messageDesc(file_tanvo_access_v1_member, 11);
 
 /**
  * CreateRoleRequest is the request of MemberService.CreateRole.
@@ -532,7 +523,7 @@ export type CreateRoleRequest = Message<"tanvo.access.v1.CreateRoleRequest"> & {
  * Use `create(CreateRoleRequestSchema)` to create a new message.
  */
 export const CreateRoleRequestSchema: GenMessage<CreateRoleRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 13);
+  messageDesc(file_tanvo_access_v1_member, 12);
 
 /**
  * CreateRoleResponse is the response of MemberService.CreateRole.
@@ -553,7 +544,7 @@ export type CreateRoleResponse = Message<"tanvo.access.v1.CreateRoleResponse"> &
  * Use `create(CreateRoleResponseSchema)` to create a new message.
  */
 export const CreateRoleResponseSchema: GenMessage<CreateRoleResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 14);
+  messageDesc(file_tanvo_access_v1_member, 13);
 
 /**
  * GetRoleRequest is the request of MemberService.GetRole.
@@ -574,7 +565,7 @@ export type GetRoleRequest = Message<"tanvo.access.v1.GetRoleRequest"> & {
  * Use `create(GetRoleRequestSchema)` to create a new message.
  */
 export const GetRoleRequestSchema: GenMessage<GetRoleRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 15);
+  messageDesc(file_tanvo_access_v1_member, 14);
 
 /**
  * GetRoleResponse is the response of MemberService.GetRole.
@@ -595,7 +586,7 @@ export type GetRoleResponse = Message<"tanvo.access.v1.GetRoleResponse"> & {
  * Use `create(GetRoleResponseSchema)` to create a new message.
  */
 export const GetRoleResponseSchema: GenMessage<GetRoleResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 16);
+  messageDesc(file_tanvo_access_v1_member, 15);
 
 /**
  * ListRolesRequest is the request of MemberService.ListRoles.
@@ -623,7 +614,7 @@ export type ListRolesRequest = Message<"tanvo.access.v1.ListRolesRequest"> & {
  * Use `create(ListRolesRequestSchema)` to create a new message.
  */
 export const ListRolesRequestSchema: GenMessage<ListRolesRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 17);
+  messageDesc(file_tanvo_access_v1_member, 16);
 
 /**
  * ListRolesResponse is the response of MemberService.ListRoles.
@@ -651,7 +642,7 @@ export type ListRolesResponse = Message<"tanvo.access.v1.ListRolesResponse"> & {
  * Use `create(ListRolesResponseSchema)` to create a new message.
  */
 export const ListRolesResponseSchema: GenMessage<ListRolesResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 18);
+  messageDesc(file_tanvo_access_v1_member, 17);
 
 /**
  * UpdateRoleRequest is the request of MemberService.UpdateRole.
@@ -679,7 +670,7 @@ export type UpdateRoleRequest = Message<"tanvo.access.v1.UpdateRoleRequest"> & {
  * Use `create(UpdateRoleRequestSchema)` to create a new message.
  */
 export const UpdateRoleRequestSchema: GenMessage<UpdateRoleRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 19);
+  messageDesc(file_tanvo_access_v1_member, 18);
 
 /**
  * UpdateRoleResponse is the response of MemberService.UpdateRole.
@@ -700,7 +691,7 @@ export type UpdateRoleResponse = Message<"tanvo.access.v1.UpdateRoleResponse"> &
  * Use `create(UpdateRoleResponseSchema)` to create a new message.
  */
 export const UpdateRoleResponseSchema: GenMessage<UpdateRoleResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 20);
+  messageDesc(file_tanvo_access_v1_member, 19);
 
 /**
  * DeleteRoleRequest is the request of MemberService.DeleteRole.
@@ -721,7 +712,7 @@ export type DeleteRoleRequest = Message<"tanvo.access.v1.DeleteRoleRequest"> & {
  * Use `create(DeleteRoleRequestSchema)` to create a new message.
  */
 export const DeleteRoleRequestSchema: GenMessage<DeleteRoleRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 21);
+  messageDesc(file_tanvo_access_v1_member, 20);
 
 /**
  * DeleteRoleResponse is the response of MemberService.DeleteRole.
@@ -736,43 +727,7 @@ export type DeleteRoleResponse = Message<"tanvo.access.v1.DeleteRoleResponse"> &
  * Use `create(DeleteRoleResponseSchema)` to create a new message.
  */
 export const DeleteRoleResponseSchema: GenMessage<DeleteRoleResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 22);
-
-/**
- * ListPermissionsRequest is the request of MemberService.ListPermissions.
- *
- * @generated from message tanvo.access.v1.ListPermissionsRequest
- */
-export type ListPermissionsRequest = Message<"tanvo.access.v1.ListPermissionsRequest"> & {
-};
-
-/**
- * Describes the message tanvo.access.v1.ListPermissionsRequest.
- * Use `create(ListPermissionsRequestSchema)` to create a new message.
- */
-export const ListPermissionsRequestSchema: GenMessage<ListPermissionsRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 23);
-
-/**
- * ListPermissionsResponse is the response of MemberService.ListPermissions.
- *
- * @generated from message tanvo.access.v1.ListPermissionsResponse
- */
-export type ListPermissionsResponse = Message<"tanvo.access.v1.ListPermissionsResponse"> & {
-  /**
-   * Every permission, sorted by name.
-   *
-   * @generated from field: repeated tanvo.access.v1.Permission permissions = 1;
-   */
-  permissions: Permission[];
-};
-
-/**
- * Describes the message tanvo.access.v1.ListPermissionsResponse.
- * Use `create(ListPermissionsResponseSchema)` to create a new message.
- */
-export const ListPermissionsResponseSchema: GenMessage<ListPermissionsResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 24);
+  messageDesc(file_tanvo_access_v1_member, 21);
 
 /**
  * CreateInviteRequest is the request of MemberService.CreateInvite.
@@ -793,7 +748,7 @@ export type CreateInviteRequest = Message<"tanvo.access.v1.CreateInviteRequest">
  * Use `create(CreateInviteRequestSchema)` to create a new message.
  */
 export const CreateInviteRequestSchema: GenMessage<CreateInviteRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 25);
+  messageDesc(file_tanvo_access_v1_member, 22);
 
 /**
  * CreateInviteResponse is the response of MemberService.CreateInvite.
@@ -814,10 +769,11 @@ export type CreateInviteResponse = Message<"tanvo.access.v1.CreateInviteResponse
  * Use `create(CreateInviteResponseSchema)` to create a new message.
  */
 export const CreateInviteResponseSchema: GenMessage<CreateInviteResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 26);
+  messageDesc(file_tanvo_access_v1_member, 23);
 
 /**
- * ListInvitesRequest is the request of MemberService.ListInvites.
+ * ListInvitesRequest is the request of MemberService.ListInvites. Only
+ * pending invites are listed.
  *
  * @generated from message tanvo.access.v1.ListInvitesRequest
  */
@@ -837,11 +793,19 @@ export type ListInvitesRequest = Message<"tanvo.access.v1.ListInvitesRequest"> &
   pageToken: string;
 
   /**
-   * An AIP-160 filter over `status` and `email`.
+   * An AIP-160 filter over `role_id` (several joined by OR): invites
+   * granting one of the roles.
    *
    * @generated from field: string filter = 3;
    */
   filter: string;
+
+  /**
+   * A case-insensitive substring of the invited email.
+   *
+   * @generated from field: string search = 4;
+   */
+  search: string;
 };
 
 /**
@@ -849,7 +813,7 @@ export type ListInvitesRequest = Message<"tanvo.access.v1.ListInvitesRequest"> &
  * Use `create(ListInvitesRequestSchema)` to create a new message.
  */
 export const ListInvitesRequestSchema: GenMessage<ListInvitesRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 27);
+  messageDesc(file_tanvo_access_v1_member, 24);
 
 /**
  * ListInvitesResponse is the response of MemberService.ListInvites.
@@ -877,7 +841,7 @@ export type ListInvitesResponse = Message<"tanvo.access.v1.ListInvitesResponse">
  * Use `create(ListInvitesResponseSchema)` to create a new message.
  */
 export const ListInvitesResponseSchema: GenMessage<ListInvitesResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 28);
+  messageDesc(file_tanvo_access_v1_member, 25);
 
 /**
  * UpdateInviteRequest is the request of MemberService.UpdateInvite.
@@ -893,7 +857,8 @@ export type UpdateInviteRequest = Message<"tanvo.access.v1.UpdateInviteRequest">
   invite?: Invite | undefined;
 
   /**
-   * The fields to update (`role_id`); empty updates every field that is set.
+   * The fields to update (`role_ids`); empty updates every field that is
+   * set.
    *
    * @generated from field: google.protobuf.FieldMask update_mask = 2;
    */
@@ -905,7 +870,7 @@ export type UpdateInviteRequest = Message<"tanvo.access.v1.UpdateInviteRequest">
  * Use `create(UpdateInviteRequestSchema)` to create a new message.
  */
 export const UpdateInviteRequestSchema: GenMessage<UpdateInviteRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 29);
+  messageDesc(file_tanvo_access_v1_member, 26);
 
 /**
  * UpdateInviteResponse is the response of MemberService.UpdateInvite.
@@ -926,7 +891,7 @@ export type UpdateInviteResponse = Message<"tanvo.access.v1.UpdateInviteResponse
  * Use `create(UpdateInviteResponseSchema)` to create a new message.
  */
 export const UpdateInviteResponseSchema: GenMessage<UpdateInviteResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 30);
+  messageDesc(file_tanvo_access_v1_member, 27);
 
 /**
  * RevokeInviteRequest is the request of MemberService.RevokeInvite.
@@ -947,7 +912,7 @@ export type RevokeInviteRequest = Message<"tanvo.access.v1.RevokeInviteRequest">
  * Use `create(RevokeInviteRequestSchema)` to create a new message.
  */
 export const RevokeInviteRequestSchema: GenMessage<RevokeInviteRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 31);
+  messageDesc(file_tanvo_access_v1_member, 28);
 
 /**
  * RevokeInviteResponse is the response of MemberService.RevokeInvite.
@@ -968,7 +933,7 @@ export type RevokeInviteResponse = Message<"tanvo.access.v1.RevokeInviteResponse
  * Use `create(RevokeInviteResponseSchema)` to create a new message.
  */
 export const RevokeInviteResponseSchema: GenMessage<RevokeInviteResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_access_v1_member, 32);
+  messageDesc(file_tanvo_access_v1_member, 29);
 
 /**
  * MembershipStatus is the state of a membership.
@@ -1052,7 +1017,7 @@ export const InviteStatusSchema: GenEnum<InviteStatus> = /*@__PURE__*/
  */
 export const MemberService: GenService<{
   /**
-   * Lists the organization's memberships with their users.
+   * Lists the organization's active memberships with their users.
    *
    * @generated from rpc tanvo.access.v1.MemberService.ListMemberships
    */
@@ -1072,8 +1037,8 @@ export const MemberService: GenService<{
     output: typeof GetMembershipResponseSchema;
   },
   /**
-   * Changes a membership's role. Only admins grant the admin role, and the
-   * last admin keeps it.
+   * Replaces a membership's roles. Only admins grant the admin role, and
+   * the last admin keeps it.
    *
    * @generated from rpc tanvo.access.v1.MemberService.UpdateMembership
    */
@@ -1144,16 +1109,6 @@ export const MemberService: GenService<{
     output: typeof DeleteRoleResponseSchema;
   },
   /**
-   * Lists the permission catalog: every permission a role may hold.
-   *
-   * @generated from rpc tanvo.access.v1.MemberService.ListPermissions
-   */
-  listPermissions: {
-    methodKind: "unary";
-    input: typeof ListPermissionsRequestSchema;
-    output: typeof ListPermissionsResponseSchema;
-  },
-  /**
    * Invites a person by email; the invite email carries the accept link.
    *
    * @generated from rpc tanvo.access.v1.MemberService.CreateInvite
@@ -1164,7 +1119,7 @@ export const MemberService: GenService<{
     output: typeof CreateInviteResponseSchema;
   },
   /**
-   * Lists invites.
+   * Lists pending invites.
    *
    * @generated from rpc tanvo.access.v1.MemberService.ListInvites
    */

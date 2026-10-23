@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
 // Filter narrows [Repository.List]; zero fields match everything.
@@ -13,6 +14,34 @@ type Filter struct {
 	CustomerID core.CustomerID
 	// Status keeps the payments in one state.
 	Status State
+	// InvoiceID keeps the payments of an invoice, made directly or through
+	// a payment request including it.
+	InvoiceID core.InvoiceID
+	// Currency keeps the payments in that currency.
+	Currency money.Currency
+	// Visible drops the payments of invoices the API does not show
+	// (those still generating).
+	Visible bool
+	// Search keeps the payments whose provider payment ID or reference
+	// contains the trimmed term (case-insensitive), whose ID is the term
+	// in the canonical UUID form, whose invoice number contains it (unless
+	// InvoiceID is set), or whose customer's name, first name, last name,
+	// external ID or email contains it (unless CustomerID is set). A blank
+	// term does not filter.
+	Search string
+	// Order is the list order; [core.OrderRecent] lists by creation time,
+	// newest first, then by ID.
+	Order core.ListOrder
+}
+
+// SearchID returns the payment ID a search term in the canonical UUID
+// form names.
+func SearchID(term string) (core.PaymentID, bool) {
+	if len(term) != 36 {
+		return core.PaymentID{}, false
+	}
+	id, err := core.ParseID[core.PaymentID](term)
+	return id, err == nil
 }
 
 // Repository stores payments.
@@ -30,8 +59,19 @@ type Repository interface {
 	GetByProviderPaymentID(ctx context.Context, org core.OrganizationID, integration core.IntegrationID, providerPaymentID string) (*Payment, error)
 	// ListByPayable returns the payments of a payable, oldest first.
 	ListByPayable(ctx context.Context, org core.OrganizationID, payable Payable) ([]*Payment, error)
-	// List returns a page of the payments of org matching f, oldest first.
+	// List returns a page of the payments of org matching f, in f.Order.
 	List(ctx context.Context, org core.OrganizationID, f Filter, page core.PageRequest) (core.Page[*Payment], error)
+}
+
+// ReceiptFilter narrows [ReceiptRepository.List]; zero fields match
+// everything.
+type ReceiptFilter struct {
+	// InvoiceID keeps the receipts of the payments of an invoice, made
+	// directly or through a payment request including it.
+	InvoiceID core.InvoiceID
+	// Order is the list order; [core.OrderRecent] lists by creation time,
+	// newest first, then by ID.
+	Order core.ListOrder
 }
 
 // ReceiptRepository stores payment receipts.
@@ -47,8 +87,8 @@ type ReceiptRepository interface {
 	Get(ctx context.Context, org core.OrganizationID, id core.PaymentReceiptID) (*Receipt, error)
 	// GetByPayment returns the receipt of a payment, or [core.ErrNotFound].
 	GetByPayment(ctx context.Context, org core.OrganizationID, payment core.PaymentID) (*Receipt, error)
-	// List returns a page of the receipts of org, oldest first.
-	List(ctx context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*Receipt], error)
+	// List returns a page of the receipts of org matching f, in f.Order.
+	List(ctx context.Context, org core.OrganizationID, f ReceiptFilter, page core.PageRequest) (core.Page[*Receipt], error)
 }
 
 // RefundRepository stores refunds.
@@ -76,6 +116,14 @@ type RequestFilter struct {
 	CustomerID core.CustomerID
 	// PaymentStatus keeps the requests in one payment status.
 	PaymentStatus core.PaymentStatus
+	// Currency keeps the requests in that currency.
+	Currency money.Currency
+	// BillingEntityIDs keeps the requests including an invoice of one of
+	// the billing entities.
+	BillingEntityIDs []core.BillingEntityID
+	// Order is the list order; [core.OrderRecent] lists by creation time,
+	// newest first, then by ID.
+	Order core.ListOrder
 }
 
 // RequestRepository stores payment requests.
@@ -87,7 +135,7 @@ type RequestRepository interface {
 	Update(ctx context.Context, r *Request) error
 	// Get returns the request id of org, or [core.ErrNotFound].
 	Get(ctx context.Context, org core.OrganizationID, id core.PaymentRequestID) (*Request, error)
-	// List returns a page of the requests of org matching f, oldest first.
+	// List returns a page of the requests of org matching f, in f.Order.
 	List(ctx context.Context, org core.OrganizationID, f RequestFilter, page core.PageRequest) (core.Page[*Request], error)
 	// ListByInvoice returns the requests including an invoice, oldest first.
 	ListByInvoice(ctx context.Context, org core.OrganizationID, invoice core.InvoiceID) ([]*Request, error)

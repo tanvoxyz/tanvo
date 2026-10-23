@@ -177,19 +177,24 @@ type ApplicationFacts struct {
 }
 
 // CheckApplication enforces the application rules of domain §8.2 for
-// applying coupon c. It returns a *core.RuleError
-// ([CodeCouponNotActive], [CodeNotReusable] or [CodePlanOverlapping]). The
+// applying coupon c, in the order of lago AppliedCoupons::CreateService: a
+// coupon that is not active or is deleted is not found
+// (core.NotFound("coupon")), an overlap is a *core.RuleError
+// ([CodePlanOverlapping]), and reapplying a coupon that is not reusable a
+// *core.ValidationError on field "coupon" ([CodeNotReusable]). The
 // customer's currency is a default, not a constraint: a fixed-amount
 // coupon keeps its own currency.
 func CheckApplication(c *Coupon, f ApplicationFacts) error {
-	if c.Status != StatusActive {
-		return core.NewRuleError(CodeCouponNotActive, "coupon is terminated")
-	}
-	if !c.Reusable && f.AppliedCount > 0 {
-		return core.NewRuleError(CodeNotReusable, "coupon is not reusable and already applied to the customer")
+	if c.Status != StatusActive || c.Deleted() {
+		return core.NotFound("coupon")
 	}
 	if slices.ContainsFunc(f.Active, func(o *Coupon) bool { return Overlaps(c, o, f.PlanMetrics) }) {
 		return core.NewRuleError(CodePlanOverlapping, "an applied coupon of the customer targets the same plans or metrics")
+	}
+	if !c.Reusable && f.AppliedCount > 0 {
+		var v core.Validator
+		v.Add("coupon", CodeNotReusable)
+		return v.Err()
 	}
 	return nil
 }

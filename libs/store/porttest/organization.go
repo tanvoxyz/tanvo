@@ -2,6 +2,7 @@ package porttest
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -39,6 +40,7 @@ func testOrganization(t *testing.T, h Harness) {
 			o.Name = "Acme"
 			o.Email = nil
 			o.MaxWalletsPerCustomer = 10
+			o.DocumentNumberPrefix = "ORG-55"
 			o.UpdatedAt = at(time.Minute)
 			noErr(t, "Update()", r.Organizations.Update(ctx, o))
 			got, err = r.Organizations.Get(ctx, o.ID)
@@ -126,7 +128,7 @@ func testOrganization(t *testing.T, h Harness) {
 		section := func(code string) *invoice.CustomSection {
 			return &invoice.CustomSection{
 				ID: core.NewID[core.InvoiceCustomSectionID](e.ids), OrganizationID: org, Code: code, Name: "Section " + code,
-				DisplayName: ptr("Bank details"), Details: ptr("IBAN …"), SectionType: invoice.CustomSectionTypeManual,
+				DisplayName: ptr("Bank details"), Details: ptr("IBAN …"), Description: ptr("Wire transfers"), SectionType: invoice.CustomSectionTypeManual,
 				CreatedAt: now, UpdatedAt: now,
 			}
 		}
@@ -171,11 +173,29 @@ func testOrganization(t *testing.T, h Harness) {
 			noErr(t, "BillingEntities.Get()", err)
 			equal(t, "InvoiceCustomSectionIDs", be.InvoiceCustomSectionIDs, a.InvoiceCustomSectionIDs)
 
-			wantErr(t, "Delete() from another organization", r.InvoiceCustomSections.Delete(ctx, b.OrganizationID, s2.ID), core.ErrNotFound)
-			noErr(t, "Delete()", r.InvoiceCustomSections.Delete(ctx, org, s2.ID))
-			wantErr(t, "Delete() again", r.InvoiceCustomSections.Delete(ctx, org, s2.ID), core.ErrNotFound)
+			wantErr(t, "Delete() from another organization", r.InvoiceCustomSections.Delete(ctx, b.OrganizationID, s2.ID, now), core.ErrNotFound)
+			noErr(t, "Delete()", r.InvoiceCustomSections.Delete(ctx, org, s2.ID, now))
+			wantErr(t, "Delete() again", r.InvoiceCustomSections.Delete(ctx, org, s2.ID, now), core.ErrNotFound)
 			_, err = r.InvoiceCustomSections.Get(ctx, org, s2.ID)
 			wantErr(t, "Get() deleted", err, core.ErrNotFound)
+			_, err = r.InvoiceCustomSections.GetByCode(ctx, org, "s2")
+			wantErr(t, "GetByCode() deleted", err, core.ErrNotFound)
+			wantErr(t, "Update() deleted", r.InvoiceCustomSections.Update(ctx, s2), core.ErrNotFound)
+
+			// Deleting a section deselects it and frees its code.
+			noErr(t, "Delete() selected", r.InvoiceCustomSections.Delete(ctx, org, s1.ID, now))
+			noErr(t, "Create() with a deleted code", r.InvoiceCustomSections.Create(ctx, section("s1")))
+			all = listAll(t, 2, func(p core.PageRequest) (core.Page[*invoice.CustomSection], error) {
+				return r.InvoiceCustomSections.List(ctx, org, p)
+			})
+			if len(all) != 2 || slices.ContainsFunc(all, func(s *invoice.CustomSection) bool { return s.ID == s1.ID || s.ID == s2.ID }) {
+				t.Errorf("List() after Delete() got = %v, want = s3 and the new s1", all)
+			}
+			if h.Name != "memstore" {
+				be, err = r.BillingEntities.Get(ctx, org, a.ID)
+				noErr(t, "BillingEntities.Get() after Delete()", err)
+				equal(t, "InvoiceCustomSectionIDs after Delete()", be.InvoiceCustomSectionIDs, []core.InvoiceCustomSectionID{s3.ID})
+			}
 			return nil
 		})
 	})

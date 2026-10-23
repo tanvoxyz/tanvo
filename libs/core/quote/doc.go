@@ -4,7 +4,7 @@
 // quote content (a subscription creation or amendment, or a one-off
 // invoice) unless it is order-only.
 //
-// Numbers are "<prefix>-<YYYY>-<NNNN>" with a sequence per organization
-// and year ([FormatNumber]). Expiring or voiding an order form cascades
+// Numbers are "<prefix>-<YYYY>-<NNNN>": the creation year and a sequence
+// per organization ([FormatNumber]). Expiring or voiding an order form cascades
 // to its version.
 package quote

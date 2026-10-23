@@ -21,7 +21,7 @@ func TestError(t *testing.T) {
 		{context.Canceled, connect.CodeCanceled},
 		{fmt.Errorf("x: %w", auth.ErrUnauthenticated), connect.CodeUnauthenticated},
 		{auth.ErrPermissionDenied, connect.CodePermissionDenied},
-		{core.ErrNotAllowed, connect.CodePermissionDenied},
+		{core.ErrNotAllowed, connect.CodeFailedPrecondition},
 		{core.ErrNotFound, connect.CodeNotFound},
 		{core.ErrConflict, connect.CodeAlreadyExists},
 		{core.ErrInvalidTransition, connect.CodeFailedPrecondition},

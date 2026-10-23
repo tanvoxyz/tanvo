@@ -158,7 +158,7 @@ func (r creditNoteRepo) ListItemsByCreditNote(ctx context.Context, org core.Orga
 func (r creditNoteRepo) CreditedByFee(_ context.Context, org core.OrganizationID, fees []core.FeeID) ([]creditnote.FeeCredit, error) {
 	sums := map[core.FeeID]int64{}
 	for _, cn := range r.d.creditNotes.find(func(x *creditnote.CreditNote) bool {
-		return x.OrganizationID == org && x.CreditStatus != creditnote.CreditStatusVoided
+		return x.OrganizationID == org && x.CreditStatus != creditnote.CreditStatusVoided && x.Status != creditnote.StatusDeleted
 	}) {
 		for _, it := range cn.Items {
 			if slices.Contains(fees, it.FeeID) {

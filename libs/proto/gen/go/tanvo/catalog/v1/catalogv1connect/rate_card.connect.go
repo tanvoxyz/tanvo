@@ -69,6 +69,18 @@ const (
 	// PlanRateCardServiceDeletePlanRateCardProcedure is the procedure name of the PlanRateCardService's
 	// DeletePlanRateCard RPC.
 	PlanRateCardServiceDeletePlanRateCardProcedure = "/tanvo.catalog.v1.PlanRateCardService/DeletePlanRateCard"
+	// PlanRateCardServiceListRatePhasesProcedure is the procedure name of the PlanRateCardService's
+	// ListRatePhases RPC.
+	PlanRateCardServiceListRatePhasesProcedure = "/tanvo.catalog.v1.PlanRateCardService/ListRatePhases"
+	// PlanRateCardServiceCreateRatePhaseProcedure is the procedure name of the PlanRateCardService's
+	// CreateRatePhase RPC.
+	PlanRateCardServiceCreateRatePhaseProcedure = "/tanvo.catalog.v1.PlanRateCardService/CreateRatePhase"
+	// PlanRateCardServiceUpdateRatePhaseProcedure is the procedure name of the PlanRateCardService's
+	// UpdateRatePhase RPC.
+	PlanRateCardServiceUpdateRatePhaseProcedure = "/tanvo.catalog.v1.PlanRateCardService/UpdateRatePhase"
+	// PlanRateCardServiceDeleteRatePhaseProcedure is the procedure name of the PlanRateCardService's
+	// DeleteRatePhase RPC.
+	PlanRateCardServiceDeleteRatePhaseProcedure = "/tanvo.catalog.v1.PlanRateCardService/DeleteRatePhase"
 )
 
 var (
@@ -509,6 +521,35 @@ var (
 			Procedure:  PlanRateCardServiceDeletePlanRateCardProcedure,
 		}
 	})
+	planRateCardServiceListRatePhasesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType:       connect.StreamTypeUnary,
+			Schema:           v1.File_tanvo_catalog_v1_rate_card_proto.Services().ByName("PlanRateCardService").Methods().ByName("ListRatePhases"),
+			Procedure:        PlanRateCardServiceListRatePhasesProcedure,
+			IdempotencyLevel: connect.IdempotencyNoSideEffects,
+		}
+	})
+	planRateCardServiceCreateRatePhaseSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_catalog_v1_rate_card_proto.Services().ByName("PlanRateCardService").Methods().ByName("CreateRatePhase"),
+			Procedure:  PlanRateCardServiceCreateRatePhaseProcedure,
+		}
+	})
+	planRateCardServiceUpdateRatePhaseSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_catalog_v1_rate_card_proto.Services().ByName("PlanRateCardService").Methods().ByName("UpdateRatePhase"),
+			Procedure:  PlanRateCardServiceUpdateRatePhaseProcedure,
+		}
+	})
+	planRateCardServiceDeleteRatePhaseSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_catalog_v1_rate_card_proto.Services().ByName("PlanRateCardService").Methods().ByName("DeleteRatePhase"),
+			Procedure:  PlanRateCardServiceDeleteRatePhaseProcedure,
+		}
+	})
 )
 
 // PlanRateCardServiceClient is a client for the tanvo.catalog.v1.PlanRateCardService service.
@@ -519,11 +560,20 @@ type PlanRateCardServiceClient interface {
 	GetPlanRateCard(context.Context, *v1.GetPlanRateCardRequest) (*v1.GetPlanRateCardResponse, error)
 	// Lists the rate cards applied to a plan.
 	ListPlanRateCards(context.Context, *v1.ListPlanRateCardsRequest) (*v1.ListPlanRateCardsResponse, error)
-	// Updates a plan rate card's units and phases; the phases sent replace
-	// the stored ones.
+	// Updates a plan rate card's units; its phases are managed with the
+	// rate phase RPCs.
 	UpdatePlanRateCard(context.Context, *v1.UpdatePlanRateCardRequest) (*v1.UpdatePlanRateCardResponse, error)
 	// Removes a rate card from a plan.
 	DeletePlanRateCard(context.Context, *v1.DeletePlanRateCardRequest) (*v1.DeletePlanRateCardResponse, error)
+	// Lists the phases of a plan rate card, by position.
+	ListRatePhases(context.Context, *v1.ListRatePhasesRequest) (*v1.ListRatePhasesResponse, error)
+	// Adds a phase to a plan rate card.
+	CreateRatePhase(context.Context, *v1.CreateRatePhaseRequest) (*v1.CreateRatePhaseResponse, error)
+	// Updates a phase of a plan rate card; an unset rate_override in the
+	// update_mask clears the override.
+	UpdateRatePhase(context.Context, *v1.UpdateRatePhaseRequest) (*v1.UpdateRatePhaseResponse, error)
+	// Removes a phase from a plan rate card.
+	DeleteRatePhase(context.Context, *v1.DeleteRatePhaseRequest) (*v1.DeleteRatePhaseResponse, error)
 }
 
 // NewPlanRateCardServiceClient constructs a client for the tanvo.catalog.v1.PlanRateCardService
@@ -541,11 +591,20 @@ type PlanRateCardServiceHandler interface {
 	GetPlanRateCard(context.Context, *v1.GetPlanRateCardRequest) (*v1.GetPlanRateCardResponse, error)
 	// Lists the rate cards applied to a plan.
 	ListPlanRateCards(context.Context, *v1.ListPlanRateCardsRequest) (*v1.ListPlanRateCardsResponse, error)
-	// Updates a plan rate card's units and phases; the phases sent replace
-	// the stored ones.
+	// Updates a plan rate card's units; its phases are managed with the
+	// rate phase RPCs.
 	UpdatePlanRateCard(context.Context, *v1.UpdatePlanRateCardRequest) (*v1.UpdatePlanRateCardResponse, error)
 	// Removes a rate card from a plan.
 	DeletePlanRateCard(context.Context, *v1.DeletePlanRateCardRequest) (*v1.DeletePlanRateCardResponse, error)
+	// Lists the phases of a plan rate card, by position.
+	ListRatePhases(context.Context, *v1.ListRatePhasesRequest) (*v1.ListRatePhasesResponse, error)
+	// Adds a phase to a plan rate card.
+	CreateRatePhase(context.Context, *v1.CreateRatePhaseRequest) (*v1.CreateRatePhaseResponse, error)
+	// Updates a phase of a plan rate card; an unset rate_override in the
+	// update_mask clears the override.
+	UpdateRatePhase(context.Context, *v1.UpdateRatePhaseRequest) (*v1.UpdateRatePhaseResponse, error)
+	// Removes a phase from a plan rate card.
+	DeleteRatePhase(context.Context, *v1.DeleteRatePhaseRequest) (*v1.DeleteRatePhaseResponse, error)
 }
 
 // RegisterPlanRateCardServiceHandler registers svc as the tanvo.catalog.v1.PlanRateCardService
@@ -558,6 +617,10 @@ func RegisterPlanRateCardServiceHandler(server *connect.Server, svc PlanRateCard
 		connect.Method{Spec: planRateCardServiceListPlanRateCardsSpec(), Handler: adapter.listPlanRateCards},
 		connect.Method{Spec: planRateCardServiceUpdatePlanRateCardSpec(), Handler: adapter.updatePlanRateCard},
 		connect.Method{Spec: planRateCardServiceDeletePlanRateCardSpec(), Handler: adapter.deletePlanRateCard},
+		connect.Method{Spec: planRateCardServiceListRatePhasesSpec(), Handler: adapter.listRatePhases},
+		connect.Method{Spec: planRateCardServiceCreateRatePhaseSpec(), Handler: adapter.createRatePhase},
+		connect.Method{Spec: planRateCardServiceUpdateRatePhaseSpec(), Handler: adapter.updateRatePhase},
+		connect.Method{Spec: planRateCardServiceDeleteRatePhaseSpec(), Handler: adapter.deleteRatePhase},
 	)
 }
 
@@ -582,6 +645,22 @@ func (UnimplementedPlanRateCardServiceHandler) UpdatePlanRateCard(context.Contex
 
 func (UnimplementedPlanRateCardServiceHandler) DeletePlanRateCard(context.Context, *v1.DeletePlanRateCardRequest) (*v1.DeletePlanRateCardResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.catalog.v1.PlanRateCardService.DeletePlanRateCard is not implemented")
+}
+
+func (UnimplementedPlanRateCardServiceHandler) ListRatePhases(context.Context, *v1.ListRatePhasesRequest) (*v1.ListRatePhasesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.catalog.v1.PlanRateCardService.ListRatePhases is not implemented")
+}
+
+func (UnimplementedPlanRateCardServiceHandler) CreateRatePhase(context.Context, *v1.CreateRatePhaseRequest) (*v1.CreateRatePhaseResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.catalog.v1.PlanRateCardService.CreateRatePhase is not implemented")
+}
+
+func (UnimplementedPlanRateCardServiceHandler) UpdateRatePhase(context.Context, *v1.UpdateRatePhaseRequest) (*v1.UpdateRatePhaseResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.catalog.v1.PlanRateCardService.UpdateRatePhase is not implemented")
+}
+
+func (UnimplementedPlanRateCardServiceHandler) DeleteRatePhase(context.Context, *v1.DeleteRatePhaseRequest) (*v1.DeleteRatePhaseResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.catalog.v1.PlanRateCardService.DeleteRatePhase is not implemented")
 }
 
 type planRateCardServiceClient struct {
@@ -623,6 +702,38 @@ func (c *planRateCardServiceClient) UpdatePlanRateCard(ctx context.Context, req 
 func (c *planRateCardServiceClient) DeletePlanRateCard(ctx context.Context, req *v1.DeletePlanRateCardRequest) (*v1.DeletePlanRateCardResponse, error) {
 	var res v1.DeletePlanRateCardResponse
 	if err := c.client.CallUnary(ctx, planRateCardServiceDeletePlanRateCardSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *planRateCardServiceClient) ListRatePhases(ctx context.Context, req *v1.ListRatePhasesRequest) (*v1.ListRatePhasesResponse, error) {
+	var res v1.ListRatePhasesResponse
+	if err := c.client.CallUnary(ctx, planRateCardServiceListRatePhasesSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *planRateCardServiceClient) CreateRatePhase(ctx context.Context, req *v1.CreateRatePhaseRequest) (*v1.CreateRatePhaseResponse, error) {
+	var res v1.CreateRatePhaseResponse
+	if err := c.client.CallUnary(ctx, planRateCardServiceCreateRatePhaseSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *planRateCardServiceClient) UpdateRatePhase(ctx context.Context, req *v1.UpdateRatePhaseRequest) (*v1.UpdateRatePhaseResponse, error) {
+	var res v1.UpdateRatePhaseResponse
+	if err := c.client.CallUnary(ctx, planRateCardServiceUpdateRatePhaseSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *planRateCardServiceClient) DeleteRatePhase(ctx context.Context, req *v1.DeleteRatePhaseRequest) (*v1.DeleteRatePhaseResponse, error) {
+	var res v1.DeleteRatePhaseResponse
+	if err := c.client.CallUnary(ctx, planRateCardServiceDeleteRatePhaseSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -684,6 +795,54 @@ func (h planRateCardServiceHandler) deletePlanRateCard(ctx context.Context, _ co
 		return err
 	}
 	res, err := h.svc.DeletePlanRateCard(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h planRateCardServiceHandler) listRatePhases(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ListRatePhasesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ListRatePhases(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h planRateCardServiceHandler) createRatePhase(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateRatePhaseRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateRatePhase(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h planRateCardServiceHandler) updateRatePhase(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateRatePhaseRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateRatePhase(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h planRateCardServiceHandler) deleteRatePhase(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteRatePhaseRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteRatePhase(ctx, &req)
 	if err != nil {
 		return err
 	}

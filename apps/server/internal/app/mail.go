@@ -130,6 +130,8 @@ func (h mailJobs) compose(ctx context.Context, org core.OrganizationID, a auth.M
 		default:
 			return h.composer.APIKeyDestroyed(in)
 		}
+	case auth.MailAuthenticationMethodsUpdated:
+		return h.authenticationMethodsUpdated(ctx, org, a)
 	}
 	return nil, fmt.Errorf("mail: unknown template %q: %w", a.Template, core.ErrInvalidValue)
 }

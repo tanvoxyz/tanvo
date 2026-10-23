@@ -8,18 +8,26 @@ INSERT INTO subscriptions (
   cancellation_reason, previous_subscription_id, on_termination_credit_note, on_termination_invoice,
   payment_method_type, payment_method_id, progressive_billing_disabled, consolidate_invoice,
   purchase_order_number, billing_entity_id, skip_invoice_custom_sections, next_billing_at,
-  created_at, updated_at
+  skip_daily_usage, created_at, updated_at
 ) VALUES (
   @organization_id, @id, @external_id, @customer_id, @plan_id, @name, @billing_time, @status,
   @subscription_at, @started_at, @ending_at, @terminated_at, @canceled_at, @trial_ended_at,
   @cancellation_reason, @previous_subscription_id, @on_termination_credit_note, @on_termination_invoice,
   @payment_method_type, @payment_method_id, @progressive_billing_disabled, @consolidate_invoice,
   @purchase_order_number, @billing_entity_id, @skip_invoice_custom_sections, @next_billing_at,
-  @created_at, @updated_at
+  @skip_daily_usage, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
 
--- name: UpdateSubscription :execrows
+-- name: UpdateSubscription :one
+-- Returns the external ID the row had, locked first so that it is the one
+-- the update replaces: the catalog change of a renamed subscription
+-- expires its old external ID too.
+WITH old AS (
+  SELECT o.id AS old_id, o.external_id AS old_external_id FROM subscriptions o
+  WHERE o.organization_id = @organization_id::uuid AND o.id = @id::uuid
+  FOR UPDATE
+)
 UPDATE subscriptions SET
   organization_id = @organization_id, id = @id, external_id = @external_id, customer_id = @customer_id,
   plan_id = @plan_id, name = @name, billing_time = @billing_time, status = @status,
@@ -31,8 +39,15 @@ UPDATE subscriptions SET
   progressive_billing_disabled = @progressive_billing_disabled, consolidate_invoice = @consolidate_invoice,
   purchase_order_number = @purchase_order_number, billing_entity_id = @billing_entity_id,
   skip_invoice_custom_sections = @skip_invoice_custom_sections, next_billing_at = @next_billing_at,
-  created_at = @created_at, updated_at = @updated_at
-WHERE organization_id = @organization_id AND id = @id;
+  skip_daily_usage = @skip_daily_usage, created_at = @created_at, updated_at = @updated_at
+FROM old
+WHERE subscriptions.organization_id = @organization_id AND subscriptions.id = old.old_id
+RETURNING old.old_external_id;
+
+-- name: RecordSubscriptionEventReceived :exec
+UPDATE subscriptions SET last_received_event_on = @day::date
+WHERE organization_id = @organization_id AND id = @id AND status = 'active'
+  AND last_received_event_on IS DISTINCT FROM @day::date;
 
 -- name: DeleteSubscriptionSections :exec
 DELETE FROM subscription_invoice_custom_sections WHERE organization_id = @organization_id AND subscription_id = @subscription_id;
@@ -225,7 +240,7 @@ WHERE s.organization_id = @organization_id AND s.status = 'incomplete'
   AND EXISTS (
     SELECT 1 FROM subscription_activation_rules r
     WHERE r.organization_id = s.organization_id AND r.subscription_id = s.id
-      AND r.status = 'pending' AND r.expires_at < @now::timestamptz
+      AND r.status = 'pending' AND r.expires_at <= @now::timestamptz
   )
 ORDER BY s.id;
 
@@ -337,7 +352,7 @@ LIMIT 1;
 
 -- name: ListLifetimeUsagesToRecalculate :many
 SELECT * FROM lifetime_usages
-WHERE organization_id = @organization_id AND (recalculate_invoiced_usage OR recalculate_current_usage)
+WHERE organization_id = @organization_id AND recalculate_invoiced_usage
   AND (sqlc.narg(after)::uuid IS NULL OR id > sqlc.narg(after))
 ORDER BY id
 LIMIT @lim;

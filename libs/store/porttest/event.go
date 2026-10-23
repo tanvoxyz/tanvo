@@ -116,35 +116,57 @@ func testEvent(t *testing.T, h Harness) {
 		})
 	})
 
-	t.Run("replace", func(t *testing.T) {
+	t.Run("list", func(t *testing.T) {
 		t.Parallel()
 		e := newEnv(t, h)
 		a, b := e.twoOrgs()
 		org, other := a.OrganizationID, b.OrganizationID
 		e.tx(func(ctx context.Context, r port.Repos) error {
-			stored := eventFixture(e, org, "tr_1", "1")
-			stored.PreciseTotalAmount = ptr(money.MustParse("3"))
-			stored.Metadata = event.Metadata{UserAgent: "curl/8", IPAddress: "198.51.100.1"}
-			_, _, err := r.Events.Append(ctx, org, []*event.Event{stored})
+			// spec/requests/api/v1/events_controller_spec.rb:304 GET
+			// /api/v1/events: newest first, filtered by code, external
+			// subscription and timestamp range (app/queries/events_query.rb).
+			old := eventFixture(e, org, "tr_old", "1")
+			old.Timestamp = at(-72 * time.Hour)
+			mid := eventFixture(e, org, "tr_mid", "2")
+			mid.Timestamp, mid.Code = at(-24*time.Hour), "storage"
+			tie := eventFixture(e, org, "tr_tie", "3")
+			tie.Timestamp, tie.ExternalSubscriptionID = at(-24*time.Hour), "sub_2"
+			recent := eventFixture(e, org, "tr_recent", "4")
+			foreign := eventFixture(e, other, "tr_foreign", "5")
+			_, _, err := r.Events.Append(ctx, org, []*event.Event{old, mid, tie, recent})
 			noErr(t, "Append()", err)
+			_, _, err = r.Events.Append(ctx, other, []*event.Event{foreign})
+			noErr(t, "Append() in another organization", err)
 
-			fix := eventFixture(e, org, "tr_1", "10")
-			fix.Code = "storage"
-			fix.Timestamp = at(-time.Hour)
-			fix.IngestedAt, fix.CreatedAt, fix.UpdatedAt = at(time.Hour), at(time.Hour), at(time.Hour)
-			fix.Metadata = event.Metadata{UserAgent: "other"}
-			noErr(t, "Replace()", r.Events.Replace(ctx, fix))
-			want := *fix
-			want.ID, want.IngestedAt, want.CreatedAt, want.Metadata = stored.ID, stored.IngestedAt, stored.CreatedAt, stored.Metadata
-			got, err := r.Events.Get(ctx, org, "sub_1", "tr_1")
-			noErr(t, "Get() after Replace()", err)
-			equal(t, "Get() after Replace()", got, &want)
+			list := func(f event.ListFilter, size int, token string) core.Page[*event.Event] {
+				t.Helper()
+				p, err := r.Events.List(ctx, org, f, core.PageRequest{Size: size, Token: token})
+				noErr(t, "List()", err)
+				return p
+			}
+			all := list(event.ListFilter{}, 0, "")
+			equal(t, "List() newest first", ids(all.Items, eventTxID), []string{"tr_recent", "tr_tie", "tr_mid", "tr_old"})
+			equal(t, "List() newest first next token", all.NextToken, "")
+			equal(t, "List() round trip", all.Items[0], recent)
 
-			moved := eventFixture(e, org, "tr_1", "0")
-			moved.ExternalSubscriptionID = "sub_2"
-			wantErr(t, "Replace() of another subscription", r.Events.Replace(ctx, moved), core.ErrNotFound)
-			wantErr(t, "Replace() unknown", r.Events.Replace(ctx, eventFixture(e, org, "tr_404", "0")), core.ErrNotFound)
-			wantErr(t, "Replace() in another organization", r.Events.Replace(ctx, eventFixture(e, other, "tr_1", "0")), core.ErrNotFound)
+			var paged []string
+			token := ""
+			for range 4 {
+				p := list(event.ListFilter{}, 1, token)
+				paged = append(paged, ids(p.Items, eventTxID)...)
+				if token = p.NextToken; token == "" {
+					break
+				}
+			}
+			equal(t, "List() by pages", paged, []string{"tr_recent", "tr_tie", "tr_mid", "tr_old"})
+
+			equal(t, "List() by code", ids(list(event.ListFilter{Code: "storage"}, 0, "").Items, eventTxID), []string{"tr_mid"})
+			equal(t, "List() by subscription", ids(list(event.ListFilter{ExternalSubscriptionID: "sub_2"}, 0, "").Items, eventTxID), []string{"tr_tie"})
+			from, to := at(-48*time.Hour), at(-24*time.Hour)
+			equal(t, "List() by timestamp range", ids(list(event.ListFilter{TimestampFrom: &from, TimestampTo: &to}, 0, "").Items, eventTxID),
+				[]string{"tr_tie", "tr_mid"})
+			_, err = r.Events.List(ctx, org, event.ListFilter{}, core.PageRequest{Token: "garbage"})
+			wantErr(t, "List() with a bad token", err, core.ErrInvalidValue)
 			return nil
 		})
 	})

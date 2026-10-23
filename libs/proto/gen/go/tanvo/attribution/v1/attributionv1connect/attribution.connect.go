@@ -6,8 +6,8 @@
 // Source: tanvo/attribution/v1/attribution.proto
 
 // Package tanvo.attribution.v1 is the API of usage attribution: types of
-// labels events carry (teams, projects, end users), the values seen per
-// customer, and usage broken down by them.
+// labels events carry (teams, projects, end users) and usage broken down
+// by them.
 package attributionv1connect
 
 import (
@@ -45,9 +45,6 @@ const (
 	// UsageAttributionServiceDeleteUsageAttributionTypeProcedure is the procedure name of the
 	// UsageAttributionService's DeleteUsageAttributionType RPC.
 	UsageAttributionServiceDeleteUsageAttributionTypeProcedure = "/tanvo.attribution.v1.UsageAttributionService/DeleteUsageAttributionType"
-	// UsageAttributionServiceListUsageAttributionValuesProcedure is the procedure name of the
-	// UsageAttributionService's ListUsageAttributionValues RPC.
-	UsageAttributionServiceListUsageAttributionValuesProcedure = "/tanvo.attribution.v1.UsageAttributionService/ListUsageAttributionValues"
 	// UsageAttributionServiceGetAttributedUsageProcedure is the procedure name of the
 	// UsageAttributionService's GetAttributedUsage RPC.
 	UsageAttributionServiceGetAttributedUsageProcedure = "/tanvo.attribution.v1.UsageAttributionService/GetAttributedUsage"
@@ -91,14 +88,6 @@ var (
 			Procedure:  UsageAttributionServiceDeleteUsageAttributionTypeProcedure,
 		}
 	})
-	usageAttributionServiceListUsageAttributionValuesSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType:       connect.StreamTypeUnary,
-			Schema:           v1.File_tanvo_attribution_v1_attribution_proto.Services().ByName("UsageAttributionService").Methods().ByName("ListUsageAttributionValues"),
-			Procedure:        UsageAttributionServiceListUsageAttributionValuesProcedure,
-			IdempotencyLevel: connect.IdempotencyNoSideEffects,
-		}
-	})
 	usageAttributionServiceGetAttributedUsageSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType:       connect.StreamTypeUnary,
@@ -116,14 +105,12 @@ type UsageAttributionServiceClient interface {
 	CreateUsageAttributionType(context.Context, *v1.CreateUsageAttributionTypeRequest) (*v1.CreateUsageAttributionTypeResponse, error)
 	// Returns an attribution type by ID or `code:<code>`.
 	GetUsageAttributionType(context.Context, *v1.GetUsageAttributionTypeRequest) (*v1.GetUsageAttributionTypeResponse, error)
-	// Lists attribution types by code.
+	// Lists attribution types, newest first.
 	ListUsageAttributionTypes(context.Context, *v1.ListUsageAttributionTypesRequest) (*v1.ListUsageAttributionTypesResponse, error)
 	// Updates an attribution type.
 	UpdateUsageAttributionType(context.Context, *v1.UpdateUsageAttributionTypeRequest) (*v1.UpdateUsageAttributionTypeResponse, error)
 	// Deletes an attribution type with its values.
 	DeleteUsageAttributionType(context.Context, *v1.DeleteUsageAttributionTypeRequest) (*v1.DeleteUsageAttributionTypeResponse, error)
-	// Lists the values of a type seen in a customer's events.
-	ListUsageAttributionValues(context.Context, *v1.ListUsageAttributionValuesRequest) (*v1.ListUsageAttributionValuesResponse, error)
 	// Returns a subscription's usage in a period grouped by the values of
 	// one attribution type, with the unattributed remainder and totals.
 	GetAttributedUsage(context.Context, *v1.GetAttributedUsageRequest) (*v1.GetAttributedUsageResponse, error)
@@ -143,14 +130,12 @@ type UsageAttributionServiceHandler interface {
 	CreateUsageAttributionType(context.Context, *v1.CreateUsageAttributionTypeRequest) (*v1.CreateUsageAttributionTypeResponse, error)
 	// Returns an attribution type by ID or `code:<code>`.
 	GetUsageAttributionType(context.Context, *v1.GetUsageAttributionTypeRequest) (*v1.GetUsageAttributionTypeResponse, error)
-	// Lists attribution types by code.
+	// Lists attribution types, newest first.
 	ListUsageAttributionTypes(context.Context, *v1.ListUsageAttributionTypesRequest) (*v1.ListUsageAttributionTypesResponse, error)
 	// Updates an attribution type.
 	UpdateUsageAttributionType(context.Context, *v1.UpdateUsageAttributionTypeRequest) (*v1.UpdateUsageAttributionTypeResponse, error)
 	// Deletes an attribution type with its values.
 	DeleteUsageAttributionType(context.Context, *v1.DeleteUsageAttributionTypeRequest) (*v1.DeleteUsageAttributionTypeResponse, error)
-	// Lists the values of a type seen in a customer's events.
-	ListUsageAttributionValues(context.Context, *v1.ListUsageAttributionValuesRequest) (*v1.ListUsageAttributionValuesResponse, error)
 	// Returns a subscription's usage in a period grouped by the values of
 	// one attribution type, with the unattributed remainder and totals.
 	GetAttributedUsage(context.Context, *v1.GetAttributedUsageRequest) (*v1.GetAttributedUsageResponse, error)
@@ -166,7 +151,6 @@ func RegisterUsageAttributionServiceHandler(server *connect.Server, svc UsageAtt
 		connect.Method{Spec: usageAttributionServiceListUsageAttributionTypesSpec(), Handler: adapter.listUsageAttributionTypes},
 		connect.Method{Spec: usageAttributionServiceUpdateUsageAttributionTypeSpec(), Handler: adapter.updateUsageAttributionType},
 		connect.Method{Spec: usageAttributionServiceDeleteUsageAttributionTypeSpec(), Handler: adapter.deleteUsageAttributionType},
-		connect.Method{Spec: usageAttributionServiceListUsageAttributionValuesSpec(), Handler: adapter.listUsageAttributionValues},
 		connect.Method{Spec: usageAttributionServiceGetAttributedUsageSpec(), Handler: adapter.getAttributedUsage},
 	)
 }
@@ -192,10 +176,6 @@ func (UnimplementedUsageAttributionServiceHandler) UpdateUsageAttributionType(co
 
 func (UnimplementedUsageAttributionServiceHandler) DeleteUsageAttributionType(context.Context, *v1.DeleteUsageAttributionTypeRequest) (*v1.DeleteUsageAttributionTypeResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.attribution.v1.UsageAttributionService.DeleteUsageAttributionType is not implemented")
-}
-
-func (UnimplementedUsageAttributionServiceHandler) ListUsageAttributionValues(context.Context, *v1.ListUsageAttributionValuesRequest) (*v1.ListUsageAttributionValuesResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.attribution.v1.UsageAttributionService.ListUsageAttributionValues is not implemented")
 }
 
 func (UnimplementedUsageAttributionServiceHandler) GetAttributedUsage(context.Context, *v1.GetAttributedUsageRequest) (*v1.GetAttributedUsageResponse, error) {
@@ -241,14 +221,6 @@ func (c *usageAttributionServiceClient) UpdateUsageAttributionType(ctx context.C
 func (c *usageAttributionServiceClient) DeleteUsageAttributionType(ctx context.Context, req *v1.DeleteUsageAttributionTypeRequest) (*v1.DeleteUsageAttributionTypeResponse, error) {
 	var res v1.DeleteUsageAttributionTypeResponse
 	if err := c.client.CallUnary(ctx, usageAttributionServiceDeleteUsageAttributionTypeSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *usageAttributionServiceClient) ListUsageAttributionValues(ctx context.Context, req *v1.ListUsageAttributionValuesRequest) (*v1.ListUsageAttributionValuesResponse, error) {
-	var res v1.ListUsageAttributionValuesResponse
-	if err := c.client.CallUnary(ctx, usageAttributionServiceListUsageAttributionValuesSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -320,18 +292,6 @@ func (h usageAttributionServiceHandler) deleteUsageAttributionType(ctx context.C
 		return err
 	}
 	res, err := h.svc.DeleteUsageAttributionType(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h usageAttributionServiceHandler) listUsageAttributionValues(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.ListUsageAttributionValuesRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.ListUsageAttributionValues(ctx, &req)
 	if err != nil {
 		return err
 	}

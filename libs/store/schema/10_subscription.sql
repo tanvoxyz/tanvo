@@ -5,7 +5,9 @@
 -- subscription shares its external ID with the active one it replaces.
 -- A chain of upgrades and downgrades links each subscription to the one it
 -- replaces through previous_subscription_id. The payment method foreign
--- key is added in 90_fk_subscription.sql.
+-- key is added in 90_fk_subscription.sql. last_received_event_on is the day,
+-- in the customer's time zone, an active subscription last received usage;
+-- only ingestion writes it (the daily usage selection).
 CREATE TABLE subscriptions (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -33,6 +35,8 @@ CREATE TABLE subscriptions (
   billing_entity_id uuid,
   skip_invoice_custom_sections boolean NOT NULL,
   next_billing_at timestamptz,
+  skip_daily_usage boolean NOT NULL DEFAULT false,
+  last_received_event_on date,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
   PRIMARY KEY (organization_id, id),
@@ -141,6 +145,34 @@ CREATE INDEX fixed_charge_events_fixed_charge_idx ON fixed_charge_events (organi
 
 ALTER TABLE fixed_charge_events ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON fixed_charge_events
+  USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
+
+-- Units of a fixed charge of the original plan overridden for one
+-- subscription, without overriding the plan (domain §7.5). At most one
+-- kept override per subscription and fixed charge; an override is
+-- soft-deleted when it moves onto an override plan.
+CREATE TABLE fixed_charge_units_overrides (
+  organization_id uuid NOT NULL,
+  id uuid NOT NULL,
+  subscription_id uuid NOT NULL,
+  fixed_charge_id uuid NOT NULL,
+  units numeric NOT NULL,
+  created_at timestamptz NOT NULL,
+  updated_at timestamptz NOT NULL,
+  deleted_at timestamptz,
+  PRIMARY KEY (organization_id, id),
+  CONSTRAINT fixed_charge_units_overrides_subscription_fkey FOREIGN KEY (organization_id, subscription_id) REFERENCES subscriptions (organization_id, id) ON DELETE CASCADE,
+  CONSTRAINT fixed_charge_units_overrides_fixed_charge_fkey FOREIGN KEY (organization_id, fixed_charge_id) REFERENCES fixed_charges (organization_id, id) ON DELETE CASCADE,
+  CONSTRAINT fixed_charge_units_overrides_units_check CHECK (units >= 0)
+);
+
+CREATE UNIQUE INDEX fixed_charge_units_overrides_kept_key ON fixed_charge_units_overrides (organization_id, subscription_id, fixed_charge_id)
+  WHERE deleted_at IS NULL;
+CREATE INDEX fixed_charge_units_overrides_fixed_charge_idx ON fixed_charge_units_overrides (organization_id, fixed_charge_id)
+  WHERE deleted_at IS NULL;
+
+ALTER TABLE fixed_charge_units_overrides ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON fixed_charge_units_overrides
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
 
 -- Usage thresholds reached by subscriptions and the progressive-billing

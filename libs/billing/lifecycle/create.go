@@ -17,8 +17,9 @@ import (
 )
 
 // Create subscribes a customer (domain §9.2, §22.13). sub is the new
-// subscription built with subscription.New and its options; its
-// activation rules, when any, are stored by the caller beforehand. When
+// subscription built with subscription.New and its options; rules are its
+// activation rules, stored on the subscription that activates (sub, or the
+// next subscription of a plan change) before it does. When
 // the customer already has an active (or future) subscription with the
 // same external ID, the call changes its plan instead (an upgrade or a
 // downgrade; the same plan returns it unchanged). Otherwise sub is stored
@@ -29,7 +30,13 @@ import (
 // subscription.
 //
 // source: app/services/subscriptions/create_service.rb
-func (s *Service) Create(ctx context.Context, sub *subscription.Subscription) (*subscription.Subscription, error) {
+func (s *Service) Create(ctx context.Context, sub *subscription.Subscription, rules ...*subscription.ActivationRule) (*subscription.Subscription, error) {
+	return s.createWith(ctx, sub, nil, rules)
+}
+
+// createWith is [Service.Create], storing units with a new subscription
+// before it starts (see [Service.CreateWithUnits]).
+func (s *Service) createWith(ctx context.Context, sub *subscription.Subscription, units []*subscription.FixedChargeUnitsOverride, rules []*subscription.ActivationRule) (*subscription.Subscription, error) {
 	org := sub.OrganizationID
 	out := sub
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
@@ -56,7 +63,7 @@ func (s *Service) Create(ctx context.Context, sub *subscription.Subscription) (*
 			if err := s.checkExternalID(ctx, r, org, sub.ExternalID); err != nil {
 				return err
 			}
-			return s.create(ctx, r, sub, plan)
+			return s.create(ctx, r, sub, plan, units, rules)
 		}
 		if current.PlanID == sub.PlanID {
 			out = current
@@ -64,7 +71,7 @@ func (s *Service) Create(ctx context.Context, sub *subscription.Subscription) (*
 		}
 		out, err = s.changePlan(ctx, r, current, plan, ChangePlanInput{
 			Name: sub.Name, EndingAt: sub.EndingAt, PurchaseOrderNumber: sub.PurchaseOrderNumber,
-			BillingEntityID: sub.BillingEntityID,
+			BillingEntityID: sub.BillingEntityID, ActivationRules: rules,
 		})
 		return err
 	})
@@ -137,8 +144,10 @@ func setCurrency(ctx context.Context, r port.Repos, org core.OrganizationID, id 
 	return nil
 }
 
-// create stores a new subscription and starts it per its local date.
-func (s *Service) create(ctx context.Context, r port.Repos, sub *subscription.Subscription, plan *catalog.Plan) error {
+// create stores a new subscription and starts it per its local date; the
+// rules are stored unless it starts in the past
+// (create_service.rb:205-235).
+func (s *Service) create(ctx context.Context, r port.Repos, sub *subscription.Subscription, plan *catalog.Plan, units []*subscription.FixedChargeUnitsOverride, rules []*subscription.ActivationRule) error {
 	if err := sub.Validate(); err != nil {
 		return err
 	}
@@ -149,6 +158,9 @@ func (s *Service) create(ctx context.Context, r port.Repos, sub *subscription.Su
 	if err := r.Subscriptions.Create(ctx, sub); err != nil {
 		return fmt.Errorf("create subscription: %w", err)
 	}
+	if err := storeUnits(ctx, r, sub, units); err != nil {
+		return err
+	}
 	env, err := kernel.LoadSubscriptionEnvOf(ctx, r, sub)
 	if err != nil {
 		return err
@@ -158,6 +170,9 @@ func (s *Service) create(ctx context.Context, r port.Repos, sub *subscription.Su
 	switch {
 	case day == today:
 		if err := kernel.LockSubscription(ctx, r, sub.OrganizationID, sub.ID); err != nil {
+			return err
+		}
+		if err := applyRules(ctx, r, sub, rules, false); err != nil {
 			return err
 		}
 		return s.activate(ctx, r, env, sub.SubscriptionAt)
@@ -172,9 +187,12 @@ func (s *Service) create(ctx context.Context, r port.Repos, sub *subscription.Su
 		if err := update(ctx, r, sub); err != nil {
 			return err
 		}
+		if err := s.emitFixedChargeEvents(ctx, r, env); err != nil {
+			return err
+		}
 		return s.emit(ctx, webhook.EventTypeSubscriptionStarted, sub)
 	default:
-		return nil
+		return applyRules(ctx, r, sub, rules, false)
 	}
 }
 
@@ -217,6 +235,11 @@ type ChangePlanInput struct {
 	ConsolidateInvoice *bool
 	// BillingEntityID is the new subscription's billing entity override.
 	BillingEntityID core.BillingEntityID
+	// ActivationRules, when not empty, are the new subscription's
+	// activation rules; a non-nil value replaces the rules of a
+	// subscription starting in the future, which changes plan in place
+	// (plan_upgrade_service.rb:21,34, plan_downgrade_service.rb:49).
+	ActivationRules []*subscription.ActivationRule
 }
 
 // ChangePlan changes the plan of a subscription and returns the
@@ -274,7 +297,10 @@ func (s *Service) changePlan(ctx context.Context, r port.Repos, cur *subscriptio
 			return nil, err
 		}
 	}
-	change := kernel.PlanChange(env.Plan, plan)
+	change, err := planChange(ctx, r, env.Plan, plan)
+	if err != nil {
+		return nil, err
+	}
 	if change == period.NoChange {
 		return cur, nil
 	}
@@ -286,6 +312,9 @@ func (s *Service) changePlan(ctx context.Context, r port.Repos, cur *subscriptio
 		}
 		if !in.BillingEntityID.IsZero() {
 			cur.BillingEntityID = in.BillingEntityID
+		}
+		if err := applyRules(ctx, r, cur, in.ActivationRules, true); err != nil {
+			return nil, err
 		}
 		if err := update(ctx, r, cur); err != nil {
 			return nil, err
@@ -308,6 +337,9 @@ func (s *Service) changePlan(ctx context.Context, r port.Repos, cur *subscriptio
 	}
 	if err := r.Subscriptions.Create(ctx, next); err != nil {
 		return nil, fmt.Errorf("create next subscription: %w", err)
+	}
+	if err := applyRules(ctx, r, next, in.ActivationRules, false); err != nil {
+		return nil, err
 	}
 	if change == period.Downgrade {
 		return next, s.emit(ctx, webhook.EventTypeSubscriptionUpdated, cur)

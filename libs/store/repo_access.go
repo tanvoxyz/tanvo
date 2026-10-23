@@ -269,7 +269,20 @@ func (r membershipRepo) List(ctx context.Context, org core.OrganizationID, f acc
 	if err != nil {
 		return core.Page[*access.Membership]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	if !f.Order.Valid() {
+		return core.Page[*access.Membership]{}, fmt.Errorf("list memberships: %w: order", core.ErrInvalidValue)
+	}
+	recent := f.Order == core.OrderRecent
+	var (
+		after   *uuid.UUID
+		afterAt *time.Time
+		lim     int32
+	)
+	if recent {
+		afterAt, after, lim, err = logPageArgs(page)
+	} else {
+		after, lim, err = pageArgs(page)
+	}
 	if err != nil {
 		return core.Page[*access.Membership]{}, err
 	}
@@ -277,7 +290,11 @@ func (r membershipRepo) List(ctx context.Context, org core.OrganizationID, f acc
 		OrganizationID: org.UUID(),
 		Status:         optString(string(f.Status)),
 		RoleID:         optUUID(f.RoleID),
+		RoleIds:        uuids(f.RoleIDs),
+		Search:         optString(f.Search),
+		Recent:         recent,
 		After:          after,
+		AfterAt:        afterAt,
 		Lim:            lim,
 	})
 	if err != nil {
@@ -291,7 +308,12 @@ func (r membershipRepo) List(ctx context.Context, org core.OrganizationID, f acc
 	for _, m := range ms {
 		byID[m.ID.UUID()] = m
 	}
-	return pageOf(rows, page, func(row db.Membership) (*access.Membership, error) { return byID[row.ID], nil }, func(m *access.Membership) string { return m.ID.String() })
+	return pageOf(rows, page, func(row db.Membership) (*access.Membership, error) { return byID[row.ID], nil }, func(m *access.Membership) string {
+		if recent {
+			return logToken(m.CreatedAt, m.ID.UUID())
+		}
+		return m.ID.String()
+	})
 }
 
 func (r membershipRepo) CountActiveByRole(ctx context.Context, org core.OrganizationID, role core.RoleID) (int, error) {
@@ -557,17 +579,36 @@ func (r inviteRepo) List(ctx context.Context, org core.OrganizationID, f access.
 	if err != nil {
 		return core.Page[*access.Invite]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	if !f.Order.Valid() {
+		return core.Page[*access.Invite]{}, fmt.Errorf("list invites: %w: order", core.ErrInvalidValue)
+	}
+	recent := f.Order == core.OrderRecent
+	var (
+		after   *uuid.UUID
+		afterAt *time.Time
+		lim     int32
+	)
+	if recent {
+		afterAt, after, lim, err = logPageArgs(page)
+	} else {
+		after, lim, err = pageArgs(page)
+	}
 	if err != nil {
 		return core.Page[*access.Invite]{}, err
 	}
 	rows, err := q.ListInvites(ctx, db.ListInvitesParams{
-		OrganizationID: org.UUID(), Status: optString(string(f.Status)), After: after, Lim: lim,
+		OrganizationID: org.UUID(), Status: optString(string(f.Status)),
+		RoleIds: uuids(f.RoleIDs), Search: optString(f.Search), Recent: recent, After: after, AfterAt: afterAt, Lim: lim,
 	})
 	if err != nil {
 		return core.Page[*access.Invite]{}, fmt.Errorf("list invites: %w", mapErr(err))
 	}
-	return pageOf(rows, page, inviteOf, func(i *access.Invite) string { return i.ID.String() })
+	return pageOf(rows, page, inviteOf, func(i *access.Invite) string {
+		if recent {
+			return logToken(i.CreatedAt, i.ID.UUID())
+		}
+		return i.ID.String()
+	})
 }
 
 // passwordResetRepo implements access.PasswordResetRepository. Resets are
@@ -764,17 +805,17 @@ func (r apiKeyRepo) List(ctx context.Context, org core.OrganizationID, f access.
 	if err != nil {
 		return core.Page[*access.APIKey]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	afterAt, after, lim, err := logPageArgs(page)
 	if err != nil {
 		return core.Page[*access.APIKey]{}, err
 	}
 	rows, err := q.ListAPIKeys(ctx, db.ListAPIKeysParams{
-		OrganizationID: org.UUID(), ActiveAt: optUTC(f.ActiveAt), After: after, Lim: lim,
+		OrganizationID: org.UUID(), ActiveAt: optUTC(f.ActiveAt), After: after, AfterAt: afterAt, Lim: lim,
 	})
 	if err != nil {
 		return core.Page[*access.APIKey]{}, fmt.Errorf("list api keys: %w", mapErr(err))
 	}
-	return pageOf(rows, page, apiKeyOf, func(k *access.APIKey) string { return k.ID.String() })
+	return pageOf(rows, page, apiKeyOf, func(k *access.APIKey) string { return logToken(k.CreatedAt, k.ID.UUID()) })
 }
 
 func (r apiKeyRepo) CountNonExpiring(ctx context.Context, org core.OrganizationID) (int, error) {

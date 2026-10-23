@@ -21,6 +21,7 @@ require (
 	github.com/riverqueue/rivercontrib/otelriver v0.12.0
 	github.com/spf13/cobra v1.10.2
 	github.com/tanvoxyz/tanvo/libs/auth v0.0.0
+	github.com/tanvoxyz/tanvo/libs/billing v0.0.0
 	github.com/tanvoxyz/tanvo/libs/core v0.0.0
 	github.com/tanvoxyz/tanvo/libs/eventstore v0.0.0
 	github.com/tanvoxyz/tanvo/libs/ingest v0.0.0
@@ -28,8 +29,10 @@ require (
 	github.com/tanvoxyz/tanvo/libs/mail v0.0.0
 	github.com/tanvoxyz/tanvo/libs/metering v0.0.0
 	github.com/tanvoxyz/tanvo/libs/money v0.0.0
+	github.com/tanvoxyz/tanvo/libs/period v0.0.0
 	github.com/tanvoxyz/tanvo/libs/proto v0.0.0
 	github.com/tanvoxyz/tanvo/libs/store v0.0.0
+	github.com/tanvoxyz/tanvo/libs/tax v0.0.0
 	github.com/tanvoxyz/tanvo/libs/webhooks v0.0.0
 	github.com/twmb/franz-go v1.22.2
 	github.com/twmb/franz-go/plugin/kotel v1.7.1
@@ -45,6 +48,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.47.0
 	go.opentelemetry.io/otel/trace v1.47.0
 	golang.org/x/sync v0.24.0
+	google.golang.org/genproto v0.0.0-20261019180522-ce908d29299b
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261012220534-4341edf3f941
 	google.golang.org/protobuf v1.36.12
 )
@@ -93,7 +97,7 @@ require (
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
 	github.com/tanvoxyz/tanvo/libs/expression/go v0.0.0 // indirect
-	github.com/tanvoxyz/tanvo/libs/period v0.0.0 // indirect
+	github.com/tanvoxyz/tanvo/libs/pricing v0.0.0 // indirect
 	github.com/tetratelabs/wazero v1.12.0 // indirect
 	github.com/tidwall/gjson v1.19.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
@@ -155,3 +159,5 @@ replace github.com/tanvoxyz/tanvo/libs/store => ../../libs/store
 replace github.com/tanvoxyz/tanvo/libs/tax => ../../libs/tax
 
 replace github.com/tanvoxyz/tanvo/libs/webhooks => ../../libs/webhooks
+
+replace github.com/tanvoxyz/tanvo/libs/billing => ../../libs/billing

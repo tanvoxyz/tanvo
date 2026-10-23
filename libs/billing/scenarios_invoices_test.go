@@ -1011,9 +1011,8 @@ func TestScenarioInvoicesNumberingPartner(t *testing.T) {
 }
 
 // TestScenarioInvoicesNumberingMultipleEntities: each billing entity keeps
-// its own numbering and sequence. Deviation: customer sequential IDs are
-// per billing entity (domain §6), so the second entity's customers are 001
-// and 002 where lago numbers them 004 and 005.
+// its own numbering and sequence; customer sequential IDs are the
+// organization's, so the second entity's customers are 004 and 005.
 // source: spec/scenarios/invoices/invoice_numbering_spec.rb:956
 func TestScenarioInvoicesNumberingMultipleEntities(t *testing.T) {
 	s := newScenario(t, invAt("2023-07-19T12:12:00Z"))
@@ -1035,8 +1034,8 @@ func TestScenarioInvoicesNumberingMultipleEntities(t *testing.T) {
 			{seq, 0, fmt.Sprintf("%s-001-%03d", p1, seq)},
 			{seq, 0, fmt.Sprintf("%s-002-%03d", p1, seq)},
 			{seq, 0, fmt.Sprintf("%s-003-%03d", p1, seq)},
-			{seq, 0, fmt.Sprintf("%s-001-%03d", p2, seq)},
-			{seq, 0, fmt.Sprintf("%s-002-%03d", p2, seq)},
+			{seq, 0, fmt.Sprintf("%s-004-%03d", p2, seq)},
+			{seq, 0, fmt.Sprintf("%s-005-%03d", p2, seq)},
 		}
 	}
 	invCheckNums(t, "jul 19", s.invLatestNums(cs...), perCustomer(1, "BENT-1", "BENT-2")...)
@@ -1051,7 +1050,7 @@ func TestScenarioInvoicesNumberingMultipleEntities(t *testing.T) {
 	s.performBilling()
 	invCheckNums(t, "oct 19", s.invLatestNums(cs...),
 		invNum{4, 10, "BENT-11-202310-010"}, invNum{4, 11, "BENT-11-202310-011"}, invNum{4, 12, "BENT-11-202310-012"},
-		invNum{4, 0, "BENT-2-001-004"}, invNum{4, 0, "BENT-2-002-004"})
+		invNum{4, 0, "BENT-2-004-004"}, invNum{4, 0, "BENT-2-005-004"})
 
 	s.travelTo(invAt("2023-11-19T12:12:00Z"))
 	s.invUpdateEntity(second, invNumbering(organization.DocumentNumberingPerBillingEntity, "BENT-22"))

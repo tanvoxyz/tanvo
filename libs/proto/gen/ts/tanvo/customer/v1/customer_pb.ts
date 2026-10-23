@@ -522,10 +522,15 @@ export type ListCustomersRequest = Message<"tanvo.customer.v1.ListCustomersReque
   pageToken: string;
 
   /**
-   * An AIP-160 filter over `billing_entity_id`, `customer_type`,
-   * `account_type`, `currency`, `billing_address.country`,
-   * `billing_address.state`, `billing_address.zipcode`,
-   * `has_tax_identification_number`, `metadata.<key>` and `deleted`.
+   * An AIP-160 filter over `external_id`, `billing_entity_id`,
+   * `customer_type`, `has_customer_type`, `account_type`, `currency`,
+   * `billing_address.country`, `billing_address.state`,
+   * `billing_address.zipcode`, `has_tax_identification_number`,
+   * `metadata.<key>`, `deleted` (true also lists deleted customers),
+   * `active_subscriptions_count_from` and `active_subscriptions_count_to`
+   * (equal bounds keep that count, two bounds the counts between them
+   * inclusive, a lone from the counts above it and a lone to the counts
+   * below it).
    *
    * @generated from field: string filter = 3;
    */
@@ -1118,7 +1123,8 @@ export const CustomerService: GenService<{
   /**
    * Updates a customer. With allow_missing and an `external_id:` reference
    * in customer.id, creates the customer when it does not exist (upsert).
-   * The currency is locked once the customer is billed.
+   * The currency is a preference for new billing objects and may change
+   * at any time.
    *
    * @generated from rpc tanvo.customer.v1.CustomerService.UpdateCustomer
    */

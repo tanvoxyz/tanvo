@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/access"
@@ -231,7 +234,23 @@ func (r membershipRepo) List(_ context.Context, org core.OrganizationID, f acces
 			(f.Status == "" || x.Status == f.Status) &&
 			(f.RoleID.IsZero() || x.HasRole(f.RoleID))
 	})
-	return paginate(r.keptAll(rows), func(x *access.Membership) core.MembershipID { return x.ID }, page)
+	rows = r.keptAll(rows)
+	if len(f.RoleIDs) > 0 {
+		rows = slices.DeleteFunc(rows, func(x *access.Membership) bool { return !slices.ContainsFunc(f.RoleIDs, x.HasRole) })
+	}
+	if f.Search != "" {
+		rows = slices.DeleteFunc(rows, func(x *access.Membership) bool {
+			u, ok := r.d.users.get(x.UserID)
+			return !ok || !containsFold(u.Email, f.Search)
+		})
+	}
+	if !f.Order.Valid() {
+		return core.Page[*access.Membership]{}, fmt.Errorf("list memberships: %w: order", core.ErrInvalidValue)
+	}
+	if f.Order == core.OrderRecent {
+		return paginateRecent(rows, func(x *access.Membership) (time.Time, uuid.UUID) { return x.CreatedAt, x.ID.UUID() }, page)
+	}
+	return paginate(rows, func(x *access.Membership) core.MembershipID { return x.ID }, page)
 }
 
 func (r membershipRepo) CountActiveByRole(_ context.Context, org core.OrganizationID, role core.RoleID) (int, error) {
@@ -385,9 +404,22 @@ func (r inviteRepo) GetPendingByEmail(_ context.Context, org core.OrganizationID
 
 func (r inviteRepo) List(_ context.Context, org core.OrganizationID, f access.InviteFilter, page core.PageRequest) (core.Page[*access.Invite], error) {
 	rows := r.d.invites.find(func(x *access.Invite) bool {
-		return x.OrganizationID == org && (f.Status == "" || x.Status == f.Status)
+		return x.OrganizationID == org && (f.Status == "" || x.Status == f.Status) &&
+			(len(f.RoleIDs) == 0 || slices.ContainsFunc(f.RoleIDs, func(id core.RoleID) bool { return slices.Contains(x.RoleIDs, id) })) &&
+			(f.Search == "" || containsFold(x.Email, f.Search))
 	})
+	if !f.Order.Valid() {
+		return core.Page[*access.Invite]{}, fmt.Errorf("list invites: %w: order", core.ErrInvalidValue)
+	}
+	if f.Order == core.OrderRecent {
+		return paginateRecent(rows, func(x *access.Invite) (time.Time, uuid.UUID) { return x.CreatedAt, x.ID.UUID() }, page)
+	}
 	return paginate(rows, func(x *access.Invite) core.InviteID { return x.ID }, page)
+}
+
+// containsFold reports whether sub is within s, case-insensitively.
+func containsFold(s, sub string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(sub))
 }
 
 // passwordResetRepo implements access.PasswordResetRepository.
@@ -482,7 +514,7 @@ func (r apiKeyRepo) List(_ context.Context, org core.OrganizationID, f access.AP
 	rows := r.d.apiKeys.find(func(x *access.APIKey) bool {
 		return x.OrganizationID == org && (f.ActiveAt == nil || x.Active(*f.ActiveAt))
 	})
-	return paginate(rows, func(x *access.APIKey) core.APIKeyID { return x.ID }, page)
+	return paginateOldest(rows, func(x *access.APIKey) (time.Time, uuid.UUID) { return x.CreatedAt, x.ID.UUID() }, page)
 }
 
 func (r apiKeyRepo) CountNonExpiring(_ context.Context, org core.OrganizationID) (int, error) {

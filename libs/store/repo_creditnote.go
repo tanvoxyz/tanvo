@@ -225,6 +225,9 @@ func (r creditNoteRepo) Update(ctx context.Context, cn *creditnote.CreditNote) e
 	if err != nil {
 		return err
 	}
+	if err := r.t.trackCreditNote(ctx, q, cn.OrganizationID, cn.ID); err != nil {
+		return err
+	}
 	var n int64
 	err = r.t.guard(ctx, func() (err error) {
 		if n, err = q.UpdateCreditNote(ctx, db.UpdateCreditNoteParams(creditNoteParams(cn))); err != nil || n == 0 {
@@ -389,6 +392,9 @@ func (r creditNoteRepo) Delete(ctx context.Context, org core.OrganizationID, id 
 	}
 	status, err := q.GetCreditNoteStatus(ctx, db.GetCreditNoteStatusParams{OrganizationID: org.UUID(), ID: id.UUID()})
 	if err := invoiceStatusErr("credit_note", id, status, err); err != nil {
+		return err
+	}
+	if err := r.t.trackCreditNote(ctx, q, org, id); err != nil {
 		return err
 	}
 	var n int64

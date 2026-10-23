@@ -155,21 +155,42 @@ func (c *Client) periodicJobs(cfg Config) ([]*river.PeriodicJob, []Periodic, err
 			}
 			p.Timing = Every(d)
 		}
-		// Clock jobs are not retried (lago-api's sidekiq retry: 0): the
-		// next run catches up.
-		attempts := cmp.Or(e.kind.MaxAttempts, 1)
-		env := envelope{kind: p.Kind, Max: attempts}
-		opts := &river.InsertOpts{
-			Queue:       string(ClockQueue),
-			MaxAttempts: max(attempts, e.kind.maxRuleAttempts()),
-			UniqueOpts:  uniqueOpts(),
-		}
+		env, opts := clockInsert(p.Kind, e)
 		out = append(out, river.NewPeriodicJob(p.Timing, func() (river.JobArgs, *river.InsertOpts) {
 			return env, opts
 		}, &river.PeriodicJobOpts{ID: p.Kind}))
 		scheduled = append(scheduled, p)
 	}
 	return out, scheduled, nil
+}
+
+// clockInsert returns the River insert of a run of the periodic kind of
+// entry e. Clock jobs are not retried (lago-api's sidekiq retry: 0): the
+// next run catches up.
+func clockInsert(kind string, e *entry) (envelope, *river.InsertOpts) {
+	attempts := cmp.Or(e.kind.MaxAttempts, 1)
+	return envelope{kind: kind, Max: attempts}, &river.InsertOpts{
+		Queue:       string(ClockQueue),
+		MaxAttempts: max(attempts, e.kind.maxRuleAttempts()),
+		UniqueOpts:  uniqueOpts(),
+	}
+}
+
+// Trigger enqueues a run of the periodic job kind now, outside its timing
+// (an operator's "run now"): it runs on [ClockQueue], on the processes
+// that carry the schedule, and is skipped while a run of kind is
+// unfinished. It fails with core.ErrNotFound when kind is not in
+// [Schedule] or has no handler.
+func (c *Client) Trigger(ctx context.Context, kind string) error {
+	e, ok := c.reg.lookup(kind)
+	if !ok || !slices.ContainsFunc(Schedule(), func(p Periodic) bool { return p.Kind == kind }) {
+		return fmt.Errorf("jobs: trigger %q: %w", kind, core.ErrNotFound)
+	}
+	env, opts := clockInsert(kind, e)
+	if _, err := c.river.Insert(ctx, env, opts); err != nil {
+		return fmt.Errorf("jobs: trigger %q: %w", kind, err)
+	}
+	return nil
 }
 
 // uniqueOpts makes a job unique by kind, organization and unique key
@@ -249,6 +270,16 @@ type txEnqueuer struct {
 
 func (e txEnqueuer) Enqueue(ctx context.Context, jobs ...port.Job) error {
 	return e.c.InsertTx(ctx, e.tx, jobs)
+}
+
+// QueueNow returns clock_timestamp(), the clock River schedules jobs by
+// ([port.QueueClock]).
+func (e txEnqueuer) QueueNow(ctx context.Context) (time.Time, error) {
+	var at time.Time
+	if err := e.tx.QueryRow(ctx, "SELECT clock_timestamp()").Scan(&at); err != nil {
+		return time.Time{}, fmt.Errorf("jobs: queue clock: %w", err)
+	}
+	return at.UTC(), nil
 }
 
 type uniqueID struct {

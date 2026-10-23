@@ -54,8 +54,20 @@ WHERE c.organization_id = @organization_id AND c.deleted_at IS NULL
   AND (cardinality(@currencies::text[]) = 0 OR EXISTS (
         SELECT 1 FROM dunning_campaign_thresholds t
         WHERE t.organization_id = c.organization_id AND t.dunning_campaign_id = c.id AND t.currency = ANY(@currencies::text[])))
-  AND (sqlc.narg(after)::uuid IS NULL OR c.id > sqlc.narg(after))
-ORDER BY c.id
+  AND (sqlc.narg(search)::text IS NULL OR c.name ILIKE sqlc.narg(search) OR c.code ILIKE sqlc.narg(search))
+  -- @applied keeps @applied_id only (true) or every other campaign (false).
+  AND (sqlc.narg(applied)::boolean IS NULL
+       OR (c.id IS NOT DISTINCT FROM sqlc.narg(applied_id)::uuid) = sqlc.narg(applied)::boolean)
+  -- @by_name lists by name (byte order), then by created_at, newest
+  -- first, then by id; its cursor is (@after_name, @after_at, @after).
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR (@by_name::boolean AND (c.name COLLATE "C" > sqlc.narg(after_name)::text COLLATE "C"
+                                  OR (c.name = sqlc.narg(after_name)::text
+                                      AND (c.created_at < sqlc.narg(after_at)::timestamptz
+                                           OR (c.created_at = sqlc.narg(after_at)::timestamptz AND c.id > sqlc.narg(after))))))
+       OR (NOT @by_name::boolean AND c.id > sqlc.narg(after)))
+ORDER BY CASE WHEN @by_name::boolean THEN c.name COLLATE "C" END,
+  CASE WHEN @by_name::boolean THEN c.created_at END DESC, c.id
 LIMIT @lim;
 
 -- name: DeleteDunningCampaignThresholds :exec

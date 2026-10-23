@@ -136,14 +136,14 @@ INSERT INTO subscriptions (
   cancellation_reason, previous_subscription_id, on_termination_credit_note, on_termination_invoice,
   payment_method_type, payment_method_id, progressive_billing_disabled, consolidate_invoice,
   purchase_order_number, billing_entity_id, skip_invoice_custom_sections, next_billing_at,
-  created_at, updated_at
+  skip_daily_usage, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8,
   $9, $10, $11, $12, $13, $14,
   $15, $16, $17, $18,
   $19, $20, $21, $22,
   $23, $24, $25, $26,
-  $27, $28
+  $27, $28, $29
 )
 ON CONFLICT DO NOTHING
 `
@@ -175,6 +175,7 @@ type CreateSubscriptionParams struct {
 	BillingEntityID            *uuid.UUID
 	SkipInvoiceCustomSections  bool
 	NextBillingAt              *time.Time
+	SkipDailyUsage             bool
 	CreatedAt                  time.Time
 	UpdatedAt                  time.Time
 }
@@ -209,6 +210,7 @@ func (q *Queries) CreateSubscription(ctx context.Context, arg CreateSubscription
 		arg.BillingEntityID,
 		arg.SkipInvoiceCustomSections,
 		arg.NextBillingAt,
+		arg.SkipDailyUsage,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -348,7 +350,7 @@ func (q *Queries) GetLifetimeUsageBySubscription(ctx context.Context, arg GetLif
 }
 
 const getNextSubscription = `-- name: GetNextSubscription :one
-SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.created_at, s.updated_at,
+SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.skip_daily_usage, s.last_received_event_on, s.created_at, s.updated_at,
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
@@ -398,6 +400,8 @@ func (q *Queries) GetNextSubscription(ctx context.Context, arg GetNextSubscripti
 		&i.Subscription.BillingEntityID,
 		&i.Subscription.SkipInvoiceCustomSections,
 		&i.Subscription.NextBillingAt,
+		&i.Subscription.SkipDailyUsage,
+		&i.Subscription.LastReceivedEventOn,
 		&i.Subscription.CreatedAt,
 		&i.Subscription.UpdatedAt,
 		&i.InvoiceCustomSectionIds,
@@ -406,7 +410,7 @@ func (q *Queries) GetNextSubscription(ctx context.Context, arg GetNextSubscripti
 }
 
 const getSubscription = `-- name: GetSubscription :one
-SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.created_at, s.updated_at,
+SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.skip_daily_usage, s.last_received_event_on, s.created_at, s.updated_at,
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
@@ -453,6 +457,8 @@ func (q *Queries) GetSubscription(ctx context.Context, arg GetSubscriptionParams
 		&i.Subscription.BillingEntityID,
 		&i.Subscription.SkipInvoiceCustomSections,
 		&i.Subscription.NextBillingAt,
+		&i.Subscription.SkipDailyUsage,
+		&i.Subscription.LastReceivedEventOn,
 		&i.Subscription.CreatedAt,
 		&i.Subscription.UpdatedAt,
 		&i.InvoiceCustomSectionIds,
@@ -461,7 +467,7 @@ func (q *Queries) GetSubscription(ctx context.Context, arg GetSubscriptionParams
 }
 
 const getSubscriptionByExternalID = `-- name: GetSubscriptionByExternalID :one
-SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.created_at, s.updated_at,
+SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.skip_daily_usage, s.last_received_event_on, s.created_at, s.updated_at,
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
@@ -511,6 +517,8 @@ func (q *Queries) GetSubscriptionByExternalID(ctx context.Context, arg GetSubscr
 		&i.Subscription.BillingEntityID,
 		&i.Subscription.SkipInvoiceCustomSections,
 		&i.Subscription.NextBillingAt,
+		&i.Subscription.SkipDailyUsage,
+		&i.Subscription.LastReceivedEventOn,
 		&i.Subscription.CreatedAt,
 		&i.Subscription.UpdatedAt,
 		&i.InvoiceCustomSectionIds,
@@ -614,7 +622,7 @@ func (q *Queries) ListActivationRulesBySubscription(ctx context.Context, arg Lis
 }
 
 const listActiveOrPendingSubscriptionsByPlan = `-- name: ListActiveOrPendingSubscriptionsByPlan :many
-SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.created_at, s.updated_at,
+SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.skip_daily_usage, s.last_received_event_on, s.created_at, s.updated_at,
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
@@ -668,6 +676,8 @@ func (q *Queries) ListActiveOrPendingSubscriptionsByPlan(ctx context.Context, ar
 			&i.Subscription.BillingEntityID,
 			&i.Subscription.SkipInvoiceCustomSections,
 			&i.Subscription.NextBillingAt,
+			&i.Subscription.SkipDailyUsage,
+			&i.Subscription.LastReceivedEventOn,
 			&i.Subscription.CreatedAt,
 			&i.Subscription.UpdatedAt,
 			&i.InvoiceCustomSectionIds,
@@ -806,7 +816,7 @@ func (q *Queries) ListFixedChargeEventsBySubscription(ctx context.Context, arg L
 }
 
 const listIncompleteSubscriptionsWithExpiredRules = `-- name: ListIncompleteSubscriptionsWithExpiredRules :many
-SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.created_at, s.updated_at,
+SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.skip_daily_usage, s.last_received_event_on, s.created_at, s.updated_at,
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
@@ -814,7 +824,7 @@ WHERE s.organization_id = $1 AND s.status = 'incomplete'
   AND EXISTS (
     SELECT 1 FROM subscription_activation_rules r
     WHERE r.organization_id = s.organization_id AND r.subscription_id = s.id
-      AND r.status = 'pending' AND r.expires_at < $2::timestamptz
+      AND r.status = 'pending' AND r.expires_at <= $2::timestamptz
   )
 ORDER BY s.id
 `
@@ -865,6 +875,8 @@ func (q *Queries) ListIncompleteSubscriptionsWithExpiredRules(ctx context.Contex
 			&i.Subscription.BillingEntityID,
 			&i.Subscription.SkipInvoiceCustomSections,
 			&i.Subscription.NextBillingAt,
+			&i.Subscription.SkipDailyUsage,
+			&i.Subscription.LastReceivedEventOn,
 			&i.Subscription.CreatedAt,
 			&i.Subscription.UpdatedAt,
 			&i.InvoiceCustomSectionIds,
@@ -881,7 +893,7 @@ func (q *Queries) ListIncompleteSubscriptionsWithExpiredRules(ctx context.Contex
 
 const listLifetimeUsagesToRecalculate = `-- name: ListLifetimeUsagesToRecalculate :many
 SELECT organization_id, id, subscription_id, external_subscription_id, currency, historical_usage_amount, invoiced_usage_amount, current_usage_amount, recalculate_invoiced_usage, recalculate_current_usage, invoiced_usage_amount_refreshed_at, current_usage_amount_refreshed_at, created_at, updated_at FROM lifetime_usages
-WHERE organization_id = $1 AND (recalculate_invoiced_usage OR recalculate_current_usage)
+WHERE organization_id = $1 AND recalculate_invoiced_usage
   AND ($2::uuid IS NULL OR id > $2)
 ORDER BY id
 LIMIT $3
@@ -929,7 +941,7 @@ func (q *Queries) ListLifetimeUsagesToRecalculate(ctx context.Context, arg ListL
 }
 
 const listPendingSubscriptionsToActivate = `-- name: ListPendingSubscriptionsToActivate :many
-SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.created_at, s.updated_at,
+SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.skip_daily_usage, s.last_received_event_on, s.created_at, s.updated_at,
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
@@ -984,6 +996,8 @@ func (q *Queries) ListPendingSubscriptionsToActivate(ctx context.Context, arg Li
 			&i.Subscription.BillingEntityID,
 			&i.Subscription.SkipInvoiceCustomSections,
 			&i.Subscription.NextBillingAt,
+			&i.Subscription.SkipDailyUsage,
+			&i.Subscription.LastReceivedEventOn,
 			&i.Subscription.CreatedAt,
 			&i.Subscription.UpdatedAt,
 			&i.InvoiceCustomSectionIds,
@@ -999,7 +1013,7 @@ func (q *Queries) ListPendingSubscriptionsToActivate(ctx context.Context, arg Li
 }
 
 const listSubscriptions = `-- name: ListSubscriptions :many
-SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.created_at, s.updated_at,
+SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.skip_daily_usage, s.last_received_event_on, s.created_at, s.updated_at,
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
@@ -1145,6 +1159,8 @@ func (q *Queries) ListSubscriptions(ctx context.Context, arg ListSubscriptionsPa
 			&i.Subscription.BillingEntityID,
 			&i.Subscription.SkipInvoiceCustomSections,
 			&i.Subscription.NextBillingAt,
+			&i.Subscription.SkipDailyUsage,
+			&i.Subscription.LastReceivedEventOn,
 			&i.Subscription.CreatedAt,
 			&i.Subscription.UpdatedAt,
 			&i.InvoiceCustomSectionIds,
@@ -1160,7 +1176,7 @@ func (q *Queries) ListSubscriptions(ctx context.Context, arg ListSubscriptionsPa
 }
 
 const listSubscriptionsByCustomer = `-- name: ListSubscriptionsByCustomer :many
-SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.created_at, s.updated_at,
+SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.skip_daily_usage, s.last_received_event_on, s.created_at, s.updated_at,
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
@@ -1216,6 +1232,8 @@ func (q *Queries) ListSubscriptionsByCustomer(ctx context.Context, arg ListSubsc
 			&i.Subscription.BillingEntityID,
 			&i.Subscription.SkipInvoiceCustomSections,
 			&i.Subscription.NextBillingAt,
+			&i.Subscription.SkipDailyUsage,
+			&i.Subscription.LastReceivedEventOn,
 			&i.Subscription.CreatedAt,
 			&i.Subscription.UpdatedAt,
 			&i.InvoiceCustomSectionIds,
@@ -1231,7 +1249,7 @@ func (q *Queries) ListSubscriptionsByCustomer(ctx context.Context, arg ListSubsc
 }
 
 const listSubscriptionsByExternalID = `-- name: ListSubscriptionsByExternalID :many
-SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.created_at, s.updated_at,
+SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.skip_daily_usage, s.last_received_event_on, s.created_at, s.updated_at,
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
@@ -1285,6 +1303,8 @@ func (q *Queries) ListSubscriptionsByExternalID(ctx context.Context, arg ListSub
 			&i.Subscription.BillingEntityID,
 			&i.Subscription.SkipInvoiceCustomSections,
 			&i.Subscription.NextBillingAt,
+			&i.Subscription.SkipDailyUsage,
+			&i.Subscription.LastReceivedEventOn,
 			&i.Subscription.CreatedAt,
 			&i.Subscription.UpdatedAt,
 			&i.InvoiceCustomSectionIds,
@@ -1300,7 +1320,7 @@ func (q *Queries) ListSubscriptionsByExternalID(ctx context.Context, arg ListSub
 }
 
 const listSubscriptionsDueForBilling = `-- name: ListSubscriptionsDueForBilling :many
-SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.created_at, s.updated_at,
+SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.skip_daily_usage, s.last_received_event_on, s.created_at, s.updated_at,
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
@@ -1366,6 +1386,8 @@ func (q *Queries) ListSubscriptionsDueForBilling(ctx context.Context, arg ListSu
 			&i.Subscription.BillingEntityID,
 			&i.Subscription.SkipInvoiceCustomSections,
 			&i.Subscription.NextBillingAt,
+			&i.Subscription.SkipDailyUsage,
+			&i.Subscription.LastReceivedEventOn,
 			&i.Subscription.CreatedAt,
 			&i.Subscription.UpdatedAt,
 			&i.InvoiceCustomSectionIds,
@@ -1381,7 +1403,7 @@ func (q *Queries) ListSubscriptionsDueForBilling(ctx context.Context, arg ListSu
 }
 
 const listSubscriptionsEndingBetween = `-- name: ListSubscriptionsEndingBetween :many
-SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.created_at, s.updated_at,
+SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.skip_daily_usage, s.last_received_event_on, s.created_at, s.updated_at,
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
@@ -1437,6 +1459,8 @@ func (q *Queries) ListSubscriptionsEndingBetween(ctx context.Context, arg ListSu
 			&i.Subscription.BillingEntityID,
 			&i.Subscription.SkipInvoiceCustomSections,
 			&i.Subscription.NextBillingAt,
+			&i.Subscription.SkipDailyUsage,
+			&i.Subscription.LastReceivedEventOn,
 			&i.Subscription.CreatedAt,
 			&i.Subscription.UpdatedAt,
 			&i.InvoiceCustomSectionIds,
@@ -1451,6 +1475,23 @@ func (q *Queries) ListSubscriptionsEndingBetween(ctx context.Context, arg ListSu
 	return items, nil
 }
 
+const recordSubscriptionEventReceived = `-- name: RecordSubscriptionEventReceived :exec
+UPDATE subscriptions SET last_received_event_on = $1::date
+WHERE organization_id = $2 AND id = $3 AND status = 'active'
+  AND last_received_event_on IS DISTINCT FROM $1::date
+`
+
+type RecordSubscriptionEventReceivedParams struct {
+	Day            time.Time
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+}
+
+func (q *Queries) RecordSubscriptionEventReceived(ctx context.Context, arg RecordSubscriptionEventReceivedParams) error {
+	_, err := q.db.Exec(ctx, recordSubscriptionEventReceived, arg.Day, arg.OrganizationID, arg.ID)
+	return err
+}
+
 const subscriptionChain = `-- name: SubscriptionChain :many
 WITH RECURSIVE chain (id, previous_subscription_id, depth, path) AS (
   SELECT c.id, c.previous_subscription_id, 0, ARRAY[c.id]
@@ -1462,7 +1503,7 @@ WITH RECURSIVE chain (id, previous_subscription_id, depth, path) AS (
   JOIN subscriptions p ON p.organization_id = $1 AND p.id = chain.previous_subscription_id
   WHERE NOT p.id = ANY(chain.path)
 )
-SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.created_at, s.updated_at,
+SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name, s.billing_time, s.status, s.subscription_at, s.started_at, s.ending_at, s.terminated_at, s.canceled_at, s.trial_ended_at, s.cancellation_reason, s.previous_subscription_id, s.on_termination_credit_note, s.on_termination_invoice, s.payment_method_type, s.payment_method_id, s.progressive_billing_disabled, s.consolidate_invoice, s.purchase_order_number, s.billing_entity_id, s.skip_invoice_custom_sections, s.next_billing_at, s.skip_daily_usage, s.last_received_event_on, s.created_at, s.updated_at,
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM chain
@@ -1519,6 +1560,8 @@ func (q *Queries) SubscriptionChain(ctx context.Context, arg SubscriptionChainPa
 			&i.Subscription.BillingEntityID,
 			&i.Subscription.SkipInvoiceCustomSections,
 			&i.Subscription.NextBillingAt,
+			&i.Subscription.SkipDailyUsage,
+			&i.Subscription.LastReceivedEventOn,
 			&i.Subscription.CreatedAt,
 			&i.Subscription.UpdatedAt,
 			&i.InvoiceCustomSectionIds,
@@ -1571,7 +1614,12 @@ func (q *Queries) UpdateActivationRule(ctx context.Context, arg UpdateActivation
 	return result.RowsAffected(), nil
 }
 
-const updateSubscription = `-- name: UpdateSubscription :execrows
+const updateSubscription = `-- name: UpdateSubscription :one
+WITH old AS (
+  SELECT o.id AS old_id, o.external_id AS old_external_id FROM subscriptions o
+  WHERE o.organization_id = $1::uuid AND o.id = $2::uuid
+  FOR UPDATE
+)
 UPDATE subscriptions SET
   organization_id = $1, id = $2, external_id = $3, customer_id = $4,
   plan_id = $5, name = $6, billing_time = $7, status = $8,
@@ -1583,8 +1631,10 @@ UPDATE subscriptions SET
   progressive_billing_disabled = $21, consolidate_invoice = $22,
   purchase_order_number = $23, billing_entity_id = $24,
   skip_invoice_custom_sections = $25, next_billing_at = $26,
-  created_at = $27, updated_at = $28
-WHERE organization_id = $1 AND id = $2
+  skip_daily_usage = $27, created_at = $28, updated_at = $29
+FROM old
+WHERE subscriptions.organization_id = $1 AND subscriptions.id = old.old_id
+RETURNING old.old_external_id
 `
 
 type UpdateSubscriptionParams struct {
@@ -1614,12 +1664,16 @@ type UpdateSubscriptionParams struct {
 	BillingEntityID            *uuid.UUID
 	SkipInvoiceCustomSections  bool
 	NextBillingAt              *time.Time
+	SkipDailyUsage             bool
 	CreatedAt                  time.Time
 	UpdatedAt                  time.Time
 }
 
-func (q *Queries) UpdateSubscription(ctx context.Context, arg UpdateSubscriptionParams) (int64, error) {
-	result, err := q.db.Exec(ctx, updateSubscription,
+// Returns the external ID the row had, locked first so that it is the one
+// the update replaces: the catalog change of a renamed subscription
+// expires its old external ID too.
+func (q *Queries) UpdateSubscription(ctx context.Context, arg UpdateSubscriptionParams) (string, error) {
+	row := q.db.QueryRow(ctx, updateSubscription,
 		arg.OrganizationID,
 		arg.ID,
 		arg.ExternalID,
@@ -1646,13 +1700,13 @@ func (q *Queries) UpdateSubscription(ctx context.Context, arg UpdateSubscription
 		arg.BillingEntityID,
 		arg.SkipInvoiceCustomSections,
 		arg.NextBillingAt,
+		arg.SkipDailyUsage,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+	var old_external_id string
+	err := row.Scan(&old_external_id)
+	return old_external_id, err
 }
 
 const upsertLifetimeUsage = `-- name: UpsertLifetimeUsage :one

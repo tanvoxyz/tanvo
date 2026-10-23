@@ -121,58 +121,6 @@ func (x IntegrationProvider) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// IntegrationStatus is the state of an integration.
-type IntegrationStatus int32
-
-const (
-	// Not set.
-	IntegrationStatus_INTEGRATION_STATUS_UNSPECIFIED IntegrationStatus = 0
-	// Waiting for the OAuth authorization.
-	IntegrationStatus_INTEGRATION_STATUS_PENDING IntegrationStatus = 1
-	// Connected.
-	IntegrationStatus_INTEGRATION_STATUS_ACTIVE IntegrationStatus = 2
-	// The provider rejected the credentials.
-	IntegrationStatus_INTEGRATION_STATUS_ERROR IntegrationStatus = 3
-)
-
-// Enum value maps for IntegrationStatus.
-var (
-	IntegrationStatus_name = map[int32]string{
-		0: "INTEGRATION_STATUS_UNSPECIFIED",
-		1: "INTEGRATION_STATUS_PENDING",
-		2: "INTEGRATION_STATUS_ACTIVE",
-		3: "INTEGRATION_STATUS_ERROR",
-	}
-	IntegrationStatus_value = map[string]int32{
-		"INTEGRATION_STATUS_UNSPECIFIED": 0,
-		"INTEGRATION_STATUS_PENDING":     1,
-		"INTEGRATION_STATUS_ACTIVE":      2,
-		"INTEGRATION_STATUS_ERROR":       3,
-	}
-)
-
-func (x IntegrationStatus) Enum() *IntegrationStatus {
-	p := new(IntegrationStatus)
-	*p = x
-	return p
-}
-
-func (x IntegrationStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (IntegrationStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_tanvo_integration_v1_integration_proto_enumTypes[1].Descriptor()
-}
-
-func (IntegrationStatus) Type() protoreflect.EnumType {
-	return &file_tanvo_integration_v1_integration_proto_enumTypes[1]
-}
-
-func (x IntegrationStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
 // MappableType is the kind of object an item mapping maps.
 type MappableType int32
 
@@ -210,11 +158,11 @@ func (x MappableType) String() string {
 }
 
 func (MappableType) Descriptor() protoreflect.EnumDescriptor {
-	return file_tanvo_integration_v1_integration_proto_enumTypes[2].Descriptor()
+	return file_tanvo_integration_v1_integration_proto_enumTypes[1].Descriptor()
 }
 
 func (MappableType) Type() protoreflect.EnumType {
-	return &file_tanvo_integration_v1_integration_proto_enumTypes[2]
+	return &file_tanvo_integration_v1_integration_proto_enumTypes[1]
 }
 
 func (x MappableType) Number() protoreflect.EnumNumber {
@@ -286,11 +234,11 @@ func (x CollectionMappingType) String() string {
 }
 
 func (CollectionMappingType) Descriptor() protoreflect.EnumDescriptor {
-	return file_tanvo_integration_v1_integration_proto_enumTypes[3].Descriptor()
+	return file_tanvo_integration_v1_integration_proto_enumTypes[2].Descriptor()
 }
 
 func (CollectionMappingType) Type() protoreflect.EnumType {
-	return &file_tanvo_integration_v1_integration_proto_enumTypes[3]
+	return &file_tanvo_integration_v1_integration_proto_enumTypes[2]
 }
 
 func (x CollectionMappingType) Number() protoreflect.EnumNumber {
@@ -338,70 +286,14 @@ func (x IntegrationItemType) String() string {
 }
 
 func (IntegrationItemType) Descriptor() protoreflect.EnumDescriptor {
-	return file_tanvo_integration_v1_integration_proto_enumTypes[4].Descriptor()
+	return file_tanvo_integration_v1_integration_proto_enumTypes[3].Descriptor()
 }
 
 func (IntegrationItemType) Type() protoreflect.EnumType {
-	return &file_tanvo_integration_v1_integration_proto_enumTypes[4]
+	return &file_tanvo_integration_v1_integration_proto_enumTypes[3]
 }
 
 func (x IntegrationItemType) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// IntegrationResourceType is the kind of a synced record.
-type IntegrationResourceType int32
-
-const (
-	// Not set.
-	IntegrationResourceType_INTEGRATION_RESOURCE_TYPE_UNSPECIFIED IntegrationResourceType = 0
-	// An invoice.
-	IntegrationResourceType_INTEGRATION_RESOURCE_TYPE_INVOICE IntegrationResourceType = 1
-	// A payment.
-	IntegrationResourceType_INTEGRATION_RESOURCE_TYPE_PAYMENT IntegrationResourceType = 2
-	// A credit note.
-	IntegrationResourceType_INTEGRATION_RESOURCE_TYPE_CREDIT_NOTE IntegrationResourceType = 3
-	// A subscription.
-	IntegrationResourceType_INTEGRATION_RESOURCE_TYPE_SUBSCRIPTION IntegrationResourceType = 4
-)
-
-// Enum value maps for IntegrationResourceType.
-var (
-	IntegrationResourceType_name = map[int32]string{
-		0: "INTEGRATION_RESOURCE_TYPE_UNSPECIFIED",
-		1: "INTEGRATION_RESOURCE_TYPE_INVOICE",
-		2: "INTEGRATION_RESOURCE_TYPE_PAYMENT",
-		3: "INTEGRATION_RESOURCE_TYPE_CREDIT_NOTE",
-		4: "INTEGRATION_RESOURCE_TYPE_SUBSCRIPTION",
-	}
-	IntegrationResourceType_value = map[string]int32{
-		"INTEGRATION_RESOURCE_TYPE_UNSPECIFIED":  0,
-		"INTEGRATION_RESOURCE_TYPE_INVOICE":      1,
-		"INTEGRATION_RESOURCE_TYPE_PAYMENT":      2,
-		"INTEGRATION_RESOURCE_TYPE_CREDIT_NOTE":  3,
-		"INTEGRATION_RESOURCE_TYPE_SUBSCRIPTION": 4,
-	}
-)
-
-func (x IntegrationResourceType) Enum() *IntegrationResourceType {
-	p := new(IntegrationResourceType)
-	*p = x
-	return p
-}
-
-func (x IntegrationResourceType) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (IntegrationResourceType) Descriptor() protoreflect.EnumDescriptor {
-	return file_tanvo_integration_v1_integration_proto_enumTypes[5].Descriptor()
-}
-
-func (IntegrationResourceType) Type() protoreflect.EnumType {
-	return &file_tanvo_integration_v1_integration_proto_enumTypes[5]
-}
-
-func (x IntegrationResourceType) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
@@ -442,11 +334,11 @@ func (x HubspotTargetedObject) String() string {
 }
 
 func (HubspotTargetedObject) Descriptor() protoreflect.EnumDescriptor {
-	return file_tanvo_integration_v1_integration_proto_enumTypes[6].Descriptor()
+	return file_tanvo_integration_v1_integration_proto_enumTypes[4].Descriptor()
 }
 
 func (HubspotTargetedObject) Type() protoreflect.EnumType {
-	return &file_tanvo_integration_v1_integration_proto_enumTypes[6]
+	return &file_tanvo_integration_v1_integration_proto_enumTypes[4]
 }
 
 func (x HubspotTargetedObject) Number() protoreflect.EnumNumber {
@@ -455,14 +347,15 @@ func (x HubspotTargetedObject) Number() protoreflect.EnumNumber {
 
 // StripeSettings connects Stripe.
 type StripeSettings struct {
-	state                         protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_SecretKey          *string                `protobuf:"bytes,1,opt,name=secret_key,json=secretKey"`
-	xxx_hidden_SuccessRedirectUrl *string                `protobuf:"bytes,2,opt,name=success_redirect_url,json=successRedirectUrl"`
-	xxx_hidden_WebhookEndpointId  *string                `protobuf:"bytes,3,opt,name=webhook_endpoint_id,json=webhookEndpointId"`
-	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
-	XXX_presence                  [1]uint32
-	unknownFields                 protoimpl.UnknownFields
-	sizeCache                     protoimpl.SizeCache
+	state                                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_SecretKey                    *string                `protobuf:"bytes,1,opt,name=secret_key,json=secretKey"`
+	xxx_hidden_SuccessRedirectUrl           *string                `protobuf:"bytes,2,opt,name=success_redirect_url,json=successRedirectUrl"`
+	xxx_hidden_Supports_3Ds                 bool                   `protobuf:"varint,4,opt,name=supports_3ds,json=supports3ds"`
+	xxx_hidden_RequireTermsOfServiceConsent bool                   `protobuf:"varint,5,opt,name=require_terms_of_service_consent,json=requireTermsOfServiceConsent"`
+	XXX_raceDetectHookData                  protoimpl.RaceDetectHookData
+	XXX_presence                            [1]uint32
+	unknownFields                           protoimpl.UnknownFields
+	sizeCache                               protoimpl.SizeCache
 }
 
 func (x *StripeSettings) Reset() {
@@ -510,29 +403,38 @@ func (x *StripeSettings) GetSuccessRedirectUrl() string {
 	return ""
 }
 
-func (x *StripeSettings) GetWebhookEndpointId() string {
+func (x *StripeSettings) GetSupports_3Ds() bool {
 	if x != nil {
-		if x.xxx_hidden_WebhookEndpointId != nil {
-			return *x.xxx_hidden_WebhookEndpointId
-		}
-		return ""
+		return x.xxx_hidden_Supports_3Ds
 	}
-	return ""
+	return false
+}
+
+func (x *StripeSettings) GetRequireTermsOfServiceConsent() bool {
+	if x != nil {
+		return x.xxx_hidden_RequireTermsOfServiceConsent
+	}
+	return false
 }
 
 func (x *StripeSettings) SetSecretKey(v string) {
 	x.xxx_hidden_SecretKey = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *StripeSettings) SetSuccessRedirectUrl(v string) {
 	x.xxx_hidden_SuccessRedirectUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
-func (x *StripeSettings) SetWebhookEndpointId(v string) {
-	x.xxx_hidden_WebhookEndpointId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+func (x *StripeSettings) SetSupports_3Ds(v bool) {
+	x.xxx_hidden_Supports_3Ds = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *StripeSettings) SetRequireTermsOfServiceConsent(v bool) {
+	x.xxx_hidden_RequireTermsOfServiceConsent = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *StripeSettings) HasSecretKey() bool {
@@ -549,11 +451,18 @@ func (x *StripeSettings) HasSuccessRedirectUrl() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *StripeSettings) HasWebhookEndpointId() bool {
+func (x *StripeSettings) HasSupports_3Ds() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *StripeSettings) HasRequireTermsOfServiceConsent() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
 func (x *StripeSettings) ClearSecretKey() {
@@ -566,9 +475,14 @@ func (x *StripeSettings) ClearSuccessRedirectUrl() {
 	x.xxx_hidden_SuccessRedirectUrl = nil
 }
 
-func (x *StripeSettings) ClearWebhookEndpointId() {
+func (x *StripeSettings) ClearSupports_3Ds() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_WebhookEndpointId = nil
+	x.xxx_hidden_Supports_3Ds = false
+}
+
+func (x *StripeSettings) ClearRequireTermsOfServiceConsent() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_RequireTermsOfServiceConsent = false
 }
 
 type StripeSettings_builder struct {
@@ -578,8 +492,10 @@ type StripeSettings_builder struct {
 	SecretKey *string
 	// The URL customers return to after checkout.
 	SuccessRedirectUrl *string
-	// The ID of the webhook endpoint registered at Stripe.
-	WebhookEndpointId *string
+	// Authenticates card payments with 3-D Secure.
+	Supports_3Ds *bool
+	// Asks customers to accept the terms of service at checkout.
+	RequireTermsOfServiceConsent *bool
 }
 
 func (b0 StripeSettings_builder) Build() *StripeSettings {
@@ -587,16 +503,20 @@ func (b0 StripeSettings_builder) Build() *StripeSettings {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.SecretKey != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_SecretKey = b.SecretKey
 	}
 	if b.SuccessRedirectUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_SuccessRedirectUrl = b.SuccessRedirectUrl
 	}
-	if b.WebhookEndpointId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
-		x.xxx_hidden_WebhookEndpointId = b.WebhookEndpointId
+	if b.Supports_3Ds != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_Supports_3Ds = *b.Supports_3Ds
+	}
+	if b.RequireTermsOfServiceConsent != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_RequireTermsOfServiceConsent = *b.RequireTermsOfServiceConsent
 	}
 	return m0
 }
@@ -1163,7 +1083,6 @@ func (b0 MoneyhashSettings_builder) Build() *MoneyhashSettings {
 type FlutterwaveSettings struct {
 	state                         protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_SecretKey          *string                `protobuf:"bytes,1,opt,name=secret_key,json=secretKey"`
-	xxx_hidden_WebhookSecret      *string                `protobuf:"bytes,2,opt,name=webhook_secret,json=webhookSecret"`
 	xxx_hidden_SuccessRedirectUrl *string                `protobuf:"bytes,3,opt,name=success_redirect_url,json=successRedirectUrl"`
 	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
 	XXX_presence                  [1]uint32
@@ -1206,16 +1125,6 @@ func (x *FlutterwaveSettings) GetSecretKey() string {
 	return ""
 }
 
-func (x *FlutterwaveSettings) GetWebhookSecret() string {
-	if x != nil {
-		if x.xxx_hidden_WebhookSecret != nil {
-			return *x.xxx_hidden_WebhookSecret
-		}
-		return ""
-	}
-	return ""
-}
-
 func (x *FlutterwaveSettings) GetSuccessRedirectUrl() string {
 	if x != nil {
 		if x.xxx_hidden_SuccessRedirectUrl != nil {
@@ -1228,17 +1137,12 @@ func (x *FlutterwaveSettings) GetSuccessRedirectUrl() string {
 
 func (x *FlutterwaveSettings) SetSecretKey(v string) {
 	x.xxx_hidden_SecretKey = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
-}
-
-func (x *FlutterwaveSettings) SetWebhookSecret(v string) {
-	x.xxx_hidden_WebhookSecret = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
 }
 
 func (x *FlutterwaveSettings) SetSuccessRedirectUrl(v string) {
 	x.xxx_hidden_SuccessRedirectUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *FlutterwaveSettings) HasSecretKey() bool {
@@ -1248,18 +1152,11 @@ func (x *FlutterwaveSettings) HasSecretKey() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *FlutterwaveSettings) HasWebhookSecret() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
 func (x *FlutterwaveSettings) HasSuccessRedirectUrl() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
 func (x *FlutterwaveSettings) ClearSecretKey() {
@@ -1267,13 +1164,8 @@ func (x *FlutterwaveSettings) ClearSecretKey() {
 	x.xxx_hidden_SecretKey = nil
 }
 
-func (x *FlutterwaveSettings) ClearWebhookSecret() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_WebhookSecret = nil
-}
-
 func (x *FlutterwaveSettings) ClearSuccessRedirectUrl() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
 	x.xxx_hidden_SuccessRedirectUrl = nil
 }
 
@@ -1282,8 +1174,6 @@ type FlutterwaveSettings_builder struct {
 
 	// The secret key; write only.
 	SecretKey *string
-	// The webhook secret hash; write only.
-	WebhookSecret *string
 	// The URL customers return to after payment.
 	SuccessRedirectUrl *string
 }
@@ -1293,15 +1183,11 @@ func (b0 FlutterwaveSettings_builder) Build() *FlutterwaveSettings {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.SecretKey != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
 		x.xxx_hidden_SecretKey = b.SecretKey
 	}
-	if b.WebhookSecret != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
-		x.xxx_hidden_WebhookSecret = b.WebhookSecret
-	}
 	if b.SuccessRedirectUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
 		x.xxx_hidden_SuccessRedirectUrl = b.SuccessRedirectUrl
 	}
 	return m0
@@ -1559,12 +1445,9 @@ func (b0 NetsuiteSettings_builder) Build() *NetsuiteSettings {
 
 // XeroSettings connects Xero by OAuth.
 type XeroSettings struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_TenantId    *string                `protobuf:"bytes,1,opt,name=tenant_id,json=tenantId"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *XeroSettings) Reset() {
@@ -1592,48 +1475,15 @@ func (x *XeroSettings) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *XeroSettings) GetTenantId() string {
-	if x != nil {
-		if x.xxx_hidden_TenantId != nil {
-			return *x.xxx_hidden_TenantId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *XeroSettings) SetTenantId(v string) {
-	x.xxx_hidden_TenantId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *XeroSettings) HasTenantId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *XeroSettings) ClearTenantId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_TenantId = nil
-}
-
 type XeroSettings_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// The Xero organization connected.
-	TenantId *string
 }
 
 func (b0 XeroSettings_builder) Build() *XeroSettings {
 	m0 := &XeroSettings{}
 	b, x := &b0, m0
 	_, _ = b, x
-	if b.TenantId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_TenantId = b.TenantId
-	}
 	return m0
 }
 
@@ -1732,7 +1582,7 @@ type AnrokSettings_builder struct {
 
 	// The API key; write only.
 	ApiKey *string
-	// The seller account ID.
+	// The seller account ID: the API key's part before its slash.
 	ExternalAccountId *string
 }
 
@@ -2134,15 +1984,11 @@ type Integration struct {
 	xxx_hidden_Name              *string                `protobuf:"bytes,3,opt,name=name"`
 	xxx_hidden_Provider          IntegrationProvider    `protobuf:"varint,4,opt,name=provider,enum=tanvo.integration.v1.IntegrationProvider"`
 	xxx_hidden_Category          v1.IntegrationCategory `protobuf:"varint,5,opt,name=category,enum=tanvo.customer.v1.IntegrationCategory"`
-	xxx_hidden_Status            IntegrationStatus      `protobuf:"varint,6,opt,name=status,enum=tanvo.integration.v1.IntegrationStatus"`
-	xxx_hidden_IsDefault         bool                   `protobuf:"varint,7,opt,name=is_default,json=isDefault"`
 	xxx_hidden_SyncInvoices      bool                   `protobuf:"varint,8,opt,name=sync_invoices,json=syncInvoices"`
 	xxx_hidden_SyncCreditNotes   bool                   `protobuf:"varint,9,opt,name=sync_credit_notes,json=syncCreditNotes"`
 	xxx_hidden_SyncPayments      bool                   `protobuf:"varint,10,opt,name=sync_payments,json=syncPayments"`
 	xxx_hidden_SyncSubscriptions bool                   `protobuf:"varint,11,opt,name=sync_subscriptions,json=syncSubscriptions"`
 	xxx_hidden_Settings          isIntegration_Settings `protobuf_oneof:"settings"`
-	xxx_hidden_WebhookUrl        *string                `protobuf:"bytes,12,opt,name=webhook_url,json=webhookUrl"`
-	xxx_hidden_LastError         *string                `protobuf:"bytes,13,opt,name=last_error,json=lastError"`
 	xxx_hidden_CreatedAt         *timestamppb.Timestamp `protobuf:"bytes,14,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt         *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=updated_at,json=updatedAt"`
 	XXX_raceDetectHookData       protoimpl.RaceDetectHookData
@@ -2222,22 +2068,6 @@ func (x *Integration) GetCategory() v1.IntegrationCategory {
 		}
 	}
 	return v1.IntegrationCategory(0)
-}
-
-func (x *Integration) GetStatus() IntegrationStatus {
-	if x != nil {
-		if protoimpl.X.Present(&(x.XXX_presence[0]), 5) {
-			return x.xxx_hidden_Status
-		}
-	}
-	return IntegrationStatus_INTEGRATION_STATUS_UNSPECIFIED
-}
-
-func (x *Integration) GetIsDefault() bool {
-	if x != nil {
-		return x.xxx_hidden_IsDefault
-	}
-	return false
 }
 
 func (x *Integration) GetSyncInvoices() bool {
@@ -2376,26 +2206,6 @@ func (x *Integration) GetSalesforce() *SalesforceSettings {
 	return nil
 }
 
-func (x *Integration) GetWebhookUrl() string {
-	if x != nil {
-		if x.xxx_hidden_WebhookUrl != nil {
-			return *x.xxx_hidden_WebhookUrl
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *Integration) GetLastError() string {
-	if x != nil {
-		if x.xxx_hidden_LastError != nil {
-			return *x.xxx_hidden_LastError
-		}
-		return ""
-	}
-	return ""
-}
-
 func (x *Integration) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_CreatedAt
@@ -2412,57 +2222,47 @@ func (x *Integration) GetUpdatedAt() *timestamppb.Timestamp {
 
 func (x *Integration) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 12)
 }
 
 func (x *Integration) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 12)
 }
 
 func (x *Integration) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 12)
 }
 
 func (x *Integration) SetProvider(v IntegrationProvider) {
 	x.xxx_hidden_Provider = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 12)
 }
 
 func (x *Integration) SetCategory(v v1.IntegrationCategory) {
 	x.xxx_hidden_Category = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 16)
-}
-
-func (x *Integration) SetStatus(v IntegrationStatus) {
-	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 16)
-}
-
-func (x *Integration) SetIsDefault(v bool) {
-	x.xxx_hidden_IsDefault = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 12)
 }
 
 func (x *Integration) SetSyncInvoices(v bool) {
 	x.xxx_hidden_SyncInvoices = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 12)
 }
 
 func (x *Integration) SetSyncCreditNotes(v bool) {
 	x.xxx_hidden_SyncCreditNotes = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 12)
 }
 
 func (x *Integration) SetSyncPayments(v bool) {
 	x.xxx_hidden_SyncPayments = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 12)
 }
 
 func (x *Integration) SetSyncSubscriptions(v bool) {
 	x.xxx_hidden_SyncSubscriptions = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 16)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 12)
 }
 
 func (x *Integration) SetStripe(v *StripeSettings) {
@@ -2561,16 +2361,6 @@ func (x *Integration) SetSalesforce(v *SalesforceSettings) {
 	x.xxx_hidden_Settings = &integration_Salesforce{v}
 }
 
-func (x *Integration) SetWebhookUrl(v string) {
-	x.xxx_hidden_WebhookUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 16)
-}
-
-func (x *Integration) SetLastError(v string) {
-	x.xxx_hidden_LastError = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 16)
-}
-
 func (x *Integration) SetCreatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_CreatedAt = v
 }
@@ -2614,46 +2404,32 @@ func (x *Integration) HasCategory() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
 }
 
-func (x *Integration) HasStatus() bool {
+func (x *Integration) HasSyncInvoices() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
 }
 
-func (x *Integration) HasIsDefault() bool {
+func (x *Integration) HasSyncCreditNotes() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
 }
 
-func (x *Integration) HasSyncInvoices() bool {
+func (x *Integration) HasSyncPayments() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
 }
 
-func (x *Integration) HasSyncCreditNotes() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
-}
-
-func (x *Integration) HasSyncPayments() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
-}
-
 func (x *Integration) HasSyncSubscriptions() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
 }
 
 func (x *Integration) HasSettings() bool {
@@ -2759,20 +2535,6 @@ func (x *Integration) HasSalesforce() bool {
 	return ok
 }
 
-func (x *Integration) HasWebhookUrl() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 12)
-}
-
-func (x *Integration) HasLastError() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 13)
-}
-
 func (x *Integration) HasCreatedAt() bool {
 	if x == nil {
 		return false
@@ -2812,33 +2574,23 @@ func (x *Integration) ClearCategory() {
 	x.xxx_hidden_Category = v1.IntegrationCategory_INTEGRATION_CATEGORY_UNSPECIFIED
 }
 
-func (x *Integration) ClearStatus() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
-	x.xxx_hidden_Status = IntegrationStatus_INTEGRATION_STATUS_UNSPECIFIED
-}
-
-func (x *Integration) ClearIsDefault() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
-	x.xxx_hidden_IsDefault = false
-}
-
 func (x *Integration) ClearSyncInvoices() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
 	x.xxx_hidden_SyncInvoices = false
 }
 
 func (x *Integration) ClearSyncCreditNotes() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
 	x.xxx_hidden_SyncCreditNotes = false
 }
 
 func (x *Integration) ClearSyncPayments() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
 	x.xxx_hidden_SyncPayments = false
 }
 
 func (x *Integration) ClearSyncSubscriptions() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
 	x.xxx_hidden_SyncSubscriptions = false
 }
 
@@ -2918,16 +2670,6 @@ func (x *Integration) ClearSalesforce() {
 	}
 }
 
-func (x *Integration) ClearWebhookUrl() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 12)
-	x.xxx_hidden_WebhookUrl = nil
-}
-
-func (x *Integration) ClearLastError() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
-	x.xxx_hidden_LastError = nil
-}
-
 func (x *Integration) ClearCreatedAt() {
 	x.xxx_hidden_CreatedAt = nil
 }
@@ -2997,10 +2739,6 @@ type Integration_builder struct {
 	Provider *IntegrationProvider
 	// The family.
 	Category *v1.IntegrationCategory
-	// The state.
-	Status *IntegrationStatus
-	// Marks the organization's default integration of its category.
-	IsDefault *bool
 	// Syncs finalized invoices.
 	SyncInvoices *bool
 	// Syncs credit notes.
@@ -3037,10 +2775,6 @@ type Integration_builder struct {
 	// Salesforce.
 	Salesforce *SalesforceSettings
 	// -- end of xxx_hidden_Settings
-	// The URL the provider sends webhooks to, for payment providers.
-	WebhookUrl *string
-	// The last error reported by the provider.
-	LastError *string
 	// When the integration was created.
 	CreatedAt *timestamppb.Timestamp
 	// When the integration last changed.
@@ -3052,47 +2786,39 @@ func (b0 Integration_builder) Build() *Integration {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 12)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 12)
 		x.xxx_hidden_Code = b.Code
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 12)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Provider != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 12)
 		x.xxx_hidden_Provider = *b.Provider
 	}
 	if b.Category != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 12)
 		x.xxx_hidden_Category = *b.Category
 	}
-	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 16)
-		x.xxx_hidden_Status = *b.Status
-	}
-	if b.IsDefault != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 16)
-		x.xxx_hidden_IsDefault = *b.IsDefault
-	}
 	if b.SyncInvoices != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 12)
 		x.xxx_hidden_SyncInvoices = *b.SyncInvoices
 	}
 	if b.SyncCreditNotes != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 12)
 		x.xxx_hidden_SyncCreditNotes = *b.SyncCreditNotes
 	}
 	if b.SyncPayments != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 12)
 		x.xxx_hidden_SyncPayments = *b.SyncPayments
 	}
 	if b.SyncSubscriptions != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 16)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 12)
 		x.xxx_hidden_SyncSubscriptions = *b.SyncSubscriptions
 	}
 	if b.Stripe != nil {
@@ -3130,14 +2856,6 @@ func (b0 Integration_builder) Build() *Integration {
 	}
 	if b.Salesforce != nil {
 		x.xxx_hidden_Settings = &integration_Salesforce{b.Salesforce}
-	}
-	if b.WebhookUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 16)
-		x.xxx_hidden_WebhookUrl = b.WebhookUrl
-	}
-	if b.LastError != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 16)
-		x.xxx_hidden_LastError = b.LastError
 	}
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
@@ -4220,179 +3938,6 @@ func (b0 CollectionMapping_builder) Build() *CollectionMapping {
 	return m0
 }
 
-// IntegrationResource is a record synced to a provider.
-type IntegrationResource struct {
-	state                   protoimpl.MessageState  `protogen:"opaque.v1"`
-	xxx_hidden_ResourceType IntegrationResourceType `protobuf:"varint,1,opt,name=resource_type,json=resourceType,enum=tanvo.integration.v1.IntegrationResourceType"`
-	xxx_hidden_SyncableId   *string                 `protobuf:"bytes,2,opt,name=syncable_id,json=syncableId"`
-	xxx_hidden_ExternalId   *string                 `protobuf:"bytes,3,opt,name=external_id,json=externalId"`
-	xxx_hidden_CreatedAt    *timestamppb.Timestamp  `protobuf:"bytes,4,opt,name=created_at,json=createdAt"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
-}
-
-func (x *IntegrationResource) Reset() {
-	*x = IntegrationResource{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[17]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *IntegrationResource) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*IntegrationResource) ProtoMessage() {}
-
-func (x *IntegrationResource) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[17]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *IntegrationResource) GetResourceType() IntegrationResourceType {
-	if x != nil {
-		if protoimpl.X.Present(&(x.XXX_presence[0]), 0) {
-			return x.xxx_hidden_ResourceType
-		}
-	}
-	return IntegrationResourceType_INTEGRATION_RESOURCE_TYPE_UNSPECIFIED
-}
-
-func (x *IntegrationResource) GetSyncableId() string {
-	if x != nil {
-		if x.xxx_hidden_SyncableId != nil {
-			return *x.xxx_hidden_SyncableId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *IntegrationResource) GetExternalId() string {
-	if x != nil {
-		if x.xxx_hidden_ExternalId != nil {
-			return *x.xxx_hidden_ExternalId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *IntegrationResource) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_CreatedAt
-	}
-	return nil
-}
-
-func (x *IntegrationResource) SetResourceType(v IntegrationResourceType) {
-	x.xxx_hidden_ResourceType = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
-}
-
-func (x *IntegrationResource) SetSyncableId(v string) {
-	x.xxx_hidden_SyncableId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
-}
-
-func (x *IntegrationResource) SetExternalId(v string) {
-	x.xxx_hidden_ExternalId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
-}
-
-func (x *IntegrationResource) SetCreatedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_CreatedAt = v
-}
-
-func (x *IntegrationResource) HasResourceType() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *IntegrationResource) HasSyncableId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *IntegrationResource) HasExternalId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *IntegrationResource) HasCreatedAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_CreatedAt != nil
-}
-
-func (x *IntegrationResource) ClearResourceType() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_ResourceType = IntegrationResourceType_INTEGRATION_RESOURCE_TYPE_UNSPECIFIED
-}
-
-func (x *IntegrationResource) ClearSyncableId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_SyncableId = nil
-}
-
-func (x *IntegrationResource) ClearExternalId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_ExternalId = nil
-}
-
-func (x *IntegrationResource) ClearCreatedAt() {
-	x.xxx_hidden_CreatedAt = nil
-}
-
-type IntegrationResource_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The kind of record.
-	ResourceType *IntegrationResourceType
-	// The record's ID in Tanvo.
-	SyncableId *string
-	// The record's ID in the provider.
-	ExternalId *string
-	// When it was synced.
-	CreatedAt *timestamppb.Timestamp
-}
-
-func (b0 IntegrationResource_builder) Build() *IntegrationResource {
-	m0 := &IntegrationResource{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.ResourceType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
-		x.xxx_hidden_ResourceType = *b.ResourceType
-	}
-	if b.SyncableId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
-		x.xxx_hidden_SyncableId = b.SyncableId
-	}
-	if b.ExternalId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
-		x.xxx_hidden_ExternalId = b.ExternalId
-	}
-	x.xxx_hidden_CreatedAt = b.CreatedAt
-	return m0
-}
-
 // CreateIntegrationRequest is the request of IntegrationService.CreateIntegration.
 type CreateIntegrationRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
@@ -4403,7 +3948,7 @@ type CreateIntegrationRequest struct {
 
 func (x *CreateIntegrationRequest) Reset() {
 	*x = CreateIntegrationRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[18]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4415,7 +3960,7 @@ func (x *CreateIntegrationRequest) String() string {
 func (*CreateIntegrationRequest) ProtoMessage() {}
 
 func (x *CreateIntegrationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[18]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4473,7 +4018,7 @@ type CreateIntegrationResponse struct {
 
 func (x *CreateIntegrationResponse) Reset() {
 	*x = CreateIntegrationResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[19]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4485,7 +4030,7 @@ func (x *CreateIntegrationResponse) String() string {
 func (*CreateIntegrationResponse) ProtoMessage() {}
 
 func (x *CreateIntegrationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[19]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4545,7 +4090,7 @@ type GetIntegrationRequest struct {
 
 func (x *GetIntegrationRequest) Reset() {
 	*x = GetIntegrationRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[20]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4557,7 +4102,7 @@ func (x *GetIntegrationRequest) String() string {
 func (*GetIntegrationRequest) ProtoMessage() {}
 
 func (x *GetIntegrationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[20]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4623,7 +4168,7 @@ type GetIntegrationResponse struct {
 
 func (x *GetIntegrationResponse) Reset() {
 	*x = GetIntegrationResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[21]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4635,7 +4180,7 @@ func (x *GetIntegrationResponse) String() string {
 func (*GetIntegrationResponse) ProtoMessage() {}
 
 func (x *GetIntegrationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[21]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4697,7 +4242,7 @@ type ListIntegrationsRequest struct {
 
 func (x *ListIntegrationsRequest) Reset() {
 	*x = ListIntegrationsRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[22]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4709,7 +4254,7 @@ func (x *ListIntegrationsRequest) String() string {
 func (*ListIntegrationsRequest) ProtoMessage() {}
 
 func (x *ListIntegrationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[22]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4805,7 +4350,7 @@ type ListIntegrationsRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `category`, `provider` and `status`.
+	// An AIP-160 filter over `category` and `provider`.
 	Filter *string
 }
 
@@ -4841,7 +4386,7 @@ type ListIntegrationsResponse struct {
 
 func (x *ListIntegrationsResponse) Reset() {
 	*x = ListIntegrationsResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[23]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4853,7 +4398,7 @@ func (x *ListIntegrationsResponse) String() string {
 func (*ListIntegrationsResponse) ProtoMessage() {}
 
 func (x *ListIntegrationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[23]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4936,7 +4481,7 @@ type UpdateIntegrationRequest struct {
 
 func (x *UpdateIntegrationRequest) Reset() {
 	*x = UpdateIntegrationRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[24]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4948,7 +4493,7 @@ func (x *UpdateIntegrationRequest) String() string {
 func (*UpdateIntegrationRequest) ProtoMessage() {}
 
 func (x *UpdateIntegrationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[24]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5032,7 +4577,7 @@ type UpdateIntegrationResponse struct {
 
 func (x *UpdateIntegrationResponse) Reset() {
 	*x = UpdateIntegrationResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[25]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5044,7 +4589,7 @@ func (x *UpdateIntegrationResponse) String() string {
 func (*UpdateIntegrationResponse) ProtoMessage() {}
 
 func (x *UpdateIntegrationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[25]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5104,7 +4649,7 @@ type DeleteIntegrationRequest struct {
 
 func (x *DeleteIntegrationRequest) Reset() {
 	*x = DeleteIntegrationRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[26]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5116,7 +4661,7 @@ func (x *DeleteIntegrationRequest) String() string {
 func (*DeleteIntegrationRequest) ProtoMessage() {}
 
 func (x *DeleteIntegrationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[26]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5181,7 +4726,7 @@ type DeleteIntegrationResponse struct {
 
 func (x *DeleteIntegrationResponse) Reset() {
 	*x = DeleteIntegrationResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[27]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5193,7 +4738,7 @@ func (x *DeleteIntegrationResponse) String() string {
 func (*DeleteIntegrationResponse) ProtoMessage() {}
 
 func (x *DeleteIntegrationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[27]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5229,7 +4774,7 @@ type StartIntegrationOauthRequest struct {
 
 func (x *StartIntegrationOauthRequest) Reset() {
 	*x = StartIntegrationOauthRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[28]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5241,7 +4786,7 @@ func (x *StartIntegrationOauthRequest) String() string {
 func (*StartIntegrationOauthRequest) ProtoMessage() {}
 
 func (x *StartIntegrationOauthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[28]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5343,7 +4888,7 @@ type StartIntegrationOauthResponse struct {
 
 func (x *StartIntegrationOauthResponse) Reset() {
 	*x = StartIntegrationOauthResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[29]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5355,7 +4900,7 @@ func (x *StartIntegrationOauthResponse) String() string {
 func (*StartIntegrationOauthResponse) ProtoMessage() {}
 
 func (x *StartIntegrationOauthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[29]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5458,7 +5003,7 @@ type CompleteIntegrationOauthRequest struct {
 
 func (x *CompleteIntegrationOauthRequest) Reset() {
 	*x = CompleteIntegrationOauthRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[30]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5470,7 +5015,7 @@ func (x *CompleteIntegrationOauthRequest) String() string {
 func (*CompleteIntegrationOauthRequest) ProtoMessage() {}
 
 func (x *CompleteIntegrationOauthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[30]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5602,7 +5147,7 @@ type CompleteIntegrationOauthResponse struct {
 
 func (x *CompleteIntegrationOauthResponse) Reset() {
 	*x = CompleteIntegrationOauthResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[31]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5614,7 +5159,7 @@ func (x *CompleteIntegrationOauthResponse) String() string {
 func (*CompleteIntegrationOauthResponse) ProtoMessage() {}
 
 func (x *CompleteIntegrationOauthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[31]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5675,7 +5220,7 @@ type SyncIntegrationItemsRequest struct {
 
 func (x *SyncIntegrationItemsRequest) Reset() {
 	*x = SyncIntegrationItemsRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[32]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5687,7 +5232,7 @@ func (x *SyncIntegrationItemsRequest) String() string {
 func (*SyncIntegrationItemsRequest) ProtoMessage() {}
 
 func (x *SyncIntegrationItemsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[32]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5784,7 +5329,7 @@ type SyncIntegrationItemsResponse struct {
 
 func (x *SyncIntegrationItemsResponse) Reset() {
 	*x = SyncIntegrationItemsResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[33]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5796,7 +5341,7 @@ func (x *SyncIntegrationItemsResponse) String() string {
 func (*SyncIntegrationItemsResponse) ProtoMessage() {}
 
 func (x *SyncIntegrationItemsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[33]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5835,7 +5380,7 @@ type ListIntegrationItemsRequest struct {
 
 func (x *ListIntegrationItemsRequest) Reset() {
 	*x = ListIntegrationItemsRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[34]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5847,7 +5392,7 @@ func (x *ListIntegrationItemsRequest) String() string {
 func (*ListIntegrationItemsRequest) ProtoMessage() {}
 
 func (x *ListIntegrationItemsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[34]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6045,7 +5590,7 @@ type ListIntegrationItemsResponse struct {
 
 func (x *ListIntegrationItemsResponse) Reset() {
 	*x = ListIntegrationItemsResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[35]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6057,7 +5602,7 @@ func (x *ListIntegrationItemsResponse) String() string {
 func (*ListIntegrationItemsResponse) ProtoMessage() {}
 
 func (x *ListIntegrationItemsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[35]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6141,7 +5686,7 @@ type ListIntegrationSubsidiariesRequest struct {
 
 func (x *ListIntegrationSubsidiariesRequest) Reset() {
 	*x = ListIntegrationSubsidiariesRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[36]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6153,7 +5698,7 @@ func (x *ListIntegrationSubsidiariesRequest) String() string {
 func (*ListIntegrationSubsidiariesRequest) ProtoMessage() {}
 
 func (x *ListIntegrationSubsidiariesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[36]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6219,7 +5764,7 @@ type ListIntegrationSubsidiariesResponse struct {
 
 func (x *ListIntegrationSubsidiariesResponse) Reset() {
 	*x = ListIntegrationSubsidiariesResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[37]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6231,7 +5776,7 @@ func (x *ListIntegrationSubsidiariesResponse) String() string {
 func (*ListIntegrationSubsidiariesResponse) ProtoMessage() {}
 
 func (x *ListIntegrationSubsidiariesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[37]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6285,7 +5830,7 @@ type ListIntegrationMappingsRequest struct {
 
 func (x *ListIntegrationMappingsRequest) Reset() {
 	*x = ListIntegrationMappingsRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[38]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6297,7 +5842,7 @@ func (x *ListIntegrationMappingsRequest) String() string {
 func (*ListIntegrationMappingsRequest) ProtoMessage() {}
 
 func (x *ListIntegrationMappingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[38]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6463,7 +6008,7 @@ type ListIntegrationMappingsResponse struct {
 
 func (x *ListIntegrationMappingsResponse) Reset() {
 	*x = ListIntegrationMappingsResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[39]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6475,7 +6020,7 @@ func (x *ListIntegrationMappingsResponse) String() string {
 func (*ListIntegrationMappingsResponse) ProtoMessage() {}
 
 func (x *ListIntegrationMappingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[39]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6560,7 +6105,7 @@ type UpsertIntegrationMappingRequest struct {
 
 func (x *UpsertIntegrationMappingRequest) Reset() {
 	*x = UpsertIntegrationMappingRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[40]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6572,7 +6117,7 @@ func (x *UpsertIntegrationMappingRequest) String() string {
 func (*UpsertIntegrationMappingRequest) ProtoMessage() {}
 
 func (x *UpsertIntegrationMappingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[40]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6663,7 +6208,7 @@ type UpsertIntegrationMappingResponse struct {
 
 func (x *UpsertIntegrationMappingResponse) Reset() {
 	*x = UpsertIntegrationMappingResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[41]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6675,7 +6220,7 @@ func (x *UpsertIntegrationMappingResponse) String() string {
 func (*UpsertIntegrationMappingResponse) ProtoMessage() {}
 
 func (x *UpsertIntegrationMappingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[41]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6736,7 +6281,7 @@ type DeleteIntegrationMappingRequest struct {
 
 func (x *DeleteIntegrationMappingRequest) Reset() {
 	*x = DeleteIntegrationMappingRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[42]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6748,7 +6293,7 @@ func (x *DeleteIntegrationMappingRequest) String() string {
 func (*DeleteIntegrationMappingRequest) ProtoMessage() {}
 
 func (x *DeleteIntegrationMappingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[42]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6846,7 +6391,7 @@ type DeleteIntegrationMappingResponse struct {
 
 func (x *DeleteIntegrationMappingResponse) Reset() {
 	*x = DeleteIntegrationMappingResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[43]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6858,7 +6403,7 @@ func (x *DeleteIntegrationMappingResponse) String() string {
 func (*DeleteIntegrationMappingResponse) ProtoMessage() {}
 
 func (x *DeleteIntegrationMappingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[43]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6894,7 +6439,7 @@ type ListCollectionMappingsRequest struct {
 
 func (x *ListCollectionMappingsRequest) Reset() {
 	*x = ListCollectionMappingsRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[44]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6906,7 +6451,7 @@ func (x *ListCollectionMappingsRequest) String() string {
 func (*ListCollectionMappingsRequest) ProtoMessage() {}
 
 func (x *ListCollectionMappingsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[44]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7005,7 +6550,7 @@ type ListCollectionMappingsResponse struct {
 
 func (x *ListCollectionMappingsResponse) Reset() {
 	*x = ListCollectionMappingsResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[45]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7017,7 +6562,7 @@ func (x *ListCollectionMappingsResponse) String() string {
 func (*ListCollectionMappingsResponse) ProtoMessage() {}
 
 func (x *ListCollectionMappingsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[45]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7069,7 +6614,7 @@ type UpsertCollectionMappingRequest struct {
 
 func (x *UpsertCollectionMappingRequest) Reset() {
 	*x = UpsertCollectionMappingRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[46]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7081,7 +6626,7 @@ func (x *UpsertCollectionMappingRequest) String() string {
 func (*UpsertCollectionMappingRequest) ProtoMessage() {}
 
 func (x *UpsertCollectionMappingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[46]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7172,7 +6717,7 @@ type UpsertCollectionMappingResponse struct {
 
 func (x *UpsertCollectionMappingResponse) Reset() {
 	*x = UpsertCollectionMappingResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[47]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7184,7 +6729,7 @@ func (x *UpsertCollectionMappingResponse) String() string {
 func (*UpsertCollectionMappingResponse) ProtoMessage() {}
 
 func (x *UpsertCollectionMappingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[47]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7245,7 +6790,7 @@ type DeleteCollectionMappingRequest struct {
 
 func (x *DeleteCollectionMappingRequest) Reset() {
 	*x = DeleteCollectionMappingRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[48]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7257,7 +6802,7 @@ func (x *DeleteCollectionMappingRequest) String() string {
 func (*DeleteCollectionMappingRequest) ProtoMessage() {}
 
 func (x *DeleteCollectionMappingRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[48]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7355,7 +6900,7 @@ type DeleteCollectionMappingResponse struct {
 
 func (x *DeleteCollectionMappingResponse) Reset() {
 	*x = DeleteCollectionMappingResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[49]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7367,7 +6912,7 @@ func (x *DeleteCollectionMappingResponse) String() string {
 func (*DeleteCollectionMappingResponse) ProtoMessage() {}
 
 func (x *DeleteCollectionMappingResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[49]
+	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7390,292 +6935,17 @@ func (b0 DeleteCollectionMappingResponse_builder) Build() *DeleteCollectionMappi
 	return m0
 }
 
-// ListIntegrationResourcesRequest is the request of IntegrationService.ListIntegrationResources.
-type ListIntegrationResourcesRequest struct {
-	state                    protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_IntegrationId *string                `protobuf:"bytes,1,opt,name=integration_id,json=integrationId"`
-	xxx_hidden_PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize"`
-	xxx_hidden_PageToken     *string                `protobuf:"bytes,3,opt,name=page_token,json=pageToken"`
-	xxx_hidden_Filter        *string                `protobuf:"bytes,4,opt,name=filter"`
-	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
-	XXX_presence             [1]uint32
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
-}
-
-func (x *ListIntegrationResourcesRequest) Reset() {
-	*x = ListIntegrationResourcesRequest{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[50]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListIntegrationResourcesRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListIntegrationResourcesRequest) ProtoMessage() {}
-
-func (x *ListIntegrationResourcesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[50]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ListIntegrationResourcesRequest) GetIntegrationId() string {
-	if x != nil {
-		if x.xxx_hidden_IntegrationId != nil {
-			return *x.xxx_hidden_IntegrationId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListIntegrationResourcesRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.xxx_hidden_PageSize
-	}
-	return 0
-}
-
-func (x *ListIntegrationResourcesRequest) GetPageToken() string {
-	if x != nil {
-		if x.xxx_hidden_PageToken != nil {
-			return *x.xxx_hidden_PageToken
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListIntegrationResourcesRequest) GetFilter() string {
-	if x != nil {
-		if x.xxx_hidden_Filter != nil {
-			return *x.xxx_hidden_Filter
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListIntegrationResourcesRequest) SetIntegrationId(v string) {
-	x.xxx_hidden_IntegrationId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
-}
-
-func (x *ListIntegrationResourcesRequest) SetPageSize(v int32) {
-	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
-}
-
-func (x *ListIntegrationResourcesRequest) SetPageToken(v string) {
-	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
-}
-
-func (x *ListIntegrationResourcesRequest) SetFilter(v string) {
-	x.xxx_hidden_Filter = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
-}
-
-func (x *ListIntegrationResourcesRequest) HasIntegrationId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *ListIntegrationResourcesRequest) HasPageSize() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ListIntegrationResourcesRequest) HasPageToken() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *ListIntegrationResourcesRequest) HasFilter() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
-}
-
-func (x *ListIntegrationResourcesRequest) ClearIntegrationId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_IntegrationId = nil
-}
-
-func (x *ListIntegrationResourcesRequest) ClearPageSize() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_PageSize = 0
-}
-
-func (x *ListIntegrationResourcesRequest) ClearPageToken() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_PageToken = nil
-}
-
-func (x *ListIntegrationResourcesRequest) ClearFilter() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_Filter = nil
-}
-
-type ListIntegrationResourcesRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The integration's ID or `code:<code>`.
-	IntegrationId *string
-	// The maximum number of results; 20 by default, at most 1000.
-	PageSize *int32
-	// The next_page_token of the previous page.
-	PageToken *string
-	// An AIP-160 filter over `resource_type` and `syncable_id`.
-	Filter *string
-}
-
-func (b0 ListIntegrationResourcesRequest_builder) Build() *ListIntegrationResourcesRequest {
-	m0 := &ListIntegrationResourcesRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.IntegrationId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
-		x.xxx_hidden_IntegrationId = b.IntegrationId
-	}
-	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
-		x.xxx_hidden_PageSize = *b.PageSize
-	}
-	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
-		x.xxx_hidden_PageToken = b.PageToken
-	}
-	if b.Filter != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
-		x.xxx_hidden_Filter = b.Filter
-	}
-	return m0
-}
-
-// ListIntegrationResourcesResponse is the response of IntegrationService.ListIntegrationResources.
-type ListIntegrationResourcesResponse struct {
-	state                    protoimpl.MessageState  `protogen:"opaque.v1"`
-	xxx_hidden_Resources     *[]*IntegrationResource `protobuf:"bytes,1,rep,name=resources"`
-	xxx_hidden_NextPageToken *string                 `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken"`
-	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
-	XXX_presence             [1]uint32
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
-}
-
-func (x *ListIntegrationResourcesResponse) Reset() {
-	*x = ListIntegrationResourcesResponse{}
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[51]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListIntegrationResourcesResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListIntegrationResourcesResponse) ProtoMessage() {}
-
-func (x *ListIntegrationResourcesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_integration_v1_integration_proto_msgTypes[51]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ListIntegrationResourcesResponse) GetResources() []*IntegrationResource {
-	if x != nil {
-		if x.xxx_hidden_Resources != nil {
-			return *x.xxx_hidden_Resources
-		}
-	}
-	return nil
-}
-
-func (x *ListIntegrationResourcesResponse) GetNextPageToken() string {
-	if x != nil {
-		if x.xxx_hidden_NextPageToken != nil {
-			return *x.xxx_hidden_NextPageToken
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListIntegrationResourcesResponse) SetResources(v []*IntegrationResource) {
-	x.xxx_hidden_Resources = &v
-}
-
-func (x *ListIntegrationResourcesResponse) SetNextPageToken(v string) {
-	x.xxx_hidden_NextPageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
-}
-
-func (x *ListIntegrationResourcesResponse) HasNextPageToken() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ListIntegrationResourcesResponse) ClearNextPageToken() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_NextPageToken = nil
-}
-
-type ListIntegrationResourcesResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The synced records of this page.
-	Resources []*IntegrationResource
-	// The token of the next page; empty on the last page.
-	NextPageToken *string
-}
-
-func (b0 ListIntegrationResourcesResponse_builder) Build() *ListIntegrationResourcesResponse {
-	m0 := &ListIntegrationResourcesResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_Resources = &b.Resources
-	if b.NextPageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_NextPageToken = b.NextPageToken
-	}
-	return m0
-}
-
 var File_tanvo_integration_v1_integration_proto protoreflect.FileDescriptor
 
 const file_tanvo_integration_v1_integration_proto_rawDesc = "" +
 	"\n" +
-	"&tanvo/integration/v1/integration.proto\x12\x14tanvo.integration.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a tanvo/customer/v1/customer.proto\"\xb2\x01\n" +
+	"&tanvo/integration/v1/integration.proto\x12\x14tanvo.integration.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a tanvo/customer/v1/customer.proto\"\x82\x02\n" +
 	"\x0eStripeSettings\x12+\n" +
 	"\n" +
 	"secret_key\x18\x01 \x01(\tB\f\xe2A\x01\x04\xbaH\x05r\x03\x18\xff\x01R\tsecretKey\x12=\n" +
-	"\x14success_redirect_url\x18\x02 \x01(\tB\v\xbaH\br\x06\x18\x80\b\x88\x01\x01R\x12successRedirectUrl\x124\n" +
-	"\x13webhook_endpoint_id\x18\x03 \x01(\tB\x04\xe2A\x01\x03R\x11webhookEndpointId\"\xfe\x01\n" +
+	"\x14success_redirect_url\x18\x02 \x01(\tB\v\xbaH\br\x06\x18\x80\b\x88\x01\x01R\x12successRedirectUrl\x12!\n" +
+	"\fsupports_3ds\x18\x04 \x01(\bR\vsupports3ds\x12F\n" +
+	" require_terms_of_service_consent\x18\x05 \x01(\bR\x1crequireTermsOfServiceConsentJ\x04\b\x03\x10\x04R\x13webhook_endpoint_id\"\xfe\x01\n" +
 	"\rAdyenSettings\x12%\n" +
 	"\aapi_key\x18\x01 \x01(\tB\f\xe2A\x01\x04\xbaH\x05r\x03\x18\x80\bR\x06apiKey\x123\n" +
 	"\x10merchant_account\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x0fmerchantAccount\x12)\n" +
@@ -7691,12 +6961,11 @@ const file_tanvo_integration_v1_integration_proto_rawDesc = "" +
 	"\x14success_redirect_url\x18\x03 \x01(\tB\v\xbaH\br\x06\x18\x80\b\x88\x01\x01R\x12successRedirectUrl\"]\n" +
 	"\x11MoneyhashSettings\x12%\n" +
 	"\aapi_key\x18\x01 \x01(\tB\f\xe2A\x01\x04\xbaH\x05r\x03\x18\x80\bR\x06apiKey\x12!\n" +
-	"\aflow_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x06flowId\"\xb6\x01\n" +
+	"\aflow_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x06flowId\"\x97\x01\n" +
 	"\x13FlutterwaveSettings\x12+\n" +
 	"\n" +
-	"secret_key\x18\x01 \x01(\tB\f\xe2A\x01\x04\xbaH\x05r\x03\x18\x80\bR\tsecretKey\x123\n" +
-	"\x0ewebhook_secret\x18\x02 \x01(\tB\f\xe2A\x01\x04\xbaH\x05r\x03\x18\x80\bR\rwebhookSecret\x12=\n" +
-	"\x14success_redirect_url\x18\x03 \x01(\tB\v\xbaH\br\x06\x18\x80\b\x88\x01\x01R\x12successRedirectUrl\"\xa8\x02\n" +
+	"secret_key\x18\x01 \x01(\tB\f\xe2A\x01\x04\xbaH\x05r\x03\x18\x80\bR\tsecretKey\x12=\n" +
+	"\x14success_redirect_url\x18\x03 \x01(\tB\v\xbaH\br\x06\x18\x80\b\x88\x01\x01R\x12successRedirectUrlJ\x04\b\x02\x10\x03R\x0ewebhook_secret\"\xa8\x02\n" +
 	"\x10NetsuiteSettings\x12'\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\taccountId\x12%\n" +
@@ -7704,12 +6973,11 @@ const file_tanvo_integration_v1_integration_proto_rawDesc = "" +
 	"\rclient_secret\x18\x03 \x01(\tB\f\xe2A\x01\x04\xbaH\x05r\x03\x18\x80\bR\fclientSecret\x12#\n" +
 	"\btoken_id\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\atokenId\x12/\n" +
 	"\ftoken_secret\x18\x05 \x01(\tB\f\xe2A\x01\x04\xbaH\x05r\x03\x18\x80\bR\vtokenSecret\x12;\n" +
-	"\x13script_endpoint_url\x18\x06 \x01(\tB\v\xbaH\br\x06\x18\x80\b\x88\x01\x01R\x11scriptEndpointUrl\"1\n" +
-	"\fXeroSettings\x12!\n" +
-	"\ttenant_id\x18\x01 \x01(\tB\x04\xe2A\x01\x03R\btenantId\"p\n" +
+	"\x13script_endpoint_url\x18\x06 \x01(\tB\v\xbaH\br\x06\x18\x80\b\x88\x01\x01R\x11scriptEndpointUrl\"\x1f\n" +
+	"\fXeroSettingsJ\x04\b\x01\x10\x02R\ttenant_id\"l\n" +
 	"\rAnrokSettings\x12%\n" +
-	"\aapi_key\x18\x01 \x01(\tB\f\xe2A\x01\x04\xbaH\x05r\x03\x18\x80\bR\x06apiKey\x128\n" +
-	"\x13external_account_id\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x11externalAccountId\"\xbb\x01\n" +
+	"\aapi_key\x18\x01 \x01(\tB\f\xe2A\x01\x04\xbaH\x05r\x03\x18\x80\bR\x06apiKey\x124\n" +
+	"\x13external_account_id\x18\x02 \x01(\tB\x04\xe2A\x01\x03R\x11externalAccountId\"\xbb\x01\n" +
 	"\x0fAvalaraSettings\x12'\n" +
 	"\n" +
 	"account_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\taccountId\x12-\n" +
@@ -7723,16 +6991,13 @@ const file_tanvo_integration_v1_integration_proto_rawDesc = "" +
 	"\tportal_id\x18\x02 \x01(\tB\x04\xe2A\x01\x03R\bportalId\"?\n" +
 	"\x12SalesforceSettings\x12)\n" +
 	"\vinstance_id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\n" +
-	"instanceId\"\xf1\f\n" +
+	"instanceId\"\x83\f\n" +
 	"\vIntegration\x12\x14\n" +
-	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12#\n" +
-	"\x04code\x18\x02 \x01(\tB\x0f\xe2A\x02\x02\x05\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x04code\x12\"\n" +
+	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\"\n" +
+	"\x04code\x18\x02 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x04code\x12\"\n" +
 	"\x04name\x18\x03 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\x10\x01\x18\xff\x01R\x04name\x12K\n" +
 	"\bprovider\x18\x04 \x01(\x0e2).tanvo.integration.v1.IntegrationProviderB\x04\xe2A\x01\x03R\bprovider\x12H\n" +
-	"\bcategory\x18\x05 \x01(\x0e2&.tanvo.customer.v1.IntegrationCategoryB\x04\xe2A\x01\x03R\bcategory\x12E\n" +
-	"\x06status\x18\x06 \x01(\x0e2'.tanvo.integration.v1.IntegrationStatusB\x04\xe2A\x01\x03R\x06status\x12\x1d\n" +
-	"\n" +
-	"is_default\x18\a \x01(\bR\tisDefault\x12#\n" +
+	"\bcategory\x18\x05 \x01(\x0e2&.tanvo.customer.v1.IntegrationCategoryB\x04\xe2A\x01\x03R\bcategory\x12#\n" +
 	"\rsync_invoices\x18\b \x01(\bR\fsyncInvoices\x12*\n" +
 	"\x11sync_credit_notes\x18\t \x01(\bR\x0fsyncCreditNotes\x12#\n" +
 	"\rsync_payments\x18\n" +
@@ -7753,18 +7018,16 @@ const file_tanvo_integration_v1_integration_proto_rawDesc = "" +
 	"\ahubspot\x18\x1e \x01(\v2%.tanvo.integration.v1.HubspotSettingsH\x00R\ahubspot\x12J\n" +
 	"\n" +
 	"salesforce\x18\x1f \x01(\v2(.tanvo.integration.v1.SalesforceSettingsH\x00R\n" +
-	"salesforce\x12%\n" +
-	"\vwebhook_url\x18\f \x01(\tB\x04\xe2A\x01\x03R\n" +
-	"webhookUrl\x12#\n" +
-	"\n" +
-	"last_error\x18\r \x01(\tB\x04\xe2A\x01\x03R\tlastError\x12?\n" +
+	"salesforce\x12?\n" +
 	"\n" +
 	"created_at\x18\x0e \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
 	"updated_at\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:Q\xeaAN\n" +
 	"\x15tanvo.xyz/Integration\x12\x1aintegrations/{integration}*\fintegrations2\vintegrationB\n" +
 	"\n" +
-	"\bsettings\"\xe3\x01\n" +
+	"\bsettingsJ\x04\b\x06\x10\aJ\x04\b\a\x10\bJ\x04\b\f\x10\rJ\x04\b\r\x10\x0eR\x06statusR\n" +
+	"is_defaultR\vwebhook_urlR\n" +
+	"last_error\"\xe3\x01\n" +
 	"\x0fIntegrationItem\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12F\n" +
 	"\titem_type\x18\x02 \x01(\x0e2).tanvo.integration.v1.IntegrationItemTypeR\bitemType\x12\x1f\n" +
@@ -7805,15 +7068,7 @@ const file_tanvo_integration_v1_integration_proto_rawDesc = "" +
 	"currencies\x1a=\n" +
 	"\x0fCurrenciesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe6\x01\n" +
-	"\x13IntegrationResource\x12R\n" +
-	"\rresource_type\x18\x01 \x01(\x0e2-.tanvo.integration.v1.IntegrationResourceTypeR\fresourceType\x12\x1f\n" +
-	"\vsyncable_id\x18\x02 \x01(\tR\n" +
-	"syncableId\x12\x1f\n" +
-	"\vexternal_id\x18\x03 \x01(\tR\n" +
-	"externalId\x129\n" +
-	"\n" +
-	"created_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x8d\x05\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8d\x05\n" +
 	"\x18CreateIntegrationRequest\x12O\n" +
 	"\vintegration\x18\x01 \x01(\v2!.tanvo.integration.v1.IntegrationB\n" +
 	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\vintegration:\x9f\x04\xbaH\x9b\x04\x1a\x98\x04\n" +
@@ -7926,18 +7181,7 @@ const file_tanvo_integration_v1_integration_proto_rawDesc = "" +
 	"\x0eintegration_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\rintegrationId\x12C\n" +
 	"\x15collection_mapping_id\x18\x02 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\x13collectionMappingId\"!\n" +
-	"\x1fDeleteCollectionMappingResponse\"\xcf\x01\n" +
-	"\x1fListIntegrationResourcesRequest\x128\n" +
-	"\x0eintegration_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\rintegrationId\x12'\n" +
-	"\tpage_size\x18\x02 \x01(\x05B\n" +
-	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
-	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12 \n" +
-	"\x06filter\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\"\x93\x01\n" +
-	" ListIntegrationResourcesResponse\x12G\n" +
-	"\tresources\x18\x01 \x03(\v2).tanvo.integration.v1.IntegrationResourceR\tresources\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken*\xd9\x03\n" +
+	"\x1fDeleteCollectionMappingResponse*\xd9\x03\n" +
 	"\x13IntegrationProvider\x12$\n" +
 	" INTEGRATION_PROVIDER_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bINTEGRATION_PROVIDER_STRIPE\x10\x01\x12\x1e\n" +
@@ -7952,12 +7196,7 @@ const file_tanvo_integration_v1_integration_proto_rawDesc = "" +
 	"\x1cINTEGRATION_PROVIDER_AVALARA\x10\n" +
 	"\x12 \n" +
 	"\x1cINTEGRATION_PROVIDER_HUBSPOT\x10\v\x12#\n" +
-	"\x1fINTEGRATION_PROVIDER_SALESFORCE\x10\f*\x94\x01\n" +
-	"\x11IntegrationStatus\x12\"\n" +
-	"\x1eINTEGRATION_STATUS_UNSPECIFIED\x10\x00\x12\x1e\n" +
-	"\x1aINTEGRATION_STATUS_PENDING\x10\x01\x12\x1d\n" +
-	"\x19INTEGRATION_STATUS_ACTIVE\x10\x02\x12\x1c\n" +
-	"\x18INTEGRATION_STATUS_ERROR\x10\x03*j\n" +
+	"\x1fINTEGRATION_PROVIDER_SALESFORCE\x10\f*j\n" +
 	"\fMappableType\x12\x1d\n" +
 	"\x19MAPPABLE_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14MAPPABLE_TYPE_ADD_ON\x10\x01\x12!\n" +
@@ -7977,17 +7216,11 @@ const file_tanvo_integration_v1_integration_proto_rawDesc = "" +
 	"!INTEGRATION_ITEM_TYPE_UNSPECIFIED\x10\x00\x12\"\n" +
 	"\x1eINTEGRATION_ITEM_TYPE_STANDARD\x10\x01\x12\x1d\n" +
 	"\x19INTEGRATION_ITEM_TYPE_TAX\x10\x02\x12!\n" +
-	"\x1dINTEGRATION_ITEM_TYPE_ACCOUNT\x10\x03*\xe9\x01\n" +
-	"\x17IntegrationResourceType\x12)\n" +
-	"%INTEGRATION_RESOURCE_TYPE_UNSPECIFIED\x10\x00\x12%\n" +
-	"!INTEGRATION_RESOURCE_TYPE_INVOICE\x10\x01\x12%\n" +
-	"!INTEGRATION_RESOURCE_TYPE_PAYMENT\x10\x02\x12)\n" +
-	"%INTEGRATION_RESOURCE_TYPE_CREDIT_NOTE\x10\x03\x12*\n" +
-	"&INTEGRATION_RESOURCE_TYPE_SUBSCRIPTION\x10\x04*\x8d\x01\n" +
+	"\x1dINTEGRATION_ITEM_TYPE_ACCOUNT\x10\x03*\x8d\x01\n" +
 	"\x15HubspotTargetedObject\x12'\n" +
 	"#HUBSPOT_TARGETED_OBJECT_UNSPECIFIED\x10\x00\x12%\n" +
 	"!HUBSPOT_TARGETED_OBJECT_COMPANIES\x10\x01\x12$\n" +
-	" HUBSPOT_TARGETED_OBJECT_CONTACTS\x10\x022\x8f\x1e\n" +
+	" HUBSPOT_TARGETED_OBJECT_CONTACTS\x10\x022\xa7\x1c\n" +
 	"\x12IntegrationService\x12\xc1\x01\n" +
 	"\x11CreateIntegration\x12..tanvo.integration.v1.CreateIntegrationRequest\x1a/.tanvo.integration.v1.CreateIntegrationResponse\"K\xca\xf3\x18\"\n" +
 	" organization:integrations:create\x82\xd3\xe4\x93\x02\x1f:\vintegration\"\x10/v1/integrations\x12\xbd\x01\n" +
@@ -8020,160 +7253,147 @@ const file_tanvo_integration_v1_integration_proto_rawDesc = "" +
 	"\x17UpsertCollectionMapping\x124.tanvo.integration.v1.UpsertCollectionMappingRequest\x1a5.tanvo.integration.v1.UpsertCollectionMappingResponse\"z\xca\xf3\x18\"\n" +
 	" organization:integrations:update\x82\xd3\xe4\x93\x02K:\x12collection_mapping\x1a5/v1/integrations/{integration_id}/collection_mappings\x90\x02\x02\x12\x83\x02\n" +
 	"\x17DeleteCollectionMapping\x124.tanvo.integration.v1.DeleteCollectionMappingRequest\x1a5.tanvo.integration.v1.DeleteCollectionMappingResponse\"{\xca\xf3\x18\"\n" +
-	" organization:integrations:update\x82\xd3\xe4\x93\x02O*M/v1/integrations/{integration_id}/collection_mappings/{collection_mapping_id}\x12\xe5\x01\n" +
-	"\x18ListIntegrationResources\x125.tanvo.integration.v1.ListIntegrationResourcesRequest\x1a6.tanvo.integration.v1.ListIntegrationResourcesResponse\"Z\xca\xf3\x18 \n" +
-	"\x1eorganization:integrations:read\x82\xd3\xe4\x93\x02-\x12+/v1/integrations/{integration_id}/resources\x90\x02\x01B\xee\x01\n" +
+	" organization:integrations:update\x82\xd3\xe4\x93\x02O*M/v1/integrations/{integration_id}/collection_mappings/{collection_mapping_id}B\xee\x01\n" +
 	"\x18com.tanvo.integration.v1B\x10IntegrationProtoP\x01ZNgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/integration/v1;integrationv1\xa2\x02\x03TIX\xaa\x02\x14Tanvo.Integration.V1\xca\x02\x14Tanvo\\Integration\\V1\xe2\x02 Tanvo\\Integration\\V1\\GPBMetadata\xea\x02\x16Tanvo::Integration::V1b\beditionsp\xe8\a"
 
-var file_tanvo_integration_v1_integration_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_tanvo_integration_v1_integration_proto_msgTypes = make([]protoimpl.MessageInfo, 53)
+var file_tanvo_integration_v1_integration_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
+var file_tanvo_integration_v1_integration_proto_msgTypes = make([]protoimpl.MessageInfo, 50)
 var file_tanvo_integration_v1_integration_proto_goTypes = []any{
 	(IntegrationProvider)(0),                    // 0: tanvo.integration.v1.IntegrationProvider
-	(IntegrationStatus)(0),                      // 1: tanvo.integration.v1.IntegrationStatus
-	(MappableType)(0),                           // 2: tanvo.integration.v1.MappableType
-	(CollectionMappingType)(0),                  // 3: tanvo.integration.v1.CollectionMappingType
-	(IntegrationItemType)(0),                    // 4: tanvo.integration.v1.IntegrationItemType
-	(IntegrationResourceType)(0),                // 5: tanvo.integration.v1.IntegrationResourceType
-	(HubspotTargetedObject)(0),                  // 6: tanvo.integration.v1.HubspotTargetedObject
-	(*StripeSettings)(nil),                      // 7: tanvo.integration.v1.StripeSettings
-	(*AdyenSettings)(nil),                       // 8: tanvo.integration.v1.AdyenSettings
-	(*GocardlessSettings)(nil),                  // 9: tanvo.integration.v1.GocardlessSettings
-	(*CashfreeSettings)(nil),                    // 10: tanvo.integration.v1.CashfreeSettings
-	(*MoneyhashSettings)(nil),                   // 11: tanvo.integration.v1.MoneyhashSettings
-	(*FlutterwaveSettings)(nil),                 // 12: tanvo.integration.v1.FlutterwaveSettings
-	(*NetsuiteSettings)(nil),                    // 13: tanvo.integration.v1.NetsuiteSettings
-	(*XeroSettings)(nil),                        // 14: tanvo.integration.v1.XeroSettings
-	(*AnrokSettings)(nil),                       // 15: tanvo.integration.v1.AnrokSettings
-	(*AvalaraSettings)(nil),                     // 16: tanvo.integration.v1.AvalaraSettings
-	(*HubspotSettings)(nil),                     // 17: tanvo.integration.v1.HubspotSettings
-	(*SalesforceSettings)(nil),                  // 18: tanvo.integration.v1.SalesforceSettings
-	(*Integration)(nil),                         // 19: tanvo.integration.v1.Integration
-	(*IntegrationItem)(nil),                     // 20: tanvo.integration.v1.IntegrationItem
-	(*IntegrationSubsidiary)(nil),               // 21: tanvo.integration.v1.IntegrationSubsidiary
-	(*IntegrationMapping)(nil),                  // 22: tanvo.integration.v1.IntegrationMapping
-	(*CollectionMapping)(nil),                   // 23: tanvo.integration.v1.CollectionMapping
-	(*IntegrationResource)(nil),                 // 24: tanvo.integration.v1.IntegrationResource
-	(*CreateIntegrationRequest)(nil),            // 25: tanvo.integration.v1.CreateIntegrationRequest
-	(*CreateIntegrationResponse)(nil),           // 26: tanvo.integration.v1.CreateIntegrationResponse
-	(*GetIntegrationRequest)(nil),               // 27: tanvo.integration.v1.GetIntegrationRequest
-	(*GetIntegrationResponse)(nil),              // 28: tanvo.integration.v1.GetIntegrationResponse
-	(*ListIntegrationsRequest)(nil),             // 29: tanvo.integration.v1.ListIntegrationsRequest
-	(*ListIntegrationsResponse)(nil),            // 30: tanvo.integration.v1.ListIntegrationsResponse
-	(*UpdateIntegrationRequest)(nil),            // 31: tanvo.integration.v1.UpdateIntegrationRequest
-	(*UpdateIntegrationResponse)(nil),           // 32: tanvo.integration.v1.UpdateIntegrationResponse
-	(*DeleteIntegrationRequest)(nil),            // 33: tanvo.integration.v1.DeleteIntegrationRequest
-	(*DeleteIntegrationResponse)(nil),           // 34: tanvo.integration.v1.DeleteIntegrationResponse
-	(*StartIntegrationOauthRequest)(nil),        // 35: tanvo.integration.v1.StartIntegrationOauthRequest
-	(*StartIntegrationOauthResponse)(nil),       // 36: tanvo.integration.v1.StartIntegrationOauthResponse
-	(*CompleteIntegrationOauthRequest)(nil),     // 37: tanvo.integration.v1.CompleteIntegrationOauthRequest
-	(*CompleteIntegrationOauthResponse)(nil),    // 38: tanvo.integration.v1.CompleteIntegrationOauthResponse
-	(*SyncIntegrationItemsRequest)(nil),         // 39: tanvo.integration.v1.SyncIntegrationItemsRequest
-	(*SyncIntegrationItemsResponse)(nil),        // 40: tanvo.integration.v1.SyncIntegrationItemsResponse
-	(*ListIntegrationItemsRequest)(nil),         // 41: tanvo.integration.v1.ListIntegrationItemsRequest
-	(*ListIntegrationItemsResponse)(nil),        // 42: tanvo.integration.v1.ListIntegrationItemsResponse
-	(*ListIntegrationSubsidiariesRequest)(nil),  // 43: tanvo.integration.v1.ListIntegrationSubsidiariesRequest
-	(*ListIntegrationSubsidiariesResponse)(nil), // 44: tanvo.integration.v1.ListIntegrationSubsidiariesResponse
-	(*ListIntegrationMappingsRequest)(nil),      // 45: tanvo.integration.v1.ListIntegrationMappingsRequest
-	(*ListIntegrationMappingsResponse)(nil),     // 46: tanvo.integration.v1.ListIntegrationMappingsResponse
-	(*UpsertIntegrationMappingRequest)(nil),     // 47: tanvo.integration.v1.UpsertIntegrationMappingRequest
-	(*UpsertIntegrationMappingResponse)(nil),    // 48: tanvo.integration.v1.UpsertIntegrationMappingResponse
-	(*DeleteIntegrationMappingRequest)(nil),     // 49: tanvo.integration.v1.DeleteIntegrationMappingRequest
-	(*DeleteIntegrationMappingResponse)(nil),    // 50: tanvo.integration.v1.DeleteIntegrationMappingResponse
-	(*ListCollectionMappingsRequest)(nil),       // 51: tanvo.integration.v1.ListCollectionMappingsRequest
-	(*ListCollectionMappingsResponse)(nil),      // 52: tanvo.integration.v1.ListCollectionMappingsResponse
-	(*UpsertCollectionMappingRequest)(nil),      // 53: tanvo.integration.v1.UpsertCollectionMappingRequest
-	(*UpsertCollectionMappingResponse)(nil),     // 54: tanvo.integration.v1.UpsertCollectionMappingResponse
-	(*DeleteCollectionMappingRequest)(nil),      // 55: tanvo.integration.v1.DeleteCollectionMappingRequest
-	(*DeleteCollectionMappingResponse)(nil),     // 56: tanvo.integration.v1.DeleteCollectionMappingResponse
-	(*ListIntegrationResourcesRequest)(nil),     // 57: tanvo.integration.v1.ListIntegrationResourcesRequest
-	(*ListIntegrationResourcesResponse)(nil),    // 58: tanvo.integration.v1.ListIntegrationResourcesResponse
-	nil,                                         // 59: tanvo.integration.v1.CollectionMapping.CurrenciesEntry
-	(v1.IntegrationCategory)(0),                 // 60: tanvo.customer.v1.IntegrationCategory
-	(*timestamppb.Timestamp)(nil),               // 61: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),               // 62: google.protobuf.FieldMask
+	(MappableType)(0),                           // 1: tanvo.integration.v1.MappableType
+	(CollectionMappingType)(0),                  // 2: tanvo.integration.v1.CollectionMappingType
+	(IntegrationItemType)(0),                    // 3: tanvo.integration.v1.IntegrationItemType
+	(HubspotTargetedObject)(0),                  // 4: tanvo.integration.v1.HubspotTargetedObject
+	(*StripeSettings)(nil),                      // 5: tanvo.integration.v1.StripeSettings
+	(*AdyenSettings)(nil),                       // 6: tanvo.integration.v1.AdyenSettings
+	(*GocardlessSettings)(nil),                  // 7: tanvo.integration.v1.GocardlessSettings
+	(*CashfreeSettings)(nil),                    // 8: tanvo.integration.v1.CashfreeSettings
+	(*MoneyhashSettings)(nil),                   // 9: tanvo.integration.v1.MoneyhashSettings
+	(*FlutterwaveSettings)(nil),                 // 10: tanvo.integration.v1.FlutterwaveSettings
+	(*NetsuiteSettings)(nil),                    // 11: tanvo.integration.v1.NetsuiteSettings
+	(*XeroSettings)(nil),                        // 12: tanvo.integration.v1.XeroSettings
+	(*AnrokSettings)(nil),                       // 13: tanvo.integration.v1.AnrokSettings
+	(*AvalaraSettings)(nil),                     // 14: tanvo.integration.v1.AvalaraSettings
+	(*HubspotSettings)(nil),                     // 15: tanvo.integration.v1.HubspotSettings
+	(*SalesforceSettings)(nil),                  // 16: tanvo.integration.v1.SalesforceSettings
+	(*Integration)(nil),                         // 17: tanvo.integration.v1.Integration
+	(*IntegrationItem)(nil),                     // 18: tanvo.integration.v1.IntegrationItem
+	(*IntegrationSubsidiary)(nil),               // 19: tanvo.integration.v1.IntegrationSubsidiary
+	(*IntegrationMapping)(nil),                  // 20: tanvo.integration.v1.IntegrationMapping
+	(*CollectionMapping)(nil),                   // 21: tanvo.integration.v1.CollectionMapping
+	(*CreateIntegrationRequest)(nil),            // 22: tanvo.integration.v1.CreateIntegrationRequest
+	(*CreateIntegrationResponse)(nil),           // 23: tanvo.integration.v1.CreateIntegrationResponse
+	(*GetIntegrationRequest)(nil),               // 24: tanvo.integration.v1.GetIntegrationRequest
+	(*GetIntegrationResponse)(nil),              // 25: tanvo.integration.v1.GetIntegrationResponse
+	(*ListIntegrationsRequest)(nil),             // 26: tanvo.integration.v1.ListIntegrationsRequest
+	(*ListIntegrationsResponse)(nil),            // 27: tanvo.integration.v1.ListIntegrationsResponse
+	(*UpdateIntegrationRequest)(nil),            // 28: tanvo.integration.v1.UpdateIntegrationRequest
+	(*UpdateIntegrationResponse)(nil),           // 29: tanvo.integration.v1.UpdateIntegrationResponse
+	(*DeleteIntegrationRequest)(nil),            // 30: tanvo.integration.v1.DeleteIntegrationRequest
+	(*DeleteIntegrationResponse)(nil),           // 31: tanvo.integration.v1.DeleteIntegrationResponse
+	(*StartIntegrationOauthRequest)(nil),        // 32: tanvo.integration.v1.StartIntegrationOauthRequest
+	(*StartIntegrationOauthResponse)(nil),       // 33: tanvo.integration.v1.StartIntegrationOauthResponse
+	(*CompleteIntegrationOauthRequest)(nil),     // 34: tanvo.integration.v1.CompleteIntegrationOauthRequest
+	(*CompleteIntegrationOauthResponse)(nil),    // 35: tanvo.integration.v1.CompleteIntegrationOauthResponse
+	(*SyncIntegrationItemsRequest)(nil),         // 36: tanvo.integration.v1.SyncIntegrationItemsRequest
+	(*SyncIntegrationItemsResponse)(nil),        // 37: tanvo.integration.v1.SyncIntegrationItemsResponse
+	(*ListIntegrationItemsRequest)(nil),         // 38: tanvo.integration.v1.ListIntegrationItemsRequest
+	(*ListIntegrationItemsResponse)(nil),        // 39: tanvo.integration.v1.ListIntegrationItemsResponse
+	(*ListIntegrationSubsidiariesRequest)(nil),  // 40: tanvo.integration.v1.ListIntegrationSubsidiariesRequest
+	(*ListIntegrationSubsidiariesResponse)(nil), // 41: tanvo.integration.v1.ListIntegrationSubsidiariesResponse
+	(*ListIntegrationMappingsRequest)(nil),      // 42: tanvo.integration.v1.ListIntegrationMappingsRequest
+	(*ListIntegrationMappingsResponse)(nil),     // 43: tanvo.integration.v1.ListIntegrationMappingsResponse
+	(*UpsertIntegrationMappingRequest)(nil),     // 44: tanvo.integration.v1.UpsertIntegrationMappingRequest
+	(*UpsertIntegrationMappingResponse)(nil),    // 45: tanvo.integration.v1.UpsertIntegrationMappingResponse
+	(*DeleteIntegrationMappingRequest)(nil),     // 46: tanvo.integration.v1.DeleteIntegrationMappingRequest
+	(*DeleteIntegrationMappingResponse)(nil),    // 47: tanvo.integration.v1.DeleteIntegrationMappingResponse
+	(*ListCollectionMappingsRequest)(nil),       // 48: tanvo.integration.v1.ListCollectionMappingsRequest
+	(*ListCollectionMappingsResponse)(nil),      // 49: tanvo.integration.v1.ListCollectionMappingsResponse
+	(*UpsertCollectionMappingRequest)(nil),      // 50: tanvo.integration.v1.UpsertCollectionMappingRequest
+	(*UpsertCollectionMappingResponse)(nil),     // 51: tanvo.integration.v1.UpsertCollectionMappingResponse
+	(*DeleteCollectionMappingRequest)(nil),      // 52: tanvo.integration.v1.DeleteCollectionMappingRequest
+	(*DeleteCollectionMappingResponse)(nil),     // 53: tanvo.integration.v1.DeleteCollectionMappingResponse
+	nil,                                         // 54: tanvo.integration.v1.CollectionMapping.CurrenciesEntry
+	(v1.IntegrationCategory)(0),                 // 55: tanvo.customer.v1.IntegrationCategory
+	(*timestamppb.Timestamp)(nil),               // 56: google.protobuf.Timestamp
+	(*fieldmaskpb.FieldMask)(nil),               // 57: google.protobuf.FieldMask
 }
 var file_tanvo_integration_v1_integration_proto_depIdxs = []int32{
-	6,  // 0: tanvo.integration.v1.HubspotSettings.default_targeted_object:type_name -> tanvo.integration.v1.HubspotTargetedObject
+	4,  // 0: tanvo.integration.v1.HubspotSettings.default_targeted_object:type_name -> tanvo.integration.v1.HubspotTargetedObject
 	0,  // 1: tanvo.integration.v1.Integration.provider:type_name -> tanvo.integration.v1.IntegrationProvider
-	60, // 2: tanvo.integration.v1.Integration.category:type_name -> tanvo.customer.v1.IntegrationCategory
-	1,  // 3: tanvo.integration.v1.Integration.status:type_name -> tanvo.integration.v1.IntegrationStatus
-	7,  // 4: tanvo.integration.v1.Integration.stripe:type_name -> tanvo.integration.v1.StripeSettings
-	8,  // 5: tanvo.integration.v1.Integration.adyen:type_name -> tanvo.integration.v1.AdyenSettings
-	9,  // 6: tanvo.integration.v1.Integration.gocardless:type_name -> tanvo.integration.v1.GocardlessSettings
-	10, // 7: tanvo.integration.v1.Integration.cashfree:type_name -> tanvo.integration.v1.CashfreeSettings
-	11, // 8: tanvo.integration.v1.Integration.moneyhash:type_name -> tanvo.integration.v1.MoneyhashSettings
-	12, // 9: tanvo.integration.v1.Integration.flutterwave:type_name -> tanvo.integration.v1.FlutterwaveSettings
-	13, // 10: tanvo.integration.v1.Integration.netsuite:type_name -> tanvo.integration.v1.NetsuiteSettings
-	14, // 11: tanvo.integration.v1.Integration.xero:type_name -> tanvo.integration.v1.XeroSettings
-	15, // 12: tanvo.integration.v1.Integration.anrok:type_name -> tanvo.integration.v1.AnrokSettings
-	16, // 13: tanvo.integration.v1.Integration.avalara:type_name -> tanvo.integration.v1.AvalaraSettings
-	17, // 14: tanvo.integration.v1.Integration.hubspot:type_name -> tanvo.integration.v1.HubspotSettings
-	18, // 15: tanvo.integration.v1.Integration.salesforce:type_name -> tanvo.integration.v1.SalesforceSettings
-	61, // 16: tanvo.integration.v1.Integration.created_at:type_name -> google.protobuf.Timestamp
-	61, // 17: tanvo.integration.v1.Integration.updated_at:type_name -> google.protobuf.Timestamp
-	4,  // 18: tanvo.integration.v1.IntegrationItem.item_type:type_name -> tanvo.integration.v1.IntegrationItemType
-	2,  // 19: tanvo.integration.v1.IntegrationMapping.mappable_type:type_name -> tanvo.integration.v1.MappableType
-	3,  // 20: tanvo.integration.v1.CollectionMapping.mapping_type:type_name -> tanvo.integration.v1.CollectionMappingType
-	59, // 21: tanvo.integration.v1.CollectionMapping.currencies:type_name -> tanvo.integration.v1.CollectionMapping.CurrenciesEntry
-	5,  // 22: tanvo.integration.v1.IntegrationResource.resource_type:type_name -> tanvo.integration.v1.IntegrationResourceType
-	61, // 23: tanvo.integration.v1.IntegrationResource.created_at:type_name -> google.protobuf.Timestamp
-	19, // 24: tanvo.integration.v1.CreateIntegrationRequest.integration:type_name -> tanvo.integration.v1.Integration
-	19, // 25: tanvo.integration.v1.CreateIntegrationResponse.integration:type_name -> tanvo.integration.v1.Integration
-	19, // 26: tanvo.integration.v1.GetIntegrationResponse.integration:type_name -> tanvo.integration.v1.Integration
-	19, // 27: tanvo.integration.v1.ListIntegrationsResponse.integrations:type_name -> tanvo.integration.v1.Integration
-	19, // 28: tanvo.integration.v1.UpdateIntegrationRequest.integration:type_name -> tanvo.integration.v1.Integration
-	62, // 29: tanvo.integration.v1.UpdateIntegrationRequest.update_mask:type_name -> google.protobuf.FieldMask
-	19, // 30: tanvo.integration.v1.UpdateIntegrationResponse.integration:type_name -> tanvo.integration.v1.Integration
-	19, // 31: tanvo.integration.v1.CompleteIntegrationOauthResponse.integration:type_name -> tanvo.integration.v1.Integration
-	4,  // 32: tanvo.integration.v1.SyncIntegrationItemsRequest.item_type:type_name -> tanvo.integration.v1.IntegrationItemType
-	20, // 33: tanvo.integration.v1.ListIntegrationItemsResponse.items:type_name -> tanvo.integration.v1.IntegrationItem
-	21, // 34: tanvo.integration.v1.ListIntegrationSubsidiariesResponse.subsidiaries:type_name -> tanvo.integration.v1.IntegrationSubsidiary
-	22, // 35: tanvo.integration.v1.ListIntegrationMappingsResponse.mappings:type_name -> tanvo.integration.v1.IntegrationMapping
-	22, // 36: tanvo.integration.v1.UpsertIntegrationMappingRequest.mapping:type_name -> tanvo.integration.v1.IntegrationMapping
-	22, // 37: tanvo.integration.v1.UpsertIntegrationMappingResponse.mapping:type_name -> tanvo.integration.v1.IntegrationMapping
-	23, // 38: tanvo.integration.v1.ListCollectionMappingsResponse.collection_mappings:type_name -> tanvo.integration.v1.CollectionMapping
-	23, // 39: tanvo.integration.v1.UpsertCollectionMappingRequest.collection_mapping:type_name -> tanvo.integration.v1.CollectionMapping
-	23, // 40: tanvo.integration.v1.UpsertCollectionMappingResponse.collection_mapping:type_name -> tanvo.integration.v1.CollectionMapping
-	24, // 41: tanvo.integration.v1.ListIntegrationResourcesResponse.resources:type_name -> tanvo.integration.v1.IntegrationResource
-	25, // 42: tanvo.integration.v1.IntegrationService.CreateIntegration:input_type -> tanvo.integration.v1.CreateIntegrationRequest
-	27, // 43: tanvo.integration.v1.IntegrationService.GetIntegration:input_type -> tanvo.integration.v1.GetIntegrationRequest
-	29, // 44: tanvo.integration.v1.IntegrationService.ListIntegrations:input_type -> tanvo.integration.v1.ListIntegrationsRequest
-	31, // 45: tanvo.integration.v1.IntegrationService.UpdateIntegration:input_type -> tanvo.integration.v1.UpdateIntegrationRequest
-	33, // 46: tanvo.integration.v1.IntegrationService.DeleteIntegration:input_type -> tanvo.integration.v1.DeleteIntegrationRequest
-	35, // 47: tanvo.integration.v1.IntegrationService.StartIntegrationOauth:input_type -> tanvo.integration.v1.StartIntegrationOauthRequest
-	37, // 48: tanvo.integration.v1.IntegrationService.CompleteIntegrationOauth:input_type -> tanvo.integration.v1.CompleteIntegrationOauthRequest
-	39, // 49: tanvo.integration.v1.IntegrationService.SyncIntegrationItems:input_type -> tanvo.integration.v1.SyncIntegrationItemsRequest
-	41, // 50: tanvo.integration.v1.IntegrationService.ListIntegrationItems:input_type -> tanvo.integration.v1.ListIntegrationItemsRequest
-	43, // 51: tanvo.integration.v1.IntegrationService.ListIntegrationSubsidiaries:input_type -> tanvo.integration.v1.ListIntegrationSubsidiariesRequest
-	45, // 52: tanvo.integration.v1.IntegrationService.ListIntegrationMappings:input_type -> tanvo.integration.v1.ListIntegrationMappingsRequest
-	47, // 53: tanvo.integration.v1.IntegrationService.UpsertIntegrationMapping:input_type -> tanvo.integration.v1.UpsertIntegrationMappingRequest
-	49, // 54: tanvo.integration.v1.IntegrationService.DeleteIntegrationMapping:input_type -> tanvo.integration.v1.DeleteIntegrationMappingRequest
-	51, // 55: tanvo.integration.v1.IntegrationService.ListCollectionMappings:input_type -> tanvo.integration.v1.ListCollectionMappingsRequest
-	53, // 56: tanvo.integration.v1.IntegrationService.UpsertCollectionMapping:input_type -> tanvo.integration.v1.UpsertCollectionMappingRequest
-	55, // 57: tanvo.integration.v1.IntegrationService.DeleteCollectionMapping:input_type -> tanvo.integration.v1.DeleteCollectionMappingRequest
-	57, // 58: tanvo.integration.v1.IntegrationService.ListIntegrationResources:input_type -> tanvo.integration.v1.ListIntegrationResourcesRequest
-	26, // 59: tanvo.integration.v1.IntegrationService.CreateIntegration:output_type -> tanvo.integration.v1.CreateIntegrationResponse
-	28, // 60: tanvo.integration.v1.IntegrationService.GetIntegration:output_type -> tanvo.integration.v1.GetIntegrationResponse
-	30, // 61: tanvo.integration.v1.IntegrationService.ListIntegrations:output_type -> tanvo.integration.v1.ListIntegrationsResponse
-	32, // 62: tanvo.integration.v1.IntegrationService.UpdateIntegration:output_type -> tanvo.integration.v1.UpdateIntegrationResponse
-	34, // 63: tanvo.integration.v1.IntegrationService.DeleteIntegration:output_type -> tanvo.integration.v1.DeleteIntegrationResponse
-	36, // 64: tanvo.integration.v1.IntegrationService.StartIntegrationOauth:output_type -> tanvo.integration.v1.StartIntegrationOauthResponse
-	38, // 65: tanvo.integration.v1.IntegrationService.CompleteIntegrationOauth:output_type -> tanvo.integration.v1.CompleteIntegrationOauthResponse
-	40, // 66: tanvo.integration.v1.IntegrationService.SyncIntegrationItems:output_type -> tanvo.integration.v1.SyncIntegrationItemsResponse
-	42, // 67: tanvo.integration.v1.IntegrationService.ListIntegrationItems:output_type -> tanvo.integration.v1.ListIntegrationItemsResponse
-	44, // 68: tanvo.integration.v1.IntegrationService.ListIntegrationSubsidiaries:output_type -> tanvo.integration.v1.ListIntegrationSubsidiariesResponse
-	46, // 69: tanvo.integration.v1.IntegrationService.ListIntegrationMappings:output_type -> tanvo.integration.v1.ListIntegrationMappingsResponse
-	48, // 70: tanvo.integration.v1.IntegrationService.UpsertIntegrationMapping:output_type -> tanvo.integration.v1.UpsertIntegrationMappingResponse
-	50, // 71: tanvo.integration.v1.IntegrationService.DeleteIntegrationMapping:output_type -> tanvo.integration.v1.DeleteIntegrationMappingResponse
-	52, // 72: tanvo.integration.v1.IntegrationService.ListCollectionMappings:output_type -> tanvo.integration.v1.ListCollectionMappingsResponse
-	54, // 73: tanvo.integration.v1.IntegrationService.UpsertCollectionMapping:output_type -> tanvo.integration.v1.UpsertCollectionMappingResponse
-	56, // 74: tanvo.integration.v1.IntegrationService.DeleteCollectionMapping:output_type -> tanvo.integration.v1.DeleteCollectionMappingResponse
-	58, // 75: tanvo.integration.v1.IntegrationService.ListIntegrationResources:output_type -> tanvo.integration.v1.ListIntegrationResourcesResponse
-	59, // [59:76] is the sub-list for method output_type
-	42, // [42:59] is the sub-list for method input_type
-	42, // [42:42] is the sub-list for extension type_name
-	42, // [42:42] is the sub-list for extension extendee
-	0,  // [0:42] is the sub-list for field type_name
+	55, // 2: tanvo.integration.v1.Integration.category:type_name -> tanvo.customer.v1.IntegrationCategory
+	5,  // 3: tanvo.integration.v1.Integration.stripe:type_name -> tanvo.integration.v1.StripeSettings
+	6,  // 4: tanvo.integration.v1.Integration.adyen:type_name -> tanvo.integration.v1.AdyenSettings
+	7,  // 5: tanvo.integration.v1.Integration.gocardless:type_name -> tanvo.integration.v1.GocardlessSettings
+	8,  // 6: tanvo.integration.v1.Integration.cashfree:type_name -> tanvo.integration.v1.CashfreeSettings
+	9,  // 7: tanvo.integration.v1.Integration.moneyhash:type_name -> tanvo.integration.v1.MoneyhashSettings
+	10, // 8: tanvo.integration.v1.Integration.flutterwave:type_name -> tanvo.integration.v1.FlutterwaveSettings
+	11, // 9: tanvo.integration.v1.Integration.netsuite:type_name -> tanvo.integration.v1.NetsuiteSettings
+	12, // 10: tanvo.integration.v1.Integration.xero:type_name -> tanvo.integration.v1.XeroSettings
+	13, // 11: tanvo.integration.v1.Integration.anrok:type_name -> tanvo.integration.v1.AnrokSettings
+	14, // 12: tanvo.integration.v1.Integration.avalara:type_name -> tanvo.integration.v1.AvalaraSettings
+	15, // 13: tanvo.integration.v1.Integration.hubspot:type_name -> tanvo.integration.v1.HubspotSettings
+	16, // 14: tanvo.integration.v1.Integration.salesforce:type_name -> tanvo.integration.v1.SalesforceSettings
+	56, // 15: tanvo.integration.v1.Integration.created_at:type_name -> google.protobuf.Timestamp
+	56, // 16: tanvo.integration.v1.Integration.updated_at:type_name -> google.protobuf.Timestamp
+	3,  // 17: tanvo.integration.v1.IntegrationItem.item_type:type_name -> tanvo.integration.v1.IntegrationItemType
+	1,  // 18: tanvo.integration.v1.IntegrationMapping.mappable_type:type_name -> tanvo.integration.v1.MappableType
+	2,  // 19: tanvo.integration.v1.CollectionMapping.mapping_type:type_name -> tanvo.integration.v1.CollectionMappingType
+	54, // 20: tanvo.integration.v1.CollectionMapping.currencies:type_name -> tanvo.integration.v1.CollectionMapping.CurrenciesEntry
+	17, // 21: tanvo.integration.v1.CreateIntegrationRequest.integration:type_name -> tanvo.integration.v1.Integration
+	17, // 22: tanvo.integration.v1.CreateIntegrationResponse.integration:type_name -> tanvo.integration.v1.Integration
+	17, // 23: tanvo.integration.v1.GetIntegrationResponse.integration:type_name -> tanvo.integration.v1.Integration
+	17, // 24: tanvo.integration.v1.ListIntegrationsResponse.integrations:type_name -> tanvo.integration.v1.Integration
+	17, // 25: tanvo.integration.v1.UpdateIntegrationRequest.integration:type_name -> tanvo.integration.v1.Integration
+	57, // 26: tanvo.integration.v1.UpdateIntegrationRequest.update_mask:type_name -> google.protobuf.FieldMask
+	17, // 27: tanvo.integration.v1.UpdateIntegrationResponse.integration:type_name -> tanvo.integration.v1.Integration
+	17, // 28: tanvo.integration.v1.CompleteIntegrationOauthResponse.integration:type_name -> tanvo.integration.v1.Integration
+	3,  // 29: tanvo.integration.v1.SyncIntegrationItemsRequest.item_type:type_name -> tanvo.integration.v1.IntegrationItemType
+	18, // 30: tanvo.integration.v1.ListIntegrationItemsResponse.items:type_name -> tanvo.integration.v1.IntegrationItem
+	19, // 31: tanvo.integration.v1.ListIntegrationSubsidiariesResponse.subsidiaries:type_name -> tanvo.integration.v1.IntegrationSubsidiary
+	20, // 32: tanvo.integration.v1.ListIntegrationMappingsResponse.mappings:type_name -> tanvo.integration.v1.IntegrationMapping
+	20, // 33: tanvo.integration.v1.UpsertIntegrationMappingRequest.mapping:type_name -> tanvo.integration.v1.IntegrationMapping
+	20, // 34: tanvo.integration.v1.UpsertIntegrationMappingResponse.mapping:type_name -> tanvo.integration.v1.IntegrationMapping
+	21, // 35: tanvo.integration.v1.ListCollectionMappingsResponse.collection_mappings:type_name -> tanvo.integration.v1.CollectionMapping
+	21, // 36: tanvo.integration.v1.UpsertCollectionMappingRequest.collection_mapping:type_name -> tanvo.integration.v1.CollectionMapping
+	21, // 37: tanvo.integration.v1.UpsertCollectionMappingResponse.collection_mapping:type_name -> tanvo.integration.v1.CollectionMapping
+	22, // 38: tanvo.integration.v1.IntegrationService.CreateIntegration:input_type -> tanvo.integration.v1.CreateIntegrationRequest
+	24, // 39: tanvo.integration.v1.IntegrationService.GetIntegration:input_type -> tanvo.integration.v1.GetIntegrationRequest
+	26, // 40: tanvo.integration.v1.IntegrationService.ListIntegrations:input_type -> tanvo.integration.v1.ListIntegrationsRequest
+	28, // 41: tanvo.integration.v1.IntegrationService.UpdateIntegration:input_type -> tanvo.integration.v1.UpdateIntegrationRequest
+	30, // 42: tanvo.integration.v1.IntegrationService.DeleteIntegration:input_type -> tanvo.integration.v1.DeleteIntegrationRequest
+	32, // 43: tanvo.integration.v1.IntegrationService.StartIntegrationOauth:input_type -> tanvo.integration.v1.StartIntegrationOauthRequest
+	34, // 44: tanvo.integration.v1.IntegrationService.CompleteIntegrationOauth:input_type -> tanvo.integration.v1.CompleteIntegrationOauthRequest
+	36, // 45: tanvo.integration.v1.IntegrationService.SyncIntegrationItems:input_type -> tanvo.integration.v1.SyncIntegrationItemsRequest
+	38, // 46: tanvo.integration.v1.IntegrationService.ListIntegrationItems:input_type -> tanvo.integration.v1.ListIntegrationItemsRequest
+	40, // 47: tanvo.integration.v1.IntegrationService.ListIntegrationSubsidiaries:input_type -> tanvo.integration.v1.ListIntegrationSubsidiariesRequest
+	42, // 48: tanvo.integration.v1.IntegrationService.ListIntegrationMappings:input_type -> tanvo.integration.v1.ListIntegrationMappingsRequest
+	44, // 49: tanvo.integration.v1.IntegrationService.UpsertIntegrationMapping:input_type -> tanvo.integration.v1.UpsertIntegrationMappingRequest
+	46, // 50: tanvo.integration.v1.IntegrationService.DeleteIntegrationMapping:input_type -> tanvo.integration.v1.DeleteIntegrationMappingRequest
+	48, // 51: tanvo.integration.v1.IntegrationService.ListCollectionMappings:input_type -> tanvo.integration.v1.ListCollectionMappingsRequest
+	50, // 52: tanvo.integration.v1.IntegrationService.UpsertCollectionMapping:input_type -> tanvo.integration.v1.UpsertCollectionMappingRequest
+	52, // 53: tanvo.integration.v1.IntegrationService.DeleteCollectionMapping:input_type -> tanvo.integration.v1.DeleteCollectionMappingRequest
+	23, // 54: tanvo.integration.v1.IntegrationService.CreateIntegration:output_type -> tanvo.integration.v1.CreateIntegrationResponse
+	25, // 55: tanvo.integration.v1.IntegrationService.GetIntegration:output_type -> tanvo.integration.v1.GetIntegrationResponse
+	27, // 56: tanvo.integration.v1.IntegrationService.ListIntegrations:output_type -> tanvo.integration.v1.ListIntegrationsResponse
+	29, // 57: tanvo.integration.v1.IntegrationService.UpdateIntegration:output_type -> tanvo.integration.v1.UpdateIntegrationResponse
+	31, // 58: tanvo.integration.v1.IntegrationService.DeleteIntegration:output_type -> tanvo.integration.v1.DeleteIntegrationResponse
+	33, // 59: tanvo.integration.v1.IntegrationService.StartIntegrationOauth:output_type -> tanvo.integration.v1.StartIntegrationOauthResponse
+	35, // 60: tanvo.integration.v1.IntegrationService.CompleteIntegrationOauth:output_type -> tanvo.integration.v1.CompleteIntegrationOauthResponse
+	37, // 61: tanvo.integration.v1.IntegrationService.SyncIntegrationItems:output_type -> tanvo.integration.v1.SyncIntegrationItemsResponse
+	39, // 62: tanvo.integration.v1.IntegrationService.ListIntegrationItems:output_type -> tanvo.integration.v1.ListIntegrationItemsResponse
+	41, // 63: tanvo.integration.v1.IntegrationService.ListIntegrationSubsidiaries:output_type -> tanvo.integration.v1.ListIntegrationSubsidiariesResponse
+	43, // 64: tanvo.integration.v1.IntegrationService.ListIntegrationMappings:output_type -> tanvo.integration.v1.ListIntegrationMappingsResponse
+	45, // 65: tanvo.integration.v1.IntegrationService.UpsertIntegrationMapping:output_type -> tanvo.integration.v1.UpsertIntegrationMappingResponse
+	47, // 66: tanvo.integration.v1.IntegrationService.DeleteIntegrationMapping:output_type -> tanvo.integration.v1.DeleteIntegrationMappingResponse
+	49, // 67: tanvo.integration.v1.IntegrationService.ListCollectionMappings:output_type -> tanvo.integration.v1.ListCollectionMappingsResponse
+	51, // 68: tanvo.integration.v1.IntegrationService.UpsertCollectionMapping:output_type -> tanvo.integration.v1.UpsertCollectionMappingResponse
+	53, // 69: tanvo.integration.v1.IntegrationService.DeleteCollectionMapping:output_type -> tanvo.integration.v1.DeleteCollectionMappingResponse
+	54, // [54:70] is the sub-list for method output_type
+	38, // [38:54] is the sub-list for method input_type
+	38, // [38:38] is the sub-list for extension type_name
+	38, // [38:38] is the sub-list for extension extendee
+	0,  // [0:38] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_integration_v1_integration_proto_init() }
@@ -8200,8 +7420,8 @@ func file_tanvo_integration_v1_integration_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_integration_v1_integration_proto_rawDesc), len(file_tanvo_integration_v1_integration_proto_rawDesc)),
-			NumEnums:      7,
-			NumMessages:   53,
+			NumEnums:      5,
+			NumMessages:   50,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

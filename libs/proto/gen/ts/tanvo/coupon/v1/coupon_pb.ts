@@ -16,6 +16,8 @@ import { file_google_api_field_behavior } from "../../../google/api/field_behavi
 import { file_google_api_resource } from "../../../google/api/resource_pb.js";
 import type { FieldMask, Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_field_mask, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { PaymentStatus } from "../../common/v1/enums_pb.js";
+import { file_tanvo_common_v1_enums } from "../../common/v1/enums_pb.js";
 import { file_tanvo_common_v1_options } from "../../common/v1/options_pb.js";
 import type { Money } from "../../common/v1/types_pb.js";
 import { file_tanvo_common_v1_types } from "../../common/v1/types_pb.js";
@@ -25,7 +27,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file tanvo/coupon/v1/coupon.proto.
  */
 export const file_tanvo_coupon_v1_coupon: GenFile = /*@__PURE__*/
-  fileDesc("Chx0YW52by9jb3Vwb24vdjEvY291cG9uLnByb3RvEg90YW52by5jb3Vwb24udjEinAsKBkNvdXBvbhIQCgJpZBgBIAEoCUIE4kEBCBIcCgRjb2RlGAIgASgJQg7iQQECukgHcgXopMoGARIcCgRuYW1lGAMgASgJQg7iQQECukgHcgUQARj/ARIdCgtkZXNjcmlwdGlvbhgEIAEoCUIIukgFcgMYgAgSPgoLY291cG9uX3R5cGUYBSABKA4yGy50YW52by5jb3Vwb24udjEuQ291cG9uVHlwZUIM4kEBArpIBYIBAhABEiYKBmFtb3VudBgGIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRIjCg9wZXJjZW50YWdlX3JhdGUYByABKAlCCrpIB3IF0KTKBgESQQoJZnJlcXVlbmN5GAggASgOMiAudGFudm8uY291cG9uLnYxLkNvdXBvbkZyZXF1ZW5jeUIM4kEBArpIBYIBAhABEiMKEmZyZXF1ZW5jeV9kdXJhdGlvbhgJIAEoBUIHukgEGgIoARIQCghyZXVzYWJsZRgKIAEoCBI/CgpleHBpcmF0aW9uGAsgASgOMiEudGFudm8uY291cG9uLnYxLkNvdXBvbkV4cGlyYXRpb25CCLpIBYIBAhABEjEKDWV4cGlyYXRpb25fYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi0KEGxpbWl0ZWRfcGxhbl9pZHMYDSADKAlCE7pIEJIBDRBkGAEiB3IF4KTKBgESOAobbGltaXRlZF9iaWxsYWJsZV9tZXRyaWNfaWRzGA4gAygJQhO6SBCSAQ0QZBgBIgdyBeCkygYBEjMKBnN0YXR1cxgPIAEoDjIdLnRhbnZvLmNvdXBvbi52MS5Db3Vwb25TdGF0dXNCBOJBAQMSNwoNdGVybWluYXRlZF9hdBgQIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNAoKY3JlYXRlZF9hdBgRIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNAoKdXBkYXRlZF9hdBgSIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQM65gTqQTUKEHRhbnZvLnh5ei9Db3Vwb24SEGNvdXBvbnMve2NvdXBvbn0qB2NvdXBvbnMyBmNvdXBvbrpIqgQa8QEKDWNvdXBvbi5hbW91bnQSSmEgRklYRURfQU1PVU5UIGNvdXBvbiBuZWVkcyBhbW91bnQgYW5kIGEgUEVSQ0VOVEFHRSBjb3Vwb24gcGVyY2VudGFnZV9yYXRlGpMBIWhhcyh0aGlzLmNvdXBvbl90eXBlKSB8fCAodGhpcy5jb3Vwb25fdHlwZSA9PSAxID8gaGFzKHRoaXMuYW1vdW50KSAmJiAhaGFzKHRoaXMucGVyY2VudGFnZV9yYXRlKSA6IGhhcyh0aGlzLnBlcmNlbnRhZ2VfcmF0ZSkgJiYgIWhhcyh0aGlzLmFtb3VudCkpGp4BChljb3Vwb24uZnJlcXVlbmN5X2R1cmF0aW9uEjRmcmVxdWVuY3lfZHVyYXRpb24gaXMgcmVxdWlyZWQgZm9yIFJFQ1VSUklORyBjb3Vwb25zGkshaGFzKHRoaXMuZnJlcXVlbmN5KSB8fCB0aGlzLmZyZXF1ZW5jeSAhPSAyIHx8IGhhcyh0aGlzLmZyZXF1ZW5jeV9kdXJhdGlvbikakgEKFGNvdXBvbi5leHBpcmF0aW9uX2F0EjBleHBpcmF0aW9uX2F0IGlzIHJlcXVpcmVkIGZvciBUSU1FX0xJTUlUIGNvdXBvbnMaSCFoYXModGhpcy5leHBpcmF0aW9uKSB8fCB0aGlzLmV4cGlyYXRpb24gIT0gMiB8fCBoYXModGhpcy5leHBpcmF0aW9uX2F0KSK5BQoNQXBwbGllZENvdXBvbhIQCgJpZBgBIAEoCUIE4kEBCBIiCgljb3Vwb25faWQYAiABKAlCD+JBAgIFukgHcgXgpMoGARIkCgtjdXN0b21lcl9pZBgDIAEoCUIP4kECAgW6SAdyBeCkygYBEiYKBmFtb3VudBgEIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRIjCg9wZXJjZW50YWdlX3JhdGUYBSABKAlCCrpIB3IF0KTKBgESPQoJZnJlcXVlbmN5GAYgASgOMiAudGFudm8uY291cG9uLnYxLkNvdXBvbkZyZXF1ZW5jeUIIukgFggECEAESIwoSZnJlcXVlbmN5X2R1cmF0aW9uGAcgASgFQge6SAQaAigBEioKHGZyZXF1ZW5jeV9kdXJhdGlvbl9yZW1haW5pbmcYCCABKAVCBOJBAQMSNgoQcmVtYWluaW5nX2Ftb3VudBgJIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leUIE4kEBAxIzCgZzdGF0dXMYCiABKA4yHS50YW52by5jb3Vwb24udjEuQ291cG9uU3RhdHVzQgTiQQEDEjcKDXRlcm1pbmF0ZWRfYXQYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCmNyZWF0ZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCnVwZGF0ZWRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDOl3qQVoKF3RhbnZvLnh5ei9BcHBsaWVkQ291cG9uEiBhcHBsaWVkX2NvdXBvbnMve2FwcGxpZWRfY291cG9ufSoOYXBwbGllZENvdXBvbnMyDWFwcGxpZWRDb3Vwb24ihwIKE0NyZWF0ZUNvdXBvblJlcXVlc3QSMwoGY291cG9uGAEgASgLMhcudGFudm8uY291cG9uLnYxLkNvdXBvbkIK4kEBArpIA8gBATq6AbpItgEaswEKD2NvdXBvbi5yZXF1aXJlZBIyY29kZSwgbmFtZSwgY291cG9uX3R5cGUgYW5kIGZyZXF1ZW5jeSBhcmUgcmVxdWlyZWQabGhhcyh0aGlzLmNvdXBvbi5jb2RlKSAmJiBoYXModGhpcy5jb3Vwb24ubmFtZSkgJiYgaGFzKHRoaXMuY291cG9uLmNvdXBvbl90eXBlKSAmJiBoYXModGhpcy5jb3Vwb24uZnJlcXVlbmN5KSI/ChRDcmVhdGVDb3Vwb25SZXNwb25zZRInCgZjb3Vwb24YASABKAsyFy50YW52by5jb3Vwb24udjEuQ291cG9uIjgKEEdldENvdXBvblJlcXVlc3QSJAoJY291cG9uX2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGASI8ChFHZXRDb3Vwb25SZXNwb25zZRInCgZjb3Vwb24YASABKAsyFy50YW52by5jb3Vwb24udjEuQ291cG9uIoUBChJMaXN0Q291cG9uc1JlcXVlc3QSHQoJcGFnZV9zaXplGAEgASgFQgq6SAcaBRjoBygAEhwKCnBhZ2VfdG9rZW4YAiABKAlCCLpIBXIDGIAIEhgKBmZpbHRlchgDIAEoCUIIukgFcgMYgBASGAoGc2VhcmNoGAQgASgJQgi6SAVyAxj/ASJYChNMaXN0Q291cG9uc1Jlc3BvbnNlEigKB2NvdXBvbnMYASADKAsyFy50YW52by5jb3Vwb24udjEuQ291cG9uEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSK5AQoTVXBkYXRlQ291cG9uUmVxdWVzdBIzCgZjb3Vwb24YASABKAsyFy50YW52by5jb3Vwb24udjEuQ291cG9uQgriQQECukgDyAEBEi8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzazo8ukg5GjcKCWNvdXBvbi5pZBIVY291cG9uLmlkIGlzIHJlcXVpcmVkGhNoYXModGhpcy5jb3Vwb24uaWQpIj8KFFVwZGF0ZUNvdXBvblJlc3BvbnNlEicKBmNvdXBvbhgBIAEoCzIXLnRhbnZvLmNvdXBvbi52MS5Db3Vwb24iPgoWVGVybWluYXRlQ291cG9uUmVxdWVzdBIkCgljb3Vwb25faWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBIkIKF1Rlcm1pbmF0ZUNvdXBvblJlc3BvbnNlEicKBmNvdXBvbhgBIAEoCzIXLnRhbnZvLmNvdXBvbi52MS5Db3Vwb24iOwoTRGVsZXRlQ291cG9uUmVxdWVzdBIkCgljb3Vwb25faWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBIhYKFERlbGV0ZUNvdXBvblJlc3BvbnNlIu8BChJBcHBseUNvdXBvblJlcXVlc3QSQgoOYXBwbGllZF9jb3Vwb24YASABKAsyHi50YW52by5jb3Vwb24udjEuQXBwbGllZENvdXBvbkIK4kEBArpIA8gBATqUAbpIkAEajQEKF2FwcGxpZWRfY291cG9uLnJlcXVpcmVkEiZjb3Vwb25faWQgYW5kIGN1c3RvbWVyX2lkIGFyZSByZXF1aXJlZBpKaGFzKHRoaXMuYXBwbGllZF9jb3Vwb24uY291cG9uX2lkKSAmJiBoYXModGhpcy5hcHBsaWVkX2NvdXBvbi5jdXN0b21lcl9pZCkiTQoTQXBwbHlDb3Vwb25SZXNwb25zZRI2Cg5hcHBsaWVkX2NvdXBvbhgBIAEoCzIeLnRhbnZvLmNvdXBvbi52MS5BcHBsaWVkQ291cG9uIkUKF0dldEFwcGxpZWRDb3Vwb25SZXF1ZXN0EioKEWFwcGxpZWRfY291cG9uX2lkGAEgASgJQg/iQQECukgIyAEBcgOwAQEiUgoYR2V0QXBwbGllZENvdXBvblJlc3BvbnNlEjYKDmFwcGxpZWRfY291cG9uGAEgASgLMh4udGFudm8uY291cG9uLnYxLkFwcGxpZWRDb3Vwb24ikwEKGUxpc3RBcHBsaWVkQ291cG9uc1JlcXVlc3QSHwoLY3VzdG9tZXJfaWQYASABKAlCCrpIB3IF4KTKBgESHQoJcGFnZV9zaXplGAIgASgFQgq6SAcaBRjoBygAEhwKCnBhZ2VfdG9rZW4YAyABKAlCCLpIBXIDGIAIEhgKBmZpbHRlchgEIAEoCUIIukgFcgMYgBAibgoaTGlzdEFwcGxpZWRDb3Vwb25zUmVzcG9uc2USNwoPYXBwbGllZF9jb3Vwb25zGAEgAygLMh4udGFudm8uY291cG9uLnYxLkFwcGxpZWRDb3Vwb24SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIksKHVRlcm1pbmF0ZUFwcGxpZWRDb3Vwb25SZXF1ZXN0EioKEWFwcGxpZWRfY291cG9uX2lkGAEgASgJQg/iQQECukgIyAEBcgOwAQEiWAoeVGVybWluYXRlQXBwbGllZENvdXBvblJlc3BvbnNlEjYKDmFwcGxpZWRfY291cG9uGAEgASgLMh4udGFudm8uY291cG9uLnYxLkFwcGxpZWRDb3Vwb24qYwoKQ291cG9uVHlwZRIbChdDT1VQT05fVFlQRV9VTlNQRUNJRklFRBAAEhwKGENPVVBPTl9UWVBFX0ZJWEVEX0FNT1VOVBABEhoKFkNPVVBPTl9UWVBFX1BFUkNFTlRBR0UQAiqMAQoPQ291cG9uRnJlcXVlbmN5EiAKHENPVVBPTl9GUkVRVUVOQ1lfVU5TUEVDSUZJRUQQABIZChVDT1VQT05fRlJFUVVFTkNZX09OQ0UQARIeChpDT1VQT05fRlJFUVVFTkNZX1JFQ1VSUklORxACEhwKGENPVVBPTl9GUkVRVUVOQ1lfRk9SRVZFUhADKnwKEENvdXBvbkV4cGlyYXRpb24SIQodQ09VUE9OX0VYUElSQVRJT05fVU5TUEVDSUZJRUQQABIjCh9DT1VQT05fRVhQSVJBVElPTl9OT19FWFBJUkFUSU9OEAESIAocQ09VUE9OX0VYUElSQVRJT05fVElNRV9MSU1JVBACKmUKDENvdXBvblN0YXR1cxIdChlDT1VQT05fU1RBVFVTX1VOU1BFQ0lGSUVEEAASGAoUQ09VUE9OX1NUQVRVU19BQ1RJVkUQARIcChhDT1VQT05fU1RBVFVTX1RFUk1JTkFURUQQAjKvDgoNQ291cG9uU2VydmljZRKUAQoMQ3JlYXRlQ291cG9uEiQudGFudm8uY291cG9uLnYxLkNyZWF0ZUNvdXBvblJlcXVlc3QaJS50YW52by5jb3Vwb24udjEuQ3JlYXRlQ291cG9uUmVzcG9uc2UiN8rzGBgKDmNvdXBvbnM6Y3JlYXRlKgZjb3Vwb26C0+STAhU6BmNvdXBvbiILL3YxL2NvdXBvbnMSkAEKCUdldENvdXBvbhIhLnRhbnZvLmNvdXBvbi52MS5HZXRDb3Vwb25SZXF1ZXN0GiIudGFudm8uY291cG9uLnYxLkdldENvdXBvblJlc3BvbnNlIjyQAgHK8xgWCgxjb3Vwb25zOnJlYWQqBmNvdXBvboLT5JMCGRIXL3YxL2NvdXBvbnMve2NvdXBvbl9pZH0SigEKC0xpc3RDb3Vwb25zEiMudGFudm8uY291cG9uLnYxLkxpc3RDb3Vwb25zUmVxdWVzdBokLnRhbnZvLmNvdXBvbi52MS5MaXN0Q291cG9uc1Jlc3BvbnNlIjCQAgHK8xgWCgxjb3Vwb25zOnJlYWQqBmNvdXBvboLT5JMCDRILL3YxL2NvdXBvbnMSoAEKDFVwZGF0ZUNvdXBvbhIkLnRhbnZvLmNvdXBvbi52MS5VcGRhdGVDb3Vwb25SZXF1ZXN0GiUudGFudm8uY291cG9uLnYxLlVwZGF0ZUNvdXBvblJlc3BvbnNlIkPK8xgYCg5jb3Vwb25zOnVwZGF0ZSoGY291cG9ugtPkkwIhOgZjb3Vwb24yFy92MS9jb3Vwb25zL3tjb3Vwb24uaWR9Eq4BCg9UZXJtaW5hdGVDb3Vwb24SJy50YW52by5jb3Vwb24udjEuVGVybWluYXRlQ291cG9uUmVxdWVzdBooLnRhbnZvLmNvdXBvbi52MS5UZXJtaW5hdGVDb3Vwb25SZXNwb25zZSJIyvMYGAoOY291cG9uczpkZWxldGUqBmNvdXBvboLT5JMCJjoBKiIhL3YxL2NvdXBvbnMve2NvdXBvbl9pZH06dGVybWluYXRlEpgBCgxEZWxldGVDb3Vwb24SJC50YW52by5jb3Vwb24udjEuRGVsZXRlQ291cG9uUmVxdWVzdBolLnRhbnZvLmNvdXBvbi52MS5EZWxldGVDb3Vwb25SZXNwb25zZSI7yvMYGAoOY291cG9uczpkZWxldGUqBmNvdXBvboLT5JMCGSoXL3YxL2NvdXBvbnMve2NvdXBvbl9pZH0S+AEKC0FwcGx5Q291cG9uEiMudGFudm8uY291cG9uLnYxLkFwcGx5Q291cG9uUmVxdWVzdBokLnRhbnZvLmNvdXBvbi52MS5BcHBseUNvdXBvblJlc3BvbnNlIp0ByvMYIAoOY291cG9uczphdHRhY2gqDmFwcGxpZWRfY291cG9ugtPkkwJzOg5hcHBsaWVkX2NvdXBvblpMOg5hcHBsaWVkX2NvdXBvbiI6L3YxL2N1c3RvbWVycy97YXBwbGllZF9jb3Vwb24uY3VzdG9tZXJfaWR9L2FwcGxpZWRfY291cG9ucyITL3YxL2FwcGxpZWRfY291cG9ucxK9AQoQR2V0QXBwbGllZENvdXBvbhIoLnRhbnZvLmNvdXBvbi52MS5HZXRBcHBsaWVkQ291cG9uUmVxdWVzdBopLnRhbnZvLmNvdXBvbi52MS5HZXRBcHBsaWVkQ291cG9uUmVzcG9uc2UiVJACAcrzGB4KDGNvdXBvbnM6cmVhZCoOYXBwbGllZF9jb3Vwb26C0+STAikSJy92MS9hcHBsaWVkX2NvdXBvbnMve2FwcGxpZWRfY291cG9uX2lkfRLeAQoSTGlzdEFwcGxpZWRDb3Vwb25zEioudGFudm8uY291cG9uLnYxLkxpc3RBcHBsaWVkQ291cG9uc1JlcXVlc3QaKy50YW52by5jb3Vwb24udjEuTGlzdEFwcGxpZWRDb3Vwb25zUmVzcG9uc2Uib5ACAcrzGB4KDGNvdXBvbnM6cmVhZCoOYXBwbGllZF9jb3Vwb26C0+STAkRaLRIrL3YxL2N1c3RvbWVycy97Y3VzdG9tZXJfaWR9L2FwcGxpZWRfY291cG9ucxITL3YxL2FwcGxpZWRfY291cG9ucxLbAQoWVGVybWluYXRlQXBwbGllZENvdXBvbhIuLnRhbnZvLmNvdXBvbi52MS5UZXJtaW5hdGVBcHBsaWVkQ291cG9uUmVxdWVzdBovLnRhbnZvLmNvdXBvbi52MS5UZXJtaW5hdGVBcHBsaWVkQ291cG9uUmVzcG9uc2UiYMrzGCAKDmNvdXBvbnM6ZGV0YWNoKg5hcHBsaWVkX2NvdXBvboLT5JMCNjoBKiIxL3YxL2FwcGxpZWRfY291cG9ucy97YXBwbGllZF9jb3Vwb25faWR9OnRlcm1pbmF0ZULGAQoTY29tLnRhbnZvLmNvdXBvbi52MUILQ291cG9uUHJvdG9QAVpEZ2l0aHViLmNvbS90YW52b3h5ei90YW52by9saWJzL3Byb3RvL2dlbi9nby90YW52by9jb3Vwb24vdjE7Y291cG9udjGiAgNUQ1iqAg9UYW52by5Db3Vwb24uVjHKAg9UYW52b1xDb3Vwb25cVjHiAhtUYW52b1xDb3Vwb25cVjFcR1BCTWV0YWRhdGHqAhFUYW52bzo6Q291cG9uOjpWMWIIZWRpdGlvbnNw6Ac", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
+  fileDesc("Chx0YW52by9jb3Vwb24vdjEvY291cG9uLnByb3RvEg90YW52by5jb3Vwb24udjEioAwKBkNvdXBvbhIQCgJpZBgBIAEoCUIE4kEBCBIcCgRjb2RlGAIgASgJQg7iQQECukgHcgXopMoGARIcCgRuYW1lGAMgASgJQg7iQQECukgHcgUQARj/ARIdCgtkZXNjcmlwdGlvbhgEIAEoCUIIukgFcgMYgAgSPgoLY291cG9uX3R5cGUYBSABKA4yGy50YW52by5jb3Vwb24udjEuQ291cG9uVHlwZUIM4kEBArpIBYIBAhABEiYKBmFtb3VudBgGIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRIjCg9wZXJjZW50YWdlX3JhdGUYByABKAlCCrpIB3IF0KTKBgESQQoJZnJlcXVlbmN5GAggASgOMiAudGFudm8uY291cG9uLnYxLkNvdXBvbkZyZXF1ZW5jeUIM4kEBArpIBYIBAhABEiMKEmZyZXF1ZW5jeV9kdXJhdGlvbhgJIAEoBUIHukgEGgIoARIQCghyZXVzYWJsZRgKIAEoCBI/CgpleHBpcmF0aW9uGAsgASgOMiEudGFudm8uY291cG9uLnYxLkNvdXBvbkV4cGlyYXRpb25CCLpIBYIBAhABEjEKDWV4cGlyYXRpb25fYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi0KEGxpbWl0ZWRfcGxhbl9pZHMYDSADKAlCE7pIEJIBDRBkGAEiB3IF4KTKBgESOAobbGltaXRlZF9iaWxsYWJsZV9tZXRyaWNfaWRzGA4gAygJQhO6SBCSAQ0QZBgBIgdyBeCkygYBEjMKBnN0YXR1cxgPIAEoDjIdLnRhbnZvLmNvdXBvbi52MS5Db3Vwb25TdGF0dXNCBOJBAQMSNwoNdGVybWluYXRlZF9hdBgQIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNAoKY3JlYXRlZF9hdBgRIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNAoKdXBkYXRlZF9hdBgSIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSGwoNbGltaXRlZF9wbGFucxgTIAEoCEIE4kEBAxImChhsaW1pdGVkX2JpbGxhYmxlX21ldHJpY3MYFCABKAhCBOJBAQMSGAoKcGxhbl9jb2RlcxgVIAMoCUIE4kEBAxIjChViaWxsYWJsZV9tZXRyaWNfY29kZXMYFiADKAlCBOJBAQM65gTqQTUKEHRhbnZvLnh5ei9Db3Vwb24SEGNvdXBvbnMve2NvdXBvbn0qB2NvdXBvbnMyBmNvdXBvbrpIqgQa8QEKDWNvdXBvbi5hbW91bnQSSmEgRklYRURfQU1PVU5UIGNvdXBvbiBuZWVkcyBhbW91bnQgYW5kIGEgUEVSQ0VOVEFHRSBjb3Vwb24gcGVyY2VudGFnZV9yYXRlGpMBIWhhcyh0aGlzLmNvdXBvbl90eXBlKSB8fCAodGhpcy5jb3Vwb25fdHlwZSA9PSAxID8gaGFzKHRoaXMuYW1vdW50KSAmJiAhaGFzKHRoaXMucGVyY2VudGFnZV9yYXRlKSA6IGhhcyh0aGlzLnBlcmNlbnRhZ2VfcmF0ZSkgJiYgIWhhcyh0aGlzLmFtb3VudCkpGp4BChljb3Vwb24uZnJlcXVlbmN5X2R1cmF0aW9uEjRmcmVxdWVuY3lfZHVyYXRpb24gaXMgcmVxdWlyZWQgZm9yIFJFQ1VSUklORyBjb3Vwb25zGkshaGFzKHRoaXMuZnJlcXVlbmN5KSB8fCB0aGlzLmZyZXF1ZW5jeSAhPSAyIHx8IGhhcyh0aGlzLmZyZXF1ZW5jeV9kdXJhdGlvbikakgEKFGNvdXBvbi5leHBpcmF0aW9uX2F0EjBleHBpcmF0aW9uX2F0IGlzIHJlcXVpcmVkIGZvciBUSU1FX0xJTUlUIGNvdXBvbnMaSCFoYXModGhpcy5leHBpcmF0aW9uKSB8fCB0aGlzLmV4cGlyYXRpb24gIT0gMiB8fCBoYXModGhpcy5leHBpcmF0aW9uX2F0KSKkCAoNQXBwbGllZENvdXBvbhIQCgJpZBgBIAEoCUIE4kEBCBIiCgljb3Vwb25faWQYAiABKAlCD+JBAgIFukgHcgXgpMoGARIkCgtjdXN0b21lcl9pZBgDIAEoCUIP4kECAgW6SAdyBeCkygYBEiYKBmFtb3VudBgEIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRIjCg9wZXJjZW50YWdlX3JhdGUYBSABKAlCCrpIB3IF0KTKBgESPQoJZnJlcXVlbmN5GAYgASgOMiAudGFudm8uY291cG9uLnYxLkNvdXBvbkZyZXF1ZW5jeUIIukgFggECEAESIwoSZnJlcXVlbmN5X2R1cmF0aW9uGAcgASgFQge6SAQaAigBEioKHGZyZXF1ZW5jeV9kdXJhdGlvbl9yZW1haW5pbmcYCCABKAVCBOJBAQMSNgoQcmVtYWluaW5nX2Ftb3VudBgJIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leUIE4kEBAxIzCgZzdGF0dXMYCiABKA4yHS50YW52by5jb3Vwb24udjEuQ291cG9uU3RhdHVzQgTiQQEDEjcKDXRlcm1pbmF0ZWRfYXQYCyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCmNyZWF0ZWRfYXQYDCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCnVwZGF0ZWRfYXQYDSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEhkKC2NvdXBvbl9jb2RlGA4gASgJQgTiQQEDEhkKC2NvdXBvbl9uYW1lGA8gASgJQgTiQQEDEiAKEmNvdXBvbl9kZXNjcmlwdGlvbhgQIAEoCUIE4kEBAxI6Cg1jb3Vwb25fc3RhdHVzGBEgASgOMh0udGFudm8uY291cG9uLnYxLkNvdXBvblN0YXR1c0IE4kEBAxI7ChFjb3Vwb25fZGVsZXRlZF9hdBgSIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSIgoUZXh0ZXJuYWxfY3VzdG9tZXJfaWQYEyABKAlCBOJBAQMSNwoNZXhwaXJhdGlvbl9hdBgUIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSOwoHY3JlZGl0cxgVIAMoCzIkLnRhbnZvLmNvdXBvbi52MS5BcHBsaWVkQ291cG9uQ3JlZGl0QgTiQQEDOl3qQVoKF3RhbnZvLnh5ei9BcHBsaWVkQ291cG9uEiBhcHBsaWVkX2NvdXBvbnMve2FwcGxpZWRfY291cG9ufSoOYXBwbGllZENvdXBvbnMyDWFwcGxpZWRDb3Vwb24iswEKE0FwcGxpZWRDb3Vwb25DcmVkaXQSCgoCaWQYASABKAkSJgoGYW1vdW50GAIgASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5EhQKDGJlZm9yZV90YXhlcxgDIAEoCBISCgppbnZvaWNlX2lkGAQgASgJEj4KFmludm9pY2VfcGF5bWVudF9zdGF0dXMYBSABKA4yHi50YW52by5jb21tb24udjEuUGF5bWVudFN0YXR1cyKHAgoTQ3JlYXRlQ291cG9uUmVxdWVzdBIzCgZjb3Vwb24YASABKAsyFy50YW52by5jb3Vwb24udjEuQ291cG9uQgriQQECukgDyAEBOroBuki2ARqzAQoPY291cG9uLnJlcXVpcmVkEjJjb2RlLCBuYW1lLCBjb3Vwb25fdHlwZSBhbmQgZnJlcXVlbmN5IGFyZSByZXF1aXJlZBpsaGFzKHRoaXMuY291cG9uLmNvZGUpICYmIGhhcyh0aGlzLmNvdXBvbi5uYW1lKSAmJiBoYXModGhpcy5jb3Vwb24uY291cG9uX3R5cGUpICYmIGhhcyh0aGlzLmNvdXBvbi5mcmVxdWVuY3kpIj8KFENyZWF0ZUNvdXBvblJlc3BvbnNlEicKBmNvdXBvbhgBIAEoCzIXLnRhbnZvLmNvdXBvbi52MS5Db3Vwb24iOAoQR2V0Q291cG9uUmVxdWVzdBIkCgljb3Vwb25faWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBIjwKEUdldENvdXBvblJlc3BvbnNlEicKBmNvdXBvbhgBIAEoCzIXLnRhbnZvLmNvdXBvbi52MS5Db3Vwb24ihQEKEkxpc3RDb3Vwb25zUmVxdWVzdBIdCglwYWdlX3NpemUYASABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgCIAEoCUIIukgFcgMYgAgSGAoGZmlsdGVyGAMgASgJQgi6SAVyAxiAEBIYCgZzZWFyY2gYBCABKAlCCLpIBXIDGP8BIlgKE0xpc3RDb3Vwb25zUmVzcG9uc2USKAoHY291cG9ucxgBIAMoCzIXLnRhbnZvLmNvdXBvbi52MS5Db3Vwb24SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIrkBChNVcGRhdGVDb3Vwb25SZXF1ZXN0EjMKBmNvdXBvbhgBIAEoCzIXLnRhbnZvLmNvdXBvbi52MS5Db3Vwb25CCuJBAQK6SAPIAQESLwoLdXBkYXRlX21hc2sYAiABKAsyGi5nb29nbGUucHJvdG9idWYuRmllbGRNYXNrOjy6SDkaNwoJY291cG9uLmlkEhVjb3Vwb24uaWQgaXMgcmVxdWlyZWQaE2hhcyh0aGlzLmNvdXBvbi5pZCkiPwoUVXBkYXRlQ291cG9uUmVzcG9uc2USJwoGY291cG9uGAEgASgLMhcudGFudm8uY291cG9uLnYxLkNvdXBvbiI+ChZUZXJtaW5hdGVDb3Vwb25SZXF1ZXN0EiQKCWNvdXBvbl9pZBgBIAEoCUIR4kEBArpICsgBAXIF4KTKBgEiQgoXVGVybWluYXRlQ291cG9uUmVzcG9uc2USJwoGY291cG9uGAEgASgLMhcudGFudm8uY291cG9uLnYxLkNvdXBvbiI7ChNEZWxldGVDb3Vwb25SZXF1ZXN0EiQKCWNvdXBvbl9pZBgBIAEoCUIR4kEBArpICsgBAXIF4KTKBgEiPwoURGVsZXRlQ291cG9uUmVzcG9uc2USJwoGY291cG9uGAEgASgLMhcudGFudm8uY291cG9uLnYxLkNvdXBvbiLvAQoSQXBwbHlDb3Vwb25SZXF1ZXN0EkIKDmFwcGxpZWRfY291cG9uGAEgASgLMh4udGFudm8uY291cG9uLnYxLkFwcGxpZWRDb3Vwb25CCuJBAQK6SAPIAQE6lAG6SJABGo0BChdhcHBsaWVkX2NvdXBvbi5yZXF1aXJlZBImY291cG9uX2lkIGFuZCBjdXN0b21lcl9pZCBhcmUgcmVxdWlyZWQaSmhhcyh0aGlzLmFwcGxpZWRfY291cG9uLmNvdXBvbl9pZCkgJiYgaGFzKHRoaXMuYXBwbGllZF9jb3Vwb24uY3VzdG9tZXJfaWQpIk0KE0FwcGx5Q291cG9uUmVzcG9uc2USNgoOYXBwbGllZF9jb3Vwb24YASABKAsyHi50YW52by5jb3Vwb24udjEuQXBwbGllZENvdXBvbiJFChdHZXRBcHBsaWVkQ291cG9uUmVxdWVzdBIqChFhcHBsaWVkX2NvdXBvbl9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBIlIKGEdldEFwcGxpZWRDb3Vwb25SZXNwb25zZRI2Cg5hcHBsaWVkX2NvdXBvbhgBIAEoCzIeLnRhbnZvLmNvdXBvbi52MS5BcHBsaWVkQ291cG9uIpMBChlMaXN0QXBwbGllZENvdXBvbnNSZXF1ZXN0Eh8KC2N1c3RvbWVyX2lkGAEgASgJQgq6SAdyBeCkygYBEh0KCXBhZ2Vfc2l6ZRgCIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAMgASgJQgi6SAVyAxiACBIYCgZmaWx0ZXIYBCABKAlCCLpIBXIDGIAQIm4KGkxpc3RBcHBsaWVkQ291cG9uc1Jlc3BvbnNlEjcKD2FwcGxpZWRfY291cG9ucxgBIAMoCzIeLnRhbnZvLmNvdXBvbi52MS5BcHBsaWVkQ291cG9uEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSJLCh1UZXJtaW5hdGVBcHBsaWVkQ291cG9uUmVxdWVzdBIqChFhcHBsaWVkX2NvdXBvbl9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBIlgKHlRlcm1pbmF0ZUFwcGxpZWRDb3Vwb25SZXNwb25zZRI2Cg5hcHBsaWVkX2NvdXBvbhgBIAEoCzIeLnRhbnZvLmNvdXBvbi52MS5BcHBsaWVkQ291cG9uKmMKCkNvdXBvblR5cGUSGwoXQ09VUE9OX1RZUEVfVU5TUEVDSUZJRUQQABIcChhDT1VQT05fVFlQRV9GSVhFRF9BTU9VTlQQARIaChZDT1VQT05fVFlQRV9QRVJDRU5UQUdFEAIqjAEKD0NvdXBvbkZyZXF1ZW5jeRIgChxDT1VQT05fRlJFUVVFTkNZX1VOU1BFQ0lGSUVEEAASGQoVQ09VUE9OX0ZSRVFVRU5DWV9PTkNFEAESHgoaQ09VUE9OX0ZSRVFVRU5DWV9SRUNVUlJJTkcQAhIcChhDT1VQT05fRlJFUVVFTkNZX0ZPUkVWRVIQAyp8ChBDb3Vwb25FeHBpcmF0aW9uEiEKHUNPVVBPTl9FWFBJUkFUSU9OX1VOU1BFQ0lGSUVEEAASIwofQ09VUE9OX0VYUElSQVRJT05fTk9fRVhQSVJBVElPThABEiAKHENPVVBPTl9FWFBJUkFUSU9OX1RJTUVfTElNSVQQAiplCgxDb3Vwb25TdGF0dXMSHQoZQ09VUE9OX1NUQVRVU19VTlNQRUNJRklFRBAAEhgKFENPVVBPTl9TVEFUVVNfQUNUSVZFEAESHAoYQ09VUE9OX1NUQVRVU19URVJNSU5BVEVEEAIyrw4KDUNvdXBvblNlcnZpY2USlAEKDENyZWF0ZUNvdXBvbhIkLnRhbnZvLmNvdXBvbi52MS5DcmVhdGVDb3Vwb25SZXF1ZXN0GiUudGFudm8uY291cG9uLnYxLkNyZWF0ZUNvdXBvblJlc3BvbnNlIjfK8xgYCg5jb3Vwb25zOmNyZWF0ZSoGY291cG9ugtPkkwIVOgZjb3Vwb24iCy92MS9jb3Vwb25zEpABCglHZXRDb3Vwb24SIS50YW52by5jb3Vwb24udjEuR2V0Q291cG9uUmVxdWVzdBoiLnRhbnZvLmNvdXBvbi52MS5HZXRDb3Vwb25SZXNwb25zZSI8kAIByvMYFgoMY291cG9uczpyZWFkKgZjb3Vwb26C0+STAhkSFy92MS9jb3Vwb25zL3tjb3Vwb25faWR9EooBCgtMaXN0Q291cG9ucxIjLnRhbnZvLmNvdXBvbi52MS5MaXN0Q291cG9uc1JlcXVlc3QaJC50YW52by5jb3Vwb24udjEuTGlzdENvdXBvbnNSZXNwb25zZSIwkAIByvMYFgoMY291cG9uczpyZWFkKgZjb3Vwb26C0+STAg0SCy92MS9jb3Vwb25zEqABCgxVcGRhdGVDb3Vwb24SJC50YW52by5jb3Vwb24udjEuVXBkYXRlQ291cG9uUmVxdWVzdBolLnRhbnZvLmNvdXBvbi52MS5VcGRhdGVDb3Vwb25SZXNwb25zZSJDyvMYGAoOY291cG9uczp1cGRhdGUqBmNvdXBvboLT5JMCIToGY291cG9uMhcvdjEvY291cG9ucy97Y291cG9uLmlkfRKuAQoPVGVybWluYXRlQ291cG9uEicudGFudm8uY291cG9uLnYxLlRlcm1pbmF0ZUNvdXBvblJlcXVlc3QaKC50YW52by5jb3Vwb24udjEuVGVybWluYXRlQ291cG9uUmVzcG9uc2UiSMrzGBgKDmNvdXBvbnM6ZGVsZXRlKgZjb3Vwb26C0+STAiY6ASoiIS92MS9jb3Vwb25zL3tjb3Vwb25faWR9OnRlcm1pbmF0ZRKYAQoMRGVsZXRlQ291cG9uEiQudGFudm8uY291cG9uLnYxLkRlbGV0ZUNvdXBvblJlcXVlc3QaJS50YW52by5jb3Vwb24udjEuRGVsZXRlQ291cG9uUmVzcG9uc2UiO8rzGBgKDmNvdXBvbnM6ZGVsZXRlKgZjb3Vwb26C0+STAhkqFy92MS9jb3Vwb25zL3tjb3Vwb25faWR9EvgBCgtBcHBseUNvdXBvbhIjLnRhbnZvLmNvdXBvbi52MS5BcHBseUNvdXBvblJlcXVlc3QaJC50YW52by5jb3Vwb24udjEuQXBwbHlDb3Vwb25SZXNwb25zZSKdAcrzGCAKDmNvdXBvbnM6YXR0YWNoKg5hcHBsaWVkX2NvdXBvboLT5JMCczoOYXBwbGllZF9jb3Vwb25aTDoOYXBwbGllZF9jb3Vwb24iOi92MS9jdXN0b21lcnMve2FwcGxpZWRfY291cG9uLmN1c3RvbWVyX2lkfS9hcHBsaWVkX2NvdXBvbnMiEy92MS9hcHBsaWVkX2NvdXBvbnMSvQEKEEdldEFwcGxpZWRDb3Vwb24SKC50YW52by5jb3Vwb24udjEuR2V0QXBwbGllZENvdXBvblJlcXVlc3QaKS50YW52by5jb3Vwb24udjEuR2V0QXBwbGllZENvdXBvblJlc3BvbnNlIlSQAgHK8xgeCgxjb3Vwb25zOnJlYWQqDmFwcGxpZWRfY291cG9ugtPkkwIpEicvdjEvYXBwbGllZF9jb3Vwb25zL3thcHBsaWVkX2NvdXBvbl9pZH0S3gEKEkxpc3RBcHBsaWVkQ291cG9ucxIqLnRhbnZvLmNvdXBvbi52MS5MaXN0QXBwbGllZENvdXBvbnNSZXF1ZXN0GisudGFudm8uY291cG9uLnYxLkxpc3RBcHBsaWVkQ291cG9uc1Jlc3BvbnNlIm+QAgHK8xgeCgxjb3Vwb25zOnJlYWQqDmFwcGxpZWRfY291cG9ugtPkkwJEWi0SKy92MS9jdXN0b21lcnMve2N1c3RvbWVyX2lkfS9hcHBsaWVkX2NvdXBvbnMSEy92MS9hcHBsaWVkX2NvdXBvbnMS2wEKFlRlcm1pbmF0ZUFwcGxpZWRDb3Vwb24SLi50YW52by5jb3Vwb24udjEuVGVybWluYXRlQXBwbGllZENvdXBvblJlcXVlc3QaLy50YW52by5jb3Vwb24udjEuVGVybWluYXRlQXBwbGllZENvdXBvblJlc3BvbnNlImDK8xggCg5jb3Vwb25zOmRldGFjaCoOYXBwbGllZF9jb3Vwb26C0+STAjY6ASoiMS92MS9hcHBsaWVkX2NvdXBvbnMve2FwcGxpZWRfY291cG9uX2lkfTp0ZXJtaW5hdGVCxgEKE2NvbS50YW52by5jb3Vwb24udjFCC0NvdXBvblByb3RvUAFaRGdpdGh1Yi5jb20vdGFudm94eXovdGFudm8vbGlicy9wcm90by9nZW4vZ28vdGFudm8vY291cG9uL3YxO2NvdXBvbnYxogIDVENYqgIPVGFudm8uQ291cG9uLlYxygIPVGFudm9cQ291cG9uXFYx4gIbVGFudm9cQ291cG9uXFYxXEdQQk1ldGFkYXRh6gIRVGFudm86OkNvdXBvbjo6VjFiCGVkaXRpb25zcOgH", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_tanvo_common_v1_enums, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
 
 /**
  * Coupon is a discount that can be applied to customers.
@@ -159,6 +161,34 @@ export type Coupon = Message<"tanvo.coupon.v1.Coupon"> & {
    * @generated from field: google.protobuf.Timestamp updated_at = 18;
    */
   updatedAt?: Timestamp | undefined;
+
+  /**
+   * Whether the coupon is limited to plans.
+   *
+   * @generated from field: bool limited_plans = 19;
+   */
+  limitedPlans: boolean;
+
+  /**
+   * Whether the coupon is limited to billable metrics.
+   *
+   * @generated from field: bool limited_billable_metrics = 20;
+   */
+  limitedBillableMetrics: boolean;
+
+  /**
+   * The codes of the limited plans that are not override plans.
+   *
+   * @generated from field: repeated string plan_codes = 21;
+   */
+  planCodes: string[];
+
+  /**
+   * The codes of the limited billable metrics.
+   *
+   * @generated from field: repeated string billable_metric_codes = 22;
+   */
+  billableMetricCodes: string[];
 };
 
 /**
@@ -264,6 +294,63 @@ export type AppliedCoupon = Message<"tanvo.coupon.v1.AppliedCoupon"> & {
    * @generated from field: google.protobuf.Timestamp updated_at = 13;
    */
   updatedAt?: Timestamp | undefined;
+
+  /**
+   * The coupon's code.
+   *
+   * @generated from field: string coupon_code = 14;
+   */
+  couponCode: string;
+
+  /**
+   * The coupon's name.
+   *
+   * @generated from field: string coupon_name = 15;
+   */
+  couponName: string;
+
+  /**
+   * The coupon's description.
+   *
+   * @generated from field: string coupon_description = 16;
+   */
+  couponDescription: string;
+
+  /**
+   * The coupon's state.
+   *
+   * @generated from field: tanvo.coupon.v1.CouponStatus coupon_status = 17;
+   */
+  couponStatus: CouponStatus;
+
+  /**
+   * When the coupon was deleted.
+   *
+   * @generated from field: google.protobuf.Timestamp coupon_deleted_at = 18;
+   */
+  couponDeletedAt?: Timestamp | undefined;
+
+  /**
+   * The customer's external ID.
+   *
+   * @generated from field: string external_customer_id = 19;
+   */
+  externalCustomerId: string;
+
+  /**
+   * When the coupon expires.
+   *
+   * @generated from field: google.protobuf.Timestamp expiration_at = 20;
+   */
+  expirationAt?: Timestamp | undefined;
+
+  /**
+   * The invoice credits of the applied coupon, in creation order; listed
+   * applied coupons only.
+   *
+   * @generated from field: repeated tanvo.coupon.v1.AppliedCouponCredit credits = 21;
+   */
+  credits: AppliedCouponCredit[];
 };
 
 /**
@@ -272,6 +359,56 @@ export type AppliedCoupon = Message<"tanvo.coupon.v1.AppliedCoupon"> & {
  */
 export const AppliedCouponSchema: GenMessage<AppliedCoupon> = /*@__PURE__*/
   messageDesc(file_tanvo_coupon_v1_coupon, 1);
+
+/**
+ * AppliedCouponCredit is the deduction of an applied coupon from an
+ * invoice.
+ *
+ * @generated from message tanvo.coupon.v1.AppliedCouponCredit
+ */
+export type AppliedCouponCredit = Message<"tanvo.coupon.v1.AppliedCouponCredit"> & {
+  /**
+   * The credit's ID.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * The amount deducted.
+   *
+   * @generated from field: tanvo.common.v1.Money amount = 2;
+   */
+  amount?: Money | undefined;
+
+  /**
+   * Whether the amount is deducted before taxes.
+   *
+   * @generated from field: bool before_taxes = 3;
+   */
+  beforeTaxes: boolean;
+
+  /**
+   * The credited invoice.
+   *
+   * @generated from field: string invoice_id = 4;
+   */
+  invoiceId: string;
+
+  /**
+   * The payment state of the credited invoice.
+   *
+   * @generated from field: tanvo.common.v1.PaymentStatus invoice_payment_status = 5;
+   */
+  invoicePaymentStatus: PaymentStatus;
+};
+
+/**
+ * Describes the message tanvo.coupon.v1.AppliedCouponCredit.
+ * Use `create(AppliedCouponCreditSchema)` to create a new message.
+ */
+export const AppliedCouponCreditSchema: GenMessage<AppliedCouponCredit> = /*@__PURE__*/
+  messageDesc(file_tanvo_coupon_v1_coupon, 2);
 
 /**
  * CreateCouponRequest is the request of CouponService.CreateCoupon.
@@ -292,7 +429,7 @@ export type CreateCouponRequest = Message<"tanvo.coupon.v1.CreateCouponRequest">
  * Use `create(CreateCouponRequestSchema)` to create a new message.
  */
 export const CreateCouponRequestSchema: GenMessage<CreateCouponRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 2);
+  messageDesc(file_tanvo_coupon_v1_coupon, 3);
 
 /**
  * CreateCouponResponse is the response of CouponService.CreateCoupon.
@@ -313,7 +450,7 @@ export type CreateCouponResponse = Message<"tanvo.coupon.v1.CreateCouponResponse
  * Use `create(CreateCouponResponseSchema)` to create a new message.
  */
 export const CreateCouponResponseSchema: GenMessage<CreateCouponResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 3);
+  messageDesc(file_tanvo_coupon_v1_coupon, 4);
 
 /**
  * GetCouponRequest is the request of CouponService.GetCoupon.
@@ -334,7 +471,7 @@ export type GetCouponRequest = Message<"tanvo.coupon.v1.GetCouponRequest"> & {
  * Use `create(GetCouponRequestSchema)` to create a new message.
  */
 export const GetCouponRequestSchema: GenMessage<GetCouponRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 4);
+  messageDesc(file_tanvo_coupon_v1_coupon, 5);
 
 /**
  * GetCouponResponse is the response of CouponService.GetCoupon.
@@ -355,7 +492,7 @@ export type GetCouponResponse = Message<"tanvo.coupon.v1.GetCouponResponse"> & {
  * Use `create(GetCouponResponseSchema)` to create a new message.
  */
 export const GetCouponResponseSchema: GenMessage<GetCouponResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 5);
+  messageDesc(file_tanvo_coupon_v1_coupon, 6);
 
 /**
  * ListCouponsRequest is the request of CouponService.ListCoupons.
@@ -378,7 +515,7 @@ export type ListCouponsRequest = Message<"tanvo.coupon.v1.ListCouponsRequest"> &
   pageToken: string;
 
   /**
-   * An AIP-160 filter over `status` and `coupon_type`.
+   * An AIP-160 filter over `status`.
    *
    * @generated from field: string filter = 3;
    */
@@ -397,7 +534,7 @@ export type ListCouponsRequest = Message<"tanvo.coupon.v1.ListCouponsRequest"> &
  * Use `create(ListCouponsRequestSchema)` to create a new message.
  */
 export const ListCouponsRequestSchema: GenMessage<ListCouponsRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 6);
+  messageDesc(file_tanvo_coupon_v1_coupon, 7);
 
 /**
  * ListCouponsResponse is the response of CouponService.ListCoupons.
@@ -425,7 +562,7 @@ export type ListCouponsResponse = Message<"tanvo.coupon.v1.ListCouponsResponse">
  * Use `create(ListCouponsResponseSchema)` to create a new message.
  */
 export const ListCouponsResponseSchema: GenMessage<ListCouponsResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 7);
+  messageDesc(file_tanvo_coupon_v1_coupon, 8);
 
 /**
  * UpdateCouponRequest is the request of CouponService.UpdateCoupon.
@@ -453,7 +590,7 @@ export type UpdateCouponRequest = Message<"tanvo.coupon.v1.UpdateCouponRequest">
  * Use `create(UpdateCouponRequestSchema)` to create a new message.
  */
 export const UpdateCouponRequestSchema: GenMessage<UpdateCouponRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 8);
+  messageDesc(file_tanvo_coupon_v1_coupon, 9);
 
 /**
  * UpdateCouponResponse is the response of CouponService.UpdateCoupon.
@@ -474,7 +611,7 @@ export type UpdateCouponResponse = Message<"tanvo.coupon.v1.UpdateCouponResponse
  * Use `create(UpdateCouponResponseSchema)` to create a new message.
  */
 export const UpdateCouponResponseSchema: GenMessage<UpdateCouponResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 9);
+  messageDesc(file_tanvo_coupon_v1_coupon, 10);
 
 /**
  * TerminateCouponRequest is the request of CouponService.TerminateCoupon.
@@ -495,7 +632,7 @@ export type TerminateCouponRequest = Message<"tanvo.coupon.v1.TerminateCouponReq
  * Use `create(TerminateCouponRequestSchema)` to create a new message.
  */
 export const TerminateCouponRequestSchema: GenMessage<TerminateCouponRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 10);
+  messageDesc(file_tanvo_coupon_v1_coupon, 11);
 
 /**
  * TerminateCouponResponse is the response of CouponService.TerminateCoupon.
@@ -516,7 +653,7 @@ export type TerminateCouponResponse = Message<"tanvo.coupon.v1.TerminateCouponRe
  * Use `create(TerminateCouponResponseSchema)` to create a new message.
  */
 export const TerminateCouponResponseSchema: GenMessage<TerminateCouponResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 11);
+  messageDesc(file_tanvo_coupon_v1_coupon, 12);
 
 /**
  * DeleteCouponRequest is the request of CouponService.DeleteCoupon.
@@ -537,7 +674,7 @@ export type DeleteCouponRequest = Message<"tanvo.coupon.v1.DeleteCouponRequest">
  * Use `create(DeleteCouponRequestSchema)` to create a new message.
  */
 export const DeleteCouponRequestSchema: GenMessage<DeleteCouponRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 12);
+  messageDesc(file_tanvo_coupon_v1_coupon, 13);
 
 /**
  * DeleteCouponResponse is the response of CouponService.DeleteCoupon.
@@ -545,6 +682,12 @@ export const DeleteCouponRequestSchema: GenMessage<DeleteCouponRequest> = /*@__P
  * @generated from message tanvo.coupon.v1.DeleteCouponResponse
  */
 export type DeleteCouponResponse = Message<"tanvo.coupon.v1.DeleteCouponResponse"> & {
+  /**
+   * The deleted coupon.
+   *
+   * @generated from field: tanvo.coupon.v1.Coupon coupon = 1;
+   */
+  coupon?: Coupon | undefined;
 };
 
 /**
@@ -552,7 +695,7 @@ export type DeleteCouponResponse = Message<"tanvo.coupon.v1.DeleteCouponResponse
  * Use `create(DeleteCouponResponseSchema)` to create a new message.
  */
 export const DeleteCouponResponseSchema: GenMessage<DeleteCouponResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 13);
+  messageDesc(file_tanvo_coupon_v1_coupon, 14);
 
 /**
  * ApplyCouponRequest is the request of CouponService.ApplyCoupon.
@@ -573,7 +716,7 @@ export type ApplyCouponRequest = Message<"tanvo.coupon.v1.ApplyCouponRequest"> &
  * Use `create(ApplyCouponRequestSchema)` to create a new message.
  */
 export const ApplyCouponRequestSchema: GenMessage<ApplyCouponRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 14);
+  messageDesc(file_tanvo_coupon_v1_coupon, 15);
 
 /**
  * ApplyCouponResponse is the response of CouponService.ApplyCoupon.
@@ -594,7 +737,7 @@ export type ApplyCouponResponse = Message<"tanvo.coupon.v1.ApplyCouponResponse">
  * Use `create(ApplyCouponResponseSchema)` to create a new message.
  */
 export const ApplyCouponResponseSchema: GenMessage<ApplyCouponResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 15);
+  messageDesc(file_tanvo_coupon_v1_coupon, 16);
 
 /**
  * GetAppliedCouponRequest is the request of CouponService.GetAppliedCoupon.
@@ -615,7 +758,7 @@ export type GetAppliedCouponRequest = Message<"tanvo.coupon.v1.GetAppliedCouponR
  * Use `create(GetAppliedCouponRequestSchema)` to create a new message.
  */
 export const GetAppliedCouponRequestSchema: GenMessage<GetAppliedCouponRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 16);
+  messageDesc(file_tanvo_coupon_v1_coupon, 17);
 
 /**
  * GetAppliedCouponResponse is the response of CouponService.GetAppliedCoupon.
@@ -636,7 +779,7 @@ export type GetAppliedCouponResponse = Message<"tanvo.coupon.v1.GetAppliedCoupon
  * Use `create(GetAppliedCouponResponseSchema)` to create a new message.
  */
 export const GetAppliedCouponResponseSchema: GenMessage<GetAppliedCouponResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 17);
+  messageDesc(file_tanvo_coupon_v1_coupon, 18);
 
 /**
  * ListAppliedCouponsRequest is the request of CouponService.ListAppliedCoupons.
@@ -678,7 +821,7 @@ export type ListAppliedCouponsRequest = Message<"tanvo.coupon.v1.ListAppliedCoup
  * Use `create(ListAppliedCouponsRequestSchema)` to create a new message.
  */
 export const ListAppliedCouponsRequestSchema: GenMessage<ListAppliedCouponsRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 18);
+  messageDesc(file_tanvo_coupon_v1_coupon, 19);
 
 /**
  * ListAppliedCouponsResponse is the response of CouponService.ListAppliedCoupons.
@@ -706,7 +849,7 @@ export type ListAppliedCouponsResponse = Message<"tanvo.coupon.v1.ListAppliedCou
  * Use `create(ListAppliedCouponsResponseSchema)` to create a new message.
  */
 export const ListAppliedCouponsResponseSchema: GenMessage<ListAppliedCouponsResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 19);
+  messageDesc(file_tanvo_coupon_v1_coupon, 20);
 
 /**
  * TerminateAppliedCouponRequest is the request of CouponService.TerminateAppliedCoupon.
@@ -727,7 +870,7 @@ export type TerminateAppliedCouponRequest = Message<"tanvo.coupon.v1.TerminateAp
  * Use `create(TerminateAppliedCouponRequestSchema)` to create a new message.
  */
 export const TerminateAppliedCouponRequestSchema: GenMessage<TerminateAppliedCouponRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 20);
+  messageDesc(file_tanvo_coupon_v1_coupon, 21);
 
 /**
  * TerminateAppliedCouponResponse is the response of CouponService.TerminateAppliedCoupon.
@@ -748,7 +891,7 @@ export type TerminateAppliedCouponResponse = Message<"tanvo.coupon.v1.TerminateA
  * Use `create(TerminateAppliedCouponResponseSchema)` to create a new message.
  */
 export const TerminateAppliedCouponResponseSchema: GenMessage<TerminateAppliedCouponResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_coupon_v1_coupon, 21);
+  messageDesc(file_tanvo_coupon_v1_coupon, 22);
 
 /**
  * CouponType is the kind of discount.
@@ -952,7 +1095,8 @@ export const CouponService: GenService<{
     output: typeof TerminateCouponResponseSchema;
   },
   /**
-   * Deletes a coupon that was never applied.
+   * Deletes a coupon: it can no longer be applied or read, its code is
+   * free again, and its active applications are terminated.
    *
    * @generated from rpc tanvo.coupon.v1.CouponService.DeleteCoupon
    */

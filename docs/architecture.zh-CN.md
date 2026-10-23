@@ -134,7 +134,7 @@ tanvo/
 ### 3.2 依赖方向
 
 ```text
-apps/server ──▶ billing ──▶ pricing / metering / tax / period / money
+apps/server ──▶ billing ──▶ pricing / metering / tax / period / money / expression(go)
      │             │
      │             └──▶ core ──▶ money / period
      ├──▶ ingest ──▶ expression(go) / metering / core
@@ -147,7 +147,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 
 * `money`、`period`、`expression`、`pricing`、`metering` 与 `tax` 是纯函数库：它们只按图示顺序相互依赖，并依赖标准库或经过审查的第三方包，从不依赖 `core`、存储或 I/O（`tax` 位于接口之后的 VIES 客户端除外）。
 * `core` 只依赖 `money` 与 `period`。
-* `billing` 只通过 `core` 中的端口访问存储、事件、文档与提供者。
+* `billing` 只通过 `core` 中的端口访问存储、事件、文档与提供者；它用 `expression`（纯库）对指标表达式求值。
 * 基础设施库依赖 `core`，但彼此之间互不依赖，只有一个例外：`ingest` 使用 `expression`（与 `metering` 一样是纯库，ingest 写入的是它的事件类型）。集成测试可以使用其他库的后端；depguard 规则对测试文件豁免。
 * 只有 `apps/server` 把实现装配到端口上。
 * 这些规则由 `.golangci.yml` 中的 depguard 强制；要修改它们，先修改本节。
@@ -171,7 +171,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 * 资源以 Tanvo ID 寻址；在 Lago 使用客户提供的标识符（`external_id`、`code`）之处，Tanvo 将其保留为唯一、可过滤的字段，并通过以前缀开头的 `{id}` 接受它们代替 ID（`external_id:acme-42`、`code:api_calls`）。
 * 列表使用游标分页（`page_size`、`page_token`、`next_page_token`）与 AIP-160 风格的过滤器。
 * 错误是带有 `google.rpc.ErrorInfo` / `BadRequest` 详情的 Connect 错误码；REST 将其映射为 HTTP 状态码并附带 JSON 正文。
-* 写操作接受 `Idempotency-Key` 请求头；响应按组织与 key 保存 24 小时。
+* 写操作接受 `Idempotency-Key` 请求头（[§4.5](#45-幂等)）。
 
 ### 4.3 非 RPC 的 HTTP
 提供者 webhook（`POST /webhooks/{provider}/{connection_id}`）、文档下载（`GET /documents/{id}`）、健康检查（`/healthz`、`/readyz`）与指标（`/metrics`）是普通的 `net/http` handler。
@@ -181,9 +181,30 @@ ee/* ──▶ proto        (never any other in-repo module)
 * **权限**：如 `customers:read`、`invoices:write` 这样的字符串。角色（内置与自定义）是权限的集合；API key 带有自己的一组权限。每个 RPC 在 proto 选项中声明所需的权限；由拦截器检查。
 * **用户**以邮箱和密码（argon2id）或 OIDC（Google、Okta、Entra ID、通用）登录。会话是以哈希形式存储在 PostgreSQL（`sessions`）中的不透明令牌，可吊销，过期后清理（[领域 §5.7](domain.zh-CN.md#57-会话与登录状态)）。
 * **OIDC** 使用带 state、nonce 和 PKCE 的授权码流程。流程状态是 `oidc_states` 中的一次性行，以 `state` 参数的 SHA-256 为键，因此任一副本都能完成登录。Google 是整个实例共用的一个连接，由环境变量配置；Okta、Entra ID 和通用连接是组织的 `auth` 集成（[领域 §17.1](domain.zh-CN.md#171-集成)），以其声明的邮箱域名跨组织路由登录。
+* **OIDC 客户端**：libs/auth 中一个基于标准的客户端（go-oidc 与 x/oauth2）服务所有连接；Google、Okta 与 Entra ID 是固定了 issuer、scope 与声明规则的预设，通用 `oidc` 连接（Tanvo 扩展）以 `issuer_url` 接入任意 OpenID 提供者。
+  * *发现*：`/.well-known/openid-configuration` 报告的 issuer 必须与配置完全相同，必须提供 `code` 响应类型与一种可接受的签名算法，并且除非设置 `TANVO_OIDC_ALLOW_PRIVATE`（开发模式），issuer 与所有端点都必须使用 https。发现文档按 issuer 缓存 1 小时，重新获取失败时保留旧文档。
+  * *密钥*：JWKS 缓存 1 小时；带未知 `kid` 的令牌会触发重新获取，至多每分钟一次，因此密钥轮换无需重启，伪造的 `kid` 也无法冲击提供者。
+  * *网络*：apps/server 注入 libs/webhooks 的防 SSRF 客户端（除非设置 `TANVO_OIDC_ALLOW_PRIVATE`，否则拒绝私有、回环与链路本地地址；从不跟随重定向）；每个响应至多 1 MiB，每个请求至多 10 秒。
+  * *ID 令牌*：签名限于 RS、ES、PS 系列或 EdDSA（从不接受 `none`，从不接受 HMAC）；校验 `iss`、`aud`、多受众时的 `azp`、`exp`、`nbf` 与 `iat`（容差 30 秒），nonce 以常数时间比较。令牌端点认证方式取连接的配置，否则取发现文档中 `client_secret_basic` 与 `client_secret_post` 里最先出现的一个。
+  * *身份*：邮箱与姓名取自可配置的声明（默认 `email`、`name`）；通用连接要求 `email_verified` 为真，除非设置了 `allow_unverified_email`，而预设保留原有行为（仅在为假时拒绝）。缺少邮箱或所需的 `email_verified` 时获取 userinfo，其 `sub` 必须一致。
+  * *配置*：创建或更新通用连接时获取一次发现文档，失败时在 `issuer_url`（`https_required`、`issuer_unreachable`、`issuer_mismatch`、`discovery_incomplete`）或 `token_endpoint_auth_method`（`unsupported_by_provider`）上返回字段错误。附加授权参数不得覆盖协议参数（`state`、`nonce`、`redirect_uri` 等）。
 * **设备**：每次登录都会在 `user_devices` 中记录客户端（指纹为 user agent 的 SHA-256）；apps/server 把 user agent 解析为浏览器、操作系统和设备类型。新设备会写入安全日志（[领域 §5.8](domain.zh-CN.md#58-用户设备)）。
 * **邮件**：libs/auth 发出的是携带数据而非链接的 `mail.send` 任务：密码重置携带其令牌，由 libs/mail 根据应用 URL 构建链接。
-* **客户门户**：限定于一个客户的短期签名令牌。
+* **客户门户**：限定于一个客户的短期签名令牌（HMAC-SHA256，12 小时，密钥由 `TANVO_SECRET_KEY` 派生），作为 `portal` RPC 的 bearer 凭据发送；仅当其客户存在且未被删除时令牌才被接受。
+* **线上凭据**：所有凭据都以 `Authorization: Bearer <token>` 发送。API key 在其所属组织中操作。会话在 `X-Tanvo-Organization` 请求头指定的组织中操作，用户必须在该组织拥有有效成员身份，且该组织必须允许会话的登录方式；不带该请求头时，会话只能调用标记为 `authenticated` 的 RPC（当前用户、登出、服务器信息、数据导出下载），其他 RPC 以 `PermissionDenied` / `organization_required` 失败。
+* **访问规则**：每个 RPC 的 `tanvo.common.v1.access` 选项是 `anonymous`、`portal`、`authenticated` 或一个 `permission`（API key 可调用时另带 `api_resource`）之一。API key 调用 `NO_SIDE_EFFECTS` RPC 需要该资源的 `read`，其他 RPC 需要 `write`；拒绝时返回 `PermissionDenied`，reason 为 `<level>_action_not_allowed_for_<resource>`。
+* **会话清理**：每小时运行的时钟任务 `clock.purge_sessions` 删除过期或吊销超过 24 小时的会话。
+
+### 4.5 幂等
+* 由 API key 或在某组织中操作的会话、带 `Idempotency-Key` 请求头（至多 255 字节）调用的有副作用的一元 RPC，按组织与 key 只执行一次。该拦截器在认证与校验之后，以过程名和请求确定性编码的 SHA-256 在 `idempotency_keys` 中占用该 key；成功的响应会被保存，并在首个请求之后 24 小时内重放给每次重试。
+* 以其他 RPC 或其他请求重试，返回 `InvalidArgument` / `idempotency_key_reused`；首个请求仍在运行时发来的重试返回 `Aborted` / `idempotency_key_in_progress`（占用 5 分钟后过期，因此崩溃的请求会释放其 key）。失败的请求会释放 key，客户端可以重试。
+* `NO_SIDE_EFFECTS`、流式与匿名 RPC 忽略该请求头。每小时运行的时钟任务 `clock.purge_idempotency_keys` 为各组织入队 `idempotency.purge` 任务，删除过期记录。
+
+### 4.6 服务端分层
+* **领域服务**位于各个库中：`libs/billing/<area>`（catalog、customers、subscriptions、invoices 等）与 `libs/auth`。服务接收 `kernel.Deps`（或 `auth.Deps`），每个操作在一个 `Store.InTx` 中连同其任务与 webhook 一起执行，用 `core.Validator` 校验（字段错误携带 Lago 风格的错误码，如 `value_already_exist`），并返回领域类型。服务不了解 proto 或 HTTP，在 `memstore` 上测试。
+* **RPC handler**（`apps/server/internal/rpc`）保持轻薄：读取主体，用共享辅助函数（引用、过滤器、分页、更新掩码、金额、时间、枚举）转换请求，调用一个服务方法，转换结果，并用 `rpc.Error` 映射错误。它们不包含业务规则。
+* **装配**（`apps/server/internal/app/api.go`）在 store 之上构建服务，并把每个 handler 注册在共享拦截器之后：遥测、panic 恢复、认证与授权、protovalidate、幂等。
+* **测试**：服务移植 Lago 的 service spec；handler 针对真实服务器（`apps/server/internal/rpctest`）通过 REST 与 Connect 移植其 request spec。分步指南见[开发 §8](development.zh-CN.md#8-rpc-指南)与 `rpc` 包注释。
 
 ---
 
@@ -216,7 +237,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 * 以最小货币单位表示的金额为 `bigint`；精确金额、单价与数量为 `numeric`。
 * 枚举为带 `CHECK` 约束的 `text`，并有对应的 Go 字符串类型。
 * 删除是显式的：有生命周期的资源带有状态（`terminated`、`archived`、`voided`）；在没有任何东西引用该行时才使用硬删除。不存在一刀切的软删除。
-* 客户需要审计的变更作为领域事件记录在同一事务中的 `audit_events` 表里，该表也为 webhook 与活动日志提供数据。
+* 需要通知客户的变更作为领域事件记录在同一事务中的 `domain_events` 表里，该表为 webhook 提供数据；活动日志由活动日志生产者（`auditlog.ActivityLogger`，经 `kernel.Deps.ActivityLogs`）同样在同一事务中写入 `activity_logs`。
 
 ---
 
@@ -245,10 +266,11 @@ POST /v1/events, /v1/events:batch
 * 模式是每个安装的设置，在 Tanvo Cloud 中可按组织覆盖。
 * 每个事件保留其 API 请求的元数据，即 `User-Agent` 与客户端地址：PostgreSQL 路径上存于原始日志（`public.events.metadata`），Kafka 路径上存于 ClickHouse 的 `events_raw`，并由原始消息与富化消息携带。lago-api 只在 PostgreSQL 中保留它（其 Kafka 消息不含元数据）；API 以事件的 `user_agent` 与 `ip_address` 返回它。客户端地址按 Rails 的 `request.remote_ip` 解析：取 `X-Forwarded-For`（其次 `Client-Ip`）中离服务器最近且不是受信任代理的地址，且仅当对端本身是受信任代理时才读取这些头；受信任的是回环与私有地址段以及 `TANVO_TRUSTED_PROXIES`。
 * SQS、Kinesis、HTTP 与 Kafka 来源的连接器写入 `events.raw`（Redpanda Connect 配置或内置的消费者）。
-* **用量刷新信号**携带客户、订阅和事件水位。信号在事件存储之后才发出，而用量桶在同一次写入中维护，因此信号不会领先于用量桶（在多副本 ClickHouse 上，刷新以顺序一致性读取）。钱包刷新消费者把一批拉取的信号合并为每个有钱包的客户一次刷新，并把超过 30 秒的信号留给 5 分钟一次的全量扫描，后者仍是权威来源（[领域模型 §14.1](domain.zh-CN.md#141-钱包)）。
+* **用量刷新信号**携带客户、订阅和事件水位。信号在事件存储之后才发出，而用量桶在同一次写入中维护，因此信号不会领先于用量桶（在多副本 ClickHouse 上，刷新以顺序一致性读取）。每个信号都交给计费：PostgreSQL 路径在摄取事务中完成，Kafka 路径经由 `usage.refresh` 消费者完成。它调度每个订阅的活动（生命周期用量、用量阈值与告警，每个订阅每分钟一个延迟任务，因此在某次运行进行中到达的信号会落入下一分钟的任务；失败的运行会立即重试，共四次，与 lago-api 的 `ProcessSubscriptionActivityJob` 相同），把客户标记为 `awaiting_wallet_refresh` 并入队其钱包的刷新（每个客户一个待处理任务）。钱包刷新不等待用量桶。lago-api 的实时钱包刷新（`app/services/wallets/realtime_refresh_service.rb:9-13, 31-34, 70-94`）在刷新前最多轮询其用量桶 5 秒，因为它的触发信号与用量桶写入是同一流处理批次（epoch）中两个互不排序的输出，而在用量桶尚未追上时刷新会写入过期余额，并清除扫描所依据的标记。水位超过 30 秒时它立即放弃，因为这说明落后的是消费者而不是 ClickHouse，并让客户保持标记，交由扫描处理。只有钱包刷新这样做；订阅活动没有这项检查。Tanvo 在用量桶写入之后才发出信号，因此信号对应的用量桶总是已追上，刷新绝不会读到过期余额，也没有信号需要推迟给扫描。对已标记的生命周期用量与客户的 5 分钟扫描仍是权威来源（[领域模型 §14.1](domain.zh-CN.md#141-钱包)）。
+* **预付计费项**在事件存储之后计费，因为其费用基于已存储的事件聚合：PostgreSQL 路径在摄取事务中完成，Kafka 路径由 ClickHouse 写入者为其写入的记录完成。两者都为每个事件入队一个计费任务，按订阅与 transaction ID 唯一。lago-api 从单独的主题计费，并延迟 15 秒以等待 ClickHouse 合并（`app/consumers/events_charged_in_advance_consumer.rb`、`app/services/events/stores/clickhouse_store.rb:11`）。
 
 ### 7.2 富化
-富化按 `external_subscription_id` / `external_customer_id` 与时间戳把事件解析到其订阅，按 `code` 解析到计费指标，对指标的表达式求值，提取聚合值、分组键与精确金额，并**为每个事件写入一行富化数据**，不含计费项或过滤器列。它只为判断事件是否进入预付计费而查找计费指标的计费项。计费项过滤器在查询用量和维护用量桶时根据原始属性匹配，而不是把一个事件展开成每个过滤器一行：lago-api 正是因此在 2026 年 9 月删除了展开表（`events_enriched_expanded`），因为否则目录一变就要重写已存储的事件，而且行数随过滤器数量增长。摄取消费者在内存中缓存目录，并通过变更通知刷新。
+富化按 `external_subscription_id` / `external_customer_id` 与时间戳把事件解析到其订阅，按 `code` 解析到计费指标，对指标的表达式求值，提取聚合值、分组键与精确金额，并**为每个事件写入一行富化数据**，不含计费项或过滤器列。它只为判断事件是否进入预付计费而查找计费指标的计费项。计费项过滤器在查询用量和维护用量桶时根据原始属性匹配，而不是把一个事件展开成每个过滤器一行：lago-api 正是因此在 2026 年 9 月删除了展开表（`events_enriched_expanded`），因为否则目录一变就要重写已存储的事件，而且行数随过滤器数量增长。API 与摄取消费者在内存中缓存目录（指标、计费项、订阅）。每个改变目录的存储事务都在提交之前调用 `pg_notify('tanvo_catalog_changes', …)`，因此通知在提交时送达，回滚的写入不会发出通知；每个进程都 LISTEN 并逐出该组织的条目，每次（重新）连接时清空整个缓存，写入进程在提交后也会立即逐出。万一仍漏掉通知，TTL 限定了过期时长。外部 ID 被修改的订阅也会驱逐其旧外部 ID。LISTEN 在每个进程中以会话状态占用一个连接，因此 `TANVO_DATABASE_URL` 必须直连 PostgreSQL，或经由会话模式的连接池；事务模式的 PgBouncer 不会把通知投递给监听者。ClickHouse 与 Kafka 模式同样从 PostgreSQL 读取目录，因此同一通道也覆盖它们。
 
 ### 7.3 表达式（libs/expression）
 * 语言即 lago-expression 的语言：小数运算、`event.timestamp`、`event.code`、`event.properties.<name>`、字符串、`concat`、`round`、`ceil`、`floor`、`least`、`greatest`。
@@ -284,10 +306,10 @@ POST /v1/events, /v1/events:batch
 * **River** 运行所有后台任务；任务与需要它的状态变更在同一事务中入队。
 * `libs/store` 通过 River 的 `InsertTx` 在自己的 `pgx.Tx` 上插入任务（`store.WithJobInserter`），因此回滚后不会留下任务；没有设置插入器时，任务写入 `job_outbox` 表，由中继转发。River 的表位于它自己的 `river` 模式中，由 River 迁移（这些表保存所有组织的任务，不带行级安全）。唯一键按组织和任务类型限定。
 * **重试**：没有被该任务类型的任何规则归类的错误不会重试，因为任务可能已经在事务之外产生了效果（一次付款、一封邮件、一次服务商调用），再运行一次会重复这些效果。每种任务类型声明哪些错误可以安全重试，以及次数和退避方式（`ErrRetriable` 20 次、锁冲突与序号冲突、服务商限流）。带错误停止重试的任务在 River 中保持 `cancelled` 状态，保留下来供排查和手动重试，并在监控中计为失败。
-* 队列按工作负载分开（`billing`、`payments`、`webhooks`、`documents`、`integrations`、`exports`、`default`），各有自己的并发度，使一个部署可以按队列运行 worker。
+* 队列按工作负载分开（`billing`、`payments`、`webhooks`、`documents`、`integrations`、`exports`、`alerts`、`alerts_high_priority`、`wallets`、`default`），各有自己的并发度，使一个部署可以按队列运行 worker；`TANVO_JOBS_QUEUE_CONCURRENCY` 可覆盖其中任一队列的并发度。订阅活动与生命周期用量告警运行在 `alerts` 上，钱包告警运行在 `alerts_high_priority` 上，钱包余额刷新运行在 `wallets` 上，与 lago-api 相同（`app/jobs/usage_monitoring/process_subscription_activity_job.rb`、`process_lifetime_usage_alert_job.rb`、`process_wallet_alerts_job.rb`、`app/jobs/customers/refresh_wallet_job.rb`），这样用量刷新的积压不会拖慢计费。lago-api 只在设置了 `SIDEKIQ_ALERTS` 或 `SIDEKIQ_WALLETS` 时使用这些队列，否则回退到 `default` 或 `low_priority`；Tanvo 始终使用它们，因为未单独配置它们的部署仍以默认值处理它们。
 * 周期任务（对账、过期、催收、清理）是由 River 选举出的领导者插入的 River 周期任务；不需要单独的时钟进程。它们运行在独立的 `clock` 队列上，不分片、不使用令牌桶，由每个携带调度表的进程消费。周期任务只做扫描和分发：它把到期的工作作为相关组织的任务放入各工作负载队列，以本次触发的时间作为这些任务的"当前时间"，并带上唯一键，使积压期间的多次触发不会产生重复任务。因此工作负载队列的积压不会推迟调度，一个组织的失败也不会阻止其他组织。受行级安全约束的表的保留期清理同样按组织分发任务（webhook 投递）；其余清理的分批删除直接在周期任务中执行。除 lago-api 的调度表外，Tanvo 还有自己的周期任务：webhook 扫描，以及用量桶的修复与报告（§7.4、§11）。
 * **租户公平**：任务带有其所属组织；通过按组织哈希对队列分片，以及在入队时使用令牌桶，限制每个组织的并发，使一个租户无法使其他租户饥饿。令牌桶按进程计，因此有多个 API 副本时，一个组织的实际速率是各副本速率之和。
-* 逐事件的工作（富化、大量的预付计费项）在 Kafka 消费者中运行，而不在 River 中。
+* 逐事件的工作（富化、ClickHouse 写入）在 Kafka 消费者中运行，而不在 River 中；消费者把逐事件的计费（预付计费项）与按订阅的活动作为 River 任务入队。
 * 基于 Redis 的队列是以后的选项，位于同一个窄接口之后（经由 outbox 的事务内入队、延迟、周期任务与唯一任务）；只有在测量表明 PostgreSQL 成为瓶颈时才会加入。
 
 ---
@@ -345,7 +367,7 @@ POST /v1/events, /v1/events:batch
 | :--- | :--- |
 | `api` | Connect/REST 服务器、提供者 webhook、文档下载 |
 | `worker` | 为其指定的队列（`--queues`）运行 River worker |
-| `consumer` | Kafka 消费者：富化、ClickHouse 写入器、预付计费项 |
+| `consumer` | Kafka 消费者：富化、ClickHouse 写入器（含预付计费项）、用量刷新 |
 | `all` | 全部（自托管安装的默认值）；只有配置了 Kafka broker 时才包含 `consumer` |
 
 `tanvo migrate`、`tanvo admin …` 与 `tanvo version` 是单独的命令。
@@ -396,6 +418,10 @@ POST /v1/events, /v1/events:batch
 | `TANVO_WORKER_QUEUES` | 全部队列 | `worker` 角色的队列；`--queues` 优先 |
 | `TANVO_JOBS_DISABLE_PERIODIC` | `false` | 不让 worker 参与周期调度 |
 | `TANVO_JOBS_CLOCK_CONCURRENCY` | 库默认值 | clock 队列的并发度 |
+| `TANVO_JOBS_QUEUE_CONCURRENCY` | 库默认值 | 以逗号分隔的 `queue=n`，覆盖工作负载队列的并发度（1 到 10000），例如 `alerts=20,wallets=5` |
+| `TANVO_SUBSCRIPTION_TERMINATION_ALERT_DAYS` | `15,45` | 订阅在结束日期前多少天收到 `subscription.termination_alert`（逗号分隔）；为空则不发送 |
+| `TANVO_DAILY_USAGE_SCHEDULING_JITTER` | 30 分钟 | 每小时一次运行中的每日用量计算所分散的时间窗口 |
+| `TANVO_DISABLE_EVENTS_VALIDATION` | false | 将每小时的事件后置校验（`events.errors`）移出调度 |
 | `TANVO_INGEST_MODE` | `postgres` | 默认摄取模式，`postgres` 或 `kafka` |
 | `TANVO_INGEST_KAFKA_ORGANIZATIONS` | | 无论默认模式都经 Kafka 摄取的组织 |
 | `TANVO_INGEST_POSTGRES_ORGANIZATIONS` | | 无论默认模式都在 PostgreSQL 中摄取的组织 |
@@ -414,6 +440,7 @@ POST /v1/events, /v1/events:batch
 | `TANVO_KAFKA_TOPIC_PARTITIONS` | `6` | 所建 topic 的分区数 |
 | `TANVO_KAFKA_TOPIC_REPLICAS` | `-1` | 所建 topic 的副本数（broker 默认值） |
 | `TANVO_WEBHOOKS_ALLOW_PRIVATE` | `false` | 允许投递到私有地址与明文 HTTP |
+| `TANVO_OIDC_ALLOW_PRIVATE` | `false` | 允许经由私有地址与明文 HTTP 访问 OIDC 提供者（开发模式） |
 | `TANVO_WEBHOOKS_TIMEOUT` | `30s` | 单次投递尝试的时限 |
 | `TANVO_APP_URL` | | 邮件链接使用的 Web 控制台 URL |
 | `TANVO_MAIL_FROM` | | 发件地址；设置 `TANVO_SMTP_HOST` 时必填 |
@@ -421,6 +448,9 @@ POST /v1/events, /v1/events:batch
 | `TANVO_SMTP_PORT` | `587` | SMTP 端口 |
 | `TANVO_SMTP_USERNAME`、`TANVO_SMTP_PASSWORD` | | SMTP 凭据 |
 | `TANVO_SMTP_SECURITY` | `starttls` | `starttls`、`starttls_optional`、`tls` 或 `none` |
+| `TANVO_DISABLE_SIGNUP` | `false` | 关闭自助注册 |
+| `TANVO_GOOGLE_AUTH_CLIENT_ID`、`TANVO_GOOGLE_AUTH_CLIENT_SECRET` | | Google 登录的 OAuth 客户端，回调到 `TANVO_APP_URL/auth/google/callback`；未设置则关闭 |
+| `TANVO_SECRET_KEY` | | 安装密钥，至少 32 字节的 base64；用 HKDF-SHA256 从中派生签发客户门户令牌的密钥，以及加密集成密钥（SSO 客户端密钥）的 AES-256-GCM 密钥。未设置则关闭客户门户与 SSO 连接；更换后门户链接失效，已加密的密钥无法解密 |
 
 ---
 
@@ -439,7 +469,7 @@ Lago 高级许可证之下的功能（渐进式计费、钱包的高级规则、
 
 ## 15. 安全与可观测性
 
-* 机密以 AES-256-GCM 信封加密；数据密钥由来自配置或 KMS 的密钥加密。
+* 机密以 AES-256-GCM 信封加密；数据密钥由来自配置或 KMS 的密钥加密。目前 `auth.SecretBox` 用一个由 `TANVO_SECRET_KEY` 派生（HKDF-SHA256）的 AES-256-GCM 密钥加密集成机密，并以组织 ID 作为附加数据；信封加密与 KMS 密钥在后续实现。
 * 与安全相关的操作（登录、创建 key、角色变更）写入安全日志。
 * **可观测性遵循 OpenTelemetry**，覆盖 trace、metrics 与 logs：
   * 库只依赖 OTel API，经构造函数选项接收 `TracerProvider` 与 `MeterProvider`，默认为 no-op；只有 `apps/server` 引入 SDK 与导出器（由 depguard 强制）并安装全局 provider。

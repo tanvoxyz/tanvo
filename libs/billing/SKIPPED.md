@@ -40,12 +40,11 @@ Every lago scenario example not ported as a test in this package, with the reaso
 | spec/scenarios/subscriptions/terminate_manually_spec.rb | credit note balance before jobs run (deviation) | Tanvo creates and consumes it in the same transaction |
 | spec/scenarios/subscriptions/terminate_manually_spec.rb | canceled pending subscription on_termination_credit_note nil (deviation) | subscription.New sets the credit default for in-advance plans |
 | spec/scenarios/subscriptions/terminate_manually_spec.rb:338 | 404 / API validation (partial) | ported at lifecycle level only (no API) |
-| spec/scenarios/subscriptions/payment_gated_activation_spec.rb:123 | invoice finalization on payment, activated_at (partial) | payments library work; core subscription has no ActivatedAt |
+| spec/scenarios/subscriptions/payment_gated_activation_spec.rb:123 | activated_at (partial; finalization on payment ported in scenarios_payment_gate_test.go) | core subscription has no ActivatedAt |
 | spec/scenarios/subscriptions/payment_gated_activation_spec.rb:411 | rule validation (partial) | rules stored by the API; ported at store level |
 | spec/scenarios/subscriptions/payment_gated_activation_spec.rb:220 | 3DS required | Stripe/payments provider |
 | spec/scenarios/subscriptions/payment_gated_activation_spec.rb:235 | 3DS succeeded | Stripe/payments provider |
 | spec/scenarios/subscriptions/payment_gated_activation_spec.rb:256 | 3DS failed | Stripe/payments provider |
-| spec/scenarios/subscriptions/payment_gated_activation_spec.rb:285 | payment failure cancels | payments library |
 | spec/scenarios/subscriptions/payment_gated_activation_spec.rb:338 | payment failure restores previous subscription | payments library |
 | spec/scenarios/subscriptions/payment_gated_activation_spec.rb:373 | restoration on upgrade | payments library |
 | spec/scenarios/subscriptions/payment_gated_activation_spec.rb:393 | restoration on downgrade | payments library |
@@ -98,9 +97,8 @@ Every lago scenario example not ported as a test in this package, with the reaso
 | spec/scenarios/invoices/regeneration_preview_spec.rb:46 | regeneration preview rebuilds applied taxes from current customer taxes | no regeneration preview service in libs/billing (lago Invoices::BuildRegenerationPreviewService); customer tax update goes through the customer service outside billing |
 | spec/scenarios/customers/create_partner_and_run_billing_spec.rb:20 | switch customer to partner before plans; exclude_from_dunning_campaign; refuse switching back | customer create/update service lives outside libs/billing |
 | spec/scenarios/customers/create_partner_and_run_billing_spec.rb:52 (analytics part) | invoice_collection, gross_revenue, mrr and overdue_balance analytics exclude self-billed invoices | analytics are not in libs/billing; numbering, self-billing and no-payment parts ported |
-| spec/scenarios/customers/customer_eu_taxes_spec.rb:54 | EU auto taxes created on customer creation | no customer service applying libs/tax EU decisions, and no VIES check job in libs/billing |
-| spec/scenarios/customers/customer_eu_taxes_spec.rb:112 | VIES error keeps taxes, sends webhook | same: VIES check job not in libs/billing |
-| spec/scenarios/customers/customer_eu_taxes_spec.rb:215 | VIES failure blocks subscription in-advance invoice until retry | same; no tax-pending-VIES finalization block in invoicing |
+| spec/scenarios/customers/customer_eu_taxes_spec.rb:54 (one-off invoice part) | one-off invoice taxed with the customer's custom tax | the customer and VIES parts are ported in customers (TestEUTaxesScenario); one-off invoices are invoicing's |
+| spec/scenarios/customers/customer_eu_taxes_spec.rb:215 | VIES failure blocks subscription in-advance invoice until retry | the hold and the pending VIES finalization are ported in invoicing (vies_test.go) and the check job in customers; the end-to-end scenario with a failing then succeeding VIES lookup is not |
 | spec/scenarios/customers/customer_eu_taxes_spec.rb:236 | VIES failure blocks pay-in-advance charge invoice | same |
 | spec/scenarios/customers/customer_eu_taxes_spec.rb:266 | VIES failure blocks one-off invoice | same |
 | spec/scenarios/customers/customer_eu_taxes_spec.rb:290 | VIES failure blocks periodic invoice | same |
@@ -219,11 +217,10 @@ Deviation: spec/scenarios/fixed_charges/refresh_draft_keeps_pay_in_advance_fee_s
 | spec/scenarios/current_usage/with_identical_charge_filters_spec.rb:149 | two filters with identical values | invalid by design: catalog.Charge.Validate rejects duplicated filter values |
 | spec/scenarios/current_usage/by_charge_model/clickhouse/prorated_graduated_spec.rb:20,213,319,432,670,867,998,1168,1278,1397 | ClickHouse variants of prorated graduated (10 examples) | duplicate: same assertions as by_charge_model/prorated_graduated_spec.rb, ported once over the memory event store (store conformance suites cover ClickHouse) |
 | spec/scenarios/current_usage/** (postgres/clickhouse loops in by_aggregation_type, dynamic, with_identical_charge_filters) | ClickHouse contexts | duplicate: ported once over the memory event store |
-| spec/scenarios/usage_monitoring/subscription_alerts_spec.rb:33,109,150,203,251,292 | subscription alerts (6 examples) | not implemented: no alert evaluation service in libs/billing (parity §1.32 planned; core/alert entity only) |
-| spec/scenarios/daily_usages/fill_history_spec.rb:15,113,159 | fill daily usage history (3) | not implemented: no DailyUsage entity or service (parity §1.19 daily usages planned) |
-| spec/scenarios/daily_usages/renew_daily_usage_spec.rb:24,74,178 | renew daily usage (3) | not implemented: no DailyUsage entity or service |
-| spec/scenarios/daily_usages/clickhouse/renew_daily_usage_spec.rb:29,59 | renew daily usage, ClickHouse (2) | not implemented: no DailyUsage entity or service |
-| spec/scenarios/daily_usages/yearly_plan_with_monthly_fixed_charges_spec.rb:50 | terminate yearly plan with monthly fixed charges (daily usage) | not implemented: no DailyUsage service |
+| spec/scenarios/daily_usages/fill_history_spec.rb:15,113,159 | fill daily usage history (3) | not yet ported: the service is libs/billing/dailyusage (FillHistory, RebuildHistory), whose service specs are ported in dailyusage/fill_history_test.go; the end-to-end scenario is pending |
+| spec/scenarios/daily_usages/renew_daily_usage_spec.rb:24,74,178 | renew daily usage (3) | not yet ported: the daily computation is libs/billing/dailyusage (Compute, ComputeAll; dailyusage/compute_test.go, compute_all_test.go); the end-to-end scenario is pending |
+| spec/scenarios/daily_usages/clickhouse/renew_daily_usage_spec.rb:29,59 | renew daily usage, ClickHouse (2) | duplicate once renew_daily_usage_spec.rb is ported: same assertions over the ClickHouse event store, which the store conformance suites cover |
+| spec/scenarios/daily_usages/yearly_plan_with_monthly_fixed_charges_spec.rb:50 | terminate yearly plan with monthly fixed charges (daily usage) | not yet ported: the daily usage service exists (libs/billing/dailyusage); the end-to-end scenario is pending |
 | spec/scenarios/analytics/customer_cache_invalidation_spec.rb:86,121,148,177,202,230,257,291 | analytics cache invalidation (8) | out of scope: analytics is parity §1.44, outside libs/billing |
 
 ## Ported with a documented deviation (not skipped)
@@ -237,19 +234,32 @@ Deviation: spec/scenarios/fixed_charges/refresh_draft_keeps_pay_in_advance_fee_s
 
 | source | case | reason |
 | :--- | :--- | :--- |
-| spec/scenarios/wallets/balance_spec.rb:96,98,118,120,136,138 | `customer.awaiting_wallet_refresh` flag toggles (assertions only; the balances of the same `it`s are ported) | libs/core: customer has no awaiting_wallet_refresh flag; tanvo refreshes via jobs |
 | spec/scenarios/wallets/wallet_traceability_spec.rb:784,936 | prepaid granted/purchased breakdown is `nil` when not every wallet is traceable (ported as 0) | libs/core: invoice.Invoice prepaid breakdown is a non-nullable int64 |
 | spec/scenarios/wallets/topup_with_name_spec.rb:39,69 | credit invoice HTML snapshots (`match_html_snapshot`) | libs/documents renders invoices |
 | spec/scenarios/wallets/topup_with_rounding_spec.rb:43 | credit invoice HTML snapshot | libs/documents renders invoices |
 | spec/scenarios/wallets/topup_rule_with_limits_spec.rb:40, topup_with_open_invoices_spec.rb:40,70 | Stripe setup / payment intent (`setup_stripe_for`); payment outcome simulated with Wallets.HandleCreditInvoicePayment | providers/stripe, payments |
 | spec/scenarios/wallets/topup_with_rounding_spec.rb:16,62; topup_with_name_spec.rb:45 | purchased credits stay pending until paid (adapted: settled at finalization) | deviation, docs/domain.md §14.2 |
 | spec/scenarios/wallets/alerting/api_error_handling_spec.rb:22,51,73,92,111,132,158,180,199 | wallet alerts API validation errors (9 cases) | apps/server alerts API + libs/billing usage monitoring, parity §1.32 planned |
-| spec/scenarios/wallets/alerting/wallet_balance_amount_alert_spec.rb:40,110,153,190,248 | wallet_balance_amount alert triggering (5 cases) | libs/billing usage monitoring alert evaluation not implemented (parity §1.32 planned; only core/alert model exists) |
-| spec/scenarios/wallets/alerting/wallet_credits_balance_alert_spec.rb:28,95,150 | wallet_credits_balance alert triggering (3 cases) | same as above |
-| spec/scenarios/wallets/alerting/wallet_credits_ongoing_balance_alert_spec.rb:89,139,168,192,213,237,293,312,333,393,436 | wallet_credits_ongoing_balance alert triggering (11 cases) | same as above; the ongoing balances themselves are covered by balance_spec / refresh ports |
-| spec/scenarios/wallets/alerting/wallet_ongoing_balance_amount_alert_spec.rb:89,139,168,192,213,237,293,312,333,393,436 | wallet_ongoing_balance_amount alert triggering (11 cases) | same as above |
+| spec/scenarios/wallets/alerting/wallet_balance_amount_alert_spec.rb:92-106; wallet_credits_balance_alert_spec.rb:84-91; wallet_ongoing_balance_amount_alert_spec.rb:71-84; wallet_credits_ongoing_balance_alert_spec.rb:71-84 | fields of the alert.triggered webhook payload (the triggering itself is ported in scenarios_alerts_wallets_test.go) | the payload serializer is apps/server webhooks; billing emits alert.triggered with the triggered alert |
 | spec/scenarios/dunning/dunning_campaign_v1_spec.rb:90 | multi-currency dunning with per-currency attempt tracking | dunning campaigns / payment requests (parity §1.35) not implemented; core/dunning model only |
 | spec/scenarios/dunning/dunning_campaign_v1_spec.rb:166 | retries overdue invoices | same as above |
 | spec/scenarios/emails/invoice_email_activity_spec.rb:37,52,60,71 | invoice email activity logged to Kafka (4 cases) | libs/mail + activity log, not billing |
 | spec/scenarios/payment_providers/destroy_and_reconnect_spec.rb:18 | soft-delete provider customers on destroy, recreate on reconnect | payment providers (providers/stripe, libs/core integrations), not billing |
 | spec/scenarios/clickhouse/pay_in_advance_charges_spec.rb:15 | ClickHouse store backend (ported against the memory store) | billingtest harness has no ClickHouse backend; libs/eventstore covers it |
+
+## Clock job specs (spec/jobs/clock/**, and the services they call)
+
+Ported in clock_jobs_test.go and lifecycle/cancel_incomplete_test.go; the cases left out, and the deviations of the ports.
+
+| source | case | reason |
+| :--- | :--- | :--- |
+| spec/jobs/clock/*_spec.rb `it_behaves_like "a unique job"` | clock-level uniqueness (`unique :until_executed`, `lock_ttl: 4.hours`) | the clock (libs/jobs Periodic) dispatches one per-organization job per tick and unique keys; the per-object jobs carry the lago unique keys (kernel.OverdueKey, ExpireIncompleteKey, ExpireOrderFormKey) |
+| spec/jobs/clock/mark_invoices_as_payment_overdue_job_spec.rb:26, subscriptions_to_be_terminated_job_spec.rb:365 | index usage (`EXPLAIN`) | PostgreSQL plans belong to libs/store |
+| spec/jobs/clock/subscriptions_to_be_terminated_job_spec.rb:207,229,251,277 | pending/failed deliveries, several webhook endpoints | Tanvo dedups on the domain event (one per alert whatever the endpoints and delivery states; webhook.EventRepository.ObjectsWithEventSince), not on per-endpoint deliveries |
+| spec/services/invoices/payments/mark_overdue_service_spec.rb:30, spec/services/order_forms/expire_service_spec.rb:111,147,152 | activity logs | activity logs are the domain events emitted here |
+| spec/services/order_forms/expire_service_spec.rb:9,20 | premium license / order_forms feature flag | no premium gates in the AGPL core (domain §4.1) |
+| spec/services/order_forms/expire_service_spec.rb:45 | Quotes::LockService called | the quote lock is taken (lockQuote); lock calls are not observable on the memory store |
+| spec/services/subscriptions/activation_rules/cancel_service_spec.rb:58,143,166; expire_service_spec.rb:55,125,149 | PaymentProviders::CancelPaymentJob for the pending or processing payment of the gating invoice | payment providers are phase 5 (no cancel-payment job kind yet); the cancellation does not touch payments |
+| spec/services/subscriptions/activation_rules/cancel_service_spec.rb:108; expire_service_spec.rb:92 | WalletTransactions::RecreditJob | the wallet recredit runs inline through deduct.Service.Restore, ported in deduct/restore_test.go |
+| spec/services/subscriptions/activation_rules/cancel_service_spec.rb:82-120 (all recredits) | recredit jobs enqueued after commit | Tanvo restores the credits in the cancellation's transaction (deduct.Service.Restore, after taking the customer balance locks) |
+| spec/services/invoices/payments/mark_overdue_job (queue :low_priority) | queue | Tanvo has no low-priority queue; the job runs on the billing queue |

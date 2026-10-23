@@ -18,6 +18,8 @@ type Store struct {
 	pool *pgxpool.Pool
 	rls  bool
 	jobs JobInserter
+	// onCatalog receives the catalog changes of committed transactions.
+	onCatalog func(context.Context, []CatalogChange)
 }
 
 var _ port.Transactor = (*Store)(nil)
@@ -119,8 +121,17 @@ func (s *Store) InTx(ctx context.Context, fn func(ctx context.Context, r port.Re
 		return err
 	}
 	done = true
+	if err := errors.Join(t.recordDeletions(ctx), t.notifyCatalog(ctx)); err != nil {
+		if rbErr := pgxTx.Rollback(context.WithoutCancel(ctx)); rbErr != nil && !errors.Is(rbErr, pgx.ErrTxClosed) {
+			return errors.Join(err, fmt.Errorf("store: rollback: %w", rbErr))
+		}
+		return err
+	}
 	if err := pgxTx.Commit(ctx); err != nil {
 		return fmt.Errorf("store: commit: %w", mapErr(err))
+	}
+	if len(t.catalog) > 0 && s.onCatalog != nil {
+		s.onCatalog(ctx, t.catalog)
 	}
 	return nil
 }

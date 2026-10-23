@@ -249,7 +249,7 @@ func (q *Queries) CreateIntegrationResource(ctx context.Context, arg CreateInteg
 }
 
 const deleteIntegration = `-- name: DeleteIntegration :execrows
-DELETE FROM integrations WHERE organization_id = $1 AND id = $2
+DELETE FROM integrations WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type DeleteIntegrationParams struct {
@@ -352,6 +352,35 @@ func (q *Queries) DeleteIntegrationResource(ctx context.Context, arg DeleteInteg
 	return result.RowsAffected(), nil
 }
 
+const discardIntegration = `-- name: DiscardIntegration :one
+WITH discarded AS (
+  UPDATE integrations SET deleted_at = $1::timestamptz, updated_at = $1::timestamptz
+  WHERE integrations.organization_id = $2 AND integrations.id = $3 AND integrations.deleted_at IS NULL
+  RETURNING integrations.organization_id, integrations.id
+), customers AS (
+  UPDATE payment_provider_customers c SET deleted_at = $1::timestamptz, updated_at = $1::timestamptz
+  FROM discarded d
+  WHERE c.organization_id = d.organization_id AND c.integration_id = d.id AND c.deleted_at IS NULL
+  RETURNING c.id
+)
+SELECT count(*)::bigint AS discarded FROM discarded
+`
+
+type DiscardIntegrationParams struct {
+	Now            time.Time
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+}
+
+// Discards a payment provider with its live provider customers
+// (payment_providers/destroy_service.rb:19-22).
+func (q *Queries) DiscardIntegration(ctx context.Context, arg DiscardIntegrationParams) (int64, error) {
+	row := q.db.QueryRow(ctx, discardIntegration, arg.Now, arg.OrganizationID, arg.ID)
+	var discarded int64
+	err := row.Scan(&discarded)
+	return discarded, err
+}
+
 const findIntegrationMapping = `-- name: FindIntegrationMapping :one
 SELECT organization_id, id, integration_id, mappable_type, mappable_id, billing_entity_id, external_id, external_account_code, external_name, created_at, updated_at FROM integration_mappings
 WHERE organization_id = $1 AND integration_id = $2
@@ -427,7 +456,8 @@ func (q *Queries) FindIntegrationResource(ctx context.Context, arg FindIntegrati
 }
 
 const getDefaultIntegration = `-- name: GetDefaultIntegration :one
-SELECT organization_id, id, code, name, category, provider, is_default, settings, secrets, sync_invoices, sync_credit_notes, sync_payments, sync_subscriptions, created_at, updated_at FROM integrations WHERE organization_id = $1 AND category = $2 AND is_default
+SELECT organization_id, id, code, name, category, provider, is_default, settings, secrets, sync_invoices, sync_credit_notes, sync_payments, sync_subscriptions, created_at, updated_at, deleted_at FROM integrations
+WHERE organization_id = $1 AND category = $2 AND is_default AND deleted_at IS NULL
 `
 
 type GetDefaultIntegrationParams struct {
@@ -454,12 +484,14 @@ func (q *Queries) GetDefaultIntegration(ctx context.Context, arg GetDefaultInteg
 		&i.SyncSubscriptions,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getIntegration = `-- name: GetIntegration :one
-SELECT organization_id, id, code, name, category, provider, is_default, settings, secrets, sync_invoices, sync_credit_notes, sync_payments, sync_subscriptions, created_at, updated_at FROM integrations WHERE organization_id = $1 AND id = $2
+
+SELECT organization_id, id, code, name, category, provider, is_default, settings, secrets, sync_invoices, sync_credit_notes, sync_payments, sync_subscriptions, created_at, updated_at, deleted_at FROM integrations WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type GetIntegrationParams struct {
@@ -467,6 +499,8 @@ type GetIntegrationParams struct {
 	ID             uuid.UUID
 }
 
+// Discarded payment providers (deleted_at) are hidden from every read
+// (base_provider.rb:11, default_scope kept).
 func (q *Queries) GetIntegration(ctx context.Context, arg GetIntegrationParams) (Integration, error) {
 	row := q.db.QueryRow(ctx, getIntegration, arg.OrganizationID, arg.ID)
 	var i Integration
@@ -486,12 +520,13 @@ func (q *Queries) GetIntegration(ctx context.Context, arg GetIntegrationParams) 
 		&i.SyncSubscriptions,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getIntegrationByCode = `-- name: GetIntegrationByCode :one
-SELECT organization_id, id, code, name, category, provider, is_default, settings, secrets, sync_invoices, sync_credit_notes, sync_payments, sync_subscriptions, created_at, updated_at FROM integrations WHERE organization_id = $1 AND code = $2
+SELECT organization_id, id, code, name, category, provider, is_default, settings, secrets, sync_invoices, sync_credit_notes, sync_payments, sync_subscriptions, created_at, updated_at, deleted_at FROM integrations WHERE organization_id = $1 AND code = $2 AND deleted_at IS NULL
 `
 
 type GetIntegrationByCodeParams struct {
@@ -518,6 +553,7 @@ func (q *Queries) GetIntegrationByCode(ctx context.Context, arg GetIntegrationBy
 		&i.SyncSubscriptions,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -643,6 +679,24 @@ func (q *Queries) GetIntegrationMapping(ctx context.Context, arg GetIntegrationM
 	return i, err
 }
 
+const integrationResourceExistsForSyncable = `-- name: IntegrationResourceExistsForSyncable :one
+SELECT EXISTS (
+  SELECT 1 FROM integration_resources WHERE organization_id = $1 AND syncable_id = $2
+)
+`
+
+type IntegrationResourceExistsForSyncableParams struct {
+	OrganizationID uuid.UUID
+	SyncableID     uuid.UUID
+}
+
+func (q *Queries) IntegrationResourceExistsForSyncable(ctx context.Context, arg IntegrationResourceExistsForSyncableParams) (bool, error) {
+	row := q.db.QueryRow(ctx, integrationResourceExistsForSyncable, arg.OrganizationID, arg.SyncableID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const listIntegrationCollectionMappings = `-- name: ListIntegrationCollectionMappings :many
 SELECT organization_id, id, integration_id, mapping_type, billing_entity_id, external_id, external_account_code, external_name, tax_nexus, tax_type, tax_code, currencies, created_at, updated_at FROM integration_collection_mappings
 WHERE organization_id = $1 AND integration_id = $2
@@ -741,10 +795,20 @@ const listIntegrationItems = `-- name: ListIntegrationItems :many
 SELECT organization_id, id, integration_id, item_type, external_id, external_account_code, external_name, created_at, updated_at FROM integration_items
 WHERE organization_id = $1 AND integration_id = $2
   AND ($3::text IS NULL OR item_type = $3)
-  AND ($4::text IS NULL OR external_id ILIKE $4 OR external_name ILIKE $4)
-  AND ($5::uuid IS NULL OR id > $5)
-ORDER BY id
-LIMIT $6
+  AND ($4::text IS NULL OR external_id ILIKE $4 OR external_name ILIKE $4
+       OR external_account_code ILIKE $4)
+  -- By external_name (byte order, NULLs last), then by created_at, newest
+  -- first, then by id (integration_items_query.rb:10, base_query.rb:111);
+  -- the cursor is (@after_name, @after_at, @after), @after_name NULL for
+  -- an item without a name.
+  AND ($5::uuid IS NULL
+       OR ($6::text IS NOT NULL
+           AND (external_name IS NULL OR external_name COLLATE "C" > $6::text COLLATE "C"))
+       OR (external_name IS NOT DISTINCT FROM $6::text
+           AND (created_at < $7::timestamptz
+                OR (created_at = $7::timestamptz AND id > $5))))
+ORDER BY external_name COLLATE "C" NULLS LAST, created_at DESC, id
+LIMIT $8
 `
 
 type ListIntegrationItemsParams struct {
@@ -753,6 +817,8 @@ type ListIntegrationItemsParams struct {
 	ItemType       *string
 	Search         *string
 	After          *uuid.UUID
+	AfterName      *string
+	AfterAt        *time.Time
 	Lim            int32
 }
 
@@ -763,6 +829,8 @@ func (q *Queries) ListIntegrationItems(ctx context.Context, arg ListIntegrationI
 		arg.ItemType,
 		arg.Search,
 		arg.After,
+		arg.AfterName,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {
@@ -837,8 +905,8 @@ func (q *Queries) ListIntegrationMappings(ctx context.Context, arg ListIntegrati
 }
 
 const listIntegrations = `-- name: ListIntegrations :many
-SELECT organization_id, id, code, name, category, provider, is_default, settings, secrets, sync_invoices, sync_credit_notes, sync_payments, sync_subscriptions, created_at, updated_at FROM integrations
-WHERE organization_id = $1
+SELECT organization_id, id, code, name, category, provider, is_default, settings, secrets, sync_invoices, sync_credit_notes, sync_payments, sync_subscriptions, created_at, updated_at, deleted_at FROM integrations
+WHERE organization_id = $1 AND deleted_at IS NULL
   AND ($2::text IS NULL OR category = $2)
   AND ($3::text IS NULL OR provider = $3)
   AND ($4::uuid IS NULL OR id > $4)
@@ -885,6 +953,7 @@ func (q *Queries) ListIntegrations(ctx context.Context, arg ListIntegrationsPara
 			&i.SyncSubscriptions,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -897,8 +966,8 @@ func (q *Queries) ListIntegrations(ctx context.Context, arg ListIntegrationsPara
 }
 
 const listIntegrationsByDomain = `-- name: ListIntegrationsByDomain :many
-SELECT organization_id, id, code, name, category, provider, is_default, settings, secrets, sync_invoices, sync_credit_notes, sync_payments, sync_subscriptions, created_at, updated_at FROM integrations
-WHERE category = 'auth' AND provider = $1
+SELECT organization_id, id, code, name, category, provider, is_default, settings, secrets, sync_invoices, sync_credit_notes, sync_payments, sync_subscriptions, created_at, updated_at, deleted_at FROM integrations
+WHERE category = 'auth' AND provider = $1 AND deleted_at IS NULL
   AND (lower(settings->>'domain') = lower($2::text)
     OR settings->'additional_domains' @> jsonb_build_array(lower($2::text)))
 ORDER BY id
@@ -937,6 +1006,7 @@ func (q *Queries) ListIntegrationsByDomain(ctx context.Context, arg ListIntegrat
 			&i.SyncSubscriptions,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -949,8 +1019,8 @@ func (q *Queries) ListIntegrationsByDomain(ctx context.Context, arg ListIntegrat
 }
 
 const listIntegrationsByProvider = `-- name: ListIntegrationsByProvider :many
-SELECT organization_id, id, code, name, category, provider, is_default, settings, secrets, sync_invoices, sync_credit_notes, sync_payments, sync_subscriptions, created_at, updated_at FROM integrations
-WHERE organization_id = $1 AND provider = $2
+SELECT organization_id, id, code, name, category, provider, is_default, settings, secrets, sync_invoices, sync_credit_notes, sync_payments, sync_subscriptions, created_at, updated_at, deleted_at FROM integrations
+WHERE organization_id = $1 AND provider = $2 AND deleted_at IS NULL
 ORDER BY id
 `
 
@@ -984,6 +1054,7 @@ func (q *Queries) ListIntegrationsByProvider(ctx context.Context, arg ListIntegr
 			&i.SyncSubscriptions,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1001,7 +1072,7 @@ UPDATE integrations SET
   is_default = $7, settings = $8, secrets = $9,
   sync_invoices = $10, sync_credit_notes = $11, sync_payments = $12,
   sync_subscriptions = $13, created_at = $14, updated_at = $15
-WHERE organization_id = $1 AND id = $2
+WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type UpdateIntegrationParams struct {

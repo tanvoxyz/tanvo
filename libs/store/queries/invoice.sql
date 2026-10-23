@@ -54,6 +54,9 @@ SELECT * FROM invoices WHERE organization_id = @organization_id AND id = @id;
 -- name: GetInvoiceByNumber :one
 SELECT * FROM invoices WHERE organization_id = @organization_id AND number = @number ORDER BY id LIMIT 1;
 
+-- name: GetRegeneratedInvoice :one
+SELECT * FROM invoices WHERE organization_id = @organization_id AND voided_invoice_id = @voided_invoice_id ORDER BY id LIMIT 1;
+
 -- name: ListInvoices :many
 -- The invoice list of the API (invoice.Filter). @recent lists by issuing
 -- date, latest first (NULL first), then id descending; the cursor is then
@@ -123,10 +126,23 @@ SELECT * FROM invoices
 WHERE organization_id = @organization_id AND status = 'draft' AND refresh_requested
 ORDER BY id;
 
+-- name: RequestInvoiceRefreshByMetric :execrows
+-- Flags the drafts billing a subscription whose plan charges the metric
+-- (lago Invoice.draft.joins(plans: :billable_metrics)).
+UPDATE invoices i SET refresh_requested = true
+WHERE i.organization_id = @organization_id AND i.status = 'draft'
+  AND EXISTS (
+    SELECT 1 FROM invoice_subscriptions isub
+    JOIN subscriptions s ON s.organization_id = isub.organization_id AND s.id = isub.subscription_id
+    JOIN charges c ON c.organization_id = s.organization_id AND c.plan_id = s.plan_id AND c.deleted_at IS NULL
+    WHERE isub.organization_id = i.organization_id AND isub.invoice_id = i.id
+      AND c.billable_metric_id = @billable_metric_id
+  );
+
 -- name: ListInvoiceOverdueCandidates :many
 SELECT * FROM invoices
 WHERE organization_id = @organization_id AND status = 'finalized' AND NOT payment_overdue
-  AND payment_status <> 'succeeded' AND payment_due_date < @date::date
+  AND payment_status <> 'succeeded' AND payment_dispute_lost_at IS NULL AND payment_due_date < @date::date
 ORDER BY id;
 
 -- name: MaxInvoiceSequentialID :one
@@ -147,11 +163,11 @@ DELETE FROM invoices WHERE organization_id = @organization_id AND id = @id AND s
 INSERT INTO invoice_subscriptions (
   organization_id, id, invoice_id, subscription_id, invoicing_reason,
   from_datetime, to_datetime, charges_from_datetime, charges_to_datetime,
-  fixed_charges_from_datetime, fixed_charges_to_datetime, billing_timestamp, recurring, created_at
+  fixed_charges_from_datetime, fixed_charges_to_datetime, billing_timestamp, recurring, regenerated_invoice_id, created_at
 ) VALUES (
   @organization_id, @id, @invoice_id, @subscription_id, @invoicing_reason,
   @from_datetime, @to_datetime, @charges_from_datetime, @charges_to_datetime,
-  @fixed_charges_from_datetime, @fixed_charges_to_datetime, @billing_timestamp, @recurring, @created_at
+  @fixed_charges_from_datetime, @fixed_charges_to_datetime, @billing_timestamp, @recurring, @regenerated_invoice_id, @created_at
 )
 ON CONFLICT DO NOTHING;
 
@@ -164,20 +180,20 @@ SELECT * FROM invoice_subscriptions WHERE organization_id = @organization_id AND
 -- name: FindInvoiceSubscriptionByCharges :one
 SELECT * FROM invoice_subscriptions
 WHERE organization_id = @organization_id AND subscription_id = @subscription_id AND recurring
-  AND charges_from_datetime = @from_datetime AND charges_to_datetime = @to_datetime
+  AND charges_from_datetime = @from_datetime AND charges_to_datetime = @to_datetime AND regenerated_invoice_id IS NULL
 ORDER BY id
 LIMIT 1;
 
 -- name: FindInvoiceSubscriptionByFixedCharges :one
 SELECT * FROM invoice_subscriptions
 WHERE organization_id = @organization_id AND subscription_id = @subscription_id AND recurring
-  AND fixed_charges_from_datetime = @from_datetime AND fixed_charges_to_datetime = @to_datetime
+  AND fixed_charges_from_datetime = @from_datetime AND fixed_charges_to_datetime = @to_datetime AND regenerated_invoice_id IS NULL
 ORDER BY id
 LIMIT 1;
 
 -- name: FindInvoiceSubscriptionByReason :one
 SELECT * FROM invoice_subscriptions
-WHERE organization_id = @organization_id AND subscription_id = @subscription_id AND invoicing_reason = @invoicing_reason
+WHERE organization_id = @organization_id AND subscription_id = @subscription_id AND invoicing_reason = @invoicing_reason AND regenerated_invoice_id IS NULL
 ORDER BY id
 LIMIT 1;
 
@@ -190,6 +206,10 @@ LIMIT 1;
 -- name: DeleteInvoiceSubscriptionsByInvoice :exec
 DELETE FROM invoice_subscriptions WHERE organization_id = @organization_id AND invoice_id = @invoice_id;
 
+-- name: MarkInvoiceSubscriptionsRegenerated :exec
+UPDATE invoice_subscriptions SET regenerated_invoice_id = @regenerated_invoice_id
+WHERE organization_id = @organization_id AND invoice_id = @invoice_id;
+
 -- name: CreateFee :execrows
 INSERT INTO fees (
   organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id,
@@ -199,7 +219,7 @@ INSERT INTO fees (
   precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status,
   from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days,
   fixed_charges_from_datetime, fixed_charges_to_datetime, fixed_charges_duration_days,
-  true_up_parent_fee_id, pricing_unit_usage, applied_taxes, presentation_breakdowns, pay_in_advance_event_id,
+  true_up_parent_fee_id, original_fee_id, pricing_unit_usage, applied_taxes, presentation_breakdowns, pay_in_advance_event_id,
   pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at
 ) VALUES (
   @organization_id, @id, @invoice_id, @subscription_id, @fee_type, @charge_id, @charge_filter_id, @fixed_charge_id,
@@ -209,7 +229,7 @@ INSERT INTO fees (
   @precise_credit_notes_amount, @currency, @pay_in_advance, @invoiceable, @payment_status,
   @from_datetime, @to_datetime, @charges_from_datetime, @charges_to_datetime, @billing_timestamp, @charges_duration_days,
   @fixed_charges_from_datetime, @fixed_charges_to_datetime, @fixed_charges_duration_days,
-  @true_up_parent_fee_id, @pricing_unit_usage, @applied_taxes, @presentation_breakdowns, @pay_in_advance_event_id,
+  @true_up_parent_fee_id, @original_fee_id, @pricing_unit_usage, @applied_taxes, @presentation_breakdowns, @pay_in_advance_event_id,
   @pay_in_advance_event_transaction_id, @succeeded_at, @failed_at, @refunded_at, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
@@ -231,7 +251,7 @@ UPDATE fees SET
   charges_duration_days = @charges_duration_days,
   fixed_charges_from_datetime = @fixed_charges_from_datetime, fixed_charges_to_datetime = @fixed_charges_to_datetime,
   fixed_charges_duration_days = @fixed_charges_duration_days,
-  true_up_parent_fee_id = @true_up_parent_fee_id,
+  true_up_parent_fee_id = @true_up_parent_fee_id, original_fee_id = @original_fee_id,
   pricing_unit_usage = @pricing_unit_usage, applied_taxes = @applied_taxes,
   presentation_breakdowns = @presentation_breakdowns,
   pay_in_advance_event_id = @pay_in_advance_event_id,
@@ -241,40 +261,80 @@ UPDATE fees SET
 WHERE organization_id = @organization_id AND id = @id;
 
 -- name: GetFee :one
-SELECT * FROM fees WHERE organization_id = @organization_id AND id = @id;
+SELECT * FROM fees WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;
 
 -- name: ListFees :many
-SELECT * FROM fees
-WHERE organization_id = @organization_id
-  AND (sqlc.narg(invoice_id)::uuid IS NULL OR invoice_id = sqlc.narg(invoice_id))
-  AND (sqlc.narg(subscription_id)::uuid IS NULL OR subscription_id = sqlc.narg(subscription_id))
-  AND (sqlc.narg(charge_id)::uuid IS NULL OR charge_id = sqlc.narg(charge_id))
-  AND (cardinality(@types::text[]) = 0 OR fee_type = ANY(@types::text[]))
-  AND (sqlc.narg(after)::uuid IS NULL OR id > sqlc.narg(after))
-ORDER BY id
+-- The customer of a fee is the customer of its invoice, else of its
+-- subscription (lago Fee.from_customer).
+SELECT * FROM fees f
+WHERE f.organization_id = @organization_id AND f.deleted_at IS NULL
+  AND (sqlc.narg(invoice_id)::uuid IS NULL OR f.invoice_id = sqlc.narg(invoice_id))
+  AND (sqlc.narg(subscription_id)::uuid IS NULL OR f.subscription_id = sqlc.narg(subscription_id))
+  AND (sqlc.narg(charge_id)::uuid IS NULL OR f.charge_id = sqlc.narg(charge_id))
+  AND (cardinality(@types::text[]) = 0 OR f.fee_type = ANY(@types::text[]))
+  AND (cardinality(@payment_statuses::text[]) = 0 OR f.payment_status = ANY(@payment_statuses::text[]))
+  AND (sqlc.narg(currency)::text IS NULL OR f.currency = sqlc.narg(currency))
+  AND (sqlc.narg(event_transaction_id)::text IS NULL OR f.pay_in_advance_event_transaction_id = sqlc.narg(event_transaction_id))
+  AND ((sqlc.narg(customer_id)::uuid IS NULL AND sqlc.narg(customer_external_id)::text IS NULL) OR EXISTS (
+    SELECT 1 FROM customers c
+    WHERE c.organization_id = f.organization_id
+      AND c.id = CASE WHEN f.invoice_id IS NOT NULL
+        THEN (SELECT i.customer_id FROM invoices i WHERE i.organization_id = f.organization_id AND i.id = f.invoice_id)
+        ELSE (SELECT s.customer_id FROM subscriptions s WHERE s.organization_id = f.organization_id AND s.id = f.subscription_id)
+      END
+      AND (sqlc.narg(customer_id)::uuid IS NULL OR c.id = sqlc.narg(customer_id))
+      AND (sqlc.narg(customer_external_id)::text IS NULL OR (c.external_id = sqlc.narg(customer_external_id) AND c.deleted_at IS NULL))
+  ))
+  AND (sqlc.narg(subscription_external_id)::text IS NULL OR EXISTS (
+    SELECT 1 FROM subscriptions s
+    WHERE s.organization_id = f.organization_id AND s.id = f.subscription_id AND s.external_id = sqlc.narg(subscription_external_id)
+  ))
+  AND (sqlc.narg(billable_metric_code)::text IS NULL OR EXISTS (
+    SELECT 1 FROM charges ch JOIN billable_metrics bm ON bm.organization_id = ch.organization_id AND bm.id = ch.billable_metric_id
+    WHERE ch.organization_id = f.organization_id AND ch.id = f.charge_id AND bm.code = sqlc.narg(billable_metric_code)
+  ))
+  AND (sqlc.narg(created_from)::timestamptz IS NULL OR f.created_at >= sqlc.narg(created_from))
+  AND (sqlc.narg(created_to)::timestamptz IS NULL OR f.created_at <= sqlc.narg(created_to))
+  AND (sqlc.narg(succeeded_from)::timestamptz IS NULL OR f.succeeded_at >= sqlc.narg(succeeded_from))
+  AND (sqlc.narg(succeeded_to)::timestamptz IS NULL OR f.succeeded_at <= sqlc.narg(succeeded_to))
+  AND (sqlc.narg(failed_from)::timestamptz IS NULL OR f.failed_at >= sqlc.narg(failed_from))
+  AND (sqlc.narg(failed_to)::timestamptz IS NULL OR f.failed_at <= sqlc.narg(failed_to))
+  AND (sqlc.narg(refunded_from)::timestamptz IS NULL OR f.refunded_at >= sqlc.narg(refunded_from))
+  AND (sqlc.narg(refunded_to)::timestamptz IS NULL OR f.refunded_at <= sqlc.narg(refunded_to))
+  -- Oldest first, then by id (fees_query.rb:33); the cursor is
+  -- (@after_at, @after).
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR f.created_at > sqlc.narg(after_at)::timestamptz
+       OR (f.created_at = sqlc.narg(after_at)::timestamptz AND f.id > sqlc.narg(after)))
+ORDER BY f.created_at, f.id
 LIMIT @lim;
 
+-- name: DiscardUninvoicedFee :execrows
+UPDATE fees SET deleted_at = @deleted_at, updated_at = @deleted_at
+WHERE organization_id = @organization_id AND id = @id AND invoice_id IS NULL AND deleted_at IS NULL;
+
 -- name: ListFeesByInvoice :many
-SELECT * FROM fees WHERE organization_id = @organization_id AND invoice_id = @invoice_id ORDER BY id;
+SELECT * FROM fees WHERE organization_id = @organization_id AND invoice_id = @invoice_id AND deleted_at IS NULL ORDER BY id;
 
 -- name: ListFeesBySubscriptionPeriod :many
 SELECT * FROM fees
 WHERE organization_id = @organization_id AND subscription_id = @subscription_id AND from_datetime = @from_datetime
+  AND deleted_at IS NULL
 ORDER BY id;
 
 -- name: ListFeesUnbilledInAdvance :many
 SELECT * FROM fees
 WHERE organization_id = @organization_id AND invoice_id IS NULL AND pay_in_advance AND invoiceable
-  AND payment_status = 'succeeded' AND created_at < @before
+  AND payment_status = 'succeeded' AND created_at < @before AND deleted_at IS NULL
 ORDER BY id;
 
 -- name: ListFeesByCharge :many
-SELECT * FROM fees WHERE organization_id = @organization_id AND charge_id = @charge_id ORDER BY id;
+SELECT * FROM fees WHERE organization_id = @organization_id AND charge_id = @charge_id AND deleted_at IS NULL ORDER BY id;
 
 -- name: ListFeesByEventTransaction :many
 SELECT * FROM fees
 WHERE organization_id = @organization_id AND subscription_id = @subscription_id
-  AND pay_in_advance_event_transaction_id = @transaction_id
+  AND pay_in_advance_event_transaction_id = @transaction_id AND deleted_at IS NULL
 ORDER BY id;
 
 -- name: DeleteFeesByInvoice :exec

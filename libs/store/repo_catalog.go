@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -131,20 +132,42 @@ func (r pricingUnitRepo) GetByCode(ctx context.Context, org core.OrganizationID,
 	return pricingUnitOf(row)
 }
 
-func (r pricingUnitRepo) List(ctx context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*catalog.PricingUnit], error) {
+func (r pricingUnitRepo) List(ctx context.Context, org core.OrganizationID, f catalog.PricingUnitFilter, page core.PageRequest) (core.Page[*catalog.PricingUnit], error) {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return core.Page[*catalog.PricingUnit]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	if !f.Order.Valid() {
+		return core.Page[*catalog.PricingUnit]{}, fmt.Errorf("list pricing units: %w: order", core.ErrInvalidValue)
+	}
+	byName := f.Order == core.OrderRecent
+	var (
+		after     *uuid.UUID
+		afterName *string
+		afterAt   *time.Time
+		lim       int32
+	)
+	if byName {
+		after, afterName, afterAt, lim, err = nameCursorArgs(page)
+	} else {
+		after, lim, err = pageArgs(page)
+	}
 	if err != nil {
 		return core.Page[*catalog.PricingUnit]{}, err
 	}
-	rows, err := q.ListPricingUnits(ctx, db.ListPricingUnitsParams{OrganizationID: org.UUID(), After: after, Lim: lim})
+	rows, err := q.ListPricingUnits(ctx, db.ListPricingUnitsParams{
+		OrganizationID: org.UUID(), Search: searchArg(f.Search),
+		After: after, ByName: byName, AfterName: afterName, AfterAt: afterAt, Lim: lim,
+	})
 	if err != nil {
 		return core.Page[*catalog.PricingUnit]{}, fmt.Errorf("list pricing units: %w", mapErr(err))
 	}
-	return pageOf(rows, page, pricingUnitOf, func(p *catalog.PricingUnit) string { return p.ID.String() })
+	return pageOf(rows, page, pricingUnitOf, func(p *catalog.PricingUnit) string {
+		if byName {
+			return nameToken(p.Name, p.CreatedAt, p.ID.UUID())
+		}
+		return p.ID.String()
+	})
 }
 
 // ---------------------------------------------------------------------------
@@ -191,6 +214,7 @@ func metricOf(r db.BillableMetric, filters []catalog.MetricFilter) *catalog.Bill
 		Filters:           filters,
 		CreatedAt:         utc(r.CreatedAt),
 		UpdatedAt:         utc(r.UpdatedAt),
+		DeletedAt:         optUTC(r.DeletedAt),
 	}
 }
 
@@ -230,11 +254,20 @@ func (r metricRepo) one(ctx context.Context, q *db.Queries, org core.Organizatio
 	return ms[0], nil
 }
 
-// writeFilters (re)writes the filters of m.
+// writeFilters (re)writes the filters of m. On replace, the kept filters
+// m no longer has are discarded at m.UpdatedAt and the others updated in
+// place, so their IDs stay (lago CreateOrUpdateBatchService).
 func (r metricRepo) writeFilters(ctx context.Context, q *db.Queries, m *catalog.BillableMetric, replace bool) error {
 	org, id := m.OrganizationID.UUID(), m.ID.UUID()
 	if replace {
-		if err := q.DeleteBillableMetricFilters(ctx, db.DeleteBillableMetricFiltersParams{OrganizationID: org, BillableMetricID: id}); err != nil {
+		kept := make([]uuid.UUID, len(m.Filters))
+		for i, f := range m.Filters {
+			kept[i] = f.ID.UUID()
+		}
+		at := utc(m.UpdatedAt)
+		if _, err := q.DiscardBillableMetricFilters(ctx, db.DiscardBillableMetricFiltersParams{
+			OrganizationID: org, BillableMetricID: id, DeletedAt: &at, KeptIds: kept,
+		}); err != nil {
 			return err
 		}
 	}
@@ -243,7 +276,7 @@ func (r metricRepo) writeFilters(ctx context.Context, q *db.Queries, m *catalog.
 		if values == nil {
 			values = []string{}
 		}
-		if err := q.InsertBillableMetricFilter(ctx, db.InsertBillableMetricFilterParams{
+		if err := q.UpsertBillableMetricFilter(ctx, db.UpsertBillableMetricFilterParams{
 			OrganizationID: org, ID: f.ID.UUID(), BillableMetricID: id, Key: f.Key, FilterValues: values, Position: int32(i), //nolint:gosec // few filters
 		}); err != nil {
 			return err
@@ -265,7 +298,7 @@ func (r metricRepo) Create(ctx context.Context, m *catalog.BillableMetric) error
 		}
 		return r.writeFilters(ctx, q, m, false)
 	})
-	return insertErr("billable_metric", n, err)
+	return r.t.noteCatalog(insertErr("billable_metric", n, err), CatalogChange{OrganizationID: m.OrganizationID, Kind: CatalogMetric, Key: m.Code})
 }
 
 func (r metricRepo) Update(ctx context.Context, m *catalog.BillableMetric) error {
@@ -281,20 +314,37 @@ func (r metricRepo) Update(ctx context.Context, m *catalog.BillableMetric) error
 		}
 		return r.writeFilters(ctx, q, m, true)
 	})
-	return updateErr("billable_metric", m.ID, n, err)
+	// The previous code is unknown here: every metric is evicted.
+	return r.t.noteCatalog(updateErr("billable_metric", m.ID, n, err), CatalogChange{OrganizationID: m.OrganizationID, Kind: CatalogMetric})
 }
 
-func (r metricRepo) Delete(ctx context.Context, org core.OrganizationID, id core.BillableMetricID) error {
+func (r metricRepo) Discard(ctx context.Context, org core.OrganizationID, id core.BillableMetricID, at time.Time) error {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return err
 	}
+	at = utc(at)
 	var n int64
 	err = r.t.guard(ctx, func() (err error) {
-		n, err = q.DeleteBillableMetric(ctx, db.DeleteBillableMetricParams{OrganizationID: org.UUID(), ID: id.UUID()})
+		n, err = q.DiscardBillableMetric(ctx, db.DiscardBillableMetricParams{OrganizationID: org.UUID(), ID: id.UUID(), DeletedAt: &at})
 		return err
 	})
-	return updateErr("billable_metric", id, n, err)
+	return r.t.noteCatalog(updateErr("billable_metric", id, n, err), CatalogChange{OrganizationID: org, Kind: CatalogMetric})
+}
+
+func (r metricRepo) DiscardFilters(ctx context.Context, org core.OrganizationID, id core.BillableMetricID, at time.Time) (int, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return 0, err
+	}
+	at = utc(at)
+	n, err := q.DiscardBillableMetricFilters(ctx, db.DiscardBillableMetricFiltersParams{
+		OrganizationID: org.UUID(), BillableMetricID: id.UUID(), DeletedAt: &at, KeptIds: []uuid.UUID{},
+	})
+	if err != nil {
+		return 0, fmt.Errorf("discard billable metric filters: %w", mapErr(err))
+	}
+	return int(n), r.t.noteCatalog(nil, CatalogChange{OrganizationID: org, Kind: CatalogMetric})
 }
 
 func (r metricRepo) Get(ctx context.Context, org core.OrganizationID, id core.BillableMetricID) (*catalog.BillableMetric, error) {
@@ -303,6 +353,18 @@ func (r metricRepo) Get(ctx context.Context, org core.OrganizationID, id core.Bi
 		return nil, err
 	}
 	row, err := q.GetBillableMetric(ctx, db.GetBillableMetricParams{OrganizationID: org.UUID(), ID: id.UUID()})
+	if err != nil {
+		return nil, getErr("billable_metric", id, err)
+	}
+	return r.one(ctx, q, org, row)
+}
+
+func (r metricRepo) GetWithDiscarded(ctx context.Context, org core.OrganizationID, id core.BillableMetricID) (*catalog.BillableMetric, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	row, err := q.GetBillableMetricWithDiscarded(ctx, db.GetBillableMetricWithDiscardedParams{OrganizationID: org.UUID(), ID: id.UUID()})
 	if err != nil {
 		return nil, getErr("billable_metric", id, err)
 	}
@@ -373,7 +435,20 @@ func (r metricRepo) List(ctx context.Context, org core.OrganizationID, f catalog
 	if err != nil {
 		return core.Page[*catalog.BillableMetric]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	if !f.Order.Valid() {
+		return core.Page[*catalog.BillableMetric]{}, fmt.Errorf("list billable metrics: %w: order", core.ErrInvalidValue)
+	}
+	recent := f.Order == core.OrderRecent
+	var (
+		after   *uuid.UUID
+		afterAt *time.Time
+		lim     int32
+	)
+	if recent {
+		after, afterAt, lim, err = timeCursorArgs(page)
+	} else {
+		after, lim, err = pageArgs(page)
+	}
 	if err != nil {
 		return core.Page[*catalog.BillableMetric]{}, err
 	}
@@ -382,7 +457,10 @@ func (r metricRepo) List(ctx context.Context, org core.OrganizationID, f catalog
 		AggregationTypes: enumStrings(f.AggregationTypes),
 		Recurring:        f.Recurring,
 		PlanID:           optUUID(f.PlanID),
+		Search:           searchArg(f.Search),
 		After:            after,
+		Recent:           recent,
+		AfterAt:          afterAt,
 		Lim:              lim,
 	})
 	if err != nil {
@@ -396,7 +474,12 @@ func (r metricRepo) List(ctx context.Context, org core.OrganizationID, f catalog
 	}
 	return pageOf(ms, page,
 		func(m *catalog.BillableMetric) (*catalog.BillableMetric, error) { return m, nil },
-		func(m *catalog.BillableMetric) string { return m.ID.String() })
+		func(m *catalog.BillableMetric) string {
+			if recent {
+				return core.Cursor{Key: m.CreatedAt.UTC().Format(time.RFC3339Nano), ID: m.ID.UUID()}.Encode()
+			}
+			return m.ID.String()
+		})
 }
 
 // ---------------------------------------------------------------------------
@@ -576,19 +659,39 @@ func (r planRepo) List(ctx context.Context, org core.OrganizationID, f catalog.P
 	if err != nil {
 		return core.Page[*catalog.Plan]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	if !f.Order.Valid() {
+		return core.Page[*catalog.Plan]{}, fmt.Errorf("list plans: %w: order", core.ErrInvalidValue)
+	}
+	byName := f.Order == core.OrderRecent
+	var (
+		after     *uuid.UUID
+		afterName *string
+		afterAt   *time.Time
+		lim       int32
+	)
+	if byName {
+		after, afterName, afterAt, lim, err = nameCursorArgs(page)
+	} else {
+		after, lim, err = pageArgs(page)
+	}
 	if err != nil {
 		return core.Page[*catalog.Plan]{}, err
 	}
 	rows, err := q.ListPlans(ctx, db.ListPlansParams{
-		OrganizationID: org.UUID(), IncludeChildren: f.IncludeChildren, Statuses: enumStrings(f.Statuses), After: after, Lim: lim,
+		OrganizationID: org.UUID(), IncludeChildren: f.IncludeChildren, Statuses: enumStrings(f.Statuses),
+		Search: searchArg(f.Search), After: after, ByName: byName, AfterName: afterName, AfterAt: afterAt, Lim: lim,
 	})
 	if err != nil {
 		return core.Page[*catalog.Plan]{}, fmt.Errorf("list plans: %w", mapErr(err))
 	}
 	return pageOf(rows, page,
 		func(r db.ListPlansRow) (*catalog.Plan, error) { return planOf(catalogPlanRow(r)) },
-		func(p *catalog.Plan) string { return p.ID.String() })
+		func(p *catalog.Plan) string {
+			if byName {
+				return nameToken(p.Name, p.CreatedAt, p.ID.UUID())
+			}
+			return p.ID.String()
+		})
 }
 
 // ---------------------------------------------------------------------------
@@ -638,6 +741,7 @@ func addOnOf(row catalogAddOnRow) (*catalog.AddOn, error) {
 		TaxIDs:             idsOf[core.TaxID](row.TaxIds),
 		CreatedAt:          utc(r.CreatedAt),
 		UpdatedAt:          utc(r.UpdatedAt),
+		DeletedAt:          optUTC(r.DeletedAt),
 	}, nil
 }
 
@@ -686,14 +790,15 @@ func (r addOnRepo) Update(ctx context.Context, a *catalog.AddOn) error {
 	return updateErr("add_on", a.ID, n, err)
 }
 
-func (r addOnRepo) Delete(ctx context.Context, org core.OrganizationID, id core.AddOnID) error {
+func (r addOnRepo) Discard(ctx context.Context, org core.OrganizationID, id core.AddOnID, at time.Time) error {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return err
 	}
+	at = utc(at)
 	var n int64
 	err = r.t.guard(ctx, func() (err error) {
-		n, err = q.DeleteAddOn(ctx, db.DeleteAddOnParams{OrganizationID: org.UUID(), ID: id.UUID()})
+		n, err = q.DiscardAddOn(ctx, db.DiscardAddOnParams{OrganizationID: org.UUID(), ID: id.UUID(), DeletedAt: &at})
 		return err
 	})
 	return updateErr("add_on", id, n, err)
@@ -739,22 +844,42 @@ func (r addOnRepo) ListByIDs(ctx context.Context, org core.OrganizationID, ids [
 	return catalogInOrder("add_on", ids, as, func(a *catalog.AddOn) core.AddOnID { return a.ID })
 }
 
-func (r addOnRepo) List(ctx context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*catalog.AddOn], error) {
+func (r addOnRepo) List(ctx context.Context, org core.OrganizationID, f catalog.AddOnFilter, page core.PageRequest) (core.Page[*catalog.AddOn], error) {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return core.Page[*catalog.AddOn]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	if !f.Order.Valid() {
+		return core.Page[*catalog.AddOn]{}, fmt.Errorf("list add-ons: %w: order", core.ErrInvalidValue)
+	}
+	recent := f.Order == core.OrderRecent
+	var (
+		after   *uuid.UUID
+		afterAt *time.Time
+		lim     int32
+	)
+	if recent {
+		after, afterAt, lim, err = timeCursorArgs(page)
+	} else {
+		after, lim, err = pageArgs(page)
+	}
 	if err != nil {
 		return core.Page[*catalog.AddOn]{}, err
 	}
-	rows, err := q.ListAddOns(ctx, db.ListAddOnsParams{OrganizationID: org.UUID(), After: after, Lim: lim})
+	rows, err := q.ListAddOns(ctx, db.ListAddOnsParams{
+		OrganizationID: org.UUID(), Search: searchArg(f.Search), After: after, Recent: recent, AfterAt: afterAt, Lim: lim,
+	})
 	if err != nil {
 		return core.Page[*catalog.AddOn]{}, fmt.Errorf("list add-ons: %w", mapErr(err))
 	}
 	return pageOf(rows, page,
 		func(r db.ListAddOnsRow) (*catalog.AddOn, error) { return addOnOf(catalogAddOnRow(r)) },
-		func(a *catalog.AddOn) string { return a.ID.String() })
+		func(a *catalog.AddOn) string {
+			if recent {
+				return core.Cursor{Key: a.CreatedAt.UTC().Format(time.RFC3339Nano), ID: a.ID.UUID()}.Encode()
+			}
+			return a.ID.String()
+		})
 }
 
 // ---------------------------------------------------------------------------
@@ -823,6 +948,7 @@ func chargeOf(row catalogChargeRow, filters []catalog.ChargeFilter) (*catalog.Ch
 		TaxIDs:             idsOf[core.TaxID](row.TaxIds),
 		CreatedAt:          utc(r.CreatedAt),
 		UpdatedAt:          utc(r.UpdatedAt),
+		DeletedAt:          optUTC(r.DeletedAt),
 	}
 	if r.AppliedPricingUnitID != nil {
 		if r.ConversionRate == nil {
@@ -854,6 +980,7 @@ func chargeFilterOf(r db.ChargeFilter) (*catalog.ChargeFilter, error) {
 		InvoiceDisplayName: r.InvoiceDisplayName,
 		Code:               r.Code,
 		CreatedAt:          utc(r.CreatedAt),
+		DeletedAt:          optUTC(r.DeletedAt),
 	}, nil
 }
 
@@ -897,11 +1024,19 @@ func (r chargeRepo) one(ctx context.Context, q *db.Queries, org core.Organizatio
 	return cs[0], nil
 }
 
-// writeChildren (re)writes the filters and taxes of c.
+// writeChildren (re)writes the filters and taxes of c; on replace, the
+// kept filters missing from c.Filters are discarded at c.UpdatedAt first.
 func (r chargeRepo) writeChildren(ctx context.Context, q *db.Queries, c *catalog.Charge, replace bool) error {
 	org, id := c.OrganizationID.UUID(), c.ID.UUID()
 	if replace {
-		if err := q.DeleteChargeFilters(ctx, db.DeleteChargeFiltersParams{OrganizationID: org, ChargeID: id}); err != nil {
+		at := utc(c.UpdatedAt)
+		keep := make([]uuid.UUID, len(c.Filters))
+		for i := range c.Filters {
+			keep[i] = c.Filters[i].ID.UUID()
+		}
+		if err := q.DiscardChargeFiltersExcept(ctx, db.DiscardChargeFiltersExceptParams{
+			OrganizationID: org, ChargeID: id, KeepIds: keep, DeletedAt: &at,
+		}); err != nil {
 			return err
 		}
 		if err := q.DeleteChargeTaxes(ctx, db.DeleteChargeTaxesParams{OrganizationID: org, ChargeID: id}); err != nil {
@@ -918,7 +1053,7 @@ func (r chargeRepo) writeChildren(ctx context.Context, q *db.Queries, c *catalog
 		if err != nil {
 			return err
 		}
-		if err := q.InsertChargeFilter(ctx, db.InsertChargeFilterParams{
+		if err := q.UpsertChargeFilter(ctx, db.UpsertChargeFilterParams{
 			OrganizationID:     org,
 			ID:                 f.ID.UUID(),
 			ChargeID:           id,
@@ -951,7 +1086,7 @@ func (r chargeRepo) Create(ctx context.Context, c *catalog.Charge) error {
 		}
 		return r.writeChildren(ctx, q, c, false)
 	})
-	return insertErr("charge", n, err)
+	return r.t.noteCatalog(insertErr("charge", n, err), CatalogChange{OrganizationID: c.OrganizationID, Kind: CatalogPlan, Key: c.PlanID.String()})
 }
 
 func (r chargeRepo) Update(ctx context.Context, c *catalog.Charge) error {
@@ -967,50 +1102,55 @@ func (r chargeRepo) Update(ctx context.Context, c *catalog.Charge) error {
 		}
 		return r.writeChildren(ctx, q, c, true)
 	})
-	return updateErr("charge", c.ID, n, err)
+	return r.t.noteCatalog(updateErr("charge", c.ID, n, err), CatalogChange{OrganizationID: c.OrganizationID, Kind: CatalogPlan, Key: c.PlanID.String()})
 }
 
-func (r chargeRepo) Delete(ctx context.Context, org core.OrganizationID, id core.ChargeID) error {
-	q, err := r.t.queries(ctx, org)
-	if err != nil {
-		return err
-	}
-	var n int64
-	err = r.t.guard(ctx, func() (err error) {
-		n, err = q.DeleteCharge(ctx, db.DeleteChargeParams{OrganizationID: org.UUID(), ID: id.UUID()})
-		return err
-	})
-	return updateErr("charge", id, n, err)
-}
-
-func (r chargeRepo) DeleteByPlan(ctx context.Context, org core.OrganizationID, plan core.PlanID) (int, error) {
+// discard discards the kept charges selected by sel, with their kept
+// filters, and returns how many charges.
+func (r chargeRepo) discard(ctx context.Context, org core.OrganizationID, sel db.DiscardChargesParams, at time.Time) (int64, error) {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return 0, err
 	}
+	at = utc(at)
+	sel.OrganizationID, sel.DeletedAt = org.UUID(), &at
 	var n int64
 	err = r.t.guard(ctx, func() (err error) {
-		n, err = q.DeleteChargesByPlan(ctx, db.DeleteChargesByPlanParams{OrganizationID: org.UUID(), PlanID: plan.UUID()})
+		if err := q.DiscardChargeFiltersOfCharges(ctx, db.DiscardChargeFiltersOfChargesParams{
+			OrganizationID: sel.OrganizationID, DeletedAt: sel.DeletedAt,
+			ID: sel.ID, PlanID: sel.PlanID, BillableMetricID: sel.BillableMetricID,
+		}); err != nil {
+			return err
+		}
+		n, err = q.DiscardCharges(ctx, sel)
 		return err
 	})
+	return n, err
+}
+
+func (r chargeRepo) Discard(ctx context.Context, org core.OrganizationID, id core.ChargeID, at time.Time) error {
+	n, err := r.discard(ctx, org, db.DiscardChargesParams{ID: optUUID(id), Touch: true}, at)
+	return r.t.noteCatalog(updateErr("charge", id, n, err), CatalogChange{OrganizationID: org, Kind: CatalogPlan})
+}
+
+func (r chargeRepo) DiscardByPlan(ctx context.Context, org core.OrganizationID, plan core.PlanID, at time.Time) (int, error) {
+	n, err := r.discard(ctx, org, db.DiscardChargesParams{PlanID: optUUID(plan)}, at)
 	if err != nil {
-		return 0, fmt.Errorf("delete charges of plan %s: %w", plan, err)
+		return 0, fmt.Errorf("discard charges of plan %s: %w", plan, err)
+	}
+	if n > 0 {
+		_ = r.t.noteCatalog(nil, CatalogChange{OrganizationID: org, Kind: CatalogPlan, Key: plan.String()})
 	}
 	return int(n), nil
 }
 
-func (r chargeRepo) DeleteByMetric(ctx context.Context, org core.OrganizationID, metric core.BillableMetricID) (int, error) {
-	q, err := r.t.queries(ctx, org)
+func (r chargeRepo) DiscardByMetric(ctx context.Context, org core.OrganizationID, metric core.BillableMetricID, at time.Time) (int, error) {
+	n, err := r.discard(ctx, org, db.DiscardChargesParams{BillableMetricID: optUUID(metric)}, at)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("discard charges of billable metric %s: %w", metric, err)
 	}
-	var n int64
-	err = r.t.guard(ctx, func() (err error) {
-		n, err = q.DeleteChargesByMetric(ctx, db.DeleteChargesByMetricParams{OrganizationID: org.UUID(), BillableMetricID: metric.UUID()})
-		return err
-	})
-	if err != nil {
-		return 0, fmt.Errorf("delete charges of billable metric %s: %w", metric, err)
+	if n > 0 {
+		_ = r.t.noteCatalog(nil, CatalogChange{OrganizationID: org, Kind: CatalogPlan})
 	}
 	return int(n), nil
 }
@@ -1098,9 +1238,14 @@ func (r chargeRepo) ListFilters(ctx context.Context, org core.OrganizationID, ch
 		return nil, fmt.Errorf("list charge filters: %w", mapErr(err))
 	}
 	if len(rows) == 0 {
-		// An unknown charge is not found; a known one may have no filters.
-		if _, err := q.GetCharge(ctx, db.GetChargeParams{OrganizationID: org.UUID(), ID: charge.UUID()}); err != nil {
+		// An unknown or discarded charge is not found; a kept one may have
+		// no filters.
+		row, err := q.GetCharge(ctx, db.GetChargeParams{OrganizationID: org.UUID(), ID: charge.UUID()})
+		if err != nil {
 			return nil, getErr("charge", charge, err)
+		}
+		if row.Charge.DeletedAt != nil {
+			return nil, notFound("charge", charge)
 		}
 	}
 	return convAll(rows, chargeFilterOf)
@@ -1161,6 +1306,7 @@ func fixedChargeOf(row catalogFixedChargeRow) (*catalog.FixedCharge, error) {
 		TaxIDs:             idsOf[core.TaxID](row.TaxIds),
 		CreatedAt:          utc(r.CreatedAt),
 		UpdatedAt:          utc(r.UpdatedAt),
+		DeletedAt:          optUTC(r.DeletedAt),
 	}, nil
 }
 
@@ -1209,47 +1355,40 @@ func (r fixedChargeRepo) Update(ctx context.Context, f *catalog.FixedCharge) err
 	return updateErr("fixed_charge", f.ID, n, err)
 }
 
-func (r fixedChargeRepo) Delete(ctx context.Context, org core.OrganizationID, id core.FixedChargeID) error {
-	q, err := r.t.queries(ctx, org)
-	if err != nil {
-		return err
-	}
-	var n int64
-	err = r.t.guard(ctx, func() (err error) {
-		n, err = q.DeleteFixedCharge(ctx, db.DeleteFixedChargeParams{OrganizationID: org.UUID(), ID: id.UUID()})
-		return err
-	})
-	return updateErr("fixed_charge", id, n, err)
-}
-
-func (r fixedChargeRepo) DeleteByPlan(ctx context.Context, org core.OrganizationID, plan core.PlanID) (int, error) {
+// discard discards the kept fixed charges selected by sel and returns how
+// many.
+func (r fixedChargeRepo) discard(ctx context.Context, org core.OrganizationID, sel db.DiscardFixedChargesParams, at time.Time) (int64, error) {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return 0, err
 	}
+	at = utc(at)
+	sel.OrganizationID, sel.DeletedAt = org.UUID(), &at
 	var n int64
 	err = r.t.guard(ctx, func() (err error) {
-		n, err = q.DeleteFixedChargesByPlan(ctx, db.DeleteFixedChargesByPlanParams{OrganizationID: org.UUID(), PlanID: plan.UUID()})
+		n, err = q.DiscardFixedCharges(ctx, sel)
 		return err
 	})
+	return n, err
+}
+
+func (r fixedChargeRepo) Discard(ctx context.Context, org core.OrganizationID, id core.FixedChargeID, at time.Time) error {
+	n, err := r.discard(ctx, org, db.DiscardFixedChargesParams{ID: optUUID(id), Touch: true}, at)
+	return updateErr("fixed_charge", id, n, err)
+}
+
+func (r fixedChargeRepo) DiscardByPlan(ctx context.Context, org core.OrganizationID, plan core.PlanID, at time.Time) (int, error) {
+	n, err := r.discard(ctx, org, db.DiscardFixedChargesParams{PlanID: optUUID(plan)}, at)
 	if err != nil {
-		return 0, fmt.Errorf("delete fixed charges of plan %s: %w", plan, err)
+		return 0, fmt.Errorf("discard fixed charges of plan %s: %w", plan, err)
 	}
 	return int(n), nil
 }
 
-func (r fixedChargeRepo) DeleteByAddOn(ctx context.Context, org core.OrganizationID, addOn core.AddOnID) (int, error) {
-	q, err := r.t.queries(ctx, org)
+func (r fixedChargeRepo) DiscardByAddOn(ctx context.Context, org core.OrganizationID, addOn core.AddOnID, at time.Time) (int, error) {
+	n, err := r.discard(ctx, org, db.DiscardFixedChargesParams{AddOnID: optUUID(addOn)}, at)
 	if err != nil {
-		return 0, err
-	}
-	var n int64
-	err = r.t.guard(ctx, func() (err error) {
-		n, err = q.DeleteFixedChargesByAddOn(ctx, db.DeleteFixedChargesByAddOnParams{OrganizationID: org.UUID(), AddOnID: addOn.UUID()})
-		return err
-	})
-	if err != nil {
-		return 0, fmt.Errorf("delete fixed charges of add-on %s: %w", addOn, err)
+		return 0, fmt.Errorf("discard fixed charges of add-on %s: %w", addOn, err)
 	}
 	return int(n), nil
 }

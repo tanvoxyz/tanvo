@@ -88,10 +88,10 @@ const createCoupon = `-- name: CreateCoupon :execrows
 
 INSERT INTO coupons (
   organization_id, id, code, name, description, coupon_type, amount, amount_currency, percentage_rate,
-  frequency, frequency_duration, reusable, expiration, expiration_at, status, terminated_at, created_at, updated_at
+  frequency, frequency_duration, reusable, expiration, expiration_at, status, terminated_at, deleted_at, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8, $9,
-  $10, $11, $12, $13, $14, $15, $16, $17, $18
+  $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
 )
 ON CONFLICT DO NOTHING
 `
@@ -113,6 +113,7 @@ type CreateCouponParams struct {
 	ExpirationAt      *time.Time
 	Status            string
 	TerminatedAt      *time.Time
+	DeletedAt         *time.Time
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }
@@ -136,6 +137,7 @@ func (q *Queries) CreateCoupon(ctx context.Context, arg CreateCouponParams) (int
 		arg.ExpirationAt,
 		arg.Status,
 		arg.TerminatedAt,
+		arg.DeletedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -206,7 +208,7 @@ func (q *Queries) GetAppliedCoupon(ctx context.Context, arg GetAppliedCouponPara
 }
 
 const getCoupon = `-- name: GetCoupon :one
-SELECT c.organization_id, c.id, c.code, c.name, c.description, c.coupon_type, c.amount, c.amount_currency, c.percentage_rate, c.frequency, c.frequency_duration, c.reusable, c.expiration, c.expiration_at, c.status, c.terminated_at, c.created_at, c.updated_at,
+SELECT c.organization_id, c.id, c.code, c.name, c.description, c.coupon_type, c.amount, c.amount_currency, c.percentage_rate, c.frequency, c.frequency_duration, c.reusable, c.expiration, c.expiration_at, c.status, c.terminated_at, c.deleted_at, c.created_at, c.updated_at,
   ARRAY(SELECT p.plan_id FROM coupon_plans p
         WHERE p.organization_id = c.organization_id AND p.coupon_id = c.id ORDER BY p.position)::uuid[] AS plan_ids,
   ARRAY(SELECT m.billable_metric_id FROM coupon_billable_metrics m
@@ -246,6 +248,7 @@ func (q *Queries) GetCoupon(ctx context.Context, arg GetCouponParams) (GetCoupon
 		&i.Coupon.ExpirationAt,
 		&i.Coupon.Status,
 		&i.Coupon.TerminatedAt,
+		&i.Coupon.DeletedAt,
 		&i.Coupon.CreatedAt,
 		&i.Coupon.UpdatedAt,
 		&i.PlanIds,
@@ -255,13 +258,13 @@ func (q *Queries) GetCoupon(ctx context.Context, arg GetCouponParams) (GetCoupon
 }
 
 const getCouponByCode = `-- name: GetCouponByCode :one
-SELECT c.organization_id, c.id, c.code, c.name, c.description, c.coupon_type, c.amount, c.amount_currency, c.percentage_rate, c.frequency, c.frequency_duration, c.reusable, c.expiration, c.expiration_at, c.status, c.terminated_at, c.created_at, c.updated_at,
+SELECT c.organization_id, c.id, c.code, c.name, c.description, c.coupon_type, c.amount, c.amount_currency, c.percentage_rate, c.frequency, c.frequency_duration, c.reusable, c.expiration, c.expiration_at, c.status, c.terminated_at, c.deleted_at, c.created_at, c.updated_at,
   ARRAY(SELECT p.plan_id FROM coupon_plans p
         WHERE p.organization_id = c.organization_id AND p.coupon_id = c.id ORDER BY p.position)::uuid[] AS plan_ids,
   ARRAY(SELECT m.billable_metric_id FROM coupon_billable_metrics m
         WHERE m.organization_id = c.organization_id AND m.coupon_id = c.id ORDER BY m.position)::uuid[] AS billable_metric_ids
 FROM coupons c
-WHERE c.organization_id = $1 AND c.code = $2 AND c.status = 'active'
+WHERE c.organization_id = $1 AND c.code = $2 AND c.deleted_at IS NULL
 `
 
 type GetCouponByCodeParams struct {
@@ -295,6 +298,7 @@ func (q *Queries) GetCouponByCode(ctx context.Context, arg GetCouponByCodeParams
 		&i.Coupon.ExpirationAt,
 		&i.Coupon.Status,
 		&i.Coupon.TerminatedAt,
+		&i.Coupon.DeletedAt,
 		&i.Coupon.CreatedAt,
 		&i.Coupon.UpdatedAt,
 		&i.PlanIds,
@@ -432,14 +436,27 @@ func (q *Queries) ListActiveAppliedCouponsByCustomer(ctx context.Context, arg Li
 }
 
 const listAppliedCoupons = `-- name: ListAppliedCoupons :many
-SELECT organization_id, id, coupon_id, customer_id, amount, amount_currency, percentage_rate, frequency, frequency_duration, frequency_duration_remaining, remaining_amount, status, terminated_at, created_at, updated_at FROM applied_coupons
-WHERE organization_id = $1
-  AND ($2::uuid IS NULL OR customer_id = $2)
-  AND ($3::uuid IS NULL OR coupon_id = $3)
-  AND ($4::text IS NULL OR status = $4)
-  AND ($5::uuid IS NULL OR id > $5)
-ORDER BY id
-LIMIT $6
+SELECT a.organization_id, a.id, a.coupon_id, a.customer_id, a.amount, a.amount_currency, a.percentage_rate, a.frequency, a.frequency_duration, a.frequency_duration_remaining, a.remaining_amount, a.status, a.terminated_at, a.created_at, a.updated_at FROM applied_coupons a
+WHERE a.organization_id = $1
+  AND ($2::uuid IS NULL OR a.customer_id = $2)
+  AND ($3::uuid IS NULL OR a.coupon_id = $3)
+  AND ($4::text IS NULL OR a.status = $4)
+  AND ((cardinality($5::uuid[]) = 0 AND cardinality($6::text[]) = 0)
+       OR a.coupon_id = ANY($5::uuid[])
+       OR EXISTS (
+         SELECT 1 FROM coupons c
+         WHERE c.organization_id = a.organization_id AND c.id = a.coupon_id AND c.code = ANY($6::text[])
+       ))
+  AND (NOT $7::boolean OR EXISTS (
+    SELECT 1 FROM customers cu
+    WHERE cu.organization_id = a.organization_id AND cu.id = a.customer_id AND cu.deleted_at IS NULL
+  ))
+  AND ($8::uuid IS NULL
+       OR ($9::boolean AND (a.created_at < $10::timestamptz
+                                 OR (a.created_at = $10::timestamptz AND a.id > $8)))
+       OR (NOT $9::boolean AND a.id > $8))
+ORDER BY CASE WHEN $9::boolean THEN a.created_at END DESC, a.id
+LIMIT $11
 `
 
 type ListAppliedCouponsParams struct {
@@ -447,17 +464,29 @@ type ListAppliedCouponsParams struct {
 	CustomerID     *uuid.UUID
 	CouponID       *uuid.UUID
 	Status         *string
+	CouponIds      []uuid.UUID
+	CouponCodes    []string
+	KeptCustomers  bool
 	After          *uuid.UUID
+	Recent         bool
+	AfterAt        *time.Time
 	Lim            int32
 }
 
+// @recent lists by created_at, newest first, then by id ascending
+// (base_query.rb:111-112); its cursor is (@after_at, @after).
 func (q *Queries) ListAppliedCoupons(ctx context.Context, arg ListAppliedCouponsParams) ([]AppliedCoupon, error) {
 	rows, err := q.db.Query(ctx, listAppliedCoupons,
 		arg.OrganizationID,
 		arg.CustomerID,
 		arg.CouponID,
 		arg.Status,
+		arg.CouponIds,
+		arg.CouponCodes,
+		arg.KeptCustomers,
 		arg.After,
+		arg.Recent,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {
@@ -495,26 +524,47 @@ func (q *Queries) ListAppliedCoupons(ctx context.Context, arg ListAppliedCoupons
 }
 
 const listCoupons = `-- name: ListCoupons :many
-SELECT c.organization_id, c.id, c.code, c.name, c.description, c.coupon_type, c.amount, c.amount_currency, c.percentage_rate, c.frequency, c.frequency_duration, c.reusable, c.expiration, c.expiration_at, c.status, c.terminated_at, c.created_at, c.updated_at,
+SELECT c.organization_id, c.id, c.code, c.name, c.description, c.coupon_type, c.amount, c.amount_currency, c.percentage_rate, c.frequency, c.frequency_duration, c.reusable, c.expiration, c.expiration_at, c.status, c.terminated_at, c.deleted_at, c.created_at, c.updated_at,
   ARRAY(SELECT p.plan_id FROM coupon_plans p
         WHERE p.organization_id = c.organization_id AND p.coupon_id = c.id ORDER BY p.position)::uuid[] AS plan_ids,
   ARRAY(SELECT m.billable_metric_id FROM coupon_billable_metrics m
         WHERE m.organization_id = c.organization_id AND m.coupon_id = c.id ORDER BY m.position)::uuid[] AS billable_metric_ids
 FROM coupons c
-WHERE c.organization_id = $1
+WHERE c.organization_id = $1 AND c.deleted_at IS NULL
   AND ($2::text IS NULL OR c.status = $2)
   AND ($3::text IS NULL OR c.code ILIKE $3 OR c.name ILIKE $3)
-  AND ($4::uuid IS NULL OR c.id > $4)
-ORDER BY c.id
-LIMIT $5
+  AND ($4::uuid IS NULL
+       OR ($5::boolean AND (
+         c.status > $6::text
+         OR (c.status = $6::text AND (
+           c.expiration > $7::text
+           OR (c.expiration = $7::text AND (
+             ($8::timestamptz IS NOT NULL
+              AND (c.expiration_at IS NULL OR c.expiration_at > $8::timestamptz))
+             OR (c.expiration_at IS NOT DISTINCT FROM $8::timestamptz AND (
+               c.created_at < $9::timestamptz
+               OR (c.created_at = $9::timestamptz AND c.id > $4)))))))))
+       OR (NOT $5::boolean AND c.id > $4))
+ORDER BY
+  CASE WHEN $5::boolean THEN c.status END,
+  CASE WHEN $5::boolean THEN c.expiration END,
+  CASE WHEN $5::boolean THEN c.expiration_at END,
+  CASE WHEN $5::boolean THEN c.created_at END DESC,
+  c.id
+LIMIT $10
 `
 
 type ListCouponsParams struct {
-	OrganizationID uuid.UUID
-	Status         *string
-	Search         *string
-	After          *uuid.UUID
-	Lim            int32
+	OrganizationID    uuid.UUID
+	Status            *string
+	Search            *string
+	After             *uuid.UUID
+	Recent            bool
+	AfterStatus       *string
+	AfterExpiration   *string
+	AfterExpirationAt *time.Time
+	AfterAt           *time.Time
+	Lim               int32
 }
 
 type ListCouponsRow struct {
@@ -523,12 +573,22 @@ type ListCouponsRow struct {
 	BillableMetricIds []uuid.UUID
 }
 
+// @recent lists by status, expiration and expiration_at (none last), then
+// by created_at, newest first, and by id (coupon.rb
+// order_by_status_and_expiration, base_query.rb:111-112); its cursor is
+// (@after_status, @after_expiration, @after_expiration_at, @after_at,
+// @after).
 func (q *Queries) ListCoupons(ctx context.Context, arg ListCouponsParams) ([]ListCouponsRow, error) {
 	rows, err := q.db.Query(ctx, listCoupons,
 		arg.OrganizationID,
 		arg.Status,
 		arg.Search,
 		arg.After,
+		arg.Recent,
+		arg.AfterStatus,
+		arg.AfterExpiration,
+		arg.AfterExpirationAt,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {
@@ -555,6 +615,7 @@ func (q *Queries) ListCoupons(ctx context.Context, arg ListCouponsParams) ([]Lis
 			&i.Coupon.ExpirationAt,
 			&i.Coupon.Status,
 			&i.Coupon.TerminatedAt,
+			&i.Coupon.DeletedAt,
 			&i.Coupon.CreatedAt,
 			&i.Coupon.UpdatedAt,
 			&i.PlanIds,
@@ -571,13 +632,13 @@ func (q *Queries) ListCoupons(ctx context.Context, arg ListCouponsParams) ([]Lis
 }
 
 const listExpiredCoupons = `-- name: ListExpiredCoupons :many
-SELECT c.organization_id, c.id, c.code, c.name, c.description, c.coupon_type, c.amount, c.amount_currency, c.percentage_rate, c.frequency, c.frequency_duration, c.reusable, c.expiration, c.expiration_at, c.status, c.terminated_at, c.created_at, c.updated_at,
+SELECT c.organization_id, c.id, c.code, c.name, c.description, c.coupon_type, c.amount, c.amount_currency, c.percentage_rate, c.frequency, c.frequency_duration, c.reusable, c.expiration, c.expiration_at, c.status, c.terminated_at, c.deleted_at, c.created_at, c.updated_at,
   ARRAY(SELECT p.plan_id FROM coupon_plans p
         WHERE p.organization_id = c.organization_id AND p.coupon_id = c.id ORDER BY p.position)::uuid[] AS plan_ids,
   ARRAY(SELECT m.billable_metric_id FROM coupon_billable_metrics m
         WHERE m.organization_id = c.organization_id AND m.coupon_id = c.id ORDER BY m.position)::uuid[] AS billable_metric_ids
 FROM coupons c
-WHERE c.status = 'active' AND c.expiration = 'time_limit' AND c.expiration_at <= $1::timestamptz
+WHERE c.status = 'active' AND c.deleted_at IS NULL AND c.expiration = 'time_limit' AND c.expiration_at <= $1::timestamptz
   AND ($2::uuid IS NULL OR c.id > $2)
 ORDER BY c.id
 LIMIT $3
@@ -622,6 +683,7 @@ func (q *Queries) ListExpiredCoupons(ctx context.Context, arg ListExpiredCoupons
 			&i.Coupon.ExpirationAt,
 			&i.Coupon.Status,
 			&i.Coupon.TerminatedAt,
+			&i.Coupon.DeletedAt,
 			&i.Coupon.CreatedAt,
 			&i.Coupon.UpdatedAt,
 			&i.PlanIds,
@@ -697,7 +759,7 @@ UPDATE coupons SET
   coupon_type = $6, amount = $7, amount_currency = $8, percentage_rate = $9,
   frequency = $10, frequency_duration = $11, reusable = $12,
   expiration = $13, expiration_at = $14, status = $15, terminated_at = $16,
-  created_at = $17, updated_at = $18
+  deleted_at = $17, created_at = $18, updated_at = $19
 WHERE organization_id = $1 AND id = $2
 `
 
@@ -718,6 +780,7 @@ type UpdateCouponParams struct {
 	ExpirationAt      *time.Time
 	Status            string
 	TerminatedAt      *time.Time
+	DeletedAt         *time.Time
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 }
@@ -740,6 +803,7 @@ func (q *Queries) UpdateCoupon(ctx context.Context, arg UpdateCouponParams) (int
 		arg.ExpirationAt,
 		arg.Status,
 		arg.TerminatedAt,
+		arg.DeletedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

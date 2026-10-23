@@ -165,6 +165,10 @@ func (s *Service) Destroy(ctx context.Context, org core.OrganizationID, id core.
 				return fmt.Errorf("discard entitlement %s: %w", e.ID, err)
 			}
 		}
+		// source: app/services/catalog_plans/destroy_service.rb:27-30
+		if _, err := r.PlanRateCards.DiscardByPlan(ctx, org, id, now); err != nil {
+			return fmt.Errorf("discard plan rate cards: %w", err)
+		}
 		if p.Deleted() {
 			return nil
 		}
@@ -296,8 +300,14 @@ func (s *Service) skipRule(ctx context.Context, err error, object, id string) er
 	return nil
 }
 
-// HandleJob runs a [kernel.JobDestroyPlan] and reports whether j is one.
+// HandleJob runs a catalog job (a [kernel.JobDestroyPlan], or a job of
+// the plan, charge and fixed-charge cascades) and reports whether j is one.
 func (s *Service) HandleJob(ctx context.Context, j port.Job) (bool, error) {
+	for _, hs := range []map[string]func(context.Context, port.Job) error{s.planJobs(), s.chargeJobs(), s.fixedChargeJobs()} {
+		if h, ok := hs[j.Kind]; ok {
+			return true, h(ctx, j)
+		}
+	}
 	if j.Kind != kernel.JobDestroyPlan {
 		return false, nil
 	}

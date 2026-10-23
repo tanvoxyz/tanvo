@@ -203,15 +203,33 @@ WHERE c.organization_id = $1 AND c.deleted_at IS NULL
   AND (cardinality($2::text[]) = 0 OR EXISTS (
         SELECT 1 FROM dunning_campaign_thresholds t
         WHERE t.organization_id = c.organization_id AND t.dunning_campaign_id = c.id AND t.currency = ANY($2::text[])))
-  AND ($3::uuid IS NULL OR c.id > $3)
-ORDER BY c.id
-LIMIT $4
+  AND ($3::text IS NULL OR c.name ILIKE $3 OR c.code ILIKE $3)
+  -- @applied keeps @applied_id only (true) or every other campaign (false).
+  AND ($4::boolean IS NULL
+       OR (c.id IS NOT DISTINCT FROM $5::uuid) = $4::boolean)
+  -- @by_name lists by name (byte order), then by created_at, newest
+  -- first, then by id; its cursor is (@after_name, @after_at, @after).
+  AND ($6::uuid IS NULL
+       OR ($7::boolean AND (c.name COLLATE "C" > $8::text COLLATE "C"
+                                  OR (c.name = $8::text
+                                      AND (c.created_at < $9::timestamptz
+                                           OR (c.created_at = $9::timestamptz AND c.id > $6)))))
+       OR (NOT $7::boolean AND c.id > $6))
+ORDER BY CASE WHEN $7::boolean THEN c.name COLLATE "C" END,
+  CASE WHEN $7::boolean THEN c.created_at END DESC, c.id
+LIMIT $10
 `
 
 type ListDunningCampaignsParams struct {
 	OrganizationID uuid.UUID
 	Currencies     []string
+	Search         *string
+	Applied        *bool
+	AppliedID      *uuid.UUID
 	After          *uuid.UUID
+	ByName         bool
+	AfterName      *string
+	AfterAt        *time.Time
 	Lim            int32
 }
 
@@ -226,7 +244,13 @@ func (q *Queries) ListDunningCampaigns(ctx context.Context, arg ListDunningCampa
 	rows, err := q.db.Query(ctx, listDunningCampaigns,
 		arg.OrganizationID,
 		arg.Currencies,
+		arg.Search,
+		arg.Applied,
+		arg.AppliedID,
 		arg.After,
+		arg.ByName,
+		arg.AfterName,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {

@@ -11,12 +11,11 @@ import "google/api/field_behavior.proto";
 import "google/api/resource.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
-import "tanvo/catalog/v1/charge.proto";
 import "tanvo/common/v1/options.proto";
 
 // ProductService manages the product catalog's products, their filters and
 // the categories that group them. A metered product sells a billable
-// metric; a fixed product sells an add-on.
+// metric; a fixed product sells units.
 service ProductService {
   // Creates a product.
   rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse) {
@@ -50,8 +49,8 @@ service ProductService {
     };
   }
 
-  // Updates a product; the type and the sold metric or add-on are
-  // immutable.
+  // Updates a product; the type and the sold metric are immutable, and
+  // the code and category are locked once a plan prices the product.
   rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse) {
     option (google.api.http) = {
       patch: "/v1/products/{product.id}"
@@ -63,7 +62,8 @@ service ProductService {
     };
   }
 
-  // Deletes a product that no rate card prices.
+  // Deletes a product, with its filters and rate cards, that no plan
+  // prices.
   rpc DeleteProduct(DeleteProductRequest) returns (DeleteProductResponse) {
     option (google.api.http) = {delete: "/v1/products/{product_id}"};
     option (tanvo.common.v1.access) = {
@@ -116,7 +116,8 @@ service ProductService {
     };
   }
 
-  // Deletes a product filter that no rate card prices.
+  // Deletes a product filter, with its rate cards, of a product no plan
+  // prices.
   rpc DeleteProductFilter(DeleteProductFilterRequest) returns (DeleteProductFilterResponse) {
     option (google.api.http) = {delete: "/v1/products/{product_id}/filters/{filter_id}"};
     option (tanvo.common.v1.access) = {
@@ -169,7 +170,8 @@ service ProductService {
     };
   }
 
-  // Deletes a product category; its products become uncategorized.
+  // Deletes a product category with its products, unless a plan prices
+  // one of them.
   rpc DeleteProductCategory(DeleteProductCategoryRequest) returns (DeleteProductCategoryResponse) {
     option (google.api.http) = {delete: "/v1/product_categories/{product_category_id}"};
     option (tanvo.common.v1.access) = {
@@ -185,7 +187,7 @@ enum ProductType {
   PRODUCT_TYPE_UNSPECIFIED = 0;
   // Usage of a billable metric.
   PRODUCT_TYPE_METERED = 1;
-  // Units of an add-on.
+  // Units, with no metric.
   PRODUCT_TYPE_FIXED = 2;
 }
 
@@ -221,6 +223,8 @@ message ProductCategory {
   google.protobuf.Timestamp created_at = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the category last changed.
   google.protobuf.Timestamp updated_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The number of the category's products.
+  int32 products_count = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // Product is a sellable item of the product catalog.
@@ -230,11 +234,6 @@ message Product {
     pattern: "products/{product}"
     plural: "products"
     singular: "product"
-  };
-  option (buf.validate.message).cel = {
-    id: "product.source"
-    message: "a metered product needs billable_metric_id and a fixed product add_on_id"
-    expression: "!has(this.product_type) || (this.product_type == 1 ? has(this.billable_metric_id) && !has(this.add_on_id) : has(this.add_on_id) && !has(this.billable_metric_id))"
   };
 
   // The product's ID.
@@ -264,20 +263,20 @@ message Product {
   ];
   // The category (ID or `code:<code>`).
   string product_category_id = 7 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
-  // The sold billable metric (ID or `code:<code>`), for metered products.
+  // The sold billable metric (ID or `code:<code>`): required on metered
+  // products, refused on fixed ones.
   string billable_metric_id = 8 [
     (google.api.field_behavior) = IMMUTABLE,
     (buf.validate.field).string.(tanvo.common.v1.ref) = true
   ];
-  // The sold add-on (ID or `code:<code>`), for fixed products.
-  string add_on_id = 9 [
-    (google.api.field_behavior) = IMMUTABLE,
-    (buf.validate.field).string.(tanvo.common.v1.ref) = true
-  ];
+  reserved 9;
+  reserved add_on_id;
   // When the product was created.
   google.protobuf.Timestamp created_at = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the product last changed.
   google.protobuf.Timestamp updated_at = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The number of the product's filters.
+  int32 filters_count = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // ProductFilter is a priced subset of a metered product's events, by the
@@ -309,18 +308,33 @@ message ProductFilter {
   string description = 4 [(buf.validate.field).string.max_len = 1024];
   // The name printed on invoices.
   string invoice_display_name = 5 [(buf.validate.field).string.max_len = 255];
-  // The matched values per metric filter key.
-  map<string, FilterValues> values = 6 [
+  reserved 6;
+  // The matched values of the metric's filters: a key with a value
+  // matches that value, a key alone every value of the key. The set is
+  // unique within the product.
+  repeated ProductFilterValue values = 9 [
     (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).map = {
-      min_pairs: 1
-      max_pairs: 50
-    }
+    (buf.validate.field).repeated.max_items = 100
   ];
   // When the filter was created.
   google.protobuf.Timestamp created_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the filter last changed.
   google.protobuf.Timestamp updated_at = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// ProductFilterValue selects events of a product filter by one of its
+// metric's filters.
+message ProductFilterValue {
+  // The key of the metric's filter.
+  string key = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // One of the key's values; unset matches every value of the key.
+  string value = 2 [(buf.validate.field).string.max_len = 255];
 }
 
 // CreateProductRequest is the request of ProductService.CreateProduct.
@@ -369,8 +383,8 @@ message ListProductsRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 2 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `product_type`, `product_category_id`,
-  // `billable_metric_id` and `add_on_id`.
+  // An AIP-160 filter over `product_type`, `product_category_id` and
+  // `without_product_category` (a boolean).
   string filter = 3 [(buf.validate.field).string.max_len = 2048];
   // A search over the name and code.
   string search = 4 [(buf.validate.field).string.max_len = 255];
@@ -418,7 +432,10 @@ message DeleteProductRequest {
 }
 
 // DeleteProductResponse is the response of ProductService.DeleteProduct.
-message DeleteProductResponse {}
+message DeleteProductResponse {
+  // The deleted product.
+  Product product = 1;
+}
 
 // CreateProductFilterRequest is the request of ProductService.CreateProductFilter.
 message CreateProductFilterRequest {
@@ -484,6 +501,8 @@ message ListProductFiltersRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+  // Keeps the filters whose name or code contains the term.
+  string search = 4 [(buf.validate.field).string.max_len = 255];
 }
 
 // ListProductFiltersResponse is the response of ProductService.ListProductFilters.
@@ -540,7 +559,10 @@ message DeleteProductFilterRequest {
 }
 
 // DeleteProductFilterResponse is the response of ProductService.DeleteProductFilter.
-message DeleteProductFilterResponse {}
+message DeleteProductFilterResponse {
+  // The deleted product filter.
+  ProductFilter filter = 1;
+}
 
 // CreateProductCategoryRequest is the request of ProductService.CreateProductCategory.
 message CreateProductCategoryRequest {
@@ -588,6 +610,8 @@ message ListProductCategoriesRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // A search over the name and code.
+  string search = 3 [(buf.validate.field).string.max_len = 255];
 }
 
 // ListProductCategoriesResponse is the response of ProductService.ListProductCategories.
@@ -633,4 +657,7 @@ message DeleteProductCategoryRequest {
 }
 
 // DeleteProductCategoryResponse is the response of ProductService.DeleteProductCategory.
-message DeleteProductCategoryResponse {}
+message DeleteProductCategoryResponse {
+  // The deleted product category.
+  ProductCategory product_category = 1;
+}

@@ -344,7 +344,7 @@ func TestEditable(t *testing.T) {
 	}
 }
 
-func TestCheckUpdate(t *testing.T) {
+func TestKeepLocked(t *testing.T) {
 	usd, eur := money.MustCurrency("USD"), money.MustCurrency("EUR")
 	locked := Documents{HasInvoices: true}
 	tests := []struct {
@@ -352,23 +352,21 @@ func TestCheckUpdate(t *testing.T) {
 		source string
 		docs   Documents
 		change func(old, next *Customer)
-		want   []string
+		want   func(old, next *Customer) bool
 	}{
-		{"editable external id change", "spec/services/customers/update_service_spec.rb", Documents{}, func(_, n *Customer) { n.ExternalID = "other" }, []string{}},
-		{"locked external id change", "spec/services/customers/update_service_spec.rb", locked, func(_, n *Customer) { n.ExternalID = "other" }, []string{"external_id: customer_not_editable"}},
-		{"locked account type change", "tanvo", locked, func(_, n *Customer) { n.AccountType = AccountTypePartner }, []string{"account_type: customer_not_editable"}},
-		{"set currency first time", "spec/services/customers/update_currency_service_spec.rb:59", locked, func(o, n *Customer) { o.Currency = money.Currency{}; n.Currency = eur }, []string{}},
-		{"currency change with documents", "spec/services/customers/update_currency_service_spec.rb:84", locked, func(o, n *Customer) { o.Currency = usd; n.Currency = eur }, []string{}},
-		{"currency change without documents", "spec/services/customers/update_currency_service_spec.rb:84", Documents{}, func(o, n *Customer) { o.Currency = usd; n.Currency = eur }, []string{}},
-		{"currency unset", "tanvo", locked, func(o, n *Customer) { o.Currency = usd; n.Currency = money.Currency{} }, []string{}},
-		{"name change while locked", "tanvo", locked, func(_, n *Customer) { n.Name = ptr("New") }, []string{}},
+		{"editable external id change", "spec/services/customers/update_service_spec.rb:34", Documents{}, func(_, n *Customer) { n.ExternalID = "other" }, func(_, n *Customer) bool { return n.ExternalID == "other" }},
+		{"locked external id change", "spec/services/customers/update_service_spec.rb:298", locked, func(_, n *Customer) { n.ExternalID = "other" }, func(o, n *Customer) bool { return n.ExternalID == o.ExternalID }},
+		{"locked account type change", "spec/services/customers/update_service_spec.rb:299", locked, func(_, n *Customer) { n.AccountType = AccountTypePartner }, func(o, n *Customer) bool { return n.AccountType == o.AccountType }},
+		{"currency change with documents", "spec/services/customers/update_currency_service_spec.rb:84", locked, func(o, n *Customer) { o.Currency = usd; n.Currency = eur }, func(_, n *Customer) bool { return n.Currency == eur }},
+		{"name change while locked", "tanvo", locked, func(_, n *Customer) { n.Name = ptr("New") }, func(_, n *Customer) bool { return *n.Name == "New" }},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			old, next := newTestCustomer(), newTestCustomer()
 			tt.change(old, next)
-			if got := fieldErrors(CheckUpdate(old, next, tt.docs)); !slices.Equal(got, tt.want) {
-				t.Errorf("CheckUpdate() errors got = %v, want = %v (%s)", got, tt.want, tt.source)
+			KeepLocked(old, next, tt.docs)
+			if !tt.want(old, next) {
+				t.Errorf("KeepLocked() got = %+v, want = the expected change kept or restored (%s)", next, tt.source)
 			}
 		})
 	}

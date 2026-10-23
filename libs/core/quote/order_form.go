@@ -7,6 +7,17 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 )
 
+// Signed document limits (lago OrderForm::SIGNED_DOCUMENT_CONTENT_TYPES and
+// SIGNED_DOCUMENT_MAX_SIZE, app/models/order_form.rb:19-20).
+const (
+	// SignedDocumentMaxSize is the largest signed document, in bytes
+	// (exclusive).
+	SignedDocumentMaxSize = 10 << 20
+)
+
+// SignedDocumentContentTypes are the accepted signed document types.
+var SignedDocumentContentTypes = []string{"application/pdf", "image/jpeg", "image/png"}
+
 // OrderForm is the document a customer signs for an approved quote version
 // (domain §21.2). A version has at most one order form.
 type OrderForm struct {
@@ -16,8 +27,7 @@ type OrderForm struct {
 	OrganizationID core.OrganizationID
 	// Number is unique per organization, see [FormatNumber].
 	Number string
-	// SequentialID is the sequence of the number, per organization and
-	// year.
+	// SequentialID is the sequence of the number, per organization.
 	SequentialID int
 	// CustomerID is the customer.
 	CustomerID core.CustomerID
@@ -32,8 +42,6 @@ type OrderForm struct {
 	ExpiresAt *time.Time
 	// SignedAt is set once signed.
 	SignedAt *time.Time
-	// SignedBy names the signatory.
-	SignedBy *string
 	// SignedDocument references the uploaded signed document.
 	SignedDocument core.BlobRef
 	// VoidedAt is set once voided or expired.
@@ -84,7 +92,6 @@ func (f *OrderForm) Validate() error {
 	if f.Status == OrderFormStatusSigned {
 		v.Check(f.SignedAt != nil, "signed_at", core.CodeRequired)
 	}
-	v.OptionalString("signed_by", f.SignedBy, 255)
 	return v.Err()
 }
 
@@ -107,13 +114,13 @@ func (f *OrderForm) to(s OrderFormStatus, now time.Time) error {
 	return nil
 }
 
-// Sign marks the order form signed at now by signedBy with the optional
-// signed document. The caller then creates the [Order].
-func (f *OrderForm) Sign(signedBy *string, document core.BlobRef, now time.Time) error {
+// Sign marks the order form signed at now with the optional signed
+// document. The caller then creates the [Order].
+func (f *OrderForm) Sign(document core.BlobRef, now time.Time) error {
 	if err := f.to(OrderFormStatusSigned, now); err != nil {
 		return err
 	}
-	f.SignedAt, f.SignedBy, f.SignedDocument = &now, signedBy, document
+	f.SignedAt, f.SignedDocument = &now, document
 	return nil
 }
 

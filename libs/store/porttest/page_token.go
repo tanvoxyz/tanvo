@@ -66,16 +66,25 @@ func testPageToken(t *testing.T, h Harness) {
 			return discard(r.Plans.List(ctx, org, catalog.PlanListFilter{}, p))
 		}},
 		{"AddOns", func(ctx context.Context, r port.Repos, org core.OrganizationID, p core.PageRequest) error {
-			return discard(r.AddOns.List(ctx, org, p))
+			return discard(r.AddOns.List(ctx, org, catalog.AddOnFilter{}, p))
+		}},
+		{"AddOns recent", func(ctx context.Context, r port.Repos, org core.OrganizationID, p core.PageRequest) error {
+			return discard(r.AddOns.List(ctx, org, catalog.AddOnFilter{Order: core.OrderRecent}, p))
 		}},
 		{"PricingUnits", func(ctx context.Context, r port.Repos, org core.OrganizationID, p core.PageRequest) error {
-			return discard(r.PricingUnits.List(ctx, org, p))
+			return discard(r.PricingUnits.List(ctx, org, catalog.PricingUnitFilter{}, p))
+		}},
+		{"PricingUnits recent", func(ctx context.Context, r port.Repos, org core.OrganizationID, p core.PageRequest) error {
+			return discard(r.PricingUnits.List(ctx, org, catalog.PricingUnitFilter{Order: core.OrderRecent}, p))
 		}},
 		{"Taxes", func(ctx context.Context, r port.Repos, org core.OrganizationID, p core.PageRequest) error {
 			return discard(r.Taxes.List(ctx, org, catalog.TaxFilter{}, p))
 		}},
+		{"Taxes recent", func(ctx context.Context, r port.Repos, org core.OrganizationID, p core.PageRequest) error {
+			return discard(r.Taxes.List(ctx, org, catalog.TaxFilter{Order: core.OrderRecent}, p))
+		}},
 		{"Features", func(ctx context.Context, r port.Repos, org core.OrganizationID, p core.PageRequest) error {
-			return discard(r.Features.List(ctx, org, p))
+			return discard(r.Features.List(ctx, org, catalog.FeatureListFilter{}, p))
 		}},
 		{"Coupons", func(ctx context.Context, r port.Repos, org core.OrganizationID, p core.PageRequest) error {
 			return discard(r.Coupons.List(ctx, org, coupon.Filter{}, p))
@@ -117,7 +126,7 @@ func testPageToken(t *testing.T, h Harness) {
 			return discard(r.Payments.List(ctx, org, payment.Filter{}, p))
 		}},
 		{"PaymentReceipts", func(ctx context.Context, r port.Repos, org core.OrganizationID, p core.PageRequest) error {
-			return discard(r.PaymentReceipts.List(ctx, org, p))
+			return discard(r.PaymentReceipts.List(ctx, org, payment.ReceiptFilter{}, p))
 		}},
 		{"PaymentRequests", func(ctx context.Context, r port.Repos, org core.OrganizationID, p core.PageRequest) error {
 			return discard(r.PaymentRequests.List(ctx, org, payment.RequestFilter{}, p))

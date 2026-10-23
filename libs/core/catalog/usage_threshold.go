@@ -45,6 +45,10 @@ type UsageThreshold struct {
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
 	UpdatedAt time.Time
+	// DeletedAt is the instant the threshold was discarded (nil while kept);
+	// a discarded one is read by ID only, for the invoices
+	// that reached it (lago usage_threshold.rb default_scope kept).
+	DeletedAt *time.Time
 }
 
 // Validate checks the invariants of one threshold (domain §7.9).

@@ -65,7 +65,8 @@ enum AuthenticationMethod {
   AUTHENTICATION_METHOD_OKTA = 3;
   // Microsoft Entra ID, through its OIDC integration.
   AUTHENTICATION_METHOD_ENTRA_ID = 4;
-  // Any other OpenID Connect provider, through an SSO connection.
+  // A generic OpenID Connect provider, through an SSO connection (a
+  // Tanvo extension).
   AUTHENTICATION_METHOD_OIDC = 5;
 }
 
@@ -80,17 +81,14 @@ message Organization {
 
   // The organization's ID.
   string id = 1 [(google.api.field_behavior) = IDENTIFIER];
-  // The display name.
-  string name = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string = {
-      min_len: 1
-      max_len: 255
-    }
-  ];
-  // The URL slug, lowercase and unique, derived from the name; used in
-  // customer portal URLs.
-  string slug = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The display name, set at sign-up.
+  string name = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The URL slug, lowercase and unique, derived from the name at sign-up;
+  // used in customer portal URLs.
+  string slug = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 63
+  }];
   // The contact email address.
   string email = 4 [(buf.validate.field).string = {
     email: true
@@ -98,7 +96,7 @@ message Organization {
   }];
   // The postal address.
   tanvo.common.v1.Address address = 5;
-  // A new logo image (PNG, JPEG or SVG, at most 800 KB); write only.
+  // A new logo image (PNG or JPEG, at most 800 KB); write only.
   bytes logo = 6 [
     (google.api.field_behavior) = INPUT_ONLY,
     (buf.validate.field).bytes.max_len = 819200
@@ -115,20 +113,21 @@ message Organization {
       }
     }
   }];
-  // How long activity logs are kept, in days; default 30.
-  int32 audit_logs_retention_days = 9 [(buf.validate.field).int32 = {
-    gte: 1
-    lte: 3650
-  }];
+  // How long activity and API logs are kept, in days; default 30.
+  int32 audit_logs_retention_days = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
   // The maximum number of active wallets per customer; default 6.
-  int32 max_wallets_per_customer = 10 [(buf.validate.field).int32 = {
-    gte: 1
-    lte: 100
-  }];
+  int32 max_wallets_per_customer = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the organization was created.
   google.protobuf.Timestamp created_at = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the organization last changed.
   google.protobuf.Timestamp updated_at = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The prefix of customer slugs, 1–10 characters, stored upper-cased;
+  // defaults to the first 3 characters of the name and the last 4 of the
+  // ID.
+  string document_number_prefix = 13 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 10
+  }];
 }
 
 // GetOrganizationRequest is the request of OrganizationService.GetOrganization.
@@ -166,8 +165,4 @@ message GetServerInfoResponse {
   string version = 1;
   // The source revision the server was built from.
   string revision = 2;
-  // When the server was built.
-  google.protobuf.Timestamp build_time = 3;
-  // The roles this process runs (`api`, `worker`, `consumer`).
-  repeated string roles = 4;
 }

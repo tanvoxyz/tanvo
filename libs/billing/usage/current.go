@@ -31,6 +31,12 @@ var ErrNoActiveSubscription = fmt.Errorf("usage: no active subscription: %w", co
 // requested instant.
 var errNotStarted = errors.New("usage: subscription not started")
 
+// ErrFullUsageNotAllowed is returned when [Options.FullUsage] is requested
+// without [Options.ChargeIDs] or for prorated charges (lago
+// full_usage_not_allowed,
+// app/services/invoices/customer_usage_service.rb:55,366-375).
+var ErrFullUsageNotAllowed = fmt.Errorf("usage: full_usage_not_allowed: %w", core.ErrNotAllowed)
+
 // Options tunes the computation of a current usage.
 type Options struct {
 	// SkipTaxes computes the usage without taxes (lago apply_taxes: false).
@@ -45,11 +51,26 @@ type Options struct {
 	// charge (lago filter_by_charge_id). A filter matching no charge of
 	// the plan fails with core.ErrNotFound.
 	ChargeIDs []core.ChargeID
+	// FullUsage computes the usage since the subscription started instead
+	// of since the start of the current period (lago UsageFilters
+	// full_usage, app/services/invoices/customer_usage_service.rb:196-197);
+	// it needs ChargeIDs and charges that are not prorated, or fails with
+	// [ErrFullUsageNotAllowed].
+	FullUsage bool
 	// Cache returns the cached aggregations of a scope; nil reads the
 	// stored ones (domain §10.3).
 	Cache func(sc event.CachedAggregationScope) metering.CachedAggregations
 	// Timestamp is the instant of the usage; zero means the clock's.
 	Timestamp time.Time
+	// MaxTimestamp, when set, caps the events read at that instant
+	// (inclusive) (lago max_timestamp,
+	// app/services/invoices/customer_usage_service.rb:141-148).
+	MaxTimestamp time.Time
+	// AnyStatus computes the usage of a subscription that is not active,
+	// as lago does when given the subscription itself
+	// (app/services/invoices/customer_usage_service.rb:54 checks presence
+	// only; the daily usages pass terminated subscriptions).
+	AnyStatus bool
 }
 
 // Usage is the current usage of a subscription: its charge fees for the
@@ -120,7 +141,7 @@ func (s *Service) CustomerUsage(ctx context.Context, r port.Repos, org core.Orga
 // EnvUsage computes the current usage of the loaded subscription env.
 func (s *Service) EnvUsage(ctx context.Context, r port.Repos, env *kernel.SubscriptionEnv, opts Options) (*Usage, error) {
 	sub := env.Subscription
-	if sub.Status != subscription.StatusActive {
+	if sub.Status != subscription.StatusActive && !opts.AnyStatus {
 		return nil, ErrNoActiveSubscription
 	}
 	now := opts.Timestamp
@@ -142,6 +163,15 @@ func (s *Service) EnvUsage(ctx context.Context, r port.Repos, env *kernel.Subscr
 	if err != nil {
 		return nil, err
 	}
+	if opts.FullUsage {
+		// lago app/services/invoices/customer_usage_service.rb:366-375.
+		if opts.ChargeIDs == nil || slices.ContainsFunc(charges, func(c *catalog.Charge) bool {
+			return c.Prorated && slices.Contains(opts.ChargeIDs, c.ID)
+		}) {
+			return nil, fmt.Errorf("usage of subscription %s: %w", sub.ID, ErrFullUsageNotAllowed)
+		}
+		b.Subscription.From, b.Charges.From = sub.StartedAt.UTC(), sub.StartedAt.UTC()
+	}
 	if opts.ChargeIDs != nil {
 		charges = slices.DeleteFunc(charges, func(c *catalog.Charge) bool { return !slices.Contains(opts.ChargeIDs, c.ID) })
 		if len(charges) == 0 {
@@ -154,7 +184,7 @@ func (s *Service) EnvUsage(ctx context.Context, r port.Repos, env *kernel.Subscr
 	if cache == nil {
 		cache = kernel.AggregationCache(r, env.OrganizationID())
 	}
-	fo := fees.Options{CurrentUsage: true, SkipZeroUnitsFilters: opts.SkipZeroUnitsFilters, SkipAdjustedFees: true, Cache: cache}
+	fo := fees.Options{CurrentUsage: true, SkipZeroUnitsFilters: opts.SkipZeroUnitsFilters, SkipAdjustedFees: true, Cache: cache, MaxTimestamp: opts.MaxTimestamp}
 	type metricFee struct {
 		name string
 		fee  *invoice.Fee

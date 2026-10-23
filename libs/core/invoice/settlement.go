@@ -3,6 +3,7 @@ package invoice
 import (
 	"encoding/json"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -65,8 +66,13 @@ type CustomSection struct {
 	DisplayName *string
 	// Details is the printed text.
 	Details *string
+	// Description is free text, not printed.
+	Description *string
 	// SectionType is the origin of the section.
 	SectionType CustomSectionType
+	// DeletedAt is set once deleted; a deleted section is no longer
+	// found, and its code is free again.
+	DeletedAt *time.Time
 	// CreatedAt is the creation instant.
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
@@ -121,6 +127,27 @@ type ErrorDetail struct {
 	Details json.RawMessage
 	// CreatedAt is the creation instant.
 	CreatedAt time.Time
+}
+
+// RetriedTaxErrorMessage is the text that a tax_error message contains
+// when the tax provider hit its API limit; the failed invoices with such a
+// message are retried periodically (lago
+// app/jobs/clock/retry_failed_invoices_job.rb:11).
+const RetriedTaxErrorMessage = "API limit"
+
+// TaxRetried reports whether e is a tax_error whose message contains
+// [RetriedTaxErrorMessage], compared case-insensitively.
+func (e *ErrorDetail) TaxRetried() bool {
+	if e.Code != ErrorCodeTaxError {
+		return false
+	}
+	var d struct {
+		Message *string `json:"tax_error_message"`
+	}
+	if json.Unmarshal(e.Details, &d) != nil || d.Message == nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(*d.Message), strings.ToLower(RetriedTaxErrorMessage))
 }
 
 // Validate checks the invariants of an error detail.

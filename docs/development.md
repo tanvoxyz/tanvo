@@ -122,3 +122,21 @@ Generated files are committed and never edited by hand; CI regenerates them and 
 * No `Co-Authored-By` trailers.
 * A feature commit updates [Parity](parity.md); a phase change updates [Roadmap](roadmap.md).
 * Contributions require the CLA ([Architecture §1.4](architecture.md#14-license)).
+
+---
+
+## 8. RPC Playbook
+
+The layering is [architecture §4.6](architecture.md#46-server-layering); `BillableMetricService` (`libs/billing/metrics`, `apps/server/internal/rpc/metrics.go`, `metrics_test.go`) is the reference implementation. To implement a service:
+
+1. **Read the Lago sources** at the v1.55.0 parity target: the controller, its services, serializer and request spec. List every deviation with its `file:line`.
+2. **Write the domain service** in `libs/billing/<area>` (or the owning library): a `Service` over `kernel.Deps` with one method per operation, each in one `Store.InTx`, validating with `core.Validator` and emitting webhooks through `Deps.Webhooks` and jobs through `Repos.Jobs` in the same transaction. Port the service specs to its tests on `memstore`, with `source:` lines.
+3. **Write the handler** in `apps/server/internal/rpc/<service>.go`: embed the generated `Unimplemented…Handler`, read the principal with `principal(ctx)`, and use the helpers:
+   * references: `Lookup{ByID, ByCode, ByExternalID}.Find(ctx, field, ref)` and `ParseID` for fields that take only IDs;
+   * lists: `Page(size, token)`, `Items(page, convert)`, `ParseFilter` + `Equalities` + `FilterEnum` / `FilterBool` / `FilterSingle`;
+   * updates: `UpdatePaths(mask, allowed, set)` with the `Has…` presence of the resource;
+   * values: `Opt`, `OptInt`, `Timestamp` / `Time`, `Date` / `FromDate`, `Money` / `FromMoney`, `Decimal` / `ParseDecimal`, `Metadata`, `Struct`, `NewEnum`;
+   * errors: return `Error(ctx, err)`; prefix a service's field paths onto the request message with `validationViolations` as `metricError` does.
+4. **Register** the handler in `newAPI` (`apps/server/internal/app/api.go`); the interceptors apply the access option, validation and idempotency.
+5. **Port the request spec** to `apps/server/internal/rpc/<service>_test.go` with `rpctest`: `s := rpctest.New(t)` starts the API on a fresh database with an organization, a full-access key (`s.APIKey`), an admin user and its session (`s.Session`); create fixtures with `s.Fixtures` (billingtest), call `s.REST(t, cred, method, path, body)` or a generated client over `s.Connect(cred)`, and read the emitted webhooks with `s.Webhooks(t)`. Cover the `requires API permission` examples with keys created with restricted permissions. Run with `TANVO_STORE_TEST_SCHEMA=source` to load the schema sources instead of the migrations.
+6. **Update** [Parity](parity.md) and its translation.

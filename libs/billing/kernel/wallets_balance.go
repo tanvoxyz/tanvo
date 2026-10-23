@@ -25,7 +25,8 @@ const (
 // IncreaseWalletBalance adds a settled inbound transaction t to wallet w
 // and stores it (domain §14.2). With resetConsumed, the lifetime consumed
 // credits and amount go down by the credits, never below zero. It emits
-// wallet.updated and enqueues the refresh of the ongoing balances.
+// wallet.updated and enqueues the refresh of the ongoing balances and the
+// wallet's alerts.
 func IncreaseWalletBalance(ctx context.Context, d *Deps, r port.Repos, w *wallet.Wallet, t *wallet.Transaction, resetConsumed bool) error {
 	now := d.Now()
 	w.BalanceAmount += t.Amount
@@ -46,7 +47,7 @@ func IncreaseWalletBalance(ctx context.Context, d *Deps, r port.Repos, w *wallet
 // DecreaseWalletBalance removes a settled outbound transaction t from
 // wallet w and stores it: the balance goes down and the lifetime consumed
 // credits and amount go up. It emits wallet.updated and enqueues the
-// refresh of the ongoing balances.
+// refresh of the ongoing balances and the wallet's alerts.
 func DecreaseWalletBalance(ctx context.Context, d *Deps, r port.Repos, w *wallet.Wallet, t *wallet.Transaction) error {
 	now := d.Now()
 	w.BalanceAmount -= t.Amount
@@ -66,12 +67,31 @@ func saveWalletBalance(ctx context.Context, d *Deps, r port.Repos, w *wallet.Wal
 	if err := EnqueueWalletRefresh(ctx, r, w); err != nil {
 		return err
 	}
-	return Emit(ctx, d, w.OrganizationID, webhook.EventTypeWalletUpdated, "wallet", ObjectID(w.ID), w)
+	if err := Emit(ctx, d, w.OrganizationID, webhook.EventTypeWalletUpdated, "wallet", ObjectID(w.ID), w); err != nil {
+		return err
+	}
+	// lago app/services/wallets/balance/increase_service.rb:38 and
+	// decrease_service.rb:34.
+	return EnqueueWalletAlerts(ctx, r, w)
 }
 
-// EnqueueWalletRefresh enqueues the refresh of the ongoing balances of the
-// customer of wallet w, once per customer while one is pending.
+// EnqueueWalletRefresh flags the customer of wallet w as awaiting the
+// refresh of its wallets' ongoing balances when it has an active wallet
+// (lago Customer#flag_wallets_for_refresh, app/models/customer.rb:385-389)
+// and enqueues that refresh, once per customer while one is pending. The
+// flag keeps the refresh due when the job is deduplicated against a run in
+// progress: the sweep (Engine.RefreshOngoingBalances) picks it up.
 func EnqueueWalletRefresh(ctx context.Context, r port.Repos, w *wallet.Wallet) error {
+	if err := r.Customers.FlagWalletRefresh(ctx, w.OrganizationID, w.CustomerID); err != nil {
+		return fmt.Errorf("flag wallet refresh of customer %s: %w", w.CustomerID, err)
+	}
+	return EnqueueWalletRefreshJob(ctx, r, w)
+}
+
+// EnqueueWalletRefreshJob enqueues the refresh of the ongoing balances of
+// the customer of wallet w without flagging it, once per customer while
+// one is pending.
+func EnqueueWalletRefreshJob(ctx context.Context, r port.Repos, w *wallet.Wallet) error {
 	return Enqueue(ctx, r, w.OrganizationID, JobRefreshWalletOngoingBalance, WalletArgs{WalletID: w.ID}, w.CustomerID.String(), time.Time{})
 }
 

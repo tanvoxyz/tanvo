@@ -47,6 +47,9 @@ type Organization struct {
 	AuditLogsRetentionDays int
 	// MaxWalletsPerCustomer bounds the active wallets of a customer.
 	MaxWalletsPerCustomer int
+	// DocumentNumberPrefix is 1–10 characters, upper-cased; it prefixes
+	// customer slugs. See [DefaultOrganizationDocumentNumberPrefix].
+	DocumentNumberPrefix string
 	// CreatedAt is the creation instant.
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
@@ -54,8 +57,8 @@ type Organization struct {
 }
 
 // New returns an organization with the domain defaults: every
-// authentication method, a slug derived from name, 30 days of audit logs
-// and 6 wallets per customer.
+// authentication method, a slug derived from name, 30 days of audit logs,
+// 6 wallets per customer and the default document number prefix.
 func New(id core.OrganizationID, name string, now time.Time) *Organization {
 	return &Organization{
 		ID:                     id,
@@ -64,6 +67,7 @@ func New(id core.OrganizationID, name string, now time.Time) *Organization {
 		AuthenticationMethods:  AuthenticationMethodValues(),
 		AuditLogsRetentionDays: DefaultAuditLogsRetentionDays,
 		MaxWalletsPerCustomer:  DefaultMaxWalletsPerCustomer,
+		DocumentNumberPrefix:   DefaultOrganizationDocumentNumberPrefix(name, id),
 		CreatedAt:              now,
 		UpdatedAt:              now,
 	}
@@ -92,7 +96,19 @@ func (o *Organization) Validate() error {
 	}
 	v.Check(o.AuditLogsRetentionDays > 0, "audit_logs_retention_days", core.CodeOutOfRange)
 	v.Check(o.MaxWalletsPerCustomer > 0, "max_wallets_per_customer", core.CodeOutOfRange)
+	if v.Required("document_number_prefix", o.DocumentNumberPrefix) && v.MaxLen("document_number_prefix", o.DocumentNumberPrefix, 10) {
+		v.Check(o.DocumentNumberPrefix == strings.ToUpper(o.DocumentNumberPrefix), "document_number_prefix", core.CodeInvalidFormat)
+	}
 	return v.Err()
+}
+
+// DefaultOrganizationDocumentNumberPrefix returns the first 3 characters
+// of the name and the last 4 characters of the ID, upper-cased and joined
+// by "-" (domain §4.1).
+func DefaultOrganizationDocumentNumberPrefix(name string, id core.OrganizationID) string {
+	r := []rune(strings.TrimSpace(name))
+	s := id.UUID().String()
+	return strings.ToUpper(string(r[:min(3, len(r))])) + "-" + strings.ToUpper(s[len(s)-4:])
 }
 
 // AllowsAuthentication reports whether members may sign in with m.

@@ -18,9 +18,10 @@ cases:
   - {name: latest recurring, source: "spec/models/billable_metric_spec.rb:95", aggregation_type: latest, recurring: true, errors: ["recurring: not_compatible_with_aggregation_type"]}
   - {name: sum recurring, source: "tanvo", recurring: true}
   - {name: unique count recurring, source: "tanvo", aggregation_type: unique_count, recurring: true}
-  - {name: weighted sum needs an interval, source: "tanvo", aggregation_type: weighted_sum, recurring: true, errors: ["weighted_interval: value_is_mandatory"]}
+  # No lago spec covers the weighted interval; these follow app/models/billable_metric.rb:59-61.
+  - {name: weighted sum needs an interval, source: "tanvo", aggregation_type: weighted_sum, recurring: true, errors: ["weighted_interval: invalid_value"]}
   - {name: weighted sum with seconds, source: "tanvo", aggregation_type: weighted_sum, weighted_interval: seconds, recurring: true}
-  - {name: weighted interval on sum, source: "tanvo", weighted_interval: seconds, errors: ["weighted_interval: value_not_allowed"]}
+  - {name: weighted interval kept on sum, source: "tanvo", weighted_interval: seconds}
   - {name: count payable in advance, source: "spec/models/billable_metric_spec.rb:133", aggregation_type: count, field_name: "", payable_in_advance: true}
   - {name: sum payable in advance, source: "spec/models/billable_metric_spec.rb:133", payable_in_advance: true}
   - {name: unique count payable in advance, source: "spec/models/billable_metric_spec.rb:133", aggregation_type: unique_count, payable_in_advance: true}

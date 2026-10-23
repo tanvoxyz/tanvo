@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -18,7 +19,10 @@ import (
 
 	"github.com/tanvoxyz/tanvo/apps/server/internal/config"
 	"github.com/tanvoxyz/tanvo/apps/server/internal/logctx"
+	"github.com/tanvoxyz/tanvo/apps/server/internal/rpc"
 	"github.com/tanvoxyz/tanvo/libs/auth"
+	"github.com/tanvoxyz/tanvo/libs/billing/exports"
+	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/clickhouse"
@@ -32,6 +36,9 @@ type jobHandlers struct {
 	tx       port.Transactor
 	stores   *EventStores
 	mp       metric.MeterProvider
+	// clock gives the current instant to the jobs that read it; nil
+	// means the system clock.
+	clock core.Clock
 }
 
 // sweepLimit is the number of due webhook deliveries a sweep enqueues.
@@ -42,7 +49,7 @@ const sweepLimit = 1000
 // libs/jobs leaves out the clock kinds without a handler.
 func newRegistry(h jobHandlers) (*jobs.Registry, error) {
 	reg := jobs.NewRegistry()
-	for _, register := range []func(*jobs.Registry) error{h.registerWebhooks, h.registerAPIKeyUsage, h.registerUsageBuckets} {
+	for _, register := range []func(*jobs.Registry) error{h.registerWebhooks, h.registerAPIKeyUsage, h.registerUsageBuckets, h.registerAccessPurges, h.registerExports} {
 		if err := register(reg); err != nil {
 			return nil, err
 		}
@@ -107,6 +114,44 @@ func (h jobHandlers) registerWebhooks(reg *jobs.Registry) error {
 		}))
 }
 
+// registerExports registers the data export jobs: the listing of an
+// export's documents into parts, the rendering of each part and the
+// combination of the parts into the file. No blob store is wired yet, so
+// the combination only logs that the file is not written.
+func (h jobHandlers) registerExports(reg *jobs.Registry) error {
+	var clock core.Clock = core.SystemClock{}
+	if h.clock != nil {
+		clock = h.clock
+	}
+	svc := exports.New(&kernel.Deps{
+		Tx: h.tx, Clock: clock, IDs: core.UUIDv7Generator{}, Webhooks: &webhooks.Emitter{Tx: h.tx},
+	}, nil, rpc.ExportFilters())
+	if err := jobs.Register(reg, jobs.Kind{Name: exports.JobExportResources},
+		jobs.HandlerFunc[exports.ExportArgs](func(ctx context.Context, j *jobs.Job[exports.ExportArgs]) error {
+			_, err := svc.ExportResources(ctx, j.OrganizationID, j.Args.DataExportID, exports.BatchSize)
+			return err
+		})); err != nil {
+		return err
+	}
+	if err := jobs.Register(reg, jobs.Kind{Name: exports.JobProcessPart},
+		jobs.HandlerFunc[exports.PartArgs](func(ctx context.Context, j *jobs.Job[exports.PartArgs]) error {
+			_, err := svc.ProcessPart(ctx, j.OrganizationID, j.Args.DataExportPartID)
+			return err
+		})); err != nil {
+		return err
+	}
+	return jobs.Register(reg, jobs.Kind{Name: exports.JobCombineParts},
+		jobs.HandlerFunc[exports.ExportArgs](func(ctx context.Context, j *jobs.Job[exports.ExportArgs]) error {
+			_, err := svc.CombineParts(ctx, j.OrganizationID, j.Args.DataExportID)
+			if errors.Is(err, exports.ErrNoBlobStore) {
+				// Retrying cannot help: the export stays processing.
+				slog.WarnContext(ctx, "exports: no blob store, the file is not written", "data_export_id", j.Args.DataExportID.String())
+				return nil
+			}
+			return err
+		}))
+}
+
 // registerAPIKeyUsage registers the API key usage clock job and its
 // per-organization jobs, which move the uses the API role recorded to the
 // keys' last_used_at.
@@ -166,6 +211,22 @@ func newJobs(pool *pgxpool.Pool, reg *jobs.Registry, cfg config.Config, roles co
 			}),
 			jobContext(),
 		},
+	}
+	if cfg.DisableEventsValidation {
+		jc.DisabledPeriodic = append(jc.DisabledPeriodic, jobs.KindValidateEvents)
+	}
+	workers, err := cfg.QueueConcurrency()
+	if err != nil {
+		return nil, fmt.Errorf("jobs: %w", err)
+	}
+	if len(workers) > 0 {
+		defaults := jobs.DefaultQueues()
+		jc.Queues = map[port.Queue]jobs.QueueConfig{}
+		for q, n := range workers {
+			qc := defaults[q]
+			qc.Concurrency = n
+			jc.Queues[q] = qc
+		}
 	}
 	if roles.Has(config.RoleWorker) {
 		jc.Work = cfg.Queues()

@@ -6,6 +6,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/quote"
 )
@@ -22,10 +24,16 @@ func newQuoteData() *quoteData {
 	return &quoteData{
 		quotes: newTable[core.QuoteID](func(q quote.Quote) quote.Quote {
 			q.Owners = slices.Clone(q.Owners)
+			q.Images = slices.Clone(q.Images)
 			return q
 		}),
 		versions: newTable[core.QuoteVersionID](func(v quote.Version) quote.Version {
-			v.Content = slices.Clone(v.Content)
+			if v.Content != nil {
+				c := *v.Content
+				v.Content = &c
+			}
+			v.BillingItems = slices.Clone(v.BillingItems)
+			v.MentionVariables = slices.Clone(v.MentionVariables)
 			return v
 		}),
 		orderForms: newTable[core.OrderFormID, quote.OrderForm](nil),
@@ -55,13 +63,21 @@ func quoteNextSequence[V any](rows []*V, seq func(*V) int) int {
 }
 
 // quoteRepo implements quote.Repository.
-type quoteRepo struct{ d *quoteData }
+type quoteRepo struct {
+	d  *quoteData
+	st *state // the whole transaction state, for the customer filters
+}
 
 func (r quoteRepo) check(q *quote.Quote) error {
 	if r.d.quotes.any(func(x *quote.Quote) bool {
 		return x.ID != q.ID && x.OrganizationID == q.OrganizationID && x.Number == q.Number
 	}) {
 		return conflict("quote", "number")
+	}
+	if r.d.quotes.any(func(x *quote.Quote) bool {
+		return x.ID != q.ID && x.OrganizationID == q.OrganizationID && x.SequentialID == q.SequentialID
+	}) {
+		return conflict("quote", "sequential_id")
 	}
 	return nil
 }
@@ -105,19 +121,81 @@ func (r quoteRepo) GetByNumber(_ context.Context, org core.OrganizationID, numbe
 	return q, nil
 }
 
-func (r quoteRepo) NextSequence(_ context.Context, org core.OrganizationID, year int) (int, error) {
-	rows := r.d.quotes.find(func(x *quote.Quote) bool { return x.OrganizationID == org && x.CreatedAt.UTC().Year() == year })
+func (r quoteRepo) NextSequence(_ context.Context, org core.OrganizationID) (int, error) {
+	rows := r.d.quotes.find(func(x *quote.Quote) bool { return x.OrganizationID == org })
 	return quoteNextSequence(rows, func(x *quote.Quote) int { return x.SequentialID }), nil
 }
 
 func (r quoteRepo) List(_ context.Context, org core.OrganizationID, f quote.Filter, page core.PageRequest) (core.Page[*quote.Quote], error) {
 	rows := r.d.quotes.find(func(x *quote.Quote) bool {
-		return x.OrganizationID == org &&
-			(f.CustomerID.IsZero() || x.CustomerID == f.CustomerID) &&
-			(len(f.OrderTypes) == 0 || slices.Contains(f.OrderTypes, x.OrderType)) &&
-			(f.OwnerID.IsZero() || slices.Contains(x.Owners, f.OwnerID))
+		if x.OrganizationID != org ||
+			(len(f.CustomerIDs) > 0 && !slices.Contains(f.CustomerIDs, x.CustomerID)) ||
+			(len(f.Numbers) > 0 && !slices.Contains(f.Numbers, x.Number)) ||
+			(len(f.OrderTypes) > 0 && !slices.Contains(f.OrderTypes, x.OrderType)) ||
+			(len(f.OwnerIDs) > 0 && !slices.ContainsFunc(x.Owners, func(o core.MembershipID) bool { return slices.Contains(f.OwnerIDs, o) })) ||
+			(f.From != nil && x.CreatedAt.Before(*f.From)) || (f.To != nil && x.CreatedAt.After(*f.To)) {
+			return false
+		}
+		if len(f.ExternalCustomerIDs) > 0 {
+			c, ok := r.st.customer.customers.get(x.CustomerID)
+			if !ok || !slices.Contains(f.ExternalCustomerIDs, c.ExternalID) {
+				return false
+			}
+		}
+		if len(f.Statuses) > 0 {
+			cur := currentVersion(r.d, x.ID)
+			if cur == nil || !slices.Contains(f.Statuses, cur.Status) {
+				return false
+			}
+		}
+		return true
 	})
-	return paginate(rows, func(x *quote.Quote) core.QuoteID { return x.ID }, page)
+	return paginateRecent(rows, func(x *quote.Quote) (time.Time, uuid.UUID) { return x.CreatedAt, x.ID.UUID() }, page)
+}
+
+// currentVersion returns the latest version of quote id, or nil.
+func currentVersion(d *quoteData, id core.QuoteID) *quote.Version {
+	var cur *quote.Version
+	for _, v := range d.versions.find(func(x *quote.Version) bool { return x.QuoteID == id }) {
+		if cur == nil || v.Version > cur.Version {
+			cur = v
+		}
+	}
+	return cur
+}
+
+// quoteOfVersion returns the quote of version id, or nil.
+func quoteOfVersion(d *quoteData, id core.QuoteVersionID) *quote.Quote {
+	v, ok := d.versions.get(id)
+	if !ok {
+		return nil
+	}
+	q, ok := d.quotes.get(v.QuoteID)
+	if !ok {
+		return nil
+	}
+	return q
+}
+
+// quoteOfOrderForm returns the quote of order form id, or nil.
+func quoteOfOrderForm(d *quoteData, id core.OrderFormID) *quote.Quote {
+	f, ok := d.orderForms.get(id)
+	if !ok {
+		return nil
+	}
+	return quoteOfVersion(d, f.QuoteVersionID)
+}
+
+// inRange reports whether t is within [from, to], a nil bound being open;
+// a nil t is outside any bounded range.
+func inRange(t, from, to *time.Time) bool {
+	if from == nil && to == nil {
+		return true
+	}
+	if t == nil {
+		return false
+	}
+	return (from == nil || !t.Before(*from)) && (to == nil || !t.After(*to))
 }
 
 // quoteVersionRepo implements quote.VersionRepository.
@@ -188,6 +266,11 @@ func (r orderFormRepo) check(f *quote.OrderForm) error {
 	}) {
 		return conflict("order_form", "number")
 	}
+	if r.d.orderForms.any(func(x *quote.OrderForm) bool {
+		return x.ID != f.ID && x.OrganizationID == f.OrganizationID && x.SequentialID == f.SequentialID
+	}) {
+		return conflict("order_form", "sequential_id")
+	}
 	if r.d.orderForms.any(func(x *quote.OrderForm) bool { return x.ID != f.ID && x.QuoteVersionID == f.QuoteVersionID }) {
 		return conflict("order_form", "quote_version_id")
 	}
@@ -241,18 +324,32 @@ func (r orderFormRepo) GetByVersion(_ context.Context, org core.OrganizationID, 
 	return f, nil
 }
 
-func (r orderFormRepo) NextSequence(_ context.Context, org core.OrganizationID, year int) (int, error) {
-	rows := r.d.orderForms.find(func(x *quote.OrderForm) bool { return x.OrganizationID == org && x.CreatedAt.UTC().Year() == year })
+func (r orderFormRepo) NextSequence(_ context.Context, org core.OrganizationID) (int, error) {
+	rows := r.d.orderForms.find(func(x *quote.OrderForm) bool { return x.OrganizationID == org })
 	return quoteNextSequence(rows, func(x *quote.OrderForm) int { return x.SequentialID }), nil
 }
 
 func (r orderFormRepo) List(_ context.Context, org core.OrganizationID, f quote.OrderFormFilter, page core.PageRequest) (core.Page[*quote.OrderForm], error) {
 	rows := r.d.orderForms.find(func(x *quote.OrderForm) bool {
-		return x.OrganizationID == org &&
-			(f.CustomerID.IsZero() || x.CustomerID == f.CustomerID) &&
-			(len(f.Statuses) == 0 || slices.Contains(f.Statuses, x.Status))
+		if x.OrganizationID != org ||
+			(!f.CustomerID.IsZero() && x.CustomerID != f.CustomerID) ||
+			(len(f.Statuses) > 0 && !slices.Contains(f.Statuses, x.Status)) ||
+			(f.Number != "" && x.Number != f.Number) ||
+			!containsFold(x.Number, f.Search) ||
+			!inRange(&x.CreatedAt, f.CreatedFrom, f.CreatedTo) ||
+			!inRange(x.ExpiresAt, f.ExpiresFrom, f.ExpiresTo) {
+			return false
+		}
+		if f.QuoteNumber != "" || !f.OwnerID.IsZero() {
+			q := quoteOfVersion(r.d, x.QuoteVersionID)
+			if q == nil || (f.QuoteNumber != "" && q.Number != f.QuoteNumber) ||
+				(!f.OwnerID.IsZero() && !slices.Contains(q.Owners, f.OwnerID)) {
+				return false
+			}
+		}
+		return true
 	})
-	return paginate(rows, func(x *quote.OrderForm) core.OrderFormID { return x.ID }, page)
+	return paginateRecent(rows, func(x *quote.OrderForm) (time.Time, uuid.UUID) { return x.CreatedAt, x.ID.UUID() }, page)
 }
 
 func (r orderFormRepo) ListExpiring(_ context.Context, before time.Time, limit int) ([]*quote.OrderForm, error) {
@@ -273,6 +370,11 @@ func (r orderRepo) check(o *quote.Order) error {
 		return x.ID != o.ID && x.OrganizationID == o.OrganizationID && x.Number == o.Number
 	}) {
 		return conflict("order", "number")
+	}
+	if r.d.orders.any(func(x *quote.Order) bool {
+		return x.ID != o.ID && x.OrganizationID == o.OrganizationID && x.SequentialID == o.SequentialID
+	}) {
+		return conflict("order", "sequential_id")
 	}
 	if r.d.orders.any(func(x *quote.Order) bool { return x.ID != o.ID && x.OrderFormID == o.OrderFormID }) {
 		return conflict("order", "order_form_id")
@@ -319,18 +421,39 @@ func (r orderRepo) GetByNumber(_ context.Context, org core.OrganizationID, numbe
 	return o, nil
 }
 
-func (r orderRepo) NextSequence(_ context.Context, org core.OrganizationID, year int) (int, error) {
-	rows := r.d.orders.find(func(x *quote.Order) bool { return x.OrganizationID == org && x.CreatedAt.UTC().Year() == year })
+func (r orderRepo) NextSequence(_ context.Context, org core.OrganizationID) (int, error) {
+	rows := r.d.orders.find(func(x *quote.Order) bool { return x.OrganizationID == org })
 	return quoteNextSequence(rows, func(x *quote.Order) int { return x.SequentialID }), nil
 }
 
 func (r orderRepo) List(_ context.Context, org core.OrganizationID, f quote.OrderFilter, page core.PageRequest) (core.Page[*quote.Order], error) {
 	rows := r.d.orders.find(func(x *quote.Order) bool {
-		return x.OrganizationID == org &&
-			(f.CustomerID.IsZero() || x.CustomerID == f.CustomerID) &&
-			(len(f.Statuses) == 0 || slices.Contains(f.Statuses, x.Status))
+		if x.OrganizationID != org ||
+			(!f.CustomerID.IsZero() && x.CustomerID != f.CustomerID) ||
+			(len(f.Statuses) > 0 && !slices.Contains(f.Statuses, x.Status)) ||
+			(len(f.ExecutionModes) > 0 && !slices.Contains(f.ExecutionModes, x.ExecutionMode)) ||
+			(f.Number != "" && x.Number != f.Number) ||
+			!containsFold(x.Number, f.Search) ||
+			!inRange(x.ExecutedAt, f.ExecutedFrom, f.ExecutedTo) {
+			return false
+		}
+		if f.OrderFormNumber != "" {
+			of, ok := r.d.orderForms.get(x.OrderFormID)
+			if !ok || of.Number != f.OrderFormNumber {
+				return false
+			}
+		}
+		if len(f.OrderTypes) > 0 || f.QuoteNumber != "" || !f.OwnerID.IsZero() {
+			q := quoteOfOrderForm(r.d, x.OrderFormID)
+			if q == nil || (len(f.OrderTypes) > 0 && !slices.Contains(f.OrderTypes, q.OrderType)) ||
+				(f.QuoteNumber != "" && q.Number != f.QuoteNumber) ||
+				(!f.OwnerID.IsZero() && !slices.Contains(q.Owners, f.OwnerID)) {
+				return false
+			}
+		}
+		return true
 	})
-	return paginate(rows, func(x *quote.Order) core.OrderID { return x.ID }, page)
+	return paginateRecent(rows, func(x *quote.Order) (time.Time, uuid.UUID) { return x.CreatedAt, x.ID.UUID() }, page)
 }
 
 func (r orderRepo) ListExecutable(_ context.Context, now time.Time, limit int) ([]*quote.Order, error) {

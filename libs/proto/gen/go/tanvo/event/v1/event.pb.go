@@ -7,8 +7,8 @@
 // 	protoc        (unknown)
 // source: tanvo/event/v1/event.proto
 
-// Package tanvo.event.v1 is the API of usage events: ingestion, retrieval,
-// replacement and fee estimates.
+// Package tanvo.event.v1 is the API of usage events: ingestion, retrieval and
+// fee estimates.
 
 package eventv1
 
@@ -89,10 +89,8 @@ type Event struct {
 	xxx_hidden_Timestamp              *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=timestamp"`
 	xxx_hidden_Properties             *structpb.Struct       `protobuf:"bytes,6,opt,name=properties"`
 	xxx_hidden_PreciseTotalAmount     *string                `protobuf:"bytes,7,opt,name=precise_total_amount,json=preciseTotalAmount"`
-	xxx_hidden_TargetWalletCode       *string                `protobuf:"bytes,8,opt,name=target_wallet_code,json=targetWalletCode"`
 	xxx_hidden_UserAgent              *string                `protobuf:"bytes,10,opt,name=user_agent,json=userAgent"`
 	xxx_hidden_IpAddress              *string                `protobuf:"bytes,11,opt,name=ip_address,json=ipAddress"`
-	xxx_hidden_Errors                 map[string]string      `protobuf:"bytes,12,rep,name=errors" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	xxx_hidden_CreatedAt              *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt"`
 	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
 	XXX_presence                      [1]uint32
@@ -189,16 +187,6 @@ func (x *Event) GetPreciseTotalAmount() string {
 	return ""
 }
 
-func (x *Event) GetTargetWalletCode() string {
-	if x != nil {
-		if x.xxx_hidden_TargetWalletCode != nil {
-			return *x.xxx_hidden_TargetWalletCode
-		}
-		return ""
-	}
-	return ""
-}
-
 func (x *Event) GetUserAgent() string {
 	if x != nil {
 		if x.xxx_hidden_UserAgent != nil {
@@ -219,13 +207,6 @@ func (x *Event) GetIpAddress() string {
 	return ""
 }
 
-func (x *Event) GetErrors() map[string]string {
-	if x != nil {
-		return x.xxx_hidden_Errors
-	}
-	return nil
-}
-
 func (x *Event) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_CreatedAt
@@ -235,22 +216,22 @@ func (x *Event) GetCreatedAt() *timestamppb.Timestamp {
 
 func (x *Event) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 10)
 }
 
 func (x *Event) SetTransactionId(v string) {
 	x.xxx_hidden_TransactionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 10)
 }
 
 func (x *Event) SetExternalSubscriptionId(v string) {
 	x.xxx_hidden_ExternalSubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 10)
 }
 
 func (x *Event) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 10)
 }
 
 func (x *Event) SetTimestamp(v *timestamppb.Timestamp) {
@@ -263,26 +244,17 @@ func (x *Event) SetProperties(v *structpb.Struct) {
 
 func (x *Event) SetPreciseTotalAmount(v string) {
 	x.xxx_hidden_PreciseTotalAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 12)
-}
-
-func (x *Event) SetTargetWalletCode(v string) {
-	x.xxx_hidden_TargetWalletCode = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 10)
 }
 
 func (x *Event) SetUserAgent(v string) {
 	x.xxx_hidden_UserAgent = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 10)
 }
 
 func (x *Event) SetIpAddress(v string) {
 	x.xxx_hidden_IpAddress = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 12)
-}
-
-func (x *Event) SetErrors(v map[string]string) {
-	x.xxx_hidden_Errors = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 10)
 }
 
 func (x *Event) SetCreatedAt(v *timestamppb.Timestamp) {
@@ -338,25 +310,18 @@ func (x *Event) HasPreciseTotalAmount() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
 }
 
-func (x *Event) HasTargetWalletCode() bool {
+func (x *Event) HasUserAgent() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
 }
 
-func (x *Event) HasUserAgent() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
-}
-
 func (x *Event) HasIpAddress() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
 }
 
 func (x *Event) HasCreatedAt() bool {
@@ -399,18 +364,13 @@ func (x *Event) ClearPreciseTotalAmount() {
 	x.xxx_hidden_PreciseTotalAmount = nil
 }
 
-func (x *Event) ClearTargetWalletCode() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
-	x.xxx_hidden_TargetWalletCode = nil
-}
-
 func (x *Event) ClearUserAgent() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
 	x.xxx_hidden_UserAgent = nil
 }
 
 func (x *Event) ClearIpAddress() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
 	x.xxx_hidden_IpAddress = nil
 }
 
@@ -436,14 +396,10 @@ type Event_builder struct {
 	Properties *structpb.Struct
 	// The amount of a dynamic charge, as a decimal.
 	PreciseTotalAmount *string
-	// The code of the wallet the event's usage is deducted from.
-	TargetWalletCode *string
 	// The User-Agent of the ingestion request.
 	UserAgent *string
 	// The client IP of the ingestion request.
 	IpAddress *string
-	// The validation errors found after ingestion, keyed by field.
-	Errors map[string]string
 	// When the event was ingested.
 	CreatedAt *timestamppb.Timestamp
 }
@@ -453,40 +409,35 @@ func (b0 Event_builder) Build() *Event {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 10)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.TransactionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 10)
 		x.xxx_hidden_TransactionId = b.TransactionId
 	}
 	if b.ExternalSubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 10)
 		x.xxx_hidden_ExternalSubscriptionId = b.ExternalSubscriptionId
 	}
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 10)
 		x.xxx_hidden_Code = b.Code
 	}
 	x.xxx_hidden_Timestamp = b.Timestamp
 	x.xxx_hidden_Properties = b.Properties
 	if b.PreciseTotalAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 10)
 		x.xxx_hidden_PreciseTotalAmount = b.PreciseTotalAmount
 	}
-	if b.TargetWalletCode != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 12)
-		x.xxx_hidden_TargetWalletCode = b.TargetWalletCode
-	}
 	if b.UserAgent != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 10)
 		x.xxx_hidden_UserAgent = b.UserAgent
 	}
 	if b.IpAddress != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 10)
 		x.xxx_hidden_IpAddress = b.IpAddress
 	}
-	x.xxx_hidden_Errors = b.Errors
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	return m0
 }
@@ -1925,14 +1876,15 @@ func (b0 GetEventResponse_builder) Build() *GetEventResponse {
 
 // ListEventsRequest is the request of EventService.ListEvents.
 type ListEventsRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_PageSize    int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize"`
-	xxx_hidden_PageToken   *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken"`
-	xxx_hidden_Filter      *string                `protobuf:"bytes,3,opt,name=filter"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PageSize               int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize"`
+	xxx_hidden_PageToken              *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken"`
+	xxx_hidden_Filter                 *string                `protobuf:"bytes,3,opt,name=filter"`
+	xxx_hidden_TimestampFromStartedAt bool                   `protobuf:"varint,4,opt,name=timestamp_from_started_at,json=timestampFromStartedAt"`
+	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
+	XXX_presence                      [1]uint32
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *ListEventsRequest) Reset() {
@@ -1987,19 +1939,31 @@ func (x *ListEventsRequest) GetFilter() string {
 	return ""
 }
 
+func (x *ListEventsRequest) GetTimestampFromStartedAt() bool {
+	if x != nil {
+		return x.xxx_hidden_TimestampFromStartedAt
+	}
+	return false
+}
+
 func (x *ListEventsRequest) SetPageSize(v int32) {
 	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *ListEventsRequest) SetPageToken(v string) {
 	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *ListEventsRequest) SetFilter(v string) {
 	x.xxx_hidden_Filter = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *ListEventsRequest) SetTimestampFromStartedAt(v bool) {
+	x.xxx_hidden_TimestampFromStartedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *ListEventsRequest) HasPageSize() bool {
@@ -2023,6 +1987,13 @@ func (x *ListEventsRequest) HasFilter() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *ListEventsRequest) HasTimestampFromStartedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *ListEventsRequest) ClearPageSize() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_PageSize = 0
@@ -2038,6 +2009,11 @@ func (x *ListEventsRequest) ClearFilter() {
 	x.xxx_hidden_Filter = nil
 }
 
+func (x *ListEventsRequest) ClearTimestampFromStartedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_TimestampFromStartedAt = false
+}
+
 type ListEventsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -2045,9 +2021,13 @@ type ListEventsRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `code`, `external_subscription_id`, `timestamp`
-	// and `attributions.<type>`.
+	// An AIP-160 filter over `code`, `external_subscription_id` and
+	// `timestamp`.
 	Filter *string
+	// Lists the events from the start of the latest subscription with the
+	// filter's `external_subscription_id`, in place of a lower `timestamp`
+	// bound; without that subscription, the filter applies as is.
+	TimestampFromStartedAt *bool
 }
 
 func (b0 ListEventsRequest_builder) Build() *ListEventsRequest {
@@ -2055,16 +2035,20 @@ func (b0 ListEventsRequest_builder) Build() *ListEventsRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_PageSize = *b.PageSize
 	}
 	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_PageToken = b.PageToken
 	}
 	if b.Filter != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_Filter = b.Filter
+	}
+	if b.TimestampFromStartedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_TimestampFromStartedAt = *b.TimestampFromStartedAt
 	}
 	return m0
 }
@@ -2409,183 +2393,6 @@ func (b0 ListEnrichedEventsResponse_builder) Build() *ListEnrichedEventsResponse
 	return m0
 }
 
-// ReplaceEventRequest is the request of EventService.ReplaceEvent.
-type ReplaceEventRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Event       *Event                 `protobuf:"bytes,1,opt,name=event"`
-	xxx_hidden_Reason      *string                `protobuf:"bytes,2,opt,name=reason"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *ReplaceEventRequest) Reset() {
-	*x = ReplaceEventRequest{}
-	mi := &file_tanvo_event_v1_event_proto_msgTypes[14]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReplaceEventRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReplaceEventRequest) ProtoMessage() {}
-
-func (x *ReplaceEventRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_event_v1_event_proto_msgTypes[14]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ReplaceEventRequest) GetEvent() *Event {
-	if x != nil {
-		return x.xxx_hidden_Event
-	}
-	return nil
-}
-
-func (x *ReplaceEventRequest) GetReason() string {
-	if x != nil {
-		if x.xxx_hidden_Reason != nil {
-			return *x.xxx_hidden_Reason
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ReplaceEventRequest) SetEvent(v *Event) {
-	x.xxx_hidden_Event = v
-}
-
-func (x *ReplaceEventRequest) SetReason(v string) {
-	x.xxx_hidden_Reason = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
-}
-
-func (x *ReplaceEventRequest) HasEvent() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_Event != nil
-}
-
-func (x *ReplaceEventRequest) HasReason() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ReplaceEventRequest) ClearEvent() {
-	x.xxx_hidden_Event = nil
-}
-
-func (x *ReplaceEventRequest) ClearReason() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_Reason = nil
-}
-
-type ReplaceEventRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The replacement; event.external_subscription_id and
-	// event.transaction_id select the event.
-	Event *Event
-	// Why the event is replaced, kept in the audit log.
-	Reason *string
-}
-
-func (b0 ReplaceEventRequest_builder) Build() *ReplaceEventRequest {
-	m0 := &ReplaceEventRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_Event = b.Event
-	if b.Reason != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_Reason = b.Reason
-	}
-	return m0
-}
-
-// ReplaceEventResponse is the response of EventService.ReplaceEvent.
-type ReplaceEventResponse struct {
-	state            protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Event *Event                 `protobuf:"bytes,1,opt,name=event"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
-func (x *ReplaceEventResponse) Reset() {
-	*x = ReplaceEventResponse{}
-	mi := &file_tanvo_event_v1_event_proto_msgTypes[15]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ReplaceEventResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ReplaceEventResponse) ProtoMessage() {}
-
-func (x *ReplaceEventResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_event_v1_event_proto_msgTypes[15]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ReplaceEventResponse) GetEvent() *Event {
-	if x != nil {
-		return x.xxx_hidden_Event
-	}
-	return nil
-}
-
-func (x *ReplaceEventResponse) SetEvent(v *Event) {
-	x.xxx_hidden_Event = v
-}
-
-func (x *ReplaceEventResponse) HasEvent() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_Event != nil
-}
-
-func (x *ReplaceEventResponse) ClearEvent() {
-	x.xxx_hidden_Event = nil
-}
-
-type ReplaceEventResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The replaced event.
-	Event *Event
-}
-
-func (b0 ReplaceEventResponse_builder) Build() *ReplaceEventResponse {
-	m0 := &ReplaceEventResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_Event = b.Event
-	return m0
-}
-
 // EstimateFeesRequest is the request of EventService.EstimateFees.
 type EstimateFeesRequest struct {
 	state            protoimpl.MessageState `protogen:"opaque.v1"`
@@ -2596,7 +2403,7 @@ type EstimateFeesRequest struct {
 
 func (x *EstimateFeesRequest) Reset() {
 	*x = EstimateFeesRequest{}
-	mi := &file_tanvo_event_v1_event_proto_msgTypes[16]
+	mi := &file_tanvo_event_v1_event_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2608,7 +2415,7 @@ func (x *EstimateFeesRequest) String() string {
 func (*EstimateFeesRequest) ProtoMessage() {}
 
 func (x *EstimateFeesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_event_v1_event_proto_msgTypes[16]
+	mi := &file_tanvo_event_v1_event_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2666,7 +2473,7 @@ type EstimateFeesResponse struct {
 
 func (x *EstimateFeesResponse) Reset() {
 	*x = EstimateFeesResponse{}
-	mi := &file_tanvo_event_v1_event_proto_msgTypes[17]
+	mi := &file_tanvo_event_v1_event_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2678,7 +2485,7 @@ func (x *EstimateFeesResponse) String() string {
 func (*EstimateFeesResponse) ProtoMessage() {}
 
 func (x *EstimateFeesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_event_v1_event_proto_msgTypes[17]
+	mi := &file_tanvo_event_v1_event_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2727,7 +2534,7 @@ type EstimateInstantFeesRequest struct {
 
 func (x *EstimateInstantFeesRequest) Reset() {
 	*x = EstimateInstantFeesRequest{}
-	mi := &file_tanvo_event_v1_event_proto_msgTypes[18]
+	mi := &file_tanvo_event_v1_event_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2739,7 +2546,7 @@ func (x *EstimateInstantFeesRequest) String() string {
 func (*EstimateInstantFeesRequest) ProtoMessage() {}
 
 func (x *EstimateInstantFeesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_event_v1_event_proto_msgTypes[18]
+	mi := &file_tanvo_event_v1_event_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2788,7 +2595,7 @@ type EstimateInstantFeesResponse struct {
 
 func (x *EstimateInstantFeesResponse) Reset() {
 	*x = EstimateInstantFeesResponse{}
-	mi := &file_tanvo_event_v1_event_proto_msgTypes[19]
+	mi := &file_tanvo_event_v1_event_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2800,7 +2607,7 @@ func (x *EstimateInstantFeesResponse) String() string {
 func (*EstimateInstantFeesResponse) ProtoMessage() {}
 
 func (x *EstimateInstantFeesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_event_v1_event_proto_msgTypes[19]
+	mi := &file_tanvo_event_v1_event_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2843,7 +2650,7 @@ var File_tanvo_event_v1_event_proto protoreflect.FileDescriptor
 
 const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"\n" +
-	"\x1atanvo/event/v1/event.proto\x12\x0etanvo.event.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xf2\x05\n" +
+	"\x1atanvo/event/v1/event.proto\x12\x0etanvo.event.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xe4\x04\n" +
 	"\x05Event\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\x03R\x02id\x125\n" +
 	"\x0etransaction_id\x18\x02 \x01(\tB\x0e\xe2A\x01\b\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\rtransactionId\x12H\n" +
@@ -2854,21 +2661,15 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"properties\x18\x06 \x01(\v2\x17.google.protobuf.StructR\n" +
 	"properties\x12<\n" +
 	"\x14precise_total_amount\x18\a \x01(\tB\n" +
-	"\xbaH\ar\x05Ȥ\xca\x06\x01R\x12preciseTotalAmount\x128\n" +
-	"\x12target_wallet_code\x18\b \x01(\tB\n" +
-	"\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x10targetWalletCode\x12#\n" +
+	"\xbaH\ar\x05Ȥ\xca\x06\x01R\x12preciseTotalAmount\x12#\n" +
 	"\n" +
 	"user_agent\x18\n" +
 	" \x01(\tB\x04\xe2A\x01\x03R\tuserAgent\x12#\n" +
 	"\n" +
 	"ip_address\x18\v \x01(\tB\x04\xe2A\x01\x03R\tipAddress\x12?\n" +
-	"\x06errors\x18\f \x03(\v2!.tanvo.event.v1.Event.ErrorsEntryB\x04\xe2A\x01\x03R\x06errors\x12?\n" +
 	"\n" +
-	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x1a9\n" +
-	"\vErrorsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:<\xeaA9\n" +
-	"\x0ftanvo.xyz/Event\x12\x17events/{transaction_id}*\x06events2\x05event\"\x8c\x05\n" +
+	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt:<\xeaA9\n" +
+	"\x0ftanvo.xyz/Event\x12\x17events/{transaction_id}*\x06events2\x05eventJ\x04\b\b\x10\tJ\x04\b\f\x10\rR\x12target_wallet_codeR\x06errors\"\x8c\x05\n" +
 	"\rEnrichedEvent\x12%\n" +
 	"\x0etransaction_id\x18\x01 \x01(\tR\rtransactionId\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x128\n" +
@@ -2931,13 +2732,14 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"\xc8\x01\x01r\x05\xe8\xa4\xca\x06\x01R\rtransactionId\x128\n" +
 	"\x18external_subscription_id\x18\x02 \x01(\tR\x16externalSubscriptionId\"?\n" +
 	"\x10GetEventResponse\x12+\n" +
-	"\x05event\x18\x01 \x01(\v2\x15.tanvo.event.v1.EventR\x05event\"\x87\x01\n" +
+	"\x05event\x18\x01 \x01(\v2\x15.tanvo.event.v1.EventR\x05event\"\xc2\x01\n" +
 	"\x11ListEventsRequest\x12'\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\n" +
 	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12 \n" +
-	"\x06filter\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\"k\n" +
+	"\x06filter\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\x129\n" +
+	"\x19timestamp_from_started_at\x18\x04 \x01(\bR\x16timestampFromStartedAt\"k\n" +
 	"\x12ListEventsResponse\x12-\n" +
 	"\x06events\x18\x01 \x03(\v2\x15.tanvo.event.v1.EventR\x06events\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x8f\x01\n" +
@@ -2949,14 +2751,7 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"\x06filter\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\"\x8c\x01\n" +
 	"\x1aListEnrichedEventsResponse\x12F\n" +
 	"\x0fenriched_events\x18\x01 \x03(\v2\x1d.tanvo.event.v1.EnrichedEventR\x0eenrichedEvents\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xae\x02\n" +
-	"\x13ReplaceEventRequest\x127\n" +
-	"\x05event\x18\x01 \x01(\v2\x15.tanvo.event.v1.EventB\n" +
-	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x05event\x12 \n" +
-	"\x06reason\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\x06reason:\xbb\x01\xbaH\xb7\x01\x1a\xb4\x01\n" +
-	"\x0eevent.required\x12>transaction_id, external_subscription_id and code are required\x1abhas(this.event.transaction_id) && has(this.event.external_subscription_id) && has(this.event.code)\"C\n" +
-	"\x14ReplaceEventResponse\x12+\n" +
-	"\x05event\x18\x01 \x01(\v2\x15.tanvo.event.v1.EventR\x05event\"\xda\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xda\x01\n" +
 	"\x13EstimateFeesRequest\x127\n" +
 	"\x05event\x18\x01 \x01(\v2\x15.tanvo.event.v1.EventB\n" +
 	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x05event:\x89\x01\xbaH\x85\x01\x1a\x82\x01\n" +
@@ -2971,7 +2766,7 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"\x11EnrichedOperation\x12\"\n" +
 	"\x1eENRICHED_OPERATION_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16ENRICHED_OPERATION_ADD\x10\x01\x12\x1d\n" +
-	"\x19ENRICHED_OPERATION_REMOVE\x10\x022\xea\t\n" +
+	"\x19ENRICHED_OPERATION_REMOVE\x10\x022\xbf\b\n" +
 	"\fEventService\x12\x8e\x01\n" +
 	"\vIngestEvent\x12\".tanvo.event.v1.IngestEventRequest\x1a#.tanvo.event.v1.IngestEventResponse\"6\xca\xf3\x18\x16\n" +
 	"\revents:create*\x05event\x82\xd3\xe4\x93\x02\x13:\x05event\"\n" +
@@ -2985,9 +2780,7 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"\vevents:read*\x05event\x82\xd3\xe4\x93\x02\f\x12\n" +
 	"/v1/events\x90\x02\x01\x12\xa3\x01\n" +
 	"\x12ListEnrichedEvents\x12).tanvo.event.v1.ListEnrichedEventsRequest\x1a*.tanvo.event.v1.ListEnrichedEventsResponse\"6\xca\xf3\x18\x14\n" +
-	"\vevents:read*\x05event\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/enriched_events\x90\x02\x01\x12\xa8\x01\n" +
-	"\fReplaceEvent\x12#.tanvo.event.v1.ReplaceEventRequest\x1a$.tanvo.event.v1.ReplaceEventResponse\"M\xca\xf3\x18\x16\n" +
-	"\revents:create*\x05event\x82\xd3\xe4\x93\x02*:\x05event\x1a!/v1/events/{event.transaction_id}\x90\x02\x02\x12\x96\x01\n" +
+	"\vevents:read*\x05event\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/enriched_events\x90\x02\x01\x12\x96\x01\n" +
 	"\fEstimateFees\x12#.tanvo.event.v1.EstimateFeesRequest\x1a$.tanvo.event.v1.EstimateFeesResponse\";\xca\xf3\x18\x14\n" +
 	"\vevents:read*\x05event\x82\xd3\xe4\x93\x02\x1d:\x01*\"\x18/v1/events:estimate_fees\x12\xb3\x01\n" +
 	"\x13EstimateInstantFees\x12*.tanvo.event.v1.EstimateInstantFeesRequest\x1a+.tanvo.event.v1.EstimateInstantFeesResponse\"C\xca\xf3\x18\x14\n" +
@@ -2996,7 +2789,7 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"EventProtoP\x01ZBgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/event/v1;eventv1\xa2\x02\x03TEX\xaa\x02\x0eTanvo.Event.V1\xca\x02\x0eTanvo\\Event\\V1\xe2\x02\x1aTanvo\\Event\\V1\\GPBMetadata\xea\x02\x10Tanvo::Event::V1b\beditionsp\xe8\a"
 
 var file_tanvo_event_v1_event_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_tanvo_event_v1_event_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_tanvo_event_v1_event_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_tanvo_event_v1_event_proto_goTypes = []any{
 	(EnrichedOperation)(0),              // 0: tanvo.event.v1.EnrichedOperation
 	(*Event)(nil),                       // 1: tanvo.event.v1.Event
@@ -3013,68 +2806,60 @@ var file_tanvo_event_v1_event_proto_goTypes = []any{
 	(*ListEventsResponse)(nil),          // 12: tanvo.event.v1.ListEventsResponse
 	(*ListEnrichedEventsRequest)(nil),   // 13: tanvo.event.v1.ListEnrichedEventsRequest
 	(*ListEnrichedEventsResponse)(nil),  // 14: tanvo.event.v1.ListEnrichedEventsResponse
-	(*ReplaceEventRequest)(nil),         // 15: tanvo.event.v1.ReplaceEventRequest
-	(*ReplaceEventResponse)(nil),        // 16: tanvo.event.v1.ReplaceEventResponse
-	(*EstimateFeesRequest)(nil),         // 17: tanvo.event.v1.EstimateFeesRequest
-	(*EstimateFeesResponse)(nil),        // 18: tanvo.event.v1.EstimateFeesResponse
-	(*EstimateInstantFeesRequest)(nil),  // 19: tanvo.event.v1.EstimateInstantFeesRequest
-	(*EstimateInstantFeesResponse)(nil), // 20: tanvo.event.v1.EstimateInstantFeesResponse
-	nil,                                 // 21: tanvo.event.v1.Event.ErrorsEntry
-	nil,                                 // 22: tanvo.event.v1.EnrichedEvent.GroupedByEntry
-	nil,                                 // 23: tanvo.event.v1.EventResult.ErrorsEntry
-	nil,                                 // 24: tanvo.event.v1.EstimatedFee.GroupedByEntry
-	(*timestamppb.Timestamp)(nil),       // 25: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),             // 26: google.protobuf.Struct
-	(*v1.Money)(nil),                    // 27: tanvo.common.v1.Money
+	(*EstimateFeesRequest)(nil),         // 15: tanvo.event.v1.EstimateFeesRequest
+	(*EstimateFeesResponse)(nil),        // 16: tanvo.event.v1.EstimateFeesResponse
+	(*EstimateInstantFeesRequest)(nil),  // 17: tanvo.event.v1.EstimateInstantFeesRequest
+	(*EstimateInstantFeesResponse)(nil), // 18: tanvo.event.v1.EstimateInstantFeesResponse
+	nil,                                 // 19: tanvo.event.v1.EnrichedEvent.GroupedByEntry
+	nil,                                 // 20: tanvo.event.v1.EventResult.ErrorsEntry
+	nil,                                 // 21: tanvo.event.v1.EstimatedFee.GroupedByEntry
+	(*timestamppb.Timestamp)(nil),       // 22: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),             // 23: google.protobuf.Struct
+	(*v1.Money)(nil),                    // 24: tanvo.common.v1.Money
 }
 var file_tanvo_event_v1_event_proto_depIdxs = []int32{
-	25, // 0: tanvo.event.v1.Event.timestamp:type_name -> google.protobuf.Timestamp
-	26, // 1: tanvo.event.v1.Event.properties:type_name -> google.protobuf.Struct
-	21, // 2: tanvo.event.v1.Event.errors:type_name -> tanvo.event.v1.Event.ErrorsEntry
-	25, // 3: tanvo.event.v1.Event.created_at:type_name -> google.protobuf.Timestamp
-	25, // 4: tanvo.event.v1.EnrichedEvent.timestamp:type_name -> google.protobuf.Timestamp
-	22, // 5: tanvo.event.v1.EnrichedEvent.grouped_by:type_name -> tanvo.event.v1.EnrichedEvent.GroupedByEntry
-	0,  // 6: tanvo.event.v1.EnrichedEvent.operation:type_name -> tanvo.event.v1.EnrichedOperation
-	25, // 7: tanvo.event.v1.EnrichedEvent.enriched_at:type_name -> google.protobuf.Timestamp
-	1,  // 8: tanvo.event.v1.EventResult.event:type_name -> tanvo.event.v1.Event
-	23, // 9: tanvo.event.v1.EventResult.errors:type_name -> tanvo.event.v1.EventResult.ErrorsEntry
-	27, // 10: tanvo.event.v1.EstimatedFee.amount:type_name -> tanvo.common.v1.Money
-	27, // 11: tanvo.event.v1.EstimatedFee.taxes_amount:type_name -> tanvo.common.v1.Money
-	24, // 12: tanvo.event.v1.EstimatedFee.grouped_by:type_name -> tanvo.event.v1.EstimatedFee.GroupedByEntry
-	1,  // 13: tanvo.event.v1.IngestEventRequest.event:type_name -> tanvo.event.v1.Event
-	1,  // 14: tanvo.event.v1.IngestEventResponse.event:type_name -> tanvo.event.v1.Event
-	1,  // 15: tanvo.event.v1.IngestEventsRequest.events:type_name -> tanvo.event.v1.Event
-	3,  // 16: tanvo.event.v1.IngestEventsResponse.results:type_name -> tanvo.event.v1.EventResult
-	1,  // 17: tanvo.event.v1.GetEventResponse.event:type_name -> tanvo.event.v1.Event
-	1,  // 18: tanvo.event.v1.ListEventsResponse.events:type_name -> tanvo.event.v1.Event
-	2,  // 19: tanvo.event.v1.ListEnrichedEventsResponse.enriched_events:type_name -> tanvo.event.v1.EnrichedEvent
-	1,  // 20: tanvo.event.v1.ReplaceEventRequest.event:type_name -> tanvo.event.v1.Event
-	1,  // 21: tanvo.event.v1.ReplaceEventResponse.event:type_name -> tanvo.event.v1.Event
-	1,  // 22: tanvo.event.v1.EstimateFeesRequest.event:type_name -> tanvo.event.v1.Event
-	4,  // 23: tanvo.event.v1.EstimateFeesResponse.fees:type_name -> tanvo.event.v1.EstimatedFee
-	1,  // 24: tanvo.event.v1.EstimateInstantFeesRequest.events:type_name -> tanvo.event.v1.Event
-	4,  // 25: tanvo.event.v1.EstimateInstantFeesResponse.fees:type_name -> tanvo.event.v1.EstimatedFee
-	5,  // 26: tanvo.event.v1.EventService.IngestEvent:input_type -> tanvo.event.v1.IngestEventRequest
-	7,  // 27: tanvo.event.v1.EventService.IngestEvents:input_type -> tanvo.event.v1.IngestEventsRequest
-	9,  // 28: tanvo.event.v1.EventService.GetEvent:input_type -> tanvo.event.v1.GetEventRequest
-	11, // 29: tanvo.event.v1.EventService.ListEvents:input_type -> tanvo.event.v1.ListEventsRequest
-	13, // 30: tanvo.event.v1.EventService.ListEnrichedEvents:input_type -> tanvo.event.v1.ListEnrichedEventsRequest
-	15, // 31: tanvo.event.v1.EventService.ReplaceEvent:input_type -> tanvo.event.v1.ReplaceEventRequest
-	17, // 32: tanvo.event.v1.EventService.EstimateFees:input_type -> tanvo.event.v1.EstimateFeesRequest
-	19, // 33: tanvo.event.v1.EventService.EstimateInstantFees:input_type -> tanvo.event.v1.EstimateInstantFeesRequest
-	6,  // 34: tanvo.event.v1.EventService.IngestEvent:output_type -> tanvo.event.v1.IngestEventResponse
-	8,  // 35: tanvo.event.v1.EventService.IngestEvents:output_type -> tanvo.event.v1.IngestEventsResponse
-	10, // 36: tanvo.event.v1.EventService.GetEvent:output_type -> tanvo.event.v1.GetEventResponse
-	12, // 37: tanvo.event.v1.EventService.ListEvents:output_type -> tanvo.event.v1.ListEventsResponse
-	14, // 38: tanvo.event.v1.EventService.ListEnrichedEvents:output_type -> tanvo.event.v1.ListEnrichedEventsResponse
-	16, // 39: tanvo.event.v1.EventService.ReplaceEvent:output_type -> tanvo.event.v1.ReplaceEventResponse
-	18, // 40: tanvo.event.v1.EventService.EstimateFees:output_type -> tanvo.event.v1.EstimateFeesResponse
-	20, // 41: tanvo.event.v1.EventService.EstimateInstantFees:output_type -> tanvo.event.v1.EstimateInstantFeesResponse
-	34, // [34:42] is the sub-list for method output_type
-	26, // [26:34] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	22, // 0: tanvo.event.v1.Event.timestamp:type_name -> google.protobuf.Timestamp
+	23, // 1: tanvo.event.v1.Event.properties:type_name -> google.protobuf.Struct
+	22, // 2: tanvo.event.v1.Event.created_at:type_name -> google.protobuf.Timestamp
+	22, // 3: tanvo.event.v1.EnrichedEvent.timestamp:type_name -> google.protobuf.Timestamp
+	19, // 4: tanvo.event.v1.EnrichedEvent.grouped_by:type_name -> tanvo.event.v1.EnrichedEvent.GroupedByEntry
+	0,  // 5: tanvo.event.v1.EnrichedEvent.operation:type_name -> tanvo.event.v1.EnrichedOperation
+	22, // 6: tanvo.event.v1.EnrichedEvent.enriched_at:type_name -> google.protobuf.Timestamp
+	1,  // 7: tanvo.event.v1.EventResult.event:type_name -> tanvo.event.v1.Event
+	20, // 8: tanvo.event.v1.EventResult.errors:type_name -> tanvo.event.v1.EventResult.ErrorsEntry
+	24, // 9: tanvo.event.v1.EstimatedFee.amount:type_name -> tanvo.common.v1.Money
+	24, // 10: tanvo.event.v1.EstimatedFee.taxes_amount:type_name -> tanvo.common.v1.Money
+	21, // 11: tanvo.event.v1.EstimatedFee.grouped_by:type_name -> tanvo.event.v1.EstimatedFee.GroupedByEntry
+	1,  // 12: tanvo.event.v1.IngestEventRequest.event:type_name -> tanvo.event.v1.Event
+	1,  // 13: tanvo.event.v1.IngestEventResponse.event:type_name -> tanvo.event.v1.Event
+	1,  // 14: tanvo.event.v1.IngestEventsRequest.events:type_name -> tanvo.event.v1.Event
+	3,  // 15: tanvo.event.v1.IngestEventsResponse.results:type_name -> tanvo.event.v1.EventResult
+	1,  // 16: tanvo.event.v1.GetEventResponse.event:type_name -> tanvo.event.v1.Event
+	1,  // 17: tanvo.event.v1.ListEventsResponse.events:type_name -> tanvo.event.v1.Event
+	2,  // 18: tanvo.event.v1.ListEnrichedEventsResponse.enriched_events:type_name -> tanvo.event.v1.EnrichedEvent
+	1,  // 19: tanvo.event.v1.EstimateFeesRequest.event:type_name -> tanvo.event.v1.Event
+	4,  // 20: tanvo.event.v1.EstimateFeesResponse.fees:type_name -> tanvo.event.v1.EstimatedFee
+	1,  // 21: tanvo.event.v1.EstimateInstantFeesRequest.events:type_name -> tanvo.event.v1.Event
+	4,  // 22: tanvo.event.v1.EstimateInstantFeesResponse.fees:type_name -> tanvo.event.v1.EstimatedFee
+	5,  // 23: tanvo.event.v1.EventService.IngestEvent:input_type -> tanvo.event.v1.IngestEventRequest
+	7,  // 24: tanvo.event.v1.EventService.IngestEvents:input_type -> tanvo.event.v1.IngestEventsRequest
+	9,  // 25: tanvo.event.v1.EventService.GetEvent:input_type -> tanvo.event.v1.GetEventRequest
+	11, // 26: tanvo.event.v1.EventService.ListEvents:input_type -> tanvo.event.v1.ListEventsRequest
+	13, // 27: tanvo.event.v1.EventService.ListEnrichedEvents:input_type -> tanvo.event.v1.ListEnrichedEventsRequest
+	15, // 28: tanvo.event.v1.EventService.EstimateFees:input_type -> tanvo.event.v1.EstimateFeesRequest
+	17, // 29: tanvo.event.v1.EventService.EstimateInstantFees:input_type -> tanvo.event.v1.EstimateInstantFeesRequest
+	6,  // 30: tanvo.event.v1.EventService.IngestEvent:output_type -> tanvo.event.v1.IngestEventResponse
+	8,  // 31: tanvo.event.v1.EventService.IngestEvents:output_type -> tanvo.event.v1.IngestEventsResponse
+	10, // 32: tanvo.event.v1.EventService.GetEvent:output_type -> tanvo.event.v1.GetEventResponse
+	12, // 33: tanvo.event.v1.EventService.ListEvents:output_type -> tanvo.event.v1.ListEventsResponse
+	14, // 34: tanvo.event.v1.EventService.ListEnrichedEvents:output_type -> tanvo.event.v1.ListEnrichedEventsResponse
+	16, // 35: tanvo.event.v1.EventService.EstimateFees:output_type -> tanvo.event.v1.EstimateFeesResponse
+	18, // 36: tanvo.event.v1.EventService.EstimateInstantFees:output_type -> tanvo.event.v1.EstimateInstantFeesResponse
+	30, // [30:37] is the sub-list for method output_type
+	23, // [23:30] is the sub-list for method input_type
+	23, // [23:23] is the sub-list for extension type_name
+	23, // [23:23] is the sub-list for extension extendee
+	0,  // [0:23] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_event_v1_event_proto_init() }
@@ -3088,7 +2873,7 @@ func file_tanvo_event_v1_event_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_event_v1_event_proto_rawDesc), len(file_tanvo_event_v1_event_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   24,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

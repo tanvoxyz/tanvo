@@ -4,8 +4,8 @@
 edition = "2023";
 
 // Package tanvo.attribution.v1 is the API of usage attribution: types of
-// labels events carry (teams, projects, end users), the values seen per
-// customer, and usage broken down by them.
+// labels events carry (teams, projects, end users) and usage broken down
+// by them.
 package tanvo.attribution.v1;
 
 import "buf/validate/validate.proto";
@@ -17,8 +17,8 @@ import "google/protobuf/timestamp.proto";
 import "tanvo/common/v1/options.proto";
 import "tanvo/common/v1/types.proto";
 
-// UsageAttributionService manages attribution types and values and
-// queries attributed usage.
+// UsageAttributionService manages attribution types and queries
+// attributed usage.
 service UsageAttributionService {
   // Creates an attribution type.
   rpc CreateUsageAttributionType(CreateUsageAttributionTypeRequest) returns (CreateUsageAttributionTypeResponse) {
@@ -42,7 +42,7 @@ service UsageAttributionService {
     };
   }
 
-  // Lists attribution types by code.
+  // Lists attribution types, newest first.
   rpc ListUsageAttributionTypes(ListUsageAttributionTypesRequest) returns (ListUsageAttributionTypesResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
     option (google.api.http) = {get: "/v1/usage_attribution_types"};
@@ -69,16 +69,6 @@ service UsageAttributionService {
     option (google.api.http) = {delete: "/v1/usage_attribution_types/{usage_attribution_type_id}"};
     option (tanvo.common.v1.access) = {
       permission: "usage_attribution_types:delete"
-      api_resource: "usage_attribution_type"
-    };
-  }
-
-  // Lists the values of a type seen in a customer's events.
-  rpc ListUsageAttributionValues(ListUsageAttributionValuesRequest) returns (ListUsageAttributionValuesResponse) {
-    option idempotency_level = NO_SIDE_EFFECTS;
-    option (google.api.http) = {get: "/v1/customers/{customer_id}/usage_attribution_values"};
-    option (tanvo.common.v1.access) = {
-      permission: "usage_attribution_types:read"
       api_resource: "usage_attribution_type"
     };
   }
@@ -127,10 +117,9 @@ message UsageAttributionType {
 
   // The type's ID.
   string id = 1 [(google.api.field_behavior) = IDENTIFIER];
-  // The unique code.
+  // The unique code; frozen once usage was attributed to the type.
   string code = 2 [
     (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE,
     (buf.validate.field).string.(tanvo.common.v1.code) = true
   ];
   // The display name.
@@ -163,25 +152,8 @@ message UsageAttributionType {
   google.protobuf.Timestamp created_at = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the type last changed.
   google.protobuf.Timestamp updated_at = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
-}
-
-// UsageAttributionValue is one value of a type seen in a customer's
-// events.
-message UsageAttributionValue {
-  // The value's ID.
-  string id = 1;
-  // The type.
-  string usage_attribution_type_id = 2;
-  // The customer.
-  string customer_id = 3;
-  // The value.
-  string value = 4;
-  // The parent value, for a HIERARCHICAL type.
-  string parent_id = 5;
-  // When the value was last seen in an event.
-  google.protobuf.Timestamp last_seen_at = 6;
-  // When the value was first seen.
-  google.protobuf.Timestamp created_at = 7;
+  // The parent type's code; it may be a deleted type's.
+  string parent_code = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // Values is a list of label or filter values.
@@ -283,8 +255,13 @@ message ListUsageAttributionTypesRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 2 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `role` and `parent_id`.
+  // An AIP-160 filter: `role` (=) and `root` (= true keeps the types
+  // without a parent or whose parent was deleted, = false the others),
+  // joined by AND.
   string filter = 3 [(buf.validate.field).string.max_len = 2048];
+  // Keeps the types whose code or name contains this text,
+  // case-insensitively.
+  string search = 4 [(buf.validate.field).string.max_len = 255];
 }
 
 // ListUsageAttributionTypesResponse is the response of UsageAttributionService.ListUsageAttributionTypes.
@@ -331,39 +308,6 @@ message DeleteUsageAttributionTypeRequest {
 
 // DeleteUsageAttributionTypeResponse is the response of UsageAttributionService.DeleteUsageAttributionType.
 message DeleteUsageAttributionTypeResponse {}
-
-// ListUsageAttributionValuesRequest is the request of UsageAttributionService.ListUsageAttributionValues.
-message ListUsageAttributionValuesRequest {
-  // The customer (ID or `external_id:<external_id>`).
-  string customer_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.(tanvo.common.v1.ref) = true
-  ];
-  // The type (ID or `code:<code>`).
-  string usage_attribution_type_id = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.(tanvo.common.v1.ref) = true
-  ];
-  // The maximum number of results; 20 by default, at most 1000.
-  int32 page_size = 3 [(buf.validate.field).int32 = {
-    gte: 0
-    lte: 1000
-  }];
-  // The next_page_token of the previous page.
-  string page_token = 4 [(buf.validate.field).string.max_len = 1024];
-  // A search over the values.
-  string search = 5 [(buf.validate.field).string.max_len = 255];
-}
-
-// ListUsageAttributionValuesResponse is the response of UsageAttributionService.ListUsageAttributionValues.
-message ListUsageAttributionValuesResponse {
-  // The values of this page, most recently seen first.
-  repeated UsageAttributionValue usage_attribution_values = 1;
-  // The token of the next page; empty on the last page.
-  string next_page_token = 2;
-}
 
 // GetAttributedUsageRequest is the request of UsageAttributionService.GetAttributedUsage.
 message GetAttributedUsageRequest {

@@ -28,13 +28,13 @@ external IDs and codes, and it parses strings.
 - `events_targeting_wallets`: fees targeting a wallet code (`allocate_ongoing_usage_by_wallets_service_spec.rb:280,300`). That is a premium integration of usage routing.
 - `wallets/realtime_refresh_service_spec.rb`: lago's synchronous refresh on event ingestion. Tanvo refreshes through the job queue.
 - `wallet_transactions/payments/generate_payment_url_service_spec.rb`: payment URLs belong to the payments package.
-- Activity logs, Segment tracking, the e-mail sending of `paid_credit_service_spec.rb:201–222`, and `ProcessWalletAlertsJob` (usage monitoring). Tanvo has none of these, or they live in other packages.
+- Activity logs, Segment tracking, the e-mail sending of `paid_credit_service_spec.rb:201–222`. Tanvo has none of these. The `ProcessWalletAlertsJob` enqueues of the balance specs are ported in libs/billing `TestWalletAlertsEnqueued`.
 - Premium and freemium gating of the wallet limit and of `invoice_requires_successful_payment`. Tanvo applies the organization's limit directly.
 
 ## Mechanics with no Go equivalent
 
 - Lock acquisition failures (`void_service_spec.rb:715–737`) and stale-object retries (`decrease_service_spec.rb` "when wallet is stale"; `allocate_ongoing_usage_by_wallets_service_spec.rb:320` stale in-memory balance). Tanvo locks rows inside `Store.InTx` and reloads the wallet under the lock.
-- The `awaiting_wallet_refresh` customer flag (`decrease_service_spec.rb`, `create_from_params_service_spec.rb:76`, `terminate_service_spec.rb:31–40,81`). Tanvo enqueues a refresh job keyed by customer, and the tests assert that job instead.
+- The `awaiting_wallet_refresh` assertions of `decrease_service_spec.rb:43,63`, `update_service_spec.rb:75–91` and `create_from_params_service_spec.rb:76`. Every one of these paths flags through `kernel.EnqueueWalletRefresh`, whose flag rule (active wallet required) is covered by the store port tests and by the create and terminate tests; `skip_refresh` does not exist in Tanvo.
 - `skip_refresh` and `skip_single_wallet_update` (`decrease_service_spec.rb` skip-refresh cases, `refresh_ongoing_usage_service_spec.rb:94`, `update_ongoing_service_spec.rb:110`), and `last_ongoing_balance_sync_at` (`update_ongoing_service_spec.rb:32,62`). The customer-wide refresh writes every wallet at once, and `wallet.Wallet` has no ongoing-sync timestamp.
 - The `CreateJob` parameter shape (`threshold_top_up_service_spec.rb:35` and the other `have_enqueued_job` assertions). Top-ups run inline, so the tests assert the transactions created rather than the job arguments.
 - `void_service_spec.rb:197`: the stale snapshot of the remaining amount. `void` re-reads the inbound transaction under the lock. The race itself cannot be set up through the service API.
