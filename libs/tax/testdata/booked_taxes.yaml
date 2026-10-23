@@ -1,0 +1,211 @@
+# Booked tax split of an invoice (BookTaxes), from the Invoice model's
+# booked_tax_by_fee_tax and booked_tax_by_fee. Unless stated, the invoice
+# has one provider tax "sales" at 10 % on a reported base and four fees of
+# 6, 3, 3 and 3 cents.
+cases:
+  - &sales
+    name: booked rows that add up to their invoice tax are kept
+    source: spec/models/invoice_spec.rb:1045
+    op: book_taxes
+    input:
+      taxes_amount_cents: 2
+      applied_taxes: [{tax_code: sales, tax_rate: 10, provider: true, taxable_base_amount_cents: 100, amount_cents: 2}]
+      fees:
+        - {amount_cents: 6, applied_taxes: [{tax_code: sales, tax_rate: 10, provider: true, amount_cents: 0, precise_amount_cents: 0.6}]}
+        - {amount_cents: 3, applied_taxes: [{tax_code: sales, tax_rate: 10, provider: true, amount_cents: 0, precise_amount_cents: 0.3}]}
+        - {amount_cents: 3, applied_taxes: [{tax_code: sales, tax_rate: 10, provider: true, amount_cents: 1, precise_amount_cents: 0.3}]}
+        - {amount_cents: 3, applied_taxes: [{tax_code: sales, tax_rate: 10, provider: true, amount_cents: 1, precise_amount_cents: 0.3}]}
+    want:
+      - {amount_cents: 0, row_amount_cents: [0]}
+      - {amount_cents: 0, row_amount_cents: [0]}
+      - {amount_cents: 1, row_amount_cents: [1]}
+      - {amount_cents: 1, row_amount_cents: [1]}
+
+  - name: rows that do not add up are split by their exact amounts
+    source: spec/models/invoice_spec.rb:1053
+    op: book_taxes
+    input:
+      taxes_amount_cents: 2
+      applied_taxes: [{tax_code: sales, tax_rate: 10, provider: true, taxable_base_amount_cents: 100, amount_cents: 2}]
+      fees:
+        - {amount_cents: 6, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 1, precise_amount_cents: 0.6}]}
+        - {amount_cents: 3, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 0, precise_amount_cents: 0.3}]}
+        - {amount_cents: 3, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 0, precise_amount_cents: 0.3}]}
+        - {amount_cents: 3, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 0, precise_amount_cents: 0.3}]}
+    want:
+      - {amount_cents: 1, row_amount_cents: [1]}
+      - {amount_cents: 1, row_amount_cents: [1]}
+      - {amount_cents: 0, row_amount_cents: [0]}
+      - {amount_cents: 0, row_amount_cents: [0]}
+
+  - name: rows without exact amounts are split by their booked amounts
+    source: spec/models/invoice_spec.rb:1063
+    op: book_taxes
+    input:
+      taxes_amount_cents: 3
+      applied_taxes: [{tax_code: sales, tax_rate: 10, provider: true, taxable_base_amount_cents: 100, amount_cents: 3}]
+      fees:
+        - {amount_cents: 6, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 1, precise_amount_cents: 0}]}
+        - {amount_cents: 3, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 1, precise_amount_cents: 0}]}
+        - {amount_cents: 3, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 0, precise_amount_cents: 0}]}
+        - {amount_cents: 3, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 0, precise_amount_cents: 0}]}
+    want:
+      - {row_amount_cents: [2]}
+      - {row_amount_cents: [1]}
+      - {row_amount_cents: [0]}
+      - {row_amount_cents: [0]}
+
+  - name: each invoice tax keeps what it charged
+    source: spec/models/invoice_spec.rb:1082
+    op: book_taxes
+    input:
+      taxes_amount_cents: 2
+      applied_taxes:
+        - {tax_code: state, tax_rate: 15, provider: true, taxable_base_amount_cents: 100, amount_cents: 1}
+        - {tax_code: county, tax_rate: 10, provider: true, taxable_base_amount_cents: 100, amount_cents: 1}
+      fees:
+        - &several_fee
+          amount_cents: 100
+          applied_taxes:
+            - {tax_code: state, tax_rate: 15, amount_cents: 1, precise_amount_cents: 0.6}
+            - {tax_code: county, tax_rate: 10, amount_cents: 0, precise_amount_cents: 0.4}
+        - *several_fee
+    want:
+      - {amount_cents: 2, row_amount_cents: [1, 1]}
+      - {amount_cents: 0, row_amount_cents: [0, 0]}
+
+  - name: invoice taxes that do not add up are split by exact amounts
+    source: spec/models/invoice_spec.rb:1093
+    op: book_taxes
+    input:
+      taxes_amount_cents: 3
+      applied_taxes:
+        - {tax_code: state, tax_rate: 15, provider: true, taxable_base_amount_cents: 100, amount_cents: 1}
+        - {tax_code: county, tax_rate: 10, provider: true, taxable_base_amount_cents: 100, amount_cents: 1}
+      fees:
+        - &several_fee2
+          amount_cents: 100
+          applied_taxes:
+            - {tax_code: state, tax_rate: 15, amount_cents: 1, precise_amount_cents: 1.2}
+            - {tax_code: county, tax_rate: 10, amount_cents: 1, precise_amount_cents: 0.6}
+        - *several_fee2
+    want:
+      - {row_amount_cents: [1, 1]}
+      - {row_amount_cents: [1, 0]}
+
+  - name: a fee's rows add up from the same split
+    source: spec/models/invoice_spec.rb:1113
+    op: book_taxes
+    input:
+      taxes_amount_cents: 4
+      applied_taxes:
+        - {tax_code: state, tax_rate: 12.5, provider: true, taxable_base_amount_cents: 100, amount_cents: 1}
+        - {tax_code: county, tax_rate: 12.5, provider: true, taxable_base_amount_cents: 100, amount_cents: 1}
+        - {tax_code: city, tax_rate: 12.5, provider: true, taxable_base_amount_cents: 100, amount_cents: 1}
+        - {tax_code: district, tax_rate: 12.5, provider: true, taxable_base_amount_cents: 100, amount_cents: 1}
+      fees:
+        - &four_rows
+          amount_cents: 100
+          applied_taxes:
+            - {tax_code: state, tax_rate: 12.5, amount_cents: 1, precise_amount_cents: 0.5}
+            - {tax_code: county, tax_rate: 12.5, amount_cents: 1, precise_amount_cents: 0.5}
+            - {tax_code: city, tax_rate: 12.5, amount_cents: 1, precise_amount_cents: 0.5}
+            - {tax_code: district, tax_rate: 12.5, amount_cents: 1, precise_amount_cents: 0.5}
+        - *four_rows
+    want:
+      - {amount_cents: 4, row_amount_cents: [1, 1, 1, 1]}
+      - {amount_cents: 0, row_amount_cents: [0, 0, 0, 0]}
+
+  - name: a fee without rows is booked as one unit
+    source: spec/models/invoice_spec.rb:1126
+    op: book_taxes
+    input:
+      taxes_amount_cents: 3
+      applied_taxes: [{tax_code: sales, tax_rate: 10, provider: true, taxable_base_amount_cents: 100, amount_cents: 1}]
+      fees:
+        - {amount_cents: 100, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 1, precise_amount_cents: 1.4}]}
+        - {amount_cents: 100, taxes_amount_cents: 1, taxes_precise_amount_cents: 1.6}
+    want:
+      - {amount_cents: 1, row_amount_cents: [1]}
+      - {amount_cents: 2, row_amount_cents: [], unit_amount_cents: 2}
+
+  - name: rows matching no invoice tax form their own group
+    source: spec/models/invoice_spec.rb:1141
+    op: book_taxes
+    input:
+      taxes_amount_cents: 3
+      applied_taxes: [{tax_code: sales, tax_rate: 10, provider: true, taxable_base_amount_cents: 100, amount_cents: 1}]
+      fees:
+        - {amount_cents: 100, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 1, precise_amount_cents: 1.2}]}
+        - {amount_cents: 100, applied_taxes: [{tax_code: city, tax_rate: 5, amount_cents: 1, precise_amount_cents: 1.8}]}
+    want:
+      - {row_amount_cents: [1]}
+      - {row_amount_cents: [2]}
+
+  - name: rows without any amount still book the invoice tax on the first rows
+    source: spec/models/invoice_spec.rb:1149
+    op: book_taxes
+    input:
+      taxes_amount_cents: 2
+      applied_taxes: [{tax_code: sales, tax_rate: 10, provider: true, taxable_base_amount_cents: 100, amount_cents: 2}]
+      fees:
+        - {amount_cents: 6, applied_taxes: [{tax_code: sales, tax_rate: 10}]}
+        - {amount_cents: 3, applied_taxes: [{tax_code: sales, tax_rate: 10}]}
+        - {amount_cents: 3, applied_taxes: [{tax_code: sales, tax_rate: 10}]}
+        - {amount_cents: 3, applied_taxes: [{tax_code: sales, tax_rate: 10}]}
+    want:
+      - {row_amount_cents: [1]}
+      - {row_amount_cents: [1]}
+      - {row_amount_cents: [0]}
+      - {row_amount_cents: [0]}
+
+  - name: internal taxes book each fee's own tax
+    source: spec/models/invoice_spec.rb:1159
+    op: book_taxes
+    input:
+      taxes_amount_cents: 2
+      applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 2}]
+      fees:
+        - {amount_cents: 6, taxes_amount_cents: 1, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 0, precise_amount_cents: 0.6}]}
+        - {amount_cents: 3, taxes_amount_cents: 0, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 0, precise_amount_cents: 0.3}]}
+        - {amount_cents: 3, taxes_amount_cents: 0, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 1, precise_amount_cents: 0.3}]}
+        - {amount_cents: 3, taxes_amount_cents: 1, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 1, precise_amount_cents: 0.3}]}
+    want:
+      - {amount_cents: 1}
+      - {amount_cents: 0}
+      - {amount_cents: 0}
+      - {amount_cents: 1}
+
+  - name: unsaved invoices split the same way
+    source: spec/models/invoice_spec.rb:1177
+    op: book_taxes
+    input:
+      taxes_amount_cents: 1
+      applied_taxes: [{tax_code: sales, tax_rate: 10, provider: true, taxable_base_amount_cents: 100, amount_cents: 1}]
+      fees:
+        - {amount_cents: 100, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 1, precise_amount_cents: 0.5}]}
+        - {amount_cents: 100, applied_taxes: [{tax_code: sales, tax_rate: 10, amount_cents: 1, precise_amount_cents: 0.5}]}
+    want:
+      - {amount_cents: 1, row_amount_cents: [1]}
+      - {amount_cents: 0, row_amount_cents: [0]}
+
+  - name: a code shared by several rates is told apart by the rate only
+    source: tanvo
+    op: book_taxes
+    input:
+      taxes_amount_cents: 3
+      applied_taxes:
+        - {tax_code: vat, tax_rate: 10, provider: true, taxable_base_amount_cents: 10, amount_cents: 1}
+        - {tax_code: vat, tax_rate: 20, provider: true, taxable_base_amount_cents: 10, amount_cents: 2}
+      fees:
+        - {amount_cents: 10, applied_taxes: [{tax_code: vat, tax_rate: 20, amount_cents: 2, precise_amount_cents: 2}]}
+        - {amount_cents: 10, applied_taxes: [{tax_code: vat, tax_rate: 10, amount_cents: 1, precise_amount_cents: 1}]}
+    want:
+      - {amount_cents: 2, row_amount_cents: [2]}
+      - {amount_cents: 1, row_amount_cents: [1]}
+
+  - name: an invoice without fees books nothing
+    source: tanvo
+    op: book_taxes
+    input: {taxes_amount_cents: 0}
+    want: []

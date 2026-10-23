@@ -1,0 +1,274 @@
+# VAT number syntax (NormalizeVATNumber, VATNumberCountry,
+# ValidVATNumberSyntax), VIES fault classification (VIESFault) and the VIES
+# retry delays (VIESRetryDelay). The syntaxes follow the valvat gem lago
+# uses; its own tests live outside lago-api, so the syntax cases are Tanvo's.
+cases:
+  - name: a malformed VAT number has no valid format
+    source: spec/services/customers/vies_check_service_spec.rb:108
+    op: vat_number
+    input: {number: invalid_vat_number}
+    want: {normalized: INVALIDVATNUMBER, valid: false}
+
+  - name: an invalid VAT number in a French territory is not well formed
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:303
+    op: vat_number
+    input: {number: INVALID123}
+    want: {valid: false}
+
+  - name: the VAT number used across the specs is well formed
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:81
+    op: vat_number
+    input: {number: IT12345678901}
+    want: {normalized: IT12345678901, country: IT, valid: true}
+
+  - name: fr 12 345678901 normalizes to FR12345678901
+    source: tanvo
+    op: vat_number
+    input: {number: 'fr 12 345678901'}
+    want: {normalized: FR12345678901, country: 'FR', valid: true}
+
+  - name: FR-AB.345678901 normalizes to FRAB345678901
+    source: tanvo
+    op: vat_number
+    input: {number: 'FR-AB.345678901'}
+    want: {normalized: FRAB345678901, country: 'FR', valid: true}
+
+  - name: FRIO345678901 normalizes to FRIO345678901
+    source: tanvo
+    op: vat_number
+    input: {number: 'FRIO345678901'}
+    want: {normalized: FRIO345678901, country: 'FR', valid: false}
+
+  - name: DE123456789 normalizes to DE123456789
+    source: tanvo
+    op: vat_number
+    input: {number: 'DE123456789'}
+    want: {normalized: DE123456789, country: 'DE', valid: true}
+
+  - name: DE12345678 normalizes to DE12345678
+    source: tanvo
+    op: vat_number
+    input: {number: 'DE12345678'}
+    want: {normalized: DE12345678, country: 'DE', valid: false}
+
+  - name: ATU12345678 normalizes to ATU12345678
+    source: tanvo
+    op: vat_number
+    input: {number: 'ATU12345678'}
+    want: {normalized: ATU12345678, country: 'AT', valid: true}
+
+  - name: EL123456789 normalizes to EL123456789
+    source: tanvo
+    op: vat_number
+    input: {number: 'EL123456789'}
+    want: {normalized: EL123456789, country: 'GR', valid: true}
+
+  - name: GR123456789 normalizes to GR123456789
+    source: tanvo
+    op: vat_number
+    input: {number: 'GR123456789'}
+    want: {normalized: GR123456789, country: 'GR', valid: false}
+
+  - name: XI123456789 normalizes to XI123456789
+    source: tanvo
+    op: vat_number
+    input: {number: 'XI123456789'}
+    want: {normalized: XI123456789, country: 'GB', valid: true}
+
+  - name: NL123456789B01 normalizes to NL123456789B01
+    source: tanvo
+    op: vat_number
+    input: {number: 'NL123456789B01'}
+    want: {normalized: NL123456789B01, country: 'NL', valid: true}
+
+  - name: ESX1234567R normalizes to ESX1234567R
+    source: tanvo
+    op: vat_number
+    input: {number: 'ESX1234567R'}
+    want: {normalized: ESX1234567R, country: 'ES', valid: true}
+
+  - name: ES12345678Z normalizes to ES12345678Z
+    source: tanvo
+    op: vat_number
+    input: {number: 'ES12345678Z'}
+    want: {normalized: ES12345678Z, country: 'ES', valid: true}
+
+  - name: CY12345678X normalizes to CY12345678X
+    source: tanvo
+    op: vat_number
+    input: {number: 'CY12345678X'}
+    want: {normalized: CY12345678X, country: 'CY', valid: false}
+
+  - name: CY02345678X normalizes to CY02345678X
+    source: tanvo
+    op: vat_number
+    input: {number: 'CY02345678X'}
+    want: {normalized: CY02345678X, country: 'CY', valid: true}
+
+  - name: IE1234567WA normalizes to IE1234567WA
+    source: tanvo
+    op: vat_number
+    input: {number: 'IE1234567WA'}
+    want: {normalized: IE1234567WA, country: 'IE', valid: true}
+
+  - name: SE123456789001 normalizes to SE123456789001
+    source: tanvo
+    op: vat_number
+    input: {number: 'SE123456789001'}
+    want: {normalized: SE123456789001, country: 'SE', valid: true}
+
+  - name: US123456789 normalizes to US123456789
+    source: tanvo
+    op: vat_number
+    input: {number: 'US123456789'}
+    want: {normalized: US123456789, country: '', valid: false}
+
+  - name: 12 normalizes to 12
+    source: tanvo
+    op: vat_number
+    input: {number: '12'}
+    want: {normalized: 12, country: '', valid: false}
+
+  - name: fault MS_MAX_CONCURRENT_REQ is a rate_limit failure
+    source: spec/services/customers/vies_check_service_spec.rb:238
+    op: vies_fault
+    input: {fault: MS_MAX_CONCURRENT_REQ}
+    want: {type: rate_limit, failed: true}
+
+  - name: fault MS_UNAVAILABLE is a member_state_unavailable failure
+    source: spec/services/customers/vies_check_service_spec.rb:238
+    op: vies_fault
+    input: {fault: MS_UNAVAILABLE}
+    want: {type: member_state_unavailable, failed: true}
+
+  - name: fault SERVICE_UNAVAILABLE is a service_unavailable failure
+    source: spec/services/customers/vies_check_service_spec.rb:238
+    op: vies_fault
+    input: {fault: SERVICE_UNAVAILABLE}
+    want: {type: service_unavailable, failed: true}
+
+  - name: fault TIMEOUT is a timeout failure
+    source: spec/services/customers/vies_check_service_spec.rb:238
+    op: vies_fault
+    input: {fault: TIMEOUT}
+    want: {type: timeout, failed: true}
+
+  - name: fault VAT_BLOCKED is a blocked failure
+    source: spec/services/customers/vies_check_service_spec.rb:238
+    op: vies_fault
+    input: {fault: VAT_BLOCKED}
+    want: {type: blocked, failed: true}
+
+  - name: fault INVALID_REQUESTER_INFO is a invalid_requester failure
+    source: spec/services/customers/vies_check_service_spec.rb:238
+    op: vies_fault
+    input: {fault: INVALID_REQUESTER_INFO}
+    want: {type: invalid_requester, failed: true}
+
+  - name: error GLOBAL_MAX_CONCURRENT_REQ maps to rate_limit
+    source: spec/models/pending_vies_check_spec.rb:27
+    op: vies_fault
+    input: {fault: GLOBAL_MAX_CONCURRENT_REQ}
+    want: {type: rate_limit, failed: true}
+
+  - name: error MS_MAX_CONCURRENT_REQ_TIME maps to rate_limit
+    source: spec/models/pending_vies_check_spec.rb:27
+    op: vies_fault
+    input: {fault: MS_MAX_CONCURRENT_REQ_TIME}
+    want: {type: rate_limit, failed: true}
+
+  - name: error IP_BLOCKED maps to blocked
+    source: spec/models/pending_vies_check_spec.rb:27
+    op: vies_fault
+    input: {fault: IP_BLOCKED}
+    want: {type: blocked, failed: true}
+
+  - name: error TIMEOUT maps to timeout
+    source: spec/models/pending_vies_check_spec.rb:27
+    op: vies_fault
+    input: {fault: TIMEOUT}
+    want: {type: timeout, failed: true}
+
+  - name: error SERVICE_UNAVAILABLE maps to service_unavailable
+    source: spec/models/pending_vies_check_spec.rb:27
+    op: vies_fault
+    input: {fault: SERVICE_UNAVAILABLE}
+    want: {type: service_unavailable, failed: true}
+
+  - name: error MS_UNAVAILABLE maps to member_state_unavailable
+    source: spec/models/pending_vies_check_spec.rb:27
+    op: vies_fault
+    input: {fault: MS_UNAVAILABLE}
+    want: {type: member_state_unavailable, failed: true}
+
+  - name: error INVALID_REQUESTER_INFO maps to invalid_requester
+    source: spec/models/pending_vies_check_spec.rb:27
+    op: vies_fault
+    input: {fault: INVALID_REQUESTER_INFO}
+    want: {type: invalid_requester, failed: true}
+
+  - name: unmapped faults are unknown
+    source: spec/models/pending_vies_check_spec.rb:38
+    op: vies_fault
+    input: {fault: SOMETHING_ELSE}
+    want: {type: unknown, failed: true}
+
+  - name: INVALID_INPUT is an invalid number, not a failure
+    source: tanvo
+    op: vies_fault
+    input: {fault: INVALID_INPUT}
+    want: {type: '', failed: false}
+
+  - name: retry after 0 failed attempts waits 5 minutes
+    source: tanvo (app/jobs/customers/vies_check_job.rb RETRY_DELAYS)
+    op: vies_retry_delay
+    input: {attempts: 0}
+    want: {minutes: 5}
+
+  - name: retry after 1 failed attempts waits 5 minutes
+    source: tanvo (app/jobs/customers/vies_check_job.rb RETRY_DELAYS)
+    op: vies_retry_delay
+    input: {attempts: 1}
+    want: {minutes: 5}
+
+  - name: retry after 2 failed attempts waits 5 minutes
+    source: tanvo (app/jobs/customers/vies_check_job.rb RETRY_DELAYS)
+    op: vies_retry_delay
+    input: {attempts: 2}
+    want: {minutes: 5}
+
+  - name: retry after 3 failed attempts waits 10 minutes
+    source: tanvo (app/jobs/customers/vies_check_job.rb RETRY_DELAYS)
+    op: vies_retry_delay
+    input: {attempts: 3}
+    want: {minutes: 10}
+
+  - name: retry after 4 failed attempts waits 20 minutes
+    source: tanvo (app/jobs/customers/vies_check_job.rb RETRY_DELAYS)
+    op: vies_retry_delay
+    input: {attempts: 4}
+    want: {minutes: 20}
+
+  - name: retry after 5 failed attempts waits 40 minutes
+    source: tanvo (app/jobs/customers/vies_check_job.rb RETRY_DELAYS)
+    op: vies_retry_delay
+    input: {attempts: 5}
+    want: {minutes: 40}
+
+  - name: retry after 6 failed attempts waits 60 minutes
+    source: tanvo (app/jobs/customers/vies_check_job.rb RETRY_DELAYS)
+    op: vies_retry_delay
+    input: {attempts: 6}
+    want: {minutes: 60}
+
+  - name: retry after 20 failed attempts waits 60 minutes
+    source: tanvo (app/jobs/customers/vies_check_job.rb RETRY_DELAYS)
+    op: vies_retry_delay
+    input: {attempts: 20}
+    want: {minutes: 60}
+
+skipped:
+  - source: spec/services/customers/vies_check_service_spec.rb:244
+    reason: >-
+      HTTP errors from VIES (307, 400, 500) are transport failures of the VIES
+      client, which reports them as service_unavailable; no fault string to classify.

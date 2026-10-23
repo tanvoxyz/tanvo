@@ -1,0 +1,591 @@
+# Invoice taxes: internal (ApplyInvoiceTaxes), provider (ApplyProviderInvoiceTaxes),
+# the invoice amounts computation (ComputeInvoiceAmounts) and the aggregation
+# of already taxed fees (AggregateInvoiceTaxes).
+cases:
+  # spec/services/invoices/apply_taxes_service_spec.rb: tax1 10 %, tax2 12 %.
+  - name: invoice taxes are charged on the fees they apply to
+    source: spec/services/invoices/apply_taxes_service_spec.rb:38
+    op: invoice_taxes
+    input:
+      sub_total: 3000
+      fees:
+        - amount_cents: 1000
+          applied_taxes: [{tax_code: tax1, tax_rate: 10, amount_cents: 100}]
+        - amount_cents: 2000
+          applied_taxes: [{tax_code: tax1, tax_rate: 10, amount_cents: 200}, {tax_code: tax2, tax_rate: 12, amount_cents: 240}]
+    want:
+      applied_taxes:
+        - {tax_code: tax1, tax_rate: 10, amount_cents: 300, fees_amount_cents: 3000}
+        - {tax_code: tax2, tax_rate: 12, amount_cents: 240, fees_amount_cents: 2000}
+      taxes_amount_cents: 540
+      taxes_rate: 18
+
+  - name: with no fees amount the rate weighs by the fees each tax applies to
+    source: spec/services/invoices/apply_taxes_service_spec.rb:90
+    op: invoice_taxes
+    input:
+      sub_total: 0
+      fees:
+        - amount_cents: 0
+          applied_taxes: [{tax_code: tax1, tax_rate: 10}]
+        - amount_cents: 0
+          applied_taxes: [{tax_code: tax1, tax_rate: 10}, {tax_code: tax2, tax_rate: 12}]
+    want:
+      applied_taxes:
+        - {tax_code: tax1, amount_cents: 0, fees_amount_cents: 0}
+        - {tax_code: tax2, amount_cents: 0, fees_amount_cents: 0}
+      taxes_amount_cents: 0
+      taxes_rate: 16
+
+  - name: coupons reduce the base of each tax pro rata
+    source: spec/services/invoices/apply_taxes_service_spec.rb:142
+    op: invoice_taxes
+    input:
+      sub_total: 2000
+      fees:
+        - amount_cents: 1000
+          precise_coupons_amount_cents: 333.3333333333333
+          applied_taxes: [{tax_code: tax1, tax_rate: 10, amount_cents: 67}]
+        - amount_cents: 2000
+          precise_coupons_amount_cents: 666.6666666666667
+          applied_taxes: [{tax_code: tax1, tax_rate: 10, amount_cents: 133}, {tax_code: tax2, tax_rate: 12, amount_cents: 160}]
+    want:
+      applied_taxes:
+        - {tax_code: tax1, amount_cents: 200, fees_amount_cents: 2000}
+        - {tax_code: tax2, amount_cents: 160, fees_amount_cents: 1333}
+      taxes_amount_cents: 360
+      taxes_rate: 18
+
+  - name: provider tax rows are not internal invoice taxes
+    source: tanvo
+    op: invoice_taxes
+    input:
+      sub_total: 1000
+      fees:
+        - amount_cents: 1000
+          applied_taxes: [{tax_code: state, tax_rate: 5, provider: true, amount_cents: 50}]
+    want:
+      applied_taxes: []
+      taxes_amount_cents: 0
+      taxes_rate: 0
+
+  # spec/services/invoices/compute_amounts_from_fees_spec.rb: billing entity
+  # taxes of 10 % and 20 %, a fee of 151 and one of 379 with a 100 coupon.
+  - &compute_amounts
+    name: fee taxes and invoice amounts are computed from the fees
+    source: spec/services/invoices/compute_amounts_from_fees_spec.rb:28
+    op: invoice_amounts
+    input:
+      coupons_amount_cents: 100
+      fees:
+        - {amount_cents: 151, precise_amount_cents: 151, taxes: [{code: tax1, rate: 10}, {code: tax2, rate: 20}]}
+        - {amount_cents: 379, precise_amount_cents: 379, precise_coupons_amount_cents: 100, taxes: [{code: tax1, rate: 10}, {code: tax2, rate: 20}]}
+    want:
+      amounts:
+        fees:
+          - {taxes_rate: 30, taxes_amount_cents: 45, applied_taxes: [{tax_code: tax1}, {tax_code: tax2}]}
+          - {taxes_rate: 30, taxes_amount_cents: 84, applied_taxes: [{tax_code: tax1}, {tax_code: tax2}]}
+        fees_amount_cents: 530
+        coupons_amount_cents: 100
+        sub_total_excluding_taxes_amount_cents: 430
+        taxes_amount_cents: 129
+        sub_total_including_taxes_amount_cents: 559
+        total_amount_cents: 559
+      subtotals:
+        - {category: S, rate: 30, basis_amount_cents: 430, tax_amount_cents: 129}
+
+  - <<: *compute_amounts
+    name: fees amount is the sum of the fees
+    source: spec/services/invoices/compute_amounts_from_fees_spec.rb:40
+    want: {amounts: {fees_amount_cents: 530}}
+
+  - <<: *compute_amounts
+    name: coupons amount is the coupons credited
+    source: spec/services/invoices/compute_amounts_from_fees_spec.rb:44
+    want: {amounts: {coupons_amount_cents: 100}}
+
+  - <<: *compute_amounts
+    name: sub total excluding taxes is the fees less coupons
+    source: spec/services/invoices/compute_amounts_from_fees_spec.rb:48
+    want: {amounts: {sub_total_excluding_taxes_amount_cents: 430}}
+
+  - <<: *compute_amounts
+    name: taxes amount is computed from the fees
+    source: spec/services/invoices/compute_amounts_from_fees_spec.rb:52
+    want: {amounts: {taxes_amount_cents: 129}}
+
+  - <<: *compute_amounts
+    name: sub total including taxes adds the taxes
+    source: spec/services/invoices/compute_amounts_from_fees_spec.rb:56
+    want: {amounts: {sub_total_including_taxes_amount_cents: 559}}
+
+  - <<: *compute_amounts
+    name: total amount is the sub total including taxes
+    source: spec/services/invoices/compute_amounts_from_fees_spec.rb:60
+    want: {amounts: {total_amount_cents: 559}}
+
+  - name: unsaved fees are taxed the same way
+    source: spec/services/invoices/compute_amounts_from_fees_spec.rb:79
+    op: invoice_amounts
+    input:
+      fees:
+        - {amount_cents: 100, precise_amount_cents: 100, taxes: [{code: tax1, rate: 10}, {code: tax2, rate: 20}]}
+        - {amount_cents: 150, precise_amount_cents: 150, taxes: [{code: tax1, rate: 10}, {code: tax2, rate: 20}]}
+    want:
+      amounts: {taxes_rate: 30, taxes_amount_cents: 75, total_amount_cents: 325}
+
+  - name: advance charges invoices keep the fees untaxed
+    source: spec/services/invoices/compute_amounts_from_fees_spec.rb:120
+    op: invoice_amounts
+    input:
+      skip_fee_taxes: true
+      fees:
+        - {amount_cents: 151, precise_amount_cents: 151, taxes: [{code: tax1, rate: 10}]}
+    want:
+      amounts:
+        fees: [{applied_taxes: [], taxes_amount_cents: 0}]
+        taxes_amount_cents: 0
+
+  - name: fees that already carry taxes keep them
+    source: spec/services/fees/apply_taxes_service_spec.rb:321
+    op: invoice_amounts
+    input:
+      fees:
+        - amount_cents: 1000
+          precise_amount_cents: 1000
+          taxes_amount_cents: 50
+          taxes_rate: 5
+          applied_taxes: [{tax_code: tax3, tax_rate: 5, amount_cents: 50, precise_amount_cents: 50}]
+          taxes: [{code: tax1, rate: 10}]
+    want:
+      amounts:
+        fees: [{taxes_amount_cents: 50, applied_taxes: [{tax_code: tax3}]}]
+        applied_taxes: [{tax_code: tax3, amount_cents: 50}]
+        taxes_amount_cents: 50
+
+  - name: progressive billing credits and credit notes reduce the totals
+    source: tanvo
+    op: invoice_amounts
+    input:
+      progressive_billing_credit_amount_cents: 200
+      credit_notes_amount_cents: 50
+      fees:
+        - {amount_cents: 1000, precise_amount_cents: 1000, taxes: [{code: vat, rate: 20}]}
+    want:
+      amounts:
+        sub_total_excluding_taxes_amount_cents: 800
+        taxes_amount_cents: 200
+        sub_total_including_taxes_amount_cents: 1000
+        total_amount_cents: 950
+
+  - name: provider taxes are booked on the fee and summed on the invoice
+    source: spec/services/invoices/compute_amounts_from_fees_spec.rb:148
+    op: provider_invoice
+    input:
+      fees:
+        - {amount_cents: 151, precise_amount_cents: 151}
+      results:
+        - item_code: lago_default_b2b
+          breakdown:
+            - {name: tax 1, type: type1, rate: 0.50, tax_amount: 75.5}
+            - {name: tax 2, type: type2, rate: 0.30, tax_amount: 45.3}
+    want:
+      amounts:
+        fees:
+          - taxes_rate: 80
+            taxes_amount_cents: 121
+            applied_taxes: [{tax_code: tax_1, amount_cents: 76}, {tax_code: tax_2, amount_cents: 45}]
+        fees_amount_cents: 151
+        sub_total_excluding_taxes_amount_cents: 151
+        taxes_amount_cents: 121
+        sub_total_including_taxes_amount_cents: 272
+        taxes_rate: 80
+        total_amount_cents: 272
+
+  - name: a grouped charge line is split over its fees
+    source: spec/services/invoices/compute_amounts_from_fees_spec.rb:186
+    op: provider_invoice
+    input:
+      fees:
+        - {charge_id: c, amount_cents: 333, precise_amount_cents: 333}
+        - {charge_id: c, amount_cents: 333, precise_amount_cents: 333}
+        - {charge_id: c, amount_cents: 334, precise_amount_cents: 334}
+      results:
+        - tax_amount_cents: 100
+          breakdown: [{name: VAT, type: tax, rate: 0.10, tax_amount: 100}]
+    want:
+      amounts:
+        fees: [{taxes_amount_cents: 33}, {taxes_amount_cents: 33}, {taxes_amount_cents: 34}]
+        applied_taxes: [{tax_name: VAT, amount_cents: 100}]
+        taxes_amount_cents: 100
+      subtotals:
+        - {rate: 10, tax_amount_cents: 100}
+
+  - name: a grouped line with jurisdictions at different rates
+    source: spec/services/invoices/compute_amounts_from_fees_spec.rb:208
+    op: provider_invoice
+    input:
+      fees:
+        - {charge_id: c, amount_cents: 268, precise_amount_cents: 268}
+        - {charge_id: c, amount_cents: 25, precise_amount_cents: 25}
+      results:
+        - tax_amount_cents: 24
+          breakdown:
+            - {name: State, type: tax, rate: 0.06, tax_amount: 18}
+            - {name: City, type: tax, rate: 0.02, tax_amount: 6}
+    want:
+      amounts:
+        fees:
+          - {taxes_amount_cents: 21, applied_taxes: [{tax_name: State, amount_cents: 16}, {tax_name: City, amount_cents: 5}]}
+          - {taxes_amount_cents: 3, applied_taxes: [{tax_name: State, amount_cents: 2}, {tax_name: City, amount_cents: 1}]}
+        applied_taxes: [{tax_name: State, amount_cents: 18}, {tax_name: City, amount_cents: 6}]
+        taxes_amount_cents: 24
+
+  - name: three jurisdictions over two fees
+    source: spec/services/invoices/compute_amounts_from_fees_spec.rb:218
+    op: provider_invoice
+    input:
+      fees:
+        - {charge_id: c, amount_cents: 100, precise_amount_cents: 100}
+        - {charge_id: c, amount_cents: 100, precise_amount_cents: 100}
+      results:
+        - tax_amount_cents: 15
+          breakdown:
+            - {name: State, type: tax, rate: 0.025, tax_amount: 5}
+            - {name: County, type: tax, rate: 0.025, tax_amount: 5}
+            - {name: City, type: tax, rate: 0.025, tax_amount: 5}
+    want:
+      amounts:
+        fees: [{taxes_amount_cents: 9}, {taxes_amount_cents: 6}]
+        applied_taxes:
+          - {tax_name: State, amount_cents: 5}
+          - {tax_name: County, amount_cents: 5}
+          - {tax_name: City, amount_cents: 5}
+        taxes_amount_cents: 15
+  - name: fifty fees keep their fractional cents
+    source: spec/services/invoices/compute_amounts_from_fees_spec.rb:227
+    op: provider_invoice
+    input:
+      fees:
+        - &fee100 {charge_id: c, amount_cents: 100, precise_amount_cents: 100}
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+        - *fee100
+      results:
+        - tax_amount_cents: 375
+          breakdown:
+            - {name: State, type: tax, rate: 0.025, tax_amount: 125}
+            - {name: County, type: tax, rate: 0.025, tax_amount: 125}
+            - {name: City, type: tax, rate: 0.025, tax_amount: 125}
+    want:
+      amounts:
+        fees:
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 9, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1, applied_taxes: [{precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}, {precise_amount_cents: 2.5}]}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+          - {taxes_amount_cents: 6, taxes_precise_amount_cents: 7.5, taxes_base_rate: 1}
+        applied_taxes:
+          - {tax_name: State, amount_cents: 125}
+          - {tax_name: County, amount_cents: 125}
+          - {tax_name: City, amount_cents: 125}
+        taxes_amount_cents: 375
+
+  - name: ungrouped fees each book the line's taxes
+    source: spec/services/invoices/compute_amounts_from_fees_spec.rb:250
+    op: provider_invoice
+    input:
+      fees:
+        - {charge_id: c, amount_cents: 100, precise_amount_cents: 100}
+        - {amount_cents: 100, precise_amount_cents: 100, type: add_on}
+      results:
+        - &ungrouped
+          tax_amount_cents: 8
+          breakdown:
+            - {name: State, type: tax, rate: 0.025, tax_amount: 2.5}
+            - {name: County, type: tax, rate: 0.025, tax_amount: 2.5}
+            - {name: City, type: tax, rate: 0.025, tax_amount: 2.5}
+        - *ungrouped
+    want:
+      amounts:
+        fees: [{taxes_amount_cents: 8}, {taxes_amount_cents: 8}]
+        applied_taxes:
+          - {tax_name: State, amount_cents: 6}
+          - {tax_name: County, amount_cents: 6}
+          - {tax_name: City, amount_cents: 4}
+        taxes_amount_cents: 16
+
+  # spec/services/invoices/apply_provider_taxes_service_spec.rb: fees already
+  # carry the provider rows.
+  - name: the rate weighs over the taxed fees when nothing is taxable
+    source: spec/services/invoices/apply_provider_taxes_service_spec.rb:79
+    op: provider_invoice_taxes
+    input:
+      sub_total: 0
+      fees:
+        - amount_cents: 1000
+          precise_coupons_amount_cents: 1000
+          taxes_base_rate: 1
+          applied_taxes: [{tax_code: tax_1, tax_name: tax 1, tax_description: type1, tax_rate: 10, provider: true}]
+        - {amount_cents: 0, taxes_base_rate: 1}
+    want:
+      taxes_rate: 10
+
+  - &provider_taxes
+    name: provider taxes are grouped by type, name and rate
+    source: spec/services/invoices/apply_provider_taxes_service_spec.rb:137
+    op: provider_invoice_taxes
+    input:
+      sub_total: 3000
+      fees:
+        - amount_cents: 1000
+          taxes_base_rate: 1
+          applied_taxes:
+            - {tax_code: tax_1, tax_name: tax 1, tax_description: type1, tax_rate: 10, provider: true, amount_cents: 100}
+        - amount_cents: 2000
+          taxes_base_rate: 1
+          applied_taxes:
+            - {tax_code: tax_1, tax_name: tax 1, tax_description: type1, tax_rate: 10, provider: true, amount_cents: 200}
+            - {tax_code: tax_2, tax_name: tax 2, tax_description: type2, tax_rate: 12, provider: true, amount_cents: 240}
+    want:
+      applied_taxes:
+        - {tax_code: tax_1, tax_name: tax 1, tax_description: type1, tax_rate: 10, provider: true, amount_cents: 300, fees_amount_cents: 3000, taxable_base_amount_cents: 3000}
+        - {tax_code: tax_2, tax_name: tax 2, tax_description: type2, tax_rate: 12, provider: true, amount_cents: 240, fees_amount_cents: 2000, taxable_base_amount_cents: 2000}
+      taxes_amount_cents: 540
+      taxes_rate: 18
+
+  - name: a tax deduction reduces the taxable base
+    source: spec/services/invoices/apply_provider_taxes_service_spec.rb:217
+    op: provider_invoice_taxes
+    input:
+      sub_total: 3000
+      fees:
+        - amount_cents: 1000
+          taxes_base_rate: 0.8
+          applied_taxes:
+            - {tax_name: tax 1, tax_description: type1, tax_rate: 10, provider: true, amount_cents: 80}
+        - amount_cents: 2000
+          taxes_base_rate: 0.8
+          applied_taxes:
+            - {tax_name: tax 1, tax_description: type1, tax_rate: 10, provider: true, amount_cents: 160}
+            - {tax_name: tax 2, tax_description: type2, tax_rate: 12, provider: true, amount_cents: 192}
+    want:
+      applied_taxes:
+        - {tax_code: tax_1, amount_cents: 240, fees_amount_cents: 3000, taxable_base_amount_cents: 2400}
+        - {tax_code: tax_2, amount_cents: 192, fees_amount_cents: 2000, taxable_base_amount_cents: 1600}
+      taxes_amount_cents: 432
+      taxes_rate: 18
+  - name: special rule notCollecting gives one zero tax
+    source: spec/services/invoices/apply_provider_taxes_service_spec.rb:299
+    op: provider_invoice_taxes
+    input:
+      sub_total: 3000
+      fees:
+        - {amount_cents: 1000, taxes_base_rate: 1, applied_taxes: [{tax_name: Not collecting, tax_description: notCollecting, tax_rate: 0, provider: true}]}
+        - {amount_cents: 2000, taxes_base_rate: 1, applied_taxes: [{tax_name: Not collecting, tax_description: notCollecting, tax_rate: 0, provider: true}]}
+    want:
+      applied_taxes:
+        - {tax_code: not_collecting, tax_name: Not collecting, tax_description: notCollecting, tax_rate: 0}
+      taxes_rate: 0
+
+  - name: special rule productNotTaxed gives one zero tax
+    source: spec/services/invoices/apply_provider_taxes_service_spec.rb:299
+    op: provider_invoice_taxes
+    input:
+      sub_total: 3000
+      fees:
+        - {amount_cents: 1000, taxes_base_rate: 1, applied_taxes: [{tax_name: Product not taxed, tax_description: productNotTaxed, tax_rate: 0, provider: true}]}
+        - {amount_cents: 2000, taxes_base_rate: 1, applied_taxes: [{tax_name: Product not taxed, tax_description: productNotTaxed, tax_rate: 0, provider: true}]}
+    want:
+      applied_taxes:
+        - {tax_code: product_not_taxed, tax_name: Product not taxed, tax_description: productNotTaxed, tax_rate: 0}
+      taxes_rate: 0
+
+  - name: special rule jurisNotTaxed gives one zero tax
+    source: spec/services/invoices/apply_provider_taxes_service_spec.rb:299
+    op: provider_invoice_taxes
+    input:
+      sub_total: 3000
+      fees:
+        - {amount_cents: 1000, taxes_base_rate: 1, applied_taxes: [{tax_name: Juris not taxed, tax_description: jurisNotTaxed, tax_rate: 0, provider: true}]}
+        - {amount_cents: 2000, taxes_base_rate: 1, applied_taxes: [{tax_name: Juris not taxed, tax_description: jurisNotTaxed, tax_rate: 0, provider: true}]}
+    want:
+      applied_taxes:
+        - {tax_code: juris_not_taxed, tax_name: Juris not taxed, tax_description: jurisNotTaxed, tax_rate: 0}
+      taxes_rate: 0
+
+  - name: seller paid taxes give one zero tax
+    source: spec/services/invoices/apply_provider_taxes_service_spec.rb:342
+    op: provider_invoice_taxes
+    input:
+      sub_total: 3000
+      fees:
+        - {amount_cents: 1000, taxes_base_rate: 1, applied_taxes: [{tax_name: Tax, tax_description: tax, tax_rate: 0, provider: true}]}
+        - {amount_cents: 2000, taxes_base_rate: 1, applied_taxes: [{tax_name: Tax, tax_description: tax, tax_rate: 0, provider: true}]}
+    want:
+      applied_taxes:
+        - {tax_code: tax, tax_name: Tax, tax_description: tax, tax_rate: 0, amount_cents: 0, fees_amount_cents: 3000}
+      taxes_amount_cents: 0
+
+  - <<: *provider_taxes
+    name: draft invoices are taxed the same way
+    source: spec/services/invoices/apply_provider_taxes_service_spec.rb:419
+
+  # spec/services/invoices/aggregate_amounts_and_taxes_from_fees_spec.rb.
+  - name: advance charges sum the taxes already booked on the fees
+    source: spec/services/invoices/aggregate_amounts_and_taxes_from_fees_spec.rb:12
+    op: aggregate_invoice_taxes
+    input:
+      fees:
+        - amount_cents: 200
+          taxes_amount_cents: 9
+          taxes_base_rate: 1
+          applied_taxes: [{tax_code: tax-1234, tax_name: VAT, tax_description: VAT 5%, tax_rate: 5, amount_cents: 16}]
+        - amount_cents: 50
+          taxes_amount_cents: 1
+          taxes_base_rate: 1
+          applied_taxes: [{tax_code: tax-8901, tax_name: VAT, tax_description: VAT 12%, tax_rate: 12, amount_cents: 2}]
+        - amount_cents: 120
+          taxes_amount_cents: 23
+          taxes_base_rate: 1
+          applied_taxes:
+            - {tax_code: tax-1234, tax_name: VAT, tax_description: VAT 5%, tax_rate: 5, amount_cents: 9}
+            - {tax_code: tax-8901, tax_name: VAT, tax_description: VAT 12%, tax_rate: 12, amount_cents: 11}
+    want:
+      fees_amount_cents: 370
+      taxes_amount_cents: 33
+      total_amount_cents: 403
+      sub_total_excluding_taxes_amount_cents: 370
+      sub_total_including_taxes_amount_cents: 403
+      taxes_rate: 8.92
+      applied_taxes:
+        - {tax_code: tax-1234, tax_name: VAT, tax_description: VAT 5%, tax_rate: 5, amount_cents: 25, fees_amount_cents: 320, taxable_base_amount_cents: 320}
+        - {tax_code: tax-8901, tax_name: VAT, tax_description: VAT 12%, tax_rate: 12, amount_cents: 13, fees_amount_cents: 170, taxable_base_amount_cents: 170}
+
+  - name: provider jurisdictions stay apart while their fees combine
+    source: spec/services/invoices/aggregate_amounts_and_taxes_from_fees_spec.rb:66
+    op: aggregate_invoice_taxes
+    input:
+      fees:
+        - &juris_fee
+          amount_cents: 100
+          precise_amount_cents: 100
+          taxes_amount_cents: 15
+          taxes_precise_amount_cents: 15
+          taxes_base_rate: 1
+          applied_taxes:
+            - {tax_code: state, tax_name: State, tax_rate: 10, provider: true, amount_cents: 10, precise_amount_cents: 10}
+            - {tax_code: city, tax_name: City, tax_rate: 5, provider: true, amount_cents: 5, precise_amount_cents: 5}
+        - *juris_fee
+    want:
+      applied_taxes:
+        - {tax_code: state, amount_cents: 20, fees_amount_cents: 200, taxable_base_amount_cents: 200}
+        - {tax_code: city, amount_cents: 10, fees_amount_cents: 200, taxable_base_amount_cents: 200}
+      taxes_amount_cents: 30
+
+  - name: an empty advance charges invoice has no taxes
+    source: tanvo
+    op: aggregate_invoice_taxes
+    input: {fees: []}
+    want: {fees_amount_cents: 0, taxes_amount_cents: 0, taxes_rate: 0}
+
+skipped:
+  - source: spec/services/invoices/compute_amounts_from_fees_spec.rb:72
+    reason: Persistence (fees not saved for a draft invoice) is the caller's.
+  - source: spec/services/invoices/compute_amounts_from_fees_spec.rb:89
+    reason: >-
+      Invoice type and status gating (one-off, pending, failed) is the caller's;
+      the computation always taxes fees without applied taxes.
+  - source: spec/services/invoices/compute_amounts_from_fees_spec.rb:263
+    reason: Mocks service orchestration (whether the provider is called), not a computation.

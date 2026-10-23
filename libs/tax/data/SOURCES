@@ -1,0 +1,16 @@
+Vendored data files and their provenance.
+
+eu_vat_rates.json
+  Source:   lago-api, lib/lago_eu_vat/lago_eu_vat/eu_vat_rates.json
+            (https://github.com/getlago/lago-api, AGPL-3.0)
+  Commit:   75383e4dea198a70660ba74c987003c7b0f197dd (2026-04-21), the last
+            change to the file; copied from lago-api HEAD
+            25b8b7b0984dae3f64b690750eaa8a8daf7af752.
+  Upstream: ibericode/vat-rates, format version 4
+            (https://github.com/ibericode/vat-rates, MIT), with the United
+            Kingdom removed by lago.
+  Changes:  none; the file is copied verbatim.
+  Update:   copy the newer file from ibericode/vat-rates (dropping GB) or from
+            lago-api, then run the libs/tax tests: testdata/eu_vat.yaml
+            checks the member states, the French rates and territories, and
+            the number of generated taxes.

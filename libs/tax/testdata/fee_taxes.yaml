@@ -1,0 +1,315 @@
+# Fee tax resolution and fee tax amounts (ResolveFeeTaxes + ApplyFeeTaxes).
+# Ported from spec/services/fees/apply_taxes_service_spec.rb: tax1 is 10 %,
+# tax2 12 %, tax3 5 % and the billing entity's default tax.
+cases:
+  - name: explicit tax codes win over every other source
+    source: spec/services/fees/apply_taxes_service_spec.rb:32
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: subscription
+        has_explicit_taxes: true
+        explicit_taxes: [{code: tax2, rate: 12}, {code: tax3, rate: 5}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: explicit
+      applied_taxes: [{tax_code: tax2}, {tax_code: tax3}]
+      taxes_amount_cents: 170
+      taxes_precise_amount_cents: 170
+      taxes_rate: 17
+      taxes_base_rate: 1
+
+  - name: commitment fee uses the commitment taxes
+    source: spec/services/fees/apply_taxes_service_spec.rb:65
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: commitment
+        commitment: [{code: tax2, name: Tax 2, description: second, rate: 12}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {type: commitment, amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: commitment
+      applied_taxes:
+        - {tax_code: tax2, tax_name: Tax 2, tax_description: second, tax_rate: 12, amount_cents: 120, precise_amount_cents: 120}
+
+  - name: add-on fee uses the add-on taxes
+    source: spec/services/fees/apply_taxes_service_spec.rb:98
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: add_on
+        add_on: [{code: tax2, rate: 12}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {type: add_on, amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: add_on
+      applied_taxes: [{tax_code: tax2, tax_rate: 12, amount_cents: 120, precise_amount_cents: 120}]
+
+  - name: charge fee falls back to the plan taxes
+    source: spec/services/fees/apply_taxes_service_spec.rb:133
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: charge
+        plan: [{code: tax1, rate: 10}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {type: charge, amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: plan
+      applied_taxes: [{tax_code: tax1, tax_rate: 10, amount_cents: 100, precise_amount_cents: 100}]
+
+  - name: charge taxes win over plan taxes
+    source: spec/services/fees/apply_taxes_service_spec.rb:159
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: charge
+        charge: [{code: tax2, rate: 12}]
+        plan: [{code: tax1, rate: 10}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {type: charge, amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: charge
+      applied_taxes: [{tax_code: tax2, tax_rate: 12, amount_cents: 120, precise_amount_cents: 120}]
+
+  - name: subscription fee uses the plan taxes
+    source: spec/services/fees/apply_taxes_service_spec.rb:189
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: subscription
+        plan: [{code: tax1, rate: 10}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: plan
+      applied_taxes: [{tax_code: tax1, amount_cents: 100, precise_amount_cents: 100}]
+
+  - name: customer taxes win over the billing entity taxes
+    source: spec/services/fees/apply_taxes_service_spec.rb:221
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: subscription
+        customer: [{code: tax1, rate: 10}, {code: tax2, rate: 12}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: customer
+      applied_taxes:
+        - {tax_code: tax1, tax_rate: 10, amount_cents: 100, precise_amount_cents: 100}
+        - {tax_code: tax2, tax_rate: 12, amount_cents: 120, precise_amount_cents: 120}
+      taxes_amount_cents: 220
+      taxes_precise_amount_cents: 220
+      taxes_rate: 22
+
+  - name: taxes apply on the amount after the coupon
+    source: spec/services/fees/apply_taxes_service_spec.rb:264
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: subscription
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {amount_cents: 1000, precise_amount_cents: 1000, precise_coupons_amount_cents: 100}
+    want:
+      source: billing_entity
+      applied_taxes: [{tax_code: tax3, tax_rate: 5, amount_cents: 45, precise_amount_cents: 45}]
+      taxes_amount_cents: 45
+      taxes_precise_amount_cents: 45
+      taxes_rate: 5
+
+  - name: billing entity taxes are the default
+    source: spec/services/fees/apply_taxes_service_spec.rb:292
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: subscription
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: billing_entity
+      applied_taxes: [{tax_code: tax3, amount_cents: 50, precise_amount_cents: 50}]
+      taxes_amount_cents: 50
+      taxes_precise_amount_cents: 50
+      taxes_rate: 5
+
+  - name: fixed charge fee uses the fixed charge taxes
+    source: spec/services/fees/apply_taxes_service_spec.rb:337
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: fixed_charge
+        fixed_charge: [{code: tax1, rate: 10}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {type: fixed_charge, amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: fixed_charge
+      applied_taxes: [{tax_code: tax1, amount_cents: 100, precise_amount_cents: 100}]
+
+  - name: a plan given for the computation replaces the subscription plan
+    source: spec/services/fees/apply_taxes_service_spec.rb:367
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: charge
+        plan: [{code: tax1, rate: 10}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {type: charge, amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: plan
+      applied_taxes: [{tax_code: tax1}]
+
+  - name: a customer given for the computation replaces the invoice customer
+    source: spec/services/fees/apply_taxes_service_spec.rb:381
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: subscription
+        customer: [{code: tax1, rate: 10}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: customer
+      applied_taxes: [{tax_code: tax1}]
+
+  - name: subscription plan taxes when no plan is given
+    source: spec/services/fees/apply_taxes_service_spec.rb:399
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: subscription
+        plan: [{code: tax1, rate: 10}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: plan
+      applied_taxes: [{tax_code: tax1}]
+
+  - name: invoice customer taxes when no customer is given
+    source: spec/services/fees/apply_taxes_service_spec.rb:408
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: subscription
+        customer: [{code: tax2, rate: 12}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: customer
+      applied_taxes: [{tax_code: tax2}]
+
+  - name: subscription customer taxes for a fee without invoice
+    source: spec/services/fees/apply_taxes_service_spec.rb:421
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: subscription
+        customer: [{code: tax1, rate: 10}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: customer
+      applied_taxes: [{tax_code: tax1}]
+
+  - name: subscription plan taxes for a fee without invoice
+    source: spec/services/fees/apply_taxes_service_spec.rb:430
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: subscription
+        plan: [{code: tax2, rate: 12}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: plan
+      applied_taxes: [{tax_code: tax2}]
+
+  - name: add-on taxes do not apply to other fee types
+    source: tanvo
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: subscription
+        add_on: [{code: tax2, rate: 12}]
+        charge: [{code: tax2, rate: 12}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: billing_entity
+      applied_taxes: [{tax_code: tax3}]
+
+  - name: plan taxes do not apply to add-on fees
+    source: tanvo
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: add_on
+        plan: [{code: tax1, rate: 10}]
+        customer: [{code: tax2, rate: 12}]
+      fee: {type: add_on, amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: customer
+      applied_taxes: [{tax_code: tax2}]
+
+  - name: explicit empty tax codes leave the fee untaxed
+    source: tanvo
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: add_on
+        has_explicit_taxes: true
+        add_on: [{code: tax2, rate: 12}]
+        billing_entity: [{code: tax3, rate: 5}]
+      fee: {type: add_on, amount_cents: 1000, precise_amount_cents: 1000}
+    want:
+      source: explicit
+      applied_taxes: []
+      taxes_amount_cents: 0
+      taxes_rate: 0
+
+  - name: booked lines round on their own while the fee rounds once
+    source: tanvo
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: subscription
+        customer: [{code: a, rate: 5}, {code: b, rate: 5}]
+      fee: {amount_cents: 10, precise_amount_cents: 10}
+    want:
+      applied_taxes: [{amount_cents: 1, precise_amount_cents: 0.5}, {amount_cents: 1, precise_amount_cents: 0.5}]
+      taxes_amount_cents: 1
+      taxes_precise_amount_cents: 1
+
+  - name: negative fee amounts give negative taxes, rounded away from zero
+    source: tanvo
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: subscription
+        customer: [{code: vat, rate: 25}]
+      fee: {amount_cents: -10, precise_amount_cents: -10}
+    want:
+      applied_taxes: [{amount_cents: -3, precise_amount_cents: -2.5}]
+      taxes_amount_cents: -3
+
+  - name: the precise amount is taxed from the precise fee amount
+    source: tanvo
+    op: fee_taxes
+    input:
+      sources:
+        fee_type: subscription
+        customer: [{code: vat, rate: 20}]
+      fee: {amount_cents: 200, precise_amount_cents: 200.0000000001}
+    want:
+      applied_taxes: [{amount_cents: 40, precise_amount_cents: 40.00000000002}]
+      taxes_amount_cents: 40
+      taxes_precise_amount_cents: 40.00000000002
+
+skipped:
+  - source: spec/services/fees/apply_taxes_service_spec.rb:321
+    reason: >-
+      Fees that already carry applied taxes are left alone by ComputeInvoiceAmounts
+      (see invoice_taxes.yaml); ApplyFeeTaxes itself is a pure function with no
+      such guard.

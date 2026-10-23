@@ -1,0 +1,142 @@
+# E-invoice VAT breakdowns (InvoiceTaxSubtotals, through the invoice
+# computations), from spec/serializers/e_invoices/invoices/common_provider_taxes_spec.rb.
+# Each case runs for both UBL and CII in lago; the breakdown is the same.
+# Credit note breakdowns are in credit_note_taxes.yaml.
+cases:
+  - name: tax subtotals add up to the invoice tax
+    source: spec/serializers/e_invoices/invoices/common_provider_taxes_spec.rb:29
+    op: provider_invoice
+    input:
+      fees: [{amount_cents: 1000, precise_amount_cents: 1000}]
+      results:
+        - tax_amount_cents: 146
+          breakdown:
+            - {name: State tax, type: tax, rate: 0.12, tax_amount: 96}
+            - {name: City tax, type: tax, rate: 0.05, tax_amount: 50}
+    want:
+      amounts: {taxes_amount_cents: 146}
+      subtotals:
+        - {category: S, rate: 17, basis_amount_cents: 858.8235294117647058823529411764705882353, tax_amount_cents: 146}
+
+  - name: a provider rounding the tax up keeps the base within the fee amount
+    source: spec/serializers/e_invoices/invoices/common_provider_taxes_spec.rb:46
+    op: provider_invoice
+    input:
+      fees: [{amount_cents: 6, precise_amount_cents: 6}]
+      results:
+        - tax_amount_cents: 1
+          breakdown: [{name: VAT, type: tax, rate: 0.10, tax_amount: 1}]
+    want:
+      subtotals: [{rate: 10, basis_amount_cents: 6, tax_amount_cents: 1}]
+
+  - name: a grouped charge reports its allocated cents
+    source: spec/serializers/e_invoices/invoices/common_provider_taxes_spec.rb:66
+    op: provider_invoice
+    input:
+      fees:
+        - {charge_id: c, amount_cents: 100, precise_amount_cents: 100}
+        - {charge_id: c, amount_cents: 100, precise_amount_cents: 100}
+      results:
+        - tax_amount_cents: 15
+          breakdown:
+            - {name: State, type: tax, rate: 0.025, tax_amount: 5}
+            - {name: County, type: tax, rate: 0.025, tax_amount: 5}
+            - {name: City, type: tax, rate: 0.025, tax_amount: 5}
+    want:
+      amounts: {taxes_amount_cents: 15}
+      subtotals: [{rate: 7.5, basis_amount_cents: 200, tax_amount_cents: 15}]
+
+  - name: precise jurisdiction totals differing from the booked total export the booked cents
+    source: spec/serializers/e_invoices/invoices/common_provider_taxes_spec.rb:79
+    op: provider_invoice
+    input:
+      fees:
+        - {charge_id: c, amount_cents: 100, precise_amount_cents: 100}
+        - {charge_id: c, amount_cents: 100, precise_amount_cents: 100}
+      results:
+        - tax_amount_cents: 8
+          breakdown:
+            - {name: State, type: tax, rate: 0.025, tax_amount: 2.5}
+            - {name: County, type: tax, rate: 0.025, tax_amount: 2.5}
+            - {name: City, type: tax, rate: 0.025, tax_amount: 2.5}
+    want:
+      amounts:
+        fees: [{taxes_precise_amount_cents: 3.75}, {taxes_precise_amount_cents: 3.75}]
+        taxes_amount_cents: 8
+      subtotals: [{rate: 7.5, tax_amount_cents: 8}]
+
+  - name: independent fees rounding up export the booked total
+    source: spec/serializers/e_invoices/invoices/common_provider_taxes_spec.rb:98
+    op: provider_invoice
+    input:
+      fees:
+        - {amount_cents: 100, precise_amount_cents: 100}
+        - {amount_cents: 100, precise_amount_cents: 100}
+      results:
+        - &sales {tax_amount_cents: 3, breakdown: [{name: Sales tax, type: tax, rate: 0.025, tax_amount: 2.5}]}
+        - *sales
+    want:
+      amounts:
+        fees: [{taxes_precise_amount_cents: 2.5}, {taxes_precise_amount_cents: 2.5}]
+        taxes_amount_cents: 6
+      subtotals: [{rate: 2.5, tax_amount_cents: 6}]
+
+  - name: the invoice tax is exported even when every fee rounds down to zero
+    source: spec/serializers/e_invoices/invoices/common_provider_taxes_spec.rb:116
+    op: invoice_tax_subtotals
+    input:
+      taxes_amount_cents: 1
+      fees:
+        - &small {amount_cents: 4, precise_amount_cents: 4, taxes_rate: 10, taxes_amount_cents: 0, taxes_precise_amount_cents: 0.4}
+        - *small
+    want: [{category: S, rate: 10, basis_amount_cents: 8, tax_amount_cents: 1}]
+
+  - name: a legacy provider invoice with zero booked tax per fee keeps the invoice tax
+    source: spec/serializers/e_invoices/invoices/common_provider_taxes_spec.rb:127
+    op: invoice_tax_subtotals
+    input:
+      taxes_amount_cents: 1
+      provider_taxes: true
+      fees: [*small, *small]
+    want: [{rate: 10, basis_amount_cents: 8, tax_amount_cents: 1}]
+
+  - name: the rounding cent stays in its own rate's subtotal
+    source: spec/serializers/e_invoices/invoices/common_provider_taxes_spec.rb:153
+    op: invoice_amounts
+    input:
+      fees:
+        - {amount_cents: 3, precise_amount_cents: 3, taxes: [{code: tax10, rate: 10}]}
+        - {amount_cents: 3, precise_amount_cents: 3, taxes: [{code: tax10, rate: 10}]}
+        - {amount_cents: 100, precise_amount_cents: 100, taxes: [{code: tax20, rate: 20}]}
+    want:
+      amounts: {taxes_amount_cents: 21}
+      subtotals:
+        - {rate: 10, basis_amount_cents: 6, tax_amount_cents: 1}
+        - {rate: 20, basis_amount_cents: 100, tax_amount_cents: 20}
+
+  - name: zero-rated fees take their share of the allowances
+    source: tanvo
+    op: invoice_tax_subtotals
+    input:
+      taxes_amount_cents: 18
+      allowances_amount_cents: 20
+      fees:
+        - {amount_cents: 100, precise_amount_cents: 100, precise_coupons_amount_cents: 10, taxes_rate: 20, taxes_amount_cents: 18, taxes_precise_amount_cents: 18}
+        - {amount_cents: 100, precise_amount_cents: 100, precise_coupons_amount_cents: 10, taxes_rate: 0}
+    want:
+      - {category: Z, rate: 0, basis_amount_cents: 90, tax_amount_cents: 0}
+      - {category: S, rate: 20, basis_amount_cents: 90, tax_amount_cents: 18}
+
+  - name: prepaid credit invoices are out of scope
+    source: tanvo
+    op: invoice_tax_subtotals
+    input:
+      credit: true
+      fees: [{amount_cents: 100, precise_amount_cents: 100, taxes_rate: 0}]
+    want: [{category: O, rate: 0, basis_amount_cents: 100, tax_amount_cents: 0}]
+
+skipped:
+  - source: spec/serializers/e_invoices (XML builders)
+    reason: >-
+      The UBL and CII documents (paths, amounts in currency units) are built by
+      the document renderer; only the VAT breakdown they serialize is ported.

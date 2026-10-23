@@ -1,0 +1,413 @@
+# EU VAT: the vendored rate table (data/eu_vat_rates.json), the generated
+# taxes and the customer tax decision before and after a VIES check. Tax
+# codes are prefixed tanvo_eu_ where lago uses lago_eu_. The billing entity
+# is in France.
+cases:
+  - name: the table lists the 27 member states
+    source: spec/lib/lago_eu_vat/rate_spec.rb:10
+    op: eu_country_codes
+    input: {}
+    want: [AT, BE, BG, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK]
+
+  - name: France has a 20 % standard rate and five territories
+    source: spec/lib/lago_eu_vat/rate_spec.rb:16
+    op: eu_rates
+    input: {country: FR, at: '2026-06-01T00:00:00Z'}
+    want: {standard: 20, exceptions: [Guadeloupe, Martinique, Guyane, Reunion, Mayotte]}
+
+  - name: the generated taxes are the EU taxes plus reverse charge and exempt
+    source: spec/services/taxes/auto_generate_service_spec.rb:11
+    op: eu_taxes
+    input: {at: '2026-06-01T00:00:00Z'}
+    want: {count: 47}
+
+  - name: an updated customer with an EU tax and unchanged attributes is left alone
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:36
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: DE}, applicable: {new_record: false, has_eu_tax: true, tax_attributes_changed: false}}
+    want: {applicable: false}
+
+  - name: an updated customer without an EU tax gets one
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:55
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: DE}, applicable: {new_record: false, has_eu_tax: false, tax_attributes_changed: false}}
+    want: {applicable: true, tax_code: tanvo_eu_de_standard, vies_check_required: false}
+
+  - name: a customer without VAT number gets their country's standard tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:67
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: DE}}
+    want: {tax_code: tanvo_eu_de_standard, vies_check_required: false}
+
+  - name: a customer with a VAT number needs a VIES check
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:83
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {tax_identification_number: IT12345678901}}
+    want: {tax_code: '', vies_check_required: true}
+
+  - name: a customer with a VAT number needs a VIES check
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:95
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {tax_identification_number: IT12345678901}}
+    want: {tax_code: '', vies_check_required: true}
+
+  - name: a customer with a VAT number needs a VIES check
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:101
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {tax_identification_number: IT12345678901}}
+    want: {tax_code: '', vies_check_required: true}
+
+  - name: a customer without country gets the billing country's tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:126
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {}}
+    want: {tax_code: tanvo_eu_fr_standard}
+
+  - name: a customer in the EU gets their country's tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:136
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: DE}}
+    want: {tax_code: tanvo_eu_de_standard}
+
+  - name: a customer outside the EU is exempt
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:146
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: US}}
+    want: {tax_code: tanvo_eu_tax_exempt}
+
+  - name: business customer in ES 35001 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:167
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: ES, zipcode: '35001', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_es_exception_canary_islands, vies_check_required: false}
+
+  - name: business customer in ES 38314 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:169
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: ES, zipcode: '38314', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_es_exception_canary_islands, vies_check_required: false}
+
+  - name: business customer in ES 51001 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:171
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: ES, zipcode: '51001', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_es_exception_ceuta, vies_check_required: false}
+
+  - name: business customer in ES 52001 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:173
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: ES, zipcode: '52001', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_es_exception_melilla, vies_check_required: false}
+
+  - name: business customer in AT 6691 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:175
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: AT, zipcode: '6691', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_at_exception_jungholz, vies_check_required: false}
+
+  - name: business customer in AT 6992 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:177
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: AT, zipcode: '6992', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_at_exception_mittelberg, vies_check_required: false}
+
+  - name: business customer in AT 6991 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:179
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: AT, zipcode: '6991', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_at_exception_mittelberg, vies_check_required: false}
+
+  - name: business customer in IT 23041 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:181
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: IT, zipcode: '23041', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_it_exception_livigno, vies_check_required: false}
+
+  - name: business customer in IT 22061 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:183
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: IT, zipcode: '22061', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_it_exception_campione_d_italia, vies_check_required: false}
+
+  - name: business customer in DE 78266 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:185
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: DE, zipcode: '78266', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_de_exception_busingen_am_hochrhein, vies_check_required: false}
+
+  - name: business customer in DE 27498 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:187
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: DE, zipcode: '27498', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_de_exception_heligoland, vies_check_required: false}
+
+  - name: business customer in PT 9500 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:189
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: PT, zipcode: '9500', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_pt_exception_azores, vies_check_required: false}
+
+  - name: business customer in PT 9000 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:191
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: PT, zipcode: '9000', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_pt_exception_madeira, vies_check_required: false}
+
+  - name: business customer in GR 63086 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:193
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: GR, zipcode: '63086', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_gr_exception_mount_athos, vies_check_required: false}
+
+  - name: business customer in FI 22000 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:195
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: FI, zipcode: '22000', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_fi_exception_aland_islands, vies_check_required: false}
+
+  - name: consumer in ES 35001 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:202
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: ES, zipcode: '35001'}}
+    want: {tax_code: tanvo_eu_es_exception_canary_islands}
+
+  - name: consumer in AT 6691 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:204
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: AT, zipcode: '6691'}}
+    want: {tax_code: tanvo_eu_at_exception_jungholz}
+
+  - name: consumer in IT 23041 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:206
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: IT, zipcode: '23041'}}
+    want: {tax_code: tanvo_eu_it_exception_livigno}
+
+  - name: consumer in DE 78266 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:208
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: DE, zipcode: '78266'}}
+    want: {tax_code: tanvo_eu_de_exception_busingen_am_hochrhein}
+
+  - name: consumer in PT 9500 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:210
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: PT, zipcode: '9500'}}
+    want: {tax_code: tanvo_eu_pt_exception_azores}
+
+  - name: consumer in GR 63086 gets the territory tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:212
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: GR, zipcode: '63086'}}
+    want: {tax_code: tanvo_eu_gr_exception_mount_athos}
+
+  - name: business customer in French territory 97200 gets its tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:219
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: FR, zipcode: '97200', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_fr_exception_martinique}
+
+  - name: business customer in French territory 97100 gets its tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:221
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: FR, zipcode: '97100', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_fr_exception_guadeloupe}
+
+  - name: business customer in French territory 97412 gets its tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:223
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: FR, zipcode: '97412', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_fr_exception_reunion}
+
+  - name: business customer in French territory 97300 gets its tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:225
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: FR, zipcode: '97300', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_fr_exception_guyane}
+
+  - name: business customer in French territory 97600 gets its tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:227
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: FR, zipcode: '97600', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_fr_exception_mayotte}
+
+  - name: consumer in French territory 97200 gets the French standard tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:234
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: FR, zipcode: '97200'}}
+    want: {tax_code: tanvo_eu_fr_standard}
+
+  - name: consumer in French territory 97100 gets the French standard tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:236
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: FR, zipcode: '97100'}}
+    want: {tax_code: tanvo_eu_fr_standard}
+
+  - name: consumer in French territory 97412 gets the French standard tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:238
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: FR, zipcode: '97412'}}
+    want: {tax_code: tanvo_eu_fr_standard}
+
+  - name: consumer in French territory 97300 gets the French standard tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:240
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: FR, zipcode: '97300'}}
+    want: {tax_code: tanvo_eu_fr_standard}
+
+  - name: consumer in French territory 97600 gets the French standard tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:242
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: FR, zipcode: '97600'}}
+    want: {tax_code: tanvo_eu_fr_standard}
+
+  - name: a detected territory needs no VIES check
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:251
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: ES, zipcode: '35001', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_es_exception_canary_islands, vies_check_required: false}
+
+  - name: a detected territory needs no VIES check
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:256
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: ES, zipcode: '35001', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_es_exception_canary_islands, vies_check_required: false}
+
+  - name: a detected territory needs no VIES check
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:264
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: ES, zipcode: '35001', tax_identification_number: IT12345678901}}
+    want: {tax_code: tanvo_eu_es_exception_canary_islands, vies_check_required: false}
+
+  - name: spaces in the zipcode are ignored
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:273
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: ES, zipcode: ' 35 001 '}}
+    want: {tax_code: tanvo_eu_es_exception_canary_islands}
+
+  - name: a customer moving to a territory gets its tax
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:292
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: ES, zipcode: '35001'}, applicable: {new_record: false, has_eu_tax: true, tax_attributes_changed: true}}
+    want: {applicable: true, tax_code: tanvo_eu_es_exception_canary_islands}
+
+  - name: an invalid VAT number in a French territory needs a VIES check
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:303
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: FR, zipcode: '97100', tax_identification_number: INVALID123}}
+    want: {tax_code: '', vies_check_required: true}
+
+  - name: a zipcode matching no territory falls through
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:315
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: ES, zipcode: '28001'}}
+    want: {tax_code: tanvo_eu_es_standard}
+
+  - name: territory patterns match the start of the zipcode only
+    source: tanvo
+    note: Lago matches the pattern anywhere, so Lisbon 1940123 would get Madeira's rate.
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: PT, zipcode: '1940123'}}
+    want: {tax_code: tanvo_eu_pt_standard}
+
+  - name: a Madeira zipcode gets the territory tax
+    source: tanvo
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: PT, zipcode: '9000123'}}
+    want: {tax_code: tanvo_eu_pt_exception_madeira}
+
+  - name: no zipcode falls through
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:321
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: DE}}
+    want: {tax_code: tanvo_eu_de_standard}
+
+  - name: no country falls through to the billing country
+    source: spec/services/customers/eu_auto_taxes_service_spec.rb:327
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {zipcode: '35001'}}
+    want: {tax_code: tanvo_eu_fr_standard}
+
+  - name: a lowercase country is matched
+    source: tanvo
+    op: eu_tax
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: es, zipcode: '35001'}}
+    want: {tax_code: tanvo_eu_es_exception_canary_islands}
+
+  - name: an invalid VAT number gets the customer country's tax
+    source: spec/services/customers/vies_check_service_spec.rb:108
+    op: eu_tax_after_vies
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: DE, tax_identification_number: IT12345678901}, vies: {valid: false}}
+    want: {tax_code: tanvo_eu_de_standard}
+
+  - name: a number registered in the billing country gets its standard tax
+    source: spec/services/customers/vies_check_service_spec.rb:125
+    op: eu_tax_after_vies
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: DE, tax_identification_number: IT12345678901}, vies: {valid: true, country_code: FR}}
+    want: {tax_code: tanvo_eu_fr_standard}
+
+  - name: a number registered in another country is reverse charged
+    source: spec/services/customers/vies_check_service_spec.rb:158
+    op: eu_tax_after_vies
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: DE, tax_identification_number: IT12345678901}, vies: {valid: true, country_code: DE}}
+    want: {tax_code: tanvo_eu_reverse_charge}
+
+  - name: without zipcode the billing country's standard tax applies
+    source: spec/services/customers/vies_check_service_spec.rb:169
+    op: eu_tax_after_vies
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: DE, tax_identification_number: IT12345678901}, vies: {valid: true, country_code: FR}}
+    want: {tax_code: tanvo_eu_fr_standard}
+
+  - name: a zipcode in a territory gets the territory tax
+    source: spec/services/customers/vies_check_service_spec.rb:179
+    op: eu_tax_after_vies
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: FR, zipcode: '97412', tax_identification_number: IT12345678901}, vies: {valid: true, country_code: FR}}
+    want: {tax_code: tanvo_eu_fr_exception_reunion}
+
+  - name: a zipcode in no territory gets the standard tax
+    source: spec/services/customers/vies_check_service_spec.rb:188
+    op: eu_tax_after_vies
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: FR, zipcode: '12345', tax_identification_number: IT12345678901}, vies: {valid: true, country_code: FR}}
+    want: {tax_code: tanvo_eu_fr_standard}
+
+  - name: a falsy VIES answer without country gets the billing country's tax
+    source: spec/services/customers/vies_check_service_spec.rb:202
+    op: eu_tax_after_vies
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: , tax_identification_number: IT12345678901}, vies: {valid: false}}
+    want: {tax_code: tanvo_eu_fr_standard}
+
+  - name: a falsy VIES answer in the EU gets the customer country's tax
+    source: spec/services/customers/vies_check_service_spec.rb:210
+    op: eu_tax_after_vies
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: DE, tax_identification_number: IT12345678901}, vies: {valid: false}}
+    want: {tax_code: tanvo_eu_de_standard}
+
+  - name: a falsy VIES answer outside the EU is exempt
+    source: spec/services/customers/vies_check_service_spec.rb:220
+    op: eu_tax_after_vies
+    input: {billing_country: FR, at: '2026-06-01T00:00:00Z', customer: {country: US, tax_identification_number: IT12345678901}, vies: {valid: false}}
+    want: {tax_code: tanvo_eu_tax_exempt}
+
+skipped:
+  - source: spec/services/customers/eu_auto_taxes_service_spec.rb:20
+    reason: Whether the billing entity manages EU VAT is the caller's check.
+  - source: spec/services/customers/eu_auto_taxes_service_spec.rb:73
+    reason: Job enqueueing is the caller's; the decision says whether a VIES check is required.
+  - source: spec/services/customers/eu_auto_taxes_service_spec.rb:111
+    reason: PendingViesCheck persistence is the caller's.
+  - source: spec/services/customers/vies_check_service_spec.rb:92
+    reason: Whether the billing entity manages EU VAT is the caller's check.
+  - source: spec/services/customers/vies_check_service_spec.rb:112
+    reason: The vies_check webhook payload (valid, valid_format) is the caller's; syntax checks are in vat_numbers.yaml.
+  - source: spec/services/customers/vies_check_service_spec.rb:115
+    reason: Webhooks are the caller's.
+  - source: spec/services/customers/vies_check_service_spec.rb:131
+    reason: The VIES response is the caller's.
+  - source: spec/services/customers/vies_check_service_spec.rb:137
+    reason: Webhooks are the caller's.
+  - source: spec/services/customers/vies_check_service_spec.rb:148
+    reason: PendingViesCheck persistence is the caller's.
+  - source: spec/services/customers/vies_check_service_spec.rb:13
+    reason: >-
+      The VIES SOAP client, webhooks and PendingViesCheck bookkeeping are the
+      caller's; the fault classification is ported in vat_numbers.yaml.

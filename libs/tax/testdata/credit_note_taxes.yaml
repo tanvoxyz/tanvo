@@ -1,0 +1,460 @@
+# Credit note taxes (ComputeCreditNoteTaxes), the rounding adjustment of
+# credit note amounts (AdjustCreditNoteRounding) and credit notes of
+# computed invoices.
+#
+# spec/services/credit_notes/apply_taxes_service_spec.rb: an invoice with a
+# 20 coupon over fee1 (100) and fee2 (20); 20 is credited on fee1 and 50 on
+# fee2.
+cases:
+  - &local
+    name: local taxes are credited on the items after their coupons share
+    source: spec/services/credit_notes/apply_taxes_service_spec.rb:119
+    op: credit_note_taxes
+    input:
+      invoice:
+        taxes_amount_cents: 20
+        applied_taxes:
+          - {tax_code: tax1, tax_rate: 12, amount_cents: 200}
+          - {tax_code: tax2, tax_rate: 8, amount_cents: 200}
+        fees:
+          - amount_cents: 100
+            precise_coupons_amount_cents: 16.666666666666667
+            taxes_amount_cents: 12
+            applied_taxes: [{tax_code: tax1, tax_rate: 12, amount_cents: 10}]
+          - amount_cents: 20
+            precise_coupons_amount_cents: 3.3333333333333335
+            taxes_amount_cents: 4
+            applied_taxes: [{tax_code: tax1, tax_rate: 12, amount_cents: 2}, {tax_code: tax2, tax_rate: 8, amount_cents: 1}]
+      items:
+        - {fee: 0, precise_amount_cents: 20}
+        - {fee: 1, precise_amount_cents: 50}
+    want:
+      applied_taxes:
+        - {tax_code: tax1, tax_rate: 12, amount_cents: 7}
+        - {tax_code: tax2, tax_rate: 8, amount_cents: 3}
+      taxes_amount_cents: 10
+      taxes_rate: 17.71429
+      coupons_adjustment_amount_cents: 12
+
+  - name: two fee rates resolving to the same invoice tax credit one tax
+    source: spec/services/credit_notes/apply_taxes_service_spec.rb:170
+    op: credit_note_taxes
+    input:
+      invoice:
+        taxes_amount_cents: 20
+        applied_taxes: [{tax_code: vat, tax_rate: 12, amount_cents: 200}]
+        fees:
+          - {amount_cents: 100, precise_coupons_amount_cents: 16.666666666666667, applied_taxes: [{tax_code: vat, tax_rate: 10}]}
+          - {amount_cents: 20, precise_coupons_amount_cents: 3.3333333333333335, applied_taxes: [{tax_code: vat, tax_rate: 12}]}
+      items:
+        - {fee: 0, precise_amount_cents: 20}
+        - {fee: 1, precise_amount_cents: 50}
+    want:
+      applied_taxes: [{tax_code: vat, tax_rate: 12, base_amount_cents: 58, amount_cents: 7}]
+      taxes_amount_cents: 7
+
+  - name: two components with the same code and rate credit one tax
+    source: spec/services/credit_notes/apply_taxes_service_spec.rb:197
+    op: credit_note_taxes
+    input:
+      invoice:
+        taxes_amount_cents: 20
+        applied_taxes:
+          - {tax_code: tax, tax_rate: 5, tax_description: state, provider: true, amount_cents: 200}
+          - {tax_code: tax, tax_rate: 5, tax_description: county, provider: true, amount_cents: 200}
+        fees:
+          - amount_cents: 100
+            precise_coupons_amount_cents: 16.666666666666667
+            applied_taxes:
+              - {tax_code: tax, tax_rate: 5, tax_description: state, provider: true}
+              - {tax_code: tax, tax_rate: 5, tax_description: county, provider: true}
+          - {amount_cents: 20, precise_coupons_amount_cents: 3.3333333333333335}
+      items:
+        - {fee: 0, precise_amount_cents: 20}
+        - {fee: 1, precise_amount_cents: 50}
+    want:
+      applied_taxes: [{tax_code: tax, tax_rate: 5}]
+      precise_taxes_amount_cents: 1.66666666666666666
+      taxes_amount_cents: 2
+
+  - name: a fee tax matching no invoice tax fails without guessing
+    source: spec/services/credit_notes/apply_taxes_service_spec.rb:221
+    op: credit_note_taxes
+    input:
+      invoice:
+        applied_taxes:
+          - {tax_code: tax, tax_rate: 8.875, provider: true}
+          - {tax_code: tax, tax_rate: 0, provider: true}
+        fees:
+          - {amount_cents: 100, applied_taxes: [{tax_code: tax, tax_rate: 5, provider: true}]}
+          - {amount_cents: 20}
+      items:
+        - {fee: 0, precise_amount_cents: 20}
+        - {fee: 1, precise_amount_cents: 50}
+    error: invoice_applied_tax_not_found
+
+  - name: provider taxes without a reported base are credited at their rate
+    source: spec/services/credit_notes/apply_taxes_service_spec.rb:280
+    op: credit_note_taxes
+    input:
+      invoice:
+        taxes_amount_cents: 20
+        applied_taxes:
+          - {tax_code: provider_tax_1, tax_name: provider tax 1, tax_description: providerTax1, tax_rate: 12, provider: true, amount_cents: 200}
+          - {tax_code: provider_tax_2, tax_name: provider tax 2, tax_description: providerTax2, tax_rate: 8, provider: true, amount_cents: 200}
+        fees:
+          - amount_cents: 100
+            precise_coupons_amount_cents: 16.666666666666667
+            applied_taxes: [{tax_code: provider_tax_1, tax_rate: 12, provider: true}]
+          - amount_cents: 20
+            precise_coupons_amount_cents: 3.3333333333333335
+            applied_taxes: [{tax_code: provider_tax_1, tax_rate: 12, provider: true}, {tax_code: provider_tax_2, tax_rate: 8, provider: true}]
+      items:
+        - {fee: 0, precise_amount_cents: 20}
+        - {fee: 1, precise_amount_cents: 50}
+    want:
+      applied_taxes:
+        - {tax_code: provider_tax_1, tax_name: provider tax 1, tax_description: providerTax1, tax_rate: 12, provider: true, amount_cents: 7}
+        - {tax_code: provider_tax_2, tax_name: provider tax 2, tax_description: providerTax2, tax_rate: 8, provider: true, amount_cents: 3}
+      taxes_amount_cents: 10
+      taxes_rate: 17.71429
+      coupons_adjustment_amount_cents: 12
+
+  - name: provider taxes on plain fees without coupons
+    source: spec/services/credit_notes/apply_taxes_service_spec.rb:344
+    op: credit_note_taxes
+    input:
+      invoice:
+        taxes_amount_cents: 22
+        applied_taxes:
+          - {tax_code: provider_tax_1, tax_rate: 20, provider: true, amount_cents: 200}
+          - {tax_code: provider_tax_2, tax_rate: 10, provider: true, amount_cents: 200}
+        fees:
+          - {amount_cents: 100, taxes_amount_cents: 20, applied_taxes: [{tax_code: provider_tax_1, tax_rate: 20, provider: true}]}
+          - amount_cents: 50
+            taxes_amount_cents: 2
+            applied_taxes: [{tax_code: provider_tax_1, tax_rate: 20, provider: true}, {tax_code: provider_tax_2, tax_rate: 10, provider: true}]
+      items:
+        - {fee: 0, precise_amount_cents: 20}
+        - {fee: 1, precise_amount_cents: 50}
+    want:
+      applied_taxes:
+        - {tax_code: provider_tax_1, amount_cents: 14}
+        - {tax_code: provider_tax_2, amount_cents: 5}
+      taxes_amount_cents: 19
+      taxes_rate: 27.14286
+      coupons_adjustment_amount_cents: 0
+
+  - name: jurisdiction rows rounding above the invoice credit only what it booked
+    source: spec/services/credit_notes/apply_taxes_service_spec.rb:399
+    op: credit_note_taxes
+    input:
+      invoice:
+        taxes_amount_cents: 3
+        applied_taxes:
+          - {tax_code: state, tax_rate: 1.5, provider: true, fees_amount_cents: 100, taxable_base_amount_cents: 100, amount_cents: 2}
+          - {tax_code: city, tax_rate: 1.5, provider: true, fees_amount_cents: 100, taxable_base_amount_cents: 100, amount_cents: 2}
+        fees:
+          - amount_cents: 100
+            precise_amount_cents: 100
+            taxes_amount_cents: 3
+            applied_taxes:
+              - {tax_code: state, tax_rate: 1.5, provider: true, amount_cents: 2, precise_amount_cents: 1.5}
+              - {tax_code: city, tax_rate: 1.5, provider: true, amount_cents: 2, precise_amount_cents: 1.5}
+      items: [{fee: 0, precise_amount_cents: 100}]
+    want:
+      precise_taxes_amount_cents: 3
+      taxes_amount_cents: 3
+      applied_taxes: [{tax_code: state, amount_cents: 1}, {tax_code: city, amount_cents: 2}]
+
+  - name: jurisdiction rows rounding to zero credit the invoice tax by their exact shares
+    source: spec/services/credit_notes/apply_taxes_service_spec.rb:411
+    op: credit_note_taxes
+    input:
+      invoice:
+        taxes_amount_cents: 1
+        applied_taxes:
+          - {tax_code: state, tax_rate: 0.4, provider: true, fees_amount_cents: 100, taxable_base_amount_cents: 100, amount_cents: 0}
+          - {tax_code: city, tax_rate: 0.4, provider: true, fees_amount_cents: 100, taxable_base_amount_cents: 100, amount_cents: 0}
+        fees:
+          - amount_cents: 100
+            precise_amount_cents: 100
+            taxes_amount_cents: 1
+            applied_taxes:
+              - {tax_code: state, tax_rate: 0.4, provider: true, amount_cents: 0, precise_amount_cents: 0.4}
+              - {tax_code: city, tax_rate: 0.4, provider: true, amount_cents: 0, precise_amount_cents: 0.4}
+      items: [{fee: 0, precise_amount_cents: 100}]
+    want:
+      precise_taxes_amount_cents: 1
+      taxes_amount_cents: 1
+
+  - name: an invoice without taxes credits no tax
+    source: spec/services/credit_notes/apply_taxes_service_spec.rb:422
+    op: credit_note_taxes
+    input:
+      invoice:
+        fees:
+          - {amount_cents: 100, precise_coupons_amount_cents: 16.666666666666667}
+          - {amount_cents: 20, precise_coupons_amount_cents: 3.3333333333333335}
+      items:
+        - {fee: 0, precise_amount_cents: 20}
+        - {fee: 1, precise_amount_cents: 50}
+    want:
+      applied_taxes: []
+      taxes_amount_cents: 0
+      taxes_rate: 0
+      coupons_adjustment_amount_cents: 12
+
+  # spec/services/credit_notes/compute_taxes_service_spec.rb: a fee of 100 at
+  # 20 % VAT, 50 credited.
+  - &compute
+    name: credit note taxes come from the credited items
+    source: spec/services/credit_notes/compute_taxes_service_spec.rb:39
+    op: credit_note_taxes
+    input:
+      invoice:
+        taxes_amount_cents: 20
+        applied_taxes: [{tax_code: vat, tax_rate: 20, amount_cents: 20, fees_amount_cents: 100}]
+        fees:
+          - amount_cents: 100
+            precise_amount_cents: 100
+            taxes_rate: 20
+            applied_taxes: [{tax_code: vat, tax_rate: 20, amount_cents: 20, precise_amount_cents: 20}]
+      items: [{fee: 0, precise_amount_cents: 50}]
+    want:
+      taxes_amount_cents: 10
+      precise_taxes_amount_cents: 10
+      taxes_rate: 20
+      coupons_adjustment_amount_cents: 0
+      applied_taxes: [{tax_code: vat, amount_cents: 10}]
+
+  - name: the credited amount is taxed after its coupon share
+    source: spec/services/credit_notes/compute_taxes_service_spec.rb:48
+    op: credit_note_taxes
+    input:
+      invoice:
+        taxes_amount_cents: 20
+        applied_taxes: [{tax_code: vat, tax_rate: 20, amount_cents: 20, fees_amount_cents: 100}]
+        fees:
+          - amount_cents: 100
+            precise_amount_cents: 100
+            precise_coupons_amount_cents: 20
+            applied_taxes: [{tax_code: vat, tax_rate: 20, amount_cents: 20, precise_amount_cents: 20}]
+      items: [{fee: 0, precise_amount_cents: 50}]
+    want:
+      precise_coupons_adjustment_amount_cents: 10
+      coupons_adjustment_amount_cents: 10
+      taxes_amount_cents: 8
+
+  - <<: *compute
+    name: the rounding taken by earlier credit notes is subtracted
+    source: spec/services/credit_notes/compute_taxes_service_spec.rb:61
+    input:
+      invoice:
+        taxes_amount_cents: 20
+        applied_taxes: [{tax_code: vat, tax_rate: 20, amount_cents: 20, fees_amount_cents: 100}]
+        fees:
+          - amount_cents: 100
+            precise_amount_cents: 100
+            applied_taxes: [{tax_code: vat, tax_rate: 20, amount_cents: 20, precise_amount_cents: 20}]
+      items: [{fee: 0, precise_amount_cents: 50}]
+      taxes_rounding_adjustment_cents: 0.5
+    want:
+      precise_taxes_amount_cents: 9.5
+      taxes_amount_cents: 10
+
+  - name: two native taxes rounding up on their own share one rounded total
+    source: spec/services/credit_notes/compute_taxes_service_spec.rb:73
+    op: credit_note_taxes
+    input:
+      invoice:
+        taxes_amount_cents: 1
+        applied_taxes:
+          - {tax_code: state, tax_rate: 5, amount_cents: 1, fees_amount_cents: 10}
+          - {tax_code: city, tax_rate: 5, amount_cents: 1, fees_amount_cents: 10}
+        fees:
+          - amount_cents: 10
+            precise_amount_cents: 10
+            applied_taxes:
+              - {tax_code: state, tax_rate: 5, amount_cents: 1, precise_amount_cents: 1}
+              - {tax_code: city, tax_rate: 5, amount_cents: 1, precise_amount_cents: 1}
+      items: [{fee: 0, precise_amount_cents: 10}]
+    want:
+      taxes_amount_cents: 1
+      applied_taxes: [{amount_cents: 1}, {amount_cents: 0}]
+
+  - name: a fee tax without a matching invoice tax fails
+    source: spec/services/credit_notes/compute_taxes_service_spec.rb:83
+    op: credit_note_taxes
+    input:
+      invoice:
+        applied_taxes: [{tax_code: other, tax_rate: 20, amount_cents: 20, fees_amount_cents: 100}]
+        fees:
+          - {amount_cents: 100, applied_taxes: [{tax_code: vat, tax_rate: 20, amount_cents: 20}]}
+      items: [{fee: 0, precise_amount_cents: 50}]
+    error: invoice_applied_tax_not_found
+
+  # spec/services/invoices/aggregate_amounts_and_taxes_from_fees_spec.rb: an
+  # advance charges invoice with two provider jurisdictions over two fees.
+  - &juris
+    name: crediting every fee credits every provider jurisdiction
+    source: spec/services/invoices/aggregate_amounts_and_taxes_from_fees_spec.rb:86
+    op: credit_note_taxes
+    input:
+      invoice:
+        taxes_amount_cents: 30
+        applied_taxes:
+          - {tax_code: state, tax_name: State, tax_rate: 10, provider: true, amount_cents: 20, fees_amount_cents: 200, taxable_base_amount_cents: 200}
+          - {tax_code: city, tax_name: City, tax_rate: 5, provider: true, amount_cents: 10, fees_amount_cents: 200, taxable_base_amount_cents: 200}
+        fees:
+          - &jfee
+            amount_cents: 100
+            precise_amount_cents: 100
+            taxes_amount_cents: 15
+            taxes_precise_amount_cents: 15
+            applied_taxes:
+              - {tax_code: state, tax_name: State, tax_rate: 10, provider: true, amount_cents: 10, precise_amount_cents: 10}
+              - {tax_code: city, tax_name: City, tax_rate: 5, provider: true, amount_cents: 5, precise_amount_cents: 5}
+          - *jfee
+      items:
+        - {fee: 0, precise_amount_cents: 100}
+        - {fee: 1, precise_amount_cents: 100}
+    want:
+      taxes_amount_cents: 30
+      applied_taxes: [{tax_code: state, amount_cents: 20}, {tax_code: city, amount_cents: 10}]
+
+  - <<: *juris
+    name: a partial credit prorates both jurisdictions
+    source: spec/services/invoices/aggregate_amounts_and_taxes_from_fees_spec.rb:96
+    input:
+      invoice:
+        taxes_amount_cents: 30
+        applied_taxes:
+          - {tax_code: state, tax_name: State, tax_rate: 10, provider: true, amount_cents: 20, fees_amount_cents: 200, taxable_base_amount_cents: 200}
+          - {tax_code: city, tax_name: City, tax_rate: 5, provider: true, amount_cents: 10, fees_amount_cents: 200, taxable_base_amount_cents: 200}
+        fees: [*jfee, *jfee]
+      items:
+        - {fee: 0, precise_amount_cents: 50}
+        - {fee: 1, precise_amount_cents: 50}
+    want:
+      taxes_amount_cents: 15
+
+  - name: an item pointing past the invoice's fees fails
+    source: tanvo
+    op: credit_note_taxes
+    input:
+      invoice: {fees: [{amount_cents: 100}]}
+      items: [{fee: 1, precise_amount_cents: 10}]
+    error: fee_out_of_range
+
+  - name: a provider tax with a deduction credits the booked cents
+    source: tanvo
+    op: credit_note_taxes
+    input:
+      invoice:
+        taxes_amount_cents: 80
+        applied_taxes:
+          - {tax_code: vat, tax_rate: 10, provider: true, amount_cents: 80, fees_amount_cents: 1000, taxable_base_amount_cents: 800}
+        fees:
+          - amount_cents: 1000
+            precise_amount_cents: 1000
+            taxes_amount_cents: 80
+            taxes_base_rate: 0.8
+            applied_taxes: [{tax_code: vat, tax_rate: 10, provider: true, amount_cents: 80, precise_amount_cents: 80}]
+      items: [{fee: 0, precise_amount_cents: 250}]
+    want:
+      applied_taxes: [{tax_code: vat, base_amount_cents: 200, amount_cents: 20, precise_amount_cents: 20}]
+      taxes_amount_cents: 20
+
+  # spec/services/credit_notes/adjust_amounts_with_rounding_service_spec.rb.
+  - name: a total one cent above the subtotal plus taxes loses the cent
+    source: spec/services/credit_notes/adjust_amounts_with_rounding_service_spec.rb:53
+    op: credit_note_rounding
+    input:
+      amounts: {taxes_amount_cents: 4833, credit_amount_cents: 24167, total_amount_cents: 24167}
+      items: [{fee: 0, precise_amount_cents: 19333}]
+    want:
+      taxes_amount_cents: 4833
+      sub_total_excluding_taxes_amount_cents: 19333
+      credit_amount_cents: 24166
+      total_amount_cents: 24166
+      balance_amount_cents: 24166
+
+  - name: a total one cent below the subtotal plus taxes gains the cent
+    source: spec/services/credit_notes/adjust_amounts_with_rounding_service_spec.rb:87
+    op: credit_note_rounding
+    input:
+      amounts: {taxes_amount_cents: 2, credit_amount_cents: 9, total_amount_cents: 9}
+      items: [{fee: 0, precise_amount_cents: 7.6}]
+    want:
+      taxes_amount_cents: 2
+      sub_total_excluding_taxes_amount_cents: 8
+      credit_amount_cents: 10
+      total_amount_cents: 10
+
+  - name: without a credit the cent goes to the refund
+    source: tanvo
+    op: credit_note_rounding
+    input:
+      amounts: {sub_total_excluding_taxes_amount_cents: 8, taxes_amount_cents: 2, refund_amount_cents: 9, total_amount_cents: 9}
+    want: {refund_amount_cents: 10, total_amount_cents: 10, credit_amount_cents: 0, balance_amount_cents: 0}
+
+  - name: without a credit or refund the cent goes to the offset
+    source: tanvo
+    op: credit_note_rounding
+    input:
+      amounts: {sub_total_excluding_taxes_amount_cents: 8, taxes_amount_cents: 2, offset_amount_cents: 11, total_amount_cents: 11}
+    want: {offset_amount_cents: 10, total_amount_cents: 10, refund_amount_cents: 0}
+
+  - name: amounts that add up are left alone
+    source: tanvo
+    op: credit_note_rounding
+    input:
+      amounts: {sub_total_excluding_taxes_amount_cents: 8, taxes_amount_cents: 2, credit_amount_cents: 10, total_amount_cents: 10, balance_amount_cents: 7}
+    want: {credit_amount_cents: 10, total_amount_cents: 10, balance_amount_cents: 7}
+
+  # spec/serializers/e_invoices/credit_notes/common_spec.rb: an invoice taxed
+  # internally at 10 % and 20 %, credited in full (both UBL and CII).
+  - name: fractional tax groups reconcile to the booked total
+    source: spec/serializers/e_invoices/credit_notes/common_spec.rb:44
+    op: credit_note_invoice
+    input:
+      fees:
+        - {amount_cents: 4, precise_amount_cents: 4, taxes: [{code: tax10, rate: 10}]}
+        - {amount_cents: 2, precise_amount_cents: 2, taxes: [{code: tax20, rate: 20}]}
+      items:
+        - {fee: 0, precise_amount_cents: 4}
+        - {fee: 1, precise_amount_cents: 2}
+    want:
+      invoice: {taxes_amount_cents: 1}
+      credit_note: {precise_taxes_amount_cents: 0.8, taxes_amount_cents: 1}
+      subtotals:
+        - {category: S, rate: 10, basis_amount_cents: 4, tax_amount_cents: 1}
+        - {category: S, rate: 20, basis_amount_cents: 2, tax_amount_cents: 0}
+
+  - name: coupons are deducted from the bases before the booked tax is allocated
+    source: spec/serializers/e_invoices/credit_notes/common_spec.rb:56
+    op: credit_note_invoice
+    input:
+      coupons_amount_cents: 6
+      fees:
+        - {amount_cents: 8, precise_amount_cents: 8, precise_coupons_amount_cents: 4, taxes: [{code: tax10, rate: 10}]}
+        - {amount_cents: 4, precise_amount_cents: 4, precise_coupons_amount_cents: 2, taxes: [{code: tax20, rate: 20}]}
+      items:
+        - {fee: 0, precise_amount_cents: 8}
+        - {fee: 1, precise_amount_cents: 4}
+    want:
+      credit_note: {taxes_amount_cents: 1}
+      subtotals:
+        - {rate: 10, basis_amount_cents: 4, tax_amount_cents: 1}
+        - {rate: 20, basis_amount_cents: 2, tax_amount_cents: 0}
+
+skipped:
+  - source: spec/services/credit_notes/apply_taxes_service_spec.rb (version_number < 3)
+    reason: >-
+      Invoices before version 3 credited coupons differently; Tanvo has a single
+      invoice version and drops that path.
+  - source: spec/services/credit_notes/compute_taxes_service_spec.rb (persistence)
+    reason: >-
+      Saving the credit note's applied taxes and summing earlier credit notes'
+      rounding is the caller's; the sum is passed as TaxesRoundingAdjustmentCents.

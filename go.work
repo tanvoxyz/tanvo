@@ -6,4 +6,5 @@ use (
 	./libs/money
 	./libs/period
 	./libs/pricing
+	./libs/tax
 )

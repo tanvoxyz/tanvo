@@ -1,0 +1,214 @@
+# Provider taxes: the mapping of a tax provider's response (Anrok, Avalara)
+# into fee taxes (NormalizeProviderBreakdown, ApplyProviderFeeTaxes), the
+# grouping of charge fees into provider lines (GroupFeesByCharge) and the
+# split of a grouped line's taxes over its fees (SplitProviderTaxes).
+cases:
+  - name: jurisdictions with different base reductions book the provider allocation
+    source: spec/services/fees/apply_provider_taxes_service_spec.rb:43
+    op: provider_fee_taxes
+    input: {fee: {amount_cents: 1000, precise_amount_cents: 1000}, result: {tax_amount_cents: 146, breakdown: [{name: State tax, type: tax, rate: 0.12, tax_amount: 96}, {name: City tax, type: tax, rate: 0.05, tax_amount: 50}]}}
+    want: {applied_taxes: [{tax_code: state_tax, amount_cents: 96, precise_amount_cents: 96}, {tax_code: city_tax, amount_cents: 50, precise_amount_cents: 50}], taxes_amount_cents: 146, taxes_precise_amount_cents: 146}
+
+  - name: unsaved fees get the same taxes
+    source: spec/services/fees/apply_provider_taxes_service_spec.rb:55
+    op: provider_fee_taxes
+    input: {fee: {amount_cents: 1000, precise_amount_cents: 1000}, result: {tax_amount_cents: 146, breakdown: [{name: State tax, type: tax, rate: 0.12, tax_amount: 96}, {name: City tax, type: tax, rate: 0.05, tax_amount: 50}]}}
+    want: {taxes_amount_cents: 146, taxes_precise_amount_cents: 146}
+
+  - name: fractional cents are kept apart from the booked allocation
+    source: spec/services/fees/apply_provider_taxes_service_spec.rb:74
+    op: provider_fee_taxes
+    input: {fee: {amount_cents: 1000, precise_amount_cents: 1000}, result: {tax_amount_cents: 8, breakdown: [{name: State, type: tax, rate: 0.025, tax_amount: 2.5}, {name: County, type: tax, rate: 0.025, tax_amount: 2.5}, {name: City, type: tax, rate: 0.025, tax_amount: 2.5}]}}
+    want: {applied_taxes: [{amount_cents: 3, precise_amount_cents: 2.5}, {amount_cents: 3, precise_amount_cents: 2.5}, {amount_cents: 2, precise_amount_cents: 2.5}], taxes_amount_cents: 8, taxes_precise_amount_cents: 7.5}
+
+  - name: applied taxes are coded from the jurisdiction names
+    source: spec/services/fees/apply_provider_taxes_service_spec.rb:84
+    op: provider_fee_taxes
+    input: {fee: {amount_cents: 1000, precise_amount_cents: 1000}, result: {tax_amount_cents: 170, breakdown: [{name: tax 2, type: type2, rate: 0.12, tax_amount: 120}, {name: tax 3, type: type3, rate: 0.05, tax_amount: 50}]}}
+    want: {applied_taxes: [{tax_code: tax_2, tax_name: tax 2, tax_description: type2, tax_rate: 12, provider: true}, {tax_code: tax_3, tax_name: tax 3, tax_description: type3, tax_rate: 5, provider: true}], taxes_amount_cents: 170, taxes_precise_amount_cents: 170, taxes_rate: 17, taxes_base_rate: 1}
+
+  - name: a tax deduction sets the base rate
+    source: spec/services/fees/apply_provider_taxes_service_spec.rb:106
+    op: provider_fee_taxes
+    input: {fee: {amount_cents: 1000, precise_amount_cents: 1000}, result: {tax_amount_cents: 136, breakdown: [{name: tax 2, type: type2, rate: 0.12, tax_amount: 96}, {name: tax 3, type: type3, rate: 0.05, tax_amount: 40}]}}
+    want: {taxes_amount_cents: 136, taxes_precise_amount_cents: 136, taxes_rate: 17, taxes_base_rate: 0.8}
+
+  - name: seller paid taxes give one zero tax
+    source: spec/services/fees/apply_provider_taxes_service_spec.rb:131
+    op: provider_fee_taxes
+    input: {fee: {amount_cents: 1000, precise_amount_cents: 1000}, result: {tax_amount_cents: 0, breakdown: [{name: Tax, type: tax, rate: 0.00, tax_amount: 0}]}}
+    want: {applied_taxes: [{tax_code: tax, amount_cents: 0}], taxes_amount_cents: 0, taxes_precise_amount_cents: 0, taxes_rate: 0}
+
+  - name: a fee without amount missing from the response stays untaxed
+    source: spec/services/fees/apply_provider_taxes_service_spec.rb:156
+    op: provider_fee_taxes
+    input: {fee: {amount_cents: 0, precise_amount_cents: 0}}
+    want: {applied_taxes: [], taxes_amount_cents: 0, taxes_rate: 0}
+
+  - name: a fee with an amount missing from the response fails
+    source: spec/services/fees/apply_provider_taxes_service_spec.rb:166
+    op: provider_fee_taxes
+    input: {fee: {amount_cents: 1000, precise_amount_cents: 1000}}
+    error: fee_missing_from_tax_response
+
+  - name: a fee missing from the response gets no taxes
+    source: spec/services/fees/apply_provider_taxes_service_spec.rb:173
+    op: provider_fee_taxes
+    input: {fee: {amount_cents: 1000, precise_amount_cents: 1000}}
+    error: fee_missing_from_tax_response
+
+  - name: special rule notCollecting gives one zero tax
+    source: spec/services/fees/apply_provider_taxes_service_spec.rb:210
+    op: provider_fee_taxes
+    input: {fee: {amount_cents: 1000, precise_amount_cents: 1000}, result: {tax_amount_cents: 0, breakdown: [{name: Not collecting, type: notCollecting, rate: 0.00, tax_amount: 0}]}}
+    want: {applied_taxes: [{tax_code: not_collecting, tax_name: Not collecting, tax_description: notCollecting}], taxes_amount_cents: 0, taxes_precise_amount_cents: 0, taxes_rate: 0}
+
+  - name: special rule productNotTaxed gives one zero tax
+    source: spec/services/fees/apply_provider_taxes_service_spec.rb:210
+    op: provider_fee_taxes
+    input: {fee: {amount_cents: 1000, precise_amount_cents: 1000}, result: {tax_amount_cents: 0, breakdown: [{name: Product not taxed, type: productNotTaxed, rate: 0.00, tax_amount: 0}]}}
+    want: {applied_taxes: [{tax_code: product_not_taxed, tax_name: Product not taxed, tax_description: productNotTaxed}], taxes_amount_cents: 0, taxes_precise_amount_cents: 0, taxes_rate: 0}
+
+  - name: special rule jurisNotTaxed gives one zero tax
+    source: spec/services/fees/apply_provider_taxes_service_spec.rb:210
+    op: provider_fee_taxes
+    input: {fee: {amount_cents: 1000, precise_amount_cents: 1000}, result: {tax_amount_cents: 0, breakdown: [{name: Juris not taxed, type: jurisNotTaxed, rate: 0.00, tax_amount: 0}]}}
+    want: {applied_taxes: [{tax_code: juris_not_taxed, tax_name: Juris not taxed, tax_description: jurisNotTaxed}], taxes_amount_cents: 0, taxes_precise_amount_cents: 0, taxes_rate: 0}
+
+  - name: a fee covered by its coupon has a base rate of one
+    source: tanvo
+    op: provider_fee_taxes
+    input: {fee: {amount_cents: 1000, precise_amount_cents: 1000, precise_coupons_amount_cents: 1000}, result: {tax_amount_cents: 0, breakdown: [{name: VAT, type: tax, rate: 0.10, tax_amount: 0}]}}
+    want: {taxes_base_rate: 1, taxes_amount_cents: 0}
+
+  - name: the provider breakdown keeps its rates and turns rulings into zero taxes
+    source: spec/services/integrations/aggregator/taxes/invoices/create_service_spec.rb:122
+    op: provider_breakdown
+    input: {taxes_to_pay: 990, lines: [{name: GST/HST, rate: '0.10', tax_amount: 990, type: tax_exempt}, {reason: reverseCharge, type: exempt}]}
+    want: [{name: GST/HST, type: tax_exempt, rate: 0.10, tax_amount: 990}, {name: Reverse charge, type: exempt, rate: 0, tax_amount: 0}]
+
+  - name: draft taxes map the breakdown the same way
+    source: spec/services/integrations/aggregator/taxes/invoices/create_draft_service_spec.rb:122
+    op: provider_breakdown
+    input: {taxes_to_pay: 990, lines: [{name: GST/HST, rate: '0.10', tax_amount: 990, type: tax_exempt}, {reason: reverseCharge, type: exempt}]}
+    want: [{name: GST/HST, type: tax_exempt, rate: 0.10, tax_amount: 990}, {name: Reverse charge, type: exempt, rate: 0, tax_amount: 0}]
+
+  - name: rule notCollecting is named after its type
+    source: spec/services/integrations/aggregator/taxes/invoices/create_draft_service_spec.rb:207
+    op: provider_breakdown
+    input: {taxes_to_pay: 0, lines: [{reason: '', type: notCollecting}]}
+    want: [{name: Not collecting, type: notCollecting, rate: 0, tax_amount: 0}]
+
+  - name: rule productNotTaxed is named after its type
+    source: spec/services/integrations/aggregator/taxes/invoices/create_draft_service_spec.rb:207
+    op: provider_breakdown
+    input: {taxes_to_pay: 0, lines: [{reason: '', type: productNotTaxed}]}
+    want: [{name: Product not taxed, type: productNotTaxed, rate: 0, tax_amount: 0}]
+
+  - name: rule jurisNotTaxed is named after its type
+    source: spec/services/integrations/aggregator/taxes/invoices/create_draft_service_spec.rb:207
+    op: provider_breakdown
+    input: {taxes_to_pay: 0, lines: [{reason: '', type: jurisNotTaxed}]}
+    want: [{name: Juris not taxed, type: jurisNotTaxed, rate: 0, tax_amount: 0}]
+
+  - name: rule jurisHasNoTax is named after its type
+    source: spec/services/integrations/aggregator/taxes/invoices/create_draft_service_spec.rb:207
+    op: provider_breakdown
+    input: {taxes_to_pay: 0, lines: [{reason: '', type: jurisHasNoTax}]}
+    want: [{name: Juris has no tax, type: jurisHasNoTax, rate: 0, tax_amount: 0}]
+
+  - name: rule specialUnknownRule is named after its type
+    source: spec/services/integrations/aggregator/taxes/invoices/create_draft_service_spec.rb:207
+    op: provider_breakdown
+    input: {taxes_to_pay: 0, lines: [{reason: '', type: specialUnknownRule}]}
+    want: [{name: Special unknown rule, type: specialUnknownRule, rate: 0, tax_amount: 0}]
+
+  - name: taxes paid by the seller become a zero tax
+    source: spec/services/integrations/aggregator/taxes/invoices/create_draft_service_spec.rb:226
+    op: provider_breakdown
+    input: {taxes_to_pay: 0, lines: [{name: GST/HST, rate: '0.10', tax_amount: 990, type: tax_exempt}]}
+    want: [{name: Tax, type: tax, rate: 0, tax_amount: 0}]
+
+  - name: taxes rounded down to zero keep the provider breakdown
+    source: spec/services/integrations/aggregator/taxes/invoices/create_draft_service_spec.rb:245
+    op: provider_breakdown
+    input: {taxes_to_pay: 0, lines: [{name: GST/HST, rate: '0.10', tax_amount: 0.422, type: tax_exempt}]}
+    want: [{name: GST/HST, type: tax_exempt, rate: 0.10, tax_amount: 0.422}]
+
+  - name: a line without type is an unknown taxation
+    source: tanvo
+    op: provider_breakdown
+    input: {taxes_to_pay: 0, lines: [{name: X}]}
+    want: [{name: Unknown taxation, type: unknown_taxation, rate: 0, tax_amount: 0}]
+
+  - name: fees group by charge, keeping order and unrelated fees
+    source: spec/services/integrations/aggregator/taxes/invoices/charge_fee_group_spec.rb:28
+    op: group_fees_by_charge
+    input: {charge_ids: [c, '', c, o]}
+    want: [[0, 2], [1], [3]]
+
+  - name: one charge line spans the charge's subscriptions
+    source: spec/services/integrations/aggregator/taxes/invoices/charge_fee_group_spec.rb:38
+    op: group_fees_by_charge
+    input: {charge_ids: [c, c, c]}
+    want: [[0, 1, 2]]
+
+  - name: fee results are proportional and keep the jurisdiction
+    source: spec/services/integrations/aggregator/taxes/invoices/charge_fee_group_spec.rb:73
+    op: split_provider_taxes
+    input: {group: {item_code: metric_code, tax_amount_cents: 100, breakdown: [{name: VAT, type: tax, rate: 0.10, tax_amount: 100}]}, items: [{item_key: fee1, item_id: f1, fee: {amount_cents: 300, precise_amount_cents: 300, precise_coupons_amount_cents: 0}}, {item_key: fee2, item_id: f2, fee: {amount_cents: 700, precise_amount_cents: 700, precise_coupons_amount_cents: 0}}]}
+    want: [{item_key: fee1, item_id: f1, item_code: metric_code, amount_cents: 300, tax_amount_cents: 30, breakdown: [{name: VAT, type: tax, rate: 0.10, tax_amount: 30, allocated_amount_cents: 30}]}, {item_key: fee2, item_id: f2, item_code: metric_code, amount_cents: 700, tax_amount_cents: 70, breakdown: [{name: VAT, type: tax, rate: 0.10, tax_amount: 70, allocated_amount_cents: 70}]}]
+
+  - name: whole cents are allocated without losing the exact shares
+    source: spec/services/integrations/aggregator/taxes/invoices/charge_fee_group_spec.rb:87
+    op: split_provider_taxes
+    input: {group: {item_code: metric_code, tax_amount_cents: 7, breakdown: [{name: VAT, type: tax, rate: 0.10, tax_amount: 7}]}, items: [{item_key: fee1, item_id: f1, fee: {amount_cents: 300, precise_amount_cents: 300, precise_coupons_amount_cents: 0}}, {item_key: fee2, item_id: f2, fee: {amount_cents: 700, precise_amount_cents: 700, precise_coupons_amount_cents: 0}}]}
+    want: [{breakdown: [{allocated_amount_cents: 2, tax_amount: 2.1}]}, {breakdown: [{allocated_amount_cents: 5, tax_amount: 4.9}]}]
+
+  - name: jurisdiction totals reconcile while the exact shares are kept
+    source: spec/services/integrations/aggregator/taxes/invoices/charge_fee_group_spec.rb:100
+    op: split_provider_taxes
+    input: {group: {tax_amount_cents: 8, breakdown: [{name: State, type: tax, rate: 0.025, tax_amount: 2.5}, {name: County, type: tax, rate: 0.025, tax_amount: 2.5}, {name: City, type: tax, rate: 0.025, tax_amount: 2.5}]}, items: [{item_key: fee1, item_id: f1, fee: {amount_cents: 300, precise_amount_cents: 300, precise_coupons_amount_cents: 0}}, {item_key: fee2, item_id: f2, fee: {amount_cents: 700, precise_amount_cents: 700, precise_coupons_amount_cents: 0}}]}
+    want: [{tax_amount_cents: 3, breakdown: [{name: State, allocated_amount_cents: 1, tax_amount: 0.75}, {name: County, allocated_amount_cents: 1, tax_amount: 0.75}, {name: City, allocated_amount_cents: 1, tax_amount: 0.75}]}, {tax_amount_cents: 5, breakdown: [{name: State, allocated_amount_cents: 2, tax_amount: 1.75}, {name: County, allocated_amount_cents: 2, tax_amount: 1.75}, {name: City, allocated_amount_cents: 1, tax_amount: 1.75}]}]
+
+  - name: a reduced taxable proportion is kept
+    source: spec/services/integrations/aggregator/taxes/invoices/charge_fee_group_spec.rb:112
+    op: split_provider_taxes
+    input: {group: {item_code: metric_code, tax_amount_cents: 80, breakdown: [{name: VAT, type: tax, rate: 0.10, tax_amount: 80}]}, items: [{item_key: fee1, item_id: f1, fee: {amount_cents: 300, precise_amount_cents: 300, precise_coupons_amount_cents: 0}}, {item_key: fee2, item_id: f2, fee: {amount_cents: 700, precise_amount_cents: 700, precise_coupons_amount_cents: 0}}]}
+    want: [{breakdown: [{tax_amount: 24}]}, {breakdown: [{tax_amount: 56}]}]
+
+  - name: a special taxation type splits without dividing by the rate
+    source: spec/services/integrations/aggregator/taxes/invoices/charge_fee_group_spec.rb:124
+    op: split_provider_taxes
+    input: {group: {tax_amount_cents: 0, breakdown: [{name: Reverse charge, type: exempt, rate: 0, tax_amount: 0}]}, items: [{item_key: fee1, item_id: f1, fee: {amount_cents: 300, precise_amount_cents: 300, precise_coupons_amount_cents: 0}}, {item_key: fee2, item_id: f2, fee: {amount_cents: 700, precise_amount_cents: 700, precise_coupons_amount_cents: 0}}]}
+    want: [{tax_amount_cents: 0, breakdown: [{tax_amount: 0}]}, {tax_amount_cents: 0, breakdown: [{tax_amount: 0}]}]
+
+  - name: no breakdown keeps a zero-tax result for every fee
+    source: spec/services/integrations/aggregator/taxes/invoices/charge_fee_group_spec.rb:133
+    op: split_provider_taxes
+    input: {group: {tax_amount_cents: 0, breakdown: []}, items: [{item_key: fee1, item_id: f1, fee: {amount_cents: 300, precise_amount_cents: 300, precise_coupons_amount_cents: 0}}, {item_key: fee2, item_id: f2, fee: {amount_cents: 700, precise_amount_cents: 700, precise_coupons_amount_cents: 0}}]}
+    want: [{item_id: f1, breakdown: [], tax_amount_cents: 0}, {item_id: f2, breakdown: [], tax_amount_cents: 0}]
+
+  - name: coupons cancelling the whole group give zero taxes
+    source: spec/services/integrations/aggregator/taxes/invoices/charge_fee_group_spec.rb:144
+    op: split_provider_taxes
+    input: {group: {item_code: metric_code, tax_amount_cents: 100, breakdown: [{name: VAT, type: tax, rate: 0.10, tax_amount: 100}]}, items: [{item_key: fee1, item_id: f1, fee: {amount_cents: 300, precise_amount_cents: 300, precise_coupons_amount_cents: 300}}, {item_key: fee2, item_id: f2, fee: {amount_cents: 700, precise_amount_cents: 700, precise_coupons_amount_cents: 700}}]}
+    want: [{tax_amount_cents: 0}, {tax_amount_cents: 0}]
+
+skipped:
+  - source: spec/services/fees/apply_provider_taxes_service_spec.rb:184
+    reason: >-
+      Fees that already carry applied taxes are left alone by ComputeInvoiceAmounts
+      (covered in invoice_taxes.yaml); ApplyProviderFeeTaxes has no persistence guard.
+  - source: spec/services/integrations/aggregator/taxes/invoices/charge_fee_group_spec.rb:48
+    reason: The provider request payload (summed units, charge identity) is built by the provider client, not here.
+  - source: spec/services/integrations/aggregator/taxes/invoices/charge_fee_group_spec.rb:59
+    reason: The provider request payload is built by the provider client, not here.
+  - source: spec/services/integrations/aggregator/taxes/invoices/create_service_spec.rb
+    reason: >-
+      HTTP requests, request payloads, integration customers, webhooks and error
+      responses belong to the provider clients; only the breakdown mapping is ported.
+  - source: spec/services/integrations/aggregator/taxes/invoices/create_draft_service_spec.rb
+    reason: >-
+      HTTP requests, the draft taxes cache and request payloads belong to the
+      provider clients; only the breakdown mapping is ported.
