@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/money"
+	"github.com/tanvoxyz/tanvo/libs/period"
 )
 
 // AggregationType is how a billable metric aggregates its events.
@@ -84,6 +85,13 @@ type Request struct {
 	// PeriodDays is the full duration of the charges period in days,
 	// which prorated and time-weighted values are measured against.
 	PeriodDays int `json:"period_days,omitempty"`
+	// DaysTo is the end the billed days are counted to, for the persisted
+	// units of prorated charges and for pay-in-advance events: the
+	// termination instant when the subscription was terminated at the end
+	// of this period, so that a termination at local midnight bills the day
+	// it ends on (lago Utils::Datetime.date_diff_with_timezone, whose
+	// to_datetime is terminated_at). Zero means To.
+	DaysTo time.Time `json:"days_to,omitzero"`
 	// Location is the customer's time zone. Nil means UTC.
 	Location *time.Location `json:"-"`
 	// MaxTimestamp, when set, caps the events read (the timestamp of the
@@ -255,6 +263,9 @@ func (a *aggregator) query() Query {
 	switch r.Metric.Aggregation {
 	case AggregationSum, AggregationMax, AggregationLatest, AggregationWeightedSum:
 		q.Numeric = true
+	}
+	if r.Prorated {
+		q = a.proratedQuery(q)
 	}
 	return q
 }
@@ -483,8 +494,7 @@ func DateDiff(from, to time.Time, loc *time.Location) int {
 	if loc == nil {
 		loc = time.UTC
 	}
-	local := to.In(loc)
-	if y, m, d := local.Date(); local.Equal(time.Date(y, m, d, 0, 0, 0, 0, loc)) {
+	if to.Equal(period.StartOfDay(to, loc)) {
 		to = to.Add(time.Second)
 	}
 	_, fromOffset := from.In(loc).Zone()
@@ -502,11 +512,19 @@ func DateDiff(from, to time.Time, loc *time.Location) int {
 // units: the last day of a period ended by an upgrade is billed by the new
 // subscription.
 func (a *aggregator) billedDays() int {
-	n := DateDiff(a.req.From, a.req.To, a.req.Location)
+	n := DateDiff(a.req.From, a.daysTo(), a.req.Location)
 	if a.req.TerminatedByUpgrade {
 		n = max(n-1, 0)
 	}
 	return n
+}
+
+// daysTo returns the end billed days are counted to (see [Request.DaysTo]).
+func (a *aggregator) daysTo() time.Time {
+	if a.req.DaysTo.IsZero() {
+		return a.req.To
+	}
+	return a.req.DaysTo
 }
 
 func (a *aggregator) period() (money.Decimal, error) {

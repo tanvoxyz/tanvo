@@ -19,6 +19,23 @@ func (a *aggregator) currentQuery() Query {
 	return q
 }
 
+// proratedQuery returns q of a prorated charge measuring prorated days to
+// [Request.DaysTo] when it ends after To, the events read still ending at
+// To (Until): an event at the termination instant belongs to no period,
+// but a termination at local midnight bills the day it ends on, as lago's
+// date_diff_with_timezone and prorated SQL measure to terminated_at
+// (app/services/subscriptions/dates_service.rb:125).
+func (a *aggregator) proratedQuery(q Query) Query {
+	if !a.req.DaysTo.After(q.To) {
+		return q
+	}
+	if q.Until.IsZero() {
+		q.Until = q.To
+	}
+	q.To = a.req.DaysTo
+	return q
+}
+
 // billsFullAmount reports a pay-in-advance charge billed at the end of the
 // period, which bills its full units without proration.
 func (a *aggregator) billsFullAmount() bool {
@@ -245,7 +262,7 @@ func (a *aggregator) proratedPayInAdvance(base Result, r *Result) (money.Decimal
 	if err != nil {
 		return money.Zero, err
 	}
-	days := DateDiff(a.req.Event.Timestamp, a.req.To, a.req.Location)
+	days := DateDiff(a.req.Event.Timestamp, a.daysTo(), a.req.Location)
 	v := ceil5(full.Mul(money.NewFromInt(int64(days)).Div(period)))
 
 	r.MaxAggregation = base.MaxAggregation

@@ -207,7 +207,10 @@ func action(v money.Decimal) string {
 
 func (a *aggregator) sumBreakdown() ([]BreakdownItem, error) {
 	loc := a.query().location()
-	from, to := DateOf(a.req.From, loc), DateOf(a.req.To, loc)
+	// The durations run to the day of the end the billed days are counted
+	// to, the termination instant when the period was cut by one (lago
+	// to_date_in_customer_timezone of to_datetime, sum_service.rb:23).
+	from, to := DateOf(a.req.From, loc), DateOf(a.daysTo(), loc)
 	var items []BreakdownItem
 
 	q := a.historyQuery(0)
@@ -249,7 +252,10 @@ func (a *aggregator) uniqueCountBreakdown() ([]BreakdownItem, error) {
 		return nil, a.wrap("unique count intervals", err)
 	}
 	from := a.req.From
-	periodDays := money.NewFromInt(int64(roundDays(a.req.To.Sub(from))))
+	// lago measures the period as to_datetime − from_datetime
+	// (unique_count_service.rb:48), to_datetime being the termination
+	// instant when the period was cut by one.
+	periodDays := money.NewFromInt(int64(roundDays(a.daysTo().Sub(from))))
 	var items []BreakdownItem
 	for _, group := range groupBy(rows, func(r UniqueCountInterval) string { return r.Property }) {
 		first := group[0]
