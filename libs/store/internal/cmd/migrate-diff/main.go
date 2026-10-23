@@ -8,7 +8,11 @@
 //     planner (ariga.io/atlas, used as a library);
 //   - row-level security (ENABLE ROW LEVEL SECURITY and policies), which
 //     the open-source Atlas planner does not handle, by comparing
-//     pg_class.relrowsecurity and pg_policies.
+//     pg_class.relrowsecurity and pg_policies;
+//   - check constraints whose expression changed, which the Atlas planner
+//     misses: the plan is applied to a replay of the directory and the
+//     checks still differing from schema/ are dropped and recreated. Any
+//     other constraint or index still differing fails the run.
 //
 // Both sets of statements go into one new file migrations/<version>_<name>.sql,
 // and migrations/atlas.sum is rewritten. With -check it writes nothing and
@@ -135,6 +139,20 @@ func run() error {
 		return err
 	}
 	plan.Changes = append(plan.Changes, rls...)
+	// The Atlas planner misses some changes, such as a new expression of an
+	// existing check constraint. The plan is applied to the replayed
+	// database and what still differs from the schema is checked: checks
+	// are replaced, anything else fails.
+	for _, c := range plan.Changes {
+		if _, err := replayed.ExecContext(ctx, c.Cmd); err != nil {
+			return fmt.Errorf("apply planned statement %q: %w", c.Cmd, err)
+		}
+	}
+	residual, err := diffCatalog(ctx, replayed, desired)
+	if err != nil {
+		return err
+	}
+	plan.Changes = append(plan.Changes, residual...)
 
 	if *check {
 		if len(plan.Changes) > 0 {
@@ -324,6 +342,114 @@ func diffRLS(ctx context.Context, current, desired *sql.DB) ([]*migrate.Change, 
 		if p, ok := from.policies[key]; !ok || !p.equal(q) {
 			add(q.create(), fmt.Sprintf("create policy %q on table %q", q.name, q.table))
 		}
+	}
+	return out, nil
+}
+
+// catalog is the constraints and indexes of the tables of the public schema,
+// keyed by "table.name", with their definitions as PostgreSQL prints them.
+type catalog struct {
+	checks  map[string]string
+	others  map[string]string // primary key, unique, foreign key and exclusion constraints
+	indexes map[string]string
+}
+
+func readCatalog(ctx context.Context, db *sql.DB) (*catalog, error) {
+	c := &catalog{checks: map[string]string{}, others: map[string]string{}, indexes: map[string]string{}}
+	// NOT NULL constraints (contype 'n') follow the columns, which the
+	// planner handles.
+	rows, err := db.QueryContext(ctx, `SELECT t.relname, k.conname, k.contype, pg_get_constraintdef(k.oid)
+		FROM pg_constraint k
+		JOIN pg_class t ON t.oid = k.conrelid
+		JOIN pg_namespace n ON n.oid = t.relnamespace
+		WHERE n.nspname = 'public' AND k.contype IN ('c', 'p', 'u', 'f', 'x')`)
+	if err != nil {
+		return nil, fmt.Errorf("read constraints: %w", err)
+	}
+	for rows.Next() {
+		var table, name, kind, def string
+		if err := rows.Scan(&table, &name, &kind, &def); err != nil {
+			return nil, fmt.Errorf("read constraints: %w", err)
+		}
+		if kind == "c" {
+			c.checks[table+"."+name] = def
+		} else {
+			c.others[table+"."+name] = def
+		}
+	}
+	if err := errors.Join(rows.Err(), rows.Close()); err != nil {
+		return nil, fmt.Errorf("read constraints: %w", err)
+	}
+	rows, err = db.QueryContext(ctx, `SELECT tablename, indexname, indexdef FROM pg_indexes WHERE schemaname = 'public'`)
+	if err != nil {
+		return nil, fmt.Errorf("read indexes: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var table, name, def string
+		if err := rows.Scan(&table, &name, &def); err != nil {
+			return nil, fmt.Errorf("read indexes: %w", err)
+		}
+		c.indexes[table+"."+name] = def
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read indexes: %w", err)
+	}
+	return c, nil
+}
+
+// diffCatalog compares current, on which the plan has been applied, with
+// desired. It returns the statements that replace the check constraints
+// that still differ, and an error naming any other constraint or index
+// that differs, as no statement is generated for those.
+func diffCatalog(ctx context.Context, current, desired *sql.DB) ([]*migrate.Change, error) {
+	from, err := readCatalog(ctx, current)
+	if err != nil {
+		return nil, err
+	}
+	to, err := readCatalog(ctx, desired)
+	if err != nil {
+		return nil, err
+	}
+	var out []*migrate.Change
+	for _, key := range sortedKeys(from.checks) {
+		if def, ok := to.checks[key]; !ok || def != from.checks[key] {
+			table, name, _ := strings.Cut(key, ".")
+			out = append(out, &migrate.Change{
+				Cmd:     fmt.Sprintf("ALTER TABLE %s DROP CONSTRAINT %s", quote(table), quote(name)),
+				Comment: fmt.Sprintf("drop check %q of table %q", name, table),
+			})
+		}
+	}
+	for _, key := range sortedKeys(to.checks) {
+		if def, ok := from.checks[key]; !ok || def != to.checks[key] {
+			table, name, _ := strings.Cut(key, ".")
+			out = append(out, &migrate.Change{
+				Cmd:     fmt.Sprintf("ALTER TABLE %s ADD CONSTRAINT %s %s", quote(table), quote(name), to.checks[key]),
+				Comment: fmt.Sprintf("create check %q on table %q", name, table),
+			})
+		}
+	}
+	var missed []string
+	for _, kind := range []struct {
+		what     string
+		from, to map[string]string
+	}{{"constraint", from.others, to.others}, {"index", from.indexes, to.indexes}} {
+		for _, key := range sortedKeys(kind.from) {
+			if def, ok := kind.to[key]; !ok {
+				missed = append(missed, fmt.Sprintf("%s %s: not in schema/", kind.what, key))
+			} else if def != kind.from[key] {
+				missed = append(missed, fmt.Sprintf("%s %s: %s, schema/ has %s", kind.what, key, kind.from[key], def))
+			}
+		}
+		for _, key := range sortedKeys(kind.to) {
+			if _, ok := kind.from[key]; !ok {
+				missed = append(missed, fmt.Sprintf("%s %s: missing from migrations/", kind.what, key))
+			}
+		}
+	}
+	if len(missed) > 0 {
+		return nil, fmt.Errorf("the migration plan leaves differences it cannot repair; write them by hand:\n%s", strings.Join(missed, "\n"))
 	}
 	return out, nil
 }
