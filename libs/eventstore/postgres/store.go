@@ -30,6 +30,9 @@ type Store struct {
 	db  DB
 	now func() time.Time
 
+	// backfillChunk is the number of events a backfill transaction reads.
+	backfillChunk int
+
 	mu     sync.Mutex
 	months map[int]bool // months (year*12 + month) known to have partitions
 }
@@ -47,9 +50,19 @@ type Option func(*Store)
 // one.
 func WithClock(now func() time.Time) Option { return func(s *Store) { s.now = now } }
 
+// WithBackfillChunk sets the number of events each transaction of a
+// bucket backfill reads (see [Store.DefineBuckets]); 10,000 by default.
+func WithBackfillChunk(n int) Option {
+	return func(s *Store) {
+		if n > 0 {
+			s.backfillChunk = n
+		}
+	}
+}
+
 // New returns a store over db, whose schema [Migrate] applied.
 func New(db DB, opts ...Option) *Store {
-	s := &Store{db: db, now: time.Now, months: map[int]bool{}}
+	s := &Store{db: db, now: time.Now, backfillChunk: 10_000, months: map[int]bool{}}
 	for _, o := range opts {
 		o(s)
 	}
@@ -213,16 +226,26 @@ func (s *Store) Write(ctx context.Context, events []metering.Event) ([]int, erro
 	accepted := make(map[ingest.TransactionKey]bool, len(kept))
 	err = s.withPartitions(ctx, kept, func() error {
 		clear(accepted)
-		r, err := s.db.Query(ctx, writeSQL, cols.args()...)
-		if err != nil {
+		return s.inTx(ctx, func(tx pgx.Tx) error {
+			buckets, err := lockBuckets(ctx, tx, cols)
+			if err != nil {
+				return err
+			}
+			sql := writeSQL
+			if buckets {
+				sql = writeBucketsSQL
+			}
+			r, err := tx.Query(ctx, sql, cols.args()...)
+			if err != nil {
+				return err
+			}
+			var k ingest.TransactionKey
+			_, err = pgx.ForEachRow(r, []any{&k.OrganizationID, &k.TransactionID}, func() error {
+				accepted[k] = true
+				return nil
+			})
 			return err
-		}
-		var k ingest.TransactionKey
-		_, err = pgx.ForEachRow(r, []any{&k.OrganizationID, &k.TransactionID}, func() error {
-			accepted[k] = true
-			return nil
 		})
-		return err
 	})
 	if err != nil {
 		return nil, fmt.Errorf("eventstore: postgres: write: %w", err)
@@ -251,8 +274,28 @@ func (s *Store) Replace(ctx context.Context, events []metering.Event) error {
 		return err
 	}
 	err = s.withPartitions(ctx, rows, func() error {
-		_, err := s.db.Exec(ctx, replaceSQL, cols.args()...)
-		return err
+		return s.inTx(ctx, func(tx pgx.Tx) error {
+			buckets, err := lockBuckets(ctx, tx, cols)
+			if err != nil {
+				return err
+			}
+			if _, err := tx.Exec(ctx, replaceSQL, cols.args()...); err != nil {
+				return err
+			}
+			if !buckets {
+				return nil
+			}
+			// A replaced copy may leave its bucket row (other dimension
+			// values, a value no longer numeric) and take back a maximum
+			// or a latest value: the touched buckets are aggregated again.
+			if _, err := tx.Exec(ctx, deleteTouchedSQL, cols.lockArgs()...); err != nil {
+				return fmt.Errorf("delete buckets: %w", err)
+			}
+			if _, err := tx.Exec(ctx, recomputeTouchedSQL, cols.lockArgs()...); err != nil {
+				return fmt.Errorf("recompute buckets: %w", err)
+			}
+			return nil
+		})
 	})
 	if err != nil {
 		return fmt.Errorf("eventstore: postgres: replace: %w", err)

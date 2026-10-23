@@ -98,6 +98,68 @@ BEGIN
 END
 $$;
 
+-- Usage bucket definitions: the buckets the store maintains for an
+-- organization's billable metric code (see metering.BucketDefinition). A
+-- definition is inserted not ready, which makes every writer maintain its
+-- buckets, then backfilled in chunks, then marked ready for reads.
+CREATE TABLE IF NOT EXISTS usage_bucket_definitions (
+    organization_id text NOT NULL,
+    code text NOT NULL,
+    definition_id text NOT NULL,
+    -- The aggregated property; '' for buckets counting events only.
+    property text NOT NULL,
+    -- The properties the rows keep apart, sorted.
+    dimensions text[] NOT NULL,
+    -- Per folded dimension, its declared values: the rows keep the others
+    -- as one value (metering.BucketOtherValue).
+    fold jsonb NOT NULL DEFAULT '{}',
+    -- Whether the buckets hold every stored event, so reads may use them.
+    ready boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (organization_id, code, definition_id)
+);
+
+-- The 15-minute usage buckets: per external subscription, code,
+-- definition, UTC bucket and combination of dimension values, the totals
+-- of the events. Maintained in the transaction of every write.
+CREATE TABLE IF NOT EXISTS usage_buckets (
+    organization_id text NOT NULL,
+    subscription_id text NOT NULL,
+    code text NOT NULL,
+    definition_id text NOT NULL,
+    bucket timestamptz NOT NULL,
+    -- The dimension properties present on the events of the row, and the
+    -- SHA-256 of their canonical text, which keys the row: property values
+    -- may outgrow an index entry.
+    dimensions jsonb NOT NULL,
+    dimensions_hash bytea NOT NULL,
+    -- Every event of the row.
+    events_count bigint NOT NULL,
+    precise_total_amount_cents numeric NOT NULL,
+    last_event_at timestamptz NOT NULL,
+    last_ingested_at timestamptz NOT NULL,
+    -- The events carrying a numeric value of the property.
+    value_count bigint NOT NULL,
+    units numeric NOT NULL,
+    max_value numeric,
+    latest_value numeric,
+    latest_at timestamptz,
+    latest_sequence bigint,
+    value_precise_total_amount_cents numeric NOT NULL,
+    target_wallet_code text GENERATED ALWAYS AS (dimensions->>'target_wallet_code') STORED,
+    PRIMARY KEY (organization_id, subscription_id, code, definition_id, bucket, dimensions_hash)
+);
+
+-- The properties among keys, as a JSON object of strings, with the values
+-- of a folded key its fold does not declare replaced by one value.
+CREATE OR REPLACE FUNCTION usage_bucket_dimensions(props jsonb, keys text[], fold jsonb) RETURNS jsonb
+LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
+    SELECT coalesce(jsonb_object_agg(k,
+        CASE WHEN fold ? k AND props->>k <> '' AND NOT (fold->k ? (props->>k))
+            THEN to_jsonb('__tanvo_other_value__'::text) ELSE props->k END
+    ) FILTER (WHERE props ? k), '{}'::jsonb) FROM unnest(keys) AS k
+$$;
+
 -- Drops the monthly partitions of events ending before the given time (a
 -- retention policy). The ledger keeps the transaction IDs. Returns the
 -- number of months dropped.
@@ -117,6 +179,11 @@ BEGIN
         IF part.bound LIKE 'FOR VALUES FROM%'
             AND substring(part.bound FROM 'TO \(''([^'']+)''\)')::timestamptz <= before THEN
             EXECUTE format('DROP TABLE %s', part.name);
+            -- The usage buckets of the dropped events go with them: a
+            -- month starts and ends on bucket boundaries.
+            DELETE FROM usage_buckets
+            WHERE bucket >= substring(part.bound FROM 'FROM \(''([^'']+)''\)')::timestamptz
+                AND bucket < substring(part.bound FROM 'TO \(''([^'']+)''\)')::timestamptz;
             dropped := dropped + 1;
         END IF;
     END LOOP;

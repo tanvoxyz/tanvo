@@ -336,7 +336,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Store queries: count, sum, max, latest, unique count, weighted sum, grouped, prorated, breakdown, last event, distinct values | `app/services/events/stores/base_store.rb` | libs/eventstore | logic done | |
 | Billing-period filters on store queries | `app/services/events/stores/` | libs/eventstore | logic done | |
 | ClickHouse raw, enriched and dead-letter tables | `db/clickhouse_migrate/` | libs/eventstore | planned | |
-| Pre-aggregated usage buckets (15 minutes in Lago) | `app/models/clickhouse/usage_bucket.rb`, `app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | planned | 15-minute buckets built by Tanvo itself (§3); units, events count, precise total amount (serves dynamic charges), last event and ingestion instants, target wallet code; in-advance, prorated, recurring and target-wallet charges read the events |
+| Pre-aggregated usage buckets (15 minutes in Lago) | `app/models/clickhouse/usage_bucket.rb`, `app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | logic done | 15-minute buckets keyed by dimension values, maintained in the event write on PostgreSQL and ClickHouse; exact window edges read from the events; undeclared filter values folded; in-advance, prorated, recurring and target-wallet charges read the events; `RepairBuckets` and `BucketStats` still need their periodic jobs (apps/server) |
 | Cached aggregations for recurring metrics | `app/models/cached_aggregation.rb` | libs/metering | logic done | |
 
 ### 1.19 Usage
@@ -349,7 +349,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Usage filters (by metric, by filter, full usage) | `app/services/invoices/customer_usage_service.rb` | libs/billing | planned | |
 | Charge-level usage cache | `app/services/subscriptions/charge_cache_service.rb` | libs/billing | planned | Lazy validation: entries carry the latest ingested event and are recomputed when a newer one exists, never deleted on ingest; full usage has its own key |
 | Realtime usage refresh | `app/services/subscriptions/` (`realtime_usage`) | libs/billing | planned | Usage buckets make it the default |
-| Hourly usage breakdown | `app/graphql/resolvers/subscriptions/hourly_usage_resolver.rb` | libs/eventstore | planned | |
+| Hourly usage breakdown | `app/graphql/resolvers/subscriptions/hourly_usage_resolver.rb` | libs/metering | logic done | Series built from the charge filters (`HourlySeriesFor`), other values under `__other__`; the window starts no earlier than the subscription |
 | Lifetime usage (historical, invoiced, current) | `app/models/lifetime_usage.rb`, `app/services/lifetime_usages/` | libs/billing | planned | |
 | External historical usage amount | `app/controllers/api/v1/subscriptions/lifetime_usages_controller.rb` | libs/billing | planned | |
 | Lifetime usage refresh | `app/jobs/clock/refresh_lifetime_usages_job.rb` | libs/billing | planned | |
@@ -592,7 +592,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Threshold top-ups with backoff | `app/services/wallets/threshold_top_up_service.rb` | libs/billing | planned | |
 | Termination of expired rules | `app/jobs/clock/terminate_recurring_transaction_rules_job.rb` | libs/billing | planned | |
 | Ongoing balance from current usage, cascaded across wallets | `app/services/wallets/balance/refresh_ongoing_usage_service.rb`, `app/services/wallets/balance/allocate_ongoing_usage_by_wallets_service.rb` | libs/billing | planned | Application order, each wallet up to its balance, overflow on the last; a threshold-rule wallet absorbs all |
-| Ongoing balance refresh | `app/jobs/clock/refresh_wallets_ongoing_balance_job.rb`, `app/services/wallets/realtime_refresh_service.rb` | libs/billing | planned | Also from usage refresh signals, waiting up to 5 s for the bucket watermark; the 5-minute sweep stays authoritative |
+| Ongoing balance refresh | `app/jobs/clock/refresh_wallets_ongoing_balance_job.rb`, `app/services/wallets/realtime_refresh_service.rb` | libs/billing | planned | Also from usage refresh signals, sent once the buckets are stored; the 5-minute sweep stays authoritative |
 | Wallet expiration | `app/jobs/clock/terminate_wallets_job.rb` | libs/billing | planned | |
 | Payment URL for a wallet transaction | `app/services/wallet_transactions/payments/generate_payment_url_service.rb` | libs/billing | planned | |
 | Wallet and transaction metadata (at most 15 keys) | `app/models/metadata/` | libs/billing | planned | |

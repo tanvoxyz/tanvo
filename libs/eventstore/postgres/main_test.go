@@ -83,7 +83,7 @@ func database(t testing.TB) *pgxpool.Pool {
 
 func truncate(t testing.TB) {
 	t.Helper()
-	if _, err := testDB.pool.Exec(context.Background(), "TRUNCATE events, event_transactions"); err != nil {
+	if _, err := testDB.pool.Exec(context.Background(), "TRUNCATE events, event_transactions, usage_buckets, usage_bucket_definitions"); err != nil {
 		t.Fatal(err)
 	}
 }

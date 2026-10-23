@@ -137,7 +137,7 @@ func (s *Store) known(ctx context.Context, rows []ingest.Row) (map[ingest.Transa
 const lookupChunk = 2000
 
 func (s *Store) lookup(ctx context.Context, org string, ids []any, out map[ingest.TransactionKey]bool) error {
-	r, err := s.conn.Query(ctx, `SELECT DISTINCT transaction_id FROM events_raw WHERE organization_id = $1 AND transaction_id IN $2`,
+	r, err := s.conn.Query(consistent(ctx), `SELECT DISTINCT transaction_id FROM events_raw WHERE organization_id = $1 AND transaction_id IN $2`,
 		org, ch.GroupSet{Value: ids})
 	if err != nil {
 		return err
@@ -165,16 +165,31 @@ func (s *Store) Write(ctx context.Context, events []metering.Event) ([]int, erro
 		if err != nil {
 			return nil, fmt.Errorf("eventstore: clickhouse: write: %w", err)
 		}
-		accepted := kept[:0]
+		var accepted, seen []ingest.Row
 		for _, r := range kept {
 			if known[ingest.TransactionKeyOf(r.Event)] {
 				duplicates = append(duplicates, r.Position)
+				seen = append(seen, r)
 			} else {
 				accepted = append(accepted, r)
 			}
 		}
-		if len(accepted) > 0 {
-			if err := s.insert(ctx, s.rows(accepted)); err != nil {
+		stored := s.rows(accepted)
+		if len(stored) > 0 {
+			if err := s.insert(consistent(ctx), stored); err != nil {
+				return nil, fmt.Errorf("eventstore: clickhouse: write: %w", err)
+			}
+		}
+		// The buckets of the events already in the ledger are maintained
+		// too: a write that failed after its insert left them stale, and
+		// its retry finds its events there. Recomputing a bucket is
+		// idempotent.
+		touched := stored
+		for _, r := range seen {
+			touched = append(touched, row{Row: r})
+		}
+		if len(touched) > 0 {
+			if err := s.maintain(ctx, touched, false); err != nil {
 				return nil, fmt.Errorf("eventstore: clickhouse: write: %w", err)
 			}
 		}
@@ -193,7 +208,14 @@ func (s *Store) Replace(ctx context.Context, events []metering.Event) error {
 	if len(rows) == 0 {
 		return nil
 	}
-	if err := s.insert(ctx, s.rows(rows)); err != nil {
+	stored := s.rows(rows)
+	if err := s.insert(consistent(ctx), stored); err != nil {
+		return fmt.Errorf("eventstore: clickhouse: replace: %w", err)
+	}
+	// A replaced copy may move to other dimension values and take back a
+	// maximum or a latest value: its buckets are recomputed, and their rows
+	// it left tombstoned.
+	if err := s.maintain(ctx, stored, true); err != nil {
 		return fmt.Errorf("eventstore: clickhouse: replace: %w", err)
 	}
 	return nil

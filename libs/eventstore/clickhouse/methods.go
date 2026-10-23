@@ -19,8 +19,11 @@ func wrap(method string, err error) error {
 }
 
 // each runs the statement and calls fn after scanning each row into dest.
+// Reads are sequentially consistent on replicated tables (see
+// [consistent]), so a replica that lags behind does not answer billing or
+// deduplication without the events and buckets a quorum acknowledged.
 func (s *Store) each(ctx context.Context, sql string, a args, dest []any, fn func() error) error {
-	rows, err := s.conn.Query(ctx, sql, a...)
+	rows, err := s.conn.Query(consistent(ctx), sql, a...)
 	if err != nil {
 		return err
 	}
@@ -69,7 +72,7 @@ func (s *Store) Count(ctx context.Context, q metering.Query) (int64, error) {
 		return 0, wrap("count", err)
 	}
 	var n int64
-	err = s.conn.QueryRow(ctx, sel.with("SELECT toInt64(count()) FROM sel"), sel.args...).Scan(&n)
+	err = s.conn.QueryRow(consistent(ctx), sel.with("SELECT toInt64(count()) FROM sel"), sel.args...).Scan(&n)
 	return n, wrap("count", err)
 }
 

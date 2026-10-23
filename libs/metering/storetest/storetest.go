@@ -31,6 +31,10 @@ const (
 // ingestion order when their IngestedAt is not set).
 type NewStore func(t *testing.T, events []metering.Event) metering.Store
 
+// NewCaseStore is a [NewStore] told the case it serves, as a store
+// maintaining usage buckets needs to know which (see [BucketDefinitions]).
+type NewCaseStore func(t *testing.T, c Case, events []metering.Event) metering.Store
+
 // File is a set of cases ported from one source.
 type File struct {
 	// Fixtures are named event lists cases can start from.
@@ -138,6 +142,12 @@ func Cases() (map[string][]Case, error) {
 // [metering.MemoryStore] does.
 func Run(t *testing.T, newStore NewStore) {
 	t.Helper()
+	RunCases(t, func(t *testing.T, _ Case, events []metering.Event) metering.Store { return newStore(t, events) })
+}
+
+// RunCases is [Run] with a store factory told the case.
+func RunCases(t *testing.T, newStore NewCaseStore) {
+	t.Helper()
 	files, err := Cases()
 	if err != nil {
 		t.Fatal(err)
@@ -156,7 +166,7 @@ func Run(t *testing.T, newStore NewStore) {
 	}
 }
 
-func runCase(t *testing.T, newStore NewStore, c Case) {
+func runCase(t *testing.T, newStore NewCaseStore, c Case) {
 	t.Helper()
 	loc := time.UTC
 	if c.Location != "" {
@@ -179,7 +189,7 @@ func runCase(t *testing.T, newStore NewStore, c Case) {
 		}
 		events[i] = e
 	}
-	store := newStore(t, events)
+	store := newStore(t, c, events)
 	ctx := context.Background()
 
 	request := func(r metering.Request) metering.Request {

@@ -137,6 +137,14 @@ type Request struct {
 
 	// Cache holds the cached aggregations of the charge; nil means none.
 	Cache CachedAggregations `json:"-"`
+
+	// UsageBuckets lets [Aggregate] answer from the usage buckets of a
+	// store that is also a [BucketReader], for a charge billing found
+	// servable (see [BucketServable]): count, sum, max and latest
+	// aggregations of non-recurring metrics, not prorated, not billed in
+	// advance. The answer is the one of the events; buckets only make it
+	// cheaper.
+	UsageBuckets bool `json:"usage_buckets,omitempty"`
 }
 
 // Result is the outcome of an aggregation. With [Request.GroupBy], the
@@ -401,8 +409,14 @@ func (a *aggregator) roundAll(r *Result) {
 	a.round(r)
 }
 
-// Aggregate aggregates the events of the request read from the store.
+// Aggregate aggregates the events of the request read from the store. With
+// [Request.UsageBuckets] and a store that is also a [BucketReader], the
+// whole buckets of the window are read from the usage buckets (see
+// [UsageBucketStore]).
 func Aggregate(ctx context.Context, store Store, req Request) (Result, error) {
+	if br, ok := store.(BucketReader); ok && bucketRequest(req) {
+		store = NewUsageBucketStore(store, br)
+	}
 	a := newAggregator(ctx, store, req)
 	var (
 		r   Result

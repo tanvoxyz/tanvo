@@ -336,7 +336,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 存储查询：计数、求和、最大值、最新值、唯一计数、加权求和、分组、按比例、明细、最后一个事件、不同取值 | `app/services/events/stores/base_store.rb` | libs/eventstore | 逻辑已完成 | |
 | 存储查询上的计费周期过滤 | `app/services/events/stores/` | libs/eventstore | 逻辑已完成 | |
 | ClickHouse 原始表、富化表与死信表 | `db/clickhouse_migrate/` | libs/eventstore | 计划中 | |
-| 预聚合用量桶（Lago 中为 15 分钟） | `app/models/clickhouse/usage_bucket.rb`、`app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | 计划中 | 由 Tanvo 自己构建的 15 分钟桶（§3）；单位数、事件数、精确总金额（用于 dynamic 计费项）、最后事件与摄取时刻、目标钱包代码；预付、按比例、周期性和目标钱包计费项读取事件 |
+| 预聚合用量桶（Lago 中为 15 分钟） | `app/models/clickhouse/usage_bucket.rb`、`app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | 逻辑已完成 | 按维度取值分桶的 15 分钟桶，在 PostgreSQL 与 ClickHouse 上于事件写入时维护；窗口边界精确地从事件读取；未声明的过滤值被折叠；预付、按比例、周期性和目标钱包计费项读取事件；`RepairBuckets` 与 `BucketStats` 仍需各自的周期任务（apps/server） |
 | 循环指标的缓存聚合 | `app/models/cached_aggregation.rb` | libs/metering | 逻辑已完成 | |
 
 ### 1.19 用量
@@ -349,7 +349,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 用量过滤（按指标、按过滤器、完整用量） | `app/services/invoices/customer_usage_service.rb` | libs/billing | 计划中 | |
 | 计费项级的用量缓存 | `app/services/subscriptions/charge_cache_service.rb` | libs/billing | 计划中 | 惰性校验：条目携带最新已摄取事件，存在更新事件时重新计算，摄取时从不删除；全量用量有单独的键 |
 | 实时用量刷新 | `app/services/subscriptions/`（`realtime_usage`） | libs/billing | 计划中 | 有了用量桶，这成为默认行为 |
-| 按小时的用量明细 | `app/graphql/resolvers/subscriptions/hourly_usage_resolver.rb` | libs/eventstore | 计划中 | |
+| 按小时的用量明细 | `app/graphql/resolvers/subscriptions/hourly_usage_resolver.rb` | libs/metering | 逻辑已完成 | 序列由计费项过滤器构建（`HourlySeriesFor`），其他取值归入 `__other__`；窗口不早于订阅开始 |
 | 生命周期用量（历史、已开票、当前） | `app/models/lifetime_usage.rb`、`app/services/lifetime_usages/` | libs/billing | 计划中 | |
 | 外部历史用量金额 | `app/controllers/api/v1/subscriptions/lifetime_usages_controller.rb` | libs/billing | 计划中 | |
 | 生命周期用量刷新 | `app/jobs/clock/refresh_lifetime_usages_job.rb` | libs/billing | 计划中 | |
@@ -592,7 +592,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 带退避的按阈值充值 | `app/services/wallets/threshold_top_up_service.rb` | libs/billing | 计划中 | |
 | 终止已过期的规则 | `app/jobs/clock/terminate_recurring_transaction_rules_job.rb` | libs/billing | 计划中 | |
 | 由当前用量得出的实时余额，跨钱包级联 | `app/services/wallets/balance/refresh_ongoing_usage_service.rb`、`app/services/wallets/balance/allocate_ongoing_usage_by_wallets_service.rb` | libs/billing | 计划中 | 按应用顺序，每个钱包最多取到其余额，溢出由最后一个承担；有阈值规则的钱包承担全部 |
-| 实时余额刷新 | `app/jobs/clock/refresh_wallets_ongoing_balance_job.rb`、`app/services/wallets/realtime_refresh_service.rb` | libs/billing | 计划中 | 也由用量刷新信号触发，最多等待 5 秒让桶达到水位；5 分钟的全量扫描仍是权威来源 |
+| 实时余额刷新 | `app/jobs/clock/refresh_wallets_ongoing_balance_job.rb`、`app/services/wallets/realtime_refresh_service.rb` | libs/billing | 计划中 | 也由用量刷新信号触发，信号在用量桶存储之后发出；5 分钟的全量扫描仍是权威来源 |
 | 钱包过期 | `app/jobs/clock/terminate_wallets_job.rb` | libs/billing | 计划中 | |
 | 钱包交易的付款 URL | `app/services/wallet_transactions/payments/generate_payment_url_service.rb` | libs/billing | 计划中 | |
 | 钱包与交易元数据（最多 15 个键） | `app/models/metadata/` | libs/billing | 计划中 | |

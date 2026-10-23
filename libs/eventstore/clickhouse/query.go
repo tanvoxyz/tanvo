@@ -108,35 +108,7 @@ func newSelection(q metering.Query) (*selection, error) {
 		}
 	}
 
-	for _, k := range slices.Sorted(maps.Keys(q.GroupValues)) {
-		v := ""
-		if q.GroupValues[k] != nil {
-			v = *q.GroupValues[k]
-		}
-		where = append(where, fmt.Sprintf("properties[%s] = %s", a.add(k), a.add(v)))
-	}
-	for _, k := range slices.Sorted(maps.Keys(q.Filter.Matching)) {
-		values := q.Filter.Matching[k]
-		if len(values) == 0 {
-			where = append(where, "false")
-			continue
-		}
-		key := a.add(k)
-		where = append(where, fmt.Sprintf("(mapContains(properties, %[1]s) AND has(%[2]s, properties[%[1]s]))", key, a.add(values)))
-	}
-	for _, clause := range q.Filter.Ignored {
-		var and []string
-		for _, k := range slices.Sorted(maps.Keys(clause)) {
-			values := clause[k]
-			if len(values) == 0 {
-				continue
-			}
-			and = append(and, fmt.Sprintf("has(%s, properties[%s])", a.add(values), a.add(k)))
-		}
-		if len(and) > 0 {
-			where = append(where, "NOT ("+strings.Join(and, " AND ")+")")
-		}
-	}
+	where = append(where, filterConditions(a, "properties", q)...)
 	filter := ""
 	if len(where) > 0 {
 		filter = "WHERE " + strings.Join(where, "\n\t\tAND ")
@@ -188,4 +160,41 @@ func prefixList(items []string) string {
 		return ""
 	}
 	return strings.Join(items, ", ") + ","
+}
+
+// filterConditions returns the conditions of the pricing group values and
+// the charge filter of a query on the map col: the properties of the
+// events, or the dimensions of the usage buckets.
+func filterConditions(a *args, col string, q metering.Query) []string {
+	var where []string
+	for _, k := range slices.Sorted(maps.Keys(q.GroupValues)) {
+		v := ""
+		if q.GroupValues[k] != nil {
+			v = *q.GroupValues[k]
+		}
+		where = append(where, fmt.Sprintf("%s[%s] = %s", col, a.add(k), a.add(v)))
+	}
+	for _, k := range slices.Sorted(maps.Keys(q.Filter.Matching)) {
+		values := q.Filter.Matching[k]
+		if len(values) == 0 {
+			where = append(where, "false")
+			continue
+		}
+		key := a.add(k)
+		where = append(where, fmt.Sprintf("(mapContains(%[3]s, %[1]s) AND has(%[2]s, %[3]s[%[1]s]))", key, a.add(values), col))
+	}
+	for _, clause := range q.Filter.Ignored {
+		var and []string
+		for _, k := range slices.Sorted(maps.Keys(clause)) {
+			values := clause[k]
+			if len(values) == 0 {
+				continue
+			}
+			and = append(and, fmt.Sprintf("has(%s, %s[%s])", a.add(values), col, a.add(k)))
+		}
+		if len(and) > 0 {
+			where = append(where, "NOT ("+strings.Join(and, " AND ")+")")
+		}
+	}
+	return where
 }

@@ -15,6 +15,11 @@
 // define the semantics of every query against the reference
 // [metering.MemoryStore].
 //
+// Both also maintain the usage buckets of [BucketDefiner] definitions with
+// every write and implement [metering.BucketReader] over them; package
+// metering answers eligible aggregations from them through
+// [metering.UsageBucketStore], with the results of the events.
+//
 // # Deduplication
 //
 // Ingestion deduplicates by (organization, transaction ID): the first

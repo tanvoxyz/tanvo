@@ -1073,7 +1073,7 @@ On a draft invoice, a fee can be adjusted: display name only, units only (the pr
 Rules:
 * Terminating a wallet (manually or at `expiration_at`) terminates its recurring rules; no further transactions are accepted.
 * **Ongoing usage allocation**: the usage not yet invoiced (current usage, plus draft invoice fees after coupons, minus progressive-billing and paid in-advance fees, per fee key and currency) is spread over the customer's active wallets of that currency in the §22.7 order, honoring `allowed_fee_types` and `billable_metric_ids`. Each wallet takes up to its balance before the next is used; the last applicable wallet takes the overflow and may go negative. A wallet with an active threshold rule takes everything it is applicable to, so that its rule fires. Each wallet's ongoing balances are its balance minus its allocation.
-* Ongoing balances are refreshed from the usage refresh signals of ingestion, waiting up to 5 seconds for the usage buckets to reach the signal's event watermark, and by a 5-minute sweep that remains authoritative.
+* Ongoing balances are refreshed from the usage refresh signals of ingestion, which are sent once the events and their usage buckets are stored, and by a 5-minute sweep that remains authoritative.
 * `wallet.depleted_ongoing_balance` is emitted when the ongoing balance reaches 0.
 * Balances change only through transactions under the customer's `prepaid_credits` lock.
 

@@ -108,38 +108,7 @@ func newSelection(q metering.Query) (*selection, error) {
 		}
 	}
 
-	for _, k := range slices.Sorted(maps.Keys(q.GroupValues)) {
-		if v := q.GroupValues[k]; v != nil && *v != "" {
-			where = append(where, "e.properties @> "+a.add(jsonObject(k, *v))+"::jsonb")
-		} else {
-			where = append(where, "coalesce(e.properties->>"+a.text(k)+", '') = ''")
-		}
-	}
-	for _, k := range slices.Sorted(maps.Keys(q.Filter.Matching)) {
-		values := q.Filter.Matching[k]
-		if len(values) == 0 {
-			where = append(where, "false")
-			continue
-		}
-		var or []string
-		for _, v := range values {
-			or = append(or, "e.properties @> "+a.add(jsonObject(k, v))+"::jsonb")
-		}
-		where = append(where, "("+strings.Join(or, " OR ")+")")
-	}
-	for _, clause := range q.Filter.Ignored {
-		var and []string
-		for _, k := range slices.Sorted(maps.Keys(clause)) {
-			values := clause[k]
-			if len(values) == 0 {
-				continue
-			}
-			and = append(and, fmt.Sprintf("coalesce(e.properties->>%s, '') = ANY(%s::text[])", a.text(k), a.add(values)))
-		}
-		if len(and) > 0 {
-			where = append(where, "NOT ("+strings.Join(and, " AND ")+")")
-		}
-	}
+	where = append(where, filterConditions(a, "e.properties", q)...)
 
 	tz := a.text(calc.Location(q).String())
 	s.sql = fmt.Sprintf(`sel AS NOT MATERIALIZED (
@@ -189,4 +158,44 @@ func joinCols(cols ...[]string) string {
 		all = append(all, c...)
 	}
 	return strings.Join(all, ", ")
+}
+
+// filterConditions returns the conditions of the pricing group values and
+// the charge filter of a query on the JSON object col: the properties of
+// the events, or the dimensions of the usage buckets.
+func filterConditions(a *args, col string, q metering.Query) []string {
+	var where []string
+	for _, k := range slices.Sorted(maps.Keys(q.GroupValues)) {
+		if v := q.GroupValues[k]; v != nil && *v != "" {
+			where = append(where, col+" @> "+a.add(jsonObject(k, *v))+"::jsonb")
+		} else {
+			where = append(where, "coalesce("+col+"->>"+a.text(k)+", '') = ''")
+		}
+	}
+	for _, k := range slices.Sorted(maps.Keys(q.Filter.Matching)) {
+		values := q.Filter.Matching[k]
+		if len(values) == 0 {
+			where = append(where, "false")
+			continue
+		}
+		var or []string
+		for _, v := range values {
+			or = append(or, col+" @> "+a.add(jsonObject(k, v))+"::jsonb")
+		}
+		where = append(where, "("+strings.Join(or, " OR ")+")")
+	}
+	for _, clause := range q.Filter.Ignored {
+		var and []string
+		for _, k := range slices.Sorted(maps.Keys(clause)) {
+			values := clause[k]
+			if len(values) == 0 {
+				continue
+			}
+			and = append(and, fmt.Sprintf("coalesce(%s->>%s, '') = ANY(%s::text[])", col, a.text(k), a.add(values)))
+		}
+		if len(and) > 0 {
+			where = append(where, "NOT ("+strings.Join(and, " AND ")+")")
+		}
+	}
+	return where
 }
