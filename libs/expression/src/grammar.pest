@@ -1,0 +1,43 @@
+function = { function_name ~ "(" ~ function_args ~ ")" }
+
+function_name = _{ ceil | concat | round | floor | least | greatest }
+ceil          =  { "ceil" | "CEIL" | "Ceil" }
+concat        =  { "concat" | "CONCAT" | "Concat" }
+round         =  { "round" | "ROUND" | "Round" }
+floor         =  { "floor" | "FLOOR" | "Floor" }
+least         =  {"least" | "LEAST" | "Least"}
+greatest      =  {"greatest" | "GREATEST" | "Greatest"}
+
+function_args = _{ expr ~ ("," ~ expr)* }
+
+string = ${ "'" ~ string_contents ~ "'" }
+
+string_contents = @{ (!"'" ~ ANY)* }
+
+variable_prefix  = _{ "event." }
+event_attributes = ${ event_timestamp | event_properties ~ "." ~ property_name | event_code }
+event_timestamp  =  { "timestamp" }
+event_properties =  { "properties" }
+event_code       =  { "code" }
+property_name    =  { ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+variable = @{ variable_prefix ~ event_attributes }
+decimal  = @{ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? }
+
+unary_minus =  { "-" }
+primary     = _{ function | variable | decimal | string | "(" ~ expr ~ ")" }
+atom        = _{ unary_minus? ~ primary }
+
+bin_op   = _{ add | subtract | multiply | divide }
+add      =  { "+" }
+subtract =  { "-" }
+multiply =  { "*" }
+divide   =  { "/" }
+
+expr = { atom ~ (bin_op ~ atom)* }
+
+WHITESPACE = _{ " " }
+
+// We can't have SOI and EOI on expr directly, because it is used
+// recursively (e.g. with parentheses)
+root = _{ SOI ~ expr ~ EOI }

@@ -1,0 +1,41 @@
+[workspace]
+
+[package]
+name = "tanvo-expression"
+description = "Billable metric expressions over events: lago-expression's language with exact decimal arithmetic, for every host through WASM"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.99"
+license = "AGPL-3.0-or-later"
+publish = false
+
+[lib]
+# cdylib is the WASM module the Go host (go/) and the web UI run; rlib the tests'.
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# serde-json lets an event's JSON numbers deserialize without going through f64.
+bigdecimal = { version = "0.4.10", features = ["serde-json"] }
+# pest's std feature guards deep recursion with stacker, whose assembly does
+# not build for wasm32-unknown-unknown: the module traps on a stack overflow
+# instead, and its host discards the instance.
+pest = { version = "2.8", default-features = false, features = ["memchr"] }
+pest_derive = { version = "2.8", default-features = false }
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+pest = { version = "2.8", features = ["std"] }
+
+[dev-dependencies]
+serde_json = { version = "1", features = ["arbitrary_precision"] }
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }

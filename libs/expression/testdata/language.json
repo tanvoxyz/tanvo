@@ -1,0 +1,630 @@
+{
+  "description": "Tanvo's cases for lago-expression's grammar and semantics, derived from its implementation (expression-core): precedence, decimal scales and division precision, rounding modes, value conversion, error kinds and syntax error positions. Every case runs against one event.",
+  "event": {"code": "api_call", "properties": {"e": "1e3", "f": 3.25, "i": 7, "n": "12.345", "neg": "-2.5", "round": "1", "s": "text", "zero": "0"}, "timestamp": 1700000000},
+  "cases": [
+    {
+      "source": "lago-expression:expression-core/src/parser.rs",
+      "name": "multiplication binds tighter than addition",
+      "expression": "1 + 2 * 3",
+      "number": "7"
+    },
+    {
+      "source": "lago-expression:expression-core/src/parser.rs",
+      "name": "subtraction is left associative",
+      "expression": "10 - 4 - 3",
+      "number": "3"
+    },
+    {
+      "source": "lago-expression:expression-core/src/parser.rs",
+      "name": "division is left associative",
+      "expression": "100 / 10 / 5",
+      "number": "2"
+    },
+    {
+      "source": "lago-expression:expression-core/src/parser.rs",
+      "name": "parentheses group",
+      "expression": "(1 + 2) * 3",
+      "number": "9"
+    },
+    {
+      "source": "lago-expression:expression-core/src/parser.rs",
+      "name": "unary minus binds tighter than multiplication",
+      "expression": "-2 * 3",
+      "number": "-6"
+    },
+    {
+      "source": "lago-expression:expression-core/src/parser.rs",
+      "name": "unary minus after an operator",
+      "expression": "1 - -1",
+      "number": "2"
+    },
+    {
+      "source": "lago-expression:expression-core/src/parser.rs",
+      "name": "unary minus without spaces",
+      "expression": "1--1",
+      "number": "2"
+    },
+    {
+      "source": "lago-expression:expression-core/src/parser.rs",
+      "name": "unary minus on a parenthesized expression",
+      "expression": "- (2)",
+      "number": "-2"
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "spaces around the expression are ignored",
+      "expression": "  1 + 2  ",
+      "number": "3"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "multiplication keeps the scales of its operands",
+      "expression": "1.0 * 1.00",
+      "number": "1.00"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "addition keeps the larger scale",
+      "expression": "12.300 + 0",
+      "number": "12.300"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "an exact quotient",
+      "expression": "10 / 4",
+      "number": "2.5"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "an exact integer quotient",
+      "expression": "100 / 10",
+      "number": "10"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "a quotient keeps 100 significant digits",
+      "expression": "1 / 3",
+      "number": "0.3333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333333"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "the last digit of a quotient is rounded",
+      "expression": "2 / 3",
+      "number": "0.6666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666667"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "a rounded quotient is not exact again",
+      "expression": "1 / 3 * 3",
+      "number": "0.9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "a small product prints in scientific notation",
+      "expression": "0.000001 * 0.1",
+      "number": "1E-7"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "a large product",
+      "expression": "1000000 * 1000000",
+      "number": "1000000000000"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "round rounds half up",
+      "expression": "round(2.5)",
+      "number": "3"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "round rounds half away from zero",
+      "expression": "round(-2.5)",
+      "number": "-3"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "round to decimal places",
+      "expression": "round(event.properties.n, 2)",
+      "number": "12.35"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "round to thousands",
+      "expression": "round(12345, -3)",
+      "number": "12000"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "round to a whole number of digits truncates the digits",
+      "expression": "round(2.555, 1.9)",
+      "number": "2.6"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "round of a quotient",
+      "expression": "round(1 / 3, 4)",
+      "number": "0.3333"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "ceil rounds toward positive infinity",
+      "expression": "ceil(-2.5)",
+      "number": "-2"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "ceil to decimal places",
+      "expression": "ceil(12.351, 1)",
+      "number": "12.4"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "floor rounds toward negative infinity",
+      "expression": "floor(-2.5)",
+      "number": "-3"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "floor to decimal places",
+      "expression": "floor(event.properties.n, 1)",
+      "number": "12.3"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "round adds decimal places",
+      "expression": "round(event.properties.i, 2)",
+      "number": "7.00"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "least of several values",
+      "expression": "least(3, event.properties.neg, 1)",
+      "number": "-2.5"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "greatest of several values",
+      "expression": "greatest(3, event.properties.neg, event.properties.i)",
+      "number": "7"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "least of one value",
+      "expression": "Least(1)",
+      "number": "1"
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "function names are lower case, upper case or capitalized",
+      "expression": "ROUND(1.5) + Ceil(1.1) + FLOOR(1.9) + GREATEST(1) + least(1)",
+      "number": "7"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "a numeric string property is a number",
+      "expression": "event.properties.n * 2",
+      "number": "24.690"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "a numeric string property in scientific notation is a number",
+      "expression": "event.properties.e + 1",
+      "number": "1001"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "a number property",
+      "expression": "event.properties.i + event.properties.f",
+      "number": "10.25"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "the timestamp is a number of seconds",
+      "expression": "event.timestamp + 60",
+      "number": "1700000060"
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "a property named like a function",
+      "expression": "event.properties.round + 1",
+      "number": "2"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "the code is a string",
+      "expression": "event.code",
+      "string": "api_call"
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "a string literal",
+      "expression": "'hello world'",
+      "string": "hello world"
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "an empty string",
+      "expression": "''",
+      "string": ""
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "concat prints numbers as they are",
+      "expression": "concat(1.50, 'x', -2)",
+      "string": "1.50x-2"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "concat of attributes",
+      "expression": "concat(event.code, '@', event.timestamp)",
+      "string": "api_call@1700000000"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "concat of one argument",
+      "expression": "concat(event.properties.s)",
+      "string": "text"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "concat of a computed value",
+      "expression": "concat('total: ', event.properties.i * 2)",
+      "string": "total: 14"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "a non-numeric string property is a string",
+      "expression": "event.properties.s",
+      "string": "text"
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "arithmetic on a string",
+      "expression": "'a' + 1",
+      "error": {"kind": "expected_decimal", "message": "Expected a decimal"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "arithmetic on a non-numeric property",
+      "expression": "event.properties.s * 2",
+      "error": {"kind": "expected_decimal", "message": "Expected a decimal"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "unary minus of a string",
+      "expression": "-event.code",
+      "error": {"kind": "expected_decimal", "message": "Expected a decimal"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "round of a string",
+      "expression": "round('a')",
+      "error": {"kind": "expected_decimal", "message": "Expected a decimal"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "rounding digits that are a string",
+      "expression": "round(2.5, 'a')",
+      "error": {"kind": "expected_decimal", "message": "Expected a decimal"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "least of a string",
+      "expression": "least(1, 'a')",
+      "error": {"kind": "expected_decimal", "message": "Expected a decimal"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "greatest of a string",
+      "expression": "greatest(1, event.properties.s)",
+      "error": {"kind": "expected_decimal", "message": "Expected a decimal"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "division by zero",
+      "expression": "0 / 0",
+      "error": {"kind": "division_by_zero", "message": "Division by zero"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "division by a zero property",
+      "expression": "event.properties.i / event.properties.zero",
+      "error": {"kind": "division_by_zero", "message": "Division by zero"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "division by 0.0",
+      "expression": "1 / 0.0",
+      "error": {"kind": "division_by_zero", "message": "Division by zero"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "division by zero inside concat",
+      "expression": "concat('a', 1 / 0)",
+      "error": {"kind": "division_by_zero", "message": "Division by zero"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "a missing property",
+      "expression": "event.properties.missing + 1",
+      "error": {"kind": "missing_variable", "message": "Variable: missing not found"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/evaluate.rs",
+      "name": "the first failing argument is reported",
+      "expression": "concat(event.properties.a, event.properties.b)",
+      "error": {"kind": "missing_variable", "message": "Variable: a not found"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/parser.rs",
+      "name": "a decimal with two points",
+      "expression": "1.1.1",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 4, "offset": 3, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "an incomplete expression",
+      "expression": "1 +",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 4, "offset": 3, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "two unary minus in a row",
+      "expression": "--1",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 2, "offset": 1, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "scientific notation literals are not part of the grammar",
+      "expression": "1e3",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 2, "offset": 1, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "tabs are not whitespace",
+      "expression": "1+\t2",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 3, "offset": 2, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "newlines are not whitespace",
+      "expression": "1\n+ 2",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 2, "offset": 1, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "a quote cannot be escaped in a string",
+      "expression": "'it''s'",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 5, "offset": 4, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "a function name in mixed case",
+      "expression": "lEAST(1)",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 1, "offset": 0, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "an unknown function",
+      "expression": "sqrt(4)",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 1, "offset": 0, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "a function without arguments",
+      "expression": "concat()",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 8, "offset": 7, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "least without arguments",
+      "expression": "least()",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 7, "offset": 6, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "event.properties without a name",
+      "expression": "event.properties",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 7, "offset": 6, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "a property name starting with a digit",
+      "expression": "event.properties.1a",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 18, "offset": 17, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "a dash after a property name is a subtraction",
+      "expression": "event.properties.a-b",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 20, "offset": 19, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "an unknown event attribute",
+      "expression": "event.customer",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 7, "offset": 6, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "an empty expression",
+      "expression": "",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 1, "offset": 0, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "an unclosed parenthesis",
+      "expression": "(1 + 2",
+      "syntax_error": {"kind": "syntax", "line": 1, "column": 7, "offset": 6, "contains": ["expected"]}
+    },
+    {
+      "source": "lago-expression:expression-core/src/parser.rs",
+      "name": "round with three arguments",
+      "expression": "round(1, 2, 3)",
+      "syntax_error": {"kind": "arguments", "message": "Wrong number of arguments to function round, expected: 1..2, provided: 3"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/parser.rs",
+      "name": "ceil with three arguments",
+      "expression": "ceil(1, 2, 3)",
+      "syntax_error": {"kind": "arguments", "message": "Wrong number of arguments to function ceil, expected: 1..2, provided: 3"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/parser.rs",
+      "name": "floor with three arguments",
+      "expression": "floor(event.properties.a, 1, 2)",
+      "syntax_error": {"kind": "arguments", "message": "Wrong number of arguments to function floor, expected: 1..2, provided: 3"}
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "a property name with digits and underscores",
+      "expression": "event.properties.unit_count_2",
+      "valid": true
+    },
+    {
+      "source": "lago-expression:expression-core/src/grammar.pest",
+      "name": "nested functions",
+      "expression": "round(greatest(event.properties.a, 0) / least(event.properties.b, 10), 2)",
+      "valid": true
+    },
+    {
+      "name": "rounding to 1000 digits",
+      "note": "Tanvo's limit: round, ceil and floor round to at most 1000 digits either way.",
+      "expression": "round(event.properties.round, 1000)",
+      "number": "1.0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "name": "rounding to 1001 digits",
+      "expression": "round(event.properties.round, 1001)",
+      "error": {"kind": "digits_out_of_range", "message": "Rounding digits out of range, expected: -1000..1000"}
+    },
+    {
+      "name": "ceil to -1000 digits",
+      "expression": "ceil(event.properties.round, -1000)",
+      "number": "1e+1000"
+    },
+    {
+      "name": "floor to -1001 digits",
+      "expression": "floor(event.properties.round, -1001)",
+      "error": {"kind": "digits_out_of_range", "message": "Rounding digits out of range, expected: -1000..1000"}
+    },
+    {
+      "name": "fractional rounding digits beyond the limit",
+      "expression": "round(1, 1000.5)",
+      "error": {"kind": "digits_out_of_range", "message": "Rounding digits out of range, expected: -1000..1000"}
+    },
+    {
+      "name": "huge rounding digits are rejected before rounding",
+      "expression": "round(1, event.properties.digits)",
+      "event": {"code": "api_call", "properties": {"digits": 100000000}, "timestamp": 1700000000},
+      "error": {"kind": "digits_out_of_range", "message": "Rounding digits out of range, expected: -1000..1000"}
+    },
+    {
+      "name": "a property with 2000 significant digits",
+      "note": "Tanvo's limit: a number has at most 2000 significant digits and a scale within -1000..1000.",
+      "expression": "event.properties.x - event.properties.x",
+      "event": {"code": "api_call", "properties": {"x": "99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"}, "timestamp": 1700000000},
+      "number": "0"
+    },
+    {
+      "name": "a property with 2001 significant digits",
+      "expression": "event.properties.x",
+      "event": {"code": "api_call", "properties": {"x": "999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"}, "timestamp": 1700000000},
+      "error": {"kind": "number_out_of_range", "message": "Number out of range, expected: at most 2000 significant digits and a scale within -1000..1000"}
+    },
+    {
+      "name": "a number property with a scale beyond the limit",
+      "expression": "event.properties.x + 1",
+      "event": {"code": "api_call", "properties": {"x": {"number": "1e1001"}}, "timestamp": 1700000000},
+      "error": {"kind": "number_out_of_range", "message": "Number out of range, expected: at most 2000 significant digits and a scale within -1000..1000"}
+    },
+    {
+      "name": "a string property with a huge exponent",
+      "expression": "event.properties.x + 1",
+      "event": {"code": "api_call", "properties": {"x": "1e100000"}, "timestamp": 1700000000},
+      "error": {"kind": "number_out_of_range", "message": "Number out of range, expected: at most 2000 significant digits and a scale within -1000..1000"}
+    },
+    {
+      "name": "a string property with a huge negative exponent",
+      "expression": "concat(event.properties.x)",
+      "event": {"code": "api_call", "properties": {"x": "1e-100000"}, "timestamp": 1700000000},
+      "error": {"kind": "number_out_of_range", "message": "Number out of range, expected: at most 2000 significant digits and a scale within -1000..1000"}
+    },
+    {
+      "name": "a product within the limit",
+      "expression": "event.properties.x * event.properties.x",
+      "event": {"code": "api_call", "properties": {"x": "1e500"}, "timestamp": 1700000000},
+      "number": "1e+1000"
+    },
+    {
+      "name": "a product beyond the limit",
+      "expression": "event.properties.x * event.properties.x",
+      "event": {"code": "api_call", "properties": {"x": "1e600"}, "timestamp": 1700000000},
+      "error": {"kind": "number_out_of_range", "message": "Number out of range, expected: at most 2000 significant digits and a scale within -1000..1000"}
+    },
+    {
+      "name": "a quotient beyond the limit",
+      "expression": "event.properties.x / event.properties.y",
+      "event": {"code": "api_call", "properties": {"x": "1e-600", "y": "1e600"}, "timestamp": 1700000000},
+      "error": {"kind": "number_out_of_range", "message": "Number out of range, expected: at most 2000 significant digits and a scale within -1000..1000"}
+    },
+    {
+      "name": "a sum beyond the limit",
+      "note": "Aligning the scales of 1e1000 and 1e-1000 takes 2001 digits.",
+      "expression": "event.properties.x + event.properties.y",
+      "event": {"code": "api_call", "properties": {"x": "1e1000", "y": "1e-1000"}, "timestamp": 1700000000},
+      "error": {"kind": "number_out_of_range", "message": "Number out of range, expected: at most 2000 significant digits and a scale within -1000..1000"}
+    },
+    {
+      "name": "a numeric string longer than 4096 bytes is a string",
+      "note": "Tanvo's limit: text longer than 4096 bytes is never parsed as a number.",
+      "expression": "event.properties.x + 0",
+      "event": {"code": "api_call", "properties": {"x": "99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"}, "timestamp": 1700000000},
+      "error": {"kind": "expected_decimal", "message": "Expected a decimal"}
+    },
+    {
+      "name": "a number property longer than 4096 bytes",
+      "expression": "1",
+      "event": {"code": "api_call", "properties": {"x": {"number": "99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"}}, "timestamp": 1700000000},
+      "error": {"kind": "invalid_event", "message": "Failed to parse a number as bigdecimal"}
+    },
+    {
+      "name": "128 nested parentheses",
+      "note": "Tanvo's limit: parentheses, those of function calls included, nest at most 128 deep.",
+      "expression": "((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((1))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))",
+      "number": "1"
+    },
+    {
+      "name": "129 nested parentheses",
+      "expression": "(((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((1)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))",
+      "syntax_error": {"kind": "nesting", "line": 1, "column": 129, "offset": 128, "message": "Expression nested too deeply, expected at most 128 levels"}
+    },
+    {
+      "name": "nesting counts function calls",
+      "expression": "round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round(round((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((1)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))",
+      "syntax_error": {"kind": "nesting", "line": 1, "column": 449, "offset": 448}
+    },
+    {
+      "name": "parentheses in strings do not nest",
+      "expression": "concat('((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((')",
+      "string": "(((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((("
+    },
+    {
+      "name": "the nesting position after a line break in a string",
+      "expression": "concat('\n', ((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((((1)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))",
+      "syntax_error": {"kind": "nesting", "line": 2, "column": 131, "offset": 139}
+    },
+    {
+      "name": "a 4096-byte expression",
+      "note": "Tanvo's limit: an expression is at most 4096 bytes.",
+      "expression": "1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               ",
+      "number": "1"
+    },
+    {
+      "name": "a 4097-byte expression",
+      "expression": "1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                ",
+      "syntax_error": {"kind": "length", "line": 0, "column": 0, "offset": 0, "message": "Expression too long: 4097 bytes, expected at most 4096"}
+    }
+  ]
+}

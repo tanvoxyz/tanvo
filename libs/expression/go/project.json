@@ -1,0 +1,8 @@
+{
+  "name": "expression-go",
+  "targets": {
+    "test": {
+      "inputs": ["go", "goTestdata", "^go", "{workspaceRoot}/libs/expression/testdata/**/*"]
+    }
+  }
+}
