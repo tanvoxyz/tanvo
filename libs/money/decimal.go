@@ -254,7 +254,27 @@ func (d Decimal) Round(places int32, mode RoundingMode) Decimal {
 	ctx.Rounding = mode.apd()
 	var r Decimal
 	must(ctx.Quantize(&r.v, &d.v, -places))
+	// apd rounds a value smaller than the rounding unit to zero whatever the
+	// mode; the directed modes that round it away from zero give one unit.
+	if r.v.IsZero() && awayFromZero(mode, d.Sign()) {
+		r = New(int64(d.Sign()), -places)
+	}
 	return norm(r)
+}
+
+// awayFromZero reports whether mode rounds a non-zero value of the given sign
+// away from zero whatever its magnitude.
+func awayFromZero(mode RoundingMode, sign int) bool {
+	switch mode {
+	case Up:
+		return true
+	case Ceiling:
+		return sign > 0
+	case Floor:
+		return sign < 0
+	default:
+		return false
+	}
 }
 
 // Truncate rounds toward zero to places decimal places.
