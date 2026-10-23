@@ -128,12 +128,13 @@ func (h *Harness) UpdateBillingEntity(fn func(*organization.BillingEntity)) {
 	h.Do(func(ctx context.Context, r port.Repos) error { return r.BillingEntities.Update(ctx, h.BillingEntity) })
 }
 
-// Invoices returns the visible invoices of a customer, oldest first.
+// Invoices returns the invoices of a customer that are not generating
+// (open and closed ones included), oldest first.
 func (h *Harness) Invoices(c core.CustomerID) []*invoice.Invoice {
 	h.T.Helper()
 	return Read(h, func(ctx context.Context, r port.Repos) ([]*invoice.Invoice, error) {
 		return kernel.All(func(p core.PageRequest) (core.Page[*invoice.Invoice], error) {
-			return r.Invoices.List(ctx, h.OrgID(), invoice.Filter{CustomerID: c}, p)
+			return r.Invoices.List(ctx, h.OrgID(), invoice.Filter{CustomerID: c, IncludeUnlisted: true}, p)
 		})
 	})
 }

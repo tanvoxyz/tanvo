@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -276,34 +277,70 @@ func (r customerRepo) GetByExternalID(ctx context.Context, org core.Organization
 }
 
 func (r customerRepo) List(ctx context.Context, org core.OrganizationID, f customer.Filter, page core.PageRequest) (core.Page[*customer.Customer], error) {
+	if err := f.Validate(); err != nil {
+		return core.Page[*customer.Customer]{}, fmt.Errorf("list customers: %w", err)
+	}
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return core.Page[*customer.Customer]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	recent := f.Order == core.OrderRecent
+	var (
+		after   *uuid.UUID
+		afterAt *time.Time
+		lim     int32
+	)
+	if recent {
+		after, afterAt, lim, err = timeCursorArgs(page)
+	} else {
+		after, lim, err = pageArgs(page)
+	}
 	if err != nil {
 		return core.Page[*customer.Customer]{}, err
 	}
-	var search *string
-	if f.Search != "" {
-		search = new(likePattern(f.Search))
+	search := searchArg(f.Search)
+	if f.ExternalID != "" {
+		search = nil
 	}
+	var minActive, maxActive *int32
+	if lo, hi, ok := f.ActiveSubscriptionsRange(); ok {
+		minActive, maxActive = new(int32(lo)), new(int32(hi)) //nolint:gosec // validated non-negative, at most MaxInt32
+	}
+	present, absent := metadataFilterArgs(f.Metadata)
 	rows, err := q.ListCustomers(ctx, db.ListCustomersParams{
-		OrganizationID:   org.UUID(),
-		IncludeDeleted:   f.IncludeDeleted,
-		BillingEntityIds: uuids(f.BillingEntityIDs),
-		AccountType:      optString(string(f.AccountType)),
-		CustomerType:     optString(string(f.CustomerType)),
-		Search:           search,
-		After:            after,
-		Lim:              lim,
+		OrganizationID:             org.UUID(),
+		IncludeDeleted:             f.IncludeDeleted,
+		ExternalID:                 optString(f.ExternalID),
+		BillingEntityIds:           uuids(f.BillingEntityIDs),
+		AccountTypes:               enumStrings(f.AccountTypes),
+		CustomerType:               optString(string(f.CustomerType)),
+		HasCustomerType:            f.HasCustomerType,
+		Countries:                  nonNil(f.Countries),
+		States:                     nonNil(f.States),
+		Zipcodes:                   nonNil(f.Zipcodes),
+		Currencies:                 currencyCodes(f.Currencies),
+		HasTaxIdentificationNumber: f.HasTaxIdentificationNumber,
+		MetadataPresent:            present,
+		MetadataAbsent:             absent,
+		ActiveSubscriptionsMin:     minActive,
+		ActiveSubscriptionsMax:     maxActive,
+		Search:                     search,
+		After:                      after,
+		AfterAt:                    afterAt,
+		Recent:                     recent,
+		Lim:                        lim,
 	})
 	if err != nil {
 		return core.Page[*customer.Customer]{}, fmt.Errorf("list customers: %w", mapErr(err))
 	}
 	return pageOf(rows, page,
 		func(r db.ListCustomersRow) (*customer.Customer, error) { return customerOf(customerRow(r)) },
-		func(c *customer.Customer) string { return c.ID.String() })
+		func(c *customer.Customer) string {
+			if recent {
+				return core.Cursor{Key: c.CreatedAt.UTC().Format(time.RFC3339Nano), ID: c.ID.UUID()}.Encode()
+			}
+			return c.ID.String()
+		})
 }
 
 func (r customerRepo) ListForDunning(ctx context.Context, org core.OrganizationID, campaign core.DunningCampaignID, page core.PageRequest) (core.Page[*customer.Customer], error) {

@@ -194,7 +194,7 @@ func (tx *storeTx) bind() port.Repos {
 		OIDCStates:     oidcStateRepo{st.access},
 		UserDevices:    userDeviceRepo{st.access},
 
-		Customers: customerRepo{st.customer},
+		Customers: customerRepo{st.customer, st},
 
 		Metrics:         metricRepo{st.catalog},
 		Plans:           planRepo{st.catalog},
@@ -211,7 +211,7 @@ func (tx *storeTx) bind() port.Repos {
 		Coupons:        couponRepo{st.coupon},
 		AppliedCoupons: appliedCouponRepo{st.coupon},
 
-		Subscriptions:          subscriptionRepo{st.subscription},
+		Subscriptions:          subscriptionRepo{st.subscription, st},
 		ActivationRules:        activationRuleRepo{st.subscription},
 		FixedChargeEvents:      fixedChargeEventRepo{st.subscription},
 		AppliedUsageThresholds: appliedUsageThresholdRepo{st.subscription},
@@ -220,9 +220,9 @@ func (tx *storeTx) bind() port.Repos {
 		Events:             eventLogRepo{st.event},
 		CachedAggregations: cachedAggregationRepo{st.event},
 
-		Invoices:              invoiceRepo{st.invoice},
+		Invoices:              invoiceRepo{st.invoice, st},
 		InvoiceSubscriptions:  invoiceSubscriptionRepo{st.invoice},
-		Fees:                  feeRepo{st.invoice},
+		Fees:                  feeRepo{st.invoice, st},
 		InvoiceAppliedTaxes:   invoiceAppliedTaxRepo{st.invoice},
 		AdjustedFees:          adjustedFeeRepo{st.invoice},
 		InvoiceSettlements:    invoiceSettlementRepo{st.invoice},
@@ -230,7 +230,7 @@ func (tx *storeTx) bind() port.Repos {
 		ErrorDetails:          errorDetailRepo{st.invoice},
 		Credits:               invoiceCreditRepo{st.invoice},
 
-		CreditNotes: creditNoteRepo{st.creditNote},
+		CreditNotes: creditNoteRepo{st.creditNote, st},
 
 		Wallets:                   walletRepo{st.wallet},
 		WalletTransactions:        walletTransactionRepo{st.wallet},
@@ -247,7 +247,7 @@ func (tx *storeTx) bind() port.Repos {
 
 		DunningCampaigns: dunningCampaignRepo{st.dunning},
 
-		Integrations:                  integrationRepo{st.integration},
+		Integrations:                  integrationRepo{st.integration, st},
 		IntegrationCustomers:          integrationCustomerRepo{st.integration},
 		IntegrationMappings:           integrationMappingRepo{st.integration},
 		IntegrationCollectionMappings: integrationCollectionMappingRepo{st.integration},

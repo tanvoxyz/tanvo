@@ -72,6 +72,8 @@ ALTER TABLE usage_thresholds ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON usage_thresholds
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
 
+-- Features are soft-deleted (deleted_at, lago feature.rb:5-9): reads and the
+-- uniqueness of a code in the organization see kept rows only.
 CREATE TABLE features (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -80,17 +82,21 @@ CREATE TABLE features (
   description text,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
+  deleted_at timestamptz,
   PRIMARY KEY (organization_id, id),
-  CONSTRAINT features_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
-  CONSTRAINT features_code_key UNIQUE (organization_id, code)
+  CONSTRAINT features_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id)
 );
+
+CREATE UNIQUE INDEX features_code_key ON features (organization_id, code) WHERE deleted_at IS NULL;
 
 ALTER TABLE features ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON features
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
 
 -- The privileges of a feature, in their order; part of the feature
--- aggregate, rewritten with it.
+-- aggregate, written with it. Privileges are soft-deleted (deleted_at, lago
+-- privilege.rb:5-9): reads and the uniqueness of a code in the feature see
+-- kept rows only.
 CREATE TABLE feature_privileges (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -100,11 +106,13 @@ CREATE TABLE feature_privileges (
   name text,
   value_type text NOT NULL,
   select_options text[] NOT NULL DEFAULT '{}',
+  deleted_at timestamptz,
   PRIMARY KEY (organization_id, id),
-  CONSTRAINT feature_privileges_feature_fkey FOREIGN KEY (organization_id, feature_id) REFERENCES features (organization_id, id) ON DELETE CASCADE,
-  CONSTRAINT feature_privileges_code_key UNIQUE (organization_id, feature_id, code),
+  CONSTRAINT feature_privileges_feature_fkey FOREIGN KEY (organization_id, feature_id) REFERENCES features (organization_id, id),
   CONSTRAINT feature_privileges_value_type_check CHECK (value_type IN ('integer', 'string', 'boolean', 'select'))
 );
+
+CREATE UNIQUE INDEX feature_privileges_code_key ON feature_privileges (organization_id, feature_id, code) WHERE deleted_at IS NULL;
 
 ALTER TABLE feature_privileges ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON feature_privileges
@@ -112,7 +120,9 @@ CREATE POLICY tenant_isolation ON feature_privileges
 
 -- Grants of a feature to a plan or to a subscription (exactly one owner),
 -- at most one per feature and owner. privilege_values maps privilege codes
--- to their stored values. Deleting a feature removes its entitlements.
+-- to their stored values. Entitlements are soft-deleted (deleted_at, lago
+-- entitlement.rb:5-9): reads and the uniqueness of a feature per owner see
+-- kept rows only.
 CREATE TABLE entitlements (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -122,17 +132,18 @@ CREATE TABLE entitlements (
   privilege_values jsonb NOT NULL DEFAULT '{}',
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
+  deleted_at timestamptz,
   PRIMARY KEY (organization_id, id),
   CONSTRAINT entitlements_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
-  CONSTRAINT entitlements_feature_fkey FOREIGN KEY (organization_id, feature_id) REFERENCES features (organization_id, id) ON DELETE CASCADE,
+  CONSTRAINT entitlements_feature_fkey FOREIGN KEY (organization_id, feature_id) REFERENCES features (organization_id, id),
   CONSTRAINT entitlements_plan_fkey FOREIGN KEY (organization_id, plan_id) REFERENCES plans (organization_id, id),
   CONSTRAINT entitlements_owner_check CHECK ((plan_id IS NULL) <> (subscription_id IS NULL)),
   CONSTRAINT entitlements_privilege_values_check CHECK (jsonb_typeof(privilege_values) = 'object')
 );
 
 CREATE INDEX entitlements_feature_idx ON entitlements (organization_id, feature_id);
-CREATE UNIQUE INDEX entitlements_plan_feature_key ON entitlements (organization_id, plan_id, feature_id) WHERE plan_id IS NOT NULL;
-CREATE UNIQUE INDEX entitlements_subscription_feature_key ON entitlements (organization_id, subscription_id, feature_id) WHERE subscription_id IS NOT NULL;
+CREATE UNIQUE INDEX entitlements_plan_feature_key ON entitlements (organization_id, plan_id, feature_id) WHERE plan_id IS NOT NULL AND deleted_at IS NULL;
+CREATE UNIQUE INDEX entitlements_subscription_feature_key ON entitlements (organization_id, subscription_id, feature_id) WHERE subscription_id IS NOT NULL AND deleted_at IS NULL;
 
 ALTER TABLE entitlements ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON entitlements
@@ -149,7 +160,7 @@ CREATE TABLE entitlement_removals (
   created_at timestamptz NOT NULL,
   PRIMARY KEY (organization_id, id),
   CONSTRAINT entitlement_removals_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
-  CONSTRAINT entitlement_removals_feature_fkey FOREIGN KEY (organization_id, feature_id) REFERENCES features (organization_id, id) ON DELETE CASCADE,
+  CONSTRAINT entitlement_removals_feature_fkey FOREIGN KEY (organization_id, feature_id) REFERENCES features (organization_id, id),
   CONSTRAINT entitlement_removals_subscription_feature_privilege_key UNIQUE (organization_id, subscription_id, feature_id, privilege_code)
 );
 

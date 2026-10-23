@@ -260,3 +260,49 @@ func optInt(p *int32) *int {
 	v := int(*p)
 	return &v
 }
+
+// metadataFilterArgs returns the arguments of a metadata filter: the jsonb
+// array the metadata column must contain (the pairs that must be present)
+// and the keys that must be absent.
+func metadataFilterArgs(f core.MetadataFilter) (json.RawMessage, []string) {
+	present := encodeMetadata(core.Metadata(f.Present()))
+	absent := f.Absent()
+	if absent == nil {
+		absent = []string{}
+	}
+	return present, absent
+}
+
+// currencyCodes returns the codes of cs.
+func currencyCodes(cs []money.Currency) []string {
+	out := make([]string, len(cs))
+	for i, c := range cs {
+		out[i] = c.Code()
+	}
+	return out
+}
+
+// searchArg returns the ILIKE pattern of a search term, or nil when the
+// trimmed term is blank.
+func searchArg(term string) *string {
+	if t := core.SearchTerm(term); t != "" {
+		return new(likePattern(t))
+	}
+	return nil
+}
+
+// listArgs returns the cursor and row limit of a list in ID order, or in
+// descending ID order when order is core.OrderRecent (see [pageArgs]).
+func listArgs(order core.ListOrder, p core.PageRequest) (after *uuid.UUID, lim int32, recent bool, err error) {
+	after, lim, err = pageArgs(p)
+	return after, lim, order == core.OrderRecent, err
+}
+
+// nonNil returns ss, or an empty slice when ss is nil (a NULL array would
+// not compare with cardinality).
+func nonNil[T any](ss []T) []T {
+	if ss == nil {
+		return []T{}
+	}
+	return ss
+}

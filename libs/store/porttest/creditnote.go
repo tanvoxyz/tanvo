@@ -383,13 +383,15 @@ func testCreditNoteDelete(t *testing.T, h Harness) {
 	e.tx(func(ctx context.Context, r port.Repos) error {
 		wantErr(t, "Delete() unknown", r.CreditNotes.Delete(ctx, p.org, core.NewID[core.CreditNoteID](e.ids)), core.ErrNotFound)
 		wantErr(t, "Delete() finalized", r.CreditNotes.Delete(ctx, p.org, final.ID), core.ErrConflict)
-		if h.Name != "memstore" { // memstore has no referential integrity
-			wantErr(t, "Delete() referenced by a settlement", r.CreditNotes.Delete(ctx, p.org, referenced.ID), core.ErrConflict)
-			_, err := r.CreditNotes.Get(ctx, p.org, referenced.ID)
-			noErr(t, "Get() after a refused delete", err)
-		}
+		wantErr(t, "Delete() referenced by a settlement", r.CreditNotes.Delete(ctx, p.org, referenced.ID), core.ErrConflict)
+		_, err := r.CreditNotes.Get(ctx, p.org, referenced.ID)
+		noErr(t, "Get() after a refused delete", err)
+		// The items of the draft still reference the fees of the invoice.
+		wantErr(t, "Fees.DeleteByInvoice() of credited fees", r.Fees.DeleteByInvoice(ctx, p.org, p.invoices[0]), core.ErrConflict)
+		_, err = r.Fees.Get(ctx, p.org, p.fees[0])
+		noErr(t, "Fees.Get() after a refused DeleteByInvoice()", err)
 		noErr(t, "Delete()", r.CreditNotes.Delete(ctx, p.org, draft.ID))
-		_, err := r.CreditNotes.Get(ctx, p.org, draft.ID)
+		_, err = r.CreditNotes.Get(ctx, p.org, draft.ID)
 		wantErr(t, "Get() deleted", err, core.ErrNotFound)
 		_, err = r.CreditNotes.ListItemsByCreditNote(ctx, p.org, draft.ID)
 		wantErr(t, "ListItemsByCreditNote() deleted", err, core.ErrNotFound)

@@ -158,8 +158,10 @@ func TestDowngradeSchedulesNext(t *testing.T) {
 	again := f.downgrade(cur)
 	check(t, "replaced status", f.reload(next.ID).Status, subscription.StatusCanceled)
 	check(t, "new next status", f.reload(again.ID).Status, subscription.StatusPending)
+	// The replaced pending subscription gets no webhook
+	// (next_subscription.mark_as_canceled!, plan_downgrade_service.rb:104).
 	checkSlice(t, "webhooks", f.Webhooks(), hooks(webhook.EventTypeSubscriptionUpdated,
-		webhook.EventTypeSubscriptionCanceled, webhook.EventTypeSubscriptionUpdated))
+		webhook.EventTypeSubscriptionUpdated))
 }
 
 // source: spec/services/subscriptions/plan_upgrade_service_spec.rb (current subscription is pending)

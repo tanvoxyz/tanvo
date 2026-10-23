@@ -55,17 +55,58 @@ SELECT * FROM invoices WHERE organization_id = @organization_id AND id = @id;
 SELECT * FROM invoices WHERE organization_id = @organization_id AND number = @number ORDER BY id LIMIT 1;
 
 -- name: ListInvoices :many
-SELECT * FROM invoices
-WHERE organization_id = @organization_id
-  AND (@include_generating::boolean OR status <> 'generating')
-  AND (sqlc.narg(customer_id)::uuid IS NULL OR customer_id = sqlc.narg(customer_id))
-  AND (sqlc.narg(billing_entity_id)::uuid IS NULL OR billing_entity_id = sqlc.narg(billing_entity_id))
-  AND (cardinality(@statuses::text[]) = 0 OR status = ANY(@statuses::text[]))
-  AND (cardinality(@payment_statuses::text[]) = 0 OR payment_status = ANY(@payment_statuses::text[]))
-  AND (cardinality(@types::text[]) = 0 OR invoice_type = ANY(@types::text[]))
-  AND (cardinality(@ids::uuid[]) = 0 OR id = ANY(@ids::uuid[]))
-  AND (sqlc.narg(after)::uuid IS NULL OR id > sqlc.narg(after))
-ORDER BY id
+-- The invoice list of the API (invoice.Filter). @recent lists by issuing
+-- date, latest first (NULL first), then id descending; the cursor is then
+-- (@after_issuing_date, @after) with 'infinity' standing for NULL.
+SELECT * FROM invoices i
+WHERE i.organization_id = @organization_id
+  AND (i.status IN ('draft', 'finalized', 'voided', 'failed')
+       OR (@include_unlisted::boolean AND i.status IN ('open', 'closed'))
+       OR (@include_generating::boolean AND i.status = 'generating'))
+  AND (sqlc.narg(customer_id)::uuid IS NULL OR i.customer_id = sqlc.narg(customer_id))
+  AND (sqlc.narg(customer_external_id)::text IS NULL OR EXISTS (
+       SELECT 1 FROM customers c
+       WHERE c.organization_id = i.organization_id AND c.id = i.customer_id AND c.external_id = sqlc.narg(customer_external_id)))
+  AND (sqlc.narg(billing_entity_id)::uuid IS NULL OR i.billing_entity_id = sqlc.narg(billing_entity_id))
+  AND (cardinality(@billing_entity_ids::uuid[]) = 0 OR i.billing_entity_id = ANY(@billing_entity_ids::uuid[]))
+  AND (sqlc.narg(currency)::text IS NULL OR i.currency = sqlc.narg(currency))
+  AND (cardinality(@statuses::text[]) = 0 OR i.status = ANY(@statuses::text[]))
+  AND (cardinality(@payment_statuses::text[]) = 0 OR i.payment_status = ANY(@payment_statuses::text[]))
+  AND (cardinality(@types::text[]) = 0 OR i.invoice_type = ANY(@types::text[]))
+  AND (cardinality(@ids::uuid[]) = 0 OR i.id = ANY(@ids::uuid[]))
+  AND (cardinality(@subscription_ids::uuid[]) = 0 OR EXISTS (
+       SELECT 1 FROM invoice_subscriptions s
+       WHERE s.organization_id = i.organization_id AND s.invoice_id = i.id AND s.subscription_id = ANY(@subscription_ids::uuid[])))
+  AND (sqlc.narg(issuing_date_from)::date IS NULL OR i.issuing_date >= sqlc.narg(issuing_date_from))
+  AND (sqlc.narg(issuing_date_to)::date IS NULL OR i.issuing_date <= sqlc.narg(issuing_date_to))
+  AND (sqlc.narg(amount_from)::bigint IS NULL OR i.total_amount >= sqlc.narg(amount_from))
+  AND (sqlc.narg(amount_to)::bigint IS NULL OR i.total_amount <= sqlc.narg(amount_to))
+  AND (sqlc.narg(payment_dispute_lost)::boolean IS NULL OR (i.payment_dispute_lost_at IS NOT NULL) = sqlc.narg(payment_dispute_lost))
+  AND (sqlc.narg(payment_overdue)::boolean IS NULL OR i.payment_overdue = sqlc.narg(payment_overdue))
+  AND (sqlc.narg(partially_paid)::boolean IS NULL
+       OR (i.total_amount > i.total_paid_amount AND i.total_paid_amount > 0) = sqlc.narg(partially_paid))
+  AND (sqlc.narg(positive_due_amount)::boolean IS NULL
+       OR (i.total_amount - i.total_paid_amount > 0) = sqlc.narg(positive_due_amount))
+  AND (sqlc.narg(self_billed)::boolean IS NULL OR i.self_billed = sqlc.narg(self_billed))
+  AND (sqlc.narg(purchase_order_number)::text IS NULL
+       OR lower(i.purchase_order_number) = lower(sqlc.narg(purchase_order_number)))
+  AND (cardinality(@settlements::text[]) = 0 OR EXISTS (
+       SELECT 1 FROM invoice_settlements st
+       WHERE st.organization_id = i.organization_id AND st.invoice_id = i.id AND st.settlement_type = ANY(@settlements::text[])))
+  AND i.metadata @> @metadata_present::jsonb
+  AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(i.metadata) m WHERE m->>'key' = ANY(@metadata_absent::text[]))
+  AND (sqlc.narg(search)::text IS NULL
+       OR (sqlc.narg(search_id)::uuid IS NOT NULL AND i.id = sqlc.narg(search_id))
+       OR (NOT @search_customers::boolean AND i.number ILIKE sqlc.narg(search))
+       OR (@search_customers::boolean AND concat_ws(' ', i.number, i.purchase_order_number,
+             (SELECT concat_ws(' ', c.name, c.firstname, c.lastname, c.legal_name, c.external_id, c.email)
+              FROM customers c WHERE c.organization_id = i.organization_id AND c.id = i.customer_id)) ILIKE sqlc.narg(search)))
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR (NOT @recent::boolean AND i.id > sqlc.narg(after))
+       OR (@recent::boolean AND (COALESCE(i.issuing_date, 'infinity'::date), i.id)
+           < (COALESCE(sqlc.narg(after_issuing_date)::date, 'infinity'::date), sqlc.narg(after)::uuid)))
+ORDER BY CASE WHEN @recent::boolean THEN COALESCE(i.issuing_date, 'infinity'::date) END DESC,
+  CASE WHEN @recent::boolean THEN i.id END DESC, i.id
 LIMIT @lim;
 
 -- name: ListInvoicesByIDs :many

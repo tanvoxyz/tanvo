@@ -122,7 +122,7 @@ type CreditedByFeeParams struct {
 }
 
 type CreditedByFeeRow struct {
-	FeeID  uuid.UUID
+	FeeID  *uuid.UUID
 	Amount int64
 }
 
@@ -189,6 +189,23 @@ func (q *Queries) DeleteDraftCreditNote(ctx context.Context, arg DeleteDraftCred
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const detachCreditNoteItemFees = `-- name: DetachCreditNoteItemFees :exec
+UPDATE credit_note_items i SET fee_id = NULL
+FROM credit_notes c
+WHERE i.organization_id = $1 AND c.organization_id = i.organization_id
+  AND c.id = i.credit_note_id AND c.invoice_id = $2
+`
+
+type DetachCreditNoteItemFeesParams struct {
+	OrganizationID uuid.UUID
+	InvoiceID      uuid.UUID
+}
+
+func (q *Queries) DetachCreditNoteItemFees(ctx context.Context, arg DetachCreditNoteItemFeesParams) error {
+	_, err := q.db.Exec(ctx, detachCreditNoteItemFees, arg.OrganizationID, arg.InvoiceID)
+	return err
 }
 
 const getCreditNote = `-- name: GetCreditNote :one
@@ -308,7 +325,7 @@ type InsertCreditNoteItemParams struct {
 	CreditNoteID   uuid.UUID
 	Position       int32
 	ID             uuid.UUID
-	FeeID          uuid.UUID
+	FeeID          *uuid.UUID
 	Amount         int64
 	PreciseAmount  money.Decimal
 }
@@ -475,38 +492,98 @@ func (q *Queries) ListCreditNoteItems(ctx context.Context, arg ListCreditNoteIte
 }
 
 const listCreditNotes = `-- name: ListCreditNotes :many
-SELECT organization_id, id, invoice_id, customer_id, number, sequential_id, status, credit_status, refund_status, reason, description, credit_amount, refund_amount, offset_amount, balance_amount, sub_total_excluding_taxes_amount, coupons_adjustment_amount, precise_coupons_adjustment_amount, taxes_amount, precise_taxes_amount, taxes_rate, total_amount, currency, issuing_date, metadata, file, xml_file, refunded_at, voided_at, created_at, updated_at FROM credit_notes
-WHERE organization_id = $1
-  AND ($2::uuid IS NULL OR customer_id = $2)
-  AND ($3::uuid IS NULL OR invoice_id = $3)
-  AND (cardinality($4::text[]) = 0 OR status = ANY($4::text[]))
-  AND (cardinality($5::text[]) = 0 OR COALESCE(credit_status, '') = ANY($5::text[]))
-  AND (cardinality($6::text[]) = 0 OR reason = ANY($6::text[]))
-  AND ($7::uuid IS NULL OR id > $7)
-ORDER BY id
-LIMIT $8
+SELECT cn.organization_id, cn.id, cn.invoice_id, cn.customer_id, cn.number, cn.sequential_id, cn.status, cn.credit_status, cn.refund_status, cn.reason, cn.description, cn.credit_amount, cn.refund_amount, cn.offset_amount, cn.balance_amount, cn.sub_total_excluding_taxes_amount, cn.coupons_adjustment_amount, cn.precise_coupons_adjustment_amount, cn.taxes_amount, cn.precise_taxes_amount, cn.taxes_rate, cn.total_amount, cn.currency, cn.issuing_date, cn.metadata, cn.file, cn.xml_file, cn.refunded_at, cn.voided_at, cn.created_at, cn.updated_at FROM credit_notes cn
+WHERE cn.organization_id = $1
+  AND ($2::uuid IS NULL OR cn.customer_id = $2)
+  AND ($3::text IS NULL OR EXISTS (
+       SELECT 1 FROM customers c WHERE c.organization_id = cn.organization_id AND c.id = cn.customer_id
+         AND c.external_id = $3))
+  AND ($4::uuid IS NULL OR cn.invoice_id = $4)
+  AND ($5::text IS NULL AND cardinality($6::uuid[]) = 0
+       AND $7::boolean IS NULL AND $8::text IS NULL
+       OR EXISTS (
+         SELECT 1 FROM invoices i WHERE i.organization_id = cn.organization_id AND i.id = cn.invoice_id
+           AND ($5::text IS NULL OR i.number = $5)
+           AND (cardinality($6::uuid[]) = 0 OR i.billing_entity_id = ANY($6::uuid[]))
+           AND ($7::boolean IS NULL OR i.self_billed = $7)
+           AND ($8::text IS NULL
+                OR lower(i.purchase_order_number) = lower($8))))
+  AND ($9::text IS NULL OR cn.currency = $9)
+  AND (cardinality($10::text[]) = 0 OR cn.status = ANY($10::text[]))
+  AND (cardinality($11::text[]) = 0 OR COALESCE(cn.credit_status, '') = ANY($11::text[]))
+  AND (cardinality($12::text[]) = 0 OR COALESCE(cn.refund_status, '') = ANY($12::text[]))
+  AND (cardinality($13::text[]) = 0 OR cn.reason = ANY($13::text[]))
+  AND (cardinality($14::text[]) = 0
+       OR 'credit' = ANY($14::text[]) AND cn.credit_amount > 0
+       OR 'refund' = ANY($14::text[]) AND cn.refund_amount > 0
+       OR 'offset' = ANY($14::text[]) AND cn.offset_amount > 0)
+  AND ($15::date IS NULL OR cn.issuing_date >= $15)
+  AND ($16::date IS NULL OR cn.issuing_date <= $16)
+  AND ($17::bigint IS NULL OR cn.total_amount >= $17)
+  AND ($18::bigint IS NULL OR cn.total_amount <= $18)
+  AND ($19::text IS NULL
+       OR cn.id::text ILIKE $19 OR cn.number ILIKE $19
+       OR $2::uuid IS NULL AND EXISTS (
+         SELECT 1 FROM customers c WHERE c.organization_id = cn.organization_id AND c.id = cn.customer_id
+           AND (c.name ILIKE $19 OR c.firstname ILIKE $19
+                OR c.lastname ILIKE $19 OR c.external_id ILIKE $19
+                OR c.email ILIKE $19)))
+  AND ($20::uuid IS NULL
+       OR ($21::boolean AND cn.id < $20) OR (NOT $21::boolean AND cn.id > $20))
+ORDER BY CASE WHEN $21::boolean THEN cn.id END DESC, cn.id
+LIMIT $22
 `
 
 type ListCreditNotesParams struct {
-	OrganizationID uuid.UUID
-	CustomerID     *uuid.UUID
-	InvoiceID      *uuid.UUID
-	Statuses       []string
-	CreditStatuses []string
-	Reasons        []string
-	After          *uuid.UUID
-	Lim            int32
+	OrganizationID      uuid.UUID
+	CustomerID          *uuid.UUID
+	CustomerExternalID  *string
+	InvoiceID           *uuid.UUID
+	InvoiceNumber       *string
+	BillingEntityIds    []uuid.UUID
+	SelfBilled          *bool
+	PurchaseOrderNumber *string
+	Currency            *string
+	Statuses            []string
+	CreditStatuses      []string
+	RefundStatuses      []string
+	Reasons             []string
+	Types               []string
+	IssuingDateFrom     *time.Time
+	IssuingDateTo       *time.Time
+	AmountFrom          *int64
+	AmountTo            *int64
+	Search              *string
+	After               *uuid.UUID
+	Recent              bool
+	Lim                 int32
 }
 
+// The credit note list of the API (creditnote.Filter). @recent lists the
+// newest first (id descending: UUIDv7 order is creation order).
 func (q *Queries) ListCreditNotes(ctx context.Context, arg ListCreditNotesParams) ([]CreditNote, error) {
 	rows, err := q.db.Query(ctx, listCreditNotes,
 		arg.OrganizationID,
 		arg.CustomerID,
+		arg.CustomerExternalID,
 		arg.InvoiceID,
+		arg.InvoiceNumber,
+		arg.BillingEntityIds,
+		arg.SelfBilled,
+		arg.PurchaseOrderNumber,
+		arg.Currency,
 		arg.Statuses,
 		arg.CreditStatuses,
+		arg.RefundStatuses,
 		arg.Reasons,
+		arg.Types,
+		arg.IssuingDateFrom,
+		arg.IssuingDateTo,
+		arg.AmountFrom,
+		arg.AmountTo,
+		arg.Search,
 		arg.After,
+		arg.Recent,
 		arg.Lim,
 	)
 	if err != nil {

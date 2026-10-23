@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 )
 
@@ -96,7 +97,10 @@ var (
 )
 
 // invoiceRepo implements invoice.Repository.
-type invoiceRepo struct{ d *invoiceData }
+type invoiceRepo struct {
+	d  *invoiceData
+	st *state // the whole transaction state, for the list filters
+}
 
 func (r invoiceRepo) checkNumber(inv *invoice.Invoice) error {
 	// The x402 payment token is unique across all organizations.
@@ -156,17 +160,141 @@ func (r invoiceRepo) GetByNumber(_ context.Context, org core.OrganizationID, num
 }
 
 func (r invoiceRepo) List(_ context.Context, org core.OrganizationID, f invoice.Filter, page core.PageRequest) (core.Page[*invoice.Invoice], error) {
+	if err := f.Validate(); err != nil {
+		return core.Page[*invoice.Invoice]{}, fmt.Errorf("list invoices: %w", err)
+	}
+	term := strings.ToLower(core.SearchTerm(f.Search))
+	searchID, byID := invoice.SearchID(core.SearchTerm(f.Search))
 	rows := r.d.invoices.find(func(x *invoice.Invoice) bool {
-		return x.OrganizationID == org &&
-			(f.IncludeGenerating || x.Visible()) &&
-			(f.CustomerID.IsZero() || x.CustomerID == f.CustomerID) &&
-			(f.BillingEntityID.IsZero() || x.BillingEntityID == f.BillingEntityID) &&
-			(len(f.Statuses) == 0 || slices.Contains(f.Statuses, x.Status)) &&
-			(len(f.PaymentStatuses) == 0 || slices.Contains(f.PaymentStatuses, x.PaymentStatus)) &&
-			(len(f.Types) == 0 || slices.Contains(f.Types, x.Type)) &&
-			(len(f.IDs) == 0 || slices.Contains(f.IDs, x.ID))
+		if x.OrganizationID != org ||
+			!f.Lists(x.Status) ||
+			!f.CustomerID.IsZero() && x.CustomerID != f.CustomerID ||
+			!f.BillingEntityID.IsZero() && x.BillingEntityID != f.BillingEntityID ||
+			len(f.BillingEntityIDs) > 0 && !slices.Contains(f.BillingEntityIDs, x.BillingEntityID) ||
+			!f.Currency.IsZero() && x.Currency.Code() != f.Currency.Code() ||
+			len(f.Statuses) > 0 && !slices.Contains(f.Statuses, x.Status) ||
+			len(f.PaymentStatuses) > 0 && !slices.Contains(f.PaymentStatuses, x.PaymentStatus) ||
+			len(f.Types) > 0 && !slices.Contains(f.Types, x.Type) ||
+			len(f.IDs) > 0 && !slices.Contains(f.IDs, x.ID) ||
+			!f.IssuingDateFrom.IsZero() && (x.IssuingDate.IsZero() || x.IssuingDate.Before(f.IssuingDateFrom)) ||
+			!f.IssuingDateTo.IsZero() && (x.IssuingDate.IsZero() || x.IssuingDate.After(f.IssuingDateTo)) ||
+			f.AmountFrom != nil && x.TotalAmount < *f.AmountFrom ||
+			f.AmountTo != nil && x.TotalAmount > *f.AmountTo ||
+			f.PaymentDisputeLost != nil && (x.PaymentDisputeLostAt != nil) != *f.PaymentDisputeLost ||
+			f.PaymentOverdue != nil && x.PaymentOverdue != *f.PaymentOverdue ||
+			f.PartiallyPaid != nil && (x.TotalAmount > x.TotalPaidAmount && x.TotalPaidAmount > 0) != *f.PartiallyPaid ||
+			f.PositiveDueAmount != nil && (x.TotalAmount-x.TotalPaidAmount > 0) != *f.PositiveDueAmount ||
+			f.SelfBilled != nil && x.SelfBilled != *f.SelfBilled ||
+			f.PurchaseOrderNumber != "" && !invoicePurchaseOrderIs(x, f.PurchaseOrderNumber) ||
+			!f.Metadata.Matches(x.Metadata) {
+			return false
+		}
+		if f.CustomerExternalID != "" && !r.st.customer.customers.any(func(c *customer.Customer) bool {
+			return c.OrganizationID == org && c.ID == x.CustomerID && c.ExternalID == f.CustomerExternalID
+		}) {
+			return false
+		}
+		if len(f.SubscriptionIDs) > 0 && !r.d.subscriptions.any(func(s *invoice.Subscription) bool {
+			return s.OrganizationID == org && s.InvoiceID == x.ID && slices.Contains(f.SubscriptionIDs, s.SubscriptionID)
+		}) {
+			return false
+		}
+		if len(f.Settlements) > 0 && !r.d.settlements.any(func(s *invoice.Settlement) bool {
+			return s.OrganizationID == org && s.InvoiceID == x.ID && slices.Contains(f.Settlements, s.Type)
+		}) {
+			return false
+		}
+		return term == "" || byID && x.ID == searchID || strings.Contains(strings.ToLower(r.searchTerms(x, f)), term)
 	})
+	if f.Order == core.OrderRecent {
+		if page.Token != "" {
+			c, err := core.DecodeCursor(page.Token)
+			if err != nil {
+				return core.Page[*invoice.Invoice]{}, err
+			}
+			if _, err := invoiceCursorDate(c); err != nil {
+				return core.Page[*invoice.Invoice]{}, err
+			}
+		}
+		slices.SortStableFunc(rows, func(a, b *invoice.Invoice) int {
+			if c := invoiceCompareIssuing(b.IssuingDate, a.IssuingDate); c != 0 {
+				return c
+			}
+			return b.ID.Compare(a.ID)
+		})
+		return paginateSorted(rows, invoiceCursor, func(x *invoice.Invoice, c core.Cursor) bool {
+			d, _ := invoiceCursorDate(c) // checked above
+			if cmp := invoiceCompareIssuing(x.IssuingDate, d); cmp != 0 {
+				return cmp < 0
+			}
+			return x.ID.UUID().String() < c.ID.String()
+		}, page)
+	}
 	return paginate(rows, func(x *invoice.Invoice) core.InvoiceID { return x.ID }, page)
+}
+
+// invoicePurchaseOrderIs reports whether the purchase order number of x
+// equals number, compared case-insensitively.
+func invoicePurchaseOrderIs(x *invoice.Invoice, number string) bool {
+	return x.PurchaseOrderNumber != nil && strings.EqualFold(*x.PurchaseOrderNumber, number)
+}
+
+// invoiceCompareIssuing compares issuing dates with a missing date after
+// every date (PostgreSQL sorts NULL first in descending order).
+func invoiceCompareIssuing(a, b core.Date) int {
+	switch {
+	case a.IsZero() && b.IsZero():
+		return 0
+	case a.IsZero():
+		return 1
+	case b.IsZero():
+		return -1
+	default:
+		return a.Compare(b)
+	}
+}
+
+// invoiceCursorDate returns the issuing date of a cursor (zero for an
+// invoice without one); a malformed date fails with core.ErrInvalidValue.
+func invoiceCursorDate(c core.Cursor) (core.Date, error) {
+	if c.Key == "" {
+		return core.Date{}, nil
+	}
+	d, err := core.ParseDate(c.Key)
+	if err != nil {
+		return core.Date{}, fmt.Errorf("%w: page token", core.ErrInvalidValue)
+	}
+	return d, nil
+}
+
+// invoiceCursor is the position of x in the list by issuing date.
+func invoiceCursor(x *invoice.Invoice) core.Cursor {
+	c := core.Cursor{ID: x.ID.UUID()}
+	if !x.IssuingDate.IsZero() {
+		c.Key = x.IssuingDate.String()
+	}
+	return c
+}
+
+// searchTerms returns the text the search term of f is looked for in: the
+// number, then (unless f filters by customer) the customer's fields,
+// joined by spaces.
+func (r invoiceRepo) searchTerms(x *invoice.Invoice, f invoice.Filter) string {
+	parts := []string{x.Number}
+	if !f.SearchesCustomers() {
+		return x.Number
+	}
+	if x.PurchaseOrderNumber != nil {
+		parts = append(parts, *x.PurchaseOrderNumber)
+	}
+	if c, ok := r.st.customer.customers.get(x.CustomerID); ok {
+		for _, p := range []*string{c.Name, c.Firstname, c.Lastname, c.LegalName, &c.ExternalID, c.Email} {
+			if p != nil {
+				parts = append(parts, *p)
+			}
+		}
+	}
+	return strings.Join(parts, " ")
 }
 
 func (r invoiceRepo) ListByIDs(_ context.Context, org core.OrganizationID, ids []core.InvoiceID) ([]*invoice.Invoice, error) {
@@ -215,8 +343,7 @@ func (r invoiceRepo) DeleteDraft(_ context.Context, org core.OrganizationID, id 
 	if !inv.Deletable() {
 		return conflict("invoice", "not_draft")
 	}
-	r.d.invoices.del(id)
-	return nil
+	return r.st.deleteInvoice(org, id)
 }
 
 // invoiceSubscriptionRepo implements invoice.SubscriptionRepository.
@@ -277,7 +404,10 @@ func (r invoiceSubscriptionRepo) DeleteByInvoice(_ context.Context, org core.Org
 }
 
 // feeRepo implements invoice.FeeRepository.
-type feeRepo struct{ d *invoiceData }
+type feeRepo struct {
+	d  *invoiceData
+	st *state // the whole transaction state, for the reference checks
+}
 
 func (r feeRepo) Create(_ context.Context, f *invoice.Fee) error {
 	if r.d.fees.has(f.ID) {
@@ -343,7 +473,11 @@ func (r feeRepo) ListByEventTransaction(_ context.Context, org core.Organization
 }
 
 func (r feeRepo) DeleteByInvoice(_ context.Context, org core.OrganizationID, inv core.InvoiceID) error {
-	r.d.fees.deleteWhere(func(x *invoice.Fee) bool { return x.OrganizationID == org && x.InvoiceID == inv })
+	gone := r.st.feesWithTrueUps(func(x *invoice.Fee) bool { return x.OrganizationID == org && x.InvoiceID == inv })
+	if err := r.st.checkFeesDeletable(gone, nil); err != nil {
+		return err
+	}
+	r.d.fees.deleteWhere(func(x *invoice.Fee) bool { return gone[x.ID] })
 	return nil
 }
 

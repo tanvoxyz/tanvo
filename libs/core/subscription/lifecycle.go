@@ -62,9 +62,11 @@ func (s *Subscription) MarkIncomplete(at time.Time) error {
 	return nil
 }
 
-// Cancel cancels a pending or incomplete subscription at at for reason.
+// Cancel cancels a pending or incomplete subscription at at for reason,
+// which is empty when none is recorded (lago mark_as_canceled!,
+// app/models/subscription.rb:139-142).
 func (s *Subscription) Cancel(at time.Time, reason CancellationReason) error {
-	if !reason.Valid() {
+	if reason != "" && !reason.Valid() {
 		return core.InvalidEnum("subscription.CancellationReason", string(reason))
 	}
 	if err := s.transition(StatusCanceled, at); err != nil {

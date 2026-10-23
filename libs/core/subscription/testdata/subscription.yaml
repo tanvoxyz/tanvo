@@ -15,7 +15,8 @@ cases:
   - {name: active without started_at, source: "tanvo", status: active, unstarted: true, errors: ["started_at: started_at_is_mandatory"]}
   - {name: terminated without terminated_at, source: "tanvo", status: terminated, errors: ["terminated_at: value_is_mandatory"]}
   - {name: terminated, source: "tanvo", status: terminated, terminated_at: 1, errors: []}
-  - {name: canceled without reason, source: "tanvo", status: canceled, unstarted: true, canceled_at: 0, errors: ["cancellation_reason: value_is_mandatory"]}
+  - {name: canceled without reason, source: "tanvo", status: canceled, unstarted: true, canceled_at: 0, errors: []}
+  - {name: canceled with an unknown reason, source: "tanvo", status: canceled, unstarted: true, canceled_at: 0, cancellation_reason: other, errors: ["cancellation_reason: invalid_value"]}
   - {name: canceled, source: "tanvo", status: canceled, unstarted: true, canceled_at: 0, cancellation_reason: timeout, errors: []}
   - {name: reason without cancellation, source: "tanvo", cancellation_reason: manual, errors: ["cancellation_reason: value_not_allowed"]}
   - {name: ending_at before subscription_at, source: "tanvo", ending_at: -1, errors: ["ending_at: invalid_ending_at"]}

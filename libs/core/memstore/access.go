@@ -349,6 +349,9 @@ func (r inviteRepo) Update(_ context.Context, i *access.Invite) error {
 	if r.duplicate(i) {
 		return conflict("invite", "email")
 	}
+	if r.d.invites.any(func(x *access.Invite) bool { return x.ID != i.ID && bytes.Equal(x.TokenHash, i.TokenHash) }) {
+		return conflict("invite", "token")
+	}
 	r.d.invites.put(i.ID, *i)
 	return nil
 }
@@ -404,6 +407,9 @@ func (r passwordResetRepo) Create(_ context.Context, p *access.PasswordReset) er
 func (r passwordResetRepo) Update(_ context.Context, p *access.PasswordReset) error {
 	if !r.d.passwordResets.has(p.ID) {
 		return notFound("password_reset", p.ID)
+	}
+	if r.d.passwordResets.any(func(x *access.PasswordReset) bool { return x.ID != p.ID && bytes.Equal(x.TokenHash, p.TokenHash) }) {
+		return conflict("password_reset", "token")
 	}
 	r.d.passwordResets.put(p.ID, *p)
 	return nil

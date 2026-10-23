@@ -383,7 +383,7 @@ func testInvoiceQueries(t *testing.T, h Harness) {
 				PaymentStatuses: []core.PaymentStatus{core.PaymentStatusPending}, Types: []invoice.Type{invoice.TypeOneOff},
 				IDs: []core.InvoiceID{fOverdue.ID, fPaid.ID, fSelf.ID},
 			}, []*invoice.Invoice{fOverdue, fSelf}},
-			{"no match", invoice.Filter{Statuses: []invoice.Status{invoice.StatusClosed}}, nil},
+			{"no match", invoice.Filter{IncludeUnlisted: true, Statuses: []invoice.Status{invoice.StatusClosed}}, nil},
 		} {
 			got := listAll(t, 2, func(pr core.PageRequest) (core.Page[*invoice.Invoice], error) {
 				return r.Invoices.List(ctx, p.org, c.f, pr)
@@ -393,10 +393,8 @@ func testInvoiceQueries(t *testing.T, h Harness) {
 		page, err := r.Invoices.List(ctx, p.org, invoice.Filter{}, core.PageRequest{Size: 3})
 		noErr(t, "List() first page", err)
 		equal(t, "List() first page", page.Items, all[:3])
-		if h.Name != "memstore" { // memstore ignores a malformed token
-			_, err = r.Invoices.List(ctx, p.org, invoice.Filter{}, core.PageRequest{Size: 3, Token: "not-a-token"})
-			wantErr(t, "List() bad token", err, core.ErrInvalidValue)
-		}
+		_, err = r.Invoices.List(ctx, p.org, invoice.Filter{}, core.PageRequest{Size: 3, Token: "not-a-token"})
+		wantErr(t, "List() bad token", err, core.ErrInvalidValue)
 
 		byIDs, err := r.Invoices.ListByIDs(ctx, p.org, []core.InvoiceID{gen.ID, dNoDate.ID, core.NewID[core.InvoiceID](e.ids)})
 		noErr(t, "ListByIDs()", err)
@@ -470,22 +468,18 @@ func testInvoiceDeleteDraft(t *testing.T, h Harness) {
 	e.tx(func(ctx context.Context, r port.Repos) error {
 		wantErr(t, "DeleteDraft() unknown", r.Invoices.DeleteDraft(ctx, p.org, core.NewID[core.InvoiceID](e.ids)), core.ErrNotFound)
 		wantErr(t, "DeleteDraft() finalized", r.Invoices.DeleteDraft(ctx, p.org, final.ID), core.ErrConflict)
-		if h.Name != "memstore" { // memstore has no referential integrity
-			wantErr(t, "DeleteDraft() referenced by a payment", r.Invoices.DeleteDraft(ctx, p.org, referenced.ID), core.ErrConflict)
-			_, err := r.Invoices.Get(ctx, p.org, referenced.ID)
-			noErr(t, "Get() after a refused delete", err)
-		}
+		wantErr(t, "DeleteDraft() referenced by a payment", r.Invoices.DeleteDraft(ctx, p.org, referenced.ID), core.ErrConflict)
+		_, err := r.Invoices.Get(ctx, p.org, referenced.ID)
+		noErr(t, "Get() after a refused delete", err)
 		noErr(t, "DeleteDraft()", r.Invoices.DeleteDraft(ctx, p.org, draft.ID))
-		_, err := r.Invoices.Get(ctx, p.org, draft.ID)
+		_, err = r.Invoices.Get(ctx, p.org, draft.ID)
 		wantErr(t, "Get() deleted", err, core.ErrNotFound)
 		wantErr(t, "DeleteDraft() again", r.Invoices.DeleteDraft(ctx, p.org, draft.ID), core.ErrNotFound)
-		if h.Name != "memstore" { // memstore keeps the children of a deleted draft
-			_, err = r.Fees.Get(ctx, p.org, fee.ID)
-			wantErr(t, "Fees.Get() of a deleted draft", err, core.ErrNotFound)
-			subs, err := r.InvoiceSubscriptions.ListByInvoice(ctx, p.org, draft.ID)
-			noErr(t, "InvoiceSubscriptions.ListByInvoice() of a deleted draft", err)
-			equal(t, "InvoiceSubscriptions.ListByInvoice() of a deleted draft", len(subs), 0)
-		}
+		_, err = r.Fees.Get(ctx, p.org, fee.ID)
+		wantErr(t, "Fees.Get() of a deleted draft", err, core.ErrNotFound)
+		subs, err := r.InvoiceSubscriptions.ListByInvoice(ctx, p.org, draft.ID)
+		noErr(t, "InvoiceSubscriptions.ListByInvoice() of a deleted draft", err)
+		equal(t, "InvoiceSubscriptions.ListByInvoice() of a deleted draft", len(subs), 0)
 		return nil
 	})
 }

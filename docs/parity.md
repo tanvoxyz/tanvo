@@ -136,7 +136,7 @@ There are no exceptions: unreleased Lago features (for example the structured pa
 | Invoice issuing date anchor and adjustment overrides | `app/models/customer.rb` | libs/billing | logic done | |
 | Customer metadata (max 5, key 20 chars, value 100 chars, display on invoice) | `app/models/metadata/customer_metadata.rb` | libs/core | planned | |
 | Editability rules once subscribed or invoiced | `app/models/customer.rb` (`editable?`) | libs/core | planned | |
-| Customer list filters (search term, metadata, countries, states, zipcodes, currencies, customer and account type, billing entity, has tax id) | `app/queries/customers_query.rb` | libs/store | planned | |
+| Customer list filters (search term, metadata, countries, states, zipcodes, currencies, customer and account type, billing entity, has tax id) | `app/queries/customers_query.rb` | libs/store | logic done | Store queries in both stores with the ported specs in porttest; the API is still to come |
 | Customer deletion with relations terminated | `app/services/customers/destroy_service.rb`, `app/jobs/customers/terminate_relations_job.rb` | libs/billing | planned | Subscriptions terminated, wallets terminated, draft invoices finalized |
 | Payment provider connection per customer (provider customer id, sync with provider) | `app/services/payment_provider_customers/create_or_update_batch_service.rb` | libs/core | planned | Several connections per customer with a default (§3) |
 | Integration customers (accounting, CRM, tax) batch create and update | `app/services/integration_customers/create_or_update_batch_service.rb` | libs/core | planned | |
@@ -201,7 +201,7 @@ There are no exceptions: unreleased Lago features (for example the structured pa
 | Field locks once a plan has subscriptions | `app/services/plans/update_service.rb` | libs/core | planned | |
 | Cascade plan changes to overridden child plans | `app/services/plans/update_service.rb` (`cascade_updates`), `app/jobs/plans/` | libs/billing | planned | |
 | Update the amount of existing subscriptions | `app/jobs/plans/update_amount_job.rb` | libs/billing | planned | |
-| Plan deletion: prepare (pending deletion) then destroy with subscriptions terminated | `app/services/plans/prepare_destroy_service.rb`, `app/services/plans/destroy_service.rb` | libs/billing | planned | Archived status rather than soft delete |
+| Plan deletion: prepare (pending deletion) then destroy with subscriptions terminated | `app/services/plans/prepare_destroy_service.rb`, `app/services/plans/destroy_service.rb` | libs/billing | logic done | `plans.Service` (PrepareDestroy, Destroy, the `billing.destroy_plan` job): every deleted plan is kept with the `deleted` status and its code is free again; entitlements are soft-deleted; pending subscriptions are canceled without a reason (domain §7.2). The API endpoint is the API layer's |
 | Plan webhooks `plan.created`, `plan.updated`, `plan.deleted` | `app/services/webhooks/plans/` | libs/webhooks | planned | |
 
 ### 1.11 Charges and Charge Models
@@ -295,8 +295,8 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Features (code, name, description) | `app/models/entitlement/feature.rb`, `app/services/entitlement/` | libs/core | planned | |
-| Privileges of type integer, string, boolean, select | `app/models/entitlement/privilege.rb` | libs/core | planned | |
+| Features (code, name, description) | `app/models/entitlement/feature.rb`, `app/services/entitlement/` | libs/core | planned | The repositories soft-delete features (`deleted_at`) as `feature_destroy_service.rb:22-27` does |
+| Privileges of type integer, string, boolean, select | `app/models/entitlement/privilege.rb` | libs/core | planned | The repositories soft-delete privileges (`deleted_at`) with the feature, or when a feature update no longer lists them (`feature_update_service.rb:99-111`) |
 | Plan entitlements and privilege values | `app/services/entitlement/plan_entitlements_update_service.rb` | libs/core | planned | |
 | Subscription entitlement overrides and removals | `app/services/entitlement/subscription_entitlements_update_service.rb` | libs/core | planned | |
 | Resolved entitlements of a subscription | `app/services/entitlement/` | libs/core | planned | |
@@ -375,7 +375,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Termination with credit note choice (credit, skip, refund, offset) | `app/services/subscriptions/terminate_service.rb` | libs/billing | logic done | The in-advance base fee counts as invoiced only through rows that bill it (subscription starting, periodic, terminating); lago matches any row on the period's boundaries, in-advance charge and progressive billing rows included (`app/services/subscriptions/terminate_service.rb:183`) |
 | Termination invoice choice (generate, skip) | `app/services/subscriptions/terminate_service.rb` | libs/billing | logic done | An event at exactly `terminated_at` belongs to no period of the terminated subscription (domain §10.2); lago bills it (`app/models/event.rb:18`) |
 | Refuse termination while taxes are pending | `app/services/subscriptions/terminate_service.rb` | libs/billing | logic done | |
-| Cancellation of pending subscriptions | `app/services/subscriptions/terminate_service.rb` | libs/billing | logic done | |
+| Cancellation of pending subscriptions | `app/services/subscriptions/terminate_service.rb` | libs/billing | logic done | No cancellation reason; the canceled subscription emits `subscription.terminated`, and a canceled next subscription emits nothing (domain §9.2) |
 | Cancellation reasons payment failed, timeout, manual | `app/models/subscription.rb` | libs/core | planned | |
 | Payment method per subscription | `app/models/subscription.rb` | libs/billing | logic done | |
 | Consolidate invoices across subscriptions | `app/models/subscription.rb` | libs/billing | logic done | |
@@ -395,7 +395,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Trial end detection and free-trial billing | `app/jobs/clock/free_trial_subscriptions_biller_job.rb` | libs/billing | logic done | |
 | Periodic billing selection (which subscriptions bill today) | `app/services/subscriptions/organization_billing_service.rb` | libs/billing | logic done | Per-subscription scheduled jobs plus reconciliation (§3) |
 | Grouping of subscriptions billed together on one invoice | `app/services/subscriptions/organization_billing_service.rb` | libs/billing | logic done | |
-| Subscription list filters (status, plan, customer, overridden) | `app/queries/subscriptions_query.rb` | libs/store | planned | |
+| Subscription list filters (status, plan, customer, overridden) | `app/queries/subscriptions_query.rb` | libs/store | logic done | Store queries in both stores with the ported specs in porttest; plan filters leave out deleted plans; the recent order is subscription_at, then created_at (both descending), then id ascending; the API is still to come |
 | Subscription webhooks `subscription.started`, `updated`, `terminated`, `canceled`, `incomplete`, `termination_alert`, `trial_ended`, `usage_threshold_reached` | `app/services/webhooks/subscriptions/` | libs/webhooks | planned | |
 
 ### 1.21 Billing Periods and Dates
@@ -482,7 +482,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Mark invoices overdue | `app/services/invoices/payments/mark_overdue_service.rb` | libs/billing | planned | |
 | Item metadata on invoice items (at most 50 keys) | `app/models/` (`item_metadata`) | libs/billing | planned | |
 | Invoice settlements (payment, credit note) | `app/models/invoice_settlement.rb` | libs/billing | planned | |
-| Invoice list filters and search | `app/queries/invoices_query.rb` | libs/store | planned | Includes the purchase order number, case-insensitive |
+| Invoice list filters and search | `app/queries/invoices_query.rb` | libs/store | logic done | Includes the purchase order number, case-insensitive; store queries in both stores with the ported specs in porttest; the API is still to come |
 | Invoice custom sections (manual, system generated) and resolution rules | `app/models/invoice_custom_section.rb`, `app/services/invoice_custom_sections/` | libs/billing | planned | Public API, not only the admin UI |
 | Download PDF and XML | `app/services/invoices/generate_pdf_service.rb` | libs/documents | logic done | |
 | Resend invoice email | `app/services/emails/resend_service.rb` | libs/mail | logic done | |
@@ -574,7 +574,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Refresh draft credit notes with their invoice | `app/services/credit_notes/refresh_draft_service.rb` | libs/billing | logic done | |
 | Re-credit on invoice void | `app/services/credit_notes/recredit_service.rb` | libs/billing | logic done | |
 | Credit note metadata | `app/models/metadata/` | libs/billing | logic done | |
-| Credit note list filters, including the invoice's purchase order number | `app/queries/credit_notes_query.rb` | libs/store | planned | |
+| Credit note list filters, including the invoice's purchase order number | `app/queries/credit_notes_query.rb` | libs/store | logic done | Store queries in both stores with the ported specs in porttest; the API is still to come |
 | Credit note webhooks `credit_note.created`, `credit_note.generated`, `credit_note.provider_refund_failure` | `app/services/webhooks/credit_notes/` | libs/webhooks | planned | One event name (§4) |
 
 ### 1.29 Wallets

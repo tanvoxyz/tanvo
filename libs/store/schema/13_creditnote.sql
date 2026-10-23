@@ -67,7 +67,10 @@ CREATE TABLE credit_note_items (
   id uuid NOT NULL,
   credit_note_id uuid NOT NULL,
   position integer NOT NULL,
-  fee_id uuid NOT NULL,
+  -- fee_id is NULL only while the draft invoice of the credit note is
+  -- refreshed, between the deletion of its fees and the move of its items to
+  -- the regenerated ones.
+  fee_id uuid,
   amount bigint NOT NULL,
   precise_amount numeric NOT NULL,
   PRIMARY KEY (organization_id, credit_note_id, position),

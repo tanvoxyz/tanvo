@@ -293,13 +293,12 @@ func (s *Service) changePlan(ctx context.Context, r port.Repos, cur *subscriptio
 		return cur, nil
 	}
 	if env.Next != nil && env.Next.Status == subscription.StatusPending {
-		if err := env.Next.Cancel(now, subscription.CancellationReasonManual); err != nil {
+		// No reason and no webhook, as next_subscription.mark_as_canceled!
+		// (plan_upgrade_service.rb:95, plan_downgrade_service.rb:104).
+		if err := env.Next.Cancel(now, ""); err != nil {
 			return nil, fmt.Errorf("cancel next subscription %s: %w", env.Next.ID, err)
 		}
 		if err := update(ctx, r, env.Next); err != nil {
-			return nil, err
-		}
-		if err := s.emit(ctx, webhook.EventTypeSubscriptionCanceled, env.Next); err != nil {
 			return nil, err
 		}
 	}

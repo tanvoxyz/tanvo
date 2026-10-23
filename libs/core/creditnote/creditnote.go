@@ -86,7 +86,8 @@ type CreditNote struct {
 type Item struct {
 	// ID identifies the item.
 	ID core.CreditNoteItemID
-	// FeeID is the credited fee.
+	// FeeID is the credited fee; zero only while the draft invoice is
+	// refreshed ([Repository.DetachFees]).
 	FeeID core.FeeID
 	// Amount is the credited amount in minor units.
 	Amount int64

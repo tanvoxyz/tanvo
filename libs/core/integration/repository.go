@@ -44,7 +44,9 @@ type Repository interface {
 	// List returns the organization's integrations in creation order.
 	List(ctx context.Context, org core.OrganizationID, f Filter, page core.PageRequest) (core.Page[*Integration], error)
 	// Delete removes the integration id with its customers, mappings,
-	// items and resources, or fails with core.ErrNotFound.
+	// items and resources, or fails with core.ErrNotFound; one still
+	// referenced by payment provider customers, payment methods, payments,
+	// refunds or inbound webhooks fails with core.ErrConflict.
 	Delete(ctx context.Context, org core.OrganizationID, id core.IntegrationID) error
 }
 
@@ -119,7 +121,8 @@ type ItemFilter struct {
 // ItemRepository stores the cached external catalog.
 type ItemRepository interface {
 	// Upsert inserts i or replaces the item with the same (integration,
-	// item type, external id).
+	// item type, external id), which keeps its ID and creation instant; a
+	// new item with the ID of another item fails with core.ErrConflict.
 	Upsert(ctx context.Context, i *Item) error
 	// List returns the items of an integration in creation order.
 	List(ctx context.Context, org core.OrganizationID, integration core.IntegrationID, f ItemFilter, page core.PageRequest) (core.Page[*Item], error)

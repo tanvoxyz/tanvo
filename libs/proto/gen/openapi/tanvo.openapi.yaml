@@ -19722,6 +19722,7 @@ components:
         - PLAN_STATUS_UNSPECIFIED
         - PLAN_STATUS_ACTIVE
         - PLAN_STATUS_PENDING_DELETION
+        - PLAN_STATUS_DELETED
       description: PlanStatus is the state of a plan.
     tanvo.catalog.v1.PresentationGroupKey:
       type: object

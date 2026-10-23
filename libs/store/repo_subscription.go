@@ -186,31 +186,112 @@ func (r subscriptionRepo) GetByExternalID(ctx context.Context, org core.Organiza
 }
 
 func (r subscriptionRepo) List(ctx context.Context, org core.OrganizationID, f subscription.Filter, page core.PageRequest) (core.Page[*subscription.Subscription], error) {
+	if err := f.Validate(); err != nil {
+		return core.Page[*subscription.Subscription]{}, fmt.Errorf("list subscriptions: %w", err)
+	}
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return core.Page[*subscription.Subscription]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	recent := f.Order == core.OrderRecent
+	var (
+		after          *uuid.UUID
+		afterAt        *time.Time
+		afterCreatedAt *time.Time
+		lim            int32
+	)
+	if recent {
+		after, afterAt, afterCreatedAt, lim, err = subscriptionCursorArgs(page)
+	} else {
+		after, lim, err = pageArgs(page)
+	}
 	if err != nil {
 		return core.Page[*subscription.Subscription]{}, err
 	}
+	search := searchArg(f.Search)
+	var searchID *uuid.UUID
+	if f.ExternalID != "" {
+		search = nil
+	} else if t := core.SearchTerm(f.Search); len(t) == 36 {
+		if u, err := uuid.Parse(t); err == nil {
+			searchID = &u
+		}
+	}
+	var currency *string
+	if !f.Currency.IsZero() {
+		currency = new(f.Currency.Code())
+	}
 	rows, err := q.ListSubscriptions(ctx, db.ListSubscriptionsParams{
-		OrganizationID: org.UUID(),
-		CustomerID:     optUUID(f.CustomerID),
-		PlanID:         optUUID(f.PlanID),
-		ExternalID:     optString(f.ExternalID),
-		Statuses:       enumStrings(f.Statuses),
-		After:          after,
-		Lim:            lim,
+		OrganizationID:           org.UUID(),
+		CustomerID:               optUUID(f.CustomerID),
+		ExternalCustomerID:       optString(f.ExternalCustomerID),
+		PlanID:                   optUUID(f.PlanID),
+		PlanCode:                 optString(f.PlanCode),
+		Overridden:               f.Overridden,
+		Currency:                 currency,
+		ExternalID:               optString(f.ExternalID),
+		Statuses:                 enumStrings(f.Statuses),
+		BillingEntityIds:         uuids(f.BillingEntityIDs),
+		ExcludeNextSubscriptions: f.ExcludeNextSubscriptions,
+		Search:                   search,
+		SearchID:                 searchID,
+		SearchCustomers:          f.ExternalCustomerID == "",
+		After:                    after,
+		Recent:                   recent,
+		AfterAt:                  afterAt,
+		AfterCreatedAt:           afterCreatedAt,
+		Lim:                      lim,
 	})
 	if err != nil {
 		return core.Page[*subscription.Subscription]{}, fmt.Errorf("list subscriptions: %w", mapErr(err))
+	}
+	key := func(s *subscription.Subscription) string { return s.ID.String() }
+	if recent {
+		key = func(s *subscription.Subscription) string { return subscription.RecentCursor(s).Encode() }
 	}
 	return pageOf(rows, page,
 		func(r db.ListSubscriptionsRow) (*subscription.Subscription, error) {
 			return subscriptionOf(subscriptionRow(r))
 		},
-		func(s *subscription.Subscription) string { return s.ID.String() })
+		key)
+}
+
+// subscriptionCursorArgs returns the cursor (subscription_at, created_at
+// and id, nil on the first page) and the row limit of a page of the
+// core.OrderRecent subscription list.
+func subscriptionCursorArgs(p core.PageRequest) (after *uuid.UUID, at, createdAt *time.Time, lim int32, err error) {
+	lim = int32(p.Limit()) + 1 // Limit is at most core.MaxPageSize
+	if p.Token == "" {
+		return nil, nil, nil, lim, nil
+	}
+	c, err := core.DecodeCursor(p.Token)
+	if err != nil {
+		return nil, nil, nil, 0, err
+	}
+	a, b, err := subscription.ParseRecentCursor(c)
+	if err != nil {
+		return nil, nil, nil, 0, err
+	}
+	return &c.ID, &a, &b, lim, nil
+}
+
+// timeCursorArgs returns the cursor (an instant and an id, nil on the
+// first page) and the row limit of a page of a list ordered by an instant
+// then by id: the core.OrderRecent list of customers.
+func timeCursorArgs(p core.PageRequest) (*uuid.UUID, *time.Time, int32, error) {
+	lim := int32(p.Limit()) + 1 // Limit is at most core.MaxPageSize
+	if p.Token == "" {
+		return nil, nil, lim, nil
+	}
+	c, err := core.DecodeCursor(p.Token)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	at, err := time.Parse(time.RFC3339Nano, c.Key)
+	if err != nil {
+		return nil, nil, 0, fmt.Errorf("%w: page token", core.ErrInvalidValue)
+	}
+	return &c.ID, &at, lim, nil
 }
 
 func (r subscriptionRepo) MatchEvent(ctx context.Context, org core.OrganizationID, externalID string, t time.Time, recurringFallback bool) (*subscription.Subscription, error) {

@@ -35,15 +35,47 @@ WHERE organization_id = @organization_id AND id = @id;
 SELECT * FROM credit_notes WHERE organization_id = @organization_id AND id = @id;
 
 -- name: ListCreditNotes :many
-SELECT * FROM credit_notes
-WHERE organization_id = @organization_id
-  AND (sqlc.narg(customer_id)::uuid IS NULL OR customer_id = sqlc.narg(customer_id))
-  AND (sqlc.narg(invoice_id)::uuid IS NULL OR invoice_id = sqlc.narg(invoice_id))
-  AND (cardinality(@statuses::text[]) = 0 OR status = ANY(@statuses::text[]))
-  AND (cardinality(@credit_statuses::text[]) = 0 OR COALESCE(credit_status, '') = ANY(@credit_statuses::text[]))
-  AND (cardinality(@reasons::text[]) = 0 OR reason = ANY(@reasons::text[]))
-  AND (sqlc.narg(after)::uuid IS NULL OR id > sqlc.narg(after))
-ORDER BY id
+-- The credit note list of the API (creditnote.Filter). @recent lists the
+-- newest first (id descending: UUIDv7 order is creation order).
+SELECT cn.* FROM credit_notes cn
+WHERE cn.organization_id = @organization_id
+  AND (sqlc.narg(customer_id)::uuid IS NULL OR cn.customer_id = sqlc.narg(customer_id))
+  AND (sqlc.narg(customer_external_id)::text IS NULL OR EXISTS (
+       SELECT 1 FROM customers c WHERE c.organization_id = cn.organization_id AND c.id = cn.customer_id
+         AND c.external_id = sqlc.narg(customer_external_id)))
+  AND (sqlc.narg(invoice_id)::uuid IS NULL OR cn.invoice_id = sqlc.narg(invoice_id))
+  AND (sqlc.narg(invoice_number)::text IS NULL AND cardinality(@billing_entity_ids::uuid[]) = 0
+       AND sqlc.narg(self_billed)::boolean IS NULL AND sqlc.narg(purchase_order_number)::text IS NULL
+       OR EXISTS (
+         SELECT 1 FROM invoices i WHERE i.organization_id = cn.organization_id AND i.id = cn.invoice_id
+           AND (sqlc.narg(invoice_number)::text IS NULL OR i.number = sqlc.narg(invoice_number))
+           AND (cardinality(@billing_entity_ids::uuid[]) = 0 OR i.billing_entity_id = ANY(@billing_entity_ids::uuid[]))
+           AND (sqlc.narg(self_billed)::boolean IS NULL OR i.self_billed = sqlc.narg(self_billed))
+           AND (sqlc.narg(purchase_order_number)::text IS NULL
+                OR lower(i.purchase_order_number) = lower(sqlc.narg(purchase_order_number)))))
+  AND (sqlc.narg(currency)::text IS NULL OR cn.currency = sqlc.narg(currency))
+  AND (cardinality(@statuses::text[]) = 0 OR cn.status = ANY(@statuses::text[]))
+  AND (cardinality(@credit_statuses::text[]) = 0 OR COALESCE(cn.credit_status, '') = ANY(@credit_statuses::text[]))
+  AND (cardinality(@refund_statuses::text[]) = 0 OR COALESCE(cn.refund_status, '') = ANY(@refund_statuses::text[]))
+  AND (cardinality(@reasons::text[]) = 0 OR cn.reason = ANY(@reasons::text[]))
+  AND (cardinality(@types::text[]) = 0
+       OR 'credit' = ANY(@types::text[]) AND cn.credit_amount > 0
+       OR 'refund' = ANY(@types::text[]) AND cn.refund_amount > 0
+       OR 'offset' = ANY(@types::text[]) AND cn.offset_amount > 0)
+  AND (sqlc.narg(issuing_date_from)::date IS NULL OR cn.issuing_date >= sqlc.narg(issuing_date_from))
+  AND (sqlc.narg(issuing_date_to)::date IS NULL OR cn.issuing_date <= sqlc.narg(issuing_date_to))
+  AND (sqlc.narg(amount_from)::bigint IS NULL OR cn.total_amount >= sqlc.narg(amount_from))
+  AND (sqlc.narg(amount_to)::bigint IS NULL OR cn.total_amount <= sqlc.narg(amount_to))
+  AND (sqlc.narg(search)::text IS NULL
+       OR cn.id::text ILIKE sqlc.narg(search) OR cn.number ILIKE sqlc.narg(search)
+       OR sqlc.narg(customer_id)::uuid IS NULL AND EXISTS (
+         SELECT 1 FROM customers c WHERE c.organization_id = cn.organization_id AND c.id = cn.customer_id
+           AND (c.name ILIKE sqlc.narg(search) OR c.firstname ILIKE sqlc.narg(search)
+                OR c.lastname ILIKE sqlc.narg(search) OR c.external_id ILIKE sqlc.narg(search)
+                OR c.email ILIKE sqlc.narg(search))))
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR (@recent::boolean AND cn.id < sqlc.narg(after)) OR (NOT @recent::boolean AND cn.id > sqlc.narg(after)))
+ORDER BY CASE WHEN @recent::boolean THEN cn.id END DESC, cn.id
 LIMIT @lim;
 
 -- name: ListCreditNotesByIDs :many
@@ -70,6 +102,12 @@ ORDER BY credit_note_id, position;
 
 -- name: DeleteCreditNoteItems :exec
 DELETE FROM credit_note_items WHERE organization_id = @organization_id AND credit_note_id = @credit_note_id;
+
+-- name: DetachCreditNoteItemFees :exec
+UPDATE credit_note_items i SET fee_id = NULL
+FROM credit_notes c
+WHERE i.organization_id = @organization_id AND c.organization_id = i.organization_id
+  AND c.id = i.credit_note_id AND c.invoice_id = @invoice_id;
 
 -- name: InsertCreditNoteItem :exec
 INSERT INTO credit_note_items (organization_id, credit_note_id, position, id, fee_id, amount, precise_amount)

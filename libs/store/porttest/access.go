@@ -386,6 +386,9 @@ func testAccess(t *testing.T, h Harness) {
 			moved := *i2
 			moved.OrganizationID = other
 			wantErr(t, "Update() through another organization", r.Invites.Update(ctx, &moved), core.ErrNotFound)
+			stolen := *i2
+			stolen.TokenHash = access.HashToken("tb")
+			wantErr(t, "Update() to another invite's token", r.Invites.Update(ctx, &stolen), core.ErrConflict)
 			noErr(t, "Revoke()", i2.Revoke(at(time.Hour)))
 			noErr(t, "Update() after conflicts", r.Invites.Update(ctx, i2))
 
@@ -429,6 +432,9 @@ func testAccess(t *testing.T, h Harness) {
 			_, err = r.PasswordResets.GetByTokenHash(ctx, access.HashToken("nope"))
 			wantErr(t, "GetByTokenHash() unknown", err, core.ErrNotFound)
 
+			stolen := *p2
+			stolen.TokenHash = p1.TokenHash
+			wantErr(t, "Update() to another reset's token", r.PasswordResets.Update(ctx, &stolen), core.ErrConflict)
 			noErr(t, "Use()", p1.Use(at(time.Minute)))
 			noErr(t, "Update()", r.PasswordResets.Update(ctx, p1))
 			got, err = r.PasswordResets.GetByTokenHash(ctx, access.HashToken("r1"))

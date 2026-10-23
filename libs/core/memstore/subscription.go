@@ -2,8 +2,12 @@ package memstore
 
 import (
 	"context"
+	"fmt"
 	"slices"
+	"strings"
 	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
@@ -42,7 +46,10 @@ func (d *subscriptionData) snapshot() *subscriptionData {
 }
 
 // subscriptionRepo implements subscription.Repository.
-type subscriptionRepo struct{ d *subscriptionData }
+type subscriptionRepo struct {
+	d  *subscriptionData
+	st *state // the whole transaction state, for the list filters
+}
 
 var _ subscription.Repository = subscriptionRepo{}
 
@@ -101,14 +108,115 @@ func (r subscriptionRepo) GetByExternalID(_ context.Context, org core.Organizati
 }
 
 func (r subscriptionRepo) List(_ context.Context, org core.OrganizationID, f subscription.Filter, page core.PageRequest) (core.Page[*subscription.Subscription], error) {
+	if err := f.Validate(); err != nil {
+		return core.Page[*subscription.Subscription]{}, fmt.Errorf("list subscriptions: %w", err)
+	}
+	search := strings.ToLower(core.SearchTerm(f.Search))
+	if f.ExternalID != "" {
+		search = ""
+	}
+	byPlan := f.PlanCode != "" || f.Overridden != nil || !f.Currency.IsZero()
+	byCustomer := f.ExternalCustomerID != "" || len(f.BillingEntityIDs) > 0
 	rows := r.d.subscriptions.find(func(x *subscription.Subscription) bool {
-		return x.OrganizationID == org &&
-			(f.CustomerID.IsZero() || x.CustomerID == f.CustomerID) &&
-			(f.PlanID.IsZero() || x.PlanID == f.PlanID) &&
-			(f.ExternalID == "" || x.ExternalID == f.ExternalID) &&
-			(len(f.Statuses) == 0 || slices.Contains(f.Statuses, x.Status))
+		if x.OrganizationID != org ||
+			!f.CustomerID.IsZero() && x.CustomerID != f.CustomerID ||
+			!f.PlanID.IsZero() && x.PlanID != f.PlanID ||
+			f.ExternalID != "" && x.ExternalID != f.ExternalID ||
+			len(f.Statuses) > 0 && !slices.Contains(f.Statuses, x.Status) {
+			return false
+		}
+		if f.ExcludeNextSubscriptions && !r.listedInChain(x, f.Statuses) {
+			return false
+		}
+		if byPlan {
+			p, ok := r.st.catalog.plans.get(x.PlanID)
+			if !ok || p.Deleted() || f.PlanCode != "" && p.Code != f.PlanCode ||
+				f.Overridden != nil && p.IsChild() != *f.Overridden ||
+				!f.Currency.IsZero() && p.Currency.Code() != f.Currency.Code() {
+				return false
+			}
+		}
+		if byCustomer {
+			c, ok := r.st.customer.customers.get(x.CustomerID)
+			if !ok || f.ExternalCustomerID != "" && (c.Deleted() || c.ExternalID != f.ExternalCustomerID) {
+				return false
+			}
+			if len(f.BillingEntityIDs) > 0 {
+				entity := x.BillingEntityID
+				if entity.IsZero() {
+					entity = c.BillingEntityID
+				}
+				if !slices.Contains(f.BillingEntityIDs, entity) {
+					return false
+				}
+			}
+		}
+		return search == "" || r.searchMatches(x, search, f.ExternalCustomerID == "")
 	})
+	if f.Order == core.OrderRecent {
+		if page.Token != "" {
+			c, err := core.DecodeCursor(page.Token)
+			if err != nil {
+				return core.Page[*subscription.Subscription]{}, err
+			}
+			if _, _, err := subscription.ParseRecentCursor(c); err != nil {
+				return core.Page[*subscription.Subscription]{}, err
+			}
+		}
+		slices.SortStableFunc(rows, func(a, b *subscription.Subscription) int {
+			if subscription.RecentBefore(a, b.SubscriptionAt, b.CreatedAt, b.ID) {
+				return -1
+			}
+			if subscription.RecentBefore(b, a.SubscriptionAt, a.CreatedAt, a.ID) {
+				return 1
+			}
+			return 0
+		})
+		return paginateSorted(rows, subscription.RecentCursor, func(x *subscription.Subscription, c core.Cursor) bool {
+			at, created, _ := subscription.ParseRecentCursor(c)
+			var id core.SubscriptionID
+			_ = id.Scan(c.ID[:])
+			// x comes after the cursor when the cursor comes before x.
+			return x.ID != id && !subscription.RecentBefore(x, at, created, id)
+		}, page)
+	}
 	return paginate(rows, func(x *subscription.Subscription) core.SubscriptionID { return x.ID }, page)
+}
+
+// listedInChain reports whether x passes the ExcludeNextSubscriptions
+// filter given the status filter.
+func (r subscriptionRepo) listedInChain(x *subscription.Subscription, statuses []subscription.Status) bool {
+	if x.PreviousSubscriptionID.IsZero() || x.Status == subscription.StatusCanceled {
+		return true
+	}
+	prev, ok := r.d.subscriptions.get(x.PreviousSubscriptionID)
+	if !ok {
+		return false
+	}
+	return prev.Status == subscription.StatusTerminated ||
+		len(statuses) > 0 && !slices.Contains(statuses, prev.Status) && slices.Contains(statuses, x.Status)
+}
+
+// searchMatches reports whether the lower-cased term matches x, its plan,
+// its ID or (when customers is true) its non-deleted customer.
+func (r subscriptionRepo) searchMatches(x *subscription.Subscription, term string, customers bool) bool {
+	contains := func(ps ...*string) bool {
+		return slices.ContainsFunc(ps, func(p *string) bool { return p != nil && strings.Contains(strings.ToLower(*p), term) })
+	}
+	if contains(x.Name, &x.ExternalID) {
+		return true
+	}
+	if u, err := uuid.Parse(term); err == nil && len(term) == 36 && u == x.ID.UUID() {
+		return true
+	}
+	if p, ok := r.st.catalog.plans.get(x.PlanID); ok && !p.Deleted() && contains(&p.Name, &p.Code) {
+		return true
+	}
+	if !customers {
+		return false
+	}
+	c, ok := r.st.customer.customers.get(x.CustomerID)
+	return ok && !c.Deleted() && contains(c.Name, c.Firstname, c.Lastname, &c.ExternalID, c.Email)
 }
 
 func (r subscriptionRepo) MatchEvent(_ context.Context, org core.OrganizationID, externalID string, t time.Time, recurringFallback bool) (*subscription.Subscription, error) {

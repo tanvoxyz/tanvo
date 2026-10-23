@@ -136,7 +136,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 开票日期锚点与调整的覆盖 | `app/models/customer.rb` | libs/billing | 逻辑已完成 | |
 | 客户元数据（最多 5 个，键 20 字符，值 100 字符，可显示在发票上） | `app/models/metadata/customer_metadata.rb` | libs/core | 计划中 | |
 | 有订阅或已开票后的可编辑规则 | `app/models/customer.rb`（`editable?`） | libs/core | 计划中 | |
-| 客户列表过滤（搜索词、元数据、国家、州、邮编、货币、客户与账户类型、计费主体、是否有税号） | `app/queries/customers_query.rb` | libs/store | 计划中 | |
+| 客户列表过滤（搜索词、元数据、国家、州、邮编、货币、客户与账户类型、计费主体、是否有税号） | `app/queries/customers_query.rb` | libs/store | 逻辑已完成 | 两种存储均已实现查询，移植的规格用例在 porttest 中；API 尚未实现 |
 | 删除客户并终止其关联 | `app/services/customers/destroy_service.rb`、`app/jobs/customers/terminate_relations_job.rb` | libs/billing | 计划中 | 终止订阅、终止钱包、定稿草稿发票 |
 | 每个客户的支付提供者连接（提供者客户 ID、与提供者同步） | `app/services/payment_provider_customers/create_or_update_batch_service.rb` | libs/core | 计划中 | 每个客户可有多个连接并有一个默认连接（§3） |
 | 集成客户（会计、CRM、税务）的批量创建与更新 | `app/services/integration_customers/create_or_update_batch_service.rb` | libs/core | 计划中 | |
@@ -201,7 +201,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 套餐有订阅后的字段锁定 | `app/services/plans/update_service.rb` | libs/core | 计划中 | |
 | 把套餐变更级联到被覆盖的子套餐 | `app/services/plans/update_service.rb`（`cascade_updates`）、`app/jobs/plans/` | libs/billing | 计划中 | |
 | 更新现有订阅的金额 | `app/jobs/plans/update_amount_job.rb` | libs/billing | 计划中 | |
-| 删除套餐：先准备（待删除），再删除并终止订阅 | `app/services/plans/prepare_destroy_service.rb`、`app/services/plans/destroy_service.rb` | libs/billing | 计划中 | 用归档状态代替软删除 |
+| 删除套餐：先准备（待删除），再删除并终止订阅 | `app/services/plans/prepare_destroy_service.rb`、`app/services/plans/destroy_service.rb` | libs/billing | 逻辑已完成 | `plans.Service`（PrepareDestroy、Destroy、`billing.destroy_plan` 任务）：所有已删除的套餐都以 `deleted` 状态保留，其代码可再次使用；权益被软删除；待生效订阅被取消且不记录原因（领域模型 §7.2）。API 端点属于 API 层 |
 | 套餐 webhook `plan.created`、`plan.updated`、`plan.deleted` | `app/services/webhooks/plans/` | libs/webhooks | 计划中 | |
 
 ### 1.11 计费项与计费模型
@@ -295,8 +295,8 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 特性（代码、名称、描述） | `app/models/entitlement/feature.rb`、`app/services/entitlement/` | libs/core | 计划中 | |
-| 整数、字符串、布尔、选择类型的特权 | `app/models/entitlement/privilege.rb` | libs/core | 计划中 | |
+| 特性（代码、名称、描述） | `app/models/entitlement/feature.rb`、`app/services/entitlement/` | libs/core | 计划中 | 仓储按 `feature_destroy_service.rb:22-27` 的做法软删除特性（`deleted_at`） |
+| 整数、字符串、布尔、选择类型的特权 | `app/models/entitlement/privilege.rb` | libs/core | 计划中 | 仓储在删除特性时、或特性更新不再列出某特权时软删除该特权（`deleted_at`，`feature_update_service.rb:99-111`） |
 | 套餐权益与特权取值 | `app/services/entitlement/plan_entitlements_update_service.rb` | libs/core | 计划中 | |
 | 订阅的权益覆盖与移除 | `app/services/entitlement/subscription_entitlements_update_service.rb` | libs/core | 计划中 | |
 | 订阅解析后的权益 | `app/services/entitlement/` | libs/core | 计划中 | |
@@ -375,7 +375,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 终止时选择贷项通知单方式（额度、跳过、退款、抵销） | `app/services/subscriptions/terminate_service.rb` | libs/billing | 逻辑已完成 | 仅当存在计费基础费用的记录（subscription starting、periodic、terminating）时，预付基础费用才算已开票；lago 按周期边界匹配任何记录，包括预付费用和渐进式计费记录（`app/services/subscriptions/terminate_service.rb:183`） |
 | 终止时选择是否开发票（生成、跳过） | `app/services/subscriptions/terminate_service.rb` | libs/billing | 逻辑已完成 | 恰好位于 `terminated_at` 的事件不属于已终止订阅的任何周期（领域 §10.2）；lago 会对其计费（`app/models/event.rb:18`） |
 | 税额待定时拒绝终止 | `app/services/subscriptions/terminate_service.rb` | libs/billing | 逻辑已完成 | |
-| 取消 pending 状态的订阅 | `app/services/subscriptions/terminate_service.rb` | libs/billing | 逻辑已完成 | |
+| 取消 pending 状态的订阅 | `app/services/subscriptions/terminate_service.rb` | libs/billing | 逻辑已完成 | 不记录取消原因；被取消的订阅发出 `subscription.terminated`，被取消的下一个订阅不发出 webhook（领域模型 §9.2） |
 | 取消原因：付款失败、超时、手动 | `app/models/subscription.rb` | libs/core | 计划中 | |
 | 每个订阅的支付方式 | `app/models/subscription.rb` | libs/billing | 逻辑已完成 | |
 | 跨订阅合并发票 | `app/models/subscription.rb` | libs/billing | 逻辑已完成 | |
@@ -395,7 +395,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 试用结束检测与免费试用计费 | `app/jobs/clock/free_trial_subscriptions_biller_job.rb` | libs/billing | 逻辑已完成 | |
 | 周期计费选择（今天哪些订阅需要计费） | `app/services/subscriptions/organization_billing_service.rb` | libs/billing | 逻辑已完成 | 按订阅调度的任务加对账（§3） |
 | 同一张发票上一起计费的订阅分组 | `app/services/subscriptions/organization_billing_service.rb` | libs/billing | 逻辑已完成 | |
-| 订阅列表过滤（状态、套餐、客户、是否被覆盖） | `app/queries/subscriptions_query.rb` | libs/store | 计划中 | |
+| 订阅列表过滤（状态、套餐、客户、是否被覆盖） | `app/queries/subscriptions_query.rb` | libs/store | 逻辑已完成 | 两种存储均已实现查询，移植的规格用例在 porttest 中；套餐过滤排除已删除的套餐；最近排序依次为 subscription_at、created_at（均降序），再按 id 升序；API 尚未实现 |
 | 订阅 webhook `subscription.started`、`updated`、`terminated`、`canceled`、`incomplete`、`termination_alert`、`trial_ended`、`usage_threshold_reached` | `app/services/webhooks/subscriptions/` | libs/webhooks | 计划中 | |
 
 ### 1.21 计费周期与日期
@@ -482,7 +482,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 把发票标记为逾期 | `app/services/invoices/payments/mark_overdue_service.rb` | libs/billing | 计划中 | |
 | 发票条目上的条目元数据（最多 50 个键） | `app/models/`（`item_metadata`） | libs/billing | 计划中 | |
 | 发票结清（付款、贷项通知单） | `app/models/invoice_settlement.rb` | libs/billing | 计划中 | |
-| 发票列表过滤与搜索 | `app/queries/invoices_query.rb` | libs/store | 计划中 | 包括采购订单号，不区分大小写 |
+| 发票列表过滤与搜索 | `app/queries/invoices_query.rb` | libs/store | 逻辑已完成 | 包括采购订单号，不区分大小写；两种存储均已实现查询，移植的规格用例在 porttest 中；API 尚未实现 |
 | 发票自定义段落（手动、系统生成）及其解析规则 | `app/models/invoice_custom_section.rb`、`app/services/invoice_custom_sections/` | libs/billing | 计划中 | 公开 API，而不只供管理界面使用 |
 | 下载 PDF 与 XML | `app/services/invoices/generate_pdf_service.rb` | libs/documents | 逻辑已完成 | |
 | 重新发送发票邮件 | `app/services/emails/resend_service.rb` | libs/mail | 逻辑已完成 | |
@@ -574,7 +574,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 随发票刷新草稿贷项通知单 | `app/services/credit_notes/refresh_draft_service.rb` | libs/billing | 逻辑已完成 | |
 | 发票作废时退回额度 | `app/services/credit_notes/recredit_service.rb` | libs/billing | 逻辑已完成 | |
 | 贷项通知单元数据 | `app/models/metadata/` | libs/billing | 逻辑已完成 | |
-| 贷项通知单列表过滤，包括发票的采购订单号 | `app/queries/credit_notes_query.rb` | libs/store | 计划中 | |
+| 贷项通知单列表过滤，包括发票的采购订单号 | `app/queries/credit_notes_query.rb` | libs/store | 逻辑已完成 | 两种存储均已实现查询，移植的规格用例在 porttest 中；API 尚未实现 |
 | 贷项通知单 webhook `credit_note.created`、`credit_note.generated`、`credit_note.provider_refund_failure` | `app/services/webhooks/credit_notes/` | libs/webhooks | 计划中 | 只用一个事件名（§4） |
 
 ### 1.29 钱包

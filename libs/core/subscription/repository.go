@@ -2,21 +2,66 @@ package subscription
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
-// Filter narrows [Repository.List]; zero fields do not filter.
+// Filter narrows [Repository.List] (the subscription list of the API);
+// zero fields do not filter.
 type Filter struct {
 	// CustomerID keeps the customer's subscriptions.
 	CustomerID core.CustomerID
+	// ExternalCustomerID keeps the subscriptions of the non-deleted
+	// customer with that external ID; when set, Search does not search
+	// customers.
+	ExternalCustomerID string
 	// PlanID keeps the subscriptions of the plan.
 	PlanID core.PlanID
-	// ExternalID keeps the subscriptions with that external ID.
+	// PlanCode keeps the subscriptions of the plans with that code (an
+	// original plan and its override plans).
+	PlanCode string
+	// ExternalID keeps the subscriptions with that external ID; when set,
+	// Search is ignored.
 	ExternalID string
 	// Statuses keeps the subscriptions in one of these statuses.
 	Statuses []Status
+	// Overridden, when set, keeps the subscriptions of an override plan
+	// (true) or of an original plan (false).
+	Overridden *bool
+	// Currency keeps the subscriptions whose plan has that currency.
+	Currency money.Currency
+	// BillingEntityIDs keeps the subscriptions of these billing entities:
+	// the subscription's own, or its customer's when it has none.
+	BillingEntityIDs []core.BillingEntityID
+	// ExcludeNextSubscriptions hides a subscription that follows another
+	// (an upgrade or downgrade waiting to replace it), so that a list shows
+	// one row per chain. It is still listed when the previous subscription
+	// is terminated, when it is canceled, or when Statuses keeps it but not
+	// the previous subscription.
+	ExcludeNextSubscriptions bool
+	// Search keeps the subscriptions whose name or external ID contains the
+	// trimmed term, whose plan's name or code contains it, whose ID is the
+	// term (when it is a UUID), or whose non-deleted customer's name, first
+	// name, last name, external ID or email contains it (case-insensitive,
+	// with LIKE wildcards matched literally).
+	Search string
+	// Order is the list order; core.OrderRecent lists by subscription_at,
+	// most recent first, then by created_at, newest first, then by ID
+	// ascending ([RecentCursor]).
+	Order core.ListOrder
+}
+
+// Validate checks the filter: declared statuses and order.
+func (f Filter) Validate() error {
+	var v core.Validator
+	for i, st := range f.Statuses {
+		v.Enum(fmt.Sprintf("statuses[%d]", i), st)
+	}
+	v.Check(f.Order.Valid(), "order", core.CodeInvalid)
+	return v.Err()
 }
 
 // Repository stores subscriptions. Every method is scoped to an
@@ -37,7 +82,8 @@ type Repository interface {
 	// preferring active, then incomplete, then pending; or
 	// core.ErrNotFound.
 	GetByExternalID(ctx context.Context, org core.OrganizationID, externalID string) (*Subscription, error)
-	// List returns the subscriptions matching f in creation order.
+	// List returns the subscriptions matching f, in the order f.Order; an
+	// invalid filter fails with core.ErrInvalidValue.
 	List(ctx context.Context, org core.OrganizationID, f Filter, page core.PageRequest) (core.Page[*Subscription], error)
 	// MatchEvent returns the subscription an event with that external
 	// subscription ID and timestamp belongs to, as [MatchEvent] decides,

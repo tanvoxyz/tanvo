@@ -140,7 +140,7 @@ erDiagram
 * **金额**：最终金额以 `Money`（最小单位）存储；仍作为后续计算输入的值（取整前的费用金额、单价、额度）以 `Decimal`（“精确值”）存储。取整规则见 §22.9。绝不使用 `float64`。
 * **时间**：时刻以 UTC 存储；日期和周期边界在适用时区（§22.1）中计算，并以本地午夜对应的 UTC 时刻存储。
 * **周期**为左闭右开区间 `[from, to)`。**[变更]** Lago 以 23:59:59.999999 存储闭区间终点；Tanvo 存储下一个本地午夜。
-* **删除**：有生命周期的资源带有状态（`terminated`、`archived`、`voided`、`deleted`）；无引用的行直接物理删除。**[变更]** 没有全局的 `deleted_at` 软删除。
+* **删除**：有生命周期的资源带有状态（`terminated`、`archived`、`voided`、`deleted`）；无引用的行直接物理删除。套餐从不移除：已删除的套餐以 `deleted` 状态保留（§7.2），不再出现在按 code 的查找和列表中，其 code 可再次使用。功能、特权项和权益采用软删除（`deleted_at`，§7.10）。存储层拒绝（`conflict`）物理删除仍被引用的行。**[变更]** 没有全局的 `deleted_at` 软删除。
 * **元数据**在更新时整体替换（传入的列表替换已存储的列表）。
 * **审计**：本文档中提到的每次状态变更都在同一事务中产生领域事件；Webhook（§18）和活动日志由其派生。
 * **锁**：读写客户余额的操作（优惠券、贷项通知单、预付额度、钱包）获取各章节指明的客户咨询锁；计费运行锁定订阅。
@@ -466,7 +466,7 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 
 | 字段 | 类型 | 规则 |
 | :--- | :--- | :--- |
-| `code` | `string(255)` | 在非子套餐中唯一 |
+| `code` | `string(255)` | 在既非子套餐也非 `deleted` 的套餐中唯一 |
 | `name` | `string(255)` | 必填 |
 | `invoice_display_name` | `string?` | |
 | `description` | `string?` | |
@@ -480,11 +480,13 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 | `parent_id` | `ID?` | 覆盖套餐（§7.2.1）才设置 |
 | `taxes` | `[]Tax` | |
 | `metadata` | Metadata | |
-| `status` | Enum{`active`、`pending_deletion`} | |
+| `status` | Enum{`active`、`pending_deletion`、`deleted`} | |
 
 规则：
 * 套餐一旦有订阅，`code`、`interval`、`pay_in_advance`、`currency`、`trial_period_days`、`bill_charges_monthly` 和 `bill_fixed_charges_monthly` 即被锁定。
-* 删除套餐会将其置为 `pending_deletion`，终止其有效订阅（生成终止发票），取消其待生效订阅，然后在任务中删除套餐。
+* 删除套餐会将其及其子套餐置为 `pending_deletion`，然后由任务依次对每个子套餐和该套餐：终止其有效订阅（生成终止发票），取消其待生效订阅，定稿计费该套餐的草稿发票，并软删除其权益。被规则拒绝的终止或定稿会被跳过；其他失败会中止任务，任务随后重试。之后无论是否被引用，套餐都转为 `deleted`，并保留其计费项、固定计费项、承诺消费和用量阈值，供其发票及发票重新生成读取；它不再出现在按 code 的查找、套餐列表、父套餐的子套餐，以及订阅列表的套餐筛选和套餐搜索中，其 code 可供新套餐使用。每个套餐同一时间只运行一个删除任务；`plan.deleted` 在准备删除时发出。
+* 其待生效订阅被取消，不记录 `cancellation_reason`。
+* **[变更]** 已删除套餐用 `deleted` 状态表示，而不是 `deleted_at` 时刻。
 * `yearly_amount` = `amount` × 每年周期数（52、12、4、2、1）；它决定升级还是降级（§22.13）。
 * **[变更]** 试用期为整数天（`int`）；Lago 存储浮点数。
 
@@ -492,7 +494,7 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 创建订阅时可以覆盖套餐的金额、名称、描述、试用期、税、计费项、固定计费项、承诺消费和用量阈值。Tanvo 将其物化为只供该订阅使用的子套餐（`parent_id` = 原套餐）。
 * 子套餐继承所有未覆盖的内容；`code` 与父套餐相同。
 * 以 `cascade_updates = true` 编辑父套餐时，变更的字段会传播到那些取值仍等于父套餐原值的子套餐。
-* 删除父套餐会删除其子套餐。
+* 删除父套餐时先删除其子套餐（§7.2）；只要仍有子套餐行引用它，父套餐就保持 `deleted`。
 
 ### 7.3 计费项
 
@@ -673,7 +675,7 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 
 **权益**：把功能授予套餐或订阅，带有 `values`（特权项代码 → 值的映射）。值按特权项类型校验（`integer` 为 64 位整数、`boolean`、`select` 的值须在选项内）。
 
-订阅的有效权益 = 套餐的权益 − 订阅的移除项（`subscription_feature_removals`）+ 订阅自己的权益（逐个特权项覆盖套餐的值）。删除功能会移除其权益。
+订阅的有效权益 = 套餐的权益 − 订阅的移除项（`subscription_feature_removals`）+ 订阅自己的权益（逐个特权项覆盖套餐的值）。功能、特权项和权益采用软删除（`deleted_at`）：被丢弃的记录不再被查到或列出；被丢弃的功能或特权项的代码可再次使用；被丢弃的权益连同其取值一起失效，其功能可再次授予同一所有者。删除功能会丢弃其权益及取值、其特权项和功能本身；订阅的移除项保持不变。更新功能会丢弃其不再列出的特权项，这些特权项的取值从该功能未删除的权益中移除；仍被列出的特权项按代码匹配，保留其身份。
 
 ---
 
@@ -740,7 +742,7 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 | `ending_at` | `Time?` | 计划的自动终止时间；> `subscription_at` |
 | `terminated_at`、`canceled_at` | `Time?` | |
 | `trial_ended_at` | `Time?` | |
-| `cancellation_reason` | `CancellationReason?` | |
+| `cancellation_reason` | `CancellationReason?` | 待生效订阅因终止、套餐变更或套餐删除而被取消时为空 |
 | `previous_subscription_id` | `ID?` | 本订阅所升级或降级的订阅 |
 | `on_termination_credit_note` | `TerminationCreditNote?` | 仅用于预付套餐；默认 `credit` |
 | `on_termination_invoice` | `TerminationInvoice` | 默认 `generate` |
@@ -775,7 +777,8 @@ stateDiagram-v2
 
 * `subscription_at` ≤ 当前时刻的创建会立即激活（`started_at = subscription_at`，可以是过去）；更晚的日期得到 `pending`，由其调度任务在 `subscription_at` 激活。
 * `incomplete` 订阅不接收事件（§10.2），也不参与周期计费。
-* 在相应的状态转换时发出 `subscription.started`、`subscription.incomplete`、`subscription.canceled`、`subscription.terminated`、`subscription.updated`。
+* 在相应的状态转换时发出 `subscription.started`、`subscription.incomplete`、`subscription.terminated`、`subscription.updated`；`subscription.canceled` 仅在取消 `incomplete` 订阅时发出（§9.3）。
+* 因自身被终止而取消的 `pending` 订阅发出 `subscription.terminated`；若它是计划中的降级，则先为其当前订阅发出 `subscription.updated`。作为终止或套餐变更中待生效的下一个订阅而被取消、或因套餐删除而被取消的 `pending` 订阅不发出任何 webhook。
 * 在 `ending_at` 之前 15 天和 45 天发出 `subscription.termination_alert`。
 
 ### 9.3 激活规则
@@ -1048,7 +1051,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 | `refund_status` | `RefundStatus?` | `refund_amount > 0` 时 |
 | `reason` | `CreditNoteReason` | |
 | `description` | `string?` | |
-| `items` | `[]{fee_id, amount Money}` | |
+| `items` | `[]{fee_id, amount Money}` | `fee_id` 仅在草稿发票刷新期间为空：其费用被删除并重新生成，条目随后转到其所抵扣订阅的新订阅费用上，并按新费用金额重新缩放 |
 | `credit_amount`、`refund_amount`、`offset_amount` | `Money` | ≥ 0 |
 | `balance_amount` | `Money` | 剩余额度 |
 | `sub_total_excluding_taxes_amount`、`coupons_adjustment_amount`、`taxes_amount`、`taxes_rate`、`total_amount` | | |
@@ -1696,6 +1699,7 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
 | Webhook 签名 | JWT 或 HMAC | Standard Webhooks（§18.2） |
 | 计费调度 | 每小时扫描 | 按订阅的 `next_billing_at` + 对账（§22.17） |
 | 删除 | 处处使用 `deleted_at` 软删除 | 生命周期状态 + 物理删除（§2.3） |
+| 套餐删除 | `deleted_at` | `deleted` 状态（§7.2） |
 | 删除的草稿 | 保留 `deleted` 状态的行 | 移除；保留审计事件（§11.7） |
 | 一次性发票待计税 | 状态 `pending` | 状态 `open`（§11.2） |
 | 欧盟税码 | `lago_eu_*` | `eu_*`（§22.10） |

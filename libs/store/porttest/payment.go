@@ -395,13 +395,12 @@ func testPayment(t *testing.T, h Harness) {
 			other := *r1
 			other.OrganizationID = pb.org
 			wantErr(t, "Update() other org", r.PaymentReceipts.Update(ctx, &other), core.ErrNotFound)
-			// The contract of Update names no conflict; memstore does not
-			// check the number on update, PostgreSQL does.
-			if h.Name != "memstore" {
-				taken := *r2
-				taken.Number = r1.Number
-				wantErr(t, "Update() taken number", r.PaymentReceipts.Update(ctx, &taken), core.ErrConflict)
-			}
+			taken := *r2
+			taken.Number = r1.Number
+			wantErr(t, "Update() taken number", r.PaymentReceipts.Update(ctx, &taken), core.ErrConflict)
+			taken = *r2
+			taken.PaymentID = r1.PaymentID
+			wantErr(t, "Update() taken payment", r.PaymentReceipts.Update(ctx, &taken), core.ErrConflict)
 			noErr(t, "Update() after conflict", r.PaymentReceipts.Update(ctx, r2))
 			return nil
 		})
@@ -462,12 +461,17 @@ func testPayment(t *testing.T, h Harness) {
 				noErr(t, "Create()", r.Refunds.Create(ctx, x))
 			}
 			wantErr(t, "Create() same ID", r.Refunds.Create(ctx, r1), core.ErrConflict)
+			// The integrations stay while payments, refunds and provider
+			// customers reference them.
+			wantErr(t, "Integrations.Delete() referenced", r.Integrations.Delete(ctx, pa.org, pa.integrations[0]), core.ErrConflict)
+			_, err := r.Integrations.Get(ctx, pa.org, pa.integrations[0])
+			noErr(t, "Integrations.Get() after a refused Delete()", err)
 			for _, x := range []*payment.Refund{r1, r2, r3} {
 				got, err := r.Refunds.Get(ctx, pa.org, x.ID)
 				noErr(t, "Get()", err)
 				equal(t, "Get()", got, x)
 			}
-			_, err := r.Refunds.Get(ctx, pa.org, core.NewID[core.RefundID](e.ids))
+			_, err = r.Refunds.Get(ctx, pa.org, core.NewID[core.RefundID](e.ids))
 			wantErr(t, "Get() unknown", err, core.ErrNotFound)
 			_, err = r.Refunds.Get(ctx, pb.org, r1.ID)
 			wantErr(t, "Get() other org", err, core.ErrNotFound)

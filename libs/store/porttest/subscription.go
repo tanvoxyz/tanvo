@@ -673,16 +673,14 @@ func testSubscription(t *testing.T, h Harness) {
 			equal(t, "ListToRecalculate() of another organization", len(op.Items), 0)
 
 			// A new chain with an ID already used by another chain.
-			if h.Name != "memstore" { // memstore silently overwrites the other chain's record
-				clash := &subscription.LifetimeUsage{
-					ID: l2.ID, OrganizationID: org, SubscriptionID: s3.ID, ExternalSubscriptionID: "lu3",
-					Currency: money.MustCurrency("EUR"), CreatedAt: now, UpdatedAt: now,
-				}
-				wantErr(t, "Upsert() with a taken ID", r.LifetimeUsages.Upsert(ctx, clash), core.ErrConflict)
-				got, err = r.LifetimeUsages.GetByExternalID(ctx, org, "lu2")
-				noErr(t, "GetByExternalID() after a conflict", err)
-				equal(t, "GetByExternalID() after a conflict", got, l2)
+			clash := &subscription.LifetimeUsage{
+				ID: l2.ID, OrganizationID: org, SubscriptionID: s3.ID, ExternalSubscriptionID: "lu3",
+				Currency: money.MustCurrency("EUR"), CreatedAt: now, UpdatedAt: now,
 			}
+			wantErr(t, "Upsert() with a taken ID", r.LifetimeUsages.Upsert(ctx, clash), core.ErrConflict)
+			got, err = r.LifetimeUsages.GetByExternalID(ctx, org, "lu2")
+			noErr(t, "GetByExternalID() after a conflict", err)
+			equal(t, "GetByExternalID() after a conflict", got, l2)
 			return nil
 		})
 	})

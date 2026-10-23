@@ -145,6 +145,9 @@ func (r metricRepo) Delete(ctx context.Context, org core.OrganizationID, id core
 	if _, err := r.Get(ctx, org, id); err != nil {
 		return err
 	}
+	if r.d.charges.any(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.BillableMetricID == id }) {
+		return conflict("billable_metric", "still referenced by charges")
+	}
 	r.d.metrics.del(id)
 	return nil
 }
@@ -210,11 +213,11 @@ func (r metricRepo) List(_ context.Context, org core.OrganizationID, f catalog.M
 type planRepo struct{ d *catalogData }
 
 func (r planRepo) check(p *catalog.Plan) error {
-	if p.IsChild() {
+	if p.IsChild() || p.Deleted() {
 		return nil
 	}
 	if r.d.plans.any(func(x *catalog.Plan) bool {
-		return x.ID != p.ID && x.OrganizationID == p.OrganizationID && x.IsParent() && x.Code == p.Code
+		return x.ID != p.ID && x.OrganizationID == p.OrganizationID && x.IsParent() && !x.Deleted() && x.Code == p.Code
 	}) {
 		return conflict("plan", "code")
 	}
@@ -244,14 +247,6 @@ func (r planRepo) Update(_ context.Context, p *catalog.Plan) error {
 	return nil
 }
 
-func (r planRepo) Delete(ctx context.Context, org core.OrganizationID, id core.PlanID) error {
-	if _, err := r.Get(ctx, org, id); err != nil {
-		return err
-	}
-	r.d.plans.del(id)
-	return nil
-}
-
 func (r planRepo) Get(_ context.Context, org core.OrganizationID, id core.PlanID) (*catalog.Plan, error) {
 	p, ok := r.d.plans.get(id)
 	if !ok || p.OrganizationID != org {
@@ -261,7 +256,9 @@ func (r planRepo) Get(_ context.Context, org core.OrganizationID, id core.PlanID
 }
 
 func (r planRepo) GetByCode(_ context.Context, org core.OrganizationID, code string) (*catalog.Plan, error) {
-	p, ok := r.d.plans.first(func(x *catalog.Plan) bool { return x.OrganizationID == org && x.IsParent() && x.Code == code })
+	p, ok := r.d.plans.first(func(x *catalog.Plan) bool {
+		return x.OrganizationID == org && x.IsParent() && !x.Deleted() && x.Code == code
+	})
 	if !ok {
 		return nil, notFound("plan", stringer(code))
 	}
@@ -273,13 +270,15 @@ func (r planRepo) ListByIDs(_ context.Context, org core.OrganizationID, ids []co
 }
 
 func (r planRepo) ListChildren(_ context.Context, org core.OrganizationID, parent core.PlanID) ([]*catalog.Plan, error) {
-	return r.d.plans.find(func(p *catalog.Plan) bool { return p.OrganizationID == org && p.ParentID == parent }), nil
+	return r.d.plans.find(func(p *catalog.Plan) bool {
+		return p.OrganizationID == org && p.ParentID == parent && !p.Deleted()
+	}), nil
 }
 
 func (r planRepo) List(_ context.Context, org core.OrganizationID, f catalog.PlanListFilter, page core.PageRequest) (core.Page[*catalog.Plan], error) {
 	rows := r.d.plans.find(func(p *catalog.Plan) bool {
 		return p.OrganizationID == org && (f.IncludeChildren || p.IsParent()) &&
-			(len(f.Statuses) == 0 || slices.Contains(f.Statuses, p.Status))
+			(len(f.Statuses) == 0 && !p.Deleted() || slices.Contains(f.Statuses, p.Status))
 	})
 	return paginate(rows, func(p *catalog.Plan) core.PlanID { return p.ID }, page)
 }
@@ -333,16 +332,22 @@ func (r chargeRepo) Delete(ctx context.Context, org core.OrganizationID, id core
 	if _, err := r.Get(ctx, org, id); err != nil {
 		return err
 	}
-	r.d.charges.del(id)
-	return nil
+	_, err := r.delete(func(c *catalog.Charge) bool { return c.ID == id })
+	return err
+}
+
+// delete removes the charges matching pred; an override charge left
+// behind with its parent among them fails with core.ErrConflict.
+func (r chargeRepo) delete(pred func(*catalog.Charge) bool) (int, error) {
+	return r.d.charges.deleteRestricted("charge", pred, func(c *catalog.Charge) core.ChargeID { return c.ParentID })
 }
 
 func (r chargeRepo) DeleteByPlan(_ context.Context, org core.OrganizationID, plan core.PlanID) (int, error) {
-	return r.d.charges.deleteWhere(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.PlanID == plan }), nil
+	return r.delete(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.PlanID == plan })
 }
 
 func (r chargeRepo) DeleteByMetric(_ context.Context, org core.OrganizationID, metric core.BillableMetricID) (int, error) {
-	return r.d.charges.deleteWhere(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.BillableMetricID == metric }), nil
+	return r.delete(func(c *catalog.Charge) bool { return c.OrganizationID == org && c.BillableMetricID == metric })
 }
 
 func (r chargeRepo) Get(_ context.Context, org core.OrganizationID, id core.ChargeID) (*catalog.Charge, error) {
@@ -443,16 +448,22 @@ func (r fixedChargeRepo) Delete(ctx context.Context, org core.OrganizationID, id
 	if _, err := r.Get(ctx, org, id); err != nil {
 		return err
 	}
-	r.d.fixedCharges.del(id)
-	return nil
+	_, err := r.delete(func(f *catalog.FixedCharge) bool { return f.ID == id })
+	return err
+}
+
+// delete removes the fixed charges matching pred; an override fixed charge
+// left behind with its parent among them fails with core.ErrConflict.
+func (r fixedChargeRepo) delete(pred func(*catalog.FixedCharge) bool) (int, error) {
+	return r.d.fixedCharges.deleteRestricted("fixed_charge", pred, func(f *catalog.FixedCharge) core.FixedChargeID { return f.ParentID })
 }
 
 func (r fixedChargeRepo) DeleteByPlan(_ context.Context, org core.OrganizationID, plan core.PlanID) (int, error) {
-	return r.d.fixedCharges.deleteWhere(func(f *catalog.FixedCharge) bool { return f.OrganizationID == org && f.PlanID == plan }), nil
+	return r.delete(func(f *catalog.FixedCharge) bool { return f.OrganizationID == org && f.PlanID == plan })
 }
 
 func (r fixedChargeRepo) DeleteByAddOn(_ context.Context, org core.OrganizationID, addOn core.AddOnID) (int, error) {
-	return r.d.fixedCharges.deleteWhere(func(f *catalog.FixedCharge) bool { return f.OrganizationID == org && f.AddOnID == addOn }), nil
+	return r.delete(func(f *catalog.FixedCharge) bool { return f.OrganizationID == org && f.AddOnID == addOn })
 }
 
 func (r fixedChargeRepo) Get(_ context.Context, org core.OrganizationID, id core.FixedChargeID) (*catalog.FixedCharge, error) {
@@ -523,6 +534,9 @@ func (r addOnRepo) Update(_ context.Context, a *catalog.AddOn) error {
 func (r addOnRepo) Delete(ctx context.Context, org core.OrganizationID, id core.AddOnID) error {
 	if _, err := r.Get(ctx, org, id); err != nil {
 		return err
+	}
+	if r.d.fixedCharges.any(func(f *catalog.FixedCharge) bool { return f.OrganizationID == org && f.AddOnID == id }) {
+		return conflict("add_on", "still referenced by fixed charges")
 	}
 	r.d.addOns.del(id)
 	return nil

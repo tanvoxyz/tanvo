@@ -260,30 +260,110 @@ func (r invoiceRepo) GetByNumber(ctx context.Context, org core.OrganizationID, n
 }
 
 func (r invoiceRepo) List(ctx context.Context, org core.OrganizationID, f invoice.Filter, page core.PageRequest) (core.Page[*invoice.Invoice], error) {
+	if err := f.Validate(); err != nil {
+		return core.Page[*invoice.Invoice]{}, fmt.Errorf("list invoices: %w", err)
+	}
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return core.Page[*invoice.Invoice]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	var (
+		after       *uuid.UUID
+		afterIssued *time.Time
+		lim         int32
+	)
+	recent := f.Order == core.OrderRecent
+	if recent {
+		after, afterIssued, lim, err = invoiceRecentArgs(page)
+	} else {
+		after, lim, err = pageArgs(page)
+	}
 	if err != nil {
 		return core.Page[*invoice.Invoice]{}, err
 	}
+	var searchID *uuid.UUID
+	if id, ok := invoice.SearchID(core.SearchTerm(f.Search)); ok {
+		searchID = new(id.UUID())
+	}
+	var currency *string
+	if !f.Currency.IsZero() {
+		currency = new(f.Currency.Code())
+	}
+	present, absent := metadataFilterArgs(f.Metadata)
 	rows, err := q.ListInvoices(ctx, db.ListInvoicesParams{
-		OrganizationID:    org.UUID(),
-		IncludeGenerating: f.IncludeGenerating,
-		CustomerID:        optUUID(f.CustomerID),
-		BillingEntityID:   optUUID(f.BillingEntityID),
-		Statuses:          enumStrings(f.Statuses),
-		PaymentStatuses:   enumStrings(f.PaymentStatuses),
-		Types:             enumStrings(f.Types),
-		Ids:               uuids(f.IDs),
-		After:             after,
-		Lim:               lim,
+		OrganizationID:      org.UUID(),
+		IncludeGenerating:   f.IncludeGenerating,
+		IncludeUnlisted:     f.IncludeUnlisted,
+		CustomerID:          optUUID(f.CustomerID),
+		CustomerExternalID:  optString(f.CustomerExternalID),
+		BillingEntityID:     optUUID(f.BillingEntityID),
+		BillingEntityIds:    uuids(f.BillingEntityIDs),
+		Currency:            currency,
+		Statuses:            enumStrings(f.Statuses),
+		PaymentStatuses:     enumStrings(f.PaymentStatuses),
+		Types:               enumStrings(f.Types),
+		Ids:                 uuids(f.IDs),
+		SubscriptionIds:     uuids(f.SubscriptionIDs),
+		IssuingDateFrom:     invoiceDateCol(f.IssuingDateFrom),
+		IssuingDateTo:       invoiceDateCol(f.IssuingDateTo),
+		AmountFrom:          f.AmountFrom,
+		AmountTo:            f.AmountTo,
+		PaymentDisputeLost:  f.PaymentDisputeLost,
+		PaymentOverdue:      f.PaymentOverdue,
+		PartiallyPaid:       f.PartiallyPaid,
+		PositiveDueAmount:   f.PositiveDueAmount,
+		SelfBilled:          f.SelfBilled,
+		PurchaseOrderNumber: optString(f.PurchaseOrderNumber),
+		Settlements:         enumStrings(f.Settlements),
+		MetadataPresent:     present,
+		MetadataAbsent:      absent,
+		Search:              searchArg(f.Search),
+		SearchID:            searchID,
+		SearchCustomers:     f.SearchesCustomers(),
+		After:               after,
+		Recent:              recent,
+		AfterIssuingDate:    afterIssued,
+		Lim:                 lim,
 	})
 	if err != nil {
 		return core.Page[*invoice.Invoice]{}, fmt.Errorf("list invoices: %w", mapErr(err))
 	}
+	if recent {
+		return pageOf(rows, page, invoiceOf, invoiceRecentToken)
+	}
 	return pageOf(rows, page, invoiceOf, func(inv *invoice.Invoice) string { return inv.ID.String() })
+}
+
+// invoiceRecentArgs returns the cursor (ID and issuing date, nil for none)
+// and the row limit of a page of the invoice list by issuing date.
+func invoiceRecentArgs(p core.PageRequest) (*uuid.UUID, *time.Time, int32, error) {
+	lim := int32(p.Limit()) + 1 // Limit is at most core.MaxPageSize
+	if p.Token == "" {
+		return nil, nil, lim, nil
+	}
+	c, err := core.DecodeCursor(p.Token)
+	if err != nil {
+		return nil, nil, 0, err
+	}
+	var issued *time.Time
+	if c.Key != "" {
+		d, err := core.ParseDate(c.Key)
+		if err != nil {
+			return nil, nil, 0, fmt.Errorf("%w: page token", core.ErrInvalidValue)
+		}
+		issued = invoiceDateCol(d)
+	}
+	return &c.ID, issued, lim, nil
+}
+
+// invoiceRecentToken returns the page token after inv in the invoice list
+// by issuing date.
+func invoiceRecentToken(inv *invoice.Invoice) string {
+	c := core.Cursor{ID: inv.ID.UUID()}
+	if !inv.IssuingDate.IsZero() {
+		c.Key = inv.IssuingDate.String()
+	}
+	return c.Encode()
 }
 
 // invoiceRows converts the rows of a list query.
@@ -858,8 +938,12 @@ func (r feeRepo) DeleteByInvoice(ctx context.Context, org core.OrganizationID, i
 		return err
 	}
 	u := inv.UUID()
-	if err := q.DeleteFeesByInvoice(ctx, db.DeleteFeesByInvoiceParams{OrganizationID: org.UUID(), InvoiceID: &u}); err != nil {
-		return fmt.Errorf("delete fees: %w", mapErr(err))
+	// A fee still credited by a credit note item violates a foreign key:
+	// guard it so that the transaction stays usable.
+	if err := r.t.guard(ctx, func() error {
+		return q.DeleteFeesByInvoice(ctx, db.DeleteFeesByInvoiceParams{OrganizationID: org.UUID(), InvoiceID: &u})
+	}); err != nil {
+		return fmt.Errorf("delete fees: %w", err)
 	}
 	return nil
 }

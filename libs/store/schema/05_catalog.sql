@@ -95,15 +95,16 @@ CREATE TABLE plans (
   CONSTRAINT plans_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
   CONSTRAINT plans_parent_fkey FOREIGN KEY (organization_id, parent_id) REFERENCES plans (organization_id, id),
   CONSTRAINT plans_billing_interval_check CHECK (billing_interval IN ('weekly', 'monthly', 'quarterly', 'semiannual', 'yearly')),
-  CONSTRAINT plans_status_check CHECK (status IN ('active', 'pending_deletion')),
+  CONSTRAINT plans_status_check CHECK (status IN ('active', 'pending_deletion', 'deleted')),
   CONSTRAINT plans_amount_check CHECK (amount >= 0),
   CONSTRAINT plans_trial_period_days_check CHECK (trial_period_days >= 0),
   CONSTRAINT plans_parent_id_check CHECK (parent_id <> id)
 );
 
--- Codes are unique among original plans; override plans share their
--- parent's code.
-CREATE UNIQUE INDEX plans_code_key ON plans (organization_id, code) WHERE parent_id IS NULL;
+-- Codes are unique among original plans that are not deleted; override
+-- plans share their parent's code, and a deleted plan (kept for its
+-- subscriptions, domain §7.2) frees its code.
+CREATE UNIQUE INDEX plans_code_key ON plans (organization_id, code) WHERE parent_id IS NULL AND status <> 'deleted';
 CREATE INDEX plans_parent_idx ON plans (organization_id, parent_id) WHERE parent_id IS NOT NULL;
 
 ALTER TABLE plans ENABLE ROW LEVEL SECURITY;

@@ -16,8 +16,8 @@ type Plan struct {
 	ID core.PlanID
 	// OrganizationID is the owning organization.
 	OrganizationID core.OrganizationID
-	// Code is unique among live plans that are not children; a child has
-	// its parent's code. Locked once subscribed.
+	// Code is unique among the plans that are neither deleted nor
+	// children; a child has its parent's code. Locked once subscribed.
 	Code string
 	// Name is required, ≤ 255 characters.
 	Name string
@@ -153,6 +153,20 @@ func (p *Plan) MarkPendingDeletion(now time.Time) error {
 	p.UpdatedAt = now
 	return nil
 }
+
+// MarkDeleted moves an active or pending_deletion plan to deleted, the end
+// of every deletion (domain §7.2): the plan is kept, never removed.
+func (p *Plan) MarkDeleted(now time.Time) error {
+	if p.Status != PlanStatusActive && p.Status != PlanStatusPendingDeletion {
+		return &core.TransitionError{Entity: "plan", From: string(p.Status), To: string(PlanStatusDeleted)}
+	}
+	p.Status = PlanStatusDeleted
+	p.UpdatedAt = now
+	return nil
+}
+
+// Deleted reports whether the plan is deleted.
+func (p *Plan) Deleted() bool { return p.Status == PlanStatusDeleted }
 
 // NewOverride returns the override (child) plan of parent for one
 // subscription: a copy with a new ID, ParentID = parent and the parent's

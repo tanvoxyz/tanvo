@@ -140,7 +140,7 @@ Markers used throughout:
 * **Money**: monetary amounts at rest are `Money` (minor units) when final and `Decimal` ("precise") while they are still inputs to later computations (fee amounts before rounding, unit prices, credits). The rounding rules are in §22.9. Never `float64`.
 * **Time**: instants are stored in UTC; dates and period boundaries are computed in the applicable time zone (§22.1) and stored as the UTC instants of local midnights.
 * **Periods** are half-open `[from, to)`. **[Change]** Lago stores inclusive ends at 23:59:59.999999; Tanvo stores the next local midnight.
-* **Deletion**: resources with a lifecycle carry a status (`terminated`, `archived`, `voided`, `deleted`); unreferenced rows are hard-deleted. **[Change]** There is no blanket `deleted_at` soft delete.
+* **Deletion**: resources with a lifecycle carry a status (`terminated`, `archived`, `voided`, `deleted`); unreferenced rows are hard-deleted. Plans are never removed: a deleted plan is kept with the `deleted` status (§7.2), hidden from lookups by code and from lists, and its code is free again. Features, privileges and entitlements are soft-deleted (`deleted_at`, §7.10). The store refuses (`conflict`) to hard-delete a row still referenced. **[Change]** There is no blanket `deleted_at` soft delete.
 * **Metadata** is replaced as a whole on update (the list sent replaces the stored list).
 * **Audit**: every state change named in this document emits a domain event in the same transaction; webhooks (§18) and activity logs are derived from them.
 * **Locks**: operations that read and write a customer's balances (coupons, credit notes, prepaid credits, wallets) take the customer's advisory lock named in each section; billing runs lock the subscription.
@@ -466,7 +466,7 @@ A priced offer.
 
 | Field | Type | Rules |
 | :--- | :--- | :--- |
-| `code` | `string(255)` | unique among plans that are not children |
+| `code` | `string(255)` | unique among plans that are neither children nor `deleted` |
 | `name` | `string(255)` | required |
 | `invoice_display_name` | `string?` | |
 | `description` | `string?` | |
@@ -480,11 +480,13 @@ A priced offer.
 | `parent_id` | `ID?` | set for an override plan (§7.2.1) |
 | `taxes` | `[]Tax` | |
 | `metadata` | Metadata | |
-| `status` | Enum{`active`, `pending_deletion`} | |
+| `status` | Enum{`active`, `pending_deletion`, `deleted`} | |
 
 Rules:
 * Once the plan has subscriptions, `code`, `interval`, `pay_in_advance`, `currency`, `trial_period_days`, `bill_charges_monthly` and `bill_fixed_charges_monthly` are locked.
-* Deleting a plan sets `pending_deletion`, terminates its active subscriptions (with termination invoices), cancels its pending ones, then deletes the plan in a job.
+* Deleting a plan sets `pending_deletion` on it and its children, then a job, for each child and then the plan: terminates its active subscriptions (with termination invoices), cancels its pending ones, finalizes the draft invoices billing it, and soft-deletes its entitlements. A termination or finalization refused by a rule is skipped; any other failure stops the job, which is retried. The plan then moves to `deleted`, whether referenced or not, and keeps its charges, fixed charges, commitments and usage thresholds, which its invoices and their regeneration read; it is hidden from lookups by code, from plan lists, from the children of its parent and from the plan filters and plan search of the subscription list, and its code can be used by a new plan. Only one deletion job runs per plan at a time; `plan.deleted` is emitted when the deletion is prepared.
+* Its pending subscriptions are canceled without a `cancellation_reason`.
+* **[Change]** A deleted plan is the `deleted` status, not a `deleted_at` instant.
 * `yearly_amount` = `amount` × periods per year (52, 12, 4, 2, 1); it decides upgrade versus downgrade (§22.13).
 * **[Change]** The trial is a whole number of days (`int`); Lago stores a float.
 
@@ -492,7 +494,7 @@ Rules:
 A subscription can be created with overrides of the plan's amount, name, description, trial, taxes, charges, fixed charges, commitment and usage thresholds. Tanvo materializes them as a child plan (`parent_id` = the original) used only by that subscription.
 * Children inherit everything they do not override; `code` is the parent's.
 * Editing the parent with `cascade_updates = true` propagates the changed fields to children whose values still equal the parent's previous values.
-* Deleting the parent deletes its children.
+* Deleting the parent deletes its children first (§7.2); the parent stays `deleted` as long as a child row references it.
 
 ### 7.3 Charge
 
@@ -673,7 +675,7 @@ Rules:
 
 **Entitlement**: grants a feature to a plan or a subscription, with `values` map privilege code → value. Values are validated against the privilege type (`integer` as a 64-bit integer, `boolean`, a `select` value in its options).
 
-Effective entitlements of a subscription = the plan's entitlements − the subscription's removals (`subscription_feature_removals`) + the subscription's own entitlements (which override the plan's values privilege by privilege). Deleting a feature removes its entitlements.
+Effective entitlements of a subscription = the plan's entitlements − the subscription's removals (`subscription_feature_removals`) + the subscription's own entitlements (which override the plan's values privilege by privilege). Features, privileges and entitlements are soft-deleted (`deleted_at`): a discarded one is no longer found or listed, a discarded feature's or privilege's code is free again, and a discarded entitlement, with its values, frees its feature for the same owner. Deleting a feature discards its entitlements with their values, its privileges and the feature; the subscriptions' removals are left as they are. Updating a feature discards the privileges it no longer lists, and their values leave the feature's kept entitlements; a privilege it still lists is matched by code and keeps its identity.
 
 ---
 
@@ -740,7 +742,7 @@ Rules:
 | `ending_at` | `Time?` | planned automatic termination; > `subscription_at` |
 | `terminated_at`, `canceled_at` | `Time?` | |
 | `trial_ended_at` | `Time?` | |
-| `cancellation_reason` | `CancellationReason?` | |
+| `cancellation_reason` | `CancellationReason?` | empty when a pending subscription is canceled by a termination, a plan change or a plan deletion |
 | `previous_subscription_id` | `ID?` | the subscription this one upgrades or downgrades |
 | `on_termination_credit_note` | `TerminationCreditNote?` | only for in-advance plans; default `credit` |
 | `on_termination_invoice` | `TerminationInvoice` | default `generate` |
@@ -775,7 +777,8 @@ stateDiagram-v2
 
 * Creation with `subscription_at` ≤ now activates immediately (`started_at = subscription_at`, which may be in the past); a later date gives `pending`, activated by its scheduled job at `subscription_at`.
 * `incomplete` subscriptions receive no events (§10.2) and are not billed periodically.
-* `subscription.started`, `subscription.incomplete`, `subscription.canceled`, `subscription.terminated`, `subscription.updated` are emitted on the corresponding transitions.
+* `subscription.started`, `subscription.incomplete`, `subscription.terminated`, `subscription.updated` are emitted on the corresponding transitions; `subscription.canceled` only when an `incomplete` subscription is canceled (§9.3).
+* A `pending` subscription canceled by its own termination emits `subscription.terminated`, after `subscription.updated` for its current subscription when it was a scheduled downgrade. One canceled as the pending next subscription of a termination or a plan change, or by a plan deletion, emits nothing.
 * 15 and 45 days before `ending_at`, `subscription.termination_alert` is emitted.
 
 ### 9.3 Activation Rules
@@ -1048,7 +1051,7 @@ On a draft invoice, a fee can be adjusted: display name only, units only (the pr
 | `refund_status` | `RefundStatus?` | when `refund_amount > 0` |
 | `reason` | `CreditNoteReason` | |
 | `description` | `string?` | |
-| `items` | `[]{fee_id, amount Money}` | |
+| `items` | `[]{fee_id, amount Money}` | `fee_id` is empty only while the draft invoice is refreshed: its fees are deleted and regenerated, and the items move to the new subscription fee of the subscription they credited, rescaled by the new fee amount |
 | `credit_amount`, `refund_amount`, `offset_amount` | `Money` | ≥ 0 |
 | `balance_amount` | `Money` | remaining credit |
 | `sub_total_excluding_taxes_amount`, `coupons_adjustment_amount`, `taxes_amount`, `taxes_rate`, `total_amount` | | |
@@ -1696,6 +1699,7 @@ All numbers are assigned in the transaction that finalizes the document, under a
 | Webhook signatures | JWT or HMAC | Standard Webhooks (§18.2) |
 | Billing schedule | hourly scans | per-subscription `next_billing_at` + reconciliation (§22.17) |
 | Deletion | `deleted_at` soft delete everywhere | lifecycle statuses + hard delete (§2.3) |
+| Plan deletion | `deleted_at` | `deleted` status (§7.2) |
 | Deleted drafts | `deleted` status row | removed; audit event kept (§11.7) |
 | One-off pending taxes | status `pending` | status `open` (§11.2) |
 | EU tax codes | `lago_eu_*` | `eu_*` (§22.10) |

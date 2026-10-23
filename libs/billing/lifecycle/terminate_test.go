@@ -42,9 +42,12 @@ func TestTerminateFutureCancels(t *testing.T) {
 	must(t, f.terminate(sub))
 	got := f.reload(sub.ID)
 	check(t, "status", got.Status, subscription.StatusCanceled)
-	check(t, "reason", got.CancellationReason, subscription.CancellationReasonManual)
+	// mark_as_canceled! records no reason (app/models/subscription.rb:139-142).
+	check(t, "reason", got.CancellationReason, "")
 	checkSlice(t, "bills", f.bills(), nil)
-	checkSlice(t, "webhooks", f.Webhooks(), hooks(webhook.EventTypeSubscriptionCanceled))
+	// The canceled pending subscription is announced as terminated
+	// (terminate_service.rb:31-39, :81-82).
+	checkSlice(t, "webhooks", f.Webhooks(), hooks(webhook.EventTypeSubscriptionTerminated))
 }
 
 // source: spec/services/subscriptions/terminate_service_spec.rb:121
@@ -55,8 +58,9 @@ func TestTerminatePendingDowngrade(t *testing.T) {
 	must(t, f.terminate(next))
 	check(t, "next status", f.reload(next.ID).Status, subscription.StatusCanceled)
 	check(t, "current status", f.reload(cur.ID).Status, subscription.StatusActive)
+	// source: spec/services/subscriptions/terminate_service_spec.rb:133
 	checkSlice(t, "webhooks", f.Webhooks(), hooks(webhook.EventTypeSubscriptionUpdated,
-		webhook.EventTypeSubscriptionUpdated, webhook.EventTypeSubscriptionCanceled))
+		webhook.EventTypeSubscriptionUpdated, webhook.EventTypeSubscriptionTerminated))
 }
 
 func TestTerminateRefused(t *testing.T) {
@@ -113,10 +117,10 @@ func TestTerminateCancelsPendingNext(t *testing.T) {
 	must(t, f.terminate(cur))
 	check(t, "current status", f.reload(cur.ID).Status, subscription.StatusTerminated)
 	check(t, "next status", f.reload(next.ID).Status, subscription.StatusCanceled)
-	// Tanvo emits subscription.canceled on every pending → canceled
-	// transition (domain §9.2); lago's mark_as_canceled! emits nothing.
+	// The canceled next subscription gets no webhook
+	// (next_subscription.mark_as_canceled!, terminate_service.rb:129).
 	checkSlice(t, "webhooks", f.Webhooks(), hooks(webhook.EventTypeSubscriptionUpdated,
-		webhook.EventTypeSubscriptionCanceled, webhook.EventTypeSubscriptionTerminated))
+		webhook.EventTypeSubscriptionTerminated))
 }
 
 // source: spec/services/subscriptions/terminate_service_spec.rb:311

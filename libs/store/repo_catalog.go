@@ -518,19 +518,6 @@ func (r planRepo) Update(ctx context.Context, p *catalog.Plan) error {
 	return updateErr("plan", p.ID, n, err)
 }
 
-func (r planRepo) Delete(ctx context.Context, org core.OrganizationID, id core.PlanID) error {
-	q, err := r.t.queries(ctx, org)
-	if err != nil {
-		return err
-	}
-	var n int64
-	err = r.t.guard(ctx, func() (err error) {
-		n, err = q.DeletePlan(ctx, db.DeletePlanParams{OrganizationID: org.UUID(), ID: id.UUID()})
-		return err
-	})
-	return updateErr("plan", id, n, err)
-}
-
 func (r planRepo) Get(ctx context.Context, org core.OrganizationID, id core.PlanID) (*catalog.Plan, error) {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {

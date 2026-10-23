@@ -91,36 +91,58 @@ ON CONFLICT DO NOTHING;
 UPDATE features SET
   organization_id = @organization_id, id = @id, code = @code, name = @name, description = @description,
   created_at = @created_at, updated_at = @updated_at
-WHERE organization_id = @organization_id AND id = @id;
+WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;
 
--- name: DeleteFeature :execrows
-DELETE FROM features WHERE organization_id = @organization_id AND id = @id;
+-- name: DiscardFeature :execrows
+UPDATE features SET deleted_at = @at::timestamptz, updated_at = @at::timestamptz
+WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;
 
 -- name: GetFeature :one
-SELECT * FROM features WHERE organization_id = @organization_id AND id = @id;
+SELECT * FROM features WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;
 
 -- name: GetFeatureByCode :one
-SELECT * FROM features WHERE organization_id = @organization_id AND code = @code;
+SELECT * FROM features WHERE organization_id = @organization_id AND code = @code AND deleted_at IS NULL;
 
 -- name: ListFeaturesByIDs :many
 SELECT * FROM features
-WHERE organization_id = @organization_id AND id = ANY(@ids::uuid[])
+WHERE organization_id = @organization_id AND id = ANY(@ids::uuid[]) AND deleted_at IS NULL
 ORDER BY id;
 
 -- name: ListFeatures :many
 SELECT * FROM features
-WHERE organization_id = @organization_id
+WHERE organization_id = @organization_id AND deleted_at IS NULL
   AND (sqlc.narg(after)::uuid IS NULL OR id > sqlc.narg(after))
 ORDER BY id
 LIMIT @lim;
 
 -- name: ListFeaturePrivileges :many
 SELECT * FROM feature_privileges
-WHERE organization_id = @organization_id AND feature_id = ANY(@feature_ids::uuid[])
+WHERE organization_id = @organization_id AND feature_id = ANY(@feature_ids::uuid[]) AND deleted_at IS NULL
 ORDER BY feature_id, position;
 
--- name: DeleteFeaturePrivileges :exec
-DELETE FROM feature_privileges WHERE organization_id = @organization_id AND feature_id = @feature_id;
+-- Discards the feature's kept privileges whose code is not in keep (lago
+-- feature_update_service.rb:99-111, feature_destroy_service.rb:25) and
+-- returns their codes.
+-- name: DiscardFeaturePrivileges :many
+UPDATE feature_privileges SET deleted_at = @at::timestamptz
+WHERE organization_id = @organization_id AND feature_id = @feature_id AND deleted_at IS NULL
+  AND NOT (code = ANY(@keep::text[]))
+RETURNING code;
+
+-- Updates the feature's kept privilege with that code in place and
+-- returns its ID (lago feature_update_service.rb:66-85).
+-- name: UpdateFeaturePrivilege :many
+UPDATE feature_privileges SET position = @position, name = @name, value_type = @value_type, select_options = @select_options
+WHERE organization_id = @organization_id AND feature_id = @feature_id AND code = @code AND deleted_at IS NULL
+RETURNING id;
+
+-- Removes the values of discarded privileges from the feature's kept
+-- entitlements (lago EntitlementValue...discard_all!,
+-- feature_update_service.rb:104).
+-- name: RemoveEntitlementPrivilegeValues :exec
+UPDATE entitlements SET privilege_values = privilege_values - @codes::text[]
+WHERE organization_id = @organization_id AND feature_id = @feature_id AND deleted_at IS NULL
+  AND privilege_values ?| @codes::text[];
 
 -- name: InsertFeaturePrivilege :exec
 INSERT INTO feature_privileges (organization_id, id, feature_id, position, code, name, value_type, select_options)
@@ -139,25 +161,27 @@ UPDATE entitlements SET
   organization_id = @organization_id, id = @id, feature_id = @feature_id, plan_id = @plan_id,
   subscription_id = @subscription_id, privilege_values = @privilege_values,
   created_at = @created_at, updated_at = @updated_at
-WHERE organization_id = @organization_id AND id = @id;
+WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;
 
--- name: DeleteEntitlement :execrows
-DELETE FROM entitlements WHERE organization_id = @organization_id AND id = @id;
+-- name: DiscardEntitlement :execrows
+UPDATE entitlements SET deleted_at = @at::timestamptz, updated_at = @at::timestamptz
+WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;
 
--- name: DeleteEntitlementsByFeature :execrows
-DELETE FROM entitlements WHERE organization_id = @organization_id AND feature_id = @feature_id;
+-- name: DiscardEntitlementsByFeature :execrows
+UPDATE entitlements SET deleted_at = @at::timestamptz, updated_at = @at::timestamptz
+WHERE organization_id = @organization_id AND feature_id = @feature_id AND deleted_at IS NULL;
 
 -- name: GetEntitlement :one
-SELECT * FROM entitlements WHERE organization_id = @organization_id AND id = @id;
+SELECT * FROM entitlements WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;
 
 -- name: ListEntitlementsByPlan :many
 SELECT * FROM entitlements
-WHERE organization_id = @organization_id AND plan_id = @plan_id
+WHERE organization_id = @organization_id AND plan_id = @plan_id AND deleted_at IS NULL
 ORDER BY id;
 
 -- name: ListEntitlementsBySubscription :many
 SELECT * FROM entitlements
-WHERE organization_id = @organization_id AND subscription_id = @subscription_id
+WHERE organization_id = @organization_id AND subscription_id = @subscription_id AND deleted_at IS NULL
 ORDER BY id;
 
 -- name: CreateEntitlementRemoval :execrows
@@ -170,9 +194,6 @@ ON CONFLICT DO NOTHING;
 
 -- name: DeleteEntitlementRemoval :execrows
 DELETE FROM entitlement_removals WHERE organization_id = @organization_id AND id = @id;
-
--- name: DeleteEntitlementRemovalsByFeature :execrows
-DELETE FROM entitlement_removals WHERE organization_id = @organization_id AND feature_id = @feature_id;
 
 -- name: ListEntitlementRemovalsBySubscription :many
 SELECT * FROM entitlement_removals

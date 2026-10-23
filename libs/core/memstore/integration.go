@@ -10,6 +10,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/integration"
+	"github.com/tanvoxyz/tanvo/libs/core/payment"
 )
 
 // integrationData holds the tables of package integration.
@@ -55,7 +56,10 @@ func (d *integrationData) snapshot() *integrationData {
 }
 
 // integrationRepo implements integration.Repository.
-type integrationRepo struct{ d *integrationData }
+type integrationRepo struct {
+	d  *integrationData
+	st *state // the whole transaction state, for the reference checks of Delete
+}
 
 func (r integrationRepo) check(i *integration.Integration) error {
 	if r.d.integrations.any(func(x *integration.Integration) bool {
@@ -145,6 +149,14 @@ func (r integrationRepo) Delete(_ context.Context, org core.OrganizationID, id c
 	i, ok := r.d.integrations.get(id)
 	if !ok || i.OrganizationID != org {
 		return notFound("integration", id)
+	}
+	pay := r.st.payment
+	if pay.providerCustomers.any(func(x *payment.ProviderCustomer) bool { return x.IntegrationID == id }) ||
+		pay.methods.any(func(x *payment.Method) bool { return x.IntegrationID == id }) ||
+		pay.payments.any(func(x *payment.Payment) bool { return x.IntegrationID == id }) ||
+		pay.refunds.any(func(x *payment.Refund) bool { return x.IntegrationID == id }) ||
+		pay.inboundWebhooks.any(func(x *payment.InboundWebhook) bool { return x.IntegrationID == id }) {
+		return conflict("integration", "still referenced by payments")
 	}
 	r.d.integrations.del(id)
 	r.d.customers.deleteWhere(func(x *integration.IntegrationCustomer) bool { return x.IntegrationID == id })
@@ -351,7 +363,9 @@ func (r integrationItemRepo) Upsert(_ context.Context, i *integration.Item) erro
 		r.d.items.put(c.ID, c)
 		return nil
 	}
-	if cur, ok := r.d.items.get(i.ID); ok && cur.OrganizationID != i.OrganizationID {
+	// A new key with an ID taken by another item (of any key) conflicts on
+	// the primary key, as in the store.
+	if r.d.items.has(i.ID) {
 		return conflict("integration_item", "id")
 	}
 	r.d.items.put(i.ID, *i)

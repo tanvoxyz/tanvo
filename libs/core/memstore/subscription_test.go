@@ -16,7 +16,7 @@ func TestSubscriptionRepos(t *testing.T) {
 	now := time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC)
 	ids := core.UUIDv7Generator{}
 	d := newSubscriptionData()
-	subs := subscriptionRepo{d}
+	subs := subscriptionRepo{d: d}
 	org, other := core.NewID[core.OrganizationID](ids), core.NewID[core.OrganizationID](ids)
 	customer, plan := core.NewID[core.CustomerID](ids), core.NewID[core.PlanID](ids)
 	newSub := func(ext string, st subscription.Status) *subscription.Subscription {
@@ -221,7 +221,7 @@ func TestSubscriptionRepos(t *testing.T) {
 	if err := subs.Update(ctx, active); err != nil {
 		t.Fatal(err)
 	}
-	if got, _ := (subscriptionRepo{snap}).Get(ctx, org, active.ID); got.Status != subscription.StatusActive {
+	if got, _ := (subscriptionRepo{d: snap}).Get(ctx, org, active.ID); got.Status != subscription.StatusActive {
 		t.Errorf("snapshot status: got = %s, want = active", got.Status)
 	}
 }

@@ -127,13 +127,12 @@ func (s *Service) terminate(ctx context.Context, r port.Repos, env *kernel.Subsc
 		return false, err
 	}
 	if !o.upgrade && env.Next != nil && env.Next.Status == subscription.StatusPending {
-		if err := env.Next.Cancel(o.at, subscription.CancellationReasonManual); err != nil {
+		// No reason and no webhook, as next_subscription.mark_as_canceled!
+		// (terminate_service.rb:129).
+		if err := env.Next.Cancel(o.at, ""); err != nil {
 			return false, fmt.Errorf("cancel next subscription %s: %w", env.Next.ID, err)
 		}
 		if err := update(ctx, r, env.Next); err != nil {
-			return false, err
-		}
-		if err := s.emit(ctx, webhook.EventTypeSubscriptionCanceled, env.Next); err != nil {
 			return false, err
 		}
 	}
@@ -170,10 +169,13 @@ func (s *Service) decline(ctx context.Context, r port.Repos, sub *subscription.S
 }
 
 // cancelPending cancels a pending subscription (a future start or a
-// scheduled downgrade, whose current subscription is then updated).
+// scheduled downgrade, whose current subscription is then updated). The
+// canceled subscription is announced as subscription.terminated, as
+// terminate_service.rb:31-39 and :81-82 do (terminate_service_spec.rb:133).
 func (s *Service) cancelPending(ctx context.Context, r port.Repos, env *kernel.SubscriptionEnv, at time.Time) error {
 	sub := env.Subscription
-	if err := sub.Cancel(at, subscription.CancellationReasonManual); err != nil {
+	// No reason, as subscription.mark_as_canceled! (terminate_service.rb:33).
+	if err := sub.Cancel(at, ""); err != nil {
 		return fmt.Errorf("cancel subscription %s: %w", sub.ID, err)
 	}
 	if err := update(ctx, r, sub); err != nil {
@@ -184,7 +186,7 @@ func (s *Service) cancelPending(ctx context.Context, r port.Repos, env *kernel.S
 			return err
 		}
 	}
-	return s.emit(ctx, webhook.EventTypeSubscriptionCanceled, sub)
+	return s.emit(ctx, webhook.EventTypeSubscriptionTerminated, sub)
 }
 
 // terminationCreditNote credits the unused part of the base fee of an

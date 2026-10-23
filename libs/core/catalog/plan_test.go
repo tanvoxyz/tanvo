@@ -99,6 +99,19 @@ func TestPlanLifecycleAndOverride(t *testing.T) {
 	if err := p.MarkPendingDeletion(catalogTestNow); !errors.Is(err, core.ErrInvalidTransition) {
 		t.Errorf("MarkPendingDeletion() twice got = %v, want = %v", err, core.ErrInvalidTransition)
 	}
+	if err := p.MarkDeleted(catalogTestNow); err != nil || !p.Deleted() {
+		t.Fatalf("MarkDeleted() got = %v, status %s, want = nil, deleted", err, p.Status)
+	}
+	if err := p.MarkDeleted(catalogTestNow); !errors.Is(err, core.ErrInvalidTransition) {
+		t.Errorf("MarkDeleted() twice got = %v, want = %v", err, core.ErrInvalidTransition)
+	}
+	if err := p.MarkPendingDeletion(catalogTestNow); !errors.Is(err, core.ErrInvalidTransition) {
+		t.Errorf("MarkPendingDeletion() on a deleted plan got = %v, want = %v", err, core.ErrInvalidTransition)
+	}
+	active := catalogTestPlanOf()
+	if err := active.MarkDeleted(catalogTestNow); err != nil || !active.Deleted() {
+		t.Errorf("MarkDeleted() on an active plan got = %v, status %s, want = nil, deleted", err, active.Status)
+	}
 }
 
 func TestValidatePlanUpdate(t *testing.T) {

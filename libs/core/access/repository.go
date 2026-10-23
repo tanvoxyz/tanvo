@@ -93,7 +93,9 @@ type InviteRepository interface {
 	// Create inserts i; a second pending invite for the same email in the
 	// organization fails with core.ErrConflict.
 	Create(ctx context.Context, i *Invite) error
-	// Update replaces the stored invite i.ID with i.
+	// Update replaces the stored invite i.ID with i; a second pending
+	// invite for the same email or a token hash of another invite fails
+	// with core.ErrConflict.
 	Update(ctx context.Context, i *Invite) error
 	// Get returns the invite id of org, or core.ErrNotFound.
 	Get(ctx context.Context, org core.OrganizationID, id core.InviteID) (*Invite, error)
@@ -112,7 +114,8 @@ type InviteRepository interface {
 type PasswordResetRepository interface {
 	// Create inserts p.
 	Create(ctx context.Context, p *PasswordReset) error
-	// Update replaces the stored reset p.ID with p (to mark it used).
+	// Update replaces the stored reset p.ID with p (to mark it used); a
+	// token hash of another reset fails with core.ErrConflict.
 	Update(ctx context.Context, p *PasswordReset) error
 	// GetByTokenHash returns the reset with that token hash, or
 	// core.ErrNotFound.

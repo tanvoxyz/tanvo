@@ -59,7 +59,9 @@ type Subscription struct {
 	CanceledAt *time.Time
 	// TrialEndedAt is set when the trial ended (domain §9.4).
 	TrialEndedAt *time.Time
-	// CancellationReason is set when canceled.
+	// CancellationReason is why it was canceled; empty when canceled
+	// without a recorded reason (a pending subscription canceled by a
+	// termination, a plan change or a plan deletion).
 	CancellationReason CancellationReason
 	// PreviousSubscriptionID is the subscription this one upgrades or
 	// downgrades.
@@ -163,7 +165,7 @@ func (s *Subscription) Validate() error {
 	}
 	if s.Status == StatusCanceled {
 		v.Check(s.CanceledAt != nil, "canceled_at", core.CodeRequired)
-		v.Enum("cancellation_reason", s.CancellationReason)
+		v.OptionalEnum("cancellation_reason", s.CancellationReason)
 	} else {
 		v.Check(s.CancellationReason == "", "cancellation_reason", core.CodeForbidden)
 	}

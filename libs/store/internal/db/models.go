@@ -376,7 +376,7 @@ type CreditNoteItem struct {
 	ID             uuid.UUID
 	CreditNoteID   uuid.UUID
 	Position       int32
-	FeeID          uuid.UUID
+	FeeID          *uuid.UUID
 	Amount         int64
 	PreciseAmount  money.Decimal
 }
@@ -517,6 +517,7 @@ type Entitlement struct {
 	PrivilegeValues json.RawMessage
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	DeletedAt       *time.Time
 }
 
 type EntitlementRemoval struct {
@@ -551,6 +552,7 @@ type Feature struct {
 	Description    *string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+	DeletedAt      *time.Time
 }
 
 type FeaturePrivilege struct {
@@ -562,6 +564,7 @@ type FeaturePrivilege struct {
 	Name           *string
 	ValueType      string
 	SelectOptions  []string
+	DeletedAt      *time.Time
 }
 
 type Fee struct {

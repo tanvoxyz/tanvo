@@ -148,6 +148,14 @@ func (s *Service) regenerate(ctx context.Context, r port.Repos, inv *invoice.Inv
 	if err := s.deduct.ResetDraft(ctx, r, inv); err != nil {
 		return err
 	}
+	// The credit note items let go of the fees about to be deleted, and
+	// follow the regenerated ones in refreshNotes
+	// (refresh_draft_service.rb:124).
+	if refreshNotes != nil {
+		if err := r.CreditNotes.DetachFees(ctx, org, inv.ID); err != nil {
+			return fmt.Errorf("detach credit notes of invoice %s: %w", inv.ID, err)
+		}
+	}
 	if err := s.clearInvoice(ctx, r, inv); err != nil {
 		return err
 	}
@@ -252,8 +260,10 @@ func (s *Service) draftCreditNotes(ctx context.Context, r port.Repos, inv *invoi
 					fee = f
 				}
 			}
+			// lago fails the refresh when the subscription has no new
+			// fee (fee.id on nil, credit_notes/refresh_draft_service.rb:21).
 			if fee == nil {
-				continue
+				return fmt.Errorf("refresh credit note %s: %w: no subscription fee regenerated", cn.ID, core.ErrInvalidValue)
 			}
 			if err := s.creditNotes.RefreshDraft(ctx, r, cn, fee, oldAmounts); err != nil {
 				return err

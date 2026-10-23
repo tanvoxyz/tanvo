@@ -2171,44 +2171,131 @@ func (q *Queries) ListInvoiceSubscriptionsBySubscription(ctx context.Context, ar
 }
 
 const listInvoices = `-- name: ListInvoices :many
-SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at FROM invoices
-WHERE organization_id = $1
-  AND ($2::boolean OR status <> 'generating')
-  AND ($3::uuid IS NULL OR customer_id = $3)
-  AND ($4::uuid IS NULL OR billing_entity_id = $4)
-  AND (cardinality($5::text[]) = 0 OR status = ANY($5::text[]))
-  AND (cardinality($6::text[]) = 0 OR payment_status = ANY($6::text[]))
-  AND (cardinality($7::text[]) = 0 OR invoice_type = ANY($7::text[]))
-  AND (cardinality($8::uuid[]) = 0 OR id = ANY($8::uuid[]))
-  AND ($9::uuid IS NULL OR id > $9)
-ORDER BY id
-LIMIT $10
+SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at FROM invoices i
+WHERE i.organization_id = $1
+  AND (i.status IN ('draft', 'finalized', 'voided', 'failed')
+       OR ($2::boolean AND i.status IN ('open', 'closed'))
+       OR ($3::boolean AND i.status = 'generating'))
+  AND ($4::uuid IS NULL OR i.customer_id = $4)
+  AND ($5::text IS NULL OR EXISTS (
+       SELECT 1 FROM customers c
+       WHERE c.organization_id = i.organization_id AND c.id = i.customer_id AND c.external_id = $5))
+  AND ($6::uuid IS NULL OR i.billing_entity_id = $6)
+  AND (cardinality($7::uuid[]) = 0 OR i.billing_entity_id = ANY($7::uuid[]))
+  AND ($8::text IS NULL OR i.currency = $8)
+  AND (cardinality($9::text[]) = 0 OR i.status = ANY($9::text[]))
+  AND (cardinality($10::text[]) = 0 OR i.payment_status = ANY($10::text[]))
+  AND (cardinality($11::text[]) = 0 OR i.invoice_type = ANY($11::text[]))
+  AND (cardinality($12::uuid[]) = 0 OR i.id = ANY($12::uuid[]))
+  AND (cardinality($13::uuid[]) = 0 OR EXISTS (
+       SELECT 1 FROM invoice_subscriptions s
+       WHERE s.organization_id = i.organization_id AND s.invoice_id = i.id AND s.subscription_id = ANY($13::uuid[])))
+  AND ($14::date IS NULL OR i.issuing_date >= $14)
+  AND ($15::date IS NULL OR i.issuing_date <= $15)
+  AND ($16::bigint IS NULL OR i.total_amount >= $16)
+  AND ($17::bigint IS NULL OR i.total_amount <= $17)
+  AND ($18::boolean IS NULL OR (i.payment_dispute_lost_at IS NOT NULL) = $18)
+  AND ($19::boolean IS NULL OR i.payment_overdue = $19)
+  AND ($20::boolean IS NULL
+       OR (i.total_amount > i.total_paid_amount AND i.total_paid_amount > 0) = $20)
+  AND ($21::boolean IS NULL
+       OR (i.total_amount - i.total_paid_amount > 0) = $21)
+  AND ($22::boolean IS NULL OR i.self_billed = $22)
+  AND ($23::text IS NULL
+       OR lower(i.purchase_order_number) = lower($23))
+  AND (cardinality($24::text[]) = 0 OR EXISTS (
+       SELECT 1 FROM invoice_settlements st
+       WHERE st.organization_id = i.organization_id AND st.invoice_id = i.id AND st.settlement_type = ANY($24::text[])))
+  AND i.metadata @> $25::jsonb
+  AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(i.metadata) m WHERE m->>'key' = ANY($26::text[]))
+  AND ($27::text IS NULL
+       OR ($28::uuid IS NOT NULL AND i.id = $28)
+       OR (NOT $29::boolean AND i.number ILIKE $27)
+       OR ($29::boolean AND concat_ws(' ', i.number, i.purchase_order_number,
+             (SELECT concat_ws(' ', c.name, c.firstname, c.lastname, c.legal_name, c.external_id, c.email)
+              FROM customers c WHERE c.organization_id = i.organization_id AND c.id = i.customer_id)) ILIKE $27))
+  AND ($30::uuid IS NULL
+       OR (NOT $31::boolean AND i.id > $30)
+       OR ($31::boolean AND (COALESCE(i.issuing_date, 'infinity'::date), i.id)
+           < (COALESCE($32::date, 'infinity'::date), $30::uuid)))
+ORDER BY CASE WHEN $31::boolean THEN COALESCE(i.issuing_date, 'infinity'::date) END DESC,
+  CASE WHEN $31::boolean THEN i.id END DESC, i.id
+LIMIT $33
 `
 
 type ListInvoicesParams struct {
-	OrganizationID    uuid.UUID
-	IncludeGenerating bool
-	CustomerID        *uuid.UUID
-	BillingEntityID   *uuid.UUID
-	Statuses          []string
-	PaymentStatuses   []string
-	Types             []string
-	Ids               []uuid.UUID
-	After             *uuid.UUID
-	Lim               int32
+	OrganizationID      uuid.UUID
+	IncludeUnlisted     bool
+	IncludeGenerating   bool
+	CustomerID          *uuid.UUID
+	CustomerExternalID  *string
+	BillingEntityID     *uuid.UUID
+	BillingEntityIds    []uuid.UUID
+	Currency            *string
+	Statuses            []string
+	PaymentStatuses     []string
+	Types               []string
+	Ids                 []uuid.UUID
+	SubscriptionIds     []uuid.UUID
+	IssuingDateFrom     *time.Time
+	IssuingDateTo       *time.Time
+	AmountFrom          *int64
+	AmountTo            *int64
+	PaymentDisputeLost  *bool
+	PaymentOverdue      *bool
+	PartiallyPaid       *bool
+	PositiveDueAmount   *bool
+	SelfBilled          *bool
+	PurchaseOrderNumber *string
+	Settlements         []string
+	MetadataPresent     json.RawMessage
+	MetadataAbsent      []string
+	Search              *string
+	SearchID            *uuid.UUID
+	SearchCustomers     bool
+	After               *uuid.UUID
+	Recent              bool
+	AfterIssuingDate    *time.Time
+	Lim                 int32
 }
 
+// The invoice list of the API (invoice.Filter). @recent lists by issuing
+// date, latest first (NULL first), then id descending; the cursor is then
+// (@after_issuing_date, @after) with 'infinity' standing for NULL.
 func (q *Queries) ListInvoices(ctx context.Context, arg ListInvoicesParams) ([]Invoice, error) {
 	rows, err := q.db.Query(ctx, listInvoices,
 		arg.OrganizationID,
+		arg.IncludeUnlisted,
 		arg.IncludeGenerating,
 		arg.CustomerID,
+		arg.CustomerExternalID,
 		arg.BillingEntityID,
+		arg.BillingEntityIds,
+		arg.Currency,
 		arg.Statuses,
 		arg.PaymentStatuses,
 		arg.Types,
 		arg.Ids,
+		arg.SubscriptionIds,
+		arg.IssuingDateFrom,
+		arg.IssuingDateTo,
+		arg.AmountFrom,
+		arg.AmountTo,
+		arg.PaymentDisputeLost,
+		arg.PaymentOverdue,
+		arg.PartiallyPaid,
+		arg.PositiveDueAmount,
+		arg.SelfBilled,
+		arg.PurchaseOrderNumber,
+		arg.Settlements,
+		arg.MetadataPresent,
+		arg.MetadataAbsent,
+		arg.Search,
+		arg.SearchID,
+		arg.SearchCustomers,
 		arg.After,
+		arg.Recent,
+		arg.AfterIssuingDate,
 		arg.Lim,
 	)
 	if err != nil {

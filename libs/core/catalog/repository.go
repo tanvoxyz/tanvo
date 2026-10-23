@@ -27,7 +27,8 @@ type MetricRepository interface {
 	// uniqueness rule).
 	Update(ctx context.Context, m *BillableMetric) error
 	// Delete removes the metric id; callers delete its charges (and their
-	// filters) in the same transaction (domain §7.1).
+	// filters) in the same transaction (domain §7.1): a metric still
+	// charged fails with core.ErrConflict.
 	Delete(ctx context.Context, org core.OrganizationID, id core.BillableMetricID) error
 	// Get returns the metric id with its filters, or core.ErrNotFound.
 	Get(ctx context.Context, org core.OrganizationID, id core.BillableMetricID) (*BillableMetric, error)
@@ -51,31 +52,33 @@ type PlanListFilter struct {
 	// IncludeChildren also lists override plans; by default only original
 	// plans are listed.
 	IncludeChildren bool
-	// Statuses, when not empty, keeps only plans in these statuses.
+	// Statuses, when not empty, keeps only plans in these statuses; when
+	// empty, deleted plans are left out.
 	Statuses []PlanStatus
 }
 
 // PlanRepository stores plans. Every method is scoped to an organization.
+// Plans are never removed: deleting one is the [Plan.MarkDeleted] status
+// change stored with Update, which keeps its charges, fixed charges,
+// commitments and usage thresholds (domain §7.2).
 type PlanRepository interface {
 	// Create inserts p; the code of an original plan already used by
-	// another original plan of the organization fails with
-	// core.ErrConflict. Override plans share their parent's code.
+	// another original plan of the organization that is not deleted fails
+	// with core.ErrConflict. Override plans share their parent's code.
 	Create(ctx context.Context, p *Plan) error
 	// Update replaces the stored plan p.ID with p (same uniqueness rule).
 	Update(ctx context.Context, p *Plan) error
-	// Delete removes the plan id; callers delete its charges, fixed
-	// charges, commitments, thresholds and entitlements in the same
-	// transaction, and its override plans first (domain §7.2).
-	Delete(ctx context.Context, org core.OrganizationID, id core.PlanID) error
-	// Get returns the plan id (original or override), or core.ErrNotFound.
-	Get(ctx context.Context, org core.OrganizationID, id core.PlanID) (*Plan, error)
-	// GetByCode returns the original plan with that code, or
+	// Get returns the plan id (original or override, deleted or not), or
 	// core.ErrNotFound.
+	Get(ctx context.Context, org core.OrganizationID, id core.PlanID) (*Plan, error)
+	// GetByCode returns the original plan with that code that is not
+	// deleted, or core.ErrNotFound.
 	GetByCode(ctx context.Context, org core.OrganizationID, code string) (*Plan, error)
-	// ListByIDs returns the plans with the given IDs, in the order of ids;
-	// a missing ID fails with core.ErrNotFound.
+	// ListByIDs returns the plans with the given IDs (deleted or not), in
+	// the order of ids; a missing ID fails with core.ErrNotFound.
 	ListByIDs(ctx context.Context, org core.OrganizationID, ids []core.PlanID) ([]*Plan, error)
-	// ListChildren returns the override plans of parent in creation order.
+	// ListChildren returns the override plans of parent that are not
+	// deleted, in creation order.
 	ListChildren(ctx context.Context, org core.OrganizationID, parent core.PlanID) ([]*Plan, error)
 	// List returns the organization's plans in creation order.
 	List(ctx context.Context, org core.OrganizationID, f PlanListFilter, page core.PageRequest) (core.Page[*Plan], error)
@@ -91,7 +94,9 @@ type ChargeRepository interface {
 	// Update replaces the stored charge c.ID and its filters with c (same
 	// uniqueness rules).
 	Update(ctx context.Context, c *Charge) error
-	// Delete removes the charge id and its filters.
+	// Delete removes the charge id and its filters. Every delete of
+	// charges fails with core.ErrConflict, deleting nothing, when an
+	// override charge whose parent it deletes would stay.
 	Delete(ctx context.Context, org core.OrganizationID, id core.ChargeID) error
 	// DeleteByPlan removes every charge of the plan and returns how many.
 	DeleteByPlan(ctx context.Context, org core.OrganizationID, plan core.PlanID) (int, error)
@@ -125,7 +130,9 @@ type FixedChargeRepository interface {
 	Create(ctx context.Context, f *FixedCharge) error
 	// Update replaces the stored fixed charge f.ID with f (same rule).
 	Update(ctx context.Context, f *FixedCharge) error
-	// Delete removes the fixed charge id.
+	// Delete removes the fixed charge id. Every delete of fixed charges
+	// fails with core.ErrConflict, deleting nothing, when an override fixed
+	// charge whose parent it deletes would stay.
 	Delete(ctx context.Context, org core.OrganizationID, id core.FixedChargeID) error
 	// DeleteByPlan removes every fixed charge of the plan and returns how
 	// many.
@@ -157,7 +164,8 @@ type AddOnRepository interface {
 	// Update replaces the stored add-on a.ID with a (same rule).
 	Update(ctx context.Context, a *AddOn) error
 	// Delete removes the add-on id; callers delete its fixed charges in the
-	// same transaction.
+	// same transaction: an add-on still used by fixed charges fails with
+	// core.ErrConflict.
 	Delete(ctx context.Context, org core.OrganizationID, id core.AddOnID) error
 	// Get returns the add-on id, or core.ErrNotFound.
 	Get(ctx context.Context, org core.OrganizationID, id core.AddOnID) (*AddOn, error)

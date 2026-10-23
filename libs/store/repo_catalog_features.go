@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -434,7 +435,8 @@ func (r usageThresholdRepo) ListBySubscription(ctx context.Context, org core.Org
 }
 
 // featureRepo implements catalog.FeatureRepository. A feature's
-// privileges are rows of feature_privileges, rewritten with the feature.
+// privileges are rows of feature_privileges, written with the feature;
+// features and privileges are soft-deleted.
 type featureRepo struct{ t *txState }
 
 var _ catalog.FeatureRepository = featureRepo{}
@@ -460,6 +462,7 @@ func featureOf(r db.Feature) *catalog.Feature {
 		Description:    r.Description,
 		CreatedAt:      utc(r.CreatedAt),
 		UpdatedAt:      utc(r.UpdatedAt),
+		DeletedAt:      optUTC(r.DeletedAt),
 	}
 }
 
@@ -474,36 +477,89 @@ func privilegeOf(r db.FeaturePrivilege) catalog.Privilege {
 		Name:          r.Name,
 		ValueType:     catalog.PrivilegeValueType(r.ValueType),
 		SelectOptions: opts,
+		DeletedAt:     optUTC(r.DeletedAt),
 	}
 }
 
-// writePrivileges replaces the privileges of f.
-func (r featureRepo) writePrivileges(ctx context.Context, q *db.Queries, f *catalog.Feature, replace bool) error {
+// checkPrivilegeCodes refuses a privilege code repeated in f, before any
+// write: an update matches privileges by code.
+func checkPrivilegeCodes(f *catalog.Feature) error {
+	seen := make(map[string]bool, len(f.Privileges))
+	for _, p := range f.Privileges {
+		if seen[p.Code] {
+			return conflict("privilege", "code repeated in the feature")
+		}
+		seen[p.Code] = true
+	}
+	return nil
+}
+
+// writePrivileges writes the privileges of f and returns their stored IDs.
+// On an update (replace), the kept privileges whose code is missing from f
+// are discarded at f.UpdatedAt with their values in the feature's kept
+// entitlements, a kept privilege with a code of f is updated in place and
+// keeps its ID, and the other codes are inserted.
+func (r featureRepo) writePrivileges(ctx context.Context, q *db.Queries, f *catalog.Feature, replace bool) ([]core.PrivilegeID, error) {
 	org, id := f.OrganizationID.UUID(), f.ID.UUID()
 	if replace {
-		if err := q.DeleteFeaturePrivileges(ctx, db.DeleteFeaturePrivilegesParams{OrganizationID: org, FeatureID: id}); err != nil {
-			return err
+		keep := make([]string, len(f.Privileges))
+		for i, p := range f.Privileges {
+			keep[i] = p.Code
+		}
+		removed, err := q.DiscardFeaturePrivileges(ctx, db.DiscardFeaturePrivilegesParams{
+			At: utc(f.UpdatedAt), OrganizationID: org, FeatureID: id, Keep: keep,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if len(removed) > 0 {
+			if err := q.RemoveEntitlementPrivilegeValues(ctx, db.RemoveEntitlementPrivilegeValuesParams{
+				Codes: removed, OrganizationID: org, FeatureID: id,
+			}); err != nil {
+				return nil, err
+			}
 		}
 	}
+	ids := make([]core.PrivilegeID, len(f.Privileges))
 	for i, p := range f.Privileges {
 		opts := p.SelectOptions
 		if opts == nil {
 			opts = []string{}
 		}
+		pos := int32(i) //nolint:gosec // privileges per feature are few
+		ids[i] = p.ID
+		if replace {
+			got, err := q.UpdateFeaturePrivilege(ctx, db.UpdateFeaturePrivilegeParams{
+				Position:       pos,
+				Name:           p.Name,
+				ValueType:      string(p.ValueType),
+				SelectOptions:  opts,
+				OrganizationID: org,
+				FeatureID:      id,
+				Code:           p.Code,
+			})
+			if err != nil {
+				return nil, err
+			}
+			if len(got) > 0 {
+				ids[i] = idOf[core.PrivilegeID](got[0])
+				continue
+			}
+		}
 		if err := q.InsertFeaturePrivilege(ctx, db.InsertFeaturePrivilegeParams{
 			OrganizationID: org,
 			ID:             p.ID.UUID(),
 			FeatureID:      id,
-			Position:       int32(i), //nolint:gosec // privileges per feature are few
+			Position:       pos,
 			Code:           p.Code,
 			Name:           p.Name,
 			ValueType:      string(p.ValueType),
 			SelectOptions:  opts,
 		}); err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return ids, nil
 }
 
 // withPrivileges loads the privileges of features.
@@ -532,6 +588,9 @@ func (r featureRepo) withPrivileges(ctx context.Context, q *db.Queries, org core
 // Create inserts the feature and its privileges under one savepoint, so a
 // repeated privilege code leaves nothing behind and the transaction usable.
 func (r featureRepo) Create(ctx context.Context, f *catalog.Feature) error {
+	if err := checkPrivilegeCodes(f); err != nil {
+		return err
+	}
 	q, err := r.t.queries(ctx, f.OrganizationID)
 	if err != nil {
 		return err
@@ -543,36 +602,62 @@ func (r featureRepo) Create(ctx context.Context, f *catalog.Feature) error {
 		if err != nil || n == 0 {
 			return err
 		}
-		return r.writePrivileges(ctx, q, f, false)
+		_, err = r.writePrivileges(ctx, q, f, false)
+		return err
 	})
 	return insertErr("feature", n, err)
 }
 
+// Update replaces the kept feature and writes its privileges under one
+// savepoint; the stored privilege IDs are written back into f on success.
 func (r featureRepo) Update(ctx context.Context, f *catalog.Feature) error {
+	if err := checkPrivilegeCodes(f); err != nil {
+		return err
+	}
 	q, err := r.t.queries(ctx, f.OrganizationID)
 	if err != nil {
 		return err
 	}
-	var n int64
+	var (
+		n   int64
+		ids []core.PrivilegeID
+	)
 	err = r.t.guard(ctx, func() error {
 		var err error
 		n, err = q.UpdateFeature(ctx, db.UpdateFeatureParams(featureParams(f)))
 		if err != nil || n == 0 {
 			return err
 		}
-		return r.writePrivileges(ctx, q, f, true)
+		ids, err = r.writePrivileges(ctx, q, f, true)
+		return err
 	})
-	return updateErr("feature", f.ID, n, err)
+	if err := updateErr("feature", f.ID, n, err); err != nil {
+		return err
+	}
+	for i := range ids {
+		f.Privileges[i].ID = ids[i]
+	}
+	return nil
 }
 
-// Delete removes the feature; its privileges, entitlements and removals
-// cascade.
-func (r featureRepo) Delete(ctx context.Context, org core.OrganizationID, id core.FeatureID) error {
+// Discard soft-deletes the kept feature and its kept privileges at at.
+func (r featureRepo) Discard(ctx context.Context, org core.OrganizationID, id core.FeatureID, at time.Time) error {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return err
 	}
-	n, err := q.DeleteFeature(ctx, db.DeleteFeatureParams{OrganizationID: org.UUID(), ID: id.UUID()})
+	var n int64
+	err = r.t.guard(ctx, func() error {
+		var err error
+		n, err = q.DiscardFeature(ctx, db.DiscardFeatureParams{At: utc(at), OrganizationID: org.UUID(), ID: id.UUID()})
+		if err != nil || n == 0 {
+			return err
+		}
+		_, err = q.DiscardFeaturePrivileges(ctx, db.DiscardFeaturePrivilegesParams{
+			At: utc(at), OrganizationID: org.UUID(), FeatureID: id.UUID(), Keep: []string{},
+		})
+		return err
+	})
 	return updateErr("feature", id, n, err)
 }
 
@@ -711,6 +796,7 @@ func entitlementOf(r db.Entitlement) (*catalog.Entitlement, error) {
 		Values:         values,
 		CreatedAt:      utc(r.CreatedAt),
 		UpdatedAt:      utc(r.UpdatedAt),
+		DeletedAt:      optUTC(r.DeletedAt),
 	}, nil
 }
 
@@ -755,29 +841,25 @@ func (r entitlementRepo) Update(ctx context.Context, e *catalog.Entitlement) err
 	return updateErr("entitlement", e.ID, n, err)
 }
 
-func (r entitlementRepo) Delete(ctx context.Context, org core.OrganizationID, id core.EntitlementID) error {
+func (r entitlementRepo) Discard(ctx context.Context, org core.OrganizationID, id core.EntitlementID, at time.Time) error {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return err
 	}
-	n, err := q.DeleteEntitlement(ctx, db.DeleteEntitlementParams{OrganizationID: org.UUID(), ID: id.UUID()})
+	n, err := q.DiscardEntitlement(ctx, db.DiscardEntitlementParams{OrganizationID: org.UUID(), ID: id.UUID(), At: at.UTC()})
 	return updateErr("entitlement", id, n, err)
 }
 
-func (r entitlementRepo) DeleteByFeature(ctx context.Context, org core.OrganizationID, feature core.FeatureID) (int, error) {
+func (r entitlementRepo) DiscardByFeature(ctx context.Context, org core.OrganizationID, feature core.FeatureID, at time.Time) (int, error) {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return 0, err
 	}
-	n, err := q.DeleteEntitlementsByFeature(ctx, db.DeleteEntitlementsByFeatureParams{OrganizationID: org.UUID(), FeatureID: feature.UUID()})
+	n, err := q.DiscardEntitlementsByFeature(ctx, db.DiscardEntitlementsByFeatureParams{OrganizationID: org.UUID(), FeatureID: feature.UUID(), At: at.UTC()})
 	if err != nil {
-		return 0, fmt.Errorf("delete entitlements of feature %s: %w", feature, mapErr(err))
+		return 0, fmt.Errorf("discard entitlements of feature %s: %w", feature, mapErr(err))
 	}
-	m, err := q.DeleteEntitlementRemovalsByFeature(ctx, db.DeleteEntitlementRemovalsByFeatureParams{OrganizationID: org.UUID(), FeatureID: feature.UUID()})
-	if err != nil {
-		return 0, fmt.Errorf("delete entitlement removals of feature %s: %w", feature, mapErr(err))
-	}
-	return int(n + m), nil
+	return int(n), nil
 }
 
 func (r entitlementRepo) Get(ctx context.Context, org core.OrganizationID, id core.EntitlementID) (*catalog.Entitlement, error) {

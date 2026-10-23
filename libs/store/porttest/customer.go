@@ -235,7 +235,7 @@ func testCustomer(t *testing.T, h Harness) {
 				{"with deleted", customer.Filter{IncludeDeleted: true}, []*customer.Customer{c1, c2, c3, c4, c5}},
 				{"billing entity", customer.Filter{BillingEntityIDs: []core.BillingEntityID{eu.ID}, IncludeDeleted: true}, []*customer.Customer{c2, c5}},
 				{"billing entities", customer.Filter{BillingEntityIDs: []core.BillingEntityID{eu.ID, a.ID}}, []*customer.Customer{c1, c2, c3, c4}},
-				{"account type", customer.Filter{AccountType: customer.AccountTypePartner}, []*customer.Customer{c2}},
+				{"account type", customer.Filter{AccountTypes: []customer.AccountType{customer.AccountTypePartner}}, []*customer.Customer{c2}},
 				{"customer type", customer.Filter{CustomerType: customer.TypeCompany}, []*customer.Customer{c1, c2}},
 				{"search external ID", customer.Filter{Search: "AMM"}, []*customer.Customer{c3}},
 				{"search name", customer.Filter{Search: "industries"}, []*customer.Customer{c1}},

@@ -143,17 +143,26 @@ func (r paymentReceiptRepo) Create(_ context.Context, x *payment.Receipt) error 
 	if r.d.receipts.has(x.ID) {
 		return conflict("payment_receipt", "id")
 	}
+	if err := r.check(x); err != nil {
+		return err
+	}
+	r.d.receipts.put(x.ID, *x)
+	return nil
+}
+
+// check enforces the uniqueness of the payment and of the number of x
+// among the other receipts of its organization.
+func (r paymentReceiptRepo) check(x *payment.Receipt) error {
 	if r.d.receipts.any(func(y *payment.Receipt) bool {
-		return y.OrganizationID == x.OrganizationID && y.PaymentID == x.PaymentID
+		return y.ID != x.ID && y.OrganizationID == x.OrganizationID && y.PaymentID == x.PaymentID
 	}) {
 		return conflict("payment_receipt", "payment_id")
 	}
 	if r.d.receipts.any(func(y *payment.Receipt) bool {
-		return y.OrganizationID == x.OrganizationID && y.Number == x.Number
+		return y.ID != x.ID && y.OrganizationID == x.OrganizationID && y.Number == x.Number
 	}) {
 		return conflict("payment_receipt", "number")
 	}
-	r.d.receipts.put(x.ID, *x)
 	return nil
 }
 
@@ -161,6 +170,9 @@ func (r paymentReceiptRepo) Update(_ context.Context, x *payment.Receipt) error 
 	cur, ok := r.d.receipts.get(x.ID)
 	if !ok || cur.OrganizationID != x.OrganizationID {
 		return notFound("payment_receipt", x.ID)
+	}
+	if err := r.check(x); err != nil {
+		return err
 	}
 	r.d.receipts.put(x.ID, *x)
 	return nil

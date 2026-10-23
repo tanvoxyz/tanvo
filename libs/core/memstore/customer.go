@@ -2,11 +2,15 @@ package memstore
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
+	"github.com/tanvoxyz/tanvo/libs/core/subscription"
+	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
 // customerData holds the tables of package customer.
@@ -30,8 +34,12 @@ func (d *customerData) snapshot() *customerData {
 	return &customerData{customers: d.customers.snapshot()}
 }
 
-// customerRepo implements customer.Repository.
-type customerRepo struct{ d *customerData }
+// customerRepo implements customer.Repository; st is the whole
+// transaction state, for the filters on subscriptions.
+type customerRepo struct {
+	d  *customerData
+	st *state
+}
 
 var _ customer.Repository = customerRepo{}
 
@@ -89,18 +97,69 @@ func (r customerRepo) GetByExternalID(_ context.Context, org core.OrganizationID
 }
 
 func (r customerRepo) List(_ context.Context, org core.OrganizationID, f customer.Filter, page core.PageRequest) (core.Page[*customer.Customer], error) {
-	search := strings.ToLower(f.Search)
+	if err := f.Validate(); err != nil {
+		return core.Page[*customer.Customer]{}, fmt.Errorf("list customers: %w", err)
+	}
+	search := strings.ToLower(core.SearchTerm(f.Search))
+	if f.ExternalID != "" {
+		search = ""
+	}
+	lo, hi, byCount := f.ActiveSubscriptionsRange()
 	rows := r.d.customers.find(func(x *customer.Customer) bool {
 		switch {
 		case x.OrganizationID != org,
 			!f.IncludeDeleted && x.Deleted(),
+			f.ExternalID != "" && x.ExternalID != f.ExternalID,
 			len(f.BillingEntityIDs) > 0 && !slices.Contains(f.BillingEntityIDs, x.BillingEntityID),
-			f.AccountType != "" && x.AccountType != f.AccountType,
-			f.CustomerType != "" && x.CustomerType != f.CustomerType:
+			len(f.AccountTypes) > 0 && !slices.Contains(f.AccountTypes, x.AccountType),
+			f.CustomerType != "" && x.CustomerType != f.CustomerType,
+			f.HasCustomerType != nil && (x.CustomerType != "") != *f.HasCustomerType,
+			len(f.Countries) > 0 && !slices.Contains(f.Countries, x.BillingAddress.Country),
+			len(f.States) > 0 && !slices.Contains(f.States, x.BillingAddress.State),
+			len(f.Zipcodes) > 0 && !slices.Contains(f.Zipcodes, x.BillingAddress.Zipcode),
+			len(f.Currencies) > 0 && !slices.ContainsFunc(f.Currencies, func(c money.Currency) bool { return !x.Currency.IsZero() && c.Code() == x.Currency.Code() }),
+			f.HasTaxIdentificationNumber != nil && (x.TaxIdentificationNumber != nil) != *f.HasTaxIdentificationNumber,
+			!f.Metadata.Matches(x.Metadata):
 			return false
+		}
+		if byCount {
+			n := r.st.subscription.subscriptions.count(func(s *subscription.Subscription) bool {
+				return s.OrganizationID == org && s.CustomerID == x.ID && s.Status == subscription.StatusActive
+			})
+			if n < lo || n > hi {
+				return false
+			}
 		}
 		return search == "" || customerMatches(x, search)
 	})
+	if f.Order == core.OrderRecent {
+		// created_at, newest first, then id ascending (base_query.rb:111-112).
+		if page.Token != "" {
+			c, err := core.DecodeCursor(page.Token)
+			if err != nil {
+				return core.Page[*customer.Customer]{}, err
+			}
+			if _, err := time.Parse(time.RFC3339Nano, c.Key); err != nil {
+				return core.Page[*customer.Customer]{}, fmt.Errorf("%w: page token", core.ErrInvalidValue)
+			}
+		}
+		slices.SortStableFunc(rows, func(a, b *customer.Customer) int {
+			if c := b.CreatedAt.Compare(a.CreatedAt); c != 0 {
+				return c
+			}
+			return a.ID.Compare(b.ID)
+		})
+		cursor := func(x *customer.Customer) core.Cursor {
+			return core.Cursor{Key: x.CreatedAt.UTC().Format(time.RFC3339Nano), ID: x.ID.UUID()}
+		}
+		return paginateSorted(rows, cursor, func(x *customer.Customer, c core.Cursor) bool {
+			at, _ := time.Parse(time.RFC3339Nano, c.Key)
+			if !x.CreatedAt.Equal(at) {
+				return x.CreatedAt.Before(at)
+			}
+			return x.ID.UUID().String() > c.ID.String()
+		}, page)
+	}
 	return paginate(rows, customerKey, page)
 }
 

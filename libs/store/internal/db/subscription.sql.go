@@ -1005,22 +1005,79 @@ SELECT s.organization_id, s.id, s.external_id, s.customer_id, s.plan_id, s.name,
 FROM subscriptions s
 WHERE s.organization_id = $1
   AND ($2::uuid IS NULL OR s.customer_id = $2)
-  AND ($3::uuid IS NULL OR s.plan_id = $3)
-  AND ($4::text IS NULL OR s.external_id = $4)
-  AND (cardinality($5::text[]) = 0 OR s.status = ANY($5::text[]))
-  AND ($6::uuid IS NULL OR s.id > $6)
-ORDER BY s.id
-LIMIT $7
+  AND ($3::text IS NULL OR EXISTS (
+    SELECT 1 FROM customers c
+    WHERE c.organization_id = s.organization_id AND c.id = s.customer_id
+      AND c.external_id = $3 AND c.deleted_at IS NULL))
+  AND ($4::uuid IS NULL OR s.plan_id = $4)
+  AND (($5::text IS NULL AND $6::boolean IS NULL AND $7::text IS NULL)
+       OR EXISTS (
+         SELECT 1 FROM plans p
+         WHERE p.organization_id = s.organization_id AND p.id = s.plan_id AND p.status <> 'deleted'
+           AND ($5::text IS NULL OR p.code = $5)
+           AND ($6::boolean IS NULL OR (p.parent_id IS NOT NULL) = $6)
+           AND ($7::text IS NULL OR p.currency = $7)))
+  AND ($8::text IS NULL OR s.external_id = $8)
+  AND (cardinality($9::text[]) = 0 OR s.status = ANY($9::text[]))
+  AND (cardinality($10::uuid[]) = 0
+       OR s.billing_entity_id = ANY($10::uuid[])
+       OR (s.billing_entity_id IS NULL AND EXISTS (
+         SELECT 1 FROM customers c
+         WHERE c.organization_id = s.organization_id AND c.id = s.customer_id
+           AND c.billing_entity_id = ANY($10::uuid[]))))
+  AND (NOT $11::boolean
+       OR s.previous_subscription_id IS NULL
+       OR s.status = 'canceled'
+       OR EXISTS (
+         SELECT 1 FROM subscriptions prev
+         WHERE prev.organization_id = s.organization_id AND prev.id = s.previous_subscription_id
+           AND (prev.status = 'terminated'
+                OR (cardinality($9::text[]) > 0
+                    AND prev.status <> ALL($9::text[]) AND s.status = ANY($9::text[])))))
+  AND ($12::text IS NULL
+       OR s.name ILIKE $12 OR s.external_id ILIKE $12
+       OR s.id = $13::uuid
+       OR EXISTS (
+         SELECT 1 FROM plans p
+         WHERE p.organization_id = s.organization_id AND p.id = s.plan_id AND p.status <> 'deleted'
+           AND (p.name ILIKE $12 OR p.code ILIKE $12))
+       OR ($14::boolean AND EXISTS (
+         SELECT 1 FROM customers c
+         WHERE c.organization_id = s.organization_id AND c.id = s.customer_id AND c.deleted_at IS NULL
+           AND (c.name ILIKE $12 OR c.firstname ILIKE $12
+                OR c.lastname ILIKE $12 OR c.external_id ILIKE $12
+                OR c.email ILIKE $12))))
+  AND ($15::uuid IS NULL
+       OR ($16::boolean AND (s.subscription_at < $17::timestamptz
+                                 OR (s.subscription_at = $17::timestamptz
+                                     AND (s.created_at < $18::timestamptz
+                                          OR (s.created_at = $18::timestamptz AND s.id > $15)))))
+       OR (NOT $16::boolean AND s.id > $15))
+ORDER BY CASE WHEN $16::boolean THEN s.subscription_at END DESC,
+  CASE WHEN $16::boolean THEN s.created_at END DESC, s.id
+LIMIT $19
 `
 
 type ListSubscriptionsParams struct {
-	OrganizationID uuid.UUID
-	CustomerID     *uuid.UUID
-	PlanID         *uuid.UUID
-	ExternalID     *string
-	Statuses       []string
-	After          *uuid.UUID
-	Lim            int32
+	OrganizationID           uuid.UUID
+	CustomerID               *uuid.UUID
+	ExternalCustomerID       *string
+	PlanID                   *uuid.UUID
+	PlanCode                 *string
+	Overridden               *bool
+	Currency                 *string
+	ExternalID               *string
+	Statuses                 []string
+	BillingEntityIds         []uuid.UUID
+	ExcludeNextSubscriptions bool
+	Search                   *string
+	SearchID                 *uuid.UUID
+	SearchCustomers          bool
+	After                    *uuid.UUID
+	Recent                   bool
+	AfterAt                  *time.Time
+	AfterCreatedAt           *time.Time
+	Lim                      int32
 }
 
 type ListSubscriptionsRow struct {
@@ -1028,14 +1085,30 @@ type ListSubscriptionsRow struct {
 	InvoiceCustomSectionIds []uuid.UUID
 }
 
+// The subscription list of the API (subscription.Filter). @recent lists by
+// subscription_at, most recent first, then by created_at, newest first,
+// then by id ascending (subscriptions_query.rb:24-30, base_query.rb:111-112);
+// its cursor is (@after_at, @after_created_at, @after).
 func (q *Queries) ListSubscriptions(ctx context.Context, arg ListSubscriptionsParams) ([]ListSubscriptionsRow, error) {
 	rows, err := q.db.Query(ctx, listSubscriptions,
 		arg.OrganizationID,
 		arg.CustomerID,
+		arg.ExternalCustomerID,
 		arg.PlanID,
+		arg.PlanCode,
+		arg.Overridden,
+		arg.Currency,
 		arg.ExternalID,
 		arg.Statuses,
+		arg.BillingEntityIds,
+		arg.ExcludeNextSubscriptions,
+		arg.Search,
+		arg.SearchID,
+		arg.SearchCustomers,
 		arg.After,
+		arg.Recent,
+		arg.AfterAt,
+		arg.AfterCreatedAt,
 		arg.Lim,
 	)
 	if err != nil {

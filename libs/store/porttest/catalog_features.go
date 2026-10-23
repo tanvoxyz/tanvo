@@ -613,27 +613,60 @@ func testCatalogFeaturesFeature(t *testing.T, h Harness) {
 		upd.Privileges = []catalog.Privilege{
 			{ID: core.NewID[core.PrivilegeID](e.ids), Code: "provider", ValueType: catalog.PrivilegeValueTypeString},
 			f.Privileges[1],
-			{ID: f.Privileges[0].ID, Code: "tier", ValueType: catalog.PrivilegeValueTypeSelect, SelectOptions: []string{"bronze"}},
+			// A kept privilege is matched by code and keeps its ID
+			// (feature_update_service.rb:69).
+			{ID: core.NewID[core.PrivilegeID](e.ids), Code: "tier", ValueType: catalog.PrivilegeValueTypeSelect, SelectOptions: []string{"bronze"}},
 			{ID: core.NewID[core.PrivilegeID](e.ids), Code: "enabled", Name: ptr("On"), ValueType: catalog.PrivilegeValueTypeBoolean},
 		}
 		upd.UpdatedAt = at(time.Hour)
 		e.tx(func(ctx context.Context, r port.Repos) error {
 			noErr(t, "Update", r.Features.Update(ctx, &upd))
+			equal(t, "Update kept privilege ID", upd.Privileges[2].ID, f.Privileges[0].ID)
 			got, err := r.Features.Get(ctx, b.OrganizationID, f.ID)
 			noErr(t, "Get", err)
 			equal(t, "Get updated", got, &upd)
+			// Privileges missing from the update are discarded
+			// (feature_update_service.rb:99-111); a discarded code is free
+			// again and gets a new privilege.
 			upd.Privileges = nil
 			noErr(t, "Update without privileges", r.Features.Update(ctx, &upd))
 			got, err = r.Features.Get(ctx, b.OrganizationID, f.ID)
 			noErr(t, "Get", err)
 			equal(t, "Get without privileges", got, &upd)
+			seats := catalog.Privilege{ID: core.NewID[core.PrivilegeID](e.ids), Code: "seats", ValueType: catalog.PrivilegeValueTypeInteger}
+			upd.Privileges = []catalog.Privilege{seats}
+			noErr(t, "Update with a discarded code", r.Features.Update(ctx, &upd))
+			equal(t, "Update new privilege ID", upd.Privileges[0].ID, seats.ID)
+			got, err = r.Features.Get(ctx, b.OrganizationID, f.ID)
+			noErr(t, "Get", err)
+			equal(t, "Get with a discarded code", got, &upd)
 			missing := *bare
 			missing.ID = core.NewID[core.FeatureID](e.ids)
 			wantErr(t, "Update missing", r.Features.Update(ctx, &missing), core.ErrNotFound)
-			noErr(t, "Delete", r.Features.Delete(ctx, b.OrganizationID, f.ID))
-			_, err = r.Features.Get(ctx, b.OrganizationID, f.ID)
-			wantErr(t, "Get deleted", err, core.ErrNotFound)
-			wantErr(t, "Delete again", r.Features.Delete(ctx, b.OrganizationID, f.ID), core.ErrNotFound)
+			return nil
+		})
+
+		// Discarded features are invisible (feature.rb:9) and free their
+		// code (idx_features_code_unique_per_organization WHERE deleted_at
+		// IS NULL).
+		e.tx(func(ctx context.Context, r port.Repos) error {
+			noErr(t, "Discard", r.Features.Discard(ctx, b.OrganizationID, f.ID, at(2*time.Hour)))
+			_, err := r.Features.Get(ctx, b.OrganizationID, f.ID)
+			wantErr(t, "Get discarded", err, core.ErrNotFound)
+			_, err = r.Features.GetByCode(ctx, b.OrganizationID, "sso")
+			wantErr(t, "GetByCode discarded", err, core.ErrNotFound)
+			_, err = r.Features.ListByIDs(ctx, b.OrganizationID, []core.FeatureID{f.ID})
+			wantErr(t, "ListByIDs discarded", err, core.ErrNotFound)
+			p, err := r.Features.List(ctx, b.OrganizationID, core.PageRequest{})
+			noErr(t, "List", err)
+			equal(t, "List", p.Items, []*catalog.Feature{bare})
+			wantErr(t, "Discard again", r.Features.Discard(ctx, b.OrganizationID, f.ID, at(3*time.Hour)), core.ErrNotFound)
+			wantErr(t, "Update discarded", r.Features.Update(ctx, &upd), core.ErrNotFound)
+			again := catalogFeaturesFeature(e, b, "sso")
+			noErr(t, "Create after discard", r.Features.Create(ctx, again))
+			got, err := r.Features.GetByCode(ctx, b.OrganizationID, "sso")
+			noErr(t, "GetByCode recreated", err)
+			equal(t, "GetByCode recreated", got, again)
 			return nil
 		})
 	})
@@ -713,7 +746,7 @@ func testCatalogFeaturesFeature(t *testing.T, h Harness) {
 			moved := *f
 			moved.OrganizationID = b.OrganizationID
 			wantErr(t, "Update", r.Features.Update(ctx, &moved), core.ErrNotFound)
-			wantErr(t, "Delete", r.Features.Delete(ctx, b.OrganizationID, f.ID), core.ErrNotFound)
+			wantErr(t, "Discard", r.Features.Discard(ctx, b.OrganizationID, f.ID, now), core.ErrNotFound)
 			got, err := r.Features.Get(ctx, a.OrganizationID, f.ID)
 			noErr(t, "Get own", err)
 			equal(t, "Get own", got, f)
@@ -809,10 +842,27 @@ func testCatalogFeaturesEntitlement(t *testing.T, h Harness) {
 			missing := *pg
 			missing.ID = core.NewID[core.EntitlementID](e.ids)
 			wantErr(t, "Update missing", r.Entitlements.Update(ctx, &missing), core.ErrNotFound)
-			noErr(t, "Delete", r.Entitlements.Delete(ctx, b.OrganizationID, pe.ID))
+			// Discarded entitlements are invisible (entitlement.rb:9) and
+			// free their feature for the owner (idx_unique_feature_per_plan
+			// WHERE deleted_at IS NULL).
+			noErr(t, "Discard", r.Entitlements.Discard(ctx, b.OrganizationID, pe.ID, at(2*time.Hour)))
 			_, err = r.Entitlements.Get(ctx, b.OrganizationID, pe.ID)
-			wantErr(t, "Get deleted", err, core.ErrNotFound)
-			wantErr(t, "Delete again", r.Entitlements.Delete(ctx, b.OrganizationID, pe.ID), core.ErrNotFound)
+			wantErr(t, "Get discarded", err, core.ErrNotFound)
+			wantErr(t, "Discard again", r.Entitlements.Discard(ctx, b.OrganizationID, pe.ID, at(3*time.Hour)), core.ErrNotFound)
+			wantErr(t, "Update discarded", r.Entitlements.Update(ctx, &upd), core.ErrNotFound)
+			list, err := r.Entitlements.ListByPlan(ctx, b.OrganizationID, pe.PlanID)
+			noErr(t, "ListByPlan", err)
+			for _, x := range list {
+				if x.ID == pe.ID {
+					t.Errorf("ListByPlan() lists the discarded entitlement %s", pe.ID)
+				}
+			}
+			again := *pe
+			again.ID = core.NewID[core.EntitlementID](e.ids)
+			noErr(t, "Create after discard", r.Entitlements.Create(ctx, &again))
+			got, err = r.Entitlements.Get(ctx, b.OrganizationID, again.ID)
+			noErr(t, "Get recreated", err)
+			equal(t, "Get recreated", got, &again)
 			return nil
 		})
 	})
@@ -885,7 +935,8 @@ func testCatalogFeaturesEntitlement(t *testing.T, h Harness) {
 		})
 	})
 
-	t.Run("delete_by_feature", func(t *testing.T) {
+	// source: app/services/entitlement/feature_destroy_service.rb:22-27
+	t.Run("discard_by_feature", func(t *testing.T) {
 		t.Parallel()
 		e := newEnv(t, h)
 		_, b := e.org("Acme")
@@ -905,23 +956,81 @@ func testCatalogFeaturesEntitlement(t *testing.T, h Harness) {
 			return nil
 		})
 		e.tx(func(ctx context.Context, r port.Repos) error {
-			n, err := r.Entitlements.DeleteByFeature(ctx, b.OrganizationID, f.ID)
-			noErr(t, "DeleteByFeature", err)
-			equal(t, "DeleteByFeature count", n, 3)
+			n, err := r.Entitlements.DiscardByFeature(ctx, b.OrganizationID, f.ID, at(time.Hour))
+			noErr(t, "DiscardByFeature", err)
+			equal(t, "DiscardByFeature count", n, 2)
 			list, err := r.Entitlements.ListByPlan(ctx, b.OrganizationID, plan.ID)
 			noErr(t, "ListByPlan", err)
 			equal(t, "ListByPlan", list, []*catalog.Entitlement{keep})
 			list, err = r.Entitlements.ListBySubscription(ctx, b.OrganizationID, sub.ID)
 			noErr(t, "ListBySubscription", err)
 			equal(t, "ListBySubscription", len(list), 0)
+			// The removals stay, as lago leaves them.
 			removals, err := r.Entitlements.ListRemovalsBySubscription(ctx, b.OrganizationID, sub.ID)
 			noErr(t, "ListRemovalsBySubscription", err)
-			equal(t, "ListRemovalsBySubscription", removals, []*catalog.EntitlementRemoval{keepRemoval})
-			n, err = r.Entitlements.DeleteByFeature(ctx, b.OrganizationID, f.ID)
-			noErr(t, "DeleteByFeature again", err)
-			equal(t, "DeleteByFeature again", n, 0)
-			// With its entitlements gone, the feature deletes.
-			noErr(t, "Delete feature", r.Features.Delete(ctx, b.OrganizationID, f.ID))
+			equal(t, "ListRemovalsBySubscription", len(removals), 2)
+			n, err = r.Entitlements.DiscardByFeature(ctx, b.OrganizationID, f.ID, at(2*time.Hour))
+			noErr(t, "DiscardByFeature again", err)
+			equal(t, "DiscardByFeature again", n, 0)
+			// Discarding the feature leaves the removals too.
+			noErr(t, "Discard feature", r.Features.Discard(ctx, b.OrganizationID, f.ID, at(time.Hour)))
+			removals, err = r.Entitlements.ListRemovalsBySubscription(ctx, b.OrganizationID, sub.ID)
+			noErr(t, "ListRemovalsBySubscription", err)
+			equal(t, "ListRemovalsBySubscription after feature", len(removals), 2)
+			list, err = r.Entitlements.ListByPlan(ctx, b.OrganizationID, plan.ID)
+			noErr(t, "ListByPlan", err)
+			equal(t, "ListByPlan after feature", list, []*catalog.Entitlement{keep})
+			return nil
+		})
+	})
+
+	// source: app/services/entitlement/feature_update_service.rb:99-111
+	t.Run("discarded_privilege_values", func(t *testing.T) {
+		t.Parallel()
+		e := newEnv(t, h)
+		_, b := e.org("Acme")
+		f := catalogFeaturesFeature(e, b, "sso")
+		g := catalogFeaturesFeature(e, b, "api")
+		catalogFeaturesCreateFeatures(e, f, g)
+		plan := catalogFeaturesPlan(e, b, "basic")
+		sub := catalogFeaturesSubscription(e, b, plan, "sub_1")
+		pe := catalogFeaturesEntitlement(e, f, plan, nil, map[string]string{"tier": "gold", "seats": "10"})
+		se := catalogFeaturesEntitlement(e, f, nil, sub, map[string]string{"seats": "20"})
+		gone := catalogFeaturesEntitlement(e, f, nil, catalogFeaturesSubscription(e, b, plan, "sub_2"), map[string]string{"seats": "30"})
+		pg := catalogFeaturesEntitlement(e, g, plan, nil, map[string]string{"tier": "gold", "seats": "5"})
+		e.tx(func(ctx context.Context, r port.Repos) error {
+			for _, en := range []*catalog.Entitlement{pe, se, gone, pg} {
+				noErr(t, "Create", r.Entitlements.Create(ctx, en))
+			}
+			return r.Entitlements.Discard(ctx, b.OrganizationID, gone.ID, now)
+		})
+		upd := *f
+		upd.Privileges = f.Privileges[:1]
+		upd.UpdatedAt = at(time.Hour)
+		e.tx(func(ctx context.Context, r port.Repos) error {
+			noErr(t, "Update", r.Features.Update(ctx, &upd))
+			// The values of the discarded privilege leave the feature's
+			// kept entitlements; other features keep theirs.
+			for _, tc := range []struct {
+				en   *catalog.Entitlement
+				want map[string]string
+			}{
+				{pe, map[string]string{"tier": "gold"}},
+				{se, nil},
+				{pg, map[string]string{"tier": "gold", "seats": "5"}},
+			} {
+				got, err := r.Entitlements.Get(ctx, b.OrganizationID, tc.en.ID)
+				noErr(t, "Get", err)
+				if len(got.Values) != len(tc.want) {
+					t.Errorf("Get(%s).Values = %v, want = %v", tc.en.ID, got.Values, tc.want)
+					continue
+				}
+				for k, v := range tc.want {
+					if got.Values[k] != v {
+						t.Errorf("Get(%s).Values = %v, want = %v", tc.en.ID, got.Values, tc.want)
+					}
+				}
+			}
 			return nil
 		})
 	})
@@ -953,11 +1062,11 @@ func testCatalogFeaturesEntitlement(t *testing.T, h Harness) {
 			moved := *en
 			moved.OrganizationID = b.OrganizationID
 			wantErr(t, "Update", r.Entitlements.Update(ctx, &moved), core.ErrNotFound)
-			wantErr(t, "Delete", r.Entitlements.Delete(ctx, b.OrganizationID, en.ID), core.ErrNotFound)
+			wantErr(t, "Discard", r.Entitlements.Discard(ctx, b.OrganizationID, en.ID, now), core.ErrNotFound)
 			wantErr(t, "DeleteRemoval", r.Entitlements.DeleteRemoval(ctx, b.OrganizationID, rm.ID), core.ErrNotFound)
-			n, err := r.Entitlements.DeleteByFeature(ctx, b.OrganizationID, f.ID)
-			noErr(t, "DeleteByFeature", err)
-			equal(t, "DeleteByFeature", n, 0)
+			n, err := r.Entitlements.DiscardByFeature(ctx, b.OrganizationID, f.ID, now)
+			noErr(t, "DiscardByFeature", err)
+			equal(t, "DiscardByFeature", n, 0)
 			got, err := r.Entitlements.Get(ctx, a.OrganizationID, en.ID)
 			noErr(t, "Get own", err)
 			equal(t, "Get own", got, en)

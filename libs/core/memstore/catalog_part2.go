@@ -5,6 +5,7 @@ import (
 	"context"
 	"maps"
 	"slices"
+	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
@@ -285,12 +286,13 @@ func (r usageThresholdRepo) ListBySubscription(_ context.Context, org core.Organ
 	}), nil
 }
 
-// featureRepo implements catalog.FeatureRepository.
+// featureRepo implements catalog.FeatureRepository. A stored feature
+// holds its discarded privileges too; reads return kept ones only.
 type featureRepo struct{ d *catalogPart2Data }
 
 func (r featureRepo) check(f *catalog.Feature) error {
 	if r.d.features.any(func(x *catalog.Feature) bool {
-		return x.ID != f.ID && x.OrganizationID == f.OrganizationID && x.Code == f.Code
+		return x.ID != f.ID && x.DeletedAt == nil && x.OrganizationID == f.OrganizationID && x.Code == f.Code
 	}) {
 		return conflict("feature", "code")
 	}
@@ -304,6 +306,12 @@ func (r featureRepo) check(f *catalog.Feature) error {
 	return nil
 }
 
+// keptFeature returns f with its kept privileges only.
+func keptFeature(f *catalog.Feature) *catalog.Feature {
+	f.Privileges = slices.DeleteFunc(f.Privileges, func(p catalog.Privilege) bool { return p.DeletedAt != nil })
+	return f
+}
+
 func (r featureRepo) Create(_ context.Context, f *catalog.Feature) error {
 	if r.d.features.has(f.ID) {
 		return conflict("feature", "id")
@@ -311,43 +319,103 @@ func (r featureRepo) Create(_ context.Context, f *catalog.Feature) error {
 	if err := r.check(f); err != nil {
 		return err
 	}
-	r.d.features.put(f.ID, *f)
+	c := *f
+	c.DeletedAt = nil
+	c.Privileges = slices.Clone(f.Privileges)
+	for i := range c.Privileges {
+		c.Privileges[i].DeletedAt = nil
+	}
+	r.d.features.put(f.ID, c)
 	return nil
 }
 
-func (r featureRepo) Update(ctx context.Context, f *catalog.Feature) error {
-	if _, err := r.Get(ctx, f.OrganizationID, f.ID); err != nil {
-		return err
+func (r featureRepo) Update(_ context.Context, f *catalog.Feature) error {
+	old, ok := r.d.features.get(f.ID)
+	if !ok || old.OrganizationID != f.OrganizationID || old.DeletedAt != nil {
+		return notFound("feature", f.ID)
 	}
 	if err := r.check(f); err != nil {
 		return err
 	}
-	r.d.features.put(f.ID, *f)
+	at := f.UpdatedAt.UTC()
+	in := make(map[string]bool, len(f.Privileges))
+	for _, p := range f.Privileges {
+		in[p.Code] = true
+	}
+	ids := make(map[string]core.PrivilegeID, len(old.Privileges))
+	var discarded []catalog.Privilege
+	var removed []string
+	for _, p := range old.Privileges {
+		switch {
+		case p.DeletedAt != nil:
+			discarded = append(discarded, p)
+		case in[p.Code]:
+			ids[p.Code] = p.ID
+		default:
+			p.DeletedAt = &at
+			discarded = append(discarded, p)
+			removed = append(removed, p.Code)
+		}
+	}
+	c := *f
+	c.DeletedAt = nil
+	c.Privileges = make([]catalog.Privilege, 0, len(f.Privileges)+len(discarded))
+	for i, p := range f.Privileges {
+		if id, ok := ids[p.Code]; ok {
+			f.Privileges[i].ID, p.ID = id, id
+		}
+		p.DeletedAt = nil
+		c.Privileges = append(c.Privileges, p)
+	}
+	c.Privileges = append(c.Privileges, discarded...)
+	r.d.features.put(f.ID, c)
+	if len(removed) > 0 {
+		// The values of the discarded privileges go from the feature's
+		// kept entitlements, as in the store.
+		for _, e := range r.d.entitlements.find(func(x *catalog.Entitlement) bool {
+			return x.OrganizationID == f.OrganizationID && x.FeatureID == f.ID && x.DeletedAt == nil
+		}) {
+			for _, code := range removed {
+				delete(e.Values, code)
+			}
+			r.d.entitlements.put(e.ID, *e)
+		}
+	}
 	return nil
 }
 
-func (r featureRepo) Delete(ctx context.Context, org core.OrganizationID, id core.FeatureID) error {
-	if _, err := r.Get(ctx, org, id); err != nil {
-		return err
+func (r featureRepo) Discard(_ context.Context, org core.OrganizationID, id core.FeatureID, at time.Time) error {
+	f, ok := r.d.features.get(id)
+	if !ok || f.OrganizationID != org || f.DeletedAt != nil {
+		return notFound("feature", id)
 	}
-	r.d.features.del(id)
+	at = at.UTC()
+	f.DeletedAt, f.UpdatedAt = &at, at
+	for i := range f.Privileges {
+		if f.Privileges[i].DeletedAt == nil {
+			f.Privileges[i].DeletedAt = &at
+		}
+	}
+	r.d.features.put(id, *f)
 	return nil
 }
 
 func (r featureRepo) Get(_ context.Context, org core.OrganizationID, id core.FeatureID) (*catalog.Feature, error) {
 	f, ok := r.d.features.get(id)
-	if !ok || f.OrganizationID != org {
+	if !ok || f.OrganizationID != org || f.DeletedAt != nil {
 		return nil, notFound("feature", id)
 	}
-	return f, nil
+	return keptFeature(f), nil
 }
 
 func (r featureRepo) GetByCode(_ context.Context, org core.OrganizationID, code string) (*catalog.Feature, error) {
-	f, ok := r.d.features.first(func(x *catalog.Feature) bool { return x.OrganizationID == org && x.Code == code })
+	f, ok := r.d.features.first(func(x *catalog.Feature) bool {
+		return x.OrganizationID == org && x.Code == code && x.DeletedAt == nil
+	})
 	if !ok {
 		return nil, notFound("feature", stringer(code))
 	}
-	return f, nil
+	return keptFeature(f), nil
 }
 
 func (r featureRepo) ListByIDs(ctx context.Context, org core.OrganizationID, ids []core.FeatureID) ([]*catalog.Feature, error) {
@@ -363,7 +431,10 @@ func (r featureRepo) ListByIDs(ctx context.Context, org core.OrganizationID, ids
 }
 
 func (r featureRepo) List(_ context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*catalog.Feature], error) {
-	rows := r.d.features.find(func(x *catalog.Feature) bool { return x.OrganizationID == org })
+	rows := r.d.features.find(func(x *catalog.Feature) bool { return x.OrganizationID == org && x.DeletedAt == nil })
+	for _, f := range rows {
+		keptFeature(f)
+	}
 	return paginate(rows, func(f *catalog.Feature) core.FeatureID { return f.ID }, page)
 }
 
@@ -372,7 +443,7 @@ type entitlementRepo struct{ d *catalogPart2Data }
 
 func (r entitlementRepo) check(e *catalog.Entitlement) error {
 	if r.d.entitlements.any(func(x *catalog.Entitlement) bool {
-		return x.ID != e.ID && x.OrganizationID == e.OrganizationID && x.FeatureID == e.FeatureID &&
+		return x.ID != e.ID && x.DeletedAt == nil && x.OrganizationID == e.OrganizationID && x.FeatureID == e.FeatureID &&
 			x.PlanID == e.PlanID && x.SubscriptionID == e.SubscriptionID
 	}) {
 		return conflict("entitlement", "feature_id")
@@ -387,7 +458,9 @@ func (r entitlementRepo) Create(_ context.Context, e *catalog.Entitlement) error
 	if err := r.check(e); err != nil {
 		return err
 	}
-	r.d.entitlements.put(e.ID, *e)
+	c := *e
+	c.DeletedAt = nil
+	r.d.entitlements.put(e.ID, c)
 	return nil
 }
 
@@ -398,31 +471,41 @@ func (r entitlementRepo) Update(ctx context.Context, e *catalog.Entitlement) err
 	if err := r.check(e); err != nil {
 		return err
 	}
-	r.d.entitlements.put(e.ID, *e)
+	c := *e
+	c.DeletedAt = nil
+	r.d.entitlements.put(e.ID, c)
 	return nil
 }
 
-func (r entitlementRepo) Delete(ctx context.Context, org core.OrganizationID, id core.EntitlementID) error {
-	if _, err := r.Get(ctx, org, id); err != nil {
+func (r entitlementRepo) Discard(ctx context.Context, org core.OrganizationID, id core.EntitlementID, at time.Time) error {
+	e, err := r.Get(ctx, org, id)
+	if err != nil {
 		return err
 	}
-	r.d.entitlements.del(id)
+	r.discard(e, at)
 	return nil
 }
 
-func (r entitlementRepo) DeleteByFeature(_ context.Context, org core.OrganizationID, feature core.FeatureID) (int, error) {
-	n := r.d.entitlements.deleteWhere(func(x *catalog.Entitlement) bool {
-		return x.OrganizationID == org && x.FeatureID == feature
+func (r entitlementRepo) DiscardByFeature(_ context.Context, org core.OrganizationID, feature core.FeatureID, at time.Time) (int, error) {
+	kept := r.d.entitlements.find(func(x *catalog.Entitlement) bool {
+		return x.OrganizationID == org && x.FeatureID == feature && x.DeletedAt == nil
 	})
-	n += r.d.removals.deleteWhere(func(x *catalog.EntitlementRemoval) bool {
-		return x.OrganizationID == org && x.FeatureID == feature
-	})
-	return n, nil
+	for _, e := range kept {
+		r.discard(e, at)
+	}
+	return len(kept), nil
+}
+
+// discard stores e discarded at at.
+func (r entitlementRepo) discard(e *catalog.Entitlement, at time.Time) {
+	at = at.UTC()
+	e.DeletedAt, e.UpdatedAt = &at, at
+	r.d.entitlements.put(e.ID, *e)
 }
 
 func (r entitlementRepo) Get(_ context.Context, org core.OrganizationID, id core.EntitlementID) (*catalog.Entitlement, error) {
 	e, ok := r.d.entitlements.get(id)
-	if !ok || e.OrganizationID != org {
+	if !ok || e.OrganizationID != org || e.DeletedAt != nil {
 		return nil, notFound("entitlement", id)
 	}
 	return e, nil
@@ -430,13 +513,13 @@ func (r entitlementRepo) Get(_ context.Context, org core.OrganizationID, id core
 
 func (r entitlementRepo) ListByPlan(_ context.Context, org core.OrganizationID, plan core.PlanID) ([]*catalog.Entitlement, error) {
 	return r.d.entitlements.find(func(x *catalog.Entitlement) bool {
-		return x.OrganizationID == org && x.PlanID == plan && !plan.IsZero()
+		return x.OrganizationID == org && x.PlanID == plan && !plan.IsZero() && x.DeletedAt == nil
 	}), nil
 }
 
 func (r entitlementRepo) ListBySubscription(_ context.Context, org core.OrganizationID, sub core.SubscriptionID) ([]*catalog.Entitlement, error) {
 	return r.d.entitlements.find(func(x *catalog.Entitlement) bool {
-		return x.OrganizationID == org && x.SubscriptionID == sub && !sub.IsZero()
+		return x.OrganizationID == org && x.SubscriptionID == sub && !sub.IsZero() && x.DeletedAt == nil
 	}), nil
 }
 

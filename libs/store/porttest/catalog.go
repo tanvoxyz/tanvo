@@ -281,11 +281,9 @@ func testCatalog(t *testing.T, h Harness) {
 			equal(t, "List() of a plan", list(catalog.MetricListFilter{PlanID: plan.ID}), []core.BillableMetricID{sum.ID})
 			equal(t, "List() of a plan, recurring", list(catalog.MetricListFilter{PlanID: plan.ID, Recurring: ptr(true)}), []core.BillableMetricID{})
 
-			// Delete. The services delete a metric's charges first; PostgreSQL
-			// refuses to leave them dangling (memstore does not check).
-			if h.Name != "memstore" {
-				wantErr(t, "Delete() of a metric with charges", r.Metrics.Delete(ctx, org, sum.ID), core.ErrConflict)
-			}
+			// Delete. The services delete a metric's charges first; the
+			// store refuses to leave them dangling.
+			wantErr(t, "Delete() of a metric with charges", r.Metrics.Delete(ctx, org, sum.ID), core.ErrConflict)
 			n, err := r.Charges.DeleteByMetric(ctx, org, sum.ID)
 			noErr(t, "Charges.DeleteByMetric()", err)
 			equal(t, "Charges.DeleteByMetric()", n, 1)
@@ -414,26 +412,11 @@ func testCatalog(t *testing.T, h Harness) {
 			other := *basic
 			other.OrganizationID = ob
 			wantErr(t, "Update() through another organization", r.Plans.Update(ctx, &other), core.ErrNotFound)
-			wantErr(t, "Delete() from another organization", r.Plans.Delete(ctx, ob, basic.ID), core.ErrNotFound)
 			obp := catalogFixturePlan(e, ob, "premium")
 			noErr(t, "Create() in another organization", r.Plans.Create(ctx, obp))
 			p, err := r.Plans.List(ctx, ob, catalog.PlanListFilter{IncludeChildren: true}, core.PageRequest{})
 			noErr(t, "List() of another organization", err)
 			equal(t, "List() of another organization", ids(p.Items, catalogPlanID), []core.PlanID{obp.ID})
-
-			// Delete: override plans first (PostgreSQL refuses otherwise;
-			// memstore does not check).
-			if h.Name != "memstore" {
-				wantErr(t, "Delete() of a plan with overrides", r.Plans.Delete(ctx, org, full.ID), core.ErrConflict)
-			}
-			for _, c := range []*catalog.Plan{child, child2} {
-				noErr(t, "Delete() override", r.Plans.Delete(ctx, org, c.ID))
-			}
-			noErr(t, "Delete()", r.Plans.Delete(ctx, org, full.ID))
-			wantErr(t, "Delete() again", r.Plans.Delete(ctx, org, full.ID), core.ErrNotFound)
-			_, err = r.Plans.Get(ctx, org, full.ID)
-			wantErr(t, "Get() deleted", err, core.ErrNotFound)
-			noErr(t, "Create() with a freed code", r.Plans.Create(ctx, catalogFixturePlan(e, org, "premium")))
 			return nil
 		})
 	})
@@ -676,7 +659,10 @@ func testCatalog(t *testing.T, h Harness) {
 			noErr(t, "DeleteByMetric() from another organization", err)
 			equal(t, "DeleteByMetric() from another organization", n, 0)
 
-			// Deletes.
+			// Deletes: override charges first.
+			wantErr(t, "Delete() of a charge with an override", r.Charges.Delete(ctx, org, full.ID), core.ErrConflict)
+			_, err = r.Charges.Get(ctx, org, full.ID)
+			noErr(t, "Get() after a refused Delete()", err)
 			noErr(t, "Delete() override", r.Charges.Delete(ctx, org, child.ID))
 			noErr(t, "Delete()", r.Charges.Delete(ctx, org, full.ID))
 			wantErr(t, "Delete() again", r.Charges.Delete(ctx, org, full.ID), core.ErrNotFound)
@@ -796,11 +782,12 @@ func testCatalog(t *testing.T, h Harness) {
 			noErr(t, "DeleteByAddOn() from another organization", err)
 			equal(t, "DeleteByAddOn() from another organization", n, 0)
 
-			// Deletes. An add-on's fixed charges go first (PostgreSQL refuses
-			// otherwise; memstore does not check).
-			if h.Name != "memstore" {
-				wantErr(t, "AddOns.Delete() of an add-on with fixed charges", r.AddOns.Delete(ctx, org, seats.ID), core.ErrConflict)
-			}
+			// Deletes. An add-on's fixed charges go first, and override fixed
+			// charges before their parent.
+			wantErr(t, "AddOns.Delete() of an add-on with fixed charges", r.AddOns.Delete(ctx, org, seats.ID), core.ErrConflict)
+			wantErr(t, "Delete() of a fixed charge with an override", r.FixedCharges.Delete(ctx, org, full.ID), core.ErrConflict)
+			_, err = r.FixedCharges.Get(ctx, org, full.ID)
+			noErr(t, "Get() after a refused Delete()", err)
 			noErr(t, "Delete() override", r.FixedCharges.Delete(ctx, org, child.ID))
 			noErr(t, "Delete()", r.FixedCharges.Delete(ctx, org, full.ID))
 			wantErr(t, "Delete() again", r.FixedCharges.Delete(ctx, org, full.ID), core.ErrNotFound)

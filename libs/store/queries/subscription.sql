@@ -60,17 +60,66 @@ ORDER BY CASE s.status WHEN 'active' THEN 0 WHEN 'incomplete' THEN 1 ELSE 2 END,
 LIMIT 1;
 
 -- name: ListSubscriptions :many
+-- The subscription list of the API (subscription.Filter). @recent lists by
+-- subscription_at, most recent first, then by created_at, newest first,
+-- then by id ascending (subscriptions_query.rb:24-30, base_query.rb:111-112);
+-- its cursor is (@after_at, @after_created_at, @after).
 SELECT sqlc.embed(s),
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
 WHERE s.organization_id = @organization_id
   AND (sqlc.narg(customer_id)::uuid IS NULL OR s.customer_id = sqlc.narg(customer_id))
+  AND (sqlc.narg(external_customer_id)::text IS NULL OR EXISTS (
+    SELECT 1 FROM customers c
+    WHERE c.organization_id = s.organization_id AND c.id = s.customer_id
+      AND c.external_id = sqlc.narg(external_customer_id) AND c.deleted_at IS NULL))
   AND (sqlc.narg(plan_id)::uuid IS NULL OR s.plan_id = sqlc.narg(plan_id))
+  AND ((sqlc.narg(plan_code)::text IS NULL AND sqlc.narg(overridden)::boolean IS NULL AND sqlc.narg(currency)::text IS NULL)
+       OR EXISTS (
+         SELECT 1 FROM plans p
+         WHERE p.organization_id = s.organization_id AND p.id = s.plan_id AND p.status <> 'deleted'
+           AND (sqlc.narg(plan_code)::text IS NULL OR p.code = sqlc.narg(plan_code))
+           AND (sqlc.narg(overridden)::boolean IS NULL OR (p.parent_id IS NOT NULL) = sqlc.narg(overridden))
+           AND (sqlc.narg(currency)::text IS NULL OR p.currency = sqlc.narg(currency))))
   AND (sqlc.narg(external_id)::text IS NULL OR s.external_id = sqlc.narg(external_id))
   AND (cardinality(@statuses::text[]) = 0 OR s.status = ANY(@statuses::text[]))
-  AND (sqlc.narg(after)::uuid IS NULL OR s.id > sqlc.narg(after))
-ORDER BY s.id
+  AND (cardinality(@billing_entity_ids::uuid[]) = 0
+       OR s.billing_entity_id = ANY(@billing_entity_ids::uuid[])
+       OR (s.billing_entity_id IS NULL AND EXISTS (
+         SELECT 1 FROM customers c
+         WHERE c.organization_id = s.organization_id AND c.id = s.customer_id
+           AND c.billing_entity_id = ANY(@billing_entity_ids::uuid[]))))
+  AND (NOT @exclude_next_subscriptions::boolean
+       OR s.previous_subscription_id IS NULL
+       OR s.status = 'canceled'
+       OR EXISTS (
+         SELECT 1 FROM subscriptions prev
+         WHERE prev.organization_id = s.organization_id AND prev.id = s.previous_subscription_id
+           AND (prev.status = 'terminated'
+                OR (cardinality(@statuses::text[]) > 0
+                    AND prev.status <> ALL(@statuses::text[]) AND s.status = ANY(@statuses::text[])))))
+  AND (sqlc.narg(search)::text IS NULL
+       OR s.name ILIKE sqlc.narg(search) OR s.external_id ILIKE sqlc.narg(search)
+       OR s.id = sqlc.narg(search_id)::uuid
+       OR EXISTS (
+         SELECT 1 FROM plans p
+         WHERE p.organization_id = s.organization_id AND p.id = s.plan_id AND p.status <> 'deleted'
+           AND (p.name ILIKE sqlc.narg(search) OR p.code ILIKE sqlc.narg(search)))
+       OR (@search_customers::boolean AND EXISTS (
+         SELECT 1 FROM customers c
+         WHERE c.organization_id = s.organization_id AND c.id = s.customer_id AND c.deleted_at IS NULL
+           AND (c.name ILIKE sqlc.narg(search) OR c.firstname ILIKE sqlc.narg(search)
+                OR c.lastname ILIKE sqlc.narg(search) OR c.external_id ILIKE sqlc.narg(search)
+                OR c.email ILIKE sqlc.narg(search)))))
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR (@recent::boolean AND (s.subscription_at < sqlc.narg(after_at)::timestamptz
+                                 OR (s.subscription_at = sqlc.narg(after_at)::timestamptz
+                                     AND (s.created_at < sqlc.narg(after_created_at)::timestamptz
+                                          OR (s.created_at = sqlc.narg(after_created_at)::timestamptz AND s.id > sqlc.narg(after))))))
+       OR (NOT @recent::boolean AND s.id > sqlc.narg(after)))
+ORDER BY CASE WHEN @recent::boolean THEN s.subscription_at END DESC,
+  CASE WHEN @recent::boolean THEN s.created_at END DESC, s.id
 LIMIT @lim;
 
 -- name: ListSubscriptionsByExternalID :many

@@ -38,6 +38,9 @@ const (
 	PlanStatus_PLAN_STATUS_ACTIVE PlanStatus = 1
 	// Being deleted in the background.
 	PlanStatus_PLAN_STATUS_PENDING_DELETION PlanStatus = 2
+	// Deleted while still referenced by subscriptions or override plans:
+	// kept for them, hidden from lists and lookups by code.
+	PlanStatus_PLAN_STATUS_DELETED PlanStatus = 3
 )
 
 // Enum value maps for PlanStatus.
@@ -46,11 +49,13 @@ var (
 		0: "PLAN_STATUS_UNSPECIFIED",
 		1: "PLAN_STATUS_ACTIVE",
 		2: "PLAN_STATUS_PENDING_DELETION",
+		3: "PLAN_STATUS_DELETED",
 	}
 	PlanStatus_value = map[string]int32{
 		"PLAN_STATUS_UNSPECIFIED":      0,
 		"PLAN_STATUS_ACTIVE":           1,
 		"PLAN_STATUS_PENDING_DELETION": 2,
+		"PLAN_STATUS_DELETED":          3,
 	}
 )
 
@@ -2356,12 +2361,13 @@ const file_tanvo_catalog_v1_plan_proto_rawDesc = "" +
 	"\aplan_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x06planId\"@\n" +
 	"\x12DeletePlanResponse\x12*\n" +
-	"\x04plan\x18\x01 \x01(\v2\x16.tanvo.catalog.v1.PlanR\x04plan*c\n" +
+	"\x04plan\x18\x01 \x01(\v2\x16.tanvo.catalog.v1.PlanR\x04plan*|\n" +
 	"\n" +
 	"PlanStatus\x12\x1b\n" +
 	"\x17PLAN_STATUS_UNSPECIFIED\x10\x00\x12\x16\n" +
 	"\x12PLAN_STATUS_ACTIVE\x10\x01\x12 \n" +
-	"\x1cPLAN_STATUS_PENDING_DELETION\x10\x02*Y\n" +
+	"\x1cPLAN_STATUS_PENDING_DELETION\x10\x02\x12\x17\n" +
+	"\x13PLAN_STATUS_DELETED\x10\x03*Y\n" +
 	"\x0eCommitmentType\x12\x1f\n" +
 	"\x1bCOMMITMENT_TYPE_UNSPECIFIED\x10\x00\x12&\n" +
 	"\"COMMITMENT_TYPE_MINIMUM_COMMITMENT\x10\x012\xc6\x05\n" +

@@ -393,27 +393,57 @@ SELECT c.organization_id, c.id, c.external_id, c.billing_entity_id, c.customer_t
 FROM customers c
 WHERE c.organization_id = $1
   AND ($2::boolean OR c.deleted_at IS NULL)
-  AND (cardinality($3::uuid[]) = 0 OR c.billing_entity_id = ANY($3::uuid[]))
-  AND ($4::text IS NULL OR c.account_type = $4)
-  AND ($5::text IS NULL OR c.customer_type = $5)
-  AND ($6::text IS NULL
-       OR c.external_id ILIKE $6 OR c.name ILIKE $6
-       OR c.legal_name ILIKE $6 OR c.firstname ILIKE $6
-       OR c.lastname ILIKE $6 OR c.email ILIKE $6)
-  AND ($7::uuid IS NULL OR c.id > $7)
-ORDER BY c.id
-LIMIT $8
+  AND ($3::text IS NULL OR c.external_id = $3)
+  AND (cardinality($4::uuid[]) = 0 OR c.billing_entity_id = ANY($4::uuid[]))
+  AND (cardinality($5::text[]) = 0 OR c.account_type = ANY($5::text[]))
+  AND ($6::text IS NULL OR c.customer_type = $6)
+  AND ($7::boolean IS NULL OR (c.customer_type IS NOT NULL) = $7)
+  AND (cardinality($8::text[]) = 0 OR c.billing_address_country = ANY($8::text[]))
+  AND (cardinality($9::text[]) = 0 OR c.billing_address_state = ANY($9::text[]))
+  AND (cardinality($10::text[]) = 0 OR c.billing_address_zipcode = ANY($10::text[]))
+  AND (cardinality($11::text[]) = 0 OR c.currency = ANY($11::text[]))
+  AND ($12::boolean IS NULL
+       OR (c.tax_identification_number IS NOT NULL) = $12)
+  AND c.metadata @> $13::jsonb
+  AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(c.metadata) m WHERE m->>'key' = ANY($14::text[]))
+  AND ($15::integer IS NULL
+       OR (SELECT count(*) FROM subscriptions s
+           WHERE s.organization_id = c.organization_id AND s.customer_id = c.id AND s.status = 'active')
+          BETWEEN $15::integer AND $16::integer)
+  AND ($17::text IS NULL
+       OR c.external_id ILIKE $17 OR c.name ILIKE $17
+       OR c.legal_name ILIKE $17 OR c.firstname ILIKE $17
+       OR c.lastname ILIKE $17 OR c.email ILIKE $17)
+  AND ($18::uuid IS NULL
+       OR ($19::boolean AND (c.created_at < $20::timestamptz
+                                 OR (c.created_at = $20::timestamptz AND c.id > $18)))
+       OR (NOT $19::boolean AND c.id > $18))
+ORDER BY CASE WHEN $19::boolean THEN c.created_at END DESC, c.id
+LIMIT $21
 `
 
 type ListCustomersParams struct {
-	OrganizationID   uuid.UUID
-	IncludeDeleted   bool
-	BillingEntityIds []uuid.UUID
-	AccountType      *string
-	CustomerType     *string
-	Search           *string
-	After            *uuid.UUID
-	Lim              int32
+	OrganizationID             uuid.UUID
+	IncludeDeleted             bool
+	ExternalID                 *string
+	BillingEntityIds           []uuid.UUID
+	AccountTypes               []string
+	CustomerType               *string
+	HasCustomerType            *bool
+	Countries                  []string
+	States                     []string
+	Zipcodes                   []string
+	Currencies                 []string
+	HasTaxIdentificationNumber *bool
+	MetadataPresent            json.RawMessage
+	MetadataAbsent             []string
+	ActiveSubscriptionsMin     *int32
+	ActiveSubscriptionsMax     *int32
+	Search                     *string
+	After                      *uuid.UUID
+	Recent                     bool
+	AfterAt                    *time.Time
+	Lim                        int32
 }
 
 type ListCustomersRow struct {
@@ -423,15 +453,31 @@ type ListCustomersRow struct {
 	SystemInvoiceCustomSectionIds []uuid.UUID
 }
 
+// The customer list of the API (customer.Filter). @recent lists by
+// created_at, newest first, then by id ascending (base_query.rb:111-112);
+// its cursor is (@after_at, @after).
 func (q *Queries) ListCustomers(ctx context.Context, arg ListCustomersParams) ([]ListCustomersRow, error) {
 	rows, err := q.db.Query(ctx, listCustomers,
 		arg.OrganizationID,
 		arg.IncludeDeleted,
+		arg.ExternalID,
 		arg.BillingEntityIds,
-		arg.AccountType,
+		arg.AccountTypes,
 		arg.CustomerType,
+		arg.HasCustomerType,
+		arg.Countries,
+		arg.States,
+		arg.Zipcodes,
+		arg.Currencies,
+		arg.HasTaxIdentificationNumber,
+		arg.MetadataPresent,
+		arg.MetadataAbsent,
+		arg.ActiveSubscriptionsMin,
+		arg.ActiveSubscriptionsMax,
 		arg.Search,
 		arg.After,
+		arg.Recent,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {

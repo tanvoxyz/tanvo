@@ -12,6 +12,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/invoicing"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/lifecycle"
+	"github.com/tanvoxyz/tanvo/libs/billing/plans"
 	"github.com/tanvoxyz/tanvo/libs/billing/usage"
 	"github.com/tanvoxyz/tanvo/libs/billing/wallets"
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -42,6 +43,8 @@ type Engine struct {
 	Invoices *invoicing.Service
 	// Lifecycle creates, changes and terminates subscriptions.
 	Lifecycle *lifecycle.Service
+	// Plans deletes plans.
+	Plans *plans.Service
 
 	d *kernel.Deps
 }
@@ -66,6 +69,7 @@ func New(d Deps) (*Engine, error) {
 		Wallets:     w,
 		Invoices:    inv,
 		Lifecycle:   lc,
+		Plans:       plans.New(deps, lc, inv),
 		d:           deps,
 	}, nil
 }
@@ -200,7 +204,7 @@ func (e *Engine) HandleJob(ctx context.Context, j port.Job) (bool, error) {
 		}
 		return true, e.CreditNotes.ReportTaxes(ctx, j.OrganizationID, a.CreditNoteID)
 	}
-	for _, h := range []func(context.Context, port.Job) (bool, error){e.Invoices.HandleJob, e.Lifecycle.HandleJob, e.Wallets.HandleJob} {
+	for _, h := range []func(context.Context, port.Job) (bool, error){e.Invoices.HandleJob, e.Lifecycle.HandleJob, e.Wallets.HandleJob, e.Plans.HandleJob} {
 		if ok, err := h(ctx, j); ok {
 			return true, err
 		}

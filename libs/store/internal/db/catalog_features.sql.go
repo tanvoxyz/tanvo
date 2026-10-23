@@ -228,23 +228,6 @@ func (q *Queries) DeleteCommitmentTaxes(ctx context.Context, arg DeleteCommitmen
 	return err
 }
 
-const deleteEntitlement = `-- name: DeleteEntitlement :execrows
-DELETE FROM entitlements WHERE organization_id = $1 AND id = $2
-`
-
-type DeleteEntitlementParams struct {
-	OrganizationID uuid.UUID
-	ID             uuid.UUID
-}
-
-func (q *Queries) DeleteEntitlement(ctx context.Context, arg DeleteEntitlementParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteEntitlement, arg.OrganizationID, arg.ID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
 const deleteEntitlementRemoval = `-- name: DeleteEntitlementRemoval :execrows
 DELETE FROM entitlement_removals WHERE organization_id = $1 AND id = $2
 `
@@ -262,71 +245,6 @@ func (q *Queries) DeleteEntitlementRemoval(ctx context.Context, arg DeleteEntitl
 	return result.RowsAffected(), nil
 }
 
-const deleteEntitlementRemovalsByFeature = `-- name: DeleteEntitlementRemovalsByFeature :execrows
-DELETE FROM entitlement_removals WHERE organization_id = $1 AND feature_id = $2
-`
-
-type DeleteEntitlementRemovalsByFeatureParams struct {
-	OrganizationID uuid.UUID
-	FeatureID      uuid.UUID
-}
-
-func (q *Queries) DeleteEntitlementRemovalsByFeature(ctx context.Context, arg DeleteEntitlementRemovalsByFeatureParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteEntitlementRemovalsByFeature, arg.OrganizationID, arg.FeatureID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const deleteEntitlementsByFeature = `-- name: DeleteEntitlementsByFeature :execrows
-DELETE FROM entitlements WHERE organization_id = $1 AND feature_id = $2
-`
-
-type DeleteEntitlementsByFeatureParams struct {
-	OrganizationID uuid.UUID
-	FeatureID      uuid.UUID
-}
-
-func (q *Queries) DeleteEntitlementsByFeature(ctx context.Context, arg DeleteEntitlementsByFeatureParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteEntitlementsByFeature, arg.OrganizationID, arg.FeatureID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const deleteFeature = `-- name: DeleteFeature :execrows
-DELETE FROM features WHERE organization_id = $1 AND id = $2
-`
-
-type DeleteFeatureParams struct {
-	OrganizationID uuid.UUID
-	ID             uuid.UUID
-}
-
-func (q *Queries) DeleteFeature(ctx context.Context, arg DeleteFeatureParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deleteFeature, arg.OrganizationID, arg.ID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
-const deleteFeaturePrivileges = `-- name: DeleteFeaturePrivileges :exec
-DELETE FROM feature_privileges WHERE organization_id = $1 AND feature_id = $2
-`
-
-type DeleteFeaturePrivilegesParams struct {
-	OrganizationID uuid.UUID
-	FeatureID      uuid.UUID
-}
-
-func (q *Queries) DeleteFeaturePrivileges(ctx context.Context, arg DeleteFeaturePrivilegesParams) error {
-	_, err := q.db.Exec(ctx, deleteFeaturePrivileges, arg.OrganizationID, arg.FeatureID)
-	return err
-}
-
 const deleteUsageThreshold = `-- name: DeleteUsageThreshold :execrows
 DELETE FROM usage_thresholds WHERE organization_id = $1 AND id = $2
 `
@@ -342,6 +260,105 @@ func (q *Queries) DeleteUsageThreshold(ctx context.Context, arg DeleteUsageThres
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const discardEntitlement = `-- name: DiscardEntitlement :execrows
+UPDATE entitlements SET deleted_at = $1::timestamptz, updated_at = $1::timestamptz
+WHERE organization_id = $2 AND id = $3 AND deleted_at IS NULL
+`
+
+type DiscardEntitlementParams struct {
+	At             time.Time
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+}
+
+func (q *Queries) DiscardEntitlement(ctx context.Context, arg DiscardEntitlementParams) (int64, error) {
+	result, err := q.db.Exec(ctx, discardEntitlement, arg.At, arg.OrganizationID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const discardEntitlementsByFeature = `-- name: DiscardEntitlementsByFeature :execrows
+UPDATE entitlements SET deleted_at = $1::timestamptz, updated_at = $1::timestamptz
+WHERE organization_id = $2 AND feature_id = $3 AND deleted_at IS NULL
+`
+
+type DiscardEntitlementsByFeatureParams struct {
+	At             time.Time
+	OrganizationID uuid.UUID
+	FeatureID      uuid.UUID
+}
+
+func (q *Queries) DiscardEntitlementsByFeature(ctx context.Context, arg DiscardEntitlementsByFeatureParams) (int64, error) {
+	result, err := q.db.Exec(ctx, discardEntitlementsByFeature, arg.At, arg.OrganizationID, arg.FeatureID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const discardFeature = `-- name: DiscardFeature :execrows
+UPDATE features SET deleted_at = $1::timestamptz, updated_at = $1::timestamptz
+WHERE organization_id = $2 AND id = $3 AND deleted_at IS NULL
+`
+
+type DiscardFeatureParams struct {
+	At             time.Time
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+}
+
+func (q *Queries) DiscardFeature(ctx context.Context, arg DiscardFeatureParams) (int64, error) {
+	result, err := q.db.Exec(ctx, discardFeature, arg.At, arg.OrganizationID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const discardFeaturePrivileges = `-- name: DiscardFeaturePrivileges :many
+UPDATE feature_privileges SET deleted_at = $1::timestamptz
+WHERE organization_id = $2 AND feature_id = $3 AND deleted_at IS NULL
+  AND NOT (code = ANY($4::text[]))
+RETURNING code
+`
+
+type DiscardFeaturePrivilegesParams struct {
+	At             time.Time
+	OrganizationID uuid.UUID
+	FeatureID      uuid.UUID
+	Keep           []string
+}
+
+// Discards the feature's kept privileges whose code is not in keep (lago
+// feature_update_service.rb:99-111, feature_destroy_service.rb:25) and
+// returns their codes.
+func (q *Queries) DiscardFeaturePrivileges(ctx context.Context, arg DiscardFeaturePrivilegesParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, discardFeaturePrivileges,
+		arg.At,
+		arg.OrganizationID,
+		arg.FeatureID,
+		arg.Keep,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []string{}
+	for rows.Next() {
+		var code string
+		if err := rows.Scan(&code); err != nil {
+			return nil, err
+		}
+		items = append(items, code)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getCommitment = `-- name: GetCommitment :one
@@ -416,7 +433,7 @@ func (q *Queries) GetCommitmentByPlan(ctx context.Context, arg GetCommitmentByPl
 }
 
 const getEntitlement = `-- name: GetEntitlement :one
-SELECT organization_id, id, feature_id, plan_id, subscription_id, privilege_values, created_at, updated_at FROM entitlements WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, feature_id, plan_id, subscription_id, privilege_values, created_at, updated_at, deleted_at FROM entitlements WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type GetEntitlementParams struct {
@@ -436,12 +453,13 @@ func (q *Queries) GetEntitlement(ctx context.Context, arg GetEntitlementParams) 
 		&i.PrivilegeValues,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getFeature = `-- name: GetFeature :one
-SELECT organization_id, id, code, name, description, created_at, updated_at FROM features WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, code, name, description, created_at, updated_at, deleted_at FROM features WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type GetFeatureParams struct {
@@ -460,12 +478,13 @@ func (q *Queries) GetFeature(ctx context.Context, arg GetFeatureParams) (Feature
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const getFeatureByCode = `-- name: GetFeatureByCode :one
-SELECT organization_id, id, code, name, description, created_at, updated_at FROM features WHERE organization_id = $1 AND code = $2
+SELECT organization_id, id, code, name, description, created_at, updated_at, deleted_at FROM features WHERE organization_id = $1 AND code = $2 AND deleted_at IS NULL
 `
 
 type GetFeatureByCodeParams struct {
@@ -484,6 +503,7 @@ func (q *Queries) GetFeatureByCode(ctx context.Context, arg GetFeatureByCodePara
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
 	)
 	return i, err
 }
@@ -649,8 +669,8 @@ func (q *Queries) ListEntitlementRemovalsBySubscription(ctx context.Context, arg
 }
 
 const listEntitlementsByPlan = `-- name: ListEntitlementsByPlan :many
-SELECT organization_id, id, feature_id, plan_id, subscription_id, privilege_values, created_at, updated_at FROM entitlements
-WHERE organization_id = $1 AND plan_id = $2
+SELECT organization_id, id, feature_id, plan_id, subscription_id, privilege_values, created_at, updated_at, deleted_at FROM entitlements
+WHERE organization_id = $1 AND plan_id = $2 AND deleted_at IS NULL
 ORDER BY id
 `
 
@@ -677,6 +697,7 @@ func (q *Queries) ListEntitlementsByPlan(ctx context.Context, arg ListEntitlemen
 			&i.PrivilegeValues,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -689,8 +710,8 @@ func (q *Queries) ListEntitlementsByPlan(ctx context.Context, arg ListEntitlemen
 }
 
 const listEntitlementsBySubscription = `-- name: ListEntitlementsBySubscription :many
-SELECT organization_id, id, feature_id, plan_id, subscription_id, privilege_values, created_at, updated_at FROM entitlements
-WHERE organization_id = $1 AND subscription_id = $2
+SELECT organization_id, id, feature_id, plan_id, subscription_id, privilege_values, created_at, updated_at, deleted_at FROM entitlements
+WHERE organization_id = $1 AND subscription_id = $2 AND deleted_at IS NULL
 ORDER BY id
 `
 
@@ -717,6 +738,7 @@ func (q *Queries) ListEntitlementsBySubscription(ctx context.Context, arg ListEn
 			&i.PrivilegeValues,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -729,8 +751,8 @@ func (q *Queries) ListEntitlementsBySubscription(ctx context.Context, arg ListEn
 }
 
 const listFeaturePrivileges = `-- name: ListFeaturePrivileges :many
-SELECT organization_id, id, feature_id, position, code, name, value_type, select_options FROM feature_privileges
-WHERE organization_id = $1 AND feature_id = ANY($2::uuid[])
+SELECT organization_id, id, feature_id, position, code, name, value_type, select_options, deleted_at FROM feature_privileges
+WHERE organization_id = $1 AND feature_id = ANY($2::uuid[]) AND deleted_at IS NULL
 ORDER BY feature_id, position
 `
 
@@ -757,6 +779,7 @@ func (q *Queries) ListFeaturePrivileges(ctx context.Context, arg ListFeaturePriv
 			&i.Name,
 			&i.ValueType,
 			&i.SelectOptions,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -769,8 +792,8 @@ func (q *Queries) ListFeaturePrivileges(ctx context.Context, arg ListFeaturePriv
 }
 
 const listFeatures = `-- name: ListFeatures :many
-SELECT organization_id, id, code, name, description, created_at, updated_at FROM features
-WHERE organization_id = $1
+SELECT organization_id, id, code, name, description, created_at, updated_at, deleted_at FROM features
+WHERE organization_id = $1 AND deleted_at IS NULL
   AND ($2::uuid IS NULL OR id > $2)
 ORDER BY id
 LIMIT $3
@@ -799,6 +822,7 @@ func (q *Queries) ListFeatures(ctx context.Context, arg ListFeaturesParams) ([]F
 			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -811,8 +835,8 @@ func (q *Queries) ListFeatures(ctx context.Context, arg ListFeaturesParams) ([]F
 }
 
 const listFeaturesByIDs = `-- name: ListFeaturesByIDs :many
-SELECT organization_id, id, code, name, description, created_at, updated_at FROM features
-WHERE organization_id = $1 AND id = ANY($2::uuid[])
+SELECT organization_id, id, code, name, description, created_at, updated_at, deleted_at FROM features
+WHERE organization_id = $1 AND id = ANY($2::uuid[]) AND deleted_at IS NULL
 ORDER BY id
 `
 
@@ -838,6 +862,7 @@ func (q *Queries) ListFeaturesByIDs(ctx context.Context, arg ListFeaturesByIDsPa
 			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -931,6 +956,26 @@ func (q *Queries) ListUsageThresholdsBySubscription(ctx context.Context, arg Lis
 	return items, nil
 }
 
+const removeEntitlementPrivilegeValues = `-- name: RemoveEntitlementPrivilegeValues :exec
+UPDATE entitlements SET privilege_values = privilege_values - $1::text[]
+WHERE organization_id = $2 AND feature_id = $3 AND deleted_at IS NULL
+  AND privilege_values ?| $1::text[]
+`
+
+type RemoveEntitlementPrivilegeValuesParams struct {
+	Codes          []string
+	OrganizationID uuid.UUID
+	FeatureID      uuid.UUID
+}
+
+// Removes the values of discarded privileges from the feature's kept
+// entitlements (lago EntitlementValue...discard_all!,
+// feature_update_service.rb:104).
+func (q *Queries) RemoveEntitlementPrivilegeValues(ctx context.Context, arg RemoveEntitlementPrivilegeValuesParams) error {
+	_, err := q.db.Exec(ctx, removeEntitlementPrivilegeValues, arg.Codes, arg.OrganizationID, arg.FeatureID)
+	return err
+}
+
 const updateCommitment = `-- name: UpdateCommitment :execrows
 UPDATE commitments SET
   organization_id = $1, id = $2, plan_id = $3, commitment_type = $4,
@@ -971,7 +1016,7 @@ UPDATE entitlements SET
   organization_id = $1, id = $2, feature_id = $3, plan_id = $4,
   subscription_id = $5, privilege_values = $6,
   created_at = $7, updated_at = $8
-WHERE organization_id = $1 AND id = $2
+WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type UpdateEntitlementParams struct {
@@ -1006,7 +1051,7 @@ const updateFeature = `-- name: UpdateFeature :execrows
 UPDATE features SET
   organization_id = $1, id = $2, code = $3, name = $4, description = $5,
   created_at = $6, updated_at = $7
-WHERE organization_id = $1 AND id = $2
+WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
 type UpdateFeatureParams struct {
@@ -1033,6 +1078,52 @@ func (q *Queries) UpdateFeature(ctx context.Context, arg UpdateFeatureParams) (i
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const updateFeaturePrivilege = `-- name: UpdateFeaturePrivilege :many
+UPDATE feature_privileges SET position = $1, name = $2, value_type = $3, select_options = $4
+WHERE organization_id = $5 AND feature_id = $6 AND code = $7 AND deleted_at IS NULL
+RETURNING id
+`
+
+type UpdateFeaturePrivilegeParams struct {
+	Position       int32
+	Name           *string
+	ValueType      string
+	SelectOptions  []string
+	OrganizationID uuid.UUID
+	FeatureID      uuid.UUID
+	Code           string
+}
+
+// Updates the feature's kept privilege with that code in place and
+// returns its ID (lago feature_update_service.rb:66-85).
+func (q *Queries) UpdateFeaturePrivilege(ctx context.Context, arg UpdateFeaturePrivilegeParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, updateFeaturePrivilege,
+		arg.Position,
+		arg.Name,
+		arg.ValueType,
+		arg.SelectOptions,
+		arg.OrganizationID,
+		arg.FeatureID,
+		arg.Code,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const updateUsageThreshold = `-- name: UpdateUsageThreshold :execrows

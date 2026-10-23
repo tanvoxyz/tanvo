@@ -2,28 +2,152 @@ package invoice
 
 import (
 	"context"
+	"fmt"
+	"slices"
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
-// Filter narrows [Repository.List]; zero fields do not filter.
+// Filter narrows [Repository.List] (the invoice list of the API); zero
+// fields do not filter, except that only the [ListedStatuses] are listed
+// unless IncludeUnlisted or IncludeGenerating says otherwise
+// (invoices_query.rb:48 and :122-130).
 type Filter struct {
-	// CustomerID keeps the invoices of one customer.
+	// CustomerID keeps the invoices of one customer; when set, Search
+	// matches the invoice number only.
 	CustomerID core.CustomerID
+	// CustomerExternalID keeps the invoices of the customers with that
+	// external ID (archived ones included); when set, Search matches the
+	// invoice number only.
+	CustomerExternalID string
 	// BillingEntityID keeps the invoices of one billing entity.
 	BillingEntityID core.BillingEntityID
-	// Statuses keeps the invoices in one of these statuses.
+	// BillingEntityIDs keeps the invoices of one of these billing
+	// entities.
+	BillingEntityIDs []core.BillingEntityID
+	// Currency keeps the invoices in that currency.
+	Currency money.Currency
+	// Statuses keeps the invoices in one of these statuses, which must be
+	// listed ones, or open and closed with IncludeUnlisted, or generating
+	// with IncludeGenerating (invoices_query_filters_contract.rb:18-21).
 	Statuses []Status
+	// IncludeUnlisted also lists open and closed invoices, which the API
+	// hides (app/models/invoice.rb:104-105).
+	IncludeUnlisted bool
 	// PaymentStatuses keeps the invoices in one of these payment statuses.
 	PaymentStatuses []core.PaymentStatus
 	// Types keeps the invoices of one of these types.
 	Types []Type
 	// IDs keeps the invoices with one of these IDs.
 	IDs []core.InvoiceID
+	// SubscriptionIDs keeps the invoices billing one of these
+	// subscriptions.
+	SubscriptionIDs []core.SubscriptionID
+	// IssuingDateFrom keeps the invoices issued on or after that date.
+	IssuingDateFrom core.Date
+	// IssuingDateTo keeps the invoices issued on or before that date.
+	IssuingDateTo core.Date
+	// AmountFrom keeps the invoices whose TotalAmount is at least that.
+	AmountFrom *int64
+	// AmountTo keeps the invoices whose TotalAmount is at most that.
+	AmountTo *int64
+	// PaymentDisputeLost, when set, keeps the invoices with (true) or
+	// without (false) a lost payment dispute.
+	PaymentDisputeLost *bool
+	// PaymentOverdue, when set, keeps the invoices whose PaymentOverdue
+	// equals it.
+	PaymentOverdue *bool
+	// PartiallyPaid, when set, keeps the invoices partially paid (true:
+	// 0 < TotalPaidAmount < TotalAmount) or not (false).
+	PartiallyPaid *bool
+	// PositiveDueAmount, when set, keeps the invoices with (true:
+	// TotalAmount > TotalPaidAmount) or without (false) an amount due.
+	PositiveDueAmount *bool
+	// SelfBilled, when set, keeps the invoices whose SelfBilled equals it.
+	SelfBilled *bool
+	// PurchaseOrderNumber keeps the invoices with that purchase order
+	// number, compared case-insensitively.
+	PurchaseOrderNumber string
+	// Settlements keeps the invoices settled by one of these settlement
+	// types.
+	Settlements []SettlementType
+	// Metadata keeps the invoices whose metadata matches the filter.
+	Metadata core.MetadataFilter
+	// Search keeps the invoices whose search terms contain the trimmed
+	// term (case-insensitive, with LIKE wildcards matched literally): the
+	// number, the purchase order number and the customer's name, first
+	// name, last name, legal name, external ID and email, joined by spaces;
+	// only the number when the
+	// list is filtered by customer. A term in the canonical UUID form also
+	// matches the invoice of that ID.
+	Search string
 	// IncludeGenerating also lists generating invoices, which the API hides.
 	IncludeGenerating bool
+	// Order is the list order; core.OrderRecent lists by issuing date,
+	// latest first (invoices without one first), then newest first.
+	Order core.ListOrder
+}
+
+// ListedStatuses returns the statuses the API lists: draft, finalized,
+// voided and failed.
+func ListedStatuses() []Status {
+	return []Status{StatusDraft, StatusFinalized, StatusVoided, StatusFailed}
+}
+
+// Lists reports whether the filter lists invoices in status s: a listed
+// status, open and closed with IncludeUnlisted, generating with
+// IncludeGenerating.
+func (f Filter) Lists(s Status) bool {
+	switch s {
+	case StatusOpen, StatusClosed:
+		return f.IncludeUnlisted
+	case StatusGenerating:
+		return f.IncludeGenerating
+	}
+	return slices.Contains(ListedStatuses(), s)
+}
+
+// Validate checks the filter: declared enumeration values, a set currency
+// and statuses the filter lists ([Filter.Lists]).
+func (f Filter) Validate() error {
+	var v core.Validator
+	for i, s := range f.Statuses {
+		field := fmt.Sprintf("statuses[%d]", i)
+		if v.Enum(field, s) {
+			v.Check(f.Lists(s), field, core.CodeInvalid)
+		}
+	}
+	for i, s := range f.PaymentStatuses {
+		v.Enum(fmt.Sprintf("payment_statuses[%d]", i), s)
+	}
+	for i, t := range f.Types {
+		v.Enum(fmt.Sprintf("types[%d]", i), t)
+	}
+	for i, t := range f.Settlements {
+		v.Enum(fmt.Sprintf("settlements[%d]", i), t)
+	}
+	if !f.Currency.IsZero() {
+		v.Currency("currency", f.Currency)
+	}
+	v.Check(f.Order.Valid(), "order", core.CodeInvalid)
+	return v.Err()
+}
+
+// SearchesCustomers reports whether Search also matches the customer's
+// fields (the list is not filtered by customer).
+func (f Filter) SearchesCustomers() bool {
+	return f.CustomerID.IsZero() && f.CustomerExternalID == ""
+}
+
+// SearchID returns the ID a search term in the canonical UUID form names.
+func SearchID(term string) (core.InvoiceID, bool) {
+	if len(term) != 36 {
+		return core.InvoiceID{}, false
+	}
+	id, err := core.ParseID[core.InvoiceID](term)
+	return id, err == nil
 }
 
 // Repository stores invoices. Every method is scoped to an organization.
@@ -39,7 +163,8 @@ type Repository interface {
 	Get(ctx context.Context, org core.OrganizationID, id core.InvoiceID) (*Invoice, error)
 	// GetByNumber returns the invoice with that number, or core.ErrNotFound.
 	GetByNumber(ctx context.Context, org core.OrganizationID, number string) (*Invoice, error)
-	// List returns the invoices matching f in creation order.
+	// List returns the invoices matching f in the order f.Order; an
+	// invalid filter fails with core.ErrInvalidValue.
 	List(ctx context.Context, org core.OrganizationID, f Filter, page core.PageRequest) (core.Page[*Invoice], error)
 	// ListByIDs returns the invoices with these IDs in creation order;
 	// unknown IDs are ignored.
@@ -58,8 +183,13 @@ type Repository interface {
 	// NextBillingEntitySequentialID returns the next per-billing-entity
 	// sequence over non-self-billed invoices.
 	NextBillingEntitySequentialID(ctx context.Context, org core.OrganizationID, billingEntity core.BillingEntityID) (int64, error)
-	// DeleteDraft deletes the draft id; a non-draft fails with
-	// core.ErrConflict and a missing one with core.ErrNotFound.
+	// DeleteDraft deletes the draft id with its subscriptions, fees,
+	// applied taxes, adjusted fees, settlements, error details, credits,
+	// applied usage thresholds and credit notes; a non-draft, or one still
+	// referenced (by its regenerated invoice, another invoice's credit, a
+	// payment request, payment, payment intent or wallet transaction, or
+	// through its fees and credit notes), fails with core.ErrConflict and a
+	// missing one with core.ErrNotFound.
 	DeleteDraft(ctx context.Context, org core.OrganizationID, id core.InvoiceID) error
 }
 
@@ -123,7 +253,9 @@ type FeeRepository interface {
 	// ListByEventTransaction returns the pay-in-advance fees created for an
 	// event transaction ID of a subscription.
 	ListByEventTransaction(ctx context.Context, org core.OrganizationID, subscription core.SubscriptionID, transactionID string) ([]*Fee, error)
-	// DeleteByInvoice deletes the fees of one invoice.
+	// DeleteByInvoice deletes the fees of one invoice (with their true-up
+	// fees); a fee still credited by a credit note item fails with
+	// core.ErrConflict and nothing is deleted.
 	DeleteByInvoice(ctx context.Context, org core.OrganizationID, invoice core.InvoiceID) error
 }
 

@@ -62,6 +62,9 @@ FROM customers c
 WHERE c.organization_id = @organization_id AND c.external_id = @external_id AND c.deleted_at IS NULL;
 
 -- name: ListCustomers :many
+-- The customer list of the API (customer.Filter). @recent lists by
+-- created_at, newest first, then by id ascending (base_query.rb:111-112);
+-- its cursor is (@after_at, @after).
 SELECT sqlc.embed(c),
   ARRAY(SELECT t.tax_id FROM customer_taxes t
         WHERE t.organization_id = c.organization_id AND t.customer_id = c.id ORDER BY t.position)::uuid[] AS tax_ids,
@@ -72,15 +75,32 @@ SELECT sqlc.embed(c),
 FROM customers c
 WHERE c.organization_id = @organization_id
   AND (@include_deleted::boolean OR c.deleted_at IS NULL)
+  AND (sqlc.narg(external_id)::text IS NULL OR c.external_id = sqlc.narg(external_id))
   AND (cardinality(@billing_entity_ids::uuid[]) = 0 OR c.billing_entity_id = ANY(@billing_entity_ids::uuid[]))
-  AND (sqlc.narg(account_type)::text IS NULL OR c.account_type = sqlc.narg(account_type))
+  AND (cardinality(@account_types::text[]) = 0 OR c.account_type = ANY(@account_types::text[]))
   AND (sqlc.narg(customer_type)::text IS NULL OR c.customer_type = sqlc.narg(customer_type))
+  AND (sqlc.narg(has_customer_type)::boolean IS NULL OR (c.customer_type IS NOT NULL) = sqlc.narg(has_customer_type))
+  AND (cardinality(@countries::text[]) = 0 OR c.billing_address_country = ANY(@countries::text[]))
+  AND (cardinality(@states::text[]) = 0 OR c.billing_address_state = ANY(@states::text[]))
+  AND (cardinality(@zipcodes::text[]) = 0 OR c.billing_address_zipcode = ANY(@zipcodes::text[]))
+  AND (cardinality(@currencies::text[]) = 0 OR c.currency = ANY(@currencies::text[]))
+  AND (sqlc.narg(has_tax_identification_number)::boolean IS NULL
+       OR (c.tax_identification_number IS NOT NULL) = sqlc.narg(has_tax_identification_number))
+  AND c.metadata @> @metadata_present::jsonb
+  AND NOT EXISTS (SELECT 1 FROM jsonb_array_elements(c.metadata) m WHERE m->>'key' = ANY(@metadata_absent::text[]))
+  AND (sqlc.narg(active_subscriptions_min)::integer IS NULL
+       OR (SELECT count(*) FROM subscriptions s
+           WHERE s.organization_id = c.organization_id AND s.customer_id = c.id AND s.status = 'active')
+          BETWEEN sqlc.narg(active_subscriptions_min)::integer AND sqlc.narg(active_subscriptions_max)::integer)
   AND (sqlc.narg(search)::text IS NULL
        OR c.external_id ILIKE sqlc.narg(search) OR c.name ILIKE sqlc.narg(search)
        OR c.legal_name ILIKE sqlc.narg(search) OR c.firstname ILIKE sqlc.narg(search)
        OR c.lastname ILIKE sqlc.narg(search) OR c.email ILIKE sqlc.narg(search))
-  AND (sqlc.narg(after)::uuid IS NULL OR c.id > sqlc.narg(after))
-ORDER BY c.id
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR (@recent::boolean AND (c.created_at < sqlc.narg(after_at)::timestamptz
+                                 OR (c.created_at = sqlc.narg(after_at)::timestamptz AND c.id > sqlc.narg(after))))
+       OR (NOT @recent::boolean AND c.id > sqlc.narg(after)))
+ORDER BY CASE WHEN @recent::boolean THEN c.created_at END DESC, c.id
 LIMIT @lim;
 
 -- name: ListCustomersForDunning :many

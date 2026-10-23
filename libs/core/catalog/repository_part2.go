@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"context"
+	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 )
@@ -79,48 +80,67 @@ type UsageThresholdRepository interface {
 }
 
 // FeatureRepository stores features with their privileges, as one
-// aggregate. Every method is scoped to an organization.
+// aggregate. Every method is scoped to an organization. Features and
+// privileges are soft-deleted: a discarded one keeps its row with DeletedAt
+// set and is invisible to every other method, and its code can be used
+// again (lago app/models/entitlement/feature.rb:5-9, privilege.rb:5-9).
 type FeatureRepository interface {
-	// Create inserts f and its privileges; a code already used in the
-	// organization, or a privilege code repeated in the feature, fails with
-	// core.ErrConflict.
+	// Create inserts f and its privileges; a code used by a kept feature of
+	// the organization, or a privilege code repeated in the feature, fails
+	// with core.ErrConflict.
 	Create(ctx context.Context, f *Feature) error
-	// Update replaces the stored feature f.ID and its privileges with f.
+	// Update replaces the kept feature f.ID with f. Privileges are matched
+	// by code: a kept privilege whose code is in f is updated in place and
+	// keeps its ID (written back into f), a new code is inserted, and a
+	// kept privilege whose code is missing from f is discarded at
+	// f.UpdatedAt together with its values in the feature's kept
+	// entitlements (lago feature_update_service.rb:66-111).
 	Update(ctx context.Context, f *Feature) error
-	// Delete removes the feature id and its privileges; callers remove its
-	// entitlements in the same transaction (domain §7.10).
-	Delete(ctx context.Context, org core.OrganizationID, id core.FeatureID) error
-	// Get returns the feature id with its privileges, or core.ErrNotFound.
+	// Discard soft-deletes the kept feature id and its kept privileges at
+	// at (lago feature.privileges.discard_all! and feature.discard!,
+	// feature_destroy_service.rb:25-26); a missing or discarded one fails
+	// with core.ErrNotFound. Its entitlements are discarded separately,
+	// with EntitlementRepository.DiscardByFeature in the same transaction;
+	// its subscription removals are left as they are.
+	Discard(ctx context.Context, org core.OrganizationID, id core.FeatureID, at time.Time) error
+	// Get returns the kept feature id with its kept privileges, or
+	// core.ErrNotFound.
 	Get(ctx context.Context, org core.OrganizationID, id core.FeatureID) (*Feature, error)
-	// GetByCode returns the feature with that code, or core.ErrNotFound.
+	// GetByCode returns the kept feature with that code, or
+	// core.ErrNotFound.
 	GetByCode(ctx context.Context, org core.OrganizationID, code string) (*Feature, error)
-	// ListByIDs returns the features with the given IDs, in the order of
-	// ids; a missing ID fails with core.ErrNotFound.
+	// ListByIDs returns the kept features with the given IDs, in the order
+	// of ids; a missing or discarded ID fails with core.ErrNotFound.
 	ListByIDs(ctx context.Context, org core.OrganizationID, ids []core.FeatureID) ([]*Feature, error)
-	// List returns the organization's features in creation order.
+	// List returns the organization's kept features in creation order.
 	List(ctx context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[*Feature], error)
 }
 
 // EntitlementRepository stores the entitlements of plans and subscriptions
 // and the subscriptions' removals. Every method is scoped to an
-// organization.
+// organization. Entitlements are soft-deleted: a discarded one keeps its
+// row with DeletedAt set and is invisible to every other method (lago
+// app/models/entitlement/entitlement.rb:5-9).
 type EntitlementRepository interface {
-	// Create inserts e; a second entitlement of the same feature for the
-	// same owner fails with core.ErrConflict.
+	// Create inserts e; a second kept entitlement of the same feature for
+	// the same owner fails with core.ErrConflict.
 	Create(ctx context.Context, e *Entitlement) error
-	// Update replaces the stored entitlement e.ID with e.
+	// Update replaces the stored kept entitlement e.ID with e.
 	Update(ctx context.Context, e *Entitlement) error
-	// Delete removes the entitlement id.
-	Delete(ctx context.Context, org core.OrganizationID, id core.EntitlementID) error
-	// DeleteByFeature removes every entitlement and removal of the feature
-	// and returns how many rows went.
-	DeleteByFeature(ctx context.Context, org core.OrganizationID, feature core.FeatureID) (int, error)
-	// Get returns the entitlement id, or core.ErrNotFound.
+	// Discard soft-deletes the kept entitlement id at at, with its values
+	// (lago entitlement.discard!); a missing or discarded one fails with
+	// core.ErrNotFound.
+	Discard(ctx context.Context, org core.OrganizationID, id core.EntitlementID, at time.Time) error
+	// DiscardByFeature soft-deletes every kept entitlement of the feature
+	// at at and returns how many (lago feature.entitlements.discard_all!,
+	// feature_destroy_service.rb:24).
+	DiscardByFeature(ctx context.Context, org core.OrganizationID, feature core.FeatureID, at time.Time) (int, error)
+	// Get returns the kept entitlement id, or core.ErrNotFound.
 	Get(ctx context.Context, org core.OrganizationID, id core.EntitlementID) (*Entitlement, error)
-	// ListByPlan returns the plan's entitlements in creation order.
+	// ListByPlan returns the plan's kept entitlements in creation order.
 	ListByPlan(ctx context.Context, org core.OrganizationID, plan core.PlanID) ([]*Entitlement, error)
-	// ListBySubscription returns the subscription's own entitlements in
-	// creation order.
+	// ListBySubscription returns the subscription's own kept entitlements
+	// in creation order.
 	ListBySubscription(ctx context.Context, org core.OrganizationID, sub core.SubscriptionID) ([]*Entitlement, error)
 	// CreateRemoval inserts r; the same removal twice fails with
 	// core.ErrConflict.

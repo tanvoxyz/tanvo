@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"maps"
 	"slices"
 	"unicode/utf8"
 )
@@ -82,3 +83,41 @@ func (m Metadata) Get(key string) (string, bool) {
 
 // Clone returns a copy of m that shares no storage with it.
 func (m Metadata) Clone() Metadata { return slices.Clone(m) }
+
+// MetadataFilter narrows a list by metadata: every key with a value keeps
+// the items whose metadata has that key with exactly that value, and every
+// key with an empty value keeps the items whose metadata lacks the key.
+type MetadataFilter map[string]string
+
+// Present returns the key/value pairs that must be present, sorted by key.
+func (f MetadataFilter) Present() []MetadataItem {
+	var out []MetadataItem
+	for _, k := range slices.Sorted(maps.Keys(f)) {
+		if v := f[k]; v != "" {
+			out = append(out, MetadataItem{Key: k, Value: v})
+		}
+	}
+	return out
+}
+
+// Absent returns the keys that must be absent, sorted.
+func (f MetadataFilter) Absent() []string {
+	var out []string
+	for _, k := range slices.Sorted(maps.Keys(f)) {
+		if f[k] == "" {
+			out = append(out, k)
+		}
+	}
+	return out
+}
+
+// Matches reports whether m passes the filter.
+func (f MetadataFilter) Matches(m Metadata) bool {
+	for k, want := range f {
+		v, ok := m.Get(k)
+		if want == "" && ok || want != "" && (!ok || v != want) {
+			return false
+		}
+	}
+	return true
+}

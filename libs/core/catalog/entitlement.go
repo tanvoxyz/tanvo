@@ -36,13 +36,16 @@ type Feature struct {
 	Name *string
 	// Description is an optional explanation, ≤ 600 characters.
 	Description *string
-	// Privileges are the feature's parameters, with codes unique within
-	// the feature.
+	// Privileges are the feature's kept parameters, with codes unique
+	// within the feature.
 	Privileges []Privilege
 	// CreatedAt is the creation instant.
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
 	UpdatedAt time.Time
+	// DeletedAt is the instant the feature was discarded; repositories
+	// only return kept (nil) ones (lago app/models/entitlement/feature.rb:5-9).
+	DeletedAt *time.Time
 }
 
 // Privilege is a typed parameter of a feature, valued per entitlement
@@ -59,6 +62,10 @@ type Privilege struct {
 	// SelectOptions are the allowed values of a select privilege; required
 	// and non-empty for select, empty otherwise.
 	SelectOptions []string
+	// DeletedAt is the instant the privilege was discarded; a feature read
+	// from a repository holds kept (nil) privileges only (lago
+	// app/models/entitlement/privilege.rb:5-9).
+	DeletedAt *time.Time
 }
 
 // Validate checks the feature and its privileges (domain §7.10). Privilege
@@ -170,6 +177,9 @@ type Entitlement struct {
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
 	UpdatedAt time.Time
+	// DeletedAt is the instant the entitlement was discarded; repositories
+	// only return kept (nil) ones (lago entitlement.rb:9).
+	DeletedAt *time.Time
 }
 
 // Validate checks the owner and the feature reference.

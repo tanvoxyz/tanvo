@@ -584,6 +584,16 @@ func testIntegration(t *testing.T, h Harness) {
 			})
 			equal(t, "List() of a type after Upsert()", std, []*integration.Item{&want, i2})
 
+			// A new (integration, type, external id) with the ID of another
+			// item conflicts and leaves that item alone.
+			clash := item(ns, integration.ItemTypeStandard, "SKU-300", nil)
+			clash.ID = i2.ID
+			wantErr(t, "Upsert() with a taken ID", r.IntegrationItems.Upsert(ctx, clash), core.ErrConflict)
+			std = listAll(t, 1, func(p core.PageRequest) (core.Page[*integration.Item], error) {
+				return r.IntegrationItems.List(ctx, org, ns.ID, integration.ItemFilter{ItemType: integration.ItemTypeStandard}, p)
+			})
+			equal(t, "List() of a type after a conflict", std, []*integration.Item{&want, i2})
+
 			// Search is case-insensitive on the external id and name, with
 			// LIKE wildcards matched literally.
 			for _, tc := range []struct {

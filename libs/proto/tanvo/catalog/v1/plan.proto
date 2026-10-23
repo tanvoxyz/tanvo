@@ -87,6 +87,9 @@ enum PlanStatus {
   PLAN_STATUS_ACTIVE = 1;
   // Being deleted in the background.
   PLAN_STATUS_PENDING_DELETION = 2;
+  // Deleted while still referenced by subscriptions or override plans:
+  // kept for them, hidden from lists and lookups by code.
+  PLAN_STATUS_DELETED = 3;
 }
 
 // CommitmentType is the kind of a plan commitment.

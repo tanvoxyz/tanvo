@@ -556,23 +556,6 @@ func (q *Queries) DeleteFixedChargesByPlan(ctx context.Context, arg DeleteFixedC
 	return result.RowsAffected(), nil
 }
 
-const deletePlan = `-- name: DeletePlan :execrows
-DELETE FROM plans WHERE organization_id = $1 AND id = $2
-`
-
-type DeletePlanParams struct {
-	OrganizationID uuid.UUID
-	ID             uuid.UUID
-}
-
-func (q *Queries) DeletePlan(ctx context.Context, arg DeletePlanParams) (int64, error) {
-	result, err := q.db.Exec(ctx, deletePlan, arg.OrganizationID, arg.ID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
 const deletePlanTaxes = `-- name: DeletePlanTaxes :exec
 DELETE FROM plan_taxes WHERE organization_id = $1 AND plan_id = $2
 `
@@ -978,6 +961,7 @@ SELECT p.organization_id, p.id, p.code, p.name, p.invoice_display_name, p.descri
         WHERE t.organization_id = p.organization_id AND t.plan_id = p.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM plans p
 WHERE p.organization_id = $1 AND p.code = $2 AND p.parent_id IS NULL
+  AND p.status <> 'deleted'
 `
 
 type GetPlanByCodeParams struct {
@@ -1926,6 +1910,7 @@ SELECT p.organization_id, p.id, p.code, p.name, p.invoice_display_name, p.descri
         WHERE t.organization_id = p.organization_id AND t.plan_id = p.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM plans p
 WHERE p.organization_id = $1 AND p.parent_id = $2
+  AND p.status <> 'deleted'
 ORDER BY p.id
 `
 
@@ -1986,7 +1971,8 @@ SELECT p.organization_id, p.id, p.code, p.name, p.invoice_display_name, p.descri
 FROM plans p
 WHERE p.organization_id = $1
   AND ($2::boolean OR p.parent_id IS NULL)
-  AND (cardinality($3::text[]) = 0 OR p.status = ANY($3::text[]))
+  AND (CASE WHEN cardinality($3::text[]) = 0 THEN p.status <> 'deleted'
+       ELSE p.status = ANY($3::text[]) END)
   AND ($4::uuid IS NULL OR p.id > $4)
 ORDER BY p.id
 LIMIT $5

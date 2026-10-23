@@ -367,17 +367,22 @@ const (
 	PlanStatusActive PlanStatus = "active"
 	// PlanStatusPendingDeletion is "pending_deletion": being deleted by a job.
 	PlanStatusPendingDeletion PlanStatus = "pending_deletion"
+	// PlanStatusDeleted is "deleted": deleted while still referenced by
+	// subscriptions (and so by their invoices) or by override plans, so
+	// kept for them but hidden from lookups by code and from lists; its
+	// code is free again (domain §7.2).
+	PlanStatusDeleted PlanStatus = "deleted"
 )
 
 // PlanStatusValues returns every PlanStatus, in declaration order.
 func PlanStatusValues() []PlanStatus {
-	return []PlanStatus{PlanStatusActive, PlanStatusPendingDeletion}
+	return []PlanStatus{PlanStatusActive, PlanStatusPendingDeletion, PlanStatusDeleted}
 }
 
 // Valid reports whether v is one of the declared PlanStatus values.
 func (v PlanStatus) Valid() bool {
 	switch v {
-	case PlanStatusActive, PlanStatusPendingDeletion:
+	case PlanStatusActive, PlanStatusPendingDeletion, PlanStatusDeleted:
 		return true
 	default:
 		return false

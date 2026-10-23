@@ -40,7 +40,8 @@ type ReceiptRepository interface {
 	// already has a receipt or the number is taken.
 	Create(ctx context.Context, r *Receipt) error
 	// Update replaces r; it fails with [core.ErrNotFound] when r does not
-	// exist in its organization.
+	// exist in its organization, and with [core.ErrConflict] as Create
+	// does.
 	Update(ctx context.Context, r *Receipt) error
 	// Get returns the receipt id of org, or [core.ErrNotFound].
 	Get(ctx context.Context, org core.OrganizationID, id core.PaymentReceiptID) (*Receipt, error)

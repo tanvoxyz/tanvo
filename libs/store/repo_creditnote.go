@@ -109,7 +109,7 @@ func creditNoteOf(r db.CreditNote) (*creditnote.CreditNote, error) {
 func creditNoteItemOf(r db.CreditNoteItem) creditnote.Item {
 	return creditnote.Item{
 		ID:            idOf[core.CreditNoteItemID](r.ID),
-		FeeID:         idOf[core.FeeID](r.FeeID),
+		FeeID:         optIDOf[core.FeeID](r.FeeID),
 		Amount:        r.Amount,
 		PreciseAmount: r.PreciseAmount,
 	}
@@ -143,7 +143,7 @@ func creditNoteWriteChildren(ctx context.Context, q *db.Queries, cn *creditnote.
 	for i, it := range cn.Items {
 		p := db.InsertCreditNoteItemParams{
 			OrganizationID: org, CreditNoteID: id, Position: int32(i), //nolint:gosec // a list position
-			ID: it.ID.UUID(), FeeID: it.FeeID.UUID(), Amount: it.Amount,
+			ID: it.ID.UUID(), FeeID: optUUID(it.FeeID), Amount: it.Amount,
 		}
 		p.PreciseAmount = it.PreciseAmount
 		if err := q.InsertCreditNoteItem(ctx, p); err != nil {
@@ -252,23 +252,44 @@ func (r creditNoteRepo) Get(ctx context.Context, org core.OrganizationID, id cor
 }
 
 func (r creditNoteRepo) List(ctx context.Context, org core.OrganizationID, f creditnote.Filter, page core.PageRequest) (core.Page[*creditnote.CreditNote], error) {
+	if err := f.Validate(); err != nil {
+		return core.Page[*creditnote.CreditNote]{}, fmt.Errorf("list credit notes: %w", err)
+	}
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return core.Page[*creditnote.CreditNote]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	after, lim, recent, err := listArgs(f.Order, page)
 	if err != nil {
 		return core.Page[*creditnote.CreditNote]{}, err
 	}
+	var currency *string
+	if !f.Currency.IsZero() {
+		currency = new(f.Currency.Code())
+	}
 	rows, err := q.ListCreditNotes(ctx, db.ListCreditNotesParams{
-		OrganizationID: org.UUID(),
-		CustomerID:     optUUID(f.CustomerID),
-		InvoiceID:      optUUID(f.InvoiceID),
-		Statuses:       enumStrings(f.Statuses),
-		CreditStatuses: enumStrings(f.CreditStatuses),
-		Reasons:        enumStrings(f.Reasons),
-		After:          after,
-		Lim:            lim,
+		OrganizationID:      org.UUID(),
+		CustomerID:          optUUID(f.CustomerID),
+		CustomerExternalID:  optString(f.CustomerExternalID),
+		InvoiceID:           optUUID(f.InvoiceID),
+		InvoiceNumber:       optString(f.InvoiceNumber),
+		BillingEntityIds:    uuids(f.BillingEntityIDs),
+		SelfBilled:          f.SelfBilled,
+		PurchaseOrderNumber: optString(f.PurchaseOrderNumber),
+		Currency:            currency,
+		Statuses:            enumStrings(f.Statuses),
+		CreditStatuses:      enumStrings(f.CreditStatuses),
+		RefundStatuses:      enumStrings(f.RefundStatuses),
+		Reasons:             enumStrings(f.Reasons),
+		Types:               enumStrings(f.Types),
+		IssuingDateFrom:     invoiceDateCol(f.IssuingDateFrom),
+		IssuingDateTo:       invoiceDateCol(f.IssuingDateTo),
+		AmountFrom:          f.AmountFrom,
+		AmountTo:            f.AmountTo,
+		Search:              searchArg(f.Search),
+		After:               after,
+		Recent:              recent,
+		Lim:                 lim,
 	})
 	if err != nil {
 		return core.Page[*creditnote.CreditNote]{}, fmt.Errorf("list credit notes: %w", mapErr(err))
@@ -326,7 +347,9 @@ func (r creditNoteRepo) CreditedByFee(ctx context.Context, org core.Organization
 	}
 	sums := make(map[uuid.UUID]int64, len(rows))
 	for _, r := range rows {
-		sums[r.FeeID] = r.Amount
+		if r.FeeID != nil {
+			sums[*r.FeeID] = r.Amount
+		}
 	}
 	// In the order of fees, each fee once.
 	var out []creditnote.FeeCredit
@@ -374,4 +397,15 @@ func (r creditNoteRepo) Delete(ctx context.Context, org core.OrganizationID, id 
 		return err
 	})
 	return updateErr("credit_note", id, n, err)
+}
+
+func (r creditNoteRepo) DetachFees(ctx context.Context, org core.OrganizationID, invoice core.InvoiceID) error {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return err
+	}
+	if err := q.DetachCreditNoteItemFees(ctx, db.DetachCreditNoteItemFeesParams{OrganizationID: org.UUID(), InvoiceID: invoice.UUID()}); err != nil {
+		return fmt.Errorf("detach credit note item fees of invoice %s: %w", invoice, mapErr(err))
+	}
+	return nil
 }

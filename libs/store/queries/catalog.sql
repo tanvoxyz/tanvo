@@ -123,9 +123,6 @@ UPDATE plans SET
   metadata = @metadata, status = @status, created_at = @created_at, updated_at = @updated_at
 WHERE organization_id = @organization_id AND id = @id;
 
--- name: DeletePlan :execrows
-DELETE FROM plans WHERE organization_id = @organization_id AND id = @id;
-
 -- name: GetPlan :one
 SELECT sqlc.embed(p),
   ARRAY(SELECT t.tax_id FROM plan_taxes t
@@ -138,7 +135,8 @@ SELECT sqlc.embed(p),
   ARRAY(SELECT t.tax_id FROM plan_taxes t
         WHERE t.organization_id = p.organization_id AND t.plan_id = p.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM plans p
-WHERE p.organization_id = @organization_id AND p.code = @code AND p.parent_id IS NULL;
+WHERE p.organization_id = @organization_id AND p.code = @code AND p.parent_id IS NULL
+  AND p.status <> 'deleted';
 
 -- name: ListPlansByIDs :many
 SELECT sqlc.embed(p),
@@ -154,6 +152,7 @@ SELECT sqlc.embed(p),
         WHERE t.organization_id = p.organization_id AND t.plan_id = p.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM plans p
 WHERE p.organization_id = @organization_id AND p.parent_id = @parent_id
+  AND p.status <> 'deleted'
 ORDER BY p.id;
 
 -- name: ListPlans :many
@@ -163,7 +162,8 @@ SELECT sqlc.embed(p),
 FROM plans p
 WHERE p.organization_id = @organization_id
   AND (@include_children::boolean OR p.parent_id IS NULL)
-  AND (cardinality(@statuses::text[]) = 0 OR p.status = ANY(@statuses::text[]))
+  AND (CASE WHEN cardinality(@statuses::text[]) = 0 THEN p.status <> 'deleted'
+       ELSE p.status = ANY(@statuses::text[]) END)
   AND (sqlc.narg(after)::uuid IS NULL OR p.id > sqlc.narg(after))
 ORDER BY p.id
 LIMIT @lim;
