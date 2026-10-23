@@ -61,7 +61,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 每个组织的计费主体数量（按套餐为 1、2 或不限） | `app/models/organization.rb`（`MULTI_ENTITIES_MAX`） | libs/core | 计划中 | 核心中不设上限 |
 | 按客户或按计费主体编号文档 | `app/services/billing_entities/change_invoice_numbering_service.rb` | libs/billing | 计划中 | |
 | 文档编号前缀 | `app/models/billing_entity.rb` | libs/billing | 计划中 | |
-| 发票宽限期、净付款期限、发票页脚 | `app/models/billing_entity.rb` | libs/billing | 计划中 | |
+| 发票宽限期、付款条款、发票页脚 | `app/models/billing_entity.rb` | libs/billing | 计划中 | |
 | 开票日期锚点与调整设置 | `app/models/billing_entity.rb` | libs/billing | 计划中 | |
 | 零金额发票定稿设置 | `app/models/billing_entity.rb` | libs/billing | 计划中 | |
 | 欧盟税务管理开关与自动欧盟税 | `app/services/billing_entities/`、`app/services/taxes/auto_generate_service.rb` | libs/tax | 计划中 | |
@@ -124,9 +124,10 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 组织内的顺序编号与 slug | `app/models/customer.rb` | libs/core | 计划中 | |
 | 账单地址与收货地址 | `app/models/customer.rb` | libs/core | 计划中 | |
 | 税号、法定名称与编号 | `app/models/customer.rb` | libs/core | 计划中 | |
-| 货币（开票后锁定） | `app/services/customers/update_service.rb` | libs/core | 计划中 | |
+| 默认货币：新计费对象的偏好，而不是约束 | `app/services/customers/update_currency_service.rb` | libs/core | 计划中 | 为空时由第一个计费对象设置；显式更新可随时修改 |
+| 每个客户多种货币：订阅取其套餐的货币；钱包、已应用的优惠券和一次性发票取各自的货币；发票按货币拆分 | `app/services/subscriptions/organization_billing_service.rb`（`group_by_currency`）、`app/services/wallets/create_service.rb`、`app/services/applied_coupons/create_service.rb`、`app/services/invoices/create_one_off_service.rb` | libs/billing | 计划中 | 钱包和固定金额优惠券只抵扣同货币的发票；催收按货币计数尝试次数（§1.35） |
 | 时区，回退到计费主体与组织 | `app/models/customer.rb` | libs/period | 计划中 | 各处一律按客户 → 计费主体 → 组织回退（§4） |
-| 宽限期、净付款期限、文档语言及其回退 | `app/models/customer.rb` | libs/billing | 计划中 | |
+| 宽限期、付款条款、文档语言及其回退 | `app/models/customer.rb` | libs/billing | 计划中 | |
 | 零金额发票定稿：继承、跳过、定稿 | `app/models/customer.rb` | libs/billing | 计划中 | |
 | 开票日期锚点与调整的覆盖 | `app/models/customer.rb` | libs/billing | 计划中 | |
 | 客户元数据（最多 5 个，键 20 字符，值 100 字符，可显示在发票上） | `app/models/metadata/customer_metadata.rb` | libs/core | 计划中 | |
@@ -163,8 +164,8 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 指标上的表达式 | `app/models/billable_metric.rb`（`expression`） | libs/expression | 逻辑已完成 | |
 | 表达式求值 API（用样例事件测试表达式） | `app/services/billable_metrics/evaluate_expression_service.rb` | libs/expression | 逻辑已完成 | |
 | 指标被套餐使用后的字段锁定 | `app/services/billable_metrics/update_service.rb` | libs/core | 计划中 | |
-| 删除指标：移除计费项与告警、刷新草稿、删除事件 | `app/services/billable_metrics/destroy_service.rb`、`app/jobs/billable_metrics/delete_events_job.rb` | libs/billing | 计划中 | |
-| 指标过滤器（键及允许的值）与批量更新 | `app/services/billable_metric_filters/create_or_update_batch_service.rb` | libs/core | 计划中 | 移除一个值时同步裁剪依赖它的计费项过滤器 |
+| 删除指标：移除计费项与告警、刷新草稿 | `app/services/billable_metrics/destroy_service.rb` | libs/billing | 计划中 | 事件保留（§2）；费率卡的产品过滤器使用该指标时被拒绝（`referenced_by_product_filter`） |
+| 指标过滤器（键及允许的值）与批量更新 | `app/services/billable_metric_filters/create_or_update_batch_service.rb` | libs/core | 计划中 | 移除一个值时同步裁剪依赖它的计费项过滤器；费率卡的产品过滤器使用该取值或键时被拒绝（`referenced_by_product_filter`），与 Lago 一样阻止而不是级联 |
 
 ### 1.9 表达式
 
@@ -267,10 +268,11 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 产品（计量型、固定型） | `app/models/product.rb` | libs/core | 计划中 | |
 | 产品过滤器与过滤器取值 | `app/models/product_filter.rb` | libs/pricing | 计划中 | |
 | 费率卡（计费时机、按比例计算、发票展示、重新汇总、定价单位、锁定） | `app/models/rate_card.rb` | libs/core | 计划中 | |
-| 时间线上的费率卡费率（`effective_from`） | `app/models/rate_card_rate.rb` | libs/pricing | 计划中 | |
+| 时间线上的费率卡费率（`effective_from`） | `app/models/rate_card_rate.rb`、`app/services/rate_card_rates/create_service.rb` | libs/pricing | 计划中 | 有效费率之后只能追加；后付的 `effective_from` 为本地午夜，每天一个费率；拒绝回溯的费率（组织时区） |
 | 费率模型及其与产品类型的兼容性 | `app/services/rate_card_rates/`（`ModelCompatibility`） | libs/pricing | 计划中 | |
 | 每个费率的计费间隔数与单位 | `app/models/rate_card_rate.rb` | libs/period | 计划中 | |
 | 区间规范化 | `app/services/rate_card_rates/`（`NormalizeRanges`） | libs/pricing | 计划中 | |
+| 按比例累进费率按事件填充阶梯（允许小数阶梯边界；移除先清空最高阶梯） | `app/services/charge_models/prorated_adjacent_graduated_service.rb` | libs/pricing | 计划中 | |
 | 目录套餐与套餐费率卡 | `app/models/catalog_plan.rb`、`app/models/plan_rate_card.rb` | libs/core | 计划中 | |
 | 费率阶段（爬坡）及其不变量 | `app/models/rate_phase.rb` | libs/billing | 计划中 | |
 | 费率覆盖 | `app/models/rate_override.rb` | libs/billing | 计划中 | |
@@ -305,6 +307,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 批量摄取（最多 100 个事件） | `app/services/events/create_batch_service.rb` | libs/ingest | 计划中 | |
 | 事件时间戳解析（秒、带小数的秒，默认取当前时间） | `app/services/events/common_factory.rb` | libs/ingest | 计划中 | |
 | 事件字段：交易 ID、外部订阅 ID、代码、属性、精确总金额 | `app/models/event.rb` | libs/ingest | 计划中 | |
+| 摄取和事件过滤中 `external_contract_id` 作为 `external_subscription_id` 的别名 | `app/controllers/api/v1/events_controller.rb` | libs/ingest | 计划中 | 两者都发送时以显式的 `external_subscription_id` 为准 |
 | 按组织与交易 ID 去重 | `app/services/events/create_service.rb` | libs/ingest | 计划中 | Lago 还按外部订阅 ID 区分；Tanvo 在组织范围内去重（§3） |
 | 事件上的请求元数据（user agent、IP） | `app/services/events/create_service.rb` | libs/ingest | 计划中 | |
 | 事件校验（指标代码、订阅、数值字段） | `app/services/events/validate_creation_service.rb` | libs/ingest | 计划中 | |
@@ -313,10 +316,9 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 列出富化事件 | `app/controllers/api/v1/events_controller.rb`（`events_enriched`） | apps/server | 计划中 | |
 | 预付事件的费用估算 | `app/services/fees/estimate_pay_in_advance_service.rb` | libs/billing | 计划中 | |
 | 即时费用估算与批量即时估算 | `app/services/fees/estimate_instant/` | libs/billing | 计划中 | |
-| 富化：订阅、指标、计费项、过滤器、表达式、分组键 | `app/services/events/enrich_service.rb`、events-processor `processors/` | libs/ingest | 计划中 | |
+| 富化：订阅、指标、表达式、聚合值、分组键、精确金额；查找计费项只为路由预付事件 | `app/services/events/enrich_service.rb`、events-processor `processors/` | libs/ingest | 计划中 | 富化行上没有计费项或过滤器；过滤器在查询或聚合到桶时根据原始属性匹配 |
 | 带操作类型（增加/移除）的富化事件 | `app/models/enriched_event.rb` | libs/ingest | 计划中 | |
 | 目录变更后重新富化 | `app/services/events/re_enrich_all_service.rb` | libs/ingest | 计划中 | |
-| 删除已移除指标的事件 | `app/services/events/delete_for_metric_service.rb` | libs/eventstore | 计划中 | |
 | 后处理：用量监控、钱包刷新、目标钱包、预付计费项 | `app/services/events/post_process_service.rb` | libs/ingest | 计划中 | |
 | 指向特定钱包的事件 | `app/services/events/`（`target_wallet_code`） | libs/billing | 计划中 | |
 | 由事件创建预付计费项费用，按来源去重 | `app/services/fees/create_pay_in_advance_service.rb`、`app/services/events/pay_in_advance_service.rb` | libs/billing | 计划中 | |
@@ -334,7 +336,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 存储查询：计数、求和、最大值、最新值、唯一计数、加权求和、分组、按比例、明细、最后一个事件、不同取值 | `app/services/events/stores/base_store.rb` | libs/eventstore | 逻辑已完成 | |
 | 存储查询上的计费周期过滤 | `app/services/events/stores/` | libs/eventstore | 逻辑已完成 | |
 | ClickHouse 原始表、富化表与死信表 | `db/clickhouse_migrate/` | libs/eventstore | 计划中 | |
-| 预聚合用量桶（Lago 中为 15 分钟） | `app/models/clickhouse/usage_bucket.rb`、`app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | 计划中 | 由 Tanvo 自己构建的 15 分钟桶（§3） |
+| 预聚合用量桶（Lago 中为 15 分钟） | `app/models/clickhouse/usage_bucket.rb`、`app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | 计划中 | 由 Tanvo 自己构建的 15 分钟桶（§3）；单位数、事件数、精确总金额（用于 dynamic 计费项）、最后事件与摄取时刻、目标钱包代码；预付、按比例、周期性和目标钱包计费项读取事件 |
 | 循环指标的缓存聚合 | `app/models/cached_aggregation.rb` | libs/metering | 逻辑已完成 | |
 
 ### 1.19 用量
@@ -342,10 +344,10 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
 | 订阅的当前用量 | `app/services/invoices/customer_usage_service.rb` | libs/billing | 计划中 | |
-| 到周期结束的预计用量 | `app/services/invoices/customer_usage_service.rb`（预测） | libs/billing | 计划中 | |
+| 到周期结束的预计用量 | `app/services/invoices/customer_usage_service.rb`（`with_projection`）、`app/services/fees/projection_service.rb` | libs/billing | 计划中 | 由每笔当前用量费用推导：standard、graduated、package 和 volume 对预测单位数重新定价，其他模型缩放金额；比例基于计费项周期（[领域模型 §10.3](domain.zh-CN.md#103-用量)） |
 | 按周期的历史用量 | `app/queries/past_usage_query.rb` | libs/billing | 计划中 | |
 | 用量过滤（按指标、按过滤器、完整用量） | `app/services/invoices/customer_usage_service.rb` | libs/billing | 计划中 | |
-| 计费项级的用量缓存 | `app/services/subscriptions/charge_cache_service.rb` | libs/billing | 计划中 | |
+| 计费项级的用量缓存 | `app/services/subscriptions/charge_cache_service.rb` | libs/billing | 计划中 | 惰性校验：条目携带最新已摄取事件，存在更新事件时重新计算，摄取时从不删除；全量用量有单独的键 |
 | 实时用量刷新 | `app/services/subscriptions/`（`realtime_usage`） | libs/billing | 计划中 | 有了用量桶，这成为默认行为 |
 | 按小时的用量明细 | `app/graphql/resolvers/subscriptions/hourly_usage_resolver.rb` | libs/eventstore | 计划中 | |
 | 生命周期用量（历史、已开票、当前） | `app/models/lifetime_usage.rb`、`app/services/lifetime_usages/` | libs/billing | 计划中 | |
@@ -422,6 +424,17 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 创建计费片段 | `app/services/billing_segments/`、`app/jobs/clock/create_billing_segments_job.rb` | libs/billing | 计划中 | |
 | 处理计费片段并排除重叠 | `app/jobs/clock/process_billing_segments_job.rb` | libs/billing | 计划中 | |
 | 合同 API | `app/controllers/api/v2/contracts_controller.rb` | apps/server | 计划中 | |
+| 预付合同在创建时计费 | `app/services/contracts/create_service.rb`、`app/jobs/billing_segments/schedule_job.rb` | libs/billing | 计划中 | 订阅的计费任务随订阅一起入队（[领域模型 §21.4](domain.zh-CN.md#214-合同产品目录)） |
+| 终止有效合同、取消待生效合同，绝不删除 | `app/services/contracts/terminate_service.rb` | libs/billing | 计划中 | 订阅状态转换（领域模型 §9.2） |
+| 有效合同的编辑白名单（`contract_locked`） | `app/services/contracts/update_service.rb` | libs/billing | 计划中 | 适用于由费率卡定价的订阅 |
+| 合同结束日期是其费率卡的唯一结束 | `app/models/contract_rate_card.rb` | libs/billing | 计划中 | 订阅的 `ending_at` |
+| 生效计费锚点日期 | `app/models/contract.rb` | libs/core | 计划中 | |
+| 费率阶段复制到合同费率卡上，待生效时可编辑 | `app/services/contracts/materialize_rate_cards_service.rb`、`app/services/rate_phases/` | libs/billing | 计划中 | |
+| 已应用费率卡的更新：单位数和锚点，锚点会重置计费时钟 | `app/services/contract_rate_cards/update_service.rb`、`app/services/contract_rate_cards/reset_billing_clock_service.rb` | libs/billing | 计划中 | 重新计算 `next_billing_at` |
+| 合同的发票自定义段落 | `app/services/invoice_custom_sections/` | libs/billing | 计划中 | |
+| 可恢复的费率卡计划表（从最新持久化的周期恢复，片段去重） | `app/services/billing/rate_cards/cycle_walker.rb`、`app/services/billing/rate_cards/build_schedule_service.rb` | libs/period | 计划中 | |
+| 重试时按边界标识复用费用（发票、费率卡、微秒精度的 UTC 边界） | `app/services/fees/charge_service.rb`、`app/models/billing_period_boundaries.rb` | libs/billing | 计划中 | |
+| 预付计量片段按事件定价 | `app/services/events/pay_in_advance_billing_segment_resolver.rb` | libs/billing | 计划中 | 绝不在计费时钟触发时定价 |
 
 ### 1.23 发票
 
@@ -445,7 +458,8 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 按零金额设置转为最终状态 | `app/services/invoices/transition_to_final_status_service.rb` | libs/billing | 计划中 | |
 | 重试生成失败的订阅发票 | `app/services/invoices/retry_service.rb`、`app/jobs/clock/retry_generating_subscription_invoices_job.rb` | libs/billing | 计划中 | |
 | 开票日期规则（锚点与调整矩阵） | `app/services/invoices/`（开票日期） | libs/billing | 计划中 | |
-| 由净付款期限得出付款到期日 | `app/models/invoice.rb` | libs/billing | 计划中 | |
+| 由付款条款（收到即付、净天数、月末、月末加天数、加天数后月末、每月某日）得出付款到期日，按 客户 → 计费主体 解析并连同来源快照 | `app/models/invoice.rb`、`db/structure.sql`（`payment_term`、`payment_term_source`） | libs/billing | 计划中 | Lago 已有这些列，规则在其分支上；不保留 `net_payment_term` 别名（[领域模型 §24](domain.zh-CN.md#24-设计决定)，第 12 条） |
+| 发票上的采购订单号（来自归并的订阅、钱包交易或钱包、一次性请求），重新生成时保留 | `app/services/invoices/create_generating_service.rb`、`app/services/invoices/paid_credit_service.rb`、`app/services/invoices/regenerate_from_voided_service.rb` | libs/billing | 计划中 | |
 | 带草稿发票的宽限期 | `app/services/invoices/subscription_service.rb` | libs/billing | 计划中 | |
 | 刷新草稿 | `app/services/invoices/refresh_draft_service.rb`、`app/jobs/clock/refresh_draft_invoices_job.rb` | libs/billing | 计划中 | |
 | 宽限期结束时自动定稿 | `app/jobs/clock/finalize_invoices_job.rb` | libs/billing | 计划中 | |
@@ -459,12 +473,12 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 渐进式计费扣减与超额贷项通知单 | `app/services/invoices/progressive_billing_service.rb` | libs/billing | 计划中 | |
 | 发票预览：提案、预测、终止、更换套餐 | `app/services/invoices/preview_service.rb` | libs/billing | 计划中 | |
 | 争议败诉 | `app/services/payments/lose_dispute_service.rb` | libs/billing | 计划中 | |
-| 删除草稿发票 | `app/services/invoices/` | libs/billing | 计划中 | |
+| 删除草稿发票 | `app/services/invoices/delete_service.rb` | libs/billing | 计划中 | 已同步到外部系统后被拒绝；同时删除其草稿贷项通知单；该周期不再计费 |
 | 更新付款状态与元数据（最多 5 个，键 20 字符，值 140 字符） | `app/services/invoices/update_service.rb` | libs/billing | 计划中 | |
 | 把发票标记为逾期 | `app/services/invoices/payments/mark_overdue_service.rb` | libs/billing | 计划中 | |
 | 发票条目上的条目元数据（最多 50 个键） | `app/models/`（`item_metadata`） | libs/billing | 计划中 | |
 | 发票结清（付款、贷项通知单） | `app/models/invoice_settlement.rb` | libs/billing | 计划中 | |
-| 发票列表过滤与搜索 | `app/queries/invoices_query.rb` | libs/store | 计划中 | |
+| 发票列表过滤与搜索 | `app/queries/invoices_query.rb` | libs/store | 计划中 | 包括采购订单号，不区分大小写 |
 | 发票自定义段落（手动、系统生成）及其解析规则 | `app/models/invoice_custom_section.rb`、`app/services/invoice_custom_sections/` | libs/billing | 计划中 | 公开 API，而不只供管理界面使用 |
 | 下载 PDF 与 XML | `app/services/invoices/generate_pdf_service.rb` | libs/documents | 计划中 | |
 | 重新发送发票邮件 | `app/services/emails/resend_service.rb` | libs/mail | 计划中 | |
@@ -498,6 +512,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 税的增删改查（名称、代码、税率、描述） | `app/models/tax.rb`、`app/services/taxes/` | libs/tax | 计划中 | |
 | 计费主体、客户、套餐、计费项、固定计费项、附加项、承诺消费上的税 | `app/models/` 中的关联表 | libs/tax | 计划中 | |
 | 税的解析顺序（显式、附加项、计费项、固定计费项、承诺消费、套餐、客户、计费主体） | `app/services/fees/apply_taxes_service.rb` | libs/tax | 逻辑已完成 | |
+| 费率卡的税覆盖套餐、客户和计费主体的税 | `app/models/rate_card.rb`（`rate_cards_taxes`） | libs/tax | 计划中 | 在统一目录中，费率卡的税就是其计费项的税 |
 | 发票上应用的税，带计税基础与分摊 | `app/services/invoices/apply_taxes_service.rb` | libs/tax | 逻辑已完成 | |
 | 贷项通知单上应用的税 | `app/services/credit_notes/apply_taxes_service.rb` | libs/tax | 逻辑已完成 | |
 | 提供者计算的税（Anrok、Avalara），带特殊代码与基础税率 | `app/services/invoices/apply_provider_taxes_service.rb` | libs/tax | 逻辑已完成 | |
@@ -555,26 +570,29 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 随发票刷新草稿贷项通知单 | `app/services/credit_notes/refresh_draft_service.rb` | libs/billing | 计划中 | |
 | 发票作废时退回额度 | `app/services/credit_notes/recredit_service.rb` | libs/billing | 计划中 | |
 | 贷项通知单元数据 | `app/models/metadata/` | libs/billing | 计划中 | |
+| 贷项通知单列表过滤，包括发票的采购订单号 | `app/queries/credit_notes_query.rb` | libs/store | 计划中 | |
 | 贷项通知单 webhook `credit_note.created`、`credit_note.generated`、`credit_note.provider_refund_failure` | `app/services/webhooks/credit_notes/` | libs/webhooks | 计划中 | 只用一个事件名（§4） |
 
 ### 1.29 钱包
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 钱包的增删改查（名称、代码、货币、兑换率、过期时间） | `app/models/wallet.rb`、`app/services/wallets/` | libs/billing | 计划中 | |
+| 钱包的增删改查（名称、代码、货币、兑换率、过期时间） | `app/models/wallet.rb`、`app/services/wallets/` | libs/billing | 计划中 | 货币属于钱包自身，默认取客户的货币 |
+| 钱包、钱包交易和周期充值规则上的采购订单号，复制到额度发票 | `app/services/wallets/create_service.rb`、`app/services/wallet_transactions/create_from_params_service.rb`、`app/models/recurring_transaction_rule.rb` | libs/billing | 计划中 | |
 | 每个客户多个钱包（默认最多 6 个），优先级 1–50 | `app/models/wallet.rb` | libs/billing | 计划中 | |
 | 充值的最小与最大值 | `app/models/wallet.rb` | libs/billing | 计划中 | |
 | 每个钱包允许的费用类型 | `app/models/wallet.rb`（`allowed_fee_types`） | libs/billing | 计划中 | |
 | 钱包目标（钱包为哪些计费指标付款） | `app/models/wallet_target.rb` | libs/billing | 计划中 | |
 | 可追溯钱包（消耗与资金来源） | `app/models/wallet_transaction_consumption.rb` | libs/billing | 计划中 | |
 | 钱包交易：付费、赠送、作废；状态 pending、settled、failed；来源 manual、interval、threshold | `app/models/wallet_transaction.rb`、`app/services/wallet_transactions/` | libs/billing | 计划中 | |
+| 定向作废一笔入账赠送（`voided_transaction_id`） | `app/services/wallet_transactions/void_service.rb`、`app/services/wallet_transactions/validate_service.rb` | libs/billing | 计划中 | 仅限可追踪钱包；全部剩余额度或有上限的金额 |
 | 发放额度前要求发票付款成功 | `app/models/wallet_transaction.rb` | libs/billing | 计划中 | |
 | 循环充值规则：按间隔或阈值，固定或目标，赠送部分按目标充值 | `app/models/recurring_transaction_rule.rb`、`app/services/wallets/recurring_transaction_rules/` | libs/billing | 计划中 | |
 | 按间隔充值 | `app/jobs/clock/create_interval_wallet_transactions_job.rb` | libs/billing | 计划中 | |
 | 带退避的按阈值充值 | `app/services/wallets/threshold_top_up_service.rb` | libs/billing | 计划中 | |
 | 终止已过期的规则 | `app/jobs/clock/terminate_recurring_transaction_rules_job.rb` | libs/billing | 计划中 | |
-| 由当前用量得出的实时余额 | `app/services/wallets/balance/refresh_ongoing_usage_service.rb` | libs/billing | 计划中 | |
-| 实时余额刷新 | `app/jobs/clock/refresh_wallets_ongoing_balance_job.rb` | libs/billing | 计划中 | |
+| 由当前用量得出的实时余额，跨钱包级联 | `app/services/wallets/balance/refresh_ongoing_usage_service.rb`、`app/services/wallets/balance/allocate_ongoing_usage_by_wallets_service.rb` | libs/billing | 计划中 | 按应用顺序，每个钱包最多取到其余额，溢出由最后一个承担；有阈值规则的钱包承担全部 |
+| 实时余额刷新 | `app/jobs/clock/refresh_wallets_ongoing_balance_job.rb`、`app/services/wallets/realtime_refresh_service.rb` | libs/billing | 计划中 | 也由用量刷新信号触发，最多等待 5 秒让桶达到水位；5 分钟的全量扫描仍是权威来源 |
 | 钱包过期 | `app/jobs/clock/terminate_wallets_job.rb` | libs/billing | 计划中 | |
 | 钱包交易的付款 URL | `app/services/wallet_transactions/payments/generate_payment_url_service.rb` | libs/billing | 计划中 | |
 | 钱包与交易元数据（最多 15 个键） | `app/models/metadata/` | libs/billing | 计划中 | |
@@ -613,7 +631,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 告警类型：钱包余额金额、额度余额、实时余额金额、实时额度余额 | `app/models/usage_monitoring/` | libs/billing | 计划中 | |
 | 每个告警最多 20 个阈值，可有循环阈值 | `app/models/usage_monitoring/alert.rb` | libs/billing | 计划中 | |
 | 已触发的告警 | `app/models/usage_monitoring/triggered_alert.rb` | libs/billing | 计划中 | |
-| 根据订阅活动评估告警 | `app/services/usage_monitoring/process_subscription_activity_service.rb` | libs/billing | 计划中 | |
+| 根据订阅活动评估告警 | `app/services/usage_monitoring/process_subscription_activity_service.rb` | libs/billing | 计划中 | 持有告警的行锁，编辑告警时也取同一把锁 |
 | 订阅与钱包上的告警 API，支持批量创建 | `app/controllers/api/v1/subscriptions/alerts_controller.rb`、`app/controllers/api/v1/customers/wallets/alerts_controller.rb` | apps/server | 计划中 | |
 | webhook `alert.triggered`（高优先级） | `app/services/webhooks/usage_monitoring/alert_triggered_service.rb` | libs/webhooks | 计划中 | |
 
@@ -714,12 +732,16 @@ Lago 的 x402 支持尚未完成：只有准入检查可以调用。Tanvo 移植
 | :--- | :--- | :--- | :--- | :--- |
 | x402 连接（Coinbase CDP 结算方、收款地址、网络、USDC、自动创建客户） | `app/models/x402/connection.rb` | libs/core | 计划中 | 提供管理 API |
 | 网络 Base、Base Sepolia、Solana 主网与开发网；各网络的 USDC 资产 | `app/services/x402/network.rb`、`app/services/x402/asset.rb` | libs/core | 计划中 | |
-| 准入检查：代理现在能否使用某个指标，或者需要支付什么 | `app/services/x402/gate_checks/check_service.rb` | libs/billing | 计划中 | |
+| 准入检查：代理现在能否使用某个指标，或者需要支付什么 | `app/services/x402/gate_checks/check_service.rb` | libs/billing | 计划中 | 余额 − 进行中用量足以支付 1,000 次估算调用时通过，直到 Lago 的预留计数器取代这个下限 |
+| 准入检查的路由检查：父套餐及其计费项必须能够以预付钱包控制准入 | `app/services/x402/gate_checks/route_check_service.rb` | libs/billing | 计划中 | |
+| 准入检查接口的 `x402` API 密钥权限范围 | `app/models/api_key.rb` | libs/auth | 计划中 | |
+| 启用 x402 的钱包（`x402_enabled`） | `app/models/wallet.rb` | libs/core | 计划中 | |
+| 绑定到 x402 连接的发票支付链接（`x402_connection_id`、`x402_payment_token`） | `app/models/invoice.rb` | libs/core | 计划中 | 令牌设置时唯一；连接属于同一组织 |
 | 来自结算方的付款要求 | `app/services/x402/payment_requirements_service.rb` | libs/billing | 计划中 | |
 | 结算方客户端（verify、settle、supported），每个请求一个 JWT | `app/services/x402/facilitator/coinbase_cdp_adapter.rb` | providers/* | 计划中 | 新的提供者模块 `providers/x402` |
 | 结算（核验、结算、对账） | `app/services/x402/settlements/` | libs/billing | 计划中 | 接入任务；在 Lago 中未被使用 |
 | 通过 JSON-RPC 的链上对账（EVM、Solana） | `app/services/x402/chain/` | providers/* | 计划中 | |
-| 用于幂等的付款摘要 | `app/services/x402/payments/compute_digest_service.rb` | libs/billing | 计划中 | |
+| 用于幂等的付款摘要 | `app/services/x402/payments/compute_digest_service.rb` | libs/billing | 计划中 | 摘要和交易哈希在所有组织间唯一，是唯一跨租户的唯一索引（Lago 18a741762） |
 
 ### 1.37 会计、CRM 与税务集成
 
@@ -842,6 +864,8 @@ Lago 的 x402 支持尚未完成：只有准入检查可以调用。Tanvo 移植
 | 导出拆分为多个部分再合并 | `app/models/data_export_part.rb` | libs/jobs | 计划中 | |
 | 导出文件 7 天后过期 | `app/models/data_export.rb` | libs/billing | 计划中 | |
 | 导出完成邮件 | `app/mailers/data_export_mailer.rb` | libs/mail | 计划中 | |
+| 发票、费用、贷项通知单、钱包、订阅、告警、每日用量及其他业务表的导出视图（`exports_*`） | `db/views/exports_*.sql` | libs/store | 计划中 | 只读 PostgreSQL 视图，与删除记录（§1.49）一起构成数据仓库同步的契约 |
+| 导出视图的数据仓库同步 | Lago 私有的数据管道 | ee/pipeline | 计划中 | 读取视图的独立进程（架构 §14） |
 
 ### 1.44 分析
 
@@ -908,7 +932,7 @@ Lago 的每个时钟任务都成为一个 River 周期任务，或一个在到�
 | :--- | :--- | :--- | :--- | :--- |
 | 激活订阅与合同、刷新草稿（每 5 分钟） | `clock.rb` | libs/jobs | 计划中 | 激活按订阅调度 |
 | 订阅活动处理（每分钟） | `clock.rb` | libs/jobs | 计划中 | |
-| 刷新生命周期用量与钱包实时余额（每 5 分钟） | `clock.rb` | libs/jobs | 计划中 | |
+| 刷新生命周期用量与钱包实时余额（每 5 分钟） | `clock.rb` | libs/jobs | 计划中 | 钱包也由用量刷新信号刷新（§1.29） |
 | 终止已结束的订阅、校验事件（每小时 :05） | `clock.rb` | libs/jobs | 计划中 | |
 | 订阅计费（每小时 :10） | `clock.rb`（`SubscriptionsBiller`） | libs/jobs | 计划中 | 按订阅的任务加每小时对账 |
 | 创建与处理计费片段（每小时 :12、:17） | `clock.rb` | libs/jobs | 计划中 | |
@@ -931,7 +955,7 @@ Lago 的每个时钟任务都成为一个 River 周期任务，或一个在到�
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
 | 加密提供者密钥与集成凭据 | `app/models/concerns/secrets_storable.rb` | libs/store | 计划中 | AES-256-GCM 信封加密 |
-| 供下游同步使用的删除记录 | `db/structure.sql`（`record_deletions`） | libs/store | 计划中 | `audit_events` 中的删除事件 |
+| 供下游同步使用的删除记录 | `db/structure.sql`（`record_deletions`、`record_deletion()`）、`db/views/exports_record_deletions_v01.sql`、`app/jobs/clock/record_deletions_cleanup_job.rb` | libs/store | 计划中 | 费用、费用税、发票订阅和税表上的延迟 `AFTER DELETE` 触发器（刷新草稿会重建这些行）；导出给数据仓库同步（§1.43）；一个月后删除；删除事件也写入 `audit_events` |
 | 发票上的错误详情（未提供、税务错误、税额作废错误、发票生成错误） | `app/models/error_detail.rb` | libs/core | 计划中 | |
 | 带超时、重试与 SSRF 防护的出站 HTTP 客户端 | `lib/lago_http_client/` | libs/webhooks | 计划中 | 经由 `libs/core` 端口供提供者共用 |
 | 业务对象的变更历史 | PaperTrail（`app/models/concerns/paper_trail_traceable.rb`） | libs/core | 计划中 | `audit_events` |
@@ -956,6 +980,7 @@ Lago 的每个时钟任务都成为一个 River 周期任务，或一个在到�
 | Data API、Superset | 私有云服务 | ee/analytics | |
 | 财务助手、AI 对话 | 私有云服务 | ee/assistant | 带 MCP 服务器 |
 | CS 管理工具 | 私有云服务 | ee | 组织开关改为 `tanvo admin` 命令 |
+| 数据管道（`exports_*` 视图的数据仓库同步） | 私有云服务 | ee/pipeline | 视图（§1.43）和删除记录（§1.49）在核心中 |
 | 功能开关 `postgres_enriched_events`、`multi_connection`、`product_catalog`、`realtime_usage`、`account_tree`、`x402_payments`、`stripe_shared_payment_token`、`skip_credit_invoice_auto_payment_delay` | 功能开关 | 核心 | 不带开关直接提供；最后一个成为计费主体设置 |
 | 组织列 `custom_aggregation` | 列开关 | 不移植 | 控制已废弃的 `custom_agg`（§2） |
 
@@ -980,10 +1005,9 @@ Lago 自己标记为废弃、只为旧数据保留，或作为死代码保留的
 | `taxes.applied_to_organization` | `app/models/tax.rb` | 组织级税的兼容垫片 |
 | Data API 基础控制器 | `app/controllers/data_api/base_controller.rb` | 死代码 |
 | 开关 `wallet_traceability`、`x402_reservation_counter_disabled`、`fixed_charge_usage_delta_migration` | `app/models/organization.rb` | 未使用或只用于迁移的开关 |
-| 已触发告警的 `resolved` 与种子类型 | `app/models/usage_monitoring/triggered_alert.rb` | 从未产生 |
+| 已触发告警的 `resolved` 与种子类型 | `app/models/usage_monitoring/triggered_alert.rb` | 从未产生。Lago 正在构建 `alert.resolved`（296436eac、a84ccd69c、8fa46d700）；可达后再评估 |
 | 管理 REST 控制器（只限本地） | `app/controllers/admin/` | 由 `tanvo admin` 取代 |
 | `customers.vat_rate`、`billing_entities.vat_rate` | `db/structure.sql` | 由税取代 |
-| jsonb 列 `customers.payment_term`、`billing_entities.payment_term`、`invoices.payment_term` | `db/structure.sql` | 没有读取方 |
 | `billing_entities.archived_at`、不起作用的 `destroyBillingEntity` mutation | `app/models/billing_entity.rb`、`app/graphql/mutations/billing_entities/` | 未使用 |
 | GraphQL `providerCustomer` 与各提供者的 `*Customer` 字段；单数的 `provider_customer` 输入 | `app/graphql/types/customers/` | 由连接列表取代 |
 | `RetryViesCheckJob` | `app/jobs/customers/retry_vies_check_job.rb` | 被带退避的 VIES 检查任务取代 |
@@ -997,6 +1021,7 @@ Lago 自己标记为废弃、只为旧数据保留，或作为死代码保留的
 | 已删除的表 `events_enriched_expanded`、`events_aggregated` | `db/clickhouse_migrate/` | Lago 已删除 |
 | 富化存储的迁移路径 | `app/services/events/stores/`（`enriched_store_*`） | 只用于迁移 |
 | `Events::CreateBatchJob` | `app/jobs/events/create_batch_job.rb` | 未使用 |
+| 删除计费指标时删除其事件 | `app/jobs/billable_metrics/delete_events_job.rb`（方法体为 `true`）、`app/services/events/delete_for_metric_service.rb`（没有调用方） | Lago 已不再删除事件（d76413e50）；事件由存储的保留策略保留 |
 | `event.error` webhook | `config/webhook_event_types.yml`（`deprecated: true`） | 由 `events.errors` 取代 |
 | 订阅刷新队列的版本参数 | `app/jobs/clock/consume_subscription_refreshed_queue_job.rb` | 兼容参数 |
 | `LAGO_REDIS_CACHE_*` 设置、`LAGO_REDIS_STORE_TLS` 回退 | `config/` | 未使用或已废弃的配置 |

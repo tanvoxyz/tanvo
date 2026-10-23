@@ -201,6 +201,7 @@ Billing relies on exact `numeric` arithmetic, transactions spanning many tables,
 
 ### 5.4 Tenancy
 * Every business table has `organization_id` as the first column of its primary key or of a unique index, and every query filters by it.
+* The one exception is the x402 settlement's payment digest and transaction hash, which are unique across all organizations so that two organizations sharing a payout address are never both credited for one transfer ([Domain §24](domain.md#24-design-decisions), item 14). Reads of settlements still filter by organization.
 * Tanvo Cloud additionally enables row-level security policies bound to `SET LOCAL tanvo.organization_id`, as defense in depth.
 
 ### 5.5 Conventions
@@ -236,9 +237,10 @@ POST /v1/events, /v1/events:batch
 ```
 * The mode is a per-installation setting with per-organization overrides in Tanvo Cloud.
 * Connectors for SQS, Kinesis, HTTP and Kafka sources produce to `events.raw` (Redpanda Connect configurations or a built-in consumer).
+* **Usage refresh signals** carry the customer, the subscriptions and the event watermark. The wallet refresh consumer collapses a poll batch into one refresh per customer with wallets, waits up to 5 seconds for the usage buckets to reach the watermark, and leaves signals older than 30 seconds to the 5-minute sweep, which stays authoritative ([Domain §14.1](domain.md#141-wallet)).
 
 ### 7.2 Enrichment
-Enrichment resolves an event to its subscription(s) by `external_subscription_id` / `external_customer_id` and timestamp, to the billable metric by `code`, to the matching charges and charge filters, evaluates the metric's expression, extracts the aggregated value and the grouping keys, and writes **one enriched row per event**. Charge filters are matched when usage is queried and when usage buckets are maintained, not by expanding the event into one row per filter: lago-api dropped its expanded table (`events_enriched_expanded`) in September 2026 for this reason, since a catalog change would otherwise require rewriting stored events and the row count grew with the number of filters. The ingest consumers keep an in-memory cache of the catalog, refreshed through change notifications.
+Enrichment resolves an event to its subscription(s) by `external_subscription_id` / `external_customer_id` and timestamp and to the billable metric by `code`, evaluates the metric's expression, extracts the aggregated value, the grouping keys and the precise amount, and writes **one enriched row per event**, with no charge or filter column. It looks up the metric's charges only to decide whether the event goes to in-advance billing. Charge filters are matched from the raw properties when usage is queried and when usage buckets are maintained, not by expanding the event into one row per filter: lago-api dropped its expanded table (`events_enriched_expanded`) in September 2026 for this reason, since a catalog change would otherwise require rewriting stored events and the row count grew with the number of filters. The ingest consumers keep an in-memory cache of the catalog, refreshed through change notifications.
 
 ### 7.3 Expressions (libs/expression)
 * The language is lago-expression's: decimal arithmetic, `event.timestamp`, `event.code`, `event.properties.<name>`, strings, `concat`, `round`, `ceil`, `floor`, `least`, `greatest`.
@@ -247,8 +249,8 @@ Enrichment resolves an event to its subscription(s) by `external_subscription_id
 ### 7.4 Event Stores (libs/eventstore)
 * The `EventStore` port offers the aggregation queries the metering library needs: counts, sums, max, latest, unique counts with add/remove semantics, weighted sums over time, grouped variants, prorated variants and breakdowns, all bounded by a billing period and filters.
 * **PostgreSQL**: enriched events in a table partitioned by month and hash of organization.
-* **ClickHouse**: `events_raw` and `events_enriched` as `ReplacingMergeTree` tables deduplicated by transaction, written in batches by the ingest consumers; activity, API and security logs live there too. Aggregated values are read as `Decimal(76, 26)`, so ingestion rejects a numeric property with more than 50 integer digits rather than let ClickHouse read it as zero, and the Kafka partition key is (organization, transaction) so that one consumer deduplicates each transaction.
-* Pre-aggregated usage buckets per (subscription, charge, charge filter, grouping key, **15-minute** UTC bucket) back current-usage queries in both stores for the aggregations that can be summed across buckets (count, sum, max, latest) and the charge models that only need their totals; other aggregations read the events. Fifteen minutes is the granularity on which every real UTC offset (such as +05:30 or +05:45) puts a day boundary on a bucket boundary, so a billing period in any time zone is a whole number of buckets (as lago-api's `usage_buckets_15m`).
+* **ClickHouse**: `events_raw` and `events_enriched` as `ReplacingMergeTree` tables deduplicated by transaction, written in batches by the ingest consumers; activity, API and security logs live there too. Aggregated values are read as `Decimal(76, 26)`, so ingestion rejects a numeric property with more than 50 integer digits rather than let ClickHouse read it as zero, and the Kafka partition key is (organization, transaction) so that one consumer deduplicates each transaction. Lago produces raw events without a key (fec71c637); the key is a deliberate difference.
+* Pre-aggregated usage buckets per (subscription, charge, charge filter, grouping key, **15-minute** UTC bucket) back current-usage queries in both stores for the aggregations that can be summed across buckets (count, sum, max, latest) and the charge models that only need their totals (standard, graduated, package, volume, graduated percentage, and dynamic); other aggregations read the events. Each bucket stores `units`, `events_count`, `precise_total_amount` (summed on sum rows, which serves dynamic charges), `last_event_at`, `last_ingested_at` and `target_wallet_code`. In-advance, prorated and recurring charges, and charges that accept a target wallet, are not served from buckets yet. Fifteen minutes is the granularity on which every real UTC offset (such as +05:30 or +05:45) puts a day boundary on a bucket boundary, so a billing period in any time zone is a whole number of buckets (as lago-api's `usage_buckets_15m`).
 
 ### 7.5 Metering (libs/metering)
 `metering` implements the aggregation semantics (including proration, recurring metrics carried over periods, rounding) over an `iter.Seq` of events or over aggregates returned by an `EventStore`, so that the same rules are tested in memory with ported lago-api cases and run in the database in production.
@@ -341,6 +343,7 @@ Features behind Lago's premium license (progressive billing, wallets' advanced r
 
 * Analytics and dashboards (revenue, MRR, usage, collections, forecasts), replacing Lago's private Data API and Superset.
 * The billing assistant: an AI agent with an MCP server exposing Tanvo's API.
+* Warehouse sync: copying the core's read-only export views, with their deletion tombstones, to customer data warehouses, replacing Lago's private data pipeline ([Feature Parity §1.43](parity.md#143-data-exports)).
 * Customer-success tooling and the other private services listed in [Feature Parity §1.50](parity.md#150-lago-gates-and-their-tanvo-placement).
 
 Self-hosted installations enable them with an offline-verifiable license key (Ed25519-signed); Tanvo Cloud enables them per plan. The AGPL core contains no license checks.

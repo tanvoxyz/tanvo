@@ -201,6 +201,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 
 ### 5.4 租户隔离
 * 每张业务表都把 `organization_id` 作为主键或某个唯一索引的第一列，每个查询都按它过滤。
+* 唯一的例外是 x402 结算的支付摘要和交易哈希，它们在所有组织间唯一，使共用收款地址的两个组织绝不会为同一笔转账都入账（[领域模型 §24](domain.zh-CN.md#24-设计决定)，第 14 条）。读取结算仍按组织过滤。
 * Tanvo Cloud 另外启用绑定到 `SET LOCAL tanvo.organization_id` 的行级安全策略，作为纵深防御。
 
 ### 5.5 约定
@@ -236,9 +237,10 @@ POST /v1/events, /v1/events:batch
 ```
 * 模式是每个安装的设置，在 Tanvo Cloud 中可按组织覆盖。
 * SQS、Kinesis、HTTP 与 Kafka 来源的连接器写入 `events.raw`（Redpanda Connect 配置或内置的消费者）。
+* **用量刷新信号**携带客户、订阅和事件水位。钱包刷新消费者把一批拉取的信号合并为每个有钱包的客户一次刷新，最多等待 5 秒让用量桶达到水位，并把超过 30 秒的信号留给 5 分钟一次的全量扫描，后者仍是权威来源（[领域模型 §14.1](domain.zh-CN.md#141-钱包)）。
 
 ### 7.2 富化
-富化按 `external_subscription_id` / `external_customer_id` 与时间戳把事件解析到其订阅，按 `code` 解析到计费指标，解析到匹配的计费项与计费项过滤器，对指标的表达式求值，提取聚合值与分组键，并**为每个事件写入一行富化数据**。计费项过滤器在查询用量和维护用量桶时匹配，而不是把一个事件展开成每个过滤器一行：lago-api 正是因此在 2026 年 9 月删除了展开表（`events_enriched_expanded`），因为否则目录一变就要重写已存储的事件，而且行数随过滤器数量增长。摄取消费者在内存中缓存目录，并通过变更通知刷新。
+富化按 `external_subscription_id` / `external_customer_id` 与时间戳把事件解析到其订阅，按 `code` 解析到计费指标，对指标的表达式求值，提取聚合值、分组键与精确金额，并**为每个事件写入一行富化数据**，不含计费项或过滤器列。它只为判断事件是否进入预付计费而查找计费指标的计费项。计费项过滤器在查询用量和维护用量桶时根据原始属性匹配，而不是把一个事件展开成每个过滤器一行：lago-api 正是因此在 2026 年 9 月删除了展开表（`events_enriched_expanded`），因为否则目录一变就要重写已存储的事件，而且行数随过滤器数量增长。摄取消费者在内存中缓存目录，并通过变更通知刷新。
 
 ### 7.3 表达式（libs/expression）
 * 语言即 lago-expression 的语言：小数运算、`event.timestamp`、`event.code`、`event.properties.<name>`、字符串、`concat`、`round`、`ceil`、`floor`、`least`、`greatest`。
@@ -247,8 +249,8 @@ POST /v1/events, /v1/events:batch
 ### 7.4 事件存储（libs/eventstore）
 * `EventStore` 端口提供计量库所需的聚合查询：计数、求和、最大值、最新值、带增删语义的唯一计数、按时间加权的求和、分组变体、按比例变体与明细，全部以一个计费周期和过滤器为界。
 * **PostgreSQL**：富化事件存放在按月份与组织哈希分区的表中。
-* **ClickHouse**：`events_raw` 与 `events_enriched` 为按交易去重的 `ReplacingMergeTree` 表，由摄取消费者批量写入；活动日志、API 日志与安全日志也存放在这里。聚合值按 `Decimal(76, 26)` 读取，因此摄取时拒绝整数部分超过 50 位的数值属性，而不是让 ClickHouse 把它读成零；Kafka 的分区键为（组织，交易），使每个交易只由一个消费者去重。
-* 按（订阅、计费项、计费项过滤器、分组键、**15 分钟** UTC 桶）预聚合的用量桶，在两种存储中为当前用量查询提供支撑，适用于可以跨桶合并的聚合（count、sum、max、latest）以及只需要总量的计费模型；其他聚合直接读取事件。15 分钟这个粒度能让每个真实的 UTC 偏移（如 +05:30、+05:45）下的日边界都落在桶边界上，因此任何时区的计费周期都是整数个桶（与 lago-api 的 `usage_buckets_15m` 一致）。
+* **ClickHouse**：`events_raw` 与 `events_enriched` 为按交易去重的 `ReplacingMergeTree` 表，由摄取消费者批量写入；活动日志、API 日志与安全日志也存放在这里。聚合值按 `Decimal(76, 26)` 读取，因此摄取时拒绝整数部分超过 50 位的数值属性，而不是让 ClickHouse 把它读成零；Kafka 的分区键为（组织，交易），使每个交易只由一个消费者去重。Lago 生产原始事件时不带键（fec71c637）；这个键是刻意的差异。
+* 按（订阅、计费项、计费项过滤器、分组键、**15 分钟** UTC 桶）预聚合的用量桶，在两种存储中为当前用量查询提供支撑，适用于可以跨桶合并的聚合（count、sum、max、latest）以及只需要总量的计费模型（standard、graduated、package、volume、graduated percentage 和 dynamic）；其他聚合直接读取事件。每个桶存储 `units`、`events_count`、`precise_total_amount`（在 sum 行上求和，用于 dynamic 计费项）、`last_event_at`、`last_ingested_at` 和 `target_wallet_code`。预付、按比例和周期性计费项，以及接受目标钱包的计费项，暂不由用量桶提供。15 分钟这个粒度能让每个真实的 UTC 偏移（如 +05:30、+05:45）下的日边界都落在桶边界上，因此任何时区的计费周期都是整数个桶（与 lago-api 的 `usage_buckets_15m` 一致）。
 
 ### 7.5 计量（libs/metering）
 `metering` 在事件的 `iter.Seq` 上，或在 `EventStore` 返回的聚合结果上实现聚合语义（包括按比例计算、跨周期结转的循环指标、舍入），使同一套规则在内存中用移植的 lago-api 用例测试，在生产中则在数据库中运行。
@@ -341,6 +343,7 @@ Lago 高级许可证之下的功能（渐进式计费、钱包的高级规则、
 
 * 分析与仪表盘（收入、MRR、用量、回款、预测），取代 Lago 私有的 Data API 与 Superset。
 * 计费助手：带有暴露 Tanvo API 的 MCP 服务器的 AI 智能体。
+* 数据仓库同步：把核心的只读导出视图连同其删除墓碑复制到客户的数据仓库，取代 Lago 私有的数据管道（[功能对齐 §1.43](parity.zh-CN.md#143-数据导出)）。
 * 客户成功工具，以及[功能对齐 §1.50](parity.zh-CN.md#150-lago-的开关及其在-tanvo-中的归属)列出的其他私有服务。
 
 自托管安装通过可离线验证的许可证密钥（Ed25519 签名）启用它们；Tanvo Cloud 按套餐启用。AGPL 核心不包含任何许可证检查。

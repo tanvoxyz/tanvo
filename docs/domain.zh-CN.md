@@ -114,7 +114,7 @@ erDiagram
 ## 2. 标识符与约定
 
 ### 2.1 标识符
-* 每一行都有服务端生成的 `id`（UUIDv7）和 `organization_id`；每个查询都按 `organization_id` 过滤（[架构 §5.4](architecture.zh-CN.md#54-租户隔离)）。
+* 每一行都有服务端生成的 `id`（UUIDv7）和 `organization_id`；每个查询都按 `organization_id` 过滤（[架构 §5.4](architecture.zh-CN.md#54-租户隔离)）。唯一跨租户的唯一索引是 x402 结算的支付摘要和交易哈希（§24，第 14 条）。
 * 面向客户的标识符在组织内唯一：客户、订阅和钱包使用 `external_id`；计费指标、套餐、附加项、优惠券、税、功能、计费主体、定价单位、催收活动、集成、告警和钱包使用 `code`。
 * API 通过 `id` 或带前缀的标识符 `external_id:<value>` / `code:<value>` 定位资源（[架构 §4.2](architecture.zh-CN.md#42-经由-vanguard-的-rest)）。
 * 除另有说明外，`code` 长度为 1–255 个字符；资源被引用后 `code` 即不可变，具体见各实体。
@@ -163,11 +163,12 @@ erDiagram
 | `CustomerType` | `company`、`individual` | Customer |
 | `AccountType` | `customer`、`partner` | Customer |
 | `ZeroAmountFinalization` | `inherit`、`skip`、`finalize` | Customer |
-| `AggregationType` | `count`、`sum`、`max`、`unique_count`、`weighted_sum`、`latest`、`custom` | BillableMetric |
+| `PaymentTermType` | `due_on_receipt`、`net`、`end_of_month`、`net_end_of_month`、`days_end_of_month`、`day_of_month` | BillingEntity、Customer、Invoice（§24，第 12 条） |
+| `AggregationType` | `count`、`sum`、`max`、`unique_count`、`weighted_sum`、`latest` | BillableMetric |
 | `WeightedInterval` | `seconds` | BillableMetric |
 | `RoundingFunction` | `round`、`floor`、`ceil` | BillableMetric |
 | `Interval` | `weekly`、`monthly`、`quarterly`、`semiannual`、`yearly` | Plan、RecurringTransactionRule |
-| `ChargeModel` | `standard`、`graduated`、`graduated_percentage`、`package`、`percentage`、`volume`、`custom`、`dynamic` | Charge |
+| `ChargeModel` | `standard`、`graduated`、`graduated_percentage`、`package`、`percentage`、`volume`、`dynamic` | Charge |
 | `FixedChargeModel` | `standard`、`graduated`、`volume` | FixedCharge |
 | `RegroupPaidFees` | `invoice` | Charge |
 | `CommitmentType` | `minimum_commitment` | Commitment |
@@ -269,7 +270,7 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 | `document_number_prefix` | `string(10)` | 1–10 个字符，转为大写；默认取名称前 3 个字母（大写，A–Z）+ `-` + id 的后 4 个字符 |
 | `invoice_footer` | `string(600)?` | |
 | `invoice_grace_period_days` | `int` | ≥ 0；默认 0 |
-| `net_payment_term_days` | `int` | ≥ 0；默认 0 |
+| `payment_term` | `PaymentTerm?` | §24，第 12 条；`null` = `due_on_receipt` |
 | `finalize_zero_amount_invoice` | `bool` | 默认 true |
 | `issuing_date_anchor` | `IssuingDateAnchor` | 默认 `next_period_start` |
 | `issuing_date_adjustment` | `IssuingDateAdjustment` | 默认 `align_with_finalization_date` |
@@ -358,11 +359,11 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 | `phone`、`url`、`logo_url` | `string?` | |
 | `billing_address` | Address | |
 | `shipping_address` | Address | 打印时每个空字段回退到账单地址的对应字段 |
-| `currency` | `Currency?` | 只设置一次；见规则 |
+| `currency` | `Currency?` | 新计费对象的默认币种；见规则 |
 | `timezone` | `Zone?` | |
 | `document_locale` | `string?` | |
 | `invoice_grace_period_days` | `int?` | ≥ 0 |
-| `net_payment_term_days` | `int?` | ≥ 0 |
+| `payment_term` | `PaymentTerm?` | §24，第 12 条；`null` = 继承 |
 | `finalize_zero_amount_invoice` | `ZeroAmountFinalization` | 默认 `inherit` |
 | `issuing_date_anchor`、`issuing_date_adjustment` | 枚举? | `null` = 继承 |
 | `skip_invoice_custom_sections` | `bool` | |
@@ -377,7 +378,8 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 
 规则：
 * 设置按 客户 → 计费主体（时区再 → UTC）解析。**[变更]** Lago 在部分代码路径回退到组织，在另一些路径回退到计费主体；Tanvo 处处使用计费主体。
-* `currency` 为空时可以设置；只有当客户没有使用其他币种的订阅、发票、已应用优惠券或钱包时才能修改。客户的每个订阅、钱包、已应用优惠券和一次性发票都使用该币种；币种为空时由第一个这样的对象设置。
+* `currency` 是默认值，不是约束。未指定币种创建的钱包或一次性发票取该币种；币种为空时，第一个创建的计费对象设置它（订阅取其套餐币种，钱包、固定金额的已应用优惠券或一次性发票取各自的币种）；显式更新客户可以随时修改它，不影响已有对象。
+* 每个计费对象都有自己的币种：订阅取其套餐的 `currency`（§9.1），钱包（§14.1）、固定金额的已应用优惠券（§8.2）和一次性发票（§11.6）各有自己的币种。一个客户可以按多种币种计费：发票按币种拆分（§9.6），贷项通知单、固定金额优惠券和钱包只抵扣同币种的发票（§22.7），催收按币种分别计数尝试次数并检查阈值（§16.1）。
 * 客户在没有订阅、发票、已应用优惠券和钱包时是**可编辑**的。只有可编辑的客户才能修改 `external_id` 或 `account_type`。
 * `account_type = partner`：开给该客户的发票为自开票（§11.1）。
 * 删除客户会终止其订阅（生成终止发票）、终止其钱包和已应用优惠券并将其归档；其发票保留。
@@ -399,11 +401,10 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 | `name` | `string(255)` | 必填 |
 | `description` | `string?` | |
 | `aggregation_type` | `AggregationType` | 必填 |
-| `field_name` | `string?` | 被聚合的事件属性；`count` 和 `custom` 以外必填 |
+| `field_name` | `string?` | 被聚合的事件属性；`count` 以外必填 |
 | `weighted_interval` | `WeightedInterval?` | `weighted_sum` 必填（= `seconds`），其他类型禁止 |
 | `recurring` | `bool` | `count`、`max`、`latest` 禁止 |
 | `expression` | `string?` | lago-expression；其结果在聚合前写入 `field_name` |
-| `custom_aggregator` | `string?` | 不移植（§24，第 1 条） |
 | `rounding_function` | `RoundingFunction?` | |
 | `rounding_precision` | `int?` | 设置取整函数时默认 0；可以为负 |
 | `filters` | `[]BillableMetricFilter` | |
@@ -412,9 +413,9 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 
 规则：
 * 计费指标一旦被计费项使用，`code`、`aggregation_type`、`weighted_interval`、`field_name`、`recurring`、`rounding_function`、`rounding_precision` 和 `expression` 即被锁定。
-* 删除过滤器的某个值会删除使用该值的计费项过滤器取值；删除过滤器的键会删除引用该键的计费项过滤器。
-* 删除计费指标会从所有套餐中删除其计费项（及其过滤器），并重新计算草稿发票。
-* 可预付：只有 `count`、`sum`、`unique_count` 和 `custom` 计费指标可以支撑预付计费项。
+* 删除过滤器的某个值会删除使用该值的计费项过滤器取值；删除过滤器的键会删除引用该键的计费项过滤器。当费率卡的产品过滤器使用该取值或键时，两者都被拒绝（`referenced_by_product_filter`）：已定价的费率卡绝不会因计费指标的修改而被改变。
+* 删除计费指标会从所有套餐中删除其计费项（及其过滤器），并重新计算草稿发票；当费率卡的产品过滤器使用该计费指标时被拒绝（`referenced_by_product_filter`）。其事件保留。
+* 可预付：只有 `count`、`sum` 和 `unique_count` 计费指标可以支撑预付计费项。
 
 聚合语义（在 `libs/metering` 中实现）：
 
@@ -426,7 +427,6 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 | `unique_count` | `field_name` 不同取值的个数；`operation_type=remove` 移除一个取值 | 取值持续存在直到被移除；按存在天数折算 |
 | `weighted_sum` | Σ 值 × 持有秒数 / 周期秒数 | 最后一个值作为下一周期的初始值 |
 | `latest` | 最新事件的 `field_name` | — |
-| `custom` | 自定义聚合器的结果 | 由聚合器决定 |
 
 取整作用于聚合值（不是单个事件），使用计费指标的函数和精度，在定价之前进行。
 
@@ -491,7 +491,6 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 | 规则 | 条件 |
 | :--- | :--- |
 | `dynamic` | 计费指标 `aggregation_type = sum` |
-| `custom` | 计费指标 `aggregation_type = custom` |
 | `pay_in_advance = true` | 计费模型 ≠ `volume`；计费指标可预付（§7.1） |
 | `invoiceable = false` | `pay_in_advance = true` |
 | `regroup_paid_fees = invoice` | `pay_in_advance = true` 且 `invoiceable = false` |
@@ -509,7 +508,6 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 | `graduated` | `ranges []{to?, per_unit_amount, flat_amount}` | 见阶梯 |
 | `volume` | `ranges []{to?, per_unit_amount, flat_amount}` | 见阶梯 |
 | `graduated_percentage` | `ranges []{to?, rate, flat_amount}` | 见阶梯 |
-| `custom` | `custom_properties`（JSON 对象） | 传给自定义聚合器 |
 | `dynamic` | — | 价格来自事件 |
 
 每个计费模型还接受 `pricing_group_keys []string`（这些事件属性的每种不同组合产生一笔费用）和 `presentation_group_keys []{key, display_in_invoice bool}`（至多 2 个；在发票上拆分展示一笔费用，不改变价格）。
@@ -524,7 +522,6 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 * `percentage`：`max(u − free_units_per_total_aggregation, 0) × rate / 100` + `max(events − free_units_per_events, 0) × fixed_amount`；设置了单笔上下限时，每个事件的金额（`value × rate / 100 + fixed_amount`）先被限制在 `[min, max]` 内，再对限制后的金额求和。
 * `graduated_percentage`：对各档求和（落在该档的金额 × `rate` / 100 + 若该档有金额则加 `flat_amount`）。
 * `dynamic`：事件 `precise_total_amount` 之和，以币种单位计。
-* `custom`：由自定义聚合器返回金额。
 * 预付费用：单个事件的费用为当前周期内 `amount(含该事件的总量) − amount(不含该事件的总量)`。
 * 费用上展示的单价在用量 > 0 时为 `amount / units`。
 
@@ -543,7 +540,7 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 * 当过滤器的每个键上，事件属性都等于其中一个取值（哨兵值则任意取值）时，事件匹配该过滤器。
 * 多个过滤器匹配时，最具体的胜出：先比键的数量（多者胜），再比允许的取值数（少者胜），再比 `created_at`（早者胜）。
 * 不匹配任何过滤器的事件按计费项自身的属性定价（默认桶）。
-* 每个过滤器有稳定的代码：其键值对的 slug 加 8 位十六进制 SHA-256 后缀，≤ 200 个字符；富化时写入富化后的事件。
+* 每个过滤器有稳定的代码：其键值对的 slug 加 8 位十六进制 SHA-256 后缀，≤ 200 个字符。过滤器在查询用量或聚合到用量桶时匹配，绝不在富化时匹配（§10.2）。
 
 ### 7.5 固定计费项与附加项
 
@@ -684,7 +681,7 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 | :--- | :--- | :--- |
 | `coupon_id`、`customer_id` | `ID` | |
 | `amount`、`percentage_rate`、`frequency`、`frequency_duration` | 同优惠券 | 应用时记录的覆盖值 |
-| `amount_currency` | `Currency` | = 客户币种 |
+| `amount_currency` | `Currency?` | 取覆盖值，否则取优惠券的；`percentage` 时为 `null` |
 | `frequency_duration_remaining` | `int?` | |
 | `remaining_amount` | `Money?` | 用于 `once` + `fixed_amount` |
 | `status` | `CouponStatus` | |
@@ -693,7 +690,7 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 规则：
 * 不可复用的优惠券对一个客户只能应用一次（错误 `coupon_is_not_reusable`）。
 * 若客户已有一个有效的已应用优惠券针对相同套餐，则不能再应用限定套餐的优惠券（错误 `plan_overlapping`）。
-* `fixed_amount` 优惠券的币种必须等于客户币种。
+* `fixed_amount` 的已应用优惠券有自己的币种，不必等于客户币种；它只用于该币种的发票（§22.7）。`percentage` 优惠券用于任何币种的发票。一张优惠券只有一种币种；以其他币种应用时，通过金额和币种覆盖实现。
 * 在发票上的应用见 §22.7。
 
 ---
@@ -727,6 +724,8 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 | `billing_entity_id` | `ID?` | 覆盖客户的计费主体 |
 | `skip_invoice_custom_sections` + 选定的区块 | | §11.9 |
 | `next_billing_at` | `Time?` | **[变更]** 调度时刻（§22.17） |
+
+订阅按其套餐的 `currency` 计费；套餐覆盖（§7.2.1）可以为子套餐设置另一种币种。
 
 订阅自有的实体：固定计费项数量覆盖（§7.5）、用量阈值（§7.9）、权益与移除项（§7.10）、激活规则（§9.3）、已触达用量阈值。
 
@@ -779,7 +778,7 @@ stateDiagram-v2
 * 修改套餐即为升级或降级（§22.13）。
 
 ### 9.6 发票合并
-同一客户在同一时刻计费的订阅，若支付方式、币种、计费主体和采购订单号相同且都为 `consolidate_invoice = true`，则共用一张发票。
+同一客户在同一时刻计费的订阅，若支付方式、币种、计费主体和采购订单号相同且都为 `consolidate_invoice = true`，则共用一张发票。因此，订阅涉及多种币种的客户每种币种收到一张周期发票。发票取该组的币种和 `purchase_order_number`。
 
 ---
 
@@ -791,7 +790,7 @@ stateDiagram-v2
 | :--- | :--- | :--- |
 | `transaction_id` | `string(255)` | 必填 |
 | `code` | `string(255)` | 计费指标代码 |
-| `external_subscription_id` | `string(255)` | 必填 |
+| `external_subscription_id` | `string(255)` | 必填；摄取和事件过滤接受 `external_contract_id` 作为别名，两者都发送时以 `external_subscription_id` 为准 |
 | `timestamp` | `Time` | 默认为接收时刻；接受 RFC 3339 或带小数的 Unix 秒 |
 | `properties` | string → string 的映射 | 数字以字符串或 JSON 数字发送，规范化为十进制字符串 |
 | `precise_total_amount` | `Decimal?` | 用于 `dynamic` 计费项 |
@@ -805,14 +804,18 @@ stateDiagram-v2
 * 事件的订阅是满足 `external_id = external_subscription_id`、状态为 `active` 或 `terminated`、且 `started_at ≤ timestamp < terminated_at` 的订阅。`pending`、`incomplete` 和 `canceled` 订阅永不匹配。对周期性计费指标，没有匹配周期的事件回退到有效订阅。
 * 若计费指标有 `expression`，则对其求值并把结果存入 `properties[field_name]`。
 * 后置校验错误被记录，并在 `events.errors` Webhook 中（批量）报告：`invalid_code`（没有该代码的计费指标）、`missing_aggregation_property`（缺少 `field_name`）、`invalid_filter_values`（过滤器属性的取值不在过滤器取值内）。
-* 每个事件写入一行富化记录；匹配的计费项过滤器（或默认桶）在查询用量或聚合到用量桶时确定（[架构 §7.2](architecture.zh-CN.md#72-富化)）。
+* 每个事件写入一行富化记录，包含订阅、计费指标、表达式结果、聚合值、分组键和精确金额。富化只为判断是否适用预付计费项而查找计费指标的计费项；不存储任何计费项或过滤器。匹配的计费项过滤器（或默认桶）在查询用量或聚合到用量桶时根据原始属性确定（[架构 §7.2](architecture.zh-CN.md#72-富化)）。
 * 预付计费项为每个事件产生一笔费用（§22.4）。
 
 **[舍弃]** 已弃用的 `event.error` Webhook。
 
 ### 10.3 用量
 * **当前用量**：订阅当前周期截至此刻计算出的费用，含税，不持久化。
-* **预测用量**：当前用量除以周期已过比例（`已过天数 / 周期天数`），用量四舍五入到 2 位小数，再定价。周期性计费指标不做预测。
+* **预测用量**只由每笔当前用量费用推导（包括默认过滤器和分组的费用），不查询事件，因此与展示的当前用量一致。比例为客户时区下的 `已过天数 / 计费项周期天数`，限制在 [0, 1]，基于费用的计费项周期（`charges_from`、`charges_to`）；对按月计收计费项的年付和半年付套餐，该周期短于计费周期；周期结束后比例为 1，周期开始前预测为 0。预测用量为 `round(用量 / 比例, 2)`，展示明细按同样方式缩放。然后：
+  * `standard`、`graduated`、`package` 和 `volume`：用计费项的属性对预测用量重新定价；
+  * 其他所有模型（`percentage`、`graduated_percentage`、`dynamic`）：缩放当前精确金额（以及计价单位金额），`max(round(precise_amount / 比例), 0)`。
+  * 周期性计费指标不做预测：预测值等于当前费用。
+* **用量缓存**：每个计费项的当前用量（按过滤器，以及单独的全量用量）连同计算时最新已摄取事件的时刻一起缓存。读取时若存在更新的事件则重新计算该条目；摄取从不删除条目。目录变更、删除计费指标和事件去重会删除条目，因为它们改变用量却不产生更新的事件。
 * **历史用量**：已开票周期的费用，从发票读取。
 * **生命周期用量**：按订阅链计算，`historical_usage`（导入）+ `invoiced_usage` + `current_usage`；在事件到达和开票后刷新；驱动用量阈值（§22.16）和生命周期告警（§19）。
 * 每日用量时间序列是 `ee/` 中的分析功能。
@@ -849,10 +852,12 @@ stateDiagram-v2
 | `offsetted_amount` | 派生 | Σ 冲抵型贷项通知单 |
 | `total_due_amount` | 派生 | `total − total_paid − offsetted` |
 | `issuing_date` | `Date` | |
-| `payment_due_date` | `Date` | `issuing_date + net_payment_term_days` |
+| `payment_due_date` | `Date` | 由 `payment_term` 和 `issuing_date` 得出（§22.12） |
 | `expected_finalization_date` | `Date` | 计费日期 + 宽限期 |
 | `applied_grace_period_days` | `int` | |
-| `net_payment_term_days` | `int` | 快照 |
+| `payment_term`、`payment_term_source` | `PaymentTerm`、Enum{`customer`, `billing_entity`, `default`} | 快照（§24，第 12 条） |
+| `purchase_order_number` | `string(255)?` | 取自归并到该发票的订阅（§9.6）、钱包交易或钱包（`credit`），或请求（`one_off`）；重新生成时保留，除非被替换 |
+| `x402_connection_id`、`x402_payment_token` | `ID?`、`string?` | 发票支付链接绑定的 x402 连接（同一组织）及其令牌，设置时唯一 |
 | `payment_overdue` | `bool` | |
 | `payment_dispute_lost_at` | `Time?` | |
 | `self_billed` | `bool` | 客户 `account_type = partner` |
@@ -926,7 +931,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 
 ### 11.6 发票类型
 * `subscription`：周期、开始和终止发票（§22.2–§22.14）。
-* `one_off`：按需为附加项创建的费用。每行：`add_on_code`、`units`（默认 1）、`unit_amount`（默认取附加项金额）、`name?`、`description?`、`from/to`（可选的服务期间）、`tax_codes?`（显式指定的税优先于附加项的税）。一次性发票不抵扣优惠券、贷项通知单或预付额度；立即定稿，并以 `invoice.one_off_created` 发出。
+* `one_off`：按需为附加项创建的费用。每行：`add_on_code`、`units`（默认 1）、`unit_amount`（默认取附加项金额）、`name?`、`description?`、`from/to`（可选的服务期间）、`tax_codes?`（显式指定的税优先于附加项的税）。发票有自己的 `currency`（默认客户币种）和可选的 `purchase_order_number`。一次性发票不抵扣优惠券、贷项通知单或预付额度；立即定稿，并以 `invoice.one_off_created` 发出。
 * `credit`：购买钱包额度（§14.2）。每笔付费钱包交易一笔 `credit` 费用。若钱包要求支付成功，发票保持 `open` 直到支付，额度在支付后入账；发出 `invoice.paid_credit_added`。
 * `advance_charges`：在周期末，把 `regroup_paid_fees = invoice` 且已在系统外支付的预付费用归并到一张 `payment_status = succeeded` 的发票上。
 * `progressive_billing`：§22.16。
@@ -934,7 +939,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 **[舍弃]** 发票类型 `add_on`、发票版本（`version_number` 门控）、`organization_sequential_id`（由 `billing_entity_sequential_id` 取代）。
 
 ### 11.7 删除草稿
-草稿发票可以删除：其费用被移除，它覆盖的计费周期只能通过重新生成再次计费，并发出 `invoice.deleted`。**[变更]** Lago 保留一行 `deleted` 状态的记录；Tanvo 移除草稿，只保留审计事件。
+草稿发票可以删除，除非它已同步到外部系统（`invoice_synced_to_external_system`）。其草稿贷项通知单一并删除（任何一张无法删除时整个操作被拒绝，`credit_note_not_deletable`），其费用被移除，并发出 `invoice.deleted`。它覆盖的周期不再计费：订阅从下一个周期继续。**[变更]** Lago 保留一行 `deleted` 状态的记录；Tanvo 移除草稿，只保留审计事件。
 
 ### 11.8 单据
 已定稿的发票、贷项通知单、付款收据和付款请求渲染为 PDF/A-3b；计费主体启用 `einvoicing` 时，电子发票 XML（FR 和 DE 使用 Factur-X / ZUGFeRD CII）被嵌入并单独存储（[架构 §10](architecture.zh-CN.md#10-文档libsdocuments)）。单据以 `document_locale`（客户 → 计费主体）渲染。
@@ -1012,6 +1017,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 | `applied_taxes` | `[]` | 按发票的已应用税分组 |
 | `issuing_date` | `Date` | |
 | `refunded_at`、`voided_at` | `Time?` | |
+| `purchase_order_number` | 派生 | 取发票的；贷项通知单列表可按其过滤 |
 
 ### 13.2 规则
 * 每个明细金额 ≤ 该费用的可冲减金额（费用金额 − 未作废的贷项通知单已冲减金额 − 其优惠券份额）。
@@ -1044,7 +1050,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 | `code` | `string(255)?` | 客户内唯一 |
 | `name` | `string(255)?` | |
 | `status` | `WalletStatus` | `active` → `terminated` |
-| `currency` | `Currency` | = 客户币种 |
+| `currency` | `Currency` | 创建时指定，否则取客户币种；不可修改 |
 | `rate_amount` | `Decimal` | > 0；每单位额度对应的币种金额 |
 | `priority` | `int` | 1–50；默认 50（数值越小越先消耗） |
 | `expiration_at` | `Time?` | 须在未来 |
@@ -1057,6 +1063,8 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 | `allowed_fee_types` | `[]FeeType` | 空 = 全部 |
 | `billable_metric_ids` | `[]ID` | 空 = 全部 |
 | `traceable` | `bool` | 按入账交易记录消耗 |
+| `purchase_order_number` | `string(255)?` | 其交易和规则的默认值 |
+| `x402_enabled` | `bool` | 默认 false；钱包可由 x402 代理充值 |
 | `billing_entity_id` | `ID?` | |
 | `payment_method_type`、`payment_method_id` | | |
 | `last_balance_sync_at`、`last_consumed_credit_at`、`depleted_ongoing_balance` | | |
@@ -1064,6 +1072,8 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 
 规则：
 * 终止钱包（手动或在 `expiration_at`）会终止其周期充值规则；之后不再接受交易。
+* **进行中用量分配**：尚未开票的用量（当前用量，加上扣除优惠券后的草稿发票费用，减去渐进式计费和已支付的预付费用，按费用键和币种）按 §22.7 的顺序分配到客户该币种的有效钱包上，遵守 `allowed_fee_types` 和 `billable_metric_ids`。每个钱包最多取到其余额，然后才使用下一个；最后一个适用的钱包承担溢出部分，可以变为负数。有有效阈值规则的钱包承担其适用的全部用量，以便其规则触发。每个钱包的进行中余额为其余额减去其分配额。
+* 进行中余额由摄取的用量刷新信号刷新，最多等待 5 秒让用量桶达到信号携带的事件水位；5 分钟一次的全量扫描仍是权威来源。
 * 进行中余额降到 0 时发出 `wallet.depleted_ongoing_balance`。
 * 余额只能在客户的 `prepaid_credits` 锁下通过交易改变。
 
@@ -1085,11 +1095,12 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 | `metadata` | Metadata | ≤ 15 项 |
 | `settled_at`、`failed_at` | `Time?` | |
 | `invoice_requires_successful_payment` | `bool` | |
+| `purchase_order_number` | `string(255)?` | 取请求的，否则取规则的，否则取钱包的；复制到其 `credit` 发票 |
 
 规则：
 * 付费额度（`purchased`）创建一张 `credit` 发票；在发票定稿（或要求支付时在支付完成）之前为 `pending`，之后为 `settled`。
 * 赠送额度立即入账。
-* 作废额度是一笔扣除额度的出账交易。
+* 作废额度是一笔扣除额度的出账交易。不指定目标时，按消耗顺序从额度池中扣除。指定 `voided_transaction_id` 时，作废可追踪钱包中一笔已入账的入账交易：其全部剩余额度，或给定额度（以该剩余额度为上限）。错误：`wallet_not_traceable`、`wallet_transaction_not_found`、`no_remaining_amount`。
 * 付费充值必须遵守钱包的最小/最大限制，除非 `ignore_paid_top_up_limits = true`。
 * 对可追踪钱包，消耗记录（`wallet_transaction_consumptions`）把出账交易关联到入账交易，入账交易按优先级、再按最早优先的顺序被消耗。
 
@@ -1116,7 +1127,7 @@ stateDiagram-v2
 | `started_at` | `Time?` | 第一个间隔的锚点 |
 | `expiration_at` | `Time?` | |
 | `status` | `RuleStatus` | |
-| `invoice_requires_successful_payment`、`transaction_metadata`、`transaction_name`、`ignore_paid_top_up_limits` | | 复制到交易上 |
+| `invoice_requires_successful_payment`、`transaction_metadata`、`transaction_name`、`ignore_paid_top_up_limits`、`purchase_order_number` | | 复制到交易上（`purchase_order_number` 回退到钱包的） |
 
 规则：
 * 间隔规则在从 `started_at`（或钱包创建时间）起的每个间隔边界运行，类似按客户时区的周年计划。
@@ -1316,7 +1327,7 @@ Anrok 和 Avalara 为发票和贷项通知单计税。计税待完成时，发�
 告警类型：`current_usage_amount`、`billable_metric_current_usage_amount`、`billable_metric_current_usage_units`、`lifetime_usage_amount`、`billable_metric_lifetime_usage_units`、`wallet_balance_amount`、`wallet_credits_balance`、`wallet_ongoing_balance_amount`、`wallet_credits_ongoing_balance`。
 
 ### 19.2 评估
-每次用量或钱包刷新时，把当前值与 `previous_value` 比较；沿告警方向越过的每个阈值（以及超过最后一个非周期性阈值后周期性步长的每个倍数）都记录到一条 `TriggeredAlert` {alert, current_value, previous_value, crossed_thresholds, triggered_at}，并发出 `alert.triggered`。用量告警在每个周期开始时重置（当前用量），或从不重置（生命周期用量）。
+每次用量或钱包刷新时，把当前值与 `previous_value` 比较；沿告警方向越过的每个阈值（以及超过最后一个非周期性阈值后周期性步长的每个倍数）都记录到一条 `TriggeredAlert` {alert, current_value, previous_value, crossed_thresholds, triggered_at}，并发出 `alert.triggered`。用量告警在每个周期开始时重置（当前用量），或从不重置（生命周期用量）。评估在读取基线和阈值期间持有告警的行锁；编辑告警在重写阈值期间持有同一把锁。
 
 ---
 
@@ -1357,6 +1368,19 @@ Lago 的计费 v2 通过合同上的费率卡为产品定价，而不是通过�
 * `Contract`：`external_id`、`customer_id`、`status ∈ {pending, active, terminated, canceled}`、`billing_time`、`billing_anchor_date`、`started_at`、`ended_at`、与订阅相同的设置；每个 `external_id` 至多一个待生效合同和一个有效合同。
 * `BillingSegment`：合同费率卡计划中的一个定价窗口，`status ∈ {pending, processing, done, failed}`，同一费率卡内不重叠，按组开票。
 * 费用类型 `product`。
+
+合同规则（Lago，2026 年 9–10 月）及 Tanvo 如何把它们映射到由费率卡定价的订阅上（§24，第 3 条）：
+* **创建即计费**：创建合同会在事务提交后排队计费；由定时运行判断哪些到期，因此预付费率卡立即开票，后付费率卡尚无应付。Tanvo：创建这样的订阅时把 `next_billing_at` 设为其开始时间，并在同一事务中入队计费任务（§22.17）。
+* **终止或取消，绝不删除**：终止 `active` 合同使其变为 `terminated`（`terminated_at`）；终止 `pending` 合同使其变为 `canceled`（`canceled_at`）；已结束的合同被拒绝（`cannot_terminate`）。Tanvo：即 §9.2 的订阅状态转换；这样的订阅从不删除。
+* **编辑白名单**：`active` 合同只接受修改名称、`purchase_order_number`、结束日期、计费主体、`consolidate_invoice`、支付方式和发票自定义区块；修改套餐、`billing_time`、开始日期和计费锚点会以 `contract_locked` 拒绝。不在名单中的字段即被锁定，以当前值重发的锁定字段被接受但不写入。`pending` 合同可以完全编辑，包括套餐；已结束的合同只读。Tanvo：由费率卡定价的订阅采用相同的白名单和错误；其套餐只在 `pending` 时可改。
+* **唯一结束日期**：合同的结束日期是其费率卡的唯一结束（费率卡没有自己的结束日期）；有效合同可以设置、移动或清除它，计费在计费时读取。Tanvo：`ending_at` 结束订阅的所有费率卡。
+* **生效锚点**：`effective_billing_anchor_date`（只读）为已存的 `billing_anchor_date`，否则为客户时区下的开始日。Tanvo：订阅上的同名字段。
+* **阶段在费率卡上**：物化时把套餐的费率阶段（每个阶段连同其自己的费率覆盖）复制到每张合同费率卡上；费率卡的阶段只在合同 `pending` 时可编辑。Tanvo：订阅的费率卡获得套餐阶段的副本，与覆盖套餐的物化方式相同（§7.2.1）。
+* **费率卡更新**：费率卡的 `units` 和计费锚点可在合同 `pending` 时修改（有合同的套餐为 `plan_locked`，有效合同为 `contract_locked`）；移动费率卡的锚点会重置其计费时钟。Tanvo：修改费率卡的锚点会重新计算其计划和订阅的 `next_billing_at`。
+* **发票自定义区块**：合同的选择和跳过设置作用于其预付发票和周期发票，包括合并发票。Tanvo：与任何订阅一样适用 §11.9。
+* **可恢复的计划**：费率卡的计划从其最新持久化的周期恢复，无需遍历历史；最后一个周期会再次产生，由写入方对分段去重。Tanvo：`libs/period` 的周期遍历器从最后一个计费分段恢复；分段按（费率卡，开始时间）唯一。
+* **费用标识**：重试的运行复用已构建的费用，以（发票、合同费率卡、UTC 微秒精度的周期边界）标识，包括分组费用和补足费用。Tanvo：费率卡的费用使用相同的键。
+* **预付计量费率卡**按事件定价，取覆盖事件时间戳的分段（§22.4），绝不在计费时钟触发时定价。
 
 Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）；`libs/period` 对两者都采用 v2 的日历规则（左闭右开窗口、本地午夜边界、不受夏令时影响的天数计算）。
 
@@ -1457,7 +1481,7 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
 
 **预付额度**（步骤 5）在客户的 `prepaid_credits` 锁下执行，不用于 `one_off` 和 `credit` 发票：
 1. 按（费用类型，计费指标）把费用分桶；每个桶的上限为其扣除优惠券和渐进式抵扣后的金额，加上其税，减去其贷项通知单份额。取整差额在最大的桶上调平（每个桶至多 1 个最小单位）。
-2. 有效钱包排序：`priority` 升序，然后 `expiration_at`（无过期时间的排最后），然后 `created_at`。
+2. 取 `currency` 与发票相同的有效钱包，按 `priority` 升序，然后 `expiration_at`（无过期时间的排最后），然后 `created_at` 排序。进行中用量也按此顺序分配（§14.1）。
 3. 每个钱包从它可支付的桶中取 `min(桶剩余, 钱包剩余余额, 发票剩余)`：不受限时为全部桶，否则为费用类型在 `allowed_fee_types` 中或计费指标在 `billable_metric_ids` 中的桶。
 4. 每个被使用的钱包创建一笔出账、`invoiced`、已入账的交易；可追踪钱包按入账交易记录消耗。
 5. 客户的所有钱包都可追踪时，`prepaid_granted_credit_amount` 和 `prepaid_purchased_credit_amount` 拆分总额。
@@ -1489,7 +1513,7 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
 * **每笔费用的解析**，第一个非空列表胜出：
   1. 显式税码（一次性发票的行）；
   2. 附加项的税（附加项费用和来自该附加项的固定计费项费用）；
-  3. 计费项的税；
+  3. 计费项的税（由费率卡定价的计费项取费率卡的税）；
   4. 固定计费项的税；
   5. 承诺消费的税；
   6. 套餐的税（订阅费、计费项、固定计费项和承诺消费费用）；
@@ -1536,8 +1560,8 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
   | 周期 | `next_period_start` | `align_with_finalization_date` | `+宽限期` |
 
   被门控的发票和预付计费项发票使用计费日期。草稿定稿或待完成的计税完成时，周期性 `keep_anchor` 发票保留开票日期，其他发票改为当天。
-* `payment_due_date = issuing_date + net_payment_term_days`（客户 → 计费主体），开票日期变化时重新计算。
-* 修改客户或计费主体的宽限期、开票设置或净付款期限，会更新其草稿发票的日期，并定稿因此到期的草稿。
+* `payment_due_date` 是发票的付款条款（§24，第 12 条）基于 `issuing_date` 得出的到期日。条款按 客户 → 计费主体 → `due_on_receipt` 解析，并连同来源快照到发票上；开票日期变化时重新计算该日期。
+* 修改客户或计费主体的宽限期、开票设置或付款条款，会更新其草稿发票的日期，并定稿因此到期的草稿。
 * **最终状态**（构建后，或刷新并定稿后）：
   * 被激活规则门控（且总额 > 0）或税待计算时为 `open`；
   * `fees_amount ≠ 0`，或适用零金额定稿时为 `finalized`（客户 `finalize` → 是，`skip` → 否，`inherit` → 计费主体的 `finalize_zero_amount_invoice`）；
@@ -1638,12 +1662,20 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
 6. **日历按比例计算**遵循 Lago v1 的规则（包含计费天数的计划周期的天数）；由 `libs/period` 移植的用例定义。
 7. **升级当天**只付费一次（§22.13）；移植的升级用例带有调整后的期望值与说明。
 8. **付款收据编号**来自客户行上的计数器，在创建收据的事务中持有该行锁时取得。
-9. **终身用量**由用量桶增量维护，并以周期性重算作为对账。
+9. **终身用量**增量维护：用量桶支持的计费项取自用量桶，其他计费项取自事件（架构 §7.4），并以周期性重算作为对账。
 10. **试用期长度**为整天数。
 11. **事件去重**：键为（组织，`transaction_id`）；先被接受的事件为准，重复发送会被确认为重复并丢弃，更正通过 API 的事件替换完成，并留下明确的审计记录。此条取代 §10 中“时间戳相同则替换”的规则。
-12. **付款条款**：只有 `net_payment_term_days`。
-13. **告警**：没有已解决或种子状态。
-14. **x402 支付**作为支付提供方实现（阶段 5）。
+12. **付款条款**是结构化的，与 Lago 正在引入的一致（列在 1d56e730e 中添加；读取方仍在其 `feat-payment-terms-*` 分支上）。`PaymentTerm` 是一个 `term_type`（`PaymentTermType`）加上该类型的字段：`net`、`net_end_of_month` 和 `days_end_of_month` 有 `days`（int ≥ 0）；`day_of_month` 有 `day_of_month`（1–31）和 `month_offset`（0–12，默认 1）；其他字段被拒绝。净天数即 `net` 类型，不保留 Lago 的 `net_payment_term` 整数别名。由开票日期 `d` 计算到期日：
+    * `due_on_receipt`：`d`；
+    * `net`：`d + days`；
+    * `end_of_month`：`d` 所在月的最后一天；
+    * `net_end_of_month`：`d` 所在月的最后一天，再加 `days`；
+    * `days_end_of_month`：`d + days` 所在月的最后一天；
+    * `day_of_month`：`d` 之后第 `month_offset` 个月的 `day_of_month` 日，超出该月则取该月最后一天；若结果早于 `d`（只在偏移为 0 时可能），取下一个月的同一天，并再次按月末截取。
+
+    解析顺序为 客户 → 计费主体 → `due_on_receipt`；发票存储条款及其来源（`customer`、`billing_entity`、`default`）。
+13. **告警**：没有已解决或种子状态。Lago 正在构建 `alert.resolved`（阈值的 `notify_on`，此时阈值代码必填；触发告警的 `kind` 为 trigger/recovery/silent；`in_alarm_thresholds`、`fully_resolved`），目前都不可达；Lago 启用后再评估。
+14. **x402 支付**作为支付提供方实现（阶段 5）。结算的支付摘要和交易哈希在所有组织间唯一，这是租户范围唯一性的唯一刻意例外：共用收款地址的两个组织不能为同一笔转账都入账（Lago 18a741762）。
 15. **流式目的地**提供 CRUD API，是与 webhook 端点并列的一种事件目的地（Kafka、Kinesis、S3）。
 16. **分层**：API 只暴露相邻分层。
 17. **混合升级发票**：每个发票订阅记录自己的原因（`subscription_terminating`、`subscription_starting`）；发票在升级日期开具。

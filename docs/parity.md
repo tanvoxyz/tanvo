@@ -61,7 +61,7 @@ A commit that implements a feature changes its status here in the same commit ([
 | Number of billing entities per organization (1, 2 or unlimited by plan) | `app/models/organization.rb` (`MULTI_ENTITIES_MAX`) | libs/core | planned | No limit in the core |
 | Document numbering per customer or per billing entity | `app/services/billing_entities/change_invoice_numbering_service.rb` | libs/billing | planned | |
 | Document number prefix | `app/models/billing_entity.rb` | libs/billing | planned | |
-| Invoice grace period, net payment term, invoice footer | `app/models/billing_entity.rb` | libs/billing | planned | |
+| Invoice grace period, payment term, invoice footer | `app/models/billing_entity.rb` | libs/billing | planned | |
 | Issuing date anchor and adjustment settings | `app/models/billing_entity.rb` | libs/billing | planned | |
 | Finalize zero-amount invoices setting | `app/models/billing_entity.rb` | libs/billing | planned | |
 | EU tax management flag and automatic EU taxes | `app/services/billing_entities/`, `app/services/taxes/auto_generate_service.rb` | libs/tax | planned | |
@@ -124,9 +124,10 @@ A commit that implements a feature changes its status here in the same commit ([
 | Sequential id and slug per organization | `app/models/customer.rb` | libs/core | planned | |
 | Billing and shipping addresses | `app/models/customer.rb` | libs/core | planned | |
 | Tax identification number, legal name and number | `app/models/customer.rb` | libs/core | planned | |
-| Currency (locked once billed) | `app/services/customers/update_service.rb` | libs/core | planned | |
+| Default currency: a preference for new billing objects, not a constraint | `app/services/customers/update_currency_service.rb` | libs/core | planned | Set by the first billing object when absent; an explicit update can change it at any time |
+| Several currencies per customer: subscriptions in their plan's currency; wallets, applied coupons and one-off invoices in their own; invoices split per currency | `app/services/subscriptions/organization_billing_service.rb` (`group_by_currency`), `app/services/wallets/create_service.rb`, `app/services/applied_coupons/create_service.rb`, `app/services/invoices/create_one_off_service.rb` | libs/billing | planned | Wallets and fixed-amount coupons apply only to invoices in their currency; dunning counts attempts per currency (§1.35) |
 | Time zone with fallback to billing entity and organization | `app/models/customer.rb` | libs/period | planned | Fallback is customer → billing entity → organization everywhere (§4) |
-| Grace period, net payment term, document locale with fallback | `app/models/customer.rb` | libs/billing | planned | |
+| Grace period, payment term, document locale with fallback | `app/models/customer.rb` | libs/billing | planned | |
 | Finalize zero-amount invoice: inherit, skip, finalize | `app/models/customer.rb` | libs/billing | planned | |
 | Invoice issuing date anchor and adjustment overrides | `app/models/customer.rb` | libs/billing | planned | |
 | Customer metadata (max 5, key 20 chars, value 100 chars, display on invoice) | `app/models/metadata/customer_metadata.rb` | libs/core | planned | |
@@ -163,8 +164,8 @@ A commit that implements a feature changes its status here in the same commit ([
 | Expression attached to a metric | `app/models/billable_metric.rb` (`expression`) | libs/expression | logic done | |
 | Evaluate expression API (test an expression against a sample event) | `app/services/billable_metrics/evaluate_expression_service.rb` | libs/expression | logic done | |
 | Field locks once a metric is used by a plan | `app/services/billable_metrics/update_service.rb` | libs/core | planned | |
-| Destroy metric: removes charges and alerts, refreshes drafts, deletes events | `app/services/billable_metrics/destroy_service.rb`, `app/jobs/billable_metrics/delete_events_job.rb` | libs/billing | planned | |
-| Metric filters (key with allowed values) and batch update | `app/services/billable_metric_filters/create_or_update_batch_service.rb` | libs/core | planned | Removing a value trims dependent charge filters |
+| Destroy metric: removes charges and alerts, refreshes drafts | `app/services/billable_metrics/destroy_service.rb` | libs/billing | planned | Events are kept (§2); refused while a rate card's product filter uses the metric (`referenced_by_product_filter`) |
+| Metric filters (key with allowed values) and batch update | `app/services/billable_metric_filters/create_or_update_batch_service.rb` | libs/core | planned | Removing a value trims dependent charge filters; refused when a rate card's product filter uses the value or key (`referenced_by_product_filter`), as Lago blocks rather than cascades |
 
 ### 1.9 Expressions
 
@@ -267,10 +268,11 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Products (metered, fixed) | `app/models/product.rb` | libs/core | planned | |
 | Product filters and filter values | `app/models/product_filter.rb` | libs/pricing | planned | |
 | Rate cards (billing timing, proration, display on invoice, regroup, pricing unit, locks) | `app/models/rate_card.rb` | libs/core | planned | |
-| Rate card rates on a timeline (`effective_from`) | `app/models/rate_card_rate.rb` | libs/pricing | planned | |
+| Rate card rates on a timeline (`effective_from`) | `app/models/rate_card_rate.rb`, `app/services/rate_card_rates/create_service.rb` | libs/pricing | planned | Append-only after the active rate; an arrears `effective_from` is local midnight, one rate per day; a backdated rate is refused (organization time zone) |
 | Rate models and their compatibility with product kinds | `app/services/rate_card_rates/` (`ModelCompatibility`) | libs/pricing | planned | |
 | Billing interval count and unit per rate | `app/models/rate_card_rate.rb` | libs/period | planned | |
 | Range normalization | `app/services/rate_card_rates/` (`NormalizeRanges`) | libs/pricing | planned | |
+| Prorated graduated rates filled per event (decimal tier bounds; removals empty the top tiers first) | `app/services/charge_models/prorated_adjacent_graduated_service.rb` | libs/pricing | planned | |
 | Catalog plans and plan rate cards | `app/models/catalog_plan.rb`, `app/models/plan_rate_card.rb` | libs/core | planned | |
 | Rate phases (ramps) and their invariants | `app/models/rate_phase.rb` | libs/billing | planned | |
 | Rate overrides | `app/models/rate_override.rb` | libs/billing | planned | |
@@ -305,6 +307,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Batch ingestion (up to 100 events) | `app/services/events/create_batch_service.rb` | libs/ingest | planned | |
 | Event timestamp parsing (seconds, fractional seconds, defaults to now) | `app/services/events/common_factory.rb` | libs/ingest | planned | |
 | Event fields: transaction id, external subscription id, code, properties, precise total amount | `app/models/event.rb` | libs/ingest | planned | |
+| `external_contract_id` alias of `external_subscription_id` on ingestion and event filters | `app/controllers/api/v1/events_controller.rb` | libs/ingest | planned | The explicit `external_subscription_id` wins when both are sent |
 | Deduplication by organization and transaction id | `app/services/events/create_service.rb` | libs/ingest | planned | Lago also scopes by external subscription id; Tanvo dedups per organization (§3) |
 | Request metadata on events (user agent, IP) | `app/services/events/create_service.rb` | libs/ingest | planned | |
 | Event validation (metric code, subscription, numeric field) | `app/services/events/validate_creation_service.rb` | libs/ingest | planned | |
@@ -313,10 +316,9 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | List enriched events | `app/controllers/api/v1/events_controller.rb` (`events_enriched`) | apps/server | planned | |
 | Fee estimate for an in-advance event | `app/services/fees/estimate_pay_in_advance_service.rb` | libs/billing | planned | |
 | Instant fee estimate and batch instant estimate | `app/services/fees/estimate_instant/` | libs/billing | planned | |
-| Enrichment: subscription, metric, charges, filters, expression, grouping keys | `app/services/events/enrich_service.rb`, events-processor `processors/` | libs/ingest | planned | |
+| Enrichment: subscription, metric, expression, aggregated value, grouping keys, precise amount; charge lookup only to route in-advance events | `app/services/events/enrich_service.rb`, events-processor `processors/` | libs/ingest | planned | No charge or filter on the enriched row; filters are matched from the raw properties at query or bucket time |
 | Enriched events with operation type (add/remove) | `app/models/enriched_event.rb` | libs/ingest | planned | |
 | Re-enrichment after catalog changes | `app/services/events/re_enrich_all_service.rb` | libs/ingest | planned | |
-| Delete events of a removed metric | `app/services/events/delete_for_metric_service.rb` | libs/eventstore | planned | |
 | Post-processing: usage monitoring, wallet refresh, target wallets, in-advance charges | `app/services/events/post_process_service.rb` | libs/ingest | planned | |
 | Events targeting a specific wallet | `app/services/events/` (`target_wallet_code`) | libs/billing | planned | |
 | In-advance charge fee creation from an event with source dedup | `app/services/fees/create_pay_in_advance_service.rb`, `app/services/events/pay_in_advance_service.rb` | libs/billing | planned | |
@@ -334,7 +336,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Store queries: count, sum, max, latest, unique count, weighted sum, grouped, prorated, breakdown, last event, distinct values | `app/services/events/stores/base_store.rb` | libs/eventstore | logic done | |
 | Billing-period filters on store queries | `app/services/events/stores/` | libs/eventstore | logic done | |
 | ClickHouse raw, enriched and dead-letter tables | `db/clickhouse_migrate/` | libs/eventstore | planned | |
-| Pre-aggregated usage buckets (15 minutes in Lago) | `app/models/clickhouse/usage_bucket.rb`, `app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | planned | 15-minute buckets built by Tanvo itself (§3) |
+| Pre-aggregated usage buckets (15 minutes in Lago) | `app/models/clickhouse/usage_bucket.rb`, `app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | planned | 15-minute buckets built by Tanvo itself (§3); units, events count, precise total amount (serves dynamic charges), last event and ingestion instants, target wallet code; in-advance, prorated, recurring and target-wallet charges read the events |
 | Cached aggregations for recurring metrics | `app/models/cached_aggregation.rb` | libs/metering | logic done | |
 
 ### 1.19 Usage
@@ -342,10 +344,10 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | Current usage of a subscription | `app/services/invoices/customer_usage_service.rb` | libs/billing | planned | |
-| Projected usage to the end of the period | `app/services/invoices/customer_usage_service.rb` (projection) | libs/billing | planned | |
+| Projected usage to the end of the period | `app/services/invoices/customer_usage_service.rb` (`with_projection`), `app/services/fees/projection_service.rb` | libs/billing | planned | From each current-usage fee: standard, graduated, package and volume reprice the projected units, other models scale the amount; ratio over the charges period ([Domain §10.3](domain.md#103-usage)) |
 | Past usage per period | `app/queries/past_usage_query.rb` | libs/billing | planned | |
 | Usage filters (by metric, by filter, full usage) | `app/services/invoices/customer_usage_service.rb` | libs/billing | planned | |
-| Charge-level usage cache | `app/services/subscriptions/charge_cache_service.rb` | libs/billing | planned | |
+| Charge-level usage cache | `app/services/subscriptions/charge_cache_service.rb` | libs/billing | planned | Lazy validation: entries carry the latest ingested event and are recomputed when a newer one exists, never deleted on ingest; full usage has its own key |
 | Realtime usage refresh | `app/services/subscriptions/` (`realtime_usage`) | libs/billing | planned | Usage buckets make it the default |
 | Hourly usage breakdown | `app/graphql/resolvers/subscriptions/hourly_usage_resolver.rb` | libs/eventstore | planned | |
 | Lifetime usage (historical, invoiced, current) | `app/models/lifetime_usage.rb`, `app/services/lifetime_usages/` | libs/billing | planned | |
@@ -422,6 +424,17 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Billing segments creation | `app/services/billing_segments/`, `app/jobs/clock/create_billing_segments_job.rb` | libs/billing | planned | |
 | Billing segments processing with overlap exclusion | `app/jobs/clock/process_billing_segments_job.rb` | libs/billing | planned | |
 | Contracts API | `app/controllers/api/v2/contracts_controller.rb` | apps/server | planned | |
+| In-advance contracts billed on creation | `app/services/contracts/create_service.rb`, `app/jobs/billing_segments/schedule_job.rb` | libs/billing | planned | The subscription's billing job is enqueued with it ([Domain §21.4](domain.md#214-contracts-product-catalog)) |
+| Terminate an active contract, cancel a pending one, never delete | `app/services/contracts/terminate_service.rb` | libs/billing | planned | Subscription transitions (domain §9.2) |
+| Edit allowlist of active contracts (`contract_locked`) | `app/services/contracts/update_service.rb` | libs/billing | planned | Applied to subscriptions priced by rate cards |
+| Contract end date as the only end of its rate cards | `app/models/contract_rate_card.rb` | libs/billing | planned | The subscription's `ending_at` |
+| Effective billing anchor date | `app/models/contract.rb` | libs/core | planned | |
+| Rate phases copied onto contract cards, editable while pending | `app/services/contracts/materialize_rate_cards_service.rb`, `app/services/rate_phases/` | libs/billing | planned | |
+| Applied rate card updates: units and anchor, the anchor reseeding the billing clock | `app/services/contract_rate_cards/update_service.rb`, `app/services/contract_rate_cards/reset_billing_clock_service.rb` | libs/billing | planned | Recomputes `next_billing_at` |
+| Contract invoice custom sections | `app/services/invoice_custom_sections/` | libs/billing | planned | |
+| Resumable rate card schedules (resume from the latest persisted cycle, deduplicated segments) | `app/services/billing/rate_cards/cycle_walker.rb`, `app/services/billing/rate_cards/build_schedule_service.rb` | libs/period | planned | |
+| Fee reuse across retries by boundary identity (invoice, card, microsecond UTC boundaries) | `app/services/fees/charge_service.rb`, `app/models/billing_period_boundaries.rb` | libs/billing | planned | |
+| In-advance metered segments priced per event | `app/services/events/pay_in_advance_billing_segment_resolver.rb` | libs/billing | planned | Never priced on the billing tick |
 
 ### 1.23 Invoices
 
@@ -445,7 +458,8 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Transition to final status with zero-amount setting | `app/services/invoices/transition_to_final_status_service.rb` | libs/billing | planned | |
 | Retry generating failed subscription invoices | `app/services/invoices/retry_service.rb`, `app/jobs/clock/retry_generating_subscription_invoices_job.rb` | libs/billing | planned | |
 | Issuing date rules (anchor and adjustment matrix) | `app/services/invoices/` (issuing date) | libs/billing | planned | |
-| Payment due date from net payment term | `app/models/invoice.rb` | libs/billing | planned | |
+| Payment due date from the payment term (due on receipt, net, end of month, net end of month, days end of month, day of month), resolved customer → billing entity and snapshotted with its source | `app/models/invoice.rb`, `db/structure.sql` (`payment_term`, `payment_term_source`) | libs/billing | planned | Lago has the columns and the rules on branches; no `net_payment_term` alias ([Domain §24](domain.md#24-design-decisions), item 12) |
+| Purchase order number on invoices (from grouped subscriptions, wallet transactions or wallets, one-off requests), kept on regeneration | `app/services/invoices/create_generating_service.rb`, `app/services/invoices/paid_credit_service.rb`, `app/services/invoices/regenerate_from_voided_service.rb` | libs/billing | planned | |
 | Grace period with draft invoices | `app/services/invoices/subscription_service.rb` | libs/billing | planned | |
 | Draft refresh | `app/services/invoices/refresh_draft_service.rb`, `app/jobs/clock/refresh_draft_invoices_job.rb` | libs/billing | planned | |
 | Automatic finalization at grace period end | `app/jobs/clock/finalize_invoices_job.rb` | libs/billing | planned | |
@@ -459,12 +473,12 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Progressive billing deductions and excess credit note | `app/services/invoices/progressive_billing_service.rb` | libs/billing | planned | |
 | Invoice preview: proposal, projection, termination, plan change | `app/services/invoices/preview_service.rb` | libs/billing | planned | |
 | Dispute lost | `app/services/payments/lose_dispute_service.rb` | libs/billing | planned | |
-| Delete draft invoice | `app/services/invoices/` | libs/billing | planned | |
+| Delete draft invoice | `app/services/invoices/delete_service.rb` | libs/billing | planned | Refused once synced externally; deletes its draft credit notes; the period is not billed again |
 | Update payment status and metadata (max 5, key 20, value 140) | `app/services/invoices/update_service.rb` | libs/billing | planned | |
 | Mark invoices overdue | `app/services/invoices/payments/mark_overdue_service.rb` | libs/billing | planned | |
 | Item metadata on invoice items (at most 50 keys) | `app/models/` (`item_metadata`) | libs/billing | planned | |
 | Invoice settlements (payment, credit note) | `app/models/invoice_settlement.rb` | libs/billing | planned | |
-| Invoice list filters and search | `app/queries/invoices_query.rb` | libs/store | planned | |
+| Invoice list filters and search | `app/queries/invoices_query.rb` | libs/store | planned | Includes the purchase order number, case-insensitive |
 | Invoice custom sections (manual, system generated) and resolution rules | `app/models/invoice_custom_section.rb`, `app/services/invoice_custom_sections/` | libs/billing | planned | Public API, not only the admin UI |
 | Download PDF and XML | `app/services/invoices/generate_pdf_service.rb` | libs/documents | planned | |
 | Resend invoice email | `app/services/emails/resend_service.rb` | libs/mail | planned | |
@@ -498,6 +512,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Tax CRUD (name, code, rate, description) | `app/models/tax.rb`, `app/services/taxes/` | libs/tax | planned | |
 | Taxes on billing entities, customers, plans, charges, fixed charges, add-ons, commitments | join tables in `app/models/` | libs/tax | planned | |
 | Tax resolution order (explicit, add-on, charge, fixed charge, commitment, plan, customer, billing entity) | `app/services/fees/apply_taxes_service.rb` | libs/tax | logic done | |
+| Rate card taxes overriding plan, customer and billing entity taxes | `app/models/rate_card.rb` (`rate_cards_taxes`) | libs/tax | planned | A rate card's taxes are its charge's taxes in the one catalog |
 | Invoice applied taxes with taxable base and allocation | `app/services/invoices/apply_taxes_service.rb` | libs/tax | logic done | |
 | Credit note applied taxes | `app/services/credit_notes/apply_taxes_service.rb` | libs/tax | logic done | |
 | Provider-computed taxes (Anrok, Avalara) with special codes and base rate | `app/services/invoices/apply_provider_taxes_service.rb` | libs/tax | logic done | |
@@ -555,26 +570,29 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Refresh draft credit notes with their invoice | `app/services/credit_notes/refresh_draft_service.rb` | libs/billing | planned | |
 | Re-credit on invoice void | `app/services/credit_notes/recredit_service.rb` | libs/billing | planned | |
 | Credit note metadata | `app/models/metadata/` | libs/billing | planned | |
+| Credit note list filters, including the invoice's purchase order number | `app/queries/credit_notes_query.rb` | libs/store | planned | |
 | Credit note webhooks `credit_note.created`, `credit_note.generated`, `credit_note.provider_refund_failure` | `app/services/webhooks/credit_notes/` | libs/webhooks | planned | One event name (§4) |
 
 ### 1.29 Wallets
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Wallet CRUD (name, code, currency, rate amount, expiration) | `app/models/wallet.rb`, `app/services/wallets/` | libs/billing | planned | |
+| Wallet CRUD (name, code, currency, rate amount, expiration) | `app/models/wallet.rb`, `app/services/wallets/` | libs/billing | planned | The currency is the wallet's own, default the customer's |
+| Purchase order number on wallets, wallet transactions and recurring rules, copied to credit invoices | `app/services/wallets/create_service.rb`, `app/services/wallet_transactions/create_from_params_service.rb`, `app/models/recurring_transaction_rule.rb` | libs/billing | planned | |
 | Several wallets per customer (default maximum 6) with priority 1–50 | `app/models/wallet.rb` | libs/billing | planned | |
 | Top-up minimum and maximum | `app/models/wallet.rb` | libs/billing | planned | |
 | Allowed fee types per wallet | `app/models/wallet.rb` (`allowed_fee_types`) | libs/billing | planned | |
 | Wallet targets (billable metrics a wallet pays for) | `app/models/wallet_target.rb` | libs/billing | planned | |
 | Traceable wallets (consumptions and fundings) | `app/models/wallet_transaction_consumption.rb` | libs/billing | planned | |
 | Wallet transactions: paid, granted, voided; statuses pending, settled, failed; source manual, interval, threshold | `app/models/wallet_transaction.rb`, `app/services/wallet_transactions/` | libs/billing | planned | |
+| Targeted void of one inbound grant (`voided_transaction_id`) | `app/services/wallet_transactions/void_service.rb`, `app/services/wallet_transactions/validate_service.rb` | libs/billing | planned | Traceable wallets only; whole remainder or a capped amount |
 | Invoice requires successful payment before credits are granted | `app/models/wallet_transaction.rb` | libs/billing | planned | |
 | Recurring top-up rules: interval or threshold, fixed or target, grants target top-up | `app/models/recurring_transaction_rule.rb`, `app/services/wallets/recurring_transaction_rules/` | libs/billing | planned | |
 | Interval top-ups | `app/jobs/clock/create_interval_wallet_transactions_job.rb` | libs/billing | planned | |
 | Threshold top-ups with backoff | `app/services/wallets/threshold_top_up_service.rb` | libs/billing | planned | |
 | Termination of expired rules | `app/jobs/clock/terminate_recurring_transaction_rules_job.rb` | libs/billing | planned | |
-| Ongoing balance from current usage | `app/services/wallets/balance/refresh_ongoing_usage_service.rb` | libs/billing | planned | |
-| Ongoing balance refresh | `app/jobs/clock/refresh_wallets_ongoing_balance_job.rb` | libs/billing | planned | |
+| Ongoing balance from current usage, cascaded across wallets | `app/services/wallets/balance/refresh_ongoing_usage_service.rb`, `app/services/wallets/balance/allocate_ongoing_usage_by_wallets_service.rb` | libs/billing | planned | Application order, each wallet up to its balance, overflow on the last; a threshold-rule wallet absorbs all |
+| Ongoing balance refresh | `app/jobs/clock/refresh_wallets_ongoing_balance_job.rb`, `app/services/wallets/realtime_refresh_service.rb` | libs/billing | planned | Also from usage refresh signals, waiting up to 5 s for the bucket watermark; the 5-minute sweep stays authoritative |
 | Wallet expiration | `app/jobs/clock/terminate_wallets_job.rb` | libs/billing | planned | |
 | Payment URL for a wallet transaction | `app/services/wallet_transactions/payments/generate_payment_url_service.rb` | libs/billing | planned | |
 | Wallet and transaction metadata (at most 15 keys) | `app/models/metadata/` | libs/billing | planned | |
@@ -613,7 +631,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Alert types wallet balance amount, credits balance, ongoing balance amount, credits ongoing balance | `app/models/usage_monitoring/` | libs/billing | planned | |
 | Up to 20 thresholds per alert, recurring threshold | `app/models/usage_monitoring/alert.rb` | libs/billing | planned | |
 | Triggered alerts | `app/models/usage_monitoring/triggered_alert.rb` | libs/billing | planned | |
-| Alert evaluation from subscription activity | `app/services/usage_monitoring/process_subscription_activity_service.rb` | libs/billing | planned | |
+| Alert evaluation from subscription activity | `app/services/usage_monitoring/process_subscription_activity_service.rb` | libs/billing | planned | Under a row lock on the alert, which alert edits also take |
 | Alerts API on subscriptions and wallets, with batch create | `app/controllers/api/v1/subscriptions/alerts_controller.rb`, `app/controllers/api/v1/customers/wallets/alerts_controller.rb` | apps/server | planned | |
 | Webhook `alert.triggered` (high priority) | `app/services/webhooks/usage_monitoring/alert_triggered_service.rb` | libs/webhooks | planned | |
 
@@ -714,12 +732,16 @@ Lago's x402 support is unfinished: only the gate check is reachable. Tanvo ports
 | :--- | :--- | :--- | :--- | :--- |
 | x402 connections (facilitator Coinbase CDP, payout addresses, networks, USDC, auto-create customers) | `app/models/x402/connection.rb` | libs/core | planned | With a management API |
 | Networks Base, Base Sepolia, Solana mainnet and devnet; USDC assets per network | `app/services/x402/network.rb`, `app/services/x402/asset.rb` | libs/core | planned | |
-| Gate check: can an agent use a metric now, or what must it pay | `app/services/x402/gate_checks/check_service.rb` | libs/billing | planned | |
+| Gate check: can an agent use a metric now, or what must it pay | `app/services/x402/gate_checks/check_service.rb` | libs/billing | planned | Passes when balance − ongoing usage covers 1,000 estimated calls, until Lago's reservation counter replaces that floor |
+| Gate check route check: the parent plan and its charges must be able to gate a prepaid wallet | `app/services/x402/gate_checks/route_check_service.rb` | libs/billing | planned | |
+| `x402` API key scope for the gate check endpoint | `app/models/api_key.rb` | libs/auth | planned | |
+| x402-enabled wallets (`x402_enabled`) | `app/models/wallet.rb` | libs/core | planned | |
+| Invoice payment link bound to an x402 connection (`x402_connection_id`, `x402_payment_token`) | `app/models/invoice.rb` | libs/core | planned | Token unique when set; connection of the same organization |
 | Payment requirements from the facilitator | `app/services/x402/payment_requirements_service.rb` | libs/billing | planned | |
 | Facilitator client (verify, settle, supported) with per-request JWT | `app/services/x402/facilitator/coinbase_cdp_adapter.rb` | providers/* | planned | New provider module `providers/x402` |
 | Settlements (verify, settle, reconcile) | `app/services/x402/settlements/` | libs/billing | planned | Wired to jobs; unused in Lago |
 | On-chain reconciliation through JSON-RPC (EVM, Solana) | `app/services/x402/chain/` | providers/* | planned | |
-| Payment digest for idempotency | `app/services/x402/payments/compute_digest_service.rb` | libs/billing | planned | |
+| Payment digest for idempotency | `app/services/x402/payments/compute_digest_service.rb` | libs/billing | planned | The digest and transaction hash are unique across all organizations, the one cross-tenant unique index (Lago 18a741762) |
 
 ### 1.37 Accounting, CRM and Tax Integrations
 
@@ -842,6 +864,8 @@ Lago's x402 support is unfinished: only the gate check is reachable. Tanvo ports
 | Exports split into parts and combined | `app/models/data_export_part.rb` | libs/jobs | planned | |
 | Export files expire after 7 days | `app/models/data_export.rb` | libs/billing | planned | |
 | Export ready email | `app/mailers/data_export_mailer.rb` | libs/mail | planned | |
+| Export views (`exports_*`) of invoices, fees, credit notes, wallets, subscriptions, alerts, daily usages and the other business tables | `db/views/exports_*.sql` | libs/store | planned | Read-only PostgreSQL views, with the deletion records (§1.49), the contract of the warehouse sync |
+| Warehouse sync of the export views | Lago's private data pipeline | ee/pipeline | planned | Separate process reading the views (Architecture §14) |
 
 ### 1.44 Analytics
 
@@ -908,7 +932,7 @@ Each Lago clock job becomes a River periodic job or a job scheduled at the insta
 | :--- | :--- | :--- | :--- | :--- |
 | Activate subscriptions and contracts, refresh drafts (every 5 minutes) | `clock.rb` | libs/jobs | planned | Activation scheduled per subscription |
 | Subscription activity processing (every minute) | `clock.rb` | libs/jobs | planned | |
-| Refresh lifetime usages and wallet ongoing balances (every 5 minutes) | `clock.rb` | libs/jobs | planned | |
+| Refresh lifetime usages and wallet ongoing balances (every 5 minutes) | `clock.rb` | libs/jobs | planned | Wallets are also refreshed from usage refresh signals (§1.29) |
 | Terminate ended subscriptions, validate events (hourly :05) | `clock.rb` | libs/jobs | planned | |
 | Subscription billing (hourly :10) | `clock.rb` (`SubscriptionsBiller`) | libs/jobs | planned | Per-subscription jobs plus hourly reconciliation |
 | Billing segments create and process (hourly :12, :17) | `clock.rb` | libs/jobs | planned | |
@@ -931,7 +955,7 @@ Each Lago clock job becomes a River periodic job or a job scheduled at the insta
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | Encryption of provider secrets and integration credentials | `app/models/concerns/secrets_storable.rb` | libs/store | planned | AES-256-GCM envelopes |
-| Deletion records for downstream sync | `db/structure.sql` (`record_deletions`) | libs/store | planned | Deletion events in `audit_events` |
+| Deletion records for downstream sync | `db/structure.sql` (`record_deletions`, `record_deletion()`), `db/views/exports_record_deletions_v01.sql`, `app/jobs/clock/record_deletions_cleanup_job.rb` | libs/store | planned | Deferred `AFTER DELETE` triggers on fees, fee taxes, invoice subscriptions and taxes (refreshing a draft recreates those rows); exported to the warehouse sync (§1.43); deleted after one month; deletion events also in `audit_events` |
 | Error details on invoices (not provided, tax error, tax voiding error, invoice generation error) | `app/models/error_detail.rb` | libs/core | planned | |
 | Outbound HTTP client with timeouts, retries and SSRF guard | `lib/lago_http_client/` | libs/webhooks | planned | Shared by providers through `libs/core` port |
 | Change history of business objects | PaperTrail (`app/models/concerns/paper_trail_traceable.rb`) | libs/core | planned | `audit_events` |
@@ -956,6 +980,7 @@ Each Lago clock job becomes a River periodic job or a job scheduled at the insta
 | Data API, Superset | private cloud service | ee/analytics | |
 | Finance assistant, AI conversations | private cloud service | ee/assistant | With an MCP server |
 | CS admin tooling | private cloud service | ee | Organization toggles become `tanvo admin` commands |
+| Data pipeline (warehouse sync of `exports_*` views) | private cloud service | ee/pipeline | The views (§1.43) and deletion records (§1.49) are in the core |
 | Feature flags `postgres_enriched_events`, `multi_connection`, `product_catalog`, `realtime_usage`, `account_tree`, `x402_payments`, `stripe_shared_payment_token`, `skip_credit_invoice_auto_payment_delay` | feature flag | core | Shipped without flags; the last becomes a billing entity setting |
 | Organization column `custom_aggregation` | column flag | not ported | Gates `custom_agg`, deprecated (§2) |
 
@@ -980,10 +1005,9 @@ Items that Lago itself marks deprecated, keeps only for old data, or carries as 
 | `taxes.applied_to_organization` | `app/models/tax.rb` | Compatibility shim for organization-level taxes |
 | Data API base controller | `app/controllers/data_api/base_controller.rb` | Dead code |
 | Flags `wallet_traceability`, `x402_reservation_counter_disabled`, `fixed_charge_usage_delta_migration` | `app/models/organization.rb` | Unused or migration-only flags |
-| Triggered alert `resolved` and seeded kinds | `app/models/usage_monitoring/triggered_alert.rb` | Never produced |
+| Triggered alert `resolved` and seeded kinds | `app/models/usage_monitoring/triggered_alert.rb` | Never produced. Lago is building `alert.resolved` (296436eac, a84ccd69c, 8fa46d700); revisit when it is reachable |
 | Admin REST controllers (local only) | `app/controllers/admin/` | Replaced by `tanvo admin` |
 | `customers.vat_rate`, `billing_entities.vat_rate` | `db/structure.sql` | Replaced by taxes |
-| `customers.payment_term`, `billing_entities.payment_term`, `invoices.payment_term` jsonb | `db/structure.sql` | No reader |
 | `billing_entities.archived_at`, `destroyBillingEntity` no-op mutation | `app/models/billing_entity.rb`, `app/graphql/mutations/billing_entities/` | Unused |
 | GraphQL `providerCustomer` and the per-provider `*Customer` fields; singular `provider_customer` input | `app/graphql/types/customers/` | Replaced by connection lists |
 | `RetryViesCheckJob` | `app/jobs/customers/retry_vies_check_job.rb` | Superseded by the VIES check job with backoff |
@@ -997,6 +1021,7 @@ Items that Lago itself marks deprecated, keeps only for old data, or carries as 
 | Dropped tables `events_enriched_expanded`, `events_aggregated` | `db/clickhouse_migrate/` | Dropped by Lago |
 | Enriched store migration paths | `app/services/events/stores/` (`enriched_store_*`) | Migration-only |
 | `Events::CreateBatchJob` | `app/jobs/events/create_batch_job.rb` | Unused |
+| Event deletion when a billable metric is destroyed | `app/jobs/billable_metrics/delete_events_job.rb` (body is `true`), `app/services/events/delete_for_metric_service.rb` (no caller) | lago stopped deleting events (d76413e50); events are retained by the store's retention policy |
 | `event.error` webhook | `config/webhook_event_types.yml` (`deprecated: true`) | Replaced by `events.errors` |
 | Subscription refresh queue version argument | `app/jobs/clock/consume_subscription_refreshed_queue_job.rb` | Compatibility argument |
 | `LAGO_REDIS_CACHE_*` settings, `LAGO_REDIS_STORE_TLS` fallback | `config/` | Unused or deprecated configuration |
