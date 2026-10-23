@@ -1181,6 +1181,8 @@ stateDiagram-v2
 
 ### 15.3 退款
 `credit_note_id`、`payment_id`、`amount`、`status`（`RefundStatus`）、`provider_refund_id`。由贷项通知单的 `refund_amount` 创建；退款发送给收取该笔支付的服务商。
+* 贷项通知单 ID 是提供者侧的幂等键，因此重试的退款不会重复退款。
+* **[变更]** 提供者状态映射为 `RefundStatus`：`succeeded`；`pending` 与 `requires_action` → `pending`；`failed` 与 `canceled` → `failed`。Lago 直接复制提供者状态，并拒绝其枚举中没有的值。其他提供者状态视为错误且不持久化，与 Lago 一致。
 
 ### 15.4 付款请求
 请客户一次性支付多张逾期发票。
@@ -1634,6 +1636,7 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
 | 支付服务商 | 单一 `customers.payment_provider` + 多连接 beta | 原生多连接（§15.5） |
 | 支付 | `payments.invoice_id` + 多态被支付对象 | 只有多态被支付对象（§15.1） |
 | 支付金额 | 部分服务商使用 `total_amount` | 始终为 `total_due_amount`（§15.1） |
+| 退款状态 | 直接复制提供者状态；`requires_action` 与 `canceled` 被拒绝 | 分别映射为 `pending` 与 `failed`（§15.3） |
 | 收据编号 | 数据库触发器 | 同一事务、客户锁（§22.11） |
 | 事件去重键 | （组织，外部订阅，事务 ID） | （组织，事务 ID）（§10.1） |
 | Webhook 签名 | JWT 或 HMAC | Standard Webhooks（§18.2） |

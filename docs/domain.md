@@ -1181,6 +1181,8 @@ One receipt per succeeded payment, numbered `<customer slug>-RCPT-<counter %06d>
 
 ### 15.3 Refund
 `credit_note_id`, `payment_id`, `amount`, `status` (`RefundStatus`), `provider_refund_id`. Created by a credit note's `refund_amount`; the refund is sent to the provider that collected the payment.
+* The credit note ID is the provider's idempotency key, so a retried refund never refunds twice.
+* **[Change]** Provider statuses map to `RefundStatus`: `succeeded`; `pending` and `requires_action` → `pending`; `failed` and `canceled` → `failed`. Lago copies the provider status and rejects the values its enum lacks. Any other provider status is an error and is not persisted, as in Lago.
 
 ### 15.4 Payment Request
 Asks a customer to pay several overdue invoices at once.
@@ -1634,6 +1636,7 @@ All numbers are assigned in the transaction that finalizes the document, under a
 | Payment providers | one `customers.payment_provider` + multi-connection beta | multi-connection native (§15.5) |
 | Payments | `payments.invoice_id` + polymorphic payable | polymorphic payable only (§15.1) |
 | Payment amount | `total_amount` in some providers | always `total_due_amount` (§15.1) |
+| Refund status | provider status copied; `requires_action` and `canceled` rejected | mapped to `pending` and `failed` (§15.3) |
 | Receipt numbering | database trigger | same transaction, customer lock (§22.11) |
 | Event dedup key | (org, external subscription, transaction ID) | (org, transaction ID) (§10.1) |
 | Webhook signatures | JWT or HMAC | Standard Webhooks (§18.2) |

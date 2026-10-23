@@ -1,0 +1,67 @@
+{
+  "fixtures/customer_list_payment_methods_empty_response.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/customer_list_payment_methods_empty_response.json"
+  },
+  "fixtures/customer_list_payment_methods_response.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/customer_list_payment_methods_response.json"
+  },
+  "fixtures/customer_retrieve_response.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/customer_retrieve_response.json",
+    "note": "metadata keys lago_* renamed to tanvo_* (payable types to snake case)"
+  },
+  "fixtures/payment_intent_authentication_required_response.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/payment_intent_authentication_required_response.json",
+    "note": "metadata keys lago_* renamed to tanvo_* (payable types to snake case)"
+  },
+  "fixtures/payment_intent_authorization_failed_response.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/payment_intent_authorization_failed_response.json"
+  },
+  "fixtures/payment_intent_card_declined_response.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/payment_intent_card_declined_response.json",
+    "note": "metadata keys lago_* renamed to tanvo_* (payable types to snake case)"
+  },
+  "fixtures/payment_intent_requires_action_response.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/payment_intent_requires_action_response.json",
+    "note": "metadata keys lago_* renamed to tanvo_* (payable types to snake case)"
+  },
+  "fixtures/retrieve_payment_method_response.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/retrieve_payment_method_response.json"
+  },
+  "fixtures/webhook_endpoint_create_response.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/webhook_endpoint_create_response.json"
+  },
+  "fixtures/webhook_endpoint_update_response.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/webhook_endpoint_update_response.json"
+  },
+  "fixtures/webhooks/charge_dispute_closed.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/webhooks/charge_dispute_closed.json"
+  },
+  "fixtures/webhooks/charge_refund_updated.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/webhooks/charge_refund_updated.json"
+  },
+  "fixtures/webhooks/customer_cash_balance_transaction_created.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/webhooks/customer_cash_balance_transaction_created.json"
+  },
+  "fixtures/webhooks/customer_updated.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/webhooks/customer_updated.json",
+    "note": "metadata keys lago_* renamed to tanvo_* (payable types to snake case)"
+  },
+  "fixtures/webhooks/payment_intent_canceled.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/webhooks/payment_intent_canceled.json",
+    "note": "metadata keys lago_* renamed to tanvo_* (payable types to snake case)"
+  },
+  "fixtures/webhooks/payment_intent_payment_failed.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/webhooks/payment_intent_payment_failed.json",
+    "note": "metadata keys lago_* renamed to tanvo_* (payable types to snake case)"
+  },
+  "fixtures/webhooks/payment_intent_succeeded.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/webhooks/payment_intent_succeeded.json",
+    "note": "metadata keys lago_* renamed to tanvo_* (payable types to snake case)"
+  },
+  "fixtures/webhooks/payment_method_detached.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/webhooks/payment_method_detached.json"
+  },
+  "fixtures/webhooks/setup_intent_succeeded.json": {
+    "source": "spec/fixtures/stripe/2025-04-30.basil/webhooks/setup_intent_succeeded.json"
+  }
+}

@@ -640,13 +640,13 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
 | 每个组织带代码与名称的支付提供者 | `app/models/payment_providers/base_provider.rb` | libs/core | 计划中 | 每个提供者可有多个连接 |
-| 把提供者状态映射为 pending、processing、succeeded、failed | `app/models/payment_providers/*.rb`（`determine_payment_status`） | providers/* | 计划中 | |
+| 把提供者状态映射为 pending、processing、succeeded、failed | `app/models/payment_providers/*.rb`（`determine_payment_status`） | providers/* | 进行中 | Stripe 已完成（`stripe.StatusOf`，对应 lago `StripeProvider` 的状态列表）；`payment.PaymentResult` 还带有提供者状态与 `requires_action` 的下一步 URL；缺少 `next_action.type` 时按 `redirect_to_url` 处理 |
 | 成功后的跳转 URL | `app/models/payment_providers/base_provider.rb` | libs/core | 计划中 | |
-| 创建提供者客户 | `app/services/payment_providers/create_customer_factory.rb` | providers/* | 计划中 | |
+| 创建提供者客户 | `app/services/payment_providers/create_customer_factory.rb` | providers/* | 进行中 | 端口 `payment.CustomerGateway`（创建、更新、移除；由 `payment.SyncActionOf` 决定同步方式）；Stripe 已完成 |
 | 删除提供者（解除客户关联） | `app/services/payment_providers/destroy_service.rb` | libs/billing | 计划中 | |
 | 每个客户多个提供者与集成连接，每个类别一个默认连接 | `app/services/payment_provider_customers/`、`app/services/integration_customers/` | libs/core | 计划中 | 完整实现；Lago 一次只允许一个 |
 | 按计费对象选择连接（指定、跳过、继承） | `app/services/billing_object_connections/` | libs/billing | 计划中 | |
-| 支付方式（来自提供者、默认、详情、删除） | `app/services/payment_methods/` | libs/billing | 计划中 | |
+| 支付方式（来自提供者、默认、详情、删除） | `app/services/payment_methods/` | libs/billing | 计划中 | 提供者侧已完成：providers/stripe 中的 `payment.MethodGateway`（列出、默认、详情、设为默认、解绑、设置 URL）。解绑会在 Stripe 上解绑；lago 只丢弃记录（`app/services/payment_methods/destroy_service.rb`） |
 | 支付方式优先级（显式覆盖、订阅、钱包交易、规则、钱包、客户默认） | `app/services/payment_methods/determine_service.rb` | libs/billing | 计划中 | |
 | 手动支付方式跳过自动扣款 | `app/services/payment_methods/determine_service.rb` | libs/billing | 计划中 | |
 | 付款类型 provider、manual、x402 | `app/models/payment.rb` | libs/core | 计划中 | |
@@ -669,18 +669,18 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| Stripe 连接（密钥），自动注册 webhook 端点 | `app/services/payment_providers/stripe_service.rb`、`app/jobs/payment_providers/stripe/register_webhook_job.rb` | providers/stripe | 计划中 | |
-| Stripe 3DS 支持与服务条款同意 | `app/models/payment_providers/stripe_provider.rb` | providers/stripe | 计划中 | |
-| 带幂等与邮箱回退的 Stripe 客户 | `app/services/payment_provider_customers/stripe_service.rb` | providers/stripe | 计划中 | |
-| Stripe 支付方式类型（卡、SEPA 借记、美国银行账户、BACS 借记、Link、Boleto、加密货币、客户余额） | `app/models/payment_provider_customers/stripe_customer.rb` | providers/stripe | 计划中 | |
-| setup 模式的 Stripe 结账 | `app/services/payment_provider_customers/stripe_service.rb` | providers/stripe | 计划中 | |
-| 把 Stripe 银行转账资金说明作为系统发票段落 | `app/services/payment_provider_customers/stripe/sync_funding_instructions_service.rb` | providers/stripe | 计划中 | |
-| Stripe 付款意向（off session、幂等、按货币的银行转账） | `app/services/payment_providers/stripe/payments/create_service.rb` | providers/stripe | 计划中 | |
-| Stripe 共享付款令牌 | `app/services/payment_providers/stripe/payments/create_service.rb` | providers/stripe | 计划中 | 无开关 |
-| Stripe 付款链接（payment 模式的结账）及其过期 | `app/services/invoices/payments/stripe_service.rb` | providers/stripe | 计划中 | |
-| Stripe 预授权 | `app/services/payment_providers/stripe/payments/authorize_service.rb` | providers/stripe | 计划中 | |
-| 付款上的 Stripe 卡信息 | `app/services/payments/set_payment_method_data_service.rb` | providers/stripe | 计划中 | |
-| Stripe webhook：setup intent 成功、payment intent 成功、失败、取消、支付方式解绑、退款更新、客户更新、争议关闭、现金余额到账 | `app/services/payment_providers/stripe/handle_event_service.rb` | providers/stripe | 计划中 | |
+| Stripe 连接（密钥），自动注册 webhook 端点 | `app/services/payment_providers/stripe_service.rb`、`app/jobs/payment_providers/stripe/register_webhook_job.rb` | providers/stripe | 逻辑已完成 | 设置项 `success_redirect_url`、`webhook_endpoint_id`、`supports_3ds`、`require_terms_of_service_consent`；webhook 签名密钥保存在连接的 secrets 中，而非设置（lago 保存在设置中，`base_provider.rb:30`）。端点按连接区分（`/webhooks/stripe/{connection_id}`），使用 stripe-go 固定的 API 版本，不支持按调用覆盖版本（`register_webhook_service.rb:8`）；额外订阅两个事件（`payment_intent.requires_action`、`payment_method.attached`）。按连接与密钥模式的客户端令牌桶限流；stripe-go 在进程内重试连接错误与 429 `lock_timeout`，其余错误与 lago 一样由调用方的任务重试（`create_service.rb:50-56`）。未移植的 spec 用例及原因见 providers/stripe/SKIPPED.md |
+| Stripe 3DS 支持与服务条款同意 | `app/models/payment_providers/stripe_provider.rb` | providers/stripe | 逻辑已完成 | |
+| 带幂等与邮箱回退的 Stripe 客户 | `app/services/payment_provider_customers/stripe_service.rb` | providers/stripe | 逻辑已完成 | 没有邮箱的客户在幂等冲突后不做邮箱查找回退（lago 会用空邮箱查找，`stripe_service.rb:168`） |
+| Stripe 支付方式类型（卡、SEPA 借记、美国银行账户、BACS 借记、Link、Boleto、加密货币、客户余额） | `app/models/payment_provider_customers/stripe_customer.rb` | providers/stripe | 逻辑已完成 | |
+| setup 模式的 Stripe 结账 | `app/services/payment_provider_customers/stripe_service.rb` | providers/stripe | 逻辑已完成 | |
+| 把 Stripe 银行转账资金说明作为系统发票段落 | `app/services/payment_provider_customers/stripe/sync_funding_instructions_service.rb` | providers/stripe | 逻辑已完成 | 网关调用已完成；发票段落属于 libs/documents |
+| Stripe 付款意向（off session、幂等、按货币的银行转账） | `app/services/payment_providers/stripe/payments/create_service.rb` | providers/stripe | 逻辑已完成 | 元数据键为 `tanvo_*`；Stripe 已不存在的支付方式通过 `StaleMethodID` 报告，由调用方丢弃 |
+| Stripe 共享付款令牌 | `app/services/payment_providers/stripe/payments/create_service.rb` | providers/stripe | 逻辑已完成 | 偏离：没有 `stripe_shared_payment_token` 功能开关（lago `create_service.rb:149`）；功能开关不属于核心 |
+| Stripe 付款链接（payment 模式的结账）及其过期 | `app/services/invoices/payments/stripe_service.rb` | providers/stripe | 逻辑已完成 | 发票结账的元数据同样带有付款对象类型与 ID，与 lago 的付款请求链接一致，使成功 webhook 以同一方式解析两者 |
+| Stripe 预授权 | `app/services/payment_providers/stripe/payments/authorize_service.rb` | providers/stripe | 逻辑已完成 | 支付方式的选择（`authorize_service.rb` `find_provider_method_id`）与延迟取消由调用方负责 |
+| 付款上的 Stripe 卡信息 | `app/services/payments/set_payment_method_data_service.rb` | providers/stripe | 逻辑已完成 | |
+| Stripe webhook：setup intent 成功、payment intent 成功、失败、取消、支付方式解绑、退款更新、客户更新、争议关闭、现金余额到账 | `app/services/payment_providers/stripe/handle_event_service.rb` | providers/stripe | 逻辑已完成 | `ParseWebhook` 返回带 `payment.Refs` 的类型化 `payment.Event`；记录查找留在 apps/server。未知的付款对象类型返回 `payment.ErrUnknownPayable`（拒绝类）且不产生事件，无法映射的退款状态返回 `payment.ErrUnknownStatus`；处理器对二者都记录警告后确认，不更新任何记录，与 lago 的 NameError 和校验失败一样不做更新（`webhooks/base_service.rb` `payment_service_klass`） |
 | Adyen 连接（API 密钥、商户账户、live 前缀、HMAC 密钥） | `app/models/payment_providers/adyen_provider.rb` | providers/adyen | 计划中 | |
 | 以零金额预授权链接实现的 Adyen 结账 | `app/services/payment_provider_customers/adyen_service.rb` | providers/adyen | 计划中 | |
 | 使用已存支付方式的 Adyen 付款 | `app/services/payment_providers/adyen/payments/create_service.rb` | providers/adyen | 计划中 | |
@@ -698,8 +698,8 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | Moneyhash 客户与卡令牌化结账 | `app/services/payment_provider_customers/moneyhash_service.rb` | providers/moneyhash | 计划中 | |
 | Moneyhash 商户发起的循环付款与付款链接 | `app/services/payment_providers/moneyhash/payments/create_service.rb` | providers/moneyhash | 计划中 | |
 | Moneyhash webhook：意向已处理与过期、购买失败、待认证、成功、卡令牌事件 | `app/services/payment_providers/moneyhash/` | providers/moneyhash | 计划中 | |
-| 取消付款（Stripe、Adyen、GoCardless） | `app/services/payment_providers/cancel_payment_service.rb` | providers/* | 计划中 | |
-| 更新付款参考（Stripe） | `app/services/payment_providers/update_payment_reference_service.rb` | providers/stripe | 计划中 | |
+| 取消付款（Stripe、Adyen、GoCardless） | `app/services/payment_providers/cancel_payment_service.rb` | providers/* | 进行中 | Stripe 已完成：`CancelPayment` 返回新状态，对已终结的意向返回零值结果（`cancel_service.rb` 记录日志并视为成功） |
+| 更新付款参考（Stripe） | `app/services/payment_providers/update_payment_reference_service.rb` | providers/stripe | 逻辑已完成 | |
 
 ### 1.35 付款请求、催收、收据与退款
 
@@ -720,8 +720,8 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 付款收据 PDF 与 XML，按计费主体设置发送邮件 | `app/services/payment_receipts/generate_pdf_service.rb`、`generate_xml_service.rb` | libs/documents | 逻辑已完成 | |
 | 付款收据 API 与重新发送邮件 | `app/controllers/api/v1/payment_receipts_controller.rb` | apps/server | 计划中 | |
 | 付款收据 webhook `payment_receipt.created`、`payment_receipt.generated` | `app/services/webhooks/payment_receipts/` | libs/webhooks | 计划中 | |
-| 通过 Stripe、GoCardless、Adyen 为贷项通知单退款 | `app/services/credit_notes/refunds/` | providers/* | 计划中 | |
-| 把退款原因映射为提供者的原因 | `app/services/credit_notes/refunds/stripe_service.rb` | providers/stripe | 计划中 | |
+| 通过 Stripe、GoCardless、Adyen 为贷项通知单退款 | `app/services/credit_notes/refunds/` | providers/* | 进行中 | 端口 `payment.RefundGateway`，以必填的贷项通知单 ID 为幂等键；Stripe 已完成 |
+| 把退款原因映射为提供者的原因 | `app/services/credit_notes/refunds/stripe_service.rb` | providers/stripe | 逻辑已完成 | Stripe 的 `canceled` 退款映射为失败，`requires_action` 映射为待处理；lago 直接复制状态，二者都会校验失败（`credit_note.rb:62`）。其他状态返回 `payment.ErrUnknownStatus`，调用方不予持久化，与 lago 的校验失败一致（`credit_notes/refunds/stripe_service_spec.rb:360`） |
 | 根据提供者 webhook 更新退款状态 | `app/services/credit_notes/refunds/`（`update_status`） | libs/billing | 计划中 | |
 
 ### 1.36 x402 代理付款

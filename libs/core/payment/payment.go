@@ -158,6 +158,10 @@ type Payment struct {
 	ProviderPaymentMethod MethodDetails
 	// PaymentMethodID is the customer's payment method charged.
 	PaymentMethodID core.PaymentMethodID
+	// ErrorCode is the provider's code of the last failure
+	// ("authentication_required"), which decides whether a retry runs
+	// on-session ([ProviderError.RetryOnSession]).
+	ErrorCode *string
 	// CreatedAt is the creation instant.
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.

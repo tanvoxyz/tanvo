@@ -640,13 +640,13 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | Payment providers per organization with code and name | `app/models/payment_providers/base_provider.rb` | libs/core | planned | Several connections per provider |
-| Provider status mapping to pending, processing, succeeded, failed | `app/models/payment_providers/*.rb` (`determine_payment_status`) | providers/* | planned | |
+| Provider status mapping to pending, processing, succeeded, failed | `app/models/payment_providers/*.rb` (`determine_payment_status`) | providers/* | in progress | Stripe done (`stripe.StatusOf`, lago `StripeProvider` status lists); `payment.PaymentResult` also carries the provider status and the next-action URL of `requires_action`; a missing `next_action.type` is read as `redirect_to_url` |
 | Success redirect URL | `app/models/payment_providers/base_provider.rb` | libs/core | planned | |
-| Provider customer creation | `app/services/payment_providers/create_customer_factory.rb` | providers/* | planned | |
+| Provider customer creation | `app/services/payment_providers/create_customer_factory.rb` | providers/* | in progress | Port `payment.CustomerGateway` (create, update, remove; `payment.SyncActionOf` decides the sync); Stripe done |
 | Provider deletion (unlinks customers) | `app/services/payment_providers/destroy_service.rb` | libs/billing | planned | |
 | Several provider and integration connections per customer, one default per category | `app/services/payment_provider_customers/`, `app/services/integration_customers/` | libs/core | planned | Completed; Lago allows one at a time |
 | Connection choice per billing object (specific, skip, inherit) | `app/services/billing_object_connections/` | libs/billing | planned | |
-| Payment methods (from provider, default, details, destroy) | `app/services/payment_methods/` | libs/billing | planned | |
+| Payment methods (from provider, default, details, destroy) | `app/services/payment_methods/` | libs/billing | planned | Provider side done: `payment.MethodGateway` (list, default, details, set default, detach, setup URL) in providers/stripe. Detaching detaches at Stripe; lago only discards the record (`app/services/payment_methods/destroy_service.rb`) |
 | Payment method precedence (override, subscription, wallet transaction, rule, wallet, customer default) | `app/services/payment_methods/determine_service.rb` | libs/billing | planned | |
 | Manual payment method skips automatic charge | `app/services/payment_methods/determine_service.rb` | libs/billing | planned | |
 | Payment types provider, manual, x402 | `app/models/payment.rb` | libs/core | planned | |
@@ -669,18 +669,18 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Stripe connection (secret key) with webhook endpoint registered automatically | `app/services/payment_providers/stripe_service.rb`, `app/jobs/payment_providers/stripe/register_webhook_job.rb` | providers/stripe | planned | |
-| Stripe 3DS support and terms-of-service consent | `app/models/payment_providers/stripe_provider.rb` | providers/stripe | planned | |
-| Stripe customers with idempotency and email fallback | `app/services/payment_provider_customers/stripe_service.rb` | providers/stripe | planned | |
-| Stripe payment method types (card, SEPA debit, US bank account, BACS debit, Link, Boleto, crypto, customer balance) | `app/models/payment_provider_customers/stripe_customer.rb` | providers/stripe | planned | |
-| Stripe checkout in setup mode | `app/services/payment_provider_customers/stripe_service.rb` | providers/stripe | planned | |
-| Stripe bank transfer funding instructions as a system invoice section | `app/services/payment_provider_customers/stripe/sync_funding_instructions_service.rb` | providers/stripe | planned | |
-| Stripe payment intents (off session, idempotent, bank transfer per currency) | `app/services/payment_providers/stripe/payments/create_service.rb` | providers/stripe | planned | |
-| Stripe shared payment token | `app/services/payment_providers/stripe/payments/create_service.rb` | providers/stripe | planned | No flag |
-| Stripe payment link (checkout in payment mode) and expiry | `app/services/invoices/payments/stripe_service.rb` | providers/stripe | planned | |
-| Stripe pre-authorization | `app/services/payment_providers/stripe/payments/authorize_service.rb` | providers/stripe | planned | |
-| Stripe card details on payments | `app/services/payments/set_payment_method_data_service.rb` | providers/stripe | planned | |
-| Stripe webhooks: setup intent succeeded, payment intent succeeded, failed, canceled, payment method detached, refund updated, customer updated, dispute closed, cash balance funded | `app/services/payment_providers/stripe/handle_event_service.rb` | providers/stripe | planned | |
+| Stripe connection (secret key) with webhook endpoint registered automatically | `app/services/payment_providers/stripe_service.rb`, `app/jobs/payment_providers/stripe/register_webhook_job.rb` | providers/stripe | logic done | Settings `success_redirect_url`, `webhook_endpoint_id`, `supports_3ds`, `require_terms_of_service_consent`; the webhook signing secret is kept in the connection's secrets, not settings (lago keeps it in settings, `base_provider.rb:30`). The endpoint is per connection (`/webhooks/stripe/{connection_id}`) on stripe-go's pinned API version, without the per-call version override (`register_webhook_service.rb:8`); two extra events are subscribed (`payment_intent.requires_action`, `payment_method.attached`). Client-side token-bucket rate limit per connection and key mode; stripe-go retries connection errors and 429 `lock_timeout` in process, everything else is retried by the caller's job as in lago (`create_service.rb:50-56`). Unported spec cases with reasons: providers/stripe/SKIPPED.md |
+| Stripe 3DS support and terms-of-service consent | `app/models/payment_providers/stripe_provider.rb` | providers/stripe | logic done | |
+| Stripe customers with idempotency and email fallback | `app/services/payment_provider_customers/stripe_service.rb` | providers/stripe | logic done | The email-lookup fallback after an idempotency conflict is skipped for a customer without email (lago searches with a blank email, `stripe_service.rb:168`) |
+| Stripe payment method types (card, SEPA debit, US bank account, BACS debit, Link, Boleto, crypto, customer balance) | `app/models/payment_provider_customers/stripe_customer.rb` | providers/stripe | logic done | |
+| Stripe checkout in setup mode | `app/services/payment_provider_customers/stripe_service.rb` | providers/stripe | logic done | |
+| Stripe bank transfer funding instructions as a system invoice section | `app/services/payment_provider_customers/stripe/sync_funding_instructions_service.rb` | providers/stripe | logic done | Gateway call done; the invoice section is libs/documents |
+| Stripe payment intents (off session, idempotent, bank transfer per currency) | `app/services/payment_providers/stripe/payments/create_service.rb` | providers/stripe | logic done | Metadata keys are `tanvo_*`; a method Stripe no longer has is reported as `StaleMethodID` for the caller to discard |
+| Stripe shared payment token | `app/services/payment_providers/stripe/payments/create_service.rb` | providers/stripe | logic done | Deviation: no `stripe_shared_payment_token` feature flag (lago `create_service.rb:149`); feature gating is not part of the core |
+| Stripe payment link (checkout in payment mode) and expiry | `app/services/invoices/payments/stripe_service.rb` | providers/stripe | logic done | Invoice checkout metadata also carries the payable type and ID, as payment request links do in lago, so the succeeded webhook resolves both the same way |
+| Stripe pre-authorization | `app/services/payment_providers/stripe/payments/authorize_service.rb` | providers/stripe | logic done | Choosing the method (`authorize_service.rb` `find_provider_method_id`) and the delayed cancel are the caller's |
+| Stripe card details on payments | `app/services/payments/set_payment_method_data_service.rb` | providers/stripe | logic done | |
+| Stripe webhooks: setup intent succeeded, payment intent succeeded, failed, canceled, payment method detached, refund updated, customer updated, dispute closed, cash balance funded | `app/services/payment_providers/stripe/handle_event_service.rb` | providers/stripe | logic done | `ParseWebhook` returns typed `payment.Event`s with `payment.Refs`; record lookups stay in apps/server. An unknown payable type is `payment.ErrUnknownPayable` (rejected) with no event, and an unmapped refund status `payment.ErrUnknownStatus`; the handler acknowledges either with a warning and updates nothing, as lago's NameError and validation failure update nothing (`webhooks/base_service.rb` `payment_service_klass`) |
 | Adyen connection (API key, merchant account, live prefix, HMAC key) | `app/models/payment_providers/adyen_provider.rb` | providers/adyen | planned | |
 | Adyen checkout as zero-amount pre-authorization link | `app/services/payment_provider_customers/adyen_service.rb` | providers/adyen | planned | |
 | Adyen payments with stored payment method | `app/services/payment_providers/adyen/payments/create_service.rb` | providers/adyen | planned | |
@@ -698,8 +698,8 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Moneyhash customers and card tokenization checkout | `app/services/payment_provider_customers/moneyhash_service.rb` | providers/moneyhash | planned | |
 | Moneyhash merchant-initiated recurring payments and payment links | `app/services/payment_providers/moneyhash/payments/create_service.rb` | providers/moneyhash | planned | |
 | Moneyhash webhooks: intent processed and expired, purchase failed, pending authentication, successful, card token events | `app/services/payment_providers/moneyhash/` | providers/moneyhash | planned | |
-| Cancel payment (Stripe, Adyen, GoCardless) | `app/services/payment_providers/cancel_payment_service.rb` | providers/* | planned | |
-| Update payment reference (Stripe) | `app/services/payment_providers/update_payment_reference_service.rb` | providers/stripe | planned | |
+| Cancel payment (Stripe, Adyen, GoCardless) | `app/services/payment_providers/cancel_payment_service.rb` | providers/* | in progress | Stripe done: `CancelPayment` returns the new state, and a zero result for an intent already final (`cancel_service.rb` logs and succeeds) |
+| Update payment reference (Stripe) | `app/services/payment_providers/update_payment_reference_service.rb` | providers/stripe | logic done | |
 
 ### 1.35 Payment Requests, Dunning, Receipts and Refunds
 
@@ -720,8 +720,8 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Payment receipt PDF and XML, emailed per billing entity settings | `app/services/payment_receipts/generate_pdf_service.rb`, `generate_xml_service.rb` | libs/documents | logic done | |
 | Payment receipts API and resend email | `app/controllers/api/v1/payment_receipts_controller.rb` | apps/server | planned | |
 | Payment receipt webhooks `payment_receipt.created`, `payment_receipt.generated` | `app/services/webhooks/payment_receipts/` | libs/webhooks | planned | |
-| Refunds for credit notes through Stripe, GoCardless, Adyen | `app/services/credit_notes/refunds/` | providers/* | planned | |
-| Refund reason mapping to provider reasons | `app/services/credit_notes/refunds/stripe_service.rb` | providers/stripe | planned | |
+| Refunds for credit notes through Stripe, GoCardless, Adyen | `app/services/credit_notes/refunds/` | providers/* | in progress | Port `payment.RefundGateway`, keyed by the mandatory credit note ID; Stripe done |
+| Refund reason mapping to provider reasons | `app/services/credit_notes/refunds/stripe_service.rb` | providers/stripe | logic done | Stripe `canceled` refunds map to failed and `requires_action` to pending; lago copies the status and fails validation on either (`credit_note.rb:62`). Any other status is `payment.ErrUnknownStatus`, which callers do not persist, as lago's validation failure (`credit_notes/refunds/stripe_service_spec.rb:360`) |
 | Refund status updates from provider webhooks | `app/services/credit_notes/refunds/` (`update_status`) | libs/billing | planned | |
 
 ### 1.36 x402 Agent Payments

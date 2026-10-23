@@ -318,6 +318,16 @@ POST /v1/events, /v1/events:batch
 
 集成直接调用各厂商的 API；Tanvo 不依赖集成中介。
 
+### 12.1 支付提供者
+
+`port.PaymentProvider` 即 `payment.Gateway`，由六项能力组成：`ConnectionGateway`（校验、注册与刷新 webhook 端点）、`CustomerGateway`（创建、更新、移除）、`MethodGateway`（列出、默认、详情、设为默认、解绑、设置 URL）、`ChargeGateway`（付款、预授权、状态、取消、付款 URL 及其过期、更新参考）、`RefundGateway` 与 `WebhookGateway`（签名校验并解析为类型化的 `payment.Event`）；`FundingGateway` 是可选能力，通过类型断言发现。apps/server 按厂商构建 `port.PaymentProviderSet`。
+
+* 每次调用都传入 `payment.Connection`（组织、集成、设置与解密后的 secrets）；适配器不保存按连接的状态。
+* 幂等键来自领域：付款的幂等键由付款对象与付款 ID 得出（`PaymentParams.IdempotencyKey`），退款的幂等键是贷项通知单 ID（必填），客户的幂等键是其 ID 与更新时间。
+* 错误为带 `payment.ErrorKind` 与类别的 `*payment.ProviderError`：`payment.ErrRejected`（终结：卡被拒、请求无效、不存在）或 `payment.ErrRetryable`（限流、服务不可用、冲突；由调用方的任务以同一幂等键重试）；`payment.ErrAuthentication` 表示连接的凭据失效。适配器自身的错误（缺少国家、没有支付方式）不经分类直接返回。
+* 适配器不把提供者对象带入领域：结果包含提供者状态、映射后的 `payment.State`，以及 `requires_action` 的下一步 URL。Webhook 事件带有从元数据（`tanvo_*` 键）读出的 `payment.Refs`；按记录解析它们由 apps/server 负责。
+* 每个适配器按连接限流，并用注入的 OTel 提供者为其 HTTP 客户端埋点（span 带组织与集成 ID；指标不带）。
+
 ---
 
 ## 13. 部署

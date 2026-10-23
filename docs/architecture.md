@@ -318,6 +318,16 @@ Each provider is a Go module implementing ports of `libs/core`:
 
 Integrations call the vendors' APIs directly; Tanvo does not depend on an integration broker.
 
+### 12.1 Payment providers
+
+`port.PaymentProvider` is `payment.Gateway`, composed of six capabilities: `ConnectionGateway` (validation, webhook endpoint registration and refresh), `CustomerGateway` (create, update, remove), `MethodGateway` (list, default, details, set default, detach, setup URL), `ChargeGateway` (payment, authorization, status, cancel, payment URL and its expiry, reference update), `RefundGateway` and `WebhookGateway` (signature verification and parsing into typed `payment.Event`s); `FundingGateway` is optional and found by type assertion. apps/server builds a `port.PaymentProviderSet` keyed by vendor.
+
+* Every call takes the `payment.Connection` (organization, integration, settings and decrypted secrets); adapters hold no per-connection state.
+* Idempotency keys come from the domain: a payment's from its payable and payment ID (`PaymentParams.IdempotencyKey`), a refund's is the credit note ID (mandatory), a customer's is its ID and update time.
+* Errors are `*payment.ProviderError` with a `payment.ErrorKind` and a class, `payment.ErrRejected` (final: card declined, invalid request, not found) or `payment.ErrRetryable` (rate limits, outages, conflicts; the caller's job retries with the same key); `payment.ErrAuthentication` marks a connection whose credentials fail. Errors of the adapter itself (missing country, no payment method) pass through unclassified.
+* Adapters keep provider objects out of the domain: results carry the provider's status, the mapped `payment.State` and, for `requires_action`, the next-action URL. Webhook events carry `payment.Refs` read from the metadata (`tanvo_*` keys); resolving them against records is apps/server's.
+* Each adapter rate-limits per connection, and instruments its HTTP client with the injected OTel providers (spans carry the organization and integration IDs; metrics do not).
+
 ---
 
 ## 13. Deployment
