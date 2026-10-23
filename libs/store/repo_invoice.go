@@ -28,6 +28,7 @@ func (t *txState) bindInvoice(r *port.Repos) {
 	r.AdjustedFees = adjustedFeeRepo{t}
 	r.InvoiceSettlements = invoiceSettlementRepo{t}
 	r.ErrorDetails = invoiceErrorDetailRepo{t}
+	r.Credits = invoiceCreditRepo{t}
 }
 
 // invoiceDateCol returns the date column of d (NULL for the zero date).
@@ -526,6 +527,13 @@ type feeAppliedTaxJSON struct {
 	PreciseAmount  money.Decimal `json:"precise_amount"`
 }
 
+// feePresentationBreakdownJSON is an element of the stored
+// presentation_breakdowns array of a fee.
+type feePresentationBreakdownJSON struct {
+	PresentationBy map[string]*string `json:"presentation_by"`
+	Units          money.Decimal      `json:"units"`
+}
+
 // feePricingUnitUsageJSON is the stored form of invoice.PricingUnitUsage.
 type feePricingUnitUsageJSON struct {
 	PricingUnitID     uuid.UUID     `json:"pricing_unit_id"`
@@ -548,6 +556,17 @@ func feeParams(f *invoice.Fee) (db.CreateFeeParams, error) {
 	taxesJSON, err := encodeJSON(taxes)
 	if err != nil {
 		return db.CreateFeeParams{}, fmt.Errorf("fee %s: applied taxes: %w", f.ID, err)
+	}
+	breakdowns := make([]feePresentationBreakdownJSON, len(f.PresentationBreakdowns))
+	for i, b := range f.PresentationBreakdowns {
+		breakdowns[i] = feePresentationBreakdownJSON{PresentationBy: b.PresentationBy, Units: b.Units}
+		if breakdowns[i].PresentationBy == nil {
+			breakdowns[i].PresentationBy = map[string]*string{}
+		}
+	}
+	breakdownsJSON, err := encodeJSON(breakdowns)
+	if err != nil {
+		return db.CreateFeeParams{}, fmt.Errorf("fee %s: presentation breakdowns: %w", f.ID, err)
 	}
 	var unitUsage []byte
 	if u := f.PricingUnitUsage; u != nil {
@@ -588,9 +607,13 @@ func feeParams(f *invoice.Fee) (db.CreateFeeParams, error) {
 		ChargesToDatetime:              utc(f.Properties.ChargesTo),
 		BillingTimestamp:               utc(f.Properties.Timestamp),
 		ChargesDurationDays:            int32(f.Properties.ChargesDurationDays), // a period length in days
+		FixedChargesFromDatetime:       utc(f.Properties.FixedChargesFrom),
+		FixedChargesToDatetime:         utc(f.Properties.FixedChargesTo),
+		FixedChargesDurationDays:       int32(f.Properties.FixedChargesDurationDays), // a period length in days
 		TrueUpParentFeeID:              optUUID(f.TrueUpParentFeeID),
 		PricingUnitUsage:               unitUsage,
 		AppliedTaxes:                   taxesJSON,
+		PresentationBreakdowns:         breakdownsJSON,
 		PayInAdvanceEventID:            optUUID(f.PayInAdvanceEventID),
 		PayInAdvanceEventTransactionID: optString(f.PayInAdvanceEventTransactionID),
 		SucceededAt:                    optUTC(f.SucceededAt),
@@ -623,6 +646,10 @@ func feeOf(r db.Fee) (*invoice.Fee, error) {
 	var taxes []feeAppliedTaxJSON
 	if err := decodeJSON(r.AppliedTaxes, &taxes); err != nil {
 		return nil, fmt.Errorf("fee %s: applied taxes: %w", r.ID, err)
+	}
+	var breakdowns []feePresentationBreakdownJSON
+	if err := decodeJSON(r.PresentationBreakdowns, &breakdowns); err != nil {
+		return nil, fmt.Errorf("fee %s: presentation breakdowns: %w", r.ID, err)
 	}
 	var unitUsage *invoice.PricingUnitUsage
 	if len(r.PricingUnitUsage) > 0 && string(r.PricingUnitUsage) != "null" {
@@ -669,12 +696,15 @@ func feeOf(r db.Fee) (*invoice.Fee, error) {
 		Invoiceable:              r.Invoiceable,
 		PaymentStatus:            invoice.FeePaymentStatus(deref(r.PaymentStatus)),
 		Properties: invoice.FeeProperties{
-			From:                utc(r.FromDatetime),
-			To:                  utc(r.ToDatetime),
-			ChargesFrom:         utc(r.ChargesFromDatetime),
-			ChargesTo:           utc(r.ChargesToDatetime),
-			Timestamp:           utc(r.BillingTimestamp),
-			ChargesDurationDays: int(r.ChargesDurationDays),
+			From:                     utc(r.FromDatetime),
+			To:                       utc(r.ToDatetime),
+			ChargesFrom:              utc(r.ChargesFromDatetime),
+			ChargesTo:                utc(r.ChargesToDatetime),
+			Timestamp:                utc(r.BillingTimestamp),
+			ChargesDurationDays:      int(r.ChargesDurationDays),
+			FixedChargesFrom:         utc(r.FixedChargesFromDatetime),
+			FixedChargesTo:           utc(r.FixedChargesToDatetime),
+			FixedChargesDurationDays: int(r.FixedChargesDurationDays),
 		},
 		TrueUpParentFeeID:              optIDOf[core.FeeID](r.TrueUpParentFeeID),
 		PricingUnitUsage:               unitUsage,
@@ -685,6 +715,12 @@ func feeOf(r db.Fee) (*invoice.Fee, error) {
 		RefundedAt:                     optUTC(r.RefundedAt),
 		CreatedAt:                      utc(r.CreatedAt),
 		UpdatedAt:                      utc(r.UpdatedAt),
+	}
+	if len(breakdowns) > 0 {
+		f.PresentationBreakdowns = make([]invoice.PresentationBreakdown, len(breakdowns))
+		for i, b := range breakdowns {
+			f.PresentationBreakdowns[i] = invoice.PresentationBreakdown{PresentationBy: b.PresentationBy, Units: b.Units}
+		}
 	}
 	if len(taxes) > 0 {
 		f.AppliedTaxes = make([]invoice.FeeAppliedTax, len(taxes))
@@ -839,19 +875,20 @@ func invoiceAppliedTaxOf(r db.InvoiceAppliedTax) (*invoice.AppliedTax, error) {
 		return nil, fmt.Errorf("invoice applied tax %s: %w", r.ID, err)
 	}
 	t := &invoice.AppliedTax{
-		ID:             idOf[core.InvoiceAppliedTaxID](r.ID),
-		OrganizationID: idOf[core.OrganizationID](r.OrganizationID),
-		InvoiceID:      idOf[core.InvoiceID](r.InvoiceID),
-		TaxID:          optIDOf[core.TaxID](r.TaxID),
-		TaxCode:        r.TaxCode,
-		TaxName:        r.TaxName,
-		TaxDescription: r.TaxDescription,
-		TaxRate:        r.TaxRate,
-		FeesAmount:     r.FeesAmount,
-		Amount:         r.Amount,
-		PreciseAmount:  r.PreciseAmount,
-		Currency:       cur,
-		CreatedAt:      utc(r.CreatedAt),
+		ID:                idOf[core.InvoiceAppliedTaxID](r.ID),
+		OrganizationID:    idOf[core.OrganizationID](r.OrganizationID),
+		InvoiceID:         idOf[core.InvoiceID](r.InvoiceID),
+		TaxID:             optIDOf[core.TaxID](r.TaxID),
+		TaxCode:           r.TaxCode,
+		TaxName:           r.TaxName,
+		TaxDescription:    r.TaxDescription,
+		TaxRate:           r.TaxRate,
+		FeesAmount:        r.FeesAmount,
+		TaxableBaseAmount: r.TaxableBaseAmount,
+		Amount:            r.Amount,
+		PreciseAmount:     r.PreciseAmount,
+		Currency:          cur,
+		CreatedAt:         utc(r.CreatedAt),
 	}
 	return t, nil
 }
@@ -866,17 +903,18 @@ func (r invoiceAppliedTaxRepo) ReplaceForInvoice(ctx context.Context, org core.O
 	}
 	for _, t := range taxes {
 		p := db.CreateInvoiceAppliedTaxParams{
-			OrganizationID: org.UUID(),
-			ID:             t.ID.UUID(),
-			InvoiceID:      inv.UUID(),
-			TaxID:          optUUID(t.TaxID),
-			TaxCode:        t.TaxCode,
-			TaxName:        t.TaxName,
-			TaxDescription: t.TaxDescription,
-			FeesAmount:     t.FeesAmount,
-			Amount:         t.Amount,
-			Currency:       t.Currency.Code(),
-			CreatedAt:      utc(t.CreatedAt),
+			OrganizationID:    org.UUID(),
+			ID:                t.ID.UUID(),
+			InvoiceID:         inv.UUID(),
+			TaxID:             optUUID(t.TaxID),
+			TaxCode:           t.TaxCode,
+			TaxName:           t.TaxName,
+			TaxDescription:    t.TaxDescription,
+			FeesAmount:        t.FeesAmount,
+			TaxableBaseAmount: t.TaxableBaseAmount,
+			Amount:            t.Amount,
+			Currency:          t.Currency.Code(),
+			CreatedAt:         utc(t.CreatedAt),
 		}
 		p.TaxRate = t.TaxRate
 		p.PreciseAmount = t.PreciseAmount
@@ -920,6 +958,10 @@ func adjustedFeeOf(r db.AdjustedFee) (*invoice.AdjustedFee, error) {
 		FixedChargeID:      optIDOf[core.FixedChargeID](r.FixedChargeID),
 		FeeType:            core.FeeType(r.FeeType),
 		GroupedBy:          groupedBy,
+		ChargesFrom:        utc(r.ChargesFromDatetime),
+		ChargesTo:          utc(r.ChargesToDatetime),
+		FixedChargesFrom:   utc(r.FixedChargesFromDatetime),
+		FixedChargesTo:     utc(r.FixedChargesToDatetime),
 		Mode:               invoice.AdjustmentMode(r.Mode),
 		InvoiceDisplayName: r.InvoiceDisplayName,
 		Units:              r.Units,
@@ -935,19 +977,23 @@ func (r adjustedFeeRepo) Create(ctx context.Context, a *invoice.AdjustedFee) err
 		return err
 	}
 	p := db.CreateAdjustedFeeParams{
-		OrganizationID:     a.OrganizationID.UUID(),
-		ID:                 a.ID.UUID(),
-		InvoiceID:          a.InvoiceID.UUID(),
-		FeeID:              optUUID(a.FeeID),
-		SubscriptionID:     optUUID(a.SubscriptionID),
-		ChargeID:           optUUID(a.ChargeID),
-		ChargeFilterID:     optUUID(a.ChargeFilterID),
-		FixedChargeID:      optUUID(a.FixedChargeID),
-		FeeType:            string(a.FeeType),
-		GroupedBy:          invoiceMapJSON(a.GroupedBy),
-		Mode:               string(a.Mode),
-		InvoiceDisplayName: a.InvoiceDisplayName,
-		CreatedAt:          utc(a.CreatedAt),
+		OrganizationID:           a.OrganizationID.UUID(),
+		ID:                       a.ID.UUID(),
+		InvoiceID:                a.InvoiceID.UUID(),
+		FeeID:                    optUUID(a.FeeID),
+		SubscriptionID:           optUUID(a.SubscriptionID),
+		ChargeID:                 optUUID(a.ChargeID),
+		ChargeFilterID:           optUUID(a.ChargeFilterID),
+		FixedChargeID:            optUUID(a.FixedChargeID),
+		FeeType:                  string(a.FeeType),
+		GroupedBy:                invoiceMapJSON(a.GroupedBy),
+		ChargesFromDatetime:      utc(a.ChargesFrom),
+		ChargesToDatetime:        utc(a.ChargesTo),
+		FixedChargesFromDatetime: utc(a.FixedChargesFrom),
+		FixedChargesToDatetime:   utc(a.FixedChargesTo),
+		Mode:                     string(a.Mode),
+		InvoiceDisplayName:       a.InvoiceDisplayName,
+		CreatedAt:                utc(a.CreatedAt),
 	}
 	p.Units = a.Units
 	p.UnitPreciseAmount = a.UnitPreciseAmount
@@ -1094,6 +1140,106 @@ func (r invoiceErrorDetailRepo) DeleteByInvoice(ctx context.Context, org core.Or
 		OrganizationID: org.UUID(), InvoiceID: inv.UUID(), ErrorCode: string(code),
 	}); err != nil {
 		return fmt.Errorf("delete error details: %w", mapErr(err))
+	}
+	return nil
+}
+
+// invoiceCreditRepo implements invoice.CreditRepository.
+type invoiceCreditRepo struct{ t *txState }
+
+var _ invoice.CreditRepository = invoiceCreditRepo{}
+
+func invoiceCreditOf(r db.InvoiceCredit) (*invoice.Credit, error) {
+	cur, err := mustCurrency(r.Currency)
+	if err != nil {
+		return nil, fmt.Errorf("invoice credit %s: %w", r.ID, err)
+	}
+	return &invoice.Credit{
+		ID:                          idOf[core.InvoiceCreditID](r.ID),
+		OrganizationID:              idOf[core.OrganizationID](r.OrganizationID),
+		InvoiceID:                   idOf[core.InvoiceID](r.InvoiceID),
+		AppliedCouponID:             optIDOf[core.AppliedCouponID](r.AppliedCouponID),
+		CreditNoteID:                optIDOf[core.CreditNoteID](r.CreditNoteID),
+		ProgressiveBillingInvoiceID: optIDOf[core.InvoiceID](r.ProgressiveBillingInvoiceID),
+		Amount:                      r.Amount,
+		Currency:                    cur,
+		BeforeTaxes:                 r.BeforeTaxes,
+		CreatedAt:                   utc(r.CreatedAt),
+	}, nil
+}
+
+func (r invoiceCreditRepo) Create(ctx context.Context, c *invoice.Credit) error {
+	q, err := r.t.queries(ctx, c.OrganizationID)
+	if err != nil {
+		return err
+	}
+	n, err := q.CreateInvoiceCredit(ctx, db.CreateInvoiceCreditParams{
+		OrganizationID:              c.OrganizationID.UUID(),
+		ID:                          c.ID.UUID(),
+		InvoiceID:                   c.InvoiceID.UUID(),
+		AppliedCouponID:             optUUID(c.AppliedCouponID),
+		CreditNoteID:                optUUID(c.CreditNoteID),
+		ProgressiveBillingInvoiceID: optUUID(c.ProgressiveBillingInvoiceID),
+		Amount:                      c.Amount,
+		Currency:                    c.Currency.Code(),
+		BeforeTaxes:                 c.BeforeTaxes,
+		CreatedAt:                   utc(c.CreatedAt),
+	})
+	return insertErr("credit", n, err)
+}
+
+// creditRows converts the rows of a list query.
+func creditRows(rows []db.InvoiceCredit, err error) ([]*invoice.Credit, error) {
+	if err != nil {
+		return nil, fmt.Errorf("list invoice credits: %w", mapErr(err))
+	}
+	return convAll(rows, invoiceCreditOf)
+}
+
+func (r invoiceCreditRepo) ListByInvoice(ctx context.Context, org core.OrganizationID, inv core.InvoiceID) ([]*invoice.Credit, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	return creditRows(q.ListInvoiceCreditsByInvoice(ctx, db.ListInvoiceCreditsByInvoiceParams{OrganizationID: org.UUID(), InvoiceID: inv.UUID()}))
+}
+
+func (r invoiceCreditRepo) ListByAppliedCoupon(ctx context.Context, org core.OrganizationID, applied core.AppliedCouponID) ([]*invoice.Credit, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	id := applied.UUID()
+	return creditRows(q.ListInvoiceCreditsByAppliedCoupon(ctx, db.ListInvoiceCreditsByAppliedCouponParams{OrganizationID: org.UUID(), AppliedCouponID: &id}))
+}
+
+func (r invoiceCreditRepo) ListByCreditNote(ctx context.Context, org core.OrganizationID, cn core.CreditNoteID) ([]*invoice.Credit, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	id := cn.UUID()
+	return creditRows(q.ListInvoiceCreditsByCreditNote(ctx, db.ListInvoiceCreditsByCreditNoteParams{OrganizationID: org.UUID(), CreditNoteID: &id}))
+}
+
+func (r invoiceCreditRepo) ListByProgressiveBillingInvoice(ctx context.Context, org core.OrganizationID, inv core.InvoiceID) ([]*invoice.Credit, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	id := inv.UUID()
+	return creditRows(q.ListInvoiceCreditsByProgressiveBillingInvoice(ctx, db.ListInvoiceCreditsByProgressiveBillingInvoiceParams{
+		OrganizationID: org.UUID(), ProgressiveBillingInvoiceID: &id,
+	}))
+}
+
+func (r invoiceCreditRepo) DeleteByInvoice(ctx context.Context, org core.OrganizationID, inv core.InvoiceID) error {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return err
+	}
+	if err := q.DeleteInvoiceCreditsByInvoice(ctx, db.DeleteInvoiceCreditsByInvoiceParams{OrganizationID: org.UUID(), InvoiceID: inv.UUID()}); err != nil {
+		return fmt.Errorf("delete invoice credits: %w", mapErr(err))
 	}
 	return nil
 }

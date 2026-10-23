@@ -1,0 +1,37 @@
+-- Modify "fees" table: a fixed charge fee keeps its period in the fixed
+-- charges columns and leaves its charges boundaries zero; existing fees have
+-- no presentation breakdowns.
+ALTER TABLE "fees" ADD COLUMN "fixed_charges_from_datetime" timestamptz NOT NULL DEFAULT '0001-01-01 00:00:00+00', ADD COLUMN "fixed_charges_to_datetime" timestamptz NOT NULL DEFAULT '0001-01-01 00:00:00+00', ADD COLUMN "fixed_charges_duration_days" integer NOT NULL DEFAULT 0, ADD COLUMN "presentation_breakdowns" jsonb NOT NULL DEFAULT '[]';
+UPDATE "fees" SET "fixed_charges_from_datetime" = "charges_from_datetime", "fixed_charges_to_datetime" = "charges_to_datetime", "fixed_charges_duration_days" = "charges_duration_days", "charges_from_datetime" = '0001-01-01 00:00:00+00', "charges_to_datetime" = '0001-01-01 00:00:00+00', "charges_duration_days" = 0 WHERE "fee_type" = 'fixed_charge';
+ALTER TABLE "fees" ALTER COLUMN "fixed_charges_from_datetime" DROP DEFAULT, ALTER COLUMN "fixed_charges_to_datetime" DROP DEFAULT, ALTER COLUMN "fixed_charges_duration_days" DROP DEFAULT, ALTER COLUMN "presentation_breakdowns" DROP DEFAULT, ADD CONSTRAINT "fees_presentation_breakdowns_check" CHECK (jsonb_typeof(presentation_breakdowns) = 'array'::text);
+-- Modify "adjusted_fees" table: an adjustment takes the periods of the fee
+-- it adjusts; one whose fee is gone keeps zero periods.
+ALTER TABLE "adjusted_fees" ADD COLUMN "charges_from_datetime" timestamptz NOT NULL DEFAULT '0001-01-01 00:00:00+00', ADD COLUMN "charges_to_datetime" timestamptz NOT NULL DEFAULT '0001-01-01 00:00:00+00', ADD COLUMN "fixed_charges_from_datetime" timestamptz NOT NULL DEFAULT '0001-01-01 00:00:00+00', ADD COLUMN "fixed_charges_to_datetime" timestamptz NOT NULL DEFAULT '0001-01-01 00:00:00+00';
+UPDATE "adjusted_fees" a SET "charges_from_datetime" = f."charges_from_datetime", "charges_to_datetime" = f."charges_to_datetime", "fixed_charges_from_datetime" = f."fixed_charges_from_datetime", "fixed_charges_to_datetime" = f."fixed_charges_to_datetime" FROM "fees" f WHERE f."organization_id" = a."organization_id" AND f."id" = a."fee_id";
+ALTER TABLE "adjusted_fees" ALTER COLUMN "charges_from_datetime" DROP DEFAULT, ALTER COLUMN "charges_to_datetime" DROP DEFAULT, ALTER COLUMN "fixed_charges_from_datetime" DROP DEFAULT, ALTER COLUMN "fixed_charges_to_datetime" DROP DEFAULT;
+-- Modify "invoice_applied_taxes" table: existing taxes were not reported by
+-- a tax provider, so their taxable base is zero.
+ALTER TABLE "invoice_applied_taxes" ADD COLUMN "taxable_base_amount" bigint NOT NULL DEFAULT 0;
+ALTER TABLE "invoice_applied_taxes" ALTER COLUMN "taxable_base_amount" DROP DEFAULT, ADD CONSTRAINT "invoice_applied_taxes_taxable_base_amount_check" CHECK (taxable_base_amount >= 0);
+-- Create "cached_aggregations" table
+CREATE TABLE "cached_aggregations" ("organization_id" uuid NOT NULL, "id" uuid NOT NULL, "external_subscription_id" text NOT NULL, "charge_id" uuid NOT NULL, "charge_filter_id" uuid NULL, "timestamp" timestamptz NOT NULL, "event_transaction_id" text NULL, "grouped_by" jsonb NOT NULL, "current_aggregation" numeric NULL, "max_aggregation" numeric NULL, "max_aggregation_with_proration" numeric NULL, "presentation_breakdowns" jsonb NOT NULL, "created_at" timestamptz NOT NULL, PRIMARY KEY ("organization_id", "id"), CONSTRAINT "cached_aggregations_organization_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION, CONSTRAINT "cached_aggregations_external_subscription_id_check" CHECK (external_subscription_id <> ''::text), CONSTRAINT "cached_aggregations_grouped_by_check" CHECK (jsonb_typeof(grouped_by) = 'object'::text), CONSTRAINT "cached_aggregations_presentation_breakdowns_check" CHECK (jsonb_typeof(presentation_breakdowns) = 'array'::text));
+-- Create index "cached_aggregations_lookup_idx" to table: "cached_aggregations"
+CREATE INDEX "cached_aggregations_lookup_idx" ON "cached_aggregations" ("organization_id", "external_subscription_id", "charge_id", "timestamp" DESC, "created_at" DESC);
+-- Create "invoice_credits" table
+CREATE TABLE "invoice_credits" ("organization_id" uuid NOT NULL, "id" uuid NOT NULL, "invoice_id" uuid NOT NULL, "applied_coupon_id" uuid NULL, "credit_note_id" uuid NULL, "progressive_billing_invoice_id" uuid NULL, "amount" bigint NOT NULL, "currency" text NOT NULL, "before_taxes" boolean NOT NULL, "created_at" timestamptz NOT NULL, PRIMARY KEY ("organization_id", "id"), CONSTRAINT "invoice_credits_applied_coupon_fkey" FOREIGN KEY ("organization_id", "applied_coupon_id") REFERENCES "applied_coupons" ("organization_id", "id") ON UPDATE NO ACTION ON DELETE NO ACTION, CONSTRAINT "invoice_credits_credit_note_fkey" FOREIGN KEY ("organization_id", "credit_note_id") REFERENCES "credit_notes" ("organization_id", "id") ON UPDATE NO ACTION ON DELETE NO ACTION, CONSTRAINT "invoice_credits_invoice_fkey" FOREIGN KEY ("organization_id", "invoice_id") REFERENCES "invoices" ("organization_id", "id") ON UPDATE NO ACTION ON DELETE CASCADE, CONSTRAINT "invoice_credits_organization_fkey" FOREIGN KEY ("organization_id") REFERENCES "organizations" ("id") ON UPDATE NO ACTION ON DELETE NO ACTION, CONSTRAINT "invoice_credits_progressive_billing_invoice_fkey" FOREIGN KEY ("organization_id", "progressive_billing_invoice_id") REFERENCES "invoices" ("organization_id", "id") ON UPDATE NO ACTION ON DELETE NO ACTION, CONSTRAINT "invoice_credits_amount_check" CHECK (amount >= 0), CONSTRAINT "invoice_credits_currency_check" CHECK (currency <> ''::text), CONSTRAINT "invoice_credits_source_check" CHECK (num_nonnulls(applied_coupon_id, credit_note_id, progressive_billing_invoice_id) = 1));
+-- Create index "invoice_credits_applied_coupon_idx" to table: "invoice_credits"
+CREATE INDEX "invoice_credits_applied_coupon_idx" ON "invoice_credits" ("organization_id", "applied_coupon_id") WHERE (applied_coupon_id IS NOT NULL);
+-- Create index "invoice_credits_credit_note_idx" to table: "invoice_credits"
+CREATE INDEX "invoice_credits_credit_note_idx" ON "invoice_credits" ("organization_id", "credit_note_id") WHERE (credit_note_id IS NOT NULL);
+-- Create index "invoice_credits_invoice_idx" to table: "invoice_credits"
+CREATE INDEX "invoice_credits_invoice_idx" ON "invoice_credits" ("organization_id", "invoice_id", "created_at");
+-- Create index "invoice_credits_progressive_billing_invoice_idx" to table: "invoice_credits"
+CREATE INDEX "invoice_credits_progressive_billing_invoice_idx" ON "invoice_credits" ("organization_id", "progressive_billing_invoice_id") WHERE (progressive_billing_invoice_id IS NOT NULL);
+-- Enable row-level security on table "cached_aggregations"
+ALTER TABLE cached_aggregations ENABLE ROW LEVEL SECURITY;
+-- Enable row-level security on table "invoice_credits"
+ALTER TABLE invoice_credits ENABLE ROW LEVEL SECURITY;
+-- Create policy "tenant_isolation" on table "cached_aggregations"
+CREATE POLICY tenant_isolation ON cached_aggregations AS PERMISSIVE FOR ALL TO public USING (((organization_id = (NULLIF(NULLIF(current_setting('tanvo.organization_id'::text, true), ''::text), '*'::text))::uuid) OR (current_setting('tanvo.organization_id'::text, true) = '*'::text)));
+-- Create policy "tenant_isolation" on table "invoice_credits"
+CREATE POLICY tenant_isolation ON invoice_credits AS PERMISSIVE FOR ALL TO public USING (((organization_id = (NULLIF(NULLIF(current_setting('tanvo.organization_id'::text, true), ''::text), '*'::text))::uuid) OR (current_setting('tanvo.organization_id'::text, true) = '*'::text)));

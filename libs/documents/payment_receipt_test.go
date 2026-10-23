@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/payment"
 )
 
@@ -45,5 +46,25 @@ func TestPaymentReceiptProgressiveBillingWithThreshold(t *testing.T) {
 	got := receiptText(t, receiptForInvoice(t, progressiveBillingInvoice(true)(t, &ids{})))
 	if want := "This progressive billing is generated because your cumulative usage has reached"; !strings.Contains(got, want) {
 		t.Errorf("texts: got = no %q, want = %q", want, want)
+	}
+}
+
+// source: app/models/payment.rb:86 (payment_provider_type)
+func TestPaymentReceiptProviderType(t *testing.T) {
+	tests := []struct {
+		name     string
+		provider *integration.Integration
+		want     string
+	}{
+		{"manual payment", nil, ""},
+		{"provider payment", &integration.Integration{Category: integration.CategoryPayment, Provider: integration.ProviderStripe}, "stripe"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			d := &PaymentReceipt{Provider: tt.provider}
+			if got := d.providerType(); got != tt.want {
+				t.Errorf("providerType() got = %q, want = %q", got, tt.want)
+			}
+		})
 	}
 }

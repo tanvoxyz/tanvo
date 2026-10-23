@@ -11,12 +11,14 @@ import (
 )
 
 // FeeProperties are the periods a fee bills (domain §12.1 `properties`).
+// A zero instant is an unset period bound.
 type FeeProperties struct {
 	// From is the start of the subscription period.
 	From time.Time
 	// To is the end (exclusive) of the subscription period.
 	To time.Time
-	// ChargesFrom is the start of the charges period.
+	// ChargesFrom is the start of the charges period; unset on
+	// fixed-charge fees.
 	ChargesFrom time.Time
 	// ChargesTo is the end (exclusive) of the charges period.
 	ChargesTo time.Time
@@ -24,6 +26,57 @@ type FeeProperties struct {
 	Timestamp time.Time
 	// ChargesDurationDays is the length of the charges period in days.
 	ChargesDurationDays int
+	// FixedChargesFrom is the start of the fixed charges period a
+	// fixed-charge fee bills: the period of the run, or for a fixed charge
+	// paid in advance the period holding Timestamp.
+	FixedChargesFrom time.Time
+	// FixedChargesTo is the end (exclusive) of the fixed charges period.
+	FixedChargesTo time.Time
+	// FixedChargesDurationDays is the length of the fixed charges period
+	// in days.
+	FixedChargesDurationDays int
+}
+
+// ChargesPeriod returns the charges period (ChargesFrom, ChargesTo).
+func (p FeeProperties) ChargesPeriod() (from, to time.Time) { return p.ChargesFrom, p.ChargesTo }
+
+// FixedChargesPeriod returns the fixed charges period (FixedChargesFrom,
+// FixedChargesTo).
+func (p FeeProperties) FixedChargesPeriod() (from, to time.Time) {
+	return p.FixedChargesFrom, p.FixedChargesTo
+}
+
+// PresentationBreakdown is the units of one presentation group of a charge
+// fee (domain §12.1): the fee's usage split by the charge's presentation
+// group keys.
+type PresentationBreakdown struct {
+	// PresentationBy are the group's values by presentation key; a nil
+	// value is a key whose property is missing or null on the events.
+	PresentationBy map[string]*string
+	// Units are the group's units.
+	Units money.Decimal
+}
+
+// ClonePresentationBreakdowns returns a deep copy of bs.
+func ClonePresentationBreakdowns(bs []PresentationBreakdown) []PresentationBreakdown {
+	if bs == nil {
+		return nil
+	}
+	out := make([]PresentationBreakdown, len(bs))
+	for i, b := range bs {
+		out[i] = PresentationBreakdown{Units: b.Units}
+		if b.PresentationBy != nil {
+			out[i].PresentationBy = make(map[string]*string, len(b.PresentationBy))
+			for k, v := range b.PresentationBy {
+				if v != nil {
+					c := *v
+					v = &c
+				}
+				out[i].PresentationBy[k] = v
+			}
+		}
+	}
+	return out
 }
 
 // PricingUnitUsage records a fee amount in a pricing unit (domain §7.6).
@@ -123,6 +176,9 @@ type Fee struct {
 	PricingUnitUsage *PricingUnitUsage
 	// AppliedTaxes are the tax snapshots and amounts of the fee.
 	AppliedTaxes []FeeAppliedTax
+	// PresentationBreakdowns split the units of a charge fee by the
+	// charge's presentation group keys; empty otherwise.
+	PresentationBreakdowns []PresentationBreakdown
 	// PayInAdvanceEventID is the event of a per-event fee.
 	PayInAdvanceEventID core.EventID
 	// PayInAdvanceEventTransactionID is that event's transaction ID.
@@ -236,6 +292,7 @@ func CloneFee(f Fee) Fee {
 	f.GroupedBy = maps.Clone(f.GroupedBy)
 	f.AmountDetails = slices.Clone(f.AmountDetails)
 	f.AppliedTaxes = slices.Clone(f.AppliedTaxes)
+	f.PresentationBreakdowns = ClonePresentationBreakdowns(f.PresentationBreakdowns)
 	if f.PricingUnitUsage != nil {
 		p := *f.PricingUnitUsage
 		f.PricingUnitUsage = &p
@@ -267,6 +324,12 @@ type AdjustedFee struct {
 	FeeType core.FeeType
 	// GroupedBy holds the pricing group values of the fee.
 	GroupedBy map[string]string
+	// ChargesFrom and ChargesTo are the charges period of an adjusted
+	// charge fee: the adjustment applies to the fee of that period only.
+	ChargesFrom, ChargesTo time.Time
+	// FixedChargesFrom and FixedChargesTo are the fixed charges period of
+	// an adjusted fixed-charge fee.
+	FixedChargesFrom, FixedChargesTo time.Time
 	// Mode is what the adjustment changes.
 	Mode AdjustmentMode
 	// InvoiceDisplayName is the new display name.
@@ -296,6 +359,22 @@ func (a *AdjustedFee) Validate() error {
 		v.DecimalNonNegative("unit_precise_amount", a.UnitPreciseAmount)
 	}
 	return v.Err()
+}
+
+// MatchesCharges reports whether the adjustment is for the charges period
+// [from, to) (instants compared to the millisecond, as stored).
+func (a *AdjustedFee) MatchesCharges(from, to time.Time) bool {
+	return sameMilli(a.ChargesFrom, from) && sameMilli(a.ChargesTo, to)
+}
+
+// MatchesFixedCharges reports whether the adjustment is for the fixed
+// charges period [from, to).
+func (a *AdjustedFee) MatchesFixedCharges(from, to time.Time) bool {
+	return sameMilli(a.FixedChargesFrom, from) && sameMilli(a.FixedChargesTo, to)
+}
+
+func sameMilli(a, b time.Time) bool {
+	return a.Truncate(time.Millisecond).Equal(b.Truncate(time.Millisecond))
 }
 
 // PreciseAmount returns units × unit price in currency units for the

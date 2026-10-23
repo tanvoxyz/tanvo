@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/deduct"
-	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/coupon"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
@@ -88,10 +87,10 @@ func TestRestoreCoupon(t *testing.T) {
 				}
 			})
 			inv := h.StoredInvoice(f.cust, func(inv *invoice.Invoice) { inv.Status = invoice.StatusVoided })
-			mustOK(t, h.Credits.Create(h.Ctx, &kernel.Credit{
-				ID: h.IDs.NewUUID(), OrganizationID: h.OrgID(), InvoiceID: inv.ID, AppliedCouponID: a.ID,
+			h.CreateCredit(&invoice.Credit{
+				ID: core.NewID[core.InvoiceCreditID](h.IDs), OrganizationID: h.OrgID(), InvoiceID: inv.ID, AppliedCouponID: a.ID,
 				Amount: 100, Currency: inv.Currency, BeforeTaxes: true, CreatedAt: h.Now(),
-			}))
+			})
 			out, err := f.restore(inv, deduct.RestoreOptions{})
 			mustOK(t, err)
 			eq(t, "restored", len(out.AppliedCoupons), 1)
@@ -111,10 +110,10 @@ func TestRestoreCouponNotFound(t *testing.T) {
 	f := newFixture(t)
 	h := f.h
 	inv := h.StoredInvoice(f.cust)
-	mustOK(t, h.Credits.Create(h.Ctx, &kernel.Credit{
-		ID: h.IDs.NewUUID(), OrganizationID: h.OrgID(), InvoiceID: inv.ID,
+	h.CreateCredit(&invoice.Credit{
+		ID: core.NewID[core.InvoiceCreditID](h.IDs), OrganizationID: h.OrgID(), InvoiceID: inv.ID,
 		AppliedCouponID: core.NewID[core.AppliedCouponID](h.IDs), Amount: 100, Currency: inv.Currency, BeforeTaxes: true,
-	}))
+	})
 	_, err := f.restore(inv, deduct.RestoreOptions{})
 	if !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("got error = %v, want = %v", err, core.ErrNotFound)
@@ -218,18 +217,19 @@ func TestResetDraft(t *testing.T) {
 		inv.Status = invoice.StatusDraft
 		inv.ProgressiveBillingCreditAmount, inv.CouponsAmount = 10, 20
 	})
-	mustOK(t, h.Credits.Create(h.Ctx, &kernel.Credit{
-		ID: h.IDs.NewUUID(), OrganizationID: h.OrgID(), InvoiceID: inv.ID,
+	h.CreateCredit(&invoice.Credit{
+		ID: core.NewID[core.InvoiceCreditID](h.IDs), OrganizationID: h.OrgID(), InvoiceID: inv.ID,
 		ProgressiveBillingInvoiceID: core.NewID[core.InvoiceID](h.IDs), Amount: 10, Currency: inv.Currency, BeforeTaxes: true,
-	}))
-	mustOK(t, f.s.ResetDraft(h.Ctx, inv))
+	})
+	h.Do(func(ctx context.Context, r port.Repos) error { return f.s.ResetDraft(ctx, r, inv) })
 	eq(t, "credits", len(h.InvoiceCredits(inv.ID)), 0)
 	eq(t, "progressive", inv.ProgressiveBillingCreditAmount, 0)
 	eq(t, "coupons", inv.CouponsAmount, 0)
 
 	inv.Status = invoice.StatusFinalized
 	var te *core.TransitionError
-	if err := f.s.ResetDraft(h.Ctx, inv); !errors.As(err, &te) {
+	err := h.Deps.Tx.InTx(h.Ctx, func(ctx context.Context, r port.Repos) error { return f.s.ResetDraft(ctx, r, inv) })
+	if !errors.As(err, &te) {
 		t.Errorf("finalized: got error = %v, want = transition error", err)
 	}
 }

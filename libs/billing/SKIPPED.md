@@ -27,8 +27,6 @@ Every lago scenario example not ported as a test in this package, with the reaso
 
 | source | case | what is not asserted |
 | :--- | :--- | :--- |
-| spec/scenarios/pay_in_advance_charges_spec.rb:164 | unique_count: id_1 re-added after removal (Feb 17) bills 0 | step not asserted: no cached-aggregation repository, so metering never sees the previous max (tanvo bills 1200) |
-| spec/scenarios/pay_in_advance_charges_spec.rb:374 | sum: 8 after 10 and -4 bills 4 units / 400 | step not asserted: same cached-aggregation gap (tanvo bills 8 / 800) |
 | spec/scenarios/pay_in_advance_charges_spec.rb (all) | fee.amount_details | not asserted |
 | spec/scenarios/pay_in_advance_charges_spec.rb:1306 | dynamic charge | the scenario harness `ingest` cannot carry precise_total_amount_cents; the test calls InAdvanceCharge directly |
 | spec/scenarios/spending_minimum_spec.rb:17,137 | events at the termination instant | events ingested 1s before termination: an event at terminated_at belongs to no period in tanvo (half-open, domain §10.2), lago counts it; the terminations are mid-day, so the billed day counts match and the amounts are lago's |
@@ -217,11 +215,6 @@ Deviation: spec/scenarios/fixed_charges/refresh_draft_keeps_pay_in_advance_fee_s
 | spec/scenarios/current_usage/by_aggregation_type/custom_agg_spec.rb:344 | custom agg, create fees for each charge (nested) | deprecated: custom aggregation |
 | spec/scenarios/current_usage/by_aggregation_type/custom_agg_spec.rb:469 | custom agg, fee per event | deprecated: custom aggregation |
 | spec/scenarios/current_usage/by_aggregation_type/custom_agg_spec.rb:877 | custom agg, fee for each event | deprecated: custom aggregation |
-| spec/scenarios/current_usage/by_aggregation_type/weighted_sum_agg_spec.rb:20 | weighted sum keeps units between periods (2nd period on) | blocked: cached aggregations are not persisted (no core repository; invoicing drops fees.ChargeResult.Aggregations); the first period is ported and passes |
-| spec/scenarios/current_usage/by_aggregation_type/sum_agg_spec.rb:34 | sum, in advance charge and groups | blocked: cached aggregations not persisted (in-advance current usage reads them) |
-| spec/scenarios/current_usage/by_aggregation_type/sum_agg_spec.rb:127 | sum, multiple subscriptions of one plan (in advance) | blocked: cached aggregations not persisted |
-| spec/scenarios/current_usage/by_aggregation_type/unique_count_agg_spec.rb:92 | unique count, in advance with group by | blocked: cached aggregations not persisted |
-| spec/scenarios/current_usage/by_aggregation_type/unique_count_agg_spec.rb:288 | unique count, in advance (backdated subscription) | blocked: cached aggregations not persisted |
 | spec/scenarios/current_usage/with_identical_charge_filters_spec.rb:38 | charge filters without values | invalid by design: catalog.ValidateChargeFilter requires values, tanvo never stores such a filter |
 | spec/scenarios/current_usage/with_identical_charge_filters_spec.rb:149 | two filters with identical values | invalid by design: catalog.Charge.Validate rejects duplicated filter values |
 | spec/scenarios/current_usage/by_charge_model/clickhouse/prorated_graduated_spec.rb:20,213,319,432,670,867,998,1168,1278,1397 | ClickHouse variants of prorated graduated (10 examples) | duplicate: same assertions as by_charge_model/prorated_graduated_spec.rb, ported once over the memory event store (store conformance suites cover ClickHouse) |

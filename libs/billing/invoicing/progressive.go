@@ -67,12 +67,15 @@ func (s *Service) ProgressiveBilling(ctx context.Context, r port.Repos, sub *sub
 		if !c.Invoiceable || c.PayInAdvance {
 			continue
 		}
-		res, err := s.fees.ChargeFees(ctx, r, sc, c, fees.Options{})
+		res, err := s.fees.ChargeFees(ctx, r, sc, c, fees.Options{Cache: aggregationCache(r, env)})
 		if err != nil {
 			return nil, err
 		}
 		if res == nil {
 			continue
+		}
+		if err := s.cacheAggregations(ctx, r, inv.OrganizationID, res, false); err != nil {
+			return nil, err
 		}
 		for _, f := range res.Fees {
 			if err := r.Fees.Create(ctx, f); err != nil {

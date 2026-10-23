@@ -112,7 +112,7 @@ func TestInvoiceV4FixedChargeProrationCaption(t *testing.T) {
 // source: spec/views/app/views/templates/invoices/v4/fixed_charge.slim_spec.rb:89
 func TestInvoiceV4FixedChargePurchaseOrderNumber(t *testing.T) {
 	d := fixedChargeInvoice(nil, fixedSpec{name: "Standard Fixed Charge", amount: 5000, units: "2", unitCents: 2500, precise: "25"})(t, &ids{})
-	d.PurchaseOrderNumber = "PO-123"
+	d.Invoice.PurchaseOrderNumber = ptr("PO-123")
 	w := newWriter(testCatalog(t), &d.Party, "", d.Invoice.Currency)
 	got := strings.Join(w.invoiceLayout(d).texts(), "\n")
 	for _, want := range []string{"Purchase Order Number", "PO-123"} {

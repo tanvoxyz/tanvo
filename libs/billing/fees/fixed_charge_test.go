@@ -146,7 +146,8 @@ func TestFixedChargeFeeProperties(t *testing.T) {
 	f.unitsAt(fc, date(2022, time.March, 29), "10")
 	got := f.fee(f.scope(f.sub, f.b, date(2022, time.April, 1)), fc, fees.Options{})
 	p := got.Properties
-	if !p.ChargesFrom.Equal(date(2022, time.March, 17)) || !p.ChargesTo.Equal(date(2022, time.April, 1)) || p.ChargesDurationDays != 31 {
+	if !p.FixedChargesFrom.Equal(date(2022, time.March, 17)) || !p.FixedChargesTo.Equal(date(2022, time.April, 1)) || p.FixedChargesDurationDays != 31 ||
+		!p.ChargesFrom.IsZero() || !p.ChargesTo.IsZero() || p.ChargesDurationDays != 0 {
 		t.Errorf("got properties = %+v, want fixed charges [2022-03-17, 2022-04-01) over 31 days", p)
 	}
 }
@@ -209,6 +210,7 @@ func TestFixedChargeFeeAdjusted(t *testing.T) {
 			sc := f.scope(f.sub, f.b, date(2022, time.April, 1), opts...)
 			a := tc.adj
 			a.InvoiceID, a.SubscriptionID, a.FixedChargeID, a.FeeType = sc.Invoice.ID, f.sub.ID, fc.ID, core.FeeTypeFixedCharge
+			a.FixedChargesFrom, a.FixedChargesTo = sc.Boundaries.FixedCharges.From, sc.Boundaries.FixedCharges.To
 			f.adjust(&a)
 			got := f.fee(sc, fc, fees.Options{})
 			checkFee(t, got, tc.want)

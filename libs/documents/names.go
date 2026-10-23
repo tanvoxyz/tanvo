@@ -2,13 +2,11 @@ package documents
 
 import (
 	"cmp"
-	"maps"
 	"slices"
 	"strings"
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
-	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/documents/internal/i18n"
 	"github.com/tanvoxyz/tanvo/libs/money"
@@ -56,138 +54,37 @@ func (w *writer) date(d core.Date) string { return w.l.Date(d) }
 
 func (w *writer) subscription(f *Fee) *Subscription { return w.subs[f.Fee.SubscriptionID] }
 
-// invoiceName is Fee#invoice_name.
-func (w *writer) invoiceName(f *Fee) string {
-	if s := present(f.Fee.InvoiceDisplayName); s != "" {
-		return s
-	}
-	switch f.Fee.Type {
-	case core.FeeTypeCharge:
-		if f.Charge != nil {
-			return f.Charge.InvoiceName(metricName(f.Metric))
-		}
-		return metricName(f.Metric)
-	case core.FeeTypeAddOn:
-		if f.AddOn != nil {
-			return f.AddOn.InvoiceName()
-		}
-	case core.FeeTypeCredit:
-		if f.WalletTransaction != nil {
-			if s := present(f.WalletTransaction.Name); s != "" {
-				return s
-			}
-		}
-		return string(core.FeeTypeCredit)
-	case core.FeeTypeFixedCharge:
-		if f.FixedCharge != nil {
-			if s := present(f.FixedCharge.InvoiceDisplayName); s != "" {
-				return s
-			}
-		}
-		if f.AddOn != nil {
-			return f.AddOn.InvoiceName()
-		}
-	case core.FeeTypeCommitment:
-		if f.Commitment != nil {
-			if s := f.Commitment.InvoiceName(); s != "" {
-				return s
-			}
-		}
+// refs returns the objects f's names are read from.
+func (w *writer) refs(f *Fee) invoice.FeeRefs {
+	r := invoice.FeeRefs{
+		Charge: f.Charge, Metric: f.Metric, ChargeFilter: f.ChargeFilter, FixedCharge: f.FixedCharge,
+		AddOn: f.AddOn, WalletTransaction: f.WalletTransaction,
 	}
 	if s := w.subscription(f); s != nil {
-		return s.InvoiceName()
+		r.Subscription, r.Plan = &s.Subscription, &s.Plan
 	}
-	return ""
+	return r
 }
+
+// invoiceName is Fee#invoice_name.
+func (w *writer) invoiceName(f *Fee) string { return w.refs(f).InvoiceName(&f.Fee) }
 
 // itemName is Fee#item_name.
-func (w *writer) itemName(f *Fee) string {
-	switch f.Fee.Type {
-	case core.FeeTypeCharge:
-		return metricName(f.Metric)
-	case core.FeeTypeAddOn, core.FeeTypeFixedCharge:
-		if f.AddOn != nil {
-			return f.AddOn.Name
-		}
-	case core.FeeTypeCredit:
-		if f.WalletTransaction != nil {
-			if s := present(f.WalletTransaction.Name); s != "" {
-				return s
-			}
-		}
-		return string(core.FeeTypeCredit)
-	}
-	if s := w.subscription(f); s != nil {
-		return s.Plan.Name
-	}
-	return ""
-}
-
-func metricName(m *catalog.BillableMetric) string {
-	if m == nil {
-		return ""
-	}
-	return m.Name
-}
+func (w *writer) itemName(f *Fee) string { return w.refs(f).ItemName(&f.Fee) }
 
 // filterDisplay is Fee#filter_display_name.
 func filterDisplay(f *Fee, sep string) string {
-	if f.ChargeFilter == nil {
-		return ""
-	}
-	return f.ChargeFilter.DisplayName(sep)
-}
-
-// groupedValues are the fee's grouping values in lago-api's order: Ruby
-// iterates fees.grouped_by (a jsonb column, db/structure.sql:2215) in the
-// order PostgreSQL stores jsonb object keys, shorter keys first, then
-// bytewise.
-func groupedValues(f *Fee) []string {
-	var out []string
-	keys := slices.SortedFunc(maps.Keys(f.Fee.GroupedBy), func(a, b string) int {
-		return cmp.Or(cmp.Compare(len(a), len(b)), strings.Compare(a, b))
-	})
-	for _, k := range keys {
-		if v := f.Fee.GroupedBy[k]; v != "" {
-			out = append(out, v)
-		}
-	}
-	return out
+	return invoice.FeeRefs{ChargeFilter: f.ChargeFilter}.FilterDisplayName(sep)
 }
 
 // groupedByDisplay is Fee#grouped_by_display.
-func groupedByDisplay(f *Fee) string {
-	if f.Fee.Type != core.FeeTypeCharge {
-		return ""
-	}
-	vs := groupedValues(f)
-	if len(vs) == 0 {
-		return ""
-	}
-	return " • " + strings.Join(vs, " • ")
-}
+func groupedByDisplay(f *Fee) string { return invoice.GroupedByDisplay(&f.Fee) }
 
 // feeTitle is FeeDisplayHelper.fee_title.
-func (w *writer) feeTitle(f *Fee) string {
-	s := w.invoiceName(f) + groupedByDisplay(f)
-	if !f.Fee.ChargeFilterID.IsZero() {
-		s += " • " + filterDisplay(f, " • ")
-	}
-	return s
-}
+func (w *writer) feeTitle(f *Fee) string { return w.refs(f).Title(&f.Fee) }
 
 // sortingClause is Fee#invoice_sorting_clause.
-func (w *writer) sortingClause(f *Fee) string {
-	base := strings.ToLower(w.invoiceName(f) + " " + filterDisplay(f, ", "))
-	if f.Fee.Type != core.FeeTypeCharge || len(f.Fee.GroupedBy) == 0 {
-		return base
-	}
-	var vals []string
-	for _, k := range slices.Sorted(maps.Keys(f.Fee.GroupedBy)) {
-		vals = append(vals, f.Fee.GroupedBy[k])
-	}
-	return strings.ToLower(w.invoiceName(f) + " " + strings.Join(vals, "") + " " + filterDisplay(f, ", "))
-}
+func (w *writer) sortingClause(f *Fee) string { return w.refs(f).SortingKey(&f.Fee) }
 
 func (w *writer) sortAlphabetically(fees []*Fee) {
 	slices.SortStableFunc(fees, func(a, b *Fee) int { return cmp.Compare(w.sortingClause(a), w.sortingClause(b)) })

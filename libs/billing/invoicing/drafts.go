@@ -112,7 +112,7 @@ func (s *Service) finalizeDraft(ctx context.Context, r port.Repos, inv *invoice.
 	if err != nil {
 		return fmt.Errorf("load fees of invoice %s: %w", inv.ID, err)
 	}
-	if err := s.deduct.ResetDraft(ctx, inv); err != nil {
+	if err := s.deduct.ResetDraft(ctx, r, inv); err != nil {
 		return err
 	}
 	resetFeeTaxes(fs)
@@ -145,7 +145,7 @@ func (s *Service) regenerate(ctx context.Context, r port.Repos, inv *invoice.Inv
 	if err != nil {
 		return err
 	}
-	if err := s.deduct.ResetDraft(ctx, inv); err != nil {
+	if err := s.deduct.ResetDraft(ctx, r, inv); err != nil {
 		return err
 	}
 	if err := s.clearInvoice(ctx, r, inv); err != nil {

@@ -2,6 +2,7 @@ package memstore
 
 import (
 	"context"
+	"slices"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/event"
@@ -9,17 +10,29 @@ import (
 
 // eventData holds the tables of package event.
 type eventData struct {
-	events *table[core.EventID, event.Event]
+	events             *table[core.EventID, event.Event]
+	cachedAggregations *table[core.CachedAggregationID, event.CachedAggregation]
 }
 
 func newEventData() *eventData {
 	return &eventData{
 		events: newTable[core.EventID](func(e event.Event) event.Event { return *e.Clone() }),
+		cachedAggregations: newTable[core.CachedAggregationID](func(a event.CachedAggregation) event.CachedAggregation {
+			a.GroupedBy = event.CloneGroups(a.GroupedBy)
+			a.CurrentAggregation = invoiceClonePtr(a.CurrentAggregation)
+			a.MaxAggregation = invoiceClonePtr(a.MaxAggregation)
+			a.MaxAggregationWithProration = invoiceClonePtr(a.MaxAggregationWithProration)
+			a.PresentationBreakdowns = slices.Clone(a.PresentationBreakdowns)
+			for i, b := range a.PresentationBreakdowns {
+				a.PresentationBreakdowns[i].Groups = event.CloneGroups(b.Groups)
+			}
+			return a
+		}),
 	}
 }
 
 func (d *eventData) snapshot() *eventData {
-	return &eventData{events: d.events.snapshot()}
+	return &eventData{events: d.events.snapshot(), cachedAggregations: d.cachedAggregations.snapshot()}
 }
 
 // eventLogRepo implements event.Log.

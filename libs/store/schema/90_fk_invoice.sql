@@ -10,3 +10,6 @@ ALTER TABLE fees
 ALTER TABLE invoice_settlements
   ADD CONSTRAINT invoice_settlements_payment_fkey FOREIGN KEY (organization_id, payment_id) REFERENCES payments (organization_id, id),
   ADD CONSTRAINT invoice_settlements_credit_note_fkey FOREIGN KEY (organization_id, credit_note_id) REFERENCES credit_notes (organization_id, id);
+
+ALTER TABLE invoice_credits
+  ADD CONSTRAINT invoice_credits_credit_note_fkey FOREIGN KEY (organization_id, credit_note_id) REFERENCES credit_notes (organization_id, id);

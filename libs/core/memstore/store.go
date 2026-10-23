@@ -217,7 +217,8 @@ func (tx *storeTx) bind() port.Repos {
 		AppliedUsageThresholds: appliedUsageThresholdRepo{st.subscription},
 		LifetimeUsages:         lifetimeUsageRepo{st.subscription},
 
-		Events: eventLogRepo{st.event},
+		Events:             eventLogRepo{st.event},
+		CachedAggregations: cachedAggregationRepo{st.event},
 
 		Invoices:              invoiceRepo{st.invoice},
 		InvoiceSubscriptions:  invoiceSubscriptionRepo{st.invoice},
@@ -227,6 +228,7 @@ func (tx *storeTx) bind() port.Repos {
 		InvoiceSettlements:    invoiceSettlementRepo{st.invoice},
 		InvoiceCustomSections: invoiceCustomSectionRepo{st.invoice},
 		ErrorDetails:          errorDetailRepo{st.invoice},
+		Credits:               invoiceCreditRepo{st.invoice},
 
 		CreditNotes: creditNoteRepo{st.creditNote},
 

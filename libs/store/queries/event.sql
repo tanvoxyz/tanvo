@@ -33,3 +33,49 @@ UPDATE events SET
   properties = @properties, precise_total_amount = @precise_total_amount,
   attribution_labels = @attribution_labels, updated_at = @updated_at
 WHERE organization_id = @organization_id AND external_subscription_id = @external_subscription_id AND transaction_id = @transaction_id;
+
+-- name: CreateCachedAggregation :execrows
+INSERT INTO cached_aggregations (
+  organization_id, id, external_subscription_id, charge_id, charge_filter_id, timestamp, event_transaction_id,
+  grouped_by, current_aggregation, max_aggregation, max_aggregation_with_proration, presentation_breakdowns, created_at
+) VALUES (
+  @organization_id, @id, @external_subscription_id, @charge_id, @charge_filter_id, @timestamp, @event_transaction_id,
+  @grouped_by, @current_aggregation, @max_aggregation, @max_aggregation_with_proration, @presentation_breakdowns, @created_at
+)
+ON CONFLICT DO NOTHING;
+
+-- name: CachedAggregationExists :one
+-- Reports whether a state of the charge, filter (NULL matching states
+-- without one), groups and timestamp exists.
+SELECT EXISTS (
+  SELECT 1 FROM cached_aggregations
+  WHERE organization_id = @organization_id AND external_subscription_id = @external_subscription_id
+    AND charge_id = @charge_id AND charge_filter_id IS NOT DISTINCT FROM sqlc.narg(charge_filter_id)::uuid
+    AND timestamp = @timestamp AND grouped_by = @grouped_by
+);
+
+-- name: LatestCachedAggregationInPeriod :one
+-- A NULL charge filter selects the states without a filter of a default
+-- bucket, else every filter of the charge; an excluded transaction also
+-- drops states without one (SQL inequality).
+SELECT * FROM cached_aggregations
+WHERE organization_id = @organization_id AND external_subscription_id = @external_subscription_id
+  AND charge_id = @charge_id
+  AND (charge_filter_id IS NOT DISTINCT FROM sqlc.narg(charge_filter_id)::uuid
+    OR (sqlc.narg(charge_filter_id)::uuid IS NULL AND NOT @default_bucket::boolean))
+  AND timestamp >= @from_datetime AND timestamp <= @to_datetime
+  AND grouped_by = @grouped_by
+  AND (@exclude_transaction_id::text = '' OR event_transaction_id <> @exclude_transaction_id::text)
+ORDER BY timestamp DESC, created_at DESC, id DESC
+LIMIT 1;
+
+-- name: ListCachedAggregationsBefore :many
+-- A NULL charge filter selects the states without a filter of a default
+-- bucket, else every filter of the charge.
+SELECT * FROM cached_aggregations
+WHERE organization_id = @organization_id AND external_subscription_id = @external_subscription_id
+  AND charge_id = @charge_id
+  AND (charge_filter_id IS NOT DISTINCT FROM sqlc.narg(charge_filter_id)::uuid
+    OR (sqlc.narg(charge_filter_id)::uuid IS NULL AND NOT @default_bucket::boolean))
+  AND timestamp < @before
+ORDER BY timestamp DESC, created_at DESC, id DESC;

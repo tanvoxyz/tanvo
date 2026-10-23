@@ -202,6 +202,13 @@ func (s *Service) conclude(ctx context.Context, r port.Repos, env *kernel.Custom
 	if finalizing {
 		kk.UsesGracePeriod = false
 	}
+	// An open or failed invoice whose taxes are now computed is redated
+	// before it moves on, whatever status it reaches (lago
+	// app/services/invoices/provider_taxes/pull_taxes_and_apply_service.rb:43-46);
+	// a draft is redated by [kernel.Finalize].
+	if finalizing && st.taxFailure == nil && !st.pending && (inv.Status == invoice.StatusOpen || inv.Status == invoice.StatusFailed) {
+		kernel.RedateOnFinalization(inv, env, k, now)
+	}
 	var err error
 	switch status := kernel.FinalStatus(inv, env, kk, st.gated); {
 	case st.taxFailure != nil:

@@ -91,7 +91,7 @@ func TestInvoiceV4OneOff(t *testing.T) {
 	t.Run("purchase order number", func(t *testing.T) {
 		// source: spec/views/app/views/templates/invoices/v4/one_off.slim_spec.rb:235
 		d := oneOffInvoice(func(inv *invoice.Invoice) { inv.Number = "LAGO-202509-OO-PO" }, setup)(t, &ids{})
-		d.PurchaseOrderNumber = "PO-12345"
+		d.Invoice.PurchaseOrderNumber = ptr("PO-12345")
 		got := invoiceText(t, d)
 		for _, want := range []string{"Purchase Order Number", "PO-12345"} {
 			if !strings.Contains(got, want) {

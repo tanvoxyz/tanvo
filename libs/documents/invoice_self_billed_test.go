@@ -80,7 +80,7 @@ func TestInvoiceV4SelfBilled(t *testing.T) {
 	t.Run("purchase order number", func(t *testing.T) {
 		// source: spec/views/app/views/templates/invoices/v4/self_billed.slim_spec.rb:88
 		d := selfBilledOneOff()(t, &ids{})
-		d.PurchaseOrderNumber = "PO-123"
+		d.Invoice.PurchaseOrderNumber = ptr("PO-123")
 		got := invoiceText(t, d)
 		for _, want := range []string{"Purchase Order Number", "PO-123"} {
 			if !strings.Contains(got, want) {

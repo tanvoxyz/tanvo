@@ -23,8 +23,9 @@ import (
 // prices the units weighted by the days each count was in force. A fixed
 // charge paid in advance is billed for the period starting at the billing
 // instant, less what a replaced subscription already paid for the same
-// add-on. The fee's ChargesFrom, ChargesTo and ChargesDurationDays hold the
-// fixed charges period. It returns nil when the fixed charge is already
+// add-on. The fee's FixedChargesFrom, FixedChargesTo and
+// FixedChargesDurationDays hold the fixed charges period; its charges
+// boundaries stay zero. It returns nil when the fixed charge is already
 // billed, or when its fee would have no units nor amount and opts.Recurring
 // is not set.
 func (s *Service) FixedChargeFee(ctx context.Context, r port.Repos, sc Scope, fc *catalog.FixedCharge, opts Options) (*invoice.Fee, error) {
@@ -49,7 +50,7 @@ func (s *Service) FixedChargeFee(ctx context.Context, r port.Repos, sc Scope, fc
 	if err != nil {
 		return nil, err
 	}
-	a := adj.fixedCharge(fc.ID)
+	a := adj.fixedCharge(fc.ID, p)
 	if a != nil && a.Mode != invoice.AdjustmentModeDisplayName {
 		return s.adjustedFixedChargeFee(sc, fc, structure, p, days, a)
 	}
@@ -121,8 +122,8 @@ func (s *Service) fixedChargeFeeBase(sc Scope, fc *catalog.FixedCharge, p period
 	f.PayInAdvance = fc.PayInAdvance
 	f.Properties = invoice.FeeProperties{
 		From: sc.Boundaries.Subscription.From, To: sc.Boundaries.Subscription.To,
-		ChargesFrom: p.From, ChargesTo: p.To,
-		Timestamp: s.timestamp(sc), ChargesDurationDays: days,
+		FixedChargesFrom: p.From, FixedChargesTo: p.To,
+		Timestamp: s.timestamp(sc), FixedChargesDurationDays: days,
 	}
 	return f
 }
@@ -149,7 +150,7 @@ func (s *Service) fixedChargeBilled(ctx context.Context, r port.Repos, sc Scope,
 	}
 	for _, f := range all {
 		if f.FixedChargeID != fc.ID || (f.Units.IsZero() && f.Amount == 0) || f.InvoiceID.IsZero() ||
-			!sameSecond(f.Properties.ChargesFrom, p.From) || !sameSecond(f.Properties.ChargesTo, p.To) {
+			!sameSecond(f.Properties.FixedChargesFrom, p.From) || !sameSecond(f.Properties.FixedChargesTo, p.To) {
 			continue
 		}
 		inv, err := r.Invoices.Get(ctx, f.OrganizationID, f.InvoiceID)
@@ -333,7 +334,7 @@ func (s *Service) fixedChargeDeduction(ctx context.Context, r port.Repos, sc Sco
 	}
 	var paid *invoice.Fee
 	for _, f := range prevFees {
-		if f.FixedChargeID != prevCharges[i].ID || f.Properties.ChargesFrom.After(p.From) || f.Properties.ChargesTo.Before(p.To.Truncate(time.Millisecond)) {
+		if f.FixedChargeID != prevCharges[i].ID || f.Properties.FixedChargesFrom.After(p.From) || f.Properties.FixedChargesTo.Before(p.To.Truncate(time.Millisecond)) {
 			continue
 		}
 		if paid == nil || f.CreatedAt.After(paid.CreatedAt) {
@@ -346,7 +347,7 @@ func (s *Service) fixedChargeDeduction(ctx context.Context, r port.Repos, sc Sco
 	return &pricing.Deduction{
 		AmountCents: paid.Amount,
 		BilledDays:  ceilDays(p.To.Sub(p.From)),
-		PeriodDays:  ceilDays(paid.Properties.ChargesTo.Sub(paid.Properties.Timestamp)),
+		PeriodDays:  ceilDays(paid.Properties.FixedChargesTo.Sub(paid.Properties.Timestamp)),
 	}, nil
 }
 

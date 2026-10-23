@@ -242,8 +242,15 @@ func (a *aggregator) sumPayInAdvance(r *Result) (money.Decimal, error) {
 		r.CurrentAggregation, r.MaxAggregation, r.UnitsApplied = ptr(v), ptr(v), ptr(v)
 		return money.Max(v, money.Zero), nil
 	}
-	current := cached.CurrentAggregation.Add(v)
-	oldMax := cached.MaxAggregation
+	cur, err := cachedValue(cached.CurrentAggregation, "current_aggregation")
+	if err != nil {
+		return money.Zero, err
+	}
+	oldMax, err := cachedValue(cached.MaxAggregation, "max_aggregation")
+	if err != nil {
+		return money.Zero, err
+	}
+	current := cur.Add(v)
 	r.CurrentAggregation = ptr(current)
 	if current.GreaterThan(oldMax) {
 		r.MaxAggregation = ptr(money.Max(current, current.Sub(oldMax)))
@@ -459,18 +466,26 @@ func (a *aggregator) uniquePayInAdvance(q Query, r *Result) (money.Decimal, erro
 		r.CurrentAggregation, r.MaxAggregation, r.UnitsApplied = ptr(newly), ptr(newly), ptr(newly)
 		return newly, nil
 	}
-	current := cached.CurrentAggregation.Add(newly)
+	cur, err := cachedValue(cached.CurrentAggregation, "current_aggregation")
+	if err != nil {
+		return money.Zero, err
+	}
+	oldMax, err := cachedValue(cached.MaxAggregation, "max_aggregation")
+	if err != nil {
+		return money.Zero, err
+	}
+	current := cur.Add(newly)
 	if !add {
-		current = cached.CurrentAggregation
+		current = cur
 		if active {
 			current = current.Sub(money.One)
 		}
 	}
 	r.CurrentAggregation = ptr(current)
-	if current.GreaterThan(cached.MaxAggregation) {
+	if current.GreaterThan(oldMax) {
 		r.MaxAggregation = ptr(current)
 		return money.One, nil
 	}
-	r.MaxAggregation, r.UnitsApplied = ptr(cached.MaxAggregation), ptr(newly)
+	r.MaxAggregation, r.UnitsApplied = ptr(oldMax), ptr(newly)
 	return money.Zero, nil
 }

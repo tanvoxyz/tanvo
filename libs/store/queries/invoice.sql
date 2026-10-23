@@ -157,7 +157,8 @@ INSERT INTO fees (
   amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount,
   precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status,
   from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days,
-  true_up_parent_fee_id, pricing_unit_usage, applied_taxes, pay_in_advance_event_id,
+  fixed_charges_from_datetime, fixed_charges_to_datetime, fixed_charges_duration_days,
+  true_up_parent_fee_id, pricing_unit_usage, applied_taxes, presentation_breakdowns, pay_in_advance_event_id,
   pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at
 ) VALUES (
   @organization_id, @id, @invoice_id, @subscription_id, @fee_type, @charge_id, @charge_filter_id, @fixed_charge_id,
@@ -166,7 +167,8 @@ INSERT INTO fees (
   @amount_details, @taxes_amount, @taxes_precise_amount, @taxes_rate, @taxes_base_rate, @precise_coupons_amount,
   @precise_credit_notes_amount, @currency, @pay_in_advance, @invoiceable, @payment_status,
   @from_datetime, @to_datetime, @charges_from_datetime, @charges_to_datetime, @billing_timestamp, @charges_duration_days,
-  @true_up_parent_fee_id, @pricing_unit_usage, @applied_taxes, @pay_in_advance_event_id,
+  @fixed_charges_from_datetime, @fixed_charges_to_datetime, @fixed_charges_duration_days,
+  @true_up_parent_fee_id, @pricing_unit_usage, @applied_taxes, @presentation_breakdowns, @pay_in_advance_event_id,
   @pay_in_advance_event_transaction_id, @succeeded_at, @failed_at, @refunded_at, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
@@ -185,8 +187,12 @@ UPDATE fees SET
   invoiceable = @invoiceable, payment_status = @payment_status,
   from_datetime = @from_datetime, to_datetime = @to_datetime, charges_from_datetime = @charges_from_datetime,
   charges_to_datetime = @charges_to_datetime, billing_timestamp = @billing_timestamp,
-  charges_duration_days = @charges_duration_days, true_up_parent_fee_id = @true_up_parent_fee_id,
+  charges_duration_days = @charges_duration_days,
+  fixed_charges_from_datetime = @fixed_charges_from_datetime, fixed_charges_to_datetime = @fixed_charges_to_datetime,
+  fixed_charges_duration_days = @fixed_charges_duration_days,
+  true_up_parent_fee_id = @true_up_parent_fee_id,
   pricing_unit_usage = @pricing_unit_usage, applied_taxes = @applied_taxes,
+  presentation_breakdowns = @presentation_breakdowns,
   pay_in_advance_event_id = @pay_in_advance_event_id,
   pay_in_advance_event_transaction_id = @pay_in_advance_event_transaction_id,
   succeeded_at = @succeeded_at, failed_at = @failed_at, refunded_at = @refunded_at,
@@ -239,10 +245,10 @@ DELETE FROM invoice_applied_taxes WHERE organization_id = @organization_id AND i
 -- name: CreateInvoiceAppliedTax :exec
 INSERT INTO invoice_applied_taxes (
   organization_id, id, invoice_id, tax_id, tax_code, tax_name, tax_description, tax_rate,
-  fees_amount, amount, precise_amount, currency, created_at
+  fees_amount, taxable_base_amount, amount, precise_amount, currency, created_at
 ) VALUES (
   @organization_id, @id, @invoice_id, @tax_id, @tax_code, @tax_name, @tax_description, @tax_rate,
-  @fees_amount, @amount, @precise_amount, @currency, @created_at
+  @fees_amount, @taxable_base_amount, @amount, @precise_amount, @currency, @created_at
 );
 
 -- name: ListInvoiceAppliedTaxes :many
@@ -251,10 +257,12 @@ SELECT * FROM invoice_applied_taxes WHERE organization_id = @organization_id AND
 -- name: CreateAdjustedFee :execrows
 INSERT INTO adjusted_fees (
   organization_id, id, invoice_id, fee_id, subscription_id, charge_id, charge_filter_id, fixed_charge_id,
-  fee_type, grouped_by, mode, invoice_display_name, units, unit_precise_amount, created_at
+  fee_type, grouped_by, charges_from_datetime, charges_to_datetime, fixed_charges_from_datetime,
+  fixed_charges_to_datetime, mode, invoice_display_name, units, unit_precise_amount, created_at
 ) VALUES (
   @organization_id, @id, @invoice_id, @fee_id, @subscription_id, @charge_id, @charge_filter_id, @fixed_charge_id,
-  @fee_type, @grouped_by, @mode, @invoice_display_name, @units, @unit_precise_amount, @created_at
+  @fee_type, @grouped_by, @charges_from_datetime, @charges_to_datetime, @fixed_charges_from_datetime,
+  @fixed_charges_to_datetime, @mode, @invoice_display_name, @units, @unit_precise_amount, @created_at
 )
 ON CONFLICT DO NOTHING;
 
@@ -290,3 +298,30 @@ SELECT * FROM invoice_error_details WHERE organization_id = @organization_id AND
 DELETE FROM invoice_error_details
 WHERE organization_id = @organization_id AND invoice_id = @invoice_id
   AND (@error_code::text = '' OR error_code = @error_code::text);
+
+-- name: CreateInvoiceCredit :execrows
+INSERT INTO invoice_credits (
+  organization_id, id, invoice_id, applied_coupon_id, credit_note_id, progressive_billing_invoice_id,
+  amount, currency, before_taxes, created_at
+) VALUES (
+  @organization_id, @id, @invoice_id, @applied_coupon_id, @credit_note_id, @progressive_billing_invoice_id,
+  @amount, @currency, @before_taxes, @created_at
+)
+ON CONFLICT DO NOTHING;
+
+-- name: ListInvoiceCreditsByInvoice :many
+SELECT * FROM invoice_credits WHERE organization_id = @organization_id AND invoice_id = @invoice_id ORDER BY created_at, id;
+
+-- name: ListInvoiceCreditsByAppliedCoupon :many
+SELECT * FROM invoice_credits WHERE organization_id = @organization_id AND applied_coupon_id = @applied_coupon_id ORDER BY created_at, id;
+
+-- name: ListInvoiceCreditsByCreditNote :many
+SELECT * FROM invoice_credits WHERE organization_id = @organization_id AND credit_note_id = @credit_note_id ORDER BY created_at, id;
+
+-- name: ListInvoiceCreditsByProgressiveBillingInvoice :many
+SELECT * FROM invoice_credits
+WHERE organization_id = @organization_id AND progressive_billing_invoice_id = @progressive_billing_invoice_id
+ORDER BY created_at, id;
+
+-- name: DeleteInvoiceCreditsByInvoice :exec
+DELETE FROM invoice_credits WHERE organization_id = @organization_id AND invoice_id = @invoice_id;

@@ -9,6 +9,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
+	"github.com/tanvoxyz/tanvo/libs/core/coupon"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
@@ -205,6 +206,10 @@ func testInvoice(t *testing.T, h Harness) {
 	t.Run("settlements and error details", func(t *testing.T) {
 		t.Parallel()
 		testInvoiceSettlementsAndErrors(t, h)
+	})
+	t.Run("credits", func(t *testing.T) {
+		t.Parallel()
+		testInvoiceCredits(t, h)
 	})
 	t.Run("organization isolation", func(t *testing.T) {
 		t.Parallel()
@@ -602,6 +607,11 @@ func testInvoiceFees(t *testing.T, h Harness) {
 	full.Properties = invoice.FeeProperties{
 		From: from, To: from.AddDate(0, 1, 0).Add(-time.Microsecond), ChargesFrom: from.AddDate(0, -1, 0),
 		ChargesTo: from.Add(-time.Microsecond), Timestamp: from.AddDate(0, 1, 0), ChargesDurationDays: 31,
+		FixedChargesFrom: from.AddDate(0, 1, 0), FixedChargesTo: from.AddDate(0, 2, 0), FixedChargesDurationDays: 30,
+	}
+	full.PresentationBreakdowns = []invoice.PresentationBreakdown{
+		{PresentationBy: map[string]*string{"region": ptr("eu"), "team": nil}, Units: money.MustParse("600000.5")},
+		{PresentationBy: map[string]*string{"region": ptr("us")}, Units: money.MustParse("400000")},
 	}
 	full.PricingUnitUsage = &invoice.PricingUnitUsage{
 		PricingUnitID: core.NewID[core.PricingUnitID](e.ids), ShortName: "CR", ConversionRate: money.MustParse("0.5"),
@@ -756,6 +766,7 @@ func testInvoiceAppliedTaxes(t *testing.T, h Harness) {
 	full.TaxID = core.NewID[core.TaxID](e.ids)
 	full.TaxDescription = ptr("French VAT")
 	full.TaxRate, full.FeesAmount, full.Amount, full.PreciseAmount = money.MustParse("20.5"), 10000, 2050, money.MustParse("2050.00001")
+	full.TaxableBaseAmount = 9000
 	minimal := mk("zero", inv1.ID)
 	other := mk("gst", inv2.ID)
 	e.tx(func(ctx context.Context, r port.Repos) error {
@@ -805,6 +816,9 @@ func testInvoiceAdjustedFees(t *testing.T, h Harness) {
 	full.ChargeFilterID = core.NewID[core.ChargeFilterID](e.ids)
 	full.FixedChargeID = core.NewID[core.FixedChargeID](e.ids)
 	full.GroupedBy = map[string]string{"region": "eu"}
+	pf := time.Date(2025, time.March, 1, 0, 0, 0, 0, time.UTC)
+	full.ChargesFrom, full.ChargesTo = pf, pf.AddDate(0, 1, 0)
+	full.FixedChargesFrom, full.FixedChargesTo = pf.AddDate(0, 1, 0), pf.AddDate(0, 2, 0)
 	full.InvoiceDisplayName = ptr("Adjusted")
 	full.Units, full.UnitPreciseAmount = money.MustParse("12.5"), money.MustParse("0.000123")
 	minimal := mk(inv1.ID, invoice.AdjustmentModeDisplayName)
@@ -1014,4 +1028,79 @@ func testInvoiceIsolation(t *testing.T, h Harness) {
 		equal(t, "ErrorDetails.ListByInvoice()", len(details), 1)
 		return nil
 	})
+}
+
+func testInvoiceCredits(t *testing.T, h Harness) {
+	e := newEnv(t, h)
+	_, be := e.org("Acme")
+	p := invoiceFixtureParents(e, be)
+	inv1 := invoiceFixtureMinimal(e, p, now)
+	inv2 := invoiceFixtureMinimal(e, p, at(time.Minute))
+	progressive := invoiceFixtureMinimal(e, p, at(2*time.Minute))
+	progressive.Type = invoice.TypeProgressiveBilling
+	invoiceFixtureCreate(e, inv1, inv2, progressive)
+	cp := couponFixtureFixed(e, p.org, "credit-coupon")
+	ac := coupon.Apply(cp, core.NewID[core.AppliedCouponID](e.ids), p.customers[0], coupon.Overrides{}, now)
+	cn := &creditnote.CreditNote{
+		ID: core.NewID[core.CreditNoteID](e.ids), OrganizationID: p.org, InvoiceID: inv2.ID, CustomerID: p.customers[0],
+		Status: creditnote.StatusDraft, Reason: creditnote.ReasonOther, Currency: invoiceEUR, CreatedAt: now, UpdatedAt: now,
+	}
+	e.tx(func(ctx context.Context, r port.Repos) error {
+		noErr(t, "Coupons.Create()", r.Coupons.Create(ctx, cp))
+		noErr(t, "AppliedCoupons.Create()", r.AppliedCoupons.Create(ctx, ac))
+		noErr(t, "CreditNotes.Create()", r.CreditNotes.Create(ctx, cn))
+		return nil
+	})
+	mk := func(inv core.InvoiceID, created time.Time, amount int64) *invoice.Credit {
+		return &invoice.Credit{
+			ID: core.NewID[core.InvoiceCreditID](e.ids), OrganizationID: p.org, InvoiceID: inv,
+			Amount: amount, Currency: invoiceEUR, CreatedAt: created,
+		}
+	}
+	// Created out of creation-instant order: lists are in creation order.
+	byCoupon := mk(inv1.ID, at(2*time.Minute), 100)
+	byCoupon.AppliedCouponID, byCoupon.BeforeTaxes = ac.ID, true
+	byCreditNote := mk(inv1.ID, at(time.Minute), 250)
+	byCreditNote.CreditNoteID = cn.ID
+	byProgressive := mk(inv1.ID, at(3*time.Minute), 0)
+	byProgressive.ProgressiveBillingInvoiceID, byProgressive.BeforeTaxes = progressive.ID, true
+	other := mk(inv2.ID, now, 50)
+	other.AppliedCouponID = ac.ID
+	e.tx(func(ctx context.Context, r port.Repos) error {
+		for _, c := range []*invoice.Credit{byCoupon, byCreditNote, byProgressive, other} {
+			noErr(t, "Create()", r.Credits.Create(ctx, c))
+		}
+		wantErr(t, "Create() same ID", r.Credits.Create(ctx, byCoupon), core.ErrConflict)
+		got, err := r.Credits.ListByInvoice(ctx, p.org, inv1.ID)
+		noErr(t, "ListByInvoice()", err)
+		equal(t, "ListByInvoice()", got, []*invoice.Credit{byCreditNote, byCoupon, byProgressive})
+		got, err = r.Credits.ListByAppliedCoupon(ctx, p.org, ac.ID)
+		noErr(t, "ListByAppliedCoupon()", err)
+		equal(t, "ListByAppliedCoupon()", got, []*invoice.Credit{other, byCoupon})
+		got, err = r.Credits.ListByCreditNote(ctx, p.org, cn.ID)
+		noErr(t, "ListByCreditNote()", err)
+		equal(t, "ListByCreditNote()", got, []*invoice.Credit{byCreditNote})
+		got, err = r.Credits.ListByProgressiveBillingInvoice(ctx, p.org, progressive.ID)
+		noErr(t, "ListByProgressiveBillingInvoice()", err)
+		equal(t, "ListByProgressiveBillingInvoice()", got, []*invoice.Credit{byProgressive})
+		got, err = r.Credits.ListByProgressiveBillingInvoice(ctx, p.org, inv2.ID)
+		noErr(t, "ListByProgressiveBillingInvoice() none", err)
+		equal(t, "ListByProgressiveBillingInvoice() none", len(got), 0)
+
+		noErr(t, "DeleteByInvoice()", r.Credits.DeleteByInvoice(ctx, p.org, inv1.ID))
+		got, err = r.Credits.ListByInvoice(ctx, p.org, inv1.ID)
+		noErr(t, "ListByInvoice() deleted", err)
+		equal(t, "ListByInvoice() deleted", len(got), 0)
+		got, err = r.Credits.ListByAppliedCoupon(ctx, p.org, ac.ID)
+		noErr(t, "ListByAppliedCoupon() after a delete", err)
+		equal(t, "ListByAppliedCoupon() after a delete", got, []*invoice.Credit{other})
+		return nil
+	})
+	if h.Name != "memstore" { // memstore has no referential integrity nor checks
+		orphan := mk(core.NewID[core.InvoiceID](e.ids), now, 1)
+		orphan.AppliedCouponID = ac.ID
+		wantErr(t, "Create() unknown invoice", e.txErr(func(ctx context.Context, r port.Repos) error {
+			return r.Credits.Create(ctx, orphan)
+		}), core.ErrNotFound)
+	}
 }

@@ -2,6 +2,8 @@ package metering
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"slices"
 	"time"
 
@@ -16,12 +18,31 @@ type CachedAggregation struct {
 	TransactionID string    `json:"transaction_id,omitempty"`
 	// Groups are the pricing group values the state is for; empty for an
 	// ungrouped charge.
-	Groups             Groups        `json:"groups,omitempty"`
-	CurrentAggregation money.Decimal `json:"current_aggregation"`
-	MaxAggregation     money.Decimal `json:"max_aggregation"`
+	Groups Groups `json:"groups,omitempty"`
+	// CurrentAggregation, MaxAggregation and MaxAggregationWithProration
+	// are nil when the state does not carry them: a recurring state holds
+	// only CurrentAggregation, a pay-in-advance state what its aggregation
+	// produced.
+	CurrentAggregation *money.Decimal `json:"current_aggregation,omitempty"`
+	MaxAggregation     *money.Decimal `json:"max_aggregation,omitempty"`
 	// MaxAggregationWithProration is MaxAggregation with proration applied.
-	MaxAggregationWithProration money.Decimal  `json:"max_aggregation_with_proration"`
+	MaxAggregationWithProration *money.Decimal `json:"max_aggregation_with_proration,omitempty"`
 	PresentationBreakdowns      []GroupedValue `json:"presentation_breakdowns,omitempty"`
+}
+
+// ErrMissingCachedValue reports a cached aggregation lacking a value an
+// aggregation reads; lago raises on it (BigDecimal(nil) in
+// app/services/billable_metrics/aggregations/base_service.rb:185-186 and
+// the services reading find_cached_aggregation).
+var ErrMissingCachedValue = errors.New("metering: cached aggregation has no value")
+
+// cachedValue returns v, or [ErrMissingCachedValue] naming the value when
+// it is nil.
+func cachedValue(v *money.Decimal, name string) (money.Decimal, error) {
+	if v == nil {
+		return money.Zero, fmt.Errorf("%w: %s", ErrMissingCachedValue, name)
+	}
+	return *v, nil
 }
 
 // CachedAggregations reads the cached aggregations of one charge (or charge
@@ -29,9 +50,10 @@ type CachedAggregation struct {
 type CachedAggregations interface {
 	// LatestInPeriod returns the most recent cached aggregation (by
 	// timestamp, then storage) whose timestamp, truncated to the second, is
-	// within [from, to] (also truncated), whose groups equal groups and
-	// whose transaction ID is not exclude when exclude is set. It returns
-	// nil when there is none.
+	// within [from, to] (also truncated), whose groups equal groups and,
+	// when exclude is set, whose transaction ID is set and is not exclude
+	// (SQL inequality, as lago's where.not, base_service.rb:223). It
+	// returns nil when there is none.
 	LatestInPeriod(ctx context.Context, from, to time.Time, groups Groups, exclude string) (*CachedAggregation, error)
 	// Before returns the cached aggregations stamped before t, most recent
 	// first.
@@ -59,7 +81,7 @@ func (c MemoryCache) LatestInPeriod(_ context.Context, from, to time.Time, group
 		if a.Timestamp.Before(from) || a.Timestamp.After(to) || !a.Groups.Equal(groups) {
 			continue
 		}
-		if exclude != "" && a.TransactionID == exclude {
+		if exclude != "" && (a.TransactionID == "" || a.TransactionID == exclude) {
 			continue
 		}
 		return &a, nil

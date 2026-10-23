@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/billingtest"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
@@ -170,4 +172,56 @@ func (f *fixture) errorDetails(id core.InvoiceID) int {
 	return len(billingtest.Read(f.Harness, func(ctx context.Context, r port.Repos) ([]*invoice.ErrorDetail, error) {
 		return r.ErrorDetails.ListByInvoice(ctx, f.OrgID(), id)
 	}))
+}
+
+// Pulling the taxes of an open invoice redates it: issued today unless a
+// recurring invoice keeps its anchor, and due after the customer's net
+// payment term as it is then, while the invoice keeps its snapshot.
+//
+// source: app/services/invoices/provider_taxes/pull_taxes_and_apply_service.rb:43-46,145-158
+func TestPullTaxesRedates(t *testing.T) {
+	tests := []struct {
+		name, source string
+		adjustment   core.IssuingDateAdjustment
+		wantIssuing  core.Date
+		wantDue      core.Date
+	}{
+		{
+			"align with finalization date", "spec/services/invoices/provider_taxes/pull_taxes_and_apply_service_spec.rb:200",
+			core.IssuingDateAdjustmentAlignWithFinalizationDate, core.NewDate(2026, time.February, 4), core.NewDate(2026, time.February, 14),
+		},
+		{
+			"keep anchor", "spec/services/invoices/provider_taxes/pull_taxes_and_apply_service_spec.rb:192",
+			core.IssuingDateAdjustmentKeepAnchor, core.NewDate(2026, time.February, 1), core.NewDate(2026, time.February, 11),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("source: %s", tt.source)
+			f := newFixture(t, billingDay)
+			f.UpdateBillingEntity(func(b *organization.BillingEntity) { b.IssuingDateAdjustment = tt.adjustment })
+			f.Taxes.Customers = map[core.CustomerID]bool{f.cust.ID: true}
+			f.Taxes.Compute = pendingTaxes
+			inv := f.billOne(f.subscribe())
+			if inv.Status != invoice.StatusOpen || inv.NetPaymentTermDays != 0 {
+				t.Fatalf("status, net payment term = %s, %d, want = open, 0", inv.Status, inv.NetPaymentTermDays)
+			}
+			f.UpdateCustomer(f.cust, func(c *customer.Customer) { c.NetPaymentTermDays = new(10) })
+			f.Clock.Set(billingtest.Date(2026, time.February, 4))
+			f.Taxes.Compute = providerTaxes("0.1")
+			if _, err := f.svc.Retry(f.Ctx, f.OrgID(), inv.ID); err != nil {
+				t.Fatalf("pull taxes: %v", err)
+			}
+			got := f.Invoice(inv.ID)
+			if got.Status != invoice.StatusFinalized {
+				t.Fatalf("status: got = %s, want = finalized", got.Status)
+			}
+			if got.IssuingDate != tt.wantIssuing || got.PaymentDueDate != tt.wantDue {
+				t.Errorf("issuing, due dates: got = %v, %v, want = %v, %v", got.IssuingDate, got.PaymentDueDate, tt.wantIssuing, tt.wantDue)
+			}
+			if got.NetPaymentTermDays != 0 {
+				t.Errorf("net payment term snapshot: got = %d, want = 0", got.NetPaymentTermDays)
+			}
+		})
+	}
 }

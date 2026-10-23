@@ -280,6 +280,7 @@ func TestChargeFeesGrouped(t *testing.T) {
 		f.adjust(&invoice.AdjustedFee{
 			InvoiceID: sc.Invoice.ID, SubscriptionID: f.sub.ID, ChargeID: c.ID, FeeType: core.FeeTypeCharge,
 			Mode: invoice.AdjustmentModeUnits, Units: dec("3"), GroupedBy: map[string]string{"cloud": "aws"},
+			ChargesFrom: sc.Boundaries.Charges.From, ChargesTo: sc.Boundaries.Charges.To,
 		})
 		res := f.run(sc, c, fees.Options{})
 		feeCount(t, res, 2)
@@ -382,6 +383,7 @@ func TestChargeFeesAdjusted(t *testing.T) {
 			sc := f.scope(f.sub, f.b, date(2022, time.April, 1), opts...)
 			a := tc.adj
 			a.InvoiceID, a.SubscriptionID, a.ChargeID, a.FeeType = sc.Invoice.ID, f.sub.ID, c.ID, core.FeeTypeCharge
+			a.ChargesFrom, a.ChargesTo = sc.Boundaries.Charges.From, sc.Boundaries.Charges.To
 			f.adjust(&a)
 			res := f.run(sc, c, fees.Options{SkipAdjustedFees: tc.skip})
 			feeCount(t, res, len(tc.want))

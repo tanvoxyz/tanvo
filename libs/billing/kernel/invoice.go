@@ -80,14 +80,27 @@ func SetInvoiceDates(inv *invoice.Invoice, env *CustomerEnv, k InvoiceKind, bill
 	inv.ExpectedFinalizationDate = invoice.ExpectedFinalizationDate(billingDate, f.GracePeriodDays)
 }
 
-// RedateOnFinalization moves the issuing and due dates of a draft being
-// finalized to today, unless the issuing date is kept (domain §22.12).
+// RedateOnFinalization redates a draft being finalized, or an open or
+// failed invoice whose taxes were just computed (domain §22.12): the
+// issuing date moves to today unless it is kept, and the due date is
+// always the issuing date plus the customer's applicable net payment term
+// at that moment, not the invoice's snapshot, which keeps its value (lago
+// app/services/invoices/refresh_draft_and_finalize_service.rb:22,36,74-87,
+// app/services/invoices/provider_taxes/pull_taxes_and_apply_service.rb:43-46,145-158).
 func RedateOnFinalization(inv *invoice.Invoice, env *CustomerEnv, k InvoiceKind, now time.Time) {
-	if invoice.KeepsIssuingDateOnFinalization(k.IssuingFacts(env)) {
-		return
+	if !invoice.KeepsIssuingDateOnFinalization(k.IssuingFacts(env)) {
+		inv.IssuingDate = env.Today(now)
 	}
+	inv.PaymentDueDate = invoice.PaymentDueDate(inv.IssuingDate, env.NetPaymentTermDays())
+}
+
+// RedateRegenerated dates an invoice regenerated from a voided one whose
+// taxes are computed: it is issued today and due after the customer's
+// applicable net payment term (lago
+// app/services/invoices/regenerate_from_voided_service.rb:52-53,72-78).
+func RedateRegenerated(inv *invoice.Invoice, env *CustomerEnv, now time.Time) {
 	inv.IssuingDate = env.Today(now)
-	inv.PaymentDueDate = invoice.PaymentDueDate(inv.IssuingDate, inv.NetPaymentTermDays)
+	inv.PaymentDueDate = invoice.PaymentDueDate(inv.IssuingDate, env.NetPaymentTermDays())
 }
 
 // FinalStatus returns the status a generated invoice leaves generating

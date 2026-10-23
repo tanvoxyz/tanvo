@@ -830,6 +830,7 @@
       "cache": [
         {
           "timestamp": "2026-09-28T00:00:00Z",
+          "transaction_id": "cached",
           "current_aggregation": "4",
           "max_aggregation": "10",
           "max_aggregation_with_proration": "0"
@@ -1459,6 +1460,7 @@
       "cache": [
         {
           "timestamp": "2026-09-28T00:00:00Z",
+          "transaction_id": "cached",
           "current_aggregation": "4",
           "max_aggregation": "6",
           "max_aggregation_with_proration": "0"

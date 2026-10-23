@@ -138,7 +138,8 @@ CREATE POLICY tenant_isolation ON invoice_subscriptions
 -- Fees. The billed periods (invoice.FeeProperties) are columns; their zero
 -- instants are stored as 0001-01-01 UTC. applied_taxes is the jsonb array of
 -- the fee's tax snapshots, read and written with the fee; pricing_unit_usage
--- is the jsonb snapshot of the pricing unit amounts.
+-- is the jsonb snapshot of the pricing unit amounts; presentation_breakdowns
+-- is the jsonb array of the fee's units by presentation group.
 CREATE TABLE fees (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -178,9 +179,13 @@ CREATE TABLE fees (
   charges_to_datetime timestamptz NOT NULL,
   billing_timestamp timestamptz NOT NULL,
   charges_duration_days integer NOT NULL,
+  fixed_charges_from_datetime timestamptz NOT NULL,
+  fixed_charges_to_datetime timestamptz NOT NULL,
+  fixed_charges_duration_days integer NOT NULL,
   true_up_parent_fee_id uuid,
   pricing_unit_usage jsonb,
   applied_taxes jsonb NOT NULL,
+  presentation_breakdowns jsonb NOT NULL,
   pay_in_advance_event_id uuid,
   pay_in_advance_event_transaction_id text,
   succeeded_at timestamptz,
@@ -197,7 +202,8 @@ CREATE TABLE fees (
   CONSTRAINT fees_payment_status_check CHECK (payment_status IN ('pending', 'succeeded', 'failed', 'refunded')),
   CONSTRAINT fees_currency_check CHECK (currency <> ''),
   CONSTRAINT fees_grouped_by_check CHECK (jsonb_typeof(grouped_by) = 'object'),
-  CONSTRAINT fees_applied_taxes_check CHECK (jsonb_typeof(applied_taxes) = 'array')
+  CONSTRAINT fees_applied_taxes_check CHECK (jsonb_typeof(applied_taxes) = 'array'),
+  CONSTRAINT fees_presentation_breakdowns_check CHECK (jsonb_typeof(presentation_breakdowns) = 'array')
 );
 
 CREATE INDEX fees_invoice_idx ON fees (organization_id, invoice_id) WHERE invoice_id IS NOT NULL;
@@ -226,11 +232,13 @@ CREATE TABLE invoice_applied_taxes (
   tax_description text,
   tax_rate numeric NOT NULL,
   fees_amount bigint NOT NULL,
+  taxable_base_amount bigint NOT NULL,
   amount bigint NOT NULL,
   precise_amount numeric NOT NULL,
   currency text NOT NULL,
   created_at timestamptz NOT NULL,
   PRIMARY KEY (organization_id, id),
+  CONSTRAINT invoice_applied_taxes_taxable_base_amount_check CHECK (taxable_base_amount >= 0),
   CONSTRAINT invoice_applied_taxes_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
   CONSTRAINT invoice_applied_taxes_invoice_fkey FOREIGN KEY (organization_id, invoice_id) REFERENCES invoices (organization_id, id) ON DELETE CASCADE
 );
@@ -243,7 +251,9 @@ CREATE POLICY tenant_isolation ON invoice_applied_taxes
 
 -- Adjustments of draft fees (§12.3). They survive the refreshes that delete
 -- and recreate the invoice's fees, so fee_id is a plain reference (no
--- foreign key); an adjustment is unique per fee.
+-- foreign key); an adjustment is unique per fee. The (fixed) charges period
+-- of the adjusted fee is kept to match the recreated fee; zero instants are
+-- stored as 0001-01-01 UTC.
 CREATE TABLE adjusted_fees (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -255,6 +265,10 @@ CREATE TABLE adjusted_fees (
   fixed_charge_id uuid,
   fee_type text NOT NULL,
   grouped_by jsonb NOT NULL,
+  charges_from_datetime timestamptz NOT NULL,
+  charges_to_datetime timestamptz NOT NULL,
+  fixed_charges_from_datetime timestamptz NOT NULL,
+  fixed_charges_to_datetime timestamptz NOT NULL,
   mode text NOT NULL,
   invoice_display_name text,
   units numeric NOT NULL,
@@ -320,4 +334,38 @@ CREATE INDEX invoice_error_details_invoice_idx ON invoice_error_details (organiz
 
 ALTER TABLE invoice_error_details ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON invoice_error_details
+  USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
+
+-- Credits applied to invoices (§11.11): coupon applications, credit-note
+-- consumptions and progressive-billing deductions; exactly one source is
+-- set. The credit note foreign key is in 90_fk_invoice.sql.
+CREATE TABLE invoice_credits (
+  organization_id uuid NOT NULL,
+  id uuid NOT NULL,
+  invoice_id uuid NOT NULL,
+  applied_coupon_id uuid,
+  credit_note_id uuid,
+  progressive_billing_invoice_id uuid,
+  amount bigint NOT NULL,
+  currency text NOT NULL,
+  before_taxes boolean NOT NULL,
+  created_at timestamptz NOT NULL,
+  PRIMARY KEY (organization_id, id),
+  CONSTRAINT invoice_credits_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
+  CONSTRAINT invoice_credits_invoice_fkey FOREIGN KEY (organization_id, invoice_id) REFERENCES invoices (organization_id, id) ON DELETE CASCADE,
+  CONSTRAINT invoice_credits_applied_coupon_fkey FOREIGN KEY (organization_id, applied_coupon_id) REFERENCES applied_coupons (organization_id, id),
+  CONSTRAINT invoice_credits_progressive_billing_invoice_fkey FOREIGN KEY (organization_id, progressive_billing_invoice_id) REFERENCES invoices (organization_id, id),
+  CONSTRAINT invoice_credits_source_check CHECK (num_nonnulls(applied_coupon_id, credit_note_id, progressive_billing_invoice_id) = 1),
+  CONSTRAINT invoice_credits_amount_check CHECK (amount >= 0),
+  CONSTRAINT invoice_credits_currency_check CHECK (currency <> '')
+);
+
+CREATE INDEX invoice_credits_invoice_idx ON invoice_credits (organization_id, invoice_id, created_at);
+CREATE INDEX invoice_credits_applied_coupon_idx ON invoice_credits (organization_id, applied_coupon_id) WHERE applied_coupon_id IS NOT NULL;
+CREATE INDEX invoice_credits_credit_note_idx ON invoice_credits (organization_id, credit_note_id) WHERE credit_note_id IS NOT NULL;
+CREATE INDEX invoice_credits_progressive_billing_invoice_idx ON invoice_credits (organization_id, progressive_billing_invoice_id)
+  WHERE progressive_billing_invoice_id IS NOT NULL;
+
+ALTER TABLE invoice_credits ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON invoice_credits
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');

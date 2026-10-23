@@ -37,6 +37,7 @@ type (
 	activationRuleKind               struct{}
 	lifetimeUsageKind                struct{}
 	eventKind                        struct{}
+	cachedAggregationKind            struct{}
 	invoiceKind                      struct{}
 	invoiceSubscriptionKind          struct{}
 	invoiceAppliedTaxKind            struct{}
@@ -46,6 +47,7 @@ type (
 	feeKind                          struct{}
 	feeAppliedTaxKind                struct{}
 	adjustedFeeKind                  struct{}
+	invoiceCreditKind                struct{}
 	paymentIntentKind                struct{}
 	creditNoteKind                   struct{}
 	creditNoteItemKind               struct{}
@@ -154,6 +156,8 @@ type (
 	LifetimeUsageID = ID[lifetimeUsageKind]
 	// EventID identifies an ingested event (domain §10.1).
 	EventID = ID[eventKind]
+	// CachedAggregationID identifies a cached aggregation state of a charge (domain §10.3).
+	CachedAggregationID = ID[cachedAggregationKind]
 	// InvoiceID identifies an invoice (domain §11).
 	InvoiceID = ID[invoiceKind]
 	// InvoiceSubscriptionID identifies an invoice subscription (domain §11.1).
@@ -172,6 +176,8 @@ type (
 	FeeAppliedTaxID = ID[feeAppliedTaxKind]
 	// AdjustedFeeID identifies a fee adjustment of a draft invoice (domain §12.3).
 	AdjustedFeeID = ID[adjustedFeeKind]
+	// InvoiceCreditID identifies a credit applied to an invoice (domain §11.11).
+	InvoiceCreditID = ID[invoiceCreditKind]
 	// PaymentIntentID identifies a hosted payment link (domain §15.1).
 	PaymentIntentID = ID[paymentIntentKind]
 	// CreditNoteID identifies a credit note (domain §13).

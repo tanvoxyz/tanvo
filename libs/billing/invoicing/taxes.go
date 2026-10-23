@@ -109,7 +109,7 @@ func (s *Service) retry(ctx context.Context, r port.Repos, inv *invoice.Invoice)
 	}
 	draft := inv.Status == invoice.StatusDraft
 	if draft {
-		err = s.deduct.ResetDraft(ctx, inv)
+		err = s.deduct.ResetDraft(ctx, r, inv)
 	} else {
 		err = s.giveBack(ctx, r, inv)
 	}
@@ -139,7 +139,7 @@ func (s *Service) giveBack(ctx context.Context, r port.Repos, inv *invoice.Invoi
 	if _, err := s.deduct.Restore(ctx, r, inv, deduct.RestoreOptions{}); err != nil {
 		return err
 	}
-	if err := s.d.Credits.DeleteByInvoice(ctx, inv.OrganizationID, inv.ID); err != nil {
+	if err := r.Credits.DeleteByInvoice(ctx, inv.OrganizationID, inv.ID); err != nil {
 		return fmt.Errorf("delete credits of invoice %s: %w", inv.ID, err)
 	}
 	inv.ProgressiveBillingCreditAmount, inv.CouponsAmount = 0, 0

@@ -14,6 +14,7 @@ import (
 // bindEvent binds the repositories of the event aggregates.
 func (t *txState) bindEvent(r *port.Repos) {
 	r.Events = eventLogRepo{t}
+	r.CachedAggregations = cachedAggregationRepo{t}
 }
 
 // eventLogRepo implements event.Log.

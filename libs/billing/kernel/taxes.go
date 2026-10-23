@@ -399,17 +399,18 @@ func (t *TaxResolver) Compute(ctx context.Context, d *Deps, in TaxInput) (TaxOut
 	out := TaxOutcome{Totals: invoice.ComputeTotals(feeAmounts, ded), TaxesRate: amounts.TaxesRate, Provider: useProvider}
 	for _, a := range amounts.AppliedTaxes {
 		row := &invoice.AppliedTax{
-			ID:             core.NewID[core.InvoiceAppliedTaxID](d.IDs),
-			OrganizationID: t.org,
-			InvoiceID:      in.Invoice.ID,
-			TaxCode:        a.TaxCode,
-			TaxName:        a.TaxName,
-			TaxRate:        a.TaxRate,
-			FeesAmount:     a.FeesAmountCents,
-			Amount:         a.AmountCents,
-			PreciseAmount:  money.NewFromInt(a.AmountCents),
-			Currency:       in.Invoice.Currency,
-			CreatedAt:      d.Now(),
+			ID:                core.NewID[core.InvoiceAppliedTaxID](d.IDs),
+			OrganizationID:    t.org,
+			InvoiceID:         in.Invoice.ID,
+			TaxCode:           a.TaxCode,
+			TaxName:           a.TaxName,
+			TaxRate:           a.TaxRate,
+			FeesAmount:        a.FeesAmountCents,
+			TaxableBaseAmount: a.TaxableBaseAmountCents,
+			Amount:            a.AmountCents,
+			PreciseAmount:     money.NewFromInt(a.AmountCents),
+			Currency:          in.Invoice.Currency,
+			CreatedAt:         d.Now(),
 		}
 		if a.TaxDescription != "" {
 			desc := a.TaxDescription

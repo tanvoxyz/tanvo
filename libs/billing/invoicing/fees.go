@@ -43,7 +43,7 @@ func (s *Service) subscriptionFees(ctx context.Context, r port.Repos, inv *invoi
 	for _, b := range rows {
 		env := b.env
 		sc := fees.Scope{Env: env, Invoice: inv, InvoiceSubscription: b.is, Boundaries: b.bounds, Timestamp: b.is.Timestamp}
-		opts := fees.Options{Recurring: b.is.Recurring}
+		opts := fees.Options{Recurring: b.is.Recurring, Cache: aggregationCache(r, env)}
 		var own []*invoice.Fee
 		history, err := r.InvoiceSubscriptions.ListBySubscription(ctx, inv.OrganizationID, env.Subscription.ID)
 		if err != nil {
@@ -98,6 +98,9 @@ func (s *Service) subscriptionFees(ctx context.Context, r port.Repos, inv *invoi
 			if res == nil {
 				continue
 			}
+			if err := s.cacheAggregations(ctx, r, inv.OrganizationID, res, false); err != nil {
+				return nil, nil, err
+			}
 			for _, f := range res.Fees {
 				if err := store(f); err != nil {
 					return nil, nil, err
@@ -136,12 +139,15 @@ func (s *Service) subscriptionFees(ctx context.Context, r port.Repos, inv *invoi
 				}
 				nsc := sc
 				nsc.Invoice, nsc.InvoiceSubscription = nil, nil
-				res, err := s.fees.ChargeFees(ctx, r, nsc, c, fees.Options{Recurring: true})
+				res, err := s.fees.ChargeFees(ctx, r, nsc, c, fees.Options{Recurring: true, Cache: opts.Cache})
 				if err != nil {
 					return nil, nil, err
 				}
 				if res == nil {
 					continue
+				}
+				if err := s.cacheAggregations(ctx, r, inv.OrganizationID, res, false); err != nil {
+					return nil, nil, err
 				}
 				if err := s.taxStandalone(ctx, r, env.Customer, env, res.Fees); err != nil {
 					return nil, nil, err

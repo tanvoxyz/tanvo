@@ -18,8 +18,8 @@ func (w *writer) creditNoteLayout(d *CreditNote) *layout {
 	l.Info = append(l.Info,
 		[2]string{w.l.T("credit_note.credit_note_number"), cn.Number},
 		[2]string{w.l.T("credit_note.invoice_number"), d.Invoice.Number})
-	if d.PurchaseOrderNumber != "" {
-		l.Info = append(l.Info, [2]string{w.l.T("credit_note.purchase_order_number"), d.PurchaseOrderNumber})
+	if po := d.Invoice.PurchaseOrderNumber; po != nil && *po != "" {
+		l.Info = append(l.Info, [2]string{w.l.T("credit_note.purchase_order_number"), *po})
 	}
 	l.Info = append(l.Info, [2]string{w.l.T("credit_note.issue_date"), w.date(cn.IssuingDate)})
 	l.Meta = append(l.Meta, metadataRows(&d.Customer)...)

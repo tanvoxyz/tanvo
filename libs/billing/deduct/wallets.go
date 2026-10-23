@@ -140,7 +140,7 @@ func bookedTaxes(inv *invoice.Invoice, fees []*invoice.Fee, appliedTaxes []*invo
 	for _, t := range appliedTaxes {
 		row := tax.InvoiceAppliedTax{
 			TaxCode: t.TaxCode, TaxName: t.TaxName, TaxRate: t.TaxRate, Provider: t.TaxID.IsZero(),
-			AmountCents: t.Amount, FeesAmountCents: t.FeesAmount,
+			AmountCents: t.Amount, FeesAmountCents: t.FeesAmount, TaxableBaseAmountCents: t.TaxableBaseAmount,
 		}
 		if t.TaxDescription != nil {
 			row.TaxDescription = *t.TaxDescription

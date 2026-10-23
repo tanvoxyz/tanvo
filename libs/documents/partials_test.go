@@ -118,14 +118,14 @@ func TestGraduatedPercentageRates(t *testing.T) {
 // presentationTable renders _presentation_breakdowns for one fee of the
 // spec's "compute" charge: displayed keys region (unless hideRegion) and
 // department; a "" value stands for a null one.
-func presentationTable(t *testing.T, hideRegion bool, units string, groupedBy map[string]string, filter *string, breakdowns ...PresentationBreakdown) [][]string {
+func presentationTable(t *testing.T, hideRegion bool, units string, groupedBy map[string]string, filter *string, breakdowns ...invoice.PresentationBreakdown) [][]string {
 	t.Helper()
 	g := &ids{}
 	plan := newPlan(g, "plan", nil)
 	sub := newSubscription(g, plan)
 	keys := `{"value":"region","options":{"display_in_invoice":` + map[bool]string{true: "false", false: "true"}[hideRegion] + `}},` +
 		`{"value":"department","options":{"display_in_invoice":true}}`
-	if breakdowns != nil && breakdowns[0].PresentationBy["country"] != "" && hideRegion {
+	if breakdowns != nil && breakdowns[0].PresentationBy["country"] != nil && hideRegion {
 		keys = `{"value":"country","options":{"display_in_invoice":false}}`
 	}
 	c, m := metricCharge(g, plan, "metric", func(c *catalog.Charge) {
@@ -139,7 +139,7 @@ func presentationTable(t *testing.T, hideRegion bool, units string, groupedBy ma
 		cf := catalog.ChargeFilter{ID: g.filter(), ChargeID: c.ID, InvoiceDisplayName: filter, Values: map[string][]string{"region": {"eu"}}}
 		f.ChargeFilter, f.Fee.ChargeFilterID = &cf, cf.ID
 	}
-	f.PresentationBreakdowns = breakdowns
+	f.Fee.PresentationBreakdowns = breakdowns
 	d := &Invoice{Party: staticParty(), Subscriptions: []Subscription{sub}, Fees: []Fee{f}}
 	w := newWriter(testCatalog(t), &d.Party, "", usd())
 	w.subs[sub.Subscription.ID] = &d.Subscriptions[0]
@@ -151,25 +151,29 @@ func presentationTable(t *testing.T, hideRegion bool, units string, groupedBy ma
 	return out
 }
 
-func pb(units string, by ...string) PresentationBreakdown {
-	m := map[string]string{}
+func pb(units string, by ...string) invoice.PresentationBreakdown {
+	m := map[string]*string{}
 	for i := 0; i+1 < len(by); i += 2 {
-		m[by[i]] = by[i+1]
+		if by[i+1] == "" {
+			m[by[i]] = nil
+		} else {
+			m[by[i]] = ptr(by[i+1])
+		}
 	}
-	return PresentationBreakdown{PresentationBy: m, Units: d(units)}
+	return invoice.PresentationBreakdown{PresentationBy: m, Units: d(units)}
 }
 
 func TestPresentationBreakdowns(t *testing.T) {
 	const src = "spec/views/app/views/templates/invoices/v4/_presentation_breakdowns.slim_spec.rb:"
 	eu := ptr("eu")
-	scenario1 := []PresentationBreakdown{
+	scenario1 := []invoice.PresentationBreakdown{
 		pb("40", "region", "eu", "department", "engineering"),
 		pb("35", "region", "us", "department", "engineering"),
 		pb("25", "region", "us", "department", "sales"),
 		pb("10", "region", "us", "department", ""),
 	}
-	euBreakdowns := func(a, b, c string) []PresentationBreakdown {
-		return []PresentationBreakdown{
+	euBreakdowns := func(a, b, c string) []invoice.PresentationBreakdown {
+		return []invoice.PresentationBreakdown{
 			pb(a, "region", "eu", "department", "engineering"),
 			pb(b, "region", "eu", "department", "sales"),
 			pb(c, "region", "eu", "department", ""),
@@ -181,7 +185,7 @@ func TestPresentationBreakdowns(t *testing.T) {
 		units      string
 		groupedBy  map[string]string
 		filter     *string
-		breakdowns []PresentationBreakdown
+		breakdowns []invoice.PresentationBreakdown
 		want       string
 	}{
 		{"scenario 1", "76", false, "110", nil, nil, scenario1, "compute|110;eu, engineering|40;us, engineering|35;us, sales|25;us|10"},
@@ -192,8 +196,8 @@ func TestPresentationBreakdowns(t *testing.T) {
 		{"scenario 3, region hidden", "248", true, "50", nil, eu, euBreakdowns("30", "15", "5"), "compute • eu|50;engineering|30;sales|15;|5"},
 		{"scenario 4", "347", false, "50", map[string]string{"region": "eu"}, eu, euBreakdowns("30", "15", "5"), "compute • eu • eu|50;eu, engineering|30;eu, sales|15;eu|5"},
 		{"scenario 4, region hidden", "375", true, "50", map[string]string{"region": "eu"}, eu, euBreakdowns("30", "15", "5"), "compute • eu • eu|50;engineering|30;sales|15;|5"},
-		{"scenario 5", "281", false, "100", nil, nil, []PresentationBreakdown{pb("60", "country", "us"), pb("40", "country", "eu")}, ""},
-		{"scenario 5, key hidden", "299", true, "100", nil, nil, []PresentationBreakdown{pb("60", "country", "us"), pb("40", "country", "eu")}, ""},
+		{"scenario 5", "281", false, "100", nil, nil, []invoice.PresentationBreakdown{pb("60", "country", "us"), pb("40", "country", "eu")}, ""},
+		{"scenario 5, key hidden", "299", true, "100", nil, nil, []invoice.PresentationBreakdown{pb("60", "country", "us"), pb("40", "country", "eu")}, ""},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			t.Logf("source: %s%s", src, c.line)

@@ -237,8 +237,9 @@ func fixedFee(t *testing.T, g *ids, sub *Subscription, s fixedSpec) Fee {
 		if s.details != nil {
 			f.AmountDetails = detailsJSON(t, s.details)
 		}
+		f.Properties.FixedChargesFrom, f.Properties.FixedChargesTo = s.period.From, s.period.To
 	})
-	return Fee{Fee: f, FixedCharge: &fc, AddOn: &addOn, Period: s.period}
+	return Fee{Fee: f, FixedCharge: &fc, AddOn: &addOn}
 }
 
 // graduatedFixedDetails are the graduated amount details of the v4 spec's

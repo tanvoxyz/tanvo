@@ -7,8 +7,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/google/uuid"
-
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
@@ -20,8 +18,7 @@ import (
 )
 
 // Deps are the dependencies of every billing service. Tx, Events, Clock,
-// IDs, Webhooks and Credits are required; Taxes, Refunds and Logger are
-// optional.
+// IDs and Webhooks are required; Taxes, Refunds and Logger are optional.
 type Deps struct {
 	// Tx runs the multi-step writes.
 	Tx port.Transactor
@@ -33,9 +30,6 @@ type Deps struct {
 	IDs core.IDGenerator
 	// Webhooks records the domain events.
 	Webhooks port.WebhookEmitter
-	// Credits stores the invoice credits (coupons, credit notes and
-	// progressive billing applied to invoices).
-	Credits CreditRepository
 	// Taxes computes the taxes of customers taxed by a tax provider; nil
 	// means no provider.
 	Taxes TaxProvider
@@ -62,8 +56,6 @@ func (d *Deps) Check() error {
 		return fmt.Errorf("%w: IDs", ErrMissingDependency)
 	case d.Webhooks == nil:
 		return fmt.Errorf("%w: Webhooks", ErrMissingDependency)
-	case d.Credits == nil:
-		return fmt.Errorf("%w: Credits", ErrMissingDependency)
 	}
 	if d.Logger == nil {
 		d.Logger = slog.Default()
@@ -73,83 +65,6 @@ func (d *Deps) Check() error {
 
 // Now returns the current instant in UTC.
 func (d *Deps) Now() time.Time { return d.Clock.Now().UTC() }
-
-// CreditID identifies an invoice credit. libs/core has no identifier kind
-// for it yet (see [Credit]).
-type CreditID = uuid.UUID
-
-// Credit is an amount credited on an invoice before or after taxes: a
-// coupon application, a credit-note consumption or a progressive-billing
-// credit (domain §22.7). Lago stores these rows in `credits`; libs/core has
-// no such entity, so billing defines the port (to move to libs/core).
-type Credit struct {
-	// ID identifies the credit.
-	ID CreditID
-	// OrganizationID is the owning organization.
-	OrganizationID core.OrganizationID
-	// InvoiceID is the credited invoice.
-	InvoiceID core.InvoiceID
-	// AppliedCouponID is set for a coupon credit.
-	AppliedCouponID core.AppliedCouponID
-	// CreditNoteID is set for a credit-note credit.
-	CreditNoteID core.CreditNoteID
-	// ProgressiveBillingInvoiceID is set for a progressive-billing credit:
-	// the progressive invoice whose fees are deducted.
-	ProgressiveBillingInvoiceID core.InvoiceID
-	// Amount is the credited amount, in minor units of Currency.
-	Amount int64
-	// Currency is the invoice currency.
-	Currency money.Currency
-	// BeforeTaxes is true for coupons and progressive billing.
-	BeforeTaxes bool
-	// CreatedAt is the creation instant.
-	CreatedAt time.Time
-}
-
-// CreditKind tells which deduction a [Credit] records.
-type CreditKind int
-
-// Credit kinds.
-const (
-	// CreditKindCoupon is a coupon application.
-	CreditKindCoupon CreditKind = iota + 1
-	// CreditKindCreditNote is a credit-note consumption.
-	CreditKindCreditNote
-	// CreditKindProgressiveBilling is a progressive-billing credit.
-	CreditKindProgressiveBilling
-)
-
-// Kind returns the kind of the credit.
-func (c *Credit) Kind() CreditKind {
-	switch {
-	case !c.AppliedCouponID.IsZero():
-		return CreditKindCoupon
-	case !c.CreditNoteID.IsZero():
-		return CreditKindCreditNote
-	default:
-		return CreditKindProgressiveBilling
-	}
-}
-
-// CreditRepository stores invoice credits. It joins the transaction carried
-// by ctx like the repositories of [port.Repos].
-type CreditRepository interface {
-	// Create inserts c.
-	Create(ctx context.Context, c *Credit) error
-	// ListByInvoice returns the credits of an invoice in creation order.
-	ListByInvoice(ctx context.Context, org core.OrganizationID, invoice core.InvoiceID) ([]*Credit, error)
-	// ListByAppliedCoupon returns the credits of an applied coupon in
-	// creation order.
-	ListByAppliedCoupon(ctx context.Context, org core.OrganizationID, applied core.AppliedCouponID) ([]*Credit, error)
-	// ListByCreditNote returns the credits consuming a credit note in
-	// creation order.
-	ListByCreditNote(ctx context.Context, org core.OrganizationID, cn core.CreditNoteID) ([]*Credit, error)
-	// ListByProgressiveBillingInvoice returns the credits deducting a
-	// progressive-billing invoice in creation order.
-	ListByProgressiveBillingInvoice(ctx context.Context, org core.OrganizationID, invoice core.InvoiceID) ([]*Credit, error)
-	// DeleteByInvoice deletes the credits of an invoice (draft refresh).
-	DeleteByInvoice(ctx context.Context, org core.OrganizationID, invoice core.InvoiceID) error
-}
 
 // TaxRequest asks a tax provider for the taxes of an invoice (or of
 // standalone in-advance fees when Invoice is nil).

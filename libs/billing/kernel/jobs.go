@@ -106,6 +106,9 @@ type CreditNoteArgs struct {
 type InAdvanceChargeArgs struct {
 	// SubscriptionID is the subscription the event belongs to.
 	SubscriptionID core.SubscriptionID `json:"subscription_id"`
+	// EventID is the stored event's ID, set on the fees it bills (lago
+	// fees.pay_in_advance_event_id); zero when unknown.
+	EventID core.EventID `json:"event_id,omitzero"`
 	// TransactionID is the event's transaction ID.
 	TransactionID string `json:"transaction_id"`
 	// Timestamp is the event's timestamp.

@@ -262,6 +262,8 @@ func (s *scenario) invAdjustFee(f *invoice.Fee, units, unitPrice string) *invoic
 		SubscriptionID: f.SubscriptionID, ChargeID: f.ChargeID, ChargeFilterID: f.ChargeFilterID,
 		FixedChargeID: f.FixedChargeID, FeeType: f.Type, GroupedBy: f.GroupedBy,
 		Mode: mode, Units: money.MustParse(units), UnitPreciseAmount: price, CreatedAt: s.Now(),
+		ChargesFrom: f.Properties.ChargesFrom, ChargesTo: f.Properties.ChargesTo,
+		FixedChargesFrom: f.Properties.FixedChargesFrom, FixedChargesTo: f.Properties.FixedChargesTo,
 	}
 	s.tx(func(ctx context.Context, r port.Repos) error { return r.AdjustedFees.Create(ctx, a) })
 	return s.invRefresh(f.InvoiceID)

@@ -92,6 +92,9 @@ type Repos struct {
 
 	// Events is the ingestion log deduplicating events (domain §10.1).
 	Events event.Log
+	// CachedAggregations stores the running aggregation states of charges
+	// (domain §10.3).
+	CachedAggregations event.CachedAggregationRepository
 
 	// Invoices stores invoices (domain §11).
 	Invoices invoice.Repository
@@ -109,6 +112,9 @@ type Repos struct {
 	InvoiceCustomSections invoice.CustomSectionRepository
 	// ErrorDetails stores invoice error details.
 	ErrorDetails invoice.ErrorDetailRepository
+	// Credits stores the coupon, credit-note and progressive-billing
+	// credits of invoices (domain §11.11).
+	Credits invoice.CreditRepository
 
 	// CreditNotes stores credit notes with items and taxes (domain §13).
 	CreditNotes creditnote.Repository

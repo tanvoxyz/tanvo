@@ -274,11 +274,14 @@ func (s *Service) commitmentUsage(ctx context.Context, r port.Repos, sc Scope, p
 // [start, end): its subscription period for a subscription fee, its
 // charges (or fixed charges) period otherwise.
 func inCommitmentPeriod(f *invoice.Fee, start, end time.Time) bool {
-	from, to := f.Properties.ChargesFrom, f.Properties.ChargesTo
+	var from, to time.Time
 	switch f.Type {
 	case core.FeeTypeSubscription:
 		from, to = f.Properties.From, f.Properties.To
-	case core.FeeTypeCharge, core.FeeTypeFixedCharge:
+	case core.FeeTypeCharge:
+		from, to = f.Properties.ChargesPeriod()
+	case core.FeeTypeFixedCharge:
+		from, to = f.Properties.FixedChargesPeriod()
 	default:
 		return false
 	}
@@ -343,7 +346,10 @@ func (w *recurringWindow) holds(f *invoice.Fee, sc Scope) bool {
 	if w.excludeCurrent && f.InvoiceID == sc.Invoice.ID {
 		return false
 	}
-	from, to := f.Properties.ChargesFrom, f.Properties.ChargesTo
+	from, to := f.Properties.ChargesPeriod()
+	if f.Type == core.FeeTypeFixedCharge {
+		from, to = f.Properties.FixedChargesPeriod()
+	}
 	if w.subscriptionPeriod {
 		from, to = f.Properties.From, f.Properties.To
 	}

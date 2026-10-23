@@ -207,7 +207,13 @@ func (s *Service) regenerateVoided(ctx context.Context, r port.Repos, old *invoi
 		return nil, fmt.Errorf("load fees of invoice %s: %w", old.ID, err)
 	}
 	k := kindOf(old, iss)
-	inv := kernel.NewInvoice(s.d, cenv, k, old.Currency, s.d.Now())
+	// The generating dates, kept while taxes are pending, come from the
+	// voided invoice's creation as a non-recurring invoice, with the grace
+	// period for subscription invoices only (lago
+	// app/services/invoices/regenerate_from_voided_service.rb:278-284,
+	// app/services/invoices/create_generating_service.rb:15,64-81).
+	dating := kernel.InvoiceKind{Type: old.Type, UsesGracePeriod: old.Type == invoice.TypeSubscription}
+	inv := kernel.NewInvoice(s.d, cenv, dating, old.Currency, old.CreatedAt)
 	inv.Type = old.Type
 	inv.VoidedInvoiceID = old.ID
 	inv.PaymentMethodType, inv.PaymentMethodID = old.PaymentMethodType, old.PaymentMethodID
@@ -242,6 +248,11 @@ func (s *Service) regenerateVoided(ctx context.Context, r port.Repos, old *invoi
 	}
 	if inv.Type == invoice.TypeAdvanceCharges {
 		inv.PaymentStatus = core.PaymentStatusSucceeded
+	}
+	// Taxes still pending keep the generating dates until they are pulled
+	// (lago regenerate_from_voided_service.rb:43-47).
+	if !st.pending {
+		kernel.RedateRegenerated(inv, cenv, s.d.Now())
 	}
 	if err := s.finish(ctx, r, cenv, inv, k, st, modeFinalize); err != nil {
 		return nil, err

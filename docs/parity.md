@@ -340,8 +340,8 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Store queries: count, sum, max, latest, unique count, weighted sum, grouped, prorated, breakdown, last event, distinct values | `app/services/events/stores/base_store.rb` | libs/eventstore | logic done | |
 | Billing-period filters on store queries | `app/services/events/stores/` | libs/eventstore | logic done | |
 | ClickHouse raw, enriched and dead-letter tables | `db/clickhouse_migrate/` | libs/eventstore | planned | |
-| Pre-aggregated usage buckets (15 minutes in Lago) | `app/models/clickhouse/usage_bucket.rb`, `app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | logic done | 15-minute buckets keyed by dimension values, maintained in the event write on PostgreSQL and ClickHouse; exact window edges read from the events; undeclared filter values folded; in-advance, prorated, recurring and target-wallet charges read the events; `RepairBuckets` and `BucketStats` still need their periodic jobs (apps/server) |
-| Cached aggregations for recurring metrics | `app/models/cached_aggregation.rb` | libs/metering | logic done | |
+| Pre-aggregated usage buckets (15 minutes in Lago) | `app/models/clickhouse/usage_bucket.rb`, `app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | logic done | 15-minute buckets keyed by dimension values, maintained in the event write on PostgreSQL and ClickHouse; exact window edges read from the events; undeclared filter values folded; in-advance, prorated, recurring and target-wallet charges read the events; `RepairBuckets` runs every 10 minutes from the start of the previous run, kept in ClickHouse; `BucketStats` is reported hourly (histograms and a warning past 10 000 rows per bucket); dropping an oversized definition is not automated yet |
+| Cached aggregations for recurring metrics | `app/models/cached_aggregation.rb` | libs/metering | done | Stored by invoicing (a new row per pay-in-advance event, at most one per charge, group and instant for recurring states) and read by fees and current usage (domain §10.3). Lookups filter by charge filter only when one is set and, while an event is priced, drop states without an event transaction (`app/services/billable_metrics/aggregations/base_service.rb:223-224`); aggregation values are nullable. No `current_amount` (custom aggregations are not ported) |
 
 ### 1.19 Usage
 
@@ -503,9 +503,9 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Add-on and one-off fees | `app/services/fees/one_off_service.rb` | libs/billing | logic done | |
 | Credit fees for wallet top-ups | `app/services/fees/paid_credit_service.rb` | libs/billing | logic done | The unit amount drops the fraction of a cent of the wallet rate, as lago's bigint `unit_amount_cents` does (`app/models/wallet_transaction.rb:99`); the precise unit amount is that unit amount (`paid_credit_service.rb:40`). A void of the credit invoice fails the purchase (deviation, see the credit invoice row) |
 | Commitment fees | `app/services/fees/commitments/` | libs/billing | logic done | |
-| Adjusted fees on draft invoices (units, unit amount, display name) | `app/models/adjusted_fee.rb`, `app/services/adjusted_fees/` | libs/billing | logic done | |
+| Adjusted fees on draft invoices (units, unit amount, display name) | `app/models/adjusted_fee.rb`, `app/services/adjusted_fees/` | libs/billing | logic done | An adjustment applies to the fee of the same charges (or fixed charges) boundaries, as lago's `matching_charge_boundaries` (`app/models/adjusted_fee.rb:35-39`) |
 | Fee taxes | `app/models/fee/applied_tax.rb` | libs/tax | planned | |
-| Presentation breakdowns of fees | `app/models/` (`presentation_breakdowns`) | libs/billing | planned | |
+| Presentation breakdowns of fees | `app/models/` (`presentation_breakdowns`) | libs/billing | in progress | Stored on the fee (lago has a `presentation_breakdowns` table) and printed on invoices with null values; billing does not compute them yet |
 | Fees API (list, retrieve, update payment status, delete unattached) | `app/controllers/api/v1/fees_controller.rb` | apps/server | planned | |
 | Fee webhook `fee.created` (in-advance) | `app/services/webhooks/fees/pay_in_advance_created_service.rb` | libs/webhooks | planned | |
 
@@ -517,7 +517,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Taxes on billing entities, customers, plans, charges, fixed charges, add-ons, commitments | join tables in `app/models/` | libs/tax | planned | |
 | Tax resolution order (explicit, add-on, charge, fixed charge, commitment, plan, customer, billing entity) | `app/services/fees/apply_taxes_service.rb` | libs/tax | logic done | |
 | Rate card taxes overriding plan, customer and billing entity taxes | `app/models/rate_card.rb` (`rate_cards_taxes`) | libs/tax | planned | A rate card's taxes are its charge's taxes in the one catalog |
-| Invoice applied taxes with taxable base and allocation | `app/services/invoices/apply_taxes_service.rb` | libs/tax | logic done | |
+| Invoice applied taxes with taxable base and allocation | `app/services/invoices/apply_taxes_service.rb` | libs/tax | logic done | The provider's taxable base is stored on the invoice applied tax and printed on invoices (`app/models/invoice/applied_tax.rb:31-41`) |
 | Credit note applied taxes | `app/services/credit_notes/apply_taxes_service.rb` | libs/tax | logic done | |
 | Provider-computed taxes (Anrok, Avalara) with special codes and base rate | `app/services/invoices/apply_provider_taxes_service.rb` | libs/tax | logic done | |
 | EU VAT rates per country with exceptions | `app/services/taxes/` (ibericode rates) | libs/tax | logic done | |

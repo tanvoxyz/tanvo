@@ -13,6 +13,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
+	"github.com/tanvoxyz/tanvo/libs/core/event"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
@@ -44,9 +45,9 @@ type Options struct {
 	// charge (lago filter_by_charge_id). A filter matching no charge of
 	// the plan fails with core.ErrNotFound.
 	ChargeIDs []core.ChargeID
-	// Cache returns the cached aggregations of a charge; nil computes
-	// every charge from the events.
-	Cache func(charge core.ChargeID, filter core.ChargeFilterID) metering.CachedAggregations
+	// Cache returns the cached aggregations of a scope; nil reads the
+	// stored ones (domain §10.3).
+	Cache func(sc event.CachedAggregationScope) metering.CachedAggregations
 	// Timestamp is the instant of the usage; zero means the clock's.
 	Timestamp time.Time
 }
@@ -149,7 +150,11 @@ func (s *Service) EnvUsage(ctx context.Context, r port.Repos, env *kernel.Subscr
 		}
 	}
 	sc := fees.Scope{Env: env, Boundaries: b, Timestamp: now}
-	fo := fees.Options{CurrentUsage: true, SkipZeroUnitsFilters: opts.SkipZeroUnitsFilters, SkipAdjustedFees: true, Cache: opts.Cache}
+	cache := opts.Cache
+	if cache == nil {
+		cache = kernel.AggregationCache(r, env.OrganizationID())
+	}
+	fo := fees.Options{CurrentUsage: true, SkipZeroUnitsFilters: opts.SkipZeroUnitsFilters, SkipAdjustedFees: true, Cache: cache}
 	type metricFee struct {
 		name string
 		fee  *invoice.Fee

@@ -45,7 +45,7 @@ func (b *boundaries) fee(typ core.FeeType, p period.Period, mod func(f *Fee)) *F
 		f.Charge, f.Metric, f.Fee.ChargeID = &c, &m, c.ID
 		f.Fee.Properties.ChargesFrom, f.Fee.Properties.ChargesTo = p.From, p.To
 	case core.FeeTypeFixedCharge:
-		f.Period = p
+		f.Fee.Properties.FixedChargesFrom, f.Fee.Properties.FixedChargesTo = p.From, p.To
 	}
 	if mod != nil {
 		mod(f)
@@ -100,11 +100,6 @@ func TestGroupFeesByBillingPeriod(t *testing.T) {
 	}{
 		{"commitment with properties", "181", commitment(dec, nil), [2]string{"2025-12-01", "2025-12-31"}},
 		{"commitment without properties, plan paid in arrears", "213", commitment(period.Period{}, nil), [2]string{"2025-12-01", "2025-12-31"}},
-		{
-			"commitment without properties, plan paid in advance", "262",
-			commitment(period.Period{}, func(f *Fee) { f.Period = span("2025-11-01 00:00:00", "2025-11-30 23:59:59") }),
-			[2]string{"2025-11-01", "2025-11-30"},
-		},
 		{"subscription fee without properties", "346", b.fee(core.FeeTypeSubscription, period.Period{}, nil), [2]string{"2025-12-01", "2025-12-31"}},
 		{"charge fee without properties", "367", b.fee(core.FeeTypeCharge, period.Period{}, nil), [2]string{"2025-12-01", "2025-12-31"}},
 		{"fixed charge fee without properties", "390", b.fee(core.FeeTypeFixedCharge, period.Period{}, nil), [2]string{"2025-12-01", "2025-12-31"}},
@@ -181,7 +176,7 @@ func TestBillingPeriodFor(t *testing.T) {
 			"reconciliation fee", "722",
 			b.fee(core.FeeTypeCharge, dec, func(f *Fee) {
 				f.Charge.PayInAdvance, f.Metric.Recurring, f.Metric.AggregationType = true, true, catalog.AggregationTypeSum
-				f.AdvanceInterval = jan
+				f.PayInAdvanceInterval = &jan
 			}),
 			[2]string{"2026-01-01", "2026-01-31"},
 		},

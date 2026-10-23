@@ -146,7 +146,9 @@ func TestCreditNotePurchaseOrderNumber(t *testing.T) {
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			d := creditNoteData("CN-202510-099", 1000, nil)(t, &ids{})
-			d.PurchaseOrderNumber = c.po
+			if c.po != "" {
+				d.Invoice.PurchaseOrderNumber = &c.po
+			}
 			w := newWriter(testCatalog(t), &d.Party, "", d.CreditNote.Currency)
 			got := strings.Join(w.creditNoteLayout(d).texts(), "\n")
 			label := w.l.T("credit_note.purchase_order_number")

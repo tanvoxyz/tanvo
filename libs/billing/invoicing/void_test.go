@@ -3,13 +3,17 @@ package invoicing_test
 import (
 	"context"
 	"errors"
+	"slices"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/billingtest"
 	"github.com/tanvoxyz/tanvo/libs/billing/invoicing"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/coupon"
+	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
@@ -122,6 +126,130 @@ func TestRegenerateFromVoided(t *testing.T) {
 	var re *core.RuleError
 	if _, err := f.svc.Regenerate(f.Ctx, f.OrgID(), inv.ID, invoicing.RegenerateInput{}); !errors.As(err, &re) {
 		t.Errorf("regenerate a finalized invoice: err = %v, want = a rule error", err)
+	}
+}
+
+func TestRegeneratePurchaseOrderNumber(t *testing.T) {
+	tests := []struct {
+		name, source string
+		po           *string
+		want         *string
+		err          string
+	}{
+		{"inherited", "spec/services/invoices/regenerate_from_voided_service_spec.rb:100", nil, new("PO-ORIGINAL"), ""},
+		{"replaced and trimmed", "spec/services/invoices/regenerate_from_voided_service_spec.rb:113", new("  PO-EDITED  "), new("PO-EDITED"), ""},
+		{"cleared by a blank", "spec/services/invoices/regenerate_from_voided_service_spec.rb:131", new("   "), nil, ""},
+		{"too long", "tanvo", new(strings.Repeat("p", core.MaxPurchaseOrderNumberLength+1)), nil, "purchase_order_number:" + core.CodeTooLong},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("source: %s", tt.source)
+			f := newFixture(t, billingDay)
+			draft := f.billOne(f.subscribe(func(s *subscription.Subscription) { s.PurchaseOrderNumber = new("PO-ORIGINAL") }))
+			if _, err := f.svc.FinalizeDraft(f.Ctx, f.OrgID(), draft.ID); err != nil {
+				t.Fatalf("finalize: %v", err)
+			}
+			if _, err := f.svc.Void(f.Ctx, f.OrgID(), draft.ID, invoicing.VoidInput{}); err != nil {
+				t.Fatalf("void: %v", err)
+			}
+			inv, err := f.svc.Regenerate(f.Ctx, f.OrgID(), draft.ID, invoicing.RegenerateInput{PurchaseOrderNumber: tt.po})
+			if tt.err != "" {
+				var ve *core.ValidationError
+				if !errors.As(err, &ve) || !slices.Contains(fieldCodes(ve), tt.err) {
+					t.Fatalf("regenerate: got = %v, want = %s", err, tt.err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("regenerate: %v", err)
+			}
+			got := f.Invoice(inv.ID).PurchaseOrderNumber
+			if (got == nil) != (tt.want == nil) || (got != nil && *got != *tt.want) {
+				str := func(p *string) string {
+					if p == nil {
+						return "<nil>"
+					}
+					return *p
+				}
+				t.Errorf("purchase_order_number: got = %s, want = %s", str(got), str(tt.want))
+			}
+		})
+	}
+}
+
+// A regenerated invoice ignores the voided invoice's dates and the grace
+// period: it is issued on the regeneration date and due after the
+// customer's net payment term (app/services/invoices/regenerate_from_voided_service.rb:52-53,72-78).
+func TestRegenerateDates(t *testing.T) {
+	tests := []struct {
+		name, source string
+		adjustment   core.IssuingDateAdjustment
+	}{
+		{"align with finalization date", "spec/services/invoices/regenerate_from_voided_service_spec.rb:319", core.IssuingDateAdjustmentAlignWithFinalizationDate},
+		{"keep anchor", "spec/services/invoices/regenerate_from_voided_service_spec.rb:326", core.IssuingDateAdjustmentKeepAnchor},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Logf("source: %s", tt.source)
+			f := newFixture(t, billingDay)
+			f.UpdateCustomer(f.cust, func(c *customer.Customer) {
+				c.InvoiceGracePeriodDays, c.NetPaymentTermDays, c.IssuingDateAdjustment = new(30), new(30), tt.adjustment
+			})
+			draft := f.billOne(f.subscribe())
+			if _, err := f.svc.FinalizeDraft(f.Ctx, f.OrgID(), draft.ID); err != nil {
+				t.Fatalf("finalize: %v", err)
+			}
+			if _, err := f.svc.Void(f.Ctx, f.OrgID(), draft.ID, invoicing.VoidInput{}); err != nil {
+				t.Fatalf("void: %v", err)
+			}
+			f.Clock.Set(billingtest.Date(2026, time.March, 10))
+			inv, err := f.svc.Regenerate(f.Ctx, f.OrgID(), draft.ID, invoicing.RegenerateInput{})
+			if err != nil {
+				t.Fatalf("regenerate: %v", err)
+			}
+			got := f.Invoice(inv.ID)
+			if want := core.NewDate(2026, time.March, 10); got.IssuingDate != want {
+				t.Errorf("issuing date: got = %v, want = %v", got.IssuingDate, want)
+			}
+			if want := core.NewDate(2026, time.April, 9); got.PaymentDueDate != want {
+				t.Errorf("payment due date: got = %v, want = %v", got.PaymentDueDate, want)
+			}
+		})
+	}
+}
+
+// A regeneration whose taxes are pending keeps the generating dates, taken
+// from the voided invoice's creation with the customer's current grace
+// period and net payment term; pulling the taxes redates it later.
+//
+// source: tanvo: app/services/invoices/regenerate_from_voided_service.rb:43-47,278-284
+func TestRegeneratePendingTaxesDates(t *testing.T) {
+	f := newFixture(t, billingDay)
+	f.Taxes.Customers = map[core.CustomerID]bool{f.cust.ID: true}
+	f.Taxes.Compute = providerTaxes("0.1")
+	voided := f.billOne(f.subscribe())
+	if _, err := f.svc.Retry(f.Ctx, f.OrgID(), voided.ID); err != nil {
+		t.Fatalf("pull taxes: %v", err)
+	}
+	if _, err := f.svc.Void(f.Ctx, f.OrgID(), voided.ID, invoicing.VoidInput{}); err != nil {
+		t.Fatalf("void: %v", err)
+	}
+	f.UpdateCustomer(f.cust, func(c *customer.Customer) { c.InvoiceGracePeriodDays, c.NetPaymentTermDays = new(3), new(5) })
+	f.Clock.Set(billingtest.Date(2026, time.March, 10))
+	f.Taxes.Compute = pendingTaxes
+	inv, err := f.svc.Regenerate(f.Ctx, f.OrgID(), voided.ID, invoicing.RegenerateInput{})
+	if err != nil {
+		t.Fatalf("regenerate: %v", err)
+	}
+	got := f.Invoice(inv.ID)
+	if got.TaxStatus != invoice.TaxStatusPending {
+		t.Fatalf("tax status: got = %s, want = pending", got.TaxStatus)
+	}
+	if want := core.NewDate(2026, time.February, 4); got.IssuingDate != want {
+		t.Errorf("issuing date: got = %v, want = %v", got.IssuingDate, want)
+	}
+	if want := core.NewDate(2026, time.February, 9); got.PaymentDueDate != want {
+		t.Errorf("payment due date: got = %v, want = %v", got.PaymentDueDate, want)
 	}
 }
 

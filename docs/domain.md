@@ -844,6 +844,7 @@ Rules:
   * every other model (`percentage`, `graduated_percentage`, `dynamic`): the current precise amount (and the pricing-unit amount) is scaled, `max(round(precise_amount / ratio), 0)`.
   * Recurring metrics are not projected: the projection equals the current fee.
 * **Usage cache**: each charge's current usage (per filter, and separately for full usage) is cached with the instant of the latest event ingested when it was computed. A read recomputes the entry when a newer event exists; ingestion never deletes entries. Catalog changes, metric deletion and event deduplication delete them, since they change usage without a newer event.
+* **Cached aggregations**: the running aggregation state of a charge (or charge filter) of an external subscription, per pricing group: `timestamp`, `event_transaction_id?`, `grouped_by`, `current_aggregation`, `max_aggregation`, `max_aggregation_with_proration`, `presentation_breakdowns`. Each pay-in-advance event stores one (the state after it), and a recurring metric billed in arrears stores one per period end, at most once per charge, group and instant. A recurring state carries only `current_aggregation`; the other values are null when the aggregation did not produce them, and an aggregation that reads a missing value fails, as Lago's `BigDecimal(nil)` raises. Later in-advance events and the next periods (current usage included) start from the latest state in their period; while an event is priced, states of that event and states without an event transaction are left out (SQL inequality, `app/services/billable_metrics/aggregations/base_service.rb:223`). The lookups filter by charge filter only when one is set, so a charge's default bucket reads the states of all its filters (`base_service.rb:224`, `weighted_sum_service.rb:143`); a recurring state is created unless one exists for the exact filter (`app/services/fees/charge_service.rb:532-539`). As in Lago, the states reference charges and filters without foreign keys. **[Change]** Lago's `current_amount` (custom aggregations, §24 item 1) is not kept.
 * **Past usage**: fees of invoiced periods, read from invoices.
 * **Lifetime usage**: per subscription chain, `historical_usage` (imported) + `invoiced_usage` + `current_usage`; refreshed when events arrive and after invoicing; it drives usage thresholds (§22.16) and lifetime alerts (§19).
 * Daily usage time series are an `ee/` analytics feature.
@@ -979,6 +980,9 @@ A custom section is a block of text printed on invoices: `code`, `name`, `displa
 ### 11.10 Metadata
 Invoice metadata is added after finalization only; at most 5 items, key ≤ 20, value ≤ 140 characters.
 
+### 11.11 Invoice Credits
+A credit records an amount deducted from an invoice by one source: exactly one of `applied_coupon_id` (a coupon, §22.7), `credit_note_id` (a consumed credit note) or `progressive_billing_invoice_id` (a progressive billing invoice credited on the period invoice, §22.16); `amount ≥ 0` in the invoice's currency, and `before_taxes` (coupons and progressive credits apply before taxes). Credits are written with the deductions in the invoice's transaction; resetting a draft deletes them and gives their amounts back to their sources. Lago's `credits` table, with a check that one source is set.
+
 ---
 
 ## 12. Fee
@@ -1007,12 +1011,17 @@ Invoice metadata is added after finalization only; at most 5 items, key ≤ 20, 
 | `currency` | `Currency` | |
 | `pay_in_advance` | `bool` | |
 | `payment_status` | `FeePaymentStatus` | for unbilled in-advance fees |
-| `properties` | JSON | `from_datetime`, `to_datetime`, `charges_from_datetime`, `charges_to_datetime`, `timestamp`, `charges_duration` (days) |
+| `properties` | JSON | `from_datetime`, `to_datetime`, `timestamp`; charge fees: `charges_from_datetime`, `charges_to_datetime`, `charges_duration` (days); fixed-charge fees: `fixed_charges_from_datetime`, `fixed_charges_to_datetime`, `fixed_charges_duration` (days), with the charges boundaries left empty |
+| `presentation_breakdowns` | `[]{presentation_by: map string → string?, units}` | a charge fee's units by presentation group; a missing value is null |
 | `true_up_parent_fee_id` | `ID?` | for true-up fees |
 | `pricing_unit_usage` | object? | §7.6 |
 | `applied_taxes` | `[]FeeAppliedTax` | tax snapshot and amount |
 | `pay_in_advance_event_id`, `pay_in_advance_event_transaction_id` | | for per-event fees |
 | `succeeded_at`, `failed_at`, `refunded_at` | `Time?` | |
+
+**Fee names**: `invoice_name` is the display name, else the charge's display name or metric name, the add-on's invoice name, the wallet transaction's name (`credit`), the fixed charge's display name or its add-on's invoice name, and finally the subscription's invoice name (`app/models/fee.rb:168-177`). A commitment fee gets the commitment's invoice name (its display name, else "Minimum commitment") as its display name when it is built (`app/services/fees/commitments/minimum/build_fee_base_service.rb:68`). `item_name`, `item_code` and `item_description` name what the fee bills (metric, add-on, `credit`, else plan); the title adds the pricing group values (in jsonb key order) and the charge filter's display name.
+
+Documents show a charge fee of a pay-in-advance charge billed in arrears, or paid in advance on a charge that is not invoiceable, with the charges period holding its billing instant (the invoice subscription's timestamp for a fee in arrears, else the fee's). As in Lago it is resolved when the document renders, from the subscription as it is then, since a later termination or time zone change moves it (`app/models/fee.rb:342-365`, `app/services/subscriptions/dates_service.rb:28-39`). **[Change]** Lago keeps presentation breakdowns in their own table; Tanvo stores them on the fee.
 
 ### 12.2 Rules
 * A fee amount is never negative: a computed negative amount is clamped to 0.
@@ -1021,7 +1030,7 @@ Invoice metadata is added after finalization only; at most 5 items, key ≤ 20, 
 * `fee.created` is emitted for in-advance fees that are not invoiced (`invoiceable = false`).
 
 ### 12.3 Adjusted Fees
-On a draft invoice, a fee can be adjusted: display name only, units only (the price is recomputed from the charge model), or units and unit price (amount = units × unit price). Adjustments survive refreshes until the invoice is finalized. A fee created by an adjustment for a charge without usage is allowed.
+On a draft invoice, a fee can be adjusted: display name only, units only (the price is recomputed from the charge model), or units and unit price (amount = units × unit price). Adjustments survive refreshes until the invoice is finalized. A fee created by an adjustment for a charge without usage is allowed. An adjustment records the boundaries of the fee it adjusts (`charges_from_datetime`, `charges_to_datetime` for charge fees, `fixed_charges_from_datetime`, `fixed_charges_to_datetime` for fixed-charge fees) and applies only to the fee of the same boundaries, compared at millisecond precision.
 
 ---
 
@@ -1192,6 +1201,7 @@ Rules:
 * Manual payments: `amount ≤ total_due_amount` of the invoice; they set the invoice's `total_paid_amount` and, when it reaches the total due, `payment_status = succeeded`.
 * Provider payments charge `total_due_amount`. **[Fix]** Lago charges `total_amount` in some providers; Tanvo always charges the amount due.
 * **[Change]** A payment points to its payable only; Lago's legacy `payments.invoice_id` is dropped.
+* The payment's provider type is not stored: it is the provider of the `integration_id` connection, empty for manual payments (`app/models/payment.rb:86-88`).
 * Provider status maps to `PaymentState` per provider; `payment.succeeded` and `payment.requires_action` (3-D Secure, redirect) are emitted.
 * Payment URLs: a hosted checkout link for a payable, valid 24 hours.
 
@@ -1568,7 +1578,7 @@ Zero-decimal (JPY, KRW, …) and three-decimal (BHD, KWD, …) currencies use th
   8. the billing entity's default taxes.
 * `credit` fees (wallet purchases) are not taxed.
 * Each tax line on a fee: `round_half_up(taxable base × rate / 100)` with `taxable base = (fee amount − coupons − progressive credits) × taxes_base_rate`.
-* Invoice applied taxes are grouped by tax code: `fees_amount` (Σ bases), `amount` = rounded Σ unrounded fee tax amounts, snapshot of code, name, rate and description.
+* Invoice applied taxes are grouped by tax code: `fees_amount` (Σ bases), `amount` = rounded Σ unrounded fee tax amounts, snapshot of code, name, rate and description. `taxable_base_amount` is the part of `fees_amount` a tax provider reports as taxable (0 otherwise); documents print `taxable_base_amount` when it is positive, else `fees_amount`, and an applied tax without a tax and with a positive taxable base is a provider tax.
 * **EU tax management** (billing entity flag): Tanvo maintains taxes `eu_<country>_standard`, `eu_<country>_exception_<territory>` (postcode-based exceptions), `eu_reverse_charge` (0%) and `eu_tax_exempt` (0%) from a vendored EU VAT rate table. **[Change]** Codes drop Lago's `lago_` prefix. The customer's tax is:
   * valid VIES number, different country from the billing entity → `eu_reverse_charge`;
   * valid VIES number, same country → the country's standard tax, or the exception tax when the postcode matches;

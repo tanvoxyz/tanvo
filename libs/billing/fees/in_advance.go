@@ -56,6 +56,13 @@ func (s *Service) InAdvanceChargeFees(ctx context.Context, r port.Repos, env *ke
 	groups := metering.GroupsOf(ev.Event.Properties, bk.groupKeys())
 
 	req := cc.request(env, bk, b, opts)
+	if opts.Cache != nil {
+		// The pay-in-advance aggregation filters its states by charge
+		// filter only when the filter is saved: the default bucket reads
+		// the states of every filter
+		// (app/services/charges/pay_in_advance_aggregation_service.rb:66).
+		req.Cache = opts.Cache(cc.cacheScope(env, bk, false))
+	}
 	req.GroupBy = nil
 	req.GroupValues = groups
 	req.PayInAdvance = true
@@ -127,9 +134,9 @@ func (s *Service) InAdvanceChargeFees(ctx context.Context, r port.Repos, env *ke
 				Timestamp:                   ts,
 				TransactionID:               ev.Event.TransactionID,
 				Groups:                      groups,
-				CurrentAggregation:          deref(m.CurrentAggregation),
-				MaxAggregation:              deref(m.MaxAggregation),
-				MaxAggregationWithProration: deref(m.MaxAggregationWithProration),
+				CurrentAggregation:          cloneDecimal(m.CurrentAggregation),
+				MaxAggregation:              cloneDecimal(m.MaxAggregation),
+				MaxAggregationWithProration: cloneDecimal(m.MaxAggregationWithProration),
 			},
 		})
 	}
@@ -183,7 +190,7 @@ func (s *Service) InAdvanceFixedChargeFee(ctx context.Context, r port.Repos, env
 	paid := money.Zero
 	for _, f := range existing {
 		if (f.FixedChargeID == fc.ID || (!fc.ParentID.IsZero() && f.FixedChargeID == fc.ParentID)) &&
-			f.Properties.ChargesFrom.Equal(p.From) && f.Properties.ChargesTo.Equal(p.To) {
+			f.Properties.FixedChargesFrom.Equal(p.From) && f.Properties.FixedChargesTo.Equal(p.To) {
 			paid = paid.Add(f.Units)
 		}
 	}
@@ -194,8 +201,8 @@ func (s *Service) InAdvanceFixedChargeFee(ctx context.Context, r port.Repos, env
 	f.FixedChargeID = fc.ID
 	f.PayInAdvance = true
 	f.Properties = invoice.FeeProperties{
-		From: p.From, To: p.To, ChargesFrom: p.From, ChargesTo: p.To,
-		Timestamp: ts, ChargesDurationDays: days,
+		From: p.From, To: p.To, FixedChargesFrom: p.From, FixedChargesTo: p.To,
+		Timestamp: ts, FixedChargesDurationDays: days,
 	}
 	f.AmountDetails = []byte("{}")
 	if !delta.IsPositive() {

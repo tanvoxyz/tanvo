@@ -160,7 +160,6 @@ func TestUsageScenarioWeightedSumAgg(t *testing.T) {
 	usgUnits(t, "fee total_aggregated", fs[0].TotalAggregatedUnits, "2500")
 
 	// The second period starts from the cached aggregation of the first.
-	t.Skip(usgCacheGap)
 	s.travelTo(usgDT(2023, 4, 4))
 	s.usgEvent(sub, m.Code, "value", "-2000")
 	s.travelTo(usgDT(2023, 4, 6))
@@ -188,7 +187,6 @@ func TestUsageScenarioSumAgg(t *testing.T) {
 	charge := `{"amount":"29","pricing_group_keys":["key_1","key_2","key_3"]}`
 	// source: spec/scenarios/current_usage/by_aggregation_type/sum_agg_spec.rb:34
 	t.Run("in advance charge and groups", func(t *testing.T) {
-		t.Skip(usgCacheGap)
 		s := newScenario(t, usgDT(2024, 2, 1))
 		c := s.Customer()
 		m := s.Metric("bm", catalog.AggregationTypeSum, "item_id", usgRecurring)
@@ -206,7 +204,6 @@ func TestUsageScenarioSumAgg(t *testing.T) {
 	})
 	// source: spec/scenarios/current_usage/by_aggregation_type/sum_agg_spec.rb:127
 	t.Run("multiple subscriptions of one plan", func(t *testing.T) {
-		t.Skip(usgCacheGap)
 		s := newScenario(t, usgDT(2024, 2, 1))
 		c := s.Customer()
 		m := s.Metric("bm", catalog.AggregationTypeSum, "item_id", usgRecurring)
@@ -250,7 +247,6 @@ func TestUsageScenarioUniqueCountAgg(t *testing.T) {
 	})
 	// source: spec/scenarios/current_usage/by_aggregation_type/unique_count_agg_spec.rb:92
 	t.Run("in advance charge and group by", func(t *testing.T) {
-		t.Skip(usgCacheGap)
 		s, sub, m := newUnique(t, "2024-02-01T00:00:00", `{"amount":"29","pricing_group_keys":["key_1","key_2","key_3"]}`, usgInAdvance, usgProrated)
 		g := []string{"key_1", "2024", "key_2", "Feb", "key_3", "06"}
 		steps := []struct {
@@ -294,7 +290,6 @@ func TestUsageScenarioUniqueCountAgg(t *testing.T) {
 	})
 	// source: spec/scenarios/current_usage/by_aggregation_type/unique_count_agg_spec.rb:288
 	t.Run("in advance charge", func(t *testing.T) {
-		t.Skip(usgCacheGap)
 		s := newScenario(t, usgParse(t, "2024-02-23T01:00:00"))
 		c := s.Customer()
 		m := s.Metric("bm", catalog.AggregationTypeUniqueCount, "item_id", usgRecurring)

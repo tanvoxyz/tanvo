@@ -29,6 +29,9 @@ const (
 	DocumentOrderForm DocumentKind = "order_form"
 	// DocumentEInvoice is an e-invoice XML (Factur-X / ZUGFeRD).
 	DocumentEInvoice DocumentKind = "einvoice"
+	// DocumentPaymentRequest is a payment request PDF: the request's
+	// invoices and amount due, with the wording of its email.
+	DocumentPaymentRequest DocumentKind = "payment_request"
 )
 
 // Document is a rendered file.

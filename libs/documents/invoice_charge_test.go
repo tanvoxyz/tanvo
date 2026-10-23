@@ -191,9 +191,9 @@ func TestInvoiceV4Charge(t *testing.T) {
 							`{"value":"region","options":{"display_in_invoice":true}},{"value":"env","options":{"display_in_invoice":true}}]}`)
 					},
 				})(t, g)
-				inv.Fees[0].PresentationBreakdowns = []PresentationBreakdown{
-					{PresentationBy: map[string]string{"region": "us", "env": "prod"}, Units: d("60")},
-					{PresentationBy: map[string]string{"region": "eu", "env": "prod"}, Units: d("40")},
+				inv.Fees[0].Fee.PresentationBreakdowns = []invoice.PresentationBreakdown{
+					{PresentationBy: map[string]*string{"region": ptr("us"), "env": ptr("prod")}, Units: d("60")},
+					{PresentationBy: map[string]*string{"region": ptr("eu"), "env": ptr("prod")}, Units: d("40")},
 				}
 				return inv
 			},
@@ -216,7 +216,7 @@ func TestInvoiceV4Charge(t *testing.T) {
 // source: spec/views/app/views/templates/invoices/v4/charge.slim_spec.rb:95
 func TestInvoiceV4ChargePurchaseOrderNumber(t *testing.T) {
 	d := chargeInvoice(nil, chargeSpec{name: "API Calls", amount: 5000, units: "10", unitCents: 500, precise: "5"})(t, &ids{})
-	d.PurchaseOrderNumber = "PO-123"
+	d.Invoice.PurchaseOrderNumber = ptr("PO-123")
 	w := newWriter(testCatalog(t), &d.Party, "", d.Invoice.Currency)
 	got := strings.Join(w.invoiceLayout(d).texts(), "\n")
 	for _, want := range []string{"Purchase Order Number", "PO-123"} {

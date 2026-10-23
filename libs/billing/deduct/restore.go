@@ -54,7 +54,7 @@ type Restored struct {
 func (s *Service) Restore(ctx context.Context, r port.Repos, inv *invoice.Invoice, opts RestoreOptions) (Restored, error) {
 	var out Restored
 	org := inv.OrganizationID
-	credits, err := s.d.Credits.ListByInvoice(ctx, org, inv.ID)
+	credits, err := r.Credits.ListByInvoice(ctx, org, inv.ID)
 	if err != nil {
 		return out, fmt.Errorf("list credits of invoice %s: %w", inv.ID, err)
 	}
@@ -69,7 +69,7 @@ func (s *Service) Restore(ctx context.Context, r port.Repos, inv *invoice.Invoic
 	}
 	for _, c := range credits {
 		switch c.Kind() {
-		case kernel.CreditKindCoupon:
+		case invoice.CreditKindCoupon:
 			if err := lock(customer.LockScopeCoupons); err != nil {
 				return out, err
 			}
@@ -86,7 +86,7 @@ func (s *Service) Restore(ctx context.Context, r port.Repos, inv *invoice.Invoic
 				return out, fmt.Errorf("update applied coupon %s: %w", a.ID, err)
 			}
 			out.AppliedCoupons = append(out.AppliedCoupons, a)
-		case kernel.CreditKindCreditNote:
+		case invoice.CreditKindCreditNote:
 			if opts.IssuesCreditNote {
 				continue
 			}
@@ -107,7 +107,7 @@ func (s *Service) Restore(ctx context.Context, r port.Repos, inv *invoice.Invoic
 				return out, fmt.Errorf("update credit note %s: %w", cn.ID, err)
 			}
 			out.CreditNotes = append(out.CreditNotes, cn)
-		case kernel.CreditKindProgressiveBilling:
+		case invoice.CreditKindProgressiveBilling:
 		}
 	}
 	if opts.IssuesCreditNote {
@@ -180,11 +180,11 @@ func (s *Service) recreditWallet(ctx context.Context, r port.Repos, t *wallet.Tr
 // (lago Invoices::RefreshDraftService): a draft holds only progressive
 // billing credits, which are deleted, and its deduction amounts are
 // zeroed.
-func (s *Service) ResetDraft(ctx context.Context, inv *invoice.Invoice) error {
+func (s *Service) ResetDraft(ctx context.Context, r port.Repos, inv *invoice.Invoice) error {
 	if inv.Status != invoice.StatusDraft && inv.Status != invoice.StatusGenerating {
 		return fmt.Errorf("reset invoice %s: %w", inv.ID, &core.TransitionError{Entity: "invoice", From: string(inv.Status), To: string(invoice.StatusDraft)})
 	}
-	if err := s.d.Credits.DeleteByInvoice(ctx, inv.OrganizationID, inv.ID); err != nil {
+	if err := r.Credits.DeleteByInvoice(ctx, inv.OrganizationID, inv.ID); err != nil {
 		return fmt.Errorf("delete credits of invoice %s: %w", inv.ID, err)
 	}
 	inv.ProgressiveBillingCreditAmount = 0

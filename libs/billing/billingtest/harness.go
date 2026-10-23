@@ -33,8 +33,6 @@ type Harness struct {
 	IDs *IDs
 	// Events is the event store.
 	Events *Events
-	// Credits stores the invoice credits.
-	Credits *Credits
 	// Taxes is the fake tax provider (wired, taxing nobody by default).
 	Taxes *TaxProvider
 	// Refunds is the fake refund gateway.
@@ -66,19 +64,17 @@ func New(t testing.TB, now time.Time) *Harness {
 // clock reads now. Its Store is nil.
 func NewOn(t testing.TB, now time.Time, tx port.Transactor, webhooks port.WebhookEmitter) *Harness {
 	t.Helper()
-	credits := &Credits{}
 	emitter := &Emitter{Inner: webhooks}
 	h := &Harness{
 		T: t, Ctx: context.Background(), Clock: NewClock(now), IDs: &IDs{},
-		Events: NewEvents(), Credits: credits, Taxes: &TaxProvider{}, Refunds: &RefundGateway{}, Emitted: emitter,
+		Events: NewEvents(), Taxes: &TaxProvider{}, Refunds: &RefundGateway{}, Emitted: emitter,
 	}
 	h.Deps = &kernel.Deps{
-		Tx:       &Tx{Inner: tx, Credits: credits, Emitter: emitter},
+		Tx:       &Tx{Inner: tx, Emitter: emitter},
 		Events:   h.Events,
 		Clock:    h.Clock,
 		IDs:      h.IDs,
 		Webhooks: emitter,
-		Credits:  credits,
 		Taxes:    h.Taxes,
 		Refunds:  h.Refunds,
 	}

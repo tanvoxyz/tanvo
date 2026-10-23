@@ -29,6 +29,8 @@ const (
 // with no charge or filter column (architecture §7.2). It is also the
 // message of the events.enriched topic.
 type Enriched struct {
+	// ID is the event's identifier at intake; zero for events without one.
+	ID core.EventID `json:"id,omitzero"`
 	// OrganizationID is the owning organization.
 	OrganizationID core.OrganizationID `json:"organization_id"`
 	// TransactionID is the event's idempotency key.
@@ -84,7 +86,12 @@ type Enriched struct {
 // Metering returns the event store row of e: the store keeps events by
 // external subscription ID and reads values from the properties.
 func (e *Enriched) Metering() metering.Event {
+	var id string
+	if !e.ID.IsZero() {
+		id = e.ID.String()
+	}
 	return metering.Event{
+		ID:                      id,
 		OrganizationID:          e.OrganizationID.String(),
 		SubscriptionID:          e.ExternalSubscriptionID,
 		Code:                    e.Code,
@@ -269,6 +276,7 @@ func (en *Enricher) Enrich(ctx context.Context, e *event.Event, source string, e
 		}
 	}
 	out := &Enriched{
+		ID:                      e.ID,
 		OrganizationID:          e.OrganizationID,
 		TransactionID:           e.TransactionID,
 		Code:                    e.Code,

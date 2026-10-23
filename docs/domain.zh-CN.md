@@ -844,6 +844,7 @@ stateDiagram-v2
   * 其他所有模型（`percentage`、`graduated_percentage`、`dynamic`）：缩放当前精确金额（以及计价单位金额），`max(round(precise_amount / 比例), 0)`。
   * 周期性计费指标不做预测：预测值等于当前费用。
 * **用量缓存**：每个计费项的当前用量（按过滤器，以及单独的全量用量）连同计算时最新已摄取事件的时刻一起缓存。读取时若存在更新的事件则重新计算该条目；摄取从不删除条目。目录变更、删除计费指标和事件去重会删除条目，因为它们改变用量却不产生更新的事件。
+* **缓存聚合**：某外部订阅的某计费项（或计费项过滤器）按定价分组的运行中聚合状态：`timestamp`、`event_transaction_id?`、`grouped_by`、`current_aggregation`、`max_aggregation`、`max_aggregation_with_proration`、`presentation_breakdowns`。每个预付事件保存一条（该事件之后的状态）；后付的循环指标在每个周期末保存一条，每个计费项、分组和时刻至多一条。循环状态只带 `current_aggregation`；聚合未产生的其他值为 null，读取缺失值的聚合会失败，与 Lago 的 `BigDecimal(nil)` 抛错一致。之后的预付事件和下一周期（包括当前用量）从其周期内最新的状态开始；为某事件计价时，排除该事件的状态以及没有事件交易号的状态（SQL 不等比较，`app/services/billable_metrics/aggregations/base_service.rb:223`）。查找仅在设置了计费项过滤器时才按其过滤，因此计费项的默认桶会读取其所有过滤器的状态（`base_service.rb:224`、`weighted_sum_service.rb:143`）；循环状态仅在不存在完全相同过滤器的状态时才创建（`app/services/fees/charge_service.rb:532-539`）。与 Lago 一致，状态引用计费项与过滤器但不设外键。**[变更]** 不保留 Lago 的 `current_amount`（自定义聚合，§24 第 1 项）。
 * **历史用量**：已开票周期的费用，从发票读取。
 * **生命周期用量**：按订阅链计算，`historical_usage`（导入）+ `invoiced_usage` + `current_usage`；在事件到达和开票后刷新；驱动用量阈值（§22.16）和生命周期告警（§19）。
 * 每日用量时间序列是 `ee/` 中的分析功能。
@@ -979,6 +980,9 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 ### 11.10 元数据
 发票元数据只能在定稿后添加；至多 5 项，键 ≤ 20，值 ≤ 140 个字符。
 
+### 11.11 发票抵扣
+一条抵扣记录某一来源从发票中扣减的金额：`applied_coupon_id`（优惠券，§22.7）、`credit_note_id`（被消耗的贷项通知单）或 `progressive_billing_invoice_id`（在周期发票上抵扣的渐进计费发票，§22.16）三者恰好设置其一；`amount ≥ 0`，币种为发票币种；`before_taxes` 表示是否在税前抵扣（优惠券和渐进计费抵扣在税前）。抵扣随扣减在发票的事务中写入；重置草稿会删除它们并把金额退还给各自来源。对应 Lago 的 `credits` 表，并增加了恰好一个来源的检查。
+
 ---
 
 ## 12. 费用
@@ -1007,12 +1011,17 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 | `currency` | `Currency` | |
 | `pay_in_advance` | `bool` | |
 | `payment_status` | `FeePaymentStatus` | 用于未开票的预付费用 |
-| `properties` | JSON | `from_datetime`、`to_datetime`、`charges_from_datetime`、`charges_to_datetime`、`timestamp`、`charges_duration`（天数） |
+| `properties` | JSON | `from_datetime`、`to_datetime`、`timestamp`；计费项费用：`charges_from_datetime`、`charges_to_datetime`、`charges_duration`（天数）；固定费用费用：`fixed_charges_from_datetime`、`fixed_charges_to_datetime`、`fixed_charges_duration`（天数），计费项边界留空 |
+| `presentation_breakdowns` | `[]{presentation_by: map string → string?, units}` | 计费项费用按展示分组的用量；缺失的值为 null |
 | `true_up_parent_fee_id` | `ID?` | 用于补差费用 |
 | `pricing_unit_usage` | 对象? | §7.6 |
 | `applied_taxes` | `[]FeeAppliedTax` | 税的快照与金额 |
 | `pay_in_advance_event_id`、`pay_in_advance_event_transaction_id` | | 用于按事件产生的费用 |
 | `succeeded_at`、`failed_at`、`refunded_at` | `Time?` | |
+
+**费用名称**：`invoice_name` 依次取显示名称、计费项的显示名称或指标名称、附加项的发票名称、钱包交易的名称（`credit`）、固定费用的显示名称或其附加项的发票名称，最后取订阅的发票名称（`app/models/fee.rb:168-177`）。承诺费用在构建时以承诺的发票名称（其显示名称，否则为“Minimum commitment”）作为显示名称（`app/services/fees/commitments/minimum/build_fee_base_service.rb:68`）。`item_name`、`item_code` 和 `item_description` 指费用所计费的对象（指标、附加项、`credit`，否则为套餐）；标题再附加定价分组值（按 jsonb 键顺序）和计费项过滤器的显示名称。
+
+对于后付计费的预付计费项费用，或不可开票计费项上的预付费用，文档显示包含其计费时刻的计费周期（后付费用取发票订阅的时间戳，否则取费用自身的时间戳）。与 Lago 一致，该周期在渲染文档时按订阅当时的状态计算，因为之后的终止或时区变更会改变它（`app/models/fee.rb:342-365`、`app/services/subscriptions/dates_service.rb:28-39`）。**[变更]** Lago 将展示分组明细放在单独的表中；Tanvo 将其存储在费用上。
 
 ### 12.2 规则
 * 费用金额永不为负：计算出的负数金额被截断为 0。
@@ -1021,7 +1030,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 * 未开票的预付费用（`invoiceable = false`）发出 `fee.created`。
 
 ### 12.3 调整费用
-在草稿发票上可以调整费用：只改显示名称；只改用量（按计费模型重新计算价格）；或同时改用量和单价（金额 = 用量 × 单价）。调整在刷新后保留，直到发票定稿。允许为没有用量的计费项通过调整创建费用。
+在草稿发票上可以调整费用：只改显示名称；只改用量（按计费模型重新计算价格）；或同时改用量和单价（金额 = 用量 × 单价）。调整在刷新后保留，直到发票定稿。允许为没有用量的计费项通过调整创建费用。调整记录其所调整费用的边界（计费项费用为 `charges_from_datetime`、`charges_to_datetime`，固定费用费用为 `fixed_charges_from_datetime`、`fixed_charges_to_datetime`），只作用于边界相同的费用，按毫秒精度比较。
 
 ---
 
@@ -1192,6 +1201,7 @@ stateDiagram-v2
 * 手动支付：`amount ≤` 发票的 `total_due_amount`；它设置发票的 `total_paid_amount`，达到应付总额时 `payment_status = succeeded`。
 * 服务商支付收取 `total_due_amount`。**[修复]** Lago 在部分服务商中收取 `total_amount`；Tanvo 始终收取应付金额。
 * **[变更]** 支付只指向其被支付对象；舍弃 Lago 遗留的 `payments.invoice_id`。
+* 支付的服务商类型不存储：它是 `integration_id` 连接的服务商，手动支付为空（`app/models/payment.rb:86-88`）。
 * 服务商状态按服务商映射为 `PaymentState`；发出 `payment.succeeded` 和 `payment.requires_action`（3-D Secure、跳转）。
 * 支付链接：被支付对象的托管结账链接，有效期 24 小时。
 
@@ -1568,7 +1578,7 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
   8. 计费主体的默认税。
 * `credit` 费用（钱包购买）不计税。
 * 费用上的每个税行：`round_half_up(应税基数 × rate / 100)`，其中 `应税基数 = (费用金额 − 优惠券 − 渐进式抵扣) × taxes_base_rate`。
-* 发票的已应用税按税码分组：`fees_amount`（Σ 基数）、`amount` = 各笔未取整费用税额之和取整、代码/名称/税率/描述的快照。
+* 发票的已应用税按税码分组：`fees_amount`（Σ 基数）、`amount` = 各笔未取整费用税额之和取整、代码/名称/税率/描述的快照。`taxable_base_amount` 是税务服务商报告的 `fees_amount` 中的应税部分（否则为 0）；单据在其为正时打印 `taxable_base_amount`，否则打印 `fees_amount`；没有税且应税基数为正的已应用税是服务商税。
 * **欧盟税务管理**（计费主体开关）：Tanvo 依据内置的欧盟增值税税率表维护税 `eu_<country>_standard`、`eu_<country>_exception_<territory>`（按邮编的例外）、`eu_reverse_charge`（0%）和 `eu_tax_exempt`（0%）。**[变更]** 代码去掉 Lago 的 `lago_` 前缀。客户的税为：
   * VIES 号码有效，且国家与计费主体不同 → `eu_reverse_charge`；
   * VIES 号码有效，且国家相同 → 该国标准税，邮编匹配时为例外税；

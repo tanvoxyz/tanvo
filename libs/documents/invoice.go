@@ -96,8 +96,8 @@ func (w *writer) invoiceLayout(d *Invoice) *layout {
 	tmpl := d.Template()
 	l := w.newLayout(v.documentName(), &d.Party, tmpl != TemplateSelfBilled)
 	l.Info = append(l.Info, [2]string{w.l.T("invoice.invoice_number"), v.inv.Number})
-	if d.PurchaseOrderNumber != "" {
-		l.Info = append(l.Info, [2]string{w.l.T("invoice.purchase_order_number"), d.PurchaseOrderNumber})
+	if po := d.Invoice.PurchaseOrderNumber; po != nil && *po != "" {
+		l.Info = append(l.Info, [2]string{w.l.T("invoice.purchase_order_number"), *po})
 	}
 	l.Info = append(l.Info,
 		[2]string{w.l.T("invoice.issue_date"), w.date(v.inv.IssuingDate)},
@@ -306,7 +306,7 @@ func (t *totals) taxes() {
 				continue
 			}
 			t.add(v.l.T("invoice.tax_name", i18n.A("name", at.TaxName), i18n.A("rate", i18n.RubyFloat(at.TaxRate)),
-				i18n.A("amount", v.money(at.FeesAmount))), v.money(at.Amount))
+				i18n.A("amount", v.money(at.TaxableAmount()))), v.money(at.Amount))
 		}
 	}
 	t.add(v.l.T("invoice.sub_total_with_tax"), v.money(v.inv.SubTotalIncludingTaxesAmount))
@@ -513,14 +513,14 @@ func billingPeriodFor(f *Fee, s *Subscription) billingPeriod {
 	p := f.Fee.Properties
 	switch f.Fee.Type {
 	case core.FeeTypeCharge:
-		if c := f.Charge; c != nil && c.PayInAdvance && (!f.Fee.PayInAdvance || !c.Invoiceable) && !f.AdvanceInterval.From.IsZero() {
-			return billingPeriod{f.AdvanceInterval.From, f.AdvanceInterval.To}
+		// Fee#date_boundaries (app/models/fee.rb:342-365): the caller
+		// resolves the pay-in-advance interval when it renders.
+		if c := f.Charge; c != nil && c.PayInAdvance && (!f.Fee.PayInAdvance || !c.Invoiceable) && f.PayInAdvanceInterval != nil {
+			return billingPeriod{f.PayInAdvanceInterval.From, f.PayInAdvanceInterval.To}
 		}
 		return pick(p.ChargesFrom, p.ChargesTo, billingPeriod{is.ChargesPeriod.From, is.ChargesPeriod.To})
 	case core.FeeTypeFixedCharge:
-		return pick(f.Period.From, f.Period.To, billingPeriod{is.FixedChargesPeriod.From, is.FixedChargesPeriod.To})
-	case core.FeeTypeCommitment:
-		return pick(p.From, p.To, pick(f.Period.From, f.Period.To, billingPeriod{is.Period.From, is.Period.To}))
+		return pick(p.FixedChargesFrom, p.FixedChargesTo, billingPeriod{is.FixedChargesPeriod.From, is.FixedChargesPeriod.To})
 	}
 	return pick(p.From, p.To, billingPeriod{is.Period.From, is.Period.To})
 }
@@ -789,20 +789,26 @@ func presentationKeys(c *catalog.Charge) []string {
 }
 
 type presentationRow struct {
-	values []string // "" for a missing value
+	values []*string // nil for a missing value
 	units  money.Decimal
 }
 
-// presentationRows is FeeDisplayHelper.sorted_presentation_breakdowns_displayed_in_invoice.
+// presentationRows is FeeDisplayHelper.sorted_presentation_breakdowns_displayed_in_invoice
+// (app/views/helpers/fee_display_helper.rb:67-71): rows whose values are
+// all present first, by values, then the others by their non-nil values.
 func presentationRows(f *Fee, keys []string) []presentationRow {
 	var rows []presentationRow
 	index := map[string]int{}
-	for _, b := range f.PresentationBreakdowns {
+	for _, b := range f.Fee.PresentationBreakdowns {
 		var present []string
-		vals := make([]string, len(keys))
+		vals := make([]*string, len(keys))
 		for i, k := range keys {
 			if val, ok := b.PresentationBy[k]; ok {
-				present = append(present, k+"\x00"+val)
+				v := "\x02"
+				if val != nil {
+					v = *val
+				}
+				present = append(present, k+"\x00"+v)
 				vals[i] = val
 			}
 		}
@@ -819,16 +825,27 @@ func presentationRows(f *Fee, keys []string) []presentationRow {
 	}
 	var clean, blank []presentationRow
 	for _, r := range rows {
-		if !slices.Contains(r.values, "") {
+		if !slices.ContainsFunc(r.values, func(v *string) bool { return v == nil || strings.TrimSpace(*v) == "" }) {
 			clean = append(clean, r)
 		} else {
 			blank = append(blank, r)
 		}
 	}
-	byValues := func(a, b presentationRow) int { return slices.Compare(nonEmpty(a.values), nonEmpty(b.values)) }
+	byValues := func(a, b presentationRow) int { return slices.Compare(compact(a.values), compact(b.values)) }
 	slices.SortStableFunc(clean, byValues)
 	slices.SortStableFunc(blank, byValues)
 	return append(clean, blank...)
+}
+
+// compact returns the non-nil values (Array#compact).
+func compact(vs []*string) []string {
+	var out []string
+	for _, v := range vs {
+		if v != nil {
+			out = append(out, *v)
+		}
+	}
+	return out
 }
 
 // presentationBreakdowns is _presentation_breakdowns.
@@ -854,7 +871,7 @@ func (v *invoiceView) presentationBreakdowns(fees []*Fee) []block {
 				if j == len(prs)-1 {
 					style = rowEnd
 				}
-				rows = append(rows, row{Style: style, Cells: []cell{txt(strings.Join(nonEmpty(pr.values), ", ")), txt(units(pr.units))}})
+				rows = append(rows, row{Style: style, Cells: []cell{txt(strings.Join(compact(pr.values), ", ")), txt(units(pr.units))}})
 			}
 		}
 		out = append(out, block{Kind: blockTable, Style: "presentation", Columns: []column{{80, "left"}, {20, "right"}}, Rows: rows, Break: i == 0})

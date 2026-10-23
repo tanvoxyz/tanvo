@@ -63,6 +63,89 @@ func (q *Queries) AppendEvent(ctx context.Context, arg AppendEventParams) (int64
 	return result.RowsAffected(), nil
 }
 
+const cachedAggregationExists = `-- name: CachedAggregationExists :one
+SELECT EXISTS (
+  SELECT 1 FROM cached_aggregations
+  WHERE organization_id = $1 AND external_subscription_id = $2
+    AND charge_id = $3 AND charge_filter_id IS NOT DISTINCT FROM $4::uuid
+    AND timestamp = $5 AND grouped_by = $6
+)
+`
+
+type CachedAggregationExistsParams struct {
+	OrganizationID         uuid.UUID
+	ExternalSubscriptionID string
+	ChargeID               uuid.UUID
+	ChargeFilterID         *uuid.UUID
+	Timestamp              time.Time
+	GroupedBy              json.RawMessage
+}
+
+// Reports whether a state of the charge, filter (NULL matching states
+// without one), groups and timestamp exists.
+func (q *Queries) CachedAggregationExists(ctx context.Context, arg CachedAggregationExistsParams) (bool, error) {
+	row := q.db.QueryRow(ctx, cachedAggregationExists,
+		arg.OrganizationID,
+		arg.ExternalSubscriptionID,
+		arg.ChargeID,
+		arg.ChargeFilterID,
+		arg.Timestamp,
+		arg.GroupedBy,
+	)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const createCachedAggregation = `-- name: CreateCachedAggregation :execrows
+INSERT INTO cached_aggregations (
+  organization_id, id, external_subscription_id, charge_id, charge_filter_id, timestamp, event_transaction_id,
+  grouped_by, current_aggregation, max_aggregation, max_aggregation_with_proration, presentation_breakdowns, created_at
+) VALUES (
+  $1, $2, $3, $4, $5, $6, $7,
+  $8, $9, $10, $11, $12, $13
+)
+ON CONFLICT DO NOTHING
+`
+
+type CreateCachedAggregationParams struct {
+	OrganizationID              uuid.UUID
+	ID                          uuid.UUID
+	ExternalSubscriptionID      string
+	ChargeID                    uuid.UUID
+	ChargeFilterID              *uuid.UUID
+	Timestamp                   time.Time
+	EventTransactionID          *string
+	GroupedBy                   json.RawMessage
+	CurrentAggregation          *money.Decimal
+	MaxAggregation              *money.Decimal
+	MaxAggregationWithProration *money.Decimal
+	PresentationBreakdowns      json.RawMessage
+	CreatedAt                   time.Time
+}
+
+func (q *Queries) CreateCachedAggregation(ctx context.Context, arg CreateCachedAggregationParams) (int64, error) {
+	result, err := q.db.Exec(ctx, createCachedAggregation,
+		arg.OrganizationID,
+		arg.ID,
+		arg.ExternalSubscriptionID,
+		arg.ChargeID,
+		arg.ChargeFilterID,
+		arg.Timestamp,
+		arg.EventTransactionID,
+		arg.GroupedBy,
+		arg.CurrentAggregation,
+		arg.MaxAggregation,
+		arg.MaxAggregationWithProration,
+		arg.PresentationBreakdowns,
+		arg.CreatedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getEvent = `-- name: GetEvent :one
 SELECT organization_id, id, transaction_id, code, external_subscription_id, timestamp, properties, precise_total_amount, attribution_labels, ingested_at, created_at, updated_at FROM events
 WHERE organization_id = $1 AND external_subscription_id = $2 AND transaction_id = $3
@@ -123,6 +206,127 @@ func (q *Queries) GetFirstEvent(ctx context.Context, arg GetFirstEventParams) (E
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const latestCachedAggregationInPeriod = `-- name: LatestCachedAggregationInPeriod :one
+SELECT organization_id, id, external_subscription_id, charge_id, charge_filter_id, timestamp, event_transaction_id, grouped_by, current_aggregation, max_aggregation, max_aggregation_with_proration, presentation_breakdowns, created_at FROM cached_aggregations
+WHERE organization_id = $1 AND external_subscription_id = $2
+  AND charge_id = $3
+  AND (charge_filter_id IS NOT DISTINCT FROM $4::uuid
+    OR ($4::uuid IS NULL AND NOT $5::boolean))
+  AND timestamp >= $6 AND timestamp <= $7
+  AND grouped_by = $8
+  AND ($9::text = '' OR event_transaction_id <> $9::text)
+ORDER BY timestamp DESC, created_at DESC, id DESC
+LIMIT 1
+`
+
+type LatestCachedAggregationInPeriodParams struct {
+	OrganizationID         uuid.UUID
+	ExternalSubscriptionID string
+	ChargeID               uuid.UUID
+	ChargeFilterID         *uuid.UUID
+	DefaultBucket          bool
+	FromDatetime           time.Time
+	ToDatetime             time.Time
+	GroupedBy              json.RawMessage
+	ExcludeTransactionID   string
+}
+
+// A NULL charge filter selects the states without a filter of a default
+// bucket, else every filter of the charge; an excluded transaction also
+// drops states without one (SQL inequality).
+func (q *Queries) LatestCachedAggregationInPeriod(ctx context.Context, arg LatestCachedAggregationInPeriodParams) (CachedAggregation, error) {
+	row := q.db.QueryRow(ctx, latestCachedAggregationInPeriod,
+		arg.OrganizationID,
+		arg.ExternalSubscriptionID,
+		arg.ChargeID,
+		arg.ChargeFilterID,
+		arg.DefaultBucket,
+		arg.FromDatetime,
+		arg.ToDatetime,
+		arg.GroupedBy,
+		arg.ExcludeTransactionID,
+	)
+	var i CachedAggregation
+	err := row.Scan(
+		&i.OrganizationID,
+		&i.ID,
+		&i.ExternalSubscriptionID,
+		&i.ChargeID,
+		&i.ChargeFilterID,
+		&i.Timestamp,
+		&i.EventTransactionID,
+		&i.GroupedBy,
+		&i.CurrentAggregation,
+		&i.MaxAggregation,
+		&i.MaxAggregationWithProration,
+		&i.PresentationBreakdowns,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const listCachedAggregationsBefore = `-- name: ListCachedAggregationsBefore :many
+SELECT organization_id, id, external_subscription_id, charge_id, charge_filter_id, timestamp, event_transaction_id, grouped_by, current_aggregation, max_aggregation, max_aggregation_with_proration, presentation_breakdowns, created_at FROM cached_aggregations
+WHERE organization_id = $1 AND external_subscription_id = $2
+  AND charge_id = $3
+  AND (charge_filter_id IS NOT DISTINCT FROM $4::uuid
+    OR ($4::uuid IS NULL AND NOT $5::boolean))
+  AND timestamp < $6
+ORDER BY timestamp DESC, created_at DESC, id DESC
+`
+
+type ListCachedAggregationsBeforeParams struct {
+	OrganizationID         uuid.UUID
+	ExternalSubscriptionID string
+	ChargeID               uuid.UUID
+	ChargeFilterID         *uuid.UUID
+	DefaultBucket          bool
+	Before                 time.Time
+}
+
+// A NULL charge filter selects the states without a filter of a default
+// bucket, else every filter of the charge.
+func (q *Queries) ListCachedAggregationsBefore(ctx context.Context, arg ListCachedAggregationsBeforeParams) ([]CachedAggregation, error) {
+	rows, err := q.db.Query(ctx, listCachedAggregationsBefore,
+		arg.OrganizationID,
+		arg.ExternalSubscriptionID,
+		arg.ChargeID,
+		arg.ChargeFilterID,
+		arg.DefaultBucket,
+		arg.Before,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CachedAggregation{}
+	for rows.Next() {
+		var i CachedAggregation
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.ExternalSubscriptionID,
+			&i.ChargeID,
+			&i.ChargeFilterID,
+			&i.Timestamp,
+			&i.EventTransactionID,
+			&i.GroupedBy,
+			&i.CurrentAggregation,
+			&i.MaxAggregation,
+			&i.MaxAggregationWithProration,
+			&i.PresentationBreakdowns,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listEventKeys = `-- name: ListEventKeys :many

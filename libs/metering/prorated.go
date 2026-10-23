@@ -227,13 +227,21 @@ func (a *aggregator) proratedCurrentUsage(prorated money.Decimal, full Result, t
 	case !a.req.PayInAdvance:
 		target.Aggregation = prorated
 		target.CurrentUsageUnits = ptr(full.Aggregation)
-	case cached != nil && partial:
-		target.CurrentUsageUnits = ptr(used)
-		since := used.Sub(money.Max(cached.CurrentAggregation, money.Zero))
-		target.Aggregation = ceil5(since.Mul(proRata)).Add(cached.MaxAggregationWithProration)
 	case cached != nil:
+		cur, err := cachedValue(cached.CurrentAggregation, "current_aggregation")
+		if err != nil {
+			return err
+		}
+		withProration, err := cachedValue(cached.MaxAggregationWithProration, "max_aggregation_with_proration")
+		if err != nil {
+			return err
+		}
 		target.CurrentUsageUnits = ptr(used)
-		target.Aggregation = used.Sub(money.Max(cached.CurrentAggregation, money.Zero)).Add(cached.MaxAggregationWithProration)
+		since := used.Sub(money.Max(cur, money.Zero))
+		if partial {
+			since = ceil5(since.Mul(proRata))
+		}
+		target.Aggregation = since.Add(withProration)
 	case partial:
 		target.Aggregation = prorated
 		target.CurrentUsageUnits = ptr(used)
@@ -271,14 +279,22 @@ func (a *aggregator) proratedPayInAdvance(base Result, r *Result) (money.Decimal
 	if err != nil {
 		return money.Zero, err
 	}
-	switch {
-	case cached == nil:
+	if cached == nil {
 		r.MaxAggregationWithProration = ptr(v)
-	case base.MaxAggregation != nil && base.MaxAggregation.GreaterThan(cached.MaxAggregation):
-		r.MaxAggregationWithProration = ptr(cached.MaxAggregationWithProration.Add(v))
-	default:
-		r.MaxAggregationWithProration = ptr(cached.MaxAggregationWithProration)
+		return v, nil
 	}
+	oldMax, err := cachedValue(cached.MaxAggregation, "max_aggregation")
+	if err != nil {
+		return money.Zero, err
+	}
+	withProration, err := cachedValue(cached.MaxAggregationWithProration, "max_aggregation_with_proration")
+	if err != nil {
+		return money.Zero, err
+	}
+	if base.MaxAggregation != nil && base.MaxAggregation.GreaterThan(oldMax) {
+		withProration = withProration.Add(v)
+	}
+	r.MaxAggregationWithProration = ptr(withProration)
 	return v, nil
 }
 

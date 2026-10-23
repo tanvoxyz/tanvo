@@ -123,7 +123,7 @@ func (s *Service) ProgressiveBilledAmount(ctx context.Context, r port.Repos, org
 // activeProgressiveCredits sums the credits taken from a progressive
 // billing invoice by invoices that are not voided or closed.
 func (s *Service) activeProgressiveCredits(ctx context.Context, r port.Repos, org core.OrganizationID, pb core.InvoiceID) (int64, error) {
-	credits, err := s.d.Credits.ListByProgressiveBillingInvoice(ctx, org, pb)
+	credits, err := r.Credits.ListByProgressiveBillingInvoice(ctx, org, pb)
 	if err != nil {
 		return 0, fmt.Errorf("list credits of progressive invoice %s: %w", pb, err)
 	}
@@ -176,13 +176,13 @@ func (s *Service) applyProgressiveBilling(ctx context.Context, r port.Repos, inv
 		if applied <= 0 {
 			continue
 		}
-		c := &kernel.Credit{
-			ID: s.d.IDs.NewUUID(), OrganizationID: org, InvoiceID: inv.ID,
+		c := &invoice.Credit{
+			ID: core.NewID[core.InvoiceCreditID](s.d.IDs), OrganizationID: org, InvoiceID: inv.ID,
 			ProgressiveBillingInvoiceID: billed.Invoice.ID, Amount: applied,
 			Currency: inv.Currency, BeforeTaxes: true, CreatedAt: s.d.Now(),
 		}
 		if !opts.Preview {
-			if err := s.d.Credits.Create(ctx, c); err != nil {
+			if err := r.Credits.Create(ctx, c); err != nil {
 				return fmt.Errorf("create progressive billing credit: %w", err)
 			}
 		}

@@ -13,86 +13,13 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
 )
 
-// Credits is an in-memory [kernel.CreditRepository]. Its writes join the
-// transactions of the [Tx] that wraps the memstore: they are rolled back
-// with them.
-type Credits struct {
-	mu   sync.Mutex
-	rows []kernel.Credit
-}
-
-var _ kernel.CreditRepository = (*Credits)(nil)
-
-// Create implements [kernel.CreditRepository].
-func (c *Credits) Create(_ context.Context, cr *kernel.Credit) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.rows = append(c.rows, *cr)
-	return nil
-}
-
-func (c *Credits) list(keep func(*kernel.Credit) bool) []*kernel.Credit {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	var out []*kernel.Credit
-	for i := range c.rows {
-		if keep(&c.rows[i]) {
-			cp := c.rows[i]
-			out = append(out, &cp)
-		}
-	}
-	return out
-}
-
-// ListByInvoice implements [kernel.CreditRepository].
-func (c *Credits) ListByInvoice(_ context.Context, org core.OrganizationID, inv core.InvoiceID) ([]*kernel.Credit, error) {
-	return c.list(func(x *kernel.Credit) bool { return x.OrganizationID == org && x.InvoiceID == inv }), nil
-}
-
-// ListByAppliedCoupon implements [kernel.CreditRepository].
-func (c *Credits) ListByAppliedCoupon(_ context.Context, org core.OrganizationID, a core.AppliedCouponID) ([]*kernel.Credit, error) {
-	return c.list(func(x *kernel.Credit) bool { return x.OrganizationID == org && x.AppliedCouponID == a }), nil
-}
-
-// ListByCreditNote implements [kernel.CreditRepository].
-func (c *Credits) ListByCreditNote(_ context.Context, org core.OrganizationID, cn core.CreditNoteID) ([]*kernel.Credit, error) {
-	return c.list(func(x *kernel.Credit) bool { return x.OrganizationID == org && x.CreditNoteID == cn }), nil
-}
-
-// ListByProgressiveBillingInvoice implements [kernel.CreditRepository].
-func (c *Credits) ListByProgressiveBillingInvoice(_ context.Context, org core.OrganizationID, inv core.InvoiceID) ([]*kernel.Credit, error) {
-	return c.list(func(x *kernel.Credit) bool { return x.OrganizationID == org && x.ProgressiveBillingInvoiceID == inv }), nil
-}
-
-// DeleteByInvoice implements [kernel.CreditRepository].
-func (c *Credits) DeleteByInvoice(_ context.Context, org core.OrganizationID, inv core.InvoiceID) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.rows = slices.DeleteFunc(c.rows, func(x kernel.Credit) bool { return x.OrganizationID == org && x.InvoiceID == inv })
-	return nil
-}
-
-func (c *Credits) snapshot() []kernel.Credit {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return slices.Clone(c.rows)
-}
-
-func (c *Credits) restore(rows []kernel.Credit) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.rows = rows
-}
-
-// Tx wraps a transactor so that the [Credits] writes and [Emitter]
-// records of a failed transaction are discarded too. It also checks that
+// Tx wraps a transactor so that the [Emitter] records of a failed
+// transaction are discarded too. It also checks that
 // every transaction takes its locks in the order of [kernel.LockRank]: a
 // lock taken out of order fails with an error.
 type Tx struct {
 	// Inner is the wrapped transactor.
 	Inner port.Transactor
-	// Credits are rolled back with the transaction.
-	Credits *Credits
 	// Emitter's records are rolled back with the transaction.
 	Emitter *Emitter
 }
@@ -104,12 +31,10 @@ func (t *Tx) InTx(ctx context.Context, fn func(ctx context.Context, r port.Repos
 	if st, ok := ctx.Value(txKey{}).(*lockOrder); ok {
 		return t.Inner.InTx(ctx, st.wrap(fn))
 	}
-	saved := t.Credits.snapshot()
 	n := t.Emitter.len()
 	st := &lockOrder{}
 	err := t.Inner.InTx(context.WithValue(ctx, txKey{}, st), st.wrap(fn))
 	if err != nil {
-		t.Credits.restore(saved)
 		t.Emitter.truncate(n)
 	}
 	return err

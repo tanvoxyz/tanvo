@@ -111,11 +111,11 @@ func fixedChargesInvoice(advance bool) func(t *testing.T, g *ids) *Invoice {
 			f.InvoiceDisplayName, f.PayInAdvance = ptr(subName), advance
 			f.Properties.From, f.Properties.To = subPeriod.From, subPeriod.To
 		})
-		commitment := catalog.Commitment{ID: g.commitment(), PlanID: plan.ID, CommitmentType: catalog.CommitmentType("minimum_commitment"), Amount: 200}
 		commitmentFee := newFee(g, core.FeeTypeCommitment, func(f *invoice.Fee) {
-			f.SubscriptionID, f.CommitmentID, f.Amount, f.InvoiceDisplayName = sub.Subscription.ID, commitment.ID, 200, ptr("Minimum Commitment Fee")
+			f.SubscriptionID, f.CommitmentID, f.Amount, f.InvoiceDisplayName = sub.Subscription.ID, g.commitment(), 200, ptr("Minimum Commitment Fee")
+			f.Properties.From, f.Properties.To = aug.From, aug.To
 		})
-		fees := []Fee{{Fee: subFee}, {Fee: commitmentFee, Commitment: &commitment, Period: aug}}
+		fees := []Fee{{Fee: subFee}, {Fee: commitmentFee}}
 		for _, s := range []fixedSpec{
 			{name: "Standard Pay in Advance Fixed Charge Fee", advance: true, amount: 5000, units: "2", unitCents: 2500, precise: "25", period: sep},
 			{name: "Standard Pay in Advance Prorated Fixed Charge Fee", advance: true, prorated: true, amount: 5000, units: "0.5", unitCents: 10000, precise: "100", period: sep},
@@ -317,9 +317,9 @@ func presentationInvoice(t *testing.T, g *ids) *Invoice {
 	fee := chargeFee(g, &sub, &c, &m, func(f *invoice.Fee) {
 		f.Amount, f.Units, f.UnitAmount, f.PreciseUnitAmount, f.InvoiceDisplayName = 10000, d("100"), 100, d("1"), ptr("Compute")
 	})
-	fee.PresentationBreakdowns = []PresentationBreakdown{
-		{PresentationBy: map[string]string{"region": "us", "env": "prod"}, Units: d("60")},
-		{PresentationBy: map[string]string{"region": "eu", "env": "prod"}, Units: d("40")},
+	fee.Fee.PresentationBreakdowns = []invoice.PresentationBreakdown{
+		{PresentationBy: map[string]*string{"region": ptr("us"), "env": ptr("prod")}, Units: d("60")},
+		{PresentationBy: map[string]*string{"region": ptr("eu"), "env": ptr("prod")}, Units: d("40")},
 	}
 	return &Invoice{Party: staticParty(), Invoice: inv, Subscriptions: []Subscription{sub}, Fees: []Fee{fee}}
 }
@@ -375,7 +375,7 @@ func TestInvoiceV4FixedChargeWithZeroUnits(t *testing.T) {
 // source: spec/views/app/views/templates/invoices/v4.slim_spec.rb:77
 func TestInvoiceV4PurchaseOrderNumber(t *testing.T) {
 	d := creditInvoice(nil, nil)(t, &ids{})
-	d.PurchaseOrderNumber = "PO-123"
+	d.Invoice.PurchaseOrderNumber = ptr("PO-123")
 	w := newWriter(testCatalog(t), &d.Party, "", d.Invoice.Currency)
 	got := strings.Join(w.invoiceLayout(d).texts(), "\n")
 	for _, want := range []string{"Purchase Order Number", "PO-123"} {

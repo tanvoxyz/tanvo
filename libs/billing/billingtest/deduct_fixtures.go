@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/coupon"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
@@ -175,11 +174,15 @@ func (h *Harness) ReloadWalletTransaction(id core.WalletTransactionID) *wallet.T
 }
 
 // InvoiceCredits returns the credits of an invoice.
-func (h *Harness) InvoiceCredits(id core.InvoiceID) []*kernel.Credit {
+func (h *Harness) InvoiceCredits(id core.InvoiceID) []*invoice.Credit {
 	h.T.Helper()
-	cs, err := h.Credits.ListByInvoice(h.Ctx, h.OrgID(), id)
-	if err != nil {
-		h.T.Fatalf("list credits: %v", err)
-	}
-	return cs
+	return Read(h, func(ctx context.Context, r port.Repos) ([]*invoice.Credit, error) {
+		return r.Credits.ListByInvoice(ctx, h.OrgID(), id)
+	})
+}
+
+// CreateCredit stores an invoice credit.
+func (h *Harness) CreateCredit(c *invoice.Credit) {
+	h.T.Helper()
+	h.Do(func(ctx context.Context, r port.Repos) error { return r.Credits.Create(ctx, c) })
 }

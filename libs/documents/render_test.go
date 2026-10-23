@@ -233,7 +233,7 @@ func TestRenderKinds(t *testing.T) {
 		{"payment_receipt", port.DocumentPaymentReceipt, func(t *testing.T) any {
 			return receiptForInvoice(t, prepaidCreditsInvoice(300, 200)(t, &ids{}))
 		}},
-		{"payment_request", DocumentPaymentRequest, func(t *testing.T) any { return testPaymentRequest(t) }},
+		{"payment_request", port.DocumentPaymentRequest, func(t *testing.T) any { return testPaymentRequest(t) }},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			doc, err := r.Render(ctx, c.kind, "en", c.data(t))

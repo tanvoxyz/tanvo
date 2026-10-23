@@ -210,7 +210,7 @@ func (s *Service) applyCoupons(ctx context.Context, r port.Repos, inv *invoice.I
 		}
 		return strings.Compare(a.ID.String(), b.ID.String())
 	})
-	existing, err := s.d.Credits.ListByInvoice(ctx, org, inv.ID)
+	existing, err := r.Credits.ListByInvoice(ctx, org, inv.ID)
 	if err != nil {
 		return fmt.Errorf("list credits of invoice %s: %w", inv.ID, err)
 	}
@@ -220,7 +220,7 @@ func (s *Service) applyCoupons(ctx context.Context, r port.Repos, inv *invoice.I
 		if inv.SubTotalExcludingTaxesAmount <= 0 {
 			break
 		}
-		if slices.ContainsFunc(existing, func(c *kernel.Credit) bool { return c.AppliedCouponID == a.ID }) {
+		if slices.ContainsFunc(existing, func(c *invoice.Credit) bool { return c.AppliedCouponID == a.ID }) {
 			continue
 		}
 		c, err := s.applyCoupon(ctx, r, lookup, inv, fees, a, coupons[a.CouponID], opts)
@@ -238,7 +238,7 @@ func (s *Service) applyCoupons(ctx context.Context, r port.Repos, inv *invoice.I
 
 // applyCoupon applies one coupon (lago Credits::AppliedCouponService) and
 // returns its credit, or nil when the coupon does not apply.
-func (s *Service) applyCoupon(ctx context.Context, r port.Repos, lookup *catalogLookup, inv *invoice.Invoice, fees []*invoice.Fee, a *coupon.AppliedCoupon, c *coupon.Coupon, opts Options) (*kernel.Credit, error) {
+func (s *Service) applyCoupon(ctx context.Context, r port.Repos, lookup *catalogLookup, inv *invoice.Invoice, fees []*invoice.Fee, a *coupon.AppliedCoupon, c *coupon.Coupon, opts Options) (*invoice.Credit, error) {
 	if !a.Percentage() && a.Currency.Code() != inv.Currency.Code() {
 		return nil, nil
 	}
@@ -261,8 +261,8 @@ func (s *Service) applyCoupon(ctx context.Context, r port.Repos, lookup *catalog
 	}
 	amount := CouponAmount(a, base)
 	now := s.d.Now()
-	credit := &kernel.Credit{
-		ID: s.d.IDs.NewUUID(), OrganizationID: inv.OrganizationID, InvoiceID: inv.ID,
+	credit := &invoice.Credit{
+		ID: core.NewID[core.InvoiceCreditID](s.d.IDs), OrganizationID: inv.OrganizationID, InvoiceID: inv.ID,
 		AppliedCouponID: a.ID, Amount: amount, Currency: inv.Currency, BeforeTaxes: true, CreatedAt: now,
 	}
 	spread := couponSpread(a, base, amount)
@@ -274,7 +274,7 @@ func (s *Service) applyCoupon(ctx context.Context, r port.Repos, lookup *catalog
 		return nil, fmt.Errorf("consume applied coupon %s: %w", a.ID, err)
 	}
 	if !opts.Preview {
-		if err := s.d.Credits.Create(ctx, credit); err != nil {
+		if err := r.Credits.Create(ctx, credit); err != nil {
 			return nil, fmt.Errorf("create coupon credit: %w", err)
 		}
 		if err := r.AppliedCoupons.Update(ctx, a); err != nil {

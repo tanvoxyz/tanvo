@@ -1059,11 +1059,15 @@ func subsCheckAmounts(t *testing.T, what string, fs []*invoice.Fee, want ...int6
 	}
 }
 
-// subsCheckPeriod compares the charges period of fee properties with
-// lago's inclusive bounds.
+// subsCheckPeriod compares the charges period of fee properties (the
+// fixed charges period of a fixed-charge fee) with lago's inclusive bounds.
 func subsCheckPeriod(t *testing.T, what string, f *invoice.Fee, from, to string) {
 	t.Helper()
-	gotFrom, gotTo := f.Properties.ChargesFrom.UTC(), f.Properties.ChargesTo.UTC()
+	gotFrom, gotTo := f.Properties.ChargesPeriod()
+	if f.Type == core.FeeTypeFixedCharge {
+		gotFrom, gotTo = f.Properties.FixedChargesPeriod()
+	}
+	gotFrom, gotTo = gotFrom.UTC(), gotTo.UTC()
 	wantFrom, wantTo := subsAt(from), subsAt(to)
 	// lago's inclusive "…23:59:59.999" end is an exclusive end at the
 	// next second, or that instant minus a sub-second precision.

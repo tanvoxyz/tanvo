@@ -22,6 +22,7 @@ type invoiceData struct {
 	settlements    *table[core.InvoiceSettlementID, invoice.Settlement]
 	customSections *table[core.InvoiceCustomSectionID, invoice.CustomSection]
 	errorDetails   *table[core.ErrorDetailID, invoice.ErrorDetail]
+	credits        *table[core.InvoiceCreditID, invoice.Credit]
 }
 
 func newInvoiceData() *invoiceData {
@@ -55,6 +56,7 @@ func newInvoiceData() *invoiceData {
 			e.Details = slices.Clone(e.Details)
 			return e
 		}),
+		credits: newTable[core.InvoiceCreditID, invoice.Credit](nil),
 	}
 }
 
@@ -68,6 +70,7 @@ func (d *invoiceData) snapshot() *invoiceData {
 		settlements:    d.settlements.snapshot(),
 		customSections: d.customSections.snapshot(),
 		errorDetails:   d.errorDetails.snapshot(),
+		credits:        d.credits.snapshot(),
 	}
 }
 
@@ -89,6 +92,7 @@ var (
 	_ invoice.SettlementRepository    = invoiceSettlementRepo{}
 	_ invoice.CustomSectionRepository = invoiceCustomSectionRepo{}
 	_ invoice.ErrorDetailRepository   = errorDetailRepo{}
+	_ invoice.CreditRepository        = invoiceCreditRepo{}
 )
 
 // invoiceRepo implements invoice.Repository.
@@ -497,5 +501,45 @@ func (r errorDetailRepo) DeleteByInvoice(_ context.Context, org core.Organizatio
 	r.d.errorDetails.deleteWhere(func(x *invoice.ErrorDetail) bool {
 		return x.OrganizationID == org && x.InvoiceID == inv && (code == "" || x.Code == code)
 	})
+	return nil
+}
+
+// invoiceCreditRepo implements invoice.CreditRepository.
+type invoiceCreditRepo struct{ d *invoiceData }
+
+func (r invoiceCreditRepo) Create(_ context.Context, c *invoice.Credit) error {
+	if r.d.credits.has(c.ID) {
+		return conflict("credit", "id")
+	}
+	r.d.credits.put(c.ID, *c)
+	return nil
+}
+
+func (r invoiceCreditRepo) list(pred func(*invoice.Credit) bool) []*invoice.Credit {
+	out := r.d.credits.find(pred)
+	slices.SortStableFunc(out, func(a, b *invoice.Credit) int { return a.CreatedAt.Compare(b.CreatedAt) })
+	return out
+}
+
+func (r invoiceCreditRepo) ListByInvoice(_ context.Context, org core.OrganizationID, inv core.InvoiceID) ([]*invoice.Credit, error) {
+	return r.list(func(c *invoice.Credit) bool { return c.OrganizationID == org && c.InvoiceID == inv }), nil
+}
+
+func (r invoiceCreditRepo) ListByAppliedCoupon(_ context.Context, org core.OrganizationID, applied core.AppliedCouponID) ([]*invoice.Credit, error) {
+	return r.list(func(c *invoice.Credit) bool { return c.OrganizationID == org && c.AppliedCouponID == applied }), nil
+}
+
+func (r invoiceCreditRepo) ListByCreditNote(_ context.Context, org core.OrganizationID, cn core.CreditNoteID) ([]*invoice.Credit, error) {
+	return r.list(func(c *invoice.Credit) bool { return c.OrganizationID == org && c.CreditNoteID == cn }), nil
+}
+
+func (r invoiceCreditRepo) ListByProgressiveBillingInvoice(_ context.Context, org core.OrganizationID, inv core.InvoiceID) ([]*invoice.Credit, error) {
+	return r.list(func(c *invoice.Credit) bool {
+		return c.OrganizationID == org && c.ProgressiveBillingInvoiceID == inv
+	}), nil
+}
+
+func (r invoiceCreditRepo) DeleteByInvoice(_ context.Context, org core.OrganizationID, inv core.InvoiceID) error {
+	r.d.credits.deleteWhere(func(c *invoice.Credit) bool { return c.OrganizationID == org && c.InvoiceID == inv })
 	return nil
 }

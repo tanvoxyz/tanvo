@@ -231,8 +231,11 @@ func (s *Service) inAdvanceCharge(ctx context.Context, r port.Repos, org core.Or
 		if m.Code != a.Code {
 			continue
 		}
-		res, err := s.fees.InAdvanceChargeFees(ctx, r, env, c, fees.InAdvanceEvent{Event: ev}, fees.Options{})
+		res, err := s.fees.InAdvanceChargeFees(ctx, r, env, c, fees.InAdvanceEvent{ID: a.EventID, Event: ev}, fees.Options{Cache: aggregationCache(r, env)})
 		if err != nil {
+			return nil, err
+		}
+		if err := s.cacheAggregations(ctx, r, org, res, true); err != nil {
 			return nil, err
 		}
 		if res == nil || len(res.Fees) == 0 {

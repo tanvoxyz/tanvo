@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
+	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
@@ -20,11 +21,11 @@ import (
 // returned.
 func (s *Service) applyCreditNotes(ctx context.Context, r port.Repos, inv *invoice.Invoice, fees []*invoice.Fee, remaining int64, opts Options, out *AfterTaxes) (int64, error) {
 	org := inv.OrganizationID
-	existing, err := s.d.Credits.ListByInvoice(ctx, org, inv.ID)
+	existing, err := r.Credits.ListByInvoice(ctx, org, inv.ID)
 	if err != nil {
 		return 0, fmt.Errorf("list credits of invoice %s: %w", inv.ID, err)
 	}
-	if slices.ContainsFunc(existing, func(c *kernel.Credit) bool { return c.Kind() == kernel.CreditKindCreditNote }) {
+	if slices.ContainsFunc(existing, func(c *invoice.Credit) bool { return c.Kind() == invoice.CreditKindCreditNote }) {
 		return 0, nil
 	}
 	if !opts.Preview {
@@ -49,12 +50,12 @@ func (s *Service) applyCreditNotes(ctx context.Context, r port.Repos, inv *invoi
 		if amount <= 0 {
 			continue
 		}
-		credit := &kernel.Credit{
-			ID: s.d.IDs.NewUUID(), OrganizationID: org, InvoiceID: inv.ID,
+		credit := &invoice.Credit{
+			ID: core.NewID[core.InvoiceCreditID](s.d.IDs), OrganizationID: org, InvoiceID: inv.ID,
 			CreditNoteID: cn.ID, Amount: amount, Currency: inv.Currency, CreatedAt: now,
 		}
 		if !opts.Preview {
-			if err := s.d.Credits.Create(ctx, credit); err != nil {
+			if err := r.Credits.Create(ctx, credit); err != nil {
 				return 0, fmt.Errorf("create credit note credit: %w", err)
 			}
 			spreadCreditNote(fees, amount, remaining)

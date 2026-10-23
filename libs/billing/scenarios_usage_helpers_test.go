@@ -247,12 +247,6 @@ func usgParse(t *testing.T, v string) time.Time {
 	return at.UTC()
 }
 
-// usgCacheGap is why the scenarios that read lago cached_aggregations are
-// skipped: invoicing drops the aggregation states fees.ChargeResult
-// returns (core has no cached-aggregation repository), so the in-advance
-// current usage and the recurring weighted sum carry-over never see them.
-const usgCacheGap = "blocked: cached aggregations are not persisted (no core repository; invoicing drops fees.ChargeResult.Aggregations)"
-
 // usgDynamicEvent stores an event of a dynamic charge carrying amount
 // (precise cents) at the clock.
 func (s *scenario) usgDynamicEvent(sub *subscription.Subscription, code, amount string, props ...string) {

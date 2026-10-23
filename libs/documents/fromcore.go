@@ -26,8 +26,6 @@ type FromCore struct {
 	FixedCharges map[core.FixedChargeID]catalog.FixedCharge
 	// AddOns by ID.
 	AddOns map[core.AddOnID]catalog.AddOn
-	// Commitments by ID.
-	Commitments map[core.CommitmentID]catalog.Commitment
 	// PricingUnits by ID.
 	PricingUnits map[core.PricingUnitID]catalog.PricingUnit
 	// WalletTransactions by ID.
@@ -74,9 +72,6 @@ func (c *FromCore) Fees(fees []invoice.Fee) []Fee {
 		}
 		if id := f.Fee.AddOnID; !id.IsZero() {
 			f.AddOn = ref(c.AddOns, id)
-		}
-		if id := f.Fee.CommitmentID; !id.IsZero() {
-			f.Commitment = ref(c.Commitments, id)
 		}
 		if id := f.Fee.WalletTransactionID; !id.IsZero() {
 			f.WalletTransaction = ref(c.WalletTransactions, id)

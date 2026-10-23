@@ -31,3 +31,40 @@ CREATE INDEX events_transaction_id_idx ON events (organization_id, transaction_i
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON events
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
+
+-- Cached aggregation states of charges (domain §10.3): the running state
+-- saved after each pay-in-advance event and at the end of a period for
+-- recurring time-weighted sums. charge_filter_id is NULL for a charge's
+-- default bucket; grouped_by is the JSON object of pricing group values
+-- (null for a key without a value); presentation_breakdowns is the JSON
+-- array of {groups, value}. The aggregation values are NULL when a state
+-- does not carry them (a recurring state holds only current_aggregation).
+-- Like fees, the states reference charges and filters without foreign keys:
+-- charges are deleted, their history is not.
+CREATE TABLE cached_aggregations (
+  organization_id uuid NOT NULL,
+  id uuid NOT NULL,
+  external_subscription_id text NOT NULL,
+  charge_id uuid NOT NULL,
+  charge_filter_id uuid,
+  timestamp timestamptz NOT NULL,
+  event_transaction_id text,
+  grouped_by jsonb NOT NULL,
+  current_aggregation numeric,
+  max_aggregation numeric,
+  max_aggregation_with_proration numeric,
+  presentation_breakdowns jsonb NOT NULL,
+  created_at timestamptz NOT NULL,
+  PRIMARY KEY (organization_id, id),
+  CONSTRAINT cached_aggregations_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
+  CONSTRAINT cached_aggregations_external_subscription_id_check CHECK (external_subscription_id <> ''),
+  CONSTRAINT cached_aggregations_grouped_by_check CHECK (jsonb_typeof(grouped_by) = 'object'),
+  CONSTRAINT cached_aggregations_presentation_breakdowns_check CHECK (jsonb_typeof(presentation_breakdowns) = 'array')
+);
+
+CREATE INDEX cached_aggregations_lookup_idx ON cached_aggregations
+  (organization_id, external_subscription_id, charge_id, timestamp DESC, created_at DESC);
+
+ALTER TABLE cached_aggregations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON cached_aggregations
+  USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');

@@ -973,15 +973,7 @@ type rootAdvanceStep struct {
 	amount int64
 	// filtered expects the fee on the charge's first filter.
 	filtered bool
-	// gap, when set, is why the fee of this step is not asserted.
-	gap string
 }
-
-// rootNoAggregationCache is why a pay-in-advance fee that depends on the
-// aggregation cached by the previous events (lago CachedAggregation) is not
-// asserted: no repository stores the cached aggregations, so the invoicing
-// service never passes them to the fee computation.
-const rootNoAggregationCache = "no cached aggregation repository"
 
 // rootChargeFees returns the fees of a charge in creation order.
 func (s *scenario) rootChargeFees(id core.ChargeID) []*invoice.Fee {
@@ -1027,7 +1019,7 @@ func TestRootPayInAdvanceCharges(t *testing.T) {
 			steps: []rootAdvanceStep{
 				{at: feb(15), props: []string{"unique_id", "id_1"}, units: "1", events: 1, amount: 1200},
 				{at: feb(16), props: []string{"unique_id", "id_1", "operation_type", "remove"}, units: "0", events: 1, amount: 0},
-				{at: feb(17), props: []string{"unique_id", "id_1"}, units: "1", events: 1, amount: 0, gap: rootNoAggregationCache},
+				{at: feb(17), props: []string{"unique_id", "id_1"}, units: "1", events: 1, amount: 0},
 				{at: feb(18), props: []string{"unique_id", "id_2"}, units: "1", events: 1, amount: 1200},
 				{at: feb(19), props: []string{"unique_id", "id_2"}, units: "0", events: 1, amount: 0},
 				{at: feb(20), props: []string{"unique_id", "id_3"}, units: "1", events: 1, amount: 1200},
@@ -1040,7 +1032,7 @@ func TestRootPayInAdvanceCharges(t *testing.T) {
 			steps: []rootAdvanceStep{
 				{at: feb(15), props: []string{"amount", "10"}, units: "10", events: 1, amount: 1000},
 				{at: feb(17), props: []string{"amount", "-4"}, units: "0", events: 1, amount: 0},
-				{at: feb(18), props: []string{"amount", "8"}, units: "4", events: 1, amount: 400, gap: rootNoAggregationCache},
+				{at: feb(18), props: []string{"amount", "8"}, units: "4", events: 1, amount: 400},
 			},
 		},
 		{
@@ -1164,9 +1156,6 @@ func TestRootPayInAdvanceCharges(t *testing.T) {
 					t.Fatalf("step %d: fees = %d, want = %d", i, len(fees), i+1)
 				}
 				f := fees[i]
-				if st.gap != "" {
-					continue
-				}
 				if !f.InvoiceID.IsZero() && !tt.invoiceable {
 					t.Errorf("step %d: fee invoice = %s, want = none", i, f.InvoiceID)
 				}

@@ -203,7 +203,7 @@ func newFixedAdvanceFixture(t *testing.T, prorated bool, paid ...string) *fixedA
 			ID: core.NewID[core.FeeID](f.IDs), OrganizationID: f.OrgID(), SubscriptionID: s.ID, FixedChargeID: fc.ID,
 			Type: core.FeeTypeFixedCharge, Currency: billingtest.USD, Units: dec(u), PreciseAmount: dec("0"), Invoiceable: true,
 			PaymentStatus: invoice.FeePaymentStatusPending, CreatedAt: f.Now(),
-			Properties: invoice.FeeProperties{From: p.From, To: p.To, ChargesFrom: p.From, ChargesTo: p.To},
+			Properties: invoice.FeeProperties{From: p.From, To: p.To, FixedChargesFrom: p.From, FixedChargesTo: p.To},
 		})
 	}
 	return &fixedAdvanceFixture{fixture: f, sub: s, fc: fc}

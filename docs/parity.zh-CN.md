@@ -340,8 +340,8 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 存储查询：计数、求和、最大值、最新值、唯一计数、加权求和、分组、按比例、明细、最后一个事件、不同取值 | `app/services/events/stores/base_store.rb` | libs/eventstore | 逻辑已完成 | |
 | 存储查询上的计费周期过滤 | `app/services/events/stores/` | libs/eventstore | 逻辑已完成 | |
 | ClickHouse 原始表、富化表与死信表 | `db/clickhouse_migrate/` | libs/eventstore | 计划中 | |
-| 预聚合用量桶（Lago 中为 15 分钟） | `app/models/clickhouse/usage_bucket.rb`、`app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | 逻辑已完成 | 按维度取值分桶的 15 分钟桶，在 PostgreSQL 与 ClickHouse 上于事件写入时维护；窗口边界精确地从事件读取；未声明的过滤值被折叠；预付、按比例、周期性和目标钱包计费项读取事件；`RepairBuckets` 与 `BucketStats` 仍需各自的周期任务（apps/server） |
-| 循环指标的缓存聚合 | `app/models/cached_aggregation.rb` | libs/metering | 逻辑已完成 | |
+| 预聚合用量桶（Lago 中为 15 分钟） | `app/models/clickhouse/usage_bucket.rb`、`app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | 逻辑已完成 | 按维度取值分桶的 15 分钟桶，在 PostgreSQL 与 ClickHouse 上于事件写入时维护；窗口边界精确地从事件读取；未声明的过滤值被折叠；预付、按比例、周期性和目标钱包计费项读取事件；`RepairBuckets` 每 10 分钟从上次运行的开始时间（保存在 ClickHouse 中）起运行；`BucketStats` 每小时报告一次（直方图，以及单个桶超过 10 000 行时的警告）；删除行数过多的定义尚未自动化 |
+| 循环指标的缓存聚合 | `app/models/cached_aggregation.rb` | libs/metering | 已完成 | 由开票保存（每个预付事件一行，循环状态每个计费项、分组和时刻至多一行），由费用计算和当前用量读取（领域 §10.3）。查找仅在设置了计费项过滤器时才按其过滤，并在为事件计价时排除没有事件交易号的状态（`app/services/billable_metrics/aggregations/base_service.rb:223-224`）；聚合值可为空。没有 `current_amount`（未移植自定义聚合） |
 
 ### 1.19 用量
 
@@ -503,9 +503,9 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 附加项与一次性费用 | `app/services/fees/one_off_service.rb` | libs/billing | 逻辑已完成 | |
 | 钱包充值的额度费用 | `app/services/fees/paid_credit_service.rb` | libs/billing | 逻辑已完成 | 单价舍去钱包汇率中不足一分的部分，与 lago 的 bigint `unit_amount_cents` 一致（`app/models/wallet_transaction.rb:99`）；精确单价即该单价（`paid_credit_service.rb:40`）。作废 credit 发票会使购买失败（偏差，见 credit 发票一行） |
 | 承诺消费费用 | `app/services/fees/commitments/` | libs/billing | 逻辑已完成 | |
-| 草稿发票上的调整费用（单位数、单价、显示名称） | `app/models/adjusted_fee.rb`、`app/services/adjusted_fees/` | libs/billing | 逻辑已完成 | |
+| 草稿发票上的调整费用（单位数、单价、显示名称） | `app/models/adjusted_fee.rb`、`app/services/adjusted_fees/` | libs/billing | 逻辑已完成 | 调整只作用于计费项（或固定费用）边界相同的费用，与 lago 的 `matching_charge_boundaries` 一致（`app/models/adjusted_fee.rb:35-39`） |
 | 费用的税 | `app/models/fee/applied_tax.rb` | libs/tax | 计划中 | |
-| 费用的展示明细 | `app/models/`（`presentation_breakdowns`） | libs/billing | 计划中 | |
+| 费用的展示明细 | `app/models/`（`presentation_breakdowns`） | libs/billing | 进行中 | 存储在费用上（lago 使用 `presentation_breakdowns` 表），并在发票上打印（支持 null 值）；计费尚未计算它们 |
 | 费用 API（列出、获取、更新付款状态、删除未关联的费用） | `app/controllers/api/v1/fees_controller.rb` | apps/server | 计划中 | |
 | 费用 webhook `fee.created`（预付） | `app/services/webhooks/fees/pay_in_advance_created_service.rb` | libs/webhooks | 计划中 | |
 
@@ -517,7 +517,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 计费主体、客户、套餐、计费项、固定计费项、附加项、承诺消费上的税 | `app/models/` 中的关联表 | libs/tax | 计划中 | |
 | 税的解析顺序（显式、附加项、计费项、固定计费项、承诺消费、套餐、客户、计费主体） | `app/services/fees/apply_taxes_service.rb` | libs/tax | 逻辑已完成 | |
 | 费率卡的税覆盖套餐、客户和计费主体的税 | `app/models/rate_card.rb`（`rate_cards_taxes`） | libs/tax | 计划中 | 在统一目录中，费率卡的税就是其计费项的税 |
-| 发票上应用的税，带计税基础与分摊 | `app/services/invoices/apply_taxes_service.rb` | libs/tax | 逻辑已完成 | |
+| 发票上应用的税，带计税基础与分摊 | `app/services/invoices/apply_taxes_service.rb` | libs/tax | 逻辑已完成 | 服务商的计税基础存储在发票已应用税上并打印在发票上（`app/models/invoice/applied_tax.rb:31-41`） |
 | 贷项通知单上应用的税 | `app/services/credit_notes/apply_taxes_service.rb` | libs/tax | 逻辑已完成 | |
 | 提供者计算的税（Anrok、Avalara），带特殊代码与基础税率 | `app/services/invoices/apply_provider_taxes_service.rb` | libs/tax | 逻辑已完成 | |
 | 各国欧盟增值税税率及例外 | `app/services/taxes/`（ibericode 税率） | libs/tax | 逻辑已完成 | |

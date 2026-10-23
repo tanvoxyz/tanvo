@@ -33,21 +33,25 @@ type AddOnTax struct {
 }
 
 type AdjustedFee struct {
-	OrganizationID     uuid.UUID
-	ID                 uuid.UUID
-	InvoiceID          uuid.UUID
-	FeeID              *uuid.UUID
-	SubscriptionID     *uuid.UUID
-	ChargeID           *uuid.UUID
-	ChargeFilterID     *uuid.UUID
-	FixedChargeID      *uuid.UUID
-	FeeType            string
-	GroupedBy          json.RawMessage
-	Mode               string
-	InvoiceDisplayName *string
-	Units              money.Decimal
-	UnitPreciseAmount  money.Decimal
-	CreatedAt          time.Time
+	OrganizationID           uuid.UUID
+	ID                       uuid.UUID
+	InvoiceID                uuid.UUID
+	FeeID                    *uuid.UUID
+	SubscriptionID           *uuid.UUID
+	ChargeID                 *uuid.UUID
+	ChargeFilterID           *uuid.UUID
+	FixedChargeID            *uuid.UUID
+	FeeType                  string
+	GroupedBy                json.RawMessage
+	ChargesFromDatetime      time.Time
+	ChargesToDatetime        time.Time
+	FixedChargesFromDatetime time.Time
+	FixedChargesToDatetime   time.Time
+	Mode                     string
+	InvoiceDisplayName       *string
+	Units                    money.Decimal
+	UnitPreciseAmount        money.Decimal
+	CreatedAt                time.Time
 }
 
 type Alert struct {
@@ -200,6 +204,22 @@ type BillingEntityTax struct {
 	BillingEntityID uuid.UUID
 	TaxID           uuid.UUID
 	Position        int32
+}
+
+type CachedAggregation struct {
+	OrganizationID              uuid.UUID
+	ID                          uuid.UUID
+	ExternalSubscriptionID      string
+	ChargeID                    uuid.UUID
+	ChargeFilterID              *uuid.UUID
+	Timestamp                   time.Time
+	EventTransactionID          *string
+	GroupedBy                   json.RawMessage
+	CurrentAggregation          *money.Decimal
+	MaxAggregation              *money.Decimal
+	MaxAggregationWithProration *money.Decimal
+	PresentationBreakdowns      json.RawMessage
+	CreatedAt                   time.Time
 }
 
 type Charge struct {
@@ -583,9 +603,13 @@ type Fee struct {
 	ChargesToDatetime              time.Time
 	BillingTimestamp               time.Time
 	ChargesDurationDays            int32
+	FixedChargesFromDatetime       time.Time
+	FixedChargesToDatetime         time.Time
+	FixedChargesDurationDays       int32
 	TrueUpParentFeeID              *uuid.UUID
 	PricingUnitUsage               json.RawMessage
 	AppliedTaxes                   json.RawMessage
+	PresentationBreakdowns         json.RawMessage
 	PayInAdvanceEventID            *uuid.UUID
 	PayInAdvanceEventTransactionID *string
 	SucceededAt                    *time.Time
@@ -802,19 +826,33 @@ type Invoice struct {
 }
 
 type InvoiceAppliedTax struct {
-	OrganizationID uuid.UUID
-	ID             uuid.UUID
-	InvoiceID      uuid.UUID
-	TaxID          *uuid.UUID
-	TaxCode        string
-	TaxName        string
-	TaxDescription *string
-	TaxRate        money.Decimal
-	FeesAmount     int64
-	Amount         int64
-	PreciseAmount  money.Decimal
-	Currency       string
-	CreatedAt      time.Time
+	OrganizationID    uuid.UUID
+	ID                uuid.UUID
+	InvoiceID         uuid.UUID
+	TaxID             *uuid.UUID
+	TaxCode           string
+	TaxName           string
+	TaxDescription    *string
+	TaxRate           money.Decimal
+	FeesAmount        int64
+	TaxableBaseAmount int64
+	Amount            int64
+	PreciseAmount     money.Decimal
+	Currency          string
+	CreatedAt         time.Time
+}
+
+type InvoiceCredit struct {
+	OrganizationID              uuid.UUID
+	ID                          uuid.UUID
+	InvoiceID                   uuid.UUID
+	AppliedCouponID             *uuid.UUID
+	CreditNoteID                *uuid.UUID
+	ProgressiveBillingInvoiceID *uuid.UUID
+	Amount                      int64
+	Currency                    string
+	BeforeTaxes                 bool
+	CreatedAt                   time.Time
 }
 
 type InvoiceCustomSection struct {

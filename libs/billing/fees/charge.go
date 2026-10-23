@@ -2,12 +2,12 @@ package fees
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
+	"github.com/tanvoxyz/tanvo/libs/core/event"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/metering"
@@ -25,6 +25,8 @@ type bucket struct {
 	filter *catalog.ChargeFilter
 	// scope selects the events of the bucket.
 	scope metering.Filter
+	// isDefault marks the default bucket of a charge with filters.
+	isDefault bool
 	// props are the model properties of the bucket.
 	props pricing.Properties
 }
@@ -140,7 +142,7 @@ func (cc *chargeContext) defaultBucket() (bucket, error) {
 	if err != nil {
 		return bucket{}, err
 	}
-	return bucket{scope: scope, props: props}, nil
+	return bucket{scope: scope, props: props, isDefault: true}, nil
 }
 
 // request returns the aggregation request of a bucket over the charges
@@ -160,9 +162,19 @@ func (cc *chargeContext) request(env *kernel.SubscriptionEnv, bk bucket, b perio
 		req.FreeUnitsPerTotalAggregation = deref(p.FreeUnitsPerTotalAggregation)
 	}
 	if opts.Cache != nil {
-		req.Cache = opts.Cache(c.ID, bk.filterID())
+		req.Cache = opts.Cache(cc.cacheScope(env, bk, bk.isDefault))
 	}
 	return req
+}
+
+// cacheScope returns the cached aggregation scope of a bucket; defaultBucket
+// restricts the default bucket of a charge with filters to the states
+// without a filter (event.CachedAggregationScope).
+func (cc *chargeContext) cacheScope(env *kernel.SubscriptionEnv, bk bucket, defaultBucket bool) event.CachedAggregationScope {
+	return event.CachedAggregationScope{
+		ExternalSubscriptionID: env.Subscription.ExternalID, ChargeID: cc.charge.ID,
+		ChargeFilterID: bk.filterID(), DefaultBucket: defaultBucket,
+	}
 }
 
 // needsPerEvent reports whether the model of a bucket prices event by
@@ -177,13 +189,14 @@ func (cc *chargeContext) needsPerEvent(props pricing.Properties) bool {
 	return false
 }
 
-// perEvent returns the per-event values of an aggregation, or nil when the
-// aggregation does not provide them.
+// perEvent returns the per-event values of an aggregation. Aggregations that
+// have no per-event values (latest, weighted_sum) fail, as lago raises for them
+// (app/services/billable_metrics/aggregations/base_service.rb:113-123).
+// Prorated graduated charges never reach this on weighted_sum
+// (catalog.ChargeProratable); a percentage charge with per-transaction
+// bounds on a latest or weighted_sum metric fails to bill, as in lago.
 func (s *Service) perEvent(ctx context.Context, req metering.Request, groups metering.Groups) (*pricing.PerEventAggregation, error) {
 	pe, err := metering.PerEvent(ctx, s.d.Events, req, metering.PerEventOptions{GroupValues: groups})
-	if errors.Is(err, metering.ErrNotImplemented) {
-		return nil, nil
-	}
 	if err != nil {
 		return nil, fmt.Errorf("per-event values of %s: %w", req.Metric.Code, err)
 	}
@@ -358,7 +371,7 @@ func (s *Service) bucketFees(ctx context.Context, sc Scope, cc *chargeContext, b
 				Aggregation: metering.CachedAggregation{
 					Timestamp:          *firstNonNil(g.RecurringUpdatedAt, results[0].RecurringUpdatedAt),
 					Groups:             g.Groups,
-					CurrentAggregation: deref(firstNonNil(g.TotalAggregatedUnits, &g.Aggregation)),
+					CurrentAggregation: cloneDecimal(firstNonNil(g.TotalAggregatedUnits, &g.Aggregation)),
 				},
 			})
 		}
@@ -372,7 +385,7 @@ func (s *Service) bucketFees(ctx context.Context, sc Scope, cc *chargeContext, b
 		grouped := gr.GroupedBy
 		var a *invoice.AdjustedFee
 		if !opts.CurrentUsage {
-			a = adj.charge(cc.charge.ID, bk.filterID(), grouped)
+			a = adj.charge(cc.charge.ID, bk.filterID(), grouped, sc.Boundaries.Charges)
 		}
 		var f *invoice.Fee
 		if a != nil && a.Mode != invoice.AdjustmentModeDisplayName {
@@ -505,7 +518,7 @@ func keepChargeFee(f *invoice.Fee, all []*invoice.Fee, adj adjustments, opts Opt
 	if opts.Recurring || nonZero(f) || !f.TrueUpParentFeeID.IsZero() {
 		return true
 	}
-	if adj.charge(f.ChargeID, f.ChargeFilterID, f.GroupedBy) != nil {
+	if adj.charge(f.ChargeID, f.ChargeFilterID, f.GroupedBy, period.Period{From: f.Properties.ChargesFrom, To: f.Properties.ChargesTo}) != nil {
 		return true
 	}
 	for _, o := range all {

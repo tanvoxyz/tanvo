@@ -28,6 +28,10 @@ const (
 
 // Event is one usage event as the aggregations see it.
 type Event struct {
+	// ID is the event's identifier at intake, empty when unknown; the
+	// aggregations ignore it, and the fees an in-advance event bills
+	// reference it.
+	ID string `json:"id,omitempty"`
 	// OrganizationID, SubscriptionID and Code scope the event: it belongs to
 	// the external subscription ID (shared by the subscriptions that replace
 	// each other on upgrade or downgrade) and to the billable metric code.

@@ -17,14 +17,6 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/documents/internal/typst"
 )
 
-// DocumentPaymentRequest is the kind of a payment request PDF, which
-// [port.DocumentKind] does not list yet. lago-api has no such document: a
-// payment request is only an email (app/views/payment_request_mailer/requested.slim)
-// to which the requested invoices' own PDFs are attached
-// (app/mailers/payment_request_mailer.rb:4, :36); app/views/templates holds
-// no payment request template. Tanvo adds the PDF with the email's wording.
-const DocumentPaymentRequest port.DocumentKind = "payment_request"
-
 // Content types of rendered documents.
 const (
 	// ContentTypePDF is the media type of PDF documents.
@@ -110,7 +102,12 @@ func (r *Renderer) Render(ctx context.Context, k port.DocumentKind, locale strin
 			return port.Document{}, fmt.Errorf("%w: %s data %T", ErrUnsupported, k, data)
 		}
 		body, err = r.PaymentReceiptPDF(ctx, d, locale)
-	case DocumentPaymentRequest:
+	case port.DocumentPaymentRequest:
+		// lago-api has no such document: a payment request is only an
+		// email (app/views/payment_request_mailer/requested.slim) to which
+		// the requested invoices' own PDFs are attached
+		// (app/mailers/payment_request_mailer.rb:4, :36). Tanvo adds the
+		// PDF with the email's wording.
 		d, ok := data.(*PaymentRequest)
 		if !ok {
 			return port.Document{}, fmt.Errorf("%w: %s data %T", ErrUnsupported, k, data)
@@ -261,13 +258,14 @@ func (r *Renderer) CreditNoteXML(d *CreditNote, locale string, f Format) ([]byte
 	return nil, fmt.Errorf("%w: format %q", ErrUnsupported, f)
 }
 
-// PaymentReceiptXML returns the receipt's e-invoice in format. providerType
-// is the payment provider ("stripe", …; empty for manual payments).
-func (r *Renderer) PaymentReceiptXML(d *PaymentReceipt, locale, providerType string, f Format) ([]byte, error) {
+// PaymentReceiptXML returns the receipt's e-invoice in format; the payment
+// means are the provider of the payment's connection ("stripe", …; empty for
+// manual payments).
+func (r *Renderer) PaymentReceiptXML(d *PaymentReceipt, locale string, f Format) ([]byte, error) {
 	w := newWriter(r.cat, &d.Party, locale, d.Payment.Currency)
 	in := &einvoice.Payment{
 		Payment: &d.Payment, Receipt: &d.Receipt, BillingEntity: &d.BillingEntity, Customer: &d.Customer,
-		ProviderType: providerType, Labels: w.einvoiceLabels(),
+		ProviderType: d.providerType(), Labels: w.einvoiceLabels(),
 	}
 	switch {
 	case d.Invoice != nil:
@@ -322,7 +320,7 @@ func (w *writer) einvoiceInvoice(d *Invoice) *einvoice.Invoice {
 	}
 	in := &einvoice.Invoice{
 		Invoice: &d.Invoice, BillingEntity: &d.BillingEntity, Customer: &d.Customer,
-		PurchaseOrderNumber: d.PurchaseOrderNumber, Labels: w.einvoiceLabels(),
+		PurchaseOrderNumber: deref(d.Invoice.PurchaseOrderNumber), Labels: w.einvoiceLabels(),
 		ProviderTaxes: providerTaxes(d.AppliedTaxes), DeliveryDate: deliveryDate(d),
 	}
 	for i := range d.Fees {
@@ -332,11 +330,20 @@ func (w *writer) einvoiceInvoice(d *Invoice) *einvoice.Invoice {
 	return in
 }
 
+// deref returns *p, or "" when p is nil.
+func deref(p *string) string {
+	if p == nil {
+		return ""
+	}
+	return *p
+}
+
 // providerTaxes reports whether a tax provider computed the taxes: an
-// applied tax without a tax and with a positive taxable base.
+// applied tax without a tax and with a positive taxable base
+// (Invoice::AppliedTax#provider_tax?, app/models/invoice/applied_tax.rb:31-33).
 func providerTaxes(taxes []invoice.AppliedTax) bool {
 	for _, t := range taxes {
-		if t.TaxID.IsZero() && t.FeesAmount > 0 {
+		if t.IsProviderTax() {
 			return true
 		}
 	}
@@ -372,7 +379,7 @@ func (w *writer) einvoiceCreditNote(d *CreditNote) *einvoice.CreditNote {
 	}
 	in := &einvoice.CreditNote{
 		CreditNote: &d.CreditNote, Invoice: &d.Invoice, BillingEntity: &d.BillingEntity, Customer: &d.Customer,
-		PurchaseOrderNumber: d.PurchaseOrderNumber, Labels: w.einvoiceLabels(),
+		PurchaseOrderNumber: deref(d.Invoice.PurchaseOrderNumber), Labels: w.einvoiceLabels(),
 		ProviderTaxes: providerTaxes(d.InvoiceAppliedTaxes),
 	}
 	for _, it := range d.CreditNote.Items {

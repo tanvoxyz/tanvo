@@ -389,7 +389,15 @@ func (a *aggregator) inAdvanceCurrentUsage(total money.Decimal, r *Result) error
 	}
 	r.Aggregation = total
 	if cached != nil {
-		r.Aggregation = total.Sub(cached.CurrentAggregation).Add(cached.MaxAggregation)
+		current, err := cachedValue(cached.CurrentAggregation, "current_aggregation")
+		if err != nil {
+			return err
+		}
+		maxAgg, err := cachedValue(cached.MaxAggregation, "max_aggregation")
+		if err != nil {
+			return err
+		}
+		r.Aggregation = total.Sub(current).Add(maxAgg)
 	}
 	r.CurrentUsageUnits = ptr(money.Max(total, money.Zero))
 	r.Aggregation = money.Max(r.Aggregation, money.Zero)

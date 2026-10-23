@@ -28,6 +28,10 @@ type AppliedTax struct {
 	TaxRate money.Decimal
 	// FeesAmount is Σ taxable bases of the fees, in minor units.
 	FeesAmount int64
+	// TaxableBaseAmount is the part of FeesAmount a tax provider reported
+	// as actually taxed, in minor units; zero when not reported (internal
+	// taxes).
+	TaxableBaseAmount int64
 	// Amount is the rounded Σ of the unrounded fee taxes, in minor units.
 	Amount int64
 	// PreciseAmount is the unrounded Σ, in minor units.
@@ -38,6 +42,21 @@ type AppliedTax struct {
 	CreatedAt time.Time
 }
 
+// TaxableAmount returns the taxable base, falling back to FeesAmount when
+// no base was reported.
+func (t *AppliedTax) TaxableAmount() int64 {
+	if t.TaxableBaseAmount == 0 {
+		return t.FeesAmount
+	}
+	return t.TaxableBaseAmount
+}
+
+// IsProviderTax reports whether the tax line was computed by a tax
+// provider on a reported taxable base: it has no tax and a positive base.
+func (t *AppliedTax) IsProviderTax() bool {
+	return t.TaxID.IsZero() && t.TaxableBaseAmount > 0
+}
+
 // Validate checks the snapshot of an applied tax.
 func (t *AppliedTax) Validate() error {
 	var v core.Validator
@@ -45,6 +64,7 @@ func (t *AppliedTax) Validate() error {
 	v.Code("tax_code", t.TaxCode, 255)
 	v.Check(!t.TaxRate.IsNegative() && t.TaxRate.LessThanOrEqual(money.NewFromInt(100)), "tax_rate", core.CodeOutOfRange)
 	v.NonNegative("amount", t.Amount)
+	v.NonNegative("taxable_base_amount", t.TaxableBaseAmount)
 	v.Currency("currency", t.Currency)
 	return v.Err()
 }

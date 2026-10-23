@@ -5,6 +5,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/payment"
@@ -134,8 +135,6 @@ type Fee struct {
 	// AddOn is the fee's add-on (add-on fees) or the fixed charge's add-on
 	// (fixed charge fees).
 	AddOn *catalog.AddOn
-	// Commitment is the fee's commitment (commitment fees).
-	Commitment *catalog.Commitment
 	// PricingUnit is the charge's pricing unit, if any.
 	PricingUnit *catalog.PricingUnit
 	// WalletTransaction is the transaction of a credit fee.
@@ -144,44 +143,19 @@ type Fee struct {
 	Wallet *wallet.Wallet
 	// TrueUpFee is the true-up fee attached to this fee, if any.
 	TrueUpFee *invoice.Fee
-	// PresentationBreakdowns are the fee's usage by presentation group.
-	PresentationBreakdowns []PresentationBreakdown
 	// RecurringBreakdown is the daily breakdown of a recurring metric's
 	// units (sum and unique count metrics charged in arrears).
 	RecurringBreakdown []BreakdownItem
-	// Period is the period the fee bills when neither its properties nor
-	// the invoice subscription tell it, zero otherwise: the period of a
-	// fixed charge fee billed for another period than the invoice's fixed
-	// charges (fixed_charges_from/to properties, which core does not carry
-	// yet), and the reconciled period of a commitment fee (the previous
-	// subscription period of a plan paid in advance). lago-api reads these
-	// from the database while rendering
-	// (FeeBoundariesHelper.fixed_charge_fee_billing_period and
-	// derive_commitment_billing_period, app/views/helpers/fee_boundaries_helper.rb:152, :178,
-	// through previous_invoice_subscription); the renderer does no I/O, so
-	// the caller supplies them.
-	Period period.Period
-	// AdvanceInterval is, for a charge fee of a pay-in-advance charge that
-	// is itself billed in arrears (a reconciliation fee) or is not
-	// invoiceable, the pay-in-advance charges period of the fee's
-	// timestamp (Fee#date_boundaries: period.Dates in CurrentUsage mode at
-	// the invoice subscription's timestamp, ChargesPeriod); zero otherwise.
-	// lago-api computes it while rendering (app/models/fee.rb:342-365,
-	// Subscriptions::DatesService.charge_pay_in_advance_interval); here the
-	// caller does, since the dates services live in libs/billing.
-	AdvanceInterval period.Period
 	// ProrationDays is the proration of a prorated pay-in-advance charge:
 	// the days billed and the days of the period.
 	ProrationDays *DayRange
-}
-
-// PresentationBreakdown is the units of one presentation group of a fee.
-type PresentationBreakdown struct {
-	// PresentationBy are the group's values by presentation key; "" is a
-	// key present without a value (null), printed blank and sorted last.
-	PresentationBy map[string]string
-	// Units are the group's units.
-	Units money.Decimal
+	// PayInAdvanceInterval is the charges period holding the billing
+	// instant of a charge fee of a pay-in-advance charge billed in arrears
+	// or not invoiceable, shown instead of the fee's period. The caller
+	// resolves it when it renders the document, from the subscription as
+	// it is then (lago Fee#date_boundaries, app/models/fee.rb:342-365;
+	// billing's kernel.PayInAdvanceInterval); nil shows the fee's period.
+	PayInAdvanceInterval *period.Period
 }
 
 // BreakdownAction is the change of a recurring metric's units on a day.
@@ -251,8 +225,6 @@ type CreditNote struct {
 	CreditNote creditnote.CreditNote
 	// Invoice is the credited invoice.
 	Invoice invoice.Invoice
-	// PurchaseOrderNumber is the credited invoice's purchase order number.
-	PurchaseOrderNumber string
 	// InvoiceAppliedTaxes are the credited invoice's tax lines (they tell
 	// whether a tax provider computed its taxes).
 	InvoiceAppliedTaxes []invoice.AppliedTax
@@ -272,12 +244,26 @@ type PaymentReceipt struct {
 	Receipt payment.Receipt
 	// Payment is the receipted payment.
 	Payment payment.Payment
+	// Provider is the payment's provider connection (Payment.IntegrationID),
+	// nil for manual payments or when the connection is gone; its provider is
+	// the payment's provider type (payment.rb:86-88 payment_provider_type).
+	Provider *integration.Integration
 	// Invoice is the paid invoice, nil when the payment pays a payment
 	// request.
 	Invoice *Invoice
 	// Request is the paid payment request, nil when the payment pays an
 	// invoice.
 	Request *PaymentRequest
+}
+
+// providerType returns the payment provider of the receipted payment, empty
+// for manual payments, as lago's payment_provider&.payment_type
+// (app/models/payment.rb:86-88).
+func (d *PaymentReceipt) providerType() string {
+	if d.Provider == nil {
+		return ""
+	}
+	return string(d.Provider.Provider)
 }
 
 // PaymentRequest is the data of a payment request PDF, and the payable of a

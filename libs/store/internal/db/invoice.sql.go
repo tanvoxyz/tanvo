@@ -17,30 +17,36 @@ import (
 const createAdjustedFee = `-- name: CreateAdjustedFee :execrows
 INSERT INTO adjusted_fees (
   organization_id, id, invoice_id, fee_id, subscription_id, charge_id, charge_filter_id, fixed_charge_id,
-  fee_type, grouped_by, mode, invoice_display_name, units, unit_precise_amount, created_at
+  fee_type, grouped_by, charges_from_datetime, charges_to_datetime, fixed_charges_from_datetime,
+  fixed_charges_to_datetime, mode, invoice_display_name, units, unit_precise_amount, created_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8,
-  $9, $10, $11, $12, $13, $14, $15
+  $9, $10, $11, $12, $13,
+  $14, $15, $16, $17, $18, $19
 )
 ON CONFLICT DO NOTHING
 `
 
 type CreateAdjustedFeeParams struct {
-	OrganizationID     uuid.UUID
-	ID                 uuid.UUID
-	InvoiceID          uuid.UUID
-	FeeID              *uuid.UUID
-	SubscriptionID     *uuid.UUID
-	ChargeID           *uuid.UUID
-	ChargeFilterID     *uuid.UUID
-	FixedChargeID      *uuid.UUID
-	FeeType            string
-	GroupedBy          json.RawMessage
-	Mode               string
-	InvoiceDisplayName *string
-	Units              money.Decimal
-	UnitPreciseAmount  money.Decimal
-	CreatedAt          time.Time
+	OrganizationID           uuid.UUID
+	ID                       uuid.UUID
+	InvoiceID                uuid.UUID
+	FeeID                    *uuid.UUID
+	SubscriptionID           *uuid.UUID
+	ChargeID                 *uuid.UUID
+	ChargeFilterID           *uuid.UUID
+	FixedChargeID            *uuid.UUID
+	FeeType                  string
+	GroupedBy                json.RawMessage
+	ChargesFromDatetime      time.Time
+	ChargesToDatetime        time.Time
+	FixedChargesFromDatetime time.Time
+	FixedChargesToDatetime   time.Time
+	Mode                     string
+	InvoiceDisplayName       *string
+	Units                    money.Decimal
+	UnitPreciseAmount        money.Decimal
+	CreatedAt                time.Time
 }
 
 func (q *Queries) CreateAdjustedFee(ctx context.Context, arg CreateAdjustedFeeParams) (int64, error) {
@@ -55,6 +61,10 @@ func (q *Queries) CreateAdjustedFee(ctx context.Context, arg CreateAdjustedFeePa
 		arg.FixedChargeID,
 		arg.FeeType,
 		arg.GroupedBy,
+		arg.ChargesFromDatetime,
+		arg.ChargesToDatetime,
+		arg.FixedChargesFromDatetime,
+		arg.FixedChargesToDatetime,
 		arg.Mode,
 		arg.InvoiceDisplayName,
 		arg.Units,
@@ -75,7 +85,8 @@ INSERT INTO fees (
   amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount,
   precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status,
   from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days,
-  true_up_parent_fee_id, pricing_unit_usage, applied_taxes, pay_in_advance_event_id,
+  fixed_charges_from_datetime, fixed_charges_to_datetime, fixed_charges_duration_days,
+  true_up_parent_fee_id, pricing_unit_usage, applied_taxes, presentation_breakdowns, pay_in_advance_event_id,
   pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8,
@@ -84,8 +95,9 @@ INSERT INTO fees (
   $22, $23, $24, $25, $26, $27,
   $28, $29, $30, $31, $32,
   $33, $34, $35, $36, $37, $38,
-  $39, $40, $41, $42,
-  $43, $44, $45, $46, $47, $48
+  $39, $40, $41,
+  $42, $43, $44, $45, $46,
+  $47, $48, $49, $50, $51, $52
 )
 ON CONFLICT DO NOTHING
 `
@@ -129,9 +141,13 @@ type CreateFeeParams struct {
 	ChargesToDatetime              time.Time
 	BillingTimestamp               time.Time
 	ChargesDurationDays            int32
+	FixedChargesFromDatetime       time.Time
+	FixedChargesToDatetime         time.Time
+	FixedChargesDurationDays       int32
 	TrueUpParentFeeID              *uuid.UUID
 	PricingUnitUsage               json.RawMessage
 	AppliedTaxes                   json.RawMessage
+	PresentationBreakdowns         json.RawMessage
 	PayInAdvanceEventID            *uuid.UUID
 	PayInAdvanceEventTransactionID *string
 	SucceededAt                    *time.Time
@@ -181,9 +197,13 @@ func (q *Queries) CreateFee(ctx context.Context, arg CreateFeeParams) (int64, er
 		arg.ChargesToDatetime,
 		arg.BillingTimestamp,
 		arg.ChargesDurationDays,
+		arg.FixedChargesFromDatetime,
+		arg.FixedChargesToDatetime,
+		arg.FixedChargesDurationDays,
 		arg.TrueUpParentFeeID,
 		arg.PricingUnitUsage,
 		arg.AppliedTaxes,
+		arg.PresentationBreakdowns,
 		arg.PayInAdvanceEventID,
 		arg.PayInAdvanceEventTransactionID,
 		arg.SucceededAt,
@@ -341,27 +361,28 @@ func (q *Queries) CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (i
 const createInvoiceAppliedTax = `-- name: CreateInvoiceAppliedTax :exec
 INSERT INTO invoice_applied_taxes (
   organization_id, id, invoice_id, tax_id, tax_code, tax_name, tax_description, tax_rate,
-  fees_amount, amount, precise_amount, currency, created_at
+  fees_amount, taxable_base_amount, amount, precise_amount, currency, created_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8,
-  $9, $10, $11, $12, $13
+  $9, $10, $11, $12, $13, $14
 )
 `
 
 type CreateInvoiceAppliedTaxParams struct {
-	OrganizationID uuid.UUID
-	ID             uuid.UUID
-	InvoiceID      uuid.UUID
-	TaxID          *uuid.UUID
-	TaxCode        string
-	TaxName        string
-	TaxDescription *string
-	TaxRate        money.Decimal
-	FeesAmount     int64
-	Amount         int64
-	PreciseAmount  money.Decimal
-	Currency       string
-	CreatedAt      time.Time
+	OrganizationID    uuid.UUID
+	ID                uuid.UUID
+	InvoiceID         uuid.UUID
+	TaxID             *uuid.UUID
+	TaxCode           string
+	TaxName           string
+	TaxDescription    *string
+	TaxRate           money.Decimal
+	FeesAmount        int64
+	TaxableBaseAmount int64
+	Amount            int64
+	PreciseAmount     money.Decimal
+	Currency          string
+	CreatedAt         time.Time
 }
 
 func (q *Queries) CreateInvoiceAppliedTax(ctx context.Context, arg CreateInvoiceAppliedTaxParams) error {
@@ -375,12 +396,56 @@ func (q *Queries) CreateInvoiceAppliedTax(ctx context.Context, arg CreateInvoice
 		arg.TaxDescription,
 		arg.TaxRate,
 		arg.FeesAmount,
+		arg.TaxableBaseAmount,
 		arg.Amount,
 		arg.PreciseAmount,
 		arg.Currency,
 		arg.CreatedAt,
 	)
 	return err
+}
+
+const createInvoiceCredit = `-- name: CreateInvoiceCredit :execrows
+INSERT INTO invoice_credits (
+  organization_id, id, invoice_id, applied_coupon_id, credit_note_id, progressive_billing_invoice_id,
+  amount, currency, before_taxes, created_at
+) VALUES (
+  $1, $2, $3, $4, $5, $6,
+  $7, $8, $9, $10
+)
+ON CONFLICT DO NOTHING
+`
+
+type CreateInvoiceCreditParams struct {
+	OrganizationID              uuid.UUID
+	ID                          uuid.UUID
+	InvoiceID                   uuid.UUID
+	AppliedCouponID             *uuid.UUID
+	CreditNoteID                *uuid.UUID
+	ProgressiveBillingInvoiceID *uuid.UUID
+	Amount                      int64
+	Currency                    string
+	BeforeTaxes                 bool
+	CreatedAt                   time.Time
+}
+
+func (q *Queries) CreateInvoiceCredit(ctx context.Context, arg CreateInvoiceCreditParams) (int64, error) {
+	result, err := q.db.Exec(ctx, createInvoiceCredit,
+		arg.OrganizationID,
+		arg.ID,
+		arg.InvoiceID,
+		arg.AppliedCouponID,
+		arg.CreditNoteID,
+		arg.ProgressiveBillingInvoiceID,
+		arg.Amount,
+		arg.Currency,
+		arg.BeforeTaxes,
+		arg.CreatedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const createInvoiceErrorDetail = `-- name: CreateInvoiceErrorDetail :execrows
@@ -581,6 +646,20 @@ func (q *Queries) DeleteInvoiceAppliedTaxes(ctx context.Context, arg DeleteInvoi
 	return err
 }
 
+const deleteInvoiceCreditsByInvoice = `-- name: DeleteInvoiceCreditsByInvoice :exec
+DELETE FROM invoice_credits WHERE organization_id = $1 AND invoice_id = $2
+`
+
+type DeleteInvoiceCreditsByInvoiceParams struct {
+	OrganizationID uuid.UUID
+	InvoiceID      uuid.UUID
+}
+
+func (q *Queries) DeleteInvoiceCreditsByInvoice(ctx context.Context, arg DeleteInvoiceCreditsByInvoiceParams) error {
+	_, err := q.db.Exec(ctx, deleteInvoiceCreditsByInvoice, arg.OrganizationID, arg.InvoiceID)
+	return err
+}
+
 const deleteInvoiceErrorDetailsByInvoice = `-- name: DeleteInvoiceErrorDetailsByInvoice :exec
 DELETE FROM invoice_error_details
 WHERE organization_id = $1 AND invoice_id = $2
@@ -732,7 +811,7 @@ func (q *Queries) FindInvoiceSubscriptionByReason(ctx context.Context, arg FindI
 }
 
 const getFee = `-- name: GetFee :one
-SELECT organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id, add_on_id, commitment_id, wallet_transaction_id, grouped_by, invoice_display_name, description, amount, precise_amount, unit_amount, precise_unit_amount, units, total_aggregated_units, events_count, amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount, precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days, true_up_parent_fee_id, pricing_unit_usage, applied_taxes, pay_in_advance_event_id, pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at FROM fees WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id, add_on_id, commitment_id, wallet_transaction_id, grouped_by, invoice_display_name, description, amount, precise_amount, unit_amount, precise_unit_amount, units, total_aggregated_units, events_count, amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount, precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days, fixed_charges_from_datetime, fixed_charges_to_datetime, fixed_charges_duration_days, true_up_parent_fee_id, pricing_unit_usage, applied_taxes, presentation_breakdowns, pay_in_advance_event_id, pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at FROM fees WHERE organization_id = $1 AND id = $2
 `
 
 type GetFeeParams struct {
@@ -782,9 +861,13 @@ func (q *Queries) GetFee(ctx context.Context, arg GetFeeParams) (Fee, error) {
 		&i.ChargesToDatetime,
 		&i.BillingTimestamp,
 		&i.ChargesDurationDays,
+		&i.FixedChargesFromDatetime,
+		&i.FixedChargesToDatetime,
+		&i.FixedChargesDurationDays,
 		&i.TrueUpParentFeeID,
 		&i.PricingUnitUsage,
 		&i.AppliedTaxes,
+		&i.PresentationBreakdowns,
 		&i.PayInAdvanceEventID,
 		&i.PayInAdvanceEventTransactionID,
 		&i.SucceededAt,
@@ -981,7 +1064,7 @@ func (q *Queries) LastInvoiceSubscription(ctx context.Context, arg LastInvoiceSu
 }
 
 const listAdjustedFeesByInvoice = `-- name: ListAdjustedFeesByInvoice :many
-SELECT organization_id, id, invoice_id, fee_id, subscription_id, charge_id, charge_filter_id, fixed_charge_id, fee_type, grouped_by, mode, invoice_display_name, units, unit_precise_amount, created_at FROM adjusted_fees WHERE organization_id = $1 AND invoice_id = $2 ORDER BY id
+SELECT organization_id, id, invoice_id, fee_id, subscription_id, charge_id, charge_filter_id, fixed_charge_id, fee_type, grouped_by, charges_from_datetime, charges_to_datetime, fixed_charges_from_datetime, fixed_charges_to_datetime, mode, invoice_display_name, units, unit_precise_amount, created_at FROM adjusted_fees WHERE organization_id = $1 AND invoice_id = $2 ORDER BY id
 `
 
 type ListAdjustedFeesByInvoiceParams struct {
@@ -1009,6 +1092,10 @@ func (q *Queries) ListAdjustedFeesByInvoice(ctx context.Context, arg ListAdjuste
 			&i.FixedChargeID,
 			&i.FeeType,
 			&i.GroupedBy,
+			&i.ChargesFromDatetime,
+			&i.ChargesToDatetime,
+			&i.FixedChargesFromDatetime,
+			&i.FixedChargesToDatetime,
 			&i.Mode,
 			&i.InvoiceDisplayName,
 			&i.Units,
@@ -1026,7 +1113,7 @@ func (q *Queries) ListAdjustedFeesByInvoice(ctx context.Context, arg ListAdjuste
 }
 
 const listFees = `-- name: ListFees :many
-SELECT organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id, add_on_id, commitment_id, wallet_transaction_id, grouped_by, invoice_display_name, description, amount, precise_amount, unit_amount, precise_unit_amount, units, total_aggregated_units, events_count, amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount, precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days, true_up_parent_fee_id, pricing_unit_usage, applied_taxes, pay_in_advance_event_id, pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at FROM fees
+SELECT organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id, add_on_id, commitment_id, wallet_transaction_id, grouped_by, invoice_display_name, description, amount, precise_amount, unit_amount, precise_unit_amount, units, total_aggregated_units, events_count, amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount, precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days, fixed_charges_from_datetime, fixed_charges_to_datetime, fixed_charges_duration_days, true_up_parent_fee_id, pricing_unit_usage, applied_taxes, presentation_breakdowns, pay_in_advance_event_id, pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at FROM fees
 WHERE organization_id = $1
   AND ($2::uuid IS NULL OR invoice_id = $2)
   AND ($3::uuid IS NULL OR subscription_id = $3)
@@ -1103,9 +1190,13 @@ func (q *Queries) ListFees(ctx context.Context, arg ListFeesParams) ([]Fee, erro
 			&i.ChargesToDatetime,
 			&i.BillingTimestamp,
 			&i.ChargesDurationDays,
+			&i.FixedChargesFromDatetime,
+			&i.FixedChargesToDatetime,
+			&i.FixedChargesDurationDays,
 			&i.TrueUpParentFeeID,
 			&i.PricingUnitUsage,
 			&i.AppliedTaxes,
+			&i.PresentationBreakdowns,
 			&i.PayInAdvanceEventID,
 			&i.PayInAdvanceEventTransactionID,
 			&i.SucceededAt,
@@ -1125,7 +1216,7 @@ func (q *Queries) ListFees(ctx context.Context, arg ListFeesParams) ([]Fee, erro
 }
 
 const listFeesByCharge = `-- name: ListFeesByCharge :many
-SELECT organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id, add_on_id, commitment_id, wallet_transaction_id, grouped_by, invoice_display_name, description, amount, precise_amount, unit_amount, precise_unit_amount, units, total_aggregated_units, events_count, amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount, precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days, true_up_parent_fee_id, pricing_unit_usage, applied_taxes, pay_in_advance_event_id, pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at FROM fees WHERE organization_id = $1 AND charge_id = $2 ORDER BY id
+SELECT organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id, add_on_id, commitment_id, wallet_transaction_id, grouped_by, invoice_display_name, description, amount, precise_amount, unit_amount, precise_unit_amount, units, total_aggregated_units, events_count, amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount, precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days, fixed_charges_from_datetime, fixed_charges_to_datetime, fixed_charges_duration_days, true_up_parent_fee_id, pricing_unit_usage, applied_taxes, presentation_breakdowns, pay_in_advance_event_id, pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at FROM fees WHERE organization_id = $1 AND charge_id = $2 ORDER BY id
 `
 
 type ListFeesByChargeParams struct {
@@ -1181,9 +1272,13 @@ func (q *Queries) ListFeesByCharge(ctx context.Context, arg ListFeesByChargePara
 			&i.ChargesToDatetime,
 			&i.BillingTimestamp,
 			&i.ChargesDurationDays,
+			&i.FixedChargesFromDatetime,
+			&i.FixedChargesToDatetime,
+			&i.FixedChargesDurationDays,
 			&i.TrueUpParentFeeID,
 			&i.PricingUnitUsage,
 			&i.AppliedTaxes,
+			&i.PresentationBreakdowns,
 			&i.PayInAdvanceEventID,
 			&i.PayInAdvanceEventTransactionID,
 			&i.SucceededAt,
@@ -1203,7 +1298,7 @@ func (q *Queries) ListFeesByCharge(ctx context.Context, arg ListFeesByChargePara
 }
 
 const listFeesByEventTransaction = `-- name: ListFeesByEventTransaction :many
-SELECT organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id, add_on_id, commitment_id, wallet_transaction_id, grouped_by, invoice_display_name, description, amount, precise_amount, unit_amount, precise_unit_amount, units, total_aggregated_units, events_count, amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount, precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days, true_up_parent_fee_id, pricing_unit_usage, applied_taxes, pay_in_advance_event_id, pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at FROM fees
+SELECT organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id, add_on_id, commitment_id, wallet_transaction_id, grouped_by, invoice_display_name, description, amount, precise_amount, unit_amount, precise_unit_amount, units, total_aggregated_units, events_count, amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount, precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days, fixed_charges_from_datetime, fixed_charges_to_datetime, fixed_charges_duration_days, true_up_parent_fee_id, pricing_unit_usage, applied_taxes, presentation_breakdowns, pay_in_advance_event_id, pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at FROM fees
 WHERE organization_id = $1 AND subscription_id = $2
   AND pay_in_advance_event_transaction_id = $3
 ORDER BY id
@@ -1263,9 +1358,13 @@ func (q *Queries) ListFeesByEventTransaction(ctx context.Context, arg ListFeesBy
 			&i.ChargesToDatetime,
 			&i.BillingTimestamp,
 			&i.ChargesDurationDays,
+			&i.FixedChargesFromDatetime,
+			&i.FixedChargesToDatetime,
+			&i.FixedChargesDurationDays,
 			&i.TrueUpParentFeeID,
 			&i.PricingUnitUsage,
 			&i.AppliedTaxes,
+			&i.PresentationBreakdowns,
 			&i.PayInAdvanceEventID,
 			&i.PayInAdvanceEventTransactionID,
 			&i.SucceededAt,
@@ -1285,7 +1384,7 @@ func (q *Queries) ListFeesByEventTransaction(ctx context.Context, arg ListFeesBy
 }
 
 const listFeesByInvoice = `-- name: ListFeesByInvoice :many
-SELECT organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id, add_on_id, commitment_id, wallet_transaction_id, grouped_by, invoice_display_name, description, amount, precise_amount, unit_amount, precise_unit_amount, units, total_aggregated_units, events_count, amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount, precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days, true_up_parent_fee_id, pricing_unit_usage, applied_taxes, pay_in_advance_event_id, pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at FROM fees WHERE organization_id = $1 AND invoice_id = $2 ORDER BY id
+SELECT organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id, add_on_id, commitment_id, wallet_transaction_id, grouped_by, invoice_display_name, description, amount, precise_amount, unit_amount, precise_unit_amount, units, total_aggregated_units, events_count, amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount, precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days, fixed_charges_from_datetime, fixed_charges_to_datetime, fixed_charges_duration_days, true_up_parent_fee_id, pricing_unit_usage, applied_taxes, presentation_breakdowns, pay_in_advance_event_id, pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at FROM fees WHERE organization_id = $1 AND invoice_id = $2 ORDER BY id
 `
 
 type ListFeesByInvoiceParams struct {
@@ -1341,9 +1440,13 @@ func (q *Queries) ListFeesByInvoice(ctx context.Context, arg ListFeesByInvoicePa
 			&i.ChargesToDatetime,
 			&i.BillingTimestamp,
 			&i.ChargesDurationDays,
+			&i.FixedChargesFromDatetime,
+			&i.FixedChargesToDatetime,
+			&i.FixedChargesDurationDays,
 			&i.TrueUpParentFeeID,
 			&i.PricingUnitUsage,
 			&i.AppliedTaxes,
+			&i.PresentationBreakdowns,
 			&i.PayInAdvanceEventID,
 			&i.PayInAdvanceEventTransactionID,
 			&i.SucceededAt,
@@ -1363,7 +1466,7 @@ func (q *Queries) ListFeesByInvoice(ctx context.Context, arg ListFeesByInvoicePa
 }
 
 const listFeesBySubscriptionPeriod = `-- name: ListFeesBySubscriptionPeriod :many
-SELECT organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id, add_on_id, commitment_id, wallet_transaction_id, grouped_by, invoice_display_name, description, amount, precise_amount, unit_amount, precise_unit_amount, units, total_aggregated_units, events_count, amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount, precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days, true_up_parent_fee_id, pricing_unit_usage, applied_taxes, pay_in_advance_event_id, pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at FROM fees
+SELECT organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id, add_on_id, commitment_id, wallet_transaction_id, grouped_by, invoice_display_name, description, amount, precise_amount, unit_amount, precise_unit_amount, units, total_aggregated_units, events_count, amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount, precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days, fixed_charges_from_datetime, fixed_charges_to_datetime, fixed_charges_duration_days, true_up_parent_fee_id, pricing_unit_usage, applied_taxes, presentation_breakdowns, pay_in_advance_event_id, pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at FROM fees
 WHERE organization_id = $1 AND subscription_id = $2 AND from_datetime = $3
 ORDER BY id
 `
@@ -1422,9 +1525,13 @@ func (q *Queries) ListFeesBySubscriptionPeriod(ctx context.Context, arg ListFees
 			&i.ChargesToDatetime,
 			&i.BillingTimestamp,
 			&i.ChargesDurationDays,
+			&i.FixedChargesFromDatetime,
+			&i.FixedChargesToDatetime,
+			&i.FixedChargesDurationDays,
 			&i.TrueUpParentFeeID,
 			&i.PricingUnitUsage,
 			&i.AppliedTaxes,
+			&i.PresentationBreakdowns,
 			&i.PayInAdvanceEventID,
 			&i.PayInAdvanceEventTransactionID,
 			&i.SucceededAt,
@@ -1444,7 +1551,7 @@ func (q *Queries) ListFeesBySubscriptionPeriod(ctx context.Context, arg ListFees
 }
 
 const listFeesUnbilledInAdvance = `-- name: ListFeesUnbilledInAdvance :many
-SELECT organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id, add_on_id, commitment_id, wallet_transaction_id, grouped_by, invoice_display_name, description, amount, precise_amount, unit_amount, precise_unit_amount, units, total_aggregated_units, events_count, amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount, precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days, true_up_parent_fee_id, pricing_unit_usage, applied_taxes, pay_in_advance_event_id, pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at FROM fees
+SELECT organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id, add_on_id, commitment_id, wallet_transaction_id, grouped_by, invoice_display_name, description, amount, precise_amount, unit_amount, precise_unit_amount, units, total_aggregated_units, events_count, amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount, precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status, from_datetime, to_datetime, charges_from_datetime, charges_to_datetime, billing_timestamp, charges_duration_days, fixed_charges_from_datetime, fixed_charges_to_datetime, fixed_charges_duration_days, true_up_parent_fee_id, pricing_unit_usage, applied_taxes, presentation_breakdowns, pay_in_advance_event_id, pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at FROM fees
 WHERE organization_id = $1 AND invoice_id IS NULL AND pay_in_advance AND invoiceable
   AND payment_status = 'succeeded' AND created_at < $2
 ORDER BY id
@@ -1503,9 +1610,13 @@ func (q *Queries) ListFeesUnbilledInAdvance(ctx context.Context, arg ListFeesUnb
 			&i.ChargesToDatetime,
 			&i.BillingTimestamp,
 			&i.ChargesDurationDays,
+			&i.FixedChargesFromDatetime,
+			&i.FixedChargesToDatetime,
+			&i.FixedChargesDurationDays,
 			&i.TrueUpParentFeeID,
 			&i.PricingUnitUsage,
 			&i.AppliedTaxes,
+			&i.PresentationBreakdowns,
 			&i.PayInAdvanceEventID,
 			&i.PayInAdvanceEventTransactionID,
 			&i.SucceededAt,
@@ -1525,7 +1636,7 @@ func (q *Queries) ListFeesUnbilledInAdvance(ctx context.Context, arg ListFeesUnb
 }
 
 const listInvoiceAppliedTaxes = `-- name: ListInvoiceAppliedTaxes :many
-SELECT organization_id, id, invoice_id, tax_id, tax_code, tax_name, tax_description, tax_rate, fees_amount, amount, precise_amount, currency, created_at FROM invoice_applied_taxes WHERE organization_id = $1 AND invoice_id = $2 ORDER BY id
+SELECT organization_id, id, invoice_id, tax_id, tax_code, tax_name, tax_description, tax_rate, fees_amount, taxable_base_amount, amount, precise_amount, currency, created_at FROM invoice_applied_taxes WHERE organization_id = $1 AND invoice_id = $2 ORDER BY id
 `
 
 type ListInvoiceAppliedTaxesParams struct {
@@ -1552,9 +1663,172 @@ func (q *Queries) ListInvoiceAppliedTaxes(ctx context.Context, arg ListInvoiceAp
 			&i.TaxDescription,
 			&i.TaxRate,
 			&i.FeesAmount,
+			&i.TaxableBaseAmount,
 			&i.Amount,
 			&i.PreciseAmount,
 			&i.Currency,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listInvoiceCreditsByAppliedCoupon = `-- name: ListInvoiceCreditsByAppliedCoupon :many
+SELECT organization_id, id, invoice_id, applied_coupon_id, credit_note_id, progressive_billing_invoice_id, amount, currency, before_taxes, created_at FROM invoice_credits WHERE organization_id = $1 AND applied_coupon_id = $2 ORDER BY created_at, id
+`
+
+type ListInvoiceCreditsByAppliedCouponParams struct {
+	OrganizationID  uuid.UUID
+	AppliedCouponID *uuid.UUID
+}
+
+func (q *Queries) ListInvoiceCreditsByAppliedCoupon(ctx context.Context, arg ListInvoiceCreditsByAppliedCouponParams) ([]InvoiceCredit, error) {
+	rows, err := q.db.Query(ctx, listInvoiceCreditsByAppliedCoupon, arg.OrganizationID, arg.AppliedCouponID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []InvoiceCredit{}
+	for rows.Next() {
+		var i InvoiceCredit
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.InvoiceID,
+			&i.AppliedCouponID,
+			&i.CreditNoteID,
+			&i.ProgressiveBillingInvoiceID,
+			&i.Amount,
+			&i.Currency,
+			&i.BeforeTaxes,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listInvoiceCreditsByCreditNote = `-- name: ListInvoiceCreditsByCreditNote :many
+SELECT organization_id, id, invoice_id, applied_coupon_id, credit_note_id, progressive_billing_invoice_id, amount, currency, before_taxes, created_at FROM invoice_credits WHERE organization_id = $1 AND credit_note_id = $2 ORDER BY created_at, id
+`
+
+type ListInvoiceCreditsByCreditNoteParams struct {
+	OrganizationID uuid.UUID
+	CreditNoteID   *uuid.UUID
+}
+
+func (q *Queries) ListInvoiceCreditsByCreditNote(ctx context.Context, arg ListInvoiceCreditsByCreditNoteParams) ([]InvoiceCredit, error) {
+	rows, err := q.db.Query(ctx, listInvoiceCreditsByCreditNote, arg.OrganizationID, arg.CreditNoteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []InvoiceCredit{}
+	for rows.Next() {
+		var i InvoiceCredit
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.InvoiceID,
+			&i.AppliedCouponID,
+			&i.CreditNoteID,
+			&i.ProgressiveBillingInvoiceID,
+			&i.Amount,
+			&i.Currency,
+			&i.BeforeTaxes,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listInvoiceCreditsByInvoice = `-- name: ListInvoiceCreditsByInvoice :many
+SELECT organization_id, id, invoice_id, applied_coupon_id, credit_note_id, progressive_billing_invoice_id, amount, currency, before_taxes, created_at FROM invoice_credits WHERE organization_id = $1 AND invoice_id = $2 ORDER BY created_at, id
+`
+
+type ListInvoiceCreditsByInvoiceParams struct {
+	OrganizationID uuid.UUID
+	InvoiceID      uuid.UUID
+}
+
+func (q *Queries) ListInvoiceCreditsByInvoice(ctx context.Context, arg ListInvoiceCreditsByInvoiceParams) ([]InvoiceCredit, error) {
+	rows, err := q.db.Query(ctx, listInvoiceCreditsByInvoice, arg.OrganizationID, arg.InvoiceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []InvoiceCredit{}
+	for rows.Next() {
+		var i InvoiceCredit
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.InvoiceID,
+			&i.AppliedCouponID,
+			&i.CreditNoteID,
+			&i.ProgressiveBillingInvoiceID,
+			&i.Amount,
+			&i.Currency,
+			&i.BeforeTaxes,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listInvoiceCreditsByProgressiveBillingInvoice = `-- name: ListInvoiceCreditsByProgressiveBillingInvoice :many
+SELECT organization_id, id, invoice_id, applied_coupon_id, credit_note_id, progressive_billing_invoice_id, amount, currency, before_taxes, created_at FROM invoice_credits
+WHERE organization_id = $1 AND progressive_billing_invoice_id = $2
+ORDER BY created_at, id
+`
+
+type ListInvoiceCreditsByProgressiveBillingInvoiceParams struct {
+	OrganizationID              uuid.UUID
+	ProgressiveBillingInvoiceID *uuid.UUID
+}
+
+func (q *Queries) ListInvoiceCreditsByProgressiveBillingInvoice(ctx context.Context, arg ListInvoiceCreditsByProgressiveBillingInvoiceParams) ([]InvoiceCredit, error) {
+	rows, err := q.db.Query(ctx, listInvoiceCreditsByProgressiveBillingInvoice, arg.OrganizationID, arg.ProgressiveBillingInvoiceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []InvoiceCredit{}
+	for rows.Next() {
+		var i InvoiceCredit
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.InvoiceID,
+			&i.AppliedCouponID,
+			&i.CreditNoteID,
+			&i.ProgressiveBillingInvoiceID,
+			&i.Amount,
+			&i.Currency,
+			&i.BeforeTaxes,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -2212,12 +2486,16 @@ UPDATE fees SET
   invoiceable = $31, payment_status = $32,
   from_datetime = $33, to_datetime = $34, charges_from_datetime = $35,
   charges_to_datetime = $36, billing_timestamp = $37,
-  charges_duration_days = $38, true_up_parent_fee_id = $39,
-  pricing_unit_usage = $40, applied_taxes = $41,
-  pay_in_advance_event_id = $42,
-  pay_in_advance_event_transaction_id = $43,
-  succeeded_at = $44, failed_at = $45, refunded_at = $46,
-  created_at = $47, updated_at = $48
+  charges_duration_days = $38,
+  fixed_charges_from_datetime = $39, fixed_charges_to_datetime = $40,
+  fixed_charges_duration_days = $41,
+  true_up_parent_fee_id = $42,
+  pricing_unit_usage = $43, applied_taxes = $44,
+  presentation_breakdowns = $45,
+  pay_in_advance_event_id = $46,
+  pay_in_advance_event_transaction_id = $47,
+  succeeded_at = $48, failed_at = $49, refunded_at = $50,
+  created_at = $51, updated_at = $52
 WHERE organization_id = $1 AND id = $2
 `
 
@@ -2260,9 +2538,13 @@ type UpdateFeeParams struct {
 	ChargesToDatetime              time.Time
 	BillingTimestamp               time.Time
 	ChargesDurationDays            int32
+	FixedChargesFromDatetime       time.Time
+	FixedChargesToDatetime         time.Time
+	FixedChargesDurationDays       int32
 	TrueUpParentFeeID              *uuid.UUID
 	PricingUnitUsage               json.RawMessage
 	AppliedTaxes                   json.RawMessage
+	PresentationBreakdowns         json.RawMessage
 	PayInAdvanceEventID            *uuid.UUID
 	PayInAdvanceEventTransactionID *string
 	SucceededAt                    *time.Time
@@ -2312,9 +2594,13 @@ func (q *Queries) UpdateFee(ctx context.Context, arg UpdateFeeParams) (int64, er
 		arg.ChargesToDatetime,
 		arg.BillingTimestamp,
 		arg.ChargesDurationDays,
+		arg.FixedChargesFromDatetime,
+		arg.FixedChargesToDatetime,
+		arg.FixedChargesDurationDays,
 		arg.TrueUpParentFeeID,
 		arg.PricingUnitUsage,
 		arg.AppliedTaxes,
+		arg.PresentationBreakdowns,
 		arg.PayInAdvanceEventID,
 		arg.PayInAdvanceEventTransactionID,
 		arg.SucceededAt,

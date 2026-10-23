@@ -61,7 +61,7 @@ type BeforeTaxes struct {
 	// Coupons is the step 2 deduction.
 	Coupons int64
 	// Credits are the credits created (computed only, in a preview).
-	Credits []*kernel.Credit
+	Credits []*invoice.Credit
 	// ProgressiveCreditNotes are the credit notes to create on progressive
 	// billing invoices.
 	ProgressiveCreditNotes []ProgressiveCreditNote
@@ -83,7 +83,7 @@ type AfterTaxes struct {
 	PrepaidPurchasedCredit int64
 	// Credits are the credit-note credits created (computed only, in a
 	// preview).
-	Credits []*kernel.Credit
+	Credits []*invoice.Credit
 	// WalletTransactions are the outbound transactions created (computed
 	// only, in a preview), one per wallet used.
 	WalletTransactions []*wallet.Transaction

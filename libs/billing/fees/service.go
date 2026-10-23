@@ -11,6 +11,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
+	"github.com/tanvoxyz/tanvo/libs/core/event"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/metering"
@@ -64,9 +65,9 @@ type Options struct {
 	SkipZeroUnitsFilters bool
 	// SkipAdjustedFees ignores the adjustments of a draft invoice.
 	SkipAdjustedFees bool
-	// Cache returns the cached aggregations of a charge (zero filter for
-	// its default bucket); nil means none are kept.
-	Cache func(charge core.ChargeID, filter core.ChargeFilterID) metering.CachedAggregations
+	// Cache returns the cached aggregations of a scope; nil means none are
+	// kept.
+	Cache func(sc event.CachedAggregationScope) metering.CachedAggregations
 }
 
 // CachedAggregation is a running aggregation state to store after a fee
@@ -276,20 +277,22 @@ func (a adjustments) subscription() *invoice.AdjustedFee {
 }
 
 // charge returns the adjustment of a charge fee of a charge filter (zero
-// for the default bucket) and pricing group.
-func (a adjustments) charge(c core.ChargeID, filter core.ChargeFilterID, grouped map[string]string) *invoice.AdjustedFee {
+// for the default bucket) and pricing group for the charges period p.
+func (a adjustments) charge(c core.ChargeID, filter core.ChargeFilterID, grouped map[string]string, p period.Period) *invoice.AdjustedFee {
 	for _, f := range a {
-		if f.FeeType == core.FeeTypeCharge && f.ChargeID == c && f.ChargeFilterID == filter && sameGrouping(f.GroupedBy, grouped) {
+		if f.FeeType == core.FeeTypeCharge && f.ChargeID == c && f.ChargeFilterID == filter && sameGrouping(f.GroupedBy, grouped) &&
+			f.MatchesCharges(p.From, p.To) {
 			return f
 		}
 	}
 	return nil
 }
 
-// fixedCharge returns the adjustment of a fixed-charge fee.
-func (a adjustments) fixedCharge(fc core.FixedChargeID) *invoice.AdjustedFee {
+// fixedCharge returns the adjustment of a fixed-charge fee for the fixed
+// charges period p.
+func (a adjustments) fixedCharge(fc core.FixedChargeID, p period.Period) *invoice.AdjustedFee {
 	for _, f := range a {
-		if f.FeeType == core.FeeTypeFixedCharge && f.FixedChargeID == fc {
+		if f.FeeType == core.FeeTypeFixedCharge && f.FixedChargeID == fc && f.MatchesFixedCharges(p.From, p.To) {
 			return f
 		}
 	}
@@ -361,6 +364,15 @@ func deref(p *money.Decimal) money.Decimal {
 		return money.Zero
 	}
 	return *p
+}
+
+// cloneDecimal returns a copy of *p, or nil when p is nil.
+func cloneDecimal(p *money.Decimal) *money.Decimal {
+	if p == nil {
+		return nil
+	}
+	v := *p
+	return &v
 }
 
 // int64Of truncates d to an int64.

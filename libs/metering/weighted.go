@@ -23,7 +23,11 @@ func (a *aggregator) latestUnits() (latestUnits, error) {
 	}
 	for _, c := range cached {
 		if len(c.Groups) == 0 {
-			return latestUnits{value: c.CurrentAggregation, breakdowns: c.PresentationBreakdowns}, nil
+			v, err := cachedValue(c.CurrentAggregation, "current_aggregation")
+			if err != nil {
+				return latestUnits{}, err
+			}
+			return latestUnits{value: v, breakdowns: c.PresentationBreakdowns}, nil
 		}
 	}
 	if !a.req.HasPreviousSubscription {
@@ -110,7 +114,13 @@ func (a *aggregator) groupedLatest() ([]GroupedValue, []GroupedValue, error) {
 		if !hasKeys(c.Groups, a.req.GroupBy) {
 			continue
 		}
-		values = append(values, GroupedValue{Groups: c.Groups, Value: c.CurrentAggregation})
+		// A group without a value counts zero, as lago's
+		// `&.[](:value) || 0` (weighted_sum_service.rb:76).
+		v := money.Zero
+		if c.CurrentAggregation != nil {
+			v = *c.CurrentAggregation
+		}
+		values = append(values, GroupedValue{Groups: c.Groups, Value: v})
 		breakdowns = append(breakdowns, c.PresentationBreakdowns...)
 	}
 	if len(values) > 0 || !a.req.HasPreviousSubscription {

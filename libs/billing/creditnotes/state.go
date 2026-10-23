@@ -164,6 +164,7 @@ func (st *invoiceState) taxInvoice() tax.Invoice {
 		out.AppliedTaxes = append(out.AppliedTaxes, tax.InvoiceAppliedTax{
 			TaxCode: t.TaxCode, TaxName: t.TaxName, TaxDescription: deref(t.TaxDescription), TaxRate: t.TaxRate,
 			Provider: t.TaxID.IsZero(), AmountCents: t.Amount, FeesAmountCents: t.FeesAmount,
+			TaxableBaseAmountCents: t.TaxableBaseAmount,
 		})
 	}
 	for _, f := range st.fees {
