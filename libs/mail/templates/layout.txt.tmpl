@@ -1,0 +1,6 @@
+{{define "layout"}}{{if .Layout.OrganizationName}}{{.Layout.OrganizationName}}
+
+{{end}}{{template "content" .}}{{if .Layout.ContactEmail}}
+
+{{.L.T "email.questions"}} {{.Layout.ContactEmail}}{{end}}
+{{end}}

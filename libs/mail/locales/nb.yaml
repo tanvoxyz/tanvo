@@ -1,0 +1,89 @@
+# Ported from lago-api config/locales/nb.yml and config/locales/nb/*.yml
+# (email strings and the formats they use), with "Lago" renamed "Tanvo".
+# Missing keys fall back to en.yml.
+date:
+    abbr_month_names:
+        - null
+        - jan.
+        - feb.
+        - mars
+        - apr.
+        - mai
+        - juni
+        - juli
+        - aug.
+        - sep.
+        - okt.
+        - nov.
+        - des.
+    formats:
+        default: '%d. %b %Y'
+    month_names:
+        - null
+        - Januar
+        - Februar
+        - Mars
+        - April
+        - Mai
+        - Juni
+        - Juli
+        - August
+        - September
+        - Oktober
+        - November
+        - Desember
+email:
+    credit_note:
+        created:
+            credit_note_from: Kreditnota fra %{billing_entity_name}
+            credit_note_number: Kreditnota nummer
+            credited_notice: Kreditert til kontobalanse %{date}
+            download: Last ned kreditnota for detaljer
+            invoice_number: Faktura nummer
+            issue_date: Dato
+            issued_notice: Utstedt den %{date}
+            offset_invoice_notice: Faktura %{invoice_number} utlignet den %{date}
+            refunded_notice: Refundert %{date}
+            subject: 'Kreditnota din fra %{billing_entity_name} #%{credit_note_number}'
+    invoice:
+        finalized:
+            download: Last ned faktura for detaljer
+            due_date: Forfallsdato %{date}
+            invoice_from: Faktura fra %{billing_entity_name}
+            invoice_number: Fakturanummer
+            issue_date: Dato
+            issued_on: utstedt den %{date}
+            subject: 'Faktura fra %{billing_entity_name} #%{invoice_number}'
+    payment_receipt:
+        created:
+            payment_receipt_from: Betalingskvittering fra %{billing_entity_name}
+            subject: 'Din betalingskvittering fra %{billing_entity_name} #%{payment_receipt_number}'
+    payment_request:
+        requested:
+            already_paid: Hvis du allerede har foretatt betalingen, vennligst se bort fra denne e-posten.
+            hello: Hei %{customer_name},
+            pay_amount: Betal saldoen
+            payment_terms:
+                one: Våre avtalte betalingsbetingelser er %{count} dag.
+                other: Våre avtalte betalingsbetingelser er %{count} dager.
+                zero: Våre avtalte betalingsbetingelser krever betaling ved fakturautstedelse.
+            remaining_amount: Gjenstående beløp å betale
+            reminder_overdue_balance: Dette er en påminnelse fra økonomiavdelingen i %{billing_entity_name} om at noen fakturaer er forfalt.
+            subject: Din forfalte saldo fra %{billing_entity_name}
+            thank_you: Takk.
+            total_amount_due: Totalbeløpet som forfaller er %{amount}.
+    questions: Har du spørsmål? Kontakt oss på
+invoice:
+    total: Totalt
+    total_due_amount: Skyldig beløp
+    total_paid_amount: Betalt beløp
+money:
+    custom_format: '%{iso_code} %n'
+    decimal_mark: ','
+    format: '%u%n'
+    thousands_separator: ' '
+payment_receipt:
+    download_receipt: Last ned kvittering
+    number: Kvitteringsnummer
+    paid_on: 'Betalt den %{date} (Gjenstående å betale: %{total_due_amount})'
+    payment_date: Betalt den

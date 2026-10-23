@@ -1,0 +1,8 @@
+{{define "content"}}{{.L.T "email.invoice.finalized.invoice_from" "billing_entity_name" .D.BillingEntityName}}
+{{.D.Total}}
+{{.L.T "email.invoice.finalized.issued_on" "date" .D.IssuingDate}}
+
+{{.L.T "email.invoice.finalized.invoice_number"}}: {{.D.Number}}
+{{.L.T "email.invoice.finalized.issue_date"}}: {{.D.IssuingDate}}{{if and .PDFs .D.FileURL}}
+
+{{.L.T "email.invoice.finalized.download"}}: {{.D.FileURL}}{{end}}{{end}}

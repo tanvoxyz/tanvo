@@ -1,0 +1,10 @@
+{{define "content"}}
+<div style="margin-bottom: 24px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.data_export.completed.greetings"}}</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.data_export.completed.intro" "resource_type" .D.ResourceType}}</div>
+<table style="margin-bottom: 32px" width="100%" cellspacing="0" cellpadding="0"><tr><td><table cellspacing="0" cellpadding="0"><tr>
+<td style="border-radius: 12px;" bgcolor="#006CFA"><a href="{{.D.FileURL}}" download="{{.D.Filename}}" style="padding: 10px 16px;font-size: 16px; color: #ffffff;text-decoration: none;display: inline-block;font-weight: 400;font-style: normal;line-height: 24px;">{{.L.T "email.data_export.completed.main_cta_label"}}</a></td>
+</tr></table></td></tr></table>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.data_export.completed.fallback_text"}}</div>
+<div style="font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;">{{.L.T "email.data_export.completed.thanks"}}</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.data_export.completed.team"}}</div>
+{{end}}

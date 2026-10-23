@@ -47,7 +47,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 审计日志保留期设置（`audit_logs_period`） | `app/models/organization.rb` | libs/core | 计划中 | |
 | 每个客户的最大钱包数设置 | `app/models/organization.rb` | libs/billing | 计划中 | |
 | 每个组织允许的认证方式（邮箱密码、Google、Okta、Entra ID） | `app/models/organization.rb`、`app/services/organizations/update_service.rb` | libs/auth | 计划中 | Okta 与 Entra ID 成为 OIDC 连接；新增通用 OIDC |
-| 认证方式变更时通知管理员的邮件 | `app/mailers/organization_mailer.rb` | libs/mail | 计划中 | |
+| 认证方式变更时通知管理员的邮件 | `app/mailers/organization_mailer.rb` | libs/mail | 逻辑已完成 | |
 | 每个组织用于 webhook 签名的 HMAC 密钥 | `app/models/organization.rb` | libs/webhooks | 计划中 | 由每个端点的 Standard Webhooks 密钥取代（§3） |
 | 首次启动时初始化组织 | `config/initializers/`（`LAGO_CREATE_ORG`、`LAGO_ORG_USER_*`） | apps/server | 计划中 | 以 `tanvo admin bootstrap` 命令代替环境变量 |
 | 按组织选择事件存储（PostgreSQL 或 ClickHouse） | `app/models/organization.rb`（`clickhouse_events_store`） | libs/eventstore | 计划中 | 安装级设置，可按组织覆盖 |
@@ -66,7 +66,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 零金额发票定稿设置 | `app/models/billing_entity.rb` | libs/billing | 计划中 | |
 | 欧盟税务管理开关与自动欧盟税 | `app/services/billing_entities/`、`app/services/taxes/auto_generate_service.rb` | libs/tax | 计划中 | |
 | 在支持的国家（法国、德国）启用电子发票 | `app/models/billing_entity.rb` | libs/documents | 计划中 | |
-| 邮件设置（哪些文档通过邮件发送）与发件地址 | `app/models/billing_entity.rb`（`email_settings`） | libs/mail | 计划中 | |
+| 邮件设置（哪些文档通过邮件发送）与发件地址 | `app/models/billing_entity.rb`（`email_settings`） | libs/mail | 进行中 | |
 | 应用于计费主体的税（应用、移除、管理） | `app/services/billing_entities/taxes/` | libs/tax | 计划中 | |
 | 每个计费主体所应用的催收活动 | `app/services/billing_entities/update_applied_dunning_campaign_service.rb` | libs/billing | 计划中 | |
 | 计费主体 API | `app/controllers/api/v1/billing_entities_controller.rb` | apps/server | 计划中 | |
@@ -75,26 +75,26 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 跨组织的用户与成员资格（有效、已撤销） | `app/models/user.rb`、`app/models/membership.rb` | libs/auth | 计划中 | |
-| 预定义角色 admin、finance、manager | `app/models/role.rb`、`config/permissions.yml` | libs/auth | 计划中 | |
+| 跨组织的用户与成员资格（有效、已撤销） | `app/models/user.rb`、`app/models/membership.rb` | libs/auth | 逻辑已完成 | |
+| 预定义角色 admin、finance、manager | `app/models/role.rb`、`config/permissions.yml` | libs/auth | 逻辑已完成 | |
 | 带权限集的自定义角色 | `app/services/roles/` | libs/auth | 计划中 | |
 | 权限目录（每种资源与操作） | `config/permissions.yml` | libs/auth | 计划中 | 每个 RPC 声明 `resource:action` 形式的权限字符串 |
-| 成员资格规则：不能撤销自己的成员资格、不能移除最后一个管理员、只有管理员能授予管理员 | `app/services/memberships/` | libs/auth | 计划中 | |
-| 带令牌与角色的邀请，支持接受、撤销、更新 | `app/models/invite.rb`、`app/services/invites/` | libs/auth | 计划中 | |
-| 通过邮件重置密码（30 分钟令牌） | `app/services/password_resets/` | libs/auth | 计划中 | |
+| 成员资格规则：不能撤销自己的成员资格、不能移除最后一个管理员、只有管理员能授予管理员 | `app/services/memberships/` | libs/auth | 逻辑已完成 | |
+| 带令牌与角色的邀请，支持接受、撤销、更新 | `app/models/invite.rb`、`app/services/invites/` | libs/auth | 逻辑已完成 | |
+| 通过邮件重置密码（30 分钟令牌） | `app/services/password_resets/` | libs/auth | 逻辑已完成 | |
 | 自托管安装的注册开关 | `LAGO_DISABLE_SIGNUP`、`app/services/users_service.rb` | apps/server | 计划中 | 配置项 |
 
 ### 1.5 认证与会话
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 邮箱密码登录与注册 | `app/services/users_service.rb`、`app/graphql/mutations/` | libs/auth | 计划中 | argon2id 哈希；以不透明会话代替 JWT（§3） |
-| Google 登录、注册与接受邀请 | `app/services/auth/google_service.rb` | libs/auth | 计划中 | 经由 OIDC 身份提供者 |
-| Okta 登录（authorize、token、userinfo、state 校验） | `app/services/auth/okta/` | libs/auth | 计划中 | OIDC 连接；state 存储在服务端 |
-| 带租户与附加域名的 Entra ID 登录 | `app/services/auth/entra_id/` | libs/auth | 计划中 | OIDC 连接 |
-| 通用 OIDC 提供者 | — | libs/auth | 计划中 | Tanvo 新增 |
-| Okta 与 Entra ID 集成配置（客户端、域名、主机） | `app/models/integrations/okta_integration.rb`、`entra_id_integration.rb` | libs/auth | 计划中 | |
-| 拒绝移除最后一种已启用的登录方式 | `app/services/integrations/okta/destroy_service.rb` | libs/auth | 计划中 | |
+| 邮箱密码登录与注册 | `app/services/users_service.rb`、`app/graphql/mutations/` | libs/auth | 逻辑已完成 | argon2id 哈希；以不透明会话代替 JWT（§3） |
+| Google 登录、注册与接受邀请 | `app/services/auth/google_service.rb` | libs/auth | 逻辑已完成 | 经由 OIDC 身份提供者 |
+| Okta 登录（authorize、token、userinfo、state 校验） | `app/services/auth/okta/` | libs/auth | 逻辑已完成 | OIDC 连接；state 存储在服务端 |
+| 带租户与附加域名的 Entra ID 登录 | `app/services/auth/entra_id/` | libs/auth | 逻辑已完成 | OIDC 连接 |
+| 通用 OIDC 提供者 | — | libs/auth | 逻辑已完成 | Tanvo 新增 |
+| Okta 与 Entra ID 集成配置（客户端、域名、主机） | `app/models/integrations/okta_integration.rb`、`entra_id_integration.rb` | libs/auth | 逻辑已完成 | |
+| 拒绝移除最后一种已启用的登录方式 | `app/services/integrations/okta/destroy_service.rb` | libs/auth | 逻辑已完成 | |
 | 已知设备与新设备安全日志记录 | `app/models/user_device.rb`、`app/services/user_devices/` | libs/auth | 计划中 | |
 | GoCardless 连接的 OAuth 回调 | `app/services/payment_providers/gocardless_service.rb`（`LAGO_OAUTH_PROXY_URL`） | providers/gocardless | 计划中 | 回调由 `apps/server` 提供；不经代理 |
 
@@ -102,12 +102,12 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 每个组织多个具名 API 密钥 | `app/models/api_key.rb`、`app/services/api_keys/` | libs/auth | 计划中 | 以 SHA-256 哈希存储，只显示一次 |
-| 按资源（读、写）设置每个密钥的权限 | `app/models/api_key.rb`（`RESOURCES`） | libs/auth | 计划中 | 与角色使用相同的权限字符串 |
-| 密钥过期与轮换 | `app/services/api_keys/rotate_service.rb` | libs/auth | 计划中 | 轮换时旧密钥在一个重叠窗口内仍然有效 |
-| 拒绝删除最后一个不过期的密钥 | `app/services/api_keys/destroy_service.rb` | libs/auth | 计划中 | |
-| 最近使用时间跟踪 | `app/jobs/clock/api_keys/track_usage_job.rb` | libs/auth | 计划中 | |
-| 密钥创建、轮换或删除时发送邮件 | `app/mailers/api_key_mailer.rb` | libs/mail | 计划中 | |
+| 每个组织多个具名 API 密钥 | `app/models/api_key.rb`、`app/services/api_keys/` | libs/auth | 逻辑已完成 | 以 SHA-256 哈希存储，只显示一次 |
+| 按资源（读、写）设置每个密钥的权限 | `app/models/api_key.rb`（`RESOURCES`） | libs/auth | 逻辑已完成 | 与角色使用相同的权限字符串 |
+| 密钥过期与轮换 | `app/services/api_keys/rotate_service.rb` | libs/auth | 逻辑已完成 | 轮换时旧密钥在一个重叠窗口内仍然有效 |
+| 拒绝删除最后一个不过期的密钥 | `app/services/api_keys/destroy_service.rb` | libs/auth | 逻辑已完成 | |
+| 最近使用时间跟踪 | `app/jobs/clock/api_keys/track_usage_job.rb` | libs/auth | 逻辑已完成 | |
+| 密钥创建、轮换或删除时发送邮件 | `app/mailers/api_key_mailer.rb` | libs/mail | 逻辑已完成 | |
 | 写请求的幂等性 | `app/models/idempotency_record.rb`、`app/services/idempotency_records/` | apps/server | 计划中 | `Idempotency-Key` 请求头；响应保留 24 小时 |
 | 健康与就绪端点 | `config/routes.rb`（`/health`、`/ready`） | apps/server | 计划中 | `/healthz`、`/readyz` |
 | Prometheus 指标端点 | `config/initializers/yabeda.rb` | apps/server | 计划中 | OpenTelemetry 与 `/metrics` |
@@ -137,7 +137,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 每个客户的支付提供者连接（提供者客户 ID、与提供者同步） | `app/services/payment_provider_customers/create_or_update_batch_service.rb` | libs/core | 计划中 | 每个客户可有多个连接并有一个默认连接（§3） |
 | 集成客户（会计、CRM、税务）的批量创建与更新 | `app/services/integration_customers/create_or_update_batch_service.rb` | libs/core | 计划中 | |
 | 用于收集支付方式的结账 URL | `app/services/customers/generate_checkout_url_service.rb` | libs/billing | 计划中 | |
-| 客户门户 URL | `app/services/customer_portal/generate_url_service.rb` | libs/auth | 计划中 | |
+| 客户门户 URL | `app/services/customer_portal/generate_url_service.rb` | libs/auth | 逻辑已完成 | |
 | 串行化每个客户操作的锁（预付额度、支付方式、贷项通知单、优惠券、计费调度） | `app/services/customers/lock_service.rb` | libs/store | 逻辑已完成 | PostgreSQL 咨询锁 |
 | 按客户选择或跳过发票自定义段落 | `app/services/customers/manage_invoice_custom_sections_service.rb` | libs/billing | 计划中 | |
 | 排除在催收之外与所应用的催收活动 | `app/models/customer.rb` | libs/billing | 计划中 | |
@@ -481,7 +481,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 发票列表过滤与搜索 | `app/queries/invoices_query.rb` | libs/store | 计划中 | 包括采购订单号，不区分大小写 |
 | 发票自定义段落（手动、系统生成）及其解析规则 | `app/models/invoice_custom_section.rb`、`app/services/invoice_custom_sections/` | libs/billing | 计划中 | 公开 API，而不只供管理界面使用 |
 | 下载 PDF 与 XML | `app/services/invoices/generate_pdf_service.rb` | libs/documents | 计划中 | |
-| 重新发送发票邮件 | `app/services/emails/resend_service.rb` | libs/mail | 计划中 | |
+| 重新发送发票邮件 | `app/services/emails/resend_service.rb` | libs/mail | 逻辑已完成 | |
 | 发票的付款 URL | `app/services/invoices/payments/generate_payment_url_service.rb` | libs/billing | 计划中 | |
 | 在发票上存储 Salesforce ID | `app/controllers/api/v1/invoices_controller.rb`（`sync_salesforce_id`） | providers/salesforce | 计划中 | |
 | 发票 webhook `invoice.created`、`one_off_created`、`paid_credit_added`、`generated`、`drafted`、`ready_to_finalize`、`voided`、`deleted`、`resynced` | `app/services/webhooks/invoices/` | libs/webhooks | 计划中 | |
@@ -863,7 +863,7 @@ Lago 的 x402 支持尚未完成：只有准入检查可以调用。Tanvo 移植
 | 按列表过滤条件以 CSV 导出发票、发票费用、贷项通知单、贷项通知单条目 | `app/services/data_exports/` | libs/billing | 计划中 | 公开 API |
 | 导出拆分为多个部分再合并 | `app/models/data_export_part.rb` | libs/jobs | 计划中 | |
 | 导出文件 7 天后过期 | `app/models/data_export.rb` | libs/billing | 计划中 | |
-| 导出完成邮件 | `app/mailers/data_export_mailer.rb` | libs/mail | 计划中 | |
+| 导出完成邮件 | `app/mailers/data_export_mailer.rb` | libs/mail | 逻辑已完成 | |
 | 发票、费用、贷项通知单、钱包、订阅、告警、每日用量及其他业务表的导出视图（`exports_*`） | `db/views/exports_*.sql` | libs/store | 计划中 | 只读 PostgreSQL 视图，与删除记录（§1.49）一起构成数据仓库同步的契约 |
 | 导出视图的数据仓库同步 | Lago 私有的数据管道 | ee/pipeline | 计划中 | 读取视图的独立进程（架构 §14） |
 
@@ -889,8 +889,8 @@ Lago 的 x402 支持尚未完成：只有准入检查可以调用。Tanvo 移植
 | 活动日志（来自 API、管理界面、系统的资源变更） | `app/services/utils/activity_log.rb` | libs/core | 计划中 | 由 `audit_events` 提供数据 |
 | 每个组织的活动日志保留期 | `app/models/organization.rb` | libs/eventstore | 计划中 | |
 | 写请求的 API 日志 | `app/services/utils/api_log.rb` | apps/server | 计划中 | |
-| 安全日志（登录、用户、角色、API 密钥、集成、webhook 端点），保留 90 天 | `app/services/utils/security_log.rb` | libs/auth | 计划中 | |
-| 邮件已发送活动 | `app/services/utils/activity_log.rb` | libs/mail | 计划中 | |
+| 安全日志（登录、用户、角色、API 密钥、集成、webhook 端点），保留 90 天 | `app/services/utils/security_log.rb` | libs/auth | 进行中 | |
+| 邮件已发送活动 | `app/services/utils/activity_log.rb` | libs/mail | 逻辑已完成 | |
 | 带过滤的日志 API | `app/controllers/api/v1/activity_logs_controller.rb`、`api_logs_controller.rb`、`security_logs_controller.rb` | apps/server | 计划中 | |
 | 日志存放在 ClickHouse 中，没有 ClickHouse 时存放在 PostgreSQL 中 | `db/clickhouse_migrate/` | libs/eventstore | 计划中 | Lago 要求 ClickHouse |
 
@@ -898,7 +898,7 @@ Lago 的 x402 支持尚未完成：只有准入检查可以调用。Tanvo 移植
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 限定于一个客户的门户访问令牌 | `app/services/customer_portal/` | libs/auth | 计划中 | 短期有效的签名令牌 |
+| 限定于一个客户的门户访问令牌 | `app/services/customer_portal/` | libs/auth | 逻辑已完成 | 短期有效的签名令牌 |
 | 门户中查看与更新客户资料 | `app/graphql/resolvers/customer_portal/` | apps/server | 计划中 | |
 | 门户中的发票列表与下载 | `app/graphql/resolvers/customer_portal/` | apps/server | 计划中 | |
 | 门户中的订阅与当前用量 | `app/graphql/resolvers/customer_portal/` | apps/server | 计划中 | |
@@ -913,16 +913,16 @@ Lago 的 x402 支持尚未完成：只有准入检查可以调用。Tanvo 移植
 | 发票 PDF（当前模板第 4 版及其局部模板） | `app/views/templates/invoices/v4/` | libs/documents | 计划中 | Typst 模板（§3） |
 | 贷项通知单 PDF | `app/views/templates/credit_notes/` | libs/documents | 计划中 | |
 | 付款收据 PDF | `app/views/templates/payment_receipts/` | libs/documents | 计划中 | |
-| 付款请求邮件 | `app/mailers/payment_request_mailer.rb`、`app/views/payment_request_mailer/requested.slim` | libs/mail | 计划中 | 也渲染为文档 |
+| 付款请求邮件 | `app/mailers/payment_request_mailer.rb`、`app/views/payment_request_mailer/requested.slim` | libs/mail | 逻辑已完成 | 也渲染为文档 |
 | 文档语言 de、en、es、fr、it、nb、pt-BR、sv、zh-TW | `config/locales/` | libs/documents | 计划中 | |
 | 品牌水印 | `app/views/templates/` | libs/documents | 计划中 | 没有水印，因此无需移除 |
 | UBL 发票（EN 16931、XRechnung 3.0、Peppol BIS 3） | `app/serializers/e_invoices/invoices/ubl/` | libs/documents | 计划中 | |
 | 以 Factur-X / ZUGFeRD 嵌入的 CII 发票 | `app/serializers/e_invoices/invoices/cii/` | libs/documents | 计划中 | |
 | 电子发票代码表 | `app/serializers/e_invoices/` | libs/documents | 计划中 | |
 | 贷项通知单与收据的电子发票 | `app/serializers/e_invoices/credit_notes/`、`app/serializers/e_invoices/payments/` | libs/documents | 计划中 | |
-| 文档邮件（发票、贷项通知单、收据、付款请求） | `app/mailers/` | libs/mail | 计划中 | |
-| 重新发送文档邮件 | `app/services/emails/resend_service.rb` | libs/mail | 计划中 | |
-| SMTP 投递与自定义发件地址 | `config/environments/production.rb` | libs/mail | 计划中 | |
+| 文档邮件（发票、贷项通知单、收据、付款请求） | `app/mailers/` | libs/mail | 逻辑已完成 | |
+| 重新发送文档邮件 | `app/services/emails/resend_service.rb` | libs/mail | 逻辑已完成 | |
+| SMTP 投递与自定义发件地址 | `config/environments/production.rb` | libs/mail | 逻辑已完成 | |
 
 ### 1.48 定时任务
 

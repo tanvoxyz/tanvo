@@ -1,0 +1,12 @@
+{{define "content"}}{{.L.T "email.payment_receipt.created.payment_receipt_from" "billing_entity_name" .D.BillingEntityName}}
+{{.D.Amount}}
+{{.L.T "payment_receipt.paid_on" "date" .D.PaymentDate "total_due_amount" .D.TotalDue}}
+
+{{.L.T "payment_receipt.number"}}: {{.D.Number}}
+{{.L.T "payment_receipt.payment_date"}}: {{.D.PaymentDate}}
+{{.L.T "invoice.total_paid_amount"}}: {{.D.Amount}}
+
+{{.L.T "email.invoice.finalized.invoice_number"}} | {{.L.T "invoice.total"}}{{range .D.Invoices}}
+{{.Number}} | {{.Total}}{{end}}{{if and .PDFs .D.FileURL}}
+
+{{.L.T "payment_receipt.download_receipt"}}: {{.D.FileURL}}{{end}}{{end}}

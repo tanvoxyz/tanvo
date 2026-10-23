@@ -1,0 +1,10 @@
+{{define "content"}}{{.L.T "email.data_export.completed.greetings"}}
+
+{{.L.T "email.data_export.completed.intro" "resource_type" .D.ResourceType}}
+
+{{.L.T "email.data_export.completed.main_cta_label"}}: {{.D.FileURL}}
+
+{{.L.T "email.data_export.completed.fallback_text"}}
+
+{{.L.T "email.data_export.completed.thanks"}}
+{{.L.T "email.data_export.completed.team"}}{{end}}

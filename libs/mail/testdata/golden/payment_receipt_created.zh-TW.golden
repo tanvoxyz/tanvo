@@ -1,0 +1,72 @@
+Kind: payment_receipt_created
+Locale: zh-TW
+From: "ACME Corp" <noreply@tanvo.test>
+Reply-To: "ACME Corp" <billing@acme.test>
+To: <customer@example.com>
+Cc: 
+Bcc: 
+Subject: 您來自 ACME Corp 的付款收據 #ACME-RCPT-001
+Attachment: receipt-ACME-RCPT-001.pdf (application/pdf, 16 bytes)
+Attachment: invoice-ACME-202410-001.pdf (application/pdf, 16 bytes)
+
+==== text
+來自 ACME Corp 的付款收據
+€1,234.50
+已於 2024年10月10日 付款（尚需支付：€0.00）
+
+收據號碼: ACME-RCPT-001
+付款日期: 2024年10月10日
+已付金額: €1,234.50
+
+發票號碼 | 總計
+ACME-202410-001 | €1,234.50
+
+下載收據: https://files.tanvo.test/receipt.pdf
+
+==== html
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<style>
+table td { mso-line-height-rule: exactly; }
+table, td { font-family: Helvetica Neue, Helvetica, Arial; }
+.main-table { margin: auto; max-width: 600px; min-width: 600px; }
+@media screen and (max-width: 776px) { .main-table { max-width: 360px; min-width: 360px; } }
+a img { border: none; }
+a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+a, a:visited, a:hover, a:active { color: inherit; }
+</style>
+</head>
+<body style="margin: 0; padding: 0; word-spacing: normal; background-color: #f3f4f6; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+<table style="width: 100%; border: 0; margin: 0; padding: 0" cellspacing="0" cellpadding="0"><tr><td>
+<table class="main-table" cellpadding="0" cellspacing="0" style="padding: 64px 0">
+<tr><td>
+<table cellpadding="0" cellspacing="0" style="width: 100%; background-color: #fff; border: 1px solid #d9dee7; border-radius: 12px; padding: 32px;"><tr><td>
+
+<table cellpadding="0" cellspacing="0" style="margin: auto; padding-bottom: 24px">
+<tr><td style="color: #66758f; font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; text-align: center;">來自 ACME Corp 的付款收據</td></tr>
+<tr><td style="color: #19212e; font-size: 32px; font-weight: 700; line-height: 40px; letter-spacing: 0em; text-align: center;">€1,234.50</td></tr>
+<tr><td style="color: #66758f; font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; text-align: center;">已於 2024年10月10日 付款（尚需支付：€0.00）</td></tr>
+</table>
+<table style="width: 100%; border-collapse: collapse; border-top: 1px solid #d9dee7;">
+<tr><td style="color: #66758f; font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; text-align: left; white-space: nowrap; padding: 4px 0;">收據號碼</td><td style="font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; text-align: right; color: #19212e; white-space: nowrap; padding: 4px 0;">ACME-RCPT-001</td></tr>
+<tr><td style="color: #66758f; font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; text-align: left; white-space: nowrap; padding: 4px 0;">付款日期</td><td style="font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; text-align: right; color: #19212e; white-space: nowrap; padding: 4px 0;">2024年10月10日</td></tr>
+<tr><td style="color: #66758f; font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; text-align: left; white-space: nowrap; padding: 4px 0;">已付金額</td><td style="font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; text-align: right; color: #19212e; white-space: nowrap; padding: 4px 0;">€1,234.50</td></tr>
+</table>
+<table style="width: 100%; border-collapse: collapse; border-bottom: 1px solid #d9dee7; margin-top: 32px;">
+<tr><td style="font-size: 14px; font-weight: bold; line-height: 20px; text-align: left; color: #19212E; white-space: nowrap; padding: 0;">發票號碼</td><td style="font-size: 14px; font-weight: bold; line-height: 20px; text-align: right; color: #19212E; white-space: nowrap; padding: 0;">總計</td></tr>
+<tr style="border-bottom: 1px solid #d9dee7;"><td style="font-size: 14px; font-weight: 400; line-height: 20px; text-align: left; padding-right: 16px; white-space: nowrap; padding: 8px 0;"><a href="https://files.tanvo.test/invoice.pdf" style="text-decoration: none; color: #006cfa">ACME-202410-001</a></td><td style="font-size: 14px; font-weight: 400; line-height: 20px; text-align: right; color: #19212e; white-space: nowrap; padding: 8px 0;">€1,234.50</td></tr>
+</table>
+<table cellpadding="0" cellspacing="0" style="width: 100%; padding: 24px 0; border-bottom: 1px solid #d9dee7;"><tr><td><table cellpadding="0" cellspacing="0" style="margin: auto"><tr><td style="font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; color: #19212e;"><a style="text-decoration: none; color: #006cfa" target="_blank" href="https://files.tanvo.test/receipt.pdf">下載收據</a></td></tr></table></td></tr></table>
+
+</td></tr></table>
+</td></tr>
+</table>
+</td></tr></table>
+</body>
+</html>
+

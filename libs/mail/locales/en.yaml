@@ -1,0 +1,160 @@
+# Ported from lago-api config/locales/en.yml and config/locales/en/*.yml
+# (email strings and the formats they use), with "Lago" renamed "Tanvo".
+# Missing keys fall back to en.yml.
+date:
+    # Rails built-in English month names.
+    abbr_month_names:
+        - null
+        - Jan
+        - Feb
+        - Mar
+        - Apr
+        - May
+        - Jun
+        - Jul
+        - Aug
+        - Sep
+        - Oct
+        - Nov
+        - Dec
+    formats:
+        default: '%b %d, %Y'
+    month_names:
+        - null
+        - January
+        - February
+        - March
+        - April
+        - May
+        - June
+        - July
+        - August
+        - September
+        - October
+        - November
+        - December
+email:
+    # Tanvo: lago-api hard-codes the admin feature email in English
+    # (app/views/admin_mailer/feature_toggled.html.erb).
+    admin:
+        feature_toggled:
+            action_disabled: disabled
+            action_enabled: enabled
+            body: The feature %{feature_key} has been %{action} on your organization by %{actor_email}.
+            contact: If you have questions about this change, please contact your account manager.
+            heading: Feature Update on %{organization_name}
+            subject: Feature %{feature_key} has been %{action} on your organization
+    api_key:
+        created:
+            access_warning: However, if you did not authorize this change, please reset your password and delete the API key immediately to protect your account.
+            change_notice: If someone from your team initiated this, you can start using this API key to automate your billing process.
+            email_info: You're receiving this email because a new API key has been created in your Tanvo instance, and you have admin privileges.
+            greetings: Hello,
+            key_has_been_created: A new API key has been successfully created for your organization, %{organization_name}.
+            subject: A new Tanvo API key has been created
+        destroyed:
+            access_warning: If you did not authorize this request, please reset your password immediately to secure your account.
+            change_notice: If someone from your team initiated this change, no further action is required.
+            email_info: You’re receiving this email because an API key has been deleted in your Tanvo instance, and you have admin privileges.
+            greetings: Hello,
+            key_has_been_destroyed: An API key has been deleted for your organization, %{organization_name}.
+            subject: A Tanvo API key has been deleted
+        rotated:
+            access_warning: If you did not authorize this request, please reset your password and roll your API key immediately to secure your account.
+            change_notice: If someone from your team initiated this change, no further action is required. To keep your billing running smoothly, update your app to reference the new token as soon as possible.
+            email_info: You’re receiving this email because an API key has been rotated in your Tanvo instance, and you have admin privileges.
+            greetings: Hello,
+            key_has_been_rotated: Your %{organization_name}'s API key has been rotated!
+            subject: Your Tanvo API key has been rolled
+    credit_note:
+        created:
+            credit_note_from: Credit Note from %{billing_entity_name}
+            credit_note_number: Credit note number
+            credited_notice: Credited on customer balance on %{date}
+            download: Download credit note for details
+            invoice_number: Invoice number
+            issue_date: Issue date
+            issued_notice: Issued on %{date}
+            offset_invoice_notice: Offset invoice %{invoice_number} on %{date}
+            refunded_notice: Refunded on %{date}
+            subject: 'Your credit note from %{billing_entity_name} #%{credit_note_number}'
+    data_export:
+        completed:
+            fallback_text: If the link has expired, please generate a new one from your Dashboard.
+            greetings: Hello
+            intro: Your %{resource_type} export is ready! You can download it using the link below, which will be available for 7 days.
+            team: The Tanvo Team
+            main_cta_label: Download export
+            subject: Your Tanvo %{resource_type} export is ready!
+            thanks: Thanks,
+    # Tanvo: lago-api has no invitation email; invite links are shared by hand.
+    invitation:
+        cta_label: Accept the invitation
+        email_info: You're receiving this email because someone invited this address to a Tanvo organization. If you weren't expecting it, you can ignore this email.
+        expiry_notice: This invitation expires on %{date}.
+        fallback_text: 'If the button does not work, copy this link into your browser: '
+        greetings: Hello,
+        intro: '%{inviter_email} invited you to join %{organization_name} on Tanvo as %{role_name}.'
+        subject: You have been invited to join %{organization_name} on Tanvo
+        team: The Tanvo Team
+        thanks: Thanks,
+    invoice:
+        finalized:
+            download: Download invoice for details
+            due_date: total due %{date}
+            invoice_from: Invoice from %{billing_entity_name}
+            invoice_number: Invoice Number
+            issue_date: Issue Date
+            issued_on: issued on %{date}
+            subject: 'Your Invoice from %{billing_entity_name} #%{invoice_number}'
+    organization:
+        authentication_methods_updated:
+            changes: The user %{user_email} made the following changes to authentication methods.
+            disabled: Disabled %{login_method}
+            email_info: If you weren't expecting this change, please review your authentication settings.
+            enabled: Enabled %{login_method}
+            reasoning: You're receiving this message because you're an admin of the organization.
+            subject: Login method updated in your Tanvo workspace
+    password_reset:
+        subject: Reset your Tanvo password
+    payment_receipt:
+        created:
+            payment_receipt_from: Payment receipt from %{billing_entity_name}
+            subject: 'Your payment receipt from %{billing_entity_name} #%{payment_receipt_number}'
+    payment_request:
+        requested:
+            already_paid: If you have already made the payment, please disregard this email.
+            hello: Hello %{customer_name},
+            pay_amount: Pay balance
+            payment_terms:
+                one: Our contractually agreed payment terms is %{count} day.
+                other: Our contractually agreed payment terms are %{count} days.
+                zero: Our contractually agreed payment terms require payment upon invoice generation.
+            remaining_amount: Remaining amount to pay
+            reminder_overdue_balance: This is a reminder from the %{billing_entity_name} finance team that some invoices are overdue.
+            subject: Your overdue balance from %{billing_entity_name}
+            thank_you: Thank you.
+            total_amount_due: The total amount due is %{amount}.
+    questions: Questions? Contact us at
+invoice:
+    total: Total
+    total_due_amount: Amount due
+    total_paid_amount: Amount paid
+money:
+    custom_format: '%{iso_code} %n'
+    decimal_mark: .
+    format: '%u%n'
+    thousands_separator: ','
+password_reset:
+    email_info: You're receiving this email because a password reset was requested for your account.
+    fallback_text: 'If you don''t use this link within 30 minutes, it will expire. To get a new password reset link, visit: '
+    greetings: Hello
+    intro: 'We heard that you lost your Tanvo password. Sorry about that! But don''t worry! You can use the following button to reset your password:'
+    team: The Tanvo Team
+    main_cta_label: Reset your password
+    thanks: Thanks,
+payment_receipt:
+    download_receipt: Download receipt
+    number: Receipt number
+    paid_on: 'Paid on %{date} (Remaining to pay: %{total_due_amount})'
+    payment_date: Paid on

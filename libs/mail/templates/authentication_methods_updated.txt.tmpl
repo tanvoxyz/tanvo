@@ -1,0 +1,9 @@
+{{define "content"}}{{.L.T "email.organization.authentication_methods_updated.changes" "user_email" .D.ActorEmail}}
+{{if .D.Disabled}}
+- {{.L.T "email.organization.authentication_methods_updated.disabled" "login_method" .D.Disabled}}{{end}}{{if .D.Enabled}}
+- {{.L.T "email.organization.authentication_methods_updated.enabled" "login_method" .D.Enabled}}{{end}}
+
+{{.L.T "email.organization.authentication_methods_updated.reasoning"}}
+
+--
+{{.L.T "email.organization.authentication_methods_updated.email_info"}}{{end}}

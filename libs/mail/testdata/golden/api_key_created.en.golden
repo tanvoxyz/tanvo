@@ -1,0 +1,60 @@
+Kind: api_key_created
+Locale: en
+From: <noreply@tanvo.test>
+Reply-To: 
+To: 
+Cc: 
+Bcc: <admin@hooli.test>
+Subject: A new Tanvo API key has been created
+
+==== text
+Hello,
+
+A new API key has been successfully created for your organization, Hooli & Co.
+
+If someone from your team initiated this, you can start using this API key to automate your billing process.
+
+However, if you did not authorize this change, please reset your password and delete the API key immediately to protect your account.
+
+--
+You're receiving this email because a new API key has been created in your Tanvo instance, and you have admin privileges.
+
+==== html
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<style>
+table td { mso-line-height-rule: exactly; }
+table, td { font-family: Helvetica Neue, Helvetica, Arial; }
+.main-table { margin: auto; max-width: 600px; min-width: 600px; }
+@media screen and (max-width: 776px) { .main-table { max-width: 360px; min-width: 360px; } }
+a img { border: none; }
+a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+a, a:visited, a:hover, a:active { color: inherit; }
+</style>
+</head>
+<body style="margin: 0; padding: 0; word-spacing: normal; background-color: #f3f4f6; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+<table style="width: 100%; border: 0; margin: 0; padding: 0" cellspacing="0" cellpadding="0"><tr><td>
+<table class="main-table" cellpadding="0" cellspacing="0" style="padding: 64px 0">
+<tr><td>
+<table cellpadding="0" cellspacing="0" style="width: 100%; background-color: #fff; border: 1px solid #d9dee7; border-radius: 12px; padding: 32px;"><tr><td>
+<div style="margin-bottom: 32px; font-size: 20px; font-weight: 700; line-height: 24px; color: #19212E;">Tanvo</div>
+
+<div style="margin-bottom: 24px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">Hello,</div>
+<div style="margin-bottom: 24px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">A new API key has been successfully created for your organization, Hooli &amp; Co.</div>
+<div style="margin-bottom: 24px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">If someone from your team initiated this, you can start using this API key to automate your billing process.</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">However, if you did not authorize this change, please reset your password and delete the API key immediately to protect your account.</div>
+<div style="width: 100%;height: 1px;background-color: #D9DEE7;margin-bottom: 32px;"></div>
+<div style="color: #66758F;font-style: normal;font-weight: 400;font-size: 14px;line-height: 20px;">You&#39;re receiving this email because a new API key has been created in your Tanvo instance, and you have admin privileges.</div>
+
+</td></tr></table>
+</td></tr>
+</table>
+</td></tr></table>
+</body>
+</html>
+

@@ -1,0 +1,89 @@
+# Ported from lago-api config/locales/fr.yml and config/locales/fr/*.yml
+# (email strings and the formats they use), with "Lago" renamed "Tanvo".
+# Missing keys fall back to en.yml.
+date:
+    abbr_month_names:
+        - null
+        - janv.
+        - févr.
+        - mars
+        - avr.
+        - mai
+        - juin
+        - juill.
+        - août
+        - sept.
+        - oct.
+        - nov.
+        - déc.
+    formats:
+        default: '%-d %b %Y'
+    month_names:
+        - null
+        - Janvier
+        - Février
+        - Mars
+        - Avril
+        - Mai
+        - Juin
+        - Juillet
+        - Août
+        - Septembre
+        - Octobre
+        - Novembre
+        - Décembre
+email:
+    credit_note:
+        created:
+            credit_note_from: Votre avoir de %{billing_entity_name}
+            credit_note_number: Avoir nº
+            credited_notice: Crédité sur le solde du client le %{date}
+            download: Télécharger l'avoir pour plus de détails
+            invoice_number: Facture nº
+            issue_date: Date d'émission
+            issued_notice: Émis le %{date}
+            offset_invoice_notice: Facture %{invoice_number} compensée le %{date}
+            refunded_notice: Remboursé le %{date}
+            subject: Votre avoir nº %{credit_note_number} de %{billing_entity_name}
+    invoice:
+        finalized:
+            download: Télécharger la facture pour plus de détails
+            due_date: Date d'émission le %{date}
+            invoice_from: Facture de %{billing_entity_name}
+            invoice_number: Nº de facture
+            issue_date: Date d'émission
+            issued_on: émise le %{date}
+            subject: Votre facture nº %{invoice_number} de %{billing_entity_name}
+    payment_receipt:
+        created:
+            payment_receipt_from: Reçu de paiement de %{billing_entity_name}
+            subject: 'Votre reçu de paiement de %{billing_entity_name} #%{payment_receipt_number}'
+    payment_request:
+        requested:
+            already_paid: Si vous avez déjà réglé ces factures, veuillez ignorer cet e-mail.
+            hello: Bonjour %{customer_name},
+            pay_amount: Payer le solde
+            payment_terms:
+                one: Nos conditions de paiement convenues contractuellement sont de %{count} jour.
+                other: Nos conditions de paiement convenues contractuellement sont de %{count} jours.
+                zero: Nos conditions de paiement définies contractuellement exigent le paiement à la création de la facture.
+            remaining_amount: Montant restant à payer
+            reminder_overdue_balance: Ceci est un rappel de l'équipe financière de %{billing_entity_name} que certaines de vos factures sont arrivées à échéance et non réglées.
+            subject: Votre solde impayé pour %{billing_entity_name}
+            thank_you: Merci.
+            total_amount_due: Le montant total dû est de %{amount}.
+    questions: Questions? Contactez nous à
+invoice:
+    total: Total
+    total_due_amount: Montant dû
+    total_paid_amount: Montant payé
+money:
+    custom_format: '%n %{iso_code}'
+    decimal_mark: ','
+    format: '%n %u'
+    thousands_separator: ' '
+payment_receipt:
+    download_receipt: Télécharger le reçu de paiement
+    number: Numéro de reçu
+    paid_on: 'Payé le %{date} (Reste à payer: %{total_due_amount})'
+    payment_date: Payé le

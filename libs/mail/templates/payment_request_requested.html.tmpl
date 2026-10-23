@@ -1,0 +1,21 @@
+{{define "content"}}
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.payment_request.requested.hello" "customer_name" .D.CustomerName}}</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.payment_request.requested.reminder_overdue_balance" "billing_entity_name" .D.BillingEntityName}}</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.payment_request.requested.total_amount_due" "amount" .D.Amount}}</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.payment_request.requested.payment_terms" "count" .D.NetPaymentTermDays}}</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.payment_request.requested.already_paid"}}</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.payment_request.requested.thank_you"}}</div>
+<div style="padding-top: 32px;font-style: normal;font-weight: 400;font-size: 14px;line-height: 20px;color: #66758F;border-top: 1px solid #d9dee7;">{{.L.T "email.payment_request.requested.remaining_amount"}}</div>
+<div style="margin-bottom: 16px;font-style: normal;font-weight: 700;font-size: 32px;line-height: 40px;color: #19212E;">{{.D.Amount}}</div>
+{{- if .D.PaymentURL}}
+<table style="margin-bottom: 32px" width="100%" cellspacing="0" cellpadding="0"><tr><td><table cellspacing="0" cellpadding="0"><tr>
+<td style="border-radius: 12px;" bgcolor="#006CFA"><a id="payment_link" href="{{.D.PaymentURL}}" style="padding: 10px 16px;font-size: 16px; color: #ffffff;text-decoration: none;display: inline-block;font-weight: 400;font-style: normal;line-height: 24px;">{{.L.T "email.payment_request.requested.pay_amount"}}</a></td>
+</tr></table></td></tr></table>
+{{- end}}
+<table style="width: 100%; border-collapse: collapse;">
+<tr style="border-bottom: 1px solid #d9dee7;"><td style="font-size: 14px; font-weight: 400; line-height: 20px; text-align: left; color: #66758F; white-space: nowrap; padding: 16px 0;">{{.L.T "email.credit_note.created.invoice_number"}}</td><td style="font-size: 14px; font-weight: 400; line-height: 20px; text-align: right; color: #66758F; white-space: nowrap; padding: 16px 0;">{{.L.T "invoice.total_due_amount"}}</td></tr>
+{{- range .D.Invoices}}
+<tr style="border-bottom: 1px solid #d9dee7;"><td style="font-size: 14px; font-weight: 400; line-height: 20px; text-align: left; padding-right: 16px; white-space: nowrap; padding: 16px 0;">{{if and $.PDFs .FileURL}}<a href="{{.FileURL}}" style="text-decoration: none; color: #006cfa">{{.Number}}</a>{{else}}{{.Number}}{{end}}</td><td style="font-size: 14px; font-weight: 400; line-height: 20px; text-align: right; color: #19212e; white-space: nowrap; padding: 16px 0;">{{.TotalDue}}</td></tr>
+{{- end}}
+</table>
+{{end}}

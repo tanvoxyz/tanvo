@@ -1,0 +1,71 @@
+Kind: authentication_methods_updated
+Locale: en
+From: <noreply@tanvo.test>
+Reply-To: "Hooli Inc" <noreply@tanvo.test>
+To: 
+Cc: 
+Bcc: <admin0@hooli.test>, <admin1@hooli.test>, <admin2@hooli.test>
+Subject: Login method updated in your Tanvo workspace
+
+==== text
+Hooli Inc
+
+The user admin0@hooli.test made the following changes to authentication methods.
+
+- Disabled Google Oauth
+- Enabled Okta
+
+You're receiving this message because you're an admin of the organization.
+
+--
+If you weren't expecting this change, please review your authentication settings.
+
+Questions? Contact us at contact@hooli.test
+
+==== html
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<style>
+table td { mso-line-height-rule: exactly; }
+table, td { font-family: Helvetica Neue, Helvetica, Arial; }
+.main-table { margin: auto; max-width: 600px; min-width: 600px; }
+@media screen and (max-width: 776px) { .main-table { max-width: 360px; min-width: 360px; } }
+a img { border: none; }
+a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+a, a:visited, a:hover, a:active { color: inherit; }
+</style>
+</head>
+<body style="margin: 0; padding: 0; word-spacing: normal; background-color: #f3f4f6; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+<table style="width: 100%; border: 0; margin: 0; padding: 0" cellspacing="0" cellpadding="0"><tr><td>
+<table class="main-table" cellpadding="0" cellspacing="0" style="padding: 64px 0">
+<tr><td><table cellpadding="0" cellspacing="0" style="margin: auto; padding-bottom: 32px"><tr>
+<td style="height: 32px; font-size: 20px; font-weight: 700; line-height: 28px; letter-spacing: 0em;">Hooli Inc</td>
+</tr></table></td></tr>
+<tr><td>
+<table cellpadding="0" cellspacing="0" style="width: 100%; background-color: #fff; border: 1px solid #d9dee7; border-radius: 12px; padding: 32px;"><tr><td>
+<div style="margin-bottom: 32px; font-size: 20px; font-weight: 700; line-height: 24px; color: #19212E;">Tanvo</div>
+
+<div style="margin-bottom: 24px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">The user admin0@hooli.test made the following changes to authentication methods.</div>
+<ul>
+<li style="margin-bottom: 12px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">Disabled Google Oauth</li>
+<li style="margin-bottom: 12px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">Enabled Okta</li>
+</ul>
+<div style="margin-bottom: 24px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">You&#39;re receiving this message because you&#39;re an admin of the organization.</div>
+<div style="width: 100%;height: 1px;background-color: #D9DEE7;margin-bottom: 32px;"></div>
+<div style="color: #66758F;font-style: normal;font-weight: 400;font-size: 14px;line-height: 20px;">If you weren&#39;t expecting this change, please review your authentication settings.</div>
+
+<table cellpadding="0" cellspacing="0" style="margin: auto; padding-top: 24px"><tr>
+<td style="font-size: 14px; font-weight: 400; line-height: 20px; letter-spacing: 0em; text-align: center; color: #66758f;">Questions? Contact us at&nbsp;<a style="text-decoration: none; color: #006cfa" href="mailto:contact@hooli.test">contact@hooli.test</a></td>
+</tr></table>
+</td></tr></table>
+</td></tr>
+</table>
+</td></tr></table>
+</body>
+</html>
+

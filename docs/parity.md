@@ -47,7 +47,7 @@ A commit that implements a feature changes its status here in the same commit ([
 | Audit log retention period setting (`audit_logs_period`) | `app/models/organization.rb` | libs/core | planned | |
 | Maximum wallets per customer setting | `app/models/organization.rb` | libs/billing | planned | |
 | Allowed authentication methods (email/password, Google, Okta, Entra ID) per organization | `app/models/organization.rb`, `app/services/organizations/update_service.rb` | libs/auth | planned | Okta and Entra ID become OIDC connections; generic OIDC added |
-| Email to admins when authentication methods change | `app/mailers/organization_mailer.rb` | libs/mail | planned | |
+| Email to admins when authentication methods change | `app/mailers/organization_mailer.rb` | libs/mail | logic done | |
 | Per-organization HMAC key for webhook signing | `app/models/organization.rb` | libs/webhooks | planned | Replaced by per-endpoint Standard Webhooks secrets (§3) |
 | Organization bootstrap at first start | `config/initializers/` (`LAGO_CREATE_ORG`, `LAGO_ORG_USER_*`) | apps/server | planned | `tanvo admin bootstrap` command instead of environment variables |
 | Event store selection per organization (PostgreSQL or ClickHouse) | `app/models/organization.rb` (`clickhouse_events_store`) | libs/eventstore | planned | Installation setting with per-organization override |
@@ -66,7 +66,7 @@ A commit that implements a feature changes its status here in the same commit ([
 | Finalize zero-amount invoices setting | `app/models/billing_entity.rb` | libs/billing | planned | |
 | EU tax management flag and automatic EU taxes | `app/services/billing_entities/`, `app/services/taxes/auto_generate_service.rb` | libs/tax | planned | |
 | E-invoicing enablement for supported countries (France, Germany) | `app/models/billing_entity.rb` | libs/documents | planned | |
-| Email settings (which documents are emailed) and from-address | `app/models/billing_entity.rb` (`email_settings`) | libs/mail | planned | |
+| Email settings (which documents are emailed) and from-address | `app/models/billing_entity.rb` (`email_settings`) | libs/mail | in progress | |
 | Taxes applied to a billing entity (apply, remove, manage) | `app/services/billing_entities/taxes/` | libs/tax | planned | |
 | Applied dunning campaign per billing entity | `app/services/billing_entities/update_applied_dunning_campaign_service.rb` | libs/billing | planned | |
 | Billing entity API | `app/controllers/api/v1/billing_entities_controller.rb` | apps/server | planned | |
@@ -75,26 +75,26 @@ A commit that implements a feature changes its status here in the same commit ([
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Users and memberships (active, revoked) across organizations | `app/models/user.rb`, `app/models/membership.rb` | libs/auth | planned | |
-| Predefined roles admin, finance, manager | `app/models/role.rb`, `config/permissions.yml` | libs/auth | planned | |
+| Users and memberships (active, revoked) across organizations | `app/models/user.rb`, `app/models/membership.rb` | libs/auth | logic done | |
+| Predefined roles admin, finance, manager | `app/models/role.rb`, `config/permissions.yml` | libs/auth | logic done | |
 | Custom roles with permission sets | `app/services/roles/` | libs/auth | planned | |
 | Permission catalog (every resource and action) | `config/permissions.yml` | libs/auth | planned | Permission strings `resource:action` declared per RPC |
-| Membership rules: cannot revoke own membership, cannot remove last admin, only admins grant admin | `app/services/memberships/` | libs/auth | planned | |
-| Invites with token, roles, accept, revoke, update | `app/models/invite.rb`, `app/services/invites/` | libs/auth | planned | |
-| Password reset by email (30-minute token) | `app/services/password_resets/` | libs/auth | planned | |
+| Membership rules: cannot revoke own membership, cannot remove last admin, only admins grant admin | `app/services/memberships/` | libs/auth | logic done | |
+| Invites with token, roles, accept, revoke, update | `app/models/invite.rb`, `app/services/invites/` | libs/auth | logic done | |
+| Password reset by email (30-minute token) | `app/services/password_resets/` | libs/auth | logic done | |
 | Sign-up toggle for self-hosted installations | `LAGO_DISABLE_SIGNUP`, `app/services/users_service.rb` | apps/server | planned | Configuration option |
 
 ### 1.5 Authentication and Sessions
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Email and password sign-in and registration | `app/services/users_service.rb`, `app/graphql/mutations/` | libs/auth | planned | argon2id hashes; opaque sessions instead of JWT (§3) |
-| Google sign-in, sign-up and invite acceptance | `app/services/auth/google_service.rb` | libs/auth | planned | Through the OIDC identity provider |
-| Okta sign-in (authorize, token, userinfo, state check) | `app/services/auth/okta/` | libs/auth | planned | OIDC connection; state stored server-side |
-| Entra ID sign-in with tenant and additional domains | `app/services/auth/entra_id/` | libs/auth | planned | OIDC connection |
-| Generic OIDC provider | — | libs/auth | planned | New in Tanvo |
-| Okta and Entra ID integration configuration (client, domain, host) | `app/models/integrations/okta_integration.rb`, `entra_id_integration.rb` | libs/auth | planned | |
-| Refuse removing the last enabled sign-in method | `app/services/integrations/okta/destroy_service.rb` | libs/auth | planned | |
+| Email and password sign-in and registration | `app/services/users_service.rb`, `app/graphql/mutations/` | libs/auth | logic done | argon2id hashes; opaque sessions instead of JWT (§3) |
+| Google sign-in, sign-up and invite acceptance | `app/services/auth/google_service.rb` | libs/auth | logic done | Through the OIDC identity provider |
+| Okta sign-in (authorize, token, userinfo, state check) | `app/services/auth/okta/` | libs/auth | logic done | OIDC connection; state stored server-side |
+| Entra ID sign-in with tenant and additional domains | `app/services/auth/entra_id/` | libs/auth | logic done | OIDC connection |
+| Generic OIDC provider | — | libs/auth | logic done | New in Tanvo |
+| Okta and Entra ID integration configuration (client, domain, host) | `app/models/integrations/okta_integration.rb`, `entra_id_integration.rb` | libs/auth | logic done | |
+| Refuse removing the last enabled sign-in method | `app/services/integrations/okta/destroy_service.rb` | libs/auth | logic done | |
 | Known devices and new-device security log entry | `app/models/user_device.rb`, `app/services/user_devices/` | libs/auth | planned | |
 | OAuth callback for GoCardless connection | `app/services/payment_providers/gocardless_service.rb` (`LAGO_OAUTH_PROXY_URL`) | providers/gocardless | planned | Callback served by `apps/server`; no proxy |
 
@@ -102,12 +102,12 @@ A commit that implements a feature changes its status here in the same commit ([
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Multiple named API keys per organization | `app/models/api_key.rb`, `app/services/api_keys/` | libs/auth | planned | Stored as SHA-256 hashes and shown once |
-| Per-key permissions by resource (read, write) | `app/models/api_key.rb` (`RESOURCES`) | libs/auth | planned | Same permission strings as roles |
-| Key expiry and rotation | `app/services/api_keys/rotate_service.rb` | libs/auth | planned | Rotation keeps the old key valid for an overlap window |
-| Refuse destroying the last non-expiring key | `app/services/api_keys/destroy_service.rb` | libs/auth | planned | |
-| Last-used tracking | `app/jobs/clock/api_keys/track_usage_job.rb` | libs/auth | planned | |
-| Emails when keys are created, rotated or destroyed | `app/mailers/api_key_mailer.rb` | libs/mail | planned | |
+| Multiple named API keys per organization | `app/models/api_key.rb`, `app/services/api_keys/` | libs/auth | logic done | Stored as SHA-256 hashes and shown once |
+| Per-key permissions by resource (read, write) | `app/models/api_key.rb` (`RESOURCES`) | libs/auth | logic done | Same permission strings as roles |
+| Key expiry and rotation | `app/services/api_keys/rotate_service.rb` | libs/auth | logic done | Rotation keeps the old key valid for an overlap window |
+| Refuse destroying the last non-expiring key | `app/services/api_keys/destroy_service.rb` | libs/auth | logic done | |
+| Last-used tracking | `app/jobs/clock/api_keys/track_usage_job.rb` | libs/auth | logic done | |
+| Emails when keys are created, rotated or destroyed | `app/mailers/api_key_mailer.rb` | libs/mail | logic done | |
 | Idempotency of write requests | `app/models/idempotency_record.rb`, `app/services/idempotency_records/` | apps/server | planned | `Idempotency-Key` header; responses kept 24 hours |
 | Health and readiness endpoints | `config/routes.rb` (`/health`, `/ready`) | apps/server | planned | `/healthz`, `/readyz` |
 | Prometheus metrics endpoint | `config/initializers/yabeda.rb` | apps/server | planned | OpenTelemetry and `/metrics` |
@@ -137,7 +137,7 @@ A commit that implements a feature changes its status here in the same commit ([
 | Payment provider connection per customer (provider customer id, sync with provider) | `app/services/payment_provider_customers/create_or_update_batch_service.rb` | libs/core | planned | Several connections per customer with a default (§3) |
 | Integration customers (accounting, CRM, tax) batch create and update | `app/services/integration_customers/create_or_update_batch_service.rb` | libs/core | planned | |
 | Checkout URL to collect a payment method | `app/services/customers/generate_checkout_url_service.rb` | libs/billing | planned | |
-| Customer portal URL | `app/services/customer_portal/generate_url_service.rb` | libs/auth | planned | |
+| Customer portal URL | `app/services/customer_portal/generate_url_service.rb` | libs/auth | logic done | |
 | Locks to serialize per-customer operations (prepaid credit, payment method, credit note, coupon, billing schedule) | `app/services/customers/lock_service.rb` | libs/store | logic done | PostgreSQL advisory locks |
 | Invoice custom sections selected or skipped per customer | `app/services/customers/manage_invoice_custom_sections_service.rb` | libs/billing | planned | |
 | Exclude from dunning and applied dunning campaign | `app/models/customer.rb` | libs/billing | planned | |
@@ -481,7 +481,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Invoice list filters and search | `app/queries/invoices_query.rb` | libs/store | planned | Includes the purchase order number, case-insensitive |
 | Invoice custom sections (manual, system generated) and resolution rules | `app/models/invoice_custom_section.rb`, `app/services/invoice_custom_sections/` | libs/billing | planned | Public API, not only the admin UI |
 | Download PDF and XML | `app/services/invoices/generate_pdf_service.rb` | libs/documents | planned | |
-| Resend invoice email | `app/services/emails/resend_service.rb` | libs/mail | planned | |
+| Resend invoice email | `app/services/emails/resend_service.rb` | libs/mail | logic done | |
 | Payment URL for an invoice | `app/services/invoices/payments/generate_payment_url_service.rb` | libs/billing | planned | |
 | Store Salesforce id on an invoice | `app/controllers/api/v1/invoices_controller.rb` (`sync_salesforce_id`) | providers/salesforce | planned | |
 | Invoice webhooks `invoice.created`, `one_off_created`, `paid_credit_added`, `generated`, `drafted`, `ready_to_finalize`, `voided`, `deleted`, `resynced` | `app/services/webhooks/invoices/` | libs/webhooks | planned | |
@@ -863,7 +863,7 @@ Lago's x402 support is unfinished: only the gate check is reachable. Tanvo ports
 | CSV exports of invoices, invoice fees, credit notes, credit note items with the list filters | `app/services/data_exports/` | libs/billing | planned | Public API |
 | Exports split into parts and combined | `app/models/data_export_part.rb` | libs/jobs | planned | |
 | Export files expire after 7 days | `app/models/data_export.rb` | libs/billing | planned | |
-| Export ready email | `app/mailers/data_export_mailer.rb` | libs/mail | planned | |
+| Export ready email | `app/mailers/data_export_mailer.rb` | libs/mail | logic done | |
 | Export views (`exports_*`) of invoices, fees, credit notes, wallets, subscriptions, alerts, daily usages and the other business tables | `db/views/exports_*.sql` | libs/store | planned | Read-only PostgreSQL views, with the deletion records (§1.49), the contract of the warehouse sync |
 | Warehouse sync of the export views | Lago's private data pipeline | ee/pipeline | planned | Separate process reading the views (Architecture §14) |
 
@@ -889,8 +889,8 @@ Lago's x402 support is unfinished: only the gate check is reachable. Tanvo ports
 | Activity logs (resource changes from API, admin UI, system) | `app/services/utils/activity_log.rb` | libs/core | planned | Fed by `audit_events` |
 | Activity log retention per organization | `app/models/organization.rb` | libs/eventstore | planned | |
 | API logs of write requests | `app/services/utils/api_log.rb` | apps/server | planned | |
-| Security logs (sign-ins, users, roles, API keys, integrations, webhook endpoints) with 90-day retention | `app/services/utils/security_log.rb` | libs/auth | planned | |
-| Email sent activity | `app/services/utils/activity_log.rb` | libs/mail | planned | |
+| Security logs (sign-ins, users, roles, API keys, integrations, webhook endpoints) with 90-day retention | `app/services/utils/security_log.rb` | libs/auth | in progress | |
+| Email sent activity | `app/services/utils/activity_log.rb` | libs/mail | logic done | |
 | Logs API with filters | `app/controllers/api/v1/activity_logs_controller.rb`, `api_logs_controller.rb`, `security_logs_controller.rb` | apps/server | planned | |
 | Logs stored in ClickHouse, or PostgreSQL without ClickHouse | `db/clickhouse_migrate/` | libs/eventstore | planned | Lago requires ClickHouse |
 
@@ -898,7 +898,7 @@ Lago's x402 support is unfinished: only the gate check is reachable. Tanvo ports
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Portal access token scoped to one customer | `app/services/customer_portal/` | libs/auth | planned | Short-lived signed tokens |
+| Portal access token scoped to one customer | `app/services/customer_portal/` | libs/auth | logic done | Short-lived signed tokens |
 | Portal customer profile view and update | `app/graphql/resolvers/customer_portal/` | apps/server | planned | |
 | Portal invoices list and download | `app/graphql/resolvers/customer_portal/` | apps/server | planned | |
 | Portal subscriptions and current usage | `app/graphql/resolvers/customer_portal/` | apps/server | planned | |
@@ -913,16 +913,16 @@ Lago's x402 support is unfinished: only the gate check is reachable. Tanvo ports
 | Invoice PDF (current template version 4 with partials) | `app/views/templates/invoices/v4/` | libs/documents | planned | Typst templates (§3) |
 | Credit note PDF | `app/views/templates/credit_notes/` | libs/documents | planned | |
 | Payment receipt PDF | `app/views/templates/payment_receipts/` | libs/documents | planned | |
-| Payment request email | `app/mailers/payment_request_mailer.rb`, `app/views/payment_request_mailer/requested.slim` | libs/mail | planned | Also rendered as a document |
+| Payment request email | `app/mailers/payment_request_mailer.rb`, `app/views/payment_request_mailer/requested.slim` | libs/mail | logic done | Also rendered as a document |
 | Document locales de, en, es, fr, it, nb, pt-BR, sv, zh-TW | `config/locales/` | libs/documents | planned | |
 | Branding watermark | `app/views/templates/` | libs/documents | planned | No watermark; nothing to remove |
 | UBL invoices (EN 16931, XRechnung 3.0, Peppol BIS 3) | `app/serializers/e_invoices/invoices/ubl/` | libs/documents | planned | |
 | CII invoices embedded as Factur-X / ZUGFeRD | `app/serializers/e_invoices/invoices/cii/` | libs/documents | planned | |
 | E-invoice code lists | `app/serializers/e_invoices/` | libs/documents | planned | |
 | E-invoices for credit notes and receipts | `app/serializers/e_invoices/credit_notes/`, `app/serializers/e_invoices/payments/` | libs/documents | planned | |
-| Document emails (invoice, credit note, receipt, payment request) | `app/mailers/` | libs/mail | planned | |
-| Resend document email | `app/services/emails/resend_service.rb` | libs/mail | planned | |
-| SMTP delivery and custom from address | `config/environments/production.rb` | libs/mail | planned | |
+| Document emails (invoice, credit note, receipt, payment request) | `app/mailers/` | libs/mail | logic done | |
+| Resend document email | `app/services/emails/resend_service.rb` | libs/mail | logic done | |
+| SMTP delivery and custom from address | `config/environments/production.rb` | libs/mail | logic done | |
 
 ### 1.48 Scheduled Jobs
 

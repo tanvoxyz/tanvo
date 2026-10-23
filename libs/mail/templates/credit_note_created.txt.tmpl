@@ -1,0 +1,9 @@
+{{define "content"}}{{.L.T "email.credit_note.created.credit_note_from" "billing_entity_name" .D.BillingEntityName}}
+{{.D.Total}}{{if .D.Notice}}
+{{.D.Notice}}{{end}}
+
+{{.L.T "email.credit_note.created.credit_note_number"}}: {{.D.Number}}
+{{.L.T "email.credit_note.created.invoice_number"}}: {{.D.InvoiceNumber}}
+{{.L.T "email.credit_note.created.issue_date"}}: {{.D.IssuingDate}}{{if and .PDFs .D.FileURL}}
+
+{{.L.T "email.credit_note.created.download"}}: {{.D.FileURL}}{{end}}{{end}}

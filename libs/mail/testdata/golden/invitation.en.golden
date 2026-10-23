@@ -1,0 +1,68 @@
+Kind: invitation
+Locale: en
+From: <noreply@tanvo.test>
+Reply-To: 
+To: <new@hooli.test>
+Cc: 
+Bcc: 
+Subject: You have been invited to join Hooli Inc on Tanvo
+
+==== text
+Hello,
+
+admin@hooli.test invited you to join Hooli Inc on Tanvo as Finance.
+
+Accept the invitation: https://app.tanvo.test/invitation/invite-token
+
+This invitation expires on Oct 17, 2024.
+
+Thanks,
+The Tanvo Team
+
+--
+You're receiving this email because someone invited this address to a Tanvo organization. If you weren't expecting it, you can ignore this email.
+
+==== html
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<style>
+table td { mso-line-height-rule: exactly; }
+table, td { font-family: Helvetica Neue, Helvetica, Arial; }
+.main-table { margin: auto; max-width: 600px; min-width: 600px; }
+@media screen and (max-width: 776px) { .main-table { max-width: 360px; min-width: 360px; } }
+a img { border: none; }
+a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+a, a:visited, a:hover, a:active { color: inherit; }
+</style>
+</head>
+<body style="margin: 0; padding: 0; word-spacing: normal; background-color: #f3f4f6; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+<table style="width: 100%; border: 0; margin: 0; padding: 0" cellspacing="0" cellpadding="0"><tr><td>
+<table class="main-table" cellpadding="0" cellspacing="0" style="padding: 64px 0">
+<tr><td>
+<table cellpadding="0" cellspacing="0" style="width: 100%; background-color: #fff; border: 1px solid #d9dee7; border-radius: 12px; padding: 32px;"><tr><td>
+<div style="margin-bottom: 32px; font-size: 20px; font-weight: 700; line-height: 24px; color: #19212E;">Tanvo</div>
+
+<div style="margin-bottom: 24px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">Hello,</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">admin@hooli.test invited you to join Hooli Inc on Tanvo as Finance.</div>
+<table style="margin-bottom: 32px" width="100%" cellspacing="0" cellpadding="0"><tr><td><table cellspacing="0" cellpadding="0"><tr>
+<td style="border-radius: 12px;" bgcolor="#006CFA"><a href="https://app.tanvo.test/invitation/invite-token" target="_blank" style="padding: 10px 16px;font-size: 16px; color: #ffffff;text-decoration: none;display: inline-block;font-weight: 400;font-style: normal;line-height: 24px;">Accept the invitation</a></td>
+</tr></table></td></tr></table>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">If the button does not work, copy this link into your browser: <a href="https://app.tanvo.test/invitation/invite-token" target="_blank" style="color: #006CFA;text-decoration: none;">https://app.tanvo.test/invitation/invite-token</a></div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">This invitation expires on Oct 17, 2024.</div>
+<div style="font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;">Thanks,</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">The Tanvo Team</div>
+<div style="width: 100%;height: 1px;background-color: #D9DEE7;margin-bottom: 32px;"></div>
+<div style="color: #66758F;font-style: normal;font-weight: 400;font-size: 14px;line-height: 20px;">You&#39;re receiving this email because someone invited this address to a Tanvo organization. If you weren&#39;t expecting it, you can ignore this email.</div>
+
+</td></tr></table>
+</td></tr>
+</table>
+</td></tr></table>
+</body>
+</html>
+

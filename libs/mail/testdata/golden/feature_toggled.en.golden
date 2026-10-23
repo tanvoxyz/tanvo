@@ -1,0 +1,56 @@
+Kind: feature_toggled
+Locale: en
+From: <noreply@tanvo.test>
+Reply-To: 
+To: <owner@hooli.test>
+Cc: 
+Bcc: 
+Subject: Feature okta has been enabled on your organization
+
+==== text
+Hooli Inc
+
+Feature Update on Hooli Inc
+
+The feature okta has been enabled on your organization by cs@tanvo.test.
+
+If you have questions about this change, please contact your account manager.
+
+==== html
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<style>
+table td { mso-line-height-rule: exactly; }
+table, td { font-family: Helvetica Neue, Helvetica, Arial; }
+.main-table { margin: auto; max-width: 600px; min-width: 600px; }
+@media screen and (max-width: 776px) { .main-table { max-width: 360px; min-width: 360px; } }
+a img { border: none; }
+a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+a, a:visited, a:hover, a:active { color: inherit; }
+</style>
+</head>
+<body style="margin: 0; padding: 0; word-spacing: normal; background-color: #f3f4f6; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;">
+<table style="width: 100%; border: 0; margin: 0; padding: 0" cellspacing="0" cellpadding="0"><tr><td>
+<table class="main-table" cellpadding="0" cellspacing="0" style="padding: 64px 0">
+<tr><td><table cellpadding="0" cellspacing="0" style="margin: auto; padding-bottom: 32px"><tr>
+<td style="height: 32px; font-size: 20px; font-weight: 700; line-height: 28px; letter-spacing: 0em;">Hooli Inc</td>
+</tr></table></td></tr>
+<tr><td>
+<table cellpadding="0" cellspacing="0" style="width: 100%; background-color: #fff; border: 1px solid #d9dee7; border-radius: 12px; padding: 32px;"><tr><td>
+
+<h2>Feature Update on Hooli Inc</h2>
+<p>The feature okta has been enabled on your organization by cs@tanvo.test.</p>
+<p>If you have questions about this change, please contact your account manager.</p>
+
+</td></tr></table>
+</td></tr>
+</table>
+</td></tr></table>
+</body>
+</html>
+

@@ -1,0 +1,5 @@
+{{define "content"}}
+<h2>{{.L.T "email.admin.feature_toggled.heading" "organization_name" .D.OrganizationName}}</h2>
+<p>{{.L.T "email.admin.feature_toggled.body" "feature_key" .D.FeatureKey "action" .D.Action "actor_email" .D.ActorEmail}}</p>
+<p>{{.L.T "email.admin.feature_toggled.contact"}}</p>
+{{end}}

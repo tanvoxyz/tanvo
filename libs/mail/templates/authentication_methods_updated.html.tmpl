@@ -1,0 +1,14 @@
+{{define "content"}}
+<div style="margin-bottom: 24px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.organization.authentication_methods_updated.changes" "user_email" .D.ActorEmail}}</div>
+<ul>
+{{- if .D.Disabled}}
+<li style="margin-bottom: 12px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.organization.authentication_methods_updated.disabled" "login_method" .D.Disabled}}</li>
+{{- end}}
+{{- if .D.Enabled}}
+<li style="margin-bottom: 12px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.organization.authentication_methods_updated.enabled" "login_method" .D.Enabled}}</li>
+{{- end}}
+</ul>
+<div style="margin-bottom: 24px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.organization.authentication_methods_updated.reasoning"}}</div>
+<div style="width: 100%;height: 1px;background-color: #D9DEE7;margin-bottom: 32px;"></div>
+<div style="color: #66758F;font-style: normal;font-weight: 400;font-size: 14px;line-height: 20px;">{{.L.T "email.organization.authentication_methods_updated.email_info"}}</div>
+{{end}}

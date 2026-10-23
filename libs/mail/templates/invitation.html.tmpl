@@ -1,0 +1,15 @@
+{{define "content"}}
+<div style="margin-bottom: 24px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.invitation.greetings"}}</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.invitation.intro" "inviter_email" .D.InviterEmail "organization_name" .D.OrganizationName "role_name" .D.RoleName}}</div>
+<table style="margin-bottom: 32px" width="100%" cellspacing="0" cellpadding="0"><tr><td><table cellspacing="0" cellpadding="0"><tr>
+<td style="border-radius: 12px;" bgcolor="#006CFA"><a href="{{.D.URL}}" target="_blank" style="padding: 10px 16px;font-size: 16px; color: #ffffff;text-decoration: none;display: inline-block;font-weight: 400;font-style: normal;line-height: 24px;">{{.L.T "email.invitation.cta_label"}}</a></td>
+</tr></table></td></tr></table>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.invitation.fallback_text"}}<a href="{{.D.URL}}" target="_blank" style="color: #006CFA;text-decoration: none;">{{.D.URL}}</a></div>
+{{- if .D.ExpiresOn}}
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.invitation.expiry_notice" "date" .D.ExpiresOn}}</div>
+{{- end}}
+<div style="font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;">{{.L.T "email.invitation.thanks"}}</div>
+<div style="margin-bottom: 32px;font-style: normal;font-weight: 400;font-size: 16px;line-height: 24px;color: #19212E;">{{.L.T "email.invitation.team"}}</div>
+<div style="width: 100%;height: 1px;background-color: #D9DEE7;margin-bottom: 32px;"></div>
+<div style="color: #66758F;font-style: normal;font-weight: 400;font-size: 14px;line-height: 20px;">{{.L.T "email.invitation.email_info"}}</div>
+{{end}}

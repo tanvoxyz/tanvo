@@ -1,0 +1,15 @@
+{{define "content"}}{{.L.T "email.invitation.greetings"}}
+
+{{.L.T "email.invitation.intro" "inviter_email" .D.InviterEmail "organization_name" .D.OrganizationName "role_name" .D.RoleName}}
+
+{{.L.T "email.invitation.cta_label"}}: {{.D.URL}}
+{{- if .D.ExpiresOn}}
+
+{{.L.T "email.invitation.expiry_notice" "date" .D.ExpiresOn}}
+{{- end}}
+
+{{.L.T "email.invitation.thanks"}}
+{{.L.T "email.invitation.team"}}
+
+--
+{{.L.T "email.invitation.email_info"}}{{end}}

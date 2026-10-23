@@ -1,11 +1,13 @@
 go 1.27.1
 
 use (
+	./libs/auth
 	./libs/core
 	./libs/eventstore
 	./libs/expression/go
 	./libs/ingest
 	./libs/jobs
+	./libs/mail
 	./libs/metering
 	./libs/money
 	./libs/period
