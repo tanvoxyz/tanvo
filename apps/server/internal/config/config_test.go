@@ -122,6 +122,7 @@ func TestLoadInvalid(t *testing.T) {
 		{"bad org", []string{dsn, "TANVO_INGEST_KAFKA_ORGANIZATIONS=acme"}, "not an organization ID"},
 		{"org in both modes", []string{dsn, "TANVO_INGEST_KAFKA_ORGANIZATIONS=0192f3a4-6b7c-7d8e-9f01-23456789abcd", "TANVO_INGEST_POSTGRES_ORGANIZATIONS=0192f3a4-6b7c-7d8e-9f01-23456789abcd"}, "is also in"},
 		{"public event store", []string{dsn, "TANVO_EVENTSTORE_SCHEMA=public"}, "TANVO_EVENTSTORE_SCHEMA"},
+		{"reserved event store schema", []string{dsn, "TANVO_EVENTSTORE_SCHEMA=pg_events"}, "TANVO_EVENTSTORE_SCHEMA"},
 		{"quoted schema", []string{dsn, "TANVO_JOBS_SCHEMA=Jobs;drop"}, "TANVO_JOBS_SCHEMA"},
 		{"sasl without user", []string{dsn, "TANVO_KAFKA_SASL_MECHANISM=plain"}, "TANVO_KAFKA_SASL_USERNAME"},
 		{"smtp without from", []string{dsn, "TANVO_SMTP_HOST=smtp.example.com"}, "TANVO_MAIL_FROM"},

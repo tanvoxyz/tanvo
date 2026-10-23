@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -18,38 +17,21 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/metering"
 )
 
-// The PostgreSQL event store lives in its own schema (TANVO_EVENTSTORE_SCHEMA):
-// its tables are unqualified and its events table would collide with the
-// store's raw event log (public.events). Reads go through a pool whose
-// search_path is that schema; writes inside the ingestion transaction
-// switch the transaction's search_path around the write ([schemaWriter]).
+// The PostgreSQL event store lives in its own schema (TANVO_EVENTSTORE_SCHEMA),
+// apart from the store's raw event log (public.events): the stores
+// qualify its tables with the schema ([postgres.WithSchema]), on the main
+// pool and inside the ingestion transaction alike.
 
 // eventStoreMonthsAhead is how many months of event partitions the
 // migration creates ahead of writes.
 const eventStoreMonthsAhead = 3
 
-// migrateEventStore creates the event store's schema and applies its DDL
-// on a dedicated connection whose search_path is the schema; the
-// connection is closed afterwards, so that its search_path does not leak
-// into the pool.
+// migrateEventStore creates the event store's schema if missing and
+// applies its DDL there.
 func migrateEventStore(ctx context.Context, pool *pgxpool.Pool, schema string, hashPartitions int, now time.Time) error {
-	c, err := pool.Acquire(ctx)
-	if err != nil {
-		return fmt.Errorf("eventstore: acquire: %w", err)
-	}
-	conn := c.Hijack()
-	defer func() { _ = conn.Close(context.WithoutCancel(ctx)) }()
-	ident := pgx.Identifier{schema}.Sanitize()
-	if _, err := conn.Exec(ctx, "CREATE SCHEMA IF NOT EXISTS "+ident); err != nil {
-		return fmt.Errorf("eventstore: create schema %s: %w", schema, err)
-	}
-	if _, err := conn.Exec(ctx, "SELECT set_config('search_path', $1, false)", ident); err != nil {
-		return fmt.Errorf("eventstore: search_path: %w", err)
-	}
-	if err := postgres.Migrate(ctx, conn, postgres.MigrateOptions{HashPartitions: hashPartitions, Now: now, Months: eventStoreMonthsAhead}); err != nil {
-		return err
-	}
-	return nil
+	return postgres.Migrate(ctx, pool, postgres.MigrateOptions{
+		Schema: schema, HashPartitions: hashPartitions, Now: now, Months: eventStoreMonthsAhead,
+	})
 }
 
 // checkEventStore reports whether the event store's schema was migrated.
@@ -106,41 +88,12 @@ func (s *EventStores) For(org core.OrganizationID) metering.Store {
 // ClickHouse returns the ClickHouse store, nil when not configured.
 func (s *EventStores) ClickHouse() *clickhouse.Store { return s.ch }
 
-// newEventStores builds the stores: reads over readPool, whose
-// search_path is the event store's schema, and ClickHouse over conn when
-// set.
-func newEventStores(readPool *pgxpool.Pool, conn driver.Conn, modeOf func(core.OrganizationID) ingest.Mode) *EventStores {
-	s := &EventStores{pg: postgres.New(readPool), modeOf: modeOf}
+// newEventStores builds the stores: PostgreSQL over pool in schema, and
+// ClickHouse over conn when set.
+func newEventStores(pool *pgxpool.Pool, schema string, conn driver.Conn, modeOf func(core.OrganizationID) ingest.Mode) *EventStores {
+	s := &EventStores{pg: postgres.New(pool, postgres.WithSchema(schema)), modeOf: modeOf}
 	if conn != nil {
 		s.ch = clickhouse.New(conn)
 	}
 	return s
-}
-
-// schemaWriter writes enriched events to the PostgreSQL event store inside
-// the ingestion transaction tx: it sets the transaction's search_path to
-// the event store's schema for the write and restores it afterwards.
-// PostgreSQL re-plans cached statements when the search_path changes.
-type schemaWriter struct {
-	tx     pgx.Tx
-	schema string
-}
-
-var _ ingest.EventWriter = schemaWriter{}
-
-// Write implements [ingest.EventWriter].
-func (w schemaWriter) Write(ctx context.Context, events []metering.Event) (dups []int, err error) {
-	var prev string
-	if err := w.tx.QueryRow(ctx, "SELECT current_setting('search_path')").Scan(&prev); err != nil {
-		return nil, fmt.Errorf("eventstore: search_path: %w", err)
-	}
-	if _, err := w.tx.Exec(ctx, "SELECT set_config('search_path', $1, true)", pgx.Identifier{w.schema}.Sanitize()); err != nil {
-		return nil, fmt.Errorf("eventstore: search_path: %w", err)
-	}
-	defer func() {
-		if _, rerr := w.tx.Exec(ctx, "SELECT set_config('search_path', $1, true)", prev); rerr != nil {
-			err = errors.Join(err, fmt.Errorf("eventstore: restore search_path: %w", rerr))
-		}
-	}()
-	return postgres.New(w.tx).Write(ctx, events)
 }

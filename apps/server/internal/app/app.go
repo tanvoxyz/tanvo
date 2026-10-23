@@ -44,7 +44,6 @@ type App struct {
 	log   *slog.Logger
 
 	pool      *pgxpool.Pool
-	readPool  *pgxpool.Pool
 	ch        driver.Conn
 	store     *store.Store
 	jobs      *jobs.Client
@@ -90,10 +89,6 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	if err != nil {
 		return nil, err
 	}
-	a.readPool, err = openPool(ctx, cfg.DatabaseURL, poolOptions{MaxConns: cfg.DatabaseMaxConns, SearchPath: cfg.EventStoreSchema, Name: "eventstore"}, tp, mp)
-	if err != nil {
-		return nil, err
-	}
 	a.health.add("postgres", a.pool.Ping)
 	if a.ch != nil {
 		a.health.add("clickhouse", a.ch.Ping)
@@ -125,8 +120,7 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	if err != nil {
 		return nil, err
 	}
-	a.stores = newEventStores(a.readPool, a.ch, modeOf)
-	a.health.add("eventstore", a.readPool.Ping)
+	a.stores = newEventStores(a.pool, cfg.EventStoreSchema, a.ch, modeOf)
 	ktel := kafkaTelemetry{tp: tp, mp: mp, propagator: tel.Propagator}
 	if (o.Roles.Has(config.RoleAPI) && cfg.KafkaUsed()) || o.Roles.Has(config.RoleConsumer) {
 		if a.producer, err = newKafkaClient(cfg, ktel, ""); err != nil {
@@ -259,9 +253,6 @@ func (a *App) close() {
 	}
 	if a.producer != nil {
 		a.producer.Close()
-	}
-	if a.readPool != nil {
-		a.readPool.Close()
 	}
 	if a.ch != nil {
 		if err := a.ch.Close(); err != nil {

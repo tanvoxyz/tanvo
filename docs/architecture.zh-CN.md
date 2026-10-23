@@ -360,7 +360,7 @@ POST /v1/events, /v1/events:batch
 
 1. 加载并校验配置（§13.5），一次报告全部问题，并安装遥测（§15）。
 2. 打开 PostgreSQL 连接池；设置了 `TANVO_CLICKHOUSE_URL` 时打开 ClickHouse 连接。
-3. 应用 schema（`TANVO_MIGRATE_ON_START`，自托管默认开启），或检查 schema 并在不符时拒绝启动（§5.2）。PostgreSQL 事件存储位于自己的 schema（`TANVO_EVENTSTORE_SCHEMA`，默认 `eventstore`），因为它未限定 schema 的表会与 store 的原始事件日志冲突；读取使用第二个连接池，其 `search_path` 为该 schema，摄取事务在写入富化事件前后切换 `search_path`。
+3. 应用 schema（`TANVO_MIGRATE_ON_START`，自托管默认开启），或检查 schema 并在不符时拒绝启动（§5.2）。PostgreSQL 事件存储位于自己的 schema（`TANVO_EVENTSTORE_SCHEMA`，默认 `eventstore`），与 store 的原始事件日志（`public.events`）分开；事件存储以该 schema 限定其每个表、函数与锁键（`postgres.WithSchema`），在主连接池和摄取事务中都是如此，因此没有连接会改变 `search_path`。
 4. 以 River 作为任务插入器构建 store（任务随业务事务一同提交），注册已装配服务的任务类型，并创建 River 客户端：`worker` 角色在配置的队列与 clock 队列上运行 worker，其他角色只插入。
 5. 按组织的摄取模式选择其事件存储：postgres 模式用 PostgreSQL，kafka 模式用 ClickHouse。
 6. 当有组织经 Kafka 摄取或运行 `consumer` 角色时创建 Kafka 生产者；`consumer` 角色还运行富化（`<prefix>-enrich`：raw → enriched）与 ClickHouse 写入（`<prefix>-write`：enriched → ClickHouse，用量信号）两个消费者组。

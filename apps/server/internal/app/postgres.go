@@ -18,9 +18,7 @@ type poolOptions struct {
 	// MaxConns bounds the pool; 0 keeps pgx's default (or the URL's
 	// pool_max_conns).
 	MaxConns int32
-	// SearchPath, when set, is the search_path of every connection.
-	SearchPath string
-	// Name tells the pools apart in telemetry ("main", "eventstore").
+	// Name tells the pools apart in telemetry ("main").
 	Name string
 }
 
@@ -35,9 +33,6 @@ func openPool(ctx context.Context, dsn string, o poolOptions, tp trace.TracerPro
 	store.ConfigurePool(cfg)
 	if o.MaxConns > 0 {
 		cfg.MaxConns = o.MaxConns
-	}
-	if o.SearchPath != "" {
-		cfg.ConnConfig.RuntimeParams["search_path"] = o.SearchPath
 	}
 	cfg.ConnConfig.Tracer = otelpgx.NewTracer(
 		otelpgx.WithTracerProvider(tp),

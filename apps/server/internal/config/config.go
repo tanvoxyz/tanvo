@@ -21,6 +21,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
+	"github.com/tanvoxyz/tanvo/libs/eventstore/postgres"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
 	"github.com/tanvoxyz/tanvo/libs/mail"
 )
@@ -394,8 +395,8 @@ func (c Config) Validate() error {
 	if !identifier(c.JobsSchema) {
 		bad("jobs_schema", "%q: want a lower-case SQL identifier", c.JobsSchema)
 	}
-	if !identifier(c.EventStoreSchema) || c.EventStoreSchema == "public" {
-		bad("eventstore_schema", "%q: want a lower-case SQL identifier other than public", c.EventStoreSchema)
+	if postgres.ValidateSchema(c.EventStoreSchema) != nil || c.EventStoreSchema == "public" {
+		bad("eventstore_schema", "%q: want a lower-case SQL identifier other than public, not starting with pg_", c.EventStoreSchema)
 	}
 	if c.EventStoreSchema == c.JobsSchema {
 		bad("eventstore_schema", "must differ from %sJOBS_SCHEMA", EnvPrefix)

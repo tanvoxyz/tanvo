@@ -12,6 +12,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/event"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/clickhouse"
+	"github.com/tanvoxyz/tanvo/libs/eventstore/postgres"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
 	"github.com/tanvoxyz/tanvo/libs/ingest/kafka"
 )
@@ -84,7 +85,7 @@ func (s txStore) InTx(ctx context.Context, fn func(ctx context.Context, log even
 		if err != nil {
 			return err
 		}
-		return fn(ctx, r.Events, schemaWriter{tx: tx, schema: s.schema})
+		return fn(ctx, r.Events, postgres.New(tx, postgres.WithSchema(s.schema)))
 	})
 }
 
