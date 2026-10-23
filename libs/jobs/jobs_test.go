@@ -279,8 +279,8 @@ func TestPeriodicSchedule(t *testing.T) {
 	var runs atomic.Int64
 	reg := jobs.NewRegistry()
 	jobs.MustRegister(reg, jobs.Kind{Name: jobs.KindActivateSubscriptions}, jobs.HandlerFunc[struct{}](func(_ context.Context, j *jobs.Job[struct{}]) error {
-		if !j.OrganizationID.IsZero() || j.Queue != port.QueueBilling {
-			t.Errorf("periodic job org = %v, queue = %s, want none, billing", j.OrganizationID, j.Queue)
+		if !j.OrganizationID.IsZero() || j.Queue != jobs.ClockQueue {
+			t.Errorf("periodic job org = %v, queue = %s, want = none, %s", j.OrganizationID, j.Queue, jobs.ClockQueue)
 		}
 		runs.Add(1)
 		return nil
@@ -301,9 +301,83 @@ func TestPeriodicSchedule(t *testing.T) {
 	start(t, c)
 	eventually(t, 20*time.Second, "two periodic runs", func() bool { return runs.Load() >= 2 })
 	for _, r := range rows(t, s) {
-		if r.Kind != jobs.KindActivateSubscriptions || r.Queue != "billing" || r.Max != jobs.RetriableAttempts {
+		if r.Kind != jobs.KindActivateSubscriptions || r.Queue != "clock" || r.Max != jobs.RetriableAttempts {
 			t.Errorf("periodic row = %+v", r)
 		}
+	}
+}
+
+// TestClockQueueDispatchesPastABacklog checks that periodic jobs run on the
+// clock queue while the workload queue they dispatch to is saturated, and
+// that their dispatched jobs carry the tick's time and land on that queue.
+func TestClockQueueDispatchesPastABacklog(t *testing.T) {
+	t.Parallel()
+	_, s := schema(t)
+	o := org()
+	release := make(chan struct{})
+	var ticks atomic.Int64
+	var c *jobs.Client
+	reg := jobs.NewRegistry()
+	jobs.MustRegister(reg, jobs.Kind{Name: "test.work"}, jobs.HandlerFunc[testArgs](func(ctx context.Context, j *jobs.Job[testArgs]) error {
+		if j.Queue != port.QueueBilling || j.OrganizationID != o {
+			t.Errorf("dispatched job queue = %s, org = %v, want = billing, %v", j.Queue, j.OrganizationID, o)
+		}
+		select {
+		case <-release:
+		case <-ctx.Done():
+		}
+		return nil
+	}))
+	jobs.MustRegister(reg, jobs.Kind{Name: jobs.KindBillSubscriptions}, jobs.HandlerFunc[struct{}](func(ctx context.Context, j *jobs.Job[struct{}]) error {
+		ticks.Add(1)
+		b, _ := json.Marshal(testArgs{N: int(j.ScheduledAt.Unix())})
+		return c.Insert(ctx, port.Job{Kind: "test.work", Queue: port.QueueBilling, OrganizationID: o, Args: b, UniqueKey: "bill"})
+	}))
+	queues := unlimited()
+	queues[port.QueueBilling] = jobs.QueueConfig{Concurrency: 1, Shards: 1}
+	c = newClient(t, s, reg, jobs.Config{
+		Queues:    queues,
+		Work:      []port.Queue{port.QueueBilling},
+		Intervals: map[string]time.Duration{jobs.KindBillSubscriptions: 200 * time.Millisecond},
+	})
+	start(t, c)
+	t.Cleanup(func() { close(release) })
+	// The first dispatched job holds the only billing worker; the clock
+	// keeps ticking, and the unique key skips the later dispatches while it
+	// runs.
+	eventually(t, 20*time.Second, "ticks past the blocked billing worker", func() bool { return ticks.Load() >= 4 })
+	work := 0
+	for _, r := range rows(t, s) {
+		switch r.Kind {
+		case "test.work":
+			work++
+			if r.Queue != "billing" {
+				t.Errorf("dispatched row queue = %s, want = billing", r.Queue)
+			}
+		case jobs.KindBillSubscriptions:
+			if r.Queue != "clock" {
+				t.Errorf("periodic row queue = %s, want = clock", r.Queue)
+			}
+		}
+	}
+	if work != 1 {
+		t.Errorf("unfinished dispatched rows = %d, want = 1", work)
+	}
+}
+
+func TestClockQueueIsNotEnqueuable(t *testing.T) {
+	t.Parallel()
+	_, s := schema(t)
+	if _, err := jobs.New(testDB.pool, jobs.NewRegistry(), jobs.Config{Schema: s, ClockConcurrency: -1}); !errors.Is(err, core.ErrInvalidValue) {
+		t.Errorf("New(ClockConcurrency: -1) = %v, want = %v", err, core.ErrInvalidValue)
+	}
+	reg := jobs.NewRegistry()
+	jobs.MustRegister(reg, jobs.Kind{Name: "test.tx"}, noop())
+	c := newClient(t, s, reg, jobs.Config{})
+	j := job("test.tx", org(), 1, "")
+	j.Queue = jobs.ClockQueue
+	if err := c.Insert(context.Background(), j); !errors.Is(err, core.ErrInvalidValue) {
+		t.Errorf("Insert(clock queue) = %v, want = %v", err, core.ErrInvalidValue)
 	}
 }
 

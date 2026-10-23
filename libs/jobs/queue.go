@@ -46,6 +46,18 @@ type QueueConfig struct {
 // Errors known to be safe to retry are declared per kind ([Kind.Retry]).
 const DefaultMaxAttempts = 1
 
+// ClockQueue is the River queue of the periodic jobs of [Schedule]. It is
+// not sharded and has no token bucket: its jobs belong to no organization.
+// A periodic job scans for due work and enqueues it as jobs of the
+// organizations concerned on the workload queues, so a backlog of a
+// workload queue does not delay the schedule, a long scan does not hold a
+// workload worker, and one tenant's failure does not stop the others.
+const ClockQueue port.Queue = "clock"
+
+// DefaultClockConcurrency is the number of periodic jobs one process runs
+// at once on [ClockQueue] when [Config.ClockConcurrency] is 0.
+const DefaultClockConcurrency = 5
+
 // DefaultQueues returns the default configuration of every queue.
 func DefaultQueues() map[port.Queue]QueueConfig {
 	return map[port.Queue]QueueConfig{
@@ -79,7 +91,7 @@ func (c QueueConfig) workersPerShard() int {
 }
 
 // Shard returns the shard of org among n: FNV-1a of the organization's
-// UUID modulo n. The zero organization (periodic jobs) is shard 0.
+// UUID modulo n. The zero organization is shard 0.
 func Shard(org core.OrganizationID, n int) int {
 	if n <= 1 || org.IsZero() {
 		return 0

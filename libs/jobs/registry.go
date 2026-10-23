@@ -76,7 +76,8 @@ type Job[A any] struct {
 	ID int64
 	// Kind is the job kind.
 	Kind string
-	// Queue is the job's queue (its shard is not shown).
+	// Queue is the job's queue (its shard is not shown); [ClockQueue] for
+	// periodic jobs.
 	Queue port.Queue
 	// OrganizationID is the tenant; zero for periodic jobs.
 	OrganizationID core.OrganizationID
@@ -88,7 +89,8 @@ type Job[A any] struct {
 	Attempt int
 	// MaxAttempts is the job's attempt bound.
 	MaxAttempts int
-	// ScheduledAt is when the job was due.
+	// ScheduledAt is when the job was due; for a periodic job, the tick
+	// that the jobs it dispatches should take as their "now".
 	ScheduledAt time.Time
 }
 

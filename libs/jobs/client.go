@@ -35,6 +35,11 @@ type Config struct {
 	// Every client that works queues and may be elected leader should
 	// carry the same schedule.
 	DisablePeriodic bool
+	// ClockConcurrency is the number of periodic jobs a client with the
+	// schedule runs at once on [ClockQueue]; 0 is
+	// [DefaultClockConcurrency]. Clients without the schedule do not work
+	// [ClockQueue].
+	ClockConcurrency int
 	// DisabledPeriodic lists periodic kinds not to schedule (lago-api's
 	// LAGO_DISABLE_EVENTS_VALIDATION, LAGO_DISABLE_LIFETIME_USAGE_REFRESH,
 	// LAGO_DISABLE_WALLET_REFRESH).
@@ -82,6 +87,9 @@ func New(pool *pgxpool.Pool, reg *Registry, cfg Config) (*Client, error) {
 			return nil, err
 		}
 	}
+	if cfg.ClockConcurrency < 0 || cfg.ClockConcurrency > 10_000 {
+		return nil, fmt.Errorf("jobs: clock concurrency %d: %w", cfg.ClockConcurrency, core.ErrInvalidValue)
+	}
 	reg.seal()
 	c := &Client{reg: reg, queues: queues, fair: newFairness(), clock: cfg.Clock}
 	if c.clock == nil {
@@ -114,6 +122,7 @@ func New(pool *pgxpool.Pool, reg *Registry, cfg Config) (*Client, error) {
 			}
 			rc.PeriodicJobs = pjs
 			c.periodic = scheduled
+			rc.Queues[string(ClockQueue)] = river.QueueConfig{MaxWorkers: cmp.Or(cfg.ClockConcurrency, DefaultClockConcurrency)}
 		}
 	}
 	rv, err := river.NewClient(riverpgxv5.New(pool), rc)
@@ -125,7 +134,7 @@ func New(pool *pgxpool.Pool, reg *Registry, cfg Config) (*Client, error) {
 }
 
 // periodicJobs builds the River periodic jobs of the schedule entries
-// whose kind has a handler.
+// whose kind has a handler; they run on [ClockQueue].
 func (c *Client) periodicJobs(cfg Config) ([]*river.PeriodicJob, []Periodic, error) {
 	var out []*river.PeriodicJob
 	var scheduled []Periodic
@@ -145,7 +154,7 @@ func (c *Client) periodicJobs(cfg Config) ([]*river.PeriodicJob, []Periodic, err
 		attempts := cmp.Or(e.kind.MaxAttempts, 1)
 		env := envelope{kind: p.Kind, Max: attempts}
 		opts := &river.InsertOpts{
-			Queue:       RiverQueue(p.Queue, 0),
+			Queue:       string(ClockQueue),
 			MaxAttempts: max(attempts, e.kind.maxRuleAttempts()),
 			UniqueOpts:  uniqueOpts(),
 		}

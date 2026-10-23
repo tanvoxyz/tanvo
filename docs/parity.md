@@ -926,7 +926,7 @@ Lago's x402 support is unfinished: only the gate check is reachable. Tanvo ports
 
 ### 1.48 Scheduled Jobs
 
-Each Lago clock job becomes a River periodic job or a job scheduled at the instant it is due ([Architecture §9](architecture.md#9-jobs-and-scheduling-libsjobs)). `libs/jobs` defines every entry of the schedule; a row is done when the library that owns its work registers the handler.
+Each Lago clock job becomes a River periodic job or a job scheduled at the instant it is due ([Architecture §9](architecture.md#9-jobs-and-scheduling-libsjobs)). `libs/jobs` defines every entry of the schedule; a row is done when the library that owns its work registers the handler. Every periodic job runs on the `clock` queue and dispatches per-organization jobs to the workload queues; some Lago clock jobs (subscription and contract activation, coupon and wallet termination, free trial billing) instead do the work of every organization in the clock job.
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
@@ -948,7 +948,7 @@ Each Lago clock job becomes a River periodic job or a job scheduled at the insta
 | Retry failed invoices, retry inbound webhooks (every 15 minutes) | `clock.rb` | libs/jobs | in progress | |
 | Webhook, inbound webhook, deletion record cleanups (daily) | `clock.rb` | libs/jobs | in progress | |
 | Subscription refresh queue consumption (every 10 seconds) | `clock.rb` | libs/jobs | planned | Change notifications in the consumer |
-| Queues per workload | `config/sidekiq/` | libs/jobs | logic done | River queues sharded by organization, with per-organization token buckets |
+| Queues per workload | `config/sidekiq/` | libs/jobs | logic done | River queues sharded by organization, with per-organization token buckets; periodic jobs on an unsharded `clock` queue |
 
 ### 1.49 Platform Services
 

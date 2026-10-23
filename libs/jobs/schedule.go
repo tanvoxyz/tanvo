@@ -61,13 +61,27 @@ func (d dailyAt) Next(t time.Time) time.Time {
 func (d dailyAt) String() string { return fmt.Sprintf("daily at %02d:%02d", d.hour, d.minute) }
 
 // Periodic is one entry of the clock schedule: a job kind enqueued on a
-// timing by River's elected leader. The work is done by the handler that
-// another library registers for the kind; an entry whose kind has no
-// handler is not scheduled.
+// timing by River's elected leader and run on [ClockQueue]. Its handler,
+// registered by the library that owns the work (an entry whose kind has no
+// handler is not scheduled), scans and dispatches:
+//
+//   - It enqueues the due work as jobs of the organizations concerned on
+//     Queue, through the transactional enqueue, rather than doing it.
+//     Bounded maintenance with no per-organization work (the batched
+//     deletes of the retention cleanups) runs in the handler, as a fan-out
+//     would only split one indexed delete.
+//   - The dispatched jobs take the periodic job's [Job.ScheduledAt] as
+//     their "now" in their arguments when their work depends on it (dates
+//     in customer time zones), since a backlog or a token bucket may run
+//     them later.
+//   - They carry a unique key (the scanned entity, or the kind for one job
+//     per organization), so that ticks over a backlog do not pile up
+//     duplicates, and recheck the entity's state, since it may change
+//     between the scan and the run.
 type Periodic struct {
 	// Kind is the job kind.
 	Kind string
-	// Queue is the queue the job runs on (its shard 0).
+	// Queue is the workload queue of the jobs the handler dispatches.
 	Queue port.Queue
 	// Timing is when it runs.
 	Timing Timing
@@ -126,7 +140,13 @@ const (
 //     queue) is left out: the ingest consumers refresh on change
 //     notifications.
 //   - The wallet refresh does not depend on a cache being configured.
-//   - Each job runs on the queue of its workload instead of a clock queue.
+//   - Every clock job dispatches per-organization jobs to the workload
+//     queues (see [Periodic]). Some lago-api clock jobs do the work of
+//     every organization themselves on the clock queue
+//     (activate_subscriptions, activate_contracts, terminate_coupons,
+//     terminate_wallets, free_trial_subscriptions_biller), where one
+//     failing record stops the run for the records after it; the others
+//     already dispatch per record or organization.
 func Schedule() []Periodic {
 	const rb = "clock.rb schedule:"
 	const dir = "app/jobs/clock/"
