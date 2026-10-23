@@ -1,0 +1,85 @@
+[
+  {"source": "spec/services/charge_models/graduated_service_spec.rb:52", "name": "aggregation 0 applies the flat amount from the first tier",
+   "model": "graduated", "properties": {"graduated_ranges": [
+     {"from_value": 0, "to_value": 10, "per_unit_amount": "10", "flat_amount": "2"},
+     {"from_value": 11, "to_value": 20, "per_unit_amount": "5", "flat_amount": "3"},
+     {"from_value": 21, "to_value": null, "per_unit_amount": "5", "flat_amount": "3"}]},
+   "aggregation": {"units": 0},
+   "want": {"amount": "2", "unit_amount": "0", "details": {"graduated_ranges": [
+     {"flat_unit_amount": 2, "from_value": 0, "to_value": 10, "per_unit_total_amount": 0, "total_with_flat_amount": 2, "per_unit_amount": 0, "units": "0"}]}}},
+  {"source": "spec/services/charge_models/graduated_service_spec.rb:86", "name": "first tier flat amount is zero",
+   "model": "graduated", "properties": {"graduated_ranges": [
+     {"from_value": 0, "to_value": 0.01, "per_unit_amount": "0", "flat_amount": "0"},
+     {"from_value": 0.01, "to_value": 10, "per_unit_amount": "10", "flat_amount": "2"},
+     {"from_value": 11, "to_value": null, "per_unit_amount": "5", "flat_amount": "3"}]},
+   "aggregation": {"units": 0},
+   "want": {"amount": "0", "unit_amount": "0"}},
+  {"source": "spec/services/charge_models/graduated_service_spec.rb:96", "name": "aggregation 1",
+   "model": "graduated", "properties": {"graduated_ranges": [
+     {"from_value": 0, "to_value": 10, "per_unit_amount": "10", "flat_amount": "2"},
+     {"from_value": 11, "to_value": 20, "per_unit_amount": "5", "flat_amount": "3"},
+     {"from_value": 21, "to_value": null, "per_unit_amount": "5", "flat_amount": "3"}]},
+   "aggregation": {"units": 1},
+   "want": {"amount": "12", "unit_amount": "12", "details": {"graduated_ranges": [
+     {"flat_unit_amount": 2, "from_value": 0, "to_value": 10, "per_unit_total_amount": 10, "total_with_flat_amount": 12, "per_unit_amount": 10, "units": "1"}]}}},
+  {"source": "spec/services/charge_models/graduated_service_spec.rb:120", "name": "aggregation 10",
+   "model": "graduated", "properties": {"graduated_ranges": [
+     {"from_value": 0, "to_value": 10, "per_unit_amount": "10", "flat_amount": "2"},
+     {"from_value": 11, "to_value": 20, "per_unit_amount": "5", "flat_amount": "3"},
+     {"from_value": 21, "to_value": null, "per_unit_amount": "5", "flat_amount": "3"}]},
+   "aggregation": {"units": 10},
+   "want": {"amount": "102", "unit_amount": "10.2", "details": {"graduated_ranges": [
+     {"flat_unit_amount": 2, "from_value": 0, "to_value": 10, "per_unit_total_amount": 100, "total_with_flat_amount": 102, "per_unit_amount": 10, "units": "10"}]}}},
+  {"source": "spec/services/charge_models/graduated_service_spec.rb:144", "name": "aggregation 11",
+   "model": "graduated", "properties": {"graduated_ranges": [
+     {"from_value": 0, "to_value": 10, "per_unit_amount": "10", "flat_amount": "2"},
+     {"from_value": 11, "to_value": 20, "per_unit_amount": "5", "flat_amount": "3"},
+     {"from_value": 21, "to_value": null, "per_unit_amount": "5", "flat_amount": "3"}]},
+   "aggregation": {"units": 11},
+   "want": {"amount": "110", "unit_amount": "10", "details": {"graduated_ranges": [
+     {"flat_unit_amount": 2, "from_value": 0, "to_value": 10, "per_unit_total_amount": 100, "total_with_flat_amount": 102, "per_unit_amount": 10, "units": "10"},
+     {"flat_unit_amount": 3, "from_value": 11, "to_value": 20, "per_unit_total_amount": 5, "total_with_flat_amount": 8, "per_unit_amount": 5, "units": "1"}]}}},
+  {"source": "spec/services/charge_models/graduated_service_spec.rb:177", "name": "aggregation 12",
+   "model": "graduated", "properties": {"graduated_ranges": [
+     {"from_value": 0, "to_value": 10, "per_unit_amount": "10", "flat_amount": "2"},
+     {"from_value": 11, "to_value": 20, "per_unit_amount": "5", "flat_amount": "3"},
+     {"from_value": 21, "to_value": null, "per_unit_amount": "5", "flat_amount": "3"}]},
+   "aggregation": {"units": 12},
+   "want": {"amount": "115", "unit_amount": "~9.58333", "details": {"graduated_ranges": [
+     {"flat_unit_amount": 2, "from_value": 0, "to_value": 10, "per_unit_total_amount": 100, "total_with_flat_amount": 102, "per_unit_amount": 10, "units": "10"},
+     {"flat_unit_amount": 3, "from_value": 11, "to_value": 20, "per_unit_total_amount": 10, "total_with_flat_amount": 13, "per_unit_amount": 5, "units": "2"}]}}},
+  {"source": "spec/services/charge_models/graduated_service_spec.rb:210", "name": "aggregation 21",
+   "model": "graduated", "properties": {"graduated_ranges": [
+     {"from_value": 0, "to_value": 10, "per_unit_amount": "10", "flat_amount": "2"},
+     {"from_value": 11, "to_value": 20, "per_unit_amount": "5", "flat_amount": "3"},
+     {"from_value": 21, "to_value": null, "per_unit_amount": "5", "flat_amount": "3"}]},
+   "aggregation": {"units": 21},
+   "want": {"amount": "163", "unit_amount": "~7.76", "details": {"graduated_ranges": [
+     {"flat_unit_amount": 2, "from_value": 0, "to_value": 10, "per_unit_total_amount": 100, "total_with_flat_amount": 102, "per_unit_amount": 10, "units": "10"},
+     {"flat_unit_amount": 3, "from_value": 11, "to_value": 20, "per_unit_total_amount": 50, "total_with_flat_amount": 53, "per_unit_amount": 5, "units": "10"},
+     {"flat_unit_amount": 3, "from_value": 21, "to_value": null, "per_unit_total_amount": 5, "total_with_flat_amount": 8, "per_unit_amount": 5, "units": "1"}]}}},
+  {"source": "spec/services/charge_models/graduated_service_spec.rb:266", "name": "decimal adjacent ranges within first tier",
+   "model": "graduated", "properties": {"graduated_ranges": [
+     {"from_value": 0, "to_value": 0.1, "per_unit_amount": "10", "flat_amount": "0"},
+     {"from_value": 0.1, "to_value": 1, "per_unit_amount": "5", "flat_amount": "0"},
+     {"from_value": 1, "to_value": null, "per_unit_amount": "2", "flat_amount": "0"}]},
+   "aggregation": {"units": 0.05},
+   "want": {"amount": "0.5", "details": {"graduated_ranges": [
+     {"flat_unit_amount": 0, "from_value": 0, "to_value": 0.1, "per_unit_amount": 10, "per_unit_total_amount": 0.5, "total_with_flat_amount": 0.5, "units": "0.05"}]}}},
+  {"source": "spec/services/charge_models/graduated_service_spec.rb:289", "name": "decimal adjacent ranges spanning two tiers",
+   "model": "graduated", "properties": {"graduated_ranges": [
+     {"from_value": 0, "to_value": 0.1, "per_unit_amount": "10", "flat_amount": "0"},
+     {"from_value": 0.1, "to_value": 1, "per_unit_amount": "5", "flat_amount": "0"},
+     {"from_value": 1, "to_value": null, "per_unit_amount": "2", "flat_amount": "0"}]},
+   "aggregation": {"units": 0.5},
+   "want": {"amount": "3", "details": {"graduated_ranges": [
+     {"flat_unit_amount": 0, "from_value": 0, "to_value": 0.1, "per_unit_amount": 10, "per_unit_total_amount": 1, "total_with_flat_amount": 1, "units": "0.1"},
+     {"flat_unit_amount": 0, "from_value": 0.1, "to_value": 1, "per_unit_amount": 5, "per_unit_total_amount": 2, "total_with_flat_amount": 2, "units": "0.4"}]}}},
+  {"source": "spec/services/charge_models/graduated_service_spec.rb:334", "name": "fixed charge",
+   "model": "graduated", "properties": {"graduated_ranges": [
+     {"from_value": 0, "to_value": 10, "per_unit_amount": "10", "flat_amount": "2"},
+     {"from_value": 11, "to_value": 20, "per_unit_amount": "5", "flat_amount": "3"},
+     {"from_value": 21, "to_value": null, "per_unit_amount": "5", "flat_amount": "3"}]},
+   "aggregation": {"units": 21},
+   "want": {"amount": "163", "unit_amount": "~7.76"}}
+]

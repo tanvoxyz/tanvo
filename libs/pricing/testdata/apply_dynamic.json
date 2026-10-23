@@ -1,0 +1,14 @@
+[
+  {"source": "spec/services/charge_models/dynamic_service_spec.rb:26", "name": "applies the model to the values",
+   "model": "dynamic", "properties": {},
+   "aggregation": {"units": 20, "precise_total_amount_cents": "40.2"},
+   "want": {"amount": "0.402", "unit_amount": "0.0201"}},
+  {"source": "spec/services/charge_models/dynamic_service_spec.rb:34", "name": "preserves the fractional currency amount",
+   "model": "dynamic", "properties": {},
+   "aggregation": {"units": 20, "precise_total_amount_cents": 4312},
+   "want": {"amount": "43.12", "unit_amount": "2.156"}},
+  {"source": "spec/services/charge_models/dynamic_service_spec.rb:43", "name": "aggregation is zero",
+   "model": "dynamic", "properties": {},
+   "aggregation": {"units": 0, "precise_total_amount_cents": "40.2"},
+   "want": {"amount": "0", "unit_amount": "0"}}
+]

@@ -1,0 +1,9 @@
+[
+  {"source": "spec/services/charge_models/build_default_properties_service_spec.rb:12", "name": "standard", "model": "standard", "want": {"amount": "0"}},
+  {"source": "spec/services/charge_models/build_default_properties_service_spec.rb:20", "name": "graduated", "model": "graduated", "want": {"graduated_ranges": [{"from_value": 0, "to_value": null, "per_unit_amount": "0", "flat_amount": "0"}]}},
+  {"source": "spec/services/charge_models/build_default_properties_service_spec.rb:39", "name": "package", "model": "package", "want": {"package_size": 1, "amount": "0", "free_units": 0}},
+  {"source": "spec/services/charge_models/build_default_properties_service_spec.rb:53", "name": "percentage", "model": "percentage", "want": {"rate": "0"}},
+  {"source": "spec/services/charge_models/build_default_properties_service_spec.rb:61", "name": "volume", "model": "volume", "want": {"volume_ranges": [{"from_value": 0, "to_value": null, "per_unit_amount": "0", "flat_amount": "0"}]}},
+  {"source": "spec/services/charge_models/build_default_properties_service_spec.rb:80", "name": "graduated_percentage (the unused fixed_amount of the range is dropped)", "model": "graduated_percentage", "want": {"graduated_percentage_ranges": [{"from_value": 0, "to_value": null, "rate": "0", "flat_amount": "0"}]}},
+  {"source": "spec/services/charge_models/build_default_properties_service_spec.rb:100", "name": "dynamic", "model": "dynamic", "want": {}}
+]

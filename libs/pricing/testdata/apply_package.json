@@ -1,0 +1,17 @@
+[
+  {"source": "spec/services/charge_models/package_service_spec.rb:32", "name": "applies the package size to the value",
+   "model": "package", "properties": {"amount": "100", "package_size": 10, "free_units": 0},
+   "aggregation": {"units": 121},
+   "want": {"amount": "1300", "unit_amount": "~10.74",
+            "details": {"free_units": "0", "paid_units": "121", "per_package_size": 10, "per_package_unit_amount": "100"}}},
+  {"source": "spec/services/charge_models/package_service_spec.rb:48", "name": "substracts the free units from the value",
+   "model": "package", "properties": {"amount": "100", "package_size": 10, "free_units": 10},
+   "aggregation": {"units": 121},
+   "want": {"amount": "1200", "unit_amount": "~10.81",
+            "details": {"free_units": "10", "paid_units": "111", "per_package_size": 10, "per_package_unit_amount": "100"}}},
+  {"source": "spec/services/charge_models/package_service_spec.rb:64", "name": "free units higher than the value",
+   "model": "package", "properties": {"amount": "100", "package_size": 10, "free_units": 200},
+   "aggregation": {"units": 121},
+   "want": {"amount": "0", "unit_amount": "0",
+            "details": {"free_units": "200", "paid_units": "0", "per_package_size": 10, "per_package_unit_amount": "100"}}}
+]

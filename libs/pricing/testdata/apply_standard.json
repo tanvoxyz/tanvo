@@ -1,0 +1,18 @@
+[
+  {"source": "spec/services/charge_models/standard_service_spec.rb:36", "name": "applies the charge model to the value",
+   "model": "standard", "properties": {"amount": "5.12345"},
+   "aggregation": {"units": 10},
+   "want": {"amount": "51.2345", "unit_amount": "5.12345", "units": "10"}},
+  {"source": "spec/services/charge_models/standard_service_spec.rb:44", "name": "assigns the total_aggregated_units to the result",
+   "model": "standard", "properties": {"amount": "5.12345"},
+   "aggregation": {"units": 10, "total_aggregated_units": 10},
+   "want": {"total_aggregated_units": "10"}},
+  {"source": "spec/services/charge_models/standard_service_spec.rb:52", "name": "full_units_number sets the unit amount",
+   "model": "standard", "properties": {"amount": "5.12345"},
+   "aggregation": {"units": 10, "full_units": 100},
+   "want": {"unit_amount": "0.512345"}},
+  {"source": "spec/services/charge_models/standard_service_spec.rb:61", "name": "fixed charge",
+   "model": "standard", "properties": {"amount": "10"},
+   "aggregation": {"units": 10},
+   "want": {"amount": "100", "unit_amount": "10"}}
+]

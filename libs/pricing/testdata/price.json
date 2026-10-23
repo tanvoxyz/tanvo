@@ -1,0 +1,10 @@
+[
+  {"source": "spec/services/charges/calculate_price_service_spec.rb:36", "name": "standard", "model": "standard", "properties": {"amount": "10"}, "units": 5, "want": "50"},
+  {"source": "spec/services/charges/calculate_price_service_spec.rb:58", "name": "pricing_group_keys without grouped data", "model": "standard", "properties": {"pricing_group_keys": ["region"], "amount": "10"}, "units": 5, "want": "50"},
+  {"source": "spec/services/charges/calculate_price_service_spec.rb:82", "name": "graduated", "model": "graduated", "properties": {"graduated_ranges": [{"from_value": 0, "to_value": 2, "per_unit_amount": "2", "flat_amount": "0"}, {"from_value": 3, "to_value": null, "per_unit_amount": "3", "flat_amount": "0"}]}, "units": 5, "want": "13"},
+  {"source": "spec/services/charges/calculate_price_service_spec.rb:108", "name": "package", "model": "package", "properties": {"package_size": 2, "amount": "10", "free_units": 1}, "units": 5, "want": "20"},
+  {"source": "spec/services/charges/calculate_price_service_spec.rb:133", "name": "volume", "model": "volume", "properties": {"volume_ranges": [{"from_value": 0, "to_value": 2, "per_unit_amount": "2", "flat_amount": "0"}, {"from_value": 3, "to_value": null, "per_unit_amount": "3", "flat_amount": "0"}]}, "units": 5, "want": "15"},
+  {"source": "spec/services/charges/calculate_price_service_spec.rb:156", "name": "percentage", "model": "percentage", "properties": {"rate": "10"}, "units": 5, "want": "0.5"},
+  {"source": "spec/services/charges/calculate_price_service_spec.rb:180", "name": "graduated_percentage", "model": "graduated_percentage", "properties": {"graduated_percentage_ranges": [{"from_value": 0, "to_value": 2, "rate": "10", "flat_amount": "10"}, {"from_value": 3, "to_value": null, "rate": "20", "flat_amount": "20"}]}, "units": 5, "want": "30.8"},
+  {"source": "spec/services/charges/calculate_price_service_spec.rb:203", "name": "dynamic (no events, so no amounts)", "model": "dynamic", "properties": {}, "units": 5, "want": "0"}
+]
