@@ -760,15 +760,15 @@ Lago 的 x402 支持尚未完成：只有准入检查可以调用。Tanvo 移植
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
 | Webhook 端点（每个组织最多 10 个，URL 唯一，可命名） | `app/models/webhook_endpoint.rb`、`app/services/webhook_endpoints/` | libs/webhooks | 计划中 | |
-| 每个端点订阅的事件类型（默认全部） | `app/models/webhook_endpoint.rb`、`config/webhook_event_types.yml` | libs/webhooks | 计划中 | |
+| 每个端点订阅的事件类型（默认全部） | `app/models/webhook_endpoint.rb`、`config/webhook_event_types.yml` | libs/webhooks | 逻辑已完成 | |
 | 带描述与类别的事件类型目录 | `config/webhook_event_types.yml` | libs/webhooks | 计划中 | |
-| 带重试与退避的投递 | `app/services/webhooks/send_http_service.rb` | libs/webhooks | 计划中 | |
-| 签名的载荷 | `app/models/webhook.rb` | libs/webhooks | 计划中 | Standard Webhooks（§3） |
-| 阻止私有地址，可显式关闭 | `lib/lago_http_client/`（`AddressGuard`） | libs/webhooks | 计划中 | |
-| 带响应、状态与重试次数的投递记录 | `app/models/webhook.rb` | libs/webhooks | 计划中 | |
-| 手动重试某次投递 | `app/services/webhooks/retry_service.rb` | libs/webhooks | 计划中 | |
+| 带重试与退避的投递 | `app/services/webhooks/send_http_service.rb` | libs/webhooks | 逻辑已完成 | |
+| 签名的载荷 | `app/models/webhook.rb` | libs/webhooks | 逻辑已完成 | Standard Webhooks（§3） |
+| 阻止私有地址，可显式关闭 | `lib/lago_http_client/`（`AddressGuard`） | libs/webhooks | 逻辑已完成 | |
+| 带响应、状态与重试次数的投递记录 | `app/models/webhook.rb` | libs/webhooks | 逻辑已完成 | |
+| 手动重试某次投递 | `app/services/webhooks/retry_service.rb` | libs/webhooks | 逻辑已完成 | |
 | 带过滤（状态、事件类型、搜索）的投递列表 | `app/graphql/resolvers/webhooks_resolver.rb` | libs/webhooks | 计划中 | |
-| 90 天后清理投递记录 | `app/jobs/clock/webhooks_cleanup_job.rb` | libs/webhooks | 计划中 | |
+| 90 天后清理投递记录 | `app/jobs/clock/webhooks_cleanup_job.rb` | libs/webhooks | 逻辑已完成 | |
 | Webhook 端点 API | `app/controllers/api/v1/webhook_endpoints_controller.rb` | apps/server | 计划中 | |
 | 事件组 计费指标：`billable_metric.created`、`updated`、`deleted` | `app/services/webhooks/billable_metrics/` | libs/webhooks | 计划中 | |
 | 事件组 套餐：`plan.created`、`updated`、`deleted` | `app/services/webhooks/plans/` | libs/webhooks | 计划中 | |
@@ -799,8 +799,8 @@ Lago 的 x402 支持尚未完成：只有准入检查可以调用。Tanvo 移植
 | :--- | :--- | :--- | :--- | :--- |
 | 每个提供者连接的提供者 webhook 端点 | `app/controllers/webhooks_controller.rb` | apps/server | 计划中 | `POST /webhooks/{provider}/{connection_id}` |
 | 按提供者校验签名（Stripe、Adyen HMAC、GoCardless、Cashfree、Flutterwave、Moneyhash） | `app/services/payment_providers/*/validate_incoming_webhook_service.rb` | providers/* | 计划中 | |
-| 处理前的持久存储（pending、processing、succeeded、failed） | `app/models/inbound_webhook.rb`、`app/services/inbound_webhooks/` | libs/webhooks | 计划中 | 所有提供者，而不只是 Stripe 与 Moneyhash |
-| 处理窗口与卡住的 webhook 的重试 | `app/services/inbound_webhooks/process_service.rb`、`app/jobs/clock/inbound_webhooks_retry_job.rb` | libs/webhooks | 计划中 | |
+| 处理前的持久存储（pending、processing、succeeded、failed） | `app/models/inbound_webhook.rb`、`app/services/inbound_webhooks/` | libs/webhooks | 逻辑已完成 | 所有提供者，而不只是 Stripe 与 Moneyhash |
+| 处理窗口与卡住的 webhook 的重试 | `app/services/inbound_webhooks/process_service.rb`、`app/jobs/clock/inbound_webhooks_retry_job.rb` | libs/webhooks | 逻辑已完成 | |
 | 90 天后清理入站 webhook | `app/jobs/clock/inbound_webhooks_cleanup_job.rb` | libs/webhooks | 计划中 | |
 
 ### 1.40 流式目的地

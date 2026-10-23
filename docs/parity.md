@@ -760,15 +760,15 @@ Lago's x402 support is unfinished: only the gate check is reachable. Tanvo ports
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
 | Webhook endpoints (up to 10 per organization, unique URL, name) | `app/models/webhook_endpoint.rb`, `app/services/webhook_endpoints/` | libs/webhooks | planned | |
-| Event type subscription per endpoint (all by default) | `app/models/webhook_endpoint.rb`, `config/webhook_event_types.yml` | libs/webhooks | planned | |
+| Event type subscription per endpoint (all by default) | `app/models/webhook_endpoint.rb`, `config/webhook_event_types.yml` | libs/webhooks | logic done | |
 | Event type catalog with descriptions and categories | `config/webhook_event_types.yml` | libs/webhooks | planned | |
-| Delivery with retries and backoff | `app/services/webhooks/send_http_service.rb` | libs/webhooks | planned | |
-| Signed payloads | `app/models/webhook.rb` | libs/webhooks | planned | Standard Webhooks (§3) |
-| Private address blocking with an opt-out | `lib/lago_http_client/` (`AddressGuard`) | libs/webhooks | planned | |
-| Delivery records with response, status, retries | `app/models/webhook.rb` | libs/webhooks | planned | |
-| Manual retry of a delivery | `app/services/webhooks/retry_service.rb` | libs/webhooks | planned | |
+| Delivery with retries and backoff | `app/services/webhooks/send_http_service.rb` | libs/webhooks | logic done | |
+| Signed payloads | `app/models/webhook.rb` | libs/webhooks | logic done | Standard Webhooks (§3) |
+| Private address blocking with an opt-out | `lib/lago_http_client/` (`AddressGuard`) | libs/webhooks | logic done | |
+| Delivery records with response, status, retries | `app/models/webhook.rb` | libs/webhooks | logic done | |
+| Manual retry of a delivery | `app/services/webhooks/retry_service.rb` | libs/webhooks | logic done | |
 | Delivery list with filters (status, event type, search) | `app/graphql/resolvers/webhooks_resolver.rb` | libs/webhooks | planned | |
-| Delivery cleanup after 90 days | `app/jobs/clock/webhooks_cleanup_job.rb` | libs/webhooks | planned | |
+| Delivery cleanup after 90 days | `app/jobs/clock/webhooks_cleanup_job.rb` | libs/webhooks | logic done | |
 | Webhook endpoints API | `app/controllers/api/v1/webhook_endpoints_controller.rb` | apps/server | planned | |
 | Event group billable metrics: `billable_metric.created`, `updated`, `deleted` | `app/services/webhooks/billable_metrics/` | libs/webhooks | planned | |
 | Event group plans: `plan.created`, `updated`, `deleted` | `app/services/webhooks/plans/` | libs/webhooks | planned | |
@@ -799,8 +799,8 @@ Lago's x402 support is unfinished: only the gate check is reachable. Tanvo ports
 | :--- | :--- | :--- | :--- | :--- |
 | Provider webhook endpoints per provider connection | `app/controllers/webhooks_controller.rb` | apps/server | planned | `POST /webhooks/{provider}/{connection_id}` |
 | Signature verification per provider (Stripe, Adyen HMAC, GoCardless, Cashfree, Flutterwave, Moneyhash) | `app/services/payment_providers/*/validate_incoming_webhook_service.rb` | providers/* | planned | |
-| Durable storage before processing (pending, processing, succeeded, failed) | `app/models/inbound_webhook.rb`, `app/services/inbound_webhooks/` | libs/webhooks | planned | Every provider, not only Stripe and Moneyhash |
-| Processing window and retry of stuck webhooks | `app/services/inbound_webhooks/process_service.rb`, `app/jobs/clock/inbound_webhooks_retry_job.rb` | libs/webhooks | planned | |
+| Durable storage before processing (pending, processing, succeeded, failed) | `app/models/inbound_webhook.rb`, `app/services/inbound_webhooks/` | libs/webhooks | logic done | Every provider, not only Stripe and Moneyhash |
+| Processing window and retry of stuck webhooks | `app/services/inbound_webhooks/process_service.rb`, `app/jobs/clock/inbound_webhooks_retry_job.rb` | libs/webhooks | logic done | |
 | Inbound webhook cleanup after 90 days | `app/jobs/clock/inbound_webhooks_cleanup_job.rb` | libs/webhooks | planned | |
 
 ### 1.40 Streaming Destinations
