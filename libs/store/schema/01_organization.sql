@@ -165,4 +165,4 @@ CREATE TABLE job_outbox (
   CONSTRAINT job_outbox_max_attempts_check CHECK (max_attempts >= 0)
 );
 
-CREATE UNIQUE INDEX job_outbox_unique_key ON job_outbox (kind, unique_key) WHERE unique_key IS NOT NULL;
+CREATE UNIQUE INDEX job_outbox_unique_key ON job_outbox (organization_id, kind, unique_key) WHERE unique_key IS NOT NULL;

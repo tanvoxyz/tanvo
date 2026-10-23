@@ -62,7 +62,7 @@ type Job struct {
 	// RunAt delays the job; zero runs it as soon as possible.
 	RunAt time.Time
 	// UniqueKey, when set, makes the enqueue a no-op while a job of the
-	// same kind and key is pending or running.
+	// same organization, kind and key is pending or running.
 	UniqueKey string
 	// MaxAttempts bounds the retries; 0 uses the queue's default.
 	MaxAttempts int

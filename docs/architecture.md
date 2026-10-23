@@ -271,9 +271,10 @@ Enrichment resolves an event to its subscription(s) by `external_subscription_id
 ## 9. Jobs and Scheduling (libs/jobs)
 
 * **River** runs every background job; jobs are enqueued in the same transaction as the state change that requires them.
+* `libs/store` inserts jobs through River's `InsertTx` on its own `pgx.Tx` (`store.WithJobInserter`), so a rollback leaves no job; without an inserter they go to the `job_outbox` table for a relay. River's tables live in their own `river` schema, migrated by River (they hold every organization's jobs and carry no row-level security). A unique key is scoped by organization and kind.
 * Queues separate workloads (`billing`, `payments`, `webhooks`, `documents`, `integrations`, `exports`, `default`), each with its own concurrency, so that a deployment can run workers per queue.
 * Periodic jobs (reconciliation, expirations, dunning, cleanups) are River periodic jobs run by its elected leader; no separate clock process is needed.
-* **Tenant fairness**: jobs carry the organization; per-organization concurrency is bounded by sharding queues by organization hash and by token buckets at enqueue time, so that one tenant cannot starve others.
+* **Tenant fairness**: jobs carry the organization; per-organization concurrency is bounded by sharding queues by organization hash and by token buckets at enqueue time, so that one tenant cannot starve others. The token buckets are per process, so with several API replicas an organization's effective rate is the sum of theirs.
 * Per-event work (enrichment, in-advance charges at high volume) runs in the Kafka consumers, not in River.
 * A Redis-backed queue is a later option behind the same narrow interface (transactional enqueue through an outbox, delays, periodic and unique jobs); it is added only if measurements show PostgreSQL as the bottleneck.
 

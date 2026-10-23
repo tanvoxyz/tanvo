@@ -17,6 +17,7 @@ import (
 type Store struct {
 	pool *pgxpool.Pool
 	rls  bool
+	jobs JobInserter
 }
 
 var _ port.Transactor = (*Store)(nil)
@@ -30,6 +31,16 @@ type Option func(*Store)
 // (Tanvo Cloud). Without it the role must own the tables (self-hosted).
 func WithRowLevelSecurity() Option {
 	return func(s *Store) { s.rls = true }
+}
+
+// JobInserter inserts jobs inside the store's transaction tx, so that they
+// commit or roll back with it (libs/jobs' Client.InsertTx).
+type JobInserter func(ctx context.Context, tx pgx.Tx, jobs []port.Job) error
+
+// WithJobInserter makes [port.JobEnqueuer] insert jobs with f instead of
+// writing them to the job_outbox table.
+func WithJobInserter(f JobInserter) Option {
+	return func(s *Store) { s.jobs = f }
 }
 
 // New returns a store on pool. The pool's connections should decode

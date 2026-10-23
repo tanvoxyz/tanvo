@@ -926,29 +926,29 @@ Lago 的 x402 支持尚未完成：只有准入检查可以调用。Tanvo 移植
 
 ### 1.48 定时任务
 
-Lago 的每个时钟任务都成为一个 River 周期任务，或一个在到期时刻调度的任务（[架构 §9](architecture.zh-CN.md#9-任务与调度libsjobs)）。
+Lago 的每个时钟任务都成为一个 River 周期任务，或一个在到期时刻调度的任务（[架构 §9](architecture.zh-CN.md#9-任务与调度libsjobs)）。`libs/jobs` 定义了调度表中的每一项；某一行在负责其工作的库注册了处理器后才算完成。
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 激活订阅与合同、刷新草稿（每 5 分钟） | `clock.rb` | libs/jobs | 计划中 | 激活按订阅调度 |
-| 订阅活动处理（每分钟） | `clock.rb` | libs/jobs | 计划中 | |
-| 刷新生命周期用量与钱包实时余额（每 5 分钟） | `clock.rb` | libs/jobs | 计划中 | 钱包也由用量刷新信号刷新（§1.29） |
-| 终止已结束的订阅、校验事件（每小时 :05） | `clock.rb` | libs/jobs | 计划中 | |
-| 订阅计费（每小时 :10） | `clock.rb`（`SubscriptionsBiller`） | libs/jobs | 计划中 | 按订阅的任务加每小时对账 |
-| 创建与处理计费片段（每小时 :12、:17） | `clock.rb` | libs/jobs | 计划中 | |
-| API 密钥使用情况、每日用量（每小时 :15） | `clock.rb` | libs/jobs | 计划中 | |
-| incomplete 订阅过期、定稿发票（每小时 :20） | `clock.rb` | libs/jobs | 计划中 | |
-| 把发票标记为逾期（每小时 :25） | `clock.rb` | libs/jobs | 计划中 | |
-| 重试生成发票、终止优惠券（每小时 :30） | `clock.rb` | libs/jobs | 计划中 | |
-| 免费试用计费（每小时 :35） | `clock.rb` | libs/jobs | 计划中 | |
-| 订购单过期、取消被放弃的付款（每小时 :40） | `clock.rb` | libs/jobs | 计划中 | |
-| 终止钱包、执行定时订单、催收（每小时 :45） | `clock.rb` | libs/jobs | 计划中 | |
-| 终止提醒、终止循环规则（每小时 :50） | `clock.rb` | libs/jobs | 计划中 | |
-| 按间隔的钱包充值（每小时 :55） | `clock.rb` | libs/jobs | 计划中 | |
-| 重试失败的发票、重试入站 webhook（每 15 分钟） | `clock.rb` | libs/jobs | 计划中 | |
-| 清理 webhook、入站 webhook 与删除记录（每天） | `clock.rb` | libs/jobs | 计划中 | |
+| 激活订阅与合同、刷新草稿（每 5 分钟） | `clock.rb` | libs/jobs | 进行中 | 激活按订阅调度 |
+| 订阅活动处理（每分钟） | `clock.rb` | libs/jobs | 进行中 | |
+| 刷新生命周期用量与钱包实时余额（每 5 分钟） | `clock.rb` | libs/jobs | 进行中 | 钱包也由用量刷新信号刷新（§1.29） |
+| 终止已结束的订阅、校验事件（每小时 :05） | `clock.rb` | libs/jobs | 进行中 | |
+| 订阅计费（每小时 :10） | `clock.rb`（`SubscriptionsBiller`） | libs/jobs | 进行中 | 按订阅的任务加每小时对账 |
+| 创建与处理计费片段（每小时 :12、:17） | `clock.rb` | libs/jobs | 进行中 | |
+| API 密钥使用情况、每日用量（每小时 :15） | `clock.rb` | libs/jobs | 进行中 | |
+| incomplete 订阅过期、定稿发票（每小时 :20） | `clock.rb` | libs/jobs | 进行中 | |
+| 把发票标记为逾期（每小时 :25） | `clock.rb` | libs/jobs | 进行中 | |
+| 重试生成发票、终止优惠券（每小时 :30） | `clock.rb` | libs/jobs | 进行中 | |
+| 免费试用计费（每小时 :35） | `clock.rb` | libs/jobs | 进行中 | |
+| 订购单过期、取消被放弃的付款（每小时 :40） | `clock.rb` | libs/jobs | 进行中 | |
+| 终止钱包、执行定时订单、催收（每小时 :45） | `clock.rb` | libs/jobs | 进行中 | |
+| 终止提醒、终止循环规则（每小时 :50） | `clock.rb` | libs/jobs | 进行中 | |
+| 按间隔的钱包充值（每小时 :55） | `clock.rb` | libs/jobs | 进行中 | |
+| 重试失败的发票、重试入站 webhook（每 15 分钟） | `clock.rb` | libs/jobs | 进行中 | |
+| 清理 webhook、入站 webhook 与删除记录（每天） | `clock.rb` | libs/jobs | 进行中 | |
 | 消费订阅刷新队列（每 10 秒） | `clock.rb` | libs/jobs | 计划中 | 由消费者中的变更通知代替 |
-| 按工作负载划分的队列 | `config/sidekiq/` | libs/jobs | 计划中 | 带租户公平的 River 队列 |
+| 按工作负载划分的队列 | `config/sidekiq/` | libs/jobs | 逻辑已完成 | River 队列按组织分片，并按组织使用令牌桶 |
 
 ### 1.49 平台服务
 

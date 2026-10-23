@@ -56,8 +56,9 @@ func (s sequences) Next(ctx context.Context, org core.OrganizationID, k port.Seq
 	return v, nil
 }
 
-// jobEnqueuer implements port.JobEnqueuer with the transactional outbox
-// job_outbox; libs/jobs relays committed rows to River (see [Store.TakeJobs]).
+// jobEnqueuer implements port.JobEnqueuer in the transaction: with the
+// store's [JobInserter] when one is set, otherwise with the outbox job_outbox,
+// whose committed rows a relay takes with [Store.TakeJobs].
 type jobEnqueuer struct{ t *txState }
 
 func (j jobEnqueuer) Enqueue(ctx context.Context, jobs ...port.Job) error {
@@ -65,6 +66,14 @@ func (j jobEnqueuer) Enqueue(ctx context.Context, jobs ...port.Job) error {
 		if job.Kind == "" || !job.Queue.Valid() || job.OrganizationID.IsZero() || job.MaxAttempts < 0 {
 			return fmt.Errorf("enqueue %q: %w", job.Kind, core.ErrInvalidValue)
 		}
+	}
+	if j.t.store.jobs != nil {
+		if err := j.t.store.jobs(ctx, j.t.tx, jobs); err != nil {
+			return fmt.Errorf("enqueue: %w", err)
+		}
+		return nil
+	}
+	for _, job := range jobs {
 		var runAt *time.Time
 		if !job.RunAt.IsZero() {
 			runAt = optUTC(&job.RunAt)

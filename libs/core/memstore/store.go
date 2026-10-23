@@ -299,7 +299,7 @@ func (j storeJobs) Enqueue(_ context.Context, jobs ...port.Job) error {
 		if job.Kind == "" || !job.Queue.Valid() || job.OrganizationID.IsZero() {
 			return fmt.Errorf("enqueue %q: %w", job.Kind, core.ErrInvalidValue)
 		}
-		same := func(p port.Job) bool { return p.Kind == job.Kind && p.UniqueKey == job.UniqueKey }
+		same := func(p port.Job) bool { return p.OrganizationID == job.OrganizationID && p.Kind == job.Kind && p.UniqueKey == job.UniqueKey }
 		if job.UniqueKey != "" && (slices.ContainsFunc(j.tx.jobs, same) || slices.ContainsFunc(j.tx.committed, same)) {
 			continue
 		}

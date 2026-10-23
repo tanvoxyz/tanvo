@@ -926,29 +926,29 @@ Lago's x402 support is unfinished: only the gate check is reachable. Tanvo ports
 
 ### 1.48 Scheduled Jobs
 
-Each Lago clock job becomes a River periodic job or a job scheduled at the instant it is due ([Architecture §9](architecture.md#9-jobs-and-scheduling-libsjobs)).
+Each Lago clock job becomes a River periodic job or a job scheduled at the instant it is due ([Architecture §9](architecture.md#9-jobs-and-scheduling-libsjobs)). `libs/jobs` defines every entry of the schedule; a row is done when the library that owns its work registers the handler.
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Activate subscriptions and contracts, refresh drafts (every 5 minutes) | `clock.rb` | libs/jobs | planned | Activation scheduled per subscription |
-| Subscription activity processing (every minute) | `clock.rb` | libs/jobs | planned | |
-| Refresh lifetime usages and wallet ongoing balances (every 5 minutes) | `clock.rb` | libs/jobs | planned | Wallets are also refreshed from usage refresh signals (§1.29) |
-| Terminate ended subscriptions, validate events (hourly :05) | `clock.rb` | libs/jobs | planned | |
-| Subscription billing (hourly :10) | `clock.rb` (`SubscriptionsBiller`) | libs/jobs | planned | Per-subscription jobs plus hourly reconciliation |
-| Billing segments create and process (hourly :12, :17) | `clock.rb` | libs/jobs | planned | |
-| API key usage, daily usages (hourly :15) | `clock.rb` | libs/jobs | planned | |
-| Expire incomplete subscriptions, finalize invoices (hourly :20) | `clock.rb` | libs/jobs | planned | |
-| Mark invoices overdue (hourly :25) | `clock.rb` | libs/jobs | planned | |
-| Retry generating invoices, terminate coupons (hourly :30) | `clock.rb` | libs/jobs | planned | |
-| Free trial billing (hourly :35) | `clock.rb` | libs/jobs | planned | |
-| Expire order forms, cancel abandoned payments (hourly :40) | `clock.rb` | libs/jobs | planned | |
-| Terminate wallets, execute scheduled orders, dunning (hourly :45) | `clock.rb` | libs/jobs | planned | |
-| Termination alerts, terminate recurring rules (hourly :50) | `clock.rb` | libs/jobs | planned | |
-| Interval wallet top-ups (hourly :55) | `clock.rb` | libs/jobs | planned | |
-| Retry failed invoices, retry inbound webhooks (every 15 minutes) | `clock.rb` | libs/jobs | planned | |
-| Webhook, inbound webhook, deletion record cleanups (daily) | `clock.rb` | libs/jobs | planned | |
+| Activate subscriptions and contracts, refresh drafts (every 5 minutes) | `clock.rb` | libs/jobs | in progress | Activation scheduled per subscription |
+| Subscription activity processing (every minute) | `clock.rb` | libs/jobs | in progress | |
+| Refresh lifetime usages and wallet ongoing balances (every 5 minutes) | `clock.rb` | libs/jobs | in progress | Wallets are also refreshed from usage refresh signals (§1.29) |
+| Terminate ended subscriptions, validate events (hourly :05) | `clock.rb` | libs/jobs | in progress | |
+| Subscription billing (hourly :10) | `clock.rb` (`SubscriptionsBiller`) | libs/jobs | in progress | Per-subscription jobs plus hourly reconciliation |
+| Billing segments create and process (hourly :12, :17) | `clock.rb` | libs/jobs | in progress | |
+| API key usage, daily usages (hourly :15) | `clock.rb` | libs/jobs | in progress | |
+| Expire incomplete subscriptions, finalize invoices (hourly :20) | `clock.rb` | libs/jobs | in progress | |
+| Mark invoices overdue (hourly :25) | `clock.rb` | libs/jobs | in progress | |
+| Retry generating invoices, terminate coupons (hourly :30) | `clock.rb` | libs/jobs | in progress | |
+| Free trial billing (hourly :35) | `clock.rb` | libs/jobs | in progress | |
+| Expire order forms, cancel abandoned payments (hourly :40) | `clock.rb` | libs/jobs | in progress | |
+| Terminate wallets, execute scheduled orders, dunning (hourly :45) | `clock.rb` | libs/jobs | in progress | |
+| Termination alerts, terminate recurring rules (hourly :50) | `clock.rb` | libs/jobs | in progress | |
+| Interval wallet top-ups (hourly :55) | `clock.rb` | libs/jobs | in progress | |
+| Retry failed invoices, retry inbound webhooks (every 15 minutes) | `clock.rb` | libs/jobs | in progress | |
+| Webhook, inbound webhook, deletion record cleanups (daily) | `clock.rb` | libs/jobs | in progress | |
 | Subscription refresh queue consumption (every 10 seconds) | `clock.rb` | libs/jobs | planned | Change notifications in the consumer |
-| Queues per workload | `config/sidekiq/` | libs/jobs | planned | River queues with tenant fairness |
+| Queues per workload | `config/sidekiq/` | libs/jobs | logic done | River queues sharded by organization, with per-organization token buckets |
 
 ### 1.49 Platform Services
 
