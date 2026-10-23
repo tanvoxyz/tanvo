@@ -9,10 +9,11 @@
 //   - row-level security (ENABLE ROW LEVEL SECURITY and policies), which
 //     the open-source Atlas planner does not handle, by comparing
 //     pg_class.relrowsecurity and pg_policies;
-//   - check constraints whose expression changed, which the Atlas planner
-//     misses: the plan is applied to a replay of the directory and the
-//     checks still differing from schema/ are dropped and recreated. Any
-//     other constraint or index still differing fails the run.
+//   - check constraints whose expression changed and foreign keys the
+//     planner cannot express (such as ON DELETE SET NULL (column)): the
+//     plan is applied to a replay of the directory and the checks and
+//     foreign keys still differing from schema/ are dropped and recreated.
+//     Any other constraint or index still differing fails the run.
 //
 // Both sets of statements go into one new file migrations/<version>_<name>.sql,
 // and migrations/atlas.sum is rewritten. With -check it writes nothing and
@@ -140,9 +141,10 @@ func run() error {
 	}
 	plan.Changes = append(plan.Changes, rls...)
 	// The Atlas planner misses some changes, such as a new expression of an
-	// existing check constraint. The plan is applied to the replayed
-	// database and what still differs from the schema is checked: checks
-	// are replaced, anything else fails.
+	// existing check constraint or a column list on ON DELETE SET NULL. The
+	// plan is applied to the replayed database and what still differs from
+	// the schema is checked: checks and foreign keys are replaced, anything
+	// else fails.
 	for _, c := range plan.Changes {
 		if _, err := replayed.ExecContext(ctx, c.Cmd); err != nil {
 			return fmt.Errorf("apply planned statement %q: %w", c.Cmd, err)
@@ -349,8 +351,8 @@ func diffRLS(ctx context.Context, current, desired *sql.DB) ([]*migrate.Change, 
 // catalog is the constraints and indexes of the tables of the public schema,
 // keyed by "table.name", with their definitions as PostgreSQL prints them.
 type catalog struct {
-	checks  map[string]string
-	others  map[string]string // primary key, unique, foreign key and exclusion constraints
+	checks  map[string]string // check and foreign key constraints, which are replaced when they differ
+	others  map[string]string // primary key, unique and exclusion constraints
 	indexes map[string]string
 }
 
@@ -371,7 +373,7 @@ func readCatalog(ctx context.Context, db *sql.DB) (*catalog, error) {
 		if err := rows.Scan(&table, &name, &kind, &def); err != nil {
 			return nil, fmt.Errorf("read constraints: %w", err)
 		}
-		if kind == "c" {
+		if kind == "c" || kind == "f" {
 			c.checks[table+"."+name] = def
 		} else {
 			c.others[table+"."+name] = def
@@ -399,9 +401,9 @@ func readCatalog(ctx context.Context, db *sql.DB) (*catalog, error) {
 }
 
 // diffCatalog compares current, on which the plan has been applied, with
-// desired. It returns the statements that replace the check constraints
-// that still differ, and an error naming any other constraint or index
-// that differs, as no statement is generated for those.
+// desired. It returns the statements that replace the check and foreign
+// key constraints that still differ, and an error naming any other
+// constraint or index that differs, as no statement is generated for those.
 func diffCatalog(ctx context.Context, current, desired *sql.DB) ([]*migrate.Change, error) {
 	from, err := readCatalog(ctx, current)
 	if err != nil {
@@ -417,7 +419,7 @@ func diffCatalog(ctx context.Context, current, desired *sql.DB) ([]*migrate.Chan
 			table, name, _ := strings.Cut(key, ".")
 			out = append(out, &migrate.Change{
 				Cmd:     fmt.Sprintf("ALTER TABLE %s DROP CONSTRAINT %s", quote(table), quote(name)),
-				Comment: fmt.Sprintf("drop check %q of table %q", name, table),
+				Comment: fmt.Sprintf("drop constraint %q of table %q", name, table),
 			})
 		}
 	}
@@ -426,7 +428,7 @@ func diffCatalog(ctx context.Context, current, desired *sql.DB) ([]*migrate.Chan
 			table, name, _ := strings.Cut(key, ".")
 			out = append(out, &migrate.Change{
 				Cmd:     fmt.Sprintf("ALTER TABLE %s ADD CONSTRAINT %s %s", quote(table), quote(name), to.checks[key]),
-				Comment: fmt.Sprintf("create check %q on table %q", name, table),
+				Comment: fmt.Sprintf("create constraint %q on table %q", name, table),
 			})
 		}
 	}

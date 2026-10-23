@@ -153,11 +153,14 @@ func startContainer(ctx context.Context) (*container, error) {
 	if err != nil {
 		return nil, err
 	}
-	name, tag, _ := strings.Cut(Image, ":")
-	q := url.Values{"fromImage": {name}, "tag": {tag}}
-	// Pulling streams progress; reading it to the end waits for the pull.
-	if err := call(ctx, client, http.MethodPost, base+"/images/create?"+q.Encode(), nil, nil); err != nil {
-		return nil, fmt.Errorf("pull %s: %w", Image, err)
+	// An image already present is used as is, so tests run offline.
+	if err := call(ctx, client, http.MethodGet, base+"/images/"+url.PathEscape(Image)+"/json", nil, nil); err != nil {
+		name, tag, _ := strings.Cut(Image, ":")
+		q := url.Values{"fromImage": {name}, "tag": {tag}}
+		// Pulling streams progress; reading it to the end waits for the pull.
+		if err := call(ctx, client, http.MethodPost, base+"/images/create?"+q.Encode(), nil, nil); err != nil {
+			return nil, fmt.Errorf("pull %s: %w", Image, err)
+		}
 	}
 	const password = "postgres"
 	spec := map[string]any{
