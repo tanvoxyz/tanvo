@@ -79,7 +79,7 @@ func (s *Store) observe(seq uint64) {
 
 const enrichedInsert = `INSERT INTO events_enriched (organization_id, code, subscription_id, timestamp, transaction_id, properties, precise_total_amount_cents, ingested_at, sequence)`
 
-const rawInsert = `INSERT INTO events_raw (organization_id, subscription_id, transaction_id, code, timestamp, properties, precise_total_amount_cents, ingested_at, sequence, replaced)`
+const rawInsert = `INSERT INTO events_raw (organization_id, subscription_id, transaction_id, code, timestamp, properties, precise_total_amount_cents, ingested_at, sequence, replaced, user_agent, ip_address)`
 
 type row struct {
 	ingest.Row
@@ -129,7 +129,7 @@ func (s *Store) insert(ctx context.Context, rows []row, replaced bool) error {
 		return err
 	}
 	for _, r := range rows {
-		if err := b.Append(r.OrganizationID, r.SubscriptionID, r.TransactionID, r.Code, r.Timestamp, r.props, r.amount, r.IngestedAt, r.sequence, rep); err != nil {
+		if err := b.Append(r.OrganizationID, r.SubscriptionID, r.TransactionID, r.Code, r.Timestamp, r.props, r.amount, r.IngestedAt, r.sequence, rep, r.Metadata.UserAgent, r.Metadata.IPAddress); err != nil {
 			_ = b.Abort()
 			return err
 		}

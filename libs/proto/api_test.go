@@ -224,7 +224,7 @@ var paritySections = map[string][]string{
 	"1.33": {"tanvo.payment.v1.PaymentService", "tanvo.payment.v1.PaymentMethodService"},
 	"1.34": {"tanvo.integration.v1.IntegrationService"},
 	"1.35": {"tanvo.payment.v1.PaymentRequestService", "tanvo.payment.v1.PaymentReceiptService", "tanvo.dunning.v1.DunningCampaignService"},
-	"1.36": {"tanvo.x402.v1.X402ConnectionService", "tanvo.x402.v1.X402Service"},
+	"1.36": {"tanvo.x402.v1.X402Service"},
 	"1.37": {"tanvo.integration.v1.IntegrationService"},
 	"1.38": {"tanvo.webhook.v1.WebhookService"},
 	"1.39": nil,

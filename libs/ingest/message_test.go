@@ -12,7 +12,9 @@ import (
 
 func TestDecodeRaw(t *testing.T) {
 	t.Parallel()
-	valid := rawMessage(testEvent("bm", map[string]string{"v": "1"}), SourceAPI, Metadata{UserAgent: "ua"})
+	in := testEvent("bm", map[string]string{"v": "1"})
+	in.Metadata = Metadata{UserAgent: "ua"}
+	valid := rawMessage(in, SourceAPI)
 	b, err := json.Marshal(valid)
 	if err != nil {
 		t.Fatalf("Marshal() error = %v", err)
@@ -21,7 +23,7 @@ func TestDecodeRaw(t *testing.T) {
 	if err != nil {
 		t.Fatalf("DecodeRaw() error = %v", err)
 	}
-	if !m.ExpressionEvaluated || m.Metadata.UserAgent != "ua" || e.Properties["v"] != "1" || !e.Timestamp.Equal(valid.Timestamp) || e.OrganizationID != testOrg {
+	if !m.ExpressionEvaluated || m.Metadata.UserAgent != "ua" || e.Metadata != in.Metadata || e.Properties["v"] != "1" || !e.Timestamp.Equal(valid.Timestamp) || e.OrganizationID != testOrg {
 		t.Errorf("DecodeRaw() got = %+v, %+v", m, e)
 	}
 

@@ -114,7 +114,7 @@ erDiagram
 ## 2. 标识符与约定
 
 ### 2.1 标识符
-* 每一行都有服务端生成的 `id`（UUIDv7）和 `organization_id`；每个查询都按 `organization_id` 过滤（[架构 §5.4](architecture.zh-CN.md#54-租户隔离)）。唯一跨租户的唯一索引是 x402 结算的支付摘要和交易哈希（§24，第 14 条）。
+* 每一行都有服务端生成的 `id`（UUIDv7）和 `organization_id`；每个查询都按 `organization_id` 过滤（[架构 §5.4](architecture.zh-CN.md#54-租户隔离)）。跨租户的唯一索引有 x402 结算的支付摘要和交易哈希（§24，第 14 条），以及发票的 `x402_payment_token`（lago `db/structure.sql:10561`），v1.55.0 既不设置也不读取这一列。
 * 面向客户的标识符在组织内唯一：客户、订阅和钱包使用 `external_id`；计费指标、套餐、附加项、优惠券、税、功能、计费主体、定价单位、催收活动、集成、告警和钱包使用 `code`。
 * API 通过 `id` 或带前缀的标识符 `external_id:<value>` / `code:<value>` 定位资源（[架构 §4.2](architecture.zh-CN.md#42-经由-vanguard-的-rest)）。
 * 除另有说明外，`code` 长度为 1–255 个字符；资源被引用后 `code` 即不可变，具体见各实体。
@@ -163,7 +163,6 @@ erDiagram
 | `CustomerType` | `company`、`individual` | Customer |
 | `AccountType` | `customer`、`partner` | Customer |
 | `ZeroAmountFinalization` | `inherit`、`skip`、`finalize` | Customer |
-| `PaymentTermType` | `due_on_receipt`、`net`、`end_of_month`、`net_end_of_month`、`days_end_of_month`、`day_of_month` | BillingEntity、Customer、Invoice（§24，第 12 条） |
 | `AggregationType` | `count`、`sum`、`max`、`unique_count`、`weighted_sum`、`latest` | BillableMetric |
 | `WeightedInterval` | `seconds` | BillableMetric |
 | `RoundingFunction` | `round`、`floor`、`ceil` | BillableMetric |
@@ -271,7 +270,7 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 | `document_number_prefix` | `string(10)` | 1–10 个字符，转为大写；默认取名称前 3 个字母（大写，A–Z）+ `-` + id 的后 4 个字符 |
 | `invoice_footer` | `string(600)?` | |
 | `invoice_grace_period_days` | `int` | ≥ 0；默认 0 |
-| `payment_term` | `PaymentTerm?` | §24，第 12 条；`null` = `due_on_receipt` |
+| `net_payment_term_days` | `int` | ≥ 0；默认 0（§24，第 12 条） |
 | `finalize_zero_amount_invoice` | `bool` | 默认 true |
 | `issuing_date_anchor` | `IssuingDateAnchor` | 默认 `next_period_start` |
 | `issuing_date_adjustment` | `IssuingDateAdjustment` | 默认 `align_with_finalization_date` |
@@ -390,7 +389,7 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 | `timezone` | `Zone?` | |
 | `document_locale` | `string?` | |
 | `invoice_grace_period_days` | `int?` | ≥ 0 |
-| `payment_term` | `PaymentTerm?` | §24，第 12 条；`null` = 继承 |
+| `net_payment_term_days` | `int?` | ≥ 0；`null` = 继承（§24，第 12 条） |
 | `finalize_zero_amount_invoice` | `ZeroAmountFinalization` | 默认 `inherit` |
 | `issuing_date_anchor`、`issuing_date_adjustment` | 枚举? | `null` = 继承 |
 | `skip_invoice_custom_sections` | `bool` | |
@@ -884,12 +883,12 @@ stateDiagram-v2
 | `offsetted_amount` | 派生 | Σ 冲抵型贷项通知单 |
 | `total_due_amount` | 派生 | `total − total_paid − offsetted` |
 | `issuing_date` | `Date` | |
-| `payment_due_date` | `Date` | 由 `payment_term` 和 `issuing_date` 得出（§22.12） |
+| `payment_due_date` | `Date` | `issuing_date` + `net_payment_term_days`（§22.12） |
 | `expected_finalization_date` | `Date` | 计费日期 + 宽限期 |
 | `applied_grace_period_days` | `int` | |
-| `payment_term`、`payment_term_source` | `PaymentTerm`、Enum{`customer`, `billing_entity`, `default`} | 快照（§24，第 12 条） |
-| `purchase_order_number` | `string(255)?` | 取自归并到该发票的订阅（§9.6）、钱包交易或钱包（`credit`），或请求（`one_off`）；重新生成时保留，除非被替换 |
-| `x402_connection_id`、`x402_payment_token` | `ID?`、`string?` | 发票支付链接绑定的 x402 连接（同一组织）及其令牌，设置时唯一 |
+| `net_payment_term_days` | `int` | ≥ 0；客户适用的净付款期限的快照（§24，第 12 条） |
+| `purchase_order_number` | `string(255)?` | 取自归并到该发票的订阅（§9.6）、钱包交易或钱包（`credit`），或请求（`one_off`）；重新生成时沿用已作废发票的，除非请求替换（空白即清除） |
+| `x402_connection_id`、`x402_payment_token` | `ID?`、`string?` | 一个 x402 连接（同一组织）和一个支付令牌，令牌设置时在所有组织间唯一；与 v1.55.0 一样仅有列，v1.55.0 既不设置也不读取它们 |
 | `payment_overdue` | `bool` | |
 | `payment_dispute_lost_at` | `Time?` | |
 | `self_billed` | `bool` | 客户 `account_type = partner` |
@@ -1620,8 +1619,8 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
   | 周期 | `next_period_start` | `align_with_finalization_date` | `+宽限期` |
 
   被门控的发票和预付计费项发票使用计费日期。草稿定稿或待完成的计税完成时，周期性 `keep_anchor` 发票保留开票日期，其他发票改为当天。
-* `payment_due_date` 是发票的付款条款（§24，第 12 条）基于 `issuing_date` 得出的到期日。条款按 客户 → 计费主体 → `due_on_receipt` 解析，并连同来源快照到发票上；开票日期变化时重新计算该日期。
-* 修改客户或计费主体的宽限期、开票设置或付款条款，会更新其草稿发票的日期，并定稿因此到期的草稿。
+* `payment_due_date` 是 `issuing_date` 加上以天计的净付款期限（§24，第 12 条）。期限按 客户 → 计费主体 解析（Lago `Customer#applicable_net_payment_term`），并在发票创建时快照到发票上。草稿定稿、待完成的计税完成以及重新生成已作废发票时，按客户此刻适用的期限重新计算到期日，即使开票日期保持不变；快照保持原值。
+* 修改客户或计费主体的宽限期、开票设置或净付款期限，会更新其草稿发票的日期，并定稿因此到期的草稿。
 * **最终状态**（构建后，或刷新并定稿后）：
   * 被激活规则门控（且总额 > 0）或税待计算时为 `open`；
   * `fees_amount ≠ 0`，或适用零金额定稿时为 `finalized`（客户 `finalize` → 是，`skip` → 否，`inherit` → 计费主体的 `finalize_zero_amount_invoice`）；
@@ -1723,24 +1722,16 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
 2. **单一目录。** 计划、计费项、固定计费项与覆盖构成一个带生效日期价格的目录；v2 产品目录的费率卡与阶段是它的功能，而不是第二套模型。用量阈值、承诺消费与试用期在所有地方都可用。
 3. **合同即订阅**，按费率卡定价，因此事件按 `external_subscription_id` 路由，所有发票都经过同一条流水线（发票订阅）；计费分段保留为发票订阅的分组。
 4. **报价单、订单表与订单**属于 AGPL 核心，与 Lago 所有高级功能一样；只有 Lago 的私有云服务进入 `ee/`。
-5. **用量归因**予以实现：事件在摄取契约中携带可选的归因标签，用量查询按其分组。
+5. **用量归因**与 v1.55.0 一样只有读取侧：归因用量查询按富化事件的归因标签分组，但摄取契约不携带这些标签，也没有任何代码写入它们，因此归因用量为空。v1.55.0 没有填充这些标签的路径，Tanvo 也不定义。
 6. **日历按比例计算**遵循 Lago v1 的规则（包含计费天数的计划周期的天数）；由 `libs/period` 移植的用例定义。
 7. **升级当天**只付费一次（§22.13）；移植的升级用例带有调整后的期望值与说明。
 8. **付款收据编号**来自客户行上的计数器，在创建收据的事务中持有该行锁时取得。
 9. **终身用量**增量维护：用量桶支持的计费项取自用量桶，其他计费项取自事件（架构 §7.4），并以周期性重算作为对账。
 10. **试用期长度**为整天数。
 11. **事件去重**：键为（组织，`external_subscription_id`，`transaction_id`）；先被接受的事件为准，重复发送不论代码与时间戳都会被确认为重复并丢弃，更正通过 API 的事件替换完成，并留下明确的审计记录。此条取代 §10 中“时间戳相同则替换”的规则。*2026-10-23 变更*：键原为（组织，`transaction_id`）；现在与 Lago 一样包含外部订阅，使在多个订阅间复用事务 ID 的客户端不会丢失事件，并使一个键的所有副本到达同一摄取分区，这是按订阅分区时无需在写入者之间解析副本即可去重的前提。
-12. **付款条款**是结构化的，与 Lago 正在引入的一致（列在 1d56e730e 中添加；读取方仍在其 `feat-payment-terms-*` 分支上）。`PaymentTerm` 是一个 `term_type`（`PaymentTermType`）加上该类型的字段：`net`、`net_end_of_month` 和 `days_end_of_month` 有 `days`（int ≥ 0）；`day_of_month` 有 `day_of_month`（1–31）和 `month_offset`（0–12，默认 1）；其他字段被拒绝。净天数即 `net` 类型，不保留 Lago 的 `net_payment_term` 整数别名。由开票日期 `d` 计算到期日：
-    * `due_on_receipt`：`d`；
-    * `net`：`d + days`；
-    * `end_of_month`：`d` 所在月的最后一天；
-    * `net_end_of_month`：`d` 所在月的最后一天，再加 `days`；
-    * `days_end_of_month`：`d + days` 所在月的最后一天；
-    * `day_of_month`：`d` 之后第 `month_offset` 个月的 `day_of_month` 日，超出该月则取该月最后一天；若结果早于 `d`（只在偏移为 0 时可能），取下一个月的同一天，并再次按月末截取。
-
-    解析顺序为 客户 → 计费主体 → `due_on_receipt`；发票存储条款及其来源（`customer`、`billing_entity`、`default`）。
-13. **告警**：没有已解决或种子状态。Lago 正在构建 `alert.resolved`（阈值的 `notify_on`，此时阈值代码必填；触发告警的 `kind` 为 trigger/recovery/silent；`in_alarm_thresholds`、`fully_resolved`），目前都不可达；Lago 启用后再评估。
-14. **x402 支付**作为支付提供方实现（阶段 5）。结算的支付摘要和交易哈希在所有组织间唯一，这是租户范围唯一性的唯一刻意例外：共用收款地址的两个组织不能为同一笔转账都入账（Lago 18a741762）。
+12. **付款条款**是以天计的整数净付款期限（≥ 0），与 Lago v1.55.0 一致：计费主体上的 `net_payment_term_days`（默认 0）和客户上的 `net_payment_term_days`（`null` 继承计费主体的值）。发票快照适用的期限，到期日为开票日期加上该天数。Lago 的 `payment_term` 和 `payment_term_source` 列（1d56e730e）在 v1.55.0 中没有读取方，不予建模；将使用它们的结构化付款条款尚未发布，不予实现。
+13. **告警**：没有已解决或种子状态。v1.55.0 中已触发告警的 `kind`（`triggered`、`resolved`、`seeded`）、`in_alarm_thresholds` 和 `fully_resolved` 列存在，但没有任何代码写入已解决或种子告警，也不发送 `alert.resolved` webhook。
+14. **x402 支付**覆盖 v1.55.0 可达的部分：准入检查（路由检查、余额检查、付款要求），所用的连接在 API 之外配置，网络和 USDC 资产为其支持的范围。结算服务（核验、结算、付款摘要）和链上读取在 v1.55.0 中存在但没有调用方；Tanvo 同样不把它们接入 API、任务或对账。结算的支付摘要和交易哈希在所有组织间唯一，这是租户范围唯一性的一个刻意例外（另一个是发票的 `x402_payment_token`，§11.1）：共用收款地址的两个组织不能为同一笔转账都入账（Lago 18a741762）。
 15. **流式目的地**提供 CRUD API，是与 webhook 端点并列的一种事件目的地（Kafka、Kinesis、S3）。
 16. **分层**：API 只暴露相邻分层。
 17. **混合升级发票**：每个发票订阅记录自己的原因（`subscription_terminating`、`subscription_starting`）；发票在升级日期开具。

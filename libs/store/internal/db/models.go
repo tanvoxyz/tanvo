@@ -538,10 +538,10 @@ type Event struct {
 	Timestamp              time.Time
 	Properties             json.RawMessage
 	PreciseTotalAmount     *money.Decimal
-	AttributionLabels      json.RawMessage
 	IngestedAt             time.Time
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
+	Metadata               json.RawMessage
 }
 
 type Feature struct {

@@ -90,7 +90,6 @@ type Event struct {
 	xxx_hidden_Properties             *structpb.Struct       `protobuf:"bytes,6,opt,name=properties"`
 	xxx_hidden_PreciseTotalAmount     *string                `protobuf:"bytes,7,opt,name=precise_total_amount,json=preciseTotalAmount"`
 	xxx_hidden_TargetWalletCode       *string                `protobuf:"bytes,8,opt,name=target_wallet_code,json=targetWalletCode"`
-	xxx_hidden_Attributions           map[string]string      `protobuf:"bytes,9,rep,name=attributions" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	xxx_hidden_UserAgent              *string                `protobuf:"bytes,10,opt,name=user_agent,json=userAgent"`
 	xxx_hidden_IpAddress              *string                `protobuf:"bytes,11,opt,name=ip_address,json=ipAddress"`
 	xxx_hidden_Errors                 map[string]string      `protobuf:"bytes,12,rep,name=errors" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
@@ -200,13 +199,6 @@ func (x *Event) GetTargetWalletCode() string {
 	return ""
 }
 
-func (x *Event) GetAttributions() map[string]string {
-	if x != nil {
-		return x.xxx_hidden_Attributions
-	}
-	return nil
-}
-
 func (x *Event) GetUserAgent() string {
 	if x != nil {
 		if x.xxx_hidden_UserAgent != nil {
@@ -243,22 +235,22 @@ func (x *Event) GetCreatedAt() *timestamppb.Timestamp {
 
 func (x *Event) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 12)
 }
 
 func (x *Event) SetTransactionId(v string) {
 	x.xxx_hidden_TransactionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 12)
 }
 
 func (x *Event) SetExternalSubscriptionId(v string) {
 	x.xxx_hidden_ExternalSubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 12)
 }
 
 func (x *Event) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 12)
 }
 
 func (x *Event) SetTimestamp(v *timestamppb.Timestamp) {
@@ -271,26 +263,22 @@ func (x *Event) SetProperties(v *structpb.Struct) {
 
 func (x *Event) SetPreciseTotalAmount(v string) {
 	x.xxx_hidden_PreciseTotalAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 12)
 }
 
 func (x *Event) SetTargetWalletCode(v string) {
 	x.xxx_hidden_TargetWalletCode = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 13)
-}
-
-func (x *Event) SetAttributions(v map[string]string) {
-	x.xxx_hidden_Attributions = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 12)
 }
 
 func (x *Event) SetUserAgent(v string) {
 	x.xxx_hidden_UserAgent = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 12)
 }
 
 func (x *Event) SetIpAddress(v string) {
 	x.xxx_hidden_IpAddress = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 12)
 }
 
 func (x *Event) SetErrors(v map[string]string) {
@@ -361,14 +349,14 @@ func (x *Event) HasUserAgent() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
 }
 
 func (x *Event) HasIpAddress() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
 }
 
 func (x *Event) HasCreatedAt() bool {
@@ -417,12 +405,12 @@ func (x *Event) ClearTargetWalletCode() {
 }
 
 func (x *Event) ClearUserAgent() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
 	x.xxx_hidden_UserAgent = nil
 }
 
 func (x *Event) ClearIpAddress() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
 	x.xxx_hidden_IpAddress = nil
 }
 
@@ -450,8 +438,6 @@ type Event_builder struct {
 	PreciseTotalAmount *string
 	// The code of the wallet the event's usage is deducted from.
 	TargetWalletCode *string
-	// Attribution labels, keyed by usage attribution type code.
-	Attributions map[string]string
 	// The User-Agent of the ingestion request.
 	UserAgent *string
 	// The client IP of the ingestion request.
@@ -467,38 +453,37 @@ func (b0 Event_builder) Build() *Event {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 12)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.TransactionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 12)
 		x.xxx_hidden_TransactionId = b.TransactionId
 	}
 	if b.ExternalSubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 12)
 		x.xxx_hidden_ExternalSubscriptionId = b.ExternalSubscriptionId
 	}
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 12)
 		x.xxx_hidden_Code = b.Code
 	}
 	x.xxx_hidden_Timestamp = b.Timestamp
 	x.xxx_hidden_Properties = b.Properties
 	if b.PreciseTotalAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 12)
 		x.xxx_hidden_PreciseTotalAmount = b.PreciseTotalAmount
 	}
 	if b.TargetWalletCode != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 12)
 		x.xxx_hidden_TargetWalletCode = b.TargetWalletCode
 	}
-	x.xxx_hidden_Attributions = b.Attributions
 	if b.UserAgent != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 12)
 		x.xxx_hidden_UserAgent = b.UserAgent
 	}
 	if b.IpAddress != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 12)
 		x.xxx_hidden_IpAddress = b.IpAddress
 	}
 	x.xxx_hidden_Errors = b.Errors
@@ -2858,7 +2843,7 @@ var File_tanvo_event_v1_event_proto protoreflect.FileDescriptor
 
 const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"\n" +
-	"\x1atanvo/event/v1/event.proto\x12\x0etanvo.event.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\x9a\a\n" +
+	"\x1atanvo/event/v1/event.proto\x12\x0etanvo.event.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xf2\x05\n" +
 	"\x05Event\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\x03R\x02id\x125\n" +
 	"\x0etransaction_id\x18\x02 \x01(\tB\x0e\xe2A\x01\b\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\rtransactionId\x12H\n" +
@@ -2871,8 +2856,7 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"\x14precise_total_amount\x18\a \x01(\tB\n" +
 	"\xbaH\ar\x05Ȥ\xca\x06\x01R\x12preciseTotalAmount\x128\n" +
 	"\x12target_wallet_code\x18\b \x01(\tB\n" +
-	"\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x10targetWalletCode\x12e\n" +
-	"\fattributions\x18\t \x03(\v2'.tanvo.event.v1.Event.AttributionsEntryB\x18\xbaH\x15\x9a\x01\x12\x10\x14\"\ar\x05\xe8\xa4\xca\x06\x01*\x05r\x03\x18\xff\x01R\fattributions\x12#\n" +
+	"\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x10targetWalletCode\x12#\n" +
 	"\n" +
 	"user_agent\x18\n" +
 	" \x01(\tB\x04\xe2A\x01\x03R\tuserAgent\x12#\n" +
@@ -2880,10 +2864,7 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"ip_address\x18\v \x01(\tB\x04\xe2A\x01\x03R\tipAddress\x12?\n" +
 	"\x06errors\x18\f \x03(\v2!.tanvo.event.v1.Event.ErrorsEntryB\x04\xe2A\x01\x03R\x06errors\x12?\n" +
 	"\n" +
-	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x1a?\n" +
-	"\x11AttributionsEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\x1a9\n" +
+	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x1a9\n" +
 	"\vErrorsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:<\xeaA9\n" +
@@ -3015,7 +2996,7 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"EventProtoP\x01ZBgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/event/v1;eventv1\xa2\x02\x03TEX\xaa\x02\x0eTanvo.Event.V1\xca\x02\x0eTanvo\\Event\\V1\xe2\x02\x1aTanvo\\Event\\V1\\GPBMetadata\xea\x02\x10Tanvo::Event::V1b\beditionsp\xe8\a"
 
 var file_tanvo_event_v1_event_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_tanvo_event_v1_event_proto_msgTypes = make([]protoimpl.MessageInfo, 25)
+var file_tanvo_event_v1_event_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_tanvo_event_v1_event_proto_goTypes = []any{
 	(EnrichedOperation)(0),              // 0: tanvo.event.v1.EnrichedOperation
 	(*Event)(nil),                       // 1: tanvo.event.v1.Event
@@ -3038,64 +3019,62 @@ var file_tanvo_event_v1_event_proto_goTypes = []any{
 	(*EstimateFeesResponse)(nil),        // 18: tanvo.event.v1.EstimateFeesResponse
 	(*EstimateInstantFeesRequest)(nil),  // 19: tanvo.event.v1.EstimateInstantFeesRequest
 	(*EstimateInstantFeesResponse)(nil), // 20: tanvo.event.v1.EstimateInstantFeesResponse
-	nil,                                 // 21: tanvo.event.v1.Event.AttributionsEntry
-	nil,                                 // 22: tanvo.event.v1.Event.ErrorsEntry
-	nil,                                 // 23: tanvo.event.v1.EnrichedEvent.GroupedByEntry
-	nil,                                 // 24: tanvo.event.v1.EventResult.ErrorsEntry
-	nil,                                 // 25: tanvo.event.v1.EstimatedFee.GroupedByEntry
-	(*timestamppb.Timestamp)(nil),       // 26: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),             // 27: google.protobuf.Struct
-	(*v1.Money)(nil),                    // 28: tanvo.common.v1.Money
+	nil,                                 // 21: tanvo.event.v1.Event.ErrorsEntry
+	nil,                                 // 22: tanvo.event.v1.EnrichedEvent.GroupedByEntry
+	nil,                                 // 23: tanvo.event.v1.EventResult.ErrorsEntry
+	nil,                                 // 24: tanvo.event.v1.EstimatedFee.GroupedByEntry
+	(*timestamppb.Timestamp)(nil),       // 25: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),             // 26: google.protobuf.Struct
+	(*v1.Money)(nil),                    // 27: tanvo.common.v1.Money
 }
 var file_tanvo_event_v1_event_proto_depIdxs = []int32{
-	26, // 0: tanvo.event.v1.Event.timestamp:type_name -> google.protobuf.Timestamp
-	27, // 1: tanvo.event.v1.Event.properties:type_name -> google.protobuf.Struct
-	21, // 2: tanvo.event.v1.Event.attributions:type_name -> tanvo.event.v1.Event.AttributionsEntry
-	22, // 3: tanvo.event.v1.Event.errors:type_name -> tanvo.event.v1.Event.ErrorsEntry
-	26, // 4: tanvo.event.v1.Event.created_at:type_name -> google.protobuf.Timestamp
-	26, // 5: tanvo.event.v1.EnrichedEvent.timestamp:type_name -> google.protobuf.Timestamp
-	23, // 6: tanvo.event.v1.EnrichedEvent.grouped_by:type_name -> tanvo.event.v1.EnrichedEvent.GroupedByEntry
-	0,  // 7: tanvo.event.v1.EnrichedEvent.operation:type_name -> tanvo.event.v1.EnrichedOperation
-	26, // 8: tanvo.event.v1.EnrichedEvent.enriched_at:type_name -> google.protobuf.Timestamp
-	1,  // 9: tanvo.event.v1.EventResult.event:type_name -> tanvo.event.v1.Event
-	24, // 10: tanvo.event.v1.EventResult.errors:type_name -> tanvo.event.v1.EventResult.ErrorsEntry
-	28, // 11: tanvo.event.v1.EstimatedFee.amount:type_name -> tanvo.common.v1.Money
-	28, // 12: tanvo.event.v1.EstimatedFee.taxes_amount:type_name -> tanvo.common.v1.Money
-	25, // 13: tanvo.event.v1.EstimatedFee.grouped_by:type_name -> tanvo.event.v1.EstimatedFee.GroupedByEntry
-	1,  // 14: tanvo.event.v1.IngestEventRequest.event:type_name -> tanvo.event.v1.Event
-	1,  // 15: tanvo.event.v1.IngestEventResponse.event:type_name -> tanvo.event.v1.Event
-	1,  // 16: tanvo.event.v1.IngestEventsRequest.events:type_name -> tanvo.event.v1.Event
-	3,  // 17: tanvo.event.v1.IngestEventsResponse.results:type_name -> tanvo.event.v1.EventResult
-	1,  // 18: tanvo.event.v1.GetEventResponse.event:type_name -> tanvo.event.v1.Event
-	1,  // 19: tanvo.event.v1.ListEventsResponse.events:type_name -> tanvo.event.v1.Event
-	2,  // 20: tanvo.event.v1.ListEnrichedEventsResponse.enriched_events:type_name -> tanvo.event.v1.EnrichedEvent
-	1,  // 21: tanvo.event.v1.ReplaceEventRequest.event:type_name -> tanvo.event.v1.Event
-	1,  // 22: tanvo.event.v1.ReplaceEventResponse.event:type_name -> tanvo.event.v1.Event
-	1,  // 23: tanvo.event.v1.EstimateFeesRequest.event:type_name -> tanvo.event.v1.Event
-	4,  // 24: tanvo.event.v1.EstimateFeesResponse.fees:type_name -> tanvo.event.v1.EstimatedFee
-	1,  // 25: tanvo.event.v1.EstimateInstantFeesRequest.events:type_name -> tanvo.event.v1.Event
-	4,  // 26: tanvo.event.v1.EstimateInstantFeesResponse.fees:type_name -> tanvo.event.v1.EstimatedFee
-	5,  // 27: tanvo.event.v1.EventService.IngestEvent:input_type -> tanvo.event.v1.IngestEventRequest
-	7,  // 28: tanvo.event.v1.EventService.IngestEvents:input_type -> tanvo.event.v1.IngestEventsRequest
-	9,  // 29: tanvo.event.v1.EventService.GetEvent:input_type -> tanvo.event.v1.GetEventRequest
-	11, // 30: tanvo.event.v1.EventService.ListEvents:input_type -> tanvo.event.v1.ListEventsRequest
-	13, // 31: tanvo.event.v1.EventService.ListEnrichedEvents:input_type -> tanvo.event.v1.ListEnrichedEventsRequest
-	15, // 32: tanvo.event.v1.EventService.ReplaceEvent:input_type -> tanvo.event.v1.ReplaceEventRequest
-	17, // 33: tanvo.event.v1.EventService.EstimateFees:input_type -> tanvo.event.v1.EstimateFeesRequest
-	19, // 34: tanvo.event.v1.EventService.EstimateInstantFees:input_type -> tanvo.event.v1.EstimateInstantFeesRequest
-	6,  // 35: tanvo.event.v1.EventService.IngestEvent:output_type -> tanvo.event.v1.IngestEventResponse
-	8,  // 36: tanvo.event.v1.EventService.IngestEvents:output_type -> tanvo.event.v1.IngestEventsResponse
-	10, // 37: tanvo.event.v1.EventService.GetEvent:output_type -> tanvo.event.v1.GetEventResponse
-	12, // 38: tanvo.event.v1.EventService.ListEvents:output_type -> tanvo.event.v1.ListEventsResponse
-	14, // 39: tanvo.event.v1.EventService.ListEnrichedEvents:output_type -> tanvo.event.v1.ListEnrichedEventsResponse
-	16, // 40: tanvo.event.v1.EventService.ReplaceEvent:output_type -> tanvo.event.v1.ReplaceEventResponse
-	18, // 41: tanvo.event.v1.EventService.EstimateFees:output_type -> tanvo.event.v1.EstimateFeesResponse
-	20, // 42: tanvo.event.v1.EventService.EstimateInstantFees:output_type -> tanvo.event.v1.EstimateInstantFeesResponse
-	35, // [35:43] is the sub-list for method output_type
-	27, // [27:35] is the sub-list for method input_type
-	27, // [27:27] is the sub-list for extension type_name
-	27, // [27:27] is the sub-list for extension extendee
-	0,  // [0:27] is the sub-list for field type_name
+	25, // 0: tanvo.event.v1.Event.timestamp:type_name -> google.protobuf.Timestamp
+	26, // 1: tanvo.event.v1.Event.properties:type_name -> google.protobuf.Struct
+	21, // 2: tanvo.event.v1.Event.errors:type_name -> tanvo.event.v1.Event.ErrorsEntry
+	25, // 3: tanvo.event.v1.Event.created_at:type_name -> google.protobuf.Timestamp
+	25, // 4: tanvo.event.v1.EnrichedEvent.timestamp:type_name -> google.protobuf.Timestamp
+	22, // 5: tanvo.event.v1.EnrichedEvent.grouped_by:type_name -> tanvo.event.v1.EnrichedEvent.GroupedByEntry
+	0,  // 6: tanvo.event.v1.EnrichedEvent.operation:type_name -> tanvo.event.v1.EnrichedOperation
+	25, // 7: tanvo.event.v1.EnrichedEvent.enriched_at:type_name -> google.protobuf.Timestamp
+	1,  // 8: tanvo.event.v1.EventResult.event:type_name -> tanvo.event.v1.Event
+	23, // 9: tanvo.event.v1.EventResult.errors:type_name -> tanvo.event.v1.EventResult.ErrorsEntry
+	27, // 10: tanvo.event.v1.EstimatedFee.amount:type_name -> tanvo.common.v1.Money
+	27, // 11: tanvo.event.v1.EstimatedFee.taxes_amount:type_name -> tanvo.common.v1.Money
+	24, // 12: tanvo.event.v1.EstimatedFee.grouped_by:type_name -> tanvo.event.v1.EstimatedFee.GroupedByEntry
+	1,  // 13: tanvo.event.v1.IngestEventRequest.event:type_name -> tanvo.event.v1.Event
+	1,  // 14: tanvo.event.v1.IngestEventResponse.event:type_name -> tanvo.event.v1.Event
+	1,  // 15: tanvo.event.v1.IngestEventsRequest.events:type_name -> tanvo.event.v1.Event
+	3,  // 16: tanvo.event.v1.IngestEventsResponse.results:type_name -> tanvo.event.v1.EventResult
+	1,  // 17: tanvo.event.v1.GetEventResponse.event:type_name -> tanvo.event.v1.Event
+	1,  // 18: tanvo.event.v1.ListEventsResponse.events:type_name -> tanvo.event.v1.Event
+	2,  // 19: tanvo.event.v1.ListEnrichedEventsResponse.enriched_events:type_name -> tanvo.event.v1.EnrichedEvent
+	1,  // 20: tanvo.event.v1.ReplaceEventRequest.event:type_name -> tanvo.event.v1.Event
+	1,  // 21: tanvo.event.v1.ReplaceEventResponse.event:type_name -> tanvo.event.v1.Event
+	1,  // 22: tanvo.event.v1.EstimateFeesRequest.event:type_name -> tanvo.event.v1.Event
+	4,  // 23: tanvo.event.v1.EstimateFeesResponse.fees:type_name -> tanvo.event.v1.EstimatedFee
+	1,  // 24: tanvo.event.v1.EstimateInstantFeesRequest.events:type_name -> tanvo.event.v1.Event
+	4,  // 25: tanvo.event.v1.EstimateInstantFeesResponse.fees:type_name -> tanvo.event.v1.EstimatedFee
+	5,  // 26: tanvo.event.v1.EventService.IngestEvent:input_type -> tanvo.event.v1.IngestEventRequest
+	7,  // 27: tanvo.event.v1.EventService.IngestEvents:input_type -> tanvo.event.v1.IngestEventsRequest
+	9,  // 28: tanvo.event.v1.EventService.GetEvent:input_type -> tanvo.event.v1.GetEventRequest
+	11, // 29: tanvo.event.v1.EventService.ListEvents:input_type -> tanvo.event.v1.ListEventsRequest
+	13, // 30: tanvo.event.v1.EventService.ListEnrichedEvents:input_type -> tanvo.event.v1.ListEnrichedEventsRequest
+	15, // 31: tanvo.event.v1.EventService.ReplaceEvent:input_type -> tanvo.event.v1.ReplaceEventRequest
+	17, // 32: tanvo.event.v1.EventService.EstimateFees:input_type -> tanvo.event.v1.EstimateFeesRequest
+	19, // 33: tanvo.event.v1.EventService.EstimateInstantFees:input_type -> tanvo.event.v1.EstimateInstantFeesRequest
+	6,  // 34: tanvo.event.v1.EventService.IngestEvent:output_type -> tanvo.event.v1.IngestEventResponse
+	8,  // 35: tanvo.event.v1.EventService.IngestEvents:output_type -> tanvo.event.v1.IngestEventsResponse
+	10, // 36: tanvo.event.v1.EventService.GetEvent:output_type -> tanvo.event.v1.GetEventResponse
+	12, // 37: tanvo.event.v1.EventService.ListEvents:output_type -> tanvo.event.v1.ListEventsResponse
+	14, // 38: tanvo.event.v1.EventService.ListEnrichedEvents:output_type -> tanvo.event.v1.ListEnrichedEventsResponse
+	16, // 39: tanvo.event.v1.EventService.ReplaceEvent:output_type -> tanvo.event.v1.ReplaceEventResponse
+	18, // 40: tanvo.event.v1.EventService.EstimateFees:output_type -> tanvo.event.v1.EstimateFeesResponse
+	20, // 41: tanvo.event.v1.EventService.EstimateInstantFees:output_type -> tanvo.event.v1.EstimateInstantFeesResponse
+	34, // [34:42] is the sub-list for method output_type
+	26, // [26:34] is the sub-list for method input_type
+	26, // [26:26] is the sub-list for extension type_name
+	26, // [26:26] is the sub-list for extension extendee
+	0,  // [0:26] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_event_v1_event_proto_init() }
@@ -3109,7 +3088,7 @@ func file_tanvo_event_v1_event_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_event_v1_event_proto_rawDesc), len(file_tanvo_event_v1_event_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   25,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

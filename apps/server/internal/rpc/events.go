@@ -171,9 +171,6 @@ func toInput(prefix string, e *eventv1.Event) (ingest.Input, []FieldViolation) {
 	if len(props) > 0 {
 		in.Properties = props
 	}
-	if len(e.GetAttributions()) > 0 {
-		violations = append(violations, FieldViolation{Field: prefix + "attributions", Reason: core.CodeForbidden, Description: "attribution labels are not accepted by this server"})
-	}
 	return in, violations
 }
 
@@ -188,7 +185,6 @@ func toProto(e *event.Event) *eventv1.Event {
 		ExternalSubscriptionId: &e.ExternalSubscriptionID,
 		Code:                   &e.Code,
 		Timestamp:              timestamppb.New(e.Timestamp),
-		Attributions:           e.AttributionLabels,
 	}
 	if len(e.Properties) > 0 {
 		fields := make(map[string]*structpb.Value, len(e.Properties))
@@ -203,6 +199,12 @@ func toProto(e *event.Event) *eventv1.Event {
 	}
 	if !e.IngestedAt.IsZero() {
 		b.CreatedAt = timestamppb.New(e.IngestedAt)
+	}
+	if md := e.Metadata; md.UserAgent != "" {
+		b.UserAgent = &md.UserAgent
+	}
+	if md := e.Metadata; md.IPAddress != "" {
+		b.IpAddress = &md.IPAddress
 	}
 	return b.Build()
 }

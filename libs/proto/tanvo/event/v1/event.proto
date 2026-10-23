@@ -166,16 +166,6 @@ message Event {
   string precise_total_amount = 7 [(buf.validate.field).string.(tanvo.common.v1.decimal) = true];
   // The code of the wallet the event's usage is deducted from.
   string target_wallet_code = 8 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
-  // Attribution labels, keyed by usage attribution type code.
-  map<string, string> attributions = 9 [(buf.validate.field).map = {
-    max_pairs: 20
-    keys: {
-      string: {[tanvo.common.v1.code]: true}
-    }
-    values: {
-      string: {max_len: 255}
-    }
-  }];
   // The User-Agent of the ingestion request.
   string user_agent = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
   // The client IP of the ingestion request.

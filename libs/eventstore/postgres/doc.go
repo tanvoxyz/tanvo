@@ -10,7 +10,9 @@
 // index range scan of one subscription and code over a time window, pruned
 // to the months of the window. A GIN index (jsonb_path_ops) on the
 // properties serves charge filters and pricing group values, written as
-// containment.
+// containment. The events' [metering.EventMetadata] is not stored: the
+// store's raw event log (public.events), written in the same transaction,
+// keeps it.
 //
 // A unique constraint on a partitioned table must include the partition
 // keys, so ingestion deduplication by (organization, external subscription,

@@ -48,7 +48,7 @@ func (m *RawMessage) Key() []byte {
 }
 
 // rawMessage returns the message of an accepted event.
-func rawMessage(e *event.Event, source string, md Metadata) RawMessage {
+func rawMessage(e *event.Event, source string) RawMessage {
 	m := RawMessage{
 		OrganizationID:          e.OrganizationID,
 		TransactionID:           e.TransactionID,
@@ -61,7 +61,7 @@ func rawMessage(e *event.Event, source string, md Metadata) RawMessage {
 		Source:                  source,
 		ExpressionEvaluated:     true,
 	}
-	if md != (Metadata{}) {
+	if md := e.Metadata; md != (Metadata{}) {
 		m.Metadata = &md
 	}
 	return m
@@ -86,6 +86,9 @@ func DecodeRaw(b []byte) (*RawMessage, *event.Event, error) {
 		Properties:             m.Properties,
 		PreciseTotalAmount:     m.PreciseTotalAmountCents,
 		IngestedAt:             m.IngestedAt.UTC().Truncate(time.Microsecond),
+	}
+	if m.Metadata != nil {
+		e.Metadata = *m.Metadata
 	}
 	if e.Properties == nil {
 		e.Properties = map[string]string{}

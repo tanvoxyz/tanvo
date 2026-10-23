@@ -10,7 +10,6 @@ cases:
   - {name: without timestamp, source: "tanvo", no_timestamp: true, errors: ["timestamp: value_is_mandatory"]}
   - {name: remove operation, source: "tanvo", properties: {operation_type: remove}, errors: []}
   - {name: unknown operation, source: "tanvo", properties: {operation_type: replace}, errors: ["properties.operation_type: invalid_value"]}
-  - {name: empty attribution label, source: "tanvo", attribution_labels: {"": x}, errors: ["attribution_labels: invalid_value"]}
 skipped:
   - {source: "spec/models/event_spec.rb:8", reason: "ActiveRecord associations"}
   - {source: "spec/models/event_spec.rb:13", reason: "events carry no external_customer_id in Tanvo"}

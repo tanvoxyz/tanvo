@@ -103,3 +103,21 @@ func TestReplaceKeepsLatestCopy(t *testing.T) {
 		t.Errorf("duplicates got = %v, want = [0]", dups)
 	}
 }
+
+func TestWriteKeepsMetadata(t *testing.T) {
+	ctx := context.Background()
+	conn := database(t)
+	store := clickhouse.New(conn)
+	e := event("a", time.Date(2026, 3, 5, 0, 0, 0, 0, time.UTC))
+	e.Metadata = metering.EventMetadata{UserAgent: "curl/8", IPAddress: "192.0.2.1"}
+	if _, err := store.Write(ctx, []metering.Event{e}); err != nil {
+		t.Fatal(err)
+	}
+	var ua, ip string
+	if err := conn.QueryRow(ctx, `SELECT user_agent, ip_address FROM events_raw FINAL WHERE transaction_id = 'a'`).Scan(&ua, &ip); err != nil {
+		t.Fatal(err)
+	}
+	if got := (metering.EventMetadata{UserAgent: ua, IPAddress: ip}); got != e.Metadata {
+		t.Errorf("stored metadata got = %+v, want = %+v", got, e.Metadata)
+	}
+}

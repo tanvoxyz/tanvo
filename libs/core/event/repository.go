@@ -26,7 +26,8 @@ type Log interface {
 	Get(ctx context.Context, org core.OrganizationID, externalSubscriptionID, transactionID string) (*Event, error)
 	// Replace replaces the stored event of e's deduplication key
 	// (external_subscription_id, transaction_id) by e (the event
-	// correction API), keeping its ID and ingestion time; a missing event
+	// correction API), keeping its ID, ingestion time and the metadata of
+	// the request that ingested it; a missing event
 	// fails with core.ErrNotFound. A replacement cannot move an event to
 	// another subscription: that is another event.
 	Replace(ctx context.Context, e *Event) error

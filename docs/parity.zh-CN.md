@@ -313,7 +313,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 事件字段：交易 ID、外部订阅 ID、代码、属性、精确总金额 | `app/models/event.rb` | libs/ingest | 逻辑已完成 | JSON 属性中的数字保持精确，小数亦然（lago 的 JSON 解析使整数精确、小数转为浮点数）；二进制 protobuf 与 gRPC 客户端发送 double，精确值以字符串发送（[架构 §4.2](architecture.zh-CN.md#42-经由-vanguard-的-rest)） |
 | 摄取和事件过滤中 `external_contract_id` 作为 `external_subscription_id` 的别名 | `app/controllers/api/v1/events_controller.rb` | libs/ingest | 逻辑已完成 | 两者都发送时以显式的 `external_subscription_id` 为准 |
 | 按组织、外部订阅 ID 与交易 ID 去重 | `app/services/events/create_service.rb`、`app/services/events/validate_creation_service.rb`、`db/structure.sql`（`index_unique_transaction_id`） | libs/ingest、libs/store、libs/eventstore | 逻辑已完成 | 所有存储使用同一个键；Lago 的 ClickHouse 存储在查询时去重，并且还以代码和时间戳为键，而 Tanvo 把在另一时间戳的重发视为重复 |
-| 事件上的请求元数据（user agent、IP） | `app/services/events/create_service.rb` | libs/ingest | 进行中 | |
+| 事件上的请求元数据（user agent、IP） | `app/services/events/create_service.rb` | libs/ingest | 已完成 | PostgreSQL 路径上存于 `public.events.metadata`，Kafka 路径上存于 ClickHouse 的 `events_raw`，由原始消息与富化消息携带；lago 的 Kafka 消息不含元数据（`app/services/events/kafka_producer_service.rb:36`），其 ClickHouse 事件也没有（`app/models/clickhouse/events_raw.rb:20`）。以事件的 `user_agent` 与 `ip_address` 返回（lago 仅在 GraphQL 中提供，`app/graphql/types/events/object.rb:20`）；地址按 `request.remote_ip`（`app/controllers/api/v1/events_controller.rb:219`）解析，受信任代理为 ActionDispatch::RemoteIp 的默认集合加上 `TANVO_TRUSTED_PROXIES`，不同之处在于仅当对端受信任时才读取转发头，且与 `X-Forwarded-For` 矛盾的 `Client-Ip` 会被忽略而不是使请求失败（actionpack `remote_ip.rb:151`） |
 | 事件校验（指标代码、订阅、数值字段） | `app/services/events/validate_creation_service.rb` | libs/ingest | 进行中 | |
 | 摄取后的事件校验与 `events.errors` webhook | `app/services/events/post_validation_service.rb` | libs/ingest | 计划中 | 能同步返回的校验错误也同步返回 |
 | 获取单个事件与列出事件 | `app/controllers/api/v1/events_controller.rb` | apps/server | 计划中 | |
@@ -462,8 +462,8 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 按零金额设置转为最终状态 | `app/services/invoices/transition_to_final_status_service.rb` | libs/billing | 逻辑已完成 | |
 | 重试生成失败的订阅发票 | `app/services/invoices/retry_service.rb`、`app/jobs/clock/retry_generating_subscription_invoices_job.rb` | libs/billing | 逻辑已完成 | |
 | 开票日期规则（锚点与调整矩阵） | `app/services/invoices/`（开票日期） | libs/billing | 逻辑已完成 | |
-| 由付款条款（收到即付、净天数、月末、月末加天数、加天数后月末、每月某日）得出付款到期日，按 客户 → 计费主体 解析并连同来源快照 | `app/models/invoice.rb`、`db/structure.sql`（`payment_term`、`payment_term_source`） | libs/billing | 逻辑已完成 | Lago 已有这些列，规则在其分支上；不保留 `net_payment_term` 别名（[领域模型 §24](domain.zh-CN.md#24-设计决定)，第 12 条） |
-| 发票上的采购订单号（来自归并的订阅、钱包交易或钱包、一次性请求），重新生成时保留 | `app/services/invoices/create_generating_service.rb`、`app/services/invoices/paid_credit_service.rb`、`app/services/invoices/regenerate_from_voided_service.rb` | libs/billing | 计划中 | |
+| 由净付款期限（天数）得出付款到期日，按 客户 → 计费主体 解析并快照到发票上 | `app/models/customer.rb`（`applicable_net_payment_term`）、`app/services/invoices/create_generating_service.rb`、`app/services/invoices/refresh_draft_and_finalize_service.rb`、`app/services/invoices/provider_taxes/pull_taxes_and_apply_service.rb`、`app/services/invoices/regenerate_from_voided_service.rb` | libs/billing | 逻辑已完成 | 不建模未被读取的 `payment_term` 和 `payment_term_source` 列（[领域模型 §24](domain.zh-CN.md#24-设计决定)，第 12 条）；定稿、计税完成和重新生成时读取当前期限；客户或计费主体的期限变化时重算草稿上显示的到期日，有待其更新服务 |
+| 发票上的采购订单号（来自归并的订阅、钱包交易或钱包、一次性请求），重新生成时沿用或替换；同一次计费中采购订单号不一致时拒绝 | `app/services/invoices/create_generating_service.rb`、`app/services/invoices/paid_credit_service.rb`、`app/services/invoices/regenerate_from_voided_service.rb` | libs/billing | 逻辑已完成 | 重新生成时沿用已作废发票的采购订单号，除非请求给出新值（空白即清除）；周期运行和套餐变更按采购订单号拆分 |
 | 带草稿发票的宽限期 | `app/services/invoices/subscription_service.rb` | libs/billing | 逻辑已完成 | |
 | 刷新草稿 | `app/services/invoices/refresh_draft_service.rb`、`app/jobs/clock/refresh_draft_invoices_job.rb` | libs/billing | 逻辑已完成 | |
 | 宽限期结束时自动定稿 | `app/jobs/clock/finalize_invoices_job.rb` | libs/billing | 逻辑已完成 | 由定时扫描定稿的草稿以扫描时的本地日期开具，并按扫描时的月份编号，即使其任务延迟执行；lago 使用执行任务时的时钟重新设定日期并编号（`app/services/invoices/refresh_draft_and_finalize_service.rb:77`、`app/models/invoice.rb:738`），两者始终一致 |
@@ -730,22 +730,22 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 
 ### 1.36 x402 代理付款
 
-Lago 的 x402 支持尚未完成：只有准入检查可以调用。Tanvo 移植整个设计并把它完成。
+v1.55.0 中只有准入检查可达（`config/routes/shared_api.rb:174`）：路由检查、余额检查和付款要求，所用的连接在 API 之外配置。结算、付款摘要和链上服务存在，但没有任何调用方。Tanvo 实现这一范围，并像 v1.55.0 一样不接入结算服务。
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| x402 连接（Coinbase CDP 结算方、收款地址、网络、USDC、自动创建客户） | `app/models/x402/connection.rb` | libs/core | 计划中 | 提供管理 API |
+| x402 连接（Coinbase CDP 结算方、收款地址、网络、USDC、自动创建客户） | `app/models/x402/connection.rb` | libs/core | 计划中 | 没有管理 API：v1.55.0 没有相应路由 |
 | 网络 Base、Base Sepolia、Solana 主网与开发网；各网络的 USDC 资产 | `app/services/x402/network.rb`、`app/services/x402/asset.rb` | libs/core | 计划中 | |
-| 准入检查：代理现在能否使用某个指标，或者需要支付什么 | `app/services/x402/gate_checks/check_service.rb` | libs/billing | 计划中 | 余额 − 进行中用量足以支付 1,000 次估算调用时通过，直到 Lago 的预留计数器取代这个下限 |
+| 准入检查：代理现在能否使用某个指标，或者需要支付什么 | `app/services/x402/gate_checks/check_service.rb` | libs/billing | 计划中 | 余额 − 进行中用量足以支付 1,000 次估算调用时通过（`DEGRADED_CALL_HEADROOM`） |
 | 准入检查的路由检查：父套餐及其计费项必须能够以预付钱包控制准入 | `app/services/x402/gate_checks/route_check_service.rb` | libs/billing | 计划中 | |
-| 准入检查接口的 `x402` API 密钥权限范围 | `app/models/api_key.rb` | libs/auth | 计划中 | |
-| 启用 x402 的钱包（`x402_enabled`） | `app/models/wallet.rb` | libs/core | 计划中 | |
-| 绑定到 x402 连接的发票支付链接（`x402_connection_id`、`x402_payment_token`） | `app/models/invoice.rb` | libs/core | 计划中 | 令牌设置时唯一；连接属于同一组织 |
-| 来自结算方的付款要求 | `app/services/x402/payment_requirements_service.rb` | libs/billing | 计划中 | |
-| 结算方客户端（verify、settle、supported），每个请求一个 JWT | `app/services/x402/facilitator/coinbase_cdp_adapter.rb` | providers/* | 计划中 | 新的提供者模块 `providers/x402` |
-| 结算（核验、结算、对账） | `app/services/x402/settlements/` | libs/billing | 计划中 | 接入任务；在 Lago 中未被使用 |
-| 通过 JSON-RPC 的链上对账（EVM、Solana） | `app/services/x402/chain/` | providers/* | 计划中 | |
-| 用于幂等的付款摘要 | `app/services/x402/payments/compute_digest_service.rb` | libs/billing | 计划中 | 摘要和交易哈希在所有组织间唯一，是唯一跨租户的唯一索引（Lago 18a741762） |
+| 准入检查接口的 `x402` API 密钥权限范围，以及 `x402_connection` 权限范围 | `app/models/api_key.rb` | libs/auth | 计划中 | v1.55.0 没有接口使用 `x402_connection` |
+| 启用 x402 的钱包（`x402_enabled`） | `app/models/wallet.rb` | libs/core | 计划中 | 已存储；与 Lago 一样不能通过钱包 API 设置 |
+| 发票的 x402 列（`x402_connection_id`、`x402_payment_token`） | `app/models/invoice.rb` | libs/core | 计划中 | 仅有列：v1.55.0 中没有任何代码设置或读取它们。令牌有跨所有组织的唯一索引（`db/structure.sql:10561`）；连接属于同一组织 |
+| 来自结算方的付款要求 | `app/services/x402/payment_requirements_service.rb` | libs/billing | 计划中 | 读取结算方的 `supported` 类型以确定 Solana 手续费支付方 |
+| 结算方客户端（verify、settle、supported），每个请求一个 JWT | `app/services/x402/facilitator/coinbase_cdp_adapter.rb` | providers/* | 计划中 | 新的提供者模块 `providers/x402`；只有 `supported` 可达，经由付款要求 |
+| 结算（核验、结算） | `app/models/x402/settlement.rb`、`app/services/x402/settlements/` | libs/billing | 计划中 | 与 v1.55.0 一样不接入：没有 API、任务或对账调用它们 |
+| 通过 JSON-RPC 的链上读取（EVM、Solana） | `app/services/x402/chain/` | providers/* | 计划中 | 与 v1.55.0 一样不接入：没有对账读取它们 |
+| 用于幂等的付款摘要 | `app/services/x402/payments/compute_digest_service.rb` | libs/billing | 计划中 | 与 v1.55.0 一样不接入。摘要和交易哈希在所有组织间唯一（Lago 18a741762） |
 
 ### 1.37 会计、CRM 与税务集成
 
@@ -858,7 +858,7 @@ Lago 的 x402 支持尚未完成：只有准入检查可以调用。Tanvo 移植
 | :--- | :--- | :--- | :--- | :--- |
 | 用量归属类型，分层与扁平（`account_tree` 开关） | `app/models/usage_attribution_type.rb`、`app/controllers/api/v1/usage_attribution_types_controller.rb` | libs/core | 计划中 | |
 | 归属取值 | `app/models/usage_attribution_value.rb` | libs/core | 计划中 | |
-| 归属用量查询 | `app/controllers/api/v1/customers/attributed_usage_controller.rb` | libs/billing | 计划中 | Lago 没有填充路径；Tanvo 定义一个 |
+| 归属用量查询 | `app/controllers/api/v1/customers/attributed_usage_controller.rb` | libs/billing | 计划中 | 与 v1.55.0 一样只有读取侧：查询按 `events_enriched.attribution_labels` 分组，而没有任何代码写入该列，因此归属用量为空 |
 
 ### 1.43 数据导出
 
@@ -1009,7 +1009,7 @@ Lago 自己标记为废弃、只为旧数据保留，或作为死代码保留的
 | `taxes.applied_to_organization` | `app/models/tax.rb` | 组织级税的兼容垫片 |
 | Data API 基础控制器 | `app/controllers/data_api/base_controller.rb` | 死代码 |
 | 开关 `wallet_traceability`、`x402_reservation_counter_disabled`、`fixed_charge_usage_delta_migration` | `app/models/organization.rb` | 未使用或只用于迁移的开关 |
-| 已触发告警的 `resolved` 与种子类型 | `app/models/usage_monitoring/triggered_alert.rb` | 从未产生。Lago 正在构建 `alert.resolved`（296436eac、a84ccd69c、8fa46d700）；可达后再评估 |
+| 已触发告警的 `resolved` 与种子类型 | `app/models/usage_monitoring/triggered_alert.rb` | v1.55.0 中从未产生：已触发告警的 `kind`（`triggered`、`resolved`、`seeded`）、`in_alarm_thresholds` 和 `fully_resolved` 列存在，但没有任何代码写入已解决或种子告警，也不发送 `alert.resolved` |
 | 管理 REST 控制器（只限本地） | `app/controllers/admin/` | 由 `tanvo admin` 取代 |
 | `customers.vat_rate`、`billing_entities.vat_rate` | `db/structure.sql` | 由税取代 |
 | `billing_entities.archived_at`、不起作用的 `destroyBillingEntity` mutation | `app/models/billing_entity.rb`、`app/graphql/mutations/billing_entities/` | 未使用 |

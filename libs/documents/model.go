@@ -36,53 +36,12 @@ type Party struct {
 	Logo *Image
 }
 
-// PaymentTermType is the kind of a structured payment term (domain §24,
-// item 12).
-type PaymentTermType string
-
-// Payment term types.
-const (
-	// PaymentTermDueOnReceipt is due on the issuing date.
-	PaymentTermDueOnReceipt PaymentTermType = "due_on_receipt"
-	// PaymentTermNet is due Days after the issuing date.
-	PaymentTermNet PaymentTermType = "net"
-	// PaymentTermEndOfMonth is due at the end of the issuing month.
-	PaymentTermEndOfMonth PaymentTermType = "end_of_month"
-	// PaymentTermNetEndOfMonth is due Days after the end of the issuing
-	// month.
-	PaymentTermNetEndOfMonth PaymentTermType = "net_end_of_month"
-	// PaymentTermDaysEndOfMonth is due at the end of the month containing
-	// the issuing date plus Days.
-	PaymentTermDaysEndOfMonth PaymentTermType = "days_end_of_month"
-	// PaymentTermDayOfMonth is due on DayOfMonth, MonthOffset months after
-	// the issuing month.
-	PaymentTermDayOfMonth PaymentTermType = "day_of_month"
-)
-
-// PaymentTerm is the payment term printed on an invoice.
-type PaymentTerm struct {
-	// Type is the kind of term.
-	Type PaymentTermType
-	// Days is the number of days of net, net_end_of_month and
-	// days_end_of_month terms.
-	Days int
-	// DayOfMonth is the due day (1–31) of day_of_month terms.
-	DayOfMonth int
-	// MonthOffset is the number of months after the issuing month of
-	// day_of_month terms.
-	MonthOffset int
-}
-
 // Invoice is the data of an invoice PDF: the invoice with every object its
 // template prints, resolved by the caller (see [FromCore]).
 type Invoice struct {
 	Party
 	// Invoice is the invoice.
 	Invoice invoice.Invoice
-	// PurchaseOrderNumber is the invoice's purchase order number, if any.
-	PurchaseOrderNumber string
-	// PaymentTerm is the invoice's payment term.
-	PaymentTerm PaymentTerm
 	// Subscriptions are the invoice's subscriptions, in invoice order.
 	Subscriptions []Subscription
 	// Fees are the invoice's fees with their catalog objects.

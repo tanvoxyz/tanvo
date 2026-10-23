@@ -23,6 +23,11 @@
 //     read it FINAL in a subquery bounded by the sorting key, and apply
 //     property filters after deduplication.
 //
+// events_raw also keeps the events' [metering.EventMetadata] (the API
+// request's user agent and address), the only record of it for the events
+// ingested through Kafka. bucket_repairs records the runs of
+// [Store.RepairRecentBuckets].
+//
 // # Deduplication
 //
 // The deduplication key is (organization, external subscription,

@@ -208,7 +208,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 
 ### 5.4 租户隔离
 * 每张业务表都把 `organization_id` 作为主键或某个唯一索引的第一列，每个查询都按它过滤。
-* 唯一的例外是 x402 结算的支付摘要和交易哈希，它们在所有组织间唯一，使共用收款地址的两个组织绝不会为同一笔转账都入账（[领域模型 §24](domain.zh-CN.md#24-设计决定)，第 14 条）。读取结算仍按组织过滤。
+* 例外是 x402 结算的支付摘要和交易哈希，它们在所有组织间唯一，使共用收款地址的两个组织绝不会为同一笔转账都入账（[领域模型 §24](domain.zh-CN.md#24-设计决定)，第 14 条）；以及发票的 x402 支付令牌，它是一个带唯一索引的列，与 v1.55.0 一样尚无任何代码设置或读取它（[领域模型 §11.1](domain.zh-CN.md#111-字段)）。读取仍按组织过滤。
 * Tanvo Cloud 另外启用绑定到 `SET LOCAL tanvo.organization_id` 的行级安全策略，作为纵深防御。
 
 ### 5.5 约定
@@ -243,6 +243,7 @@ POST /v1/events, /v1/events:batch
                                                                               └→ usage refresh signals
 ```
 * 模式是每个安装的设置，在 Tanvo Cloud 中可按组织覆盖。
+* 每个事件保留其 API 请求的元数据，即 `User-Agent` 与客户端地址：PostgreSQL 路径上存于原始日志（`public.events.metadata`），Kafka 路径上存于 ClickHouse 的 `events_raw`，并由原始消息与富化消息携带。lago-api 只在 PostgreSQL 中保留它（其 Kafka 消息不含元数据）；API 以事件的 `user_agent` 与 `ip_address` 返回它。客户端地址按 Rails 的 `request.remote_ip` 解析：取 `X-Forwarded-For`（其次 `Client-Ip`）中离服务器最近且不是受信任代理的地址，且仅当对端本身是受信任代理时才读取这些头；受信任的是回环与私有地址段以及 `TANVO_TRUSTED_PROXIES`。
 * SQS、Kinesis、HTTP 与 Kafka 来源的连接器写入 `events.raw`（Redpanda Connect 配置或内置的消费者）。
 * **用量刷新信号**携带客户、订阅和事件水位。信号在事件存储之后才发出，而用量桶在同一次写入中维护，因此信号不会领先于用量桶（在多副本 ClickHouse 上，刷新以顺序一致性读取）。钱包刷新消费者把一批拉取的信号合并为每个有钱包的客户一次刷新，并把超过 30 秒的信号留给 5 分钟一次的全量扫描，后者仍是权威来源（[领域模型 §14.1](domain.zh-CN.md#141-钱包)）。
 

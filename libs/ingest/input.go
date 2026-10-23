@@ -67,14 +67,9 @@ func (in *Input) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// Metadata describes the request an event arrived with (lago-api's
-// events.metadata).
-type Metadata struct {
-	// UserAgent is the client's User-Agent.
-	UserAgent string `json:"user_agent,omitempty"`
-	// IPAddress is the client's address.
-	IPAddress string `json:"ip_address,omitempty"`
-}
+// Metadata describes the API request an event arrived with
+// ([event.Metadata]).
+type Metadata = event.Metadata
 
 // numericText is the form of a property that numeric aggregations read
 // (metering.Properties).

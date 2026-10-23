@@ -162,6 +162,7 @@ func (s *Service) CreateBatch(ctx context.Context, org core.OrganizationID, ins 
 			continue
 		}
 		e.ID = core.NewID[core.EventID](s.cfg.IDs)
+		e.Metadata = md
 		events[i] = e
 	}
 	if len(errs) > 0 {
@@ -171,7 +172,7 @@ func (s *Service) CreateBatch(ctx context.Context, org core.OrganizationID, ins 
 	case ModePostgres:
 		return s.writePostgres(ctx, org, events)
 	case ModeKafka:
-		return s.produce(ctx, events, md)
+		return s.produce(ctx, events)
 	default:
 		return nil, fmt.Errorf("ingest: unknown mode %q", m)
 	}
@@ -258,7 +259,7 @@ func (s *Service) writePostgres(ctx context.Context, org core.OrganizationID, ev
 	return out, nil
 }
 
-func (s *Service) produce(ctx context.Context, events []*event.Event, md Metadata) ([]Outcome, error) {
+func (s *Service) produce(ctx context.Context, events []*event.Event) ([]Outcome, error) {
 	if s.cfg.Producer == nil {
 		return nil, errors.New("ingest: kafka mode without a producer")
 	}
@@ -275,7 +276,7 @@ func (s *Service) produce(ctx context.Context, events []*event.Event, md Metadat
 			continue
 		}
 		seen[k] = true
-		msgs = append(msgs, rawMessage(e, s.cfg.Source, md))
+		msgs = append(msgs, rawMessage(e, s.cfg.Source))
 	}
 	if err := s.cfg.Producer.ProduceRaw(ctx, msgs); err != nil {
 		return nil, fmt.Errorf("ingest: produce events: %w", err)

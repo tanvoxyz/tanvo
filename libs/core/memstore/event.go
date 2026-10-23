@@ -98,7 +98,7 @@ func (r eventLogRepo) Replace(_ context.Context, e *event.Event) error {
 		return notFound("event", stringer(e.TransactionID))
 	}
 	n := *e.Clone()
-	n.ID, n.IngestedAt, n.CreatedAt = cur.ID, cur.IngestedAt, cur.CreatedAt
+	n.ID, n.IngestedAt, n.CreatedAt, n.Metadata = cur.ID, cur.IngestedAt, cur.CreatedAt, cur.Metadata
 	r.d.events.put(n.ID, n)
 	return nil
 }

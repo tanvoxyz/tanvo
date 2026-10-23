@@ -53,15 +53,25 @@ type Event struct {
 	Properties map[string]string
 	// PreciseTotalAmount is the amount of the event for dynamic charges.
 	PreciseTotalAmount *money.Decimal
-	// AttributionLabels are optional labels usage queries can group by
-	// (domain §24 item 5).
-	AttributionLabels map[string]string
+	// Metadata describes the API request the event arrived with; it is
+	// empty for events from connectors.
+	Metadata Metadata
 	// IngestedAt is the ingestion instant.
 	IngestedAt time.Time
 	// CreatedAt is the creation instant.
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change (a replacement).
 	UpdatedAt time.Time
+}
+
+// Metadata describes the API request an event arrived with (lago-api's
+// events.metadata: the client's User-Agent and IP address). It is kept for
+// support and auditing; aggregation never reads it.
+type Metadata struct {
+	// UserAgent is the client's User-Agent header.
+	UserAgent string `json:"user_agent,omitempty"`
+	// IPAddress is the client's address.
+	IPAddress string `json:"ip_address,omitempty"`
 }
 
 // Validate checks the event's invariants.
@@ -73,11 +83,6 @@ func (e *Event) Validate() error {
 	v.Check(!e.Timestamp.IsZero(), "timestamp", core.CodeRequired)
 	if op, ok := e.Properties[OperationTypeProperty]; ok {
 		v.Check(OperationType(op).Valid(), "properties."+OperationTypeProperty, core.CodeInvalid)
-	}
-	for k := range e.AttributionLabels {
-		if !v.Check(k != "", "attribution_labels", core.CodeInvalid) {
-			break
-		}
 	}
 	return v.Err()
 }
@@ -94,7 +99,6 @@ func (e *Event) Operation() OperationType {
 func (e *Event) Clone() *Event {
 	c := *e
 	c.Properties = maps.Clone(e.Properties)
-	c.AttributionLabels = maps.Clone(e.AttributionLabels)
 	if e.PreciseTotalAmount != nil {
 		d := *e.PreciseTotalAmount
 		c.PreciseTotalAmount = &d

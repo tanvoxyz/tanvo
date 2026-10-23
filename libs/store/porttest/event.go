@@ -36,7 +36,7 @@ func testEvent(t *testing.T, h Harness) {
 			full := eventFixture(e, org, "tr_full", "1")
 			full.Properties = map[string]string{"value": "12.5", "region": "eu", "empty": ""}
 			full.PreciseTotalAmount = ptr(money.MustParse("1234.000000000001"))
-			full.AttributionLabels = map[string]string{"team": "core"}
+			full.Metadata = event.Metadata{UserAgent: "tanvo-go/1.0", IPAddress: "203.0.113.7"}
 			bare := eventFixture(e, org, "tr_bare", "")
 			bare.Properties = nil
 			accepted, dupes, err := r.Events.Append(ctx, org, []*event.Event{full, bare})
@@ -124,7 +124,7 @@ func testEvent(t *testing.T, h Harness) {
 		e.tx(func(ctx context.Context, r port.Repos) error {
 			stored := eventFixture(e, org, "tr_1", "1")
 			stored.PreciseTotalAmount = ptr(money.MustParse("3"))
-			stored.AttributionLabels = map[string]string{"team": "core"}
+			stored.Metadata = event.Metadata{UserAgent: "curl/8", IPAddress: "198.51.100.1"}
 			_, _, err := r.Events.Append(ctx, org, []*event.Event{stored})
 			noErr(t, "Append()", err)
 
@@ -132,9 +132,10 @@ func testEvent(t *testing.T, h Harness) {
 			fix.Code = "storage"
 			fix.Timestamp = at(-time.Hour)
 			fix.IngestedAt, fix.CreatedAt, fix.UpdatedAt = at(time.Hour), at(time.Hour), at(time.Hour)
+			fix.Metadata = event.Metadata{UserAgent: "other"}
 			noErr(t, "Replace()", r.Events.Replace(ctx, fix))
 			want := *fix
-			want.ID, want.IngestedAt, want.CreatedAt = stored.ID, stored.IngestedAt, stored.CreatedAt
+			want.ID, want.IngestedAt, want.CreatedAt, want.Metadata = stored.ID, stored.IngestedAt, stored.CreatedAt, stored.Metadata
 			got, err := r.Events.Get(ctx, org, "sub_1", "tr_1")
 			noErr(t, "Get() after Replace()", err)
 			equal(t, "Get() after Replace()", got, &want)

@@ -1,6 +1,6 @@
 # lago-api specs not ported to libs/documents
 
-Sources are lago-api at 25b8b7b09 (payment terms: 8ceddebb7). Every other
+Sources are lago-api at 25b8b7b09 (v1.55.0). Every other
 example of the template, helper and e-invoice specs is ported, with a
 `source:` line in its test.
 

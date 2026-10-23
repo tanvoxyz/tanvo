@@ -13,6 +13,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/event"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
+	"github.com/tanvoxyz/tanvo/libs/metering"
 	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
@@ -267,7 +268,8 @@ func TestCreateBatch(t *testing.T) {
 	t.Run("creates all events", func(t *testing.T) {
 		t.Parallel()
 		h := newHarness(t, ModePostgres)
-		out, err := h.svc.CreateBatch(ctx, testOrg, batch(3, nil), Metadata{})
+		md := Metadata{UserAgent: "ua", IPAddress: "127.0.0.1"}
+		out, err := h.svc.CreateBatch(ctx, testOrg, batch(3, nil), md)
 		if err != nil {
 			t.Fatalf("CreateBatch() error = %v", err)
 		}
@@ -277,9 +279,19 @@ func TestCreateBatch(t *testing.T) {
 				e.PreciseTotalAmount.String() != "123.34" || !e.Timestamp.Equal(time.Date(2024, 1, 1, 1, 2, 3, 123456000, time.UTC)) {
 				t.Errorf("event %d got = %+v", i, e)
 			}
+			// The events keep the request metadata (app/services/events/create_batch_service.rb:53).
+			if e.Metadata != md {
+				t.Errorf("event %d metadata got = %+v, want = %+v", i, e.Metadata, md)
+			}
 		}
-		if got := len(h.tx.writer.events()); got != 3 {
+		stored := h.tx.writer.events()
+		if got := len(stored); got != 3 {
 			t.Errorf("stored got = %d, want = 3", got)
+		}
+		for _, e := range stored {
+			if want := (metering.EventMetadata{UserAgent: md.UserAgent, IPAddress: md.IPAddress}); e.Metadata != want {
+				t.Errorf("stored metadata got = %+v, want = %+v", e.Metadata, want)
+			}
 		}
 	})
 

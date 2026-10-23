@@ -52,6 +52,19 @@ type Event struct {
 	// IngestedAt is when the event was stored; it orders events sharing a
 	// timestamp and picks the latest copy of a re-sent event.
 	IngestedAt time.Time `json:"ingested_at,omitzero"`
+	// Metadata describes the API request the event arrived with. The
+	// aggregations ignore it; the event stores that keep an ingestion
+	// ledger store it there.
+	Metadata EventMetadata `json:"metadata,omitzero"`
+}
+
+// EventMetadata describes the API request an event arrived with: the
+// client's User-Agent and IP address. Events from connectors have none.
+type EventMetadata struct {
+	// UserAgent is the client's User-Agent header.
+	UserAgent string `json:"user_agent,omitempty"`
+	// IPAddress is the client's address.
+	IPAddress string `json:"ip_address,omitempty"`
 }
 
 // Operation returns the unique-count operation of the event.

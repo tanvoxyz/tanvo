@@ -208,7 +208,7 @@ Billing relies on exact `numeric` arithmetic, transactions spanning many tables,
 
 ### 5.4 Tenancy
 * Every business table has `organization_id` as the first column of its primary key or of a unique index, and every query filters by it.
-* The one exception is the x402 settlement's payment digest and transaction hash, which are unique across all organizations so that two organizations sharing a payout address are never both credited for one transfer ([Domain §24](domain.md#24-design-decisions), item 14). Reads of settlements still filter by organization.
+* The exceptions are the x402 settlement's payment digest and transaction hash, which are unique across all organizations so that two organizations sharing a payout address are never both credited for one transfer ([Domain §24](domain.md#24-design-decisions), item 14), and the invoice's x402 payment token, a column with a unique index that nothing sets or reads yet, as in v1.55.0 ([Domain §11.1](domain.md#111-fields)). Reads still filter by organization.
 * Tanvo Cloud additionally enables row-level security policies bound to `SET LOCAL tanvo.organization_id`, as defense in depth.
 
 ### 5.5 Conventions
@@ -243,6 +243,7 @@ POST /v1/events, /v1/events:batch
                                                                               └→ usage refresh signals
 ```
 * The mode is a per-installation setting with per-organization overrides in Tanvo Cloud.
+* Each event keeps the metadata of its API request, the `User-Agent` and the client address: in the raw log (`public.events.metadata`) on the PostgreSQL path, and in ClickHouse's `events_raw` on the Kafka path, which carries it in the raw and enriched messages. lago-api keeps it only in PostgreSQL (its Kafka payload leaves it out); the API returns it as the event's `user_agent` and `ip_address`. The client address is resolved like Rails' `request.remote_ip`: the nearest `X-Forwarded-For` (then `Client-Ip`) address that is not a trusted proxy, the headers being read only when the peer is one; trusted are the loopback and private ranges and `TANVO_TRUSTED_PROXIES`.
 * Connectors for SQS, Kinesis, HTTP and Kafka sources produce to `events.raw` (Redpanda Connect configurations or a built-in consumer).
 * **Usage refresh signals** carry the customer, the subscriptions and the event watermark. Signals are sent after the events are stored, and the usage buckets are maintained in the same write, so a signal never runs ahead of the buckets (on replicated ClickHouse the refresh reads with sequential consistency). The wallet refresh consumer collapses a poll batch into one refresh per customer with wallets and leaves signals older than 30 seconds to the 5-minute sweep, which stays authoritative ([Domain §14.1](domain.md#141-wallet)).
 

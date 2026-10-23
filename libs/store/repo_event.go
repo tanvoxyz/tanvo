@@ -43,6 +43,13 @@ func eventStringsOf(b []byte) (map[string]string, error) {
 	return m, nil
 }
 
+// eventMetadata encodes the request metadata as a JSON object (never
+// null).
+func eventMetadata(m event.Metadata) []byte {
+	b, _ := encodeJSON(m) // a struct of strings always encodes
+	return b
+}
+
 func eventParams(e *event.Event) db.AppendEventParams {
 	p := db.AppendEventParams{
 		OrganizationID:         e.OrganizationID.UUID(),
@@ -52,10 +59,10 @@ func eventParams(e *event.Event) db.AppendEventParams {
 		ExternalSubscriptionID: e.ExternalSubscriptionID,
 		Timestamp:              utc(e.Timestamp),
 		Properties:             eventStrings(e.Properties),
-		AttributionLabels:      eventStrings(e.AttributionLabels),
 		IngestedAt:             utc(e.IngestedAt),
 		CreatedAt:              utc(e.CreatedAt),
 		UpdatedAt:              utc(e.UpdatedAt),
+		Metadata:               eventMetadata(e.Metadata),
 	}
 	if e.PreciseTotalAmount != nil {
 		v := *e.PreciseTotalAmount
@@ -69,9 +76,9 @@ func eventOf(r db.Event) (*event.Event, error) {
 	if err != nil {
 		return nil, fmt.Errorf("event %s: properties: %w", r.ID, err)
 	}
-	labels, err := eventStringsOf(r.AttributionLabels)
-	if err != nil {
-		return nil, fmt.Errorf("event %s: attribution labels: %w", r.ID, err)
+	var md event.Metadata
+	if err := decodeJSON(r.Metadata, &md); err != nil {
+		return nil, fmt.Errorf("event %s: metadata: %w", r.ID, err)
 	}
 	amount := r.PreciseTotalAmount
 	if amount != nil {
@@ -87,7 +94,7 @@ func eventOf(r db.Event) (*event.Event, error) {
 		Timestamp:              utc(r.Timestamp),
 		Properties:             props,
 		PreciseTotalAmount:     amount,
-		AttributionLabels:      labels,
+		Metadata:               md,
 		IngestedAt:             utc(r.IngestedAt),
 		CreatedAt:              utc(r.CreatedAt),
 		UpdatedAt:              utc(r.UpdatedAt),
@@ -175,7 +182,6 @@ func (r eventLogRepo) Replace(ctx context.Context, e *event.Event) error {
 		Timestamp:              p.Timestamp,
 		Properties:             p.Properties,
 		PreciseTotalAmount:     p.PreciseTotalAmount,
-		AttributionLabels:      p.AttributionLabels,
 		UpdatedAt:              p.UpdatedAt,
 		OrganizationID:         p.OrganizationID,
 		ExternalSubscriptionID: p.ExternalSubscriptionID,

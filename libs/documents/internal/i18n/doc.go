@@ -4,8 +4,7 @@
 //
 // The translations are lago-api's (config/locales, AGPL-3.0, ported
 // verbatim with their source in each file's header) for the nine document
-// locales de, en, es, fr, it, nb, pt-BR, sv and zh-TW, plus the structured
-// payment term strings of lago-api's payment terms branch and the few
+// locales de, en, es, fr, it, nb, pt-BR, sv and zh-TW, plus the few
 // strings Tanvo adds (locales/*/tanvo.yml). Lookups follow Ruby I18n:
 // %{name} interpolation, the zero/one/other plural keys and a fallback to
 // English for keys a locale lacks.

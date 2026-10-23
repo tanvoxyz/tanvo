@@ -54,6 +54,8 @@ type Enriched struct {
 	EnrichedAt time.Time `json:"enriched_at"`
 	// Source is where the event came from ([SourceAPI] or a connector).
 	Source string `json:"source,omitempty"`
+	// Metadata describes the API request the event arrived with.
+	Metadata Metadata `json:"metadata,omitzero"`
 
 	// SubscriptionID is the matched subscription; zero when none matched.
 	SubscriptionID core.SubscriptionID `json:"subscription_id,omitzero"`
@@ -100,6 +102,7 @@ func (e *Enriched) Metering() metering.Event {
 		Properties:              metering.Properties(e.Properties),
 		PreciseTotalAmountCents: e.PreciseTotalAmountCents,
 		IngestedAt:              e.IngestedAt,
+		Metadata:                metering.EventMetadata{UserAgent: e.Metadata.UserAgent, IPAddress: e.Metadata.IPAddress},
 	}
 }
 
@@ -287,6 +290,7 @@ func (en *Enricher) Enrich(ctx context.Context, e *event.Event, source string, e
 		IngestedAt:              e.IngestedAt,
 		EnrichedAt:              en.clock.Now().UTC().Truncate(time.Microsecond),
 		Source:                  source,
+		Metadata:                e.Metadata,
 		DecimalValue:            money.Zero,
 	}
 	if out.Properties == nil {

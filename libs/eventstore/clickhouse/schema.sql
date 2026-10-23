@@ -22,10 +22,18 @@ CREATE TABLE IF NOT EXISTS events_raw (
     ingested_at DateTime64(6, 'UTC'),
     sequence UInt64,
     replaced UInt8 DEFAULT 0,
+    -- The API request the event arrived with (metering.EventMetadata).
+    user_agent String DEFAULT '',
+    ip_address String DEFAULT '',
     version UInt64 MATERIALIZED if(replaced = 1, toUInt64(4611686018427387904) + sequence, toUInt64(toInt64(4611686018427387904) - toInt64(sequence)))
 )
 ENGINE = ReplacingMergeTree(version)
 ORDER BY (organization_id, subscription_id, transaction_id)
+;
+-- The request metadata columns, for ledgers created before them.
+ALTER TABLE events_raw ADD COLUMN IF NOT EXISTS user_agent String DEFAULT '' AFTER replaced
+;
+ALTER TABLE events_raw ADD COLUMN IF NOT EXISTS ip_address String DEFAULT '' AFTER user_agent
 ;
 -- The events the queries read: one row per (organization, code,
 -- subscription, timestamp, transaction ID), the sorting key. The version is

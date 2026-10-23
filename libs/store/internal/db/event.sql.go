@@ -18,7 +18,7 @@ const appendEvent = `-- name: AppendEvent :execrows
 
 INSERT INTO events (
   organization_id, id, transaction_id, code, external_subscription_id, timestamp,
-  properties, precise_total_amount, attribution_labels, ingested_at, created_at, updated_at
+  properties, precise_total_amount, ingested_at, created_at, updated_at, metadata
 ) VALUES (
   $1, $2, $3, $4, $5, $6,
   $7, $8, $9, $10, $11, $12
@@ -35,10 +35,10 @@ type AppendEventParams struct {
 	Timestamp              time.Time
 	Properties             json.RawMessage
 	PreciseTotalAmount     *money.Decimal
-	AttributionLabels      json.RawMessage
 	IngestedAt             time.Time
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
+	Metadata               json.RawMessage
 }
 
 // The event ingestion log.
@@ -52,10 +52,10 @@ func (q *Queries) AppendEvent(ctx context.Context, arg AppendEventParams) (int64
 		arg.Timestamp,
 		arg.Properties,
 		arg.PreciseTotalAmount,
-		arg.AttributionLabels,
 		arg.IngestedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.Metadata,
 	)
 	if err != nil {
 		return 0, err
@@ -147,7 +147,7 @@ func (q *Queries) CreateCachedAggregation(ctx context.Context, arg CreateCachedA
 }
 
 const getEvent = `-- name: GetEvent :one
-SELECT organization_id, id, transaction_id, code, external_subscription_id, timestamp, properties, precise_total_amount, attribution_labels, ingested_at, created_at, updated_at FROM events
+SELECT organization_id, id, transaction_id, code, external_subscription_id, timestamp, properties, precise_total_amount, ingested_at, created_at, updated_at, metadata FROM events
 WHERE organization_id = $1 AND external_subscription_id = $2 AND transaction_id = $3
 `
 
@@ -169,16 +169,16 @@ func (q *Queries) GetEvent(ctx context.Context, arg GetEventParams) (Event, erro
 		&i.Timestamp,
 		&i.Properties,
 		&i.PreciseTotalAmount,
-		&i.AttributionLabels,
 		&i.IngestedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Metadata,
 	)
 	return i, err
 }
 
 const getFirstEvent = `-- name: GetFirstEvent :one
-SELECT organization_id, id, transaction_id, code, external_subscription_id, timestamp, properties, precise_total_amount, attribution_labels, ingested_at, created_at, updated_at FROM events WHERE organization_id = $1 AND transaction_id = $2
+SELECT organization_id, id, transaction_id, code, external_subscription_id, timestamp, properties, precise_total_amount, ingested_at, created_at, updated_at, metadata FROM events WHERE organization_id = $1 AND transaction_id = $2
 ORDER BY ingested_at, id LIMIT 1
 `
 
@@ -200,10 +200,10 @@ func (q *Queries) GetFirstEvent(ctx context.Context, arg GetFirstEventParams) (E
 		&i.Timestamp,
 		&i.Properties,
 		&i.PreciseTotalAmount,
-		&i.AttributionLabels,
 		&i.IngestedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Metadata,
 	)
 	return i, err
 }
@@ -370,8 +370,8 @@ const replaceEvent = `-- name: ReplaceEvent :execrows
 UPDATE events SET
   code = $1, timestamp = $2,
   properties = $3, precise_total_amount = $4,
-  attribution_labels = $5, updated_at = $6
-WHERE organization_id = $7 AND external_subscription_id = $8 AND transaction_id = $9
+  updated_at = $5
+WHERE organization_id = $6 AND external_subscription_id = $7 AND transaction_id = $8
 `
 
 type ReplaceEventParams struct {
@@ -379,7 +379,6 @@ type ReplaceEventParams struct {
 	Timestamp              time.Time
 	Properties             json.RawMessage
 	PreciseTotalAmount     *money.Decimal
-	AttributionLabels      json.RawMessage
 	UpdatedAt              time.Time
 	OrganizationID         uuid.UUID
 	ExternalSubscriptionID string
@@ -387,14 +386,13 @@ type ReplaceEventParams struct {
 }
 
 // Replaces the event of the deduplication key, keeping its id, ingestion
-// and creation instants.
+// and creation instants and the metadata of the request that ingested it.
 func (q *Queries) ReplaceEvent(ctx context.Context, arg ReplaceEventParams) (int64, error) {
 	result, err := q.db.Exec(ctx, replaceEvent,
 		arg.Code,
 		arg.Timestamp,
 		arg.Properties,
 		arg.PreciseTotalAmount,
-		arg.AttributionLabels,
 		arg.UpdatedAt,
 		arg.OrganizationID,
 		arg.ExternalSubscriptionID,

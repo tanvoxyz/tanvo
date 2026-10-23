@@ -313,7 +313,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Event fields: transaction id, external subscription id, code, properties, precise total amount | `app/models/event.rb` | libs/ingest | logic done | JSON property numbers are kept exact, decimals included (lago's JSON parsing keeps integers exact and turns decimals into floats); binary protobuf and gRPC clients send doubles, and strings for exact values ([Architecture §4.2](architecture.md#42-rest-through-vanguard)) |
 | `external_contract_id` alias of `external_subscription_id` on ingestion and event filters | `app/controllers/api/v1/events_controller.rb` | libs/ingest | logic done | The explicit `external_subscription_id` wins when both are sent |
 | Deduplication by organization, external subscription id and transaction id | `app/services/events/create_service.rb`, `app/services/events/validate_creation_service.rb`, `db/structure.sql` (`index_unique_transaction_id`) | libs/ingest, libs/store, libs/eventstore | logic done | One key in every store; Lago's ClickHouse store deduplicates at query time and also keys on code and timestamp, where Tanvo treats a re-send at another timestamp as a duplicate |
-| Request metadata on events (user agent, IP) | `app/services/events/create_service.rb` | libs/ingest | in progress | |
+| Request metadata on events (user agent, IP) | `app/services/events/create_service.rb` | libs/ingest | done | Stored in `public.events.metadata` on the PostgreSQL path and in ClickHouse `events_raw` on the Kafka path, carried by the raw and enriched messages; lago's Kafka payload leaves it out (`app/services/events/kafka_producer_service.rb:36`) and its ClickHouse events have none (`app/models/clickhouse/events_raw.rb:20`). Returned as the event's `user_agent` and `ip_address` (lago exposes them in GraphQL only, `app/graphql/types/events/object.rb:20`); the address is resolved like `request.remote_ip` (`app/controllers/api/v1/events_controller.rb:219`) through ActionDispatch::RemoteIp's default trusted proxies plus `TANVO_TRUSTED_PROXIES`, except that the forwarding headers are read only from a trusted peer and a `Client-Ip` that contradicts `X-Forwarded-For` is ignored instead of failing the request (actionpack `remote_ip.rb:151`) |
 | Event validation (metric code, subscription, numeric field) | `app/services/events/validate_creation_service.rb` | libs/ingest | in progress | |
 | Post-validation of ingested events with `events.errors` webhook | `app/services/events/post_validation_service.rb` | libs/ingest | planned | Validation errors also returned synchronously where possible |
 | Retrieve an event and list events | `app/controllers/api/v1/events_controller.rb` | apps/server | planned | |
@@ -462,8 +462,8 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Transition to final status with zero-amount setting | `app/services/invoices/transition_to_final_status_service.rb` | libs/billing | logic done | |
 | Retry generating failed subscription invoices | `app/services/invoices/retry_service.rb`, `app/jobs/clock/retry_generating_subscription_invoices_job.rb` | libs/billing | logic done | |
 | Issuing date rules (anchor and adjustment matrix) | `app/services/invoices/` (issuing date) | libs/billing | logic done | |
-| Payment due date from the payment term (due on receipt, net, end of month, net end of month, days end of month, day of month), resolved customer → billing entity and snapshotted with its source | `app/models/invoice.rb`, `db/structure.sql` (`payment_term`, `payment_term_source`) | libs/billing | logic done | Lago has the columns and the rules on branches; no `net_payment_term` alias ([Domain §24](domain.md#24-design-decisions), item 12) |
-| Purchase order number on invoices (from grouped subscriptions, wallet transactions or wallets, one-off requests), kept on regeneration | `app/services/invoices/create_generating_service.rb`, `app/services/invoices/paid_credit_service.rb`, `app/services/invoices/regenerate_from_voided_service.rb` | libs/billing | planned | |
+| Payment due date from the net payment term (days), resolved customer → billing entity and snapshotted on the invoice | `app/models/customer.rb` (`applicable_net_payment_term`), `app/services/invoices/create_generating_service.rb`, `app/services/invoices/refresh_draft_and_finalize_service.rb`, `app/services/invoices/provider_taxes/pull_taxes_and_apply_service.rb`, `app/services/invoices/regenerate_from_voided_service.rb` | libs/billing | logic done | The unread `payment_term` and `payment_term_source` columns are not modelled ([Domain §24](domain.md#24-design-decisions), item 12); finalization, tax completion and regeneration read the current term; recomputing the due dates shown on drafts when a customer's or billing entity's term changes waits for their update services |
+| Purchase order number on invoices (from grouped subscriptions, wallet transactions or wallets, one-off requests), inherited or replaced on regeneration; mixed numbers refused on one bill | `app/services/invoices/create_generating_service.rb`, `app/services/invoices/paid_credit_service.rb`, `app/services/invoices/regenerate_from_voided_service.rb` | libs/billing | logic done | Regeneration inherits the voided invoice's number unless the request gives one (blank clears); periodic runs and plan changes split by number |
 | Grace period with draft invoices | `app/services/invoices/subscription_service.rb` | libs/billing | logic done | |
 | Draft refresh | `app/services/invoices/refresh_draft_service.rb`, `app/jobs/clock/refresh_draft_invoices_job.rb` | libs/billing | logic done | |
 | Automatic finalization at grace period end | `app/jobs/clock/finalize_invoices_job.rb` | libs/billing | logic done | A draft finalized by the sweep is issued on the sweep's local date, and numbered for the sweep's month, even when its job runs late; lago redates and numbers with the worker's clock (`app/services/invoices/refresh_draft_and_finalize_service.rb:77`, `app/models/invoice.rb:738`), the two always agreeing |
@@ -730,22 +730,22 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 
 ### 1.36 x402 Agent Payments
 
-Lago's x402 support is unfinished: only the gate check is reachable. Tanvo ports the whole design and completes it.
+In v1.55.0 only the gate check is reachable (`config/routes/shared_api.rb:174`): the route check, the balance check and the payment requirements, over connections configured outside the API. The settlement, payment digest and chain services exist but nothing calls them. Tanvo implements that scope and leaves the settlement services unwired, as v1.55.0 does.
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| x402 connections (facilitator Coinbase CDP, payout addresses, networks, USDC, auto-create customers) | `app/models/x402/connection.rb` | libs/core | planned | With a management API |
+| x402 connections (facilitator Coinbase CDP, payout addresses, networks, USDC, auto-create customers) | `app/models/x402/connection.rb` | libs/core | planned | No management API: v1.55.0 routes none |
 | Networks Base, Base Sepolia, Solana mainnet and devnet; USDC assets per network | `app/services/x402/network.rb`, `app/services/x402/asset.rb` | libs/core | planned | |
-| Gate check: can an agent use a metric now, or what must it pay | `app/services/x402/gate_checks/check_service.rb` | libs/billing | planned | Passes when balance − ongoing usage covers 1,000 estimated calls, until Lago's reservation counter replaces that floor |
+| Gate check: can an agent use a metric now, or what must it pay | `app/services/x402/gate_checks/check_service.rb` | libs/billing | planned | Passes when balance − ongoing usage covers 1,000 estimated calls (`DEGRADED_CALL_HEADROOM`) |
 | Gate check route check: the parent plan and its charges must be able to gate a prepaid wallet | `app/services/x402/gate_checks/route_check_service.rb` | libs/billing | planned | |
-| `x402` API key scope for the gate check endpoint | `app/models/api_key.rb` | libs/auth | planned | |
-| x402-enabled wallets (`x402_enabled`) | `app/models/wallet.rb` | libs/core | planned | |
-| Invoice payment link bound to an x402 connection (`x402_connection_id`, `x402_payment_token`) | `app/models/invoice.rb` | libs/core | planned | Token unique when set; connection of the same organization |
-| Payment requirements from the facilitator | `app/services/x402/payment_requirements_service.rb` | libs/billing | planned | |
-| Facilitator client (verify, settle, supported) with per-request JWT | `app/services/x402/facilitator/coinbase_cdp_adapter.rb` | providers/* | planned | New provider module `providers/x402` |
-| Settlements (verify, settle, reconcile) | `app/services/x402/settlements/` | libs/billing | planned | Wired to jobs; unused in Lago |
-| On-chain reconciliation through JSON-RPC (EVM, Solana) | `app/services/x402/chain/` | providers/* | planned | |
-| Payment digest for idempotency | `app/services/x402/payments/compute_digest_service.rb` | libs/billing | planned | The digest and transaction hash are unique across all organizations, the one cross-tenant unique index (Lago 18a741762) |
+| `x402` API key scope for the gate check endpoint, and the `x402_connection` scope | `app/models/api_key.rb` | libs/auth | planned | No v1.55.0 endpoint uses `x402_connection` |
+| x402-enabled wallets (`x402_enabled`) | `app/models/wallet.rb` | libs/core | planned | Stored; not settable through the wallet API, as in Lago |
+| Invoice x402 columns (`x402_connection_id`, `x402_payment_token`) | `app/models/invoice.rb` | libs/core | planned | Columns only: nothing in v1.55.0 sets or reads them. The token has a unique index across all organizations (`db/structure.sql:10561`); the connection belongs to the same organization |
+| Payment requirements from the facilitator | `app/services/x402/payment_requirements_service.rb` | libs/billing | planned | Reads the facilitator's `supported` kinds for the Solana fee payer |
+| Facilitator client (verify, settle, supported) with per-request JWT | `app/services/x402/facilitator/coinbase_cdp_adapter.rb` | providers/* | planned | New provider module `providers/x402`; only `supported` is reachable, through the payment requirements |
+| Settlements (verify, settle) | `app/models/x402/settlement.rb`, `app/services/x402/settlements/` | libs/billing | planned | Unwired, as in v1.55.0: no API, job or reconciliation calls them |
+| On-chain readers through JSON-RPC (EVM, Solana) | `app/services/x402/chain/` | providers/* | planned | Unwired, as in v1.55.0: no reconciliation reads them |
+| Payment digest for idempotency | `app/services/x402/payments/compute_digest_service.rb` | libs/billing | planned | Unwired, as in v1.55.0. The digest and transaction hash are unique across all organizations (Lago 18a741762) |
 
 ### 1.37 Accounting, CRM and Tax Integrations
 
@@ -858,7 +858,7 @@ Lago's x402 support is unfinished: only the gate check is reachable. Tanvo ports
 | :--- | :--- | :--- | :--- | :--- |
 | Usage attribution types, hierarchical and flat (`account_tree` flag) | `app/models/usage_attribution_type.rb`, `app/controllers/api/v1/usage_attribution_types_controller.rb` | libs/core | planned | |
 | Attribution values | `app/models/usage_attribution_value.rb` | libs/core | planned | |
-| Attributed usage query | `app/controllers/api/v1/customers/attributed_usage_controller.rb` | libs/billing | planned | Lago has no population path; Tanvo defines one |
+| Attributed usage query | `app/controllers/api/v1/customers/attributed_usage_controller.rb` | libs/billing | planned | Read side only, as in v1.55.0: the query groups by `events_enriched.attribution_labels`, which nothing writes, so attributed usage is empty |
 
 ### 1.43 Data Exports
 
@@ -1009,7 +1009,7 @@ Items that Lago itself marks deprecated, keeps only for old data, or carries as 
 | `taxes.applied_to_organization` | `app/models/tax.rb` | Compatibility shim for organization-level taxes |
 | Data API base controller | `app/controllers/data_api/base_controller.rb` | Dead code |
 | Flags `wallet_traceability`, `x402_reservation_counter_disabled`, `fixed_charge_usage_delta_migration` | `app/models/organization.rb` | Unused or migration-only flags |
-| Triggered alert `resolved` and seeded kinds | `app/models/usage_monitoring/triggered_alert.rb` | Never produced. Lago is building `alert.resolved` (296436eac, a84ccd69c, 8fa46d700); revisit when it is reachable |
+| Triggered alert `resolved` and seeded kinds | `app/models/usage_monitoring/triggered_alert.rb` | Never produced in v1.55.0: the triggered alert's `kind` (`triggered`, `resolved`, `seeded`), `in_alarm_thresholds` and `fully_resolved` columns exist, and nothing writes a resolved or seeded alert or sends `alert.resolved` |
 | Admin REST controllers (local only) | `app/controllers/admin/` | Replaced by `tanvo admin` |
 | `customers.vat_rate`, `billing_entities.vat_rate` | `db/structure.sql` | Replaced by taxes |
 | `billing_entities.archived_at`, `destroyBillingEntity` no-op mutation | `app/models/billing_entity.rb`, `app/graphql/mutations/billing_entities/` | Unused |

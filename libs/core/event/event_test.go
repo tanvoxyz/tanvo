@@ -41,7 +41,6 @@ func TestValidate(t *testing.T) {
 		ExternalSubscriptionID *string           `yaml:"external_subscription_id"`
 		NoTimestamp            bool              `yaml:"no_timestamp"`
 		Properties             map[string]string `yaml:"properties"`
-		AttributionLabels      map[string]string `yaml:"attribution_labels"`
 		Errors                 []string          `yaml:"errors"`
 	}
 	for _, c := range spectest.Load[tc](t, "event.yaml") {
@@ -62,7 +61,7 @@ func TestValidate(t *testing.T) {
 			if c.NoTimestamp {
 				e.Timestamp = time.Time{}
 			}
-			e.Properties, e.AttributionLabels = c.Properties, c.AttributionLabels
+			e.Properties = c.Properties
 			if got := fieldErrors(e.Validate()); !slices.Equal(got, c.Errors) {
 				t.Errorf("errors: got = %v, want = %v", got, c.Errors)
 			}
