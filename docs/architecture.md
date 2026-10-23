@@ -337,11 +337,11 @@ The single binary `tanvo serve` runs any combination of roles:
 
 ## 14. Enterprise Edition (ee/)
 
-Features that Lago offers only in its cloud or behind its premium license are implemented as enterprise services under ELv2, each a separate process that uses `libs/proto` contracts and read-only data (PostgreSQL views or ClickHouse):
+Features behind Lago's premium license (progressive billing, wallets' advanced rules, integrations, e-invoicing, …) are part of the AGPL core with no gate. Only what Lago runs as private cloud services is implemented as enterprise services under ELv2, each a separate process that uses `libs/proto` contracts and read-only data (PostgreSQL views or ClickHouse):
 
 * Analytics and dashboards (revenue, MRR, usage, collections, forecasts), replacing Lago's private Data API and Superset.
 * The billing assistant: an AI agent with an MCP server exposing Tanvo's API.
-* Further premium capabilities identified in [Feature Parity](parity.md).
+* Customer-success tooling and the other private services listed in [Feature Parity §1.50](parity.md#150-lago-gates-and-their-tanvo-placement).
 
 Self-hosted installations enable them with an offline-verifiable license key (Ed25519-signed); Tanvo Cloud enables them per plan. The AGPL core contains no license checks.
 

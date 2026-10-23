@@ -337,11 +337,11 @@ POST /v1/events, /v1/events:batch
 
 ## 14. 企业版（ee/）
 
-Lago 只在其云服务中或在其高级许可证之下提供的功能，作为 ELv2 下的企业版服务实现，每个都是一个独立进程，使用 `libs/proto` 契约与只读数据（PostgreSQL 视图或 ClickHouse）：
+Lago 高级许可证之下的功能（渐进式计费、钱包的高级规则、集成、电子发票等）属于 AGPL 核心，不设门槛。只有 Lago 作为私有云服务运行的部分，才作为 ELv2 下的企业版服务实现，每个都是一个独立进程，使用 `libs/proto` 契约与只读数据（PostgreSQL 视图或 ClickHouse）：
 
 * 分析与仪表盘（收入、MRR、用量、回款、预测），取代 Lago 私有的 Data API 与 Superset。
 * 计费助手：带有暴露 Tanvo API 的 MCP 服务器的 AI 智能体。
-* [功能对齐](parity.zh-CN.md)中确定的其他高级能力。
+* 客户成功工具，以及[功能对齐 §1.50](parity.zh-CN.md#150-lago-的开关及其在-tanvo-中的归属)列出的其他私有服务。
 
 自托管安装通过可离线验证的许可证密钥（Ed25519 签名）启用它们；Tanvo Cloud 按套餐启用。AGPL 核心不包含任何许可证检查。
 
