@@ -1,0 +1,2573 @@
+{
+  "cases": [
+    {
+      "name": "presentation group keys returns the presentation breakdowns",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:121",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "001",
+            "cloud": "aws"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "002",
+            "cloud": "gcp"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "presentation_by": [
+          "cloud"
+        ]
+      },
+      "want": {
+        "breakdowns": [
+          {
+            "groups": {
+              "cloud": "aws"
+            },
+            "value": 1
+          },
+          {
+            "groups": {
+              "cloud": "gcp"
+            },
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "presentation group keys with grouped_by returns the presentation breakdowns per group",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:163",
+      "events": [
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "002",
+            "cloud": "gcp"
+          }
+        },
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "003",
+            "agent_name": "frodo",
+            "cloud": "aws"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "004",
+            "agent_name": "frodo",
+            "cloud": "gcp"
+          }
+        },
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "005",
+            "agent_name": "aragorn",
+            "cloud": "aws"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "presentation_by": [
+          "cloud"
+        ],
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "breakdowns": [
+          {
+            "groups": {
+              "agent_name": "frodo",
+              "cloud": "aws"
+            },
+            "value": 1
+          },
+          {
+            "groups": {
+              "agent_name": "frodo",
+              "cloud": "gcp"
+            },
+            "value": 1
+          },
+          {
+            "groups": {
+              "agent_name": "aragorn",
+              "cloud": "aws"
+            },
+            "value": 1
+          },
+          {
+            "groups": {
+              "agent_name": null,
+              "cloud": "gcp"
+            },
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "persisted metric on full period returns the number of persisted metric",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:175",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": 1
+      }
+    },
+    {
+      "name": "persisted metric with an event added in period returns the correct number",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:193",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u2"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": "1.67742"
+      }
+    },
+    {
+      "name": "persisted metric when subscription was terminated in the period returns the prorata",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:211",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-07-24T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": "0.51613"
+      }
+    },
+    {
+      "name": "persisted metric when subscription was upgraded in the period returns the prorata",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:239",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-07-23T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "terminated_by_upgrade": true
+      },
+      "want": {
+        "aggregation": "0.48388"
+      }
+    },
+    {
+      "name": "persisted metric when subscription was started in the period returns the prorata",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:248",
+      "events": [
+        {
+          "timestamp": "2022-07-01T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-08-01T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": "0.25807"
+      }
+    },
+    {
+      "name": "persisted metric when filters are used returns the number of persisted metric",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:267",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "111",
+            "region": "europe"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "filter": {
+          "matching": {
+            "region": [
+              "europe"
+            ]
+          }
+        }
+      },
+      "want": {
+        "aggregation": 1
+      }
+    },
+    {
+      "name": "persisted metric when plan is pay in advance returns the number of persisted metric",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:277",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": 1
+      }
+    },
+    {
+      "name": "persisted metrics added in the period returns the prorata",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:295",
+      "events": [
+        {
+          "timestamp": "2022-07-24T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": "0.51613"
+      }
+    },
+    {
+      "name": "persisted metrics added on the first day of the period returns the full duration",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:311",
+      "events": [
+        {
+          "timestamp": "2022-07-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": 1
+      }
+    },
+    {
+      "name": "persisted metrics terminated in the period returns the prorata",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:318",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-07-24T23:59:59Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": "0.51613"
+      }
+    },
+    {
+      "name": "persisted metrics removed on the last day of the period returns the full duration",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:335",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-08-08T23:59:59Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": 1
+      }
+    },
+    {
+      "name": "persisted metrics added and terminated in the period returns the prorata",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:356",
+      "events": [
+        {
+          "timestamp": "2022-07-10T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-08-07T23:59:59Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": "0.93549"
+      }
+    },
+    {
+      "name": "added and removed the same day multiple times returns a 1 day duration",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:375",
+      "events": [
+        {
+          "timestamp": "2022-07-09T01:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-07-09T02:00:00Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "remove"
+          }
+        },
+        {
+          "timestamp": "2022-07-09T03:00:00Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "add"
+          }
+        },
+        {
+          "timestamp": "2022-07-09T04:00:00Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": "0.03226"
+      }
+    },
+    {
+      "name": "added and removed the same day on multiple days returns the correct number",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:416",
+      "events": [
+        {
+          "timestamp": "2022-07-09T01:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-07-09T01:00:00Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "add"
+          }
+        },
+        {
+          "timestamp": "2022-07-09T02:00:00Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "remove"
+          }
+        },
+        {
+          "timestamp": "2022-07-14T01:00:00Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "add"
+          }
+        },
+        {
+          "timestamp": "2022-07-14T02:00:00Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "remove"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T01:00:00Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "add"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T02:00:00Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": "0.09678"
+      }
+    },
+    {
+      "name": "current usage pay in arrear returns correct result",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:447",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u2"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": "1.67742",
+        "current_usage_units": 2
+      }
+    },
+    {
+      "name": "current usage pay in arrear added and removed several times a day during multiple days",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:462",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T01:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T02:00:00Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "remove"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T03:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-07-12T01:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-07-12T02:00:00Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": "0.12904",
+        "current_usage_units": 0
+      }
+    },
+    {
+      "name": "current usage pay in advance returns period maximum as aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:555",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "transaction_id": "ev_prev",
+          "timestamp": "2022-07-14T00:00:00Z",
+          "properties": {
+            "unique_id": "000"
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2022-07-14T00:00:00Z",
+          "transaction_id": "ev_prev",
+          "current_aggregation": "1",
+          "max_aggregation": "1",
+          "max_aggregation_with_proration": "0.8"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "current_usage": true,
+        "pay_in_advance": true
+      },
+      "want": {
+        "aggregation": "1.8",
+        "current_usage_units": 2
+      }
+    },
+    {
+      "name": "current usage pay in advance without cached aggregation returns only the past aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:563",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "current_usage": true,
+        "pay_in_advance": true
+      },
+      "want": {
+        "aggregation": 1,
+        "current_usage_units": 1
+      }
+    },
+    {
+      "name": "current usage pay in advance with negative cached aggregation does not inflate the aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:586",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2022-07-14T00:00:00Z",
+          "transaction_id": "ev_1",
+          "current_aggregation": "-1",
+          "max_aggregation": "1",
+          "max_aggregation_with_proration": "0.8"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "current_usage": true,
+        "pay_in_advance": true
+      },
+      "want": {
+        "aggregation": "1.8",
+        "current_usage_units": 1
+      }
+    },
+    {
+      "name": "event is given assigns a pay_in_advance aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:608",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "transaction_id": "ev_pia",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u_pia"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "event": {
+          "transaction_id": "ev_pia",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u_pia"
+          }
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": "0.67742"
+      }
+    },
+    {
+      "name": "event is given with presentation group keys assigns pay_in_advance_breakdowns",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:616",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "transaction_id": "ev_pia",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u_pia",
+            "cloud": "aws",
+            "region": "eu"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "event": {
+          "transaction_id": "ev_pia",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u_pia",
+            "cloud": "aws",
+            "region": "eu"
+          }
+        },
+        "presentation_by": [
+          "cloud",
+          "region"
+        ]
+      },
+      "want": {
+        "pay_in_advance_breakdowns": [
+          {
+            "groups": {
+              "cloud": "aws",
+              "region": "eu"
+            },
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "event is given and is missing properties assigns 0 as pay_in_advance aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:626",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "transaction_id": "ev_pia",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {}
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "event": {
+          "transaction_id": "ev_pia",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {}
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 0
+      }
+    },
+    {
+      "name": "event is given when current period aggregation is greater than period maximum",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:645",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "transaction_id": "ev_prev",
+          "timestamp": "2022-07-14T00:00:00Z",
+          "properties": {
+            "unique_id": "000"
+          }
+        },
+        {
+          "transaction_id": "ev_pia",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u_pia"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "event": {
+          "transaction_id": "ev_pia",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u_pia"
+          }
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": "0.67742"
+      }
+    },
+    {
+      "name": "event is given when current period aggregation is less than period maximum",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:678",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "transaction_id": "ev_prev",
+          "timestamp": "2022-07-14T00:00:00Z",
+          "properties": {
+            "unique_id": "000"
+          }
+        },
+        {
+          "transaction_id": "ev_pia",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u_pia"
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2022-07-14T00:00:00Z",
+          "transaction_id": "ev_prev",
+          "current_aggregation": "4",
+          "max_aggregation": "7",
+          "max_aggregation_with_proration": "5.8"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "event": {
+          "transaction_id": "ev_pia",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u_pia"
+          }
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 0,
+        "units_applied": 1
+      }
+    },
+    {
+      "name": "grouped persisted metric on full period returns the number of persisted metric",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:708",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "count": 1,
+            "aggregation": 1,
+            "full_units_number": 1
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "count": 1,
+            "aggregation": 1,
+            "full_units_number": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped persisted metric with events added in period returns the correct number",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:736",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u_aragorn",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u_frodo",
+            "agent_name": "frodo"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": "1.67742",
+            "full_units_number": 2
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": "1.67742",
+            "full_units_number": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped persisted metric when filters are used returns the number of persisted metric",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:764",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "111",
+            "region": "europe",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "111",
+            "region": "europe",
+            "agent_name": "frodo"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ],
+        "filter": {
+          "matching": {
+            "region": [
+              "europe"
+            ]
+          }
+        }
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 1,
+            "full_units_number": 1
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": 1,
+            "full_units_number": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped persisted metrics added in the period returns the prorata",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:780",
+      "events": [
+        {
+          "timestamp": "2022-07-24T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-07-24T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": "0.51613",
+            "full_units_number": 1
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": "0.51613",
+            "full_units_number": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped persisted metrics added on the first day of the period returns the full duration",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:794",
+      "events": [
+        {
+          "timestamp": "2022-07-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-07-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 1,
+            "full_units_number": 1
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": 1,
+            "full_units_number": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped persisted metrics terminated in the period returns the prorata",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:808",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo"
+          }
+        },
+        {
+          "timestamp": "2022-07-24T23:59:59Z",
+          "properties": {
+            "unique_id": "000",
+            "operation_type": "remove",
+            "region": "europe",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-07-24T23:59:59Z",
+          "properties": {
+            "unique_id": "000",
+            "operation_type": "remove",
+            "region": "europe",
+            "agent_name": "frodo"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": "0.51613"
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": "0.51613"
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped persisted metrics removed on the last day of the period (other value) returns the full duration",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:830",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo"
+          }
+        },
+        {
+          "timestamp": "2022-08-08T23:59:59Z",
+          "properties": {
+            "unique_id": "111",
+            "operation_type": "remove",
+            "region": "europe",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-08-08T23:59:59Z",
+          "properties": {
+            "unique_id": "111",
+            "operation_type": "remove",
+            "region": "europe",
+            "agent_name": "frodo"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 1
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped added and removed the same day multiple times does not count the same day multiple times",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:853",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn",
+            "operation_type": "add"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T01:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn",
+            "operation_type": "remove"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T02:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn",
+            "operation_type": "add"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T02:00:01Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn",
+            "operation_type": "remove"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T03:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn",
+            "operation_type": "add"
+          }
+        },
+        {
+          "timestamp": "2022-07-11T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn",
+            "operation_type": "remove"
+          }
+        },
+        {
+          "timestamp": "2022-07-11T01:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn",
+            "operation_type": "add"
+          }
+        },
+        {
+          "timestamp": "2022-07-11T02:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn",
+            "operation_type": "remove"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo",
+            "operation_type": "add"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T01:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo",
+            "operation_type": "remove"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T02:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo",
+            "operation_type": "add"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T02:00:01Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo",
+            "operation_type": "remove"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T03:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo",
+            "operation_type": "add"
+          }
+        },
+        {
+          "timestamp": "2022-07-11T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo",
+            "operation_type": "remove"
+          }
+        },
+        {
+          "timestamp": "2022-07-11T01:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo",
+            "operation_type": "add"
+          }
+        },
+        {
+          "timestamp": "2022-07-11T02:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": "0.09678"
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": "0.09678"
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped persisted metrics added and terminated in the period returns the prorata",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:911",
+      "events": [
+        {
+          "timestamp": "2022-07-10T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo"
+          }
+        },
+        {
+          "timestamp": "2022-08-07T23:59:59Z",
+          "properties": {
+            "unique_id": "000",
+            "operation_type": "remove",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-08-07T23:59:59Z",
+          "properties": {
+            "unique_id": "000",
+            "operation_type": "remove",
+            "agent_name": "frodo"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": "0.93549"
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": "0.93549"
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped persisted metrics added and removed the same day returns a 1 day duration",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:935",
+      "events": [
+        {
+          "timestamp": "2022-07-10T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T23:59:59Z",
+          "properties": {
+            "unique_id": "000",
+            "operation_type": "remove",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T23:59:59Z",
+          "properties": {
+            "unique_id": "000",
+            "operation_type": "remove",
+            "agent_name": "frodo"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": "0.03226"
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": "0.03226"
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped current usage pay in arrear returns correct result",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:977",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u_aragorn",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u_frodo",
+            "agent_name": "frodo"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ],
+        "current_usage": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": "1.67742",
+            "current_usage_units": 2
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": "1.67742",
+            "current_usage_units": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped current usage pay in advance returns period maximum as aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:1029",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo"
+          }
+        },
+        {
+          "transaction_id": "ev_prev_aragorn",
+          "timestamp": "2022-07-14T00:00:00Z",
+          "properties": {
+            "unique_id": "111",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "transaction_id": "ev_prev_frodo",
+          "timestamp": "2022-07-14T00:00:00Z",
+          "properties": {
+            "unique_id": "111",
+            "agent_name": "frodo"
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2022-07-14T00:00:00Z",
+          "transaction_id": "ev_prev_aragorn",
+          "groups": {
+            "agent_name": "aragorn"
+          },
+          "current_aggregation": "1",
+          "max_aggregation": "1",
+          "max_aggregation_with_proration": "0.8"
+        },
+        {
+          "timestamp": "2022-07-14T00:00:00Z",
+          "transaction_id": "ev_prev_frodo",
+          "groups": {
+            "agent_name": "frodo"
+          },
+          "current_aggregation": "1",
+          "max_aggregation": "1",
+          "max_aggregation_with_proration": "0.8"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ],
+        "current_usage": true,
+        "pay_in_advance": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": "1.8",
+            "current_usage_units": 2
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": "1.8",
+            "current_usage_units": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped current usage pay in advance without cached aggregation returns only the past aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:1043",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "000",
+            "agent_name": "frodo"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ],
+        "current_usage": true,
+        "pay_in_advance": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 1,
+            "current_usage_units": 1,
+            "full_units_number": 1
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": 1,
+            "current_usage_units": 1,
+            "full_units_number": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "bypassed non-recurring metric returns empty aggregations",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:1083",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "unique_count",
+            "field_name": "unique_id"
+          },
+          "from": "2022-07-09T00:00:00Z",
+          "to": "2022-08-08T23:59:59Z",
+          "period_days": 31,
+          "prorated": true,
+          "bypass_aggregation": true
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [],
+        "prorated": []
+      }
+    },
+    {
+      "name": "bypassed recurring metric ignores the bypass and aggregates per events",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:1109",
+      "events": [
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "unique_count",
+            "field_name": "unique_id",
+            "recurring": true
+          },
+          "from": "2022-07-09T00:00:00Z",
+          "to": "2022-08-08T23:59:59Z",
+          "period_days": 31,
+          "prorated": true,
+          "bypass_aggregation": true
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [
+          1
+        ],
+        "prorated": [
+          "0.67742"
+        ]
+      }
+    },
+    {
+      "name": "event added in the period aggregates per events",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:1120",
+      "events": [
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "unique_count",
+            "field_name": "unique_id",
+            "recurring": true
+          },
+          "from": "2022-07-09T00:00:00Z",
+          "to": "2022-08-08T23:59:59Z",
+          "period_days": 31,
+          "prorated": true
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [
+          1
+        ],
+        "prorated": [
+          "0.67742"
+        ]
+      }
+    },
+    {
+      "name": "event added in the period with grouped_by_values takes the groups into account",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:1148",
+      "events": [
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u2",
+            "scheme": "visa"
+          }
+        },
+        {
+          "timestamp": "2022-07-29T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "unique_count",
+            "field_name": "unique_id",
+            "recurring": true
+          },
+          "from": "2022-07-09T00:00:00Z",
+          "to": "2022-08-08T23:59:59Z",
+          "period_days": 31,
+          "prorated": true
+        },
+        "options": {
+          "group_values": {
+            "scheme": "visa"
+          }
+        }
+      },
+      "want": {
+        "values": [
+          1
+        ],
+        "prorated": [
+          "0.67742"
+        ]
+      }
+    },
+    {
+      "name": "grouped_by_values when sending multiple events per day aggregates per events",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:1167",
+      "events": [
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "property_1"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u2",
+            "scheme": "visa"
+          }
+        },
+        {
+          "timestamp": "2022-07-29T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "property_1",
+            "scheme": "visa"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "property_1",
+            "scheme": "visa"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T01:00:00Z",
+          "properties": {
+            "unique_id": "property_1",
+            "scheme": "visa",
+            "operation_type": "remove"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T02:00:00Z",
+          "properties": {
+            "unique_id": "property_1",
+            "scheme": "visa",
+            "operation_type": "remove"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T03:00:00Z",
+          "properties": {
+            "unique_id": "property_1",
+            "scheme": "visa",
+            "operation_type": "add"
+          }
+        },
+        {
+          "timestamp": "2022-07-20T00:00:00Z",
+          "properties": {
+            "unique_id": "property_1",
+            "scheme": "visa",
+            "operation_type": "add"
+          }
+        },
+        {
+          "timestamp": "2022-07-20T01:00:00Z",
+          "properties": {
+            "unique_id": "property_1",
+            "scheme": "visa",
+            "operation_type": "remove"
+          }
+        },
+        {
+          "timestamp": "2022-07-20T02:00:00Z",
+          "properties": {
+            "unique_id": "property_1",
+            "scheme": "visa",
+            "operation_type": "add"
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "unique_count",
+            "field_name": "unique_id",
+            "recurring": true
+          },
+          "from": "2022-07-09T00:00:00Z",
+          "to": "2022-08-08T23:59:59Z",
+          "period_days": 31,
+          "prorated": true
+        },
+        "options": {
+          "group_values": {
+            "scheme": "visa"
+          }
+        }
+      },
+      "want": {
+        "values": [
+          1,
+          1
+        ],
+        "prorated": [
+          "0.67742",
+          "0.67742"
+        ]
+      }
+    },
+    {
+      "name": "persisted metrics removed in the period aggregates per events",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:1267",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-07-24T23:59:59Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "unique_count",
+            "field_name": "unique_id",
+            "recurring": true
+          },
+          "from": "2022-07-09T00:00:00Z",
+          "to": "2022-08-08T23:59:59Z",
+          "period_days": 31,
+          "prorated": true
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [
+          1,
+          -1
+        ],
+        "prorated": [
+          "0.51613",
+          0
+        ]
+      }
+    },
+    {
+      "name": "persisted metrics removed on the last day of the period aggregates per events",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:1300",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-08-08T23:59:59Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "unique_count",
+            "field_name": "unique_id",
+            "recurring": true
+          },
+          "from": "2022-07-09T00:00:00Z",
+          "to": "2022-08-08T23:59:59Z",
+          "period_days": 31,
+          "prorated": true
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [
+          1,
+          -1
+        ],
+        "prorated": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "name": "persisted metrics added and removed in the period aggregates per events",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:1311",
+      "events": [
+        {
+          "timestamp": "2022-07-10T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-08-07T23:59:59Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "unique_count",
+            "field_name": "unique_id",
+            "recurring": true
+          },
+          "from": "2022-07-09T00:00:00Z",
+          "to": "2022-08-08T23:59:59Z",
+          "period_days": 31,
+          "prorated": true
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [
+          1,
+          -1
+        ],
+        "prorated": [
+          "0.93549",
+          0
+        ]
+      }
+    },
+    {
+      "name": "persisted metrics added and removed the same day aggregates per events",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:1333",
+      "events": [
+        {
+          "timestamp": "2022-07-10T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T23:59:59Z",
+          "properties": {
+            "unique_id": "u1",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "unique_count",
+            "field_name": "unique_id",
+            "recurring": true
+          },
+          "from": "2022-07-09T00:00:00Z",
+          "to": "2022-08-08T23:59:59Z",
+          "period_days": 31,
+          "prorated": true
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [
+          1,
+          -1
+        ],
+        "prorated": [
+          "0.03226",
+          0
+        ]
+      }
+    },
+    {
+      "name": "multiple events added in the period and one added and removed aggregates per events",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:1389",
+      "events": [
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u2"
+          }
+        },
+        {
+          "timestamp": "2022-07-29T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        },
+        {
+          "timestamp": "2022-07-29T23:59:59Z",
+          "properties": {
+            "unique_id": "111",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "unique_count",
+            "field_name": "unique_id",
+            "recurring": true
+          },
+          "from": "2022-07-09T00:00:00Z",
+          "to": "2022-08-08T23:59:59Z",
+          "period_days": 31,
+          "prorated": true
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [
+          1,
+          1,
+          1,
+          -1
+        ],
+        "prorated": [
+          "0.67742",
+          "0.67742",
+          "0.03226",
+          0
+        ]
+      }
+    },
+    {
+      "name": "multiple events added and removed in the period with one persisted aggregates per events",
+      "source": "spec/services/billable_metrics/prorated_aggregations/unique_count_service_spec.rb:1433",
+      "events": [
+        {
+          "transaction_id": "ev_1",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "u1"
+          }
+        },
+        {
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "u2"
+          }
+        },
+        {
+          "timestamp": "2022-07-29T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        },
+        {
+          "timestamp": "2022-07-29T23:59:59Z",
+          "properties": {
+            "unique_id": "111",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "unique_count",
+            "field_name": "unique_id",
+            "recurring": true
+          },
+          "from": "2022-07-09T00:00:00Z",
+          "to": "2022-08-08T23:59:59Z",
+          "period_days": 31,
+          "prorated": true
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [
+          1,
+          1,
+          1,
+          -1
+        ],
+        "prorated": [
+          1,
+          "0.67742",
+          "0.03226",
+          0
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,1849 @@
+{
+  "fixtures": {
+    "standard": [
+      {
+        "transaction_id": "old_1",
+        "timestamp": "2026-07-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5
+        }
+      },
+      {
+        "transaction_id": "old_2",
+        "timestamp": "2026-07-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5
+        }
+      },
+      {
+        "transaction_id": "latest_1",
+        "timestamp": "2026-09-30T00:00:00Z",
+        "properties": {
+          "total_count": 12
+        }
+      },
+      {
+        "transaction_id": "latest_2",
+        "timestamp": "2026-09-30T00:00:00Z",
+        "properties": {
+          "total_count": 12
+        }
+      },
+      {
+        "transaction_id": "latest_3",
+        "timestamp": "2026-09-30T00:00:00Z",
+        "properties": {
+          "total_count": 12
+        }
+      },
+      {
+        "transaction_id": "latest_4",
+        "timestamp": "2026-09-30T00:00:00Z",
+        "properties": {
+          "total_count": 12
+        }
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "aggregates the events",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:108",
+      "fixture": "standard",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "free_units_per_events": 2,
+        "free_units_per_total_aggregation": "30"
+      },
+      "want": {
+        "aggregation": 48,
+        "pay_in_advance_aggregation": 0,
+        "count": 4,
+        "running_total": [
+          12,
+          24
+        ]
+      }
+    },
+    {
+      "name": "recurring metric aggregates the events",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:120",
+      "fixture": "standard",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "free_units_per_events": 2,
+        "free_units_per_total_aggregation": "30"
+      },
+      "want": {
+        "aggregation": 53,
+        "pay_in_advance_aggregation": 0,
+        "count": 6,
+        "running_total": [
+          2.5,
+          5
+        ]
+      }
+    },
+    {
+      "name": "without options returns an empty running total",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:175",
+      "fixture": "standard",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z"
+      },
+      "want": {
+        "running_total": []
+      }
+    },
+    {
+      "name": "with nil option values returns an empty running total",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:186",
+      "fixture": "standard",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z"
+      },
+      "want": {
+        "running_total": []
+      }
+    },
+    {
+      "name": "free_units_per_events nil returns running total by total aggregation",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:197",
+      "fixture": "standard",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "free_units_per_total_aggregation": "30"
+      },
+      "want": {
+        "running_total": [
+          12,
+          24,
+          36
+        ]
+      }
+    },
+    {
+      "name": "free_units_per_total_aggregation nil returns running total by events",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:208",
+      "fixture": "standard",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "free_units_per_events": 2
+      },
+      "want": {
+        "running_total": [
+          12,
+          24
+        ]
+      }
+    },
+    {
+      "name": "dynamic charge computes a zero precise_total_amount_cents",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:217",
+      "fixture": "standard",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "dynamic": true,
+        "free_units_per_events": 2,
+        "free_units_per_total_aggregation": "30"
+      },
+      "want": {
+        "precise_total_amount_cents": 0
+      }
+    },
+    {
+      "name": "dynamic charge with event amounts computes the precise_total_amount_cents",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:254",
+      "events": [
+        {
+          "transaction_id": "old_1",
+          "timestamp": "2026-07-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          },
+          "precise_total_amount_cents": 12
+        },
+        {
+          "transaction_id": "old_2",
+          "timestamp": "2026-07-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          },
+          "precise_total_amount_cents": 12
+        },
+        {
+          "transaction_id": "latest_1",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          },
+          "precise_total_amount_cents": 10
+        },
+        {
+          "transaction_id": "latest_2",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          },
+          "precise_total_amount_cents": 10
+        },
+        {
+          "transaction_id": "latest_3",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          },
+          "precise_total_amount_cents": 10
+        },
+        {
+          "transaction_id": "latest_4",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          },
+          "precise_total_amount_cents": 10
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "dynamic": true,
+        "free_units_per_events": 2,
+        "free_units_per_total_aggregation": "30"
+      },
+      "want": {
+        "aggregation": 48,
+        "precise_total_amount_cents": 40
+      }
+    },
+    {
+      "name": "dynamic charge with filters aggregates the events matching the filter",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:308",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "eu_1",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "region": "europe"
+          },
+          "precise_total_amount_cents": 5
+        },
+        {
+          "transaction_id": "eu_2",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 8,
+            "region": "europe"
+          },
+          "precise_total_amount_cents": 7
+        },
+        {
+          "transaction_id": "af_1",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "region": "africa"
+          },
+          "precise_total_amount_cents": 9
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "dynamic": true,
+        "filter": {
+          "matching": {
+            "region": [
+              "europe"
+            ]
+          }
+        },
+        "free_units_per_events": 2,
+        "free_units_per_total_aggregation": "30"
+      },
+      "want": {
+        "aggregation": 20,
+        "count": 2,
+        "precise_total_amount_cents": 12,
+        "running_total": [
+          12,
+          20
+        ]
+      }
+    },
+    {
+      "name": "events out of bounds are not taken into account",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:335",
+      "events": [
+        {
+          "transaction_id": "old_1",
+          "timestamp": "2026-07-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        },
+        {
+          "transaction_id": "old_2",
+          "timestamp": "2026-07-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        },
+        {
+          "transaction_id": "latest_1",
+          "timestamp": "2026-10-02T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        },
+        {
+          "transaction_id": "latest_2",
+          "timestamp": "2026-10-02T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        },
+        {
+          "transaction_id": "latest_3",
+          "timestamp": "2026-10-02T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        },
+        {
+          "transaction_id": "latest_4",
+          "timestamp": "2026-10-02T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z"
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0,
+        "running_total": []
+      }
+    },
+    {
+      "name": "property not found on events counts as zero",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:349",
+      "fixture": "standard",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "foo_bar"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z"
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0,
+        "running_total": []
+      }
+    },
+    {
+      "name": "float property aggregates the events",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:373",
+      "fixture": "standard",
+      "events": [
+        {
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 4.5
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z"
+      },
+      "want": {
+        "aggregation": 52.5
+      }
+    },
+    {
+      "name": "non numeric property ignores the event",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:395",
+      "fixture": "standard",
+      "events": [
+        {
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": "foo_bar"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z"
+      },
+      "want": {
+        "aggregation": 48,
+        "count": 4
+      }
+    },
+    {
+      "name": "current usage of pay in advance charge returns period maximum as aggregation",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:441",
+      "events": [
+        {
+          "transaction_id": "old_1",
+          "timestamp": "2026-07-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        },
+        {
+          "transaction_id": "old_2",
+          "timestamp": "2026-07-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        },
+        {
+          "transaction_id": "latest",
+          "timestamp": "2026-09-28T00:00:00Z",
+          "properties": {
+            "total_count": 4
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2026-09-28T00:00:00Z",
+          "transaction_id": "latest",
+          "current_aggregation": "4",
+          "max_aggregation": "6",
+          "max_aggregation_with_proration": "0"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": 11
+      }
+    },
+    {
+      "name": "current usage of pay in advance charge without cached aggregation returns zero",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:453",
+      "events": [
+        {
+          "transaction_id": "old_1",
+          "timestamp": "2026-07-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        },
+        {
+          "transaction_id": "old_2",
+          "timestamp": "2026-07-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": 0
+      }
+    },
+    {
+      "name": "non persisted event is added to the running total",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:496",
+      "events": [
+        {
+          "transaction_id": "old_1",
+          "timestamp": "2026-07-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        },
+        {
+          "transaction_id": "old_2",
+          "timestamp": "2026-07-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        },
+        {
+          "transaction_id": "latest_1",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        },
+        {
+          "transaction_id": "latest_2",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "pay_in_advance": true,
+        "free_units_per_events": 4,
+        "free_units_per_total_aggregation": "30",
+        "event": {
+          "transaction_id": "estimate",
+          "timestamp": "2026-10-23T00:00:00Z",
+          "properties": {
+            "total_count": 10
+          }
+        },
+        "event_estimate": true
+      },
+      "want": {
+        "running_total": [
+          12,
+          24,
+          34
+        ]
+      }
+    },
+    {
+      "name": "matching filters aggregate the events",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:547",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "eu_1",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "region": "europe"
+          }
+        },
+        {
+          "transaction_id": "eu_2",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 8,
+            "region": "europe"
+          }
+        },
+        {
+          "transaction_id": "af_1",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "region": "africa"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "filter": {
+          "matching": {
+            "region": [
+              "europe"
+            ]
+          }
+        },
+        "free_units_per_events": 2,
+        "free_units_per_total_aggregation": "30"
+      },
+      "want": {
+        "aggregation": 20,
+        "count": 2,
+        "running_total": [
+          12,
+          20
+        ]
+      }
+    },
+    {
+      "name": "charge filter aggregates the events",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:615",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "eu_1",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "region": "europe"
+          }
+        },
+        {
+          "transaction_id": "eu_2",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 8,
+            "region": "europe"
+          }
+        },
+        {
+          "transaction_id": "af_1",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "region": "africa"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "filter": {
+          "matching": {
+            "region": [
+              "europe"
+            ]
+          },
+          "ignored": []
+        },
+        "free_units_per_events": 2,
+        "free_units_per_total_aggregation": "30"
+      },
+      "want": {
+        "aggregation": 20,
+        "count": 2,
+        "running_total": [
+          12,
+          20
+        ]
+      }
+    },
+    {
+      "name": "subscription upgraded in the period carries the previous subscription events",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:654",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "previous",
+          "timestamp": "2026-08-27T00:00:00Z",
+          "properties": {
+            "total_count": 10
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "has_previous_subscription": true,
+        "free_units_per_events": 2,
+        "free_units_per_total_aggregation": "30"
+      },
+      "want": {
+        "aggregation": 63
+      }
+    },
+    {
+      "name": "event given assigns a pay_in_advance aggregation",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:678",
+      "events": [
+        {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z",
+          "properties": {
+            "total_count": 10
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z",
+          "properties": {
+            "total_count": 10
+          }
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 10
+      }
+    },
+    {
+      "name": "event given with presentation group keys assigns pay_in_advance_breakdowns",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:688",
+      "events": [
+        {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z",
+          "properties": {
+            "total_count": 10,
+            "cloud": "aws",
+            "region": "eu"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z",
+          "properties": {
+            "total_count": 10,
+            "cloud": "aws",
+            "region": "eu"
+          }
+        },
+        "presentation_by": [
+          "cloud",
+          "region"
+        ]
+      },
+      "want": {
+        "pay_in_advance_breakdowns": [
+          {
+            "groups": {
+              "cloud": "aws",
+              "region": "eu"
+            },
+            "value": 10
+          }
+        ]
+      }
+    },
+    {
+      "name": "event given when current period aggregation is greater than period maximum",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:726",
+      "events": [
+        {
+          "transaction_id": "latest",
+          "timestamp": "2026-09-28T00:00:00Z",
+          "properties": {
+            "total_count": -6
+          }
+        },
+        {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z",
+          "properties": {
+            "total_count": 10
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2026-09-28T00:00:00Z",
+          "current_aggregation": "4",
+          "max_aggregation": "10",
+          "max_aggregation_with_proration": "0"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z",
+          "properties": {
+            "total_count": 10
+          }
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 4
+      }
+    },
+    {
+      "name": "event given when current period aggregation is less than period maximum",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:764",
+      "events": [
+        {
+          "transaction_id": "latest",
+          "timestamp": "2026-09-28T00:00:00Z",
+          "properties": {
+            "total_count": -6
+          }
+        },
+        {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z",
+          "properties": {
+            "total_count": -2
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2026-09-28T00:00:00Z",
+          "transaction_id": "latest",
+          "current_aggregation": "4",
+          "max_aggregation": "10",
+          "max_aggregation_with_proration": "0"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z",
+          "properties": {
+            "total_count": -2
+          }
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 0
+      }
+    },
+    {
+      "name": "event given with a float property assigns a pay_in_advance aggregation",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:774",
+      "events": [
+        {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z",
+          "properties": {
+            "total_count": 12.4
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z",
+          "properties": {
+            "total_count": 12.4
+          }
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 12.4
+      }
+    },
+    {
+      "name": "event given with a property not matching the field name assigns zero",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:784",
+      "events": [
+        {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z",
+          "properties": {
+            "final_count": 10
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z",
+          "properties": {
+            "final_count": 10
+          }
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 0
+      }
+    },
+    {
+      "name": "event given without properties assigns zero",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:794",
+      "events": [
+        {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z"
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 0
+      }
+    },
+    {
+      "name": "event given with a precise_total_amount_cents on a dynamic charge",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:822",
+      "events": [
+        {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z",
+          "properties": {
+            "total_count": 10
+          },
+          "precise_total_amount_cents": 1234.02
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2026-09-29T00:00:00Z",
+          "properties": {
+            "total_count": 10
+          },
+          "precise_total_amount_cents": 1234.02
+        },
+        "dynamic": true
+      },
+      "want": {
+        "pay_in_advance_aggregation": 10,
+        "precise_total_amount_cents": 1234.02,
+        "pay_in_advance_precise_total_amount_cents": 1234.02
+      }
+    },
+    {
+      "name": "rounding is applied to the aggregation",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:848",
+      "events": [
+        {
+          "transaction_id": "old_1",
+          "timestamp": "2026-07-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        },
+        {
+          "transaction_id": "old_2",
+          "timestamp": "2026-07-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        },
+        {
+          "transaction_id": "latest_1",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        },
+        {
+          "transaction_id": "latest_2",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        },
+        {
+          "transaction_id": "latest_3",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        },
+        {
+          "transaction_id": "latest_4",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12.434
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "rounding_function": "ceil",
+          "rounding_precision": 2
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "free_units_per_events": 2,
+        "free_units_per_total_aggregation": "30"
+      },
+      "want": {
+        "aggregation": 48.44
+      }
+    },
+    {
+      "name": "bypass_aggregation returns a default empty result",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:858",
+      "fixture": "standard",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "bypass_aggregation": true
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0,
+        "current_usage_units": 0,
+        "running_total": []
+      }
+    },
+    {
+      "name": "per event aggregation aggregates per events",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:869",
+      "fixture": "standard",
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "sum",
+            "field_name": "total_count"
+          },
+          "from": "2026-09-01T00:00:00Z",
+          "to": "2026-10-01T00:00:00Z"
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [
+          12,
+          12,
+          12,
+          12
+        ]
+      }
+    },
+    {
+      "name": "per event aggregation with grouped_by_values takes the groups into account",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:883",
+      "events": [
+        {
+          "transaction_id": "old_1",
+          "timestamp": "2026-07-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        },
+        {
+          "transaction_id": "old_2",
+          "timestamp": "2026-07-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        },
+        {
+          "transaction_id": "latest_1",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "scheme": "visa"
+          }
+        },
+        {
+          "transaction_id": "latest_2",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        },
+        {
+          "transaction_id": "latest_3",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        },
+        {
+          "transaction_id": "latest_4",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "sum",
+            "field_name": "total_count"
+          },
+          "from": "2026-09-01T00:00:00Z",
+          "to": "2026-10-01T00:00:00Z"
+        },
+        "options": {
+          "group_values": {
+            "scheme": "visa"
+          }
+        }
+      },
+      "want": {
+        "values": [
+          12
+        ]
+      }
+    },
+    {
+      "name": "per event aggregation including the event value",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:904",
+      "fixture": "standard",
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "sum",
+            "field_name": "total_count"
+          },
+          "from": "2026-09-01T00:00:00Z",
+          "to": "2026-10-01T00:00:00Z",
+          "event": {
+            "transaction_id": "estimate",
+            "timestamp": "2026-10-23T00:00:00Z",
+            "properties": {
+              "total_count": 10
+            }
+          },
+          "event_estimate": true
+        },
+        "options": {
+          "include_event_value": true
+        }
+      },
+      "want": {
+        "values": [
+          12,
+          12,
+          12,
+          12,
+          10
+        ]
+      }
+    },
+    {
+      "name": "grouped_by returns grouped aggregations",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:936",
+      "events": [
+        {
+          "transaction_id": "agent_aragorn",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "transaction_id": "agent_frodo",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "frodo"
+          }
+        },
+        {
+          "transaction_id": "agent_gimli",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "gimli"
+          }
+        },
+        {
+          "transaction_id": "agent_legolas",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "legolas"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "group_by": [
+          "agent_name"
+        ],
+        "free_units_per_events": 2,
+        "free_units_per_total_aggregation": "30"
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 12,
+            "count": 1,
+            "running_total": [
+              12
+            ]
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": 12,
+            "count": 1,
+            "running_total": [
+              12
+            ]
+          },
+          {
+            "groups": {
+              "agent_name": "gimli"
+            },
+            "aggregation": 12,
+            "count": 1,
+            "running_total": [
+              12
+            ]
+          },
+          {
+            "groups": {
+              "agent_name": "legolas"
+            },
+            "aggregation": 12,
+            "count": 1,
+            "running_total": [
+              12
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped_by without events returns an empty result",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:952",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "group_by": [
+          "agent_name"
+        ],
+        "free_units_per_events": 2,
+        "free_units_per_total_aggregation": "30"
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": null
+            },
+            "aggregation": 0,
+            "count": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped_by with bypass_aggregation returns an empty result",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:967",
+      "events": [
+        {
+          "transaction_id": "agent_aragorn",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "transaction_id": "agent_frodo",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "frodo"
+          }
+        },
+        {
+          "transaction_id": "agent_gimli",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "gimli"
+          }
+        },
+        {
+          "transaction_id": "agent_legolas",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "legolas"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "group_by": [
+          "agent_name"
+        ],
+        "bypass_aggregation": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": null
+            },
+            "aggregation": 0,
+            "count": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped_by current usage of pay in advance charge ignores the ungrouped cached aggregation",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:1001",
+      "events": [
+        {
+          "transaction_id": "agent_aragorn",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "transaction_id": "agent_frodo",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "frodo"
+          }
+        },
+        {
+          "transaction_id": "agent_gimli",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "gimli"
+          }
+        },
+        {
+          "transaction_id": "agent_legolas",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "legolas"
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2026-09-28T00:00:00Z",
+          "current_aggregation": "4",
+          "max_aggregation": "6",
+          "max_aggregation_with_proration": "0"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "group_by": [
+          "agent_name"
+        ],
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 12,
+            "count": 1
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": 12,
+            "count": 1
+          },
+          {
+            "groups": {
+              "agent_name": "gimli"
+            },
+            "aggregation": 12,
+            "count": 1
+          },
+          {
+            "groups": {
+              "agent_name": "legolas"
+            },
+            "aggregation": 12,
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped_by current usage of pay in advance charge without events returns an empty result",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:1019",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "group_by": [
+          "agent_name"
+        ],
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": null
+            },
+            "aggregation": 0,
+            "count": 0,
+            "current_usage_units": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped_by with rounding rounds each group",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:1053",
+      "events": [
+        {
+          "transaction_id": "agent_aragorn",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "transaction_id": "agent_frodo",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "frodo"
+          }
+        },
+        {
+          "transaction_id": "agent_gimli",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "gimli"
+          }
+        },
+        {
+          "transaction_id": "agent_legolas",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12.434,
+            "agent_name": "legolas"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "rounding_function": "ceil",
+          "rounding_precision": 2
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "group_by": [
+          "agent_name"
+        ],
+        "free_units_per_events": 2,
+        "free_units_per_total_aggregation": "30"
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 12,
+            "count": 1
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": 12,
+            "count": 1
+          },
+          {
+            "groups": {
+              "agent_name": "gimli"
+            },
+            "aggregation": 12,
+            "count": 1
+          },
+          {
+            "groups": {
+              "agent_name": "legolas"
+            },
+            "aggregation": 12.44,
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped_by with free units per events returns running totals",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:1071",
+      "events": [
+        {
+          "transaction_id": "agent_aragorn",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "transaction_id": "agent_frodo",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "frodo"
+          }
+        },
+        {
+          "transaction_id": "agent_gimli",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "gimli"
+          }
+        },
+        {
+          "transaction_id": "agent_legolas",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "legolas"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "group_by": [
+          "agent_name"
+        ],
+        "free_units_per_events": 10
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "running_total": [
+              12
+            ]
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "running_total": [
+              12
+            ]
+          },
+          {
+            "groups": {
+              "agent_name": "gimli"
+            },
+            "running_total": [
+              12
+            ]
+          },
+          {
+            "groups": {
+              "agent_name": "legolas"
+            },
+            "running_total": [
+              12
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "presentation group keys return the aggregations per group",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:1111",
+      "events": [
+        {
+          "transaction_id": "aws_1",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 10,
+            "cloud": "aws"
+          }
+        },
+        {
+          "transaction_id": "aws_2",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 10,
+            "cloud": "aws"
+          }
+        },
+        {
+          "transaction_id": "aws_3",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 10,
+            "cloud": "aws"
+          }
+        },
+        {
+          "transaction_id": "gcp_1",
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "cloud": "gcp"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "presentation_by": [
+          "cloud"
+        ]
+      },
+      "want": {
+        "breakdowns": [
+          {
+            "groups": {
+              "cloud": "aws"
+            },
+            "value": 30
+          },
+          {
+            "groups": {
+              "cloud": "gcp"
+            },
+            "value": 12
+          }
+        ]
+      }
+    },
+    {
+      "name": "presentation group keys with grouped_by return the aggregations per group",
+      "source": "spec/services/billable_metrics/aggregations/sum_service_spec.rb:1155",
+      "events": [
+        {
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 2,
+            "agent_name": "frodo",
+            "cloud": "aws"
+          }
+        },
+        {
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 7,
+            "agent_name": "frodo",
+            "cloud": "gcp"
+          }
+        },
+        {
+          "timestamp": "2026-09-30T00:00:00Z",
+          "properties": {
+            "total_count": 3,
+            "agent_name": "aragorn",
+            "cloud": "aws"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count"
+        },
+        "from": "2026-09-01T00:00:00Z",
+        "to": "2026-10-01T00:00:00Z",
+        "group_by": [
+          "agent_name"
+        ],
+        "presentation_by": [
+          "cloud"
+        ]
+      },
+      "want": {
+        "breakdowns": [
+          {
+            "groups": {
+              "agent_name": "frodo",
+              "cloud": "aws"
+            },
+            "value": 2
+          },
+          {
+            "groups": {
+              "agent_name": "frodo",
+              "cloud": "gcp"
+            },
+            "value": 7
+          },
+          {
+            "groups": {
+              "agent_name": "aragorn",
+              "cloud": "aws"
+            },
+            "value": 3
+          }
+        ]
+      }
+    }
+  ]
+}

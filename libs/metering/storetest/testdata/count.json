@@ -1,0 +1,700 @@
+{
+  "fixtures": {
+    "four": [
+      {
+        "timestamp": "2023-06-14T12:00:00Z"
+      },
+      {
+        "timestamp": "2023-06-14T12:00:00Z"
+      },
+      {
+        "timestamp": "2023-06-14T12:00:00Z"
+      },
+      {
+        "timestamp": "2023-06-14T12:00:00Z"
+      }
+    ],
+    "agents": [
+      {
+        "timestamp": "2023-06-14T12:00:00Z",
+        "properties": {
+          "agent_name": "aragorn"
+        }
+      },
+      {
+        "timestamp": "2023-06-14T12:00:00Z",
+        "properties": {
+          "agent_name": "frodo"
+        }
+      },
+      {
+        "timestamp": "2023-06-14T12:00:00Z",
+        "properties": {
+          "agent_name": "gimli"
+        }
+      },
+      {
+        "timestamp": "2023-06-14T12:00:00Z",
+        "properties": {
+          "agent_name": "legolas"
+        }
+      },
+      {
+        "timestamp": "2023-06-14T12:00:00Z"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "aggregates the events",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:86",
+      "fixture": "four",
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32
+      },
+      "want": {
+        "aggregation": 4
+      }
+    },
+    {
+      "name": "events out of bounds are not taken into account",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:95",
+      "fixture": "four",
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-13T12:00:00Z",
+        "period_days": 30
+      },
+      "want": {
+        "aggregation": 0
+      }
+    },
+    {
+      "name": "with matching filters aggregates the matching events",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:151",
+      "events": [
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "cloud": "AWS",
+            "region": "europe"
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "total_count": 8,
+            "cloud": "AWS",
+            "region": "europe"
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "cloud": "AWS",
+            "region": "africa"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "filter": {
+          "matching": {
+            "cloud": [
+              "AWS"
+            ],
+            "region": [
+              "europe"
+            ]
+          }
+        }
+      },
+      "want": {
+        "aggregation": 2
+      }
+    },
+    {
+      "name": "with a pay in advance event assigns a pay in advance aggregation",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:161",
+      "fixture": "four",
+      "events": [
+        {
+          "organization_id": "org_2",
+          "code": "other_code",
+          "transaction_id": "tr_pia",
+          "timestamp": "2023-06-15T12:00:00Z"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "event": {
+          "organization_id": "org_2",
+          "code": "other_code",
+          "transaction_id": "tr_pia",
+          "timestamp": "2023-06-15T12:00:00Z"
+        }
+      },
+      "want": {
+        "aggregation": 4,
+        "pay_in_advance_aggregation": 1
+      }
+    },
+    {
+      "name": "with a pay in advance event and presentation keys assigns the event breakdowns",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:180",
+      "fixture": "four",
+      "events": [
+        {
+          "transaction_id": "tr_pia",
+          "timestamp": "2023-06-15T12:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "region": "eu"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "event": {
+          "transaction_id": "tr_pia",
+          "timestamp": "2023-06-15T12:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "region": "eu"
+          }
+        },
+        "presentation_by": [
+          "cloud",
+          "region"
+        ]
+      },
+      "want": {
+        "pay_in_advance_breakdowns": [
+          {
+            "groups": {
+              "cloud": "aws",
+              "region": "eu"
+            },
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "with presentation keys returns the breakdowns",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:215",
+      "events": [
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "cloud": "aws"
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "cloud": "aws"
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "cloud": "aws"
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "cloud": "gcp"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "presentation_by": [
+          "cloud"
+        ]
+      },
+      "want": {
+        "breakdowns": [
+          {
+            "groups": {
+              "cloud": "aws"
+            },
+            "value": 3
+          },
+          {
+            "groups": {
+              "cloud": "gcp"
+            },
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "with presentation keys and grouped_by returns the breakdowns",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:268",
+      "events": [
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "cloud": "aws"
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "cloud": "aws"
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "cloud": "gcp"
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "agent_name": "aragorn",
+            "cloud": "aws"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "presentation_by": [
+          "cloud"
+        ],
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "breakdowns": [
+          {
+            "groups": {
+              "agent_name": "frodo",
+              "cloud": "aws"
+            },
+            "value": 2
+          },
+          {
+            "groups": {
+              "agent_name": "frodo",
+              "cloud": "gcp"
+            },
+            "value": 1
+          },
+          {
+            "groups": {
+              "agent_name": "aragorn",
+              "cloud": "aws"
+            },
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "with bypass_aggregation returns a default empty result",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:283",
+      "fixture": "four",
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "bypass_aggregation": true
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0,
+        "current_usage_units": 0,
+        "running_total": []
+      }
+    },
+    {
+      "name": "per event aggregates per events",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:337",
+      "fixture": "four",
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "count"
+          },
+          "from": "2023-05-15T00:00:00Z",
+          "to": "2023-06-15T23:59:59.999999Z",
+          "period_days": 32
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "name": "per event with grouped_by_values takes the groups into account",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:348",
+      "events": [
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "scheme": "visa"
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z"
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z"
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z"
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "count"
+          },
+          "from": "2023-05-15T00:00:00Z",
+          "to": "2023-06-15T23:59:59.999999Z",
+          "period_days": 32
+        },
+        "options": {
+          "group_values": {
+            "scheme": "visa"
+          }
+        }
+      },
+      "want": {
+        "values": [
+          1
+        ]
+      }
+    },
+    {
+      "name": "per event including the event value",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:357",
+      "fixture": "four",
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "count"
+          },
+          "from": "2023-05-15T00:00:00Z",
+          "to": "2023-06-15T23:59:59.999999Z",
+          "period_days": 32
+        },
+        "options": {
+          "include_event_value": true
+        }
+      },
+      "want": {
+        "values": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "name": "per event with bypass_aggregation returns an empty aggregation",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:366",
+      "fixture": "four",
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "count"
+          },
+          "from": "2023-05-15T00:00:00Z",
+          "to": "2023-06-15T23:59:59.999999Z",
+          "period_days": 32,
+          "bypass_aggregation": true
+        },
+        "options": {}
+      },
+      "want": {
+        "values": []
+      }
+    },
+    {
+      "name": "grouped by returns grouped aggregations",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:407",
+      "fixture": "agents",
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 1,
+            "count": 1,
+            "current_usage_units": 1,
+            "running_total": []
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": 1,
+            "count": 1,
+            "current_usage_units": 1,
+            "running_total": []
+          },
+          {
+            "groups": {
+              "agent_name": "gimli"
+            },
+            "aggregation": 1,
+            "count": 1,
+            "current_usage_units": 1,
+            "running_total": []
+          },
+          {
+            "groups": {
+              "agent_name": "legolas"
+            },
+            "aggregation": 1,
+            "count": 1,
+            "current_usage_units": 1,
+            "running_total": []
+          },
+          {
+            "groups": {
+              "agent_name": null
+            },
+            "aggregation": 1,
+            "count": 1,
+            "current_usage_units": 1,
+            "running_total": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped by without events returns an empty result",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:425",
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": null
+            },
+            "aggregation": 0,
+            "count": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped by with free units per events returns running totals",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:438",
+      "fixture": "agents",
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "group_by": [
+          "agent_name"
+        ],
+        "free_units_per_events": 10
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "running_total": [
+              1
+            ]
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "running_total": [
+              1
+            ]
+          },
+          {
+            "groups": {
+              "agent_name": "gimli"
+            },
+            "running_total": [
+              1
+            ]
+          },
+          {
+            "groups": {
+              "agent_name": "legolas"
+            },
+            "running_total": [
+              1
+            ]
+          },
+          {
+            "groups": {
+              "agent_name": null
+            },
+            "running_total": [
+              1
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped by with bypass_aggregation returns an empty result",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:452",
+      "fixture": "agents",
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "group_by": [
+          "agent_name"
+        ],
+        "bypass_aggregation": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": null
+            },
+            "aggregation": 0,
+            "count": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "clickhouse store aggregates the events",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:481",
+      "fixture": "four",
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32
+      },
+      "want": {
+        "aggregation": 4
+      }
+    },
+    {
+      "name": "clickhouse store with deduplication counts re-sent events once",
+      "source": "spec/services/billable_metrics/aggregations/count_service_spec.rb:504",
+      "events": [
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "transaction_id": "123456"
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "transaction_id": "123456"
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "transaction_id": "123456"
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "transaction_id": "123456"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32
+      },
+      "want": {
+        "aggregation": 1
+      }
+    }
+  ]
+}

@@ -1,0 +1,265 @@
+{
+  "fixtures": {
+    "seven": [
+      {"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 2}},
+      {"timestamp": "2023-08-01T01:00:00Z", "properties": {"value": 3}},
+      {"timestamp": "2023-08-01T01:30:00Z", "properties": {"value": 1}},
+      {"timestamp": "2023-08-01T02:00:00Z", "properties": {"value": -4}},
+      {"timestamp": "2023-08-01T04:00:00Z", "properties": {"value": -2}},
+      {"timestamp": "2023-08-01T05:00:00Z", "properties": {"value": 10}},
+      {"timestamp": "2023-08-01T05:30:00Z", "properties": {"value": -10}}
+    ],
+    "grouped": [
+      {"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 2, "agent_name": "aragorn"}},
+      {"timestamp": "2023-08-01T01:00:00Z", "properties": {"value": 3, "agent_name": "aragorn"}},
+      {"timestamp": "2023-08-01T01:30:00Z", "properties": {"value": 1, "agent_name": "aragorn"}},
+      {"timestamp": "2023-08-01T02:00:00Z", "properties": {"value": -4, "agent_name": "aragorn"}},
+      {"timestamp": "2023-08-01T04:00:00Z", "properties": {"value": -2, "agent_name": "aragorn"}},
+      {"timestamp": "2023-08-01T05:00:00Z", "properties": {"value": 10, "agent_name": "aragorn"}},
+      {"timestamp": "2023-08-01T05:30:00Z", "properties": {"value": -10, "agent_name": "aragorn"}},
+      {"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 2, "agent_name": "frodo"}},
+      {"timestamp": "2023-08-01T01:00:00Z", "properties": {"value": 3, "agent_name": "frodo"}},
+      {"timestamp": "2023-08-01T01:30:00Z", "properties": {"value": 1, "agent_name": "frodo"}},
+      {"timestamp": "2023-08-01T02:00:00Z", "properties": {"value": -4, "agent_name": "frodo"}},
+      {"timestamp": "2023-08-01T04:00:00Z", "properties": {"value": -2, "agent_name": "frodo"}},
+      {"timestamp": "2023-08-01T05:00:00Z", "properties": {"value": 10, "agent_name": "frodo"}},
+      {"timestamp": "2023-08-01T05:30:00Z", "properties": {"value": -10, "agent_name": "frodo"}}
+    ],
+    "grouped_regions": [
+      {"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 2, "agent_name": "aragorn", "region": "eu"}},
+      {"timestamp": "2023-08-01T01:00:00Z", "properties": {"value": 3, "agent_name": "aragorn", "region": "eu"}},
+      {"timestamp": "2023-08-01T01:30:00Z", "properties": {"value": 1, "agent_name": "aragorn", "region": "eu"}},
+      {"timestamp": "2023-08-01T02:00:00Z", "properties": {"value": -4, "agent_name": "aragorn", "region": "eu"}},
+      {"timestamp": "2023-08-01T04:00:00Z", "properties": {"value": -2, "agent_name": "aragorn", "region": "eu"}},
+      {"timestamp": "2023-08-01T05:00:00Z", "properties": {"value": 10, "agent_name": "aragorn", "region": "eu"}},
+      {"timestamp": "2023-08-01T05:30:00Z", "properties": {"value": -10, "agent_name": "aragorn", "region": "eu"}},
+      {"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 2, "agent_name": "frodo", "region": "us"}},
+      {"timestamp": "2023-08-01T01:00:00Z", "properties": {"value": 3, "agent_name": "frodo", "region": "us"}},
+      {"timestamp": "2023-08-01T01:30:00Z", "properties": {"value": 1, "agent_name": "frodo", "region": "us"}},
+      {"timestamp": "2023-08-01T02:00:00Z", "properties": {"value": -4, "agent_name": "frodo", "region": "us"}},
+      {"timestamp": "2023-08-01T04:00:00Z", "properties": {"value": -2, "agent_name": "frodo", "region": "us"}},
+      {"timestamp": "2023-08-01T05:00:00Z", "properties": {"value": 10, "agent_name": "frodo", "region": "us"}},
+      {"timestamp": "2023-08-01T05:30:00Z", "properties": {"value": -10, "agent_name": "frodo", "region": "us"}}
+    ]
+  },
+  "cases": [
+    {
+      "name": "aggregates the events",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:90",
+      "fixture": "seven",
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value"}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31},
+      "want": {"aggregation": "0.02218", "count": 7},
+      "precision": 5
+    },
+    {
+      "name": "presentation_by returns aggregations per group",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:108",
+      "events": [{"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 2, "region": "eu"}}, {"timestamp": "2023-08-01T01:00:00Z", "properties": {"value": 3, "region": "us"}}, {"timestamp": "2023-08-01T02:00:00Z", "properties": {"value": -1, "region": "eu"}}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value"}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "presentation_by": ["region"]},
+      "want": {"breakdowns": [{"groups": {"region": "eu"}, "value": "1.00269"}, {"groups": {"region": "us"}, "value": "2.99597"}]},
+      "precision": 5
+    },
+    {
+      "name": "single event aggregates the events",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:126",
+      "events": [{"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 1000}}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value"}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31},
+      "want": {"aggregation": 1000, "count": 1},
+      "precision": 5
+    },
+    {
+      "name": "no events aggregates to zero",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:137",
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value"}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31},
+      "want": {"aggregation": 0, "count": 0},
+      "precision": 5
+    },
+    {
+      "name": "bypass_aggregation returns a default empty result",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:149",
+      "fixture": "seven",
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value"}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "bypass_aggregation": true},
+      "want": {"aggregation": 0, "count": 0, "current_usage_units": 0, "running_total": []}
+    },
+    {
+      "name": "events with the same timestamp aggregate the events",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:167",
+      "events": [{"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 3}}, {"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 3}}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value"}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31},
+      "want": {"aggregation": 6, "count": 2}
+    },
+    {
+      "name": "recurring uses the persisted recurring value as initial value",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:193",
+      "cache": [{"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31},
+      "want": {"aggregation": 1000, "count": 0, "variation": 0, "total_aggregated_units": 1000, "recurring_updated_at": "2023-08-01T00:00:00Z"}
+    },
+    {
+      "name": "recurring presentation_by with no current events and zero initial value falls back to cached presentation breakdowns",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:218",
+      "cache": [{"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 0, "max_aggregation": 0, "max_aggregation_with_proration": 0, "presentation_breakdowns": [{"groups": {"region": "eu"}, "value": "100.0"}]}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "presentation_by": ["region"]},
+      "want": {"breakdowns": [{"groups": {"region": "eu"}, "value": 100}]}
+    },
+    {
+      "name": "recurring without cached aggregation falls back on 0",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:228",
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31},
+      "want": {"aggregation": 0, "count": 0, "variation": 0, "total_aggregated_units": 0, "recurring_updated_at": "2023-08-01T00:00:00Z"},
+      "precision": 5
+    },
+    {
+      "name": "recurring without cached aggregation uses previous subscription events as latest value",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:274",
+      "events": [{"timestamp": "2023-03-01T22:22:22Z", "properties": {"value": 10}}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "has_previous_subscription": true},
+      "want": {"aggregation": 10, "count": 0, "variation": 0, "total_aggregated_units": 10, "recurring_updated_at": "2023-08-01T00:00:00Z"},
+      "precision": 5
+    },
+    {
+      "name": "recurring previous subscription presentation_by returns aggregations per group",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:294",
+      "events": [{"timestamp": "2023-03-01T22:22:22Z", "properties": {"value": 10}}, {"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 2, "region": "eu"}}, {"timestamp": "2023-08-01T01:00:00Z", "properties": {"value": 3, "region": "eu"}}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "has_previous_subscription": true, "presentation_by": ["region"]},
+      "want": {"breakdowns": [{"groups": {"region": "eu"}, "value": "4.99597"}, {"groups": {"region": null}, "value": 10}]},
+      "precision": 5
+    },
+    {
+      "name": "recurring with events aggregates the events",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:320",
+      "fixture": "seven",
+      "cache": [{"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31},
+      "want": {"aggregation": "1000.02218", "count": 7, "variation": 0, "total_aggregated_units": 1000, "recurring_updated_at": "2023-08-01T05:30:00Z"},
+      "precision": 5
+    },
+    {
+      "name": "filters aggregate the events",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:341",
+      "events": [{"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 1000, "region": "europe"}}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value"}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "filter": {"matching": {"region": ["europe"]}}},
+      "want": {"aggregation": 1000, "count": 1}
+    },
+    {
+      "name": "grouped returns grouped aggregations",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:373",
+      "fixture": "grouped",
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value"}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "group_by": ["agent_name"]},
+      "want": {"grouped": [{"groups": {"agent_name": "aragorn"}, "aggregation": "0.02218", "count": 7}, {"groups": {"agent_name": "frodo"}, "aggregation": "0.02218", "count": 7}]},
+      "precision": 5
+    },
+    {
+      "name": "grouped no events returns an empty result",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:388",
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value"}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "group_by": ["agent_name"]},
+      "want": {"grouped": [{"groups": {"agent_name": null}, "aggregation": 0, "count": 0}]}
+    },
+    {
+      "name": "grouped bypass_aggregation returns an empty result",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:403",
+      "fixture": "grouped",
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value"}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "group_by": ["agent_name"], "bypass_aggregation": true},
+      "want": {"grouped": [{"groups": {"agent_name": null}, "aggregation": 0, "count": 0}]}
+    },
+    {
+      "name": "grouped events with the same timestamp aggregate the events",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:426",
+      "events": [{"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 3, "agent_name": "aragorn"}}, {"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 3, "agent_name": "aragorn"}}, {"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 3, "agent_name": "frodo"}}, {"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 3, "agent_name": "frodo"}}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value"}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "group_by": ["agent_name"]},
+      "want": {"grouped": [{"groups": {"agent_name": "aragorn"}, "aggregation": 6, "count": 2}, {"groups": {"agent_name": "frodo"}, "aggregation": 6, "count": 2}]},
+      "precision": 5
+    },
+    {
+      "name": "grouped recurring uses the persisted recurring value as initial value",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:474",
+      "cache": [{"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0, "groups": {"agent_name": "aragorn"}}, {"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0, "groups": {"agent_name": "frodo"}}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "group_by": ["agent_name"]},
+      "want": {"grouped": [{"groups": {"agent_name": "aragorn"}, "aggregation": 1000, "count": 0, "variation": 0, "total_aggregated_units": 1000, "recurring_updated_at": "2023-08-01T00:00:00Z"}, {"groups": {"agent_name": "frodo"}, "aggregation": 1000, "count": 0, "variation": 0, "total_aggregated_units": 1000, "recurring_updated_at": "2023-08-01T00:00:00Z"}]}
+    },
+    {
+      "name": "grouped recurring presentation_by returns breakdowns per presentation group within each grouped_by group",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:499",
+      "events": [{"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 2, "agent_name": "aragorn", "region": "eu"}}, {"timestamp": "2023-08-01T01:00:00Z", "properties": {"value": 3, "agent_name": "frodo", "region": "us"}}],
+      "cache": [{"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0, "groups": {"agent_name": "aragorn"}}, {"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0, "groups": {"agent_name": "frodo"}}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "group_by": ["agent_name"], "presentation_by": ["region"]},
+      "want": {"breakdowns": [{"groups": {"agent_name": "aragorn", "region": "eu"}, "value": "2.0"}, {"groups": {"agent_name": "frodo", "region": "us"}, "value": "2.99597"}]},
+      "precision": 5
+    },
+    {
+      "name": "grouped recurring presentation_by uses frodo cached presentation breakdowns as initial values",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:517",
+      "events": [{"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 2, "agent_name": "aragorn", "region": "eu"}}, {"timestamp": "2023-08-01T01:00:00Z", "properties": {"value": 3, "agent_name": "frodo", "region": "us"}}],
+      "cache": [{"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0, "groups": {"agent_name": "aragorn"}}, {"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0, "groups": {"agent_name": "frodo"}, "presentation_breakdowns": [{"groups": {"agent_name": "frodo", "region": "us"}, "value": "100.0"}]}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "group_by": ["agent_name"], "presentation_by": ["region"]},
+      "want": {"breakdowns": [{"groups": {"agent_name": "aragorn", "region": "eu"}, "value": "2.0"}, {"groups": {"agent_name": "frodo", "region": "us"}, "value": "102.99597"}]},
+      "precision": 5
+    },
+    {
+      "name": "grouped recurring presentation_by uses aragorn cached presentation breakdowns as initial values",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:536",
+      "events": [{"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 2, "agent_name": "aragorn", "region": "eu"}}, {"timestamp": "2023-08-01T01:00:00Z", "properties": {"value": 3, "agent_name": "frodo", "region": "us"}}],
+      "cache": [{"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0, "groups": {"agent_name": "aragorn"}, "presentation_breakdowns": [{"groups": {"agent_name": "aragorn", "region": "eu"}, "value": "100.0"}]}, {"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0, "groups": {"agent_name": "frodo"}}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "group_by": ["agent_name"], "presentation_by": ["region"]},
+      "want": {"breakdowns": [{"groups": {"agent_name": "aragorn", "region": "eu"}, "value": "102.0"}, {"groups": {"agent_name": "frodo", "region": "us"}, "value": "2.99597"}]},
+      "precision": 5
+    },
+    {
+      "name": "grouped recurring without cached aggregations returns an empty result",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:552",
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "group_by": ["agent_name"]},
+      "want": {"grouped": [{"groups": {"agent_name": null}, "aggregation": 0, "count": 0}]}
+    },
+    {
+      "name": "grouped recurring without cached aggregations uses previous subscription events as latest value",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:609",
+      "events": [{"timestamp": "2023-03-01T22:22:22Z", "properties": {"value": 10, "agent_name": "aragorn", "region": "eu"}}, {"timestamp": "2023-03-01T22:22:22Z", "properties": {"value": 10, "agent_name": "frodo", "region": "us"}}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "group_by": ["agent_name"], "has_previous_subscription": true},
+      "want": {"grouped": [{"groups": {"agent_name": "aragorn"}, "aggregation": 10, "count": 0, "variation": 0, "total_aggregated_units": 10, "recurring_updated_at": "2023-08-01T00:00:00Z"}, {"groups": {"agent_name": "frodo"}, "aggregation": 10, "count": 0, "variation": 0, "total_aggregated_units": 10, "recurring_updated_at": "2023-08-01T00:00:00Z"}]},
+      "precision": 5
+    },
+    {
+      "name": "grouped recurring previous subscription presentation_by returns previous events as presentation breakdowns",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:627",
+      "events": [{"timestamp": "2023-03-01T22:22:22Z", "properties": {"value": 10, "agent_name": "aragorn", "region": "eu"}}, {"timestamp": "2023-03-01T22:22:22Z", "properties": {"value": 10, "agent_name": "frodo", "region": "us"}}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "group_by": ["agent_name"], "has_previous_subscription": true, "presentation_by": ["region"]},
+      "want": {"breakdowns": [{"groups": {"agent_name": "aragorn", "region": "eu"}, "value": "10.0"}, {"groups": {"agent_name": "frodo", "region": "us"}, "value": "10.0"}]},
+      "precision": 5
+    },
+    {
+      "name": "grouped recurring with events aggregates the events",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:662",
+      "fixture": "grouped_regions",
+      "cache": [{"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0, "groups": {"agent_name": "aragorn"}}, {"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0, "groups": {"agent_name": "frodo"}}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "group_by": ["agent_name"]},
+      "want": {"grouped": [{"groups": {"agent_name": "aragorn"}, "aggregation": "1000.02218", "count": 7, "variation": 0, "total_aggregated_units": 1000, "recurring_updated_at": "2023-08-01T05:30:00Z"}, {"groups": {"agent_name": "frodo"}, "aggregation": "1000.02218", "count": 7, "variation": 0, "total_aggregated_units": 1000, "recurring_updated_at": "2023-08-01T05:30:00Z"}]},
+      "precision": 5
+    },
+    {
+      "name": "grouped recurring with events presentation_by uses cached presentation breakdowns as initial values",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:690",
+      "fixture": "grouped_regions",
+      "cache": [{"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0, "groups": {"agent_name": "aragorn"}, "presentation_breakdowns": [{"groups": {"agent_name": "aragorn", "region": "eu"}, "value": "100.0"}]}, {"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0, "groups": {"agent_name": "frodo"}, "presentation_breakdowns": [{"groups": {"agent_name": "frodo", "region": "us"}, "value": "200.0"}]}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "group_by": ["agent_name"], "presentation_by": ["region"]},
+      "want": {"breakdowns": [{"groups": {"agent_name": "aragorn", "region": "eu"}, "value": "100.02218"}, {"groups": {"agent_name": "frodo", "region": "us"}, "value": "200.02218"}]},
+      "precision": 5
+    },
+    {
+      "name": "grouped recurring with events presentation_by with empty cached breakdowns returns current events as presentation breakdowns",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:705",
+      "fixture": "grouped_regions",
+      "cache": [{"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0, "groups": {"agent_name": "aragorn"}}, {"timestamp": "2023-07-31T00:00:00Z", "current_aggregation": 1000, "max_aggregation": 0, "max_aggregation_with_proration": 0, "groups": {"agent_name": "frodo"}}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value", "recurring": true}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "group_by": ["agent_name"], "presentation_by": ["region"]},
+      "want": {"breakdowns": [{"groups": {"agent_name": "aragorn", "region": "eu"}, "value": "0.02218"}, {"groups": {"agent_name": "frodo", "region": "us"}, "value": "0.02218"}]},
+      "precision": 5
+    },
+    {
+      "name": "grouped filters aggregate the events",
+      "source": "spec/services/billable_metrics/aggregations/weighted_sum_service_spec.rb:735",
+      "events": [{"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 1000, "region": "europe", "agent_name": "aragorn"}}, {"timestamp": "2023-08-01T00:00:00Z", "properties": {"value": 1000, "region": "europe", "agent_name": "frodo"}}],
+      "aggregate": {"metric": {"aggregation": "weighted_sum", "field_name": "value"}, "from": "2023-08-01T00:00:00Z", "to": "2023-08-31T23:59:59.999Z", "period_days": 31, "group_by": ["agent_name"], "filter": {"matching": {"region": ["europe"]}}},
+      "want": {"grouped": [{"groups": {"agent_name": "aragorn"}, "aggregation": 1000, "count": 1}, {"groups": {"agent_name": "frodo"}, "aggregation": 1000, "count": 1}]},
+      "precision": 5
+    }
+  ]
+}

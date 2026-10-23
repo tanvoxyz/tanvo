@@ -2,6 +2,7 @@ go 1.27.1
 
 use (
 	./libs/expression/go
+	./libs/metering
 	./libs/money
 	./libs/period
 	./libs/pricing

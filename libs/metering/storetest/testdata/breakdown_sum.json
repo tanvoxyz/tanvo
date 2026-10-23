@@ -1,0 +1,125 @@
+{
+  "cases": [
+    {
+      "name": "persisted metric on full period returns the detail of the persisted metrics",
+      "source": "spec/services/billable_metrics/breakdown/sum_service_spec.rb:110",
+      "events": [
+        {
+          "timestamp": "2023-03-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        },
+        {
+          "timestamp": "2023-03-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        },
+        {
+          "timestamp": "2023-05-26T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        }
+      ],
+      "breakdown": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": [
+        {
+          "date": "2023-05-01",
+          "action": "add",
+          "amount": 5,
+          "duration": 31,
+          "total_duration": 31
+        },
+        {
+          "date": "2023-05-26",
+          "action": "add",
+          "amount": 12,
+          "duration": 6,
+          "total_duration": 31
+        }
+      ]
+    },
+    {
+      "name": "persisted metric when subscription was terminated in the period",
+      "source": "spec/services/billable_metrics/breakdown/sum_service_spec.rb:142",
+      "events": [
+        {
+          "timestamp": "2023-03-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        },
+        {
+          "timestamp": "2023-03-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        }
+      ],
+      "breakdown": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-30T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": [
+        {
+          "date": "2023-05-01",
+          "action": "add",
+          "amount": 5,
+          "duration": 30,
+          "total_duration": 31
+        }
+      ]
+    },
+    {
+      "name": "persisted metric when subscription was started in the period",
+      "source": "spec/services/billable_metrics/breakdown/sum_service_spec.rb:159",
+      "events": [
+        {
+          "timestamp": "2023-05-28T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        }
+      ],
+      "breakdown": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-03T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": [
+        {
+          "date": "2023-05-28",
+          "action": "add",
+          "amount": 12,
+          "duration": 4,
+          "total_duration": 31
+        }
+      ]
+    }
+  ]
+}

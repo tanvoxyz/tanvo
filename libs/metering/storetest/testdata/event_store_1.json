@@ -1,0 +1,3364 @@
+{
+  "fixtures": {
+    "standard": [
+      {
+        "transaction_id": "e1",
+        "timestamp": "2023-03-16T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "city": "paris",
+          "value": 1
+        },
+        "precise_total_amount_cents": 1
+      },
+      {
+        "transaction_id": "e2",
+        "timestamp": "2023-03-17T00:00:00Z",
+        "properties": {
+          "value": 2
+        },
+        "precise_total_amount_cents": 2
+      },
+      {
+        "transaction_id": "e3",
+        "timestamp": "2023-03-18T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "value": 3
+        },
+        "precise_total_amount_cents": 3
+      },
+      {
+        "transaction_id": "e4",
+        "timestamp": "2023-03-19T00:00:00Z",
+        "properties": {
+          "value": 4
+        },
+        "precise_total_amount_cents": 4
+      },
+      {
+        "transaction_id": "dup",
+        "timestamp": "2023-03-20T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "london",
+          "value": 10
+        },
+        "precise_total_amount_cents": 10
+      },
+      {
+        "transaction_id": "dup",
+        "timestamp": "2023-03-20T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "london",
+          "value": 5
+        },
+        "precise_total_amount_cents": 5
+      }
+    ],
+    "standard_filters": [
+      {
+        "transaction_id": "e1",
+        "timestamp": "2023-03-16T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "city": "paris",
+          "value": 1
+        },
+        "precise_total_amount_cents": 1
+      },
+      {
+        "transaction_id": "e2",
+        "timestamp": "2023-03-17T00:00:00Z",
+        "properties": {
+          "value": 2
+        },
+        "precise_total_amount_cents": 2
+      },
+      {
+        "transaction_id": "e3",
+        "timestamp": "2023-03-18T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "value": 3
+        },
+        "precise_total_amount_cents": 3
+      },
+      {
+        "transaction_id": "e4",
+        "timestamp": "2023-03-19T00:00:00Z",
+        "properties": {
+          "value": 4
+        },
+        "precise_total_amount_cents": 4
+      },
+      {
+        "transaction_id": "dup",
+        "timestamp": "2023-03-20T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "london",
+          "value": 10
+        },
+        "precise_total_amount_cents": 10
+      },
+      {
+        "transaction_id": "dup",
+        "timestamp": "2023-03-20T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "london",
+          "value": 5
+        },
+        "precise_total_amount_cents": 5
+      },
+      {
+        "transaction_id": "f1",
+        "timestamp": "2023-03-21T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "manchester",
+          "value": -1
+        },
+        "precise_total_amount_cents": -1
+      },
+      {
+        "transaction_id": "f2",
+        "timestamp": "2023-03-22T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "city": "cambridge",
+          "value": -2
+        },
+        "precise_total_amount_cents": -2
+      },
+      {
+        "transaction_id": "f3",
+        "timestamp": "2023-03-23T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "city": "caen",
+          "value": -3
+        },
+        "precise_total_amount_cents": -3
+      },
+      {
+        "transaction_id": "f4",
+        "timestamp": "2023-03-24T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "germany",
+          "city": "berlin",
+          "value": -4
+        },
+        "precise_total_amount_cents": -4
+      },
+      {
+        "transaction_id": "f5",
+        "timestamp": "2023-03-25T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "cambridge",
+          "value": -5
+        },
+        "precise_total_amount_cents": -5
+      }
+    ],
+    "standard_from_march_1": [
+      {
+        "transaction_id": "e1",
+        "timestamp": "2023-03-02T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "city": "paris",
+          "value": 1
+        },
+        "precise_total_amount_cents": 1
+      },
+      {
+        "transaction_id": "e2",
+        "timestamp": "2023-03-03T00:00:00Z",
+        "properties": {
+          "value": 2
+        },
+        "precise_total_amount_cents": 2
+      },
+      {
+        "transaction_id": "e3",
+        "timestamp": "2023-03-04T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "value": 3
+        },
+        "precise_total_amount_cents": 3
+      },
+      {
+        "transaction_id": "e4",
+        "timestamp": "2023-03-05T00:00:00Z",
+        "properties": {
+          "value": 4
+        },
+        "precise_total_amount_cents": 4
+      },
+      {
+        "transaction_id": "dup",
+        "timestamp": "2023-03-06T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "london",
+          "value": 10
+        },
+        "precise_total_amount_cents": 10
+      },
+      {
+        "transaction_id": "dup",
+        "timestamp": "2023-03-06T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "london",
+          "value": 5
+        },
+        "precise_total_amount_cents": 5
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "events returns the deduplicated events",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:140",
+      "fixture": "standard",
+      "store": {
+        "method": "event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value"
+        }
+      },
+      "want": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "events ordered by timestamp",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:150",
+      "fixture": "standard",
+      "store": {
+        "method": "event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value"
+        }
+      },
+      "want": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "events with events before from_datetime excludes them by default",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:169",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "before",
+          "timestamp": "2023-03-14T00:00:00Z",
+          "properties": {
+            "region": "europe",
+            "country": "france",
+            "value": 0
+          },
+          "precise_total_amount_cents": 0
+        }
+      ],
+      "store": {
+        "method": "event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value"
+        }
+      },
+      "want": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "events with events before from_datetime includes them when use_from_boundary is false",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:181",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "before",
+          "timestamp": "2023-03-14T00:00:00Z",
+          "properties": {
+            "region": "europe",
+            "country": "france",
+            "value": 0
+          },
+          "precise_total_amount_cents": 0
+        }
+      ],
+      "store": {
+        "method": "event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "include_history": true,
+          "property": "value"
+        }
+      },
+      "want": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "events with events before from_datetime excludes them when force_from is true",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:190",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "before",
+          "timestamp": "2023-03-14T00:00:00Z",
+          "properties": {
+            "region": "europe",
+            "country": "france",
+            "value": 0
+          },
+          "precise_total_amount_cents": 0
+        }
+      ],
+      "store": {
+        "method": "event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value"
+        }
+      },
+      "want": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "events excludes events after to_datetime",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:211",
+      "fixture": "standard",
+      "store": {
+        "method": "event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-18T12:00:00Z",
+          "period_days": 31,
+          "property": "value"
+        }
+      },
+      "want": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "events uses max_timestamp instead of to_datetime",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:230",
+      "fixture": "standard",
+      "store": {
+        "method": "event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "until": "2023-03-18T12:00:00Z",
+          "property": "value"
+        }
+      },
+      "want": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "events with filters returns the filtered events",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:246",
+      "fixture": "standard_filters",
+      "store": {
+        "method": "event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france",
+                "united kingdom"
+              ]
+            },
+            "ignored": [
+              {
+                "city": [
+                  "caen"
+                ]
+              },
+              {
+                "city": [
+                  "cambridge",
+                  "london"
+                ],
+                "country": [
+                  "united kingdom"
+                ]
+              }
+            ]
+          },
+          "property": "value"
+        }
+      },
+      "want": [
+        1,
+        3,
+        -1,
+        -2
+      ]
+    },
+    {
+      "name": "events with filters returns the filtered events count",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:246",
+      "fixture": "standard_filters",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france",
+                "united kingdom"
+              ]
+            },
+            "ignored": [
+              {
+                "city": [
+                  "caen"
+                ]
+              },
+              {
+                "city": [
+                  "cambridge",
+                  "london"
+                ],
+                "country": [
+                  "united kingdom"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "want": 4
+    },
+    {
+      "name": "for_window sibling without lower bound aggregates the same sum",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:325",
+      "fixture": "standard",
+      "store": {
+        "method": "sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "include_history": true,
+          "numeric": true,
+          "property": "value"
+        }
+      },
+      "want": {
+        "value": 15
+      }
+    },
+    {
+      "name": "count returns the number of unique events",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:338",
+      "fixture": "standard",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31
+        }
+      },
+      "want": 5
+    },
+    {
+      "name": "count with grouped_by_values",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:346",
+      "fixture": "standard",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "group_values": {
+            "region": "europe"
+          }
+        }
+      },
+      "want": 3
+    },
+    {
+      "name": "count with nil grouped_by_values",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:353",
+      "fixture": "standard",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "group_values": {
+            "region": null
+          }
+        }
+      },
+      "want": 2
+    },
+    {
+      "name": "count with filters",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:367",
+      "fixture": "standard_filters",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france",
+                "united kingdom"
+              ]
+            },
+            "ignored": [
+              {
+                "city": [
+                  "caen"
+                ]
+              },
+              {
+                "city": [
+                  "cambridge",
+                  "london"
+                ],
+                "country": [
+                  "united kingdom"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "want": 4
+    },
+    {
+      "name": "count with many filters does not fail",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:409",
+      "fixture": "standard_filters",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france",
+                "united kingdom"
+              ],
+              "city": [
+                "paris",
+                "london",
+                "cambridge",
+                "caen",
+                "manchester"
+              ]
+            },
+            "ignored": [
+              {
+                "region": [
+                  "hbrpoig8f1"
+                ],
+                "city": [
+                  "cbfno6b9m8"
+                ]
+              },
+              {
+                "region": [
+                  "0o2rak1vrj"
+                ],
+                "city": [
+                  "nvgfygwwqc"
+                ]
+              },
+              {
+                "region": [
+                  "38hyf9sxme"
+                ],
+                "city": [
+                  "cosfogyr3x"
+                ]
+              },
+              {
+                "region": [
+                  "kxwnrek8pk"
+                ],
+                "city": [
+                  "3yr9oudocu"
+                ]
+              },
+              {
+                "region": [
+                  "zrenun5z3j"
+                ],
+                "city": [
+                  "qip98q1zxo"
+                ]
+              },
+              {
+                "region": [
+                  "i65fdhjk1e"
+                ],
+                "city": [
+                  "yy37q9ah8r"
+                ]
+              },
+              {
+                "region": [
+                  "vhs1k3aq6l"
+                ],
+                "city": [
+                  "6gt6mjxk87"
+                ]
+              },
+              {
+                "region": [
+                  "au5bhxtpdp"
+                ],
+                "city": [
+                  "ff5e8ii49k"
+                ]
+              },
+              {
+                "region": [
+                  "q71n8mtzx2"
+                ],
+                "city": [
+                  "72hpoevb9o"
+                ]
+              },
+              {
+                "region": [
+                  "oaedoecve6"
+                ],
+                "city": [
+                  "pr5n8i4p40"
+                ]
+              },
+              {
+                "region": [
+                  "mgg1w103dg"
+                ],
+                "city": [
+                  "dzvgpmm82i"
+                ]
+              },
+              {
+                "region": [
+                  "1lr3pe29gd"
+                ],
+                "city": [
+                  "8afpk054nz"
+                ]
+              },
+              {
+                "region": [
+                  "dkyayq3s19"
+                ],
+                "city": [
+                  "5jmsnd8dud"
+                ]
+              },
+              {
+                "region": [
+                  "d467kd6fle"
+                ],
+                "city": [
+                  "epzhpcf07u"
+                ]
+              },
+              {
+                "region": [
+                  "qnupqzit3u"
+                ],
+                "city": [
+                  "ea3ge8n6qi"
+                ]
+              },
+              {
+                "region": [
+                  "wepxsk28t7"
+                ],
+                "city": [
+                  "a9tgiqhg9j"
+                ]
+              },
+              {
+                "region": [
+                  "rsnvnq65qd"
+                ],
+                "city": [
+                  "f1rcaviqk2"
+                ]
+              },
+              {
+                "region": [
+                  "919ahej8cx"
+                ],
+                "city": [
+                  "9j1ictxcwn"
+                ]
+              },
+              {
+                "region": [
+                  "pgw90jpkl0"
+                ],
+                "city": [
+                  "blv0prkgyc"
+                ]
+              },
+              {
+                "region": [
+                  "4om3wtoobm"
+                ],
+                "city": [
+                  "zvrerw6z8v"
+                ]
+              },
+              {
+                "region": [
+                  "bhqlqcg1wu"
+                ],
+                "city": [
+                  "16hymqc1a7"
+                ]
+              },
+              {
+                "region": [
+                  "8mx1evuht6"
+                ],
+                "city": [
+                  "t0uzs9im0y"
+                ]
+              },
+              {
+                "region": [
+                  "ltz9atsn1u"
+                ],
+                "city": [
+                  "322n64kfs6"
+                ]
+              },
+              {
+                "region": [
+                  "vfptomjbcp"
+                ],
+                "city": [
+                  "4e30my5zpj"
+                ]
+              },
+              {
+                "region": [
+                  "ag1ol73d9p"
+                ],
+                "city": [
+                  "h3i379u261"
+                ]
+              },
+              {
+                "region": [
+                  "92k42qpr75"
+                ],
+                "city": [
+                  "pr2esprvu8"
+                ]
+              },
+              {
+                "region": [
+                  "fijoyjne00"
+                ],
+                "city": [
+                  "v830dn0yby"
+                ]
+              },
+              {
+                "region": [
+                  "4awty088o5"
+                ],
+                "city": [
+                  "or15byvzk3"
+                ]
+              },
+              {
+                "region": [
+                  "i8bzbf1i3l"
+                ],
+                "city": [
+                  "dqyun3uvyr"
+                ]
+              },
+              {
+                "region": [
+                  "0qf4b8dwoe"
+                ],
+                "city": [
+                  "cbpmbjpi4h"
+                ]
+              },
+              {
+                "region": [
+                  "n3qxkhktgb"
+                ],
+                "city": [
+                  "tyzmepgthc"
+                ]
+              },
+              {
+                "region": [
+                  "w81xe6va05"
+                ],
+                "city": [
+                  "g1x3j1l7r8"
+                ]
+              },
+              {
+                "region": [
+                  "431rupfr2p"
+                ],
+                "city": [
+                  "3yvb5ul5nw"
+                ]
+              },
+              {
+                "region": [
+                  "qvrr9a7mfp"
+                ],
+                "city": [
+                  "059p452bfs"
+                ]
+              },
+              {
+                "region": [
+                  "ozptx497w1"
+                ],
+                "city": [
+                  "9vw3rtqohm"
+                ]
+              },
+              {
+                "region": [
+                  "uh8lmn4r7s"
+                ],
+                "city": [
+                  "gmsoxlta8i"
+                ]
+              },
+              {
+                "region": [
+                  "rcd9si5gas"
+                ],
+                "city": [
+                  "442vldq4he"
+                ]
+              },
+              {
+                "region": [
+                  "z5edjjtfph"
+                ],
+                "city": [
+                  "90o7y22t1t"
+                ]
+              },
+              {
+                "region": [
+                  "dgnnqfkpl9"
+                ],
+                "city": [
+                  "eka024scos"
+                ]
+              },
+              {
+                "region": [
+                  "s3eoqm1h8o"
+                ],
+                "city": [
+                  "jrjedkts2h"
+                ]
+              },
+              {
+                "region": [
+                  "3tzr6852fc"
+                ],
+                "city": [
+                  "1uqbfobrcl"
+                ]
+              },
+              {
+                "region": [
+                  "472rl15f4w"
+                ],
+                "city": [
+                  "0vugkv05sz"
+                ]
+              },
+              {
+                "region": [
+                  "9c3fuquhz6"
+                ],
+                "city": [
+                  "a830dm7x52"
+                ]
+              },
+              {
+                "region": [
+                  "dnr9is25hb"
+                ],
+                "city": [
+                  "pkt9a90foh"
+                ]
+              },
+              {
+                "region": [
+                  "3hj5s6r044"
+                ],
+                "city": [
+                  "p39jym6ier"
+                ]
+              },
+              {
+                "region": [
+                  "0v6rast5j2"
+                ],
+                "city": [
+                  "84wv98y3um"
+                ]
+              },
+              {
+                "region": [
+                  "pyo0cu4yyj"
+                ],
+                "city": [
+                  "5ci6vg2g73"
+                ]
+              },
+              {
+                "region": [
+                  "aj0je4qvzf"
+                ],
+                "city": [
+                  "v8yu58ceps"
+                ]
+              },
+              {
+                "region": [
+                  "of1gg2ktbc"
+                ],
+                "city": [
+                  "udswx1jp70"
+                ]
+              },
+              {
+                "region": [
+                  "lklfyp5jo3"
+                ],
+                "city": [
+                  "q3qa3s8ke2"
+                ]
+              },
+              {
+                "region": [
+                  "wt1q3tmy4g"
+                ],
+                "city": [
+                  "pywssbzrad"
+                ]
+              },
+              {
+                "region": [
+                  "5sowomqigc"
+                ],
+                "city": [
+                  "t2cxifsu0l"
+                ]
+              },
+              {
+                "region": [
+                  "mi8x76rkq4"
+                ],
+                "city": [
+                  "svh3ejoz9x"
+                ]
+              },
+              {
+                "region": [
+                  "fzaq8h3xqy"
+                ],
+                "city": [
+                  "xgo4b9uoe3"
+                ]
+              },
+              {
+                "region": [
+                  "t0hicct5hg"
+                ],
+                "city": [
+                  "p8iy3x80j0"
+                ]
+              },
+              {
+                "region": [
+                  "g50rcxn22p"
+                ],
+                "city": [
+                  "xgx8wdzrmh"
+                ]
+              },
+              {
+                "region": [
+                  "3fnbdvpine"
+                ],
+                "city": [
+                  "9nnovjarji"
+                ]
+              },
+              {
+                "region": [
+                  "8qlhbiawpu"
+                ],
+                "city": [
+                  "blqdi07he4"
+                ]
+              },
+              {
+                "region": [
+                  "2x6g26oc7t"
+                ],
+                "city": [
+                  "3bd4z1g52e"
+                ]
+              },
+              {
+                "region": [
+                  "fujeir9uy7"
+                ],
+                "city": [
+                  "s361gh9n12"
+                ]
+              },
+              {
+                "region": [
+                  "o0v3z0gu1u"
+                ],
+                "city": [
+                  "qxj4efff1g"
+                ]
+              },
+              {
+                "region": [
+                  "xi9d99vh0w"
+                ],
+                "city": [
+                  "1dstwg6nj4"
+                ]
+              },
+              {
+                "region": [
+                  "ogw9xhro19"
+                ],
+                "city": [
+                  "9brblrtvwa"
+                ]
+              },
+              {
+                "region": [
+                  "ljzejbf7ny"
+                ],
+                "city": [
+                  "03vkxtufdj"
+                ]
+              },
+              {
+                "region": [
+                  "kdfr21520r"
+                ],
+                "city": [
+                  "n6hw1hs57t"
+                ]
+              },
+              {
+                "region": [
+                  "cozdantniq"
+                ],
+                "city": [
+                  "suha51liy8"
+                ]
+              },
+              {
+                "region": [
+                  "o69wezc1b3"
+                ],
+                "city": [
+                  "eu1z0shzbu"
+                ]
+              },
+              {
+                "region": [
+                  "k3xf1gp1z7"
+                ],
+                "city": [
+                  "fztvovke6h"
+                ]
+              },
+              {
+                "region": [
+                  "76mwwjpgjq"
+                ],
+                "city": [
+                  "mljel532uu"
+                ]
+              },
+              {
+                "region": [
+                  "j2e42trdw6"
+                ],
+                "city": [
+                  "et32cdxsef"
+                ]
+              },
+              {
+                "region": [
+                  "6y39c2mu46"
+                ],
+                "city": [
+                  "jd2gvf6lcp"
+                ]
+              },
+              {
+                "region": [
+                  "2277kxxsy0"
+                ],
+                "city": [
+                  "vdvevg9ysq"
+                ]
+              },
+              {
+                "region": [
+                  "jvfjwtzift"
+                ],
+                "city": [
+                  "9yvi7f16xb"
+                ]
+              },
+              {
+                "region": [
+                  "xtlnv5moij"
+                ],
+                "city": [
+                  "esg687cviy"
+                ]
+              },
+              {
+                "region": [
+                  "jklk2c0xp2"
+                ],
+                "city": [
+                  "s2o8pt4mx2"
+                ]
+              },
+              {
+                "region": [
+                  "3sy670kmiq"
+                ],
+                "city": [
+                  "d4x9g7hsfk"
+                ]
+              },
+              {
+                "region": [
+                  "r26j1fo2wb"
+                ],
+                "city": [
+                  "0dz6xpyfxo"
+                ]
+              },
+              {
+                "region": [
+                  "bugvjics4i"
+                ],
+                "city": [
+                  "42afbqnj97"
+                ]
+              },
+              {
+                "region": [
+                  "1hspthdp03"
+                ],
+                "city": [
+                  "eh58b6pjs1"
+                ]
+              },
+              {
+                "region": [
+                  "awp0lf7xe7"
+                ],
+                "city": [
+                  "8669by4cyx"
+                ]
+              },
+              {
+                "region": [
+                  "qbwewpgvic"
+                ],
+                "city": [
+                  "w8vl34lie3"
+                ]
+              },
+              {
+                "region": [
+                  "csmcmcut6z"
+                ],
+                "city": [
+                  "84qcmswdvr"
+                ]
+              },
+              {
+                "region": [
+                  "hx1z2yvl55"
+                ],
+                "city": [
+                  "x7rf1f1l8s"
+                ]
+              },
+              {
+                "region": [
+                  "ugfust21k2"
+                ],
+                "city": [
+                  "w2cw1rdezx"
+                ]
+              },
+              {
+                "region": [
+                  "6kbj2ciepx"
+                ],
+                "city": [
+                  "xycj2xx2ei"
+                ]
+              },
+              {
+                "region": [
+                  "7xzurphbl5"
+                ],
+                "city": [
+                  "7y9hqq2ns5"
+                ]
+              },
+              {
+                "region": [
+                  "mhie2l2fuw"
+                ],
+                "city": [
+                  "e98stklx6o"
+                ]
+              },
+              {
+                "region": [
+                  "hmip5bx9x3"
+                ],
+                "city": [
+                  "9ifetz4700"
+                ]
+              },
+              {
+                "region": [
+                  "eiue237wi9"
+                ],
+                "city": [
+                  "li16dh7jtk"
+                ]
+              },
+              {
+                "region": [
+                  "kuow7sfqm9"
+                ],
+                "city": [
+                  "rit8f6kjkv"
+                ]
+              },
+              {
+                "region": [
+                  "cbfcqn0b58"
+                ],
+                "city": [
+                  "st4pzt3edk"
+                ]
+              },
+              {
+                "region": [
+                  "2043nvjuuw"
+                ],
+                "city": [
+                  "zix69gup3h"
+                ]
+              },
+              {
+                "region": [
+                  "r2pjgdsy0p"
+                ],
+                "city": [
+                  "kuumk5635t"
+                ]
+              },
+              {
+                "region": [
+                  "5bfz63pnwd"
+                ],
+                "city": [
+                  "ds54s8ag1i"
+                ]
+              },
+              {
+                "region": [
+                  "qxzxczd9mx"
+                ],
+                "city": [
+                  "9sey629rhi"
+                ]
+              },
+              {
+                "region": [
+                  "gzxv9xjm6z"
+                ],
+                "city": [
+                  "6ccciv473j"
+                ]
+              },
+              {
+                "region": [
+                  "6iuukztv66"
+                ],
+                "city": [
+                  "85t4bxvh0t"
+                ]
+              },
+              {
+                "region": [
+                  "b4qod4k7yj"
+                ],
+                "city": [
+                  "pchmb2u0j0"
+                ]
+              },
+              {
+                "region": [
+                  "n064di7n9u"
+                ],
+                "city": [
+                  "47yul38v8w"
+                ]
+              },
+              {
+                "region": [
+                  "q4mpr9tots"
+                ],
+                "city": [
+                  "n5u4w9rsh8"
+                ]
+              },
+              {
+                "region": [
+                  "yzwjscsfw2"
+                ],
+                "city": [
+                  "q4nm8r9rig"
+                ]
+              },
+              {
+                "region": [
+                  "ppd7oodg0v"
+                ],
+                "city": [
+                  "4gia9k044m"
+                ]
+              },
+              {
+                "region": [
+                  "susdfo8cl0"
+                ],
+                "city": [
+                  "lcz5lscatg"
+                ]
+              },
+              {
+                "region": [
+                  "vs3875i63r"
+                ],
+                "city": [
+                  "mhvk3qlavs"
+                ]
+              },
+              {
+                "region": [
+                  "mlz16ufzgl"
+                ],
+                "city": [
+                  "i4upaqyp2r"
+                ]
+              },
+              {
+                "region": [
+                  "vtaqxpdh3t"
+                ],
+                "city": [
+                  "kz6thsxooi"
+                ]
+              },
+              {
+                "region": [
+                  "4j3x0948np"
+                ],
+                "city": [
+                  "f727xehd96"
+                ]
+              },
+              {
+                "region": [
+                  "m8jku72hn5"
+                ],
+                "city": [
+                  "f62d3i603d"
+                ]
+              },
+              {
+                "region": [
+                  "93tbzqanec"
+                ],
+                "city": [
+                  "1we8de4cs0"
+                ]
+              },
+              {
+                "region": [
+                  "li0xy2yyf8"
+                ],
+                "city": [
+                  "iwhl8z7ioa"
+                ]
+              },
+              {
+                "region": [
+                  "bt3818yop3"
+                ],
+                "city": [
+                  "wjrmhc0bpn"
+                ]
+              },
+              {
+                "region": [
+                  "egc2dpcz2o"
+                ],
+                "city": [
+                  "8ndi6souup"
+                ]
+              },
+              {
+                "region": [
+                  "tj7o0trd9l"
+                ],
+                "city": [
+                  "195dwy7u00"
+                ]
+              },
+              {
+                "region": [
+                  "jtyl84potj"
+                ],
+                "city": [
+                  "3d90097iyp"
+                ]
+              },
+              {
+                "region": [
+                  "qnvf2xf8md"
+                ],
+                "city": [
+                  "rycem9n4nv"
+                ]
+              },
+              {
+                "region": [
+                  "tanmh4pnzp"
+                ],
+                "city": [
+                  "9usy38wtqx"
+                ]
+              },
+              {
+                "region": [
+                  "653g4unxu0"
+                ],
+                "city": [
+                  "cojbq90sjm"
+                ]
+              },
+              {
+                "region": [
+                  "voyp59vq55"
+                ],
+                "city": [
+                  "3kwki85l8d"
+                ]
+              },
+              {
+                "region": [
+                  "7ceda0ioej"
+                ],
+                "city": [
+                  "an63xd45ba"
+                ]
+              },
+              {
+                "region": [
+                  "890ab7r8sb"
+                ],
+                "city": [
+                  "61lgg7jpm7"
+                ]
+              },
+              {
+                "region": [
+                  "qwrzfxz3po"
+                ],
+                "city": [
+                  "tfcfzyy94d"
+                ]
+              },
+              {
+                "region": [
+                  "akf51vg7co"
+                ],
+                "city": [
+                  "n4rcer8clu"
+                ]
+              },
+              {
+                "region": [
+                  "bnjzetkpy8"
+                ],
+                "city": [
+                  "vyif6wdg1o"
+                ]
+              },
+              {
+                "region": [
+                  "evzubr25ow"
+                ],
+                "city": [
+                  "9y1lyfspef"
+                ]
+              },
+              {
+                "region": [
+                  "rjyjyuxgfa"
+                ],
+                "city": [
+                  "t2xrgifl12"
+                ]
+              },
+              {
+                "region": [
+                  "9960gbfw9f"
+                ],
+                "city": [
+                  "uyas0yf9p7"
+                ]
+              },
+              {
+                "region": [
+                  "kykirtr5je"
+                ],
+                "city": [
+                  "k1r0t4exqp"
+                ]
+              },
+              {
+                "region": [
+                  "5m3gitazvy"
+                ],
+                "city": [
+                  "v2v1itum4u"
+                ]
+              },
+              {
+                "region": [
+                  "lzus5puyrz"
+                ],
+                "city": [
+                  "xhm8l9b3n2"
+                ]
+              },
+              {
+                "region": [
+                  "se05itpqj1"
+                ],
+                "city": [
+                  "ye24z8608c"
+                ]
+              },
+              {
+                "region": [
+                  "x8fgpwkczv"
+                ],
+                "city": [
+                  "1gagqo679o"
+                ]
+              },
+              {
+                "region": [
+                  "2xz36jwb4g"
+                ],
+                "city": [
+                  "s0fhjwtv3n"
+                ]
+              },
+              {
+                "region": [
+                  "74w4g22uet"
+                ],
+                "city": [
+                  "chbvgkp7l9"
+                ]
+              },
+              {
+                "region": [
+                  "kv913ozll1"
+                ],
+                "city": [
+                  "zbm21yannr"
+                ]
+              },
+              {
+                "region": [
+                  "eg8lxum3hq"
+                ],
+                "city": [
+                  "57uyzhww3l"
+                ]
+              },
+              {
+                "region": [
+                  "tfiuhpthlx"
+                ],
+                "city": [
+                  "j6y0iy1l58"
+                ]
+              },
+              {
+                "region": [
+                  "l9k5silu2d"
+                ],
+                "city": [
+                  "wa5imy9650"
+                ]
+              },
+              {
+                "region": [
+                  "5025kfbosc"
+                ],
+                "city": [
+                  "ro8sk3596h"
+                ]
+              },
+              {
+                "region": [
+                  "hr8x8c28n1"
+                ],
+                "city": [
+                  "gptc2qwf2h"
+                ]
+              },
+              {
+                "region": [
+                  "pnw1kinndw"
+                ],
+                "city": [
+                  "8r8kussr6g"
+                ]
+              },
+              {
+                "region": [
+                  "i0driipjup"
+                ],
+                "city": [
+                  "z5jr0y2efz"
+                ]
+              },
+              {
+                "region": [
+                  "6rx35uaf3w"
+                ],
+                "city": [
+                  "e8zn1n5rus"
+                ]
+              },
+              {
+                "region": [
+                  "v9i5vdcg3b"
+                ],
+                "city": [
+                  "hk23a1mitk"
+                ]
+              },
+              {
+                "region": [
+                  "rfxqfxkdzt"
+                ],
+                "city": [
+                  "o1fgan4eio"
+                ]
+              },
+              {
+                "region": [
+                  "72aavh1i4e"
+                ],
+                "city": [
+                  "oyfgguxtiy"
+                ]
+              },
+              {
+                "region": [
+                  "ije7ak2wnj"
+                ],
+                "city": [
+                  "02nfgihyw1"
+                ]
+              },
+              {
+                "region": [
+                  "uiprfp9sbt"
+                ],
+                "city": [
+                  "n76mzsdp5y"
+                ]
+              },
+              {
+                "region": [
+                  "hp5e7axuiy"
+                ],
+                "city": [
+                  "0x8l4ebeaq"
+                ]
+              },
+              {
+                "region": [
+                  "ncdz6s601z"
+                ],
+                "city": [
+                  "f88jrftf6n"
+                ]
+              },
+              {
+                "region": [
+                  "j8uzet1pdp"
+                ],
+                "city": [
+                  "f1h3dtlhai"
+                ]
+              },
+              {
+                "region": [
+                  "ak5w77qkxi"
+                ],
+                "city": [
+                  "rhbv1r7eqe"
+                ]
+              },
+              {
+                "region": [
+                  "536xd5kxkq"
+                ],
+                "city": [
+                  "gho6acapc4"
+                ]
+              },
+              {
+                "region": [
+                  "xyjlc90oup"
+                ],
+                "city": [
+                  "0urexh6dlo"
+                ]
+              },
+              {
+                "region": [
+                  "7cze3stuf9"
+                ],
+                "city": [
+                  "3axmstp3x5"
+                ]
+              },
+              {
+                "region": [
+                  "m8pja0bo8w"
+                ],
+                "city": [
+                  "avaytgn7p0"
+                ]
+              },
+              {
+                "region": [
+                  "5djrfco70x"
+                ],
+                "city": [
+                  "3fg6ized1i"
+                ]
+              },
+              {
+                "region": [
+                  "psquzuu2ro"
+                ],
+                "city": [
+                  "emigjgk23u"
+                ]
+              },
+              {
+                "region": [
+                  "0h8wn2t3qh"
+                ],
+                "city": [
+                  "fktcnujfpw"
+                ]
+              },
+              {
+                "region": [
+                  "z6dtqlbz29"
+                ],
+                "city": [
+                  "9pg3gihado"
+                ]
+              },
+              {
+                "region": [
+                  "imzxfqebem"
+                ],
+                "city": [
+                  "2ifvhc3dk1"
+                ]
+              },
+              {
+                "region": [
+                  "z5by1lwnlr"
+                ],
+                "city": [
+                  "r2jcps5094"
+                ]
+              },
+              {
+                "region": [
+                  "dfryi0m7p8"
+                ],
+                "city": [
+                  "byw485w6uy"
+                ]
+              },
+              {
+                "region": [
+                  "rlbuobrd47"
+                ],
+                "city": [
+                  "wokgppr8do"
+                ]
+              },
+              {
+                "region": [
+                  "ywllpuwbwj"
+                ],
+                "city": [
+                  "m58tl5cfdo"
+                ]
+              },
+              {
+                "region": [
+                  "ob74avmivl"
+                ],
+                "city": [
+                  "udbjjh7xex"
+                ]
+              },
+              {
+                "region": [
+                  "zgvtuik15u"
+                ],
+                "city": [
+                  "l9wolytsil"
+                ]
+              },
+              {
+                "region": [
+                  "azcluog5jv"
+                ],
+                "city": [
+                  "epwukfv2aq"
+                ]
+              },
+              {
+                "region": [
+                  "npewqgady2"
+                ],
+                "city": [
+                  "0k05yw8yg4"
+                ]
+              },
+              {
+                "region": [
+                  "ok2ecsbuqg"
+                ],
+                "city": [
+                  "evkyke9fv4"
+                ]
+              },
+              {
+                "region": [
+                  "b1k1kdgvnm"
+                ],
+                "city": [
+                  "098qstpgdz"
+                ]
+              },
+              {
+                "region": [
+                  "95jdxa1fs4"
+                ],
+                "city": [
+                  "mgbnksf4ht"
+                ]
+              },
+              {
+                "region": [
+                  "z45qf8ylxy"
+                ],
+                "city": [
+                  "xl2cq23qor"
+                ]
+              },
+              {
+                "region": [
+                  "djgfw80o9d"
+                ],
+                "city": [
+                  "y7084p4tfz"
+                ]
+              },
+              {
+                "region": [
+                  "c67jh2lknm"
+                ],
+                "city": [
+                  "ic1f1mjque"
+                ]
+              },
+              {
+                "region": [
+                  "fy9z9ur73a"
+                ],
+                "city": [
+                  "70h0jjgggs"
+                ]
+              },
+              {
+                "region": [
+                  "8w0qy54clr"
+                ],
+                "city": [
+                  "zjzczvpd4r"
+                ]
+              },
+              {
+                "region": [
+                  "xbvttr5goi"
+                ],
+                "city": [
+                  "t2ur0fm2n0"
+                ]
+              },
+              {
+                "region": [
+                  "57xd6ket6z"
+                ],
+                "city": [
+                  "i7blmmdpc3"
+                ]
+              },
+              {
+                "region": [
+                  "dxmrx36zhb"
+                ],
+                "city": [
+                  "px52l49wwk"
+                ]
+              },
+              {
+                "region": [
+                  "qfsbydknoo"
+                ],
+                "city": [
+                  "nr06ba4ila"
+                ]
+              },
+              {
+                "region": [
+                  "oqtr1yw3qn"
+                ],
+                "city": [
+                  "3t7zga6x9s"
+                ]
+              },
+              {
+                "region": [
+                  "tg4evrurqt"
+                ],
+                "city": [
+                  "mj7pdzuib5"
+                ]
+              },
+              {
+                "region": [
+                  "sq0zycmvo8"
+                ],
+                "city": [
+                  "4w6tk9lsg4"
+                ]
+              },
+              {
+                "region": [
+                  "iq9lvfowot"
+                ],
+                "city": [
+                  "0vxqs3h4de"
+                ]
+              },
+              {
+                "region": [
+                  "4m6hy7t0dj"
+                ],
+                "city": [
+                  "imv03julf5"
+                ]
+              },
+              {
+                "region": [
+                  "vluda2rnkk"
+                ],
+                "city": [
+                  "5fi11z14ya"
+                ]
+              },
+              {
+                "region": [
+                  "c8mxau7mba"
+                ],
+                "city": [
+                  "powtigy6tk"
+                ]
+              },
+              {
+                "region": [
+                  "ects377v1i"
+                ],
+                "city": [
+                  "v5wmkzbooi"
+                ]
+              },
+              {
+                "region": [
+                  "nb6khxcyq8"
+                ],
+                "city": [
+                  "ddgbdh02yh"
+                ]
+              },
+              {
+                "region": [
+                  "9q4jnat0g7"
+                ],
+                "city": [
+                  "ri0g6hshg5"
+                ]
+              },
+              {
+                "region": [
+                  "mmq7mw0skc"
+                ],
+                "city": [
+                  "95n4vpaafh"
+                ]
+              },
+              {
+                "region": [
+                  "5jf6egqo3s"
+                ],
+                "city": [
+                  "q3dglcsxu1"
+                ]
+              },
+              {
+                "region": [
+                  "hgcaikvw2r"
+                ],
+                "city": [
+                  "fxvlhzz3ry"
+                ]
+              },
+              {
+                "region": [
+                  "40khidkg04"
+                ],
+                "city": [
+                  "2lywbi45h0"
+                ]
+              },
+              {
+                "region": [
+                  "2cequa7ov7"
+                ],
+                "city": [
+                  "7g1p4wyj9d"
+                ]
+              },
+              {
+                "region": [
+                  "ak645ke5up"
+                ],
+                "city": [
+                  "vrd6o9yzpf"
+                ]
+              },
+              {
+                "region": [
+                  "322f52uh5b"
+                ],
+                "city": [
+                  "gz0c99aft6"
+                ]
+              },
+              {
+                "region": [
+                  "9n3vxdo3v9"
+                ],
+                "city": [
+                  "4x2hgoavws"
+                ]
+              },
+              {
+                "region": [
+                  "97xgck5i0g"
+                ],
+                "city": [
+                  "qmmhzn3mvg"
+                ]
+              },
+              {
+                "region": [
+                  "0ch236i5a7"
+                ],
+                "city": [
+                  "d9146lligy"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "want": 6
+    },
+    {
+      "name": "count with empty and all-empty-values ignored filters",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:432",
+      "fixture": "standard_filters",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france",
+                "united kingdom"
+              ]
+            },
+            "ignored": [
+              {},
+              {
+                "city": [],
+                "country": []
+              },
+              {
+                "city": [
+                  "caen"
+                ]
+              },
+              {
+                "city": [
+                  "cambridge",
+                  "london"
+                ],
+                "country": [
+                  "united kingdom"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "want": 4
+    },
+    {
+      "name": "count with max timestamp",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:448",
+      "fixture": "standard",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "until": "2023-03-17T23:59:59.999Z"
+        }
+      },
+      "want": 2
+    },
+    {
+      "name": "count with only duplicated transaction_id takes the event into account",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:466",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "e1",
+          "timestamp": "2023-03-20T00:00:00Z",
+          "properties": {
+            "value": 1
+          },
+          "precise_total_amount_cents": 1
+        }
+      ],
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31
+        }
+      },
+      "want": 6
+    },
+    {
+      "name": "with_grouped_by_values applies the grouped_by_values",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:479",
+      "fixture": "standard",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "group_values": {
+            "region": "europe"
+          }
+        }
+      },
+      "want": 3
+    },
+    {
+      "name": "grouped_count by region",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:491",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31
+        },
+        "by": [
+          "region"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": null
+          },
+          "value": 2,
+          "count": 2
+        },
+        {
+          "groups": {
+            "region": "europe"
+          },
+          "value": 3,
+          "count": 3
+        }
+      ]
+    },
+    {
+      "name": "grouped_count by region and country",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:503",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31
+        },
+        "by": [
+          "region",
+          "country"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": "europe",
+            "country": "france"
+          },
+          "value": 2,
+          "count": 2
+        },
+        {
+          "groups": {
+            "region": null,
+            "country": null
+          },
+          "value": 2,
+          "count": 2
+        },
+        {
+          "groups": {
+            "region": "europe",
+            "country": "united kingdom"
+          },
+          "value": 1,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "sum_precise_total_amount_cents returns the sum",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:518",
+      "fixture": "standard",
+      "store": {
+        "method": "sum_precise_total_amount_cents",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31
+        }
+      },
+      "want": 15
+    },
+    {
+      "name": "sum_precise_total_amount_cents without events returns zero",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:528",
+      "store": {
+        "method": "sum_precise_total_amount_cents",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31
+        }
+      },
+      "want": 0
+    },
+    {
+      "name": "grouped_sum_precise_total_amount_cents by region",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:539",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_sum_precise_total_amount_cents",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31
+        },
+        "by": [
+          "region"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": null
+          },
+          "value": 6
+        },
+        {
+          "groups": {
+            "region": "europe"
+          },
+          "value": 9
+        }
+      ]
+    },
+    {
+      "name": "grouped_sum_precise_total_amount_cents by region and country",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:549",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_sum_precise_total_amount_cents",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31
+        },
+        "by": [
+          "region",
+          "country"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": "europe",
+            "country": "united kingdom"
+          },
+          "value": 5
+        },
+        {
+          "groups": {
+            "region": null,
+            "country": null
+          },
+          "value": 6
+        },
+        {
+          "groups": {
+            "region": "europe",
+            "country": "france"
+          },
+          "value": 4
+        }
+      ]
+    },
+    {
+      "name": "grouped_sum_precise_total_amount_cents with filters",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:569",
+      "fixture": "standard_filters",
+      "store": {
+        "method": "grouped_sum_precise_total_amount_cents",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france",
+                "united kingdom"
+              ]
+            },
+            "ignored": [
+              {
+                "city": [
+                  "caen"
+                ]
+              },
+              {
+                "city": [
+                  "cambridge",
+                  "london"
+                ],
+                "country": [
+                  "united kingdom"
+                ]
+              }
+            ]
+          }
+        },
+        "by": [
+          "region",
+          "country"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": "europe",
+            "country": "united kingdom"
+          },
+          "value": -1
+        },
+        {
+          "groups": {
+            "region": "europe",
+            "country": "france"
+          },
+          "value": 2
+        }
+      ]
+    },
+    {
+      "name": "active_unique_property is false without previous events",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:602",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "new",
+          "timestamp": "2023-03-17T00:00:00Z",
+          "properties": {
+            "value": 999
+          },
+          "precise_total_amount_cents": 999
+        }
+      ],
+      "store": {
+        "method": "active_unique_property",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value"
+        },
+        "event": {
+          "transaction_id": "new",
+          "timestamp": "2023-03-17T00:00:00Z",
+          "properties": {
+            "value": 999
+          },
+          "precise_total_amount_cents": 999
+        }
+      },
+      "want": false
+    },
+    {
+      "name": "active_unique_property is true when the property is active",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:608",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "new",
+          "timestamp": "2023-03-18T00:00:00Z",
+          "properties": {
+            "value": 2
+          },
+          "precise_total_amount_cents": 2
+        }
+      ],
+      "store": {
+        "method": "active_unique_property",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value"
+        },
+        "event": {
+          "transaction_id": "new",
+          "timestamp": "2023-03-18T00:00:00Z",
+          "properties": {
+            "value": 2
+          },
+          "precise_total_amount_cents": 2
+        }
+      },
+      "want": true
+    },
+    {
+      "name": "active_unique_property is false after a removed event",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:620",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "rm",
+          "timestamp": "2023-03-17T01:00:00Z",
+          "properties": {
+            "operation_type": "remove",
+            "value": 2
+          },
+          "precise_total_amount_cents": 2
+        },
+        {
+          "transaction_id": "new",
+          "timestamp": "2023-03-18T00:00:00Z",
+          "properties": {
+            "value": 2
+          },
+          "precise_total_amount_cents": 2
+        }
+      ],
+      "store": {
+        "method": "active_unique_property",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value"
+        },
+        "event": {
+          "transaction_id": "new",
+          "timestamp": "2023-03-18T00:00:00Z",
+          "properties": {
+            "value": 2
+          },
+          "precise_total_amount_cents": 2
+        }
+      },
+      "want": false
+    },
+    {
+      "name": "unique_count returns the unique active properties",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:631",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "rm",
+          "timestamp": "2023-03-17T01:00:00Z",
+          "properties": {
+            "operation_type": "remove",
+            "value": 2
+          },
+          "precise_total_amount_cents": 2
+        }
+      ],
+      "store": {
+        "method": "unique_count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value"
+        }
+      },
+      "want": 4
+    },
+    {
+      "name": "prorated_unique_count returns the prorated unique active properties",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:650",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "a",
+          "timestamp": "2023-03-15T00:00:00Z",
+          "properties": {
+            "value": "2"
+          }
+        },
+        {
+          "transaction_id": "b",
+          "timestamp": "2023-03-15T23:59:59.999Z",
+          "properties": {
+            "operation_type": "remove",
+            "value": "2"
+          }
+        }
+      ],
+      "store": {
+        "method": "prorated_unique_count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value"
+        }
+      },
+      "precision": 3,
+      "want": 2.29
+    },
+    {
+      "name": "prorated_unique_count merges multiple events of the same day",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:676",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "s0",
+          "timestamp": "2023-03-15T00:00:00Z",
+          "properties": {
+            "operation_type": "remove",
+            "value": "2"
+          }
+        },
+        {
+          "transaction_id": "s1",
+          "timestamp": "2023-03-15T01:00:00Z",
+          "properties": {
+            "operation_type": "add",
+            "value": "2"
+          }
+        },
+        {
+          "transaction_id": "s2",
+          "timestamp": "2023-03-15T02:00:00Z",
+          "properties": {
+            "operation_type": "remove",
+            "value": "2"
+          }
+        },
+        {
+          "transaction_id": "s3",
+          "timestamp": "2023-03-15T03:00:00Z",
+          "properties": {
+            "operation_type": "add",
+            "value": "2"
+          }
+        },
+        {
+          "transaction_id": "s4",
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "operation_type": "remove",
+            "value": "2"
+          }
+        },
+        {
+          "transaction_id": "s5",
+          "timestamp": "2023-03-16T01:00:00Z",
+          "properties": {
+            "operation_type": "add",
+            "value": "2"
+          }
+        },
+        {
+          "transaction_id": "s6",
+          "timestamp": "2023-03-17T01:00:00Z",
+          "properties": {
+            "operation_type": "remove",
+            "value": "2"
+          }
+        }
+      ],
+      "store": {
+        "method": "prorated_unique_count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value"
+        }
+      },
+      "precision": 3,
+      "want": 1.871
+    },
+    {
+      "name": "prorated_unique_count_breakdown returns the add intervals",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:716",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "a",
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "value": "2"
+          }
+        },
+        {
+          "transaction_id": "b",
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "value": "30"
+          }
+        },
+        {
+          "transaction_id": "c",
+          "timestamp": "2023-03-16T23:59:59.999Z",
+          "properties": {
+            "operation_type": "remove",
+            "value": "2"
+          }
+        }
+      ],
+      "store": {
+        "method": "unique_count_intervals",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value"
+        }
+      },
+      "precision": 3,
+      "want": [
+        {
+          "property": "1",
+          "operation": "add",
+          "prorated_value": 0.516
+        },
+        {
+          "property": "2",
+          "prorated_value": 0.032
+        },
+        {
+          "property": "30"
+        },
+        {
+          "property": "2",
+          "prorated_value": 0.484
+        },
+        {
+          "property": "3",
+          "operation": "add",
+          "prorated_value": 0.452
+        },
+        {
+          "property": "4",
+          "operation": "add",
+          "prorated_value": 0.419
+        },
+        {
+          "property": "5",
+          "operation": "add",
+          "prorated_value": 0.387
+        }
+      ]
+    },
+    {
+      "name": "grouped_unique_count returns the unique count per group",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:785",
+      "fixture": "standard_from_march_1",
+      "store": {
+        "method": "grouped_unique_count",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value"
+        },
+        "by": [
+          "region",
+          "country",
+          "city"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "city": null,
+            "country": "france",
+            "region": "europe"
+          },
+          "value": 1,
+          "count": 1
+        },
+        {
+          "groups": {
+            "city": "paris",
+            "country": "france",
+            "region": "europe"
+          },
+          "value": 1,
+          "count": 1
+        },
+        {
+          "groups": {
+            "city": "london",
+            "country": "united kingdom",
+            "region": "europe"
+          },
+          "value": 1,
+          "count": 1
+        },
+        {
+          "groups": {
+            "city": null,
+            "country": null,
+            "region": null
+          },
+          "value": 2,
+          "count": 2
+        }
+      ]
+    },
+    {
+      "name": "grouped_unique_count with no events",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:799",
+      "store": {
+        "method": "grouped_unique_count",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value"
+        },
+        "by": [
+          "region",
+          "country",
+          "city"
+        ]
+      },
+      "want": []
+    },
+    {
+      "name": "grouped_prorated_unique_count returns the prorated unique count per group",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:848",
+      "events": [
+        {
+          "transaction_id": "g1",
+          "timestamp": "2023-03-02T00:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "value": "2"
+          }
+        },
+        {
+          "transaction_id": "g2",
+          "timestamp": "2023-03-02T00:00:00Z",
+          "properties": {
+            "agent_name": "aragorn",
+            "value": "2"
+          }
+        },
+        {
+          "transaction_id": "g3",
+          "timestamp": "2023-03-02T23:59:59.999Z",
+          "properties": {
+            "agent_name": "aragorn",
+            "operation_type": "remove",
+            "value": "2"
+          }
+        },
+        {
+          "transaction_id": "g4",
+          "timestamp": "2023-03-03T00:00:00Z",
+          "properties": {
+            "value": "2"
+          }
+        }
+      ],
+      "store": {
+        "method": "grouped_prorated_unique_count",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value"
+        },
+        "by": [
+          "agent_name",
+          "other"
+        ]
+      },
+      "precision": 3,
+      "want": [
+        {
+          "groups": {
+            "agent_name": null,
+            "other": null
+          },
+          "value": 0.935
+        },
+        {
+          "groups": {
+            "agent_name": "frodo",
+            "other": null
+          },
+          "value": 0.968
+        },
+        {
+          "groups": {
+            "agent_name": "aragorn",
+            "other": null
+          },
+          "value": 0.032
+        }
+      ]
+    },
+    {
+      "name": "grouped_prorated_unique_count with no events",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:864",
+      "store": {
+        "method": "grouped_prorated_unique_count",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value"
+        },
+        "by": [
+          "agent_name",
+          "other"
+        ]
+      },
+      "want": []
+    },
+    {
+      "name": "events_values returns the value of each event",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:879",
+      "fixture": "standard",
+      "store": {
+        "method": "event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "events_values with limit",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:884",
+      "fixture": "standard",
+      "store": {
+        "method": "event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "limit": 2
+      },
+      "want": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "events_values excludes the current event",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:912",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "current",
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "value": 6
+          },
+          "precise_total_amount_cents": 6
+        }
+      ],
+      "store": {
+        "method": "event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "exclude": "current"
+      },
+      "want": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "events_values excludes events before from_datetime by default",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:929",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "before",
+          "timestamp": "2023-03-14T00:00:00Z",
+          "properties": {
+            "region": "europe",
+            "country": "france",
+            "value": 0
+          },
+          "precise_total_amount_cents": 0
+        }
+      ],
+      "store": {
+        "method": "event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "events_values includes events before from_datetime when use_from_boundary is false",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:936",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "before",
+          "timestamp": "2023-03-14T00:00:00Z",
+          "properties": {
+            "region": "europe",
+            "country": "france",
+            "value": 0
+          },
+          "precise_total_amount_cents": 0
+        }
+      ],
+      "store": {
+        "method": "event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "include_history": true,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "events_values excludes events before from_datetime when force_from is true",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:941",
+      "fixture": "standard",
+      "events": [
+        {
+          "transaction_id": "before",
+          "timestamp": "2023-03-14T00:00:00Z",
+          "properties": {
+            "region": "europe",
+            "country": "france",
+            "value": 0
+          },
+          "precise_total_amount_cents": 0
+        }
+      ],
+      "store": {
+        "method": "event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "name": "events_values with filters",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:956",
+      "fixture": "standard_filters",
+      "store": {
+        "method": "event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france",
+                "united kingdom"
+              ]
+            },
+            "ignored": [
+              {
+                "city": [
+                  "caen"
+                ]
+              },
+              {
+                "city": [
+                  "cambridge",
+                  "london"
+                ],
+                "country": [
+                  "united kingdom"
+                ]
+              }
+            ]
+          },
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": [
+        1,
+        3,
+        -1,
+        -2
+      ]
+    },
+    {
+      "name": "last_event returns the last event",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:987",
+      "fixture": "standard",
+      "store": {
+        "method": "last_event",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "transaction_id": "dup",
+        "timestamp": "2023-03-20T00:00:00Z"
+      }
+    },
+    {
+      "name": "last_event with filters returns the last filtered event",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:999",
+      "fixture": "standard_filters",
+      "store": {
+        "method": "last_event",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999Z",
+          "period_days": 31,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france",
+                "united kingdom"
+              ]
+            },
+            "ignored": [
+              {
+                "city": [
+                  "caen"
+                ]
+              },
+              {
+                "city": [
+                  "cambridge",
+                  "london"
+                ],
+                "country": [
+                  "united kingdom"
+                ]
+              }
+            ]
+          },
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "transaction_id": "f2",
+        "timestamp": "2023-03-22T00:00:00Z"
+      }
+    }
+  ]
+}

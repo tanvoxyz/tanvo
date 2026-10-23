@@ -1,0 +1,1580 @@
+{
+  "fixtures": {
+    "base": [
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5
+        }
+      },
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5
+        }
+      },
+      {
+        "timestamp": "2023-05-26T00:00:00Z",
+        "properties": {
+          "total_count": 12
+        }
+      },
+      {
+        "timestamp": "2023-05-26T00:00:00Z",
+        "properties": {
+          "total_count": 12
+        }
+      }
+    ],
+    "old": [
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5
+        }
+      },
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5
+        }
+      }
+    ],
+    "grouped": [
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5,
+          "agent_name": "aragorn"
+        }
+      },
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5,
+          "agent_name": "aragorn"
+        }
+      },
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5,
+          "agent_name": "frodo"
+        }
+      },
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5,
+          "agent_name": "frodo"
+        }
+      },
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5,
+          "agent_name": "gimli"
+        }
+      },
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5,
+          "agent_name": "gimli"
+        }
+      },
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5,
+          "agent_name": "legolas"
+        }
+      },
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5,
+          "agent_name": "legolas"
+        }
+      },
+      {
+        "timestamp": "2023-05-26T00:00:00Z",
+        "properties": {
+          "total_count": 12,
+          "agent_name": "aragorn"
+        }
+      },
+      {
+        "timestamp": "2023-05-26T00:00:00Z",
+        "properties": {
+          "total_count": 12,
+          "agent_name": "aragorn"
+        }
+      },
+      {
+        "timestamp": "2023-05-26T00:00:00Z",
+        "properties": {
+          "total_count": 12,
+          "agent_name": "frodo"
+        }
+      },
+      {
+        "timestamp": "2023-05-26T00:00:00Z",
+        "properties": {
+          "total_count": 12,
+          "agent_name": "frodo"
+        }
+      },
+      {
+        "timestamp": "2023-05-26T00:00:00Z",
+        "properties": {
+          "total_count": 12,
+          "agent_name": "gimli"
+        }
+      },
+      {
+        "timestamp": "2023-05-26T00:00:00Z",
+        "properties": {
+          "total_count": 12,
+          "agent_name": "gimli"
+        }
+      },
+      {
+        "timestamp": "2023-05-26T00:00:00Z",
+        "properties": {
+          "total_count": 12,
+          "agent_name": "legolas"
+        }
+      },
+      {
+        "timestamp": "2023-05-26T00:00:00Z",
+        "properties": {
+          "total_count": 12,
+          "agent_name": "legolas"
+        }
+      }
+    ],
+    "grouped_aragorn_old": [
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5,
+          "agent_name": "aragorn"
+        }
+      },
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5,
+          "agent_name": "aragorn"
+        }
+      }
+    ],
+    "grouped_aragorn": [
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5,
+          "agent_name": "aragorn"
+        }
+      },
+      {
+        "timestamp": "2023-03-01T00:00:00Z",
+        "properties": {
+          "total_count": 2.5,
+          "agent_name": "aragorn"
+        }
+      },
+      {
+        "timestamp": "2023-05-26T00:00:00Z",
+        "properties": {
+          "total_count": 12,
+          "agent_name": "aragorn"
+        }
+      },
+      {
+        "timestamp": "2023-05-26T00:00:00Z",
+        "properties": {
+          "total_count": 12,
+          "agent_name": "aragorn"
+        }
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "aggregates the events",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:101",
+      "fixture": "base",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": 9.64517,
+        "pay_in_advance_aggregation": 0,
+        "count": 4
+      }
+    },
+    {
+      "name": "with an event exactly on the period boundary counts it once",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:124",
+      "fixture": "base",
+      "events": [
+        {
+          "timestamp": "2023-05-01T00:00:00Z",
+          "properties": {
+            "total_count": 10
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "count": 5
+      }
+    },
+    {
+      "name": "with presentation group keys returns the presentation breakdowns",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:165",
+      "fixture": "old",
+      "events": [
+        {
+          "timestamp": "2023-05-26T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "cloud": "aws"
+          }
+        },
+        {
+          "timestamp": "2023-05-26T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "cloud": "aws"
+          }
+        },
+        {
+          "timestamp": "2023-05-26T00:00:00Z",
+          "properties": {
+            "total_count": 7,
+            "cloud": "gcp"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "presentation_by": [
+          "cloud"
+        ]
+      },
+      "want": {
+        "breakdowns": [
+          {
+            "groups": {
+              "cloud": "aws"
+            },
+            "value": 24
+          },
+          {
+            "groups": {
+              "cloud": "gcp"
+            },
+            "value": 7
+          }
+        ]
+      }
+    },
+    {
+      "name": "with presentation group keys and grouped_by returns the presentation breakdowns per group",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:221",
+      "fixture": "old",
+      "events": [
+        {
+          "timestamp": "2023-05-26T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "agent_name": "aragorn",
+            "cloud": "aws"
+          }
+        },
+        {
+          "timestamp": "2023-05-26T00:00:00Z",
+          "properties": {
+            "total_count": 7,
+            "agent_name": "aragorn",
+            "cloud": "gcp"
+          }
+        },
+        {
+          "timestamp": "2023-05-26T00:00:00Z",
+          "properties": {
+            "total_count": 3,
+            "agent_name": "frodo",
+            "cloud": "aws"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ],
+        "presentation_by": [
+          "cloud"
+        ]
+      },
+      "want": {
+        "breakdowns": [
+          {
+            "groups": {
+              "agent_name": "aragorn",
+              "cloud": "aws"
+            },
+            "value": 12
+          },
+          {
+            "groups": {
+              "agent_name": "aragorn",
+              "cloud": "gcp"
+            },
+            "value": 7
+          },
+          {
+            "groups": {
+              "agent_name": "frodo",
+              "cloud": "aws"
+            },
+            "value": 3
+          }
+        ]
+      }
+    },
+    {
+      "name": "pay in advance on billing date aggregates the events without proration",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:240",
+      "fixture": "base",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "pay_in_advance": true
+      },
+      "want": {
+        "aggregation": 29,
+        "pay_in_advance_aggregation": 0,
+        "count": 4
+      }
+    },
+    {
+      "name": "when events are out of bounds does not take them into account",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:273",
+      "fixture": "old",
+      "events": [
+        {
+          "timestamp": "2023-06-01T23:59:59Z",
+          "properties": {
+            "total_count": 12
+          }
+        },
+        {
+          "timestamp": "2023-06-01T23:59:59Z",
+          "properties": {
+            "total_count": 12
+          }
+        },
+        {
+          "timestamp": "2023-06-01T23:59:59Z",
+          "properties": {
+            "total_count": 12
+          }
+        },
+        {
+          "timestamp": "2023-06-01T23:59:59Z",
+          "properties": {
+            "total_count": 12
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": 5,
+        "count": 2
+      }
+    },
+    {
+      "name": "when the property is not found on events counts as zero",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:286",
+      "fixture": "base",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "foo_bar",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0
+      }
+    },
+    {
+      "name": "when the property is a float aggregates the events",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:309",
+      "fixture": "base",
+      "events": [
+        {
+          "timestamp": "2023-05-31T00:00:00Z",
+          "properties": {
+            "total_count": 4.5
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": 9.79033
+      }
+    },
+    {
+      "name": "when the property is not a number ignores the event",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:331",
+      "fixture": "base",
+      "events": [
+        {
+          "timestamp": "2023-05-31T00:00:00Z",
+          "properties": {
+            "total_count": "foo_bar"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": 9.64517,
+        "count": 4
+      }
+    },
+    {
+      "name": "current usage pay in arrear returns period maximum as aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:345",
+      "fixture": "base",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": 9.64517,
+        "current_usage_units": 29
+      }
+    },
+    {
+      "name": "current usage pay in arrear with ceil rounding at 2 aggregates the events",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:369",
+      "fixture": "old",
+      "events": [
+        {
+          "timestamp": "2023-05-26T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        },
+        {
+          "timestamp": "2023-05-26T00:00:00Z",
+          "properties": {
+            "total_count": 12.434
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true,
+          "rounding_function": "ceil",
+          "rounding_precision": 2
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": 9.73,
+        "current_usage_units": 29.44
+      }
+    },
+    {
+      "name": "current usage pay in advance returns period maximum as aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:413",
+      "fixture": "old",
+      "events": [
+        {
+          "transaction_id": "tx_latest",
+          "timestamp": "2023-05-28T23:59:59Z",
+          "properties": {
+            "total_count": 4
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2023-05-28T23:59:59Z",
+          "transaction_id": "tx_latest",
+          "current_aggregation": "4",
+          "max_aggregation": "6",
+          "max_aggregation_with_proration": "3.8"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": 8.8,
+        "current_usage_units": 9
+      }
+    },
+    {
+      "name": "current usage pay in advance without cached aggregation returns the persisted units",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:424",
+      "fixture": "old",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": 5,
+        "current_usage_units": 5
+      }
+    },
+    {
+      "name": "current usage pay in advance with a negative state after an upfront payment does not inflate the aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:464",
+      "events": [
+        {
+          "transaction_id": "tx_latest",
+          "timestamp": "2023-05-28T23:59:59Z",
+          "properties": {
+            "total_count": -5
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2023-05-28T23:59:59Z",
+          "transaction_id": "tx_latest",
+          "current_aggregation": "-5",
+          "max_aggregation": "20",
+          "max_aggregation_with_proration": "8.5"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": 8.5,
+        "current_usage_units": 0
+      }
+    },
+    {
+      "name": "current usage pay in advance negative from the start with nothing invoiced returns zero",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:504",
+      "events": [
+        {
+          "transaction_id": "tx_latest",
+          "timestamp": "2023-05-28T23:59:59Z",
+          "properties": {
+            "total_count": -10
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2023-05-28T23:59:59Z",
+          "transaction_id": "tx_latest",
+          "current_aggregation": "-10",
+          "max_aggregation": "-10",
+          "max_aggregation_with_proration": "0"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": 0,
+        "current_usage_units": 0
+      }
+    },
+    {
+      "name": "current usage pay in advance just upgraded returns correct values",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:520",
+      "fixture": "old",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": 2.74194,
+        "current_usage_units": 5
+      }
+    },
+    {
+      "name": "current usage pay in advance just upgraded with a new event in period returns correct values",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:564",
+      "fixture": "old",
+      "events": [
+        {
+          "transaction_id": "tx_latest",
+          "timestamp": "2023-05-21T23:59:59Z",
+          "properties": {
+            "total_count": 4
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2023-05-21T23:59:59Z",
+          "transaction_id": "tx_latest",
+          "current_aggregation": "4",
+          "max_aggregation": "6",
+          "max_aggregation_with_proration": "3.8"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": 6.54194,
+        "current_usage_units": 9
+      }
+    },
+    {
+      "name": "when filters are given aggregates the matching events",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:616",
+      "fixture": "base",
+      "events": [
+        {
+          "timestamp": "2023-05-31T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "region": "europe"
+          }
+        },
+        {
+          "timestamp": "2023-05-31T00:00:00Z",
+          "properties": {
+            "total_count": 8,
+            "region": "europe"
+          }
+        },
+        {
+          "timestamp": "2023-05-31T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "region": "africa"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "filter": {
+          "matching": {
+            "region": [
+              "europe"
+            ]
+          }
+        }
+      },
+      "want": {
+        "aggregation": 0.64517,
+        "count": 2
+      }
+    },
+    {
+      "name": "when subscription was upgraded in the period returns the correct number",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:653",
+      "fixture": "base",
+      "events": [
+        {
+          "timestamp": "2023-04-26T00:00:00Z",
+          "properties": {
+            "total_count": 10
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "has_previous_subscription": true
+      },
+      "want": {
+        "aggregation": 19.64517
+      }
+    },
+    {
+      "name": "when event is given assigns a pay_in_advance aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:677",
+      "events": [
+        {
+          "transaction_id": "tx_event",
+          "timestamp": "2023-05-30T00:00:00Z",
+          "properties": {
+            "total_count": 10
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "event": {
+          "transaction_id": "tx_event",
+          "timestamp": "2023-05-30T00:00:00Z",
+          "properties": {
+            "total_count": 10
+          }
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 0.64517
+      }
+    },
+    {
+      "name": "when event is given with presentation group keys assigns pay_in_advance_breakdowns",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:687",
+      "events": [
+        {
+          "transaction_id": "tx_event",
+          "timestamp": "2023-05-30T00:00:00Z",
+          "properties": {
+            "total_count": 10,
+            "cloud": "aws",
+            "region": "eu"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "event": {
+          "transaction_id": "tx_event",
+          "timestamp": "2023-05-30T00:00:00Z",
+          "properties": {
+            "total_count": 10,
+            "cloud": "aws",
+            "region": "eu"
+          }
+        },
+        "presentation_by": [
+          "cloud",
+          "region"
+        ]
+      },
+      "want": {
+        "pay_in_advance_breakdowns": [
+          {
+            "groups": {
+              "cloud": "aws",
+              "region": "eu"
+            },
+            "value": 10
+          }
+        ]
+      }
+    },
+    {
+      "name": "when event is given and current period aggregation is greater than period maximum assigns a pay_in_advance aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:727",
+      "events": [
+        {
+          "transaction_id": "tx_latest",
+          "timestamp": "2023-05-29T00:00:00Z",
+          "properties": {
+            "total_count": -6
+          }
+        },
+        {
+          "transaction_id": "tx_event",
+          "timestamp": "2023-05-30T00:00:00Z",
+          "properties": {
+            "total_count": 10
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "event": {
+          "transaction_id": "tx_event",
+          "timestamp": "2023-05-30T00:00:00Z",
+          "properties": {
+            "total_count": 10
+          }
+        }
+      },
+      "cache": [
+        {
+          "timestamp": "2023-05-29T00:00:00Z",
+          "transaction_id": "tx_latest",
+          "current_aggregation": "4",
+          "max_aggregation": "10",
+          "max_aggregation_with_proration": "3.2"
+        }
+      ],
+      "want": {
+        "pay_in_advance_aggregation": 0.25807
+      }
+    },
+    {
+      "name": "when event is given and current period aggregation is less than period maximum assigns a zero pay_in_advance aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:766",
+      "events": [
+        {
+          "transaction_id": "tx_latest",
+          "timestamp": "2023-05-29T00:00:00Z",
+          "properties": {
+            "total_count": -6
+          }
+        },
+        {
+          "transaction_id": "tx_event",
+          "timestamp": "2023-05-30T00:00:00Z",
+          "properties": {
+            "total_count": -2
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "event": {
+          "transaction_id": "tx_event",
+          "timestamp": "2023-05-30T00:00:00Z",
+          "properties": {
+            "total_count": -2
+          }
+        }
+      },
+      "cache": [
+        {
+          "timestamp": "2023-05-29T00:00:00Z",
+          "transaction_id": "tx_latest",
+          "current_aggregation": "4",
+          "max_aggregation": "10",
+          "max_aggregation_with_proration": "3.2"
+        }
+      ],
+      "want": {
+        "pay_in_advance_aggregation": 0,
+        "units_applied": "-2"
+      }
+    },
+    {
+      "name": "when event is given with a float property assigns a pay_in_advance aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:777",
+      "events": [
+        {
+          "transaction_id": "tx_event",
+          "timestamp": "2023-05-30T00:00:00Z",
+          "properties": {
+            "total_count": 12.4
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "event": {
+          "transaction_id": "tx_event",
+          "timestamp": "2023-05-30T00:00:00Z",
+          "properties": {
+            "total_count": 12.4
+          }
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 0.8
+      }
+    },
+    {
+      "name": "when event is given and its property does not match the field name assigns zero",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:787",
+      "events": [
+        {
+          "transaction_id": "tx_event",
+          "timestamp": "2023-05-30T00:00:00Z",
+          "properties": {
+            "final_count": 10
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "event": {
+          "transaction_id": "tx_event",
+          "timestamp": "2023-05-30T00:00:00Z",
+          "properties": {
+            "final_count": 10
+          }
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 0
+      }
+    },
+    {
+      "name": "when event is given without properties assigns zero",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:797",
+      "events": [
+        {
+          "transaction_id": "tx_event",
+          "timestamp": "2023-05-30T00:00:00Z",
+          "properties": {}
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "event": {
+          "transaction_id": "tx_event",
+          "timestamp": "2023-05-30T00:00:00Z",
+          "properties": {}
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 0
+      }
+    },
+    {
+      "name": "per event aggregation aggregates per events",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:806",
+      "fixture": "base",
+      "precision": 5,
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "sum",
+            "field_name": "total_count",
+            "recurring": true
+          },
+          "from": "2023-05-01T00:00:00Z",
+          "to": "2023-05-31T23:59:59Z",
+          "period_days": 31,
+          "prorated": true
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [
+          5,
+          12,
+          12
+        ],
+        "prorated": [
+          5,
+          2.32258,
+          2.32258
+        ]
+      }
+    },
+    {
+      "name": "per event aggregation reuses the persisted units",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:814",
+      "fixture": "base",
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "sum",
+            "field_name": "total_count",
+            "recurring": true
+          },
+          "from": "2023-05-01T00:00:00Z",
+          "to": "2023-05-31T23:59:59Z",
+          "period_days": 31,
+          "prorated": true
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [
+          5,
+          12,
+          12
+        ]
+      }
+    },
+    {
+      "name": "per event aggregation with grouped_by_values takes the groups into account",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:834",
+      "precision": 5,
+      "events": [
+        {
+          "timestamp": "2023-03-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5,
+            "scheme": "visa"
+          }
+        },
+        {
+          "timestamp": "2023-03-01T00:00:00Z",
+          "properties": {
+            "total_count": 2.5
+          }
+        },
+        {
+          "timestamp": "2023-05-26T00:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        },
+        {
+          "timestamp": "2023-05-26T00:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "scheme": "visa"
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "sum",
+            "field_name": "total_count",
+            "recurring": true
+          },
+          "from": "2023-05-01T00:00:00Z",
+          "to": "2023-05-31T23:59:59Z",
+          "period_days": 31,
+          "prorated": true
+        },
+        "options": {
+          "group_values": {
+            "scheme": "visa"
+          }
+        }
+      },
+      "want": {
+        "values": [
+          5,
+          12
+        ],
+        "prorated": [
+          5,
+          2.32258
+        ]
+      }
+    },
+    {
+      "name": "per event aggregation bypassed returns empty aggregations",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:865",
+      "fixture": "base",
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "sum",
+            "field_name": "total_count",
+            "recurring": false
+          },
+          "from": "2023-05-01T00:00:00Z",
+          "to": "2023-05-31T23:59:59Z",
+          "period_days": 31,
+          "prorated": true,
+          "bypass_aggregation": true
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [],
+        "prorated": []
+      }
+    },
+    {
+      "name": "per event aggregation bypassed with a recurring metric ignores the bypass",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:891",
+      "fixture": "base",
+      "precision": 5,
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "sum",
+            "field_name": "total_count",
+            "recurring": true
+          },
+          "from": "2023-05-01T00:00:00Z",
+          "to": "2023-05-31T23:59:59Z",
+          "period_days": 31,
+          "prorated": true,
+          "bypass_aggregation": true
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [
+          5,
+          12,
+          12
+        ],
+        "prorated": [
+          5,
+          2.32258,
+          2.32258
+        ]
+      }
+    },
+    {
+      "name": "grouped_by returns grouped aggregations",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:942",
+      "fixture": "grouped",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 9.64517,
+            "count": 4
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": 9.64517,
+            "count": 4
+          },
+          {
+            "groups": {
+              "agent_name": "gimli"
+            },
+            "aggregation": 9.64517,
+            "count": 4
+          },
+          {
+            "groups": {
+              "agent_name": "legolas"
+            },
+            "aggregation": 9.64517,
+            "count": 4
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped_by current usage pay in arrear returns period maximum as aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:997",
+      "fixture": "grouped_aragorn",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ],
+        "current_usage": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 9.64517,
+            "count": 4,
+            "current_usage_units": 29
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped_by current usage pay in advance returns period maximum as aggregation",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:1048",
+      "fixture": "grouped_aragorn_old",
+      "events": [
+        {
+          "transaction_id": "tx_latest",
+          "timestamp": "2023-05-28T23:59:59Z",
+          "properties": {
+            "total_count": 4,
+            "agent_name": "aragorn"
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2023-05-28T23:59:59Z",
+          "transaction_id": "tx_latest",
+          "groups": {
+            "agent_name": "aragorn"
+          },
+          "current_aggregation": "4",
+          "max_aggregation": "6",
+          "max_aggregation_with_proration": "3.8"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ],
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 8.8,
+            "current_usage_units": 9
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped_by current usage pay in advance without cached aggregation returns the persisted units",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:1064",
+      "fixture": "grouped_aragorn_old",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-01T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ],
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 5,
+            "current_usage_units": 5
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped_by current usage pay in advance just upgraded returns correct values",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:1083",
+      "fixture": "grouped_aragorn_old",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ],
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 2.74194,
+            "current_usage_units": 5
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped_by current usage pay in advance just upgraded with a new event in period returns correct values",
+      "source": "spec/services/billable_metrics/prorated_aggregations/sum_service_spec.rb:1134",
+      "fixture": "grouped_aragorn_old",
+      "events": [
+        {
+          "transaction_id": "tx_latest",
+          "timestamp": "2023-05-21T23:59:59Z",
+          "properties": {
+            "total_count": 4,
+            "agent_name": "aragorn"
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2023-05-21T23:59:59Z",
+          "transaction_id": "tx_latest",
+          "groups": {
+            "agent_name": "aragorn"
+          },
+          "current_aggregation": "4",
+          "max_aggregation": "6",
+          "max_aggregation_with_proration": "3.8"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "total_count",
+          "recurring": true
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-05-31T23:59:59Z",
+        "period_days": 31,
+        "prorated": true,
+        "group_by": [
+          "agent_name"
+        ],
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 6.54194,
+            "current_usage_units": 9
+          }
+        ]
+      }
+    }
+  ]
+}

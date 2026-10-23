@@ -1,0 +1,599 @@
+{
+  "fixtures": {
+    "units": [
+      {
+        "timestamp": "2023-03-20T00:00:00Z",
+        "properties": {
+          "units": "123.456"
+        }
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "rounding round returns the rounded units",
+      "source": "spec/services/billable_metrics/aggregations/apply_rounding_service_spec.rb:21",
+      "fixture": "units",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "units",
+          "rounding_function": "round",
+          "rounding_precision": 2
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 123.46
+      }
+    },
+    {
+      "name": "rounding round without precision rounds to the integer value",
+      "source": "spec/services/billable_metrics/aggregations/apply_rounding_service_spec.rb:28",
+      "fixture": "units",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "units",
+          "rounding_function": "round"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 123
+      }
+    },
+    {
+      "name": "rounding round with negative precision applies the rounding",
+      "source": "spec/services/billable_metrics/aggregations/apply_rounding_service_spec.rb:36",
+      "fixture": "units",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "units",
+          "rounding_function": "round",
+          "rounding_precision": -2
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 100
+      }
+    },
+    {
+      "name": "rounding ceil returns the rounded units",
+      "source": "spec/services/billable_metrics/aggregations/apply_rounding_service_spec.rb:45",
+      "fixture": "units",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "units",
+          "rounding_function": "ceil",
+          "rounding_precision": 2
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 123.46
+      }
+    },
+    {
+      "name": "rounding ceil without precision rounds to the integer value",
+      "source": "spec/services/billable_metrics/aggregations/apply_rounding_service_spec.rb:52",
+      "fixture": "units",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "units",
+          "rounding_function": "ceil"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 124
+      }
+    },
+    {
+      "name": "rounding ceil with negative precision applies the rounding",
+      "source": "spec/services/billable_metrics/aggregations/apply_rounding_service_spec.rb:60",
+      "fixture": "units",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "units",
+          "rounding_function": "ceil",
+          "rounding_precision": -2
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 200
+      }
+    },
+    {
+      "name": "rounding floor returns the rounded units",
+      "source": "spec/services/billable_metrics/aggregations/apply_rounding_service_spec.rb:69",
+      "fixture": "units",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "units",
+          "rounding_function": "floor",
+          "rounding_precision": 2
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 123.45
+      }
+    },
+    {
+      "name": "rounding floor without precision rounds to the integer value",
+      "source": "spec/services/billable_metrics/aggregations/apply_rounding_service_spec.rb:76",
+      "fixture": "units",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "units",
+          "rounding_function": "floor"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 123
+      }
+    },
+    {
+      "name": "rounding floor with negative precision applies the rounding",
+      "source": "spec/services/billable_metrics/aggregations/apply_rounding_service_spec.rb:84",
+      "fixture": "units",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "units",
+          "rounding_function": "floor",
+          "rounding_precision": -2
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 100
+      }
+    },
+    {
+      "name": "without rounding function returns the units",
+      "source": "spec/services/billable_metrics/aggregations/apply_rounding_service_spec.rb:93",
+      "fixture": "units",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "units"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 123.456
+      }
+    },
+    {
+      "name": "null result without keyword arguments returns zero values",
+      "source": "spec/services/billable_metrics/aggregations/base_service_spec.rb:13",
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "bypass_aggregation": true
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0,
+        "current_usage_units": 0,
+        "running_total": []
+      }
+    },
+    {
+      "name": "null result with grouped_by_keys sets nil values for each key",
+      "source": "spec/services/billable_metrics/aggregations/base_service_spec.rb:29",
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "bypass_aggregation": true,
+        "group_by": [
+          "region",
+          "plan"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "aggregation": 0,
+            "count": 0,
+            "current_usage_units": 0,
+            "running_total": [],
+            "groups": {
+              "region": null,
+              "plan": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "null result with empty grouped_by_keys returns zero values",
+      "source": "spec/services/billable_metrics/aggregations/base_service_spec.rb:41",
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "bypass_aggregation": true,
+        "group_by": []
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0
+      }
+    },
+    {
+      "name": "null result with apply_aggregation and grouped_by_keys wraps a null result",
+      "source": "spec/services/billable_metrics/aggregations/base_service_spec.rb:51",
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "bypass_aggregation": true,
+        "group_by": [
+          "region"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "aggregation": 0,
+            "count": 0,
+            "current_usage_units": 0,
+            "running_total": [],
+            "groups": {
+              "region": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "null result with apply_aggregation and no grouped_by_keys returns a flat null result",
+      "source": "spec/services/billable_metrics/aggregations/base_service_spec.rb:66",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "units"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "bypass_aggregation": true
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0,
+        "current_usage_units": 0,
+        "running_total": [],
+        "grouped": []
+      }
+    },
+    {
+      "name": "empty results without grouped_by returns a zeroed result",
+      "source": "spec/services/billable_metrics/aggregations/base_service_spec.rb:110",
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "bypass_aggregation": true
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0,
+        "current_usage_units": 0,
+        "running_total": []
+      }
+    },
+    {
+      "name": "empty results with grouped_by wraps a null result per group keys",
+      "source": "spec/services/billable_metrics/aggregations/base_service_spec.rb:122",
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "bypass_aggregation": true,
+        "group_by": [
+          "region",
+          "provider"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "aggregation": 0,
+            "count": 0,
+            "current_usage_units": 0,
+            "running_total": [],
+            "groups": {
+              "region": null,
+              "provider": null
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "factory count_agg builds a count aggregation",
+      "source": "spec/services/billable_metrics/aggregation_factory_spec.rb:47",
+      "aggregate": {
+        "metric": {
+          "aggregation": "count"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 0
+      }
+    },
+    {
+      "name": "factory latest_agg builds a latest aggregation",
+      "source": "spec/services/billable_metrics/aggregation_factory_spec.rb:53",
+      "aggregate": {
+        "metric": {
+          "aggregation": "latest",
+          "field_name": "units"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 0
+      }
+    },
+    {
+      "name": "factory latest_agg pay in advance is not implemented",
+      "source": "spec/services/billable_metrics/aggregation_factory_spec.rb:58",
+      "aggregate": {
+        "metric": {
+          "aggregation": "latest",
+          "field_name": "units"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "pay_in_advance": true
+      },
+      "want_error": "not_implemented"
+    },
+    {
+      "name": "factory latest_agg pay in advance current usage builds a latest aggregation",
+      "source": "spec/services/billable_metrics/aggregation_factory_spec.rb:63",
+      "aggregate": {
+        "metric": {
+          "aggregation": "latest",
+          "field_name": "units"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": 0
+      }
+    },
+    {
+      "name": "factory max_agg builds a max aggregation",
+      "source": "spec/services/billable_metrics/aggregation_factory_spec.rb:71",
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "units"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 0
+      }
+    },
+    {
+      "name": "factory max_agg pay in advance is not implemented",
+      "source": "spec/services/billable_metrics/aggregation_factory_spec.rb:76",
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "units"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "pay_in_advance": true
+      },
+      "want_error": "not_implemented"
+    },
+    {
+      "name": "factory max_agg pay in advance current usage builds a max aggregation",
+      "source": "spec/services/billable_metrics/aggregation_factory_spec.rb:81",
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "units"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": 0
+      }
+    },
+    {
+      "name": "factory sum_agg builds a sum aggregation",
+      "source": "spec/services/billable_metrics/aggregation_factory_spec.rb:89",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "units"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 0
+      }
+    },
+    {
+      "name": "factory sum_agg prorated builds a prorated sum aggregation",
+      "source": "spec/services/billable_metrics/aggregation_factory_spec.rb:95",
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "units",
+          "recurring": true
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": 0,
+        "full_units_number": 0
+      }
+    },
+    {
+      "name": "factory unique_count_agg builds a unique count aggregation",
+      "source": "spec/services/billable_metrics/aggregation_factory_spec.rb:102",
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "units"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 0
+      }
+    },
+    {
+      "name": "factory unique_count_agg prorated builds a prorated unique count aggregation",
+      "source": "spec/services/billable_metrics/aggregation_factory_spec.rb:108",
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "units",
+          "recurring": true
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "prorated": true
+      },
+      "want": {
+        "aggregation": 0,
+        "full_units_number": 0
+      }
+    },
+    {
+      "name": "factory weighted_sum_agg builds a weighted sum aggregation",
+      "source": "spec/services/billable_metrics/aggregation_factory_spec.rb:115",
+      "aggregate": {
+        "metric": {
+          "aggregation": "weighted_sum",
+          "field_name": "units"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17
+      },
+      "want": {
+        "aggregation": 0
+      }
+    },
+    {
+      "name": "factory weighted_sum_agg pay in advance is not implemented",
+      "source": "spec/services/billable_metrics/aggregation_factory_spec.rb:120",
+      "aggregate": {
+        "metric": {
+          "aggregation": "weighted_sum",
+          "field_name": "units"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "pay_in_advance": true
+      },
+      "want_error": "not_implemented"
+    },
+    {
+      "name": "factory weighted_sum_agg pay in advance current usage builds a weighted sum aggregation",
+      "source": "spec/services/billable_metrics/aggregation_factory_spec.rb:125",
+      "aggregate": {
+        "metric": {
+          "aggregation": "weighted_sum",
+          "field_name": "units"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": 0
+      }
+    }
+  ]
+}

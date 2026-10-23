@@ -1,0 +1,1381 @@
+{
+  "fixtures": {
+    "base": [
+      {
+        "transaction_id": "tx_base",
+        "timestamp": "2022-06-09T00:00:00Z",
+        "properties": {
+          "unique_id": "uuid_base"
+        }
+      }
+    ],
+    "grouped": [
+      {
+        "transaction_id": "tx_aragorn_old",
+        "timestamp": "2022-06-09T00:00:00Z",
+        "properties": {
+          "unique_id": "uuid_aragorn_old",
+          "agent_name": "aragorn"
+        }
+      },
+      {
+        "transaction_id": "tx_frodo_old",
+        "timestamp": "2022-06-09T00:00:00Z",
+        "properties": {
+          "unique_id": "uuid_frodo_old",
+          "agent_name": "frodo"
+        }
+      },
+      {
+        "transaction_id": "tx_aragorn_new",
+        "timestamp": "2022-07-19T00:00:00Z",
+        "properties": {
+          "unique_id": "uuid_aragorn_new",
+          "agent_name": "aragorn"
+        }
+      },
+      {
+        "transaction_id": "tx_frodo_new",
+        "timestamp": "2022-07-19T00:00:00Z",
+        "properties": {
+          "unique_id": "uuid_frodo_new",
+          "agent_name": "frodo"
+        }
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "aggregate with presentation group keys returns the aggregations per group",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:128",
+      "events": [
+        {
+          "transaction_id": "tx_001",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "001",
+            "cloud": "aws"
+          }
+        },
+        {
+          "transaction_id": "tx_002",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "002",
+            "cloud": "gcp"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "presentation_by": [
+          "cloud"
+        ]
+      },
+      "want": {
+        "breakdowns": [
+          {
+            "groups": {
+              "cloud": "aws"
+            },
+            "value": 1
+          },
+          {
+            "groups": {
+              "cloud": "gcp"
+            },
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "aggregate with presentation group keys and grouped_by returns the breakdowns per group",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:175",
+      "events": [
+        {
+          "transaction_id": "tx_002_nogroup",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "002",
+            "cloud": "gcp"
+          }
+        },
+        {
+          "transaction_id": "tx_001",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "001",
+            "agent_name": "frodo",
+            "cloud": "aws"
+          }
+        },
+        {
+          "transaction_id": "tx_002",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "002",
+            "agent_name": "frodo",
+            "cloud": "gcp"
+          }
+        },
+        {
+          "transaction_id": "tx_003",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "003",
+            "agent_name": "aragorn",
+            "cloud": "aws"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "presentation_by": [
+          "cloud"
+        ],
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "breakdowns": [
+          {
+            "groups": {
+              "agent_name": "frodo",
+              "cloud": "aws"
+            },
+            "value": 1
+          },
+          {
+            "groups": {
+              "agent_name": "frodo",
+              "cloud": "gcp"
+            },
+            "value": 1
+          },
+          {
+            "groups": {
+              "agent_name": "aragorn",
+              "cloud": "aws"
+            },
+            "value": 1
+          },
+          {
+            "groups": {
+              "agent_name": null,
+              "cloud": "gcp"
+            },
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "aggregate with a persisted event and an event added in the period returns 2",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:201",
+      "fixture": "base",
+      "events": [
+        {
+          "transaction_id": "tx_new",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_new"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": {
+        "aggregation": 2
+      }
+    },
+    {
+      "name": "aggregate non-recurring with a persisted event and an event added in the period counts the period only",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:230",
+      "fixture": "base",
+      "events": [
+        {
+          "transaction_id": "tx_new",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_new"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id"
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": {
+        "aggregation": 1
+      }
+    },
+    {
+      "name": "aggregate with persisted metric on full period returns 1",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:236",
+      "fixture": "base",
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": {
+        "aggregation": 1
+      }
+    },
+    {
+      "name": "aggregate with persisted metric when subscription was terminated in the period returns 1",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:253",
+      "fixture": "base",
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-07-24T23:59:59Z",
+        "period_days": 16
+      },
+      "want": {
+        "aggregation": 1
+      }
+    },
+    {
+      "name": "aggregate with persisted metric when subscription was upgraded in the period returns 1",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:281",
+      "fixture": "base",
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-07-24T23:59:59Z",
+        "period_days": 16
+      },
+      "want": {
+        "aggregation": 1
+      }
+    },
+    {
+      "name": "aggregate with persisted metric when subscription was started in the period returns 1",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:290",
+      "events": [
+        {
+          "transaction_id": "tx_base",
+          "timestamp": "2022-07-01T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_base"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-08-01T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 8
+      },
+      "want": {
+        "aggregation": 1
+      }
+    },
+    {
+      "name": "aggregate with persisted metric when plan is pay in advance returns 1",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:300",
+      "fixture": "base",
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": {
+        "aggregation": 1
+      }
+    },
+    {
+      "name": "aggregate with persisted metric added in the period returns 1",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:309",
+      "events": [
+        {
+          "transaction_id": "tx_base",
+          "timestamp": "2022-07-24T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_base"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": {
+        "aggregation": 1
+      }
+    },
+    {
+      "name": "aggregate with persisted metric added on the first day of the period returns 1",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:317",
+      "events": [
+        {
+          "transaction_id": "tx_base",
+          "timestamp": "2022-07-09T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_base"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": {
+        "aggregation": 1
+      }
+    },
+    {
+      "name": "aggregate with persisted metric removed in the period returns 0",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:323",
+      "fixture": "base",
+      "events": [
+        {
+          "transaction_id": "tx_remove",
+          "timestamp": "2022-07-24T23:59:59Z",
+          "properties": {
+            "unique_id": "uuid_base",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": {
+        "aggregation": 0
+      }
+    },
+    {
+      "name": "aggregate with persisted metric removed on the last day of the period returns 0",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:341",
+      "fixture": "base",
+      "events": [
+        {
+          "transaction_id": "tx_remove",
+          "timestamp": "2022-08-08T23:59:59Z",
+          "properties": {
+            "unique_id": "uuid_base",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": {
+        "aggregation": 0
+      }
+    },
+    {
+      "name": "aggregate with metric added and removed in the period returns 0",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:363",
+      "events": [
+        {
+          "transaction_id": "tx_base",
+          "timestamp": "2022-07-10T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_base"
+          }
+        },
+        {
+          "transaction_id": "tx_remove",
+          "timestamp": "2022-08-07T23:59:59Z",
+          "properties": {
+            "unique_id": "uuid_base",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": {
+        "aggregation": 0
+      }
+    },
+    {
+      "name": "aggregate with metric added and removed the same day returns 0",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:383",
+      "events": [
+        {
+          "transaction_id": "tx_base",
+          "timestamp": "2022-07-10T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_base"
+          }
+        },
+        {
+          "transaction_id": "tx_remove",
+          "timestamp": "2022-07-10T23:59:59Z",
+          "properties": {
+            "unique_id": "uuid_base",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": {
+        "aggregation": 0
+      }
+    },
+    {
+      "name": "aggregate current usage of a pay-in-advance charge returns the period maximum",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:433",
+      "fixture": "base",
+      "events": [
+        {
+          "transaction_id": "tx_prev",
+          "timestamp": "2022-07-14T00:00:00Z",
+          "properties": {
+            "unique_id": "000"
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2022-07-14T00:00:00Z",
+          "transaction_id": "tx_prev",
+          "current_aggregation": "1",
+          "max_aggregation": "3",
+          "max_aggregation_with_proration": "0"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": 4
+      }
+    },
+    {
+      "name": "aggregate current usage of a pay-in-advance non-recurring charge without cached aggregation returns 0",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:445",
+      "fixture": "base",
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id"
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "aggregation": 0
+      }
+    },
+    {
+      "name": "aggregate with an event already active assigns 0 as pay_in_advance aggregation",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:469",
+      "fixture": "base",
+      "events": [
+        {
+          "transaction_id": "tx_event",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_base"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "event": {
+          "transaction_id": "tx_event",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_base"
+          }
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 0
+      }
+    },
+    {
+      "name": "aggregate with an event and presentation group keys assigns pay_in_advance_breakdowns",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:479",
+      "fixture": "base",
+      "events": [
+        {
+          "transaction_id": "tx_event",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "002",
+            "cloud": "aws",
+            "region": "eu"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "event": {
+          "transaction_id": "tx_event",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "002",
+            "cloud": "aws",
+            "region": "eu"
+          }
+        },
+        "presentation_by": [
+          "cloud",
+          "region"
+        ]
+      },
+      "want": {
+        "pay_in_advance_breakdowns": [
+          {
+            "groups": {
+              "cloud": "aws",
+              "region": "eu"
+            },
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "aggregate with an event and a charge filter assigns 1 as pay_in_advance aggregation",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:513",
+      "fixture": "base",
+      "events": [
+        {
+          "transaction_id": "tx_event",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "111",
+            "region": "europe"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "event": {
+          "transaction_id": "tx_event",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "111",
+            "region": "europe"
+          }
+        },
+        "filter": {
+          "matching": {
+            "region": [
+              "europe"
+            ]
+          }
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 1
+      }
+    },
+    {
+      "name": "aggregate with an event missing properties assigns 0 as pay_in_advance aggregation",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:523",
+      "fixture": "base",
+      "events": [
+        {
+          "transaction_id": "tx_event",
+          "timestamp": "2022-07-19T00:00:00Z"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "event": {
+          "transaction_id": "tx_event",
+          "timestamp": "2022-07-19T00:00:00Z"
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 0
+      }
+    },
+    {
+      "name": "aggregate with an event when the current aggregation exceeds the period maximum assigns 1",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:560",
+      "fixture": "base",
+      "events": [
+        {
+          "transaction_id": "tx_prev",
+          "timestamp": "2022-07-14T00:00:00Z",
+          "properties": {
+            "unique_id": "001"
+          }
+        },
+        {
+          "transaction_id": "tx_event",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "003"
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2022-07-14T00:00:00Z",
+          "transaction_id": "tx_prev",
+          "current_aggregation": "2",
+          "max_aggregation": "2",
+          "max_aggregation_with_proration": "0"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "event": {
+          "transaction_id": "tx_event",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "003"
+          }
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 1
+      }
+    },
+    {
+      "name": "aggregate with an event when the current aggregation is below the period maximum assigns 0",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:595",
+      "fixture": "base",
+      "events": [
+        {
+          "transaction_id": "tx_prev",
+          "timestamp": "2022-07-14T00:00:00Z",
+          "properties": {
+            "unique_id": "000"
+          }
+        },
+        {
+          "transaction_id": "tx_event",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_base"
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2022-07-14T00:00:00Z",
+          "transaction_id": "tx_prev",
+          "current_aggregation": "4",
+          "max_aggregation": "7",
+          "max_aggregation_with_proration": "0"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "event": {
+          "transaction_id": "tx_event",
+          "timestamp": "2022-07-19T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_base"
+          }
+        }
+      },
+      "want": {
+        "pay_in_advance_aggregation": 0
+      }
+    },
+    {
+      "name": "aggregate with bypass_aggregation on a non-recurring metric returns a default empty result",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:615",
+      "fixture": "base",
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id"
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "bypass_aggregation": true
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0,
+        "current_usage_units": 0,
+        "running_total": []
+      }
+    },
+    {
+      "name": "aggregate with bypass_aggregation on a recurring metric ignores the bypass",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:626",
+      "fixture": "base",
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "bypass_aggregation": true
+      },
+      "want": {
+        "aggregation": 1,
+        "count": 1
+      }
+    },
+    {
+      "name": "grouped with persisted events and events added in the period returns 2 per group",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:678",
+      "fixture": "grouped",
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 2,
+            "count": 2,
+            "running_total": []
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": 2,
+            "count": 2,
+            "running_total": []
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped non-recurring with events added in the period counts the period only",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:703",
+      "fixture": "grouped",
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id"
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 1,
+            "count": 1
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": 1,
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped with free units per events returns the running totals",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:718",
+      "fixture": "grouped",
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "group_by": [
+          "agent_name"
+        ],
+        "free_units_per_events": 10
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "running_total": [
+              1,
+              2
+            ]
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "running_total": [
+              1,
+              2
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped without events in the period returns the persisted events",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:750",
+      "events": [
+        {
+          "transaction_id": "tx_aragorn_old",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_aragorn_old",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "transaction_id": "tx_frodo_old",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_frodo_old",
+            "agent_name": "frodo"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 1,
+            "count": 1
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": 1,
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped without events returns an empty result",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:767",
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": null
+            },
+            "aggregation": 0,
+            "count": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped with bypass_aggregation on a non-recurring metric returns an empty result",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:791",
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id"
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "group_by": [
+          "agent_name"
+        ],
+        "bypass_aggregation": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": null
+            },
+            "aggregation": 0,
+            "count": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped with bypass_aggregation on a recurring metric ignores the bypass",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:818",
+      "events": [
+        {
+          "transaction_id": "tx_base",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_base",
+            "agent_name": "aragorn"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "group_by": [
+          "agent_name"
+        ],
+        "bypass_aggregation": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 1,
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped current usage of a pay-in-advance charge returns the period maximum",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:892",
+      "events": [
+        {
+          "transaction_id": "tx_aragorn_old",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_aragorn_old",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "transaction_id": "tx_frodo_old",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_frodo_old",
+            "agent_name": "frodo"
+          }
+        },
+        {
+          "transaction_id": "tx_aragorn_prev",
+          "timestamp": "2022-07-14T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_aragorn_prev",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "transaction_id": "tx_frodo_prev",
+          "timestamp": "2022-07-14T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_frodo_prev",
+            "agent_name": "frodo"
+          }
+        }
+      ],
+      "cache": [
+        {
+          "timestamp": "2022-07-14T00:00:00Z",
+          "transaction_id": "tx_aragorn_prev",
+          "groups": {
+            "agent_name": "aragorn"
+          },
+          "current_aggregation": "1",
+          "max_aggregation": "3",
+          "max_aggregation_with_proration": "0"
+        },
+        {
+          "timestamp": "2022-07-14T00:00:00Z",
+          "transaction_id": "tx_frodo_prev",
+          "groups": {
+            "agent_name": "frodo"
+          },
+          "current_aggregation": "1",
+          "max_aggregation": "3",
+          "max_aggregation_with_proration": "0"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "group_by": [
+          "agent_name"
+        ],
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 4,
+            "count": 2
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": 4,
+            "count": 2
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped current usage of a pay-in-advance non-recurring charge without cached aggregation returns an empty result",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:910",
+      "events": [
+        {
+          "transaction_id": "tx_aragorn_old",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_aragorn_old",
+            "agent_name": "aragorn"
+          }
+        },
+        {
+          "transaction_id": "tx_frodo_old",
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_frodo_old",
+            "agent_name": "frodo"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id"
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31,
+        "group_by": [
+          "agent_name"
+        ],
+        "pay_in_advance": true,
+        "current_usage": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": null
+            },
+            "aggregation": 0,
+            "count": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "per event aggregates the events added in the period",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:927",
+      "events": [
+        {
+          "transaction_id": "tx_base",
+          "timestamp": "2022-07-09T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_base"
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "unique_count",
+            "field_name": "unique_id",
+            "recurring": true
+          },
+          "from": "2022-07-09T00:00:00Z",
+          "to": "2022-08-08T23:59:59Z",
+          "period_days": 31
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [
+          1
+        ]
+      }
+    },
+    {
+      "name": "per event with grouped_by_values takes the groups into account",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:938",
+      "events": [
+        {
+          "transaction_id": "tx_base",
+          "timestamp": "2022-07-09T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_base",
+            "scheme": "visa"
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "unique_count",
+            "field_name": "unique_id",
+            "recurring": true
+          },
+          "from": "2022-07-09T00:00:00Z",
+          "to": "2022-08-08T23:59:59Z",
+          "period_days": 31
+        },
+        "options": {
+          "group_values": {
+            "scheme": "visa"
+          }
+        }
+      },
+      "want": {
+        "values": [
+          1
+        ]
+      }
+    },
+    {
+      "name": "per event including the event value adds the estimated event",
+      "source": "spec/services/billable_metrics/aggregations/unique_count_service_spec.rb:962",
+      "events": [
+        {
+          "transaction_id": "tx_base",
+          "timestamp": "2022-07-09T00:00:00Z",
+          "properties": {
+            "unique_id": "uuid_base"
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "unique_count",
+            "field_name": "unique_id",
+            "recurring": true
+          },
+          "from": "2022-07-09T00:00:00Z",
+          "to": "2022-08-08T23:59:59Z",
+          "period_days": 31,
+          "event": {
+            "transaction_id": "tx_estimate",
+            "timestamp": "2022-07-20T00:00:00Z",
+            "properties": {
+              "unique_id": "1234",
+              "operation_type": "add"
+            }
+          },
+          "event_estimate": true
+        },
+        "options": {
+          "include_event_value": true
+        }
+      },
+      "want": {
+        "values": [
+          1,
+          1
+        ]
+      }
+    }
+  ]
+}

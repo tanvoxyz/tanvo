@@ -1,0 +1,2145 @@
+{
+  "fixtures": {
+    "standard": [
+      {
+        "timestamp": "2023-03-16T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "city": "paris",
+          "value": 1
+        },
+        "precise_total_amount_cents": 1,
+        "transaction_id": "e1"
+      },
+      {
+        "timestamp": "2023-03-17T00:00:00Z",
+        "properties": {
+          "value": 2
+        },
+        "precise_total_amount_cents": 2,
+        "transaction_id": "e2"
+      },
+      {
+        "timestamp": "2023-03-18T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "value": 3
+        },
+        "precise_total_amount_cents": 3,
+        "transaction_id": "e3"
+      },
+      {
+        "timestamp": "2023-03-19T00:00:00Z",
+        "properties": {
+          "value": 4
+        },
+        "precise_total_amount_cents": 4,
+        "transaction_id": "e4"
+      },
+      {
+        "timestamp": "2023-03-20T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "london",
+          "value": 10
+        },
+        "precise_total_amount_cents": 10,
+        "transaction_id": "e5"
+      },
+      {
+        "timestamp": "2023-03-20T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "london",
+          "value": 5
+        },
+        "precise_total_amount_cents": 5,
+        "transaction_id": "e5"
+      }
+    ],
+    "filters": [
+      {
+        "timestamp": "2023-03-16T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "city": "paris",
+          "value": 1
+        },
+        "precise_total_amount_cents": 1,
+        "transaction_id": "e1"
+      },
+      {
+        "timestamp": "2023-03-17T00:00:00Z",
+        "properties": {
+          "value": 2
+        },
+        "precise_total_amount_cents": 2,
+        "transaction_id": "e2"
+      },
+      {
+        "timestamp": "2023-03-18T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "value": 3
+        },
+        "precise_total_amount_cents": 3,
+        "transaction_id": "e3"
+      },
+      {
+        "timestamp": "2023-03-19T00:00:00Z",
+        "properties": {
+          "value": 4
+        },
+        "precise_total_amount_cents": 4,
+        "transaction_id": "e4"
+      },
+      {
+        "timestamp": "2023-03-20T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "london",
+          "value": 10
+        },
+        "precise_total_amount_cents": 10,
+        "transaction_id": "e5"
+      },
+      {
+        "timestamp": "2023-03-20T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "london",
+          "value": 5
+        },
+        "precise_total_amount_cents": 5,
+        "transaction_id": "e5"
+      },
+      {
+        "timestamp": "2023-03-21T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "manchester",
+          "value": -1
+        },
+        "precise_total_amount_cents": -1,
+        "transaction_id": "f1"
+      },
+      {
+        "timestamp": "2023-03-22T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "city": "cambridge",
+          "value": -2
+        },
+        "precise_total_amount_cents": -2,
+        "transaction_id": "f2"
+      },
+      {
+        "timestamp": "2023-03-23T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "city": "caen",
+          "value": -3
+        },
+        "precise_total_amount_cents": -3,
+        "transaction_id": "f3"
+      },
+      {
+        "timestamp": "2023-03-24T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "germany",
+          "city": "berlin",
+          "value": -4
+        },
+        "precise_total_amount_cents": -4,
+        "transaction_id": "f4"
+      },
+      {
+        "timestamp": "2023-03-25T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "cambridge",
+          "value": -5
+        },
+        "precise_total_amount_cents": -5,
+        "transaction_id": "f5"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "grouped_last_event returns the last events grouped by region",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1033",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_last_event",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "region"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": null
+          },
+          "value": 4,
+          "timestamp": "2023-03-19T00:00:00Z"
+        },
+        {
+          "groups": {
+            "region": "europe"
+          },
+          "value": 5,
+          "timestamp": "2023-03-20T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "grouped_last_event with multiple groups returns the last events grouped by region and country",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1045",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_last_event",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "region",
+          "country"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": "europe",
+            "country": "france"
+          },
+          "value": 3,
+          "timestamp": "2023-03-18T00:00:00Z"
+        },
+        {
+          "groups": {
+            "region": null,
+            "country": null
+          },
+          "value": 4,
+          "timestamp": "2023-03-19T00:00:00Z"
+        },
+        {
+          "groups": {
+            "region": "europe",
+            "country": "united kingdom"
+          },
+          "value": 5,
+          "timestamp": "2023-03-20T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "grouped_last_event with filters returns the last events filtered and grouped",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1065",
+      "fixture": "filters",
+      "store": {
+        "method": "grouped_last_event",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france",
+                "united kingdom"
+              ]
+            },
+            "ignored": [
+              {
+                "city": [
+                  "caen"
+                ]
+              },
+              {
+                "city": [
+                  "cambridge",
+                  "london"
+                ],
+                "country": [
+                  "united kingdom"
+                ]
+              }
+            ]
+          }
+        },
+        "by": [
+          "region",
+          "country"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": "europe",
+            "country": "france"
+          },
+          "value": -2,
+          "timestamp": "2023-03-22T00:00:00Z"
+        },
+        {
+          "groups": {
+            "region": "europe",
+            "country": "united kingdom"
+          },
+          "value": -1,
+          "timestamp": "2023-03-21T00:00:00Z"
+        }
+      ]
+    },
+    {
+      "name": "max returns the max value",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1114",
+      "fixture": "standard",
+      "store": {
+        "method": "max",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": 5,
+        "count": 5
+      }
+    },
+    {
+      "name": "max with grouped_by_values returns the max value of the group",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1125",
+      "fixture": "standard",
+      "store": {
+        "method": "max",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true,
+          "group_values": {
+            "region": "europe"
+          }
+        }
+      },
+      "want": {
+        "value": 5,
+        "count": 3
+      }
+    },
+    {
+      "name": "max with grouped_by_values nil returns the max value of the events without the property",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1135",
+      "fixture": "standard",
+      "store": {
+        "method": "max",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true,
+          "group_values": {
+            "region": null
+          }
+        }
+      },
+      "want": {
+        "value": 4,
+        "count": 2
+      }
+    },
+    {
+      "name": "max with filters returns the max value filtered",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1152",
+      "fixture": "filters",
+      "store": {
+        "method": "max",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france",
+                "united kingdom"
+              ]
+            },
+            "ignored": [
+              {
+                "city": [
+                  "caen"
+                ]
+              },
+              {
+                "city": [
+                  "cambridge",
+                  "london"
+                ],
+                "country": [
+                  "united kingdom"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "want": {
+        "value": 3,
+        "count": 4
+      }
+    },
+    {
+      "name": "max with_count false returns the max value (count always returned)",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1179",
+      "fixture": "standard",
+      "store": {
+        "method": "max",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": 5
+      }
+    },
+    {
+      "name": "grouped_max returns the max values and counts grouped by region",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1198",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_max",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "region"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": null
+          },
+          "value": 4,
+          "count": 2
+        },
+        {
+          "groups": {
+            "region": "europe"
+          },
+          "value": 5,
+          "count": 3
+        }
+      ]
+    },
+    {
+      "name": "grouped_max with_count false returns the max values (count always returned)",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1208",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_max",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "region"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": null
+          },
+          "value": 4
+        },
+        {
+          "groups": {
+            "region": "europe"
+          },
+          "value": 5
+        }
+      ]
+    },
+    {
+      "name": "grouped_max with multiple groups returns the max values grouped by region and country",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1221",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_max",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "region",
+          "country"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": "europe",
+            "country": "france"
+          },
+          "value": 3,
+          "count": 2
+        },
+        {
+          "groups": {
+            "region": null,
+            "country": null
+          },
+          "value": 4,
+          "count": 2
+        },
+        {
+          "groups": {
+            "region": "europe",
+            "country": "united kingdom"
+          },
+          "value": 5,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "grouped_max with filters returns the max values filtered and grouped",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1241",
+      "fixture": "filters",
+      "store": {
+        "method": "grouped_max",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france",
+                "united kingdom"
+              ]
+            },
+            "ignored": [
+              {
+                "city": [
+                  "caen"
+                ]
+              },
+              {
+                "city": [
+                  "cambridge",
+                  "london"
+                ],
+                "country": [
+                  "united kingdom"
+                ]
+              }
+            ]
+          }
+        },
+        "by": [
+          "region",
+          "country"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": "europe",
+            "country": "united kingdom"
+          },
+          "value": -1,
+          "count": 1
+        },
+        {
+          "groups": {
+            "region": "europe",
+            "country": "france"
+          },
+          "value": 3,
+          "count": 3
+        }
+      ]
+    },
+    {
+      "name": "last returns the last event value and the events count",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1280",
+      "fixture": "standard",
+      "store": {
+        "method": "last",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": 5,
+        "count": 5
+      }
+    },
+    {
+      "name": "last with_count false returns the last value (count always returned)",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1288",
+      "fixture": "standard",
+      "store": {
+        "method": "last",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": 5
+      }
+    },
+    {
+      "name": "last without events returns a nil value and a zero count",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1299",
+      "store": {
+        "method": "last",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": null,
+        "count": 0
+      }
+    },
+    {
+      "name": "last when the last event has no value returns a nil value",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1312",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {}
+        }
+      ],
+      "store": {
+        "method": "last",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": null
+      }
+    },
+    {
+      "name": "last with filters returns the last filtered event value",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1330",
+      "fixture": "filters",
+      "store": {
+        "method": "last",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france",
+                "united kingdom"
+              ]
+            },
+            "ignored": [
+              {
+                "city": [
+                  "caen"
+                ]
+              },
+              {
+                "city": [
+                  "cambridge",
+                  "london"
+                ],
+                "country": [
+                  "united kingdom"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "want": {
+        "value": -2,
+        "count": 4
+      }
+    },
+    {
+      "name": "grouped_last returns the last value and the events count for each region",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1367",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_last",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "partition": [
+          "region"
+        ],
+        "columns": [
+          "region"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": null
+          },
+          "value": 4,
+          "count": 2
+        },
+        {
+          "groups": {
+            "region": "europe"
+          },
+          "value": 5,
+          "count": 3
+        }
+      ]
+    },
+    {
+      "name": "grouped_last with_count false returns the last values (count always returned)",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1377",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_last",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "partition": [
+          "region"
+        ],
+        "columns": [
+          "region"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": null
+          },
+          "value": 4
+        },
+        {
+          "groups": {
+            "region": "europe"
+          },
+          "value": 5
+        }
+      ]
+    },
+    {
+      "name": "grouped_last with multiple groups returns the last value for each region and country",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1390",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_last",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "partition": [
+          "region",
+          "country"
+        ],
+        "columns": [
+          "region",
+          "country"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": null,
+            "country": null
+          },
+          "value": 4,
+          "count": 2
+        },
+        {
+          "groups": {
+            "region": "europe",
+            "country": "france"
+          },
+          "value": 3,
+          "count": 2
+        },
+        {
+          "groups": {
+            "region": "europe",
+            "country": "united kingdom"
+          },
+          "value": 5,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "grouped_last with filters returns the last values filtered and grouped",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1410",
+      "fixture": "filters",
+      "store": {
+        "method": "grouped_last",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france",
+                "united kingdom"
+              ]
+            },
+            "ignored": [
+              {
+                "city": [
+                  "caen"
+                ]
+              },
+              {
+                "city": [
+                  "cambridge",
+                  "london"
+                ],
+                "country": [
+                  "united kingdom"
+                ]
+              }
+            ]
+          }
+        },
+        "partition": [
+          "region",
+          "country"
+        ],
+        "columns": [
+          "region",
+          "country"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": "europe",
+            "country": "united kingdom"
+          },
+          "value": -1,
+          "count": 1
+        },
+        {
+          "groups": {
+            "region": "europe",
+            "country": "france"
+          },
+          "value": -2,
+          "count": 3
+        }
+      ]
+    },
+    {
+      "name": "sum returns the sum of event properties",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1449",
+      "fixture": "standard",
+      "store": {
+        "method": "sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": 15,
+        "count": 5
+      }
+    },
+    {
+      "name": "sum with only duplicated transaction_id at another timestamp takes the event into account",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1464",
+      "fixture": "standard",
+      "events": [
+        {
+          "timestamp": "2023-03-20T00:00:00Z",
+          "properties": {
+            "value": 100
+          },
+          "precise_total_amount_cents": 100,
+          "transaction_id": "e1"
+        }
+      ],
+      "store": {
+        "method": "sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": 115,
+        "count": 6
+      }
+    },
+    {
+      "name": "sum with_count false returns the sum (count always returned)",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1474",
+      "fixture": "standard",
+      "store": {
+        "method": "sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": 15
+      }
+    },
+    {
+      "name": "sum with events before from_datetime excludes them by default",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1492",
+      "fixture": "standard",
+      "events": [
+        {
+          "timestamp": "2023-03-14T00:00:00Z",
+          "properties": {
+            "region": "europe",
+            "country": "france",
+            "value": 100
+          },
+          "precise_total_amount_cents": 100,
+          "transaction_id": "before"
+        }
+      ],
+      "store": {
+        "method": "sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": 15,
+        "count": 5
+      }
+    },
+    {
+      "name": "sum with events before from_datetime and use_from_boundary false includes them",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1502",
+      "fixture": "standard",
+      "events": [
+        {
+          "timestamp": "2023-03-14T00:00:00Z",
+          "properties": {
+            "region": "europe",
+            "country": "france",
+            "value": 100
+          },
+          "precise_total_amount_cents": 100,
+          "transaction_id": "before"
+        }
+      ],
+      "store": {
+        "method": "sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true,
+          "include_history": true
+        }
+      },
+      "want": {
+        "value": 115,
+        "count": 6
+      }
+    },
+    {
+      "name": "sum with events before from_datetime and use_from_boundary set back to true excludes them",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1510",
+      "fixture": "standard",
+      "events": [
+        {
+          "timestamp": "2023-03-14T00:00:00Z",
+          "properties": {
+            "region": "europe",
+            "country": "france",
+            "value": 100
+          },
+          "precise_total_amount_cents": 100,
+          "transaction_id": "before"
+        }
+      ],
+      "store": {
+        "method": "sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": 15,
+        "count": 5
+      }
+    },
+    {
+      "name": "sum with events after to_datetime excludes them",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1533",
+      "fixture": "standard",
+      "store": {
+        "method": "sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-18T12:00:00Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": 6,
+        "count": 3
+      }
+    },
+    {
+      "name": "sum with max_timestamp boundary uses max_timestamp instead of to_datetime",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1552",
+      "fixture": "standard",
+      "store": {
+        "method": "sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true,
+          "until": "2023-03-18T12:00:00Z"
+        }
+      },
+      "want": {
+        "value": 6,
+        "count": 3
+      }
+    },
+    {
+      "name": "grouped_sum returns the sum of values grouped by region",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1572",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "region"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": null
+          },
+          "value": 6,
+          "count": 2
+        },
+        {
+          "groups": {
+            "region": "europe"
+          },
+          "value": 9,
+          "count": 3
+        }
+      ]
+    },
+    {
+      "name": "grouped_sum with_count false returns the sums (count always returned)",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1582",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "region"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": null
+          },
+          "value": 6
+        },
+        {
+          "groups": {
+            "region": "europe"
+          },
+          "value": 9
+        }
+      ]
+    },
+    {
+      "name": "grouped_sum with multiple groups returns the sums grouped by region and country",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1595",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "region",
+          "country"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": null,
+            "country": null
+          },
+          "value": 6,
+          "count": 2
+        },
+        {
+          "groups": {
+            "region": "europe",
+            "country": "united kingdom"
+          },
+          "value": 5,
+          "count": 1
+        },
+        {
+          "groups": {
+            "region": "europe",
+            "country": "france"
+          },
+          "value": 4,
+          "count": 2
+        }
+      ]
+    },
+    {
+      "name": "grouped_sum with filters returns the sums filtered and grouped",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1615",
+      "fixture": "filters",
+      "store": {
+        "method": "grouped_sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france",
+                "united kingdom"
+              ]
+            },
+            "ignored": [
+              {
+                "city": [
+                  "caen"
+                ]
+              },
+              {
+                "city": [
+                  "cambridge",
+                  "london"
+                ],
+                "country": [
+                  "united kingdom"
+                ]
+              }
+            ]
+          }
+        },
+        "by": [
+          "region",
+          "country"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": "europe",
+            "country": "united kingdom"
+          },
+          "value": -1,
+          "count": 1
+        },
+        {
+          "groups": {
+            "region": "europe",
+            "country": "france"
+          },
+          "value": 2,
+          "count": 3
+        }
+      ]
+    },
+    {
+      "name": "grouped_sum breakdown without grouped_by returns the sums by cloud",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1677",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 10
+          },
+          "precise_total_amount_cents": 10
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 10
+          },
+          "precise_total_amount_cents": 10
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 10
+          },
+          "precise_total_amount_cents": 10
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "cloud": "gcp",
+            "value": 12
+          },
+          "precise_total_amount_cents": 12
+        }
+      ],
+      "store": {
+        "method": "grouped_sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "cloud"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "cloud": "aws"
+          },
+          "value": 30,
+          "count": 3
+        },
+        {
+          "groups": {
+            "cloud": "gcp"
+          },
+          "value": 12,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "grouped_sum breakdown with grouped_by returns the sums per agent and cloud",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1696",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "cloud": "aws",
+            "value": 2
+          },
+          "precise_total_amount_cents": 2
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "cloud": "gcp",
+            "value": 7
+          },
+          "precise_total_amount_cents": 7
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "agent_name": "aragorn",
+            "cloud": "aws",
+            "value": 3
+          },
+          "precise_total_amount_cents": 3
+        }
+      ],
+      "store": {
+        "method": "grouped_sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "agent_name",
+          "cloud"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "agent_name": "frodo",
+            "cloud": "aws"
+          },
+          "value": 2,
+          "count": 1
+        },
+        {
+          "groups": {
+            "agent_name": "frodo",
+            "cloud": "gcp"
+          },
+          "value": 7,
+          "count": 1
+        },
+        {
+          "groups": {
+            "agent_name": "aragorn",
+            "cloud": "aws"
+          },
+          "value": 3,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "grouped_count breakdown without grouped_by returns the counts by cloud",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1737",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 10
+          },
+          "precise_total_amount_cents": 10
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 10
+          },
+          "precise_total_amount_cents": 10
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 10
+          },
+          "precise_total_amount_cents": 10
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "cloud": "gcp",
+            "value": 12
+          },
+          "precise_total_amount_cents": 12
+        }
+      ],
+      "store": {
+        "method": "grouped_count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31
+        },
+        "by": [
+          "cloud"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "cloud": "aws"
+          },
+          "value": 3,
+          "count": 3
+        },
+        {
+          "groups": {
+            "cloud": "gcp"
+          },
+          "value": 1,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "grouped_count breakdown with grouped_by returns the counts per agent and cloud",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1756",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "cloud": "aws",
+            "value": 2
+          },
+          "precise_total_amount_cents": 2
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "cloud": "aws",
+            "value": 2
+          },
+          "precise_total_amount_cents": 2
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "cloud": "gcp",
+            "value": 7
+          },
+          "precise_total_amount_cents": 7
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "agent_name": "aragorn",
+            "cloud": "aws",
+            "value": 3
+          },
+          "precise_total_amount_cents": 3
+        }
+      ],
+      "store": {
+        "method": "grouped_count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31
+        },
+        "by": [
+          "agent_name",
+          "cloud"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "agent_name": "frodo",
+            "cloud": "aws"
+          },
+          "value": 2,
+          "count": 2
+        },
+        {
+          "groups": {
+            "agent_name": "frodo",
+            "cloud": "gcp"
+          },
+          "value": 1,
+          "count": 1
+        },
+        {
+          "groups": {
+            "agent_name": "aragorn",
+            "cloud": "aws"
+          },
+          "value": 1,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "grouped_last breakdown without grouped_by returns the latest value with its cloud",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1802",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 10
+          },
+          "precise_total_amount_cents": 10
+        },
+        {
+          "timestamp": "2023-03-17T00:00:00Z",
+          "properties": {
+            "cloud": "gcp",
+            "value": 12
+          },
+          "precise_total_amount_cents": 12
+        }
+      ],
+      "store": {
+        "method": "grouped_last",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "columns": [
+          "cloud"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "cloud": "gcp"
+          },
+          "value": 12,
+          "count": 2
+        }
+      ]
+    },
+    {
+      "name": "grouped_last breakdown with grouped_by returns the latest value per agent with its cloud",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1820",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "cloud": "aws",
+            "value": 2
+          },
+          "precise_total_amount_cents": 2
+        },
+        {
+          "timestamp": "2023-03-17T00:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "cloud": "gcp",
+            "value": 7
+          },
+          "precise_total_amount_cents": 7
+        },
+        {
+          "timestamp": "2023-03-16T00:00:01Z",
+          "properties": {
+            "agent_name": "aragorn",
+            "cloud": "aws",
+            "value": 3
+          },
+          "precise_total_amount_cents": 3
+        }
+      ],
+      "store": {
+        "method": "grouped_last",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "partition": [
+          "agent_name"
+        ],
+        "columns": [
+          "agent_name",
+          "cloud"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "agent_name": "frodo",
+            "cloud": "gcp"
+          },
+          "value": 7,
+          "count": 2
+        },
+        {
+          "groups": {
+            "agent_name": "aragorn",
+            "cloud": "aws"
+          },
+          "value": 3,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "grouped_max breakdown without grouped_by returns the max value by cloud",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1865",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 10
+          },
+          "precise_total_amount_cents": 10
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 10
+          },
+          "precise_total_amount_cents": 10
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 10
+          },
+          "precise_total_amount_cents": 10
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "cloud": "gcp",
+            "value": 12
+          },
+          "precise_total_amount_cents": 12
+        }
+      ],
+      "store": {
+        "method": "grouped_max",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "cloud"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "cloud": "aws"
+          },
+          "value": 10,
+          "count": 3
+        },
+        {
+          "groups": {
+            "cloud": "gcp"
+          },
+          "value": 12,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "grouped_max breakdown with grouped_by returns the max value per agent and cloud",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1884",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "cloud": "aws",
+            "value": 2
+          },
+          "precise_total_amount_cents": 2
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "cloud": "gcp",
+            "value": 7
+          },
+          "precise_total_amount_cents": 7
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "agent_name": "aragorn",
+            "cloud": "aws",
+            "value": 3
+          },
+          "precise_total_amount_cents": 3
+        }
+      ],
+      "store": {
+        "method": "grouped_max",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "agent_name",
+          "cloud"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "agent_name": "frodo",
+            "cloud": "aws"
+          },
+          "value": 2,
+          "count": 1
+        },
+        {
+          "groups": {
+            "agent_name": "frodo",
+            "cloud": "gcp"
+          },
+          "value": 7,
+          "count": 1
+        },
+        {
+          "groups": {
+            "agent_name": "aragorn",
+            "cloud": "aws"
+          },
+          "value": 3,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "grouped_unique_count breakdown without grouped_by returns the unique counts by cloud",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1931",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 1
+          },
+          "precise_total_amount_cents": 1
+        },
+        {
+          "timestamp": "2023-03-17T00:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 2
+          },
+          "precise_total_amount_cents": 2
+        },
+        {
+          "timestamp": "2023-03-18T00:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 3
+          },
+          "precise_total_amount_cents": 3
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "cloud": "gcp",
+            "value": 1
+          },
+          "precise_total_amount_cents": 1
+        }
+      ],
+      "store": {
+        "method": "grouped_unique_count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value"
+        },
+        "by": [
+          "cloud"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "cloud": "aws"
+          },
+          "value": 3,
+          "count": 3
+        },
+        {
+          "groups": {
+            "cloud": "gcp"
+          },
+          "value": 1,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "grouped_unique_count breakdown with grouped_by returns the unique counts per agent and cloud",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:1951",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "cloud": "aws",
+            "value": 1
+          },
+          "precise_total_amount_cents": 1
+        },
+        {
+          "timestamp": "2023-03-17T00:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "cloud": "aws",
+            "value": 2
+          },
+          "precise_total_amount_cents": 2
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "agent_name": "frodo",
+            "cloud": "gcp",
+            "value": 1
+          },
+          "precise_total_amount_cents": 1
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "agent_name": "aragorn",
+            "cloud": "aws",
+            "value": 1
+          },
+          "precise_total_amount_cents": 1
+        }
+      ],
+      "store": {
+        "method": "grouped_unique_count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value"
+        },
+        "by": [
+          "agent_name",
+          "cloud"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "agent_name": "frodo",
+            "cloud": "aws"
+          },
+          "value": 2,
+          "count": 2
+        },
+        {
+          "groups": {
+            "agent_name": "frodo",
+            "cloud": "gcp"
+          },
+          "value": 1,
+          "count": 1
+        },
+        {
+          "groups": {
+            "agent_name": "aragorn",
+            "cloud": "aws"
+          },
+          "value": 1,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "name": "grouped_weighted_sum breakdown without grouped_by returns the weighted sums by cloud",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2011",
+      "events": [
+        {
+          "timestamp": "2023-03-05T00:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 2
+          },
+          "precise_total_amount_cents": 2
+        },
+        {
+          "timestamp": "2023-03-05T01:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 3
+          },
+          "precise_total_amount_cents": 3
+        },
+        {
+          "timestamp": "2023-03-05T01:30:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 1
+          },
+          "precise_total_amount_cents": 1
+        },
+        {
+          "timestamp": "2023-03-05T02:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": -4
+          },
+          "precise_total_amount_cents": -4
+        },
+        {
+          "timestamp": "2023-03-05T04:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": -2
+          },
+          "precise_total_amount_cents": -2
+        },
+        {
+          "timestamp": "2023-03-05T05:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": 10
+          },
+          "precise_total_amount_cents": 10
+        },
+        {
+          "timestamp": "2023-03-05T05:30:00Z",
+          "properties": {
+            "cloud": "aws",
+            "value": -10
+          },
+          "precise_total_amount_cents": -10
+        },
+        {
+          "timestamp": "2023-03-05T00:00:00Z",
+          "properties": {
+            "cloud": "gcp",
+            "value": 2
+          },
+          "precise_total_amount_cents": 2
+        },
+        {
+          "timestamp": "2023-03-05T01:00:00Z",
+          "properties": {
+            "cloud": "gcp",
+            "value": 3
+          },
+          "precise_total_amount_cents": 3
+        },
+        {
+          "timestamp": "2023-03-05T01:30:00Z",
+          "properties": {
+            "cloud": "gcp",
+            "value": 1
+          },
+          "precise_total_amount_cents": 1
+        },
+        {
+          "timestamp": "2023-03-05T02:00:00Z",
+          "properties": {
+            "cloud": "gcp",
+            "value": -4
+          },
+          "precise_total_amount_cents": -4
+        },
+        {
+          "timestamp": "2023-03-05T04:00:00Z",
+          "properties": {
+            "cloud": "gcp",
+            "value": -2
+          },
+          "precise_total_amount_cents": -2
+        },
+        {
+          "timestamp": "2023-03-05T05:00:00Z",
+          "properties": {
+            "cloud": "gcp",
+            "value": 10
+          },
+          "precise_total_amount_cents": 10
+        },
+        {
+          "timestamp": "2023-03-05T05:30:00Z",
+          "properties": {
+            "cloud": "gcp",
+            "value": -10
+          },
+          "precise_total_amount_cents": -10
+        }
+      ],
+      "store": {
+        "method": "grouped_weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "cloud"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "cloud": "aws"
+          },
+          "value": 0.02218
+        },
+        {
+          "groups": {
+            "cloud": "gcp"
+          },
+          "value": 0.02218
+        }
+      ],
+      "precision": 5
+    }
+  ]
+}

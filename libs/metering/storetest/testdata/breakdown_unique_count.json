@@ -1,0 +1,419 @@
+{
+  "cases": [
+    {
+      "name": "persisted metric on full period",
+      "source": "spec/services/billable_metrics/breakdown/unique_count_service_spec.rb:118",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        }
+      ],
+      "breakdown": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": [
+        {
+          "date": "2022-07-09",
+          "action": "add",
+          "amount": 1,
+          "duration": 31,
+          "total_duration": 31
+        }
+      ]
+    },
+    {
+      "name": "persisted metric when subscription was terminated in the period",
+      "source": "spec/services/billable_metrics/breakdown/unique_count_service_spec.rb:144",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        }
+      ],
+      "breakdown": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-07-24T23:59:59Z",
+        "period_days": 16
+      },
+      "want": [
+        {
+          "date": "2022-07-09",
+          "action": "add",
+          "amount": 1,
+          "duration": 16,
+          "total_duration": 16
+        }
+      ]
+    },
+    {
+      "name": "persisted metric when subscription was upgraded in the period",
+      "source": "spec/services/billable_metrics/breakdown/unique_count_service_spec.rb:180",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        }
+      ],
+      "breakdown": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-07-24T23:59:59Z",
+        "period_days": 16,
+        "terminated_by_upgrade": true
+      },
+      "want": [
+        {
+          "date": "2022-07-09",
+          "action": "add",
+          "amount": 1,
+          "duration": 16,
+          "total_duration": 16
+        }
+      ]
+    },
+    {
+      "name": "persisted metric when subscription was upgraded with calendar subscription and pay in advance plan",
+      "source": "spec/services/billable_metrics/breakdown/unique_count_service_spec.rb:207",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        }
+      ],
+      "breakdown": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-07-24T23:59:59Z",
+        "period_days": 16,
+        "terminated_by_upgrade": true
+      },
+      "want": [
+        {
+          "date": "2022-07-09",
+          "action": "add",
+          "amount": 1,
+          "duration": 16,
+          "total_duration": 16
+        }
+      ]
+    },
+    {
+      "name": "persisted metric when subscription was started in the period",
+      "source": "spec/services/billable_metrics/breakdown/unique_count_service_spec.rb:224",
+      "events": [
+        {
+          "timestamp": "2022-07-01T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        }
+      ],
+      "breakdown": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-08-01T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 8
+      },
+      "want": [
+        {
+          "date": "2022-08-01",
+          "action": "add",
+          "amount": 1,
+          "duration": 8,
+          "total_duration": 8
+        }
+      ]
+    },
+    {
+      "name": "persisted metrics added in the period",
+      "source": "spec/services/billable_metrics/breakdown/unique_count_service_spec.rb:240",
+      "events": [
+        {
+          "timestamp": "2022-07-24T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        }
+      ],
+      "breakdown": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": [
+        {
+          "date": "2022-07-24",
+          "action": "add",
+          "amount": 1,
+          "duration": 16,
+          "total_duration": 31
+        }
+      ]
+    },
+    {
+      "name": "persisted metrics added on the first day of the period",
+      "source": "spec/services/billable_metrics/breakdown/unique_count_service_spec.rb:254",
+      "events": [
+        {
+          "timestamp": "2022-07-09T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        }
+      ],
+      "breakdown": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": [
+        {
+          "date": "2022-07-09",
+          "action": "add",
+          "amount": 1,
+          "duration": 31,
+          "total_duration": 31
+        }
+      ]
+    },
+    {
+      "name": "persisted metrics terminated in the period",
+      "source": "spec/services/billable_metrics/breakdown/unique_count_service_spec.rb:270",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        },
+        {
+          "timestamp": "2022-07-24T23:59:59Z",
+          "properties": {
+            "unique_id": "111",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "breakdown": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": [
+        {
+          "date": "2022-07-24",
+          "action": "remove",
+          "amount": 1,
+          "duration": 16,
+          "total_duration": 31
+        }
+      ]
+    },
+    {
+      "name": "persisted metrics removed on the last day of the period",
+      "source": "spec/services/billable_metrics/breakdown/unique_count_service_spec.rb:284",
+      "events": [
+        {
+          "timestamp": "2022-06-09T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        },
+        {
+          "timestamp": "2022-08-08T23:59:59Z",
+          "properties": {
+            "unique_id": "111",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "breakdown": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": [
+        {
+          "date": "2022-08-08",
+          "action": "remove",
+          "amount": 1,
+          "duration": 31,
+          "total_duration": 31
+        }
+      ]
+    },
+    {
+      "name": "persisted metrics added and terminated in the period",
+      "source": "spec/services/billable_metrics/breakdown/unique_count_service_spec.rb:301",
+      "events": [
+        {
+          "timestamp": "2022-07-10T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        },
+        {
+          "timestamp": "2022-08-07T23:59:59Z",
+          "properties": {
+            "unique_id": "111",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "breakdown": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": [
+        {
+          "date": "2022-07-10",
+          "action": "add_and_removed",
+          "amount": 1,
+          "duration": 29,
+          "total_duration": 31
+        }
+      ]
+    },
+    {
+      "name": "persisted metrics added and removed the same day",
+      "source": "spec/services/billable_metrics/breakdown/unique_count_service_spec.rb:316",
+      "events": [
+        {
+          "timestamp": "2022-07-10T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T23:59:59Z",
+          "properties": {
+            "unique_id": "111",
+            "operation_type": "remove"
+          }
+        }
+      ],
+      "breakdown": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": [
+        {
+          "date": "2022-07-10",
+          "action": "add_and_removed",
+          "amount": 1,
+          "duration": 1,
+          "total_duration": 31
+        }
+      ]
+    },
+    {
+      "name": "persisted metrics added, removed and added again",
+      "source": "spec/services/billable_metrics/breakdown/unique_count_service_spec.rb:344",
+      "events": [
+        {
+          "timestamp": "2022-07-10T00:00:00Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        },
+        {
+          "timestamp": "2022-07-10T23:59:59Z",
+          "properties": {
+            "unique_id": "111",
+            "operation_type": "remove"
+          }
+        },
+        {
+          "timestamp": "2022-08-07T23:59:59Z",
+          "properties": {
+            "unique_id": "111"
+          }
+        }
+      ],
+      "breakdown": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "unique_id",
+          "recurring": true
+        },
+        "from": "2022-07-09T00:00:00Z",
+        "to": "2022-08-08T23:59:59Z",
+        "period_days": 31
+      },
+      "want": [
+        {
+          "date": "2022-07-10",
+          "action": "add",
+          "amount": 1,
+          "duration": 3,
+          "total_duration": 31
+        }
+      ]
+    }
+  ]
+}

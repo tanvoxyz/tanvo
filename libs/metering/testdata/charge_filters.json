@@ -1,0 +1,3267 @@
+{
+  "cases": [
+    {
+      "name": "charge filters: returns the filter matching the most properties",
+      "source": "spec/services/charge_filters/event_matching_service_spec.rb:77",
+      "metric_filters": [
+        {
+          "key": "payment_method",
+          "values": [
+            "card",
+            "virtual_card",
+            "transfer"
+          ]
+        },
+        {
+          "key": "card_location",
+          "values": [
+            "domestic"
+          ]
+        },
+        {
+          "key": "scheme",
+          "values": [
+            "visa",
+            "mastercard"
+          ]
+        },
+        {
+          "key": "card_type",
+          "values": [
+            "credit",
+            "debit"
+          ]
+        },
+        {
+          "key": "card_number",
+          "values": [
+            "1",
+            "2",
+            "3"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "filter1",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "card"
+            ],
+            "card_location": [
+              "domestic"
+            ],
+            "scheme": [
+              "visa",
+              "mastercard"
+            ]
+          }
+        },
+        {
+          "id": "filter2",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "card"
+            ],
+            "card_location": [
+              "domestic"
+            ],
+            "scheme": [
+              "visa",
+              "mastercard"
+            ],
+            "card_type": [
+              "credit"
+            ],
+            "card_number": [
+              "2"
+            ]
+          }
+        }
+      ],
+      "match": {
+        "properties": {
+          "payment_method": "card",
+          "card_location": "domestic",
+          "scheme": "visa",
+          "card_type": "credit",
+          "card_number": "2"
+        },
+        "want_matching": [
+          "filter1",
+          "filter2"
+        ],
+        "want_selected": "filter2"
+      }
+    },
+    {
+      "name": "charge filters: event matching no filter returns nil",
+      "source": "spec/services/charge_filters/event_matching_service_spec.rb:85",
+      "metric_filters": [
+        {
+          "key": "payment_method",
+          "values": [
+            "card",
+            "virtual_card",
+            "transfer"
+          ]
+        },
+        {
+          "key": "card_location",
+          "values": [
+            "domestic"
+          ]
+        },
+        {
+          "key": "scheme",
+          "values": [
+            "visa",
+            "mastercard"
+          ]
+        },
+        {
+          "key": "card_type",
+          "values": [
+            "credit",
+            "debit"
+          ]
+        },
+        {
+          "key": "card_number",
+          "values": [
+            "1",
+            "2",
+            "3"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "filter1",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "card"
+            ],
+            "card_location": [
+              "domestic"
+            ],
+            "scheme": [
+              "visa",
+              "mastercard"
+            ]
+          }
+        },
+        {
+          "id": "filter2",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "card"
+            ],
+            "card_location": [
+              "domestic"
+            ],
+            "scheme": [
+              "visa",
+              "mastercard"
+            ],
+            "card_type": [
+              "credit"
+            ],
+            "card_number": [
+              "2"
+            ]
+          }
+        }
+      ],
+      "match": {
+        "properties": {},
+        "want_matching": [],
+        "want_selected": ""
+      }
+    },
+    {
+      "name": "charge filters: ALL_FILTER_VALUES filter matching the most properties",
+      "source": "spec/services/charge_filters/event_matching_service_spec.rb:104",
+      "metric_filters": [
+        {
+          "key": "payment_method",
+          "values": [
+            "card",
+            "virtual_card",
+            "transfer"
+          ]
+        },
+        {
+          "key": "card_location",
+          "values": [
+            "domestic"
+          ]
+        },
+        {
+          "key": "scheme",
+          "values": [
+            "visa",
+            "mastercard"
+          ]
+        },
+        {
+          "key": "card_type",
+          "values": [
+            "credit",
+            "debit"
+          ]
+        },
+        {
+          "key": "card_number",
+          "values": [
+            "1",
+            "2",
+            "3"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "filter1",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "card"
+            ],
+            "card_location": [
+              "domestic"
+            ],
+            "scheme": [
+              "visa",
+              "mastercard"
+            ]
+          }
+        },
+        {
+          "id": "filter2",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "card"
+            ],
+            "card_location": [
+              "domestic"
+            ],
+            "scheme": [
+              "__ALL_FILTER_VALUES__"
+            ],
+            "card_type": [
+              "credit"
+            ],
+            "card_number": [
+              "2"
+            ]
+          }
+        }
+      ],
+      "match": {
+        "properties": {
+          "payment_method": "card",
+          "card_location": "domestic",
+          "scheme": "visa",
+          "card_type": "credit",
+          "card_number": "2"
+        },
+        "want_matching": [
+          "filter1",
+          "filter2"
+        ],
+        "want_selected": "filter2"
+      }
+    },
+    {
+      "name": "charge filters: ALL_FILTER_VALUES does not match a value outside the metric filter values",
+      "source": "spec/services/charge_filters/event_matching_service_spec.rb:119",
+      "metric_filters": [
+        {
+          "key": "payment_method",
+          "values": [
+            "card",
+            "virtual_card",
+            "transfer"
+          ]
+        },
+        {
+          "key": "card_location",
+          "values": [
+            "domestic"
+          ]
+        },
+        {
+          "key": "scheme",
+          "values": [
+            "visa",
+            "mastercard"
+          ]
+        },
+        {
+          "key": "card_type",
+          "values": [
+            "credit",
+            "debit"
+          ]
+        },
+        {
+          "key": "card_number",
+          "values": [
+            "1",
+            "2",
+            "3"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "filter1",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "card"
+            ],
+            "card_location": [
+              "domestic"
+            ],
+            "scheme": [
+              "visa",
+              "mastercard"
+            ]
+          }
+        },
+        {
+          "id": "filter2",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "card"
+            ],
+            "card_location": [
+              "domestic"
+            ],
+            "scheme": [
+              "__ALL_FILTER_VALUES__"
+            ],
+            "card_type": [
+              "credit"
+            ],
+            "card_number": [
+              "2"
+            ]
+          }
+        }
+      ],
+      "match": {
+        "properties": {
+          "payment_method": "card",
+          "card_location": "domestic",
+          "scheme": "amex",
+          "card_type": "credit",
+          "card_number": "2"
+        },
+        "want_matching": [],
+        "want_selected": ""
+      }
+    },
+    {
+      "name": "charge filters: ALL_FILTER_VALUES expands to the metric filter values",
+      "source": "spec/services/charge_filters/event_matching_service_spec.rb:104",
+      "metric_filters": [
+        {
+          "key": "payment_method",
+          "values": [
+            "card",
+            "virtual_card",
+            "transfer"
+          ]
+        },
+        {
+          "key": "card_location",
+          "values": [
+            "domestic"
+          ]
+        },
+        {
+          "key": "scheme",
+          "values": [
+            "visa",
+            "mastercard"
+          ]
+        },
+        {
+          "key": "card_type",
+          "values": [
+            "credit",
+            "debit"
+          ]
+        },
+        {
+          "key": "card_number",
+          "values": [
+            "1",
+            "2",
+            "3"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "filter2",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "card"
+            ],
+            "card_location": [
+              "domestic"
+            ],
+            "scheme": [
+              "__ALL_FILTER_VALUES__"
+            ],
+            "card_type": [
+              "credit"
+            ],
+            "card_number": [
+              "2"
+            ]
+          }
+        }
+      ],
+      "expand": {
+        "filter": "filter2",
+        "want": {
+          "payment_method": [
+            "card"
+          ],
+          "card_location": [
+            "domestic"
+          ],
+          "scheme": [
+            "visa",
+            "mastercard"
+          ],
+          "card_type": [
+            "credit"
+          ],
+          "card_number": [
+            "2"
+          ]
+        }
+      }
+    },
+    {
+      "name": "billing period: returns matching filters and selects the most specific one",
+      "source": "spec/services/events/billing_period_filters/event_matching_service_spec.rb:32",
+      "metric_filters": [
+        {
+          "key": "payment_method",
+          "values": [
+            "card",
+            "transfer"
+          ]
+        },
+        {
+          "key": "card_type",
+          "values": [
+            "credit",
+            "debit"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "broad",
+          "created_at": "2026-01-10T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "card"
+            ]
+          }
+        },
+        {
+          "id": "specific",
+          "created_at": "2026-01-10T01:00:00Z",
+          "values": {
+            "payment_method": [
+              "card"
+            ],
+            "card_type": [
+              "credit"
+            ]
+          }
+        }
+      ],
+      "match": {
+        "properties": {
+          "payment_method": "card",
+          "card_type": "credit"
+        },
+        "want_matching": [
+          "broad",
+          "specific"
+        ],
+        "want_selected": "specific"
+      }
+    },
+    {
+      "name": "billing period: same keys, older allows all values, selects the filter allowing fewer values",
+      "source": "spec/services/events/billing_period_filters/event_matching_service_spec.rb:58",
+      "metric_filters": [
+        {
+          "key": "payment_method",
+          "values": [
+            "card",
+            "transfer"
+          ]
+        },
+        {
+          "key": "card_type",
+          "values": [
+            "credit",
+            "debit"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "older",
+          "created_at": "2026-01-08T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        },
+        {
+          "id": "newer",
+          "created_at": "2026-01-09T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "card"
+            ]
+          }
+        }
+      ],
+      "match": {
+        "properties": {
+          "payment_method": "card"
+        },
+        "want_matching": [
+          "older",
+          "newer"
+        ],
+        "want_selected": "newer"
+      }
+    },
+    {
+      "name": "billing period: same keys, older allows all values, precedence",
+      "source": "spec/services/events/billing_period_filters/event_matching_service_spec.rb:58",
+      "metric_filters": [
+        {
+          "key": "payment_method",
+          "values": [
+            "card",
+            "transfer"
+          ]
+        },
+        {
+          "key": "card_type",
+          "values": [
+            "credit",
+            "debit"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "older",
+          "created_at": "2026-01-08T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        },
+        {
+          "id": "newer",
+          "created_at": "2026-01-09T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "card"
+            ]
+          }
+        }
+      ],
+      "precedence": [
+        "newer",
+        "older"
+      ]
+    },
+    {
+      "name": "billing period: same keys and as many values selects the oldest filter",
+      "source": "spec/services/events/billing_period_filters/event_matching_service_spec.rb:70",
+      "metric_filters": [
+        {
+          "key": "payment_method",
+          "values": [
+            "card",
+            "transfer"
+          ]
+        },
+        {
+          "key": "card_type",
+          "values": [
+            "credit",
+            "debit"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "newer",
+          "created_at": "2026-01-09T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "card"
+            ]
+          }
+        },
+        {
+          "id": "older",
+          "created_at": "2026-01-08T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "card"
+            ]
+          }
+        }
+      ],
+      "match": {
+        "properties": {
+          "payment_method": "card"
+        },
+        "want_matching": [
+          "newer",
+          "older"
+        ],
+        "want_selected": "older"
+      }
+    },
+    {
+      "name": "billing period: a filter without values matches nothing",
+      "source": "spec/services/events/billing_period_filters/event_matching_service_spec.rb:78",
+      "metric_filters": [
+        {
+          "key": "payment_method",
+          "values": [
+            "card",
+            "transfer"
+          ]
+        },
+        {
+          "key": "card_type",
+          "values": [
+            "credit",
+            "debit"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "older",
+          "created_at": "2026-01-08T00:00:00Z",
+          "values": {}
+        }
+      ],
+      "match": {
+        "properties": {
+          "payment_method": "card"
+        },
+        "want_matching": [],
+        "want_selected": ""
+      }
+    },
+    {
+      "name": "billing period: ALL_FILTER_VALUES keeps matching defined metric filter values",
+      "source": "spec/services/events/billing_period_filters/event_matching_service_spec.rb:176",
+      "metric_filters": [
+        {
+          "key": "payment_method",
+          "values": [
+            "card",
+            "transfer"
+          ]
+        },
+        {
+          "key": "card_type",
+          "values": [
+            "credit",
+            "debit"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "broad",
+          "created_at": "2026-01-10T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        }
+      ],
+      "match": {
+        "properties": {
+          "payment_method": "card"
+        },
+        "want_matching": [
+          "broad"
+        ],
+        "want_selected": "broad"
+      }
+    },
+    {
+      "name": "billing period: ALL_FILTER_VALUES is not a wildcard for values outside the metric filter",
+      "source": "spec/services/events/billing_period_filters/event_matching_service_spec.rb:191",
+      "metric_filters": [
+        {
+          "key": "payment_method",
+          "values": [
+            "card",
+            "transfer"
+          ]
+        },
+        {
+          "key": "card_type",
+          "values": [
+            "credit",
+            "debit"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "broad",
+          "created_at": "2026-01-10T00:00:00Z",
+          "values": {
+            "payment_method": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        }
+      ],
+      "match": {
+        "properties": {
+          "payment_method": "cash"
+        },
+        "want_matching": [],
+        "want_selected": ""
+      }
+    },
+    {
+      "name": "minimize: no ignored filter returns an empty list",
+      "source": "spec/services/events/billing_period_filters/minimize_ignored_filters_service_spec.rb:12",
+      "minimize": {
+        "clauses": [],
+        "want": []
+      }
+    },
+    {
+      "name": "minimize: irreducible clauses are kept untouched",
+      "source": "spec/services/events/billing_period_filters/minimize_ignored_filters_service_spec.rb:20",
+      "minimize": {
+        "clauses": [
+          {
+            "size": [
+              "512"
+            ]
+          },
+          {
+            "steps": [
+              "25"
+            ]
+          }
+        ],
+        "want": [
+          {
+            "size": [
+              "512"
+            ]
+          },
+          {
+            "steps": [
+              "25"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "minimize: a key without value is dropped",
+      "source": "spec/services/events/billing_period_filters/minimize_ignored_filters_service_spec.rb:29",
+      "minimize": {
+        "clauses": [
+          {
+            "size": [],
+            "steps": [
+              "75"
+            ]
+          }
+        ],
+        "want": [
+          {
+            "steps": [
+              "75"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "minimize: a clause without key left is dropped",
+      "source": "spec/services/events/billing_period_filters/minimize_ignored_filters_service_spec.rb:37",
+      "minimize": {
+        "clauses": [
+          {},
+          {
+            "size": []
+          },
+          {
+            "steps": [
+              "25"
+            ]
+          }
+        ],
+        "want": [
+          {
+            "steps": [
+              "25"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "minimize: duplicated values are deduplicated",
+      "source": "spec/services/events/billing_period_filters/minimize_ignored_filters_service_spec.rb:45",
+      "minimize": {
+        "clauses": [
+          {
+            "size": [
+              "512",
+              "512",
+              "1024"
+            ]
+          }
+        ],
+        "want": [
+          {
+            "size": [
+              "512",
+              "1024"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "minimize: duplicated clauses keep the first occurrence",
+      "source": "spec/services/events/billing_period_filters/minimize_ignored_filters_service_spec.rb:55",
+      "minimize": {
+        "clauses": [
+          {
+            "size": [
+              "512"
+            ]
+          },
+          {
+            "size": [
+              "512"
+            ]
+          }
+        ],
+        "want": [
+          {
+            "size": [
+              "512"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "minimize: a clause constraining more keys is dropped",
+      "source": "spec/services/events/billing_period_filters/minimize_ignored_filters_service_spec.rb:63",
+      "minimize": {
+        "clauses": [
+          {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          },
+          {
+            "size": [
+              "512"
+            ]
+          }
+        ],
+        "want": [
+          {
+            "size": [
+              "512"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "minimize: a narrower clause is dropped",
+      "source": "spec/services/events/billing_period_filters/minimize_ignored_filters_service_spec.rb:71",
+      "minimize": {
+        "clauses": [
+          {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          },
+          {
+            "size": [
+              "512",
+              "1024"
+            ],
+            "steps": [
+              "25",
+              "50"
+            ]
+          }
+        ],
+        "want": [
+          {
+            "size": [
+              "512",
+              "1024"
+            ],
+            "steps": [
+              "25",
+              "50"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "minimize: partially overlapping clauses merge on the differing key",
+      "source": "spec/services/events/billing_period_filters/minimize_ignored_filters_service_spec.rb:79",
+      "minimize": {
+        "clauses": [
+          {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          },
+          {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "50"
+            ]
+          }
+        ],
+        "want": [
+          {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25",
+              "50"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "minimize: clauses differing on a single key merge",
+      "source": "spec/services/events/billing_period_filters/minimize_ignored_filters_service_spec.rb:95",
+      "minimize": {
+        "clauses": [
+          {
+            "model": [
+              "llama-2"
+            ],
+            "size": [
+              "512"
+            ]
+          },
+          {
+            "model": [
+              "llama-3"
+            ],
+            "size": [
+              "512"
+            ]
+          },
+          {
+            "model": [
+              "llama-4"
+            ],
+            "size": [
+              "512"
+            ]
+          }
+        ],
+        "want": [
+          {
+            "model": [
+              "llama-2",
+              "llama-3",
+              "llama-4"
+            ],
+            "size": [
+              "512"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "minimize: a full grid merges into a single clause",
+      "source": "spec/services/events/billing_period_filters/minimize_ignored_filters_service_spec.rb:107",
+      "minimize": {
+        "clauses": [
+          {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          },
+          {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "50"
+            ]
+          },
+          {
+            "size": [
+              "1024"
+            ],
+            "steps": [
+              "25"
+            ]
+          },
+          {
+            "size": [
+              "1024"
+            ],
+            "steps": [
+              "50"
+            ]
+          }
+        ],
+        "want": [
+          {
+            "size": [
+              "512",
+              "1024"
+            ],
+            "steps": [
+              "25",
+              "50"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "minimize: a partial grid merges what it can",
+      "source": "spec/services/events/billing_period_filters/minimize_ignored_filters_service_spec.rb:121",
+      "minimize": {
+        "clauses": [
+          {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          },
+          {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "50"
+            ]
+          },
+          {
+            "size": [
+              "1024"
+            ],
+            "steps": [
+              "25"
+            ]
+          }
+        ],
+        "want": [
+          {
+            "size": [
+              "512",
+              "1024"
+            ],
+            "steps": [
+              "25"
+            ]
+          },
+          {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "50"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "minimize: clauses on different keys do not merge",
+      "source": "spec/services/events/billing_period_filters/minimize_ignored_filters_service_spec.rb:132",
+      "minimize": {
+        "clauses": [
+          {
+            "size": [
+              "512"
+            ]
+          },
+          {
+            "steps": [
+              "25"
+            ]
+          }
+        ],
+        "want": [
+          {
+            "size": [
+              "512"
+            ]
+          },
+          {
+            "steps": [
+              "25"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "minimize: values listed in a different order still merge",
+      "source": "spec/services/events/billing_period_filters/minimize_ignored_filters_service_spec.rb:145",
+      "minimize": {
+        "clauses": [
+          {
+            "size": [
+              "512",
+              "1024"
+            ],
+            "steps": [
+              "25"
+            ]
+          },
+          {
+            "size": [
+              "1024",
+              "512"
+            ],
+            "steps": [
+              "50"
+            ]
+          }
+        ],
+        "want": [
+          {
+            "size": [
+              "512",
+              "1024"
+            ],
+            "steps": [
+              "25",
+              "50"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "scope: hierarchy f1 matches three keys without ignored children",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:55",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "f1",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ],
+            "size": [
+              "512"
+            ],
+            "model": [
+              "llama-2"
+            ]
+          }
+        },
+        {
+          "id": "f2",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ],
+            "size": [
+              "512"
+            ]
+          }
+        },
+        {
+          "id": "f3",
+          "created_at": "2026-01-03T00:00:00Z",
+          "values": {
+            "steps": [
+              "__ALL_FILTER_VALUES__"
+            ],
+            "size": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        },
+        {
+          "id": "f4",
+          "created_at": "2026-01-04T00:00:00Z",
+          "values": {
+            "size": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        },
+        {
+          "id": "f5",
+          "created_at": "2026-01-05T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "f1",
+        "want": {
+          "matching": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ],
+            "model": [
+              "llama-2"
+            ]
+          },
+          "ignored": []
+        }
+      }
+    },
+    {
+      "name": "scope: hierarchy f3 expands all values and keeps the most generic child",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:64",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "f1",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ],
+            "size": [
+              "512"
+            ],
+            "model": [
+              "llama-2"
+            ]
+          }
+        },
+        {
+          "id": "f2",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ],
+            "size": [
+              "512"
+            ]
+          }
+        },
+        {
+          "id": "f3",
+          "created_at": "2026-01-03T00:00:00Z",
+          "values": {
+            "steps": [
+              "__ALL_FILTER_VALUES__"
+            ],
+            "size": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        },
+        {
+          "id": "f4",
+          "created_at": "2026-01-04T00:00:00Z",
+          "values": {
+            "size": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        },
+        {
+          "id": "f5",
+          "created_at": "2026-01-05T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "f3",
+        "want": {
+          "matching": {
+            "size": [
+              "512",
+              "1024"
+            ],
+            "steps": [
+              "25",
+              "50",
+              "75",
+              "100"
+            ]
+          },
+          "ignored": [
+            {
+              "size": [
+                "512"
+              ],
+              "steps": [
+                "25"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: hierarchy f4 expands all values and ignores all more specific filters",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:73",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "f1",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ],
+            "size": [
+              "512"
+            ],
+            "model": [
+              "llama-2"
+            ]
+          }
+        },
+        {
+          "id": "f2",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ],
+            "size": [
+              "512"
+            ]
+          }
+        },
+        {
+          "id": "f3",
+          "created_at": "2026-01-03T00:00:00Z",
+          "values": {
+            "steps": [
+              "__ALL_FILTER_VALUES__"
+            ],
+            "size": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        },
+        {
+          "id": "f4",
+          "created_at": "2026-01-04T00:00:00Z",
+          "values": {
+            "size": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        },
+        {
+          "id": "f5",
+          "created_at": "2026-01-05T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "f4",
+        "want": {
+          "matching": {
+            "size": [
+              "512",
+              "1024"
+            ]
+          },
+          "ignored": [
+            {
+              "size": [
+                "512",
+                "1024"
+              ],
+              "steps": [
+                "25",
+                "50",
+                "75",
+                "100"
+              ]
+            },
+            {
+              "size": [
+                "512"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: hierarchy f1 fully preloaded",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:100",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "f1",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ],
+            "size": [
+              "512"
+            ],
+            "model": [
+              "llama-2"
+            ]
+          }
+        },
+        {
+          "id": "f2",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ],
+            "size": [
+              "512"
+            ]
+          }
+        },
+        {
+          "id": "f3",
+          "created_at": "2026-01-03T00:00:00Z",
+          "values": {
+            "steps": [
+              "__ALL_FILTER_VALUES__"
+            ],
+            "size": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        },
+        {
+          "id": "f4",
+          "created_at": "2026-01-04T00:00:00Z",
+          "values": {
+            "size": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        },
+        {
+          "id": "f5",
+          "created_at": "2026-01-05T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "f1",
+        "want": {
+          "matching": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ],
+            "model": [
+              "llama-2"
+            ]
+          },
+          "ignored": []
+        }
+      }
+    },
+    {
+      "name": "scope: hierarchy f2 ignores the more specific child but not the wider all-values sibling",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:340",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "f1",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ],
+            "size": [
+              "512"
+            ],
+            "model": [
+              "llama-2"
+            ]
+          }
+        },
+        {
+          "id": "f2",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ],
+            "size": [
+              "512"
+            ]
+          }
+        },
+        {
+          "id": "f3",
+          "created_at": "2026-01-03T00:00:00Z",
+          "values": {
+            "steps": [
+              "__ALL_FILTER_VALUES__"
+            ],
+            "size": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        },
+        {
+          "id": "f4",
+          "created_at": "2026-01-04T00:00:00Z",
+          "values": {
+            "size": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        },
+        {
+          "id": "f5",
+          "created_at": "2026-01-05T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "f2",
+        "want": {
+          "matching": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          },
+          "ignored": [
+            {
+              "model": [
+                "llama-2"
+              ],
+              "size": [
+                "512"
+              ],
+              "steps": [
+                "25"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: hierarchy f5 ignores the filters with more keys but not the wider all-values sibling",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:349",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "f1",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ],
+            "size": [
+              "512"
+            ],
+            "model": [
+              "llama-2"
+            ]
+          }
+        },
+        {
+          "id": "f2",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ],
+            "size": [
+              "512"
+            ]
+          }
+        },
+        {
+          "id": "f3",
+          "created_at": "2026-01-03T00:00:00Z",
+          "values": {
+            "steps": [
+              "__ALL_FILTER_VALUES__"
+            ],
+            "size": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        },
+        {
+          "id": "f4",
+          "created_at": "2026-01-04T00:00:00Z",
+          "values": {
+            "size": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        },
+        {
+          "id": "f5",
+          "created_at": "2026-01-05T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "f5",
+        "want": {
+          "matching": {
+            "size": [
+              "512"
+            ]
+          },
+          "ignored": [
+            {
+              "size": [
+                "512",
+                "1024"
+              ],
+              "steps": [
+                "25",
+                "50",
+                "75",
+                "100"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: strict same-key subset child is kept verbatim",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:118",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "current",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "size": [
+              "512",
+              "1024"
+            ]
+          }
+        },
+        {
+          "id": "child",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "current",
+        "want": {
+          "matching": {
+            "size": [
+              "512",
+              "1024"
+            ]
+          },
+          "ignored": [
+            {
+              "size": [
+                "512"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: different-key child covered by the same-key subset is dropped",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:130",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "current",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "size": [
+              "512",
+              "1024"
+            ]
+          }
+        },
+        {
+          "id": "child",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        },
+        {
+          "id": "different",
+          "created_at": "2026-01-03T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "current",
+        "want": {
+          "matching": {
+            "size": [
+              "512",
+              "1024"
+            ]
+          },
+          "ignored": [
+            {
+              "size": [
+                "512"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: all configured values ignore the explicit child",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:146",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "current",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "size": [
+              "__ALL_FILTER_VALUES__"
+            ]
+          }
+        },
+        {
+          "id": "child",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "current",
+        "want": {
+          "matching": {
+            "size": [
+              "512",
+              "1024"
+            ]
+          },
+          "ignored": [
+            {
+              "size": [
+                "512"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: identical filters, the oldest drops both newer siblings",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:167",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "a",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          }
+        },
+        {
+          "id": "b",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          }
+        },
+        {
+          "id": "c",
+          "created_at": "2026-01-03T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "a",
+        "want": {
+          "matching": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          },
+          "ignored": []
+        }
+      }
+    },
+    {
+      "name": "scope: identical filters, the middle keeps the older sibling",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:176",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "a",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          }
+        },
+        {
+          "id": "b",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          }
+        },
+        {
+          "id": "c",
+          "created_at": "2026-01-03T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "b",
+        "want": {
+          "matching": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          },
+          "ignored": [
+            {
+              "size": [
+                "512"
+              ],
+              "steps": [
+                "25"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: identical filters, the newest keeps a single clause for both older siblings",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:185",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "a",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          }
+        },
+        {
+          "id": "b",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          }
+        },
+        {
+          "id": "c",
+          "created_at": "2026-01-03T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "c",
+        "want": {
+          "matching": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          },
+          "ignored": [
+            {
+              "size": [
+                "512"
+              ],
+              "steps": [
+                "25"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: identical child with keys in reverse order is dropped",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:211",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "current",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          }
+        },
+        {
+          "id": "duplicate",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ],
+            "size": [
+              "512"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "current",
+        "want": {
+          "matching": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25"
+            ]
+          },
+          "ignored": []
+        }
+      }
+    },
+    {
+      "name": "scope: identical filters created together, the lowest id drops its sibling",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:232",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "a",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        },
+        {
+          "id": "b",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "a",
+        "want": {
+          "matching": {
+            "size": [
+              "512"
+            ]
+          },
+          "ignored": []
+        }
+      }
+    },
+    {
+      "name": "scope: identical filters created together, the highest id keeps its sibling",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:241",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "a",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        },
+        {
+          "id": "b",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "b",
+        "want": {
+          "matching": {
+            "size": [
+              "512"
+            ]
+          },
+          "ignored": [
+            {
+              "size": [
+                "512"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: unsaved empty default bucket excludes every configured filter",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:256",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "size",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        },
+        {
+          "id": "steps",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "",
+        "want": {
+          "matching": {},
+          "ignored": [
+            {
+              "size": [
+                "512"
+              ]
+            },
+            {
+              "steps": [
+                "25"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: older empty filter keeps the explicit-valued child",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:305",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "empty_a",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {}
+        },
+        {
+          "id": "empty_b",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {}
+        },
+        {
+          "id": "with_values",
+          "created_at": "2026-01-03T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "empty_a",
+        "want": {
+          "matching": {},
+          "ignored": [
+            {
+              "size": [
+                "512"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: newer empty filter leaves out the older empty one",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:314",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "empty_a",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {}
+        },
+        {
+          "id": "empty_b",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {}
+        },
+        {
+          "id": "with_values",
+          "created_at": "2026-01-03T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "empty_b",
+        "want": {
+          "matching": {},
+          "ignored": [
+            {
+              "size": [
+                "512"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: explicit-valued filter does not include empty filters as children",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:327",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "empty_a",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {}
+        },
+        {
+          "id": "empty_b",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {}
+        },
+        {
+          "id": "with_values",
+          "created_at": "2026-01-03T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "with_values",
+        "want": {
+          "matching": {
+            "size": [
+              "512"
+            ]
+          },
+          "ignored": []
+        }
+      }
+    },
+    {
+      "name": "scope: child subset on one key but partially overlapping another is ignored",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:367",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "current",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "size": [
+              "512",
+              "1024"
+            ],
+            "steps": [
+              "25",
+              "50"
+            ]
+          }
+        },
+        {
+          "id": "mixed",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ],
+            "steps": [
+              "25",
+              "75"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "current",
+        "want": {
+          "matching": {
+            "size": [
+              "512",
+              "1024"
+            ],
+            "steps": [
+              "25",
+              "50"
+            ]
+          },
+          "ignored": [
+            {
+              "size": [
+                "512"
+              ],
+              "steps": [
+                "25",
+                "75"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: same-key partial overlap, the older keeps the shared value",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:385",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "older",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "steps": [
+              "25",
+              "50"
+            ]
+          }
+        },
+        {
+          "id": "newer",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "steps": [
+              "50",
+              "75"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "older",
+        "want": {
+          "matching": {
+            "steps": [
+              "25",
+              "50"
+            ]
+          },
+          "ignored": []
+        }
+      }
+    },
+    {
+      "name": "scope: same-key partial overlap, the newer ignores the older",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:394",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "older",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "steps": [
+              "25",
+              "50"
+            ]
+          }
+        },
+        {
+          "id": "newer",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "steps": [
+              "50",
+              "75"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "newer",
+        "want": {
+          "matching": {
+            "steps": [
+              "50",
+              "75"
+            ]
+          },
+          "ignored": [
+            {
+              "steps": [
+                "25",
+                "50"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: different keys overlapping, the older does not ignore the newer",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:413",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "size_only",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        },
+        {
+          "id": "steps_only",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "steps_only",
+        "want": {
+          "matching": {
+            "steps": [
+              "25"
+            ]
+          },
+          "ignored": []
+        }
+      }
+    },
+    {
+      "name": "scope: different keys overlapping, the newer ignores the older",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:422",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "size_only",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "size": [
+              "512"
+            ]
+          }
+        },
+        {
+          "id": "steps_only",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "steps": [
+              "25"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "size_only",
+        "want": {
+          "matching": {
+            "size": [
+              "512"
+            ]
+          },
+          "ignored": [
+            {
+              "steps": [
+                "25"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "scope: a disjoint filter taking precedence is not ignored",
+      "source": "spec/services/events/billing_period_filters/matching_and_ignored_service_spec.rb:438",
+      "metric_filters": [
+        {
+          "key": "size",
+          "values": [
+            "512",
+            "1024"
+          ]
+        },
+        {
+          "key": "steps",
+          "values": [
+            "25",
+            "50",
+            "75",
+            "100"
+          ]
+        },
+        {
+          "key": "model",
+          "values": [
+            "llama-1",
+            "llama-2",
+            "llama-3",
+            "llama-4"
+          ]
+        }
+      ],
+      "charge_filters": [
+        {
+          "id": "current",
+          "created_at": "2026-01-02T00:00:00Z",
+          "values": {
+            "steps": [
+              "25",
+              "50"
+            ]
+          }
+        },
+        {
+          "id": "disjoint",
+          "created_at": "2026-01-01T00:00:00Z",
+          "values": {
+            "steps": [
+              "75",
+              "100"
+            ]
+          }
+        }
+      ],
+      "scope": {
+        "selected": "current",
+        "want": {
+          "matching": {
+            "steps": [
+              "25",
+              "50"
+            ]
+          },
+          "ignored": []
+        }
+      }
+    }
+  ]
+}

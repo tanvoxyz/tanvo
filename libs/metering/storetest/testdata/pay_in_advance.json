@@ -1,0 +1,371 @@
+{
+  "cases": [
+    {
+      "name": "count aggregation of the pay in advance event",
+      "source": "spec/services/charges/pay_in_advance_aggregation_service_spec.rb:129",
+      "events": [
+        {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-18T01:00:00Z"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "count",
+          "field_name": "item_id"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "pay_in_advance": true,
+        "max_timestamp": "2023-03-18T01:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-18T01:00:00Z"
+        }
+      },
+      "want": {
+        "aggregation": 1,
+        "count": 1,
+        "pay_in_advance_aggregation": 1,
+        "running_total": []
+      }
+    },
+    {
+      "name": "count aggregation with grouped_by property narrows to the event group (now 2023-03-20)",
+      "source": "spec/services/charges/pay_in_advance_aggregation_service_spec.rb:171",
+      "events": [
+        {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z",
+          "properties": {
+            "operator": "foo"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "count",
+          "field_name": "item_id"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "pay_in_advance": true,
+        "max_timestamp": "2023-03-20T12:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z",
+          "properties": {
+            "operator": "foo"
+          }
+        },
+        "group_values": {
+          "operator": "foo"
+        }
+      },
+      "want": {
+        "aggregation": 1,
+        "count": 1,
+        "pay_in_advance_aggregation": 1,
+        "running_total": []
+      }
+    },
+    {
+      "name": "count aggregation with pricing_group_keys narrows to the event group (now 2023-03-20)",
+      "source": "spec/services/charges/pay_in_advance_aggregation_service_spec.rb:214",
+      "events": [
+        {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z",
+          "properties": {
+            "operator": "foo"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "count",
+          "field_name": "item_id"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "pay_in_advance": true,
+        "max_timestamp": "2023-03-20T12:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z",
+          "properties": {
+            "operator": "foo"
+          }
+        },
+        "group_values": {
+          "operator": "foo"
+        }
+      },
+      "want": {
+        "aggregation": 1,
+        "count": 1,
+        "pay_in_advance_aggregation": 1,
+        "running_total": []
+      }
+    },
+    {
+      "name": "count aggregation with pricing and presentation group keys (now 2023-03-20)",
+      "source": "spec/services/charges/pay_in_advance_aggregation_service_spec.rb:260",
+      "events": [
+        {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "region": "us-east-1"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "count",
+          "field_name": "item_id"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "pay_in_advance": true,
+        "max_timestamp": "2023-03-20T12:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z",
+          "properties": {
+            "cloud": "aws",
+            "region": "us-east-1"
+          }
+        },
+        "group_values": {
+          "cloud": "aws"
+        },
+        "presentation_by": [
+          "region"
+        ]
+      },
+      "want": {
+        "aggregation": 1,
+        "count": 1,
+        "pay_in_advance_aggregation": 1,
+        "breakdowns": [
+          {
+            "groups": {
+              "region": "us-east-1"
+            },
+            "value": 1
+          }
+        ],
+        "pay_in_advance_breakdowns": [
+          {
+            "groups": {
+              "region": "us-east-1"
+            },
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "count aggregation with presentation_group_keys (now 2023-03-20)",
+      "source": "spec/services/charges/pay_in_advance_aggregation_service_spec.rb:301",
+      "events": [
+        {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z",
+          "properties": {
+            "region": "us-east-1"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "count",
+          "field_name": "item_id"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "pay_in_advance": true,
+        "max_timestamp": "2023-03-20T12:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z",
+          "properties": {
+            "region": "us-east-1"
+          }
+        },
+        "presentation_by": [
+          "region"
+        ]
+      },
+      "want": {
+        "aggregation": 1,
+        "count": 1,
+        "pay_in_advance_aggregation": 1,
+        "breakdowns": [
+          {
+            "groups": {
+              "region": "us-east-1"
+            },
+            "value": 1
+          }
+        ],
+        "pay_in_advance_breakdowns": [
+          {
+            "groups": {
+              "region": "us-east-1"
+            },
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "count aggregation of a charge accepting target wallets groups by target_wallet_code (now 2023-03-20)",
+      "source": "spec/services/charges/pay_in_advance_aggregation_service_spec.rb:344",
+      "events": [
+        {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z",
+          "properties": {
+            "target_wallet_code": "my_wallet"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "count",
+          "field_name": "item_id"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "pay_in_advance": true,
+        "max_timestamp": "2023-03-20T12:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z",
+          "properties": {
+            "target_wallet_code": "my_wallet"
+          }
+        },
+        "group_values": {
+          "target_wallet_code": "my_wallet"
+        }
+      },
+      "want": {
+        "aggregation": 1,
+        "count": 1,
+        "pay_in_advance_aggregation": 1,
+        "running_total": []
+      }
+    },
+    {
+      "name": "count aggregation with a charge filter the event does not match (now 2023-03-20)",
+      "source": "spec/services/charges/pay_in_advance_aggregation_service_spec.rb:383",
+      "events": [
+        {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "count",
+          "field_name": "item_id"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "pay_in_advance": true,
+        "max_timestamp": "2023-03-20T12:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z"
+        },
+        "filter": {
+          "matching": {
+            "filter_key": [
+              "value_1"
+            ]
+          },
+          "ignored": []
+        }
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0,
+        "pay_in_advance_aggregation": 1,
+        "running_total": []
+      }
+    },
+    {
+      "name": "sum aggregation passes the free units of the charge properties (now 2023-03-20)",
+      "source": "spec/services/charges/pay_in_advance_aggregation_service_spec.rb:417",
+      "events": [
+        {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "sum",
+          "field_name": "item_id"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "pay_in_advance": true,
+        "max_timestamp": "2023-03-20T12:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z"
+        },
+        "free_units_per_events": 3,
+        "free_units_per_total_aggregation": "50"
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0,
+        "pay_in_advance_aggregation": 0,
+        "running_total": []
+      }
+    },
+    {
+      "name": "unique_count aggregation of an event without properties (now 2023-03-20)",
+      "source": "spec/services/charges/pay_in_advance_aggregation_service_spec.rb:446",
+      "events": [
+        {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "unique_count",
+          "field_name": "item_id"
+        },
+        "from": "2023-03-15T00:00:00Z",
+        "to": "2023-03-31T23:59:59.999999Z",
+        "period_days": 17,
+        "pay_in_advance": true,
+        "max_timestamp": "2023-03-20T12:00:00Z",
+        "event": {
+          "transaction_id": "pia",
+          "timestamp": "2023-03-20T12:00:00Z"
+        }
+      },
+      "want": {
+        "aggregation": 1,
+        "pay_in_advance_aggregation": 0
+      }
+    }
+  ]
+}

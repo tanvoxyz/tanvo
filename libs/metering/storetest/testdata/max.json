@@ -1,0 +1,588 @@
+{
+  "fixtures": {
+    "standard": [
+      {
+        "timestamp": "2023-06-13T12:00:00Z",
+        "properties": {
+          "total_count": 5
+        }
+      },
+      {
+        "timestamp": "2023-06-13T12:00:00Z",
+        "properties": {
+          "total_count": 5
+        }
+      },
+      {
+        "timestamp": "2023-06-13T12:00:00Z",
+        "properties": {
+          "total_count": 5
+        }
+      },
+      {
+        "timestamp": "2023-06-13T12:00:00Z",
+        "properties": {
+          "total_count": 5
+        }
+      },
+      {
+        "timestamp": "2023-06-14T12:00:00Z",
+        "properties": {
+          "total_count": 12
+        }
+      }
+    ],
+    "agents": [
+      {
+        "timestamp": "2023-06-14T12:00:00Z",
+        "properties": {
+          "total_count": 12,
+          "agent_name": "aragorn"
+        }
+      },
+      {
+        "timestamp": "2023-06-14T12:00:00Z",
+        "properties": {
+          "total_count": 12,
+          "agent_name": "frodo"
+        }
+      },
+      {
+        "timestamp": "2023-06-14T12:00:00Z",
+        "properties": {
+          "total_count": 12,
+          "agent_name": "gimli"
+        }
+      },
+      {
+        "timestamp": "2023-06-14T12:00:00Z",
+        "properties": {
+          "total_count": 12,
+          "agent_name": "legolas"
+        }
+      },
+      {
+        "timestamp": "2023-06-14T12:00:00Z",
+        "properties": {
+          "total_count": 12
+        }
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "aggregates the events",
+      "source": "spec/services/billable_metrics/aggregations/max_service_spec.rb:97",
+      "fixture": "standard",
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "total_count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32
+      },
+      "want": {
+        "aggregation": 12,
+        "count": 5
+      }
+    },
+    {
+      "name": "events out of bounds are not taken into account",
+      "source": "spec/services/billable_metrics/aggregations/max_service_spec.rb:107",
+      "fixture": "standard",
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "total_count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-12T12:00:00Z",
+        "period_days": 29
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0
+      }
+    },
+    {
+      "name": "with bypass_aggregation returns a default empty result",
+      "source": "spec/services/billable_metrics/aggregations/max_service_spec.rb:118",
+      "fixture": "standard",
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "total_count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "bypass_aggregation": true
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0,
+        "current_usage_units": 0,
+        "running_total": []
+      }
+    },
+    {
+      "name": "property not found on events counts as zero",
+      "source": "spec/services/billable_metrics/aggregations/max_service_spec.rb:133",
+      "fixture": "standard",
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "foo_bar"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0
+      }
+    },
+    {
+      "name": "float property aggregates the events",
+      "source": "spec/services/billable_metrics/aggregations/max_service_spec.rb:158",
+      "events": [
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "total_count": 14.2
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "total_count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32
+      },
+      "want": {
+        "aggregation": 14.2
+      }
+    },
+    {
+      "name": "non numeric property ignores the event",
+      "source": "spec/services/billable_metrics/aggregations/max_service_spec.rb:182",
+      "events": [
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "total_count": "foo_bar"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "total_count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0
+      }
+    },
+    {
+      "name": "missing property ignores the event",
+      "source": "spec/services/billable_metrics/aggregations/max_service_spec.rb:205",
+      "events": [
+        {
+          "timestamp": "2023-06-14T12:00:00Z"
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "total_count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32
+      },
+      "want": {
+        "aggregation": 0,
+        "count": 0
+      }
+    },
+    {
+      "name": "with matching filters aggregates the matching events",
+      "source": "spec/services/billable_metrics/aggregations/max_service_spec.rb:247",
+      "events": [
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "total_count": 8,
+            "region": "europe"
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "region": "africa"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "total_count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "filter": {
+          "matching": {
+            "region": [
+              "europe"
+            ]
+          }
+        }
+      },
+      "want": {
+        "aggregation": 8,
+        "count": 1
+      }
+    },
+    {
+      "name": "per event aggregates per events",
+      "source": "spec/services/billable_metrics/aggregations/max_service_spec.rb:256",
+      "fixture": "standard",
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "max",
+            "field_name": "total_count"
+          },
+          "from": "2023-05-15T00:00:00Z",
+          "to": "2023-06-15T23:59:59.999999Z",
+          "period_days": 32
+        },
+        "options": {}
+      },
+      "want": {
+        "values": [
+          0,
+          0,
+          0,
+          0,
+          12
+        ]
+      }
+    },
+    {
+      "name": "per event with grouped_by_values takes the groups into account",
+      "source": "spec/services/billable_metrics/aggregations/max_service_spec.rb:269",
+      "events": [
+        {
+          "timestamp": "2023-06-13T12:00:00Z",
+          "properties": {
+            "total_count": 5,
+            "scheme": "visa"
+          }
+        },
+        {
+          "timestamp": "2023-06-13T12:00:00Z",
+          "properties": {
+            "total_count": 5
+          }
+        },
+        {
+          "timestamp": "2023-06-13T12:00:00Z",
+          "properties": {
+            "total_count": 5
+          }
+        },
+        {
+          "timestamp": "2023-06-13T12:00:00Z",
+          "properties": {
+            "total_count": 5
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "total_count": 12
+          }
+        }
+      ],
+      "per_event": {
+        "request": {
+          "metric": {
+            "aggregation": "max",
+            "field_name": "total_count"
+          },
+          "from": "2023-05-15T00:00:00Z",
+          "to": "2023-06-15T23:59:59.999999Z",
+          "period_days": 32
+        },
+        "options": {
+          "group_values": {
+            "scheme": "visa"
+          }
+        }
+      },
+      "want": {
+        "values": [
+          5
+        ]
+      }
+    },
+    {
+      "name": "grouped by returns grouped aggregations",
+      "source": "spec/services/billable_metrics/aggregations/max_service_spec.rb:310",
+      "fixture": "agents",
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "total_count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": "aragorn"
+            },
+            "aggregation": 12,
+            "count": 1
+          },
+          {
+            "groups": {
+              "agent_name": "frodo"
+            },
+            "aggregation": 12,
+            "count": 1
+          },
+          {
+            "groups": {
+              "agent_name": "gimli"
+            },
+            "aggregation": 12,
+            "count": 1
+          },
+          {
+            "groups": {
+              "agent_name": "legolas"
+            },
+            "aggregation": 12,
+            "count": 1
+          },
+          {
+            "groups": {
+              "agent_name": null
+            },
+            "aggregation": 12,
+            "count": 1
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped by without events returns an empty result",
+      "source": "spec/services/billable_metrics/aggregations/max_service_spec.rb:326",
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "total_count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": null
+            },
+            "aggregation": 0,
+            "count": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "grouped by with bypass_aggregation returns an empty result",
+      "source": "spec/services/billable_metrics/aggregations/max_service_spec.rb:341",
+      "fixture": "agents",
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "total_count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "group_by": [
+          "agent_name"
+        ],
+        "bypass_aggregation": true
+      },
+      "want": {
+        "grouped": [
+          {
+            "groups": {
+              "agent_name": null
+            },
+            "aggregation": 0,
+            "count": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "with presentation keys returns the breakdowns",
+      "source": "spec/services/billable_metrics/aggregations/max_service_spec.rb:381",
+      "events": [
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "total_count": 10,
+            "cloud": "aws"
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "total_count": 10,
+            "cloud": "aws"
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "total_count": 10,
+            "cloud": "aws"
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "total_count": 12,
+            "cloud": "gcp"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "total_count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "presentation_by": [
+          "cloud"
+        ]
+      },
+      "want": {
+        "breakdowns": [
+          {
+            "groups": {
+              "cloud": "aws"
+            },
+            "value": 10
+          },
+          {
+            "groups": {
+              "cloud": "gcp"
+            },
+            "value": 12
+          }
+        ]
+      }
+    },
+    {
+      "name": "with presentation keys and grouped_by returns the breakdowns",
+      "source": "spec/services/billable_metrics/aggregations/max_service_spec.rb:425",
+      "events": [
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "total_count": 2,
+            "agent_name": "frodo",
+            "cloud": "aws"
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "total_count": 7,
+            "agent_name": "frodo",
+            "cloud": "gcp"
+          }
+        },
+        {
+          "timestamp": "2023-06-14T12:00:00Z",
+          "properties": {
+            "total_count": 3,
+            "agent_name": "aragorn",
+            "cloud": "aws"
+          }
+        }
+      ],
+      "aggregate": {
+        "metric": {
+          "aggregation": "max",
+          "field_name": "total_count"
+        },
+        "from": "2023-05-15T00:00:00Z",
+        "to": "2023-06-15T23:59:59.999999Z",
+        "period_days": 32,
+        "presentation_by": [
+          "cloud"
+        ],
+        "group_by": [
+          "agent_name"
+        ]
+      },
+      "want": {
+        "breakdowns": [
+          {
+            "groups": {
+              "agent_name": "frodo",
+              "cloud": "aws"
+            },
+            "value": 2
+          },
+          {
+            "groups": {
+              "agent_name": "frodo",
+              "cloud": "gcp"
+            },
+            "value": 7
+          },
+          {
+            "groups": {
+              "agent_name": "aragorn",
+              "cloud": "aws"
+            },
+            "value": 3
+          }
+        ]
+      }
+    }
+  ]
+}

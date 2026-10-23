@@ -1,0 +1,2019 @@
+{
+  "fixtures": {
+    "standard": [
+      {
+        "timestamp": "2023-03-16T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "city": "paris",
+          "value": 1
+        }
+      },
+      {
+        "timestamp": "2023-03-17T00:00:00Z",
+        "properties": {
+          "value": 2
+        }
+      },
+      {
+        "timestamp": "2023-03-18T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "value": 3
+        }
+      },
+      {
+        "timestamp": "2023-03-19T00:00:00Z",
+        "properties": {
+          "value": 4
+        }
+      },
+      {
+        "timestamp": "2023-03-20T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "london",
+          "value": 10
+        },
+        "transaction_id": "dup"
+      },
+      {
+        "timestamp": "2023-03-20T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "london",
+          "value": 5
+        },
+        "transaction_id": "dup"
+      }
+    ],
+    "filters": [
+      {
+        "timestamp": "2023-03-21T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "manchester",
+          "value": -1
+        },
+        "transaction_id": "f1"
+      },
+      {
+        "timestamp": "2023-03-22T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "city": "cambridge",
+          "value": -2
+        },
+        "transaction_id": "f2"
+      },
+      {
+        "timestamp": "2023-03-23T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "city": "caen",
+          "value": -3
+        },
+        "transaction_id": "f3"
+      },
+      {
+        "timestamp": "2023-03-24T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "germany",
+          "city": "berlin",
+          "value": -4
+        },
+        "transaction_id": "f4"
+      },
+      {
+        "timestamp": "2023-03-25T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "cambridge",
+          "value": -5
+        },
+        "transaction_id": "f5"
+      }
+    ],
+    "weighted": [
+      {
+        "timestamp": "2023-03-05T00:00:00Z",
+        "properties": {
+          "value": 2
+        },
+        "transaction_id": "w_0"
+      },
+      {
+        "timestamp": "2023-03-05T01:00:00Z",
+        "properties": {
+          "value": 3
+        },
+        "transaction_id": "w_1"
+      },
+      {
+        "timestamp": "2023-03-05T01:30:00Z",
+        "properties": {
+          "value": 1
+        },
+        "transaction_id": "w_2"
+      },
+      {
+        "timestamp": "2023-03-05T02:00:00Z",
+        "properties": {
+          "value": -4
+        },
+        "transaction_id": "w_3"
+      },
+      {
+        "timestamp": "2023-03-05T04:00:00Z",
+        "properties": {
+          "value": -2
+        },
+        "transaction_id": "w_4"
+      },
+      {
+        "timestamp": "2023-03-05T05:00:00Z",
+        "properties": {
+          "value": 10
+        },
+        "transaction_id": "w_5"
+      },
+      {
+        "timestamp": "2023-03-05T05:30:00Z",
+        "properties": {
+          "value": -10
+        },
+        "transaction_id": "w_6"
+      }
+    ],
+    "weighted_cloud": [
+      {
+        "timestamp": "2023-03-05T00:00:00Z",
+        "properties": {
+          "cloud": "aws",
+          "value": 2
+        },
+        "transaction_id": "aws_0"
+      },
+      {
+        "timestamp": "2023-03-05T01:00:00Z",
+        "properties": {
+          "cloud": "aws",
+          "value": 3
+        },
+        "transaction_id": "aws_1"
+      },
+      {
+        "timestamp": "2023-03-05T01:30:00Z",
+        "properties": {
+          "cloud": "aws",
+          "value": 1
+        },
+        "transaction_id": "aws_2"
+      },
+      {
+        "timestamp": "2023-03-05T02:00:00Z",
+        "properties": {
+          "cloud": "aws",
+          "value": -4
+        },
+        "transaction_id": "aws_3"
+      },
+      {
+        "timestamp": "2023-03-05T04:00:00Z",
+        "properties": {
+          "cloud": "aws",
+          "value": -2
+        },
+        "transaction_id": "aws_4"
+      },
+      {
+        "timestamp": "2023-03-05T05:00:00Z",
+        "properties": {
+          "cloud": "aws",
+          "value": 10
+        },
+        "transaction_id": "aws_5"
+      },
+      {
+        "timestamp": "2023-03-05T05:30:00Z",
+        "properties": {
+          "cloud": "aws",
+          "value": -10
+        },
+        "transaction_id": "aws_6"
+      },
+      {
+        "timestamp": "2023-03-05T00:00:00Z",
+        "properties": {
+          "cloud": "gcp",
+          "value": 2
+        },
+        "transaction_id": "gcp_0"
+      },
+      {
+        "timestamp": "2023-03-05T01:00:00Z",
+        "properties": {
+          "cloud": "gcp",
+          "value": 3
+        },
+        "transaction_id": "gcp_1"
+      },
+      {
+        "timestamp": "2023-03-05T01:30:00Z",
+        "properties": {
+          "cloud": "gcp",
+          "value": 1
+        },
+        "transaction_id": "gcp_2"
+      },
+      {
+        "timestamp": "2023-03-05T02:00:00Z",
+        "properties": {
+          "cloud": "gcp",
+          "value": -4
+        },
+        "transaction_id": "gcp_3"
+      },
+      {
+        "timestamp": "2023-03-05T04:00:00Z",
+        "properties": {
+          "cloud": "gcp",
+          "value": -2
+        },
+        "transaction_id": "gcp_4"
+      },
+      {
+        "timestamp": "2023-03-05T05:00:00Z",
+        "properties": {
+          "cloud": "gcp",
+          "value": 10
+        },
+        "transaction_id": "gcp_5"
+      },
+      {
+        "timestamp": "2023-03-05T05:30:00Z",
+        "properties": {
+          "cloud": "gcp",
+          "value": -10
+        },
+        "transaction_id": "gcp_6"
+      }
+    ],
+    "weighted_agent_cloud": [
+      {
+        "timestamp": "2023-03-05T00:00:00Z",
+        "properties": {
+          "agent_name": "frodo",
+          "cloud": "aws",
+          "value": 2
+        },
+        "transaction_id": "frodo_0"
+      },
+      {
+        "timestamp": "2023-03-05T01:00:00Z",
+        "properties": {
+          "agent_name": "frodo",
+          "cloud": "aws",
+          "value": 3
+        },
+        "transaction_id": "frodo_1"
+      },
+      {
+        "timestamp": "2023-03-05T01:30:00Z",
+        "properties": {
+          "agent_name": "frodo",
+          "cloud": "aws",
+          "value": 1
+        },
+        "transaction_id": "frodo_2"
+      },
+      {
+        "timestamp": "2023-03-05T02:00:00Z",
+        "properties": {
+          "agent_name": "frodo",
+          "cloud": "aws",
+          "value": -4
+        },
+        "transaction_id": "frodo_3"
+      },
+      {
+        "timestamp": "2023-03-05T04:00:00Z",
+        "properties": {
+          "agent_name": "frodo",
+          "cloud": "aws",
+          "value": -2
+        },
+        "transaction_id": "frodo_4"
+      },
+      {
+        "timestamp": "2023-03-05T05:00:00Z",
+        "properties": {
+          "agent_name": "frodo",
+          "cloud": "aws",
+          "value": 10
+        },
+        "transaction_id": "frodo_5"
+      },
+      {
+        "timestamp": "2023-03-05T05:30:00Z",
+        "properties": {
+          "agent_name": "frodo",
+          "cloud": "aws",
+          "value": -10
+        },
+        "transaction_id": "frodo_6"
+      },
+      {
+        "timestamp": "2023-03-05T00:00:00Z",
+        "properties": {
+          "agent_name": "aragorn",
+          "cloud": "gcp",
+          "value": 2
+        },
+        "transaction_id": "aragorn_0"
+      },
+      {
+        "timestamp": "2023-03-05T01:00:00Z",
+        "properties": {
+          "agent_name": "aragorn",
+          "cloud": "gcp",
+          "value": 3
+        },
+        "transaction_id": "aragorn_1"
+      },
+      {
+        "timestamp": "2023-03-05T01:30:00Z",
+        "properties": {
+          "agent_name": "aragorn",
+          "cloud": "gcp",
+          "value": 1
+        },
+        "transaction_id": "aragorn_2"
+      },
+      {
+        "timestamp": "2023-03-05T02:00:00Z",
+        "properties": {
+          "agent_name": "aragorn",
+          "cloud": "gcp",
+          "value": -4
+        },
+        "transaction_id": "aragorn_3"
+      },
+      {
+        "timestamp": "2023-03-05T04:00:00Z",
+        "properties": {
+          "agent_name": "aragorn",
+          "cloud": "gcp",
+          "value": -2
+        },
+        "transaction_id": "aragorn_4"
+      },
+      {
+        "timestamp": "2023-03-05T05:00:00Z",
+        "properties": {
+          "agent_name": "aragorn",
+          "cloud": "gcp",
+          "value": 10
+        },
+        "transaction_id": "aragorn_5"
+      },
+      {
+        "timestamp": "2023-03-05T05:30:00Z",
+        "properties": {
+          "agent_name": "aragorn",
+          "cloud": "gcp",
+          "value": -10
+        },
+        "transaction_id": "aragorn_6"
+      }
+    ],
+    "weighted_agents": [
+      {
+        "timestamp": "2023-03-05T00:00:00Z",
+        "properties": {
+          "agent_name": "frodo",
+          "value": 2
+        },
+        "transaction_id": "frodo_0"
+      },
+      {
+        "timestamp": "2023-03-05T01:00:00Z",
+        "properties": {
+          "agent_name": "frodo",
+          "value": 3
+        },
+        "transaction_id": "frodo_1"
+      },
+      {
+        "timestamp": "2023-03-05T01:30:00Z",
+        "properties": {
+          "agent_name": "frodo",
+          "value": 1
+        },
+        "transaction_id": "frodo_2"
+      },
+      {
+        "timestamp": "2023-03-05T02:00:00Z",
+        "properties": {
+          "agent_name": "frodo",
+          "value": -4
+        },
+        "transaction_id": "frodo_3"
+      },
+      {
+        "timestamp": "2023-03-05T04:00:00Z",
+        "properties": {
+          "agent_name": "frodo",
+          "value": -2
+        },
+        "transaction_id": "frodo_4"
+      },
+      {
+        "timestamp": "2023-03-05T05:00:00Z",
+        "properties": {
+          "agent_name": "frodo",
+          "value": 10
+        },
+        "transaction_id": "frodo_5"
+      },
+      {
+        "timestamp": "2023-03-05T05:30:00Z",
+        "properties": {
+          "agent_name": "frodo",
+          "value": -10
+        },
+        "transaction_id": "frodo_6"
+      },
+      {
+        "timestamp": "2023-03-05T00:00:00Z",
+        "properties": {
+          "agent_name": "aragorn",
+          "value": 2
+        },
+        "transaction_id": "aragorn_0"
+      },
+      {
+        "timestamp": "2023-03-05T01:00:00Z",
+        "properties": {
+          "agent_name": "aragorn",
+          "value": 3
+        },
+        "transaction_id": "aragorn_1"
+      },
+      {
+        "timestamp": "2023-03-05T01:30:00Z",
+        "properties": {
+          "agent_name": "aragorn",
+          "value": 1
+        },
+        "transaction_id": "aragorn_2"
+      },
+      {
+        "timestamp": "2023-03-05T02:00:00Z",
+        "properties": {
+          "agent_name": "aragorn",
+          "value": -4
+        },
+        "transaction_id": "aragorn_3"
+      },
+      {
+        "timestamp": "2023-03-05T04:00:00Z",
+        "properties": {
+          "agent_name": "aragorn",
+          "value": -2
+        },
+        "transaction_id": "aragorn_4"
+      },
+      {
+        "timestamp": "2023-03-05T05:00:00Z",
+        "properties": {
+          "agent_name": "aragorn",
+          "value": 10
+        },
+        "transaction_id": "aragorn_5"
+      },
+      {
+        "timestamp": "2023-03-05T05:30:00Z",
+        "properties": {
+          "agent_name": "aragorn",
+          "value": -10
+        },
+        "transaction_id": "aragorn_6"
+      },
+      {
+        "timestamp": "2023-03-05T00:00:00Z",
+        "properties": {
+          "value": 2
+        },
+        "transaction_id": "none_0"
+      },
+      {
+        "timestamp": "2023-03-05T01:00:00Z",
+        "properties": {
+          "value": 3
+        },
+        "transaction_id": "none_1"
+      },
+      {
+        "timestamp": "2023-03-05T01:30:00Z",
+        "properties": {
+          "value": 1
+        },
+        "transaction_id": "none_2"
+      },
+      {
+        "timestamp": "2023-03-05T02:00:00Z",
+        "properties": {
+          "value": -4
+        },
+        "transaction_id": "none_3"
+      },
+      {
+        "timestamp": "2023-03-05T04:00:00Z",
+        "properties": {
+          "value": -2
+        },
+        "transaction_id": "none_4"
+      },
+      {
+        "timestamp": "2023-03-05T05:00:00Z",
+        "properties": {
+          "value": 10
+        },
+        "transaction_id": "none_5"
+      },
+      {
+        "timestamp": "2023-03-05T05:30:00Z",
+        "properties": {
+          "value": -10
+        },
+        "transaction_id": "none_6"
+      }
+    ],
+    "pg_tied": [
+      {
+        "transaction_id": "previous",
+        "timestamp": "2023-03-15T23:00:00Z",
+        "ingested_at": "2023-03-15T23:00:00Z"
+      },
+      {
+        "transaction_id": "next",
+        "timestamp": "2023-03-16T01:00:00Z",
+        "ingested_at": "2023-03-16T01:00:00Z"
+      },
+      {
+        "transaction_id": "tied_1",
+        "timestamp": "2023-03-16T00:00:00Z",
+        "ingested_at": "2023-03-16T00:00:01Z"
+      },
+      {
+        "transaction_id": "tied_2",
+        "timestamp": "2023-03-16T00:00:00Z",
+        "ingested_at": "2023-03-16T00:00:02Z"
+      },
+      {
+        "transaction_id": "tied_3",
+        "timestamp": "2023-03-16T00:00:00Z",
+        "ingested_at": "2023-03-16T00:00:03Z"
+      }
+    ],
+    "pg_tied_same_created_at": [
+      {
+        "transaction_id": "previous",
+        "timestamp": "2023-03-15T23:00:00Z",
+        "ingested_at": "2023-03-15T23:00:00Z"
+      },
+      {
+        "transaction_id": "next",
+        "timestamp": "2023-03-16T01:00:00Z",
+        "ingested_at": "2023-03-16T01:00:00Z"
+      },
+      {
+        "transaction_id": "tied_1",
+        "timestamp": "2023-03-16T00:00:00Z",
+        "ingested_at": "2023-03-16T00:00:00Z"
+      },
+      {
+        "transaction_id": "tied_2",
+        "timestamp": "2023-03-16T00:00:00Z",
+        "ingested_at": "2023-03-16T00:00:00Z"
+      },
+      {
+        "transaction_id": "tied_3",
+        "timestamp": "2023-03-16T00:00:00Z",
+        "ingested_at": "2023-03-16T00:00:00Z"
+      }
+    ],
+    "ch_boundary": [
+      {
+        "timestamp": "2023-03-15T23:00:00Z",
+        "properties": {
+          "value": 1
+        },
+        "transaction_id": "before_1"
+      },
+      {
+        "timestamp": "2023-03-15T22:00:00Z",
+        "properties": {
+          "value": 1
+        },
+        "transaction_id": "before_2"
+      },
+      {
+        "timestamp": "2023-03-16T00:00:00Z",
+        "properties": {
+          "value": 1
+        },
+        "transaction_id": "tx-1"
+      },
+      {
+        "timestamp": "2023-03-16T00:00:00Z",
+        "properties": {
+          "value": 1
+        },
+        "transaction_id": "tx-2"
+      },
+      {
+        "timestamp": "2023-03-16T00:00:00Z",
+        "properties": {
+          "value": 1
+        },
+        "transaction_id": "tx-3"
+      }
+    ],
+    "standard_filters": [
+      {
+        "timestamp": "2023-03-16T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "city": "paris",
+          "value": 1
+        }
+      },
+      {
+        "timestamp": "2023-03-17T00:00:00Z",
+        "properties": {
+          "value": 2
+        }
+      },
+      {
+        "timestamp": "2023-03-18T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "value": 3
+        }
+      },
+      {
+        "timestamp": "2023-03-19T00:00:00Z",
+        "properties": {
+          "value": 4
+        }
+      },
+      {
+        "timestamp": "2023-03-20T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "london",
+          "value": 10
+        },
+        "transaction_id": "dup"
+      },
+      {
+        "timestamp": "2023-03-20T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "london",
+          "value": 5
+        },
+        "transaction_id": "dup"
+      },
+      {
+        "timestamp": "2023-03-21T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "manchester",
+          "value": -1
+        },
+        "transaction_id": "f1"
+      },
+      {
+        "timestamp": "2023-03-22T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "city": "cambridge",
+          "value": -2
+        },
+        "transaction_id": "f2"
+      },
+      {
+        "timestamp": "2023-03-23T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "france",
+          "city": "caen",
+          "value": -3
+        },
+        "transaction_id": "f3"
+      },
+      {
+        "timestamp": "2023-03-24T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "germany",
+          "city": "berlin",
+          "value": -4
+        },
+        "transaction_id": "f4"
+      },
+      {
+        "timestamp": "2023-03-25T00:00:00Z",
+        "properties": {
+          "region": "europe",
+          "country": "united kingdom",
+          "city": "cambridge",
+          "value": -5
+        },
+        "transaction_id": "f5"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "grouped_weighted_sum with breakdown columns with grouped_by returns the weighted sum per agent and cloud",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2041",
+      "fixture": "weighted_agent_cloud",
+      "store": {
+        "method": "grouped_weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "agent_name",
+          "cloud"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "agent_name": "frodo",
+            "cloud": "aws"
+          },
+          "value": 0.02218
+        },
+        {
+          "groups": {
+            "agent_name": "aragorn",
+            "cloud": "gcp"
+          },
+          "value": 0.02218
+        }
+      ],
+      "precision": 5
+    },
+    {
+      "name": "grouped_weighted_sum with breakdown columns with no events returns an empty array",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2053",
+      "store": {
+        "method": "grouped_weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "cloud"
+        ]
+      },
+      "want": []
+    },
+    {
+      "name": "grouped_weighted_sum with breakdown columns with initial values uses them",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2086",
+      "fixture": "weighted_cloud",
+      "store": {
+        "method": "grouped_weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "cloud"
+        ],
+        "initial_values": [
+          {
+            "groups": {
+              "cloud": "aws"
+            },
+            "value": 1000
+          },
+          {
+            "groups": {
+              "cloud": "gcp"
+            },
+            "value": 1000
+          }
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "cloud": "aws"
+          },
+          "value": 1000.02218
+        },
+        {
+          "groups": {
+            "cloud": "gcp"
+          },
+          "value": 1000.02218
+        }
+      ],
+      "precision": 5
+    },
+    {
+      "name": "sum_by_day returns the sum grouped by day",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2098",
+      "fixture": "standard",
+      "store": {
+        "method": "sum_by_day",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": [
+        {
+          "date": "2023-03-16",
+          "value": 1
+        },
+        {
+          "date": "2023-03-17",
+          "value": 2
+        },
+        {
+          "date": "2023-03-18",
+          "value": 3
+        },
+        {
+          "date": "2023-03-19",
+          "value": 4
+        },
+        {
+          "date": "2023-03-20",
+          "value": 5
+        }
+      ]
+    },
+    {
+      "name": "prorated_event_values returns the values prorated on the period",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2121",
+      "fixture": "standard",
+      "store": {
+        "method": "prorated_event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": [
+        0.516,
+        0.968,
+        1.355,
+        1.677,
+        1.935
+      ],
+      "precision": 3
+    },
+    {
+      "name": "prorated_event_values with filters returns the filtered prorated values",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2135",
+      "fixture": "standard_filters",
+      "store": {
+        "method": "prorated_event_values",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france",
+                "united kingdom"
+              ]
+            },
+            "ignored": [
+              {
+                "city": [
+                  "caen"
+                ]
+              },
+              {
+                "city": [
+                  "cambridge",
+                  "london"
+                ],
+                "country": [
+                  "united kingdom"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "want": [
+        0.516,
+        1.355,
+        -0.355,
+        -0.645
+      ],
+      "precision": 3
+    },
+    {
+      "name": "prorated_sum returns the prorated sum, the value and the events count",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2163",
+      "fixture": "standard",
+      "store": {
+        "method": "prorated_sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "prorated_value": 6.45161,
+        "value": 15,
+        "count": 5
+      },
+      "precision": 5
+    },
+    {
+      "name": "prorated_sum with persisted_duration returns the prorated sum, the value and the events count",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2175",
+      "fixture": "standard",
+      "store": {
+        "method": "prorated_sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "persisted_days": 10
+      },
+      "want": {
+        "prorated_value": 4.83871,
+        "value": 15,
+        "count": 5
+      },
+      "precision": 5
+    },
+    {
+      "name": "grouped_prorated_sum returns the prorated sums per region",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2193",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_prorated_sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "region"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": null
+          },
+          "prorated_value": 2.64516,
+          "value": 6,
+          "count": 2
+        },
+        {
+          "groups": {
+            "region": "europe"
+          },
+          "prorated_value": 3.80645,
+          "value": 9,
+          "count": 3
+        }
+      ],
+      "precision": 5
+    },
+    {
+      "name": "grouped_prorated_sum with persisted_duration returns the prorated sums per region",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2206",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_prorated_sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "region"
+        ],
+        "persisted_days": 10
+      },
+      "want": [
+        {
+          "groups": {
+            "region": null
+          },
+          "prorated_value": 1.93548,
+          "value": 6,
+          "count": 2
+        },
+        {
+          "groups": {
+            "region": "europe"
+          },
+          "prorated_value": 2.90323,
+          "value": 9,
+          "count": 3
+        }
+      ],
+      "precision": 5
+    },
+    {
+      "name": "grouped_prorated_sum with multiple groups returns the prorated sums per region and country",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2222",
+      "fixture": "standard",
+      "store": {
+        "method": "grouped_prorated_sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "region",
+          "country"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "region": "europe",
+            "country": "united kingdom"
+          },
+          "prorated_value": 1.93548,
+          "value": 5,
+          "count": 1
+        },
+        {
+          "groups": {
+            "region": null,
+            "country": null
+          },
+          "prorated_value": 2.64516,
+          "value": 6,
+          "count": 2
+        },
+        {
+          "groups": {
+            "region": "europe",
+            "country": "france"
+          },
+          "prorated_value": 1.87097,
+          "value": 4,
+          "count": 2
+        }
+      ],
+      "precision": 5
+    },
+    {
+      "name": "weighted_sum returns the weighted sum of event properties",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2285",
+      "fixture": "weighted",
+      "store": {
+        "method": "weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": 0.02218,
+        "variation": 0,
+        "count": 7
+      },
+      "precision": 5
+    },
+    {
+      "name": "weighted_sum with a single event returns the weighted sum",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2300",
+      "events": [
+        {
+          "timestamp": "2023-03-05T00:00:00Z",
+          "properties": {
+            "value": 1000
+          }
+        }
+      ],
+      "store": {
+        "method": "weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": 870.96774,
+        "variation": 1000,
+        "count": 1
+      },
+      "precision": 5
+    },
+    {
+      "name": "weighted_sum with no events returns zero",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2312",
+      "store": {
+        "method": "weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": 0,
+        "variation": 0,
+        "count": 0
+      },
+      "precision": 5
+    },
+    {
+      "name": "weighted_sum with events with the same timestamp sums them",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2331",
+      "events": [
+        {
+          "timestamp": "2023-03-05T00:00:00Z",
+          "properties": {
+            "value": 3
+          },
+          "ingested_at": "2023-03-05T12:00:00Z"
+        },
+        {
+          "timestamp": "2023-03-05T00:00:00Z",
+          "properties": {
+            "value": 3
+          },
+          "ingested_at": "2023-03-05T12:00:00Z"
+        }
+      ],
+      "store": {
+        "method": "weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": 5.22581
+      },
+      "precision": 5
+    },
+    {
+      "name": "weighted_sum with initial value uses it",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2339",
+      "fixture": "weighted",
+      "store": {
+        "method": "weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "initial": 1000
+      },
+      "want": {
+        "value": 1000.02218,
+        "variation": 0,
+        "count": 7
+      },
+      "precision": 5
+    },
+    {
+      "name": "weighted_sum with initial value without events uses only the initial value",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2350",
+      "store": {
+        "method": "weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "initial": 1000
+      },
+      "want": {
+        "value": 1000,
+        "variation": 0,
+        "count": 0
+      },
+      "precision": 5
+    },
+    {
+      "name": "weighted_sum with filters is scoped to the filter",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2372",
+      "events": [
+        {
+          "timestamp": "2023-03-04T00:00:00Z",
+          "properties": {
+            "region": "us",
+            "value": 1000
+          }
+        },
+        {
+          "timestamp": "2023-03-05T00:00:00Z",
+          "properties": {
+            "region": "europe",
+            "value": 1000
+          }
+        }
+      ],
+      "store": {
+        "method": "weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ]
+            }
+          }
+        }
+      },
+      "want": {
+        "value": 870.96774
+      },
+      "precision": 5
+    },
+    {
+      "name": "weighted_sum when from has microsecond precision and the event millisecond precision includes the event",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2392",
+      "events": [
+        {
+          "timestamp": "2023-03-01T00:00:00Z",
+          "properties": {
+            "value": 5
+          }
+        }
+      ],
+      "store": {
+        "method": "weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00.000285Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "value": 5
+      },
+      "precision": 5
+    },
+    {
+      "name": "grouped_weighted_sum returns the weighted sum per group",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2606",
+      "fixture": "weighted_agents",
+      "store": {
+        "method": "grouped_weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "agent_name",
+          "other"
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "agent_name": "frodo",
+            "other": null
+          },
+          "value": 0.02218,
+          "variation": 0,
+          "count": 7
+        },
+        {
+          "groups": {
+            "agent_name": "aragorn",
+            "other": null
+          },
+          "value": 0.02218,
+          "variation": 0,
+          "count": 7
+        },
+        {
+          "groups": {
+            "agent_name": null,
+            "other": null
+          },
+          "value": 0.02218,
+          "variation": 0,
+          "count": 7
+        }
+      ],
+      "precision": 5
+    },
+    {
+      "name": "grouped_weighted_sum with no events returns no group",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2630",
+      "store": {
+        "method": "grouped_weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "agent_name",
+          "other"
+        ]
+      },
+      "want": []
+    },
+    {
+      "name": "grouped_weighted_sum with initial values uses them",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2646",
+      "fixture": "weighted_agents",
+      "store": {
+        "method": "grouped_weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "agent_name",
+          "other"
+        ],
+        "initial_values": [
+          {
+            "groups": {
+              "agent_name": "frodo",
+              "other": null
+            },
+            "value": 1000
+          },
+          {
+            "groups": {
+              "agent_name": "aragorn",
+              "other": null
+            },
+            "value": 1000
+          },
+          {
+            "groups": {
+              "agent_name": null,
+              "other": null
+            },
+            "value": 1000
+          }
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "agent_name": "frodo",
+            "other": null
+          },
+          "value": 1000.02218,
+          "variation": 0,
+          "count": 7
+        },
+        {
+          "groups": {
+            "agent_name": "aragorn",
+            "other": null
+          },
+          "value": 1000.02218,
+          "variation": 0,
+          "count": 7
+        },
+        {
+          "groups": {
+            "agent_name": null,
+            "other": null
+          },
+          "value": 1000.02218,
+          "variation": 0,
+          "count": 7
+        }
+      ],
+      "precision": 5
+    },
+    {
+      "name": "grouped_weighted_sum with initial values without events uses only the initial values",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2670",
+      "store": {
+        "method": "grouped_weighted_sum",
+        "query": {
+          "from": "2023-03-01T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        },
+        "by": [
+          "agent_name",
+          "other"
+        ],
+        "initial_values": [
+          {
+            "groups": {
+              "agent_name": "frodo",
+              "other": null
+            },
+            "value": 1000
+          },
+          {
+            "groups": {
+              "agent_name": "aragorn",
+              "other": null
+            },
+            "value": 1000
+          },
+          {
+            "groups": {
+              "agent_name": null,
+              "other": null
+            },
+            "value": 1000
+          }
+        ]
+      },
+      "want": [
+        {
+          "groups": {
+            "agent_name": "frodo",
+            "other": null
+          },
+          "value": 1000,
+          "variation": 0,
+          "count": 0
+        },
+        {
+          "groups": {
+            "agent_name": "aragorn",
+            "other": null
+          },
+          "value": 1000,
+          "variation": 0,
+          "count": 0
+        },
+        {
+          "groups": {
+            "agent_name": null,
+            "other": null
+          },
+          "value": 1000,
+          "variation": 0,
+          "count": 0
+        }
+      ],
+      "precision": 5
+    },
+    {
+      "name": "recurring metric with previous subscription includes events from before the period start",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2738",
+      "fixture": "standard",
+      "events": [
+        {
+          "timestamp": "2023-03-13T00:00:00Z",
+          "properties": {
+            "region": "europe",
+            "country": "france",
+            "value": 100
+          },
+          "transaction_id": "prev_1"
+        },
+        {
+          "timestamp": "2023-03-14T00:00:00Z",
+          "properties": {
+            "region": "europe",
+            "value": 50
+          },
+          "transaction_id": "prev_2"
+        }
+      ],
+      "store": {
+        "method": "sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true,
+          "include_history": true
+        }
+      },
+      "want": {
+        "value": 165,
+        "count": 7
+      }
+    },
+    {
+      "name": "recurring metric with previous subscription with charge filters includes only filtered earlier events",
+      "source": "spec/services/events/stores/shared_examples/an_event_store.rb:2772",
+      "fixture": "standard",
+      "events": [
+        {
+          "timestamp": "2023-03-14T00:00:00Z",
+          "properties": {
+            "region": "europe",
+            "country": "france",
+            "value": 200
+          },
+          "transaction_id": "prev_1"
+        },
+        {
+          "timestamp": "2023-03-13T00:00:00Z",
+          "properties": {
+            "region": "asia",
+            "country": "japan",
+            "value": 999
+          },
+          "transaction_id": "prev_2"
+        }
+      ],
+      "store": {
+        "method": "sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true,
+          "include_history": true,
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ],
+              "country": [
+                "france"
+              ]
+            }
+          }
+        }
+      },
+      "want": {
+        "value": 204,
+        "count": 3
+      }
+    },
+    {
+      "name": "postgres count with a pay-in-advance boundary gives tied event 1 a distinct position",
+      "source": "spec/services/events/stores/postgres_store_spec.rb:104",
+      "fixture": "pg_tied",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "until": "2023-03-16T00:00:00Z",
+          "until_transaction_id": "tied_1"
+        }
+      },
+      "want": 2
+    },
+    {
+      "name": "postgres count with a pay-in-advance boundary gives tied event 2 a distinct position",
+      "source": "spec/services/events/stores/postgres_store_spec.rb:104",
+      "fixture": "pg_tied",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "until": "2023-03-16T00:00:00Z",
+          "until_transaction_id": "tied_2"
+        }
+      },
+      "want": 3
+    },
+    {
+      "name": "postgres count with a pay-in-advance boundary gives tied event 3 a distinct position",
+      "source": "spec/services/events/stores/postgres_store_spec.rb:104",
+      "fixture": "pg_tied",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "until": "2023-03-16T00:00:00Z",
+          "until_transaction_id": "tied_3"
+        }
+      },
+      "want": 4
+    },
+    {
+      "name": "postgres count with a pay-in-advance boundary and tied created_at gives tied event 1 a distinct position",
+      "source": "spec/services/events/stores/postgres_store_spec.rb:110",
+      "fixture": "pg_tied_same_created_at",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "until": "2023-03-16T00:00:00Z",
+          "until_transaction_id": "tied_1"
+        }
+      },
+      "want": 2
+    },
+    {
+      "name": "postgres count with a pay-in-advance boundary and tied created_at gives tied event 2 a distinct position",
+      "source": "spec/services/events/stores/postgres_store_spec.rb:110",
+      "fixture": "pg_tied_same_created_at",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "until": "2023-03-16T00:00:00Z",
+          "until_transaction_id": "tied_2"
+        }
+      },
+      "want": 3
+    },
+    {
+      "name": "postgres count with a pay-in-advance boundary and tied created_at gives tied event 3 a distinct position",
+      "source": "spec/services/events/stores/postgres_store_spec.rb:110",
+      "fixture": "pg_tied_same_created_at",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "until": "2023-03-16T00:00:00Z",
+          "until_transaction_id": "tied_3"
+        }
+      },
+      "want": 4
+    },
+    {
+      "name": "postgres count with a max timestamp and no event counts all events sharing the timestamp",
+      "source": "spec/services/events/stores/postgres_store_spec.rb:116",
+      "events": [
+        {
+          "transaction_id": "previous",
+          "timestamp": "2023-03-15T23:00:00Z",
+          "ingested_at": "2023-03-15T23:00:00Z"
+        },
+        {
+          "transaction_id": "next",
+          "timestamp": "2023-03-16T01:00:00Z",
+          "ingested_at": "2023-03-16T01:00:00Z"
+        },
+        {
+          "transaction_id": "tied_1",
+          "timestamp": "2023-03-16T00:00:00Z",
+          "ingested_at": "2023-03-16T00:00:01Z"
+        },
+        {
+          "transaction_id": "tied_2",
+          "timestamp": "2023-03-16T00:00:00Z",
+          "ingested_at": "2023-03-16T00:00:02Z"
+        }
+      ],
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "until": "2023-03-16T00:00:00Z"
+        }
+      },
+      "want": 3
+    },
+    {
+      "name": "postgres weighted_sum over a zero-length period without events returns a zero events count",
+      "source": "spec/services/events/stores/postgres_store_spec.rb:158",
+      "store": {
+        "method": "weighted_sum",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-15T00:00:00Z",
+          "period_days": 31,
+          "property": "value",
+          "numeric": true
+        }
+      },
+      "want": {
+        "count": 0
+      }
+    },
+    {
+      "name": "clickhouse filters after dedup do not count an event whose superseded value matches",
+      "source": "spec/services/events/stores/clickhouse_store_spec.rb:107",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "region": "europe",
+            "value": 1
+          },
+          "transaction_id": "dup"
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "region": "asia",
+            "value": 1
+          },
+          "transaction_id": "dup"
+        }
+      ],
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "filter": {
+            "matching": {
+              "region": [
+                "europe"
+              ]
+            }
+          }
+        }
+      },
+      "want": 0
+    },
+    {
+      "name": "clickhouse filters after dedup count the event matching its latest value once",
+      "source": "spec/services/events/stores/clickhouse_store_spec.rb:115",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "region": "europe",
+            "value": 1
+          },
+          "transaction_id": "dup"
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "region": "asia",
+            "value": 1
+          },
+          "transaction_id": "dup"
+        }
+      ],
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "filter": {
+            "matching": {
+              "region": [
+                "asia"
+              ]
+            }
+          }
+        }
+      },
+      "want": 1
+    },
+    {
+      "name": "clickhouse count collapses re-enrichment duplicates into one event",
+      "source": "spec/services/events/stores/clickhouse_store_spec.rb:266",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "value": 1
+          },
+          "transaction_id": "txn"
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "value": 1
+          },
+          "transaction_id": "txn"
+        },
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "value": 1
+          },
+          "transaction_id": "txn"
+        },
+        {
+          "timestamp": "2023-03-17T00:00:00Z",
+          "properties": {
+            "value": 1
+          },
+          "transaction_id": "other"
+        }
+      ],
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z"
+        }
+      },
+      "want": 2
+    },
+    {
+      "name": "clickhouse count treats one transaction_id at different timestamps as distinct events",
+      "source": "spec/services/events/stores/clickhouse_store_spec.rb:277",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "value": 1
+          },
+          "transaction_id": "txn"
+        },
+        {
+          "timestamp": "2023-03-16T01:00:00Z",
+          "properties": {
+            "value": 1
+          },
+          "transaction_id": "txn"
+        }
+      ],
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z"
+        }
+      },
+      "want": 2
+    },
+    {
+      "name": "clickhouse count excludes events outside the boundaries",
+      "source": "spec/services/events/stores/clickhouse_store_spec.rb:286",
+      "events": [
+        {
+          "timestamp": "2023-03-16T00:00:00Z",
+          "properties": {
+            "value": 1
+          }
+        },
+        {
+          "timestamp": "2023-04-02T23:59:59.999999Z",
+          "properties": {
+            "value": 1
+          }
+        }
+      ],
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z"
+        }
+      },
+      "want": 1
+    },
+    {
+      "name": "clickhouse count returns zero without events",
+      "source": "spec/services/events/stores/clickhouse_store_spec.rb:294",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z"
+        }
+      },
+      "want": 0
+    },
+    {
+      "name": "clickhouse count with a pay-in-advance boundary gives tx-1 a distinct position",
+      "source": "spec/services/events/stores/clickhouse_store_spec.rb:356",
+      "fixture": "ch_boundary",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "until": "2023-03-16T00:00:00Z",
+          "until_transaction_id": "tx-1",
+          "period_days": 31
+        }
+      },
+      "want": 3
+    },
+    {
+      "name": "clickhouse count with a pay-in-advance boundary gives tx-2 a distinct position",
+      "source": "spec/services/events/stores/clickhouse_store_spec.rb:356",
+      "fixture": "ch_boundary",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "until": "2023-03-16T00:00:00Z",
+          "until_transaction_id": "tx-2",
+          "period_days": 31
+        }
+      },
+      "want": 4
+    },
+    {
+      "name": "clickhouse count with a pay-in-advance boundary gives tx-3 a distinct position",
+      "source": "spec/services/events/stores/clickhouse_store_spec.rb:356",
+      "fixture": "ch_boundary",
+      "store": {
+        "method": "count",
+        "query": {
+          "from": "2023-03-15T00:00:00Z",
+          "to": "2023-03-31T23:59:59.999999Z",
+          "until": "2023-03-16T00:00:00Z",
+          "until_transaction_id": "tx-3",
+          "period_days": 31
+        }
+      },
+      "want": 5
+    }
+  ]
+}
