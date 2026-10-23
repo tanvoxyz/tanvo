@@ -1,0 +1,703 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.payment.v1 is the API of payments, payment methods,
+// payment requests, payment receipts and refunds.
+package tanvo.payment.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/enums.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// PaymentService records and reads payments.
+service PaymentService {
+  // Records a manual payment of an invoice.
+  rpc CreatePayment(CreatePaymentRequest) returns (CreatePaymentResponse) {
+    option (google.api.http) = {
+      post: "/v1/payments"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "payments:create"
+      api_resource: "payment"
+    };
+  }
+
+  // Returns a payment.
+  rpc GetPayment(GetPaymentRequest) returns (GetPaymentResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/payments/{payment_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "payments:read"
+      api_resource: "payment"
+    };
+  }
+
+  // Lists payments, newest first.
+  rpc ListPayments(ListPaymentsRequest) returns (ListPaymentsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/payments"
+      additional_bindings: {get: "/v1/customers/{customer_id}/payments"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "payments:read"
+      api_resource: "payment"
+    };
+  }
+
+  // Lists refunds, newest first.
+  rpc ListRefunds(ListRefundsRequest) returns (ListRefundsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/refunds"};
+    option (tanvo.common.v1.access) = {
+      permission: "payments:read"
+      api_resource: "payment"
+    };
+  }
+}
+
+// PaymentMethodService manages the payment methods customers registered
+// with payment providers.
+service PaymentMethodService {
+  // Lists a customer's payment methods.
+  rpc ListPaymentMethods(ListPaymentMethodsRequest) returns (ListPaymentMethodsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/customers/{customer_id}/payment_methods"};
+    option (tanvo.common.v1.access) = {
+      permission: "payment_methods:read"
+      api_resource: "payment_method"
+    };
+  }
+
+  // Makes a payment method the customer's default.
+  rpc SetDefaultPaymentMethod(SetDefaultPaymentMethodRequest) returns (SetDefaultPaymentMethodResponse) {
+    option idempotency_level = IDEMPOTENT;
+    option (google.api.http) = {
+      post: "/v1/customers/{customer_id}/payment_methods/{payment_method_id}:set_default"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "payment_methods:update"
+      api_resource: "payment_method"
+    };
+  }
+
+  // Deletes a payment method, detaching it at the provider.
+  rpc DeletePaymentMethod(DeletePaymentMethodRequest) returns (DeletePaymentMethodResponse) {
+    option (google.api.http) = {delete: "/v1/customers/{customer_id}/payment_methods/{payment_method_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "payment_methods:delete"
+      api_resource: "payment_method"
+    };
+  }
+}
+
+// PaymentRequestService manages payment requests: overdue invoices of a
+// customer grouped into one payment.
+service PaymentRequestService {
+  // Requests the payment of a customer's overdue invoices.
+  rpc CreatePaymentRequest(CreatePaymentRequestRequest) returns (CreatePaymentRequestResponse) {
+    option (google.api.http) = {
+      post: "/v1/payment_requests"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "payments:create"
+      api_resource: "payment_request"
+    };
+  }
+
+  // Returns a payment request.
+  rpc GetPaymentRequest(GetPaymentRequestRequest) returns (GetPaymentRequestResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/payment_requests/{payment_request_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "payments:read"
+      api_resource: "payment_request"
+    };
+  }
+
+  // Lists payment requests, newest first.
+  rpc ListPaymentRequests(ListPaymentRequestsRequest) returns (ListPaymentRequestsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/payment_requests"
+      additional_bindings: {get: "/v1/customers/{customer_id}/payment_requests"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "payments:read"
+      api_resource: "payment_request"
+    };
+  }
+}
+
+// PaymentReceiptService reads payment receipts.
+service PaymentReceiptService {
+  // Returns a payment receipt.
+  rpc GetPaymentReceipt(GetPaymentReceiptRequest) returns (GetPaymentReceiptResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/payment_receipts/{payment_receipt_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "payment_receipts:read"
+      api_resource: "payment_receipt"
+    };
+  }
+
+  // Lists payment receipts, newest first.
+  rpc ListPaymentReceipts(ListPaymentReceiptsRequest) returns (ListPaymentReceiptsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/payment_receipts"};
+    option (tanvo.common.v1.access) = {
+      permission: "payment_receipts:read"
+      api_resource: "payment_receipt"
+    };
+  }
+
+  // Returns signed URLs of the receipt's PDF and XML.
+  rpc DownloadPaymentReceipt(DownloadPaymentReceiptRequest) returns (DownloadPaymentReceiptResponse) {
+    option (google.api.http) = {
+      post: "/v1/payment_receipts/{payment_receipt_id}:download"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "payment_receipts:read"
+      api_resource: "payment_receipt"
+    };
+  }
+
+  // Sends the receipt email again.
+  rpc ResendPaymentReceipt(ResendPaymentReceiptRequest) returns (ResendPaymentReceiptResponse) {
+    option (google.api.http) = {
+      post: "/v1/payment_receipts/{payment_receipt_id}:resend"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "payment_receipts:send"
+      api_resource: "payment_receipt"
+    };
+  }
+}
+
+// PaymentKind is how a payment was made.
+enum PaymentKind {
+  // Not set.
+  PAYMENT_KIND_UNSPECIFIED = 0;
+  // Through a payment provider.
+  PAYMENT_KIND_PROVIDER = 1;
+  // Recorded by hand.
+  PAYMENT_KIND_MANUAL = 2;
+  // Settled on-chain through x402.
+  PAYMENT_KIND_X402 = 3;
+}
+
+// PayableType is what a payment pays.
+enum PayableType {
+  // Not set.
+  PAYABLE_TYPE_UNSPECIFIED = 0;
+  // An invoice.
+  PAYABLE_TYPE_INVOICE = 1;
+  // A payment request.
+  PAYABLE_TYPE_PAYMENT_REQUEST = 2;
+}
+
+// RefundReason is why a payment was refunded.
+enum RefundReason {
+  // Not set.
+  REFUND_REASON_UNSPECIFIED = 0;
+  // A credit note refund.
+  REFUND_REASON_CREDIT_NOTE = 1;
+  // The subscription activation expired after the payment.
+  REFUND_REASON_SUBSCRIPTION_ACTIVATION_EXPIRED = 2;
+}
+
+// PaymentMethodDetails describes a payment method.
+message PaymentMethodDetails {
+  // The kind (card, sepa_debit, us_bank_account, …).
+  string type = 1;
+  // The card brand.
+  string brand = 2;
+  // The last four digits.
+  string last4 = 3;
+  // The expiration month.
+  int32 exp_month = 4;
+  // The expiration year.
+  int32 exp_year = 5;
+}
+
+// Payment is money received for an invoice or a payment request.
+message Payment {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Payment"
+    pattern: "payments/{payment}"
+    plural: "payments"
+    singular: "payment"
+  };
+
+  // The payment's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // What the payment pays.
+  PayableType payable_type = 2;
+  // The invoice paid.
+  string invoice_id = 3;
+  // The payment request paid.
+  string payment_request_id = 4;
+  // The invoices paid, directly or through the payment request.
+  repeated string invoice_ids = 5;
+  // The customer.
+  string customer_id = 6;
+  // How the payment was made.
+  PaymentKind kind = 7;
+  // The state.
+  tanvo.common.v1.PaymentStatus status = 8;
+  // The provider's own status.
+  string provider_status = 9;
+  // The amount.
+  tanvo.common.v1.Money amount = 10;
+  // The reference of a manual payment.
+  string reference = 11;
+  // The payment provider connection.
+  string integration_id = 12;
+  // The provider's payment ID.
+  string provider_payment_id = 13;
+  // The payment method used.
+  string payment_method_id = 14;
+  // The details of the payment method used.
+  PaymentMethodDetails payment_method_details = 15;
+  // The receipt.
+  string payment_receipt_id = 16;
+  // When the payment was made.
+  google.protobuf.Timestamp paid_at = 17;
+  // When the payment was created.
+  google.protobuf.Timestamp created_at = 18;
+  // When the payment last changed.
+  google.protobuf.Timestamp updated_at = 19;
+}
+
+// Refund is money returned for a payment.
+message Refund {
+  // The refund's ID.
+  string id = 1;
+  // The payment refunded.
+  string payment_id = 2;
+  // Why it was refunded.
+  RefundReason reason = 3;
+  // The credit note refunded.
+  string credit_note_id = 4;
+  // The subscription whose activation expired.
+  string subscription_id = 5;
+  // The payment provider connection.
+  string integration_id = 6;
+  // The amount.
+  tanvo.common.v1.Money amount = 7;
+  // The state.
+  tanvo.common.v1.RefundStatus status = 8;
+  // The provider's refund ID.
+  string provider_refund_id = 9;
+  // When the refund was created.
+  google.protobuf.Timestamp created_at = 10;
+}
+
+// PaymentMethod is a payment method registered with a payment provider.
+message PaymentMethod {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/PaymentMethod"
+    pattern: "customers/{customer}/payment_methods/{payment_method}"
+    plural: "paymentMethods"
+    singular: "paymentMethod"
+  };
+
+  // The payment method's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The customer.
+  string customer_id = 2;
+  // The payment provider connection.
+  string integration_id = 3;
+  // The provider's payment method ID.
+  string provider_method_id = 4;
+  // The details.
+  PaymentMethodDetails details = 5;
+  // Marks the customer's default.
+  bool is_default = 6;
+  // When the payment method was created.
+  google.protobuf.Timestamp created_at = 7;
+}
+
+// PaymentRequest asks a customer to pay overdue invoices at once.
+message PaymentRequest {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/PaymentRequest"
+    pattern: "payment_requests/{payment_request}"
+    plural: "paymentRequests"
+    singular: "paymentRequest"
+  };
+
+  // The payment request's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The customer.
+  string customer_id = 2;
+  // The invoices.
+  repeated string invoice_ids = 3;
+  // The amount, net of credit note offsets.
+  tanvo.common.v1.Money amount = 4;
+  // The email the request was sent to.
+  string email = 5;
+  // The payment state.
+  tanvo.common.v1.PaymentStatus payment_status = 6;
+  // The number of payment attempts.
+  int32 payment_attempts = 7;
+  // The dunning campaign that created it.
+  string dunning_campaign_id = 8;
+  // The payment method kind.
+  tanvo.common.v1.PaymentMethodType payment_method_type = 9;
+  // The payment method.
+  string payment_method_id = 10;
+  // When the request was created.
+  google.protobuf.Timestamp created_at = 11;
+  // When the request last changed.
+  google.protobuf.Timestamp updated_at = 12;
+}
+
+// PaymentReceipt is the receipt of a succeeded payment.
+message PaymentReceipt {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/PaymentReceipt"
+    pattern: "payment_receipts/{payment_receipt}"
+    plural: "paymentReceipts"
+    singular: "paymentReceipt"
+  };
+
+  // The receipt's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The receipt number.
+  string number = 2;
+  // The payment.
+  Payment payment = 3;
+  // The billing entity.
+  string billing_entity_id = 4;
+  // Marks a receipt with a generated PDF.
+  bool file_available = 5;
+  // Marks a receipt with a generated e-invoice XML.
+  bool xml_file_available = 6;
+  // When the receipt was created.
+  google.protobuf.Timestamp created_at = 7;
+}
+
+// CreatePaymentRequest is the request of PaymentService.CreatePayment.
+message CreatePaymentRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The amount, at most the amount due.
+  string amount = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+  // The reference.
+  string reference = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 40
+    }
+  ];
+  // When the payment was made; now by default.
+  google.protobuf.Timestamp paid_at = 4;
+}
+
+// CreatePaymentResponse is the response of PaymentService.CreatePayment.
+message CreatePaymentResponse {
+  // The recorded payment.
+  Payment payment = 1;
+}
+
+// GetPaymentRequest is the request of PaymentService.GetPayment.
+message GetPaymentRequest {
+  // The payment's ID.
+  string payment_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetPaymentResponse is the response of PaymentService.GetPayment.
+message GetPaymentResponse {
+  // The payment.
+  Payment payment = 1;
+}
+
+// ListPaymentsRequest is the request of PaymentService.ListPayments.
+message ListPaymentsRequest {
+  // Restricts the list to one customer (ID or `external_id:<external_id>`).
+  string customer_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `invoice_id`, `payment_request_id`, `status`
+  // and `kind`.
+  string filter = 4 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListPaymentsResponse is the response of PaymentService.ListPayments.
+message ListPaymentsResponse {
+  // The payments of this page.
+  repeated Payment payments = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// ListRefundsRequest is the request of PaymentService.ListRefunds.
+message ListRefundsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `payment_id`, `credit_note_id`, `status` and
+  // `reason`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListRefundsResponse is the response of PaymentService.ListRefunds.
+message ListRefundsResponse {
+  // The refunds of this page.
+  repeated Refund refunds = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// ListPaymentMethodsRequest is the request of PaymentMethodService.ListPaymentMethods.
+message ListPaymentMethodsRequest {
+  // The customer's ID or `external_id:<external_id>`.
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListPaymentMethodsResponse is the response of PaymentMethodService.ListPaymentMethods.
+message ListPaymentMethodsResponse {
+  // The payment methods of this page.
+  repeated PaymentMethod payment_methods = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// SetDefaultPaymentMethodRequest is the request of PaymentMethodService.SetDefaultPaymentMethod.
+message SetDefaultPaymentMethodRequest {
+  // The customer's ID or `external_id:<external_id>`.
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The payment method's ID.
+  string payment_method_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// SetDefaultPaymentMethodResponse is the response of PaymentMethodService.SetDefaultPaymentMethod.
+message SetDefaultPaymentMethodResponse {
+  // The new default.
+  PaymentMethod payment_method = 1;
+}
+
+// DeletePaymentMethodRequest is the request of PaymentMethodService.DeletePaymentMethod.
+message DeletePaymentMethodRequest {
+  // The customer's ID or `external_id:<external_id>`.
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The payment method's ID.
+  string payment_method_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DeletePaymentMethodResponse is the response of PaymentMethodService.DeletePaymentMethod.
+message DeletePaymentMethodResponse {}
+
+// CreatePaymentRequestRequest is the request of PaymentRequestService.CreatePaymentRequest.
+message CreatePaymentRequestRequest {
+  // The customer (ID or `external_id:<external_id>`).
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The overdue invoices, of one currency and billing entity.
+  repeated string invoice_ids = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).repeated = {
+      min_items: 1
+      max_items: 100
+      unique: true
+      items: {
+        string: {uuid: true}
+      }
+    }
+  ];
+  // The email to send the request to; the customer's by default.
+  string email = 3 [(buf.validate.field).string = {
+    email: true
+    max_len: 255
+  }];
+  // The payment method kind; the customer's by default.
+  tanvo.common.v1.PaymentMethodType payment_method_type = 4 [(buf.validate.field).enum.defined_only = true];
+  // The payment method, for PROVIDER.
+  string payment_method_id = 5 [(buf.validate.field).string.uuid = true];
+}
+
+// CreatePaymentRequestResponse is the response of PaymentRequestService.CreatePaymentRequest.
+message CreatePaymentRequestResponse {
+  // The created payment request.
+  PaymentRequest payment_request = 1;
+}
+
+// GetPaymentRequestRequest is the request of PaymentRequestService.GetPaymentRequest.
+message GetPaymentRequestRequest {
+  // The payment request's ID.
+  string payment_request_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetPaymentRequestResponse is the response of PaymentRequestService.GetPaymentRequest.
+message GetPaymentRequestResponse {
+  // The payment request.
+  PaymentRequest payment_request = 1;
+}
+
+// ListPaymentRequestsRequest is the request of PaymentRequestService.ListPaymentRequests.
+message ListPaymentRequestsRequest {
+  // Restricts the list to one customer (ID or `external_id:<external_id>`).
+  string customer_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `payment_status` and `dunning_campaign_id`.
+  string filter = 4 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListPaymentRequestsResponse is the response of PaymentRequestService.ListPaymentRequests.
+message ListPaymentRequestsResponse {
+  // The payment requests of this page.
+  repeated PaymentRequest payment_requests = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// GetPaymentReceiptRequest is the request of PaymentReceiptService.GetPaymentReceipt.
+message GetPaymentReceiptRequest {
+  // The receipt's ID.
+  string payment_receipt_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetPaymentReceiptResponse is the response of PaymentReceiptService.GetPaymentReceipt.
+message GetPaymentReceiptResponse {
+  // The receipt.
+  PaymentReceipt payment_receipt = 1;
+}
+
+// ListPaymentReceiptsRequest is the request of PaymentReceiptService.ListPaymentReceipts.
+message ListPaymentReceiptsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `invoice_id`, `payment_id` and `customer_id`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListPaymentReceiptsResponse is the response of PaymentReceiptService.ListPaymentReceipts.
+message ListPaymentReceiptsResponse {
+  // The receipts of this page.
+  repeated PaymentReceipt payment_receipts = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// DownloadPaymentReceiptRequest is the request of PaymentReceiptService.DownloadPaymentReceipt.
+message DownloadPaymentReceiptRequest {
+  // The receipt's ID.
+  string payment_receipt_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DownloadPaymentReceiptResponse is the response of PaymentReceiptService.DownloadPaymentReceipt.
+message DownloadPaymentReceiptResponse {
+  // The PDF.
+  tanvo.common.v1.Document pdf = 1;
+  // The e-invoice XML, when the billing entity has e-invoicing.
+  tanvo.common.v1.Document xml = 2;
+}
+
+// ResendPaymentReceiptRequest is the request of PaymentReceiptService.ResendPaymentReceipt.
+message ResendPaymentReceiptRequest {
+  // The receipt's ID.
+  string payment_receipt_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The recipients; the customer's billing emails by default.
+  repeated string to = 2 [(buf.validate.field).repeated = {
+    max_items: 20
+    items: {
+      string: {email: true}
+    }
+  }];
+}
+
+// ResendPaymentReceiptResponse is the response of PaymentReceiptService.ResendPaymentReceipt.
+message ResendPaymentReceiptResponse {}

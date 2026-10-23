@@ -1,0 +1,184 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+package tanvo.catalog.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+
+// PricingUnitService manages pricing units: custom units (credits, tokens)
+// that charges are priced in and converted to the plan's currency.
+service PricingUnitService {
+  // Creates a pricing unit.
+  rpc CreatePricingUnit(CreatePricingUnitRequest) returns (CreatePricingUnitResponse) {
+    option (google.api.http) = {
+      post: "/v1/pricing_units"
+      body: "pricing_unit"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "pricing_units:create"
+      api_resource: "plan"
+    };
+  }
+
+  // Returns a pricing unit by ID or `code:<code>`.
+  rpc GetPricingUnit(GetPricingUnitRequest) returns (GetPricingUnitResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/pricing_units/{pricing_unit_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "pricing_units:read"
+      api_resource: "plan"
+    };
+  }
+
+  // Lists pricing units.
+  rpc ListPricingUnits(ListPricingUnitsRequest) returns (ListPricingUnitsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/pricing_units"};
+    option (tanvo.common.v1.access) = {
+      permission: "pricing_units:read"
+      api_resource: "plan"
+    };
+  }
+
+  // Updates a pricing unit's name, short name and description; the code is
+  // immutable.
+  rpc UpdatePricingUnit(UpdatePricingUnitRequest) returns (UpdatePricingUnitResponse) {
+    option (google.api.http) = {
+      patch: "/v1/pricing_units/{pricing_unit.id}"
+      body: "pricing_unit"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "pricing_units:update"
+      api_resource: "plan"
+    };
+  }
+}
+
+// PricingUnit is a custom unit of price.
+message PricingUnit {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/PricingUnit"
+    pattern: "pricing_units/{pricing_unit}"
+    plural: "pricingUnits"
+    singular: "pricingUnit"
+  };
+
+  // The pricing unit's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique code; immutable once created.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // The symbol shown next to amounts, at most 3 characters.
+  string short_name = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 3
+    }
+  ];
+  // A description.
+  string description = 5 [(buf.validate.field).string.max_len = 600];
+  // When the pricing unit was created.
+  google.protobuf.Timestamp created_at = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the pricing unit last changed.
+  google.protobuf.Timestamp updated_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreatePricingUnitRequest is the request of PricingUnitService.CreatePricingUnit.
+message CreatePricingUnitRequest {
+  option (buf.validate.message).cel = {
+    id: "pricing_unit.required"
+    message: "code, name and short_name are required"
+    expression: "has(this.pricing_unit.code) && has(this.pricing_unit.name) && has(this.pricing_unit.short_name)"
+  };
+
+  // The pricing unit to create.
+  PricingUnit pricing_unit = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreatePricingUnitResponse is the response of PricingUnitService.CreatePricingUnit.
+message CreatePricingUnitResponse {
+  // The created pricing unit.
+  PricingUnit pricing_unit = 1;
+}
+
+// GetPricingUnitRequest is the request of PricingUnitService.GetPricingUnit.
+message GetPricingUnitRequest {
+  // The pricing unit's ID or `code:<code>`.
+  string pricing_unit_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetPricingUnitResponse is the response of PricingUnitService.GetPricingUnit.
+message GetPricingUnitResponse {
+  // The pricing unit.
+  PricingUnit pricing_unit = 1;
+}
+
+// ListPricingUnitsRequest is the request of PricingUnitService.ListPricingUnits.
+message ListPricingUnitsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListPricingUnitsResponse is the response of PricingUnitService.ListPricingUnits.
+message ListPricingUnitsResponse {
+  // The pricing units of this page.
+  repeated PricingUnit pricing_units = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdatePricingUnitRequest is the request of PricingUnitService.UpdatePricingUnit.
+message UpdatePricingUnitRequest {
+  option (buf.validate.message).cel = {
+    id: "pricing_unit.id"
+    message: "pricing_unit.id is required"
+    expression: "has(this.pricing_unit.id)"
+  };
+
+  // The new values; pricing_unit.id (an ID or `code:<code>`) selects the
+  // pricing unit.
+  PricingUnit pricing_unit = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdatePricingUnitResponse is the response of PricingUnitService.UpdatePricingUnit.
+message UpdatePricingUnitResponse {
+  // The updated pricing unit.
+  PricingUnit pricing_unit = 1;
+}

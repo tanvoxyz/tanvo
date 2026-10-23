@@ -1,0 +1,215 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.export.v1 is the API of data exports: CSV files of
+// invoices, invoice fees, credit notes and credit note items, built in the
+// background and emailed to the requesting member.
+package tanvo.export.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// DataExportService starts data exports and returns their files. An
+// export is started by a member; its file expires after 7 days.
+service DataExportService {
+  // Exports the invoices matching a filter.
+  rpc ExportInvoices(ExportInvoicesRequest) returns (ExportInvoicesResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices:export"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {permission: "invoices:export"};
+  }
+
+  // Exports the fees of the invoices matching a filter.
+  rpc ExportInvoiceFees(ExportInvoiceFeesRequest) returns (ExportInvoiceFeesResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/fees:export"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {permission: "invoices:export"};
+  }
+
+  // Exports the credit notes matching a filter.
+  rpc ExportCreditNotes(ExportCreditNotesRequest) returns (ExportCreditNotesResponse) {
+    option (google.api.http) = {
+      post: "/v1/credit_notes:export"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {permission: "credit_notes:export"};
+  }
+
+  // Exports the items of the credit notes matching a filter.
+  rpc ExportCreditNoteItems(ExportCreditNoteItemsRequest) returns (ExportCreditNoteItemsResponse) {
+    option (google.api.http) = {
+      post: "/v1/credit_notes/items:export"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {permission: "credit_notes:export"};
+  }
+
+  // Returns an export and, once completed, a signed URL of its file. Only
+  // the member who started it can read it.
+  rpc GetDataExport(GetDataExportRequest) returns (GetDataExportResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/data_exports/{data_export_id}"};
+    option (tanvo.common.v1.access) = {authenticated: true};
+  }
+}
+
+// DataExportFormat is the file format of an export.
+enum DataExportFormat {
+  // Not set.
+  DATA_EXPORT_FORMAT_UNSPECIFIED = 0;
+  // Comma-separated values.
+  DATA_EXPORT_FORMAT_CSV = 1;
+}
+
+// DataExportStatus is the state of an export.
+enum DataExportStatus {
+  // Not set.
+  DATA_EXPORT_STATUS_UNSPECIFIED = 0;
+  // Waiting to start.
+  DATA_EXPORT_STATUS_PENDING = 1;
+  // Being built.
+  DATA_EXPORT_STATUS_PROCESSING = 2;
+  // Built; the file is available.
+  DATA_EXPORT_STATUS_COMPLETED = 3;
+  // Failed.
+  DATA_EXPORT_STATUS_FAILED = 4;
+}
+
+// DataExportResource is what an export contains.
+enum DataExportResource {
+  // Not set.
+  DATA_EXPORT_RESOURCE_UNSPECIFIED = 0;
+  // Invoices.
+  DATA_EXPORT_RESOURCE_INVOICES = 1;
+  // Invoice fees.
+  DATA_EXPORT_RESOURCE_INVOICE_FEES = 2;
+  // Credit notes.
+  DATA_EXPORT_RESOURCE_CREDIT_NOTES = 3;
+  // Credit note items.
+  DATA_EXPORT_RESOURCE_CREDIT_NOTE_ITEMS = 4;
+}
+
+// DataExport is a background export of records to a file.
+message DataExport {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/DataExport"
+    pattern: "data_exports/{data_export}"
+    plural: "dataExports"
+    singular: "dataExport"
+  };
+
+  // The export's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The file format.
+  DataExportFormat format = 2;
+  // What the export contains.
+  DataExportResource resource_type = 3;
+  // The AIP-160 filter and search of the export.
+  string filter = 4;
+  // The search of the export.
+  string search = 5;
+  // The state.
+  DataExportStatus status = 6;
+  // The file, once completed and until it expires.
+  tanvo.common.v1.Document file = 7;
+  // When building started.
+  google.protobuf.Timestamp started_at = 8;
+  // When building completed.
+  google.protobuf.Timestamp completed_at = 9;
+  // When the file expires.
+  google.protobuf.Timestamp expires_at = 10;
+  // When the export was created.
+  google.protobuf.Timestamp created_at = 11;
+}
+
+// ExportInvoicesRequest is the request of DataExportService.ExportInvoices.
+message ExportInvoicesRequest {
+  // The file format; CSV by default.
+  DataExportFormat format = 1 [(buf.validate.field).enum.defined_only = true];
+  // An AIP-160 filter, as in InvoiceService.ListInvoices.
+  string filter = 2 [(buf.validate.field).string.max_len = 2048];
+  // A search, as in InvoiceService.ListInvoices.
+  string search = 3 [(buf.validate.field).string.max_len = 255];
+}
+
+// ExportInvoicesResponse is the response of DataExportService.ExportInvoices.
+message ExportInvoicesResponse {
+  // The export started.
+  DataExport data_export = 1;
+}
+
+// ExportInvoiceFeesRequest is the request of DataExportService.ExportInvoiceFees.
+message ExportInvoiceFeesRequest {
+  // The file format; CSV by default.
+  DataExportFormat format = 1 [(buf.validate.field).enum.defined_only = true];
+  // An AIP-160 filter over the invoices, as in InvoiceService.ListInvoices.
+  string filter = 2 [(buf.validate.field).string.max_len = 2048];
+  // A search over the invoices, as in InvoiceService.ListInvoices.
+  string search = 3 [(buf.validate.field).string.max_len = 255];
+}
+
+// ExportInvoiceFeesResponse is the response of DataExportService.ExportInvoiceFees.
+message ExportInvoiceFeesResponse {
+  // The export started.
+  DataExport data_export = 1;
+}
+
+// ExportCreditNotesRequest is the request of DataExportService.ExportCreditNotes.
+message ExportCreditNotesRequest {
+  // The file format; CSV by default.
+  DataExportFormat format = 1 [(buf.validate.field).enum.defined_only = true];
+  // An AIP-160 filter, as in CreditNoteService.ListCreditNotes.
+  string filter = 2 [(buf.validate.field).string.max_len = 2048];
+  // A search, as in CreditNoteService.ListCreditNotes.
+  string search = 3 [(buf.validate.field).string.max_len = 255];
+}
+
+// ExportCreditNotesResponse is the response of DataExportService.ExportCreditNotes.
+message ExportCreditNotesResponse {
+  // The export started.
+  DataExport data_export = 1;
+}
+
+// ExportCreditNoteItemsRequest is the request of DataExportService.ExportCreditNoteItems.
+message ExportCreditNoteItemsRequest {
+  // The file format; CSV by default.
+  DataExportFormat format = 1 [(buf.validate.field).enum.defined_only = true];
+  // An AIP-160 filter over the credit notes, as in
+  // CreditNoteService.ListCreditNotes.
+  string filter = 2 [(buf.validate.field).string.max_len = 2048];
+  // A search over the credit notes, as in CreditNoteService.ListCreditNotes.
+  string search = 3 [(buf.validate.field).string.max_len = 255];
+}
+
+// ExportCreditNoteItemsResponse is the response of DataExportService.ExportCreditNoteItems.
+message ExportCreditNoteItemsResponse {
+  // The export started.
+  DataExport data_export = 1;
+}
+
+// GetDataExportRequest is the request of DataExportService.GetDataExport.
+message GetDataExportRequest {
+  // The export's ID.
+  string data_export_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetDataExportResponse is the response of DataExportService.GetDataExport.
+message GetDataExportResponse {
+  // The export.
+  DataExport data_export = 1;
+}

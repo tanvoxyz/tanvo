@@ -1,0 +1,348 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.catalog.v1 is the API of the pricing catalog: billable
+// metrics, plans with their charges, fixed charges, commitments and usage
+// thresholds, add-ons, pricing units, entitlement features, and the product
+// catalog of products, rate cards and catalog plans.
+package tanvo.catalog.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+
+// BillableMetricService manages billable metrics: how events of one code
+// aggregate into a billable quantity.
+service BillableMetricService {
+  // Creates a billable metric.
+  rpc CreateBillableMetric(CreateBillableMetricRequest) returns (CreateBillableMetricResponse) {
+    option (google.api.http) = {
+      post: "/v1/billable_metrics"
+      body: "billable_metric"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "billable_metrics:create"
+      api_resource: "billable_metric"
+    };
+  }
+
+  // Returns a billable metric by ID or `code:<code>`.
+  rpc GetBillableMetric(GetBillableMetricRequest) returns (GetBillableMetricResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/billable_metrics/{billable_metric_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "billable_metrics:read"
+      api_resource: "billable_metric"
+    };
+  }
+
+  // Lists billable metrics.
+  rpc ListBillableMetrics(ListBillableMetricsRequest) returns (ListBillableMetricsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/billable_metrics"};
+    option (tanvo.common.v1.access) = {
+      permission: "billable_metrics:read"
+      api_resource: "billable_metric"
+    };
+  }
+
+  // Updates a billable metric. Once a plan uses the metric, only the name,
+  // description and filters may change; removing a filter value trims the
+  // charge filters that use it.
+  rpc UpdateBillableMetric(UpdateBillableMetricRequest) returns (UpdateBillableMetricResponse) {
+    option (google.api.http) = {
+      patch: "/v1/billable_metrics/{billable_metric.id}"
+      body: "billable_metric"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "billable_metrics:update"
+      api_resource: "billable_metric"
+    };
+  }
+
+  // Deletes a billable metric: removes its charges and alerts, refreshes
+  // draft invoices and deletes its events.
+  rpc DeleteBillableMetric(DeleteBillableMetricRequest) returns (DeleteBillableMetricResponse) {
+    option (google.api.http) = {delete: "/v1/billable_metrics/{billable_metric_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "billable_metrics:delete"
+      api_resource: "billable_metric"
+    };
+  }
+
+  // Evaluates an expression against a sample event, to test it before
+  // saving a metric.
+  rpc EvaluateExpression(EvaluateExpressionRequest) returns (EvaluateExpressionResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      post: "/v1/billable_metrics:evaluate_expression"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "billable_metrics:read"
+      api_resource: "billable_metric"
+    };
+  }
+}
+
+// AggregationType is how a metric aggregates its events.
+enum AggregationType {
+  // Not set.
+  AGGREGATION_TYPE_UNSPECIFIED = 0;
+  // The number of events.
+  AGGREGATION_TYPE_COUNT = 1;
+  // The sum of the field.
+  AGGREGATION_TYPE_SUM = 2;
+  // The maximum of the field.
+  AGGREGATION_TYPE_MAX = 3;
+  // The number of distinct values of the field, with add and remove
+  // operations.
+  AGGREGATION_TYPE_UNIQUE_COUNT = 4;
+  // The sum of the field weighted by the time each value was held.
+  AGGREGATION_TYPE_WEIGHTED_SUM = 5;
+  // The last value of the field.
+  AGGREGATION_TYPE_LATEST = 6;
+}
+
+// WeightedInterval is the time unit of a weighted sum.
+enum WeightedInterval {
+  // Not set.
+  WEIGHTED_INTERVAL_UNSPECIFIED = 0;
+  // Weighted by seconds over the billing period.
+  WEIGHTED_INTERVAL_SECONDS = 1;
+}
+
+// RoundingFunction is how an aggregated value is rounded.
+enum RoundingFunction {
+  // Not set: no rounding.
+  ROUNDING_FUNCTION_UNSPECIFIED = 0;
+  // Half away from zero.
+  ROUNDING_FUNCTION_ROUND = 1;
+  // Toward negative infinity.
+  ROUNDING_FUNCTION_FLOOR = 2;
+  // Toward positive infinity.
+  ROUNDING_FUNCTION_CEIL = 3;
+}
+
+// MetricFilter is a dimension of a metric: an event property key and its
+// allowed values, which charge filters price differently.
+message MetricFilter {
+  // The event property key.
+  string key = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // The allowed values.
+  repeated string values = 2 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 1000
+    unique: true
+    items: {
+      string: {
+        min_len: 1
+        max_len: 255
+      }
+    }
+  }];
+}
+
+// BillableMetric aggregates the events of one code into a quantity.
+message BillableMetric {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/BillableMetric"
+    pattern: "billable_metrics/{billable_metric}"
+    plural: "billableMetrics"
+    singular: "billableMetric"
+  };
+  option (buf.validate.message).cel = {
+    id: "billable_metric.field_name"
+    message: "field_name is required unless aggregation_type is COUNT"
+    expression: "!has(this.aggregation_type) || this.aggregation_type == 1 || has(this.field_name)"
+  };
+  option (buf.validate.message).cel = {
+    id: "billable_metric.recurring"
+    message: "COUNT, MAX and LATEST metrics cannot be recurring"
+    expression: "!this.recurring || !(this.aggregation_type in [1, 3, 6])"
+  };
+
+  // The metric's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique code events carry.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // A description.
+  string description = 4 [(buf.validate.field).string.max_len = 1024];
+  // How events aggregate.
+  AggregationType aggregation_type = 5 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The event property aggregated; required except for COUNT.
+  string field_name = 6 [(buf.validate.field).string.max_len = 255];
+  // The time unit of WEIGHTED_SUM.
+  WeightedInterval weighted_interval = 7 [(buf.validate.field).enum.defined_only = true];
+  // Carries the aggregated value over to the next billing periods.
+  bool recurring = 8;
+  // An expression computing the aggregated field from the event
+  // (`round(event.properties.duration / 60, 0)`).
+  string expression = 9 [(buf.validate.field).string.max_len = 4096];
+  // How the aggregated value is rounded.
+  RoundingFunction rounding_function = 10 [(buf.validate.field).enum.defined_only = true];
+  // The number of decimals kept when rounding; may be negative.
+  int32 rounding_precision = 11 [(buf.validate.field).int32 = {
+    gte: -15
+    lte: 15
+  }];
+  // The dimensions charge filters may price.
+  repeated MetricFilter filters = 12 [(buf.validate.field).repeated.max_items = 50];
+  // The number of plans whose charges use the metric.
+  int32 plans_count = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The number of active subscriptions billed for the metric.
+  int32 active_subscriptions_count = 14 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the metric was created.
+  google.protobuf.Timestamp created_at = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the metric last changed.
+  google.protobuf.Timestamp updated_at = 16 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateBillableMetricRequest is the request of BillableMetricService.CreateBillableMetric.
+message CreateBillableMetricRequest {
+  option (buf.validate.message).cel = {
+    id: "billable_metric.required"
+    message: "code, name and aggregation_type are required"
+    expression: "has(this.billable_metric.code) && has(this.billable_metric.name) && has(this.billable_metric.aggregation_type)"
+  };
+
+  // The metric to create.
+  BillableMetric billable_metric = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateBillableMetricResponse is the response of BillableMetricService.CreateBillableMetric.
+message CreateBillableMetricResponse {
+  // The created metric.
+  BillableMetric billable_metric = 1;
+}
+
+// GetBillableMetricRequest is the request of BillableMetricService.GetBillableMetric.
+message GetBillableMetricRequest {
+  // The metric's ID or `code:<code>`.
+  string billable_metric_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetBillableMetricResponse is the response of BillableMetricService.GetBillableMetric.
+message GetBillableMetricResponse {
+  // The metric.
+  BillableMetric billable_metric = 1;
+}
+
+// ListBillableMetricsRequest is the request of BillableMetricService.ListBillableMetrics.
+message ListBillableMetricsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `aggregation_type`, `recurring` and `plan_id`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+  // A search over the name and code.
+  string search = 4 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListBillableMetricsResponse is the response of BillableMetricService.ListBillableMetrics.
+message ListBillableMetricsResponse {
+  // The metrics of this page.
+  repeated BillableMetric billable_metrics = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateBillableMetricRequest is the request of BillableMetricService.UpdateBillableMetric.
+message UpdateBillableMetricRequest {
+  option (buf.validate.message).cel = {
+    id: "billable_metric.id"
+    message: "billable_metric.id is required"
+    expression: "has(this.billable_metric.id)"
+  };
+
+  // The new values; billable_metric.id (an ID or `code:<code>`) selects the
+  // metric.
+  BillableMetric billable_metric = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateBillableMetricResponse is the response of BillableMetricService.UpdateBillableMetric.
+message UpdateBillableMetricResponse {
+  // The updated metric.
+  BillableMetric billable_metric = 1;
+}
+
+// DeleteBillableMetricRequest is the request of BillableMetricService.DeleteBillableMetric.
+message DeleteBillableMetricRequest {
+  // The metric's ID or `code:<code>`.
+  string billable_metric_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteBillableMetricResponse is the response of BillableMetricService.DeleteBillableMetric.
+message DeleteBillableMetricResponse {
+  // The deleted metric.
+  BillableMetric billable_metric = 1;
+}
+
+// EvaluateExpressionRequest is the request of BillableMetricService.EvaluateExpression.
+message EvaluateExpressionRequest {
+  // The expression to evaluate.
+  string expression = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 4096
+  ];
+  // The sample event's code.
+  string code = 2 [(buf.validate.field).string.max_len = 255];
+  // The sample event's timestamp; now by default.
+  google.protobuf.Timestamp timestamp = 3;
+  // The sample event's properties.
+  google.protobuf.Struct properties = 4;
+}
+
+// EvaluateExpressionResponse is the response of BillableMetricService.EvaluateExpression.
+message EvaluateExpressionResponse {
+  // The result: a decimal number or a string.
+  string value = 1;
+}

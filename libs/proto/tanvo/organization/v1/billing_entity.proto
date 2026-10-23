@@ -1,0 +1,327 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+package tanvo.organization.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/enums.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// BillingEntityService manages billing entities, the legal issuers of
+// invoices, credit notes and receipts. Billing entities are archived, never
+// deleted.
+service BillingEntityService {
+  // Creates a billing entity.
+  rpc CreateBillingEntity(CreateBillingEntityRequest) returns (CreateBillingEntityResponse) {
+    option (google.api.http) = {
+      post: "/v1/billing_entities"
+      body: "billing_entity"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "billing_entities:create"
+      api_resource: "billing_entity"
+    };
+  }
+
+  // Returns a billing entity by ID or `code:<code>`.
+  rpc GetBillingEntity(GetBillingEntityRequest) returns (GetBillingEntityResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/billing_entities/{billing_entity_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "billing_entities:read"
+      api_resource: "billing_entity"
+    };
+  }
+
+  // Lists billing entities, archived ones only when the filter asks for
+  // them.
+  rpc ListBillingEntities(ListBillingEntitiesRequest) returns (ListBillingEntitiesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/billing_entities"};
+    option (tanvo.common.v1.access) = {
+      permission: "billing_entities:read"
+      api_resource: "billing_entity"
+    };
+  }
+
+  // Updates a billing entity. The code is immutable.
+  rpc UpdateBillingEntity(UpdateBillingEntityRequest) returns (UpdateBillingEntityResponse) {
+    option (google.api.http) = {
+      patch: "/v1/billing_entities/{billing_entity.id}"
+      body: "billing_entity"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "billing_entities:update"
+      api_resource: "billing_entity"
+    };
+  }
+
+  // Archives a billing entity; it can no longer receive customers or
+  // subscriptions, and its documents stay readable.
+  rpc ArchiveBillingEntity(ArchiveBillingEntityRequest) returns (ArchiveBillingEntityResponse) {
+    option (google.api.http) = {
+      post: "/v1/billing_entities/{billing_entity_id}:archive"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "billing_entities:delete"
+      api_resource: "billing_entity"
+    };
+  }
+}
+
+// DocumentNumbering is the numbering scheme of a billing entity's invoices.
+enum DocumentNumbering {
+  // Not set.
+  DOCUMENT_NUMBERING_UNSPECIFIED = 0;
+  // One sequence per customer (`PREFIX-<customer sequence>-<n>`).
+  DOCUMENT_NUMBERING_PER_CUSTOMER = 1;
+  // One sequence per billing entity, reset monthly
+  // (`PREFIX-<yyyymm>-<n>`).
+  DOCUMENT_NUMBERING_PER_BILLING_ENTITY = 2;
+}
+
+// EmailSetting is a document a billing entity emails to customers.
+enum EmailSetting {
+  // Not set.
+  EMAIL_SETTING_UNSPECIFIED = 0;
+  // Finalized invoices.
+  EMAIL_SETTING_INVOICE_FINALIZED = 1;
+  // Created credit notes.
+  EMAIL_SETTING_CREDIT_NOTE_CREATED = 2;
+  // Created payment receipts.
+  EMAIL_SETTING_PAYMENT_RECEIPT_CREATED = 3;
+}
+
+// BillingEntity is the legal issuer of documents. Its settings are the
+// defaults of its customers.
+message BillingEntity {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/BillingEntity"
+    pattern: "billing_entities/{billing_entity}"
+    plural: "billingEntities"
+    singular: "billingEntity"
+  };
+
+  // The billing entity's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique code; immutable once created.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // The legal name printed on documents.
+  string legal_name = 4 [(buf.validate.field).string.max_len = 255];
+  // The company registration number printed on documents.
+  string legal_number = 5 [(buf.validate.field).string.max_len = 255];
+  // The tax identification number printed on documents.
+  string tax_identification_number = 6 [(buf.validate.field).string.max_len = 255];
+  // The contact email address printed on documents.
+  string email = 7 [(buf.validate.field).string = {
+    email: true
+    max_len: 255
+  }];
+  // The contact phone number printed on documents.
+  string phone = 8 [(buf.validate.field).string.max_len = 255];
+  // The postal address; its country drives EU tax management and
+  // e-invoicing.
+  tanvo.common.v1.Address address = 9;
+  // A new logo image (PNG, JPEG or SVG, at most 800 KB); write only.
+  bytes logo = 10 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).bytes.max_len = 819200
+  ];
+  // The URL of the stored logo.
+  string logo_url = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The IANA time zone of its customers by default; `UTC` by default.
+  string timezone = 12 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 64
+  }];
+  // The default currency of its customers; `USD` by default.
+  string default_currency = 13 [(buf.validate.field).string.(tanvo.common.v1.currency) = true];
+  // The BCP 47 language of documents; `en` by default.
+  string document_locale = 14 [(buf.validate.field).string = {
+    min_len: 2
+    max_len: 35
+  }];
+  // The invoice numbering scheme.
+  DocumentNumbering document_numbering = 15 [(buf.validate.field).enum.defined_only = true];
+  // The prefix of invoice numbers: 1 to 10 upper-case characters.
+  string document_number_prefix = 16 [(buf.validate.field).string = {pattern: "^[^a-z]{1,10}$"}];
+  // The footer printed on invoices.
+  string invoice_footer = 17 [(buf.validate.field).string.max_len = 600];
+  // The default grace period of draft invoices, in days.
+  int32 invoice_grace_period_days = 18 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 365
+  }];
+  // The default payment term, in days.
+  int32 net_payment_term_days = 19 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 365
+  }];
+  // Finalizes invoices whose total is zero by default.
+  bool finalize_zero_amount_invoice = 20;
+  // The default anchor of recurring invoices' issuing date.
+  tanvo.common.v1.IssuingDateAnchor issuing_date_anchor = 21 [(buf.validate.field).enum.defined_only = true];
+  // The default adjustment of recurring invoices' issuing date.
+  tanvo.common.v1.IssuingDateAdjustment issuing_date_adjustment = 22 [(buf.validate.field).enum.defined_only = true];
+  // The documents emailed to customers.
+  repeated EmailSetting email_settings = 23 [(buf.validate.field).repeated = {
+    unique: true
+    items: {
+      enum: {
+        defined_only: true
+        not_in: [0]
+      }
+    }
+  }];
+  // Enables EU VAT handling; requires an EU address country.
+  bool eu_tax_management = 24;
+  // Embeds e-invoice XML (Factur-X, ZUGFeRD) in invoices; requires a
+  // supported address country.
+  bool einvoicing = 25;
+  // Marks the organization's default billing entity.
+  bool is_default = 26 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The default dunning campaign of its customers.
+  string applied_dunning_campaign_id = 27 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The default taxes, the last fallback of tax resolution; IDs or
+  // `code:<code>` references.
+  repeated string tax_ids = 28 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // The default invoice custom sections; IDs or `code:<code>` references.
+  repeated string invoice_custom_section_ids = 29 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // When the entity was archived.
+  google.protobuf.Timestamp archived_at = 30 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the entity was created.
+  google.protobuf.Timestamp created_at = 31 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the entity last changed.
+  google.protobuf.Timestamp updated_at = 32 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateBillingEntityRequest is the request of BillingEntityService.CreateBillingEntity.
+message CreateBillingEntityRequest {
+  option (buf.validate.message).cel = {
+    id: "billing_entity.code_and_name"
+    message: "code and name are required"
+    expression: "has(this.billing_entity.code) && has(this.billing_entity.name)"
+  };
+
+  // The billing entity to create.
+  BillingEntity billing_entity = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateBillingEntityResponse is the response of BillingEntityService.CreateBillingEntity.
+message CreateBillingEntityResponse {
+  // The created billing entity.
+  BillingEntity billing_entity = 1;
+}
+
+// GetBillingEntityRequest is the request of BillingEntityService.GetBillingEntity.
+message GetBillingEntityRequest {
+  // The billing entity's ID or `code:<code>`.
+  string billing_entity_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetBillingEntityResponse is the response of BillingEntityService.GetBillingEntity.
+message GetBillingEntityResponse {
+  // The billing entity.
+  BillingEntity billing_entity = 1;
+}
+
+// ListBillingEntitiesRequest is the request of BillingEntityService.ListBillingEntities.
+message ListBillingEntitiesRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `code`, `name`, `is_default` and `archived`
+  // (for example `archived = true`).
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListBillingEntitiesResponse is the response of BillingEntityService.ListBillingEntities.
+message ListBillingEntitiesResponse {
+  // The billing entities of this page.
+  repeated BillingEntity billing_entities = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateBillingEntityRequest is the request of BillingEntityService.UpdateBillingEntity.
+message UpdateBillingEntityRequest {
+  option (buf.validate.message).cel = {
+    id: "billing_entity.id"
+    message: "billing_entity.id is required"
+    expression: "has(this.billing_entity.id)"
+  };
+
+  // The new values; billing_entity.id selects the entity.
+  BillingEntity billing_entity = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateBillingEntityResponse is the response of BillingEntityService.UpdateBillingEntity.
+message UpdateBillingEntityResponse {
+  // The updated billing entity.
+  BillingEntity billing_entity = 1;
+}
+
+// ArchiveBillingEntityRequest is the request of BillingEntityService.ArchiveBillingEntity.
+message ArchiveBillingEntityRequest {
+  // The billing entity's ID or `code:<code>`.
+  string billing_entity_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// ArchiveBillingEntityResponse is the response of BillingEntityService.ArchiveBillingEntity.
+message ArchiveBillingEntityResponse {
+  // The archived billing entity.
+  BillingEntity billing_entity = 1;
+}

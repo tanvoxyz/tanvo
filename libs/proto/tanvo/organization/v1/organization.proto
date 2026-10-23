@@ -1,0 +1,173 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.organization.v1 is the API of the tenant (organization) and
+// of its billing entities, the legal issuers of documents.
+package tanvo.organization.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// OrganizationService reads and updates the caller's organization. The
+// organization is implied by the principal (API key or session).
+service OrganizationService {
+  // Returns the caller's organization.
+  rpc GetOrganization(GetOrganizationRequest) returns (GetOrganizationResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/organization"};
+    option (tanvo.common.v1.access) = {
+      permission: "organization:read"
+      api_resource: "organization"
+    };
+  }
+
+  // Updates the caller's organization. Allowed authentication methods need
+  // the `authentication_methods:update` permission in addition.
+  rpc UpdateOrganization(UpdateOrganizationRequest) returns (UpdateOrganizationResponse) {
+    option (google.api.http) = {
+      patch: "/v1/organization"
+      body: "organization"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "organization:update"
+      api_resource: "organization"
+    };
+  }
+}
+
+// ServerService describes the running Tanvo server.
+service ServerService {
+  // Returns the server's version and build.
+  rpc GetServerInfo(GetServerInfoRequest) returns (GetServerInfoResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/server_info"};
+    option (tanvo.common.v1.access) = {authenticated: true};
+  }
+}
+
+// AuthenticationMethod is a way members may sign in to the organization.
+enum AuthenticationMethod {
+  // Not set.
+  AUTHENTICATION_METHOD_UNSPECIFIED = 0;
+  // Email address and password.
+  AUTHENTICATION_METHOD_EMAIL_PASSWORD = 1;
+  // Google sign-in.
+  AUTHENTICATION_METHOD_GOOGLE_OAUTH = 2;
+  // Okta, through its OIDC integration.
+  AUTHENTICATION_METHOD_OKTA = 3;
+  // Microsoft Entra ID, through its OIDC integration.
+  AUTHENTICATION_METHOD_ENTRA_ID = 4;
+  // Any other OpenID Connect provider, through an SSO connection.
+  AUTHENTICATION_METHOD_OIDC = 5;
+}
+
+// Organization is the tenant. It carries identity and access settings
+// only; billing settings live on billing entities.
+message Organization {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Organization"
+    pattern: "organization"
+    singular: "organization"
+  };
+
+  // The organization's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The display name.
+  string name = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // The URL slug, lowercase and unique, derived from the name; used in
+  // customer portal URLs.
+  string slug = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The contact email address.
+  string email = 4 [(buf.validate.field).string = {
+    email: true
+    max_len: 255
+  }];
+  // The postal address.
+  tanvo.common.v1.Address address = 5;
+  // A new logo image (PNG, JPEG or SVG, at most 800 KB); write only.
+  bytes logo = 6 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).bytes.max_len = 819200
+  ];
+  // The URL of the stored logo.
+  string logo_url = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The allowed sign-in methods; at least one.
+  repeated AuthenticationMethod authentication_methods = 8 [(buf.validate.field).repeated = {
+    unique: true
+    items: {
+      enum: {
+        defined_only: true
+        not_in: [0]
+      }
+    }
+  }];
+  // How long activity logs are kept, in days; default 30.
+  int32 audit_logs_retention_days = 9 [(buf.validate.field).int32 = {
+    gte: 1
+    lte: 3650
+  }];
+  // The maximum number of active wallets per customer; default 6.
+  int32 max_wallets_per_customer = 10 [(buf.validate.field).int32 = {
+    gte: 1
+    lte: 100
+  }];
+  // When the organization was created.
+  google.protobuf.Timestamp created_at = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the organization last changed.
+  google.protobuf.Timestamp updated_at = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// GetOrganizationRequest is the request of OrganizationService.GetOrganization.
+message GetOrganizationRequest {}
+
+// GetOrganizationResponse is the response of OrganizationService.GetOrganization.
+message GetOrganizationResponse {
+  // The caller's organization.
+  Organization organization = 1;
+}
+
+// UpdateOrganizationRequest is the request of OrganizationService.UpdateOrganization.
+message UpdateOrganizationRequest {
+  // The new values; fields outside update_mask are ignored.
+  Organization organization = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateOrganizationResponse is the response of OrganizationService.UpdateOrganization.
+message UpdateOrganizationResponse {
+  // The updated organization.
+  Organization organization = 1;
+}
+
+// GetServerInfoRequest is the request of ServerService.GetServerInfo.
+message GetServerInfoRequest {}
+
+// GetServerInfoResponse is the response of ServerService.GetServerInfo.
+message GetServerInfoResponse {
+  // The semantic version of the server.
+  string version = 1;
+  // The source revision the server was built from.
+  string revision = 2;
+  // When the server was built.
+  google.protobuf.Timestamp build_time = 3;
+  // The roles this process runs (`api`, `worker`, `consumer`).
+  repeated string roles = 4;
+}

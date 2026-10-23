@@ -1,0 +1,729 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+package tanvo.catalog.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/catalog/v1/charge.proto";
+import "tanvo/common/v1/options.proto";
+
+// RateCardService manages rate cards, the prices of a product in one
+// currency, and their rates on a timeline.
+service RateCardService {
+  // Creates a rate card with its first rates.
+  rpc CreateRateCard(CreateRateCardRequest) returns (CreateRateCardResponse) {
+    option (google.api.http) = {
+      post: "/v1/rate_cards"
+      body: "rate_card"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "rate_cards:create"
+      api_resource: "rate_card"
+    };
+  }
+
+  // Returns a rate card by ID or `code:<code>`.
+  rpc GetRateCard(GetRateCardRequest) returns (GetRateCardResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/rate_cards/{rate_card_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "rate_cards:read"
+      api_resource: "rate_card"
+    };
+  }
+
+  // Lists rate cards.
+  rpc ListRateCards(ListRateCardsRequest) returns (ListRateCardsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/rate_cards"};
+    option (tanvo.common.v1.access) = {
+      permission: "rate_cards:read"
+      api_resource: "rate_card"
+    };
+  }
+
+  // Updates a rate card. Once a plan or contract uses it, the product,
+  // currency and billing timing are locked.
+  rpc UpdateRateCard(UpdateRateCardRequest) returns (UpdateRateCardResponse) {
+    option (google.api.http) = {
+      patch: "/v1/rate_cards/{rate_card.id}"
+      body: "rate_card"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "rate_cards:update"
+      api_resource: "rate_card"
+    };
+  }
+
+  // Deletes a rate card that no plan or contract uses.
+  rpc DeleteRateCard(DeleteRateCardRequest) returns (DeleteRateCardResponse) {
+    option (google.api.http) = {delete: "/v1/rate_cards/{rate_card_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "rate_cards:delete"
+      api_resource: "rate_card"
+    };
+  }
+
+  // Adds a rate to a rate card's timeline.
+  rpc CreateRate(CreateRateRequest) returns (CreateRateResponse) {
+    option (google.api.http) = {
+      post: "/v1/rate_cards/{rate_card_id}/rates"
+      body: "rate"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "rate_cards:update"
+      api_resource: "rate_card"
+    };
+  }
+
+  // Returns a rate by ID or `code:<code>`.
+  rpc GetRate(GetRateRequest) returns (GetRateResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/rate_cards/{rate_card_id}/rates/{rate_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "rate_cards:read"
+      api_resource: "rate_card"
+    };
+  }
+
+  // Lists the rates of a rate card, by effective date.
+  rpc ListRates(ListRatesRequest) returns (ListRatesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/rate_cards/{rate_card_id}/rates"};
+    option (tanvo.common.v1.access) = {
+      permission: "rate_cards:read"
+      api_resource: "rate_card"
+    };
+  }
+
+  // Updates a rate that is not yet effective.
+  rpc UpdateRate(UpdateRateRequest) returns (UpdateRateResponse) {
+    option (google.api.http) = {
+      patch: "/v1/rate_cards/{rate_card_id}/rates/{rate.id}"
+      body: "rate"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "rate_cards:update"
+      api_resource: "rate_card"
+    };
+  }
+
+  // Deletes a rate that is not yet effective.
+  rpc DeleteRate(DeleteRateRequest) returns (DeleteRateResponse) {
+    option (google.api.http) = {delete: "/v1/rate_cards/{rate_card_id}/rates/{rate_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "rate_cards:update"
+      api_resource: "rate_card"
+    };
+  }
+}
+
+// PlanRateCardService applies rate cards to plans, with optional phases
+// (ramps).
+service PlanRateCardService {
+  // Applies a rate card to a plan.
+  rpc CreatePlanRateCard(CreatePlanRateCardRequest) returns (CreatePlanRateCardResponse) {
+    option (google.api.http) = {
+      post: "/v1/plans/{plan_id}/rate_cards"
+      body: "plan_rate_card"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:update"
+      api_resource: "plan_rate_card"
+    };
+  }
+
+  // Returns a plan rate card by ID or `code:<code>` of its rate card.
+  rpc GetPlanRateCard(GetPlanRateCardRequest) returns (GetPlanRateCardResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/plans/{plan_id}/rate_cards/{plan_rate_card_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "plans:read"
+      api_resource: "plan_rate_card"
+    };
+  }
+
+  // Lists the rate cards applied to a plan.
+  rpc ListPlanRateCards(ListPlanRateCardsRequest) returns (ListPlanRateCardsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/plans/{plan_id}/rate_cards"};
+    option (tanvo.common.v1.access) = {
+      permission: "plans:read"
+      api_resource: "plan_rate_card"
+    };
+  }
+
+  // Updates a plan rate card's units and phases; the phases sent replace
+  // the stored ones.
+  rpc UpdatePlanRateCard(UpdatePlanRateCardRequest) returns (UpdatePlanRateCardResponse) {
+    option (google.api.http) = {
+      patch: "/v1/plans/{plan_id}/rate_cards/{plan_rate_card.id}"
+      body: "plan_rate_card"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:update"
+      api_resource: "plan_rate_card"
+    };
+  }
+
+  // Removes a rate card from a plan.
+  rpc DeletePlanRateCard(DeletePlanRateCardRequest) returns (DeletePlanRateCardResponse) {
+    option (google.api.http) = {delete: "/v1/plans/{plan_id}/rate_cards/{plan_rate_card_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "plans:update"
+      api_resource: "plan_rate_card"
+    };
+  }
+}
+
+// BillingTiming says when a rate card bills.
+enum BillingTiming {
+  // Not set.
+  BILLING_TIMING_UNSPECIFIED = 0;
+  // At the end of each billing interval.
+  BILLING_TIMING_ARREARS = 1;
+  // At the start of each billing interval.
+  BILLING_TIMING_ADVANCE = 2;
+}
+
+// IntervalUnit is the unit of a rate's billing interval.
+enum IntervalUnit {
+  // Not set.
+  INTERVAL_UNIT_UNSPECIFIED = 0;
+  // Days.
+  INTERVAL_UNIT_DAY = 1;
+  // Weeks.
+  INTERVAL_UNIT_WEEK = 2;
+  // Months.
+  INTERVAL_UNIT_MONTH = 3;
+  // Years.
+  INTERVAL_UNIT_YEAR = 4;
+}
+
+// BillingInterval is a count of interval units (`3 MONTH`).
+message BillingInterval {
+  // The number of units; at least 1.
+  int32 count = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).int32 = {
+      gte: 1
+      lte: 1000
+    }
+  ];
+  // The unit.
+  IntervalUnit unit = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).enum = {
+      defined_only: true
+      not_in: [0]
+    }
+  ];
+}
+
+// Rate is the price of a rate card from an effective date until the next
+// rate's.
+message Rate {
+  // The rate's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The code, unique within the rate card.
+  string code = 2 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
+  // When the rate takes effect.
+  google.protobuf.Timestamp effective_from = 3 [(google.api.field_behavior) = REQUIRED];
+  // The pricing model; metered products accept every model, fixed
+  // products standard, graduated and volume.
+  ChargeModel rate_model = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The prices; the set model matches rate_model.
+  ChargeProperties properties = 5 [(google.api.field_behavior) = REQUIRED];
+  // The minimum amount per billing interval.
+  string min_amount = 6 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The billing interval.
+  BillingInterval billing_interval = 7 [(google.api.field_behavior) = REQUIRED];
+  // The conversion rate of the rate card's pricing unit.
+  string pricing_unit_conversion_rate = 8 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // When the rate was created.
+  google.protobuf.Timestamp created_at = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the rate last changed.
+  google.protobuf.Timestamp updated_at = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// RateCard prices a product, or one of its filters, in one currency.
+message RateCard {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/RateCard"
+    pattern: "rate_cards/{rate_card}"
+    plural: "rateCards"
+    singular: "rateCard"
+  };
+
+  // The rate card's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique code.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // A description.
+  string description = 4 [(buf.validate.field).string.max_len = 1024];
+  // The priced product (ID or `code:<code>`).
+  string product_id = 5 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The priced product filter (ID or `code:<code>`); the product's
+  // unfiltered events when unset.
+  string product_filter_id = 6 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The ISO 4217 currency.
+  string currency = 7 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.currency) = true
+  ];
+  // When the rate card bills.
+  BillingTiming billing_timing = 8 [(buf.validate.field).enum.defined_only = true];
+  // Prorates partial billing intervals.
+  bool proration = 9;
+  // Prints the rate card's fees on invoices.
+  bool display_on_invoice = 10;
+  // How paid in-advance fees are invoiced.
+  RegroupPaidFees regroup_paid_fees = 11 [(buf.validate.field).enum.defined_only = true];
+  // The pricing unit (ID or `code:<code>`) the rates are expressed in.
+  string pricing_unit_id = 12 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The rates, by effective date; on create only, then managed with the
+  // rate RPCs.
+  repeated Rate rates = 13 [(buf.validate.field).repeated.max_items = 100];
+  // Marks rate cards a plan or contract uses, whose product, currency and
+  // billing timing are locked.
+  bool locked = 14 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the rate card was created.
+  google.protobuf.Timestamp created_at = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the rate card last changed.
+  google.protobuf.Timestamp updated_at = 16 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// RateOverride replaces a rate's prices during a phase.
+message RateOverride {
+  // The pricing model.
+  ChargeModel rate_model = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The prices; the set model matches rate_model.
+  ChargeProperties properties = 2 [(google.api.field_behavior) = REQUIRED];
+  // The minimum amount per billing interval.
+  string min_amount = 3 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The billing interval; the rate's when unset.
+  BillingInterval billing_interval = 4;
+  // The pricing unit conversion rate; the rate's when unset.
+  string pricing_unit_conversion_rate = 5 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+}
+
+// RatePhase is one step of a ramp: a number of billing interval cycles,
+// optionally at overridden prices. The last phase may be open-ended.
+message RatePhase {
+  // The phase's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The code, unique within the applied rate card.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 3 [(buf.validate.field).string.max_len = 255];
+  // The order of the phase, from 0.
+  int32 position = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).int32.gte = 0
+  ];
+  // The number of billing interval cycles; unset only on the last phase.
+  int32 billing_interval_cycle_count = 5 [(buf.validate.field).int32.gte = 1];
+  // The prices during the phase; the rate card's rates when unset.
+  RateOverride rate_override = 6;
+}
+
+// PlanRateCard applies a rate card to a plan.
+message PlanRateCard {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/PlanRateCard"
+    pattern: "plans/{plan}/rate_cards/{plan_rate_card}"
+    plural: "planRateCards"
+    singular: "planRateCard"
+  };
+
+  // The plan rate card's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The owning plan.
+  string plan_id = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The applied rate card (ID or `code:<code>`).
+  string rate_card_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The number of units, for fixed products.
+  string units = 4 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The phases, by position; empty bills the rate card's rates throughout.
+  repeated RatePhase phases = 5 [(buf.validate.field).repeated.max_items = 50];
+  // When the plan rate card was created.
+  google.protobuf.Timestamp created_at = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the plan rate card last changed.
+  google.protobuf.Timestamp updated_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateRateCardRequest is the request of RateCardService.CreateRateCard.
+message CreateRateCardRequest {
+  option (buf.validate.message).cel = {
+    id: "rate_card.required"
+    message: "code, name, product_id and currency are required"
+    expression: "has(this.rate_card.code) && has(this.rate_card.name) && has(this.rate_card.product_id) && has(this.rate_card.currency)"
+  };
+
+  // The rate card to create.
+  RateCard rate_card = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateRateCardResponse is the response of RateCardService.CreateRateCard.
+message CreateRateCardResponse {
+  // The created rate card.
+  RateCard rate_card = 1;
+}
+
+// GetRateCardRequest is the request of RateCardService.GetRateCard.
+message GetRateCardRequest {
+  // The rate card's ID or `code:<code>`.
+  string rate_card_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetRateCardResponse is the response of RateCardService.GetRateCard.
+message GetRateCardResponse {
+  // The rate card.
+  RateCard rate_card = 1;
+}
+
+// ListRateCardsRequest is the request of RateCardService.ListRateCards.
+message ListRateCardsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `product_id`, `product_filter_id`, `currency`
+  // and `billing_timing`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+  // A search over the name and code.
+  string search = 4 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListRateCardsResponse is the response of RateCardService.ListRateCards.
+message ListRateCardsResponse {
+  // The rate cards of this page.
+  repeated RateCard rate_cards = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateRateCardRequest is the request of RateCardService.UpdateRateCard.
+message UpdateRateCardRequest {
+  option (buf.validate.message).cel = {
+    id: "rate_card.id"
+    message: "rate_card.id is required"
+    expression: "has(this.rate_card.id)"
+  };
+
+  // The new values; rate_card.id (an ID or `code:<code>`) selects the rate
+  // card.
+  RateCard rate_card = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateRateCardResponse is the response of RateCardService.UpdateRateCard.
+message UpdateRateCardResponse {
+  // The updated rate card.
+  RateCard rate_card = 1;
+}
+
+// DeleteRateCardRequest is the request of RateCardService.DeleteRateCard.
+message DeleteRateCardRequest {
+  // The rate card's ID or `code:<code>`.
+  string rate_card_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteRateCardResponse is the response of RateCardService.DeleteRateCard.
+message DeleteRateCardResponse {}
+
+// CreateRateRequest is the request of RateCardService.CreateRate.
+message CreateRateRequest {
+  option (buf.validate.message).cel = {
+    id: "rate.required"
+    message: "effective_from, rate_model, properties and billing_interval are required"
+    expression: "has(this.rate.effective_from) && has(this.rate.rate_model) && has(this.rate.properties) && has(this.rate.billing_interval)"
+  };
+
+  // The rate card's ID or `code:<code>`.
+  string rate_card_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The rate to add.
+  Rate rate = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateRateResponse is the response of RateCardService.CreateRate.
+message CreateRateResponse {
+  // The created rate.
+  Rate rate = 1;
+}
+
+// GetRateRequest is the request of RateCardService.GetRate.
+message GetRateRequest {
+  // The rate card's ID or `code:<code>`.
+  string rate_card_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The rate's ID or `code:<code>`.
+  string rate_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetRateResponse is the response of RateCardService.GetRate.
+message GetRateResponse {
+  // The rate.
+  Rate rate = 1;
+}
+
+// ListRatesRequest is the request of RateCardService.ListRates.
+message ListRatesRequest {
+  // The rate card's ID or `code:<code>`.
+  string rate_card_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListRatesResponse is the response of RateCardService.ListRates.
+message ListRatesResponse {
+  // The rates of this page.
+  repeated Rate rates = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateRateRequest is the request of RateCardService.UpdateRate.
+message UpdateRateRequest {
+  option (buf.validate.message).cel = {
+    id: "rate.id"
+    message: "rate.id is required"
+    expression: "has(this.rate.id)"
+  };
+
+  // The rate card's ID or `code:<code>`.
+  string rate_card_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The new values; rate.id (an ID or `code:<code>`) selects the rate.
+  Rate rate = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 3;
+}
+
+// UpdateRateResponse is the response of RateCardService.UpdateRate.
+message UpdateRateResponse {
+  // The updated rate.
+  Rate rate = 1;
+}
+
+// DeleteRateRequest is the request of RateCardService.DeleteRate.
+message DeleteRateRequest {
+  // The rate card's ID or `code:<code>`.
+  string rate_card_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The rate's ID or `code:<code>`.
+  string rate_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteRateResponse is the response of RateCardService.DeleteRate.
+message DeleteRateResponse {}
+
+// CreatePlanRateCardRequest is the request of PlanRateCardService.CreatePlanRateCard.
+message CreatePlanRateCardRequest {
+  option (buf.validate.message).cel = {
+    id: "plan_rate_card.rate_card_id"
+    message: "plan_rate_card.rate_card_id is required"
+    expression: "has(this.plan_rate_card.rate_card_id)"
+  };
+
+  // The plan's ID or `code:<code>`.
+  string plan_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The rate card to apply.
+  PlanRateCard plan_rate_card = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreatePlanRateCardResponse is the response of PlanRateCardService.CreatePlanRateCard.
+message CreatePlanRateCardResponse {
+  // The applied rate card.
+  PlanRateCard plan_rate_card = 1;
+}
+
+// GetPlanRateCardRequest is the request of PlanRateCardService.GetPlanRateCard.
+message GetPlanRateCardRequest {
+  // The plan's ID or `code:<code>`.
+  string plan_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The plan rate card's ID, or `code:<code>` of its rate card.
+  string plan_rate_card_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetPlanRateCardResponse is the response of PlanRateCardService.GetPlanRateCard.
+message GetPlanRateCardResponse {
+  // The plan rate card.
+  PlanRateCard plan_rate_card = 1;
+}
+
+// ListPlanRateCardsRequest is the request of PlanRateCardService.ListPlanRateCards.
+message ListPlanRateCardsRequest {
+  // The plan's ID or `code:<code>`.
+  string plan_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListPlanRateCardsResponse is the response of PlanRateCardService.ListPlanRateCards.
+message ListPlanRateCardsResponse {
+  // The plan rate cards of this page.
+  repeated PlanRateCard plan_rate_cards = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdatePlanRateCardRequest is the request of PlanRateCardService.UpdatePlanRateCard.
+message UpdatePlanRateCardRequest {
+  option (buf.validate.message).cel = {
+    id: "plan_rate_card.id"
+    message: "plan_rate_card.id is required"
+    expression: "has(this.plan_rate_card.id)"
+  };
+
+  // The plan's ID or `code:<code>`.
+  string plan_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The new values; plan_rate_card.id selects the plan rate card.
+  PlanRateCard plan_rate_card = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 3;
+}
+
+// UpdatePlanRateCardResponse is the response of PlanRateCardService.UpdatePlanRateCard.
+message UpdatePlanRateCardResponse {
+  // The updated plan rate card.
+  PlanRateCard plan_rate_card = 1;
+}
+
+// DeletePlanRateCardRequest is the request of PlanRateCardService.DeletePlanRateCard.
+message DeletePlanRateCardRequest {
+  // The plan's ID or `code:<code>`.
+  string plan_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The plan rate card's ID, or `code:<code>` of its rate card.
+  string plan_rate_card_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeletePlanRateCardResponse is the response of PlanRateCardService.DeletePlanRateCard.
+message DeletePlanRateCardResponse {}

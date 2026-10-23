@@ -82,7 +82,7 @@ pnpm nx graph                                       # Dependency graph
 
 | Source | Generator | Output | Command |
 | :--- | :--- | :--- | :--- |
-| `libs/proto/tanvo/**/*.proto` | buf: protoc-gen-go (Opaque API), protoc-gen-connect-go, protoc-gen-connect-openapi, protoc-gen-es | `libs/proto/gen/` | `pnpm nx run proto:generate` |
+| `libs/proto/tanvo/**/*.proto` | buf remote plugins (pinned in `buf.gen.yaml`): protoc-gen-go (Opaque API), connect-go v2, connect-openapi (`sudorandom/protoc-gen-connect-openapi`, OpenAPI 3.1), protoc-gen-es v2 | `libs/proto/gen/` | `pnpm nx run proto:generate` |
 | `libs/store/schema/*.sql` | Atlas (as a library) | `libs/store/migrations/` | `pnpm nx run store:migrate-diff` |
 | `libs/store/queries/*.sql` | sqlc | `libs/store/internal/db/` | `pnpm nx run store:sqlc` |
 | `libs/expression/crates/**` | cargo (wasm32-unknown-unknown, release) | `libs/expression/go/expression.wasm` | `pnpm nx run expression:wasm` |

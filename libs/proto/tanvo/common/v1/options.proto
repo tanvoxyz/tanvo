@@ -1,0 +1,76 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.common.v1 holds the types and options shared by every Tanvo
+// API: money, addresses, metadata, the access option every RPC declares and
+// the predefined validation rules for decimals, currencies and identifiers.
+package tanvo.common.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/descriptor.proto";
+
+// Access declares who may call an RPC. Exactly one of permission,
+// authenticated, anonymous and portal is set; the server's authorization
+// interceptor enforces it.
+message Access {
+  // The permission string (`<resource>:<action>`, for example
+  // `customers:read`) that the caller's role or API key must hold.
+  string permission = 1;
+  // Marks an RPC that needs no principal (sign-in, sign-up,
+  // invite acceptance, password reset).
+  bool anonymous = 2;
+  // Marks an RPC called with a customer portal token; it acts on the
+  // token's customer only.
+  bool portal = 3;
+  // Marks an RPC any authenticated principal of the organization may call,
+  // whatever its role (the caller's own session, profile or exports).
+  bool authenticated = 4;
+  // The API key resource (`customer`, `invoice`, …) an API key must be
+  // granted to call the RPC; a key needs the read level for RPCs marked
+  // NO_SIDE_EFFECTS and the write level for the others. Empty means API
+  // keys cannot call the RPC.
+  string api_resource = 5;
+}
+
+extend google.protobuf.MethodOptions {
+  // access declares the principal and permission an RPC requires.
+  Access access = 51001;
+}
+
+extend buf.validate.StringRules {
+  // decimal requires an exact decimal number in plain notation: an optional
+  // minus sign, digits and an optional fraction ("12", "-0.5", "1.250").
+  bool decimal = 1725001 [(buf.validate.predefined).cel = {
+    id: "string.decimal"
+    expression: "!rule || this.matches('^-?[0-9]{1,40}([.][0-9]{1,40})?$') ? '' : 'must be a decimal number such as 12.50'"
+  }];
+
+  // nonnegative_decimal requires a decimal number that is zero or positive.
+  bool nonnegative_decimal = 1725002 [(buf.validate.predefined).cel = {
+    id: "string.nonnegative_decimal"
+    expression: "!rule || this.matches('^[0-9]{1,40}([.][0-9]{1,40})?$') ? '' : 'must be a non-negative decimal number such as 12.50'"
+  }];
+
+  // currency requires an ISO 4217 alphabetic currency code ("USD").
+  bool currency = 1725003 [(buf.validate.predefined).cel = {
+    id: "string.currency"
+    expression: "!rule || this.matches('^[A-Z]{3}$') ? '' : 'must be an ISO 4217 currency code such as USD'"
+  }];
+
+  // ref requires a resource reference: a Tanvo ID (UUID) or, for resources
+  // that carry one, a prefixed customer-facing identifier
+  // (`external_id:<value>` or `code:<value>`).
+  bool ref = 1725004 [(buf.validate.predefined).cel = {
+    id: "string.ref"
+    expression: "!rule || this.matches('^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|(external_id|code):[^/]{1,255})$') ? '' : 'must be an ID, external_id:<value> or code:<value>'"
+  }];
+
+  // code requires a customer-facing code: 1 to 255 characters without
+  // slashes or leading and trailing spaces.
+  bool code = 1725005 [(buf.validate.predefined).cel = {
+    id: "string.code"
+    expression: "!rule || this.matches('^[^/\\\\s]([^/]{0,253}[^/\\\\s])?$') ? '' : 'must be 1 to 255 characters without slashes or surrounding spaces'"
+  }];
+}

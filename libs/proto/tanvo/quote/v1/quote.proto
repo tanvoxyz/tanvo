@@ -1,0 +1,851 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.quote.v1 is the API of quotes, their versions, order forms
+// and orders: the sales flow that ends in a subscription or a one-off
+// invoice.
+package tanvo.quote.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// QuoteService manages quotes and quote versions.
+service QuoteService {
+  // Creates a quote with its first draft version.
+  rpc CreateQuote(CreateQuoteRequest) returns (CreateQuoteResponse) {
+    option (google.api.http) = {
+      post: "/v1/quotes"
+      body: "quote"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "quotes:create"
+      api_resource: "quote"
+    };
+  }
+
+  // Returns a quote with its current version.
+  rpc GetQuote(GetQuoteRequest) returns (GetQuoteResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/quotes/{quote_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "quotes:read"
+      api_resource: "quote"
+    };
+  }
+
+  // Lists quotes, newest first.
+  rpc ListQuotes(ListQuotesRequest) returns (ListQuotesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/quotes"};
+    option (tanvo.common.v1.access) = {
+      permission: "quotes:read"
+      api_resource: "quote"
+    };
+  }
+
+  // Updates a quote's owners.
+  rpc UpdateQuote(UpdateQuoteRequest) returns (UpdateQuoteResponse) {
+    option (google.api.http) = {
+      patch: "/v1/quotes/{quote.id}"
+      body: "quote"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "quotes:update"
+      api_resource: "quote"
+    };
+  }
+
+  // Lists the versions of a quote.
+  rpc ListQuoteVersions(ListQuoteVersionsRequest) returns (ListQuoteVersionsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/quotes/{quote_id}/versions"};
+    option (tanvo.common.v1.access) = {
+      permission: "quotes:read"
+      api_resource: "quote"
+    };
+  }
+
+  // Updates the content of a draft version.
+  rpc UpdateQuoteVersion(UpdateQuoteVersionRequest) returns (UpdateQuoteVersionResponse) {
+    option (google.api.http) = {
+      patch: "/v1/quotes/{quote_id}/versions/{version.id}"
+      body: "version"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "quotes:update"
+      api_resource: "quote"
+    };
+  }
+
+  // Creates a new draft version from the latest one, superseding it.
+  rpc CloneQuoteVersion(CloneQuoteVersionRequest) returns (CloneQuoteVersionResponse) {
+    option (google.api.http) = {
+      post: "/v1/quotes/{quote_id}/versions/{version_id}:clone"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "quotes:clone"
+      api_resource: "quote"
+    };
+  }
+
+  // Approves a draft version after validating it for its order type, and
+  // generates its order form.
+  rpc ApproveQuoteVersion(ApproveQuoteVersionRequest) returns (ApproveQuoteVersionResponse) {
+    option (google.api.http) = {
+      post: "/v1/quotes/{quote_id}/versions/{version_id}:approve"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "quotes:approve"
+      api_resource: "quote"
+    };
+  }
+
+  // Voids a version.
+  rpc VoidQuoteVersion(VoidQuoteVersionRequest) returns (VoidQuoteVersionResponse) {
+    option (google.api.http) = {
+      post: "/v1/quotes/{quote_id}/versions/{version_id}:void"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "quotes:void"
+      api_resource: "quote"
+    };
+  }
+}
+
+// OrderFormService manages order forms: approved quote versions sent for
+// signature.
+service OrderFormService {
+  // Returns an order form.
+  rpc GetOrderForm(GetOrderFormRequest) returns (GetOrderFormResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/order_forms/{order_form_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "order_forms:read"
+      api_resource: "order_form"
+    };
+  }
+
+  // Lists order forms, newest first.
+  rpc ListOrderForms(ListOrderFormsRequest) returns (ListOrderFormsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/order_forms"};
+    option (tanvo.common.v1.access) = {
+      permission: "order_forms:read"
+      api_resource: "order_form"
+    };
+  }
+
+  // Records the signature of an order form and creates its order.
+  rpc SignOrderForm(SignOrderFormRequest) returns (SignOrderFormResponse) {
+    option (google.api.http) = {
+      post: "/v1/order_forms/{order_form_id}:sign"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "order_forms:sign"
+      api_resource: "order_form"
+    };
+  }
+
+  // Voids an order form.
+  rpc VoidOrderForm(VoidOrderFormRequest) returns (VoidOrderFormResponse) {
+    option (google.api.http) = {
+      post: "/v1/order_forms/{order_form_id}:void"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "order_forms:void"
+      api_resource: "order_form"
+    };
+  }
+
+  // Returns a signed URL of the order form document.
+  rpc DownloadOrderForm(DownloadOrderFormRequest) returns (DownloadOrderFormResponse) {
+    option (google.api.http) = {
+      post: "/v1/order_forms/{order_form_id}:download"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "order_forms:read"
+      api_resource: "order_form"
+    };
+  }
+}
+
+// OrderService manages orders: signed order forms executed now or at a
+// scheduled time.
+service OrderService {
+  // Returns an order.
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/orders/{order_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "orders:read"
+      api_resource: "order"
+    };
+  }
+
+  // Lists orders, newest first.
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/orders"};
+    option (tanvo.common.v1.access) = {
+      permission: "orders:read"
+      api_resource: "order"
+    };
+  }
+
+  // Updates an order's execution mode or scheduled time.
+  rpc UpdateOrder(UpdateOrderRequest) returns (UpdateOrderResponse) {
+    option (google.api.http) = {
+      patch: "/v1/orders/{order.id}"
+      body: "order"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "orders:update"
+      api_resource: "order"
+    };
+  }
+
+  // Executes an order now: creates or amends the subscription, or issues
+  // the one-off invoice.
+  rpc ExecuteOrder(ExecuteOrderRequest) returns (ExecuteOrderResponse) {
+    option (google.api.http) = {
+      post: "/v1/orders/{order_id}:execute"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "orders:execute"
+      api_resource: "order"
+    };
+  }
+}
+
+// OrderType is what a quote sells.
+enum OrderType {
+  // Not set.
+  ORDER_TYPE_UNSPECIFIED = 0;
+  // A new subscription.
+  ORDER_TYPE_SUBSCRIPTION_CREATION = 1;
+  // A change of an existing subscription.
+  ORDER_TYPE_SUBSCRIPTION_AMENDMENT = 2;
+  // One-off add-ons.
+  ORDER_TYPE_ONE_OFF = 3;
+}
+
+// QuoteVersionStatus is the state of a quote version.
+enum QuoteVersionStatus {
+  // Not set.
+  QUOTE_VERSION_STATUS_UNSPECIFIED = 0;
+  // Editable.
+  QUOTE_VERSION_STATUS_DRAFT = 1;
+  // Approved; its order form was generated.
+  QUOTE_VERSION_STATUS_APPROVED = 2;
+  // Voided.
+  QUOTE_VERSION_STATUS_VOIDED = 3;
+}
+
+// QuoteVersionVoidReason is why a version was voided.
+enum QuoteVersionVoidReason {
+  // Not set.
+  QUOTE_VERSION_VOID_REASON_UNSPECIFIED = 0;
+  // Voided through the API.
+  QUOTE_VERSION_VOID_REASON_MANUAL = 1;
+  // Replaced by a newer version.
+  QUOTE_VERSION_VOID_REASON_SUPERSEDED = 2;
+  // Its order form expired.
+  QUOTE_VERSION_VOID_REASON_CASCADE_OF_EXPIRED = 3;
+  // Its order form was voided.
+  QUOTE_VERSION_VOID_REASON_CASCADE_OF_VOIDED = 4;
+}
+
+// OrderFormStatus is the state of an order form.
+enum OrderFormStatus {
+  // Not set.
+  ORDER_FORM_STATUS_UNSPECIFIED = 0;
+  // Waiting for signature.
+  ORDER_FORM_STATUS_GENERATED = 1;
+  // Signed.
+  ORDER_FORM_STATUS_SIGNED = 2;
+  // Not signed in time.
+  ORDER_FORM_STATUS_EXPIRED = 3;
+  // Voided.
+  ORDER_FORM_STATUS_VOIDED = 4;
+}
+
+// OrderFormVoidReason is why an order form was voided.
+enum OrderFormVoidReason {
+  // Not set.
+  ORDER_FORM_VOID_REASON_UNSPECIFIED = 0;
+  // Voided through the API.
+  ORDER_FORM_VOID_REASON_MANUAL = 1;
+  // Expired.
+  ORDER_FORM_VOID_REASON_EXPIRED = 2;
+  // No longer valid (the customer or subscription changed).
+  ORDER_FORM_VOID_REASON_INVALID = 3;
+}
+
+// OrderStatus is the state of an order.
+enum OrderStatus {
+  // Not set.
+  ORDER_STATUS_UNSPECIFIED = 0;
+  // Waiting for execution.
+  ORDER_STATUS_CREATED = 1;
+  // Executed.
+  ORDER_STATUS_EXECUTED = 2;
+  // Execution failed.
+  ORDER_STATUS_FAILED = 3;
+}
+
+// ExecutionMode is what executing an order does.
+enum ExecutionMode {
+  // Not set.
+  EXECUTION_MODE_UNSPECIFIED = 0;
+  // Applies the order to billing.
+  EXECUTION_MODE_EXECUTE = 1;
+  // Records the order without applying it.
+  EXECUTION_MODE_ORDER_ONLY = 2;
+}
+
+// QuoteVersion is one revision of a quote's content.
+message QuoteVersion {
+  // The version's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The quote.
+  string quote_id = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The version number, from 1.
+  int32 version = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The state.
+  QuoteVersionStatus status = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Why it was voided.
+  QuoteVersionVoidReason void_reason = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The content: the plan, overrides, add-ons and coupons sold, with the
+  // text of the document; mention variables are resolved when rendered.
+  google.protobuf.Struct content = 6;
+  // The currency.
+  string currency = 7 [(buf.validate.field).string.(tanvo.common.v1.currency) = true];
+  // The billing entity (ID or `code:<code>`).
+  string billing_entity_id = 8 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // When the deal offered expires.
+  google.protobuf.Timestamp deal_expires_at = 9;
+  // When the version was approved.
+  google.protobuf.Timestamp approved_at = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the version was voided.
+  google.protobuf.Timestamp voided_at = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the version was created.
+  google.protobuf.Timestamp created_at = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// Quote is a sales proposal to a customer.
+message Quote {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Quote"
+    pattern: "quotes/{quote}"
+    plural: "quotes"
+    singular: "quote"
+  };
+
+  // The quote's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The quote number.
+  string number = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The customer (ID or `external_id:<external_id>`).
+  string customer_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // What the quote sells.
+  OrderType order_type = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The subscription amended, for SUBSCRIPTION_AMENDMENT (ID or
+  // `external_id:<external_id>`).
+  string subscription_id = 5 [
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The members owning the quote.
+  repeated string owner_ids = 6 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 20
+    items: {
+      string: {uuid: true}
+    }
+  }];
+  // The latest version; on create, the content of the first one.
+  QuoteVersion current_version = 7;
+  // When the quote was created.
+  google.protobuf.Timestamp created_at = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the quote last changed.
+  google.protobuf.Timestamp updated_at = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// OrderForm is an approved quote version sent for signature.
+message OrderForm {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/OrderForm"
+    pattern: "order_forms/{order_form}"
+    plural: "orderForms"
+    singular: "orderForm"
+  };
+
+  // The order form's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The order form number.
+  string number = 2;
+  // The customer.
+  string customer_id = 3;
+  // The quote version.
+  string quote_version_id = 4;
+  // The state.
+  OrderFormStatus status = 5;
+  // Why it was voided.
+  OrderFormVoidReason void_reason = 6;
+  // When it expires unsigned.
+  google.protobuf.Timestamp expires_at = 7;
+  // When it was signed.
+  google.protobuf.Timestamp signed_at = 8;
+  // Who signed it.
+  string signed_by = 9;
+  // When it was voided.
+  google.protobuf.Timestamp voided_at = 10;
+  // When it was created.
+  google.protobuf.Timestamp created_at = 11;
+}
+
+// Order is a signed order form to execute.
+message Order {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Order"
+    pattern: "orders/{order}"
+    plural: "orders"
+    singular: "order"
+  };
+
+  // The order's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The order number.
+  string number = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The customer.
+  string customer_id = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The order form.
+  string order_form_id = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The state.
+  OrderStatus status = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // What execution does.
+  ExecutionMode execution_mode = 6 [(buf.validate.field).enum.defined_only = true];
+  // When the order is executed; at signature when unset.
+  google.protobuf.Timestamp execute_at = 7;
+  // When the order was executed.
+  google.protobuf.Timestamp executed_at = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The objects the execution created or changed.
+  google.protobuf.Struct execution_record = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the order was created.
+  google.protobuf.Timestamp created_at = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateQuoteRequest is the request of QuoteService.CreateQuote.
+message CreateQuoteRequest {
+  option (buf.validate.message).cel = {
+    id: "quote.required"
+    message: "customer_id and order_type are required"
+    expression: "has(this.quote.customer_id) && has(this.quote.order_type)"
+  };
+  option (buf.validate.message).cel = {
+    id: "quote.subscription"
+    message: "subscription_id is required for amendments and not allowed otherwise"
+    expression: "(this.quote.order_type == 2) == has(this.quote.subscription_id)"
+  };
+
+  // The quote to create.
+  Quote quote = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateQuoteResponse is the response of QuoteService.CreateQuote.
+message CreateQuoteResponse {
+  // The created quote.
+  Quote quote = 1;
+}
+
+// GetQuoteRequest is the request of QuoteService.GetQuote.
+message GetQuoteRequest {
+  // The quote's ID.
+  string quote_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetQuoteResponse is the response of QuoteService.GetQuote.
+message GetQuoteResponse {
+  // The quote.
+  Quote quote = 1;
+}
+
+// ListQuotesRequest is the request of QuoteService.ListQuotes.
+message ListQuotesRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `customer_id`, `order_type`, `owner_ids` and
+  // `current_version.status`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+  // A search over the number and customer.
+  string search = 4 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListQuotesResponse is the response of QuoteService.ListQuotes.
+message ListQuotesResponse {
+  // The quotes of this page.
+  repeated Quote quotes = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateQuoteRequest is the request of QuoteService.UpdateQuote.
+message UpdateQuoteRequest {
+  option (buf.validate.message).cel = {
+    id: "quote.id"
+    message: "quote.id is required"
+    expression: "has(this.quote.id)"
+  };
+
+  // The new values; quote.id selects the quote.
+  Quote quote = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; owner_ids is editable.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateQuoteResponse is the response of QuoteService.UpdateQuote.
+message UpdateQuoteResponse {
+  // The updated quote.
+  Quote quote = 1;
+}
+
+// ListQuoteVersionsRequest is the request of QuoteService.ListQuoteVersions.
+message ListQuoteVersionsRequest {
+  // The quote's ID.
+  string quote_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListQuoteVersionsResponse is the response of QuoteService.ListQuoteVersions.
+message ListQuoteVersionsResponse {
+  // The versions of this page, newest first.
+  repeated QuoteVersion versions = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateQuoteVersionRequest is the request of QuoteService.UpdateQuoteVersion.
+message UpdateQuoteVersionRequest {
+  option (buf.validate.message).cel = {
+    id: "version.id"
+    message: "version.id is required"
+    expression: "has(this.version.id)"
+  };
+
+  // The quote's ID.
+  string quote_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The new values; version.id selects the draft version.
+  QuoteVersion version = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 3;
+}
+
+// UpdateQuoteVersionResponse is the response of QuoteService.UpdateQuoteVersion.
+message UpdateQuoteVersionResponse {
+  // The updated version.
+  QuoteVersion version = 1;
+}
+
+// CloneQuoteVersionRequest is the request of QuoteService.CloneQuoteVersion.
+message CloneQuoteVersionRequest {
+  // The quote's ID.
+  string quote_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The version to clone.
+  string version_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// CloneQuoteVersionResponse is the response of QuoteService.CloneQuoteVersion.
+message CloneQuoteVersionResponse {
+  // The new draft version.
+  QuoteVersion version = 1;
+}
+
+// ApproveQuoteVersionRequest is the request of QuoteService.ApproveQuoteVersion.
+message ApproveQuoteVersionRequest {
+  // The quote's ID.
+  string quote_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The version to approve.
+  string version_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // When the order form expires unsigned.
+  google.protobuf.Timestamp order_form_expires_at = 3;
+}
+
+// ApproveQuoteVersionResponse is the response of QuoteService.ApproveQuoteVersion.
+message ApproveQuoteVersionResponse {
+  // The approved version.
+  QuoteVersion version = 1;
+  // The order form generated.
+  OrderForm order_form = 2;
+}
+
+// VoidQuoteVersionRequest is the request of QuoteService.VoidQuoteVersion.
+message VoidQuoteVersionRequest {
+  // The quote's ID.
+  string quote_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The version to void.
+  string version_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// VoidQuoteVersionResponse is the response of QuoteService.VoidQuoteVersion.
+message VoidQuoteVersionResponse {
+  // The voided version.
+  QuoteVersion version = 1;
+}
+
+// GetOrderFormRequest is the request of OrderFormService.GetOrderForm.
+message GetOrderFormRequest {
+  // The order form's ID.
+  string order_form_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetOrderFormResponse is the response of OrderFormService.GetOrderForm.
+message GetOrderFormResponse {
+  // The order form.
+  OrderForm order_form = 1;
+}
+
+// ListOrderFormsRequest is the request of OrderFormService.ListOrderForms.
+message ListOrderFormsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `customer_id`, `status` and `quote_version_id`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListOrderFormsResponse is the response of OrderFormService.ListOrderForms.
+message ListOrderFormsResponse {
+  // The order forms of this page.
+  repeated OrderForm order_forms = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// SignOrderFormRequest is the request of OrderFormService.SignOrderForm.
+message SignOrderFormRequest {
+  // The order form's ID.
+  string order_form_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // Who signed.
+  string signed_by = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // The signed document (PDF), when signed outside Tanvo.
+  bytes signed_document = 3 [(buf.validate.field).bytes.max_len = 20971520];
+  // What executing the order does; EXECUTE by default.
+  ExecutionMode execution_mode = 4 [(buf.validate.field).enum.defined_only = true];
+  // When the order is executed; now by default.
+  google.protobuf.Timestamp execute_at = 5;
+}
+
+// SignOrderFormResponse is the response of OrderFormService.SignOrderForm.
+message SignOrderFormResponse {
+  // The signed order form.
+  OrderForm order_form = 1;
+  // The order created.
+  Order order = 2;
+}
+
+// VoidOrderFormRequest is the request of OrderFormService.VoidOrderForm.
+message VoidOrderFormRequest {
+  // The order form's ID.
+  string order_form_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// VoidOrderFormResponse is the response of OrderFormService.VoidOrderForm.
+message VoidOrderFormResponse {
+  // The voided order form.
+  OrderForm order_form = 1;
+}
+
+// DownloadOrderFormRequest is the request of OrderFormService.DownloadOrderForm.
+message DownloadOrderFormRequest {
+  // The order form's ID.
+  string order_form_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DownloadOrderFormResponse is the response of OrderFormService.DownloadOrderForm.
+message DownloadOrderFormResponse {
+  // The document; the signed one once signed.
+  tanvo.common.v1.Document pdf = 1;
+}
+
+// GetOrderRequest is the request of OrderService.GetOrder.
+message GetOrderRequest {
+  // The order's ID.
+  string order_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetOrderResponse is the response of OrderService.GetOrder.
+message GetOrderResponse {
+  // The order.
+  Order order = 1;
+}
+
+// ListOrdersRequest is the request of OrderService.ListOrders.
+message ListOrdersRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `customer_id`, `status` and `execute_at`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListOrdersResponse is the response of OrderService.ListOrders.
+message ListOrdersResponse {
+  // The orders of this page.
+  repeated Order orders = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateOrderRequest is the request of OrderService.UpdateOrder.
+message UpdateOrderRequest {
+  option (buf.validate.message).cel = {
+    id: "order.id"
+    message: "order.id is required"
+    expression: "has(this.order.id)"
+  };
+
+  // The new values; order.id selects the order.
+  Order order = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; execution_mode and execute_at are editable.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateOrderResponse is the response of OrderService.UpdateOrder.
+message UpdateOrderResponse {
+  // The updated order.
+  Order order = 1;
+}
+
+// ExecuteOrderRequest is the request of OrderService.ExecuteOrder.
+message ExecuteOrderRequest {
+  // The order's ID.
+  string order_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// ExecuteOrderResponse is the response of OrderService.ExecuteOrder.
+message ExecuteOrderResponse {
+  // The executed order.
+  Order order = 1;
+}

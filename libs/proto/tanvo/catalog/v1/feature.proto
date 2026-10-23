@@ -1,0 +1,528 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+package tanvo.catalog.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+
+// FeatureService manages entitlement features and their privileges.
+service FeatureService {
+  // Creates a feature with its privileges.
+  rpc CreateFeature(CreateFeatureRequest) returns (CreateFeatureResponse) {
+    option (google.api.http) = {
+      post: "/v1/features"
+      body: "feature"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "features:create"
+      api_resource: "feature"
+    };
+  }
+
+  // Returns a feature by ID or `code:<code>`.
+  rpc GetFeature(GetFeatureRequest) returns (GetFeatureResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/features/{feature_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "features:read"
+      api_resource: "feature"
+    };
+  }
+
+  // Lists features.
+  rpc ListFeatures(ListFeaturesRequest) returns (ListFeaturesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/features"};
+    option (tanvo.common.v1.access) = {
+      permission: "features:read"
+      api_resource: "feature"
+    };
+  }
+
+  // Updates a feature; the privileges sent replace the stored ones, and a
+  // privilege's value type is immutable.
+  rpc UpdateFeature(UpdateFeatureRequest) returns (UpdateFeatureResponse) {
+    option (google.api.http) = {
+      patch: "/v1/features/{feature.id}"
+      body: "feature"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "features:update"
+      api_resource: "feature"
+    };
+  }
+
+  // Deletes a feature and the entitlements that grant it.
+  rpc DeleteFeature(DeleteFeatureRequest) returns (DeleteFeatureResponse) {
+    option (google.api.http) = {delete: "/v1/features/{feature_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "features:delete"
+      api_resource: "feature"
+    };
+  }
+}
+
+// EntitlementService manages the features granted by plans and the
+// per-subscription overrides and removals. Reading a subscription's
+// entitlements returns the resolved set.
+service EntitlementService {
+  // Lists the entitlements of a plan, or the resolved entitlements of a
+  // subscription.
+  rpc ListEntitlements(ListEntitlementsRequest) returns (ListEntitlementsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/plans/{plan_id}/entitlements"
+      additional_bindings: {get: "/v1/subscriptions/{subscription_id}/entitlements"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "features:read"
+      api_resource: "feature"
+    };
+  }
+
+  // Returns the entitlement of one feature.
+  rpc GetEntitlement(GetEntitlementRequest) returns (GetEntitlementResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/plans/{plan_id}/entitlements/{feature_id}"
+      additional_bindings: {get: "/v1/subscriptions/{subscription_id}/entitlements/{feature_id}"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "features:read"
+      api_resource: "feature"
+    };
+  }
+
+  // Replaces every entitlement of a plan, or every override of a
+  // subscription.
+  rpc ReplaceEntitlements(ReplaceEntitlementsRequest) returns (ReplaceEntitlementsResponse) {
+    option idempotency_level = IDEMPOTENT;
+    option (google.api.http) = {
+      put: "/v1/plans/{plan_id}/entitlements"
+      body: "*"
+      additional_bindings: {
+        put: "/v1/subscriptions/{subscription_id}/entitlements"
+        body: "*"
+      }
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:update"
+      api_resource: "plan"
+    };
+  }
+
+  // Grants a feature or changes its privilege values, merging with the
+  // stored values.
+  rpc UpsertEntitlement(UpsertEntitlementRequest) returns (UpsertEntitlementResponse) {
+    option idempotency_level = IDEMPOTENT;
+    option (google.api.http) = {
+      patch: "/v1/plans/{plan_id}/entitlements/{entitlement.feature_id}"
+      body: "entitlement"
+      additional_bindings: {
+        patch: "/v1/subscriptions/{subscription_id}/entitlements/{entitlement.feature_id}"
+        body: "entitlement"
+      }
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:update"
+      api_resource: "plan"
+    };
+  }
+
+  // Removes a feature from a plan, or from one subscription even when its
+  // plan grants it.
+  rpc DeleteEntitlement(DeleteEntitlementRequest) returns (DeleteEntitlementResponse) {
+    option (google.api.http) = {
+      delete: "/v1/plans/{plan_id}/entitlements/{feature_id}"
+      additional_bindings: {delete: "/v1/subscriptions/{subscription_id}/entitlements/{feature_id}"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:update"
+      api_resource: "plan"
+    };
+  }
+
+  // Removes one privilege value from a plan's entitlement, or from one
+  // subscription.
+  rpc DeleteEntitlementPrivilege(DeleteEntitlementPrivilegeRequest) returns (DeleteEntitlementPrivilegeResponse) {
+    option (google.api.http) = {
+      delete: "/v1/plans/{plan_id}/entitlements/{feature_id}/privileges/{privilege_code}"
+      additional_bindings: {delete: "/v1/subscriptions/{subscription_id}/entitlements/{feature_id}/privileges/{privilege_code}"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:update"
+      api_resource: "plan"
+    };
+  }
+}
+
+// PrivilegeValueType is the type of a privilege's value.
+enum PrivilegeValueType {
+  // Not set.
+  PRIVILEGE_VALUE_TYPE_UNSPECIFIED = 0;
+  // A whole number.
+  PRIVILEGE_VALUE_TYPE_INTEGER = 1;
+  // Free text.
+  PRIVILEGE_VALUE_TYPE_STRING = 2;
+  // `true` or `false`.
+  PRIVILEGE_VALUE_TYPE_BOOLEAN = 3;
+  // One of the privilege's select options.
+  PRIVILEGE_VALUE_TYPE_SELECT = 4;
+}
+
+// Privilege is a typed setting of a feature (a seat limit, a tier).
+message Privilege {
+  // The code, unique within the feature.
+  string code = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 2 [(buf.validate.field).string.max_len = 255];
+  // The value type; immutable once created.
+  PrivilegeValueType value_type = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The allowed values of a SELECT privilege.
+  repeated string select_options = 4 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 100
+    items: {
+      string: {
+        min_len: 1
+        max_len: 255
+      }
+    }
+  }];
+}
+
+// Feature is a capability plans grant.
+message Feature {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Feature"
+    pattern: "features/{feature}"
+    plural: "features"
+    singular: "feature"
+  };
+
+  // The feature's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique code.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 3 [(buf.validate.field).string.max_len = 255];
+  // A description.
+  string description = 4 [(buf.validate.field).string.max_len = 600];
+  // The privileges.
+  repeated Privilege privileges = 5 [(buf.validate.field).repeated.max_items = 50];
+  // When the feature was created.
+  google.protobuf.Timestamp created_at = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the feature last changed.
+  google.protobuf.Timestamp updated_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// EntitlementSource says where a resolved privilege value comes from.
+enum EntitlementSource {
+  // Not set.
+  ENTITLEMENT_SOURCE_UNSPECIFIED = 0;
+  // The plan's entitlement.
+  ENTITLEMENT_SOURCE_PLAN = 1;
+  // The subscription's override.
+  ENTITLEMENT_SOURCE_SUBSCRIPTION = 2;
+}
+
+// PrivilegeValue is one privilege's value in an entitlement.
+message PrivilegeValue {
+  // The privilege's code.
+  string privilege_code = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The value, in the privilege's value type.
+  string value = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // Where the value comes from, on resolved subscription entitlements.
+  EntitlementSource source = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// Entitlement grants a feature with privilege values to a plan or a
+// subscription.
+message Entitlement {
+  // The granted feature (ID or `code:<code>`).
+  string feature_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The feature's code.
+  string feature_code = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The feature's name.
+  string feature_name = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The privilege values.
+  repeated PrivilegeValue privileges = 4 [(buf.validate.field).repeated.max_items = 50];
+  // Where the feature comes from, on resolved subscription entitlements.
+  EntitlementSource source = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateFeatureRequest is the request of FeatureService.CreateFeature.
+message CreateFeatureRequest {
+  option (buf.validate.message).cel = {
+    id: "feature.code"
+    message: "feature.code is required"
+    expression: "has(this.feature.code)"
+  };
+
+  // The feature to create.
+  Feature feature = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateFeatureResponse is the response of FeatureService.CreateFeature.
+message CreateFeatureResponse {
+  // The created feature.
+  Feature feature = 1;
+}
+
+// GetFeatureRequest is the request of FeatureService.GetFeature.
+message GetFeatureRequest {
+  // The feature's ID or `code:<code>`.
+  string feature_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetFeatureResponse is the response of FeatureService.GetFeature.
+message GetFeatureResponse {
+  // The feature.
+  Feature feature = 1;
+}
+
+// ListFeaturesRequest is the request of FeatureService.ListFeatures.
+message ListFeaturesRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // A search over the name and code.
+  string search = 3 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListFeaturesResponse is the response of FeatureService.ListFeatures.
+message ListFeaturesResponse {
+  // The features of this page.
+  repeated Feature features = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateFeatureRequest is the request of FeatureService.UpdateFeature.
+message UpdateFeatureRequest {
+  option (buf.validate.message).cel = {
+    id: "feature.id"
+    message: "feature.id is required"
+    expression: "has(this.feature.id)"
+  };
+
+  // The new values; feature.id (an ID or `code:<code>`) selects the feature.
+  Feature feature = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateFeatureResponse is the response of FeatureService.UpdateFeature.
+message UpdateFeatureResponse {
+  // The updated feature.
+  Feature feature = 1;
+}
+
+// DeleteFeatureRequest is the request of FeatureService.DeleteFeature.
+message DeleteFeatureRequest {
+  // The feature's ID or `code:<code>`.
+  string feature_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteFeatureResponse is the response of FeatureService.DeleteFeature.
+message DeleteFeatureResponse {
+  // The deleted feature.
+  Feature feature = 1;
+}
+
+// ListEntitlementsRequest is the request of EntitlementService.ListEntitlements.
+message ListEntitlementsRequest {
+  option (buf.validate.message).cel = {
+    id: "entitlement.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+}
+
+// ListEntitlementsResponse is the response of EntitlementService.ListEntitlements.
+message ListEntitlementsResponse {
+  // The entitlements.
+  repeated Entitlement entitlements = 1;
+}
+
+// GetEntitlementRequest is the request of EntitlementService.GetEntitlement.
+message GetEntitlementRequest {
+  option (buf.validate.message).cel = {
+    id: "entitlement.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The feature's ID or `code:<code>`.
+  string feature_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetEntitlementResponse is the response of EntitlementService.GetEntitlement.
+message GetEntitlementResponse {
+  // The entitlement.
+  Entitlement entitlement = 1;
+}
+
+// ReplaceEntitlementsRequest is the request of EntitlementService.ReplaceEntitlements.
+message ReplaceEntitlementsRequest {
+  option (buf.validate.message).cel = {
+    id: "entitlement.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The complete set of entitlements.
+  repeated Entitlement entitlements = 3 [(buf.validate.field).repeated.max_items = 200];
+}
+
+// ReplaceEntitlementsResponse is the response of EntitlementService.ReplaceEntitlements.
+message ReplaceEntitlementsResponse {
+  // The stored entitlements (resolved, for a subscription).
+  repeated Entitlement entitlements = 1;
+}
+
+// UpsertEntitlementRequest is the request of EntitlementService.UpsertEntitlement.
+message UpsertEntitlementRequest {
+  option (buf.validate.message).cel = {
+    id: "entitlement.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+  option (buf.validate.message).cel = {
+    id: "entitlement.feature_id"
+    message: "entitlement.feature_id is required"
+    expression: "has(this.entitlement.feature_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The entitlement; entitlement.feature_id selects it.
+  Entitlement entitlement = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// UpsertEntitlementResponse is the response of EntitlementService.UpsertEntitlement.
+message UpsertEntitlementResponse {
+  // The stored entitlement (resolved, for a subscription).
+  Entitlement entitlement = 1;
+}
+
+// DeleteEntitlementRequest is the request of EntitlementService.DeleteEntitlement.
+message DeleteEntitlementRequest {
+  option (buf.validate.message).cel = {
+    id: "entitlement.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The feature's ID or `code:<code>`.
+  string feature_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteEntitlementResponse is the response of EntitlementService.DeleteEntitlement.
+message DeleteEntitlementResponse {}
+
+// DeleteEntitlementPrivilegeRequest is the request of EntitlementService.DeleteEntitlementPrivilege.
+message DeleteEntitlementPrivilegeRequest {
+  option (buf.validate.message).cel = {
+    id: "entitlement.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The feature's ID or `code:<code>`.
+  string feature_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The privilege's code.
+  string privilege_code = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+}
+
+// DeleteEntitlementPrivilegeResponse is the response of EntitlementService.DeleteEntitlementPrivilege.
+message DeleteEntitlementPrivilegeResponse {
+  // The remaining entitlement (resolved, for a subscription).
+  Entitlement entitlement = 1;
+}

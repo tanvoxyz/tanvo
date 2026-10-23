@@ -1,0 +1,484 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.creditnote.v1 is the API of credit notes: amounts credited,
+// refunded or offset against an invoice.
+package tanvo.creditnote.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "google/type/date.proto";
+import "tanvo/common/v1/enums.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// CreditNoteService manages credit notes.
+service CreditNoteService {
+  // Issues a credit note on a finalized invoice.
+  rpc CreateCreditNote(CreateCreditNoteRequest) returns (CreateCreditNoteResponse) {
+    option (google.api.http) = {
+      post: "/v1/credit_notes"
+      body: "credit_note"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "credit_notes:create"
+      api_resource: "credit_note"
+    };
+  }
+
+  // Computes the amounts and taxes of a credit note without issuing it,
+  // with the invoice's creditable and refundable maximums.
+  rpc EstimateCreditNote(EstimateCreditNoteRequest) returns (EstimateCreditNoteResponse) {
+    option (google.api.http) = {
+      post: "/v1/credit_notes:estimate"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "credit_notes:create"
+      api_resource: "credit_note"
+    };
+  }
+
+  // Returns a credit note.
+  rpc GetCreditNote(GetCreditNoteRequest) returns (GetCreditNoteResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/credit_notes/{credit_note_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "credit_notes:read"
+      api_resource: "credit_note"
+    };
+  }
+
+  // Lists credit notes, newest first.
+  rpc ListCreditNotes(ListCreditNotesRequest) returns (ListCreditNotesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/credit_notes"
+      additional_bindings: {get: "/v1/customers/{customer_id}/credit_notes"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "credit_notes:read"
+      api_resource: "credit_note"
+    };
+  }
+
+  // Updates a credit note's refund status or metadata.
+  rpc UpdateCreditNote(UpdateCreditNoteRequest) returns (UpdateCreditNoteResponse) {
+    option (google.api.http) = {
+      patch: "/v1/credit_notes/{credit_note.id}"
+      body: "credit_note"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "credit_notes:update"
+      api_resource: "credit_note"
+    };
+  }
+
+  // Voids the remaining credit of a credit note.
+  rpc VoidCreditNote(VoidCreditNoteRequest) returns (VoidCreditNoteResponse) {
+    option (google.api.http) = {
+      post: "/v1/credit_notes/{credit_note_id}:void"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "credit_notes:void"
+      api_resource: "credit_note"
+    };
+  }
+
+  // Returns signed URLs of the credit note's PDF and XML, generating them
+  // when missing.
+  rpc DownloadCreditNote(DownloadCreditNoteRequest) returns (DownloadCreditNoteResponse) {
+    option (google.api.http) = {
+      post: "/v1/credit_notes/{credit_note_id}:download"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "credit_notes:read"
+      api_resource: "credit_note"
+    };
+  }
+
+  // Sends the credit note email again.
+  rpc ResendCreditNote(ResendCreditNoteRequest) returns (ResendCreditNoteResponse) {
+    option (google.api.http) = {
+      post: "/v1/credit_notes/{credit_note_id}:resend"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "credit_notes:send"
+      api_resource: "credit_note"
+    };
+  }
+
+  // Retries the synchronization of a credit note with the customer's
+  // accounting integrations.
+  rpc RetryCreditNoteSync(RetryCreditNoteSyncRequest) returns (RetryCreditNoteSyncResponse) {
+    option (google.api.http) = {
+      post: "/v1/credit_notes/{credit_note_id}:retry_sync"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "credit_notes:update"
+      api_resource: "credit_note"
+    };
+  }
+}
+
+// CreditNoteStatus is the state of a credit note.
+enum CreditNoteStatus {
+  // Not set.
+  CREDIT_NOTE_STATUS_UNSPECIFIED = 0;
+  // Follows its draft invoice and is refreshed with it.
+  CREDIT_NOTE_STATUS_DRAFT = 1;
+  // Issued.
+  CREDIT_NOTE_STATUS_FINALIZED = 2;
+}
+
+// CreditStatus is the state of a credit note's credit amount.
+enum CreditStatus {
+  // Not set.
+  CREDIT_STATUS_UNSPECIFIED = 0;
+  // Credit remains.
+  CREDIT_STATUS_AVAILABLE = 1;
+  // Fully used.
+  CREDIT_STATUS_CONSUMED = 2;
+  // Voided.
+  CREDIT_STATUS_VOIDED = 3;
+}
+
+// CreditNoteReason is why a credit note was issued.
+enum CreditNoteReason {
+  // Not set.
+  CREDIT_NOTE_REASON_UNSPECIFIED = 0;
+  // A charge was billed twice.
+  CREDIT_NOTE_REASON_DUPLICATED_CHARGE = 1;
+  // The product did not satisfy the customer.
+  CREDIT_NOTE_REASON_PRODUCT_UNSATISFACTORY = 2;
+  // The order changed.
+  CREDIT_NOTE_REASON_ORDER_CHANGE = 3;
+  // The order was canceled.
+  CREDIT_NOTE_REASON_ORDER_CANCELLATION = 4;
+  // The charge was fraudulent.
+  CREDIT_NOTE_REASON_FRAUDULENT_CHARGE = 5;
+  // Another reason.
+  CREDIT_NOTE_REASON_OTHER = 6;
+}
+
+// CreditNoteItem is the amount credited on one invoice fee.
+message CreditNoteItem {
+  // The fee.
+  string fee_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The amount before taxes.
+  string amount = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+  // The unrounded amount.
+  string precise_amount = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreditNoteAppliedTax is a tax of a credit note.
+message CreditNoteAppliedTax {
+  // The tax.
+  string tax_id = 1;
+  // The tax code.
+  string tax_code = 2;
+  // The tax name.
+  string tax_name = 3;
+  // The rate in percent.
+  string tax_rate = 4;
+  // The taxable base.
+  tanvo.common.v1.Money base_amount = 5;
+  // The tax amount.
+  tanvo.common.v1.Money amount = 6;
+}
+
+// CreditNote is an amount credited, refunded or offset against an invoice.
+message CreditNote {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/CreditNote"
+    pattern: "credit_notes/{credit_note}"
+    plural: "creditNotes"
+    singular: "creditNote"
+  };
+
+  // The credit note's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The invoice.
+  string invoice_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The customer.
+  string customer_id = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The number, `<invoice number>-CN<n>`.
+  string number = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The state.
+  CreditNoteStatus status = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The state of the credit amount.
+  CreditStatus credit_status = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The state of the refund; editable for manual refunds.
+  tanvo.common.v1.RefundStatus refund_status = 7 [(buf.validate.field).enum.defined_only = true];
+  // Why the credit note was issued.
+  CreditNoteReason reason = 8 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // A description.
+  string description = 9 [
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.max_len = 1024
+  ];
+  // The amount credited to the customer, with taxes.
+  tanvo.common.v1.Money credit_amount = 10 [(google.api.field_behavior) = IMMUTABLE];
+  // The amount refunded, with taxes.
+  tanvo.common.v1.Money refund_amount = 11 [(google.api.field_behavior) = IMMUTABLE];
+  // The amount offset against the invoice's due amount, with taxes.
+  tanvo.common.v1.Money offset_amount = 12 [(google.api.field_behavior) = IMMUTABLE];
+  // The credit left.
+  tanvo.common.v1.Money balance_amount = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The subtotal before taxes.
+  tanvo.common.v1.Money sub_total_excluding_taxes_amount = 14 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The share of the invoice's coupons removed.
+  tanvo.common.v1.Money coupons_adjustment_amount = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The taxes.
+  tanvo.common.v1.Money taxes_amount = 16 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The average tax rate in percent.
+  string taxes_rate = 17 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The total.
+  tanvo.common.v1.Money total_amount = 18 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The items, per fee.
+  repeated CreditNoteItem items = 19 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).repeated.max_items = 1000
+  ];
+  // The taxes applied.
+  repeated CreditNoteAppliedTax applied_taxes = 20 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The issuing date.
+  google.type.Date issuing_date = 21 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Metadata.
+  repeated tanvo.common.v1.MetadataItem metadata = 22 [(buf.validate.field).repeated.max_items = 5];
+  // Marks a credit note with a generated PDF.
+  bool file_available = 23 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Marks a credit note with a generated e-invoice XML.
+  bool xml_file_available = 24 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the refund succeeded.
+  google.protobuf.Timestamp refunded_at = 25 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the credit was voided.
+  google.protobuf.Timestamp voided_at = 26 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the credit note was created.
+  google.protobuf.Timestamp created_at = 27 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the credit note last changed.
+  google.protobuf.Timestamp updated_at = 28 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateCreditNoteRequest is the request of CreditNoteService.CreateCreditNote.
+message CreateCreditNoteRequest {
+  option (buf.validate.message).cel = {
+    id: "credit_note.required"
+    message: "invoice_id, reason and items are required"
+    expression: "has(this.credit_note.invoice_id) && has(this.credit_note.reason) && size(this.credit_note.items) > 0"
+  };
+
+  // The credit note to issue.
+  CreditNote credit_note = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateCreditNoteResponse is the response of CreditNoteService.CreateCreditNote.
+message CreateCreditNoteResponse {
+  // The issued credit note.
+  CreditNote credit_note = 1;
+}
+
+// EstimateCreditNoteRequest is the request of CreditNoteService.EstimateCreditNote.
+message EstimateCreditNoteRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The items, per fee.
+  repeated CreditNoteItem items = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).repeated = {
+      min_items: 1
+      max_items: 1000
+    }
+  ];
+}
+
+// EstimateCreditNoteResponse is the response of CreditNoteService.EstimateCreditNote.
+message EstimateCreditNoteResponse {
+  // The estimated credit note, not stored.
+  CreditNote credit_note = 1;
+  // The most that can be credited.
+  tanvo.common.v1.Money max_creditable_amount = 2;
+  // The most that can be refunded.
+  tanvo.common.v1.Money max_refundable_amount = 3;
+  // The most that can be offset.
+  tanvo.common.v1.Money max_offsettable_amount = 4;
+}
+
+// GetCreditNoteRequest is the request of CreditNoteService.GetCreditNote.
+message GetCreditNoteRequest {
+  // The credit note's ID.
+  string credit_note_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetCreditNoteResponse is the response of CreditNoteService.GetCreditNote.
+message GetCreditNoteResponse {
+  // The credit note.
+  CreditNote credit_note = 1;
+}
+
+// ListCreditNotesRequest is the request of CreditNoteService.ListCreditNotes.
+message ListCreditNotesRequest {
+  // Restricts the list to one customer (ID or `external_id:<external_id>`).
+  string customer_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `invoice_id`, `credit_status`, `refund_status`,
+  // `reason`, `currency`, `billing_entity_id`, `issuing_date`, `amount`,
+  // `self_billed` and `metadata.<key>`.
+  string filter = 4 [(buf.validate.field).string.max_len = 2048];
+  // A search over the number, invoice number and customer.
+  string search = 5 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListCreditNotesResponse is the response of CreditNoteService.ListCreditNotes.
+message ListCreditNotesResponse {
+  // The credit notes of this page.
+  repeated CreditNote credit_notes = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateCreditNoteRequest is the request of CreditNoteService.UpdateCreditNote.
+message UpdateCreditNoteRequest {
+  option (buf.validate.message).cel = {
+    id: "credit_note.id"
+    message: "credit_note.id is required"
+    expression: "has(this.credit_note.id)"
+  };
+
+  // The new values; credit_note.id selects the credit note.
+  CreditNote credit_note = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; refund_status and metadata are editable.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateCreditNoteResponse is the response of CreditNoteService.UpdateCreditNote.
+message UpdateCreditNoteResponse {
+  // The updated credit note.
+  CreditNote credit_note = 1;
+}
+
+// VoidCreditNoteRequest is the request of CreditNoteService.VoidCreditNote.
+message VoidCreditNoteRequest {
+  // The credit note's ID.
+  string credit_note_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// VoidCreditNoteResponse is the response of CreditNoteService.VoidCreditNote.
+message VoidCreditNoteResponse {
+  // The voided credit note.
+  CreditNote credit_note = 1;
+}
+
+// DownloadCreditNoteRequest is the request of CreditNoteService.DownloadCreditNote.
+message DownloadCreditNoteRequest {
+  // The credit note's ID.
+  string credit_note_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DownloadCreditNoteResponse is the response of CreditNoteService.DownloadCreditNote.
+message DownloadCreditNoteResponse {
+  // The PDF.
+  tanvo.common.v1.Document pdf = 1;
+  // The e-invoice XML, when the billing entity has e-invoicing.
+  tanvo.common.v1.Document xml = 2;
+}
+
+// ResendCreditNoteRequest is the request of CreditNoteService.ResendCreditNote.
+message ResendCreditNoteRequest {
+  // The credit note's ID.
+  string credit_note_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The recipients; the customer's billing emails by default.
+  repeated string to = 2 [(buf.validate.field).repeated = {
+    max_items: 20
+    items: {
+      string: {email: true}
+    }
+  }];
+  // Carbon copies.
+  repeated string cc = 3 [(buf.validate.field).repeated = {
+    max_items: 20
+    items: {
+      string: {email: true}
+    }
+  }];
+  // Blind carbon copies.
+  repeated string bcc = 4 [(buf.validate.field).repeated = {
+    max_items: 20
+    items: {
+      string: {email: true}
+    }
+  }];
+}
+
+// ResendCreditNoteResponse is the response of CreditNoteService.ResendCreditNote.
+message ResendCreditNoteResponse {}
+
+// RetryCreditNoteSyncRequest is the request of CreditNoteService.RetryCreditNoteSync.
+message RetryCreditNoteSyncRequest {
+  // The credit note's ID.
+  string credit_note_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// RetryCreditNoteSyncResponse is the response of CreditNoteService.RetryCreditNoteSync.
+message RetryCreditNoteSyncResponse {}

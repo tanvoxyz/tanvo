@@ -1,0 +1,101 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+package tanvo.common.v1;
+
+// Interval is a billing interval of plans and recurring wallet top-ups.
+enum Interval {
+  // Not set.
+  INTERVAL_UNSPECIFIED = 0;
+  // Every week.
+  INTERVAL_WEEKLY = 1;
+  // Every month.
+  INTERVAL_MONTHLY = 2;
+  // Every three months.
+  INTERVAL_QUARTERLY = 3;
+  // Every six months.
+  INTERVAL_SEMIANNUAL = 4;
+  // Every year.
+  INTERVAL_YEARLY = 5;
+}
+
+// PaymentMethodType says whether a payable is charged through a payment
+// provider or settled manually.
+enum PaymentMethodType {
+  // Not set; the next level of the payment method precedence applies.
+  PAYMENT_METHOD_TYPE_UNSPECIFIED = 0;
+  // Charged automatically through a payment provider connection.
+  PAYMENT_METHOD_TYPE_PROVIDER = 1;
+  // Settled manually; no automatic charge.
+  PAYMENT_METHOD_TYPE_MANUAL = 2;
+}
+
+// FeeType is the kind of a fee.
+enum FeeType {
+  // Not set.
+  FEE_TYPE_UNSPECIFIED = 0;
+  // The plan's base (subscription) fee.
+  FEE_TYPE_SUBSCRIPTION = 1;
+  // A usage charge.
+  FEE_TYPE_CHARGE = 2;
+  // A fixed charge.
+  FEE_TYPE_FIXED_CHARGE = 3;
+  // An add-on line of a one-off invoice.
+  FEE_TYPE_ADD_ON = 4;
+  // A wallet credit purchase.
+  FEE_TYPE_CREDIT = 5;
+  // A minimum commitment true-up.
+  FEE_TYPE_COMMITMENT = 6;
+  // A product priced by a rate card.
+  FEE_TYPE_PRODUCT = 7;
+}
+
+// PaymentStatus is the payment state of an invoice or payment request.
+enum PaymentStatus {
+  // Not set.
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  // Not yet paid.
+  PAYMENT_STATUS_PENDING = 1;
+  // A provider payment is in flight.
+  PAYMENT_STATUS_PROCESSING = 2;
+  // Fully paid.
+  PAYMENT_STATUS_SUCCEEDED = 3;
+  // The last payment attempt failed.
+  PAYMENT_STATUS_FAILED = 4;
+}
+
+// RefundStatus is the state of a refund.
+enum RefundStatus {
+  // Not set.
+  REFUND_STATUS_UNSPECIFIED = 0;
+  // Sent to the provider, not yet settled.
+  REFUND_STATUS_PENDING = 1;
+  // Settled by the provider.
+  REFUND_STATUS_SUCCEEDED = 2;
+  // Refused by the provider.
+  REFUND_STATUS_FAILED = 3;
+}
+
+// IssuingDateAnchor is the reference date of a recurring invoice's issuing
+// date.
+enum IssuingDateAnchor {
+  // Not set; inherited from the next level.
+  ISSUING_DATE_ANCHOR_UNSPECIFIED = 0;
+  // The last day of the billed period.
+  ISSUING_DATE_ANCHOR_CURRENT_PERIOD_END = 1;
+  // The first day of the next period.
+  ISSUING_DATE_ANCHOR_NEXT_PERIOD_START = 2;
+}
+
+// IssuingDateAdjustment says whether the issuing date moves with the
+// finalization date.
+enum IssuingDateAdjustment {
+  // Not set; inherited from the next level.
+  ISSUING_DATE_ADJUSTMENT_UNSPECIFIED = 0;
+  // Keep the anchor date.
+  ISSUING_DATE_ADJUSTMENT_KEEP_ANCHOR = 1;
+  // Align the issuing date with the finalization date.
+  ISSUING_DATE_ADJUSTMENT_ALIGN_WITH_FINALIZATION_DATE = 2;
+}

@@ -1,0 +1,330 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.access.v1 is the API of identity and access: API keys,
+// users and memberships, roles, invites, sign-in and SSO connections.
+package tanvo.access.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+
+// ApiKeyService manages the organization's API keys. A key's secret is
+// returned once, when the key is created or rotated; only its SHA-256 hash
+// is stored.
+service ApiKeyService {
+  // Creates an API key and returns its secret once.
+  rpc CreateApiKey(CreateApiKeyRequest) returns (CreateApiKeyResponse) {
+    option (google.api.http) = {
+      post: "/v1/api_keys"
+      body: "api_key"
+    };
+    option (tanvo.common.v1.access) = {permission: "developers:keys:manage"};
+  }
+
+  // Returns an API key without its secret.
+  rpc GetApiKey(GetApiKeyRequest) returns (GetApiKeyResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/api_keys/{api_key_id}"};
+    option (tanvo.common.v1.access) = {permission: "developers:keys:manage"};
+  }
+
+  // Lists API keys without their secrets.
+  rpc ListApiKeys(ListApiKeysRequest) returns (ListApiKeysResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/api_keys"};
+    option (tanvo.common.v1.access) = {permission: "developers:keys:manage"};
+  }
+
+  // Updates an API key's name and permissions.
+  rpc UpdateApiKey(UpdateApiKeyRequest) returns (UpdateApiKeyResponse) {
+    option (google.api.http) = {
+      patch: "/v1/api_keys/{api_key.id}"
+      body: "api_key"
+    };
+    option (tanvo.common.v1.access) = {permission: "developers:keys:manage"};
+  }
+
+  // Replaces an API key with a new one with the same name and permissions.
+  // The old key keeps working until the end of the overlap window.
+  rpc RotateApiKey(RotateApiKeyRequest) returns (RotateApiKeyResponse) {
+    option (google.api.http) = {
+      post: "/v1/api_keys/{api_key_id}:rotate"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {permission: "developers:keys:manage"};
+  }
+
+  // Deletes an API key. The last key without an expiry cannot be deleted.
+  rpc DeleteApiKey(DeleteApiKeyRequest) returns (DeleteApiKeyResponse) {
+    option (google.api.http) = {delete: "/v1/api_keys/{api_key_id}"};
+    option (tanvo.common.v1.access) = {permission: "developers:keys:manage"};
+  }
+}
+
+// ApiResource is a resource an API key may be granted.
+enum ApiResource {
+  // Not set.
+  API_RESOURCE_UNSPECIFIED = 0;
+  // Activity logs.
+  API_RESOURCE_ACTIVITY_LOG = 1;
+  // Add-ons.
+  API_RESOURCE_ADD_ON = 2;
+  // Usage alerts.
+  API_RESOURCE_ALERT = 3;
+  // Analytics.
+  API_RESOURCE_ANALYTIC = 4;
+  // API request logs.
+  API_RESOURCE_API_LOG = 5;
+  // Applied coupons.
+  API_RESOURCE_APPLIED_COUPON = 6;
+  // Attributed usage.
+  API_RESOURCE_ATTRIBUTED_USAGE = 7;
+  // Billable metrics.
+  API_RESOURCE_BILLABLE_METRIC = 8;
+  // Billing entities.
+  API_RESOURCE_BILLING_ENTITY = 9;
+  // Contracts.
+  API_RESOURCE_CONTRACT = 10;
+  // Contract rate cards.
+  API_RESOURCE_CONTRACT_RATE_CARD = 11;
+  // Coupons.
+  API_RESOURCE_COUPON = 12;
+  // Credit notes.
+  API_RESOURCE_CREDIT_NOTE = 13;
+  // Customers.
+  API_RESOURCE_CUSTOMER = 14;
+  // Customer usage.
+  API_RESOURCE_CUSTOMER_USAGE = 15;
+  // Events.
+  API_RESOURCE_EVENT = 16;
+  // Entitlement features.
+  API_RESOURCE_FEATURE = 17;
+  // Fees.
+  API_RESOURCE_FEE = 18;
+  // Invoices.
+  API_RESOURCE_INVOICE = 19;
+  // Invoice custom sections.
+  API_RESOURCE_INVOICE_CUSTOM_SECTION = 20;
+  // Lifetime usage.
+  API_RESOURCE_LIFETIME_USAGE = 21;
+  // Orders.
+  API_RESOURCE_ORDER = 22;
+  // Order forms.
+  API_RESOURCE_ORDER_FORM = 23;
+  // The organization.
+  API_RESOURCE_ORGANIZATION = 24;
+  // Payments.
+  API_RESOURCE_PAYMENT = 25;
+  // Payment methods.
+  API_RESOURCE_PAYMENT_METHOD = 26;
+  // Payment receipts.
+  API_RESOURCE_PAYMENT_RECEIPT = 27;
+  // Payment requests.
+  API_RESOURCE_PAYMENT_REQUEST = 28;
+  // Plans.
+  API_RESOURCE_PLAN = 29;
+  // Plan rate cards.
+  API_RESOURCE_PLAN_RATE_CARD = 30;
+  // Products.
+  API_RESOURCE_PRODUCT = 31;
+  // Product categories.
+  API_RESOURCE_PRODUCT_CATEGORY = 32;
+  // Quotes.
+  API_RESOURCE_QUOTE = 33;
+  // Rate cards.
+  API_RESOURCE_RATE_CARD = 34;
+  // Security logs.
+  API_RESOURCE_SECURITY_LOG = 35;
+  // Subscriptions.
+  API_RESOURCE_SUBSCRIPTION = 36;
+  // Taxes.
+  API_RESOURCE_TAX = 37;
+  // Usage attribution types.
+  API_RESOURCE_USAGE_ATTRIBUTION_TYPE = 38;
+  // Wallets.
+  API_RESOURCE_WALLET = 39;
+  // Wallet transactions.
+  API_RESOURCE_WALLET_TRANSACTION = 40;
+  // Webhook endpoints.
+  API_RESOURCE_WEBHOOK_ENDPOINT = 41;
+  // x402 gate checks and payments.
+  API_RESOURCE_X402 = 42;
+  // x402 connections.
+  API_RESOURCE_X402_CONNECTION = 43;
+}
+
+// ApiAccessLevel is how much an API key may do with a resource.
+enum ApiAccessLevel {
+  // Not set.
+  API_ACCESS_LEVEL_UNSPECIFIED = 0;
+  // Read-only RPCs.
+  API_ACCESS_LEVEL_READ = 1;
+  // Read and write RPCs.
+  API_ACCESS_LEVEL_WRITE = 2;
+}
+
+// ApiKeyGrant grants one resource to an API key.
+message ApiKeyGrant {
+  // The granted resource.
+  ApiResource resource = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The granted level.
+  ApiAccessLevel level = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum.defined_only = true
+  ];
+}
+
+// ApiKey is a credential for server-to-server calls.
+message ApiKey {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/ApiKey"
+    pattern: "api_keys/{api_key}"
+    plural: "apiKeys"
+    singular: "apiKey"
+  };
+
+  // The API key's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // A display name.
+  string name = 2 [(buf.validate.field).string.max_len = 255];
+  // The secret, returned only by CreateApiKey and RotateApiKey.
+  string secret = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The first characters of the secret, to recognize the key.
+  string prefix = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The granted resources; empty grants write access to every resource.
+  repeated ApiKeyGrant grants = 5 [(buf.validate.field).repeated.max_items = 64];
+  // When the key stops working; unset keys never expire.
+  google.protobuf.Timestamp expires_at = 6;
+  // When the key was last used, to the hour.
+  google.protobuf.Timestamp last_used_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the key was created.
+  google.protobuf.Timestamp created_at = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the key last changed.
+  google.protobuf.Timestamp updated_at = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateApiKeyRequest is the request of ApiKeyService.CreateApiKey.
+message CreateApiKeyRequest {
+  // The API key to create.
+  ApiKey api_key = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateApiKeyResponse is the response of ApiKeyService.CreateApiKey.
+message CreateApiKeyResponse {
+  // The created key, with its secret.
+  ApiKey api_key = 1;
+}
+
+// GetApiKeyRequest is the request of ApiKeyService.GetApiKey.
+message GetApiKeyRequest {
+  // The API key's ID.
+  string api_key_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetApiKeyResponse is the response of ApiKeyService.GetApiKey.
+message GetApiKeyResponse {
+  // The API key, without its secret.
+  ApiKey api_key = 1;
+}
+
+// ListApiKeysRequest is the request of ApiKeyService.ListApiKeys.
+message ListApiKeysRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListApiKeysResponse is the response of ApiKeyService.ListApiKeys.
+message ListApiKeysResponse {
+  // The API keys of this page, without their secrets.
+  repeated ApiKey api_keys = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateApiKeyRequest is the request of ApiKeyService.UpdateApiKey.
+message UpdateApiKeyRequest {
+  option (buf.validate.message).cel = {
+    id: "api_key.id"
+    message: "api_key.id is required"
+    expression: "has(this.api_key.id)"
+  };
+
+  // The new values; api_key.id selects the key.
+  ApiKey api_key = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update (`name`, `grants`); empty updates every field that
+  // is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateApiKeyResponse is the response of ApiKeyService.UpdateApiKey.
+message UpdateApiKeyResponse {
+  // The updated key, without its secret.
+  ApiKey api_key = 1;
+}
+
+// RotateApiKeyRequest is the request of ApiKeyService.RotateApiKey.
+message RotateApiKeyRequest {
+  // The ID of the key to rotate.
+  string api_key_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // How long the old key keeps working; zero expires it at once, at most
+  // 30 days.
+  google.protobuf.Duration overlap = 2 [(buf.validate.field).duration = {
+    gte: {}
+    lte: {seconds: 2592000}
+  }];
+  // The name of the new key; the old key's name by default.
+  string name = 3 [(buf.validate.field).string.max_len = 255];
+}
+
+// RotateApiKeyResponse is the response of ApiKeyService.RotateApiKey.
+message RotateApiKeyResponse {
+  // The new key, with its secret.
+  ApiKey api_key = 1;
+  // The old key, with its new expiry.
+  ApiKey previous_api_key = 2;
+}
+
+// DeleteApiKeyRequest is the request of ApiKeyService.DeleteApiKey.
+message DeleteApiKeyRequest {
+  // The ID of the key to delete.
+  string api_key_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DeleteApiKeyResponse is the response of ApiKeyService.DeleteApiKey.
+message DeleteApiKeyResponse {}

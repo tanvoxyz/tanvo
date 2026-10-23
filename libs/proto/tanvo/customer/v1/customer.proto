@@ -1,0 +1,556 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.customer.v1 is the API of customers, their connections to
+// payment, accounting, tax and CRM integrations, and their checkout and
+// portal links.
+package tanvo.customer.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/enums.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// CustomerService manages customers. Customers are addressed by ID or by
+// `external_id:<external_id>`.
+service CustomerService {
+  // Creates a customer.
+  rpc CreateCustomer(CreateCustomerRequest) returns (CreateCustomerResponse) {
+    option (google.api.http) = {
+      post: "/v1/customers"
+      body: "customer"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "customers:create"
+      api_resource: "customer"
+    };
+  }
+
+  // Returns a customer.
+  rpc GetCustomer(GetCustomerRequest) returns (GetCustomerResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/customers/{customer_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "customers:read"
+      api_resource: "customer"
+    };
+  }
+
+  // Lists customers.
+  rpc ListCustomers(ListCustomersRequest) returns (ListCustomersResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/customers"};
+    option (tanvo.common.v1.access) = {
+      permission: "customers:read"
+      api_resource: "customer"
+    };
+  }
+
+  // Updates a customer. With allow_missing and an `external_id:` reference
+  // in customer.id, creates the customer when it does not exist (upsert).
+  // The currency is locked once the customer is billed.
+  rpc UpdateCustomer(UpdateCustomerRequest) returns (UpdateCustomerResponse) {
+    option (google.api.http) = {
+      patch: "/v1/customers/{customer.id}"
+      body: "customer"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "customers:update"
+      api_resource: "customer"
+    };
+  }
+
+  // Deletes a customer: terminates its subscriptions and wallets and
+  // finalizes its draft invoices.
+  rpc DeleteCustomer(DeleteCustomerRequest) returns (DeleteCustomerResponse) {
+    option (google.api.http) = {delete: "/v1/customers/{customer_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "customers:delete"
+      api_resource: "customer"
+    };
+  }
+
+  // Returns a provider checkout URL where the customer registers a payment
+  // method.
+  rpc GenerateCheckoutUrl(GenerateCheckoutUrlRequest) returns (GenerateCheckoutUrlResponse) {
+    option (google.api.http) = {
+      post: "/v1/customers/{customer_id}:generate_checkout_url"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "customers:update"
+      api_resource: "customer"
+    };
+  }
+
+  // Returns a signed customer portal URL.
+  rpc GeneratePortalUrl(GeneratePortalUrlRequest) returns (GeneratePortalUrlResponse) {
+    option (google.api.http) = {
+      post: "/v1/customers/{customer_id}:generate_portal_url"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "customers:read"
+      api_resource: "customer"
+    };
+  }
+
+  // Lists a customer's connections to integrations.
+  rpc ListCustomerConnections(ListCustomerConnectionsRequest) returns (ListCustomerConnectionsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/customers/{customer_id}/connections"};
+    option (tanvo.common.v1.access) = {
+      permission: "customers:read"
+      api_resource: "customer"
+    };
+  }
+
+  // Creates or updates a customer's connection to an integration; with
+  // sync_with_provider and no provider customer ID, the customer is created
+  // in the provider.
+  rpc UpsertCustomerConnection(UpsertCustomerConnectionRequest) returns (UpsertCustomerConnectionResponse) {
+    option idempotency_level = IDEMPOTENT;
+    option (google.api.http) = {
+      put: "/v1/customers/{customer_id}/connections/{connection.integration_id}"
+      body: "connection"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "customers:update"
+      api_resource: "customer"
+    };
+  }
+
+  // Deletes a customer's connection to an integration.
+  rpc DeleteCustomerConnection(DeleteCustomerConnectionRequest) returns (DeleteCustomerConnectionResponse) {
+    option (google.api.http) = {delete: "/v1/customers/{customer_id}/connections/{integration_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "customers:update"
+      api_resource: "customer"
+    };
+  }
+}
+
+// CustomerType says whether a customer is a company or a person.
+enum CustomerType {
+  // Not set.
+  CUSTOMER_TYPE_UNSPECIFIED = 0;
+  // A company.
+  CUSTOMER_TYPE_COMPANY = 1;
+  // A person.
+  CUSTOMER_TYPE_INDIVIDUAL = 2;
+}
+
+// AccountType says whether invoices are issued to or by the customer.
+enum AccountType {
+  // Not set.
+  ACCOUNT_TYPE_UNSPECIFIED = 0;
+  // A regular customer, invoiced by the billing entity.
+  ACCOUNT_TYPE_CUSTOMER = 1;
+  // A partner: its invoices are self-billed, issued on its behalf.
+  ACCOUNT_TYPE_PARTNER = 2;
+}
+
+// ZeroAmountFinalization says what happens to invoices whose total is zero.
+enum ZeroAmountFinalization {
+  // Not set.
+  ZERO_AMOUNT_FINALIZATION_UNSPECIFIED = 0;
+  // Follows the billing entity's setting.
+  ZERO_AMOUNT_FINALIZATION_INHERIT = 1;
+  // Leaves them closed, without finalization.
+  ZERO_AMOUNT_FINALIZATION_SKIP = 2;
+  // Finalizes them.
+  ZERO_AMOUNT_FINALIZATION_FINALIZE = 3;
+}
+
+// IntegrationCategory is the family of an integration.
+enum IntegrationCategory {
+  // Not set.
+  INTEGRATION_CATEGORY_UNSPECIFIED = 0;
+  // A payment provider.
+  INTEGRATION_CATEGORY_PAYMENT = 1;
+  // An accounting system.
+  INTEGRATION_CATEGORY_ACCOUNTING = 2;
+  // A tax provider.
+  INTEGRATION_CATEGORY_TAX = 3;
+  // A CRM.
+  INTEGRATION_CATEGORY_CRM = 4;
+}
+
+// Customer is a party that is billed.
+message Customer {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Customer"
+    pattern: "customers/{customer}"
+    plural: "customers"
+    singular: "customer"
+  };
+
+  // The customer's ID. Requests that select a customer also accept
+  // `external_id:<external_id>`.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique identifier in the caller's system.
+  string external_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The billing entity that issues the customer's documents (ID or
+  // `code:<code>`); the default billing entity when unset.
+  string billing_entity_id = 3 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // Company or individual.
+  CustomerType customer_type = 4 [(buf.validate.field).enum.defined_only = true];
+  // Customer or partner.
+  AccountType account_type = 5 [(buf.validate.field).enum.defined_only = true];
+  // The display name.
+  string name = 6 [(buf.validate.field).string.max_len = 255];
+  // The first name of an individual.
+  string firstname = 7 [(buf.validate.field).string.max_len = 255];
+  // The last name of an individual.
+  string lastname = 8 [(buf.validate.field).string.max_len = 255];
+  // The legal name printed on documents.
+  string legal_name = 9 [(buf.validate.field).string.max_len = 255];
+  // The company registration number.
+  string legal_number = 10 [(buf.validate.field).string.max_len = 255];
+  // The tax identification number.
+  string tax_identification_number = 11 [(buf.validate.field).string.max_len = 255];
+  // The billing email addresses, comma separated.
+  string email = 12 [(buf.validate.field).string.max_len = 1024];
+  // The phone number.
+  string phone = 13 [(buf.validate.field).string.max_len = 255];
+  // The customer's website.
+  string url = 14 [(buf.validate.field).string.max_len = 1024];
+  // The customer's logo URL.
+  string logo_url = 15 [(buf.validate.field).string.max_len = 1024];
+  // The billing address.
+  tanvo.common.v1.Address billing_address = 16;
+  // The shipping address.
+  tanvo.common.v1.Address shipping_address = 17;
+  // The currency of the customer's subscriptions and invoices; locked once
+  // the customer is billed.
+  string currency = 18 [(buf.validate.field).string.(tanvo.common.v1.currency) = true];
+  // The IANA time zone; the billing entity's when unset.
+  string timezone = 19 [(buf.validate.field).string.max_len = 64];
+  // The time zone in effect after fallback.
+  string applicable_timezone = 20 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The BCP 47 language of documents; the billing entity's when unset.
+  string document_locale = 21 [(buf.validate.field).string.max_len = 35];
+  // The grace period of draft invoices in days; the billing entity's when
+  // unset.
+  int32 invoice_grace_period_days = 22 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 365
+  }];
+  // The payment term in days; the billing entity's when unset.
+  int32 net_payment_term_days = 23 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 365
+  }];
+  // What happens to invoices whose total is zero.
+  ZeroAmountFinalization finalize_zero_amount_invoice = 24 [(buf.validate.field).enum.defined_only = true];
+  // The anchor of recurring invoices' issuing date; inherited when unset.
+  tanvo.common.v1.IssuingDateAnchor issuing_date_anchor = 25 [(buf.validate.field).enum.defined_only = true];
+  // The adjustment of recurring invoices' issuing date; inherited when unset.
+  tanvo.common.v1.IssuingDateAdjustment issuing_date_adjustment = 26 [(buf.validate.field).enum.defined_only = true];
+  // Prints no invoice custom sections at all.
+  bool skip_invoice_custom_sections = 27;
+  // The invoice custom sections printed on the customer's invoices (IDs or
+  // `code:<code>`); the billing entity's when empty.
+  repeated string invoice_custom_section_ids = 28 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // The dunning campaign applied to the customer (ID or `code:<code>`);
+  // the billing entity's when unset.
+  string applied_dunning_campaign_id = 29 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // Excludes the customer from dunning campaigns.
+  bool exclude_from_dunning_campaign = 30;
+  // The taxes applied to the customer (IDs or `code:<code>`).
+  repeated string tax_ids = 31 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // Up to 5 metadata items (keys of at most 20 characters, values of at
+  // most 100); the list replaces the stored list.
+  repeated tanvo.common.v1.MetadataItem metadata = 32 [(buf.validate.field).repeated = {
+    max_items: 5
+    items: {
+      cel: {
+        id: "customer.metadata.lengths"
+        message: "keys are at most 20 characters and values at most 100"
+        expression: "size(this.key) <= 20 && size(this.value) <= 100"
+      }
+    }
+  }];
+  // The payment method precedence default for the customer's invoices.
+  tanvo.common.v1.PaymentMethodType payment_method_type = 33 [(buf.validate.field).enum.defined_only = true];
+  // The customer's connections to integrations; write them with
+  // UpsertCustomerConnection.
+  repeated CustomerConnection connections = 34 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The address of the customer's x402 agent wallet.
+  string x402_agent_address = 35 [(buf.validate.field).string.max_len = 255];
+  // The number of the customer within the organization.
+  int64 sequential_id = 36 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The handle used in document numbers.
+  string slug = 37 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the customer was deleted.
+  google.protobuf.Timestamp deleted_at = 38 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the customer was created.
+  google.protobuf.Timestamp created_at = 39 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the customer last changed.
+  google.protobuf.Timestamp updated_at = 40 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CustomerConnection links a customer to its record in an integration.
+message CustomerConnection {
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The integration's family.
+  IntegrationCategory category = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The integration's provider (`stripe`, `netsuite`, …).
+  string provider = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The customer's ID in the provider.
+  string external_customer_id = 4 [(buf.validate.field).string.max_len = 255];
+  // Creates and updates the customer in the provider.
+  bool sync_with_provider = 5;
+  // The NetSuite subsidiary.
+  string subsidiary_id = 6 [(buf.validate.field).string.max_len = 255];
+  // The payment method types allowed at checkout (`card`, `sepa_debit`, …),
+  // for payment providers.
+  repeated string provider_payment_methods = 7 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 20
+    items: {
+      string: {max_len: 64}
+    }
+  }];
+  // Marks the default payment connection of the customer.
+  bool is_default = 8;
+  // When the connection was created.
+  google.protobuf.Timestamp created_at = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the connection last changed.
+  google.protobuf.Timestamp updated_at = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateCustomerRequest is the request of CustomerService.CreateCustomer.
+message CreateCustomerRequest {
+  option (buf.validate.message).cel = {
+    id: "customer.external_id"
+    message: "customer.external_id is required"
+    expression: "has(this.customer.external_id)"
+  };
+
+  // The customer to create.
+  Customer customer = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateCustomerResponse is the response of CustomerService.CreateCustomer.
+message CreateCustomerResponse {
+  // The created customer.
+  Customer customer = 1;
+}
+
+// GetCustomerRequest is the request of CustomerService.GetCustomer.
+message GetCustomerRequest {
+  // The customer's ID or `external_id:<external_id>`.
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetCustomerResponse is the response of CustomerService.GetCustomer.
+message GetCustomerResponse {
+  // The customer.
+  Customer customer = 1;
+}
+
+// ListCustomersRequest is the request of CustomerService.ListCustomers.
+message ListCustomersRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `billing_entity_id`, `customer_type`,
+  // `account_type`, `currency`, `billing_address.country`,
+  // `billing_address.state`, `billing_address.zipcode`,
+  // `has_tax_identification_number`, `metadata.<key>` and `deleted`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+  // A full-text search over the name, legal name, external ID, email and
+  // names.
+  string search = 4 [(buf.validate.field).string.max_len = 255];
+  // An AIP-132 ordering (`created_at desc` by default).
+  string order_by = 5 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListCustomersResponse is the response of CustomerService.ListCustomers.
+message ListCustomersResponse {
+  // The customers of this page.
+  repeated Customer customers = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateCustomerRequest is the request of CustomerService.UpdateCustomer.
+message UpdateCustomerRequest {
+  option (buf.validate.message).cel = {
+    id: "customer.id"
+    message: "customer.id is required"
+    expression: "has(this.customer.id)"
+  };
+
+  // The new values; customer.id (an ID or `external_id:<external_id>`)
+  // selects the customer.
+  Customer customer = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+  // Creates the customer when no customer has the external ID.
+  bool allow_missing = 3;
+}
+
+// UpdateCustomerResponse is the response of CustomerService.UpdateCustomer.
+message UpdateCustomerResponse {
+  // The updated or created customer.
+  Customer customer = 1;
+}
+
+// DeleteCustomerRequest is the request of CustomerService.DeleteCustomer.
+message DeleteCustomerRequest {
+  // The customer's ID or `external_id:<external_id>`.
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteCustomerResponse is the response of CustomerService.DeleteCustomer.
+message DeleteCustomerResponse {
+  // The deleted customer.
+  Customer customer = 1;
+}
+
+// GenerateCheckoutUrlRequest is the request of CustomerService.GenerateCheckoutUrl.
+message GenerateCheckoutUrlRequest {
+  // The customer's ID or `external_id:<external_id>`.
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The payment integration (ID or `code:<code>`); the customer's default
+  // payment connection when unset.
+  string integration_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+}
+
+// GenerateCheckoutUrlResponse is the response of CustomerService.GenerateCheckoutUrl.
+message GenerateCheckoutUrlResponse {
+  // The checkout URL.
+  string checkout_url = 1;
+  // When the checkout URL stops working.
+  google.protobuf.Timestamp expires_at = 2;
+}
+
+// GeneratePortalUrlRequest is the request of CustomerService.GeneratePortalUrl.
+message GeneratePortalUrlRequest {
+  // The customer's ID or `external_id:<external_id>`.
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GeneratePortalUrlResponse is the response of CustomerService.GeneratePortalUrl.
+message GeneratePortalUrlResponse {
+  // The signed portal URL.
+  string portal_url = 1;
+  // When the portal URL stops working.
+  google.protobuf.Timestamp expires_at = 2;
+}
+
+// ListCustomerConnectionsRequest is the request of CustomerService.ListCustomerConnections.
+message ListCustomerConnectionsRequest {
+  // The customer's ID or `external_id:<external_id>`.
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// ListCustomerConnectionsResponse is the response of CustomerService.ListCustomerConnections.
+message ListCustomerConnectionsResponse {
+  // The customer's connections.
+  repeated CustomerConnection connections = 1;
+}
+
+// UpsertCustomerConnectionRequest is the request of CustomerService.UpsertCustomerConnection.
+message UpsertCustomerConnectionRequest {
+  option (buf.validate.message).cel = {
+    id: "connection.integration_id"
+    message: "connection.integration_id is required"
+    expression: "has(this.connection.integration_id)"
+  };
+
+  // The customer's ID or `external_id:<external_id>`.
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The connection; connection.integration_id selects it.
+  CustomerConnection connection = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// UpsertCustomerConnectionResponse is the response of CustomerService.UpsertCustomerConnection.
+message UpsertCustomerConnectionResponse {
+  // The stored connection.
+  CustomerConnection connection = 1;
+}
+
+// DeleteCustomerConnectionRequest is the request of CustomerService.DeleteCustomerConnection.
+message DeleteCustomerConnectionRequest {
+  // The customer's ID or `external_id:<external_id>`.
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The integration's ID or `code:<code>`.
+  string integration_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteCustomerConnectionResponse is the response of CustomerService.DeleteCustomerConnection.
+message DeleteCustomerConnectionResponse {}

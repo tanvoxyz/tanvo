@@ -1,0 +1,35 @@
+version: v2
+clean: true
+managed:
+  enabled: true
+  disable:
+    # Dependencies keep the Go packages they publish.
+    - module: buf.build/googleapis/googleapis
+    - module: buf.build/bufbuild/protovalidate
+  override:
+    - file_option: go_package_prefix
+      value: github.com/tanvoxyz/tanvo/libs/proto/gen/go
+plugins:
+  - remote: buf.build/protocolbuffers/go:v1.36.12
+    out: gen/go
+    opt:
+      - paths=source_relative
+      - default_api_level=API_OPAQUE
+  - remote: buf.build/connectrpc/go:v2.0.2
+    out: gen/go
+    opt:
+      - paths=source_relative
+  - remote: buf.build/bufbuild/es:v2.16.0
+    out: gen/ts
+    include_imports: true
+    opt:
+      - target=ts
+      - import_extension=js
+  - remote: buf.build/community/sudorandom-connect-openapi:v0.28.0
+    out: gen/openapi
+    opt:
+      - path=tanvo.openapi.yaml
+      - with-proto-names
+      - only-googleapi-http
+      - with-service-descriptions
+      - short-service-tags

@@ -1,0 +1,605 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+package tanvo.access.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/access/v1/member.proto";
+import "tanvo/common/v1/options.proto";
+
+// AuthService signs users in and out. Sessions are opaque tokens stored
+// server side; the token is sent as a bearer token or a cookie.
+service AuthService {
+  // Registers a user with a password and creates their organization. Fails
+  // when the installation disables sign-up.
+  rpc SignUp(SignUpRequest) returns (SignUpResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth:sign_up"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {anonymous: true};
+  }
+
+  // Signs in with an email address and password.
+  rpc SignInWithPassword(SignInWithPasswordRequest) returns (SignInWithPasswordResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth:sign_in_with_password"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {anonymous: true};
+  }
+
+  // Starts an OpenID Connect sign-in (Google, Okta, Entra ID or another
+  // provider) and returns the provider's authorization URL. The state is
+  // kept server side.
+  rpc StartOidcSignIn(StartOidcSignInRequest) returns (StartOidcSignInResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth:start_oidc_sign_in"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {anonymous: true};
+  }
+
+  // Completes an OpenID Connect sign-in with the provider's callback
+  // parameters. Signs up or accepts an invite when the start request asked
+  // for it.
+  rpc CompleteOidcSignIn(CompleteOidcSignInRequest) returns (CompleteOidcSignInResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth:complete_oidc_sign_in"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {anonymous: true};
+  }
+
+  // Returns the public details of a pending invite from its token.
+  rpc LookupInvite(LookupInviteRequest) returns (LookupInviteResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      post: "/v1/auth:lookup_invite"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {anonymous: true};
+  }
+
+  // Accepts an invite with a password, creating the user when needed.
+  rpc AcceptInvite(AcceptInviteRequest) returns (AcceptInviteResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth:accept_invite"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {anonymous: true};
+  }
+
+  // Emails a password reset link valid for 30 minutes. Succeeds whether or
+  // not the address is known.
+  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth:request_password_reset"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {anonymous: true};
+  }
+
+  // Sets a new password with a reset token and signs in.
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth:reset_password"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {anonymous: true};
+  }
+
+  // Returns the signed-in user and their organizations.
+  rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/auth/current_user"};
+    option (tanvo.common.v1.access) = {authenticated: true};
+  }
+
+  // Ends the current session.
+  rpc SignOut(SignOutRequest) returns (SignOutResponse) {
+    option (google.api.http) = {
+      post: "/v1/auth:sign_out"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {authenticated: true};
+  }
+}
+
+// SsoConnectionService configures the OpenID Connect providers members may
+// sign in with.
+service SsoConnectionService {
+  // Creates an SSO connection.
+  rpc CreateSsoConnection(CreateSsoConnectionRequest) returns (CreateSsoConnectionResponse) {
+    option (google.api.http) = {
+      post: "/v1/sso_connections"
+      body: "sso_connection"
+    };
+    option (tanvo.common.v1.access) = {permission: "authentication_methods:update"};
+  }
+
+  // Returns an SSO connection, without its client secret.
+  rpc GetSsoConnection(GetSsoConnectionRequest) returns (GetSsoConnectionResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/sso_connections/{sso_connection_id}"};
+    option (tanvo.common.v1.access) = {permission: "authentication_methods:read"};
+  }
+
+  // Lists SSO connections.
+  rpc ListSsoConnections(ListSsoConnectionsRequest) returns (ListSsoConnectionsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/sso_connections"};
+    option (tanvo.common.v1.access) = {permission: "authentication_methods:read"};
+  }
+
+  // Updates an SSO connection.
+  rpc UpdateSsoConnection(UpdateSsoConnectionRequest) returns (UpdateSsoConnectionResponse) {
+    option (google.api.http) = {
+      patch: "/v1/sso_connections/{sso_connection.id}"
+      body: "sso_connection"
+    };
+    option (tanvo.common.v1.access) = {permission: "authentication_methods:update"};
+  }
+
+  // Deletes an SSO connection. Refused when it is the organization's last
+  // enabled sign-in method.
+  rpc DeleteSsoConnection(DeleteSsoConnectionRequest) returns (DeleteSsoConnectionResponse) {
+    option (google.api.http) = {delete: "/v1/sso_connections/{sso_connection_id}"};
+    option (tanvo.common.v1.access) = {permission: "authentication_methods:update"};
+  }
+}
+
+// SsoProvider is the kind of an OpenID Connect provider.
+enum SsoProvider {
+  // Not set.
+  SSO_PROVIDER_UNSPECIFIED = 0;
+  // Okta.
+  SSO_PROVIDER_OKTA = 1;
+  // Microsoft Entra ID.
+  SSO_PROVIDER_ENTRA_ID = 2;
+  // Any other OpenID Connect provider, configured by issuer URL.
+  SSO_PROVIDER_OIDC = 3;
+}
+
+// OidcProvider is the provider of an OpenID Connect sign-in.
+enum OidcProvider {
+  // Not set.
+  OIDC_PROVIDER_UNSPECIFIED = 0;
+  // Google, configured for the installation.
+  OIDC_PROVIDER_GOOGLE = 1;
+  // An organization's SSO connection, found from the email domain.
+  OIDC_PROVIDER_SSO = 2;
+}
+
+// OidcIntent is what a completed OpenID Connect sign-in does.
+enum OidcIntent {
+  // Not set.
+  OIDC_INTENT_UNSPECIFIED = 0;
+  // Signs an existing user in.
+  OIDC_INTENT_SIGN_IN = 1;
+  // Registers a user and their organization.
+  OIDC_INTENT_SIGN_UP = 2;
+  // Accepts an invite.
+  OIDC_INTENT_ACCEPT_INVITE = 3;
+}
+
+// Session is a signed-in session.
+message Session {
+  // The opaque session token.
+  string token = 1;
+  // When the session expires unless used.
+  google.protobuf.Timestamp expires_at = 2;
+}
+
+// OrganizationAccess is one organization the signed-in user belongs to.
+message OrganizationAccess {
+  // The organization's ID.
+  string organization_id = 1;
+  // The organization's name.
+  string organization_name = 2;
+  // The membership's ID.
+  string membership_id = 3;
+  // The role's code.
+  string role_code = 4;
+  // The permissions the role holds.
+  repeated string permissions = 5;
+}
+
+// SsoConnection is an OpenID Connect provider configured for an
+// organization.
+message SsoConnection {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/SsoConnection"
+    pattern: "sso_connections/{sso_connection}"
+    plural: "ssoConnections"
+    singular: "ssoConnection"
+  };
+
+  // The connection's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The provider kind.
+  SsoProvider provider = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The email domain that routes sign-ins to this connection.
+  string domain = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.hostname = true
+  ];
+  // Further email domains routed to this connection (Entra ID).
+  repeated string additional_domains = 4 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {hostname: true}
+    }
+  }];
+  // The OAuth client ID.
+  string client_id = 5 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // The OAuth client secret; write only.
+  string client_secret = 6 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.max_len = 1024
+  ];
+  // The issuer URL (`https://acme.okta.com`), for Okta and other OIDC
+  // providers.
+  string issuer_url = 7 [(buf.validate.field).string.uri = true];
+  // The Entra ID tenant ID.
+  string tenant_id = 8 [(buf.validate.field).string.max_len = 255];
+  // When the connection was created.
+  google.protobuf.Timestamp created_at = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the connection last changed.
+  google.protobuf.Timestamp updated_at = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// SignUpRequest is the request of AuthService.SignUp.
+message SignUpRequest {
+  // The new user's email address.
+  string email = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {
+      email: true
+      max_len: 255
+    }
+  ];
+  // The new user's password, at least 8 characters.
+  string password = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {
+      min_len: 8
+      max_len: 128
+    }
+  ];
+  // The name of the organization to create.
+  string organization_name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+}
+
+// SignUpResponse is the response of AuthService.SignUp.
+message SignUpResponse {
+  // The new session.
+  Session session = 1;
+  // The created user.
+  User user = 2;
+  // The created organization, with the admin membership.
+  OrganizationAccess organization = 3;
+}
+
+// SignInWithPasswordRequest is the request of AuthService.SignInWithPassword.
+message SignInWithPasswordRequest {
+  // The user's email address.
+  string email = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {
+      email: true
+      max_len: 255
+    }
+  ];
+  // The user's password.
+  string password = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 128
+  ];
+}
+
+// SignInWithPasswordResponse is the response of AuthService.SignInWithPassword.
+message SignInWithPasswordResponse {
+  // The new session.
+  Session session = 1;
+  // The signed-in user.
+  User user = 2;
+  // The organizations whose authentication methods allow passwords.
+  repeated OrganizationAccess organizations = 3;
+}
+
+// StartOidcSignInRequest is the request of AuthService.StartOidcSignIn.
+message StartOidcSignInRequest {
+  // The provider.
+  OidcProvider provider = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // What the sign-in does once completed.
+  OidcIntent intent = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The user's email address; selects the SSO connection by domain.
+  string email = 3 [(buf.validate.field).string = {
+    email: true
+    max_len: 255
+  }];
+  // The invite token, for OIDC_INTENT_ACCEPT_INVITE.
+  string invite_token = 4 [(buf.validate.field).string.max_len = 255];
+  // The organization name, for OIDC_INTENT_SIGN_UP.
+  string organization_name = 5 [(buf.validate.field).string.max_len = 255];
+  // Where the provider redirects after authorization; must be an allowed
+  // redirect URL of the installation.
+  string redirect_uri = 6 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uri = true
+  ];
+}
+
+// StartOidcSignInResponse is the response of AuthService.StartOidcSignIn.
+message StartOidcSignInResponse {
+  // The provider's authorization URL to redirect the browser to.
+  string authorization_url = 1;
+}
+
+// CompleteOidcSignInRequest is the request of AuthService.CompleteOidcSignIn.
+message CompleteOidcSignInRequest {
+  // The authorization code from the callback.
+  string code = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 4096
+  ];
+  // The state from the callback.
+  string state = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 1024
+  ];
+}
+
+// CompleteOidcSignInResponse is the response of AuthService.CompleteOidcSignIn.
+message CompleteOidcSignInResponse {
+  // The new session.
+  Session session = 1;
+  // The signed-in user.
+  User user = 2;
+  // The organizations the user may enter with this provider.
+  repeated OrganizationAccess organizations = 3;
+}
+
+// LookupInviteRequest is the request of AuthService.LookupInvite.
+message LookupInviteRequest {
+  // The invite token from the invite link.
+  string token = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+}
+
+// LookupInviteResponse is the response of AuthService.LookupInvite.
+message LookupInviteResponse {
+  // The invited email address.
+  string email = 1;
+  // The inviting organization's name.
+  string organization_name = 2;
+  // The sign-in methods the organization allows.
+  repeated string authentication_methods = 3;
+}
+
+// AcceptInviteRequest is the request of AuthService.AcceptInvite.
+message AcceptInviteRequest {
+  // The invite token from the invite link.
+  string token = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The password: the existing user's, or the new user's (at least 8
+  // characters).
+  string password = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {
+      min_len: 8
+      max_len: 128
+    }
+  ];
+}
+
+// AcceptInviteResponse is the response of AuthService.AcceptInvite.
+message AcceptInviteResponse {
+  // The new session.
+  Session session = 1;
+  // The signed-in user.
+  User user = 2;
+  // The joined organization.
+  OrganizationAccess organization = 3;
+}
+
+// RequestPasswordResetRequest is the request of AuthService.RequestPasswordReset.
+message RequestPasswordResetRequest {
+  // The user's email address.
+  string email = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {
+      email: true
+      max_len: 255
+    }
+  ];
+}
+
+// RequestPasswordResetResponse is the response of AuthService.RequestPasswordReset.
+message RequestPasswordResetResponse {}
+
+// ResetPasswordRequest is the request of AuthService.ResetPassword.
+message ResetPasswordRequest {
+  // The reset token from the email link.
+  string token = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The new password, at least 8 characters.
+  string password = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {
+      min_len: 8
+      max_len: 128
+    }
+  ];
+}
+
+// ResetPasswordResponse is the response of AuthService.ResetPassword.
+message ResetPasswordResponse {
+  // The new session.
+  Session session = 1;
+  // The signed-in user.
+  User user = 2;
+}
+
+// GetCurrentUserRequest is the request of AuthService.GetCurrentUser.
+message GetCurrentUserRequest {}
+
+// GetCurrentUserResponse is the response of AuthService.GetCurrentUser.
+message GetCurrentUserResponse {
+  // The signed-in user.
+  User user = 1;
+  // The organizations the user belongs to.
+  repeated OrganizationAccess organizations = 2;
+}
+
+// SignOutRequest is the request of AuthService.SignOut.
+message SignOutRequest {}
+
+// SignOutResponse is the response of AuthService.SignOut.
+message SignOutResponse {}
+
+// CreateSsoConnectionRequest is the request of SsoConnectionService.CreateSsoConnection.
+message CreateSsoConnectionRequest {
+  option (buf.validate.message).cel = {
+    id: "sso_connection.required"
+    message: "provider, domain, client_id and client_secret are required"
+    expression: "has(this.sso_connection.provider) && has(this.sso_connection.domain) && has(this.sso_connection.client_id) && has(this.sso_connection.client_secret)"
+  };
+
+  // The connection to create.
+  SsoConnection sso_connection = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateSsoConnectionResponse is the response of SsoConnectionService.CreateSsoConnection.
+message CreateSsoConnectionResponse {
+  // The created connection.
+  SsoConnection sso_connection = 1;
+}
+
+// GetSsoConnectionRequest is the request of SsoConnectionService.GetSsoConnection.
+message GetSsoConnectionRequest {
+  // The connection's ID.
+  string sso_connection_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetSsoConnectionResponse is the response of SsoConnectionService.GetSsoConnection.
+message GetSsoConnectionResponse {
+  // The connection.
+  SsoConnection sso_connection = 1;
+}
+
+// ListSsoConnectionsRequest is the request of SsoConnectionService.ListSsoConnections.
+message ListSsoConnectionsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListSsoConnectionsResponse is the response of SsoConnectionService.ListSsoConnections.
+message ListSsoConnectionsResponse {
+  // The connections of this page.
+  repeated SsoConnection sso_connections = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateSsoConnectionRequest is the request of SsoConnectionService.UpdateSsoConnection.
+message UpdateSsoConnectionRequest {
+  option (buf.validate.message).cel = {
+    id: "sso_connection.id"
+    message: "sso_connection.id is required"
+    expression: "has(this.sso_connection.id)"
+  };
+
+  // The new values; sso_connection.id selects the connection.
+  SsoConnection sso_connection = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateSsoConnectionResponse is the response of SsoConnectionService.UpdateSsoConnection.
+message UpdateSsoConnectionResponse {
+  // The updated connection.
+  SsoConnection sso_connection = 1;
+}
+
+// DeleteSsoConnectionRequest is the request of SsoConnectionService.DeleteSsoConnection.
+message DeleteSsoConnectionRequest {
+  // The connection's ID.
+  string sso_connection_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DeleteSsoConnectionResponse is the response of SsoConnectionService.DeleteSsoConnection.
+message DeleteSsoConnectionResponse {}

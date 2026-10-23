@@ -7,6 +7,7 @@ use (
 	./libs/money
 	./libs/period
 	./libs/pricing
+	./libs/proto
 	./libs/tax
 	./libs/webhooks
 )

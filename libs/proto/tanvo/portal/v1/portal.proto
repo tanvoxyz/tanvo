@@ -1,0 +1,345 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.portal.v1 is the API of the customer portal: what a
+// customer sees and does with a portal token, scoped to that customer.
+package tanvo.portal.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/field_mask.proto";
+import "tanvo/analytics/v1/analytics.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+import "tanvo/customer/v1/customer.proto";
+import "tanvo/invoice/v1/invoice.proto";
+import "tanvo/subscription/v1/subscription.proto";
+import "tanvo/usage/v1/usage.proto";
+import "tanvo/wallet/v1/wallet.proto";
+
+// CustomerPortalService serves the customer portal. Every RPC is
+// authenticated by a portal token (from CustomerService.GeneratePortalUrl) and
+// acts on its customer only; IDs of other customers' objects are not
+// found.
+service CustomerPortalService {
+  // Returns the organization's portal branding and settings.
+  rpc GetPortalOrganization(GetPortalOrganizationRequest) returns (GetPortalOrganizationResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/portal/organization"};
+    option (tanvo.common.v1.access) = {portal: true};
+  }
+
+  // Returns the customer's profile.
+  rpc GetPortalCustomer(GetPortalCustomerRequest) returns (GetPortalCustomerResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/portal/customer"};
+    option (tanvo.common.v1.access) = {portal: true};
+  }
+
+  // Updates the customer's billing details.
+  rpc UpdatePortalCustomer(UpdatePortalCustomerRequest) returns (UpdatePortalCustomerResponse) {
+    option (google.api.http) = {
+      patch: "/v1/portal/customer"
+      body: "profile"
+    };
+    option (tanvo.common.v1.access) = {portal: true};
+  }
+
+  // Lists the customer's finalized invoices, newest first.
+  rpc ListPortalInvoices(ListPortalInvoicesRequest) returns (ListPortalInvoicesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/portal/invoices"};
+    option (tanvo.common.v1.access) = {portal: true};
+  }
+
+  // Returns a signed URL of an invoice's PDF.
+  rpc DownloadPortalInvoice(DownloadPortalInvoiceRequest) returns (DownloadPortalInvoiceResponse) {
+    option (google.api.http) = {
+      post: "/v1/portal/invoices/{invoice_id}:download"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {portal: true};
+  }
+
+  // Lists the customer's active subscriptions.
+  rpc ListPortalSubscriptions(ListPortalSubscriptionsRequest) returns (ListPortalSubscriptionsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/portal/subscriptions"};
+    option (tanvo.common.v1.access) = {portal: true};
+  }
+
+  // Returns a subscription's usage in the current billing period.
+  rpc GetPortalCurrentUsage(GetPortalCurrentUsageRequest) returns (GetPortalCurrentUsageResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/portal/subscriptions/{subscription_id}/usage:current"};
+    option (tanvo.common.v1.access) = {portal: true};
+  }
+
+  // Lists the customer's active wallets.
+  rpc ListPortalWallets(ListPortalWalletsRequest) returns (ListPortalWalletsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/portal/wallets"};
+    option (tanvo.common.v1.access) = {portal: true};
+  }
+
+  // Buys or requests credits for a wallet, within its paid top-up limits.
+  rpc TopUpPortalWallet(TopUpPortalWalletRequest) returns (TopUpPortalWalletResponse) {
+    option (google.api.http) = {
+      post: "/v1/portal/wallets/{wallet_id}:top_up"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {portal: true};
+  }
+
+  // Returns the customer's overdue balance per currency.
+  rpc GetPortalOverdueBalance(GetPortalOverdueBalanceRequest) returns (GetPortalOverdueBalanceResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/portal/overdue_balance"};
+    option (tanvo.common.v1.access) = {portal: true};
+  }
+
+  // Returns the customer's invoices per payment status.
+  rpc GetPortalInvoiceCollection(GetPortalInvoiceCollectionRequest) returns (GetPortalInvoiceCollectionResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/portal/invoice_collection"};
+    option (tanvo.common.v1.access) = {portal: true};
+  }
+
+  // Requests payment of the customer's overdue invoices and returns the
+  // checkout URL.
+  rpc PayPortalOverdueBalance(PayPortalOverdueBalanceRequest) returns (PayPortalOverdueBalanceResponse) {
+    option (google.api.http) = {
+      post: "/v1/portal/overdue_balance:pay"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {portal: true};
+  }
+}
+
+// PortalOrganization is what the portal shows of the organization.
+message PortalOrganization {
+  // The name.
+  string name = 1;
+  // The logo URL.
+  string logo_url = 2;
+  // The default currency.
+  string default_currency = 3;
+  // The premium portal features enabled.
+  repeated string premium_integrations = 4;
+}
+
+// PortalProfile is the billing details a customer can edit.
+message PortalProfile {
+  // The customer type.
+  tanvo.customer.v1.CustomerType customer_type = 1 [(buf.validate.field).enum.defined_only = true];
+  // The display name.
+  string name = 2 [(buf.validate.field).string.max_len = 255];
+  // The first name.
+  string firstname = 3 [(buf.validate.field).string.max_len = 255];
+  // The last name.
+  string lastname = 4 [(buf.validate.field).string.max_len = 255];
+  // The legal name.
+  string legal_name = 5 [(buf.validate.field).string.max_len = 255];
+  // The tax identification number.
+  string tax_identification_number = 6 [(buf.validate.field).string.max_len = 255];
+  // The email addresses, comma separated.
+  string email = 7 [(buf.validate.field).string.max_len = 1024];
+  // The billing address.
+  tanvo.common.v1.Address billing_address = 8;
+  // The shipping address.
+  tanvo.common.v1.Address shipping_address = 9;
+  // The document locale (BCP 47).
+  string document_locale = 10 [(buf.validate.field).string.max_len = 35];
+}
+
+// GetPortalOrganizationRequest is the request of CustomerPortalService.GetPortalOrganization.
+message GetPortalOrganizationRequest {}
+
+// GetPortalOrganizationResponse is the response of CustomerPortalService.GetPortalOrganization.
+message GetPortalOrganizationResponse {
+  // The organization.
+  PortalOrganization organization = 1;
+}
+
+// GetPortalCustomerRequest is the request of CustomerPortalService.GetPortalCustomer.
+message GetPortalCustomerRequest {}
+
+// GetPortalCustomerResponse is the response of CustomerPortalService.GetPortalCustomer.
+message GetPortalCustomerResponse {
+  // The customer.
+  tanvo.customer.v1.Customer customer = 1;
+}
+
+// UpdatePortalCustomerRequest is the request of CustomerPortalService.UpdatePortalCustomer.
+message UpdatePortalCustomerRequest {
+  // The new billing details.
+  PortalProfile profile = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdatePortalCustomerResponse is the response of CustomerPortalService.UpdatePortalCustomer.
+message UpdatePortalCustomerResponse {
+  // The updated customer.
+  tanvo.customer.v1.Customer customer = 1;
+}
+
+// ListPortalInvoicesRequest is the request of CustomerPortalService.ListPortalInvoices.
+message ListPortalInvoicesRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `payment_status`, `currency` and
+  // `issuing_date`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+  // A search over the number.
+  string search = 4 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListPortalInvoicesResponse is the response of CustomerPortalService.ListPortalInvoices.
+message ListPortalInvoicesResponse {
+  // The invoices of this page.
+  repeated tanvo.invoice.v1.Invoice invoices = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// DownloadPortalInvoiceRequest is the request of CustomerPortalService.DownloadPortalInvoice.
+message DownloadPortalInvoiceRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DownloadPortalInvoiceResponse is the response of CustomerPortalService.DownloadPortalInvoice.
+message DownloadPortalInvoiceResponse {
+  // The PDF.
+  tanvo.common.v1.Document pdf = 1;
+}
+
+// ListPortalSubscriptionsRequest is the request of CustomerPortalService.ListPortalSubscriptions.
+message ListPortalSubscriptionsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListPortalSubscriptionsResponse is the response of CustomerPortalService.ListPortalSubscriptions.
+message ListPortalSubscriptionsResponse {
+  // The subscriptions of this page.
+  repeated tanvo.subscription.v1.Subscription subscriptions = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// GetPortalCurrentUsageRequest is the request of CustomerPortalService.GetPortalCurrentUsage.
+message GetPortalCurrentUsageRequest {
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetPortalCurrentUsageResponse is the response of CustomerPortalService.GetPortalCurrentUsage.
+message GetPortalCurrentUsageResponse {
+  // The usage.
+  tanvo.usage.v1.Usage usage = 1;
+}
+
+// ListPortalWalletsRequest is the request of CustomerPortalService.ListPortalWallets.
+message ListPortalWalletsRequest {}
+
+// ListPortalWalletsResponse is the response of CustomerPortalService.ListPortalWallets.
+message ListPortalWalletsResponse {
+  // The active wallets.
+  repeated tanvo.wallet.v1.Wallet wallets = 1;
+}
+
+// TopUpPortalWalletRequest is the request of CustomerPortalService.TopUpPortalWallet.
+message TopUpPortalWalletRequest {
+  // The wallet's ID.
+  string wallet_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The credits to buy.
+  string paid_credits = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+}
+
+// TopUpPortalWalletResponse is the response of CustomerPortalService.TopUpPortalWallet.
+message TopUpPortalWalletResponse {
+  // The pending transaction.
+  tanvo.wallet.v1.WalletTransaction wallet_transaction = 1;
+  // The checkout URL of the credit invoice, when paid online.
+  string payment_url = 2;
+}
+
+// GetPortalOverdueBalanceRequest is the request of CustomerPortalService.GetPortalOverdueBalance.
+message GetPortalOverdueBalanceRequest {
+  // The number of months; 12 by default.
+  int32 months = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 120
+  }];
+}
+
+// GetPortalOverdueBalanceResponse is the response of CustomerPortalService.GetPortalOverdueBalance.
+message GetPortalOverdueBalanceResponse {
+  // The points, oldest first.
+  repeated tanvo.analytics.v1.OverdueBalancePoint points = 1;
+}
+
+// GetPortalInvoiceCollectionRequest is the request of CustomerPortalService.GetPortalInvoiceCollection.
+message GetPortalInvoiceCollectionRequest {
+  // The number of months; 12 by default.
+  int32 months = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 120
+  }];
+}
+
+// GetPortalInvoiceCollectionResponse is the response of CustomerPortalService.GetPortalInvoiceCollection.
+message GetPortalInvoiceCollectionResponse {
+  // The points, oldest first.
+  repeated tanvo.analytics.v1.InvoiceCollectionPoint points = 1;
+}
+
+// PayPortalOverdueBalanceRequest is the request of CustomerPortalService.PayPortalOverdueBalance.
+message PayPortalOverdueBalanceRequest {
+  // The currency to pay.
+  string currency = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.currency) = true
+  ];
+}
+
+// PayPortalOverdueBalanceResponse is the response of CustomerPortalService.PayPortalOverdueBalance.
+message PayPortalOverdueBalanceResponse {
+  // The checkout URL.
+  string payment_url = 1;
+}

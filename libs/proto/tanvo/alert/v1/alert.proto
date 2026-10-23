@@ -1,0 +1,450 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.alert.v1 is the API of usage monitoring alerts on
+// subscriptions and wallets.
+package tanvo.alert.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+
+// AlertService manages alerts. An alert watches one subscription or one
+// wallet; requests carry exactly one of subscription_id and wallet_id.
+service AlertService {
+  // Creates an alert.
+  rpc CreateAlert(CreateAlertRequest) returns (CreateAlertResponse) {
+    option (google.api.http) = {
+      post: "/v1/subscriptions/{subscription_id}/alerts"
+      body: "alert"
+      additional_bindings: {
+        post: "/v1/wallets/{wallet_id}/alerts"
+        body: "alert"
+      }
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "subscriptions:update"
+      api_resource: "alert"
+    };
+  }
+
+  // Creates several alerts at once; all or none are created.
+  rpc BatchCreateAlerts(BatchCreateAlertsRequest) returns (BatchCreateAlertsResponse) {
+    option (google.api.http) = {
+      post: "/v1/subscriptions/{subscription_id}/alerts:batch_create"
+      body: "*"
+      additional_bindings: {
+        post: "/v1/wallets/{wallet_id}/alerts:batch_create"
+        body: "*"
+      }
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "subscriptions:update"
+      api_resource: "alert"
+    };
+  }
+
+  // Returns an alert by ID or `code:<code>`.
+  rpc GetAlert(GetAlertRequest) returns (GetAlertResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/subscriptions/{subscription_id}/alerts/{alert_id}"
+      additional_bindings: {get: "/v1/wallets/{wallet_id}/alerts/{alert_id}"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "subscriptions:read"
+      api_resource: "alert"
+    };
+  }
+
+  // Lists the alerts of a subscription or a wallet.
+  rpc ListAlerts(ListAlertsRequest) returns (ListAlertsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/subscriptions/{subscription_id}/alerts"
+      additional_bindings: {get: "/v1/wallets/{wallet_id}/alerts"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "subscriptions:read"
+      api_resource: "alert"
+    };
+  }
+
+  // Updates an alert's name, code and thresholds.
+  rpc UpdateAlert(UpdateAlertRequest) returns (UpdateAlertResponse) {
+    option (google.api.http) = {
+      patch: "/v1/subscriptions/{subscription_id}/alerts/{alert.id}"
+      body: "alert"
+      additional_bindings: {
+        patch: "/v1/wallets/{wallet_id}/alerts/{alert.id}"
+        body: "alert"
+      }
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "subscriptions:update"
+      api_resource: "alert"
+    };
+  }
+
+  // Deletes an alert.
+  rpc DeleteAlert(DeleteAlertRequest) returns (DeleteAlertResponse) {
+    option (google.api.http) = {
+      delete: "/v1/subscriptions/{subscription_id}/alerts/{alert_id}"
+      additional_bindings: {delete: "/v1/wallets/{wallet_id}/alerts/{alert_id}"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "subscriptions:update"
+      api_resource: "alert"
+    };
+  }
+
+  // Lists the times alerts were triggered, newest first.
+  rpc ListTriggeredAlerts(ListTriggeredAlertsRequest) returns (ListTriggeredAlertsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/subscriptions/{subscription_id}/triggered_alerts"
+      additional_bindings: {get: "/v1/wallets/{wallet_id}/triggered_alerts"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "subscriptions:read"
+      api_resource: "alert"
+    };
+  }
+}
+
+// AlertType is the value an alert watches.
+enum AlertType {
+  // Not set.
+  ALERT_TYPE_UNSPECIFIED = 0;
+  // The subscription's current usage amount.
+  ALERT_TYPE_CURRENT_USAGE_AMOUNT = 1;
+  // A billable metric's current usage amount.
+  ALERT_TYPE_BILLABLE_METRIC_CURRENT_USAGE_AMOUNT = 2;
+  // A billable metric's current usage units.
+  ALERT_TYPE_BILLABLE_METRIC_CURRENT_USAGE_UNITS = 3;
+  // The subscription's lifetime usage amount.
+  ALERT_TYPE_LIFETIME_USAGE_AMOUNT = 4;
+  // A billable metric's lifetime usage units.
+  ALERT_TYPE_BILLABLE_METRIC_LIFETIME_USAGE_UNITS = 5;
+  // The wallet's balance amount.
+  ALERT_TYPE_WALLET_BALANCE_AMOUNT = 6;
+  // The wallet's balance in credits.
+  ALERT_TYPE_WALLET_CREDITS_BALANCE = 7;
+  // The wallet's ongoing balance amount.
+  ALERT_TYPE_WALLET_ONGOING_BALANCE_AMOUNT = 8;
+  // The wallet's ongoing balance in credits.
+  ALERT_TYPE_WALLET_CREDITS_ONGOING_BALANCE = 9;
+}
+
+// AlertDirection is which crossing of a threshold triggers an alert.
+enum AlertDirection {
+  // Not set: INCREASING for usage, DECREASING for wallets.
+  ALERT_DIRECTION_UNSPECIFIED = 0;
+  // The value rises above the threshold.
+  ALERT_DIRECTION_INCREASING = 1;
+  // The value falls below the threshold.
+  ALERT_DIRECTION_DECREASING = 2;
+}
+
+// AlertThreshold is a value that triggers an alert.
+message AlertThreshold {
+  // A code reported when the threshold is crossed.
+  string code = 1 [(buf.validate.field).string.max_len = 255];
+  // The value.
+  string value = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.decimal) = true
+  ];
+  // Repeats every value past the last threshold; at most one per alert.
+  bool recurring = 3;
+}
+
+// Alert watches a value of a subscription or a wallet.
+message Alert {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Alert"
+    pattern: "alerts/{alert}"
+    plural: "alerts"
+    singular: "alert"
+  };
+
+  // The alert's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // A code unique within the subscription or wallet.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // A display name.
+  string name = 3 [(buf.validate.field).string.max_len = 255];
+  // What the alert watches.
+  AlertType alert_type = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The direction of the crossing.
+  AlertDirection direction = 5 [
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The subscription watched.
+  string subscription_id = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The subscription's external ID.
+  string external_subscription_id = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The wallet watched.
+  string wallet_id = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The billable metric, for billable metric types (ID or `code:<code>`).
+  string billable_metric_id = 9 [
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The thresholds.
+  repeated AlertThreshold thresholds = 10 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).repeated.max_items = 20,
+    (buf.validate.field).cel = {
+      id: "thresholds.recurring"
+      message: "at most one threshold is recurring"
+      expression: "this.filter(t, t.recurring).size() <= 1"
+    }
+  ];
+  // The value at the last evaluation.
+  string previous_value = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the alert was last evaluated.
+  google.protobuf.Timestamp last_processed_at = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the alert was created.
+  google.protobuf.Timestamp created_at = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the alert last changed.
+  google.protobuf.Timestamp updated_at = 14 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// TriggeredAlert is one time an alert crossed thresholds.
+message TriggeredAlert {
+  // The triggered alert's ID.
+  string id = 1;
+  // The alert.
+  string alert_id = 2;
+  // The alert's code.
+  string alert_code = 3;
+  // The alert's type.
+  AlertType alert_type = 4;
+  // The subscription.
+  string subscription_id = 5;
+  // The wallet.
+  string wallet_id = 6;
+  // The value that triggered the alert.
+  string current_value = 7;
+  // The value at the previous evaluation.
+  string previous_value = 8;
+  // The thresholds crossed.
+  repeated AlertThreshold crossed_thresholds = 9;
+  // When the alert was triggered.
+  google.protobuf.Timestamp triggered_at = 10;
+}
+
+// CreateAlertRequest is the request of AlertService.CreateAlert.
+message CreateAlertRequest {
+  option (buf.validate.message).cel = {
+    id: "alert.owner"
+    message: "set exactly one of subscription_id and wallet_id"
+    expression: "has(this.subscription_id) != has(this.wallet_id)"
+  };
+  option (buf.validate.message).cel = {
+    id: "alert.required"
+    message: "code, alert_type and thresholds are required"
+    expression: "has(this.alert.code) && has(this.alert.alert_type) && size(this.alert.thresholds) > 0"
+  };
+
+  // The subscription's ID or `external_id:<external_id>`.
+  string subscription_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The wallet's ID.
+  string wallet_id = 2 [(buf.validate.field).string.uuid = true];
+  // The alert to create.
+  Alert alert = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateAlertResponse is the response of AlertService.CreateAlert.
+message CreateAlertResponse {
+  // The created alert.
+  Alert alert = 1;
+}
+
+// BatchCreateAlertsRequest is the request of AlertService.BatchCreateAlerts.
+message BatchCreateAlertsRequest {
+  option (buf.validate.message).cel = {
+    id: "alert.owner"
+    message: "set exactly one of subscription_id and wallet_id"
+    expression: "has(this.subscription_id) != has(this.wallet_id)"
+  };
+
+  // The subscription's ID or `external_id:<external_id>`.
+  string subscription_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The wallet's ID.
+  string wallet_id = 2 [(buf.validate.field).string.uuid = true];
+  // The alerts to create.
+  repeated Alert alerts = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).repeated = {
+      min_items: 1
+      max_items: 50
+    }
+  ];
+}
+
+// BatchCreateAlertsResponse is the response of AlertService.BatchCreateAlerts.
+message BatchCreateAlertsResponse {
+  // The created alerts.
+  repeated Alert alerts = 1;
+}
+
+// GetAlertRequest is the request of AlertService.GetAlert.
+message GetAlertRequest {
+  option (buf.validate.message).cel = {
+    id: "alert.owner"
+    message: "set exactly one of subscription_id and wallet_id"
+    expression: "has(this.subscription_id) != has(this.wallet_id)"
+  };
+
+  // The subscription's ID or `external_id:<external_id>`.
+  string subscription_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The wallet's ID.
+  string wallet_id = 2 [(buf.validate.field).string.uuid = true];
+  // The alert's ID or `code:<code>`.
+  string alert_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetAlertResponse is the response of AlertService.GetAlert.
+message GetAlertResponse {
+  // The alert.
+  Alert alert = 1;
+}
+
+// ListAlertsRequest is the request of AlertService.ListAlerts.
+message ListAlertsRequest {
+  option (buf.validate.message).cel = {
+    id: "alert.owner"
+    message: "set exactly one of subscription_id and wallet_id"
+    expression: "has(this.subscription_id) != has(this.wallet_id)"
+  };
+
+  // The subscription's ID or `external_id:<external_id>`.
+  string subscription_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The wallet's ID.
+  string wallet_id = 2 [(buf.validate.field).string.uuid = true];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 3 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 4 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListAlertsResponse is the response of AlertService.ListAlerts.
+message ListAlertsResponse {
+  // The alerts of this page.
+  repeated Alert alerts = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateAlertRequest is the request of AlertService.UpdateAlert.
+message UpdateAlertRequest {
+  option (buf.validate.message).cel = {
+    id: "alert.owner"
+    message: "set exactly one of subscription_id and wallet_id"
+    expression: "has(this.subscription_id) != has(this.wallet_id)"
+  };
+  option (buf.validate.message).cel = {
+    id: "alert.id"
+    message: "alert.id is required"
+    expression: "has(this.alert.id)"
+  };
+
+  // The subscription's ID or `external_id:<external_id>`.
+  string subscription_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The wallet's ID.
+  string wallet_id = 2 [(buf.validate.field).string.uuid = true];
+  // The new values; alert.id (an ID or `code:<code>`) selects the alert.
+  Alert alert = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 4;
+}
+
+// UpdateAlertResponse is the response of AlertService.UpdateAlert.
+message UpdateAlertResponse {
+  // The updated alert.
+  Alert alert = 1;
+}
+
+// DeleteAlertRequest is the request of AlertService.DeleteAlert.
+message DeleteAlertRequest {
+  option (buf.validate.message).cel = {
+    id: "alert.owner"
+    message: "set exactly one of subscription_id and wallet_id"
+    expression: "has(this.subscription_id) != has(this.wallet_id)"
+  };
+
+  // The subscription's ID or `external_id:<external_id>`.
+  string subscription_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The wallet's ID.
+  string wallet_id = 2 [(buf.validate.field).string.uuid = true];
+  // The alert's ID or `code:<code>`.
+  string alert_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteAlertResponse is the response of AlertService.DeleteAlert.
+message DeleteAlertResponse {}
+
+// ListTriggeredAlertsRequest is the request of AlertService.ListTriggeredAlerts.
+message ListTriggeredAlertsRequest {
+  option (buf.validate.message).cel = {
+    id: "alert.owner"
+    message: "set exactly one of subscription_id and wallet_id"
+    expression: "has(this.subscription_id) != has(this.wallet_id)"
+  };
+
+  // The subscription's ID or `external_id:<external_id>`.
+  string subscription_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The wallet's ID.
+  string wallet_id = 2 [(buf.validate.field).string.uuid = true];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 3 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 4 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `alert_id` and `triggered_at`.
+  string filter = 5 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListTriggeredAlertsResponse is the response of AlertService.ListTriggeredAlerts.
+message ListTriggeredAlertsResponse {
+  // The triggered alerts of this page.
+  repeated TriggeredAlert triggered_alerts = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}

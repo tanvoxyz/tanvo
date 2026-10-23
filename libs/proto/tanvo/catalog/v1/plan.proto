@@ -1,0 +1,336 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+package tanvo.catalog.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/catalog/v1/charge.proto";
+import "tanvo/catalog/v1/fixed_charge.proto";
+import "tanvo/common/v1/enums.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// PlanService manages plans: the subscription fee, charges, fixed charges,
+// minimum commitment and usage thresholds a subscription is billed with.
+service PlanService {
+  // Creates a plan with its charges, fixed charges, commitment and
+  // thresholds.
+  rpc CreatePlan(CreatePlanRequest) returns (CreatePlanResponse) {
+    option (google.api.http) = {
+      post: "/v1/plans"
+      body: "plan"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:create"
+      api_resource: "plan"
+    };
+  }
+
+  // Returns a plan by ID or `code:<code>`.
+  rpc GetPlan(GetPlanRequest) returns (GetPlanResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/plans/{plan_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "plans:read"
+      api_resource: "plan"
+    };
+  }
+
+  // Lists plans; child plans (subscription overrides) only when the filter
+  // asks for them.
+  rpc ListPlans(ListPlansRequest) returns (ListPlansResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/plans"};
+    option (tanvo.common.v1.access) = {
+      permission: "plans:read"
+      api_resource: "plan"
+    };
+  }
+
+  // Updates a plan. Once the plan has subscriptions, the interval, currency
+  // and payment timing are locked. With cascade_updates, the change is
+  // applied to child plans that still match.
+  rpc UpdatePlan(UpdatePlanRequest) returns (UpdatePlanResponse) {
+    option (google.api.http) = {
+      patch: "/v1/plans/{plan.id}"
+      body: "plan"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:update"
+      api_resource: "plan"
+    };
+  }
+
+  // Deletes a plan: marks it pending deletion, then terminates its
+  // subscriptions and removes it in the background.
+  rpc DeletePlan(DeletePlanRequest) returns (DeletePlanResponse) {
+    option (google.api.http) = {delete: "/v1/plans/{plan_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "plans:delete"
+      api_resource: "plan"
+    };
+  }
+}
+
+// PlanStatus is the state of a plan.
+enum PlanStatus {
+  // Not set.
+  PLAN_STATUS_UNSPECIFIED = 0;
+  // Usable for new subscriptions.
+  PLAN_STATUS_ACTIVE = 1;
+  // Being deleted in the background.
+  PLAN_STATUS_PENDING_DELETION = 2;
+}
+
+// CommitmentType is the kind of a plan commitment.
+enum CommitmentType {
+  // Not set.
+  COMMITMENT_TYPE_UNSPECIFIED = 0;
+  // A minimum amount per period; a true-up fee fills the difference.
+  COMMITMENT_TYPE_MINIMUM_COMMITMENT = 1;
+}
+
+// Commitment is a minimum amount a subscription pays per period.
+message Commitment {
+  // The commitment's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The kind.
+  CommitmentType commitment_type = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The committed amount per period, in the plan's currency.
+  string amount = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+  // The invoice line name of the true-up fee.
+  string invoice_display_name = 4 [(buf.validate.field).string.max_len = 255];
+  // The true-up fee's taxes (IDs or `code:<code>`).
+  repeated string tax_ids = 5 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // When the commitment was created.
+  google.protobuf.Timestamp created_at = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the commitment last changed.
+  google.protobuf.Timestamp updated_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// UsageThreshold triggers a progressive billing invoice when a
+// subscription's period usage reaches its amount.
+message UsageThreshold {
+  // The threshold's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The usage amount, in the plan's currency.
+  string amount = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+  // Triggers again each time usage grows by the amount after the last
+  // fixed threshold; at most one recurring threshold.
+  bool recurring = 3;
+  // The invoice line name.
+  string threshold_display_name = 4 [(buf.validate.field).string.max_len = 255];
+  // When the threshold was created.
+  google.protobuf.Timestamp created_at = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the threshold last changed.
+  google.protobuf.Timestamp updated_at = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// Plan is a reusable pricing a subscription follows.
+message Plan {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Plan"
+    pattern: "plans/{plan}"
+    plural: "plans"
+    singular: "plan"
+  };
+
+  // The plan's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique code.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // The invoice line name of the subscription fee.
+  string invoice_display_name = 4 [(buf.validate.field).string.max_len = 255];
+  // A description.
+  string description = 5 [(buf.validate.field).string.max_len = 1024];
+  // The billing interval.
+  tanvo.common.v1.Interval interval = 6 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The subscription fee per period and the plan's currency.
+  tanvo.common.v1.Money amount = 7 [(google.api.field_behavior) = REQUIRED];
+  // Bills the subscription fee at the start of the period.
+  bool pay_in_advance = 8;
+  // The trial period in days, without subscription fee.
+  int32 trial_period_days = 9 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 3650
+  }];
+  // Bills usage charges monthly on longer intervals.
+  bool bill_charges_monthly = 10;
+  // Bills fixed charges monthly on longer intervals.
+  bool bill_fixed_charges_monthly = 11;
+  // The plan this child plan overrides for one subscription.
+  string parent_id = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The plan's taxes (IDs or `code:<code>`).
+  repeated string tax_ids = 13 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // Metadata; the list replaces the stored list.
+  repeated tanvo.common.v1.MetadataItem metadata = 14 [(buf.validate.field).repeated.max_items = 50];
+  // The state.
+  PlanStatus status = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The usage charges; on create only, then managed with ChargeService.
+  repeated Charge charges = 16 [(buf.validate.field).repeated.max_items = 500];
+  // The fixed charges; on create only, then managed with
+  // FixedChargeService.
+  repeated FixedCharge fixed_charges = 17 [(buf.validate.field).repeated.max_items = 500];
+  // The minimum commitment.
+  Commitment minimum_commitment = 18;
+  // The progressive billing thresholds.
+  repeated UsageThreshold usage_thresholds = 19 [(buf.validate.field).repeated.max_items = 50];
+  // The yearly amount, which classifies plan changes as upgrades or
+  // downgrades.
+  tanvo.common.v1.Money yearly_amount = 20 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The number of active subscriptions.
+  int32 active_subscriptions_count = 21 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The number of draft invoices.
+  int32 draft_invoices_count = 22 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the plan was created.
+  google.protobuf.Timestamp created_at = 23 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the plan last changed.
+  google.protobuf.Timestamp updated_at = 24 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreatePlanRequest is the request of PlanService.CreatePlan.
+message CreatePlanRequest {
+  option (buf.validate.message).cel = {
+    id: "plan.required"
+    message: "code, name, interval and amount are required"
+    expression: "has(this.plan.code) && has(this.plan.name) && has(this.plan.interval) && has(this.plan.amount)"
+  };
+
+  // The plan to create.
+  Plan plan = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreatePlanResponse is the response of PlanService.CreatePlan.
+message CreatePlanResponse {
+  // The created plan.
+  Plan plan = 1;
+}
+
+// GetPlanRequest is the request of PlanService.GetPlan.
+message GetPlanRequest {
+  // The plan's ID or `code:<code>`.
+  string plan_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetPlanResponse is the response of PlanService.GetPlan.
+message GetPlanResponse {
+  // The plan.
+  Plan plan = 1;
+}
+
+// ListPlansRequest is the request of PlanService.ListPlans.
+message ListPlansRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `status`, `interval`, `amount.currency`,
+  // `parent_id` and `has_parent` (child plans are excluded unless the
+  // filter names them).
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+  // A search over the name and code.
+  string search = 4 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListPlansResponse is the response of PlanService.ListPlans.
+message ListPlansResponse {
+  // The plans of this page.
+  repeated Plan plans = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdatePlanRequest is the request of PlanService.UpdatePlan.
+message UpdatePlanRequest {
+  option (buf.validate.message).cel = {
+    id: "plan.id"
+    message: "plan.id is required"
+    expression: "has(this.plan.id)"
+  };
+
+  // The new values; plan.id (an ID or `code:<code>`) selects the plan.
+  Plan plan = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+  // Applies the change to child plans that still match the parent.
+  bool cascade_updates = 3;
+  // Also changes the subscription fee of existing subscriptions.
+  bool update_subscriptions_amount = 4;
+}
+
+// UpdatePlanResponse is the response of PlanService.UpdatePlan.
+message UpdatePlanResponse {
+  // The updated plan.
+  Plan plan = 1;
+}
+
+// DeletePlanRequest is the request of PlanService.DeletePlan.
+message DeletePlanRequest {
+  // The plan's ID or `code:<code>`.
+  string plan_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeletePlanResponse is the response of PlanService.DeletePlan.
+message DeletePlanResponse {
+  // The plan, pending deletion.
+  Plan plan = 1;
+}

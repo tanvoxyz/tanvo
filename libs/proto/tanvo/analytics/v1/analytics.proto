@@ -1,0 +1,194 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.analytics.v1 is the API of revenue analytics: monthly
+// series of gross revenue, MRR, invoice collection, invoiced usage and
+// overdue balances.
+package tanvo.analytics.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/type/date.proto";
+import "tanvo/common/v1/enums.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// AnalyticsService returns monthly analytics series. Every series covers
+// the last `months` months (12 by default), oldest first, in the
+// organization's time zone, and can be restricted to one currency,
+// billing entity or customer.
+service AnalyticsService {
+  // Returns the gross revenue per month: finalized invoice totals net of
+  // credit notes.
+  rpc GetGrossRevenue(GetGrossRevenueRequest) returns (GetGrossRevenueResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/analytics/gross_revenue"};
+    option (tanvo.common.v1.access) = {
+      permission: "analytics:read"
+      api_resource: "analytic"
+    };
+  }
+
+  // Returns the monthly recurring revenue per month: subscription fees
+  // normalized to one month.
+  rpc GetMrr(GetMrrRequest) returns (GetMrrResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/analytics/mrr"};
+    option (tanvo.common.v1.access) = {
+      permission: "analytics:read"
+      api_resource: "analytic"
+    };
+  }
+
+  // Returns the invoices issued per month, by payment status.
+  rpc GetInvoiceCollection(GetInvoiceCollectionRequest) returns (GetInvoiceCollectionResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/analytics/invoice_collection"};
+    option (tanvo.common.v1.access) = {
+      permission: "analytics:read"
+      api_resource: "analytic"
+    };
+  }
+
+  // Returns the usage invoiced per month, by billable metric.
+  rpc GetInvoicedUsage(GetInvoicedUsageRequest) returns (GetInvoicedUsageResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/analytics/invoiced_usage"};
+    option (tanvo.common.v1.access) = {
+      permission: "analytics:read"
+      api_resource: "analytic"
+    };
+  }
+
+  // Returns the overdue balance at the end of each month.
+  rpc GetOverdueBalance(GetOverdueBalanceRequest) returns (GetOverdueBalanceResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/analytics/overdue_balance"};
+    option (tanvo.common.v1.access) = {
+      permission: "analytics:read"
+      api_resource: "analytic"
+    };
+  }
+}
+
+// AnalyticsScope restricts an analytics series.
+message AnalyticsScope {
+  // The currency; every currency, each in its own points, by default.
+  string currency = 1 [(buf.validate.field).string.(tanvo.common.v1.currency) = true];
+  // The billing entity (ID or `code:<code>`).
+  string billing_entity_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The customer (ID or `external_id:<external_id>`).
+  string customer_id = 3 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The number of months; 12 by default.
+  int32 months = 4 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 120
+  }];
+}
+
+// RevenuePoint is the amount of one month in one currency.
+message RevenuePoint {
+  // The first day of the month.
+  google.type.Date month = 1;
+  // The amount.
+  tanvo.common.v1.Money amount = 2;
+  // The number of invoices counted.
+  int64 invoices_count = 3;
+}
+
+// GetGrossRevenueRequest is the request of AnalyticsService.GetGrossRevenue.
+message GetGrossRevenueRequest {
+  // The scope.
+  AnalyticsScope scope = 1;
+}
+
+// GetGrossRevenueResponse is the response of AnalyticsService.GetGrossRevenue.
+message GetGrossRevenueResponse {
+  // The points, oldest first.
+  repeated RevenuePoint points = 1;
+}
+
+// GetMrrRequest is the request of AnalyticsService.GetMrr.
+message GetMrrRequest {
+  // The scope.
+  AnalyticsScope scope = 1;
+}
+
+// GetMrrResponse is the response of AnalyticsService.GetMrr.
+message GetMrrResponse {
+  // The points, oldest first; invoices_count is not set.
+  repeated RevenuePoint points = 1;
+}
+
+// InvoiceCollectionPoint is the invoices of one month, currency and
+// payment status.
+message InvoiceCollectionPoint {
+  // The first day of the month.
+  google.type.Date month = 1;
+  // The payment status.
+  tanvo.common.v1.PaymentStatus payment_status = 2;
+  // The total amount.
+  tanvo.common.v1.Money amount = 3;
+  // The number of invoices.
+  int64 invoices_count = 4;
+}
+
+// GetInvoiceCollectionRequest is the request of AnalyticsService.GetInvoiceCollection.
+message GetInvoiceCollectionRequest {
+  // The scope.
+  AnalyticsScope scope = 1;
+}
+
+// GetInvoiceCollectionResponse is the response of AnalyticsService.GetInvoiceCollection.
+message GetInvoiceCollectionResponse {
+  // The points, oldest first.
+  repeated InvoiceCollectionPoint points = 1;
+}
+
+// InvoicedUsagePoint is the usage invoiced in one month and currency for
+// one billable metric.
+message InvoicedUsagePoint {
+  // The first day of the month.
+  google.type.Date month = 1;
+  // The billable metric's code.
+  string metric_code = 2;
+  // The amount invoiced.
+  tanvo.common.v1.Money amount = 3;
+}
+
+// GetInvoicedUsageRequest is the request of AnalyticsService.GetInvoicedUsage.
+message GetInvoicedUsageRequest {
+  // The scope.
+  AnalyticsScope scope = 1;
+}
+
+// GetInvoicedUsageResponse is the response of AnalyticsService.GetInvoicedUsage.
+message GetInvoicedUsageResponse {
+  // The points, oldest first.
+  repeated InvoicedUsagePoint points = 1;
+}
+
+// OverdueBalancePoint is the overdue balance at the end of one month in
+// one currency.
+message OverdueBalancePoint {
+  // The first day of the month.
+  google.type.Date month = 1;
+  // The overdue balance.
+  tanvo.common.v1.Money amount = 2;
+  // The overdue invoices.
+  repeated string invoice_ids = 3;
+}
+
+// GetOverdueBalanceRequest is the request of AnalyticsService.GetOverdueBalance.
+message GetOverdueBalanceRequest {
+  // The scope.
+  AnalyticsScope scope = 1;
+}
+
+// GetOverdueBalanceResponse is the response of AnalyticsService.GetOverdueBalance.
+message GetOverdueBalanceResponse {
+  // The points, oldest first.
+  repeated OverdueBalancePoint points = 1;
+}

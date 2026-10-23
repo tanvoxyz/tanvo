@@ -1,0 +1,213 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+package tanvo.catalog.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// AddOnService manages add-ons: priced items sold on one-off invoices or
+// billed per unit as fixed charges.
+service AddOnService {
+  // Creates an add-on.
+  rpc CreateAddOn(CreateAddOnRequest) returns (CreateAddOnResponse) {
+    option (google.api.http) = {
+      post: "/v1/add_ons"
+      body: "add_on"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "addons:create"
+      api_resource: "add_on"
+    };
+  }
+
+  // Returns an add-on by ID or `code:<code>`.
+  rpc GetAddOn(GetAddOnRequest) returns (GetAddOnResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/add_ons/{add_on_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "addons:read"
+      api_resource: "add_on"
+    };
+  }
+
+  // Lists add-ons.
+  rpc ListAddOns(ListAddOnsRequest) returns (ListAddOnsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/add_ons"};
+    option (tanvo.common.v1.access) = {
+      permission: "addons:read"
+      api_resource: "add_on"
+    };
+  }
+
+  // Updates an add-on.
+  rpc UpdateAddOn(UpdateAddOnRequest) returns (UpdateAddOnResponse) {
+    option (google.api.http) = {
+      patch: "/v1/add_ons/{add_on.id}"
+      body: "add_on"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "addons:update"
+      api_resource: "add_on"
+    };
+  }
+
+  // Deletes an add-on.
+  rpc DeleteAddOn(DeleteAddOnRequest) returns (DeleteAddOnResponse) {
+    option (google.api.http) = {delete: "/v1/add_ons/{add_on_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "addons:delete"
+      api_resource: "add_on"
+    };
+  }
+}
+
+// AddOn is a priced item outside plans.
+message AddOn {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/AddOn"
+    pattern: "add_ons/{add_on}"
+    plural: "addOns"
+    singular: "addOn"
+  };
+
+  // The add-on's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique code.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // The invoice line name.
+  string invoice_display_name = 4 [(buf.validate.field).string.max_len = 255];
+  // A description.
+  string description = 5 [(buf.validate.field).string.max_len = 1024];
+  // The default price.
+  tanvo.common.v1.Money amount = 6 [(google.api.field_behavior) = REQUIRED];
+  // The add-on's taxes (IDs or `code:<code>`).
+  repeated string tax_ids = 7 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // When the add-on was created.
+  google.protobuf.Timestamp created_at = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the add-on last changed.
+  google.protobuf.Timestamp updated_at = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateAddOnRequest is the request of AddOnService.CreateAddOn.
+message CreateAddOnRequest {
+  option (buf.validate.message).cel = {
+    id: "add_on.required"
+    message: "code, name and amount are required"
+    expression: "has(this.add_on.code) && has(this.add_on.name) && has(this.add_on.amount)"
+  };
+
+  // The add-on to create.
+  AddOn add_on = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateAddOnResponse is the response of AddOnService.CreateAddOn.
+message CreateAddOnResponse {
+  // The created add-on.
+  AddOn add_on = 1;
+}
+
+// GetAddOnRequest is the request of AddOnService.GetAddOn.
+message GetAddOnRequest {
+  // The add-on's ID or `code:<code>`.
+  string add_on_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetAddOnResponse is the response of AddOnService.GetAddOn.
+message GetAddOnResponse {
+  // The add-on.
+  AddOn add_on = 1;
+}
+
+// ListAddOnsRequest is the request of AddOnService.ListAddOns.
+message ListAddOnsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // A search over the name and code.
+  string search = 3 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListAddOnsResponse is the response of AddOnService.ListAddOns.
+message ListAddOnsResponse {
+  // The add-ons of this page.
+  repeated AddOn add_ons = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateAddOnRequest is the request of AddOnService.UpdateAddOn.
+message UpdateAddOnRequest {
+  option (buf.validate.message).cel = {
+    id: "add_on.id"
+    message: "add_on.id is required"
+    expression: "has(this.add_on.id)"
+  };
+
+  // The new values; add_on.id (an ID or `code:<code>`) selects the add-on.
+  AddOn add_on = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateAddOnResponse is the response of AddOnService.UpdateAddOn.
+message UpdateAddOnResponse {
+  // The updated add-on.
+  AddOn add_on = 1;
+}
+
+// DeleteAddOnRequest is the request of AddOnService.DeleteAddOn.
+message DeleteAddOnRequest {
+  // The add-on's ID or `code:<code>`.
+  string add_on_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteAddOnResponse is the response of AddOnService.DeleteAddOn.
+message DeleteAddOnResponse {
+  // The deleted add-on.
+  AddOn add_on = 1;
+}

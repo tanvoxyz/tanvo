@@ -1,0 +1,748 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+package tanvo.catalog.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+
+// ChargeService manages the usage charges of a plan, and the overrides of a
+// subscription's charges (stored on the subscription's own child plan).
+service ChargeService {
+  // Adds a charge to a plan or overrides one for a subscription.
+  rpc CreateCharge(CreateChargeRequest) returns (CreateChargeResponse) {
+    option (google.api.http) = {
+      post: "/v1/plans/{plan_id}/charges"
+      body: "charge"
+      additional_bindings: {
+        post: "/v1/subscriptions/{subscription_id}/charges"
+        body: "charge"
+      }
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "charges:create"
+      api_resource: "plan"
+    };
+  }
+
+  // Returns a charge by ID or `code:<code>`.
+  rpc GetCharge(GetChargeRequest) returns (GetChargeResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/plans/{plan_id}/charges/{charge_id}"
+      additional_bindings: {get: "/v1/subscriptions/{subscription_id}/charges/{charge_id}"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:read"
+      api_resource: "plan"
+    };
+  }
+
+  // Lists the charges of a plan or a subscription.
+  rpc ListCharges(ListChargesRequest) returns (ListChargesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/plans/{plan_id}/charges"
+      additional_bindings: {get: "/v1/subscriptions/{subscription_id}/charges"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:read"
+      api_resource: "plan"
+    };
+  }
+
+  // Updates a charge. With cascade_updates, the change is applied to the
+  // overriding charges of child plans that still match the parent.
+  rpc UpdateCharge(UpdateChargeRequest) returns (UpdateChargeResponse) {
+    option (google.api.http) = {
+      patch: "/v1/plans/{plan_id}/charges/{charge.id}"
+      body: "charge"
+      additional_bindings: {
+        patch: "/v1/subscriptions/{subscription_id}/charges/{charge.id}"
+        body: "charge"
+      }
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "charges:update"
+      api_resource: "plan"
+    };
+  }
+
+  // Removes a charge from a plan or a subscription override.
+  rpc DeleteCharge(DeleteChargeRequest) returns (DeleteChargeResponse) {
+    option (google.api.http) = {
+      delete: "/v1/plans/{plan_id}/charges/{charge_id}"
+      additional_bindings: {delete: "/v1/subscriptions/{subscription_id}/charges/{charge_id}"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "charges:delete"
+      api_resource: "plan"
+    };
+  }
+
+  // Adds a filter to a charge.
+  rpc CreateChargeFilter(CreateChargeFilterRequest) returns (CreateChargeFilterResponse) {
+    option (google.api.http) = {
+      post: "/v1/plans/{plan_id}/charges/{charge_id}/filters"
+      body: "filter"
+      additional_bindings: {
+        post: "/v1/subscriptions/{subscription_id}/charges/{charge_id}/filters"
+        body: "filter"
+      }
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "charges:update"
+      api_resource: "plan"
+    };
+  }
+
+  // Lists the filters of a charge.
+  rpc ListChargeFilters(ListChargeFiltersRequest) returns (ListChargeFiltersResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/plans/{plan_id}/charges/{charge_id}/filters"
+      additional_bindings: {get: "/v1/subscriptions/{subscription_id}/charges/{charge_id}/filters"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:read"
+      api_resource: "plan"
+    };
+  }
+
+  // Updates a charge filter.
+  rpc UpdateChargeFilter(UpdateChargeFilterRequest) returns (UpdateChargeFilterResponse) {
+    option (google.api.http) = {
+      patch: "/v1/plans/{plan_id}/charges/{charge_id}/filters/{filter.id}"
+      body: "filter"
+      additional_bindings: {
+        patch: "/v1/subscriptions/{subscription_id}/charges/{charge_id}/filters/{filter.id}"
+        body: "filter"
+      }
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "charges:update"
+      api_resource: "plan"
+    };
+  }
+
+  // Removes a filter from a charge.
+  rpc DeleteChargeFilter(DeleteChargeFilterRequest) returns (DeleteChargeFilterResponse) {
+    option (google.api.http) = {
+      delete: "/v1/plans/{plan_id}/charges/{charge_id}/filters/{filter_id}"
+      additional_bindings: {delete: "/v1/subscriptions/{subscription_id}/charges/{charge_id}/filters/{filter_id}"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "charges:update"
+      api_resource: "plan"
+    };
+  }
+}
+
+// ChargeModel is how a charge prices its quantity.
+enum ChargeModel {
+  // Not set.
+  CHARGE_MODEL_UNSPECIFIED = 0;
+  // One price per unit.
+  CHARGE_MODEL_STANDARD = 1;
+  // Each tier priced separately, with a flat fee per tier reached.
+  CHARGE_MODEL_GRADUATED = 2;
+  // Each tier priced at its own rate, with a flat fee per tier reached.
+  CHARGE_MODEL_GRADUATED_PERCENTAGE = 3;
+  // A price per package of units, after free units.
+  CHARGE_MODEL_PACKAGE = 4;
+  // A rate of the aggregated amount, with fixed fees and per-transaction
+  // bounds.
+  CHARGE_MODEL_PERCENTAGE = 5;
+  // The whole quantity priced at the tier it reaches.
+  CHARGE_MODEL_VOLUME = 6;
+  // The price each event carries.
+  CHARGE_MODEL_DYNAMIC = 7;
+}
+
+// RegroupPaidFees says how paid in-advance fees of a non-invoiceable charge
+// are invoiced.
+enum RegroupPaidFees {
+  // Not set: paid fees are never invoiced.
+  REGROUP_PAID_FEES_UNSPECIFIED = 0;
+  // Paid fees are grouped on the next recurring invoice.
+  REGROUP_PAID_FEES_INVOICE = 1;
+}
+
+// PresentationGroupKey is an event property shown as a separate invoice line
+// without changing the price.
+message PresentationGroupKey {
+  // The event property.
+  string value = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // Prints the group on invoices.
+  bool display_in_invoice = 2;
+}
+
+// Grouping splits a charge's usage by event properties.
+message Grouping {
+  // The event properties each combination of which is priced separately.
+  repeated string pricing_group_keys = 1 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 10
+    items: {
+      string: {
+        min_len: 1
+        max_len: 255
+      }
+    }
+  }];
+  // At most two event properties shown separately on invoices.
+  repeated PresentationGroupKey presentation_group_keys = 2 [(buf.validate.field).repeated.max_items = 2];
+}
+
+// StandardProperties prices each unit at one amount.
+message StandardProperties {
+  // The price per unit.
+  string amount = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+}
+
+// PackageProperties prices packages of units.
+message PackageProperties {
+  // The price per started package.
+  string amount = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+  // The number of units per package.
+  int64 package_size = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).int64.gt = 0
+  ];
+  // The number of units free of charge.
+  int64 free_units = 3 [(buf.validate.field).int64.gte = 0];
+}
+
+// PercentageProperties prices a rate of the aggregated amount.
+message PercentageProperties {
+  // The rate in percent.
+  string rate = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+  // A fixed amount added per event.
+  string fixed_amount = 2 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The number of events free of the fixed amount and rate.
+  int64 free_units_per_events = 3 [(buf.validate.field).int64.gte = 0];
+  // The aggregated amount free of the rate.
+  string free_units_per_total_aggregation = 4 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The minimum amount per event.
+  string per_transaction_min_amount = 5 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The maximum amount per event.
+  string per_transaction_max_amount = 6 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+}
+
+// Range is one tier of a graduated or volume model. Tiers are adjacent: each
+// starts where the previous ends, and the last has no end.
+message Range {
+  // The first unit of the tier.
+  string from_value = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+  // The end of the tier, exclusive; unset on the last tier.
+  string to_value = 2 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The price per unit within the tier.
+  string per_unit_amount = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+  // The flat fee of reaching the tier.
+  string flat_amount = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+}
+
+// PercentageRange is one tier of a graduated percentage model.
+message PercentageRange {
+  // The first amount of the tier.
+  string from_value = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+  // The end of the tier, exclusive; unset on the last tier.
+  string to_value = 2 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The rate in percent within the tier.
+  string rate = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+  // The flat fee of reaching the tier.
+  string flat_amount = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+}
+
+// GraduatedProperties prices each tier separately.
+message GraduatedProperties {
+  // The tiers, in order.
+  repeated Range ranges = 1 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 100
+  }];
+}
+
+// VolumeProperties prices the whole quantity at the tier it reaches.
+message VolumeProperties {
+  // The tiers, in order.
+  repeated Range ranges = 1 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 100
+  }];
+}
+
+// GraduatedPercentageProperties prices each amount tier at its own rate.
+message GraduatedPercentageProperties {
+  // The tiers, in order.
+  repeated PercentageRange ranges = 1 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 100
+  }];
+}
+
+// DynamicProperties takes the price from each event's
+// `precise_total_amount`.
+message DynamicProperties {}
+
+// ChargeProperties are the prices of a charge or charge filter; the set
+// model matches the charge's charge_model.
+message ChargeProperties {
+  // The model's prices.
+  oneof model {
+    // The standard model.
+    StandardProperties standard = 1;
+    // The package model.
+    PackageProperties package = 2;
+    // The percentage model.
+    PercentageProperties percentage = 3;
+    // The graduated model.
+    GraduatedProperties graduated = 4;
+    // The volume model.
+    VolumeProperties volume = 5;
+    // The graduated percentage model.
+    GraduatedPercentageProperties graduated_percentage = 6;
+    // The dynamic model.
+    DynamicProperties dynamic = 7;
+  }
+  // How usage splits by event properties.
+  Grouping grouping = 8;
+}
+
+// AppliedPricingUnit prices a charge in a pricing unit converted to the
+// plan's currency.
+message AppliedPricingUnit {
+  // The pricing unit's ID or `code:<code>`.
+  string pricing_unit_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The amount of currency one pricing unit is worth.
+  string conversion_rate = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+}
+
+// ChargeFilter prices the events whose properties match its values
+// differently from the rest of the charge.
+message ChargeFilter {
+  // The filter's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The generated code (slug and hash of the values).
+  string code = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The matched values per metric filter key; `__ALL_FILTER_VALUES__`
+  // matches every value of the key.
+  map<string, FilterValues> values = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).map = {
+      min_pairs: 1
+      max_pairs: 50
+    }
+  ];
+  // The prices of matched events.
+  ChargeProperties properties = 4 [(google.api.field_behavior) = REQUIRED];
+  // The invoice line name of the filter's fee.
+  string invoice_display_name = 5 [(buf.validate.field).string.max_len = 255];
+  // When the filter was created.
+  google.protobuf.Timestamp created_at = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// FilterValues is the list of matched values of one key.
+message FilterValues {
+  // The values.
+  repeated string values = 1 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 1000
+    unique: true
+  }];
+}
+
+// Charge bills a plan's usage of a billable metric.
+message Charge {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Charge"
+    pattern: "plans/{plan}/charges/{charge}"
+    plural: "charges"
+    singular: "charge"
+  };
+
+  // The charge's ID. Requests also accept `code:<code>`.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The code, unique within the plan; generated from the metric when unset.
+  string code = 2 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
+  // The owning plan.
+  string plan_id = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The parent plan's charge this charge overrides.
+  string parent_id = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The billable metric (ID or `code:<code>`).
+  string billable_metric_id = 5 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The pricing model; must match properties.
+  ChargeModel charge_model = 6 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The prices of events no filter matches.
+  ChargeProperties properties = 7 [(google.api.field_behavior) = REQUIRED];
+  // The filters pricing subsets of events.
+  repeated ChargeFilter filters = 8 [(buf.validate.field).repeated.max_items = 500];
+  // Bills each event when it is received rather than at period end.
+  bool pay_in_advance = 9;
+  // Invoices in-advance fees; when false, fees are created without
+  // invoices.
+  bool invoiceable = 10;
+  // How paid fees of a non-invoiceable charge are invoiced.
+  RegroupPaidFees regroup_paid_fees = 11 [(buf.validate.field).enum.defined_only = true];
+  // Prorates recurring usage over the period.
+  bool prorated = 12;
+  // The minimum amount per period; a true-up fee fills the difference.
+  string min_amount = 13 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // Lets events name the wallet that pays their fees.
+  bool accepts_target_wallet = 14;
+  // The invoice line name.
+  string invoice_display_name = 15 [(buf.validate.field).string.max_len = 255];
+  // Prices the charge in a pricing unit.
+  AppliedPricingUnit applied_pricing_unit = 16;
+  // The charge's taxes (IDs or `code:<code>`).
+  repeated string tax_ids = 17 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // When the charge was created.
+  google.protobuf.Timestamp created_at = 18 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the charge last changed.
+  google.protobuf.Timestamp updated_at = 19 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateChargeRequest is the request of ChargeService.CreateCharge.
+message CreateChargeRequest {
+  option (buf.validate.message).cel = {
+    id: "charge.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+  option (buf.validate.message).cel = {
+    id: "charge.required"
+    message: "billable_metric_id and charge_model are required"
+    expression: "has(this.charge.billable_metric_id) && has(this.charge.charge_model)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`) whose plan to
+  // override.
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The charge to create.
+  Charge charge = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // Also adds the charge to the plan's child plans.
+  bool cascade_updates = 4;
+}
+
+// CreateChargeResponse is the response of ChargeService.CreateCharge.
+message CreateChargeResponse {
+  // The created charge.
+  Charge charge = 1;
+}
+
+// GetChargeRequest is the request of ChargeService.GetCharge.
+message GetChargeRequest {
+  option (buf.validate.message).cel = {
+    id: "charge.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The charge's ID or `code:<code>`.
+  string charge_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetChargeResponse is the response of ChargeService.GetCharge.
+message GetChargeResponse {
+  // The charge.
+  Charge charge = 1;
+}
+
+// ListChargesRequest is the request of ChargeService.ListCharges.
+message ListChargesRequest {
+  option (buf.validate.message).cel = {
+    id: "charge.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 3 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 4 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListChargesResponse is the response of ChargeService.ListCharges.
+message ListChargesResponse {
+  // The charges of this page.
+  repeated Charge charges = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateChargeRequest is the request of ChargeService.UpdateCharge.
+message UpdateChargeRequest {
+  option (buf.validate.message).cel = {
+    id: "charge.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+  option (buf.validate.message).cel = {
+    id: "charge.id"
+    message: "charge.id is required"
+    expression: "has(this.charge.id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The new values; charge.id (an ID or `code:<code>`) selects the charge.
+  Charge charge = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 4;
+  // Applies the change to child plans' charges that still match.
+  bool cascade_updates = 5;
+}
+
+// UpdateChargeResponse is the response of ChargeService.UpdateCharge.
+message UpdateChargeResponse {
+  // The updated charge.
+  Charge charge = 1;
+}
+
+// DeleteChargeRequest is the request of ChargeService.DeleteCharge.
+message DeleteChargeRequest {
+  option (buf.validate.message).cel = {
+    id: "charge.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The charge's ID or `code:<code>`.
+  string charge_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // Also removes the charge from child plans.
+  bool cascade_updates = 4;
+}
+
+// DeleteChargeResponse is the response of ChargeService.DeleteCharge.
+message DeleteChargeResponse {}
+
+// CreateChargeFilterRequest is the request of ChargeService.CreateChargeFilter.
+message CreateChargeFilterRequest {
+  option (buf.validate.message).cel = {
+    id: "charge.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The charge's ID or `code:<code>`.
+  string charge_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The filter to create.
+  ChargeFilter filter = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // Also adds the filter to child plans' charges.
+  bool cascade_updates = 5;
+}
+
+// CreateChargeFilterResponse is the response of ChargeService.CreateChargeFilter.
+message CreateChargeFilterResponse {
+  // The created filter.
+  ChargeFilter filter = 1;
+}
+
+// ListChargeFiltersRequest is the request of ChargeService.ListChargeFilters.
+message ListChargeFiltersRequest {
+  option (buf.validate.message).cel = {
+    id: "charge.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The charge's ID or `code:<code>`.
+  string charge_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 4 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 5 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListChargeFiltersResponse is the response of ChargeService.ListChargeFilters.
+message ListChargeFiltersResponse {
+  // The filters of this page.
+  repeated ChargeFilter filters = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateChargeFilterRequest is the request of ChargeService.UpdateChargeFilter.
+message UpdateChargeFilterRequest {
+  option (buf.validate.message).cel = {
+    id: "charge.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+  option (buf.validate.message).cel = {
+    id: "filter.id"
+    message: "filter.id is required"
+    expression: "has(this.filter.id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The charge's ID or `code:<code>`.
+  string charge_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The new values; filter.id selects the filter.
+  ChargeFilter filter = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 5;
+  // Applies the change to child plans' filters that still match.
+  bool cascade_updates = 6;
+}
+
+// UpdateChargeFilterResponse is the response of ChargeService.UpdateChargeFilter.
+message UpdateChargeFilterResponse {
+  // The updated filter.
+  ChargeFilter filter = 1;
+}
+
+// DeleteChargeFilterRequest is the request of ChargeService.DeleteChargeFilter.
+message DeleteChargeFilterRequest {
+  option (buf.validate.message).cel = {
+    id: "charge.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The charge's ID or `code:<code>`.
+  string charge_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The filter's ID.
+  string filter_id = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // Also removes the filter from child plans' charges.
+  bool cascade_updates = 5;
+}
+
+// DeleteChargeFilterResponse is the response of ChargeService.DeleteChargeFilter.
+message DeleteChargeFilterResponse {}

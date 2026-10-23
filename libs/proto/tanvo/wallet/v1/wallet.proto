@@ -1,0 +1,777 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.wallet.v1 is the API of prepaid credit wallets, their
+// transactions and recurring top-up rules.
+package tanvo.wallet.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/enums.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// WalletService manages wallets, wallet transactions and recurring top-up
+// rules. Wallets are addressed by ID or by `code:<code>` within a customer.
+service WalletService {
+  // Creates a wallet for a customer, with optional initial top-up and
+  // recurring rules.
+  rpc CreateWallet(CreateWalletRequest) returns (CreateWalletResponse) {
+    option (google.api.http) = {
+      post: "/v1/wallets"
+      body: "wallet"
+      additional_bindings: {
+        post: "/v1/customers/{wallet.customer_id}/wallets"
+        body: "wallet"
+      }
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "wallets:create"
+      api_resource: "wallet"
+    };
+  }
+
+  // Returns a wallet.
+  rpc GetWallet(GetWalletRequest) returns (GetWalletResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/wallets/{wallet_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "customers:read"
+      api_resource: "wallet"
+    };
+  }
+
+  // Lists wallets.
+  rpc ListWallets(ListWalletsRequest) returns (ListWalletsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/wallets"
+      additional_bindings: {get: "/v1/customers/{customer_id}/wallets"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "customers:read"
+      api_resource: "wallet"
+    };
+  }
+
+  // Updates a wallet.
+  rpc UpdateWallet(UpdateWalletRequest) returns (UpdateWalletResponse) {
+    option (google.api.http) = {
+      patch: "/v1/wallets/{wallet.id}"
+      body: "wallet"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "wallets:update"
+      api_resource: "wallet"
+    };
+  }
+
+  // Terminates a wallet; its remaining credits are lost.
+  rpc TerminateWallet(TerminateWalletRequest) returns (TerminateWalletResponse) {
+    option (google.api.http) = {
+      post: "/v1/wallets/{wallet_id}:terminate"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "wallets:terminate"
+      api_resource: "wallet"
+    };
+  }
+
+  // Adds paid or granted credits to a wallet, or voids credits.
+  rpc CreateWalletTransaction(CreateWalletTransactionRequest) returns (CreateWalletTransactionResponse) {
+    option (google.api.http) = {
+      post: "/v1/wallets/{wallet_id}/transactions"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "wallets:top_up"
+      api_resource: "wallet_transaction"
+    };
+  }
+
+  // Returns a wallet transaction.
+  rpc GetWalletTransaction(GetWalletTransactionRequest) returns (GetWalletTransactionResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/wallet_transactions/{wallet_transaction_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "customers:read"
+      api_resource: "wallet_transaction"
+    };
+  }
+
+  // Lists the transactions of a wallet, newest first.
+  rpc ListWalletTransactions(ListWalletTransactionsRequest) returns (ListWalletTransactionsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/wallets/{wallet_id}/transactions"};
+    option (tanvo.common.v1.access) = {
+      permission: "customers:read"
+      api_resource: "wallet_transaction"
+    };
+  }
+
+  // Lists the inbound transactions an outbound transaction consumed, or
+  // the outbound transactions that consumed an inbound one, for traceable
+  // wallets.
+  rpc ListWalletTransactionConsumptions(ListWalletTransactionConsumptionsRequest) returns (ListWalletTransactionConsumptionsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/wallet_transactions/{wallet_transaction_id}/consumptions"};
+    option (tanvo.common.v1.access) = {
+      permission: "customers:read"
+      api_resource: "wallet_transaction"
+    };
+  }
+
+  // Returns a payment provider checkout URL for a pending paid transaction.
+  rpc GenerateWalletTransactionPaymentUrl(GenerateWalletTransactionPaymentUrlRequest) returns (GenerateWalletTransactionPaymentUrlResponse) {
+    option (google.api.http) = {
+      post: "/v1/wallet_transactions/{wallet_transaction_id}:generate_payment_url"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "customers:read"
+      api_resource: "wallet_transaction"
+    };
+  }
+
+  // Lists the recurring top-up rules of a wallet.
+  rpc ListRecurringTransactionRules(ListRecurringTransactionRulesRequest) returns (ListRecurringTransactionRulesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/wallets/{wallet_id}/recurring_transaction_rules"};
+    option (tanvo.common.v1.access) = {
+      permission: "customers:read"
+      api_resource: "wallet"
+    };
+  }
+
+  // Replaces the recurring top-up rules of a wallet; rules left out are
+  // terminated.
+  rpc ReplaceRecurringTransactionRules(ReplaceRecurringTransactionRulesRequest) returns (ReplaceRecurringTransactionRulesResponse) {
+    option idempotency_level = IDEMPOTENT;
+    option (google.api.http) = {
+      put: "/v1/wallets/{wallet_id}/recurring_transaction_rules"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "wallets:update"
+      api_resource: "wallet"
+    };
+  }
+
+  // Terminates a recurring top-up rule.
+  rpc TerminateRecurringTransactionRule(TerminateRecurringTransactionRuleRequest) returns (TerminateRecurringTransactionRuleResponse) {
+    option (google.api.http) = {
+      post: "/v1/wallets/{wallet_id}/recurring_transaction_rules/{rule_id}:terminate"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "wallets:update"
+      api_resource: "wallet"
+    };
+  }
+}
+
+// WalletStatus is the state of a wallet.
+enum WalletStatus {
+  // Not set.
+  WALLET_STATUS_UNSPECIFIED = 0;
+  // Usable.
+  WALLET_STATUS_ACTIVE = 1;
+  // Terminated or expired.
+  WALLET_STATUS_TERMINATED = 2;
+}
+
+// TransactionType is the direction of a wallet transaction.
+enum TransactionType {
+  // Not set.
+  TRANSACTION_TYPE_UNSPECIFIED = 0;
+  // Adds credits.
+  TRANSACTION_TYPE_INBOUND = 1;
+  // Removes credits.
+  TRANSACTION_TYPE_OUTBOUND = 2;
+}
+
+// TransactionStatus is the nature of a wallet transaction.
+enum TransactionStatus {
+  // Not set.
+  TRANSACTION_STATUS_UNSPECIFIED = 0;
+  // Paid credits.
+  TRANSACTION_STATUS_PURCHASED = 1;
+  // Free credits.
+  TRANSACTION_STATUS_GRANTED = 2;
+  // Voided credits.
+  TRANSACTION_STATUS_VOIDED = 3;
+  // Credits consumed by an invoice.
+  TRANSACTION_STATUS_INVOICED = 4;
+}
+
+// SettlementStatus is the settlement state of a wallet transaction.
+enum SettlementStatus {
+  // Not set.
+  SETTLEMENT_STATUS_UNSPECIFIED = 0;
+  // Waiting for payment.
+  SETTLEMENT_STATUS_PENDING = 1;
+  // Applied to the balance.
+  SETTLEMENT_STATUS_SETTLED = 2;
+  // The payment failed.
+  SETTLEMENT_STATUS_FAILED = 3;
+}
+
+// TransactionSource is what created a wallet transaction.
+enum TransactionSource {
+  // Not set.
+  TRANSACTION_SOURCE_UNSPECIFIED = 0;
+  // The API or the dashboard.
+  TRANSACTION_SOURCE_MANUAL = 1;
+  // A recurring interval rule.
+  TRANSACTION_SOURCE_INTERVAL = 2;
+  // A recurring threshold rule.
+  TRANSACTION_SOURCE_THRESHOLD = 3;
+}
+
+// RecurringTrigger is when a recurring rule tops up.
+enum RecurringTrigger {
+  // Not set.
+  RECURRING_TRIGGER_UNSPECIFIED = 0;
+  // On a fixed interval.
+  RECURRING_TRIGGER_INTERVAL = 1;
+  // When the ongoing balance falls to a threshold.
+  RECURRING_TRIGGER_THRESHOLD = 2;
+}
+
+// RecurringMethod is how a recurring rule computes its top-up.
+enum RecurringMethod {
+  // Not set.
+  RECURRING_METHOD_UNSPECIFIED = 0;
+  // Fixed paid and granted credits.
+  RECURRING_METHOD_FIXED = 1;
+  // Enough credits to reach a target ongoing balance.
+  RECURRING_METHOD_TARGET = 2;
+}
+
+// RecurringRuleStatus is the state of a recurring rule.
+enum RecurringRuleStatus {
+  // Not set.
+  RECURRING_RULE_STATUS_UNSPECIFIED = 0;
+  // Running.
+  RECURRING_RULE_STATUS_ACTIVE = 1;
+  // Ended.
+  RECURRING_RULE_STATUS_TERMINATED = 2;
+}
+
+// RecurringTransactionRule tops up a wallet on an interval or a threshold.
+message RecurringTransactionRule {
+  // The rule's ID; set to update an existing rule.
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  // When the rule tops up.
+  RecurringTrigger trigger = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The interval, for INTERVAL.
+  tanvo.common.v1.Interval interval = 3 [(buf.validate.field).enum.defined_only = true];
+  // The ongoing balance in credits that triggers a top-up, for THRESHOLD.
+  string threshold_credits = 4 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // How the top-up is computed.
+  RecurringMethod method = 5 [(buf.validate.field).enum.defined_only = true];
+  // The paid credits, for FIXED.
+  string paid_credits = 6 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The granted credits, for FIXED.
+  string granted_credits = 7 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The ongoing balance in credits to reach, for TARGET.
+  string target_ongoing_balance = 8 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // Grants the TARGET top-up instead of billing it.
+  bool grants_target_top_up = 9;
+  // When the rule starts; now by default.
+  google.protobuf.Timestamp started_at = 10;
+  // When the rule ends.
+  google.protobuf.Timestamp expires_at = 11;
+  // Grants credits only once the top-up invoice is paid.
+  bool invoice_requires_successful_payment = 12;
+  // Ignores the wallet's paid top-up minimum and maximum.
+  bool ignore_paid_top_up_limits = 13;
+  // The name of the transactions created.
+  string transaction_name = 14 [(buf.validate.field).string.max_len = 255];
+  // The metadata of the transactions created.
+  repeated tanvo.common.v1.MetadataItem transaction_metadata = 15 [(buf.validate.field).repeated.max_items = 15];
+  // The payment method kind of the top-up invoices.
+  tanvo.common.v1.PaymentMethodType payment_method_type = 16 [(buf.validate.field).enum.defined_only = true];
+  // The payment method, for PROVIDER.
+  string payment_method_id = 17 [(buf.validate.field).string.uuid = true];
+  // The state.
+  RecurringRuleStatus status = 18 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the rule was terminated.
+  google.protobuf.Timestamp terminated_at = 19 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the rule was created.
+  google.protobuf.Timestamp created_at = 20 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// Wallet holds prepaid credits of a customer.
+message Wallet {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Wallet"
+    pattern: "wallets/{wallet}"
+    plural: "wallets"
+    singular: "wallet"
+  };
+
+  // The wallet's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The customer (ID or `external_id:<external_id>`).
+  string customer_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // A code unique within the customer, used by events' target_wallet_code.
+  string code = 3 [
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // A display name.
+  string name = 4 [(buf.validate.field).string.max_len = 255];
+  // The state.
+  WalletStatus status = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The currency; the customer's.
+  string currency = 6 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.currency) = true
+  ];
+  // The value of one credit in the currency.
+  string rate_amount = 7 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+  // The order wallets are consumed in, 1 first; from 1 to 50.
+  int32 priority = 8 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 50
+  }];
+  // When the wallet expires.
+  google.protobuf.Timestamp expires_at = 9;
+  // The balance.
+  tanvo.common.v1.Money balance_amount = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The balance in credits.
+  string credits_balance = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The balance less the current usage.
+  tanvo.common.v1.Money ongoing_balance_amount = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The ongoing balance in credits.
+  string credits_ongoing_balance = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The current usage not yet invoiced.
+  tanvo.common.v1.Money ongoing_usage_balance_amount = 14 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The current usage in credits.
+  string credits_ongoing_usage_balance = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The amount consumed so far.
+  tanvo.common.v1.Money consumed_amount = 16 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The credits consumed so far.
+  string consumed_credits = 17 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The smallest paid top-up.
+  string paid_top_up_min_amount = 18 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The largest paid top-up.
+  string paid_top_up_max_amount = 19 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // Grants paid credits only once the top-up invoice is paid.
+  bool invoice_requires_successful_payment = 20;
+  // The fee types the wallet pays for; all by default.
+  repeated tanvo.common.v1.FeeType allowed_fee_types = 21 [(buf.validate.field).repeated = {
+    unique: true
+    items: {
+      enum: {defined_only: true}
+    }
+  }];
+  // The billable metrics the wallet pays for (IDs or `code:<code>`); all by
+  // default.
+  repeated string billable_metric_ids = 22 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 100
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // Records which inbound transactions each outbound one consumed.
+  bool traceable = 23 [(google.api.field_behavior) = IMMUTABLE];
+  // The billing entity of the top-up invoices (ID or `code:<code>`).
+  string billing_entity_id = 24 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The payment method kind of the top-up invoices.
+  tanvo.common.v1.PaymentMethodType payment_method_type = 25 [(buf.validate.field).enum.defined_only = true];
+  // The payment method, for PROVIDER.
+  string payment_method_id = 26 [(buf.validate.field).string.uuid = true];
+  // Metadata: at most 15 items.
+  repeated tanvo.common.v1.MetadataItem metadata = 27 [(buf.validate.field).repeated.max_items = 15];
+  // The recurring top-up rules; on create only, then managed with
+  // ReplaceRecurringTransactionRules.
+  repeated RecurringTransactionRule recurring_transaction_rules = 28 [(buf.validate.field).repeated.max_items = 5];
+  // Paid credits of the initial top-up; on create only.
+  string paid_credits = 29 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+  // Granted credits of the initial top-up; on create only.
+  string granted_credits = 30 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+  // Marks a wallet whose ongoing balance is depleted.
+  bool depleted_ongoing_balance = 31 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the balance was last refreshed.
+  google.protobuf.Timestamp last_balance_sync_at = 32 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When credits were last consumed.
+  google.protobuf.Timestamp last_consumed_credit_at = 33 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the wallet was terminated.
+  google.protobuf.Timestamp terminated_at = 34 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the wallet was created.
+  google.protobuf.Timestamp created_at = 35 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the wallet last changed.
+  google.protobuf.Timestamp updated_at = 36 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// WalletTransaction is a change of a wallet's balance.
+message WalletTransaction {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/WalletTransaction"
+    pattern: "wallet_transactions/{wallet_transaction}"
+    plural: "walletTransactions"
+    singular: "walletTransaction"
+  };
+
+  // The transaction's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The wallet.
+  string wallet_id = 2;
+  // The direction.
+  TransactionType transaction_type = 3;
+  // The nature.
+  TransactionStatus transaction_status = 4;
+  // The settlement state.
+  SettlementStatus status = 5;
+  // What created it.
+  TransactionSource source = 6;
+  // The amount.
+  tanvo.common.v1.Money amount = 7;
+  // The amount in credits.
+  string credit_amount = 8;
+  // The credits of an inbound transaction not consumed yet, for traceable
+  // wallets.
+  string remaining_credit_amount = 9;
+  // The consumption priority of an inbound transaction.
+  int32 priority = 10;
+  // A display name.
+  string name = 11;
+  // The top-up invoice or the invoice that consumed the credits.
+  string invoice_id = 12;
+  // The credit note that refunded the credits.
+  string credit_note_id = 13;
+  // The recurring rule that created it.
+  string recurring_transaction_rule_id = 14;
+  // Metadata.
+  repeated tanvo.common.v1.MetadataItem metadata = 15;
+  // Grants the credits only once the invoice is paid.
+  bool invoice_requires_successful_payment = 16;
+  // When it settled.
+  google.protobuf.Timestamp settled_at = 17;
+  // When its payment failed.
+  google.protobuf.Timestamp failed_at = 18;
+  // When it was created.
+  google.protobuf.Timestamp created_at = 19;
+}
+
+// WalletTransactionConsumption links an outbound transaction to the
+// inbound transaction it consumed.
+message WalletTransactionConsumption {
+  // The inbound transaction.
+  string inbound_transaction_id = 1;
+  // The outbound transaction.
+  string outbound_transaction_id = 2;
+  // The amount consumed.
+  tanvo.common.v1.Money consumed_amount = 3;
+  // When it was recorded.
+  google.protobuf.Timestamp created_at = 4;
+}
+
+// CreateWalletRequest is the request of WalletService.CreateWallet.
+message CreateWalletRequest {
+  option (buf.validate.message).cel = {
+    id: "wallet.required"
+    message: "customer_id and rate_amount are required"
+    expression: "has(this.wallet.customer_id) && has(this.wallet.rate_amount)"
+  };
+
+  // The wallet to create.
+  Wallet wallet = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateWalletResponse is the response of WalletService.CreateWallet.
+message CreateWalletResponse {
+  // The created wallet.
+  Wallet wallet = 1;
+}
+
+// GetWalletRequest is the request of WalletService.GetWallet.
+message GetWalletRequest {
+  // The wallet's ID.
+  string wallet_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetWalletResponse is the response of WalletService.GetWallet.
+message GetWalletResponse {
+  // The wallet.
+  Wallet wallet = 1;
+}
+
+// ListWalletsRequest is the request of WalletService.ListWallets.
+message ListWalletsRequest {
+  // Restricts the list to one customer (ID or `external_id:<external_id>`).
+  string customer_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `status` and `code`.
+  string filter = 4 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListWalletsResponse is the response of WalletService.ListWallets.
+message ListWalletsResponse {
+  // The wallets of this page.
+  repeated Wallet wallets = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateWalletRequest is the request of WalletService.UpdateWallet.
+message UpdateWalletRequest {
+  option (buf.validate.message).cel = {
+    id: "wallet.id"
+    message: "wallet.id is required"
+    expression: "has(this.wallet.id)"
+  };
+
+  // The new values; wallet.id selects the wallet.
+  Wallet wallet = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateWalletResponse is the response of WalletService.UpdateWallet.
+message UpdateWalletResponse {
+  // The updated wallet.
+  Wallet wallet = 1;
+}
+
+// TerminateWalletRequest is the request of WalletService.TerminateWallet.
+message TerminateWalletRequest {
+  // The wallet's ID.
+  string wallet_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// TerminateWalletResponse is the response of WalletService.TerminateWallet.
+message TerminateWalletResponse {
+  // The terminated wallet.
+  Wallet wallet = 1;
+}
+
+// CreateWalletTransactionRequest is the request of WalletService.CreateWalletTransaction.
+message CreateWalletTransactionRequest {
+  option (buf.validate.message).cel = {
+    id: "transaction.credits"
+    message: "set paid_credits, granted_credits or voided_credits"
+    expression: "has(this.paid_credits) || has(this.granted_credits) || has(this.voided_credits)"
+  };
+
+  // The wallet's ID.
+  string wallet_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // Credits to buy; issues a credit invoice.
+  string paid_credits = 2 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // Credits to grant for free.
+  string granted_credits = 3 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // Credits to void.
+  string voided_credits = 4 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // Grants paid credits only once the invoice is paid; the wallet's
+  // setting by default.
+  bool invoice_requires_successful_payment = 5;
+  // Ignores the wallet's paid top-up minimum and maximum.
+  bool ignore_paid_top_up_limits = 6;
+  // The name of the transactions.
+  string name = 7 [(buf.validate.field).string.max_len = 255];
+  // Metadata: at most 15 items.
+  repeated tanvo.common.v1.MetadataItem metadata = 8 [(buf.validate.field).repeated.max_items = 15];
+  // The payment method kind of the invoice.
+  tanvo.common.v1.PaymentMethodType payment_method_type = 9 [(buf.validate.field).enum.defined_only = true];
+  // The payment method, for PROVIDER.
+  string payment_method_id = 10 [(buf.validate.field).string.uuid = true];
+}
+
+// CreateWalletTransactionResponse is the response of WalletService.CreateWalletTransaction.
+message CreateWalletTransactionResponse {
+  // The transactions created: one per kind of credits.
+  repeated WalletTransaction wallet_transactions = 1;
+}
+
+// GetWalletTransactionRequest is the request of WalletService.GetWalletTransaction.
+message GetWalletTransactionRequest {
+  // The transaction's ID.
+  string wallet_transaction_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetWalletTransactionResponse is the response of WalletService.GetWalletTransaction.
+message GetWalletTransactionResponse {
+  // The transaction.
+  WalletTransaction wallet_transaction = 1;
+}
+
+// ListWalletTransactionsRequest is the request of WalletService.ListWalletTransactions.
+message ListWalletTransactionsRequest {
+  // The wallet's ID.
+  string wallet_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `transaction_type`, `transaction_status`,
+  // `status` and `invoice_id`.
+  string filter = 4 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListWalletTransactionsResponse is the response of WalletService.ListWalletTransactions.
+message ListWalletTransactionsResponse {
+  // The transactions of this page.
+  repeated WalletTransaction wallet_transactions = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// ListWalletTransactionConsumptionsRequest is the request of WalletService.ListWalletTransactionConsumptions.
+message ListWalletTransactionConsumptionsRequest {
+  // The transaction's ID.
+  string wallet_transaction_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListWalletTransactionConsumptionsResponse is the response of WalletService.ListWalletTransactionConsumptions.
+message ListWalletTransactionConsumptionsResponse {
+  // The consumptions of this page.
+  repeated WalletTransactionConsumption consumptions = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// GenerateWalletTransactionPaymentUrlRequest is the request of WalletService.GenerateWalletTransactionPaymentUrl.
+message GenerateWalletTransactionPaymentUrlRequest {
+  // The transaction's ID.
+  string wallet_transaction_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GenerateWalletTransactionPaymentUrlResponse is the response of WalletService.GenerateWalletTransactionPaymentUrl.
+message GenerateWalletTransactionPaymentUrlResponse {
+  // The checkout URL.
+  string payment_url = 1;
+}
+
+// ListRecurringTransactionRulesRequest is the request of WalletService.ListRecurringTransactionRules.
+message ListRecurringTransactionRulesRequest {
+  // The wallet's ID.
+  string wallet_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// ListRecurringTransactionRulesResponse is the response of WalletService.ListRecurringTransactionRules.
+message ListRecurringTransactionRulesResponse {
+  // The rules.
+  repeated RecurringTransactionRule recurring_transaction_rules = 1;
+}
+
+// ReplaceRecurringTransactionRulesRequest is the request of WalletService.ReplaceRecurringTransactionRules.
+message ReplaceRecurringTransactionRulesRequest {
+  // The wallet's ID.
+  string wallet_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The rules; a rule with an id updates that rule.
+  repeated RecurringTransactionRule recurring_transaction_rules = 2 [(buf.validate.field).repeated.max_items = 5];
+}
+
+// ReplaceRecurringTransactionRulesResponse is the response of WalletService.ReplaceRecurringTransactionRules.
+message ReplaceRecurringTransactionRulesResponse {
+  // The rules.
+  repeated RecurringTransactionRule recurring_transaction_rules = 1;
+}
+
+// TerminateRecurringTransactionRuleRequest is the request of WalletService.TerminateRecurringTransactionRule.
+message TerminateRecurringTransactionRuleRequest {
+  // The wallet's ID.
+  string wallet_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The rule's ID.
+  string rule_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// TerminateRecurringTransactionRuleResponse is the response of WalletService.TerminateRecurringTransactionRule.
+message TerminateRecurringTransactionRuleResponse {
+  // The terminated rule.
+  RecurringTransactionRule recurring_transaction_rule = 1;
+}

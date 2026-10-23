@@ -1,0 +1,636 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+package tanvo.catalog.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/catalog/v1/charge.proto";
+import "tanvo/common/v1/options.proto";
+
+// ProductService manages the product catalog's products, their filters and
+// the categories that group them. A metered product sells a billable
+// metric; a fixed product sells an add-on.
+service ProductService {
+  // Creates a product.
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse) {
+    option (google.api.http) = {
+      post: "/v1/products"
+      body: "product"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "products:create"
+      api_resource: "product"
+    };
+  }
+
+  // Returns a product by ID or `code:<code>`.
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/products/{product_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "products:read"
+      api_resource: "product"
+    };
+  }
+
+  // Lists products.
+  rpc ListProducts(ListProductsRequest) returns (ListProductsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/products"};
+    option (tanvo.common.v1.access) = {
+      permission: "products:read"
+      api_resource: "product"
+    };
+  }
+
+  // Updates a product; the type and the sold metric or add-on are
+  // immutable.
+  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse) {
+    option (google.api.http) = {
+      patch: "/v1/products/{product.id}"
+      body: "product"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "products:update"
+      api_resource: "product"
+    };
+  }
+
+  // Deletes a product that no rate card prices.
+  rpc DeleteProduct(DeleteProductRequest) returns (DeleteProductResponse) {
+    option (google.api.http) = {delete: "/v1/products/{product_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "products:delete"
+      api_resource: "product"
+    };
+  }
+
+  // Creates a filter of a metered product.
+  rpc CreateProductFilter(CreateProductFilterRequest) returns (CreateProductFilterResponse) {
+    option (google.api.http) = {
+      post: "/v1/products/{product_id}/filters"
+      body: "filter"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "product_filters:create"
+      api_resource: "product"
+    };
+  }
+
+  // Returns a product filter by ID or `code:<code>`.
+  rpc GetProductFilter(GetProductFilterRequest) returns (GetProductFilterResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/products/{product_id}/filters/{filter_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "product_filters:read"
+      api_resource: "product"
+    };
+  }
+
+  // Lists the filters of a product.
+  rpc ListProductFilters(ListProductFiltersRequest) returns (ListProductFiltersResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/products/{product_id}/filters"};
+    option (tanvo.common.v1.access) = {
+      permission: "product_filters:read"
+      api_resource: "product"
+    };
+  }
+
+  // Updates a product filter.
+  rpc UpdateProductFilter(UpdateProductFilterRequest) returns (UpdateProductFilterResponse) {
+    option (google.api.http) = {
+      patch: "/v1/products/{product_id}/filters/{filter.id}"
+      body: "filter"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "product_filters:update"
+      api_resource: "product"
+    };
+  }
+
+  // Deletes a product filter that no rate card prices.
+  rpc DeleteProductFilter(DeleteProductFilterRequest) returns (DeleteProductFilterResponse) {
+    option (google.api.http) = {delete: "/v1/products/{product_id}/filters/{filter_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "product_filters:delete"
+      api_resource: "product"
+    };
+  }
+
+  // Creates a product category.
+  rpc CreateProductCategory(CreateProductCategoryRequest) returns (CreateProductCategoryResponse) {
+    option (google.api.http) = {
+      post: "/v1/product_categories"
+      body: "product_category"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "product_categories:create"
+      api_resource: "product_category"
+    };
+  }
+
+  // Returns a product category by ID or `code:<code>`.
+  rpc GetProductCategory(GetProductCategoryRequest) returns (GetProductCategoryResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/product_categories/{product_category_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "product_categories:read"
+      api_resource: "product_category"
+    };
+  }
+
+  // Lists product categories.
+  rpc ListProductCategories(ListProductCategoriesRequest) returns (ListProductCategoriesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/product_categories"};
+    option (tanvo.common.v1.access) = {
+      permission: "product_categories:read"
+      api_resource: "product_category"
+    };
+  }
+
+  // Updates a product category.
+  rpc UpdateProductCategory(UpdateProductCategoryRequest) returns (UpdateProductCategoryResponse) {
+    option (google.api.http) = {
+      patch: "/v1/product_categories/{product_category.id}"
+      body: "product_category"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "product_categories:update"
+      api_resource: "product_category"
+    };
+  }
+
+  // Deletes a product category; its products become uncategorized.
+  rpc DeleteProductCategory(DeleteProductCategoryRequest) returns (DeleteProductCategoryResponse) {
+    option (google.api.http) = {delete: "/v1/product_categories/{product_category_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "product_categories:delete"
+      api_resource: "product_category"
+    };
+  }
+}
+
+// ProductType is what a product sells.
+enum ProductType {
+  // Not set.
+  PRODUCT_TYPE_UNSPECIFIED = 0;
+  // Usage of a billable metric.
+  PRODUCT_TYPE_METERED = 1;
+  // Units of an add-on.
+  PRODUCT_TYPE_FIXED = 2;
+}
+
+// ProductCategory groups products.
+message ProductCategory {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/ProductCategory"
+    pattern: "product_categories/{product_category}"
+    plural: "productCategories"
+    singular: "productCategory"
+  };
+
+  // The category's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique code.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // A description.
+  string description = 4 [(buf.validate.field).string.max_len = 1024];
+  // The name printed on invoices.
+  string invoice_display_name = 5 [(buf.validate.field).string.max_len = 255];
+  // When the category was created.
+  google.protobuf.Timestamp created_at = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the category last changed.
+  google.protobuf.Timestamp updated_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// Product is a sellable item of the product catalog.
+message Product {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Product"
+    pattern: "products/{product}"
+    plural: "products"
+    singular: "product"
+  };
+  option (buf.validate.message).cel = {
+    id: "product.source"
+    message: "a metered product needs billable_metric_id and a fixed product add_on_id"
+    expression: "!has(this.product_type) || (this.product_type == 1 ? has(this.billable_metric_id) && !has(this.add_on_id) : has(this.add_on_id) && !has(this.billable_metric_id))"
+  };
+
+  // The product's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique code.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // The name printed on invoices.
+  string invoice_display_name = 4 [(buf.validate.field).string.max_len = 255];
+  // A description.
+  string description = 5 [(buf.validate.field).string.max_len = 4096];
+  // What the product sells; immutable once created.
+  ProductType product_type = 6 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The category (ID or `code:<code>`).
+  string product_category_id = 7 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The sold billable metric (ID or `code:<code>`), for metered products.
+  string billable_metric_id = 8 [
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The sold add-on (ID or `code:<code>`), for fixed products.
+  string add_on_id = 9 [
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // When the product was created.
+  google.protobuf.Timestamp created_at = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the product last changed.
+  google.protobuf.Timestamp updated_at = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// ProductFilter is a priced subset of a metered product's events, by the
+// values of its metric's filters.
+message ProductFilter {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/ProductFilter"
+    pattern: "products/{product}/filters/{filter}"
+    plural: "productFilters"
+    singular: "productFilter"
+  };
+
+  // The filter's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The code, unique within the product.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // A description.
+  string description = 4 [(buf.validate.field).string.max_len = 1024];
+  // The name printed on invoices.
+  string invoice_display_name = 5 [(buf.validate.field).string.max_len = 255];
+  // The matched values per metric filter key.
+  map<string, FilterValues> values = 6 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).map = {
+      min_pairs: 1
+      max_pairs: 50
+    }
+  ];
+  // When the filter was created.
+  google.protobuf.Timestamp created_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the filter last changed.
+  google.protobuf.Timestamp updated_at = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateProductRequest is the request of ProductService.CreateProduct.
+message CreateProductRequest {
+  option (buf.validate.message).cel = {
+    id: "product.required"
+    message: "code, name and product_type are required"
+    expression: "has(this.product.code) && has(this.product.name) && has(this.product.product_type)"
+  };
+
+  // The product to create.
+  Product product = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateProductResponse is the response of ProductService.CreateProduct.
+message CreateProductResponse {
+  // The created product.
+  Product product = 1;
+}
+
+// GetProductRequest is the request of ProductService.GetProduct.
+message GetProductRequest {
+  // The product's ID or `code:<code>`.
+  string product_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetProductResponse is the response of ProductService.GetProduct.
+message GetProductResponse {
+  // The product.
+  Product product = 1;
+}
+
+// ListProductsRequest is the request of ProductService.ListProducts.
+message ListProductsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `product_type`, `product_category_id`,
+  // `billable_metric_id` and `add_on_id`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+  // A search over the name and code.
+  string search = 4 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListProductsResponse is the response of ProductService.ListProducts.
+message ListProductsResponse {
+  // The products of this page.
+  repeated Product products = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateProductRequest is the request of ProductService.UpdateProduct.
+message UpdateProductRequest {
+  option (buf.validate.message).cel = {
+    id: "product.id"
+    message: "product.id is required"
+    expression: "has(this.product.id)"
+  };
+
+  // The new values; product.id (an ID or `code:<code>`) selects the product.
+  Product product = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateProductResponse is the response of ProductService.UpdateProduct.
+message UpdateProductResponse {
+  // The updated product.
+  Product product = 1;
+}
+
+// DeleteProductRequest is the request of ProductService.DeleteProduct.
+message DeleteProductRequest {
+  // The product's ID or `code:<code>`.
+  string product_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteProductResponse is the response of ProductService.DeleteProduct.
+message DeleteProductResponse {}
+
+// CreateProductFilterRequest is the request of ProductService.CreateProductFilter.
+message CreateProductFilterRequest {
+  option (buf.validate.message).cel = {
+    id: "filter.required"
+    message: "code, name and values are required"
+    expression: "has(this.filter.code) && has(this.filter.name) && size(this.filter.values) > 0"
+  };
+
+  // The product's ID or `code:<code>`.
+  string product_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The filter to create.
+  ProductFilter filter = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateProductFilterResponse is the response of ProductService.CreateProductFilter.
+message CreateProductFilterResponse {
+  // The created filter.
+  ProductFilter filter = 1;
+}
+
+// GetProductFilterRequest is the request of ProductService.GetProductFilter.
+message GetProductFilterRequest {
+  // The product's ID or `code:<code>`.
+  string product_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The filter's ID or `code:<code>`.
+  string filter_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetProductFilterResponse is the response of ProductService.GetProductFilter.
+message GetProductFilterResponse {
+  // The filter.
+  ProductFilter filter = 1;
+}
+
+// ListProductFiltersRequest is the request of ProductService.ListProductFilters.
+message ListProductFiltersRequest {
+  // The product's ID or `code:<code>`.
+  string product_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListProductFiltersResponse is the response of ProductService.ListProductFilters.
+message ListProductFiltersResponse {
+  // The filters of this page.
+  repeated ProductFilter filters = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateProductFilterRequest is the request of ProductService.UpdateProductFilter.
+message UpdateProductFilterRequest {
+  option (buf.validate.message).cel = {
+    id: "filter.id"
+    message: "filter.id is required"
+    expression: "has(this.filter.id)"
+  };
+
+  // The product's ID or `code:<code>`.
+  string product_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The new values; filter.id (an ID or `code:<code>`) selects the filter.
+  ProductFilter filter = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 3;
+}
+
+// UpdateProductFilterResponse is the response of ProductService.UpdateProductFilter.
+message UpdateProductFilterResponse {
+  // The updated filter.
+  ProductFilter filter = 1;
+}
+
+// DeleteProductFilterRequest is the request of ProductService.DeleteProductFilter.
+message DeleteProductFilterRequest {
+  // The product's ID or `code:<code>`.
+  string product_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The filter's ID or `code:<code>`.
+  string filter_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteProductFilterResponse is the response of ProductService.DeleteProductFilter.
+message DeleteProductFilterResponse {}
+
+// CreateProductCategoryRequest is the request of ProductService.CreateProductCategory.
+message CreateProductCategoryRequest {
+  option (buf.validate.message).cel = {
+    id: "product_category.required"
+    message: "code and name are required"
+    expression: "has(this.product_category.code) && has(this.product_category.name)"
+  };
+
+  // The category to create.
+  ProductCategory product_category = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateProductCategoryResponse is the response of ProductService.CreateProductCategory.
+message CreateProductCategoryResponse {
+  // The created category.
+  ProductCategory product_category = 1;
+}
+
+// GetProductCategoryRequest is the request of ProductService.GetProductCategory.
+message GetProductCategoryRequest {
+  // The category's ID or `code:<code>`.
+  string product_category_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetProductCategoryResponse is the response of ProductService.GetProductCategory.
+message GetProductCategoryResponse {
+  // The category.
+  ProductCategory product_category = 1;
+}
+
+// ListProductCategoriesRequest is the request of ProductService.ListProductCategories.
+message ListProductCategoriesRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListProductCategoriesResponse is the response of ProductService.ListProductCategories.
+message ListProductCategoriesResponse {
+  // The categories of this page.
+  repeated ProductCategory product_categories = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateProductCategoryRequest is the request of ProductService.UpdateProductCategory.
+message UpdateProductCategoryRequest {
+  option (buf.validate.message).cel = {
+    id: "product_category.id"
+    message: "product_category.id is required"
+    expression: "has(this.product_category.id)"
+  };
+
+  // The new values; product_category.id (an ID or `code:<code>`) selects
+  // the category.
+  ProductCategory product_category = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateProductCategoryResponse is the response of ProductService.UpdateProductCategory.
+message UpdateProductCategoryResponse {
+  // The updated category.
+  ProductCategory product_category = 1;
+}
+
+// DeleteProductCategoryRequest is the request of ProductService.DeleteProductCategory.
+message DeleteProductCategoryRequest {
+  // The category's ID or `code:<code>`.
+  string product_category_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteProductCategoryResponse is the response of ProductService.DeleteProductCategory.
+message DeleteProductCategoryResponse {}

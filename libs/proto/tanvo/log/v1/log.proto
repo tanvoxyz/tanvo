@@ -1,0 +1,304 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.log.v1 is the API of the audit trails: activity logs of
+// changes to billing objects, API logs of requests made with API keys, and
+// security logs of access changes.
+package tanvo.log.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+
+// LogService reads the audit trails. Logs are kept for the retention of
+// the organization's plan.
+service LogService {
+  // Returns an activity log.
+  rpc GetActivityLog(GetActivityLogRequest) returns (GetActivityLogResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/activity_logs/{activity_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "audit_logs:read"
+      api_resource: "activity_log"
+    };
+  }
+
+  // Lists activity logs, newest first.
+  rpc ListActivityLogs(ListActivityLogsRequest) returns (ListActivityLogsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/activity_logs"};
+    option (tanvo.common.v1.access) = {
+      permission: "audit_logs:read"
+      api_resource: "activity_log"
+    };
+  }
+
+  // Returns an API log.
+  rpc GetApiLog(GetApiLogRequest) returns (GetApiLogResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/api_logs/{request_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "audit_logs:read"
+      api_resource: "api_log"
+    };
+  }
+
+  // Lists API logs, newest first.
+  rpc ListApiLogs(ListApiLogsRequest) returns (ListApiLogsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/api_logs"};
+    option (tanvo.common.v1.access) = {
+      permission: "audit_logs:read"
+      api_resource: "api_log"
+    };
+  }
+
+  // Returns a security log.
+  rpc GetSecurityLog(GetSecurityLogRequest) returns (GetSecurityLogResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/security_logs/{log_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "security_logs:read"
+      api_resource: "security_log"
+    };
+  }
+
+  // Lists security logs, newest first.
+  rpc ListSecurityLogs(ListSecurityLogsRequest) returns (ListSecurityLogsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/security_logs"};
+    option (tanvo.common.v1.access) = {
+      permission: "security_logs:read"
+      api_resource: "security_log"
+    };
+  }
+}
+
+// ActivitySource is where a change came from.
+enum ActivitySource {
+  // Not set.
+  ACTIVITY_SOURCE_UNSPECIFIED = 0;
+  // The public API, with an API key.
+  ACTIVITY_SOURCE_API = 1;
+  // The dashboard, by a member.
+  ACTIVITY_SOURCE_DASHBOARD = 2;
+  // The system: background jobs and schedules.
+  ACTIVITY_SOURCE_SYSTEM = 3;
+}
+
+// ActivityLog records one change to a billing object.
+message ActivityLog {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/ActivityLog"
+    pattern: "activity_logs/{activity_log}"
+    plural: "activityLogs"
+    singular: "activityLog"
+  };
+
+  // The activity's ID.
+  string activity_id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The activity type, such as `invoice.created`.
+  string activity_type = 2;
+  // Where the change came from.
+  ActivitySource activity_source = 3;
+  // The object after the change.
+  google.protobuf.Struct activity_object = 4;
+  // The changed fields: field name to `[before, after]`.
+  google.protobuf.Struct activity_object_changes = 5;
+  // The member who made the change.
+  string user_email = 6;
+  // The API key used.
+  string api_key_id = 7;
+  // The changed object's ID.
+  string resource_id = 8;
+  // The changed object's type, such as `invoice`.
+  string resource_type = 9;
+  // The customer concerned.
+  string external_customer_id = 10;
+  // The subscription concerned.
+  string external_subscription_id = 11;
+  // When the change happened.
+  google.protobuf.Timestamp logged_at = 12;
+}
+
+// ApiLog records one API request made with an API key.
+message ApiLog {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/ApiLog"
+    pattern: "api_logs/{api_log}"
+    plural: "apiLogs"
+    singular: "apiLog"
+  };
+
+  // The request's ID.
+  string request_id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The API key used.
+  string api_key_id = 2;
+  // The client's user agent.
+  string client = 3;
+  // The HTTP method.
+  string http_method = 4;
+  // The HTTP status of the response.
+  int32 http_status = 5;
+  // The request's origin.
+  string request_origin = 6;
+  // The request path.
+  string request_path = 7;
+  // The request body, with secrets redacted.
+  google.protobuf.Struct request_body = 8;
+  // The response body.
+  google.protobuf.Struct request_response = 9;
+  // The API version.
+  string api_version = 10;
+  // When the request was received.
+  google.protobuf.Timestamp logged_at = 11;
+}
+
+// SecurityLog records one access change: sign-ins, members, roles, API
+// keys and authentication settings.
+message SecurityLog {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/SecurityLog"
+    pattern: "security_logs/{security_log}"
+    plural: "securityLogs"
+    singular: "securityLog"
+  };
+
+  // The log's ID.
+  string log_id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The log type, such as `user` or `api_key`.
+  string log_type = 2;
+  // The event, such as `user.signed_up` or `api_key.rotated`.
+  string log_event = 3;
+  // The member who made the change.
+  string user_email = 4;
+  // The API key used.
+  string api_key_id = 5;
+  // The objects concerned and their changes.
+  google.protobuf.Struct resources = 6;
+  // The device: IP address, user agent, browser and OS.
+  google.protobuf.Struct device_info = 7;
+  // When the change happened.
+  google.protobuf.Timestamp logged_at = 8;
+}
+
+// GetActivityLogRequest is the request of LogService.GetActivityLog.
+message GetActivityLogRequest {
+  // The activity's ID.
+  string activity_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetActivityLogResponse is the response of LogService.GetActivityLog.
+message GetActivityLogResponse {
+  // The activity log.
+  ActivityLog activity_log = 1;
+}
+
+// ListActivityLogsRequest is the request of LogService.ListActivityLogs.
+message ListActivityLogsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `activity_type`, `activity_source`,
+  // `user_email`, `api_key_id`, `resource_id`, `resource_type`,
+  // `external_customer_id`, `external_subscription_id` and `logged_at`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListActivityLogsResponse is the response of LogService.ListActivityLogs.
+message ListActivityLogsResponse {
+  // The activity logs of this page.
+  repeated ActivityLog activity_logs = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// GetApiLogRequest is the request of LogService.GetApiLog.
+message GetApiLogRequest {
+  // The request's ID.
+  string request_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetApiLogResponse is the response of LogService.GetApiLog.
+message GetApiLogResponse {
+  // The API log.
+  ApiLog api_log = 1;
+}
+
+// ListApiLogsRequest is the request of LogService.ListApiLogs.
+message ListApiLogsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `api_key_id`, `http_method`, `http_status`,
+  // `request_path` and `logged_at`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListApiLogsResponse is the response of LogService.ListApiLogs.
+message ListApiLogsResponse {
+  // The API logs of this page.
+  repeated ApiLog api_logs = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// GetSecurityLogRequest is the request of LogService.GetSecurityLog.
+message GetSecurityLogRequest {
+  // The log's ID.
+  string log_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetSecurityLogResponse is the response of LogService.GetSecurityLog.
+message GetSecurityLogResponse {
+  // The security log.
+  SecurityLog security_log = 1;
+}
+
+// ListSecurityLogsRequest is the request of LogService.ListSecurityLogs.
+message ListSecurityLogsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `log_type`, `log_event`, `user_email`,
+  // `api_key_id` and `logged_at`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListSecurityLogsResponse is the response of LogService.ListSecurityLogs.
+message ListSecurityLogsResponse {
+  // The security logs of this page.
+  repeated SecurityLog security_logs = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}

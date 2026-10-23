@@ -1,0 +1,764 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.webhook.v1 is the API of event destinations: webhook
+// endpoints, their deliveries and streaming destinations.
+package tanvo.webhook.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+
+// WebhookService manages webhook endpoints and their deliveries. Payloads
+// are signed with Standard Webhooks.
+service WebhookService {
+  // Creates a webhook endpoint; at most 10 per organization.
+  rpc CreateWebhookEndpoint(CreateWebhookEndpointRequest) returns (CreateWebhookEndpointResponse) {
+    option (google.api.http) = {
+      post: "/v1/webhook_endpoints"
+      body: "webhook_endpoint"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "developers:manage"
+      api_resource: "webhook_endpoint"
+    };
+  }
+
+  // Returns a webhook endpoint.
+  rpc GetWebhookEndpoint(GetWebhookEndpointRequest) returns (GetWebhookEndpointResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/webhook_endpoints/{webhook_endpoint_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "developers:manage"
+      api_resource: "webhook_endpoint"
+    };
+  }
+
+  // Lists webhook endpoints.
+  rpc ListWebhookEndpoints(ListWebhookEndpointsRequest) returns (ListWebhookEndpointsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/webhook_endpoints"};
+    option (tanvo.common.v1.access) = {
+      permission: "developers:manage"
+      api_resource: "webhook_endpoint"
+    };
+  }
+
+  // Updates a webhook endpoint's URL, name or event types.
+  rpc UpdateWebhookEndpoint(UpdateWebhookEndpointRequest) returns (UpdateWebhookEndpointResponse) {
+    option (google.api.http) = {
+      patch: "/v1/webhook_endpoints/{webhook_endpoint.id}"
+      body: "webhook_endpoint"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "developers:manage"
+      api_resource: "webhook_endpoint"
+    };
+  }
+
+  // Deletes a webhook endpoint.
+  rpc DeleteWebhookEndpoint(DeleteWebhookEndpointRequest) returns (DeleteWebhookEndpointResponse) {
+    option (google.api.http) = {delete: "/v1/webhook_endpoints/{webhook_endpoint_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "developers:manage"
+      api_resource: "webhook_endpoint"
+    };
+  }
+
+  // Replaces the signing secret of an endpoint; the previous secret keeps
+  // signing alongside the new one during the overlap.
+  rpc RotateWebhookEndpointSecret(RotateWebhookEndpointSecretRequest) returns (RotateWebhookEndpointSecretResponse) {
+    option (google.api.http) = {
+      post: "/v1/webhook_endpoints/{webhook_endpoint_id}:rotate_secret"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "developers:manage"
+      api_resource: "webhook_endpoint"
+    };
+  }
+
+  // Lists the event types endpoints can subscribe to.
+  rpc ListWebhookEventTypes(ListWebhookEventTypesRequest) returns (ListWebhookEventTypesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/webhook_event_types"};
+    option (tanvo.common.v1.access) = {
+      permission: "developers:manage"
+      api_resource: "webhook_endpoint"
+    };
+  }
+
+  // Returns a delivery.
+  rpc GetWebhookDelivery(GetWebhookDeliveryRequest) returns (GetWebhookDeliveryResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/webhook_endpoints/{webhook_endpoint_id}/deliveries/{delivery_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "developers:manage"
+      api_resource: "webhook_endpoint"
+    };
+  }
+
+  // Lists the deliveries of an endpoint, newest first; kept 90 days.
+  rpc ListWebhookDeliveries(ListWebhookDeliveriesRequest) returns (ListWebhookDeliveriesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/webhook_endpoints/{webhook_endpoint_id}/deliveries"};
+    option (tanvo.common.v1.access) = {
+      permission: "developers:manage"
+      api_resource: "webhook_endpoint"
+    };
+  }
+
+  // Sends a failed delivery again.
+  rpc RetryWebhookDelivery(RetryWebhookDeliveryRequest) returns (RetryWebhookDeliveryResponse) {
+    option (google.api.http) = {
+      post: "/v1/webhook_endpoints/{webhook_endpoint_id}/deliveries/{delivery_id}:retry"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "developers:manage"
+      api_resource: "webhook_endpoint"
+    };
+  }
+}
+
+// StreamingDestinationService manages streaming destinations: Kafka,
+// Kinesis or S3 targets that receive high-volume event types (usage
+// refreshes) instead of webhook endpoints.
+service StreamingDestinationService {
+  // Creates a streaming destination.
+  rpc CreateStreamingDestination(CreateStreamingDestinationRequest) returns (CreateStreamingDestinationResponse) {
+    option (google.api.http) = {
+      post: "/v1/streaming_destinations"
+      body: "streaming_destination"
+    };
+    option (tanvo.common.v1.access) = {permission: "developers:manage"};
+  }
+
+  // Returns a streaming destination.
+  rpc GetStreamingDestination(GetStreamingDestinationRequest) returns (GetStreamingDestinationResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/streaming_destinations/{streaming_destination_id}"};
+    option (tanvo.common.v1.access) = {permission: "developers:manage"};
+  }
+
+  // Lists streaming destinations.
+  rpc ListStreamingDestinations(ListStreamingDestinationsRequest) returns (ListStreamingDestinationsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/streaming_destinations"};
+    option (tanvo.common.v1.access) = {permission: "developers:manage"};
+  }
+
+  // Updates a streaming destination.
+  rpc UpdateStreamingDestination(UpdateStreamingDestinationRequest) returns (UpdateStreamingDestinationResponse) {
+    option (google.api.http) = {
+      patch: "/v1/streaming_destinations/{streaming_destination.id}"
+      body: "streaming_destination"
+    };
+    option (tanvo.common.v1.access) = {permission: "developers:manage"};
+  }
+
+  // Deletes a streaming destination.
+  rpc DeleteStreamingDestination(DeleteStreamingDestinationRequest) returns (DeleteStreamingDestinationResponse) {
+    option (google.api.http) = {delete: "/v1/streaming_destinations/{streaming_destination_id}"};
+    option (tanvo.common.v1.access) = {permission: "developers:manage"};
+  }
+
+  // Lists the delivery log of a destination, newest first.
+  rpc ListStreamingDeliveries(ListStreamingDeliveriesRequest) returns (ListStreamingDeliveriesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/streaming_destinations/{streaming_destination_id}/deliveries"};
+    option (tanvo.common.v1.access) = {permission: "developers:manage"};
+  }
+}
+
+// DeliveryStatus is the state of a webhook delivery.
+enum DeliveryStatus {
+  // Not set.
+  DELIVERY_STATUS_UNSPECIFIED = 0;
+  // Not sent yet.
+  DELIVERY_STATUS_PENDING = 1;
+  // Failed and scheduled again.
+  DELIVERY_STATUS_RETRYING = 2;
+  // Accepted by the endpoint.
+  DELIVERY_STATUS_SUCCEEDED = 3;
+  // Failed after the last attempt.
+  DELIVERY_STATUS_FAILED = 4;
+}
+
+// StreamingDeliveryStatus is the outcome of a streaming delivery.
+enum StreamingDeliveryStatus {
+  // Not set.
+  STREAMING_DELIVERY_STATUS_UNSPECIFIED = 0;
+  // Written to the destination.
+  STREAMING_DELIVERY_STATUS_DELIVERED = 1;
+  // Not sent: the destination excludes it.
+  STREAMING_DELIVERY_STATUS_SKIPPED = 2;
+  // The write failed.
+  STREAMING_DELIVERY_STATUS_FAILED = 3;
+  // Replaced by a newer event for the same object before sending.
+  STREAMING_DELIVERY_STATUS_SUPERSEDED = 4;
+  // Dropped after the last attempt.
+  STREAMING_DELIVERY_STATUS_DROPPED = 5;
+}
+
+// WebhookEndpoint receives signed event payloads over HTTP.
+message WebhookEndpoint {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/WebhookEndpoint"
+    pattern: "webhook_endpoints/{webhook_endpoint}"
+    plural: "webhookEndpoints"
+    singular: "webhookEndpoint"
+  };
+
+  // The endpoint's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The HTTPS URL; unique within the organization.
+  string url = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      uri: true
+      max_len: 2048
+    }
+  ];
+  // A display name.
+  string name = 3 [(buf.validate.field).string.max_len = 255];
+  // The event types delivered; all by default.
+  repeated string event_types = 4 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 200
+    items: {
+      string: {pattern: "^[a-z][a-z_]*(\\.[a-z][a-z_0-9]*)+$"}
+    }
+  }];
+  // The signing secret (`whsec_…`); returned on create and rotation only.
+  string secret = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the endpoint was created.
+  google.protobuf.Timestamp created_at = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the endpoint last changed.
+  google.protobuf.Timestamp updated_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// WebhookEventType describes an event type.
+message WebhookEventType {
+  // The name, `<object>.<action>`.
+  string name = 1;
+  // The category it belongs to.
+  string category = 2;
+  // A description.
+  string description = 3;
+}
+
+// WebhookDelivery is the delivery of one event to one endpoint.
+message WebhookDelivery {
+  // The delivery's ID, sent as the webhook-id header.
+  string id = 1;
+  // The endpoint.
+  string webhook_endpoint_id = 2;
+  // The event type.
+  string event_type = 3;
+  // The type of the object the event is about.
+  string object_type = 4;
+  // The ID of the object.
+  string object_id = 5;
+  // The JSON payload.
+  bytes payload = 6;
+  // The state.
+  DeliveryStatus status = 7;
+  // The number of attempts.
+  int32 attempts = 8;
+  // The HTTP status of the last attempt.
+  int32 http_status = 9;
+  // The start of the response body of the last attempt.
+  string response = 10;
+  // When the last attempt was made.
+  google.protobuf.Timestamp last_attempt_at = 11;
+  // When the next attempt is due.
+  google.protobuf.Timestamp next_attempt_at = 12;
+  // When the delivery was created.
+  google.protobuf.Timestamp created_at = 13;
+}
+
+// KafkaDestination writes to a Kafka topic.
+message KafkaDestination {
+  // The bootstrap servers, `host:port`.
+  repeated string brokers = 1 [(buf.validate.field).repeated = {
+    min_items: 1
+    max_items: 20
+    items: {
+      string: {
+        min_len: 1
+        max_len: 255
+      }
+    }
+  }];
+  // The topic.
+  string topic = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 249
+  }];
+  // The SASL mechanism (`PLAIN`, `SCRAM-SHA-256`, `SCRAM-SHA-512`); none
+  // when empty.
+  string sasl_mechanism = 3 [(buf.validate.field).string = {
+    in: [
+      "",
+      "PLAIN",
+      "SCRAM-SHA-256",
+      "SCRAM-SHA-512"
+    ]
+  }];
+  // The SASL user name.
+  string username = 4 [(buf.validate.field).string.max_len = 255];
+  // The SASL password; write only.
+  string password = 5 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.max_len = 1024
+  ];
+  // Connects with TLS.
+  bool tls = 6;
+}
+
+// KinesisDestination writes to an Amazon Kinesis data stream.
+message KinesisDestination {
+  // The stream name or ARN.
+  string stream = 1 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 2048
+  }];
+  // The AWS region.
+  string region = 2 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 64
+  }];
+  // The IAM role assumed to write.
+  string role_arn = 3 [(buf.validate.field).string.max_len = 2048];
+  // The external ID of the role assumption.
+  string external_id = 4 [(buf.validate.field).string.max_len = 1224];
+  // The payload field used as partition key; the customer ID by default.
+  string partition_key = 5 [(buf.validate.field).string.max_len = 255];
+}
+
+// S3Destination writes batches of events to S3 objects.
+message S3Destination {
+  // The bucket.
+  string bucket = 1 [(buf.validate.field).string = {
+    min_len: 3
+    max_len: 63
+  }];
+  // The key prefix.
+  string prefix = 2 [(buf.validate.field).string.max_len = 1024];
+  // The AWS region.
+  string region = 3 [(buf.validate.field).string = {
+    min_len: 1
+    max_len: 64
+  }];
+  // The IAM role assumed to write.
+  string role_arn = 4 [(buf.validate.field).string.max_len = 2048];
+  // The external ID of the role assumption.
+  string external_id = 5 [(buf.validate.field).string.max_len = 1224];
+  // How long events are batched before an object is written; 1 minute by
+  // default.
+  google.protobuf.Duration flush_interval = 6 [(buf.validate.field).duration = {
+    gte: {seconds: 10}
+    lte: {seconds: 3600}
+  }];
+}
+
+// StreamingDestination receives event types claimed from webhook
+// endpoints; each event type has at most one destination.
+message StreamingDestination {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/StreamingDestination"
+    pattern: "streaming_destinations/{streaming_destination}"
+    plural: "streamingDestinations"
+    singular: "streamingDestination"
+  };
+
+  // The destination's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // A display name.
+  string name = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // The event types claimed (`customer_usage.refreshed.v1`,
+  // `customer_full_usage.refreshed.v1`).
+  repeated string event_types = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).repeated = {
+      unique: true
+      max_items: 50
+      items: {
+        string: {pattern: "^[a-z][a-z_]*(\\.[a-z][a-z_0-9]*)+$"}
+      }
+    }
+  ];
+  // Plans whose subscriptions are left out of full-usage events (IDs or
+  // `code:<code>`).
+  repeated string excluded_plan_ids = 4 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 200
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // Pauses delivery.
+  bool disabled = 5;
+  // The target.
+  oneof target {
+    // Kafka.
+    KafkaDestination kafka = 10;
+    // Amazon Kinesis.
+    KinesisDestination kinesis = 11;
+    // Amazon S3.
+    S3Destination s3 = 12;
+  }
+  // When the destination was created.
+  google.protobuf.Timestamp created_at = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the destination last changed.
+  google.protobuf.Timestamp updated_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// StreamingDelivery is a log entry of a streaming destination.
+message StreamingDelivery {
+  // The entry's ID.
+  string id = 1;
+  // The destination.
+  string streaming_destination_id = 2;
+  // The event type.
+  string event_type = 3;
+  // The ID of the object the event is about.
+  string object_id = 4;
+  // The outcome.
+  StreamingDeliveryStatus status = 5;
+  // The number of attempts.
+  int32 attempts = 6;
+  // The error of a failed write.
+  string error = 7;
+  // When the entry was recorded.
+  google.protobuf.Timestamp created_at = 8;
+}
+
+// CreateWebhookEndpointRequest is the request of WebhookService.CreateWebhookEndpoint.
+message CreateWebhookEndpointRequest {
+  option (buf.validate.message).cel = {
+    id: "webhook_endpoint.url"
+    message: "url is required"
+    expression: "has(this.webhook_endpoint.url)"
+  };
+
+  // The endpoint to create.
+  WebhookEndpoint webhook_endpoint = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateWebhookEndpointResponse is the response of WebhookService.CreateWebhookEndpoint.
+message CreateWebhookEndpointResponse {
+  // The created endpoint, with its secret.
+  WebhookEndpoint webhook_endpoint = 1;
+}
+
+// GetWebhookEndpointRequest is the request of WebhookService.GetWebhookEndpoint.
+message GetWebhookEndpointRequest {
+  // The endpoint's ID.
+  string webhook_endpoint_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetWebhookEndpointResponse is the response of WebhookService.GetWebhookEndpoint.
+message GetWebhookEndpointResponse {
+  // The endpoint.
+  WebhookEndpoint webhook_endpoint = 1;
+}
+
+// ListWebhookEndpointsRequest is the request of WebhookService.ListWebhookEndpoints.
+message ListWebhookEndpointsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListWebhookEndpointsResponse is the response of WebhookService.ListWebhookEndpoints.
+message ListWebhookEndpointsResponse {
+  // The endpoints of this page.
+  repeated WebhookEndpoint webhook_endpoints = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateWebhookEndpointRequest is the request of WebhookService.UpdateWebhookEndpoint.
+message UpdateWebhookEndpointRequest {
+  option (buf.validate.message).cel = {
+    id: "webhook_endpoint.id"
+    message: "webhook_endpoint.id is required"
+    expression: "has(this.webhook_endpoint.id)"
+  };
+
+  // The new values; webhook_endpoint.id selects the endpoint.
+  WebhookEndpoint webhook_endpoint = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateWebhookEndpointResponse is the response of WebhookService.UpdateWebhookEndpoint.
+message UpdateWebhookEndpointResponse {
+  // The updated endpoint.
+  WebhookEndpoint webhook_endpoint = 1;
+}
+
+// DeleteWebhookEndpointRequest is the request of WebhookService.DeleteWebhookEndpoint.
+message DeleteWebhookEndpointRequest {
+  // The endpoint's ID.
+  string webhook_endpoint_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DeleteWebhookEndpointResponse is the response of WebhookService.DeleteWebhookEndpoint.
+message DeleteWebhookEndpointResponse {}
+
+// RotateWebhookEndpointSecretRequest is the request of WebhookService.RotateWebhookEndpointSecret.
+message RotateWebhookEndpointSecretRequest {
+  // The endpoint's ID.
+  string webhook_endpoint_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // How long the previous secret keeps signing; none by default, at most
+  // 7 days.
+  google.protobuf.Duration overlap = 2 [(buf.validate.field).duration = {
+    gte: {}
+    lte: {seconds: 604800}
+  }];
+}
+
+// RotateWebhookEndpointSecretResponse is the response of WebhookService.RotateWebhookEndpointSecret.
+message RotateWebhookEndpointSecretResponse {
+  // The endpoint, with its new secret.
+  WebhookEndpoint webhook_endpoint = 1;
+}
+
+// ListWebhookEventTypesRequest is the request of WebhookService.ListWebhookEventTypes.
+message ListWebhookEventTypesRequest {}
+
+// ListWebhookEventTypesResponse is the response of WebhookService.ListWebhookEventTypes.
+message ListWebhookEventTypesResponse {
+  // The event types.
+  repeated WebhookEventType event_types = 1;
+}
+
+// GetWebhookDeliveryRequest is the request of WebhookService.GetWebhookDelivery.
+message GetWebhookDeliveryRequest {
+  // The endpoint's ID.
+  string webhook_endpoint_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The delivery's ID.
+  string delivery_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetWebhookDeliveryResponse is the response of WebhookService.GetWebhookDelivery.
+message GetWebhookDeliveryResponse {
+  // The delivery.
+  WebhookDelivery delivery = 1;
+}
+
+// ListWebhookDeliveriesRequest is the request of WebhookService.ListWebhookDeliveries.
+message ListWebhookDeliveriesRequest {
+  // The endpoint's ID.
+  string webhook_endpoint_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `status`, `event_type` and `created_at`.
+  string filter = 4 [(buf.validate.field).string.max_len = 2048];
+  // A search over the object ID and event type.
+  string search = 5 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListWebhookDeliveriesResponse is the response of WebhookService.ListWebhookDeliveries.
+message ListWebhookDeliveriesResponse {
+  // The deliveries of this page.
+  repeated WebhookDelivery deliveries = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// RetryWebhookDeliveryRequest is the request of WebhookService.RetryWebhookDelivery.
+message RetryWebhookDeliveryRequest {
+  // The endpoint's ID.
+  string webhook_endpoint_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The delivery's ID.
+  string delivery_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// RetryWebhookDeliveryResponse is the response of WebhookService.RetryWebhookDelivery.
+message RetryWebhookDeliveryResponse {
+  // The delivery, scheduled again.
+  WebhookDelivery delivery = 1;
+}
+
+// CreateStreamingDestinationRequest is the request of StreamingDestinationService.CreateStreamingDestination.
+message CreateStreamingDestinationRequest {
+  option (buf.validate.message).cel = {
+    id: "streaming_destination.required"
+    message: "name, event_types and a target are required"
+    expression: "has(this.streaming_destination.name) && size(this.streaming_destination.event_types) > 0 && (has(this.streaming_destination.kafka) || has(this.streaming_destination.kinesis) || has(this.streaming_destination.s3))"
+  };
+
+  // The destination to create.
+  StreamingDestination streaming_destination = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateStreamingDestinationResponse is the response of StreamingDestinationService.CreateStreamingDestination.
+message CreateStreamingDestinationResponse {
+  // The created destination.
+  StreamingDestination streaming_destination = 1;
+}
+
+// GetStreamingDestinationRequest is the request of StreamingDestinationService.GetStreamingDestination.
+message GetStreamingDestinationRequest {
+  // The destination's ID.
+  string streaming_destination_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetStreamingDestinationResponse is the response of StreamingDestinationService.GetStreamingDestination.
+message GetStreamingDestinationResponse {
+  // The destination.
+  StreamingDestination streaming_destination = 1;
+}
+
+// ListStreamingDestinationsRequest is the request of StreamingDestinationService.ListStreamingDestinations.
+message ListStreamingDestinationsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListStreamingDestinationsResponse is the response of StreamingDestinationService.ListStreamingDestinations.
+message ListStreamingDestinationsResponse {
+  // The destinations of this page.
+  repeated StreamingDestination streaming_destinations = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateStreamingDestinationRequest is the request of StreamingDestinationService.UpdateStreamingDestination.
+message UpdateStreamingDestinationRequest {
+  option (buf.validate.message).cel = {
+    id: "streaming_destination.id"
+    message: "streaming_destination.id is required"
+    expression: "has(this.streaming_destination.id)"
+  };
+
+  // The new values; streaming_destination.id selects the destination.
+  StreamingDestination streaming_destination = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateStreamingDestinationResponse is the response of StreamingDestinationService.UpdateStreamingDestination.
+message UpdateStreamingDestinationResponse {
+  // The updated destination.
+  StreamingDestination streaming_destination = 1;
+}
+
+// DeleteStreamingDestinationRequest is the request of StreamingDestinationService.DeleteStreamingDestination.
+message DeleteStreamingDestinationRequest {
+  // The destination's ID.
+  string streaming_destination_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DeleteStreamingDestinationResponse is the response of StreamingDestinationService.DeleteStreamingDestination.
+message DeleteStreamingDestinationResponse {}
+
+// ListStreamingDeliveriesRequest is the request of StreamingDestinationService.ListStreamingDeliveries.
+message ListStreamingDeliveriesRequest {
+  // The destination's ID.
+  string streaming_destination_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `status`, `event_type` and `created_at`.
+  string filter = 4 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListStreamingDeliveriesResponse is the response of StreamingDestinationService.ListStreamingDeliveries.
+message ListStreamingDeliveriesResponse {
+  // The log entries of this page.
+  repeated StreamingDelivery deliveries = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}

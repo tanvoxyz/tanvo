@@ -1,0 +1,317 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.usage.v1 is the API of a subscription's usage: current,
+// projected, past and hourly.
+package tanvo.usage.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// UsageService reads the usage of subscriptions. Usage is keyed by customer
+// and subscription, both accepting `external_id:<external_id>`.
+service UsageService {
+  // Returns the usage of the current billing period, with its fees and,
+  // optionally, the projection to the period end.
+  rpc GetCurrentUsage(GetCurrentUsageRequest) returns (GetCurrentUsageResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/customers/{customer_id}/subscriptions/{subscription_id}/usage:current"};
+    option (tanvo.common.v1.access) = {
+      permission: "customers:read"
+      api_resource: "customer_usage"
+    };
+  }
+
+  // Lists the usage of past billing periods, newest first.
+  rpc ListPastUsage(ListPastUsageRequest) returns (ListPastUsageResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/customers/{customer_id}/subscriptions/{subscription_id}/usage:past"};
+    option (tanvo.common.v1.access) = {
+      permission: "customers:read"
+      api_resource: "customer_usage"
+    };
+  }
+
+  // Returns the hourly usage of billable metrics over a time range.
+  rpc GetHourlyUsage(GetHourlyUsageRequest) returns (GetHourlyUsageResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/customers/{customer_id}/subscriptions/{subscription_id}/usage:hourly"};
+    option (tanvo.common.v1.access) = {
+      permission: "customers:read"
+      api_resource: "customer_usage"
+    };
+  }
+
+  // Lists the daily usage snapshots of a subscription, with the change
+  // from the previous day.
+  rpc ListDailyUsage(ListDailyUsageRequest) returns (ListDailyUsageResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/customers/{customer_id}/subscriptions/{subscription_id}/usage:daily"};
+    option (tanvo.common.v1.access) = {
+      permission: "customers:read"
+      api_resource: "customer_usage"
+    };
+  }
+}
+
+// GroupedUsage is the usage of one grouping of a charge.
+message GroupedUsage {
+  // The grouping values.
+  map<string, string> grouped_by = 1;
+  // The units.
+  string units = 2;
+  // The amount.
+  tanvo.common.v1.Money amount = 3;
+  // The number of events.
+  int64 events_count = 4;
+  // The projected units at the period end.
+  string projected_units = 5;
+  // The projected amount at the period end.
+  tanvo.common.v1.Money projected_amount = 6;
+}
+
+// FilterUsage is the usage of one charge filter.
+message FilterUsage {
+  // The charge filter; empty for the events no filter matched.
+  string charge_filter_id = 1;
+  // The filter's invoice display name.
+  string invoice_display_name = 2;
+  // The filter values.
+  map<string, string> values = 3;
+  // The units.
+  string units = 4;
+  // The amount.
+  tanvo.common.v1.Money amount = 5;
+  // The number of events.
+  int64 events_count = 6;
+  // The projected units at the period end.
+  string projected_units = 7;
+  // The projected amount at the period end.
+  tanvo.common.v1.Money projected_amount = 8;
+  // The usage per grouping.
+  repeated GroupedUsage grouped_usage = 9;
+}
+
+// ChargeUsage is the usage of one charge.
+message ChargeUsage {
+  // The charge.
+  string charge_id = 1;
+  // The billable metric.
+  string billable_metric_id = 2;
+  // The billable metric code.
+  string billable_metric_code = 3;
+  // The charge's invoice display name.
+  string invoice_display_name = 4;
+  // The units.
+  string units = 5;
+  // The amount.
+  tanvo.common.v1.Money amount = 6;
+  // The amount in the charge's pricing unit, when it has one.
+  string pricing_unit_amount = 7;
+  // The number of events.
+  int64 events_count = 8;
+  // The projected units at the period end.
+  string projected_units = 9;
+  // The projected amount at the period end.
+  tanvo.common.v1.Money projected_amount = 10;
+  // The usage per filter.
+  repeated FilterUsage filters = 11;
+  // The usage per grouping, for charges without filters.
+  repeated GroupedUsage grouped_usage = 12;
+}
+
+// Usage is the usage of one billing period.
+message Usage {
+  // The subscription.
+  string subscription_id = 1;
+  // The subscription's external ID.
+  string external_subscription_id = 2;
+  // The start of the period.
+  google.protobuf.Timestamp from = 3;
+  // The end of the period.
+  google.protobuf.Timestamp to = 4;
+  // The date the period is invoiced.
+  google.protobuf.Timestamp issuing_at = 5;
+  // The invoice of a past period.
+  string invoice_id = 6;
+  // The usage amount before taxes.
+  tanvo.common.v1.Money amount = 7;
+  // The taxes.
+  tanvo.common.v1.Money taxes_amount = 8;
+  // The total.
+  tanvo.common.v1.Money total_amount = 9;
+  // The projected amount at the period end.
+  tanvo.common.v1.Money projected_amount = 10;
+  // The usage per charge.
+  repeated ChargeUsage charges = 11;
+}
+
+// HourlyUsage is the usage of one billable metric in one hour.
+message HourlyUsage {
+  // The start of the hour.
+  google.protobuf.Timestamp hour = 1;
+  // The billable metric code.
+  string billable_metric_code = 2;
+  // The aggregated value of the hour.
+  string units = 3;
+  // The number of events.
+  int64 events_count = 4;
+  // The grouping values.
+  map<string, string> grouped_by = 5;
+}
+
+// DailyUsage is a snapshot of a subscription's usage on one day.
+message DailyUsage {
+  // The day.
+  google.protobuf.Timestamp usage_date = 1;
+  // The usage of the period so far.
+  Usage usage = 2;
+  // The change from the previous day.
+  Usage usage_diff = 3;
+}
+
+// GetCurrentUsageRequest is the request of UsageService.GetCurrentUsage.
+message GetCurrentUsageRequest {
+  // The customer's ID or `external_id:<external_id>`.
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The subscription's ID or `external_id:<external_id>`.
+  string subscription_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // Applies the customer's taxes; true by default.
+  bool apply_taxes = 3;
+  // Includes the projection to the period end.
+  bool include_projection = 4;
+  // Restricts the usage to one billable metric code.
+  string billable_metric_code = 5 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
+  // Restricts the usage to events matching these filter values.
+  map<string, string> filter_by = 6 [(buf.validate.field).map.max_pairs = 20];
+  // Groups the usage by these attribution type codes.
+  repeated string group_by_attributions = 7 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 5
+  }];
+}
+
+// GetCurrentUsageResponse is the response of UsageService.GetCurrentUsage.
+message GetCurrentUsageResponse {
+  // The usage.
+  Usage usage = 1;
+}
+
+// ListPastUsageRequest is the request of UsageService.ListPastUsage.
+message ListPastUsageRequest {
+  // The customer's ID or `external_id:<external_id>`.
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The subscription's ID or `external_id:<external_id>`.
+  string subscription_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // Restricts the usage to one billable metric code.
+  string billable_metric_code = 3 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
+  // The number of past periods to return.
+  int32 periods_count = 4 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 100
+  }];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 5 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 6 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListPastUsageResponse is the response of UsageService.ListPastUsage.
+message ListPastUsageResponse {
+  // The usage of each period.
+  repeated Usage usages = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// GetHourlyUsageRequest is the request of UsageService.GetHourlyUsage.
+message GetHourlyUsageRequest {
+  option (buf.validate.message).cel = {
+    id: "range.order"
+    message: "from must be before to"
+    expression: "!has(this.from) || !has(this.to) || this.from < this.to"
+  };
+
+  // The customer's ID or `external_id:<external_id>`.
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The subscription's ID or `external_id:<external_id>`.
+  string subscription_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The start of the range; the period start by default.
+  google.protobuf.Timestamp from = 3;
+  // The end of the range; now by default.
+  google.protobuf.Timestamp to = 4;
+  // Restricts the usage to one billable metric code.
+  string billable_metric_code = 5 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
+}
+
+// GetHourlyUsageResponse is the response of UsageService.GetHourlyUsage.
+message GetHourlyUsageResponse {
+  // The usage per hour and metric.
+  repeated HourlyUsage hourly_usage = 1;
+}
+
+// ListDailyUsageRequest is the request of UsageService.ListDailyUsage.
+message ListDailyUsageRequest {
+  // The customer's ID or `external_id:<external_id>`.
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The subscription's ID or `external_id:<external_id>`.
+  string subscription_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The days to return.
+  tanvo.common.v1.DateTimeRange range = 3;
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 4 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 5 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListDailyUsageResponse is the response of UsageService.ListDailyUsage.
+message ListDailyUsageResponse {
+  // The daily snapshots of this page.
+  repeated DailyUsage daily_usages = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}

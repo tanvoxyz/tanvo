@@ -1,0 +1,1592 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.invoice.v1 is the API of invoices, their fees and invoice
+// custom sections.
+package tanvo.invoice.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "google/type/date.proto";
+import "tanvo/common/v1/enums.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// InvoiceService manages invoices.
+service InvoiceService {
+  // Creates a one-off invoice of add-on fees, finalized at once.
+  rpc CreateInvoice(CreateInvoiceRequest) returns (CreateInvoiceResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:create"
+      api_resource: "invoice"
+    };
+  }
+
+  // Returns an invoice.
+  rpc GetInvoice(GetInvoiceRequest) returns (GetInvoiceResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/invoices/{invoice_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:read"
+      api_resource: "invoice"
+    };
+  }
+
+  // Lists invoices, newest first.
+  rpc ListInvoices(ListInvoicesRequest) returns (ListInvoicesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/invoices"
+      additional_bindings: {get: "/v1/customers/{customer_id}/invoices"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:read"
+      api_resource: "invoice"
+    };
+  }
+
+  // Updates an invoice's payment status, metadata or item metadata.
+  rpc UpdateInvoice(UpdateInvoiceRequest) returns (UpdateInvoiceResponse) {
+    option (google.api.http) = {
+      patch: "/v1/invoices/{invoice.id}"
+      body: "invoice"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "invoice"
+    };
+  }
+
+  // Deletes a draft invoice.
+  rpc DeleteInvoice(DeleteInvoiceRequest) returns (DeleteInvoiceResponse) {
+    option (google.api.http) = {delete: "/v1/invoices/{invoice_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:delete"
+      api_resource: "invoice"
+    };
+  }
+
+  // Recomputes a draft invoice from the current usage and catalog.
+  rpc RefreshInvoice(RefreshInvoiceRequest) returns (RefreshInvoiceResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}:refresh"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "invoice"
+    };
+  }
+
+  // Refreshes and finalizes a draft invoice.
+  rpc FinalizeInvoice(FinalizeInvoiceRequest) returns (FinalizeInvoiceResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}:finalize"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "invoice"
+    };
+  }
+
+  // Refreshes and finalizes every draft invoice, in the background.
+  rpc FinalizeAllInvoices(FinalizeAllInvoicesRequest) returns (FinalizeAllInvoicesResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices:finalize_all"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "invoice"
+    };
+  }
+
+  // Voids a finalized invoice, re-crediting coupons, prepaid credits and
+  // credit notes, and optionally issuing a credit note.
+  rpc VoidInvoice(VoidInvoiceRequest) returns (VoidInvoiceResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}:void"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:void"
+      api_resource: "invoice"
+    };
+  }
+
+  // Issues a new invoice from a voided one with adjusted fees; with
+  // validate_only, previews it.
+  rpc RegenerateInvoice(RegenerateInvoiceRequest) returns (RegenerateInvoiceResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}:regenerate"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:create"
+      api_resource: "invoice"
+    };
+  }
+
+  // Retries a failed invoice: its generation or its provider tax
+  // computation.
+  rpc RetryInvoice(RetryInvoiceRequest) returns (RetryInvoiceResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}:retry"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "invoice"
+    };
+  }
+
+  // Retries the payment of a finalized, unpaid invoice.
+  rpc RetryInvoicePayment(RetryInvoicePaymentRequest) returns (RetryInvoicePaymentResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}:retry_payment"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "invoice"
+    };
+  }
+
+  // Retries the synchronization of an invoice with the customer's
+  // accounting, CRM or tax integrations.
+  rpc RetryInvoiceSync(RetryInvoiceSyncRequest) returns (RetryInvoiceSyncResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}:retry_sync"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "invoice"
+    };
+  }
+
+  // Marks the payment dispute of an invoice as lost.
+  rpc LoseInvoiceDispute(LoseInvoiceDisputeRequest) returns (LoseInvoiceDisputeResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}:lose_dispute"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "invoice"
+    };
+  }
+
+  // Returns signed URLs of the invoice's PDF and XML, generating them when
+  // missing.
+  rpc DownloadInvoice(DownloadInvoiceRequest) returns (DownloadInvoiceResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}:download"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:read"
+      api_resource: "invoice"
+    };
+  }
+
+  // Sends the invoice email again.
+  rpc ResendInvoice(ResendInvoiceRequest) returns (ResendInvoiceResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}:resend"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:send"
+      api_resource: "invoice"
+    };
+  }
+
+  // Returns a payment provider checkout URL for an unpaid invoice.
+  rpc GenerateInvoicePaymentUrl(GenerateInvoicePaymentUrlRequest) returns (GenerateInvoicePaymentUrlResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}:generate_payment_url"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:read"
+      api_resource: "invoice"
+    };
+  }
+
+  // Previews the next invoice of a customer: a proposal for a new
+  // subscription, the projection of existing ones, a termination or a
+  // plan change. Nothing is stored.
+  rpc PreviewInvoice(PreviewInvoiceRequest) returns (PreviewInvoiceResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices:preview"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:read"
+      api_resource: "invoice"
+    };
+  }
+
+  // Stores the Salesforce ID of an invoice.
+  rpc SetInvoiceSalesforceId(SetInvoiceSalesforceIdRequest) returns (SetInvoiceSalesforceIdResponse) {
+    option idempotency_level = IDEMPOTENT;
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}:set_salesforce_id"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "invoice"
+    };
+  }
+}
+
+// FeeService reads and adjusts fees.
+service FeeService {
+  // Returns a fee.
+  rpc GetFee(GetFeeRequest) returns (GetFeeResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/fees/{fee_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:read"
+      api_resource: "fee"
+    };
+  }
+
+  // Lists fees.
+  rpc ListFees(ListFeesRequest) returns (ListFeesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/fees"
+      additional_bindings: {get: "/v1/invoices/{invoice_id}/fees"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:read"
+      api_resource: "fee"
+    };
+  }
+
+  // Updates the payment status of an in-advance fee not attached to an
+  // invoice.
+  rpc UpdateFee(UpdateFeeRequest) returns (UpdateFeeResponse) {
+    option (google.api.http) = {
+      patch: "/v1/fees/{fee.id}"
+      body: "fee"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "fee"
+    };
+  }
+
+  // Deletes an in-advance fee not attached to an invoice.
+  rpc DeleteFee(DeleteFeeRequest) returns (DeleteFeeResponse) {
+    option (google.api.http) = {delete: "/v1/fees/{fee_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "fee"
+    };
+  }
+
+  // Adjusts a fee of a draft invoice: its display name, units or unit
+  // price. Setting fee_id or a charge creates the fee when it is missing.
+  rpc AdjustFee(AdjustFeeRequest) returns (AdjustFeeResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}/fees:adjust"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "fee"
+    };
+  }
+
+  // Removes the adjustment of a draft invoice fee.
+  rpc DeleteFeeAdjustment(DeleteFeeAdjustmentRequest) returns (DeleteFeeAdjustmentResponse) {
+    option (google.api.http) = {
+      post: "/v1/fees/{fee_id}:delete_adjustment"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "fee"
+    };
+  }
+}
+
+// InvoiceCustomSectionService manages invoice custom sections: text printed
+// on invoices, resolved from subscription, customer and billing entity.
+service InvoiceCustomSectionService {
+  // Creates an invoice custom section.
+  rpc CreateInvoiceCustomSection(CreateInvoiceCustomSectionRequest) returns (CreateInvoiceCustomSectionResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoice_custom_sections"
+      body: "invoice_custom_section"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoice_custom_sections:create"
+      api_resource: "invoice_custom_section"
+    };
+  }
+
+  // Returns an invoice custom section.
+  rpc GetInvoiceCustomSection(GetInvoiceCustomSectionRequest) returns (GetInvoiceCustomSectionResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/invoice_custom_sections/{invoice_custom_section_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "invoice_custom_sections:read"
+      api_resource: "invoice_custom_section"
+    };
+  }
+
+  // Lists invoice custom sections.
+  rpc ListInvoiceCustomSections(ListInvoiceCustomSectionsRequest) returns (ListInvoiceCustomSectionsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/invoice_custom_sections"};
+    option (tanvo.common.v1.access) = {
+      permission: "invoice_custom_sections:read"
+      api_resource: "invoice_custom_section"
+    };
+  }
+
+  // Updates an invoice custom section.
+  rpc UpdateInvoiceCustomSection(UpdateInvoiceCustomSectionRequest) returns (UpdateInvoiceCustomSectionResponse) {
+    option (google.api.http) = {
+      patch: "/v1/invoice_custom_sections/{invoice_custom_section.id}"
+      body: "invoice_custom_section"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoice_custom_sections:update"
+      api_resource: "invoice_custom_section"
+    };
+  }
+
+  // Deletes an invoice custom section and detaches it everywhere.
+  rpc DeleteInvoiceCustomSection(DeleteInvoiceCustomSectionRequest) returns (DeleteInvoiceCustomSectionResponse) {
+    option (google.api.http) = {delete: "/v1/invoice_custom_sections/{invoice_custom_section_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "invoice_custom_sections:delete"
+      api_resource: "invoice_custom_section"
+    };
+  }
+}
+
+// InvoiceType is what an invoice bills.
+enum InvoiceType {
+  // Not set.
+  INVOICE_TYPE_UNSPECIFIED = 0;
+  // Subscription fees and usage of a billing period.
+  INVOICE_TYPE_SUBSCRIPTION = 1;
+  // A paid wallet top-up.
+  INVOICE_TYPE_CREDIT = 2;
+  // One-off add-on fees.
+  INVOICE_TYPE_ONE_OFF = 3;
+  // In-advance charge fees grouped at the period end.
+  INVOICE_TYPE_ADVANCE_CHARGES = 4;
+  // Usage billed when a usage threshold is crossed.
+  INVOICE_TYPE_PROGRESSIVE_BILLING = 5;
+}
+
+// InvoiceStatus is the state of an invoice.
+enum InvoiceStatus {
+  // Not set.
+  INVOICE_STATUS_UNSPECIFIED = 0;
+  // Fees are being computed.
+  INVOICE_STATUS_GENERATING = 1;
+  // Editable during the grace period.
+  INVOICE_STATUS_DRAFT = 2;
+  // A credit invoice waiting for its payment.
+  INVOICE_STATUS_OPEN = 3;
+  // Final.
+  INVOICE_STATUS_FINALIZED = 4;
+  // A credit invoice whose payment failed.
+  INVOICE_STATUS_CLOSED = 5;
+  // Canceled after finalization.
+  INVOICE_STATUS_VOIDED = 6;
+  // Generation or tax computation failed.
+  INVOICE_STATUS_FAILED = 7;
+  // Held until taxes or a VIES check complete.
+  INVOICE_STATUS_PENDING = 8;
+}
+
+// TaxStatus is the state of provider tax computation.
+enum TaxStatus {
+  // Not set.
+  TAX_STATUS_UNSPECIFIED = 0;
+  // Being computed.
+  TAX_STATUS_PENDING = 1;
+  // Computed.
+  TAX_STATUS_SUCCEEDED = 2;
+  // Failed.
+  TAX_STATUS_FAILED = 3;
+}
+
+// InvoicingReason is why a subscription is on an invoice.
+enum InvoicingReason {
+  // Not set.
+  INVOICING_REASON_UNSPECIFIED = 0;
+  // The subscription started.
+  INVOICING_REASON_SUBSCRIPTION_STARTING = 1;
+  // A billing period ended.
+  INVOICING_REASON_SUBSCRIPTION_PERIODIC = 2;
+  // The subscription was terminated.
+  INVOICING_REASON_SUBSCRIPTION_TERMINATING = 3;
+  // An in-advance charge was triggered.
+  INVOICING_REASON_IN_ADVANCE_CHARGE = 4;
+  // In-advance charges were grouped at the period end.
+  INVOICING_REASON_IN_ADVANCE_CHARGE_PERIODIC = 5;
+  // A usage threshold was crossed.
+  INVOICING_REASON_PROGRESSIVE_BILLING = 6;
+}
+
+// FeePaymentStatus is the payment state of an in-advance fee.
+enum FeePaymentStatus {
+  // Not set.
+  FEE_PAYMENT_STATUS_UNSPECIFIED = 0;
+  // Not paid yet.
+  FEE_PAYMENT_STATUS_PENDING = 1;
+  // Paid.
+  FEE_PAYMENT_STATUS_SUCCEEDED = 2;
+  // The payment failed.
+  FEE_PAYMENT_STATUS_FAILED = 3;
+  // Refunded.
+  FEE_PAYMENT_STATUS_REFUNDED = 4;
+}
+
+// SettlementType is what settled part of an invoice.
+enum SettlementType {
+  // Not set.
+  SETTLEMENT_TYPE_UNSPECIFIED = 0;
+  // A payment.
+  SETTLEMENT_TYPE_PAYMENT = 1;
+  // A credit note offset.
+  SETTLEMENT_TYPE_CREDIT_NOTE = 2;
+}
+
+// InvoiceCustomSectionType is the origin of an invoice custom section.
+enum InvoiceCustomSectionType {
+  // Not set.
+  INVOICE_CUSTOM_SECTION_TYPE_UNSPECIFIED = 0;
+  // Written by the organization.
+  INVOICE_CUSTOM_SECTION_TYPE_MANUAL = 1;
+  // Generated by Tanvo (for example by an integration).
+  INVOICE_CUSTOM_SECTION_TYPE_SYSTEM_GENERATED = 2;
+}
+
+// FeeAdjustmentMode is what an adjustment changes.
+enum FeeAdjustmentMode {
+  // Not set.
+  FEE_ADJUSTMENT_MODE_UNSPECIFIED = 0;
+  // The display name only.
+  FEE_ADJUSTMENT_MODE_DISPLAY_NAME = 1;
+  // The units, priced by the charge model.
+  FEE_ADJUSTMENT_MODE_UNITS = 2;
+  // The units and the unit price.
+  FEE_ADJUSTMENT_MODE_UNITS_AND_UNIT_PRICE = 3;
+}
+
+// InvoiceErrorCode is the kind of error of a failed invoice.
+enum InvoiceErrorCode {
+  // Not set.
+  INVOICE_ERROR_CODE_UNSPECIFIED = 0;
+  // Unknown.
+  INVOICE_ERROR_CODE_NOT_PROVIDED = 1;
+  // Provider tax computation failed.
+  INVOICE_ERROR_CODE_TAX_ERROR = 2;
+  // Provider tax voiding failed.
+  INVOICE_ERROR_CODE_TAX_VOIDING_ERROR = 3;
+  // Generation failed.
+  INVOICE_ERROR_CODE_INVOICE_GENERATION_ERROR = 4;
+}
+
+// AppliedTax is a tax applied to fees or an invoice.
+message AppliedTax {
+  // The tax.
+  string tax_id = 1;
+  // The tax code.
+  string tax_code = 2;
+  // The tax name.
+  string tax_name = 3;
+  // The tax description.
+  string tax_description = 4;
+  // The rate in percent.
+  string tax_rate = 5;
+  // The taxable base.
+  tanvo.common.v1.Money taxable_amount = 6;
+  // The tax amount.
+  tanvo.common.v1.Money amount = 7;
+  // The unrounded tax amount.
+  string precise_amount = 8;
+}
+
+// PricingUnitUsage is a fee's amount in a charge's pricing unit.
+message PricingUnitUsage {
+  // The pricing unit.
+  string pricing_unit_id = 1;
+  // The pricing unit's short name.
+  string short_name = 2;
+  // The pricing unit's value in the fee currency.
+  string conversion_rate = 3;
+  // The amount in pricing units.
+  string amount = 4;
+  // The unit price in pricing units.
+  string unit_amount = 5;
+}
+
+// Fee is a line of an invoice, or an in-advance fee.
+message Fee {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Fee"
+    pattern: "fees/{fee}"
+    plural: "fees"
+    singular: "fee"
+  };
+
+  // The fee's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The invoice; unset for in-advance fees not invoiced.
+  string invoice_id = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The subscription.
+  string subscription_id = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The customer.
+  string customer_id = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // What the fee bills.
+  tanvo.common.v1.FeeType fee_type = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The charge.
+  string charge_id = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The charge filter.
+  string charge_filter_id = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The fixed charge.
+  string fixed_charge_id = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The add-on.
+  string add_on_id = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The billable metric code, for charge fees.
+  string billable_metric_code = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The commitment.
+  string commitment_id = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The wallet transaction, for credit fees.
+  string wallet_transaction_id = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The grouping values.
+  map<string, string> grouped_by = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The invoice line name.
+  string invoice_display_name = 14 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // A description.
+  string description = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The amount before taxes.
+  tanvo.common.v1.Money amount = 16 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The unrounded amount.
+  string precise_amount = 17 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The unit price.
+  string unit_amount = 18 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The units billed.
+  string units = 19 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The units aggregated before the charge model.
+  string total_aggregated_units = 20 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The number of events.
+  int64 events_count = 21 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The taxes.
+  tanvo.common.v1.Money taxes_amount = 22 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The tax rate in percent.
+  string taxes_rate = 23 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The amount with taxes.
+  tanvo.common.v1.Money total_amount = 24 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The coupons allocated to the fee, unrounded.
+  string precise_coupons_amount = 25 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The credit notes issued on the fee, unrounded.
+  string precise_credit_notes_amount = 26 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Marks an in-advance fee.
+  bool pay_in_advance = 27 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Marks a fee that goes on an invoice.
+  bool invoiceable = 28 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The payment state of an in-advance fee; the only editable field.
+  FeePaymentStatus payment_status = 29 [(buf.validate.field).enum.defined_only = true];
+  // The period the fee covers.
+  tanvo.common.v1.DateTimeRange period = 30 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The usage period of a charge fee.
+  tanvo.common.v1.DateTimeRange charges_period = 31 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The fee a commitment true-up completes.
+  string true_up_parent_fee_id = 32 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The commitment true-up fee completing this fee.
+  string true_up_fee_id = 33 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The amount in the charge's pricing unit.
+  PricingUnitUsage pricing_unit_usage = 34 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The taxes applied.
+  repeated AppliedTax applied_taxes = 35 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The transaction ID of the event that created an in-advance fee.
+  string event_transaction_id = 36 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Marks a fee adjusted on a draft invoice.
+  bool adjusted = 37 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Breakdown of a graduated or volume fee by tier.
+  repeated FeeTier tiers = 38 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the payment succeeded.
+  google.protobuf.Timestamp succeeded_at = 39 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the payment failed.
+  google.protobuf.Timestamp failed_at = 40 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the fee was refunded.
+  google.protobuf.Timestamp refunded_at = 41 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the fee was created.
+  google.protobuf.Timestamp created_at = 42 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// FeeTier is the part of a fee priced by one tier.
+message FeeTier {
+  // The first unit of the tier.
+  string from_value = 1;
+  // The last unit of the tier; empty for the last tier.
+  string to_value = 2;
+  // The units in the tier.
+  string units = 3;
+  // The unit price.
+  string per_unit_amount = 4;
+  // The flat fee of the tier.
+  string flat_unit_amount = 5;
+  // The tier's amount.
+  string amount = 6;
+}
+
+// InvoiceSubscription is a subscription billed by an invoice.
+message InvoiceSubscription {
+  // The subscription.
+  string subscription_id = 1;
+  // The subscription's external ID.
+  string external_subscription_id = 2;
+  // Why it is billed.
+  InvoicingReason invoicing_reason = 3;
+  // The subscription fee period.
+  tanvo.common.v1.DateTimeRange period = 4;
+  // The usage period.
+  tanvo.common.v1.DateTimeRange charges_period = 5;
+  // The fixed charge period.
+  tanvo.common.v1.DateTimeRange fixed_charges_period = 6;
+  // The billing segments billed, for subscriptions priced by rate cards.
+  repeated string billing_segment_ids = 7;
+}
+
+// InvoiceSettlement is a part of an invoice settled by a payment or a
+// credit note.
+message InvoiceSettlement {
+  // What settled it.
+  SettlementType settlement_type = 1;
+  // The payment.
+  string payment_id = 2;
+  // The credit note.
+  string credit_note_id = 3;
+  // The settled amount.
+  tanvo.common.v1.Money amount = 4;
+  // When it was settled.
+  google.protobuf.Timestamp created_at = 5;
+}
+
+// InvoiceCredit is a deduction from an invoice.
+message InvoiceCredit {
+  // The applied coupon.
+  string applied_coupon_id = 1;
+  // The credit note.
+  string credit_note_id = 2;
+  // The progressive billing invoice deducted.
+  string progressive_billing_invoice_id = 3;
+  // The amount.
+  tanvo.common.v1.Money amount = 4;
+  // The coupon code or credit note number.
+  string label = 5;
+}
+
+// InvoiceError is the error of a failed invoice.
+message InvoiceError {
+  // The kind of error.
+  InvoiceErrorCode code = 1;
+  // A message.
+  string message = 2;
+  // When it happened.
+  google.protobuf.Timestamp created_at = 3;
+}
+
+// Invoice is a billing document.
+message Invoice {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Invoice"
+    pattern: "invoices/{invoice}"
+    plural: "invoices"
+    singular: "invoice"
+  };
+
+  // The invoice's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The invoice number.
+  string number = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The customer.
+  string customer_id = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The billing entity.
+  string billing_entity_id = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // What the invoice bills.
+  InvoiceType invoice_type = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The state.
+  InvoiceStatus status = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The payment state; editable for manual payments.
+  tanvo.common.v1.PaymentStatus payment_status = 7 [(buf.validate.field).enum.defined_only = true];
+  // The provider tax state.
+  TaxStatus tax_status = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The currency.
+  string currency = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The sum of the fees.
+  tanvo.common.v1.Money fees_amount = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The progressive billing deduction.
+  tanvo.common.v1.Money progressive_billing_credit_amount = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The coupons.
+  tanvo.common.v1.Money coupons_amount = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The subtotal before taxes.
+  tanvo.common.v1.Money sub_total_excluding_taxes_amount = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The taxes.
+  tanvo.common.v1.Money taxes_amount = 14 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The average tax rate in percent.
+  string taxes_rate = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The subtotal with taxes.
+  tanvo.common.v1.Money sub_total_including_taxes_amount = 16 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The credit notes deducted.
+  tanvo.common.v1.Money credit_notes_amount = 17 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The prepaid credits deducted.
+  tanvo.common.v1.Money prepaid_credit_amount = 18 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The granted part of the prepaid credits.
+  tanvo.common.v1.Money prepaid_granted_credit_amount = 19 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The purchased part of the prepaid credits.
+  tanvo.common.v1.Money prepaid_purchased_credit_amount = 20 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The total due.
+  tanvo.common.v1.Money total_amount = 21 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The amount paid.
+  tanvo.common.v1.Money total_paid_amount = 22 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The amount settled by credit note offsets.
+  tanvo.common.v1.Money offset_amount = 23 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The amount still due.
+  tanvo.common.v1.Money total_due_amount = 24 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The issuing date, in the customer's time zone.
+  google.type.Date issuing_date = 25 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The payment due date.
+  google.type.Date payment_due_date = 26 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The date a draft is finalized.
+  google.type.Date expected_finalization_date = 27 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The grace period applied, in days.
+  int32 applied_grace_period_days = 28 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The net payment term, in days.
+  int32 net_payment_term_days = 29 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Marks an invoice past its due date.
+  bool payment_overdue = 30 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the payment dispute was lost.
+  google.protobuf.Timestamp payment_dispute_lost_at = 31 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Marks a self-billed invoice.
+  bool self_billed = 32 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The voided invoice this one regenerates.
+  string voided_invoice_id = 33 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The invoice regenerated from this voided one.
+  string regenerated_invoice_id = 34 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The payment method kind.
+  tanvo.common.v1.PaymentMethodType payment_method_type = 35 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The payment method.
+  string payment_method_id = 36 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Key-value metadata: at most 5 items, keys of at most 20 and values of
+  // at most 140 characters.
+  repeated tanvo.common.v1.MetadataItem metadata = 37 [(buf.validate.field).repeated.max_items = 5];
+  // Metadata per fee, keyed by fee ID: at most 50 keys per fee.
+  map<string, InvoiceItemMetadata> item_metadata = 38 [(buf.validate.field).map.max_pairs = 500];
+  // The subscriptions billed.
+  repeated InvoiceSubscription subscriptions = 39 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The fees.
+  repeated Fee fees = 40 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The deductions.
+  repeated InvoiceCredit credits = 41 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The taxes.
+  repeated AppliedTax applied_taxes = 42 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The settlements.
+  repeated InvoiceSettlement settlements = 43 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The invoice custom sections printed.
+  repeated string invoice_custom_section_ids = 44 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The errors of a failed invoice.
+  repeated InvoiceError errors = 45 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Marks an invoice with a generated PDF.
+  bool file_available = 46 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Marks an invoice with a generated e-invoice XML.
+  bool xml_file_available = 47 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the invoice was finalized.
+  google.protobuf.Timestamp finalized_at = 48 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the invoice was voided.
+  google.protobuf.Timestamp voided_at = 49 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the invoice was created.
+  google.protobuf.Timestamp created_at = 50 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the invoice last changed.
+  google.protobuf.Timestamp updated_at = 51 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// InvoiceItemMetadata is the metadata of one invoice fee.
+message InvoiceItemMetadata {
+  // The values, keyed by name.
+  map<string, string> values = 1 [(buf.validate.field).map = {
+    max_pairs: 50
+    keys: {
+      string: {
+        min_len: 1
+        max_len: 100
+      }
+    }
+    values: {
+      string: {max_len: 1024}
+    }
+  }];
+}
+
+// InvoiceCustomSection is text printed on invoices.
+message InvoiceCustomSection {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/InvoiceCustomSection"
+    pattern: "invoice_custom_sections/{invoice_custom_section}"
+    plural: "invoiceCustomSections"
+    singular: "invoiceCustomSection"
+  };
+
+  // The section's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique code.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The internal name.
+  string name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // The title printed.
+  string display_name = 4 [(buf.validate.field).string.max_len = 255];
+  // The text printed.
+  string details = 5 [(buf.validate.field).string.max_len = 4096];
+  // The origin.
+  InvoiceCustomSectionType section_type = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the section was created.
+  google.protobuf.Timestamp created_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the section last changed.
+  google.protobuf.Timestamp updated_at = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// OneOffFee is a fee of a one-off invoice.
+message OneOffFee {
+  // The add-on (ID or `code:<code>`).
+  string add_on_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The units; 1 by default.
+  string units = 2 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The unit price; the add-on's by default.
+  string unit_amount = 3 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The invoice line name; the add-on's by default.
+  string invoice_display_name = 4 [(buf.validate.field).string.max_len = 255];
+  // A description.
+  string description = 5 [(buf.validate.field).string.max_len = 1024];
+  // The taxes (IDs or `code:<code>`); the add-on's by default.
+  repeated string tax_ids = 6 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // The period the fee covers.
+  tanvo.common.v1.DateTimeRange period = 7;
+}
+
+// RegeneratedFee adjusts a fee of a voided invoice for its regeneration.
+message RegeneratedFee {
+  // The fee of the voided invoice.
+  string fee_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The new units.
+  string units = 2 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The new unit price.
+  string unit_amount = 3 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The new invoice line name.
+  string invoice_display_name = 4 [(buf.validate.field).string.max_len = 255];
+  // Leaves the fee out of the new invoice.
+  bool remove = 5;
+}
+
+// PreviewSubscription describes a subscription to preview.
+message PreviewSubscription {
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The start; now by default.
+  google.protobuf.Timestamp subscription_at = 2;
+  // Anchors billing to the calendar instead of the start date.
+  bool calendar_billing = 3;
+}
+
+// CreateInvoiceRequest is the request of InvoiceService.CreateInvoice.
+message CreateInvoiceRequest {
+  // The customer (ID or `external_id:<external_id>`).
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The currency; the customer's by default.
+  string currency = 2 [(buf.validate.field).string.(tanvo.common.v1.currency) = true];
+  // The billing entity (ID or `code:<code>`); the customer's by default.
+  string billing_entity_id = 3 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The fees.
+  repeated OneOffFee fees = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).repeated = {
+      min_items: 1
+      max_items: 100
+    }
+  ];
+  // The payment method kind; the customer's by default.
+  tanvo.common.v1.PaymentMethodType payment_method_type = 5 [(buf.validate.field).enum.defined_only = true];
+  // The payment method, for PROVIDER.
+  string payment_method_id = 6 [(buf.validate.field).string.uuid = true];
+  // Skips the automatic payment.
+  bool skip_automatic_payment = 7;
+  // Prints no invoice custom sections.
+  bool skip_invoice_custom_sections = 8;
+  // The invoice custom sections (IDs or `code:<code>`).
+  repeated string invoice_custom_section_ids = 9 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // Metadata.
+  repeated tanvo.common.v1.MetadataItem metadata = 10 [(buf.validate.field).repeated.max_items = 5];
+}
+
+// CreateInvoiceResponse is the response of InvoiceService.CreateInvoice.
+message CreateInvoiceResponse {
+  // The created invoice.
+  Invoice invoice = 1;
+}
+
+// GetInvoiceRequest is the request of InvoiceService.GetInvoice.
+message GetInvoiceRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetInvoiceResponse is the response of InvoiceService.GetInvoice.
+message GetInvoiceResponse {
+  // The invoice.
+  Invoice invoice = 1;
+}
+
+// ListInvoicesRequest is the request of InvoiceService.ListInvoices.
+message ListInvoicesRequest {
+  // Restricts the list to one customer (ID or `external_id:<external_id>`).
+  string customer_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `status`, `payment_status`, `invoice_type`,
+  // `currency`, `billing_entity_id`, `issuing_date`, `amount`,
+  // `payment_overdue`, `payment_dispute_lost`, `self_billed`,
+  // `partially_paid`, `subscription_id` and `metadata.<key>`.
+  string filter = 4 [(buf.validate.field).string.max_len = 2048];
+  // A search over the number, customer name, external ID and email.
+  string search = 5 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListInvoicesResponse is the response of InvoiceService.ListInvoices.
+message ListInvoicesResponse {
+  // The invoices of this page.
+  repeated Invoice invoices = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateInvoiceRequest is the request of InvoiceService.UpdateInvoice.
+message UpdateInvoiceRequest {
+  option (buf.validate.message).cel = {
+    id: "invoice.id"
+    message: "invoice.id is required"
+    expression: "has(this.invoice.id)"
+  };
+
+  // The new values; invoice.id selects the invoice.
+  Invoice invoice = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateInvoiceResponse is the response of InvoiceService.UpdateInvoice.
+message UpdateInvoiceResponse {
+  // The updated invoice.
+  Invoice invoice = 1;
+}
+
+// DeleteInvoiceRequest is the request of InvoiceService.DeleteInvoice.
+message DeleteInvoiceRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DeleteInvoiceResponse is the response of InvoiceService.DeleteInvoice.
+message DeleteInvoiceResponse {}
+
+// RefreshInvoiceRequest is the request of InvoiceService.RefreshInvoice.
+message RefreshInvoiceRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// RefreshInvoiceResponse is the response of InvoiceService.RefreshInvoice.
+message RefreshInvoiceResponse {
+  // The refreshed invoice.
+  Invoice invoice = 1;
+}
+
+// FinalizeInvoiceRequest is the request of InvoiceService.FinalizeInvoice.
+message FinalizeInvoiceRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// FinalizeInvoiceResponse is the response of InvoiceService.FinalizeInvoice.
+message FinalizeInvoiceResponse {
+  // The finalized invoice.
+  Invoice invoice = 1;
+}
+
+// FinalizeAllInvoicesRequest is the request of InvoiceService.FinalizeAllInvoices.
+message FinalizeAllInvoicesRequest {}
+
+// FinalizeAllInvoicesResponse is the response of InvoiceService.FinalizeAllInvoices.
+message FinalizeAllInvoicesResponse {
+  // The number of draft invoices queued.
+  int32 queued_count = 1;
+}
+
+// VoidInvoiceRequest is the request of InvoiceService.VoidInvoice.
+message VoidInvoiceRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // Issues a credit note for the voided amount.
+  bool generate_credit_note = 2;
+  // The amount of the credit note to credit.
+  string credit_amount = 3 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The amount of the credit note to refund.
+  string refund_amount = 4 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+}
+
+// VoidInvoiceResponse is the response of InvoiceService.VoidInvoice.
+message VoidInvoiceResponse {
+  // The voided invoice.
+  Invoice invoice = 1;
+  // The credit note issued, with generate_credit_note.
+  string credit_note_id = 2;
+}
+
+// RegenerateInvoiceRequest is the request of InvoiceService.RegenerateInvoice.
+message RegenerateInvoiceRequest {
+  // The voided invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The fee adjustments.
+  repeated RegeneratedFee fees = 2 [(buf.validate.field).repeated.max_items = 1000];
+  // Previews the new invoice without storing it.
+  bool validate_only = 3;
+}
+
+// RegenerateInvoiceResponse is the response of InvoiceService.RegenerateInvoice.
+message RegenerateInvoiceResponse {
+  // The new invoice.
+  Invoice invoice = 1;
+}
+
+// RetryInvoiceRequest is the request of InvoiceService.RetryInvoice.
+message RetryInvoiceRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// RetryInvoiceResponse is the response of InvoiceService.RetryInvoice.
+message RetryInvoiceResponse {
+  // The invoice.
+  Invoice invoice = 1;
+}
+
+// RetryInvoicePaymentRequest is the request of InvoiceService.RetryInvoicePayment.
+message RetryInvoicePaymentRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// RetryInvoicePaymentResponse is the response of InvoiceService.RetryInvoicePayment.
+message RetryInvoicePaymentResponse {}
+
+// RetryInvoiceSyncRequest is the request of InvoiceService.RetryInvoiceSync.
+message RetryInvoiceSyncRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// RetryInvoiceSyncResponse is the response of InvoiceService.RetryInvoiceSync.
+message RetryInvoiceSyncResponse {}
+
+// LoseInvoiceDisputeRequest is the request of InvoiceService.LoseInvoiceDispute.
+message LoseInvoiceDisputeRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// LoseInvoiceDisputeResponse is the response of InvoiceService.LoseInvoiceDispute.
+message LoseInvoiceDisputeResponse {
+  // The invoice.
+  Invoice invoice = 1;
+}
+
+// DownloadInvoiceRequest is the request of InvoiceService.DownloadInvoice.
+message DownloadInvoiceRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DownloadInvoiceResponse is the response of InvoiceService.DownloadInvoice.
+message DownloadInvoiceResponse {
+  // The PDF.
+  tanvo.common.v1.Document pdf = 1;
+  // The e-invoice XML, when the billing entity has e-invoicing.
+  tanvo.common.v1.Document xml = 2;
+}
+
+// ResendInvoiceRequest is the request of InvoiceService.ResendInvoice.
+message ResendInvoiceRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The recipients; the customer's billing emails by default.
+  repeated string to = 2 [(buf.validate.field).repeated = {
+    max_items: 20
+    items: {
+      string: {email: true}
+    }
+  }];
+  // Carbon copies.
+  repeated string cc = 3 [(buf.validate.field).repeated = {
+    max_items: 20
+    items: {
+      string: {email: true}
+    }
+  }];
+  // Blind carbon copies.
+  repeated string bcc = 4 [(buf.validate.field).repeated = {
+    max_items: 20
+    items: {
+      string: {email: true}
+    }
+  }];
+}
+
+// ResendInvoiceResponse is the response of InvoiceService.ResendInvoice.
+message ResendInvoiceResponse {}
+
+// GenerateInvoicePaymentUrlRequest is the request of InvoiceService.GenerateInvoicePaymentUrl.
+message GenerateInvoicePaymentUrlRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GenerateInvoicePaymentUrlResponse is the response of InvoiceService.GenerateInvoicePaymentUrl.
+message GenerateInvoicePaymentUrlResponse {
+  // The checkout URL.
+  string payment_url = 1;
+}
+
+// PreviewInvoiceRequest is the request of InvoiceService.PreviewInvoice.
+message PreviewInvoiceRequest {
+  option (buf.validate.message).cel = {
+    id: "preview.target"
+    message: "set at most one of subscription, terminated_at and plan_id"
+    expression: "(has(this.subscription) ? 1 : 0) + (has(this.terminated_at) ? 1 : 0) + (has(this.plan_id) ? 1 : 0) <= 1"
+  };
+
+  // The customer (ID or `external_id:<external_id>`).
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // Previews a new subscription.
+  PreviewSubscription subscription = 2;
+  // The existing subscriptions to preview (IDs or
+  // `external_id:<external_id>`).
+  repeated string subscription_ids = 3 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // Previews the termination of subscription_ids at this time.
+  google.protobuf.Timestamp terminated_at = 4;
+  // Previews the change of subscription_ids to this plan (ID or
+  // `code:<code>`).
+  string plan_id = 5 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // Coupons to apply (IDs or `code:<code>`).
+  repeated string coupon_ids = 6 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 20
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // The billing entity (ID or `code:<code>`).
+  string billing_entity_id = 7 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+}
+
+// PreviewInvoiceResponse is the response of InvoiceService.PreviewInvoice.
+message PreviewInvoiceResponse {
+  // The previewed invoice, not stored.
+  Invoice invoice = 1;
+}
+
+// SetInvoiceSalesforceIdRequest is the request of InvoiceService.SetInvoiceSalesforceId.
+message SetInvoiceSalesforceIdRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The Salesforce integration (ID or `code:<code>`).
+  string integration_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The Salesforce record ID.
+  string external_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+}
+
+// SetInvoiceSalesforceIdResponse is the response of InvoiceService.SetInvoiceSalesforceId.
+message SetInvoiceSalesforceIdResponse {}
+
+// GetFeeRequest is the request of FeeService.GetFee.
+message GetFeeRequest {
+  // The fee's ID.
+  string fee_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetFeeResponse is the response of FeeService.GetFee.
+message GetFeeResponse {
+  // The fee.
+  Fee fee = 1;
+}
+
+// ListFeesRequest is the request of FeeService.ListFees.
+message ListFeesRequest {
+  // Restricts the list to one invoice.
+  string invoice_id = 1 [(buf.validate.field).string.uuid = true];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `fee_type`, `payment_status`, `currency`,
+  // `customer_id`, `subscription_id`, `billable_metric_code`,
+  // `pay_in_advance`, `created_at`, `succeeded_at`, `failed_at` and
+  // `refunded_at`.
+  string filter = 4 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListFeesResponse is the response of FeeService.ListFees.
+message ListFeesResponse {
+  // The fees of this page.
+  repeated Fee fees = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateFeeRequest is the request of FeeService.UpdateFee.
+message UpdateFeeRequest {
+  option (buf.validate.message).cel = {
+    id: "fee.id"
+    message: "fee.id is required"
+    expression: "has(this.fee.id)"
+  };
+
+  // The new values; fee.id selects the fee.
+  Fee fee = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; only payment_status is editable.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateFeeResponse is the response of FeeService.UpdateFee.
+message UpdateFeeResponse {
+  // The updated fee.
+  Fee fee = 1;
+}
+
+// DeleteFeeRequest is the request of FeeService.DeleteFee.
+message DeleteFeeRequest {
+  // The fee's ID.
+  string fee_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DeleteFeeResponse is the response of FeeService.DeleteFee.
+message DeleteFeeResponse {}
+
+// AdjustFeeRequest is the request of FeeService.AdjustFee.
+message AdjustFeeRequest {
+  option (buf.validate.message).cel = {
+    id: "adjust.target"
+    message: "set fee_id, charge_id or fixed_charge_id"
+    expression: "has(this.fee_id) || has(this.charge_id) || has(this.fixed_charge_id)"
+  };
+
+  // The draft invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The fee to adjust.
+  string fee_id = 2 [(buf.validate.field).string.uuid = true];
+  // The subscription of a fee to create.
+  string subscription_id = 3 [(buf.validate.field).string.uuid = true];
+  // The charge of a fee to create.
+  string charge_id = 4 [(buf.validate.field).string.uuid = true];
+  // The charge filter of a fee to create.
+  string charge_filter_id = 5 [(buf.validate.field).string.uuid = true];
+  // The fixed charge of a fee to create.
+  string fixed_charge_id = 6 [(buf.validate.field).string.uuid = true];
+  // What the adjustment changes.
+  FeeAdjustmentMode mode = 7 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).enum = {
+      defined_only: true
+      not_in: [0]
+    }
+  ];
+  // The new invoice line name.
+  string invoice_display_name = 8 [(buf.validate.field).string.max_len = 255];
+  // The new units.
+  string units = 9 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The new unit price, for UNITS_AND_UNIT_PRICE.
+  string unit_amount = 10 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+}
+
+// AdjustFeeResponse is the response of FeeService.AdjustFee.
+message AdjustFeeResponse {
+  // The adjusted fee.
+  Fee fee = 1;
+}
+
+// DeleteFeeAdjustmentRequest is the request of FeeService.DeleteFeeAdjustment.
+message DeleteFeeAdjustmentRequest {
+  // The fee's ID.
+  string fee_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DeleteFeeAdjustmentResponse is the response of FeeService.DeleteFeeAdjustment.
+message DeleteFeeAdjustmentResponse {
+  // The fee, recomputed without the adjustment.
+  Fee fee = 1;
+}
+
+// CreateInvoiceCustomSectionRequest is the request of InvoiceCustomSectionService.CreateInvoiceCustomSection.
+message CreateInvoiceCustomSectionRequest {
+  option (buf.validate.message).cel = {
+    id: "invoice_custom_section.required"
+    message: "code and name are required"
+    expression: "has(this.invoice_custom_section.code) && has(this.invoice_custom_section.name)"
+  };
+
+  // The section to create.
+  InvoiceCustomSection invoice_custom_section = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateInvoiceCustomSectionResponse is the response of InvoiceCustomSectionService.CreateInvoiceCustomSection.
+message CreateInvoiceCustomSectionResponse {
+  // The created section.
+  InvoiceCustomSection invoice_custom_section = 1;
+}
+
+// GetInvoiceCustomSectionRequest is the request of InvoiceCustomSectionService.GetInvoiceCustomSection.
+message GetInvoiceCustomSectionRequest {
+  // The section's ID or `code:<code>`.
+  string invoice_custom_section_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetInvoiceCustomSectionResponse is the response of InvoiceCustomSectionService.GetInvoiceCustomSection.
+message GetInvoiceCustomSectionResponse {
+  // The section.
+  InvoiceCustomSection invoice_custom_section = 1;
+}
+
+// ListInvoiceCustomSectionsRequest is the request of InvoiceCustomSectionService.ListInvoiceCustomSections.
+message ListInvoiceCustomSectionsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `section_type`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+  // A search over the name and code.
+  string search = 4 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListInvoiceCustomSectionsResponse is the response of InvoiceCustomSectionService.ListInvoiceCustomSections.
+message ListInvoiceCustomSectionsResponse {
+  // The sections of this page.
+  repeated InvoiceCustomSection invoice_custom_sections = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateInvoiceCustomSectionRequest is the request of InvoiceCustomSectionService.UpdateInvoiceCustomSection.
+message UpdateInvoiceCustomSectionRequest {
+  option (buf.validate.message).cel = {
+    id: "invoice_custom_section.id"
+    message: "invoice_custom_section.id is required"
+    expression: "has(this.invoice_custom_section.id)"
+  };
+
+  // The new values; invoice_custom_section.id (an ID or `code:<code>`)
+  // selects the section.
+  InvoiceCustomSection invoice_custom_section = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateInvoiceCustomSectionResponse is the response of InvoiceCustomSectionService.UpdateInvoiceCustomSection.
+message UpdateInvoiceCustomSectionResponse {
+  // The updated section.
+  InvoiceCustomSection invoice_custom_section = 1;
+}
+
+// DeleteInvoiceCustomSectionRequest is the request of InvoiceCustomSectionService.DeleteInvoiceCustomSection.
+message DeleteInvoiceCustomSectionRequest {
+  // The section's ID or `code:<code>`.
+  string invoice_custom_section_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteInvoiceCustomSectionResponse is the response of InvoiceCustomSectionService.DeleteInvoiceCustomSection.
+message DeleteInvoiceCustomSectionResponse {}

@@ -1,0 +1,78 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+package tanvo.common.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+
+// Money is an exact monetary amount. The amount is a decimal string in the
+// currency's major unit ("12.50" USD is twelve dollars and fifty cents);
+// final amounts carry at most the currency's ISO 4217 exponent of decimals,
+// precise amounts may carry more.
+message Money {
+  // The ISO 4217 code.
+  string currency = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.currency) = true
+  ];
+  // The decimal amount in the currency's major unit.
+  string amount = 2 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.decimal) = true
+  ];
+}
+
+// Address is a postal address. Every field is optional; country is
+// validated.
+message Address {
+  // The first address line.
+  string line1 = 1 [(buf.validate.field).string.max_len = 255];
+  // The second address line.
+  string line2 = 2 [(buf.validate.field).string.max_len = 255];
+  // The city or locality.
+  string city = 3 [(buf.validate.field).string.max_len = 255];
+  // The state, province or region.
+  string state = 4 [(buf.validate.field).string.max_len = 255];
+  // The postal code.
+  string zipcode = 5 [(buf.validate.field).string.max_len = 255];
+  // The ISO 3166-1 alpha-2 country code.
+  string country = 6 [(buf.validate.field).string.pattern = "^[A-Z]{2}$"];
+}
+
+// MetadataItem is one key/value pair attached to a resource. Each resource
+// states its own limits on the number of items and on key and value lengths;
+// the list sent on an update replaces the stored list.
+message MetadataItem {
+  // The metadata key, unique within the list.
+  string key = 1 [
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The metadata value.
+  string value = 2 [(buf.validate.field).string.max_len = 255];
+  // Prints the pair on invoices (customer metadata only).
+  bool display_in_invoice = 3;
+}
+
+// DateTimeRange is a half-open interval of instants `[from, to)`.
+message DateTimeRange {
+  // The inclusive start.
+  google.protobuf.Timestamp from = 1;
+  // The exclusive end.
+  google.protobuf.Timestamp to = 2;
+}
+
+// Document is a rendered document (PDF or e-invoice XML) available for
+// download.
+message Document {
+  // A signed download URL.
+  string url = 1;
+  // When the signed URL stops working.
+  google.protobuf.Timestamp expires_at = 2;
+  // The media type (`application/pdf`, `application/xml`).
+  string content_type = 3;
+}

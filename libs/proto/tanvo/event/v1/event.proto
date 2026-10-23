@@ -1,0 +1,425 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.event.v1 is the API of usage events: ingestion, retrieval,
+// replacement and fee estimates.
+package tanvo.event.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// EventService ingests and reads usage events. Events are deduplicated per
+// organization by transaction_id.
+service EventService {
+  // Ingests one event. A duplicate transaction_id is accepted and ignored.
+  rpc IngestEvent(IngestEventRequest) returns (IngestEventResponse) {
+    option idempotency_level = IDEMPOTENT;
+    option (google.api.http) = {
+      post: "/v1/events"
+      body: "event"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "events:create"
+      api_resource: "event"
+    };
+  }
+
+  // Ingests up to 100 events; each is validated and deduplicated on its own.
+  rpc IngestEvents(IngestEventsRequest) returns (IngestEventsResponse) {
+    option idempotency_level = IDEMPOTENT;
+    option (google.api.http) = {
+      post: "/v1/events:batch"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "events:create"
+      api_resource: "event"
+    };
+  }
+
+  // Returns an event by transaction ID.
+  rpc GetEvent(GetEventRequest) returns (GetEventResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/events/{transaction_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "events:read"
+      api_resource: "event"
+    };
+  }
+
+  // Lists events, newest first.
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/events"};
+    option (tanvo.common.v1.access) = {
+      permission: "events:read"
+      api_resource: "event"
+    };
+  }
+
+  // Lists enriched events: events resolved to their subscription, charge
+  // and filter, with the computed value.
+  rpc ListEnrichedEvents(ListEnrichedEventsRequest) returns (ListEnrichedEventsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/enriched_events"};
+    option (tanvo.common.v1.access) = {
+      permission: "events:read"
+      api_resource: "event"
+    };
+  }
+
+  // Replaces an event's code, timestamp, properties or amount, keeping its
+  // transaction ID; usage is recomputed and an audit entry recorded.
+  // Events already invoiced cannot be replaced.
+  rpc ReplaceEvent(ReplaceEventRequest) returns (ReplaceEventResponse) {
+    option idempotency_level = IDEMPOTENT;
+    option (google.api.http) = {
+      put: "/v1/events/{event.transaction_id}"
+      body: "event"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "events:create"
+      api_resource: "event"
+    };
+  }
+
+  // Estimates the fees an event would create on in-advance charges, without
+  // storing it.
+  rpc EstimateFees(EstimateFeesRequest) returns (EstimateFeesResponse) {
+    option (google.api.http) = {
+      post: "/v1/events:estimate_fees"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "events:read"
+      api_resource: "event"
+    };
+  }
+
+  // Estimates the instant fees of up to 100 events on percentage and
+  // standard in-advance charges, without storing them.
+  rpc EstimateInstantFees(EstimateInstantFeesRequest) returns (EstimateInstantFeesResponse) {
+    option (google.api.http) = {
+      post: "/v1/events:estimate_instant_fees"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "events:read"
+      api_resource: "event"
+    };
+  }
+}
+
+// EnrichedOperation is how an enriched event changes a recurring aggregation.
+enum EnrichedOperation {
+  // Not set.
+  ENRICHED_OPERATION_UNSPECIFIED = 0;
+  // Adds the value.
+  ENRICHED_OPERATION_ADD = 1;
+  // Removes the value.
+  ENRICHED_OPERATION_REMOVE = 2;
+}
+
+// Event is a usage event.
+message Event {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Event"
+    pattern: "events/{transaction_id}"
+    plural: "events"
+    singular: "event"
+  };
+
+  // The event's ID, assigned by Tanvo.
+  string id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The caller's unique identifier; events are deduplicated by it.
+  string transaction_id = 2 [
+    (google.api.field_behavior) = IDENTIFIER,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The external ID of the subscription the event bills.
+  string external_subscription_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The billable metric code.
+  string code = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // When the usage happened; the ingestion time by default.
+  google.protobuf.Timestamp timestamp = 5;
+  // The event properties: the aggregated field, filter values and
+  // expression inputs.
+  google.protobuf.Struct properties = 6;
+  // The amount of a dynamic charge, as a decimal.
+  string precise_total_amount = 7 [(buf.validate.field).string.(tanvo.common.v1.decimal) = true];
+  // The code of the wallet the event's usage is deducted from.
+  string target_wallet_code = 8 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
+  // Attribution labels, keyed by usage attribution type code.
+  map<string, string> attributions = 9 [(buf.validate.field).map = {
+    max_pairs: 20
+    keys: {
+      string: {[tanvo.common.v1.code]: true}
+    }
+    values: {
+      string: {max_len: 255}
+    }
+  }];
+  // The User-Agent of the ingestion request.
+  string user_agent = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The client IP of the ingestion request.
+  string ip_address = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The validation errors found after ingestion, keyed by field.
+  map<string, string> errors = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the event was ingested.
+  google.protobuf.Timestamp created_at = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// EnrichedEvent is an event resolved to a charge.
+message EnrichedEvent {
+  // The event's transaction ID.
+  string transaction_id = 1;
+  // The event's code.
+  string code = 2;
+  // When the usage happened.
+  google.protobuf.Timestamp timestamp = 3;
+  // The subscription.
+  string subscription_id = 4;
+  // The plan.
+  string plan_id = 5;
+  // The charge.
+  string charge_id = 6;
+  // The charge filter, when one matched.
+  string charge_filter_id = 7;
+  // The billable metric.
+  string billable_metric_id = 8;
+  // The grouping values of the charge.
+  map<string, string> grouped_by = 9;
+  // The aggregated value, after the metric's expression and rounding.
+  string value = 10;
+  // The decimal value of the dynamic charge amount.
+  string precise_total_amount = 11;
+  // The operation on recurring aggregations.
+  EnrichedOperation operation = 12;
+  // When the event was enriched.
+  google.protobuf.Timestamp enriched_at = 13;
+}
+
+// EventResult is the outcome of ingesting one event of a batch.
+message EventResult {
+  // The event's transaction ID.
+  string transaction_id = 1;
+  // The stored event, when accepted.
+  Event event = 2;
+  // Marks an event already ingested with the same transaction ID.
+  bool duplicate = 3;
+  // The validation errors, keyed by field, when rejected.
+  map<string, string> errors = 4;
+}
+
+// EstimatedFee is a fee an event would create.
+message EstimatedFee {
+  // The charge.
+  string charge_id = 1;
+  // The charge filter, when one matched.
+  string charge_filter_id = 2;
+  // The billable metric code.
+  string billable_metric_code = 3;
+  // The event's transaction ID.
+  string transaction_id = 4;
+  // The fee amount before taxes.
+  tanvo.common.v1.Money amount = 5;
+  // The taxes.
+  tanvo.common.v1.Money taxes_amount = 6;
+  // The units billed.
+  string units = 7;
+  // The unit price.
+  string unit_amount = 8;
+  // The number of events counted.
+  int64 events_count = 9;
+  // The grouping values.
+  map<string, string> grouped_by = 10;
+}
+
+// IngestEventRequest is the request of EventService.IngestEvent.
+message IngestEventRequest {
+  option (buf.validate.message).cel = {
+    id: "event.required"
+    message: "transaction_id, external_subscription_id and code are required"
+    expression: "has(this.event.transaction_id) && has(this.event.external_subscription_id) && has(this.event.code)"
+  };
+
+  // The event.
+  Event event = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// IngestEventResponse is the response of EventService.IngestEvent.
+message IngestEventResponse {
+  // The stored event.
+  Event event = 1;
+  // Marks an event already ingested with the same transaction ID.
+  bool duplicate = 2;
+}
+
+// IngestEventsRequest is the request of EventService.IngestEvents.
+message IngestEventsRequest {
+  option (buf.validate.message).cel = {
+    id: "events.required"
+    message: "every event needs transaction_id, external_subscription_id and code"
+    expression: "this.events.all(e, has(e.transaction_id) && has(e.external_subscription_id) && has(e.code))"
+  };
+
+  // The events.
+  repeated Event events = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).repeated = {
+      min_items: 1
+      max_items: 100
+    }
+  ];
+}
+
+// IngestEventsResponse is the response of EventService.IngestEvents.
+message IngestEventsResponse {
+  // The result of each event, in request order.
+  repeated EventResult results = 1;
+}
+
+// GetEventRequest is the request of EventService.GetEvent.
+message GetEventRequest {
+  // The event's transaction ID.
+  string transaction_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+}
+
+// GetEventResponse is the response of EventService.GetEvent.
+message GetEventResponse {
+  // The event.
+  Event event = 1;
+}
+
+// ListEventsRequest is the request of EventService.ListEvents.
+message ListEventsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `code`, `external_subscription_id`, `timestamp`
+  // and `attributions.<type>`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListEventsResponse is the response of EventService.ListEvents.
+message ListEventsResponse {
+  // The events of this page.
+  repeated Event events = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// ListEnrichedEventsRequest is the request of EventService.ListEnrichedEvents.
+message ListEnrichedEventsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `code`, `subscription_id`, `charge_id`,
+  // `charge_filter_id`, `transaction_id` and `timestamp`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListEnrichedEventsResponse is the response of EventService.ListEnrichedEvents.
+message ListEnrichedEventsResponse {
+  // The enriched events of this page.
+  repeated EnrichedEvent enriched_events = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// ReplaceEventRequest is the request of EventService.ReplaceEvent.
+message ReplaceEventRequest {
+  option (buf.validate.message).cel = {
+    id: "event.required"
+    message: "transaction_id, external_subscription_id and code are required"
+    expression: "has(this.event.transaction_id) && has(this.event.external_subscription_id) && has(this.event.code)"
+  };
+
+  // The replacement; event.transaction_id selects the event.
+  Event event = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // Why the event is replaced, kept in the audit log.
+  string reason = 2 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ReplaceEventResponse is the response of EventService.ReplaceEvent.
+message ReplaceEventResponse {
+  // The replaced event.
+  Event event = 1;
+}
+
+// EstimateFeesRequest is the request of EventService.EstimateFees.
+message EstimateFeesRequest {
+  option (buf.validate.message).cel = {
+    id: "event.required"
+    message: "external_subscription_id and code are required"
+    expression: "has(this.event.external_subscription_id) && has(this.event.code)"
+  };
+
+  // The event to estimate.
+  Event event = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// EstimateFeesResponse is the response of EventService.EstimateFees.
+message EstimateFeesResponse {
+  // The estimated fees.
+  repeated EstimatedFee fees = 1;
+}
+
+// EstimateInstantFeesRequest is the request of EventService.EstimateInstantFees.
+message EstimateInstantFeesRequest {
+  option (buf.validate.message).cel = {
+    id: "events.required"
+    message: "every event needs external_subscription_id and code"
+    expression: "this.events.all(e, has(e.external_subscription_id) && has(e.code))"
+  };
+
+  // The events to estimate.
+  repeated Event events = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).repeated = {
+      min_items: 1
+      max_items: 100
+    }
+  ];
+}
+
+// EstimateInstantFeesResponse is the response of EventService.EstimateInstantFees.
+message EstimateInstantFeesResponse {
+  // The estimated fees of all events.
+  repeated EstimatedFee fees = 1;
+}

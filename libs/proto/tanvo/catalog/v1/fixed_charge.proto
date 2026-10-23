@@ -1,0 +1,321 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+package tanvo.catalog.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/catalog/v1/charge.proto";
+import "tanvo/common/v1/options.proto";
+
+// FixedChargeService manages the fixed charges of a plan (add-ons billed
+// per unit each period), and the unit overrides of a subscription's fixed
+// charges.
+service FixedChargeService {
+  // Adds a fixed charge to a plan or overrides one for a subscription.
+  rpc CreateFixedCharge(CreateFixedChargeRequest) returns (CreateFixedChargeResponse) {
+    option (google.api.http) = {
+      post: "/v1/plans/{plan_id}/fixed_charges"
+      body: "fixed_charge"
+      additional_bindings: {
+        post: "/v1/subscriptions/{subscription_id}/fixed_charges"
+        body: "fixed_charge"
+      }
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "charges:create"
+      api_resource: "plan"
+    };
+  }
+
+  // Returns a fixed charge by ID or `code:<code>`.
+  rpc GetFixedCharge(GetFixedChargeRequest) returns (GetFixedChargeResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/plans/{plan_id}/fixed_charges/{fixed_charge_id}"
+      additional_bindings: {get: "/v1/subscriptions/{subscription_id}/fixed_charges/{fixed_charge_id}"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:read"
+      api_resource: "plan"
+    };
+  }
+
+  // Lists the fixed charges of a plan or a subscription.
+  rpc ListFixedCharges(ListFixedChargesRequest) returns (ListFixedChargesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/plans/{plan_id}/fixed_charges"
+      additional_bindings: {get: "/v1/subscriptions/{subscription_id}/fixed_charges"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:read"
+      api_resource: "plan"
+    };
+  }
+
+  // Updates a fixed charge. On a subscription, a unit change applies at
+  // the next period unless apply_units_immediately is set.
+  rpc UpdateFixedCharge(UpdateFixedChargeRequest) returns (UpdateFixedChargeResponse) {
+    option (google.api.http) = {
+      patch: "/v1/plans/{plan_id}/fixed_charges/{fixed_charge.id}"
+      body: "fixed_charge"
+      additional_bindings: {
+        patch: "/v1/subscriptions/{subscription_id}/fixed_charges/{fixed_charge.id}"
+        body: "fixed_charge"
+      }
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "charges:update"
+      api_resource: "plan"
+    };
+  }
+
+  // Removes a fixed charge.
+  rpc DeleteFixedCharge(DeleteFixedChargeRequest) returns (DeleteFixedChargeResponse) {
+    option (google.api.http) = {
+      delete: "/v1/plans/{plan_id}/fixed_charges/{fixed_charge_id}"
+      additional_bindings: {delete: "/v1/subscriptions/{subscription_id}/fixed_charges/{fixed_charge_id}"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "charges:delete"
+      api_resource: "plan"
+    };
+  }
+}
+
+// FixedChargeModel is how a fixed charge prices its units.
+enum FixedChargeModel {
+  // Not set.
+  FIXED_CHARGE_MODEL_UNSPECIFIED = 0;
+  // One price per unit.
+  FIXED_CHARGE_MODEL_STANDARD = 1;
+  // Each tier priced separately.
+  FIXED_CHARGE_MODEL_GRADUATED = 2;
+  // All units priced at the tier reached.
+  FIXED_CHARGE_MODEL_VOLUME = 3;
+}
+
+// FixedChargeProperties are the prices of a fixed charge.
+message FixedChargeProperties {
+  // The model's prices.
+  oneof model {
+    // The standard model.
+    StandardProperties standard = 1;
+    // The graduated model.
+    GraduatedProperties graduated = 2;
+    // The volume model.
+    VolumeProperties volume = 3;
+  }
+}
+
+// FixedCharge bills an add-on per unit each period.
+message FixedCharge {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/FixedCharge"
+    pattern: "plans/{plan}/fixed_charges/{fixed_charge}"
+    plural: "fixedCharges"
+    singular: "fixedCharge"
+  };
+
+  // The fixed charge's ID. Requests also accept `code:<code>`.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The code, unique within the plan; generated from the add-on when unset.
+  string code = 2 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
+  // The owning plan.
+  string plan_id = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The parent plan's fixed charge this one overrides.
+  string parent_id = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The billed add-on (ID or `code:<code>`).
+  string add_on_id = 5 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The pricing model; must match properties.
+  FixedChargeModel charge_model = 6 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The prices.
+  FixedChargeProperties properties = 7 [(google.api.field_behavior) = REQUIRED];
+  // The number of units billed per period.
+  string units = 8 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+  // Bills at the start of the period.
+  bool pay_in_advance = 9;
+  // Prorates the units over the period when they change.
+  bool prorated = 10;
+  // Applies a unit change now rather than at the next period; write only.
+  bool apply_units_immediately = 11 [(google.api.field_behavior) = INPUT_ONLY];
+  // The invoice line name.
+  string invoice_display_name = 12 [(buf.validate.field).string.max_len = 255];
+  // The fixed charge's taxes (IDs or `code:<code>`).
+  repeated string tax_ids = 13 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // When the fixed charge was created.
+  google.protobuf.Timestamp created_at = 14 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the fixed charge last changed.
+  google.protobuf.Timestamp updated_at = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateFixedChargeRequest is the request of FixedChargeService.CreateFixedCharge.
+message CreateFixedChargeRequest {
+  option (buf.validate.message).cel = {
+    id: "fixed_charge.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+  option (buf.validate.message).cel = {
+    id: "fixed_charge.required"
+    message: "add_on_id, charge_model and units are required"
+    expression: "has(this.fixed_charge.add_on_id) && has(this.fixed_charge.charge_model) && has(this.fixed_charge.units)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`) whose plan to
+  // override.
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The fixed charge to create.
+  FixedCharge fixed_charge = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // Also adds the fixed charge to the plan's child plans.
+  bool cascade_updates = 4;
+}
+
+// CreateFixedChargeResponse is the response of FixedChargeService.CreateFixedCharge.
+message CreateFixedChargeResponse {
+  // The created fixed charge.
+  FixedCharge fixed_charge = 1;
+}
+
+// GetFixedChargeRequest is the request of FixedChargeService.GetFixedCharge.
+message GetFixedChargeRequest {
+  option (buf.validate.message).cel = {
+    id: "fixed_charge.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The fixed charge's ID or `code:<code>`.
+  string fixed_charge_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetFixedChargeResponse is the response of FixedChargeService.GetFixedCharge.
+message GetFixedChargeResponse {
+  // The fixed charge.
+  FixedCharge fixed_charge = 1;
+}
+
+// ListFixedChargesRequest is the request of FixedChargeService.ListFixedCharges.
+message ListFixedChargesRequest {
+  option (buf.validate.message).cel = {
+    id: "fixed_charge.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 3 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 4 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListFixedChargesResponse is the response of FixedChargeService.ListFixedCharges.
+message ListFixedChargesResponse {
+  // The fixed charges of this page.
+  repeated FixedCharge fixed_charges = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateFixedChargeRequest is the request of FixedChargeService.UpdateFixedCharge.
+message UpdateFixedChargeRequest {
+  option (buf.validate.message).cel = {
+    id: "fixed_charge.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+  option (buf.validate.message).cel = {
+    id: "fixed_charge.id"
+    message: "fixed_charge.id is required"
+    expression: "has(this.fixed_charge.id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The new values; fixed_charge.id (an ID or `code:<code>`) selects the
+  // fixed charge.
+  FixedCharge fixed_charge = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 4;
+  // Applies the change to child plans' fixed charges that still match.
+  bool cascade_updates = 5;
+}
+
+// UpdateFixedChargeResponse is the response of FixedChargeService.UpdateFixedCharge.
+message UpdateFixedChargeResponse {
+  // The updated fixed charge.
+  FixedCharge fixed_charge = 1;
+}
+
+// DeleteFixedChargeRequest is the request of FixedChargeService.DeleteFixedCharge.
+message DeleteFixedChargeRequest {
+  option (buf.validate.message).cel = {
+    id: "fixed_charge.parent"
+    message: "exactly one of plan_id and subscription_id is required"
+    expression: "has(this.plan_id) != has(this.subscription_id)"
+  };
+
+  // The plan (ID or `code:<code>`).
+  string plan_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The subscription (ID or `external_id:<external_id>`).
+  string subscription_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The fixed charge's ID or `code:<code>`.
+  string fixed_charge_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // Also removes the fixed charge from child plans.
+  bool cascade_updates = 4;
+}
+
+// DeleteFixedChargeResponse is the response of FixedChargeService.DeleteFixedCharge.
+message DeleteFixedChargeResponse {}

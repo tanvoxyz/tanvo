@@ -1,0 +1,989 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.integration.v1 is the API of connections to payment,
+// accounting, tax and CRM providers, and of their item mappings.
+// Single sign-on connections are in tanvo.access.v1.SsoConnectionService.
+package tanvo.integration.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/customer/v1/customer.proto";
+
+// IntegrationService manages integrations. An organization may connect a
+// provider several times; integrations are addressed by ID or
+// `code:<code>`.
+service IntegrationService {
+  // Connects a provider. Providers connected by OAuth start in the
+  // pending state; complete them with CompleteIntegrationOauth.
+  rpc CreateIntegration(CreateIntegrationRequest) returns (CreateIntegrationResponse) {
+    option (google.api.http) = {
+      post: "/v1/integrations"
+      body: "integration"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:create"};
+  }
+
+  // Returns an integration.
+  rpc GetIntegration(GetIntegrationRequest) returns (GetIntegrationResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/integrations/{integration_id}"};
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:read"};
+  }
+
+  // Lists integrations.
+  rpc ListIntegrations(ListIntegrationsRequest) returns (ListIntegrationsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/integrations"};
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:read"};
+  }
+
+  // Updates an integration's name, sync settings or credentials.
+  rpc UpdateIntegration(UpdateIntegrationRequest) returns (UpdateIntegrationResponse) {
+    option (google.api.http) = {
+      patch: "/v1/integrations/{integration.id}"
+      body: "integration"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
+  }
+
+  // Disconnects a provider; customers are unlinked from it.
+  rpc DeleteIntegration(DeleteIntegrationRequest) returns (DeleteIntegrationResponse) {
+    option (google.api.http) = {delete: "/v1/integrations/{integration_id}"};
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:delete"};
+  }
+
+  // Returns the provider's authorization URL of an OAuth integration.
+  rpc StartIntegrationOauth(StartIntegrationOauthRequest) returns (StartIntegrationOauthResponse) {
+    option (google.api.http) = {
+      post: "/v1/integrations/{integration_id}:start_oauth"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
+  }
+
+  // Exchanges the provider's authorization code and activates the
+  // integration.
+  rpc CompleteIntegrationOauth(CompleteIntegrationOauthRequest) returns (CompleteIntegrationOauthResponse) {
+    option (google.api.http) = {
+      post: "/v1/integrations/{integration_id}:complete_oauth"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
+  }
+
+  // Fetches the provider's items, tax items, accounts or subsidiaries again.
+  rpc SyncIntegrationItems(SyncIntegrationItemsRequest) returns (SyncIntegrationItemsResponse) {
+    option (google.api.http) = {
+      post: "/v1/integrations/{integration_id}:sync_items"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
+  }
+
+  // Lists the provider items fetched.
+  rpc ListIntegrationItems(ListIntegrationItemsRequest) returns (ListIntegrationItemsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/integrations/{integration_id}/items"};
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:read"};
+  }
+
+  // Lists the provider's subsidiaries (NetSuite).
+  rpc ListIntegrationSubsidiaries(ListIntegrationSubsidiariesRequest) returns (ListIntegrationSubsidiariesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/integrations/{integration_id}/subsidiaries"};
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:read"};
+  }
+
+  // Lists the item mappings of add-ons and billable metrics.
+  rpc ListIntegrationMappings(ListIntegrationMappingsRequest) returns (ListIntegrationMappingsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/integrations/{integration_id}/mappings"};
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:read"};
+  }
+
+  // Creates or replaces the mapping of an add-on or billable metric,
+  // optionally for one billing entity.
+  rpc UpsertIntegrationMapping(UpsertIntegrationMappingRequest) returns (UpsertIntegrationMappingResponse) {
+    option idempotency_level = IDEMPOTENT;
+    option (google.api.http) = {
+      put: "/v1/integrations/{integration_id}/mappings"
+      body: "mapping"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
+  }
+
+  // Deletes a mapping.
+  rpc DeleteIntegrationMapping(DeleteIntegrationMappingRequest) returns (DeleteIntegrationMappingResponse) {
+    option (google.api.http) = {delete: "/v1/integrations/{integration_id}/mappings/{mapping_id}"};
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
+  }
+
+  // Lists the collection mappings: the items used for fees with no own
+  // mapping, coupons, taxes, credits and currencies.
+  rpc ListCollectionMappings(ListCollectionMappingsRequest) returns (ListCollectionMappingsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/integrations/{integration_id}/collection_mappings"};
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:read"};
+  }
+
+  // Creates or replaces a collection mapping, optionally for one billing
+  // entity.
+  rpc UpsertCollectionMapping(UpsertCollectionMappingRequest) returns (UpsertCollectionMappingResponse) {
+    option idempotency_level = IDEMPOTENT;
+    option (google.api.http) = {
+      put: "/v1/integrations/{integration_id}/collection_mappings"
+      body: "collection_mapping"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
+  }
+
+  // Deletes a collection mapping.
+  rpc DeleteCollectionMapping(DeleteCollectionMappingRequest) returns (DeleteCollectionMappingResponse) {
+    option (google.api.http) = {delete: "/v1/integrations/{integration_id}/collection_mappings/{collection_mapping_id}"};
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
+  }
+
+  // Lists the records synced to the provider with their external IDs.
+  rpc ListIntegrationResources(ListIntegrationResourcesRequest) returns (ListIntegrationResourcesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/integrations/{integration_id}/resources"};
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:read"};
+  }
+}
+
+// IntegrationProvider is the provider of an integration.
+enum IntegrationProvider {
+  // Not set.
+  INTEGRATION_PROVIDER_UNSPECIFIED = 0;
+  // Stripe (payment).
+  INTEGRATION_PROVIDER_STRIPE = 1;
+  // Adyen (payment).
+  INTEGRATION_PROVIDER_ADYEN = 2;
+  // GoCardless (payment).
+  INTEGRATION_PROVIDER_GOCARDLESS = 3;
+  // Cashfree (payment).
+  INTEGRATION_PROVIDER_CASHFREE = 4;
+  // Moneyhash (payment).
+  INTEGRATION_PROVIDER_MONEYHASH = 5;
+  // Flutterwave (payment).
+  INTEGRATION_PROVIDER_FLUTTERWAVE = 6;
+  // NetSuite (accounting).
+  INTEGRATION_PROVIDER_NETSUITE = 7;
+  // Xero (accounting).
+  INTEGRATION_PROVIDER_XERO = 8;
+  // Anrok (tax).
+  INTEGRATION_PROVIDER_ANROK = 9;
+  // Avalara (tax).
+  INTEGRATION_PROVIDER_AVALARA = 10;
+  // HubSpot (CRM).
+  INTEGRATION_PROVIDER_HUBSPOT = 11;
+  // Salesforce (CRM).
+  INTEGRATION_PROVIDER_SALESFORCE = 12;
+}
+
+// IntegrationStatus is the state of an integration.
+enum IntegrationStatus {
+  // Not set.
+  INTEGRATION_STATUS_UNSPECIFIED = 0;
+  // Waiting for the OAuth authorization.
+  INTEGRATION_STATUS_PENDING = 1;
+  // Connected.
+  INTEGRATION_STATUS_ACTIVE = 2;
+  // The provider rejected the credentials.
+  INTEGRATION_STATUS_ERROR = 3;
+}
+
+// MappableType is the kind of object an item mapping maps.
+enum MappableType {
+  // Not set.
+  MAPPABLE_TYPE_UNSPECIFIED = 0;
+  // An add-on.
+  MAPPABLE_TYPE_ADD_ON = 1;
+  // A billable metric.
+  MAPPABLE_TYPE_BILLABLE_METRIC = 2;
+}
+
+// CollectionMappingType is the collection a collection mapping maps.
+enum CollectionMappingType {
+  // Not set.
+  COLLECTION_MAPPING_TYPE_UNSPECIFIED = 0;
+  // Fees with no own mapping.
+  COLLECTION_MAPPING_TYPE_FALLBACK_ITEM = 1;
+  // Coupons.
+  COLLECTION_MAPPING_TYPE_COUPON = 2;
+  // Subscription fees.
+  COLLECTION_MAPPING_TYPE_SUBSCRIPTION_FEE = 3;
+  // Minimum commitment true-ups.
+  COLLECTION_MAPPING_TYPE_MINIMUM_COMMITMENT = 4;
+  // Taxes.
+  COLLECTION_MAPPING_TYPE_TAX = 5;
+  // Prepaid credits.
+  COLLECTION_MAPPING_TYPE_PREPAID_CREDIT = 6;
+  // Credit notes.
+  COLLECTION_MAPPING_TYPE_CREDIT_NOTE = 7;
+  // The account payments are booked to.
+  COLLECTION_MAPPING_TYPE_ACCOUNT = 8;
+  // Currency codes of the provider.
+  COLLECTION_MAPPING_TYPE_CURRENCIES = 9;
+}
+
+// IntegrationItemType is the kind of a provider item.
+enum IntegrationItemType {
+  // Not set.
+  INTEGRATION_ITEM_TYPE_UNSPECIFIED = 0;
+  // A product or service item.
+  INTEGRATION_ITEM_TYPE_STANDARD = 1;
+  // A tax item.
+  INTEGRATION_ITEM_TYPE_TAX = 2;
+  // An account.
+  INTEGRATION_ITEM_TYPE_ACCOUNT = 3;
+}
+
+// IntegrationResourceType is the kind of a synced record.
+enum IntegrationResourceType {
+  // Not set.
+  INTEGRATION_RESOURCE_TYPE_UNSPECIFIED = 0;
+  // An invoice.
+  INTEGRATION_RESOURCE_TYPE_INVOICE = 1;
+  // A payment.
+  INTEGRATION_RESOURCE_TYPE_PAYMENT = 2;
+  // A credit note.
+  INTEGRATION_RESOURCE_TYPE_CREDIT_NOTE = 3;
+  // A subscription.
+  INTEGRATION_RESOURCE_TYPE_SUBSCRIPTION = 4;
+}
+
+// HubspotTargetedObject is the HubSpot object customers become.
+enum HubspotTargetedObject {
+  // Not set.
+  HUBSPOT_TARGETED_OBJECT_UNSPECIFIED = 0;
+  // Companies.
+  HUBSPOT_TARGETED_OBJECT_COMPANIES = 1;
+  // Contacts.
+  HUBSPOT_TARGETED_OBJECT_CONTACTS = 2;
+}
+
+// StripeSettings connects Stripe.
+message StripeSettings {
+  // The secret API key; write only.
+  string secret_key = 1 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The URL customers return to after checkout.
+  string success_redirect_url = 2 [(buf.validate.field).string = {
+    uri: true
+    max_len: 1024
+  }];
+  // The ID of the webhook endpoint registered at Stripe.
+  string webhook_endpoint_id = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// AdyenSettings connects Adyen.
+message AdyenSettings {
+  // The API key; write only.
+  string api_key = 1 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.max_len = 1024
+  ];
+  // The merchant account.
+  string merchant_account = 2 [(buf.validate.field).string.max_len = 255];
+  // The live URL prefix; empty for the test environment.
+  string live_prefix = 3 [(buf.validate.field).string.max_len = 255];
+  // The HMAC key of notifications; write only.
+  string hmac_key = 4 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.max_len = 1024
+  ];
+  // The URL customers return to after checkout.
+  string success_redirect_url = 5 [(buf.validate.field).string = {
+    uri: true
+    max_len: 1024
+  }];
+}
+
+// GocardlessSettings connects GoCardless by OAuth.
+message GocardlessSettings {
+  // The URL customers return to after the mandate setup.
+  string success_redirect_url = 1 [(buf.validate.field).string = {
+    uri: true
+    max_len: 1024
+  }];
+}
+
+// CashfreeSettings connects Cashfree.
+message CashfreeSettings {
+  // The client ID.
+  string client_id = 1 [(buf.validate.field).string.max_len = 255];
+  // The client secret; write only.
+  string client_secret = 2 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.max_len = 1024
+  ];
+  // The URL customers return to after payment.
+  string success_redirect_url = 3 [(buf.validate.field).string = {
+    uri: true
+    max_len: 1024
+  }];
+}
+
+// MoneyhashSettings connects Moneyhash.
+message MoneyhashSettings {
+  // The API key; write only.
+  string api_key = 1 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.max_len = 1024
+  ];
+  // The checkout flow ID.
+  string flow_id = 2 [(buf.validate.field).string.max_len = 255];
+}
+
+// FlutterwaveSettings connects Flutterwave.
+message FlutterwaveSettings {
+  // The secret key; write only.
+  string secret_key = 1 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.max_len = 1024
+  ];
+  // The webhook secret hash; write only.
+  string webhook_secret = 2 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.max_len = 1024
+  ];
+  // The URL customers return to after payment.
+  string success_redirect_url = 3 [(buf.validate.field).string = {
+    uri: true
+    max_len: 1024
+  }];
+}
+
+// NetsuiteSettings connects NetSuite with token-based authentication.
+message NetsuiteSettings {
+  // The account ID.
+  string account_id = 1 [(buf.validate.field).string.max_len = 255];
+  // The consumer key.
+  string client_id = 2 [(buf.validate.field).string.max_len = 255];
+  // The consumer secret; write only.
+  string client_secret = 3 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.max_len = 1024
+  ];
+  // The token ID.
+  string token_id = 4 [(buf.validate.field).string.max_len = 255];
+  // The token secret; write only.
+  string token_secret = 5 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.max_len = 1024
+  ];
+  // The RESTlet endpoint URL.
+  string script_endpoint_url = 6 [(buf.validate.field).string = {
+    uri: true
+    max_len: 1024
+  }];
+}
+
+// XeroSettings connects Xero by OAuth.
+message XeroSettings {
+  // The Xero organization connected.
+  string tenant_id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// AnrokSettings connects Anrok.
+message AnrokSettings {
+  // The API key; write only.
+  string api_key = 1 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.max_len = 1024
+  ];
+  // The seller account ID.
+  string external_account_id = 2 [(buf.validate.field).string.max_len = 255];
+}
+
+// AvalaraSettings connects Avalara.
+message AvalaraSettings {
+  // The account ID.
+  string account_id = 1 [(buf.validate.field).string.max_len = 255];
+  // The license key; write only.
+  string license_key = 2 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.max_len = 1024
+  ];
+  // The company code.
+  string company_code = 3 [(buf.validate.field).string.max_len = 255];
+  // The company ID looked up from the code.
+  string company_id = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// HubspotSettings connects HubSpot by OAuth.
+message HubspotSettings {
+  // The object customers are synced to.
+  HubspotTargetedObject default_targeted_object = 1 [(buf.validate.field).enum.defined_only = true];
+  // The HubSpot portal connected.
+  string portal_id = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// SalesforceSettings connects Salesforce.
+message SalesforceSettings {
+  // The Salesforce instance ID.
+  string instance_id = 1 [(buf.validate.field).string.max_len = 255];
+}
+
+// Integration is a connection to a provider.
+message Integration {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Integration"
+    pattern: "integrations/{integration}"
+    plural: "integrations"
+    singular: "integration"
+  };
+
+  // The integration's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique code.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // The provider.
+  IntegrationProvider provider = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The family.
+  tanvo.customer.v1.IntegrationCategory category = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The state.
+  IntegrationStatus status = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Marks the organization's default integration of its category.
+  bool is_default = 7;
+  // Syncs finalized invoices.
+  bool sync_invoices = 8;
+  // Syncs credit notes.
+  bool sync_credit_notes = 9;
+  // Syncs payments.
+  bool sync_payments = 10;
+  // Syncs subscriptions (CRM).
+  bool sync_subscriptions = 11;
+  // The provider settings and credentials.
+  oneof settings {
+    // Stripe.
+    StripeSettings stripe = 20;
+    // Adyen.
+    AdyenSettings adyen = 21;
+    // GoCardless.
+    GocardlessSettings gocardless = 22;
+    // Cashfree.
+    CashfreeSettings cashfree = 23;
+    // Moneyhash.
+    MoneyhashSettings moneyhash = 24;
+    // Flutterwave.
+    FlutterwaveSettings flutterwave = 25;
+    // NetSuite.
+    NetsuiteSettings netsuite = 26;
+    // Xero.
+    XeroSettings xero = 27;
+    // Anrok.
+    AnrokSettings anrok = 28;
+    // Avalara.
+    AvalaraSettings avalara = 29;
+    // HubSpot.
+    HubspotSettings hubspot = 30;
+    // Salesforce.
+    SalesforceSettings salesforce = 31;
+  }
+  // The URL the provider sends webhooks to, for payment providers.
+  string webhook_url = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The last error reported by the provider.
+  string last_error = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the integration was created.
+  google.protobuf.Timestamp created_at = 14 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the integration last changed.
+  google.protobuf.Timestamp updated_at = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// IntegrationItem is an item, tax item or account of a provider.
+message IntegrationItem {
+  // The item's ID in Tanvo.
+  string id = 1;
+  // The kind.
+  IntegrationItemType item_type = 2;
+  // The provider's ID.
+  string external_id = 3;
+  // The provider's account code.
+  string external_account_code = 4;
+  // The provider's name.
+  string external_name = 5;
+}
+
+// IntegrationSubsidiary is a NetSuite subsidiary.
+message IntegrationSubsidiary {
+  // The subsidiary's ID.
+  string external_id = 1;
+  // The subsidiary's name.
+  string external_name = 2;
+}
+
+// IntegrationMapping maps an add-on or billable metric to a provider item.
+message IntegrationMapping {
+  // The mapping's ID.
+  string id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The kind of object mapped.
+  MappableType mappable_type = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The add-on or billable metric (ID or `code:<code>`).
+  string mappable_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // Restricts the mapping to one billing entity (ID or `code:<code>`).
+  string billing_entity_id = 4 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The provider's item ID.
+  string external_id = 5 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // The provider's account code.
+  string external_account_code = 6 [(buf.validate.field).string.max_len = 255];
+  // The provider's item name.
+  string external_name = 7 [(buf.validate.field).string.max_len = 255];
+}
+
+// CollectionMapping maps a collection to a provider item.
+message CollectionMapping {
+  // The mapping's ID.
+  string id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The collection mapped.
+  CollectionMappingType mapping_type = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // Restricts the mapping to one billing entity (ID or `code:<code>`).
+  string billing_entity_id = 3 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The provider's item ID.
+  string external_id = 4 [(buf.validate.field).string.max_len = 255];
+  // The provider's account code.
+  string external_account_code = 5 [(buf.validate.field).string.max_len = 255];
+  // The provider's item name.
+  string external_name = 6 [(buf.validate.field).string.max_len = 255];
+  // The NetSuite tax nexus, for TAX.
+  string tax_nexus = 7 [(buf.validate.field).string.max_len = 255];
+  // The NetSuite tax type, for TAX.
+  string tax_type = 8 [(buf.validate.field).string.max_len = 255];
+  // The NetSuite tax code, for TAX.
+  string tax_code = 9 [(buf.validate.field).string.max_len = 255];
+  // The provider's currency IDs keyed by ISO code, for CURRENCIES.
+  map<string, string> currencies = 10 [(buf.validate.field).map = {
+    max_pairs: 200
+    keys: {
+      string: {[tanvo.common.v1.currency]: true}
+    }
+  }];
+}
+
+// IntegrationResource is a record synced to a provider.
+message IntegrationResource {
+  // The kind of record.
+  IntegrationResourceType resource_type = 1;
+  // The record's ID in Tanvo.
+  string syncable_id = 2;
+  // The record's ID in the provider.
+  string external_id = 3;
+  // When it was synced.
+  google.protobuf.Timestamp created_at = 4;
+}
+
+// CreateIntegrationRequest is the request of IntegrationService.CreateIntegration.
+message CreateIntegrationRequest {
+  option (buf.validate.message).cel = {
+    id: "integration.required"
+    message: "code, name and the provider settings are required"
+    expression: "has(this.integration.code) && has(this.integration.name) && (has(this.integration.stripe) || has(this.integration.adyen) || has(this.integration.gocardless) || has(this.integration.cashfree) || has(this.integration.moneyhash) || has(this.integration.flutterwave) || has(this.integration.netsuite) || has(this.integration.xero) || has(this.integration.anrok) || has(this.integration.avalara) || has(this.integration.hubspot) || has(this.integration.salesforce))"
+  };
+
+  // The integration to create; the settings field chooses the provider.
+  Integration integration = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateIntegrationResponse is the response of IntegrationService.CreateIntegration.
+message CreateIntegrationResponse {
+  // The created integration.
+  Integration integration = 1;
+}
+
+// GetIntegrationRequest is the request of IntegrationService.GetIntegration.
+message GetIntegrationRequest {
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetIntegrationResponse is the response of IntegrationService.GetIntegration.
+message GetIntegrationResponse {
+  // The integration.
+  Integration integration = 1;
+}
+
+// ListIntegrationsRequest is the request of IntegrationService.ListIntegrations.
+message ListIntegrationsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `category`, `provider` and `status`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListIntegrationsResponse is the response of IntegrationService.ListIntegrations.
+message ListIntegrationsResponse {
+  // The integrations of this page.
+  repeated Integration integrations = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateIntegrationRequest is the request of IntegrationService.UpdateIntegration.
+message UpdateIntegrationRequest {
+  option (buf.validate.message).cel = {
+    id: "integration.id"
+    message: "integration.id is required"
+    expression: "has(this.integration.id)"
+  };
+
+  // The new values; integration.id (an ID or `code:<code>`) selects the
+  // integration.
+  Integration integration = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateIntegrationResponse is the response of IntegrationService.UpdateIntegration.
+message UpdateIntegrationResponse {
+  // The updated integration.
+  Integration integration = 1;
+}
+
+// DeleteIntegrationRequest is the request of IntegrationService.DeleteIntegration.
+message DeleteIntegrationRequest {
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteIntegrationResponse is the response of IntegrationService.DeleteIntegration.
+message DeleteIntegrationResponse {}
+
+// StartIntegrationOauthRequest is the request of IntegrationService.StartIntegrationOauth.
+message StartIntegrationOauthRequest {
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The URL the provider redirects to with the code.
+  string redirect_uri = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {
+      uri: true
+      max_len: 1024
+    }
+  ];
+}
+
+// StartIntegrationOauthResponse is the response of IntegrationService.StartIntegrationOauth.
+message StartIntegrationOauthResponse {
+  // The provider's authorization URL.
+  string authorization_url = 1;
+  // The state to send back with the code.
+  string state = 2;
+}
+
+// CompleteIntegrationOauthRequest is the request of IntegrationService.CompleteIntegrationOauth.
+message CompleteIntegrationOauthRequest {
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The authorization code.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 4096
+    }
+  ];
+  // The state returned by StartIntegrationOauth.
+  string state = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 1024
+  ];
+}
+
+// CompleteIntegrationOauthResponse is the response of IntegrationService.CompleteIntegrationOauth.
+message CompleteIntegrationOauthResponse {
+  // The activated integration.
+  Integration integration = 1;
+}
+
+// SyncIntegrationItemsRequest is the request of IntegrationService.SyncIntegrationItems.
+message SyncIntegrationItemsRequest {
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The kind of items to fetch; all by default.
+  IntegrationItemType item_type = 2 [(buf.validate.field).enum.defined_only = true];
+}
+
+// SyncIntegrationItemsResponse is the response of IntegrationService.SyncIntegrationItems.
+message SyncIntegrationItemsResponse {}
+
+// ListIntegrationItemsRequest is the request of IntegrationService.ListIntegrationItems.
+message ListIntegrationItemsRequest {
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `item_type`.
+  string filter = 4 [(buf.validate.field).string.max_len = 2048];
+  // A search over the external ID, name and account code.
+  string search = 5 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListIntegrationItemsResponse is the response of IntegrationService.ListIntegrationItems.
+message ListIntegrationItemsResponse {
+  // The items of this page.
+  repeated IntegrationItem items = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// ListIntegrationSubsidiariesRequest is the request of IntegrationService.ListIntegrationSubsidiaries.
+message ListIntegrationSubsidiariesRequest {
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// ListIntegrationSubsidiariesResponse is the response of IntegrationService.ListIntegrationSubsidiaries.
+message ListIntegrationSubsidiariesResponse {
+  // The subsidiaries.
+  repeated IntegrationSubsidiary subsidiaries = 1;
+}
+
+// ListIntegrationMappingsRequest is the request of IntegrationService.ListIntegrationMappings.
+message ListIntegrationMappingsRequest {
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `mappable_type`, `mappable_id` and
+  // `billing_entity_id`.
+  string filter = 4 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListIntegrationMappingsResponse is the response of IntegrationService.ListIntegrationMappings.
+message ListIntegrationMappingsResponse {
+  // The mappings of this page.
+  repeated IntegrationMapping mappings = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpsertIntegrationMappingRequest is the request of IntegrationService.UpsertIntegrationMapping.
+message UpsertIntegrationMappingRequest {
+  option (buf.validate.message).cel = {
+    id: "mapping.required"
+    message: "mappable_type, mappable_id and external_id are required"
+    expression: "has(this.mapping.mappable_type) && has(this.mapping.mappable_id) && has(this.mapping.external_id)"
+  };
+
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The mapping; the object and billing entity select it.
+  IntegrationMapping mapping = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// UpsertIntegrationMappingResponse is the response of IntegrationService.UpsertIntegrationMapping.
+message UpsertIntegrationMappingResponse {
+  // The stored mapping.
+  IntegrationMapping mapping = 1;
+}
+
+// DeleteIntegrationMappingRequest is the request of IntegrationService.DeleteIntegrationMapping.
+message DeleteIntegrationMappingRequest {
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The mapping's ID.
+  string mapping_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DeleteIntegrationMappingResponse is the response of IntegrationService.DeleteIntegrationMapping.
+message DeleteIntegrationMappingResponse {}
+
+// ListCollectionMappingsRequest is the request of IntegrationService.ListCollectionMappings.
+message ListCollectionMappingsRequest {
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // An AIP-160 filter over `mapping_type` and `billing_entity_id`.
+  string filter = 2 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListCollectionMappingsResponse is the response of IntegrationService.ListCollectionMappings.
+message ListCollectionMappingsResponse {
+  // The collection mappings.
+  repeated CollectionMapping collection_mappings = 1;
+}
+
+// UpsertCollectionMappingRequest is the request of IntegrationService.UpsertCollectionMapping.
+message UpsertCollectionMappingRequest {
+  option (buf.validate.message).cel = {
+    id: "collection_mapping.required"
+    message: "mapping_type is required"
+    expression: "has(this.collection_mapping.mapping_type)"
+  };
+
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The mapping; the type and billing entity select it.
+  CollectionMapping collection_mapping = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// UpsertCollectionMappingResponse is the response of IntegrationService.UpsertCollectionMapping.
+message UpsertCollectionMappingResponse {
+  // The stored mapping.
+  CollectionMapping collection_mapping = 1;
+}
+
+// DeleteCollectionMappingRequest is the request of IntegrationService.DeleteCollectionMapping.
+message DeleteCollectionMappingRequest {
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The collection mapping's ID.
+  string collection_mapping_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DeleteCollectionMappingResponse is the response of IntegrationService.DeleteCollectionMapping.
+message DeleteCollectionMappingResponse {}
+
+// ListIntegrationResourcesRequest is the request of IntegrationService.ListIntegrationResources.
+message ListIntegrationResourcesRequest {
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `resource_type` and `syncable_id`.
+  string filter = 4 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListIntegrationResourcesResponse is the response of IntegrationService.ListIntegrationResources.
+message ListIntegrationResourcesResponse {
+  // The synced records of this page.
+  repeated IntegrationResource resources = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}

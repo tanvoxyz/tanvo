@@ -1,0 +1,14 @@
+version: v2
+modules:
+  - path: .
+    name: buf.build/tanvo/tanvo
+deps:
+  - buf.build/googleapis/googleapis
+  - buf.build/bufbuild/protovalidate
+lint:
+  use:
+    - STANDARD
+    - COMMENTS
+breaking:
+  use:
+    - FILE

@@ -1,0 +1,215 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.tax.v1 is the API of taxes. Taxes are attached to billing
+// entities, customers, plans, charges, fixed charges, add-ons and
+// commitments through their `tax_ids` fields.
+package tanvo.tax.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+
+// TaxService manages taxes.
+service TaxService {
+  // Creates a tax.
+  rpc CreateTax(CreateTaxRequest) returns (CreateTaxResponse) {
+    option (google.api.http) = {
+      post: "/v1/taxes"
+      body: "tax"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "organization:taxes:update"
+      api_resource: "tax"
+    };
+  }
+
+  // Returns a tax by ID or `code:<code>`.
+  rpc GetTax(GetTaxRequest) returns (GetTaxResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/taxes/{tax_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "organization:taxes:read"
+      api_resource: "tax"
+    };
+  }
+
+  // Lists taxes.
+  rpc ListTaxes(ListTaxesRequest) returns (ListTaxesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/taxes"};
+    option (tanvo.common.v1.access) = {
+      permission: "organization:taxes:read"
+      api_resource: "tax"
+    };
+  }
+
+  // Updates a tax; draft invoices using it are refreshed.
+  rpc UpdateTax(UpdateTaxRequest) returns (UpdateTaxResponse) {
+    option (google.api.http) = {
+      patch: "/v1/taxes/{tax.id}"
+      body: "tax"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "organization:taxes:update"
+      api_resource: "tax"
+    };
+  }
+
+  // Deletes a tax and detaches it everywhere; draft invoices are
+  // refreshed.
+  rpc DeleteTax(DeleteTaxRequest) returns (DeleteTaxResponse) {
+    option (google.api.http) = {delete: "/v1/taxes/{tax_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "organization:taxes:update"
+      api_resource: "tax"
+    };
+  }
+}
+
+// Tax is a tax rate applied to fees.
+message Tax {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Tax"
+    pattern: "taxes/{tax}"
+    plural: "taxes"
+    singular: "tax"
+  };
+
+  // The tax's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique code.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // The rate in percent ("20" is 20 %).
+  string rate = 4 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
+  ];
+  // A description.
+  string description = 5 [(buf.validate.field).string.max_len = 1024];
+  // Marks the EU taxes generated for billing entities with EU tax
+  // management.
+  bool auto_generated = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The number of customers the tax applies to.
+  int32 customers_count = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the tax was created.
+  google.protobuf.Timestamp created_at = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the tax last changed.
+  google.protobuf.Timestamp updated_at = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateTaxRequest is the request of TaxService.CreateTax.
+message CreateTaxRequest {
+  option (buf.validate.message).cel = {
+    id: "tax.required"
+    message: "code, name and rate are required"
+    expression: "has(this.tax.code) && has(this.tax.name) && has(this.tax.rate)"
+  };
+
+  // The tax to create.
+  Tax tax = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateTaxResponse is the response of TaxService.CreateTax.
+message CreateTaxResponse {
+  // The created tax.
+  Tax tax = 1;
+}
+
+// GetTaxRequest is the request of TaxService.GetTax.
+message GetTaxRequest {
+  // The tax's ID or `code:<code>`.
+  string tax_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetTaxResponse is the response of TaxService.GetTax.
+message GetTaxResponse {
+  // The tax.
+  Tax tax = 1;
+}
+
+// ListTaxesRequest is the request of TaxService.ListTaxes.
+message ListTaxesRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `auto_generated`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+  // A search over the name and code.
+  string search = 4 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListTaxesResponse is the response of TaxService.ListTaxes.
+message ListTaxesResponse {
+  // The taxes of this page.
+  repeated Tax taxes = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateTaxRequest is the request of TaxService.UpdateTax.
+message UpdateTaxRequest {
+  option (buf.validate.message).cel = {
+    id: "tax.id"
+    message: "tax.id is required"
+    expression: "has(this.tax.id)"
+  };
+
+  // The new values; tax.id (an ID or `code:<code>`) selects the tax.
+  Tax tax = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateTaxResponse is the response of TaxService.UpdateTax.
+message UpdateTaxResponse {
+  // The updated tax.
+  Tax tax = 1;
+}
+
+// DeleteTaxRequest is the request of TaxService.DeleteTax.
+message DeleteTaxRequest {
+  // The tax's ID or `code:<code>`.
+  string tax_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteTaxResponse is the response of TaxService.DeleteTax.
+message DeleteTaxResponse {
+  // The deleted tax.
+  Tax tax = 1;
+}

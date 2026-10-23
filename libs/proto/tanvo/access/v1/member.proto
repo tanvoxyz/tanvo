@@ -1,0 +1,552 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+package tanvo.access.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+
+// MemberService manages the organization's memberships, roles and invites.
+service MemberService {
+  // Lists the organization's memberships with their users.
+  rpc ListMemberships(ListMembershipsRequest) returns (ListMembershipsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/memberships"};
+    option (tanvo.common.v1.access) = {permission: "organization:members:read"};
+  }
+
+  // Returns a membership.
+  rpc GetMembership(GetMembershipRequest) returns (GetMembershipResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/memberships/{membership_id}"};
+    option (tanvo.common.v1.access) = {permission: "organization:members:read"};
+  }
+
+  // Changes a membership's role. Only admins grant the admin role, and the
+  // last admin keeps it.
+  rpc UpdateMembership(UpdateMembershipRequest) returns (UpdateMembershipResponse) {
+    option (google.api.http) = {
+      patch: "/v1/memberships/{membership.id}"
+      body: "membership"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:members:update"};
+  }
+
+  // Revokes a membership. Members cannot revoke their own membership, and
+  // the last admin cannot be revoked.
+  rpc RevokeMembership(RevokeMembershipRequest) returns (RevokeMembershipResponse) {
+    option (google.api.http) = {
+      post: "/v1/memberships/{membership_id}:revoke"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:members:delete"};
+  }
+
+  // Creates a custom role.
+  rpc CreateRole(CreateRoleRequest) returns (CreateRoleResponse) {
+    option (google.api.http) = {
+      post: "/v1/roles"
+      body: "role"
+    };
+    option (tanvo.common.v1.access) = {permission: "roles:create"};
+  }
+
+  // Returns a role by ID or `code:<code>`.
+  rpc GetRole(GetRoleRequest) returns (GetRoleResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/roles/{role_id}"};
+    option (tanvo.common.v1.access) = {permission: "roles:read"};
+  }
+
+  // Lists the built-in and custom roles.
+  rpc ListRoles(ListRolesRequest) returns (ListRolesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/roles"};
+    option (tanvo.common.v1.access) = {permission: "roles:read"};
+  }
+
+  // Updates a custom role; built-in roles are read only.
+  rpc UpdateRole(UpdateRoleRequest) returns (UpdateRoleResponse) {
+    option (google.api.http) = {
+      patch: "/v1/roles/{role.id}"
+      body: "role"
+    };
+    option (tanvo.common.v1.access) = {permission: "roles:update"};
+  }
+
+  // Deletes a custom role that no membership or invite uses.
+  rpc DeleteRole(DeleteRoleRequest) returns (DeleteRoleResponse) {
+    option (google.api.http) = {delete: "/v1/roles/{role_id}"};
+    option (tanvo.common.v1.access) = {permission: "roles:delete"};
+  }
+
+  // Lists the permission catalog: every permission a role may hold.
+  rpc ListPermissions(ListPermissionsRequest) returns (ListPermissionsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/permissions"};
+    option (tanvo.common.v1.access) = {permission: "roles:read"};
+  }
+
+  // Invites a person by email; the invite email carries the accept link.
+  rpc CreateInvite(CreateInviteRequest) returns (CreateInviteResponse) {
+    option (google.api.http) = {
+      post: "/v1/invites"
+      body: "invite"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:members:create"};
+  }
+
+  // Lists invites.
+  rpc ListInvites(ListInvitesRequest) returns (ListInvitesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/invites"};
+    option (tanvo.common.v1.access) = {permission: "organization:members:read"};
+  }
+
+  // Changes a pending invite's role.
+  rpc UpdateInvite(UpdateInviteRequest) returns (UpdateInviteResponse) {
+    option (google.api.http) = {
+      patch: "/v1/invites/{invite.id}"
+      body: "invite"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:members:update"};
+  }
+
+  // Revokes a pending invite.
+  rpc RevokeInvite(RevokeInviteRequest) returns (RevokeInviteResponse) {
+    option (google.api.http) = {
+      post: "/v1/invites/{invite_id}:revoke"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:members:delete"};
+  }
+}
+
+// MembershipStatus is the state of a membership.
+enum MembershipStatus {
+  // Not set.
+  MEMBERSHIP_STATUS_UNSPECIFIED = 0;
+  // The member may sign in to the organization.
+  MEMBERSHIP_STATUS_ACTIVE = 1;
+  // The membership was revoked.
+  MEMBERSHIP_STATUS_REVOKED = 2;
+}
+
+// InviteStatus is the state of an invite.
+enum InviteStatus {
+  // Not set.
+  INVITE_STATUS_UNSPECIFIED = 0;
+  // Sent and not yet accepted.
+  INVITE_STATUS_PENDING = 1;
+  // Accepted; a membership exists.
+  INVITE_STATUS_ACCEPTED = 2;
+  // Revoked before acceptance.
+  INVITE_STATUS_REVOKED = 3;
+}
+
+// User is a person who may belong to several organizations.
+message User {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/User"
+    pattern: "users/{user}"
+    plural: "users"
+    singular: "user"
+  };
+
+  // The user's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The sign-in email address.
+  string email = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The display name.
+  string name = 3 [(buf.validate.field).string.max_len = 255];
+  // When the user last signed in.
+  google.protobuf.Timestamp last_sign_in_at = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the user was created.
+  google.protobuf.Timestamp created_at = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// Membership links a user to the organization with a role.
+message Membership {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Membership"
+    pattern: "memberships/{membership}"
+    plural: "memberships"
+    singular: "membership"
+  };
+
+  // The membership's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The member.
+  User user = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The ID or `code:<code>` of the member's role.
+  string role_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The state.
+  MembershipStatus status = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the membership was revoked.
+  google.protobuf.Timestamp revoked_at = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the membership was created.
+  google.protobuf.Timestamp created_at = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the membership last changed.
+  google.protobuf.Timestamp updated_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// Role is a named set of permissions. The built-in roles admin, finance and
+// manager cannot be changed.
+message Role {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Role"
+    pattern: "roles/{role}"
+    plural: "roles"
+    singular: "role"
+  };
+
+  // The role's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique code; immutable once created.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.pattern = "^[a-z][a-z0-9_]{0,99}$"
+  ];
+  // The display name.
+  string name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 100
+    }
+  ];
+  // A description.
+  string description = 4 [(buf.validate.field).string.max_len = 255];
+  // The permissions (`<resource>:<action>`) the role holds.
+  repeated string permissions = 5 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 500
+    items: {
+      string: {pattern: "^[a-z_]+(:[a-z_]+)+$"}
+    }
+  }];
+  // Marks the built-in roles.
+  bool built_in = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the role was created.
+  google.protobuf.Timestamp created_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the role last changed.
+  google.protobuf.Timestamp updated_at = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// Permission is one entry of the permission catalog.
+message Permission {
+  // The permission string (`customers:read`).
+  string name = 1;
+  // Marks the permissions the built-in finance role holds.
+  bool finance = 2;
+  // Marks the permissions the built-in manager role holds.
+  bool manager = 3;
+}
+
+// Invite asks a person to join the organization.
+message Invite {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Invite"
+    pattern: "invites/{invite}"
+    plural: "invites"
+    singular: "invite"
+  };
+
+  // The invite's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The invited email address.
+  string email = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string = {
+      email: true
+      max_len: 255
+    }
+  ];
+  // The ID or `code:<code>` of the role granted on acceptance.
+  string role_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The state.
+  InviteStatus status = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The accept link, returned only by CreateInvite.
+  string accept_url = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the invite expires.
+  google.protobuf.Timestamp expires_at = 6 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the invite was accepted.
+  google.protobuf.Timestamp accepted_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the invite was revoked.
+  google.protobuf.Timestamp revoked_at = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the invite was created.
+  google.protobuf.Timestamp created_at = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// ListMembershipsRequest is the request of MemberService.ListMemberships.
+message ListMembershipsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `status` and `role_id`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListMembershipsResponse is the response of MemberService.ListMemberships.
+message ListMembershipsResponse {
+  // The memberships of this page.
+  repeated Membership memberships = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// GetMembershipRequest is the request of MemberService.GetMembership.
+message GetMembershipRequest {
+  // The membership's ID.
+  string membership_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetMembershipResponse is the response of MemberService.GetMembership.
+message GetMembershipResponse {
+  // The membership.
+  Membership membership = 1;
+}
+
+// UpdateMembershipRequest is the request of MemberService.UpdateMembership.
+message UpdateMembershipRequest {
+  option (buf.validate.message).cel = {
+    id: "membership.id"
+    message: "membership.id is required"
+    expression: "has(this.membership.id)"
+  };
+
+  // The new values; membership.id selects the membership.
+  Membership membership = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update (`role_id`); empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateMembershipResponse is the response of MemberService.UpdateMembership.
+message UpdateMembershipResponse {
+  // The updated membership.
+  Membership membership = 1;
+}
+
+// RevokeMembershipRequest is the request of MemberService.RevokeMembership.
+message RevokeMembershipRequest {
+  // The membership's ID.
+  string membership_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// RevokeMembershipResponse is the response of MemberService.RevokeMembership.
+message RevokeMembershipResponse {
+  // The revoked membership.
+  Membership membership = 1;
+}
+
+// CreateRoleRequest is the request of MemberService.CreateRole.
+message CreateRoleRequest {
+  option (buf.validate.message).cel = {
+    id: "role.code_and_name"
+    message: "code and name are required"
+    expression: "has(this.role.code) && has(this.role.name)"
+  };
+
+  // The role to create.
+  Role role = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateRoleResponse is the response of MemberService.CreateRole.
+message CreateRoleResponse {
+  // The created role.
+  Role role = 1;
+}
+
+// GetRoleRequest is the request of MemberService.GetRole.
+message GetRoleRequest {
+  // The role's ID or `code:<code>`.
+  string role_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetRoleResponse is the response of MemberService.GetRole.
+message GetRoleResponse {
+  // The role.
+  Role role = 1;
+}
+
+// ListRolesRequest is the request of MemberService.ListRoles.
+message ListRolesRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListRolesResponse is the response of MemberService.ListRoles.
+message ListRolesResponse {
+  // The roles of this page.
+  repeated Role roles = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateRoleRequest is the request of MemberService.UpdateRole.
+message UpdateRoleRequest {
+  option (buf.validate.message).cel = {
+    id: "role.id"
+    message: "role.id is required"
+    expression: "has(this.role.id)"
+  };
+
+  // The new values; role.id selects the role.
+  Role role = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateRoleResponse is the response of MemberService.UpdateRole.
+message UpdateRoleResponse {
+  // The updated role.
+  Role role = 1;
+}
+
+// DeleteRoleRequest is the request of MemberService.DeleteRole.
+message DeleteRoleRequest {
+  // The role's ID or `code:<code>`.
+  string role_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteRoleResponse is the response of MemberService.DeleteRole.
+message DeleteRoleResponse {}
+
+// ListPermissionsRequest is the request of MemberService.ListPermissions.
+message ListPermissionsRequest {}
+
+// ListPermissionsResponse is the response of MemberService.ListPermissions.
+message ListPermissionsResponse {
+  // Every permission, sorted by name.
+  repeated Permission permissions = 1;
+}
+
+// CreateInviteRequest is the request of MemberService.CreateInvite.
+message CreateInviteRequest {
+  option (buf.validate.message).cel = {
+    id: "invite.email_and_role"
+    message: "email and role_id are required"
+    expression: "has(this.invite.email) && has(this.invite.role_id)"
+  };
+
+  // The invite to create.
+  Invite invite = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateInviteResponse is the response of MemberService.CreateInvite.
+message CreateInviteResponse {
+  // The created invite, with its accept link.
+  Invite invite = 1;
+}
+
+// ListInvitesRequest is the request of MemberService.ListInvites.
+message ListInvitesRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `status` and `email`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListInvitesResponse is the response of MemberService.ListInvites.
+message ListInvitesResponse {
+  // The invites of this page.
+  repeated Invite invites = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateInviteRequest is the request of MemberService.UpdateInvite.
+message UpdateInviteRequest {
+  option (buf.validate.message).cel = {
+    id: "invite.id"
+    message: "invite.id is required"
+    expression: "has(this.invite.id)"
+  };
+
+  // The new values; invite.id selects the invite.
+  Invite invite = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update (`role_id`); empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateInviteResponse is the response of MemberService.UpdateInvite.
+message UpdateInviteResponse {
+  // The updated invite.
+  Invite invite = 1;
+}
+
+// RevokeInviteRequest is the request of MemberService.RevokeInvite.
+message RevokeInviteRequest {
+  // The invite's ID.
+  string invite_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// RevokeInviteResponse is the response of MemberService.RevokeInvite.
+message RevokeInviteResponse {
+  // The revoked invite.
+  Invite invite = 1;
+}

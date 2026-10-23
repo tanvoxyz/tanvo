@@ -1,0 +1,236 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.dunning.v1 is the API of dunning campaigns: automatic
+// payment requests for overdue balances.
+package tanvo.dunning.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// DunningCampaignService manages dunning campaigns. A campaign applies to
+// a billing entity (its applied_dunning_campaign_id) or a customer.
+service DunningCampaignService {
+  // Creates a dunning campaign.
+  rpc CreateDunningCampaign(CreateDunningCampaignRequest) returns (CreateDunningCampaignResponse) {
+    option (google.api.http) = {
+      post: "/v1/dunning_campaigns"
+      body: "dunning_campaign"
+    };
+    option (tanvo.common.v1.access) = {permission: "dunning_campaigns:create"};
+  }
+
+  // Returns a dunning campaign by ID or `code:<code>`.
+  rpc GetDunningCampaign(GetDunningCampaignRequest) returns (GetDunningCampaignResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/dunning_campaigns/{dunning_campaign_id}"};
+    option (tanvo.common.v1.access) = {permission: "dunning_campaigns:read"};
+  }
+
+  // Lists dunning campaigns.
+  rpc ListDunningCampaigns(ListDunningCampaignsRequest) returns (ListDunningCampaignsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/dunning_campaigns"};
+    option (tanvo.common.v1.access) = {permission: "dunning_campaigns:read"};
+  }
+
+  // Updates a dunning campaign; customers no longer matching its
+  // thresholds are reset.
+  rpc UpdateDunningCampaign(UpdateDunningCampaignRequest) returns (UpdateDunningCampaignResponse) {
+    option (google.api.http) = {
+      patch: "/v1/dunning_campaigns/{dunning_campaign.id}"
+      body: "dunning_campaign"
+    };
+    option (tanvo.common.v1.access) = {permission: "dunning_campaigns:update"};
+  }
+
+  // Deletes a dunning campaign and detaches it from billing entities and
+  // customers.
+  rpc DeleteDunningCampaign(DeleteDunningCampaignRequest) returns (DeleteDunningCampaignResponse) {
+    option (google.api.http) = {delete: "/v1/dunning_campaigns/{dunning_campaign_id}"};
+    option (tanvo.common.v1.access) = {permission: "dunning_campaigns:delete"};
+  }
+}
+
+// DunningThreshold is the overdue balance in one currency that starts a
+// campaign.
+message DunningThreshold {
+  // The overdue balance.
+  tanvo.common.v1.Money amount = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// DunningCampaign sends payment requests for overdue balances.
+message DunningCampaign {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/DunningCampaign"
+    pattern: "dunning_campaigns/{dunning_campaign}"
+    plural: "dunningCampaigns"
+    singular: "dunningCampaign"
+  };
+
+  // The campaign's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique code.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // A description.
+  string description = 4 [(buf.validate.field).string.max_len = 1024];
+  // The days between attempts.
+  int32 days_between_attempts = 5 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).int32 = {
+      gte: 1
+      lte: 365
+    }
+  ];
+  // The maximum number of attempts.
+  int32 max_attempts = 6 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).int32 = {
+      gte: 1
+      lte: 100
+    }
+  ];
+  // Blind carbon copies of the payment request emails.
+  repeated string bcc_emails = 7 [(buf.validate.field).repeated = {
+    max_items: 20
+    items: {
+      string: {email: true}
+    }
+  }];
+  // The thresholds, at most one per currency.
+  repeated DunningThreshold thresholds = 8 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).repeated.max_items = 200,
+    (buf.validate.field).cel = {
+      id: "thresholds.currency"
+      message: "at most one threshold per currency"
+      expression: "this.map(t, t.amount.currency).unique()"
+    }
+  ];
+  // The number of customers the campaign applies to.
+  int32 customers_count = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the campaign was created.
+  google.protobuf.Timestamp created_at = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the campaign last changed.
+  google.protobuf.Timestamp updated_at = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateDunningCampaignRequest is the request of DunningCampaignService.CreateDunningCampaign.
+message CreateDunningCampaignRequest {
+  option (buf.validate.message).cel = {
+    id: "dunning_campaign.required"
+    message: "code, name, days_between_attempts, max_attempts and thresholds are required"
+    expression: "has(this.dunning_campaign.code) && has(this.dunning_campaign.name) && has(this.dunning_campaign.days_between_attempts) && has(this.dunning_campaign.max_attempts) && size(this.dunning_campaign.thresholds) > 0"
+  };
+
+  // The campaign to create.
+  DunningCampaign dunning_campaign = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateDunningCampaignResponse is the response of DunningCampaignService.CreateDunningCampaign.
+message CreateDunningCampaignResponse {
+  // The created campaign.
+  DunningCampaign dunning_campaign = 1;
+}
+
+// GetDunningCampaignRequest is the request of DunningCampaignService.GetDunningCampaign.
+message GetDunningCampaignRequest {
+  // The campaign's ID or `code:<code>`.
+  string dunning_campaign_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetDunningCampaignResponse is the response of DunningCampaignService.GetDunningCampaign.
+message GetDunningCampaignResponse {
+  // The campaign.
+  DunningCampaign dunning_campaign = 1;
+}
+
+// ListDunningCampaignsRequest is the request of DunningCampaignService.ListDunningCampaigns.
+message ListDunningCampaignsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `currency` (campaigns with a threshold in it).
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+  // A search over the name and code.
+  string search = 4 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListDunningCampaignsResponse is the response of DunningCampaignService.ListDunningCampaigns.
+message ListDunningCampaignsResponse {
+  // The campaigns of this page.
+  repeated DunningCampaign dunning_campaigns = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateDunningCampaignRequest is the request of DunningCampaignService.UpdateDunningCampaign.
+message UpdateDunningCampaignRequest {
+  option (buf.validate.message).cel = {
+    id: "dunning_campaign.id"
+    message: "dunning_campaign.id is required"
+    expression: "has(this.dunning_campaign.id)"
+  };
+
+  // The new values; dunning_campaign.id (an ID or `code:<code>`) selects
+  // the campaign.
+  DunningCampaign dunning_campaign = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateDunningCampaignResponse is the response of DunningCampaignService.UpdateDunningCampaign.
+message UpdateDunningCampaignResponse {
+  // The updated campaign.
+  DunningCampaign dunning_campaign = 1;
+}
+
+// DeleteDunningCampaignRequest is the request of DunningCampaignService.DeleteDunningCampaign.
+message DeleteDunningCampaignRequest {
+  // The campaign's ID or `code:<code>`.
+  string dunning_campaign_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteDunningCampaignResponse is the response of DunningCampaignService.DeleteDunningCampaign.
+message DeleteDunningCampaignResponse {}

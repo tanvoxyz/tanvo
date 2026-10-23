@@ -1,0 +1,503 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.coupon.v1 is the API of coupons and of the coupons applied
+// to customers.
+package tanvo.coupon.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+
+// CouponService manages coupons and their application to customers.
+service CouponService {
+  // Creates a coupon.
+  rpc CreateCoupon(CreateCouponRequest) returns (CreateCouponResponse) {
+    option (google.api.http) = {
+      post: "/v1/coupons"
+      body: "coupon"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "coupons:create"
+      api_resource: "coupon"
+    };
+  }
+
+  // Returns a coupon by ID or `code:<code>`.
+  rpc GetCoupon(GetCouponRequest) returns (GetCouponResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/coupons/{coupon_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "coupons:read"
+      api_resource: "coupon"
+    };
+  }
+
+  // Lists coupons.
+  rpc ListCoupons(ListCouponsRequest) returns (ListCouponsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/coupons"};
+    option (tanvo.common.v1.access) = {
+      permission: "coupons:read"
+      api_resource: "coupon"
+    };
+  }
+
+  // Updates a coupon. Once applied, only the name, description and
+  // expiration may change.
+  rpc UpdateCoupon(UpdateCouponRequest) returns (UpdateCouponResponse) {
+    option (google.api.http) = {
+      patch: "/v1/coupons/{coupon.id}"
+      body: "coupon"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "coupons:update"
+      api_resource: "coupon"
+    };
+  }
+
+  // Terminates a coupon: it can no longer be applied; applied coupons keep
+  // running.
+  rpc TerminateCoupon(TerminateCouponRequest) returns (TerminateCouponResponse) {
+    option (google.api.http) = {
+      post: "/v1/coupons/{coupon_id}:terminate"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "coupons:delete"
+      api_resource: "coupon"
+    };
+  }
+
+  // Deletes a coupon that was never applied.
+  rpc DeleteCoupon(DeleteCouponRequest) returns (DeleteCouponResponse) {
+    option (google.api.http) = {delete: "/v1/coupons/{coupon_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "coupons:delete"
+      api_resource: "coupon"
+    };
+  }
+
+  // Applies a coupon to a customer, with optional overrides.
+  rpc ApplyCoupon(ApplyCouponRequest) returns (ApplyCouponResponse) {
+    option (google.api.http) = {
+      post: "/v1/applied_coupons"
+      body: "applied_coupon"
+      additional_bindings: {
+        post: "/v1/customers/{applied_coupon.customer_id}/applied_coupons"
+        body: "applied_coupon"
+      }
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "coupons:attach"
+      api_resource: "applied_coupon"
+    };
+  }
+
+  // Returns an applied coupon.
+  rpc GetAppliedCoupon(GetAppliedCouponRequest) returns (GetAppliedCouponResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/applied_coupons/{applied_coupon_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "coupons:read"
+      api_resource: "applied_coupon"
+    };
+  }
+
+  // Lists applied coupons.
+  rpc ListAppliedCoupons(ListAppliedCouponsRequest) returns (ListAppliedCouponsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {
+      get: "/v1/applied_coupons"
+      additional_bindings: {get: "/v1/customers/{customer_id}/applied_coupons"}
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "coupons:read"
+      api_resource: "applied_coupon"
+    };
+  }
+
+  // Terminates an applied coupon; it no longer applies to new invoices.
+  rpc TerminateAppliedCoupon(TerminateAppliedCouponRequest) returns (TerminateAppliedCouponResponse) {
+    option (google.api.http) = {
+      post: "/v1/applied_coupons/{applied_coupon_id}:terminate"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "coupons:detach"
+      api_resource: "applied_coupon"
+    };
+  }
+}
+
+// CouponType is the kind of discount.
+enum CouponType {
+  // Not set.
+  COUPON_TYPE_UNSPECIFIED = 0;
+  // A fixed amount in one currency.
+  COUPON_TYPE_FIXED_AMOUNT = 1;
+  // A percentage of the invoice.
+  COUPON_TYPE_PERCENTAGE = 2;
+}
+
+// CouponFrequency is how often a coupon applies.
+enum CouponFrequency {
+  // Not set.
+  COUPON_FREQUENCY_UNSPECIFIED = 0;
+  // On one invoice; a fixed amount carries over until used up.
+  COUPON_FREQUENCY_ONCE = 1;
+  // On a number of invoices (frequency_duration).
+  COUPON_FREQUENCY_RECURRING = 2;
+  // On every invoice.
+  COUPON_FREQUENCY_FOREVER = 3;
+}
+
+// CouponExpiration says whether a coupon expires.
+enum CouponExpiration {
+  // Not set.
+  COUPON_EXPIRATION_UNSPECIFIED = 0;
+  // Never expires.
+  COUPON_EXPIRATION_NO_EXPIRATION = 1;
+  // Expires at expiration_at.
+  COUPON_EXPIRATION_TIME_LIMIT = 2;
+}
+
+// CouponStatus is the state of a coupon or applied coupon.
+enum CouponStatus {
+  // Not set.
+  COUPON_STATUS_UNSPECIFIED = 0;
+  // Applicable or applying.
+  COUPON_STATUS_ACTIVE = 1;
+  // Terminated, expired or used up.
+  COUPON_STATUS_TERMINATED = 2;
+}
+
+// Coupon is a discount that can be applied to customers.
+message Coupon {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Coupon"
+    pattern: "coupons/{coupon}"
+    plural: "coupons"
+    singular: "coupon"
+  };
+  option (buf.validate.message).cel = {
+    id: "coupon.amount"
+    message: "a FIXED_AMOUNT coupon needs amount and a PERCENTAGE coupon percentage_rate"
+    expression: "!has(this.coupon_type) || (this.coupon_type == 1 ? has(this.amount) && !has(this.percentage_rate) : has(this.percentage_rate) && !has(this.amount))"
+  };
+  option (buf.validate.message).cel = {
+    id: "coupon.frequency_duration"
+    message: "frequency_duration is required for RECURRING coupons"
+    expression: "!has(this.frequency) || this.frequency != 2 || has(this.frequency_duration)"
+  };
+  option (buf.validate.message).cel = {
+    id: "coupon.expiration_at"
+    message: "expiration_at is required for TIME_LIMIT coupons"
+    expression: "!has(this.expiration) || this.expiration != 2 || has(this.expiration_at)"
+  };
+
+  // The coupon's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The unique code.
+  string code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The display name.
+  string name = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    }
+  ];
+  // A description.
+  string description = 4 [(buf.validate.field).string.max_len = 1024];
+  // The kind of discount.
+  CouponType coupon_type = 5 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The discount of a FIXED_AMOUNT coupon.
+  tanvo.common.v1.Money amount = 6;
+  // The rate in percent of a PERCENTAGE coupon.
+  string percentage_rate = 7 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // How often the coupon applies.
+  CouponFrequency frequency = 8 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).enum.defined_only = true
+  ];
+  // The number of invoices of a RECURRING coupon.
+  int32 frequency_duration = 9 [(buf.validate.field).int32.gte = 1];
+  // Lets the coupon be applied several times to one customer.
+  bool reusable = 10;
+  // Whether the coupon expires.
+  CouponExpiration expiration = 11 [(buf.validate.field).enum.defined_only = true];
+  // When the coupon expires.
+  google.protobuf.Timestamp expiration_at = 12;
+  // Limits the discount to the fees of these plans (IDs or `code:<code>`).
+  repeated string limited_plan_ids = 13 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 100
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // Limits the discount to the fees of these billable metrics (IDs or
+  // `code:<code>`); exclusive with limited_plan_ids.
+  repeated string limited_billable_metric_ids = 14 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 100
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // The state.
+  CouponStatus status = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the coupon was terminated.
+  google.protobuf.Timestamp terminated_at = 16 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the coupon was created.
+  google.protobuf.Timestamp created_at = 17 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the coupon last changed.
+  google.protobuf.Timestamp updated_at = 18 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// AppliedCoupon is a coupon applied to a customer.
+message AppliedCoupon {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/AppliedCoupon"
+    pattern: "applied_coupons/{applied_coupon}"
+    plural: "appliedCoupons"
+    singular: "appliedCoupon"
+  };
+
+  // The applied coupon's ID.
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
+  // The coupon (ID or `code:<code>`).
+  string coupon_id = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The customer (ID or `external_id:<external_id>`).
+  string customer_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The discount amount; overrides the coupon's.
+  tanvo.common.v1.Money amount = 4;
+  // The rate in percent; overrides the coupon's.
+  string percentage_rate = 5 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The frequency; overrides the coupon's.
+  CouponFrequency frequency = 6 [(buf.validate.field).enum.defined_only = true];
+  // The number of invoices; overrides the coupon's.
+  int32 frequency_duration = 7 [(buf.validate.field).int32.gte = 1];
+  // The number of invoices left for a RECURRING coupon.
+  int32 frequency_duration_remaining = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The amount left of a ONCE fixed-amount coupon.
+  tanvo.common.v1.Money remaining_amount = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The state.
+  CouponStatus status = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the applied coupon was terminated.
+  google.protobuf.Timestamp terminated_at = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the coupon was applied.
+  google.protobuf.Timestamp created_at = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the applied coupon last changed.
+  google.protobuf.Timestamp updated_at = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateCouponRequest is the request of CouponService.CreateCoupon.
+message CreateCouponRequest {
+  option (buf.validate.message).cel = {
+    id: "coupon.required"
+    message: "code, name, coupon_type and frequency are required"
+    expression: "has(this.coupon.code) && has(this.coupon.name) && has(this.coupon.coupon_type) && has(this.coupon.frequency)"
+  };
+
+  // The coupon to create.
+  Coupon coupon = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateCouponResponse is the response of CouponService.CreateCoupon.
+message CreateCouponResponse {
+  // The created coupon.
+  Coupon coupon = 1;
+}
+
+// GetCouponRequest is the request of CouponService.GetCoupon.
+message GetCouponRequest {
+  // The coupon's ID or `code:<code>`.
+  string coupon_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// GetCouponResponse is the response of CouponService.GetCoupon.
+message GetCouponResponse {
+  // The coupon.
+  Coupon coupon = 1;
+}
+
+// ListCouponsRequest is the request of CouponService.ListCoupons.
+message ListCouponsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `status` and `coupon_type`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+  // A search over the name and code.
+  string search = 4 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListCouponsResponse is the response of CouponService.ListCoupons.
+message ListCouponsResponse {
+  // The coupons of this page.
+  repeated Coupon coupons = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateCouponRequest is the request of CouponService.UpdateCoupon.
+message UpdateCouponRequest {
+  option (buf.validate.message).cel = {
+    id: "coupon.id"
+    message: "coupon.id is required"
+    expression: "has(this.coupon.id)"
+  };
+
+  // The new values; coupon.id (an ID or `code:<code>`) selects the coupon.
+  Coupon coupon = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateCouponResponse is the response of CouponService.UpdateCoupon.
+message UpdateCouponResponse {
+  // The updated coupon.
+  Coupon coupon = 1;
+}
+
+// TerminateCouponRequest is the request of CouponService.TerminateCoupon.
+message TerminateCouponRequest {
+  // The coupon's ID or `code:<code>`.
+  string coupon_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// TerminateCouponResponse is the response of CouponService.TerminateCoupon.
+message TerminateCouponResponse {
+  // The terminated coupon.
+  Coupon coupon = 1;
+}
+
+// DeleteCouponRequest is the request of CouponService.DeleteCoupon.
+message DeleteCouponRequest {
+  // The coupon's ID or `code:<code>`.
+  string coupon_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteCouponResponse is the response of CouponService.DeleteCoupon.
+message DeleteCouponResponse {}
+
+// ApplyCouponRequest is the request of CouponService.ApplyCoupon.
+message ApplyCouponRequest {
+  option (buf.validate.message).cel = {
+    id: "applied_coupon.required"
+    message: "coupon_id and customer_id are required"
+    expression: "has(this.applied_coupon.coupon_id) && has(this.applied_coupon.customer_id)"
+  };
+
+  // The coupon application.
+  AppliedCoupon applied_coupon = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// ApplyCouponResponse is the response of CouponService.ApplyCoupon.
+message ApplyCouponResponse {
+  // The applied coupon.
+  AppliedCoupon applied_coupon = 1;
+}
+
+// GetAppliedCouponRequest is the request of CouponService.GetAppliedCoupon.
+message GetAppliedCouponRequest {
+  // The applied coupon's ID.
+  string applied_coupon_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// GetAppliedCouponResponse is the response of CouponService.GetAppliedCoupon.
+message GetAppliedCouponResponse {
+  // The applied coupon.
+  AppliedCoupon applied_coupon = 1;
+}
+
+// ListAppliedCouponsRequest is the request of CouponService.ListAppliedCoupons.
+message ListAppliedCouponsRequest {
+  // Restricts the list to one customer (ID or `external_id:<external_id>`).
+  string customer_id = 1 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `status` and `coupon_id`.
+  string filter = 4 [(buf.validate.field).string.max_len = 2048];
+}
+
+// ListAppliedCouponsResponse is the response of CouponService.ListAppliedCoupons.
+message ListAppliedCouponsResponse {
+  // The applied coupons of this page.
+  repeated AppliedCoupon applied_coupons = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// TerminateAppliedCouponRequest is the request of CouponService.TerminateAppliedCoupon.
+message TerminateAppliedCouponRequest {
+  // The applied coupon's ID.
+  string applied_coupon_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// TerminateAppliedCouponResponse is the response of CouponService.TerminateAppliedCoupon.
+message TerminateAppliedCouponResponse {
+  // The terminated applied coupon.
+  AppliedCoupon applied_coupon = 1;
+}
