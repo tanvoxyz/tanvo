@@ -20,7 +20,7 @@
 | 1. Pure libraries (L0/L1) | `libs/money`, `libs/period`, `libs/expression` (Rust → WASM, Go host), `libs/pricing`, `libs/metering` (with the in-memory store and `storetest`), `libs/tax` | Every pure spec of their areas ported or listed as skipped with a reason | Done |
 | 2. Domain core (L2) | `libs/core` (entities, repository interfaces, services' contracts), `libs/billing` (invoice generation, fees, credits, coupons, wallets, progressive billing, credit notes, commitments, thresholds, prorations, upgrades and downgrades) | Billing specs ported as pure decisions over in-memory repositories | In progress: `core` |
 | 3. Infrastructure (L3) | `libs/proto` (API contracts), `libs/store` (PostgreSQL schema, sqlc, RLS), `libs/eventstore` (PostgreSQL, ClickHouse), `libs/ingest` (HTTP batch, Kafka/Redpanda), `libs/jobs` (River, schedules), `libs/webhooks`, `libs/documents` (Typst, Factur-X/UBL), `libs/mail`, `libs/auth` | Conformance suites pass on every implementation; documents' golden tests pass | In progress |
-| 4. Server (L4) | `apps/server`: Connect + REST (Vanguard), OpenAPI, roles api/worker/consumer/all, configuration, health, metrics, migrations | End-to-end tests of every API resource and of a full billing cycle | Not started |
+| 4. Server (L4) | `apps/server`: Connect + REST (Vanguard), OpenAPI, roles api/worker/consumer/all, configuration, health, metrics, migrations | End-to-end tests of every API resource and of a full billing cycle | In progress |
 | 5. Providers | Payment providers (Stripe, Adyen, GoCardless, Cashfree, Flutterwave, Moneyhash), accounting/CRM/tax integrations, streaming destinations | Recorded-fixture tests per provider; webhooks end to end | Not started |
 | 6. Console | `apps/web`: the administration console on the Connect API, customer portal | Feature coverage matching the API | Not started |
 | 7. Enterprise and Cloud | `ee/*` services (analytics, assistant, MCP, revenue recognition, …), cells, RLS hardening, Helm charts | Cloud deployment runs the end-to-end suite | Not started |
@@ -32,6 +32,7 @@
 * Phase 1 is done: `libs/money`, `libs/period` (623 ported cases), `libs/expression` (151 cases, Rust → WASM with input limits), `libs/pricing` (433 cases), `libs/metering` (478 cases, with the `storetest` conformance suite) and `libs/tax` (264 cases). [Parity](parity.md) marks their features `logic done`.
 * Phase 2: `libs/core` is done; `libs/billing` is being built.
 * Phase 3: `libs/proto`, `libs/eventstore`, `libs/store` (PostgreSQL schema, migrations, RLS, transactional jobs, and the repository conformance suite passing on memstore and PostgreSQL) and `libs/jobs` (River, the periodic schedule, tenant fairness) are done; `libs/webhooks`, `libs/ingest`, `libs/auth` and `libs/mail` are done in logic; `libs/documents` and the 15-minute usage buckets are being built.
+* Phase 4: `apps/server` runs `tanvo serve` (roles api, worker, consumer, all) and `tanvo migrate`, with typed configuration, OpenTelemetry, health and readiness, the job registry and periodic schedule, and event ingestion over Connect and REST, covered by an end-to-end test; the other API resources and the billing jobs are to come.
 
 ## 4. After Parity: Lessons from OpenMeter and Flexprice
 

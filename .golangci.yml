@@ -28,6 +28,16 @@ linters:
               desc: "libs must not import providers; apps/server wires them"
             - pkg: github.com/tanvoxyz/tanvo/ee
               desc: "libs must not import enterprise services"
+        server:
+          list-mode: lax
+          files: ["**/apps/server/**"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo/ee
+              desc: "the core server reaches enterprise services over their APIs, never by import"
+            - pkg: github.com/tanvoxyz/tanvo/apps
+              desc: "apps do not import each other"
+          allow:
+            - github.com/tanvoxyz/tanvo/apps/server
         money:
           list-mode: lax
           files: ["**/libs/money/**"]

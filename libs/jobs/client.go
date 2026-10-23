@@ -60,6 +60,11 @@ type Config struct {
 	Clock core.Clock
 	// Logger receives River's logs; nil is slog.Default().
 	Logger *slog.Logger
+	// Middleware is installed on the River client, in order, around job
+	// inserts and job work: telemetry (River's OpenTelemetry middleware)
+	// and logging context. apps/server provides it, so that this library
+	// stays on the OpenTelemetry API.
+	Middleware []rivertype.Middleware
 }
 
 // Client inserts jobs and, when configured to work queues, runs them.
@@ -103,6 +108,7 @@ func New(pool *pgxpool.Pool, reg *Registry, cfg Config) (*Client, error) {
 		FetchCooldown:     cfg.FetchCooldown,
 		FetchPollInterval: cfg.FetchPollInterval,
 		Logger:            cfg.Logger,
+		Middleware:        slices.Clone(cfg.Middleware),
 	}
 	if len(cfg.Work) > 0 {
 		rc.Queues = map[string]river.QueueConfig{}

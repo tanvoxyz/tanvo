@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -59,6 +60,25 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool, schema string) error {
 	}
 	for _, v := range res.Versions {
 		slog.InfoContext(ctx, "jobs: applied river migration", "schema", schema, "version", v.Version, "name", v.Name)
+	}
+	return nil
+}
+
+// CheckSchema returns an error unless schema ("" is [DefaultSchema]) has
+// every River migration this binary carries, so that a process refuses to
+// start against a database that [Migrate] has not brought up to date.
+func CheckSchema(ctx context.Context, pool *pgxpool.Pool, schema string) error {
+	schema = cmp.Or(schema, DefaultSchema)
+	m, err := rivermigrate.New(riverpgxv5.New(pool), &rivermigrate.Config{Schema: schema})
+	if err != nil {
+		return fmt.Errorf("jobs: check schema: %w", err)
+	}
+	res, err := m.Validate(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("jobs: check schema %s: %w", schema, err)
+	}
+	if !res.OK {
+		return fmt.Errorf("jobs: schema %s is not migrated (run tanvo migrate): %s", schema, strings.Join(res.Messages, "; "))
 	}
 	return nil
 }

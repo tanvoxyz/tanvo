@@ -193,7 +193,8 @@ ee/* ──▶ proto        (never any other in-repo module)
 * Atlas 据此计算版本化迁移，写入 `libs/store/migrations/`；已合并的迁移不得修改。
 * 迁移通过 `tanvo migrate` 运行（在 Tanvo Cloud 中是一个 Kubernetes Job）；对于自托管安装，除非禁用，在启动时自动运行。
 * 同一个数据库中有两套迁移历史，以便任务能在业务事务中插入：Atlas 管理 `public` schema，River 自己的迁移（rivermigrate）管理 `river` schema。River 的表不纳入 Atlas，使 Atlas 的 diff、lint 与漂移检查只看到 Tanvo 的 schema，River 升级时也无需手工复制它的迁移。`tanvo migrate` 是唯一入口：先应用 Atlas 的迁移，再应用 River 的，各自在自己的 advisory lock 下执行，并且都是幂等的。
-* 一个版本内的迁移只做扩展，使滚动部署期间旧版本仍能运行；迁移在新版本上线之前应用。进程启动时检查两个 schema 是否处于其二进制期望的版本，不符则拒绝启动。
+* PostgreSQL 事件存储（§7）在自己的 schema（默认 `eventstore`）中有第三套迁移历史：它的迁移是幂等的 DDL，由同一命令应用，并同时创建未来几个月的分区；配置了 ClickHouse 时，`tanvo migrate` 也会应用 ClickHouse 的 schema。
+* 一个版本内的迁移只做扩展，使滚动部署期间旧版本仍能运行；迁移在新版本上线之前应用。进程启动时检查 schema 是否已应用，否则拒绝启动：目前检查 River 的迁移是否全部应用，以及 Atlas 的版本表与事件存储是否存在。
 
 ### 5.3 查询
 * sqlc 基于 pgx/v5 驱动，从 `libs/store/queries/` 中的 SQL 生成类型安全的 Go。
@@ -328,12 +329,12 @@ POST /v1/events, /v1/events:batch
 | `api` | Connect/REST 服务器、提供者 webhook、文档下载 |
 | `worker` | 为其指定的队列（`--queues`）运行 River worker |
 | `consumer` | Kafka 消费者：富化、ClickHouse 写入器、预付计费项 |
-| `all` | 全部（自托管安装的默认值） |
+| `all` | 全部（自托管安装的默认值）；只有配置了 Kafka broker 时才包含 `consumer` |
 
 `tanvo migrate`、`tanvo admin …` 与 `tanvo version` 是单独的命令。
 
 ### 13.2 自托管
-* 最小：`tanvo serve` + PostgreSQL。Typst 包含在容器镜像中。
+* 最小：`tanvo serve` + PostgreSQL。Typst 与 `fonts-noto-cjk` 软件包（zh-TW 文档，§10）包含在容器镜像中；在镜像之外安装时两者都需要。
 * 可选：用于大量事件的 Redpanda/Kafka + ClickHouse，用于缓存的 Redis/Valkey，S3 兼容存储。
 * 以容器镜像和 Docker Compose 文件分发；一个 Helm chart 同时服务于自托管 Kubernetes 与 Tanvo Cloud。
 
@@ -341,6 +342,67 @@ POST /v1/events, /v1/events:batch
 * Kubernetes：每个角色（以及每个繁重的队列）一个 Deployment，迁移作为 Job，`api` 与 `consumer` 水平自动扩缩。
 * **Cell**：一个 cell 是一个 PostgreSQL 集群及其 River worker、Kafka topic 与 ClickHouse 数据库，服务一组组织。一个精简的控制平面把组织映射到 cell；增长时增加 cell。大客户可以拥有专属的 cell。
 * Tanvo Cloud 由 Tanvo 自己计费。
+
+### 13.4 进程装配
+`apps/server` 是唯一构建具体实现的模块；`internal/app` 每个组件一个文件完成装配（`postgres.go`、`migrate.go`、`jobs.go`、`eventstore.go`、`ingest.go`、`kafka.go`、`webhooks.go`、`mail.go`、`api.go`、`health.go`）。进程启动时：
+
+1. 加载并校验配置（§13.5），一次报告全部问题，并安装遥测（§15）。
+2. 打开 PostgreSQL 连接池；设置了 `TANVO_CLICKHOUSE_URL` 时打开 ClickHouse 连接。
+3. 应用 schema（`TANVO_MIGRATE_ON_START`，自托管默认开启），或检查 schema 并在不符时拒绝启动（§5.2）。PostgreSQL 事件存储位于自己的 schema（`TANVO_EVENTSTORE_SCHEMA`，默认 `eventstore`），因为它未限定 schema 的表会与 store 的原始事件日志冲突；读取使用第二个连接池，其 `search_path` 为该 schema，摄取事务在写入富化事件前后切换 `search_path`。
+4. 以 River 作为任务插入器构建 store（任务随业务事务一同提交），注册已装配服务的任务类型，并创建 River 客户端：`worker` 角色在配置的队列与 clock 队列上运行 worker，其他角色只插入。
+5. 按组织的摄取模式选择其事件存储：postgres 模式用 PostgreSQL，kafka 模式用 ClickHouse。
+6. 当有组织经 Kafka 摄取或运行 `consumer` 角色时创建 Kafka 生产者；`consumer` 角色还运行富化（`<prefix>-enrich`：raw → enriched）与 ClickHouse 写入（`<prefix>-write`：enriched → ClickHouse，用量信号）两个消费者组。
+7. 每个角色都提供 HTTP：`/healthz`（存活）、`/readyz`（PostgreSQL、事件存储连接池，以及使用时的 ClickHouse 与 Kafka；关闭期间返回不可用）、启用时的 `/metrics`；`api` 角色另提供 Connect handler 及其在 `/v1/` 下的 REST 转码（Vanguard），依次经过遥测、panic 恢复、API key 认证与按各 RPC 访问选项的授权、protovalidate 校验等拦截器。
+
+收到 SIGINT 或 SIGTERM 后，进程在 `TANVO_SHUTDOWN_TIMEOUT` 内关闭：就绪检查变为不可用，HTTP 服务器排空请求，worker 完成手头任务，消费者提交并停止，API 角色写入它收集的 API key 使用记录（平时每小时写入一次），最后关闭连接。
+
+### 13.5 配置
+配置项是 `TANVO_*` 环境变量，可叠加一个可选的 TOML 文件（`--config` 或 `TANVO_CONFIG`），其键为去掉前缀的小写变量名；环境变量优先。未知的 `TANVO_*` 变量与文件键会记录为警告。列表以逗号分隔。OpenTelemetry 由标准 `OTEL_*` 变量配置（§15）。
+
+| 变量 | 默认值 | 含义 |
+| :--- | :--- | :--- |
+| `TANVO_ROLE` | `all` | `tanvo serve` 的角色（`api`、`worker`、`consumer`、`all`）；`--role` 优先。只有设置了 Kafka broker 时 `all` 才包含 `consumer` |
+| `TANVO_ENVIRONMENT` | | `deployment.environment.name` |
+| `TANVO_LOG_LEVEL` | `info` | `debug`、`info`、`warn` 或 `error` |
+| `TANVO_LOG_FORMAT` | `json` | `json` 或 `text` |
+| `TANVO_HTTP_ADDR` | `:8080` | 监听地址（API、健康检查、指标） |
+| `TANVO_HTTP_READ_HEADER_TIMEOUT` | `10s` | 读取请求头的时限 |
+| `TANVO_HTTP_MAX_BODY_BYTES` | `8388608` | 请求体大小上限 |
+| `TANVO_SHUTDOWN_TIMEOUT` | `30s` | 优雅关闭的时限 |
+| `TANVO_METRICS_ENDPOINT` | `false` | 在 `/metrics` 以 Prometheus 格式提供指标 |
+| `TANVO_DATABASE_URL` | 必填 | PostgreSQL URL（`postgres://…`） |
+| `TANVO_DATABASE_MAX_CONNS` | pgx 默认值 | 连接池大小 |
+| `TANVO_DATABASE_ROW_LEVEL_SECURITY` | `false` | 为行级安全策略设置租户（§5.4） |
+| `TANVO_MIGRATE_ON_START` | `true` | 启动时应用迁移；否则只检查 |
+| `TANVO_JOBS_SCHEMA` | `river` | River 表所在的 schema |
+| `TANVO_WORKER_QUEUES` | 全部队列 | `worker` 角色的队列；`--queues` 优先 |
+| `TANVO_JOBS_DISABLE_PERIODIC` | `false` | 不让 worker 参与周期调度 |
+| `TANVO_JOBS_CLOCK_CONCURRENCY` | 库默认值 | clock 队列的并发度 |
+| `TANVO_INGEST_MODE` | `postgres` | 默认摄取模式，`postgres` 或 `kafka` |
+| `TANVO_INGEST_KAFKA_ORGANIZATIONS` | | 无论默认模式都经 Kafka 摄取的组织 |
+| `TANVO_INGEST_POSTGRES_ORGANIZATIONS` | | 无论默认模式都在 PostgreSQL 中摄取的组织 |
+| `TANVO_INGEST_ENRICH_CONCURRENCY` | `4` | 单个消费者的富化并发度 |
+| `TANVO_EVENTSTORE_SCHEMA` | `eventstore` | PostgreSQL 事件存储的 schema |
+| `TANVO_EVENTSTORE_HASH_PARTITIONS` | `4` | PostgreSQL 事件存储的哈希分区数，创建时确定 |
+| `TANVO_CLICKHOUSE_URL` | | ClickHouse DSN（`clickhouse://…`）；kafka 摄取与 `consumer` 角色必需 |
+| `TANVO_KAFKA_BROKERS` | | 种子 broker；kafka 摄取与 `consumer` 角色必需 |
+| `TANVO_KAFKA_CLIENT_ID` | `tanvo` | Kafka 客户端 ID |
+| `TANVO_KAFKA_TLS` | `false` | 使用 TLS 连接 |
+| `TANVO_KAFKA_SASL_MECHANISM` | | `plain`、`scram-sha-256` 或 `scram-sha-512` |
+| `TANVO_KAFKA_SASL_USERNAME`、`TANVO_KAFKA_SASL_PASSWORD` | | SASL 凭据 |
+| `TANVO_KAFKA_TOPIC_PREFIX` | | topic 名称前缀（`events.raw`、`events.enriched`、`events.dead_letter`、`usage.refresh`） |
+| `TANVO_KAFKA_CONSUMER_GROUP_PREFIX` | `tanvo` | 消费者组名称前缀 |
+| `TANVO_KAFKA_CREATE_TOPICS` | `false` | 启动时创建缺失的 topic |
+| `TANVO_KAFKA_TOPIC_PARTITIONS` | `6` | 所建 topic 的分区数 |
+| `TANVO_KAFKA_TOPIC_REPLICAS` | `-1` | 所建 topic 的副本数（broker 默认值） |
+| `TANVO_WEBHOOKS_ALLOW_PRIVATE` | `false` | 允许投递到私有地址与明文 HTTP |
+| `TANVO_WEBHOOKS_TIMEOUT` | `30s` | 单次投递尝试的时限 |
+| `TANVO_APP_URL` | | 邮件链接使用的 Web 控制台 URL |
+| `TANVO_MAIL_FROM` | | 发件地址；设置 `TANVO_SMTP_HOST` 时必填 |
+| `TANVO_SMTP_HOST` | | SMTP 服务器；为空时邮件只记录日志并丢弃 |
+| `TANVO_SMTP_PORT` | `587` | SMTP 端口 |
+| `TANVO_SMTP_USERNAME`、`TANVO_SMTP_PASSWORD` | | SMTP 凭据 |
+| `TANVO_SMTP_SECURITY` | `starttls` | `starttls`、`starttls_optional`、`tls` 或 `none` |
 
 ---
 
@@ -365,10 +427,10 @@ Lago 高级许可证之下的功能（渐进式计费、钱包的高级规则、
   * 库只依赖 OTel API，经构造函数选项接收 `TracerProvider` 与 `MeterProvider`，默认为 no-op；只有 `apps/server` 引入 SDK 与导出器（由 depguard 强制）并安装全局 provider。
   * SDK 由标准 `OTEL_*` 环境变量配置（`OTEL_SERVICE_NAME`、`OTEL_RESOURCE_ATTRIBUTES`、`OTEL_EXPORTER_OTLP_*`、`OTEL_TRACES_SAMPLER` 等）。默认导出器是基于 gRPC 或 HTTP 的 OTLP；Prometheus `/metrics` 端点是可选的指标读取器，用于拉取式部署。
   * resource 带有 `service.name`（`tanvo`）、`service.version`、`service.instance.id`、`deployment.environment.name` 与进程角色（`tanvo.role`）；Kubernetes 属性来自环境或 Collector。
-  * 埋点使用维护中的埋点库并遵循语义约定：API 用 `otelhttp` 与 `otelconnect`，PostgreSQL 用 `otelpgx`，franz-go 用 `kotel`，River 用其 OpenTelemetry 中间件，ClickHouse 查询与 provider 调用外包 span。名称与单位遵循语义约定（`http.server.request.duration`，单位为秒）；Tanvo 自己的指标与属性使用 `tanvo.` 前缀（`tanvo.jobs.duration`、`tanvo.ingest.events`）。
+  * 埋点使用维护中的埋点库并遵循语义约定：API 用 `otelhttp` 与一个遵循 RPC 语义约定的 Connect 拦截器，PostgreSQL 用 `otelpgx`，franz-go 用 `kotel`，River 用其 OpenTelemetry 中间件，ClickHouse 查询与 provider 调用外包 span。名称与单位遵循语义约定（`http.server.request.duration`，单位为秒）；Tanvo 自己的指标与属性使用 `tanvo.` 前缀（`tanvo.jobs.duration`、`tanvo.ingest.events`）。
   * 上下文以 W3C Trace Context 与 Baggage 传播，异步边界也不例外：Kafka 记录头与任务元数据携带 `traceparent`。消费者或任务处理单个请求的工作时，其 span 是生产方 span 的子 span；处理批量、分发与周期任务时，则以 span link 关联。
   * 日志是以 JSON 写到 stdout 的 `slog` 记录，并桥接到 OTel logs（`otelslog`），带有 `trace_id` 与 `span_id`；组织、请求与任务 ID 作为属性。
   * 组织 ID 是 span 与日志的属性（`tanvo.organization.id`），但绝不作为指标属性：指标属性的取值有界（角色、队列、任务类型、状态、provider）。按租户的分析使用 trace 与 exemplar。
   * API key、凭据、支付信息、个人数据与事件属性绝不写入 span、指标或日志的属性。
   * 其他后端（Sentry、Datadog 等）经由 OTel Collector 接入，而不是厂商 SDK。
-  * 健康检查（`/healthz`、`/readyz`）与遥测分开：就绪检查 PostgreSQL，消费者另检查 Kafka 连接。
+  * 健康检查（`/healthz`、`/readyz`）与遥测分开：就绪检查 PostgreSQL、事件存储连接池，以及使用时的 ClickHouse 与 Kafka 连接（§13.4）。

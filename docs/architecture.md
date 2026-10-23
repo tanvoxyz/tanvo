@@ -193,7 +193,8 @@ Billing relies on exact `numeric` arithmetic, transactions spanning many tables,
 * Atlas computes versioned migrations from it into `libs/store/migrations/`; merged migrations are never modified.
 * Migrations run with `tanvo migrate` (a Kubernetes Job in Tanvo Cloud) and, for self-hosted installations, automatically at startup unless disabled.
 * The same database holds two migration histories, so that jobs can be inserted in the business transaction: Atlas owns the `public` schema, and River's own migrations (rivermigrate) own the `river` schema. River's tables stay out of Atlas so that Atlas's diff, lint and drift checks see only Tanvo's schema and a River upgrade brings its migrations without copying them by hand. `tanvo migrate` is the single entry point: it applies Atlas's migrations, then River's, each under its own advisory lock, and both are idempotent.
-* Migrations are expand-only within a release, so that the previous release keeps running during a rolling deploy; they are applied before the new release rolls out. At startup a process checks that both schemas are at the versions its binary expects and refuses to start otherwise.
+* The PostgreSQL event store (§7) has a third history in its own schema (`eventstore` by default): its migrations are idempotent DDL applied by the same command, which also creates the partitions of the coming months; the ClickHouse schema is applied by `tanvo migrate` too when ClickHouse is configured.
+* Migrations are expand-only within a release, so that the previous release keeps running during a rolling deploy; they are applied before the new release rolls out. At startup a process checks that the schemas are applied and refuses to start otherwise: today it checks that River's migrations are all applied and that the Atlas revision table and the event store exist.
 
 ### 5.3 Queries
 * sqlc generates type-safe Go from SQL in `libs/store/queries/` against the pgx/v5 driver.
@@ -328,12 +329,12 @@ The single binary `tanvo serve` runs any combination of roles:
 | `api` | Connect/REST server, provider webhooks, document downloads |
 | `worker` | River workers for the queues it is given (`--queues`) |
 | `consumer` | Kafka consumers: enrichment, ClickHouse writer, in-advance charges |
-| `all` | Everything (default for self-hosted installations) |
+| `all` | Everything (default for self-hosted installations); `consumer` only when Kafka brokers are configured |
 
 `tanvo migrate`, `tanvo admin …` and `tanvo version` are separate commands.
 
 ### 13.2 Self-hosted
-* Minimal: `tanvo serve` + PostgreSQL. Typst is included in the container image.
+* Minimal: `tanvo serve` + PostgreSQL. Typst and the `fonts-noto-cjk` package (zh-TW documents, §10) are included in the container image; installations outside it need both.
 * Optional: Redpanda/Kafka + ClickHouse for high event volumes, Redis/Valkey for caching, S3-compatible storage.
 * Distributed as a container image and a Docker Compose file; a Helm chart serves both self-hosted Kubernetes and Tanvo Cloud.
 
@@ -341,6 +342,67 @@ The single binary `tanvo serve` runs any combination of roles:
 * Kubernetes: one Deployment per role (and per heavy queue), migrations as a Job, horizontal autoscaling of `api` and `consumer`.
 * **Cells**: a cell is a PostgreSQL cluster with its River workers, Kafka topics and ClickHouse database, serving a set of organizations. A thin control plane maps organizations to cells; growth adds cells. A large customer can get a dedicated cell.
 * Tanvo Cloud is billed by Tanvo itself.
+
+### 13.4 Process Wiring
+`apps/server` is the only module that builds concrete implementations; `internal/app` wires one component per file (`postgres.go`, `migrate.go`, `jobs.go`, `eventstore.go`, `ingest.go`, `kafka.go`, `webhooks.go`, `mail.go`, `api.go`, `health.go`). At startup a process:
+
+1. Loads and validates the configuration (§13.5), failing with every problem at once, and installs telemetry (§15).
+2. Opens the PostgreSQL pool and, when `TANVO_CLICKHOUSE_URL` is set, the ClickHouse connection.
+3. Applies the schemas (`TANVO_MIGRATE_ON_START`, the self-hosted default) or checks them and refuses to start (§5.2). The PostgreSQL event store lives in its own schema (`TANVO_EVENTSTORE_SCHEMA`, `eventstore`), since its unqualified tables would collide with the store's raw event log; reads use a second pool whose `search_path` is that schema, and the ingestion transaction switches its `search_path` around the enriched-event write.
+4. Builds the store with River as its job inserter (jobs commit with the business transaction), registers the job kinds whose services are wired, and creates the River client: workers on the configured queues plus the clock queue for the `worker` role, insert-only otherwise.
+5. Selects each organization's event store from its ingestion mode: PostgreSQL in postgres mode, ClickHouse in kafka mode.
+6. Creates the Kafka producer when an organization ingests through Kafka or the `consumer` role runs, and for that role the enrichment (`<prefix>-enrich`: raw → enriched) and ClickHouse writer (`<prefix>-write`: enriched → ClickHouse, usage signals) consumer groups.
+7. Serves HTTP on every role: `/healthz` (liveness), `/readyz` (PostgreSQL, the event store pool, ClickHouse and Kafka when used; unavailable while shutting down), `/metrics` when enabled, and on the `api` role the Connect handlers and their REST transcoding under `/v1/` (Vanguard), behind interceptors for telemetry, panic recovery, API key authentication and authorization by each RPC's access option, and protovalidate.
+
+On SIGINT or SIGTERM it shuts down within `TANVO_SHUTDOWN_TIMEOUT`: readiness turns unavailable, the HTTP server drains, workers finish their jobs, consumers commit and stop, the API role writes the API key uses it collected (also written hourly), and the connections close.
+
+### 13.5 Configuration
+Settings are `TANVO_*` environment variables over an optional TOML file (`--config` or `TANVO_CONFIG`) whose keys are the variable names without the prefix, in lower case; the environment wins. Unknown `TANVO_*` variables and file keys are logged as warnings. Lists are comma-separated. OpenTelemetry is configured by the standard `OTEL_*` variables (§15).
+
+| Variable | Default | Meaning |
+| :--- | :--- | :--- |
+| `TANVO_ROLE` | `all` | Roles of `tanvo serve` (`api`, `worker`, `consumer`, `all`); `--role` overrides it. `all` includes `consumer` only when Kafka brokers are set |
+| `TANVO_ENVIRONMENT` | | `deployment.environment.name` |
+| `TANVO_LOG_LEVEL` | `info` | `debug`, `info`, `warn` or `error` |
+| `TANVO_LOG_FORMAT` | `json` | `json` or `text` |
+| `TANVO_HTTP_ADDR` | `:8080` | Listen address (API, health, metrics) |
+| `TANVO_HTTP_READ_HEADER_TIMEOUT` | `10s` | Bound on reading request headers |
+| `TANVO_HTTP_MAX_BODY_BYTES` | `8388608` | Bound on a request body |
+| `TANVO_SHUTDOWN_TIMEOUT` | `30s` | Bound on the graceful shutdown |
+| `TANVO_METRICS_ENDPOINT` | `false` | Serve metrics in the Prometheus format at `/metrics` |
+| `TANVO_DATABASE_URL` | required | PostgreSQL URL (`postgres://…`) |
+| `TANVO_DATABASE_MAX_CONNS` | pgx default | Pool size |
+| `TANVO_DATABASE_ROW_LEVEL_SECURITY` | `false` | Set the tenant for the row-level security policies (§5.4) |
+| `TANVO_MIGRATE_ON_START` | `true` | Apply the migrations at startup; otherwise check them |
+| `TANVO_JOBS_SCHEMA` | `river` | Schema of River's tables |
+| `TANVO_WORKER_QUEUES` | every queue | Queues of the `worker` role; `--queues` overrides it |
+| `TANVO_JOBS_DISABLE_PERIODIC` | `false` | Keep the workers out of the periodic schedule |
+| `TANVO_JOBS_CLOCK_CONCURRENCY` | library default | Concurrency of the clock queue |
+| `TANVO_INGEST_MODE` | `postgres` | Default ingestion mode, `postgres` or `kafka` |
+| `TANVO_INGEST_KAFKA_ORGANIZATIONS` | | Organizations ingesting through Kafka whatever the mode |
+| `TANVO_INGEST_POSTGRES_ORGANIZATIONS` | | Organizations ingesting in PostgreSQL whatever the mode |
+| `TANVO_INGEST_ENRICH_CONCURRENCY` | `4` | Enrichment concurrency of a consumer |
+| `TANVO_EVENTSTORE_SCHEMA` | `eventstore` | Schema of the PostgreSQL event store |
+| `TANVO_EVENTSTORE_HASH_PARTITIONS` | `4` | Hash partitions of the PostgreSQL event store, fixed at creation |
+| `TANVO_CLICKHOUSE_URL` | | ClickHouse DSN (`clickhouse://…`); required by kafka ingestion and the `consumer` role |
+| `TANVO_KAFKA_BROKERS` | | Seed brokers; required by kafka ingestion and the `consumer` role |
+| `TANVO_KAFKA_CLIENT_ID` | `tanvo` | Kafka client ID |
+| `TANVO_KAFKA_TLS` | `false` | Connect with TLS |
+| `TANVO_KAFKA_SASL_MECHANISM` | | `plain`, `scram-sha-256` or `scram-sha-512` |
+| `TANVO_KAFKA_SASL_USERNAME`, `TANVO_KAFKA_SASL_PASSWORD` | | SASL credentials |
+| `TANVO_KAFKA_TOPIC_PREFIX` | | Prefix of the topic names (`events.raw`, `events.enriched`, `events.dead_letter`, `usage.refresh`) |
+| `TANVO_KAFKA_CONSUMER_GROUP_PREFIX` | `tanvo` | Prefix of the consumer groups |
+| `TANVO_KAFKA_CREATE_TOPICS` | `false` | Create missing topics at startup |
+| `TANVO_KAFKA_TOPIC_PARTITIONS` | `6` | Partitions of created topics |
+| `TANVO_KAFKA_TOPIC_REPLICAS` | `-1` | Replication factor of created topics (broker default) |
+| `TANVO_WEBHOOKS_ALLOW_PRIVATE` | `false` | Let deliveries reach private addresses and plain HTTP |
+| `TANVO_WEBHOOKS_TIMEOUT` | `30s` | Bound on one delivery attempt |
+| `TANVO_APP_URL` | | Web console URL used in email links |
+| `TANVO_MAIL_FROM` | | Sender address; required with `TANVO_SMTP_HOST` |
+| `TANVO_SMTP_HOST` | | SMTP server; empty logs and drops emails |
+| `TANVO_SMTP_PORT` | `587` | SMTP port |
+| `TANVO_SMTP_USERNAME`, `TANVO_SMTP_PASSWORD` | | SMTP credentials |
+| `TANVO_SMTP_SECURITY` | `starttls` | `starttls`, `starttls_optional`, `tls` or `none` |
 
 ---
 
@@ -365,10 +427,10 @@ Self-hosted installations enable them with an offline-verifiable license key (Ed
   * Libraries depend only on the OTel API and take their `TracerProvider` and `MeterProvider` through constructor options, no-op by default; only `apps/server` imports the SDK and the exporters (enforced by depguard) and installs the global providers.
   * The SDK is configured by the standard `OTEL_*` environment variables (`OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_EXPORTER_OTLP_*`, `OTEL_TRACES_SAMPLER`, …). OTLP over gRPC or HTTP is the default exporter; a Prometheus `/metrics` endpoint is an optional metric reader for pull-based setups.
   * The resource carries `service.name` (`tanvo`), `service.version`, `service.instance.id`, `deployment.environment.name` and the process role (`tanvo.role`); Kubernetes attributes come from the environment or the Collector.
-  * Instrumentation uses maintained instrumentation libraries and the semantic conventions: `otelhttp` and `otelconnect` for the API, `otelpgx` for PostgreSQL, `kotel` for franz-go, River's OpenTelemetry middleware, spans around ClickHouse queries and provider calls. Names and units follow the semantic conventions (`http.server.request.duration` in seconds); Tanvo's own instruments and attributes use the `tanvo.` prefix (`tanvo.jobs.duration`, `tanvo.ingest.events`).
+  * Instrumentation uses maintained instrumentation libraries and the semantic conventions: `otelhttp` and a Connect interceptor emitting the RPC semantic conventions for the API, `otelpgx` for PostgreSQL, `kotel` for franz-go, River's OpenTelemetry middleware, spans around ClickHouse queries and provider calls. Names and units follow the semantic conventions (`http.server.request.duration` in seconds); Tanvo's own instruments and attributes use the `tanvo.` prefix (`tanvo.jobs.duration`, `tanvo.ingest.events`).
   * Context propagates as W3C Trace Context and Baggage, also across asynchronous boundaries: Kafka record headers and job metadata carry the `traceparent`. A consumer or job span is a child of the producing span when it handles one request's work, and has a span link to it for batches, fan-outs and periodic jobs.
   * Logs are `slog` records written as JSON to stdout and bridged to OTel logs (`otelslog`), carrying `trace_id` and `span_id`; the organization, request and job IDs are attributes.
   * The organization ID is an attribute of spans and logs (`tanvo.organization.id`) but never of metrics: metric attributes are bounded (role, queue, kind, status, provider). Per-tenant analysis uses traces and exemplars.
   * API keys, credentials, payment details, personal data and event properties are never written to span, metric or log attributes.
   * Other backends (Sentry, Datadog, …) are reached through the OTel Collector, not through vendor SDKs.
-  * Health (`/healthz`, `/readyz`) is separate from telemetry: readiness checks PostgreSQL and, for consumers, the Kafka connection.
+  * Health (`/healthz`, `/readyz`) is separate from telemetry: readiness checks PostgreSQL, the event store pool and, when used, ClickHouse and the Kafka connection (§13.4).

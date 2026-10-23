@@ -107,10 +107,10 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 密钥过期与轮换 | `app/services/api_keys/rotate_service.rb` | libs/auth | 逻辑已完成 | 轮换时旧密钥在一个重叠窗口内仍然有效 |
 | 拒绝删除最后一个不过期的密钥 | `app/services/api_keys/destroy_service.rb` | libs/auth | 逻辑已完成 | |
 | 最近使用时间跟踪 | `app/jobs/clock/api_keys/track_usage_job.rb` | libs/auth | 逻辑已完成 | |
-| 密钥创建、轮换或删除时发送邮件 | `app/mailers/api_key_mailer.rb` | libs/mail | 逻辑已完成 | |
+| 密钥创建、轮换或删除时发送邮件 | `app/mailers/api_key_mailer.rb` | libs/mail | 逻辑已完成 | 由 `mail.send` 任务（apps/server）发送给组织管理员 |
 | 写请求的幂等性 | `app/models/idempotency_record.rb`、`app/services/idempotency_records/` | apps/server | 计划中 | `Idempotency-Key` 请求头；响应保留 24 小时 |
-| 健康与就绪端点 | `config/routes.rb`（`/health`、`/ready`） | apps/server | 计划中 | `/healthz`、`/readyz` |
-| Prometheus 指标端点 | `config/initializers/yabeda.rb` | apps/server | 计划中 | OpenTelemetry 与 `/metrics` |
+| 健康与就绪端点 | `config/routes.rb`（`/health`、`/ready`） | apps/server | 已完成 | `/healthz`、`/readyz`；就绪检查 PostgreSQL、事件存储，以及使用时的 ClickHouse 与 Kafka |
+| Prometheus 指标端点 | `config/initializers/yabeda.rb` | apps/server | 已完成 | OpenTelemetry（默认 OTLP）与可选的 `/metrics` 读取器（`TANVO_METRICS_ENDPOINT`） |
 | 当前版本端点 | `app/graphql/resolvers/version_resolver.rb` | apps/server | 计划中 | |
 | 对第三方 API 调用的限流 | `config/initializers/throttling.rb` | providers/* | 计划中 | 按提供者设定上限（HubSpot 110 次/10 秒，Xero 60 次/分钟与 5000 次/天，NetSuite 10 次/秒，Anrok 9 次/秒，Avalara 10 次/秒） |
 
@@ -303,8 +303,8 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 单个事件摄取 | `app/services/events/create_service.rb` | libs/ingest | 逻辑已完成 | |
-| 批量摄取（最多 100 个事件） | `app/services/events/create_batch_service.rb` | libs/ingest | 逻辑已完成 | |
+| 单个事件摄取 | `app/services/events/create_service.rb` | libs/ingest | 已完成 | `EventService.IngestEvent`、`POST /v1/events`；apps/server 中有端到端测试 |
+| 批量摄取（最多 100 个事件） | `app/services/events/create_batch_service.rb` | libs/ingest | 逻辑已完成 | 由 `EventService.IngestEvents` 提供；尚无端到端测试 |
 | 事件时间戳解析（秒、带小数的秒，默认取当前时间） | `app/services/events/common_factory.rb` | libs/ingest | 逻辑已完成 | |
 | 事件字段：交易 ID、外部订阅 ID、代码、属性、精确总金额 | `app/models/event.rb` | libs/ingest | 逻辑已完成 | |
 | 摄取和事件过滤中 `external_contract_id` 作为 `external_subscription_id` 的别名 | `app/controllers/api/v1/events_controller.rb` | libs/ingest | 逻辑已完成 | 两者都发送时以显式的 `external_subscription_id` 为准 |
@@ -322,7 +322,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 后处理：用量监控、钱包刷新、目标钱包、预付计费项 | `app/services/events/post_process_service.rb` | libs/ingest | 进行中 | |
 | 指向特定钱包的事件 | `app/services/events/`（`target_wallet_code`） | libs/billing | 计划中 | |
 | 由事件创建预付计费项费用，按来源去重 | `app/services/fees/create_pay_in_advance_service.rb`、`app/services/events/pay_in_advance_service.rb` | libs/billing | 计划中 | |
-| 带消费者的 Kafka 摄取模式 | events-processor `processors/` | libs/ingest | 逻辑已完成 | 内置于 `consumer` 角色 |
+| 带消费者的 Kafka 摄取模式 | events-processor `processors/` | libs/ingest | 逻辑已完成 | 内置于 `consumer` 角色：富化与 ClickHouse 写入消费者组已装配；尚无端到端测试 |
 | 无法处理事件的死信主题 | events-processor `processors/dlq` | libs/ingest | 逻辑已完成 | |
 | HTTP、SQS、Kinesis 来源连接器 | events-processor 连接器 | libs/ingest | 计划中 | 也支持 Kafka |
 | 消费者中的目录缓存 | events-processor（Badger 缓存、Debezium） | libs/ingest | 逻辑已完成 | 以变更通知代替 CDC（§3） |
@@ -790,7 +790,7 @@ Lago 的 x402 支持尚未完成：只有准入检查可以调用。Tanvo 移植
 | 带响应、状态与重试次数的投递记录 | `app/models/webhook.rb` | libs/webhooks | 逻辑已完成 | |
 | 手动重试某次投递 | `app/services/webhooks/retry_service.rb` | libs/webhooks | 逻辑已完成 | |
 | 带过滤（状态、事件类型、搜索）的投递列表 | `app/graphql/resolvers/webhooks_resolver.rb` | libs/webhooks | 计划中 | |
-| 90 天后清理投递记录 | `app/jobs/clock/webhooks_cleanup_job.rb` | libs/webhooks | 逻辑已完成 | |
+| 90 天后清理投递记录 | `app/jobs/clock/webhooks_cleanup_job.rb` | libs/webhooks | 已完成 | 每日 clock 任务已在 apps/server 中装配 |
 | Webhook 端点 API | `app/controllers/api/v1/webhook_endpoints_controller.rb` | apps/server | 计划中 | |
 | 事件组 计费指标：`billable_metric.created`、`updated`、`deleted` | `app/services/webhooks/billable_metrics/` | libs/webhooks | 计划中 | |
 | 事件组 套餐：`plan.created`、`updated`、`deleted` | `app/services/webhooks/plans/` | libs/webhooks | 计划中 | |
@@ -946,7 +946,7 @@ Lago 的每个时钟任务都成为一个 River 周期任务，或一个在到�
 | 终止提醒、终止循环规则（每小时 :50） | `clock.rb` | libs/jobs | 进行中 | |
 | 按间隔的钱包充值（每小时 :55） | `clock.rb` | libs/jobs | 进行中 | |
 | 重试失败的发票、重试入站 webhook（每 15 分钟） | `clock.rb` | libs/jobs | 进行中 | |
-| 清理 webhook、入站 webhook 与删除记录（每天） | `clock.rb` | libs/jobs | 进行中 | |
+| 清理 webhook、入站 webhook 与删除记录（每天） | `clock.rb` | libs/jobs | 进行中 | webhook 投递清理已装配；入站 webhook 与删除记录清理待完成 |
 | 消费订阅刷新队列（每 10 秒） | `clock.rb` | libs/jobs | 计划中 | 由消费者中的变更通知代替 |
 | 按工作负载划分的队列 | `config/sidekiq/` | libs/jobs | 逻辑已完成 | River 队列按组织分片，并按组织使用令牌桶；周期任务运行在不分片的 `clock` 队列上 |
 

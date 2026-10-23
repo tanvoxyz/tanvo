@@ -107,10 +107,10 @@ A commit that implements a feature changes its status here in the same commit ([
 | Key expiry and rotation | `app/services/api_keys/rotate_service.rb` | libs/auth | logic done | Rotation keeps the old key valid for an overlap window |
 | Refuse destroying the last non-expiring key | `app/services/api_keys/destroy_service.rb` | libs/auth | logic done | |
 | Last-used tracking | `app/jobs/clock/api_keys/track_usage_job.rb` | libs/auth | logic done | |
-| Emails when keys are created, rotated or destroyed | `app/mailers/api_key_mailer.rb` | libs/mail | logic done | |
+| Emails when keys are created, rotated or destroyed | `app/mailers/api_key_mailer.rb` | libs/mail | logic done | Sent to the organization's admins by the `mail.send` job (apps/server) |
 | Idempotency of write requests | `app/models/idempotency_record.rb`, `app/services/idempotency_records/` | apps/server | planned | `Idempotency-Key` header; responses kept 24 hours |
-| Health and readiness endpoints | `config/routes.rb` (`/health`, `/ready`) | apps/server | planned | `/healthz`, `/readyz` |
-| Prometheus metrics endpoint | `config/initializers/yabeda.rb` | apps/server | planned | OpenTelemetry and `/metrics` |
+| Health and readiness endpoints | `config/routes.rb` (`/health`, `/ready`) | apps/server | done | `/healthz`, `/readyz`; readiness checks PostgreSQL, the event store and, when used, ClickHouse and Kafka |
+| Prometheus metrics endpoint | `config/initializers/yabeda.rb` | apps/server | done | OpenTelemetry (OTLP by default) and an optional `/metrics` reader (`TANVO_METRICS_ENDPOINT`) |
 | Current version endpoint | `app/graphql/resolvers/version_resolver.rb` | apps/server | planned | |
 | Rate limiting of calls to third-party APIs | `config/initializers/throttling.rb` | providers/* | planned | Per-provider limits (HubSpot 110/10s, Xero 60/min and 5000/day, NetSuite 10/s, Anrok 9/s, Avalara 10/s) |
 
@@ -303,8 +303,8 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| Single event ingestion | `app/services/events/create_service.rb` | libs/ingest | logic done | |
-| Batch ingestion (up to 100 events) | `app/services/events/create_batch_service.rb` | libs/ingest | logic done | |
+| Single event ingestion | `app/services/events/create_service.rb` | libs/ingest | done | `EventService.IngestEvent`, `POST /v1/events`; end-to-end test in apps/server |
+| Batch ingestion (up to 100 events) | `app/services/events/create_batch_service.rb` | libs/ingest | logic done | Served by `EventService.IngestEvents`; no end-to-end test yet |
 | Event timestamp parsing (seconds, fractional seconds, defaults to now) | `app/services/events/common_factory.rb` | libs/ingest | logic done | |
 | Event fields: transaction id, external subscription id, code, properties, precise total amount | `app/models/event.rb` | libs/ingest | logic done | |
 | `external_contract_id` alias of `external_subscription_id` on ingestion and event filters | `app/controllers/api/v1/events_controller.rb` | libs/ingest | logic done | The explicit `external_subscription_id` wins when both are sent |
@@ -322,7 +322,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Post-processing: usage monitoring, wallet refresh, target wallets, in-advance charges | `app/services/events/post_process_service.rb` | libs/ingest | in progress | |
 | Events targeting a specific wallet | `app/services/events/` (`target_wallet_code`) | libs/billing | planned | |
 | In-advance charge fee creation from an event with source dedup | `app/services/fees/create_pay_in_advance_service.rb`, `app/services/events/pay_in_advance_service.rb` | libs/billing | planned | |
-| Kafka ingestion mode with consumers | events-processor `processors/` | libs/ingest | logic done | Built into the `consumer` role |
+| Kafka ingestion mode with consumers | events-processor `processors/` | libs/ingest | logic done | Built into the `consumer` role: enrichment and ClickHouse writer groups wired; no end-to-end test yet |
 | Dead-letter topic for unprocessable events | events-processor `processors/dlq` | libs/ingest | logic done | |
 | Source connectors for HTTP, SQS, Kinesis | events-processor connectors | libs/ingest | planned | Kafka also supported |
 | Catalog cache in consumers | events-processor (Badger cache, Debezium) | libs/ingest | logic done | Change notifications instead of CDC (§3) |
@@ -790,7 +790,7 @@ Lago's x402 support is unfinished: only the gate check is reachable. Tanvo ports
 | Delivery records with response, status, retries | `app/models/webhook.rb` | libs/webhooks | logic done | |
 | Manual retry of a delivery | `app/services/webhooks/retry_service.rb` | libs/webhooks | logic done | |
 | Delivery list with filters (status, event type, search) | `app/graphql/resolvers/webhooks_resolver.rb` | libs/webhooks | planned | |
-| Delivery cleanup after 90 days | `app/jobs/clock/webhooks_cleanup_job.rb` | libs/webhooks | logic done | |
+| Delivery cleanup after 90 days | `app/jobs/clock/webhooks_cleanup_job.rb` | libs/webhooks | done | Daily clock job wired in apps/server |
 | Webhook endpoints API | `app/controllers/api/v1/webhook_endpoints_controller.rb` | apps/server | planned | |
 | Event group billable metrics: `billable_metric.created`, `updated`, `deleted` | `app/services/webhooks/billable_metrics/` | libs/webhooks | planned | |
 | Event group plans: `plan.created`, `updated`, `deleted` | `app/services/webhooks/plans/` | libs/webhooks | planned | |
@@ -946,7 +946,7 @@ Each Lago clock job becomes a River periodic job or a job scheduled at the insta
 | Termination alerts, terminate recurring rules (hourly :50) | `clock.rb` | libs/jobs | in progress | |
 | Interval wallet top-ups (hourly :55) | `clock.rb` | libs/jobs | in progress | |
 | Retry failed invoices, retry inbound webhooks (every 15 minutes) | `clock.rb` | libs/jobs | in progress | |
-| Webhook, inbound webhook, deletion record cleanups (daily) | `clock.rb` | libs/jobs | in progress | |
+| Webhook, inbound webhook, deletion record cleanups (daily) | `clock.rb` | libs/jobs | in progress | Webhook delivery cleanup wired; inbound webhook and deletion record cleanups to come |
 | Subscription refresh queue consumption (every 10 seconds) | `clock.rb` | libs/jobs | planned | Change notifications in the consumer |
 | Queues per workload | `config/sidekiq/` | libs/jobs | logic done | River queues sharded by organization, with per-organization token buckets; periodic jobs on an unsharded `clock` queue |
 
