@@ -805,7 +805,7 @@ Rules:
 * The event's subscription is the one with `external_id = external_subscription_id`, status `active` or `terminated`, and `started_at ≤ timestamp < terminated_at`. `pending`, `incomplete` and `canceled` subscriptions never match. For recurring metrics an event without a matching period falls back to the active subscription.
 * If the metric has an `expression`, it is evaluated and its result is stored in `properties[field_name]`.
 * Post-validation errors are recorded and reported in the `events.errors` webhook (batched): `invalid_code` (no metric with that code), `missing_aggregation_property` (`field_name` absent), `invalid_filter_values` (a filter property with a value outside the filter's values).
-* One enriched row is written per (event, matching charge filter or default bucket) ([architecture §7.2](architecture.md#72-enrichment)).
+* One enriched row is written per event; the matching charge filter (or the default bucket) is resolved when usage is queried or bucketed ([architecture §7.2](architecture.md#72-enrichment)).
 * In-advance charges produce a fee per event (§22.4).
 
 **[Dropped]** The deprecated `event.error` webhook.

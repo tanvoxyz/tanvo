@@ -238,7 +238,7 @@ POST /v1/events, /v1/events:batch
 * Connectors for SQS, Kinesis, HTTP and Kafka sources produce to `events.raw` (Redpanda Connect configurations or a built-in consumer).
 
 ### 7.2 Enrichment
-Enrichment resolves an event to its subscription(s) by `external_subscription_id` / `external_customer_id` and timestamp, to the billable metric by `code`, to the matching charges and charge filters, evaluates the metric's expression, extracts the aggregated value and the grouping keys, and writes one enriched row per (event, charge filter). The ingest consumers keep an in-memory cache of the catalog, refreshed through change notifications.
+Enrichment resolves an event to its subscription(s) by `external_subscription_id` / `external_customer_id` and timestamp, to the billable metric by `code`, to the matching charges and charge filters, evaluates the metric's expression, extracts the aggregated value and the grouping keys, and writes **one enriched row per event**. Charge filters are matched when usage is queried and when usage buckets are maintained, not by expanding the event into one row per filter: lago-api dropped its expanded table (`events_enriched_expanded`) in September 2026 for this reason, since a catalog change would otherwise require rewriting stored events and the row count grew with the number of filters. The ingest consumers keep an in-memory cache of the catalog, refreshed through change notifications.
 
 ### 7.3 Expressions (libs/expression)
 * The language is lago-expression's: decimal arithmetic, `event.timestamp`, `event.code`, `event.properties.<name>`, strings, `concat`, `round`, `ceil`, `floor`, `least`, `greatest`.
@@ -248,7 +248,7 @@ Enrichment resolves an event to its subscription(s) by `external_subscription_id
 * The `EventStore` port offers the aggregation queries the metering library needs: counts, sums, max, latest, unique counts with add/remove semantics, weighted sums over time, grouped variants, prorated variants and breakdowns, all bounded by a billing period and filters.
 * **PostgreSQL**: enriched events in a table partitioned by month and hash of organization.
 * **ClickHouse**: `events_raw` and `events_enriched` as `ReplacingMergeTree` tables deduplicated by transaction, written in batches by the ingest consumers; activity, API and security logs live there too.
-* Pre-aggregated usage buckets (per subscription, charge, filter and hour) back current-usage queries in both stores.
+* Pre-aggregated usage buckets per (subscription, charge, charge filter, grouping key, **15-minute** UTC bucket) back current-usage queries in both stores for the aggregations that can be summed across buckets (count, sum, max, latest) and the charge models that only need their totals; other aggregations read the events. Fifteen minutes is the granularity on which every real UTC offset (such as +05:30 or +05:45) puts a day boundary on a bucket boundary, so a billing period in any time zone is a whole number of buckets (as lago-api's `usage_buckets_15m`).
 
 ### 7.5 Metering (libs/metering)
 `metering` implements the aggregation semantics (including proration, recurring metrics carried over periods, rounding) over an `iter.Seq` of events or over aggregates returned by an `EventStore`, so that the same rules are tested in memory with ported lago-api cases and run in the database in production.

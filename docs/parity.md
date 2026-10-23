@@ -334,7 +334,7 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 | Store queries: count, sum, max, latest, unique count, weighted sum, grouped, prorated, breakdown, last event, distinct values | `app/services/events/stores/base_store.rb` | libs/eventstore | planned | |
 | Billing-period filters on store queries | `app/services/events/stores/` | libs/eventstore | planned | |
 | ClickHouse raw, enriched and dead-letter tables | `db/clickhouse_migrate/` | libs/eventstore | planned | |
-| Pre-aggregated usage buckets (15 minutes in Lago) | `app/models/clickhouse/usage_bucket.rb`, `app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | planned | Hourly buckets built by Tanvo itself (§3) |
+| Pre-aggregated usage buckets (15 minutes in Lago) | `app/models/clickhouse/usage_bucket.rb`, `app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | planned | 15-minute buckets built by Tanvo itself (§3) |
 | Cached aggregations for recurring metrics | `app/models/cached_aggregation.rb` | libs/metering | logic done | |
 
 ### 1.19 Usage
@@ -1055,7 +1055,7 @@ Items that Lago itself marks deprecated, keeps only for old data, or carries as 
 | Sidekiq queues and the clockwork clock process | River jobs and periodic jobs run by an elected leader | Transactional enqueue, no extra process |
 | Hourly scans of every subscription for billing and activation | Per-subscription jobs at the due instant plus hourly reconciliation | Work proportional to what is due |
 | `pg_partman` partitions | Native partitions managed by Tanvo migrations and jobs | No extension |
-| RisingWave `usage_buckets_15m` | Hourly usage buckets maintained by the ingest consumers in PostgreSQL or ClickHouse | No extra system |
+| RisingWave `usage_buckets_15m` | 15-minute usage buckets maintained by the ingest consumers in PostgreSQL or ClickHouse | No extra system |
 | Separate events-processor service with Debezium CDC and a Badger cache | Ingest consumers in the server's `consumer` role with an in-memory catalog cache refreshed by change notifications | Fewer moving parts |
 | Kafka pipeline for activity, API and security logs | `audit_events` and log writers into ClickHouse or PostgreSQL | Works without Kafka |
 | Deduplication by organization, external subscription id and transaction id | Deduplication by organization and transaction id | Transaction ids are unique per organization |

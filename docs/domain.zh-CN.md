@@ -805,7 +805,7 @@ stateDiagram-v2
 * 事件的订阅是满足 `external_id = external_subscription_id`、状态为 `active` 或 `terminated`、且 `started_at ≤ timestamp < terminated_at` 的订阅。`pending`、`incomplete` 和 `canceled` 订阅永不匹配。对周期性计费指标，没有匹配周期的事件回退到有效订阅。
 * 若计费指标有 `expression`，则对其求值并把结果存入 `properties[field_name]`。
 * 后置校验错误被记录，并在 `events.errors` Webhook 中（批量）报告：`invalid_code`（没有该代码的计费指标）、`missing_aggregation_property`（缺少 `field_name`）、`invalid_filter_values`（过滤器属性的取值不在过滤器取值内）。
-* 每个（事件，匹配的计费项过滤器或默认桶）写入一行富化记录（[架构 §7.2](architecture.zh-CN.md#72-富化)）。
+* 每个事件写入一行富化记录；匹配的计费项过滤器（或默认桶）在查询用量或聚合到用量桶时确定（[架构 §7.2](architecture.zh-CN.md#72-富化)）。
 * 预付计费项为每个事件产生一笔费用（§22.4）。
 
 **[舍弃]** 已弃用的 `event.error` Webhook。

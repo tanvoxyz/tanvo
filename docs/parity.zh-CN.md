@@ -334,7 +334,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 存储查询：计数、求和、最大值、最新值、唯一计数、加权求和、分组、按比例、明细、最后一个事件、不同取值 | `app/services/events/stores/base_store.rb` | libs/eventstore | 计划中 | |
 | 存储查询上的计费周期过滤 | `app/services/events/stores/` | libs/eventstore | 计划中 | |
 | ClickHouse 原始表、富化表与死信表 | `db/clickhouse_migrate/` | libs/eventstore | 计划中 | |
-| 预聚合用量桶（Lago 中为 15 分钟） | `app/models/clickhouse/usage_bucket.rb`、`app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | 计划中 | 由 Tanvo 自己构建的小时桶（§3） |
+| 预聚合用量桶（Lago 中为 15 分钟） | `app/models/clickhouse/usage_bucket.rb`、`app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | 计划中 | 由 Tanvo 自己构建的 15 分钟桶（§3） |
 | 循环指标的缓存聚合 | `app/models/cached_aggregation.rb` | libs/metering | 逻辑已完成 | |
 
 ### 1.19 用量
@@ -1055,7 +1055,7 @@ Lago 自己标记为废弃、只为旧数据保留，或作为死代码保留的
 | Sidekiq 队列与 clockwork 时钟进程 | River 任务与由选举出的领导者运行的周期任务 | 事务内入队，无需额外进程 |
 | 为计费与激活每小时扫描所有订阅 | 在到期时刻运行的按订阅任务，加每小时对账 | 工作量与到期的事项成正比 |
 | `pg_partman` 分区 | 由 Tanvo 迁移与任务管理的原生分区 | 不需要扩展 |
-| RisingWave 的 `usage_buckets_15m` | 由摄取消费者在 PostgreSQL 或 ClickHouse 中维护的小时用量桶 | 不需要额外系统 |
+| RisingWave 的 `usage_buckets_15m` | 由摄取消费者在 PostgreSQL 或 ClickHouse 中维护的 15 分钟用量桶 | 不需要额外系统 |
 | 带 Debezium CDC 与 Badger 缓存的独立 events-processor 服务 | 服务器 `consumer` 角色中的摄取消费者，内存目录缓存通过变更通知刷新 | 组件更少 |
 | 活动、API 与安全日志的 Kafka 管道 | `audit_events` 与写入 ClickHouse 或 PostgreSQL 的日志写入器 | 没有 Kafka 也能工作 |
 | 按组织、外部订阅 ID 与交易 ID 去重 | 按组织与交易 ID 去重 | 交易 ID 在组织内唯一 |

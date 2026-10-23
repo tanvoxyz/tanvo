@@ -238,7 +238,7 @@ POST /v1/events, /v1/events:batch
 * SQS、Kinesis、HTTP 与 Kafka 来源的连接器写入 `events.raw`（Redpanda Connect 配置或内置的消费者）。
 
 ### 7.2 富化
-富化按 `external_subscription_id` / `external_customer_id` 与时间戳把事件解析到其订阅，按 `code` 解析到计费指标，解析到匹配的计费项与计费项过滤器，对指标的表达式求值，提取聚合值与分组键，并为每个（事件，计费项过滤器）写入一行富化数据。摄取消费者在内存中缓存目录，并通过变更通知刷新。
+富化按 `external_subscription_id` / `external_customer_id` 与时间戳把事件解析到其订阅，按 `code` 解析到计费指标，解析到匹配的计费项与计费项过滤器，对指标的表达式求值，提取聚合值与分组键，并**为每个事件写入一行富化数据**。计费项过滤器在查询用量和维护用量桶时匹配，而不是把一个事件展开成每个过滤器一行：lago-api 正是因此在 2026 年 9 月删除了展开表（`events_enriched_expanded`），因为否则目录一变就要重写已存储的事件，而且行数随过滤器数量增长。摄取消费者在内存中缓存目录，并通过变更通知刷新。
 
 ### 7.3 表达式（libs/expression）
 * 语言即 lago-expression 的语言：小数运算、`event.timestamp`、`event.code`、`event.properties.<name>`、字符串、`concat`、`round`、`ceil`、`floor`、`least`、`greatest`。
@@ -248,7 +248,7 @@ POST /v1/events, /v1/events:batch
 * `EventStore` 端口提供计量库所需的聚合查询：计数、求和、最大值、最新值、带增删语义的唯一计数、按时间加权的求和、分组变体、按比例变体与明细，全部以一个计费周期和过滤器为界。
 * **PostgreSQL**：富化事件存放在按月份与组织哈希分区的表中。
 * **ClickHouse**：`events_raw` 与 `events_enriched` 为按交易去重的 `ReplacingMergeTree` 表，由摄取消费者批量写入；活动日志、API 日志与安全日志也存放在这里。
-* 预聚合的用量桶（按订阅、计费项、过滤器与小时）在两种存储中为当前用量查询提供支撑。
+* 按（订阅、计费项、计费项过滤器、分组键、**15 分钟** UTC 桶）预聚合的用量桶，在两种存储中为当前用量查询提供支撑，适用于可以跨桶合并的聚合（count、sum、max、latest）以及只需要总量的计费模型；其他聚合直接读取事件。15 分钟这个粒度能让每个真实的 UTC 偏移（如 +05:30、+05:45）下的日边界都落在桶边界上，因此任何时区的计费周期都是整数个桶（与 lago-api 的 `usage_buckets_15m` 一致）。
 
 ### 7.5 计量（libs/metering）
 `metering` 在事件的 `iter.Seq` 上，或在 `EventStore` 返回的聚合结果上实现聚合语义（包括按比例计算、跨周期结转的循环指标、舍入），使同一套规则在内存中用移植的 lago-api 用例测试，在生产中则在数据库中运行。
