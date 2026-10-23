@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -228,15 +229,26 @@ func TestRetries(t *testing.T) {
 	jobs.MustRegister(reg, jobs.Kind{Name: "test.unmatched", MaxAttempts: 2, Backoff: zero, Retry: []jobs.RetryRule{jobs.RetryOn(5, zero, errLocked)}}, fail(errOther))
 	jobs.MustRegister(reg, jobs.Kind{Name: "test.permanent", Backoff: zero}, fail(jobs.Permanent(errOther)))
 	jobs.MustRegister(reg, jobs.Kind{Name: "test.override", Backoff: zero}, fail(errOther))
+	// No MaxAttempts: an unclassified error is not retried, and ErrRetriable is.
+	jobs.MustRegister(reg, jobs.Kind{Name: "test.default", Backoff: zero}, fail(errOther))
+	jobs.MustRegister(reg, jobs.Kind{Name: "test.retriable", Backoff: zero}, jobs.HandlerFunc[testArgs](func(_ context.Context, j *jobs.Job[testArgs]) error {
+		mu.Lock()
+		attempts[j.Args.N] = append(attempts[j.Args.N], j.Attempt)
+		mu.Unlock()
+		if j.Attempt < 3 {
+			return fmt.Errorf("busy: %w", jobs.ErrRetriable)
+		}
+		return nil
+	}))
 	c := newClient(t, s, reg, jobs.Config{Work: []port.Queue{port.QueueDefault}, DisablePeriodic: true})
 	start(t, c)
 	o := org()
 	override := job("test.override", o, 4, "")
 	override.MaxAttempts = 2
-	if err := c.Insert(context.Background(), job("test.lock", o, 1, ""), job("test.unmatched", o, 2, ""), job("test.permanent", o, 3, ""), override); err != nil {
+	if err := c.Insert(context.Background(), job("test.lock", o, 1, ""), job("test.unmatched", o, 2, ""), job("test.permanent", o, 3, ""), override, job("test.default", o, 5, ""), job("test.retriable", o, 6, "")); err != nil {
 		t.Fatal(err)
 	}
-	final := func(state string) bool { return state == "cancelled" || state == "discarded" }
+	final := func(state string) bool { return state == "cancelled" || state == "discarded" || state == "completed" }
 	eventually(t, 20*time.Second, "jobs to finish", func() bool {
 		for _, r := range rows(t, s) {
 			if !final(r.State) {
@@ -249,7 +261,7 @@ func TestRetries(t *testing.T) {
 	want := []struct {
 		state    string
 		attempts int
-	}{{"cancelled", 3}, {"cancelled", 2}, {"cancelled", 1}, {"discarded", 2}}
+	}{{"cancelled", 3}, {"cancelled", 2}, {"cancelled", 1}, {"discarded", 2}, {"cancelled", 1}, {"completed", 3}}
 	for i, w := range want {
 		mu.Lock()
 		n := len(attempts[i+1])

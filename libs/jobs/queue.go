@@ -40,10 +40,11 @@ type QueueConfig struct {
 }
 
 // DefaultMaxAttempts is the attempt bound of a job when neither the job,
-// its kind nor its queue sets one. lago-api does not retry an unclassified
-// error at all (sidekiq retry: 0); Tanvo retries it a few times, the last
-// attempt about seven hours after the first with the polynomial backoff.
-const DefaultMaxAttempts = 10
+// its kind nor its queue sets one: an error that no retry rule classifies is
+// not retried, because a job may have had effects outside its transaction
+// (a payment, an email, a provider call) that a second run would repeat.
+// Errors known to be safe to retry are declared per kind ([Kind.Retry]).
+const DefaultMaxAttempts = 1
 
 // DefaultQueues returns the default configuration of every queue.
 func DefaultQueues() map[port.Queue]QueueConfig {
