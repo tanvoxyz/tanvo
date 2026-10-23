@@ -329,10 +329,10 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| PostgreSQL 事件存储（事件与富化事件分区） | `app/services/events/stores/postgres_store.rb` | libs/eventstore | 计划中 | 原生分区（§3） |
-| 带 FINAL 去重与重试的 ClickHouse 事件存储 | `app/services/events/stores/clickhouse_store.rb` | libs/eventstore | 计划中 | |
-| 存储查询：计数、求和、最大值、最新值、唯一计数、加权求和、分组、按比例、明细、最后一个事件、不同取值 | `app/services/events/stores/base_store.rb` | libs/eventstore | 计划中 | |
-| 存储查询上的计费周期过滤 | `app/services/events/stores/` | libs/eventstore | 计划中 | |
+| PostgreSQL 事件存储（事件与富化事件分区） | `app/services/events/stores/postgres_store.rb` | libs/eventstore | 逻辑已完成 | 原生分区（§3） |
+| 带 FINAL 去重与重试的 ClickHouse 事件存储 | `app/services/events/stores/clickhouse_store.rb` | libs/eventstore | 逻辑已完成 | |
+| 存储查询：计数、求和、最大值、最新值、唯一计数、加权求和、分组、按比例、明细、最后一个事件、不同取值 | `app/services/events/stores/base_store.rb` | libs/eventstore | 逻辑已完成 | |
+| 存储查询上的计费周期过滤 | `app/services/events/stores/` | libs/eventstore | 逻辑已完成 | |
 | ClickHouse 原始表、富化表与死信表 | `db/clickhouse_migrate/` | libs/eventstore | 计划中 | |
 | 预聚合用量桶（Lago 中为 15 分钟） | `app/models/clickhouse/usage_bucket.rb`、`app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | 计划中 | 由 Tanvo 自己构建的 15 分钟桶（§3） |
 | 循环指标的缓存聚合 | `app/models/cached_aggregation.rb` | libs/metering | 逻辑已完成 | |

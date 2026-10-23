@@ -329,10 +329,10 @@ Lago carries two catalogs: the plan/charge catalog above and a newer product cat
 
 | Feature | Lago source | Tanvo module | Status | Notes |
 | :--- | :--- | :--- | :--- | :--- |
-| PostgreSQL event store (events and enriched events partitioned) | `app/services/events/stores/postgres_store.rb` | libs/eventstore | planned | Native partitions (§3) |
-| ClickHouse event store with FINAL deduplication and retries | `app/services/events/stores/clickhouse_store.rb` | libs/eventstore | planned | |
-| Store queries: count, sum, max, latest, unique count, weighted sum, grouped, prorated, breakdown, last event, distinct values | `app/services/events/stores/base_store.rb` | libs/eventstore | planned | |
-| Billing-period filters on store queries | `app/services/events/stores/` | libs/eventstore | planned | |
+| PostgreSQL event store (events and enriched events partitioned) | `app/services/events/stores/postgres_store.rb` | libs/eventstore | logic done | Native partitions (§3) |
+| ClickHouse event store with FINAL deduplication and retries | `app/services/events/stores/clickhouse_store.rb` | libs/eventstore | logic done | |
+| Store queries: count, sum, max, latest, unique count, weighted sum, grouped, prorated, breakdown, last event, distinct values | `app/services/events/stores/base_store.rb` | libs/eventstore | logic done | |
+| Billing-period filters on store queries | `app/services/events/stores/` | libs/eventstore | logic done | |
 | ClickHouse raw, enriched and dead-letter tables | `db/clickhouse_migrate/` | libs/eventstore | planned | |
 | Pre-aggregated usage buckets (15 minutes in Lago) | `app/models/clickhouse/usage_bucket.rb`, `app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | planned | 15-minute buckets built by Tanvo itself (§3) |
 | Cached aggregations for recurring metrics | `app/models/cached_aggregation.rb` | libs/metering | logic done | |

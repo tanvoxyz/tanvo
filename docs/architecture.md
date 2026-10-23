@@ -247,7 +247,7 @@ Enrichment resolves an event to its subscription(s) by `external_subscription_id
 ### 7.4 Event Stores (libs/eventstore)
 * The `EventStore` port offers the aggregation queries the metering library needs: counts, sums, max, latest, unique counts with add/remove semantics, weighted sums over time, grouped variants, prorated variants and breakdowns, all bounded by a billing period and filters.
 * **PostgreSQL**: enriched events in a table partitioned by month and hash of organization.
-* **ClickHouse**: `events_raw` and `events_enriched` as `ReplacingMergeTree` tables deduplicated by transaction, written in batches by the ingest consumers; activity, API and security logs live there too.
+* **ClickHouse**: `events_raw` and `events_enriched` as `ReplacingMergeTree` tables deduplicated by transaction, written in batches by the ingest consumers; activity, API and security logs live there too. Aggregated values are read as `Decimal(76, 26)`, so ingestion rejects a numeric property with more than 50 integer digits rather than let ClickHouse read it as zero, and the Kafka partition key is (organization, transaction) so that one consumer deduplicates each transaction.
 * Pre-aggregated usage buckets per (subscription, charge, charge filter, grouping key, **15-minute** UTC bucket) back current-usage queries in both stores for the aggregations that can be summed across buckets (count, sum, max, latest) and the charge models that only need their totals; other aggregations read the events. Fifteen minutes is the granularity on which every real UTC offset (such as +05:30 or +05:45) puts a day boundary on a bucket boundary, so a billing period in any time zone is a whole number of buckets (as lago-api's `usage_buckets_15m`).
 
 ### 7.5 Metering (libs/metering)
