@@ -11,13 +11,13 @@ cases:
     want: [2, 3]
 
   - name: one group rounded to zero
-    source: spec/services/integrations/aggregator/taxes/allocation_spec.rb:24
+    source: spec/services/integrations/aggregator/taxes/allocation_spec.rb:25
     op: allocate_by_group
     input: {total: 5, groups: [{amount_cents: [0], precise_amount_cents: [2.5]}, {amount_cents: [2], precise_amount_cents: [2.5]}]}
     want: [0, 5]
 
   - name: every group rounded to zero weighs by the exact amounts
-    source: spec/services/integrations/aggregator/taxes/allocation_spec.rb:30
+    source: spec/services/integrations/aggregator/taxes/allocation_spec.rb:31
     op: allocate_by_group
     input: {total: 5, groups: [{amount_cents: [0], precise_amount_cents: [2.5]}, {amount_cents: [0], precise_amount_cents: [2.5]}]}
     want: [3, 2]

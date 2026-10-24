@@ -1,0 +1,12 @@
+{
+  "additionalData": {
+    "recurringProcessingModel": "UnscheduledCardOnFile"
+  },
+  "pspReference": "PSP_AUTHORISED_1",
+  "resultCode": "Authorised",
+  "merchantReference": "Tanvo - Invoice TAN-001",
+  "amount": {
+    "currency": "USD",
+    "value": 1000
+  }
+}

@@ -206,8 +206,31 @@ func (g *Gateway) Provider() integration.Provider { return Provider }
 type settings struct {
 	SuccessRedirectURL           string `json:"success_redirect_url,omitempty"`
 	WebhookEndpointID            string `json:"webhook_endpoint_id,omitempty"`
-	Supports3DS                  bool   `json:"supports_3ds,omitempty"`
-	RequireTermsOfServiceConsent bool   `json:"require_terms_of_service_consent,omitempty"`
+	Supports3DS                  flag   `json:"supports_3ds,omitempty"`
+	RequireTermsOfServiceConsent flag   `json:"require_terms_of_service_consent,omitempty"`
+}
+
+// flag is a boolean setting, stored by libs/billing/integrations as the
+// string "true" (left out when false) and accepted as a JSON boolean.
+type flag bool
+
+// UnmarshalJSON implements [json.Unmarshaler].
+func (f *flag) UnmarshalJSON(b []byte) error {
+	var v any
+	if err := json.Unmarshal(b, &v); err != nil {
+		return err
+	}
+	switch v := v.(type) {
+	case bool:
+		*f = flag(v)
+	case string:
+		*f = flag(v == "true")
+	case nil:
+		*f = false
+	default:
+		return fmt.Errorf("stripe: flag %s: %w", b, core.ErrInvalidValue)
+	}
+	return nil
 }
 
 // successURL returns the configured return URL or the default.

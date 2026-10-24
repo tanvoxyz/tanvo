@@ -155,6 +155,7 @@ func TestRetryFailedTaxes(t *testing.T) {
 	// source: spec/services/invoices/retry_service_spec.rb:111
 	// The pull is queued once per invoice (lago PullTaxesAndApplyJob is
 	// unique until executed).
+	// source: spec/jobs/invoices/provider_taxes/pull_taxes_and_apply_job_spec.rb:18, 25
 	got, err := f.svc.Retry(f.Ctx, f.OrgID(), inv.ID)
 	if err != nil {
 		t.Fatalf("retry: %v", err)

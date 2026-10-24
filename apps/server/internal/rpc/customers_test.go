@@ -546,10 +546,15 @@ func TestCustomerConnections(t *testing.T) {
 	}.Build()); err != nil {
 		t.Fatalf("netsuite: %v", err)
 	}
+	// source: spec/serializers/v1/integration_customer_serializer_spec.rb:10, 31
 	list, err := c.ListCustomerConnections(t.Context(), customerv1.ListCustomerConnectionsRequest_builder{CustomerId: ref}.Build())
 	if err != nil || len(list.GetConnections()) != 2 || list.GetConnections()[0].GetProvider() != string(integration.ProviderStripe) ||
 		list.GetConnections()[1].GetSubsidiaryId() != "1" || !list.GetConnections()[1].GetIsDefault() {
 		t.Fatalf("got = %v, %v, want = stripe then the default netsuite", list.GetConnections(), err)
+	}
+	if ns := list.GetConnections()[1]; ns.GetProvider() != string(integration.ProviderNetsuite) || ns.GetExternalCustomerId() != "ns_1" ||
+		ns.GetCategory() != customerv1.IntegrationCategory_INTEGRATION_CATEGORY_ACCOUNTING || ns.GetSyncWithProvider() {
+		t.Errorf("netsuite: got = %v, want = a netsuite accounting connection to ns_1, not synced", ns)
 	}
 	got, err := c.GetCustomer(t.Context(), customerv1.GetCustomerRequest_builder{CustomerId: ref}.Build())
 	if err != nil || len(got.GetCustomer().GetConnections()) != 2 {

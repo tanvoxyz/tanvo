@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "taxAmountToCollect": 990,
+  "preTaxAmount": "9900",
+  "lineItems": [
+    {
+      "id": "fee-1",
+      "taxAmountToCollect": 990,
+      "preTaxAmount": "9900",
+      "jurises": [
+        {
+          "name": "Canada",
+          "taxes": [
+            {
+              "taxName": "GST/HST",
+              "taxableAmount": "9900",
+              "taxAmount": "990",
+              "taxRate": "0.10"
+            }
+          ],
+          "notTaxedReason": null
+        },
+        {
+          "name": "Quebec",
+          "taxes": null,
+          "notTaxedReason": {
+            "type": "exempt",
+            "reason": {
+              "type": "reverseCharge"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "charge-1",
+      "taxAmountToCollect": 0,
+      "preTaxAmount": "1000",
+      "jurises": [
+        {
+          "name": "Colorado",
+          "taxes": null,
+          "notTaxedReason": {
+            "type": "productNotTaxed"
+          }
+        },
+        {
+          "name": "Denver (local)",
+          "taxes": [
+            {
+              "taxName": "Tax",
+              "taxableAmount": "1000",
+              "taxAmount": "0.422",
+              "taxRate": "0.0481"
+            }
+          ],
+          "notTaxedReason": null
+        }
+      ]
+    }
+  ],
+  "jurisSummaries": [],
+  "taxComplianceMessage": null
+}

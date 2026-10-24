@@ -14,6 +14,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
+	"github.com/tanvoxyz/tanvo/libs/tax"
 )
 
 // inAdvance is a fixture with a pay-in-advance standard charge of 3.00
@@ -143,6 +144,27 @@ func TestAdvanceCharges(t *testing.T) {
 	}
 	if got := f.advanceCharges(sub, billingDay); got != nil {
 		t.Errorf("second run invoice = %s, want = none", got.ID)
+	}
+}
+
+// A provider failure leaves a standalone fee untaxed and still creates
+// it.
+// source: spec/services/fees/apply_provider_taxes_to_standalone_fees_service_spec.rb:123
+func TestAdvanceChargesProviderFailure(t *testing.T) {
+	ts := billingtest.Date(2026, time.January, 15, 10)
+	f, sub := inAdvance(t, ts, func(c *catalog.Charge) {
+		c.Invoiceable, c.RegroupPaidFees = false, catalog.RegroupPaidFeesInvoice
+	})
+	f.Taxes.Customers = map[core.CustomerID]bool{f.cust.ID: true}
+	f.Taxes.Compute = func(kernel.TaxRequest) ([]tax.ProviderTaxResult, error) {
+		return nil, &kernel.TaxProviderError{Code: "internal_error", Message: "error"}
+	}
+	fs := f.charge(sub, ts)
+	if len(fs) != 1 || !fs[0].InvoiceID.IsZero() {
+		t.Fatalf("fees = %d, want = one standalone fee", len(fs))
+	}
+	if len(f.Taxes.Requests) == 0 || fs[0].TaxesAmount != 0 || len(fs[0].AppliedTaxes) != 0 {
+		t.Errorf("requests, taxes = %d, %d %v, want = asked, none", len(f.Taxes.Requests), fs[0].TaxesAmount, fs[0].AppliedTaxes)
 	}
 }
 

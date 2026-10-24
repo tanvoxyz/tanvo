@@ -15,7 +15,9 @@ import "google/api/resource.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
 import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
 import "tanvo/customer/v1/customer.proto";
+import "tanvo/invoice/v1/invoice.proto";
 
 // IntegrationService manages integrations. An organization may connect a
 // provider several times; integrations are addressed by ID or
@@ -111,12 +113,20 @@ service IntegrationService {
     option (tanvo.common.v1.access) = {permission: "organization:integrations:read"};
   }
 
-  // Creates or replaces the mapping of an add-on or billable metric,
-  // optionally for one billing entity.
-  rpc UpsertIntegrationMapping(UpsertIntegrationMappingRequest) returns (UpsertIntegrationMappingResponse) {
-    option idempotency_level = IDEMPOTENT;
+  // Creates the mapping of an add-on or billable metric, optionally for
+  // one billing entity; there is one per object and billing entity.
+  rpc CreateIntegrationMapping(CreateIntegrationMappingRequest) returns (CreateIntegrationMappingResponse) {
     option (google.api.http) = {
-      put: "/v1/integrations/{integration_id}/mappings"
+      post: "/v1/integrations/{integration_id}/mappings"
+      body: "mapping"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
+  }
+
+  // Updates the external item of a mapping.
+  rpc UpdateIntegrationMapping(UpdateIntegrationMappingRequest) returns (UpdateIntegrationMappingResponse) {
+    option (google.api.http) = {
+      patch: "/v1/integrations/{integration_id}/mappings/{mapping.id}"
       body: "mapping"
     };
     option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
@@ -136,12 +146,20 @@ service IntegrationService {
     option (tanvo.common.v1.access) = {permission: "organization:integrations:read"};
   }
 
-  // Creates or replaces a collection mapping, optionally for one billing
-  // entity.
-  rpc UpsertCollectionMapping(UpsertCollectionMappingRequest) returns (UpsertCollectionMappingResponse) {
-    option idempotency_level = IDEMPOTENT;
+  // Creates a collection mapping, optionally for one billing entity;
+  // there is one per type and billing entity.
+  rpc CreateCollectionMapping(CreateCollectionMappingRequest) returns (CreateCollectionMappingResponse) {
     option (google.api.http) = {
-      put: "/v1/integrations/{integration_id}/collection_mappings"
+      post: "/v1/integrations/{integration_id}/collection_mappings"
+      body: "collection_mapping"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
+  }
+
+  // Updates the external values of a collection mapping.
+  rpc UpdateCollectionMapping(UpdateCollectionMappingRequest) returns (UpdateCollectionMappingResponse) {
+    option (google.api.http) = {
+      patch: "/v1/integrations/{integration_id}/collection_mappings/{collection_mapping.id}"
       body: "collection_mapping"
     };
     option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
@@ -151,6 +169,38 @@ service IntegrationService {
   rpc DeleteCollectionMapping(DeleteCollectionMappingRequest) returns (DeleteCollectionMappingResponse) {
     option (google.api.http) = {delete: "/v1/integrations/{integration_id}/collection_mappings/{collection_mapping_id}"};
     option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
+  }
+
+  // Queues the creation of an invoice's record in the customer's HubSpot
+  // portal.
+  rpc SyncHubspotInvoice(SyncHubspotInvoiceRequest) returns (SyncHubspotInvoiceResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}:sync_hubspot"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
+  }
+
+  // Emits the invoice.resynced webhook of an invoice, which the Salesforce
+  // package listens to.
+  rpc SyncSalesforceInvoice(SyncSalesforceInvoiceRequest) returns (SyncSalesforceInvoiceResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}:sync_salesforce"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {permission: "organization:integrations:update"};
+  }
+
+  // Asks the customer's tax provider for the taxes of a one-off invoice
+  // not created yet, issued today. Nothing is stored. The list is empty
+  // for a customer taxed by no provider; a provider's refusal fails with
+  // the provider's code on tax_error.
+  rpc PreviewInvoiceTaxes(PreviewInvoiceTaxesRequest) returns (PreviewInvoiceTaxesResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices:preview_taxes"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {permission: "invoices:create"};
   }
 }
 
@@ -291,6 +341,9 @@ message GocardlessSettings {
     uri: true
     max_len: 1024
   }];
+  // The secret Tanvo generates for the GoCardless webhook endpoint, which
+  // signs the webhooks GoCardless sends.
+  string webhook_secret = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // CashfreeSettings connects Cashfree.
@@ -327,14 +380,14 @@ message FlutterwaveSettings {
     (google.api.field_behavior) = INPUT_ONLY,
     (buf.validate.field).string.max_len = 1024
   ];
+  // The secret Tanvo generates for the Flutterwave dashboard's webhook
+  // secret hash, which signs the webhooks Flutterwave sends.
+  string webhook_secret = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
   // The URL customers return to after payment.
   string success_redirect_url = 3 [(buf.validate.field).string = {
     uri: true
     max_len: 1024
   }];
-
-  reserved 2;
-  reserved webhook_secret;
 }
 
 // NetsuiteSettings connects NetSuite with token-based authentication.
@@ -400,6 +453,10 @@ message HubspotSettings {
   HubspotTargetedObject default_targeted_object = 1 [(buf.validate.field).enum.defined_only = true];
   // The HubSpot portal connected.
   string portal_id = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The object type ID of the deployed custom invoice object.
+  string invoices_object_type_id = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The object type ID of the deployed custom subscription object.
+  string subscriptions_object_type_id = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // SalesforceSettings connects Salesforce.
@@ -505,7 +562,7 @@ message IntegrationSubsidiary {
 // IntegrationMapping maps an add-on or billable metric to a provider item.
 message IntegrationMapping {
   // The mapping's ID.
-  string id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
   // The kind of object mapped.
   MappableType mappable_type = 2 [
     (google.api.field_behavior) = REQUIRED,
@@ -521,10 +578,7 @@ message IntegrationMapping {
   // The provider's item ID.
   string external_id = 5 [
     (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).string = {
-      min_len: 1
-      max_len: 255
-    }
+    (buf.validate.field).string.max_len = 255
   ];
   // The provider's account code.
   string external_account_code = 6 [(buf.validate.field).string.max_len = 255];
@@ -535,7 +589,7 @@ message IntegrationMapping {
 // CollectionMapping maps a collection to a provider item.
 message CollectionMapping {
   // The mapping's ID.
-  string id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
   // The collection mapped.
   CollectionMappingType mapping_type = 2 [
     (google.api.field_behavior) = REQUIRED,
@@ -805,8 +859,8 @@ message ListIntegrationMappingsResponse {
   string next_page_token = 2;
 }
 
-// UpsertIntegrationMappingRequest is the request of IntegrationService.UpsertIntegrationMapping.
-message UpsertIntegrationMappingRequest {
+// CreateIntegrationMappingRequest is the request of IntegrationService.CreateIntegrationMapping.
+message CreateIntegrationMappingRequest {
   option (buf.validate.message).cel = {
     id: "mapping.required"
     message: "mappable_type, mappable_id and external_id are required"
@@ -819,16 +873,46 @@ message UpsertIntegrationMappingRequest {
     (buf.validate.field).required = true,
     (buf.validate.field).string.(tanvo.common.v1.ref) = true
   ];
-  // The mapping; the object and billing entity select it.
+  // The mapping to create.
   IntegrationMapping mapping = 2 [
     (google.api.field_behavior) = REQUIRED,
     (buf.validate.field).required = true
   ];
 }
 
-// UpsertIntegrationMappingResponse is the response of IntegrationService.UpsertIntegrationMapping.
-message UpsertIntegrationMappingResponse {
-  // The stored mapping.
+// CreateIntegrationMappingResponse is the response of IntegrationService.CreateIntegrationMapping.
+message CreateIntegrationMappingResponse {
+  // The created mapping.
+  IntegrationMapping mapping = 1;
+}
+
+// UpdateIntegrationMappingRequest is the request of IntegrationService.UpdateIntegrationMapping.
+message UpdateIntegrationMappingRequest {
+  option (buf.validate.message).cel = {
+    id: "mapping.id"
+    message: "mapping.id is required"
+    expression: "has(this.mapping.id)"
+  };
+
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The new values; mapping.id selects the mapping. Only external_id,
+  // external_account_code and external_name can be updated.
+  IntegrationMapping mapping = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 3;
+}
+
+// UpdateIntegrationMappingResponse is the response of IntegrationService.UpdateIntegrationMapping.
+message UpdateIntegrationMappingResponse {
+  // The updated mapping.
   IntegrationMapping mapping = 1;
 }
 
@@ -869,8 +953,8 @@ message ListCollectionMappingsResponse {
   repeated CollectionMapping collection_mappings = 1;
 }
 
-// UpsertCollectionMappingRequest is the request of IntegrationService.UpsertCollectionMapping.
-message UpsertCollectionMappingRequest {
+// CreateCollectionMappingRequest is the request of IntegrationService.CreateCollectionMapping.
+message CreateCollectionMappingRequest {
   option (buf.validate.message).cel = {
     id: "collection_mapping.required"
     message: "mapping_type is required"
@@ -883,16 +967,47 @@ message UpsertCollectionMappingRequest {
     (buf.validate.field).required = true,
     (buf.validate.field).string.(tanvo.common.v1.ref) = true
   ];
-  // The mapping; the type and billing entity select it.
+  // The mapping to create.
   CollectionMapping collection_mapping = 2 [
     (google.api.field_behavior) = REQUIRED,
     (buf.validate.field).required = true
   ];
 }
 
-// UpsertCollectionMappingResponse is the response of IntegrationService.UpsertCollectionMapping.
-message UpsertCollectionMappingResponse {
-  // The stored mapping.
+// CreateCollectionMappingResponse is the response of IntegrationService.CreateCollectionMapping.
+message CreateCollectionMappingResponse {
+  // The created mapping.
+  CollectionMapping collection_mapping = 1;
+}
+
+// UpdateCollectionMappingRequest is the request of IntegrationService.UpdateCollectionMapping.
+message UpdateCollectionMappingRequest {
+  option (buf.validate.message).cel = {
+    id: "collection_mapping.id"
+    message: "collection_mapping.id is required"
+    expression: "has(this.collection_mapping.id)"
+  };
+
+  // The integration's ID or `code:<code>`.
+  string integration_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The new values; collection_mapping.id selects the mapping. The type
+  // and billing entity cannot be updated.
+  CollectionMapping collection_mapping = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set (an
+  // empty currencies map is not set: name it in the mask to send one).
+  google.protobuf.FieldMask update_mask = 3;
+}
+
+// UpdateCollectionMappingResponse is the response of IntegrationService.UpdateCollectionMapping.
+message UpdateCollectionMappingResponse {
+  // The updated mapping.
   CollectionMapping collection_mapping = 1;
 }
 
@@ -914,3 +1029,86 @@ message DeleteCollectionMappingRequest {
 
 // DeleteCollectionMappingResponse is the response of IntegrationService.DeleteCollectionMapping.
 message DeleteCollectionMappingResponse {}
+
+// SyncHubspotInvoiceRequest is the request of IntegrationService.SyncHubspotInvoice.
+message SyncHubspotInvoiceRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// SyncHubspotInvoiceResponse is the response of IntegrationService.SyncHubspotInvoice.
+message SyncHubspotInvoiceResponse {}
+
+// SyncSalesforceInvoiceRequest is the request of IntegrationService.SyncSalesforceInvoice.
+message SyncSalesforceInvoiceRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// SyncSalesforceInvoiceResponse is the response of IntegrationService.SyncSalesforceInvoice.
+message SyncSalesforceInvoiceResponse {}
+
+// PreviewInvoiceTaxesRequest is the request of IntegrationService.PreviewInvoiceTaxes.
+message PreviewInvoiceTaxesRequest {
+  // The customer (ID or `external_id:<external_id>`).
+  string customer_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The currency; the customer's by default.
+  string currency = 2 [(buf.validate.field).string.(tanvo.common.v1.currency) = true];
+  // The fees; only their add-on, units and unit price are read.
+  repeated tanvo.invoice.v1.OneOffFee fees = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).repeated = {
+      min_items: 1
+      max_items: 100
+    }
+  ];
+}
+
+// PreviewInvoiceTaxesResponse is the response of IntegrationService.PreviewInvoiceTaxes.
+message PreviewInvoiceTaxesResponse {
+  // The taxes of each line the provider was asked about: the fees with
+  // an amount, or the first fee when none has one.
+  repeated TaxFee fees = 1;
+}
+
+// TaxFee is a tax provider's answer for one line.
+message TaxFee {
+  // The line's item: the fee's add-on.
+  string item_id = 1;
+  // The provider's product the add-on is mapped to.
+  string item_code = 2;
+  // The taxed amount.
+  tanvo.common.v1.Money amount = 3;
+  // The tax the provider booked on the line; absent when it gave none.
+  tanvo.common.v1.Money tax_amount = 4;
+  // The line's taxes per jurisdiction.
+  repeated TaxBreakdown tax_breakdown = 5;
+}
+
+// TaxBreakdown is one jurisdiction's tax on a line.
+message TaxBreakdown {
+  // The tax name.
+  string name = 1;
+  // The rate as a fraction (0.1 for 10 %).
+  string rate = 2;
+  // The exact tax.
+  tanvo.common.v1.Money tax_amount = 3;
+  // The provider's tax type ("tax", "exempt", "notCollecting"…).
+  string type = 4;
+  // The code of a ruling that applies to the whole invoice
+  // (`reverse_charge`, `not_collecting`…); empty for a jurisdiction's
+  // tax.
+  string whole_invoice_tax_code = 5;
+}

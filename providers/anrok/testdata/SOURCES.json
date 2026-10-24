@@ -1,0 +1,6 @@
+{
+  "fixtures/create_or_update_response.json": {
+    "source": "Anrok Transactions API reference 1.1, createOrUpdate 200 example",
+    "note": "values of lago spec/fixtures/integration_aggregator/taxes/invoices/success_response.json (GST/HST 0.10 on 9900, reverse charge exemption) on the first line; the second line is the reference example's Denver line with a tax rounded down to zero (create_draft_service_spec.rb:237)"
+  }
+}

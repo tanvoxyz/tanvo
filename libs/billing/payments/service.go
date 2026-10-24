@@ -20,8 +20,11 @@ type CreditInvoiceHandler interface {
 
 // Service is the payments service.
 type Service struct {
-	d       *kernel.Deps
-	credits CreditInvoiceHandler
+	d         *kernel.Deps
+	credits   CreditInvoiceHandler
+	providers *Providers
+	sync      PaymentSync
+	refunds   RefundStatuses
 }
 
 // New returns the service over the checked dependencies d.

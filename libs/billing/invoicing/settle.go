@@ -138,7 +138,7 @@ func (s *Service) settle(ctx context.Context, r port.Repos, env *kernel.Customer
 	var res kernel.TaxOutcome
 	err := s.holdForVIES(ctx, r, env, resolver, inv, fees, o)
 	if err == nil {
-		res, err = resolver.Compute(ctx, s.d, kernel.TaxInput{Invoice: inv, Fees: fees, Deductions: ded, AggregateFeeTaxes: o.aggregate, Draft: o.draft || o.draftTaxes, Inline: o.preview, LocalOnly: o.segments})
+		res, err = resolver.Compute(ctx, s.d, kernel.TaxInput{Invoice: inv, Fees: fees, Deductions: ded, AggregateFeeTaxes: o.aggregate, Draft: o.draft || o.draftTaxes || o.preview, Inline: o.preview, LocalOnly: o.segments})
 	}
 	switch {
 	case err == nil:

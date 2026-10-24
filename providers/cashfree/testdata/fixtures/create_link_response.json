@@ -1,0 +1,15 @@
+{
+  "cf_link_id": 1576977,
+  "link_id": "LINKID0000000000000000000A",
+  "link_status": "ACTIVE",
+  "link_currency": "INR",
+  "link_amount": "200.12",
+  "link_amount_paid": "0.00",
+  "link_partial_payments": false,
+  "link_purpose": "0199a000-0000-7000-8000-000000000003",
+  "link_created_at": "2026-05-07T15:30:00+05:30",
+  "link_url": "https://payments-test.cashfree.com/links//U1mgll3c0e9g",
+  "link_expiry_time": "2026-05-07T15:40:00+05:30",
+  "link_auto_reminders": false,
+  "link_notify": { "send_sms": false, "send_email": false }
+}

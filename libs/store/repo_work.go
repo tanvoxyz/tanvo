@@ -12,6 +12,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/export"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
+	"github.com/tanvoxyz/tanvo/libs/core/payment"
 	"github.com/tanvoxyz/tanvo/libs/store/internal/db"
 )
 
@@ -74,6 +75,13 @@ func (r organizationRepo) WithWork(ctx context.Context, w organization.Work, at 
 		rows, err = q.ListOrganizationsWithDunningCustomers(ctx)
 	case organization.WorkAwaitingBillingSegments:
 		rows, err = q.ListOrganizationsWithAwaitingBillingSegments(ctx)
+	case organization.WorkInboundWebhooks:
+		rows, err = q.ListOrganizationsWithInboundWebhooks(ctx, at.Add(-payment.WebhookRetryWindow))
+	case organization.WorkExpiredInboundWebhooks:
+		rows, err = q.ListOrganizationsWithExpiredInboundWebhooks(ctx, at.Add(-payment.WebhookRetention))
+	case organization.WorkAbandonedPayments:
+		from, to := payment.AbandonedRange(at)
+		rows, err = q.ListOrganizationsWithAbandonedPayments(ctx, db.ListOrganizationsWithAbandonedPaymentsParams{FromAt: from, ToAt: to})
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list organizations with %s: %w", w, mapErr(err))

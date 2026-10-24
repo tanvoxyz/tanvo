@@ -15,7 +15,8 @@ import (
 // creditNoteData holds the tables of package creditnote; items and applied
 // taxes are stored inside their credit note.
 type creditNoteData struct {
-	creditNotes *table[core.CreditNoteID, creditnote.CreditNote]
+	creditNotes  *table[core.CreditNoteID, creditnote.CreditNote]
+	errorDetails *table[core.ErrorDetailID, creditnote.ErrorDetail]
 }
 
 func newCreditNoteData() *creditNoteData {
@@ -25,13 +26,18 @@ func newCreditNoteData() *creditNoteData {
 			cn.Description = invoiceClonePtr(cn.Description)
 			cn.RefundedAt = invoiceClonePtr(cn.RefundedAt)
 			cn.VoidedAt = invoiceClonePtr(cn.VoidedAt)
+			cn.ErrorDetails = nil // stored by the error detail repository
 			return cn
+		}),
+		errorDetails: newTable[core.ErrorDetailID](func(e creditnote.ErrorDetail) creditnote.ErrorDetail {
+			e.Details = slices.Clone(e.Details)
+			return e
 		}),
 	}
 }
 
 func (d *creditNoteData) snapshot() *creditNoteData {
-	return &creditNoteData{creditNotes: d.creditNotes.snapshot()}
+	return &creditNoteData{creditNotes: d.creditNotes.snapshot(), errorDetails: d.errorDetails.snapshot()}
 }
 
 var _ creditnote.Repository = creditNoteRepo{}
@@ -216,6 +222,36 @@ func (r creditNoteRepo) Delete(_ context.Context, org core.OrganizationID, id co
 		return err
 	}
 	r.d.creditNotes.del(id)
+	r.d.errorDetails.deleteWhere(func(x *creditnote.ErrorDetail) bool { return x.CreditNoteID == id })
+	return nil
+}
+
+var _ creditnote.ErrorDetailRepository = creditNoteErrorDetailRepo{}
+
+// creditNoteErrorDetailRepo implements creditnote.ErrorDetailRepository.
+type creditNoteErrorDetailRepo struct{ d *creditNoteData }
+
+func (r creditNoteErrorDetailRepo) Create(_ context.Context, e *creditnote.ErrorDetail) error {
+	if r.d.errorDetails.has(e.ID) {
+		return conflict("error_detail", "id")
+	}
+	if cn, ok := r.d.creditNotes.get(e.CreditNoteID); !ok || cn.OrganizationID != e.OrganizationID {
+		return notFound("credit_note", e.CreditNoteID)
+	}
+	r.d.errorDetails.put(e.ID, *e)
+	return nil
+}
+
+func (r creditNoteErrorDetailRepo) ListByCreditNotes(_ context.Context, org core.OrganizationID, ids []core.CreditNoteID) ([]*creditnote.ErrorDetail, error) {
+	return r.d.errorDetails.find(func(x *creditnote.ErrorDetail) bool {
+		return x.OrganizationID == org && slices.Contains(ids, x.CreditNoteID)
+	}), nil
+}
+
+func (r creditNoteErrorDetailRepo) DeleteByCreditNote(_ context.Context, org core.OrganizationID, id core.CreditNoteID, code creditnote.ErrorCode) error {
+	r.d.errorDetails.deleteWhere(func(x *creditnote.ErrorDetail) bool {
+		return x.OrganizationID == org && x.CreditNoteID == id && x.Code == code
+	})
 	return nil
 }
 

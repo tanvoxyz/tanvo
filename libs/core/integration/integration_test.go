@@ -3,6 +3,7 @@ package integration
 import (
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -128,9 +129,13 @@ func TestCheckCustomerLinks(t *testing.T) {
 		candidate *IntegrationCustomer
 		want      string
 	}{
-		{"second tax integration", &IntegrationCustomer{ID: id(3), CustomerID: cus, Category: CategoryTax}, CodeTaxCustomerExists},
+		// source: spec/models/integration_customers/base_customer_spec.rb:293
+		// source: spec/models/integration_customers/base_customer_spec.rb:304
+		{"second tax integration", &IntegrationCustomer{ID: id(3), CustomerID: cus, Category: CategoryTax}, CodeTaxIntegrationExists},
+		// source: spec/models/integration_customers/base_customer_spec.rb:315
 		{"updating the tax link itself", tax, ""},
-		{"tax integration of another customer", &IntegrationCustomer{ID: id(3), CustomerID: other, Category: CategoryTax}, ""},
+		// source: spec/models/integration_customers/base_customer_spec.rb:279
+		{"first tax integration of a customer", &IntegrationCustomer{ID: id(3), CustomerID: other, Category: CategoryTax}, ""},
 		{"second default of a category", &IntegrationCustomer{ID: id(3), CustomerID: cus, Category: CategoryCRM, IsDefault: true}, "default_already_exists"},
 		{"non-default of a category", &IntegrationCustomer{ID: id(3), CustomerID: cus, Category: CategoryCRM}, ""},
 		{"default of another category", &IntegrationCustomer{ID: id(3), CustomerID: cus, Category: CategoryAccounting, IsDefault: true}, ""},
@@ -141,12 +146,15 @@ func TestCheckCustomerLinks(t *testing.T) {
 			var got string
 			if re, ok := errors.AsType[*core.RuleError](err); ok {
 				got = re.Code
+				if !errors.Is(err, core.ErrNotAllowed) {
+					t.Errorf("errors.Is(%v, ErrNotAllowed) = false, want = true", err)
+				}
+			}
+			if ve, ok := errors.AsType[*core.ValidationError](err); ok && len(ve.Errors) == 1 && ve.Errors[0].Field == "integration_id" {
+				got = ve.Errors[0].Code
 			}
 			if got != tt.want || (err != nil) != (tt.want != "") {
 				t.Errorf("CheckCustomerLinks() = %v, want = %q", err, tt.want)
-			}
-			if err != nil && !errors.Is(err, core.ErrNotAllowed) {
-				t.Errorf("errors.Is(%v, ErrNotAllowed) = false, want = true", err)
 			}
 		})
 	}
@@ -196,6 +204,11 @@ func TestResolve(t *testing.T) {
 		{"fallback item", ResolveInput{CollectionMappings: []*CollectionMapping{fallback, fee}, Collection: CollectionMappingTypeCoupon}, "fallback"},
 		{"billing entity fallback wins", ResolveInput{CollectionMappings: []*CollectionMapping{fallback, fallbackBE}, BillingEntityID: be}, "fallback-be"},
 		{"nothing maps", ResolveInput{CollectionMappings: []*CollectionMapping{fee}, Collection: CollectionMappingTypeCoupon}, ""},
+		// Order of lago app/services/integrations/aggregator/base_payload.rb:81-106; no spec asserts it.
+		{"billing entity fallback before the general mapping", ResolveInput{Mappings: []*Mapping{general}, CollectionMappings: []*CollectionMapping{fallback, fallbackBE}, MappableType: MappableTypeBillableMetric, MappableID: metric, BillingEntityID: be}, "fallback-be"},
+		{"general fallback last", ResolveInput{CollectionMappings: []*CollectionMapping{fallback}, MappableType: MappableTypeBillableMetric, MappableID: metric, BillingEntityID: be}, "fallback"},
+		{"billing entity fallback before the general collection", ResolveInput{CollectionMappings: []*CollectionMapping{fee, fallbackBE}, Collection: CollectionMappingTypeSubscriptionFee, BillingEntityID: be}, "fallback-be"},
+		{"tax takes no fallback", ResolveInput{CollectionMappings: []*CollectionMapping{fallback}, Collection: CollectionMappingTypeTax}, ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -210,5 +223,63 @@ func TestResolve(t *testing.T) {
 				t.Errorf("Resolve() = %q, %v, want = %q", got.ExternalID, err, tt.want)
 			}
 		})
+	}
+}
+
+func TestItemValidate(t *testing.T) {
+	integ := core.MustParseID[core.IntegrationID]("0190a000-0000-7000-8000-000000000001")
+	for _, tt := range []struct {
+		name   string
+		source string
+		item   Item
+		want   []string
+	}{
+		{"valid", "", Item{IntegrationID: integ, ItemType: ItemTypeTax, ExternalID: "1"}, []string{}},
+		{"no external id", "source: spec/models/integration_item_spec.rb:12", Item{IntegrationID: integ, ItemType: ItemTypeStandard}, []string{"external_id: value_is_mandatory"}},
+		{"unknown item type", "source: spec/models/integration_item_spec.rb:13", Item{IntegrationID: integ, ItemType: "other", ExternalID: "1"}, []string{"item_type: invalid_value"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Log(tt.source)
+			if got := fieldErrors(tt.item.Validate()); !slices.Equal(got, tt.want) {
+				t.Errorf("Validate() = %v, want = %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestEnumValues(t *testing.T) {
+	// source: spec/models/integration_collection_mappings/base_collection_mapping_spec.rb:18
+	if got, want := CollectionMappingTypeValues(), []CollectionMappingType{
+		"fallback_item", "coupon", "subscription_fee", "minimum_commitment", "tax", "prepaid_credit", "credit_note", "account", "currencies",
+	}; !slices.Equal(got, want) {
+		t.Errorf("collection mapping types: got = %v, want = %v", got, want)
+	}
+	if err := (&CollectionMapping{Type: "other"}).Validate(); !slices.Contains(fieldErrors(err), "mapping_type: invalid_value") {
+		t.Errorf("unknown mapping type: got = %v, want = mapping_type invalid_value", err)
+	}
+	// sales_order_deprecated is left out: nothing records it.
+	// source: spec/models/integration_resource_spec.rb:18
+	if got, want := ResourceTypeValues(), []ResourceType{"invoice", "payment", "credit_note", "subscription"}; !slices.Equal(got, want) {
+		t.Errorf("resource types: got = %v, want = %v", got, want)
+	}
+	// source: spec/models/integration_mappings/base_mapping_spec.rb:18
+	if got, want := MappableTypeValues(), []MappableType{"add_on", "billable_metric"}; !slices.Equal(got, want) {
+		t.Errorf("mappable types: got = %v, want = %v", got, want)
+	}
+	if err := (&Mapping{MappableType: "plan"}).Validate(); !slices.Contains(fieldErrors(err), "mappable_type: invalid_value") {
+		t.Errorf("unknown mappable type: got = %v, want = mappable_type invalid_value", err)
+	}
+	// A connection's category is accounting, tax or CRM: payment
+	// connections are provider customers.
+	// source: spec/models/integration_customers/base_customer_spec.rb:19
+	for cat, want := range map[Category]string{"other": "category: invalid_value", CategoryPayment: "category: value_not_allowed"} {
+		if err := (&IntegrationCustomer{Category: cat}).Validate(); !slices.Contains(fieldErrors(err), want) {
+			t.Errorf("category %s: got = %v, want = %s", cat, err, want)
+		}
+	}
+	for _, cat := range []Category{CategoryAccounting, CategoryTax, CategoryCRM} {
+		if err := (&IntegrationCustomer{Category: cat}).Validate(); slices.ContainsFunc(fieldErrors(err), func(s string) bool { return strings.HasPrefix(s, "category:") }) {
+			t.Errorf("category %s: got = %v, want = valid", cat, err)
+		}
 	}
 }

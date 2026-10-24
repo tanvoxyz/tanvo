@@ -107,6 +107,36 @@ func (q *Queries) CreateCreditNote(ctx context.Context, arg CreateCreditNotePara
 	return result.RowsAffected(), nil
 }
 
+const createCreditNoteErrorDetail = `-- name: CreateCreditNoteErrorDetail :execrows
+INSERT INTO credit_note_error_details (organization_id, id, credit_note_id, error_code, details, created_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT DO NOTHING
+`
+
+type CreateCreditNoteErrorDetailParams struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+	CreditNoteID   uuid.UUID
+	ErrorCode      string
+	Details        json.RawMessage
+	CreatedAt      time.Time
+}
+
+func (q *Queries) CreateCreditNoteErrorDetail(ctx context.Context, arg CreateCreditNoteErrorDetailParams) (int64, error) {
+	result, err := q.db.Exec(ctx, createCreditNoteErrorDetail,
+		arg.OrganizationID,
+		arg.ID,
+		arg.CreditNoteID,
+		arg.ErrorCode,
+		arg.Details,
+		arg.CreatedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const creditedByFee = `-- name: CreditedByFee :many
 SELECT i.fee_id, SUM(i.amount)::bigint AS amount
 FROM credit_note_items i
@@ -157,6 +187,22 @@ type DeleteCreditNoteAppliedTaxesParams struct {
 
 func (q *Queries) DeleteCreditNoteAppliedTaxes(ctx context.Context, arg DeleteCreditNoteAppliedTaxesParams) error {
 	_, err := q.db.Exec(ctx, deleteCreditNoteAppliedTaxes, arg.OrganizationID, arg.CreditNoteID)
+	return err
+}
+
+const deleteCreditNoteErrorDetails = `-- name: DeleteCreditNoteErrorDetails :exec
+DELETE FROM credit_note_error_details
+WHERE organization_id = $1 AND credit_note_id = $2 AND error_code = $3
+`
+
+type DeleteCreditNoteErrorDetailsParams struct {
+	OrganizationID uuid.UUID
+	CreditNoteID   uuid.UUID
+	ErrorCode      string
+}
+
+func (q *Queries) DeleteCreditNoteErrorDetails(ctx context.Context, arg DeleteCreditNoteErrorDetailsParams) error {
+	_, err := q.db.Exec(ctx, deleteCreditNoteErrorDetails, arg.OrganizationID, arg.CreditNoteID, arg.ErrorCode)
 	return err
 }
 
@@ -441,6 +487,44 @@ func (q *Queries) ListCreditNoteAppliedTaxes(ctx context.Context, arg ListCredit
 			&i.BaseAmount,
 			&i.Amount,
 			&i.PreciseAmount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listCreditNoteErrorDetails = `-- name: ListCreditNoteErrorDetails :many
+SELECT organization_id, id, credit_note_id, error_code, details, created_at FROM credit_note_error_details
+WHERE organization_id = $1 AND credit_note_id = ANY($2::uuid[])
+ORDER BY id
+`
+
+type ListCreditNoteErrorDetailsParams struct {
+	OrganizationID uuid.UUID
+	CreditNoteIds  []uuid.UUID
+}
+
+func (q *Queries) ListCreditNoteErrorDetails(ctx context.Context, arg ListCreditNoteErrorDetailsParams) ([]CreditNoteErrorDetail, error) {
+	rows, err := q.db.Query(ctx, listCreditNoteErrorDetails, arg.OrganizationID, arg.CreditNoteIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CreditNoteErrorDetail{}
+	for rows.Next() {
+		var i CreditNoteErrorDetail
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.CreditNoteID,
+			&i.ErrorCode,
+			&i.Details,
+			&i.CreatedAt,
 		); err != nil {
 			return nil, err
 		}

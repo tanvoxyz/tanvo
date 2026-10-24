@@ -43,7 +43,9 @@ type RequestInput struct {
 // [core.RuleError] in this order); a payment method must be the
 // customer's ([payment.ValidateMethodChoice]). The amount is what is left
 // to pay on the invoices net of their finalized credit note offsets. The
-// request is announced by the payment_request.created webhook.
+// request is announced by the payment_request.created webhook, then
+// collected through the customer's payment provider
+// ([Service.CreateRequestPayment]) or, without one, emailed.
 func (s *Service) CreateRequest(ctx context.Context, in RequestInput) (*payment.Request, error) {
 	return inTx(ctx, s.d.Tx, func(ctx context.Context, r port.Repos) (*payment.Request, error) {
 		org := in.OrganizationID
@@ -118,6 +120,10 @@ func (s *Service) CreateRequest(ctx context.Context, in RequestInput) (*payment.
 			Type: auditlog.ActivityPaymentRequestCreated, OrganizationID: org, ResourceType: auditlog.ResourcePaymentRequest,
 			ResourceID: q.ID.UUID(), Object: q, ExternalCustomerID: c.ExternalID,
 		}); err != nil {
+			return nil, err
+		}
+		// payment_requests/create_service.rb:43-44.
+		if err := enqueueRequestCollection(ctx, r, q); err != nil {
 			return nil, err
 		}
 		return q, nil

@@ -277,6 +277,17 @@ func TestVoidProviderTaxes(t *testing.T) {
 	if len(f.Taxes.Voided) != 1 || f.Taxes.Voided[0] != inv.ID {
 		t.Errorf("voided = %v, want = [%s]", f.Taxes.Voided, inv.ID)
 	}
+	// The job voids the taxes of an Anrok or an Avalara customer alike
+	// and skips a customer without a tax provider.
+	// source: spec/jobs/invoices/provider_taxes/void_job_spec.rb:24, 37
+	// source: spec/jobs/invoices/provider_taxes/void_job_spec.rb:45
+	f.Taxes.Customers = nil
+	if err := f.svc.VoidProviderTaxes(f.Ctx, f.OrgID(), inv.ID); err != nil {
+		t.Fatalf("void provider taxes without a tax customer: %v", err)
+	}
+	if len(f.Taxes.Voided) != 1 {
+		t.Errorf("voided without a tax customer = %v, want = [%s]", f.Taxes.Voided, inv.ID)
+	}
 }
 
 // appliedCoupon reloads an applied coupon.

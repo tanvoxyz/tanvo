@@ -59,6 +59,14 @@ var ErrRefund = errors.New("creditnotes: refund failed")
 // the refund pending for the job to retry.
 var ErrRefundRejected = errors.New("creditnotes: refund rejected")
 
+// ErrRefundSkipped is wrapped by a [kernel.RefundGateway] error when the
+// payment cannot be refunded through a provider: a manual payment, or a
+// provider without refunds (lago enqueues a refund only for Stripe,
+// GoCardless and Adyen payments,
+// app/services/credit_notes/create_service.rb:255-264). Nothing is
+// recorded and the refund stays pending.
+var ErrRefundSkipped = errors.New("creditnotes: refund skipped")
+
 func notFound(resource string, id fmt.Stringer) error {
 	return fmt.Errorf("%s %s: %w", resource, id, core.ErrNotFound)
 }

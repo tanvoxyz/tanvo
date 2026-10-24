@@ -7,6 +7,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
@@ -33,6 +34,12 @@ type Connection struct {
 	// IsDefault marks the default connection of its category; a payment
 	// connection, the only one of its customer, is the default.
 	IsDefault bool
+	// TargetedObject is the HubSpot object of the customer
+	// (integration.TargetedObjectCompanies or TargetedObjectContacts),
+	// "" while unset or for other providers.
+	TargetedObject string
+	// Email is the email HubSpot stored for the customer.
+	Email string
 	// CreatedAt is the creation instant.
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
@@ -53,6 +60,9 @@ type ConnectionInput struct {
 	ProviderPaymentMethods core.Optional[[]string]
 	// IsDefault makes the connection the default of its category.
 	IsDefault core.Optional[bool]
+	// TargetedObject is the HubSpot object of the customer; other
+	// providers ignore it (lago create_service.rb:84-87).
+	TargetedObject core.Optional[string]
 }
 
 // CheckoutURLGenerator generates the checkout URL where a customer
@@ -152,7 +162,11 @@ func paymentConnection(in *integration.Integration, pc *payment.ProviderCustomer
 }
 
 func integrationConnection(in *integration.Integration, ic *integration.IntegrationCustomer) Connection {
+	object, _ := ic.Setting(settingTargetedObject)
+	email, _ := ic.Setting(settingEmail)
 	return Connection{
+		TargetedObject:     object,
+		Email:              email,
 		Integration:        in,
 		ExternalCustomerID: ic.ExternalCustomerID,
 		SyncWithProvider:   ic.SyncWithProvider,
@@ -173,11 +187,15 @@ func integrationConnection(in *integration.Integration, ic *integration.Integrat
 // of its category, or one asked to be, is the default and the others of
 // the category stop being it
 // (integration_customers/create_connection_service.rb,
-// set_as_default_service.rb); a partner account has none
-// (create_or_update_batch_service.rb:16, a failure here, a silent no-op in
-// lago). Creating the customer in the provider when sync_with_provider is
-// set and no external ID is known needs the provider adapters (phase 5):
-// the connection is stored and awaits them.
+// set_as_default_service.rb). None is created or changed for a partner
+// account, and none is created without an external customer ID or
+// sync_with_provider: the result is
+// the zero Connection, whose Integration is nil
+// (create_connection_service.rb:18-19,
+// create_or_update_batch_service.rb:16, 90-94). An update assigns a
+// non-blank external customer ID and targeted object only, and neither to
+// an Anrok or Salesforce connection (update_service.rb:18-22); the sync
+// flag and the subsidiary are set at creation.
 //
 // source: app/services/integration_customers/create_or_update_batch_service.rb:14-29
 // source: app/services/payment_provider_customers/create_or_update_batch_service.rb:20-80
@@ -192,12 +210,13 @@ func (s *Service) UpsertConnection(ctx context.Context, org core.OrganizationID,
 		if err != nil {
 			return err
 		}
-		if integ.Category == integration.CategoryPayment {
+		switch integ.Category {
+		case integration.CategoryPayment:
 			out, err = s.upsertPayment(ctx, r, c, integ, in)
 			return err
-		}
-		if c.SelfBilled() {
-			return core.NewRuleError(CodePartnerAccount, "a partner account has no integration connections")
+		case integration.CategoryAuth:
+			// A connection has no category (create_connection_service.rb:17).
+			return fieldError("integration_id", core.CodeInvalid)
 		}
 		out, err = s.upsertIntegration(ctx, r, c, integ, in)
 		return err
@@ -231,6 +250,10 @@ func (s *Service) upsertPayment(ctx context.Context, r port.Repos, c *customer.C
 	case err != nil:
 		return Connection{}, fmt.Errorf("find payment connection: %w", err)
 	}
+	ch := kernel.ConnectionChange{Created: created, ProviderCustomerIDSet: in.ExternalCustomerID.Set}
+	if pc.ProviderCustomerID != nil {
+		ch.PreviousProviderCustomerID = *pc.ProviderCustomerID
+	}
 	if in.ExternalCustomerID.Set {
 		pc.ProviderCustomerID = nil
 		if in.ExternalCustomerID.Value != "" {
@@ -256,6 +279,9 @@ func (s *Service) upsertPayment(ctx context.Context, r port.Repos, c *customer.C
 	if err != nil {
 		return Connection{}, fmt.Errorf("store payment connection: %w", err)
 	}
+	if err := kernel.EnqueueConnectionSync(ctx, r, pc, ch); err != nil {
+		return Connection{}, err
+	}
 	return paymentConnection(integ, pc), nil
 }
 
@@ -267,7 +293,16 @@ func (s *Service) upsertIntegration(ctx context.Context, r port.Repos, c *custom
 	}
 	i := slices.IndexFunc(links, func(l *integration.IntegrationCustomer) bool { return l.IntegrationID == integ.ID })
 	var ic *integration.IntegrationCustomer
+	var v core.Validator
 	created := i < 0
+	switch {
+	case created && (c.SelfBilled() || in.ExternalCustomerID.Value == "" && !in.SyncWithProvider.Value):
+		return Connection{}, nil
+	case c.SelfBilled():
+		// create_or_update_batch_service.rb:16: a partner's connections
+		// are left as they are.
+		return integrationConnection(integ, links[i]), nil
+	}
 	if created {
 		ic = &integration.IntegrationCustomer{
 			ID:             core.NewID[core.IntegrationCustomerID](s.d.IDs),
@@ -278,12 +313,40 @@ func (s *Service) upsertIntegration(ctx context.Context, r port.Repos, c *custom
 			IsDefault:      !slices.ContainsFunc(links, func(l *integration.IntegrationCustomer) bool { return l.IsDefault }),
 			CreatedAt:      now,
 		}
+		// One connection per provider (lago base_customer.rb:42,
+		// customer_id value_already_exist).
+		for _, l := range links {
+			li, err := r.Integrations.Get(ctx, c.OrganizationID, l.IntegrationID)
+			if err != nil {
+				return Connection{}, fmt.Errorf("load integration %s: %w", l.IntegrationID, err)
+			}
+			if li.Provider == integ.Provider {
+				v.Add("customer_id", core.CodeAlreadyExists)
+				break
+			}
+		}
 	} else {
 		ic = links[i]
 	}
-	in.ExternalCustomerID.Apply(&ic.ExternalCustomerID)
-	in.SyncWithProvider.Apply(&ic.SyncWithProvider)
-	in.SubsidiaryID.Apply(&ic.SubsidiaryID)
+	fixed := integ.Provider == integration.ProviderAnrok || integ.Provider == integration.ProviderSalesforce
+	switch {
+	case created:
+		in.ExternalCustomerID.Apply(&ic.ExternalCustomerID)
+		in.SyncWithProvider.Apply(&ic.SyncWithProvider)
+		in.SubsidiaryID.Apply(&ic.SubsidiaryID)
+		if ic.ExternalCustomerID != "" {
+			// A linked record is not synced, Salesforce's excepted (lago
+			// create_service.rb:66-75).
+			ic.SyncWithProvider = integ.Provider == integration.ProviderSalesforce
+		}
+	case !fixed && in.ExternalCustomerID.Value != "":
+		ic.ExternalCustomerID = in.ExternalCustomerID.Value
+	}
+	if in.TargetedObject.Set && integ.Provider == integration.ProviderHubspot {
+		if err := setTargetedObject(ic, in.TargetedObject.Value); err != nil {
+			return Connection{}, err
+		}
+	}
 	if in.IsDefault.Set && in.IsDefault.Value {
 		ic.IsDefault = true
 		for _, l := range links {
@@ -299,24 +362,30 @@ func (s *Service) upsertIntegration(ctx context.Context, r port.Repos, c *custom
 		ic.IsDefault = false
 	}
 	ic.UpdatedAt = now
-	var v core.Validator
 	v.Merge("", ic.Validate())
+	// base_customer.rb:42-43: the provider and tax rules are reported
+	// together.
+	linkErr := integration.CheckCustomerLinks(ic, links)
+	if _, ok := errors.AsType[*core.ValidationError](linkErr); ok {
+		v.Merge("", linkErr)
+		linkErr = nil
+	}
 	if err := v.Err(); err != nil {
 		return Connection{}, err
 	}
-	if err := integration.CheckCustomerLinks(ic, links); err != nil {
-		return Connection{}, err
+	if linkErr != nil {
+		return Connection{}, linkErr
 	}
 	if created {
 		err = r.IntegrationCustomers.Create(ctx, ic)
 	} else {
 		err = r.IntegrationCustomers.Update(ctx, ic)
 	}
-	if errors.Is(err, core.ErrConflict) {
-		return Connection{}, fieldError("external_customer_id", core.CodeAlreadyExists)
-	}
 	if err != nil {
 		return Connection{}, fmt.Errorf("store integration connection: %w", err)
+	}
+	if err := kernel.EnqueueContactSync(ctx, r, c, integ, ic, created); err != nil {
+		return Connection{}, err
 	}
 	return integrationConnection(integ, ic), nil
 }
@@ -418,4 +487,23 @@ func (s *Service) CheckoutURL(ctx context.Context, org core.OrganizationID, id c
 		return "", time.Time{}, fmt.Errorf("checkout url of customer %s: %w", id, err)
 	}
 	return u, exp, nil
+}
+
+// Settings keys of a HubSpot integration customer.
+const (
+	settingTargetedObject = "targeted_object"
+	settingEmail          = "email"
+)
+
+// setTargetedObject sets the HubSpot object of ic; "" keeps it (lago
+// update_service.rb:23, targeted_object.present?).
+func setTargetedObject(ic *integration.IntegrationCustomer, object string) error {
+	switch object {
+	case "":
+		return nil
+	case integration.TargetedObjectCompanies, integration.TargetedObjectContacts:
+		return ic.SetSetting(settingTargetedObject, object)
+	default:
+		return fieldError("targeted_object", core.CodeInvalid)
+	}
 }

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/creditnotes"
+	"github.com/tanvoxyz/tanvo/libs/billing/integrations"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
 	"github.com/tanvoxyz/tanvo/libs/money"
@@ -16,13 +17,16 @@ import (
 
 // CreditNotes serves tanvo.creditnote.v1.CreditNoteService over the
 // billing library's credit note service (lago
-// Api::V1::CreditNotesController). ResendCreditNote and
-// RetryCreditNoteSync stay Unimplemented: the server sends no document
-// emails and syncs no accounting integrations yet.
+// Api::V1::CreditNotesController). ResendCreditNote stays Unimplemented:
+// the server sends no document emails. RetryCreditNoteSync needs the
+// integrations service ([CreditNotes.WithIntegrations]).
 type CreditNotes struct {
 	creditnotev1connect.UnimplementedCreditNoteServiceHandler
 
 	svc *creditnotes.Service
+	// integ syncs the credit notes with the integrations; nil leaves
+	// RetryCreditNoteSync Unimplemented.
+	integ *integrations.Service
 }
 
 var _ creditnotev1connect.CreditNoteServiceHandler = (*CreditNotes)(nil)
@@ -533,5 +537,17 @@ func creditNote(cn *creditnote.CreditNote) *creditnotev1.CreditNote {
 	if cn.RefundStatus != "" {
 		b.RefundStatus = new(cnRefundStatuses.Proto(cn.RefundStatus))
 	}
+	for _, e := range cn.ErrorDetails {
+		b.Errors = append(b.Errors, creditnotev1.CreditNoteError_builder{
+			Code:      new(cnErrorCodes.Proto(e.Code)),
+			Message:   new(string(e.Details)),
+			CreatedAt: Timestamp(e.CreatedAt),
+		}.Build())
+	}
 	return b.Build()
 }
+
+// cnErrorCodes maps the credit note error codes.
+var cnErrorCodes = NewEnum(map[creditnote.ErrorCode]creditnotev1.CreditNoteErrorCode{
+	creditnote.ErrorCodeTaxError: creditnotev1.CreditNoteErrorCode_CREDIT_NOTE_ERROR_CODE_TAX_ERROR,
+})

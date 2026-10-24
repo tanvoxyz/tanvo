@@ -132,43 +132,44 @@ func (x EmailSetting) Number() protoreflect.EnumNumber {
 // BillingEntity is the legal issuer of documents. Its settings are the
 // defaults of its customers.
 type BillingEntity struct {
-	state                                protoimpl.MessageState   `protogen:"opaque.v1"`
-	xxx_hidden_Id                        *string                  `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_Code                      *string                  `protobuf:"bytes,2,opt,name=code"`
-	xxx_hidden_Name                      *string                  `protobuf:"bytes,3,opt,name=name"`
-	xxx_hidden_LegalName                 *string                  `protobuf:"bytes,4,opt,name=legal_name,json=legalName"`
-	xxx_hidden_LegalNumber               *string                  `protobuf:"bytes,5,opt,name=legal_number,json=legalNumber"`
-	xxx_hidden_TaxIdentificationNumber   *string                  `protobuf:"bytes,6,opt,name=tax_identification_number,json=taxIdentificationNumber"`
-	xxx_hidden_Email                     *string                  `protobuf:"bytes,7,opt,name=email"`
-	xxx_hidden_Phone                     *string                  `protobuf:"bytes,8,opt,name=phone"`
-	xxx_hidden_Address                   *v1.Address              `protobuf:"bytes,9,opt,name=address"`
-	xxx_hidden_Logo                      []byte                   `protobuf:"bytes,10,opt,name=logo"`
-	xxx_hidden_LogoUrl                   *string                  `protobuf:"bytes,11,opt,name=logo_url,json=logoUrl"`
-	xxx_hidden_Timezone                  *string                  `protobuf:"bytes,12,opt,name=timezone"`
-	xxx_hidden_DefaultCurrency           *string                  `protobuf:"bytes,13,opt,name=default_currency,json=defaultCurrency"`
-	xxx_hidden_DocumentLocale            *string                  `protobuf:"bytes,14,opt,name=document_locale,json=documentLocale"`
-	xxx_hidden_DocumentNumbering         DocumentNumbering        `protobuf:"varint,15,opt,name=document_numbering,json=documentNumbering,enum=tanvo.organization.v1.DocumentNumbering"`
-	xxx_hidden_DocumentNumberPrefix      *string                  `protobuf:"bytes,16,opt,name=document_number_prefix,json=documentNumberPrefix"`
-	xxx_hidden_InvoiceFooter             *string                  `protobuf:"bytes,17,opt,name=invoice_footer,json=invoiceFooter"`
-	xxx_hidden_InvoiceGracePeriodDays    int32                    `protobuf:"varint,18,opt,name=invoice_grace_period_days,json=invoiceGracePeriodDays"`
-	xxx_hidden_NetPaymentTermDays        int32                    `protobuf:"varint,19,opt,name=net_payment_term_days,json=netPaymentTermDays"`
-	xxx_hidden_FinalizeZeroAmountInvoice bool                     `protobuf:"varint,20,opt,name=finalize_zero_amount_invoice,json=finalizeZeroAmountInvoice"`
-	xxx_hidden_IssuingDateAnchor         v1.IssuingDateAnchor     `protobuf:"varint,21,opt,name=issuing_date_anchor,json=issuingDateAnchor,enum=tanvo.common.v1.IssuingDateAnchor"`
-	xxx_hidden_IssuingDateAdjustment     v1.IssuingDateAdjustment `protobuf:"varint,22,opt,name=issuing_date_adjustment,json=issuingDateAdjustment,enum=tanvo.common.v1.IssuingDateAdjustment"`
-	xxx_hidden_EmailSettings             []EmailSetting           `protobuf:"varint,23,rep,packed,name=email_settings,json=emailSettings,enum=tanvo.organization.v1.EmailSetting"`
-	xxx_hidden_EuTaxManagement           bool                     `protobuf:"varint,24,opt,name=eu_tax_management,json=euTaxManagement"`
-	xxx_hidden_Einvoicing                bool                     `protobuf:"varint,25,opt,name=einvoicing"`
-	xxx_hidden_IsDefault                 bool                     `protobuf:"varint,26,opt,name=is_default,json=isDefault"`
-	xxx_hidden_AppliedDunningCampaignId  *string                  `protobuf:"bytes,27,opt,name=applied_dunning_campaign_id,json=appliedDunningCampaignId"`
-	xxx_hidden_TaxIds                    []string                 `protobuf:"bytes,28,rep,name=tax_ids,json=taxIds"`
-	xxx_hidden_InvoiceCustomSectionIds   []string                 `protobuf:"bytes,29,rep,name=invoice_custom_section_ids,json=invoiceCustomSectionIds"`
-	xxx_hidden_ArchivedAt                *timestamppb.Timestamp   `protobuf:"bytes,30,opt,name=archived_at,json=archivedAt"`
-	xxx_hidden_CreatedAt                 *timestamppb.Timestamp   `protobuf:"bytes,31,opt,name=created_at,json=createdAt"`
-	xxx_hidden_UpdatedAt                 *timestamppb.Timestamp   `protobuf:"bytes,32,opt,name=updated_at,json=updatedAt"`
-	XXX_raceDetectHookData               protoimpl.RaceDetectHookData
-	XXX_presence                         [1]uint32
-	unknownFields                        protoimpl.UnknownFields
-	sizeCache                            protoimpl.SizeCache
+	state                                    protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Id                            *string                  `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Code                          *string                  `protobuf:"bytes,2,opt,name=code"`
+	xxx_hidden_Name                          *string                  `protobuf:"bytes,3,opt,name=name"`
+	xxx_hidden_LegalName                     *string                  `protobuf:"bytes,4,opt,name=legal_name,json=legalName"`
+	xxx_hidden_LegalNumber                   *string                  `protobuf:"bytes,5,opt,name=legal_number,json=legalNumber"`
+	xxx_hidden_TaxIdentificationNumber       *string                  `protobuf:"bytes,6,opt,name=tax_identification_number,json=taxIdentificationNumber"`
+	xxx_hidden_Email                         *string                  `protobuf:"bytes,7,opt,name=email"`
+	xxx_hidden_Phone                         *string                  `protobuf:"bytes,8,opt,name=phone"`
+	xxx_hidden_Address                       *v1.Address              `protobuf:"bytes,9,opt,name=address"`
+	xxx_hidden_Logo                          []byte                   `protobuf:"bytes,10,opt,name=logo"`
+	xxx_hidden_LogoUrl                       *string                  `protobuf:"bytes,11,opt,name=logo_url,json=logoUrl"`
+	xxx_hidden_Timezone                      *string                  `protobuf:"bytes,12,opt,name=timezone"`
+	xxx_hidden_DefaultCurrency               *string                  `protobuf:"bytes,13,opt,name=default_currency,json=defaultCurrency"`
+	xxx_hidden_DocumentLocale                *string                  `protobuf:"bytes,14,opt,name=document_locale,json=documentLocale"`
+	xxx_hidden_DocumentNumbering             DocumentNumbering        `protobuf:"varint,15,opt,name=document_numbering,json=documentNumbering,enum=tanvo.organization.v1.DocumentNumbering"`
+	xxx_hidden_DocumentNumberPrefix          *string                  `protobuf:"bytes,16,opt,name=document_number_prefix,json=documentNumberPrefix"`
+	xxx_hidden_InvoiceFooter                 *string                  `protobuf:"bytes,17,opt,name=invoice_footer,json=invoiceFooter"`
+	xxx_hidden_InvoiceGracePeriodDays        int32                    `protobuf:"varint,18,opt,name=invoice_grace_period_days,json=invoiceGracePeriodDays"`
+	xxx_hidden_NetPaymentTermDays            int32                    `protobuf:"varint,19,opt,name=net_payment_term_days,json=netPaymentTermDays"`
+	xxx_hidden_FinalizeZeroAmountInvoice     bool                     `protobuf:"varint,20,opt,name=finalize_zero_amount_invoice,json=finalizeZeroAmountInvoice"`
+	xxx_hidden_IssuingDateAnchor             v1.IssuingDateAnchor     `protobuf:"varint,21,opt,name=issuing_date_anchor,json=issuingDateAnchor,enum=tanvo.common.v1.IssuingDateAnchor"`
+	xxx_hidden_IssuingDateAdjustment         v1.IssuingDateAdjustment `protobuf:"varint,22,opt,name=issuing_date_adjustment,json=issuingDateAdjustment,enum=tanvo.common.v1.IssuingDateAdjustment"`
+	xxx_hidden_EmailSettings                 []EmailSetting           `protobuf:"varint,23,rep,packed,name=email_settings,json=emailSettings,enum=tanvo.organization.v1.EmailSetting"`
+	xxx_hidden_EuTaxManagement               bool                     `protobuf:"varint,24,opt,name=eu_tax_management,json=euTaxManagement"`
+	xxx_hidden_Einvoicing                    bool                     `protobuf:"varint,25,opt,name=einvoicing"`
+	xxx_hidden_IsDefault                     bool                     `protobuf:"varint,26,opt,name=is_default,json=isDefault"`
+	xxx_hidden_AppliedDunningCampaignId      *string                  `protobuf:"bytes,27,opt,name=applied_dunning_campaign_id,json=appliedDunningCampaignId"`
+	xxx_hidden_TaxIds                        []string                 `protobuf:"bytes,28,rep,name=tax_ids,json=taxIds"`
+	xxx_hidden_InvoiceCustomSectionIds       []string                 `protobuf:"bytes,29,rep,name=invoice_custom_section_ids,json=invoiceCustomSectionIds"`
+	xxx_hidden_ArchivedAt                    *timestamppb.Timestamp   `protobuf:"bytes,30,opt,name=archived_at,json=archivedAt"`
+	xxx_hidden_CreatedAt                     *timestamppb.Timestamp   `protobuf:"bytes,31,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt                     *timestamppb.Timestamp   `protobuf:"bytes,32,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_SkipCreditInvoicePaymentDelay bool                     `protobuf:"varint,33,opt,name=skip_credit_invoice_payment_delay,json=skipCreditInvoicePaymentDelay"`
+	XXX_raceDetectHookData                   protoimpl.RaceDetectHookData
+	XXX_presence                             [2]uint32
+	unknownFields                            protoimpl.UnknownFields
+	sizeCache                                protoimpl.SizeCache
 }
 
 func (x *BillingEntity) Reset() {
@@ -471,44 +472,51 @@ func (x *BillingEntity) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *BillingEntity) GetSkipCreditInvoicePaymentDelay() bool {
+	if x != nil {
+		return x.xxx_hidden_SkipCreditInvoicePaymentDelay
+	}
+	return false
+}
+
 func (x *BillingEntity) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 33)
 }
 
 func (x *BillingEntity) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 33)
 }
 
 func (x *BillingEntity) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 33)
 }
 
 func (x *BillingEntity) SetLegalName(v string) {
 	x.xxx_hidden_LegalName = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 33)
 }
 
 func (x *BillingEntity) SetLegalNumber(v string) {
 	x.xxx_hidden_LegalNumber = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 33)
 }
 
 func (x *BillingEntity) SetTaxIdentificationNumber(v string) {
 	x.xxx_hidden_TaxIdentificationNumber = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 33)
 }
 
 func (x *BillingEntity) SetEmail(v string) {
 	x.xxx_hidden_Email = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 33)
 }
 
 func (x *BillingEntity) SetPhone(v string) {
 	x.xxx_hidden_Phone = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 33)
 }
 
 func (x *BillingEntity) SetAddress(v *v1.Address) {
@@ -520,67 +528,67 @@ func (x *BillingEntity) SetLogo(v []byte) {
 		v = []byte{}
 	}
 	x.xxx_hidden_Logo = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 33)
 }
 
 func (x *BillingEntity) SetLogoUrl(v string) {
 	x.xxx_hidden_LogoUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 33)
 }
 
 func (x *BillingEntity) SetTimezone(v string) {
 	x.xxx_hidden_Timezone = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 33)
 }
 
 func (x *BillingEntity) SetDefaultCurrency(v string) {
 	x.xxx_hidden_DefaultCurrency = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 33)
 }
 
 func (x *BillingEntity) SetDocumentLocale(v string) {
 	x.xxx_hidden_DocumentLocale = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 33)
 }
 
 func (x *BillingEntity) SetDocumentNumbering(v DocumentNumbering) {
 	x.xxx_hidden_DocumentNumbering = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 33)
 }
 
 func (x *BillingEntity) SetDocumentNumberPrefix(v string) {
 	x.xxx_hidden_DocumentNumberPrefix = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 33)
 }
 
 func (x *BillingEntity) SetInvoiceFooter(v string) {
 	x.xxx_hidden_InvoiceFooter = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 33)
 }
 
 func (x *BillingEntity) SetInvoiceGracePeriodDays(v int32) {
 	x.xxx_hidden_InvoiceGracePeriodDays = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 33)
 }
 
 func (x *BillingEntity) SetNetPaymentTermDays(v int32) {
 	x.xxx_hidden_NetPaymentTermDays = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 33)
 }
 
 func (x *BillingEntity) SetFinalizeZeroAmountInvoice(v bool) {
 	x.xxx_hidden_FinalizeZeroAmountInvoice = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 33)
 }
 
 func (x *BillingEntity) SetIssuingDateAnchor(v v1.IssuingDateAnchor) {
 	x.xxx_hidden_IssuingDateAnchor = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 20, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 20, 33)
 }
 
 func (x *BillingEntity) SetIssuingDateAdjustment(v v1.IssuingDateAdjustment) {
 	x.xxx_hidden_IssuingDateAdjustment = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 21, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 21, 33)
 }
 
 func (x *BillingEntity) SetEmailSettings(v []EmailSetting) {
@@ -589,22 +597,22 @@ func (x *BillingEntity) SetEmailSettings(v []EmailSetting) {
 
 func (x *BillingEntity) SetEuTaxManagement(v bool) {
 	x.xxx_hidden_EuTaxManagement = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 23, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 23, 33)
 }
 
 func (x *BillingEntity) SetEinvoicing(v bool) {
 	x.xxx_hidden_Einvoicing = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 24, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 24, 33)
 }
 
 func (x *BillingEntity) SetIsDefault(v bool) {
 	x.xxx_hidden_IsDefault = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 25, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 25, 33)
 }
 
 func (x *BillingEntity) SetAppliedDunningCampaignId(v string) {
 	x.xxx_hidden_AppliedDunningCampaignId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 26, 32)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 26, 33)
 }
 
 func (x *BillingEntity) SetTaxIds(v []string) {
@@ -625,6 +633,11 @@ func (x *BillingEntity) SetCreatedAt(v *timestamppb.Timestamp) {
 
 func (x *BillingEntity) SetUpdatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_UpdatedAt = v
+}
+
+func (x *BillingEntity) SetSkipCreditInvoicePaymentDelay(v bool) {
+	x.xxx_hidden_SkipCreditInvoicePaymentDelay = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 32, 33)
 }
 
 func (x *BillingEntity) HasId() bool {
@@ -830,6 +843,13 @@ func (x *BillingEntity) HasUpdatedAt() bool {
 	return x.xxx_hidden_UpdatedAt != nil
 }
 
+func (x *BillingEntity) HasSkipCreditInvoicePaymentDelay() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 32)
+}
+
 func (x *BillingEntity) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -971,6 +991,11 @@ func (x *BillingEntity) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = nil
 }
 
+func (x *BillingEntity) ClearSkipCreditInvoicePaymentDelay() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 32)
+	x.xxx_hidden_SkipCreditInvoicePaymentDelay = false
+}
+
 type BillingEntity_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1041,6 +1066,9 @@ type BillingEntity_builder struct {
 	CreatedAt *timestamppb.Timestamp
 	// When the entity last changed.
 	UpdatedAt *timestamppb.Timestamp
+	// Charges wallet top-up invoices at once, without waiting for a possible
+	// checkout payment.
+	SkipCreditInvoicePaymentDelay *bool
 }
 
 func (b0 BillingEntity_builder) Build() *BillingEntity {
@@ -1048,105 +1076,105 @@ func (b0 BillingEntity_builder) Build() *BillingEntity {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 33)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 33)
 		x.xxx_hidden_Code = b.Code
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 33)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.LegalName != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 33)
 		x.xxx_hidden_LegalName = b.LegalName
 	}
 	if b.LegalNumber != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 33)
 		x.xxx_hidden_LegalNumber = b.LegalNumber
 	}
 	if b.TaxIdentificationNumber != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 33)
 		x.xxx_hidden_TaxIdentificationNumber = b.TaxIdentificationNumber
 	}
 	if b.Email != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 33)
 		x.xxx_hidden_Email = b.Email
 	}
 	if b.Phone != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 33)
 		x.xxx_hidden_Phone = b.Phone
 	}
 	x.xxx_hidden_Address = b.Address
 	if b.Logo != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 33)
 		x.xxx_hidden_Logo = b.Logo
 	}
 	if b.LogoUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 33)
 		x.xxx_hidden_LogoUrl = b.LogoUrl
 	}
 	if b.Timezone != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 33)
 		x.xxx_hidden_Timezone = b.Timezone
 	}
 	if b.DefaultCurrency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 33)
 		x.xxx_hidden_DefaultCurrency = b.DefaultCurrency
 	}
 	if b.DocumentLocale != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 33)
 		x.xxx_hidden_DocumentLocale = b.DocumentLocale
 	}
 	if b.DocumentNumbering != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 33)
 		x.xxx_hidden_DocumentNumbering = *b.DocumentNumbering
 	}
 	if b.DocumentNumberPrefix != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 33)
 		x.xxx_hidden_DocumentNumberPrefix = b.DocumentNumberPrefix
 	}
 	if b.InvoiceFooter != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 33)
 		x.xxx_hidden_InvoiceFooter = b.InvoiceFooter
 	}
 	if b.InvoiceGracePeriodDays != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 33)
 		x.xxx_hidden_InvoiceGracePeriodDays = *b.InvoiceGracePeriodDays
 	}
 	if b.NetPaymentTermDays != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 33)
 		x.xxx_hidden_NetPaymentTermDays = *b.NetPaymentTermDays
 	}
 	if b.FinalizeZeroAmountInvoice != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 33)
 		x.xxx_hidden_FinalizeZeroAmountInvoice = *b.FinalizeZeroAmountInvoice
 	}
 	if b.IssuingDateAnchor != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 20, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 20, 33)
 		x.xxx_hidden_IssuingDateAnchor = *b.IssuingDateAnchor
 	}
 	if b.IssuingDateAdjustment != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 21, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 21, 33)
 		x.xxx_hidden_IssuingDateAdjustment = *b.IssuingDateAdjustment
 	}
 	x.xxx_hidden_EmailSettings = b.EmailSettings
 	if b.EuTaxManagement != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 23, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 23, 33)
 		x.xxx_hidden_EuTaxManagement = *b.EuTaxManagement
 	}
 	if b.Einvoicing != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 24, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 24, 33)
 		x.xxx_hidden_Einvoicing = *b.Einvoicing
 	}
 	if b.IsDefault != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 25, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 25, 33)
 		x.xxx_hidden_IsDefault = *b.IsDefault
 	}
 	if b.AppliedDunningCampaignId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 26, 32)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 26, 33)
 		x.xxx_hidden_AppliedDunningCampaignId = b.AppliedDunningCampaignId
 	}
 	x.xxx_hidden_TaxIds = b.TaxIds
@@ -1154,6 +1182,10 @@ func (b0 BillingEntity_builder) Build() *BillingEntity {
 	x.xxx_hidden_ArchivedAt = b.ArchivedAt
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
+	if b.SkipCreditInvoicePaymentDelay != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 32, 33)
+		x.xxx_hidden_SkipCreditInvoicePaymentDelay = *b.SkipCreditInvoicePaymentDelay
+	}
 	return m0
 }
 
@@ -2010,7 +2042,7 @@ var File_tanvo_organization_v1_billing_entity_proto protoreflect.FileDescriptor
 
 const file_tanvo_organization_v1_billing_entity_proto_rawDesc = "" +
 	"\n" +
-	"*tanvo/organization/v1/billing_entity.proto\x12\x15tanvo.organization.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\x87\x0f\n" +
+	"*tanvo/organization/v1/billing_entity.proto\x12\x15tanvo.organization.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xd1\x0f\n" +
 	"\rBillingEntity\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12#\n" +
 	"\x04code\x18\x02 \x01(\tB\x0f\xe2A\x02\x02\x05\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x04code\x12\"\n" +
@@ -2056,7 +2088,8 @@ const file_tanvo_organization_v1_billing_entity_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x1f \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18  \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:_\xeaA\\\n" +
+	"updated_at\x18  \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x12H\n" +
+	"!skip_credit_invoice_payment_delay\x18! \x01(\bR\x1dskipCreditInvoicePaymentDelay:_\xeaA\\\n" +
 	"\x17tanvo.xyz/BillingEntity\x12!billing_entities/{billing_entity}*\x0fbillingEntities2\rbillingEntity\"\xf6\x01\n" +
 	"\x1aCreateBillingEntityRequest\x12W\n" +
 	"\x0ebilling_entity\x18\x01 \x01(\v2$.tanvo.organization.v1.BillingEntityB\n" +

@@ -1,0 +1,12 @@
+{
+  "@recordsetCount": 1,
+  "value": [
+    {
+      "id": 12345,
+      "accountId": 2000134479,
+      "companyCode": "DEFAULT",
+      "name": "Default company",
+      "isDefault": true
+    }
+  ]
+}

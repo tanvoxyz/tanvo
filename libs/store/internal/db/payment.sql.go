@@ -69,12 +69,12 @@ INSERT INTO payments (
   organization_id, id, payable_type, invoice_id, payment_request_id, customer_id, payment_kind, status,
   provider_status, amount, currency, reference, paid_at, integration_id, provider_payment_id,
   provider_payment_method_id, provider_payment_data, provider_method_details, payment_method_id,
-  created_at, updated_at
+  created_at, updated_at, error_code
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8,
   $9, $10, $11, $12, $13, $14, $15,
   $16, $17, $18, $19,
-  $20, $21
+  $20, $21, $22
 )
 ON CONFLICT DO NOTHING
 `
@@ -101,6 +101,7 @@ type CreatePaymentParams struct {
 	PaymentMethodID         *uuid.UUID
 	CreatedAt               time.Time
 	UpdatedAt               time.Time
+	ErrorCode               *string
 }
 
 // Payments, receipts, refunds, payment requests, methods, provider customers,
@@ -128,6 +129,7 @@ func (q *Queries) CreatePayment(ctx context.Context, arg CreatePaymentParams) (i
 		arg.PaymentMethodID,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.ErrorCode,
 	)
 	if err != nil {
 		return 0, err
@@ -422,6 +424,23 @@ func (q *Queries) DeleteExpiredInboundWebhooks(ctx context.Context, arg DeleteEx
 	return result.RowsAffected(), nil
 }
 
+const deletePayment = `-- name: DeletePayment :execrows
+DELETE FROM payments WHERE organization_id = $1 AND id = $2
+`
+
+type DeletePaymentParams struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+}
+
+func (q *Queries) DeletePayment(ctx context.Context, arg DeletePaymentParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deletePayment, arg.OrganizationID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deletePaymentRequestInvoices = `-- name: DeletePaymentRequestInvoices :exec
 DELETE FROM payment_request_invoices WHERE organization_id = $1 AND payment_request_id = $2
 `
@@ -523,7 +542,7 @@ func (q *Queries) GetInboundWebhook(ctx context.Context, arg GetInboundWebhookPa
 }
 
 const getPayment = `-- name: GetPayment :one
-SELECT organization_id, id, payable_type, invoice_id, payment_request_id, customer_id, payment_kind, status, provider_status, amount, currency, reference, paid_at, integration_id, provider_payment_id, provider_payment_method_id, provider_payment_data, provider_method_details, payment_method_id, created_at, updated_at FROM payments WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, payable_type, invoice_id, payment_request_id, customer_id, payment_kind, status, provider_status, amount, currency, reference, paid_at, integration_id, provider_payment_id, provider_payment_method_id, provider_payment_data, provider_method_details, payment_method_id, created_at, updated_at, error_code FROM payments WHERE organization_id = $1 AND id = $2
 `
 
 type GetPaymentParams struct {
@@ -556,12 +575,13 @@ func (q *Queries) GetPayment(ctx context.Context, arg GetPaymentParams) (Payment
 		&i.PaymentMethodID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ErrorCode,
 	)
 	return i, err
 }
 
 const getPaymentByProviderPaymentID = `-- name: GetPaymentByProviderPaymentID :one
-SELECT organization_id, id, payable_type, invoice_id, payment_request_id, customer_id, payment_kind, status, provider_status, amount, currency, reference, paid_at, integration_id, provider_payment_id, provider_payment_method_id, provider_payment_data, provider_method_details, payment_method_id, created_at, updated_at FROM payments
+SELECT organization_id, id, payable_type, invoice_id, payment_request_id, customer_id, payment_kind, status, provider_status, amount, currency, reference, paid_at, integration_id, provider_payment_id, provider_payment_method_id, provider_payment_data, provider_method_details, payment_method_id, created_at, updated_at, error_code FROM payments
 WHERE organization_id = $1 AND integration_id = $2 AND provider_payment_id = $3
 ORDER BY id
 LIMIT 1
@@ -598,6 +618,7 @@ func (q *Queries) GetPaymentByProviderPaymentID(ctx context.Context, arg GetPaym
 		&i.PaymentMethodID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.ErrorCode,
 	)
 	return i, err
 }
@@ -926,6 +947,99 @@ type InsertPaymentRequestInvoicesParams struct {
 func (q *Queries) InsertPaymentRequestInvoices(ctx context.Context, arg InsertPaymentRequestInvoicesParams) error {
 	_, err := q.db.Exec(ctx, insertPaymentRequestInvoices, arg.OrganizationID, arg.PaymentRequestID, arg.InvoiceIds)
 	return err
+}
+
+const listAbandonedPayments = `-- name: ListAbandonedPayments :many
+SELECT organization_id, id, payable_type, invoice_id, payment_request_id, customer_id, payment_kind, status, provider_status, amount, currency, reference, paid_at, integration_id, provider_payment_id, provider_payment_method_id, provider_payment_data, provider_method_details, payment_method_id, created_at, updated_at, error_code FROM payments
+WHERE organization_id = $1 AND payment_kind = 'provider' AND payable_type = 'invoice'
+  AND status = 'processing' AND provider_status = 'requires_action'
+  AND updated_at BETWEEN $2::timestamptz AND $3::timestamptz
+ORDER BY id
+`
+
+type ListAbandonedPaymentsParams struct {
+	OrganizationID uuid.UUID
+	FromAt         time.Time
+	ToAt           time.Time
+}
+
+func (q *Queries) ListAbandonedPayments(ctx context.Context, arg ListAbandonedPaymentsParams) ([]Payment, error) {
+	rows, err := q.db.Query(ctx, listAbandonedPayments, arg.OrganizationID, arg.FromAt, arg.ToAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Payment{}
+	for rows.Next() {
+		var i Payment
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.PayableType,
+			&i.InvoiceID,
+			&i.PaymentRequestID,
+			&i.CustomerID,
+			&i.PaymentKind,
+			&i.Status,
+			&i.ProviderStatus,
+			&i.Amount,
+			&i.Currency,
+			&i.Reference,
+			&i.PaidAt,
+			&i.IntegrationID,
+			&i.ProviderPaymentID,
+			&i.ProviderPaymentMethodID,
+			&i.ProviderPaymentData,
+			&i.ProviderMethodDetails,
+			&i.PaymentMethodID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ErrorCode,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listActivePaymentIntents = `-- name: ListActivePaymentIntents :many
+SELECT organization_id, id, invoice_id, status, payment_url, provider_session_id, expires_at, created_at, updated_at FROM payment_intents
+WHERE organization_id = $1 AND status = 'active'
+ORDER BY id
+`
+
+func (q *Queries) ListActivePaymentIntents(ctx context.Context, organizationID uuid.UUID) ([]PaymentIntent, error) {
+	rows, err := q.db.Query(ctx, listActivePaymentIntents, organizationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []PaymentIntent{}
+	for rows.Next() {
+		var i PaymentIntent
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.InvoiceID,
+			&i.Status,
+			&i.PaymentUrl,
+			&i.ProviderSessionID,
+			&i.ExpiresAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listPaymentIntentsAwaitingExpiration = `-- name: ListPaymentIntentsAwaitingExpiration :many
@@ -1311,7 +1425,7 @@ func (q *Queries) ListPaymentRequestsByInvoice(ctx context.Context, arg ListPaym
 }
 
 const listPayments = `-- name: ListPayments :many
-SELECT p.organization_id, p.id, p.payable_type, p.invoice_id, p.payment_request_id, p.customer_id, p.payment_kind, p.status, p.provider_status, p.amount, p.currency, p.reference, p.paid_at, p.integration_id, p.provider_payment_id, p.provider_payment_method_id, p.provider_payment_data, p.provider_method_details, p.payment_method_id, p.created_at, p.updated_at FROM payments p
+SELECT p.organization_id, p.id, p.payable_type, p.invoice_id, p.payment_request_id, p.customer_id, p.payment_kind, p.status, p.provider_status, p.amount, p.currency, p.reference, p.paid_at, p.integration_id, p.provider_payment_id, p.provider_payment_method_id, p.provider_payment_data, p.provider_method_details, p.payment_method_id, p.created_at, p.updated_at, p.error_code FROM payments p
 WHERE p.organization_id = $1
   AND ($2::uuid IS NULL OR p.customer_id = $2)
   AND ($3::text IS NULL OR p.status = $3)
@@ -1411,6 +1525,7 @@ func (q *Queries) ListPayments(ctx context.Context, arg ListPaymentsParams) ([]P
 			&i.PaymentMethodID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ErrorCode,
 		); err != nil {
 			return nil, err
 		}
@@ -1423,7 +1538,7 @@ func (q *Queries) ListPayments(ctx context.Context, arg ListPaymentsParams) ([]P
 }
 
 const listPaymentsByInvoice = `-- name: ListPaymentsByInvoice :many
-SELECT organization_id, id, payable_type, invoice_id, payment_request_id, customer_id, payment_kind, status, provider_status, amount, currency, reference, paid_at, integration_id, provider_payment_id, provider_payment_method_id, provider_payment_data, provider_method_details, payment_method_id, created_at, updated_at FROM payments
+SELECT organization_id, id, payable_type, invoice_id, payment_request_id, customer_id, payment_kind, status, provider_status, amount, currency, reference, paid_at, integration_id, provider_payment_id, provider_payment_method_id, provider_payment_data, provider_method_details, payment_method_id, created_at, updated_at, error_code FROM payments
 WHERE organization_id = $1 AND invoice_id = $2
 ORDER BY id
 `
@@ -1464,6 +1579,7 @@ func (q *Queries) ListPaymentsByInvoice(ctx context.Context, arg ListPaymentsByI
 			&i.PaymentMethodID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ErrorCode,
 		); err != nil {
 			return nil, err
 		}
@@ -1476,7 +1592,7 @@ func (q *Queries) ListPaymentsByInvoice(ctx context.Context, arg ListPaymentsByI
 }
 
 const listPaymentsByPaymentRequest = `-- name: ListPaymentsByPaymentRequest :many
-SELECT organization_id, id, payable_type, invoice_id, payment_request_id, customer_id, payment_kind, status, provider_status, amount, currency, reference, paid_at, integration_id, provider_payment_id, provider_payment_method_id, provider_payment_data, provider_method_details, payment_method_id, created_at, updated_at FROM payments
+SELECT organization_id, id, payable_type, invoice_id, payment_request_id, customer_id, payment_kind, status, provider_status, amount, currency, reference, paid_at, integration_id, provider_payment_id, provider_payment_method_id, provider_payment_data, provider_method_details, payment_method_id, created_at, updated_at, error_code FROM payments
 WHERE organization_id = $1 AND payment_request_id = $2
 ORDER BY id
 `
@@ -1517,6 +1633,7 @@ func (q *Queries) ListPaymentsByPaymentRequest(ctx context.Context, arg ListPaym
 			&i.PaymentMethodID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.ErrorCode,
 		); err != nil {
 			return nil, err
 		}
@@ -1685,6 +1802,17 @@ func (q *Queries) ListRetriableInboundWebhooks(ctx context.Context, arg ListRetr
 	return items, nil
 }
 
+const paymentIntentsExist = `-- name: PaymentIntentsExist :one
+SELECT EXISTS (SELECT 1 FROM payment_intents WHERE organization_id = $1)::boolean
+`
+
+func (q *Queries) PaymentIntentsExist(ctx context.Context, organizationID uuid.UUID) (bool, error) {
+	row := q.db.QueryRow(ctx, paymentIntentsExist, organizationID)
+	var column_1 bool
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const updateInboundWebhook = `-- name: UpdateInboundWebhook :execrows
 UPDATE inbound_webhooks SET
   organization_id = $1, id = $2, source = $3, integration_id = $4, code = $5,
@@ -1739,7 +1867,7 @@ UPDATE payments SET
   integration_id = $14, provider_payment_id = $15,
   provider_payment_method_id = $16, provider_payment_data = $17,
   provider_method_details = $18, payment_method_id = $19,
-  created_at = $20, updated_at = $21
+  created_at = $20, updated_at = $21, error_code = $22
 WHERE organization_id = $1 AND id = $2
 `
 
@@ -1765,6 +1893,7 @@ type UpdatePaymentParams struct {
 	PaymentMethodID         *uuid.UUID
 	CreatedAt               time.Time
 	UpdatedAt               time.Time
+	ErrorCode               *string
 }
 
 func (q *Queries) UpdatePayment(ctx context.Context, arg UpdatePaymentParams) (int64, error) {
@@ -1790,6 +1919,7 @@ func (q *Queries) UpdatePayment(ctx context.Context, arg UpdatePaymentParams) (i
 		arg.PaymentMethodID,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.ErrorCode,
 	)
 	if err != nil {
 		return 0, err

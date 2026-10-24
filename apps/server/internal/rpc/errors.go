@@ -11,6 +11,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/auth"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
 )
 
 // FieldViolation is one invalid field of a request.
@@ -64,6 +65,9 @@ const (
 	ReasonInvalidTransition = "invalid_transition"
 	// ReasonConflict: the write conflicts with stored data.
 	ReasonConflict = "conflict"
+	// ReasonUnsupported: the integration's provider does not have the
+	// operation.
+	ReasonUnsupported = "unsupported"
 )
 
 // withReason adds a google.rpc.ErrorInfo detail with the stable reason.
@@ -110,6 +114,11 @@ func validationViolations(prefix string, err error) ([]FieldViolation, bool) {
 //     PermissionDenied; core.ErrInvalidValue: InvalidArgument;
 //     core.ErrInvalidTransition: FailedPrecondition; core.ErrConflict:
 //     AlreadyExists; context errors: Canceled and DeadlineExceeded;
+//   - *integration.ProviderError: FailedPrecondition, reason the
+//     provider's code (third_party_error without one);
+//     integration.ErrNotConnected and ErrAuthentication:
+//     FailedPrecondition, reason third_party_error;
+//     integration.ErrUnsupported: Unimplemented, reason unsupported;
 //   - anything else: Internal, logged here and not shown to the caller.
 //
 // A *connect.Error is returned as it is.
@@ -133,6 +142,15 @@ func Error(ctx context.Context, err error) error {
 	if re, ok := errors.AsType[*core.RuleError](err); ok {
 		return newError(connect.CodeFailedPrecondition, re.Code, re.Error())
 	}
+	if pe, ok := errors.AsType[*integration.ProviderError](err); ok {
+		// A provider's refusal is the caller's to fix at the provider
+		// (lago third-party service failures).
+		reason := pe.Code
+		if reason == "" {
+			reason = ReasonThirdPartyError
+		}
+		return newError(connect.CodeFailedPrecondition, reason, pe.Error())
+	}
 	switch {
 	case errors.Is(err, context.Canceled):
 		return connect.NewError(connect.CodeCanceled, "canceled")
@@ -152,6 +170,10 @@ func Error(ctx context.Context, err error) error {
 		return newError(connect.CodeFailedPrecondition, ReasonInvalidTransition, err.Error())
 	case errors.Is(err, core.ErrConflict):
 		return newError(connect.CodeAlreadyExists, ReasonConflict, "conflict")
+	case errors.Is(err, integration.ErrUnsupported):
+		return newError(connect.CodeUnimplemented, ReasonUnsupported, "not supported by the provider")
+	case errors.Is(err, integration.ErrNotConnected), errors.Is(err, integration.ErrAuthentication):
+		return newError(connect.CodeFailedPrecondition, ReasonThirdPartyError, err.Error())
 	}
 	slog.ErrorContext(ctx, "rpc: internal error", "error", err)
 	return connect.NewError(connect.CodeInternal, "internal error")

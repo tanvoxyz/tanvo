@@ -1,6 +1,7 @@
 package integrations
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"slices"
@@ -87,10 +88,22 @@ type CollectionMappingInput struct {
 	Currencies map[string]string
 }
 
-// UpsertMapping creates the mapping of an object, or replaces the one
-// with the same object and billing entity (lago IntegrationMappings::
-// CreateService and UpdateService).
-func (s *Service) UpsertMapping(ctx context.Context, org core.OrganizationID, id core.IntegrationID, in MappingInput) (*integration.Mapping, error) {
+// MappingUpdate holds the fields of a mapping to update (lago
+// IntegrationMappings::UpdateService: the external fields only).
+type MappingUpdate struct {
+	// ExternalID is the new provider item ID.
+	ExternalID core.Optional[string]
+	// ExternalAccountCode is the new account code; nil clears it.
+	ExternalAccountCode core.Optional[*string]
+	// ExternalName is the new item name; nil clears it.
+	ExternalName core.Optional[*string]
+}
+
+// CreateMapping creates the mapping of an object (lago
+// IntegrationMappings::CreateService); a second mapping of the same
+// object and billing entity is a mappable_type value_already_exist error
+// (base_mapping.rb:16-17).
+func (s *Service) CreateMapping(ctx context.Context, org core.OrganizationID, id core.IntegrationID, in MappingInput) (*integration.Mapping, error) {
 	var out *integration.Mapping
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
 		i, err := mappableIntegration(ctx, r, org, id)
@@ -115,11 +128,10 @@ func (s *Service) UpsertMapping(ctx context.Context, org core.OrganizationID, id
 		if err := m.Validate(); err != nil {
 			return err
 		}
-		cur, err := r.IntegrationMappings.Find(ctx, org, i.ID, m.MappableType, m.MappableID, be)
+		_, err = r.IntegrationMappings.Find(ctx, org, i.ID, m.MappableType, m.MappableID, be)
 		switch {
 		case err == nil:
-			m.ID, m.CreatedAt = cur.ID, cur.CreatedAt
-			err = r.IntegrationMappings.Update(ctx, m)
+			err = core.ErrConflict
 		case errors.Is(err, core.ErrNotFound):
 			err = r.IntegrationMappings.Create(ctx, m)
 		}
@@ -127,6 +139,38 @@ func (s *Service) UpsertMapping(ctx context.Context, org core.OrganizationID, id
 			return &core.ValidationError{Errors: []core.FieldError{{Field: "mappable_type", Code: core.CodeAlreadyExists}}}
 		}
 		if err != nil {
+			return err
+		}
+		out = m
+		return nil
+	})
+	return out, err
+}
+
+// UpdateMapping updates the external fields of a mapping (lago
+// IntegrationMappings::UpdateService); the object and billing entity
+// stay.
+func (s *Service) UpdateMapping(ctx context.Context, org core.OrganizationID, id core.IntegrationID, mapping core.IntegrationMappingID, in MappingUpdate) (*integration.Mapping, error) {
+	var out *integration.Mapping
+	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+		if _, err := get(ctx, r, org, id); err != nil {
+			return err
+		}
+		m, err := r.IntegrationMappings.Get(ctx, org, mapping)
+		if errors.Is(err, core.ErrNotFound) || (err == nil && m.IntegrationID != id) {
+			return core.NotFound(ResourceMapping)
+		}
+		if err != nil {
+			return err
+		}
+		in.ExternalID.Apply(&m.ExternalID)
+		in.ExternalAccountCode.Apply(&m.ExternalAccountCode)
+		in.ExternalName.Apply(&m.ExternalName)
+		if err := m.Validate(); err != nil {
+			return err
+		}
+		m.UpdatedAt = s.d.Now()
+		if err := r.IntegrationMappings.Update(ctx, m); err != nil {
 			return err
 		}
 		out = m
@@ -186,10 +230,32 @@ func (s *Service) Mappings(ctx context.Context, org core.OrganizationID, id core
 	return out, err
 }
 
-// UpsertCollectionMapping creates the collection mapping of a type, or
-// replaces the one with the same type and billing entity (lago
-// IntegrationCollectionMappings::CreateService and UpdateService).
-func (s *Service) UpsertCollectionMapping(ctx context.Context, org core.OrganizationID, id core.IntegrationID, in CollectionMappingInput) (*integration.CollectionMapping, error) {
+// CollectionMappingUpdate holds the fields of a collection mapping to
+// update (lago IntegrationCollectionMappings::UpdateService: every field
+// but the type and billing entity).
+type CollectionMappingUpdate struct {
+	// ExternalID is the new provider item ID; nil clears it.
+	ExternalID core.Optional[*string]
+	// ExternalAccountCode is the new account code; nil clears it.
+	ExternalAccountCode core.Optional[*string]
+	// ExternalName is the new item name; nil clears it.
+	ExternalName core.Optional[*string]
+	// TaxNexus is the new NetSuite tax nexus; nil clears it.
+	TaxNexus core.Optional[*string]
+	// TaxType is the new NetSuite tax type; nil clears it.
+	TaxType core.Optional[*string]
+	// TaxCode is the new NetSuite tax code; nil clears it.
+	TaxCode core.Optional[*string]
+	// Currencies are the new NetSuite currencies; a non-nil empty map is
+	// a currencies cannot_be_empty error.
+	Currencies core.Optional[map[string]string]
+}
+
+// CreateCollectionMapping creates the collection mapping of a type (lago
+// IntegrationCollectionMappings::CreateService); a second mapping of the
+// same type and billing entity is a mapping_type value_already_exist
+// error (base_collection_mapping.rb:27-28).
+func (s *Service) CreateCollectionMapping(ctx context.Context, org core.OrganizationID, id core.IntegrationID, in CollectionMappingInput) (*integration.CollectionMapping, error) {
 	var out *integration.CollectionMapping
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
 		i, err := mappableIntegration(ctx, r, org, id)
@@ -208,30 +274,19 @@ func (s *Service) UpsertCollectionMapping(ctx context.Context, org core.Organiza
 		}
 		var v core.Validator
 		if i.Provider == integration.ProviderNetsuite {
-			// netsuite_collection_mapping.rb:5-17: the tax fields and
-			// currencies are NetSuite's; currencies apply to the whole
-			// organization.
 			m.TaxNexus, m.TaxType, m.TaxCode, m.Currencies = in.TaxNexus, in.TaxType, in.TaxCode, in.Currencies
-			v.Check(m.Type != integration.CollectionMappingTypeCurrencies || be.IsZero(), "billing_entity", "value_must_be_blank")
-			v.Check(validCurrencies(in.Currencies), "currencies", CodeInvalidFormat)
 		} else {
-			v.Check(in.TaxNexus == nil, "tax_nexus", core.CodeForbidden)
-			v.Check(in.TaxType == nil, "tax_type", core.CodeForbidden)
-			v.Check(in.TaxCode == nil, "tax_code", core.CodeForbidden)
-			v.Check(len(in.Currencies) == 0, "currencies", core.CodeForbidden)
+			nonNetsuiteFields(&v, in.TaxNexus != nil, in.TaxType != nil, in.TaxCode != nil, in.Currencies != nil)
 		}
-		v.Merge("", m.Validate())
-		if err := v.Err(); err != nil {
+		if err := validateCollectionMapping(&v, i, m); err != nil {
 			return err
 		}
 		existing, err := r.IntegrationCollectionMappings.ListByType(ctx, org, i.ID, m.Type)
 		if err != nil {
 			return err
 		}
-		if k := slices.IndexFunc(existing, m.SameKey); k >= 0 {
-			m.ID, m.CreatedAt = existing[k].ID, existing[k].CreatedAt
-			err = r.IntegrationCollectionMappings.Update(ctx, m)
-		} else {
+		err = core.ErrConflict
+		if !slices.ContainsFunc(existing, m.SameKey) {
 			err = r.IntegrationCollectionMappings.Create(ctx, m)
 		}
 		if errors.Is(err, core.ErrConflict) {
@@ -244,6 +299,83 @@ func (s *Service) UpsertCollectionMapping(ctx context.Context, org core.Organiza
 		return nil
 	})
 	return out, err
+}
+
+// UpdateCollectionMapping updates a collection mapping (lago
+// IntegrationCollectionMappings::UpdateService); the type and billing
+// entity stay.
+func (s *Service) UpdateCollectionMapping(ctx context.Context, org core.OrganizationID, id core.IntegrationID, mapping core.IntegrationCollectionMappingID, in CollectionMappingUpdate) (*integration.CollectionMapping, error) {
+	var out *integration.CollectionMapping
+	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+		i, err := get(ctx, r, org, id)
+		if err != nil {
+			return err
+		}
+		m, err := r.IntegrationCollectionMappings.Get(ctx, org, mapping)
+		if errors.Is(err, core.ErrNotFound) || (err == nil && m.IntegrationID != id) {
+			return core.NotFound(ResourceCollectionMapping)
+		}
+		if err != nil {
+			return err
+		}
+		in.ExternalID.Apply(&m.ExternalID)
+		in.ExternalAccountCode.Apply(&m.ExternalAccountCode)
+		in.ExternalName.Apply(&m.ExternalName)
+		var v core.Validator
+		if i.Provider == integration.ProviderNetsuite {
+			in.TaxNexus.Apply(&m.TaxNexus)
+			in.TaxType.Apply(&m.TaxType)
+			in.TaxCode.Apply(&m.TaxCode)
+			in.Currencies.Apply(&m.Currencies)
+		} else {
+			nonNetsuiteFields(&v, in.TaxNexus.Set, in.TaxType.Set, in.TaxCode.Set, in.Currencies.Set)
+		}
+		if err := validateCollectionMapping(&v, i, m); err != nil {
+			return err
+		}
+		m.UpdatedAt = s.d.Now()
+		if err := r.IntegrationCollectionMappings.Update(ctx, m); err != nil {
+			return err
+		}
+		out = m
+		return nil
+	})
+	return out, err
+}
+
+// nonNetsuiteFields refuses the NetSuite fields on another provider's
+// mapping with value_not_allowed, where lago raises NoMethodError: only
+// NetsuiteCollectionMapping has their settings accessors
+// (netsuite_collection_mapping.rb:5-6, create_service.rb:38-41,
+// update_service.rb:22-25).
+func nonNetsuiteFields(v *core.Validator, taxNexus, taxType, taxCode, currencies bool) {
+	v.Check(!taxNexus, "tax_nexus", core.CodeForbidden)
+	v.Check(!taxType, "tax_type", core.CodeForbidden)
+	v.Check(!taxCode, "tax_code", core.CodeForbidden)
+	v.Check(!currencies, "currencies", core.CodeForbidden)
+}
+
+// validateCollectionMapping adds the entity rules and, for NetSuite, the
+// currency and organization-level rules of netsuite_collection_mapping.rb:
+// 13-40, to v.
+func validateCollectionMapping(v *core.Validator, i *integration.Integration, m *integration.CollectionMapping) error {
+	if i.Provider == integration.ProviderNetsuite {
+		currencies := m.Type == integration.CollectionMappingTypeCurrencies
+		v.Check(!currencies || m.BillingEntityID.IsZero(), "billing_entity", CodeMustBeBlank)
+		switch {
+		case !currencies && m.Currencies == nil:
+		case !currencies && len(m.Currencies) > 0:
+			v.Check(false, "currencies", CodeMustBeBlank)
+		case m.Currencies == nil:
+			v.Check(false, "currencies", core.CodeRequired)
+		case len(m.Currencies) == 0:
+			v.Check(false, "currencies", CodeCannotBeEmpty)
+		default:
+			v.Check(validCurrencies(m.Currencies), "currencies", CodeInvalidFormat)
+		}
+	}
+	v.Merge("", m.Validate())
+	return v.Err()
 }
 
 // DeleteCollectionMapping deletes a collection mapping of an integration
@@ -264,8 +396,8 @@ func (s *Service) DeleteCollectionMapping(ctx context.Context, org core.Organiza
 	})
 }
 
-// CollectionMappings lists the collection mappings of an integration in
-// creation order, of one type unless t is "" and of one billing entity
+// CollectionMappings lists the collection mappings of an integration,
+// newest first, of one type unless t is "" and of one billing entity
 // unless be is zero (lago IntegrationCollectionMappingsQuery).
 func (s *Service) CollectionMappings(ctx context.Context, org core.OrganizationID, id core.IntegrationID, t integration.CollectionMappingType, beRef refs.Ref) ([]*integration.CollectionMapping, error) {
 	var out []*integration.CollectionMapping
@@ -283,6 +415,11 @@ func (s *Service) CollectionMappings(ctx context.Context, org core.OrganizationI
 		if !be.IsZero() {
 			out = slices.DeleteFunc(out, func(m *integration.CollectionMapping) bool { return m.BillingEntityID != be })
 		}
+		// Newest first, then by ID (integration_collection_mappings_query.rb:9,
+		// base_query.rb:6, 111).
+		slices.SortStableFunc(out, func(a, b *integration.CollectionMapping) int {
+			return cmp.Or(b.CreatedAt.Compare(a.CreatedAt), cmp.Compare(a.ID.String(), b.ID.String()))
+		})
 		return nil
 	})
 	return out, err
@@ -387,9 +524,18 @@ func pageOf[T any](rows []T, id func(T) uuid.UUID, page core.PageRequest) (core.
 	return out, nil
 }
 
-// CodeInvalidFormat: the NetSuite currencies are not ISO codes mapped to
-// non-blank IDs (netsuite_collection_mapping.rb:33-46).
-const CodeInvalidFormat = "invalid_format"
+// Codes of the NetSuite collection mapping rules
+// (netsuite_collection_mapping.rb:13-46).
+const (
+	// CodeInvalidFormat: the currencies are not ISO codes mapped to
+	// non-blank IDs.
+	CodeInvalidFormat = "invalid_format"
+	// CodeMustBeBlank: currencies on a mapping of another type, or a
+	// billing entity on the currencies mapping.
+	CodeMustBeBlank = "value_must_be_blank"
+	// CodeCannotBeEmpty: the currencies are given but empty.
+	CodeCannotBeEmpty = "cannot_be_empty"
+)
 
 // validCurrencies reports whether every key is an ISO currency and every
 // value non-blank.

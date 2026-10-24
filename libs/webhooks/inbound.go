@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -13,9 +14,20 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
 
-// KindProcessInbound processes a stored provider webhook; its arguments
-// are [InboundArgs].
-const KindProcessInbound = "webhook.process_inbound"
+// Inbound webhook job kinds, all on [port.QueuePayments].
+const (
+	// KindProcessInbound processes a stored provider webhook; its
+	// arguments are [InboundArgs] (lago InboundWebhooks::ProcessJob).
+	KindProcessInbound = "webhook.process_inbound"
+	// KindRetryInbound enqueues the processing of an organization's due
+	// webhooks ([Inbound.RetryDue]; lago Clock::InboundWebhooksRetryJob,
+	// every 15 minutes, clock.rb:235).
+	KindRetryInbound = "webhook.retry_inbound"
+	// KindCleanInbound deletes an organization's webhooks past their
+	// retention ([Inbound.Clean]; lago Clock::InboundWebhooksCleanupJob,
+	// daily, clock.rb:189).
+	KindCleanInbound = "webhook.clean_inbound"
+)
 
 // InboundArgs are the arguments of a [KindProcessInbound] job.
 type InboundArgs struct {
@@ -31,9 +43,11 @@ var ErrUnknownSource = errors.New("webhooks: unknown webhook source")
 // implement it.
 type Source interface {
 	// Verify checks the signature of a webhook received by a provider
-	// connection and returns its event type. A failure is reported to the
-	// sender and nothing is stored.
-	Verify(ctx context.Context, org core.OrganizationID, conn core.IntegrationID, payload []byte, signature string) (eventType string, err error)
+	// connection, from its payload and HTTP headers, and returns its event
+	// type. A failure is reported to the sender and nothing is stored; an
+	// empty event type is acknowledged and not stored (a delivery with no
+	// event to handle).
+	Verify(ctx context.Context, org core.OrganizationID, conn core.IntegrationID, payload []byte, header http.Header) (eventType string, err error)
 	// Handle applies a stored webhook. An error marks it failed; it is
 	// retried per [payment.InboundWebhook.NextRetry].
 	Handle(ctx context.Context, w *payment.InboundWebhook) error
@@ -51,7 +65,10 @@ type Received struct {
 	Code *string
 	// Payload is the raw body.
 	Payload []byte
-	// Signature is the provider signature header.
+	// Header are the request's HTTP headers, which carry the signature.
+	Header http.Header
+	// Signature is the provider signature header, stored with the
+	// webhook; empty stores none.
 	Signature string
 }
 
@@ -68,15 +85,19 @@ type Inbound struct {
 }
 
 // Receive verifies a webhook, stores it pending and enqueues its
-// processing (lago InboundWebhooks::CreateService).
+// processing (lago InboundWebhooks::CreateService). A verified delivery
+// without an event to handle returns nil and stores nothing.
 func (in *Inbound) Receive(ctx context.Context, rcv Received) (*payment.InboundWebhook, error) {
 	src, ok := in.Sources[rcv.Source]
 	if !ok {
 		return nil, fmt.Errorf("receive %q webhook: %w", rcv.Source, ErrUnknownSource)
 	}
-	eventType, err := src.Verify(ctx, rcv.OrganizationID, rcv.IntegrationID, rcv.Payload, rcv.Signature)
+	eventType, err := src.Verify(ctx, rcv.OrganizationID, rcv.IntegrationID, rcv.Payload, rcv.Header)
 	if err != nil {
 		return nil, fmt.Errorf("receive %s webhook: %w", rcv.Source, err)
+	}
+	if eventType == "" {
+		return nil, nil
 	}
 	w := payment.NewInboundWebhook(rcv.OrganizationID, core.NewID[core.InboundWebhookID](in.IDs), rcv.Source, eventType, json.RawMessage(rcv.Payload), in.Clock.Now())
 	w.IntegrationID = rcv.IntegrationID
@@ -195,6 +216,22 @@ func (in *Inbound) RetryDue(ctx context.Context, org core.OrganizationID) (int, 
 	})
 	if err != nil {
 		return 0, fmt.Errorf("retry inbound webhooks: %w", err)
+	}
+	return n, nil
+}
+
+// Clean deletes an organization's webhooks unchanged for
+// [payment.WebhookRetention] (lago Clock::InboundWebhooksCleanupJob,
+// app/jobs/clock/inbound_webhooks_cleanup_job.rb:8) and returns how many.
+func (in *Inbound) Clean(ctx context.Context, org core.OrganizationID) (int, error) {
+	var n int
+	err := in.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+		var err error
+		n, err = r.InboundWebhooks.DeleteExpired(ctx, org, in.Clock.Now())
+		return err
+	})
+	if err != nil {
+		return 0, fmt.Errorf("clean inbound webhooks: %w", err)
 	}
 	return n, nil
 }

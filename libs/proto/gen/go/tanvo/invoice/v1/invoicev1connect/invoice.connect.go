@@ -77,6 +77,9 @@ const (
 	// InvoiceServiceRetryInvoiceSyncProcedure is the procedure name of the InvoiceService's
 	// RetryInvoiceSync RPC.
 	InvoiceServiceRetryInvoiceSyncProcedure = "/tanvo.invoice.v1.InvoiceService/RetryInvoiceSync"
+	// InvoiceServiceRetryInvoiceTaxVoidingProcedure is the procedure name of the InvoiceService's
+	// RetryInvoiceTaxVoiding RPC.
+	InvoiceServiceRetryInvoiceTaxVoidingProcedure = "/tanvo.invoice.v1.InvoiceService/RetryInvoiceTaxVoiding"
 	// InvoiceServiceLoseInvoiceDisputeProcedure is the procedure name of the InvoiceService's
 	// LoseInvoiceDispute RPC.
 	InvoiceServiceLoseInvoiceDisputeProcedure = "/tanvo.invoice.v1.InvoiceService/LoseInvoiceDispute"
@@ -233,6 +236,13 @@ var (
 			Procedure:  InvoiceServiceRetryInvoiceSyncProcedure,
 		}
 	})
+	invoiceServiceRetryInvoiceTaxVoidingSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_invoice_v1_invoice_proto.Services().ByName("InvoiceService").Methods().ByName("RetryInvoiceTaxVoiding"),
+			Procedure:  InvoiceServiceRetryInvoiceTaxVoidingProcedure,
+		}
+	})
 	invoiceServiceLoseInvoiceDisputeSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType: connect.StreamTypeUnary,
@@ -313,9 +323,11 @@ type InvoiceServiceClient interface {
 	// pending or failed and that no payment provider is processing, in the
 	// background.
 	RetryAllInvoicePayments(context.Context, *v1.RetryAllInvoicePaymentsRequest) (*v1.RetryAllInvoicePaymentsResponse, error)
-	// Retries the synchronization of an invoice with the customer's
-	// accounting, CRM or tax integrations.
+	// Queues the synchronization of an invoice with the customer's
+	// accounting integration again, finding the provider's record first.
 	RetryInvoiceSync(context.Context, *v1.RetryInvoiceSyncRequest) (*v1.RetryInvoiceSyncResponse, error)
+	// Tells the tax provider again that a voided invoice was voided.
+	RetryInvoiceTaxVoiding(context.Context, *v1.RetryInvoiceTaxVoidingRequest) (*v1.RetryInvoiceTaxVoidingResponse, error)
 	// Marks the payment dispute of an invoice as lost.
 	LoseInvoiceDispute(context.Context, *v1.LoseInvoiceDisputeRequest) (*v1.LoseInvoiceDisputeResponse, error)
 	// Returns signed URLs of the invoice's PDF and XML, generating them when
@@ -374,9 +386,11 @@ type InvoiceServiceHandler interface {
 	// pending or failed and that no payment provider is processing, in the
 	// background.
 	RetryAllInvoicePayments(context.Context, *v1.RetryAllInvoicePaymentsRequest) (*v1.RetryAllInvoicePaymentsResponse, error)
-	// Retries the synchronization of an invoice with the customer's
-	// accounting, CRM or tax integrations.
+	// Queues the synchronization of an invoice with the customer's
+	// accounting integration again, finding the provider's record first.
 	RetryInvoiceSync(context.Context, *v1.RetryInvoiceSyncRequest) (*v1.RetryInvoiceSyncResponse, error)
+	// Tells the tax provider again that a voided invoice was voided.
+	RetryInvoiceTaxVoiding(context.Context, *v1.RetryInvoiceTaxVoidingRequest) (*v1.RetryInvoiceTaxVoidingResponse, error)
 	// Marks the payment dispute of an invoice as lost.
 	LoseInvoiceDispute(context.Context, *v1.LoseInvoiceDisputeRequest) (*v1.LoseInvoiceDisputeResponse, error)
 	// Returns signed URLs of the invoice's PDF and XML, generating them when
@@ -414,6 +428,7 @@ func RegisterInvoiceServiceHandler(server *connect.Server, svc InvoiceServiceHan
 		connect.Method{Spec: invoiceServiceRetryAllInvoicesSpec(), Handler: adapter.retryAllInvoices},
 		connect.Method{Spec: invoiceServiceRetryAllInvoicePaymentsSpec(), Handler: adapter.retryAllInvoicePayments},
 		connect.Method{Spec: invoiceServiceRetryInvoiceSyncSpec(), Handler: adapter.retryInvoiceSync},
+		connect.Method{Spec: invoiceServiceRetryInvoiceTaxVoidingSpec(), Handler: adapter.retryInvoiceTaxVoiding},
 		connect.Method{Spec: invoiceServiceLoseInvoiceDisputeSpec(), Handler: adapter.loseInvoiceDispute},
 		connect.Method{Spec: invoiceServiceDownloadInvoiceSpec(), Handler: adapter.downloadInvoice},
 		connect.Method{Spec: invoiceServiceResendInvoiceSpec(), Handler: adapter.resendInvoice},
@@ -484,6 +499,10 @@ func (UnimplementedInvoiceServiceHandler) RetryAllInvoicePayments(context.Contex
 
 func (UnimplementedInvoiceServiceHandler) RetryInvoiceSync(context.Context, *v1.RetryInvoiceSyncRequest) (*v1.RetryInvoiceSyncResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.invoice.v1.InvoiceService.RetryInvoiceSync is not implemented")
+}
+
+func (UnimplementedInvoiceServiceHandler) RetryInvoiceTaxVoiding(context.Context, *v1.RetryInvoiceTaxVoidingRequest) (*v1.RetryInvoiceTaxVoidingResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.invoice.v1.InvoiceService.RetryInvoiceTaxVoiding is not implemented")
 }
 
 func (UnimplementedInvoiceServiceHandler) LoseInvoiceDispute(context.Context, *v1.LoseInvoiceDisputeRequest) (*v1.LoseInvoiceDisputeResponse, error) {
@@ -629,6 +648,14 @@ func (c *invoiceServiceClient) RetryAllInvoicePayments(ctx context.Context, req 
 func (c *invoiceServiceClient) RetryInvoiceSync(ctx context.Context, req *v1.RetryInvoiceSyncRequest) (*v1.RetryInvoiceSyncResponse, error) {
 	var res v1.RetryInvoiceSyncResponse
 	if err := c.client.CallUnary(ctx, invoiceServiceRetryInvoiceSyncSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *invoiceServiceClient) RetryInvoiceTaxVoiding(ctx context.Context, req *v1.RetryInvoiceTaxVoidingRequest) (*v1.RetryInvoiceTaxVoidingResponse, error) {
+	var res v1.RetryInvoiceTaxVoidingResponse
+	if err := c.client.CallUnary(ctx, invoiceServiceRetryInvoiceTaxVoidingSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -858,6 +885,18 @@ func (h invoiceServiceHandler) retryInvoiceSync(ctx context.Context, _ connect.S
 		return err
 	}
 	res, err := h.svc.RetryInvoiceSync(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h invoiceServiceHandler) retryInvoiceTaxVoiding(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RetryInvoiceTaxVoidingRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RetryInvoiceTaxVoiding(ctx, &req)
 	if err != nil {
 		return err
 	}

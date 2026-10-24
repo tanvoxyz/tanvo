@@ -16,6 +16,7 @@ import (
 // bindCreditNote binds the credit note repository.
 func (t *txState) bindCreditNote(r *port.Repos) {
 	r.CreditNotes = creditNoteRepo{t}
+	r.CreditNoteErrorDetails = creditNoteErrorDetailRepo{t}
 }
 
 // creditNoteRepo implements creditnote.Repository; items and applied taxes
@@ -412,6 +413,66 @@ func (r creditNoteRepo) DetachFees(ctx context.Context, org core.OrganizationID,
 	}
 	if err := q.DetachCreditNoteItemFees(ctx, db.DetachCreditNoteItemFeesParams{OrganizationID: org.UUID(), InvoiceID: invoice.UUID()}); err != nil {
 		return fmt.Errorf("detach credit note item fees of invoice %s: %w", invoice, mapErr(err))
+	}
+	return nil
+}
+
+// creditNoteErrorDetailRepo implements creditnote.ErrorDetailRepository.
+type creditNoteErrorDetailRepo struct{ t *txState }
+
+var _ creditnote.ErrorDetailRepository = creditNoteErrorDetailRepo{}
+
+func creditNoteErrorDetailOf(r db.CreditNoteErrorDetail) (*creditnote.ErrorDetail, error) {
+	return &creditnote.ErrorDetail{
+		ID:             idOf[core.ErrorDetailID](r.ID),
+		OrganizationID: idOf[core.OrganizationID](r.OrganizationID),
+		CreditNoteID:   idOf[core.CreditNoteID](r.CreditNoteID),
+		Code:           creditnote.ErrorCode(r.ErrorCode),
+		Details:        rawJSON(r.Details),
+		CreatedAt:      utc(r.CreatedAt),
+	}, nil
+}
+
+func (r creditNoteErrorDetailRepo) Create(ctx context.Context, e *creditnote.ErrorDetail) error {
+	q, err := r.t.queries(ctx, e.OrganizationID)
+	if err != nil {
+		return err
+	}
+	n, err := q.CreateCreditNoteErrorDetail(ctx, db.CreateCreditNoteErrorDetailParams{
+		OrganizationID: e.OrganizationID.UUID(),
+		ID:             e.ID.UUID(),
+		CreditNoteID:   e.CreditNoteID.UUID(),
+		ErrorCode:      string(e.Code),
+		Details:        rawJSON(e.Details),
+		CreatedAt:      utc(e.CreatedAt),
+	})
+	return insertErr("error_detail", n, err)
+}
+
+func (r creditNoteErrorDetailRepo) ListByCreditNotes(ctx context.Context, org core.OrganizationID, ids []core.CreditNoteID) ([]*creditnote.ErrorDetail, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.ListCreditNoteErrorDetails(ctx, db.ListCreditNoteErrorDetailsParams{OrganizationID: org.UUID(), CreditNoteIds: uuids(ids)})
+	if err != nil {
+		return nil, fmt.Errorf("list credit note error details: %w", mapErr(err))
+	}
+	return convAll(rows, creditNoteErrorDetailOf)
+}
+
+func (r creditNoteErrorDetailRepo) DeleteByCreditNote(ctx context.Context, org core.OrganizationID, id core.CreditNoteID, code creditnote.ErrorCode) error {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return err
+	}
+	if err := q.DeleteCreditNoteErrorDetails(ctx, db.DeleteCreditNoteErrorDetailsParams{
+		OrganizationID: org.UUID(), CreditNoteID: id.UUID(), ErrorCode: string(code),
+	}); err != nil {
+		return fmt.Errorf("delete credit note error details: %w", mapErr(err))
 	}
 	return nil
 }

@@ -6,11 +6,13 @@ import (
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/billingtest"
+	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/lifecycle"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/coupon"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
+	"github.com/tanvoxyz/tanvo/libs/core/payment"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -161,6 +163,56 @@ func TestCancelIncompleteWithoutGatingInvoice(t *testing.T) {
 			check(t, "reason", got.CancellationReason, "")
 			checkSlice(t, "rules", f.rules(sub), []subscription.ActivationRuleStatus{subscription.ActivationRuleStatusPending})
 			checkSlice(t, "webhooks", f.Webhooks(), nil)
+		})
+	}
+}
+
+// The pending or processing payment of the closed gating invoice is
+// cancelled at its provider; a payment already final is not.
+func TestCancelIncompleteCancelsPendingPayment(t *testing.T) {
+	expire := func(f *fixture, sub *subscription.Subscription) error {
+		_, err := f.expire(sub)
+		return err
+	}
+	decline := func(f *fixture, sub *subscription.Subscription) error {
+		return f.terminate(sub, func(in *lifecycle.TerminateInput) {
+			in.OnTerminationInvoice = subscription.TerminationInvoiceGenerate
+		})
+	}
+	tests := []struct {
+		name     string
+		source   string
+		run      func(f *fixture, sub *subscription.Subscription) error
+		payment  payment.State
+		resolved bool
+		want     int
+	}{
+		{name: "expired, pending payment", source: "expire_service_spec.rb:55", run: expire, payment: payment.StatePending, want: 1},
+		{name: "declined, processing payment", source: "cancel_service_spec.rb:58", run: decline, payment: payment.StateProcessing, want: 1},
+		{name: "expired, failed payment", source: "expire_service_spec.rb:149", run: expire, payment: payment.StateFailed},
+		{name: "declined, no payment", source: "cancel_service_spec.rb:166", run: decline},
+		// cancel_service_spec.rb:143 is the same check, reached here by expiry.
+		{name: "already resolved", source: "expire_service_spec.rb:125", run: expire, payment: payment.StatePending, resolved: true},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Log("source: spec/services/subscriptions/activation_rules/" + tc.source)
+			f := newFixture(t, now)
+			sub, inv, c := f.incompleteOf(invoice.StatusOpen)
+			if tc.payment != "" {
+				f.StoredPayment(payment.InvoicePayable(inv.ID), c.ID, inv.TotalAmount, tc.payment, core.IntegrationID{})
+			}
+			if tc.resolved {
+				f.UpdateSubscription(sub, func(s *subscription.Subscription) { s.Status = subscription.StatusActive })
+			}
+			_ = tc.run(f, sub)
+			got := 0
+			for _, k := range f.JobKinds() {
+				if k == kernel.JobCancelPayment {
+					got++
+				}
+			}
+			check(t, "cancel payment jobs", got, tc.want)
 		})
 	}
 }

@@ -142,6 +142,16 @@ func (r integrationRepo) ListByDomain(_ context.Context, p integration.Provider,
 	}), nil
 }
 
+func (r integrationRepo) OrganizationOf(_ context.Context, id core.IntegrationID) (core.OrganizationID, error) {
+	i, ok := r.d.integrations.first(func(x *integration.Integration) bool {
+		return x.ID == id && x.Category == integration.CategoryPayment && x.DeletedAt == nil
+	})
+	if !ok {
+		return core.OrganizationID{}, notFound("integration", id)
+	}
+	return i.OrganizationID, nil
+}
+
 func (r integrationRepo) List(_ context.Context, org core.OrganizationID, f integration.Filter, page core.PageRequest) (core.Page[*integration.Integration], error) {
 	rows := r.d.integrations.find(func(x *integration.Integration) bool {
 		return x.OrganizationID == org && x.DeletedAt == nil &&
@@ -193,11 +203,6 @@ func (r integrationRepo) Delete(_ context.Context, org core.OrganizationID, id c
 type integrationCustomerRepo struct{ d *integrationData }
 
 func (r integrationCustomerRepo) check(c *integration.IntegrationCustomer) error {
-	if c.ExternalCustomerID != "" && r.d.customers.any(func(x *integration.IntegrationCustomer) bool {
-		return x.ID != c.ID && x.IntegrationID == c.IntegrationID && x.ExternalCustomerID == c.ExternalCustomerID
-	}) {
-		return conflict("integration_customer", "external_customer_id")
-	}
 	existing := r.d.customers.find(func(x *integration.IntegrationCustomer) bool {
 		return x.OrganizationID == c.OrganizationID && x.CustomerID == c.CustomerID
 	})

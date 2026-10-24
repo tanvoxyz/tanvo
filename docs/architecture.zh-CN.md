@@ -340,8 +340,8 @@ POST /v1/events, /v1/events:batch
 | 端口 | 提供者 |
 | :--- | :--- |
 | `PaymentProvider`（客户、支付方式、结账、扣款、退款、webhook） | Stripe、Adyen、GoCardless、Cashfree、Flutterwave、Moneyhash |
-| `TaxProvider`（报价、提交、作废） | Anrok、Avalara |
-| `AccountingSync` / `CRMSync`（客户、发票、贷项通知单、付款、映射） | NetSuite、Xero、Salesforce、HubSpot |
+| `integration.TaxGateway`（报价、申报、作废、冲销、退款） | Anrok、Avalara |
+| `integration.AccountingGateway` / `CRMGateway`（联系人、商品、发票、贷项通知单、付款、CRM 记录） | NetSuite、Xero、HubSpot；Salesforce（仅连接） |
 | `IdentityProvider`（OIDC） | Google、Okta、Entra ID、通用 OIDC |
 | `x402.Facilitators`（verify、settle、supported）与 `x402.ChainReaders`（EVM 与 Solana JSON-RPC） | Coinbase CDP（`providers/x402`） |
 
@@ -356,6 +356,18 @@ POST /v1/events, /v1/events:batch
 * 错误为带 `payment.ErrorKind` 与类别的 `*payment.ProviderError`：`payment.ErrRejected`（终结：卡被拒、请求无效、不存在）或 `payment.ErrRetryable`（限流、服务不可用、冲突；由调用方的任务以同一幂等键重试）；`payment.ErrAuthentication` 表示连接的凭据失效。适配器自身的错误（缺少国家、没有支付方式）不经分类直接返回。
 * 适配器不把提供者对象带入领域：结果包含提供者状态、映射后的 `payment.State`，以及 `requires_action` 的下一步 URL。Webhook 事件带有从元数据（`tanvo_*` 键）读出的 `payment.Refs`；按记录解析它们由 apps/server 负责。
 * 每个适配器按连接限流，并用注入的 OTel 提供者为其 HTTP 客户端埋点（span 带组织与集成 ID；指标不带）。
+
+### 12.2 税务、会计与 CRM 集成
+
+`port.IntegrationProviders` 是按厂商索引的 `port.IntegrationProviderSet`。每个适配器都是 `integration.Gateway`（厂商、连接校验），并实现其类别的网关：`TaxGateway`（Anrok、Avalara：税务交易的报价、申报、作废、冲销与退款，以及 Avalara 的公司查找）、`AccountingGateway`（NetSuite、Xero：联系人、商品与科目、发票、贷项通知单与付款；NetSuite 的子公司通过 `SubsidiaryLister`）或 `CRMGateway`（HubSpot：自定义对象与属性、公司或联系人、发票与订阅记录及其关联）。Salesforce 适配器只校验连接：Salesforce 软件包读取 Tanvo 的 API。`OAuthGateway` 以安装的应用（§13.5）通过 OAuth 2.0 连接 Xero、HubSpot 以及 GoCardless 的支付连接。
+
+* 由 `libs/billing/integrations` 编排。凭据以安装的密钥盒（`auth.SecretBox`）密封，从不返回，Tanvo 为 GoCardless 与 Flutterwave 生成的 webhook 密钥除外。`StartOAuth` 在连接的密钥中保存随机的 state 与重定向 URI，直到 `CompleteOAuth` 兑换授权码；适配器通过服务（`integration.ConnectionStore`）立即保存刷新后的授权。
+* 连接在其事务中排入后续任务：会计集成获取商品，HubSpot 部署对象并保存账户，支付提供者注册 webhook 端点。
+* 同步随触发它们的 webhook 一起排入：`integrations.Service.Triggers` 包装计费与支付服务的 webhook 发送器，因此 `invoice.created`、`credit_note.created`、`subscription.started` 等会在同一事务中排入提供者的同步。每条已同步的记录都是一个 `integration.Resource`（每张发票、贷项通知单、付款或订阅在提供者处的 ID）。
+* `integrations.Taxes` 是计费引擎的 `kernel.TaxProvider`：为草稿与预览询价（Anrok 的答复保存在进程内缓存中），申报已定稿的发票与贷项通知单，作废或冲销已作废发票的税额。
+* 每种任务类型具有其 lago 任务的重试规则（`integrations.RetryRules`：请求上限、提供者故障、超时后先在 NetSuite 中查找再重新创建记录、文档尚不完整）；其他错误令任务失败，并发送 `integration.provider_error` 或客户错误 webhook。
+* 错误为带 `integration.ErrorKind` 的 `*integration.ProviderError`；`ErrRequestLimit` 与 `ErrRetryable` 标明可重试的错误，`ErrAuthentication` 标明凭据失效的连接。API 以 FailedPrecondition 及提供者的错误码回应提供者的拒绝，以 Unimplemented 回应提供者不具备的操作。
+* 适配器共用 `providers/apiclient`：每个厂商一个 HTTP 客户端、每个连接一个限流器（Xero 按租户）且等待而非失败，以及注入的 OTel 提供者。
 
 ---
 
@@ -443,6 +455,15 @@ POST /v1/events, /v1/events:batch
 | `TANVO_WEBHOOKS_ALLOW_PRIVATE` | `false` | 允许投递到私有地址与明文 HTTP |
 | `TANVO_OIDC_ALLOW_PRIVATE` | `false` | 允许经由私有地址与明文 HTTP 访问 OIDC 提供者（开发模式） |
 | `TANVO_WEBHOOKS_TIMEOUT` | `30s` | 单次投递尝试的时限 |
+| `TANVO_API_URL` | | API 的公网 URL；支付服务商把 webhook 发到 `TANVO_API_URL/webhooks/{provider}/{connection_id}`，创建连接时向服务商注册；未设置则不注册 |
+| `TANVO_GOCARDLESS_CLIENT_ID` | | 商户通过 OAuth 连接的 GoCardless 合作伙伴应用的客户端 ID；未设置时无法连接 GoCardless |
+| `TANVO_GOCARDLESS_CLIENT_SECRET` | | 该应用的客户端密钥 |
+| `TANVO_GOCARDLESS_SANDBOX` | `false` | 通过 GoCardless 沙箱连接商户 |
+| `TANVO_XERO_CLIENT_ID` | | 商户通过 OAuth 连接其组织的 Xero 应用的客户端 ID；未设置时无法连接 Xero |
+| `TANVO_XERO_CLIENT_SECRET` | | 其客户端密钥 |
+| `TANVO_HUBSPOT_CLIENT_ID` | | 商户通过 OAuth 连接其门户的 HubSpot 应用的客户端 ID；未设置时无法连接 HubSpot |
+| `TANVO_HUBSPOT_CLIENT_SECRET` | | 其客户端密钥 |
+| `TANVO_ANROK_DRAFT_TAXES_CACHE_TTL` | `24h` | 相同请求下 Anrok 对草稿发票的税额保留多久；`0` 关闭缓存 |
 | `TANVO_APP_URL` | | 邮件链接使用的 Web 控制台 URL |
 | `TANVO_MAIL_FROM` | | 发件地址；设置 `TANVO_SMTP_HOST` 时必填 |
 | `TANVO_SMTP_HOST` | | SMTP 服务器；为空时邮件只记录日志并丢弃 |

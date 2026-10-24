@@ -1,0 +1,15 @@
+{
+  "error": {
+    "message": "Mandate is inactive",
+    "documentation_url": "https://developer.gocardless.com/api-reference#mandate_is_inactive",
+    "type": "invalid_state",
+    "request_id": "REQ_STATE",
+    "errors": [
+      {
+        "reason": "mandate_is_inactive",
+        "message": "Mandate is inactive"
+      }
+    ],
+    "code": 422
+  }
+}

@@ -130,6 +130,16 @@ func (s *Service) satisfyPaymentGate(ctx context.Context, r port.Repos, env *ker
 	if err := kernel.Enqueue(ctx, r, org, kernel.JobGenerateInvoiceDocument, kernel.InvoiceArgs{InvoiceID: inv.ID}, inv.ID.String(), time.Time{}); err != nil {
 		return err
 	}
+	// resolve_service.rb:46: the taxes quoted while gated are reported
+	// to the customer's tax provider.
+	if err := kernel.EnqueueReportInvoiceTaxes(ctx, r, org, inv.CustomerID, inv.ID); err != nil {
+		return err
+	}
+	// resolve_service.rb:48-53: the provider payment carries the invoice
+	// ID until the invoice is numbered.
+	if err := kernel.EnqueueUpdatePaymentReference(ctx, r, org, inv.ID); err != nil {
+		return err
+	}
 	switch {
 	case !slices.ContainsFunc(rules, func(x *subscription.ActivationRule) bool { return !x.Fulfilled() }):
 		return s.activate(ctx, r, env, now)

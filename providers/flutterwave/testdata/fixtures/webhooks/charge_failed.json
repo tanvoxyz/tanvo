@@ -1,0 +1,42 @@
+{
+  "event": "charge.completed",
+  "data": {
+    "id": 408136545,
+    "tx_ref": "0199a000-0000-7000-8000-000000000003",
+    "flw_ref": "LAGO/SM31570678271",
+    "device_fingerprint": "7852b6c97d67edce50a5f1e540719e39",
+    "amount": 100000,
+    "currency": "NGN",
+    "charged_amount": 100000,
+    "app_fee": 1400,
+    "merchant_fee": 0,
+    "processor_response": "invalid token supplied",
+    "auth_model": "PIN",
+    "ip": "72.140.222.142",
+    "narration": "CARD Transaction",
+    "status": "failed",
+    "payment_type": "card",
+    "created_at": "2021-04-16T14:52:37.000Z",
+    "account_id": 82913,
+    "customer": {
+      "id": 255128611,
+      "name": "Test User",
+      "phone_number": null,
+      "email": "test@example.com",
+      "created_at": "2021-04-16T14:52:37.000Z"
+    },
+    "card": {
+      "first_6digits": "536613",
+      "last_4digits": "8816",
+      "issuer": "MASTERCARD ACCESS BANK PLC CREDIT",
+      "country": "NG",
+      "type": "MASTERCARD",
+      "expiry": "12/21"
+    },
+    "meta": {
+      "tanvo_invoice_id": "0199a000-0000-7000-8000-000000000003",
+      "tanvo_payable_type": "invoice"
+    }
+  },
+  "event.type": "CARD_TRANSACTION"
+}

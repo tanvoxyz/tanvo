@@ -190,11 +190,23 @@ service InvoiceService {
     };
   }
 
-  // Retries the synchronization of an invoice with the customer's
-  // accounting, CRM or tax integrations.
+  // Queues the synchronization of an invoice with the customer's
+  // accounting integration again, finding the provider's record first.
   rpc RetryInvoiceSync(RetryInvoiceSyncRequest) returns (RetryInvoiceSyncResponse) {
     option (google.api.http) = {
       post: "/v1/invoices/{invoice_id}:retry_sync"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "invoices:update"
+      api_resource: "invoice"
+    };
+  }
+
+  // Tells the tax provider again that a voided invoice was voided.
+  rpc RetryInvoiceTaxVoiding(RetryInvoiceTaxVoidingRequest) returns (RetryInvoiceTaxVoidingResponse) {
+    option (google.api.http) = {
+      post: "/v1/invoices/{invoice_id}:retry_tax_voiding"
       body: "*"
     };
     option (tanvo.common.v1.access) = {
@@ -1270,6 +1282,22 @@ message RetryInvoiceSyncRequest {
 // RetryInvoiceSyncResponse is the response of InvoiceService.RetryInvoiceSync.
 message RetryInvoiceSyncResponse {}
 
+// RetryInvoiceTaxVoidingRequest is the request of InvoiceService.RetryInvoiceTaxVoiding.
+message RetryInvoiceTaxVoidingRequest {
+  // The invoice's ID.
+  string invoice_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// RetryInvoiceTaxVoidingResponse is the response of InvoiceService.RetryInvoiceTaxVoiding.
+message RetryInvoiceTaxVoidingResponse {
+  // The invoice.
+  Invoice invoice = 1;
+}
+
 // LoseInvoiceDisputeRequest is the request of InvoiceService.LoseInvoiceDispute.
 message LoseInvoiceDisputeRequest {
   // The invoice's ID.
@@ -1464,7 +1492,10 @@ message SetInvoiceSalesforceIdRequest {
 }
 
 // SetInvoiceSalesforceIdResponse is the response of InvoiceService.SetInvoiceSalesforceId.
-message SetInvoiceSalesforceIdResponse {}
+message SetInvoiceSalesforceIdResponse {
+  // The invoice.
+  Invoice invoice = 1;
+}
 
 // GetFeeRequest is the request of FeeService.GetFee.
 message GetFeeRequest {

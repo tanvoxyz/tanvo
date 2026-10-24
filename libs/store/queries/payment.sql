@@ -6,14 +6,17 @@ INSERT INTO payments (
   organization_id, id, payable_type, invoice_id, payment_request_id, customer_id, payment_kind, status,
   provider_status, amount, currency, reference, paid_at, integration_id, provider_payment_id,
   provider_payment_method_id, provider_payment_data, provider_method_details, payment_method_id,
-  created_at, updated_at
+  created_at, updated_at, error_code
 ) VALUES (
   @organization_id, @id, @payable_type, @invoice_id, @payment_request_id, @customer_id, @payment_kind, @status,
   @provider_status, @amount, @currency, @reference, @paid_at, @integration_id, @provider_payment_id,
   @provider_payment_method_id, @provider_payment_data, @provider_method_details, @payment_method_id,
-  @created_at, @updated_at
+  @created_at, @updated_at, @error_code
 )
 ON CONFLICT DO NOTHING;
+
+-- name: DeletePayment :execrows
+DELETE FROM payments WHERE organization_id = @organization_id AND id = @id;
 
 -- name: UpdatePayment :execrows
 UPDATE payments SET
@@ -23,7 +26,7 @@ UPDATE payments SET
   integration_id = @integration_id, provider_payment_id = @provider_payment_id,
   provider_payment_method_id = @provider_payment_method_id, provider_payment_data = @provider_payment_data,
   provider_method_details = @provider_method_details, payment_method_id = @payment_method_id,
-  created_at = @created_at, updated_at = @updated_at
+  created_at = @created_at, updated_at = @updated_at, error_code = @error_code
 WHERE organization_id = @organization_id AND id = @id;
 
 -- name: GetPayment :one
@@ -38,6 +41,13 @@ LIMIT 1;
 -- name: ListPaymentsByInvoice :many
 SELECT * FROM payments
 WHERE organization_id = @organization_id AND invoice_id = @invoice_id
+ORDER BY id;
+
+-- name: ListAbandonedPayments :many
+SELECT * FROM payments
+WHERE organization_id = @organization_id AND payment_kind = 'provider' AND payable_type = 'invoice'
+  AND status = 'processing' AND provider_status = 'requires_action'
+  AND updated_at BETWEEN @from_at::timestamptz AND @to_at::timestamptz
 ORDER BY id;
 
 -- name: ListPaymentsByPaymentRequest :many
@@ -336,6 +346,14 @@ WHERE organization_id = @organization_id AND invoice_id = @invoice_id AND status
 SELECT * FROM payment_intents
 WHERE organization_id = @organization_id AND status = 'active' AND expires_at <= @now
 ORDER BY id;
+
+-- name: ListActivePaymentIntents :many
+SELECT * FROM payment_intents
+WHERE organization_id = @organization_id AND status = 'active'
+ORDER BY id;
+
+-- name: PaymentIntentsExist :one
+SELECT EXISTS (SELECT 1 FROM payment_intents WHERE organization_id = @organization_id)::boolean;
 
 -- name: CreateInboundWebhook :execrows
 INSERT INTO inbound_webhooks (

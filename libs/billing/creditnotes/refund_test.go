@@ -312,6 +312,7 @@ func TestReportTaxes(t *testing.T) {
 		source   string
 		provider bool
 		unknown  bool
+		refusal  bool
 		check    func(t *testing.T, f *fixture, cn *creditnote.CreditNote, err error)
 	}{
 		{
@@ -324,7 +325,7 @@ func TestReportTaxes(t *testing.T) {
 			},
 		},
 		{
-			name: "reports to the customer's provider", source: "spec/services/credit_notes/provider_taxes/report_service_spec.rb:111",
+			name: "reports to the customer's provider", source: "spec/services/credit_notes/provider_taxes/report_service_spec.rb:111 spec/jobs/credit_notes/provider_taxes/report_job_spec.rb:24",
 			provider: true,
 			check: func(t *testing.T, f *fixture, cn *creditnote.CreditNote, err error) {
 				must(t, err)
@@ -334,7 +335,34 @@ func TestReportTaxes(t *testing.T) {
 			},
 		},
 		{
-			name: "a customer without provider is skipped", source: "tanvo: the job runs for every finalized note",
+			name: "previous tax errors are discarded", source: "spec/services/credit_notes/provider_taxes/report_service_spec.rb:120",
+			provider: true,
+			check: func(t *testing.T, f *fixture, cn *creditnote.CreditNote, err error) {
+				must(t, err)
+				eq(t, "errors", len(creditNoteErrors(t, f, cn.ID)), 0)
+			},
+		},
+		{
+			name: "a refusal is kept as a tax error", source: "spec/services/credit_notes/provider_taxes/report_service_spec.rb:141",
+			provider: true, refusal: true,
+			check: func(t *testing.T, f *fixture, cn *creditnote.CreditNote, err error) {
+				must(t, err)
+				got := creditNoteErrors(t, f, cn.ID)
+				if len(got) != 1 || got[0].Code != creditnote.ErrorCodeTaxError || string(got[0].Details) != `{"tax_error":"validationError"}` {
+					t.Errorf("errors: got = %+v, want = one tax_error validationError", got)
+				}
+				if _, err := f.svc.RetryTaxReporting(f.h.Ctx, f.h.OrgID(), cn.ID); fieldCodeOf(err, "tax_error") != "validationError" {
+					t.Errorf("retry: got = %v, want = tax_error validationError", err)
+				}
+				t.Log("source: spec/services/credit_notes/provider_taxes/report_service_spec.rb:132")
+				f.h.Taxes.ReportErr = nil
+				got2, err := f.svc.RetryTaxReporting(f.h.Ctx, f.h.OrgID(), cn.ID)
+				must(t, err)
+				eq(t, "errors after a retry", len(got2.ErrorDetails), 0)
+			},
+		},
+		{
+			name: "a customer without provider is skipped", source: "spec/jobs/credit_notes/provider_taxes/report_job_spec.rb:32",
 			check: func(t *testing.T, f *fixture, _ *creditnote.CreditNote, err error) {
 				must(t, err)
 				eq(t, "reported", len(f.h.Taxes.Reported), 0)
@@ -349,6 +377,15 @@ func TestReportTaxes(t *testing.T) {
 				f.h.Taxes.Customers = map[core.CustomerID]bool{f.cust.ID: true}
 			}
 			cn := f.h.StoredCreditNote(f.inv, 5)
+			f.h.Do(func(ctx context.Context, r port.Repos) error {
+				return r.CreditNoteErrorDetails.Create(ctx, &creditnote.ErrorDetail{
+					ID: core.NewID[core.ErrorDetailID](f.h.IDs), OrganizationID: f.h.OrgID(), CreditNoteID: cn.ID,
+					Code: creditnote.ErrorCodeTaxError, Details: []byte(`{"tax_error":"old"}`), CreatedAt: f.h.Now(),
+				})
+			})
+			if tt.refusal {
+				f.h.Taxes.ReportErr = &kernel.TaxProviderError{Code: "validationError", Message: "bad address"}
+			}
 			id := cn.ID
 			if tt.unknown {
 				id = core.NewID[core.CreditNoteID](f.h.IDs)
@@ -357,6 +394,28 @@ func TestReportTaxes(t *testing.T) {
 			tt.check(t, f, cn, err)
 		})
 	}
+}
+
+// creditNoteErrors returns the error details of the credit note id.
+func creditNoteErrors(t *testing.T, f *fixture, id core.CreditNoteID) []creditnote.ErrorDetail {
+	t.Helper()
+	cn, err := f.svc.Get(f.h.Ctx, f.h.OrgID(), id)
+	must(t, err)
+	return cn.ErrorDetails
+}
+
+// fieldCodeOf returns the code of field in the validation error err.
+func fieldCodeOf(err error, field string) string {
+	var ve *core.ValidationError
+	if !errors.As(err, &ve) {
+		return ""
+	}
+	for _, fe := range ve.Errors {
+		if fe.Field == field {
+			return fe.Code
+		}
+	}
+	return ""
 }
 
 // failingGateway is a [kernel.RefundGateway] failing with err.

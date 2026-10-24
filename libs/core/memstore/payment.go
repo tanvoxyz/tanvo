@@ -107,6 +107,15 @@ func (r paymentRepo) Update(_ context.Context, p *payment.Payment) error {
 	return nil
 }
 
+func (r paymentRepo) Delete(_ context.Context, org core.OrganizationID, id core.PaymentID) error {
+	cur, ok := r.d.payments.get(id)
+	if !ok || cur.OrganizationID != org {
+		return notFound("payment", id)
+	}
+	r.d.payments.del(id)
+	return nil
+}
+
 func (r paymentRepo) Get(_ context.Context, org core.OrganizationID, id core.PaymentID) (*payment.Payment, error) {
 	p, ok := r.d.payments.get(id)
 	if !ok || p.OrganizationID != org {
@@ -129,6 +138,14 @@ func (r paymentRepo) GetByProviderPaymentID(_ context.Context, org core.Organiza
 func (r paymentRepo) ListByPayable(_ context.Context, org core.OrganizationID, payable payment.Payable) ([]*payment.Payment, error) {
 	return r.d.payments.find(func(x *payment.Payment) bool {
 		return x.OrganizationID == org && x.Payable == payable
+	}), nil
+}
+
+func (r paymentRepo) ListAbandoned(_ context.Context, org core.OrganizationID, from, to time.Time) ([]*payment.Payment, error) {
+	return r.d.payments.find(func(x *payment.Payment) bool {
+		return x.OrganizationID == org && x.Kind == payment.KindProvider && x.Payable.Type == payment.PayableTypeInvoice &&
+			x.Status == payment.StateProcessing && x.ProviderStatus != nil && *x.ProviderStatus == payment.ProviderStatusRequiresAction &&
+			!x.UpdatedAt.Before(from) && !x.UpdatedAt.After(to)
 	}), nil
 }
 
@@ -604,6 +621,16 @@ func (r paymentIntentRepo) ListAwaitingExpiration(_ context.Context, org core.Or
 	return r.d.intents.find(func(x *payment.Intent) bool {
 		return x.OrganizationID == org && x.AwaitingExpiration(now)
 	}), nil
+}
+
+func (r paymentIntentRepo) ListActive(_ context.Context, org core.OrganizationID) ([]*payment.Intent, error) {
+	return r.d.intents.find(func(x *payment.Intent) bool {
+		return x.OrganizationID == org && x.Status == payment.IntentStatusActive
+	}), nil
+}
+
+func (r paymentIntentRepo) Exists(_ context.Context, org core.OrganizationID) (bool, error) {
+	return r.d.intents.any(func(x *payment.Intent) bool { return x.OrganizationID == org }), nil
 }
 
 // inboundWebhookRepo implements payment.InboundWebhookRepository.

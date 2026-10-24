@@ -174,11 +174,19 @@ type InstantArgs struct {
 // QueueOf returns the queue of a job kind.
 func QueueOf(kind string) port.Queue {
 	switch kind {
-	case JobCreateInvoicePayment, JobProcessDunningCampaigns, JobProcessDunningCustomer, JobProcessDunningAttempt:
+	case JobCreateInvoicePayment, JobProcessDunningCampaigns, JobProcessDunningCustomer, JobProcessDunningAttempt,
+		JobCreateRequestPayment, JobSendPaymentRequestEmail, JobSyncProviderCustomer, JobSetPaymentMethod,
+		JobExpireCheckout, JobCancelAbandonedPayments, JobCancelAbandonedPayment, JobRegisterProviderWebhook, JobExpireConnectionCheckouts,
+		JobUpdatePaymentReference, JobCancelPayment:
 		return port.QueuePayments
 	case JobGenerateInvoiceDocument, JobGenerateCreditNoteDocument:
 		return port.QueueDocuments
 	case JobPullProviderTaxes, JobVoidProviderTaxes, JobReportCreditNoteTaxes:
+		return port.QueueIntegrations
+	case JobFetchTaxCompany, JobReportInvoiceTaxes, JobSyncContact, JobSyncInvoice, JobSyncCreditNote, JobSyncPayment,
+		JobCreateCRMInvoice, JobUpdateCRMInvoice, JobAssociateCRMInvoice, JobCreateCRMSubscription,
+		JobUpdateCRMSubscription, JobAssociateCRMSubscription, JobFetchIntegrationItems, JobDeployCRM, JobSaveCRMAccount:
+		// lago queue_as "integrations" (app/jobs/integrations/).
 		return port.QueueIntegrations
 	case JobProcessSubscriptionActivity, JobProcessLifetimeUsageAlert:
 		// lago app/jobs/usage_monitoring/process_subscription_activity_job.rb:6-10

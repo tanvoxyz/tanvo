@@ -1,0 +1,15 @@
+{
+  "billing_request_flows": {
+    "id": "BRF123",
+    "authorisation_url": "https://pay.gocardless.com/billing/static/flow?id=BRF123",
+    "lock_bank_account": false,
+    "lock_customer_details": false,
+    "redirect_uri": "https://acme.example/return",
+    "exit_uri": "https://acme.example/return",
+    "created_at": "2026-05-07T10:00:00.000Z",
+    "expires_at": "2026-05-14T10:00:00.000Z",
+    "links": {
+      "billing_request": "BRQ123"
+    }
+  }
+}

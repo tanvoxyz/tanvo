@@ -12,6 +12,39 @@ import (
 	"github.com/google/uuid"
 )
 
+const listOrganizationsWithAbandonedPayments = `-- name: ListOrganizationsWithAbandonedPayments :many
+SELECT DISTINCT organization_id FROM payments
+WHERE payment_kind = 'provider' AND payable_type = 'invoice' AND status = 'processing'
+  AND provider_status = 'requires_action'
+  AND updated_at BETWEEN $1::timestamptz AND $2::timestamptz
+ORDER BY organization_id
+`
+
+type ListOrganizationsWithAbandonedPaymentsParams struct {
+	FromAt time.Time
+	ToAt   time.Time
+}
+
+func (q *Queries) ListOrganizationsWithAbandonedPayments(ctx context.Context, arg ListOrganizationsWithAbandonedPaymentsParams) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listOrganizationsWithAbandonedPayments, arg.FromAt, arg.ToAt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var organization_id uuid.UUID
+		if err := rows.Scan(&organization_id); err != nil {
+			return nil, err
+		}
+		items = append(items, organization_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listOrganizationsWithActiveSubscriptions = `-- name: ListOrganizationsWithActiveSubscriptions :many
 
 SELECT DISTINCT organization_id FROM subscriptions WHERE status = 'active' ORDER BY organization_id
@@ -343,6 +376,32 @@ func (q *Queries) ListOrganizationsWithExpiredCoupons(ctx context.Context, until
 	return items, nil
 }
 
+const listOrganizationsWithExpiredInboundWebhooks = `-- name: ListOrganizationsWithExpiredInboundWebhooks :many
+SELECT DISTINCT organization_id FROM inbound_webhooks
+WHERE updated_at <= $1::timestamptz
+ORDER BY organization_id
+`
+
+func (q *Queries) ListOrganizationsWithExpiredInboundWebhooks(ctx context.Context, cutoff time.Time) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listOrganizationsWithExpiredInboundWebhooks, cutoff)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var organization_id uuid.UUID
+		if err := rows.Scan(&organization_id); err != nil {
+			return nil, err
+		}
+		items = append(items, organization_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listOrganizationsWithExpiredRecordDeletions = `-- name: ListOrganizationsWithExpiredRecordDeletions :many
 SELECT DISTINCT organization_id FROM record_deletions
 WHERE deleted_at < $1::timestamptz
@@ -404,6 +463,32 @@ ORDER BY organization_id
 
 func (q *Queries) ListOrganizationsWithExpiringOrderForms(ctx context.Context, until time.Time) ([]uuid.UUID, error) {
 	rows, err := q.db.Query(ctx, listOrganizationsWithExpiringOrderForms, until)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var organization_id uuid.UUID
+		if err := rows.Scan(&organization_id); err != nil {
+			return nil, err
+		}
+		items = append(items, organization_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listOrganizationsWithInboundWebhooks = `-- name: ListOrganizationsWithInboundWebhooks :many
+SELECT DISTINCT organization_id FROM inbound_webhooks
+WHERE status <> 'succeeded' AND created_at >= $1::timestamptz
+ORDER BY organization_id
+`
+
+func (q *Queries) ListOrganizationsWithInboundWebhooks(ctx context.Context, since time.Time) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listOrganizationsWithInboundWebhooks, since)
 	if err != nil {
 		return nil, err
 	}

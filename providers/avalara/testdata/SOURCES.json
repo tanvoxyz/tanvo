@@ -1,0 +1,18 @@
+{
+  "fixtures/transaction_response.json": {
+    "source": "AvaTax REST v2 TransactionModel (CreateOrAdjustTransaction with $include=Details)",
+    "note": "lines and amounts of lago spec/services/integrations/aggregator/taxes/invoices/create_service_spec.rb:192 (two add-on fees of 2.0 USD); the second line is exempt"
+  },
+  "fixtures/companies_response.json": {
+    "source": "AvaTax REST v2 QueryCompanies FetchResult",
+    "note": "the company found by lago spec/fixtures/integration_aggregator/taxes/companies/success_response.json"
+  },
+  "fixtures/companies_empty_response.json": {
+    "source": "AvaTax REST v2 QueryCompanies FetchResult",
+    "note": "no company, as lago spec/fixtures/integration_aggregator/taxes/companies/failed_response.json"
+  },
+  "fixtures/locked_transaction_error.json": {
+    "source": "AvaTax REST v2 ErrorResult",
+    "note": "the error code of lago spec/fixtures/integration_aggregator/taxes/invoices/failure_response_locked_void.json"
+  }
+}

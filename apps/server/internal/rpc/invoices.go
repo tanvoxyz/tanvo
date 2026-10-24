@@ -10,6 +10,7 @@ import (
 	"connectrpc.com/connect/v2"
 
 	"github.com/tanvoxyz/tanvo/libs/auth"
+	"github.com/tanvoxyz/tanvo/libs/billing/integrations"
 	"github.com/tanvoxyz/tanvo/libs/billing/invoicing"
 	"github.com/tanvoxyz/tanvo/libs/billing/payments"
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -23,13 +24,17 @@ import (
 // Invoices serves tanvo.invoice.v1.InvoiceService over the billing
 // library's invoicing service (lago Api::V1::InvoicesController and the
 // invoice mutations), with the payments service for updates.
-// ResendInvoice, RetryInvoiceSync and SetInvoiceSalesforceId stay
-// unimplemented: no mailer or integration sync is wired.
+// ResendInvoice stays unimplemented: no mailer is wired. RetryInvoiceSync
+// and SetInvoiceSalesforceId need the integrations service
+// ([Invoices.WithIntegrations]).
 type Invoices struct {
 	invoicev1connect.UnimplementedInvoiceServiceHandler
 
 	svc *invoicing.Service
 	pay *payments.Service
+	// integ syncs the invoices with the integrations; nil leaves the sync
+	// RPCs Unimplemented.
+	integ *integrations.Service
 }
 
 var _ invoicev1connect.InvoiceServiceHandler = (*Invoices)(nil)
@@ -512,8 +517,8 @@ func (s *Invoices) DownloadInvoice(ctx context.Context, req *invoicev1.DownloadI
 
 // GenerateInvoicePaymentUrl implements
 // InvoiceService.GenerateInvoicePaymentUrl (lago
-// Invoices::Payments::GeneratePaymentUrlService): the checks run; the
-// payment intent needs a provider adapter, which is not wired.
+// Invoices::Payments::GeneratePaymentUrlService): the checkout link of the
+// invoice's payment intent at its provider connection.
 func (s *Invoices) GenerateInvoicePaymentUrl(ctx context.Context, req *invoicev1.GenerateInvoicePaymentUrlRequest) (*invoicev1.GenerateInvoicePaymentUrlResponse, error) {
 	p, id, err := s.target(ctx, req.GetInvoiceId())
 	if err != nil {

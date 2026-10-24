@@ -1,0 +1,10 @@
+{
+  "merchantAccount": "TanvoTest",
+  "pspReference": "REFUND_PSP_1",
+  "paymentPspReference": "PSPREF123",
+  "status": "received",
+  "amount": {
+    "currency": "CHF",
+    "value": 134
+  }
+}

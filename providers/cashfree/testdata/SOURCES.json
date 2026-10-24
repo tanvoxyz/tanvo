@@ -1,0 +1,18 @@
+{
+  "fixtures/create_link_response.json": {
+    "source": "spec/services/invoices/payments/cashfree_service_spec.rb:264",
+    "note": "the payment links answer; lago's spec stubs only its link_url, the other fields follow the link of spec/fixtures/cashfree/payment_link_event_payment.json with the link ID, purpose and dates of the test"
+  },
+  "fixtures/create_link_failure_response.json": {
+    "source": "spec/services/invoices/payments/cashfree_service_spec.rb:281",
+    "note": "a refused payment link, served with HTTP 400"
+  },
+  "fixtures/webhooks/payment_link_event_payment.json": {
+    "source": "spec/fixtures/cashfree/payment_link_event_payment.json",
+    "note": "a PAID link of an invoice (spec/services/payment_providers/cashfree/webhooks/payment_link_event_service_spec.rb:9); lago_* note keys renamed tanvo_*"
+  },
+  "fixtures/webhooks/payment_link_event_payment_request.json": {
+    "source": "spec/fixtures/cashfree/payment_link_event_payment_request.json",
+    "note": "a PAID link of a payment request (spec/services/payment_providers/cashfree/webhooks/payment_link_event_service_spec.rb:40); lago_* note keys renamed tanvo_*, payable type PaymentRequest renamed payment_request"
+  }
+}

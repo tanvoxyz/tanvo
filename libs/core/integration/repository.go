@@ -44,6 +44,11 @@ type Repository interface {
 	// case-insensitively (AuthSettings.Domains), in creation order. It
 	// routes single sign-on by email domain.
 	ListByDomain(ctx context.Context, p Provider, domain string) ([]*Integration, error)
+	// OrganizationOf returns the organization of the live payment
+	// integration id, looked up in every organization, or
+	// core.ErrNotFound. It routes provider webhooks, whose endpoint names
+	// the connection alone.
+	OrganizationOf(ctx context.Context, id core.IntegrationID) (core.OrganizationID, error)
 	// List returns the organization's integrations in creation order.
 	List(ctx context.Context, org core.OrganizationID, f Filter, page core.PageRequest) (core.Page[*Integration], error)
 	// Discard marks the payment integration id deleted at at, with its
@@ -72,8 +77,9 @@ type CustomerRepository interface {
 	// ListByCustomer returns the links of a customer, of one category
 	// unless c is "", in creation order.
 	ListByCustomer(ctx context.Context, org core.OrganizationID, customer core.CustomerID, c Category) ([]*IntegrationCustomer, error)
-	// GetByExternalID returns the link of an external customer id in an
-	// integration, or core.ErrNotFound.
+	// GetByExternalID returns the first link, in creation order, of an
+	// external customer id in an integration, or core.ErrNotFound; several
+	// customers may link the same external customer.
 	GetByExternalID(ctx context.Context, org core.OrganizationID, integration core.IntegrationID, externalID string) (*IntegrationCustomer, error)
 	// Delete removes the link id, or fails with core.ErrNotFound.
 	Delete(ctx context.Context, org core.OrganizationID, id core.IntegrationCustomerID) error

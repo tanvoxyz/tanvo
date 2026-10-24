@@ -120,6 +120,9 @@ type Input struct {
 	NetPaymentTermDays core.Optional[int]
 	// FinalizeZeroAmountInvoice finalizes invoices of zero amount.
 	FinalizeZeroAmountInvoice core.Optional[bool]
+	// SkipCreditInvoicePaymentDelay charges wallet top-up invoices without
+	// the checkout link delay.
+	SkipCreditInvoicePaymentDelay core.Optional[bool]
 	// IssuingDateAnchor anchors the issuing date of periodic invoices.
 	IssuingDateAnchor core.Optional[core.IssuingDateAnchor]
 	// IssuingDateAdjustment adjusts the issuing date of periodic invoices.
@@ -407,6 +410,7 @@ func (s *Service) assign(be *organization.BillingEntity, in Input) {
 	in.InvoiceGracePeriodDays.Apply(&be.InvoiceGracePeriodDays)
 	in.NetPaymentTermDays.Apply(&be.NetPaymentTermDays)
 	in.FinalizeZeroAmountInvoice.Apply(&be.FinalizeZeroAmountInvoice)
+	in.SkipCreditInvoicePaymentDelay.Apply(&be.SkipCreditInvoicePaymentDelay)
 	in.IssuingDateAnchor.Apply(&be.IssuingDateAnchor)
 	in.IssuingDateAdjustment.Apply(&be.IssuingDateAdjustment)
 	if in.EmailSettings.Apply(&be.EmailSettings) {

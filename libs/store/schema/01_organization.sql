@@ -79,6 +79,7 @@ CREATE TABLE billing_entities (
   invoice_grace_period_days integer NOT NULL DEFAULT 0,
   net_payment_term_days integer NOT NULL DEFAULT 0,
   finalize_zero_amount_invoice boolean NOT NULL,
+  skip_credit_invoice_payment_delay boolean NOT NULL DEFAULT false,
   issuing_date_anchor text NOT NULL,
   issuing_date_adjustment text NOT NULL,
   email_settings text[] NOT NULL DEFAULT '{}',

@@ -193,3 +193,25 @@ func TestCreateManualOffsets(t *testing.T) {
 		})
 	}
 }
+
+// recordedSync records the payments queued for the accounting sync.
+type recordedSync struct{ payments []*payment.Payment }
+
+func (s *recordedSync) EnqueuePaymentSync(_ context.Context, _ port.Repos, p *payment.Payment, _ *invoice.Invoice) error {
+	s.payments = append(s.payments, p)
+	return nil
+}
+
+func TestCreateManualSyncsPayment(t *testing.T) {
+	t.Log("source: spec/services/payments/manual_create_service_spec.rb:175")
+	f := newManualFixture(t)
+	sync := &recordedSync{}
+	f.svc.WithPaymentSync(sync)
+	p, err := f.pay("20")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sync.payments) != 1 || sync.payments[0].ID != p.ID {
+		t.Errorf("synced payments: got = %v, want = [%s]", sync.payments, p.ID)
+	}
+}

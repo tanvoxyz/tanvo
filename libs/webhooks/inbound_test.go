@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net/http"
 	"testing"
 	"time"
 
@@ -20,8 +21,8 @@ type fakeSource struct {
 	fail    error
 }
 
-func (s *fakeSource) Verify(_ context.Context, _ core.OrganizationID, _ core.IntegrationID, payload []byte, sig string) (string, error) {
-	if sig != "good" {
+func (s *fakeSource) Verify(_ context.Context, _ core.OrganizationID, _ core.IntegrationID, payload []byte, h http.Header) (string, error) {
+	if h.Get("Signature") != "good" {
 		return "", errBadSignature
 	}
 	var p struct {
@@ -45,7 +46,7 @@ func newInbound(t *testing.T) (*Inbound, *memstore.Store, *clock, *fakeSource) {
 }
 
 func newReceived(org core.OrganizationID, source, sig string) Received {
-	return Received{OrganizationID: org, Source: source, IntegrationID: core.NewID[core.IntegrationID](ids), Payload: []byte(`{"type":"payment_intent.succeeded"}`), Signature: sig}
+	return Received{OrganizationID: org, Source: source, IntegrationID: core.NewID[core.IntegrationID](ids), Payload: []byte(`{"type":"payment_intent.succeeded"}`), Header: http.Header{"Signature": {sig}}, Signature: sig}
 }
 
 func processJobs(t *testing.T, in *Inbound, s *memstore.Store) int {
@@ -166,5 +167,50 @@ func TestProcessWindow(t *testing.T) {
 	got := in.get(t, s, org, w.ID)
 	if want := int(payment.WebhookRetryWindow/payment.WebhookRetryInterval) + 1; got.Attempts != want {
 		t.Errorf("attempts: got = %d, want = %d", got.Attempts, want)
+	}
+}
+
+// A verified delivery without an event to handle is acknowledged and not
+// stored.
+func TestReceiveNoEvent(t *testing.T) {
+	in, s, _, _ := newInbound(t)
+	org := core.NewID[core.OrganizationID](ids)
+	rcv := newReceived(org, "stripe", "good")
+	rcv.Payload = []byte(`{"id":"evt"}`)
+	w, err := in.Receive(context.Background(), rcv)
+	if err != nil || w != nil {
+		t.Fatalf("got = %v %v, want = nil nil", w, err)
+	}
+	if got := len(s.Jobs()); got != 0 {
+		t.Errorf("jobs: got = %d, want = 0", got)
+	}
+}
+
+// source: app/jobs/clock/inbound_webhooks_cleanup_job.rb:8 (webhooks
+// unchanged for 90 days are deleted).
+func TestClean(t *testing.T) {
+	in, s, c, _ := newInbound(t)
+	org := core.NewID[core.OrganizationID](ids)
+	old, err := in.Receive(context.Background(), newReceived(org, "stripe", "good"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.advance(payment.WebhookRetention - time.Hour)
+	recent, err := in.Receive(context.Background(), newReceived(org, "stripe", "good"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.advance(time.Hour)
+	if n, err := in.Clean(context.Background(), org); err != nil || n != 1 {
+		t.Fatalf("Clean: got = %d %v, want = 1", n, err)
+	}
+	if err := s.InTx(context.Background(), func(ctx context.Context, r port.Repos) error {
+		if _, err := r.InboundWebhooks.Get(ctx, org, old.ID); !errors.Is(err, core.ErrNotFound) {
+			t.Errorf("old: got = %v, want = %v", err, core.ErrNotFound)
+		}
+		_, err := r.InboundWebhooks.Get(ctx, org, recent.ID)
+		return err
+	}); err != nil {
+		t.Errorf("recent: got = %v, want = nil", err)
 	}
 }

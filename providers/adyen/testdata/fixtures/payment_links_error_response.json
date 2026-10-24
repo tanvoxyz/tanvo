@@ -1,0 +1,6 @@
+{
+  "status": 422,
+  "errorCode": "905_3",
+  "errorType": "validation",
+  "message": "There are no payment methods available for the given parameters."
+}

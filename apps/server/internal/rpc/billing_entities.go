@@ -69,6 +69,7 @@ var beUpdateFields = slices.Concat([]string{
 }, beAddressFields, []string{
 	"logo", "timezone", "default_currency", "document_locale", "document_numbering", "document_number_prefix",
 	"invoice_footer", "invoice_grace_period_days", "net_payment_term_days", "finalize_zero_amount_invoice",
+	"skip_credit_invoice_payment_delay",
 	"issuing_date_anchor", "issuing_date_adjustment", "email_settings", "eu_tax_management", "einvoicing",
 	"applied_dunning_campaign_id", "tax_ids", "invoice_custom_section_ids",
 })
@@ -244,6 +245,8 @@ func beHas(b *organizationv1.BillingEntity) func(path string) bool {
 			return b.HasNetPaymentTermDays()
 		case "finalize_zero_amount_invoice":
 			return b.HasFinalizeZeroAmountInvoice()
+		case "skip_credit_invoice_payment_delay":
+			return b.HasSkipCreditInvoicePaymentDelay()
 		case "issuing_date_anchor":
 			return b.HasIssuingDateAnchor()
 		case "issuing_date_adjustment":
@@ -328,6 +331,8 @@ func beInput(b *organizationv1.BillingEntity, paths []string) (billingentities.I
 			in.NetPaymentTermDays = core.Some(int(b.GetNetPaymentTermDays()))
 		case "finalize_zero_amount_invoice":
 			in.FinalizeZeroAmountInvoice = core.Some(b.GetFinalizeZeroAmountInvoice())
+		case "skip_credit_invoice_payment_delay":
+			in.SkipCreditInvoicePaymentDelay = core.Some(b.GetSkipCreditInvoicePaymentDelay())
 		case "issuing_date_anchor":
 			in.IssuingDateAnchor = core.Some(beIssuingDateAnchors.Core(b.GetIssuingDateAnchor()))
 		case "issuing_date_adjustment":
@@ -422,29 +427,30 @@ func (s *BillingEntities) billingEntity(ctx context.Context, be *organization.Bi
 		return nil, err
 	}
 	b := organizationv1.BillingEntity_builder{
-		Id:                        new(be.ID.String()),
-		Code:                      new(be.Code),
-		Name:                      new(be.Name),
-		LegalName:                 be.LegalName,
-		LegalNumber:               be.LegalNumber,
-		TaxIdentificationNumber:   be.TaxID,
-		Email:                     be.Email,
-		Phone:                     be.Phone,
-		Address:                   beAddress(be.Address),
-		LogoUrl:                   StringPtr(logo),
-		DefaultCurrency:           new(be.DefaultCurrency.Code()),
-		DocumentLocale:            new(be.DocumentLocale),
-		DocumentNumberPrefix:      new(be.DocumentNumberPrefix),
-		InvoiceFooter:             be.InvoiceFooter,
-		InvoiceGracePeriodDays:    new(int32(be.InvoiceGracePeriodDays)),
-		NetPaymentTermDays:        new(int32(be.NetPaymentTermDays)),
-		FinalizeZeroAmountInvoice: new(be.FinalizeZeroAmountInvoice),
-		EuTaxManagement:           new(be.EUTaxManagement),
-		Einvoicing:                new(be.EInvoicing),
-		IsDefault:                 new(be.IsDefault),
-		ArchivedAt:                TimestampPtr(be.ArchivedAt),
-		CreatedAt:                 Timestamp(be.CreatedAt),
-		UpdatedAt:                 Timestamp(be.UpdatedAt),
+		Id:                            new(be.ID.String()),
+		Code:                          new(be.Code),
+		Name:                          new(be.Name),
+		LegalName:                     be.LegalName,
+		LegalNumber:                   be.LegalNumber,
+		TaxIdentificationNumber:       be.TaxID,
+		Email:                         be.Email,
+		Phone:                         be.Phone,
+		Address:                       beAddress(be.Address),
+		LogoUrl:                       StringPtr(logo),
+		DefaultCurrency:               new(be.DefaultCurrency.Code()),
+		DocumentLocale:                new(be.DocumentLocale),
+		DocumentNumberPrefix:          new(be.DocumentNumberPrefix),
+		InvoiceFooter:                 be.InvoiceFooter,
+		InvoiceGracePeriodDays:        new(int32(be.InvoiceGracePeriodDays)),
+		NetPaymentTermDays:            new(int32(be.NetPaymentTermDays)),
+		FinalizeZeroAmountInvoice:     new(be.FinalizeZeroAmountInvoice),
+		SkipCreditInvoicePaymentDelay: new(be.SkipCreditInvoicePaymentDelay),
+		EuTaxManagement:               new(be.EUTaxManagement),
+		Einvoicing:                    new(be.EInvoicing),
+		IsDefault:                     new(be.IsDefault),
+		ArchivedAt:                    TimestampPtr(be.ArchivedAt),
+		CreatedAt:                     Timestamp(be.CreatedAt),
+		UpdatedAt:                     Timestamp(be.UpdatedAt),
 	}
 	if be.Timezone != nil {
 		b.Timezone = new(be.Timezone.String())

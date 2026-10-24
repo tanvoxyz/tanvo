@@ -40,7 +40,8 @@ type refundJob struct {
 // [ErrRefund]; when it wraps [ErrRefundRejected] the refund fails first
 // and credit_note.refund_failure is emitted, otherwise the refund stays
 // pending so a retry sends it again under the same idempotency key, the
-// credit note's ID ([kernel.RefundRequest.IdempotencyKey]).
+// credit note's ID ([kernel.RefundRequest.IdempotencyKey]). A gateway
+// error wrapping [ErrRefundSkipped] records nothing.
 func (s *Service) Refund(ctx context.Context, org core.OrganizationID, id core.CreditNoteID) (*payment.Refund, error) {
 	if s.d.Refunds == nil {
 		return nil, nil
@@ -81,6 +82,9 @@ func (s *Service) Refund(ctx context.Context, org core.OrganizationID, id core.C
 		IdempotencyKey: job.cn.ID.String(),
 		CreditNote:     job.cn, Invoice: job.inv, PaymentID: job.pay.ID, Amount: job.cn.RefundAmount, Currency: job.cn.Currency,
 	})
+	if errors.Is(gwErr, ErrRefundSkipped) {
+		return nil, nil
+	}
 	if gwErr != nil && !errors.Is(gwErr, ErrRefundRejected) {
 		return nil, fmt.Errorf("%w: credit note %s: %w", ErrRefund, id, gwErr)
 	}
@@ -223,51 +227,4 @@ func (s *Service) failRefund(ctx context.Context, r port.Repos, cn *creditnote.C
 	}
 	return kernel.Emit(ctx, s.d, cn.OrganizationID, webhook.EventTypeCreditNoteRefundFailure, "credit_note", cn.ID.UUID(),
 		refundFailure{CreditNote: cn, Message: message})
-}
-
-// ReportTaxes reports a finalized credit note to the tax provider of its
-// customer (the [kernel.JobReportCreditNoteTaxes] job); customers without
-// a provider and notes of credit invoices are skipped (lago
-// CreditNotes::ProviderTaxes::ReportJob).
-func (s *Service) ReportTaxes(ctx context.Context, org core.OrganizationID, id core.CreditNoteID) error {
-	if s.d.Taxes == nil {
-		return nil
-	}
-	type report struct {
-		cn  *creditnote.CreditNote
-		inv *invoice.Invoice
-		env *kernel.CustomerEnv
-	}
-	rep, err := inTx(ctx, s.d.Tx, func(ctx context.Context, r port.Repos) (*report, error) {
-		cn, err := get(ctx, r, org, id, false)
-		if err != nil {
-			return nil, err
-		}
-		inv, err := r.Invoices.Get(ctx, org, cn.InvoiceID)
-		if err != nil {
-			return nil, fmt.Errorf("load invoice %s: %w", cn.InvoiceID, err)
-		}
-		if inv.Type == invoice.TypeCredit {
-			return nil, nil
-		}
-		env, err := kernel.LoadCustomerEnv(ctx, r, org, inv.CustomerID, inv.BillingEntityID)
-		if err != nil {
-			return nil, err
-		}
-		return &report{cn: cn, inv: inv, env: env}, nil
-	})
-	if err != nil || rep == nil {
-		return err
-	}
-	ok, err := s.d.Taxes.Enabled(ctx, rep.env.Customer)
-	if err != nil {
-		return fmt.Errorf("%w: %w", kernel.ErrTaxProvider, err)
-	}
-	if !ok {
-		return nil
-	}
-	if err := s.d.Taxes.ReportCreditNote(ctx, rep.env.Customer, rep.inv, rep.cn); err != nil {
-		return fmt.Errorf("%w: report credit note %s: %w", kernel.ErrTaxProvider, id, err)
-	}
-	return nil
 }

@@ -33,6 +33,8 @@ type TaxProvider struct {
 	Voided []core.InvoiceID
 	// Reported records the reported credit notes.
 	Reported []core.CreditNoteID
+	// ReportErr is the failure of ReportCreditNote.
+	ReportErr error
 }
 
 var _ kernel.TaxProvider = (*TaxProvider)(nil)
@@ -74,7 +76,7 @@ func (p *TaxProvider) ReportCreditNote(_ context.Context, _ *customer.Customer, 
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.Reported = append(p.Reported, cn.ID)
-	return nil
+	return p.ReportErr
 }
 
 // RefundGateway is a fake [kernel.RefundGateway] that succeeds (status

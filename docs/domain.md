@@ -1317,12 +1317,12 @@ Single sign-on integrations (category `auth`: `okta`, `entra_id`, `oidc`) keep t
 A sign-in is routed to the connections of its method claiming the email's domain, case-insensitively, across organizations; a primary domain wins over an additional one, then the oldest connection. A domain is claimed by at most one connection of a method.
 
 ### 17.2 Integration Customer
-`integration_id`, `customer_id`, `external_customer_id`, `subsidiary_id?`, `sync_with_provider bool`, `is_default`. A customer has at most one tax integration customer; for other categories several connections are allowed with one default. `customer.<category>_provider_created` / `_error` are emitted.
+`integration_id`, `customer_id`, `external_customer_id`, `subsidiary_id?`, `sync_with_provider bool`, `is_default`. A customer has at most one tax integration customer; for other categories several connections are allowed with one default, at most one per provider (`customer_id` `value_already_exist`). Several customers may link the same external customer. HubSpot connections also hold the `targeted_object` (companies or contacts) and the contact's `email`. `customer.<category>_provider_created` / `_error` are emitted.
 
 ### 17.3 Mappings
 * `IntegrationMapping`: maps an add-on or billable metric to an external item {`external_id`, `external_account_code`, `external_name`}, optionally per billing entity.
 * `IntegrationCollectionMapping`: one mapping per `CollectionMappingType` (and per billing entity optionally). NetSuite collection mappings additionally carry `tax_nexus`, `tax_type`, `tax_code`; `currencies` maps currency codes to external codes.
-* Resolution: the object's own mapping → the collection mapping for its type → `fallback_item`; a missing mapping fails the sync with `integration.provider_error`.
+* Resolution, for an add-on or metric (or a collection type): its mapping for the document's billing entity → that entity's `fallback_item` → its mapping without billing entity → the `fallback_item` without billing entity. `tax` takes no `fallback_item`. An unmapped item is sent empty, and the provider's rejection fails the sync with the provider error webhook.
 * `IntegrationItem` caches the external catalog (`item_type ∈ {standard, tax, account}`).
 * `IntegrationResource` records each synced object {`resource_type`, `external_id`}, which makes syncs idempotent.
 

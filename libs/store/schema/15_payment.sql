@@ -141,6 +141,9 @@ CREATE TABLE payments (
   payment_method_id uuid,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
+  -- The provider's code of the last failure (authentication_required, …),
+  -- which makes the next attempt on-session.
+  error_code text,
   PRIMARY KEY (organization_id, id),
   CONSTRAINT payments_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
   CONSTRAINT payments_invoice_fkey FOREIGN KEY (organization_id, invoice_id) REFERENCES invoices (organization_id, id),

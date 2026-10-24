@@ -3,6 +3,7 @@ package payment
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -32,6 +33,12 @@ func TestCustomerParamsOf(t *testing.T) {
 			p := CustomerParamsOf(c)
 			if p.Name != tt.wantName {
 				t.Errorf("name: got = %q, want = %q", p.Name, tt.wantName)
+			}
+			if want := strings.TrimSpace(deref(tt.nameF)); p.CompanyName != want {
+				t.Errorf("company name: got = %q, want = %q", p.CompanyName, want)
+			}
+			if p.Firstname != deref(tt.first) || p.Lastname != deref(tt.last) {
+				t.Errorf("first and last: got = %q %q, want = %q %q", p.Firstname, p.Lastname, deref(tt.first), deref(tt.last))
 			}
 			if p.Email != tt.wantEmail {
 				t.Errorf("email: got = %q, want = %q", p.Email, tt.wantEmail)

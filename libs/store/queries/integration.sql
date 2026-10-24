@@ -46,6 +46,12 @@ WHERE category = 'auth' AND provider = @provider AND deleted_at IS NULL
     OR settings->'additional_domains' @> jsonb_build_array(lower(@domain::text)))
 ORDER BY id;
 
+-- OrganizationOfPaymentIntegration is cross-organization (provider
+-- webhook routing): the organization of a live payment integration.
+-- name: OrganizationOfPaymentIntegration :one
+SELECT organization_id FROM integrations
+WHERE id = @id AND category = 'payment' AND deleted_at IS NULL;
+
 -- name: ListIntegrations :many
 SELECT * FROM integrations
 WHERE organization_id = @organization_id AND deleted_at IS NULL

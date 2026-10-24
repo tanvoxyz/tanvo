@@ -10,8 +10,9 @@ import (
 
 // Event is a typed provider event decoded from a webhook delivery
 // ([WebhookGateway.ParseWebhook]): one of [PaymentEvent], [RefundEvent],
-// [PaymentMethodAttached], [PaymentMethodDetached], [CustomerUpdated],
-// [DisputeClosed] and [CustomerBalanceFunded].
+// [PaymentMethodAttached], [PaymentMethodSetupFailed],
+// [PaymentMethodDetached], [CustomerUpdated], [DisputeClosed] and
+// [CustomerBalanceFunded].
 type Event interface {
 	// Meta returns the event's envelope.
 	Meta() EventMeta
@@ -115,6 +116,24 @@ type PaymentMethodAttached struct {
 	Refs Refs
 }
 
+// PaymentMethodSetupFailed reports a failed attempt to save a payment method
+// for a customer (a refused Adyen zero-amount authorization, a failed
+// Moneyhash card tokenization): the handler reports it with the
+// customer.payment_provider_error webhook (lago
+// payment_provider_customers/adyen_service.rb preauthorise).
+type PaymentMethodSetupFailed struct {
+	EventMeta
+	// ProviderCustomerID is the provider customer, or the shopper
+	// reference the setup page was made for.
+	ProviderCustomerID string
+	// ErrorCode is the provider's failure code.
+	ErrorCode string
+	// ErrorMessage is the provider's failure message.
+	ErrorMessage string
+	// Refs are the Tanvo identifiers attached to the setup.
+	Refs Refs
+}
+
 // PaymentMethodDetached reports a method removed from a provider customer.
 type PaymentMethodDetached struct {
 	EventMeta
@@ -165,10 +184,11 @@ type CustomerBalanceFunded struct {
 	Currency money.Currency
 }
 
-func (PaymentEvent) event()          {}
-func (RefundEvent) event()           {}
-func (PaymentMethodAttached) event() {}
-func (PaymentMethodDetached) event() {}
-func (CustomerUpdated) event()       {}
-func (DisputeClosed) event()         {}
-func (CustomerBalanceFunded) event() {}
+func (PaymentEvent) event()             {}
+func (RefundEvent) event()              {}
+func (PaymentMethodAttached) event()    {}
+func (PaymentMethodSetupFailed) event() {}
+func (PaymentMethodDetached) event()    {}
+func (CustomerUpdated) event()          {}
+func (DisputeClosed) event()            {}
+func (CustomerBalanceFunded) event()    {}

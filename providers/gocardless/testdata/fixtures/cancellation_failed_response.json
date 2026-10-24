@@ -1,0 +1,15 @@
+{
+  "error": {
+    "message": "This payment cannot be cancelled, its status is submitted",
+    "documentation_url": "https://developer.gocardless.com/api-reference#cancellation_failed",
+    "type": "invalid_state",
+    "request_id": "REQ_CANCEL",
+    "errors": [
+      {
+        "reason": "cancellation_failed",
+        "message": "This payment cannot be cancelled, its status is submitted"
+      }
+    ],
+    "code": 422
+  }
+}

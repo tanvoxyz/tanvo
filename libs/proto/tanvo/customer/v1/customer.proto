@@ -184,6 +184,16 @@ enum IntegrationCategory {
   INTEGRATION_CATEGORY_CRM = 4;
 }
 
+// CrmTargetedObject is the HubSpot object a customer is synced to.
+enum CrmTargetedObject {
+  // Not set.
+  CRM_TARGETED_OBJECT_UNSPECIFIED = 0;
+  // A company.
+  CRM_TARGETED_OBJECT_COMPANIES = 1;
+  // A contact.
+  CRM_TARGETED_OBJECT_CONTACTS = 2;
+}
+
 // Customer is a party that is billed.
 message Customer {
   option (google.api.resource) = {
@@ -345,6 +355,12 @@ message CustomerConnection {
   google.protobuf.Timestamp created_at = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the connection last changed.
   google.protobuf.Timestamp updated_at = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The HubSpot object the customer is synced to; when unset, a synced
+  // customer's type decides, else the integration's default. Ignored for
+  // other providers.
+  CrmTargetedObject targeted_object = 11 [(buf.validate.field).enum.defined_only = true];
+  // The email HubSpot stored for the customer.
+  string email = 12 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // CreateCustomerRequest is the request of CustomerService.CreateCustomer.
@@ -538,7 +554,8 @@ message UpsertCustomerConnectionRequest {
 
 // UpsertCustomerConnectionResponse is the response of CustomerService.UpsertCustomerConnection.
 message UpsertCustomerConnectionResponse {
-  // The stored connection.
+  // The stored connection; absent when none is created: for a partner
+  // account, or without an external customer ID or sync_with_provider.
   CustomerConnection connection = 1;
 }
 

@@ -1,0 +1,148 @@
+package apiclient
+
+import (
+	"context"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+
+	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
+)
+
+func TestKind(t *testing.T) {
+	tests := []struct {
+		status int
+		want   integration.ErrorKind
+	}{
+		{429, integration.KindRequestLimit},
+		{401, integration.KindAuthentication},
+		{403, integration.KindAuthentication},
+		{404, integration.KindNotFound},
+		{408, integration.KindUnavailable},
+		{400, integration.KindInvalidRequest},
+		{409, integration.KindInvalidRequest},
+		{500, integration.KindUnavailable},
+		{502, integration.KindUnavailable},
+	}
+	for _, tt := range tests {
+		if got := Kind(tt.status); got != tt.want {
+			t.Errorf("Kind(%d) = %s, want = %s", tt.status, got, tt.want)
+		}
+	}
+}
+
+func TestDo(t *testing.T) {
+	var gotBody, gotType string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, _ := io.ReadAll(r.Body)
+		gotBody, gotType = string(b), r.Header.Get("Content-Type")
+		w.Header().Set("Retry-After", "3")
+		w.WriteHeader(http.StatusTooManyRequests)
+		_, _ = w.Write([]byte("slow down"))
+	}))
+	defer srv.Close()
+
+	rec := tracetest.NewSpanRecorder()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSpanProcessor(rec))
+	c := New(Config{Provider: integration.ProviderAnrok, TracerProvider: tp, Rate: 100})
+	conn := integration.Connection{ID: core.MustParseID[core.IntegrationID]("0199a000-0000-7000-8000-000000000001")}
+	err := c.Run(context.Background(), Call{Conn: conn, Op: "void"}, func(ctx context.Context) error {
+		resp, err := c.Do(ctx, Request{URL: srv.URL, JSON: map[string]string{"a": "b"}})
+		if err != nil {
+			return err
+		}
+		if resp.OK() {
+			t.Errorf("OK() = true, want = false")
+		}
+		return resp.Error(integration.ProviderAnrok, "", resp.Snippet())
+	})
+	pe, ok := integration.AsProviderError(err)
+	if !ok || pe.Kind != integration.KindRequestLimit || pe.RetryAfter != 3*time.Second || pe.Message != "slow down" {
+		t.Fatalf("error = %#v, want = request limit, 3s, slow down", err)
+	}
+	if gotBody != `{"a":"b"}` || gotType != "application/json" {
+		t.Errorf("body = %s (%s), want = JSON", gotBody, gotType)
+	}
+	var names []string
+	for _, s := range rec.Ended() {
+		names = append(names, s.Name())
+	}
+	if len(names) == 0 || names[len(names)-1] != "anrok.void" {
+		t.Errorf("spans = %v, want = anrok.void last", names)
+	}
+}
+
+func TestDoUnavailable(t *testing.T) {
+	c := New(Config{Provider: integration.ProviderXero})
+	_, err := c.Do(context.Background(), Request{URL: "http://127.0.0.1:1/x"})
+	if !errors.Is(err, integration.ErrRetryable) {
+		t.Errorf("Do() error = %v, want = retryable", err)
+	}
+}
+
+// TestThrottle covers the per-key token buckets that stand in for lago's
+// throttle! (app/services/integrations/aggregator/base_service.rb:69-88):
+// calls past the burst wait for a token instead of failing, connections
+// are limited separately, and a LimitKey is shared across connections.
+func TestThrottle(t *testing.T) {
+	// Every aggregator service throttles its calls by provider:
+	// source: spec/services/integrations/aggregator/companies/create_service_spec.rb:100, 143, 163, 225, 260, 295
+	// source: spec/services/integrations/aggregator/companies/update_service_spec.rb:104, 147, 218, 253, 288
+	// source: spec/services/integrations/aggregator/contacts/create_service_spec.rb:111, 156, 176, 242, 357, 392
+	// source: spec/services/integrations/aggregator/contacts/update_service_spec.rb:83, 126, 201, 236, 271
+	// source: spec/services/integrations/aggregator/credit_notes/create_service_spec.rb:322, 342, 370, 411, 454
+	// source: spec/services/integrations/aggregator/invoices/hubspot/create_customer_association_service_spec.rb:82
+	// source: spec/services/integrations/aggregator/invoices/hubspot/create_service_spec.rb:179, 199, 226, 244
+	// source: spec/services/integrations/aggregator/invoices/hubspot/update_service_spec.rb:135, 151, 178, 196
+	// source: spec/services/integrations/aggregator/invoices/reconcile_service_spec.rb:71
+	// source: spec/services/integrations/aggregator/payments/create_service_spec.rb:139, 166, 186, 232
+	// source: spec/services/integrations/aggregator/subscriptions/hubspot/create_customer_association_service_spec.rb:71
+	// source: spec/services/integrations/aggregator/subscriptions/hubspot/create_service_spec.rb:115, 135, 163, 181
+	// source: spec/services/integrations/aggregator/subscriptions/hubspot/update_service_spec.rb:105, 121, 149, 167
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }))
+	defer srv.Close()
+	a := integration.Connection{ID: core.MustParseID[core.IntegrationID]("0199a000-0000-7000-8000-000000000001")}
+	b := integration.Connection{ID: core.MustParseID[core.IntegrationID]("0199a000-0000-7000-8000-000000000002")}
+	elapsed := func(c *Client, calls ...Call) time.Duration {
+		start := time.Now()
+		for _, call := range calls {
+			err := c.Run(context.Background(), call, func(ctx context.Context) error {
+				_, err := c.Do(ctx, Request{URL: srv.URL, Method: http.MethodGet})
+				return err
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		return time.Since(start)
+	}
+	const step = 100 * time.Millisecond
+	newClient := func() *Client { return New(Config{Provider: integration.ProviderNetsuite, Rate: 10, Burst: 1}) }
+	if d := elapsed(newClient(), Call{Conn: a}, Call{Conn: a}, Call{Conn: a}); d < 2*step-20*time.Millisecond {
+		t.Errorf("same connection: got = %v, want = at least %v", d, 2*step)
+	}
+	if d := elapsed(newClient(), Call{Conn: a}, Call{Conn: b}); d >= step {
+		t.Errorf("two connections: got = %v, want = under %v", d, step)
+	}
+	if d := elapsed(newClient(), Call{Conn: a, LimitKey: "k"}, Call{Conn: b, LimitKey: "k"}); d < step-20*time.Millisecond {
+		t.Errorf("shared key: got = %v, want = at least %v", d, step)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	c := newClient()
+	_ = elapsed(c, Call{Conn: a})
+	err := c.Run(ctx, Call{Conn: a}, func(ctx context.Context) error {
+		_, err := c.Do(ctx, Request{URL: srv.URL, Method: http.MethodGet})
+		return err
+	})
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("cancelled wait: got = %v, want = context.Canceled", err)
+	}
+}

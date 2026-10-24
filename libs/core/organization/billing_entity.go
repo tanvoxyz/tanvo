@@ -66,6 +66,9 @@ type BillingEntity struct {
 	NetPaymentTermDays int
 	// FinalizeZeroAmountInvoice finalizes zero-amount invoices by default.
 	FinalizeZeroAmountInvoice bool
+	// SkipCreditInvoicePaymentDelay charges wallet top-up invoices at once,
+	// without waiting for a checkout link payment.
+	SkipCreditInvoicePaymentDelay bool
 	// IssuingDateAnchor is the default issuing date anchor.
 	IssuingDateAnchor core.IssuingDateAnchor
 	// IssuingDateAdjustment is the default issuing date adjustment.

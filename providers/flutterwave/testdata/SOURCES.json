@@ -1,0 +1,30 @@
+{
+  "fixtures/create_checkout_response.json": {
+    "source": "spec/services/invoices/payments/flutterwave_service_spec.rb:208",
+    "note": "the hosted checkout answer; the message field follows Flutterwave's documented answer"
+  },
+  "fixtures/verify_transaction_response.json": {
+    "source": "spec/services/payment_providers/flutterwave/webhooks/charge_completed_service_spec.rb:58",
+    "note": "a verified successful transaction; the transaction reference is the test invoice ID and the message field follows Flutterwave's documented answer"
+  },
+  "fixtures/verify_transaction_usd_response.json": {
+    "source": "spec/services/payment_providers/flutterwave/webhooks/charge_completed_service_spec.rb:418",
+    "note": "a verified transaction in a two-decimal currency; the transaction reference is the test invoice ID"
+  },
+  "fixtures/verify_transaction_failure_response.json": {
+    "source": "spec/services/payment_providers/flutterwave/webhooks/charge_completed_service_spec.rb:234",
+    "note": "a verification Flutterwave does not confirm"
+  },
+  "fixtures/webhooks/charge_completed.json": {
+    "source": "spec/services/payment_providers/flutterwave/webhooks/charge_completed_service_spec.rb:15",
+    "note": "a successful charge of an invoice; the transaction reference and the invoice are the test invoice ID, lago_* meta keys renamed tanvo_*, payable type Invoice renamed invoice"
+  },
+  "fixtures/webhooks/charge_completed_payment_request.json": {
+    "source": "spec/services/payment_providers/flutterwave/webhooks/charge_completed_service_spec.rb:291",
+    "note": "a successful charge of a payment request; the reference is tanvo_payment_request_<test request ID>, lago_* meta keys renamed tanvo_*, payable type PaymentRequest renamed payment_request"
+  },
+  "fixtures/webhooks/charge_failed.json": {
+    "source": "spec/services/payment_providers/flutterwave/webhooks/charge_completed_service_spec.rb:142",
+    "note": "a failed charge; the transaction reference and the invoice are the test invoice ID, lago_* meta keys renamed tanvo_*, payable type Invoice renamed invoice"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "event": "charge.completed",
+  "data": {
+    "id": 285959875,
+    "tx_ref": "tanvo_payment_request_0199a000-0000-7000-8000-000000000005",
+    "flw_ref": "LAGO/FLW270177170",
+    "amount": 50000,
+    "currency": "NGN",
+    "status": "successful",
+    "payment_type": "card",
+    "created_at": "2020-07-06T19:17:04.000Z",
+    "customer": {
+      "id": 215604089,
+      "name": "John Doe",
+      "phone_number": null,
+      "email": "customer@example.com",
+      "created_at": "2020-07-06T19:17:04.000Z"
+    },
+    "card": {
+      "last_4digits": "7889",
+      "type": "VERVE",
+      "expiry": "02/23"
+    },
+    "meta": {
+      "tanvo_payable_id": "0199a000-0000-7000-8000-000000000005",
+      "tanvo_payable_type": "payment_request"
+    }
+  }
+}

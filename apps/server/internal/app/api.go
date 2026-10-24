@@ -158,6 +158,18 @@ type APIOptions struct {
 	// clients of providers/x402. Without SecretKey, every facilitator
 	// call fails.
 	X402Facilitators x402.Facilitators
+	// Payments is the payments service wired to the payment providers
+	// and the billing engine; nil serves the payment RPCs with a service
+	// without providers.
+	Payments *payments.Service
+	// InboundWebhooks stores the payment provider webhooks; nil leaves
+	// [rpc.InboundWebhookPattern] unmounted.
+	InboundWebhooks *webhooks.Inbound
+	// Integrations is the integrations service wired to the tax,
+	// accounting and CRM providers; its sync triggers wrap the webhooks
+	// of the API's services. Nil serves the integration RPCs with a
+	// service without providers.
+	Integrations *integrations.Service
 }
 
 // oidcCallbacks are the callback paths of the OpenID Connect methods
@@ -241,6 +253,14 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 		Tx: o.Tx, Clock: o.Clock, IDs: core.UUIDv7Generator{}, Webhooks: &webhooks.Emitter{Tx: o.Tx}, Logger: o.Log,
 		ActivityLogs: auditlog.NewActivityProducer(o.Clock, core.UUIDv7Generator{}, rpc.ActivityActor),
 	}
+	integrationSvc := o.Integrations
+	if integrationSvc != nil {
+		billingDeps.Webhooks = integrationSvc.Triggers(billingDeps.Webhooks)
+	} else {
+		integrationSvc = integrations.New(billingDeps, secretBox)
+		integrations.NewTaxes(integrationSvc, nil)
+	}
+	integrationSvc.WithSecurityLog(rpc.IntegrationSecurityLog(ad.SecurityLog))
 	metricSvc, err := metrics.New(billingDeps, nil)
 	if err != nil {
 		return nil, fmt.Errorf("api: metrics: %w", err)
@@ -281,7 +301,10 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 	if o.Billing != nil {
 		walletSvc = o.Billing.Wallets
 	}
-	paymentSvc := payments.New(billingDeps).WithCreditInvoices(walletSvc)
+	paymentSvc := o.Payments
+	if paymentSvc == nil {
+		paymentSvc = payments.New(billingDeps).WithCreditInvoices(walletSvc)
+	}
 	var customerSvc *customers.Service
 	if o.Billing != nil {
 		customerSvc = o.Billing.Customers
@@ -340,16 +363,16 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 	}
 	taxv1connect.RegisterTaxServiceHandler(server, rpc.NewTaxes(taxSvc))
 	alertv1connect.RegisterAlertServiceHandler(server, rpc.NewAlerts(alertSvc))
-	walletv1connect.RegisterWalletServiceHandler(server, rpc.NewWallets(walletSvc, nil))
+	walletv1connect.RegisterWalletServiceHandler(server, rpc.NewWallets(walletSvc, walletPaymentURLs(o.Payments)))
 	couponv1connect.RegisterCouponServiceHandler(server, rpc.NewCoupons(deduct.New(billingDeps)))
 	organizationv1connect.RegisterBillingEntityServiceHandler(server, rpc.NewBillingEntities(billingEntitySvc))
 	customerv1connect.RegisterCustomerServiceHandler(server, rpc.NewCustomers(customerSvc, portal, o.Tx))
 	if o.Billing != nil {
-		creditnotev1connect.RegisterCreditNoteServiceHandler(server, rpc.NewCreditNotes(o.Billing.CreditNotes))
+		creditnotev1connect.RegisterCreditNoteServiceHandler(server, rpc.NewCreditNotes(o.Billing.CreditNotes).WithIntegrations(integrationSvc))
 	}
 	if o.Billing != nil {
 		invoicev1connect.RegisterFeeServiceHandler(server, rpc.NewFees(o.Billing.Invoices))
-		invoicev1connect.RegisterInvoiceServiceHandler(server, rpc.NewInvoices(o.Billing.Invoices, paymentSvc))
+		invoicev1connect.RegisterInvoiceServiceHandler(server, rpc.NewInvoices(o.Billing.Invoices, paymentSvc).WithIntegrations(integrationSvc))
 		catalogv1connect.RegisterPlanServiceHandler(server, rpc.NewPlans(o.Billing.Plans))
 		catalogv1connect.RegisterChargeServiceHandler(server, rpc.NewCharges(o.Billing.Plans))
 		catalogv1connect.RegisterFixedChargeServiceHandler(server, rpc.NewFixedCharges(o.Billing.Plans))
@@ -375,8 +398,7 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 		Tx: o.Tx, Clock: o.Clock, IDs: core.UUIDv7Generator{}, Rand: rand.Reader, AllowPrivate: o.WebhooksAllowPrivate,
 		SecurityLog: rpc.WebhookSecurityLog(ad.SecurityLog),
 	}))
-	integrationv1connect.RegisterIntegrationServiceHandler(server, rpc.NewIntegrations(
-		integrations.New(billingDeps, secretBox).WithSecurityLog(rpc.IntegrationSecurityLog(ad.SecurityLog))))
+	integrationv1connect.RegisterIntegrationServiceHandler(server, rpc.NewIntegrations(integrationSvc))
 	analyticsv1connect.RegisterAnalyticsServiceHandler(server, rpc.NewAnalytics(billinganalytics.New(billingDeps)))
 	exportv1connect.RegisterDataExportServiceHandler(server, rpc.NewDataExports(exports.New(billingDeps, nil, rpc.ExportFilters()), ad.SecurityLog))
 	accessv1connect.RegisterMemberServiceHandler(server, rpc.NewMembers(auth.NewMemberships(ad), auth.NewRoles(ad), invites))
@@ -414,7 +436,19 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 		return nil, fmt.Errorf("api: rest: %w", err)
 	}
 	mux.Handle(restPrefix, rpc.RESTRequests(rest))
+	if o.InboundWebhooks != nil {
+		mux.Handle(rpc.InboundWebhookPattern, &rpc.InboundWebhooks{Tx: o.Tx, Receiver: o.InboundWebhooks, Acks: paymentSvc, Log: o.Log})
+	}
 	return a, nil
+}
+
+// walletPaymentURLs returns the payment links of the wallets' credit
+// invoices, nil without a provider-wired payments service.
+func walletPaymentURLs(svc *payments.Service) rpc.WalletPaymentURLs {
+	if svc == nil {
+		return nil
+	}
+	return svc
 }
 
 // authenticators are the credentials the API accepts: API keys, user

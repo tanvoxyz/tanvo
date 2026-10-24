@@ -1,0 +1,19 @@
+{
+  "billing_requests": {
+    "id": "BRQ123",
+    "created_at": "2026-05-07T10:00:00.000Z",
+    "status": "pending",
+    "mandate_request": {
+      "currency": "GBP",
+      "scheme": "bacs",
+      "verify": "recommended"
+    },
+    "payment_request": null,
+    "metadata": {},
+    "links": {
+      "customer": "CU123",
+      "creditor": "CR123",
+      "mandate_request": "MRQ123"
+    }
+  }
+}

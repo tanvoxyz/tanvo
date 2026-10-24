@@ -1,0 +1,15 @@
+{
+  "error": {
+    "message": "Uh-oh! Something went wrong",
+    "documentation_url": "https://developer.gocardless.com/api-reference#internal_server_error",
+    "type": "gocardless",
+    "request_id": "REQ_SERVER",
+    "errors": [
+      {
+        "reason": "internal_server_error",
+        "message": "Uh-oh! Something went wrong"
+      }
+    ],
+    "code": 500
+  }
+}

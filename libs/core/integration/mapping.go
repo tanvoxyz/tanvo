@@ -44,7 +44,7 @@ func (m *Mapping) Validate() error {
 	v.Check(!m.IntegrationID.IsZero(), "integration_id", core.CodeRequired)
 	v.Enum("mappable_type", m.MappableType)
 	v.Check(m.MappableID != uuid.Nil, "mappable_id", core.CodeRequired)
-	v.String("external_id", m.ExternalID, 255)
+	v.MaxLen("external_id", m.ExternalID, 255)
 	v.OptionalString("external_account_code", m.ExternalAccountCode, 255)
 	v.OptionalString("external_name", m.ExternalName, 255)
 	return v.Err()
@@ -98,11 +98,6 @@ func (m *CollectionMapping) Validate() error {
 	var v core.Validator
 	v.Check(!m.IntegrationID.IsZero(), "integration_id", core.CodeRequired)
 	v.Enum("mapping_type", m.Type)
-	if m.Type == CollectionMappingTypeCurrencies {
-		v.Check(len(m.Currencies) > 0, "currencies", core.CodeRequired)
-	} else {
-		v.Check(len(m.Currencies) == 0, "currencies", core.CodeForbidden)
-	}
 	v.OptionalString("external_id", m.ExternalID, 255)
 	v.OptionalString("external_account_code", m.ExternalAccountCode, 255)
 	v.OptionalString("external_name", m.ExternalName, 255)
@@ -147,70 +142,113 @@ type ResolveInput struct {
 	MappableType MappableType
 	// MappableID is the id of the add-on or billable metric.
 	MappableID uuid.UUID
-	// Collection is the collection mapping type of the object (for a fee:
-	// subscription_fee, minimum_commitment, prepaid_credit…; for a charge
-	// or add-on fee, leave empty to fall back to fallback_item only).
+	// Collection is the collection mapping type of an object without its
+	// own mapping (subscription_fee, minimum_commitment, coupon…); empty
+	// with a MappableID.
 	Collection CollectionMappingType
 	// BillingEntityID is the billing entity of the document.
 	BillingEntityID core.BillingEntityID
 }
 
-// Resolve finds the external item of an object (domain §17.3): the
-// object's own mapping → the collection mapping of its type →
-// fallback_item. At each step a mapping of the document's billing entity
-// wins over one without billing entity. It wraps [ErrNoMapping] when
-// nothing maps.
+// Resolve finds the external item of an object (domain §17.3). For an
+// add-on or metric: its mapping for the document's billing entity → the
+// entity's fallback_item → its mapping without billing entity → the
+// fallback_item without billing entity. For a collection: the same order
+// with the collection mapping of the type in place of the object's
+// mapping, and no fallback_item for tax (lago
+// app/services/integrations/aggregator/base_payload.rb:71-106). It wraps
+// [ErrNoMapping] when nothing maps.
 func Resolve(in ResolveInput) (ExternalItem, error) {
 	if in.MappableID != uuid.Nil {
-		if m := pickMapping(in); m != nil {
-			return ExternalItem{m.ExternalID, m.ExternalAccountCode, m.ExternalName}, nil
+		var scoped, general *Mapping
+		for _, m := range in.Mappings {
+			if m.MappableType != in.MappableType || m.MappableID != in.MappableID {
+				continue
+			}
+			switch {
+			case !in.BillingEntityID.IsZero() && m.BillingEntityID == in.BillingEntityID:
+				scoped = cmpOr(scoped, m)
+			case m.BillingEntityID.IsZero():
+				general = cmpOr(general, m)
+			}
 		}
-	}
-	types := []CollectionMappingType{}
-	if in.Collection != "" {
-		types = append(types, in.Collection)
-	}
-	if in.Collection != CollectionMappingTypeFallbackItem {
-		types = append(types, CollectionMappingTypeFallbackItem)
-	}
-	for _, t := range types {
-		if c := pickCollection(in, t); c != nil && c.ExternalID != nil {
-			return ExternalItem{*c.ExternalID, c.ExternalAccountCode, c.ExternalName}, nil
+		if scoped != nil {
+			return ExternalItem{scoped.ExternalID, scoped.ExternalAccountCode, scoped.ExternalName}, nil
 		}
+		if c := pickCollection(in.CollectionMappings, in.BillingEntityID, CollectionMappingTypeFallbackItem, true); c != nil {
+			return c.Item(), nil
+		}
+		if general != nil {
+			return ExternalItem{general.ExternalID, general.ExternalAccountCode, general.ExternalName}, nil
+		}
+		if c := pickCollection(in.CollectionMappings, core.BillingEntityID{}, CollectionMappingTypeFallbackItem, false); c != nil {
+			return c.Item(), nil
+		}
+		return ExternalItem{}, fmt.Errorf("%s %s: %w", in.MappableType, in.MappableID, ErrNoMapping)
 	}
-	return ExternalItem{}, fmt.Errorf("%s %s: %w", in.MappableType, in.MappableID, ErrNoMapping)
+	if c := LookupCollection(in.CollectionMappings, in.BillingEntityID, in.Collection); c != nil {
+		return c.Item(), nil
+	}
+	return ExternalItem{}, fmt.Errorf("%s: %w", in.Collection, ErrNoMapping)
 }
 
-func pickMapping(in ResolveInput) *Mapping {
-	var general *Mapping
-	for _, m := range in.Mappings {
-		if m.MappableType != in.MappableType || m.MappableID != in.MappableID {
-			continue
-		}
-		switch {
-		case !in.BillingEntityID.IsZero() && m.BillingEntityID == in.BillingEntityID:
-			return m
-		case m.BillingEntityID.IsZero():
-			general = m
+// LookupCollection returns the collection mapping of type t for the
+// billing entity be, in the order of [Resolve]: the entity's mapping of
+// the type → the entity's fallback_item → the mapping of the type without
+// billing entity → the fallback_item without billing entity; tax,
+// currencies and fallback_item take no fallback_item. It returns nil when
+// nothing maps.
+func LookupCollection(mappings []*CollectionMapping, be core.BillingEntityID, t CollectionMappingType) *CollectionMapping {
+	fallback := t != CollectionMappingTypeTax && t != CollectionMappingTypeCurrencies &&
+		t != CollectionMappingTypeFallbackItem
+	if c := pickCollection(mappings, be, t, true); c != nil {
+		return c
+	}
+	if fallback {
+		if c := pickCollection(mappings, be, CollectionMappingTypeFallbackItem, true); c != nil {
+			return c
 		}
 	}
-	return general
+	if c := pickCollection(mappings, be, t, false); c != nil {
+		return c
+	}
+	if fallback {
+		return pickCollection(mappings, be, CollectionMappingTypeFallbackItem, false)
+	}
+	return nil
 }
 
-func pickCollection(in ResolveInput, t CollectionMappingType) *CollectionMapping {
-	var general *CollectionMapping
-	for _, c := range in.CollectionMappings {
+// Item returns the external item of the mapping.
+func (m *CollectionMapping) Item() ExternalItem {
+	var id string
+	if m.ExternalID != nil {
+		id = *m.ExternalID
+	}
+	return ExternalItem{id, m.ExternalAccountCode, m.ExternalName}
+}
+
+// pickCollection returns the first mapping of type t of the billing
+// entity be when scoped, or the first one without billing entity.
+func pickCollection(mappings []*CollectionMapping, be core.BillingEntityID, t CollectionMappingType, scoped bool) *CollectionMapping {
+	if scoped && be.IsZero() {
+		return nil
+	}
+	for _, c := range mappings {
 		if c.Type != t {
 			continue
 		}
-		switch {
-		case !in.BillingEntityID.IsZero() && c.BillingEntityID == in.BillingEntityID:
+		if scoped && c.BillingEntityID == be || !scoped && c.BillingEntityID.IsZero() {
 			return c
-		case c.BillingEntityID.IsZero():
-			general = c
 		}
 	}
-	return general
+	return nil
+}
+
+func cmpOr[T any](a, b *T) *T {
+	if a != nil {
+		return a
+	}
+	return b
 }
 
 // Item caches one item of the external catalog (domain §17.3).

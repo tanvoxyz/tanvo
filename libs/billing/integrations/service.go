@@ -45,11 +45,34 @@ type Service struct {
 	box  Sealer
 	rand io.Reader
 	log  SecurityLogger
+	gw   port.IntegrationProviders
+	// taxes is the tax provider over s, set by [NewTaxes].
+	taxes *Taxes
+	// blobs resolves the URLs of invoice files ([WithBlobs]).
+	blobs port.BlobStore
+	// appURL is the web console URL ([WithAppURL]).
+	appURL string
+	// docs renders the API representations sent to NetSuite ([WithDocuments]).
+	docs Documents
 }
+
+// Option configures a [Service].
+type Option func(*Service)
+
+// WithProviders sets the adapters of the tax, accounting and CRM
+// providers; without them, the operations calling a provider fail with
+// [integration.ErrUnsupported].
+func WithProviders(gw port.IntegrationProviders) Option { return func(s *Service) { s.gw = gw } }
 
 // New returns the service over d; box seals the credentials and may be nil
 // only when no credentials are stored.
-func New(d *kernel.Deps, box Sealer) *Service { return &Service{d: d, box: box, rand: rand.Reader} }
+func New(d *kernel.Deps, box Sealer, opts ...Option) *Service {
+	s := &Service{d: d, box: box, rand: rand.Reader}
+	for _, o := range opts {
+		o(s)
+	}
+	return s
+}
 
 // Input is the integration to create.
 type Input struct {
@@ -154,11 +177,17 @@ func (s *Service) Create(ctx context.Context, org core.OrganizationID, in Input)
 	if err := s.store(ctx, i, settings, secrets); err != nil {
 		return nil, err
 	}
+	if err := s.validateConnection(i, secrets); err != nil {
+		return nil, err
+	}
 	if err := i.Validate(); err != nil {
 		return nil, err
 	}
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
 		if err := codeConflict(r.Integrations.Create(ctx, i)); err != nil {
+			return err
+		}
+		if err := s.connectionCreated(ctx, r, i); err != nil {
 			return err
 		}
 		return s.record(ctx, i, EventCreated, nil)
@@ -183,6 +212,8 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.I
 		if err != nil {
 			return err
 		}
+		prev := *i
+		prev.Settings = slices.Clone(i.Settings)
 		sp := specs[i.Provider]
 		var v core.Validator
 		v.Check(in.Provider == "" || in.Provider == i.Provider, string(in.Provider), core.CodeForbidden)
@@ -238,11 +269,18 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.I
 		if err := s.store(ctx, i, settings, secrets); err != nil {
 			return err
 		}
+		if err := s.validateConnection(i, secrets); err != nil {
+			return err
+		}
 		if err := i.Validate(); err != nil {
 			return err
 		}
 		i.UpdatedAt = s.d.Now()
 		if err := codeConflict(r.Integrations.Update(ctx, i)); err != nil {
+			return err
+		}
+		// stripe_service.rb:41-45
+		if err := kernel.EnqueuePaymentConnectionUpdated(ctx, r, &prev, i); err != nil {
 			return err
 		}
 		after, err := logState(i)
@@ -384,6 +422,53 @@ func (s *Service) secrets(ctx context.Context, i *integration.Integration) (map[
 		return nil, fmt.Errorf("integration %s secrets: %w", i.ID, err)
 	}
 	return out, nil
+}
+
+// ShownSecrets returns the secrets of i the merchant copies into the
+// provider's dashboard: the ones generated at creation (lago exposes the
+// webhook secrets of GoCardless and Flutterwave, graphql types/
+// payment_providers/gocardless.rb:14, flutterwave.rb:13). A secret the
+// merchant supplied is never shown.
+func (s *Service) ShownSecrets(ctx context.Context, i *integration.Integration) (map[string]string, error) {
+	gen := specs[i.Provider].generated
+	if len(gen) == 0 {
+		return nil, nil
+	}
+	secrets, err := s.secrets(ctx, i)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]string, len(gen))
+	for k := range gen {
+		if v := secrets[k]; v != "" {
+			out[k] = v
+		}
+	}
+	return out, nil
+}
+
+// validateConnection runs the adapter's checks of the settings and
+// secrets of the tax, accounting or CRM integration i, as lago validates
+// the integration model on create and update (RecordInvalid,
+// app/models/integrations/*_integration.rb). Payment providers are checked
+// by their specs only; a vendor without an adapter is not checked further.
+func (s *Service) validateConnection(i *integration.Integration, secrets map[string]string) error {
+	if i.Category == integration.CategoryPayment || s.gw == nil {
+		return nil
+	}
+	g, err := s.gw.IntegrationGateway(i.Provider)
+	if errors.Is(err, core.ErrNotFound) {
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("integration %s: %w", i.Provider, err)
+	}
+	conn := integration.Connection{ID: i.ID, OrganizationID: i.OrganizationID, Code: i.Code, Provider: i.Provider, Settings: i.Settings}
+	if len(secrets) > 0 {
+		if conn.Secrets, err = json.Marshal(secrets); err != nil {
+			return fmt.Errorf("encode secrets: %w", err)
+		}
+	}
+	return g.ValidateConnection(conn)
 }
 
 // store encodes settings into i and seals secrets into it.

@@ -243,7 +243,7 @@ INSERT INTO invoices (
   issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days,
   payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment,
   payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing,
-  refresh_requested, finalized_at, voided_at, created_at, updated_at
+  refresh_requested, finalized_at, voided_at, created_at, updated_at, payment_attempts
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8,
   $9, $10, $11, $12,
@@ -253,7 +253,7 @@ INSERT INTO invoices (
   $27, $28, $29, $30, $31,
   $32, $33, $34, $35, $36,
   $37, $38, $39, $40, $41, $42, $43, $44, $45,
-  $46, $47, $48, $49, $50
+  $46, $47, $48, $49, $50, $51
 )
 ON CONFLICT DO NOTHING
 `
@@ -309,6 +309,7 @@ type CreateInvoiceParams struct {
 	VoidedAt                       *time.Time
 	CreatedAt                      time.Time
 	UpdatedAt                      time.Time
+	PaymentAttempts                int32
 }
 
 // Invoices, invoice subscriptions, fees, applied taxes, adjusted fees,
@@ -365,6 +366,7 @@ func (q *Queries) CreateInvoice(ctx context.Context, arg CreateInvoiceParams) (i
 		arg.VoidedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.PaymentAttempts,
 	)
 	if err != nil {
 		return 0, err
@@ -925,7 +927,7 @@ func (q *Queries) GetFee(ctx context.Context, arg GetFeeParams) (Fee, error) {
 }
 
 const getInvoice = `-- name: GetInvoice :one
-SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at FROM invoices WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at, payment_attempts FROM invoices WHERE organization_id = $1 AND id = $2
 `
 
 type GetInvoiceParams struct {
@@ -987,12 +989,13 @@ func (q *Queries) GetInvoice(ctx context.Context, arg GetInvoiceParams) (Invoice
 		&i.VoidedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PaymentAttempts,
 	)
 	return i, err
 }
 
 const getInvoiceByNumber = `-- name: GetInvoiceByNumber :one
-SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at FROM invoices WHERE organization_id = $1 AND number = $2 ORDER BY id LIMIT 1
+SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at, payment_attempts FROM invoices WHERE organization_id = $1 AND number = $2 ORDER BY id LIMIT 1
 `
 
 type GetInvoiceByNumberParams struct {
@@ -1054,6 +1057,7 @@ func (q *Queries) GetInvoiceByNumber(ctx context.Context, arg GetInvoiceByNumber
 		&i.VoidedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PaymentAttempts,
 	)
 	return i, err
 }
@@ -1075,7 +1079,7 @@ func (q *Queries) GetInvoiceStatus(ctx context.Context, arg GetInvoiceStatusPara
 }
 
 const getRegeneratedInvoice = `-- name: GetRegeneratedInvoice :one
-SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at FROM invoices WHERE organization_id = $1 AND voided_invoice_id = $2 ORDER BY id LIMIT 1
+SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at, payment_attempts FROM invoices WHERE organization_id = $1 AND voided_invoice_id = $2 ORDER BY id LIMIT 1
 `
 
 type GetRegeneratedInvoiceParams struct {
@@ -1137,6 +1141,7 @@ func (q *Queries) GetRegeneratedInvoice(ctx context.Context, arg GetRegeneratedI
 		&i.VoidedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PaymentAttempts,
 	)
 	return i, err
 }
@@ -2065,7 +2070,7 @@ func (q *Queries) ListInvoiceCreditsByProgressiveBillingInvoice(ctx context.Cont
 }
 
 const listInvoiceDraftsToFinalize = `-- name: ListInvoiceDraftsToFinalize :many
-SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at FROM invoices
+SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at, payment_attempts FROM invoices
 WHERE organization_id = $1 AND status = 'draft'
   AND (expected_finalization_date IS NULL OR expected_finalization_date <= $2::date)
 ORDER BY id
@@ -2136,6 +2141,7 @@ func (q *Queries) ListInvoiceDraftsToFinalize(ctx context.Context, arg ListInvoi
 			&i.VoidedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.PaymentAttempts,
 		); err != nil {
 			return nil, err
 		}
@@ -2184,7 +2190,7 @@ func (q *Queries) ListInvoiceErrorDetailsByInvoice(ctx context.Context, arg List
 }
 
 const listInvoiceOverdueCandidates = `-- name: ListInvoiceOverdueCandidates :many
-SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at FROM invoices
+SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at, payment_attempts FROM invoices
 WHERE organization_id = $1 AND status = 'finalized' AND NOT payment_overdue
   AND payment_status <> 'succeeded' AND payment_dispute_lost_at IS NULL AND payment_due_date < $2::date
 ORDER BY id
@@ -2255,6 +2261,7 @@ func (q *Queries) ListInvoiceOverdueCandidates(ctx context.Context, arg ListInvo
 			&i.VoidedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.PaymentAttempts,
 		); err != nil {
 			return nil, err
 		}
@@ -2396,7 +2403,7 @@ func (q *Queries) ListInvoiceSubscriptionsBySubscription(ctx context.Context, ar
 }
 
 const listInvoices = `-- name: ListInvoices :many
-SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at FROM invoices i
+SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at, payment_attempts FROM invoices i
 WHERE i.organization_id = $1
   AND (i.status IN ('draft', 'finalized', 'voided', 'failed')
        OR ($2::boolean AND i.status IN ('open', 'closed'))
@@ -2581,6 +2588,7 @@ func (q *Queries) ListInvoices(ctx context.Context, arg ListInvoicesParams) ([]I
 			&i.VoidedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.PaymentAttempts,
 		); err != nil {
 			return nil, err
 		}
@@ -2593,7 +2601,7 @@ func (q *Queries) ListInvoices(ctx context.Context, arg ListInvoicesParams) ([]I
 }
 
 const listInvoicesByIDs = `-- name: ListInvoicesByIDs :many
-SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at FROM invoices WHERE organization_id = $1 AND id = ANY($2::uuid[]) ORDER BY id
+SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at, payment_attempts FROM invoices WHERE organization_id = $1 AND id = ANY($2::uuid[]) ORDER BY id
 `
 
 type ListInvoicesByIDsParams struct {
@@ -2661,6 +2669,7 @@ func (q *Queries) ListInvoicesByIDs(ctx context.Context, arg ListInvoicesByIDsPa
 			&i.VoidedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.PaymentAttempts,
 		); err != nil {
 			return nil, err
 		}
@@ -2673,7 +2682,7 @@ func (q *Queries) ListInvoicesByIDs(ctx context.Context, arg ListInvoicesByIDsPa
 }
 
 const listInvoicesRefreshRequested = `-- name: ListInvoicesRefreshRequested :many
-SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at FROM invoices
+SELECT organization_id, id, customer_id, billing_entity_id, invoice_type, status, payment_status, tax_status, number, sequential_id, billing_entity_sequential_id, currency, fees_amount, progressive_billing_credit_amount, coupons_amount, sub_total_excluding_taxes_amount, taxes_amount, taxes_rate, sub_total_including_taxes_amount, credit_notes_amount, prepaid_credit_amount, prepaid_granted_credit_amount, prepaid_purchased_credit_amount, total_amount, total_paid_amount, offsetted_amount, issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days, payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment, payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing, refresh_requested, finalized_at, voided_at, created_at, updated_at, payment_attempts FROM invoices
 WHERE organization_id = $1 AND status = 'draft' AND refresh_requested
 ORDER BY id
 `
@@ -2738,6 +2747,7 @@ func (q *Queries) ListInvoicesRefreshRequested(ctx context.Context, organization
 			&i.VoidedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.PaymentAttempts,
 		); err != nil {
 			return nil, err
 		}
@@ -3004,7 +3014,7 @@ UPDATE invoices SET
   purchase_order_number = $39, x402_connection_id = $40, x402_payment_token = $41, metadata = $42,
   file = $43, xml_file = $44, ready_for_payment_processing = $45,
   refresh_requested = $46, finalized_at = $47, voided_at = $48,
-  created_at = $49, updated_at = $50
+  created_at = $49, updated_at = $50, payment_attempts = $51
 WHERE organization_id = $1 AND id = $2
 `
 
@@ -3059,6 +3069,7 @@ type UpdateInvoiceParams struct {
 	VoidedAt                       *time.Time
 	CreatedAt                      time.Time
 	UpdatedAt                      time.Time
+	PaymentAttempts                int32
 }
 
 func (q *Queries) UpdateInvoice(ctx context.Context, arg UpdateInvoiceParams) (int64, error) {
@@ -3113,6 +3124,7 @@ func (q *Queries) UpdateInvoice(ctx context.Context, arg UpdateInvoiceParams) (i
 		arg.VoidedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,
+		arg.PaymentAttempts,
 	)
 	if err != nil {
 		return 0, err

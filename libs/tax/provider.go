@@ -1,6 +1,8 @@
 package tax
 
 import (
+	"slices"
+
 	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
@@ -36,6 +38,15 @@ type ProviderTax struct {
 	// AllocatedAmountCents is the booked tax in cents when already
 	// allocated (for a fee split from a grouped charge line), else nil.
 	AllocatedAmountCents *int64
+}
+
+// Code is the tax code of t: its parameterized name.
+func (t ProviderTax) Code() string { return parameterize(t.Name, "_") }
+
+// AppliedOnWholeInvoice reports whether t is a provider ruling that covers
+// the whole invoice (not collecting, reverse charge, exemptions…).
+func (t ProviderTax) AppliedOnWholeInvoice() bool {
+	return slices.Contains(wholeInvoiceTaxCodes, t.Code())
 }
 
 // ProviderTaxResult is a tax provider's result for one line.

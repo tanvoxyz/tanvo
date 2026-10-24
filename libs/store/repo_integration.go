@@ -165,6 +165,19 @@ func (r integrationRepo) ListByDomain(ctx context.Context, p integration.Provide
 	return convAll(rows, integrationOf)
 }
 
+// OrganizationOf is not organization-scoped: it routes provider webhooks.
+func (r integrationRepo) OrganizationOf(ctx context.Context, id core.IntegrationID) (core.OrganizationID, error) {
+	q, err := r.t.queriesAll(ctx)
+	if err != nil {
+		return core.OrganizationID{}, err
+	}
+	org, err := q.OrganizationOfPaymentIntegration(ctx, id.UUID())
+	if err != nil {
+		return core.OrganizationID{}, getErr("integration", id, err)
+	}
+	return idOf[core.OrganizationID](org), nil
+}
+
 func (r integrationRepo) List(ctx context.Context, org core.OrganizationID, f integration.Filter, page core.PageRequest) (core.Page[*integration.Integration], error) {
 	q, err := r.t.queries(ctx, org)
 	if err != nil {

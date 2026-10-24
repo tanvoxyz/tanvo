@@ -96,6 +96,7 @@ func paymentParams(p *payment.Payment) db.CreatePaymentParams {
 		PaymentMethodID:         optUUID(p.PaymentMethodID),
 		CreatedAt:               utc(p.CreatedAt),
 		UpdatedAt:               utc(p.UpdatedAt),
+		ErrorCode:               p.ErrorCode,
 	}
 }
 
@@ -130,6 +131,7 @@ func paymentOf(r db.Payment) (*payment.Payment, error) {
 		ProviderPaymentData:     rawJSON(r.ProviderPaymentData),
 		ProviderPaymentMethod:   details,
 		PaymentMethodID:         optIDOf[core.PaymentMethodID](r.PaymentMethodID),
+		ErrorCode:               r.ErrorCode,
 		CreatedAt:               utc(r.CreatedAt),
 		UpdatedAt:               utc(r.UpdatedAt),
 	}, nil
@@ -156,6 +158,15 @@ func (r paymentRepo) Update(ctx context.Context, p *payment.Payment) error {
 		return err
 	})
 	return updateErr("payment", p.ID, n, err)
+}
+
+func (r paymentRepo) Delete(ctx context.Context, org core.OrganizationID, id core.PaymentID) error {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return err
+	}
+	n, err := q.DeletePayment(ctx, db.DeletePaymentParams{OrganizationID: org.UUID(), ID: id.UUID()})
+	return updateErr("payment", id, n, err)
 }
 
 func (r paymentRepo) Get(ctx context.Context, org core.OrganizationID, id core.PaymentID) (*payment.Payment, error) {
@@ -204,6 +215,18 @@ func (r paymentRepo) ListByPayable(ctx context.Context, org core.OrganizationID,
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list payments of %s: %w", payable, mapErr(err))
+	}
+	return convAll(rows, paymentOf)
+}
+
+func (r paymentRepo) ListAbandoned(ctx context.Context, org core.OrganizationID, from, to time.Time) ([]*payment.Payment, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.ListAbandonedPayments(ctx, db.ListAbandonedPaymentsParams{OrganizationID: org.UUID(), FromAt: from, ToAt: to})
+	if err != nil {
+		return nil, fmt.Errorf("list abandoned payments: %w", mapErr(err))
 	}
 	return convAll(rows, paymentOf)
 }
@@ -943,6 +966,30 @@ func (r paymentIntentRepo) ListAwaitingExpiration(ctx context.Context, org core.
 		return nil, fmt.Errorf("list payment intents awaiting expiration: %w", mapErr(err))
 	}
 	return convAll(rows, paymentIntentOf)
+}
+
+func (r paymentIntentRepo) ListActive(ctx context.Context, org core.OrganizationID) ([]*payment.Intent, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.ListActivePaymentIntents(ctx, org.UUID())
+	if err != nil {
+		return nil, fmt.Errorf("list active payment intents: %w", mapErr(err))
+	}
+	return convAll(rows, paymentIntentOf)
+}
+
+func (r paymentIntentRepo) Exists(ctx context.Context, org core.OrganizationID) (bool, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return false, err
+	}
+	ok, err := q.PaymentIntentsExist(ctx, org.UUID())
+	if err != nil {
+		return false, fmt.Errorf("check payment intents: %w", mapErr(err))
+	}
+	return ok, nil
 }
 
 // inboundWebhookRepo implements payment.InboundWebhookRepository.

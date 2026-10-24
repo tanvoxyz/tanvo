@@ -18,6 +18,13 @@ type CreditInvoiceHandler interface {
 	HandleCreditInvoiceVoided(ctx context.Context, org core.OrganizationID, id core.InvoiceID) error
 }
 
+// PaymentURLGenerator makes the checkout link of an invoice at its
+// customer's payment provider; libs/billing/payments implements it.
+type PaymentURLGenerator interface {
+	// InvoicePaymentURL returns the checkout link of invoice id.
+	InvoicePaymentURL(ctx context.Context, org core.OrganizationID, id core.InvoiceID) (string, error)
+}
+
 // Service is the invoicing service.
 type Service struct {
 	d              *kernel.Deps
@@ -29,6 +36,9 @@ type Service struct {
 	// contractSegments resolves the in-advance segments of contracts;
 	// nil bills no contract event in advance.
 	contractSegments ContractSegments
+	// paymentURLs makes invoice checkout links; nil fails
+	// [Service.PaymentURL] with [ErrPaymentURLUnavailable].
+	paymentURLs PaymentURLGenerator
 }
 
 // New returns the service over the checked dependencies d, with its own
@@ -41,6 +51,13 @@ func New(d *kernel.Deps) *Service {
 // wallet voider) for credit notes, and returns it.
 func (s *Service) WithCreditNotes(cn *creditnotes.Service) *Service {
 	s.creditNotes = cn
+	return s
+}
+
+// WithPaymentURLs sets the generator of invoice checkout links, and
+// returns the service.
+func (s *Service) WithPaymentURLs(g PaymentURLGenerator) *Service {
+	s.paymentURLs = g
 	return s
 }
 

@@ -36,6 +36,12 @@ type Connection struct {
 	Settings json.RawMessage
 	// Secrets is the decrypted secrets object; adapters never log it.
 	Secrets json.RawMessage
+	// WebhookURL is the connection's inbound webhook endpoint, the URL
+	// apps/server serves its deliveries at (the endpointURL of
+	// [ConnectionGateway.RegisterWebhook]). Providers without registered
+	// endpoints take it with every payment (MoneyHash webhook_url); ""
+	// sends none.
+	WebhookURL string
 }
 
 // ConnectionUpdate is what an adapter asks apps/server to store on the
@@ -72,12 +78,28 @@ type CustomerParams struct {
 	ExternalID string
 	// Name is the display name, or "<first> <last>" when it is blank.
 	Name string
+	// CompanyName is the customer's own name, "" when it is blank (no
+	// fallback), for providers that take it apart from the person's names
+	// (GoCardless company_name).
+	CompanyName string
+	// Firstname is the customer's first name.
+	Firstname string
+	// Lastname is the customer's last name.
+	Lastname string
 	// Email is the first address of the customer's comma-separated list.
 	Email string
 	// Phone is the contact phone.
 	Phone string
 	// Address is the billing address.
 	Address core.Address
+	// Type is the customer type, "" when unset.
+	Type customer.Type
+	// LegalName, LegalNumber and TaxIdentificationNumber are the
+	// customer's legal identity, "" when blank (MoneyHash company_name and
+	// tax_id).
+	LegalName, LegalNumber, TaxIdentificationNumber string
+	// Currency is the customer's currency, zero when unset.
+	Currency money.Currency
 	// IdempotencyKey makes creation idempotent; see
 	// [CustomerIdempotencyKey].
 	IdempotencyKey string
@@ -89,9 +111,18 @@ func CustomerParamsOf(c *customer.Customer) CustomerParams {
 		CustomerID:     c.ID,
 		ExternalID:     c.ExternalID,
 		Name:           deref(c.Name),
+		CompanyName:    strings.TrimSpace(deref(c.Name)),
+		Firstname:      strings.TrimSpace(deref(c.Firstname)),
+		Lastname:       strings.TrimSpace(deref(c.Lastname)),
 		Phone:          deref(c.Phone),
 		Address:        c.BillingAddress,
+		Type:           c.CustomerType,
+		LegalName:      strings.TrimSpace(deref(c.LegalName)),
+		LegalNumber:    strings.TrimSpace(deref(c.LegalNumber)),
+		Currency:       c.Currency,
 		IdempotencyKey: CustomerIdempotencyKey(c.ID, c.UpdatedAt),
+
+		TaxIdentificationNumber: strings.TrimSpace(deref(c.TaxIdentificationNumber)),
 	}
 	if strings.TrimSpace(p.Name) == "" {
 		p.Name = strings.TrimSpace(deref(c.Firstname) + " " + deref(c.Lastname))
@@ -114,6 +145,13 @@ func CustomerIdempotencyKey(id core.CustomerID, updatedAt time.Time) string {
 // customer is local ([ProviderCustomer.Remove]): like lago
 // (payment_provider_customers/destroy_service), the provider's record is
 // kept.
+//
+// A provider that keeps no customer object (Adyen identifies the shopper by
+// the customer's external ID once a method is saved; Cashfree and
+// Flutterwave only take payment links) returns [ErrUnsupported] from
+// CreateCustomer and UpdateCustomer: the provider customer stays local, and
+// the caller sends the customer to [MethodGateway.SetupURL] when the
+// provider supports one.
 type CustomerGateway interface {
 	// DefaultMethodTypes returns the method types a new provider customer
 	// allows when none are given.
@@ -192,6 +230,12 @@ type SetupParams struct {
 	ProviderCustomerID string
 	// MethodTypes are the customer's allowed method types.
 	MethodTypes []string
+	// Customer describes the customer, for providers whose setup page
+	// carries its details (Adyen's shopper reference and email).
+	Customer CustomerParams
+	// Currency is the currency of a zero-amount authorization page: the
+	// customer's currency, else the organization's default (Adyen).
+	Currency money.Currency
 }
 
 // MethodGateway manages a customer's payment methods at the provider.
@@ -256,6 +300,9 @@ type PaymentParams struct {
 	// ActivatesSubscription reports a charge that activates a
 	// payment-gated subscription.
 	ActivatesSubscription bool
+	// Customer describes the paying customer, for providers whose charges
+	// carry its details (Adyen's shopper email, Moneyhash's billing data).
+	Customer CustomerParams
 }
 
 // IdempotencyKey returns the charge's provider idempotency key,
@@ -355,10 +402,22 @@ type PaymentURLParams struct {
 	// ExpiresAt is when the page stops being valid; zero for the
 	// provider's default.
 	ExpiresAt time.Time
+	// Customer describes the paying customer, for providers whose pages
+	// carry its details (name, email, phone, external ID).
+	Customer CustomerParams
+	// OrganizationName is the billing organization's name, for providers
+	// whose pages show the merchant (Flutterwave's page title).
+	OrganizationName string
+	// OrganizationLogoURL is the billing organization's logo, for
+	// providers whose pages show the merchant; empty when it has none.
+	OrganizationLogoURL string
 }
 
 // PaymentURLLine is one item of a hosted checkout page.
 type PaymentURLLine struct {
+	// InvoiceID is the invoice; providers that list a payment request's
+	// invoices in their metadata read it.
+	InvoiceID core.InvoiceID
 	// Name is the invoice number.
 	Name string
 	// Amount is the amount due, in minor units.
@@ -381,7 +440,9 @@ type ChargeGateway interface {
 	GetPayment(ctx context.Context, conn Connection, providerPaymentID string) (PaymentResult, error)
 	// CancelPayment cancels an uncaptured or unconfirmed payment and
 	// returns its new state; one in a final state is left as is and the
-	// result is zero.
+	// result is zero. A provider that cancels asynchronously (Adyen) also
+	// returns a zero result: the new state arrives with the cancellation
+	// webhook.
 	CancelPayment(ctx context.Context, conn Connection, providerPaymentID string) (PaymentResult, error)
 	// UpdatePaymentReference sets a payment's description to the invoice
 	// number once known; best effort.
@@ -478,8 +539,18 @@ type FundingGateway interface {
 	FundingInstructions(ctx context.Context, conn Connection, providerCustomerID string, currency money.Currency, customerCountry, billingEntityCountry string) (json.RawMessage, error)
 }
 
+// WebhookAcknowledger is implemented by providers that expect a specific
+// answer to an accepted webhook delivery (Adyen requires the body
+// "[accepted]", lago webhooks_controller.rb adyen); other providers are
+// answered with an empty 200.
+type WebhookAcknowledger interface {
+	// WebhookAcknowledgement returns the content type and body answering
+	// an accepted delivery.
+	WebhookAcknowledgement() (contentType string, body []byte)
+}
+
 // Gateway is a payment provider adapter: every capability of the port.
-// Optional capabilities ([FundingGateway]) are discovered with a type
+// Optional capabilities ([FundingGateway], [WebhookAcknowledger]) are discovered with a type
 // assertion; an operation a provider lacks returns [ErrUnsupported].
 type Gateway interface {
 	ConnectionGateway

@@ -1,0 +1,24 @@
+{
+  "paymentMethods": [
+    {
+      "brands": ["amex", "bcmc", "cartebancaire", "mc", "visa", "visadankort"],
+      "name": "Credit Card",
+      "type": "scheme"
+    }
+  ],
+  "storedPaymentMethods": [
+    {
+      "brand": "visa",
+      "expiryMonth": "03",
+      "expiryYear": "30",
+      "holderName": "Checkout Shopper PlaceHolder",
+      "id": "STORED_PM_1",
+      "lastFour": "1234",
+      "name": "VISA",
+      "networkTxReference": "NTX_1",
+      "supportedRecurringProcessingModels": ["CardOnFile", "Subscription", "UnscheduledCardOnFile"],
+      "supportedShopperInteractions": ["Ecommerce", "ContAuth"],
+      "type": "scheme"
+    }
+  ]
+}

@@ -66,7 +66,7 @@ func (s *Service) Void(ctx context.Context, org core.OrganizationID, id core.Cre
 		if err := r.CreditNotes.Update(ctx, cn); err != nil {
 			return nil, fmt.Errorf("update credit note %s: %w", id, err)
 		}
-		return cn, nil
+		return cn, withErrors(ctx, r, org, cn)
 	})
 }
 
@@ -135,7 +135,7 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.C
 			}
 		}
 		if !changed {
-			return cn, nil
+			return cn, withErrors(ctx, r, org, cn)
 		}
 		cn.UpdatedAt = now
 		if err := cn.Validate(); err != nil {
@@ -144,7 +144,7 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.C
 		if err := r.CreditNotes.Update(ctx, cn); err != nil {
 			return nil, fmt.Errorf("update credit note %s: %w", id, err)
 		}
-		return cn, nil
+		return cn, withErrors(ctx, r, org, cn)
 	})
 }
 

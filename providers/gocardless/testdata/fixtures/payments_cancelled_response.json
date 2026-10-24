@@ -1,0 +1,16 @@
+{
+  "payments": {
+    "id": "PM123",
+    "created_at": "2026-05-07T10:00:00.000Z",
+    "charge_date": "2026-05-12",
+    "amount": 200,
+    "currency": "EUR",
+    "status": "cancelled",
+    "metadata": {},
+    "amount_refunded": 0,
+    "links": {
+      "mandate": "MD123",
+      "creditor": "CR123"
+    }
+  }
+}

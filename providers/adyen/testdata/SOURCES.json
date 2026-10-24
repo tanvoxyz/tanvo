@@ -1,0 +1,69 @@
+{
+  "fixtures/payments_authorised_response.json": {
+    "source": "spec/factories/payment_responses.rb:4",
+    "note": "adyen_payments_response with fixed references and the amount Adyen echoes"
+  },
+  "fixtures/payments_error_response.json": {
+    "source": "spec/factories/payment_responses.rb:19",
+    "note": "adyen_payments_error_response with Adyen's status and error code fields"
+  },
+  "fixtures/payment_links_response.json": {
+    "source": "spec/factories/payment_responses.rb:30",
+    "note": "adyen_payment_links_response with fixed references"
+  },
+  "fixtures/payment_links_error_response.json": {
+    "source": "spec/factories/payment_responses.rb:53",
+    "note": "adyen_payment_links_error_response with Adyen's status and error code fields"
+  },
+  "fixtures/payment_methods_response.json": {
+    "source": "spec/factories/payment_responses.rb:64",
+    "note": "adyen_payment_methods_response with fixed references"
+  },
+  "fixtures/payment_methods_empty_response.json": {
+    "source": "spec/factories/payment_responses.rb:64",
+    "note": "adyen_payment_methods_response without stored methods"
+  },
+  "fixtures/refunds_response.json": {
+    "source": "spec/factories/refund_responses.rb:4",
+    "note": "adyen_refunds_response with fixed references"
+  },
+  "fixtures/cancels_response.json": {
+    "source": "spec/services/payment_providers/adyen/payments/cancel_service_spec.rb:36"
+  },
+  "fixtures/webhooks/chargeback_lost_event.json": {
+    "source": "spec/fixtures/adyen/chargeback_lost_event.json"
+  },
+  "fixtures/webhooks/chargeback_won_event.json": {
+    "source": "spec/fixtures/adyen/chargeback_won_event.json"
+  },
+  "fixtures/webhooks/webhook_authorisation_payment_response.json": {
+    "source": "spec/fixtures/adyen/webhook_authorisation_payment_response.json",
+    "note": "metadata keys lago_* renamed to tanvo_*"
+  },
+  "fixtures/webhooks/webhook_authorisation_payment_response_invalid_payable.json": {
+    "source": "spec/fixtures/adyen/webhook_authorisation_payment_response_invalid_payable.json",
+    "note": "metadata keys lago_* renamed to tanvo_*; lago_payment_request_id renamed to tanvo_payable_id"
+  },
+  "fixtures/webhooks/webhook_authorisation_payment_response_payment_request.json": {
+    "source": "spec/fixtures/adyen/webhook_authorisation_payment_response_payment_request.json",
+    "note": "metadata keys lago_* renamed to tanvo_*; lago_payment_request_id renamed to tanvo_payable_id and the payable type PaymentRequest to payment_request"
+  },
+  "fixtures/webhooks/webhook_authorisation_response.json": {
+    "source": "spec/fixtures/adyen/webhook_authorisation_response.json"
+  },
+  "fixtures/webhooks/webhook_cancellation_response.json": {
+    "source": "spec/fixtures/adyen/webhook_cancellation_response.json"
+  },
+  "fixtures/webhooks/webhook_offer_closed_response.json": {
+    "source": "spec/fixtures/adyen/webhook_offer_closed_response.json"
+  },
+  "fixtures/webhooks/webhook_recurring_contract_response.json": {
+    "source": "spec/fixtures/adyen/webhook_recurring_contract_response.json"
+  },
+  "fixtures/webhooks/webhook_refund_response.json": {
+    "source": "spec/fixtures/adyen/webhook_refund_response.json"
+  },
+  "fixtures/webhooks/webhook_report_available_response.json": {
+    "source": "spec/fixtures/adyen/webhook_report_available_response.json"
+  }
+}

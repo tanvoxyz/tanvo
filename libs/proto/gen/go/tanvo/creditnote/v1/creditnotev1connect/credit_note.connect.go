@@ -56,6 +56,9 @@ const (
 	// CreditNoteServiceRetryCreditNoteSyncProcedure is the procedure name of the CreditNoteService's
 	// RetryCreditNoteSync RPC.
 	CreditNoteServiceRetryCreditNoteSyncProcedure = "/tanvo.creditnote.v1.CreditNoteService/RetryCreditNoteSync"
+	// CreditNoteServiceRetryCreditNoteTaxReportingProcedure is the procedure name of the
+	// CreditNoteService's RetryCreditNoteTaxReporting RPC.
+	CreditNoteServiceRetryCreditNoteTaxReportingProcedure = "/tanvo.creditnote.v1.CreditNoteService/RetryCreditNoteTaxReporting"
 )
 
 var (
@@ -124,6 +127,13 @@ var (
 			Procedure:  CreditNoteServiceRetryCreditNoteSyncProcedure,
 		}
 	})
+	creditNoteServiceRetryCreditNoteTaxReportingSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_creditnote_v1_credit_note_proto.Services().ByName("CreditNoteService").Methods().ByName("RetryCreditNoteTaxReporting"),
+			Procedure:  CreditNoteServiceRetryCreditNoteTaxReportingProcedure,
+		}
+	})
 )
 
 // CreditNoteServiceClient is a client for the tanvo.creditnote.v1.CreditNoteService service.
@@ -149,6 +159,9 @@ type CreditNoteServiceClient interface {
 	// Retries the synchronization of a credit note with the customer's
 	// accounting integrations.
 	RetryCreditNoteSync(context.Context, *v1.RetryCreditNoteSyncRequest) (*v1.RetryCreditNoteSyncResponse, error)
+	// Reports a credit note to the customer's tax provider again; a refusal
+	// is kept in the credit note's errors.
+	RetryCreditNoteTaxReporting(context.Context, *v1.RetryCreditNoteTaxReportingRequest) (*v1.RetryCreditNoteTaxReportingResponse, error)
 }
 
 // NewCreditNoteServiceClient constructs a client for the tanvo.creditnote.v1.CreditNoteService
@@ -181,6 +194,9 @@ type CreditNoteServiceHandler interface {
 	// Retries the synchronization of a credit note with the customer's
 	// accounting integrations.
 	RetryCreditNoteSync(context.Context, *v1.RetryCreditNoteSyncRequest) (*v1.RetryCreditNoteSyncResponse, error)
+	// Reports a credit note to the customer's tax provider again; a refusal
+	// is kept in the credit note's errors.
+	RetryCreditNoteTaxReporting(context.Context, *v1.RetryCreditNoteTaxReportingRequest) (*v1.RetryCreditNoteTaxReportingResponse, error)
 }
 
 // RegisterCreditNoteServiceHandler registers svc as the tanvo.creditnote.v1.CreditNoteService
@@ -197,6 +213,7 @@ func RegisterCreditNoteServiceHandler(server *connect.Server, svc CreditNoteServ
 		connect.Method{Spec: creditNoteServiceDownloadCreditNoteSpec(), Handler: adapter.downloadCreditNote},
 		connect.Method{Spec: creditNoteServiceResendCreditNoteSpec(), Handler: adapter.resendCreditNote},
 		connect.Method{Spec: creditNoteServiceRetryCreditNoteSyncSpec(), Handler: adapter.retryCreditNoteSync},
+		connect.Method{Spec: creditNoteServiceRetryCreditNoteTaxReportingSpec(), Handler: adapter.retryCreditNoteTaxReporting},
 	)
 }
 
@@ -237,6 +254,10 @@ func (UnimplementedCreditNoteServiceHandler) ResendCreditNote(context.Context, *
 
 func (UnimplementedCreditNoteServiceHandler) RetryCreditNoteSync(context.Context, *v1.RetryCreditNoteSyncRequest) (*v1.RetryCreditNoteSyncResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.creditnote.v1.CreditNoteService.RetryCreditNoteSync is not implemented")
+}
+
+func (UnimplementedCreditNoteServiceHandler) RetryCreditNoteTaxReporting(context.Context, *v1.RetryCreditNoteTaxReportingRequest) (*v1.RetryCreditNoteTaxReportingResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.creditnote.v1.CreditNoteService.RetryCreditNoteTaxReporting is not implemented")
 }
 
 type creditNoteServiceClient struct {
@@ -310,6 +331,14 @@ func (c *creditNoteServiceClient) ResendCreditNote(ctx context.Context, req *v1.
 func (c *creditNoteServiceClient) RetryCreditNoteSync(ctx context.Context, req *v1.RetryCreditNoteSyncRequest) (*v1.RetryCreditNoteSyncResponse, error) {
 	var res v1.RetryCreditNoteSyncResponse
 	if err := c.client.CallUnary(ctx, creditNoteServiceRetryCreditNoteSyncSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *creditNoteServiceClient) RetryCreditNoteTaxReporting(ctx context.Context, req *v1.RetryCreditNoteTaxReportingRequest) (*v1.RetryCreditNoteTaxReportingResponse, error) {
+	var res v1.RetryCreditNoteTaxReportingResponse
+	if err := c.client.CallUnary(ctx, creditNoteServiceRetryCreditNoteTaxReportingSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -419,6 +448,18 @@ func (h creditNoteServiceHandler) retryCreditNoteSync(ctx context.Context, _ con
 		return err
 	}
 	res, err := h.svc.RetryCreditNoteSync(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h creditNoteServiceHandler) retryCreditNoteTaxReporting(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.RetryCreditNoteTaxReportingRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.RetryCreditNoteTaxReporting(ctx, &req)
 	if err != nil {
 		return err
 	}

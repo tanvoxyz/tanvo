@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -129,6 +130,7 @@ func invoiceParams(inv *invoice.Invoice) db.CreateInvoiceParams {
 		SelfBilled:                     inv.SelfBilled,
 		VoidedInvoiceID:                optUUID(inv.VoidedInvoiceID),
 		SkipAutomaticPayment:           inv.SkipAutomaticPayment,
+		PaymentAttempts:                int32(min(inv.PaymentAttempts, math.MaxInt32)), // a counter of attempts
 		PaymentMethodType:              optString(string(inv.PaymentMethodType)),
 		PaymentMethodID:                optUUID(inv.PaymentMethodID),
 		PurchaseOrderNumber:            inv.PurchaseOrderNumber,
@@ -194,6 +196,7 @@ func invoiceOf(r db.Invoice) (*invoice.Invoice, error) {
 		SelfBilled:                     r.SelfBilled,
 		VoidedInvoiceID:                optIDOf[core.InvoiceID](r.VoidedInvoiceID),
 		SkipAutomaticPayment:           r.SkipAutomaticPayment,
+		PaymentAttempts:                int(r.PaymentAttempts),
 		PaymentMethodType:              core.PaymentMethodType(deref(r.PaymentMethodType)),
 		PaymentMethodID:                optIDOf[core.PaymentMethodID](r.PaymentMethodID),
 		PurchaseOrderNumber:            r.PurchaseOrderNumber,

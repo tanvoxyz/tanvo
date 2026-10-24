@@ -1,0 +1,54 @@
+{
+  "fixtures/checkout_url_response.json": {
+    "source": "spec/fixtures/moneyhash/checkout_url_response.json",
+    "note": "the intent answer of a card tokenization or payment URL request (spec/services/payment_provider_customers/moneyhash_service_spec.rb:29); lago_* custom field keys renamed tanvo_*, payable types Invoice and PaymentRequest renamed invoice and payment_request"
+  },
+  "fixtures/create_customer.json": {
+    "source": "spec/fixtures/moneyhash/create_customer.json",
+    "note": "the customers API answer (spec/services/payment_provider_customers/moneyhash_service_spec.rb:28); lago_* custom field keys renamed tanvo_*, payable types Invoice and PaymentRequest renamed invoice and payment_request"
+  },
+  "fixtures/recurring_mit_payment_failure_response.json": {
+    "source": "spec/fixtures/moneyhash/recurring_mit_payment_failure_response.json",
+    "note": "a refused merchant-initiated intent, served with HTTP 400 (spec/services/payment_providers/moneyhash/payments/create_service_spec.rb:17); lago_* custom field keys renamed tanvo_*, payable types Invoice and PaymentRequest renamed invoice and payment_request"
+  },
+  "fixtures/recurring_mit_payment_success_response.json": {
+    "source": "spec/fixtures/moneyhash/recurring_mit_payment_success_response.json",
+    "note": "a processed merchant-initiated intent (spec/services/payment_providers/moneyhash/payments/create_service_spec.rb:18); the external customer ID value was replaced; lago_* custom field keys renamed tanvo_*, payable types Invoice and PaymentRequest renamed invoice and payment_request"
+  },
+  "fixtures/webhook_signature_response.json": {
+    "source": "spec/fixtures/moneyhash/webhook_signature_response.json",
+    "note": "the organization webhook signature key answer (spec/services/payment_providers/moneyhash_service_spec.rb:14); lago_* custom field keys renamed tanvo_*, payable types Invoice and PaymentRequest renamed invoice and payment_request"
+  },
+  "fixtures/webhooks/card_token.created.json": {
+    "source": "spec/fixtures/moneyhash/card_token.created.json",
+    "note": "a recorded card_token.created delivery (spec/services/payment_providers/moneyhash/handle_event_service_spec.rb); lago_* custom field keys renamed tanvo_*, payable types Invoice and PaymentRequest renamed invoice and payment_request"
+  },
+  "fixtures/webhooks/card_token.deleted.json": {
+    "source": "spec/fixtures/moneyhash/card_token.deleted.json",
+    "note": "a recorded card_token.deleted delivery (spec/services/payment_providers/moneyhash/handle_event_service_spec.rb); lago_* custom field keys renamed tanvo_*, payable types Invoice and PaymentRequest renamed invoice and payment_request"
+  },
+  "fixtures/webhooks/card_token.updated.json": {
+    "source": "spec/fixtures/moneyhash/card_token.updated.json",
+    "note": "a recorded card_token.updated delivery (spec/services/payment_providers/moneyhash/handle_event_service_spec.rb); lago_* custom field keys renamed tanvo_*, payable types Invoice and PaymentRequest renamed invoice and payment_request"
+  },
+  "fixtures/webhooks/intent.processed.json": {
+    "source": "spec/fixtures/moneyhash/intent.processed.json",
+    "note": "a recorded intent.processed delivery (spec/services/payment_providers/moneyhash/handle_event_service_spec.rb); lago_* custom field keys renamed tanvo_*, payable types Invoice and PaymentRequest renamed invoice and payment_request"
+  },
+  "fixtures/webhooks/intent.time_expired.json": {
+    "source": "spec/fixtures/moneyhash/intent.time_expired.json",
+    "note": "a recorded intent.time_expired delivery (spec/services/payment_providers/moneyhash/handle_event_service_spec.rb); lago_* custom field keys renamed tanvo_*, payable types Invoice and PaymentRequest renamed invoice and payment_request"
+  },
+  "fixtures/webhooks/transaction.purchase.failed.json": {
+    "source": "spec/fixtures/moneyhash/transaction.purchase.failed.json",
+    "note": "a recorded transaction.purchase.failed delivery (spec/services/payment_providers/moneyhash/handle_event_service_spec.rb); lago_* custom field keys renamed tanvo_*, payable types Invoice and PaymentRequest renamed invoice and payment_request"
+  },
+  "fixtures/webhooks/transaction.purchase.pending_authentication.json": {
+    "source": "spec/fixtures/moneyhash/transaction.purchase.pending_authentication.json",
+    "note": "a recorded transaction.purchase.pending_authentication delivery (spec/services/payment_providers/moneyhash/handle_event_service_spec.rb); lago_* custom field keys renamed tanvo_*, payable types Invoice and PaymentRequest renamed invoice and payment_request"
+  },
+  "fixtures/webhooks/transaction.purchase.successful.json": {
+    "source": "spec/fixtures/moneyhash/transaction.purchase.successful.json",
+    "note": "a recorded transaction.purchase.successful delivery (spec/services/payment_providers/moneyhash/handle_event_service_spec.rb); lago_* custom field keys renamed tanvo_*, payable types Invoice and PaymentRequest renamed invoice and payment_request"
+  }
+}

@@ -64,6 +64,9 @@ CREATE TABLE invoices (
   voided_at timestamptz,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
+  -- The automatic payments attempted, which make the first one wait for
+  -- a checkout (parity §1.33).
+  payment_attempts integer NOT NULL DEFAULT 0,
   PRIMARY KEY (organization_id, id),
   CONSTRAINT invoices_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
   CONSTRAINT invoices_customer_fkey FOREIGN KEY (organization_id, customer_id) REFERENCES customers (organization_id, id),
@@ -74,7 +77,8 @@ CREATE TABLE invoices (
   CONSTRAINT invoices_payment_status_check CHECK (payment_status IN ('pending', 'succeeded', 'failed')),
   CONSTRAINT invoices_tax_status_check CHECK (tax_status IN ('pending', 'succeeded', 'failed')),
   CONSTRAINT invoices_payment_method_type_check CHECK (payment_method_type IN ('provider', 'manual')),
-  CONSTRAINT invoices_currency_check CHECK (currency <> '')
+  CONSTRAINT invoices_currency_check CHECK (currency <> ''),
+  CONSTRAINT invoices_payment_attempts_check CHECK (payment_attempts >= 0)
 );
 
 -- Numbers are unique per organization, except the shared draft numbers

@@ -68,31 +68,39 @@ func (s *Service) SetDefaultMethod(ctx context.Context, org core.OrganizationID,
 		if err != nil || m.IsDefault {
 			return m, err
 		}
-		if err := r.Locks.Lock(ctx, org, port.LockKey{Scope: methodLockScope, ID: m.CustomerID.UUID()}); err != nil {
-			return nil, wrap(err, "lock payment methods of customer %s", m.CustomerID)
-		}
-		now := s.d.Now()
-		ms, err := r.PaymentMethods.ListByCustomer(ctx, org, m.CustomerID)
-		if err != nil {
-			return nil, wrap(err, "list payment methods of customer %s", m.CustomerID)
-		}
-		for _, o := range ms {
-			if o.ID == m.ID || !o.IsDefault {
-				continue
-			}
-			o.IsDefault = false
-			o.UpdatedAt = now
-			if err := r.PaymentMethods.Update(ctx, o); err != nil {
-				return nil, wrap(err, "update payment method %s", o.ID)
-			}
-		}
-		m.IsDefault = true
-		m.UpdatedAt = now
-		if err := r.PaymentMethods.Update(ctx, m); err != nil {
-			return nil, wrap(err, "update payment method %s", m.ID)
-		}
-		return m, nil
+		return m, s.setDefault(ctx, r, m)
 	})
+}
+
+// setDefault makes m its customer's default method, clearing the others'
+// flag under the customer's payment method lock (lago
+// PaymentMethods::SetAsDefaultService).
+func (s *Service) setDefault(ctx context.Context, r port.Repos, m *payment.Method) error {
+	org := m.OrganizationID
+	if err := r.Locks.Lock(ctx, org, port.LockKey{Scope: methodLockScope, ID: m.CustomerID.UUID()}); err != nil {
+		return wrap(err, "lock payment methods of customer %s", m.CustomerID)
+	}
+	now := s.d.Now()
+	ms, err := r.PaymentMethods.ListByCustomer(ctx, org, m.CustomerID)
+	if err != nil {
+		return wrap(err, "list payment methods of customer %s", m.CustomerID)
+	}
+	for _, o := range ms {
+		if o.ID == m.ID || !o.IsDefault {
+			continue
+		}
+		o.IsDefault = false
+		o.UpdatedAt = now
+		if err := r.PaymentMethods.Update(ctx, o); err != nil {
+			return wrap(err, "update payment method %s", o.ID)
+		}
+	}
+	m.IsDefault = true
+	m.UpdatedAt = now
+	if err := r.PaymentMethods.Update(ctx, m); err != nil {
+		return wrap(err, "update payment method %s", m.ID)
+	}
+	return nil
 }
 
 // DeleteMethod deletes a customer's payment method, which stops being the

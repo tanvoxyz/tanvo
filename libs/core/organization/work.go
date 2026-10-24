@@ -88,6 +88,17 @@ const (
 	// WorkAwaitingBillingSegments: contract billing segments pending or
 	// processing (the segment invoicing, domain §21.4).
 	WorkAwaitingBillingSegments Work = "awaiting_billing_segments"
+	// WorkInboundWebhooks: inbound provider webhooks not succeeded and
+	// received within payment.WebhookRetryWindow of the instant (the
+	// periodic retry of inbound webhooks).
+	WorkInboundWebhooks Work = "inbound_webhooks"
+	// WorkExpiredInboundWebhooks: inbound provider webhooks unchanged for
+	// payment.WebhookRetention at the instant (their cleanup).
+	WorkExpiredInboundWebhooks Work = "expired_inbound_webhooks"
+	// WorkAbandonedPayments: provider payments of invoices processing at
+	// the provider while it waits for the customer's action, last changed
+	// within payment.AbandonedRange of the instant (their cancellation).
+	WorkAbandonedPayments Work = "abandoned_payments"
 )
 
 // ScanDayMargin is how far past the instant a scan of local dates looks:
@@ -107,7 +118,7 @@ func WorkValues() []Work {
 		WorkExpiredCoupons, WorkOverdueInvoices, WorkEndingAtSubscriptions, WorkExpirableSubscriptions,
 		WorkExpiringOrderForms, WorkDailyUsages, WorkDunningCustomers, WorkEventsToValidate,
 		WorkExpiredRecordDeletions, WorkStuckGeneratingInvoices, WorkExecutableOrders, WorkTaxRetriedInvoices,
-		WorkAwaitingBillingSegments,
+		WorkAwaitingBillingSegments, WorkInboundWebhooks, WorkExpiredInboundWebhooks, WorkAbandonedPayments,
 	}
 }
 

@@ -11,7 +11,7 @@ INSERT INTO invoices (
   issuing_date, payment_due_date, expected_finalization_date, applied_grace_period_days, net_payment_term_days,
   payment_overdue, payment_dispute_lost_at, self_billed, voided_invoice_id, skip_automatic_payment,
   payment_method_type, payment_method_id, purchase_order_number, x402_connection_id, x402_payment_token, metadata, file, xml_file, ready_for_payment_processing,
-  refresh_requested, finalized_at, voided_at, created_at, updated_at
+  refresh_requested, finalized_at, voided_at, created_at, updated_at, payment_attempts
 ) VALUES (
   @organization_id, @id, @customer_id, @billing_entity_id, @invoice_type, @status, @payment_status, @tax_status,
   @number, @sequential_id, @billing_entity_sequential_id, @currency,
@@ -21,7 +21,7 @@ INSERT INTO invoices (
   @issuing_date, @payment_due_date, @expected_finalization_date, @applied_grace_period_days, @net_payment_term_days,
   @payment_overdue, @payment_dispute_lost_at, @self_billed, @voided_invoice_id, @skip_automatic_payment,
   @payment_method_type, @payment_method_id, @purchase_order_number, @x402_connection_id, @x402_payment_token, @metadata, @file, @xml_file, @ready_for_payment_processing,
-  @refresh_requested, @finalized_at, @voided_at, @created_at, @updated_at
+  @refresh_requested, @finalized_at, @voided_at, @created_at, @updated_at, @payment_attempts
 )
 ON CONFLICT DO NOTHING;
 
@@ -45,7 +45,7 @@ UPDATE invoices SET
   purchase_order_number = @purchase_order_number, x402_connection_id = @x402_connection_id, x402_payment_token = @x402_payment_token, metadata = @metadata,
   file = @file, xml_file = @xml_file, ready_for_payment_processing = @ready_for_payment_processing,
   refresh_requested = @refresh_requested, finalized_at = @finalized_at, voided_at = @voided_at,
-  created_at = @created_at, updated_at = @updated_at
+  created_at = @created_at, updated_at = @updated_at, payment_attempts = @payment_attempts
 WHERE organization_id = @organization_id AND id = @id;
 
 -- name: GetInvoice :one

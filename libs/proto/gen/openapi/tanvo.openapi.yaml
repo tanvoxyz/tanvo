@@ -124,12 +124,6 @@ info:
     DataExportService starts data exports. An export is started by a
      member, who receives the file by email; the file expires after 7 days.
 
-    ## tanvo.integration.v1.IntegrationService
-
-    IntegrationService manages integrations. An organization may connect a
-     provider several times; integrations are addressed by ID or
-     `code:<code>`.
-
     ## tanvo.invoice.v1.InvoiceService
 
     InvoiceService manages invoices.
@@ -142,6 +136,12 @@ info:
 
     InvoiceCustomSectionService manages invoice custom sections: text printed
      on invoices, resolved from subscription, customer and billing entity.
+
+    ## tanvo.integration.v1.IntegrationService
+
+    IntegrationService manages integrations. An organization may connect a
+     provider several times; integrations are addressed by ID or
+     `code:<code>`.
 
     ## tanvo.log.v1.LogService
 
@@ -2559,6 +2559,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.creditnote.v1.RetryCreditNoteSyncResponse'
+  /v1/credit_notes/{credit_note_id}:retry_tax_reporting:
+    post:
+      tags:
+        - CreditNoteService
+      summary: RetryCreditNoteTaxReporting
+      description: |-
+        Reports a credit note to the customer's tax provider again; a refusal
+         is kept in the credit note's errors.
+      operationId: tanvo.creditnote.v1.CreditNoteService.RetryCreditNoteTaxReporting
+      parameters:
+        - name: credit_note_id
+          in: path
+          description: The credit note's ID.
+          required: true
+          schema:
+            type: string
+            title: credit_note_id
+            format: uuid
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.creditnote.v1.RetryCreditNoteTaxReportingResponse'
   /v1/credit_notes/{credit_note_id}:void:
     post:
       tags:
@@ -4822,14 +4847,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.integration.v1.ListCollectionMappingsResponse'
-    put:
+    post:
       tags:
         - IntegrationService
-      summary: UpsertCollectionMapping
+      summary: CreateCollectionMapping
       description: |-
-        Creates or replaces a collection mapping, optionally for one billing
-         entity.
-      operationId: tanvo.integration.v1.IntegrationService.UpsertCollectionMapping
+        Creates a collection mapping, optionally for one billing entity;
+         there is one per type and billing entity.
+      operationId: tanvo.integration.v1.IntegrationService.CreateCollectionMapping
       parameters:
         - name: integration_id
           in: path
@@ -4841,21 +4866,72 @@ paths:
             type: string
             title: integration_id
       requestBody:
-        description: The mapping; the type and billing entity select it.
+        description: The mapping to create.
         content:
           application/json:
             schema:
               allOf:
                 - $ref: '#/components/schemas/tanvo.integration.v1.CollectionMapping'
               title: collection_mapping
-              description: The mapping; the type and billing entity select it.
+              description: The mapping to create.
       responses:
         "200":
           description: Success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/tanvo.integration.v1.UpsertCollectionMappingResponse'
+                $ref: '#/components/schemas/tanvo.integration.v1.CreateCollectionMappingResponse'
+  /v1/integrations/{integration_id}/collection_mappings/{collection_mapping.id}:
+    patch:
+      tags:
+        - IntegrationService
+      summary: UpdateCollectionMapping
+      description: Updates the external values of a collection mapping.
+      operationId: tanvo.integration.v1.IntegrationService.UpdateCollectionMapping
+      parameters:
+        - name: integration_id
+          in: path
+          description: |
+            The integration's ID or `code:<code>`.
+            string.ref = true
+          required: true
+          schema:
+            type: string
+            title: integration_id
+        - name: collection_mapping.id
+          in: path
+          description: (IDENTIFIER) The mapping's ID.
+          required: true
+          schema:
+            type: string
+            title: id
+        - name: update_mask
+          in: query
+          description: |-
+            The fields to update; empty updates every field that is set (an
+             empty currencies map is not set: name it in the mask to send one).
+          schema:
+            type: string
+      requestBody:
+        description: |-
+          The new values; collection_mapping.id selects the mapping. The type
+           and billing entity cannot be updated.
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/tanvo.integration.v1.CollectionMapping'
+              title: collection_mapping
+              description: |-
+                The new values; collection_mapping.id selects the mapping. The type
+                 and billing entity cannot be updated.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.integration.v1.UpdateCollectionMappingResponse'
   /v1/integrations/{integration_id}/collection_mappings/{collection_mapping_id}:
     delete:
       tags:
@@ -4991,14 +5067,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.integration.v1.ListIntegrationMappingsResponse'
-    put:
+    post:
       tags:
         - IntegrationService
-      summary: UpsertIntegrationMapping
+      summary: CreateIntegrationMapping
       description: |-
-        Creates or replaces the mapping of an add-on or billable metric,
-         optionally for one billing entity.
-      operationId: tanvo.integration.v1.IntegrationService.UpsertIntegrationMapping
+        Creates the mapping of an add-on or billable metric, optionally for
+         one billing entity; there is one per object and billing entity.
+      operationId: tanvo.integration.v1.IntegrationService.CreateIntegrationMapping
       parameters:
         - name: integration_id
           in: path
@@ -5010,21 +5086,70 @@ paths:
             type: string
             title: integration_id
       requestBody:
-        description: The mapping; the object and billing entity select it.
+        description: The mapping to create.
         content:
           application/json:
             schema:
               allOf:
                 - $ref: '#/components/schemas/tanvo.integration.v1.IntegrationMapping'
               title: mapping
-              description: The mapping; the object and billing entity select it.
+              description: The mapping to create.
       responses:
         "200":
           description: Success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/tanvo.integration.v1.UpsertIntegrationMappingResponse'
+                $ref: '#/components/schemas/tanvo.integration.v1.CreateIntegrationMappingResponse'
+  /v1/integrations/{integration_id}/mappings/{mapping.id}:
+    patch:
+      tags:
+        - IntegrationService
+      summary: UpdateIntegrationMapping
+      description: Updates the external item of a mapping.
+      operationId: tanvo.integration.v1.IntegrationService.UpdateIntegrationMapping
+      parameters:
+        - name: integration_id
+          in: path
+          description: |
+            The integration's ID or `code:<code>`.
+            string.ref = true
+          required: true
+          schema:
+            type: string
+            title: integration_id
+        - name: mapping.id
+          in: path
+          description: (IDENTIFIER) The mapping's ID.
+          required: true
+          schema:
+            type: string
+            title: id
+        - name: update_mask
+          in: query
+          description: The fields to update; empty updates every field that is set.
+          schema:
+            type: string
+      requestBody:
+        description: |-
+          The new values; mapping.id selects the mapping. Only external_id,
+           external_account_code and external_name can be updated.
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/tanvo.integration.v1.IntegrationMapping'
+              title: mapping
+              description: |-
+                The new values; mapping.id selects the mapping. Only external_id,
+                 external_account_code and external_name can be updated.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.integration.v1.UpdateIntegrationMappingResponse'
   /v1/integrations/{integration_id}/mappings/{mapping_id}:
     delete:
       tags:
@@ -6072,8 +6197,8 @@ paths:
         - InvoiceService
       summary: RetryInvoiceSync
       description: |-
-        Retries the synchronization of an invoice with the customer's
-         accounting, CRM or tax integrations.
+        Queues the synchronization of an invoice with the customer's
+         accounting integration again, finding the provider's record first.
       operationId: tanvo.invoice.v1.InvoiceService.RetryInvoiceSync
       parameters:
         - name: invoice_id
@@ -6091,6 +6216,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.invoice.v1.RetryInvoiceSyncResponse'
+  /v1/invoices/{invoice_id}:retry_tax_voiding:
+    post:
+      tags:
+        - InvoiceService
+      summary: RetryInvoiceTaxVoiding
+      description: Tells the tax provider again that a voided invoice was voided.
+      operationId: tanvo.invoice.v1.InvoiceService.RetryInvoiceTaxVoiding
+      parameters:
+        - name: invoice_id
+          in: path
+          description: The invoice's ID.
+          required: true
+          schema:
+            type: string
+            title: invoice_id
+            format: uuid
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.invoice.v1.RetryInvoiceTaxVoidingResponse'
   /v1/invoices/{invoice_id}:set_salesforce_id:
     post:
       tags:
@@ -6139,6 +6287,56 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.invoice.v1.SetInvoiceSalesforceIdResponse'
+  /v1/invoices/{invoice_id}:sync_hubspot:
+    post:
+      tags:
+        - IntegrationService
+      summary: SyncHubspotInvoice
+      description: |-
+        Queues the creation of an invoice's record in the customer's HubSpot
+         portal.
+      operationId: tanvo.integration.v1.IntegrationService.SyncHubspotInvoice
+      parameters:
+        - name: invoice_id
+          in: path
+          description: The invoice's ID.
+          required: true
+          schema:
+            type: string
+            title: invoice_id
+            format: uuid
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.integration.v1.SyncHubspotInvoiceResponse'
+  /v1/invoices/{invoice_id}:sync_salesforce:
+    post:
+      tags:
+        - IntegrationService
+      summary: SyncSalesforceInvoice
+      description: |-
+        Emits the invoice.resynced webhook of an invoice, which the Salesforce
+         package listens to.
+      operationId: tanvo.integration.v1.IntegrationService.SyncSalesforceInvoice
+      parameters:
+        - name: invoice_id
+          in: path
+          description: The invoice's ID.
+          required: true
+          schema:
+            type: string
+            title: invoice_id
+            format: uuid
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.integration.v1.SyncSalesforceInvoiceResponse'
   /v1/invoices/{invoice_id}:void:
     post:
       tags:
@@ -6253,6 +6451,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.invoice.v1.PreviewInvoiceResponse'
+  /v1/invoices:preview_taxes:
+    post:
+      tags:
+        - IntegrationService
+      summary: PreviewInvoiceTaxes
+      description: |-
+        Asks the customer's tax provider for the taxes of a one-off invoice
+         not created yet, issued today. Nothing is stored. The list is empty
+         for a customer taxed by no provider; a provider's refusal fails with
+         the provider's code on tax_error.
+      operationId: tanvo.integration.v1.IntegrationService.PreviewInvoiceTaxes
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/tanvo.integration.v1.PreviewInvoiceTaxesRequest'
+        required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.integration.v1.PreviewInvoiceTaxesResponse'
   /v1/invoices:retry_all:
     post:
       tags:
@@ -22948,6 +23170,13 @@ components:
           title: updated_at
           description: When the credit note last changed.
           readOnly: true
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.creditnote.v1.CreditNoteError'
+          title: errors
+          description: The errors recorded on the credit note.
+          readOnly: true
       title: CreditNote
       required:
         - invoice_id
@@ -22987,6 +23216,33 @@ components:
       title: CreditNoteAppliedTax
       additionalProperties: false
       description: CreditNoteAppliedTax is a tax of a credit note.
+    tanvo.creditnote.v1.CreditNoteError:
+      type: object
+      properties:
+        code:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.creditnote.v1.CreditNoteErrorCode'
+          title: code
+          description: The kind of error.
+        message:
+          type: string
+          title: message
+          description: The provider's details, as JSON.
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: created_at
+          description: When it happened.
+      title: CreditNoteError
+      additionalProperties: false
+      description: CreditNoteError is an error recorded on a credit note.
+    tanvo.creditnote.v1.CreditNoteErrorCode:
+      type: string
+      title: CreditNoteErrorCode
+      enum:
+        - CREDIT_NOTE_ERROR_CODE_UNSPECIFIED
+        - CREDIT_NOTE_ERROR_CODE_TAX_ERROR
+      description: CreditNoteErrorCode is the kind of an error recorded on a credit note.
     tanvo.creditnote.v1.CreditNoteItem:
       type: object
       properties:
@@ -23255,6 +23511,30 @@ components:
       title: RetryCreditNoteSyncResponse
       additionalProperties: false
       description: RetryCreditNoteSyncResponse is the response of CreditNoteService.RetryCreditNoteSync.
+    tanvo.creditnote.v1.RetryCreditNoteTaxReportingRequest:
+      type: object
+      properties:
+        credit_note_id:
+          type: string
+          title: credit_note_id
+          format: uuid
+          description: The credit note's ID.
+      title: RetryCreditNoteTaxReportingRequest
+      required:
+        - credit_note_id
+      additionalProperties: false
+      description: RetryCreditNoteTaxReportingRequest is the request of CreditNoteService.RetryCreditNoteTaxReporting.
+    tanvo.creditnote.v1.RetryCreditNoteTaxReportingResponse:
+      type: object
+      properties:
+        credit_note:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.creditnote.v1.CreditNote'
+          title: credit_note
+          description: The credit note.
+      title: RetryCreditNoteTaxReportingResponse
+      additionalProperties: false
+      description: RetryCreditNoteTaxReportingResponse is the response of CreditNoteService.RetryCreditNoteTaxReporting.
     tanvo.creditnote.v1.UpdateCreditNoteRequest:
       type: object
       properties:
@@ -23344,6 +23624,14 @@ components:
       title: CreateCustomerResponse
       additionalProperties: false
       description: CreateCustomerResponse is the response of CustomerService.CreateCustomer.
+    tanvo.customer.v1.CrmTargetedObject:
+      type: string
+      title: CrmTargetedObject
+      enum:
+        - CRM_TARGETED_OBJECT_UNSPECIFIED
+        - CRM_TARGETED_OBJECT_COMPANIES
+        - CRM_TARGETED_OBJECT_CONTACTS
+      description: CrmTargetedObject is the HubSpot object a customer is synced to.
     tanvo.customer.v1.Customer:
       type: object
       properties:
@@ -23661,6 +23949,20 @@ components:
           title: updated_at
           description: When the connection last changed.
           readOnly: true
+        targeted_object:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.customer.v1.CrmTargetedObject'
+          title: targeted_object
+          description: |
+            The HubSpot object the customer is synced to; when unset, a synced
+             customer's type decides, else the integration's default. Ignored for
+             other providers.
+            enum.defined_only = true
+        email:
+          type: string
+          title: email
+          description: The email HubSpot stored for the customer.
+          readOnly: true
       title: CustomerConnection
       required:
         - integration_id
@@ -23977,7 +24279,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/tanvo.customer.v1.CustomerConnection'
           title: connection
-          description: The stored connection.
+          description: |-
+            The stored connection; absent when none is created: for a partner
+             account, or without an external customer ID or sync_with_provider.
       title: UpsertCustomerConnectionResponse
       additionalProperties: false
       description: UpsertCustomerConnectionResponse is the response of CustomerService.UpsertCustomerConnection.
@@ -24996,8 +25300,7 @@ components:
         id:
           type: string
           title: id
-          description: The mapping's ID.
-          readOnly: true
+          description: (IDENTIFIER) The mapping's ID.
         mapping_type:
           allOf:
             - $ref: '#/components/schemas/tanvo.integration.v1.CollectionMappingType'
@@ -25107,6 +25410,72 @@ components:
       title: CompleteIntegrationOauthResponse
       additionalProperties: false
       description: CompleteIntegrationOauthResponse is the response of IntegrationService.CompleteIntegrationOauth.
+    tanvo.integration.v1.CreateCollectionMappingRequest:
+      type: object
+      properties:
+        integration_id:
+          type: string
+          title: integration_id
+          description: |
+            The integration's ID or `code:<code>`.
+            string.ref = true
+        collection_mapping:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.integration.v1.CollectionMapping'
+          title: collection_mapping
+          description: The mapping to create.
+      title: CreateCollectionMappingRequest
+      required:
+        - integration_id
+        - collection_mapping
+      additionalProperties: false
+      description: |
+        CreateCollectionMappingRequest is the request of IntegrationService.CreateCollectionMapping.
+        collection_mapping.required // mapping_type is required
+    tanvo.integration.v1.CreateCollectionMappingResponse:
+      type: object
+      properties:
+        collection_mapping:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.integration.v1.CollectionMapping'
+          title: collection_mapping
+          description: The created mapping.
+      title: CreateCollectionMappingResponse
+      additionalProperties: false
+      description: CreateCollectionMappingResponse is the response of IntegrationService.CreateCollectionMapping.
+    tanvo.integration.v1.CreateIntegrationMappingRequest:
+      type: object
+      properties:
+        integration_id:
+          type: string
+          title: integration_id
+          description: |
+            The integration's ID or `code:<code>`.
+            string.ref = true
+        mapping:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.integration.v1.IntegrationMapping'
+          title: mapping
+          description: The mapping to create.
+      title: CreateIntegrationMappingRequest
+      required:
+        - integration_id
+        - mapping
+      additionalProperties: false
+      description: |
+        CreateIntegrationMappingRequest is the request of IntegrationService.CreateIntegrationMapping.
+        mapping.required // mappable_type, mappable_id and external_id are required
+    tanvo.integration.v1.CreateIntegrationMappingResponse:
+      type: object
+      properties:
+        mapping:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.integration.v1.IntegrationMapping'
+          title: mapping
+          description: The created mapping.
+      title: CreateIntegrationMappingResponse
+      additionalProperties: false
+      description: CreateIntegrationMappingResponse is the response of IntegrationService.CreateIntegrationMapping.
     tanvo.integration.v1.CreateIntegrationRequest:
       type: object
       properties:
@@ -25211,6 +25580,13 @@ components:
           maxLength: 1024
           description: The secret key; write only.
           writeOnly: true
+        webhook_secret:
+          type: string
+          title: webhook_secret
+          description: |-
+            The secret Tanvo generates for the Flutterwave dashboard's webhook
+             secret hash, which signs the webhooks Flutterwave sends.
+          readOnly: true
         success_redirect_url:
           type: string
           title: success_redirect_url
@@ -25254,6 +25630,13 @@ components:
           maxLength: 1024
           format: uri
           description: The URL customers return to after the mandate setup.
+        webhook_secret:
+          type: string
+          title: webhook_secret
+          description: |-
+            The secret Tanvo generates for the GoCardless webhook endpoint, which
+             signs the webhooks GoCardless sends.
+          readOnly: true
       title: GocardlessSettings
       additionalProperties: false
       description: GocardlessSettings connects GoCardless by OAuth.
@@ -25271,6 +25654,16 @@ components:
           type: string
           title: portal_id
           description: The HubSpot portal connected.
+          readOnly: true
+        invoices_object_type_id:
+          type: string
+          title: invoices_object_type_id
+          description: The object type ID of the deployed custom invoice object.
+          readOnly: true
+        subscriptions_object_type_id:
+          type: string
+          title: subscriptions_object_type_id
+          description: The object type ID of the deployed custom subscription object.
           readOnly: true
       title: HubspotSettings
       additionalProperties: false
@@ -25540,8 +25933,7 @@ components:
         id:
           type: string
           title: id
-          description: The mapping's ID.
-          readOnly: true
+          description: (IDENTIFIER) The mapping's ID.
         mappable_type:
           allOf:
             - $ref: '#/components/schemas/tanvo.integration.v1.MappableType'
@@ -25565,7 +25957,6 @@ components:
           type: string
           title: external_id
           maxLength: 255
-          minLength: 1
           description: The provider's item ID.
         external_account_code:
           type: string
@@ -25877,6 +26268,49 @@ components:
       title: NetsuiteSettings
       additionalProperties: false
       description: NetsuiteSettings connects NetSuite with token-based authentication.
+    tanvo.integration.v1.PreviewInvoiceTaxesRequest:
+      type: object
+      properties:
+        customer_id:
+          type: string
+          title: customer_id
+          description: |
+            The customer (ID or `external_id:<external_id>`).
+            string.ref = true
+        currency:
+          type: string
+          title: currency
+          description: |
+            The currency; the customer's by default.
+            string.currency = true
+        fees:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.invoice.v1.OneOffFee'
+          title: fees
+          maxItems: 100
+          minItems: 1
+          description: The fees; only their add-on, units and unit price are read.
+      title: PreviewInvoiceTaxesRequest
+      required:
+        - customer_id
+        - fees
+      additionalProperties: false
+      description: PreviewInvoiceTaxesRequest is the request of IntegrationService.PreviewInvoiceTaxes.
+    tanvo.integration.v1.PreviewInvoiceTaxesResponse:
+      type: object
+      properties:
+        fees:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.integration.v1.TaxFee'
+          title: fees
+          description: |-
+            The taxes of each line the provider was asked about: the fees with
+             an amount, or the first fee when none has one.
+      title: PreviewInvoiceTaxesResponse
+      additionalProperties: false
+      description: PreviewInvoiceTaxesResponse is the response of IntegrationService.PreviewInvoiceTaxes.
     tanvo.integration.v1.SalesforceSettings:
       type: object
       properties:
@@ -25949,6 +26383,24 @@ components:
       title: StripeSettings
       additionalProperties: false
       description: StripeSettings connects Stripe.
+    tanvo.integration.v1.SyncHubspotInvoiceRequest:
+      type: object
+      properties:
+        invoice_id:
+          type: string
+          title: invoice_id
+          format: uuid
+          description: The invoice's ID.
+      title: SyncHubspotInvoiceRequest
+      required:
+        - invoice_id
+      additionalProperties: false
+      description: SyncHubspotInvoiceRequest is the request of IntegrationService.SyncHubspotInvoice.
+    tanvo.integration.v1.SyncHubspotInvoiceResponse:
+      type: object
+      title: SyncHubspotInvoiceResponse
+      additionalProperties: false
+      description: SyncHubspotInvoiceResponse is the response of IntegrationService.SyncHubspotInvoice.
     tanvo.integration.v1.SyncIntegrationItemsRequest:
       type: object
       properties:
@@ -25975,6 +26427,166 @@ components:
       title: SyncIntegrationItemsResponse
       additionalProperties: false
       description: SyncIntegrationItemsResponse is the response of IntegrationService.SyncIntegrationItems.
+    tanvo.integration.v1.SyncSalesforceInvoiceRequest:
+      type: object
+      properties:
+        invoice_id:
+          type: string
+          title: invoice_id
+          format: uuid
+          description: The invoice's ID.
+      title: SyncSalesforceInvoiceRequest
+      required:
+        - invoice_id
+      additionalProperties: false
+      description: SyncSalesforceInvoiceRequest is the request of IntegrationService.SyncSalesforceInvoice.
+    tanvo.integration.v1.SyncSalesforceInvoiceResponse:
+      type: object
+      title: SyncSalesforceInvoiceResponse
+      additionalProperties: false
+      description: SyncSalesforceInvoiceResponse is the response of IntegrationService.SyncSalesforceInvoice.
+    tanvo.integration.v1.TaxBreakdown:
+      type: object
+      properties:
+        name:
+          type: string
+          title: name
+          description: The tax name.
+        rate:
+          type: string
+          title: rate
+          description: The rate as a fraction (0.1 for 10 %).
+        tax_amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: tax_amount
+          description: The exact tax.
+        type:
+          type: string
+          title: type
+          description: The provider's tax type ("tax", "exempt", "notCollecting"…).
+        whole_invoice_tax_code:
+          type: string
+          title: whole_invoice_tax_code
+          description: |-
+            The code of a ruling that applies to the whole invoice
+             (`reverse_charge`, `not_collecting`…); empty for a jurisdiction's
+             tax.
+      title: TaxBreakdown
+      additionalProperties: false
+      description: TaxBreakdown is one jurisdiction's tax on a line.
+    tanvo.integration.v1.TaxFee:
+      type: object
+      properties:
+        item_id:
+          type: string
+          title: item_id
+          description: 'The line''s item: the fee''s add-on.'
+        item_code:
+          type: string
+          title: item_code
+          description: The provider's product the add-on is mapped to.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: amount
+          description: The taxed amount.
+        tax_amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: tax_amount
+          description: The tax the provider booked on the line; absent when it gave none.
+        tax_breakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.integration.v1.TaxBreakdown'
+          title: tax_breakdown
+          description: The line's taxes per jurisdiction.
+      title: TaxFee
+      additionalProperties: false
+      description: TaxFee is a tax provider's answer for one line.
+    tanvo.integration.v1.UpdateCollectionMappingRequest:
+      type: object
+      properties:
+        integration_id:
+          type: string
+          title: integration_id
+          description: |
+            The integration's ID or `code:<code>`.
+            string.ref = true
+        collection_mapping:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.integration.v1.CollectionMapping'
+          title: collection_mapping
+          description: |-
+            The new values; collection_mapping.id selects the mapping. The type
+             and billing entity cannot be updated.
+        update_mask:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.FieldMask'
+          title: update_mask
+          description: |-
+            The fields to update; empty updates every field that is set (an
+             empty currencies map is not set: name it in the mask to send one).
+      title: UpdateCollectionMappingRequest
+      required:
+        - integration_id
+        - collection_mapping
+      additionalProperties: false
+      description: |
+        UpdateCollectionMappingRequest is the request of IntegrationService.UpdateCollectionMapping.
+        collection_mapping.id // collection_mapping.id is required
+    tanvo.integration.v1.UpdateCollectionMappingResponse:
+      type: object
+      properties:
+        collection_mapping:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.integration.v1.CollectionMapping'
+          title: collection_mapping
+          description: The updated mapping.
+      title: UpdateCollectionMappingResponse
+      additionalProperties: false
+      description: UpdateCollectionMappingResponse is the response of IntegrationService.UpdateCollectionMapping.
+    tanvo.integration.v1.UpdateIntegrationMappingRequest:
+      type: object
+      properties:
+        integration_id:
+          type: string
+          title: integration_id
+          description: |
+            The integration's ID or `code:<code>`.
+            string.ref = true
+        mapping:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.integration.v1.IntegrationMapping'
+          title: mapping
+          description: |-
+            The new values; mapping.id selects the mapping. Only external_id,
+             external_account_code and external_name can be updated.
+        update_mask:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.FieldMask'
+          title: update_mask
+          description: The fields to update; empty updates every field that is set.
+      title: UpdateIntegrationMappingRequest
+      required:
+        - integration_id
+        - mapping
+      additionalProperties: false
+      description: |
+        UpdateIntegrationMappingRequest is the request of IntegrationService.UpdateIntegrationMapping.
+        mapping.id // mapping.id is required
+    tanvo.integration.v1.UpdateIntegrationMappingResponse:
+      type: object
+      properties:
+        mapping:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.integration.v1.IntegrationMapping'
+          title: mapping
+          description: The updated mapping.
+      title: UpdateIntegrationMappingResponse
+      additionalProperties: false
+      description: UpdateIntegrationMappingResponse is the response of IntegrationService.UpdateIntegrationMapping.
     tanvo.integration.v1.UpdateIntegrationRequest:
       type: object
       properties:
@@ -26008,72 +26620,6 @@ components:
       title: UpdateIntegrationResponse
       additionalProperties: false
       description: UpdateIntegrationResponse is the response of IntegrationService.UpdateIntegration.
-    tanvo.integration.v1.UpsertCollectionMappingRequest:
-      type: object
-      properties:
-        integration_id:
-          type: string
-          title: integration_id
-          description: |
-            The integration's ID or `code:<code>`.
-            string.ref = true
-        collection_mapping:
-          allOf:
-            - $ref: '#/components/schemas/tanvo.integration.v1.CollectionMapping'
-          title: collection_mapping
-          description: The mapping; the type and billing entity select it.
-      title: UpsertCollectionMappingRequest
-      required:
-        - integration_id
-        - collection_mapping
-      additionalProperties: false
-      description: |
-        UpsertCollectionMappingRequest is the request of IntegrationService.UpsertCollectionMapping.
-        collection_mapping.required // mapping_type is required
-    tanvo.integration.v1.UpsertCollectionMappingResponse:
-      type: object
-      properties:
-        collection_mapping:
-          allOf:
-            - $ref: '#/components/schemas/tanvo.integration.v1.CollectionMapping'
-          title: collection_mapping
-          description: The stored mapping.
-      title: UpsertCollectionMappingResponse
-      additionalProperties: false
-      description: UpsertCollectionMappingResponse is the response of IntegrationService.UpsertCollectionMapping.
-    tanvo.integration.v1.UpsertIntegrationMappingRequest:
-      type: object
-      properties:
-        integration_id:
-          type: string
-          title: integration_id
-          description: |
-            The integration's ID or `code:<code>`.
-            string.ref = true
-        mapping:
-          allOf:
-            - $ref: '#/components/schemas/tanvo.integration.v1.IntegrationMapping'
-          title: mapping
-          description: The mapping; the object and billing entity select it.
-      title: UpsertIntegrationMappingRequest
-      required:
-        - integration_id
-        - mapping
-      additionalProperties: false
-      description: |
-        UpsertIntegrationMappingRequest is the request of IntegrationService.UpsertIntegrationMapping.
-        mapping.required // mappable_type, mappable_id and external_id are required
-    tanvo.integration.v1.UpsertIntegrationMappingResponse:
-      type: object
-      properties:
-        mapping:
-          allOf:
-            - $ref: '#/components/schemas/tanvo.integration.v1.IntegrationMapping'
-          title: mapping
-          description: The stored mapping.
-      title: UpsertIntegrationMappingResponse
-      additionalProperties: false
-      description: UpsertIntegrationMappingResponse is the response of IntegrationService.UpsertIntegrationMapping.
     tanvo.integration.v1.XeroSettings:
       type: object
       title: XeroSettings
@@ -28124,6 +28670,30 @@ components:
       title: RetryInvoiceSyncResponse
       additionalProperties: false
       description: RetryInvoiceSyncResponse is the response of InvoiceService.RetryInvoiceSync.
+    tanvo.invoice.v1.RetryInvoiceTaxVoidingRequest:
+      type: object
+      properties:
+        invoice_id:
+          type: string
+          title: invoice_id
+          format: uuid
+          description: The invoice's ID.
+      title: RetryInvoiceTaxVoidingRequest
+      required:
+        - invoice_id
+      additionalProperties: false
+      description: RetryInvoiceTaxVoidingRequest is the request of InvoiceService.RetryInvoiceTaxVoiding.
+    tanvo.invoice.v1.RetryInvoiceTaxVoidingResponse:
+      type: object
+      properties:
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.invoice.v1.Invoice'
+          title: invoice
+          description: The invoice.
+      title: RetryInvoiceTaxVoidingResponse
+      additionalProperties: false
+      description: RetryInvoiceTaxVoidingResponse is the response of InvoiceService.RetryInvoiceTaxVoiding.
     tanvo.invoice.v1.SetInvoiceSalesforceIdRequest:
       type: object
       properties:
@@ -28153,6 +28723,12 @@ components:
       description: SetInvoiceSalesforceIdRequest is the request of InvoiceService.SetInvoiceSalesforceId.
     tanvo.invoice.v1.SetInvoiceSalesforceIdResponse:
       type: object
+      properties:
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.invoice.v1.Invoice'
+          title: invoice
+          description: The invoice.
       title: SetInvoiceSalesforceIdResponse
       additionalProperties: false
       description: SetInvoiceSalesforceIdResponse is the response of InvoiceService.SetInvoiceSalesforceId.
@@ -28910,6 +29486,12 @@ components:
           title: updated_at
           description: When the entity last changed.
           readOnly: true
+        skip_credit_invoice_payment_delay:
+          type: boolean
+          title: skip_credit_invoice_payment_delay
+          description: |-
+            Charges wallet top-up invoices at once, without waiting for a possible
+             checkout payment.
       title: BillingEntity
       required:
         - code
@@ -35702,11 +36284,6 @@ tags:
     description: |-
       DataExportService starts data exports. An export is started by a
        member, who receives the file by email; the file expires after 7 days.
-  - name: IntegrationService
-    description: |-
-      IntegrationService manages integrations. An organization may connect a
-       provider several times; integrations are addressed by ID or
-       `code:<code>`.
   - name: InvoiceService
     description: InvoiceService manages invoices.
   - name: FeeService
@@ -35715,6 +36292,11 @@ tags:
     description: |-
       InvoiceCustomSectionService manages invoice custom sections: text printed
        on invoices, resolved from subscription, customer and billing entity.
+  - name: IntegrationService
+    description: |-
+      IntegrationService manages integrations. An organization may connect a
+       provider several times; integrations are addressed by ID or
+       `code:<code>`.
   - name: LogService
     description: |-
       LogService reads the audit trails. Logs are kept for the retention of

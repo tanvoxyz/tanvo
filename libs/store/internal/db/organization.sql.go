@@ -17,56 +17,57 @@ INSERT INTO billing_entities (
   organization_id, id, code, name, legal_name, legal_number, tax_id, email, phone,
   address_line1, address_line2, address_city, address_state, address_zipcode, address_country,
   logo, timezone, default_currency, document_locale, document_numbering, document_number_prefix,
-  invoice_footer, invoice_grace_period_days, net_payment_term_days, finalize_zero_amount_invoice,
+  invoice_footer, invoice_grace_period_days, net_payment_term_days, finalize_zero_amount_invoice, skip_credit_invoice_payment_delay,
   issuing_date_anchor, issuing_date_adjustment, email_settings, eu_tax_management, einvoicing,
   is_default, applied_dunning_campaign_id, archived_at, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8, $9,
   $10, $11, $12, $13, $14, $15,
   $16, $17, $18, $19, $20, $21,
-  $22, $23, $24, $25,
-  $26, $27, $28, $29, $30,
-  $31, $32, $33, $34, $35
+  $22, $23, $24, $25, $26,
+  $27, $28, $29, $30, $31,
+  $32, $33, $34, $35, $36
 )
 ON CONFLICT DO NOTHING
 `
 
 type CreateBillingEntityParams struct {
-	OrganizationID            uuid.UUID
-	ID                        uuid.UUID
-	Code                      string
-	Name                      string
-	LegalName                 *string
-	LegalNumber               *string
-	TaxID                     *string
-	Email                     *string
-	Phone                     *string
-	AddressLine1              string
-	AddressLine2              string
-	AddressCity               string
-	AddressState              string
-	AddressZipcode            string
-	AddressCountry            string
-	Logo                      *string
-	Timezone                  *string
-	DefaultCurrency           *string
-	DocumentLocale            string
-	DocumentNumbering         string
-	DocumentNumberPrefix      string
-	InvoiceFooter             *string
-	InvoiceGracePeriodDays    int32
-	NetPaymentTermDays        int32
-	FinalizeZeroAmountInvoice bool
-	IssuingDateAnchor         string
-	IssuingDateAdjustment     string
-	EmailSettings             []string
-	EuTaxManagement           bool
-	Einvoicing                bool
-	IsDefault                 bool
-	AppliedDunningCampaignID  *uuid.UUID
-	ArchivedAt                *time.Time
-	CreatedAt                 time.Time
-	UpdatedAt                 time.Time
+	OrganizationID                uuid.UUID
+	ID                            uuid.UUID
+	Code                          string
+	Name                          string
+	LegalName                     *string
+	LegalNumber                   *string
+	TaxID                         *string
+	Email                         *string
+	Phone                         *string
+	AddressLine1                  string
+	AddressLine2                  string
+	AddressCity                   string
+	AddressState                  string
+	AddressZipcode                string
+	AddressCountry                string
+	Logo                          *string
+	Timezone                      *string
+	DefaultCurrency               *string
+	DocumentLocale                string
+	DocumentNumbering             string
+	DocumentNumberPrefix          string
+	InvoiceFooter                 *string
+	InvoiceGracePeriodDays        int32
+	NetPaymentTermDays            int32
+	FinalizeZeroAmountInvoice     bool
+	SkipCreditInvoicePaymentDelay bool
+	IssuingDateAnchor             string
+	IssuingDateAdjustment         string
+	EmailSettings                 []string
+	EuTaxManagement               bool
+	Einvoicing                    bool
+	IsDefault                     bool
+	AppliedDunningCampaignID      *uuid.UUID
+	ArchivedAt                    *time.Time
+	CreatedAt                     time.Time
+	UpdatedAt                     time.Time
 }
 
 func (q *Queries) CreateBillingEntity(ctx context.Context, arg CreateBillingEntityParams) (int64, error) {
@@ -96,6 +97,7 @@ func (q *Queries) CreateBillingEntity(ctx context.Context, arg CreateBillingEnti
 		arg.InvoiceGracePeriodDays,
 		arg.NetPaymentTermDays,
 		arg.FinalizeZeroAmountInvoice,
+		arg.SkipCreditInvoicePaymentDelay,
 		arg.IssuingDateAnchor,
 		arg.IssuingDateAdjustment,
 		arg.EmailSettings,
@@ -314,7 +316,7 @@ func (q *Queries) DeselectSubscriptionsInvoiceCustomSection(ctx context.Context,
 }
 
 const getBillingEntity = `-- name: GetBillingEntity :one
-SELECT b.organization_id, b.id, b.code, b.name, b.legal_name, b.legal_number, b.tax_id, b.email, b.phone, b.address_line1, b.address_line2, b.address_city, b.address_state, b.address_zipcode, b.address_country, b.logo, b.timezone, b.default_currency, b.document_locale, b.document_numbering, b.document_number_prefix, b.invoice_footer, b.invoice_grace_period_days, b.net_payment_term_days, b.finalize_zero_amount_invoice, b.issuing_date_anchor, b.issuing_date_adjustment, b.email_settings, b.eu_tax_management, b.einvoicing, b.is_default, b.applied_dunning_campaign_id, b.archived_at, b.created_at, b.updated_at,
+SELECT b.organization_id, b.id, b.code, b.name, b.legal_name, b.legal_number, b.tax_id, b.email, b.phone, b.address_line1, b.address_line2, b.address_city, b.address_state, b.address_zipcode, b.address_country, b.logo, b.timezone, b.default_currency, b.document_locale, b.document_numbering, b.document_number_prefix, b.invoice_footer, b.invoice_grace_period_days, b.net_payment_term_days, b.finalize_zero_amount_invoice, b.skip_credit_invoice_payment_delay, b.issuing_date_anchor, b.issuing_date_adjustment, b.email_settings, b.eu_tax_management, b.einvoicing, b.is_default, b.applied_dunning_campaign_id, b.archived_at, b.created_at, b.updated_at,
   ARRAY(SELECT t.tax_id FROM billing_entity_taxes t
         WHERE t.organization_id = b.organization_id AND t.billing_entity_id = b.id ORDER BY t.position)::uuid[] AS tax_ids,
   ARRAY(SELECT s.invoice_custom_section_id FROM billing_entity_invoice_custom_sections s
@@ -363,6 +365,7 @@ func (q *Queries) GetBillingEntity(ctx context.Context, arg GetBillingEntityPara
 		&i.BillingEntity.InvoiceGracePeriodDays,
 		&i.BillingEntity.NetPaymentTermDays,
 		&i.BillingEntity.FinalizeZeroAmountInvoice,
+		&i.BillingEntity.SkipCreditInvoicePaymentDelay,
 		&i.BillingEntity.IssuingDateAnchor,
 		&i.BillingEntity.IssuingDateAdjustment,
 		&i.BillingEntity.EmailSettings,
@@ -380,7 +383,7 @@ func (q *Queries) GetBillingEntity(ctx context.Context, arg GetBillingEntityPara
 }
 
 const getBillingEntityByCode = `-- name: GetBillingEntityByCode :one
-SELECT b.organization_id, b.id, b.code, b.name, b.legal_name, b.legal_number, b.tax_id, b.email, b.phone, b.address_line1, b.address_line2, b.address_city, b.address_state, b.address_zipcode, b.address_country, b.logo, b.timezone, b.default_currency, b.document_locale, b.document_numbering, b.document_number_prefix, b.invoice_footer, b.invoice_grace_period_days, b.net_payment_term_days, b.finalize_zero_amount_invoice, b.issuing_date_anchor, b.issuing_date_adjustment, b.email_settings, b.eu_tax_management, b.einvoicing, b.is_default, b.applied_dunning_campaign_id, b.archived_at, b.created_at, b.updated_at,
+SELECT b.organization_id, b.id, b.code, b.name, b.legal_name, b.legal_number, b.tax_id, b.email, b.phone, b.address_line1, b.address_line2, b.address_city, b.address_state, b.address_zipcode, b.address_country, b.logo, b.timezone, b.default_currency, b.document_locale, b.document_numbering, b.document_number_prefix, b.invoice_footer, b.invoice_grace_period_days, b.net_payment_term_days, b.finalize_zero_amount_invoice, b.skip_credit_invoice_payment_delay, b.issuing_date_anchor, b.issuing_date_adjustment, b.email_settings, b.eu_tax_management, b.einvoicing, b.is_default, b.applied_dunning_campaign_id, b.archived_at, b.created_at, b.updated_at,
   ARRAY(SELECT t.tax_id FROM billing_entity_taxes t
         WHERE t.organization_id = b.organization_id AND t.billing_entity_id = b.id ORDER BY t.position)::uuid[] AS tax_ids,
   ARRAY(SELECT s.invoice_custom_section_id FROM billing_entity_invoice_custom_sections s
@@ -429,6 +432,7 @@ func (q *Queries) GetBillingEntityByCode(ctx context.Context, arg GetBillingEnti
 		&i.BillingEntity.InvoiceGracePeriodDays,
 		&i.BillingEntity.NetPaymentTermDays,
 		&i.BillingEntity.FinalizeZeroAmountInvoice,
+		&i.BillingEntity.SkipCreditInvoicePaymentDelay,
 		&i.BillingEntity.IssuingDateAnchor,
 		&i.BillingEntity.IssuingDateAdjustment,
 		&i.BillingEntity.EmailSettings,
@@ -446,7 +450,7 @@ func (q *Queries) GetBillingEntityByCode(ctx context.Context, arg GetBillingEnti
 }
 
 const getDefaultBillingEntity = `-- name: GetDefaultBillingEntity :one
-SELECT b.organization_id, b.id, b.code, b.name, b.legal_name, b.legal_number, b.tax_id, b.email, b.phone, b.address_line1, b.address_line2, b.address_city, b.address_state, b.address_zipcode, b.address_country, b.logo, b.timezone, b.default_currency, b.document_locale, b.document_numbering, b.document_number_prefix, b.invoice_footer, b.invoice_grace_period_days, b.net_payment_term_days, b.finalize_zero_amount_invoice, b.issuing_date_anchor, b.issuing_date_adjustment, b.email_settings, b.eu_tax_management, b.einvoicing, b.is_default, b.applied_dunning_campaign_id, b.archived_at, b.created_at, b.updated_at,
+SELECT b.organization_id, b.id, b.code, b.name, b.legal_name, b.legal_number, b.tax_id, b.email, b.phone, b.address_line1, b.address_line2, b.address_city, b.address_state, b.address_zipcode, b.address_country, b.logo, b.timezone, b.default_currency, b.document_locale, b.document_numbering, b.document_number_prefix, b.invoice_footer, b.invoice_grace_period_days, b.net_payment_term_days, b.finalize_zero_amount_invoice, b.skip_credit_invoice_payment_delay, b.issuing_date_anchor, b.issuing_date_adjustment, b.email_settings, b.eu_tax_management, b.einvoicing, b.is_default, b.applied_dunning_campaign_id, b.archived_at, b.created_at, b.updated_at,
   ARRAY(SELECT t.tax_id FROM billing_entity_taxes t
         WHERE t.organization_id = b.organization_id AND t.billing_entity_id = b.id ORDER BY t.position)::uuid[] AS tax_ids,
   ARRAY(SELECT s.invoice_custom_section_id FROM billing_entity_invoice_custom_sections s
@@ -490,6 +494,7 @@ func (q *Queries) GetDefaultBillingEntity(ctx context.Context, organizationID uu
 		&i.BillingEntity.InvoiceGracePeriodDays,
 		&i.BillingEntity.NetPaymentTermDays,
 		&i.BillingEntity.FinalizeZeroAmountInvoice,
+		&i.BillingEntity.SkipCreditInvoicePaymentDelay,
 		&i.BillingEntity.IssuingDateAnchor,
 		&i.BillingEntity.IssuingDateAdjustment,
 		&i.BillingEntity.EmailSettings,
@@ -657,7 +662,7 @@ func (q *Queries) InsertBillingEntityTaxes(ctx context.Context, arg InsertBillin
 }
 
 const listBillingEntities = `-- name: ListBillingEntities :many
-SELECT b.organization_id, b.id, b.code, b.name, b.legal_name, b.legal_number, b.tax_id, b.email, b.phone, b.address_line1, b.address_line2, b.address_city, b.address_state, b.address_zipcode, b.address_country, b.logo, b.timezone, b.default_currency, b.document_locale, b.document_numbering, b.document_number_prefix, b.invoice_footer, b.invoice_grace_period_days, b.net_payment_term_days, b.finalize_zero_amount_invoice, b.issuing_date_anchor, b.issuing_date_adjustment, b.email_settings, b.eu_tax_management, b.einvoicing, b.is_default, b.applied_dunning_campaign_id, b.archived_at, b.created_at, b.updated_at,
+SELECT b.organization_id, b.id, b.code, b.name, b.legal_name, b.legal_number, b.tax_id, b.email, b.phone, b.address_line1, b.address_line2, b.address_city, b.address_state, b.address_zipcode, b.address_country, b.logo, b.timezone, b.default_currency, b.document_locale, b.document_numbering, b.document_number_prefix, b.invoice_footer, b.invoice_grace_period_days, b.net_payment_term_days, b.finalize_zero_amount_invoice, b.skip_credit_invoice_payment_delay, b.issuing_date_anchor, b.issuing_date_adjustment, b.email_settings, b.eu_tax_management, b.einvoicing, b.is_default, b.applied_dunning_campaign_id, b.archived_at, b.created_at, b.updated_at,
   ARRAY(SELECT t.tax_id FROM billing_entity_taxes t
         WHERE t.organization_id = b.organization_id AND t.billing_entity_id = b.id ORDER BY t.position)::uuid[] AS tax_ids,
   ARRAY(SELECT s.invoice_custom_section_id FROM billing_entity_invoice_custom_sections s
@@ -723,6 +728,7 @@ func (q *Queries) ListBillingEntities(ctx context.Context, arg ListBillingEntiti
 			&i.BillingEntity.InvoiceGracePeriodDays,
 			&i.BillingEntity.NetPaymentTermDays,
 			&i.BillingEntity.FinalizeZeroAmountInvoice,
+			&i.BillingEntity.SkipCreditInvoicePaymentDelay,
 			&i.BillingEntity.IssuingDateAnchor,
 			&i.BillingEntity.IssuingDateAdjustment,
 			&i.BillingEntity.EmailSettings,
@@ -905,49 +911,51 @@ UPDATE billing_entities SET
   document_numbering = $20, document_number_prefix = $21,
   invoice_footer = $22, invoice_grace_period_days = $23,
   net_payment_term_days = $24, finalize_zero_amount_invoice = $25,
-  issuing_date_anchor = $26, issuing_date_adjustment = $27,
-  email_settings = $28, eu_tax_management = $29, einvoicing = $30,
-  is_default = $31, applied_dunning_campaign_id = $32,
-  archived_at = $33, created_at = $34, updated_at = $35
+  skip_credit_invoice_payment_delay = $26,
+  issuing_date_anchor = $27, issuing_date_adjustment = $28,
+  email_settings = $29, eu_tax_management = $30, einvoicing = $31,
+  is_default = $32, applied_dunning_campaign_id = $33,
+  archived_at = $34, created_at = $35, updated_at = $36
 WHERE organization_id = $1 AND id = $2
 `
 
 type UpdateBillingEntityParams struct {
-	OrganizationID            uuid.UUID
-	ID                        uuid.UUID
-	Code                      string
-	Name                      string
-	LegalName                 *string
-	LegalNumber               *string
-	TaxID                     *string
-	Email                     *string
-	Phone                     *string
-	AddressLine1              string
-	AddressLine2              string
-	AddressCity               string
-	AddressState              string
-	AddressZipcode            string
-	AddressCountry            string
-	Logo                      *string
-	Timezone                  *string
-	DefaultCurrency           *string
-	DocumentLocale            string
-	DocumentNumbering         string
-	DocumentNumberPrefix      string
-	InvoiceFooter             *string
-	InvoiceGracePeriodDays    int32
-	NetPaymentTermDays        int32
-	FinalizeZeroAmountInvoice bool
-	IssuingDateAnchor         string
-	IssuingDateAdjustment     string
-	EmailSettings             []string
-	EuTaxManagement           bool
-	Einvoicing                bool
-	IsDefault                 bool
-	AppliedDunningCampaignID  *uuid.UUID
-	ArchivedAt                *time.Time
-	CreatedAt                 time.Time
-	UpdatedAt                 time.Time
+	OrganizationID                uuid.UUID
+	ID                            uuid.UUID
+	Code                          string
+	Name                          string
+	LegalName                     *string
+	LegalNumber                   *string
+	TaxID                         *string
+	Email                         *string
+	Phone                         *string
+	AddressLine1                  string
+	AddressLine2                  string
+	AddressCity                   string
+	AddressState                  string
+	AddressZipcode                string
+	AddressCountry                string
+	Logo                          *string
+	Timezone                      *string
+	DefaultCurrency               *string
+	DocumentLocale                string
+	DocumentNumbering             string
+	DocumentNumberPrefix          string
+	InvoiceFooter                 *string
+	InvoiceGracePeriodDays        int32
+	NetPaymentTermDays            int32
+	FinalizeZeroAmountInvoice     bool
+	SkipCreditInvoicePaymentDelay bool
+	IssuingDateAnchor             string
+	IssuingDateAdjustment         string
+	EmailSettings                 []string
+	EuTaxManagement               bool
+	Einvoicing                    bool
+	IsDefault                     bool
+	AppliedDunningCampaignID      *uuid.UUID
+	ArchivedAt                    *time.Time
+	CreatedAt                     time.Time
+	UpdatedAt                     time.Time
 }
 
 func (q *Queries) UpdateBillingEntity(ctx context.Context, arg UpdateBillingEntityParams) (int64, error) {
@@ -977,6 +985,7 @@ func (q *Queries) UpdateBillingEntity(ctx context.Context, arg UpdateBillingEnti
 		arg.InvoiceGracePeriodDays,
 		arg.NetPaymentTermDays,
 		arg.FinalizeZeroAmountInvoice,
+		arg.SkipCreditInvoicePaymentDelay,
 		arg.IssuingDateAnchor,
 		arg.IssuingDateAdjustment,
 		arg.EmailSettings,

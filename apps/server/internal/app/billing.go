@@ -25,20 +25,23 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/ingest/kafka"
 	"github.com/tanvoxyz/tanvo/libs/jobs"
 	"github.com/tanvoxyz/tanvo/libs/tax"
-	"github.com/tanvoxyz/tanvo/libs/webhooks"
 )
 
 // newBilling returns the billing engine over the store and the event
-// stores, its domain events recorded by the webhook emitter. No tax
-// provider or refund gateway is wired before the providers (phase 5):
-// customers taxed by a provider wait for it, and refunds stay pending.
-func newBilling(cfg config.Config, tx port.Transactor, stores *EventStores, clock core.Clock, log *slog.Logger) (*billing.Engine, error) {
+// stores, its domain events recorded by the webhook emitter and its
+// credit-note refunds sent through refunds (nil leaves them pending). No
+// tax provider is wired: customers taxed by a provider wait for it.
+func newBilling(cfg config.Config, tx port.Transactor, stores *EventStores, clock core.Clock, log *slog.Logger, refunds kernel.RefundGateway,
+	emitter port.WebhookEmitter, taxes kernel.TaxProvider,
+) (*billing.Engine, error) {
 	e, err := billing.New(kernel.Deps{
+		Refunds:          refunds,
+		Taxes:            taxes,
 		Tx:               tx,
 		Events:           eventRouter{stores: stores},
 		Clock:            clock,
 		IDs:              core.UUIDv7Generator{},
-		Webhooks:         &webhooks.Emitter{Tx: tx},
+		Webhooks:         emitter,
 		ActivityLogs:     auditlog.NewActivityProducer(clock, core.UUIDv7Generator{}, rpc.ActivityActor),
 		Logger:           log,
 		DailyUsageJitter: cfg.DailyUsageSchedulingJitter,
@@ -164,8 +167,11 @@ func (b billingJobs) register(reg *jobs.Registry) error {
 		kind := jobs.Kind{Name: k}
 		if !slices.Contains(providerKinds, k) {
 			kind.Retry = billingRetry()
-		} else {
-			kind.Retry = providerRetry()
+		} else if k != kernel.JobReportCreditNoteTaxes {
+			// lago CreditNotes::ProviderTaxes::ReportJob retries nothing
+			// (application_job.rb:4): a refusal is kept as a tax_error
+			// detail for RetryCreditNoteTaxReporting.
+			kind.Retry = providerRetry(k)
 		}
 		if k == kernel.JobProcessSubscriptionActivity {
 			// lago UsageMonitoring::ProcessSubscriptionActivityJob
@@ -197,28 +203,10 @@ func (b billingJobs) register(reg *jobs.Registry) error {
 
 // registerPending registers the kinds billing enqueues for libraries not
 // wired yet, so that the transactions enqueueing them commit:
-//
-//   - payments.create_invoice_payment completes at once: without payment
-//     providers (phase 5) an invoice's payment stays pending, as lago-api
-//     skips an invoice without a provider
-//     (app/services/invoices/payments/create_service.rb:152).
-//   - documents.generate_invoice and documents.generate_credit_note are
-//     cancelled, kept in River for a manual retry once libs/documents is
-//     wired to the store and a blob store.
+// documents.generate_invoice and documents.generate_credit_note are
+// cancelled, kept in River for a manual retry once libs/documents is
+// wired to the store and a blob store.
 func (b billingJobs) registerPending(reg *jobs.Registry) error {
-	// Phase 5 hook: the payments orchestration replaces this handler. Its
-	// payment status update (lago Invoices::UpdateService#
-	// handle_prepaid_credits, app/services/invoices/update_service.rb:113-117)
-	// must call wallets.Service.HandleCreditInvoicePayment
-	// (b.engine.Wallets) for a credit invoice whose payment succeeded or
-	// failed, so that its wallet transaction settles.
-	if err := jobs.Register(reg, jobs.Kind{Name: kernel.JobCreateInvoicePayment},
-		jobs.HandlerFunc[kernel.InvoiceArgs](func(ctx context.Context, j *jobs.Job[kernel.InvoiceArgs]) error {
-			b.log.DebugContext(ctx, "payments: no payment provider", "invoice", j.Args.InvoiceID.String())
-			return nil
-		})); err != nil {
-		return err
-	}
 	for _, k := range []string{kernel.JobGenerateInvoiceDocument, kernel.JobGenerateCreditNoteDocument} {
 		if err := jobs.Register(reg, jobs.Kind{Name: k}, jobs.HandlerFunc[json.RawMessage](func(context.Context, *jobs.Job[json.RawMessage]) error {
 			return jobs.Permanent(fmt.Errorf("%s: documents are not wired: %w", k, core.ErrNotAllowed))
@@ -262,6 +250,7 @@ func (b billingJobs) dispatch(ctx context.Context, d clockDispatch, tick time.Ti
 			return 0, fmt.Errorf("billing: encode %s args: %w", d.kind, err)
 		}
 	}
+	queue := dispatchQueue(d.kind)
 	key := d.kind
 	if d.perTick {
 		key += ":" + tick.Format(time.RFC3339)
@@ -274,7 +263,7 @@ func (b billingJobs) dispatch(ctx context.Context, d clockDispatch, tick time.Ti
 		}
 		js := make([]port.Job, len(orgs))
 		for i, org := range orgs {
-			js[i] = port.Job{Kind: d.kind, Queue: kernel.QueueOf(d.kind), OrganizationID: org, Args: raw, UniqueKey: key}
+			js[i] = port.Job{Kind: d.kind, Queue: queue, OrganizationID: org, Args: raw, UniqueKey: key}
 		}
 		n = len(js)
 		if n == 0 {
@@ -305,12 +294,20 @@ func billingRetry() []jobs.RetryRule {
 	}
 }
 
-// providerRetry are the retry rules of [providerKinds]: a tax provider
-// at its API limit or under contention is asked again (lago
+// providerRetry are the retry rules of the [providerKinds] kind k: a tax
+// provider at its API limit or under contention is asked again (lago
 // Integrations::Aggregator::BaseService.retryable_errors, 6 attempts
-// polynomially longer, app/jobs/invoices/provider_taxes/pull_taxes_and_apply_job.rb:15).
-func providerRetry() []jobs.RetryRule {
-	return []jobs.RetryRule{jobs.RetryOn(jobs.HTTPRetryAttempts, jobs.Polynomial(0.15), kernel.ErrTaxContention)}
+// polynomially longer, app/jobs/invoices/provider_taxes/pull_taxes_and_apply_job.rb:15,
+// void_job.rb:7). Pulling taxes is also retried on the lock and
+// numbering failures of [billingRetry] (pull_taxes_and_apply_job.rb:16-17):
+// the provider records a finalized invoice under its ID, so asking again
+// records it once.
+func providerRetry(k string) []jobs.RetryRule {
+	rules := []jobs.RetryRule{jobs.RetryOn(jobs.HTTPRetryAttempts, jobs.Polynomial(0.15), kernel.ErrTaxContention)}
+	if k == kernel.JobPullProviderTaxes {
+		rules = append(rules, billingRetry()...)
+	}
+	return rules
 }
 
 // retriedByBillingRetry reports whether a rule of [billingRetry], or the

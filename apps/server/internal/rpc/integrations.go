@@ -19,9 +19,8 @@ import (
 
 // Integrations serves tanvo.integration.v1.IntegrationService over the
 // integrations service (lago's integration and payment provider GraphQL
-// mutations and resolvers). The RPCs that call a provider (the OAuth
-// flows, SyncIntegrationItems, ListIntegrationSubsidiaries) stay
-// unimplemented.
+// mutations and resolvers); the RPCs that call a provider fail without
+// its adapter in the service.
 type Integrations struct {
 	integrationv1connect.UnimplementedIntegrationServiceHandler
 
@@ -72,6 +71,10 @@ var (
 		integrations.TargetedObjectCompanies: integrationv1.HubspotTargetedObject_HUBSPOT_TARGETED_OBJECT_COMPANIES,
 		integrations.TargetedObjectContacts:  integrationv1.HubspotTargetedObject_HUBSPOT_TARGETED_OBJECT_CONTACTS,
 	})
+	crmTargetedObjects = NewEnum(map[string]customerv1.CrmTargetedObject{
+		integrations.TargetedObjectCompanies: customerv1.CrmTargetedObject_CRM_TARGETED_OBJECT_COMPANIES,
+		integrations.TargetedObjectContacts:  customerv1.CrmTargetedObject_CRM_TARGETED_OBJECT_CONTACTS,
+	})
 	mappableTypes = NewEnum(map[integration.MappableType]integrationv1.MappableType{
 		integration.MappableTypeAddOn:          integrationv1.MappableType_MAPPABLE_TYPE_ADD_ON,
 		integration.MappableTypeBillableMetric: integrationv1.MappableType_MAPPABLE_TYPE_BILLABLE_METRIC,
@@ -96,12 +99,15 @@ var (
 
 // outputSettings are the output-only settings fields lago exposes, by
 // field and settings key (types/integrations/avalara.rb:11,
-// types/integrations/hubspot.rb:14); Anrok's account is derived from the
-// API key (types/integrations/anrok.rb:20).
+// types/integrations/hubspot.rb:12-16); Anrok's account is derived from
+// the API key (types/integrations/anrok.rb:20). HubSpot's object types
+// are the keys its adapter deploys (providers/hubspot).
 var outputSettings = map[string]string{
-	"avalara.company_id":        integrations.KeyCompanyID,
-	"hubspot.portal_id":         integrations.KeyPortalID,
-	"anrok.external_account_id": integrations.KeyExternalAccountID,
+	"avalara.company_id":                   integrations.KeyCompanyID,
+	"hubspot.portal_id":                    integrations.KeyPortalID,
+	"hubspot.invoices_object_type_id":      "invoices_object_type_id",
+	"hubspot.subscriptions_object_type_id": "subscriptions_object_type_id",
+	"anrok.external_account_id":            integrations.KeyExternalAccountID,
 }
 
 // integrationBaseFields are the update_mask paths of UpdateIntegration
@@ -130,7 +136,8 @@ var integrationUpdateFields = func() []string {
 func outputOnly(f protoreflect.FieldDescriptor) bool {
 	switch f.FullName() {
 	case "tanvo.integration.v1.AnrokSettings.external_account_id",
-		"tanvo.integration.v1.AvalaraSettings.company_id", "tanvo.integration.v1.HubspotSettings.portal_id":
+		"tanvo.integration.v1.AvalaraSettings.company_id", "tanvo.integration.v1.HubspotSettings.portal_id",
+		"tanvo.integration.v1.GocardlessSettings.webhook_secret", "tanvo.integration.v1.FlutterwaveSettings.webhook_secret":
 		return true
 	}
 	return false
@@ -154,7 +161,7 @@ func (s *Integrations) CreateIntegration(ctx context.Context, req *integrationv1
 	if err != nil {
 		return nil, integrationError(ctx, provider, err)
 	}
-	out, err := integrationMessage(i)
+	out, err := s.message(ctx, i)
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
@@ -171,7 +178,7 @@ func (s *Integrations) GetIntegration(ctx context.Context, req *integrationv1.Ge
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
-	out, err := integrationMessage(i)
+	out, err := s.message(ctx, i)
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
@@ -196,7 +203,7 @@ func (s *Integrations) ListIntegrations(ctx context.Context, req *integrationv1.
 	}
 	out := make([]*integrationv1.Integration, len(page.Items))
 	for k, i := range page.Items {
-		if out[k], err = integrationMessage(i); err != nil {
+		if out[k], err = s.message(ctx, i); err != nil {
 			return nil, Error(ctx, err)
 		}
 	}
@@ -271,7 +278,7 @@ func (s *Integrations) UpdateIntegration(ctx context.Context, req *integrationv1
 	if err != nil {
 		return nil, integrationError(ctx, in.Provider, err)
 	}
-	out, err := integrationMessage(i)
+	out, err := s.message(ctx, i)
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
@@ -368,10 +375,10 @@ func (s *Integrations) ListIntegrationMappings(ctx context.Context, req *integra
 	}.Build(), nil
 }
 
-// UpsertIntegrationMapping implements
-// IntegrationService.UpsertIntegrationMapping (lago
-// IntegrationMappings::CreateService and UpdateService).
-func (s *Integrations) UpsertIntegrationMapping(ctx context.Context, req *integrationv1.UpsertIntegrationMappingRequest) (*integrationv1.UpsertIntegrationMappingResponse, error) {
+// CreateIntegrationMapping implements
+// IntegrationService.CreateIntegrationMapping (lago
+// IntegrationMappings::CreateService).
+func (s *Integrations) CreateIntegrationMapping(ctx context.Context, req *integrationv1.CreateIntegrationMappingRequest) (*integrationv1.CreateIntegrationMappingResponse, error) {
 	p, err := principal(ctx)
 	if err != nil {
 		return nil, err
@@ -391,7 +398,7 @@ func (s *Integrations) UpsertIntegrationMapping(ctx context.Context, req *integr
 			return nil, err
 		}
 	}
-	m, err := s.svc.UpsertMapping(ctx, p.OrganizationID, i.ID, integrations.MappingInput{
+	m, err := s.svc.CreateMapping(ctx, p.OrganizationID, i.ID, integrations.MappingInput{
 		MappableType: mappableTypes.Core(b.GetMappableType()), Mappable: mappable, BillingEntity: be,
 		ExternalID:          b.GetExternalId(),
 		ExternalAccountCode: Opt(b.HasExternalAccountCode(), b.GetExternalAccountCode()),
@@ -400,7 +407,52 @@ func (s *Integrations) UpsertIntegrationMapping(ctx context.Context, req *integr
 	if err != nil {
 		return nil, prefixedError(ctx, "mapping.", "invalid mapping", err)
 	}
-	return integrationv1.UpsertIntegrationMappingResponse_builder{Mapping: integrationMapping(m)}.Build(), nil
+	return integrationv1.CreateIntegrationMappingResponse_builder{Mapping: integrationMapping(m)}.Build(), nil
+}
+
+// mappingUpdateFields are the update_mask paths of UpdateIntegrationMapping
+// (lago IntegrationMappings::UpdateService).
+var mappingUpdateFields = []string{"external_id", "external_account_code", "external_name"}
+
+// UpdateIntegrationMapping implements
+// IntegrationService.UpdateIntegrationMapping (lago
+// IntegrationMappings::UpdateService).
+func (s *Integrations) UpdateIntegrationMapping(ctx context.Context, req *integrationv1.UpdateIntegrationMappingRequest) (*integrationv1.UpdateIntegrationMappingResponse, error) {
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	b := req.GetMapping()
+	paths, err := UpdatePaths(req.GetUpdateMask(), mappingUpdateFields, func(path string) bool {
+		return b.ProtoReflect().Has(b.ProtoReflect().Descriptor().Fields().ByName(protoreflect.Name(path)))
+	})
+	if err != nil {
+		return nil, err
+	}
+	id, err := ParseID[core.IntegrationMappingID]("mapping.id", b.GetId())
+	if err != nil {
+		return nil, err
+	}
+	i, err := s.find(ctx, p.OrganizationID, req.GetIntegrationId())
+	if err != nil {
+		return nil, Error(ctx, err)
+	}
+	var in integrations.MappingUpdate
+	for _, path := range paths {
+		switch path {
+		case "external_id":
+			in.ExternalID = core.Some(b.GetExternalId())
+		case "external_account_code":
+			in.ExternalAccountCode = core.Some(Opt(b.HasExternalAccountCode(), b.GetExternalAccountCode()))
+		case "external_name":
+			in.ExternalName = core.Some(Opt(b.HasExternalName(), b.GetExternalName()))
+		}
+	}
+	m, err := s.svc.UpdateMapping(ctx, p.OrganizationID, i.ID, id, in)
+	if err != nil {
+		return nil, prefixedError(ctx, "mapping.", "invalid mapping", err)
+	}
+	return integrationv1.UpdateIntegrationMappingResponse_builder{Mapping: integrationMapping(m)}.Build(), nil
 }
 
 // DeleteIntegrationMapping implements
@@ -460,10 +512,10 @@ func (s *Integrations) ListCollectionMappings(ctx context.Context, req *integrat
 	return integrationv1.ListCollectionMappingsResponse_builder{CollectionMappings: out}.Build(), nil
 }
 
-// UpsertCollectionMapping implements
-// IntegrationService.UpsertCollectionMapping (lago
-// IntegrationCollectionMappings::CreateService and UpdateService).
-func (s *Integrations) UpsertCollectionMapping(ctx context.Context, req *integrationv1.UpsertCollectionMappingRequest) (*integrationv1.UpsertCollectionMappingResponse, error) {
+// CreateCollectionMapping implements
+// IntegrationService.CreateCollectionMapping (lago
+// IntegrationCollectionMappings::CreateService).
+func (s *Integrations) CreateCollectionMapping(ctx context.Context, req *integrationv1.CreateCollectionMappingRequest) (*integrationv1.CreateCollectionMappingResponse, error) {
 	p, err := principal(ctx)
 	if err != nil {
 		return nil, err
@@ -479,7 +531,12 @@ func (s *Integrations) UpsertCollectionMapping(ctx context.Context, req *integra
 			return nil, err
 		}
 	}
-	m, err := s.svc.UpsertCollectionMapping(ctx, p.OrganizationID, i.ID, integrations.CollectionMappingInput{
+	// A map has no presence: an empty one is not given (lago nil).
+	var currencies map[string]string
+	if len(b.GetCurrencies()) > 0 {
+		currencies = maps.Clone(b.GetCurrencies())
+	}
+	m, err := s.svc.CreateCollectionMapping(ctx, p.OrganizationID, i.ID, integrations.CollectionMappingInput{
 		Type: collectionMappingTypes.Core(b.GetMappingType()), BillingEntity: be,
 		ExternalID:          Opt(b.HasExternalId(), b.GetExternalId()),
 		ExternalAccountCode: Opt(b.HasExternalAccountCode(), b.GetExternalAccountCode()),
@@ -487,12 +544,72 @@ func (s *Integrations) UpsertCollectionMapping(ctx context.Context, req *integra
 		TaxNexus:            Opt(b.HasTaxNexus(), b.GetTaxNexus()),
 		TaxType:             Opt(b.HasTaxType(), b.GetTaxType()),
 		TaxCode:             Opt(b.HasTaxCode(), b.GetTaxCode()),
-		Currencies:          maps.Clone(b.GetCurrencies()),
+		Currencies:          currencies,
 	})
 	if err != nil {
 		return nil, prefixedError(ctx, "collection_mapping.", "invalid collection mapping", err)
 	}
-	return integrationv1.UpsertCollectionMappingResponse_builder{CollectionMapping: collectionMapping(m)}.Build(), nil
+	return integrationv1.CreateCollectionMappingResponse_builder{CollectionMapping: collectionMapping(m)}.Build(), nil
+}
+
+// collectionMappingUpdateFields are the update_mask paths of
+// UpdateCollectionMapping (lago IntegrationCollectionMappings::
+// UpdateService).
+var collectionMappingUpdateFields = []string{
+	"external_id", "external_account_code", "external_name", "tax_nexus", "tax_type", "tax_code", "currencies",
+}
+
+// UpdateCollectionMapping implements
+// IntegrationService.UpdateCollectionMapping (lago
+// IntegrationCollectionMappings::UpdateService). Without a mask, an empty
+// currencies map is not set.
+func (s *Integrations) UpdateCollectionMapping(ctx context.Context, req *integrationv1.UpdateCollectionMappingRequest) (*integrationv1.UpdateCollectionMappingResponse, error) {
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	b := req.GetCollectionMapping()
+	paths, err := UpdatePaths(req.GetUpdateMask(), collectionMappingUpdateFields, func(path string) bool {
+		return b.ProtoReflect().Has(b.ProtoReflect().Descriptor().Fields().ByName(protoreflect.Name(path)))
+	})
+	if err != nil {
+		return nil, err
+	}
+	id, err := ParseID[core.IntegrationCollectionMappingID]("collection_mapping.id", b.GetId())
+	if err != nil {
+		return nil, err
+	}
+	i, err := s.find(ctx, p.OrganizationID, req.GetIntegrationId())
+	if err != nil {
+		return nil, Error(ctx, err)
+	}
+	var in integrations.CollectionMappingUpdate
+	for _, path := range paths {
+		switch path {
+		case "external_id":
+			in.ExternalID = core.Some(Opt(b.HasExternalId(), b.GetExternalId()))
+		case "external_account_code":
+			in.ExternalAccountCode = core.Some(Opt(b.HasExternalAccountCode(), b.GetExternalAccountCode()))
+		case "external_name":
+			in.ExternalName = core.Some(Opt(b.HasExternalName(), b.GetExternalName()))
+		case "tax_nexus":
+			in.TaxNexus = core.Some(Opt(b.HasTaxNexus(), b.GetTaxNexus()))
+		case "tax_type":
+			in.TaxType = core.Some(Opt(b.HasTaxType(), b.GetTaxType()))
+		case "tax_code":
+			in.TaxCode = core.Some(Opt(b.HasTaxCode(), b.GetTaxCode()))
+		case "currencies":
+			in.Currencies = core.Some(maps.Clone(b.GetCurrencies()))
+			if in.Currencies.Value == nil {
+				in.Currencies.Value = map[string]string{}
+			}
+		}
+	}
+	m, err := s.svc.UpdateCollectionMapping(ctx, p.OrganizationID, i.ID, id, in)
+	if err != nil {
+		return nil, prefixedError(ctx, "collection_mapping.", "invalid collection mapping", err)
+	}
+	return integrationv1.UpdateCollectionMappingResponse_builder{CollectionMapping: collectionMapping(m)}.Build(), nil
 }
 
 // DeleteCollectionMapping implements
@@ -655,9 +772,20 @@ func integrationListFilter(s string) (integration.Filter, error) {
 	return f, nil
 }
 
+// message converts i with the secrets the merchant copies into the
+// provider's dashboard.
+func (s *Integrations) message(ctx context.Context, i *integration.Integration) (*integrationv1.Integration, error) {
+	shown, err := s.svc.ShownSecrets(ctx, i)
+	if err != nil {
+		return nil, err
+	}
+	return integrationMessage(i, shown)
+}
+
 // integrationMessage converts an integration; only its non-secret
-// settings are returned.
-func integrationMessage(i *integration.Integration) (*integrationv1.Integration, error) {
+// settings and the shown secrets (the generated webhook secrets) are
+// returned.
+func integrationMessage(i *integration.Integration, shown map[string]string) (*integrationv1.Integration, error) {
 	settings, err := integrations.Settings(i)
 	if err != nil {
 		return nil, err
@@ -684,12 +812,15 @@ func integrationMessage(i *integration.Integration) (*integrationv1.Integration,
 	for k := range fields.Len() {
 		sub := fields.Get(k)
 		key := string(sub.Name())
+		values := settings
 		if alt, ok := outputSettings[string(f.Name())+"."+key]; ok {
 			key = alt
+		} else if _, ok := shown[key]; ok && outputOnly(sub) {
+			values = shown
 		} else if outputOnly(sub) {
 			continue
 		}
-		val, ok := settings[key]
+		val, ok := values[key]
 		if !ok || val == "" {
 			continue
 		}

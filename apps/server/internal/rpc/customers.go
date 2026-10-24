@@ -371,6 +371,9 @@ func (s *Customers) UpsertCustomerConnection(ctx context.Context, req *customerv
 	if b.HasIsDefault() {
 		in.IsDefault = core.Some(b.GetIsDefault())
 	}
+	if b.HasTargetedObject() {
+		in.TargetedObject = core.Some(crmTargetedObjects.Core(b.GetTargetedObject()))
+	}
 	c, err := s.lookup(p.OrganizationID).Find(ctx, "customer_id", req.GetCustomerId())
 	if err != nil {
 		return nil, Error(ctx, err)
@@ -378,6 +381,11 @@ func (s *Customers) UpsertCustomerConnection(ctx context.Context, req *customerv
 	cn, err := s.svc.UpsertConnection(ctx, p.OrganizationID, c.ID, ref, in)
 	if err != nil {
 		return nil, connectionError(ctx, err)
+	}
+	if cn.Integration == nil {
+		// No connection is created (a partner account, or neither an
+		// external customer ID nor sync_with_provider).
+		return &customerv1.UpsertCustomerConnectionResponse{}, nil
 	}
 	return customerv1.UpsertCustomerConnectionResponse_builder{Connection: connectionProto(cn)}.Build(), nil
 }
@@ -928,6 +936,10 @@ func connectionProto(cn customers.Connection) *customerv1.CustomerConnection {
 	if c := integrationCategories.Proto(cn.Integration.Category); c != 0 {
 		b.Category = &c
 	}
+	if o := crmTargetedObjects.Proto(cn.TargetedObject); o != 0 {
+		b.TargetedObject = &o
+	}
+	b.Email = StringPtr(cn.Email)
 	return b.Build()
 }
 

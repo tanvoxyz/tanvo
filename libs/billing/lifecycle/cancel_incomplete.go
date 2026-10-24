@@ -10,6 +10,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
+	"github.com/tanvoxyz/tanvo/libs/core/payment"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -62,7 +63,8 @@ func (s *Service) ExpireIncomplete(ctx context.Context, org core.OrganizationID,
 // credits and outbound wallet transactions of the invoice are given back.
 // A subscription no longer incomplete fails with
 // [CodeSubscriptionAlreadyResolved], one without a gating invoice with
-// [CodeActivationInvoiceNotReady].
+// [CodeActivationInvoiceNotReady]. A pending or processing payment of the
+// invoice is cancelled at its provider ([kernel.JobCancelPayment]).
 //
 // source: app/services/subscriptions/activation_rules/cancel_service.rb
 func (s *Service) cancelIncomplete(ctx context.Context, r port.Repos, sub *subscription.Subscription,
@@ -110,6 +112,9 @@ func (s *Service) cancelIncomplete(ctx context.Context, r port.Repos, sub *subsc
 	if err := r.Invoices.Update(ctx, inv); err != nil {
 		return fmt.Errorf("update invoice %s: %w", inv.ID, err)
 	}
+	if err := cancelPendingPayment(ctx, r, inv); err != nil {
+		return err
+	}
 	// ResolveSubscriptionStatusService cancels the subscription once a rule
 	// is rejected (resolve_subscription_status_service.rb:19-22); the only
 	// rule just was.
@@ -133,6 +138,22 @@ func (s *Service) cancelIncomplete(ctx context.Context, r port.Repos, sub *subsc
 	}
 	if _, err := deduct.New(s.d).Restore(ctx, r, inv, deduct.RestoreOptions{}); err != nil {
 		return fmt.Errorf("restore credits of invoice %s: %w", inv.ID, err)
+	}
+	return nil
+}
+
+// cancelPendingPayment enqueues the cancellation at its provider of the
+// pending or processing payment of the closed gating invoice inv, at most
+// one (cancel_service.rb:81-88).
+func cancelPendingPayment(ctx context.Context, r port.Repos, inv *invoice.Invoice) error {
+	ps, err := r.Payments.ListByPayable(ctx, inv.OrganizationID, payment.InvoicePayable(inv.ID))
+	if err != nil {
+		return fmt.Errorf("list payments of invoice %s: %w", inv.ID, err)
+	}
+	for _, p := range ps {
+		if p.Status == payment.StatePending || p.Status == payment.StateProcessing {
+			return kernel.EnqueueCancelPayment(ctx, r, inv.OrganizationID, p.ID)
+		}
 	}
 	return nil
 }

@@ -34,7 +34,19 @@ require (
 	github.com/tanvoxyz/tanvo/libs/store v0.0.0
 	github.com/tanvoxyz/tanvo/libs/tax v0.0.0
 	github.com/tanvoxyz/tanvo/libs/webhooks v0.0.0
+	github.com/tanvoxyz/tanvo/providers/adyen v0.0.0
+	github.com/tanvoxyz/tanvo/providers/anrok v0.0.0
+	github.com/tanvoxyz/tanvo/providers/avalara v0.0.0
+	github.com/tanvoxyz/tanvo/providers/cashfree v0.0.0
+	github.com/tanvoxyz/tanvo/providers/flutterwave v0.0.0
+	github.com/tanvoxyz/tanvo/providers/gocardless v0.0.0
+	github.com/tanvoxyz/tanvo/providers/hubspot v0.0.0
+	github.com/tanvoxyz/tanvo/providers/moneyhash v0.0.0
+	github.com/tanvoxyz/tanvo/providers/netsuite v0.0.0
+	github.com/tanvoxyz/tanvo/providers/salesforce v0.0.0
+	github.com/tanvoxyz/tanvo/providers/stripe v0.0.0
 	github.com/tanvoxyz/tanvo/providers/x402 v0.0.0
+	github.com/tanvoxyz/tanvo/providers/xero v0.0.0
 	github.com/twmb/franz-go v1.22.2
 	github.com/twmb/franz-go/plugin/kotel v1.7.1
 	go.opentelemetry.io/contrib/bridges/otelslog v0.21.0
@@ -60,6 +72,7 @@ require (
 	cel.dev/cel-go v0.32.0 // indirect
 	cel.dev/expr v0.25.3 // indirect
 	github.com/ClickHouse/ch-go v0.74.0 // indirect
+	github.com/adyen/adyen-go-api-library/v21 v21.2.3 // indirect
 	github.com/andybalholm/brotli v1.2.6 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -74,6 +87,8 @@ require (
 	github.com/go-jose/go-jose/v4 v4.1.6 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/gocardless/gocardless-pro-go/v6 v6.19.0 // indirect
+	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.31.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -97,8 +112,10 @@ require (
 	github.com/segmentio/asm v1.2.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spf13/pflag v1.0.9 // indirect
+	github.com/stripe/stripe-go/v84 v84.4.1 // indirect
 	github.com/tanvoxyz/tanvo/libs/expression/go v0.0.0 // indirect
 	github.com/tanvoxyz/tanvo/libs/pricing v0.0.0 // indirect
+	github.com/tanvoxyz/tanvo/providers/apiclient v0.0.0 // indirect
 	github.com/tetratelabs/wazero v1.12.0 // indirect
 	github.com/tidwall/gjson v1.19.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
@@ -164,3 +181,29 @@ replace github.com/tanvoxyz/tanvo/libs/webhooks => ../../libs/webhooks
 replace github.com/tanvoxyz/tanvo/libs/billing => ../../libs/billing
 
 replace github.com/tanvoxyz/tanvo/providers/x402 => ../../providers/x402
+
+replace github.com/tanvoxyz/tanvo/providers/stripe => ../../providers/stripe
+
+replace github.com/tanvoxyz/tanvo/providers/adyen => ../../providers/adyen
+
+replace github.com/tanvoxyz/tanvo/providers/gocardless => ../../providers/gocardless
+
+replace github.com/tanvoxyz/tanvo/providers/moneyhash => ../../providers/moneyhash
+
+replace github.com/tanvoxyz/tanvo/providers/cashfree => ../../providers/cashfree
+
+replace github.com/tanvoxyz/tanvo/providers/flutterwave => ../../providers/flutterwave
+
+replace github.com/tanvoxyz/tanvo/providers/anrok => ../../providers/anrok
+
+replace github.com/tanvoxyz/tanvo/providers/avalara => ../../providers/avalara
+
+replace github.com/tanvoxyz/tanvo/providers/netsuite => ../../providers/netsuite
+
+replace github.com/tanvoxyz/tanvo/providers/xero => ../../providers/xero
+
+replace github.com/tanvoxyz/tanvo/providers/hubspot => ../../providers/hubspot
+
+replace github.com/tanvoxyz/tanvo/providers/salesforce => ../../providers/salesforce
+
+replace github.com/tanvoxyz/tanvo/providers/apiclient => ../../providers/apiclient

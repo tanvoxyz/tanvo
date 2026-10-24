@@ -258,7 +258,8 @@ func (tx *storeTx) bind() port.Repos {
 
 		AppliedInvoiceCustomSections: appliedCustomSectionRepo{st.invoice},
 
-		CreditNotes: creditNoteRepo{st.creditNote, st},
+		CreditNotes:            creditNoteRepo{st.creditNote, st},
+		CreditNoteErrorDetails: creditNoteErrorDetailRepo{st.creditNote},
 
 		Wallets:                   walletRepo{st.wallet},
 		WalletTransactions:        walletTransactionRepo{st.wallet},

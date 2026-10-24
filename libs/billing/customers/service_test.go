@@ -541,7 +541,8 @@ func TestConnections(t *testing.T) {
 	}
 
 	t.Log("source: spec/services/integration_customers/create_connection_service_spec.rb:117")
-	t.Log("source: spec/services/integration_customers/set_as_default_service_spec.rb:26")
+	t.Log("source: spec/services/integration_customers/set_as_default_service_spec.rb:26, 34")
+	t.Log("source: spec/graphql/mutations/integration_customers/set_as_default_spec.rb:49, 70")
 	a, err := svc.UpsertConnection(h.Ctx, h.OrgID(), c.ID, refs.ByID(netsuite.ID), customers.ConnectionInput{ExternalCustomerID: core.Some("ns_1")})
 	if err != nil || !a.IsDefault {
 		t.Fatalf("got = %+v %v, want = default netsuite connection", a, err)
@@ -563,6 +564,10 @@ func TestConnections(t *testing.T) {
 	if !slices.Equal(defaults, []string{"stripe", "xero"}) {
 		t.Errorf("got = %v, want = [stripe xero]", defaults)
 	}
+	t.Log("source: spec/services/integration_customers/set_as_default_service_spec.rb:43")
+	if again, err := svc.UpsertConnection(h.Ctx, h.OrgID(), c.ID, refs.ByID(xero.ID), customers.ConnectionInput{IsDefault: core.Some(true)}); err != nil || !again.IsDefault || again.ExternalCustomerID != "x_1" {
+		t.Errorf("already default: got = %+v %v, want = the xero default", again, err)
+	}
 
 	if err := svc.DeleteConnection(h.Ctx, h.OrgID(), c.ID, refs.ByCode("stripe")); err != nil {
 		t.Fatalf("DeleteConnection: %v", err)
@@ -581,6 +586,40 @@ func TestConnections(t *testing.T) {
 	}
 	if _, _, err := svc.CheckoutURL(h.Ctx, h.OrgID(), c.ID, refs.Ref{}); !errors.Is(err, customers.ErrCheckoutUnavailable) {
 		t.Errorf("got = %v, want = ErrCheckoutUnavailable", err)
+	}
+}
+
+func TestUpdatePushesContacts(t *testing.T) {
+	t.Log("source: spec/services/integration_customers/create_or_update_batch_service_spec.rb:154")
+	h, svc := setup(t)
+	newIntegration := func(code string, cat integration.Category, p integration.Provider) {
+		in := &integration.Integration{ID: core.NewID[core.IntegrationID](h.IDs), OrganizationID: h.OrgID(), Code: code, Name: code, Category: cat, Provider: p, CreatedAt: h.Now(), UpdatedAt: h.Now()}
+		h.Do(func(ctx context.Context, r port.Repos) error { return r.Integrations.Create(ctx, in) })
+	}
+	newIntegration("netsuite", integration.CategoryAccounting, integration.ProviderNetsuite)
+	newIntegration("anrok", integration.CategoryTax, integration.ProviderAnrok)
+	c := h.Customer()
+	for code, ext := range map[string]string{"netsuite": "ns_1", "anrok": "an_1"} {
+		if _, err := svc.UpsertConnection(h.Ctx, h.OrgID(), c.ID, refs.ByCode(code), customers.ConnectionInput{ExternalCustomerID: core.Some(ext)}); err != nil {
+			t.Fatalf("UpsertConnection(%s): %v", code, err)
+		}
+	}
+	if got := jobs(h, kernel.JobSyncContact); len(got) != 0 {
+		t.Fatalf("got = %+v, want = no contact sync for linked records", got)
+	}
+	if _, err := svc.Update(h.Ctx, h.OrgID(), c.ID, customers.Input{Name: core.Some(new("Renamed"))}); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	// Anrok keeps no record (update_service.rb:17).
+	if got := jobs(h, kernel.JobSyncContact); len(got) != 1 {
+		t.Errorf("got = %+v, want = the netsuite contact update", got)
+	}
+	t.Log("source: app/services/customer_portal/customer_update_service.rb:14-74")
+	if _, err := svc.UpdateFromPortal(h.Ctx, h.OrgID(), c.ID, customers.Input{Name: core.Some(new("Portal"))}); err != nil {
+		t.Fatalf("UpdateFromPortal: %v", err)
+	}
+	if got := jobs(h, kernel.JobSyncContact); len(got) != 1 {
+		t.Errorf("got = %d jobs, want = no push from the portal", len(got))
 	}
 }
 

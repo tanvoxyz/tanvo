@@ -12,6 +12,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/export"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
+	"github.com/tanvoxyz/tanvo/libs/core/payment"
 	"github.com/tanvoxyz/tanvo/libs/core/quote"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
 	"github.com/tanvoxyz/tanvo/libs/core/wallet"
@@ -185,6 +186,31 @@ func (r organizationRepo) WithWork(_ context.Context, w organization.Work, at ti
 		st.invoice.invoices.find(func(inv *invoice.Invoice) bool {
 			if inv.Status == invoice.StatusFailed && retried[inv.ID] {
 				return add(inv.OrganizationID)
+			}
+			return false
+		})
+	case organization.WorkInboundWebhooks:
+		since := at.Add(-payment.WebhookRetryWindow)
+		st.payment.inboundWebhooks.find(func(x *payment.InboundWebhook) bool {
+			if x.Status != payment.InboundWebhookStatusSucceeded && !x.CreatedAt.Before(since) {
+				return add(x.OrganizationID)
+			}
+			return false
+		})
+	case organization.WorkExpiredInboundWebhooks:
+		st.payment.inboundWebhooks.find(func(x *payment.InboundWebhook) bool {
+			if x.Expired(at) {
+				return add(x.OrganizationID)
+			}
+			return false
+		})
+	case organization.WorkAbandonedPayments:
+		from, to := payment.AbandonedRange(at)
+		st.payment.payments.find(func(p *payment.Payment) bool {
+			if p.Kind == payment.KindProvider && p.Payable.Type == payment.PayableTypeInvoice && p.Status == payment.StateProcessing &&
+				p.ProviderStatus != nil && *p.ProviderStatus == payment.ProviderStatusRequiresAction &&
+				!p.UpdatedAt.Before(from) && !p.UpdatedAt.After(to) {
+				return add(p.OrganizationID)
 			}
 			return false
 		})

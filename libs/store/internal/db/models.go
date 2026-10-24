@@ -203,41 +203,42 @@ type BillableMetricFilter struct {
 }
 
 type BillingEntity struct {
-	OrganizationID            uuid.UUID
-	ID                        uuid.UUID
-	Code                      string
-	Name                      string
-	LegalName                 *string
-	LegalNumber               *string
-	TaxID                     *string
-	Email                     *string
-	Phone                     *string
-	AddressLine1              string
-	AddressLine2              string
-	AddressCity               string
-	AddressState              string
-	AddressZipcode            string
-	AddressCountry            string
-	Logo                      *string
-	Timezone                  *string
-	DefaultCurrency           *string
-	DocumentLocale            string
-	DocumentNumbering         string
-	DocumentNumberPrefix      string
-	InvoiceFooter             *string
-	InvoiceGracePeriodDays    int32
-	NetPaymentTermDays        int32
-	FinalizeZeroAmountInvoice bool
-	IssuingDateAnchor         string
-	IssuingDateAdjustment     string
-	EmailSettings             []string
-	EuTaxManagement           bool
-	Einvoicing                bool
-	IsDefault                 bool
-	AppliedDunningCampaignID  *uuid.UUID
-	ArchivedAt                *time.Time
-	CreatedAt                 time.Time
-	UpdatedAt                 time.Time
+	OrganizationID                uuid.UUID
+	ID                            uuid.UUID
+	Code                          string
+	Name                          string
+	LegalName                     *string
+	LegalNumber                   *string
+	TaxID                         *string
+	Email                         *string
+	Phone                         *string
+	AddressLine1                  string
+	AddressLine2                  string
+	AddressCity                   string
+	AddressState                  string
+	AddressZipcode                string
+	AddressCountry                string
+	Logo                          *string
+	Timezone                      *string
+	DefaultCurrency               *string
+	DocumentLocale                string
+	DocumentNumbering             string
+	DocumentNumberPrefix          string
+	InvoiceFooter                 *string
+	InvoiceGracePeriodDays        int32
+	NetPaymentTermDays            int32
+	FinalizeZeroAmountInvoice     bool
+	SkipCreditInvoicePaymentDelay bool
+	IssuingDateAnchor             string
+	IssuingDateAdjustment         string
+	EmailSettings                 []string
+	EuTaxManagement               bool
+	Einvoicing                    bool
+	IsDefault                     bool
+	AppliedDunningCampaignID      *uuid.UUID
+	ArchivedAt                    *time.Time
+	CreatedAt                     time.Time
+	UpdatedAt                     time.Time
 }
 
 type BillingEntityInvoiceCustomSection struct {
@@ -444,6 +445,15 @@ type CreditNoteAppliedTax struct {
 	BaseAmount     int64
 	Amount         int64
 	PreciseAmount  money.Decimal
+}
+
+type CreditNoteErrorDetail struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+	CreditNoteID   uuid.UUID
+	ErrorCode      string
+	Details        json.RawMessage
+	CreatedAt      time.Time
 }
 
 type CreditNoteItem struct {
@@ -951,6 +961,7 @@ type Invoice struct {
 	VoidedAt                       *time.Time
 	CreatedAt                      time.Time
 	UpdatedAt                      time.Time
+	PaymentAttempts                int32
 }
 
 type InvoiceAppliedTax struct {
@@ -1183,6 +1194,7 @@ type Payment struct {
 	PaymentMethodID         *uuid.UUID
 	CreatedAt               time.Time
 	UpdatedAt               time.Time
+	ErrorCode               *string
 }
 
 type PaymentIntent struct {

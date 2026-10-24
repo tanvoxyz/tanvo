@@ -7,5 +7,3 @@ cases:
   - {name: collection mapping reads key1, source: "spec/models/integration_collection_mappings/base_collection_mapping_spec.rb:140", key: key1, want: val1, found: true}
   - {name: collection mapping reads nil key, source: "spec/models/integration_collection_mappings/base_collection_mapping_spec.rb:142", key: "", found: false}
   - {name: collection mapping reads unknown key, source: "spec/models/integration_collection_mappings/base_collection_mapping_spec.rb:143", key: foo, found: false}
-skipped:
-  - {source: "spec/models/integration_collection_mappings/base_collection_mapping_spec.rb:125", reason: "collection mappings have typed fields (tax_nexus, currencies, …) instead of a settings bag; the accessor is ported on Integration"}

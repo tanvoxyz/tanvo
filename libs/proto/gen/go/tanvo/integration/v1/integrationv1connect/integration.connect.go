@@ -63,21 +63,36 @@ const (
 	// IntegrationServiceListIntegrationMappingsProcedure is the procedure name of the
 	// IntegrationService's ListIntegrationMappings RPC.
 	IntegrationServiceListIntegrationMappingsProcedure = "/tanvo.integration.v1.IntegrationService/ListIntegrationMappings"
-	// IntegrationServiceUpsertIntegrationMappingProcedure is the procedure name of the
-	// IntegrationService's UpsertIntegrationMapping RPC.
-	IntegrationServiceUpsertIntegrationMappingProcedure = "/tanvo.integration.v1.IntegrationService/UpsertIntegrationMapping"
+	// IntegrationServiceCreateIntegrationMappingProcedure is the procedure name of the
+	// IntegrationService's CreateIntegrationMapping RPC.
+	IntegrationServiceCreateIntegrationMappingProcedure = "/tanvo.integration.v1.IntegrationService/CreateIntegrationMapping"
+	// IntegrationServiceUpdateIntegrationMappingProcedure is the procedure name of the
+	// IntegrationService's UpdateIntegrationMapping RPC.
+	IntegrationServiceUpdateIntegrationMappingProcedure = "/tanvo.integration.v1.IntegrationService/UpdateIntegrationMapping"
 	// IntegrationServiceDeleteIntegrationMappingProcedure is the procedure name of the
 	// IntegrationService's DeleteIntegrationMapping RPC.
 	IntegrationServiceDeleteIntegrationMappingProcedure = "/tanvo.integration.v1.IntegrationService/DeleteIntegrationMapping"
 	// IntegrationServiceListCollectionMappingsProcedure is the procedure name of the
 	// IntegrationService's ListCollectionMappings RPC.
 	IntegrationServiceListCollectionMappingsProcedure = "/tanvo.integration.v1.IntegrationService/ListCollectionMappings"
-	// IntegrationServiceUpsertCollectionMappingProcedure is the procedure name of the
-	// IntegrationService's UpsertCollectionMapping RPC.
-	IntegrationServiceUpsertCollectionMappingProcedure = "/tanvo.integration.v1.IntegrationService/UpsertCollectionMapping"
+	// IntegrationServiceCreateCollectionMappingProcedure is the procedure name of the
+	// IntegrationService's CreateCollectionMapping RPC.
+	IntegrationServiceCreateCollectionMappingProcedure = "/tanvo.integration.v1.IntegrationService/CreateCollectionMapping"
+	// IntegrationServiceUpdateCollectionMappingProcedure is the procedure name of the
+	// IntegrationService's UpdateCollectionMapping RPC.
+	IntegrationServiceUpdateCollectionMappingProcedure = "/tanvo.integration.v1.IntegrationService/UpdateCollectionMapping"
 	// IntegrationServiceDeleteCollectionMappingProcedure is the procedure name of the
 	// IntegrationService's DeleteCollectionMapping RPC.
 	IntegrationServiceDeleteCollectionMappingProcedure = "/tanvo.integration.v1.IntegrationService/DeleteCollectionMapping"
+	// IntegrationServiceSyncHubspotInvoiceProcedure is the procedure name of the IntegrationService's
+	// SyncHubspotInvoice RPC.
+	IntegrationServiceSyncHubspotInvoiceProcedure = "/tanvo.integration.v1.IntegrationService/SyncHubspotInvoice"
+	// IntegrationServiceSyncSalesforceInvoiceProcedure is the procedure name of the
+	// IntegrationService's SyncSalesforceInvoice RPC.
+	IntegrationServiceSyncSalesforceInvoiceProcedure = "/tanvo.integration.v1.IntegrationService/SyncSalesforceInvoice"
+	// IntegrationServicePreviewInvoiceTaxesProcedure is the procedure name of the IntegrationService's
+	// PreviewInvoiceTaxes RPC.
+	IntegrationServicePreviewInvoiceTaxesProcedure = "/tanvo.integration.v1.IntegrationService/PreviewInvoiceTaxes"
 )
 
 var (
@@ -163,12 +178,18 @@ var (
 			IdempotencyLevel: connect.IdempotencyNoSideEffects,
 		}
 	})
-	integrationServiceUpsertIntegrationMappingSpec = sync.OnceValue(func() connect.Spec {
+	integrationServiceCreateIntegrationMappingSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
-			StreamType:       connect.StreamTypeUnary,
-			Schema:           v1.File_tanvo_integration_v1_integration_proto.Services().ByName("IntegrationService").Methods().ByName("UpsertIntegrationMapping"),
-			Procedure:        IntegrationServiceUpsertIntegrationMappingProcedure,
-			IdempotencyLevel: connect.IdempotencyIdempotent,
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_integration_v1_integration_proto.Services().ByName("IntegrationService").Methods().ByName("CreateIntegrationMapping"),
+			Procedure:  IntegrationServiceCreateIntegrationMappingProcedure,
+		}
+	})
+	integrationServiceUpdateIntegrationMappingSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_integration_v1_integration_proto.Services().ByName("IntegrationService").Methods().ByName("UpdateIntegrationMapping"),
+			Procedure:  IntegrationServiceUpdateIntegrationMappingProcedure,
 		}
 	})
 	integrationServiceDeleteIntegrationMappingSpec = sync.OnceValue(func() connect.Spec {
@@ -186,12 +207,18 @@ var (
 			IdempotencyLevel: connect.IdempotencyNoSideEffects,
 		}
 	})
-	integrationServiceUpsertCollectionMappingSpec = sync.OnceValue(func() connect.Spec {
+	integrationServiceCreateCollectionMappingSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
-			StreamType:       connect.StreamTypeUnary,
-			Schema:           v1.File_tanvo_integration_v1_integration_proto.Services().ByName("IntegrationService").Methods().ByName("UpsertCollectionMapping"),
-			Procedure:        IntegrationServiceUpsertCollectionMappingProcedure,
-			IdempotencyLevel: connect.IdempotencyIdempotent,
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_integration_v1_integration_proto.Services().ByName("IntegrationService").Methods().ByName("CreateCollectionMapping"),
+			Procedure:  IntegrationServiceCreateCollectionMappingProcedure,
+		}
+	})
+	integrationServiceUpdateCollectionMappingSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_integration_v1_integration_proto.Services().ByName("IntegrationService").Methods().ByName("UpdateCollectionMapping"),
+			Procedure:  IntegrationServiceUpdateCollectionMappingProcedure,
 		}
 	})
 	integrationServiceDeleteCollectionMappingSpec = sync.OnceValue(func() connect.Spec {
@@ -199,6 +226,27 @@ var (
 			StreamType: connect.StreamTypeUnary,
 			Schema:     v1.File_tanvo_integration_v1_integration_proto.Services().ByName("IntegrationService").Methods().ByName("DeleteCollectionMapping"),
 			Procedure:  IntegrationServiceDeleteCollectionMappingProcedure,
+		}
+	})
+	integrationServiceSyncHubspotInvoiceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_integration_v1_integration_proto.Services().ByName("IntegrationService").Methods().ByName("SyncHubspotInvoice"),
+			Procedure:  IntegrationServiceSyncHubspotInvoiceProcedure,
+		}
+	})
+	integrationServiceSyncSalesforceInvoiceSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_integration_v1_integration_proto.Services().ByName("IntegrationService").Methods().ByName("SyncSalesforceInvoice"),
+			Procedure:  IntegrationServiceSyncSalesforceInvoiceProcedure,
+		}
+	})
+	integrationServicePreviewInvoiceTaxesSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_integration_v1_integration_proto.Services().ByName("IntegrationService").Methods().ByName("PreviewInvoiceTaxes"),
+			Procedure:  IntegrationServicePreviewInvoiceTaxesProcedure,
 		}
 	})
 )
@@ -231,19 +279,34 @@ type IntegrationServiceClient interface {
 	ListIntegrationSubsidiaries(context.Context, *v1.ListIntegrationSubsidiariesRequest) (*v1.ListIntegrationSubsidiariesResponse, error)
 	// Lists the item mappings of add-ons and billable metrics.
 	ListIntegrationMappings(context.Context, *v1.ListIntegrationMappingsRequest) (*v1.ListIntegrationMappingsResponse, error)
-	// Creates or replaces the mapping of an add-on or billable metric,
-	// optionally for one billing entity.
-	UpsertIntegrationMapping(context.Context, *v1.UpsertIntegrationMappingRequest) (*v1.UpsertIntegrationMappingResponse, error)
+	// Creates the mapping of an add-on or billable metric, optionally for
+	// one billing entity; there is one per object and billing entity.
+	CreateIntegrationMapping(context.Context, *v1.CreateIntegrationMappingRequest) (*v1.CreateIntegrationMappingResponse, error)
+	// Updates the external item of a mapping.
+	UpdateIntegrationMapping(context.Context, *v1.UpdateIntegrationMappingRequest) (*v1.UpdateIntegrationMappingResponse, error)
 	// Deletes a mapping.
 	DeleteIntegrationMapping(context.Context, *v1.DeleteIntegrationMappingRequest) (*v1.DeleteIntegrationMappingResponse, error)
 	// Lists the collection mappings: the items used for fees with no own
 	// mapping, coupons, taxes, credits and currencies.
 	ListCollectionMappings(context.Context, *v1.ListCollectionMappingsRequest) (*v1.ListCollectionMappingsResponse, error)
-	// Creates or replaces a collection mapping, optionally for one billing
-	// entity.
-	UpsertCollectionMapping(context.Context, *v1.UpsertCollectionMappingRequest) (*v1.UpsertCollectionMappingResponse, error)
+	// Creates a collection mapping, optionally for one billing entity;
+	// there is one per type and billing entity.
+	CreateCollectionMapping(context.Context, *v1.CreateCollectionMappingRequest) (*v1.CreateCollectionMappingResponse, error)
+	// Updates the external values of a collection mapping.
+	UpdateCollectionMapping(context.Context, *v1.UpdateCollectionMappingRequest) (*v1.UpdateCollectionMappingResponse, error)
 	// Deletes a collection mapping.
 	DeleteCollectionMapping(context.Context, *v1.DeleteCollectionMappingRequest) (*v1.DeleteCollectionMappingResponse, error)
+	// Queues the creation of an invoice's record in the customer's HubSpot
+	// portal.
+	SyncHubspotInvoice(context.Context, *v1.SyncHubspotInvoiceRequest) (*v1.SyncHubspotInvoiceResponse, error)
+	// Emits the invoice.resynced webhook of an invoice, which the Salesforce
+	// package listens to.
+	SyncSalesforceInvoice(context.Context, *v1.SyncSalesforceInvoiceRequest) (*v1.SyncSalesforceInvoiceResponse, error)
+	// Asks the customer's tax provider for the taxes of a one-off invoice
+	// not created yet, issued today. Nothing is stored. The list is empty
+	// for a customer taxed by no provider; a provider's refusal fails with
+	// the provider's code on tax_error.
+	PreviewInvoiceTaxes(context.Context, *v1.PreviewInvoiceTaxesRequest) (*v1.PreviewInvoiceTaxesResponse, error)
 }
 
 // NewIntegrationServiceClient constructs a client for the tanvo.integration.v1.IntegrationService
@@ -281,19 +344,34 @@ type IntegrationServiceHandler interface {
 	ListIntegrationSubsidiaries(context.Context, *v1.ListIntegrationSubsidiariesRequest) (*v1.ListIntegrationSubsidiariesResponse, error)
 	// Lists the item mappings of add-ons and billable metrics.
 	ListIntegrationMappings(context.Context, *v1.ListIntegrationMappingsRequest) (*v1.ListIntegrationMappingsResponse, error)
-	// Creates or replaces the mapping of an add-on or billable metric,
-	// optionally for one billing entity.
-	UpsertIntegrationMapping(context.Context, *v1.UpsertIntegrationMappingRequest) (*v1.UpsertIntegrationMappingResponse, error)
+	// Creates the mapping of an add-on or billable metric, optionally for
+	// one billing entity; there is one per object and billing entity.
+	CreateIntegrationMapping(context.Context, *v1.CreateIntegrationMappingRequest) (*v1.CreateIntegrationMappingResponse, error)
+	// Updates the external item of a mapping.
+	UpdateIntegrationMapping(context.Context, *v1.UpdateIntegrationMappingRequest) (*v1.UpdateIntegrationMappingResponse, error)
 	// Deletes a mapping.
 	DeleteIntegrationMapping(context.Context, *v1.DeleteIntegrationMappingRequest) (*v1.DeleteIntegrationMappingResponse, error)
 	// Lists the collection mappings: the items used for fees with no own
 	// mapping, coupons, taxes, credits and currencies.
 	ListCollectionMappings(context.Context, *v1.ListCollectionMappingsRequest) (*v1.ListCollectionMappingsResponse, error)
-	// Creates or replaces a collection mapping, optionally for one billing
-	// entity.
-	UpsertCollectionMapping(context.Context, *v1.UpsertCollectionMappingRequest) (*v1.UpsertCollectionMappingResponse, error)
+	// Creates a collection mapping, optionally for one billing entity;
+	// there is one per type and billing entity.
+	CreateCollectionMapping(context.Context, *v1.CreateCollectionMappingRequest) (*v1.CreateCollectionMappingResponse, error)
+	// Updates the external values of a collection mapping.
+	UpdateCollectionMapping(context.Context, *v1.UpdateCollectionMappingRequest) (*v1.UpdateCollectionMappingResponse, error)
 	// Deletes a collection mapping.
 	DeleteCollectionMapping(context.Context, *v1.DeleteCollectionMappingRequest) (*v1.DeleteCollectionMappingResponse, error)
+	// Queues the creation of an invoice's record in the customer's HubSpot
+	// portal.
+	SyncHubspotInvoice(context.Context, *v1.SyncHubspotInvoiceRequest) (*v1.SyncHubspotInvoiceResponse, error)
+	// Emits the invoice.resynced webhook of an invoice, which the Salesforce
+	// package listens to.
+	SyncSalesforceInvoice(context.Context, *v1.SyncSalesforceInvoiceRequest) (*v1.SyncSalesforceInvoiceResponse, error)
+	// Asks the customer's tax provider for the taxes of a one-off invoice
+	// not created yet, issued today. Nothing is stored. The list is empty
+	// for a customer taxed by no provider; a provider's refusal fails with
+	// the provider's code on tax_error.
+	PreviewInvoiceTaxes(context.Context, *v1.PreviewInvoiceTaxesRequest) (*v1.PreviewInvoiceTaxesResponse, error)
 }
 
 // RegisterIntegrationServiceHandler registers svc as the tanvo.integration.v1.IntegrationService
@@ -312,11 +390,16 @@ func RegisterIntegrationServiceHandler(server *connect.Server, svc IntegrationSe
 		connect.Method{Spec: integrationServiceListIntegrationItemsSpec(), Handler: adapter.listIntegrationItems},
 		connect.Method{Spec: integrationServiceListIntegrationSubsidiariesSpec(), Handler: adapter.listIntegrationSubsidiaries},
 		connect.Method{Spec: integrationServiceListIntegrationMappingsSpec(), Handler: adapter.listIntegrationMappings},
-		connect.Method{Spec: integrationServiceUpsertIntegrationMappingSpec(), Handler: adapter.upsertIntegrationMapping},
+		connect.Method{Spec: integrationServiceCreateIntegrationMappingSpec(), Handler: adapter.createIntegrationMapping},
+		connect.Method{Spec: integrationServiceUpdateIntegrationMappingSpec(), Handler: adapter.updateIntegrationMapping},
 		connect.Method{Spec: integrationServiceDeleteIntegrationMappingSpec(), Handler: adapter.deleteIntegrationMapping},
 		connect.Method{Spec: integrationServiceListCollectionMappingsSpec(), Handler: adapter.listCollectionMappings},
-		connect.Method{Spec: integrationServiceUpsertCollectionMappingSpec(), Handler: adapter.upsertCollectionMapping},
+		connect.Method{Spec: integrationServiceCreateCollectionMappingSpec(), Handler: adapter.createCollectionMapping},
+		connect.Method{Spec: integrationServiceUpdateCollectionMappingSpec(), Handler: adapter.updateCollectionMapping},
 		connect.Method{Spec: integrationServiceDeleteCollectionMappingSpec(), Handler: adapter.deleteCollectionMapping},
+		connect.Method{Spec: integrationServiceSyncHubspotInvoiceSpec(), Handler: adapter.syncHubspotInvoice},
+		connect.Method{Spec: integrationServiceSyncSalesforceInvoiceSpec(), Handler: adapter.syncSalesforceInvoice},
+		connect.Method{Spec: integrationServicePreviewInvoiceTaxesSpec(), Handler: adapter.previewInvoiceTaxes},
 	)
 }
 
@@ -367,8 +450,12 @@ func (UnimplementedIntegrationServiceHandler) ListIntegrationMappings(context.Co
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.integration.v1.IntegrationService.ListIntegrationMappings is not implemented")
 }
 
-func (UnimplementedIntegrationServiceHandler) UpsertIntegrationMapping(context.Context, *v1.UpsertIntegrationMappingRequest) (*v1.UpsertIntegrationMappingResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.integration.v1.IntegrationService.UpsertIntegrationMapping is not implemented")
+func (UnimplementedIntegrationServiceHandler) CreateIntegrationMapping(context.Context, *v1.CreateIntegrationMappingRequest) (*v1.CreateIntegrationMappingResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.integration.v1.IntegrationService.CreateIntegrationMapping is not implemented")
+}
+
+func (UnimplementedIntegrationServiceHandler) UpdateIntegrationMapping(context.Context, *v1.UpdateIntegrationMappingRequest) (*v1.UpdateIntegrationMappingResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.integration.v1.IntegrationService.UpdateIntegrationMapping is not implemented")
 }
 
 func (UnimplementedIntegrationServiceHandler) DeleteIntegrationMapping(context.Context, *v1.DeleteIntegrationMappingRequest) (*v1.DeleteIntegrationMappingResponse, error) {
@@ -379,12 +466,28 @@ func (UnimplementedIntegrationServiceHandler) ListCollectionMappings(context.Con
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.integration.v1.IntegrationService.ListCollectionMappings is not implemented")
 }
 
-func (UnimplementedIntegrationServiceHandler) UpsertCollectionMapping(context.Context, *v1.UpsertCollectionMappingRequest) (*v1.UpsertCollectionMappingResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.integration.v1.IntegrationService.UpsertCollectionMapping is not implemented")
+func (UnimplementedIntegrationServiceHandler) CreateCollectionMapping(context.Context, *v1.CreateCollectionMappingRequest) (*v1.CreateCollectionMappingResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.integration.v1.IntegrationService.CreateCollectionMapping is not implemented")
+}
+
+func (UnimplementedIntegrationServiceHandler) UpdateCollectionMapping(context.Context, *v1.UpdateCollectionMappingRequest) (*v1.UpdateCollectionMappingResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.integration.v1.IntegrationService.UpdateCollectionMapping is not implemented")
 }
 
 func (UnimplementedIntegrationServiceHandler) DeleteCollectionMapping(context.Context, *v1.DeleteCollectionMappingRequest) (*v1.DeleteCollectionMappingResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.integration.v1.IntegrationService.DeleteCollectionMapping is not implemented")
+}
+
+func (UnimplementedIntegrationServiceHandler) SyncHubspotInvoice(context.Context, *v1.SyncHubspotInvoiceRequest) (*v1.SyncHubspotInvoiceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.integration.v1.IntegrationService.SyncHubspotInvoice is not implemented")
+}
+
+func (UnimplementedIntegrationServiceHandler) SyncSalesforceInvoice(context.Context, *v1.SyncSalesforceInvoiceRequest) (*v1.SyncSalesforceInvoiceResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.integration.v1.IntegrationService.SyncSalesforceInvoice is not implemented")
+}
+
+func (UnimplementedIntegrationServiceHandler) PreviewInvoiceTaxes(context.Context, *v1.PreviewInvoiceTaxesRequest) (*v1.PreviewInvoiceTaxesResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.integration.v1.IntegrationService.PreviewInvoiceTaxes is not implemented")
 }
 
 type integrationServiceClient struct {
@@ -479,9 +582,17 @@ func (c *integrationServiceClient) ListIntegrationMappings(ctx context.Context, 
 	return &res, nil
 }
 
-func (c *integrationServiceClient) UpsertIntegrationMapping(ctx context.Context, req *v1.UpsertIntegrationMappingRequest) (*v1.UpsertIntegrationMappingResponse, error) {
-	var res v1.UpsertIntegrationMappingResponse
-	if err := c.client.CallUnary(ctx, integrationServiceUpsertIntegrationMappingSpec(), req, &res); err != nil {
+func (c *integrationServiceClient) CreateIntegrationMapping(ctx context.Context, req *v1.CreateIntegrationMappingRequest) (*v1.CreateIntegrationMappingResponse, error) {
+	var res v1.CreateIntegrationMappingResponse
+	if err := c.client.CallUnary(ctx, integrationServiceCreateIntegrationMappingSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *integrationServiceClient) UpdateIntegrationMapping(ctx context.Context, req *v1.UpdateIntegrationMappingRequest) (*v1.UpdateIntegrationMappingResponse, error) {
+	var res v1.UpdateIntegrationMappingResponse
+	if err := c.client.CallUnary(ctx, integrationServiceUpdateIntegrationMappingSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -503,9 +614,17 @@ func (c *integrationServiceClient) ListCollectionMappings(ctx context.Context, r
 	return &res, nil
 }
 
-func (c *integrationServiceClient) UpsertCollectionMapping(ctx context.Context, req *v1.UpsertCollectionMappingRequest) (*v1.UpsertCollectionMappingResponse, error) {
-	var res v1.UpsertCollectionMappingResponse
-	if err := c.client.CallUnary(ctx, integrationServiceUpsertCollectionMappingSpec(), req, &res); err != nil {
+func (c *integrationServiceClient) CreateCollectionMapping(ctx context.Context, req *v1.CreateCollectionMappingRequest) (*v1.CreateCollectionMappingResponse, error) {
+	var res v1.CreateCollectionMappingResponse
+	if err := c.client.CallUnary(ctx, integrationServiceCreateCollectionMappingSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *integrationServiceClient) UpdateCollectionMapping(ctx context.Context, req *v1.UpdateCollectionMappingRequest) (*v1.UpdateCollectionMappingResponse, error) {
+	var res v1.UpdateCollectionMappingResponse
+	if err := c.client.CallUnary(ctx, integrationServiceUpdateCollectionMappingSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -514,6 +633,30 @@ func (c *integrationServiceClient) UpsertCollectionMapping(ctx context.Context, 
 func (c *integrationServiceClient) DeleteCollectionMapping(ctx context.Context, req *v1.DeleteCollectionMappingRequest) (*v1.DeleteCollectionMappingResponse, error) {
 	var res v1.DeleteCollectionMappingResponse
 	if err := c.client.CallUnary(ctx, integrationServiceDeleteCollectionMappingSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *integrationServiceClient) SyncHubspotInvoice(ctx context.Context, req *v1.SyncHubspotInvoiceRequest) (*v1.SyncHubspotInvoiceResponse, error) {
+	var res v1.SyncHubspotInvoiceResponse
+	if err := c.client.CallUnary(ctx, integrationServiceSyncHubspotInvoiceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *integrationServiceClient) SyncSalesforceInvoice(ctx context.Context, req *v1.SyncSalesforceInvoiceRequest) (*v1.SyncSalesforceInvoiceResponse, error) {
+	var res v1.SyncSalesforceInvoiceResponse
+	if err := c.client.CallUnary(ctx, integrationServiceSyncSalesforceInvoiceSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *integrationServiceClient) PreviewInvoiceTaxes(ctx context.Context, req *v1.PreviewInvoiceTaxesRequest) (*v1.PreviewInvoiceTaxesResponse, error) {
+	var res v1.PreviewInvoiceTaxesResponse
+	if err := c.client.CallUnary(ctx, integrationServicePreviewInvoiceTaxesSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -653,12 +796,24 @@ func (h integrationServiceHandler) listIntegrationMappings(ctx context.Context, 
 	return stream.Send(res)
 }
 
-func (h integrationServiceHandler) upsertIntegrationMapping(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.UpsertIntegrationMappingRequest
+func (h integrationServiceHandler) createIntegrationMapping(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateIntegrationMappingRequest
 	if err := stream.Receive(&req); err != nil {
 		return err
 	}
-	res, err := h.svc.UpsertIntegrationMapping(ctx, &req)
+	res, err := h.svc.CreateIntegrationMapping(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h integrationServiceHandler) updateIntegrationMapping(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateIntegrationMappingRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateIntegrationMapping(ctx, &req)
 	if err != nil {
 		return err
 	}
@@ -689,12 +844,24 @@ func (h integrationServiceHandler) listCollectionMappings(ctx context.Context, _
 	return stream.Send(res)
 }
 
-func (h integrationServiceHandler) upsertCollectionMapping(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.UpsertCollectionMappingRequest
+func (h integrationServiceHandler) createCollectionMapping(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateCollectionMappingRequest
 	if err := stream.Receive(&req); err != nil {
 		return err
 	}
-	res, err := h.svc.UpsertCollectionMapping(ctx, &req)
+	res, err := h.svc.CreateCollectionMapping(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h integrationServiceHandler) updateCollectionMapping(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.UpdateCollectionMappingRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.UpdateCollectionMapping(ctx, &req)
 	if err != nil {
 		return err
 	}
@@ -707,6 +874,42 @@ func (h integrationServiceHandler) deleteCollectionMapping(ctx context.Context, 
 		return err
 	}
 	res, err := h.svc.DeleteCollectionMapping(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h integrationServiceHandler) syncHubspotInvoice(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SyncHubspotInvoiceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SyncHubspotInvoice(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h integrationServiceHandler) syncSalesforceInvoice(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.SyncSalesforceInvoiceRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.SyncSalesforceInvoice(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h integrationServiceHandler) previewInvoiceTaxes(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.PreviewInvoiceTaxesRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.PreviewInvoiceTaxes(ctx, &req)
 	if err != nil {
 		return err
 	}

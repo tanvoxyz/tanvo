@@ -1,0 +1,26 @@
+{
+  "status": "success",
+  "message": "Transaction fetched successfully",
+  "data": {
+    "id": 285959875,
+    "tx_ref": "0199a000-0000-7000-8000-000000000003",
+    "flw_ref": "LAGO/FLW270177170",
+    "amount": 10000,
+    "currency": "NGN",
+    "charged_amount": 10000,
+    "status": "successful",
+    "payment_type": "card",
+    "customer": {
+      "id": 215604089,
+      "name": "John Doe",
+      "email": "customer@example.com"
+    },
+    "card": {
+      "first_6digits": "123456",
+      "last_4digits": "7889",
+      "issuer": "VERVE FIRST CITY MONUMENT BANK PLC",
+      "country": "NG",
+      "type": "VERVE"
+    }
+  }
+}

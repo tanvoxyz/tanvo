@@ -106,3 +106,24 @@ CREATE TABLE credit_note_applied_taxes (
 ALTER TABLE credit_note_applied_taxes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON credit_note_applied_taxes
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
+
+-- Errors recorded on credit notes: a tax provider's refusal of the credit
+-- note's report (lago error_details owned by a CreditNote).
+CREATE TABLE credit_note_error_details (
+  organization_id uuid NOT NULL,
+  id uuid NOT NULL,
+  credit_note_id uuid NOT NULL,
+  error_code text NOT NULL,
+  details jsonb,
+  created_at timestamptz NOT NULL,
+  PRIMARY KEY (organization_id, id),
+  CONSTRAINT credit_note_error_details_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
+  CONSTRAINT credit_note_error_details_credit_note_fkey FOREIGN KEY (organization_id, credit_note_id) REFERENCES credit_notes (organization_id, id) ON DELETE CASCADE,
+  CONSTRAINT credit_note_error_details_error_code_check CHECK (error_code IN ('tax_error'))
+);
+
+CREATE INDEX credit_note_error_details_credit_note_idx ON credit_note_error_details (organization_id, credit_note_id);
+
+ALTER TABLE credit_note_error_details ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON credit_note_error_details
+  USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');

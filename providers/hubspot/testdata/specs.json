@@ -1,0 +1,32 @@
+{
+  "title": "the HubSpot integration",
+  "files": [
+    "services/integrations/aggregator/companies/payloads/hubspot_spec.rb",
+    "services/integrations/aggregator/contacts/payloads/hubspot_spec.rb",
+    "services/integrations/aggregator/custom_object_service_spec.rb",
+    "services/integrations/aggregator/invoices/payloads/hubspot_spec.rb",
+    "services/integrations/aggregator/subscriptions/payloads/hubspot_spec.rb",
+    "services/integrations/hubspot/companies/deploy_properties_service_spec.rb",
+    "services/integrations/hubspot/contacts/deploy_properties_service_spec.rb",
+    "services/integrations/hubspot/create_service_spec.rb",
+    "services/integrations/hubspot/invoices/deploy_object_service_spec.rb",
+    "services/integrations/hubspot/invoices/deploy_properties_service_spec.rb",
+    "services/integrations/hubspot/save_portal_id_service_spec.rb",
+    "services/integrations/hubspot/subscriptions/deploy_object_service_spec.rb",
+    "services/integrations/hubspot/subscriptions/deploy_properties_service_spec.rb",
+    "services/integrations/hubspot/update_service_spec.rb"
+  ],
+  "reasons": {
+    "premium": "Premium license and premium integration gates. Tanvo has no premium gates: every integration is available (parity §1.50).",
+    "rails": "A stubbed update! raising ActiveRecord::RecordInvalid: saving the portal ID has no model validation to fail in Tanvo."
+  },
+  "skipped": {
+    "services/integrations/hubspot/create_service_spec.rb:31": "premium",
+    "services/integrations/hubspot/create_service_spec.rb:35": "premium",
+    "services/integrations/hubspot/create_service_spec.rb:45": "premium",
+    "services/integrations/hubspot/update_service_spec.rb:26": "premium",
+    "services/integrations/hubspot/update_service_spec.rb:36": "premium",
+    "services/integrations/hubspot/save_portal_id_service_spec.rb:34": "rails",
+    "services/integrations/hubspot/save_portal_id_service_spec.rb:38": "rails"
+  }
+}

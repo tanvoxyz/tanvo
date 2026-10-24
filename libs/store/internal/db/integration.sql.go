@@ -1066,6 +1066,20 @@ func (q *Queries) ListIntegrationsByProvider(ctx context.Context, arg ListIntegr
 	return items, nil
 }
 
+const organizationOfPaymentIntegration = `-- name: OrganizationOfPaymentIntegration :one
+SELECT organization_id FROM integrations
+WHERE id = $1 AND category = 'payment' AND deleted_at IS NULL
+`
+
+// OrganizationOfPaymentIntegration is cross-organization (provider
+// webhook routing): the organization of a live payment integration.
+func (q *Queries) OrganizationOfPaymentIntegration(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, organizationOfPaymentIntegration, id)
+	var organization_id uuid.UUID
+	err := row.Scan(&organization_id)
+	return organization_id, err
+}
+
 const updateIntegration = `-- name: UpdateIntegration :execrows
 UPDATE integrations SET
   organization_id = $1, id = $2, code = $3, name = $4, category = $5, provider = $6,

@@ -145,6 +145,11 @@ func (s *Service) createManual(ctx context.Context, r port.Repos, in ManualInput
 	if _, err := s.createReceipt(ctx, r, p); err != nil {
 		return nil, nil, false, err
 	}
+	// A succeeded payment of a finalized invoice is synced to the
+	// accounting providers (manual_create_service.rb:50-52).
+	if err := s.syncPayment(ctx, r, p, inv); err != nil {
+		return nil, nil, false, err
+	}
 	return p, inv, paid, nil
 }
 
@@ -230,7 +235,7 @@ func (s *Service) markPaid(ctx context.Context, r port.Repos, inv *invoice.Invoi
 			return err
 		}
 	}
-	if old != inv.PaymentStatus && inv.Visible() {
+	if old != inv.PaymentStatus && visible(inv) {
 		// app/services/invoices/update_service.rb:76-79,105-107.
 		if err := s.d.LogInvoice(ctx, r, auditlog.ActivityInvoicePaymentStatusUpdated, inv); err != nil {
 			return err
@@ -256,20 +261,26 @@ func (s *Service) resetDunning(ctx context.Context, r port.Repos, inv *invoice.I
 	if !dunned {
 		return nil
 	}
-	c, err := r.Customers.Get(ctx, org, inv.CustomerID)
+	return s.resetCustomerDunning(ctx, r, org, inv.CustomerID, inv.Currency, now)
+}
+
+// resetCustomerDunning resets the dunning attempts of customer id in
+// currency cur (lago Customer#reset_dunning_campaign_for_currency!).
+func (s *Service) resetCustomerDunning(ctx context.Context, r port.Repos, org core.OrganizationID, id core.CustomerID, cur money.Currency, now time.Time) error {
+	c, err := r.Customers.Get(ctx, org, id)
 	if err != nil {
-		return wrap(err, "load customer %s", inv.CustomerID)
+		return wrap(err, "load customer %s", id)
 	}
 	attempts := make(map[string]int, len(c.DunningCampaignAttempts)+1)
 	allReset := true
-	for cur, n := range c.DunningCampaignAttempts {
-		if cur == inv.Currency.Code() {
+	for code, n := range c.DunningCampaignAttempts {
+		if code == cur.Code() {
 			n = 0
 		}
-		attempts[cur] = n
+		attempts[code] = n
 		allReset = allReset && n == 0
 	}
-	attempts[inv.Currency.Code()] = 0
+	attempts[cur.Code()] = 0
 	c.DunningCampaignAttempts = attempts
 	if allReset {
 		c.LastDunningCampaignAttemptAt = nil
@@ -281,8 +292,10 @@ func (s *Service) resetDunning(ctx context.Context, r port.Repos, inv *invoice.I
 	return nil
 }
 
-// expireCheckout expires the invoice's active checkout link (lago
-// PaymentIntents::ExpireJob after a payment settled the invoice).
+// expireCheckout expires the invoice's active checkout link, moving its
+// expiry to now so that it leaves the reuse window, and enqueues the
+// expiry of its session at the customer's provider (lago
+// PaymentIntents::ExpireService after a payment settled the invoice).
 func (s *Service) expireCheckout(ctx context.Context, r port.Repos, inv *invoice.Invoice, now time.Time) error {
 	it, err := r.PaymentIntents.GetActiveByInvoice(ctx, inv.OrganizationID, inv.ID)
 	if errors.Is(err, core.ErrNotFound) {
@@ -291,13 +304,28 @@ func (s *Service) expireCheckout(ctx context.Context, r port.Repos, inv *invoice
 	if err != nil {
 		return wrap(err, "load checkout link of invoice %s", inv.ID)
 	}
+	return s.expireIntent(ctx, r, inv, it, now)
+}
+
+// expireIntent expires the active link it of inv at now and enqueues the
+// expiry of its provider session.
+func (s *Service) expireIntent(ctx context.Context, r port.Repos, inv *invoice.Invoice, it *payment.Intent, now time.Time) error {
 	if err := it.Expire(now); err != nil {
 		return err
 	}
+	it.ExpiresAt = now
 	if err := r.PaymentIntents.Update(ctx, it); err != nil {
 		return wrap(err, "expire checkout link of invoice %s", inv.ID)
 	}
-	return nil
+	if it.ProviderSessionID == nil || *it.ProviderSessionID == "" {
+		return nil
+	}
+	_, integ, err := customerConnection(ctx, r, inv.OrganizationID, inv.CustomerID)
+	if err != nil || integ == nil {
+		return err
+	}
+	args := kernel.CheckoutArgs{InvoiceID: inv.ID, IntegrationID: integ.ID, SessionID: *it.ProviderSessionID}
+	return kernel.Enqueue(ctx, r, inv.OrganizationID, kernel.JobExpireCheckout, args, "", time.Time{})
 }
 
 // fieldError is a validation error of one field.

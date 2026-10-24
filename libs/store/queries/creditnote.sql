@@ -142,3 +142,17 @@ SELECT status FROM credit_notes WHERE organization_id = @organization_id AND id 
 
 -- name: DeleteDraftCreditNote :execrows
 DELETE FROM credit_notes WHERE organization_id = @organization_id AND id = @id AND status = 'draft';
+
+-- name: CreateCreditNoteErrorDetail :execrows
+INSERT INTO credit_note_error_details (organization_id, id, credit_note_id, error_code, details, created_at)
+VALUES (@organization_id, @id, @credit_note_id, @error_code, @details, @created_at)
+ON CONFLICT DO NOTHING;
+
+-- name: ListCreditNoteErrorDetails :many
+SELECT * FROM credit_note_error_details
+WHERE organization_id = @organization_id AND credit_note_id = ANY(@credit_note_ids::uuid[])
+ORDER BY id;
+
+-- name: DeleteCreditNoteErrorDetails :exec
+DELETE FROM credit_note_error_details
+WHERE organization_id = @organization_id AND credit_note_id = @credit_note_id AND error_code = @error_code;

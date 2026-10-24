@@ -1,0 +1,11 @@
+{
+  "title": "the Avalara integration",
+  "files": [
+    "services/integrations/aggregator/contacts/payloads/avalara_spec.rb",
+    "services/integrations/aggregator/taxes/avalara/fetch_company_id_service_spec.rb",
+    "services/integrations/aggregator/taxes/credit_notes/payloads/avalara_spec.rb",
+    "services/integrations/aggregator/taxes/invoices/payloads/avalara_spec.rb"
+  ],
+  "reasons": {},
+  "skipped": {}
+}

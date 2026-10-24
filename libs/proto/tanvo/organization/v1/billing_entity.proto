@@ -226,6 +226,9 @@ message BillingEntity {
   google.protobuf.Timestamp created_at = 31 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the entity last changed.
   google.protobuf.Timestamp updated_at = 32 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Charges wallet top-up invoices at once, without waiting for a possible
+  // checkout payment.
+  bool skip_credit_invoice_payment_delay = 33;
 }
 
 // CreateBillingEntityRequest is the request of BillingEntityService.CreateBillingEntity.

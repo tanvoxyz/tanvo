@@ -20,8 +20,9 @@ const pullTaxesDelay = time.Minute
 
 // taxStandalone applies the taxes of fees attached to no invoice (lago
 // Fees::ApplyTaxesService and ApplyProviderTaxesToStandaloneFeesService).
-// A provider failure leaves the fee untaxed and emits
-// fee.tax_provider_error.
+// A provider failure leaves the fees untaxed; the provider reports it
+// (customer.tax_provider_error), and no fee webhook is sent
+// (apply_provider_taxes_to_standalone_fees_service.rb:15-19).
 func (s *Service) taxStandalone(ctx context.Context, r port.Repos, cenv *kernel.CustomerEnv, env *kernel.SubscriptionEnv, fs []*invoice.Fee) error {
 	resolver := kernel.NewTaxResolver(r, cenv)
 	if env != nil {
@@ -31,11 +32,7 @@ func (s *Service) taxStandalone(ctx context.Context, r port.Repos, cenv *kernel.
 		stub := &invoice.Invoice{OrganizationID: f.OrganizationID, CustomerID: cenv.Customer.ID, Currency: f.Currency, Type: invoice.TypeSubscription}
 		_, err := resolver.Compute(ctx, s.d, kernel.TaxInput{Invoice: stub, Fees: []*invoice.Fee{f}, Inline: true})
 		switch {
-		case err == nil:
-		case errors.Is(err, kernel.ErrTaxProvider):
-			if err := kernel.Emit(ctx, s.d, f.OrganizationID, webhook.EventTypeFeeTaxProviderError, "fee", kernel.ObjectID(f.ID), f); err != nil {
-				return err
-			}
+		case err == nil, errors.Is(err, kernel.ErrTaxProvider):
 		default:
 			return err
 		}

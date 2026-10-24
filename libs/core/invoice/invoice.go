@@ -90,6 +90,9 @@ type Invoice struct {
 	VoidedInvoiceID core.InvoiceID
 	// SkipAutomaticPayment disables the automatic payment.
 	SkipAutomaticPayment bool
+	// PaymentAttempts counts the automatic payments attempted; the first
+	// one may wait for a checkout (lago invoices.payment_attempts).
+	PaymentAttempts int
 	// PaymentMethodType is how the invoice is collected.
 	PaymentMethodType core.PaymentMethodType
 	// PaymentMethodID is the payment method to charge.

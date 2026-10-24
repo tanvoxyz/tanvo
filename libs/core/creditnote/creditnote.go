@@ -64,6 +64,10 @@ type CreditNote struct {
 	Items []Item
 	// AppliedTaxes are the taxes, grouped by invoice applied tax.
 	AppliedTaxes []AppliedTax
+	// ErrorDetails are the errors recorded on the credit note, loaded by
+	// the billing services; [Repository] neither loads nor stores them
+	// ([ErrorDetailRepository] does).
+	ErrorDetails []ErrorDetail
 	// IssuingDate is the issuing date.
 	IssuingDate core.Date
 	// Metadata is free key/value data (≤ 5 items).

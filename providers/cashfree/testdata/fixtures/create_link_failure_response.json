@@ -1,0 +1,5 @@
+{
+  "message": "Currency USD is not enabled",
+  "code": "link_post_failed",
+  "type": "invalid_request_error"
+}

@@ -1,0 +1,15 @@
+{
+  "error": {
+    "message": "Rate limit exceeded",
+    "documentation_url": "https://developer.gocardless.com/api-reference#rate_limit_exceeded",
+    "type": "invalid_api_usage",
+    "request_id": "REQ_RATE",
+    "errors": [
+      {
+        "reason": "rate_limit_exceeded",
+        "message": "Rate limit exceeded"
+      }
+    ],
+    "code": 429
+  }
+}

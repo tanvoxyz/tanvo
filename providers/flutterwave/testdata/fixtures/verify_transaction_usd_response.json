@@ -1,0 +1,11 @@
+{
+  "status": "success",
+  "data": {
+    "id": 285959875,
+    "tx_ref": "0199a000-0000-7000-8000-000000000003",
+    "amount": 100.50,
+    "currency": "USD",
+    "charged_amount": 100.50,
+    "status": "successful"
+  }
+}

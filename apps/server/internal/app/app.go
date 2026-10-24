@@ -126,10 +126,26 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if a.billing, err = newBilling(cfg, a.store, a.stores, clock, a.log); err != nil {
+	triggers := newSyncTriggers(a.store)
+	pay, err := newPayments(cfg, a.store, clock, a.log, tp, mp, triggers)
+	if err != nil {
 		return nil, err
 	}
-	if err := (billingJobs{engine: a.billing, tx: a.store, clock: o.Clock, log: a.log}).register(reg); err != nil {
+	integ, err := newIntegrations(cfg, a.store, clock, a.log, tp, mp, pay.gocardlessOAuth, triggers)
+	if err != nil {
+		return nil, err
+	}
+	pay.svc.WithPaymentSync(integ.svc)
+	if err := integ.register(reg); err != nil {
+		return nil, err
+	}
+	if a.billing, err = newBilling(cfg, a.store, a.stores, clock, a.log, pay.svc.Refunds(), triggers, integ.taxes); err != nil {
+		return nil, err
+	}
+	pay.bind(a.billing)
+	integ.bind(a.billing)
+	bj := billingJobs{engine: a.billing, tx: a.store, clock: o.Clock, log: a.log}
+	if err := bj.register(reg); err != nil {
 		return nil, err
 	}
 	composer, sender, err := newMailer(cfg, a.log, tp)
@@ -137,6 +153,9 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		return nil, err
 	}
 	if err := (mailJobs{tx: a.store, composer: composer, sender: sender}).register(reg); err != nil {
+		return nil, err
+	}
+	if err := (paymentJobs{w: pay, billing: bj, composer: composer, sender: sender, log: a.log}).register(reg); err != nil {
 		return nil, err
 	}
 	if a.jobs, err = newJobs(a.pool, reg, cfg, o.Roles, a.log, tp, mp); err != nil {
@@ -188,6 +207,7 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 			Log: a.log, TracerProvider: tp, MeterProvider: mp, Clock: clock, AppURL: cfg.AppURL,
 			DisableSignup: cfg.DisableSignup, GoogleClientID: cfg.GoogleAuthClientID, GoogleClientSecret: cfg.GoogleAuthClientSecret,
 			WebhooksAllowPrivate: cfg.WebhooksAllowPrivate, OIDCAllowPrivate: cfg.OIDCAllowPrivate, SecretKey: secretKey,
+			Payments: pay.svc, InboundWebhooks: pay.inbound, Integrations: integ.svc,
 		}); err != nil {
 			return nil, err
 		}

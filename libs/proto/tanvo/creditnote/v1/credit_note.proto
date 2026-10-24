@@ -129,6 +129,37 @@ service CreditNoteService {
       api_resource: "credit_note"
     };
   }
+
+  // Reports a credit note to the customer's tax provider again; a refusal
+  // is kept in the credit note's errors.
+  rpc RetryCreditNoteTaxReporting(RetryCreditNoteTaxReportingRequest) returns (RetryCreditNoteTaxReportingResponse) {
+    option (google.api.http) = {
+      post: "/v1/credit_notes/{credit_note_id}:retry_tax_reporting"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "credit_notes:update"
+      api_resource: "credit_note"
+    };
+  }
+}
+
+// CreditNoteErrorCode is the kind of an error recorded on a credit note.
+enum CreditNoteErrorCode {
+  // Not set.
+  CREDIT_NOTE_ERROR_CODE_UNSPECIFIED = 0;
+  // The tax provider refused the credit note's report.
+  CREDIT_NOTE_ERROR_CODE_TAX_ERROR = 1;
+}
+
+// CreditNoteError is an error recorded on a credit note.
+message CreditNoteError {
+  // The kind of error.
+  CreditNoteErrorCode code = 1;
+  // The provider's details, as JSON.
+  string message = 2;
+  // When it happened.
+  google.protobuf.Timestamp created_at = 3;
 }
 
 // CreditNoteStatus is the state of a credit note.
@@ -283,6 +314,8 @@ message CreditNote {
   google.protobuf.Timestamp created_at = 27 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the credit note last changed.
   google.protobuf.Timestamp updated_at = 28 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The errors recorded on the credit note.
+  repeated CreditNoteError errors = 29 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // CreateCreditNoteRequest is the request of CreditNoteService.CreateCreditNote.
@@ -482,3 +515,19 @@ message RetryCreditNoteSyncRequest {
 
 // RetryCreditNoteSyncResponse is the response of CreditNoteService.RetryCreditNoteSync.
 message RetryCreditNoteSyncResponse {}
+
+// RetryCreditNoteTaxReportingRequest is the request of CreditNoteService.RetryCreditNoteTaxReporting.
+message RetryCreditNoteTaxReportingRequest {
+  // The credit note's ID.
+  string credit_note_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// RetryCreditNoteTaxReportingResponse is the response of CreditNoteService.RetryCreditNoteTaxReporting.
+message RetryCreditNoteTaxReportingResponse {
+  // The credit note.
+  CreditNote credit_note = 1;
+}

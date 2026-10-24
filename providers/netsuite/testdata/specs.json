@@ -1,0 +1,18 @@
+{
+  "title": "the NetSuite integration",
+  "files": [
+    "services/integrations/aggregator/contacts/payloads/netsuite_spec.rb",
+    "services/integrations/aggregator/credit_notes/payloads/netsuite_spec.rb",
+    "services/integrations/aggregator/invoices/payloads/netsuite_spec.rb",
+    "services/integrations/aggregator/payments/payloads/netsuite_spec.rb"
+  ],
+  "reasons": {
+    "legacy": "Asserts the payload of a NetSuite integration whose legacy_script setting is true. No service, mutation or API of v1.55.0 sets it (it is only declared, app/models/integrations/netsuite_integration.rb:8, and read, app/services/integrations/aggregator/contacts/payloads/netsuite.rb:72), so every integration has it false and Tanvo has no such setting; the false cases are ported."
+  },
+  "skipped": {
+    "services/integrations/aggregator/contacts/payloads/netsuite_spec.rb:226": "legacy",
+    "services/integrations/aggregator/contacts/payloads/netsuite_spec.rb:257": "legacy",
+    "services/integrations/aggregator/contacts/payloads/netsuite_spec.rb:290": "legacy",
+    "services/integrations/aggregator/contacts/payloads/netsuite_spec.rb:310": "legacy"
+  }
+}

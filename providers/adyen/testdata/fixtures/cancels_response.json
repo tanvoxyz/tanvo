@@ -1,0 +1,6 @@
+{
+  "paymentPspReference": "PSPREF123",
+  "pspReference": "MOD_REF_456",
+  "status": "received",
+  "merchantAccount": "TanvoTest"
+}

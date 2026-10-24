@@ -1,0 +1,17 @@
+{
+  "error": {
+    "message": "Validation failed",
+    "documentation_url": "https://developer.gocardless.com/api-reference#validation_failed",
+    "type": "validation_failed",
+    "request_id": "REQ_VALIDATION",
+    "errors": [
+      {
+        "field": "links[mandate]",
+        "message": "is inactive",
+        "reason": "mandate_is_inactive",
+        "request_pointer": "/payments/links/mandate"
+      }
+    ],
+    "code": 422
+  }
+}

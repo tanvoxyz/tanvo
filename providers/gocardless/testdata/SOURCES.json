@@ -1,0 +1,106 @@
+{
+  "fixtures/payments_response.json": {
+    "source": "spec/services/payment_providers/gocardless/payments/create_service_spec.rb:65",
+    "note": "the stubbed GoCardlessPro::Resources::Payment as a full payments envelope with fixed references"
+  },
+  "fixtures/payments_cancelled_response.json": {
+    "source": "spec/services/payment_providers/gocardless/payments/cancel_service_spec.rb:29",
+    "note": "the stubbed cancelled payment PM123 as a payments envelope"
+  },
+  "fixtures/mandates_list_response.json": {
+    "source": "spec/services/payment_providers/gocardless/payments/create_service_spec.rb:61",
+    "note": "the stubbed mandates list with fixed references, a bacs and a sepa_core mandate"
+  },
+  "fixtures/mandates_empty_response.json": {
+    "source": "spec/services/payment_providers/gocardless/payments/create_service_spec.rb:133",
+    "note": "a customer without mandates"
+  },
+  "fixtures/mandate_response.json": {
+    "source": "spec/services/payment_providers/gocardless/webhooks/mandate_created_service_spec.rb:21",
+    "note": "the stubbed GoCardlessPro::Resources::Mandate index_ID_123 of customer CU123456"
+  },
+  "fixtures/refunds_response.json": {
+    "source": "spec/services/credit_notes/refunds/gocardless_service_spec.rb:49",
+    "note": "the stubbed refund re_123456 as a refunds envelope"
+  },
+  "fixtures/customers_response.json": {
+    "source": "spec/services/payment_provider_customers/gocardless_service_spec.rb:25",
+    "note": "the stubbed GoCardlessPro::Resources::Customer with the id CU123"
+  },
+  "fixtures/billing_requests_response.json": {
+    "source": "spec/services/payment_provider_customers/gocardless_service_spec.rb:113",
+    "note": "the stubbed GoCardlessPro::Resources::BillingRequest with the id BRQ123"
+  },
+  "fixtures/billing_request_flows_response.json": {
+    "source": "spec/services/payment_provider_customers/gocardless_service_spec.rb:118",
+    "note": "the stubbed GoCardlessPro::Resources::BillingRequestFlow with a GoCardless flow URL"
+  },
+  "fixtures/validation_failed_response.json": {
+    "source": "spec/services/credit_notes/refunds/gocardless_service_spec.rb:148",
+    "note": "GoCardlessPro::ValidationError as the API's 422 error body (developer.gocardless.com/api-reference#api-usage-errors)"
+  },
+  "fixtures/cancellation_failed_response.json": {
+    "source": "spec/services/payment_providers/gocardless/payments/cancel_service_spec.rb:72",
+    "note": "GoCardlessPro::InvalidStateError cancellation_failed as the API's 422 error body"
+  },
+  "fixtures/invalid_state_response.json": {
+    "source": "spec/services/payment_providers/gocardless/payments/cancel_service_spec.rb:100",
+    "note": "GoCardlessPro::InvalidStateError mandate_is_inactive as the API's 422 error body"
+  },
+  "fixtures/server_error_response.json": {
+    "source": "spec/services/credit_notes/refunds/gocardless_service_spec.rb:118",
+    "note": "GoCardlessPro::Error as the API's 500 error body"
+  },
+  "fixtures/payment_conflict_response.json": {
+    "source": "developer.gocardless.com/api-reference#making-requests-idempotency-keys",
+    "note": "no lago case: the API's 409 idempotent_creation_conflict body linking PM123"
+  },
+  "fixtures/refund_conflict_response.json": {
+    "source": "developer.gocardless.com/api-reference#making-requests-idempotency-keys",
+    "note": "no lago case: the API's 409 idempotent_creation_conflict body linking re_123456"
+  },
+  "fixtures/customer_conflict_response.json": {
+    "source": "developer.gocardless.com/api-reference#making-requests-idempotency-keys",
+    "note": "no lago case: the API's 409 idempotent_creation_conflict body linking CU123"
+  },
+  "fixtures/authentication_failed_response.json": {
+    "source": "developer.gocardless.com/api-reference#api-usage-errors",
+    "note": "no lago case: the API's 401 access_token_not_found body"
+  },
+  "fixtures/not_found_response.json": {
+    "source": "spec/services/payment_providers/gocardless/webhooks/mandate_created_service_spec.rb:59",
+    "note": "the not_found error as the API's 404 resource_not_found body"
+  },
+  "fixtures/rate_limit_response.json": {
+    "source": "developer.gocardless.com/api-reference#overview-rate-limiting",
+    "note": "no lago case: the API's 429 rate_limit_exceeded body"
+  },
+  "fixtures/webhooks/events.json": {
+    "source": "spec/fixtures/gocardless/events.json",
+    "note": "copied"
+  },
+  "fixtures/webhooks/events_payment_request.json": {
+    "source": "spec/fixtures/gocardless/events_payment_request.json",
+    "note": "lago_payable_type renamed tanvo_payable_type, PaymentRequest renamed payment_request"
+  },
+  "fixtures/webhooks/events_invalid_payable_type.json": {
+    "source": "spec/fixtures/gocardless/events_invalid_payable_type.json",
+    "note": "lago_payable_type renamed tanvo_payable_type"
+  },
+  "fixtures/webhooks/events_refund.json": {
+    "source": "spec/fixtures/gocardless/events_refund.json",
+    "note": "copied"
+  },
+  "fixtures/webhooks/events_mandate_created.json": {
+    "source": "spec/fixtures/gocardless/events_mandate_created.json",
+    "note": "copied"
+  },
+  "fixtures/webhooks/events_mandate_cancelled.json": {
+    "source": "spec/fixtures/gocardless/events_mandate_cancelled.json",
+    "note": "copied"
+  },
+  "fixtures/webhooks/events_mandate_cancelled_by_bank.json": {
+    "source": "spec/fixtures/gocardless/events_mandate_cancelled_by_bank.json",
+    "note": "copied"
+  }
+}

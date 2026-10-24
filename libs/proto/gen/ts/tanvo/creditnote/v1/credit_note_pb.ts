@@ -29,7 +29,42 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file tanvo/creditnote/v1/credit_note.proto.
  */
 export const file_tanvo_creditnote_v1_credit_note: GenFile = /*@__PURE__*/
-  fileDesc("CiV0YW52by9jcmVkaXRub3RlL3YxL2NyZWRpdF9ub3RlLnByb3RvEhN0YW52by5jcmVkaXRub3RlLnYxImwKDkNyZWRpdE5vdGVJdGVtEhwKBmZlZV9pZBgBIAEoCUIM4kEBArpIBXIDsAEBEh4KBmFtb3VudBgCIAEoCUIO4kEBArpIB3IF0KTKBgESHAoOcHJlY2lzZV9hbW91bnQYAyABKAlCBOJBAQMisQEKFENyZWRpdE5vdGVBcHBsaWVkVGF4Eg4KBnRheF9pZBgBIAEoCRIQCgh0YXhfY29kZRgCIAEoCRIQCgh0YXhfbmFtZRgDIAEoCRIQCgh0YXhfcmF0ZRgEIAEoCRIrCgtiYXNlX2Ftb3VudBgFIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRImCgZhbW91bnQYBiABKAsyFi50YW52by5jb21tb24udjEuTW9uZXki1gsKCkNyZWRpdE5vdGUSEAoCaWQYASABKAlCBOJBAQgSIQoKaW52b2ljZV9pZBgCIAEoCUIN4kECAgW6SAVyA7ABARIZCgtjdXN0b21lcl9pZBgDIAEoCUIE4kEBAxIUCgZudW1iZXIYBCABKAlCBOJBAQMSOwoGc3RhdHVzGAUgASgOMiUudGFudm8uY3JlZGl0bm90ZS52MS5DcmVkaXROb3RlU3RhdHVzQgTiQQEDEj4KDWNyZWRpdF9zdGF0dXMYBiABKA4yIS50YW52by5jcmVkaXRub3RlLnYxLkNyZWRpdFN0YXR1c0IE4kEBAxI+Cg1yZWZ1bmRfc3RhdHVzGAcgASgOMh0udGFudm8uY29tbW9uLnYxLlJlZnVuZFN0YXR1c0IIukgFggECEAESRAoGcmVhc29uGAggASgOMiUudGFudm8uY3JlZGl0bm90ZS52MS5DcmVkaXROb3RlUmVhc29uQg3iQQICBbpIBYIBAhABEiEKC2Rlc2NyaXB0aW9uGAkgASgJQgziQQEFukgFcgMYgAgSMwoNY3JlZGl0X2Ftb3VudBgKIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leUIE4kEBBRIzCg1yZWZ1bmRfYW1vdW50GAsgASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5QgTiQQEFEjMKDW9mZnNldF9hbW91bnQYDCABKAsyFi50YW52by5jb21tb24udjEuTW9uZXlCBOJBAQUSNAoOYmFsYW5jZV9hbW91bnQYDSABKAsyFi50YW52by5jb21tb24udjEuTW9uZXlCBOJBAQMSRgogc3ViX3RvdGFsX2V4Y2x1ZGluZ190YXhlc19hbW91bnQYDiABKAsyFi50YW52by5jb21tb24udjEuTW9uZXlCBOJBAQMSPwoZY291cG9uc19hZGp1c3RtZW50X2Ftb3VudBgPIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leUIE4kEBAxIyCgx0YXhlc19hbW91bnQYECABKAsyFi50YW52by5jb21tb24udjEuTW9uZXlCBOJBAQMSGAoKdGF4ZXNfcmF0ZRgRIAEoCUIE4kEBAxIyCgx0b3RhbF9hbW91bnQYEiABKAsyFi50YW52by5jb21tb24udjEuTW9uZXlCBOJBAQMSQgoFaXRlbXMYEyADKAsyIy50YW52by5jcmVkaXRub3RlLnYxLkNyZWRpdE5vdGVJdGVtQg7iQQICBbpIBpIBAxDoBxJGCg1hcHBsaWVkX3RheGVzGBQgAygLMikudGFudm8uY3JlZGl0bm90ZS52MS5DcmVkaXROb3RlQXBwbGllZFRheEIE4kEBAxItCgxpc3N1aW5nX2RhdGUYFSABKAsyES5nb29nbGUudHlwZS5EYXRlQgTiQQEDEjkKCG1ldGFkYXRhGBYgAygLMh0udGFudm8uY29tbW9uLnYxLk1ldGFkYXRhSXRlbUIIukgFkgECEAUSHAoOZmlsZV9hdmFpbGFibGUYFyABKAhCBOJBAQMSIAoSeG1sX2ZpbGVfYXZhaWxhYmxlGBggASgIQgTiQQEDEjUKC3JlZnVuZGVkX2F0GBkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxIzCgl2b2lkZWRfYXQYGiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCmNyZWF0ZWRfYXQYGyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCnVwZGF0ZWRfYXQYHCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDOk7qQUsKFHRhbnZvLnh5ei9DcmVkaXROb3RlEhpjcmVkaXRfbm90ZXMve2NyZWRpdF9ub3RlfSoLY3JlZGl0Tm90ZXMyCmNyZWRpdE5vdGUijAIKF0NyZWF0ZUNyZWRpdE5vdGVSZXF1ZXN0EkAKC2NyZWRpdF9ub3RlGAEgASgLMh8udGFudm8uY3JlZGl0bm90ZS52MS5DcmVkaXROb3RlQgriQQECukgDyAEBOq4BukiqARqnAQoUY3JlZGl0X25vdGUucmVxdWlyZWQSKWludm9pY2VfaWQsIHJlYXNvbiBhbmQgaXRlbXMgYXJlIHJlcXVpcmVkGmRoYXModGhpcy5jcmVkaXRfbm90ZS5pbnZvaWNlX2lkKSAmJiBoYXModGhpcy5jcmVkaXRfbm90ZS5yZWFzb24pICYmIHNpemUodGhpcy5jcmVkaXRfbm90ZS5pdGVtcykgPiAwIlAKGENyZWF0ZUNyZWRpdE5vdGVSZXNwb25zZRI0CgtjcmVkaXRfbm90ZRgBIAEoCzIfLnRhbnZvLmNyZWRpdG5vdGUudjEuQ3JlZGl0Tm90ZSKFAQoZRXN0aW1hdGVDcmVkaXROb3RlUmVxdWVzdBIjCgppbnZvaWNlX2lkGAEgASgJQg/iQQECukgIyAEBcgOwAQESQwoFaXRlbXMYAiADKAsyIy50YW52by5jcmVkaXRub3RlLnYxLkNyZWRpdE5vdGVJdGVtQg/iQQECukgIkgEFCAEQ6Aci+AEKGkVzdGltYXRlQ3JlZGl0Tm90ZVJlc3BvbnNlEjQKC2NyZWRpdF9ub3RlGAEgASgLMh8udGFudm8uY3JlZGl0bm90ZS52MS5DcmVkaXROb3RlEjUKFW1heF9jcmVkaXRhYmxlX2Ftb3VudBgCIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRI1ChVtYXhfcmVmdW5kYWJsZV9hbW91bnQYAyABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSNgoWbWF4X29mZnNldHRhYmxlX2Ftb3VudBgEIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leSI/ChRHZXRDcmVkaXROb3RlUmVxdWVzdBInCg5jcmVkaXRfbm90ZV9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBIk0KFUdldENyZWRpdE5vdGVSZXNwb25zZRI0CgtjcmVkaXRfbm90ZRgBIAEoCzIfLnRhbnZvLmNyZWRpdG5vdGUudjEuQ3JlZGl0Tm90ZSKqAQoWTGlzdENyZWRpdE5vdGVzUmVxdWVzdBIfCgtjdXN0b21lcl9pZBgBIAEoCUIKukgHcgXgpMoGARIdCglwYWdlX3NpemUYAiABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgSGAoGZmlsdGVyGAQgASgJQgi6SAVyAxiAEBIYCgZzZWFyY2gYBSABKAlCCLpIBXIDGP8BImkKF0xpc3RDcmVkaXROb3Rlc1Jlc3BvbnNlEjUKDGNyZWRpdF9ub3RlcxgBIAMoCzIfLnRhbnZvLmNyZWRpdG5vdGUudjEuQ3JlZGl0Tm90ZRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAki2QEKF1VwZGF0ZUNyZWRpdE5vdGVSZXF1ZXN0EkAKC2NyZWRpdF9ub3RlGAEgASgLMh8udGFudm8uY3JlZGl0bm90ZS52MS5DcmVkaXROb3RlQgriQQECukgDyAEBEi8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzazpLukhIGkYKDmNyZWRpdF9ub3RlLmlkEhpjcmVkaXRfbm90ZS5pZCBpcyByZXF1aXJlZBoYaGFzKHRoaXMuY3JlZGl0X25vdGUuaWQpIlAKGFVwZGF0ZUNyZWRpdE5vdGVSZXNwb25zZRI0CgtjcmVkaXRfbm90ZRgBIAEoCzIfLnRhbnZvLmNyZWRpdG5vdGUudjEuQ3JlZGl0Tm90ZSJAChVWb2lkQ3JlZGl0Tm90ZVJlcXVlc3QSJwoOY3JlZGl0X25vdGVfaWQYASABKAlCD+JBAQK6SAjIAQFyA7ABASJOChZWb2lkQ3JlZGl0Tm90ZVJlc3BvbnNlEjQKC2NyZWRpdF9ub3RlGAEgASgLMh8udGFudm8uY3JlZGl0bm90ZS52MS5DcmVkaXROb3RlIkQKGURvd25sb2FkQ3JlZGl0Tm90ZVJlcXVlc3QSJwoOY3JlZGl0X25vdGVfaWQYASABKAlCD+JBAQK6SAjIAQFyA7ABASJsChpEb3dubG9hZENyZWRpdE5vdGVSZXNwb25zZRImCgNwZGYYASABKAsyGS50YW52by5jb21tb24udjEuRG9jdW1lbnQSJgoDeG1sGAIgASgLMhkudGFudm8uY29tbW9uLnYxLkRvY3VtZW50IpcBChdSZXNlbmRDcmVkaXROb3RlUmVxdWVzdBInCg5jcmVkaXRfbm90ZV9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBEhoKAnRvGAIgAygJQg66SAuSAQgQFCIEcgJgARIaCgJjYxgDIAMoCUIOukgLkgEIEBQiBHICYAESGwoDYmNjGAQgAygJQg66SAuSAQgQFCIEcgJgASIaChhSZXNlbmRDcmVkaXROb3RlUmVzcG9uc2UiRQoaUmV0cnlDcmVkaXROb3RlU3luY1JlcXVlc3QSJwoOY3JlZGl0X25vdGVfaWQYASABKAlCD+JBAQK6SAjIAQFyA7ABASIdChtSZXRyeUNyZWRpdE5vdGVTeW5jUmVzcG9uc2UqdgoQQ3JlZGl0Tm90ZVN0YXR1cxIiCh5DUkVESVRfTk9URV9TVEFUVVNfVU5TUEVDSUZJRUQQABIcChhDUkVESVRfTk9URV9TVEFUVVNfRFJBRlQQARIgChxDUkVESVRfTk9URV9TVEFUVVNfRklOQUxJWkVEEAIqgAEKDENyZWRpdFN0YXR1cxIdChlDUkVESVRfU1RBVFVTX1VOU1BFQ0lGSUVEEAASGwoXQ1JFRElUX1NUQVRVU19BVkFJTEFCTEUQARIaChZDUkVESVRfU1RBVFVTX0NPTlNVTUVEEAISGAoUQ1JFRElUX1NUQVRVU19WT0lERUQQAyqnAgoQQ3JlZGl0Tm90ZVJlYXNvbhIiCh5DUkVESVRfTk9URV9SRUFTT05fVU5TUEVDSUZJRUQQABIoCiRDUkVESVRfTk9URV9SRUFTT05fRFVQTElDQVRFRF9DSEFSR0UQARItCilDUkVESVRfTk9URV9SRUFTT05fUFJPRFVDVF9VTlNBVElTRkFDVE9SWRACEiMKH0NSRURJVF9OT1RFX1JFQVNPTl9PUkRFUl9DSEFOR0UQAxIpCiVDUkVESVRfTk9URV9SRUFTT05fT1JERVJfQ0FOQ0VMTEFUSU9OEAQSKAokQ1JFRElUX05PVEVfUkVBU09OX0ZSQVVEVUxFTlRfQ0hBUkdFEAUSHAoYQ1JFRElUX05PVEVfUkVBU09OX09USEVSEAYyuA4KEUNyZWRpdE5vdGVTZXJ2aWNlErwBChBDcmVhdGVDcmVkaXROb3RlEiwudGFudm8uY3JlZGl0bm90ZS52MS5DcmVhdGVDcmVkaXROb3RlUmVxdWVzdBotLnRhbnZvLmNyZWRpdG5vdGUudjEuQ3JlYXRlQ3JlZGl0Tm90ZVJlc3BvbnNlIkvK8xgiChNjcmVkaXRfbm90ZXM6Y3JlYXRlKgtjcmVkaXRfbm90ZYLT5JMCHzoLY3JlZGl0X25vdGUiEC92MS9jcmVkaXRfbm90ZXMSwQEKEkVzdGltYXRlQ3JlZGl0Tm90ZRIuLnRhbnZvLmNyZWRpdG5vdGUudjEuRXN0aW1hdGVDcmVkaXROb3RlUmVxdWVzdBovLnRhbnZvLmNyZWRpdG5vdGUudjEuRXN0aW1hdGVDcmVkaXROb3RlUmVzcG9uc2UiSsrzGCIKE2NyZWRpdF9ub3RlczpjcmVhdGUqC2NyZWRpdF9ub3RlgtPkkwIeOgEqIhkvdjEvY3JlZGl0X25vdGVzOmVzdGltYXRlErgBCg1HZXRDcmVkaXROb3RlEikudGFudm8uY3JlZGl0bm90ZS52MS5HZXRDcmVkaXROb3RlUmVxdWVzdBoqLnRhbnZvLmNyZWRpdG5vdGUudjEuR2V0Q3JlZGl0Tm90ZVJlc3BvbnNlIlCQAgHK8xggChFjcmVkaXRfbm90ZXM6cmVhZCoLY3JlZGl0X25vdGWC0+STAiMSIS92MS9jcmVkaXRfbm90ZXMve2NyZWRpdF9ub3RlX2lkfRLZAQoPTGlzdENyZWRpdE5vdGVzEisudGFudm8uY3JlZGl0bm90ZS52MS5MaXN0Q3JlZGl0Tm90ZXNSZXF1ZXN0GiwudGFudm8uY3JlZGl0bm90ZS52MS5MaXN0Q3JlZGl0Tm90ZXNSZXNwb25zZSJrkAIByvMYIAoRY3JlZGl0X25vdGVzOnJlYWQqC2NyZWRpdF9ub3RlgtPkkwI+WioSKC92MS9jdXN0b21lcnMve2N1c3RvbWVyX2lkfS9jcmVkaXRfbm90ZXMSEC92MS9jcmVkaXRfbm90ZXMSzQEKEFVwZGF0ZUNyZWRpdE5vdGUSLC50YW52by5jcmVkaXRub3RlLnYxLlVwZGF0ZUNyZWRpdE5vdGVSZXF1ZXN0Gi0udGFudm8uY3JlZGl0bm90ZS52MS5VcGRhdGVDcmVkaXROb3RlUmVzcG9uc2UiXMrzGCIKE2NyZWRpdF9ub3Rlczp1cGRhdGUqC2NyZWRpdF9ub3RlgtPkkwIwOgtjcmVkaXRfbm90ZTIhL3YxL2NyZWRpdF9ub3Rlcy97Y3JlZGl0X25vdGUuaWR9EsABCg5Wb2lkQ3JlZGl0Tm90ZRIqLnRhbnZvLmNyZWRpdG5vdGUudjEuVm9pZENyZWRpdE5vdGVSZXF1ZXN0GisudGFudm8uY3JlZGl0bm90ZS52MS5Wb2lkQ3JlZGl0Tm90ZVJlc3BvbnNlIlXK8xggChFjcmVkaXRfbm90ZXM6dm9pZCoLY3JlZGl0X25vdGWC0+STAis6ASoiJi92MS9jcmVkaXRfbm90ZXMve2NyZWRpdF9ub3RlX2lkfTp2b2lkEtABChJEb3dubG9hZENyZWRpdE5vdGUSLi50YW52by5jcmVkaXRub3RlLnYxLkRvd25sb2FkQ3JlZGl0Tm90ZVJlcXVlc3QaLy50YW52by5jcmVkaXRub3RlLnYxLkRvd25sb2FkQ3JlZGl0Tm90ZVJlc3BvbnNlIlnK8xggChFjcmVkaXRfbm90ZXM6cmVhZCoLY3JlZGl0X25vdGWC0+STAi86ASoiKi92MS9jcmVkaXRfbm90ZXMve2NyZWRpdF9ub3RlX2lkfTpkb3dubG9hZBLIAQoQUmVzZW5kQ3JlZGl0Tm90ZRIsLnRhbnZvLmNyZWRpdG5vdGUudjEuUmVzZW5kQ3JlZGl0Tm90ZVJlcXVlc3QaLS50YW52by5jcmVkaXRub3RlLnYxLlJlc2VuZENyZWRpdE5vdGVSZXNwb25zZSJXyvMYIAoRY3JlZGl0X25vdGVzOnNlbmQqC2NyZWRpdF9ub3RlgtPkkwItOgEqIigvdjEvY3JlZGl0X25vdGVzL3tjcmVkaXRfbm90ZV9pZH06cmVzZW5kEtcBChNSZXRyeUNyZWRpdE5vdGVTeW5jEi8udGFudm8uY3JlZGl0bm90ZS52MS5SZXRyeUNyZWRpdE5vdGVTeW5jUmVxdWVzdBowLnRhbnZvLmNyZWRpdG5vdGUudjEuUmV0cnlDcmVkaXROb3RlU3luY1Jlc3BvbnNlIl3K8xgiChNjcmVkaXRfbm90ZXM6dXBkYXRlKgtjcmVkaXRfbm90ZYLT5JMCMToBKiIsL3YxL2NyZWRpdF9ub3Rlcy97Y3JlZGl0X25vdGVfaWR9OnJldHJ5X3N5bmNC5gEKF2NvbS50YW52by5jcmVkaXRub3RlLnYxQg9DcmVkaXROb3RlUHJvdG9QAVpMZ2l0aHViLmNvbS90YW52b3h5ei90YW52by9saWJzL3Byb3RvL2dlbi9nby90YW52by9jcmVkaXRub3RlL3YxO2NyZWRpdG5vdGV2MaICA1RDWKoCE1RhbnZvLkNyZWRpdG5vdGUuVjHKAhNUYW52b1xDcmVkaXRub3RlXFYx4gIfVGFudm9cQ3JlZGl0bm90ZVxWMVxHUEJNZXRhZGF0YeoCFVRhbnZvOjpDcmVkaXRub3RlOjpWMWIIZWRpdGlvbnNw6Ac", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_google_type_date, file_tanvo_common_v1_enums, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
+  fileDesc("CiV0YW52by9jcmVkaXRub3RlL3YxL2NyZWRpdF9ub3RlLnByb3RvEhN0YW52by5jcmVkaXRub3RlLnYxIooBCg9DcmVkaXROb3RlRXJyb3ISNgoEY29kZRgBIAEoDjIoLnRhbnZvLmNyZWRpdG5vdGUudjEuQ3JlZGl0Tm90ZUVycm9yQ29kZRIPCgdtZXNzYWdlGAIgASgJEi4KCmNyZWF0ZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wImwKDkNyZWRpdE5vdGVJdGVtEhwKBmZlZV9pZBgBIAEoCUIM4kEBArpIBXIDsAEBEh4KBmFtb3VudBgCIAEoCUIO4kEBArpIB3IF0KTKBgESHAoOcHJlY2lzZV9hbW91bnQYAyABKAlCBOJBAQMisQEKFENyZWRpdE5vdGVBcHBsaWVkVGF4Eg4KBnRheF9pZBgBIAEoCRIQCgh0YXhfY29kZRgCIAEoCRIQCgh0YXhfbmFtZRgDIAEoCRIQCgh0YXhfcmF0ZRgEIAEoCRIrCgtiYXNlX2Ftb3VudBgFIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRImCgZhbW91bnQYBiABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkikgwKCkNyZWRpdE5vdGUSEAoCaWQYASABKAlCBOJBAQgSIQoKaW52b2ljZV9pZBgCIAEoCUIN4kECAgW6SAVyA7ABARIZCgtjdXN0b21lcl9pZBgDIAEoCUIE4kEBAxIUCgZudW1iZXIYBCABKAlCBOJBAQMSOwoGc3RhdHVzGAUgASgOMiUudGFudm8uY3JlZGl0bm90ZS52MS5DcmVkaXROb3RlU3RhdHVzQgTiQQEDEj4KDWNyZWRpdF9zdGF0dXMYBiABKA4yIS50YW52by5jcmVkaXRub3RlLnYxLkNyZWRpdFN0YXR1c0IE4kEBAxI+Cg1yZWZ1bmRfc3RhdHVzGAcgASgOMh0udGFudm8uY29tbW9uLnYxLlJlZnVuZFN0YXR1c0IIukgFggECEAESRAoGcmVhc29uGAggASgOMiUudGFudm8uY3JlZGl0bm90ZS52MS5DcmVkaXROb3RlUmVhc29uQg3iQQICBbpIBYIBAhABEiEKC2Rlc2NyaXB0aW9uGAkgASgJQgziQQEFukgFcgMYgAgSMwoNY3JlZGl0X2Ftb3VudBgKIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leUIE4kEBBRIzCg1yZWZ1bmRfYW1vdW50GAsgASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5QgTiQQEFEjMKDW9mZnNldF9hbW91bnQYDCABKAsyFi50YW52by5jb21tb24udjEuTW9uZXlCBOJBAQUSNAoOYmFsYW5jZV9hbW91bnQYDSABKAsyFi50YW52by5jb21tb24udjEuTW9uZXlCBOJBAQMSRgogc3ViX3RvdGFsX2V4Y2x1ZGluZ190YXhlc19hbW91bnQYDiABKAsyFi50YW52by5jb21tb24udjEuTW9uZXlCBOJBAQMSPwoZY291cG9uc19hZGp1c3RtZW50X2Ftb3VudBgPIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leUIE4kEBAxIyCgx0YXhlc19hbW91bnQYECABKAsyFi50YW52by5jb21tb24udjEuTW9uZXlCBOJBAQMSGAoKdGF4ZXNfcmF0ZRgRIAEoCUIE4kEBAxIyCgx0b3RhbF9hbW91bnQYEiABKAsyFi50YW52by5jb21tb24udjEuTW9uZXlCBOJBAQMSQgoFaXRlbXMYEyADKAsyIy50YW52by5jcmVkaXRub3RlLnYxLkNyZWRpdE5vdGVJdGVtQg7iQQICBbpIBpIBAxDoBxJGCg1hcHBsaWVkX3RheGVzGBQgAygLMikudGFudm8uY3JlZGl0bm90ZS52MS5DcmVkaXROb3RlQXBwbGllZFRheEIE4kEBAxItCgxpc3N1aW5nX2RhdGUYFSABKAsyES5nb29nbGUudHlwZS5EYXRlQgTiQQEDEjkKCG1ldGFkYXRhGBYgAygLMh0udGFudm8uY29tbW9uLnYxLk1ldGFkYXRhSXRlbUIIukgFkgECEAUSHAoOZmlsZV9hdmFpbGFibGUYFyABKAhCBOJBAQMSIAoSeG1sX2ZpbGVfYXZhaWxhYmxlGBggASgIQgTiQQEDEjUKC3JlZnVuZGVkX2F0GBkgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAxIzCgl2b2lkZWRfYXQYGiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCmNyZWF0ZWRfYXQYGyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCnVwZGF0ZWRfYXQYHCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjoKBmVycm9ycxgdIAMoCzIkLnRhbnZvLmNyZWRpdG5vdGUudjEuQ3JlZGl0Tm90ZUVycm9yQgTiQQEDOk7qQUsKFHRhbnZvLnh5ei9DcmVkaXROb3RlEhpjcmVkaXRfbm90ZXMve2NyZWRpdF9ub3RlfSoLY3JlZGl0Tm90ZXMyCmNyZWRpdE5vdGUijAIKF0NyZWF0ZUNyZWRpdE5vdGVSZXF1ZXN0EkAKC2NyZWRpdF9ub3RlGAEgASgLMh8udGFudm8uY3JlZGl0bm90ZS52MS5DcmVkaXROb3RlQgriQQECukgDyAEBOq4BukiqARqnAQoUY3JlZGl0X25vdGUucmVxdWlyZWQSKWludm9pY2VfaWQsIHJlYXNvbiBhbmQgaXRlbXMgYXJlIHJlcXVpcmVkGmRoYXModGhpcy5jcmVkaXRfbm90ZS5pbnZvaWNlX2lkKSAmJiBoYXModGhpcy5jcmVkaXRfbm90ZS5yZWFzb24pICYmIHNpemUodGhpcy5jcmVkaXRfbm90ZS5pdGVtcykgPiAwIlAKGENyZWF0ZUNyZWRpdE5vdGVSZXNwb25zZRI0CgtjcmVkaXRfbm90ZRgBIAEoCzIfLnRhbnZvLmNyZWRpdG5vdGUudjEuQ3JlZGl0Tm90ZSKFAQoZRXN0aW1hdGVDcmVkaXROb3RlUmVxdWVzdBIjCgppbnZvaWNlX2lkGAEgASgJQg/iQQECukgIyAEBcgOwAQESQwoFaXRlbXMYAiADKAsyIy50YW52by5jcmVkaXRub3RlLnYxLkNyZWRpdE5vdGVJdGVtQg/iQQECukgIkgEFCAEQ6Aci+AEKGkVzdGltYXRlQ3JlZGl0Tm90ZVJlc3BvbnNlEjQKC2NyZWRpdF9ub3RlGAEgASgLMh8udGFudm8uY3JlZGl0bm90ZS52MS5DcmVkaXROb3RlEjUKFW1heF9jcmVkaXRhYmxlX2Ftb3VudBgCIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRI1ChVtYXhfcmVmdW5kYWJsZV9hbW91bnQYAyABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSNgoWbWF4X29mZnNldHRhYmxlX2Ftb3VudBgEIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leSI/ChRHZXRDcmVkaXROb3RlUmVxdWVzdBInCg5jcmVkaXRfbm90ZV9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBIk0KFUdldENyZWRpdE5vdGVSZXNwb25zZRI0CgtjcmVkaXRfbm90ZRgBIAEoCzIfLnRhbnZvLmNyZWRpdG5vdGUudjEuQ3JlZGl0Tm90ZSKqAQoWTGlzdENyZWRpdE5vdGVzUmVxdWVzdBIfCgtjdXN0b21lcl9pZBgBIAEoCUIKukgHcgXgpMoGARIdCglwYWdlX3NpemUYAiABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgDIAEoCUIIukgFcgMYgAgSGAoGZmlsdGVyGAQgASgJQgi6SAVyAxiAEBIYCgZzZWFyY2gYBSABKAlCCLpIBXIDGP8BImkKF0xpc3RDcmVkaXROb3Rlc1Jlc3BvbnNlEjUKDGNyZWRpdF9ub3RlcxgBIAMoCzIfLnRhbnZvLmNyZWRpdG5vdGUudjEuQ3JlZGl0Tm90ZRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAki2QEKF1VwZGF0ZUNyZWRpdE5vdGVSZXF1ZXN0EkAKC2NyZWRpdF9ub3RlGAEgASgLMh8udGFudm8uY3JlZGl0bm90ZS52MS5DcmVkaXROb3RlQgriQQECukgDyAEBEi8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzazpLukhIGkYKDmNyZWRpdF9ub3RlLmlkEhpjcmVkaXRfbm90ZS5pZCBpcyByZXF1aXJlZBoYaGFzKHRoaXMuY3JlZGl0X25vdGUuaWQpIlAKGFVwZGF0ZUNyZWRpdE5vdGVSZXNwb25zZRI0CgtjcmVkaXRfbm90ZRgBIAEoCzIfLnRhbnZvLmNyZWRpdG5vdGUudjEuQ3JlZGl0Tm90ZSJAChVWb2lkQ3JlZGl0Tm90ZVJlcXVlc3QSJwoOY3JlZGl0X25vdGVfaWQYASABKAlCD+JBAQK6SAjIAQFyA7ABASJOChZWb2lkQ3JlZGl0Tm90ZVJlc3BvbnNlEjQKC2NyZWRpdF9ub3RlGAEgASgLMh8udGFudm8uY3JlZGl0bm90ZS52MS5DcmVkaXROb3RlIkQKGURvd25sb2FkQ3JlZGl0Tm90ZVJlcXVlc3QSJwoOY3JlZGl0X25vdGVfaWQYASABKAlCD+JBAQK6SAjIAQFyA7ABASJsChpEb3dubG9hZENyZWRpdE5vdGVSZXNwb25zZRImCgNwZGYYASABKAsyGS50YW52by5jb21tb24udjEuRG9jdW1lbnQSJgoDeG1sGAIgASgLMhkudGFudm8uY29tbW9uLnYxLkRvY3VtZW50IpcBChdSZXNlbmRDcmVkaXROb3RlUmVxdWVzdBInCg5jcmVkaXRfbm90ZV9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBEhoKAnRvGAIgAygJQg66SAuSAQgQFCIEcgJgARIaCgJjYxgDIAMoCUIOukgLkgEIEBQiBHICYAESGwoDYmNjGAQgAygJQg66SAuSAQgQFCIEcgJgASIaChhSZXNlbmRDcmVkaXROb3RlUmVzcG9uc2UiRQoaUmV0cnlDcmVkaXROb3RlU3luY1JlcXVlc3QSJwoOY3JlZGl0X25vdGVfaWQYASABKAlCD+JBAQK6SAjIAQFyA7ABASIdChtSZXRyeUNyZWRpdE5vdGVTeW5jUmVzcG9uc2UiTQoiUmV0cnlDcmVkaXROb3RlVGF4UmVwb3J0aW5nUmVxdWVzdBInCg5jcmVkaXRfbm90ZV9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBIlsKI1JldHJ5Q3JlZGl0Tm90ZVRheFJlcG9ydGluZ1Jlc3BvbnNlEjQKC2NyZWRpdF9ub3RlGAEgASgLMh8udGFudm8uY3JlZGl0bm90ZS52MS5DcmVkaXROb3RlKmMKE0NyZWRpdE5vdGVFcnJvckNvZGUSJgoiQ1JFRElUX05PVEVfRVJST1JfQ09ERV9VTlNQRUNJRklFRBAAEiQKIENSRURJVF9OT1RFX0VSUk9SX0NPREVfVEFYX0VSUk9SEAEqdgoQQ3JlZGl0Tm90ZVN0YXR1cxIiCh5DUkVESVRfTk9URV9TVEFUVVNfVU5TUEVDSUZJRUQQABIcChhDUkVESVRfTk9URV9TVEFUVVNfRFJBRlQQARIgChxDUkVESVRfTk9URV9TVEFUVVNfRklOQUxJWkVEEAIqgAEKDENyZWRpdFN0YXR1cxIdChlDUkVESVRfU1RBVFVTX1VOU1BFQ0lGSUVEEAASGwoXQ1JFRElUX1NUQVRVU19BVkFJTEFCTEUQARIaChZDUkVESVRfU1RBVFVTX0NPTlNVTUVEEAISGAoUQ1JFRElUX1NUQVRVU19WT0lERUQQAyqnAgoQQ3JlZGl0Tm90ZVJlYXNvbhIiCh5DUkVESVRfTk9URV9SRUFTT05fVU5TUEVDSUZJRUQQABIoCiRDUkVESVRfTk9URV9SRUFTT05fRFVQTElDQVRFRF9DSEFSR0UQARItCilDUkVESVRfTk9URV9SRUFTT05fUFJPRFVDVF9VTlNBVElTRkFDVE9SWRACEiMKH0NSRURJVF9OT1RFX1JFQVNPTl9PUkRFUl9DSEFOR0UQAxIpCiVDUkVESVRfTk9URV9SRUFTT05fT1JERVJfQ0FOQ0VMTEFUSU9OEAQSKAokQ1JFRElUX05PVEVfUkVBU09OX0ZSQVVEVUxFTlRfQ0hBUkdFEAUSHAoYQ1JFRElUX05PVEVfUkVBU09OX09USEVSEAYysxAKEUNyZWRpdE5vdGVTZXJ2aWNlErwBChBDcmVhdGVDcmVkaXROb3RlEiwudGFudm8uY3JlZGl0bm90ZS52MS5DcmVhdGVDcmVkaXROb3RlUmVxdWVzdBotLnRhbnZvLmNyZWRpdG5vdGUudjEuQ3JlYXRlQ3JlZGl0Tm90ZVJlc3BvbnNlIkvK8xgiChNjcmVkaXRfbm90ZXM6Y3JlYXRlKgtjcmVkaXRfbm90ZYLT5JMCHzoLY3JlZGl0X25vdGUiEC92MS9jcmVkaXRfbm90ZXMSwQEKEkVzdGltYXRlQ3JlZGl0Tm90ZRIuLnRhbnZvLmNyZWRpdG5vdGUudjEuRXN0aW1hdGVDcmVkaXROb3RlUmVxdWVzdBovLnRhbnZvLmNyZWRpdG5vdGUudjEuRXN0aW1hdGVDcmVkaXROb3RlUmVzcG9uc2UiSsrzGCIKE2NyZWRpdF9ub3RlczpjcmVhdGUqC2NyZWRpdF9ub3RlgtPkkwIeOgEqIhkvdjEvY3JlZGl0X25vdGVzOmVzdGltYXRlErgBCg1HZXRDcmVkaXROb3RlEikudGFudm8uY3JlZGl0bm90ZS52MS5HZXRDcmVkaXROb3RlUmVxdWVzdBoqLnRhbnZvLmNyZWRpdG5vdGUudjEuR2V0Q3JlZGl0Tm90ZVJlc3BvbnNlIlCQAgHK8xggChFjcmVkaXRfbm90ZXM6cmVhZCoLY3JlZGl0X25vdGWC0+STAiMSIS92MS9jcmVkaXRfbm90ZXMve2NyZWRpdF9ub3RlX2lkfRLZAQoPTGlzdENyZWRpdE5vdGVzEisudGFudm8uY3JlZGl0bm90ZS52MS5MaXN0Q3JlZGl0Tm90ZXNSZXF1ZXN0GiwudGFudm8uY3JlZGl0bm90ZS52MS5MaXN0Q3JlZGl0Tm90ZXNSZXNwb25zZSJrkAIByvMYIAoRY3JlZGl0X25vdGVzOnJlYWQqC2NyZWRpdF9ub3RlgtPkkwI+WioSKC92MS9jdXN0b21lcnMve2N1c3RvbWVyX2lkfS9jcmVkaXRfbm90ZXMSEC92MS9jcmVkaXRfbm90ZXMSzQEKEFVwZGF0ZUNyZWRpdE5vdGUSLC50YW52by5jcmVkaXRub3RlLnYxLlVwZGF0ZUNyZWRpdE5vdGVSZXF1ZXN0Gi0udGFudm8uY3JlZGl0bm90ZS52MS5VcGRhdGVDcmVkaXROb3RlUmVzcG9uc2UiXMrzGCIKE2NyZWRpdF9ub3Rlczp1cGRhdGUqC2NyZWRpdF9ub3RlgtPkkwIwOgtjcmVkaXRfbm90ZTIhL3YxL2NyZWRpdF9ub3Rlcy97Y3JlZGl0X25vdGUuaWR9EsABCg5Wb2lkQ3JlZGl0Tm90ZRIqLnRhbnZvLmNyZWRpdG5vdGUudjEuVm9pZENyZWRpdE5vdGVSZXF1ZXN0GisudGFudm8uY3JlZGl0bm90ZS52MS5Wb2lkQ3JlZGl0Tm90ZVJlc3BvbnNlIlXK8xggChFjcmVkaXRfbm90ZXM6dm9pZCoLY3JlZGl0X25vdGWC0+STAis6ASoiJi92MS9jcmVkaXRfbm90ZXMve2NyZWRpdF9ub3RlX2lkfTp2b2lkEtABChJEb3dubG9hZENyZWRpdE5vdGUSLi50YW52by5jcmVkaXRub3RlLnYxLkRvd25sb2FkQ3JlZGl0Tm90ZVJlcXVlc3QaLy50YW52by5jcmVkaXRub3RlLnYxLkRvd25sb2FkQ3JlZGl0Tm90ZVJlc3BvbnNlIlnK8xggChFjcmVkaXRfbm90ZXM6cmVhZCoLY3JlZGl0X25vdGWC0+STAi86ASoiKi92MS9jcmVkaXRfbm90ZXMve2NyZWRpdF9ub3RlX2lkfTpkb3dubG9hZBLIAQoQUmVzZW5kQ3JlZGl0Tm90ZRIsLnRhbnZvLmNyZWRpdG5vdGUudjEuUmVzZW5kQ3JlZGl0Tm90ZVJlcXVlc3QaLS50YW52by5jcmVkaXRub3RlLnYxLlJlc2VuZENyZWRpdE5vdGVSZXNwb25zZSJXyvMYIAoRY3JlZGl0X25vdGVzOnNlbmQqC2NyZWRpdF9ub3RlgtPkkwItOgEqIigvdjEvY3JlZGl0X25vdGVzL3tjcmVkaXRfbm90ZV9pZH06cmVzZW5kEtcBChNSZXRyeUNyZWRpdE5vdGVTeW5jEi8udGFudm8uY3JlZGl0bm90ZS52MS5SZXRyeUNyZWRpdE5vdGVTeW5jUmVxdWVzdBowLnRhbnZvLmNyZWRpdG5vdGUudjEuUmV0cnlDcmVkaXROb3RlU3luY1Jlc3BvbnNlIl3K8xgiChNjcmVkaXRfbm90ZXM6dXBkYXRlKgtjcmVkaXRfbm90ZYLT5JMCMToBKiIsL3YxL2NyZWRpdF9ub3Rlcy97Y3JlZGl0X25vdGVfaWR9OnJldHJ5X3N5bmMS+AEKG1JldHJ5Q3JlZGl0Tm90ZVRheFJlcG9ydGluZxI3LnRhbnZvLmNyZWRpdG5vdGUudjEuUmV0cnlDcmVkaXROb3RlVGF4UmVwb3J0aW5nUmVxdWVzdBo4LnRhbnZvLmNyZWRpdG5vdGUudjEuUmV0cnlDcmVkaXROb3RlVGF4UmVwb3J0aW5nUmVzcG9uc2UiZsrzGCIKE2NyZWRpdF9ub3Rlczp1cGRhdGUqC2NyZWRpdF9ub3RlgtPkkwI6OgEqIjUvdjEvY3JlZGl0X25vdGVzL3tjcmVkaXRfbm90ZV9pZH06cmV0cnlfdGF4X3JlcG9ydGluZ0LmAQoXY29tLnRhbnZvLmNyZWRpdG5vdGUudjFCD0NyZWRpdE5vdGVQcm90b1ABWkxnaXRodWIuY29tL3RhbnZveHl6L3RhbnZvL2xpYnMvcHJvdG8vZ2VuL2dvL3RhbnZvL2NyZWRpdG5vdGUvdjE7Y3JlZGl0bm90ZXYxogIDVENYqgITVGFudm8uQ3JlZGl0bm90ZS5WMcoCE1RhbnZvXENyZWRpdG5vdGVcVjHiAh9UYW52b1xDcmVkaXRub3RlXFYxXEdQQk1ldGFkYXRh6gIVVGFudm86OkNyZWRpdG5vdGU6OlYxYghlZGl0aW9uc3DoBw", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_google_type_date, file_tanvo_common_v1_enums, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
+
+/**
+ * CreditNoteError is an error recorded on a credit note.
+ *
+ * @generated from message tanvo.creditnote.v1.CreditNoteError
+ */
+export type CreditNoteError = Message<"tanvo.creditnote.v1.CreditNoteError"> & {
+  /**
+   * The kind of error.
+   *
+   * @generated from field: tanvo.creditnote.v1.CreditNoteErrorCode code = 1;
+   */
+  code: CreditNoteErrorCode;
+
+  /**
+   * The provider's details, as JSON.
+   *
+   * @generated from field: string message = 2;
+   */
+  message: string;
+
+  /**
+   * When it happened.
+   *
+   * @generated from field: google.protobuf.Timestamp created_at = 3;
+   */
+  createdAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message tanvo.creditnote.v1.CreditNoteError.
+ * Use `create(CreditNoteErrorSchema)` to create a new message.
+ */
+export const CreditNoteErrorSchema: GenMessage<CreditNoteError> = /*@__PURE__*/
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 0);
 
 /**
  * CreditNoteItem is the amount credited on one invoice fee.
@@ -64,7 +99,7 @@ export type CreditNoteItem = Message<"tanvo.creditnote.v1.CreditNoteItem"> & {
  * Use `create(CreditNoteItemSchema)` to create a new message.
  */
 export const CreditNoteItemSchema: GenMessage<CreditNoteItem> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 0);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 1);
 
 /**
  * CreditNoteAppliedTax is a tax of a credit note.
@@ -120,7 +155,7 @@ export type CreditNoteAppliedTax = Message<"tanvo.creditnote.v1.CreditNoteApplie
  * Use `create(CreditNoteAppliedTaxSchema)` to create a new message.
  */
 export const CreditNoteAppliedTaxSchema: GenMessage<CreditNoteAppliedTax> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 1);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 2);
 
 /**
  * CreditNote is an amount credited, refunded or offset against an invoice.
@@ -323,6 +358,13 @@ export type CreditNote = Message<"tanvo.creditnote.v1.CreditNote"> & {
    * @generated from field: google.protobuf.Timestamp updated_at = 28;
    */
   updatedAt?: Timestamp | undefined;
+
+  /**
+   * The errors recorded on the credit note.
+   *
+   * @generated from field: repeated tanvo.creditnote.v1.CreditNoteError errors = 29;
+   */
+  errors: CreditNoteError[];
 };
 
 /**
@@ -330,7 +372,7 @@ export type CreditNote = Message<"tanvo.creditnote.v1.CreditNote"> & {
  * Use `create(CreditNoteSchema)` to create a new message.
  */
 export const CreditNoteSchema: GenMessage<CreditNote> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 2);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 3);
 
 /**
  * CreateCreditNoteRequest is the request of CreditNoteService.CreateCreditNote.
@@ -351,7 +393,7 @@ export type CreateCreditNoteRequest = Message<"tanvo.creditnote.v1.CreateCreditN
  * Use `create(CreateCreditNoteRequestSchema)` to create a new message.
  */
 export const CreateCreditNoteRequestSchema: GenMessage<CreateCreditNoteRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 3);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 4);
 
 /**
  * CreateCreditNoteResponse is the response of CreditNoteService.CreateCreditNote.
@@ -372,7 +414,7 @@ export type CreateCreditNoteResponse = Message<"tanvo.creditnote.v1.CreateCredit
  * Use `create(CreateCreditNoteResponseSchema)` to create a new message.
  */
 export const CreateCreditNoteResponseSchema: GenMessage<CreateCreditNoteResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 4);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 5);
 
 /**
  * EstimateCreditNoteRequest is the request of CreditNoteService.EstimateCreditNote.
@@ -400,7 +442,7 @@ export type EstimateCreditNoteRequest = Message<"tanvo.creditnote.v1.EstimateCre
  * Use `create(EstimateCreditNoteRequestSchema)` to create a new message.
  */
 export const EstimateCreditNoteRequestSchema: GenMessage<EstimateCreditNoteRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 5);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 6);
 
 /**
  * EstimateCreditNoteResponse is the response of CreditNoteService.EstimateCreditNote.
@@ -442,7 +484,7 @@ export type EstimateCreditNoteResponse = Message<"tanvo.creditnote.v1.EstimateCr
  * Use `create(EstimateCreditNoteResponseSchema)` to create a new message.
  */
 export const EstimateCreditNoteResponseSchema: GenMessage<EstimateCreditNoteResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 6);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 7);
 
 /**
  * GetCreditNoteRequest is the request of CreditNoteService.GetCreditNote.
@@ -463,7 +505,7 @@ export type GetCreditNoteRequest = Message<"tanvo.creditnote.v1.GetCreditNoteReq
  * Use `create(GetCreditNoteRequestSchema)` to create a new message.
  */
 export const GetCreditNoteRequestSchema: GenMessage<GetCreditNoteRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 7);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 8);
 
 /**
  * GetCreditNoteResponse is the response of CreditNoteService.GetCreditNote.
@@ -484,7 +526,7 @@ export type GetCreditNoteResponse = Message<"tanvo.creditnote.v1.GetCreditNoteRe
  * Use `create(GetCreditNoteResponseSchema)` to create a new message.
  */
 export const GetCreditNoteResponseSchema: GenMessage<GetCreditNoteResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 8);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 9);
 
 /**
  * ListCreditNotesRequest is the request of CreditNoteService.ListCreditNotes.
@@ -535,7 +577,7 @@ export type ListCreditNotesRequest = Message<"tanvo.creditnote.v1.ListCreditNote
  * Use `create(ListCreditNotesRequestSchema)` to create a new message.
  */
 export const ListCreditNotesRequestSchema: GenMessage<ListCreditNotesRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 9);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 10);
 
 /**
  * ListCreditNotesResponse is the response of CreditNoteService.ListCreditNotes.
@@ -563,7 +605,7 @@ export type ListCreditNotesResponse = Message<"tanvo.creditnote.v1.ListCreditNot
  * Use `create(ListCreditNotesResponseSchema)` to create a new message.
  */
 export const ListCreditNotesResponseSchema: GenMessage<ListCreditNotesResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 10);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 11);
 
 /**
  * UpdateCreditNoteRequest is the request of CreditNoteService.UpdateCreditNote.
@@ -591,7 +633,7 @@ export type UpdateCreditNoteRequest = Message<"tanvo.creditnote.v1.UpdateCreditN
  * Use `create(UpdateCreditNoteRequestSchema)` to create a new message.
  */
 export const UpdateCreditNoteRequestSchema: GenMessage<UpdateCreditNoteRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 11);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 12);
 
 /**
  * UpdateCreditNoteResponse is the response of CreditNoteService.UpdateCreditNote.
@@ -612,7 +654,7 @@ export type UpdateCreditNoteResponse = Message<"tanvo.creditnote.v1.UpdateCredit
  * Use `create(UpdateCreditNoteResponseSchema)` to create a new message.
  */
 export const UpdateCreditNoteResponseSchema: GenMessage<UpdateCreditNoteResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 12);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 13);
 
 /**
  * VoidCreditNoteRequest is the request of CreditNoteService.VoidCreditNote.
@@ -633,7 +675,7 @@ export type VoidCreditNoteRequest = Message<"tanvo.creditnote.v1.VoidCreditNoteR
  * Use `create(VoidCreditNoteRequestSchema)` to create a new message.
  */
 export const VoidCreditNoteRequestSchema: GenMessage<VoidCreditNoteRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 13);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 14);
 
 /**
  * VoidCreditNoteResponse is the response of CreditNoteService.VoidCreditNote.
@@ -654,7 +696,7 @@ export type VoidCreditNoteResponse = Message<"tanvo.creditnote.v1.VoidCreditNote
  * Use `create(VoidCreditNoteResponseSchema)` to create a new message.
  */
 export const VoidCreditNoteResponseSchema: GenMessage<VoidCreditNoteResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 14);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 15);
 
 /**
  * DownloadCreditNoteRequest is the request of CreditNoteService.DownloadCreditNote.
@@ -675,7 +717,7 @@ export type DownloadCreditNoteRequest = Message<"tanvo.creditnote.v1.DownloadCre
  * Use `create(DownloadCreditNoteRequestSchema)` to create a new message.
  */
 export const DownloadCreditNoteRequestSchema: GenMessage<DownloadCreditNoteRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 15);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 16);
 
 /**
  * DownloadCreditNoteResponse is the response of CreditNoteService.DownloadCreditNote.
@@ -703,7 +745,7 @@ export type DownloadCreditNoteResponse = Message<"tanvo.creditnote.v1.DownloadCr
  * Use `create(DownloadCreditNoteResponseSchema)` to create a new message.
  */
 export const DownloadCreditNoteResponseSchema: GenMessage<DownloadCreditNoteResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 16);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 17);
 
 /**
  * ResendCreditNoteRequest is the request of CreditNoteService.ResendCreditNote.
@@ -745,7 +787,7 @@ export type ResendCreditNoteRequest = Message<"tanvo.creditnote.v1.ResendCreditN
  * Use `create(ResendCreditNoteRequestSchema)` to create a new message.
  */
 export const ResendCreditNoteRequestSchema: GenMessage<ResendCreditNoteRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 17);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 18);
 
 /**
  * ResendCreditNoteResponse is the response of CreditNoteService.ResendCreditNote.
@@ -760,7 +802,7 @@ export type ResendCreditNoteResponse = Message<"tanvo.creditnote.v1.ResendCredit
  * Use `create(ResendCreditNoteResponseSchema)` to create a new message.
  */
 export const ResendCreditNoteResponseSchema: GenMessage<ResendCreditNoteResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 18);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 19);
 
 /**
  * RetryCreditNoteSyncRequest is the request of CreditNoteService.RetryCreditNoteSync.
@@ -781,7 +823,7 @@ export type RetryCreditNoteSyncRequest = Message<"tanvo.creditnote.v1.RetryCredi
  * Use `create(RetryCreditNoteSyncRequestSchema)` to create a new message.
  */
 export const RetryCreditNoteSyncRequestSchema: GenMessage<RetryCreditNoteSyncRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 19);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 20);
 
 /**
  * RetryCreditNoteSyncResponse is the response of CreditNoteService.RetryCreditNoteSync.
@@ -796,7 +838,76 @@ export type RetryCreditNoteSyncResponse = Message<"tanvo.creditnote.v1.RetryCred
  * Use `create(RetryCreditNoteSyncResponseSchema)` to create a new message.
  */
 export const RetryCreditNoteSyncResponseSchema: GenMessage<RetryCreditNoteSyncResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_creditnote_v1_credit_note, 20);
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 21);
+
+/**
+ * RetryCreditNoteTaxReportingRequest is the request of CreditNoteService.RetryCreditNoteTaxReporting.
+ *
+ * @generated from message tanvo.creditnote.v1.RetryCreditNoteTaxReportingRequest
+ */
+export type RetryCreditNoteTaxReportingRequest = Message<"tanvo.creditnote.v1.RetryCreditNoteTaxReportingRequest"> & {
+  /**
+   * The credit note's ID.
+   *
+   * @generated from field: string credit_note_id = 1;
+   */
+  creditNoteId: string;
+};
+
+/**
+ * Describes the message tanvo.creditnote.v1.RetryCreditNoteTaxReportingRequest.
+ * Use `create(RetryCreditNoteTaxReportingRequestSchema)` to create a new message.
+ */
+export const RetryCreditNoteTaxReportingRequestSchema: GenMessage<RetryCreditNoteTaxReportingRequest> = /*@__PURE__*/
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 22);
+
+/**
+ * RetryCreditNoteTaxReportingResponse is the response of CreditNoteService.RetryCreditNoteTaxReporting.
+ *
+ * @generated from message tanvo.creditnote.v1.RetryCreditNoteTaxReportingResponse
+ */
+export type RetryCreditNoteTaxReportingResponse = Message<"tanvo.creditnote.v1.RetryCreditNoteTaxReportingResponse"> & {
+  /**
+   * The credit note.
+   *
+   * @generated from field: tanvo.creditnote.v1.CreditNote credit_note = 1;
+   */
+  creditNote?: CreditNote | undefined;
+};
+
+/**
+ * Describes the message tanvo.creditnote.v1.RetryCreditNoteTaxReportingResponse.
+ * Use `create(RetryCreditNoteTaxReportingResponseSchema)` to create a new message.
+ */
+export const RetryCreditNoteTaxReportingResponseSchema: GenMessage<RetryCreditNoteTaxReportingResponse> = /*@__PURE__*/
+  messageDesc(file_tanvo_creditnote_v1_credit_note, 23);
+
+/**
+ * CreditNoteErrorCode is the kind of an error recorded on a credit note.
+ *
+ * @generated from enum tanvo.creditnote.v1.CreditNoteErrorCode
+ */
+export enum CreditNoteErrorCode {
+  /**
+   * Not set.
+   *
+   * @generated from enum value: CREDIT_NOTE_ERROR_CODE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * The tax provider refused the credit note's report.
+   *
+   * @generated from enum value: CREDIT_NOTE_ERROR_CODE_TAX_ERROR = 1;
+   */
+  TAX_ERROR = 1,
+}
+
+/**
+ * Describes the enum tanvo.creditnote.v1.CreditNoteErrorCode.
+ */
+export const CreditNoteErrorCodeSchema: GenEnum<CreditNoteErrorCode> = /*@__PURE__*/
+  enumDesc(file_tanvo_creditnote_v1_credit_note, 0);
 
 /**
  * CreditNoteStatus is the state of a credit note.
@@ -830,7 +941,7 @@ export enum CreditNoteStatus {
  * Describes the enum tanvo.creditnote.v1.CreditNoteStatus.
  */
 export const CreditNoteStatusSchema: GenEnum<CreditNoteStatus> = /*@__PURE__*/
-  enumDesc(file_tanvo_creditnote_v1_credit_note, 0);
+  enumDesc(file_tanvo_creditnote_v1_credit_note, 1);
 
 /**
  * CreditStatus is the state of a credit note's credit amount.
@@ -871,7 +982,7 @@ export enum CreditStatus {
  * Describes the enum tanvo.creditnote.v1.CreditStatus.
  */
 export const CreditStatusSchema: GenEnum<CreditStatus> = /*@__PURE__*/
-  enumDesc(file_tanvo_creditnote_v1_credit_note, 1);
+  enumDesc(file_tanvo_creditnote_v1_credit_note, 2);
 
 /**
  * CreditNoteReason is why a credit note was issued.
@@ -933,7 +1044,7 @@ export enum CreditNoteReason {
  * Describes the enum tanvo.creditnote.v1.CreditNoteReason.
  */
 export const CreditNoteReasonSchema: GenEnum<CreditNoteReason> = /*@__PURE__*/
-  enumDesc(file_tanvo_creditnote_v1_credit_note, 2);
+  enumDesc(file_tanvo_creditnote_v1_credit_note, 3);
 
 /**
  * CreditNoteService manages credit notes.
@@ -1033,6 +1144,17 @@ export const CreditNoteService: GenService<{
     methodKind: "unary";
     input: typeof RetryCreditNoteSyncRequestSchema;
     output: typeof RetryCreditNoteSyncResponseSchema;
+  },
+  /**
+   * Reports a credit note to the customer's tax provider again; a refusal
+   * is kept in the credit note's errors.
+   *
+   * @generated from rpc tanvo.creditnote.v1.CreditNoteService.RetryCreditNoteTaxReporting
+   */
+  retryCreditNoteTaxReporting: {
+    methodKind: "unary";
+    input: typeof RetryCreditNoteTaxReportingRequestSchema;
+    output: typeof RetryCreditNoteTaxReportingResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_tanvo_creditnote_v1_credit_note, 0);

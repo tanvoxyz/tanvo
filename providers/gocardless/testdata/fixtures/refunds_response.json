@@ -1,0 +1,19 @@
+{
+  "refunds": {
+    "id": "re_123456",
+    "created_at": "2026-05-07T10:00:00.000Z",
+    "amount": 134,
+    "currency": "chf",
+    "status": "paid",
+    "reference": "TANVO-R1",
+    "metadata": {
+      "tanvo_credit_note_id": "0199a000-0000-7000-8000-000000000006",
+      "tanvo_invoice_id": "0199a000-0000-7000-8000-000000000003",
+      "reason": "other"
+    },
+    "links": {
+      "payment": "PM123",
+      "mandate": "MD123"
+    }
+  }
+}

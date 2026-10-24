@@ -50,10 +50,6 @@ const (
 	// CodeOnlyOneConnectionAllowed: a second payment connection was
 	// asked for (payment_provider_customers/create_or_update_batch_service.rb:24-29).
 	CodeOnlyOneConnectionAllowed = "only_one_connection_allowed"
-	// CodePartnerAccount: integration connections were asked for a
-	// partner account, which has none
-	// (integration_customers/create_or_update_batch_service.rb:16).
-	CodePartnerAccount = "partner_account"
 )
 
 // ErrCheckoutUnavailable is returned by [Service.CheckoutURL] once its
@@ -475,6 +471,18 @@ func (s *Service) write(ctx context.Context, r port.Repos, org core.Organization
 	if err := s.applyVIES(ctx, r, c, vies); err != nil {
 		return nil, err
 	}
+	if !created {
+		if err := pushToProviders(ctx, r, c); err != nil {
+			return nil, err
+		}
+	}
+	// The customer portal's updates push nothing
+	// (customer_portal/customer_update_service.rb).
+	if !created && !in.quiet {
+		if err := pushToIntegrations(ctx, r, c); err != nil {
+			return nil, err
+		}
+	}
 	if in.quiet {
 		return c, nil
 	}
@@ -725,4 +733,46 @@ func (s *Service) logActivity(ctx context.Context, r port.Repos, t auditlog.Acti
 		Type: t, OrganizationID: c.OrganizationID, ResourceType: auditlog.ResourceCustomer, ResourceID: c.ID.UUID(),
 		Object: c, Before: before, ExternalCustomerID: c.ExternalID,
 	})
+}
+
+// pushToProviders enqueues the push of an updated customer to its
+// provider customers.
+//
+// source: app/services/customers/upsert_from_api_service.rb:281-296
+func pushToProviders(ctx context.Context, r port.Repos, c *customer.Customer) error {
+	pcs, err := r.PaymentProviderCustomers.ListByCustomer(ctx, c.OrganizationID, c.ID)
+	if err != nil {
+		return fmt.Errorf("list payment connections: %w", err)
+	}
+	for _, pc := range pcs {
+		if err := kernel.EnqueueCustomerPush(ctx, r, pc); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// pushToIntegrations enqueues the update of an updated customer's record at
+// each provider it is linked to with an external ID (Anrok and Salesforce
+// keep none). Lago updates them whenever an update carries the customer's
+// integration customers, which its dashboard always sends; Tanvo's
+// connections are their own resource, so every update pushes.
+//
+// source: app/services/customers/update_service.rb:210-214,
+// app/services/integration_customers/update_service.rb:10-31
+func pushToIntegrations(ctx context.Context, r port.Repos, c *customer.Customer) error {
+	links, err := r.IntegrationCustomers.ListByCustomer(ctx, c.OrganizationID, c.ID, "")
+	if err != nil {
+		return fmt.Errorf("list integration connections: %w", err)
+	}
+	for _, ic := range links {
+		integ, err := r.Integrations.Get(ctx, c.OrganizationID, ic.IntegrationID)
+		if err != nil {
+			return fmt.Errorf("load integration %s: %w", ic.IntegrationID, err)
+		}
+		if err := kernel.EnqueueContactSync(ctx, r, c, integ, ic, false); err != nil {
+			return err
+		}
+	}
+	return nil
 }

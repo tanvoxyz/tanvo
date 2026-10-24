@@ -19,6 +19,19 @@ use (
 	./libs/store
 	./libs/tax
 	./libs/webhooks
+	./providers/adyen
+	./providers/anrok
+	./providers/apiclient
+	./providers/avalara
+	./providers/cashfree
+	./providers/flutterwave
+	./providers/gocardless
+	./providers/hubspot
+	./providers/moneyhash
+	./providers/netsuite
+	./providers/salesforce
 	./providers/stripe
 	./providers/x402
+	./providers/xero
+	./tools/speccov
 )

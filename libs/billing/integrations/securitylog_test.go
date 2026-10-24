@@ -45,6 +45,7 @@ func TestSecurityLog(t *testing.T) {
 	t.Run("create, update and delete", func(t *testing.T) {
 		// source: spec/services/integrations/xero/update_service_spec.rb:64
 		// source: spec/graphql/mutations/integrations/destroy_spec.rb:41
+		// source: spec/services/integrations/destroy_service_spec.rb:22
 		l, svc, org := newLogged(t)
 		i, err := svc.Create(ctx, org, integrations.Input{
 			Code: "xero1", Name: "Xero 1", Provider: integration.ProviderXero, SyncInvoices: true,

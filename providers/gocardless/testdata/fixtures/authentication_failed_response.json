@@ -1,0 +1,15 @@
+{
+  "error": {
+    "message": "Authentication failed",
+    "documentation_url": "https://developer.gocardless.com/api-reference#access_token_not_found",
+    "type": "invalid_api_usage",
+    "request_id": "REQ_AUTH",
+    "errors": [
+      {
+        "reason": "access_token_not_found",
+        "message": "Authentication failed"
+      }
+    ],
+    "code": 401
+  }
+}

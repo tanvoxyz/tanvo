@@ -340,8 +340,8 @@ Each provider is a Go module implementing ports of `libs/core`:
 | Port | Providers |
 | :--- | :--- |
 | `PaymentProvider` (customers, payment methods, checkout, charges, refunds, webhooks) | Stripe, Adyen, GoCardless, Cashfree, Flutterwave, Moneyhash |
-| `TaxProvider` (quotes, commits, voids) | Anrok, Avalara |
-| `AccountingSync` / `CRMSync` (customers, invoices, credit notes, payments, mappings) | NetSuite, Xero, Salesforce, HubSpot |
+| `integration.TaxGateway` (quotes, reports, voids, negations, refunds) | Anrok, Avalara |
+| `integration.AccountingGateway` / `CRMGateway` (contacts, items, invoices, credit notes, payments, CRM records) | NetSuite, Xero, HubSpot; Salesforce (connection only) |
 | `IdentityProvider` (OIDC) | Google, Okta, Entra ID, generic OIDC |
 | `x402.Facilitators` (verify, settle, supported) and `x402.ChainReaders` (EVM and Solana JSON-RPC) | Coinbase CDP (`providers/x402`) |
 
@@ -356,6 +356,18 @@ Integrations call the vendors' APIs directly; Tanvo does not depend on an integr
 * Errors are `*payment.ProviderError` with a `payment.ErrorKind` and a class, `payment.ErrRejected` (final: card declined, invalid request, not found) or `payment.ErrRetryable` (rate limits, outages, conflicts; the caller's job retries with the same key); `payment.ErrAuthentication` marks a connection whose credentials fail. Errors of the adapter itself (missing country, no payment method) pass through unclassified.
 * Adapters keep provider objects out of the domain: results carry the provider's status, the mapped `payment.State` and, for `requires_action`, the next-action URL. Webhook events carry `payment.Refs` read from the metadata (`tanvo_*` keys); resolving them against records is apps/server's.
 * Each adapter rate-limits per connection, and instruments its HTTP client with the injected OTel providers (spans carry the organization and integration IDs; metrics do not).
+
+### 12.2 Tax, accounting and CRM integrations
+
+`port.IntegrationProviders` is a `port.IntegrationProviderSet` keyed by vendor. Every adapter is an `integration.Gateway` (vendor, connection validation) and implements the gateway of its category: `TaxGateway` (Anrok, Avalara: quotes, reports, voids, negations and refunds of tax transactions, Avalara's company lookup), `AccountingGateway` (NetSuite, Xero: contacts, items and accounts, invoices, credit notes and payments; NetSuite's subsidiaries through `SubsidiaryLister`) or `CRMGateway` (HubSpot: the custom objects and properties, companies or contacts, invoice and subscription records and their associations). Salesforce's adapter only validates the connection: the Salesforce package reads Tanvo's API. `OAuthGateway` connects Xero, HubSpot and GoCardless's payment connections by OAuth 2.0 with the installation's applications (§13.5).
+
+* `libs/billing/integrations` orchestrates them. Credentials are sealed with the installation's secret box (`auth.SecretBox`) and never returned, except the webhook secrets Tanvo generates for GoCardless and Flutterwave. `StartOAuth` keeps a random state and the redirect URI with the connection's secrets until `CompleteOAuth` exchanges the code; the adapters store refreshed grants at once through the service (`integration.ConnectionStore`).
+* A connection queues its follow-up jobs in its transaction: items fetched for accounting, objects deployed and the account saved for HubSpot, the webhook endpoint registered for payment providers.
+* The syncs are queued with the webhooks that start them: `integrations.Service.Triggers` wraps the webhook emitter of the billing and payments services, so `invoice.created`, `credit_note.created`, `subscription.started` and the others queue the provider's sync in the same transaction. Every synced record is an `integration.Resource` (the provider's ID per invoice, credit note, payment or subscription).
+* `integrations.Taxes` is the billing engine's `kernel.TaxProvider`: drafts and previews are quoted (Anrok's answers kept in an in-process cache), finalized invoices and credit notes reported, voided invoices voided or negated.
+* Each job kind has the retry rules of its lago job (`integrations.RetryRules`: request limits, provider failures, timeouts after which NetSuite is searched before the record is created again, incomplete documents); other errors fail the job and deliver `integration.provider_error` or the customer error webhooks.
+* Errors are `*integration.ProviderError` with an `integration.ErrorKind`; `ErrRequestLimit` and `ErrRetryable` classify what is retried, `ErrAuthentication` a connection whose credentials fail. The API answers a provider's refusal with FailedPrecondition and the provider's code, and an operation the provider lacks with Unimplemented.
+* The adapters share `providers/apiclient`: one HTTP client per vendor, a rate limiter per connection (per tenant for Xero) that waits rather than fails, and the injected OTel providers.
 
 ---
 
@@ -443,6 +455,15 @@ Settings are `TANVO_*` environment variables over an optional TOML file (`--conf
 | `TANVO_WEBHOOKS_ALLOW_PRIVATE` | `false` | Let deliveries reach private addresses and plain HTTP |
 | `TANVO_OIDC_ALLOW_PRIVATE` | `false` | Let OIDC providers be reached at private addresses and over plain HTTP (dev mode) |
 | `TANVO_WEBHOOKS_TIMEOUT` | `30s` | Bound on one delivery attempt |
+| `TANVO_API_URL` | | Public API URL; payment providers deliver their webhooks to `TANVO_API_URL/webhooks/{provider}/{connection_id}`, registered at the provider when a connection is created; unset registers none |
+| `TANVO_GOCARDLESS_CLIENT_ID` | | Client ID of the GoCardless partner application merchants connect to by OAuth; unset, GoCardless cannot be connected |
+| `TANVO_GOCARDLESS_CLIENT_SECRET` | | Its client secret |
+| `TANVO_GOCARDLESS_SANDBOX` | `false` | Connect merchants through the GoCardless sandbox |
+| `TANVO_XERO_CLIENT_ID` | | Client ID of the Xero app merchants connect their organizations to by OAuth; unset, Xero cannot be connected |
+| `TANVO_XERO_CLIENT_SECRET` | | Its client secret |
+| `TANVO_HUBSPOT_CLIENT_ID` | | Client ID of the HubSpot app merchants connect their portals to by OAuth; unset, HubSpot cannot be connected |
+| `TANVO_HUBSPOT_CLIENT_SECRET` | | Its client secret |
+| `TANVO_ANROK_DRAFT_TAXES_CACHE_TTL` | `24h` | How long Anrok's taxes of a draft invoice are kept for the same request; `0` turns the cache off |
 | `TANVO_APP_URL` | | Web console URL used in email links |
 | `TANVO_MAIL_FROM` | | Sender address; required with `TANVO_SMTP_HOST` |
 | `TANVO_SMTP_HOST` | | SMTP server; empty logs and drops emails |

@@ -17,7 +17,11 @@ import (
 // Api::V1::CreditNotesController#show).
 func (s *Service) Get(ctx context.Context, org core.OrganizationID, id core.CreditNoteID) (*creditnote.CreditNote, error) {
 	return inTx(ctx, s.d.Tx, func(ctx context.Context, r port.Repos) (*creditnote.CreditNote, error) {
-		return get(ctx, r, org, id, false)
+		cn, err := get(ctx, r, org, id, false)
+		if err != nil {
+			return nil, err
+		}
+		return cn, withErrors(ctx, r, org, cn)
 	})
 }
 
@@ -31,7 +35,7 @@ func (s *Service) List(ctx context.Context, org core.OrganizationID, f creditnot
 		if err != nil {
 			return core.Page[*creditnote.CreditNote]{}, fmt.Errorf("list credit notes: %w", err)
 		}
-		return p, nil
+		return p, withErrors(ctx, r, org, p.Items...)
 	})
 }
 

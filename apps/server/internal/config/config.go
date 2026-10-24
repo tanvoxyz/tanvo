@@ -189,6 +189,10 @@ type Config struct {
 	// computations of one clock run are spread over (lago
 	// LAGO_DAILY_USAGE_SCHEDULING_JITTER_SECONDS); 0 is 30 minutes.
 	DailyUsageSchedulingJitter time.Duration `koanf:"daily_usage_scheduling_jitter"`
+	// AnrokDraftTaxesCacheTTL keeps Anrok's taxes of a draft invoice for
+	// the same payload (lago LAGO_ANROK_DRAFT_TAXES_CACHE_TTL_SECONDS, a
+	// day by default); 0 turns the cache off.
+	AnrokDraftTaxesCacheTTL time.Duration `koanf:"anrok_draft_taxes_cache_ttl"`
 
 	// IngestMode is the default ingestion mode, postgres or kafka.
 	IngestMode string `koanf:"ingest_mode"`
@@ -246,6 +250,33 @@ type Config struct {
 
 	// AppURL is the web console URL used in email links.
 	AppURL string `koanf:"app_url"`
+	// APIURL is the public URL of the API (lago LAGO_API_URL); payment
+	// providers deliver their webhooks to APIURL +
+	// "/webhooks/{provider}/{connection_id}". Unset registers no provider
+	// webhook endpoint.
+	APIURL string `koanf:"api_url"`
+	// GoCardlessClientID and GoCardlessClientSecret identify the
+	// installation's GoCardless partner application, which merchants
+	// connect their accounts to by OAuth (lago GOCARDLESS_CLIENT_ID and
+	// GOCARDLESS_CLIENT_SECRET); unset, GoCardless cannot be connected.
+	GoCardlessClientID string `koanf:"gocardless_client_id"`
+	// GoCardlessClientSecret is the application's secret.
+	GoCardlessClientSecret string `koanf:"gocardless_client_secret"`
+	// GoCardlessSandbox connects merchants through GoCardless' sandbox
+	// (lago picks it by the Rails environment, gocardless_provider.rb:16-22).
+	GoCardlessSandbox bool `koanf:"gocardless_sandbox"`
+	// XeroClientID and XeroClientSecret identify the installation's Xero
+	// app, which merchants connect their organizations to by OAuth (the
+	// app Nango holds for lago); unset, Xero cannot be connected.
+	XeroClientID string `koanf:"xero_client_id"`
+	// XeroClientSecret is the app's secret.
+	XeroClientSecret string `koanf:"xero_client_secret"`
+	// HubSpotClientID and HubSpotClientSecret identify the installation's
+	// HubSpot app, which merchants connect their portals to by OAuth;
+	// unset, HubSpot cannot be connected.
+	HubSpotClientID string `koanf:"hubspot_client_id"`
+	// HubSpotClientSecret is the app's secret.
+	HubSpotClientSecret string `koanf:"hubspot_client_secret"`
 	// MailFrom is the instance's sender address.
 	MailFrom string `koanf:"mail_from"`
 	// SMTPHost is the SMTP server; empty disables sending (emails are
@@ -319,6 +350,7 @@ func Defaults() Config {
 		SMTPSecurity:             string(mail.SecuritySTARTTLS),
 
 		SubscriptionTerminationAlertDays: []int{15, 45},
+		AnrokDraftTaxesCacheTTL:          24 * time.Hour,
 	}
 }
 
@@ -462,6 +494,9 @@ func (c Config) Validate() error {
 	if c.DailyUsageSchedulingJitter < 0 {
 		bad("daily_usage_scheduling_jitter", "must not be negative")
 	}
+	if c.AnrokDraftTaxesCacheTTL < 0 {
+		bad("anrok_draft_taxes_cache_ttl", "must not be negative")
+	}
 	if c.DatabaseURL == "" {
 		bad("database_url", "required")
 	} else if u, err := url.Parse(c.DatabaseURL); err != nil || (u.Scheme != "postgres" && u.Scheme != "postgresql") {
@@ -534,10 +569,24 @@ func (c Config) Validate() error {
 	if c.WebhooksTimeout < 0 {
 		bad("webhooks_timeout", "must not be negative")
 	}
+	if c.APIURL != "" {
+		if u, err := url.Parse(c.APIURL); err != nil || u.Scheme == "" || u.Host == "" {
+			bad("api_url", "want an absolute URL")
+		}
+	}
 	if c.AppURL != "" {
 		if u, err := url.Parse(c.AppURL); err != nil || u.Scheme == "" || u.Host == "" {
 			bad("app_url", "want an absolute URL")
 		}
+	}
+	if (c.GoCardlessClientID == "") != (c.GoCardlessClientSecret == "") {
+		bad("gocardless_client_id", "set with %sGOCARDLESS_CLIENT_SECRET, or neither", EnvPrefix)
+	}
+	if (c.XeroClientID == "") != (c.XeroClientSecret == "") {
+		bad("xero_client_id", "set with %sXERO_CLIENT_SECRET, or neither", EnvPrefix)
+	}
+	if (c.HubSpotClientID == "") != (c.HubSpotClientSecret == "") {
+		bad("hubspot_client_id", "set with %sHUBSPOT_CLIENT_SECRET, or neither", EnvPrefix)
 	}
 	if (c.GoogleAuthClientID == "") != (c.GoogleAuthClientSecret == "") {
 		bad("google_auth_client_id", "set with %sGOOGLE_AUTH_CLIENT_SECRET, or neither", EnvPrefix)

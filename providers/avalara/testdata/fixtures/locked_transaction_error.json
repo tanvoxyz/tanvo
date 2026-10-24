@@ -1,0 +1,15 @@
+{
+  "error": {
+    "code": "CannotModifyLockedTransaction",
+    "target": "IncorrectData",
+    "message": "This transaction is locked and cannot be modified.",
+    "details": [
+      {
+        "code": "CannotModifyLockedTransaction",
+        "number": 304,
+        "message": "This transaction is locked and cannot be modified.",
+        "severity": "Error"
+      }
+    ]
+  }
+}

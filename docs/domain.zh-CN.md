@@ -1317,12 +1317,12 @@ stateDiagram-v2
 登录会路由到其方式下、跨组织声明了邮箱域名（不区分大小写）的连接；主域名优先于附加域名，其次取最早的连接。同一方式下一个域名至多被一个连接声明。
 
 ### 17.2 集成客户
-`integration_id`、`customer_id`、`external_customer_id`、`subsidiary_id?`、`sync_with_provider bool`、`is_default`。客户至多有一个税务集成客户；其他类别允许多个连接，其中一个为默认。发出 `customer.<category>_provider_created` / `_error`。
+`integration_id`、`customer_id`、`external_customer_id`、`subsidiary_id?`、`sync_with_provider bool`、`is_default`。客户至多有一个税务集成客户；其他类别允许多个连接，其中一个为默认，每个提供者至多一个（`customer_id` `value_already_exist`）。多个客户可链接同一个外部客户。HubSpot 连接还保存 `targeted_object`（companies 或 contacts）与联系人的 `email`。发出 `customer.<category>_provider_created` / `_error`。
 
 ### 17.3 映射
 * `IntegrationMapping`：把附加项或计费指标映射到外部条目 {`external_id`、`external_account_code`、`external_name`}，可选按计费主体区分。
 * `IntegrationCollectionMapping`：每个 `CollectionMappingType` 一条映射（可选按计费主体区分）。NetSuite 的集合映射另外带有 `tax_nexus`、`tax_type`、`tax_code`；`currencies` 把币种代码映射为外部代码。
-* 解析：对象自身的映射 → 其类型的集合映射 → `fallback_item`；缺少映射时同步失败并发出 `integration.provider_error`。
+* 解析（附加项或计量指标，或集合类型）：文档所属开票主体的映射 → 该主体的 `fallback_item` → 不限开票主体的映射 → 不限开票主体的 `fallback_item`。`tax` 不使用 `fallback_item`。未映射的条目以空值发送，服务商拒绝后同步失败，并发出服务商错误 webhook。
 * `IntegrationItem` 缓存外部目录（`item_type ∈ {standard, tax, account}`）。
 * `IntegrationResource` 记录每个已同步对象 {`resource_type`、`external_id`}，使同步幂等。
 

@@ -156,6 +156,8 @@ type Repos struct {
 
 	// CreditNotes stores credit notes with items and taxes (domain §13).
 	CreditNotes creditnote.Repository
+	// CreditNoteErrorDetails stores credit note error details.
+	CreditNoteErrorDetails creditnote.ErrorDetailRepository
 
 	// Wallets stores wallets (domain §14.1).
 	Wallets wallet.Repository

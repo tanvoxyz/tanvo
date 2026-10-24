@@ -2,6 +2,7 @@ package porttest
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -141,6 +142,49 @@ func testCreditNote(t *testing.T, h Harness) {
 	t.Run("organization isolation", func(t *testing.T) {
 		t.Parallel()
 		testCreditNoteIsolation(t, h)
+	})
+	t.Run("error details", func(t *testing.T) {
+		t.Parallel()
+		testCreditNoteErrorDetails(t, h)
+	})
+}
+
+func testCreditNoteErrorDetails(t *testing.T, h Harness) {
+	e := newEnv(t, h)
+	_, be := e.org("Acme")
+	p := creditNoteFixtureParents(e, be)
+	draft := creditNoteFixtureMinimal(e, p, now)
+	final := creditNoteFixtureFull(e, p, "CN-0001")
+	mk := func(cn core.CreditNoteID, created time.Time) *creditnote.ErrorDetail {
+		return &creditnote.ErrorDetail{
+			ID: core.NewID[core.ErrorDetailID](e.ids), OrganizationID: p.org, CreditNoteID: cn, Code: creditnote.ErrorCodeTaxError,
+			Details: json.RawMessage(`{"tax_error": "validationError"}`), CreatedAt: created,
+		}
+	}
+	first, second, other := mk(final.ID, now), mk(final.ID, at(time.Minute)), mk(draft.ID, now)
+	e.tx(func(ctx context.Context, r port.Repos) error {
+		noErr(t, "CreditNotes.Create()", r.CreditNotes.Create(ctx, draft))
+		noErr(t, "CreditNotes.Create()", r.CreditNotes.Create(ctx, final))
+		for _, d := range []*creditnote.ErrorDetail{first, second, other} {
+			noErr(t, "Create()", r.CreditNoteErrorDetails.Create(ctx, d))
+		}
+		wantErr(t, "Create() same ID", r.CreditNoteErrorDetails.Create(ctx, first), core.ErrConflict)
+		got, err := r.CreditNoteErrorDetails.ListByCreditNotes(ctx, p.org, []core.CreditNoteID{final.ID})
+		noErr(t, "ListByCreditNotes()", err)
+		equal(t, "ListByCreditNotes()", got, []*creditnote.ErrorDetail{first, second})
+		got, err = r.CreditNoteErrorDetails.ListByCreditNotes(ctx, p.org, []core.CreditNoteID{final.ID, draft.ID})
+		noErr(t, "ListByCreditNotes() two notes", err)
+		equal(t, "ListByCreditNotes() two notes", len(got), 3)
+		noErr(t, "DeleteByCreditNote()", r.CreditNoteErrorDetails.DeleteByCreditNote(ctx, p.org, final.ID, creditnote.ErrorCodeTaxError))
+		got, err = r.CreditNoteErrorDetails.ListByCreditNotes(ctx, p.org, []core.CreditNoteID{final.ID})
+		noErr(t, "ListByCreditNotes() deleted", err)
+		equal(t, "ListByCreditNotes() deleted", len(got), 0)
+		// They go with their credit note.
+		noErr(t, "CreditNotes.Delete()", r.CreditNotes.Delete(ctx, p.org, draft.ID))
+		got, err = r.CreditNoteErrorDetails.ListByCreditNotes(ctx, p.org, []core.CreditNoteID{draft.ID})
+		noErr(t, "ListByCreditNotes() of a deleted note", err)
+		equal(t, "ListByCreditNotes() of a deleted note", len(got), 0)
+		return nil
 	})
 }
 

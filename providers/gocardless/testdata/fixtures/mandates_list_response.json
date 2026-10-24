@@ -1,0 +1,39 @@
+{
+  "mandates": [
+    {
+      "id": "MD123",
+      "created_at": "2026-05-01T09:00:00.000Z",
+      "reference": "TANVO-M1",
+      "status": "active",
+      "scheme": "bacs",
+      "next_possible_charge_date": "2026-05-12",
+      "payments_require_approval": false,
+      "metadata": {},
+      "links": {
+        "customer_bank_account": "BA123",
+        "creditor": "CR123",
+        "customer": "CU123"
+      }
+    },
+    {
+      "id": "MD100",
+      "created_at": "2026-04-01T09:00:00.000Z",
+      "reference": "TANVO-M0",
+      "status": "pending_submission",
+      "scheme": "sepa_core",
+      "metadata": {},
+      "links": {
+        "customer_bank_account": "BA100",
+        "creditor": "CR123",
+        "customer": "CU123"
+      }
+    }
+  ],
+  "meta": {
+    "cursors": {
+      "before": null,
+      "after": null
+    },
+    "limit": 50
+  }
+}

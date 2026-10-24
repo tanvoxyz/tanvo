@@ -1,0 +1,62 @@
+{
+  "id": 123456789,
+  "code": "0199a000-0000-7000-8000-0000000000aa",
+  "companyId": 12345,
+  "date": "2024-03-07",
+  "status": "Committed",
+  "type": "SalesInvoice",
+  "currencyCode": "USD",
+  "totalAmount": 4.0,
+  "totalTax": 0.2,
+  "lines": [
+    {
+      "id": 1001,
+      "lineNumber": "fee-1",
+      "itemCode": "m1",
+      "lineAmount": 2.0,
+      "quantity": 0.0,
+      "tax": 0.2,
+      "taxableAmount": 2.0,
+      "details": [
+        {
+          "jurisName": "WASHINGTON",
+          "taxName": "WA STATE TAX",
+          "taxType": "Sales",
+          "rate": 0.065,
+          "tax": 0.13,
+          "taxableAmount": 2.0
+        },
+        {
+          "jurisName": "SEATTLE",
+          "taxName": "WA CITY TAX",
+          "taxType": "Sales",
+          "rate": 0.035,
+          "tax": 0.07,
+          "taxableAmount": 2.0
+        }
+      ]
+    },
+    {
+      "id": 1002,
+      "lineNumber": "fee-2",
+      "itemCode": "1",
+      "lineAmount": 2.0,
+      "quantity": 0.0,
+      "tax": 0.0,
+      "taxableAmount": 0.0,
+      "exemptAmount": 2.0,
+      "details": [
+        {
+          "jurisName": "WASHINGTON",
+          "taxName": "WA STATE TAX",
+          "taxType": "Sales",
+          "rate": 0.0,
+          "tax": 0.0,
+          "taxableAmount": 0.0,
+          "exemptAmount": 2.0
+        }
+      ]
+    }
+  ],
+  "messages": []
+}

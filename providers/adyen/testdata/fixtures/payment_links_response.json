@@ -1,0 +1,16 @@
+{
+  "amount": {
+    "currency": "EUR",
+    "value": 0
+  },
+  "expiresAt": "2023-05-19T10:00:19+02:00",
+  "merchantAccount": "TanvoTest",
+  "recurringProcessingModel": "UnscheduledCardOnFile",
+  "reference": "authorization customer cus_ext_1",
+  "reusable": false,
+  "shopperReference": "cus_ext_1",
+  "storePaymentMethodMode": "enabled",
+  "id": "PL6A7C2B3F1E4D5A6B",
+  "status": "active",
+  "url": "https://test.adyen.link/test"
+}

@@ -59,6 +59,15 @@ type Repository interface {
 	GetByProviderPaymentID(ctx context.Context, org core.OrganizationID, integration core.IntegrationID, providerPaymentID string) (*Payment, error)
 	// ListByPayable returns the payments of a payable, oldest first.
 	ListByPayable(ctx context.Context, org core.OrganizationID, payable Payable) ([]*Payment, error)
+	// ListAbandoned returns the provider payments of invoices of org
+	// processing while the provider waits for the customer's action
+	// ([ProviderStatusRequiresAction]), last changed between from and to
+	// included ([AbandonedRange]), oldest first.
+	ListAbandoned(ctx context.Context, org core.OrganizationID, from, to time.Time) ([]*Payment, error)
+	// Delete removes a payment never sent to its provider (one settled by
+	// another path while being created); a missing payment is
+	// [core.ErrNotFound].
+	Delete(ctx context.Context, org core.OrganizationID, id core.PaymentID) error
 	// List returns a page of the payments of org matching f, in f.Order.
 	List(ctx context.Context, org core.OrganizationID, f Filter, page core.PageRequest) (core.Page[*Payment], error)
 }
@@ -198,6 +207,11 @@ type IntentRepository interface {
 	// ListAwaitingExpiration returns the active links of org past their
 	// validity at now.
 	ListAwaitingExpiration(ctx context.Context, org core.OrganizationID, now time.Time) ([]*Intent, error)
+	// ListActive returns the active links of org, oldest first.
+	ListActive(ctx context.Context, org core.OrganizationID) ([]*Intent, error)
+	// Exists reports whether org ever created a link (lago
+	// Invoices::Payments::CreateService#defer_for_checkout_organization?).
+	Exists(ctx context.Context, org core.OrganizationID) (bool, error)
 }
 
 // InboundWebhookRepository stores inbound provider webhooks.

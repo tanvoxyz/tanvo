@@ -42,7 +42,7 @@ CREATE POLICY tenant_isolation ON integrations
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
 
 -- The link of a customer to its record in an accounting, tax or CRM
--- integration. An external customer id is linked once per integration; a
+-- integration. Several customers may link the same external customer; a
 -- customer has one tax link and one default link per category.
 CREATE TABLE integration_customers (
   organization_id uuid NOT NULL,
@@ -64,7 +64,7 @@ CREATE TABLE integration_customers (
   CONSTRAINT integration_customers_category_check CHECK (category IN ('payment', 'accounting', 'tax', 'crm', 'auth'))
 );
 
-CREATE UNIQUE INDEX integration_customers_external_customer_id_key ON integration_customers (organization_id, integration_id, external_customer_id) WHERE external_customer_id <> '';
+CREATE INDEX integration_customers_external_customer_idx ON integration_customers (organization_id, integration_id, external_customer_id) WHERE external_customer_id <> '';
 CREATE UNIQUE INDEX integration_customers_tax_key ON integration_customers (organization_id, customer_id) WHERE category = 'tax';
 CREATE UNIQUE INDEX integration_customers_default_key ON integration_customers (organization_id, customer_id, category) WHERE is_default;
 CREATE INDEX integration_customers_customer_idx ON integration_customers (organization_id, customer_id, id);

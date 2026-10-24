@@ -382,9 +382,13 @@ func testIntegration(t *testing.T, h Harness) {
 			wantErr(t, "Update() through another organization", r.IntegrationCustomers.Update(ctx, &moved), core.ErrNotFound)
 			wantErr(t, "Delete() from another organization", r.IntegrationCustomers.Delete(ctx, other, l1.ID), core.ErrNotFound)
 
-			// Uniqueness: external id per integration, one tax link, one
-			// default per category.
-			wantErr(t, "Create() with a linked external id", r.IntegrationCustomers.Create(ctx, link(ns, c2, "ns-1")), core.ErrConflict)
+			// Uniqueness: one tax link, one default per category; an
+			// external id may be linked by several customers.
+			shared := link(xero, c2, "xero-1")
+			noErr(t, "Create() with a linked external id", r.IntegrationCustomers.Create(ctx, shared))
+			got, err = r.IntegrationCustomers.GetByExternalID(ctx, org, xero.ID, "xero-1")
+			noErr(t, "GetByExternalID() of a shared external id", err)
+			equal(t, "GetByExternalID() of a shared external id", got.ID, l4.ID)
 			wantErr(t, "Create() of a second tax link", r.IntegrationCustomers.Create(ctx, link(avalara, c1, "ava-1")), core.ErrConflict)
 			dflt := link(xero, c2, "xero-2")
 			dflt.IsDefault = true
@@ -393,11 +397,6 @@ func testIntegration(t *testing.T, h Harness) {
 			blank.SyncWithProvider = true
 			noErr(t, "Create() of a second link without external id", r.IntegrationCustomers.Create(ctx, blank))
 			noErr(t, "Create() of a tax link of another customer", r.IntegrationCustomers.Create(ctx, link(avalara, c2, "ava-2")))
-			l4.ExternalCustomerID = "ns-1"
-			l4.IntegrationID = ns.ID
-			wantErr(t, "Update() to a linked external id", r.IntegrationCustomers.Update(ctx, l4), core.ErrConflict)
-			l4.IntegrationID = xero.ID
-			l4.ExternalCustomerID = "xero-1"
 			l4.IsDefault = true
 			wantErr(t, "Update() to a second default", r.IntegrationCustomers.Update(ctx, l4), core.ErrConflict)
 
@@ -629,6 +628,7 @@ func testIntegration(t *testing.T, h Harness) {
 			// (source: app/queries/integration_items_query.rb:10).
 			equal(t, "List()", all, []*integration.Item{i1, i2, i4, i3})
 
+			// source: spec/models/integration_item_spec.rb:15
 			// Upsert of a cached (integration, type, external id) replaces
 			// it and keeps its id and creation instant.
 			again := item(ns, integration.ItemTypeStandard, "SKU-100", ptr("Consulting"))

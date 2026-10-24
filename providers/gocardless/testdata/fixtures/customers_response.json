@@ -1,0 +1,12 @@
+{
+  "customers": {
+    "id": "CU123",
+    "created_at": "2026-05-07T10:00:00.000Z",
+    "email": "billing@acme.example",
+    "given_name": "Ada",
+    "family_name": "Lovelace",
+    "company_name": "Acme",
+    "language": "en",
+    "metadata": {}
+  }
+}

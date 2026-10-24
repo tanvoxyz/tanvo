@@ -36,14 +36,14 @@ INSERT INTO billing_entities (
   organization_id, id, code, name, legal_name, legal_number, tax_id, email, phone,
   address_line1, address_line2, address_city, address_state, address_zipcode, address_country,
   logo, timezone, default_currency, document_locale, document_numbering, document_number_prefix,
-  invoice_footer, invoice_grace_period_days, net_payment_term_days, finalize_zero_amount_invoice,
+  invoice_footer, invoice_grace_period_days, net_payment_term_days, finalize_zero_amount_invoice, skip_credit_invoice_payment_delay,
   issuing_date_anchor, issuing_date_adjustment, email_settings, eu_tax_management, einvoicing,
   is_default, applied_dunning_campaign_id, archived_at, created_at, updated_at
 ) VALUES (
   @organization_id, @id, @code, @name, @legal_name, @legal_number, @tax_id, @email, @phone,
   @address_line1, @address_line2, @address_city, @address_state, @address_zipcode, @address_country,
   @logo, @timezone, @default_currency, @document_locale, @document_numbering, @document_number_prefix,
-  @invoice_footer, @invoice_grace_period_days, @net_payment_term_days, @finalize_zero_amount_invoice,
+  @invoice_footer, @invoice_grace_period_days, @net_payment_term_days, @finalize_zero_amount_invoice, @skip_credit_invoice_payment_delay,
   @issuing_date_anchor, @issuing_date_adjustment, @email_settings, @eu_tax_management, @einvoicing,
   @is_default, @applied_dunning_campaign_id, @archived_at, @created_at, @updated_at
 )
@@ -59,6 +59,7 @@ UPDATE billing_entities SET
   document_numbering = @document_numbering, document_number_prefix = @document_number_prefix,
   invoice_footer = @invoice_footer, invoice_grace_period_days = @invoice_grace_period_days,
   net_payment_term_days = @net_payment_term_days, finalize_zero_amount_invoice = @finalize_zero_amount_invoice,
+  skip_credit_invoice_payment_delay = @skip_credit_invoice_payment_delay,
   issuing_date_anchor = @issuing_date_anchor, issuing_date_adjustment = @issuing_date_adjustment,
   email_settings = @email_settings, eu_tax_management = @eu_tax_management, einvoicing = @einvoicing,
   is_default = @is_default, applied_dunning_campaign_id = @applied_dunning_campaign_id,

@@ -1,0 +1,11 @@
+{
+  "title": "the Xero integration",
+  "files": [
+    "services/integrations/aggregator/contacts/payloads/xero_spec.rb",
+    "services/integrations/aggregator/credit_notes/payloads/xero_spec.rb",
+    "services/integrations/aggregator/invoices/payloads/xero_spec.rb",
+    "services/integrations/aggregator/payments/payloads/xero_spec.rb"
+  ],
+  "reasons": {},
+  "skipped": {}
+}

@@ -450,9 +450,9 @@ func (s *Service) DownloadForCustomer(ctx context.Context, org core.Organization
 // Invoices::Payments::GeneratePaymentUrlService): without a provider it
 // fails with [CodeNoLinkedPaymentProvider], through GoCardless with
 // [CodeInvalidPaymentProvider], for a draft, voided or paid invoice with
-// [CodeInvalidInvoiceStatusOrPaymentStatus] (all on base). The payment
-// intent itself needs a provider adapter: it fails with
-// [ErrPaymentURLUnavailable].
+// [CodeInvalidInvoiceStatusOrPaymentStatus] (all on base). The link is
+// then made by the [PaymentURLGenerator] of [Service.WithPaymentURLs];
+// without one it fails with [ErrPaymentURLUnavailable].
 func (s *Service) PaymentURL(ctx context.Context, org core.OrganizationID, id core.InvoiceID) (string, error) {
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
 		inv, err := visibleInvoice(ctx, r, org, id)
@@ -481,5 +481,8 @@ func (s *Service) PaymentURL(ctx context.Context, org core.OrganizationID, id co
 	if err != nil {
 		return "", err
 	}
-	return "", ErrPaymentURLUnavailable
+	if s.paymentURLs == nil {
+		return "", ErrPaymentURLUnavailable
+	}
+	return s.paymentURLs.InvoicePaymentURL(ctx, org, id)
 }

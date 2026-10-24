@@ -1,0 +1,9 @@
+{
+  "paymentMethods": [
+    {
+      "brands": ["visa"],
+      "name": "Credit Card",
+      "type": "scheme"
+    }
+  ]
+}

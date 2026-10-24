@@ -126,7 +126,7 @@ func (g *Gateway) CreatePayment(ctx context.Context, conn payment.Connection, p 
 		if err != nil {
 			pe := providerError(classify(err))
 			if pe != nil && pe.Kind == payment.KindAuthenticationRequired {
-				pe.RetryOnSession = c.settings.Supports3DS || p.ActivatesSubscription
+				pe.RetryOnSession = bool(c.settings.Supports3DS) || p.ActivatesSubscription
 				return pe
 			}
 			return err

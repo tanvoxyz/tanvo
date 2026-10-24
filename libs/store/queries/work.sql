@@ -122,3 +122,20 @@ JOIN customers c ON c.id = i.customer_id
 WHERE i.payment_overdue AND NOT i.self_billed
   AND NOT c.exclude_from_dunning_campaign AND c.deleted_at IS NULL
 ORDER BY i.organization_id;
+
+-- name: ListOrganizationsWithInboundWebhooks :many
+SELECT DISTINCT organization_id FROM inbound_webhooks
+WHERE status <> 'succeeded' AND created_at >= @since::timestamptz
+ORDER BY organization_id;
+
+-- name: ListOrganizationsWithExpiredInboundWebhooks :many
+SELECT DISTINCT organization_id FROM inbound_webhooks
+WHERE updated_at <= @cutoff::timestamptz
+ORDER BY organization_id;
+
+-- name: ListOrganizationsWithAbandonedPayments :many
+SELECT DISTINCT organization_id FROM payments
+WHERE payment_kind = 'provider' AND payable_type = 'invoice' AND status = 'processing'
+  AND provider_status = 'requires_action'
+  AND updated_at BETWEEN @from_at::timestamptz AND @to_at::timestamptz
+ORDER BY organization_id;
