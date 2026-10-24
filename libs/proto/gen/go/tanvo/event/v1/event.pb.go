@@ -89,6 +89,7 @@ type Event struct {
 	xxx_hidden_Timestamp              *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=timestamp"`
 	xxx_hidden_Properties             *structpb.Struct       `protobuf:"bytes,6,opt,name=properties"`
 	xxx_hidden_PreciseTotalAmount     *string                `protobuf:"bytes,7,opt,name=precise_total_amount,json=preciseTotalAmount"`
+	xxx_hidden_TargetWalletCode       *string                `protobuf:"bytes,8,opt,name=target_wallet_code,json=targetWalletCode"`
 	xxx_hidden_UserAgent              *string                `protobuf:"bytes,10,opt,name=user_agent,json=userAgent"`
 	xxx_hidden_IpAddress              *string                `protobuf:"bytes,11,opt,name=ip_address,json=ipAddress"`
 	xxx_hidden_CreatedAt              *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt"`
@@ -187,6 +188,16 @@ func (x *Event) GetPreciseTotalAmount() string {
 	return ""
 }
 
+func (x *Event) GetTargetWalletCode() string {
+	if x != nil {
+		if x.xxx_hidden_TargetWalletCode != nil {
+			return *x.xxx_hidden_TargetWalletCode
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *Event) GetUserAgent() string {
 	if x != nil {
 		if x.xxx_hidden_UserAgent != nil {
@@ -216,22 +227,22 @@ func (x *Event) GetCreatedAt() *timestamppb.Timestamp {
 
 func (x *Event) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 11)
 }
 
 func (x *Event) SetTransactionId(v string) {
 	x.xxx_hidden_TransactionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 11)
 }
 
 func (x *Event) SetExternalSubscriptionId(v string) {
 	x.xxx_hidden_ExternalSubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 11)
 }
 
 func (x *Event) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 11)
 }
 
 func (x *Event) SetTimestamp(v *timestamppb.Timestamp) {
@@ -244,17 +255,22 @@ func (x *Event) SetProperties(v *structpb.Struct) {
 
 func (x *Event) SetPreciseTotalAmount(v string) {
 	x.xxx_hidden_PreciseTotalAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 11)
+}
+
+func (x *Event) SetTargetWalletCode(v string) {
+	x.xxx_hidden_TargetWalletCode = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 11)
 }
 
 func (x *Event) SetUserAgent(v string) {
 	x.xxx_hidden_UserAgent = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 11)
 }
 
 func (x *Event) SetIpAddress(v string) {
 	x.xxx_hidden_IpAddress = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 11)
 }
 
 func (x *Event) SetCreatedAt(v *timestamppb.Timestamp) {
@@ -310,18 +326,25 @@ func (x *Event) HasPreciseTotalAmount() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
 }
 
-func (x *Event) HasUserAgent() bool {
+func (x *Event) HasTargetWalletCode() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
 }
 
-func (x *Event) HasIpAddress() bool {
+func (x *Event) HasUserAgent() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
+}
+
+func (x *Event) HasIpAddress() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
 }
 
 func (x *Event) HasCreatedAt() bool {
@@ -364,13 +387,18 @@ func (x *Event) ClearPreciseTotalAmount() {
 	x.xxx_hidden_PreciseTotalAmount = nil
 }
 
-func (x *Event) ClearUserAgent() {
+func (x *Event) ClearTargetWalletCode() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_TargetWalletCode = nil
+}
+
+func (x *Event) ClearUserAgent() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
 	x.xxx_hidden_UserAgent = nil
 }
 
 func (x *Event) ClearIpAddress() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
 	x.xxx_hidden_IpAddress = nil
 }
 
@@ -396,6 +424,10 @@ type Event_builder struct {
 	Properties *structpb.Struct
 	// The amount of a dynamic charge, as a decimal.
 	PreciseTotalAmount *string
+	// The code of the wallet that pays the event's usage on charges that
+	// accept a target wallet: the `target_wallet_code` property, which is
+	// where an event names it.
+	TargetWalletCode *string
 	// The User-Agent of the ingestion request.
 	UserAgent *string
 	// The client IP of the ingestion request.
@@ -409,33 +441,37 @@ func (b0 Event_builder) Build() *Event {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 11)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.TransactionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 11)
 		x.xxx_hidden_TransactionId = b.TransactionId
 	}
 	if b.ExternalSubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 11)
 		x.xxx_hidden_ExternalSubscriptionId = b.ExternalSubscriptionId
 	}
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 11)
 		x.xxx_hidden_Code = b.Code
 	}
 	x.xxx_hidden_Timestamp = b.Timestamp
 	x.xxx_hidden_Properties = b.Properties
 	if b.PreciseTotalAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 11)
 		x.xxx_hidden_PreciseTotalAmount = b.PreciseTotalAmount
 	}
+	if b.TargetWalletCode != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 11)
+		x.xxx_hidden_TargetWalletCode = b.TargetWalletCode
+	}
 	if b.UserAgent != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 11)
 		x.xxx_hidden_UserAgent = b.UserAgent
 	}
 	if b.IpAddress != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 11)
 		x.xxx_hidden_IpAddress = b.IpAddress
 	}
 	x.xxx_hidden_CreatedAt = b.CreatedAt
@@ -458,6 +494,7 @@ type EnrichedEvent struct {
 	xxx_hidden_PreciseTotalAmount *string                `protobuf:"bytes,11,opt,name=precise_total_amount,json=preciseTotalAmount"`
 	xxx_hidden_Operation          EnrichedOperation      `protobuf:"varint,12,opt,name=operation,enum=tanvo.event.v1.EnrichedOperation"`
 	xxx_hidden_EnrichedAt         *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=enriched_at,json=enrichedAt"`
+	xxx_hidden_TargetWalletCode   *string                `protobuf:"bytes,14,opt,name=target_wallet_code,json=targetWalletCode"`
 	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
 	XXX_presence                  [1]uint32
 	unknownFields                 protoimpl.UnknownFields
@@ -609,14 +646,24 @@ func (x *EnrichedEvent) GetEnrichedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *EnrichedEvent) GetTargetWalletCode() string {
+	if x != nil {
+		if x.xxx_hidden_TargetWalletCode != nil {
+			return *x.xxx_hidden_TargetWalletCode
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *EnrichedEvent) SetTransactionId(v string) {
 	x.xxx_hidden_TransactionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 14)
 }
 
 func (x *EnrichedEvent) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 14)
 }
 
 func (x *EnrichedEvent) SetTimestamp(v *timestamppb.Timestamp) {
@@ -625,27 +672,27 @@ func (x *EnrichedEvent) SetTimestamp(v *timestamppb.Timestamp) {
 
 func (x *EnrichedEvent) SetSubscriptionId(v string) {
 	x.xxx_hidden_SubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 14)
 }
 
 func (x *EnrichedEvent) SetPlanId(v string) {
 	x.xxx_hidden_PlanId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 14)
 }
 
 func (x *EnrichedEvent) SetChargeId(v string) {
 	x.xxx_hidden_ChargeId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 14)
 }
 
 func (x *EnrichedEvent) SetChargeFilterId(v string) {
 	x.xxx_hidden_ChargeFilterId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 14)
 }
 
 func (x *EnrichedEvent) SetBillableMetricId(v string) {
 	x.xxx_hidden_BillableMetricId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 14)
 }
 
 func (x *EnrichedEvent) SetGroupedBy(v map[string]string) {
@@ -654,21 +701,26 @@ func (x *EnrichedEvent) SetGroupedBy(v map[string]string) {
 
 func (x *EnrichedEvent) SetValue(v string) {
 	x.xxx_hidden_Value = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 14)
 }
 
 func (x *EnrichedEvent) SetPreciseTotalAmount(v string) {
 	x.xxx_hidden_PreciseTotalAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 14)
 }
 
 func (x *EnrichedEvent) SetOperation(v EnrichedOperation) {
 	x.xxx_hidden_Operation = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 14)
 }
 
 func (x *EnrichedEvent) SetEnrichedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_EnrichedAt = v
+}
+
+func (x *EnrichedEvent) SetTargetWalletCode(v string) {
+	x.xxx_hidden_TargetWalletCode = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 14)
 }
 
 func (x *EnrichedEvent) HasTransactionId() bool {
@@ -755,6 +807,13 @@ func (x *EnrichedEvent) HasEnrichedAt() bool {
 	return x.xxx_hidden_EnrichedAt != nil
 }
 
+func (x *EnrichedEvent) HasTargetWalletCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 13)
+}
+
 func (x *EnrichedEvent) ClearTransactionId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_TransactionId = nil
@@ -813,6 +872,11 @@ func (x *EnrichedEvent) ClearEnrichedAt() {
 	x.xxx_hidden_EnrichedAt = nil
 }
 
+func (x *EnrichedEvent) ClearTargetWalletCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
+	x.xxx_hidden_TargetWalletCode = nil
+}
+
 type EnrichedEvent_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -842,6 +906,9 @@ type EnrichedEvent_builder struct {
 	Operation *EnrichedOperation
 	// When the event was enriched.
 	EnrichedAt *timestamppb.Timestamp
+	// The code of the wallet that pays the event's usage, when the charge
+	// accepts a target wallet and the event names one.
+	TargetWalletCode *string
 }
 
 func (b0 EnrichedEvent_builder) Build() *EnrichedEvent {
@@ -849,48 +916,52 @@ func (b0 EnrichedEvent_builder) Build() *EnrichedEvent {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.TransactionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 14)
 		x.xxx_hidden_TransactionId = b.TransactionId
 	}
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 14)
 		x.xxx_hidden_Code = b.Code
 	}
 	x.xxx_hidden_Timestamp = b.Timestamp
 	if b.SubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 14)
 		x.xxx_hidden_SubscriptionId = b.SubscriptionId
 	}
 	if b.PlanId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 14)
 		x.xxx_hidden_PlanId = b.PlanId
 	}
 	if b.ChargeId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 14)
 		x.xxx_hidden_ChargeId = b.ChargeId
 	}
 	if b.ChargeFilterId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 14)
 		x.xxx_hidden_ChargeFilterId = b.ChargeFilterId
 	}
 	if b.BillableMetricId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 14)
 		x.xxx_hidden_BillableMetricId = b.BillableMetricId
 	}
 	x.xxx_hidden_GroupedBy = b.GroupedBy
 	if b.Value != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 14)
 		x.xxx_hidden_Value = b.Value
 	}
 	if b.PreciseTotalAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 14)
 		x.xxx_hidden_PreciseTotalAmount = b.PreciseTotalAmount
 	}
 	if b.Operation != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 14)
 		x.xxx_hidden_Operation = *b.Operation
 	}
 	x.xxx_hidden_EnrichedAt = b.EnrichedAt
+	if b.TargetWalletCode != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 14)
+		x.xxx_hidden_TargetWalletCode = b.TargetWalletCode
+	}
 	return m0
 }
 
@@ -2650,7 +2721,7 @@ var File_tanvo_event_v1_event_proto protoreflect.FileDescriptor
 
 const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"\n" +
-	"\x1atanvo/event/v1/event.proto\x12\x0etanvo.event.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xe4\x04\n" +
+	"\x1atanvo/event/v1/event.proto\x12\x0etanvo.event.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xfe\x04\n" +
 	"\x05Event\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\x03R\x02id\x125\n" +
 	"\x0etransaction_id\x18\x02 \x01(\tB\x0e\xe2A\x01\b\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\rtransactionId\x12H\n" +
@@ -2661,7 +2732,8 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"properties\x18\x06 \x01(\v2\x17.google.protobuf.StructR\n" +
 	"properties\x12<\n" +
 	"\x14precise_total_amount\x18\a \x01(\tB\n" +
-	"\xbaH\ar\x05Ȥ\xca\x06\x01R\x12preciseTotalAmount\x12#\n" +
+	"\xbaH\ar\x05Ȥ\xca\x06\x01R\x12preciseTotalAmount\x122\n" +
+	"\x12target_wallet_code\x18\b \x01(\tB\x04\xe2A\x01\x03R\x10targetWalletCode\x12#\n" +
 	"\n" +
 	"user_agent\x18\n" +
 	" \x01(\tB\x04\xe2A\x01\x03R\tuserAgent\x12#\n" +
@@ -2669,7 +2741,7 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"ip_address\x18\v \x01(\tB\x04\xe2A\x01\x03R\tipAddress\x12?\n" +
 	"\n" +
 	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt:<\xeaA9\n" +
-	"\x0ftanvo.xyz/Event\x12\x17events/{transaction_id}*\x06events2\x05eventJ\x04\b\b\x10\tJ\x04\b\f\x10\rR\x12target_wallet_codeR\x06errors\"\x8c\x05\n" +
+	"\x0ftanvo.xyz/Event\x12\x17events/{transaction_id}*\x06events2\x05eventJ\x04\b\f\x10\rR\x06errors\"\xba\x05\n" +
 	"\rEnrichedEvent\x12%\n" +
 	"\x0etransaction_id\x18\x01 \x01(\tR\rtransactionId\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x128\n" +
@@ -2686,7 +2758,8 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"\x14precise_total_amount\x18\v \x01(\tR\x12preciseTotalAmount\x12?\n" +
 	"\toperation\x18\f \x01(\x0e2!.tanvo.event.v1.EnrichedOperationR\toperation\x12;\n" +
 	"\venriched_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"enrichedAt\x1a<\n" +
+	"enrichedAt\x12,\n" +
+	"\x12target_wallet_code\x18\x0e \x01(\tR\x10targetWalletCode\x1a<\n" +
 	"\x0eGroupedByEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xfb\x01\n" +

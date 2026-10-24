@@ -80,6 +80,7 @@ func customerParams(c *customer.Customer) (db.CreateCustomerParams, error) {
 		Slug:                         c.Slug,
 		PaymentReceiptCounter:        c.PaymentReceiptCounter,
 		Metadata:                     encodeMetadata(c.Metadata),
+		X402AgentAddress:             c.X402AgentAddress,
 		DeletedAt:                    optUTC(c.DeletedAt),
 		CreatedAt:                    utc(c.CreatedAt),
 		UpdatedAt:                    utc(c.UpdatedAt),
@@ -161,6 +162,7 @@ func customerOf(row customerRow) (*customer.Customer, error) {
 		PaymentReceiptCounter:         r.PaymentReceiptCounter,
 		Metadata:                      md,
 		TaxIDs:                        idsOf[core.TaxID](row.TaxIds),
+		X402AgentAddress:              r.X402AgentAddress,
 		DeletedAt:                     optUTC(r.DeletedAt),
 		CreatedAt:                     utc(r.CreatedAt),
 		UpdatedAt:                     utc(r.UpdatedAt),
@@ -274,6 +276,18 @@ func (r customerRepo) GetByExternalID(ctx context.Context, org core.Organization
 	row, err := q.GetCustomerByExternalID(ctx, db.GetCustomerByExternalIDParams{OrganizationID: org.UUID(), ExternalID: externalID})
 	if err != nil {
 		return nil, getErr("customer", externalID, err)
+	}
+	return customerOf(customerRow(row))
+}
+
+func (r customerRepo) GetByX402AgentAddress(ctx context.Context, org core.OrganizationID, address string) (*customer.Customer, error) {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	row, err := q.GetCustomerByX402AgentAddress(ctx, db.GetCustomerByX402AgentAddressParams{OrganizationID: org.UUID(), X402AgentAddress: &address})
+	if err != nil {
+		return nil, getErr("customer", address, err)
 	}
 	return customerOf(customerRow(row))
 }

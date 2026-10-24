@@ -7,6 +7,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -91,6 +92,10 @@ func (e *Engine) MarkInvoiceOverdue(ctx context.Context, org core.OrganizationID
 			return fmt.Errorf("update invoice %s: %w", id, err)
 		}
 		out = inv
+		// mark_overdue_service.rb:14.
+		if err := e.d.LogInvoice(ctx, r, auditlog.ActivityInvoicePaymentOverdue, inv); err != nil {
+			return err
+		}
 		return kernel.Emit(ctx, e.d, org, webhook.EventTypeInvoicePaymentOverdue, "invoice", kernel.ObjectID(inv.ID), inv)
 	})
 	if err != nil {

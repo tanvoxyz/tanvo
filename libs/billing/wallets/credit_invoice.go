@@ -7,6 +7,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/wallet"
@@ -108,6 +109,11 @@ func (s *Service) creditInvoiceFinalized(ctx context.Context, r port.Repos, inv 
 	if err := kernel.Emit(ctx, s.d, inv.OrganizationID, webhook.EventTypeInvoicePaidCreditAdded, "invoice", kernel.ObjectID(inv.ID), inv); err != nil {
 		return err
 	}
+	// source: app/services/invoices/paid_credit_service.rb:44,
+	// app/services/invoices/finalize_open_credit_service.rb:25
+	if err := s.d.LogInvoice(ctx, r, auditlog.ActivityInvoicePaidCreditAdded, inv); err != nil {
+		return err
+	}
 	return kernel.Enqueue(ctx, r, inv.OrganizationID, kernel.JobGenerateInvoiceDocument, kernel.InvoiceArgs{InvoiceID: inv.ID}, inv.ID.String(), time.Time{})
 }
 
@@ -149,7 +155,9 @@ func (s *Service) HandleCreditInvoicePayment(ctx context.Context, org core.Organ
 			succeeded = false
 		}
 		if !succeeded {
-			return s.markAsFailed(ctx, r, t)
+			// lago Invoices::PrepaidCreditJob calls MarkAsFailedService
+			// (prepaid_credit_job.rb:24).
+			return s.markAsFailed(ctx, r, t, true)
 		}
 		if err := s.applyPaidCredits(ctx, r, t); err != nil {
 			return err
@@ -188,7 +196,7 @@ func (s *Service) HandleCreditInvoiceVoided(ctx context.Context, org core.Organi
 		if err != nil || t == nil {
 			return err
 		}
-		return s.markAsFailed(ctx, r, t)
+		return s.markAsFailed(ctx, r, t, false)
 	})
 }
 

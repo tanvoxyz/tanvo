@@ -8,6 +8,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/deduct"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
@@ -106,6 +107,10 @@ func (s *Service) void(ctx context.Context, r port.Repos, inv *invoice.Invoice, 
 	if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeInvoiceVoided, "invoice", kernel.ObjectID(inv.ID), inv); err != nil {
 		return err
 	}
+	// void_service.rb:16.
+	if err := s.d.LogInvoice(ctx, r, auditlog.ActivityInvoiceVoided, inv); err != nil {
+		return err
+	}
 	return kernel.Enqueue(ctx, r, org, kernel.JobVoidProviderTaxes, kernel.InvoiceArgs{InvoiceID: inv.ID}, "invoice:"+inv.ID.String(), s.d.Now())
 }
 
@@ -200,6 +205,11 @@ func (s *Service) inRegeneration(ctx context.Context, org core.OrganizationID, i
 		}
 		inv, err := s.regenerateVoided(ctx, r, old, in.PurchaseOrderNumber != nil, po, in.Fees)
 		if err != nil {
+			return err
+		}
+		// The voided invoice logs its regeneration
+		// (regenerate_from_voided_service.rb:15).
+		if err := s.d.LogInvoice(ctx, r, auditlog.ActivityInvoiceRegenerated, old); err != nil {
 			return err
 		}
 		return then(ctx, r, inv)

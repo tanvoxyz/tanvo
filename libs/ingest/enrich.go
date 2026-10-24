@@ -80,9 +80,18 @@ type Enriched struct {
 	// GroupedBy maps the pricing group keys of the metric's charges on the
 	// plan to the event's values (nil when the property is missing).
 	GroupedBy map[string]*string `json:"grouped_by,omitempty"`
-	// InAdvance reports that a charge of the plan bills the metric in
-	// advance.
+	// InAdvance reports that a charge of the plan, or a rate card of the
+	// contract, bills the metric in advance.
 	InAdvance bool `json:"in_advance,omitempty"`
+	// ContractID is the active contract with the event's external ID whose
+	// rate card bills the metric in advance, when no subscription matched;
+	// zero otherwise.
+	ContractID core.SubscriptionID `json:"contract_id,omitzero"`
+	// TargetWalletCode is the event's target_wallet_code property when a
+	// charge of the plan on the metric accepts a target wallet, empty
+	// otherwise; GroupedBy then holds it under the same key (lago
+	// Events::EnrichService).
+	TargetWalletCode string `json:"target_wallet_code,omitempty"`
 }
 
 // Metering returns the event store row of e: the store keeps events by
@@ -305,7 +314,7 @@ func (en *Enricher) Enrich(ctx context.Context, e *event.Event, source string, e
 	}
 	sub := subscription.MatchEvent(subs, e.Timestamp, m != nil && m.Recurring)
 	if sub == nil {
-		return out, nil
+		return out, en.withContract(ctx, out, m)
 	}
 	out.SubscriptionID, out.CustomerID, out.PlanID = sub.ID, sub.CustomerID, sub.PlanID
 	if m == nil {
@@ -317,6 +326,36 @@ func (en *Enricher) Enrich(ctx context.Context, e *event.Event, source string, e
 	}
 	withCharges(out, charges)
 	return out, nil
+}
+
+// withContract flags the event of a contract for in-advance billing when
+// a rate card of the active contract with its external ID bills its
+// metric in advance (lago Events::PostProcessService#handle_pay_in_advance
+// with Events::PayInAdvanceBillingSegmentResolver).
+//
+// source: app/services/events/post_process_service.rb:118-129
+func (en *Enricher) withContract(ctx context.Context, out *Enriched, m *catalog.BillableMetric) error {
+	cc, ok := en.catalog.(ContractCatalog)
+	if !ok || m == nil {
+		return nil
+	}
+	id, err := cc.InAdvanceContract(ctx, out.OrganizationID, out.ExternalSubscriptionID, m.ID)
+	if err != nil {
+		return err
+	}
+	if !id.IsZero() {
+		out.ContractID, out.InAdvance = id, true
+	}
+	return nil
+}
+
+// InAdvanceTarget returns what bills the event in advance: the matched
+// subscription, else the contract; zero when neither.
+func (e *Enriched) InAdvanceTarget() core.SubscriptionID {
+	if !e.SubscriptionID.IsZero() {
+		return e.SubscriptionID
+	}
+	return e.ContractID
 }
 
 // withMetric sets the metric columns (lago-api's Events::EnrichService).
@@ -373,6 +412,10 @@ func withCharges(out *Enriched, charges []*catalog.Charge) {
 		groupKeys(ch.Properties, keys)
 		for _, f := range ch.Filters {
 			groupKeys(f.Properties, keys)
+		}
+		if code := out.Properties[catalog.EventTargetWalletCode]; ch.AcceptsTargetWallet && code != "" {
+			out.TargetWalletCode = code
+			keys[catalog.EventTargetWalletCode] = true
 		}
 	}
 	if len(keys) == 0 {

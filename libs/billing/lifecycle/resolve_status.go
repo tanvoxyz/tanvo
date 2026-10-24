@@ -38,7 +38,7 @@ func (s *Service) ResolveSubscriptionStatus(ctx context.Context, r port.Repos, e
 		if err := update(ctx, r, sub); err != nil {
 			return err
 		}
-		return s.emit(ctx, webhook.EventTypeSubscriptionCanceled, sub)
+		return s.notify(ctx, r, webhook.EventTypeSubscriptionCanceled, sub)
 	}
 	return nil
 }

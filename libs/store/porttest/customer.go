@@ -109,6 +109,43 @@ func testCustomer(t *testing.T, h Harness) {
 		})
 	})
 
+	t.Run("x402 agent address", func(t *testing.T) {
+		t.Parallel()
+		e := newEnv(t, h)
+		a, b := e.twoOrgs()
+		org := a.OrganizationID
+		const address = "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
+		agent := customer.New(org, core.NewID[core.CustomerID](e.ids), "agent-1", a.ID, now)
+		agent.X402AgentAddress = ptr(address)
+		e.tx(func(ctx context.Context, r port.Repos) error {
+			noErr(t, "Create()", r.Customers.Create(ctx, agent))
+			noErr(t, "Create() without an address", r.Customers.Create(ctx, customer.New(org, core.NewID[core.CustomerID](e.ids), "plain-1", a.ID, now)))
+			noErr(t, "Create() a second without an address", r.Customers.Create(ctx, customer.New(org, core.NewID[core.CustomerID](e.ids), "plain-2", a.ID, now)))
+			// source: spec/models/customer_spec.rb:488-505
+			got, err := r.Customers.GetByX402AgentAddress(ctx, org, address)
+			noErr(t, "GetByX402AgentAddress()", err)
+			equal(t, "GetByX402AgentAddress()", got, agent)
+			_, err = r.Customers.GetByX402AgentAddress(ctx, org, "0x5aaeb6053f3e94c9b9a09f33669435e7ef1beae")
+			wantErr(t, "GetByX402AgentAddress() unknown", err, core.ErrNotFound)
+			_, err = r.Customers.GetByX402AgentAddress(ctx, b.OrganizationID, address)
+			wantErr(t, "GetByX402AgentAddress() from another organization", err, core.ErrNotFound)
+
+			// source: spec/models/customer_spec.rb:420-445
+			dup := customer.New(org, core.NewID[core.CustomerID](e.ids), "agent-2", a.ID, now)
+			dup.X402AgentAddress = ptr(address)
+			wantErr(t, "Create() with a taken address", r.Customers.Create(ctx, dup), core.ErrConflict)
+			other := customer.New(b.OrganizationID, core.NewID[core.CustomerID](e.ids), "agent-1", b.ID, now)
+			other.X402AgentAddress = ptr(address)
+			noErr(t, "Create() in another organization", r.Customers.Create(ctx, other))
+			noErr(t, "Archive()", agent.Archive(at(time.Hour)))
+			noErr(t, "Update() archived", r.Customers.Update(ctx, agent))
+			_, err = r.Customers.GetByX402AgentAddress(ctx, org, address)
+			wantErr(t, "GetByX402AgentAddress() archived", err, core.ErrNotFound)
+			noErr(t, "Create() with a freed address", r.Customers.Create(ctx, dup))
+			return nil
+		})
+	})
+
 	t.Run("invoice custom sections", func(t *testing.T) {
 		t.Parallel()
 		e := newEnv(t, h)

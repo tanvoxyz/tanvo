@@ -134,7 +134,8 @@ type CreditNoteArgs struct {
 
 // InAdvanceChargeArgs are the args of [JobCreateInAdvanceChargeFees].
 type InAdvanceChargeArgs struct {
-	// SubscriptionID is the subscription the event belongs to.
+	// SubscriptionID is the subscription the event belongs to, or the
+	// contract whose rate cards bill it in advance.
 	SubscriptionID core.SubscriptionID `json:"subscription_id"`
 	// EventID is the stored event's ID, set on the fees it bills (lago
 	// fees.pay_in_advance_event_id); zero when unknown.

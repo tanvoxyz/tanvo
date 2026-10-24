@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"context"
+	"strings"
 
 	"connectrpc.com/connect/v2"
 
@@ -142,7 +143,8 @@ func (s *Organizations) UpdateOrganization(ctx context.Context, req *organizatio
 			case "address.zipcode":
 				a.Zipcode = in.GetZipcode()
 			case "address.country":
-				a.Country = in.GetCountry()
+				// Upper-cased as organizations/update_service.rb:27 does.
+				a.Country = strings.ToUpper(in.GetCountry())
 			}
 		}
 		u.Address = core.Some(a)

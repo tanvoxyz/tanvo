@@ -51,8 +51,8 @@ CREATE TABLE invoices (
   payment_method_type text,
   payment_method_id uuid,
   purchase_order_number text,
-  -- References x402 connections (parity §1.36); no foreign key until they
-  -- are stored.
+  -- The x402 connection the invoice is payable through (parity §1.36);
+  -- its foreign key is in 27_x402.sql.
   x402_connection_id uuid,
   x402_payment_token text,
   metadata jsonb NOT NULL,
@@ -158,6 +158,13 @@ CREATE TABLE fees (
   add_on_id uuid,
   commitment_id uuid,
   wallet_transaction_id uuid,
+  -- The contract rate card, product, product filter and rate (or phase
+  -- override) of a product fee.
+  subscription_rate_card_id uuid,
+  product_id uuid,
+  product_filter_id uuid,
+  rate_card_rate_id uuid,
+  rate_phase_id uuid,
   grouped_by jsonb NOT NULL,
   invoice_display_name text,
   description text,
@@ -221,6 +228,7 @@ CREATE TABLE fees (
 CREATE INDEX fees_invoice_idx ON fees (organization_id, invoice_id) WHERE invoice_id IS NOT NULL;
 CREATE INDEX fees_subscription_idx ON fees (organization_id, subscription_id, from_datetime) WHERE subscription_id IS NOT NULL;
 CREATE INDEX fees_charge_idx ON fees (organization_id, charge_id) WHERE charge_id IS NOT NULL;
+CREATE INDEX fees_subscription_rate_card_idx ON fees (organization_id, subscription_rate_card_id) WHERE subscription_rate_card_id IS NOT NULL;
 CREATE INDEX fees_wallet_transaction_idx ON fees (organization_id, wallet_transaction_id) WHERE wallet_transaction_id IS NOT NULL;
 CREATE INDEX fees_true_up_parent_fee_idx ON fees (organization_id, true_up_parent_fee_id) WHERE true_up_parent_fee_id IS NOT NULL;
 CREATE INDEX fees_original_fee_idx ON fees (organization_id, original_fee_id) WHERE original_fee_id IS NOT NULL;

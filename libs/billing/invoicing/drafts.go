@@ -10,7 +10,6 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
-	"github.com/tanvoxyz/tanvo/libs/core/webhook"
 )
 
 // Codes of the rule errors of the draft operations.
@@ -292,7 +291,7 @@ func (s *Service) finish(ctx context.Context, r port.Repos, cenv *kernel.Custome
 	// a new draft is announced (subscription_service.rb:93-97).
 	if st.taxFailure != nil || st.vies {
 		if inv.Status == invoice.StatusDraft && mode == modeNew {
-			return kernel.Emit(ctx, s.d, inv.OrganizationID, webhook.EventTypeInvoiceDrafted, "invoice", kernel.ObjectID(inv.ID), inv)
+			return s.announceDraft(ctx, r, inv)
 		}
 		return nil
 	}

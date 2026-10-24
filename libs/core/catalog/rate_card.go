@@ -49,6 +49,9 @@ const (
 	// CodePlanLocked: the plan has subscriptions, so its rate cards are
 	// frozen.
 	CodePlanLocked = "plan_locked"
+	// CodeNotEditableWithAppliedRateCards: the plan applies rate cards,
+	// validated against its currency, so the currency is frozen.
+	CodeNotEditableWithAppliedRateCards = "not_editable_with_applied_rate_cards"
 	// CodeCurrencyDoesNotMatch: the rate card's currency is not the
 	// plan's.
 	CodeCurrencyDoesNotMatch = "currency_does_not_match"
@@ -519,17 +522,21 @@ func ValidateRateOverride(o *RateOverride, c *RateCard, p *Product, m *BillableM
 	return v.Err()
 }
 
-// RatePhase is one step of a plan rate card's ramp: a number of billing
-// interval cycles, optionally at overridden prices. Positions run from 1;
-// only the last phase is indefinite.
+// RatePhase is one step of the ramp of a plan rate card or of a contract
+// rate card: a number of billing interval cycles, optionally at overridden
+// prices. Positions run from 1; only the last phase is indefinite.
 type RatePhase struct {
 	// ID identifies the phase.
 	ID core.RatePhaseID
 	// OrganizationID is the owning organization.
 	OrganizationID core.OrganizationID
-	// PlanRateCardID is the plan rate card.
+	// PlanRateCardID is the plan rate card; zero for a phase of a
+	// contract rate card.
 	PlanRateCardID core.PlanRateCardID
-	// Code is unique among the plan rate card's phases.
+	// SubscriptionRateCardID is the contract rate card; zero for a phase
+	// of a plan rate card. Exactly one of the two is set.
+	SubscriptionRateCardID core.SubscriptionRateCardID
+	// Code is unique among the applied rate card's phases.
 	Code string
 	// Position is the phase's place, from 1.
 	Position int

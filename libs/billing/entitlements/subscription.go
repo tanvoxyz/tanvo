@@ -10,6 +10,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
@@ -58,7 +59,7 @@ func (s *Service) UpsertSubscriptionEntitlement(ctx context.Context, org core.Or
 		if out, err = st.reload(ctx, r, g.feature); err != nil {
 			return err
 		}
-		return s.emitSubscription(ctx, st.sub)
+		return s.emitSubscription(ctx, r, st.sub)
 	})
 	if err != nil {
 		return Entitlement{}, fmt.Errorf("upsert subscription entitlement: %w", err)
@@ -97,7 +98,7 @@ func (s *Service) DeleteSubscriptionEntitlement(ctx context.Context, org core.Or
 				return err
 			}
 		}
-		return s.emitSubscription(ctx, st.sub)
+		return s.emitSubscription(ctx, r, st.sub)
 	})
 	if err != nil {
 		return fmt.Errorf("delete subscription entitlement: %w", err)
@@ -144,7 +145,7 @@ func (s *Service) DeleteSubscriptionEntitlementPrivilege(ctx context.Context, or
 		if out, err = st.reload(ctx, r, f); err != nil {
 			return err
 		}
-		return s.emitSubscription(ctx, st.sub)
+		return s.emitSubscription(ctx, r, st.sub)
 	})
 	if err != nil {
 		return Entitlement{}, fmt.Errorf("delete subscription entitlement privilege: %w", err)
@@ -274,8 +275,21 @@ func (s *Service) addRemoval(ctx context.Context, r port.Repos, st *subState, fe
 	return nil
 }
 
-func (s *Service) emitSubscription(ctx context.Context, sub *subscription.Subscription) error {
-	return kernel.Emit(ctx, s.d, sub.OrganizationID, webhook.EventTypeSubscriptionUpdated, "subscription", sub.ID.UUID(), sub)
+// emitSubscription emits subscription.updated with its activity log,
+// without changes since no subscription attribute changes (lago
+// activity_loggable of subscription_entitlement_update_service.rb,
+// subscription_entitlement_core_update_service.rb,
+// subscription_feature_remove_service.rb and
+// subscription_feature_privilege_remove_service.rb).
+func (s *Service) emitSubscription(ctx context.Context, r port.Repos, sub *subscription.Subscription) error {
+	if err := kernel.Emit(ctx, s.d, sub.OrganizationID, webhook.EventTypeSubscriptionUpdated, "subscription", sub.ID.UUID(), sub); err != nil {
+		return err
+	}
+	return s.d.LogChange(ctx, r, kernel.Change{
+		Type: auditlog.ActivitySubscriptionUpdated, OrganizationID: sub.OrganizationID,
+		ResourceType: auditlog.ResourceSubscription, ResourceID: sub.ID.UUID(), Object: sub,
+		CustomerID: sub.CustomerID, ExternalSubscriptionID: sub.ExternalID,
+	})
 }
 
 // sameAsPlan reports whether the values given are exactly the plan's

@@ -76,6 +76,9 @@ type UpdateChargeChildrenArgs struct {
 	// ConversionRate is the parent's new pricing-unit conversion rate, nil
 	// when the update gave none.
 	ConversionRate *money.Decimal `json:"conversion_rate,omitempty"`
+	// AcceptsTargetWallet is the accepts_target_wallet the overrides take,
+	// nil when the update gave none.
+	AcceptsTargetWallet *bool `json:"accepts_target_wallet,omitempty"`
 	// OldChargeModel and OldProperties are the parent's pricing before the
 	// update: overrides that still price like it follow the new pricing.
 	OldChargeModel catalog.ChargeModel `json:"old_charge_model"`

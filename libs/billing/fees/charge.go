@@ -3,6 +3,7 @@ package fees
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -40,8 +41,18 @@ func (b bucket) filterID() core.ChargeFilterID {
 	return b.filter.ID
 }
 
-// groupKeys returns the pricing group keys of the bucket.
-func (b bucket) groupKeys() []string { return b.props.Groups().PricingGroupKeys }
+// groupKeys returns the pricing group keys of the bucket of the charge c,
+// with [catalog.EventTargetWalletCode] appended when c accepts a target
+// wallet.
+//
+// source: app/services/fees/charge_service/sources/charge.rb:94-102
+func (b bucket) groupKeys(c *catalog.Charge) []string {
+	keys := b.props.Groups().PricingGroupKeys
+	if c.AcceptsTargetWallet && !slices.Contains(keys, catalog.EventTargetWalletCode) {
+		keys = append(slices.Clone(keys), catalog.EventTargetWalletCode)
+	}
+	return keys
+}
 
 // chargeContext is a charge with what pricing it needs.
 type chargeContext struct {
@@ -84,7 +95,10 @@ func (cc *chargeContext) properties(p catalog.Properties) (pricing.Properties, e
 
 // structure returns the pricing structure of a bucket.
 func (cc *chargeContext) structure(props pricing.Properties) pricing.PricingStructure {
-	return pricing.PricingStructure{Properties: props, Prorated: cc.charge.Prorated, Currency: cc.cur.unit}
+	return pricing.PricingStructure{
+		Properties: props, Prorated: cc.charge.Prorated, AcceptsTargetWallet: cc.charge.AcceptsTargetWallet,
+		Currency: cc.cur.unit,
+	}
 }
 
 // buckets returns the pricing buckets of the charge for a period: each
@@ -151,7 +165,7 @@ func (cc *chargeContext) request(env *kernel.SubscriptionEnv, bk bucket, b perio
 	c := cc.charge
 	req := kernel.MeteringRequest(env, cc.metric, b.Charges, b.ChargesDays)
 	req.Filter = bk.scope
-	req.GroupBy = bk.groupKeys()
+	req.GroupBy = bk.groupKeys(c)
 	req.Prorated = c.Prorated
 	req.PayInAdvance = c.PayInAdvance
 	req.Dynamic = c.ChargeModel == catalog.ChargeModel(pricing.Dynamic)

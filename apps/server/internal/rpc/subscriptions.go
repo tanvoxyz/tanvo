@@ -6,7 +6,6 @@ import (
 	"slices"
 	"strings"
 
-	"connectrpc.com/connect/v2"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/plans"
@@ -248,9 +247,6 @@ func (s *Subscriptions) UpdateSubscription(ctx context.Context, req *subscriptio
 	if err != nil {
 		return nil, err
 	}
-	if len(b.GetRateCards()) > 0 || b.HasBillingAnchorDate() {
-		return nil, connect.NewError(connect.CodeUnimplemented, "rate cards and billing anchor dates are not supported")
-	}
 	in := subscriptions.UpdateInput{OrganizationID: p.OrganizationID}
 	if in.Subscription, err = subRef("subscription.id", b.GetId()); err != nil {
 		return nil, err
@@ -452,13 +448,10 @@ func (s *Subscriptions) UpdateLifetimeUsage(ctx context.Context, req *subscripti
 	return subscriptionv1.UpdateLifetimeUsageResponse_builder{LifetimeUsage: subLifetimeProto(lv)}.Build(), nil
 }
 
-// subscriptionUnsupported refuses the create fields without an
-// implementation.
+// subscriptionUnsupported refuses a create without a plan (contracts
+// are created with ContractService).
 func subscriptionUnsupported(b *subscriptionv1.Subscription) error {
-	switch {
-	case len(b.GetRateCards()) > 0 || b.HasBillingAnchorDate():
-		return connect.NewError(connect.CodeUnimplemented, "rate cards and billing anchor dates are not supported")
-	case !b.HasPlanId():
+	if !b.HasPlanId() {
 		return InvalidArgument("invalid subscription", []FieldViolation{{Field: "subscription.plan_id", Reason: core.CodeRequired}})
 	}
 	return nil

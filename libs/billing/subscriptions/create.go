@@ -426,6 +426,13 @@ func applyPaymentMethod(sub *subscription.Subscription, pm *PaymentMethod) {
 	}
 }
 
+// AttachSections applies the custom section selection cs to sub, as a
+// subscription's creation or update does (lago
+// InvoiceCustomSections::AttachToResourceService); contracts share it.
+func AttachSections(ctx context.Context, r port.Repos, sub *subscription.Subscription, cs CustomSections) error {
+	return attachSections(ctx, r, sub, cs)
+}
+
 // attachSections applies a custom section selection to sub (lago
 // InvoiceCustomSections::AttachToResourceService): an explicit skip turns
 // the sections off and clears them; otherwise, unless sub skips them,

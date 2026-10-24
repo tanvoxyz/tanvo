@@ -7,6 +7,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/payment"
@@ -213,6 +214,11 @@ func (s *Service) setRefundStatus(ctx context.Context, r port.Repos, cn *creditn
 // failRefund fails the refund of cn and emits credit_note.refund_failure.
 func (s *Service) failRefund(ctx context.Context, r port.Repos, cn *creditnote.CreditNote, message string) error {
 	if err := s.setRefundStatus(ctx, r, cn, core.RefundStatusFailed); err != nil {
+		return err
+	}
+	// credit_notes/refunds/stripe_service.rb:49,69, adyen_service.rb:58,103,
+	// gocardless_service.rb:51,74.
+	if err := s.logActivity(ctx, r, auditlog.ActivityCreditNoteRefundFailure, cn); err != nil {
 		return err
 	}
 	return kernel.Emit(ctx, s.d, cn.OrganizationID, webhook.EventTypeCreditNoteRefundFailure, "credit_note", cn.ID.UUID(),

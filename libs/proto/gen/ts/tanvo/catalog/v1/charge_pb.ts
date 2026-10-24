@@ -648,7 +648,8 @@ export type Charge = Message<"tanvo.catalog.v1.Charge"> & {
   minAmount: string;
 
   /**
-   * Lets events name the wallet that pays their fees.
+   * Splits the usage by the `target_wallet_code` event property and pays
+   * each targeted fee from the wallet with that code only.
    *
    * @generated from field: bool accepts_target_wallet = 14;
    */

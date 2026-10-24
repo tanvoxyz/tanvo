@@ -360,6 +360,10 @@ func testAnalyticsInvoiceCollection(t *testing.T, h Harness) {
 		{"customer tin set", analytics.Scope{Now: now, CustomerTINEmpty: ptr(false)}, []analytics.Collection{
 			none(-3), none(-2), col(-1, core.PaymentStatusFailed, 1, 50), col(-1, core.PaymentStatusPending, 1, 400), none(0),
 		}},
+		// source: app/models/analytics/invoice_collection.rb:13-16
+		{"customer", analytics.Scope{Now: now, CustomerID: e.customers[0]}, []analytics.Collection{
+			none(-3), col(-2, core.PaymentStatusPending, 1, 200), none(-1), none(0),
+		}},
 		{"months", analytics.Scope{Now: now, Months: 1}, []analytics.Collection{none(0)}},
 	} {
 		t.Run(c.name, func(t *testing.T) {

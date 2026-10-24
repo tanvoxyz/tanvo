@@ -10,6 +10,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/plans"
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
@@ -98,6 +99,10 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) (*View, error) {
 		}
 		if sub.Status == subscription.StatusIncomplete {
 			return core.NewRuleError(CodeSubscriptionIncomplete, "an incomplete subscription cannot be updated")
+		}
+		before, err := auditlog.ObjectOf(sub)
+		if err != nil {
+			return err
 		}
 		if in.PurchaseOrderNumber.Set && !equalString(core.NormalizePurchaseOrderNumber(in.PurchaseOrderNumber.Value), sub.PurchaseOrderNumber) &&
 			sub.Status != subscription.StatusPending && sub.Status != subscription.StatusActive {
@@ -224,6 +229,15 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) (*View, error) {
 				return err
 			}
 		}
+		// The update of a subscription starting in the future is not
+		// logged; its start, when it moves to now, is.
+		//
+		// source: app/services/subscriptions/update_service.rb:17-22
+		if !future {
+			if err := s.d.LogSubscription(ctx, r, auditlog.ActivitySubscriptionUpdated, before, sub); err != nil {
+				return err
+			}
+		}
 		out, err = view(ctx, r, sub, now)
 		return err
 	})
@@ -260,6 +274,10 @@ func (s *Service) moveStart(ctx context.Context, r port.Repos, sub *subscription
 			return nil, fmt.Errorf("update subscription %s: %w", sub.ID, err)
 		}
 		if err := s.emit(ctx, webhook.EventTypeSubscriptionStarted, sub); err != nil {
+			return nil, err
+		}
+		// source: app/services/subscriptions/update_service.rb:200-201
+		if err := s.d.LogSubscription(ctx, r, auditlog.ActivitySubscriptionStarted, nil, sub); err != nil {
 			return nil, err
 		}
 	} else {

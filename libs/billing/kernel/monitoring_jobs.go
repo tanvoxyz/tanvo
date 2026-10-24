@@ -75,6 +75,7 @@ func JobKinds() []string {
 	kinds = append(kinds, chargeJobKinds()...)
 	kinds = append(kinds, orderJobKinds()...)
 	kinds = append(kinds, gateJobKinds()...)
+	kinds = append(kinds, contractJobKinds()...)
 	return append(kinds, fixedChargeJobKinds()...)
 }
 

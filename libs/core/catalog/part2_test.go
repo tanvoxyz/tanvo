@@ -120,7 +120,8 @@ func TestResolveTaxes(t *testing.T) {
 		{"fixed charge", core.FeeTypeFixedCharge, TaxCandidates{FixedCharge: b, Plan: a}, b, TaxSourceFixedCharge},
 		{"charge fee", core.FeeTypeCharge, all, a, TaxSourceCharge},
 		{"charge fee ignores add-on", core.FeeTypeCharge, TaxCandidates{AddOn: a, Plan: b}, b, TaxSourcePlan},
-		{"product fee like charge", core.FeeTypeProduct, TaxCandidates{Charge: a}, a, TaxSourceCharge},
+		// source: app/services/fees/apply_taxes_service.rb:70-81
+		{"product fee ignores charge and plan", core.FeeTypeProduct, TaxCandidates{Charge: a, Plan: b, Customer: c}, c, TaxSourceCustomer},
 		{"commitment fee", core.FeeTypeCommitment, all, a, TaxSourceCommitment},
 		{"subscription fee", core.FeeTypeSubscription, all, b, TaxSourcePlan},
 		{"customer", core.FeeTypeSubscription, TaxCandidates{Customer: c, BillingEntity: a}, c, TaxSourceCustomer},

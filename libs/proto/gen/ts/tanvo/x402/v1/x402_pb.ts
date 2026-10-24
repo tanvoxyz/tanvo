@@ -16,15 +16,13 @@ import { file_google_api_annotations } from "../../../google/api/annotations_pb.
 import { file_google_api_field_behavior } from "../../../google/api/field_behavior_pb.js";
 import { file_google_protobuf_struct } from "@bufbuild/protobuf/wkt";
 import { file_tanvo_common_v1_options } from "../../common/v1/options_pb.js";
-import type { Money } from "../../common/v1/types_pb.js";
-import { file_tanvo_common_v1_types } from "../../common/v1/types_pb.js";
 import type { JsonObject, Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file tanvo/x402/v1/x402.proto.
  */
 export const file_tanvo_x402_v1_x402: GenFile = /*@__PURE__*/
-  fileDesc("Chh0YW52by94NDAyL3YxL3g0MDIucHJvdG8SDXRhbnZvLng0MDIudjEi+wIKFENoZWNrWDQwMkdhdGVSZXF1ZXN0EioKD2Nvbm5lY3Rpb25fY29kZRgBIAEoCUIR4kEBArpICsgBAXIF6KTKBgESVgoNYWdlbnRfYWRkcmVzcxgCIAEoCUI/4kEBArpIOMgBAXIzMjFeKDB4WzAtOWEtZkEtRl17NDB9fFsxLTlBLUhKLU5QLVphLWttLXpdezMyLDQ0fSkkEiEKCHJlc291cmNlGAMgASgJQg/iQQECukgIyAEBcgMYgBASHQoJcGxhbl9jb2RlGAQgASgJQgq6SAdyBeikygYBEh8KC3dhbGxldF9jb2RlGAUgASgJQgq6SAdyBeikygYBEh8KC21ldHJpY19jb2RlGAYgASgJQgq6SAdyBeikygYBEiYKBmFtb3VudBgHIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRIzChNlc3RpbWF0ZWRfY2FsbF9jb3N0GAggASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5IoEBChVDaGVja1g0MDJHYXRlUmVzcG9uc2USFwoPYmFsYW5jZV9jcmVkaXRzGAEgASgJEi0KDHJlcXVpcmVtZW50cxgCIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSIAoYZXh0ZXJuYWxfc3Vic2NyaXB0aW9uX2lkGAMgASgJMpcBCgtYNDAyU2VydmljZRKHAQoNQ2hlY2tYNDAyR2F0ZRIjLnRhbnZvLng0MDIudjEuQ2hlY2tYNDAyR2F0ZVJlcXVlc3QaJC50YW52by54NDAyLnYxLkNoZWNrWDQwMkdhdGVSZXNwb25zZSIryvMYCCABKgR4NDAygtPkkwIZOgEqIhQvdjEveDQwMi9nYXRlX2NoZWNrc0K2AQoRY29tLnRhbnZvLng0MDIudjFCCVg0MDJQcm90b1ABWkBnaXRodWIuY29tL3RhbnZveHl6L3RhbnZvL2xpYnMvcHJvdG8vZ2VuL2dvL3RhbnZvL3g0MDIvdjE7eDQwMnYxogIDVFhYqgINVGFudm8uWDQwMi5WMcoCDVRhbnZvXFg0MDJcVjHiAhlUYW52b1xYNDAyXFYxXEdQQk1ldGFkYXRh6gIPVGFudm86Olg0MDI6OlYxYghlZGl0aW9uc3DoBw", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_protobuf_struct, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
+  fileDesc("Chh0YW52by94NDAyL3YxL3g0MDIucHJvdG8SDXRhbnZvLng0MDIudjEinQIKFENoZWNrWDQwMkdhdGVSZXF1ZXN0EhcKD2Nvbm5lY3Rpb25fY29kZRgBIAEoCRIVCg1hZ2VudF9hZGRyZXNzGAIgASgJEhoKCHJlc291cmNlGAMgASgJQgi6SAVyAxiAEBIdCglwbGFuX2NvZGUYBCABKAlCCuJBAQK6SAPIAQESHwoLd2FsbGV0X2NvZGUYBSABKAlCCuJBAQK6SAPIAQESKAoUYmlsbGFibGVfbWV0cmljX2NvZGUYBiABKAlCCuJBAQK6SAPIAQESIAoMYW1vdW50X2NlbnRzGAcgASgDQgriQQECukgDyAEBEi0KGWVzdGltYXRlZF9jYWxsX2Nvc3RfY2VudHMYCCABKANCCuJBAQK6SAPIAQEijwEKFUNoZWNrWDQwMkdhdGVSZXNwb25zZRIXCg9iYWxhbmNlX2NyZWRpdHMYASABKAkSOwoMcmVxdWlyZW1lbnRzGAIgAygLMiUudGFudm8ueDQwMi52MS5YNDAyUGF5bWVudFJlcXVpcmVtZW50EiAKGGV4dGVybmFsX3N1YnNjcmlwdGlvbl9pZBgDIAEoCSLLAQoWWDQwMlBheW1lbnRSZXF1aXJlbWVudBIOCgZzY2hlbWUYASABKAkSDwoHbmV0d29yaxgCIAEoCRINCgVhc3NldBgDIAEoCRIVCg1hc3NldF9hZGRyZXNzGAQgASgJEiYKBWV4dHJhGAUgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIOCgZwYXlfdG8YBiABKAkSFQoNYW1vdW50X2F0b21pYxgHIAEoCRIbChNtYXhfdGltZW91dF9zZWNvbmRzGAggASgFMpcBCgtYNDAyU2VydmljZRKHAQoNQ2hlY2tYNDAyR2F0ZRIjLnRhbnZvLng0MDIudjEuQ2hlY2tYNDAyR2F0ZVJlcXVlc3QaJC50YW52by54NDAyLnYxLkNoZWNrWDQwMkdhdGVSZXNwb25zZSIryvMYCCABKgR4NDAygtPkkwIZOgEqIhQvdjEveDQwMi9nYXRlX2NoZWNrc0K2AQoRY29tLnRhbnZvLng0MDIudjFCCVg0MDJQcm90b1ABWkBnaXRodWIuY29tL3RhbnZveHl6L3RhbnZvL2xpYnMvcHJvdG8vZ2VuL2dvL3RhbnZvL3g0MDIvdjE7eDQwMnYxogIDVFhYqgINVGFudm8uWDQwMi5WMcoCDVRhbnZvXFg0MDJcVjHiAhlUYW52b1xYNDAyXFYxXEdQQk1ldGFkYXRh6gIPVGFudm86Olg0MDI6OlYxYghlZGl0aW9uc3DoBw", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_protobuf_struct, file_tanvo_common_v1_options]);
 
 /**
  * CheckX402GateRequest is the request of X402Service.CheckX402Gate.
@@ -40,28 +38,29 @@ export type CheckX402GateRequest = Message<"tanvo.x402.v1.CheckX402GateRequest">
   connectionCode: string;
 
   /**
-   * The agent's wallet address; it identifies the customer.
+   * The agent's wallet address, an EVM or Solana address; it identifies
+   * the customer. Without it, the agent is a stranger.
    *
    * @generated from field: string agent_address = 2;
    */
   agentAddress: string;
 
   /**
-   * The resource called (its URL).
+   * The resource called; informative.
    *
    * @generated from field: string resource = 3;
    */
   resource: string;
 
   /**
-   * The plan of an auto-created subscription.
+   * The usage-only USD plan of the agent's subscription.
    *
    * @generated from field: string plan_code = 4;
    */
   planCode: string;
 
   /**
-   * The wallet to check, by code; the customer's default by default.
+   * The x402-enabled wallet the calls draw on, by code.
    *
    * @generated from field: string wallet_code = 5;
    */
@@ -70,23 +69,24 @@ export type CheckX402GateRequest = Message<"tanvo.x402.v1.CheckX402GateRequest">
   /**
    * The billable metric metering the call.
    *
-   * @generated from field: string metric_code = 6;
+   * @generated from field: string billable_metric_code = 6;
    */
-  metricCode: string;
+  billableMetricCode: string;
 
   /**
-   * The top-up amount required when the balance is short.
+   * The top-up the requirements ask for, in US cents; positive.
    *
-   * @generated from field: tanvo.common.v1.Money amount = 7;
+   * @generated from field: int64 amount_cents = 7;
    */
-  amount?: Money | undefined;
+  amountCents: bigint;
 
   /**
-   * The estimated cost of the call; the balance must cover it.
+   * The estimated cost of the call, in US cents; positive. The wallet
+   * passes when its balance covers a thousand calls.
    *
-   * @generated from field: tanvo.common.v1.Money estimated_call_cost = 8;
+   * @generated from field: int64 estimated_call_cost_cents = 8;
    */
-  estimatedCallCost?: Money | undefined;
+  estimatedCallCostCents: bigint;
 };
 
 /**
@@ -103,22 +103,24 @@ export const CheckX402GateRequestSchema: GenMessage<CheckX402GateRequest> = /*@_
  */
 export type CheckX402GateResponse = Message<"tanvo.x402.v1.CheckX402GateResponse"> & {
   /**
-   * The wallet's balance in credits.
+   * The wallet's balance in credits, net of its ongoing usage; "0" for a
+   * stranger.
    *
    * @generated from field: string balance_credits = 1;
    */
   balanceCredits: string;
 
   /**
-   * The x402 payment requirements when the agent must pay first; empty
-   * when it may proceed.
+   * The payment requirements of the top-up, one per network of the
+   * connection; empty when the agent may proceed.
    *
-   * @generated from field: google.protobuf.Struct requirements = 2;
+   * @generated from field: repeated tanvo.x402.v1.X402PaymentRequirement requirements = 2;
    */
-  requirements?: JsonObject | undefined;
+  requirements: X402PaymentRequirement[];
 
   /**
-   * The agent's subscription, to send events to.
+   * The agent's active subscription, to send its events to; empty when
+   * there is none.
    *
    * @generated from field: string external_subscription_id = 3;
    */
@@ -133,6 +135,78 @@ export const CheckX402GateResponseSchema: GenMessage<CheckX402GateResponse> = /*
   messageDesc(file_tanvo_x402_v1_x402, 1);
 
 /**
+ * X402PaymentRequirement is one way to pay a top-up: an exact transfer of
+ * the connection's token on one network.
+ *
+ * @generated from message tanvo.x402.v1.X402PaymentRequirement
+ */
+export type X402PaymentRequirement = Message<"tanvo.x402.v1.X402PaymentRequirement"> & {
+  /**
+   * The payment scheme: "exact".
+   *
+   * @generated from field: string scheme = 1;
+   */
+  scheme: string;
+
+  /**
+   * The network, as a CAIP-2 identifier such as "eip155:8453".
+   *
+   * @generated from field: string network = 2;
+   */
+  network: string;
+
+  /**
+   * The token's code: "usdc".
+   *
+   * @generated from field: string asset = 3;
+   */
+  asset: string;
+
+  /**
+   * The token's address on the network.
+   *
+   * @generated from field: string asset_address = 4;
+   */
+  assetAddress: string;
+
+  /**
+   * The scheme's extra terms: the token's EIP-712 domain on EVM, the fee
+   * payer on Solana.
+   *
+   * @generated from field: google.protobuf.Struct extra = 5;
+   */
+  extra?: JsonObject | undefined;
+
+  /**
+   * The connection's payout address on the network.
+   *
+   * @generated from field: string pay_to = 6;
+   */
+  payTo: string;
+
+  /**
+   * The amount in the token's atomic units, as a decimal string.
+   *
+   * @generated from field: string amount_atomic = 7;
+   */
+  amountAtomic: string;
+
+  /**
+   * The longest validity of a payment, in seconds.
+   *
+   * @generated from field: int32 max_timeout_seconds = 8;
+   */
+  maxTimeoutSeconds: number;
+};
+
+/**
+ * Describes the message tanvo.x402.v1.X402PaymentRequirement.
+ * Use `create(X402PaymentRequirementSchema)` to create a new message.
+ */
+export const X402PaymentRequirementSchema: GenMessage<X402PaymentRequirement> = /*@__PURE__*/
+  messageDesc(file_tanvo_x402_v1_x402, 2);
+
+/**
  * X402Service serves the x402 flow of a resource server (the
  * organization's API gateway): checking an agent's access before a call.
  *
@@ -140,10 +214,18 @@ export const CheckX402GateResponseSchema: GenMessage<CheckX402GateResponse> = /*
  */
 export const X402Service: GenService<{
   /**
-   * Checks whether an agent may call a resource: returns its wallet
-   * balance and, when it must pay first, the x402 payment requirements to
-   * answer with HTTP 402. Creates the customer, subscription and wallet of
-   * a new agent when the connection auto-creates customers.
+   * Checks whether an agent may call a resource: its subscription is
+   * active and its wallet covers the estimated cost. Otherwise it returns
+   * the x402 payment requirements of a top-up, to answer with HTTP 402.
+   * A refusal is an invalid argument whose field violation is on "base":
+   * buyer_not_recognized, wallet_not_x402_enabled,
+   * customer_not_refreshable, subscription_not_active,
+   * credit_purchase_pending, agent_address_family_unsupported,
+   * plan_currency_not_supported, plan_not_usage_only, charge_not_targeted
+   * and charge_not_invoiceable.
+   * An unknown connection is not found (connection_not_found); a failure
+   * of the facilitator is unavailable (third_party_error). The calls are
+   * not recorded in the API logs.
    *
    * @generated from rpc tanvo.x402.v1.X402Service.CheckX402Gate
    */

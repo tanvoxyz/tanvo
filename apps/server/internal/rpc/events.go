@@ -17,6 +17,7 @@ import (
 	"github.com/tanvoxyz/tanvo/apps/server/internal/clientip"
 	"github.com/tanvoxyz/tanvo/libs/auth"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/event"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
 	eventv1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/event/v1"
@@ -193,6 +194,9 @@ func toProto(e *event.Event) *eventv1.Event {
 			fields[k] = structpb.NewStringValue(v)
 		}
 		b.Properties = &structpb.Struct{Fields: fields}
+	}
+	if code := e.Properties[catalog.EventTargetWalletCode]; code != "" {
+		b.TargetWalletCode = &code
 	}
 	if e.PreciseTotalAmount != nil {
 		s := e.PreciseTotalAmount.String()

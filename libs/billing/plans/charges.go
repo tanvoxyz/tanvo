@@ -55,6 +55,11 @@ type ChargeInput struct {
 	RegroupPaidFees core.Optional[catalog.RegroupPaidFees]
 	// Prorated prorates the charge.
 	Prorated core.Optional[bool]
+	// AcceptsTargetWallet splits the charge's usage by the wallet each
+	// event targets; a create defaults it to false and an update changes
+	// it whenever it is set, even on a subscribed plan or from a cascade
+	// (lago Charges::UpdateService).
+	AcceptsTargetWallet core.Optional[bool]
 	// MinAmount is the minimum spending of a period, in units of the
 	// plan's currency; defaults to zero.
 	MinAmount core.Optional[money.Decimal]
@@ -112,19 +117,20 @@ func (s *Service) createCharge(ctx context.Context, r port.Repos, p *catalog.Pla
 	}
 	now := s.d.Now()
 	c := &catalog.Charge{
-		ID:                 core.NewID[core.ChargeID](s.d.IDs),
-		OrganizationID:     org,
-		PlanID:             p.ID,
-		ParentID:           in.parent,
-		Code:               in.Code.Value,
-		BillableMetricID:   m.ID,
-		ChargeModel:        in.ChargeModel.Value,
-		PayInAdvance:       in.PayInAdvance.Value,
-		Prorated:           in.Prorated.Value,
-		Invoiceable:        true,
-		InvoiceDisplayName: in.InvoiceDisplayName.Value,
-		CreatedAt:          now,
-		UpdatedAt:          now,
+		ID:                  core.NewID[core.ChargeID](s.d.IDs),
+		OrganizationID:      org,
+		PlanID:              p.ID,
+		ParentID:            in.parent,
+		Code:                in.Code.Value,
+		BillableMetricID:    m.ID,
+		ChargeModel:         in.ChargeModel.Value,
+		PayInAdvance:        in.PayInAdvance.Value,
+		Prorated:            in.Prorated.Value,
+		AcceptsTargetWallet: in.AcceptsTargetWallet.Value,
+		Invoiceable:         true,
+		InvoiceDisplayName:  in.InvoiceDisplayName.Value,
+		CreatedAt:           now,
+		UpdatedAt:           now,
 	}
 	if c.Code == "" {
 		if c.Code, err = chargeGenerateCode(ctx, r, p, m); err != nil {
@@ -230,6 +236,7 @@ func (s *Service) updateCharge(ctx context.Context, r port.Repos, c *catalog.Cha
 			}
 		}
 	}
+	in.AcceptsTargetWallet.Apply(&c.AcceptsTargetWallet)
 	if a := in.AppliedPricingUnit; a.Set && a.Value != nil && c.AppliedPricingUnit != nil && (!u.cascade || u.equalRate) {
 		c.AppliedPricingUnit.ConversionRate = a.Value.ConversionRate
 	}
@@ -359,7 +366,7 @@ func (s *Service) processPlanCharges(ctx context.Context, r port.Repos, p *catal
 		if a := c.AppliedPricingUnit; a.Set && a.Value != nil {
 			rate = &a.Value.ConversionRate
 		}
-		if err := s.enqueueUpdateChargeChildren(ctx, r, old, updated, c.Code.Value, rate); err != nil {
+		if err := s.enqueueUpdateChargeChildren(ctx, r, old, updated, c.Code.Value, rate, c.AcceptsTargetWallet); err != nil {
 			return err
 		}
 		if c.Filters.Set {
@@ -442,10 +449,12 @@ func (s *Service) enqueueCreateChargeChildren(ctx context.Context, r port.Repos,
 
 // enqueueUpdateChargeChildren enqueues the cascade of the update of old
 // into updated to its overrides: code is the code they take ("" keeps
-// theirs) and rate the new conversion rate, nil for none (lago
-// Charges::CascadeUpdatable#trigger_cascade and Plans::UpdateService
-// #cascade_charge_update).
-func (s *Service) enqueueUpdateChargeChildren(ctx context.Context, r port.Repos, old, updated *catalog.Charge, code string, rate *money.Decimal) error {
+// theirs), rate the new conversion rate, nil for none, and targetWallet
+// the accepts_target_wallet of a plan update's payload, which the
+// overrides take when set (lago Charges::CascadeUpdatable#trigger_cascade
+// and Plans::UpdateService#cascade_charge_update, whose payload carries
+// accepts_target_wallet).
+func (s *Service) enqueueUpdateChargeChildren(ctx context.Context, r port.Repos, old, updated *catalog.Charge, code string, rate *money.Decimal, targetWallet core.Optional[bool]) error {
 	props := updated.Properties.Clone()
 	args := kernel.UpdateChargeChildrenArgs{
 		ChargeID:       updated.ID,
@@ -455,6 +464,9 @@ func (s *Service) enqueueUpdateChargeChildren(ctx context.Context, r port.Repos,
 		ConversionRate: rate,
 		OldChargeModel: old.ChargeModel,
 		OldProperties:  old.Properties.Clone(),
+	}
+	if targetWallet.Set {
+		args.AcceptsTargetWallet = &targetWallet.Value
 	}
 	if old.AppliedPricingUnit != nil {
 		r := old.AppliedPricingUnit.ConversionRate
@@ -750,7 +762,7 @@ func (s *Service) UpdateCharge(ctx context.Context, org core.OrganizationID, pla
 		if len(children) == 0 {
 			return updated, nil
 		}
-		if err := s.enqueueUpdateChargeChildren(ctx, r, old, updated, updated.Code, nil); err != nil {
+		if err := s.enqueueUpdateChargeChildren(ctx, r, old, updated, updated.Code, nil, core.Optional[bool]{}); err != nil {
 			return nil, err
 		}
 		if err := s.dispatchChargeFilterCascade(ctx, r, updated, old.Filters, updated.Filters); err != nil {

@@ -42,7 +42,7 @@ func NewCharges(svc *plans.Service) *Charges { return &Charges{svc: svc} }
 // invoice_display_name, applied_pricing_unit and tax_ids.
 var chargeUpdateFields = []string{
 	"code", "charge_model", "properties", "filters", "pay_in_advance", "invoiceable", "regroup_paid_fees",
-	"prorated", "min_amount", "invoice_display_name", "applied_pricing_unit", "tax_ids",
+	"prorated", "accepts_target_wallet", "min_amount", "invoice_display_name", "applied_pricing_unit", "tax_ids",
 }
 
 // chargeFilterUpdateFields are the update_mask paths of
@@ -513,6 +513,8 @@ func chargeHas(b *catalogv1.Charge, path string) bool {
 		return b.HasRegroupPaidFees()
 	case "prorated":
 		return b.HasProrated()
+	case "accepts_target_wallet":
+		return b.HasAcceptsTargetWallet()
 	case "min_amount":
 		return b.HasMinAmount()
 	case "invoice_display_name":
@@ -578,6 +580,8 @@ func chargeFields(field string, pb *catalogv1.Charge, paths []string) (plans.Cha
 			in.RegroupPaidFees = core.Some(chargeRegroups.Core(pb.GetRegroupPaidFees()))
 		case "prorated":
 			in.Prorated = core.Some(pb.GetProrated())
+		case "accepts_target_wallet":
+			in.AcceptsTargetWallet = core.Some(pb.GetAcceptsTargetWallet())
 		case "min_amount":
 			d := money.Zero
 			if pb.GetMinAmount() != "" {
@@ -736,19 +740,20 @@ func chargeProtoIn(c *catalog.Charge, cur money.Currency) *catalogv1.Charge {
 		taxIDs[i] = id.String()
 	}
 	b := catalogv1.Charge_builder{
-		Id:                 new(c.ID.String()),
-		Code:               new(c.Code),
-		PlanId:             new(c.PlanID.String()),
-		BillableMetricId:   new(c.BillableMetricID.String()),
-		Properties:         chargePropertiesProto(c.ChargeModel, c.Properties),
-		PayInAdvance:       new(c.PayInAdvance),
-		Invoiceable:        new(c.Invoiceable),
-		Prorated:           new(c.Prorated),
-		MinAmount:          new(cur.FromMinor(c.MinAmount).StringFixed(cur.Exponent())),
-		InvoiceDisplayName: c.InvoiceDisplayName,
-		TaxIds:             taxIDs,
-		CreatedAt:          Timestamp(c.CreatedAt),
-		UpdatedAt:          Timestamp(c.UpdatedAt),
+		Id:                  new(c.ID.String()),
+		Code:                new(c.Code),
+		PlanId:              new(c.PlanID.String()),
+		BillableMetricId:    new(c.BillableMetricID.String()),
+		Properties:          chargePropertiesProto(c.ChargeModel, c.Properties),
+		PayInAdvance:        new(c.PayInAdvance),
+		Invoiceable:         new(c.Invoiceable),
+		Prorated:            new(c.Prorated),
+		AcceptsTargetWallet: new(c.AcceptsTargetWallet),
+		MinAmount:           new(cur.FromMinor(c.MinAmount).StringFixed(cur.Exponent())),
+		InvoiceDisplayName:  c.InvoiceDisplayName,
+		TaxIds:              taxIDs,
+		CreatedAt:           Timestamp(c.CreatedAt),
+		UpdatedAt:           Timestamp(c.UpdatedAt),
 	}
 	if c.IsChild() {
 		b.ParentId = new(c.ParentID.String())

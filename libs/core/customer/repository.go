@@ -105,8 +105,9 @@ func (f Filter) ActiveSubscriptionsRange() (lo, hi int, ok bool) {
 
 // Repository stores customers. Every method is scoped to an organization.
 type Repository interface {
-	// Create inserts c; an external ID used by another non-deleted
-	// customer of the organization fails with core.ErrConflict.
+	// Create inserts c; an external ID or an x402 agent address used by
+	// another non-deleted customer of the organization fails with
+	// core.ErrConflict.
 	Create(ctx context.Context, c *Customer) error
 	// Update replaces the stored customer c.ID with c (same uniqueness
 	// rule as Create).
@@ -117,6 +118,10 @@ type Repository interface {
 	// GetByExternalID returns the non-deleted customer with that external
 	// ID, or core.ErrNotFound.
 	GetByExternalID(ctx context.Context, org core.OrganizationID, externalID string) (*Customer, error)
+	// GetByX402AgentAddress returns the non-deleted customer whose x402
+	// agent address is address, stored form (see
+	// [Customer.NormalizeX402AgentAddress]), or core.ErrNotFound.
+	GetByX402AgentAddress(ctx context.Context, org core.OrganizationID, address string) (*Customer, error)
 	// List returns the organization's customers matching f, in the order
 	// f.Order; an invalid filter fails with core.ErrInvalidValue.
 	List(ctx context.Context, org core.OrganizationID, f Filter, page core.PageRequest) (core.Page[*Customer], error)

@@ -37,6 +37,8 @@ cases:
   - {name: in arrears invoiceable, source: "spec/models/charge_spec.rb:861"}
   - {name: in arrears not invoiceable, source: "spec/models/charge_spec.rb:869", invoiceable: false, errors: ["invoiceable: must_be_true_unless_pay_in_advance"]}
   - {name: properties not an object, source: "tanvo", properties: "[1]", errors: ["properties: invalid_value"]}
+  - {name: not accepting a target wallet, source: "spec/models/charge_spec.rb:930"}
+  - {name: accepting a target wallet, source: "spec/models/charge_spec.rb:960", accepts_target_wallet: true}
   - {name: pricing unit with a zero rate, source: "spec/models/applied_pricing_unit_spec.rb:11", conversion_rate: "0", errors: ["applied_pricing_unit.conversion_rate: value_must_be_positive"]}
   - {name: pricing unit with a positive rate, source: "spec/models/applied_pricing_unit_spec.rb:11", conversion_rate: "0.5"}
 
@@ -45,5 +47,6 @@ skipped:
   - {source: "spec/models/charge_spec.rb:518", reason: "the custom charge model is dropped (domain §24 item 1)"}
   - {source: "spec/models/charge_spec.rb:805", reason: "code uniqueness per plan is a partial unique index, tested by the repository suites"}
   - {source: "spec/models/charge_spec.rb:877", reason: "premium license gates are not part of Tanvo"}
-  - {source: "spec/models/charge_spec.rb:924", reason: "accepts_target_wallet is not part of the Tanvo charge"}
+  - {source: "spec/models/charge_spec.rb:938", reason: "the events_targeting_wallets premium integration gate is not part of Tanvo (parity §1.50): a charge always may accept a target wallet"}
+  - {source: "spec/models/charge_spec.rb:947", reason: "the events_targeting_wallets premium integration gate is not part of Tanvo (parity §1.50)"}
   - {source: "spec/models/applied_pricing_unit_spec.rb:10", reason: "conversion_rate is a money.Decimal and cannot be null; zero is the unset value and is refused as not positive"}

@@ -44,10 +44,12 @@ func TestEnrich(t *testing.T) {
 		props        map[string]string
 		chargeProps  string
 		filterProps  string
+		accepts      bool
 		wantValue    string
 		wantDecimal  string
 		wantOp       event.OperationType
 		wantGroups   map[string]string // "<nil>" for nil
+		wantWallet   string
 	}{
 		{name: "creates an enriched event", source: "spec/services/events/enrich_service_spec.rb:32", agg: catalog.AggregationTypeSum, props: map[string]string{"item_id": "12"}, wantValue: "12", wantDecimal: "12"},
 		{name: "count aggregation", source: "spec/services/events/enrich_service_spec.rb:121", agg: catalog.AggregationTypeCount, props: map[string]string{"item_id": "12"}, wantValue: "1", wantDecimal: "1"},
@@ -71,6 +73,27 @@ func TestEnrich(t *testing.T) {
 			props: map[string]string{"item_id": "12", "region": "eu", "cloud": "aws"}, filterProps: `{"amount":"120","pricing_group_keys":["cloud","provider"]}`,
 			wantValue: "12", wantDecimal: "12", wantGroups: map[string]string{"cloud": "aws", "provider": "<nil>"},
 		},
+		{
+			name: "target wallet code", source: "spec/services/events/enrich_service_spec.rb:339", agg: catalog.AggregationTypeSum,
+			props: map[string]string{"item_id": "12", "target_wallet_code": "wallet1234"}, accepts: true,
+			wantValue: "12", wantDecimal: "12", wantGroups: map[string]string{"target_wallet_code": "wallet1234"}, wantWallet: "wallet1234",
+		},
+		{
+			name: "no target wallet code", source: "spec/services/events/enrich_service_spec.rb:364", agg: catalog.AggregationTypeSum,
+			props: map[string]string{"item_id": "12", "region": "eu"}, accepts: true,
+			wantValue: "12", wantDecimal: "12",
+		},
+		{
+			name: "target wallet code and pricing group keys", source: "spec/services/events/enrich_service_spec.rb:402", agg: catalog.AggregationTypeSum,
+			props:       map[string]string{"item_id": "12", "cloud": "aws", "provider": "visa", "target_wallet_code": "wallet123"},
+			chargeProps: `{"amount":"120","pricing_group_keys":["cloud","provider"]}`, accepts: true,
+			wantValue: "12", wantDecimal: "12", wantGroups: map[string]string{"cloud": "aws", "provider": "visa", "target_wallet_code": "wallet123"}, wantWallet: "wallet123",
+		},
+		{
+			name: "target wallet code on a charge not accepting one", source: "tanvo", agg: catalog.AggregationTypeSum,
+			props:     map[string]string{"item_id": "12", "target_wallet_code": "wallet1234"},
+			wantValue: "12", wantDecimal: "12",
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -79,6 +102,7 @@ func TestEnrich(t *testing.T) {
 			m := cat.metric("bm", tc.agg, "item_id")
 			s := cat.subscription("sub", subscription.StatusActive, testNow.Add(-time.Hour))
 			ch := cat.charge(s.PlanID, m, false, tc.chargeProps)
+			ch.AcceptsTargetWallet = tc.accepts
 			if tc.filterProps != "" {
 				ch.Filters = []catalog.ChargeFilter{{Values: map[string][]string{"region": {"eu"}}, Properties: catalog.MustProperties(tc.filterProps)}}
 			}
@@ -89,6 +113,9 @@ func TestEnrich(t *testing.T) {
 			}
 			if strp(got.Value) != tc.wantValue || got.DecimalValue.Cmp(money.MustParse(tc.wantDecimal)) != 0 {
 				t.Errorf("value got = %s / %s, want = %s / %s (%s)", strp(got.Value), got.DecimalValue, tc.wantValue, tc.wantDecimal, tc.source)
+			}
+			if got.TargetWalletCode != tc.wantWallet {
+				t.Errorf("target_wallet_code got = %q, want = %q (%s)", got.TargetWalletCode, tc.wantWallet, tc.source)
 			}
 			if got.OperationType != tc.wantOp {
 				t.Errorf("operation got = %q, want = %q (%s)", got.OperationType, tc.wantOp, tc.source)
@@ -303,6 +330,55 @@ func TestProgramsApply(t *testing.T) {
 			}
 			if got := e.Properties["result"]; got != tc.want {
 				t.Errorf("result got = %q, want = %q (%s)", got, tc.want, tc.source)
+			}
+		})
+	}
+}
+
+// An event no subscription matches is flagged for in-advance billing when
+// a rate card of the active contract with its external ID bills its
+// metric in advance.
+//
+// source: spec/services/events/post_process_service_spec.rb:130-227, app/services/events/post_process_service.rb:118-129
+func TestEnrichContract(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	for _, tc := range []struct {
+		name     string
+		source   string
+		contract bool
+		subs     bool
+		want     bool
+	}{
+		{name: "flags the event of an in-advance contract", source: "spec/services/events/post_process_service_spec.rb:156", contract: true, want: true},
+		{name: "leaves the event of a contract billing nothing in advance", source: "spec/services/events/post_process_service_spec.rb:225"},
+		{name: "keeps the matched subscription", source: "tanvo", contract: true, subs: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			cat := &fakeCatalog{contracts: map[contractKey]core.SubscriptionID{}}
+			m := cat.metric("bm", catalog.AggregationTypeCount, "")
+			ct := core.NewID[core.SubscriptionID](testIDs)
+			if tc.contract {
+				cat.contracts[contractKey{testOrg, "sub", m.ID}] = ct
+			}
+			var s *subscription.Subscription
+			if tc.subs {
+				s = cat.subscription("sub", subscription.StatusActive, testNow.Add(-time.Hour))
+			}
+			got, err := NewEnricher(cat, nil, core.FixedClock(testNow)).Enrich(ctx, testEvent("bm", nil), SourceAPI, false)
+			if err != nil {
+				t.Fatalf("Enrich() error = %v (%s)", err, tc.source)
+			}
+			wantTarget := core.SubscriptionID{}
+			switch {
+			case tc.subs:
+				wantTarget = s.ID
+			case tc.want:
+				wantTarget = ct
+			}
+			if got.InAdvanceTarget() != wantTarget || (tc.want != (got.ContractID == ct)) || (tc.want && !got.InAdvance) {
+				t.Errorf("target, contract, in advance got = %s, %s, %t, want = %s, contract %t (%s)", got.InAdvanceTarget(), got.ContractID, got.InAdvance, wantTarget, tc.want, tc.source)
 			}
 		})
 	}

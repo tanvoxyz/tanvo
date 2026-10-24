@@ -34,6 +34,7 @@ require (
 	github.com/tanvoxyz/tanvo/libs/store v0.0.0
 	github.com/tanvoxyz/tanvo/libs/tax v0.0.0
 	github.com/tanvoxyz/tanvo/libs/webhooks v0.0.0
+	github.com/tanvoxyz/tanvo/providers/x402 v0.0.0
 	github.com/twmb/franz-go v1.22.2
 	github.com/twmb/franz-go/plugin/kotel v1.7.1
 	go.opentelemetry.io/contrib/bridges/otelslog v0.21.0
@@ -161,3 +162,5 @@ replace github.com/tanvoxyz/tanvo/libs/tax => ../../libs/tax
 replace github.com/tanvoxyz/tanvo/libs/webhooks => ../../libs/webhooks
 
 replace github.com/tanvoxyz/tanvo/libs/billing => ../../libs/billing
+
+replace github.com/tanvoxyz/tanvo/providers/x402 => ../../providers/x402

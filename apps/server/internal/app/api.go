@@ -44,10 +44,12 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/taxes"
 	"github.com/tanvoxyz/tanvo/libs/billing/usageattribution"
 	"github.com/tanvoxyz/tanvo/libs/billing/wallets"
+	"github.com/tanvoxyz/tanvo/libs/billing/x402pay"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
+	"github.com/tanvoxyz/tanvo/libs/core/x402"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/access/v1/accessv1connect"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/alert/v1/alertv1connect"
@@ -65,13 +67,16 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/log/v1/logv1connect"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/organization/v1/organizationv1connect"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/payment/v1/paymentv1connect"
+	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/portal/v1/portalv1connect"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/quote/v1/quotev1connect"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/subscription/v1/subscriptionv1connect"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/tax/v1/taxv1connect"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/usage/v1/usagev1connect"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/wallet/v1/walletv1connect"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/webhook/v1/webhookv1connect"
+	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/x402/v1/x402v1connect"
 	"github.com/tanvoxyz/tanvo/libs/webhooks"
+	x402prov "github.com/tanvoxyz/tanvo/providers/x402"
 )
 
 // usageFlushInterval is how often the API role records the uses of API
@@ -149,6 +154,10 @@ type APIOptions struct {
 	// refuses the customer portal tokens and leaves the SSO connection
 	// RPCs Unimplemented.
 	SecretKey []byte
+	// X402Facilitators reaches the x402 facilitators; nil is the HTTP
+	// clients of providers/x402. Without SecretKey, every facilitator
+	// call fails.
+	X402Facilitators x402.Facilitators
 }
 
 // oidcCallbacks are the callback paths of the OpenID Connect methods
@@ -207,11 +216,7 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 		if portal, err = NewPortalTokens(o.SecretKey, o.AppURL, o.Clock); err != nil {
 			return nil, fmt.Errorf("api: %w", err)
 		}
-		bk, err := deriveKey(o.SecretKey, purposeSecretBox)
-		if err != nil {
-			return nil, fmt.Errorf("api: %w", err)
-		}
-		box, err := auth.NewAESSecretBox(bk, rand.Reader)
+		box, err := NewSecretBox(o.SecretKey)
 		if err != nil {
 			return nil, fmt.Errorf("api: %w", err)
 		}
@@ -352,7 +357,13 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 	if o.Billing != nil {
 		subscriptionSvc := subscriptions.New(billingDeps, o.Billing.Lifecycle, o.Billing.Usage, o.Billing.Plans)
 		subscriptionv1connect.RegisterSubscriptionServiceHandler(server, rpc.NewSubscriptions(subscriptionSvc))
+		subscriptionv1connect.RegisterContractServiceHandler(server, rpc.NewContracts(o.Billing.Contracts, productSvc))
 		usagev1connect.RegisterUsageServiceHandler(server, rpc.NewUsage(subscriptionSvc))
+		portalv1connect.RegisterCustomerPortalServiceHandler(server, rpc.NewPortal(rpc.PortalDeps{
+			Organizations: auth.NewOrganizationSettings(ad, nil), BillingEntities: billingEntitySvc,
+			Customers: customerSvc, Invoices: o.Billing.Invoices, Subscriptions: subscriptionSvc,
+			Wallets: walletSvc, Analytics: billinganalytics.New(billingDeps),
+		}))
 	}
 	paymentv1connect.RegisterPaymentServiceHandler(server, rpc.NewPayments(paymentSvc))
 	paymentv1connect.RegisterPaymentRequestServiceHandler(server, rpc.NewPaymentRequests(paymentSvc))
@@ -373,6 +384,19 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 	organizationv1connect.RegisterOrganizationServiceHandler(server, rpc.NewOrganizations(auth.NewOrganizationSettings(ad, nil)))
 	organizationv1connect.RegisterServerServiceHandler(server, rpc.NewServer(serverInfo()))
 	logv1connect.RegisterLogServiceHandler(server, rpc.NewLogs(auth.NewAuditLogs(ad)))
+	if o.X402Facilitators == nil {
+		o.X402Facilitators = x402prov.NewFacilitators(x402prov.WithTracerProvider(o.TracerProvider),
+			x402prov.WithMeterProvider(o.MeterProvider), x402prov.WithLogger(o.Log))
+	}
+	var x402Box x402pay.Sealer
+	if secretBox != nil {
+		x402Box = secretBox
+	}
+	x402Svc, err := x402pay.New(billingDeps, x402Box, o.X402Facilitators)
+	if err != nil {
+		return nil, fmt.Errorf("api: %w", err)
+	}
+	x402v1connect.RegisterX402ServiceHandler(server, rpc.NewX402(x402Svc))
 
 	// JSON uses the proto field names (snake_case) and keeps the numbers
 	// of event properties exact, on both transports.

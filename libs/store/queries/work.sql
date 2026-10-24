@@ -54,6 +54,11 @@ WHERE status = 'finalized' AND NOT payment_overdue AND payment_status <> 'succee
   AND payment_dispute_lost_at IS NULL AND payment_due_date <= @date::date
 ORDER BY organization_id;
 
+-- name: ListOrganizationsWithAwaitingBillingSegments :many
+SELECT DISTINCT organization_id FROM billing_segments
+WHERE status IN ('pending', 'processing')
+ORDER BY organization_id;
+
 -- name: ListOrganizationsWithStuckGeneratingInvoices :many
 SELECT DISTINCT i.organization_id FROM invoices i
 WHERE i.status = 'generating' AND i.invoice_type = 'subscription' AND i.created_at < @before::timestamptz

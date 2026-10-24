@@ -85,6 +85,9 @@ const (
 	// message contains invoice.RetriedTaxErrorMessage (the periodic retry
 	// of invoices failed on the tax provider's API limit).
 	WorkTaxRetriedInvoices Work = "tax_retried_invoices"
+	// WorkAwaitingBillingSegments: contract billing segments pending or
+	// processing (the segment invoicing, domain §21.4).
+	WorkAwaitingBillingSegments Work = "awaiting_billing_segments"
 )
 
 // ScanDayMargin is how far past the instant a scan of local dates looks:
@@ -104,6 +107,7 @@ func WorkValues() []Work {
 		WorkExpiredCoupons, WorkOverdueInvoices, WorkEndingAtSubscriptions, WorkExpirableSubscriptions,
 		WorkExpiringOrderForms, WorkDailyUsages, WorkDunningCustomers, WorkEventsToValidate,
 		WorkExpiredRecordDeletions, WorkStuckGeneratingInvoices, WorkExecutableOrders, WorkTaxRetriedInvoices,
+		WorkAwaitingBillingSegments,
 	}
 }
 

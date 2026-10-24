@@ -36,6 +36,7 @@ type restCharge struct {
 	MinAmount          string             `json:"min_amount"`
 	InvoiceDisplayName string             `json:"invoice_display_name"`
 	TaxIDs             []string           `json:"tax_ids"`
+	AcceptsTarget      bool               `json:"accepts_target_wallet"`
 }
 
 type restChargeBody struct {
@@ -213,6 +214,29 @@ func TestPlanCharges(t *testing.T) {
 		}
 		if status, body := f.s.REST(t, f.s.APIKey, http.MethodPatch, "/v1/plans/code%3Aunknown/charges/code%3Aapi", `{"prorated":true}`); status != http.StatusNotFound {
 			t.Errorf("got status = %d (%s), want = 404", status, body)
+		}
+	})
+
+	// source: spec/requests/api/v1/plans/charges_controller_spec.rb:322, 503
+	t.Run("accepts target wallet", func(t *testing.T) {
+		t.Parallel()
+		f := newChargeFixture(t)
+		status, body := f.s.REST(t, f.s.APIKey, http.MethodPost, "/v1/plans/code%3Abasic/charges",
+			`{"code":"wallet_target_charge","billable_metric_id":"code:api","charge_model":"CHARGE_MODEL_STANDARD",
+			"properties":{"standard":{"amount":"100"}},"accepts_target_wallet":true}`)
+		if status != http.StatusOK {
+			t.Fatalf("create: got status = %d (%s), want = 200", status, body)
+		}
+		if got := decode[restChargeBody](t, body).Charge; !got.AcceptsTarget {
+			t.Errorf("create: got accepts_target_wallet = false, want = true")
+		}
+		status, body = f.s.REST(t, f.s.APIKey, http.MethodPatch, "/v1/plans/code%3Abasic/charges/code%3Aapi",
+			`{"properties":{"standard":{"amount":"200"}},"accepts_target_wallet":true}`)
+		if status != http.StatusOK {
+			t.Fatalf("update: got status = %d (%s), want = 200", status, body)
+		}
+		if got := decode[restChargeBody](t, body).Charge; !got.AcceptsTarget {
+			t.Errorf("update: got accepts_target_wallet = false, want = true")
 		}
 	})
 

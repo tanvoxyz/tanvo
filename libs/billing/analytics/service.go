@@ -41,8 +41,9 @@ type Filter struct {
 	// BillingEntity keeps one billing entity (by ID or code); zero keeps
 	// all.
 	BillingEntity refs.Ref
-	// Customer keeps one live customer; only the gross revenue and the
-	// overdue balance take it.
+	// Customer keeps one live customer; only the gross revenue, the
+	// invoice collection (of the customer portal) and the overdue balance
+	// take it.
 	Customer CustomerRef
 	// CustomerTINEmpty keeps the invoices of customers without (true) or
 	// with (false) a tax identification number; nil keeps all. The
@@ -73,7 +74,7 @@ func (s *Service) MRR(ctx context.Context, org core.OrganizationID, f Filter) ([
 // InvoiceCollection returns the finalized invoices by month, currency and
 // payment status; a month without invoices has no currency nor status.
 func (s *Service) InvoiceCollection(ctx context.Context, org core.OrganizationID, f Filter) ([]analytics.Collection, error) {
-	return report(ctx, s, org, f, false, analytics.Repository.InvoiceCollection)
+	return report(ctx, s, org, f, true, analytics.Repository.InvoiceCollection)
 }
 
 // InvoicedUsage returns the usage invoiced by month and billable metric.

@@ -34,6 +34,7 @@ type invoiceParents struct {
 	subscriptions [2]core.SubscriptionID
 	walletTx      core.WalletTransactionID
 	method        core.PaymentMethodID
+	connection    core.X402ConnectionID
 }
 
 // invoiceFixtureParents creates the parent rows of the invoice tests in the
@@ -93,6 +94,11 @@ func invoiceFixtureParents(e *env, be *organization.BillingEntity) invoiceParent
 			return fmt.Errorf("payment method: %w", err)
 		}
 		p.method = m.ID
+		conn := x402FixtureConnection(e, p.org, "inv-x402")
+		if err := r.X402Connections.Create(ctx, conn); err != nil {
+			return fmt.Errorf("x402 connection: %w", err)
+		}
+		p.connection = conn.ID
 		return nil
 	})
 	return p
@@ -134,7 +140,7 @@ func invoiceFixtureFull(e *env, p invoiceParents, number string) *invoice.Invoic
 	inv.PaymentMethodType = core.PaymentMethodTypeProvider
 	inv.PaymentMethodID = p.method
 	inv.PurchaseOrderNumber = ptr("PO-" + number)
-	inv.X402ConnectionID = core.NewID[core.X402ConnectionID](e.ids)
+	inv.X402ConnectionID = p.connection
 	// The token is unique across organizations, so it derives from the ID.
 	inv.X402PaymentToken = ptr("x402-" + inv.ID.String())
 	inv.Metadata = core.Metadata{{Key: "po", Value: "PO-1"}, {Key: "dept", Value: "R&D"}}

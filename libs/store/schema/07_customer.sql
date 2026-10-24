@@ -50,6 +50,10 @@ CREATE TABLE customers (
   slug text NOT NULL DEFAULT '',
   payment_receipt_counter bigint NOT NULL DEFAULT 0,
   metadata jsonb NOT NULL DEFAULT '[]',
+  -- The wallet address of the x402 agent the customer pays as (parity
+  -- §1.36): a checksummed EVM address or a Solana address; set on creation
+  -- only.
+  x402_agent_address text,
   -- Set while the ongoing balances of the customer's wallets await a
   -- refresh; wallet_refresh_generation grows when a flag is raised, so
   -- that a refresh clears only the flag it observed, and
@@ -77,6 +81,9 @@ CREATE TABLE customers (
 
 -- External IDs are unique among non-deleted customers.
 CREATE UNIQUE INDEX customers_external_id_live_key ON customers (organization_id, external_id) WHERE deleted_at IS NULL;
+-- An x402 agent address belongs to one non-deleted customer.
+CREATE UNIQUE INDEX customers_x402_agent_address_live_key ON customers (organization_id, x402_agent_address)
+  WHERE deleted_at IS NULL AND x402_agent_address IS NOT NULL;
 CREATE INDEX customers_billing_entity_idx ON customers (organization_id, billing_entity_id);
 CREATE INDEX customers_awaiting_wallet_refresh_idx ON customers (organization_id, id) WHERE awaiting_wallet_refresh;
 CREATE INDEX customers_applied_dunning_campaign_idx ON customers (organization_id, applied_dunning_campaign_id) WHERE applied_dunning_campaign_id IS NOT NULL;

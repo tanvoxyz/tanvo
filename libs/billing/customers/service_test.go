@@ -205,6 +205,27 @@ func TestUpsert(t *testing.T) {
 	}
 }
 
+func TestUpdateFromPortal(t *testing.T) {
+	t.Log("source: spec/services/customer_portal/customer_update_service_spec.rb:37-65")
+	t.Log("source: app/services/customer_portal/customer_update_service.rb:14-74")
+	h, svc := setup(t)
+	old := h.Customer(func(c *customer.Customer) { c.ExternalID = "cus"; c.Phone = new("1") })
+	c, err := svc.UpdateFromPortal(h.Ctx, h.OrgID(), old.ID, customers.Input{
+		Name:       core.Some(new("Updated customer name")),
+		ExternalID: core.Some("renamed"),
+		Phone:      core.Some(new("2")),
+	})
+	if err != nil {
+		t.Fatalf("UpdateFromPortal: %v", err)
+	}
+	if *c.Name != "Updated customer name" || c.ExternalID != "cus" || *c.Phone != "1" {
+		t.Errorf("got = %q %s %q, want = the name changed only", *c.Name, c.ExternalID, *c.Phone)
+	}
+	if slices.ContainsFunc(h.Emitted.Events(), func(e webhook.Event) bool { return e.Type == webhook.EventTypeCustomerUpdated }) {
+		t.Errorf("got = customer.updated, want = no webhook")
+	}
+}
+
 func TestUpdateEditability(t *testing.T) {
 	tests := []struct {
 		name, source string

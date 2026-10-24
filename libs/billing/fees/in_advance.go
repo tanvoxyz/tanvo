@@ -53,7 +53,12 @@ func (s *Service) InAdvanceChargeFees(ctx context.Context, r port.Repos, env *ke
 	if err != nil {
 		return nil, err
 	}
-	groups := metering.GroupsOf(ev.Event.Properties, bk.groupKeys())
+	groups := metering.GroupsOf(ev.Event.Properties, bk.groupKeys(c))
+	if _, ok := groups.Value(catalog.EventTargetWalletCode); c.AcceptsTargetWallet && !ok {
+		// An event naming no wallet is priced and paid without one
+		// (app/services/fees/charge_service/metered_item.rb:110-112).
+		delete(groups, catalog.EventTargetWalletCode)
+	}
 
 	req := cc.request(env, bk, b, opts)
 	if opts.Cache != nil {

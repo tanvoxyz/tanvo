@@ -14,11 +14,9 @@ import "google/api/field_behavior.proto";
 import "google/api/resource.proto";
 import "google/protobuf/field_mask.proto";
 import "google/protobuf/timestamp.proto";
-import "google/type/date.proto";
 import "tanvo/catalog/v1/charge.proto";
 import "tanvo/catalog/v1/fixed_charge.proto";
 import "tanvo/catalog/v1/plan.proto";
-import "tanvo/catalog/v1/rate_card.proto";
 import "tanvo/common/v1/enums.proto";
 import "tanvo/common/v1/options.proto";
 import "tanvo/common/v1/types.proto";
@@ -138,60 +136,6 @@ service SubscriptionService {
       api_resource: "lifetime_usage"
     };
   }
-
-  // Adds a rate card to a subscription priced by rate cards (a contract).
-  rpc CreateSubscriptionRateCard(CreateSubscriptionRateCardRequest) returns (CreateSubscriptionRateCardResponse) {
-    option (google.api.http) = {
-      post: "/v1/subscriptions/{subscription_id}/rate_cards"
-      body: "rate_card"
-    };
-    option (tanvo.common.v1.access) = {
-      permission: "contracts:update"
-      api_resource: "contract_rate_card"
-    };
-  }
-
-  // Lists the rate cards of a subscription.
-  rpc ListSubscriptionRateCards(ListSubscriptionRateCardsRequest) returns (ListSubscriptionRateCardsResponse) {
-    option idempotency_level = NO_SIDE_EFFECTS;
-    option (google.api.http) = {get: "/v1/subscriptions/{subscription_id}/rate_cards"};
-    option (tanvo.common.v1.access) = {
-      permission: "contracts:read"
-      api_resource: "contract_rate_card"
-    };
-  }
-
-  // Updates a subscription rate card's units and phases.
-  rpc UpdateSubscriptionRateCard(UpdateSubscriptionRateCardRequest) returns (UpdateSubscriptionRateCardResponse) {
-    option (google.api.http) = {
-      patch: "/v1/subscriptions/{subscription_id}/rate_cards/{rate_card.id}"
-      body: "rate_card"
-    };
-    option (tanvo.common.v1.access) = {
-      permission: "contracts:update"
-      api_resource: "contract_rate_card"
-    };
-  }
-
-  // Removes a rate card from a subscription from its next billing date.
-  rpc DeleteSubscriptionRateCard(DeleteSubscriptionRateCardRequest) returns (DeleteSubscriptionRateCardResponse) {
-    option (google.api.http) = {delete: "/v1/subscriptions/{subscription_id}/rate_cards/{rate_card_id}"};
-    option (tanvo.common.v1.access) = {
-      permission: "contracts:update"
-      api_resource: "contract_rate_card"
-    };
-  }
-
-  // Lists the billing segments of a subscription priced by rate cards: the
-  // priced windows of each rate card's schedule.
-  rpc ListBillingSegments(ListBillingSegmentsRequest) returns (ListBillingSegmentsResponse) {
-    option idempotency_level = NO_SIDE_EFFECTS;
-    option (google.api.http) = {get: "/v1/subscriptions/{subscription_id}/billing_segments"};
-    option (tanvo.common.v1.access) = {
-      permission: "contracts:read"
-      api_resource: "contract"
-    };
-  }
 }
 
 // SubscriptionStatus is the state of a subscription.
@@ -285,20 +229,6 @@ enum ActivationRuleStatus {
   ACTIVATION_RULE_STATUS_EXPIRED = 7;
 }
 
-// BillingSegmentStatus is the state of a billing segment.
-enum BillingSegmentStatus {
-  // Not set.
-  BILLING_SEGMENT_STATUS_UNSPECIFIED = 0;
-  // Waiting for its billing date.
-  BILLING_SEGMENT_STATUS_PENDING = 1;
-  // Being invoiced.
-  BILLING_SEGMENT_STATUS_PROCESSING = 2;
-  // Invoiced.
-  BILLING_SEGMENT_STATUS_DONE = 3;
-  // Invoicing failed.
-  BILLING_SEGMENT_STATUS_FAILED = 4;
-}
-
 // ActivationRule is a condition a subscription waits for before becoming
 // active.
 message ActivationRule {
@@ -352,59 +282,6 @@ message PlanOverrides {
   repeated tanvo.catalog.v1.UsageThreshold usage_thresholds = 10 [(buf.validate.field).repeated.max_items = 50];
 }
 
-// SubscriptionRateCard prices a subscription with a rate card on its own
-// schedule.
-message SubscriptionRateCard {
-  // The subscription rate card's ID.
-  string id = 1 [(google.api.field_behavior) = IDENTIFIER];
-  // The rate card (ID or `code:<code>`).
-  string rate_card_id = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (google.api.field_behavior) = IMMUTABLE,
-    (buf.validate.field).string.(tanvo.common.v1.ref) = true
-  ];
-  // The date the rate card takes effect.
-  google.type.Date effective_date = 3 [(google.api.field_behavior) = REQUIRED];
-  // The date billing intervals are anchored to; effective_date by default.
-  google.type.Date billing_anchor_date = 4;
-  // The number of units, for fixed products.
-  string units = 5 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
-  // The phases, by position; empty bills the rate card's rates throughout.
-  repeated tanvo.catalog.v1.RatePhase phases = 6 [(buf.validate.field).repeated.max_items = 50];
-  // When the rate card next bills.
-  google.protobuf.Timestamp next_billing_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
-  // When the subscription rate card was created.
-  google.protobuf.Timestamp created_at = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
-  // When the subscription rate card last changed.
-  google.protobuf.Timestamp updated_at = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
-}
-
-// BillingSegment is a priced window of a subscription rate card's schedule.
-message BillingSegment {
-  // The segment's ID.
-  string id = 1;
-  // The subscription rate card.
-  string subscription_rate_card_id = 2;
-  // The invoice the segment was billed on.
-  string invoice_id = 3;
-  // The state.
-  BillingSegmentStatus status = 4;
-  // The currency.
-  string currency = 5;
-  // When the segment is billed.
-  google.protobuf.Timestamp billing_at = 6;
-  // The start of the priced window.
-  google.protobuf.Timestamp started_at = 7;
-  // The end of the priced window, exclusive.
-  google.protobuf.Timestamp ended_at = 8;
-  // The start of the billing interval cycle the window belongs to.
-  google.protobuf.Timestamp cycle_started_at = 9;
-  // The share of the cycle the window covers, from 0 to 1.
-  string proration_ratio = 10;
-  // The phase that priced the window, when any.
-  string rate_phase_id = 11;
-}
-
 // Subscription bills a customer by a plan or by rate cards.
 message Subscription {
   option (google.api.resource) = {
@@ -430,8 +307,7 @@ message Subscription {
     (google.api.field_behavior) = IMMUTABLE,
     (buf.validate.field).string.(tanvo.common.v1.ref) = true
   ];
-  // The plan (ID or `code:<code>`); the child plan when overridden. Unset
-  // on subscriptions priced by rate cards only.
+  // The plan (ID or `code:<code>`); the child plan when overridden.
   string plan_id = 4 [
     (google.api.field_behavior) = IMMUTABLE,
     (buf.validate.field).string.(tanvo.common.v1.ref) = true
@@ -502,10 +378,9 @@ message Subscription {
   repeated ActivationRule activation_rules = 30 [(buf.validate.field).repeated.max_items = 5];
   // The plan overrides; write only, read the child plan for the result.
   PlanOverrides plan_overrides = 31 [(google.api.field_behavior) = INPUT_ONLY];
-  // The rate cards; on create only, then managed with the rate card RPCs.
-  repeated SubscriptionRateCard rate_cards = 32 [(buf.validate.field).repeated.max_items = 200];
-  // The date rate card billing intervals are anchored to.
-  google.type.Date billing_anchor_date = 33;
+  // Contracts, priced by rate cards, are served by ContractService.
+  reserved 32, 33;
+  reserved rate_cards, billing_anchor_date;
   // The start of the current billing period.
   google.protobuf.Timestamp current_period_started_at = 34 [(google.api.field_behavior) = OUTPUT_ONLY];
   // The end of the current billing period.
@@ -558,8 +433,8 @@ message LifetimeUsage {
 message CreateSubscriptionRequest {
   option (buf.validate.message).cel = {
     id: "subscription.required"
-    message: "external_id, customer_id and plan_id or rate_cards are required"
-    expression: "has(this.subscription.external_id) && has(this.subscription.customer_id) && (has(this.subscription.plan_id) || size(this.subscription.rate_cards) > 0)"
+    message: "external_id, customer_id and plan_id are required"
+    expression: "has(this.subscription.external_id) && has(this.subscription.customer_id) && has(this.subscription.plan_id)"
   };
 
   // The subscription to create.
@@ -749,132 +624,4 @@ message UpdateLifetimeUsageRequest {
 message UpdateLifetimeUsageResponse {
   // The updated lifetime usage.
   LifetimeUsage lifetime_usage = 1;
-}
-
-// CreateSubscriptionRateCardRequest is the request of SubscriptionService.CreateSubscriptionRateCard.
-message CreateSubscriptionRateCardRequest {
-  option (buf.validate.message).cel = {
-    id: "rate_card.required"
-    message: "rate_card_id and effective_date are required"
-    expression: "has(this.rate_card.rate_card_id) && has(this.rate_card.effective_date)"
-  };
-
-  // The subscription's ID or `external_id:<external_id>`.
-  string subscription_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.(tanvo.common.v1.ref) = true
-  ];
-  // The rate card to add.
-  SubscriptionRateCard rate_card = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true
-  ];
-}
-
-// CreateSubscriptionRateCardResponse is the response of SubscriptionService.CreateSubscriptionRateCard.
-message CreateSubscriptionRateCardResponse {
-  // The added rate card.
-  SubscriptionRateCard rate_card = 1;
-}
-
-// ListSubscriptionRateCardsRequest is the request of SubscriptionService.ListSubscriptionRateCards.
-message ListSubscriptionRateCardsRequest {
-  // The subscription's ID or `external_id:<external_id>`.
-  string subscription_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.(tanvo.common.v1.ref) = true
-  ];
-  // The maximum number of results; 20 by default, at most 1000.
-  int32 page_size = 2 [(buf.validate.field).int32 = {
-    gte: 0
-    lte: 1000
-  }];
-  // The next_page_token of the previous page.
-  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
-}
-
-// ListSubscriptionRateCardsResponse is the response of SubscriptionService.ListSubscriptionRateCards.
-message ListSubscriptionRateCardsResponse {
-  // The rate cards of this page.
-  repeated SubscriptionRateCard rate_cards = 1;
-  // The token of the next page; empty on the last page.
-  string next_page_token = 2;
-}
-
-// UpdateSubscriptionRateCardRequest is the request of SubscriptionService.UpdateSubscriptionRateCard.
-message UpdateSubscriptionRateCardRequest {
-  option (buf.validate.message).cel = {
-    id: "rate_card.id"
-    message: "rate_card.id is required"
-    expression: "has(this.rate_card.id)"
-  };
-
-  // The subscription's ID or `external_id:<external_id>`.
-  string subscription_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.(tanvo.common.v1.ref) = true
-  ];
-  // The new values; rate_card.id selects the subscription rate card.
-  SubscriptionRateCard rate_card = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true
-  ];
-  // The fields to update; empty updates every field that is set.
-  google.protobuf.FieldMask update_mask = 3;
-}
-
-// UpdateSubscriptionRateCardResponse is the response of SubscriptionService.UpdateSubscriptionRateCard.
-message UpdateSubscriptionRateCardResponse {
-  // The updated rate card.
-  SubscriptionRateCard rate_card = 1;
-}
-
-// DeleteSubscriptionRateCardRequest is the request of SubscriptionService.DeleteSubscriptionRateCard.
-message DeleteSubscriptionRateCardRequest {
-  // The subscription's ID or `external_id:<external_id>`.
-  string subscription_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.(tanvo.common.v1.ref) = true
-  ];
-  // The subscription rate card's ID.
-  string rate_card_id = 2 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.uuid = true
-  ];
-}
-
-// DeleteSubscriptionRateCardResponse is the response of SubscriptionService.DeleteSubscriptionRateCard.
-message DeleteSubscriptionRateCardResponse {}
-
-// ListBillingSegmentsRequest is the request of SubscriptionService.ListBillingSegments.
-message ListBillingSegmentsRequest {
-  // The subscription's ID or `external_id:<external_id>`.
-  string subscription_id = 1 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.(tanvo.common.v1.ref) = true
-  ];
-  // The maximum number of results; 20 by default, at most 1000.
-  int32 page_size = 2 [(buf.validate.field).int32 = {
-    gte: 0
-    lte: 1000
-  }];
-  // The next_page_token of the previous page.
-  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `status`, `subscription_rate_card_id`,
-  // `invoice_id` and `billing_at`.
-  string filter = 4 [(buf.validate.field).string.max_len = 2048];
-}
-
-// ListBillingSegmentsResponse is the response of SubscriptionService.ListBillingSegments.
-message ListBillingSegmentsResponse {
-  // The billing segments of this page.
-  repeated BillingSegment billing_segments = 1;
-  // The token of the next page; empty on the last page.
-  string next_page_token = 2;
 }

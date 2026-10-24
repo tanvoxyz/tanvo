@@ -132,8 +132,9 @@ collection AS (
     AND i.status = 'finalized'
     AND i.payment_dispute_lost_at IS NULL
     AND ($5::uuid IS NULL OR i.billing_entity_id = $5)
-    AND ($6::boolean IS NULL
-         OR $6::boolean = (trim(COALESCE(c.tax_identification_number, '')) = ''))
+    AND ($6::uuid IS NULL OR i.customer_id = $6)
+    AND ($7::boolean IS NULL
+         OR $7::boolean = (trim(COALESCE(c.tax_identification_number, '')) = ''))
   GROUP BY 1, 2, 3
 )
 SELECT (m.month AT TIME ZONE 'UTC')::timestamptz AS month, COALESCE(c.payment_status, '')::text AS payment_status,
@@ -152,6 +153,7 @@ type AnalyticsInvoiceCollectionParams struct {
 	ToMonth          time.Time
 	OrganizationID   uuid.UUID
 	BillingEntityID  *uuid.UUID
+	CustomerID       *uuid.UUID
 	CustomerTinEmpty *bool
 }
 
@@ -165,8 +167,10 @@ type AnalyticsInvoiceCollectionRow struct {
 
 // The finalized invoices by issuing month, currency and payment status;
 // a month without invoices is one row with no status nor currency.
-// @customer_tin_empty keeps the customers without (true) or with (false) a
-// tax identification number (invoice_collection.rb:19-25).
+// @customer_id keeps one customer's invoices (the customer portal's,
+// invoice_collection.rb:13-16); @customer_tin_empty keeps the customers
+// without (true) or with (false) a tax identification number
+// (invoice_collection.rb:19-25).
 func (q *Queries) AnalyticsInvoiceCollection(ctx context.Context, arg AnalyticsInvoiceCollectionParams) ([]AnalyticsInvoiceCollectionRow, error) {
 	rows, err := q.db.Query(ctx, analyticsInvoiceCollection,
 		arg.FromMonth,
@@ -174,6 +178,7 @@ func (q *Queries) AnalyticsInvoiceCollection(ctx context.Context, arg AnalyticsI
 		arg.ToMonth,
 		arg.OrganizationID,
 		arg.BillingEntityID,
+		arg.CustomerID,
 		arg.CustomerTinEmpty,
 	)
 	if err != nil {

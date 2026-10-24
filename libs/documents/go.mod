@@ -13,6 +13,8 @@ require (
 require (
 	github.com/cockroachdb/apd/v3 v3.2.3 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	golang.org/x/crypto v0.58.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
 )
 
 replace github.com/tanvoxyz/tanvo/libs/core => ../core

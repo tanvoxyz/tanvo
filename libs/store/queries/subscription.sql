@@ -3,14 +3,14 @@
 
 -- name: CreateSubscription :execrows
 INSERT INTO subscriptions (
-  organization_id, id, external_id, customer_id, plan_id, name, billing_time, status,
+  organization_id, id, external_id, customer_id, plan_id, contract, billing_anchor_date, name, billing_time, status,
   subscription_at, started_at, ending_at, terminated_at, canceled_at, trial_ended_at,
   cancellation_reason, previous_subscription_id, on_termination_credit_note, on_termination_invoice,
   payment_method_type, payment_method_id, progressive_billing_disabled, consolidate_invoice,
   purchase_order_number, billing_entity_id, skip_invoice_custom_sections, next_billing_at,
   skip_daily_usage, created_at, updated_at
 ) VALUES (
-  @organization_id, @id, @external_id, @customer_id, @plan_id, @name, @billing_time, @status,
+  @organization_id, @id, @external_id, @customer_id, @plan_id, @contract, @billing_anchor_date, @name, @billing_time, @status,
   @subscription_at, @started_at, @ending_at, @terminated_at, @canceled_at, @trial_ended_at,
   @cancellation_reason, @previous_subscription_id, @on_termination_credit_note, @on_termination_invoice,
   @payment_method_type, @payment_method_id, @progressive_billing_disabled, @consolidate_invoice,
@@ -30,7 +30,7 @@ WITH old AS (
 )
 UPDATE subscriptions SET
   organization_id = @organization_id, id = @id, external_id = @external_id, customer_id = @customer_id,
-  plan_id = @plan_id, name = @name, billing_time = @billing_time, status = @status,
+  plan_id = @plan_id, contract = @contract, billing_anchor_date = @billing_anchor_date, name = @name, billing_time = @billing_time, status = @status,
   subscription_at = @subscription_at, started_at = @started_at, ending_at = @ending_at,
   terminated_at = @terminated_at, canceled_at = @canceled_at, trial_ended_at = @trial_ended_at,
   cancellation_reason = @cancellation_reason, previous_subscription_id = @previous_subscription_id,
@@ -69,7 +69,7 @@ SELECT sqlc.embed(s),
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
-WHERE s.organization_id = @organization_id AND s.external_id = @external_id
+WHERE s.organization_id = @organization_id AND s.external_id = @external_id AND NOT s.contract
   AND s.status IN ('active', 'incomplete', 'pending')
 ORDER BY CASE s.status WHEN 'active' THEN 0 WHEN 'incomplete' THEN 1 ELSE 2 END, s.id
 LIMIT 1;
@@ -83,7 +83,7 @@ SELECT sqlc.embed(s),
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
-WHERE s.organization_id = @organization_id
+WHERE s.organization_id = @organization_id AND NOT s.contract
   AND (sqlc.narg(customer_id)::uuid IS NULL OR s.customer_id = sqlc.narg(customer_id))
   AND (sqlc.narg(external_customer_id)::text IS NULL OR EXISTS (
     SELECT 1 FROM customers c
@@ -157,7 +157,7 @@ SELECT sqlc.embed(s),
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
-WHERE s.organization_id = @organization_id AND s.customer_id = @customer_id
+WHERE s.organization_id = @organization_id AND s.customer_id = @customer_id AND NOT s.contract
   AND (cardinality(@statuses::text[]) = 0 OR s.status = ANY(@statuses::text[]))
 ORDER BY s.id;
 
@@ -166,7 +166,7 @@ SELECT sqlc.embed(s),
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
-WHERE s.organization_id = @organization_id AND s.plan_id = @plan_id AND s.status IN ('active', 'pending')
+WHERE s.organization_id = @organization_id AND s.plan_id = @plan_id AND NOT s.contract AND s.status IN ('active', 'pending')
 ORDER BY s.id;
 
 -- name: ListSubscriptionsDueForBilling :many
@@ -176,7 +176,7 @@ SELECT sqlc.embed(s),
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
-WHERE s.organization_id = @organization_id AND s.status = 'active'
+WHERE s.organization_id = @organization_id AND s.status = 'active' AND NOT s.contract
   AND s.next_billing_at IS NOT NULL AND s.next_billing_at <= @at::timestamptz
   AND (sqlc.narg(after)::uuid IS NULL OR s.id > sqlc.narg(after))
 ORDER BY s.id
@@ -187,7 +187,7 @@ SELECT sqlc.embed(s),
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
-WHERE s.organization_id = @organization_id AND s.status = 'pending'
+WHERE s.organization_id = @organization_id AND s.status = 'pending' AND NOT s.contract
   AND s.previous_subscription_id IS NULL AND s.subscription_at <= @at
 ORDER BY s.id;
 
@@ -227,7 +227,7 @@ SELECT sqlc.embed(s),
   ARRAY(SELECT c.invoice_custom_section_id FROM subscription_invoice_custom_sections c
         WHERE c.organization_id = s.organization_id AND c.subscription_id = s.id ORDER BY c.position)::uuid[] AS invoice_custom_section_ids
 FROM subscriptions s
-WHERE s.organization_id = @organization_id AND s.status = 'active'
+WHERE s.organization_id = @organization_id AND s.status = 'active' AND NOT s.contract
   AND s.ending_at >= @from_at::timestamptz AND s.ending_at < @to_at::timestamptz
 ORDER BY s.id;
 

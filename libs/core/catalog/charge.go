@@ -41,6 +41,10 @@ type Charge struct {
 	RegroupPaidFees RegroupPaidFees
 	// Prorated prorates recurring usage by time.
 	Prorated bool
+	// AcceptsTargetWallet splits the charge's usage and fees by the wallet
+	// each event targets through its [EventTargetWalletCode] property, and
+	// pays each targeted fee from that wallet only (domain §7.3).
+	AcceptsTargetWallet bool
 	// MinAmount is the per-period minimum, ≥ 0, in minor units of the plan
 	// currency.
 	MinAmount int64
@@ -59,6 +63,11 @@ type Charge struct {
 	// reference it (lago charge.rb default_scope kept).
 	DeletedAt *time.Time
 }
+
+// EventTargetWalletCode is the event property naming the wallet that pays
+// the usage of a charge accepting a target wallet (lago
+// Charge::EVENT_TARGET_WALLET_CODE).
+const EventTargetWalletCode = "target_wallet_code"
 
 // AppliedPricingUnit is the pricing unit a charge is priced in, with the
 // fiat value of one pricing unit (domain §7.6).

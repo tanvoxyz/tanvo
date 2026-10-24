@@ -167,3 +167,38 @@ func TestInAdvanceChargePurchaseOrderNumber(t *testing.T) {
 		t.Errorf("purchase_order_number: got = %v, want = PO-SUB-123", got)
 	}
 }
+
+// An event bills a pay-in-advance charge of a sum metric only when it
+// carries the metric's field, whatever its sign.
+//
+// source: spec/services/events/pay_in_advance_service_spec.rb:126, :135
+func TestInAdvanceChargeNeedsMetricField(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		props []string
+		want  int
+	}{
+		{name: "negative value", props: []string{"item_id", "-5"}, want: 1},       // :126
+		{name: "wrong field", props: []string{"wrong_field_name", "-5"}, want: 0}, // :135
+		{name: "blank field", props: []string{"item_id", " "}, want: 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ts := billingtest.Date(2026, time.January, 15, 10)
+			f := newFixture(t, ts)
+			m := f.Metric("items", catalog.AggregationTypeSum, "item_id")
+			f.Charge(f.plan, m, catalog.ChargeModelStandard, `{"amount":"3"}`, func(c *catalog.Charge) { c.PayInAdvance = true })
+			sub := f.subscribe()
+			e := f.Event(sub, "items", ts, tc.props...)
+			fs, err := f.svc.InAdvanceCharge(f.Ctx, f.OrgID(), kernel.InAdvanceChargeArgs{
+				SubscriptionID: sub.ID, TransactionID: e.TransactionID, Timestamp: ts, Code: "items",
+				Properties: map[string]string(e.Properties),
+			})
+			if err != nil {
+				t.Fatalf("in-advance charge: %v", err)
+			}
+			if len(fs) != tc.want {
+				t.Errorf("fees: got = %d, want = %d", len(fs), tc.want)
+			}
+		})
+	}
+}

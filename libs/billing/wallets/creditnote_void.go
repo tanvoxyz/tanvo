@@ -35,7 +35,7 @@ func (s *Service) VoidCreditNoteCredits(ctx context.Context, r port.Repos, w *wa
 		}
 	}
 	if cn.OffsetAmount > 0 && purchase != nil {
-		if err := s.markAsFailed(ctx, r, purchase); err != nil {
+		if err := s.markAsFailed(ctx, r, purchase, false); err != nil {
 			return err
 		}
 	}

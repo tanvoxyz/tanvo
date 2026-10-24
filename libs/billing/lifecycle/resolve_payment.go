@@ -8,6 +8,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
@@ -122,6 +123,10 @@ func (s *Service) satisfyPaymentGate(ctx context.Context, r port.Repos, env *ker
 	if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeInvoiceCreated, "invoice", kernel.ObjectID(inv.ID), inv); err != nil {
 		return err
 	}
+	// activation_rules/payment/resolve_service.rb:42.
+	if err := s.d.LogInvoice(ctx, r, auditlog.ActivityInvoiceCreated, inv); err != nil {
+		return err
+	}
 	if err := kernel.Enqueue(ctx, r, org, kernel.JobGenerateInvoiceDocument, kernel.InvoiceArgs{InvoiceID: inv.ID}, inv.ID.String(), time.Time{}); err != nil {
 		return err
 	}
@@ -135,7 +140,7 @@ func (s *Service) satisfyPaymentGate(ctx context.Context, r port.Repos, env *ker
 		if err := update(ctx, r, sub); err != nil {
 			return err
 		}
-		return s.emit(ctx, webhook.EventTypeSubscriptionCanceled, sub)
+		return s.notify(ctx, r, webhook.EventTypeSubscriptionCanceled, sub)
 	}
 	return nil
 }

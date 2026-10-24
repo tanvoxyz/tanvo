@@ -194,8 +194,8 @@ enum PaymentKind {
   PAYMENT_KIND_PROVIDER = 1;
   // Recorded by hand.
   PAYMENT_KIND_MANUAL = 2;
-  reserved 3;
-  reserved PAYMENT_KIND_X402;
+  // An x402 transfer settled through an x402 connection.
+  PAYMENT_KIND_X402 = 3;
 }
 
 // PayableType is what a payment pays.

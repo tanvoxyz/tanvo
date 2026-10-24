@@ -110,7 +110,7 @@ func (s *Service) DeletePlanEntitlement(ctx context.Context, org core.Organizati
 		if err := r.Entitlements.Discard(ctx, org, e.ID, s.d.Now()); err != nil {
 			return err
 		}
-		return s.emitPlans(ctx, org, []*catalog.Plan{p})
+		return s.emitPlans(ctx, r, org, []*catalog.Plan{p})
 	})
 	if err != nil {
 		return fmt.Errorf("delete plan entitlement: %w", err)
@@ -145,7 +145,7 @@ func (s *Service) DeletePlanEntitlementPrivilege(ctx context.Context, org core.O
 			return err
 		}
 		out = v[0]
-		return s.emitPlans(ctx, org, []*catalog.Plan{p})
+		return s.emitPlans(ctx, r, org, []*catalog.Plan{p})
 	})
 	if err != nil {
 		return Entitlement{}, fmt.Errorf("delete plan entitlement privilege: %w", err)
@@ -228,7 +228,7 @@ func (s *Service) updatePlan(ctx context.Context, org core.OrganizationID, plan 
 			byFeature[e.FeatureID] = e
 			touched = append(touched, e)
 		}
-		if err := s.emitPlans(ctx, org, []*catalog.Plan{p}); err != nil {
+		if err := s.emitPlans(ctx, r, org, []*catalog.Plan{p}); err != nil {
 			return err
 		}
 		if partial {

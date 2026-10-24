@@ -452,7 +452,8 @@ message Charge {
   bool prorated = 12;
   // The minimum amount per period; a true-up fee fills the difference.
   string min_amount = 13 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
-  // Lets events name the wallet that pays their fees.
+  // Splits the usage by the `target_wallet_code` event property and pays
+  // each targeted fee from the wallet with that code only.
   bool accepts_target_wallet = 14;
   // The invoice line name.
   string invoice_display_name = 15 [(buf.validate.field).string.max_len = 255];

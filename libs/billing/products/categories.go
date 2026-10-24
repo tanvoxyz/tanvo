@@ -6,6 +6,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
@@ -41,7 +42,11 @@ func (s *Service) CreateCategory(ctx context.Context, org core.OrganizationID, i
 		if err := validateCategory(ctx, r, c); err != nil {
 			return err
 		}
-		return conflict(r.ProductCategories.Create(ctx, c), "code")
+		if err := r.ProductCategories.Create(ctx, c); err != nil {
+			return conflict(err, "code")
+		}
+		// source: app/services/product_categories/create_service.rb:13-16
+		return s.logChange(ctx, r, auditlog.ActivityProductCategoryCreated, auditlog.ResourceProductCategory, c.ID.UUID(), org, nil, c)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create product category: %w", err)
@@ -73,6 +78,10 @@ func (s *Service) UpdateCategory(ctx context.Context, org core.OrganizationID, i
 		if err != nil {
 			return notFound(err, ResourceProductCategory)
 		}
+		before, err := auditlog.ObjectOf(c)
+		if err != nil {
+			return err
+		}
 		in.Name.Apply(&c.Name)
 		in.Description.Apply(&c.Description)
 		in.InvoiceDisplayName.Apply(&c.InvoiceDisplayName)
@@ -94,7 +103,8 @@ func (s *Service) UpdateCategory(ctx context.Context, org core.OrganizationID, i
 			return conflict(err, "code")
 		}
 		out = c
-		return nil
+		// source: app/services/product_categories/update_service.rb:13-16
+		return s.logChange(ctx, r, auditlog.ActivityProductCategoryUpdated, auditlog.ResourceProductCategory, c.ID.UUID(), org, before, c)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("update product category %s: %w", id, err)
@@ -121,13 +131,28 @@ func (s *Service) DeleteCategory(ctx context.Context, org core.OrganizationID, i
 		if ok {
 			return fieldError("product_category", catalog.CodeAttachedToPlanOrSubscription)
 		}
+		// Each product of the category is deleted with its own log, as
+		// lago calls Products::DestroyService on each
+		// (destroy_service.rb:25-27).
+		products, err := categoryProducts(ctx, r, org, id)
+		if err != nil {
+			return err
+		}
 		now := s.d.Now()
 		if err := r.ProductCategories.Discard(ctx, org, id, now); err != nil {
 			return fmt.Errorf("discard: %w", err)
 		}
+		for _, p := range products {
+			p.DeletedAt = &now
+			// source: app/services/products/destroy_service.rb:12-15
+			if err := s.logChange(ctx, r, auditlog.ActivityProductDeleted, auditlog.ResourceProduct, p.ID.UUID(), org, nil, p); err != nil {
+				return err
+			}
+		}
 		c.DeletedAt = &now
 		out = c
-		return nil
+		// source: app/services/product_categories/destroy_service.rb:12-15
+		return s.logChange(ctx, r, auditlog.ActivityProductCategoryDeleted, auditlog.ResourceProductCategory, c.ID.UUID(), org, nil, c)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("delete product category %s: %w", id, err)
@@ -188,4 +213,22 @@ func uniqueCode(v *core.Validator, err error, taken bool) error {
 		return fmt.Errorf("check code: %w", err)
 	}
 	return nil
+}
+
+// categoryProducts returns the kept products of the category id.
+func categoryProducts(ctx context.Context, r port.Repos, org core.OrganizationID, id core.ProductCategoryID) ([]*catalog.Product, error) {
+	var out []*catalog.Product
+	q := catalog.ProductQuery{ProductCategoryIDs: []core.ProductCategoryID{id}}
+	var page core.PageRequest
+	for {
+		p, err := r.Products.List(ctx, org, q, page)
+		if err != nil {
+			return nil, fmt.Errorf("list products of category %s: %w", id, err)
+		}
+		out = append(out, p.Items...)
+		if p.NextToken == "" {
+			return out, nil
+		}
+		page.Token = p.NextToken
+	}
 }

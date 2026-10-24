@@ -26,6 +26,9 @@ type Service struct {
 	creditNotes    *creditnotes.Service
 	creditInvoices CreditInvoiceHandler
 	statuses       StatusResolver
+	// contractSegments resolves the in-advance segments of contracts;
+	// nil bills no contract event in advance.
+	contractSegments ContractSegments
 }
 
 // New returns the service over the checked dependencies d, with its own

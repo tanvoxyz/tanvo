@@ -11,6 +11,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/deduct"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
@@ -84,6 +85,11 @@ type settleOptions struct {
 	// Integrations::Aggregator::Taxes::Invoices::CreateDraftService for a
 	// gated invoice).
 	draftTaxes bool
+	// segments applies no deduction before or after taxes and only the
+	// organization's own taxes (billing segment invoices, lago
+	// Invoices::ComputeAmountsFromFees without provider taxes,
+	// app/services/billing_segments/process_service.rb:94).
+	segments bool
 }
 
 // settled is the outcome of [Service.settle].
@@ -114,7 +120,7 @@ func (s *Service) settle(ctx context.Context, r port.Repos, env *kernel.Customer
 	dopts := deduct.Options{Draft: o.draft, Preview: o.preview, Plans: o.plans}
 	var before deduct.BeforeTaxes
 	switch {
-	case o.aggregate:
+	case o.aggregate, o.segments:
 	case o.keep:
 		before = deduct.BeforeTaxes{ProgressiveBillingCredit: inv.ProgressiveBillingCreditAmount, Coupons: inv.CouponsAmount}
 	default:
@@ -132,7 +138,7 @@ func (s *Service) settle(ctx context.Context, r port.Repos, env *kernel.Customer
 	var res kernel.TaxOutcome
 	err := s.holdForVIES(ctx, r, env, resolver, inv, fees, o)
 	if err == nil {
-		res, err = resolver.Compute(ctx, s.d, kernel.TaxInput{Invoice: inv, Fees: fees, Deductions: ded, AggregateFeeTaxes: o.aggregate, Draft: o.draft || o.draftTaxes, Inline: o.preview})
+		res, err = resolver.Compute(ctx, s.d, kernel.TaxInput{Invoice: inv, Fees: fees, Deductions: ded, AggregateFeeTaxes: o.aggregate, Draft: o.draft || o.draftTaxes, Inline: o.preview, LocalOnly: o.segments})
 	}
 	switch {
 	case err == nil:
@@ -155,7 +161,7 @@ func (s *Service) settle(ctx context.Context, r port.Repos, env *kernel.Customer
 	if out.appliedTaxes == nil {
 		out.appliedTaxes = []*invoice.AppliedTax{}
 	}
-	if !o.aggregate && !o.draft && !o.preview {
+	if !o.aggregate && !o.segments && !o.draft && !o.preview {
 		// The progressive credit notes are issued with the progressive
 		// billing credits, whether the taxes are computed or wait (for the
 		// provider or a VIES check), since a held invoice keeps its
@@ -168,7 +174,7 @@ func (s *Service) settle(ctx context.Context, r port.Repos, env *kernel.Customer
 			return settled{}, err
 		}
 	}
-	if inv.TaxStatus == invoice.TaxStatusSucceeded && !o.aggregate {
+	if inv.TaxStatus == invoice.TaxStatusSucceeded && !o.aggregate && !o.segments {
 		if o.preview && o.previewCreditNote != nil {
 			if c := o.previewCreditNote.credit(s.d, inv); c != nil {
 				out.credits = append(out.credits, c)
@@ -313,6 +319,7 @@ func (s *Service) conclude(ctx context.Context, r port.Repos, env *kernel.Custom
 // Invoices::Payments::CreateService): invoice.drafted for a new draft,
 // the created event, the document and the payment (unless self-billed)
 // for a finalized invoice, the provider taxes retry for an invoice waiting for its taxes.
+// The webhooks go with their activity logs.
 func (s *Service) announce(ctx context.Context, r port.Repos, inv *invoice.Invoice, created webhook.EventType, drafted bool) error {
 	org := inv.OrganizationID
 	now := s.d.Now()
@@ -323,11 +330,14 @@ func (s *Service) announce(ctx context.Context, r port.Repos, inv *invoice.Invoi
 		if !drafted {
 			return nil
 		}
-		return kernel.Emit(ctx, s.d, org, webhook.EventTypeInvoiceDrafted, "invoice", kernel.ObjectID(inv.ID), inv)
+		return s.announceDraft(ctx, r, inv)
 	case inv.Status != invoice.StatusFinalized:
 		return nil
 	}
 	if err := kernel.Emit(ctx, s.d, org, created, "invoice", kernel.ObjectID(inv.ID), inv); err != nil {
+		return err
+	}
+	if err := s.d.LogInvoice(ctx, r, auditlog.ActivityType(created), inv); err != nil {
 		return err
 	}
 	args := kernel.InvoiceArgs{InvoiceID: inv.ID}
@@ -340,6 +350,32 @@ func (s *Service) announce(ctx context.Context, r port.Repos, inv *invoice.Invoi
 		return kernel.Enqueue(ctx, r, org, kernel.JobCreateInvoicePayment, args, "invoice:"+inv.ID.String(), now)
 	}
 	return nil
+}
+
+// announceDraft emits invoice.drafted for a new draft with its activity
+// log, then, for a subscription invoice whose taxes are not pending,
+// invoice.ready_to_finalize with its activity log.
+//
+// source: app/services/invoices/subscription_service.rb:92-107,271-275
+func (s *Service) announceDraft(ctx context.Context, r port.Repos, inv *invoice.Invoice) error {
+	if err := kernel.Emit(ctx, s.d, inv.OrganizationID, webhook.EventTypeInvoiceDrafted, "invoice", kernel.ObjectID(inv.ID), inv); err != nil {
+		return err
+	}
+	if err := s.d.LogInvoice(ctx, r, auditlog.ActivityInvoiceDrafted, inv); err != nil {
+		return err
+	}
+	if inv.Type != invoice.TypeSubscription || inv.TaxStatus == invoice.TaxStatusPending {
+		return nil
+	}
+	return s.readyToFinalize(ctx, r, inv)
+}
+
+// readyToFinalize emits invoice.ready_to_finalize with its activity log.
+func (s *Service) readyToFinalize(ctx context.Context, r port.Repos, inv *invoice.Invoice) error {
+	if err := kernel.Emit(ctx, s.d, inv.OrganizationID, webhook.EventTypeInvoiceReadyToFinalize, "invoice", kernel.ObjectID(inv.ID), inv); err != nil {
+		return err
+	}
+	return s.d.LogInvoice(ctx, r, auditlog.ActivityInvoiceReadyToFinalize, inv)
 }
 
 // emitFees emits fee.created for fees attached to no invoice.

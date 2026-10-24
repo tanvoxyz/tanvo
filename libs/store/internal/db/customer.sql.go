@@ -63,7 +63,7 @@ INSERT INTO customers (
   currency, timezone, document_locale, invoice_grace_period_days, net_payment_term_days,
   finalize_zero_amount_invoice, issuing_date_anchor, issuing_date_adjustment, skip_invoice_custom_sections,
   applied_dunning_campaign_id, exclude_from_dunning_campaign, dunning_campaign_attempts, last_dunning_campaign_attempt_at,
-  sequential_id, slug, payment_receipt_counter, metadata, deleted_at, created_at, updated_at
+  sequential_id, slug, payment_receipt_counter, metadata, x402_agent_address, deleted_at, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6,
   $7, $8, $9, $10, $11, $12,
@@ -73,7 +73,7 @@ INSERT INTO customers (
   $29, $30, $31, $32, $33,
   $34, $35, $36, $37,
   $38, $39, $40, $41,
-  $42, $43, $44, $45, $46, $47, $48
+  $42, $43, $44, $45, $46, $47, $48, $49
 )
 ON CONFLICT DO NOTHING
 `
@@ -124,6 +124,7 @@ type CreateCustomerParams struct {
 	Slug                         string
 	PaymentReceiptCounter        int64
 	Metadata                     json.RawMessage
+	X402AgentAddress             *string
 	DeletedAt                    *time.Time
 	CreatedAt                    time.Time
 	UpdatedAt                    time.Time
@@ -177,6 +178,7 @@ func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) 
 		arg.Slug,
 		arg.PaymentReceiptCounter,
 		arg.Metadata,
+		arg.X402AgentAddress,
 		arg.DeletedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,
@@ -233,7 +235,7 @@ func (q *Queries) FlagCustomerWalletRefresh(ctx context.Context, arg FlagCustome
 }
 
 const getCustomer = `-- name: GetCustomer :one
-SELECT c.organization_id, c.id, c.external_id, c.billing_entity_id, c.customer_type, c.account_type, c.name, c.firstname, c.lastname, c.legal_name, c.legal_number, c.tax_identification_number, c.email, c.phone, c.url, c.logo_url, c.billing_address_line1, c.billing_address_line2, c.billing_address_city, c.billing_address_state, c.billing_address_zipcode, c.billing_address_country, c.shipping_address_line1, c.shipping_address_line2, c.shipping_address_city, c.shipping_address_state, c.shipping_address_zipcode, c.shipping_address_country, c.currency, c.timezone, c.document_locale, c.invoice_grace_period_days, c.net_payment_term_days, c.finalize_zero_amount_invoice, c.issuing_date_anchor, c.issuing_date_adjustment, c.skip_invoice_custom_sections, c.applied_dunning_campaign_id, c.exclude_from_dunning_campaign, c.dunning_campaign_attempts, c.last_dunning_campaign_attempt_at, c.sequential_id, c.slug, c.payment_receipt_counter, c.metadata, c.awaiting_wallet_refresh, c.wallet_refresh_generation, c.wallet_refresh_claimed, c.deleted_at, c.created_at, c.updated_at,
+SELECT c.organization_id, c.id, c.external_id, c.billing_entity_id, c.customer_type, c.account_type, c.name, c.firstname, c.lastname, c.legal_name, c.legal_number, c.tax_identification_number, c.email, c.phone, c.url, c.logo_url, c.billing_address_line1, c.billing_address_line2, c.billing_address_city, c.billing_address_state, c.billing_address_zipcode, c.billing_address_country, c.shipping_address_line1, c.shipping_address_line2, c.shipping_address_city, c.shipping_address_state, c.shipping_address_zipcode, c.shipping_address_country, c.currency, c.timezone, c.document_locale, c.invoice_grace_period_days, c.net_payment_term_days, c.finalize_zero_amount_invoice, c.issuing_date_anchor, c.issuing_date_adjustment, c.skip_invoice_custom_sections, c.applied_dunning_campaign_id, c.exclude_from_dunning_campaign, c.dunning_campaign_attempts, c.last_dunning_campaign_attempt_at, c.sequential_id, c.slug, c.payment_receipt_counter, c.metadata, c.x402_agent_address, c.awaiting_wallet_refresh, c.wallet_refresh_generation, c.wallet_refresh_claimed, c.deleted_at, c.created_at, c.updated_at,
   ARRAY(SELECT t.tax_id FROM customer_taxes t
         WHERE t.organization_id = c.organization_id AND t.customer_id = c.id ORDER BY t.position)::uuid[] AS tax_ids,
   ARRAY(SELECT s.invoice_custom_section_id FROM customer_invoice_custom_sections s
@@ -305,6 +307,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 		&i.Customer.Slug,
 		&i.Customer.PaymentReceiptCounter,
 		&i.Customer.Metadata,
+		&i.Customer.X402AgentAddress,
 		&i.Customer.AwaitingWalletRefresh,
 		&i.Customer.WalletRefreshGeneration,
 		&i.Customer.WalletRefreshClaimed,
@@ -319,7 +322,7 @@ func (q *Queries) GetCustomer(ctx context.Context, arg GetCustomerParams) (GetCu
 }
 
 const getCustomerByExternalID = `-- name: GetCustomerByExternalID :one
-SELECT c.organization_id, c.id, c.external_id, c.billing_entity_id, c.customer_type, c.account_type, c.name, c.firstname, c.lastname, c.legal_name, c.legal_number, c.tax_identification_number, c.email, c.phone, c.url, c.logo_url, c.billing_address_line1, c.billing_address_line2, c.billing_address_city, c.billing_address_state, c.billing_address_zipcode, c.billing_address_country, c.shipping_address_line1, c.shipping_address_line2, c.shipping_address_city, c.shipping_address_state, c.shipping_address_zipcode, c.shipping_address_country, c.currency, c.timezone, c.document_locale, c.invoice_grace_period_days, c.net_payment_term_days, c.finalize_zero_amount_invoice, c.issuing_date_anchor, c.issuing_date_adjustment, c.skip_invoice_custom_sections, c.applied_dunning_campaign_id, c.exclude_from_dunning_campaign, c.dunning_campaign_attempts, c.last_dunning_campaign_attempt_at, c.sequential_id, c.slug, c.payment_receipt_counter, c.metadata, c.awaiting_wallet_refresh, c.wallet_refresh_generation, c.wallet_refresh_claimed, c.deleted_at, c.created_at, c.updated_at,
+SELECT c.organization_id, c.id, c.external_id, c.billing_entity_id, c.customer_type, c.account_type, c.name, c.firstname, c.lastname, c.legal_name, c.legal_number, c.tax_identification_number, c.email, c.phone, c.url, c.logo_url, c.billing_address_line1, c.billing_address_line2, c.billing_address_city, c.billing_address_state, c.billing_address_zipcode, c.billing_address_country, c.shipping_address_line1, c.shipping_address_line2, c.shipping_address_city, c.shipping_address_state, c.shipping_address_zipcode, c.shipping_address_country, c.currency, c.timezone, c.document_locale, c.invoice_grace_period_days, c.net_payment_term_days, c.finalize_zero_amount_invoice, c.issuing_date_anchor, c.issuing_date_adjustment, c.skip_invoice_custom_sections, c.applied_dunning_campaign_id, c.exclude_from_dunning_campaign, c.dunning_campaign_attempts, c.last_dunning_campaign_attempt_at, c.sequential_id, c.slug, c.payment_receipt_counter, c.metadata, c.x402_agent_address, c.awaiting_wallet_refresh, c.wallet_refresh_generation, c.wallet_refresh_claimed, c.deleted_at, c.created_at, c.updated_at,
   ARRAY(SELECT t.tax_id FROM customer_taxes t
         WHERE t.organization_id = c.organization_id AND t.customer_id = c.id ORDER BY t.position)::uuid[] AS tax_ids,
   ARRAY(SELECT s.invoice_custom_section_id FROM customer_invoice_custom_sections s
@@ -391,6 +394,94 @@ func (q *Queries) GetCustomerByExternalID(ctx context.Context, arg GetCustomerBy
 		&i.Customer.Slug,
 		&i.Customer.PaymentReceiptCounter,
 		&i.Customer.Metadata,
+		&i.Customer.X402AgentAddress,
+		&i.Customer.AwaitingWalletRefresh,
+		&i.Customer.WalletRefreshGeneration,
+		&i.Customer.WalletRefreshClaimed,
+		&i.Customer.DeletedAt,
+		&i.Customer.CreatedAt,
+		&i.Customer.UpdatedAt,
+		&i.TaxIds,
+		&i.InvoiceCustomSectionIds,
+		&i.SystemInvoiceCustomSectionIds,
+	)
+	return i, err
+}
+
+const getCustomerByX402AgentAddress = `-- name: GetCustomerByX402AgentAddress :one
+SELECT c.organization_id, c.id, c.external_id, c.billing_entity_id, c.customer_type, c.account_type, c.name, c.firstname, c.lastname, c.legal_name, c.legal_number, c.tax_identification_number, c.email, c.phone, c.url, c.logo_url, c.billing_address_line1, c.billing_address_line2, c.billing_address_city, c.billing_address_state, c.billing_address_zipcode, c.billing_address_country, c.shipping_address_line1, c.shipping_address_line2, c.shipping_address_city, c.shipping_address_state, c.shipping_address_zipcode, c.shipping_address_country, c.currency, c.timezone, c.document_locale, c.invoice_grace_period_days, c.net_payment_term_days, c.finalize_zero_amount_invoice, c.issuing_date_anchor, c.issuing_date_adjustment, c.skip_invoice_custom_sections, c.applied_dunning_campaign_id, c.exclude_from_dunning_campaign, c.dunning_campaign_attempts, c.last_dunning_campaign_attempt_at, c.sequential_id, c.slug, c.payment_receipt_counter, c.metadata, c.x402_agent_address, c.awaiting_wallet_refresh, c.wallet_refresh_generation, c.wallet_refresh_claimed, c.deleted_at, c.created_at, c.updated_at,
+  ARRAY(SELECT t.tax_id FROM customer_taxes t
+        WHERE t.organization_id = c.organization_id AND t.customer_id = c.id ORDER BY t.position)::uuid[] AS tax_ids,
+  ARRAY(SELECT s.invoice_custom_section_id FROM customer_invoice_custom_sections s
+        WHERE s.organization_id = c.organization_id AND s.customer_id = c.id AND NOT s.system ORDER BY s.position)::uuid[] AS invoice_custom_section_ids,
+  ARRAY(SELECT s.invoice_custom_section_id FROM customer_invoice_custom_sections s
+        WHERE s.organization_id = c.organization_id AND s.customer_id = c.id AND s.system ORDER BY s.position)::uuid[] AS system_invoice_custom_section_ids
+FROM customers c
+WHERE c.organization_id = $1 AND c.x402_agent_address = $2 AND c.deleted_at IS NULL
+`
+
+type GetCustomerByX402AgentAddressParams struct {
+	OrganizationID   uuid.UUID
+	X402AgentAddress *string
+}
+
+type GetCustomerByX402AgentAddressRow struct {
+	Customer                      Customer
+	TaxIds                        []uuid.UUID
+	InvoiceCustomSectionIds       []uuid.UUID
+	SystemInvoiceCustomSectionIds []uuid.UUID
+}
+
+func (q *Queries) GetCustomerByX402AgentAddress(ctx context.Context, arg GetCustomerByX402AgentAddressParams) (GetCustomerByX402AgentAddressRow, error) {
+	row := q.db.QueryRow(ctx, getCustomerByX402AgentAddress, arg.OrganizationID, arg.X402AgentAddress)
+	var i GetCustomerByX402AgentAddressRow
+	err := row.Scan(
+		&i.Customer.OrganizationID,
+		&i.Customer.ID,
+		&i.Customer.ExternalID,
+		&i.Customer.BillingEntityID,
+		&i.Customer.CustomerType,
+		&i.Customer.AccountType,
+		&i.Customer.Name,
+		&i.Customer.Firstname,
+		&i.Customer.Lastname,
+		&i.Customer.LegalName,
+		&i.Customer.LegalNumber,
+		&i.Customer.TaxIdentificationNumber,
+		&i.Customer.Email,
+		&i.Customer.Phone,
+		&i.Customer.Url,
+		&i.Customer.LogoUrl,
+		&i.Customer.BillingAddressLine1,
+		&i.Customer.BillingAddressLine2,
+		&i.Customer.BillingAddressCity,
+		&i.Customer.BillingAddressState,
+		&i.Customer.BillingAddressZipcode,
+		&i.Customer.BillingAddressCountry,
+		&i.Customer.ShippingAddressLine1,
+		&i.Customer.ShippingAddressLine2,
+		&i.Customer.ShippingAddressCity,
+		&i.Customer.ShippingAddressState,
+		&i.Customer.ShippingAddressZipcode,
+		&i.Customer.ShippingAddressCountry,
+		&i.Customer.Currency,
+		&i.Customer.Timezone,
+		&i.Customer.DocumentLocale,
+		&i.Customer.InvoiceGracePeriodDays,
+		&i.Customer.NetPaymentTermDays,
+		&i.Customer.FinalizeZeroAmountInvoice,
+		&i.Customer.IssuingDateAnchor,
+		&i.Customer.IssuingDateAdjustment,
+		&i.Customer.SkipInvoiceCustomSections,
+		&i.Customer.AppliedDunningCampaignID,
+		&i.Customer.ExcludeFromDunningCampaign,
+		&i.Customer.DunningCampaignAttempts,
+		&i.Customer.LastDunningCampaignAttemptAt,
+		&i.Customer.SequentialID,
+		&i.Customer.Slug,
+		&i.Customer.PaymentReceiptCounter,
+		&i.Customer.Metadata,
+		&i.Customer.X402AgentAddress,
 		&i.Customer.AwaitingWalletRefresh,
 		&i.Customer.WalletRefreshGeneration,
 		&i.Customer.WalletRefreshClaimed,
@@ -445,7 +536,7 @@ func (q *Queries) InsertCustomerTaxes(ctx context.Context, arg InsertCustomerTax
 }
 
 const listCustomers = `-- name: ListCustomers :many
-SELECT c.organization_id, c.id, c.external_id, c.billing_entity_id, c.customer_type, c.account_type, c.name, c.firstname, c.lastname, c.legal_name, c.legal_number, c.tax_identification_number, c.email, c.phone, c.url, c.logo_url, c.billing_address_line1, c.billing_address_line2, c.billing_address_city, c.billing_address_state, c.billing_address_zipcode, c.billing_address_country, c.shipping_address_line1, c.shipping_address_line2, c.shipping_address_city, c.shipping_address_state, c.shipping_address_zipcode, c.shipping_address_country, c.currency, c.timezone, c.document_locale, c.invoice_grace_period_days, c.net_payment_term_days, c.finalize_zero_amount_invoice, c.issuing_date_anchor, c.issuing_date_adjustment, c.skip_invoice_custom_sections, c.applied_dunning_campaign_id, c.exclude_from_dunning_campaign, c.dunning_campaign_attempts, c.last_dunning_campaign_attempt_at, c.sequential_id, c.slug, c.payment_receipt_counter, c.metadata, c.awaiting_wallet_refresh, c.wallet_refresh_generation, c.wallet_refresh_claimed, c.deleted_at, c.created_at, c.updated_at,
+SELECT c.organization_id, c.id, c.external_id, c.billing_entity_id, c.customer_type, c.account_type, c.name, c.firstname, c.lastname, c.legal_name, c.legal_number, c.tax_identification_number, c.email, c.phone, c.url, c.logo_url, c.billing_address_line1, c.billing_address_line2, c.billing_address_city, c.billing_address_state, c.billing_address_zipcode, c.billing_address_country, c.shipping_address_line1, c.shipping_address_line2, c.shipping_address_city, c.shipping_address_state, c.shipping_address_zipcode, c.shipping_address_country, c.currency, c.timezone, c.document_locale, c.invoice_grace_period_days, c.net_payment_term_days, c.finalize_zero_amount_invoice, c.issuing_date_anchor, c.issuing_date_adjustment, c.skip_invoice_custom_sections, c.applied_dunning_campaign_id, c.exclude_from_dunning_campaign, c.dunning_campaign_attempts, c.last_dunning_campaign_attempt_at, c.sequential_id, c.slug, c.payment_receipt_counter, c.metadata, c.x402_agent_address, c.awaiting_wallet_refresh, c.wallet_refresh_generation, c.wallet_refresh_claimed, c.deleted_at, c.created_at, c.updated_at,
   ARRAY(SELECT t.tax_id FROM customer_taxes t
         WHERE t.organization_id = c.organization_id AND t.customer_id = c.id ORDER BY t.position)::uuid[] AS tax_ids,
   ARRAY(SELECT s.invoice_custom_section_id FROM customer_invoice_custom_sections s
@@ -595,6 +686,7 @@ func (q *Queries) ListCustomers(ctx context.Context, arg ListCustomersParams) ([
 			&i.Customer.Slug,
 			&i.Customer.PaymentReceiptCounter,
 			&i.Customer.Metadata,
+			&i.Customer.X402AgentAddress,
 			&i.Customer.AwaitingWalletRefresh,
 			&i.Customer.WalletRefreshGeneration,
 			&i.Customer.WalletRefreshClaimed,
@@ -652,7 +744,7 @@ func (q *Queries) ListCustomersAwaitingWalletRefresh(ctx context.Context, arg Li
 }
 
 const listCustomersForDunning = `-- name: ListCustomersForDunning :many
-SELECT c.organization_id, c.id, c.external_id, c.billing_entity_id, c.customer_type, c.account_type, c.name, c.firstname, c.lastname, c.legal_name, c.legal_number, c.tax_identification_number, c.email, c.phone, c.url, c.logo_url, c.billing_address_line1, c.billing_address_line2, c.billing_address_city, c.billing_address_state, c.billing_address_zipcode, c.billing_address_country, c.shipping_address_line1, c.shipping_address_line2, c.shipping_address_city, c.shipping_address_state, c.shipping_address_zipcode, c.shipping_address_country, c.currency, c.timezone, c.document_locale, c.invoice_grace_period_days, c.net_payment_term_days, c.finalize_zero_amount_invoice, c.issuing_date_anchor, c.issuing_date_adjustment, c.skip_invoice_custom_sections, c.applied_dunning_campaign_id, c.exclude_from_dunning_campaign, c.dunning_campaign_attempts, c.last_dunning_campaign_attempt_at, c.sequential_id, c.slug, c.payment_receipt_counter, c.metadata, c.awaiting_wallet_refresh, c.wallet_refresh_generation, c.wallet_refresh_claimed, c.deleted_at, c.created_at, c.updated_at,
+SELECT c.organization_id, c.id, c.external_id, c.billing_entity_id, c.customer_type, c.account_type, c.name, c.firstname, c.lastname, c.legal_name, c.legal_number, c.tax_identification_number, c.email, c.phone, c.url, c.logo_url, c.billing_address_line1, c.billing_address_line2, c.billing_address_city, c.billing_address_state, c.billing_address_zipcode, c.billing_address_country, c.shipping_address_line1, c.shipping_address_line2, c.shipping_address_city, c.shipping_address_state, c.shipping_address_zipcode, c.shipping_address_country, c.currency, c.timezone, c.document_locale, c.invoice_grace_period_days, c.net_payment_term_days, c.finalize_zero_amount_invoice, c.issuing_date_anchor, c.issuing_date_adjustment, c.skip_invoice_custom_sections, c.applied_dunning_campaign_id, c.exclude_from_dunning_campaign, c.dunning_campaign_attempts, c.last_dunning_campaign_attempt_at, c.sequential_id, c.slug, c.payment_receipt_counter, c.metadata, c.x402_agent_address, c.awaiting_wallet_refresh, c.wallet_refresh_generation, c.wallet_refresh_claimed, c.deleted_at, c.created_at, c.updated_at,
   ARRAY(SELECT t.tax_id FROM customer_taxes t
         WHERE t.organization_id = c.organization_id AND t.customer_id = c.id ORDER BY t.position)::uuid[] AS tax_ids,
   ARRAY(SELECT s.invoice_custom_section_id FROM customer_invoice_custom_sections s
@@ -743,6 +835,7 @@ func (q *Queries) ListCustomersForDunning(ctx context.Context, arg ListCustomers
 			&i.Customer.Slug,
 			&i.Customer.PaymentReceiptCounter,
 			&i.Customer.Metadata,
+			&i.Customer.X402AgentAddress,
 			&i.Customer.AwaitingWalletRefresh,
 			&i.Customer.WalletRefreshGeneration,
 			&i.Customer.WalletRefreshClaimed,
@@ -815,7 +908,7 @@ UPDATE customers SET
   currency = $29, timezone = $30, document_locale = $31, invoice_grace_period_days = $32, net_payment_term_days = $33,
   finalize_zero_amount_invoice = $34, issuing_date_anchor = $35, issuing_date_adjustment = $36, skip_invoice_custom_sections = $37,
   applied_dunning_campaign_id = $38, exclude_from_dunning_campaign = $39, dunning_campaign_attempts = $40, last_dunning_campaign_attempt_at = $41,
-  sequential_id = $42, slug = $43, payment_receipt_counter = $44, metadata = $45, deleted_at = $46, created_at = $47, updated_at = $48
+  sequential_id = $42, slug = $43, payment_receipt_counter = $44, metadata = $45, x402_agent_address = $46, deleted_at = $47, created_at = $48, updated_at = $49
 WHERE organization_id = $1 AND id = $2
 `
 
@@ -865,6 +958,7 @@ type UpdateCustomerParams struct {
 	Slug                         string
 	PaymentReceiptCounter        int64
 	Metadata                     json.RawMessage
+	X402AgentAddress             *string
 	DeletedAt                    *time.Time
 	CreatedAt                    time.Time
 	UpdatedAt                    time.Time
@@ -917,6 +1011,7 @@ func (q *Queries) UpdateCustomer(ctx context.Context, arg UpdateCustomerParams) 
 		arg.Slug,
 		arg.PaymentReceiptCounter,
 		arg.Metadata,
+		arg.X402AgentAddress,
 		arg.DeletedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,

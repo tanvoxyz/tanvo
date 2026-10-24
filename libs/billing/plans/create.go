@@ -8,6 +8,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -163,7 +164,11 @@ func (s *Service) Create(ctx context.Context, org core.OrganizationID, in Create
 				return err
 			}
 		}
-		return kernel.Emit(ctx, s.d, org, webhook.EventTypePlanCreated, "plan", p.ID.UUID(), p)
+		if err := kernel.Emit(ctx, s.d, org, webhook.EventTypePlanCreated, "plan", p.ID.UUID(), p); err != nil {
+			return err
+		}
+		// source: app/services/plans/create_service.rb:13-16
+		return s.logPlan(ctx, r, auditlog.ActivityPlanCreated, nil, p)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create plan: %w", err)

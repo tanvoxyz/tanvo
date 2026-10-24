@@ -22,6 +22,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/money"
 	"github.com/tanvoxyz/tanvo/libs/period"
+	commonv1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/common/v1"
 	customerv1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/customer/v1"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/customer/v1/customerv1connect"
 )
@@ -243,11 +244,21 @@ func TestCreateCustomerRelations(t *testing.T) {
 		}.Build()}.Build())
 		customerWantViolation(t, err, "customer.external_id", core.CodeAlreadyExists)
 	})
-	t.Run("unsupported fields", func(t *testing.T) {
-		_, err := c.CreateCustomer(t.Context(), customerv1.CreateCustomerRequest_builder{Customer: customerv1.Customer_builder{
-			ExternalId: new("cus_x402"), X402AgentAddress: new("0xabc"),
+	t.Run("x402 agent address", func(t *testing.T) {
+		t.Log("source: spec/models/customer_spec.rb:369")
+		got, err := c.CreateCustomer(t.Context(), customerv1.CreateCustomerRequest_builder{Customer: customerv1.Customer_builder{
+			ExternalId: new("cus_x402"), X402AgentAddress: new("0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed"),
 		}.Build()}.Build())
-		wantCode(t, err, connect.CodeUnimplemented, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if a := got.GetCustomer().GetX402AgentAddress(); a != "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed" {
+			t.Errorf("got x402_agent_address = %q, want the checksummed address", a)
+		}
+		_, err = c.CreateCustomer(t.Context(), customerv1.CreateCustomerRequest_builder{Customer: customerv1.Customer_builder{
+			ExternalId: new("cus_x402_bad"), X402AgentAddress: new("0xabc"),
+		}.Build()}.Build())
+		customerWantViolation(t, err, "customer.x402_agent_address", core.CodeInvalidFormat)
 	})
 }
 
@@ -299,6 +310,23 @@ func TestUpdateCustomer(t *testing.T) {
 		}.Build())
 		if err != nil || resp.GetCustomer().HasNetPaymentTermDays() || resp.GetCustomer().GetName() != "Old" {
 			t.Fatalf("got = %v, %v, want = no payment term override", resp.GetCustomer(), err)
+		}
+	})
+	t.Run("lower-case country codes", func(t *testing.T) {
+		t.Log("source: app/services/customers/create_service.rb:41,48")
+		t.Log("source: app/services/customers/update_service.rb:48,66")
+		t.Log("source: app/services/customers/upsert_from_api_service.rb:56,68")
+		addr := func(country string) *commonv1.Address { return commonv1.Address_builder{Country: new(country)}.Build() }
+		for _, id := range []string{old.ID.String(), "external_id:cus_lower"} {
+			resp, err := c.UpdateCustomer(t.Context(), customerv1.UpdateCustomerRequest_builder{
+				Customer: customerv1.Customer_builder{
+					Id: new(id), BillingAddress: addr("fr"), ShippingAddress: addr("es"),
+				}.Build(),
+				AllowMissing: new(true),
+			}.Build())
+			if err != nil || resp.GetCustomer().GetBillingAddress().GetCountry() != "FR" || resp.GetCustomer().GetShippingAddress().GetCountry() != "ES" {
+				t.Errorf("%s: got = %v, %v, want = countries FR and ES", id, resp.GetCustomer(), err)
+			}
 		}
 	})
 	t.Run("unknown mask path", func(t *testing.T) {

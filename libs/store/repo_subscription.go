@@ -38,7 +38,9 @@ func subscriptionParams(s *subscription.Subscription) db.CreateSubscriptionParam
 		ID:                         s.ID.UUID(),
 		ExternalID:                 s.ExternalID,
 		CustomerID:                 s.CustomerID.UUID(),
-		PlanID:                     s.PlanID.UUID(),
+		PlanID:                     optUUID(s.PlanID),
+		Contract:                   s.Contract,
+		BillingAnchorDate:          optDateCol(s.BillingAnchorDate),
 		Name:                       s.Name,
 		BillingTime:                s.BillingTime.String(),
 		Status:                     string(s.Status),
@@ -84,7 +86,9 @@ func subscriptionOf(row subscriptionRow) (*subscription.Subscription, error) {
 		OrganizationID:             idOf[core.OrganizationID](r.OrganizationID),
 		ExternalID:                 r.ExternalID,
 		CustomerID:                 idOf[core.CustomerID](r.CustomerID),
-		PlanID:                     idOf[core.PlanID](r.PlanID),
+		PlanID:                     optIDOf[core.PlanID](r.PlanID),
+		Contract:                   r.Contract,
+		BillingAnchorDate:          optDateOf(r.BillingAnchorDate),
 		Name:                       r.Name,
 		BillingTime:                bt,
 		Status:                     subscription.Status(r.Status),
@@ -366,7 +370,7 @@ func (r subscriptionRepo) ListActiveOrPendingByPlan(ctx context.Context, org cor
 	if err != nil {
 		return nil, err
 	}
-	rows, err := q.ListActiveOrPendingSubscriptionsByPlan(ctx, db.ListActiveOrPendingSubscriptionsByPlanParams{OrganizationID: org.UUID(), PlanID: plan.UUID()})
+	rows, err := q.ListActiveOrPendingSubscriptionsByPlan(ctx, db.ListActiveOrPendingSubscriptionsByPlanParams{OrganizationID: org.UUID(), PlanID: optUUID(plan)})
 	if err != nil {
 		return nil, fmt.Errorf("list subscriptions of plan %s: %w", plan, mapErr(err))
 	}

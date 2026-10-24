@@ -137,8 +137,10 @@ ORDER BY m.month, r.currency;
 -- name: AnalyticsInvoiceCollection :many
 -- The finalized invoices by issuing month, currency and payment status;
 -- a month without invoices is one row with no status nor currency.
--- @customer_tin_empty keeps the customers without (true) or with (false) a
--- tax identification number (invoice_collection.rb:19-25).
+-- @customer_id keeps one customer's invoices (the customer portal's,
+-- invoice_collection.rb:13-16); @customer_tin_empty keeps the customers
+-- without (true) or with (false) a tax identification number
+-- (invoice_collection.rb:19-25).
 WITH months AS (
   SELECT m AS month
   FROM organizations o,
@@ -156,6 +158,7 @@ collection AS (
     AND i.status = 'finalized'
     AND i.payment_dispute_lost_at IS NULL
     AND (sqlc.narg(billing_entity_id)::uuid IS NULL OR i.billing_entity_id = sqlc.narg(billing_entity_id))
+    AND (sqlc.narg(customer_id)::uuid IS NULL OR i.customer_id = sqlc.narg(customer_id))
     AND (sqlc.narg(customer_tin_empty)::boolean IS NULL
          OR sqlc.narg(customer_tin_empty)::boolean = (trim(COALESCE(c.tax_identification_number, '')) = ''))
   GROUP BY 1, 2, 3

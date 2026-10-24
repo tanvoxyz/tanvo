@@ -12,6 +12,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/quotes/validators"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/access"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/quote"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -139,6 +140,10 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (*QuoteView, error
 		if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeQuoteCreated, "quote", v.ID.UUID(), quoteWithVersion{Quote: q, Version: v}); err != nil {
 			return err
 		}
+		// source: app/services/quotes/create_service.rb:41
+		if err := s.logQuote(ctx, r, auditlog.ActivityQuoteCreated, nil, q); err != nil {
+			return err
+		}
 		out, err = s.quoteView(ctx, r, q)
 		return err
 	})
@@ -196,6 +201,10 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.Q
 			return notFound(err, "quote")
 		}
 		if in.Owners.Set {
+			before, err := auditlog.ObjectOf(q)
+			if err != nil {
+				return err
+			}
 			owners := dedupOwners(in.Owners.Value)
 			if err := checkOwners(ctx, r, org, owners); err != nil {
 				return err
@@ -215,6 +224,11 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.Q
 			}
 			if err := r.Quotes.Update(ctx, q); err != nil {
 				return fmt.Errorf("update quote %s: %w", id, err)
+			}
+			// source: app/services/quotes/update_service.rb:13-17 (only
+			// when owners are given)
+			if err := s.logQuote(ctx, r, auditlog.ActivityQuoteUpdated, before, q); err != nil {
+				return err
 			}
 		}
 		out, err = s.quoteView(ctx, r, q)

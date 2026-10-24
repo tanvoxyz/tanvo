@@ -22,6 +22,8 @@ type subscriptionData struct {
 	appliedUsageThresholds *table[core.AppliedUsageThresholdID, subscription.AppliedUsageThreshold]
 	lifetimeUsages         *table[core.LifetimeUsageID, subscription.LifetimeUsage]
 	dailyUsages            *table[core.DailyUsageID, subscription.DailyUsage]
+	rateCards              *table[core.SubscriptionRateCardID, subscription.RateCard]
+	segments               *table[core.BillingSegmentID, subscription.BillingSegment]
 }
 
 func newSubscriptionData() *subscriptionData {
@@ -36,6 +38,16 @@ func newSubscriptionData() *subscriptionData {
 		appliedUsageThresholds: newTable[core.AppliedUsageThresholdID, subscription.AppliedUsageThreshold](nil),
 		lifetimeUsages:         newTable[core.LifetimeUsageID, subscription.LifetimeUsage](nil),
 		dailyUsages:            newTable[core.DailyUsageID](cloneDailyUsage),
+		rateCards: newTable[core.SubscriptionRateCardID](func(c subscription.RateCard) subscription.RateCard {
+			c.Units = clonePtr(c.Units)
+			c.NextBillingAt = clonePtr(c.NextBillingAt)
+			c.DeletedAt = clonePtr(c.DeletedAt)
+			return c
+		}),
+		segments: newTable[core.BillingSegmentID](func(b subscription.BillingSegment) subscription.BillingSegment {
+			b.RateProperties = b.RateProperties.Clone()
+			return b
+		}),
 	}
 }
 
@@ -48,6 +60,8 @@ func (d *subscriptionData) snapshot() *subscriptionData {
 		appliedUsageThresholds: d.appliedUsageThresholds.snapshot(),
 		lifetimeUsages:         d.lifetimeUsages.snapshot(),
 		dailyUsages:            d.dailyUsages.snapshot(),
+		rateCards:              d.rateCards.snapshot(),
+		segments:               d.segments.snapshot(),
 	}
 }
 
@@ -109,7 +123,7 @@ func (r subscriptionRepo) Get(_ context.Context, org core.OrganizationID, id cor
 func (r subscriptionRepo) GetByExternalID(_ context.Context, org core.OrganizationID, externalID string) (*subscription.Subscription, error) {
 	for _, st := range []subscription.Status{subscription.StatusActive, subscription.StatusIncomplete, subscription.StatusPending} {
 		if s, ok := r.d.subscriptions.first(func(x *subscription.Subscription) bool {
-			return x.OrganizationID == org && x.ExternalID == externalID && x.Status == st
+			return x.OrganizationID == org && !x.Contract && x.ExternalID == externalID && x.Status == st
 		}); ok {
 			return s, nil
 		}
@@ -128,7 +142,7 @@ func (r subscriptionRepo) List(_ context.Context, org core.OrganizationID, f sub
 	byPlan := f.PlanCode != "" || f.Overridden != nil || !f.Currency.IsZero()
 	byCustomer := f.ExternalCustomerID != "" || len(f.BillingEntityIDs) > 0
 	rows := r.d.subscriptions.find(func(x *subscription.Subscription) bool {
-		if x.OrganizationID != org ||
+		if x.OrganizationID != org || x.Contract ||
 			!f.CustomerID.IsZero() && x.CustomerID != f.CustomerID ||
 			!f.PlanID.IsZero() && x.PlanID != f.PlanID ||
 			f.ExternalID != "" && x.ExternalID != f.ExternalID ||
@@ -241,7 +255,7 @@ func (r subscriptionRepo) MatchEvent(_ context.Context, org core.OrganizationID,
 
 func (r subscriptionRepo) ListByCustomer(_ context.Context, org core.OrganizationID, customer core.CustomerID, statuses ...subscription.Status) ([]*subscription.Subscription, error) {
 	return r.d.subscriptions.find(func(x *subscription.Subscription) bool {
-		return x.OrganizationID == org && x.CustomerID == customer && (len(statuses) == 0 || slices.Contains(statuses, x.Status))
+		return x.OrganizationID == org && !x.Contract && x.CustomerID == customer && (len(statuses) == 0 || slices.Contains(statuses, x.Status))
 	}), nil
 }
 
@@ -260,14 +274,14 @@ func (r subscriptionRepo) InitialStartedAt(_ context.Context, org core.Organizat
 
 func (r subscriptionRepo) ListActiveOrPendingByPlan(_ context.Context, org core.OrganizationID, plan core.PlanID) ([]*subscription.Subscription, error) {
 	return r.d.subscriptions.find(func(x *subscription.Subscription) bool {
-		return x.OrganizationID == org && x.PlanID == plan &&
+		return x.OrganizationID == org && !x.Contract && x.PlanID == plan &&
 			(x.Status == subscription.StatusActive || x.Status == subscription.StatusPending)
 	}), nil
 }
 
 func (r subscriptionRepo) ListDueForBilling(_ context.Context, org core.OrganizationID, t time.Time, page core.PageRequest) (core.Page[*subscription.Subscription], error) {
 	rows := r.d.subscriptions.find(func(x *subscription.Subscription) bool {
-		return x.OrganizationID == org && x.Status == subscription.StatusActive &&
+		return x.OrganizationID == org && !x.Contract && x.Status == subscription.StatusActive &&
 			x.NextBillingAt != nil && !x.NextBillingAt.After(t)
 	})
 	// The cursor is the ID, so pagination stays in ID order; the page is
@@ -282,7 +296,7 @@ func (r subscriptionRepo) ListDueForBilling(_ context.Context, org core.Organiza
 
 func (r subscriptionRepo) ListPendingToActivate(_ context.Context, org core.OrganizationID, t time.Time) ([]*subscription.Subscription, error) {
 	return r.d.subscriptions.find(func(x *subscription.Subscription) bool {
-		return x.OrganizationID == org && x.Status == subscription.StatusPending &&
+		return x.OrganizationID == org && !x.Contract && x.Status == subscription.StatusPending &&
 			x.PreviousSubscriptionID.IsZero() && !x.SubscriptionAt.After(t)
 	}), nil
 }
@@ -318,7 +332,7 @@ func (r subscriptionRepo) Chain(_ context.Context, org core.OrganizationID, id c
 
 func (r subscriptionRepo) ListEndingBetween(_ context.Context, org core.OrganizationID, from, to time.Time) ([]*subscription.Subscription, error) {
 	return r.d.subscriptions.find(func(x *subscription.Subscription) bool {
-		return x.OrganizationID == org && x.Status == subscription.StatusActive && x.EndingAt != nil &&
+		return x.OrganizationID == org && !x.Contract && x.Status == subscription.StatusActive && x.EndingAt != nil &&
 			!x.EndingAt.Before(from) && x.EndingAt.Before(to)
 	}), nil
 }

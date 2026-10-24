@@ -289,6 +289,30 @@ func TestChargeFeesGrouped(t *testing.T) {
 	})
 }
 
+// TestChargeFeesTargetWallet bills one fee per target wallet code of a
+// charge accepting a target wallet.
+//
+// source: spec/services/fees/charge_service_spec.rb:990
+func TestChargeFeesTargetWallet(t *testing.T) {
+	t.Parallel()
+	f := newChargeFixture(t)
+	m := f.Metric("metric", catalog.AggregationTypeSum, "value")
+	c := f.Charge(f.plan, m, catalog.ChargeModelStandard, `{"amount":"20"}`, func(c *catalog.Charge) { c.AcceptsTargetWallet = true })
+	f.Event(f.sub, m.Code, date(2022, time.March, 16), catalog.EventTargetWalletCode, "wallet_1", "value", "10")
+	f.Event(f.sub, m.Code, date(2022, time.March, 16), catalog.EventTargetWalletCode, "wallet_2", "value", "5")
+	_, res := f.fees(c, fees.Options{})
+	feeCount(t, res, 2)
+	w1 := byGroup(t, res, catalog.EventTargetWalletCode, "wallet_1")
+	checkFee(t, w1, wantFee{20000, "20000", "10", 2000, "20", -1})
+	w2 := byGroup(t, res, catalog.EventTargetWalletCode, "wallet_2")
+	checkFee(t, w2, wantFee{10000, "10000", "5", 2000, "20", -1})
+	for _, fee := range []*invoice.Fee{w1, w2} {
+		if len(fee.GroupedBy) != 1 {
+			t.Errorf("grouped_by: got = %v, want = only %s", fee.GroupedBy, catalog.EventTargetWalletCode)
+		}
+	}
+}
+
 // source: spec/services/fees/charge_service_spec.rb:1076
 func TestChargeFeesAlreadyBilled(t *testing.T) {
 	t.Parallel()

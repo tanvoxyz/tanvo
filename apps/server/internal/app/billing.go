@@ -139,6 +139,14 @@ func billingSchedule() []clockDispatch {
 		{jobs.KindValidateEvents, organization.WorkEventsToValidate, kernel.JobValidateEvents, instant, true},
 		// record_deletions_cleanup_job.rb
 		{jobs.KindCleanRecordDeletions, organization.WorkExpiredRecordDeletions, kernel.JobCleanRecordDeletions, instant, false},
+		// activate_contracts_job.rb: a pending contract is a pending
+		// subscription.
+		{jobs.KindActivateContracts, organization.WorkPendingSubscriptions, kernel.JobActivateContracts, instant, false},
+		// create_billing_segments_job.rb: a contract with a due rate card is
+		// an active subscription.
+		{jobs.KindCreateBillingSegments, organization.WorkActiveSubscriptions, kernel.JobCreateBillingSegments, instant, false},
+		// process_billing_segments_job.rb
+		{jobs.KindProcessBillingSegments, organization.WorkAwaitingBillingSegments, kernel.JobProcessBillingSegmentsAll, instant, false},
 		// process_dunning_campaigns_job.rb
 		{jobs.KindProcessDunningCampaigns, organization.WorkDunningCustomers, kernel.JobProcessDunningCampaigns, instant, false},
 	}
@@ -354,7 +362,7 @@ func (b inAdvanceBiller) BillInAdvance(ctx context.Context, events []*ingest.Enr
 			orgs = append(orgs, e.OrganizationID)
 		}
 		byOrg[e.OrganizationID] = append(byOrg[e.OrganizationID], kernel.InAdvanceChargeArgs{
-			SubscriptionID:          e.SubscriptionID,
+			SubscriptionID:          e.InAdvanceTarget(),
 			EventID:                 e.ID,
 			TransactionID:           e.TransactionID,
 			Timestamp:               e.Timestamp,

@@ -210,7 +210,7 @@ var paritySections = map[string][]string{
 	"1.19": {"tanvo.usage.v1.UsageService"},
 	"1.20": {"tanvo.subscription.v1.SubscriptionService"},
 	"1.21": nil,
-	"1.22": {"tanvo.subscription.v1.SubscriptionService"},
+	"1.22": {"tanvo.subscription.v1.ContractService"},
 	"1.23": {"tanvo.invoice.v1.InvoiceService", "tanvo.invoice.v1.InvoiceCustomSectionService"},
 	"1.24": {"tanvo.invoice.v1.FeeService"},
 	"1.25": {"tanvo.tax.v1.TaxService"},

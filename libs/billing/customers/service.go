@@ -14,10 +14,12 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/billing/wallets"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/payment"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
+	"github.com/tanvoxyz/tanvo/libs/core/x402"
 	"github.com/tanvoxyz/tanvo/libs/money"
 	"github.com/tanvoxyz/tanvo/libs/tax"
 )
@@ -192,6 +194,13 @@ type Input struct {
 	Taxes core.Optional[[]refs.Ref]
 	// Metadata replaces the metadata list.
 	Metadata core.Optional[core.Metadata]
+	// X402AgentAddress is the x402 agent address (parity §1.36); it is
+	// set on creation only: a different value on an update is
+	// value_is_immutable.
+	X402AgentAddress core.Optional[*string]
+
+	// quiet sends no customer webhook (the customer portal's updates).
+	quiet bool
 }
 
 // Create creates the customer externalID in org with the set attributes
@@ -211,7 +220,7 @@ func (s *Service) Create(ctx context.Context, org core.OrganizationID, externalI
 		} else if !errors.Is(err, core.ErrNotFound) {
 			return fmt.Errorf("find customer %q: %w", externalID, err)
 		}
-		c, err := s.write(ctx, r, org, nil, externalID, in)
+		c, err := s.write(ctx, r, org, nil, externalID, in, false)
 		out = c
 		return err
 	})
@@ -238,7 +247,9 @@ func (s *Service) Upsert(ctx context.Context, org core.OrganizationID, externalI
 		case err != nil:
 			return fmt.Errorf("find customer %q: %w", externalID, err)
 		}
-		c, err := s.write(ctx, r, org, cur, externalID, in)
+		// The upsert logs its update without the changes
+		// (upsert_from_api_service.rb:161).
+		c, err := s.write(ctx, r, org, cur, externalID, in, false)
 		out = c
 		return err
 	})
@@ -274,7 +285,7 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.C
 		if cur.Deleted() {
 			return core.NotFound(Resource)
 		}
-		c, err := s.write(ctx, r, org, cur, cur.ExternalID, in)
+		c, err := s.write(ctx, r, org, cur, cur.ExternalID, in, true)
 		out = c
 		return err
 	})
@@ -282,6 +293,30 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.C
 		return nil, fmt.Errorf("update customer %s: %w", id, err)
 	}
 	return out, nil
+}
+
+// UpdateFromPortal changes the live customer id of org from its customer
+// portal: only the customer type, the names, the tax identification
+// number, the email, the document locale and the addresses of in are
+// assigned. The EU taxes follow the tax identification number and the
+// billing address as on [Service.Update], flagging the draft invoices for
+// refresh when they change, but no webhook is sent.
+//
+// source: app/services/customer_portal/customer_update_service.rb:14-74
+func (s *Service) UpdateFromPortal(ctx context.Context, org core.OrganizationID, id core.CustomerID, in Input) (*customer.Customer, error) {
+	return s.Update(ctx, org, id, Input{
+		CustomerType:            in.CustomerType,
+		Name:                    in.Name,
+		Firstname:               in.Firstname,
+		Lastname:                in.Lastname,
+		LegalName:               in.LegalName,
+		TaxIdentificationNumber: in.TaxIdentificationNumber,
+		Email:                   in.Email,
+		DocumentLocale:          in.DocumentLocale,
+		BillingAddress:          in.BillingAddress,
+		ShippingAddress:         in.ShippingAddress,
+		quiet:                   true,
+	})
 }
 
 // Get returns the customer id of org, deleted or not.
@@ -345,7 +380,7 @@ func (s *Service) Delete(ctx context.Context, org core.OrganizationID, id core.C
 			return err
 		}
 		out = c
-		return nil
+		return s.logActivity(ctx, r, auditlog.ActivityCustomerDeleted, nil, c)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("delete customer %s: %w", id, err)
@@ -354,10 +389,18 @@ func (s *Service) Delete(ctx context.Context, org core.OrganizationID, id core.C
 }
 
 // write assigns in over cur (nil creates the customer externalID) and
-// stores it with its side effects.
-func (s *Service) write(ctx context.Context, r port.Repos, org core.OrganizationID, cur *customer.Customer, externalID string, in Input) (*customer.Customer, error) {
+// stores it with its side effects. The activity log of an update records
+// the changed attributes when changes is set.
+func (s *Service) write(ctx context.Context, r port.Repos, org core.OrganizationID, cur *customer.Customer, externalID string, in Input, changes bool) (*customer.Customer, error) {
 	if in.SkipInvoiceCustomSections.Set && in.SkipInvoiceCustomSections.Value && in.InvoiceCustomSections.Set {
 		return nil, fieldError("invoice_custom_sections", CodeSkipSectionsAndSelectedIDs)
+	}
+	var before map[string]any
+	if cur != nil && changes {
+		var err error
+		if before, err = auditlog.ObjectOf(cur); err != nil {
+			return nil, err
+		}
 	}
 	now := s.d.Now()
 	created := cur == nil
@@ -388,6 +431,9 @@ func (s *Service) write(ctx context.Context, r port.Repos, org core.Organization
 		}
 	}
 	assign(c, in)
+	if err := assignX402AgentAddress(ctx, r, c, in, created); err != nil {
+		return nil, err
+	}
 	if !created && (c.ExternalID != prev.ExternalID || c.AccountType != prev.AccountType) {
 		docs, err := documents(ctx, r, c)
 		if err != nil {
@@ -429,9 +475,15 @@ func (s *Service) write(ctx context.Context, r port.Repos, org core.Organization
 	if err := s.applyVIES(ctx, r, c, vies); err != nil {
 		return nil, err
 	}
-	t := webhook.EventTypeCustomerUpdated
+	if in.quiet {
+		return c, nil
+	}
+	t, a := webhook.EventTypeCustomerUpdated, auditlog.ActivityCustomerUpdated
 	if created {
-		t = webhook.EventTypeCustomerCreated
+		t, a = webhook.EventTypeCustomerCreated, auditlog.ActivityCustomerCreated
+	}
+	if err := s.logActivity(ctx, r, a, before, c); err != nil {
+		return nil, err
 	}
 	if err := kernel.Emit(ctx, s.d, org, t, Resource, c.ID.UUID(), c); err != nil {
 		return nil, err
@@ -603,6 +655,38 @@ func notFound(err error) error {
 	return err
 }
 
+// assignX402AgentAddress sets the x402 agent address of a new customer,
+// normalized, and refuses it when a live customer of the organization
+// holds it; the address of an existing customer never changes
+// (customer.rb:60, :184).
+func assignX402AgentAddress(ctx context.Context, r port.Repos, c *customer.Customer, in Input, created bool) error {
+	if !in.X402AgentAddress.Set {
+		return nil
+	}
+	if !created {
+		cur, next := c.X402AgentAddress, in.X402AgentAddress.Value
+		if next != nil {
+			next = new(x402.NormalizeAgentAddress(*next))
+		}
+		if (cur == nil) != (next == nil) || (cur != nil && *cur != *next) {
+			return fieldError("x402_agent_address", core.CodeImmutable)
+		}
+		return nil
+	}
+	c.X402AgentAddress = in.X402AgentAddress.Value
+	c.NormalizeX402AgentAddress()
+	if c.X402AgentAddress == nil || !x402.ValidAgentAddress(*c.X402AgentAddress) {
+		return nil
+	}
+	switch _, err := r.Customers.GetByX402AgentAddress(ctx, c.OrganizationID, *c.X402AgentAddress); {
+	case err == nil:
+		return fieldError("x402_agent_address", core.CodeAlreadyExists)
+	case !errors.Is(err, core.ErrNotFound):
+		return fmt.Errorf("find customer by x402 agent address: %w", err)
+	}
+	return nil
+}
+
 // externalIDConflict turns a uniqueness violation into external_id
 // value_already_exist (upsert_from_api_service.rb:173-174).
 func externalIDConflict(err error) error {
@@ -630,4 +714,15 @@ func assignSequence(ctx context.Context, r port.Repos, c *customer.Customer) err
 	}
 	c.AssignSequence(seq, o.DocumentNumberPrefix)
 	return nil
+}
+
+// logActivity records the activity log of c, whose attributes before an
+// update are before (lago activity_loggable of create_service.rb:15,
+// update_service.rb:17 and destroy_service.rb:13, and
+// upsert_from_api_service.rb:158-161).
+func (s *Service) logActivity(ctx context.Context, r port.Repos, t auditlog.ActivityType, before map[string]any, c *customer.Customer) error {
+	return s.d.LogChange(ctx, r, kernel.Change{
+		Type: t, OrganizationID: c.OrganizationID, ResourceType: auditlog.ResourceCustomer, ResourceID: c.ID.UUID(),
+		Object: c, Before: before, ExternalCustomerID: c.ExternalID,
+	})
 }

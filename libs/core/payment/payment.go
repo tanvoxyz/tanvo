@@ -183,7 +183,7 @@ func (p *Payment) Validate() error {
 		if v.Check(p.Reference != nil, "reference", core.CodeRequired) && v.Required("reference", *p.Reference) {
 			v.MaxLen("reference", *p.Reference, MaxReferenceLength)
 		}
-	case KindProvider:
+	case KindProvider, KindX402:
 		v.Check(p.Reference == nil, "reference", core.CodeForbidden)
 	}
 	return v.Err()

@@ -6,6 +6,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -138,6 +139,10 @@ func (s *Service) updateInvoice(ctx context.Context, r port.Repos, org core.Orga
 		}
 	}
 	if old != inv.PaymentStatus {
+		// update_service.rb:76-79,105-107.
+		if err := s.d.LogInvoice(ctx, r, auditlog.ActivityInvoicePaymentStatusUpdated, inv); err != nil {
+			return nil, err
+		}
 		if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeInvoicePaymentStatusUpdated, "invoice", inv.ID.UUID(), inv); err != nil {
 			return nil, err
 		}

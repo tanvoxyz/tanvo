@@ -57,21 +57,6 @@ const (
 	// SubscriptionServiceUpdateLifetimeUsageProcedure is the procedure name of the
 	// SubscriptionService's UpdateLifetimeUsage RPC.
 	SubscriptionServiceUpdateLifetimeUsageProcedure = "/tanvo.subscription.v1.SubscriptionService/UpdateLifetimeUsage"
-	// SubscriptionServiceCreateSubscriptionRateCardProcedure is the procedure name of the
-	// SubscriptionService's CreateSubscriptionRateCard RPC.
-	SubscriptionServiceCreateSubscriptionRateCardProcedure = "/tanvo.subscription.v1.SubscriptionService/CreateSubscriptionRateCard"
-	// SubscriptionServiceListSubscriptionRateCardsProcedure is the procedure name of the
-	// SubscriptionService's ListSubscriptionRateCards RPC.
-	SubscriptionServiceListSubscriptionRateCardsProcedure = "/tanvo.subscription.v1.SubscriptionService/ListSubscriptionRateCards"
-	// SubscriptionServiceUpdateSubscriptionRateCardProcedure is the procedure name of the
-	// SubscriptionService's UpdateSubscriptionRateCard RPC.
-	SubscriptionServiceUpdateSubscriptionRateCardProcedure = "/tanvo.subscription.v1.SubscriptionService/UpdateSubscriptionRateCard"
-	// SubscriptionServiceDeleteSubscriptionRateCardProcedure is the procedure name of the
-	// SubscriptionService's DeleteSubscriptionRateCard RPC.
-	SubscriptionServiceDeleteSubscriptionRateCardProcedure = "/tanvo.subscription.v1.SubscriptionService/DeleteSubscriptionRateCard"
-	// SubscriptionServiceListBillingSegmentsProcedure is the procedure name of the
-	// SubscriptionService's ListBillingSegments RPC.
-	SubscriptionServiceListBillingSegmentsProcedure = "/tanvo.subscription.v1.SubscriptionService/ListBillingSegments"
 )
 
 var (
@@ -141,43 +126,6 @@ var (
 			Procedure:  SubscriptionServiceUpdateLifetimeUsageProcedure,
 		}
 	})
-	subscriptionServiceCreateSubscriptionRateCardSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_tanvo_subscription_v1_subscription_proto.Services().ByName("SubscriptionService").Methods().ByName("CreateSubscriptionRateCard"),
-			Procedure:  SubscriptionServiceCreateSubscriptionRateCardProcedure,
-		}
-	})
-	subscriptionServiceListSubscriptionRateCardsSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType:       connect.StreamTypeUnary,
-			Schema:           v1.File_tanvo_subscription_v1_subscription_proto.Services().ByName("SubscriptionService").Methods().ByName("ListSubscriptionRateCards"),
-			Procedure:        SubscriptionServiceListSubscriptionRateCardsProcedure,
-			IdempotencyLevel: connect.IdempotencyNoSideEffects,
-		}
-	})
-	subscriptionServiceUpdateSubscriptionRateCardSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_tanvo_subscription_v1_subscription_proto.Services().ByName("SubscriptionService").Methods().ByName("UpdateSubscriptionRateCard"),
-			Procedure:  SubscriptionServiceUpdateSubscriptionRateCardProcedure,
-		}
-	})
-	subscriptionServiceDeleteSubscriptionRateCardSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_tanvo_subscription_v1_subscription_proto.Services().ByName("SubscriptionService").Methods().ByName("DeleteSubscriptionRateCard"),
-			Procedure:  SubscriptionServiceDeleteSubscriptionRateCardProcedure,
-		}
-	})
-	subscriptionServiceListBillingSegmentsSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType:       connect.StreamTypeUnary,
-			Schema:           v1.File_tanvo_subscription_v1_subscription_proto.Services().ByName("SubscriptionService").Methods().ByName("ListBillingSegments"),
-			Procedure:        SubscriptionServiceListBillingSegmentsProcedure,
-			IdempotencyLevel: connect.IdempotencyNoSideEffects,
-		}
-	})
 )
 
 // SubscriptionServiceClient is a client for the tanvo.subscription.v1.SubscriptionService service.
@@ -207,17 +155,6 @@ type SubscriptionServiceClient interface {
 	// Sets the usage billed outside Tanvo before the subscription started,
 	// counted by lifetime usage.
 	UpdateLifetimeUsage(context.Context, *v1.UpdateLifetimeUsageRequest) (*v1.UpdateLifetimeUsageResponse, error)
-	// Adds a rate card to a subscription priced by rate cards (a contract).
-	CreateSubscriptionRateCard(context.Context, *v1.CreateSubscriptionRateCardRequest) (*v1.CreateSubscriptionRateCardResponse, error)
-	// Lists the rate cards of a subscription.
-	ListSubscriptionRateCards(context.Context, *v1.ListSubscriptionRateCardsRequest) (*v1.ListSubscriptionRateCardsResponse, error)
-	// Updates a subscription rate card's units and phases.
-	UpdateSubscriptionRateCard(context.Context, *v1.UpdateSubscriptionRateCardRequest) (*v1.UpdateSubscriptionRateCardResponse, error)
-	// Removes a rate card from a subscription from its next billing date.
-	DeleteSubscriptionRateCard(context.Context, *v1.DeleteSubscriptionRateCardRequest) (*v1.DeleteSubscriptionRateCardResponse, error)
-	// Lists the billing segments of a subscription priced by rate cards: the
-	// priced windows of each rate card's schedule.
-	ListBillingSegments(context.Context, *v1.ListBillingSegmentsRequest) (*v1.ListBillingSegmentsResponse, error)
 }
 
 // NewSubscriptionServiceClient constructs a client for the
@@ -255,17 +192,6 @@ type SubscriptionServiceHandler interface {
 	// Sets the usage billed outside Tanvo before the subscription started,
 	// counted by lifetime usage.
 	UpdateLifetimeUsage(context.Context, *v1.UpdateLifetimeUsageRequest) (*v1.UpdateLifetimeUsageResponse, error)
-	// Adds a rate card to a subscription priced by rate cards (a contract).
-	CreateSubscriptionRateCard(context.Context, *v1.CreateSubscriptionRateCardRequest) (*v1.CreateSubscriptionRateCardResponse, error)
-	// Lists the rate cards of a subscription.
-	ListSubscriptionRateCards(context.Context, *v1.ListSubscriptionRateCardsRequest) (*v1.ListSubscriptionRateCardsResponse, error)
-	// Updates a subscription rate card's units and phases.
-	UpdateSubscriptionRateCard(context.Context, *v1.UpdateSubscriptionRateCardRequest) (*v1.UpdateSubscriptionRateCardResponse, error)
-	// Removes a rate card from a subscription from its next billing date.
-	DeleteSubscriptionRateCard(context.Context, *v1.DeleteSubscriptionRateCardRequest) (*v1.DeleteSubscriptionRateCardResponse, error)
-	// Lists the billing segments of a subscription priced by rate cards: the
-	// priced windows of each rate card's schedule.
-	ListBillingSegments(context.Context, *v1.ListBillingSegmentsRequest) (*v1.ListBillingSegmentsResponse, error)
 }
 
 // RegisterSubscriptionServiceHandler registers svc as the tanvo.subscription.v1.SubscriptionService
@@ -282,11 +208,6 @@ func RegisterSubscriptionServiceHandler(server *connect.Server, svc Subscription
 		connect.Method{Spec: subscriptionServiceCancelSubscriptionSpec(), Handler: adapter.cancelSubscription},
 		connect.Method{Spec: subscriptionServiceGetLifetimeUsageSpec(), Handler: adapter.getLifetimeUsage},
 		connect.Method{Spec: subscriptionServiceUpdateLifetimeUsageSpec(), Handler: adapter.updateLifetimeUsage},
-		connect.Method{Spec: subscriptionServiceCreateSubscriptionRateCardSpec(), Handler: adapter.createSubscriptionRateCard},
-		connect.Method{Spec: subscriptionServiceListSubscriptionRateCardsSpec(), Handler: adapter.listSubscriptionRateCards},
-		connect.Method{Spec: subscriptionServiceUpdateSubscriptionRateCardSpec(), Handler: adapter.updateSubscriptionRateCard},
-		connect.Method{Spec: subscriptionServiceDeleteSubscriptionRateCardSpec(), Handler: adapter.deleteSubscriptionRateCard},
-		connect.Method{Spec: subscriptionServiceListBillingSegmentsSpec(), Handler: adapter.listBillingSegments},
 	)
 }
 
@@ -327,26 +248,6 @@ func (UnimplementedSubscriptionServiceHandler) GetLifetimeUsage(context.Context,
 
 func (UnimplementedSubscriptionServiceHandler) UpdateLifetimeUsage(context.Context, *v1.UpdateLifetimeUsageRequest) (*v1.UpdateLifetimeUsageResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.subscription.v1.SubscriptionService.UpdateLifetimeUsage is not implemented")
-}
-
-func (UnimplementedSubscriptionServiceHandler) CreateSubscriptionRateCard(context.Context, *v1.CreateSubscriptionRateCardRequest) (*v1.CreateSubscriptionRateCardResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.subscription.v1.SubscriptionService.CreateSubscriptionRateCard is not implemented")
-}
-
-func (UnimplementedSubscriptionServiceHandler) ListSubscriptionRateCards(context.Context, *v1.ListSubscriptionRateCardsRequest) (*v1.ListSubscriptionRateCardsResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.subscription.v1.SubscriptionService.ListSubscriptionRateCards is not implemented")
-}
-
-func (UnimplementedSubscriptionServiceHandler) UpdateSubscriptionRateCard(context.Context, *v1.UpdateSubscriptionRateCardRequest) (*v1.UpdateSubscriptionRateCardResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.subscription.v1.SubscriptionService.UpdateSubscriptionRateCard is not implemented")
-}
-
-func (UnimplementedSubscriptionServiceHandler) DeleteSubscriptionRateCard(context.Context, *v1.DeleteSubscriptionRateCardRequest) (*v1.DeleteSubscriptionRateCardResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.subscription.v1.SubscriptionService.DeleteSubscriptionRateCard is not implemented")
-}
-
-func (UnimplementedSubscriptionServiceHandler) ListBillingSegments(context.Context, *v1.ListBillingSegmentsRequest) (*v1.ListBillingSegmentsResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.subscription.v1.SubscriptionService.ListBillingSegments is not implemented")
 }
 
 type subscriptionServiceClient struct {
@@ -420,46 +321,6 @@ func (c *subscriptionServiceClient) GetLifetimeUsage(ctx context.Context, req *v
 func (c *subscriptionServiceClient) UpdateLifetimeUsage(ctx context.Context, req *v1.UpdateLifetimeUsageRequest) (*v1.UpdateLifetimeUsageResponse, error) {
 	var res v1.UpdateLifetimeUsageResponse
 	if err := c.client.CallUnary(ctx, subscriptionServiceUpdateLifetimeUsageSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *subscriptionServiceClient) CreateSubscriptionRateCard(ctx context.Context, req *v1.CreateSubscriptionRateCardRequest) (*v1.CreateSubscriptionRateCardResponse, error) {
-	var res v1.CreateSubscriptionRateCardResponse
-	if err := c.client.CallUnary(ctx, subscriptionServiceCreateSubscriptionRateCardSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *subscriptionServiceClient) ListSubscriptionRateCards(ctx context.Context, req *v1.ListSubscriptionRateCardsRequest) (*v1.ListSubscriptionRateCardsResponse, error) {
-	var res v1.ListSubscriptionRateCardsResponse
-	if err := c.client.CallUnary(ctx, subscriptionServiceListSubscriptionRateCardsSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *subscriptionServiceClient) UpdateSubscriptionRateCard(ctx context.Context, req *v1.UpdateSubscriptionRateCardRequest) (*v1.UpdateSubscriptionRateCardResponse, error) {
-	var res v1.UpdateSubscriptionRateCardResponse
-	if err := c.client.CallUnary(ctx, subscriptionServiceUpdateSubscriptionRateCardSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *subscriptionServiceClient) DeleteSubscriptionRateCard(ctx context.Context, req *v1.DeleteSubscriptionRateCardRequest) (*v1.DeleteSubscriptionRateCardResponse, error) {
-	var res v1.DeleteSubscriptionRateCardResponse
-	if err := c.client.CallUnary(ctx, subscriptionServiceDeleteSubscriptionRateCardSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *subscriptionServiceClient) ListBillingSegments(ctx context.Context, req *v1.ListBillingSegmentsRequest) (*v1.ListBillingSegmentsResponse, error) {
-	var res v1.ListBillingSegmentsResponse
-	if err := c.client.CallUnary(ctx, subscriptionServiceListBillingSegmentsSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -569,66 +430,6 @@ func (h subscriptionServiceHandler) updateLifetimeUsage(ctx context.Context, _ c
 		return err
 	}
 	res, err := h.svc.UpdateLifetimeUsage(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h subscriptionServiceHandler) createSubscriptionRateCard(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.CreateSubscriptionRateCardRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.CreateSubscriptionRateCard(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h subscriptionServiceHandler) listSubscriptionRateCards(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.ListSubscriptionRateCardsRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.ListSubscriptionRateCards(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h subscriptionServiceHandler) updateSubscriptionRateCard(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.UpdateSubscriptionRateCardRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.UpdateSubscriptionRateCard(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h subscriptionServiceHandler) deleteSubscriptionRateCard(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.DeleteSubscriptionRateCardRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.DeleteSubscriptionRateCard(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h subscriptionServiceHandler) listBillingSegments(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.ListBillingSegmentsRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.ListBillingSegments(ctx, &req)
 	if err != nil {
 		return err
 	}

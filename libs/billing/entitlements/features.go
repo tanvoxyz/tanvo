@@ -9,6 +9,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -107,6 +108,9 @@ func (s *Service) CreateFeature(ctx context.Context, org core.OrganizationID, in
 			}
 			return err
 		}
+		if err := s.logFeature(ctx, r, auditlog.ActivityFeatureCreated, nil, f); err != nil {
+			return err
+		}
 		return kernel.Emit(ctx, s.d, org, webhook.EventTypeFeatureCreated, "feature", f.ID.UUID(), f)
 	})
 	if err != nil {
@@ -144,6 +148,10 @@ func (s *Service) UpdateFeature(ctx context.Context, org core.OrganizationID, id
 		if err != nil {
 			return err
 		}
+		before, err := auditlog.ObjectOf(f)
+		if err != nil {
+			return err
+		}
 		in.Name.Apply(&f.Name)
 		in.Description.Apply(&f.Description)
 		for _, p := range in.Privileges {
@@ -170,6 +178,9 @@ func (s *Service) UpdateFeature(ctx context.Context, org core.OrganizationID, id
 			return err
 		}
 		out = f
+		if err := s.logFeature(ctx, r, auditlog.ActivityFeatureUpdated, before, f); err != nil {
+			return err
+		}
 		return kernel.Emit(ctx, s.d, org, webhook.EventTypeFeatureUpdated, "feature", f.ID.UUID(), f)
 	})
 	if err != nil {
@@ -202,10 +213,13 @@ func (s *Service) DeleteFeature(ctx context.Context, org core.OrganizationID, id
 			return err
 		}
 		f.DeletedAt = &now
-		if err := s.emitPlans(ctx, org, plans); err != nil {
+		if err := s.emitPlans(ctx, r, org, plans); err != nil {
 			return err
 		}
 		out = f
+		if err := s.logFeature(ctx, r, auditlog.ActivityFeatureDeleted, nil, f); err != nil {
+			return err
+		}
 		return kernel.Emit(ctx, s.d, org, webhook.EventTypeFeatureDeleted, "feature", f.ID.UUID(), f)
 	})
 	if err != nil {
@@ -232,6 +246,10 @@ func (s *Service) DeleteFeaturePrivilege(ctx context.Context, org core.Organizat
 		if i < 0 {
 			return core.NotFound("privilege")
 		}
+		before, err := auditlog.ObjectOf(f)
+		if err != nil {
+			return err
+		}
 		f.Privileges = slices.Delete(f.Privileges, i, i+1)
 		f.UpdatedAt = s.d.Now()
 		if err := r.Features.Update(ctx, f); err != nil {
@@ -241,6 +259,9 @@ func (s *Service) DeleteFeaturePrivilege(ctx context.Context, org core.Organizat
 			return err
 		}
 		out = f
+		if err := s.logFeature(ctx, r, auditlog.ActivityFeatureUpdated, before, f); err != nil {
+			return err
+		}
 		return kernel.Emit(ctx, s.d, org, webhook.EventTypeFeatureUpdated, "feature", f.ID.UUID(), f)
 	})
 	if err != nil {
@@ -297,16 +318,37 @@ func (s *Service) emitFeaturePlans(ctx context.Context, r port.Repos, org core.O
 	if err != nil {
 		return err
 	}
-	return s.emitPlans(ctx, org, plans)
+	return s.emitPlans(ctx, r, org, plans)
 }
 
-func (s *Service) emitPlans(ctx context.Context, org core.OrganizationID, plans []*catalog.Plan) error {
+// emitPlans emits plan.updated for every plan, with its activity log
+// (without changes, as lago produces it after the change:
+// feature_update_service.rb:34, feature_destroy_service.rb:31,
+// privilege_destroy_service.rb:26; and with the entitlement services'
+// activity_loggable, which change no plan attribute).
+func (s *Service) emitPlans(ctx context.Context, r port.Repos, org core.OrganizationID, plans []*catalog.Plan) error {
 	for _, p := range plans {
 		if err := kernel.Emit(ctx, s.d, org, webhook.EventTypePlanUpdated, "plan", p.ID.UUID(), p); err != nil {
 			return err
 		}
+		if err := s.d.LogChange(ctx, r, kernel.Change{
+			Type: auditlog.ActivityPlanUpdated, OrganizationID: org, ResourceType: auditlog.ResourcePlan, ResourceID: p.ID.UUID(), Object: p,
+		}); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+// logFeature records the activity log t of f, whose attributes before an
+// update are before (lago activity_loggable of feature_create_service.rb:13,
+// feature_update_service.rb:14, feature_destroy_service.rb:12 and
+// privilege_destroy_service.rb:12).
+func (s *Service) logFeature(ctx context.Context, r port.Repos, t auditlog.ActivityType, before map[string]any, f *catalog.Feature) error {
+	return s.d.LogChange(ctx, r, kernel.Change{
+		Type: t, OrganizationID: f.OrganizationID, ResourceType: auditlog.ResourceFeature, ResourceID: f.ID.UUID(),
+		Object: f, Before: before,
+	})
 }
 
 // featurePlans returns the plans granting feature (lago feature.plans).

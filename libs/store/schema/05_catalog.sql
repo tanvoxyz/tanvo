@@ -195,6 +195,9 @@ CREATE TABLE charges (
   invoiceable boolean NOT NULL DEFAULT true,
   regroup_paid_fees text,
   prorated boolean NOT NULL DEFAULT false,
+  -- Splits the usage by the event's target_wallet_code property and pays
+  -- each targeted fee from that wallet only.
+  accepts_target_wallet boolean NOT NULL DEFAULT false,
   min_amount bigint NOT NULL DEFAULT 0,
   invoice_display_name text,
   applied_pricing_unit_id uuid,

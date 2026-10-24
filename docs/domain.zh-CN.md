@@ -204,7 +204,7 @@ erDiagram
 | `RecurringMethod` | `fixed`、`target` | RecurringTransactionRule |
 | `RecurringTrigger` | `interval`、`threshold` | RecurringTransactionRule |
 | `RuleStatus` | `active`、`terminated` | RecurringTransactionRule |
-| `PaymentKind` | `provider`、`manual` | Payment |
+| `PaymentKind` | `provider`、`manual`、`x402` | Payment |
 | `PaymentState` | `pending`、`processing`、`succeeded`、`failed` | Payment |
 | `IntegrationCategory` | `payment`、`accounting`、`tax`、`crm`、`auth` | Integration |
 | `IntegrationProvider` | `stripe`、`adyen`、`gocardless`、`cashfree`、`moneyhash`、`flutterwave`、`netsuite`、`xero`、`anrok`、`avalara`、`hubspot`、`salesforce`、`okta`、`entra_id`、`oidc` | Integration |
@@ -342,7 +342,7 @@ Address（共享值对象）：`line1`、`line2`、`city`、`state`、`zipcode`�
 * 轮换会创建新密钥，并设置旧密钥的 `expires_at`（立即或在选定时刻）。
 
 ### 5.6 客户门户令牌
-限定于单个客户的无状态签名令牌，有效期 12 小时，可读取该客户的发票、用量和钱包，并可修改其自身的账单信息。
+限定于单个客户的无状态签名令牌，有效期 12 小时，可读取该客户的组织概要、资料、发票、订阅、用量、钱包和分析数据，并可修改其自身资料、为钱包付费充值（`CustomerPortalService`）。
 
 ### 5.7 会话与登录状态
 会话是已登录用户的不透明令牌。它属于用户而非组织：组织按请求选择，不允许该会话 `method` 的组织无法通过它访问。
@@ -396,6 +396,7 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 | `skip_invoice_custom_sections` | `bool` | |
 | `applied_dunning_campaign_id` | `ID?` | |
 | `exclude_from_dunning_campaign` | `bool` | |
+| `x402_agent_address` | `string?` | x402 代理的 EVM 地址（以 EIP-55 校验和形式存储）或 Solana 地址；在组织内未删除的客户中唯一；在准入检查中标识代理（§24，第 14 条） |
 | `dunning_campaign_attempts`、`last_dunning_campaign_attempt_at` | `map<币种, int>`、`Time?` | 按币种分别计数尝试次数 |
 | `sequential_id` | `int` | 创建时按组织分配；已删除的客户保留其编号 |
 | `slug` | `string` | `<组织 document_number_prefix>-<sequential_id %03d>` |
@@ -1439,7 +1440,7 @@ Lago 的计费 v2 通过合同上的费率卡为产品定价，而不是通过�
 * 费用类型 `product`。
 
 合同规则（Lago，2026 年 9–10 月）及 Tanvo 如何把它们映射到由费率卡定价的订阅上（§24，第 3 条）：
-* **创建即计费**：创建合同会在事务提交后排队计费；由定时运行判断哪些到期，因此预付费率卡立即开票，后付费率卡尚无应付。Tanvo：创建这样的订阅时把 `next_billing_at` 设为其开始时间，并在同一事务中入队计费任务（§22.17）。
+* **创建即计费**：创建合同会在事务提交后排队计费；由定时运行判断哪些到期，因此预付费率卡立即开票，后付费率卡尚无应付。Tanvo：创建这样的订阅时把每张费率卡的 `next_billing_at` 设为其开始时间，并在同一事务中入队客户的片段调度；调度运行在有待开票片段时再入队片段开票。
 * **终止或取消，绝不删除**：终止 `active` 合同使其变为 `terminated`（`terminated_at`）；终止 `pending` 合同使其变为 `canceled`（`canceled_at`）；已结束的合同被拒绝（`cannot_terminate`）。Tanvo：即 §9.2 的订阅状态转换；这样的订阅从不删除。
 * **编辑白名单**：`active` 合同只接受修改名称、`purchase_order_number`、结束日期、计费主体、`consolidate_invoice`、支付方式和发票自定义区块；修改套餐、`billing_time`、开始日期和计费锚点会以 `contract_locked` 拒绝。不在名单中的字段即被锁定，以当前值重发的锁定字段被接受但不写入。`pending` 合同可以完全编辑，包括套餐；已结束的合同只读。Tanvo：由费率卡定价的订阅采用相同的白名单和错误；其套餐只在 `pending` 时可改。
 * **唯一结束日期**：合同的结束日期是其费率卡的唯一结束（费率卡没有自己的结束日期）；有效合同可以设置、移动或清除它，计费在计费时读取。Tanvo：`ending_at` 结束订阅的所有费率卡。
@@ -1449,7 +1450,8 @@ Lago 的计费 v2 通过合同上的费率卡为产品定价，而不是通过�
 * **发票自定义区块**：合同的选择和跳过设置作用于其预付发票和周期发票，包括合并发票。Tanvo：与任何订阅一样适用 §11.9。
 * **可恢复的计划**：费率卡的计划从其最新持久化的周期恢复，无需遍历历史；最后一个周期会再次产生，由写入方对分段去重。Tanvo：`libs/period` 的周期遍历器从最后一个计费分段恢复；分段按（费率卡，开始时间）唯一。
 * **费用标识**：重试的运行复用已构建的费用，以（发票、合同费率卡、UTC 微秒精度的周期边界）标识，包括分组费用和补足费用。Tanvo：费率卡的费用使用相同的键。
-* **预付计量费率卡**按事件定价，取覆盖事件时间戳的分段（§22.4），绝不在计费时钟触发时定价。
+* **预付计量费率卡**按事件定价，取覆盖事件时间戳的分段（§22.4），绝不在计费时钟触发时定价：按产品与产品过滤器，取在事件本地日期生效且预付的费率卡，以不续建、不存储的待处理分段定价；每张费率卡每笔交易一笔费用，且仅当事件最佳匹配的产品过滤器就是该费率卡的过滤器。在发票上显示的费率卡为其费用单独开票；其他费率卡连同税存储费用。Tanvo：聚合只保留该费率卡的过滤器分组，发票将合同关联为发票订阅。
+* **片段开票**：片段的 `billing_at` 在预付时为其开始，在后付时为其（不含的）结束。客户待开票的片段按本地计费日、币种、计费主体、支付方式与采购订单号分组（合同不合并发票时每个片段单独一组）；每组一张发票，在客户的片段锁下各自一个事务中生成，先固定后计量的产品费用、费用的税，无优惠券与抵扣。随后一次运行会完成其已开票片段的生成中发票，因此重试会完成失败运行已生成的内容。Tanvo：发票把它的每个合同关联为覆盖其片段的发票订阅，费用带有该合同（§24 第 3 项）；lago 只通过片段关联合同。
 
 Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）；`libs/period` 对两者都采用 v2 的日历规则（左闭右开窗口、本地午夜边界、不受夏令时影响的天数计算）。
 

@@ -2,6 +2,7 @@ package app
 
 import (
 	"crypto/hkdf"
+	"crypto/rand"
 	"crypto/sha256"
 	"fmt"
 
@@ -25,6 +26,20 @@ func deriveKey(secret []byte, purpose string) ([]byte, error) {
 		return nil, fmt.Errorf("derive %s key: %w", purpose, err)
 	}
 	return k, nil
+}
+
+// NewSecretBox returns the secret box of the installation secret, which
+// seals the credentials of integrations and x402 connections.
+func NewSecretBox(secret []byte) (*auth.AESSecretBox, error) {
+	k, err := deriveKey(secret, purposeSecretBox)
+	if err != nil {
+		return nil, err
+	}
+	box, err := auth.NewAESSecretBox(k, rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("secret box: %w", err)
+	}
+	return box, nil
 }
 
 // portalKeyID names the portal token key; a rotation of the installation

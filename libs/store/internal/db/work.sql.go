@@ -40,6 +40,32 @@ func (q *Queries) ListOrganizationsWithActiveSubscriptions(ctx context.Context) 
 	return items, nil
 }
 
+const listOrganizationsWithAwaitingBillingSegments = `-- name: ListOrganizationsWithAwaitingBillingSegments :many
+SELECT DISTINCT organization_id FROM billing_segments
+WHERE status IN ('pending', 'processing')
+ORDER BY organization_id
+`
+
+func (q *Queries) ListOrganizationsWithAwaitingBillingSegments(ctx context.Context) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listOrganizationsWithAwaitingBillingSegments)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var organization_id uuid.UUID
+		if err := rows.Scan(&organization_id); err != nil {
+			return nil, err
+		}
+		items = append(items, organization_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listOrganizationsWithCustomersAwaitingWalletRefresh = `-- name: ListOrganizationsWithCustomersAwaitingWalletRefresh :many
 SELECT DISTINCT c.organization_id FROM customers c
 WHERE c.awaiting_wallet_refresh AND c.deleted_at IS NULL

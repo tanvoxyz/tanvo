@@ -10,6 +10,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/quote"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -295,6 +296,10 @@ func (s *Service) Execute(ctx context.Context, org core.OrganizationID, id core.
 				return fmt.Errorf("update order %s: %w", id, err)
 			}
 			if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeOrderExecuted, "order", o.ID.UUID(), o); err != nil {
+				return err
+			}
+			// source: app/services/orders/base_execute_service.rb:68
+			if err := s.logOrder(ctx, r, auditlog.ActivityOrderExecuted, o); err != nil {
 				return err
 			}
 		}

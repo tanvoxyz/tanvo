@@ -7,6 +7,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
@@ -90,7 +91,8 @@ func (s *Service) CreateFilter(ctx context.Context, org core.OrganizationID, pro
 		}
 		fillKeys(f, m)
 		out = f
-		return nil
+		// source: app/services/product_filters/create_service.rb:13-16
+		return s.logChange(ctx, r, auditlog.ActivityProductFilterCreated, auditlog.ResourceProductFilter, f.ID.UUID(), org, nil, f)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create product filter: %w", err)
@@ -133,6 +135,11 @@ func (s *Service) UpdateFilter(ctx context.Context, org core.OrganizationID, pro
 			return fmt.Errorf("load product: %w", err)
 		}
 		m, err := productMetric(ctx, r, p)
+		if err != nil {
+			return err
+		}
+		fillKeys(f, m)
+		before, err := auditlog.ObjectOf(f)
 		if err != nil {
 			return err
 		}
@@ -190,7 +197,8 @@ func (s *Service) UpdateFilter(ctx context.Context, org core.OrganizationID, pro
 		}
 		fillKeys(f, m)
 		out = f
-		return nil
+		// source: app/services/product_filters/update_service.rb:13-16
+		return s.logChange(ctx, r, auditlog.ActivityProductFilterUpdated, auditlog.ResourceProductFilter, f.ID.UUID(), org, before, f)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("update product filter %s: %w", id, err)
@@ -223,7 +231,8 @@ func (s *Service) DeleteFilter(ctx context.Context, org core.OrganizationID, pro
 		}
 		f.DeletedAt = &now
 		out = f
-		return nil
+		// source: app/services/product_filters/destroy_service.rb:12-15
+		return s.logChange(ctx, r, auditlog.ActivityProductFilterDeleted, auditlog.ResourceProductFilter, f.ID.UUID(), org, nil, f)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("delete product filter %s: %w", id, err)

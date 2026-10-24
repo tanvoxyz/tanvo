@@ -10,7 +10,7 @@ INSERT INTO customers (
   currency, timezone, document_locale, invoice_grace_period_days, net_payment_term_days,
   finalize_zero_amount_invoice, issuing_date_anchor, issuing_date_adjustment, skip_invoice_custom_sections,
   applied_dunning_campaign_id, exclude_from_dunning_campaign, dunning_campaign_attempts, last_dunning_campaign_attempt_at,
-  sequential_id, slug, payment_receipt_counter, metadata, deleted_at, created_at, updated_at
+  sequential_id, slug, payment_receipt_counter, metadata, x402_agent_address, deleted_at, created_at, updated_at
 ) VALUES (
   @organization_id, @id, @external_id, @billing_entity_id, @customer_type, @account_type,
   @name, @firstname, @lastname, @legal_name, @legal_number, @tax_identification_number,
@@ -20,7 +20,7 @@ INSERT INTO customers (
   @currency, @timezone, @document_locale, @invoice_grace_period_days, @net_payment_term_days,
   @finalize_zero_amount_invoice, @issuing_date_anchor, @issuing_date_adjustment, @skip_invoice_custom_sections,
   @applied_dunning_campaign_id, @exclude_from_dunning_campaign, @dunning_campaign_attempts, @last_dunning_campaign_attempt_at,
-  @sequential_id, @slug, @payment_receipt_counter, @metadata, @deleted_at, @created_at, @updated_at
+  @sequential_id, @slug, @payment_receipt_counter, @metadata, @x402_agent_address, @deleted_at, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
 
@@ -36,7 +36,7 @@ UPDATE customers SET
   currency = @currency, timezone = @timezone, document_locale = @document_locale, invoice_grace_period_days = @invoice_grace_period_days, net_payment_term_days = @net_payment_term_days,
   finalize_zero_amount_invoice = @finalize_zero_amount_invoice, issuing_date_anchor = @issuing_date_anchor, issuing_date_adjustment = @issuing_date_adjustment, skip_invoice_custom_sections = @skip_invoice_custom_sections,
   applied_dunning_campaign_id = @applied_dunning_campaign_id, exclude_from_dunning_campaign = @exclude_from_dunning_campaign, dunning_campaign_attempts = @dunning_campaign_attempts, last_dunning_campaign_attempt_at = @last_dunning_campaign_attempt_at,
-  sequential_id = @sequential_id, slug = @slug, payment_receipt_counter = @payment_receipt_counter, metadata = @metadata, deleted_at = @deleted_at, created_at = @created_at, updated_at = @updated_at
+  sequential_id = @sequential_id, slug = @slug, payment_receipt_counter = @payment_receipt_counter, metadata = @metadata, x402_agent_address = @x402_agent_address, deleted_at = @deleted_at, created_at = @created_at, updated_at = @updated_at
 WHERE organization_id = @organization_id AND id = @id;
 
 -- name: GetCustomer :one
@@ -60,6 +60,17 @@ SELECT sqlc.embed(c),
         WHERE s.organization_id = c.organization_id AND s.customer_id = c.id AND s.system ORDER BY s.position)::uuid[] AS system_invoice_custom_section_ids
 FROM customers c
 WHERE c.organization_id = @organization_id AND c.external_id = @external_id AND c.deleted_at IS NULL;
+
+-- name: GetCustomerByX402AgentAddress :one
+SELECT sqlc.embed(c),
+  ARRAY(SELECT t.tax_id FROM customer_taxes t
+        WHERE t.organization_id = c.organization_id AND t.customer_id = c.id ORDER BY t.position)::uuid[] AS tax_ids,
+  ARRAY(SELECT s.invoice_custom_section_id FROM customer_invoice_custom_sections s
+        WHERE s.organization_id = c.organization_id AND s.customer_id = c.id AND NOT s.system ORDER BY s.position)::uuid[] AS invoice_custom_section_ids,
+  ARRAY(SELECT s.invoice_custom_section_id FROM customer_invoice_custom_sections s
+        WHERE s.organization_id = c.organization_id AND s.customer_id = c.id AND s.system ORDER BY s.position)::uuid[] AS system_invoice_custom_section_ids
+FROM customers c
+WHERE c.organization_id = @organization_id AND c.x402_agent_address = @x402_agent_address AND c.deleted_at IS NULL;
 
 -- name: ListCustomers :many
 -- The customer list of the API (customer.Filter). @recent lists by

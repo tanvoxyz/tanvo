@@ -284,11 +284,11 @@ FROM unnest(@tax_ids::uuid[]) WITH ORDINALITY AS t(id, ord);
 -- name: CreateCharge :execrows
 INSERT INTO charges (
   organization_id, id, plan_id, parent_id, code, billable_metric_id, charge_model, properties,
-  pay_in_advance, invoiceable, regroup_paid_fees, prorated, min_amount, invoice_display_name,
+  pay_in_advance, invoiceable, regroup_paid_fees, prorated, accepts_target_wallet, min_amount, invoice_display_name,
   applied_pricing_unit_id, conversion_rate, created_at, updated_at
 ) VALUES (
   @organization_id, @id, @plan_id, @parent_id, @code, @billable_metric_id, @charge_model, @properties,
-  @pay_in_advance, @invoiceable, @regroup_paid_fees, @prorated, @min_amount, @invoice_display_name,
+  @pay_in_advance, @invoiceable, @regroup_paid_fees, @prorated, @accepts_target_wallet, @min_amount, @invoice_display_name,
   @applied_pricing_unit_id, @conversion_rate, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
@@ -298,7 +298,8 @@ UPDATE charges SET
   organization_id = @organization_id, id = @id, plan_id = @plan_id, parent_id = @parent_id, code = @code,
   billable_metric_id = @billable_metric_id, charge_model = @charge_model, properties = @properties,
   pay_in_advance = @pay_in_advance, invoiceable = @invoiceable, regroup_paid_fees = @regroup_paid_fees,
-  prorated = @prorated, min_amount = @min_amount, invoice_display_name = @invoice_display_name,
+  prorated = @prorated, accepts_target_wallet = @accepts_target_wallet, min_amount = @min_amount,
+  invoice_display_name = @invoice_display_name,
   applied_pricing_unit_id = @applied_pricing_unit_id, conversion_rate = @conversion_rate,
   created_at = @created_at, updated_at = @updated_at
 WHERE organization_id = @organization_id AND id = @id AND deleted_at IS NULL;

@@ -25,7 +25,6 @@ external IDs and codes, and it parses strings.
 - `voided_invoice_id` on recredit (`recredit_service_spec.rb:49`, `create_from_params_service_spec.rb:199`): `wallet.Transaction` has no field for the voided invoice. See the report.
 - Billing entity snapshots (`create_service_spec.rb:187–227`, `void_service_spec.rb:129`, `paid_credit_service_spec.rb:111–126,336`): `wallet.Transaction` has no `BillingEntityID`, so a credit invoice uses the wallet's current entity.
 - Wallet metadata and `partial_metadata` on update. Wallet metadata is a core `Metadata` value, and the API replaces it.
-- `events_targeting_wallets`: fees targeting a wallet code (`allocate_ongoing_usage_by_wallets_service_spec.rb:280,300`). That is a premium integration of usage routing.
 - `wallets/realtime_refresh_service_spec.rb`: lago's synchronous refresh on event ingestion. Tanvo refreshes through the job queue.
 - `wallet_transactions/payments/generate_payment_url_service_spec.rb`: payment URLs belong to the payments package.
 - Activity logs, Segment tracking, the e-mail sending of `paid_credit_service_spec.rb:201–222`. Tanvo has none of these. The `ProcessWalletAlertsJob` enqueues of the balance specs are ported in libs/billing `TestWalletAlertsEnqueued`.

@@ -18,7 +18,6 @@ import (
 	v11 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/catalog/v1"
 	v1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/common/v1"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
-	date "google.golang.org/genproto/googleapis/type/date"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
@@ -408,62 +407,6 @@ func (ActivationRuleStatus) Type() protoreflect.EnumType {
 }
 
 func (x ActivationRuleStatus) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// BillingSegmentStatus is the state of a billing segment.
-type BillingSegmentStatus int32
-
-const (
-	// Not set.
-	BillingSegmentStatus_BILLING_SEGMENT_STATUS_UNSPECIFIED BillingSegmentStatus = 0
-	// Waiting for its billing date.
-	BillingSegmentStatus_BILLING_SEGMENT_STATUS_PENDING BillingSegmentStatus = 1
-	// Being invoiced.
-	BillingSegmentStatus_BILLING_SEGMENT_STATUS_PROCESSING BillingSegmentStatus = 2
-	// Invoiced.
-	BillingSegmentStatus_BILLING_SEGMENT_STATUS_DONE BillingSegmentStatus = 3
-	// Invoicing failed.
-	BillingSegmentStatus_BILLING_SEGMENT_STATUS_FAILED BillingSegmentStatus = 4
-)
-
-// Enum value maps for BillingSegmentStatus.
-var (
-	BillingSegmentStatus_name = map[int32]string{
-		0: "BILLING_SEGMENT_STATUS_UNSPECIFIED",
-		1: "BILLING_SEGMENT_STATUS_PENDING",
-		2: "BILLING_SEGMENT_STATUS_PROCESSING",
-		3: "BILLING_SEGMENT_STATUS_DONE",
-		4: "BILLING_SEGMENT_STATUS_FAILED",
-	}
-	BillingSegmentStatus_value = map[string]int32{
-		"BILLING_SEGMENT_STATUS_UNSPECIFIED": 0,
-		"BILLING_SEGMENT_STATUS_PENDING":     1,
-		"BILLING_SEGMENT_STATUS_PROCESSING":  2,
-		"BILLING_SEGMENT_STATUS_DONE":        3,
-		"BILLING_SEGMENT_STATUS_FAILED":      4,
-	}
-)
-
-func (x BillingSegmentStatus) Enum() *BillingSegmentStatus {
-	p := new(BillingSegmentStatus)
-	*p = x
-	return p
-}
-
-func (x BillingSegmentStatus) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (BillingSegmentStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_tanvo_subscription_v1_subscription_proto_enumTypes[7].Descriptor()
-}
-
-func (BillingSegmentStatus) Type() protoreflect.EnumType {
-	return &file_tanvo_subscription_v1_subscription_proto_enumTypes[7]
-}
-
-func (x BillingSegmentStatus) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
@@ -935,731 +878,46 @@ func (b0 PlanOverrides_builder) Build() *PlanOverrides {
 	return m0
 }
 
-// SubscriptionRateCard prices a subscription with a rate card on its own
-// schedule.
-type SubscriptionRateCard struct {
-	state                        protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id                *string                `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_RateCardId        *string                `protobuf:"bytes,2,opt,name=rate_card_id,json=rateCardId"`
-	xxx_hidden_EffectiveDate     *date.Date             `protobuf:"bytes,3,opt,name=effective_date,json=effectiveDate"`
-	xxx_hidden_BillingAnchorDate *date.Date             `protobuf:"bytes,4,opt,name=billing_anchor_date,json=billingAnchorDate"`
-	xxx_hidden_Units             *string                `protobuf:"bytes,5,opt,name=units"`
-	xxx_hidden_Phases            *[]*v11.RatePhase      `protobuf:"bytes,6,rep,name=phases"`
-	xxx_hidden_NextBillingAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=next_billing_at,json=nextBillingAt"`
-	xxx_hidden_CreatedAt         *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt"`
-	xxx_hidden_UpdatedAt         *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=updated_at,json=updatedAt"`
-	XXX_raceDetectHookData       protoimpl.RaceDetectHookData
-	XXX_presence                 [1]uint32
-	unknownFields                protoimpl.UnknownFields
-	sizeCache                    protoimpl.SizeCache
-}
-
-func (x *SubscriptionRateCard) Reset() {
-	*x = SubscriptionRateCard{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *SubscriptionRateCard) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*SubscriptionRateCard) ProtoMessage() {}
-
-func (x *SubscriptionRateCard) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *SubscriptionRateCard) GetId() string {
-	if x != nil {
-		if x.xxx_hidden_Id != nil {
-			return *x.xxx_hidden_Id
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *SubscriptionRateCard) GetRateCardId() string {
-	if x != nil {
-		if x.xxx_hidden_RateCardId != nil {
-			return *x.xxx_hidden_RateCardId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *SubscriptionRateCard) GetEffectiveDate() *date.Date {
-	if x != nil {
-		return x.xxx_hidden_EffectiveDate
-	}
-	return nil
-}
-
-func (x *SubscriptionRateCard) GetBillingAnchorDate() *date.Date {
-	if x != nil {
-		return x.xxx_hidden_BillingAnchorDate
-	}
-	return nil
-}
-
-func (x *SubscriptionRateCard) GetUnits() string {
-	if x != nil {
-		if x.xxx_hidden_Units != nil {
-			return *x.xxx_hidden_Units
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *SubscriptionRateCard) GetPhases() []*v11.RatePhase {
-	if x != nil {
-		if x.xxx_hidden_Phases != nil {
-			return *x.xxx_hidden_Phases
-		}
-	}
-	return nil
-}
-
-func (x *SubscriptionRateCard) GetNextBillingAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_NextBillingAt
-	}
-	return nil
-}
-
-func (x *SubscriptionRateCard) GetCreatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_CreatedAt
-	}
-	return nil
-}
-
-func (x *SubscriptionRateCard) GetUpdatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_UpdatedAt
-	}
-	return nil
-}
-
-func (x *SubscriptionRateCard) SetId(v string) {
-	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
-}
-
-func (x *SubscriptionRateCard) SetRateCardId(v string) {
-	x.xxx_hidden_RateCardId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
-}
-
-func (x *SubscriptionRateCard) SetEffectiveDate(v *date.Date) {
-	x.xxx_hidden_EffectiveDate = v
-}
-
-func (x *SubscriptionRateCard) SetBillingAnchorDate(v *date.Date) {
-	x.xxx_hidden_BillingAnchorDate = v
-}
-
-func (x *SubscriptionRateCard) SetUnits(v string) {
-	x.xxx_hidden_Units = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 9)
-}
-
-func (x *SubscriptionRateCard) SetPhases(v []*v11.RatePhase) {
-	x.xxx_hidden_Phases = &v
-}
-
-func (x *SubscriptionRateCard) SetNextBillingAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_NextBillingAt = v
-}
-
-func (x *SubscriptionRateCard) SetCreatedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_CreatedAt = v
-}
-
-func (x *SubscriptionRateCard) SetUpdatedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_UpdatedAt = v
-}
-
-func (x *SubscriptionRateCard) HasId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *SubscriptionRateCard) HasRateCardId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *SubscriptionRateCard) HasEffectiveDate() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_EffectiveDate != nil
-}
-
-func (x *SubscriptionRateCard) HasBillingAnchorDate() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_BillingAnchorDate != nil
-}
-
-func (x *SubscriptionRateCard) HasUnits() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
-}
-
-func (x *SubscriptionRateCard) HasNextBillingAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_NextBillingAt != nil
-}
-
-func (x *SubscriptionRateCard) HasCreatedAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_CreatedAt != nil
-}
-
-func (x *SubscriptionRateCard) HasUpdatedAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_UpdatedAt != nil
-}
-
-func (x *SubscriptionRateCard) ClearId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Id = nil
-}
-
-func (x *SubscriptionRateCard) ClearRateCardId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_RateCardId = nil
-}
-
-func (x *SubscriptionRateCard) ClearEffectiveDate() {
-	x.xxx_hidden_EffectiveDate = nil
-}
-
-func (x *SubscriptionRateCard) ClearBillingAnchorDate() {
-	x.xxx_hidden_BillingAnchorDate = nil
-}
-
-func (x *SubscriptionRateCard) ClearUnits() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_Units = nil
-}
-
-func (x *SubscriptionRateCard) ClearNextBillingAt() {
-	x.xxx_hidden_NextBillingAt = nil
-}
-
-func (x *SubscriptionRateCard) ClearCreatedAt() {
-	x.xxx_hidden_CreatedAt = nil
-}
-
-func (x *SubscriptionRateCard) ClearUpdatedAt() {
-	x.xxx_hidden_UpdatedAt = nil
-}
-
-type SubscriptionRateCard_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The subscription rate card's ID.
-	Id *string
-	// The rate card (ID or `code:<code>`).
-	RateCardId *string
-	// The date the rate card takes effect.
-	EffectiveDate *date.Date
-	// The date billing intervals are anchored to; effective_date by default.
-	BillingAnchorDate *date.Date
-	// The number of units, for fixed products.
-	Units *string
-	// The phases, by position; empty bills the rate card's rates throughout.
-	Phases []*v11.RatePhase
-	// When the rate card next bills.
-	NextBillingAt *timestamppb.Timestamp
-	// When the subscription rate card was created.
-	CreatedAt *timestamppb.Timestamp
-	// When the subscription rate card last changed.
-	UpdatedAt *timestamppb.Timestamp
-}
-
-func (b0 SubscriptionRateCard_builder) Build() *SubscriptionRateCard {
-	m0 := &SubscriptionRateCard{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
-		x.xxx_hidden_Id = b.Id
-	}
-	if b.RateCardId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
-		x.xxx_hidden_RateCardId = b.RateCardId
-	}
-	x.xxx_hidden_EffectiveDate = b.EffectiveDate
-	x.xxx_hidden_BillingAnchorDate = b.BillingAnchorDate
-	if b.Units != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 9)
-		x.xxx_hidden_Units = b.Units
-	}
-	x.xxx_hidden_Phases = &b.Phases
-	x.xxx_hidden_NextBillingAt = b.NextBillingAt
-	x.xxx_hidden_CreatedAt = b.CreatedAt
-	x.xxx_hidden_UpdatedAt = b.UpdatedAt
-	return m0
-}
-
-// BillingSegment is a priced window of a subscription rate card's schedule.
-type BillingSegment struct {
-	state                             protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id                     *string                `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_SubscriptionRateCardId *string                `protobuf:"bytes,2,opt,name=subscription_rate_card_id,json=subscriptionRateCardId"`
-	xxx_hidden_InvoiceId              *string                `protobuf:"bytes,3,opt,name=invoice_id,json=invoiceId"`
-	xxx_hidden_Status                 BillingSegmentStatus   `protobuf:"varint,4,opt,name=status,enum=tanvo.subscription.v1.BillingSegmentStatus"`
-	xxx_hidden_Currency               *string                `protobuf:"bytes,5,opt,name=currency"`
-	xxx_hidden_BillingAt              *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=billing_at,json=billingAt"`
-	xxx_hidden_StartedAt              *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=started_at,json=startedAt"`
-	xxx_hidden_EndedAt                *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=ended_at,json=endedAt"`
-	xxx_hidden_CycleStartedAt         *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=cycle_started_at,json=cycleStartedAt"`
-	xxx_hidden_ProrationRatio         *string                `protobuf:"bytes,10,opt,name=proration_ratio,json=prorationRatio"`
-	xxx_hidden_RatePhaseId            *string                `protobuf:"bytes,11,opt,name=rate_phase_id,json=ratePhaseId"`
-	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
-	XXX_presence                      [1]uint32
-	unknownFields                     protoimpl.UnknownFields
-	sizeCache                         protoimpl.SizeCache
-}
-
-func (x *BillingSegment) Reset() {
-	*x = BillingSegment{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *BillingSegment) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*BillingSegment) ProtoMessage() {}
-
-func (x *BillingSegment) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *BillingSegment) GetId() string {
-	if x != nil {
-		if x.xxx_hidden_Id != nil {
-			return *x.xxx_hidden_Id
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *BillingSegment) GetSubscriptionRateCardId() string {
-	if x != nil {
-		if x.xxx_hidden_SubscriptionRateCardId != nil {
-			return *x.xxx_hidden_SubscriptionRateCardId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *BillingSegment) GetInvoiceId() string {
-	if x != nil {
-		if x.xxx_hidden_InvoiceId != nil {
-			return *x.xxx_hidden_InvoiceId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *BillingSegment) GetStatus() BillingSegmentStatus {
-	if x != nil {
-		if protoimpl.X.Present(&(x.XXX_presence[0]), 3) {
-			return x.xxx_hidden_Status
-		}
-	}
-	return BillingSegmentStatus_BILLING_SEGMENT_STATUS_UNSPECIFIED
-}
-
-func (x *BillingSegment) GetCurrency() string {
-	if x != nil {
-		if x.xxx_hidden_Currency != nil {
-			return *x.xxx_hidden_Currency
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *BillingSegment) GetBillingAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_BillingAt
-	}
-	return nil
-}
-
-func (x *BillingSegment) GetStartedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_StartedAt
-	}
-	return nil
-}
-
-func (x *BillingSegment) GetEndedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_EndedAt
-	}
-	return nil
-}
-
-func (x *BillingSegment) GetCycleStartedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_CycleStartedAt
-	}
-	return nil
-}
-
-func (x *BillingSegment) GetProrationRatio() string {
-	if x != nil {
-		if x.xxx_hidden_ProrationRatio != nil {
-			return *x.xxx_hidden_ProrationRatio
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *BillingSegment) GetRatePhaseId() string {
-	if x != nil {
-		if x.xxx_hidden_RatePhaseId != nil {
-			return *x.xxx_hidden_RatePhaseId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *BillingSegment) SetId(v string) {
-	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 11)
-}
-
-func (x *BillingSegment) SetSubscriptionRateCardId(v string) {
-	x.xxx_hidden_SubscriptionRateCardId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 11)
-}
-
-func (x *BillingSegment) SetInvoiceId(v string) {
-	x.xxx_hidden_InvoiceId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 11)
-}
-
-func (x *BillingSegment) SetStatus(v BillingSegmentStatus) {
-	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 11)
-}
-
-func (x *BillingSegment) SetCurrency(v string) {
-	x.xxx_hidden_Currency = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 11)
-}
-
-func (x *BillingSegment) SetBillingAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_BillingAt = v
-}
-
-func (x *BillingSegment) SetStartedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_StartedAt = v
-}
-
-func (x *BillingSegment) SetEndedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_EndedAt = v
-}
-
-func (x *BillingSegment) SetCycleStartedAt(v *timestamppb.Timestamp) {
-	x.xxx_hidden_CycleStartedAt = v
-}
-
-func (x *BillingSegment) SetProrationRatio(v string) {
-	x.xxx_hidden_ProrationRatio = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 11)
-}
-
-func (x *BillingSegment) SetRatePhaseId(v string) {
-	x.xxx_hidden_RatePhaseId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 11)
-}
-
-func (x *BillingSegment) HasId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *BillingSegment) HasSubscriptionRateCardId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *BillingSegment) HasInvoiceId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *BillingSegment) HasStatus() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
-}
-
-func (x *BillingSegment) HasCurrency() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
-}
-
-func (x *BillingSegment) HasBillingAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_BillingAt != nil
-}
-
-func (x *BillingSegment) HasStartedAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_StartedAt != nil
-}
-
-func (x *BillingSegment) HasEndedAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_EndedAt != nil
-}
-
-func (x *BillingSegment) HasCycleStartedAt() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_CycleStartedAt != nil
-}
-
-func (x *BillingSegment) HasProrationRatio() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
-}
-
-func (x *BillingSegment) HasRatePhaseId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
-}
-
-func (x *BillingSegment) ClearId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Id = nil
-}
-
-func (x *BillingSegment) ClearSubscriptionRateCardId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_SubscriptionRateCardId = nil
-}
-
-func (x *BillingSegment) ClearInvoiceId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_InvoiceId = nil
-}
-
-func (x *BillingSegment) ClearStatus() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_Status = BillingSegmentStatus_BILLING_SEGMENT_STATUS_UNSPECIFIED
-}
-
-func (x *BillingSegment) ClearCurrency() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_Currency = nil
-}
-
-func (x *BillingSegment) ClearBillingAt() {
-	x.xxx_hidden_BillingAt = nil
-}
-
-func (x *BillingSegment) ClearStartedAt() {
-	x.xxx_hidden_StartedAt = nil
-}
-
-func (x *BillingSegment) ClearEndedAt() {
-	x.xxx_hidden_EndedAt = nil
-}
-
-func (x *BillingSegment) ClearCycleStartedAt() {
-	x.xxx_hidden_CycleStartedAt = nil
-}
-
-func (x *BillingSegment) ClearProrationRatio() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
-	x.xxx_hidden_ProrationRatio = nil
-}
-
-func (x *BillingSegment) ClearRatePhaseId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
-	x.xxx_hidden_RatePhaseId = nil
-}
-
-type BillingSegment_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The segment's ID.
-	Id *string
-	// The subscription rate card.
-	SubscriptionRateCardId *string
-	// The invoice the segment was billed on.
-	InvoiceId *string
-	// The state.
-	Status *BillingSegmentStatus
-	// The currency.
-	Currency *string
-	// When the segment is billed.
-	BillingAt *timestamppb.Timestamp
-	// The start of the priced window.
-	StartedAt *timestamppb.Timestamp
-	// The end of the priced window, exclusive.
-	EndedAt *timestamppb.Timestamp
-	// The start of the billing interval cycle the window belongs to.
-	CycleStartedAt *timestamppb.Timestamp
-	// The share of the cycle the window covers, from 0 to 1.
-	ProrationRatio *string
-	// The phase that priced the window, when any.
-	RatePhaseId *string
-}
-
-func (b0 BillingSegment_builder) Build() *BillingSegment {
-	m0 := &BillingSegment{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 11)
-		x.xxx_hidden_Id = b.Id
-	}
-	if b.SubscriptionRateCardId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 11)
-		x.xxx_hidden_SubscriptionRateCardId = b.SubscriptionRateCardId
-	}
-	if b.InvoiceId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 11)
-		x.xxx_hidden_InvoiceId = b.InvoiceId
-	}
-	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 11)
-		x.xxx_hidden_Status = *b.Status
-	}
-	if b.Currency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 11)
-		x.xxx_hidden_Currency = b.Currency
-	}
-	x.xxx_hidden_BillingAt = b.BillingAt
-	x.xxx_hidden_StartedAt = b.StartedAt
-	x.xxx_hidden_EndedAt = b.EndedAt
-	x.xxx_hidden_CycleStartedAt = b.CycleStartedAt
-	if b.ProrationRatio != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 11)
-		x.xxx_hidden_ProrationRatio = b.ProrationRatio
-	}
-	if b.RatePhaseId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 11)
-		x.xxx_hidden_RatePhaseId = b.RatePhaseId
-	}
-	return m0
-}
-
 // Subscription bills a customer by a plan or by rate cards.
 type Subscription struct {
-	state                                 protoimpl.MessageState   `protogen:"opaque.v1"`
-	xxx_hidden_Id                         *string                  `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_ExternalId                 *string                  `protobuf:"bytes,2,opt,name=external_id,json=externalId"`
-	xxx_hidden_CustomerId                 *string                  `protobuf:"bytes,3,opt,name=customer_id,json=customerId"`
-	xxx_hidden_PlanId                     *string                  `protobuf:"bytes,4,opt,name=plan_id,json=planId"`
-	xxx_hidden_ParentPlanId               *string                  `protobuf:"bytes,5,opt,name=parent_plan_id,json=parentPlanId"`
-	xxx_hidden_Name                       *string                  `protobuf:"bytes,6,opt,name=name"`
-	xxx_hidden_BillingTime                BillingTime              `protobuf:"varint,7,opt,name=billing_time,json=billingTime,enum=tanvo.subscription.v1.BillingTime"`
-	xxx_hidden_Status                     SubscriptionStatus       `protobuf:"varint,8,opt,name=status,enum=tanvo.subscription.v1.SubscriptionStatus"`
-	xxx_hidden_SubscriptionAt             *timestamppb.Timestamp   `protobuf:"bytes,9,opt,name=subscription_at,json=subscriptionAt"`
-	xxx_hidden_EndingAt                   *timestamppb.Timestamp   `protobuf:"bytes,10,opt,name=ending_at,json=endingAt"`
-	xxx_hidden_StartedAt                  *timestamppb.Timestamp   `protobuf:"bytes,11,opt,name=started_at,json=startedAt"`
-	xxx_hidden_TerminatedAt               *timestamppb.Timestamp   `protobuf:"bytes,12,opt,name=terminated_at,json=terminatedAt"`
-	xxx_hidden_CanceledAt                 *timestamppb.Timestamp   `protobuf:"bytes,13,opt,name=canceled_at,json=canceledAt"`
-	xxx_hidden_CancellationReason         CancellationReason       `protobuf:"varint,14,opt,name=cancellation_reason,json=cancellationReason,enum=tanvo.subscription.v1.CancellationReason"`
-	xxx_hidden_TrialEndedAt               *timestamppb.Timestamp   `protobuf:"bytes,15,opt,name=trial_ended_at,json=trialEndedAt"`
-	xxx_hidden_PreviousSubscriptionId     *string                  `protobuf:"bytes,16,opt,name=previous_subscription_id,json=previousSubscriptionId"`
-	xxx_hidden_NextSubscriptionId         *string                  `protobuf:"bytes,17,opt,name=next_subscription_id,json=nextSubscriptionId"`
-	xxx_hidden_DowngradePlanId            *string                  `protobuf:"bytes,18,opt,name=downgrade_plan_id,json=downgradePlanId"`
-	xxx_hidden_OnTerminationCreditNote    TerminationCreditNote    `protobuf:"varint,19,opt,name=on_termination_credit_note,json=onTerminationCreditNote,enum=tanvo.subscription.v1.TerminationCreditNote"`
-	xxx_hidden_OnTerminationInvoice       TerminationInvoice       `protobuf:"varint,20,opt,name=on_termination_invoice,json=onTerminationInvoice,enum=tanvo.subscription.v1.TerminationInvoice"`
-	xxx_hidden_PaymentMethodType          v1.PaymentMethodType     `protobuf:"varint,21,opt,name=payment_method_type,json=paymentMethodType,enum=tanvo.common.v1.PaymentMethodType"`
-	xxx_hidden_PaymentMethodId            *string                  `protobuf:"bytes,22,opt,name=payment_method_id,json=paymentMethodId"`
-	xxx_hidden_ProgressiveBillingDisabled bool                     `protobuf:"varint,23,opt,name=progressive_billing_disabled,json=progressiveBillingDisabled"`
-	xxx_hidden_ConsolidateInvoice         bool                     `protobuf:"varint,24,opt,name=consolidate_invoice,json=consolidateInvoice"`
-	xxx_hidden_PurchaseOrderNumber        *string                  `protobuf:"bytes,25,opt,name=purchase_order_number,json=purchaseOrderNumber"`
-	xxx_hidden_BillingEntityId            *string                  `protobuf:"bytes,26,opt,name=billing_entity_id,json=billingEntityId"`
-	xxx_hidden_SkipInvoiceCustomSections  bool                     `protobuf:"varint,27,opt,name=skip_invoice_custom_sections,json=skipInvoiceCustomSections"`
-	xxx_hidden_InvoiceCustomSectionIds    []string                 `protobuf:"bytes,28,rep,name=invoice_custom_section_ids,json=invoiceCustomSectionIds"`
-	xxx_hidden_SkipDailyUsage             bool                     `protobuf:"varint,29,opt,name=skip_daily_usage,json=skipDailyUsage"`
-	xxx_hidden_ActivationRules            *[]*ActivationRule       `protobuf:"bytes,30,rep,name=activation_rules,json=activationRules"`
-	xxx_hidden_PlanOverrides              *PlanOverrides           `protobuf:"bytes,31,opt,name=plan_overrides,json=planOverrides"`
-	xxx_hidden_RateCards                  *[]*SubscriptionRateCard `protobuf:"bytes,32,rep,name=rate_cards,json=rateCards"`
-	xxx_hidden_BillingAnchorDate          *date.Date               `protobuf:"bytes,33,opt,name=billing_anchor_date,json=billingAnchorDate"`
-	xxx_hidden_CurrentPeriodStartedAt     *timestamppb.Timestamp   `protobuf:"bytes,34,opt,name=current_period_started_at,json=currentPeriodStartedAt"`
-	xxx_hidden_CurrentPeriodEndedAt       *timestamppb.Timestamp   `protobuf:"bytes,35,opt,name=current_period_ended_at,json=currentPeriodEndedAt"`
-	xxx_hidden_NextBillingAt              *timestamppb.Timestamp   `protobuf:"bytes,36,opt,name=next_billing_at,json=nextBillingAt"`
-	xxx_hidden_CreatedAt                  *timestamppb.Timestamp   `protobuf:"bytes,37,opt,name=created_at,json=createdAt"`
-	xxx_hidden_UpdatedAt                  *timestamppb.Timestamp   `protobuf:"bytes,38,opt,name=updated_at,json=updatedAt"`
-	xxx_hidden_UsageThresholds            *[]*v11.UsageThreshold   `protobuf:"bytes,39,rep,name=usage_thresholds,json=usageThresholds"`
+	state                                 protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id                         *string                `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_ExternalId                 *string                `protobuf:"bytes,2,opt,name=external_id,json=externalId"`
+	xxx_hidden_CustomerId                 *string                `protobuf:"bytes,3,opt,name=customer_id,json=customerId"`
+	xxx_hidden_PlanId                     *string                `protobuf:"bytes,4,opt,name=plan_id,json=planId"`
+	xxx_hidden_ParentPlanId               *string                `protobuf:"bytes,5,opt,name=parent_plan_id,json=parentPlanId"`
+	xxx_hidden_Name                       *string                `protobuf:"bytes,6,opt,name=name"`
+	xxx_hidden_BillingTime                BillingTime            `protobuf:"varint,7,opt,name=billing_time,json=billingTime,enum=tanvo.subscription.v1.BillingTime"`
+	xxx_hidden_Status                     SubscriptionStatus     `protobuf:"varint,8,opt,name=status,enum=tanvo.subscription.v1.SubscriptionStatus"`
+	xxx_hidden_SubscriptionAt             *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=subscription_at,json=subscriptionAt"`
+	xxx_hidden_EndingAt                   *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=ending_at,json=endingAt"`
+	xxx_hidden_StartedAt                  *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=started_at,json=startedAt"`
+	xxx_hidden_TerminatedAt               *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=terminated_at,json=terminatedAt"`
+	xxx_hidden_CanceledAt                 *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=canceled_at,json=canceledAt"`
+	xxx_hidden_CancellationReason         CancellationReason     `protobuf:"varint,14,opt,name=cancellation_reason,json=cancellationReason,enum=tanvo.subscription.v1.CancellationReason"`
+	xxx_hidden_TrialEndedAt               *timestamppb.Timestamp `protobuf:"bytes,15,opt,name=trial_ended_at,json=trialEndedAt"`
+	xxx_hidden_PreviousSubscriptionId     *string                `protobuf:"bytes,16,opt,name=previous_subscription_id,json=previousSubscriptionId"`
+	xxx_hidden_NextSubscriptionId         *string                `protobuf:"bytes,17,opt,name=next_subscription_id,json=nextSubscriptionId"`
+	xxx_hidden_DowngradePlanId            *string                `protobuf:"bytes,18,opt,name=downgrade_plan_id,json=downgradePlanId"`
+	xxx_hidden_OnTerminationCreditNote    TerminationCreditNote  `protobuf:"varint,19,opt,name=on_termination_credit_note,json=onTerminationCreditNote,enum=tanvo.subscription.v1.TerminationCreditNote"`
+	xxx_hidden_OnTerminationInvoice       TerminationInvoice     `protobuf:"varint,20,opt,name=on_termination_invoice,json=onTerminationInvoice,enum=tanvo.subscription.v1.TerminationInvoice"`
+	xxx_hidden_PaymentMethodType          v1.PaymentMethodType   `protobuf:"varint,21,opt,name=payment_method_type,json=paymentMethodType,enum=tanvo.common.v1.PaymentMethodType"`
+	xxx_hidden_PaymentMethodId            *string                `protobuf:"bytes,22,opt,name=payment_method_id,json=paymentMethodId"`
+	xxx_hidden_ProgressiveBillingDisabled bool                   `protobuf:"varint,23,opt,name=progressive_billing_disabled,json=progressiveBillingDisabled"`
+	xxx_hidden_ConsolidateInvoice         bool                   `protobuf:"varint,24,opt,name=consolidate_invoice,json=consolidateInvoice"`
+	xxx_hidden_PurchaseOrderNumber        *string                `protobuf:"bytes,25,opt,name=purchase_order_number,json=purchaseOrderNumber"`
+	xxx_hidden_BillingEntityId            *string                `protobuf:"bytes,26,opt,name=billing_entity_id,json=billingEntityId"`
+	xxx_hidden_SkipInvoiceCustomSections  bool                   `protobuf:"varint,27,opt,name=skip_invoice_custom_sections,json=skipInvoiceCustomSections"`
+	xxx_hidden_InvoiceCustomSectionIds    []string               `protobuf:"bytes,28,rep,name=invoice_custom_section_ids,json=invoiceCustomSectionIds"`
+	xxx_hidden_SkipDailyUsage             bool                   `protobuf:"varint,29,opt,name=skip_daily_usage,json=skipDailyUsage"`
+	xxx_hidden_ActivationRules            *[]*ActivationRule     `protobuf:"bytes,30,rep,name=activation_rules,json=activationRules"`
+	xxx_hidden_PlanOverrides              *PlanOverrides         `protobuf:"bytes,31,opt,name=plan_overrides,json=planOverrides"`
+	xxx_hidden_CurrentPeriodStartedAt     *timestamppb.Timestamp `protobuf:"bytes,34,opt,name=current_period_started_at,json=currentPeriodStartedAt"`
+	xxx_hidden_CurrentPeriodEndedAt       *timestamppb.Timestamp `protobuf:"bytes,35,opt,name=current_period_ended_at,json=currentPeriodEndedAt"`
+	xxx_hidden_NextBillingAt              *timestamppb.Timestamp `protobuf:"bytes,36,opt,name=next_billing_at,json=nextBillingAt"`
+	xxx_hidden_CreatedAt                  *timestamppb.Timestamp `protobuf:"bytes,37,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt                  *timestamppb.Timestamp `protobuf:"bytes,38,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_UsageThresholds            *[]*v11.UsageThreshold `protobuf:"bytes,39,rep,name=usage_thresholds,json=usageThresholds"`
 	XXX_raceDetectHookData                protoimpl.RaceDetectHookData
 	XXX_presence                          [2]uint32
 	unknownFields                         protoimpl.UnknownFields
@@ -1668,7 +926,7 @@ type Subscription struct {
 
 func (x *Subscription) Reset() {
 	*x = Subscription{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[4]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1680,7 +938,7 @@ func (x *Subscription) String() string {
 func (*Subscription) ProtoMessage() {}
 
 func (x *Subscription) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[4]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1958,22 +1216,6 @@ func (x *Subscription) GetPlanOverrides() *PlanOverrides {
 	return nil
 }
 
-func (x *Subscription) GetRateCards() []*SubscriptionRateCard {
-	if x != nil {
-		if x.xxx_hidden_RateCards != nil {
-			return *x.xxx_hidden_RateCards
-		}
-	}
-	return nil
-}
-
-func (x *Subscription) GetBillingAnchorDate() *date.Date {
-	if x != nil {
-		return x.xxx_hidden_BillingAnchorDate
-	}
-	return nil
-}
-
 func (x *Subscription) GetCurrentPeriodStartedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_CurrentPeriodStartedAt
@@ -2020,42 +1262,42 @@ func (x *Subscription) GetUsageThresholds() []*v11.UsageThreshold {
 
 func (x *Subscription) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 37)
 }
 
 func (x *Subscription) SetExternalId(v string) {
 	x.xxx_hidden_ExternalId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 37)
 }
 
 func (x *Subscription) SetCustomerId(v string) {
 	x.xxx_hidden_CustomerId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 37)
 }
 
 func (x *Subscription) SetPlanId(v string) {
 	x.xxx_hidden_PlanId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 37)
 }
 
 func (x *Subscription) SetParentPlanId(v string) {
 	x.xxx_hidden_ParentPlanId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 37)
 }
 
 func (x *Subscription) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 37)
 }
 
 func (x *Subscription) SetBillingTime(v BillingTime) {
 	x.xxx_hidden_BillingTime = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 37)
 }
 
 func (x *Subscription) SetStatus(v SubscriptionStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 37)
 }
 
 func (x *Subscription) SetSubscriptionAt(v *timestamppb.Timestamp) {
@@ -2080,7 +1322,7 @@ func (x *Subscription) SetCanceledAt(v *timestamppb.Timestamp) {
 
 func (x *Subscription) SetCancellationReason(v CancellationReason) {
 	x.xxx_hidden_CancellationReason = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 37)
 }
 
 func (x *Subscription) SetTrialEndedAt(v *timestamppb.Timestamp) {
@@ -2089,62 +1331,62 @@ func (x *Subscription) SetTrialEndedAt(v *timestamppb.Timestamp) {
 
 func (x *Subscription) SetPreviousSubscriptionId(v string) {
 	x.xxx_hidden_PreviousSubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 37)
 }
 
 func (x *Subscription) SetNextSubscriptionId(v string) {
 	x.xxx_hidden_NextSubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 37)
 }
 
 func (x *Subscription) SetDowngradePlanId(v string) {
 	x.xxx_hidden_DowngradePlanId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 37)
 }
 
 func (x *Subscription) SetOnTerminationCreditNote(v TerminationCreditNote) {
 	x.xxx_hidden_OnTerminationCreditNote = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 37)
 }
 
 func (x *Subscription) SetOnTerminationInvoice(v TerminationInvoice) {
 	x.xxx_hidden_OnTerminationInvoice = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 37)
 }
 
 func (x *Subscription) SetPaymentMethodType(v v1.PaymentMethodType) {
 	x.xxx_hidden_PaymentMethodType = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 20, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 20, 37)
 }
 
 func (x *Subscription) SetPaymentMethodId(v string) {
 	x.xxx_hidden_PaymentMethodId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 21, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 21, 37)
 }
 
 func (x *Subscription) SetProgressiveBillingDisabled(v bool) {
 	x.xxx_hidden_ProgressiveBillingDisabled = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 22, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 22, 37)
 }
 
 func (x *Subscription) SetConsolidateInvoice(v bool) {
 	x.xxx_hidden_ConsolidateInvoice = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 23, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 23, 37)
 }
 
 func (x *Subscription) SetPurchaseOrderNumber(v string) {
 	x.xxx_hidden_PurchaseOrderNumber = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 24, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 24, 37)
 }
 
 func (x *Subscription) SetBillingEntityId(v string) {
 	x.xxx_hidden_BillingEntityId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 25, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 25, 37)
 }
 
 func (x *Subscription) SetSkipInvoiceCustomSections(v bool) {
 	x.xxx_hidden_SkipInvoiceCustomSections = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 26, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 26, 37)
 }
 
 func (x *Subscription) SetInvoiceCustomSectionIds(v []string) {
@@ -2153,7 +1395,7 @@ func (x *Subscription) SetInvoiceCustomSectionIds(v []string) {
 
 func (x *Subscription) SetSkipDailyUsage(v bool) {
 	x.xxx_hidden_SkipDailyUsage = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 28, 39)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 28, 37)
 }
 
 func (x *Subscription) SetActivationRules(v []*ActivationRule) {
@@ -2162,14 +1404,6 @@ func (x *Subscription) SetActivationRules(v []*ActivationRule) {
 
 func (x *Subscription) SetPlanOverrides(v *PlanOverrides) {
 	x.xxx_hidden_PlanOverrides = v
-}
-
-func (x *Subscription) SetRateCards(v []*SubscriptionRateCard) {
-	x.xxx_hidden_RateCards = &v
-}
-
-func (x *Subscription) SetBillingAnchorDate(v *date.Date) {
-	x.xxx_hidden_BillingAnchorDate = v
 }
 
 func (x *Subscription) SetCurrentPeriodStartedAt(v *timestamppb.Timestamp) {
@@ -2399,13 +1633,6 @@ func (x *Subscription) HasPlanOverrides() bool {
 	return x.xxx_hidden_PlanOverrides != nil
 }
 
-func (x *Subscription) HasBillingAnchorDate() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_BillingAnchorDate != nil
-}
-
 func (x *Subscription) HasCurrentPeriodStartedAt() bool {
 	if x == nil {
 		return false
@@ -2579,10 +1806,6 @@ func (x *Subscription) ClearPlanOverrides() {
 	x.xxx_hidden_PlanOverrides = nil
 }
 
-func (x *Subscription) ClearBillingAnchorDate() {
-	x.xxx_hidden_BillingAnchorDate = nil
-}
-
 func (x *Subscription) ClearCurrentPeriodStartedAt() {
 	x.xxx_hidden_CurrentPeriodStartedAt = nil
 }
@@ -2614,8 +1837,7 @@ type Subscription_builder struct {
 	ExternalId *string
 	// The customer (ID or `external_id:<external_id>`).
 	CustomerId *string
-	// The plan (ID or `code:<code>`); the child plan when overridden. Unset
-	// on subscriptions priced by rate cards only.
+	// The plan (ID or `code:<code>`); the child plan when overridden.
 	PlanId *string
 	// The plan the child plan overrides.
 	ParentPlanId *string
@@ -2674,10 +1896,6 @@ type Subscription_builder struct {
 	ActivationRules []*ActivationRule
 	// The plan overrides; write only, read the child plan for the result.
 	PlanOverrides *PlanOverrides
-	// The rate cards; on create only, then managed with the rate card RPCs.
-	RateCards []*SubscriptionRateCard
-	// The date rate card billing intervals are anchored to.
-	BillingAnchorDate *date.Date
 	// The start of the current billing period.
 	CurrentPeriodStartedAt *timestamppb.Timestamp
 	// The end of the current billing period.
@@ -2700,35 +1918,35 @@ func (b0 Subscription_builder) Build() *Subscription {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 37)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.ExternalId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 37)
 		x.xxx_hidden_ExternalId = b.ExternalId
 	}
 	if b.CustomerId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 37)
 		x.xxx_hidden_CustomerId = b.CustomerId
 	}
 	if b.PlanId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 37)
 		x.xxx_hidden_PlanId = b.PlanId
 	}
 	if b.ParentPlanId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 37)
 		x.xxx_hidden_ParentPlanId = b.ParentPlanId
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 37)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.BillingTime != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 37)
 		x.xxx_hidden_BillingTime = *b.BillingTime
 	}
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 37)
 		x.xxx_hidden_Status = *b.Status
 	}
 	x.xxx_hidden_SubscriptionAt = b.SubscriptionAt
@@ -2737,67 +1955,65 @@ func (b0 Subscription_builder) Build() *Subscription {
 	x.xxx_hidden_TerminatedAt = b.TerminatedAt
 	x.xxx_hidden_CanceledAt = b.CanceledAt
 	if b.CancellationReason != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 37)
 		x.xxx_hidden_CancellationReason = *b.CancellationReason
 	}
 	x.xxx_hidden_TrialEndedAt = b.TrialEndedAt
 	if b.PreviousSubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 37)
 		x.xxx_hidden_PreviousSubscriptionId = b.PreviousSubscriptionId
 	}
 	if b.NextSubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 37)
 		x.xxx_hidden_NextSubscriptionId = b.NextSubscriptionId
 	}
 	if b.DowngradePlanId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 37)
 		x.xxx_hidden_DowngradePlanId = b.DowngradePlanId
 	}
 	if b.OnTerminationCreditNote != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 37)
 		x.xxx_hidden_OnTerminationCreditNote = *b.OnTerminationCreditNote
 	}
 	if b.OnTerminationInvoice != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 37)
 		x.xxx_hidden_OnTerminationInvoice = *b.OnTerminationInvoice
 	}
 	if b.PaymentMethodType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 20, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 20, 37)
 		x.xxx_hidden_PaymentMethodType = *b.PaymentMethodType
 	}
 	if b.PaymentMethodId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 21, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 21, 37)
 		x.xxx_hidden_PaymentMethodId = b.PaymentMethodId
 	}
 	if b.ProgressiveBillingDisabled != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 22, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 22, 37)
 		x.xxx_hidden_ProgressiveBillingDisabled = *b.ProgressiveBillingDisabled
 	}
 	if b.ConsolidateInvoice != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 23, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 23, 37)
 		x.xxx_hidden_ConsolidateInvoice = *b.ConsolidateInvoice
 	}
 	if b.PurchaseOrderNumber != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 24, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 24, 37)
 		x.xxx_hidden_PurchaseOrderNumber = b.PurchaseOrderNumber
 	}
 	if b.BillingEntityId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 25, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 25, 37)
 		x.xxx_hidden_BillingEntityId = b.BillingEntityId
 	}
 	if b.SkipInvoiceCustomSections != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 26, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 26, 37)
 		x.xxx_hidden_SkipInvoiceCustomSections = *b.SkipInvoiceCustomSections
 	}
 	x.xxx_hidden_InvoiceCustomSectionIds = b.InvoiceCustomSectionIds
 	if b.SkipDailyUsage != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 28, 39)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 28, 37)
 		x.xxx_hidden_SkipDailyUsage = *b.SkipDailyUsage
 	}
 	x.xxx_hidden_ActivationRules = &b.ActivationRules
 	x.xxx_hidden_PlanOverrides = b.PlanOverrides
-	x.xxx_hidden_RateCards = &b.RateCards
-	x.xxx_hidden_BillingAnchorDate = b.BillingAnchorDate
 	x.xxx_hidden_CurrentPeriodStartedAt = b.CurrentPeriodStartedAt
 	x.xxx_hidden_CurrentPeriodEndedAt = b.CurrentPeriodEndedAt
 	x.xxx_hidden_NextBillingAt = b.NextBillingAt
@@ -2823,7 +2039,7 @@ type UsageThresholdProgress struct {
 
 func (x *UsageThresholdProgress) Reset() {
 	*x = UsageThresholdProgress{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[5]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2835,7 +2051,7 @@ func (x *UsageThresholdProgress) String() string {
 func (*UsageThresholdProgress) ProtoMessage() {}
 
 func (x *UsageThresholdProgress) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[5]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2997,7 +2213,7 @@ type LifetimeUsage struct {
 
 func (x *LifetimeUsage) Reset() {
 	*x = LifetimeUsage{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[6]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3009,7 +2225,7 @@ func (x *LifetimeUsage) String() string {
 func (*LifetimeUsage) ProtoMessage() {}
 
 func (x *LifetimeUsage) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[6]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3224,7 +2440,7 @@ type CreateSubscriptionRequest struct {
 
 func (x *CreateSubscriptionRequest) Reset() {
 	*x = CreateSubscriptionRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[7]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3236,7 +2452,7 @@ func (x *CreateSubscriptionRequest) String() string {
 func (*CreateSubscriptionRequest) ProtoMessage() {}
 
 func (x *CreateSubscriptionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[7]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3294,7 +2510,7 @@ type CreateSubscriptionResponse struct {
 
 func (x *CreateSubscriptionResponse) Reset() {
 	*x = CreateSubscriptionResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[8]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3306,7 +2522,7 @@ func (x *CreateSubscriptionResponse) String() string {
 func (*CreateSubscriptionResponse) ProtoMessage() {}
 
 func (x *CreateSubscriptionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[8]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3366,7 +2582,7 @@ type GetSubscriptionRequest struct {
 
 func (x *GetSubscriptionRequest) Reset() {
 	*x = GetSubscriptionRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[9]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3378,7 +2594,7 @@ func (x *GetSubscriptionRequest) String() string {
 func (*GetSubscriptionRequest) ProtoMessage() {}
 
 func (x *GetSubscriptionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[9]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3444,7 +2660,7 @@ type GetSubscriptionResponse struct {
 
 func (x *GetSubscriptionResponse) Reset() {
 	*x = GetSubscriptionResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[10]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3456,7 +2672,7 @@ func (x *GetSubscriptionResponse) String() string {
 func (*GetSubscriptionResponse) ProtoMessage() {}
 
 func (x *GetSubscriptionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[10]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3520,7 +2736,7 @@ type ListSubscriptionsRequest struct {
 
 func (x *ListSubscriptionsRequest) Reset() {
 	*x = ListSubscriptionsRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[11]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3532,7 +2748,7 @@ func (x *ListSubscriptionsRequest) String() string {
 func (*ListSubscriptionsRequest) ProtoMessage() {}
 
 func (x *ListSubscriptionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[11]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3731,7 +2947,7 @@ type ListSubscriptionsResponse struct {
 
 func (x *ListSubscriptionsResponse) Reset() {
 	*x = ListSubscriptionsResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[12]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3743,7 +2959,7 @@ func (x *ListSubscriptionsResponse) String() string {
 func (*ListSubscriptionsResponse) ProtoMessage() {}
 
 func (x *ListSubscriptionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[12]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3826,7 +3042,7 @@ type UpdateSubscriptionRequest struct {
 
 func (x *UpdateSubscriptionRequest) Reset() {
 	*x = UpdateSubscriptionRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[13]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3838,7 +3054,7 @@ func (x *UpdateSubscriptionRequest) String() string {
 func (*UpdateSubscriptionRequest) ProtoMessage() {}
 
 func (x *UpdateSubscriptionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[13]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3922,7 +3138,7 @@ type UpdateSubscriptionResponse struct {
 
 func (x *UpdateSubscriptionResponse) Reset() {
 	*x = UpdateSubscriptionResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[14]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3934,7 +3150,7 @@ func (x *UpdateSubscriptionResponse) String() string {
 func (*UpdateSubscriptionResponse) ProtoMessage() {}
 
 func (x *UpdateSubscriptionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[14]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3997,7 +3213,7 @@ type ChangeSubscriptionPlanRequest struct {
 
 func (x *ChangeSubscriptionPlanRequest) Reset() {
 	*x = ChangeSubscriptionPlanRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[15]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4009,7 +3225,7 @@ func (x *ChangeSubscriptionPlanRequest) String() string {
 func (*ChangeSubscriptionPlanRequest) ProtoMessage() {}
 
 func (x *ChangeSubscriptionPlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[15]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4167,7 +3383,7 @@ type ChangeSubscriptionPlanResponse struct {
 
 func (x *ChangeSubscriptionPlanResponse) Reset() {
 	*x = ChangeSubscriptionPlanResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[16]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4179,7 +3395,7 @@ func (x *ChangeSubscriptionPlanResponse) String() string {
 func (*ChangeSubscriptionPlanResponse) ProtoMessage() {}
 
 func (x *ChangeSubscriptionPlanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[16]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4268,7 +3484,7 @@ type TerminateSubscriptionRequest struct {
 
 func (x *TerminateSubscriptionRequest) Reset() {
 	*x = TerminateSubscriptionRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[17]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4280,7 +3496,7 @@ func (x *TerminateSubscriptionRequest) String() string {
 func (*TerminateSubscriptionRequest) ProtoMessage() {}
 
 func (x *TerminateSubscriptionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[17]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4412,7 +3628,7 @@ type TerminateSubscriptionResponse struct {
 
 func (x *TerminateSubscriptionResponse) Reset() {
 	*x = TerminateSubscriptionResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[18]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4424,7 +3640,7 @@ func (x *TerminateSubscriptionResponse) String() string {
 func (*TerminateSubscriptionResponse) ProtoMessage() {}
 
 func (x *TerminateSubscriptionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[18]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4484,7 +3700,7 @@ type CancelSubscriptionRequest struct {
 
 func (x *CancelSubscriptionRequest) Reset() {
 	*x = CancelSubscriptionRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[19]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4496,7 +3712,7 @@ func (x *CancelSubscriptionRequest) String() string {
 func (*CancelSubscriptionRequest) ProtoMessage() {}
 
 func (x *CancelSubscriptionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[19]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4562,7 +3778,7 @@ type CancelSubscriptionResponse struct {
 
 func (x *CancelSubscriptionResponse) Reset() {
 	*x = CancelSubscriptionResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[20]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4574,7 +3790,7 @@ func (x *CancelSubscriptionResponse) String() string {
 func (*CancelSubscriptionResponse) ProtoMessage() {}
 
 func (x *CancelSubscriptionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[20]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4635,7 +3851,7 @@ type GetLifetimeUsageRequest struct {
 
 func (x *GetLifetimeUsageRequest) Reset() {
 	*x = GetLifetimeUsageRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[21]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4647,7 +3863,7 @@ func (x *GetLifetimeUsageRequest) String() string {
 func (*GetLifetimeUsageRequest) ProtoMessage() {}
 
 func (x *GetLifetimeUsageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[21]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4744,7 +3960,7 @@ type GetLifetimeUsageResponse struct {
 
 func (x *GetLifetimeUsageResponse) Reset() {
 	*x = GetLifetimeUsageResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[22]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4756,7 +3972,7 @@ func (x *GetLifetimeUsageResponse) String() string {
 func (*GetLifetimeUsageResponse) ProtoMessage() {}
 
 func (x *GetLifetimeUsageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[22]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4831,7 +4047,7 @@ type UpdateLifetimeUsageRequest struct {
 
 func (x *UpdateLifetimeUsageRequest) Reset() {
 	*x = UpdateLifetimeUsageRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[23]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4843,7 +4059,7 @@ func (x *UpdateLifetimeUsageRequest) String() string {
 func (*UpdateLifetimeUsageRequest) ProtoMessage() {}
 
 func (x *UpdateLifetimeUsageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[23]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4942,7 +4158,7 @@ type UpdateLifetimeUsageResponse struct {
 
 func (x *UpdateLifetimeUsageResponse) Reset() {
 	*x = UpdateLifetimeUsageResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[24]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4954,7 +4170,7 @@ func (x *UpdateLifetimeUsageResponse) String() string {
 func (*UpdateLifetimeUsageResponse) ProtoMessage() {}
 
 func (x *UpdateLifetimeUsageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[24]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5002,1066 +4218,11 @@ func (b0 UpdateLifetimeUsageResponse_builder) Build() *UpdateLifetimeUsageRespon
 	return m0
 }
 
-// CreateSubscriptionRateCardRequest is the request of SubscriptionService.CreateSubscriptionRateCard.
-type CreateSubscriptionRateCardRequest struct {
-	state                     protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_SubscriptionId *string                `protobuf:"bytes,1,opt,name=subscription_id,json=subscriptionId"`
-	xxx_hidden_RateCard       *SubscriptionRateCard  `protobuf:"bytes,2,opt,name=rate_card,json=rateCard"`
-	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
-	XXX_presence              [1]uint32
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
-}
-
-func (x *CreateSubscriptionRateCardRequest) Reset() {
-	*x = CreateSubscriptionRateCardRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[25]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateSubscriptionRateCardRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateSubscriptionRateCardRequest) ProtoMessage() {}
-
-func (x *CreateSubscriptionRateCardRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[25]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *CreateSubscriptionRateCardRequest) GetSubscriptionId() string {
-	if x != nil {
-		if x.xxx_hidden_SubscriptionId != nil {
-			return *x.xxx_hidden_SubscriptionId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *CreateSubscriptionRateCardRequest) GetRateCard() *SubscriptionRateCard {
-	if x != nil {
-		return x.xxx_hidden_RateCard
-	}
-	return nil
-}
-
-func (x *CreateSubscriptionRateCardRequest) SetSubscriptionId(v string) {
-	x.xxx_hidden_SubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
-}
-
-func (x *CreateSubscriptionRateCardRequest) SetRateCard(v *SubscriptionRateCard) {
-	x.xxx_hidden_RateCard = v
-}
-
-func (x *CreateSubscriptionRateCardRequest) HasSubscriptionId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *CreateSubscriptionRateCardRequest) HasRateCard() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_RateCard != nil
-}
-
-func (x *CreateSubscriptionRateCardRequest) ClearSubscriptionId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_SubscriptionId = nil
-}
-
-func (x *CreateSubscriptionRateCardRequest) ClearRateCard() {
-	x.xxx_hidden_RateCard = nil
-}
-
-type CreateSubscriptionRateCardRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The subscription's ID or `external_id:<external_id>`.
-	SubscriptionId *string
-	// The rate card to add.
-	RateCard *SubscriptionRateCard
-}
-
-func (b0 CreateSubscriptionRateCardRequest_builder) Build() *CreateSubscriptionRateCardRequest {
-	m0 := &CreateSubscriptionRateCardRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.SubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
-		x.xxx_hidden_SubscriptionId = b.SubscriptionId
-	}
-	x.xxx_hidden_RateCard = b.RateCard
-	return m0
-}
-
-// CreateSubscriptionRateCardResponse is the response of SubscriptionService.CreateSubscriptionRateCard.
-type CreateSubscriptionRateCardResponse struct {
-	state               protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_RateCard *SubscriptionRateCard  `protobuf:"bytes,1,opt,name=rate_card,json=rateCard"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *CreateSubscriptionRateCardResponse) Reset() {
-	*x = CreateSubscriptionRateCardResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[26]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CreateSubscriptionRateCardResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CreateSubscriptionRateCardResponse) ProtoMessage() {}
-
-func (x *CreateSubscriptionRateCardResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[26]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *CreateSubscriptionRateCardResponse) GetRateCard() *SubscriptionRateCard {
-	if x != nil {
-		return x.xxx_hidden_RateCard
-	}
-	return nil
-}
-
-func (x *CreateSubscriptionRateCardResponse) SetRateCard(v *SubscriptionRateCard) {
-	x.xxx_hidden_RateCard = v
-}
-
-func (x *CreateSubscriptionRateCardResponse) HasRateCard() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_RateCard != nil
-}
-
-func (x *CreateSubscriptionRateCardResponse) ClearRateCard() {
-	x.xxx_hidden_RateCard = nil
-}
-
-type CreateSubscriptionRateCardResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The added rate card.
-	RateCard *SubscriptionRateCard
-}
-
-func (b0 CreateSubscriptionRateCardResponse_builder) Build() *CreateSubscriptionRateCardResponse {
-	m0 := &CreateSubscriptionRateCardResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_RateCard = b.RateCard
-	return m0
-}
-
-// ListSubscriptionRateCardsRequest is the request of SubscriptionService.ListSubscriptionRateCards.
-type ListSubscriptionRateCardsRequest struct {
-	state                     protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_SubscriptionId *string                `protobuf:"bytes,1,opt,name=subscription_id,json=subscriptionId"`
-	xxx_hidden_PageSize       int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize"`
-	xxx_hidden_PageToken      *string                `protobuf:"bytes,3,opt,name=page_token,json=pageToken"`
-	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
-	XXX_presence              [1]uint32
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
-}
-
-func (x *ListSubscriptionRateCardsRequest) Reset() {
-	*x = ListSubscriptionRateCardsRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[27]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListSubscriptionRateCardsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListSubscriptionRateCardsRequest) ProtoMessage() {}
-
-func (x *ListSubscriptionRateCardsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[27]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ListSubscriptionRateCardsRequest) GetSubscriptionId() string {
-	if x != nil {
-		if x.xxx_hidden_SubscriptionId != nil {
-			return *x.xxx_hidden_SubscriptionId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListSubscriptionRateCardsRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.xxx_hidden_PageSize
-	}
-	return 0
-}
-
-func (x *ListSubscriptionRateCardsRequest) GetPageToken() string {
-	if x != nil {
-		if x.xxx_hidden_PageToken != nil {
-			return *x.xxx_hidden_PageToken
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListSubscriptionRateCardsRequest) SetSubscriptionId(v string) {
-	x.xxx_hidden_SubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
-}
-
-func (x *ListSubscriptionRateCardsRequest) SetPageSize(v int32) {
-	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
-}
-
-func (x *ListSubscriptionRateCardsRequest) SetPageToken(v string) {
-	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
-}
-
-func (x *ListSubscriptionRateCardsRequest) HasSubscriptionId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *ListSubscriptionRateCardsRequest) HasPageSize() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ListSubscriptionRateCardsRequest) HasPageToken() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *ListSubscriptionRateCardsRequest) ClearSubscriptionId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_SubscriptionId = nil
-}
-
-func (x *ListSubscriptionRateCardsRequest) ClearPageSize() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_PageSize = 0
-}
-
-func (x *ListSubscriptionRateCardsRequest) ClearPageToken() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_PageToken = nil
-}
-
-type ListSubscriptionRateCardsRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The subscription's ID or `external_id:<external_id>`.
-	SubscriptionId *string
-	// The maximum number of results; 20 by default, at most 1000.
-	PageSize *int32
-	// The next_page_token of the previous page.
-	PageToken *string
-}
-
-func (b0 ListSubscriptionRateCardsRequest_builder) Build() *ListSubscriptionRateCardsRequest {
-	m0 := &ListSubscriptionRateCardsRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.SubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
-		x.xxx_hidden_SubscriptionId = b.SubscriptionId
-	}
-	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
-		x.xxx_hidden_PageSize = *b.PageSize
-	}
-	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
-		x.xxx_hidden_PageToken = b.PageToken
-	}
-	return m0
-}
-
-// ListSubscriptionRateCardsResponse is the response of SubscriptionService.ListSubscriptionRateCards.
-type ListSubscriptionRateCardsResponse struct {
-	state                    protoimpl.MessageState   `protogen:"opaque.v1"`
-	xxx_hidden_RateCards     *[]*SubscriptionRateCard `protobuf:"bytes,1,rep,name=rate_cards,json=rateCards"`
-	xxx_hidden_NextPageToken *string                  `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken"`
-	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
-	XXX_presence             [1]uint32
-	unknownFields            protoimpl.UnknownFields
-	sizeCache                protoimpl.SizeCache
-}
-
-func (x *ListSubscriptionRateCardsResponse) Reset() {
-	*x = ListSubscriptionRateCardsResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[28]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListSubscriptionRateCardsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListSubscriptionRateCardsResponse) ProtoMessage() {}
-
-func (x *ListSubscriptionRateCardsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[28]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ListSubscriptionRateCardsResponse) GetRateCards() []*SubscriptionRateCard {
-	if x != nil {
-		if x.xxx_hidden_RateCards != nil {
-			return *x.xxx_hidden_RateCards
-		}
-	}
-	return nil
-}
-
-func (x *ListSubscriptionRateCardsResponse) GetNextPageToken() string {
-	if x != nil {
-		if x.xxx_hidden_NextPageToken != nil {
-			return *x.xxx_hidden_NextPageToken
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListSubscriptionRateCardsResponse) SetRateCards(v []*SubscriptionRateCard) {
-	x.xxx_hidden_RateCards = &v
-}
-
-func (x *ListSubscriptionRateCardsResponse) SetNextPageToken(v string) {
-	x.xxx_hidden_NextPageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
-}
-
-func (x *ListSubscriptionRateCardsResponse) HasNextPageToken() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ListSubscriptionRateCardsResponse) ClearNextPageToken() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_NextPageToken = nil
-}
-
-type ListSubscriptionRateCardsResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The rate cards of this page.
-	RateCards []*SubscriptionRateCard
-	// The token of the next page; empty on the last page.
-	NextPageToken *string
-}
-
-func (b0 ListSubscriptionRateCardsResponse_builder) Build() *ListSubscriptionRateCardsResponse {
-	m0 := &ListSubscriptionRateCardsResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_RateCards = &b.RateCards
-	if b.NextPageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_NextPageToken = b.NextPageToken
-	}
-	return m0
-}
-
-// UpdateSubscriptionRateCardRequest is the request of SubscriptionService.UpdateSubscriptionRateCard.
-type UpdateSubscriptionRateCardRequest struct {
-	state                     protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_SubscriptionId *string                `protobuf:"bytes,1,opt,name=subscription_id,json=subscriptionId"`
-	xxx_hidden_RateCard       *SubscriptionRateCard  `protobuf:"bytes,2,opt,name=rate_card,json=rateCard"`
-	xxx_hidden_UpdateMask     *fieldmaskpb.FieldMask `protobuf:"bytes,3,opt,name=update_mask,json=updateMask"`
-	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
-	XXX_presence              [1]uint32
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
-}
-
-func (x *UpdateSubscriptionRateCardRequest) Reset() {
-	*x = UpdateSubscriptionRateCardRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[29]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateSubscriptionRateCardRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateSubscriptionRateCardRequest) ProtoMessage() {}
-
-func (x *UpdateSubscriptionRateCardRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[29]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *UpdateSubscriptionRateCardRequest) GetSubscriptionId() string {
-	if x != nil {
-		if x.xxx_hidden_SubscriptionId != nil {
-			return *x.xxx_hidden_SubscriptionId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *UpdateSubscriptionRateCardRequest) GetRateCard() *SubscriptionRateCard {
-	if x != nil {
-		return x.xxx_hidden_RateCard
-	}
-	return nil
-}
-
-func (x *UpdateSubscriptionRateCardRequest) GetUpdateMask() *fieldmaskpb.FieldMask {
-	if x != nil {
-		return x.xxx_hidden_UpdateMask
-	}
-	return nil
-}
-
-func (x *UpdateSubscriptionRateCardRequest) SetSubscriptionId(v string) {
-	x.xxx_hidden_SubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
-}
-
-func (x *UpdateSubscriptionRateCardRequest) SetRateCard(v *SubscriptionRateCard) {
-	x.xxx_hidden_RateCard = v
-}
-
-func (x *UpdateSubscriptionRateCardRequest) SetUpdateMask(v *fieldmaskpb.FieldMask) {
-	x.xxx_hidden_UpdateMask = v
-}
-
-func (x *UpdateSubscriptionRateCardRequest) HasSubscriptionId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *UpdateSubscriptionRateCardRequest) HasRateCard() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_RateCard != nil
-}
-
-func (x *UpdateSubscriptionRateCardRequest) HasUpdateMask() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_UpdateMask != nil
-}
-
-func (x *UpdateSubscriptionRateCardRequest) ClearSubscriptionId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_SubscriptionId = nil
-}
-
-func (x *UpdateSubscriptionRateCardRequest) ClearRateCard() {
-	x.xxx_hidden_RateCard = nil
-}
-
-func (x *UpdateSubscriptionRateCardRequest) ClearUpdateMask() {
-	x.xxx_hidden_UpdateMask = nil
-}
-
-type UpdateSubscriptionRateCardRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The subscription's ID or `external_id:<external_id>`.
-	SubscriptionId *string
-	// The new values; rate_card.id selects the subscription rate card.
-	RateCard *SubscriptionRateCard
-	// The fields to update; empty updates every field that is set.
-	UpdateMask *fieldmaskpb.FieldMask
-}
-
-func (b0 UpdateSubscriptionRateCardRequest_builder) Build() *UpdateSubscriptionRateCardRequest {
-	m0 := &UpdateSubscriptionRateCardRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.SubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
-		x.xxx_hidden_SubscriptionId = b.SubscriptionId
-	}
-	x.xxx_hidden_RateCard = b.RateCard
-	x.xxx_hidden_UpdateMask = b.UpdateMask
-	return m0
-}
-
-// UpdateSubscriptionRateCardResponse is the response of SubscriptionService.UpdateSubscriptionRateCard.
-type UpdateSubscriptionRateCardResponse struct {
-	state               protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_RateCard *SubscriptionRateCard  `protobuf:"bytes,1,opt,name=rate_card,json=rateCard"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
-}
-
-func (x *UpdateSubscriptionRateCardResponse) Reset() {
-	*x = UpdateSubscriptionRateCardResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[30]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *UpdateSubscriptionRateCardResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*UpdateSubscriptionRateCardResponse) ProtoMessage() {}
-
-func (x *UpdateSubscriptionRateCardResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[30]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *UpdateSubscriptionRateCardResponse) GetRateCard() *SubscriptionRateCard {
-	if x != nil {
-		return x.xxx_hidden_RateCard
-	}
-	return nil
-}
-
-func (x *UpdateSubscriptionRateCardResponse) SetRateCard(v *SubscriptionRateCard) {
-	x.xxx_hidden_RateCard = v
-}
-
-func (x *UpdateSubscriptionRateCardResponse) HasRateCard() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_RateCard != nil
-}
-
-func (x *UpdateSubscriptionRateCardResponse) ClearRateCard() {
-	x.xxx_hidden_RateCard = nil
-}
-
-type UpdateSubscriptionRateCardResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The updated rate card.
-	RateCard *SubscriptionRateCard
-}
-
-func (b0 UpdateSubscriptionRateCardResponse_builder) Build() *UpdateSubscriptionRateCardResponse {
-	m0 := &UpdateSubscriptionRateCardResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_RateCard = b.RateCard
-	return m0
-}
-
-// DeleteSubscriptionRateCardRequest is the request of SubscriptionService.DeleteSubscriptionRateCard.
-type DeleteSubscriptionRateCardRequest struct {
-	state                     protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_SubscriptionId *string                `protobuf:"bytes,1,opt,name=subscription_id,json=subscriptionId"`
-	xxx_hidden_RateCardId     *string                `protobuf:"bytes,2,opt,name=rate_card_id,json=rateCardId"`
-	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
-	XXX_presence              [1]uint32
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
-}
-
-func (x *DeleteSubscriptionRateCardRequest) Reset() {
-	*x = DeleteSubscriptionRateCardRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[31]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteSubscriptionRateCardRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteSubscriptionRateCardRequest) ProtoMessage() {}
-
-func (x *DeleteSubscriptionRateCardRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[31]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *DeleteSubscriptionRateCardRequest) GetSubscriptionId() string {
-	if x != nil {
-		if x.xxx_hidden_SubscriptionId != nil {
-			return *x.xxx_hidden_SubscriptionId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *DeleteSubscriptionRateCardRequest) GetRateCardId() string {
-	if x != nil {
-		if x.xxx_hidden_RateCardId != nil {
-			return *x.xxx_hidden_RateCardId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *DeleteSubscriptionRateCardRequest) SetSubscriptionId(v string) {
-	x.xxx_hidden_SubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
-}
-
-func (x *DeleteSubscriptionRateCardRequest) SetRateCardId(v string) {
-	x.xxx_hidden_RateCardId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
-}
-
-func (x *DeleteSubscriptionRateCardRequest) HasSubscriptionId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *DeleteSubscriptionRateCardRequest) HasRateCardId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *DeleteSubscriptionRateCardRequest) ClearSubscriptionId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_SubscriptionId = nil
-}
-
-func (x *DeleteSubscriptionRateCardRequest) ClearRateCardId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_RateCardId = nil
-}
-
-type DeleteSubscriptionRateCardRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The subscription's ID or `external_id:<external_id>`.
-	SubscriptionId *string
-	// The subscription rate card's ID.
-	RateCardId *string
-}
-
-func (b0 DeleteSubscriptionRateCardRequest_builder) Build() *DeleteSubscriptionRateCardRequest {
-	m0 := &DeleteSubscriptionRateCardRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.SubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
-		x.xxx_hidden_SubscriptionId = b.SubscriptionId
-	}
-	if b.RateCardId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_RateCardId = b.RateCardId
-	}
-	return m0
-}
-
-// DeleteSubscriptionRateCardResponse is the response of SubscriptionService.DeleteSubscriptionRateCard.
-type DeleteSubscriptionRateCardResponse struct {
-	state         protoimpl.MessageState `protogen:"opaque.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *DeleteSubscriptionRateCardResponse) Reset() {
-	*x = DeleteSubscriptionRateCardResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[32]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *DeleteSubscriptionRateCardResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*DeleteSubscriptionRateCardResponse) ProtoMessage() {}
-
-func (x *DeleteSubscriptionRateCardResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[32]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-type DeleteSubscriptionRateCardResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-}
-
-func (b0 DeleteSubscriptionRateCardResponse_builder) Build() *DeleteSubscriptionRateCardResponse {
-	m0 := &DeleteSubscriptionRateCardResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	return m0
-}
-
-// ListBillingSegmentsRequest is the request of SubscriptionService.ListBillingSegments.
-type ListBillingSegmentsRequest struct {
-	state                     protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_SubscriptionId *string                `protobuf:"bytes,1,opt,name=subscription_id,json=subscriptionId"`
-	xxx_hidden_PageSize       int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize"`
-	xxx_hidden_PageToken      *string                `protobuf:"bytes,3,opt,name=page_token,json=pageToken"`
-	xxx_hidden_Filter         *string                `protobuf:"bytes,4,opt,name=filter"`
-	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
-	XXX_presence              [1]uint32
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
-}
-
-func (x *ListBillingSegmentsRequest) Reset() {
-	*x = ListBillingSegmentsRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[33]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListBillingSegmentsRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListBillingSegmentsRequest) ProtoMessage() {}
-
-func (x *ListBillingSegmentsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[33]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ListBillingSegmentsRequest) GetSubscriptionId() string {
-	if x != nil {
-		if x.xxx_hidden_SubscriptionId != nil {
-			return *x.xxx_hidden_SubscriptionId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListBillingSegmentsRequest) GetPageSize() int32 {
-	if x != nil {
-		return x.xxx_hidden_PageSize
-	}
-	return 0
-}
-
-func (x *ListBillingSegmentsRequest) GetPageToken() string {
-	if x != nil {
-		if x.xxx_hidden_PageToken != nil {
-			return *x.xxx_hidden_PageToken
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListBillingSegmentsRequest) GetFilter() string {
-	if x != nil {
-		if x.xxx_hidden_Filter != nil {
-			return *x.xxx_hidden_Filter
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListBillingSegmentsRequest) SetSubscriptionId(v string) {
-	x.xxx_hidden_SubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
-}
-
-func (x *ListBillingSegmentsRequest) SetPageSize(v int32) {
-	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
-}
-
-func (x *ListBillingSegmentsRequest) SetPageToken(v string) {
-	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
-}
-
-func (x *ListBillingSegmentsRequest) SetFilter(v string) {
-	x.xxx_hidden_Filter = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
-}
-
-func (x *ListBillingSegmentsRequest) HasSubscriptionId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *ListBillingSegmentsRequest) HasPageSize() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ListBillingSegmentsRequest) HasPageToken() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *ListBillingSegmentsRequest) HasFilter() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
-}
-
-func (x *ListBillingSegmentsRequest) ClearSubscriptionId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_SubscriptionId = nil
-}
-
-func (x *ListBillingSegmentsRequest) ClearPageSize() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_PageSize = 0
-}
-
-func (x *ListBillingSegmentsRequest) ClearPageToken() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
-	x.xxx_hidden_PageToken = nil
-}
-
-func (x *ListBillingSegmentsRequest) ClearFilter() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_Filter = nil
-}
-
-type ListBillingSegmentsRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The subscription's ID or `external_id:<external_id>`.
-	SubscriptionId *string
-	// The maximum number of results; 20 by default, at most 1000.
-	PageSize *int32
-	// The next_page_token of the previous page.
-	PageToken *string
-	// An AIP-160 filter over `status`, `subscription_rate_card_id`,
-	// `invoice_id` and `billing_at`.
-	Filter *string
-}
-
-func (b0 ListBillingSegmentsRequest_builder) Build() *ListBillingSegmentsRequest {
-	m0 := &ListBillingSegmentsRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.SubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
-		x.xxx_hidden_SubscriptionId = b.SubscriptionId
-	}
-	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
-		x.xxx_hidden_PageSize = *b.PageSize
-	}
-	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
-		x.xxx_hidden_PageToken = b.PageToken
-	}
-	if b.Filter != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
-		x.xxx_hidden_Filter = b.Filter
-	}
-	return m0
-}
-
-// ListBillingSegmentsResponse is the response of SubscriptionService.ListBillingSegments.
-type ListBillingSegmentsResponse struct {
-	state                      protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_BillingSegments *[]*BillingSegment     `protobuf:"bytes,1,rep,name=billing_segments,json=billingSegments"`
-	xxx_hidden_NextPageToken   *string                `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken"`
-	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
-	XXX_presence               [1]uint32
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
-}
-
-func (x *ListBillingSegmentsResponse) Reset() {
-	*x = ListBillingSegmentsResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[34]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ListBillingSegmentsResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ListBillingSegmentsResponse) ProtoMessage() {}
-
-func (x *ListBillingSegmentsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[34]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *ListBillingSegmentsResponse) GetBillingSegments() []*BillingSegment {
-	if x != nil {
-		if x.xxx_hidden_BillingSegments != nil {
-			return *x.xxx_hidden_BillingSegments
-		}
-	}
-	return nil
-}
-
-func (x *ListBillingSegmentsResponse) GetNextPageToken() string {
-	if x != nil {
-		if x.xxx_hidden_NextPageToken != nil {
-			return *x.xxx_hidden_NextPageToken
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *ListBillingSegmentsResponse) SetBillingSegments(v []*BillingSegment) {
-	x.xxx_hidden_BillingSegments = &v
-}
-
-func (x *ListBillingSegmentsResponse) SetNextPageToken(v string) {
-	x.xxx_hidden_NextPageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
-}
-
-func (x *ListBillingSegmentsResponse) HasNextPageToken() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *ListBillingSegmentsResponse) ClearNextPageToken() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_NextPageToken = nil
-}
-
-type ListBillingSegmentsResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The billing segments of this page.
-	BillingSegments []*BillingSegment
-	// The token of the next page; empty on the last page.
-	NextPageToken *string
-}
-
-func (b0 ListBillingSegmentsResponse_builder) Build() *ListBillingSegmentsResponse {
-	m0 := &ListBillingSegmentsResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	x.xxx_hidden_BillingSegments = &b.BillingSegments
-	if b.NextPageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_NextPageToken = b.NextPageToken
-	}
-	return m0
-}
-
 var File_tanvo_subscription_v1_subscription_proto protoreflect.FileDescriptor
 
 const file_tanvo_subscription_v1_subscription_proto_rawDesc = "" +
 	"\n" +
-	"(tanvo/subscription/v1/subscription.proto\x12\x15tanvo.subscription.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x16google/type/date.proto\x1a\x1dtanvo/catalog/v1/charge.proto\x1a#tanvo/catalog/v1/fixed_charge.proto\x1a\x1btanvo/catalog/v1/plan.proto\x1a tanvo/catalog/v1/rate_card.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xa3\x02\n" +
+	"(tanvo/subscription/v1/subscription.proto\x12\x15tanvo.subscription.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/catalog/v1/charge.proto\x1a#tanvo/catalog/v1/fixed_charge.proto\x1a\x1btanvo/catalog/v1/plan.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xa3\x02\n" +
 	"\x0eActivationRule\x12T\n" +
 	"\trule_type\x18\x01 \x01(\x0e2).tanvo.subscription.v1.ActivationRuleTypeB\f\xe2A\x01\x02\xbaH\x05\x82\x01\x02\x10\x01R\bruleType\x12/\n" +
 	"\rtimeout_hours\x18\x02 \x01(\x05B\n" +
@@ -6081,37 +4242,7 @@ const file_tanvo_subscription_v1_subscription_proto_rawDesc = "" +
 	"\rfixed_charges\x18\b \x03(\v2\x1d.tanvo.catalog.v1.FixedChargeB\t\xbaH\x06\x92\x01\x03\x10\xf4\x03R\ffixedCharges\x12K\n" +
 	"\x12minimum_commitment\x18\t \x01(\v2\x1c.tanvo.catalog.v1.CommitmentR\x11minimumCommitment\x12U\n" +
 	"\x10usage_thresholds\x18\n" +
-	" \x03(\v2 .tanvo.catalog.v1.UsageThresholdB\b\xbaH\x05\x92\x01\x02\x102R\x0fusageThresholds\"\x8f\x04\n" +
-	"\x14SubscriptionRateCard\x12\x14\n" +
-	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x121\n" +
-	"\frate_card_id\x18\x02 \x01(\tB\x0f\xe2A\x02\x02\x05\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\n" +
-	"rateCardId\x12>\n" +
-	"\x0eeffective_date\x18\x03 \x01(\v2\x11.google.type.DateB\x04\xe2A\x01\x02R\reffectiveDate\x12A\n" +
-	"\x13billing_anchor_date\x18\x04 \x01(\v2\x11.google.type.DateR\x11billingAnchorDate\x12 \n" +
-	"\x05units\x18\x05 \x01(\tB\n" +
-	"\xbaH\ar\x05Ф\xca\x06\x01R\x05units\x12=\n" +
-	"\x06phases\x18\x06 \x03(\v2\x1b.tanvo.catalog.v1.RatePhaseB\b\xbaH\x05\x92\x01\x02\x102R\x06phases\x12H\n" +
-	"\x0fnext_billing_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\rnextBillingAt\x12?\n" +
-	"\n" +
-	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
-	"\n" +
-	"updated_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\"\x9b\x04\n" +
-	"\x0eBillingSegment\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x129\n" +
-	"\x19subscription_rate_card_id\x18\x02 \x01(\tR\x16subscriptionRateCardId\x12\x1d\n" +
-	"\n" +
-	"invoice_id\x18\x03 \x01(\tR\tinvoiceId\x12C\n" +
-	"\x06status\x18\x04 \x01(\x0e2+.tanvo.subscription.v1.BillingSegmentStatusR\x06status\x12\x1a\n" +
-	"\bcurrency\x18\x05 \x01(\tR\bcurrency\x129\n" +
-	"\n" +
-	"billing_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tbillingAt\x129\n" +
-	"\n" +
-	"started_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x125\n" +
-	"\bended_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\aendedAt\x12D\n" +
-	"\x10cycle_started_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\x0ecycleStartedAt\x12'\n" +
-	"\x0fproration_ratio\x18\n" +
-	" \x01(\tR\x0eprorationRatio\x12\"\n" +
-	"\rrate_phase_id\x18\v \x01(\tR\vratePhaseId\"\xca\x15\n" +
+	" \x03(\v2 .tanvo.catalog.v1.UsageThresholdB\b\xbaH\x05\x92\x01\x02\x102R\x0fusageThresholds\"\xdd\x14\n" +
 	"\fSubscription\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x120\n" +
 	"\vexternal_id\x18\x02 \x01(\tB\x0f\xe2A\x02\x02\x05\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\n" +
@@ -6149,10 +4280,7 @@ const file_tanvo_subscription_v1_subscription_proto_rawDesc = "" +
 	"\x1ainvoice_custom_section_ids\x18\x1c \x03(\tB\x13\xbaH\x10\x92\x01\r\x102\x18\x01\"\ar\x05\xe0\xa4\xca\x06\x01R\x17invoiceCustomSectionIds\x12(\n" +
 	"\x10skip_daily_usage\x18\x1d \x01(\bR\x0eskipDailyUsage\x12Z\n" +
 	"\x10activation_rules\x18\x1e \x03(\v2%.tanvo.subscription.v1.ActivationRuleB\b\xbaH\x05\x92\x01\x02\x10\x05R\x0factivationRules\x12Q\n" +
-	"\x0eplan_overrides\x18\x1f \x01(\v2$.tanvo.subscription.v1.PlanOverridesB\x04\xe2A\x01\x04R\rplanOverrides\x12U\n" +
-	"\n" +
-	"rate_cards\x18  \x03(\v2+.tanvo.subscription.v1.SubscriptionRateCardB\t\xbaH\x06\x92\x01\x03\x10\xc8\x01R\trateCards\x12A\n" +
-	"\x13billing_anchor_date\x18! \x01(\v2\x11.google.type.DateR\x11billingAnchorDate\x12[\n" +
+	"\x0eplan_overrides\x18\x1f \x01(\v2$.tanvo.subscription.v1.PlanOverridesB\x04\xe2A\x01\x04R\rplanOverrides\x12[\n" +
 	"\x19current_period_started_at\x18\" \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\x16currentPeriodStartedAt\x12W\n" +
 	"\x17current_period_ended_at\x18# \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\x14currentPeriodEndedAt\x12H\n" +
 	"\x0fnext_billing_at\x18$ \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\rnextBillingAt\x12?\n" +
@@ -6161,7 +4289,8 @@ const file_tanvo_subscription_v1_subscription_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18& \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x12U\n" +
 	"\x10usage_thresholds\x18' \x03(\v2 .tanvo.catalog.v1.UsageThresholdB\b\xbaH\x05\x92\x01\x02\x102R\x0fusageThresholds:V\xeaAS\n" +
-	"\x16tanvo.xyz/Subscription\x12\x1csubscriptions/{subscription}*\rsubscriptions2\fsubscription\"\xb4\x01\n" +
+	"\x16tanvo.xyz/Subscription\x12\x1csubscriptions/{subscription}*\rsubscriptions2\fsubscriptionJ\x04\b \x10!J\x04\b!\x10\"R\n" +
+	"rate_cardsR\x13billing_anchor_date\"\xb4\x01\n" +
 	"\x16UsageThresholdProgress\x12\x16\n" +
 	"\x06amount\x18\x01 \x01(\tR\x06amount\x12\x1c\n" +
 	"\trecurring\x18\x02 \x01(\bR\trecurring\x12)\n" +
@@ -6175,11 +4304,11 @@ const file_tanvo_subscription_v1_subscription_proto_rawDesc = "" +
 	"\x15invoiced_usage_amount\x18\x04 \x01(\v2\x16.tanvo.common.v1.MoneyR\x13invoicedUsageAmount\x12H\n" +
 	"\x14current_usage_amount\x18\x05 \x01(\v2\x16.tanvo.common.v1.MoneyR\x12currentUsageAmount\x12X\n" +
 	"\x10usage_thresholds\x18\x06 \x03(\v2-.tanvo.subscription.v1.UsageThresholdProgressR\x0fusageThresholds\x12=\n" +
-	"\frefreshed_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\vrefreshedAt\"\xeb\x02\n" +
+	"\frefreshed_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\vrefreshedAt\"\xb0\x02\n" +
 	"\x19CreateSubscriptionRequest\x12S\n" +
 	"\fsubscription\x18\x01 \x01(\v2#.tanvo.subscription.v1.SubscriptionB\n" +
-	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\fsubscription:\xf8\x01\xbaH\xf4\x01\x1a\xf1\x01\n" +
-	"\x15subscription.required\x12?external_id, customer_id and plan_id or rate_cards are required\x1a\x96\x01has(this.subscription.external_id) && has(this.subscription.customer_id) && (has(this.subscription.plan_id) || size(this.subscription.rate_cards) > 0)\"e\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\fsubscription:\xbd\x01\xbaH\xb9\x01\x1a\xb6\x01\n" +
+	"\x15subscription.required\x121external_id, customer_id and plan_id are required\x1ajhas(this.subscription.external_id) && has(this.subscription.customer_id) && has(this.subscription.plan_id)\"e\n" +
 	"\x1aCreateSubscriptionResponse\x12G\n" +
 	"\fsubscription\x18\x01 \x01(\v2#.tanvo.subscription.v1.SubscriptionR\fsubscription\"T\n" +
 	"\x16GetSubscriptionRequest\x12:\n" +
@@ -6246,53 +4375,7 @@ const file_tanvo_subscription_v1_subscription_proto_rawDesc = "" +
 	" external_historical_usage_amount\x18\x02 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05Ф\xca\x06\x01R\x1dexternalHistoricalUsageAmount\"j\n" +
 	"\x1bUpdateLifetimeUsageResponse\x12K\n" +
-	"\x0elifetime_usage\x18\x01 \x01(\v2$.tanvo.subscription.v1.LifetimeUsageR\rlifetimeUsage\"\xc9\x02\n" +
-	"!CreateSubscriptionRateCardRequest\x12:\n" +
-	"\x0fsubscription_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0esubscriptionId\x12T\n" +
-	"\trate_card\x18\x02 \x01(\v2+.tanvo.subscription.v1.SubscriptionRateCardB\n" +
-	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\brateCard:\x91\x01\xbaH\x8d\x01\x1a\x8a\x01\n" +
-	"\x12rate_card.required\x12,rate_card_id and effective_date are required\x1aFhas(this.rate_card.rate_card_id) && has(this.rate_card.effective_date)\"n\n" +
-	"\"CreateSubscriptionRateCardResponse\x12H\n" +
-	"\trate_card\x18\x01 \x01(\v2+.tanvo.subscription.v1.SubscriptionRateCardR\brateCard\"\xb0\x01\n" +
-	" ListSubscriptionRateCardsRequest\x12:\n" +
-	"\x0fsubscription_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0esubscriptionId\x12'\n" +
-	"\tpage_size\x18\x02 \x01(\x05B\n" +
-	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
-	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x97\x01\n" +
-	"!ListSubscriptionRateCardsResponse\x12J\n" +
-	"\n" +
-	"rate_cards\x18\x01 \x03(\v2+.tanvo.subscription.v1.SubscriptionRateCardR\trateCards\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xb9\x02\n" +
-	"!UpdateSubscriptionRateCardRequest\x12:\n" +
-	"\x0fsubscription_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0esubscriptionId\x12T\n" +
-	"\trate_card\x18\x02 \x01(\v2+.tanvo.subscription.v1.SubscriptionRateCardB\n" +
-	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\brateCard\x12;\n" +
-	"\vupdate_mask\x18\x03 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
-	"updateMask:E\xbaHB\x1a@\n" +
-	"\frate_card.id\x12\x18rate_card.id is required\x1a\x16has(this.rate_card.id)\"n\n" +
-	"\"UpdateSubscriptionRateCardResponse\x12H\n" +
-	"\trate_card\x18\x01 \x01(\v2+.tanvo.subscription.v1.SubscriptionRateCardR\brateCard\"\x92\x01\n" +
-	"!DeleteSubscriptionRateCardRequest\x12:\n" +
-	"\x0fsubscription_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0esubscriptionId\x121\n" +
-	"\frate_card_id\x18\x02 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\n" +
-	"rateCardId\"$\n" +
-	"\"DeleteSubscriptionRateCardResponse\"\xcc\x01\n" +
-	"\x1aListBillingSegmentsRequest\x12:\n" +
-	"\x0fsubscription_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0esubscriptionId\x12'\n" +
-	"\tpage_size\x18\x02 \x01(\x05B\n" +
-	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
-	"\n" +
-	"page_token\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12 \n" +
-	"\x06filter\x18\x04 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\"\x97\x01\n" +
-	"\x1bListBillingSegmentsResponse\x12P\n" +
-	"\x10billing_segments\x18\x01 \x03(\v2%.tanvo.subscription.v1.BillingSegmentR\x0fbillingSegments\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken*\xe4\x01\n" +
+	"\x0elifetime_usage\x18\x01 \x01(\v2$.tanvo.subscription.v1.LifetimeUsageR\rlifetimeUsage*\xe4\x01\n" +
 	"\x12SubscriptionStatus\x12#\n" +
 	"\x1fSUBSCRIPTION_STATUS_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bSUBSCRIPTION_STATUS_PENDING\x10\x01\x12\"\n" +
@@ -6330,13 +4413,7 @@ const file_tanvo_subscription_v1_subscription_proto_rawDesc = "" +
 	"%ACTIVATION_RULE_STATUS_NOT_APPLICABLE\x10\x04\x12#\n" +
 	"\x1fACTIVATION_RULE_STATUS_DECLINED\x10\x05\x12!\n" +
 	"\x1dACTIVATION_RULE_STATUS_FAILED\x10\x06\x12\"\n" +
-	"\x1eACTIVATION_RULE_STATUS_EXPIRED\x10\a*\xcd\x01\n" +
-	"\x14BillingSegmentStatus\x12&\n" +
-	"\"BILLING_SEGMENT_STATUS_UNSPECIFIED\x10\x00\x12\"\n" +
-	"\x1eBILLING_SEGMENT_STATUS_PENDING\x10\x01\x12%\n" +
-	"!BILLING_SEGMENT_STATUS_PROCESSING\x10\x02\x12\x1f\n" +
-	"\x1bBILLING_SEGMENT_STATUS_DONE\x10\x03\x12!\n" +
-	"\x1dBILLING_SEGMENT_STATUS_FAILED\x10\x042\xcf\x19\n" +
+	"\x1eACTIVATION_RULE_STATUS_EXPIRED\x10\a2\xe7\x0f\n" +
 	"\x13SubscriptionService\x12\xca\x01\n" +
 	"\x12CreateSubscription\x120.tanvo.subscription.v1.CreateSubscriptionRequest\x1a1.tanvo.subscription.v1.CreateSubscriptionResponse\"O\xca\xf3\x18$\n" +
 	"\x14subscriptions:create*\fsubscription\x82\xd3\xe4\x93\x02!:\fsubscription\"\x11/v1/subscriptions\x12\xc6\x01\n" +
@@ -6355,182 +4432,127 @@ const file_tanvo_subscription_v1_subscription_proto_rawDesc = "" +
 	"\x10GetLifetimeUsage\x12..tanvo.subscription.v1.GetLifetimeUsageRequest\x1a/.tanvo.subscription.v1.GetLifetimeUsageResponse\"e\xca\xf3\x18$\n" +
 	"\x12subscriptions:read*\x0elifetime_usage\x82\xd3\xe4\x93\x024\x122/v1/subscriptions/{subscription_id}/lifetime_usage\x90\x02\x01\x12\xe5\x01\n" +
 	"\x13UpdateLifetimeUsage\x121.tanvo.subscription.v1.UpdateLifetimeUsageRequest\x1a2.tanvo.subscription.v1.UpdateLifetimeUsageResponse\"g\xca\xf3\x18&\n" +
-	"\x14subscriptions:update*\x0elifetime_usage\x82\xd3\xe4\x93\x027:\x01*22/v1/subscriptions/{subscription_id}/lifetime_usage\x12\xfe\x01\n" +
-	"\x1aCreateSubscriptionRateCard\x128.tanvo.subscription.v1.CreateSubscriptionRateCardRequest\x1a9.tanvo.subscription.v1.CreateSubscriptionRateCardResponse\"k\xca\xf3\x18&\n" +
-	"\x10contracts:update*\x12contract_rate_card\x82\xd3\xe4\x93\x02;:\trate_card\"./v1/subscriptions/{subscription_id}/rate_cards\x12\xf1\x01\n" +
-	"\x19ListSubscriptionRateCards\x127.tanvo.subscription.v1.ListSubscriptionRateCardsRequest\x1a8.tanvo.subscription.v1.ListSubscriptionRateCardsResponse\"a\xca\xf3\x18$\n" +
-	"\x0econtracts:read*\x12contract_rate_card\x82\xd3\xe4\x93\x020\x12./v1/subscriptions/{subscription_id}/rate_cards\x90\x02\x01\x12\x8d\x02\n" +
-	"\x1aUpdateSubscriptionRateCard\x128.tanvo.subscription.v1.UpdateSubscriptionRateCardRequest\x1a9.tanvo.subscription.v1.UpdateSubscriptionRateCardResponse\"z\xca\xf3\x18&\n" +
-	"\x10contracts:update*\x12contract_rate_card\x82\xd3\xe4\x93\x02J:\trate_card2=/v1/subscriptions/{subscription_id}/rate_cards/{rate_card.id}\x12\x82\x02\n" +
-	"\x1aDeleteSubscriptionRateCard\x128.tanvo.subscription.v1.DeleteSubscriptionRateCardRequest\x1a9.tanvo.subscription.v1.DeleteSubscriptionRateCardResponse\"o\xca\xf3\x18&\n" +
-	"\x10contracts:update*\x12contract_rate_card\x82\xd3\xe4\x93\x02?*=/v1/subscriptions/{subscription_id}/rate_cards/{rate_card_id}\x12\xdb\x01\n" +
-	"\x13ListBillingSegments\x121.tanvo.subscription.v1.ListBillingSegmentsRequest\x1a2.tanvo.subscription.v1.ListBillingSegmentsResponse\"]\xca\xf3\x18\x1a\n" +
-	"\x0econtracts:read*\bcontract\x82\xd3\xe4\x93\x026\x124/v1/subscriptions/{subscription_id}/billing_segments\x90\x02\x01B\xf6\x01\n" +
+	"\x14subscriptions:update*\x0elifetime_usage\x82\xd3\xe4\x93\x027:\x01*22/v1/subscriptions/{subscription_id}/lifetime_usageB\xf6\x01\n" +
 	"\x19com.tanvo.subscription.v1B\x11SubscriptionProtoP\x01ZPgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/subscription/v1;subscriptionv1\xa2\x02\x03TSX\xaa\x02\x15Tanvo.Subscription.V1\xca\x02\x15Tanvo\\Subscription\\V1\xe2\x02!Tanvo\\Subscription\\V1\\GPBMetadata\xea\x02\x17Tanvo::Subscription::V1b\beditionsp\xe8\a"
 
-var file_tanvo_subscription_v1_subscription_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
-var file_tanvo_subscription_v1_subscription_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
+var file_tanvo_subscription_v1_subscription_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
+var file_tanvo_subscription_v1_subscription_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
 var file_tanvo_subscription_v1_subscription_proto_goTypes = []any{
-	(SubscriptionStatus)(0),                    // 0: tanvo.subscription.v1.SubscriptionStatus
-	(BillingTime)(0),                           // 1: tanvo.subscription.v1.BillingTime
-	(CancellationReason)(0),                    // 2: tanvo.subscription.v1.CancellationReason
-	(TerminationCreditNote)(0),                 // 3: tanvo.subscription.v1.TerminationCreditNote
-	(TerminationInvoice)(0),                    // 4: tanvo.subscription.v1.TerminationInvoice
-	(ActivationRuleType)(0),                    // 5: tanvo.subscription.v1.ActivationRuleType
-	(ActivationRuleStatus)(0),                  // 6: tanvo.subscription.v1.ActivationRuleStatus
-	(BillingSegmentStatus)(0),                  // 7: tanvo.subscription.v1.BillingSegmentStatus
-	(*ActivationRule)(nil),                     // 8: tanvo.subscription.v1.ActivationRule
-	(*PlanOverrides)(nil),                      // 9: tanvo.subscription.v1.PlanOverrides
-	(*SubscriptionRateCard)(nil),               // 10: tanvo.subscription.v1.SubscriptionRateCard
-	(*BillingSegment)(nil),                     // 11: tanvo.subscription.v1.BillingSegment
-	(*Subscription)(nil),                       // 12: tanvo.subscription.v1.Subscription
-	(*UsageThresholdProgress)(nil),             // 13: tanvo.subscription.v1.UsageThresholdProgress
-	(*LifetimeUsage)(nil),                      // 14: tanvo.subscription.v1.LifetimeUsage
-	(*CreateSubscriptionRequest)(nil),          // 15: tanvo.subscription.v1.CreateSubscriptionRequest
-	(*CreateSubscriptionResponse)(nil),         // 16: tanvo.subscription.v1.CreateSubscriptionResponse
-	(*GetSubscriptionRequest)(nil),             // 17: tanvo.subscription.v1.GetSubscriptionRequest
-	(*GetSubscriptionResponse)(nil),            // 18: tanvo.subscription.v1.GetSubscriptionResponse
-	(*ListSubscriptionsRequest)(nil),           // 19: tanvo.subscription.v1.ListSubscriptionsRequest
-	(*ListSubscriptionsResponse)(nil),          // 20: tanvo.subscription.v1.ListSubscriptionsResponse
-	(*UpdateSubscriptionRequest)(nil),          // 21: tanvo.subscription.v1.UpdateSubscriptionRequest
-	(*UpdateSubscriptionResponse)(nil),         // 22: tanvo.subscription.v1.UpdateSubscriptionResponse
-	(*ChangeSubscriptionPlanRequest)(nil),      // 23: tanvo.subscription.v1.ChangeSubscriptionPlanRequest
-	(*ChangeSubscriptionPlanResponse)(nil),     // 24: tanvo.subscription.v1.ChangeSubscriptionPlanResponse
-	(*TerminateSubscriptionRequest)(nil),       // 25: tanvo.subscription.v1.TerminateSubscriptionRequest
-	(*TerminateSubscriptionResponse)(nil),      // 26: tanvo.subscription.v1.TerminateSubscriptionResponse
-	(*CancelSubscriptionRequest)(nil),          // 27: tanvo.subscription.v1.CancelSubscriptionRequest
-	(*CancelSubscriptionResponse)(nil),         // 28: tanvo.subscription.v1.CancelSubscriptionResponse
-	(*GetLifetimeUsageRequest)(nil),            // 29: tanvo.subscription.v1.GetLifetimeUsageRequest
-	(*GetLifetimeUsageResponse)(nil),           // 30: tanvo.subscription.v1.GetLifetimeUsageResponse
-	(*UpdateLifetimeUsageRequest)(nil),         // 31: tanvo.subscription.v1.UpdateLifetimeUsageRequest
-	(*UpdateLifetimeUsageResponse)(nil),        // 32: tanvo.subscription.v1.UpdateLifetimeUsageResponse
-	(*CreateSubscriptionRateCardRequest)(nil),  // 33: tanvo.subscription.v1.CreateSubscriptionRateCardRequest
-	(*CreateSubscriptionRateCardResponse)(nil), // 34: tanvo.subscription.v1.CreateSubscriptionRateCardResponse
-	(*ListSubscriptionRateCardsRequest)(nil),   // 35: tanvo.subscription.v1.ListSubscriptionRateCardsRequest
-	(*ListSubscriptionRateCardsResponse)(nil),  // 36: tanvo.subscription.v1.ListSubscriptionRateCardsResponse
-	(*UpdateSubscriptionRateCardRequest)(nil),  // 37: tanvo.subscription.v1.UpdateSubscriptionRateCardRequest
-	(*UpdateSubscriptionRateCardResponse)(nil), // 38: tanvo.subscription.v1.UpdateSubscriptionRateCardResponse
-	(*DeleteSubscriptionRateCardRequest)(nil),  // 39: tanvo.subscription.v1.DeleteSubscriptionRateCardRequest
-	(*DeleteSubscriptionRateCardResponse)(nil), // 40: tanvo.subscription.v1.DeleteSubscriptionRateCardResponse
-	(*ListBillingSegmentsRequest)(nil),         // 41: tanvo.subscription.v1.ListBillingSegmentsRequest
-	(*ListBillingSegmentsResponse)(nil),        // 42: tanvo.subscription.v1.ListBillingSegmentsResponse
-	nil,                                        // 43: tanvo.subscription.v1.GetLifetimeUsageResponse.MetricUnitsEntry
-	(*timestamppb.Timestamp)(nil),              // 44: google.protobuf.Timestamp
-	(*v1.Money)(nil),                           // 45: tanvo.common.v1.Money
-	(*v11.Charge)(nil),                         // 46: tanvo.catalog.v1.Charge
-	(*v11.FixedCharge)(nil),                    // 47: tanvo.catalog.v1.FixedCharge
-	(*v11.Commitment)(nil),                     // 48: tanvo.catalog.v1.Commitment
-	(*v11.UsageThreshold)(nil),                 // 49: tanvo.catalog.v1.UsageThreshold
-	(*date.Date)(nil),                          // 50: google.type.Date
-	(*v11.RatePhase)(nil),                      // 51: tanvo.catalog.v1.RatePhase
-	(v1.PaymentMethodType)(0),                  // 52: tanvo.common.v1.PaymentMethodType
-	(*fieldmaskpb.FieldMask)(nil),              // 53: google.protobuf.FieldMask
+	(SubscriptionStatus)(0),                // 0: tanvo.subscription.v1.SubscriptionStatus
+	(BillingTime)(0),                       // 1: tanvo.subscription.v1.BillingTime
+	(CancellationReason)(0),                // 2: tanvo.subscription.v1.CancellationReason
+	(TerminationCreditNote)(0),             // 3: tanvo.subscription.v1.TerminationCreditNote
+	(TerminationInvoice)(0),                // 4: tanvo.subscription.v1.TerminationInvoice
+	(ActivationRuleType)(0),                // 5: tanvo.subscription.v1.ActivationRuleType
+	(ActivationRuleStatus)(0),              // 6: tanvo.subscription.v1.ActivationRuleStatus
+	(*ActivationRule)(nil),                 // 7: tanvo.subscription.v1.ActivationRule
+	(*PlanOverrides)(nil),                  // 8: tanvo.subscription.v1.PlanOverrides
+	(*Subscription)(nil),                   // 9: tanvo.subscription.v1.Subscription
+	(*UsageThresholdProgress)(nil),         // 10: tanvo.subscription.v1.UsageThresholdProgress
+	(*LifetimeUsage)(nil),                  // 11: tanvo.subscription.v1.LifetimeUsage
+	(*CreateSubscriptionRequest)(nil),      // 12: tanvo.subscription.v1.CreateSubscriptionRequest
+	(*CreateSubscriptionResponse)(nil),     // 13: tanvo.subscription.v1.CreateSubscriptionResponse
+	(*GetSubscriptionRequest)(nil),         // 14: tanvo.subscription.v1.GetSubscriptionRequest
+	(*GetSubscriptionResponse)(nil),        // 15: tanvo.subscription.v1.GetSubscriptionResponse
+	(*ListSubscriptionsRequest)(nil),       // 16: tanvo.subscription.v1.ListSubscriptionsRequest
+	(*ListSubscriptionsResponse)(nil),      // 17: tanvo.subscription.v1.ListSubscriptionsResponse
+	(*UpdateSubscriptionRequest)(nil),      // 18: tanvo.subscription.v1.UpdateSubscriptionRequest
+	(*UpdateSubscriptionResponse)(nil),     // 19: tanvo.subscription.v1.UpdateSubscriptionResponse
+	(*ChangeSubscriptionPlanRequest)(nil),  // 20: tanvo.subscription.v1.ChangeSubscriptionPlanRequest
+	(*ChangeSubscriptionPlanResponse)(nil), // 21: tanvo.subscription.v1.ChangeSubscriptionPlanResponse
+	(*TerminateSubscriptionRequest)(nil),   // 22: tanvo.subscription.v1.TerminateSubscriptionRequest
+	(*TerminateSubscriptionResponse)(nil),  // 23: tanvo.subscription.v1.TerminateSubscriptionResponse
+	(*CancelSubscriptionRequest)(nil),      // 24: tanvo.subscription.v1.CancelSubscriptionRequest
+	(*CancelSubscriptionResponse)(nil),     // 25: tanvo.subscription.v1.CancelSubscriptionResponse
+	(*GetLifetimeUsageRequest)(nil),        // 26: tanvo.subscription.v1.GetLifetimeUsageRequest
+	(*GetLifetimeUsageResponse)(nil),       // 27: tanvo.subscription.v1.GetLifetimeUsageResponse
+	(*UpdateLifetimeUsageRequest)(nil),     // 28: tanvo.subscription.v1.UpdateLifetimeUsageRequest
+	(*UpdateLifetimeUsageResponse)(nil),    // 29: tanvo.subscription.v1.UpdateLifetimeUsageResponse
+	nil,                                    // 30: tanvo.subscription.v1.GetLifetimeUsageResponse.MetricUnitsEntry
+	(*timestamppb.Timestamp)(nil),          // 31: google.protobuf.Timestamp
+	(*v1.Money)(nil),                       // 32: tanvo.common.v1.Money
+	(*v11.Charge)(nil),                     // 33: tanvo.catalog.v1.Charge
+	(*v11.FixedCharge)(nil),                // 34: tanvo.catalog.v1.FixedCharge
+	(*v11.Commitment)(nil),                 // 35: tanvo.catalog.v1.Commitment
+	(*v11.UsageThreshold)(nil),             // 36: tanvo.catalog.v1.UsageThreshold
+	(v1.PaymentMethodType)(0),              // 37: tanvo.common.v1.PaymentMethodType
+	(*fieldmaskpb.FieldMask)(nil),          // 38: google.protobuf.FieldMask
 }
 var file_tanvo_subscription_v1_subscription_proto_depIdxs = []int32{
 	5,  // 0: tanvo.subscription.v1.ActivationRule.rule_type:type_name -> tanvo.subscription.v1.ActivationRuleType
 	6,  // 1: tanvo.subscription.v1.ActivationRule.status:type_name -> tanvo.subscription.v1.ActivationRuleStatus
-	44, // 2: tanvo.subscription.v1.ActivationRule.expires_at:type_name -> google.protobuf.Timestamp
-	45, // 3: tanvo.subscription.v1.PlanOverrides.amount:type_name -> tanvo.common.v1.Money
-	46, // 4: tanvo.subscription.v1.PlanOverrides.charges:type_name -> tanvo.catalog.v1.Charge
-	47, // 5: tanvo.subscription.v1.PlanOverrides.fixed_charges:type_name -> tanvo.catalog.v1.FixedCharge
-	48, // 6: tanvo.subscription.v1.PlanOverrides.minimum_commitment:type_name -> tanvo.catalog.v1.Commitment
-	49, // 7: tanvo.subscription.v1.PlanOverrides.usage_thresholds:type_name -> tanvo.catalog.v1.UsageThreshold
-	50, // 8: tanvo.subscription.v1.SubscriptionRateCard.effective_date:type_name -> google.type.Date
-	50, // 9: tanvo.subscription.v1.SubscriptionRateCard.billing_anchor_date:type_name -> google.type.Date
-	51, // 10: tanvo.subscription.v1.SubscriptionRateCard.phases:type_name -> tanvo.catalog.v1.RatePhase
-	44, // 11: tanvo.subscription.v1.SubscriptionRateCard.next_billing_at:type_name -> google.protobuf.Timestamp
-	44, // 12: tanvo.subscription.v1.SubscriptionRateCard.created_at:type_name -> google.protobuf.Timestamp
-	44, // 13: tanvo.subscription.v1.SubscriptionRateCard.updated_at:type_name -> google.protobuf.Timestamp
-	7,  // 14: tanvo.subscription.v1.BillingSegment.status:type_name -> tanvo.subscription.v1.BillingSegmentStatus
-	44, // 15: tanvo.subscription.v1.BillingSegment.billing_at:type_name -> google.protobuf.Timestamp
-	44, // 16: tanvo.subscription.v1.BillingSegment.started_at:type_name -> google.protobuf.Timestamp
-	44, // 17: tanvo.subscription.v1.BillingSegment.ended_at:type_name -> google.protobuf.Timestamp
-	44, // 18: tanvo.subscription.v1.BillingSegment.cycle_started_at:type_name -> google.protobuf.Timestamp
-	1,  // 19: tanvo.subscription.v1.Subscription.billing_time:type_name -> tanvo.subscription.v1.BillingTime
-	0,  // 20: tanvo.subscription.v1.Subscription.status:type_name -> tanvo.subscription.v1.SubscriptionStatus
-	44, // 21: tanvo.subscription.v1.Subscription.subscription_at:type_name -> google.protobuf.Timestamp
-	44, // 22: tanvo.subscription.v1.Subscription.ending_at:type_name -> google.protobuf.Timestamp
-	44, // 23: tanvo.subscription.v1.Subscription.started_at:type_name -> google.protobuf.Timestamp
-	44, // 24: tanvo.subscription.v1.Subscription.terminated_at:type_name -> google.protobuf.Timestamp
-	44, // 25: tanvo.subscription.v1.Subscription.canceled_at:type_name -> google.protobuf.Timestamp
-	2,  // 26: tanvo.subscription.v1.Subscription.cancellation_reason:type_name -> tanvo.subscription.v1.CancellationReason
-	44, // 27: tanvo.subscription.v1.Subscription.trial_ended_at:type_name -> google.protobuf.Timestamp
-	3,  // 28: tanvo.subscription.v1.Subscription.on_termination_credit_note:type_name -> tanvo.subscription.v1.TerminationCreditNote
-	4,  // 29: tanvo.subscription.v1.Subscription.on_termination_invoice:type_name -> tanvo.subscription.v1.TerminationInvoice
-	52, // 30: tanvo.subscription.v1.Subscription.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
-	8,  // 31: tanvo.subscription.v1.Subscription.activation_rules:type_name -> tanvo.subscription.v1.ActivationRule
-	9,  // 32: tanvo.subscription.v1.Subscription.plan_overrides:type_name -> tanvo.subscription.v1.PlanOverrides
-	10, // 33: tanvo.subscription.v1.Subscription.rate_cards:type_name -> tanvo.subscription.v1.SubscriptionRateCard
-	50, // 34: tanvo.subscription.v1.Subscription.billing_anchor_date:type_name -> google.type.Date
-	44, // 35: tanvo.subscription.v1.Subscription.current_period_started_at:type_name -> google.protobuf.Timestamp
-	44, // 36: tanvo.subscription.v1.Subscription.current_period_ended_at:type_name -> google.protobuf.Timestamp
-	44, // 37: tanvo.subscription.v1.Subscription.next_billing_at:type_name -> google.protobuf.Timestamp
-	44, // 38: tanvo.subscription.v1.Subscription.created_at:type_name -> google.protobuf.Timestamp
-	44, // 39: tanvo.subscription.v1.Subscription.updated_at:type_name -> google.protobuf.Timestamp
-	49, // 40: tanvo.subscription.v1.Subscription.usage_thresholds:type_name -> tanvo.catalog.v1.UsageThreshold
-	44, // 41: tanvo.subscription.v1.UsageThresholdProgress.reached_at:type_name -> google.protobuf.Timestamp
-	45, // 42: tanvo.subscription.v1.LifetimeUsage.external_historical_usage_amount:type_name -> tanvo.common.v1.Money
-	45, // 43: tanvo.subscription.v1.LifetimeUsage.invoiced_usage_amount:type_name -> tanvo.common.v1.Money
-	45, // 44: tanvo.subscription.v1.LifetimeUsage.current_usage_amount:type_name -> tanvo.common.v1.Money
-	13, // 45: tanvo.subscription.v1.LifetimeUsage.usage_thresholds:type_name -> tanvo.subscription.v1.UsageThresholdProgress
-	44, // 46: tanvo.subscription.v1.LifetimeUsage.refreshed_at:type_name -> google.protobuf.Timestamp
-	12, // 47: tanvo.subscription.v1.CreateSubscriptionRequest.subscription:type_name -> tanvo.subscription.v1.Subscription
-	12, // 48: tanvo.subscription.v1.CreateSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
-	12, // 49: tanvo.subscription.v1.GetSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
-	12, // 50: tanvo.subscription.v1.ListSubscriptionsResponse.subscriptions:type_name -> tanvo.subscription.v1.Subscription
-	12, // 51: tanvo.subscription.v1.UpdateSubscriptionRequest.subscription:type_name -> tanvo.subscription.v1.Subscription
-	53, // 52: tanvo.subscription.v1.UpdateSubscriptionRequest.update_mask:type_name -> google.protobuf.FieldMask
-	12, // 53: tanvo.subscription.v1.UpdateSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
-	9,  // 54: tanvo.subscription.v1.ChangeSubscriptionPlanRequest.plan_overrides:type_name -> tanvo.subscription.v1.PlanOverrides
-	12, // 55: tanvo.subscription.v1.ChangeSubscriptionPlanResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
-	12, // 56: tanvo.subscription.v1.ChangeSubscriptionPlanResponse.previous_subscription:type_name -> tanvo.subscription.v1.Subscription
-	3,  // 57: tanvo.subscription.v1.TerminateSubscriptionRequest.on_termination_credit_note:type_name -> tanvo.subscription.v1.TerminationCreditNote
-	4,  // 58: tanvo.subscription.v1.TerminateSubscriptionRequest.on_termination_invoice:type_name -> tanvo.subscription.v1.TerminationInvoice
-	12, // 59: tanvo.subscription.v1.TerminateSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
-	12, // 60: tanvo.subscription.v1.CancelSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
-	14, // 61: tanvo.subscription.v1.GetLifetimeUsageResponse.lifetime_usage:type_name -> tanvo.subscription.v1.LifetimeUsage
-	43, // 62: tanvo.subscription.v1.GetLifetimeUsageResponse.metric_units:type_name -> tanvo.subscription.v1.GetLifetimeUsageResponse.MetricUnitsEntry
-	14, // 63: tanvo.subscription.v1.UpdateLifetimeUsageResponse.lifetime_usage:type_name -> tanvo.subscription.v1.LifetimeUsage
-	10, // 64: tanvo.subscription.v1.CreateSubscriptionRateCardRequest.rate_card:type_name -> tanvo.subscription.v1.SubscriptionRateCard
-	10, // 65: tanvo.subscription.v1.CreateSubscriptionRateCardResponse.rate_card:type_name -> tanvo.subscription.v1.SubscriptionRateCard
-	10, // 66: tanvo.subscription.v1.ListSubscriptionRateCardsResponse.rate_cards:type_name -> tanvo.subscription.v1.SubscriptionRateCard
-	10, // 67: tanvo.subscription.v1.UpdateSubscriptionRateCardRequest.rate_card:type_name -> tanvo.subscription.v1.SubscriptionRateCard
-	53, // 68: tanvo.subscription.v1.UpdateSubscriptionRateCardRequest.update_mask:type_name -> google.protobuf.FieldMask
-	10, // 69: tanvo.subscription.v1.UpdateSubscriptionRateCardResponse.rate_card:type_name -> tanvo.subscription.v1.SubscriptionRateCard
-	11, // 70: tanvo.subscription.v1.ListBillingSegmentsResponse.billing_segments:type_name -> tanvo.subscription.v1.BillingSegment
-	15, // 71: tanvo.subscription.v1.SubscriptionService.CreateSubscription:input_type -> tanvo.subscription.v1.CreateSubscriptionRequest
-	17, // 72: tanvo.subscription.v1.SubscriptionService.GetSubscription:input_type -> tanvo.subscription.v1.GetSubscriptionRequest
-	19, // 73: tanvo.subscription.v1.SubscriptionService.ListSubscriptions:input_type -> tanvo.subscription.v1.ListSubscriptionsRequest
-	21, // 74: tanvo.subscription.v1.SubscriptionService.UpdateSubscription:input_type -> tanvo.subscription.v1.UpdateSubscriptionRequest
-	23, // 75: tanvo.subscription.v1.SubscriptionService.ChangeSubscriptionPlan:input_type -> tanvo.subscription.v1.ChangeSubscriptionPlanRequest
-	25, // 76: tanvo.subscription.v1.SubscriptionService.TerminateSubscription:input_type -> tanvo.subscription.v1.TerminateSubscriptionRequest
-	27, // 77: tanvo.subscription.v1.SubscriptionService.CancelSubscription:input_type -> tanvo.subscription.v1.CancelSubscriptionRequest
-	29, // 78: tanvo.subscription.v1.SubscriptionService.GetLifetimeUsage:input_type -> tanvo.subscription.v1.GetLifetimeUsageRequest
-	31, // 79: tanvo.subscription.v1.SubscriptionService.UpdateLifetimeUsage:input_type -> tanvo.subscription.v1.UpdateLifetimeUsageRequest
-	33, // 80: tanvo.subscription.v1.SubscriptionService.CreateSubscriptionRateCard:input_type -> tanvo.subscription.v1.CreateSubscriptionRateCardRequest
-	35, // 81: tanvo.subscription.v1.SubscriptionService.ListSubscriptionRateCards:input_type -> tanvo.subscription.v1.ListSubscriptionRateCardsRequest
-	37, // 82: tanvo.subscription.v1.SubscriptionService.UpdateSubscriptionRateCard:input_type -> tanvo.subscription.v1.UpdateSubscriptionRateCardRequest
-	39, // 83: tanvo.subscription.v1.SubscriptionService.DeleteSubscriptionRateCard:input_type -> tanvo.subscription.v1.DeleteSubscriptionRateCardRequest
-	41, // 84: tanvo.subscription.v1.SubscriptionService.ListBillingSegments:input_type -> tanvo.subscription.v1.ListBillingSegmentsRequest
-	16, // 85: tanvo.subscription.v1.SubscriptionService.CreateSubscription:output_type -> tanvo.subscription.v1.CreateSubscriptionResponse
-	18, // 86: tanvo.subscription.v1.SubscriptionService.GetSubscription:output_type -> tanvo.subscription.v1.GetSubscriptionResponse
-	20, // 87: tanvo.subscription.v1.SubscriptionService.ListSubscriptions:output_type -> tanvo.subscription.v1.ListSubscriptionsResponse
-	22, // 88: tanvo.subscription.v1.SubscriptionService.UpdateSubscription:output_type -> tanvo.subscription.v1.UpdateSubscriptionResponse
-	24, // 89: tanvo.subscription.v1.SubscriptionService.ChangeSubscriptionPlan:output_type -> tanvo.subscription.v1.ChangeSubscriptionPlanResponse
-	26, // 90: tanvo.subscription.v1.SubscriptionService.TerminateSubscription:output_type -> tanvo.subscription.v1.TerminateSubscriptionResponse
-	28, // 91: tanvo.subscription.v1.SubscriptionService.CancelSubscription:output_type -> tanvo.subscription.v1.CancelSubscriptionResponse
-	30, // 92: tanvo.subscription.v1.SubscriptionService.GetLifetimeUsage:output_type -> tanvo.subscription.v1.GetLifetimeUsageResponse
-	32, // 93: tanvo.subscription.v1.SubscriptionService.UpdateLifetimeUsage:output_type -> tanvo.subscription.v1.UpdateLifetimeUsageResponse
-	34, // 94: tanvo.subscription.v1.SubscriptionService.CreateSubscriptionRateCard:output_type -> tanvo.subscription.v1.CreateSubscriptionRateCardResponse
-	36, // 95: tanvo.subscription.v1.SubscriptionService.ListSubscriptionRateCards:output_type -> tanvo.subscription.v1.ListSubscriptionRateCardsResponse
-	38, // 96: tanvo.subscription.v1.SubscriptionService.UpdateSubscriptionRateCard:output_type -> tanvo.subscription.v1.UpdateSubscriptionRateCardResponse
-	40, // 97: tanvo.subscription.v1.SubscriptionService.DeleteSubscriptionRateCard:output_type -> tanvo.subscription.v1.DeleteSubscriptionRateCardResponse
-	42, // 98: tanvo.subscription.v1.SubscriptionService.ListBillingSegments:output_type -> tanvo.subscription.v1.ListBillingSegmentsResponse
-	85, // [85:99] is the sub-list for method output_type
-	71, // [71:85] is the sub-list for method input_type
-	71, // [71:71] is the sub-list for extension type_name
-	71, // [71:71] is the sub-list for extension extendee
-	0,  // [0:71] is the sub-list for field type_name
+	31, // 2: tanvo.subscription.v1.ActivationRule.expires_at:type_name -> google.protobuf.Timestamp
+	32, // 3: tanvo.subscription.v1.PlanOverrides.amount:type_name -> tanvo.common.v1.Money
+	33, // 4: tanvo.subscription.v1.PlanOverrides.charges:type_name -> tanvo.catalog.v1.Charge
+	34, // 5: tanvo.subscription.v1.PlanOverrides.fixed_charges:type_name -> tanvo.catalog.v1.FixedCharge
+	35, // 6: tanvo.subscription.v1.PlanOverrides.minimum_commitment:type_name -> tanvo.catalog.v1.Commitment
+	36, // 7: tanvo.subscription.v1.PlanOverrides.usage_thresholds:type_name -> tanvo.catalog.v1.UsageThreshold
+	1,  // 8: tanvo.subscription.v1.Subscription.billing_time:type_name -> tanvo.subscription.v1.BillingTime
+	0,  // 9: tanvo.subscription.v1.Subscription.status:type_name -> tanvo.subscription.v1.SubscriptionStatus
+	31, // 10: tanvo.subscription.v1.Subscription.subscription_at:type_name -> google.protobuf.Timestamp
+	31, // 11: tanvo.subscription.v1.Subscription.ending_at:type_name -> google.protobuf.Timestamp
+	31, // 12: tanvo.subscription.v1.Subscription.started_at:type_name -> google.protobuf.Timestamp
+	31, // 13: tanvo.subscription.v1.Subscription.terminated_at:type_name -> google.protobuf.Timestamp
+	31, // 14: tanvo.subscription.v1.Subscription.canceled_at:type_name -> google.protobuf.Timestamp
+	2,  // 15: tanvo.subscription.v1.Subscription.cancellation_reason:type_name -> tanvo.subscription.v1.CancellationReason
+	31, // 16: tanvo.subscription.v1.Subscription.trial_ended_at:type_name -> google.protobuf.Timestamp
+	3,  // 17: tanvo.subscription.v1.Subscription.on_termination_credit_note:type_name -> tanvo.subscription.v1.TerminationCreditNote
+	4,  // 18: tanvo.subscription.v1.Subscription.on_termination_invoice:type_name -> tanvo.subscription.v1.TerminationInvoice
+	37, // 19: tanvo.subscription.v1.Subscription.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
+	7,  // 20: tanvo.subscription.v1.Subscription.activation_rules:type_name -> tanvo.subscription.v1.ActivationRule
+	8,  // 21: tanvo.subscription.v1.Subscription.plan_overrides:type_name -> tanvo.subscription.v1.PlanOverrides
+	31, // 22: tanvo.subscription.v1.Subscription.current_period_started_at:type_name -> google.protobuf.Timestamp
+	31, // 23: tanvo.subscription.v1.Subscription.current_period_ended_at:type_name -> google.protobuf.Timestamp
+	31, // 24: tanvo.subscription.v1.Subscription.next_billing_at:type_name -> google.protobuf.Timestamp
+	31, // 25: tanvo.subscription.v1.Subscription.created_at:type_name -> google.protobuf.Timestamp
+	31, // 26: tanvo.subscription.v1.Subscription.updated_at:type_name -> google.protobuf.Timestamp
+	36, // 27: tanvo.subscription.v1.Subscription.usage_thresholds:type_name -> tanvo.catalog.v1.UsageThreshold
+	31, // 28: tanvo.subscription.v1.UsageThresholdProgress.reached_at:type_name -> google.protobuf.Timestamp
+	32, // 29: tanvo.subscription.v1.LifetimeUsage.external_historical_usage_amount:type_name -> tanvo.common.v1.Money
+	32, // 30: tanvo.subscription.v1.LifetimeUsage.invoiced_usage_amount:type_name -> tanvo.common.v1.Money
+	32, // 31: tanvo.subscription.v1.LifetimeUsage.current_usage_amount:type_name -> tanvo.common.v1.Money
+	10, // 32: tanvo.subscription.v1.LifetimeUsage.usage_thresholds:type_name -> tanvo.subscription.v1.UsageThresholdProgress
+	31, // 33: tanvo.subscription.v1.LifetimeUsage.refreshed_at:type_name -> google.protobuf.Timestamp
+	9,  // 34: tanvo.subscription.v1.CreateSubscriptionRequest.subscription:type_name -> tanvo.subscription.v1.Subscription
+	9,  // 35: tanvo.subscription.v1.CreateSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
+	9,  // 36: tanvo.subscription.v1.GetSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
+	9,  // 37: tanvo.subscription.v1.ListSubscriptionsResponse.subscriptions:type_name -> tanvo.subscription.v1.Subscription
+	9,  // 38: tanvo.subscription.v1.UpdateSubscriptionRequest.subscription:type_name -> tanvo.subscription.v1.Subscription
+	38, // 39: tanvo.subscription.v1.UpdateSubscriptionRequest.update_mask:type_name -> google.protobuf.FieldMask
+	9,  // 40: tanvo.subscription.v1.UpdateSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
+	8,  // 41: tanvo.subscription.v1.ChangeSubscriptionPlanRequest.plan_overrides:type_name -> tanvo.subscription.v1.PlanOverrides
+	9,  // 42: tanvo.subscription.v1.ChangeSubscriptionPlanResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
+	9,  // 43: tanvo.subscription.v1.ChangeSubscriptionPlanResponse.previous_subscription:type_name -> tanvo.subscription.v1.Subscription
+	3,  // 44: tanvo.subscription.v1.TerminateSubscriptionRequest.on_termination_credit_note:type_name -> tanvo.subscription.v1.TerminationCreditNote
+	4,  // 45: tanvo.subscription.v1.TerminateSubscriptionRequest.on_termination_invoice:type_name -> tanvo.subscription.v1.TerminationInvoice
+	9,  // 46: tanvo.subscription.v1.TerminateSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
+	9,  // 47: tanvo.subscription.v1.CancelSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
+	11, // 48: tanvo.subscription.v1.GetLifetimeUsageResponse.lifetime_usage:type_name -> tanvo.subscription.v1.LifetimeUsage
+	30, // 49: tanvo.subscription.v1.GetLifetimeUsageResponse.metric_units:type_name -> tanvo.subscription.v1.GetLifetimeUsageResponse.MetricUnitsEntry
+	11, // 50: tanvo.subscription.v1.UpdateLifetimeUsageResponse.lifetime_usage:type_name -> tanvo.subscription.v1.LifetimeUsage
+	12, // 51: tanvo.subscription.v1.SubscriptionService.CreateSubscription:input_type -> tanvo.subscription.v1.CreateSubscriptionRequest
+	14, // 52: tanvo.subscription.v1.SubscriptionService.GetSubscription:input_type -> tanvo.subscription.v1.GetSubscriptionRequest
+	16, // 53: tanvo.subscription.v1.SubscriptionService.ListSubscriptions:input_type -> tanvo.subscription.v1.ListSubscriptionsRequest
+	18, // 54: tanvo.subscription.v1.SubscriptionService.UpdateSubscription:input_type -> tanvo.subscription.v1.UpdateSubscriptionRequest
+	20, // 55: tanvo.subscription.v1.SubscriptionService.ChangeSubscriptionPlan:input_type -> tanvo.subscription.v1.ChangeSubscriptionPlanRequest
+	22, // 56: tanvo.subscription.v1.SubscriptionService.TerminateSubscription:input_type -> tanvo.subscription.v1.TerminateSubscriptionRequest
+	24, // 57: tanvo.subscription.v1.SubscriptionService.CancelSubscription:input_type -> tanvo.subscription.v1.CancelSubscriptionRequest
+	26, // 58: tanvo.subscription.v1.SubscriptionService.GetLifetimeUsage:input_type -> tanvo.subscription.v1.GetLifetimeUsageRequest
+	28, // 59: tanvo.subscription.v1.SubscriptionService.UpdateLifetimeUsage:input_type -> tanvo.subscription.v1.UpdateLifetimeUsageRequest
+	13, // 60: tanvo.subscription.v1.SubscriptionService.CreateSubscription:output_type -> tanvo.subscription.v1.CreateSubscriptionResponse
+	15, // 61: tanvo.subscription.v1.SubscriptionService.GetSubscription:output_type -> tanvo.subscription.v1.GetSubscriptionResponse
+	17, // 62: tanvo.subscription.v1.SubscriptionService.ListSubscriptions:output_type -> tanvo.subscription.v1.ListSubscriptionsResponse
+	19, // 63: tanvo.subscription.v1.SubscriptionService.UpdateSubscription:output_type -> tanvo.subscription.v1.UpdateSubscriptionResponse
+	21, // 64: tanvo.subscription.v1.SubscriptionService.ChangeSubscriptionPlan:output_type -> tanvo.subscription.v1.ChangeSubscriptionPlanResponse
+	23, // 65: tanvo.subscription.v1.SubscriptionService.TerminateSubscription:output_type -> tanvo.subscription.v1.TerminateSubscriptionResponse
+	25, // 66: tanvo.subscription.v1.SubscriptionService.CancelSubscription:output_type -> tanvo.subscription.v1.CancelSubscriptionResponse
+	27, // 67: tanvo.subscription.v1.SubscriptionService.GetLifetimeUsage:output_type -> tanvo.subscription.v1.GetLifetimeUsageResponse
+	29, // 68: tanvo.subscription.v1.SubscriptionService.UpdateLifetimeUsage:output_type -> tanvo.subscription.v1.UpdateLifetimeUsageResponse
+	60, // [60:69] is the sub-list for method output_type
+	51, // [51:60] is the sub-list for method input_type
+	51, // [51:51] is the sub-list for extension type_name
+	51, // [51:51] is the sub-list for extension extendee
+	0,  // [0:51] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_subscription_v1_subscription_proto_init() }
@@ -6543,8 +4565,8 @@ func file_tanvo_subscription_v1_subscription_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_subscription_v1_subscription_proto_rawDesc), len(file_tanvo_subscription_v1_subscription_proto_rawDesc)),
-			NumEnums:      8,
-			NumMessages:   36,
+			NumEnums:      7,
+			NumMessages:   24,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

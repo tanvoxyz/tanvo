@@ -23,6 +23,19 @@ type Catalog interface {
 	Charges(ctx context.Context, org core.OrganizationID, plan core.PlanID, metric core.BillableMetricID) ([]*catalog.Charge, error)
 }
 
+// ContractCatalog is the optional part of a [Catalog] that finds the
+// contracts billing events in advance; an enricher whose catalog lacks it
+// bills no contract event in advance.
+type ContractCatalog interface {
+	// InAdvanceContract returns the active contract of org with that
+	// external ID when one of its rate cards bills a metered product of
+	// the metric in advance, or the zero ID (and no error). Billing
+	// resolves which card prices the event (lago
+	// Events::PayInAdvanceBillingSegmentResolver), so this only bounds the
+	// events it is asked about.
+	InAdvanceContract(ctx context.Context, org core.OrganizationID, externalID string, metric core.BillableMetricID) (core.SubscriptionID, error)
+}
+
 // EventWriter stores batches of enriched events and returns the positions of
 // the duplicates; the backends of libs/eventstore implement it
 // (eventstore.Writer has the same method).
@@ -53,8 +66,8 @@ type RawProducer interface {
 // external subscription ID, transaction ID), as lago-api's fee creation
 // deduplicates on the event source.
 type InAdvanceBiller interface {
-	// BillInAdvance bills the events, which all have a subscription and
-	// [Enriched.InAdvance] set. In [ModePostgres] ctx carries the
+	// BillInAdvance bills the events, which all have a subscription or a
+	// contract ([Enriched.InAdvanceTarget]) and [Enriched.InAdvance] set. In [ModePostgres] ctx carries the
 	// ingestion transaction.
 	BillInAdvance(ctx context.Context, events []*Enriched) error
 }

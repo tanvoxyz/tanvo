@@ -13,14 +13,14 @@ import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2
 import { file_buf_validate_validate } from "../../../buf/validate/validate_pb.js";
 import { file_google_api_annotations } from "../../../google/api/annotations_pb.js";
 import { file_google_api_field_behavior } from "../../../google/api/field_behavior_pb.js";
-import type { FieldMask } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_field_mask } from "@bufbuild/protobuf/wkt";
+import type { FieldMask, Timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_field_mask, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { InvoiceCollectionPoint, OverdueBalancePoint } from "../../analytics/v1/analytics_pb.js";
 import { file_tanvo_analytics_v1_analytics } from "../../analytics/v1/analytics_pb.js";
 import { file_tanvo_common_v1_options } from "../../common/v1/options_pb.js";
-import type { Address, Document } from "../../common/v1/types_pb.js";
+import type { Address, Document, Money } from "../../common/v1/types_pb.js";
 import { file_tanvo_common_v1_types } from "../../common/v1/types_pb.js";
-import type { Customer, CustomerType } from "../../customer/v1/customer_pb.js";
+import type { AccountType, CustomerType } from "../../customer/v1/customer_pb.js";
 import { file_tanvo_customer_v1_customer } from "../../customer/v1/customer_pb.js";
 import type { Invoice } from "../../invoice/v1/invoice_pb.js";
 import { file_tanvo_invoice_v1_invoice } from "../../invoice/v1/invoice_pb.js";
@@ -28,7 +28,7 @@ import type { Subscription } from "../../subscription/v1/subscription_pb.js";
 import { file_tanvo_subscription_v1_subscription } from "../../subscription/v1/subscription_pb.js";
 import type { Usage } from "../../usage/v1/usage_pb.js";
 import { file_tanvo_usage_v1_usage } from "../../usage/v1/usage_pb.js";
-import type { Wallet, WalletTransaction } from "../../wallet/v1/wallet_pb.js";
+import type { SettlementStatus, TransactionStatus, TransactionType, WalletStatus } from "../../wallet/v1/wallet_pb.js";
 import { file_tanvo_wallet_v1_wallet } from "../../wallet/v1/wallet_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -36,41 +36,71 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file tanvo/portal/v1/portal.proto.
  */
 export const file_tanvo_portal_v1_portal: GenFile = /*@__PURE__*/
-  fileDesc("Chx0YW52by9wb3J0YWwvdjEvcG9ydGFsLnByb3RvEg90YW52by5wb3J0YWwudjEibAoSUG9ydGFsT3JnYW5pemF0aW9uEgwKBG5hbWUYASABKAkSEAoIbG9nb191cmwYAiABKAkSGAoQZGVmYXVsdF9jdXJyZW5jeRgDIAEoCRIcChRwcmVtaXVtX2ludGVncmF0aW9ucxgEIAMoCSKPAwoNUG9ydGFsUHJvZmlsZRJACg1jdXN0b21lcl90eXBlGAEgASgOMh8udGFudm8uY3VzdG9tZXIudjEuQ3VzdG9tZXJUeXBlQgi6SAWCAQIQARIWCgRuYW1lGAIgASgJQgi6SAVyAxj/ARIbCglmaXJzdG5hbWUYAyABKAlCCLpIBXIDGP8BEhoKCGxhc3RuYW1lGAQgASgJQgi6SAVyAxj/ARIcCgpsZWdhbF9uYW1lGAUgASgJQgi6SAVyAxj/ARIrChl0YXhfaWRlbnRpZmljYXRpb25fbnVtYmVyGAYgASgJQgi6SAVyAxj/ARIXCgVlbWFpbBgHIAEoCUIIukgFcgMYgAgSMQoPYmlsbGluZ19hZGRyZXNzGAggASgLMhgudGFudm8uY29tbW9uLnYxLkFkZHJlc3MSMgoQc2hpcHBpbmdfYWRkcmVzcxgJIAEoCzIYLnRhbnZvLmNvbW1vbi52MS5BZGRyZXNzEiAKD2RvY3VtZW50X2xvY2FsZRgKIAEoCUIHukgEcgIYIyIeChxHZXRQb3J0YWxPcmdhbml6YXRpb25SZXF1ZXN0IloKHUdldFBvcnRhbE9yZ2FuaXphdGlvblJlc3BvbnNlEjkKDG9yZ2FuaXphdGlvbhgBIAEoCzIjLnRhbnZvLnBvcnRhbC52MS5Qb3J0YWxPcmdhbml6YXRpb24iGgoYR2V0UG9ydGFsQ3VzdG9tZXJSZXF1ZXN0IkoKGUdldFBvcnRhbEN1c3RvbWVyUmVzcG9uc2USLQoIY3VzdG9tZXIYASABKAsyGy50YW52by5jdXN0b21lci52MS5DdXN0b21lciKLAQobVXBkYXRlUG9ydGFsQ3VzdG9tZXJSZXF1ZXN0EjsKB3Byb2ZpbGUYASABKAsyHi50YW52by5wb3J0YWwudjEuUG9ydGFsUHJvZmlsZUIK4kEBArpIA8gBARIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2siTQocVXBkYXRlUG9ydGFsQ3VzdG9tZXJSZXNwb25zZRItCghjdXN0b21lchgBIAEoCzIbLnRhbnZvLmN1c3RvbWVyLnYxLkN1c3RvbWVyIowBChlMaXN0UG9ydGFsSW52b2ljZXNSZXF1ZXN0Eh0KCXBhZ2Vfc2l6ZRgBIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACBIYCgZmaWx0ZXIYAyABKAlCCLpIBXIDGIAQEhgKBnNlYXJjaBgEIAEoCUIIukgFcgMY/wEiYgoaTGlzdFBvcnRhbEludm9pY2VzUmVzcG9uc2USKwoIaW52b2ljZXMYASADKAsyGS50YW52by5pbnZvaWNlLnYxLkludm9pY2USFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIkMKHERvd25sb2FkUG9ydGFsSW52b2ljZVJlcXVlc3QSIwoKaW52b2ljZV9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBIkcKHURvd25sb2FkUG9ydGFsSW52b2ljZVJlc3BvbnNlEiYKA3BkZhgBIAEoCzIZLnRhbnZvLmNvbW1vbi52MS5Eb2N1bWVudCJdCh5MaXN0UG9ydGFsU3Vic2NyaXB0aW9uc1JlcXVlc3QSHQoJcGFnZV9zaXplGAEgASgFQgq6SAcaBRjoBygAEhwKCnBhZ2VfdG9rZW4YAiABKAlCCLpIBXIDGIAIInYKH0xpc3RQb3J0YWxTdWJzY3JpcHRpb25zUmVzcG9uc2USOgoNc3Vic2NyaXB0aW9ucxgBIAMoCzIjLnRhbnZvLnN1YnNjcmlwdGlvbi52MS5TdWJzY3JpcHRpb24SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIkoKHEdldFBvcnRhbEN1cnJlbnRVc2FnZVJlcXVlc3QSKgoPc3Vic2NyaXB0aW9uX2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGASJFCh1HZXRQb3J0YWxDdXJyZW50VXNhZ2VSZXNwb25zZRIkCgV1c2FnZRgBIAEoCzIVLnRhbnZvLnVzYWdlLnYxLlVzYWdlIhoKGExpc3RQb3J0YWxXYWxsZXRzUmVxdWVzdCJFChlMaXN0UG9ydGFsV2FsbGV0c1Jlc3BvbnNlEigKB3dhbGxldHMYASADKAsyFy50YW52by53YWxsZXQudjEuV2FsbGV0ImcKGFRvcFVwUG9ydGFsV2FsbGV0UmVxdWVzdBIiCgl3YWxsZXRfaWQYASABKAlCD+JBAQK6SAjIAQFyA7ABARInCgxwYWlkX2NyZWRpdHMYAiABKAlCEeJBAQK6SArIAQFyBdCkygYBInAKGVRvcFVwUG9ydGFsV2FsbGV0UmVzcG9uc2USPgoSd2FsbGV0X3RyYW5zYWN0aW9uGAEgASgLMiIudGFudm8ud2FsbGV0LnYxLldhbGxldFRyYW5zYWN0aW9uEhMKC3BheW1lbnRfdXJsGAIgASgJIjsKHkdldFBvcnRhbE92ZXJkdWVCYWxhbmNlUmVxdWVzdBIZCgZtb250aHMYASABKAVCCbpIBhoEGHgoACJaCh9HZXRQb3J0YWxPdmVyZHVlQmFsYW5jZVJlc3BvbnNlEjcKBnBvaW50cxgBIAMoCzInLnRhbnZvLmFuYWx5dGljcy52MS5PdmVyZHVlQmFsYW5jZVBvaW50Ij4KIUdldFBvcnRhbEludm9pY2VDb2xsZWN0aW9uUmVxdWVzdBIZCgZtb250aHMYASABKAVCCbpIBhoEGHgoACJgCiJHZXRQb3J0YWxJbnZvaWNlQ29sbGVjdGlvblJlc3BvbnNlEjoKBnBvaW50cxgBIAMoCzIqLnRhbnZvLmFuYWx5dGljcy52MS5JbnZvaWNlQ29sbGVjdGlvblBvaW50IkUKHlBheVBvcnRhbE92ZXJkdWVCYWxhbmNlUmVxdWVzdBIjCghjdXJyZW5jeRgBIAEoCUIR4kEBArpICsgBAXIF2KTKBgEiNgofUGF5UG9ydGFsT3ZlcmR1ZUJhbGFuY2VSZXNwb25zZRITCgtwYXltZW50X3VybBgBIAEoCTLzDwoVQ3VzdG9tZXJQb3J0YWxTZXJ2aWNlEqABChVHZXRQb3J0YWxPcmdhbml6YXRpb24SLS50YW52by5wb3J0YWwudjEuR2V0UG9ydGFsT3JnYW5pemF0aW9uUmVxdWVzdBouLnRhbnZvLnBvcnRhbC52MS5HZXRQb3J0YWxPcmdhbml6YXRpb25SZXNwb25zZSIokAIByvMYAhgBgtPkkwIZEhcvdjEvcG9ydGFsL29yZ2FuaXphdGlvbhKQAQoRR2V0UG9ydGFsQ3VzdG9tZXISKS50YW52by5wb3J0YWwudjEuR2V0UG9ydGFsQ3VzdG9tZXJSZXF1ZXN0GioudGFudm8ucG9ydGFsLnYxLkdldFBvcnRhbEN1c3RvbWVyUmVzcG9uc2UiJJACAcrzGAIYAYLT5JMCFRITL3YxL3BvcnRhbC9jdXN0b21lchKfAQoUVXBkYXRlUG9ydGFsQ3VzdG9tZXISLC50YW52by5wb3J0YWwudjEuVXBkYXRlUG9ydGFsQ3VzdG9tZXJSZXF1ZXN0Gi0udGFudm8ucG9ydGFsLnYxLlVwZGF0ZVBvcnRhbEN1c3RvbWVyUmVzcG9uc2UiKsrzGAIYAYLT5JMCHjoHcHJvZmlsZTITL3YxL3BvcnRhbC9jdXN0b21lchKTAQoSTGlzdFBvcnRhbEludm9pY2VzEioudGFudm8ucG9ydGFsLnYxLkxpc3RQb3J0YWxJbnZvaWNlc1JlcXVlc3QaKy50YW52by5wb3J0YWwudjEuTGlzdFBvcnRhbEludm9pY2VzUmVzcG9uc2UiJJACAcrzGAIYAYLT5JMCFRITL3YxL3BvcnRhbC9pbnZvaWNlcxKyAQoVRG93bmxvYWRQb3J0YWxJbnZvaWNlEi0udGFudm8ucG9ydGFsLnYxLkRvd25sb2FkUG9ydGFsSW52b2ljZVJlcXVlc3QaLi50YW52by5wb3J0YWwudjEuRG93bmxvYWRQb3J0YWxJbnZvaWNlUmVzcG9uc2UiOsrzGAIYAYLT5JMCLjoBKiIpL3YxL3BvcnRhbC9pbnZvaWNlcy97aW52b2ljZV9pZH06ZG93bmxvYWQSpwEKF0xpc3RQb3J0YWxTdWJzY3JpcHRpb25zEi8udGFudm8ucG9ydGFsLnYxLkxpc3RQb3J0YWxTdWJzY3JpcHRpb25zUmVxdWVzdBowLnRhbnZvLnBvcnRhbC52MS5MaXN0UG9ydGFsU3Vic2NyaXB0aW9uc1Jlc3BvbnNlIimQAgHK8xgCGAGC0+STAhoSGC92MS9wb3J0YWwvc3Vic2NyaXB0aW9ucxLBAQoVR2V0UG9ydGFsQ3VycmVudFVzYWdlEi0udGFudm8ucG9ydGFsLnYxLkdldFBvcnRhbEN1cnJlbnRVc2FnZVJlcXVlc3QaLi50YW52by5wb3J0YWwudjEuR2V0UG9ydGFsQ3VycmVudFVzYWdlUmVzcG9uc2UiSZACAcrzGAIYAYLT5JMCOhI4L3YxL3BvcnRhbC9zdWJzY3JpcHRpb25zL3tzdWJzY3JpcHRpb25faWR9L3VzYWdlOmN1cnJlbnQSjwEKEUxpc3RQb3J0YWxXYWxsZXRzEikudGFudm8ucG9ydGFsLnYxLkxpc3RQb3J0YWxXYWxsZXRzUmVxdWVzdBoqLnRhbnZvLnBvcnRhbC52MS5MaXN0UG9ydGFsV2FsbGV0c1Jlc3BvbnNlIiOQAgHK8xgCGAGC0+STAhQSEi92MS9wb3J0YWwvd2FsbGV0cxKiAQoRVG9wVXBQb3J0YWxXYWxsZXQSKS50YW52by5wb3J0YWwudjEuVG9wVXBQb3J0YWxXYWxsZXRSZXF1ZXN0GioudGFudm8ucG9ydGFsLnYxLlRvcFVwUG9ydGFsV2FsbGV0UmVzcG9uc2UiNsrzGAIYAYLT5JMCKjoBKiIlL3YxL3BvcnRhbC93YWxsZXRzL3t3YWxsZXRfaWR9OnRvcF91cBKpAQoXR2V0UG9ydGFsT3ZlcmR1ZUJhbGFuY2USLy50YW52by5wb3J0YWwudjEuR2V0UG9ydGFsT3ZlcmR1ZUJhbGFuY2VSZXF1ZXN0GjAudGFudm8ucG9ydGFsLnYxLkdldFBvcnRhbE92ZXJkdWVCYWxhbmNlUmVzcG9uc2UiK5ACAcrzGAIYAYLT5JMCHBIaL3YxL3BvcnRhbC9vdmVyZHVlX2JhbGFuY2UStQEKGkdldFBvcnRhbEludm9pY2VDb2xsZWN0aW9uEjIudGFudm8ucG9ydGFsLnYxLkdldFBvcnRhbEludm9pY2VDb2xsZWN0aW9uUmVxdWVzdBozLnRhbnZvLnBvcnRhbC52MS5HZXRQb3J0YWxJbnZvaWNlQ29sbGVjdGlvblJlc3BvbnNlIi6QAgHK8xgCGAGC0+STAh8SHS92MS9wb3J0YWwvaW52b2ljZV9jb2xsZWN0aW9uEq0BChdQYXlQb3J0YWxPdmVyZHVlQmFsYW5jZRIvLnRhbnZvLnBvcnRhbC52MS5QYXlQb3J0YWxPdmVyZHVlQmFsYW5jZVJlcXVlc3QaMC50YW52by5wb3J0YWwudjEuUGF5UG9ydGFsT3ZlcmR1ZUJhbGFuY2VSZXNwb25zZSIvyvMYAhgBgtPkkwIjOgEqIh4vdjEvcG9ydGFsL292ZXJkdWVfYmFsYW5jZTpwYXlCxgEKE2NvbS50YW52by5wb3J0YWwudjFCC1BvcnRhbFByb3RvUAFaRGdpdGh1Yi5jb20vdGFudm94eXovdGFudm8vbGlicy9wcm90by9nZW4vZ28vdGFudm8vcG9ydGFsL3YxO3BvcnRhbHYxogIDVFBYqgIPVGFudm8uUG9ydGFsLlYxygIPVGFudm9cUG9ydGFsXFYx4gIbVGFudm9cUG9ydGFsXFYxXEdQQk1ldGFkYXRh6gIRVGFudm86OlBvcnRhbDo6VjFiCGVkaXRpb25zcOgH", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_protobuf_field_mask, file_tanvo_analytics_v1_analytics, file_tanvo_common_v1_options, file_tanvo_common_v1_types, file_tanvo_customer_v1_customer, file_tanvo_invoice_v1_invoice, file_tanvo_subscription_v1_subscription, file_tanvo_usage_v1_usage, file_tanvo_wallet_v1_wallet]);
+  fileDesc("Chx0YW52by9wb3J0YWwvdjEvcG9ydGFsLnByb3RvEg90YW52by5wb3J0YWwudjEiwAEKElBvcnRhbE9yZ2FuaXphdGlvbhIKCgJpZBgBIAEoCRIMCgRuYW1lGAIgASgJEhAKCGxvZ29fdXJsGAMgASgJEhgKEGRlZmF1bHRfY3VycmVuY3kYBCABKAkSEAoIdGltZXpvbmUYBSABKAkSFwoPZG9jdW1lbnRfbG9jYWxlGAYgASgJEhYKDmludm9pY2VfZm9vdGVyGAcgASgJEiEKGWludm9pY2VfZ3JhY2VfcGVyaW9kX2RheXMYCCABKAUihgQKDlBvcnRhbEN1c3RvbWVyEgoKAmlkGAEgASgJEjQKDGFjY291bnRfdHlwZRgCIAEoDjIeLnRhbnZvLmN1c3RvbWVyLnYxLkFjY291bnRUeXBlEjYKDWN1c3RvbWVyX3R5cGUYAyABKA4yHy50YW52by5jdXN0b21lci52MS5DdXN0b21lclR5cGUSFAoMZGlzcGxheV9uYW1lGAQgASgJEgwKBG5hbWUYBSABKAkSEQoJZmlyc3RuYW1lGAYgASgJEhAKCGxhc3RuYW1lGAcgASgJEhIKCmxlZ2FsX25hbWUYCCABKAkSFAoMbGVnYWxfbnVtYmVyGAkgASgJEiEKGXRheF9pZGVudGlmaWNhdGlvbl9udW1iZXIYCiABKAkSDQoFZW1haWwYCyABKAkSMQoPYmlsbGluZ19hZGRyZXNzGAwgASgLMhgudGFudm8uY29tbW9uLnYxLkFkZHJlc3MSMgoQc2hpcHBpbmdfYWRkcmVzcxgNIAEoCzIYLnRhbnZvLmNvbW1vbi52MS5BZGRyZXNzEhAKCGN1cnJlbmN5GA4gASgJEhsKE2FwcGxpY2FibGVfdGltZXpvbmUYDyABKAkSFwoPZG9jdW1lbnRfbG9jYWxlGBAgASgJEiYKHmJpbGxpbmdfZW50aXR5X2RvY3VtZW50X2xvY2FsZRgRIAEoCSKPAwoNUG9ydGFsUHJvZmlsZRJACg1jdXN0b21lcl90eXBlGAEgASgOMh8udGFudm8uY3VzdG9tZXIudjEuQ3VzdG9tZXJUeXBlQgi6SAWCAQIQARIWCgRuYW1lGAIgASgJQgi6SAVyAxj/ARIbCglmaXJzdG5hbWUYAyABKAlCCLpIBXIDGP8BEhoKCGxhc3RuYW1lGAQgASgJQgi6SAVyAxj/ARIcCgpsZWdhbF9uYW1lGAUgASgJQgi6SAVyAxj/ARIrChl0YXhfaWRlbnRpZmljYXRpb25fbnVtYmVyGAYgASgJQgi6SAVyAxj/ARIXCgVlbWFpbBgHIAEoCUIIukgFcgMYgAgSMQoPYmlsbGluZ19hZGRyZXNzGAggASgLMhgudGFudm8uY29tbW9uLnYxLkFkZHJlc3MSMgoQc2hpcHBpbmdfYWRkcmVzcxgJIAEoCzIYLnRhbnZvLmNvbW1vbi52MS5BZGRyZXNzEiAKD2RvY3VtZW50X2xvY2FsZRgKIAEoCUIHukgEcgIYIyK1BQoMUG9ydGFsV2FsbGV0EgoKAmlkGAEgASgJEgwKBGNvZGUYAiABKAkSDAoEbmFtZRgDIAEoCRItCgZzdGF0dXMYBCABKA4yHS50YW52by53YWxsZXQudjEuV2FsbGV0U3RhdHVzEhAKCGN1cnJlbmN5GAUgASgJEhMKC3JhdGVfYW1vdW50GAYgASgJEhAKCHByaW9yaXR5GAcgASgFEi4KCmV4cGlyZXNfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KDmJhbGFuY2VfYW1vdW50GAkgASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5EhcKD2NyZWRpdHNfYmFsYW5jZRgKIAEoCRI2ChZvbmdvaW5nX2JhbGFuY2VfYW1vdW50GAsgASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5Eh8KF2NyZWRpdHNfb25nb2luZ19iYWxhbmNlGAwgASgJEjwKHG9uZ29pbmdfdXNhZ2VfYmFsYW5jZV9hbW91bnQYDSABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSLwoPY29uc3VtZWRfYW1vdW50GA4gASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5EhgKEGNvbnN1bWVkX2NyZWRpdHMYDyABKAkSHgoWcGFpZF90b3BfdXBfbWluX2Ftb3VudBgQIAEoCRIfChdwYWlkX3RvcF91cF9taW5fY3JlZGl0cxgRIAEoCRIeChZwYWlkX3RvcF91cF9tYXhfYW1vdW50GBIgASgJEh8KF3BhaWRfdG9wX3VwX21heF9jcmVkaXRzGBMgASgJEjgKFGxhc3RfYmFsYW5jZV9zeW5jX2F0GBQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCLSAwoXUG9ydGFsV2FsbGV0VHJhbnNhY3Rpb24SCgoCaWQYASABKAkSLQoGd2FsbGV0GAIgASgLMh0udGFudm8ucG9ydGFsLnYxLlBvcnRhbFdhbGxldBI6ChB0cmFuc2FjdGlvbl90eXBlGAMgASgOMiAudGFudm8ud2FsbGV0LnYxLlRyYW5zYWN0aW9uVHlwZRI+ChJ0cmFuc2FjdGlvbl9zdGF0dXMYBCABKA4yIi50YW52by53YWxsZXQudjEuVHJhbnNhY3Rpb25TdGF0dXMSMQoGc3RhdHVzGAUgASgOMiEudGFudm8ud2FsbGV0LnYxLlNldHRsZW1lbnRTdGF0dXMSJgoGYW1vdW50GAYgASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5EhUKDWNyZWRpdF9hbW91bnQYByABKAkSLgoKc2V0dGxlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKY3JlYXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKdXBkYXRlZF9hdBgKIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiHgocR2V0UG9ydGFsT3JnYW5pemF0aW9uUmVxdWVzdCJaCh1HZXRQb3J0YWxPcmdhbml6YXRpb25SZXNwb25zZRI5Cgxvcmdhbml6YXRpb24YASABKAsyIy50YW52by5wb3J0YWwudjEuUG9ydGFsT3JnYW5pemF0aW9uIhoKGEdldFBvcnRhbEN1c3RvbWVyUmVxdWVzdCJOChlHZXRQb3J0YWxDdXN0b21lclJlc3BvbnNlEjEKCGN1c3RvbWVyGAEgASgLMh8udGFudm8ucG9ydGFsLnYxLlBvcnRhbEN1c3RvbWVyIosBChtVcGRhdGVQb3J0YWxDdXN0b21lclJlcXVlc3QSOwoHcHJvZmlsZRgBIAEoCzIeLnRhbnZvLnBvcnRhbC52MS5Qb3J0YWxQcm9maWxlQgriQQECukgDyAEBEi8KC3VwZGF0ZV9tYXNrGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLkZpZWxkTWFzayJRChxVcGRhdGVQb3J0YWxDdXN0b21lclJlc3BvbnNlEjEKCGN1c3RvbWVyGAEgASgLMh8udGFudm8ucG9ydGFsLnYxLlBvcnRhbEN1c3RvbWVyIowBChlMaXN0UG9ydGFsSW52b2ljZXNSZXF1ZXN0Eh0KCXBhZ2Vfc2l6ZRgBIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACBIYCgZmaWx0ZXIYAyABKAlCCLpIBXIDGIAQEhgKBnNlYXJjaBgEIAEoCUIIukgFcgMY/wEiYgoaTGlzdFBvcnRhbEludm9pY2VzUmVzcG9uc2USKwoIaW52b2ljZXMYASADKAsyGS50YW52by5pbnZvaWNlLnYxLkludm9pY2USFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIkMKHERvd25sb2FkUG9ydGFsSW52b2ljZVJlcXVlc3QSIwoKaW52b2ljZV9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBIpsBCh1Eb3dubG9hZFBvcnRhbEludm9pY2VSZXNwb25zZRIqCgdpbnZvaWNlGAEgASgLMhkudGFudm8uaW52b2ljZS52MS5JbnZvaWNlEiYKA3BkZhgCIAEoCzIZLnRhbnZvLmNvbW1vbi52MS5Eb2N1bWVudBImCgN4bWwYAyABKAsyGS50YW52by5jb21tb24udjEuRG9jdW1lbnQidwoeTGlzdFBvcnRhbFN1YnNjcmlwdGlvbnNSZXF1ZXN0Eh0KCXBhZ2Vfc2l6ZRgBIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACBIYCgZmaWx0ZXIYAyABKAlCCLpIBXIDGIAQInYKH0xpc3RQb3J0YWxTdWJzY3JpcHRpb25zUmVzcG9uc2USOgoNc3Vic2NyaXB0aW9ucxgBIAMoCzIjLnRhbnZvLnN1YnNjcmlwdGlvbi52MS5TdWJzY3JpcHRpb24SFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIkgKHEdldFBvcnRhbFN1YnNjcmlwdGlvblJlcXVlc3QSKAoPc3Vic2NyaXB0aW9uX2lkGAEgASgJQg/iQQECukgIyAEBcgOwAQEiWgodR2V0UG9ydGFsU3Vic2NyaXB0aW9uUmVzcG9uc2USOQoMc3Vic2NyaXB0aW9uGAEgASgLMiMudGFudm8uc3Vic2NyaXB0aW9uLnYxLlN1YnNjcmlwdGlvbiJkChxHZXRQb3J0YWxDdXJyZW50VXNhZ2VSZXF1ZXN0EigKD3N1YnNjcmlwdGlvbl9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBEhoKEmluY2x1ZGVfcHJvamVjdGlvbhgCIAEoCCJFCh1HZXRQb3J0YWxDdXJyZW50VXNhZ2VSZXNwb25zZRIkCgV1c2FnZRgBIAEoCzIVLnRhbnZvLnVzYWdlLnYxLlVzYWdlInEKGExpc3RQb3J0YWxXYWxsZXRzUmVxdWVzdBIdCglwYWdlX3NpemUYASABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgCIAEoCUIIukgFcgMYgAgSGAoGZmlsdGVyGAMgASgJQgi6SAVyAxiAECJkChlMaXN0UG9ydGFsV2FsbGV0c1Jlc3BvbnNlEi4KB3dhbGxldHMYASADKAsyHS50YW52by5wb3J0YWwudjEuUG9ydGFsV2FsbGV0EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSI8ChZHZXRQb3J0YWxXYWxsZXRSZXF1ZXN0EiIKCXdhbGxldF9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBIkgKF0dldFBvcnRhbFdhbGxldFJlc3BvbnNlEi0KBndhbGxldBgBIAEoCzIdLnRhbnZvLnBvcnRhbC52MS5Qb3J0YWxXYWxsZXQiYAoYVG9wVXBQb3J0YWxXYWxsZXRSZXF1ZXN0EiIKCXdhbGxldF9pZBgBIAEoCUIP4kEBArpICMgBAXIDsAEBEiAKDHBhaWRfY3JlZGl0cxgCIAEoCUIKukgHcgXQpMoGASJiChlUb3BVcFBvcnRhbFdhbGxldFJlc3BvbnNlEkUKE3dhbGxldF90cmFuc2FjdGlvbnMYASADKAsyKC50YW52by5wb3J0YWwudjEuUG9ydGFsV2FsbGV0VHJhbnNhY3Rpb24iIAoeR2V0UG9ydGFsT3ZlcmR1ZUJhbGFuY2VSZXF1ZXN0IloKH0dldFBvcnRhbE92ZXJkdWVCYWxhbmNlUmVzcG9uc2USNwoGcG9pbnRzGAEgAygLMicudGFudm8uYW5hbHl0aWNzLnYxLk92ZXJkdWVCYWxhbmNlUG9pbnQiIwohR2V0UG9ydGFsSW52b2ljZUNvbGxlY3Rpb25SZXF1ZXN0ImAKIkdldFBvcnRhbEludm9pY2VDb2xsZWN0aW9uUmVzcG9uc2USOgoGcG9pbnRzGAEgAygLMioudGFudm8uYW5hbHl0aWNzLnYxLkludm9pY2VDb2xsZWN0aW9uUG9pbnQykREKFUN1c3RvbWVyUG9ydGFsU2VydmljZRKgAQoVR2V0UG9ydGFsT3JnYW5pemF0aW9uEi0udGFudm8ucG9ydGFsLnYxLkdldFBvcnRhbE9yZ2FuaXphdGlvblJlcXVlc3QaLi50YW52by5wb3J0YWwudjEuR2V0UG9ydGFsT3JnYW5pemF0aW9uUmVzcG9uc2UiKJACAcrzGAIYAYLT5JMCGRIXL3YxL3BvcnRhbC9vcmdhbml6YXRpb24SkAEKEUdldFBvcnRhbEN1c3RvbWVyEikudGFudm8ucG9ydGFsLnYxLkdldFBvcnRhbEN1c3RvbWVyUmVxdWVzdBoqLnRhbnZvLnBvcnRhbC52MS5HZXRQb3J0YWxDdXN0b21lclJlc3BvbnNlIiSQAgHK8xgCGAGC0+STAhUSEy92MS9wb3J0YWwvY3VzdG9tZXISnwEKFFVwZGF0ZVBvcnRhbEN1c3RvbWVyEiwudGFudm8ucG9ydGFsLnYxLlVwZGF0ZVBvcnRhbEN1c3RvbWVyUmVxdWVzdBotLnRhbnZvLnBvcnRhbC52MS5VcGRhdGVQb3J0YWxDdXN0b21lclJlc3BvbnNlIirK8xgCGAGC0+STAh46B3Byb2ZpbGUyEy92MS9wb3J0YWwvY3VzdG9tZXISkwEKEkxpc3RQb3J0YWxJbnZvaWNlcxIqLnRhbnZvLnBvcnRhbC52MS5MaXN0UG9ydGFsSW52b2ljZXNSZXF1ZXN0GisudGFudm8ucG9ydGFsLnYxLkxpc3RQb3J0YWxJbnZvaWNlc1Jlc3BvbnNlIiSQAgHK8xgCGAGC0+STAhUSEy92MS9wb3J0YWwvaW52b2ljZXMSsgEKFURvd25sb2FkUG9ydGFsSW52b2ljZRItLnRhbnZvLnBvcnRhbC52MS5Eb3dubG9hZFBvcnRhbEludm9pY2VSZXF1ZXN0Gi4udGFudm8ucG9ydGFsLnYxLkRvd25sb2FkUG9ydGFsSW52b2ljZVJlc3BvbnNlIjrK8xgCGAGC0+STAi46ASoiKS92MS9wb3J0YWwvaW52b2ljZXMve2ludm9pY2VfaWR9OmRvd25sb2FkEqcBChdMaXN0UG9ydGFsU3Vic2NyaXB0aW9ucxIvLnRhbnZvLnBvcnRhbC52MS5MaXN0UG9ydGFsU3Vic2NyaXB0aW9uc1JlcXVlc3QaMC50YW52by5wb3J0YWwudjEuTGlzdFBvcnRhbFN1YnNjcmlwdGlvbnNSZXNwb25zZSIpkAIByvMYAhgBgtPkkwIaEhgvdjEvcG9ydGFsL3N1YnNjcmlwdGlvbnMSswEKFUdldFBvcnRhbFN1YnNjcmlwdGlvbhItLnRhbnZvLnBvcnRhbC52MS5HZXRQb3J0YWxTdWJzY3JpcHRpb25SZXF1ZXN0Gi4udGFudm8ucG9ydGFsLnYxLkdldFBvcnRhbFN1YnNjcmlwdGlvblJlc3BvbnNlIjuQAgHK8xgCGAGC0+STAiwSKi92MS9wb3J0YWwvc3Vic2NyaXB0aW9ucy97c3Vic2NyaXB0aW9uX2lkfRLBAQoVR2V0UG9ydGFsQ3VycmVudFVzYWdlEi0udGFudm8ucG9ydGFsLnYxLkdldFBvcnRhbEN1cnJlbnRVc2FnZVJlcXVlc3QaLi50YW52by5wb3J0YWwudjEuR2V0UG9ydGFsQ3VycmVudFVzYWdlUmVzcG9uc2UiSZACAcrzGAIYAYLT5JMCOhI4L3YxL3BvcnRhbC9zdWJzY3JpcHRpb25zL3tzdWJzY3JpcHRpb25faWR9L3VzYWdlOmN1cnJlbnQSjwEKEUxpc3RQb3J0YWxXYWxsZXRzEikudGFudm8ucG9ydGFsLnYxLkxpc3RQb3J0YWxXYWxsZXRzUmVxdWVzdBoqLnRhbnZvLnBvcnRhbC52MS5MaXN0UG9ydGFsV2FsbGV0c1Jlc3BvbnNlIiOQAgHK8xgCGAGC0+STAhQSEi92MS9wb3J0YWwvd2FsbGV0cxKVAQoPR2V0UG9ydGFsV2FsbGV0EicudGFudm8ucG9ydGFsLnYxLkdldFBvcnRhbFdhbGxldFJlcXVlc3QaKC50YW52by5wb3J0YWwudjEuR2V0UG9ydGFsV2FsbGV0UmVzcG9uc2UiL5ACAcrzGAIYAYLT5JMCIBIeL3YxL3BvcnRhbC93YWxsZXRzL3t3YWxsZXRfaWR9EqIBChFUb3BVcFBvcnRhbFdhbGxldBIpLnRhbnZvLnBvcnRhbC52MS5Ub3BVcFBvcnRhbFdhbGxldFJlcXVlc3QaKi50YW52by5wb3J0YWwudjEuVG9wVXBQb3J0YWxXYWxsZXRSZXNwb25zZSI2yvMYAhgBgtPkkwIqOgEqIiUvdjEvcG9ydGFsL3dhbGxldHMve3dhbGxldF9pZH06dG9wX3VwEqkBChdHZXRQb3J0YWxPdmVyZHVlQmFsYW5jZRIvLnRhbnZvLnBvcnRhbC52MS5HZXRQb3J0YWxPdmVyZHVlQmFsYW5jZVJlcXVlc3QaMC50YW52by5wb3J0YWwudjEuR2V0UG9ydGFsT3ZlcmR1ZUJhbGFuY2VSZXNwb25zZSIrkAIByvMYAhgBgtPkkwIcEhovdjEvcG9ydGFsL292ZXJkdWVfYmFsYW5jZRK1AQoaR2V0UG9ydGFsSW52b2ljZUNvbGxlY3Rpb24SMi50YW52by5wb3J0YWwudjEuR2V0UG9ydGFsSW52b2ljZUNvbGxlY3Rpb25SZXF1ZXN0GjMudGFudm8ucG9ydGFsLnYxLkdldFBvcnRhbEludm9pY2VDb2xsZWN0aW9uUmVzcG9uc2UiLpACAcrzGAIYAYLT5JMCHxIdL3YxL3BvcnRhbC9pbnZvaWNlX2NvbGxlY3Rpb25CxgEKE2NvbS50YW52by5wb3J0YWwudjFCC1BvcnRhbFByb3RvUAFaRGdpdGh1Yi5jb20vdGFudm94eXovdGFudm8vbGlicy9wcm90by9nZW4vZ28vdGFudm8vcG9ydGFsL3YxO3BvcnRhbHYxogIDVFBYqgIPVGFudm8uUG9ydGFsLlYxygIPVGFudm9cUG9ydGFsXFYx4gIbVGFudm9cUG9ydGFsXFYxXEdQQk1ldGFkYXRh6gIRVGFudm86OlBvcnRhbDo6VjFiCGVkaXRpb25zcOgH", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_tanvo_analytics_v1_analytics, file_tanvo_common_v1_options, file_tanvo_common_v1_types, file_tanvo_customer_v1_customer, file_tanvo_invoice_v1_invoice, file_tanvo_subscription_v1_subscription, file_tanvo_usage_v1_usage, file_tanvo_wallet_v1_wallet]);
 
 /**
- * PortalOrganization is what the portal shows of the organization.
+ * PortalOrganization is what the portal shows of the organization; the
+ * currency, time zone and document settings are its default billing
+ * entity's.
  *
  * @generated from message tanvo.portal.v1.PortalOrganization
  */
 export type PortalOrganization = Message<"tanvo.portal.v1.PortalOrganization"> & {
   /**
+   * The organization's ID.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
    * The name.
    *
-   * @generated from field: string name = 1;
+   * @generated from field: string name = 2;
    */
   name: string;
 
   /**
    * The logo URL.
    *
-   * @generated from field: string logo_url = 2;
+   * @generated from field: string logo_url = 3;
    */
   logoUrl: string;
 
   /**
    * The default currency.
    *
-   * @generated from field: string default_currency = 3;
+   * @generated from field: string default_currency = 4;
    */
   defaultCurrency: string;
 
   /**
-   * The premium portal features enabled.
+   * The time zone (IANA).
    *
-   * @generated from field: repeated string premium_integrations = 4;
+   * @generated from field: string timezone = 5;
    */
-  premiumIntegrations: string[];
+  timezone: string;
+
+  /**
+   * The document locale (BCP 47).
+   *
+   * @generated from field: string document_locale = 6;
+   */
+  documentLocale: string;
+
+  /**
+   * The invoice footer.
+   *
+   * @generated from field: string invoice_footer = 7;
+   */
+  invoiceFooter: string;
+
+  /**
+   * The invoice grace period, in days.
+   *
+   * @generated from field: int32 invoice_grace_period_days = 8;
+   */
+  invoiceGracePeriodDays: number;
 };
 
 /**
@@ -79,6 +109,140 @@ export type PortalOrganization = Message<"tanvo.portal.v1.PortalOrganization"> &
  */
 export const PortalOrganizationSchema: GenMessage<PortalOrganization> = /*@__PURE__*/
   messageDesc(file_tanvo_portal_v1_portal, 0);
+
+/**
+ * PortalCustomer is what the portal shows of the customer.
+ *
+ * @generated from message tanvo.portal.v1.PortalCustomer
+ */
+export type PortalCustomer = Message<"tanvo.portal.v1.PortalCustomer"> & {
+  /**
+   * The customer's ID.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * The account type.
+   *
+   * @generated from field: tanvo.customer.v1.AccountType account_type = 2;
+   */
+  accountType: AccountType;
+
+  /**
+   * The customer type.
+   *
+   * @generated from field: tanvo.customer.v1.CustomerType customer_type = 3;
+   */
+  customerType: CustomerType;
+
+  /**
+   * The display name: the legal name, else the name, followed by the
+   * first and last names.
+   *
+   * @generated from field: string display_name = 4;
+   */
+  displayName: string;
+
+  /**
+   * The display name.
+   *
+   * @generated from field: string name = 5;
+   */
+  name: string;
+
+  /**
+   * The first name.
+   *
+   * @generated from field: string firstname = 6;
+   */
+  firstname: string;
+
+  /**
+   * The last name.
+   *
+   * @generated from field: string lastname = 7;
+   */
+  lastname: string;
+
+  /**
+   * The legal name.
+   *
+   * @generated from field: string legal_name = 8;
+   */
+  legalName: string;
+
+  /**
+   * The registration number.
+   *
+   * @generated from field: string legal_number = 9;
+   */
+  legalNumber: string;
+
+  /**
+   * The tax identification number.
+   *
+   * @generated from field: string tax_identification_number = 10;
+   */
+  taxIdentificationNumber: string;
+
+  /**
+   * The email addresses, comma separated.
+   *
+   * @generated from field: string email = 11;
+   */
+  email: string;
+
+  /**
+   * The billing address.
+   *
+   * @generated from field: tanvo.common.v1.Address billing_address = 12;
+   */
+  billingAddress?: Address | undefined;
+
+  /**
+   * The shipping address.
+   *
+   * @generated from field: tanvo.common.v1.Address shipping_address = 13;
+   */
+  shippingAddress?: Address | undefined;
+
+  /**
+   * The currency.
+   *
+   * @generated from field: string currency = 14;
+   */
+  currency: string;
+
+  /**
+   * The applicable time zone: the customer's, else its billing entity's.
+   *
+   * @generated from field: string applicable_timezone = 15;
+   */
+  applicableTimezone: string;
+
+  /**
+   * The customer's own document locale (BCP 47).
+   *
+   * @generated from field: string document_locale = 16;
+   */
+  documentLocale: string;
+
+  /**
+   * The document locale of the customer's billing entity.
+   *
+   * @generated from field: string billing_entity_document_locale = 17;
+   */
+  billingEntityDocumentLocale: string;
+};
+
+/**
+ * Describes the message tanvo.portal.v1.PortalCustomer.
+ * Use `create(PortalCustomerSchema)` to create a new message.
+ */
+export const PortalCustomerSchema: GenMessage<PortalCustomer> = /*@__PURE__*/
+  messageDesc(file_tanvo_portal_v1_portal, 1);
 
 /**
  * PortalProfile is the billing details a customer can edit.
@@ -162,7 +326,246 @@ export type PortalProfile = Message<"tanvo.portal.v1.PortalProfile"> & {
  * Use `create(PortalProfileSchema)` to create a new message.
  */
 export const PortalProfileSchema: GenMessage<PortalProfile> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 1);
+  messageDesc(file_tanvo_portal_v1_portal, 2);
+
+/**
+ * PortalWallet is what the portal shows of a wallet.
+ *
+ * @generated from message tanvo.portal.v1.PortalWallet
+ */
+export type PortalWallet = Message<"tanvo.portal.v1.PortalWallet"> & {
+  /**
+   * The wallet's ID.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * The code.
+   *
+   * @generated from field: string code = 2;
+   */
+  code: string;
+
+  /**
+   * The name.
+   *
+   * @generated from field: string name = 3;
+   */
+  name: string;
+
+  /**
+   * The status.
+   *
+   * @generated from field: tanvo.wallet.v1.WalletStatus status = 4;
+   */
+  status: WalletStatus;
+
+  /**
+   * The currency.
+   *
+   * @generated from field: string currency = 5;
+   */
+  currency: string;
+
+  /**
+   * The value of one credit, in currency units.
+   *
+   * @generated from field: string rate_amount = 6;
+   */
+  rateAmount: string;
+
+  /**
+   * The priority; the lowest is consumed first.
+   *
+   * @generated from field: int32 priority = 7;
+   */
+  priority: number;
+
+  /**
+   * When the wallet expires.
+   *
+   * @generated from field: google.protobuf.Timestamp expires_at = 8;
+   */
+  expiresAt?: Timestamp | undefined;
+
+  /**
+   * The balance.
+   *
+   * @generated from field: tanvo.common.v1.Money balance_amount = 9;
+   */
+  balanceAmount?: Money | undefined;
+
+  /**
+   * The balance in credits.
+   *
+   * @generated from field: string credits_balance = 10;
+   */
+  creditsBalance: string;
+
+  /**
+   * The balance after the current usage.
+   *
+   * @generated from field: tanvo.common.v1.Money ongoing_balance_amount = 11;
+   */
+  ongoingBalanceAmount?: Money | undefined;
+
+  /**
+   * The ongoing balance in credits.
+   *
+   * @generated from field: string credits_ongoing_balance = 12;
+   */
+  creditsOngoingBalance: string;
+
+  /**
+   * The current usage counted against the wallet.
+   *
+   * @generated from field: tanvo.common.v1.Money ongoing_usage_balance_amount = 13;
+   */
+  ongoingUsageBalanceAmount?: Money | undefined;
+
+  /**
+   * The amount consumed.
+   *
+   * @generated from field: tanvo.common.v1.Money consumed_amount = 14;
+   */
+  consumedAmount?: Money | undefined;
+
+  /**
+   * The credits consumed.
+   *
+   * @generated from field: string consumed_credits = 15;
+   */
+  consumedCredits: string;
+
+  /**
+   * The minimum amount of a paid top-up, in currency units.
+   *
+   * @generated from field: string paid_top_up_min_amount = 16;
+   */
+  paidTopUpMinAmount: string;
+
+  /**
+   * The minimum paid top-up in credits.
+   *
+   * @generated from field: string paid_top_up_min_credits = 17;
+   */
+  paidTopUpMinCredits: string;
+
+  /**
+   * The maximum amount of a paid top-up, in currency units.
+   *
+   * @generated from field: string paid_top_up_max_amount = 18;
+   */
+  paidTopUpMaxAmount: string;
+
+  /**
+   * The maximum paid top-up in credits.
+   *
+   * @generated from field: string paid_top_up_max_credits = 19;
+   */
+  paidTopUpMaxCredits: string;
+
+  /**
+   * When the balance was last refreshed.
+   *
+   * @generated from field: google.protobuf.Timestamp last_balance_sync_at = 20;
+   */
+  lastBalanceSyncAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message tanvo.portal.v1.PortalWallet.
+ * Use `create(PortalWalletSchema)` to create a new message.
+ */
+export const PortalWalletSchema: GenMessage<PortalWallet> = /*@__PURE__*/
+  messageDesc(file_tanvo_portal_v1_portal, 3);
+
+/**
+ * PortalWalletTransaction is what the portal shows of a wallet
+ * transaction.
+ *
+ * @generated from message tanvo.portal.v1.PortalWalletTransaction
+ */
+export type PortalWalletTransaction = Message<"tanvo.portal.v1.PortalWalletTransaction"> & {
+  /**
+   * The transaction's ID.
+   *
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * The wallet.
+   *
+   * @generated from field: tanvo.portal.v1.PortalWallet wallet = 2;
+   */
+  wallet?: PortalWallet | undefined;
+
+  /**
+   * The direction.
+   *
+   * @generated from field: tanvo.wallet.v1.TransactionType transaction_type = 3;
+   */
+  transactionType: TransactionType;
+
+  /**
+   * The kind of movement.
+   *
+   * @generated from field: tanvo.wallet.v1.TransactionStatus transaction_status = 4;
+   */
+  transactionStatus: TransactionStatus;
+
+  /**
+   * The settlement status.
+   *
+   * @generated from field: tanvo.wallet.v1.SettlementStatus status = 5;
+   */
+  status: SettlementStatus;
+
+  /**
+   * The monetary amount.
+   *
+   * @generated from field: tanvo.common.v1.Money amount = 6;
+   */
+  amount?: Money | undefined;
+
+  /**
+   * The credits.
+   *
+   * @generated from field: string credit_amount = 7;
+   */
+  creditAmount: string;
+
+  /**
+   * When the transaction was settled.
+   *
+   * @generated from field: google.protobuf.Timestamp settled_at = 8;
+   */
+  settledAt?: Timestamp | undefined;
+
+  /**
+   * When the transaction was created.
+   *
+   * @generated from field: google.protobuf.Timestamp created_at = 9;
+   */
+  createdAt?: Timestamp | undefined;
+
+  /**
+   * When the transaction last changed.
+   *
+   * @generated from field: google.protobuf.Timestamp updated_at = 10;
+   */
+  updatedAt?: Timestamp | undefined;
+};
+
+/**
+ * Describes the message tanvo.portal.v1.PortalWalletTransaction.
+ * Use `create(PortalWalletTransactionSchema)` to create a new message.
+ */
+export const PortalWalletTransactionSchema: GenMessage<PortalWalletTransaction> = /*@__PURE__*/
+  messageDesc(file_tanvo_portal_v1_portal, 4);
 
 /**
  * GetPortalOrganizationRequest is the request of CustomerPortalService.GetPortalOrganization.
@@ -177,7 +580,7 @@ export type GetPortalOrganizationRequest = Message<"tanvo.portal.v1.GetPortalOrg
  * Use `create(GetPortalOrganizationRequestSchema)` to create a new message.
  */
 export const GetPortalOrganizationRequestSchema: GenMessage<GetPortalOrganizationRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 2);
+  messageDesc(file_tanvo_portal_v1_portal, 5);
 
 /**
  * GetPortalOrganizationResponse is the response of CustomerPortalService.GetPortalOrganization.
@@ -198,7 +601,7 @@ export type GetPortalOrganizationResponse = Message<"tanvo.portal.v1.GetPortalOr
  * Use `create(GetPortalOrganizationResponseSchema)` to create a new message.
  */
 export const GetPortalOrganizationResponseSchema: GenMessage<GetPortalOrganizationResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 3);
+  messageDesc(file_tanvo_portal_v1_portal, 6);
 
 /**
  * GetPortalCustomerRequest is the request of CustomerPortalService.GetPortalCustomer.
@@ -213,7 +616,7 @@ export type GetPortalCustomerRequest = Message<"tanvo.portal.v1.GetPortalCustome
  * Use `create(GetPortalCustomerRequestSchema)` to create a new message.
  */
 export const GetPortalCustomerRequestSchema: GenMessage<GetPortalCustomerRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 4);
+  messageDesc(file_tanvo_portal_v1_portal, 7);
 
 /**
  * GetPortalCustomerResponse is the response of CustomerPortalService.GetPortalCustomer.
@@ -224,9 +627,9 @@ export type GetPortalCustomerResponse = Message<"tanvo.portal.v1.GetPortalCustom
   /**
    * The customer.
    *
-   * @generated from field: tanvo.customer.v1.Customer customer = 1;
+   * @generated from field: tanvo.portal.v1.PortalCustomer customer = 1;
    */
-  customer?: Customer | undefined;
+  customer?: PortalCustomer | undefined;
 };
 
 /**
@@ -234,7 +637,7 @@ export type GetPortalCustomerResponse = Message<"tanvo.portal.v1.GetPortalCustom
  * Use `create(GetPortalCustomerResponseSchema)` to create a new message.
  */
 export const GetPortalCustomerResponseSchema: GenMessage<GetPortalCustomerResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 5);
+  messageDesc(file_tanvo_portal_v1_portal, 8);
 
 /**
  * UpdatePortalCustomerRequest is the request of CustomerPortalService.UpdatePortalCustomer.
@@ -262,7 +665,7 @@ export type UpdatePortalCustomerRequest = Message<"tanvo.portal.v1.UpdatePortalC
  * Use `create(UpdatePortalCustomerRequestSchema)` to create a new message.
  */
 export const UpdatePortalCustomerRequestSchema: GenMessage<UpdatePortalCustomerRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 6);
+  messageDesc(file_tanvo_portal_v1_portal, 9);
 
 /**
  * UpdatePortalCustomerResponse is the response of CustomerPortalService.UpdatePortalCustomer.
@@ -273,9 +676,9 @@ export type UpdatePortalCustomerResponse = Message<"tanvo.portal.v1.UpdatePortal
   /**
    * The updated customer.
    *
-   * @generated from field: tanvo.customer.v1.Customer customer = 1;
+   * @generated from field: tanvo.portal.v1.PortalCustomer customer = 1;
    */
-  customer?: Customer | undefined;
+  customer?: PortalCustomer | undefined;
 };
 
 /**
@@ -283,7 +686,7 @@ export type UpdatePortalCustomerResponse = Message<"tanvo.portal.v1.UpdatePortal
  * Use `create(UpdatePortalCustomerResponseSchema)` to create a new message.
  */
 export const UpdatePortalCustomerResponseSchema: GenMessage<UpdatePortalCustomerResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 7);
+  messageDesc(file_tanvo_portal_v1_portal, 10);
 
 /**
  * ListPortalInvoicesRequest is the request of CustomerPortalService.ListPortalInvoices.
@@ -306,15 +709,14 @@ export type ListPortalInvoicesRequest = Message<"tanvo.portal.v1.ListPortalInvoi
   pageToken: string;
 
   /**
-   * An AIP-160 filter over `payment_status`, `currency` and
-   * `issuing_date`.
+   * An AIP-160 filter over `status`; every listed status by default.
    *
    * @generated from field: string filter = 3;
    */
   filter: string;
 
   /**
-   * A search over the number.
+   * A search over the number; a UUID also matches the invoice's ID.
    *
    * @generated from field: string search = 4;
    */
@@ -326,7 +728,7 @@ export type ListPortalInvoicesRequest = Message<"tanvo.portal.v1.ListPortalInvoi
  * Use `create(ListPortalInvoicesRequestSchema)` to create a new message.
  */
 export const ListPortalInvoicesRequestSchema: GenMessage<ListPortalInvoicesRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 8);
+  messageDesc(file_tanvo_portal_v1_portal, 11);
 
 /**
  * ListPortalInvoicesResponse is the response of CustomerPortalService.ListPortalInvoices.
@@ -354,7 +756,7 @@ export type ListPortalInvoicesResponse = Message<"tanvo.portal.v1.ListPortalInvo
  * Use `create(ListPortalInvoicesResponseSchema)` to create a new message.
  */
 export const ListPortalInvoicesResponseSchema: GenMessage<ListPortalInvoicesResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 9);
+  messageDesc(file_tanvo_portal_v1_portal, 12);
 
 /**
  * DownloadPortalInvoiceRequest is the request of CustomerPortalService.DownloadPortalInvoice.
@@ -375,7 +777,7 @@ export type DownloadPortalInvoiceRequest = Message<"tanvo.portal.v1.DownloadPort
  * Use `create(DownloadPortalInvoiceRequestSchema)` to create a new message.
  */
 export const DownloadPortalInvoiceRequestSchema: GenMessage<DownloadPortalInvoiceRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 10);
+  messageDesc(file_tanvo_portal_v1_portal, 13);
 
 /**
  * DownloadPortalInvoiceResponse is the response of CustomerPortalService.DownloadPortalInvoice.
@@ -384,11 +786,26 @@ export const DownloadPortalInvoiceRequestSchema: GenMessage<DownloadPortalInvoic
  */
 export type DownloadPortalInvoiceResponse = Message<"tanvo.portal.v1.DownloadPortalInvoiceResponse"> & {
   /**
-   * The PDF.
+   * The invoice.
    *
-   * @generated from field: tanvo.common.v1.Document pdf = 1;
+   * @generated from field: tanvo.invoice.v1.Invoice invoice = 1;
+   */
+  invoice?: Invoice | undefined;
+
+  /**
+   * The PDF, once rendered.
+   *
+   * @generated from field: tanvo.common.v1.Document pdf = 2;
    */
   pdf?: Document | undefined;
+
+  /**
+   * The e-invoice XML, once rendered, when the billing entity has
+   * e-invoicing.
+   *
+   * @generated from field: tanvo.common.v1.Document xml = 3;
+   */
+  xml?: Document | undefined;
 };
 
 /**
@@ -396,7 +813,7 @@ export type DownloadPortalInvoiceResponse = Message<"tanvo.portal.v1.DownloadPor
  * Use `create(DownloadPortalInvoiceResponseSchema)` to create a new message.
  */
 export const DownloadPortalInvoiceResponseSchema: GenMessage<DownloadPortalInvoiceResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 11);
+  messageDesc(file_tanvo_portal_v1_portal, 14);
 
 /**
  * ListPortalSubscriptionsRequest is the request of CustomerPortalService.ListPortalSubscriptions.
@@ -417,6 +834,14 @@ export type ListPortalSubscriptionsRequest = Message<"tanvo.portal.v1.ListPortal
    * @generated from field: string page_token = 2;
    */
   pageToken: string;
+
+  /**
+   * An AIP-160 filter over `status`, `plan_code` and `currency` (the
+   * plan's); every status by default.
+   *
+   * @generated from field: string filter = 3;
+   */
+  filter: string;
 };
 
 /**
@@ -424,7 +849,7 @@ export type ListPortalSubscriptionsRequest = Message<"tanvo.portal.v1.ListPortal
  * Use `create(ListPortalSubscriptionsRequestSchema)` to create a new message.
  */
 export const ListPortalSubscriptionsRequestSchema: GenMessage<ListPortalSubscriptionsRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 12);
+  messageDesc(file_tanvo_portal_v1_portal, 15);
 
 /**
  * ListPortalSubscriptionsResponse is the response of CustomerPortalService.ListPortalSubscriptions.
@@ -452,7 +877,49 @@ export type ListPortalSubscriptionsResponse = Message<"tanvo.portal.v1.ListPorta
  * Use `create(ListPortalSubscriptionsResponseSchema)` to create a new message.
  */
 export const ListPortalSubscriptionsResponseSchema: GenMessage<ListPortalSubscriptionsResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 13);
+  messageDesc(file_tanvo_portal_v1_portal, 16);
+
+/**
+ * GetPortalSubscriptionRequest is the request of CustomerPortalService.GetPortalSubscription.
+ *
+ * @generated from message tanvo.portal.v1.GetPortalSubscriptionRequest
+ */
+export type GetPortalSubscriptionRequest = Message<"tanvo.portal.v1.GetPortalSubscriptionRequest"> & {
+  /**
+   * The subscription's ID.
+   *
+   * @generated from field: string subscription_id = 1;
+   */
+  subscriptionId: string;
+};
+
+/**
+ * Describes the message tanvo.portal.v1.GetPortalSubscriptionRequest.
+ * Use `create(GetPortalSubscriptionRequestSchema)` to create a new message.
+ */
+export const GetPortalSubscriptionRequestSchema: GenMessage<GetPortalSubscriptionRequest> = /*@__PURE__*/
+  messageDesc(file_tanvo_portal_v1_portal, 17);
+
+/**
+ * GetPortalSubscriptionResponse is the response of CustomerPortalService.GetPortalSubscription.
+ *
+ * @generated from message tanvo.portal.v1.GetPortalSubscriptionResponse
+ */
+export type GetPortalSubscriptionResponse = Message<"tanvo.portal.v1.GetPortalSubscriptionResponse"> & {
+  /**
+   * The subscription.
+   *
+   * @generated from field: tanvo.subscription.v1.Subscription subscription = 1;
+   */
+  subscription?: Subscription | undefined;
+};
+
+/**
+ * Describes the message tanvo.portal.v1.GetPortalSubscriptionResponse.
+ * Use `create(GetPortalSubscriptionResponseSchema)` to create a new message.
+ */
+export const GetPortalSubscriptionResponseSchema: GenMessage<GetPortalSubscriptionResponse> = /*@__PURE__*/
+  messageDesc(file_tanvo_portal_v1_portal, 18);
 
 /**
  * GetPortalCurrentUsageRequest is the request of CustomerPortalService.GetPortalCurrentUsage.
@@ -461,11 +928,18 @@ export const ListPortalSubscriptionsResponseSchema: GenMessage<ListPortalSubscri
  */
 export type GetPortalCurrentUsageRequest = Message<"tanvo.portal.v1.GetPortalCurrentUsageRequest"> & {
   /**
-   * The subscription (ID or `external_id:<external_id>`).
+   * The subscription's ID.
    *
    * @generated from field: string subscription_id = 1;
    */
   subscriptionId: string;
+
+  /**
+   * Adds the usage projected to the end of the period.
+   *
+   * @generated from field: bool include_projection = 2;
+   */
+  includeProjection: boolean;
 };
 
 /**
@@ -473,7 +947,7 @@ export type GetPortalCurrentUsageRequest = Message<"tanvo.portal.v1.GetPortalCur
  * Use `create(GetPortalCurrentUsageRequestSchema)` to create a new message.
  */
 export const GetPortalCurrentUsageRequestSchema: GenMessage<GetPortalCurrentUsageRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 14);
+  messageDesc(file_tanvo_portal_v1_portal, 19);
 
 /**
  * GetPortalCurrentUsageResponse is the response of CustomerPortalService.GetPortalCurrentUsage.
@@ -494,7 +968,7 @@ export type GetPortalCurrentUsageResponse = Message<"tanvo.portal.v1.GetPortalCu
  * Use `create(GetPortalCurrentUsageResponseSchema)` to create a new message.
  */
 export const GetPortalCurrentUsageResponseSchema: GenMessage<GetPortalCurrentUsageResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 15);
+  messageDesc(file_tanvo_portal_v1_portal, 20);
 
 /**
  * ListPortalWalletsRequest is the request of CustomerPortalService.ListPortalWallets.
@@ -502,6 +976,26 @@ export const GetPortalCurrentUsageResponseSchema: GenMessage<GetPortalCurrentUsa
  * @generated from message tanvo.portal.v1.ListPortalWalletsRequest
  */
 export type ListPortalWalletsRequest = Message<"tanvo.portal.v1.ListPortalWalletsRequest"> & {
+  /**
+   * The maximum number of results; 20 by default, at most 1000.
+   *
+   * @generated from field: int32 page_size = 1;
+   */
+  pageSize: number;
+
+  /**
+   * The next_page_token of the previous page.
+   *
+   * @generated from field: string page_token = 2;
+   */
+  pageToken: string;
+
+  /**
+   * An AIP-160 filter over `status`; the active wallets by default.
+   *
+   * @generated from field: string filter = 3;
+   */
+  filter: string;
 };
 
 /**
@@ -509,7 +1003,7 @@ export type ListPortalWalletsRequest = Message<"tanvo.portal.v1.ListPortalWallet
  * Use `create(ListPortalWalletsRequestSchema)` to create a new message.
  */
 export const ListPortalWalletsRequestSchema: GenMessage<ListPortalWalletsRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 16);
+  messageDesc(file_tanvo_portal_v1_portal, 21);
 
 /**
  * ListPortalWalletsResponse is the response of CustomerPortalService.ListPortalWallets.
@@ -518,11 +1012,18 @@ export const ListPortalWalletsRequestSchema: GenMessage<ListPortalWalletsRequest
  */
 export type ListPortalWalletsResponse = Message<"tanvo.portal.v1.ListPortalWalletsResponse"> & {
   /**
-   * The active wallets.
+   * The wallets of this page.
    *
-   * @generated from field: repeated tanvo.wallet.v1.Wallet wallets = 1;
+   * @generated from field: repeated tanvo.portal.v1.PortalWallet wallets = 1;
    */
-  wallets: Wallet[];
+  wallets: PortalWallet[];
+
+  /**
+   * The token of the next page; empty on the last page.
+   *
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
 };
 
 /**
@@ -530,7 +1031,49 @@ export type ListPortalWalletsResponse = Message<"tanvo.portal.v1.ListPortalWalle
  * Use `create(ListPortalWalletsResponseSchema)` to create a new message.
  */
 export const ListPortalWalletsResponseSchema: GenMessage<ListPortalWalletsResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 17);
+  messageDesc(file_tanvo_portal_v1_portal, 22);
+
+/**
+ * GetPortalWalletRequest is the request of CustomerPortalService.GetPortalWallet.
+ *
+ * @generated from message tanvo.portal.v1.GetPortalWalletRequest
+ */
+export type GetPortalWalletRequest = Message<"tanvo.portal.v1.GetPortalWalletRequest"> & {
+  /**
+   * The wallet's ID.
+   *
+   * @generated from field: string wallet_id = 1;
+   */
+  walletId: string;
+};
+
+/**
+ * Describes the message tanvo.portal.v1.GetPortalWalletRequest.
+ * Use `create(GetPortalWalletRequestSchema)` to create a new message.
+ */
+export const GetPortalWalletRequestSchema: GenMessage<GetPortalWalletRequest> = /*@__PURE__*/
+  messageDesc(file_tanvo_portal_v1_portal, 23);
+
+/**
+ * GetPortalWalletResponse is the response of CustomerPortalService.GetPortalWallet.
+ *
+ * @generated from message tanvo.portal.v1.GetPortalWalletResponse
+ */
+export type GetPortalWalletResponse = Message<"tanvo.portal.v1.GetPortalWalletResponse"> & {
+  /**
+   * The wallet.
+   *
+   * @generated from field: tanvo.portal.v1.PortalWallet wallet = 1;
+   */
+  wallet?: PortalWallet | undefined;
+};
+
+/**
+ * Describes the message tanvo.portal.v1.GetPortalWalletResponse.
+ * Use `create(GetPortalWalletResponseSchema)` to create a new message.
+ */
+export const GetPortalWalletResponseSchema: GenMessage<GetPortalWalletResponse> = /*@__PURE__*/
+  messageDesc(file_tanvo_portal_v1_portal, 24);
 
 /**
  * TopUpPortalWalletRequest is the request of CustomerPortalService.TopUpPortalWallet.
@@ -546,7 +1089,7 @@ export type TopUpPortalWalletRequest = Message<"tanvo.portal.v1.TopUpPortalWalle
   walletId: string;
 
   /**
-   * The credits to buy.
+   * The credits to buy; without them nothing is bought.
    *
    * @generated from field: string paid_credits = 2;
    */
@@ -558,7 +1101,7 @@ export type TopUpPortalWalletRequest = Message<"tanvo.portal.v1.TopUpPortalWalle
  * Use `create(TopUpPortalWalletRequestSchema)` to create a new message.
  */
 export const TopUpPortalWalletRequestSchema: GenMessage<TopUpPortalWalletRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 18);
+  messageDesc(file_tanvo_portal_v1_portal, 25);
 
 /**
  * TopUpPortalWalletResponse is the response of CustomerPortalService.TopUpPortalWallet.
@@ -567,18 +1110,11 @@ export const TopUpPortalWalletRequestSchema: GenMessage<TopUpPortalWalletRequest
  */
 export type TopUpPortalWalletResponse = Message<"tanvo.portal.v1.TopUpPortalWalletResponse"> & {
   /**
-   * The pending transaction.
+   * The transactions created: the pending purchase, if any.
    *
-   * @generated from field: tanvo.wallet.v1.WalletTransaction wallet_transaction = 1;
+   * @generated from field: repeated tanvo.portal.v1.PortalWalletTransaction wallet_transactions = 1;
    */
-  walletTransaction?: WalletTransaction | undefined;
-
-  /**
-   * The checkout URL of the credit invoice, when paid online.
-   *
-   * @generated from field: string payment_url = 2;
-   */
-  paymentUrl: string;
+  walletTransactions: PortalWalletTransaction[];
 };
 
 /**
@@ -586,7 +1122,7 @@ export type TopUpPortalWalletResponse = Message<"tanvo.portal.v1.TopUpPortalWall
  * Use `create(TopUpPortalWalletResponseSchema)` to create a new message.
  */
 export const TopUpPortalWalletResponseSchema: GenMessage<TopUpPortalWalletResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 19);
+  messageDesc(file_tanvo_portal_v1_portal, 26);
 
 /**
  * GetPortalOverdueBalanceRequest is the request of CustomerPortalService.GetPortalOverdueBalance.
@@ -594,12 +1130,6 @@ export const TopUpPortalWalletResponseSchema: GenMessage<TopUpPortalWalletRespon
  * @generated from message tanvo.portal.v1.GetPortalOverdueBalanceRequest
  */
 export type GetPortalOverdueBalanceRequest = Message<"tanvo.portal.v1.GetPortalOverdueBalanceRequest"> & {
-  /**
-   * The number of months; 12 by default.
-   *
-   * @generated from field: int32 months = 1;
-   */
-  months: number;
 };
 
 /**
@@ -607,7 +1137,7 @@ export type GetPortalOverdueBalanceRequest = Message<"tanvo.portal.v1.GetPortalO
  * Use `create(GetPortalOverdueBalanceRequestSchema)` to create a new message.
  */
 export const GetPortalOverdueBalanceRequestSchema: GenMessage<GetPortalOverdueBalanceRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 20);
+  messageDesc(file_tanvo_portal_v1_portal, 27);
 
 /**
  * GetPortalOverdueBalanceResponse is the response of CustomerPortalService.GetPortalOverdueBalance.
@@ -628,7 +1158,7 @@ export type GetPortalOverdueBalanceResponse = Message<"tanvo.portal.v1.GetPortal
  * Use `create(GetPortalOverdueBalanceResponseSchema)` to create a new message.
  */
 export const GetPortalOverdueBalanceResponseSchema: GenMessage<GetPortalOverdueBalanceResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 21);
+  messageDesc(file_tanvo_portal_v1_portal, 28);
 
 /**
  * GetPortalInvoiceCollectionRequest is the request of CustomerPortalService.GetPortalInvoiceCollection.
@@ -636,12 +1166,6 @@ export const GetPortalOverdueBalanceResponseSchema: GenMessage<GetPortalOverdueB
  * @generated from message tanvo.portal.v1.GetPortalInvoiceCollectionRequest
  */
 export type GetPortalInvoiceCollectionRequest = Message<"tanvo.portal.v1.GetPortalInvoiceCollectionRequest"> & {
-  /**
-   * The number of months; 12 by default.
-   *
-   * @generated from field: int32 months = 1;
-   */
-  months: number;
 };
 
 /**
@@ -649,7 +1173,7 @@ export type GetPortalInvoiceCollectionRequest = Message<"tanvo.portal.v1.GetPort
  * Use `create(GetPortalInvoiceCollectionRequestSchema)` to create a new message.
  */
 export const GetPortalInvoiceCollectionRequestSchema: GenMessage<GetPortalInvoiceCollectionRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 22);
+  messageDesc(file_tanvo_portal_v1_portal, 29);
 
 /**
  * GetPortalInvoiceCollectionResponse is the response of CustomerPortalService.GetPortalInvoiceCollection.
@@ -670,49 +1194,7 @@ export type GetPortalInvoiceCollectionResponse = Message<"tanvo.portal.v1.GetPor
  * Use `create(GetPortalInvoiceCollectionResponseSchema)` to create a new message.
  */
 export const GetPortalInvoiceCollectionResponseSchema: GenMessage<GetPortalInvoiceCollectionResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 23);
-
-/**
- * PayPortalOverdueBalanceRequest is the request of CustomerPortalService.PayPortalOverdueBalance.
- *
- * @generated from message tanvo.portal.v1.PayPortalOverdueBalanceRequest
- */
-export type PayPortalOverdueBalanceRequest = Message<"tanvo.portal.v1.PayPortalOverdueBalanceRequest"> & {
-  /**
-   * The currency to pay.
-   *
-   * @generated from field: string currency = 1;
-   */
-  currency: string;
-};
-
-/**
- * Describes the message tanvo.portal.v1.PayPortalOverdueBalanceRequest.
- * Use `create(PayPortalOverdueBalanceRequestSchema)` to create a new message.
- */
-export const PayPortalOverdueBalanceRequestSchema: GenMessage<PayPortalOverdueBalanceRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 24);
-
-/**
- * PayPortalOverdueBalanceResponse is the response of CustomerPortalService.PayPortalOverdueBalance.
- *
- * @generated from message tanvo.portal.v1.PayPortalOverdueBalanceResponse
- */
-export type PayPortalOverdueBalanceResponse = Message<"tanvo.portal.v1.PayPortalOverdueBalanceResponse"> & {
-  /**
-   * The checkout URL.
-   *
-   * @generated from field: string payment_url = 1;
-   */
-  paymentUrl: string;
-};
-
-/**
- * Describes the message tanvo.portal.v1.PayPortalOverdueBalanceResponse.
- * Use `create(PayPortalOverdueBalanceResponseSchema)` to create a new message.
- */
-export const PayPortalOverdueBalanceResponseSchema: GenMessage<PayPortalOverdueBalanceResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_portal_v1_portal, 25);
+  messageDesc(file_tanvo_portal_v1_portal, 30);
 
 /**
  * CustomerPortalService serves the customer portal. Every RPC is
@@ -744,7 +1226,9 @@ export const CustomerPortalService: GenService<{
     output: typeof GetPortalCustomerResponseSchema;
   },
   /**
-   * Updates the customer's billing details.
+   * Updates the customer's billing details. The customer's EU taxes
+   * follow its new tax identification number and address; no webhook is
+   * sent.
    *
    * @generated from rpc tanvo.portal.v1.CustomerPortalService.UpdatePortalCustomer
    */
@@ -754,7 +1238,7 @@ export const CustomerPortalService: GenService<{
     output: typeof UpdatePortalCustomerResponseSchema;
   },
   /**
-   * Lists the customer's finalized invoices, newest first.
+   * Lists the customer's invoices, latest issuing date first.
    *
    * @generated from rpc tanvo.portal.v1.CustomerPortalService.ListPortalInvoices
    */
@@ -764,7 +1248,9 @@ export const CustomerPortalService: GenService<{
     output: typeof ListPortalInvoicesResponseSchema;
   },
   /**
-   * Returns a signed URL of an invoice's PDF.
+   * Returns an invoice with its documents; a document not rendered yet is
+   * queued for rendering and left out. A draft cannot be downloaded
+   * (`is_draft`).
    *
    * @generated from rpc tanvo.portal.v1.CustomerPortalService.DownloadPortalInvoice
    */
@@ -774,7 +1260,7 @@ export const CustomerPortalService: GenService<{
     output: typeof DownloadPortalInvoiceResponseSchema;
   },
   /**
-   * Lists the customer's active subscriptions.
+   * Lists the customer's subscriptions, most recent first.
    *
    * @generated from rpc tanvo.portal.v1.CustomerPortalService.ListPortalSubscriptions
    */
@@ -784,7 +1270,19 @@ export const CustomerPortalService: GenService<{
     output: typeof ListPortalSubscriptionsResponseSchema;
   },
   /**
-   * Returns a subscription's usage in the current billing period.
+   * Returns one of the customer's subscriptions, whatever its status.
+   *
+   * @generated from rpc tanvo.portal.v1.CustomerPortalService.GetPortalSubscription
+   */
+  getPortalSubscription: {
+    methodKind: "unary";
+    input: typeof GetPortalSubscriptionRequestSchema;
+    output: typeof GetPortalSubscriptionResponseSchema;
+  },
+  /**
+   * Returns an active subscription's usage in the current billing period,
+   * without taxes; a subscription that is not active is
+   * `no_active_subscription`.
    *
    * @generated from rpc tanvo.portal.v1.CustomerPortalService.GetPortalCurrentUsage
    */
@@ -794,7 +1292,9 @@ export const CustomerPortalService: GenService<{
     output: typeof GetPortalCurrentUsageResponseSchema;
   },
   /**
-   * Lists the customer's active wallets.
+   * Lists the customer's wallets in the order invoices consume them:
+   * priority, then the earliest expiration (wallets without one last),
+   * then the oldest.
    *
    * @generated from rpc tanvo.portal.v1.CustomerPortalService.ListPortalWallets
    */
@@ -804,7 +1304,18 @@ export const CustomerPortalService: GenService<{
     output: typeof ListPortalWalletsResponseSchema;
   },
   /**
-   * Buys or requests credits for a wallet, within its paid top-up limits.
+   * Returns one of the customer's wallets.
+   *
+   * @generated from rpc tanvo.portal.v1.CustomerPortalService.GetPortalWallet
+   */
+  getPortalWallet: {
+    methodKind: "unary";
+    input: typeof GetPortalWalletRequestSchema;
+    output: typeof GetPortalWalletResponseSchema;
+  },
+  /**
+   * Buys credits for a wallet, within its paid top-up limits: the
+   * purchase is pending until its credit invoice is paid.
    *
    * @generated from rpc tanvo.portal.v1.CustomerPortalService.TopUpPortalWallet
    */
@@ -814,7 +1325,8 @@ export const CustomerPortalService: GenService<{
     output: typeof TopUpPortalWalletResponseSchema;
   },
   /**
-   * Returns the customer's overdue balance per currency.
+   * Returns the customer's overdue balance per payment due month, in the
+   * customer's currency, every month since the organization's creation.
    *
    * @generated from rpc tanvo.portal.v1.CustomerPortalService.GetPortalOverdueBalance
    */
@@ -824,7 +1336,9 @@ export const CustomerPortalService: GenService<{
     output: typeof GetPortalOverdueBalanceResponseSchema;
   },
   /**
-   * Returns the customer's invoices per payment status.
+   * Returns the customer's finalized invoices per issuing month and
+   * payment status, in the customer's currency, every month since the
+   * organization's creation.
    *
    * @generated from rpc tanvo.portal.v1.CustomerPortalService.GetPortalInvoiceCollection
    */
@@ -832,17 +1346,6 @@ export const CustomerPortalService: GenService<{
     methodKind: "unary";
     input: typeof GetPortalInvoiceCollectionRequestSchema;
     output: typeof GetPortalInvoiceCollectionResponseSchema;
-  },
-  /**
-   * Requests payment of the customer's overdue invoices and returns the
-   * checkout URL.
-   *
-   * @generated from rpc tanvo.portal.v1.CustomerPortalService.PayPortalOverdueBalance
-   */
-  payPortalOverdueBalance: {
-    methodKind: "unary";
-    input: typeof PayPortalOverdueBalanceRequestSchema;
-    output: typeof PayPortalOverdueBalanceResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_tanvo_portal_v1_portal, 0);

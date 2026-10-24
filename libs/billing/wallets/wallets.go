@@ -12,6 +12,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/wallet"
@@ -201,6 +202,10 @@ func (s *Service) create(ctx context.Context, r port.Repos, org core.Organizatio
 	if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeWalletCreated, "wallet", kernel.ObjectID(w.ID), w); err != nil {
 		return nil, err
 	}
+	// source: app/services/wallets/create_service.rb:12
+	if err := s.d.LogWallet(ctx, r, auditlog.ActivityWalletCreated, nil, w); err != nil {
+		return nil, err
+	}
 	if positive(in.PaidCredits) || positive(in.GrantedCredits) {
 		_, err := s.createTransactions(ctx, r, org, &TransactionInput{
 			WalletID:              w.ID,
@@ -335,6 +340,10 @@ func (s *Service) update(ctx context.Context, r port.Repos, org core.Organizatio
 	if !w.Active() {
 		return nil, fieldError("wallet_id", CodeWalletIsTerminated)
 	}
+	logged, err := auditlog.ObjectOf(w)
+	if err != nil {
+		return nil, err
+	}
 	var v core.Validator
 	if in.ExpirationAt.Set {
 		v.Merge("", wallet.ValidateExpiration(in.ExpirationAt.Value, now))
@@ -439,6 +448,10 @@ func (s *Service) update(ctx context.Context, r port.Repos, org core.Organizatio
 		}
 	}
 	if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeWalletUpdated, "wallet", kernel.ObjectID(w.ID), w); err != nil {
+		return nil, err
+	}
+	// source: app/services/wallets/update_service.rb:15
+	if err := s.d.LogWallet(ctx, r, auditlog.ActivityWalletUpdated, logged, w); err != nil {
 		return nil, err
 	}
 	return w, nil

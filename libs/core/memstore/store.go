@@ -51,6 +51,7 @@ type state struct {
 	sequences    map[storeSequenceKey]int64
 
 	productCatalog *productCatalogData
+	x402           *x402Data
 }
 
 type storeSequenceKey struct {
@@ -84,6 +85,7 @@ func newState() *state {
 		sequences:    map[storeSequenceKey]int64{},
 
 		productCatalog: newProductCatalogData(),
+		x402:           newX402Data(),
 	}
 }
 
@@ -113,6 +115,7 @@ func (s *state) snapshot() *state {
 		sequences:    maps.Clone(s.sequences),
 
 		productCatalog: s.productCatalog.snapshot(),
+		x402:           s.x402.snapshot(),
 	}
 }
 
@@ -229,6 +232,9 @@ func (tx *storeTx) bind() port.Repos {
 		AppliedCoupons: appliedCouponRepo{st.coupon, st.customer},
 
 		Subscriptions:          subscriptionRepo{st.subscription, st},
+		Contracts:              contractRepo{st},
+		ContractRateCards:      contractRateCardRepo{st},
+		BillingSegments:        billingSegmentRepo{st},
 		ActivationRules:        activationRuleRepo{st.subscription},
 		FixedChargeEvents:      fixedChargeEventRepo{st.subscription},
 		AppliedUsageThresholds: appliedUsageThresholdRepo{st.subscription},
@@ -302,6 +308,9 @@ func (tx *storeTx) bind() port.Repos {
 		RateCards:         rateCardRepo{st.productCatalog},
 		Rates:             rateRepo{st.productCatalog},
 		PlanRateCards:     planRateCardRepo{st.productCatalog},
+
+		X402Connections: x402ConnectionRepo{st.x402},
+		X402Settlements: x402SettlementRepo{st.x402},
 
 		IdempotencyKeys: idempotencyRepo{st.idempotency},
 

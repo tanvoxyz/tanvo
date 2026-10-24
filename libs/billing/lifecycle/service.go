@@ -10,6 +10,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/invoicing"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
@@ -139,6 +140,20 @@ func (s *Service) billAdvanceCharges(ctx context.Context, r port.Repos, sub *sub
 // emit records the domain event t on sub.
 func (s *Service) emit(ctx context.Context, t webhook.EventType, sub *subscription.Subscription) error {
 	return kernel.Emit(ctx, s.d, sub.OrganizationID, t, "subscription", sub.ID.UUID(), sub)
+}
+
+// notify records the domain event t on sub with its activity log of the
+// same type: lago pairs each subscription.* webhook of the lifecycle with
+// Utils::ActivityLog.produce (create_service.rb:210-211,
+// activate_service.rb:43-44,111-112,166-167,
+// plan_downgrade_service.rb:67-68, terminate_service.rb:36-37,82-83,
+// resolve_subscription_status_service.rb:20-21). The log carries no
+// changes, as produce is called without a block.
+func (s *Service) notify(ctx context.Context, r port.Repos, t webhook.EventType, sub *subscription.Subscription) error {
+	if err := s.emit(ctx, t, sub); err != nil {
+		return err
+	}
+	return s.d.LogSubscription(ctx, r, auditlog.ActivityType(t), nil, sub)
 }
 
 // lock takes the customer's billing schedule lock then the subscription

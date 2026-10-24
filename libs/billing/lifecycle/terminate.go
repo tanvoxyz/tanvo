@@ -137,7 +137,7 @@ func (s *Service) terminate(ctx context.Context, r port.Repos, env *kernel.Subsc
 			return false, err
 		}
 	}
-	return true, s.emit(ctx, webhook.EventTypeSubscriptionTerminated, sub)
+	return true, s.notify(ctx, r, webhook.EventTypeSubscriptionTerminated, sub)
 }
 
 // cancelPending cancels a pending subscription (a future start or a
@@ -154,11 +154,11 @@ func (s *Service) cancelPending(ctx context.Context, r port.Repos, env *kernel.S
 		return err
 	}
 	if env.Previous != nil {
-		if err := s.emit(ctx, webhook.EventTypeSubscriptionUpdated, env.Previous); err != nil {
+		if err := s.notify(ctx, r, webhook.EventTypeSubscriptionUpdated, env.Previous); err != nil {
 			return err
 		}
 	}
-	return s.emit(ctx, webhook.EventTypeSubscriptionTerminated, sub)
+	return s.notify(ctx, r, webhook.EventTypeSubscriptionTerminated, sub)
 }
 
 // terminationCreditNote credits the unused part of the base fee of an

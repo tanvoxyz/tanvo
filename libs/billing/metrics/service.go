@@ -12,6 +12,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -145,6 +146,9 @@ func (s *Service) Create(ctx context.Context, org core.OrganizationID, in Create
 		if err := r.Metrics.Create(ctx, m); err != nil {
 			return codeConflict(err)
 		}
+		if err := s.logActivity(ctx, r, auditlog.ActivityBillableMetricCreated, nil, m); err != nil {
+			return err
+		}
 		return kernel.Emit(ctx, s.d, org, webhook.EventTypeBillableMetricCreated, Resource, m.ID.UUID(), m)
 	})
 	if err != nil {
@@ -195,6 +199,10 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.B
 		if err != nil {
 			return notFound(err)
 		}
+		before, err := auditlog.ObjectOf(m)
+		if err != nil {
+			return err
+		}
 		in.Name.Apply(&m.Name)
 		in.Description.Apply(&m.Description)
 		if in.Filters.Set {
@@ -226,6 +234,9 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.B
 			return codeConflict(err)
 		}
 		out = m
+		if err := s.logActivity(ctx, r, auditlog.ActivityBillableMetricUpdated, before, m); err != nil {
+			return err
+		}
 		return kernel.Emit(ctx, s.d, org, webhook.EventTypeBillableMetricUpdated, Resource, m.ID.UUID(), m)
 	})
 	if err != nil {
@@ -292,12 +303,25 @@ func (s *Service) Delete(ctx context.Context, org core.OrganizationID, id core.B
 		}
 		m.DeletedAt, m.UpdatedAt = &now, now
 		out = m
+		if err := s.logActivity(ctx, r, auditlog.ActivityBillableMetricDeleted, nil, m); err != nil {
+			return err
+		}
 		return kernel.Emit(ctx, s.d, org, webhook.EventTypeBillableMetricDeleted, Resource, m.ID.UUID(), m)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("delete billable metric %s: %w", id, err)
 	}
 	return out, nil
+}
+
+// logActivity records the activity log of m, whose attributes before an
+// update are before (lago activity_loggable of create_service.rb:12,
+// update_service.rb:14 and destroy_service.rb:12).
+func (s *Service) logActivity(ctx context.Context, r port.Repos, t auditlog.ActivityType, before map[string]any, m *catalog.BillableMetric) error {
+	return s.d.LogChange(ctx, r, kernel.Change{
+		Type: t, OrganizationID: m.OrganizationID, ResourceType: auditlog.ResourceBillableMetric, ResourceID: m.ID.UUID(),
+		Object: m, Before: before,
+	})
 }
 
 // Get returns the metric id.

@@ -72,6 +72,8 @@ func (r organizationRepo) WithWork(ctx context.Context, w organization.Work, at 
 		rows, err = q.ListOrganizationsWithExpiredRecordDeletions(ctx, export.RecordDeletionCutoff(at))
 	case organization.WorkDunningCustomers:
 		rows, err = q.ListOrganizationsWithDunningCustomers(ctx)
+	case organization.WorkAwaitingBillingSegments:
+		rows, err = q.ListOrganizationsWithAwaitingBillingSegments(ctx)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("list organizations with %s: %w", w, mapErr(err))

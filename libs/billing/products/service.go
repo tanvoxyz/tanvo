@@ -7,11 +7,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
+	"github.com/tanvoxyz/tanvo/libs/core/subscription"
 )
 
 // Resource names of the not-found errors.
@@ -107,42 +111,67 @@ func attachedPlans(ctx context.Context, r port.Repos, org core.OrganizationID, q
 	return ids, nil
 }
 
-// attached reports whether a plan applies a rate card matching q (lago
-// CatalogAttachable#attached_to_plan_or_subscription?).
-//
-// TODO(contracts): rate cards a contract applies attach too, once the
-// Contracts and Billing Segments unit (parity §1.22) lands.
+// attached reports whether a plan or a contract applies a rate card
+// matching q (lago CatalogAttachable#attached_to_plan_or_subscription?).
 //
 // source: app/models/concerns/catalog_attachable.rb:4-6
 func attached(ctx context.Context, r port.Repos, org core.OrganizationID, q catalog.PlanRateCardQuery) (bool, error) {
 	ids, err := attachedPlans(ctx, r, org, q)
-	return len(ids) > 0, err
+	if err != nil || len(ids) > 0 {
+		return len(ids) > 0, err
+	}
+	return contractCardExists(ctx, r, org, q)
 }
 
-// attachedToContracts reports whether a contract applies a rate card
-// matching q, directly or through its catalog plan (lago
-// RateCard#attached_to_subscriptions?, ProductFilter#attached_to_subscriptions?).
-//
-// TODO(contracts): contracts come with the Contracts and Billing Segments
-// unit (parity §1.22); until then no rate card is attached to one.
+// contractCardExists reports whether a contract applies a rate card
+// matching q directly.
+func contractCardExists(ctx context.Context, r port.Repos, org core.OrganizationID, q catalog.PlanRateCardQuery) (bool, error) {
+	ok, err := r.ContractRateCards.Exists(ctx, org, subscription.RateCardQuery{
+		RateCardID:        q.RateCardID,
+		ProductID:         q.ProductID,
+		ProductFilterID:   q.ProductFilterID,
+		ProductCategoryID: q.ProductCategoryID,
+	})
+	if err != nil {
+		return false, fmt.Errorf("find contract rate cards: %w", err)
+	}
+	return ok, nil
+}
+
+// attachedToContracts reports whether a contract bills a rate card
+// matching q: a rate card is attached when a contract applies it or when a
+// catalog plan applying it has a contract; a product filter only when a
+// contract applies one of its cards (lago RateCard#attached_to_subscriptions?,
+// ProductFilter#attached_to_subscriptions?).
 //
 // source: app/models/rate_card.rb:107-110, app/models/product_filter.rb:19-21
-func attachedToContracts(context.Context, port.Repos, core.OrganizationID, catalog.PlanRateCardQuery) (bool, error) {
+func attachedToContracts(ctx context.Context, r port.Repos, org core.OrganizationID, q catalog.PlanRateCardQuery) (bool, error) {
+	ok, err := contractCardExists(ctx, r, org, q)
+	if err != nil || ok || q.RateCardID.IsZero() {
+		return ok, err
+	}
+	plans, err := attachedPlans(ctx, r, org, catalog.PlanRateCardQuery{RateCardID: q.RateCardID})
+	if err != nil {
+		return false, err
+	}
+	for _, plan := range plans {
+		if ok, err := planContracted(ctx, r, org, plan); err != nil || ok {
+			return ok, err
+		}
+	}
 	return false, nil
 }
 
-// planContracted reports whether a contract uses the catalog plan (lago
-// CatalogPlan#attached_to_contracts?).
-//
-// TODO(contracts): contracts come with the Contracts and Billing Segments
-// unit (parity §1.22); until then no plan is locked. A contract is a
-// subscription priced by rate cards (domain §21.4), so the check becomes
-// "the plan has a subscription of any status", as contracts.exists? counts
-// finished contracts too.
+// planContracted reports whether a contract, of any status, uses the
+// catalog plan (lago CatalogPlan#attached_to_contracts?).
 //
 // source: app/models/catalog_plan.rb:34-36
-func planContracted(context.Context, port.Repos, core.OrganizationID, core.PlanID) (bool, error) {
-	return false, nil
+func planContracted(ctx context.Context, r port.Repos, org core.OrganizationID, plan core.PlanID) (bool, error) {
+	ok, err := r.Contracts.ExistsForPlan(ctx, org, plan)
+	if err != nil {
+		return false, fmt.Errorf("find contracts of plan %s: %w", plan, err)
+	}
+	return ok, nil
 }
 
 // getCategory returns the kept category id.
@@ -298,3 +327,45 @@ func planRateCardLock(id core.PlanRateCardID) port.LockKey {
 
 // isNotFound reports whether err is a missing object of the store.
 func isNotFound(err error) bool { return errors.Is(err, core.ErrNotFound) }
+
+// logChange records the activity log t of the catalog object obj, the
+// resource res with ID id, whose attributes before an update are before.
+// A catalog object's log names no customer (lago
+// IGNORED_EXTERNAL_CUSTOMER_ID_CLASSES, app/services/utils/activity_log.rb:6).
+func (s *Service) logChange(ctx context.Context, r port.Repos, t auditlog.ActivityType, res auditlog.ResourceType, id uuid.UUID, org core.OrganizationID, before map[string]any, obj any) error {
+	return s.d.LogChange(ctx, r, kernel.Change{
+		Type: t, OrganizationID: org, ResourceType: res, ResourceID: id, Object: obj, Before: before,
+	})
+}
+
+// rateCardObject is the logged object of a rate card: the card with its
+// rates, as lago serializes it (SERIALIZED_INCLUDED_OBJECTS rate_card,
+// app/services/utils/activity_log.rb:13).
+type rateCardObject struct {
+	*catalog.RateCard
+	// Rates are the card's kept rates.
+	Rates []*catalog.Rate
+}
+
+// rateCardSnapshot returns the logged attributes of the card c with its
+// rates, for the prior state of an update.
+func rateCardSnapshot(ctx context.Context, r port.Repos, c *catalog.RateCard) (map[string]any, error) {
+	rates, err := r.Rates.ListByRateCard(ctx, c.OrganizationID, c.ID)
+	if err != nil {
+		return nil, fmt.Errorf("list rates: %w", err)
+	}
+	return auditlog.ObjectOf(rateCardObject{RateCard: c, Rates: rates})
+}
+
+// logRateCard records the activity log t of the rate card c with its
+// current rates, whose attributes before an update are before.
+func (s *Service) logRateCard(ctx context.Context, r port.Repos, t auditlog.ActivityType, before map[string]any, c *catalog.RateCard) error {
+	if s.d.ActivityLogs == nil {
+		return nil
+	}
+	rates, err := r.Rates.ListByRateCard(ctx, c.OrganizationID, c.ID)
+	if err != nil {
+		return fmt.Errorf("list rates: %w", err)
+	}
+	return s.logChange(ctx, r, t, auditlog.ResourceRateCard, c.ID.UUID(), c.OrganizationID, before, rateCardObject{RateCard: c, Rates: rates})
+}

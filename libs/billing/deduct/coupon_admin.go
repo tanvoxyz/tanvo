@@ -9,6 +9,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/coupon"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
@@ -39,7 +40,7 @@ func (s *Service) CreateCoupon(ctx context.Context, c *coupon.Coupon) error {
 		if err := r.Coupons.Create(ctx, c); err != nil {
 			return couponCodeConflict(fmt.Errorf("create coupon: %w", err))
 		}
-		return nil
+		return s.logCoupon(ctx, r, auditlog.ActivityCouponCreated, nil, c)
 	})
 }
 
@@ -115,7 +116,7 @@ func (s *Service) UpdateCoupon(ctx context.Context, org core.OrganizationID, id 
 			return couponCodeConflict(fmt.Errorf("update coupon %s: %w", id, err))
 		}
 		out = &next
-		return nil
+		return s.logCoupon(ctx, r, auditlog.ActivityCouponUpdated, old, &next)
 	})
 	return out, err
 }
@@ -169,9 +170,14 @@ func (s *Service) DestroyCoupon(ctx context.Context, org core.OrganizationID, id
 			if err := r.AppliedCoupons.Update(ctx, a); err != nil {
 				return fmt.Errorf("update applied coupon %s: %w", a.ID, err)
 			}
+			// coupons/destroy_service.rb:24-26 terminates them through
+			// AppliedCoupons::TerminateService.
+			if err := s.logAppliedCoupon(ctx, r, auditlog.ActivityAppliedCouponDeleted, a); err != nil {
+				return err
+			}
 		}
 		out = c
-		return nil
+		return s.logCoupon(ctx, r, auditlog.ActivityCouponDeleted, nil, c)
 	})
 	return out, err
 }
@@ -273,7 +279,7 @@ func (s *Service) ApplyCoupon(ctx context.Context, in ApplyCouponInput) (*coupon
 			return fmt.Errorf("create applied coupon: %w", err)
 		}
 		out = a
-		return nil
+		return s.logAppliedCoupon(ctx, r, auditlog.ActivityAppliedCouponCreated, a)
 	})
 	return out, err
 }
@@ -338,7 +344,28 @@ func (s *Service) TerminateAppliedCoupon(ctx context.Context, org core.Organizat
 			}
 		}
 		out = a
-		return nil
+		// Logged even when already terminated (terminate_service.rb:15-17).
+		return s.logAppliedCoupon(ctx, r, auditlog.ActivityAppliedCouponDeleted, a)
 	})
 	return out, err
+}
+
+// logCoupon records the activity log t of c, whose attributes before an
+// update are before (lago activity_loggable of coupons/create_service.rb:12,
+// update_service.rb:14 and destroy_service.rb:12).
+func (s *Service) logCoupon(ctx context.Context, r port.Repos, t auditlog.ActivityType, before, c *coupon.Coupon) error {
+	return s.d.LogChange(ctx, r, kernel.Change{
+		Type: t, OrganizationID: c.OrganizationID, ResourceType: auditlog.ResourceCoupon, ResourceID: c.ID.UUID(),
+		Object: c, Before: before,
+	})
+}
+
+// logAppliedCoupon records the activity log t of a, anchored on its coupon
+// (applied_coupons/create_service.rb:15, terminate_service.rb:17,
+// activity_log.rb:177-178).
+func (s *Service) logAppliedCoupon(ctx context.Context, r port.Repos, t auditlog.ActivityType, a *coupon.AppliedCoupon) error {
+	return s.d.LogChange(ctx, r, kernel.Change{
+		Type: t, OrganizationID: a.OrganizationID, ResourceType: auditlog.ResourceCoupon, ResourceID: a.CouponID.UUID(),
+		Object: a, CustomerID: a.CustomerID,
+	})
 }

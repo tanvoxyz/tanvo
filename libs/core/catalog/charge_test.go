@@ -27,20 +27,21 @@ func catalogTestChargeOf(model ChargeModel) *Charge {
 
 func TestValidateCharge(t *testing.T) {
 	type tc struct {
-		Name            string   `yaml:"name"`
-		Source          string   `yaml:"source"`
-		AggregationType string   `yaml:"aggregation_type"`
-		MetricRecurring bool     `yaml:"metric_recurring"`
-		Code            *string  `yaml:"code"`
-		ChargeModel     string   `yaml:"charge_model"`
-		PayInAdvance    bool     `yaml:"pay_in_advance"`
-		Invoiceable     bool     `yaml:"invoiceable"`
-		RegroupPaidFees string   `yaml:"regroup_paid_fees"`
-		Prorated        bool     `yaml:"prorated"`
-		MinAmount       int64    `yaml:"min_amount"`
-		Properties      string   `yaml:"properties"`
-		ConversionRate  string   `yaml:"conversion_rate"`
-		Errors          []string `yaml:"errors"`
+		Name                string   `yaml:"name"`
+		Source              string   `yaml:"source"`
+		AggregationType     string   `yaml:"aggregation_type"`
+		MetricRecurring     bool     `yaml:"metric_recurring"`
+		Code                *string  `yaml:"code"`
+		ChargeModel         string   `yaml:"charge_model"`
+		PayInAdvance        bool     `yaml:"pay_in_advance"`
+		Invoiceable         bool     `yaml:"invoiceable"`
+		RegroupPaidFees     string   `yaml:"regroup_paid_fees"`
+		Prorated            bool     `yaml:"prorated"`
+		AcceptsTargetWallet bool     `yaml:"accepts_target_wallet"`
+		MinAmount           int64    `yaml:"min_amount"`
+		Properties          string   `yaml:"properties"`
+		ConversionRate      string   `yaml:"conversion_rate"`
+		Errors              []string `yaml:"errors"`
 	}
 	for _, c := range spectest.Load[tc](t, "charge.yaml") {
 		t.Run(c.Name, func(t *testing.T) {
@@ -53,6 +54,7 @@ func TestValidateCharge(t *testing.T) {
 			ch.Invoiceable = c.Invoiceable
 			ch.RegroupPaidFees = RegroupPaidFees(c.RegroupPaidFees)
 			ch.Prorated = c.Prorated
+			ch.AcceptsTargetWallet = c.AcceptsTargetWallet
 			ch.MinAmount = c.MinAmount
 			if c.Properties != "" {
 				ch.Properties = Properties{raw: []byte(c.Properties)}

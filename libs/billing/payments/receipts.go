@@ -6,6 +6,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/payment"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -68,6 +69,14 @@ func (s *Service) createReceipt(ctx context.Context, r port.Repos, p *payment.Pa
 		return nil, wrap(err, "create receipt of payment %s", p.ID)
 	}
 	if err := kernel.Emit(ctx, s.d, org, webhook.EventTypePaymentReceiptCreated, "payment_receipt", rc.ID.UUID(), rc); err != nil {
+		return nil, err
+	}
+	// payment_receipts/create_service.rb:28; the customer is the
+	// payment's.
+	if err := s.d.LogChange(ctx, r, kernel.Change{
+		Type: auditlog.ActivityPaymentReceiptCreated, OrganizationID: org, ResourceType: auditlog.ResourcePaymentReceipt,
+		ResourceID: rc.ID.UUID(), Object: rc, CustomerID: p.CustomerID,
+	}); err != nil {
 		return nil, err
 	}
 	return rc, nil

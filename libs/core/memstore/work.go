@@ -169,6 +169,13 @@ func (r organizationRepo) WithWork(_ context.Context, w organization.Work, at ti
 			}
 			return false
 		})
+	case organization.WorkAwaitingBillingSegments:
+		st.subscription.segments.find(func(b *subscription.BillingSegment) bool {
+			if b.Status == subscription.SegmentPending || b.Status == subscription.SegmentProcessing {
+				return add(b.OrganizationID)
+			}
+			return false
+		})
 	case organization.WorkTaxRetriedInvoices:
 		retried := map[core.InvoiceID]bool{}
 		st.invoice.errorDetails.find(func(e *invoice.ErrorDetail) bool {

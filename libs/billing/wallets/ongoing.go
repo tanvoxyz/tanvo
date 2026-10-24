@@ -28,6 +28,10 @@ type UsageFee struct {
 	FeeType core.FeeType
 	// BillableMetricID is the metric of charge fees; zero otherwise.
 	BillableMetricID core.BillableMetricID
+	// TargetWalletCode is the wallet the fee's group targets, for the fees
+	// of a charge accepting a target wallet; "" otherwise. Only the wallet
+	// with that code pays the fee.
+	TargetWalletCode string
 	// Currency is the fee currency.
 	Currency money.Currency
 	// Amount is signed: positive for usage to pay, negative for usage
@@ -250,28 +254,30 @@ func minorToCredits(amount int64, w *wallet.Wallet) money.Decimal {
 
 // usageKey is the netting bucket of usage fees.
 type usageKey struct {
-	feeType  core.FeeType
-	metric   core.BillableMetricID
-	currency string
+	feeType      core.FeeType
+	metric       core.BillableMetricID
+	targetWallet string
+	currency     string
 }
 
 func (k usageKey) compare(o usageKey) int {
-	return cmp.Or(cmp.Compare(k.feeType, o.feeType), k.metric.Compare(o.metric), cmp.Compare(k.currency, o.currency))
+	return cmp.Or(cmp.Compare(k.feeType, o.feeType), k.metric.Compare(o.metric),
+		cmp.Compare(k.targetWallet, o.targetWallet), cmp.Compare(k.currency, o.currency))
 }
 
 // AllocateUsage distributes the usage fees across the wallets ws, ordered
 // for application, and returns each wallet's share in minor units (lago
 // Wallets::Balance::AllocateOngoingUsageByWalletsService). The fees are
-// netted per fee type, metric and currency; positive buckets, largest
-// first, are allocated within a per-currency budget (the sum of the nets,
-// never negative) to the wallets that pay them, in order, each up to its
-// balance. A wallet with a threshold rule (threshold[i]) or the last
+// netted per fee type, metric, target wallet code and currency; positive
+// buckets, largest first, are allocated within a per-currency budget (the
+// sum of the nets, never negative) to the wallets that pay them, in order,
+// each up to its balance. A wallet with a threshold rule (threshold[i]) or the last
 // applicable wallet absorbs the rest and may go negative.
 func AllocateUsage(ws []*wallet.Wallet, threshold []bool, fees []UsageFee) []int64 {
 	nets := map[usageKey]int64{}
 	budgets := map[string]int64{}
 	for _, f := range fees {
-		k := usageKey{f.FeeType, f.BillableMetricID, f.Currency.Code()}
+		k := usageKey{f.FeeType, f.BillableMetricID, f.TargetWalletCode, f.Currency.Code()}
 		nets[k] += f.Amount
 		budgets[k.currency] += f.Amount
 	}
@@ -319,11 +325,16 @@ func AllocateUsage(ws []*wallet.Wallet, threshold []bool, fees []UsageFee) []int
 }
 
 // paysUsage reports whether wallet w pays the usage bucket k: same
-// currency, and unrestricted, of an allowed fee type or a charge of a
-// targeted metric.
+// currency, and the wallet the bucket targets, else unrestricted, of an
+// allowed fee type or a charge of a targeted metric.
+//
+// source: app/services/wallets/balance/allocate_ongoing_usage_by_wallets_service.rb:126-136
 func paysUsage(w *wallet.Wallet, k usageKey) bool {
 	if w.Currency.Code() != k.currency {
 		return false
+	}
+	if k.targetWallet != "" {
+		return w.Code != nil && *w.Code == k.targetWallet
 	}
 	if w.Unrestricted() || slices.Contains(w.AllowedFeeTypes, k.feeType) {
 		return true

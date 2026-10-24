@@ -28,14 +28,16 @@ func TestRefreshAllocation(t *testing.T) {
 		currency  money.Currency
 		feeTypes  []core.FeeType
 		metrics   []int // indexes of the metrics the wallet targets
+		code      string
 	}
 	type fee struct {
 		typ    core.FeeType
 		metric int // index of the metric, -1 for none
 		amount int64
 		cur    money.Currency
+		target string // target wallet code of the fee
 	}
-	charge := func(metric int, amount int64) fee { return fee{core.FeeTypeCharge, metric, amount, usd} }
+	charge := func(metric int, amount int64) fee { return fee{core.FeeTypeCharge, metric, amount, usd, ""} }
 	two := []wspec{{balance: 50, priority: 1}, {balance: 150, priority: 2}}
 	cases := []struct {
 		name    string
@@ -120,7 +122,7 @@ func TestRefreshAllocation(t *testing.T) {
 		{
 			name:    "currency mismatch",
 			wallets: []wspec{{balance: 1000, priority: 1}, {balance: 1000, priority: 2, currency: eur}},
-			fees:    []fee{{core.FeeTypeCharge, 0, 80, eur}}, want: []int64{0, 80},
+			fees:    []fee{{core.FeeTypeCharge, 0, 80, eur, ""}}, want: []int64{0, 80},
 		},
 		// source: spec/services/wallets/balance/allocate_ongoing_usage_by_wallets_service_spec.rb:211
 		{
@@ -134,7 +136,7 @@ func TestRefreshAllocation(t *testing.T) {
 		{
 			name:    "subscription fee bypasses a targeting wallet",
 			wallets: []wspec{{balance: 50, priority: 1, metrics: []int{0}}, {balance: 150, priority: 2}},
-			fees:    []fee{{core.FeeTypeSubscription, -1, 80, usd}}, want: []int64{0, 80},
+			fees:    []fee{{core.FeeTypeSubscription, -1, 80, usd, ""}}, want: []int64{0, 80},
 		},
 		// source: spec/services/wallets/balance/allocate_ongoing_usage_by_wallets_service_spec.rb:248
 		{name: "fully covered by progressive billing", wallets: two, fees: []fee{charge(0, 80), charge(0, -80)}, want: []int64{0, 0}},
@@ -142,6 +144,17 @@ func TestRefreshAllocation(t *testing.T) {
 		{
 			name: "progressive billing above one metric", wallets: two,
 			fees: []fee{charge(0, 80), charge(1, 100), charge(1, -150)}, want: []int64{30, 0},
+		},
+		// source: spec/services/wallets/balance/allocate_ongoing_usage_by_wallets_service_spec.rb:297
+		{
+			name: "targets a missing wallet", wallets: two,
+			fees: []fee{{core.FeeTypeCharge, 0, 80, usd, "missing-wallet"}}, want: []int64{0, 0},
+		},
+		// source: spec/services/wallets/balance/allocate_ongoing_usage_by_wallets_service_spec.rb:314
+		{
+			name:    "targeted wallet absorbs the full amount",
+			wallets: []wspec{{balance: 50, priority: 1, code: "wallet-b"}, {balance: 150, priority: 2}},
+			fees:    []fee{{core.FeeTypeCharge, 0, 80, usd, "wallet-b"}}, want: []int64{80, 0},
 		},
 		// source: spec/services/wallets/balance/allocate_ongoing_usage_by_wallets_service_spec.rb:331
 		{name: "no usage", wallets: two, want: []int64{0, 0}},
@@ -157,6 +170,9 @@ func TestRefreshAllocation(t *testing.T) {
 					w.BalanceAmount, w.OngoingBalanceAmount = spec.balance, spec.balance
 					w.CreditsBalance = money.New(spec.balance, -2)
 					w.Priority, w.AllowedFeeTypes = spec.priority, spec.feeTypes
+					if spec.code != "" {
+						w.Code = &spec.code
+					}
 					if spec.currency != (money.Currency{}) {
 						w.Currency = spec.currency
 					}
@@ -170,7 +186,7 @@ func TestRefreshAllocation(t *testing.T) {
 			}
 			var fees []wallets.UsageFee
 			for _, f := range tc.fees {
-				uf := wallets.UsageFee{FeeType: f.typ, Currency: f.cur, Amount: f.amount}
+				uf := wallets.UsageFee{FeeType: f.typ, Currency: f.cur, Amount: f.amount, TargetWalletCode: f.target}
 				if f.metric >= 0 {
 					uf.BillableMetricID = metrics[f.metric]
 				}

@@ -13,15 +13,22 @@ import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/struct.proto";
 import "tanvo/common/v1/options.proto";
-import "tanvo/common/v1/types.proto";
 
 // X402Service serves the x402 flow of a resource server (the
 // organization's API gateway): checking an agent's access before a call.
 service X402Service {
-  // Checks whether an agent may call a resource: returns its wallet
-  // balance and, when it must pay first, the x402 payment requirements to
-  // answer with HTTP 402. Creates the customer, subscription and wallet of
-  // a new agent when the connection auto-creates customers.
+  // Checks whether an agent may call a resource: its subscription is
+  // active and its wallet covers the estimated cost. Otherwise it returns
+  // the x402 payment requirements of a top-up, to answer with HTTP 402.
+  // A refusal is an invalid argument whose field violation is on "base":
+  // buyer_not_recognized, wallet_not_x402_enabled,
+  // customer_not_refreshable, subscription_not_active,
+  // credit_purchase_pending, agent_address_family_unsupported,
+  // plan_currency_not_supported, plan_not_usage_only, charge_not_targeted
+  // and charge_not_invoiceable.
+  // An unknown connection is not found (connection_not_found); a failure
+  // of the facilitator is unavailable (third_party_error). The calls are
+  // not recorded in the API logs.
   rpc CheckX402Gate(CheckX402GateRequest) returns (CheckX402GateResponse) {
     option (google.api.http) = {
       post: "/v1/x402/gate_checks"
@@ -37,42 +44,71 @@ service X402Service {
 // CheckX402GateRequest is the request of X402Service.CheckX402Gate.
 message CheckX402GateRequest {
   // The connection's code.
-  string connection_code = 1 [
+  string connection_code = 1;
+  // The agent's wallet address, an EVM or Solana address; it identifies
+  // the customer. Without it, the agent is a stranger.
+  string agent_address = 2;
+  // The resource called; informative.
+  string resource = 3 [(buf.validate.field).string.max_len = 2048];
+  // The usage-only USD plan of the agent's subscription.
+  string plan_code = 4 [
     (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.(tanvo.common.v1.code) = true
+    (buf.validate.field).required = true
   ];
-  // The agent's wallet address; it identifies the customer.
-  string agent_address = 2 [
+  // The x402-enabled wallet the calls draw on, by code.
+  string wallet_code = 5 [
     (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.pattern = "^(0x[0-9a-fA-F]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})$"
+    (buf.validate.field).required = true
   ];
-  // The resource called (its URL).
-  string resource = 3 [
-    (google.api.field_behavior) = REQUIRED,
-    (buf.validate.field).required = true,
-    (buf.validate.field).string.max_len = 2048
-  ];
-  // The plan of an auto-created subscription.
-  string plan_code = 4 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
-  // The wallet to check, by code; the customer's default by default.
-  string wallet_code = 5 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
   // The billable metric metering the call.
-  string metric_code = 6 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
-  // The top-up amount required when the balance is short.
-  tanvo.common.v1.Money amount = 7;
-  // The estimated cost of the call; the balance must cover it.
-  tanvo.common.v1.Money estimated_call_cost = 8;
+  string billable_metric_code = 6 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The top-up the requirements ask for, in US cents; positive.
+  int64 amount_cents = 7 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The estimated cost of the call, in US cents; positive. The wallet
+  // passes when its balance covers a thousand calls.
+  int64 estimated_call_cost_cents = 8 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
 }
 
 // CheckX402GateResponse is the response of X402Service.CheckX402Gate.
 message CheckX402GateResponse {
-  // The wallet's balance in credits.
+  // The wallet's balance in credits, net of its ongoing usage; "0" for a
+  // stranger.
   string balance_credits = 1;
-  // The x402 payment requirements when the agent must pay first; empty
-  // when it may proceed.
-  google.protobuf.Struct requirements = 2;
-  // The agent's subscription, to send events to.
+  // The payment requirements of the top-up, one per network of the
+  // connection; empty when the agent may proceed.
+  repeated X402PaymentRequirement requirements = 2;
+  // The agent's active subscription, to send its events to; empty when
+  // there is none.
   string external_subscription_id = 3;
+}
+
+// X402PaymentRequirement is one way to pay a top-up: an exact transfer of
+// the connection's token on one network.
+message X402PaymentRequirement {
+  // The payment scheme: "exact".
+  string scheme = 1;
+  // The network, as a CAIP-2 identifier such as "eip155:8453".
+  string network = 2;
+  // The token's code: "usdc".
+  string asset = 3;
+  // The token's address on the network.
+  string asset_address = 4;
+  // The scheme's extra terms: the token's EIP-712 domain on EVM, the fee
+  // payer on Solana.
+  google.protobuf.Struct extra = 5;
+  // The connection's payout address on the network.
+  string pay_to = 6;
+  // The amount in the token's atomic units, as a decimal string.
+  string amount_atomic = 7;
+  // The longest validity of a payment, in seconds.
+  int32 max_timeout_seconds = 8;
 }

@@ -112,6 +112,7 @@ func (r analyticsRepo) InvoiceCollection(ctx context.Context, org core.Organizat
 		ToMonth:          to,
 		OrganizationID:   org.UUID(),
 		BillingEntityID:  optUUID(s.BillingEntityID),
+		CustomerID:       optUUID(s.CustomerID),
 		CustomerTinEmpty: s.CustomerTINEmpty,
 	})
 	if err != nil {

@@ -25,8 +25,8 @@ const RequestIDHeader = "X-Request-Id"
 
 // apiLogSkipped are the services whose RPCs are not logged (lago
 // skip_audit_logs!: the events, activity, API and security log
-// controllers).
-var apiLogSkipped = []string{"tanvo.event.v1.EventService", "tanvo.log.v1.LogService"}
+// controllers, and the x402 gate checks).
+var apiLogSkipped = []string{"tanvo.event.v1.EventService", "tanvo.log.v1.LogService", "tanvo.x402.v1.X402Service"}
 
 type httpRequestKey struct{}
 

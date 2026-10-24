@@ -6,6 +6,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
@@ -65,7 +66,11 @@ func (s *Service) CreateProduct(ctx context.Context, org core.OrganizationID, in
 		if err := validateProduct(ctx, r, p); err != nil {
 			return err
 		}
-		return conflict(r.Products.Create(ctx, p), "code")
+		if err := r.Products.Create(ctx, p); err != nil {
+			return conflict(err, "code")
+		}
+		// source: app/services/products/create_service.rb:13-16
+		return s.logChange(ctx, r, auditlog.ActivityProductCreated, auditlog.ResourceProduct, p.ID.UUID(), org, nil, p)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create product: %w", err)
@@ -100,6 +105,10 @@ func (s *Service) UpdateProduct(ctx context.Context, org core.OrganizationID, id
 		p, err := getProduct(ctx, r, org, id)
 		if err != nil {
 			return notFound(err, ResourceProduct)
+		}
+		before, err := auditlog.ObjectOf(p)
+		if err != nil {
+			return err
 		}
 		var category core.ProductCategoryID
 		if in.Category.Set && !in.Category.Value.IsZero() {
@@ -139,7 +148,8 @@ func (s *Service) UpdateProduct(ctx context.Context, org core.OrganizationID, id
 			return conflict(err, "code")
 		}
 		out = p
-		return nil
+		// source: app/services/products/update_service.rb:13-16
+		return s.logChange(ctx, r, auditlog.ActivityProductUpdated, auditlog.ResourceProduct, p.ID.UUID(), org, before, p)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("update product %s: %w", id, err)
@@ -172,7 +182,8 @@ func (s *Service) DeleteProduct(ctx context.Context, org core.OrganizationID, id
 		}
 		p.DeletedAt = &now
 		out = p
-		return nil
+		// source: app/services/products/destroy_service.rb:12-15
+		return s.logChange(ctx, r, auditlog.ActivityProductDeleted, auditlog.ResourceProduct, p.ID.UUID(), org, nil, p)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("delete product %s: %w", id, err)

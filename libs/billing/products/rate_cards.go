@@ -8,6 +8,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/money"
@@ -140,7 +141,11 @@ func (s *Service) CreateRateCard(ctx context.Context, org core.OrganizationID, i
 			}
 		}
 		out = c
-		return nil
+		// The rates created with the card log nothing of their own
+		// (create_service.rb:84, emit_activity_log: false).
+		//
+		// source: app/services/rate_cards/create_service.rb:15-18
+		return s.logRateCard(ctx, r, auditlog.ActivityRateCardCreated, nil, c)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create rate card: %w", err)
@@ -203,6 +208,10 @@ func (s *Service) UpdateRateCard(ctx context.Context, org core.OrganizationID, i
 		if err != nil {
 			return fmt.Errorf("list rates: %w", err)
 		}
+		before, err := auditlog.ObjectOf(rateCardObject{RateCard: c, Rates: rates})
+		if err != nil {
+			return err
+		}
 		if len(rates) > 0 {
 			locked := []struct {
 				field   string
@@ -264,7 +273,8 @@ func (s *Service) UpdateRateCard(ctx context.Context, org core.OrganizationID, i
 			return conflict(err, "code")
 		}
 		out = c
-		return nil
+		// source: app/services/rate_cards/update_service.rb:19-22
+		return s.logRateCard(ctx, r, auditlog.ActivityRateCardUpdated, before, c)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("update rate card %s: %w", id, err)
@@ -296,7 +306,8 @@ func (s *Service) DeleteRateCard(ctx context.Context, org core.OrganizationID, i
 		}
 		c.DeletedAt = &now
 		out = c
-		return nil
+		// source: app/services/rate_cards/destroy_service.rb:12-15
+		return s.logRateCard(ctx, r, auditlog.ActivityRateCardDeleted, nil, c)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("delete rate card %s: %w", id, err)

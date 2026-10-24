@@ -22,7 +22,8 @@ const (
 	// empty for every metric of the organization.
 	CatalogMetric = "metric"
 	// CatalogSubscription: a subscription was written; the key is its
-	// external ID.
+	// external ID, empty for every subscription of the organization (a
+	// contract's rate cards or a rate card were written).
 	CatalogSubscription = "subscription"
 	// CatalogPlan: the charges of a plan were written; the key is the plan
 	// ID, empty for every plan of the organization.

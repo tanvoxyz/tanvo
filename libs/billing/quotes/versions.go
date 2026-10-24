@@ -11,6 +11,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/quotes/validators"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/coupon"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/quote"
@@ -51,6 +52,10 @@ func (s *Service) UpdateVersion(ctx context.Context, org core.OrganizationID, q 
 		if v.Status != quote.VersionStatusDraft {
 			return fieldError("status", CodeNotEditable)
 		}
+		before, err := auditlog.ObjectOf(v)
+		if err != nil {
+			return err
+		}
 		in.BillingItems.Apply(&v.BillingItems)
 		in.Content.Apply(&v.Content)
 		in.BillingEntityID.Apply(&v.BillingEntityID)
@@ -69,6 +74,10 @@ func (s *Service) UpdateVersion(ctx context.Context, org core.OrganizationID, q 
 		v.UpdatedAt = s.d.Now()
 		if err := r.QuoteVersions.Update(ctx, v); err != nil {
 			return fmt.Errorf("update quote version %s: %w", id, err)
+		}
+		// source: app/services/quote_versions/update_service.rb:14
+		if err := logVersion(ctx, s.d, r, auditlog.ActivityQuoteUpdated, before, qt, v); err != nil {
+			return err
 		}
 		out, err = versionView(ctx, r, v)
 		return err
@@ -259,6 +268,10 @@ func (s *Service) ApproveVersion(ctx context.Context, org core.OrganizationID, q
 		if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeQuoteApproved, "quote", v.ID.UUID(), quoteWithVersion{Quote: qt, Version: v}); err != nil {
 			return err
 		}
+		// source: app/services/quote_versions/approve_service.rb:36
+		if err := logVersion(ctx, s.d, r, auditlog.ActivityQuoteApproved, nil, qt, v); err != nil {
+			return err
+		}
 		f, err := s.createOrderForm(ctx, r, qt, v, expiresAt, now)
 		if err != nil {
 			return err
@@ -309,6 +322,10 @@ func (s *Service) createOrderForm(ctx context.Context, r port.Repos, q *quote.Qu
 	if err := kernel.Emit(ctx, s.d, q.OrganizationID, webhook.EventTypeOrderFormCreated, "order_form", f.ID.UUID(), f); err != nil {
 		return nil, err
 	}
+	// source: app/services/order_forms/create_service.rb:34
+	if err := LogOrderForm(ctx, s.d, r, auditlog.ActivityOrderFormCreated, f); err != nil {
+		return nil, err
+	}
 	return f, nil
 }
 
@@ -357,12 +374,19 @@ func (s *Service) CloneVersion(ctx context.Context, org core.OrganizationID, q c
 			if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeQuoteVoided, "quote", superseded.ID.UUID(), quoteWithVersion{Quote: qt, Version: superseded}); err != nil {
 				return err
 			}
+			if err := LogVoided(ctx, s.d, r, qt, superseded); err != nil {
+				return err
+			}
 		}
 		if err := r.QuoteVersions.Create(ctx, next); err != nil {
 			if errors.Is(err, core.ErrConflict) {
 				return fieldError("status", quote.CodeActiveVersionExists)
 			}
 			return fmt.Errorf("create quote version: %w", err)
+		}
+		// source: app/services/quote_versions/clone_service.rb:37
+		if err := logVersion(ctx, s.d, r, auditlog.ActivityQuoteVersionCreated, nil, qt, next); err != nil {
+			return err
 		}
 		out, err = versionView(ctx, r, next)
 		return err
@@ -419,5 +443,8 @@ func (s *Service) voidVersion(ctx context.Context, r port.Repos, q *quote.Quote,
 	if err := r.QuoteVersions.Update(ctx, v); err != nil {
 		return fmt.Errorf("update quote version %s: %w", v.ID, err)
 	}
-	return kernel.Emit(ctx, s.d, q.OrganizationID, webhook.EventTypeQuoteVoided, "quote", v.ID.UUID(), quoteWithVersion{Quote: q, Version: v})
+	if err := kernel.Emit(ctx, s.d, q.OrganizationID, webhook.EventTypeQuoteVoided, "quote", v.ID.UUID(), quoteWithVersion{Quote: q, Version: v}); err != nil {
+		return err
+	}
+	return LogVoided(ctx, s.d, r, q, v)
 }

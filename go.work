@@ -20,4 +20,5 @@ use (
 	./libs/tax
 	./libs/webhooks
 	./providers/stripe
+	./providers/x402
 )

@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/billingentities"
@@ -297,7 +298,8 @@ func beInput(b *organizationv1.BillingEntity, paths []string) (billingentities.I
 		case "address.zipcode":
 			in.Zipcode = core.Some(a.GetZipcode())
 		case "address.country":
-			in.Country = core.Some(a.GetCountry())
+			// Upper-cased as billing_entities/update_service.rb:39 does.
+			in.Country = core.Some(strings.ToUpper(a.GetCountry()))
 		case "logo":
 			in.Logo = core.Some(b.GetLogo())
 		case "timezone":

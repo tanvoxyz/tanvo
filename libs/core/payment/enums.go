@@ -69,17 +69,20 @@ const (
 	KindProvider Kind = "provider"
 	// KindManual is "manual": recorded by hand.
 	KindManual Kind = "manual"
+	// KindX402 is "x402": an x402 transfer settled through an x402
+	// connection (parity §1.36).
+	KindX402 Kind = "x402"
 )
 
 // KindValues returns every Kind, in declaration order.
 func KindValues() []Kind {
-	return []Kind{KindProvider, KindManual}
+	return []Kind{KindProvider, KindManual, KindX402}
 }
 
 // Valid reports whether v is one of the declared Kind values.
 func (v Kind) Valid() bool {
 	switch v {
-	case KindProvider, KindManual:
+	case KindProvider, KindManual, KindX402:
 		return true
 	default:
 		return false

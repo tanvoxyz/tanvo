@@ -343,6 +343,7 @@ POST /v1/events, /v1/events:batch
 | `TaxProvider`（报价、提交、作废） | Anrok、Avalara |
 | `AccountingSync` / `CRMSync`（客户、发票、贷项通知单、付款、映射） | NetSuite、Xero、Salesforce、HubSpot |
 | `IdentityProvider`（OIDC） | Google、Okta、Entra ID、通用 OIDC |
+| `x402.Facilitators`（verify、settle、supported）与 `x402.ChainReaders`（EVM 与 Solana JSON-RPC） | Coinbase CDP（`providers/x402`） |
 
 集成直接调用各厂商的 API；Tanvo 不依赖集成中介。
 
@@ -450,7 +451,7 @@ POST /v1/events, /v1/events:batch
 | `TANVO_SMTP_SECURITY` | `starttls` | `starttls`、`starttls_optional`、`tls` 或 `none` |
 | `TANVO_DISABLE_SIGNUP` | `false` | 关闭自助注册 |
 | `TANVO_GOOGLE_AUTH_CLIENT_ID`、`TANVO_GOOGLE_AUTH_CLIENT_SECRET` | | Google 登录的 OAuth 客户端，回调到 `TANVO_APP_URL/auth/google/callback`；未设置则关闭 |
-| `TANVO_SECRET_KEY` | | 安装密钥，至少 32 字节的 base64；用 HKDF-SHA256 从中派生签发客户门户令牌的密钥，以及加密集成密钥（SSO 客户端密钥）的 AES-256-GCM 密钥。未设置则关闭客户门户与 SSO 连接；更换后门户链接失效，已加密的密钥无法解密 |
+| `TANVO_SECRET_KEY` | | 安装密钥，至少 32 字节的 base64；用 HKDF-SHA256 从中派生签发客户门户令牌的密钥，以及加密集成密钥（SSO 客户端密钥与 x402 连接凭据）的 AES-256-GCM 密钥。未设置则关闭客户门户与 SSO 连接，并使每次 x402 结算方调用失败；更换后门户链接失效，已加密的密钥无法解密 |
 
 ---
 

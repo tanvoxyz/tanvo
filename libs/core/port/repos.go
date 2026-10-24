@@ -22,6 +22,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
 	"github.com/tanvoxyz/tanvo/libs/core/wallet"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
+	"github.com/tanvoxyz/tanvo/libs/core/x402"
 )
 
 // Repos gives every repository, the advisory locks, the sequences and the
@@ -101,6 +102,15 @@ type Repos struct {
 
 	// Subscriptions stores subscriptions (domain §9).
 	Subscriptions subscription.Repository
+	// Contracts reads the subscriptions priced by rate cards (domain
+	// §21.4).
+	Contracts subscription.ContractRepository
+	// ContractRateCards stores the rate cards of contracts and their phases
+	// (domain §21.4).
+	ContractRateCards subscription.RateCardRepository
+	// BillingSegments stores the billing segments of contract rate cards
+	// (domain §21.4).
+	BillingSegments subscription.BillingSegmentRepository
 	// ActivationRules stores subscription activation rules (domain §9.3).
 	ActivationRules subscription.ActivationRuleRepository
 	// FixedChargeEvents stores fixed charge unit changes (domain §7.5).
@@ -222,6 +232,11 @@ type Repos struct {
 	UsageAttributionTypes attribution.TypeRepository
 	// UsageAttributionValues stores usage attribution values.
 	UsageAttributionValues attribution.ValueRepository
+
+	// X402Connections stores x402 connections (parity §1.36).
+	X402Connections x402.ConnectionRepository
+	// X402Settlements stores x402 settlements.
+	X402Settlements x402.SettlementRepository
 
 	// IdempotencyKeys stores the responses of requests made with an
 	// Idempotency-Key header (architecture §4.2).

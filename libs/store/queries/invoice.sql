@@ -213,7 +213,8 @@ WHERE organization_id = @organization_id AND invoice_id = @invoice_id;
 -- name: CreateFee :execrows
 INSERT INTO fees (
   organization_id, id, invoice_id, subscription_id, fee_type, charge_id, charge_filter_id, fixed_charge_id,
-  add_on_id, commitment_id, wallet_transaction_id, grouped_by, invoice_display_name, description,
+  add_on_id, commitment_id, wallet_transaction_id, subscription_rate_card_id, product_id, product_filter_id,
+  rate_card_rate_id, rate_phase_id, grouped_by, invoice_display_name, description,
   amount, precise_amount, unit_amount, precise_unit_amount, units, total_aggregated_units, events_count,
   amount_details, taxes_amount, taxes_precise_amount, taxes_rate, taxes_base_rate, precise_coupons_amount,
   precise_credit_notes_amount, currency, pay_in_advance, invoiceable, payment_status,
@@ -223,7 +224,8 @@ INSERT INTO fees (
   pay_in_advance_event_transaction_id, succeeded_at, failed_at, refunded_at, created_at, updated_at
 ) VALUES (
   @organization_id, @id, @invoice_id, @subscription_id, @fee_type, @charge_id, @charge_filter_id, @fixed_charge_id,
-  @add_on_id, @commitment_id, @wallet_transaction_id, @grouped_by, @invoice_display_name, @description,
+  @add_on_id, @commitment_id, @wallet_transaction_id, @subscription_rate_card_id, @product_id, @product_filter_id,
+  @rate_card_rate_id, @rate_phase_id, @grouped_by, @invoice_display_name, @description,
   @amount, @precise_amount, @unit_amount, @precise_unit_amount, @units, @total_aggregated_units, @events_count,
   @amount_details, @taxes_amount, @taxes_precise_amount, @taxes_rate, @taxes_base_rate, @precise_coupons_amount,
   @precise_credit_notes_amount, @currency, @pay_in_advance, @invoiceable, @payment_status,
@@ -239,6 +241,8 @@ UPDATE fees SET
   organization_id = @organization_id, id = @id, invoice_id = @invoice_id, subscription_id = @subscription_id,
   fee_type = @fee_type, charge_id = @charge_id, charge_filter_id = @charge_filter_id, fixed_charge_id = @fixed_charge_id,
   add_on_id = @add_on_id, commitment_id = @commitment_id, wallet_transaction_id = @wallet_transaction_id,
+  subscription_rate_card_id = @subscription_rate_card_id, product_id = @product_id,
+  product_filter_id = @product_filter_id, rate_card_rate_id = @rate_card_rate_id, rate_phase_id = @rate_phase_id,
   grouped_by = @grouped_by, invoice_display_name = @invoice_display_name, description = @description,
   amount = @amount, precise_amount = @precise_amount, unit_amount = @unit_amount, precise_unit_amount = @precise_unit_amount,
   units = @units, total_aggregated_units = @total_aggregated_units, events_count = @events_count,

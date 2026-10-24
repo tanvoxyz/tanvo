@@ -40,6 +40,8 @@ const (
 	PaymentKind_PAYMENT_KIND_PROVIDER PaymentKind = 1
 	// Recorded by hand.
 	PaymentKind_PAYMENT_KIND_MANUAL PaymentKind = 2
+	// An x402 transfer settled through an x402 connection.
+	PaymentKind_PAYMENT_KIND_X402 PaymentKind = 3
 )
 
 // Enum value maps for PaymentKind.
@@ -48,11 +50,13 @@ var (
 		0: "PAYMENT_KIND_UNSPECIFIED",
 		1: "PAYMENT_KIND_PROVIDER",
 		2: "PAYMENT_KIND_MANUAL",
+		3: "PAYMENT_KIND_X402",
 	}
 	PaymentKind_value = map[string]int32{
 		"PAYMENT_KIND_UNSPECIFIED": 0,
 		"PAYMENT_KIND_PROVIDER":    1,
 		"PAYMENT_KIND_MANUAL":      2,
+		"PAYMENT_KIND_X402":        3,
 	}
 )
 
@@ -5462,11 +5466,12 @@ const file_tanvo_payment_v1_payment_proto_rawDesc = "" +
 	"\x1bResendPaymentReceiptRequest\x12=\n" +
 	"\x12payment_receipt_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\x10paymentReceiptId\x12\x1e\n" +
 	"\x02to\x18\x02 \x03(\tB\x0e\xbaH\v\x92\x01\b\x10\x14\"\x04r\x02`\x01R\x02to\"\x1e\n" +
-	"\x1cResendPaymentReceiptResponse*x\n" +
+	"\x1cResendPaymentReceiptResponse*v\n" +
 	"\vPaymentKind\x12\x1c\n" +
 	"\x18PAYMENT_KIND_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15PAYMENT_KIND_PROVIDER\x10\x01\x12\x17\n" +
-	"\x13PAYMENT_KIND_MANUAL\x10\x02\"\x04\b\x03\x10\x03*\x11PAYMENT_KIND_X402*g\n" +
+	"\x13PAYMENT_KIND_MANUAL\x10\x02\x12\x15\n" +
+	"\x11PAYMENT_KIND_X402\x10\x03*g\n" +
 	"\vPayableType\x12\x1c\n" +
 	"\x18PAYABLE_TYPE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14PAYABLE_TYPE_INVOICE\x10\x01\x12 \n" +

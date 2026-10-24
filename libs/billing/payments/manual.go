@@ -8,6 +8,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/payment"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
@@ -133,6 +134,14 @@ func (s *Service) createManual(ctx context.Context, r port.Repos, in ManualInput
 	if err != nil {
 		return nil, nil, false, err
 	}
+	// The payment's log is anchored on what it pays
+	// (manual_create_service.rb:13, activity_log.rb:174-176).
+	if err := s.d.LogChange(ctx, r, kernel.Change{
+		Type: auditlog.ActivityPaymentRecorded, OrganizationID: org, ResourceType: auditlog.ResourceInvoice,
+		ResourceID: inv.ID.UUID(), Object: p, CustomerID: p.CustomerID,
+	}); err != nil {
+		return nil, nil, false, err
+	}
 	if _, err := s.createReceipt(ctx, r, p); err != nil {
 		return nil, nil, false, err
 	}
@@ -222,6 +231,10 @@ func (s *Service) markPaid(ctx context.Context, r port.Repos, inv *invoice.Invoi
 		}
 	}
 	if old != inv.PaymentStatus && inv.Visible() {
+		// app/services/invoices/update_service.rb:76-79,105-107.
+		if err := s.d.LogInvoice(ctx, r, auditlog.ActivityInvoicePaymentStatusUpdated, inv); err != nil {
+			return err
+		}
 		return kernel.Emit(ctx, s.d, org, webhook.EventTypeInvoicePaymentStatusUpdated, "invoice", inv.ID.UUID(), inv)
 	}
 	return nil

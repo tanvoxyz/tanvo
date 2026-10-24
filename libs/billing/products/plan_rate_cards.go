@@ -77,13 +77,14 @@ func (s *Service) CreatePlanRateCard(ctx context.Context, org core.OrganizationI
 		if err != nil {
 			return err
 		}
+		own := func(ph *catalog.RatePhase) { ph.PlanRateCardID = p.ID }
 		var phases []*catalog.RatePhase
 		if in.Phases != nil {
-			if phases, err = s.buildPhases(k, p.ID, *in.Phases); err != nil {
+			if phases, err = s.buildPhases(k, own, *in.Phases); err != nil {
 				return err
 			}
 		} else {
-			phases = []*catalog.RatePhase{s.newPhase(org, p.ID, "default", 1)}
+			phases = []*catalog.RatePhase{s.newPhase(org, own, "default", 1)}
 		}
 		if err := r.PlanRateCards.Create(ctx, p, phases); err != nil {
 			return conflict(err, "rate_card")

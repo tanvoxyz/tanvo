@@ -39,8 +39,9 @@ message Address {
   string state = 4 [(buf.validate.field).string.max_len = 255];
   // The postal code.
   string zipcode = 5 [(buf.validate.field).string.max_len = 255];
-  // The ISO 3166-1 alpha-2 country code.
-  string country = 6 [(buf.validate.field).string.pattern = "^[A-Z]{2}$"];
+  // The ISO 3166-1 alpha-2 country code, in either case; it is stored
+  // upper-cased.
+  string country = 6 [(buf.validate.field).string.pattern = "^[A-Za-z]{2}$"];
 }
 
 // MetadataItem is one key/value pair attached to a resource. Each resource

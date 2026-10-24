@@ -6,7 +6,9 @@ import (
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
+	"github.com/tanvoxyz/tanvo/libs/billing/quotes"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/quote"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -121,7 +123,14 @@ func (e *Engine) ExpireOrderForm(ctx context.Context, org core.OrganizationID, i
 		if err := kernel.Emit(ctx, e.d, org, webhook.EventTypeOrderFormExpired, "order_form", f.ID.UUID(), f); err != nil {
 			return err
 		}
-		return kernel.Emit(ctx, e.d, org, webhook.EventTypeQuoteVoided, "quote", v.ID.UUID(), quoteWithVersion{Quote: q, Version: v})
+		// source: app/services/order_forms/expire_service.rb:34,36
+		if err := quotes.LogOrderForm(ctx, e.d, r, auditlog.ActivityOrderFormExpired, f); err != nil {
+			return err
+		}
+		if err := kernel.Emit(ctx, e.d, org, webhook.EventTypeQuoteVoided, "quote", v.ID.UUID(), quoteWithVersion{Quote: q, Version: v}); err != nil {
+			return err
+		}
+		return quotes.LogVoided(ctx, e.d, r, q, v)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("expire order form %s: %w", id, err)

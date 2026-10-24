@@ -190,7 +190,7 @@ func (s *Service) create(ctx context.Context, r port.Repos, sub *subscription.Su
 		if err := s.emitFixedChargeEvents(ctx, r, env); err != nil {
 			return err
 		}
-		return s.emit(ctx, webhook.EventTypeSubscriptionStarted, sub)
+		return s.notify(ctx, r, webhook.EventTypeSubscriptionStarted, sub)
 	default:
 		return applyRules(ctx, r, sub, rules, false)
 	}
@@ -342,7 +342,7 @@ func (s *Service) changePlan(ctx context.Context, r port.Repos, cur *subscriptio
 		return nil, err
 	}
 	if change == period.Downgrade {
-		return next, s.emit(ctx, webhook.EventTypeSubscriptionUpdated, cur)
+		return next, s.notify(ctx, r, webhook.EventTypeSubscriptionUpdated, cur)
 	}
 	if err := kernel.LockSubscription(ctx, r, next.OrganizationID, next.ID); err != nil {
 		return nil, err

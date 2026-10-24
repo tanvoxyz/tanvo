@@ -204,7 +204,7 @@ Markers used throughout:
 | `RecurringMethod` | `fixed`, `target` | RecurringTransactionRule |
 | `RecurringTrigger` | `interval`, `threshold` | RecurringTransactionRule |
 | `RuleStatus` | `active`, `terminated` | RecurringTransactionRule |
-| `PaymentKind` | `provider`, `manual` | Payment |
+| `PaymentKind` | `provider`, `manual`, `x402` | Payment |
 | `PaymentState` | `pending`, `processing`, `succeeded`, `failed` | Payment |
 | `IntegrationCategory` | `payment`, `accounting`, `tax`, `crm`, `auth` | Integration |
 | `IntegrationProvider` | `stripe`, `adyen`, `gocardless`, `cashfree`, `moneyhash`, `flutterwave`, `netsuite`, `xero`, `anrok`, `avalara`, `hubspot`, `salesforce`, `okta`, `entra_id`, `oidc` | Integration |
@@ -342,7 +342,7 @@ Rules:
 * Rotation creates a new key and sets the old key's `expires_at` (immediately or at a chosen instant).
 
 ### 5.6 Customer Portal Token
-A signed, stateless token scoped to one customer, valid for 12 hours, giving read access to that customer's invoices, usage and wallets and write access to its own billing details.
+A signed, stateless token scoped to one customer, valid for 12 hours, giving read access to that customer's organization summary, profile, invoices, subscriptions, usage, wallets and analytics, and write access to its own profile and to paid wallet top-ups (`CustomerPortalService`).
 
 ### 5.7 Session and Sign-in State
 A session is a signed-in user's opaque token. It belongs to the user, not to an organization: the organization is chosen per request, and an organization that does not allow the session's `method` is not accessible with it.
@@ -396,6 +396,7 @@ The billed party.
 | `skip_invoice_custom_sections` | `bool` | |
 | `applied_dunning_campaign_id` | `ID?` | |
 | `exclude_from_dunning_campaign` | `bool` | |
+| `x402_agent_address` | `string?` | an x402 agent's EVM address (stored EIP-55 checksummed) or Solana address; unique per organization among live customers; identifies the agent in a gate check (§24, item 14) |
 | `dunning_campaign_attempts`, `last_dunning_campaign_attempt_at` | `map<currency, int>`, `Time?` | Attempts are counted per currency |
 | `sequential_id` | `int` | assigned on create, per organization; deleted customers keep their number |
 | `slug` | `string` | `<organization document_number_prefix>-<sequential_id %03d>` |
@@ -1439,7 +1440,7 @@ Lago's billing v2 prices products through rate cards on contracts instead of pla
 * Fee type `product`.
 
 Contract rules (Lago, September–October 2026) and how Tanvo maps them onto subscriptions priced by rate cards (§24, item 3):
-* **Billed on creation**: creating a contract queues its billing once the transaction commits; the scheduled run decides what is due, so an in-advance card is invoiced at once and an arrears card owes nothing yet. Tanvo: creating such a subscription sets `next_billing_at` to its start and enqueues the billing job in the same transaction (§22.17).
+* **Billed on creation**: creating a contract queues its billing once the transaction commits; the scheduled run decides what is due, so an in-advance card is invoiced at once and an arrears card owes nothing yet. Tanvo: creating such a subscription seeds each rate card's `next_billing_at` at its start and enqueues the customer's segment scheduling in the same transaction; the scheduling run then enqueues the segment invoicing when segments await it.
 * **Terminate or cancel, never delete**: terminating an `active` contract makes it `terminated` (`terminated_at`); terminating a `pending` one makes it `canceled` (`canceled_at`); a finished contract is refused (`cannot_terminate`). Tanvo: the subscription transitions of §9.2; such subscriptions are never deleted.
 * **Edit allowlist**: an `active` contract accepts changes to its name, `purchase_order_number`, end date, billing entity, `consolidate_invoice`, payment method and invoice custom sections only; plan, `billing_time`, start date and billing anchor are refused with `contract_locked`. A field missing from the list is locked, and a locked field sent with its current value is accepted without a write. A `pending` contract is fully editable, plan included; a finished one is read-only. Tanvo: the same allowlist and error on subscriptions priced by rate cards; their plan changes only while `pending`.
 * **One end date**: the contract's end date is the only end of its cards (cards have no end date of their own); an active contract can set, move or clear it, and billing reads it at billing time. Tanvo: `ending_at` ends every rate card of the subscription.
@@ -1449,7 +1450,8 @@ Contract rules (Lago, September–October 2026) and how Tanvo maps them onto sub
 * **Invoice custom sections**: the contract's selection and skip setting apply to its in-advance and periodic invoices, consolidated ones included. Tanvo: §11.9 as for any subscription.
 * **Resumable schedules**: a card's schedule resumes from its latest persisted cycle without walking its history; the last cycle is produced again and the writer deduplicates segments. Tanvo: `libs/period`'s cycle walker resumes from the last billing segment; segments are unique per (card, start).
 * **Fee identity**: a retried run reuses the fees already built, identified by (invoice, contract card, period boundaries in UTC with microsecond precision), grouped fees and true-ups included. Tanvo: the same key on fees of rate cards.
-* **In-advance metered cards** are priced per event from the segment covering the event's timestamp (§22.4), never on the billing tick.
+* **In-advance metered cards** are priced per event from the segment covering the event's timestamp (§22.4), never on the billing tick: per product and product filter, the card effective on the event's local day when it bills in advance, with a pending segment built without resuming and not stored; one fee per card and transaction, for an event whose best matching product filter is the card's. A card shown on invoices invoices its fee on its own; another stores it with its taxes. Tanvo: the aggregation keeps only the card's filter bucket, and the invoice links the contract as an invoice subscription.
+* **Segment invoicing**: a segment's `billing_at` is its start in advance and its exclusive end in arrears. A customer's segments awaiting invoicing are grouped by local billing day, currency, billing entity, payment method and purchase order number (each segment alone when its contract does not consolidate); each group is one invoice, built in its own transaction under the customer's segment lock, with fixed then metered product fees, the fees' taxes and no coupons or credits. A run then finalizes the generating invoices of its invoiced segments, so a retry completes what a failed run built. Tanvo: the invoice links each of its contracts as an invoice subscription spanning its segments, and the fees carry the contract (§24, item 3); lago links contracts only through their segments.
 
 Tanvo unifies the catalogs and models contracts as subscriptions (§24, items 2–3); `libs/period` adopts the v2 calendar rules (half-open windows, local-midnight boundaries, DST-safe day counting) for both.
 

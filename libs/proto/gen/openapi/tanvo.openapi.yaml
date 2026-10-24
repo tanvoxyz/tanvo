@@ -218,6 +218,14 @@ info:
     OrderService manages orders: signed order forms executed now or at a
      scheduled time.
 
+    ## tanvo.subscription.v1.ContractService
+
+    ContractService manages contracts: subscriptions priced by the rate
+     cards applied to them rather than by a plan's charges. A contract is
+     addressed by its external ID, which names its live version (the
+     pending or active one); its rate cards by the code of the applied rate
+     card.
+
     ## tanvo.tax.v1.TaxService
 
     TaxService manages taxes.
@@ -1583,6 +1591,530 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.organization.v1.ArchiveBillingEntityResponse'
+  /v1/contracts:
+    get:
+      tags:
+        - ContractService
+      summary: ListContracts
+      description: Lists contracts.
+      operationId: tanvo.subscription.v1.ContractService.ListContracts
+      parameters:
+        - name: page_size
+          in: query
+          description: The maximum number of results; 20 by default, at most 1000.
+          schema:
+            type: integer
+            title: page_size
+            maximum: 1000
+            minimum: 0
+            format: int32
+        - name: page_token
+          in: query
+          description: The next_page_token of the previous page.
+          schema:
+            type: string
+            title: page_token
+            maxLength: 1024
+        - name: filter
+          in: query
+          description: |-
+            An AIP-160 filter over `status` (active by default),
+             `external_customer_id`, `plan_code`, `external_id`,
+             `billing_entity_id` and `has_rate_overrides`.
+          schema:
+            type: string
+            title: filter
+            maxLength: 2048
+        - name: search
+          in: query
+          description: A search over the ID, name, external ID, plan and customer.
+          schema:
+            type: string
+            title: search
+            maxLength: 255
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.subscription.v1.ListContractsResponse'
+    post:
+      tags:
+        - ContractService
+      summary: CreateContract
+      description: |-
+        Creates a contract: active when its start has come, pending
+         otherwise, with the rate cards of its plan when it names one.
+      operationId: tanvo.subscription.v1.ContractService.CreateContract
+      requestBody:
+        description: The contract to create.
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/tanvo.subscription.v1.Contract'
+              title: contract
+              description: The contract to create.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.subscription.v1.CreateContractResponse'
+  /v1/contracts/{contract.external_id}:
+    patch:
+      tags:
+        - ContractService
+      summary: UpdateContract
+      description: |-
+        Updates the live contract: a pending contract takes every field, an
+         active one only its name, end and invoicing settings.
+      operationId: tanvo.subscription.v1.ContractService.UpdateContract
+      parameters:
+        - name: contract.external_id
+          in: path
+          description: |
+            (IDENTIFIER) The identifier in the caller's system; at most one live (pending or
+             active) contract has it, and no subscription does.
+            string.code = true
+          required: true
+          schema:
+            type: string
+            title: external_id
+        - name: update_mask
+          in: query
+          description: The fields to update; empty updates every field that is set.
+          schema:
+            type: string
+      requestBody:
+        description: The new values; contract.external_id selects the live contract.
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/tanvo.subscription.v1.Contract'
+              title: contract
+              description: The new values; contract.external_id selects the live contract.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.subscription.v1.UpdateContractResponse'
+  /v1/contracts/{external_id}:
+    get:
+      tags:
+        - ContractService
+      summary: GetContract
+      description: |-
+        Returns a contract by external ID: the live one, or the latest one
+         started in a status.
+      operationId: tanvo.subscription.v1.ContractService.GetContract
+      parameters:
+        - name: external_id
+          in: path
+          description: The contract's external ID.
+          required: true
+          schema:
+            type: string
+            title: external_id
+            maxLength: 255
+        - name: status
+          in: query
+          description: |
+            Returns the latest contract started in this status instead of the
+             live one.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.subscription.v1.SubscriptionStatus'
+            title: status
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.subscription.v1.GetContractResponse'
+    delete:
+      tags:
+        - ContractService
+      summary: TerminateContract
+      description: |-
+        Ends the live contract: an active contract is terminated, a pending
+         one canceled.
+      operationId: tanvo.subscription.v1.ContractService.TerminateContract
+      parameters:
+        - name: external_id
+          in: path
+          description: The contract's external ID.
+          required: true
+          schema:
+            type: string
+            title: external_id
+            maxLength: 255
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.subscription.v1.TerminateContractResponse'
+  /v1/contracts/{external_id}/rate_cards:
+    get:
+      tags:
+        - ContractService
+      summary: ListContractRateCards
+      description: Lists the rate cards of a contract.
+      operationId: tanvo.subscription.v1.ContractService.ListContractRateCards
+      parameters:
+        - name: external_id
+          in: path
+          description: The contract's external ID.
+          required: true
+          schema:
+            type: string
+            title: external_id
+            maxLength: 255
+        - name: page_size
+          in: query
+          description: The maximum number of results; 20 by default, at most 1000.
+          schema:
+            type: integer
+            title: page_size
+            maximum: 1000
+            minimum: 0
+            format: int32
+        - name: page_token
+          in: query
+          description: The next_page_token of the previous page.
+          schema:
+            type: string
+            title: page_token
+            maxLength: 1024
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.subscription.v1.ListContractRateCardsResponse'
+    post:
+      tags:
+        - ContractService
+      summary: CreateContractRateCard
+      description: Applies a rate card to a pending contract.
+      operationId: tanvo.subscription.v1.ContractService.CreateContractRateCard
+      parameters:
+        - name: external_id
+          in: path
+          description: The contract's external ID.
+          required: true
+          schema:
+            type: string
+            title: external_id
+            maxLength: 255
+      requestBody:
+        description: The rate card to apply.
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/tanvo.subscription.v1.ContractRateCard'
+              title: rate_card
+              description: The rate card to apply.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.subscription.v1.CreateContractRateCardResponse'
+  /v1/contracts/{external_id}/rate_cards/{rate_card.rate_card_code}:
+    patch:
+      tags:
+        - ContractService
+      summary: UpdateContractRateCard
+      description: |-
+        Updates the units or billing anchor of a rate card of a pending
+         contract.
+      operationId: tanvo.subscription.v1.ContractService.UpdateContractRateCard
+      parameters:
+        - name: external_id
+          in: path
+          description: The contract's external ID.
+          required: true
+          schema:
+            type: string
+            title: external_id
+            maxLength: 255
+        - name: rate_card.rate_card_code
+          in: path
+          description: (IDENTIFIER) The code of the applied rate card.
+          required: true
+          schema:
+            type: string
+            title: rate_card_code
+            maxLength: 255
+        - name: update_mask
+          in: query
+          description: |-
+            The fields to update: units and billing_anchor_date; empty updates
+             every one that is set.
+          schema:
+            type: string
+      requestBody:
+        description: |-
+          The new values; rate_card.rate_card_code selects the contract rate
+           card.
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/tanvo.subscription.v1.ContractRateCard'
+              title: rate_card
+              description: |-
+                The new values; rate_card.rate_card_code selects the contract rate
+                 card.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.subscription.v1.UpdateContractRateCardResponse'
+  /v1/contracts/{external_id}/rate_cards/{rate_card_code}:
+    get:
+      tags:
+        - ContractService
+      summary: GetContractRateCard
+      description: Returns a rate card of a contract.
+      operationId: tanvo.subscription.v1.ContractService.GetContractRateCard
+      parameters:
+        - name: external_id
+          in: path
+          description: The contract's external ID.
+          required: true
+          schema:
+            type: string
+            title: external_id
+            maxLength: 255
+        - name: rate_card_code
+          in: path
+          description: The code of the applied rate card.
+          required: true
+          schema:
+            type: string
+            title: rate_card_code
+            maxLength: 255
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.subscription.v1.GetContractRateCardResponse'
+    delete:
+      tags:
+        - ContractService
+      summary: DeleteContractRateCard
+      description: Removes a rate card from a pending contract.
+      operationId: tanvo.subscription.v1.ContractService.DeleteContractRateCard
+      parameters:
+        - name: external_id
+          in: path
+          description: The contract's external ID.
+          required: true
+          schema:
+            type: string
+            title: external_id
+            maxLength: 255
+        - name: rate_card_code
+          in: path
+          description: The code of the applied rate card.
+          required: true
+          schema:
+            type: string
+            title: rate_card_code
+            maxLength: 255
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.subscription.v1.DeleteContractRateCardResponse'
+  /v1/contracts/{external_id}/rate_cards/{rate_card_code}/rate_phases:
+    get:
+      tags:
+        - ContractService
+      summary: ListContractRatePhases
+      description: Lists the phases of a contract rate card, by position.
+      operationId: tanvo.subscription.v1.ContractService.ListContractRatePhases
+      parameters:
+        - name: external_id
+          in: path
+          description: The contract's external ID.
+          required: true
+          schema:
+            type: string
+            title: external_id
+            maxLength: 255
+        - name: rate_card_code
+          in: path
+          description: The code of the applied rate card.
+          required: true
+          schema:
+            type: string
+            title: rate_card_code
+            maxLength: 255
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.subscription.v1.ListContractRatePhasesResponse'
+    post:
+      tags:
+        - ContractService
+      summary: CreateContractRatePhase
+      description: Adds a phase to a rate card of a pending contract.
+      operationId: tanvo.subscription.v1.ContractService.CreateContractRatePhase
+      parameters:
+        - name: external_id
+          in: path
+          description: The contract's external ID.
+          required: true
+          schema:
+            type: string
+            title: external_id
+            maxLength: 255
+        - name: rate_card_code
+          in: path
+          description: The code of the applied rate card.
+          required: true
+          schema:
+            type: string
+            title: rate_card_code
+            maxLength: 255
+      requestBody:
+        description: The phase to add.
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/tanvo.catalog.v1.RatePhase'
+              title: rate_phase
+              description: The phase to add.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.subscription.v1.CreateContractRatePhaseResponse'
+  /v1/contracts/{external_id}/rate_cards/{rate_card_code}/rate_phases/{rate_phase.id}:
+    patch:
+      tags:
+        - ContractService
+      summary: UpdateContractRatePhase
+      description: |-
+        Updates a phase of a rate card of a pending contract; an unset
+         rate_override in the update_mask clears the override.
+      operationId: tanvo.subscription.v1.ContractService.UpdateContractRatePhase
+      parameters:
+        - name: external_id
+          in: path
+          description: The contract's external ID.
+          required: true
+          schema:
+            type: string
+            title: external_id
+            maxLength: 255
+        - name: rate_card_code
+          in: path
+          description: The code of the applied rate card.
+          required: true
+          schema:
+            type: string
+            title: rate_card_code
+            maxLength: 255
+        - name: rate_phase.id
+          in: path
+          description: (IDENTIFIER) The phase's ID.
+          required: true
+          schema:
+            type: string
+            title: id
+        - name: update_mask
+          in: query
+          description: The fields to update; empty updates every field that is set.
+          schema:
+            type: string
+      requestBody:
+        description: |-
+          The new values; rate_phase.id (an ID or `code:<code>`) selects the
+           phase.
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/tanvo.catalog.v1.RatePhase'
+              title: rate_phase
+              description: |-
+                The new values; rate_phase.id (an ID or `code:<code>`) selects the
+                 phase.
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.subscription.v1.UpdateContractRatePhaseResponse'
+  /v1/contracts/{external_id}/rate_cards/{rate_card_code}/rate_phases/{rate_phase_id}:
+    delete:
+      tags:
+        - ContractService
+      summary: DeleteContractRatePhase
+      description: Removes a phase from a rate card of a pending contract.
+      operationId: tanvo.subscription.v1.ContractService.DeleteContractRatePhase
+      parameters:
+        - name: external_id
+          in: path
+          description: The contract's external ID.
+          required: true
+          schema:
+            type: string
+            title: external_id
+            maxLength: 255
+        - name: rate_card_code
+          in: path
+          description: The code of the applied rate card.
+          required: true
+          schema:
+            type: string
+            title: rate_card_code
+            maxLength: 255
+        - name: rate_phase_id
+          in: path
+          description: |
+            The phase's ID or `code:<code>`.
+            string.ref = true
+          required: true
+          schema:
+            type: string
+            title: rate_phase_id
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.subscription.v1.DeleteContractRatePhaseResponse'
   /v1/coupons:
     get:
       tags:
@@ -8164,7 +8696,10 @@ paths:
       tags:
         - CustomerPortalService
       summary: UpdatePortalCustomer
-      description: Updates the customer's billing details.
+      description: |-
+        Updates the customer's billing details. The customer's EU taxes
+         follow its new tax identification number and address; no webhook is
+         sent.
       operationId: tanvo.portal.v1.CustomerPortalService.UpdatePortalCustomer
       parameters:
         - name: update_mask
@@ -8193,18 +8728,11 @@ paths:
       tags:
         - CustomerPortalService
       summary: GetPortalInvoiceCollection
-      description: Returns the customer's invoices per payment status.
+      description: |-
+        Returns the customer's finalized invoices per issuing month and
+         payment status, in the customer's currency, every month since the
+         organization's creation.
       operationId: tanvo.portal.v1.CustomerPortalService.GetPortalInvoiceCollection
-      parameters:
-        - name: months
-          in: query
-          description: The number of months; 12 by default.
-          schema:
-            type: integer
-            title: months
-            maximum: 120
-            minimum: 0
-            format: int32
       responses:
         "200":
           description: Success
@@ -8217,7 +8745,7 @@ paths:
       tags:
         - CustomerPortalService
       summary: ListPortalInvoices
-      description: Lists the customer's finalized invoices, newest first.
+      description: Lists the customer's invoices, latest issuing date first.
       operationId: tanvo.portal.v1.CustomerPortalService.ListPortalInvoices
       parameters:
         - name: page_size
@@ -8238,16 +8766,14 @@ paths:
             maxLength: 1024
         - name: filter
           in: query
-          description: |-
-            An AIP-160 filter over `payment_status`, `currency` and
-             `issuing_date`.
+          description: An AIP-160 filter over `status`; every listed status by default.
           schema:
             type: string
             title: filter
             maxLength: 2048
         - name: search
           in: query
-          description: A search over the number.
+          description: A search over the number; a UUID also matches the invoice's ID.
           schema:
             type: string
             title: search
@@ -8264,7 +8790,10 @@ paths:
       tags:
         - CustomerPortalService
       summary: DownloadPortalInvoice
-      description: Returns a signed URL of an invoice's PDF.
+      description: |-
+        Returns an invoice with its documents; a document not rendered yet is
+         queued for rendering and left out. A draft cannot be downloaded
+         (`is_draft`).
       operationId: tanvo.portal.v1.CustomerPortalService.DownloadPortalInvoice
       parameters:
         - name: invoice_id
@@ -8301,18 +8830,10 @@ paths:
       tags:
         - CustomerPortalService
       summary: GetPortalOverdueBalance
-      description: Returns the customer's overdue balance per currency.
+      description: |-
+        Returns the customer's overdue balance per payment due month, in the
+         customer's currency, every month since the organization's creation.
       operationId: tanvo.portal.v1.CustomerPortalService.GetPortalOverdueBalance
-      parameters:
-        - name: months
-          in: query
-          description: The number of months; 12 by default.
-          schema:
-            type: integer
-            title: months
-            maximum: 120
-            minimum: 0
-            format: int32
       responses:
         "200":
           description: Success
@@ -8320,34 +8841,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.portal.v1.GetPortalOverdueBalanceResponse'
-  /v1/portal/overdue_balance:pay:
-    post:
-      tags:
-        - CustomerPortalService
-      summary: PayPortalOverdueBalance
-      description: |-
-        Requests payment of the customer's overdue invoices and returns the
-         checkout URL.
-      operationId: tanvo.portal.v1.CustomerPortalService.PayPortalOverdueBalance
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/tanvo.portal.v1.PayPortalOverdueBalanceRequest'
-        required: true
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/tanvo.portal.v1.PayPortalOverdueBalanceResponse'
   /v1/portal/subscriptions:
     get:
       tags:
         - CustomerPortalService
       summary: ListPortalSubscriptions
-      description: Lists the customer's active subscriptions.
+      description: Lists the customer's subscriptions, most recent first.
       operationId: tanvo.portal.v1.CustomerPortalService.ListPortalSubscriptions
       parameters:
         - name: page_size
@@ -8366,6 +8865,15 @@ paths:
             type: string
             title: page_token
             maxLength: 1024
+        - name: filter
+          in: query
+          description: |-
+            An AIP-160 filter over `status`, `plan_code` and `currency` (the
+             plan's); every status by default.
+          schema:
+            type: string
+            title: filter
+            maxLength: 2048
       responses:
         "200":
           description: Success
@@ -8373,23 +8881,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.portal.v1.ListPortalSubscriptionsResponse'
+  /v1/portal/subscriptions/{subscription_id}:
+    get:
+      tags:
+        - CustomerPortalService
+      summary: GetPortalSubscription
+      description: Returns one of the customer's subscriptions, whatever its status.
+      operationId: tanvo.portal.v1.CustomerPortalService.GetPortalSubscription
+      parameters:
+        - name: subscription_id
+          in: path
+          description: The subscription's ID.
+          required: true
+          schema:
+            type: string
+            title: subscription_id
+            format: uuid
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.portal.v1.GetPortalSubscriptionResponse'
   /v1/portal/subscriptions/{subscription_id}/usage:current:
     get:
       tags:
         - CustomerPortalService
       summary: GetPortalCurrentUsage
-      description: Returns a subscription's usage in the current billing period.
+      description: |-
+        Returns an active subscription's usage in the current billing period,
+         without taxes; a subscription that is not active is
+         `no_active_subscription`.
       operationId: tanvo.portal.v1.CustomerPortalService.GetPortalCurrentUsage
       parameters:
         - name: subscription_id
           in: path
-          description: |
-            The subscription (ID or `external_id:<external_id>`).
-            string.ref = true
+          description: The subscription's ID.
           required: true
           schema:
             type: string
             title: subscription_id
+            format: uuid
+        - name: include_projection
+          in: query
+          description: Adds the usage projected to the end of the period.
+          schema:
+            type: boolean
+            title: include_projection
       responses:
         "200":
           description: Success
@@ -8402,8 +8941,35 @@ paths:
       tags:
         - CustomerPortalService
       summary: ListPortalWallets
-      description: Lists the customer's active wallets.
+      description: |-
+        Lists the customer's wallets in the order invoices consume them:
+         priority, then the earliest expiration (wallets without one last),
+         then the oldest.
       operationId: tanvo.portal.v1.CustomerPortalService.ListPortalWallets
+      parameters:
+        - name: page_size
+          in: query
+          description: The maximum number of results; 20 by default, at most 1000.
+          schema:
+            type: integer
+            title: page_size
+            maximum: 1000
+            minimum: 0
+            format: int32
+        - name: page_token
+          in: query
+          description: The next_page_token of the previous page.
+          schema:
+            type: string
+            title: page_token
+            maxLength: 1024
+        - name: filter
+          in: query
+          description: An AIP-160 filter over `status`; the active wallets by default.
+          schema:
+            type: string
+            title: filter
+            maxLength: 2048
       responses:
         "200":
           description: Success
@@ -8411,12 +8977,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.portal.v1.ListPortalWalletsResponse'
+  /v1/portal/wallets/{wallet_id}:
+    get:
+      tags:
+        - CustomerPortalService
+      summary: GetPortalWallet
+      description: Returns one of the customer's wallets.
+      operationId: tanvo.portal.v1.CustomerPortalService.GetPortalWallet
+      parameters:
+        - name: wallet_id
+          in: path
+          description: The wallet's ID.
+          required: true
+          schema:
+            type: string
+            title: wallet_id
+            format: uuid
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.portal.v1.GetPortalWalletResponse'
   /v1/portal/wallets/{wallet_id}:top_up:
     post:
       tags:
         - CustomerPortalService
       summary: TopUpPortalWallet
-      description: Buys or requests credits for a wallet, within its paid top-up limits.
+      description: |-
+        Buys credits for a wallet, within its paid top-up limits: the
+         purchase is pending until its credit invoice is paid.
       operationId: tanvo.portal.v1.CustomerPortalService.TopUpPortalWallet
       parameters:
         - name: wallet_id
@@ -8437,11 +9028,9 @@ paths:
                   type: string
                   title: paid_credits
                   description: |
-                    The credits to buy.
+                    The credits to buy; without them nothing is bought.
                     string.nonnegative_decimal = true
               title: TopUpPortalWalletRequest
-              required:
-                - paid_credits
               additionalProperties: false
               description: TopUpPortalWalletRequest is the request of CustomerPortalService.TopUpPortalWallet.
         required: true
@@ -10640,57 +11229,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.alert.v1.BatchCreateAlertsResponse'
-  /v1/subscriptions/{subscription_id}/billing_segments:
-    get:
-      tags:
-        - SubscriptionService
-      summary: ListBillingSegments
-      description: |-
-        Lists the billing segments of a subscription priced by rate cards: the
-         priced windows of each rate card's schedule.
-      operationId: tanvo.subscription.v1.SubscriptionService.ListBillingSegments
-      parameters:
-        - name: subscription_id
-          in: path
-          description: |
-            The subscription's ID or `external_id:<external_id>`.
-            string.ref = true
-          required: true
-          schema:
-            type: string
-            title: subscription_id
-        - name: page_size
-          in: query
-          description: The maximum number of results; 20 by default, at most 1000.
-          schema:
-            type: integer
-            title: page_size
-            maximum: 1000
-            minimum: 0
-            format: int32
-        - name: page_token
-          in: query
-          description: The next_page_token of the previous page.
-          schema:
-            type: string
-            title: page_token
-            maxLength: 1024
-        - name: filter
-          in: query
-          description: |-
-            An AIP-160 filter over `status`, `subscription_rate_card_id`,
-             `invoice_id` and `billing_at`.
-          schema:
-            type: string
-            title: filter
-            maxLength: 2048
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/tanvo.subscription.v1.ListBillingSegmentsResponse'
   /v1/subscriptions/{subscription_id}/charges:
     get:
       tags:
@@ -11808,155 +12346,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.subscription.v1.UpdateLifetimeUsageResponse'
-  /v1/subscriptions/{subscription_id}/rate_cards:
-    get:
-      tags:
-        - SubscriptionService
-      summary: ListSubscriptionRateCards
-      description: Lists the rate cards of a subscription.
-      operationId: tanvo.subscription.v1.SubscriptionService.ListSubscriptionRateCards
-      parameters:
-        - name: subscription_id
-          in: path
-          description: |
-            The subscription's ID or `external_id:<external_id>`.
-            string.ref = true
-          required: true
-          schema:
-            type: string
-            title: subscription_id
-        - name: page_size
-          in: query
-          description: The maximum number of results; 20 by default, at most 1000.
-          schema:
-            type: integer
-            title: page_size
-            maximum: 1000
-            minimum: 0
-            format: int32
-        - name: page_token
-          in: query
-          description: The next_page_token of the previous page.
-          schema:
-            type: string
-            title: page_token
-            maxLength: 1024
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/tanvo.subscription.v1.ListSubscriptionRateCardsResponse'
-    post:
-      tags:
-        - SubscriptionService
-      summary: CreateSubscriptionRateCard
-      description: Adds a rate card to a subscription priced by rate cards (a contract).
-      operationId: tanvo.subscription.v1.SubscriptionService.CreateSubscriptionRateCard
-      parameters:
-        - name: subscription_id
-          in: path
-          description: |
-            The subscription's ID or `external_id:<external_id>`.
-            string.ref = true
-          required: true
-          schema:
-            type: string
-            title: subscription_id
-      requestBody:
-        description: The rate card to add.
-        content:
-          application/json:
-            schema:
-              allOf:
-                - $ref: '#/components/schemas/tanvo.subscription.v1.SubscriptionRateCard'
-              title: rate_card
-              description: The rate card to add.
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/tanvo.subscription.v1.CreateSubscriptionRateCardResponse'
-  /v1/subscriptions/{subscription_id}/rate_cards/{rate_card.id}:
-    patch:
-      tags:
-        - SubscriptionService
-      summary: UpdateSubscriptionRateCard
-      description: Updates a subscription rate card's units and phases.
-      operationId: tanvo.subscription.v1.SubscriptionService.UpdateSubscriptionRateCard
-      parameters:
-        - name: subscription_id
-          in: path
-          description: |
-            The subscription's ID or `external_id:<external_id>`.
-            string.ref = true
-          required: true
-          schema:
-            type: string
-            title: subscription_id
-        - name: rate_card.id
-          in: path
-          description: (IDENTIFIER) The subscription rate card's ID.
-          required: true
-          schema:
-            type: string
-            title: id
-        - name: update_mask
-          in: query
-          description: The fields to update; empty updates every field that is set.
-          schema:
-            type: string
-      requestBody:
-        description: The new values; rate_card.id selects the subscription rate card.
-        content:
-          application/json:
-            schema:
-              allOf:
-                - $ref: '#/components/schemas/tanvo.subscription.v1.SubscriptionRateCard'
-              title: rate_card
-              description: The new values; rate_card.id selects the subscription rate card.
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/tanvo.subscription.v1.UpdateSubscriptionRateCardResponse'
-  /v1/subscriptions/{subscription_id}/rate_cards/{rate_card_id}:
-    delete:
-      tags:
-        - SubscriptionService
-      summary: DeleteSubscriptionRateCard
-      description: Removes a rate card from a subscription from its next billing date.
-      operationId: tanvo.subscription.v1.SubscriptionService.DeleteSubscriptionRateCard
-      parameters:
-        - name: subscription_id
-          in: path
-          description: |
-            The subscription's ID or `external_id:<external_id>`.
-            string.ref = true
-          required: true
-          schema:
-            type: string
-            title: subscription_id
-        - name: rate_card_id
-          in: path
-          description: The subscription rate card's ID.
-          required: true
-          schema:
-            type: string
-            title: rate_card_id
-            format: uuid
-      responses:
-        "200":
-          description: Success
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/tanvo.subscription.v1.DeleteSubscriptionRateCardResponse'
   /v1/subscriptions/{subscription_id}/triggered_alerts:
     get:
       tags:
@@ -13549,10 +13938,18 @@ paths:
         - X402Service
       summary: CheckX402Gate
       description: |-
-        Checks whether an agent may call a resource: returns its wallet
-         balance and, when it must pay first, the x402 payment requirements to
-         answer with HTTP 402. Creates the customer, subscription and wallet of
-         a new agent when the connection auto-creates customers.
+        Checks whether an agent may call a resource: its subscription is
+         active and its wallet covers the estimated cost. Otherwise it returns
+         the x402 payment requirements of a top-up, to answer with HTTP 402.
+         A refusal is an invalid argument whose field violation is on "base":
+         buyer_not_recognized, wallet_not_x402_enabled,
+         customer_not_refreshable, subscription_not_active,
+         credit_purchase_pending, agent_address_family_unsupported,
+         plan_currency_not_supported, plan_not_usage_only, charge_not_targeted
+         and charge_not_invoiceable.
+         An unknown connection is not found (connection_not_found); a failure
+         of the facilitator is unavailable (third_party_error). The calls are
+         not recorded in the API logs.
       operationId: tanvo.x402.v1.X402Service.CheckX402Gate
       requestBody:
         content:
@@ -16887,7 +17284,9 @@ components:
         accepts_target_wallet:
           type: boolean
           title: accepts_target_wallet
-          description: Lets events name the wallet that pays their fees.
+          description: |-
+            Splits the usage by the `target_wallet_code` event property and pays
+             each targeted fee from the wallet with that code only.
         invoice_display_name:
           type: string
           title: invoice_display_name
@@ -21545,8 +21944,10 @@ components:
         country:
           type: string
           title: country
-          pattern: ^[A-Z]{2}$
-          description: The ISO 3166-1 alpha-2 country code.
+          pattern: ^[A-Za-z]{2}$
+          description: |-
+            The ISO 3166-1 alpha-2 country code, in either case; it is stored
+             upper-cased.
       title: Address
       additionalProperties: false
       description: |-
@@ -23912,6 +24313,12 @@ components:
             - $ref: '#/components/schemas/google.protobuf.Timestamp'
           title: enriched_at
           description: When the event was enriched.
+        target_wallet_code:
+          type: string
+          title: target_wallet_code
+          description: |-
+            The code of the wallet that pays the event's usage, when the charge
+             accepts a target wallet and the event names one.
       title: EnrichedEvent
       additionalProperties: false
       description: EnrichedEvent is an event resolved to a charge.
@@ -24076,6 +24483,14 @@ components:
           description: |
             The amount of a dynamic charge, as a decimal.
             string.decimal = true
+        target_wallet_code:
+          type: string
+          title: target_wallet_code
+          description: |-
+            The code of the wallet that pays the event's usage on charges that
+             accept a target wallet: the `target_wallet_code` property, which is
+             where an event names it.
+          readOnly: true
         user_agent:
           type: string
           title: user_agent
@@ -29361,6 +29776,7 @@ components:
         - PAYMENT_KIND_UNSPECIFIED
         - PAYMENT_KIND_PROVIDER
         - PAYMENT_KIND_MANUAL
+        - PAYMENT_KIND_X402
       description: PaymentKind is how a payment was made.
     tanvo.payment.v1.PaymentMethod:
       type: object
@@ -29655,11 +30071,23 @@ components:
     tanvo.portal.v1.DownloadPortalInvoiceResponse:
       type: object
       properties:
+        invoice:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.invoice.v1.Invoice'
+          title: invoice
+          description: The invoice.
         pdf:
           allOf:
             - $ref: '#/components/schemas/tanvo.common.v1.Document'
           title: pdf
-          description: The PDF.
+          description: The PDF, once rendered.
+        xml:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Document'
+          title: xml
+          description: |-
+            The e-invoice XML, once rendered, when the billing entity has
+             e-invoicing.
       title: DownloadPortalInvoiceResponse
       additionalProperties: false
       description: DownloadPortalInvoiceResponse is the response of CustomerPortalService.DownloadPortalInvoice.
@@ -29669,9 +30097,12 @@ components:
         subscription_id:
           type: string
           title: subscription_id
-          description: |
-            The subscription (ID or `external_id:<external_id>`).
-            string.ref = true
+          format: uuid
+          description: The subscription's ID.
+        include_projection:
+          type: boolean
+          title: include_projection
+          description: Adds the usage projected to the end of the period.
       title: GetPortalCurrentUsageRequest
       required:
         - subscription_id
@@ -29698,7 +30129,7 @@ components:
       properties:
         customer:
           allOf:
-            - $ref: '#/components/schemas/tanvo.customer.v1.Customer'
+            - $ref: '#/components/schemas/tanvo.portal.v1.PortalCustomer'
           title: customer
           description: The customer.
       title: GetPortalCustomerResponse
@@ -29706,14 +30137,6 @@ components:
       description: GetPortalCustomerResponse is the response of CustomerPortalService.GetPortalCustomer.
     tanvo.portal.v1.GetPortalInvoiceCollectionRequest:
       type: object
-      properties:
-        months:
-          type: integer
-          title: months
-          maximum: 120
-          minimum: 0
-          format: int32
-          description: The number of months; 12 by default.
       title: GetPortalInvoiceCollectionRequest
       additionalProperties: false
       description: GetPortalInvoiceCollectionRequest is the request of CustomerPortalService.GetPortalInvoiceCollection.
@@ -29747,14 +30170,6 @@ components:
       description: GetPortalOrganizationResponse is the response of CustomerPortalService.GetPortalOrganization.
     tanvo.portal.v1.GetPortalOverdueBalanceRequest:
       type: object
-      properties:
-        months:
-          type: integer
-          title: months
-          maximum: 120
-          minimum: 0
-          format: int32
-          description: The number of months; 12 by default.
       title: GetPortalOverdueBalanceRequest
       additionalProperties: false
       description: GetPortalOverdueBalanceRequest is the request of CustomerPortalService.GetPortalOverdueBalance.
@@ -29770,6 +30185,54 @@ components:
       title: GetPortalOverdueBalanceResponse
       additionalProperties: false
       description: GetPortalOverdueBalanceResponse is the response of CustomerPortalService.GetPortalOverdueBalance.
+    tanvo.portal.v1.GetPortalSubscriptionRequest:
+      type: object
+      properties:
+        subscription_id:
+          type: string
+          title: subscription_id
+          format: uuid
+          description: The subscription's ID.
+      title: GetPortalSubscriptionRequest
+      required:
+        - subscription_id
+      additionalProperties: false
+      description: GetPortalSubscriptionRequest is the request of CustomerPortalService.GetPortalSubscription.
+    tanvo.portal.v1.GetPortalSubscriptionResponse:
+      type: object
+      properties:
+        subscription:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.Subscription'
+          title: subscription
+          description: The subscription.
+      title: GetPortalSubscriptionResponse
+      additionalProperties: false
+      description: GetPortalSubscriptionResponse is the response of CustomerPortalService.GetPortalSubscription.
+    tanvo.portal.v1.GetPortalWalletRequest:
+      type: object
+      properties:
+        wallet_id:
+          type: string
+          title: wallet_id
+          format: uuid
+          description: The wallet's ID.
+      title: GetPortalWalletRequest
+      required:
+        - wallet_id
+      additionalProperties: false
+      description: GetPortalWalletRequest is the request of CustomerPortalService.GetPortalWallet.
+    tanvo.portal.v1.GetPortalWalletResponse:
+      type: object
+      properties:
+        wallet:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.portal.v1.PortalWallet'
+          title: wallet
+          description: The wallet.
+      title: GetPortalWalletResponse
+      additionalProperties: false
+      description: GetPortalWalletResponse is the response of CustomerPortalService.GetPortalWallet.
     tanvo.portal.v1.ListPortalInvoicesRequest:
       type: object
       properties:
@@ -29789,14 +30252,12 @@ components:
           type: string
           title: filter
           maxLength: 2048
-          description: |-
-            An AIP-160 filter over `payment_status`, `currency` and
-             `issuing_date`.
+          description: An AIP-160 filter over `status`; every listed status by default.
         search:
           type: string
           title: search
           maxLength: 255
-          description: A search over the number.
+          description: A search over the number; a UUID also matches the invoice's ID.
       title: ListPortalInvoicesRequest
       additionalProperties: false
       description: ListPortalInvoicesRequest is the request of CustomerPortalService.ListPortalInvoices.
@@ -29831,6 +30292,13 @@ components:
           title: page_token
           maxLength: 1024
           description: The next_page_token of the previous page.
+        filter:
+          type: string
+          title: filter
+          maxLength: 2048
+          description: |-
+            An AIP-160 filter over `status`, `plan_code` and `currency` (the
+             plan's); every status by default.
       title: ListPortalSubscriptionsRequest
       additionalProperties: false
       description: ListPortalSubscriptionsRequest is the request of CustomerPortalService.ListPortalSubscriptions.
@@ -29852,6 +30320,24 @@ components:
       description: ListPortalSubscriptionsResponse is the response of CustomerPortalService.ListPortalSubscriptions.
     tanvo.portal.v1.ListPortalWalletsRequest:
       type: object
+      properties:
+        page_size:
+          type: integer
+          title: page_size
+          maximum: 1000
+          minimum: 0
+          format: int32
+          description: The maximum number of results; 20 by default, at most 1000.
+        page_token:
+          type: string
+          title: page_token
+          maxLength: 1024
+          description: The next_page_token of the previous page.
+        filter:
+          type: string
+          title: filter
+          maxLength: 2048
+          description: An AIP-160 filter over `status`; the active wallets by default.
       title: ListPortalWalletsRequest
       additionalProperties: false
       description: ListPortalWalletsRequest is the request of CustomerPortalService.ListPortalWallets.
@@ -29861,39 +30347,103 @@ components:
         wallets:
           type: array
           items:
-            $ref: '#/components/schemas/tanvo.wallet.v1.Wallet'
+            $ref: '#/components/schemas/tanvo.portal.v1.PortalWallet'
           title: wallets
-          description: The active wallets.
+          description: The wallets of this page.
+        next_page_token:
+          type: string
+          title: next_page_token
+          description: The token of the next page; empty on the last page.
       title: ListPortalWalletsResponse
       additionalProperties: false
       description: ListPortalWalletsResponse is the response of CustomerPortalService.ListPortalWallets.
-    tanvo.portal.v1.PayPortalOverdueBalanceRequest:
+    tanvo.portal.v1.PortalCustomer:
       type: object
       properties:
+        id:
+          type: string
+          title: id
+          description: The customer's ID.
+        account_type:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.customer.v1.AccountType'
+          title: account_type
+          description: The account type.
+        customer_type:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.customer.v1.CustomerType'
+          title: customer_type
+          description: The customer type.
+        display_name:
+          type: string
+          title: display_name
+          description: |-
+            The display name: the legal name, else the name, followed by the
+             first and last names.
+        name:
+          type: string
+          title: name
+          description: The display name.
+        firstname:
+          type: string
+          title: firstname
+          description: The first name.
+        lastname:
+          type: string
+          title: lastname
+          description: The last name.
+        legal_name:
+          type: string
+          title: legal_name
+          description: The legal name.
+        legal_number:
+          type: string
+          title: legal_number
+          description: The registration number.
+        tax_identification_number:
+          type: string
+          title: tax_identification_number
+          description: The tax identification number.
+        email:
+          type: string
+          title: email
+          description: The email addresses, comma separated.
+        billing_address:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Address'
+          title: billing_address
+          description: The billing address.
+        shipping_address:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Address'
+          title: shipping_address
+          description: The shipping address.
         currency:
           type: string
           title: currency
-          description: |
-            The currency to pay.
-            string.currency = true
-      title: PayPortalOverdueBalanceRequest
-      required:
-        - currency
-      additionalProperties: false
-      description: PayPortalOverdueBalanceRequest is the request of CustomerPortalService.PayPortalOverdueBalance.
-    tanvo.portal.v1.PayPortalOverdueBalanceResponse:
-      type: object
-      properties:
-        payment_url:
+          description: The currency.
+        applicable_timezone:
           type: string
-          title: payment_url
-          description: The checkout URL.
-      title: PayPortalOverdueBalanceResponse
+          title: applicable_timezone
+          description: 'The applicable time zone: the customer''s, else its billing entity''s.'
+        document_locale:
+          type: string
+          title: document_locale
+          description: The customer's own document locale (BCP 47).
+        billing_entity_document_locale:
+          type: string
+          title: billing_entity_document_locale
+          description: The document locale of the customer's billing entity.
+      title: PortalCustomer
       additionalProperties: false
-      description: PayPortalOverdueBalanceResponse is the response of CustomerPortalService.PayPortalOverdueBalance.
+      description: PortalCustomer is what the portal shows of the customer.
     tanvo.portal.v1.PortalOrganization:
       type: object
       properties:
+        id:
+          type: string
+          title: id
+          description: The organization's ID.
         name:
           type: string
           title: name
@@ -29906,15 +30456,29 @@ components:
           type: string
           title: default_currency
           description: The default currency.
-        premium_integrations:
-          type: array
-          items:
-            type: string
-          title: premium_integrations
-          description: The premium portal features enabled.
+        timezone:
+          type: string
+          title: timezone
+          description: The time zone (IANA).
+        document_locale:
+          type: string
+          title: document_locale
+          description: The document locale (BCP 47).
+        invoice_footer:
+          type: string
+          title: invoice_footer
+          description: The invoice footer.
+        invoice_grace_period_days:
+          type: integer
+          title: invoice_grace_period_days
+          format: int32
+          description: The invoice grace period, in days.
       title: PortalOrganization
       additionalProperties: false
-      description: PortalOrganization is what the portal shows of the organization.
+      description: |-
+        PortalOrganization is what the portal shows of the organization; the
+         currency, time zone and document settings are its default billing
+         entity's.
     tanvo.portal.v1.PortalProfile:
       type: object
       properties:
@@ -29973,6 +30537,156 @@ components:
       title: PortalProfile
       additionalProperties: false
       description: PortalProfile is the billing details a customer can edit.
+    tanvo.portal.v1.PortalWallet:
+      type: object
+      properties:
+        id:
+          type: string
+          title: id
+          description: The wallet's ID.
+        code:
+          type: string
+          title: code
+          description: The code.
+        name:
+          type: string
+          title: name
+          description: The name.
+        status:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.wallet.v1.WalletStatus'
+          title: status
+          description: The status.
+        currency:
+          type: string
+          title: currency
+          description: The currency.
+        rate_amount:
+          type: string
+          title: rate_amount
+          description: The value of one credit, in currency units.
+        priority:
+          type: integer
+          title: priority
+          format: int32
+          description: The priority; the lowest is consumed first.
+        expires_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: expires_at
+          description: When the wallet expires.
+        balance_amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: balance_amount
+          description: The balance.
+        credits_balance:
+          type: string
+          title: credits_balance
+          description: The balance in credits.
+        ongoing_balance_amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: ongoing_balance_amount
+          description: The balance after the current usage.
+        credits_ongoing_balance:
+          type: string
+          title: credits_ongoing_balance
+          description: The ongoing balance in credits.
+        ongoing_usage_balance_amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: ongoing_usage_balance_amount
+          description: The current usage counted against the wallet.
+        consumed_amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: consumed_amount
+          description: The amount consumed.
+        consumed_credits:
+          type: string
+          title: consumed_credits
+          description: The credits consumed.
+        paid_top_up_min_amount:
+          type: string
+          title: paid_top_up_min_amount
+          description: The minimum amount of a paid top-up, in currency units.
+        paid_top_up_min_credits:
+          type: string
+          title: paid_top_up_min_credits
+          description: The minimum paid top-up in credits.
+        paid_top_up_max_amount:
+          type: string
+          title: paid_top_up_max_amount
+          description: The maximum amount of a paid top-up, in currency units.
+        paid_top_up_max_credits:
+          type: string
+          title: paid_top_up_max_credits
+          description: The maximum paid top-up in credits.
+        last_balance_sync_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: last_balance_sync_at
+          description: When the balance was last refreshed.
+      title: PortalWallet
+      additionalProperties: false
+      description: PortalWallet is what the portal shows of a wallet.
+    tanvo.portal.v1.PortalWalletTransaction:
+      type: object
+      properties:
+        id:
+          type: string
+          title: id
+          description: The transaction's ID.
+        wallet:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.portal.v1.PortalWallet'
+          title: wallet
+          description: The wallet.
+        transaction_type:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.wallet.v1.TransactionType'
+          title: transaction_type
+          description: The direction.
+        transaction_status:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.wallet.v1.TransactionStatus'
+          title: transaction_status
+          description: The kind of movement.
+        status:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.wallet.v1.SettlementStatus'
+          title: status
+          description: The settlement status.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: amount
+          description: The monetary amount.
+        credit_amount:
+          type: string
+          title: credit_amount
+          description: The credits.
+        settled_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: settled_at
+          description: When the transaction was settled.
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: created_at
+          description: When the transaction was created.
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: updated_at
+          description: When the transaction last changed.
+      title: PortalWalletTransaction
+      additionalProperties: false
+      description: |-
+        PortalWalletTransaction is what the portal shows of a wallet
+         transaction.
     tanvo.portal.v1.TopUpPortalWalletRequest:
       type: object
       properties:
@@ -29985,26 +30699,22 @@ components:
           type: string
           title: paid_credits
           description: |
-            The credits to buy.
+            The credits to buy; without them nothing is bought.
             string.nonnegative_decimal = true
       title: TopUpPortalWalletRequest
       required:
         - wallet_id
-        - paid_credits
       additionalProperties: false
       description: TopUpPortalWalletRequest is the request of CustomerPortalService.TopUpPortalWallet.
     tanvo.portal.v1.TopUpPortalWalletResponse:
       type: object
       properties:
-        wallet_transaction:
-          allOf:
-            - $ref: '#/components/schemas/tanvo.wallet.v1.WalletTransaction'
-          title: wallet_transaction
-          description: The pending transaction.
-        payment_url:
-          type: string
-          title: payment_url
-          description: The checkout URL of the credit invoice, when paid online.
+        wallet_transactions:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.portal.v1.PortalWalletTransaction'
+          title: wallet_transactions
+          description: 'The transactions created: the pending purchase, if any.'
       title: TopUpPortalWalletResponse
       additionalProperties: false
       description: TopUpPortalWalletResponse is the response of CustomerPortalService.TopUpPortalWallet.
@@ -30031,7 +30741,7 @@ components:
       properties:
         customer:
           allOf:
-            - $ref: '#/components/schemas/tanvo.customer.v1.Customer'
+            - $ref: '#/components/schemas/tanvo.portal.v1.PortalCustomer'
           title: customer
           description: The updated customer.
       title: UpdatePortalCustomerResponse
@@ -31189,71 +31899,6 @@ components:
         - ACTIVATION_RULE_TYPE_UNSPECIFIED
         - ACTIVATION_RULE_TYPE_PAYMENT
       description: ActivationRuleType is a condition for activating a subscription.
-    tanvo.subscription.v1.BillingSegment:
-      type: object
-      properties:
-        id:
-          type: string
-          title: id
-          description: The segment's ID.
-        subscription_rate_card_id:
-          type: string
-          title: subscription_rate_card_id
-          description: The subscription rate card.
-        invoice_id:
-          type: string
-          title: invoice_id
-          description: The invoice the segment was billed on.
-        status:
-          allOf:
-            - $ref: '#/components/schemas/tanvo.subscription.v1.BillingSegmentStatus'
-          title: status
-          description: The state.
-        currency:
-          type: string
-          title: currency
-          description: The currency.
-        billing_at:
-          allOf:
-            - $ref: '#/components/schemas/google.protobuf.Timestamp'
-          title: billing_at
-          description: When the segment is billed.
-        started_at:
-          allOf:
-            - $ref: '#/components/schemas/google.protobuf.Timestamp'
-          title: started_at
-          description: The start of the priced window.
-        ended_at:
-          allOf:
-            - $ref: '#/components/schemas/google.protobuf.Timestamp'
-          title: ended_at
-          description: The end of the priced window, exclusive.
-        cycle_started_at:
-          allOf:
-            - $ref: '#/components/schemas/google.protobuf.Timestamp'
-          title: cycle_started_at
-          description: The start of the billing interval cycle the window belongs to.
-        proration_ratio:
-          type: string
-          title: proration_ratio
-          description: The share of the cycle the window covers, from 0 to 1.
-        rate_phase_id:
-          type: string
-          title: rate_phase_id
-          description: The phase that priced the window, when any.
-      title: BillingSegment
-      additionalProperties: false
-      description: BillingSegment is a priced window of a subscription rate card's schedule.
-    tanvo.subscription.v1.BillingSegmentStatus:
-      type: string
-      title: BillingSegmentStatus
-      enum:
-        - BILLING_SEGMENT_STATUS_UNSPECIFIED
-        - BILLING_SEGMENT_STATUS_PENDING
-        - BILLING_SEGMENT_STATUS_PROCESSING
-        - BILLING_SEGMENT_STATUS_DONE
-        - BILLING_SEGMENT_STATUS_FAILED
-      description: BillingSegmentStatus is the state of a billing segment.
     tanvo.subscription.v1.BillingTime:
       type: string
       title: BillingTime
@@ -31347,39 +31992,349 @@ components:
       title: ChangeSubscriptionPlanResponse
       additionalProperties: false
       description: ChangeSubscriptionPlanResponse is the response of SubscriptionService.ChangeSubscriptionPlan.
-    tanvo.subscription.v1.CreateSubscriptionRateCardRequest:
+    tanvo.subscription.v1.Contract:
       type: object
       properties:
-        subscription_id:
+        id:
           type: string
-          title: subscription_id
+          title: id
+          description: The contract's ID.
+          readOnly: true
+        external_id:
+          type: string
+          title: external_id
           description: |
-            The subscription's ID or `external_id:<external_id>`.
-            string.ref = true
+            (IDENTIFIER) The identifier in the caller's system; at most one live (pending or
+             active) contract has it, and no subscription does.
+            string.code = true
+        external_customer_id:
+          type: string
+          title: external_customer_id
+          description: |
+            (IMMUTABLE) The external ID of the customer.
+            string.code = true
+        customer_id:
+          type: string
+          title: customer_id
+          description: The customer's ID.
+          readOnly: true
+        name:
+          type: string
+          title: name
+          maxLength: 255
+          description: A display name.
+        plan_code:
+          type: string
+          title: plan_code
+          maxLength: 255
+          description: |-
+            The code of the plan whose rate cards the contract starts with; empty
+             prices the contract by the rate cards applied to it only. Changing it
+             replaces the rate cards.
+        plan_id:
+          type: string
+          title: plan_id
+          description: The plan's ID.
+          readOnly: true
+        status:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.SubscriptionStatus'
+          title: status
+          description: The state.
+          readOnly: true
+        billing_time:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.BillingTime'
+          title: billing_time
+          description: |
+            How billing intervals are anchored; calendar by default.
+            enum.defined_only = true
+        billing_anchor_date:
+          allOf:
+            - $ref: '#/components/schemas/google.type.Date'
+          title: billing_anchor_date
+          description: |-
+            The date the rate cards' billing intervals are anchored to; the start
+             day by default.
+        effective_billing_anchor_date:
+          allOf:
+            - $ref: '#/components/schemas/google.type.Date'
+          title: effective_billing_anchor_date
+          description: |-
+            The billing anchor that applies: billing_anchor_date, else the start
+             day in the customer's time zone.
+          readOnly: true
+        started_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: started_at
+          description: The start; now by default, may be in the past or the future.
+        ended_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: ended_at
+          description: The end of billing.
+        terminated_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: terminated_at
+          description: When the contract was terminated.
+          readOnly: true
+        canceled_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: canceled_at
+          description: When the contract was canceled.
+          readOnly: true
+        consolidate_invoice:
+          type: boolean
+          title: consolidate_invoice
+          description: |-
+            Invoices the contract's billing segments together with the customer's
+             other contracts' billed the same day; default true.
+        purchase_order_number:
+          type: string
+          title: purchase_order_number
+          maxLength: 255
+          description: The purchase order number printed on invoices.
+        payment_method_type:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.PaymentMethodType'
+          title: payment_method_type
+          description: |
+            Overrides the customer's payment method kind.
+            enum.defined_only = true
+        payment_method_id:
+          type: string
+          title: payment_method_id
+          format: uuid
+          description: The payment method charged, for PROVIDER.
+        billing_entity_id:
+          type: string
+          title: billing_entity_id
+          format: uuid
+          description: The billing entity's ID; the customer's when unset.
+        skip_invoice_custom_sections:
+          type: boolean
+          title: skip_invoice_custom_sections
+          description: Prints no invoice custom sections.
+        invoice_custom_section_ids:
+          type: array
+          items:
+            type: string
+            description: |
+              string.ref = true
+          title: invoice_custom_section_ids
+          maxItems: 50
+          uniqueItems: true
+          description: |-
+            The invoice custom sections (IDs or `code:<code>`); the customer's when
+             empty.
+        currency:
+          type: string
+          title: currency
+          description: 'The currency the contract bills in: its plan''s, else the customer''s.'
+          readOnly: true
+        rate_cards:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.subscription.v1.ContractRateCard'
+          title: rate_cards
+          description: |-
+            The applied rate cards, by effective date; managed with the rate card
+             RPCs.
+          readOnly: true
+        rate_cards_count:
+          type: integer
+          title: rate_cards_count
+          format: int32
+          description: The number of applied rate cards.
+          readOnly: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: created_at
+          description: When the contract was created.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: updated_at
+          description: When the contract last changed.
+          readOnly: true
+      title: Contract
+      additionalProperties: false
+      description: Contract is a subscription priced by the rate cards applied to it.
+    tanvo.subscription.v1.ContractRateCard:
+      type: object
+      properties:
+        id:
+          type: string
+          title: id
+          description: The contract rate card's ID.
+          readOnly: true
+        external_contract_id:
+          type: string
+          title: external_contract_id
+          description: The external ID of the contract.
+          readOnly: true
+        rate_card_code:
+          type: string
+          title: rate_card_code
+          maxLength: 255
+          description: (IDENTIFIER) The code of the applied rate card.
+        units:
+          type: string
+          title: units
+          description: |
+            The number of units, for fixed products.
+            string.nonnegative_decimal = true
+        effective_date:
+          allOf:
+            - $ref: '#/components/schemas/google.type.Date'
+          title: effective_date
+          description: 'The date the rate card takes effect: the contract''s start day.'
+          readOnly: true
+        billing_anchor_date:
+          allOf:
+            - $ref: '#/components/schemas/google.type.Date'
+          title: billing_anchor_date
+          description: |-
+            The date its billing intervals are anchored to; the contract's
+             effective billing anchor by default.
+        next_billing_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: next_billing_at
+          description: When the rate card next bills.
+          readOnly: true
+        rate_phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.catalog.v1.RatePhase'
+          title: rate_phases
+          maxItems: 50
+          description: |-
+            The phases, by position: positions 1 to n, only the last one
+             open-ended. Unset on create starts on a single open-ended phase coded
+             `default`. Set on create, then managed with the rate phase RPCs.
+        rate_phases_count:
+          type: integer
+          title: rate_phases_count
+          format: int32
+          description: The number of phases.
+          readOnly: true
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: created_at
+          description: When the contract rate card was created.
+          readOnly: true
+        updated_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: updated_at
+          description: When the contract rate card last changed.
+          readOnly: true
+      title: ContractRateCard
+      additionalProperties: false
+      description: |-
+        ContractRateCard is a rate card applied to a contract, billed on its own
+         schedule from its effective date.
+    tanvo.subscription.v1.CreateContractRateCardRequest:
+      type: object
+      properties:
+        external_id:
+          type: string
+          title: external_id
+          maxLength: 255
+          description: The contract's external ID.
         rate_card:
           allOf:
-            - $ref: '#/components/schemas/tanvo.subscription.v1.SubscriptionRateCard'
+            - $ref: '#/components/schemas/tanvo.subscription.v1.ContractRateCard'
           title: rate_card
-          description: The rate card to add.
-      title: CreateSubscriptionRateCardRequest
+          description: The rate card to apply.
+      title: CreateContractRateCardRequest
       required:
-        - subscription_id
+        - external_id
         - rate_card
       additionalProperties: false
       description: |
-        CreateSubscriptionRateCardRequest is the request of SubscriptionService.CreateSubscriptionRateCard.
-        rate_card.required // rate_card_id and effective_date are required
-    tanvo.subscription.v1.CreateSubscriptionRateCardResponse:
+        CreateContractRateCardRequest is the request of ContractService.CreateContractRateCard.
+        rate_card.rate_card_code // rate_card.rate_card_code is required
+    tanvo.subscription.v1.CreateContractRateCardResponse:
       type: object
       properties:
         rate_card:
           allOf:
-            - $ref: '#/components/schemas/tanvo.subscription.v1.SubscriptionRateCard'
+            - $ref: '#/components/schemas/tanvo.subscription.v1.ContractRateCard'
           title: rate_card
-          description: The added rate card.
-      title: CreateSubscriptionRateCardResponse
+          description: The applied rate card.
+      title: CreateContractRateCardResponse
       additionalProperties: false
-      description: CreateSubscriptionRateCardResponse is the response of SubscriptionService.CreateSubscriptionRateCard.
+      description: CreateContractRateCardResponse is the response of ContractService.CreateContractRateCard.
+    tanvo.subscription.v1.CreateContractRatePhaseRequest:
+      type: object
+      properties:
+        external_id:
+          type: string
+          title: external_id
+          maxLength: 255
+          description: The contract's external ID.
+        rate_card_code:
+          type: string
+          title: rate_card_code
+          maxLength: 255
+          description: The code of the applied rate card.
+        rate_phase:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.catalog.v1.RatePhase'
+          title: rate_phase
+          description: The phase to add.
+      title: CreateContractRatePhaseRequest
+      required:
+        - external_id
+        - rate_card_code
+        - rate_phase
+      additionalProperties: false
+      description: CreateContractRatePhaseRequest is the request of ContractService.CreateContractRatePhase.
+    tanvo.subscription.v1.CreateContractRatePhaseResponse:
+      type: object
+      properties:
+        rate_phase:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.catalog.v1.RatePhase'
+          title: rate_phase
+          description: The created phase.
+      title: CreateContractRatePhaseResponse
+      additionalProperties: false
+      description: CreateContractRatePhaseResponse is the response of ContractService.CreateContractRatePhase.
+    tanvo.subscription.v1.CreateContractRequest:
+      type: object
+      properties:
+        contract:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.Contract'
+          title: contract
+          description: The contract to create.
+      title: CreateContractRequest
+      required:
+        - contract
+      additionalProperties: false
+      description: |
+        CreateContractRequest is the request of ContractService.CreateContract.
+        contract.required // contract.external_id and contract.external_customer_id are required
+    tanvo.subscription.v1.CreateContractResponse:
+      type: object
+      properties:
+        contract:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.Contract'
+          title: contract
+          description: The created contract.
+      title: CreateContractResponse
+      additionalProperties: false
+      description: CreateContractResponse is the response of ContractService.CreateContract.
     tanvo.subscription.v1.CreateSubscriptionRequest:
       type: object
       properties:
@@ -31394,7 +32349,7 @@ components:
       additionalProperties: false
       description: |
         CreateSubscriptionRequest is the request of SubscriptionService.CreateSubscription.
-        subscription.required // external_id, customer_id and plan_id or rate_cards are required
+        subscription.required // external_id, customer_id and plan_id are required
     tanvo.subscription.v1.CreateSubscriptionResponse:
       type: object
       properties:
@@ -31406,31 +32361,135 @@ components:
       title: CreateSubscriptionResponse
       additionalProperties: false
       description: CreateSubscriptionResponse is the response of SubscriptionService.CreateSubscription.
-    tanvo.subscription.v1.DeleteSubscriptionRateCardRequest:
+    tanvo.subscription.v1.DeleteContractRateCardRequest:
       type: object
       properties:
-        subscription_id:
+        external_id:
           type: string
-          title: subscription_id
-          description: |
-            The subscription's ID or `external_id:<external_id>`.
-            string.ref = true
-        rate_card_id:
+          title: external_id
+          maxLength: 255
+          description: The contract's external ID.
+        rate_card_code:
           type: string
-          title: rate_card_id
-          format: uuid
-          description: The subscription rate card's ID.
-      title: DeleteSubscriptionRateCardRequest
+          title: rate_card_code
+          maxLength: 255
+          description: The code of the applied rate card.
+      title: DeleteContractRateCardRequest
       required:
-        - subscription_id
-        - rate_card_id
+        - external_id
+        - rate_card_code
       additionalProperties: false
-      description: DeleteSubscriptionRateCardRequest is the request of SubscriptionService.DeleteSubscriptionRateCard.
-    tanvo.subscription.v1.DeleteSubscriptionRateCardResponse:
+      description: DeleteContractRateCardRequest is the request of ContractService.DeleteContractRateCard.
+    tanvo.subscription.v1.DeleteContractRateCardResponse:
       type: object
-      title: DeleteSubscriptionRateCardResponse
+      properties:
+        rate_card:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.ContractRateCard'
+          title: rate_card
+          description: The removed contract rate card.
+      title: DeleteContractRateCardResponse
       additionalProperties: false
-      description: DeleteSubscriptionRateCardResponse is the response of SubscriptionService.DeleteSubscriptionRateCard.
+      description: DeleteContractRateCardResponse is the response of ContractService.DeleteContractRateCard.
+    tanvo.subscription.v1.DeleteContractRatePhaseRequest:
+      type: object
+      properties:
+        external_id:
+          type: string
+          title: external_id
+          maxLength: 255
+          description: The contract's external ID.
+        rate_card_code:
+          type: string
+          title: rate_card_code
+          maxLength: 255
+          description: The code of the applied rate card.
+        rate_phase_id:
+          type: string
+          title: rate_phase_id
+          description: |
+            The phase's ID or `code:<code>`.
+            string.ref = true
+      title: DeleteContractRatePhaseRequest
+      required:
+        - external_id
+        - rate_card_code
+        - rate_phase_id
+      additionalProperties: false
+      description: DeleteContractRatePhaseRequest is the request of ContractService.DeleteContractRatePhase.
+    tanvo.subscription.v1.DeleteContractRatePhaseResponse:
+      type: object
+      properties:
+        rate_phase:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.catalog.v1.RatePhase'
+          title: rate_phase
+          description: The removed phase.
+      title: DeleteContractRatePhaseResponse
+      additionalProperties: false
+      description: DeleteContractRatePhaseResponse is the response of ContractService.DeleteContractRatePhase.
+    tanvo.subscription.v1.GetContractRateCardRequest:
+      type: object
+      properties:
+        external_id:
+          type: string
+          title: external_id
+          maxLength: 255
+          description: The contract's external ID.
+        rate_card_code:
+          type: string
+          title: rate_card_code
+          maxLength: 255
+          description: The code of the applied rate card.
+      title: GetContractRateCardRequest
+      required:
+        - external_id
+        - rate_card_code
+      additionalProperties: false
+      description: GetContractRateCardRequest is the request of ContractService.GetContractRateCard.
+    tanvo.subscription.v1.GetContractRateCardResponse:
+      type: object
+      properties:
+        rate_card:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.ContractRateCard'
+          title: rate_card
+          description: The contract rate card.
+      title: GetContractRateCardResponse
+      additionalProperties: false
+      description: GetContractRateCardResponse is the response of ContractService.GetContractRateCard.
+    tanvo.subscription.v1.GetContractRequest:
+      type: object
+      properties:
+        external_id:
+          type: string
+          title: external_id
+          maxLength: 255
+          description: The contract's external ID.
+        status:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.SubscriptionStatus'
+          title: status
+          description: |
+            Returns the latest contract started in this status instead of the
+             live one.
+            enum.defined_only = true
+      title: GetContractRequest
+      required:
+        - external_id
+      additionalProperties: false
+      description: GetContractRequest is the request of ContractService.GetContract.
+    tanvo.subscription.v1.GetContractResponse:
+      type: object
+      properties:
+        contract:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.Contract'
+          title: contract
+          description: The contract.
+      title: GetContractResponse
+      additionalProperties: false
+      description: GetContractResponse is the response of ContractService.GetContract.
     tanvo.subscription.v1.GetLifetimeUsageRequest:
       type: object
       properties:
@@ -31532,15 +32591,81 @@ components:
       title: LifetimeUsage
       additionalProperties: false
       description: LifetimeUsage is the usage of a subscription across all its periods.
-    tanvo.subscription.v1.ListBillingSegmentsRequest:
+    tanvo.subscription.v1.ListContractRateCardsRequest:
       type: object
       properties:
-        subscription_id:
+        external_id:
           type: string
-          title: subscription_id
-          description: |
-            The subscription's ID or `external_id:<external_id>`.
-            string.ref = true
+          title: external_id
+          maxLength: 255
+          description: The contract's external ID.
+        page_size:
+          type: integer
+          title: page_size
+          maximum: 1000
+          minimum: 0
+          format: int32
+          description: The maximum number of results; 20 by default, at most 1000.
+        page_token:
+          type: string
+          title: page_token
+          maxLength: 1024
+          description: The next_page_token of the previous page.
+      title: ListContractRateCardsRequest
+      required:
+        - external_id
+      additionalProperties: false
+      description: ListContractRateCardsRequest is the request of ContractService.ListContractRateCards.
+    tanvo.subscription.v1.ListContractRateCardsResponse:
+      type: object
+      properties:
+        rate_cards:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.subscription.v1.ContractRateCard'
+          title: rate_cards
+          description: The contract rate cards of this page.
+        next_page_token:
+          type: string
+          title: next_page_token
+          description: The token of the next page; empty on the last page.
+      title: ListContractRateCardsResponse
+      additionalProperties: false
+      description: ListContractRateCardsResponse is the response of ContractService.ListContractRateCards.
+    tanvo.subscription.v1.ListContractRatePhasesRequest:
+      type: object
+      properties:
+        external_id:
+          type: string
+          title: external_id
+          maxLength: 255
+          description: The contract's external ID.
+        rate_card_code:
+          type: string
+          title: rate_card_code
+          maxLength: 255
+          description: The code of the applied rate card.
+      title: ListContractRatePhasesRequest
+      required:
+        - external_id
+        - rate_card_code
+      additionalProperties: false
+      description: ListContractRatePhasesRequest is the request of ContractService.ListContractRatePhases.
+    tanvo.subscription.v1.ListContractRatePhasesResponse:
+      type: object
+      properties:
+        rate_phases:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.catalog.v1.RatePhase'
+          title: rate_phases
+          description: The phases, by position.
+      title: ListContractRatePhasesResponse
+      additionalProperties: false
+      description: ListContractRatePhasesResponse is the response of ContractService.ListContractRatePhases.
+    tanvo.subscription.v1.ListContractsRequest:
+      type: object
+      properties:
         page_size:
           type: integer
           title: page_size
@@ -31558,71 +32683,33 @@ components:
           title: filter
           maxLength: 2048
           description: |-
-            An AIP-160 filter over `status`, `subscription_rate_card_id`,
-             `invoice_id` and `billing_at`.
-      title: ListBillingSegmentsRequest
-      required:
-        - subscription_id
+            An AIP-160 filter over `status` (active by default),
+             `external_customer_id`, `plan_code`, `external_id`,
+             `billing_entity_id` and `has_rate_overrides`.
+        search:
+          type: string
+          title: search
+          maxLength: 255
+          description: A search over the ID, name, external ID, plan and customer.
+      title: ListContractsRequest
       additionalProperties: false
-      description: ListBillingSegmentsRequest is the request of SubscriptionService.ListBillingSegments.
-    tanvo.subscription.v1.ListBillingSegmentsResponse:
+      description: ListContractsRequest is the request of ContractService.ListContracts.
+    tanvo.subscription.v1.ListContractsResponse:
       type: object
       properties:
-        billing_segments:
+        contracts:
           type: array
           items:
-            $ref: '#/components/schemas/tanvo.subscription.v1.BillingSegment'
-          title: billing_segments
-          description: The billing segments of this page.
+            $ref: '#/components/schemas/tanvo.subscription.v1.Contract'
+          title: contracts
+          description: The contracts of this page.
         next_page_token:
           type: string
           title: next_page_token
           description: The token of the next page; empty on the last page.
-      title: ListBillingSegmentsResponse
+      title: ListContractsResponse
       additionalProperties: false
-      description: ListBillingSegmentsResponse is the response of SubscriptionService.ListBillingSegments.
-    tanvo.subscription.v1.ListSubscriptionRateCardsRequest:
-      type: object
-      properties:
-        subscription_id:
-          type: string
-          title: subscription_id
-          description: |
-            The subscription's ID or `external_id:<external_id>`.
-            string.ref = true
-        page_size:
-          type: integer
-          title: page_size
-          maximum: 1000
-          minimum: 0
-          format: int32
-          description: The maximum number of results; 20 by default, at most 1000.
-        page_token:
-          type: string
-          title: page_token
-          maxLength: 1024
-          description: The next_page_token of the previous page.
-      title: ListSubscriptionRateCardsRequest
-      required:
-        - subscription_id
-      additionalProperties: false
-      description: ListSubscriptionRateCardsRequest is the request of SubscriptionService.ListSubscriptionRateCards.
-    tanvo.subscription.v1.ListSubscriptionRateCardsResponse:
-      type: object
-      properties:
-        rate_cards:
-          type: array
-          items:
-            $ref: '#/components/schemas/tanvo.subscription.v1.SubscriptionRateCard'
-          title: rate_cards
-          description: The rate cards of this page.
-        next_page_token:
-          type: string
-          title: next_page_token
-          description: The token of the next page; empty on the last page.
-      title: ListSubscriptionRateCardsResponse
-      additionalProperties: false
-      description: ListSubscriptionRateCardsResponse is the response of SubscriptionService.ListSubscriptionRateCards.
+      description: ListContractsResponse is the response of ContractService.ListContracts.
     tanvo.subscription.v1.ListSubscriptionsRequest:
       type: object
       properties:
@@ -31772,8 +32859,7 @@ components:
           type: string
           title: plan_id
           description: |
-            (IMMUTABLE) The plan (ID or `code:<code>`); the child plan when overridden. Unset
-             on subscriptions priced by rate cards only.
+            (IMMUTABLE) The plan (ID or `code:<code>`); the child plan when overridden.
             string.ref = true
         parent_plan_id:
           type: string
@@ -31935,18 +33021,6 @@ components:
           title: plan_overrides
           description: The plan overrides; write only, read the child plan for the result.
           writeOnly: true
-        rate_cards:
-          type: array
-          items:
-            $ref: '#/components/schemas/tanvo.subscription.v1.SubscriptionRateCard'
-          title: rate_cards
-          maxItems: 200
-          description: The rate cards; on create only, then managed with the rate card RPCs.
-        billing_anchor_date:
-          allOf:
-            - $ref: '#/components/schemas/google.type.Date'
-          title: billing_anchor_date
-          description: The date rate card billing intervals are anchored to.
         current_period_started_at:
           allOf:
             - $ref: '#/components/schemas/google.protobuf.Timestamp'
@@ -31994,68 +33068,6 @@ components:
         - customer_id
       additionalProperties: false
       description: Subscription bills a customer by a plan or by rate cards.
-    tanvo.subscription.v1.SubscriptionRateCard:
-      type: object
-      properties:
-        id:
-          type: string
-          title: id
-          description: (IDENTIFIER) The subscription rate card's ID.
-        rate_card_id:
-          type: string
-          title: rate_card_id
-          description: |
-            (IMMUTABLE) The rate card (ID or `code:<code>`).
-            string.ref = true
-        effective_date:
-          allOf:
-            - $ref: '#/components/schemas/google.type.Date'
-          title: effective_date
-          description: The date the rate card takes effect.
-        billing_anchor_date:
-          allOf:
-            - $ref: '#/components/schemas/google.type.Date'
-          title: billing_anchor_date
-          description: The date billing intervals are anchored to; effective_date by default.
-        units:
-          type: string
-          title: units
-          description: |
-            The number of units, for fixed products.
-            string.nonnegative_decimal = true
-        phases:
-          type: array
-          items:
-            $ref: '#/components/schemas/tanvo.catalog.v1.RatePhase'
-          title: phases
-          maxItems: 50
-          description: The phases, by position; empty bills the rate card's rates throughout.
-        next_billing_at:
-          allOf:
-            - $ref: '#/components/schemas/google.protobuf.Timestamp'
-          title: next_billing_at
-          description: When the rate card next bills.
-          readOnly: true
-        created_at:
-          allOf:
-            - $ref: '#/components/schemas/google.protobuf.Timestamp'
-          title: created_at
-          description: When the subscription rate card was created.
-          readOnly: true
-        updated_at:
-          allOf:
-            - $ref: '#/components/schemas/google.protobuf.Timestamp'
-          title: updated_at
-          description: When the subscription rate card last changed.
-          readOnly: true
-      title: SubscriptionRateCard
-      required:
-        - rate_card_id
-        - effective_date
-      additionalProperties: false
-      description: |-
-        SubscriptionRateCard prices a subscription with a rate card on its own
-         schedule.
     tanvo.subscription.v1.SubscriptionStatus:
       type: string
       title: SubscriptionStatus
@@ -32067,6 +33079,30 @@ components:
         - SUBSCRIPTION_STATUS_TERMINATED
         - SUBSCRIPTION_STATUS_CANCELED
       description: SubscriptionStatus is the state of a subscription.
+    tanvo.subscription.v1.TerminateContractRequest:
+      type: object
+      properties:
+        external_id:
+          type: string
+          title: external_id
+          maxLength: 255
+          description: The contract's external ID.
+      title: TerminateContractRequest
+      required:
+        - external_id
+      additionalProperties: false
+      description: TerminateContractRequest is the request of ContractService.TerminateContract.
+    tanvo.subscription.v1.TerminateContractResponse:
+      type: object
+      properties:
+        contract:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.Contract'
+          title: contract
+          description: The terminated or canceled contract.
+      title: TerminateContractResponse
+      additionalProperties: false
+      description: TerminateContractResponse is the response of ContractService.TerminateContract.
     tanvo.subscription.v1.TerminateSubscriptionRequest:
       type: object
       properties:
@@ -32128,6 +33164,123 @@ components:
         - TERMINATION_INVOICE_GENERATE
         - TERMINATION_INVOICE_SKIP
       description: TerminationInvoice says whether termination issues a final invoice.
+    tanvo.subscription.v1.UpdateContractRateCardRequest:
+      type: object
+      properties:
+        external_id:
+          type: string
+          title: external_id
+          maxLength: 255
+          description: The contract's external ID.
+        rate_card:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.ContractRateCard'
+          title: rate_card
+          description: |-
+            The new values; rate_card.rate_card_code selects the contract rate
+             card.
+        update_mask:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.FieldMask'
+          title: update_mask
+          description: |-
+            The fields to update: units and billing_anchor_date; empty updates
+             every one that is set.
+      title: UpdateContractRateCardRequest
+      required:
+        - external_id
+        - rate_card
+      additionalProperties: false
+      description: |
+        UpdateContractRateCardRequest is the request of ContractService.UpdateContractRateCard.
+        rate_card.rate_card_code // rate_card.rate_card_code is required
+    tanvo.subscription.v1.UpdateContractRateCardResponse:
+      type: object
+      properties:
+        rate_card:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.ContractRateCard'
+          title: rate_card
+          description: The updated contract rate card.
+      title: UpdateContractRateCardResponse
+      additionalProperties: false
+      description: UpdateContractRateCardResponse is the response of ContractService.UpdateContractRateCard.
+    tanvo.subscription.v1.UpdateContractRatePhaseRequest:
+      type: object
+      properties:
+        external_id:
+          type: string
+          title: external_id
+          maxLength: 255
+          description: The contract's external ID.
+        rate_card_code:
+          type: string
+          title: rate_card_code
+          maxLength: 255
+          description: The code of the applied rate card.
+        rate_phase:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.catalog.v1.RatePhase'
+          title: rate_phase
+          description: |-
+            The new values; rate_phase.id (an ID or `code:<code>`) selects the
+             phase.
+        update_mask:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.FieldMask'
+          title: update_mask
+          description: The fields to update; empty updates every field that is set.
+      title: UpdateContractRatePhaseRequest
+      required:
+        - external_id
+        - rate_card_code
+        - rate_phase
+      additionalProperties: false
+      description: |
+        UpdateContractRatePhaseRequest is the request of ContractService.UpdateContractRatePhase.
+        rate_phase.id // rate_phase.id is required
+    tanvo.subscription.v1.UpdateContractRatePhaseResponse:
+      type: object
+      properties:
+        rate_phase:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.catalog.v1.RatePhase'
+          title: rate_phase
+          description: The updated phase.
+      title: UpdateContractRatePhaseResponse
+      additionalProperties: false
+      description: UpdateContractRatePhaseResponse is the response of ContractService.UpdateContractRatePhase.
+    tanvo.subscription.v1.UpdateContractRequest:
+      type: object
+      properties:
+        contract:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.Contract'
+          title: contract
+          description: The new values; contract.external_id selects the live contract.
+        update_mask:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.FieldMask'
+          title: update_mask
+          description: The fields to update; empty updates every field that is set.
+      title: UpdateContractRequest
+      required:
+        - contract
+      additionalProperties: false
+      description: |
+        UpdateContractRequest is the request of ContractService.UpdateContract.
+        contract.external_id // contract.external_id is required
+    tanvo.subscription.v1.UpdateContractResponse:
+      type: object
+      properties:
+        contract:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.Contract'
+          title: contract
+          description: The updated contract.
+      title: UpdateContractResponse
+      additionalProperties: false
+      description: UpdateContractResponse is the response of ContractService.UpdateContract.
     tanvo.subscription.v1.UpdateLifetimeUsageRequest:
       type: object
       properties:
@@ -32160,44 +33313,6 @@ components:
       title: UpdateLifetimeUsageResponse
       additionalProperties: false
       description: UpdateLifetimeUsageResponse is the response of SubscriptionService.UpdateLifetimeUsage.
-    tanvo.subscription.v1.UpdateSubscriptionRateCardRequest:
-      type: object
-      properties:
-        subscription_id:
-          type: string
-          title: subscription_id
-          description: |
-            The subscription's ID or `external_id:<external_id>`.
-            string.ref = true
-        rate_card:
-          allOf:
-            - $ref: '#/components/schemas/tanvo.subscription.v1.SubscriptionRateCard'
-          title: rate_card
-          description: The new values; rate_card.id selects the subscription rate card.
-        update_mask:
-          allOf:
-            - $ref: '#/components/schemas/google.protobuf.FieldMask'
-          title: update_mask
-          description: The fields to update; empty updates every field that is set.
-      title: UpdateSubscriptionRateCardRequest
-      required:
-        - subscription_id
-        - rate_card
-      additionalProperties: false
-      description: |
-        UpdateSubscriptionRateCardRequest is the request of SubscriptionService.UpdateSubscriptionRateCard.
-        rate_card.id // rate_card.id is required
-    tanvo.subscription.v1.UpdateSubscriptionRateCardResponse:
-      type: object
-      properties:
-        rate_card:
-          allOf:
-            - $ref: '#/components/schemas/tanvo.subscription.v1.SubscriptionRateCard'
-          title: rate_card
-          description: The updated rate card.
-      title: UpdateSubscriptionRateCardResponse
-      additionalProperties: false
-      description: UpdateSubscriptionRateCardResponse is the response of SubscriptionService.UpdateSubscriptionRateCard.
     tanvo.subscription.v1.UpdateSubscriptionRequest:
       type: object
       properties:
@@ -34376,52 +35491,49 @@ components:
         connection_code:
           type: string
           title: connection_code
-          description: |
-            The connection's code.
-            string.code = true
+          description: The connection's code.
         agent_address:
           type: string
           title: agent_address
-          pattern: ^(0x[0-9a-fA-F]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})$
-          description: The agent's wallet address; it identifies the customer.
+          description: |-
+            The agent's wallet address, an EVM or Solana address; it identifies
+             the customer. Without it, the agent is a stranger.
         resource:
           type: string
           title: resource
           maxLength: 2048
-          description: The resource called (its URL).
+          description: The resource called; informative.
         plan_code:
           type: string
           title: plan_code
-          description: |
-            The plan of an auto-created subscription.
-            string.code = true
+          description: The usage-only USD plan of the agent's subscription.
         wallet_code:
           type: string
           title: wallet_code
-          description: |
-            The wallet to check, by code; the customer's default by default.
-            string.code = true
-        metric_code:
+          description: The x402-enabled wallet the calls draw on, by code.
+        billable_metric_code:
           type: string
-          title: metric_code
-          description: |
-            The billable metric metering the call.
-            string.code = true
-        amount:
-          allOf:
-            - $ref: '#/components/schemas/tanvo.common.v1.Money'
-          title: amount
-          description: The top-up amount required when the balance is short.
-        estimated_call_cost:
-          allOf:
-            - $ref: '#/components/schemas/tanvo.common.v1.Money'
-          title: estimated_call_cost
-          description: The estimated cost of the call; the balance must cover it.
+          title: billable_metric_code
+          description: The billable metric metering the call.
+        amount_cents:
+          type: string
+          title: amount_cents
+          format: int64
+          description: The top-up the requirements ask for, in US cents; positive.
+        estimated_call_cost_cents:
+          type: string
+          title: estimated_call_cost_cents
+          format: int64
+          description: |-
+            The estimated cost of the call, in US cents; positive. The wallet
+             passes when its balance covers a thousand calls.
       title: CheckX402GateRequest
       required:
-        - connection_code
-        - agent_address
-        - resource
+        - plan_code
+        - wallet_code
+        - billable_metric_code
+        - amount_cents
+        - estimated_call_cost_cents
       additionalProperties: false
       description: CheckX402GateRequest is the request of X402Service.CheckX402Gate.
     tanvo.x402.v1.CheckX402GateResponse:
@@ -34430,21 +35542,70 @@ components:
         balance_credits:
           type: string
           title: balance_credits
-          description: The wallet's balance in credits.
+          description: |-
+            The wallet's balance in credits, net of its ongoing usage; "0" for a
+             stranger.
         requirements:
-          allOf:
-            - $ref: '#/components/schemas/google.protobuf.Struct'
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.x402.v1.X402PaymentRequirement'
           title: requirements
           description: |-
-            The x402 payment requirements when the agent must pay first; empty
-             when it may proceed.
+            The payment requirements of the top-up, one per network of the
+             connection; empty when the agent may proceed.
         external_subscription_id:
           type: string
           title: external_subscription_id
-          description: The agent's subscription, to send events to.
+          description: |-
+            The agent's active subscription, to send its events to; empty when
+             there is none.
       title: CheckX402GateResponse
       additionalProperties: false
       description: CheckX402GateResponse is the response of X402Service.CheckX402Gate.
+    tanvo.x402.v1.X402PaymentRequirement:
+      type: object
+      properties:
+        scheme:
+          type: string
+          title: scheme
+          description: 'The payment scheme: "exact".'
+        network:
+          type: string
+          title: network
+          description: The network, as a CAIP-2 identifier such as "eip155:8453".
+        asset:
+          type: string
+          title: asset
+          description: 'The token''s code: "usdc".'
+        asset_address:
+          type: string
+          title: asset_address
+          description: The token's address on the network.
+        extra:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Struct'
+          title: extra
+          description: |-
+            The scheme's extra terms: the token's EIP-712 domain on EVM, the fee
+             payer on Solana.
+        pay_to:
+          type: string
+          title: pay_to
+          description: The connection's payout address on the network.
+        amount_atomic:
+          type: string
+          title: amount_atomic
+          description: The amount in the token's atomic units, as a decimal string.
+        max_timeout_seconds:
+          type: integer
+          title: max_timeout_seconds
+          format: int32
+          description: The longest validity of a payment, in seconds.
+      title: X402PaymentRequirement
+      additionalProperties: false
+      description: |-
+        X402PaymentRequirement is one way to pay a top-up: an exact transfer of
+         the connection's token on one network.
 security: []
 tags:
   - name: ApiKeyService
@@ -34610,6 +35771,13 @@ tags:
     description: |-
       OrderService manages orders: signed order forms executed now or at a
        scheduled time.
+  - name: ContractService
+    description: |-
+      ContractService manages contracts: subscriptions priced by the rate
+       cards applied to them rather than by a plan's charges. A contract is
+       addressed by its external ID, which names its live version (the
+       pending or active one); its rate cards by the code of the applied rate
+       card.
   - name: TaxService
     description: TaxService manages taxes.
   - name: WebhookService

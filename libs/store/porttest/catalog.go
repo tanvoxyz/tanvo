@@ -603,6 +603,7 @@ func testCatalog(t *testing.T, h Harness) {
 			full.Invoiceable = false
 			full.RegroupPaidFees = catalog.RegroupPaidFeesInvoice
 			full.Prorated = true
+			full.AcceptsTargetWallet = true
 			full.MinAmount = 0
 			full.InvoiceDisplayName = ptr("API calls")
 			full.AppliedPricingUnit = &catalog.AppliedPricingUnit{PricingUnitID: unit.ID, ConversionRate: money.MustParse("0.0125")}

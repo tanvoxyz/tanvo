@@ -86,6 +86,50 @@ func (c RepoCatalog) Charges(ctx context.Context, org core.OrganizationID, plan 
 	return out, nil
 }
 
+var _ ContractCatalog = RepoCatalog{}
+
+// InAdvanceContract implements [ContractCatalog].
+//
+// source: app/services/events/pay_in_advance_billing_segment_resolver.rb:28-38
+func (c RepoCatalog) InAdvanceContract(ctx context.Context, org core.OrganizationID, externalID string, metric core.BillableMetricID) (core.SubscriptionID, error) {
+	var out core.SubscriptionID
+	err := c.Transactor.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+		ct, err := r.Contracts.GetByStatus(ctx, org, externalID, subscription.StatusActive)
+		if errors.Is(err, core.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		cards, err := r.ContractRateCards.ListBySubscription(ctx, org, ct.ID)
+		if err != nil {
+			return err
+		}
+		for _, card := range cards {
+			rc, err := r.RateCards.Get(ctx, org, card.RateCardID)
+			if err != nil {
+				return err
+			}
+			if rc.BillingTiming != catalog.BillingTimingAdvance {
+				continue
+			}
+			p, err := r.Products.Get(ctx, org, rc.ProductID)
+			if err != nil {
+				return err
+			}
+			if p.ProductType == catalog.ProductTypeMetered && p.BillableMetricID == metric {
+				out = ct.ID
+				return nil
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return core.SubscriptionID{}, fmt.Errorf("ingest: in-advance contract %q: %w", externalID, err)
+	}
+	return out, nil
+}
+
 // ChangeKind is the kind of catalog object a [Change] is about.
 type ChangeKind string
 
@@ -94,8 +138,9 @@ const (
 	// ChangeMetric: a billable metric was created, changed or deleted; the
 	// key is its code. The charges of the organization are refreshed too.
 	ChangeMetric ChangeKind = "metric"
-	// ChangeSubscription: a subscription was created or changed; the key
-	// is its external ID.
+	// ChangeSubscription: a subscription or a contract (or the rate cards
+	// of one) was created or changed; the key is its external ID, empty
+	// for every subscription of the organization.
 	ChangeSubscription ChangeKind = "subscription"
 	// ChangePlan: the charges of a plan changed; the key is the plan ID.
 	ChangePlan ChangeKind = "plan"
@@ -130,6 +175,12 @@ type metricKey struct {
 type subscriptionKey struct {
 	org        core.OrganizationID
 	externalID string
+}
+
+type contractKey struct {
+	org        core.OrganizationID
+	externalID string
+	metric     core.BillableMetricID
 }
 
 type chargesKey struct {
@@ -199,6 +250,9 @@ type Cache struct {
 	metrics table[metricKey, *catalog.BillableMetric]
 	subs    table[subscriptionKey, []*subscription.Subscription]
 	charges table[chargesKey, []*catalog.Charge]
+	// contracts caches [ContractCatalog.InAdvanceContract], when next
+	// implements it.
+	contracts table[contractKey, core.SubscriptionID]
 }
 
 var _ Catalog = (*Cache)(nil)
@@ -268,6 +322,20 @@ func (c *Cache) Charges(ctx context.Context, org core.OrganizationID, plan core.
 	})
 }
 
+var _ ContractCatalog = (*Cache)(nil)
+
+// InAdvanceContract implements [ContractCatalog]; it finds no contract
+// when the cached catalog does not implement it.
+func (c *Cache) InAdvanceContract(ctx context.Context, org core.OrganizationID, externalID string, metric core.BillableMetricID) (core.SubscriptionID, error) {
+	cc, ok := c.next.(ContractCatalog)
+	if !ok {
+		return core.SubscriptionID{}, nil
+	}
+	return lookup(ctx, c, org, &c.contracts, contractKey{org, externalID, metric}, func(ctx context.Context) (core.SubscriptionID, error) {
+		return cc.InAdvanceContract(ctx, org, externalID, metric)
+	})
+}
+
 // Purge drops every entry, for when change notifications may have been
 // missed (a lost notification connection). Loads running concurrently do
 // not store their results.
@@ -278,6 +346,7 @@ func (c *Cache) Purge() {
 	clear(c.metrics.m)
 	clear(c.subs.m)
 	clear(c.charges.m)
+	clear(c.contracts.m)
 }
 
 // Invalidate drops the entries a change makes stale. Loads running
@@ -288,17 +357,21 @@ func (c *Cache) Invalidate(ch Change) {
 	c.gen[ch.OrganizationID]++
 	org := ch.OrganizationID
 	allCharges := func(k chargesKey) bool { return k.org == org }
+	allContracts := func(k contractKey) bool { return k.org == org }
 	switch ch.Kind {
 	case ChangeMetric:
 		c.metrics.deleteFunc(func(k metricKey) bool { return k.org == org && (ch.Key == "" || k.code == ch.Key) })
 		c.charges.deleteFunc(allCharges)
+		c.contracts.deleteFunc(allContracts)
 	case ChangeSubscription:
 		c.subs.deleteFunc(func(k subscriptionKey) bool { return k.org == org && (ch.Key == "" || k.externalID == ch.Key) })
+		c.contracts.deleteFunc(func(k contractKey) bool { return k.org == org && (ch.Key == "" || k.externalID == ch.Key) })
 	case ChangePlan:
 		c.charges.deleteFunc(func(k chargesKey) bool { return k.org == org && (ch.Key == "" || k.plan.String() == ch.Key) })
 	default:
 		c.metrics.deleteFunc(func(k metricKey) bool { return k.org == org })
 		c.subs.deleteFunc(func(k subscriptionKey) bool { return k.org == org })
 		c.charges.deleteFunc(allCharges)
+		c.contracts.deleteFunc(allContracts)
 	}
 }

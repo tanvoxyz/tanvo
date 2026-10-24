@@ -11,6 +11,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/lifecycle"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
@@ -134,7 +135,11 @@ func (s *Service) DestroyWithChildren(ctx context.Context, org core.Organization
 // source: app/services/plans/destroy_service.rb:17-48
 func (s *Service) Destroy(ctx context.Context, org core.OrganizationID, id core.PlanID) (*catalog.Plan, error) {
 	if _, err := read(ctx, s.d, func(ctx context.Context, r port.Repos) (*catalog.Plan, error) {
-		return r.Plans.Get(ctx, org, id)
+		p, err := r.Plans.Get(ctx, org, id)
+		if err != nil {
+			return nil, err
+		}
+		return p, contractLock(ctx, r, p)
 	}); err != nil {
 		return nil, fmt.Errorf("destroy plan %s: %w", id, err)
 	}
@@ -169,21 +174,56 @@ func (s *Service) Destroy(ctx context.Context, org core.OrganizationID, id core.
 		if _, err := r.PlanRateCards.DiscardByPlan(ctx, org, id, now); err != nil {
 			return fmt.Errorf("discard plan rate cards: %w", err)
 		}
-		if p.Deleted() {
-			return nil
+		if !p.Deleted() {
+			if err := p.MarkDeleted(now); err != nil {
+				return err
+			}
+			if err := r.Plans.Update(ctx, p); err != nil {
+				return fmt.Errorf("update plan: %w", err)
+			}
 		}
-		if err := p.MarkDeleted(now); err != nil {
-			return err
-		}
-		if err := r.Plans.Update(ctx, p); err != nil {
-			return fmt.Errorf("update plan: %w", err)
-		}
-		return nil
+		// A plan already deleted is logged again, as lago's destroy
+		// succeeds on it (destroy_service.rb:42-47).
+		//
+		// source: app/services/plans/destroy_service.rb:12-15
+		return s.logPlan(ctx, r, auditlog.ActivityPlanDeleted, nil, p)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("destroy plan %s: %w", id, err)
 	}
 	return out, nil
+}
+
+// contractLock fails with plan plan_locked when a contract, of any
+// status, uses the plan p (lago CatalogPlan#attached_to_contracts?): its
+// contracts must move to another plan first.
+//
+// source: app/services/catalog_plans/destroy_service.rb:24-26,
+// app/services/catalog_plans/update_service.rb:26-28
+func contractLock(ctx context.Context, r port.Repos, p *catalog.Plan) error {
+	ok, err := r.Contracts.ExistsForPlan(ctx, p.OrganizationID, p.ID)
+	if err != nil {
+		return fmt.Errorf("find contracts of plan %s: %w", p.ID, err)
+	}
+	if ok {
+		return &core.ValidationError{Errors: []core.FieldError{{Field: "plan", Code: catalog.CodePlanLocked}}}
+	}
+	return nil
+}
+
+// rateCardsLock fails with currency not_editable_with_applied_rate_cards
+// when the plan p applies a kept rate card.
+//
+// source: app/services/catalog_plans/update_service.rb:30-34
+func rateCardsLock(ctx context.Context, r port.Repos, p *catalog.Plan) error {
+	page, err := r.PlanRateCards.List(ctx, p.OrganizationID, catalog.PlanRateCardQuery{PlanID: p.ID}, core.PageRequest{Size: 1})
+	if err != nil {
+		return fmt.Errorf("list rate cards of plan %s: %w", p.ID, err)
+	}
+	if len(page.Items) > 0 {
+		return &core.ValidationError{Errors: []core.FieldError{{Field: "currency", Code: catalog.CodeNotEditableWithAppliedRateCards}}}
+	}
+	return nil
 }
 
 // terminateActive terminates the active subscriptions of the plan id.
@@ -327,4 +367,13 @@ func read[T any](ctx context.Context, d *kernel.Deps, fn func(ctx context.Contex
 		return err
 	})
 	return out, err
+}
+
+// logPlan records the activity log t of plan p, whose attributes before an
+// update are before. A plan's log names no customer.
+func (s *Service) logPlan(ctx context.Context, r port.Repos, t auditlog.ActivityType, before map[string]any, p *catalog.Plan) error {
+	return s.d.LogChange(ctx, r, kernel.Change{
+		Type: t, OrganizationID: p.OrganizationID, ResourceType: auditlog.ResourcePlan, ResourceID: p.ID.UUID(),
+		Object: p, Before: before,
+	})
 }

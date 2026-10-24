@@ -67,6 +67,7 @@ type (
 	paymentProviderCustomerKind      struct{}
 	inboundWebhookKind               struct{}
 	x402ConnectionKind               struct{}
+	x402SettlementKind               struct{}
 	dunningCampaignKind              struct{}
 	dunningCampaignThresholdKind     struct{}
 	integrationKind                  struct{}
@@ -97,6 +98,8 @@ type (
 	rateCardRateKind                 struct{}
 	planRateCardKind                 struct{}
 	ratePhaseKind                    struct{}
+	subscriptionRateCardKind         struct{}
+	billingSegmentKind               struct{}
 )
 
 // Typed identifiers of every entity of the domain.
@@ -231,6 +234,8 @@ type (
 	InboundWebhookID = ID[inboundWebhookKind]
 	// X402ConnectionID identifies an x402 connection (parity §1.36).
 	X402ConnectionID = ID[x402ConnectionKind]
+	// X402SettlementID identifies an x402 settlement (parity §1.36).
+	X402SettlementID = ID[x402SettlementKind]
 	// DunningCampaignID identifies a dunning campaign (domain §16).
 	DunningCampaignID = ID[dunningCampaignKind]
 	// DunningCampaignThresholdID identifies a dunning campaign threshold (domain §16).
@@ -289,6 +294,12 @@ type (
 	RateCardRateID = ID[rateCardRateKind]
 	// PlanRateCardID identifies a rate card applied to a plan.
 	PlanRateCardID = ID[planRateCardKind]
-	// RatePhaseID identifies a phase of a plan rate card.
+	// RatePhaseID identifies a phase of a plan or contract rate card.
 	RatePhaseID = ID[ratePhaseKind]
+	// SubscriptionRateCardID identifies a rate card applied to a contract
+	// (a subscription priced by rate cards, domain §21.4).
+	SubscriptionRateCardID = ID[subscriptionRateCardKind]
+	// BillingSegmentID identifies a billing segment of a contract rate
+	// card.
+	BillingSegmentID = ID[billingSegmentKind]
 )

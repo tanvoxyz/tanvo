@@ -254,6 +254,29 @@ type BillingEntityTax struct {
 	Position        int32
 }
 
+type BillingSegment struct {
+	OrganizationID         uuid.UUID
+	ID                     uuid.UUID
+	SubscriptionID         uuid.UUID
+	CustomerID             uuid.UUID
+	SubscriptionRateCardID uuid.UUID
+	InvoiceID              *uuid.UUID
+	RateCardRateID         *uuid.UUID
+	RatePhaseID            *uuid.UUID
+	PricingUnitID          *uuid.UUID
+	CycleStartedAt         time.Time
+	StartedAt              time.Time
+	EndedAt                time.Time
+	BillingAt              time.Time
+	RateModel              string
+	RateProperties         []byte
+	Currency               string
+	ProrationRatio         money.Decimal
+	Status                 string
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+}
+
 type CachedAggregation struct {
 	OrganizationID              uuid.UUID
 	ID                          uuid.UUID
@@ -283,6 +306,7 @@ type Charge struct {
 	Invoiceable          bool
 	RegroupPaidFees      *string
 	Prorated             bool
+	AcceptsTargetWallet  bool
 	MinAmount            int64
 	InvoiceDisplayName   *string
 	AppliedPricingUnitID *uuid.UUID
@@ -478,6 +502,7 @@ type Customer struct {
 	Slug                         string
 	PaymentReceiptCounter        int64
 	Metadata                     json.RawMessage
+	X402AgentAddress             *string
 	AwaitingWalletRefresh        bool
 	WalletRefreshGeneration      int64
 	WalletRefreshClaimed         int64
@@ -649,6 +674,11 @@ type Fee struct {
 	AddOnID                        *uuid.UUID
 	CommitmentID                   *uuid.UUID
 	WalletTransactionID            *uuid.UUID
+	SubscriptionRateCardID         *uuid.UUID
+	ProductID                      *uuid.UUID
+	ProductFilterID                *uuid.UUID
+	RateCardRateID                 *uuid.UUID
+	RatePhaseID                    *uuid.UUID
 	GroupedBy                      json.RawMessage
 	InvoiceDisplayName             *string
 	Description                    *string
@@ -1540,7 +1570,9 @@ type Subscription struct {
 	ID                         uuid.UUID
 	ExternalID                 string
 	CustomerID                 uuid.UUID
-	PlanID                     uuid.UUID
+	PlanID                     *uuid.UUID
+	Contract                   bool
+	BillingAnchorDate          *time.Time
 	Name                       *string
 	BillingTime                string
 	Status                     string
@@ -1585,6 +1617,39 @@ type SubscriptionInvoiceCustomSection struct {
 	SubscriptionID         uuid.UUID
 	InvoiceCustomSectionID uuid.UUID
 	Position               int32
+}
+
+type SubscriptionRateCard struct {
+	OrganizationID    uuid.UUID
+	ID                uuid.UUID
+	SubscriptionID    uuid.UUID
+	RateCardID        uuid.UUID
+	Units             *money.Decimal
+	EffectiveDate     time.Time
+	BillingAnchorDate time.Time
+	NextBillingAt     *time.Time
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	DeletedAt         *time.Time
+}
+
+type SubscriptionRatePhase struct {
+	OrganizationID                    uuid.UUID
+	ID                                uuid.UUID
+	SubscriptionRateCardID            uuid.UUID
+	Code                              string
+	Position                          int32
+	Name                              *string
+	BillingIntervalCycleCount         *int32
+	OverrideRateModel                 *string
+	OverrideProperties                []byte
+	OverrideMinAmount                 *int64
+	OverrideBillingIntervalCount      *int32
+	OverrideBillingIntervalUnit       *string
+	OverridePricingUnitConversionRate *money.Decimal
+	CreatedAt                         time.Time
+	UpdatedAt                         time.Time
+	DeletedAt                         *time.Time
 }
 
 type Tax struct {
@@ -1787,4 +1852,48 @@ type WebhookEndpoint struct {
 	Secret         string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+}
+
+type X402Connection struct {
+	OrganizationID      uuid.UUID
+	ID                  uuid.UUID
+	Code                string
+	Name                string
+	Facilitator         string
+	Asset               string
+	Networks            []string
+	PayoutAddresses     json.RawMessage
+	AutoCreateCustomers bool
+	Secrets             []byte
+	DeletedAt           *time.Time
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+}
+
+type X402Settlement struct {
+	OrganizationID      uuid.UUID
+	ID                  uuid.UUID
+	X402ConnectionID    uuid.UUID
+	CustomerID          *uuid.UUID
+	SubscriptionID      *uuid.UUID
+	WalletTransactionID *uuid.UUID
+	PaymentID           *uuid.UUID
+	InvoiceID           *uuid.UUID
+	Kind                string
+	Status              string
+	SettledBy           string
+	Network             string
+	Asset               string
+	PayerAddress        string
+	PayeeAddress        string
+	SettledAmountAtomic money.Decimal
+	SettledAmountCents  int64
+	TransactionHash     *string
+	ReconcileAfter      *time.Time
+	PaymentDigest       string
+	PurchaseSettings    json.RawMessage
+	Payload             json.RawMessage
+	ErrorReason         *string
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
 }

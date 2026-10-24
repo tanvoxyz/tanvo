@@ -15,6 +15,7 @@ func (t *txState) bind() port.Repos {
 	t.bindCatalog(&r)
 	t.bindCatalogFeatures(&r)
 	t.bindSubscription(&r)
+	t.bindContract(&r)
 	t.bindEvent(&r)
 	t.bindAlert(&r)
 	t.bindInvoice(&r)
@@ -30,5 +31,6 @@ func (t *txState) bind() port.Repos {
 	t.bindAuditLog(&r)
 	t.bindAttribution(&r)
 	t.bindProductCatalog(&r)
+	t.bindX402(&r)
 	return r
 }

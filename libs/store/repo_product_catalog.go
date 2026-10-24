@@ -610,7 +610,12 @@ func (r rateCardRepo) Update(ctx context.Context, c *catalog.RateCard) error {
 	if err := updateErr("rate_card", c.ID, n, err); err != nil {
 		return err
 	}
-	return r.writeTaxes(ctx, q, c)
+	if err := r.writeTaxes(ctx, q, c); err != nil {
+		return err
+	}
+	// The billing timing decides which contracts ingestion bills in
+	// advance.
+	return r.t.noteCatalog(nil, CatalogChange{OrganizationID: c.OrganizationID, Kind: CatalogSubscription})
 }
 
 func (r rateCardRepo) Discard(ctx context.Context, org core.OrganizationID, id core.RateCardID, at time.Time) error {

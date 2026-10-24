@@ -208,7 +208,7 @@ type TaxCandidates struct {
 	// Commitment are the taxes of the fee's commitment.
 	Commitment []core.TaxID
 	// Plan are the taxes of the subscription's plan (subscription, charge,
-	// fixed-charge, commitment and product fees).
+	// fixed-charge and commitment fees).
 	Plan []core.TaxID
 	// Customer are the customer's taxes.
 	Customer []core.TaxID
@@ -219,14 +219,17 @@ type TaxCandidates struct {
 // ResolveTaxes returns the taxes of a fee of type t: the first non-empty
 // list, in the order of domain §22.10, among the levels that apply to t,
 // and the level it came from. Credit fees (wallet purchases) are never
-// taxed: the result is nil with an empty source. Product fees resolve like
-// charge fees.
+// taxed: the result is nil with an empty source. Product fees (contract
+// rate cards) have no charge and no plan level: they take the customer's
+// taxes, else the billing entity's.
+//
+// source: app/services/fees/apply_taxes_service.rb:70-81
 func ResolveTaxes(t core.FeeType, c TaxCandidates) ([]core.TaxID, TaxSource) {
 	if t == core.FeeTypeCredit {
 		return nil, ""
 	}
 	onPlan := t == core.FeeTypeSubscription || t == core.FeeTypeCharge || t == core.FeeTypeFixedCharge ||
-		t == core.FeeTypeCommitment || t == core.FeeTypeProduct
+		t == core.FeeTypeCommitment
 	levels := []struct {
 		applies bool
 		taxes   []core.TaxID
@@ -234,7 +237,7 @@ func ResolveTaxes(t core.FeeType, c TaxCandidates) ([]core.TaxID, TaxSource) {
 	}{
 		{true, c.Explicit, TaxSourceExplicit},
 		{t == core.FeeTypeAddOn || t == core.FeeTypeFixedCharge, c.AddOn, TaxSourceAddOn},
-		{t == core.FeeTypeCharge || t == core.FeeTypeProduct, c.Charge, TaxSourceCharge},
+		{t == core.FeeTypeCharge, c.Charge, TaxSourceCharge},
 		{t == core.FeeTypeFixedCharge, c.FixedCharge, TaxSourceFixedCharge},
 		{t == core.FeeTypeCommitment, c.Commitment, TaxSourceCommitment},
 		{onPlan, c.Plan, TaxSourcePlan},

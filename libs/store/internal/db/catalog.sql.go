@@ -133,12 +133,12 @@ const createCharge = `-- name: CreateCharge :execrows
 
 INSERT INTO charges (
   organization_id, id, plan_id, parent_id, code, billable_metric_id, charge_model, properties,
-  pay_in_advance, invoiceable, regroup_paid_fees, prorated, min_amount, invoice_display_name,
+  pay_in_advance, invoiceable, regroup_paid_fees, prorated, accepts_target_wallet, min_amount, invoice_display_name,
   applied_pricing_unit_id, conversion_rate, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6, $7, $8,
-  $9, $10, $11, $12, $13, $14,
-  $15, $16, $17, $18
+  $9, $10, $11, $12, $13, $14, $15,
+  $16, $17, $18, $19
 )
 ON CONFLICT DO NOTHING
 `
@@ -156,6 +156,7 @@ type CreateChargeParams struct {
 	Invoiceable          bool
 	RegroupPaidFees      *string
 	Prorated             bool
+	AcceptsTargetWallet  bool
 	MinAmount            int64
 	InvoiceDisplayName   *string
 	AppliedPricingUnitID *uuid.UUID
@@ -179,6 +180,7 @@ func (q *Queries) CreateCharge(ctx context.Context, arg CreateChargeParams) (int
 		arg.Invoiceable,
 		arg.RegroupPaidFees,
 		arg.Prorated,
+		arg.AcceptsTargetWallet,
 		arg.MinAmount,
 		arg.InvoiceDisplayName,
 		arg.AppliedPricingUnitID,
@@ -774,7 +776,7 @@ func (q *Queries) GetBillableMetricWithDiscarded(ctx context.Context, arg GetBil
 }
 
 const getCharge = `-- name: GetCharge :one
-SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at, c.deleted_at,
+SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.accepts_target_wallet, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at, c.deleted_at,
   ARRAY(SELECT t.tax_id FROM charge_taxes t
         WHERE t.organization_id = c.organization_id AND t.charge_id = c.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM charges c
@@ -808,6 +810,7 @@ func (q *Queries) GetCharge(ctx context.Context, arg GetChargeParams) (GetCharge
 		&i.Charge.Invoiceable,
 		&i.Charge.RegroupPaidFees,
 		&i.Charge.Prorated,
+		&i.Charge.AcceptsTargetWallet,
 		&i.Charge.MinAmount,
 		&i.Charge.InvoiceDisplayName,
 		&i.Charge.AppliedPricingUnitID,
@@ -821,7 +824,7 @@ func (q *Queries) GetCharge(ctx context.Context, arg GetChargeParams) (GetCharge
 }
 
 const getChargeByCode = `-- name: GetChargeByCode :one
-SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at, c.deleted_at,
+SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.accepts_target_wallet, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at, c.deleted_at,
   ARRAY(SELECT t.tax_id FROM charge_taxes t
         WHERE t.organization_id = c.organization_id AND t.charge_id = c.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM charges c
@@ -857,6 +860,7 @@ func (q *Queries) GetChargeByCode(ctx context.Context, arg GetChargeByCodeParams
 		&i.Charge.Invoiceable,
 		&i.Charge.RegroupPaidFees,
 		&i.Charge.Prorated,
+		&i.Charge.AcceptsTargetWallet,
 		&i.Charge.MinAmount,
 		&i.Charge.InvoiceDisplayName,
 		&i.Charge.AppliedPricingUnitID,
@@ -1531,7 +1535,7 @@ func (q *Queries) ListBillableMetricsByIDs(ctx context.Context, arg ListBillable
 }
 
 const listChargeChildren = `-- name: ListChargeChildren :many
-SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at, c.deleted_at,
+SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.accepts_target_wallet, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at, c.deleted_at,
   ARRAY(SELECT t.tax_id FROM charge_taxes t
         WHERE t.organization_id = c.organization_id AND t.charge_id = c.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM charges c
@@ -1571,6 +1575,7 @@ func (q *Queries) ListChargeChildren(ctx context.Context, arg ListChargeChildren
 			&i.Charge.Invoiceable,
 			&i.Charge.RegroupPaidFees,
 			&i.Charge.Prorated,
+			&i.Charge.AcceptsTargetWallet,
 			&i.Charge.MinAmount,
 			&i.Charge.InvoiceDisplayName,
 			&i.Charge.AppliedPricingUnitID,
@@ -1675,7 +1680,7 @@ func (q *Queries) ListChargeFiltersByCharges(ctx context.Context, arg ListCharge
 }
 
 const listChargesByMetric = `-- name: ListChargesByMetric :many
-SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at, c.deleted_at,
+SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.accepts_target_wallet, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at, c.deleted_at,
   ARRAY(SELECT t.tax_id FROM charge_taxes t
         WHERE t.organization_id = c.organization_id AND t.charge_id = c.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM charges c
@@ -1715,6 +1720,7 @@ func (q *Queries) ListChargesByMetric(ctx context.Context, arg ListChargesByMetr
 			&i.Charge.Invoiceable,
 			&i.Charge.RegroupPaidFees,
 			&i.Charge.Prorated,
+			&i.Charge.AcceptsTargetWallet,
 			&i.Charge.MinAmount,
 			&i.Charge.InvoiceDisplayName,
 			&i.Charge.AppliedPricingUnitID,
@@ -1735,7 +1741,7 @@ func (q *Queries) ListChargesByMetric(ctx context.Context, arg ListChargesByMetr
 }
 
 const listChargesByPlan = `-- name: ListChargesByPlan :many
-SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at, c.deleted_at,
+SELECT c.organization_id, c.id, c.plan_id, c.parent_id, c.code, c.billable_metric_id, c.charge_model, c.properties, c.pay_in_advance, c.invoiceable, c.regroup_paid_fees, c.prorated, c.accepts_target_wallet, c.min_amount, c.invoice_display_name, c.applied_pricing_unit_id, c.conversion_rate, c.created_at, c.updated_at, c.deleted_at,
   ARRAY(SELECT t.tax_id FROM charge_taxes t
         WHERE t.organization_id = c.organization_id AND t.charge_id = c.id ORDER BY t.position)::uuid[] AS tax_ids
 FROM charges c
@@ -1775,6 +1781,7 @@ func (q *Queries) ListChargesByPlan(ctx context.Context, arg ListChargesByPlanPa
 			&i.Charge.Invoiceable,
 			&i.Charge.RegroupPaidFees,
 			&i.Charge.Prorated,
+			&i.Charge.AcceptsTargetWallet,
 			&i.Charge.MinAmount,
 			&i.Charge.InvoiceDisplayName,
 			&i.Charge.AppliedPricingUnitID,
@@ -2330,9 +2337,10 @@ UPDATE charges SET
   organization_id = $1, id = $2, plan_id = $3, parent_id = $4, code = $5,
   billable_metric_id = $6, charge_model = $7, properties = $8,
   pay_in_advance = $9, invoiceable = $10, regroup_paid_fees = $11,
-  prorated = $12, min_amount = $13, invoice_display_name = $14,
-  applied_pricing_unit_id = $15, conversion_rate = $16,
-  created_at = $17, updated_at = $18
+  prorated = $12, accepts_target_wallet = $13, min_amount = $14,
+  invoice_display_name = $15,
+  applied_pricing_unit_id = $16, conversion_rate = $17,
+  created_at = $18, updated_at = $19
 WHERE organization_id = $1 AND id = $2 AND deleted_at IS NULL
 `
 
@@ -2349,6 +2357,7 @@ type UpdateChargeParams struct {
 	Invoiceable          bool
 	RegroupPaidFees      *string
 	Prorated             bool
+	AcceptsTargetWallet  bool
 	MinAmount            int64
 	InvoiceDisplayName   *string
 	AppliedPricingUnitID *uuid.UUID
@@ -2371,6 +2380,7 @@ func (q *Queries) UpdateCharge(ctx context.Context, arg UpdateChargeParams) (int
 		arg.Invoiceable,
 		arg.RegroupPaidFees,
 		arg.Prorated,
+		arg.AcceptsTargetWallet,
 		arg.MinAmount,
 		arg.InvoiceDisplayName,
 		arg.AppliedPricingUnitID,

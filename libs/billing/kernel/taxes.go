@@ -127,7 +127,9 @@ func (t *TaxResolver) Candidates(ctx context.Context, f *invoice.Fee) (catalog.T
 		}
 		c.Explicit = ex
 	}
-	if !f.SubscriptionID.IsZero() {
+	// A product fee bills a contract rate card, which may have no plan and
+	// never takes its taxes.
+	if !f.SubscriptionID.IsZero() && f.Type != core.FeeTypeProduct {
 		p, err := t.plan(ctx, f.SubscriptionID)
 		if err != nil {
 			return c, err
@@ -351,6 +353,10 @@ type TaxInput struct {
 	// wallets' ongoing balances runs under no lock
 	// (wallets.Service.RefreshOngoingBalances).
 	Inline bool
+	// LocalOnly applies the organization's own taxes even to a customer
+	// taxed by a provider (billing segment invoices, whose taxes lago
+	// computes without provider taxes, Invoices::ComputeAmountsFromFees).
+	LocalOnly bool
 }
 
 // TaxOutcome is the result of [TaxResolver.Compute].
@@ -371,7 +377,7 @@ type TaxOutcome struct {
 func (t *TaxResolver) Compute(ctx context.Context, d *Deps, in TaxInput) (TaxOutcome, error) {
 	useProvider := false
 	var results map[string]*tax.ProviderTaxResult
-	if d.Taxes != nil && !in.SkipFeeTaxes && !in.AggregateFeeTaxes && len(in.Fees) > 0 {
+	if d.Taxes != nil && !in.SkipFeeTaxes && !in.AggregateFeeTaxes && !in.LocalOnly && len(in.Fees) > 0 {
 		on, err := d.Taxes.Enabled(ctx, t.env.Customer)
 		if err != nil {
 			return TaxOutcome{}, fmt.Errorf("%w: %w", ErrTaxProvider, err)

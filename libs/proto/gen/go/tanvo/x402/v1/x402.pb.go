@@ -15,7 +15,7 @@ package x402v1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
-	v1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/common/v1"
+	_ "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/common/v1"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
@@ -33,19 +33,19 @@ const (
 
 // CheckX402GateRequest is the request of X402Service.CheckX402Gate.
 type CheckX402GateRequest struct {
-	state                        protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_ConnectionCode    *string                `protobuf:"bytes,1,opt,name=connection_code,json=connectionCode"`
-	xxx_hidden_AgentAddress      *string                `protobuf:"bytes,2,opt,name=agent_address,json=agentAddress"`
-	xxx_hidden_Resource          *string                `protobuf:"bytes,3,opt,name=resource"`
-	xxx_hidden_PlanCode          *string                `protobuf:"bytes,4,opt,name=plan_code,json=planCode"`
-	xxx_hidden_WalletCode        *string                `protobuf:"bytes,5,opt,name=wallet_code,json=walletCode"`
-	xxx_hidden_MetricCode        *string                `protobuf:"bytes,6,opt,name=metric_code,json=metricCode"`
-	xxx_hidden_Amount            *v1.Money              `protobuf:"bytes,7,opt,name=amount"`
-	xxx_hidden_EstimatedCallCost *v1.Money              `protobuf:"bytes,8,opt,name=estimated_call_cost,json=estimatedCallCost"`
-	XXX_raceDetectHookData       protoimpl.RaceDetectHookData
-	XXX_presence                 [1]uint32
-	unknownFields                protoimpl.UnknownFields
-	sizeCache                    protoimpl.SizeCache
+	state                             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ConnectionCode         *string                `protobuf:"bytes,1,opt,name=connection_code,json=connectionCode"`
+	xxx_hidden_AgentAddress           *string                `protobuf:"bytes,2,opt,name=agent_address,json=agentAddress"`
+	xxx_hidden_Resource               *string                `protobuf:"bytes,3,opt,name=resource"`
+	xxx_hidden_PlanCode               *string                `protobuf:"bytes,4,opt,name=plan_code,json=planCode"`
+	xxx_hidden_WalletCode             *string                `protobuf:"bytes,5,opt,name=wallet_code,json=walletCode"`
+	xxx_hidden_BillableMetricCode     *string                `protobuf:"bytes,6,opt,name=billable_metric_code,json=billableMetricCode"`
+	xxx_hidden_AmountCents            int64                  `protobuf:"varint,7,opt,name=amount_cents,json=amountCents"`
+	xxx_hidden_EstimatedCallCostCents int64                  `protobuf:"varint,8,opt,name=estimated_call_cost_cents,json=estimatedCallCostCents"`
+	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
+	XXX_presence                      [1]uint32
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *CheckX402GateRequest) Reset() {
@@ -123,28 +123,28 @@ func (x *CheckX402GateRequest) GetWalletCode() string {
 	return ""
 }
 
-func (x *CheckX402GateRequest) GetMetricCode() string {
+func (x *CheckX402GateRequest) GetBillableMetricCode() string {
 	if x != nil {
-		if x.xxx_hidden_MetricCode != nil {
-			return *x.xxx_hidden_MetricCode
+		if x.xxx_hidden_BillableMetricCode != nil {
+			return *x.xxx_hidden_BillableMetricCode
 		}
 		return ""
 	}
 	return ""
 }
 
-func (x *CheckX402GateRequest) GetAmount() *v1.Money {
+func (x *CheckX402GateRequest) GetAmountCents() int64 {
 	if x != nil {
-		return x.xxx_hidden_Amount
+		return x.xxx_hidden_AmountCents
 	}
-	return nil
+	return 0
 }
 
-func (x *CheckX402GateRequest) GetEstimatedCallCost() *v1.Money {
+func (x *CheckX402GateRequest) GetEstimatedCallCostCents() int64 {
 	if x != nil {
-		return x.xxx_hidden_EstimatedCallCost
+		return x.xxx_hidden_EstimatedCallCostCents
 	}
-	return nil
+	return 0
 }
 
 func (x *CheckX402GateRequest) SetConnectionCode(v string) {
@@ -172,17 +172,19 @@ func (x *CheckX402GateRequest) SetWalletCode(v string) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
 }
 
-func (x *CheckX402GateRequest) SetMetricCode(v string) {
-	x.xxx_hidden_MetricCode = &v
+func (x *CheckX402GateRequest) SetBillableMetricCode(v string) {
+	x.xxx_hidden_BillableMetricCode = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
 }
 
-func (x *CheckX402GateRequest) SetAmount(v *v1.Money) {
-	x.xxx_hidden_Amount = v
+func (x *CheckX402GateRequest) SetAmountCents(v int64) {
+	x.xxx_hidden_AmountCents = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
 }
 
-func (x *CheckX402GateRequest) SetEstimatedCallCost(v *v1.Money) {
-	x.xxx_hidden_EstimatedCallCost = v
+func (x *CheckX402GateRequest) SetEstimatedCallCostCents(v int64) {
+	x.xxx_hidden_EstimatedCallCostCents = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
 }
 
 func (x *CheckX402GateRequest) HasConnectionCode() bool {
@@ -220,25 +222,25 @@ func (x *CheckX402GateRequest) HasWalletCode() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
 }
 
-func (x *CheckX402GateRequest) HasMetricCode() bool {
+func (x *CheckX402GateRequest) HasBillableMetricCode() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
 }
 
-func (x *CheckX402GateRequest) HasAmount() bool {
+func (x *CheckX402GateRequest) HasAmountCents() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Amount != nil
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
 }
 
-func (x *CheckX402GateRequest) HasEstimatedCallCost() bool {
+func (x *CheckX402GateRequest) HasEstimatedCallCostCents() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_EstimatedCallCost != nil
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
 }
 
 func (x *CheckX402GateRequest) ClearConnectionCode() {
@@ -266,17 +268,19 @@ func (x *CheckX402GateRequest) ClearWalletCode() {
 	x.xxx_hidden_WalletCode = nil
 }
 
-func (x *CheckX402GateRequest) ClearMetricCode() {
+func (x *CheckX402GateRequest) ClearBillableMetricCode() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
-	x.xxx_hidden_MetricCode = nil
+	x.xxx_hidden_BillableMetricCode = nil
 }
 
-func (x *CheckX402GateRequest) ClearAmount() {
-	x.xxx_hidden_Amount = nil
+func (x *CheckX402GateRequest) ClearAmountCents() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_AmountCents = 0
 }
 
-func (x *CheckX402GateRequest) ClearEstimatedCallCost() {
-	x.xxx_hidden_EstimatedCallCost = nil
+func (x *CheckX402GateRequest) ClearEstimatedCallCostCents() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_EstimatedCallCostCents = 0
 }
 
 type CheckX402GateRequest_builder struct {
@@ -284,20 +288,22 @@ type CheckX402GateRequest_builder struct {
 
 	// The connection's code.
 	ConnectionCode *string
-	// The agent's wallet address; it identifies the customer.
+	// The agent's wallet address, an EVM or Solana address; it identifies
+	// the customer. Without it, the agent is a stranger.
 	AgentAddress *string
-	// The resource called (its URL).
+	// The resource called; informative.
 	Resource *string
-	// The plan of an auto-created subscription.
+	// The usage-only USD plan of the agent's subscription.
 	PlanCode *string
-	// The wallet to check, by code; the customer's default by default.
+	// The x402-enabled wallet the calls draw on, by code.
 	WalletCode *string
 	// The billable metric metering the call.
-	MetricCode *string
-	// The top-up amount required when the balance is short.
-	Amount *v1.Money
-	// The estimated cost of the call; the balance must cover it.
-	EstimatedCallCost *v1.Money
+	BillableMetricCode *string
+	// The top-up the requirements ask for, in US cents; positive.
+	AmountCents *int64
+	// The estimated cost of the call, in US cents; positive. The wallet
+	// passes when its balance covers a thousand calls.
+	EstimatedCallCostCents *int64
 }
 
 func (b0 CheckX402GateRequest_builder) Build() *CheckX402GateRequest {
@@ -324,21 +330,27 @@ func (b0 CheckX402GateRequest_builder) Build() *CheckX402GateRequest {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
 		x.xxx_hidden_WalletCode = b.WalletCode
 	}
-	if b.MetricCode != nil {
+	if b.BillableMetricCode != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
-		x.xxx_hidden_MetricCode = b.MetricCode
+		x.xxx_hidden_BillableMetricCode = b.BillableMetricCode
 	}
-	x.xxx_hidden_Amount = b.Amount
-	x.xxx_hidden_EstimatedCallCost = b.EstimatedCallCost
+	if b.AmountCents != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
+		x.xxx_hidden_AmountCents = *b.AmountCents
+	}
+	if b.EstimatedCallCostCents != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		x.xxx_hidden_EstimatedCallCostCents = *b.EstimatedCallCostCents
+	}
 	return m0
 }
 
 // CheckX402GateResponse is the response of X402Service.CheckX402Gate.
 type CheckX402GateResponse struct {
-	state                             protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_BalanceCredits         *string                `protobuf:"bytes,1,opt,name=balance_credits,json=balanceCredits"`
-	xxx_hidden_Requirements           *structpb.Struct       `protobuf:"bytes,2,opt,name=requirements"`
-	xxx_hidden_ExternalSubscriptionId *string                `protobuf:"bytes,3,opt,name=external_subscription_id,json=externalSubscriptionId"`
+	state                             protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_BalanceCredits         *string                    `protobuf:"bytes,1,opt,name=balance_credits,json=balanceCredits"`
+	xxx_hidden_Requirements           *[]*X402PaymentRequirement `protobuf:"bytes,2,rep,name=requirements"`
+	xxx_hidden_ExternalSubscriptionId *string                    `protobuf:"bytes,3,opt,name=external_subscription_id,json=externalSubscriptionId"`
 	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
 	XXX_presence                      [1]uint32
 	unknownFields                     protoimpl.UnknownFields
@@ -380,9 +392,11 @@ func (x *CheckX402GateResponse) GetBalanceCredits() string {
 	return ""
 }
 
-func (x *CheckX402GateResponse) GetRequirements() *structpb.Struct {
+func (x *CheckX402GateResponse) GetRequirements() []*X402PaymentRequirement {
 	if x != nil {
-		return x.xxx_hidden_Requirements
+		if x.xxx_hidden_Requirements != nil {
+			return *x.xxx_hidden_Requirements
+		}
 	}
 	return nil
 }
@@ -402,8 +416,8 @@ func (x *CheckX402GateResponse) SetBalanceCredits(v string) {
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
-func (x *CheckX402GateResponse) SetRequirements(v *structpb.Struct) {
-	x.xxx_hidden_Requirements = v
+func (x *CheckX402GateResponse) SetRequirements(v []*X402PaymentRequirement) {
+	x.xxx_hidden_Requirements = &v
 }
 
 func (x *CheckX402GateResponse) SetExternalSubscriptionId(v string) {
@@ -418,13 +432,6 @@ func (x *CheckX402GateResponse) HasBalanceCredits() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *CheckX402GateResponse) HasRequirements() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_Requirements != nil
-}
-
 func (x *CheckX402GateResponse) HasExternalSubscriptionId() bool {
 	if x == nil {
 		return false
@@ -437,10 +444,6 @@ func (x *CheckX402GateResponse) ClearBalanceCredits() {
 	x.xxx_hidden_BalanceCredits = nil
 }
 
-func (x *CheckX402GateResponse) ClearRequirements() {
-	x.xxx_hidden_Requirements = nil
-}
-
 func (x *CheckX402GateResponse) ClearExternalSubscriptionId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
 	x.xxx_hidden_ExternalSubscriptionId = nil
@@ -449,12 +452,14 @@ func (x *CheckX402GateResponse) ClearExternalSubscriptionId() {
 type CheckX402GateResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// The wallet's balance in credits.
+	// The wallet's balance in credits, net of its ongoing usage; "0" for a
+	// stranger.
 	BalanceCredits *string
-	// The x402 payment requirements when the agent must pay first; empty
-	// when it may proceed.
-	Requirements *structpb.Struct
-	// The agent's subscription, to send events to.
+	// The payment requirements of the top-up, one per network of the
+	// connection; empty when the agent may proceed.
+	Requirements []*X402PaymentRequirement
+	// The agent's active subscription, to send its events to; empty when
+	// there is none.
 	ExternalSubscriptionId *string
 }
 
@@ -466,10 +471,319 @@ func (b0 CheckX402GateResponse_builder) Build() *CheckX402GateResponse {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_BalanceCredits = b.BalanceCredits
 	}
-	x.xxx_hidden_Requirements = b.Requirements
+	x.xxx_hidden_Requirements = &b.Requirements
 	if b.ExternalSubscriptionId != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
 		x.xxx_hidden_ExternalSubscriptionId = b.ExternalSubscriptionId
+	}
+	return m0
+}
+
+// X402PaymentRequirement is one way to pay a top-up: an exact transfer of
+// the connection's token on one network.
+type X402PaymentRequirement struct {
+	state                        protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Scheme            *string                `protobuf:"bytes,1,opt,name=scheme"`
+	xxx_hidden_Network           *string                `protobuf:"bytes,2,opt,name=network"`
+	xxx_hidden_Asset             *string                `protobuf:"bytes,3,opt,name=asset"`
+	xxx_hidden_AssetAddress      *string                `protobuf:"bytes,4,opt,name=asset_address,json=assetAddress"`
+	xxx_hidden_Extra             *structpb.Struct       `protobuf:"bytes,5,opt,name=extra"`
+	xxx_hidden_PayTo             *string                `protobuf:"bytes,6,opt,name=pay_to,json=payTo"`
+	xxx_hidden_AmountAtomic      *string                `protobuf:"bytes,7,opt,name=amount_atomic,json=amountAtomic"`
+	xxx_hidden_MaxTimeoutSeconds int32                  `protobuf:"varint,8,opt,name=max_timeout_seconds,json=maxTimeoutSeconds"`
+	XXX_raceDetectHookData       protoimpl.RaceDetectHookData
+	XXX_presence                 [1]uint32
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
+}
+
+func (x *X402PaymentRequirement) Reset() {
+	*x = X402PaymentRequirement{}
+	mi := &file_tanvo_x402_v1_x402_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *X402PaymentRequirement) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*X402PaymentRequirement) ProtoMessage() {}
+
+func (x *X402PaymentRequirement) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_x402_v1_x402_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *X402PaymentRequirement) GetScheme() string {
+	if x != nil {
+		if x.xxx_hidden_Scheme != nil {
+			return *x.xxx_hidden_Scheme
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *X402PaymentRequirement) GetNetwork() string {
+	if x != nil {
+		if x.xxx_hidden_Network != nil {
+			return *x.xxx_hidden_Network
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *X402PaymentRequirement) GetAsset() string {
+	if x != nil {
+		if x.xxx_hidden_Asset != nil {
+			return *x.xxx_hidden_Asset
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *X402PaymentRequirement) GetAssetAddress() string {
+	if x != nil {
+		if x.xxx_hidden_AssetAddress != nil {
+			return *x.xxx_hidden_AssetAddress
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *X402PaymentRequirement) GetExtra() *structpb.Struct {
+	if x != nil {
+		return x.xxx_hidden_Extra
+	}
+	return nil
+}
+
+func (x *X402PaymentRequirement) GetPayTo() string {
+	if x != nil {
+		if x.xxx_hidden_PayTo != nil {
+			return *x.xxx_hidden_PayTo
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *X402PaymentRequirement) GetAmountAtomic() string {
+	if x != nil {
+		if x.xxx_hidden_AmountAtomic != nil {
+			return *x.xxx_hidden_AmountAtomic
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *X402PaymentRequirement) GetMaxTimeoutSeconds() int32 {
+	if x != nil {
+		return x.xxx_hidden_MaxTimeoutSeconds
+	}
+	return 0
+}
+
+func (x *X402PaymentRequirement) SetScheme(v string) {
+	x.xxx_hidden_Scheme = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
+}
+
+func (x *X402PaymentRequirement) SetNetwork(v string) {
+	x.xxx_hidden_Network = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
+}
+
+func (x *X402PaymentRequirement) SetAsset(v string) {
+	x.xxx_hidden_Asset = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
+}
+
+func (x *X402PaymentRequirement) SetAssetAddress(v string) {
+	x.xxx_hidden_AssetAddress = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
+}
+
+func (x *X402PaymentRequirement) SetExtra(v *structpb.Struct) {
+	x.xxx_hidden_Extra = v
+}
+
+func (x *X402PaymentRequirement) SetPayTo(v string) {
+	x.xxx_hidden_PayTo = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
+}
+
+func (x *X402PaymentRequirement) SetAmountAtomic(v string) {
+	x.xxx_hidden_AmountAtomic = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+}
+
+func (x *X402PaymentRequirement) SetMaxTimeoutSeconds(v int32) {
+	x.xxx_hidden_MaxTimeoutSeconds = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
+}
+
+func (x *X402PaymentRequirement) HasScheme() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *X402PaymentRequirement) HasNetwork() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *X402PaymentRequirement) HasAsset() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *X402PaymentRequirement) HasAssetAddress() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *X402PaymentRequirement) HasExtra() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Extra != nil
+}
+
+func (x *X402PaymentRequirement) HasPayTo() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *X402PaymentRequirement) HasAmountAtomic() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *X402PaymentRequirement) HasMaxTimeoutSeconds() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
+func (x *X402PaymentRequirement) ClearScheme() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Scheme = nil
+}
+
+func (x *X402PaymentRequirement) ClearNetwork() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Network = nil
+}
+
+func (x *X402PaymentRequirement) ClearAsset() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Asset = nil
+}
+
+func (x *X402PaymentRequirement) ClearAssetAddress() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_AssetAddress = nil
+}
+
+func (x *X402PaymentRequirement) ClearExtra() {
+	x.xxx_hidden_Extra = nil
+}
+
+func (x *X402PaymentRequirement) ClearPayTo() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_PayTo = nil
+}
+
+func (x *X402PaymentRequirement) ClearAmountAtomic() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_AmountAtomic = nil
+}
+
+func (x *X402PaymentRequirement) ClearMaxTimeoutSeconds() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_MaxTimeoutSeconds = 0
+}
+
+type X402PaymentRequirement_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The payment scheme: "exact".
+	Scheme *string
+	// The network, as a CAIP-2 identifier such as "eip155:8453".
+	Network *string
+	// The token's code: "usdc".
+	Asset *string
+	// The token's address on the network.
+	AssetAddress *string
+	// The scheme's extra terms: the token's EIP-712 domain on EVM, the fee
+	// payer on Solana.
+	Extra *structpb.Struct
+	// The connection's payout address on the network.
+	PayTo *string
+	// The amount in the token's atomic units, as a decimal string.
+	AmountAtomic *string
+	// The longest validity of a payment, in seconds.
+	MaxTimeoutSeconds *int32
+}
+
+func (b0 X402PaymentRequirement_builder) Build() *X402PaymentRequirement {
+	m0 := &X402PaymentRequirement{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Scheme != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
+		x.xxx_hidden_Scheme = b.Scheme
+	}
+	if b.Network != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
+		x.xxx_hidden_Network = b.Network
+	}
+	if b.Asset != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
+		x.xxx_hidden_Asset = b.Asset
+	}
+	if b.AssetAddress != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
+		x.xxx_hidden_AssetAddress = b.AssetAddress
+	}
+	x.xxx_hidden_Extra = b.Extra
+	if b.PayTo != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
+		x.xxx_hidden_PayTo = b.PayTo
+	}
+	if b.AmountAtomic != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
+		x.xxx_hidden_AmountAtomic = b.AmountAtomic
+	}
+	if b.MaxTimeoutSeconds != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		x.xxx_hidden_MaxTimeoutSeconds = *b.MaxTimeoutSeconds
 	}
 	return m0
 }
@@ -478,48 +792,56 @@ var File_tanvo_x402_v1_x402_proto protoreflect.FileDescriptor
 
 const file_tanvo_x402_v1_x402_proto_rawDesc = "" +
 	"\n" +
-	"\x18tanvo/x402/v1/x402.proto\x12\rtanvo.x402.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xe0\x03\n" +
-	"\x14CheckX402GateRequest\x12:\n" +
-	"\x0fconnection_code\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe8\xa4\xca\x06\x01R\x0econnectionCode\x12d\n" +
-	"\ragent_address\x18\x02 \x01(\tB?\xe2A\x01\x02\xbaH8\xc8\x01\x01r321^(0x[0-9a-fA-F]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})$R\fagentAddress\x12+\n" +
-	"\bresource\x18\x03 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\x18\x80\x10R\bresource\x12'\n" +
+	"\x18tanvo/x402/v1/x402.proto\x12\rtanvo.x402.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1dtanvo/common/v1/options.proto\"\x94\x03\n" +
+	"\x14CheckX402GateRequest\x12'\n" +
+	"\x0fconnection_code\x18\x01 \x01(\tR\x0econnectionCode\x12#\n" +
+	"\ragent_address\x18\x02 \x01(\tR\fagentAddress\x12$\n" +
+	"\bresource\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\bresource\x12'\n" +
 	"\tplan_code\x18\x04 \x01(\tB\n" +
-	"\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\bplanCode\x12+\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\bplanCode\x12+\n" +
 	"\vwallet_code\x18\x05 \x01(\tB\n" +
-	"\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\n" +
-	"walletCode\x12+\n" +
-	"\vmetric_code\x18\x06 \x01(\tB\n" +
-	"\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\n" +
-	"metricCode\x12.\n" +
-	"\x06amount\x18\a \x01(\v2\x16.tanvo.common.v1.MoneyR\x06amount\x12F\n" +
-	"\x13estimated_call_cost\x18\b \x01(\v2\x16.tanvo.common.v1.MoneyR\x11estimatedCallCost\"\xb7\x01\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\n" +
+	"walletCode\x12<\n" +
+	"\x14billable_metric_code\x18\x06 \x01(\tB\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x12billableMetricCode\x12-\n" +
+	"\famount_cents\x18\a \x01(\x03B\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\vamountCents\x12E\n" +
+	"\x19estimated_call_cost_cents\x18\b \x01(\x03B\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x16estimatedCallCostCents\"\xc5\x01\n" +
 	"\x15CheckX402GateResponse\x12'\n" +
-	"\x0fbalance_credits\x18\x01 \x01(\tR\x0ebalanceCredits\x12;\n" +
-	"\frequirements\x18\x02 \x01(\v2\x17.google.protobuf.StructR\frequirements\x128\n" +
-	"\x18external_subscription_id\x18\x03 \x01(\tR\x16externalSubscriptionId2\x97\x01\n" +
+	"\x0fbalance_credits\x18\x01 \x01(\tR\x0ebalanceCredits\x12I\n" +
+	"\frequirements\x18\x02 \x03(\v2%.tanvo.x402.v1.X402PaymentRequirementR\frequirements\x128\n" +
+	"\x18external_subscription_id\x18\x03 \x01(\tR\x16externalSubscriptionId\"\xa0\x02\n" +
+	"\x16X402PaymentRequirement\x12\x16\n" +
+	"\x06scheme\x18\x01 \x01(\tR\x06scheme\x12\x18\n" +
+	"\anetwork\x18\x02 \x01(\tR\anetwork\x12\x14\n" +
+	"\x05asset\x18\x03 \x01(\tR\x05asset\x12#\n" +
+	"\rasset_address\x18\x04 \x01(\tR\fassetAddress\x12-\n" +
+	"\x05extra\x18\x05 \x01(\v2\x17.google.protobuf.StructR\x05extra\x12\x15\n" +
+	"\x06pay_to\x18\x06 \x01(\tR\x05payTo\x12#\n" +
+	"\ramount_atomic\x18\a \x01(\tR\famountAtomic\x12.\n" +
+	"\x13max_timeout_seconds\x18\b \x01(\x05R\x11maxTimeoutSeconds2\x97\x01\n" +
 	"\vX402Service\x12\x87\x01\n" +
 	"\rCheckX402Gate\x12#.tanvo.x402.v1.CheckX402GateRequest\x1a$.tanvo.x402.v1.CheckX402GateResponse\"+\xca\xf3\x18\b \x01*\x04x402\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/v1/x402/gate_checksB\xb6\x01\n" +
 	"\x11com.tanvo.x402.v1B\tX402ProtoP\x01Z@github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/x402/v1;x402v1\xa2\x02\x03TXX\xaa\x02\rTanvo.X402.V1\xca\x02\rTanvo\\X402\\V1\xe2\x02\x19Tanvo\\X402\\V1\\GPBMetadata\xea\x02\x0fTanvo::X402::V1b\beditionsp\xe8\a"
 
-var file_tanvo_x402_v1_x402_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_tanvo_x402_v1_x402_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_tanvo_x402_v1_x402_proto_goTypes = []any{
-	(*CheckX402GateRequest)(nil),  // 0: tanvo.x402.v1.CheckX402GateRequest
-	(*CheckX402GateResponse)(nil), // 1: tanvo.x402.v1.CheckX402GateResponse
-	(*v1.Money)(nil),              // 2: tanvo.common.v1.Money
-	(*structpb.Struct)(nil),       // 3: google.protobuf.Struct
+	(*CheckX402GateRequest)(nil),   // 0: tanvo.x402.v1.CheckX402GateRequest
+	(*CheckX402GateResponse)(nil),  // 1: tanvo.x402.v1.CheckX402GateResponse
+	(*X402PaymentRequirement)(nil), // 2: tanvo.x402.v1.X402PaymentRequirement
+	(*structpb.Struct)(nil),        // 3: google.protobuf.Struct
 }
 var file_tanvo_x402_v1_x402_proto_depIdxs = []int32{
-	2, // 0: tanvo.x402.v1.CheckX402GateRequest.amount:type_name -> tanvo.common.v1.Money
-	2, // 1: tanvo.x402.v1.CheckX402GateRequest.estimated_call_cost:type_name -> tanvo.common.v1.Money
-	3, // 2: tanvo.x402.v1.CheckX402GateResponse.requirements:type_name -> google.protobuf.Struct
-	0, // 3: tanvo.x402.v1.X402Service.CheckX402Gate:input_type -> tanvo.x402.v1.CheckX402GateRequest
-	1, // 4: tanvo.x402.v1.X402Service.CheckX402Gate:output_type -> tanvo.x402.v1.CheckX402GateResponse
-	4, // [4:5] is the sub-list for method output_type
-	3, // [3:4] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	2, // 0: tanvo.x402.v1.CheckX402GateResponse.requirements:type_name -> tanvo.x402.v1.X402PaymentRequirement
+	3, // 1: tanvo.x402.v1.X402PaymentRequirement.extra:type_name -> google.protobuf.Struct
+	0, // 2: tanvo.x402.v1.X402Service.CheckX402Gate:input_type -> tanvo.x402.v1.CheckX402GateRequest
+	1, // 3: tanvo.x402.v1.X402Service.CheckX402Gate:output_type -> tanvo.x402.v1.CheckX402GateResponse
+	3, // [3:4] is the sub-list for method output_type
+	2, // [2:3] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_x402_v1_x402_proto_init() }
@@ -533,7 +855,7 @@ func file_tanvo_x402_v1_x402_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_x402_v1_x402_proto_rawDesc), len(file_tanvo_x402_v1_x402_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   2,
+			NumMessages:   3,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

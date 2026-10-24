@@ -16,6 +16,9 @@ const (
 	CodeStartedAtRequired = "started_at_is_mandatory"
 	// CodeEndingAtBeforeStart: ending_at must be after subscription_at.
 	CodeEndingAtBeforeStart = "invalid_ending_at"
+	// CodeMustBeAfterStartedAt: a contract's end (ended_at) precedes its
+	// start.
+	CodeMustBeAfterStartedAt = "must_be_after_started_at"
 	// CodeTerminationCreditNoteForArrears: on_termination_credit_note is
 	// only allowed on plans paid in advance.
 	CodeTerminationCreditNoteForArrears = "only_for_pay_in_advance_plans"
@@ -38,8 +41,18 @@ type Subscription struct {
 	// CustomerID is the subscribed customer.
 	CustomerID core.CustomerID
 	// PlanID is the plan; an override plan (child) when the subscription
-	// was created with overrides (domain §7.2.1).
+	// was created with overrides (domain §7.2.1). A contract's plan is
+	// optional: zero for a contract priced only by the rate cards attached
+	// to it.
 	PlanID core.PlanID
+	// Contract tells that the subscription is a contract: priced by its
+	// rate cards ([RateCard]) on their own schedules and invoiced through
+	// its billing segments, rather than by its plan's charges (domain
+	// §21.4). Its plan only seeds its rate cards.
+	Contract bool
+	// BillingAnchorDate is a contract's explicit billing anchor; nil
+	// anchors its rate cards on its start day ([Subscription.EffectiveBillingAnchorDate]).
+	BillingAnchorDate *core.Date
 	// Name is the display name, ≤ 255 characters.
 	Name *string
 	// BillingTime is calendar or anniversary billing; calendar by default.
@@ -161,8 +174,19 @@ func (s *Subscription) Validate() error {
 	v.Check(s.BillingTime.Valid(), "billing_time", core.CodeInvalid)
 	v.Enum("status", s.Status)
 	v.Check(!s.SubscriptionAt.IsZero(), "subscription_at", core.CodeRequired)
-	if s.EndingAt != nil {
-		v.Check(s.EndingAt.After(s.SubscriptionAt), "ending_at", CodeEndingAtBeforeStart)
+	switch {
+	case s.Contract:
+		// source: app/models/contract.rb:90, :136-141 (started_at ≤ ended_at)
+		if s.EndingAt != nil {
+			v.Check(!s.EndingAt.Before(s.SubscriptionAt), "ended_at", CodeMustBeAfterStartedAt)
+		}
+		v.Check(s.Status != StatusIncomplete, "status", core.CodeInvalid)
+		v.Check(s.PreviousSubscriptionID.IsZero(), "previous_subscription_id", core.CodeForbidden)
+	default:
+		v.Check(s.BillingAnchorDate == nil, "billing_anchor_date", core.CodeForbidden)
+		if s.EndingAt != nil {
+			v.Check(s.EndingAt.After(s.SubscriptionAt), "ending_at", CodeEndingAtBeforeStart)
+		}
 	}
 	switch s.Status {
 	case StatusIncomplete, StatusActive, StatusTerminated:
@@ -202,6 +226,25 @@ func (s *Subscription) ValidateForPlan(p PlanFacts) error {
 // the statuses among which ExternalID is unique.
 func (s *Subscription) Live() bool {
 	return s.Status == StatusPending || s.Status == StatusIncomplete || s.Status == StatusActive
+}
+
+// Editable reports whether a contract's pricing can still change: its
+// plan, start, billing time and anchor, its rate cards and their phases
+// (lago Contract#editable?, a pending contract).
+//
+// source: app/models/contract.rb:105-107
+func (s *Subscription) Editable() bool { return s.Status == StatusPending }
+
+// EffectiveBillingAnchorDate returns a contract's billing anchor: its
+// explicit BillingAnchorDate, else its start day in loc, the applicable
+// time zone (lago Contract#effective_billing_anchor_date).
+//
+// source: app/models/contract.rb:97-103
+func (s *Subscription) EffectiveBillingAnchorDate(loc *time.Location) core.Date {
+	if s.BillingAnchorDate != nil {
+		return *s.BillingAnchorDate
+	}
+	return core.DateOf(s.SubscriptionAt, loc)
 }
 
 // Started reports whether the subscription has started.

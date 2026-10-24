@@ -53,6 +53,8 @@ func TestValidate(t *testing.T) {
 		GracePeriodDays       *int       `yaml:"grace_period_days"`
 		NetPaymentTermDays    *int       `yaml:"net_payment_term_days"`
 		Metadata              [][]string `yaml:"metadata"`
+		X402AgentAddress      *string    `yaml:"x402_agent_address"`
+		StoredX402            *string    `yaml:"stored_x402_agent_address"`
 		Errors                []string   `yaml:"errors"`
 	}
 	for _, c := range spectest.Load[tc](t, "customer.yaml") {
@@ -87,8 +89,13 @@ func TestValidate(t *testing.T) {
 				}
 				cu.Metadata = append(cu.Metadata, core.MetadataItem{Key: kv[0], Value: v})
 			}
+			cu.X402AgentAddress = c.X402AgentAddress
+			cu.NormalizeX402AgentAddress()
 			if got := fieldErrors(cu.Validate()); !slices.Equal(got, c.Errors) {
 				t.Errorf("Validate() errors got = %v, want = %v (%s)", got, c.Errors, c.Source)
+			}
+			if c.StoredX402 != nil && (cu.X402AgentAddress == nil || *cu.X402AgentAddress != *c.StoredX402) {
+				t.Errorf("x402 agent address got = %v, want = %s (%s)", cu.X402AgentAddress, *c.StoredX402, c.Source)
 			}
 		})
 	}

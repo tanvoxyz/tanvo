@@ -34,13 +34,7 @@ cases that were not ported, grouped by reason.
 
 ## Contracts
 
-Contracts come with the Contracts and Billing Segments unit (parity §1.22). Until then no plan is attached to a contract, so the lock checks always pass and these cases have nothing to set up:
-
-- `plan_rate_cards/create_service_spec.rb:144`, `plan_rate_cards/update_service_spec.rb:22`, `plan_rate_cards/destroy_service_spec.rb:31`, `catalog_plans/destroy_service_spec.rb:49`: `plan plan_locked` on a plan with contracts.
-- `rate_phases/create_service_spec.rb:131`, `rate_phases/update_service_spec.rb:259`, `rate_phases/destroy_service_spec.rb:84`: `rate_phase plan_locked` on a plan with contracts.
-- `product_filters/update_service_spec.rb:111,116,136`: `values attached_to_subscriptions` for a filter a contract rate card prices.
-- `rate_card_rates/update_service_spec.rb:171,182`: pending and active rates of a card a contract rate card applies.
-- `spec/requests/api/v2/plan_rate_cards_controller_spec.rb:195,230`: the same lock over REST.
+- `spec/requests/api/v2/plan_rate_cards_controller_spec.rb:195,230`: the plan lock over REST. The service cases are ported in `contracts_test.go`; the RPC handlers only map the service's validation error.
 
 ## Plan rate card list filters
 

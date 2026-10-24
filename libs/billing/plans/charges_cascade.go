@@ -145,6 +145,9 @@ func (s *Service) handleUpdateChargeChildren(ctx context.Context, j port.Job) er
 		if a.Properties != nil {
 			in.Properties = core.Some(*a.Properties)
 		}
+		if a.AcceptsTargetWallet != nil {
+			in.AcceptsTargetWallet = core.Some(*a.AcceptsTargetWallet)
+		}
 		if a.ConversionRate != nil {
 			in.AppliedPricingUnit = core.Some(&PricingUnitInput{ConversionRate: *a.ConversionRate})
 		}

@@ -35,7 +35,6 @@ These lago-api specs, or the cases in them, have no Go test in this package. Pat
 - :231–:336, :861–:944, :2809–:2840, :2877–:2970, :3876–:3937, :4428–:4573, :4620–:4749 (presentation breakdowns): not modelled.
 - :501, :513, :834, :846 (recurring weighted sum and custom aggregation per group): custom aggregation is not ported (domain §24); the per-group weighted sum is metering's.
 - :546–:860 (pricing group keys combined with filters): grouping and filters are each tested; their combination is metering's `GroupBy`.
-- :945–:1020 (accepts_target_wallet): target wallets are not modelled.
 - :1169, :2378 (no pricing unit usage created): asserted inside the ported cases.
 - :1298–:1447 (adjusted units with filters per aggregation type): the adjustment path does not depend on the aggregation; covered by :1262.
 - :2842–:2873, :3061–:3092 (aggregation errors): lago stubs; tanvo returns the metering error wrapped.

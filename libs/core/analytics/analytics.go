@@ -21,7 +21,8 @@ type Scope struct {
 	// all.
 	BillingEntityID core.BillingEntityID
 	// CustomerID keeps the invoices of one customer; zero keeps all. Only
-	// the gross revenue and the overdue balance take it.
+	// the gross revenue, the invoice collection and the overdue balance
+	// take it.
 	CustomerID core.CustomerID
 	// CustomerTINEmpty keeps the invoices of customers without (true) or
 	// with (false) a tax identification number; nil keeps all. Only the

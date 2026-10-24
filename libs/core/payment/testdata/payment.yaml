@@ -32,6 +32,8 @@ cases:
   - {name: manual on a payment request with succeeded request, source: "spec/models/payment_spec.rb:321", kind: manual, payable: payment_request, succeeded_request: true, errors: []}
   - {name: provider with reference, source: "spec/models/payment_spec.rb:333", reference: "123", errors: ["reference: value_not_allowed"]}
   - {name: provider without reference, source: "spec/models/payment_spec.rb:339", errors: []}
+  - {name: x402 with reference, source: "spec/models/payment_spec.rb:348", kind: x402, reference: "0xabc", errors: ["reference: value_not_allowed"]}
+  - {name: x402 without reference, source: "spec/models/payment_spec.rb:356", kind: x402, errors: []}
   - {name: manual without reference, source: "spec/models/payment_spec.rb:367", kind: manual, no_reference: true, errors: ["reference: value_is_mandatory"]}
   - {name: manual with short reference, source: "spec/models/payment_spec.rb:376", kind: manual, reference: "123", errors: []}
   - {name: manual with reference over 40, source: "spec/models/payment_spec.rb:384", kind: manual, reference_length: 41, errors: ["reference: value_is_too_long"]}
@@ -42,7 +44,6 @@ skipped:
   - {source: "spec/models/payment_spec.rb:17", reason: "ActiveRecord associations"}
   - {source: "spec/models/payment_spec.rb:36", reason: "Rails money-column alias"}
   - {source: "spec/models/payment_spec.rb:46", reason: "delegation to the customer's billing entity is resolved by services"}
-  - {source: "spec/models/payment_spec.rb:345", reason: "x402 payments are not part of Tanvo's payment kinds (domain §15.1)"}
   - {source: "spec/models/payment_spec.rb:393", reason: "invoices and invoice numbers of a payable are queries of the invoice and payment request repositories"}
   - {source: "spec/models/payment_spec.rb:433", reason: "the provider type of a payment is the integration's, resolved through IntegrationID"}
   - {source: "spec/models/payment_spec.rb:547", reason: "accounting sync decisions belong to the integration services"}

@@ -98,10 +98,15 @@ type catalogLookup struct {
 	org     core.OrganizationID
 	plans   map[core.SubscriptionID]*catalog.Plan
 	metrics map[core.ChargeID]core.BillableMetricID
+	// targeted holds the charges accepting a target wallet.
+	targeted map[core.ChargeID]bool
 }
 
 func newCatalogLookup(r port.Repos, org core.OrganizationID) *catalogLookup {
-	return &catalogLookup{r: r, org: org, plans: map[core.SubscriptionID]*catalog.Plan{}, metrics: map[core.ChargeID]core.BillableMetricID{}}
+	return &catalogLookup{
+		r: r, org: org, plans: map[core.SubscriptionID]*catalog.Plan{},
+		metrics: map[core.ChargeID]core.BillableMetricID{}, targeted: map[core.ChargeID]bool{},
+	}
 }
 
 // plan returns the plan of a subscription.
@@ -134,7 +139,14 @@ func (l *catalogLookup) metric(ctx context.Context, f *invoice.Fee) (core.Billab
 		return core.BillableMetricID{}, fmt.Errorf("get charge %s: %w", f.ChargeID, err)
 	}
 	l.metrics[f.ChargeID] = c.BillableMetricID
+	l.targeted[f.ChargeID] = c.AcceptsTargetWallet
 	return c.BillableMetricID, nil
+}
+
+// acceptsTargetWallet reports whether the charge of a charge fee accepts a
+// target wallet; [catalogLookup.metric] must have loaded it.
+func (l *catalogLookup) acceptsTargetWallet(f *invoice.Fee) bool {
+	return !f.ChargeID.IsZero() && l.targeted[f.ChargeID]
 }
 
 // targetedFees returns the fees a coupon applies to: the charge fees of

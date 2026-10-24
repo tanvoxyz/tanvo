@@ -122,7 +122,7 @@ func (s *Service) cancelIncomplete(ctx context.Context, r port.Repos, sub *subsc
 	if err := update(ctx, r, sub); err != nil {
 		return err
 	}
-	if err := s.emit(ctx, webhook.EventTypeSubscriptionCanceled, sub); err != nil {
+	if err := s.notify(ctx, r, webhook.EventTypeSubscriptionCanceled, sub); err != nil {
 		return err
 	}
 	// The recredit jobs run after commit in lago (cancel_service.rb:67-79);

@@ -343,6 +343,7 @@ Each provider is a Go module implementing ports of `libs/core`:
 | `TaxProvider` (quotes, commits, voids) | Anrok, Avalara |
 | `AccountingSync` / `CRMSync` (customers, invoices, credit notes, payments, mappings) | NetSuite, Xero, Salesforce, HubSpot |
 | `IdentityProvider` (OIDC) | Google, Okta, Entra ID, generic OIDC |
+| `x402.Facilitators` (verify, settle, supported) and `x402.ChainReaders` (EVM and Solana JSON-RPC) | Coinbase CDP (`providers/x402`) |
 
 Integrations call the vendors' APIs directly; Tanvo does not depend on an integration broker.
 
@@ -450,7 +451,7 @@ Settings are `TANVO_*` environment variables over an optional TOML file (`--conf
 | `TANVO_SMTP_SECURITY` | `starttls` | `starttls`, `starttls_optional`, `tls` or `none` |
 | `TANVO_DISABLE_SIGNUP` | `false` | turns off self sign-up |
 | `TANVO_GOOGLE_AUTH_CLIENT_ID`, `TANVO_GOOGLE_AUTH_CLIENT_SECRET` | | OAuth client of Google sign-in, redirected to `TANVO_APP_URL/auth/google/callback`; unset disables it |
-| `TANVO_SECRET_KEY` | | installation secret, base64 of at least 32 bytes; HKDF-SHA256 derives the key signing customer portal tokens and the AES-256-GCM key sealing integration secrets (SSO client secrets) from it. Unset disables the customer portal and the SSO connections; changing it invalidates portal links and makes sealed secrets undecryptable |
+| `TANVO_SECRET_KEY` | | installation secret, base64 of at least 32 bytes; HKDF-SHA256 derives the key signing customer portal tokens and the AES-256-GCM key sealing integration secrets (SSO client secrets and x402 connection credentials) from it. Unset disables the customer portal and the SSO connections, and fails every x402 facilitator call; changing it invalidates portal links and makes sealed secrets undecryptable |
 
 ---
 

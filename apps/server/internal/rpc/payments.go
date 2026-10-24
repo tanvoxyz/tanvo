@@ -32,6 +32,7 @@ var (
 	payKinds = NewEnum(map[payment.Kind]paymentv1.PaymentKind{
 		payment.KindProvider: paymentv1.PaymentKind_PAYMENT_KIND_PROVIDER,
 		payment.KindManual:   paymentv1.PaymentKind_PAYMENT_KIND_MANUAL,
+		payment.KindX402:     paymentv1.PaymentKind_PAYMENT_KIND_X402,
 	})
 	payPayableTypes = NewEnum(map[payment.PayableType]paymentv1.PayableType{
 		payment.PayableTypeInvoice:        paymentv1.PayableType_PAYABLE_TYPE_INVOICE,

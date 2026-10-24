@@ -650,9 +650,7 @@ func customerInput(b *customerv1.Customer, paths []string) (customers.Input, err
 				return in, connect.NewError(connect.CodeUnimplemented, "customer.payment_method_type is not supported")
 			}
 		case "x402_agent_address":
-			if b.HasX402AgentAddress() {
-				return in, connect.NewError(connect.CodeUnimplemented, "customer.x402_agent_address is not supported")
-			}
+			in.X402AgentAddress = text(b.HasX402AgentAddress(), b.GetX402AgentAddress())
 		}
 	}
 	return in, nil
@@ -860,6 +858,7 @@ func customerProto(v customers.View) *customerv1.Customer {
 		BillingAddress:             beAddress(c.BillingAddress),
 		ShippingAddress:            beAddress(c.ShippingAddress),
 		DocumentLocale:             c.DocumentLocale,
+		X402AgentAddress:           c.X402AgentAddress,
 		SkipInvoiceCustomSections:  new(c.SkipInvoiceCustomSections),
 		ExcludeFromDunningCampaign: new(c.ExcludeFromDunningCampaign),
 		Metadata:                   Metadata(c.Metadata),

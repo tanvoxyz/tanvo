@@ -7,6 +7,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/wallet"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -119,6 +120,10 @@ func (s *Service) createTransactions(ctx context.Context, r port.Repos, org core
 	}
 	for _, t := range out {
 		if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeWalletTransactionCreated, "wallet_transaction", kernel.ObjectID(t.ID), t); err != nil {
+			return nil, err
+		}
+		// source: app/services/wallet_transactions/create_from_params_service.rb:71
+		if err := s.d.LogWalletTransaction(ctx, r, auditlog.ActivityWalletTransactionCreated, nil, t, w); err != nil {
 			return nil, err
 		}
 	}
@@ -396,6 +401,10 @@ func (s *Service) Settle(ctx context.Context, org core.OrganizationID, id core.W
 
 func (s *Service) settle(ctx context.Context, r port.Repos, w *wallet.Wallet, t *wallet.Transaction) error {
 	now := s.d.Now()
+	before, err := auditlog.ObjectOf(t)
+	if err != nil {
+		return err
+	}
 	if t.Status == wallet.SettlementStatusFailed {
 		// A failed purchase whose credit invoice is paid later (a retried
 		// payment) still delivers its credits, as lago's SettleService does
@@ -412,7 +421,11 @@ func (s *Service) settle(ctx context.Context, r port.Repos, w *wallet.Wallet, t 
 	if err := r.WalletTransactions.Update(ctx, t); err != nil {
 		return fmt.Errorf("update wallet transaction %s: %w", t.ID, err)
 	}
-	return kernel.Emit(ctx, s.d, t.OrganizationID, webhook.EventTypeWalletTransactionUpdated, "wallet_transaction", kernel.ObjectID(t.ID), t)
+	if err := kernel.Emit(ctx, s.d, t.OrganizationID, webhook.EventTypeWalletTransactionUpdated, "wallet_transaction", kernel.ObjectID(t.ID), t); err != nil {
+		return err
+	}
+	// source: app/services/wallet_transactions/settle_service.rb:13
+	return s.d.LogWalletTransaction(ctx, r, auditlog.ActivityWalletTransactionUpdated, before, t, w)
 }
 
 // ApplyPaidCredits settles a pending purchase and adds its credits to the
@@ -462,7 +475,7 @@ func (s *Service) MarkAsFailed(ctx context.Context, org core.OrganizationID, id 
 			return fmt.Errorf("load wallet transaction %s: %w", id, err)
 		}
 		out = t
-		return s.markAsFailed(ctx, r, t)
+		return s.markAsFailed(ctx, r, t, true)
 	})
 	if err != nil {
 		return nil, err
@@ -470,11 +483,25 @@ func (s *Service) MarkAsFailed(ctx context.Context, org core.OrganizationID, id 
 	return out, nil
 }
 
-func (s *Service) markAsFailed(ctx context.Context, r port.Repos, t *wallet.Transaction) error {
-	if _, err := lockTransaction(ctx, r, t); err != nil {
+// markAsFailed fails t when pending. Called as lago's
+// WalletTransactions::MarkAsFailedService (always), it records
+// wallet_transaction.updated even when t is left unchanged, as the
+// service's activity_loggable does on its successful no-op
+// (mark_as_failed_service.rb:12,18-20); Tanvo's own callers record it only
+// for a change.
+func (s *Service) markAsFailed(ctx context.Context, r port.Repos, t *wallet.Transaction, always bool) error {
+	w, err := lockTransaction(ctx, r, t)
+	if err != nil {
+		return err
+	}
+	before, err := auditlog.ObjectOf(t)
+	if err != nil {
 		return err
 	}
 	if t.Status != wallet.SettlementStatusPending {
+		if always {
+			return s.d.LogWalletTransaction(ctx, r, auditlog.ActivityWalletTransactionUpdated, before, t, w)
+		}
 		return nil
 	}
 	if err := t.Fail(s.d.Now()); err != nil {
@@ -483,7 +510,11 @@ func (s *Service) markAsFailed(ctx context.Context, r port.Repos, t *wallet.Tran
 	if err := r.WalletTransactions.Update(ctx, t); err != nil {
 		return fmt.Errorf("update wallet transaction %s: %w", t.ID, err)
 	}
-	return kernel.Emit(ctx, s.d, t.OrganizationID, webhook.EventTypeWalletTransactionUpdated, "wallet_transaction", kernel.ObjectID(t.ID), t)
+	if err := kernel.Emit(ctx, s.d, t.OrganizationID, webhook.EventTypeWalletTransactionUpdated, "wallet_transaction", kernel.ObjectID(t.ID), t); err != nil {
+		return err
+	}
+	// source: app/services/wallet_transactions/mark_as_failed_service.rb:12
+	return s.d.LogWalletTransaction(ctx, r, auditlog.ActivityWalletTransactionUpdated, before, t, w)
 }
 
 // Recredit grants back the credits of a transaction whose invoice was

@@ -7,6 +7,8 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
+	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
@@ -28,10 +30,29 @@ type WalletAmount struct {
 	Amount money.Decimal
 }
 
-// bucketKey groups fees as wallets may pay them.
+// bucketKey groups fees as wallets may pay them: by fee type and billable
+// metric, and, for the fees of a charge accepting a target wallet, by the
+// wallet code of their group (lago keys them [fee_type, metric,
+// target_wallet_code], the code nil when the group names none).
 type bucketKey struct {
 	feeType core.FeeType
 	metric  core.BillableMetricID
+	// targeted marks the fees of a charge accepting a target wallet.
+	targeted bool
+	// targetWalletCode is the wallet the fees' group targets; "" for none.
+	targetWalletCode string
+}
+
+// paidBy reports whether wallet w may pay the fees of k: only the wallet
+// with the targeted code pays targeted fees; other fees follow the
+// wallet's fee types and billable metrics.
+//
+// source: app/services/credits/allocate_prepaid_credits_by_wallets_service.rb:97-111
+func (k bucketKey) paidBy(w *wallet.Wallet) bool {
+	if k.targetWalletCode != "" {
+		return w.Code != nil && *w.Code == k.targetWalletCode
+	}
+	return w.Pays(k.feeType, k.metric)
 }
 
 type bucket struct {
@@ -54,7 +75,8 @@ func walletsForApplication(ctx context.Context, r port.Repos, inv *invoice.Invoi
 // AllocatePrepaidCredits splits total, the invoice amount left after
 // credit notes, over wallets (in application order) by fee buckets (lago
 // Credits::AllocatePrepaidCreditsByWalletsService, domain §22.7 step 5).
-// Each bucket (fee type, billable metric) is capped by its fees' amount
+// Each bucket (fee type, billable metric, and the target wallet code of
+// the fees of a charge accepting one) is capped by its fees' amount
 // after coupons, plus their booked taxes, less their credit-note shares;
 // rounding differences of at most one minor unit per bucket go to the
 // largest bucket. Each wallet takes min(bucket left, balance left, invoice
@@ -81,6 +103,9 @@ func AllocatePrepaidCredits(ctx context.Context, r port.Repos, inv *invoice.Invo
 			return nil, err
 		}
 		k := bucketKey{feeType: f.Type, metric: m}
+		if lookup.acceptsTargetWallet(f) {
+			k.targeted, k.targetWalletCode = true, f.GroupedBy[catalog.EventTargetWalletCode]
+		}
 		i := slices.IndexFunc(buckets, func(b *bucket) bool { return b.key == k })
 		if i < 0 {
 			buckets = append(buckets, &bucket{key: k, left: capAmount})
@@ -105,7 +130,7 @@ func AllocatePrepaidCredits(ctx context.Context, r port.Repos, inv *invoice.Invo
 	for _, w := range wallets {
 		used := money.Zero
 		for _, b := range buckets {
-			if !b.left.IsPositive() || !w.Pays(b.key.feeType, b.key.metric) {
+			if !b.left.IsPositive() || !b.key.paidBy(w) {
 				continue
 			}
 			balanceLeft := kernel.Cents(w.BalanceAmount).Sub(used)
@@ -250,7 +275,11 @@ func (s *Service) consumeWallet(ctx context.Context, r port.Repos, w *wallet.Wal
 	if err := kernel.DecreaseWalletBalance(ctx, s.d, r, w, t); err != nil {
 		return err
 	}
-	return kernel.Emit(ctx, s.d, t.OrganizationID, webhook.EventTypeWalletTransactionCreated, "wallet_transaction", kernel.ObjectID(t.ID), t)
+	if err := kernel.Emit(ctx, s.d, t.OrganizationID, webhook.EventTypeWalletTransactionCreated, "wallet_transaction", kernel.ObjectID(t.ID), t); err != nil {
+		return err
+	}
+	// source: app/services/credits/applied_prepaid_credits_service.rb:58
+	return s.d.LogWalletTransaction(ctx, r, auditlog.ActivityWalletTransactionCreated, nil, t, w)
 }
 
 // splitPrepaidCredit sets the granted and purchased parts of the prepaid

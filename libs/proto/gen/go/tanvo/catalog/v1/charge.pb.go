@@ -2751,7 +2751,8 @@ type Charge_builder struct {
 	Prorated *bool
 	// The minimum amount per period; a true-up fee fills the difference.
 	MinAmount *string
-	// Lets events name the wallet that pays their fees.
+	// Splits the usage by the `target_wallet_code` event property and pays
+	// each targeted fee from the wallet with that code only.
 	AcceptsTargetWallet *bool
 	// The invoice line name.
 	InvoiceDisplayName *string

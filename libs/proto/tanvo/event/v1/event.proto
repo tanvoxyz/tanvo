@@ -149,12 +149,16 @@ message Event {
   google.protobuf.Struct properties = 6;
   // The amount of a dynamic charge, as a decimal.
   string precise_total_amount = 7 [(buf.validate.field).string.(tanvo.common.v1.decimal) = true];
+  // The code of the wallet that pays the event's usage on charges that
+  // accept a target wallet: the `target_wallet_code` property, which is
+  // where an event names it.
+  string target_wallet_code = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
   // The User-Agent of the ingestion request.
   string user_agent = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
   // The client IP of the ingestion request.
   string ip_address = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
-  reserved 8, 12;
-  reserved target_wallet_code, errors;
+  reserved 12;
+  reserved errors;
 
   // When the event was ingested.
   google.protobuf.Timestamp created_at = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
@@ -188,6 +192,9 @@ message EnrichedEvent {
   EnrichedOperation operation = 12;
   // When the event was enriched.
   google.protobuf.Timestamp enriched_at = 13;
+  // The code of the wallet that pays the event's usage, when the charge
+  // accepts a target wallet and the event names one.
+  string target_wallet_code = 14;
 }
 
 // EventResult is the outcome of ingesting one event of a batch.

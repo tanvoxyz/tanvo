@@ -9,6 +9,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
+	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
 // Get returns the subscription ref designates: by ID, or the live
@@ -51,6 +52,8 @@ type ListInput struct {
 	// Overridden, when set, keeps the subscriptions of an override plan
 	// (true) or of an original plan (false).
 	Overridden *bool
+	// Currency keeps the subscriptions whose plan has that currency.
+	Currency money.Currency
 	// Search is the free-text search.
 	Search string
 	// Page is the page.
@@ -68,7 +71,7 @@ func (s *Service) List(ctx context.Context, in ListInput) (core.Page[*View], err
 	err := s.read(ctx, func(ctx context.Context, r port.Repos) error {
 		f := subscription.Filter{
 			ExternalID: in.ExternalID, Statuses: in.Statuses, Overridden: in.Overridden,
-			Search: strings.TrimSpace(in.Search), Order: core.OrderRecent,
+			Currency: in.Currency, Search: strings.TrimSpace(in.Search), Order: core.OrderRecent,
 		}
 		if len(f.Statuses) == 0 {
 			// subscription_index.rb:11.

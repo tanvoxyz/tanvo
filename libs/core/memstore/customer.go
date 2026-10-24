@@ -66,6 +66,12 @@ func (r customerRepo) check(c *customer.Customer) error {
 	}) {
 		return conflict("customer", "external_id")
 	}
+	if c.X402AgentAddress != nil && r.d.customers.any(func(x *customer.Customer) bool {
+		return x.ID != c.ID && x.OrganizationID == c.OrganizationID && !x.Deleted() &&
+			x.X402AgentAddress != nil && *x.X402AgentAddress == *c.X402AgentAddress
+	}) {
+		return conflict("customer", "x402_agent_address")
+	}
 	return nil
 }
 
@@ -106,6 +112,16 @@ func (r customerRepo) GetByExternalID(_ context.Context, org core.OrganizationID
 	})
 	if !ok {
 		return nil, notFound("customer", stringer(externalID))
+	}
+	return c, nil
+}
+
+func (r customerRepo) GetByX402AgentAddress(_ context.Context, org core.OrganizationID, address string) (*customer.Customer, error) {
+	c, ok := r.d.customers.first(func(x *customer.Customer) bool {
+		return x.OrganizationID == org && !x.Deleted() && x.X402AgentAddress != nil && *x.X402AgentAddress == address
+	})
+	if !ok {
+		return nil, notFound("customer", stringer(address))
 	}
 	return c, nil
 }

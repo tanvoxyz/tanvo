@@ -10,6 +10,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/memstore"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
+	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
 func TestCache(t *testing.T) {
@@ -174,5 +175,109 @@ func TestRepoCatalog(t *testing.T) {
 	got, err := c.Charges(ctx, testOrg, active.PlanID, m.ID)
 	if err != nil || len(got) != 1 || got[0].ID != ch.ID {
 		t.Errorf("Charges() got = %v, %v, want = [%v]", got, err, ch.ID)
+	}
+}
+
+// The in-advance contract lookups are cached until a change of the
+// contract (or of every subscription of the organization) or of a metric.
+func TestCacheContracts(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	cat := &fakeCatalog{contracts: map[contractKey]core.SubscriptionID{}}
+	m := cat.metric("bm", catalog.AggregationTypeCount, "")
+	ct := core.NewID[core.SubscriptionID](testIDs)
+	cat.contracts[contractKey{testOrg, "ct", m.ID}] = ct
+	c := NewCache(cat, WithCacheTTL(time.Minute), WithCacheClock(func() time.Time { return testNow }))
+	lookup := func(want int) {
+		t.Helper()
+		if got, err := c.InAdvanceContract(ctx, testOrg, "ct", m.ID); err != nil || got != ct {
+			t.Fatalf("InAdvanceContract() got = %s, %v, want = %s", got, err, ct)
+		}
+		cat.mu.Lock()
+		defer cat.mu.Unlock()
+		if cat.contractCalls != want {
+			t.Errorf("contract lookups got = %d, want = %d", cat.contractCalls, want)
+		}
+	}
+	lookup(1)
+	lookup(1)
+	c.Invalidate(Change{OrganizationID: testOrg, Kind: ChangeSubscription, Key: "other"})
+	lookup(1)
+	c.Invalidate(Change{OrganizationID: testOrg, Kind: ChangeSubscription, Key: "ct"})
+	lookup(2)
+	c.Invalidate(Change{OrganizationID: testOrg, Kind: ChangeSubscription})
+	lookup(3)
+	c.Invalidate(Change{OrganizationID: testOrg, Kind: ChangePlan})
+	lookup(3)
+	c.Invalidate(Change{OrganizationID: testOrg, Kind: ChangeMetric, Key: "bm"})
+	lookup(4)
+	c.Purge()
+	lookup(5)
+}
+
+// source: app/services/events/pay_in_advance_billing_segment_resolver.rb:28-38, spec/services/events/post_process_service_spec.rb:153-227
+func TestRepoCatalogInAdvanceContract(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	for _, tc := range []struct {
+		name   string
+		source string
+		status subscription.Status
+		timing catalog.BillingTiming
+		other  bool
+		want   bool
+	}{
+		{name: "an active contract with an advance card of the metric", source: "post_process_service_spec.rb:156", status: subscription.StatusActive, timing: catalog.BillingTimingAdvance, want: true},
+		{name: "a terminated contract", source: "post_process_service_spec.rb:200", status: subscription.StatusTerminated, timing: catalog.BillingTimingAdvance},
+		{name: "a pending contract", source: "post_process_service_spec.rb:216", status: subscription.StatusPending, timing: catalog.BillingTimingAdvance},
+		{name: "a card in arrears", source: "post_process_service_spec.rb:225", status: subscription.StatusActive, timing: catalog.BillingTimingArrears},
+		{name: "a card of another metric", source: "pay_in_advance_billing_segment_resolver_spec.rb:457", status: subscription.StatusActive, timing: catalog.BillingTimingAdvance, other: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			st := memstore.New()
+			m := &catalog.BillableMetric{ID: core.NewID[core.BillableMetricID](testIDs), OrganizationID: testOrg, Code: "bm", Name: "bm", AggregationType: catalog.AggregationTypeCount}
+			other := &catalog.BillableMetric{ID: core.NewID[core.BillableMetricID](testIDs), OrganizationID: testOrg, Code: "other", Name: "other", AggregationType: catalog.AggregationTypeCount}
+			started := testNow.Add(-time.Hour)
+			ct := &subscription.Subscription{
+				ID: core.NewID[core.SubscriptionID](testIDs), OrganizationID: testOrg, ExternalID: "ct",
+				CustomerID: core.NewID[core.CustomerID](testIDs), Status: tc.status, Contract: true,
+				StartedAt: &started, SubscriptionAt: started, CreatedAt: started, UpdatedAt: started,
+			}
+			metric := m.ID
+			if tc.other {
+				metric = other.ID
+			}
+			p := &catalog.Product{ID: core.NewID[core.ProductID](testIDs), OrganizationID: testOrg, Code: "p", Name: "p", ProductType: catalog.ProductTypeMetered, BillableMetricID: metric}
+			rc := &catalog.RateCard{ID: core.NewID[core.RateCardID](testIDs), OrganizationID: testOrg, ProductID: p.ID, Code: "rc", Name: "rc", Currency: money.MustCurrency("USD"), BillingTiming: tc.timing}
+			card := &subscription.RateCard{ID: core.NewID[core.SubscriptionRateCardID](testIDs), OrganizationID: testOrg, SubscriptionID: ct.ID, RateCardID: rc.ID, CreatedAt: started, UpdatedAt: started}
+			err := st.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+				for _, x := range []*catalog.BillableMetric{m, other} {
+					if err := r.Metrics.Create(ctx, x); err != nil {
+						return err
+					}
+				}
+				if err := r.Subscriptions.Create(ctx, ct); err != nil {
+					return err
+				}
+				if err := r.Products.Create(ctx, p); err != nil {
+					return err
+				}
+				if err := r.RateCards.Create(ctx, rc); err != nil {
+					return err
+				}
+				return r.ContractRateCards.Create(ctx, card, nil)
+			})
+			if err != nil {
+				t.Fatalf("seeding error = %v", err)
+			}
+			got, err := RepoCatalog{Transactor: st}.InAdvanceContract(ctx, testOrg, "ct", m.ID)
+			if err != nil {
+				t.Fatalf("InAdvanceContract() error = %v (%s)", err, tc.source)
+			}
+			if want := tc.want; (got == ct.ID) != want || (!want && !got.IsZero()) {
+				t.Errorf("InAdvanceContract() got = %s, want contract %t (%s)", got, want, tc.source)
+			}
+		})
 	}
 }

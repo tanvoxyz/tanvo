@@ -152,7 +152,7 @@ CREATE TABLE payments (
     (payable_type = 'invoice' AND invoice_id IS NOT NULL AND payment_request_id IS NULL)
     OR (payable_type = 'payment_request' AND payment_request_id IS NOT NULL AND invoice_id IS NULL)
   ),
-  CONSTRAINT payments_payment_kind_check CHECK (payment_kind IN ('provider', 'manual')),
+  CONSTRAINT payments_payment_kind_check CHECK (payment_kind IN ('provider', 'manual', 'x402')),
   CONSTRAINT payments_status_check CHECK (status IN ('pending', 'processing', 'succeeded', 'failed')),
   CONSTRAINT payments_amount_check CHECK (amount >= 0),
   CONSTRAINT payments_reference_check CHECK (char_length(reference) <= 40)

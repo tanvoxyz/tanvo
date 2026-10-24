@@ -2,6 +2,7 @@ package fees_test
 
 import (
 	"context"
+	"maps"
 	"testing"
 	"time"
 
@@ -124,6 +125,41 @@ func TestInAdvanceChargeFeesGrouped(t *testing.T) {
 	feeCount(t, res, 1)
 	if got := res.Fees[0].GroupedBy; got["cloud"] != "aws" {
 		t.Errorf("got grouped by = %v, want = map[cloud:aws]", got)
+	}
+}
+
+// TestInAdvanceChargeFeesTargetWallet groups the in-advance fee of a
+// charge accepting a target wallet by the event's code, and omits the key
+// when the event names none.
+func TestInAdvanceChargeFeesTargetWallet(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		name, source string
+		props        []string
+		want         map[string]string
+		ungrouped    bool
+	}{
+		{"with a target wallet code", "spec/services/fees/charge_service/metered_item_spec.rb:300", []string{"cloud", "aws", catalog.EventTargetWalletCode, "wallet-1"}, map[string]string{"cloud": "aws", catalog.EventTargetWalletCode: "wallet-1"}, false},
+		{"target wallet code only", "spec/services/charges/pay_in_advance_aggregation_service_spec.rb:344", []string{catalog.EventTargetWalletCode, "my_wallet"}, map[string]string{catalog.EventTargetWalletCode: "my_wallet"}, true},
+		{"without a target wallet code", "spec/services/fees/charge_service/metered_item_spec.rb:307", []string{"cloud", "aws"}, map[string]string{"cloud": "aws"}, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			f := newChargeFixture(t)
+			m := f.Metric("metric", catalog.AggregationTypeCount, "")
+			props := `{"amount":"10","pricing_group_keys":["cloud"]}`
+			if tc.ungrouped {
+				props = `{"amount":"10"}`
+			}
+			c := f.Charge(f.plan, m, catalog.ChargeModelStandard, props, advance,
+				func(c *catalog.Charge) { c.AcceptsTargetWallet = true })
+			res := f.inAdvance(c, f.Event(f.sub, m.Code, date(2022, time.March, 20), tc.props...), false)
+			feeCount(t, res, 1)
+			if got := res.Fees[0].GroupedBy; !maps.Equal(got, tc.want) {
+				t.Errorf("grouped by: got = %v, want = %v (%s)", got, tc.want, tc.source)
+			}
+		})
 	}
 }
 

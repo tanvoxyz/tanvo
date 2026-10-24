@@ -181,7 +181,7 @@ func (s *Service) pullTaxes(ctx context.Context, r port.Repos, inv *invoice.Invo
 			return nil
 		}
 		// pull_taxes_and_apply_service.rb:32,76-77,94-97.
-		return kernel.Emit(ctx, s.d, org, webhook.EventTypeInvoiceReadyToFinalize, "invoice", kernel.ObjectID(inv.ID), inv)
+		return s.readyToFinalize(ctx, r, inv)
 	}
 	return s.finishHeld(ctx, r, cenv, inv, iss, st)
 }

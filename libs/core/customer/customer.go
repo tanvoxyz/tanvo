@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/x402"
 	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
@@ -110,6 +111,11 @@ type Customer struct {
 	// TaxIDs are the customer's taxes, step 7 of tax resolution (domain
 	// §22.10).
 	TaxIDs []core.TaxID
+	// X402AgentAddress is the wallet address of the x402 agent the
+	// customer pays as (parity §1.36): an EVM address, checksummed, or a
+	// Solana address. It is set on creation only, never changed, and
+	// unique among the organization's non-deleted customers.
+	X402AgentAddress *string
 	// DeletedAt is set when the customer is archived.
 	DeletedAt *time.Time
 	// CreatedAt is the creation instant.
@@ -174,7 +180,21 @@ func (c *Customer) Validate() error {
 		v.Check(n >= 0, "dunning_campaign_attempts", core.CodeOutOfRange)
 	}
 	v.Merge("metadata", c.Metadata.Validate(core.CustomerMetadataLimits()))
+	if c.X402AgentAddress != nil {
+		v.Check(x402.ValidAgentAddress(*c.X402AgentAddress), "x402_agent_address", core.CodeInvalidFormat)
+	}
 	return v.Err()
+}
+
+// NormalizeX402AgentAddress stores an EVM agent address checksummed; it
+// runs on creation, before [Customer.Validate].
+//
+// source: app/models/customer.rb:432-438
+func (c *Customer) NormalizeX402AgentAddress() {
+	if c.X402AgentAddress != nil {
+		a := x402.NormalizeAgentAddress(*c.X402AgentAddress)
+		c.X402AgentAddress = &a
+	}
 }
 
 // Deleted reports whether the customer is archived.

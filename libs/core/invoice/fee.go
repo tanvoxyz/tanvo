@@ -123,6 +123,18 @@ type Fee struct {
 	CommitmentID core.CommitmentID
 	// WalletTransactionID is the paid wallet transaction of a credit fee.
 	WalletTransactionID core.WalletTransactionID
+	// SubscriptionRateCardID is the contract rate card of a product fee.
+	SubscriptionRateCardID core.SubscriptionRateCardID
+	// ProductID is the product of a product fee.
+	ProductID core.ProductID
+	// ProductFilterID is the product filter a product fee is scoped to;
+	// zero for the default bucket.
+	ProductFilterID core.ProductFilterID
+	// RateCardRateID is the rate in force over a product fee's billing
+	// segment, kept when a phase override prices it.
+	RateCardRateID core.RateCardRateID
+	// RatePhaseID is the phase whose override prices a product fee.
+	RatePhaseID core.RatePhaseID
 	// GroupedBy holds the pricing group values.
 	GroupedBy map[string]string
 	// InvoiceDisplayName overrides the printed name.
@@ -256,6 +268,8 @@ func (f *Fee) Validate() error {
 		v.Check(!f.CommitmentID.IsZero(), "commitment_id", core.CodeRequired)
 	case core.FeeTypeSubscription:
 		v.Check(!f.SubscriptionID.IsZero(), "subscription_id", core.CodeRequired)
+	case core.FeeTypeProduct:
+		v.Check(!f.SubscriptionRateCardID.IsZero(), "subscription_rate_card_id", core.CodeRequired)
 	}
 	if f.InvoiceID.IsZero() {
 		v.Check(f.PayInAdvance, "invoice_id", core.CodeRequired)

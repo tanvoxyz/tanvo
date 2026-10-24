@@ -7,6 +7,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
 	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
@@ -33,6 +34,9 @@ const (
 	// CodePaymentProcessing rejects a payment retry while the provider
 	// handles a payment.
 	CodePaymentProcessing = "payment_processor_is_currently_handling_payment"
+	// CodeIsDraft rejects the download of a draft from the customer
+	// portal (lago Invoices::GeneratePdfService).
+	CodeIsDraft = "is_draft"
 	// CodeNotDisputable rejects a lost dispute on an invoice neither
 	// finalized nor voided.
 	CodeNotDisputable = "not_disputable"
@@ -186,6 +190,10 @@ func (s *Service) Delete(ctx context.Context, org core.OrganizationID, id core.I
 		inv.UpdatedAt = s.d.Now()
 		if err := r.Invoices.Update(ctx, inv); err != nil {
 			return fmt.Errorf("delete invoice %s: %w", inv.ID, err)
+		}
+		// delete_service.rb:13.
+		if err := s.d.LogInvoice(ctx, r, auditlog.ActivityInvoiceDeleted, inv); err != nil {
+			return err
 		}
 		return kernel.Emit(ctx, s.d, org, webhook.EventTypeInvoiceDeleted, "invoice", kernel.ObjectID(inv.ID), inv)
 	})
@@ -390,6 +398,39 @@ func (s *Service) Download(ctx context.Context, org core.OrganizationID, id core
 		}
 		if err != nil {
 			return fmt.Errorf("load invoice %s: %w", id, asNotFound(err, "invoice"))
+		}
+		out = inv
+		if !inv.File.IsZero() {
+			ready = true
+			return nil
+		}
+		return kernel.Enqueue(ctx, r, org, kernel.JobGenerateInvoiceDocument, kernel.InvoiceArgs{InvoiceID: inv.ID}, "invoice:"+inv.ID.String(), s.d.Now())
+	})
+	if err != nil {
+		return nil, false, err
+	}
+	return out, ready, nil
+}
+
+// DownloadForCustomer is [Service.Download] from the customer portal of
+// the customer cust: the invoice must be one of its visible invoices (any
+// other is not found), and not a draft ([CodeIsDraft]).
+//
+// source: app/graphql/mutations/customer_portal/download_invoice.rb:16-20
+// source: app/services/invoices/generate_pdf_service.rb:14-26
+func (s *Service) DownloadForCustomer(ctx context.Context, org core.OrganizationID, cust core.CustomerID, id core.InvoiceID) (*invoice.Invoice, bool, error) {
+	var out *invoice.Invoice
+	ready := false
+	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+		inv, err := visibleInvoice(ctx, r, org, id)
+		if err != nil {
+			return err
+		}
+		if inv.CustomerID != cust {
+			return fmt.Errorf("invoice %s of another customer: %w", id, core.NotFound("invoice"))
+		}
+		if inv.Status == invoice.StatusDraft {
+			return core.NewRuleError(CodeIsDraft, "a draft invoice has no document")
 		}
 		out = inv
 		if !inv.File.IsZero() {

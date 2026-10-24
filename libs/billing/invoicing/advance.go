@@ -201,6 +201,13 @@ func (s *Service) InAdvanceCharge(ctx context.Context, org core.OrganizationID, 
 
 // inAdvanceCharge is [Service.InAdvanceCharge] in the transaction of r.
 func (s *Service) inAdvanceCharge(ctx context.Context, r port.Repos, org core.OrganizationID, a kernel.InAdvanceChargeArgs) ([]*invoice.Fee, error) {
+	sub, err := r.Subscriptions.Get(ctx, org, a.SubscriptionID)
+	if err != nil {
+		return nil, fmt.Errorf("load subscription %s: %w", a.SubscriptionID, err)
+	}
+	if sub.Contract {
+		return s.inAdvanceContract(ctx, r, sub, a)
+	}
 	env, err := kernel.LoadSubscriptionEnv(ctx, r, org, a.SubscriptionID)
 	if err != nil {
 		return nil, err
@@ -233,6 +240,11 @@ func (s *Service) inAdvanceCharge(ctx context.Context, r port.Repos, org core.Or
 			return nil, fmt.Errorf("load billable metric %s: %w", c.BillableMetricID, err)
 		}
 		if m.Code != a.Code {
+			continue
+		}
+		// pay_in_advance_service.rb:14: an event without the metric's field
+		// bills no fee.
+		if !canCreateFee(m, a.Properties) {
 			continue
 		}
 		res, err := s.fees.InAdvanceChargeFees(ctx, r, env, c, fees.InAdvanceEvent{ID: a.EventID, Event: ev}, fees.Options{Cache: aggregationCache(r, env)})

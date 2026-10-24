@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"connectrpc.com/connect/v2"
-	"google.golang.org/genproto/googleapis/type/date"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
@@ -117,11 +116,6 @@ func TestCreateSubscriptionRefused(t *testing.T) {
 		ExternalId: new("s"), CustomerId: new(cust), EndingAt: timestamppb.New(rpctest.Now.Add(time.Hour)),
 	})
 	subWantViolation(t, err, "subscription.ending_at", "invalid_date")
-
-	_, err = f.create(t, subscriptionv1.Subscription_builder{
-		ExternalId: new("s"), CustomerId: new(cust), BillingAnchorDate: &date.Date{Year: 2026, Month: 1, Day: 1},
-	})
-	subWantCode(t, err, connect.CodeUnimplemented, "")
 }
 
 // source: spec/requests/api/v1/subscriptions_controller_spec.rb:1010

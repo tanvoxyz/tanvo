@@ -9,6 +9,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/payment"
@@ -287,6 +288,12 @@ func (s *Service) settle(ctx context.Context, r port.Repos, inv *invoice.Invoice
 		return fmt.Errorf("update invoice %s: %w", inv.ID, err)
 	}
 	if paid {
+		// The settlement updates the invoice through lago
+		// Invoices::UpdateService (invoice_settlements/create_service.rb,
+		// invoices/update_service.rb:76-79,105-107).
+		if err := s.d.LogInvoice(ctx, r, auditlog.ActivityInvoicePaymentStatusUpdated, inv); err != nil {
+			return err
+		}
 		return kernel.Emit(ctx, s.d, inv.OrganizationID, webhook.EventTypeInvoicePaymentStatusUpdated, "invoice", inv.ID.UUID(), inv)
 	}
 	return nil
@@ -297,6 +304,11 @@ func (s *Service) settle(ctx context.Context, r port.Repos, inv *invoice.Invoice
 func (s *Service) issued(ctx context.Context, r port.Repos, inv *invoice.Invoice, cn *creditnote.CreditNote) error {
 	org := cn.OrganizationID
 	if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeCreditNoteCreated, "credit_note", cn.ID.UUID(), cn); err != nil {
+		return err
+	}
+	// credit_notes/create_service.rb:100,
+	// invoices/refresh_draft_and_finalize_service.rb:59.
+	if err := s.logActivity(ctx, r, auditlog.ActivityCreditNoteCreated, cn); err != nil {
 		return err
 	}
 	args := kernel.CreditNoteArgs{CreditNoteID: cn.ID}
@@ -396,4 +408,12 @@ func sortedFees(fees []*invoice.Fee) []*invoice.Fee {
 	out := slices.Clone(fees)
 	slices.SortStableFunc(out, func(a, b *invoice.Fee) int { return cmp.Compare(b.Amount, a.Amount) })
 	return out
+}
+
+// logActivity records the activity log t of cn.
+func (s *Service) logActivity(ctx context.Context, r port.Repos, t auditlog.ActivityType, cn *creditnote.CreditNote) error {
+	return s.d.LogChange(ctx, r, kernel.Change{
+		Type: t, OrganizationID: cn.OrganizationID, ResourceType: auditlog.ResourceCreditNote, ResourceID: cn.ID.UUID(),
+		Object: cn, CustomerID: cn.CustomerID,
+	})
 }

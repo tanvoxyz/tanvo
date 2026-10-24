@@ -13,7 +13,12 @@ CREATE TABLE subscriptions (
   id uuid NOT NULL,
   external_id text NOT NULL,
   customer_id uuid NOT NULL,
-  plan_id uuid NOT NULL,
+  -- Nullable for a contract priced only by its own rate cards.
+  plan_id uuid,
+  -- A contract: a subscription priced by rate cards (domain §21.4).
+  contract boolean NOT NULL DEFAULT false,
+  -- The contract's explicit billing anchor; contracts only.
+  billing_anchor_date date,
   name text,
   billing_time text NOT NULL,
   status text NOT NULL,
@@ -50,7 +55,9 @@ CREATE TABLE subscriptions (
   CONSTRAINT subscriptions_cancellation_reason_check CHECK (cancellation_reason IN ('payment_failed', 'timeout', 'manual')),
   CONSTRAINT subscriptions_on_termination_credit_note_check CHECK (on_termination_credit_note IN ('credit', 'refund', 'offset', 'skip')),
   CONSTRAINT subscriptions_on_termination_invoice_check CHECK (on_termination_invoice IN ('generate', 'skip')),
-  CONSTRAINT subscriptions_payment_method_type_check CHECK (payment_method_type IN ('provider', 'manual'))
+  CONSTRAINT subscriptions_payment_method_type_check CHECK (payment_method_type IN ('provider', 'manual')),
+  CONSTRAINT subscriptions_plan_check CHECK (contract OR plan_id IS NOT NULL),
+  CONSTRAINT subscriptions_billing_anchor_date_check CHECK (contract OR billing_anchor_date IS NULL)
 );
 
 CREATE UNIQUE INDEX subscriptions_external_id_key ON subscriptions (organization_id, external_id, status)

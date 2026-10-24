@@ -1,0 +1,649 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+package tanvo.subscription.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/api/resource.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/timestamp.proto";
+import "google/type/date.proto";
+import "tanvo/catalog/v1/rate_card.proto";
+import "tanvo/common/v1/enums.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/subscription/v1/subscription.proto";
+
+// ContractService manages contracts: subscriptions priced by the rate
+// cards applied to them rather than by a plan's charges. A contract is
+// addressed by its external ID, which names its live version (the
+// pending or active one); its rate cards by the code of the applied rate
+// card.
+service ContractService {
+  // Creates a contract: active when its start has come, pending
+  // otherwise, with the rate cards of its plan when it names one.
+  rpc CreateContract(CreateContractRequest) returns (CreateContractResponse) {
+    option (google.api.http) = {
+      post: "/v1/contracts"
+      body: "contract"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "contracts:create"
+      api_resource: "contract"
+    };
+  }
+
+  // Returns a contract by external ID: the live one, or the latest one
+  // started in a status.
+  rpc GetContract(GetContractRequest) returns (GetContractResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/contracts/{external_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "contracts:read"
+      api_resource: "contract"
+    };
+  }
+
+  // Lists contracts.
+  rpc ListContracts(ListContractsRequest) returns (ListContractsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/contracts"};
+    option (tanvo.common.v1.access) = {
+      permission: "contracts:read"
+      api_resource: "contract"
+    };
+  }
+
+  // Updates the live contract: a pending contract takes every field, an
+  // active one only its name, end and invoicing settings.
+  rpc UpdateContract(UpdateContractRequest) returns (UpdateContractResponse) {
+    option (google.api.http) = {
+      patch: "/v1/contracts/{contract.external_id}"
+      body: "contract"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "contracts:update"
+      api_resource: "contract"
+    };
+  }
+
+  // Ends the live contract: an active contract is terminated, a pending
+  // one canceled.
+  rpc TerminateContract(TerminateContractRequest) returns (TerminateContractResponse) {
+    option (google.api.http) = {delete: "/v1/contracts/{external_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "contracts:terminate"
+      api_resource: "contract"
+    };
+  }
+
+  // Applies a rate card to a pending contract.
+  rpc CreateContractRateCard(CreateContractRateCardRequest) returns (CreateContractRateCardResponse) {
+    option (google.api.http) = {
+      post: "/v1/contracts/{external_id}/rate_cards"
+      body: "rate_card"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "contracts:update"
+      api_resource: "contract_rate_card"
+    };
+  }
+
+  // Returns a rate card of a contract.
+  rpc GetContractRateCard(GetContractRateCardRequest) returns (GetContractRateCardResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/contracts/{external_id}/rate_cards/{rate_card_code}"};
+    option (tanvo.common.v1.access) = {
+      permission: "contracts:read"
+      api_resource: "contract_rate_card"
+    };
+  }
+
+  // Lists the rate cards of a contract.
+  rpc ListContractRateCards(ListContractRateCardsRequest) returns (ListContractRateCardsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/contracts/{external_id}/rate_cards"};
+    option (tanvo.common.v1.access) = {
+      permission: "contracts:read"
+      api_resource: "contract_rate_card"
+    };
+  }
+
+  // Updates the units or billing anchor of a rate card of a pending
+  // contract.
+  rpc UpdateContractRateCard(UpdateContractRateCardRequest) returns (UpdateContractRateCardResponse) {
+    option (google.api.http) = {
+      patch: "/v1/contracts/{external_id}/rate_cards/{rate_card.rate_card_code}"
+      body: "rate_card"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "contracts:update"
+      api_resource: "contract_rate_card"
+    };
+  }
+
+  // Removes a rate card from a pending contract.
+  rpc DeleteContractRateCard(DeleteContractRateCardRequest) returns (DeleteContractRateCardResponse) {
+    option (google.api.http) = {delete: "/v1/contracts/{external_id}/rate_cards/{rate_card_code}"};
+    option (tanvo.common.v1.access) = {
+      permission: "contracts:update"
+      api_resource: "contract_rate_card"
+    };
+  }
+
+  // Lists the phases of a contract rate card, by position.
+  rpc ListContractRatePhases(ListContractRatePhasesRequest) returns (ListContractRatePhasesResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/contracts/{external_id}/rate_cards/{rate_card_code}/rate_phases"};
+    option (tanvo.common.v1.access) = {
+      permission: "contracts:read"
+      api_resource: "contract_rate_card"
+    };
+  }
+
+  // Adds a phase to a rate card of a pending contract.
+  rpc CreateContractRatePhase(CreateContractRatePhaseRequest) returns (CreateContractRatePhaseResponse) {
+    option (google.api.http) = {
+      post: "/v1/contracts/{external_id}/rate_cards/{rate_card_code}/rate_phases"
+      body: "rate_phase"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "contracts:update"
+      api_resource: "contract_rate_card"
+    };
+  }
+
+  // Updates a phase of a rate card of a pending contract; an unset
+  // rate_override in the update_mask clears the override.
+  rpc UpdateContractRatePhase(UpdateContractRatePhaseRequest) returns (UpdateContractRatePhaseResponse) {
+    option (google.api.http) = {
+      patch: "/v1/contracts/{external_id}/rate_cards/{rate_card_code}/rate_phases/{rate_phase.id}"
+      body: "rate_phase"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "contracts:update"
+      api_resource: "contract_rate_card"
+    };
+  }
+
+  // Removes a phase from a rate card of a pending contract.
+  rpc DeleteContractRatePhase(DeleteContractRatePhaseRequest) returns (DeleteContractRatePhaseResponse) {
+    option (google.api.http) = {delete: "/v1/contracts/{external_id}/rate_cards/{rate_card_code}/rate_phases/{rate_phase_id}"};
+    option (tanvo.common.v1.access) = {
+      permission: "contracts:update"
+      api_resource: "contract_rate_card"
+    };
+  }
+}
+
+// Contract is a subscription priced by the rate cards applied to it.
+message Contract {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/Contract"
+    pattern: "contracts/{contract}"
+    plural: "contracts"
+    singular: "contract"
+  };
+
+  // The contract's ID.
+  string id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The identifier in the caller's system; at most one live (pending or
+  // active) contract has it, and no subscription does.
+  string external_id = 2 [
+    (google.api.field_behavior) = IDENTIFIER,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The external ID of the customer.
+  string external_customer_id = 3 [
+    (google.api.field_behavior) = IMMUTABLE,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
+  // The customer's ID.
+  string customer_id = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // A display name.
+  string name = 5 [(buf.validate.field).string.max_len = 255];
+  // The code of the plan whose rate cards the contract starts with; empty
+  // prices the contract by the rate cards applied to it only. Changing it
+  // replaces the rate cards.
+  string plan_code = 6 [(buf.validate.field).string.max_len = 255];
+  // The plan's ID.
+  string plan_id = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The state.
+  SubscriptionStatus status = 8 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // How billing intervals are anchored; calendar by default.
+  BillingTime billing_time = 9 [(buf.validate.field).enum.defined_only = true];
+  // The date the rate cards' billing intervals are anchored to; the start
+  // day by default.
+  google.type.Date billing_anchor_date = 10;
+  // The billing anchor that applies: billing_anchor_date, else the start
+  // day in the customer's time zone.
+  google.type.Date effective_billing_anchor_date = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The start; now by default, may be in the past or the future.
+  google.protobuf.Timestamp started_at = 12;
+  // The end of billing.
+  google.protobuf.Timestamp ended_at = 13;
+  // When the contract was terminated.
+  google.protobuf.Timestamp terminated_at = 14 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the contract was canceled.
+  google.protobuf.Timestamp canceled_at = 15 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Invoices the contract's billing segments together with the customer's
+  // other contracts' billed the same day; default true.
+  bool consolidate_invoice = 16;
+  // The purchase order number printed on invoices.
+  string purchase_order_number = 17 [(buf.validate.field).string.max_len = 255];
+  // Overrides the customer's payment method kind.
+  tanvo.common.v1.PaymentMethodType payment_method_type = 18 [(buf.validate.field).enum.defined_only = true];
+  // The payment method charged, for PROVIDER.
+  string payment_method_id = 19 [(buf.validate.field).string.uuid = true];
+  // The billing entity's ID; the customer's when unset.
+  string billing_entity_id = 20 [(buf.validate.field).string.uuid = true];
+  // Prints no invoice custom sections.
+  bool skip_invoice_custom_sections = 21;
+  // The invoice custom sections (IDs or `code:<code>`); the customer's when
+  // empty.
+  repeated string invoice_custom_section_ids = 22 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
+  // The currency the contract bills in: its plan's, else the customer's.
+  string currency = 23 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The applied rate cards, by effective date; managed with the rate card
+  // RPCs.
+  repeated ContractRateCard rate_cards = 24 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The number of applied rate cards.
+  int32 rate_cards_count = 25 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the contract was created.
+  google.protobuf.Timestamp created_at = 26 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the contract last changed.
+  google.protobuf.Timestamp updated_at = 27 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// ContractRateCard is a rate card applied to a contract, billed on its own
+// schedule from its effective date.
+message ContractRateCard {
+  option (google.api.resource) = {
+    type: "tanvo.xyz/ContractRateCard"
+    pattern: "contracts/{contract}/rate_cards/{rate_card}"
+    plural: "contractRateCards"
+    singular: "contractRateCard"
+  };
+
+  // The contract rate card's ID.
+  string id = 1 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The external ID of the contract.
+  string external_contract_id = 2 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The code of the applied rate card.
+  string rate_card_code = 3 [
+    (google.api.field_behavior) = IDENTIFIER,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The number of units, for fixed products.
+  string units = 4 [(buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true];
+  // The date the rate card takes effect: the contract's start day.
+  google.type.Date effective_date = 5 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The date its billing intervals are anchored to; the contract's
+  // effective billing anchor by default.
+  google.type.Date billing_anchor_date = 6;
+  // When the rate card next bills.
+  google.protobuf.Timestamp next_billing_at = 7 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The phases, by position: positions 1 to n, only the last one
+  // open-ended. Unset on create starts on a single open-ended phase coded
+  // `default`. Set on create, then managed with the rate phase RPCs.
+  repeated tanvo.catalog.v1.RatePhase rate_phases = 8 [(buf.validate.field).repeated.max_items = 50];
+  // The number of phases.
+  int32 rate_phases_count = 9 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the contract rate card was created.
+  google.protobuf.Timestamp created_at = 10 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // When the contract rate card last changed.
+  google.protobuf.Timestamp updated_at = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
+}
+
+// CreateContractRequest is the request of ContractService.CreateContract.
+message CreateContractRequest {
+  option (buf.validate.message).cel = {
+    id: "contract.required"
+    message: "contract.external_id and contract.external_customer_id are required"
+    expression: "has(this.contract.external_id) && has(this.contract.external_customer_id)"
+  };
+
+  // The contract to create.
+  Contract contract = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateContractResponse is the response of ContractService.CreateContract.
+message CreateContractResponse {
+  // The created contract.
+  Contract contract = 1;
+}
+
+// GetContractRequest is the request of ContractService.GetContract.
+message GetContractRequest {
+  // The contract's external ID.
+  string external_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // Returns the latest contract started in this status instead of the
+  // live one.
+  SubscriptionStatus status = 2 [(buf.validate.field).enum.defined_only = true];
+}
+
+// GetContractResponse is the response of ContractService.GetContract.
+message GetContractResponse {
+  // The contract.
+  Contract contract = 1;
+}
+
+// ListContractsRequest is the request of ContractService.ListContracts.
+message ListContractsRequest {
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 2 [(buf.validate.field).string.max_len = 1024];
+  // An AIP-160 filter over `status` (active by default),
+  // `external_customer_id`, `plan_code`, `external_id`,
+  // `billing_entity_id` and `has_rate_overrides`.
+  string filter = 3 [(buf.validate.field).string.max_len = 2048];
+  // A search over the ID, name, external ID, plan and customer.
+  string search = 4 [(buf.validate.field).string.max_len = 255];
+}
+
+// ListContractsResponse is the response of ContractService.ListContracts.
+message ListContractsResponse {
+  // The contracts of this page.
+  repeated Contract contracts = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateContractRequest is the request of ContractService.UpdateContract.
+message UpdateContractRequest {
+  option (buf.validate.message).cel = {
+    id: "contract.external_id"
+    message: "contract.external_id is required"
+    expression: "has(this.contract.external_id)"
+  };
+
+  // The new values; contract.external_id selects the live contract.
+  Contract contract = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+// UpdateContractResponse is the response of ContractService.UpdateContract.
+message UpdateContractResponse {
+  // The updated contract.
+  Contract contract = 1;
+}
+
+// TerminateContractRequest is the request of ContractService.TerminateContract.
+message TerminateContractRequest {
+  // The contract's external ID.
+  string external_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+}
+
+// TerminateContractResponse is the response of ContractService.TerminateContract.
+message TerminateContractResponse {
+  // The terminated or canceled contract.
+  Contract contract = 1;
+}
+
+// CreateContractRateCardRequest is the request of ContractService.CreateContractRateCard.
+message CreateContractRateCardRequest {
+  option (buf.validate.message).cel = {
+    id: "rate_card.rate_card_code"
+    message: "rate_card.rate_card_code is required"
+    expression: "has(this.rate_card.rate_card_code)"
+  };
+
+  // The contract's external ID.
+  string external_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The rate card to apply.
+  ContractRateCard rate_card = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateContractRateCardResponse is the response of ContractService.CreateContractRateCard.
+message CreateContractRateCardResponse {
+  // The applied rate card.
+  ContractRateCard rate_card = 1;
+}
+
+// GetContractRateCardRequest is the request of ContractService.GetContractRateCard.
+message GetContractRateCardRequest {
+  // The contract's external ID.
+  string external_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The code of the applied rate card.
+  string rate_card_code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+}
+
+// GetContractRateCardResponse is the response of ContractService.GetContractRateCard.
+message GetContractRateCardResponse {
+  // The contract rate card.
+  ContractRateCard rate_card = 1;
+}
+
+// ListContractRateCardsRequest is the request of ContractService.ListContractRateCards.
+message ListContractRateCardsRequest {
+  // The contract's external ID.
+  string external_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListContractRateCardsResponse is the response of ContractService.ListContractRateCards.
+message ListContractRateCardsResponse {
+  // The contract rate cards of this page.
+  repeated ContractRateCard rate_cards = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+}
+
+// UpdateContractRateCardRequest is the request of ContractService.UpdateContractRateCard.
+message UpdateContractRateCardRequest {
+  option (buf.validate.message).cel = {
+    id: "rate_card.rate_card_code"
+    message: "rate_card.rate_card_code is required"
+    expression: "has(this.rate_card.rate_card_code)"
+  };
+
+  // The contract's external ID.
+  string external_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The new values; rate_card.rate_card_code selects the contract rate
+  // card.
+  ContractRateCard rate_card = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update: units and billing_anchor_date; empty updates
+  // every one that is set.
+  google.protobuf.FieldMask update_mask = 3;
+}
+
+// UpdateContractRateCardResponse is the response of ContractService.UpdateContractRateCard.
+message UpdateContractRateCardResponse {
+  // The updated contract rate card.
+  ContractRateCard rate_card = 1;
+}
+
+// DeleteContractRateCardRequest is the request of ContractService.DeleteContractRateCard.
+message DeleteContractRateCardRequest {
+  // The contract's external ID.
+  string external_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The code of the applied rate card.
+  string rate_card_code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+}
+
+// DeleteContractRateCardResponse is the response of ContractService.DeleteContractRateCard.
+message DeleteContractRateCardResponse {
+  // The removed contract rate card.
+  ContractRateCard rate_card = 1;
+}
+
+// ListContractRatePhasesRequest is the request of ContractService.ListContractRatePhases.
+message ListContractRatePhasesRequest {
+  // The contract's external ID.
+  string external_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The code of the applied rate card.
+  string rate_card_code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+}
+
+// ListContractRatePhasesResponse is the response of ContractService.ListContractRatePhases.
+message ListContractRatePhasesResponse {
+  // The phases, by position.
+  repeated tanvo.catalog.v1.RatePhase rate_phases = 1;
+}
+
+// CreateContractRatePhaseRequest is the request of ContractService.CreateContractRatePhase.
+message CreateContractRatePhaseRequest {
+  // The contract's external ID.
+  string external_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The code of the applied rate card.
+  string rate_card_code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The phase to add.
+  tanvo.catalog.v1.RatePhase rate_phase = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// CreateContractRatePhaseResponse is the response of ContractService.CreateContractRatePhase.
+message CreateContractRatePhaseResponse {
+  // The created phase.
+  tanvo.catalog.v1.RatePhase rate_phase = 1;
+}
+
+// UpdateContractRatePhaseRequest is the request of ContractService.UpdateContractRatePhase.
+message UpdateContractRatePhaseRequest {
+  option (buf.validate.message).cel = {
+    id: "rate_phase.id"
+    message: "rate_phase.id is required"
+    expression: "has(this.rate_phase.id)"
+  };
+
+  // The contract's external ID.
+  string external_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The code of the applied rate card.
+  string rate_card_code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The new values; rate_phase.id (an ID or `code:<code>`) selects the
+  // phase.
+  tanvo.catalog.v1.RatePhase rate_phase = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+  // The fields to update; empty updates every field that is set.
+  google.protobuf.FieldMask update_mask = 4;
+}
+
+// UpdateContractRatePhaseResponse is the response of ContractService.UpdateContractRatePhase.
+message UpdateContractRatePhaseResponse {
+  // The updated phase.
+  tanvo.catalog.v1.RatePhase rate_phase = 1;
+}
+
+// DeleteContractRatePhaseRequest is the request of ContractService.DeleteContractRatePhase.
+message DeleteContractRatePhaseRequest {
+  // The contract's external ID.
+  string external_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The code of the applied rate card.
+  string rate_card_code = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The phase's ID or `code:<code>`.
+  string rate_phase_id = 3 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeleteContractRatePhaseResponse is the response of ContractService.DeleteContractRatePhase.
+message DeleteContractRatePhaseResponse {
+  // The removed phase.
+  tanvo.catalog.v1.RatePhase rate_phase = 1;
+}

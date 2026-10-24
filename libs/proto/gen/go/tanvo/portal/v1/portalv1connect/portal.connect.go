@@ -47,12 +47,18 @@ const (
 	// CustomerPortalServiceListPortalSubscriptionsProcedure is the procedure name of the
 	// CustomerPortalService's ListPortalSubscriptions RPC.
 	CustomerPortalServiceListPortalSubscriptionsProcedure = "/tanvo.portal.v1.CustomerPortalService/ListPortalSubscriptions"
+	// CustomerPortalServiceGetPortalSubscriptionProcedure is the procedure name of the
+	// CustomerPortalService's GetPortalSubscription RPC.
+	CustomerPortalServiceGetPortalSubscriptionProcedure = "/tanvo.portal.v1.CustomerPortalService/GetPortalSubscription"
 	// CustomerPortalServiceGetPortalCurrentUsageProcedure is the procedure name of the
 	// CustomerPortalService's GetPortalCurrentUsage RPC.
 	CustomerPortalServiceGetPortalCurrentUsageProcedure = "/tanvo.portal.v1.CustomerPortalService/GetPortalCurrentUsage"
 	// CustomerPortalServiceListPortalWalletsProcedure is the procedure name of the
 	// CustomerPortalService's ListPortalWallets RPC.
 	CustomerPortalServiceListPortalWalletsProcedure = "/tanvo.portal.v1.CustomerPortalService/ListPortalWallets"
+	// CustomerPortalServiceGetPortalWalletProcedure is the procedure name of the
+	// CustomerPortalService's GetPortalWallet RPC.
+	CustomerPortalServiceGetPortalWalletProcedure = "/tanvo.portal.v1.CustomerPortalService/GetPortalWallet"
 	// CustomerPortalServiceTopUpPortalWalletProcedure is the procedure name of the
 	// CustomerPortalService's TopUpPortalWallet RPC.
 	CustomerPortalServiceTopUpPortalWalletProcedure = "/tanvo.portal.v1.CustomerPortalService/TopUpPortalWallet"
@@ -62,9 +68,6 @@ const (
 	// CustomerPortalServiceGetPortalInvoiceCollectionProcedure is the procedure name of the
 	// CustomerPortalService's GetPortalInvoiceCollection RPC.
 	CustomerPortalServiceGetPortalInvoiceCollectionProcedure = "/tanvo.portal.v1.CustomerPortalService/GetPortalInvoiceCollection"
-	// CustomerPortalServicePayPortalOverdueBalanceProcedure is the procedure name of the
-	// CustomerPortalService's PayPortalOverdueBalance RPC.
-	CustomerPortalServicePayPortalOverdueBalanceProcedure = "/tanvo.portal.v1.CustomerPortalService/PayPortalOverdueBalance"
 )
 
 var (
@@ -114,6 +117,14 @@ var (
 			IdempotencyLevel: connect.IdempotencyNoSideEffects,
 		}
 	})
+	customerPortalServiceGetPortalSubscriptionSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType:       connect.StreamTypeUnary,
+			Schema:           v1.File_tanvo_portal_v1_portal_proto.Services().ByName("CustomerPortalService").Methods().ByName("GetPortalSubscription"),
+			Procedure:        CustomerPortalServiceGetPortalSubscriptionProcedure,
+			IdempotencyLevel: connect.IdempotencyNoSideEffects,
+		}
+	})
 	customerPortalServiceGetPortalCurrentUsageSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType:       connect.StreamTypeUnary,
@@ -127,6 +138,14 @@ var (
 			StreamType:       connect.StreamTypeUnary,
 			Schema:           v1.File_tanvo_portal_v1_portal_proto.Services().ByName("CustomerPortalService").Methods().ByName("ListPortalWallets"),
 			Procedure:        CustomerPortalServiceListPortalWalletsProcedure,
+			IdempotencyLevel: connect.IdempotencyNoSideEffects,
+		}
+	})
+	customerPortalServiceGetPortalWalletSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType:       connect.StreamTypeUnary,
+			Schema:           v1.File_tanvo_portal_v1_portal_proto.Services().ByName("CustomerPortalService").Methods().ByName("GetPortalWallet"),
+			Procedure:        CustomerPortalServiceGetPortalWalletProcedure,
 			IdempotencyLevel: connect.IdempotencyNoSideEffects,
 		}
 	})
@@ -153,13 +172,6 @@ var (
 			IdempotencyLevel: connect.IdempotencyNoSideEffects,
 		}
 	})
-	customerPortalServicePayPortalOverdueBalanceSpec = sync.OnceValue(func() connect.Spec {
-		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_tanvo_portal_v1_portal_proto.Services().ByName("CustomerPortalService").Methods().ByName("PayPortalOverdueBalance"),
-			Procedure:  CustomerPortalServicePayPortalOverdueBalanceProcedure,
-		}
-	})
 )
 
 // CustomerPortalServiceClient is a client for the tanvo.portal.v1.CustomerPortalService service.
@@ -168,27 +180,40 @@ type CustomerPortalServiceClient interface {
 	GetPortalOrganization(context.Context, *v1.GetPortalOrganizationRequest) (*v1.GetPortalOrganizationResponse, error)
 	// Returns the customer's profile.
 	GetPortalCustomer(context.Context, *v1.GetPortalCustomerRequest) (*v1.GetPortalCustomerResponse, error)
-	// Updates the customer's billing details.
+	// Updates the customer's billing details. The customer's EU taxes
+	// follow its new tax identification number and address; no webhook is
+	// sent.
 	UpdatePortalCustomer(context.Context, *v1.UpdatePortalCustomerRequest) (*v1.UpdatePortalCustomerResponse, error)
-	// Lists the customer's finalized invoices, newest first.
+	// Lists the customer's invoices, latest issuing date first.
 	ListPortalInvoices(context.Context, *v1.ListPortalInvoicesRequest) (*v1.ListPortalInvoicesResponse, error)
-	// Returns a signed URL of an invoice's PDF.
+	// Returns an invoice with its documents; a document not rendered yet is
+	// queued for rendering and left out. A draft cannot be downloaded
+	// (`is_draft`).
 	DownloadPortalInvoice(context.Context, *v1.DownloadPortalInvoiceRequest) (*v1.DownloadPortalInvoiceResponse, error)
-	// Lists the customer's active subscriptions.
+	// Lists the customer's subscriptions, most recent first.
 	ListPortalSubscriptions(context.Context, *v1.ListPortalSubscriptionsRequest) (*v1.ListPortalSubscriptionsResponse, error)
-	// Returns a subscription's usage in the current billing period.
+	// Returns one of the customer's subscriptions, whatever its status.
+	GetPortalSubscription(context.Context, *v1.GetPortalSubscriptionRequest) (*v1.GetPortalSubscriptionResponse, error)
+	// Returns an active subscription's usage in the current billing period,
+	// without taxes; a subscription that is not active is
+	// `no_active_subscription`.
 	GetPortalCurrentUsage(context.Context, *v1.GetPortalCurrentUsageRequest) (*v1.GetPortalCurrentUsageResponse, error)
-	// Lists the customer's active wallets.
+	// Lists the customer's wallets in the order invoices consume them:
+	// priority, then the earliest expiration (wallets without one last),
+	// then the oldest.
 	ListPortalWallets(context.Context, *v1.ListPortalWalletsRequest) (*v1.ListPortalWalletsResponse, error)
-	// Buys or requests credits for a wallet, within its paid top-up limits.
+	// Returns one of the customer's wallets.
+	GetPortalWallet(context.Context, *v1.GetPortalWalletRequest) (*v1.GetPortalWalletResponse, error)
+	// Buys credits for a wallet, within its paid top-up limits: the
+	// purchase is pending until its credit invoice is paid.
 	TopUpPortalWallet(context.Context, *v1.TopUpPortalWalletRequest) (*v1.TopUpPortalWalletResponse, error)
-	// Returns the customer's overdue balance per currency.
+	// Returns the customer's overdue balance per payment due month, in the
+	// customer's currency, every month since the organization's creation.
 	GetPortalOverdueBalance(context.Context, *v1.GetPortalOverdueBalanceRequest) (*v1.GetPortalOverdueBalanceResponse, error)
-	// Returns the customer's invoices per payment status.
+	// Returns the customer's finalized invoices per issuing month and
+	// payment status, in the customer's currency, every month since the
+	// organization's creation.
 	GetPortalInvoiceCollection(context.Context, *v1.GetPortalInvoiceCollectionRequest) (*v1.GetPortalInvoiceCollectionResponse, error)
-	// Requests payment of the customer's overdue invoices and returns the
-	// checkout URL.
-	PayPortalOverdueBalance(context.Context, *v1.PayPortalOverdueBalanceRequest) (*v1.PayPortalOverdueBalanceResponse, error)
 }
 
 // NewCustomerPortalServiceClient constructs a client for the tanvo.portal.v1.CustomerPortalService
@@ -204,27 +229,40 @@ type CustomerPortalServiceHandler interface {
 	GetPortalOrganization(context.Context, *v1.GetPortalOrganizationRequest) (*v1.GetPortalOrganizationResponse, error)
 	// Returns the customer's profile.
 	GetPortalCustomer(context.Context, *v1.GetPortalCustomerRequest) (*v1.GetPortalCustomerResponse, error)
-	// Updates the customer's billing details.
+	// Updates the customer's billing details. The customer's EU taxes
+	// follow its new tax identification number and address; no webhook is
+	// sent.
 	UpdatePortalCustomer(context.Context, *v1.UpdatePortalCustomerRequest) (*v1.UpdatePortalCustomerResponse, error)
-	// Lists the customer's finalized invoices, newest first.
+	// Lists the customer's invoices, latest issuing date first.
 	ListPortalInvoices(context.Context, *v1.ListPortalInvoicesRequest) (*v1.ListPortalInvoicesResponse, error)
-	// Returns a signed URL of an invoice's PDF.
+	// Returns an invoice with its documents; a document not rendered yet is
+	// queued for rendering and left out. A draft cannot be downloaded
+	// (`is_draft`).
 	DownloadPortalInvoice(context.Context, *v1.DownloadPortalInvoiceRequest) (*v1.DownloadPortalInvoiceResponse, error)
-	// Lists the customer's active subscriptions.
+	// Lists the customer's subscriptions, most recent first.
 	ListPortalSubscriptions(context.Context, *v1.ListPortalSubscriptionsRequest) (*v1.ListPortalSubscriptionsResponse, error)
-	// Returns a subscription's usage in the current billing period.
+	// Returns one of the customer's subscriptions, whatever its status.
+	GetPortalSubscription(context.Context, *v1.GetPortalSubscriptionRequest) (*v1.GetPortalSubscriptionResponse, error)
+	// Returns an active subscription's usage in the current billing period,
+	// without taxes; a subscription that is not active is
+	// `no_active_subscription`.
 	GetPortalCurrentUsage(context.Context, *v1.GetPortalCurrentUsageRequest) (*v1.GetPortalCurrentUsageResponse, error)
-	// Lists the customer's active wallets.
+	// Lists the customer's wallets in the order invoices consume them:
+	// priority, then the earliest expiration (wallets without one last),
+	// then the oldest.
 	ListPortalWallets(context.Context, *v1.ListPortalWalletsRequest) (*v1.ListPortalWalletsResponse, error)
-	// Buys or requests credits for a wallet, within its paid top-up limits.
+	// Returns one of the customer's wallets.
+	GetPortalWallet(context.Context, *v1.GetPortalWalletRequest) (*v1.GetPortalWalletResponse, error)
+	// Buys credits for a wallet, within its paid top-up limits: the
+	// purchase is pending until its credit invoice is paid.
 	TopUpPortalWallet(context.Context, *v1.TopUpPortalWalletRequest) (*v1.TopUpPortalWalletResponse, error)
-	// Returns the customer's overdue balance per currency.
+	// Returns the customer's overdue balance per payment due month, in the
+	// customer's currency, every month since the organization's creation.
 	GetPortalOverdueBalance(context.Context, *v1.GetPortalOverdueBalanceRequest) (*v1.GetPortalOverdueBalanceResponse, error)
-	// Returns the customer's invoices per payment status.
+	// Returns the customer's finalized invoices per issuing month and
+	// payment status, in the customer's currency, every month since the
+	// organization's creation.
 	GetPortalInvoiceCollection(context.Context, *v1.GetPortalInvoiceCollectionRequest) (*v1.GetPortalInvoiceCollectionResponse, error)
-	// Requests payment of the customer's overdue invoices and returns the
-	// checkout URL.
-	PayPortalOverdueBalance(context.Context, *v1.PayPortalOverdueBalanceRequest) (*v1.PayPortalOverdueBalanceResponse, error)
 }
 
 // RegisterCustomerPortalServiceHandler registers svc as the tanvo.portal.v1.CustomerPortalService
@@ -238,12 +276,13 @@ func RegisterCustomerPortalServiceHandler(server *connect.Server, svc CustomerPo
 		connect.Method{Spec: customerPortalServiceListPortalInvoicesSpec(), Handler: adapter.listPortalInvoices},
 		connect.Method{Spec: customerPortalServiceDownloadPortalInvoiceSpec(), Handler: adapter.downloadPortalInvoice},
 		connect.Method{Spec: customerPortalServiceListPortalSubscriptionsSpec(), Handler: adapter.listPortalSubscriptions},
+		connect.Method{Spec: customerPortalServiceGetPortalSubscriptionSpec(), Handler: adapter.getPortalSubscription},
 		connect.Method{Spec: customerPortalServiceGetPortalCurrentUsageSpec(), Handler: adapter.getPortalCurrentUsage},
 		connect.Method{Spec: customerPortalServiceListPortalWalletsSpec(), Handler: adapter.listPortalWallets},
+		connect.Method{Spec: customerPortalServiceGetPortalWalletSpec(), Handler: adapter.getPortalWallet},
 		connect.Method{Spec: customerPortalServiceTopUpPortalWalletSpec(), Handler: adapter.topUpPortalWallet},
 		connect.Method{Spec: customerPortalServiceGetPortalOverdueBalanceSpec(), Handler: adapter.getPortalOverdueBalance},
 		connect.Method{Spec: customerPortalServiceGetPortalInvoiceCollectionSpec(), Handler: adapter.getPortalInvoiceCollection},
-		connect.Method{Spec: customerPortalServicePayPortalOverdueBalanceSpec(), Handler: adapter.payPortalOverdueBalance},
 	)
 }
 
@@ -274,12 +313,20 @@ func (UnimplementedCustomerPortalServiceHandler) ListPortalSubscriptions(context
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.portal.v1.CustomerPortalService.ListPortalSubscriptions is not implemented")
 }
 
+func (UnimplementedCustomerPortalServiceHandler) GetPortalSubscription(context.Context, *v1.GetPortalSubscriptionRequest) (*v1.GetPortalSubscriptionResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.portal.v1.CustomerPortalService.GetPortalSubscription is not implemented")
+}
+
 func (UnimplementedCustomerPortalServiceHandler) GetPortalCurrentUsage(context.Context, *v1.GetPortalCurrentUsageRequest) (*v1.GetPortalCurrentUsageResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.portal.v1.CustomerPortalService.GetPortalCurrentUsage is not implemented")
 }
 
 func (UnimplementedCustomerPortalServiceHandler) ListPortalWallets(context.Context, *v1.ListPortalWalletsRequest) (*v1.ListPortalWalletsResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.portal.v1.CustomerPortalService.ListPortalWallets is not implemented")
+}
+
+func (UnimplementedCustomerPortalServiceHandler) GetPortalWallet(context.Context, *v1.GetPortalWalletRequest) (*v1.GetPortalWalletResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.portal.v1.CustomerPortalService.GetPortalWallet is not implemented")
 }
 
 func (UnimplementedCustomerPortalServiceHandler) TopUpPortalWallet(context.Context, *v1.TopUpPortalWalletRequest) (*v1.TopUpPortalWalletResponse, error) {
@@ -292,10 +339,6 @@ func (UnimplementedCustomerPortalServiceHandler) GetPortalOverdueBalance(context
 
 func (UnimplementedCustomerPortalServiceHandler) GetPortalInvoiceCollection(context.Context, *v1.GetPortalInvoiceCollectionRequest) (*v1.GetPortalInvoiceCollectionResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.portal.v1.CustomerPortalService.GetPortalInvoiceCollection is not implemented")
-}
-
-func (UnimplementedCustomerPortalServiceHandler) PayPortalOverdueBalance(context.Context, *v1.PayPortalOverdueBalanceRequest) (*v1.PayPortalOverdueBalanceResponse, error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.portal.v1.CustomerPortalService.PayPortalOverdueBalance is not implemented")
 }
 
 type customerPortalServiceClient struct {
@@ -350,6 +393,14 @@ func (c *customerPortalServiceClient) ListPortalSubscriptions(ctx context.Contex
 	return &res, nil
 }
 
+func (c *customerPortalServiceClient) GetPortalSubscription(ctx context.Context, req *v1.GetPortalSubscriptionRequest) (*v1.GetPortalSubscriptionResponse, error) {
+	var res v1.GetPortalSubscriptionResponse
+	if err := c.client.CallUnary(ctx, customerPortalServiceGetPortalSubscriptionSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
 func (c *customerPortalServiceClient) GetPortalCurrentUsage(ctx context.Context, req *v1.GetPortalCurrentUsageRequest) (*v1.GetPortalCurrentUsageResponse, error) {
 	var res v1.GetPortalCurrentUsageResponse
 	if err := c.client.CallUnary(ctx, customerPortalServiceGetPortalCurrentUsageSpec(), req, &res); err != nil {
@@ -361,6 +412,14 @@ func (c *customerPortalServiceClient) GetPortalCurrentUsage(ctx context.Context,
 func (c *customerPortalServiceClient) ListPortalWallets(ctx context.Context, req *v1.ListPortalWalletsRequest) (*v1.ListPortalWalletsResponse, error) {
 	var res v1.ListPortalWalletsResponse
 	if err := c.client.CallUnary(ctx, customerPortalServiceListPortalWalletsSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *customerPortalServiceClient) GetPortalWallet(ctx context.Context, req *v1.GetPortalWalletRequest) (*v1.GetPortalWalletResponse, error) {
+	var res v1.GetPortalWalletResponse
+	if err := c.client.CallUnary(ctx, customerPortalServiceGetPortalWalletSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -385,14 +444,6 @@ func (c *customerPortalServiceClient) GetPortalOverdueBalance(ctx context.Contex
 func (c *customerPortalServiceClient) GetPortalInvoiceCollection(ctx context.Context, req *v1.GetPortalInvoiceCollectionRequest) (*v1.GetPortalInvoiceCollectionResponse, error) {
 	var res v1.GetPortalInvoiceCollectionResponse
 	if err := c.client.CallUnary(ctx, customerPortalServiceGetPortalInvoiceCollectionSpec(), req, &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
-func (c *customerPortalServiceClient) PayPortalOverdueBalance(ctx context.Context, req *v1.PayPortalOverdueBalanceRequest) (*v1.PayPortalOverdueBalanceResponse, error) {
-	var res v1.PayPortalOverdueBalanceResponse
-	if err := c.client.CallUnary(ctx, customerPortalServicePayPortalOverdueBalanceSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -472,6 +523,18 @@ func (h customerPortalServiceHandler) listPortalSubscriptions(ctx context.Contex
 	return stream.Send(res)
 }
 
+func (h customerPortalServiceHandler) getPortalSubscription(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetPortalSubscriptionRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetPortalSubscription(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
 func (h customerPortalServiceHandler) getPortalCurrentUsage(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
 	var req v1.GetPortalCurrentUsageRequest
 	if err := stream.Receive(&req); err != nil {
@@ -490,6 +553,18 @@ func (h customerPortalServiceHandler) listPortalWallets(ctx context.Context, _ c
 		return err
 	}
 	res, err := h.svc.ListPortalWallets(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h customerPortalServiceHandler) getPortalWallet(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.GetPortalWalletRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.GetPortalWallet(ctx, &req)
 	if err != nil {
 		return err
 	}
@@ -526,18 +601,6 @@ func (h customerPortalServiceHandler) getPortalInvoiceCollection(ctx context.Con
 		return err
 	}
 	res, err := h.svc.GetPortalInvoiceCollection(ctx, &req)
-	if err != nil {
-		return err
-	}
-	return stream.Send(res)
-}
-
-func (h customerPortalServiceHandler) payPortalOverdueBalance(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
-	var req v1.PayPortalOverdueBalanceRequest
-	if err := stream.Receive(&req); err != nil {
-		return err
-	}
-	res, err := h.svc.PayPortalOverdueBalance(ctx, &req)
 	if err != nil {
 		return err
 	}

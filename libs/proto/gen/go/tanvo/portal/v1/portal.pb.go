@@ -17,14 +17,15 @@ import (
 	v16 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/analytics/v1"
 	v11 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/common/v1"
 	v1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/customer/v1"
-	v12 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/invoice/v1"
-	v13 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/subscription/v1"
-	v14 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/usage/v1"
-	v15 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/wallet/v1"
+	v13 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/invoice/v1"
+	v14 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/subscription/v1"
+	v15 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/usage/v1"
+	v12 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/wallet/v1"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	fieldmaskpb "google.golang.org/protobuf/types/known/fieldmaskpb"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	unsafe "unsafe"
 )
@@ -36,17 +37,23 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// PortalOrganization is what the portal shows of the organization.
+// PortalOrganization is what the portal shows of the organization; the
+// currency, time zone and document settings are its default billing
+// entity's.
 type PortalOrganization struct {
-	state                          protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Name                *string                `protobuf:"bytes,1,opt,name=name"`
-	xxx_hidden_LogoUrl             *string                `protobuf:"bytes,2,opt,name=logo_url,json=logoUrl"`
-	xxx_hidden_DefaultCurrency     *string                `protobuf:"bytes,3,opt,name=default_currency,json=defaultCurrency"`
-	xxx_hidden_PremiumIntegrations []string               `protobuf:"bytes,4,rep,name=premium_integrations,json=premiumIntegrations"`
-	XXX_raceDetectHookData         protoimpl.RaceDetectHookData
-	XXX_presence                   [1]uint32
-	unknownFields                  protoimpl.UnknownFields
-	sizeCache                      protoimpl.SizeCache
+	state                             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id                     *string                `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Name                   *string                `protobuf:"bytes,2,opt,name=name"`
+	xxx_hidden_LogoUrl                *string                `protobuf:"bytes,3,opt,name=logo_url,json=logoUrl"`
+	xxx_hidden_DefaultCurrency        *string                `protobuf:"bytes,4,opt,name=default_currency,json=defaultCurrency"`
+	xxx_hidden_Timezone               *string                `protobuf:"bytes,5,opt,name=timezone"`
+	xxx_hidden_DocumentLocale         *string                `protobuf:"bytes,6,opt,name=document_locale,json=documentLocale"`
+	xxx_hidden_InvoiceFooter          *string                `protobuf:"bytes,7,opt,name=invoice_footer,json=invoiceFooter"`
+	xxx_hidden_InvoiceGracePeriodDays int32                  `protobuf:"varint,8,opt,name=invoice_grace_period_days,json=invoiceGracePeriodDays"`
+	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
+	XXX_presence                      [1]uint32
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *PortalOrganization) Reset() {
@@ -72,6 +79,16 @@ func (x *PortalOrganization) ProtoReflect() protoreflect.Message {
 		return ms
 	}
 	return mi.MessageOf(x)
+}
+
+func (x *PortalOrganization) GetId() string {
+	if x != nil {
+		if x.xxx_hidden_Id != nil {
+			return *x.xxx_hidden_Id
+		}
+		return ""
+	}
+	return ""
 }
 
 func (x *PortalOrganization) GetName() string {
@@ -104,98 +121,843 @@ func (x *PortalOrganization) GetDefaultCurrency() string {
 	return ""
 }
 
-func (x *PortalOrganization) GetPremiumIntegrations() []string {
+func (x *PortalOrganization) GetTimezone() string {
 	if x != nil {
-		return x.xxx_hidden_PremiumIntegrations
+		if x.xxx_hidden_Timezone != nil {
+			return *x.xxx_hidden_Timezone
+		}
+		return ""
 	}
-	return nil
+	return ""
+}
+
+func (x *PortalOrganization) GetDocumentLocale() string {
+	if x != nil {
+		if x.xxx_hidden_DocumentLocale != nil {
+			return *x.xxx_hidden_DocumentLocale
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalOrganization) GetInvoiceFooter() string {
+	if x != nil {
+		if x.xxx_hidden_InvoiceFooter != nil {
+			return *x.xxx_hidden_InvoiceFooter
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalOrganization) GetInvoiceGracePeriodDays() int32 {
+	if x != nil {
+		return x.xxx_hidden_InvoiceGracePeriodDays
+	}
+	return 0
+}
+
+func (x *PortalOrganization) SetId(v string) {
+	x.xxx_hidden_Id = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
 }
 
 func (x *PortalOrganization) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
 }
 
 func (x *PortalOrganization) SetLogoUrl(v string) {
 	x.xxx_hidden_LogoUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
 }
 
 func (x *PortalOrganization) SetDefaultCurrency(v string) {
 	x.xxx_hidden_DefaultCurrency = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
 }
 
-func (x *PortalOrganization) SetPremiumIntegrations(v []string) {
-	x.xxx_hidden_PremiumIntegrations = v
+func (x *PortalOrganization) SetTimezone(v string) {
+	x.xxx_hidden_Timezone = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
 }
 
-func (x *PortalOrganization) HasName() bool {
+func (x *PortalOrganization) SetDocumentLocale(v string) {
+	x.xxx_hidden_DocumentLocale = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 8)
+}
+
+func (x *PortalOrganization) SetInvoiceFooter(v string) {
+	x.xxx_hidden_InvoiceFooter = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+}
+
+func (x *PortalOrganization) SetInvoiceGracePeriodDays(v int32) {
+	x.xxx_hidden_InvoiceGracePeriodDays = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
+}
+
+func (x *PortalOrganization) HasId() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *PortalOrganization) HasLogoUrl() bool {
+func (x *PortalOrganization) HasName() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *PortalOrganization) HasDefaultCurrency() bool {
+func (x *PortalOrganization) HasLogoUrl() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
-func (x *PortalOrganization) ClearName() {
+func (x *PortalOrganization) HasDefaultCurrency() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *PortalOrganization) HasTimezone() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *PortalOrganization) HasDocumentLocale() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *PortalOrganization) HasInvoiceFooter() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *PortalOrganization) HasInvoiceGracePeriodDays() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
+func (x *PortalOrganization) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = nil
+}
+
+func (x *PortalOrganization) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
 	x.xxx_hidden_Name = nil
 }
 
 func (x *PortalOrganization) ClearLogoUrl() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
 	x.xxx_hidden_LogoUrl = nil
 }
 
 func (x *PortalOrganization) ClearDefaultCurrency() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
 	x.xxx_hidden_DefaultCurrency = nil
+}
+
+func (x *PortalOrganization) ClearTimezone() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Timezone = nil
+}
+
+func (x *PortalOrganization) ClearDocumentLocale() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_DocumentLocale = nil
+}
+
+func (x *PortalOrganization) ClearInvoiceFooter() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_InvoiceFooter = nil
+}
+
+func (x *PortalOrganization) ClearInvoiceGracePeriodDays() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_InvoiceGracePeriodDays = 0
 }
 
 type PortalOrganization_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// The organization's ID.
+	Id *string
 	// The name.
 	Name *string
 	// The logo URL.
 	LogoUrl *string
 	// The default currency.
 	DefaultCurrency *string
-	// The premium portal features enabled.
-	PremiumIntegrations []string
+	// The time zone (IANA).
+	Timezone *string
+	// The document locale (BCP 47).
+	DocumentLocale *string
+	// The invoice footer.
+	InvoiceFooter *string
+	// The invoice grace period, in days.
+	InvoiceGracePeriodDays *int32
 }
 
 func (b0 PortalOrganization_builder) Build() *PortalOrganization {
 	m0 := &PortalOrganization{}
 	b, x := &b0, m0
 	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
+		x.xxx_hidden_Id = b.Id
+	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.LogoUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
 		x.xxx_hidden_LogoUrl = b.LogoUrl
 	}
 	if b.DefaultCurrency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
 		x.xxx_hidden_DefaultCurrency = b.DefaultCurrency
 	}
-	x.xxx_hidden_PremiumIntegrations = b.PremiumIntegrations
+	if b.Timezone != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
+		x.xxx_hidden_Timezone = b.Timezone
+	}
+	if b.DocumentLocale != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 8)
+		x.xxx_hidden_DocumentLocale = b.DocumentLocale
+	}
+	if b.InvoiceFooter != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
+		x.xxx_hidden_InvoiceFooter = b.InvoiceFooter
+	}
+	if b.InvoiceGracePeriodDays != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		x.xxx_hidden_InvoiceGracePeriodDays = *b.InvoiceGracePeriodDays
+	}
+	return m0
+}
+
+// PortalCustomer is what the portal shows of the customer.
+type PortalCustomer struct {
+	state                                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id                          *string                `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_AccountType                 v1.AccountType         `protobuf:"varint,2,opt,name=account_type,json=accountType,enum=tanvo.customer.v1.AccountType"`
+	xxx_hidden_CustomerType                v1.CustomerType        `protobuf:"varint,3,opt,name=customer_type,json=customerType,enum=tanvo.customer.v1.CustomerType"`
+	xxx_hidden_DisplayName                 *string                `protobuf:"bytes,4,opt,name=display_name,json=displayName"`
+	xxx_hidden_Name                        *string                `protobuf:"bytes,5,opt,name=name"`
+	xxx_hidden_Firstname                   *string                `protobuf:"bytes,6,opt,name=firstname"`
+	xxx_hidden_Lastname                    *string                `protobuf:"bytes,7,opt,name=lastname"`
+	xxx_hidden_LegalName                   *string                `protobuf:"bytes,8,opt,name=legal_name,json=legalName"`
+	xxx_hidden_LegalNumber                 *string                `protobuf:"bytes,9,opt,name=legal_number,json=legalNumber"`
+	xxx_hidden_TaxIdentificationNumber     *string                `protobuf:"bytes,10,opt,name=tax_identification_number,json=taxIdentificationNumber"`
+	xxx_hidden_Email                       *string                `protobuf:"bytes,11,opt,name=email"`
+	xxx_hidden_BillingAddress              *v11.Address           `protobuf:"bytes,12,opt,name=billing_address,json=billingAddress"`
+	xxx_hidden_ShippingAddress             *v11.Address           `protobuf:"bytes,13,opt,name=shipping_address,json=shippingAddress"`
+	xxx_hidden_Currency                    *string                `protobuf:"bytes,14,opt,name=currency"`
+	xxx_hidden_ApplicableTimezone          *string                `protobuf:"bytes,15,opt,name=applicable_timezone,json=applicableTimezone"`
+	xxx_hidden_DocumentLocale              *string                `protobuf:"bytes,16,opt,name=document_locale,json=documentLocale"`
+	xxx_hidden_BillingEntityDocumentLocale *string                `protobuf:"bytes,17,opt,name=billing_entity_document_locale,json=billingEntityDocumentLocale"`
+	XXX_raceDetectHookData                 protoimpl.RaceDetectHookData
+	XXX_presence                           [1]uint32
+	unknownFields                          protoimpl.UnknownFields
+	sizeCache                              protoimpl.SizeCache
+}
+
+func (x *PortalCustomer) Reset() {
+	*x = PortalCustomer{}
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PortalCustomer) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PortalCustomer) ProtoMessage() {}
+
+func (x *PortalCustomer) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *PortalCustomer) GetId() string {
+	if x != nil {
+		if x.xxx_hidden_Id != nil {
+			return *x.xxx_hidden_Id
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalCustomer) GetAccountType() v1.AccountType {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 1) {
+			return x.xxx_hidden_AccountType
+		}
+	}
+	return v1.AccountType(0)
+}
+
+func (x *PortalCustomer) GetCustomerType() v1.CustomerType {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 2) {
+			return x.xxx_hidden_CustomerType
+		}
+	}
+	return v1.CustomerType(0)
+}
+
+func (x *PortalCustomer) GetDisplayName() string {
+	if x != nil {
+		if x.xxx_hidden_DisplayName != nil {
+			return *x.xxx_hidden_DisplayName
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalCustomer) GetName() string {
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalCustomer) GetFirstname() string {
+	if x != nil {
+		if x.xxx_hidden_Firstname != nil {
+			return *x.xxx_hidden_Firstname
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalCustomer) GetLastname() string {
+	if x != nil {
+		if x.xxx_hidden_Lastname != nil {
+			return *x.xxx_hidden_Lastname
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalCustomer) GetLegalName() string {
+	if x != nil {
+		if x.xxx_hidden_LegalName != nil {
+			return *x.xxx_hidden_LegalName
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalCustomer) GetLegalNumber() string {
+	if x != nil {
+		if x.xxx_hidden_LegalNumber != nil {
+			return *x.xxx_hidden_LegalNumber
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalCustomer) GetTaxIdentificationNumber() string {
+	if x != nil {
+		if x.xxx_hidden_TaxIdentificationNumber != nil {
+			return *x.xxx_hidden_TaxIdentificationNumber
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalCustomer) GetEmail() string {
+	if x != nil {
+		if x.xxx_hidden_Email != nil {
+			return *x.xxx_hidden_Email
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalCustomer) GetBillingAddress() *v11.Address {
+	if x != nil {
+		return x.xxx_hidden_BillingAddress
+	}
+	return nil
+}
+
+func (x *PortalCustomer) GetShippingAddress() *v11.Address {
+	if x != nil {
+		return x.xxx_hidden_ShippingAddress
+	}
+	return nil
+}
+
+func (x *PortalCustomer) GetCurrency() string {
+	if x != nil {
+		if x.xxx_hidden_Currency != nil {
+			return *x.xxx_hidden_Currency
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalCustomer) GetApplicableTimezone() string {
+	if x != nil {
+		if x.xxx_hidden_ApplicableTimezone != nil {
+			return *x.xxx_hidden_ApplicableTimezone
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalCustomer) GetDocumentLocale() string {
+	if x != nil {
+		if x.xxx_hidden_DocumentLocale != nil {
+			return *x.xxx_hidden_DocumentLocale
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalCustomer) GetBillingEntityDocumentLocale() string {
+	if x != nil {
+		if x.xxx_hidden_BillingEntityDocumentLocale != nil {
+			return *x.xxx_hidden_BillingEntityDocumentLocale
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalCustomer) SetId(v string) {
+	x.xxx_hidden_Id = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 17)
+}
+
+func (x *PortalCustomer) SetAccountType(v v1.AccountType) {
+	x.xxx_hidden_AccountType = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 17)
+}
+
+func (x *PortalCustomer) SetCustomerType(v v1.CustomerType) {
+	x.xxx_hidden_CustomerType = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 17)
+}
+
+func (x *PortalCustomer) SetDisplayName(v string) {
+	x.xxx_hidden_DisplayName = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 17)
+}
+
+func (x *PortalCustomer) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 17)
+}
+
+func (x *PortalCustomer) SetFirstname(v string) {
+	x.xxx_hidden_Firstname = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 17)
+}
+
+func (x *PortalCustomer) SetLastname(v string) {
+	x.xxx_hidden_Lastname = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 17)
+}
+
+func (x *PortalCustomer) SetLegalName(v string) {
+	x.xxx_hidden_LegalName = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 17)
+}
+
+func (x *PortalCustomer) SetLegalNumber(v string) {
+	x.xxx_hidden_LegalNumber = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 17)
+}
+
+func (x *PortalCustomer) SetTaxIdentificationNumber(v string) {
+	x.xxx_hidden_TaxIdentificationNumber = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 17)
+}
+
+func (x *PortalCustomer) SetEmail(v string) {
+	x.xxx_hidden_Email = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 17)
+}
+
+func (x *PortalCustomer) SetBillingAddress(v *v11.Address) {
+	x.xxx_hidden_BillingAddress = v
+}
+
+func (x *PortalCustomer) SetShippingAddress(v *v11.Address) {
+	x.xxx_hidden_ShippingAddress = v
+}
+
+func (x *PortalCustomer) SetCurrency(v string) {
+	x.xxx_hidden_Currency = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 17)
+}
+
+func (x *PortalCustomer) SetApplicableTimezone(v string) {
+	x.xxx_hidden_ApplicableTimezone = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 17)
+}
+
+func (x *PortalCustomer) SetDocumentLocale(v string) {
+	x.xxx_hidden_DocumentLocale = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 17)
+}
+
+func (x *PortalCustomer) SetBillingEntityDocumentLocale(v string) {
+	x.xxx_hidden_BillingEntityDocumentLocale = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 17)
+}
+
+func (x *PortalCustomer) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *PortalCustomer) HasAccountType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *PortalCustomer) HasCustomerType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *PortalCustomer) HasDisplayName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *PortalCustomer) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *PortalCustomer) HasFirstname() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *PortalCustomer) HasLastname() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *PortalCustomer) HasLegalName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
+func (x *PortalCustomer) HasLegalNumber() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
+}
+
+func (x *PortalCustomer) HasTaxIdentificationNumber() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
+}
+
+func (x *PortalCustomer) HasEmail() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
+}
+
+func (x *PortalCustomer) HasBillingAddress() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_BillingAddress != nil
+}
+
+func (x *PortalCustomer) HasShippingAddress() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ShippingAddress != nil
+}
+
+func (x *PortalCustomer) HasCurrency() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 13)
+}
+
+func (x *PortalCustomer) HasApplicableTimezone() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 14)
+}
+
+func (x *PortalCustomer) HasDocumentLocale() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 15)
+}
+
+func (x *PortalCustomer) HasBillingEntityDocumentLocale() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 16)
+}
+
+func (x *PortalCustomer) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = nil
+}
+
+func (x *PortalCustomer) ClearAccountType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_AccountType = v1.AccountType_ACCOUNT_TYPE_UNSPECIFIED
+}
+
+func (x *PortalCustomer) ClearCustomerType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_CustomerType = v1.CustomerType_CUSTOMER_TYPE_UNSPECIFIED
+}
+
+func (x *PortalCustomer) ClearDisplayName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_DisplayName = nil
+}
+
+func (x *PortalCustomer) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *PortalCustomer) ClearFirstname() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_Firstname = nil
+}
+
+func (x *PortalCustomer) ClearLastname() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_Lastname = nil
+}
+
+func (x *PortalCustomer) ClearLegalName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_LegalName = nil
+}
+
+func (x *PortalCustomer) ClearLegalNumber() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 8)
+	x.xxx_hidden_LegalNumber = nil
+}
+
+func (x *PortalCustomer) ClearTaxIdentificationNumber() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	x.xxx_hidden_TaxIdentificationNumber = nil
+}
+
+func (x *PortalCustomer) ClearEmail() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	x.xxx_hidden_Email = nil
+}
+
+func (x *PortalCustomer) ClearBillingAddress() {
+	x.xxx_hidden_BillingAddress = nil
+}
+
+func (x *PortalCustomer) ClearShippingAddress() {
+	x.xxx_hidden_ShippingAddress = nil
+}
+
+func (x *PortalCustomer) ClearCurrency() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
+	x.xxx_hidden_Currency = nil
+}
+
+func (x *PortalCustomer) ClearApplicableTimezone() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 14)
+	x.xxx_hidden_ApplicableTimezone = nil
+}
+
+func (x *PortalCustomer) ClearDocumentLocale() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 15)
+	x.xxx_hidden_DocumentLocale = nil
+}
+
+func (x *PortalCustomer) ClearBillingEntityDocumentLocale() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 16)
+	x.xxx_hidden_BillingEntityDocumentLocale = nil
+}
+
+type PortalCustomer_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The customer's ID.
+	Id *string
+	// The account type.
+	AccountType *v1.AccountType
+	// The customer type.
+	CustomerType *v1.CustomerType
+	// The display name: the legal name, else the name, followed by the
+	// first and last names.
+	DisplayName *string
+	// The display name.
+	Name *string
+	// The first name.
+	Firstname *string
+	// The last name.
+	Lastname *string
+	// The legal name.
+	LegalName *string
+	// The registration number.
+	LegalNumber *string
+	// The tax identification number.
+	TaxIdentificationNumber *string
+	// The email addresses, comma separated.
+	Email *string
+	// The billing address.
+	BillingAddress *v11.Address
+	// The shipping address.
+	ShippingAddress *v11.Address
+	// The currency.
+	Currency *string
+	// The applicable time zone: the customer's, else its billing entity's.
+	ApplicableTimezone *string
+	// The customer's own document locale (BCP 47).
+	DocumentLocale *string
+	// The document locale of the customer's billing entity.
+	BillingEntityDocumentLocale *string
+}
+
+func (b0 PortalCustomer_builder) Build() *PortalCustomer {
+	m0 := &PortalCustomer{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 17)
+		x.xxx_hidden_Id = b.Id
+	}
+	if b.AccountType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 17)
+		x.xxx_hidden_AccountType = *b.AccountType
+	}
+	if b.CustomerType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 17)
+		x.xxx_hidden_CustomerType = *b.CustomerType
+	}
+	if b.DisplayName != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 17)
+		x.xxx_hidden_DisplayName = b.DisplayName
+	}
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 17)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.Firstname != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 17)
+		x.xxx_hidden_Firstname = b.Firstname
+	}
+	if b.Lastname != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 17)
+		x.xxx_hidden_Lastname = b.Lastname
+	}
+	if b.LegalName != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 17)
+		x.xxx_hidden_LegalName = b.LegalName
+	}
+	if b.LegalNumber != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 17)
+		x.xxx_hidden_LegalNumber = b.LegalNumber
+	}
+	if b.TaxIdentificationNumber != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 17)
+		x.xxx_hidden_TaxIdentificationNumber = b.TaxIdentificationNumber
+	}
+	if b.Email != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 17)
+		x.xxx_hidden_Email = b.Email
+	}
+	x.xxx_hidden_BillingAddress = b.BillingAddress
+	x.xxx_hidden_ShippingAddress = b.ShippingAddress
+	if b.Currency != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 17)
+		x.xxx_hidden_Currency = b.Currency
+	}
+	if b.ApplicableTimezone != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 17)
+		x.xxx_hidden_ApplicableTimezone = b.ApplicableTimezone
+	}
+	if b.DocumentLocale != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 17)
+		x.xxx_hidden_DocumentLocale = b.DocumentLocale
+	}
+	if b.BillingEntityDocumentLocale != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 17)
+		x.xxx_hidden_BillingEntityDocumentLocale = b.BillingEntityDocumentLocale
+	}
 	return m0
 }
 
@@ -220,7 +982,7 @@ type PortalProfile struct {
 
 func (x *PortalProfile) Reset() {
 	*x = PortalProfile{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[1]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -232,7 +994,7 @@ func (x *PortalProfile) String() string {
 func (*PortalProfile) ProtoMessage() {}
 
 func (x *PortalProfile) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[1]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -568,6 +1330,1024 @@ func (b0 PortalProfile_builder) Build() *PortalProfile {
 	return m0
 }
 
+// PortalWallet is what the portal shows of a wallet.
+type PortalWallet struct {
+	state                                protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id                        *string                `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Code                      *string                `protobuf:"bytes,2,opt,name=code"`
+	xxx_hidden_Name                      *string                `protobuf:"bytes,3,opt,name=name"`
+	xxx_hidden_Status                    v12.WalletStatus       `protobuf:"varint,4,opt,name=status,enum=tanvo.wallet.v1.WalletStatus"`
+	xxx_hidden_Currency                  *string                `protobuf:"bytes,5,opt,name=currency"`
+	xxx_hidden_RateAmount                *string                `protobuf:"bytes,6,opt,name=rate_amount,json=rateAmount"`
+	xxx_hidden_Priority                  int32                  `protobuf:"varint,7,opt,name=priority"`
+	xxx_hidden_ExpiresAt                 *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=expires_at,json=expiresAt"`
+	xxx_hidden_BalanceAmount             *v11.Money             `protobuf:"bytes,9,opt,name=balance_amount,json=balanceAmount"`
+	xxx_hidden_CreditsBalance            *string                `protobuf:"bytes,10,opt,name=credits_balance,json=creditsBalance"`
+	xxx_hidden_OngoingBalanceAmount      *v11.Money             `protobuf:"bytes,11,opt,name=ongoing_balance_amount,json=ongoingBalanceAmount"`
+	xxx_hidden_CreditsOngoingBalance     *string                `protobuf:"bytes,12,opt,name=credits_ongoing_balance,json=creditsOngoingBalance"`
+	xxx_hidden_OngoingUsageBalanceAmount *v11.Money             `protobuf:"bytes,13,opt,name=ongoing_usage_balance_amount,json=ongoingUsageBalanceAmount"`
+	xxx_hidden_ConsumedAmount            *v11.Money             `protobuf:"bytes,14,opt,name=consumed_amount,json=consumedAmount"`
+	xxx_hidden_ConsumedCredits           *string                `protobuf:"bytes,15,opt,name=consumed_credits,json=consumedCredits"`
+	xxx_hidden_PaidTopUpMinAmount        *string                `protobuf:"bytes,16,opt,name=paid_top_up_min_amount,json=paidTopUpMinAmount"`
+	xxx_hidden_PaidTopUpMinCredits       *string                `protobuf:"bytes,17,opt,name=paid_top_up_min_credits,json=paidTopUpMinCredits"`
+	xxx_hidden_PaidTopUpMaxAmount        *string                `protobuf:"bytes,18,opt,name=paid_top_up_max_amount,json=paidTopUpMaxAmount"`
+	xxx_hidden_PaidTopUpMaxCredits       *string                `protobuf:"bytes,19,opt,name=paid_top_up_max_credits,json=paidTopUpMaxCredits"`
+	xxx_hidden_LastBalanceSyncAt         *timestamppb.Timestamp `protobuf:"bytes,20,opt,name=last_balance_sync_at,json=lastBalanceSyncAt"`
+	XXX_raceDetectHookData               protoimpl.RaceDetectHookData
+	XXX_presence                         [1]uint32
+	unknownFields                        protoimpl.UnknownFields
+	sizeCache                            protoimpl.SizeCache
+}
+
+func (x *PortalWallet) Reset() {
+	*x = PortalWallet{}
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PortalWallet) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PortalWallet) ProtoMessage() {}
+
+func (x *PortalWallet) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *PortalWallet) GetId() string {
+	if x != nil {
+		if x.xxx_hidden_Id != nil {
+			return *x.xxx_hidden_Id
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalWallet) GetCode() string {
+	if x != nil {
+		if x.xxx_hidden_Code != nil {
+			return *x.xxx_hidden_Code
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalWallet) GetName() string {
+	if x != nil {
+		if x.xxx_hidden_Name != nil {
+			return *x.xxx_hidden_Name
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalWallet) GetStatus() v12.WalletStatus {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 3) {
+			return x.xxx_hidden_Status
+		}
+	}
+	return v12.WalletStatus(0)
+}
+
+func (x *PortalWallet) GetCurrency() string {
+	if x != nil {
+		if x.xxx_hidden_Currency != nil {
+			return *x.xxx_hidden_Currency
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalWallet) GetRateAmount() string {
+	if x != nil {
+		if x.xxx_hidden_RateAmount != nil {
+			return *x.xxx_hidden_RateAmount
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalWallet) GetPriority() int32 {
+	if x != nil {
+		return x.xxx_hidden_Priority
+	}
+	return 0
+}
+
+func (x *PortalWallet) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_ExpiresAt
+	}
+	return nil
+}
+
+func (x *PortalWallet) GetBalanceAmount() *v11.Money {
+	if x != nil {
+		return x.xxx_hidden_BalanceAmount
+	}
+	return nil
+}
+
+func (x *PortalWallet) GetCreditsBalance() string {
+	if x != nil {
+		if x.xxx_hidden_CreditsBalance != nil {
+			return *x.xxx_hidden_CreditsBalance
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalWallet) GetOngoingBalanceAmount() *v11.Money {
+	if x != nil {
+		return x.xxx_hidden_OngoingBalanceAmount
+	}
+	return nil
+}
+
+func (x *PortalWallet) GetCreditsOngoingBalance() string {
+	if x != nil {
+		if x.xxx_hidden_CreditsOngoingBalance != nil {
+			return *x.xxx_hidden_CreditsOngoingBalance
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalWallet) GetOngoingUsageBalanceAmount() *v11.Money {
+	if x != nil {
+		return x.xxx_hidden_OngoingUsageBalanceAmount
+	}
+	return nil
+}
+
+func (x *PortalWallet) GetConsumedAmount() *v11.Money {
+	if x != nil {
+		return x.xxx_hidden_ConsumedAmount
+	}
+	return nil
+}
+
+func (x *PortalWallet) GetConsumedCredits() string {
+	if x != nil {
+		if x.xxx_hidden_ConsumedCredits != nil {
+			return *x.xxx_hidden_ConsumedCredits
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalWallet) GetPaidTopUpMinAmount() string {
+	if x != nil {
+		if x.xxx_hidden_PaidTopUpMinAmount != nil {
+			return *x.xxx_hidden_PaidTopUpMinAmount
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalWallet) GetPaidTopUpMinCredits() string {
+	if x != nil {
+		if x.xxx_hidden_PaidTopUpMinCredits != nil {
+			return *x.xxx_hidden_PaidTopUpMinCredits
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalWallet) GetPaidTopUpMaxAmount() string {
+	if x != nil {
+		if x.xxx_hidden_PaidTopUpMaxAmount != nil {
+			return *x.xxx_hidden_PaidTopUpMaxAmount
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalWallet) GetPaidTopUpMaxCredits() string {
+	if x != nil {
+		if x.xxx_hidden_PaidTopUpMaxCredits != nil {
+			return *x.xxx_hidden_PaidTopUpMaxCredits
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalWallet) GetLastBalanceSyncAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_LastBalanceSyncAt
+	}
+	return nil
+}
+
+func (x *PortalWallet) SetId(v string) {
+	x.xxx_hidden_Id = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 20)
+}
+
+func (x *PortalWallet) SetCode(v string) {
+	x.xxx_hidden_Code = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 20)
+}
+
+func (x *PortalWallet) SetName(v string) {
+	x.xxx_hidden_Name = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 20)
+}
+
+func (x *PortalWallet) SetStatus(v v12.WalletStatus) {
+	x.xxx_hidden_Status = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 20)
+}
+
+func (x *PortalWallet) SetCurrency(v string) {
+	x.xxx_hidden_Currency = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 20)
+}
+
+func (x *PortalWallet) SetRateAmount(v string) {
+	x.xxx_hidden_RateAmount = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 20)
+}
+
+func (x *PortalWallet) SetPriority(v int32) {
+	x.xxx_hidden_Priority = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 20)
+}
+
+func (x *PortalWallet) SetExpiresAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_ExpiresAt = v
+}
+
+func (x *PortalWallet) SetBalanceAmount(v *v11.Money) {
+	x.xxx_hidden_BalanceAmount = v
+}
+
+func (x *PortalWallet) SetCreditsBalance(v string) {
+	x.xxx_hidden_CreditsBalance = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 20)
+}
+
+func (x *PortalWallet) SetOngoingBalanceAmount(v *v11.Money) {
+	x.xxx_hidden_OngoingBalanceAmount = v
+}
+
+func (x *PortalWallet) SetCreditsOngoingBalance(v string) {
+	x.xxx_hidden_CreditsOngoingBalance = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 20)
+}
+
+func (x *PortalWallet) SetOngoingUsageBalanceAmount(v *v11.Money) {
+	x.xxx_hidden_OngoingUsageBalanceAmount = v
+}
+
+func (x *PortalWallet) SetConsumedAmount(v *v11.Money) {
+	x.xxx_hidden_ConsumedAmount = v
+}
+
+func (x *PortalWallet) SetConsumedCredits(v string) {
+	x.xxx_hidden_ConsumedCredits = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 20)
+}
+
+func (x *PortalWallet) SetPaidTopUpMinAmount(v string) {
+	x.xxx_hidden_PaidTopUpMinAmount = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 20)
+}
+
+func (x *PortalWallet) SetPaidTopUpMinCredits(v string) {
+	x.xxx_hidden_PaidTopUpMinCredits = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 20)
+}
+
+func (x *PortalWallet) SetPaidTopUpMaxAmount(v string) {
+	x.xxx_hidden_PaidTopUpMaxAmount = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 20)
+}
+
+func (x *PortalWallet) SetPaidTopUpMaxCredits(v string) {
+	x.xxx_hidden_PaidTopUpMaxCredits = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 20)
+}
+
+func (x *PortalWallet) SetLastBalanceSyncAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_LastBalanceSyncAt = v
+}
+
+func (x *PortalWallet) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *PortalWallet) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *PortalWallet) HasName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *PortalWallet) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *PortalWallet) HasCurrency() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *PortalWallet) HasRateAmount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *PortalWallet) HasPriority() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *PortalWallet) HasExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ExpiresAt != nil
+}
+
+func (x *PortalWallet) HasBalanceAmount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_BalanceAmount != nil
+}
+
+func (x *PortalWallet) HasCreditsBalance() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
+}
+
+func (x *PortalWallet) HasOngoingBalanceAmount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_OngoingBalanceAmount != nil
+}
+
+func (x *PortalWallet) HasCreditsOngoingBalance() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
+}
+
+func (x *PortalWallet) HasOngoingUsageBalanceAmount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_OngoingUsageBalanceAmount != nil
+}
+
+func (x *PortalWallet) HasConsumedAmount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ConsumedAmount != nil
+}
+
+func (x *PortalWallet) HasConsumedCredits() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 14)
+}
+
+func (x *PortalWallet) HasPaidTopUpMinAmount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 15)
+}
+
+func (x *PortalWallet) HasPaidTopUpMinCredits() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 16)
+}
+
+func (x *PortalWallet) HasPaidTopUpMaxAmount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 17)
+}
+
+func (x *PortalWallet) HasPaidTopUpMaxCredits() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 18)
+}
+
+func (x *PortalWallet) HasLastBalanceSyncAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LastBalanceSyncAt != nil
+}
+
+func (x *PortalWallet) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = nil
+}
+
+func (x *PortalWallet) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Code = nil
+}
+
+func (x *PortalWallet) ClearName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Name = nil
+}
+
+func (x *PortalWallet) ClearStatus() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Status = v12.WalletStatus_WALLET_STATUS_UNSPECIFIED
+}
+
+func (x *PortalWallet) ClearCurrency() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Currency = nil
+}
+
+func (x *PortalWallet) ClearRateAmount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_RateAmount = nil
+}
+
+func (x *PortalWallet) ClearPriority() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_Priority = 0
+}
+
+func (x *PortalWallet) ClearExpiresAt() {
+	x.xxx_hidden_ExpiresAt = nil
+}
+
+func (x *PortalWallet) ClearBalanceAmount() {
+	x.xxx_hidden_BalanceAmount = nil
+}
+
+func (x *PortalWallet) ClearCreditsBalance() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	x.xxx_hidden_CreditsBalance = nil
+}
+
+func (x *PortalWallet) ClearOngoingBalanceAmount() {
+	x.xxx_hidden_OngoingBalanceAmount = nil
+}
+
+func (x *PortalWallet) ClearCreditsOngoingBalance() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
+	x.xxx_hidden_CreditsOngoingBalance = nil
+}
+
+func (x *PortalWallet) ClearOngoingUsageBalanceAmount() {
+	x.xxx_hidden_OngoingUsageBalanceAmount = nil
+}
+
+func (x *PortalWallet) ClearConsumedAmount() {
+	x.xxx_hidden_ConsumedAmount = nil
+}
+
+func (x *PortalWallet) ClearConsumedCredits() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 14)
+	x.xxx_hidden_ConsumedCredits = nil
+}
+
+func (x *PortalWallet) ClearPaidTopUpMinAmount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 15)
+	x.xxx_hidden_PaidTopUpMinAmount = nil
+}
+
+func (x *PortalWallet) ClearPaidTopUpMinCredits() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 16)
+	x.xxx_hidden_PaidTopUpMinCredits = nil
+}
+
+func (x *PortalWallet) ClearPaidTopUpMaxAmount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 17)
+	x.xxx_hidden_PaidTopUpMaxAmount = nil
+}
+
+func (x *PortalWallet) ClearPaidTopUpMaxCredits() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 18)
+	x.xxx_hidden_PaidTopUpMaxCredits = nil
+}
+
+func (x *PortalWallet) ClearLastBalanceSyncAt() {
+	x.xxx_hidden_LastBalanceSyncAt = nil
+}
+
+type PortalWallet_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The wallet's ID.
+	Id *string
+	// The code.
+	Code *string
+	// The name.
+	Name *string
+	// The status.
+	Status *v12.WalletStatus
+	// The currency.
+	Currency *string
+	// The value of one credit, in currency units.
+	RateAmount *string
+	// The priority; the lowest is consumed first.
+	Priority *int32
+	// When the wallet expires.
+	ExpiresAt *timestamppb.Timestamp
+	// The balance.
+	BalanceAmount *v11.Money
+	// The balance in credits.
+	CreditsBalance *string
+	// The balance after the current usage.
+	OngoingBalanceAmount *v11.Money
+	// The ongoing balance in credits.
+	CreditsOngoingBalance *string
+	// The current usage counted against the wallet.
+	OngoingUsageBalanceAmount *v11.Money
+	// The amount consumed.
+	ConsumedAmount *v11.Money
+	// The credits consumed.
+	ConsumedCredits *string
+	// The minimum amount of a paid top-up, in currency units.
+	PaidTopUpMinAmount *string
+	// The minimum paid top-up in credits.
+	PaidTopUpMinCredits *string
+	// The maximum amount of a paid top-up, in currency units.
+	PaidTopUpMaxAmount *string
+	// The maximum paid top-up in credits.
+	PaidTopUpMaxCredits *string
+	// When the balance was last refreshed.
+	LastBalanceSyncAt *timestamppb.Timestamp
+}
+
+func (b0 PortalWallet_builder) Build() *PortalWallet {
+	m0 := &PortalWallet{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 20)
+		x.xxx_hidden_Id = b.Id
+	}
+	if b.Code != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 20)
+		x.xxx_hidden_Code = b.Code
+	}
+	if b.Name != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 20)
+		x.xxx_hidden_Name = b.Name
+	}
+	if b.Status != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 20)
+		x.xxx_hidden_Status = *b.Status
+	}
+	if b.Currency != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 20)
+		x.xxx_hidden_Currency = b.Currency
+	}
+	if b.RateAmount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 20)
+		x.xxx_hidden_RateAmount = b.RateAmount
+	}
+	if b.Priority != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 20)
+		x.xxx_hidden_Priority = *b.Priority
+	}
+	x.xxx_hidden_ExpiresAt = b.ExpiresAt
+	x.xxx_hidden_BalanceAmount = b.BalanceAmount
+	if b.CreditsBalance != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 20)
+		x.xxx_hidden_CreditsBalance = b.CreditsBalance
+	}
+	x.xxx_hidden_OngoingBalanceAmount = b.OngoingBalanceAmount
+	if b.CreditsOngoingBalance != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 20)
+		x.xxx_hidden_CreditsOngoingBalance = b.CreditsOngoingBalance
+	}
+	x.xxx_hidden_OngoingUsageBalanceAmount = b.OngoingUsageBalanceAmount
+	x.xxx_hidden_ConsumedAmount = b.ConsumedAmount
+	if b.ConsumedCredits != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 20)
+		x.xxx_hidden_ConsumedCredits = b.ConsumedCredits
+	}
+	if b.PaidTopUpMinAmount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 20)
+		x.xxx_hidden_PaidTopUpMinAmount = b.PaidTopUpMinAmount
+	}
+	if b.PaidTopUpMinCredits != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 20)
+		x.xxx_hidden_PaidTopUpMinCredits = b.PaidTopUpMinCredits
+	}
+	if b.PaidTopUpMaxAmount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 20)
+		x.xxx_hidden_PaidTopUpMaxAmount = b.PaidTopUpMaxAmount
+	}
+	if b.PaidTopUpMaxCredits != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 20)
+		x.xxx_hidden_PaidTopUpMaxCredits = b.PaidTopUpMaxCredits
+	}
+	x.xxx_hidden_LastBalanceSyncAt = b.LastBalanceSyncAt
+	return m0
+}
+
+// PortalWalletTransaction is what the portal shows of a wallet
+// transaction.
+type PortalWalletTransaction struct {
+	state                        protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id                *string                `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Wallet            *PortalWallet          `protobuf:"bytes,2,opt,name=wallet"`
+	xxx_hidden_TransactionType   v12.TransactionType    `protobuf:"varint,3,opt,name=transaction_type,json=transactionType,enum=tanvo.wallet.v1.TransactionType"`
+	xxx_hidden_TransactionStatus v12.TransactionStatus  `protobuf:"varint,4,opt,name=transaction_status,json=transactionStatus,enum=tanvo.wallet.v1.TransactionStatus"`
+	xxx_hidden_Status            v12.SettlementStatus   `protobuf:"varint,5,opt,name=status,enum=tanvo.wallet.v1.SettlementStatus"`
+	xxx_hidden_Amount            *v11.Money             `protobuf:"bytes,6,opt,name=amount"`
+	xxx_hidden_CreditAmount      *string                `protobuf:"bytes,7,opt,name=credit_amount,json=creditAmount"`
+	xxx_hidden_SettledAt         *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=settled_at,json=settledAt"`
+	xxx_hidden_CreatedAt         *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt         *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=updated_at,json=updatedAt"`
+	XXX_raceDetectHookData       protoimpl.RaceDetectHookData
+	XXX_presence                 [1]uint32
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
+}
+
+func (x *PortalWalletTransaction) Reset() {
+	*x = PortalWalletTransaction{}
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PortalWalletTransaction) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PortalWalletTransaction) ProtoMessage() {}
+
+func (x *PortalWalletTransaction) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *PortalWalletTransaction) GetId() string {
+	if x != nil {
+		if x.xxx_hidden_Id != nil {
+			return *x.xxx_hidden_Id
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalWalletTransaction) GetWallet() *PortalWallet {
+	if x != nil {
+		return x.xxx_hidden_Wallet
+	}
+	return nil
+}
+
+func (x *PortalWalletTransaction) GetTransactionType() v12.TransactionType {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 2) {
+			return x.xxx_hidden_TransactionType
+		}
+	}
+	return v12.TransactionType(0)
+}
+
+func (x *PortalWalletTransaction) GetTransactionStatus() v12.TransactionStatus {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 3) {
+			return x.xxx_hidden_TransactionStatus
+		}
+	}
+	return v12.TransactionStatus(0)
+}
+
+func (x *PortalWalletTransaction) GetStatus() v12.SettlementStatus {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 4) {
+			return x.xxx_hidden_Status
+		}
+	}
+	return v12.SettlementStatus(0)
+}
+
+func (x *PortalWalletTransaction) GetAmount() *v11.Money {
+	if x != nil {
+		return x.xxx_hidden_Amount
+	}
+	return nil
+}
+
+func (x *PortalWalletTransaction) GetCreditAmount() string {
+	if x != nil {
+		if x.xxx_hidden_CreditAmount != nil {
+			return *x.xxx_hidden_CreditAmount
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PortalWalletTransaction) GetSettledAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_SettledAt
+	}
+	return nil
+}
+
+func (x *PortalWalletTransaction) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
+	}
+	return nil
+}
+
+func (x *PortalWalletTransaction) GetUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_UpdatedAt
+	}
+	return nil
+}
+
+func (x *PortalWalletTransaction) SetId(v string) {
+	x.xxx_hidden_Id = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 10)
+}
+
+func (x *PortalWalletTransaction) SetWallet(v *PortalWallet) {
+	x.xxx_hidden_Wallet = v
+}
+
+func (x *PortalWalletTransaction) SetTransactionType(v v12.TransactionType) {
+	x.xxx_hidden_TransactionType = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 10)
+}
+
+func (x *PortalWalletTransaction) SetTransactionStatus(v v12.TransactionStatus) {
+	x.xxx_hidden_TransactionStatus = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 10)
+}
+
+func (x *PortalWalletTransaction) SetStatus(v v12.SettlementStatus) {
+	x.xxx_hidden_Status = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 10)
+}
+
+func (x *PortalWalletTransaction) SetAmount(v *v11.Money) {
+	x.xxx_hidden_Amount = v
+}
+
+func (x *PortalWalletTransaction) SetCreditAmount(v string) {
+	x.xxx_hidden_CreditAmount = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 10)
+}
+
+func (x *PortalWalletTransaction) SetSettledAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_SettledAt = v
+}
+
+func (x *PortalWalletTransaction) SetCreatedAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_CreatedAt = v
+}
+
+func (x *PortalWalletTransaction) SetUpdatedAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_UpdatedAt = v
+}
+
+func (x *PortalWalletTransaction) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *PortalWalletTransaction) HasWallet() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Wallet != nil
+}
+
+func (x *PortalWalletTransaction) HasTransactionType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *PortalWalletTransaction) HasTransactionStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *PortalWalletTransaction) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
+}
+
+func (x *PortalWalletTransaction) HasAmount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Amount != nil
+}
+
+func (x *PortalWalletTransaction) HasCreditAmount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *PortalWalletTransaction) HasSettledAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_SettledAt != nil
+}
+
+func (x *PortalWalletTransaction) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_CreatedAt != nil
+}
+
+func (x *PortalWalletTransaction) HasUpdatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_UpdatedAt != nil
+}
+
+func (x *PortalWalletTransaction) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = nil
+}
+
+func (x *PortalWalletTransaction) ClearWallet() {
+	x.xxx_hidden_Wallet = nil
+}
+
+func (x *PortalWalletTransaction) ClearTransactionType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_TransactionType = v12.TransactionType_TRANSACTION_TYPE_UNSPECIFIED
+}
+
+func (x *PortalWalletTransaction) ClearTransactionStatus() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_TransactionStatus = v12.TransactionStatus_TRANSACTION_STATUS_UNSPECIFIED
+}
+
+func (x *PortalWalletTransaction) ClearStatus() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
+	x.xxx_hidden_Status = v12.SettlementStatus_SETTLEMENT_STATUS_UNSPECIFIED
+}
+
+func (x *PortalWalletTransaction) ClearAmount() {
+	x.xxx_hidden_Amount = nil
+}
+
+func (x *PortalWalletTransaction) ClearCreditAmount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_CreditAmount = nil
+}
+
+func (x *PortalWalletTransaction) ClearSettledAt() {
+	x.xxx_hidden_SettledAt = nil
+}
+
+func (x *PortalWalletTransaction) ClearCreatedAt() {
+	x.xxx_hidden_CreatedAt = nil
+}
+
+func (x *PortalWalletTransaction) ClearUpdatedAt() {
+	x.xxx_hidden_UpdatedAt = nil
+}
+
+type PortalWalletTransaction_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The transaction's ID.
+	Id *string
+	// The wallet.
+	Wallet *PortalWallet
+	// The direction.
+	TransactionType *v12.TransactionType
+	// The kind of movement.
+	TransactionStatus *v12.TransactionStatus
+	// The settlement status.
+	Status *v12.SettlementStatus
+	// The monetary amount.
+	Amount *v11.Money
+	// The credits.
+	CreditAmount *string
+	// When the transaction was settled.
+	SettledAt *timestamppb.Timestamp
+	// When the transaction was created.
+	CreatedAt *timestamppb.Timestamp
+	// When the transaction last changed.
+	UpdatedAt *timestamppb.Timestamp
+}
+
+func (b0 PortalWalletTransaction_builder) Build() *PortalWalletTransaction {
+	m0 := &PortalWalletTransaction{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 10)
+		x.xxx_hidden_Id = b.Id
+	}
+	x.xxx_hidden_Wallet = b.Wallet
+	if b.TransactionType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 10)
+		x.xxx_hidden_TransactionType = *b.TransactionType
+	}
+	if b.TransactionStatus != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 10)
+		x.xxx_hidden_TransactionStatus = *b.TransactionStatus
+	}
+	if b.Status != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 10)
+		x.xxx_hidden_Status = *b.Status
+	}
+	x.xxx_hidden_Amount = b.Amount
+	if b.CreditAmount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 10)
+		x.xxx_hidden_CreditAmount = b.CreditAmount
+	}
+	x.xxx_hidden_SettledAt = b.SettledAt
+	x.xxx_hidden_CreatedAt = b.CreatedAt
+	x.xxx_hidden_UpdatedAt = b.UpdatedAt
+	return m0
+}
+
 // GetPortalOrganizationRequest is the request of CustomerPortalService.GetPortalOrganization.
 type GetPortalOrganizationRequest struct {
 	state         protoimpl.MessageState `protogen:"opaque.v1"`
@@ -577,7 +2357,7 @@ type GetPortalOrganizationRequest struct {
 
 func (x *GetPortalOrganizationRequest) Reset() {
 	*x = GetPortalOrganizationRequest{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[2]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -589,7 +2369,7 @@ func (x *GetPortalOrganizationRequest) String() string {
 func (*GetPortalOrganizationRequest) ProtoMessage() {}
 
 func (x *GetPortalOrganizationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[2]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -622,7 +2402,7 @@ type GetPortalOrganizationResponse struct {
 
 func (x *GetPortalOrganizationResponse) Reset() {
 	*x = GetPortalOrganizationResponse{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[3]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -634,7 +2414,7 @@ func (x *GetPortalOrganizationResponse) String() string {
 func (*GetPortalOrganizationResponse) ProtoMessage() {}
 
 func (x *GetPortalOrganizationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[3]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -691,7 +2471,7 @@ type GetPortalCustomerRequest struct {
 
 func (x *GetPortalCustomerRequest) Reset() {
 	*x = GetPortalCustomerRequest{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[4]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -703,7 +2483,7 @@ func (x *GetPortalCustomerRequest) String() string {
 func (*GetPortalCustomerRequest) ProtoMessage() {}
 
 func (x *GetPortalCustomerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[4]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -729,14 +2509,14 @@ func (b0 GetPortalCustomerRequest_builder) Build() *GetPortalCustomerRequest {
 // GetPortalCustomerResponse is the response of CustomerPortalService.GetPortalCustomer.
 type GetPortalCustomerResponse struct {
 	state               protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Customer *v1.Customer           `protobuf:"bytes,1,opt,name=customer"`
+	xxx_hidden_Customer *PortalCustomer        `protobuf:"bytes,1,opt,name=customer"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
 
 func (x *GetPortalCustomerResponse) Reset() {
 	*x = GetPortalCustomerResponse{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[5]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -748,7 +2528,7 @@ func (x *GetPortalCustomerResponse) String() string {
 func (*GetPortalCustomerResponse) ProtoMessage() {}
 
 func (x *GetPortalCustomerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[5]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -759,14 +2539,14 @@ func (x *GetPortalCustomerResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *GetPortalCustomerResponse) GetCustomer() *v1.Customer {
+func (x *GetPortalCustomerResponse) GetCustomer() *PortalCustomer {
 	if x != nil {
 		return x.xxx_hidden_Customer
 	}
 	return nil
 }
 
-func (x *GetPortalCustomerResponse) SetCustomer(v *v1.Customer) {
+func (x *GetPortalCustomerResponse) SetCustomer(v *PortalCustomer) {
 	x.xxx_hidden_Customer = v
 }
 
@@ -785,7 +2565,7 @@ type GetPortalCustomerResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	// The customer.
-	Customer *v1.Customer
+	Customer *PortalCustomer
 }
 
 func (b0 GetPortalCustomerResponse_builder) Build() *GetPortalCustomerResponse {
@@ -807,7 +2587,7 @@ type UpdatePortalCustomerRequest struct {
 
 func (x *UpdatePortalCustomerRequest) Reset() {
 	*x = UpdatePortalCustomerRequest{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[6]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -819,7 +2599,7 @@ func (x *UpdatePortalCustomerRequest) String() string {
 func (*UpdatePortalCustomerRequest) ProtoMessage() {}
 
 func (x *UpdatePortalCustomerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[6]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -895,14 +2675,14 @@ func (b0 UpdatePortalCustomerRequest_builder) Build() *UpdatePortalCustomerReque
 // UpdatePortalCustomerResponse is the response of CustomerPortalService.UpdatePortalCustomer.
 type UpdatePortalCustomerResponse struct {
 	state               protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Customer *v1.Customer           `protobuf:"bytes,1,opt,name=customer"`
+	xxx_hidden_Customer *PortalCustomer        `protobuf:"bytes,1,opt,name=customer"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
 
 func (x *UpdatePortalCustomerResponse) Reset() {
 	*x = UpdatePortalCustomerResponse{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[7]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -914,7 +2694,7 @@ func (x *UpdatePortalCustomerResponse) String() string {
 func (*UpdatePortalCustomerResponse) ProtoMessage() {}
 
 func (x *UpdatePortalCustomerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[7]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -925,14 +2705,14 @@ func (x *UpdatePortalCustomerResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *UpdatePortalCustomerResponse) GetCustomer() *v1.Customer {
+func (x *UpdatePortalCustomerResponse) GetCustomer() *PortalCustomer {
 	if x != nil {
 		return x.xxx_hidden_Customer
 	}
 	return nil
 }
 
-func (x *UpdatePortalCustomerResponse) SetCustomer(v *v1.Customer) {
+func (x *UpdatePortalCustomerResponse) SetCustomer(v *PortalCustomer) {
 	x.xxx_hidden_Customer = v
 }
 
@@ -951,7 +2731,7 @@ type UpdatePortalCustomerResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	// The updated customer.
-	Customer *v1.Customer
+	Customer *PortalCustomer
 }
 
 func (b0 UpdatePortalCustomerResponse_builder) Build() *UpdatePortalCustomerResponse {
@@ -977,7 +2757,7 @@ type ListPortalInvoicesRequest struct {
 
 func (x *ListPortalInvoicesRequest) Reset() {
 	*x = ListPortalInvoicesRequest{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[8]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -989,7 +2769,7 @@ func (x *ListPortalInvoicesRequest) String() string {
 func (*ListPortalInvoicesRequest) ProtoMessage() {}
 
 func (x *ListPortalInvoicesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[8]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1112,10 +2892,9 @@ type ListPortalInvoicesRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `payment_status`, `currency` and
-	// `issuing_date`.
+	// An AIP-160 filter over `status`; every listed status by default.
 	Filter *string
-	// A search over the number.
+	// A search over the number; a UUID also matches the invoice's ID.
 	Search *string
 }
 
@@ -1145,7 +2924,7 @@ func (b0 ListPortalInvoicesRequest_builder) Build() *ListPortalInvoicesRequest {
 // ListPortalInvoicesResponse is the response of CustomerPortalService.ListPortalInvoices.
 type ListPortalInvoicesResponse struct {
 	state                    protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Invoices      *[]*v12.Invoice        `protobuf:"bytes,1,rep,name=invoices"`
+	xxx_hidden_Invoices      *[]*v13.Invoice        `protobuf:"bytes,1,rep,name=invoices"`
 	xxx_hidden_NextPageToken *string                `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken"`
 	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
 	XXX_presence             [1]uint32
@@ -1155,7 +2934,7 @@ type ListPortalInvoicesResponse struct {
 
 func (x *ListPortalInvoicesResponse) Reset() {
 	*x = ListPortalInvoicesResponse{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[9]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1167,7 +2946,7 @@ func (x *ListPortalInvoicesResponse) String() string {
 func (*ListPortalInvoicesResponse) ProtoMessage() {}
 
 func (x *ListPortalInvoicesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[9]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1178,7 +2957,7 @@ func (x *ListPortalInvoicesResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *ListPortalInvoicesResponse) GetInvoices() []*v12.Invoice {
+func (x *ListPortalInvoicesResponse) GetInvoices() []*v13.Invoice {
 	if x != nil {
 		if x.xxx_hidden_Invoices != nil {
 			return *x.xxx_hidden_Invoices
@@ -1197,7 +2976,7 @@ func (x *ListPortalInvoicesResponse) GetNextPageToken() string {
 	return ""
 }
 
-func (x *ListPortalInvoicesResponse) SetInvoices(v []*v12.Invoice) {
+func (x *ListPortalInvoicesResponse) SetInvoices(v []*v13.Invoice) {
 	x.xxx_hidden_Invoices = &v
 }
 
@@ -1222,7 +3001,7 @@ type ListPortalInvoicesResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	// The invoices of this page.
-	Invoices []*v12.Invoice
+	Invoices []*v13.Invoice
 	// The token of the next page; empty on the last page.
 	NextPageToken *string
 }
@@ -1251,7 +3030,7 @@ type DownloadPortalInvoiceRequest struct {
 
 func (x *DownloadPortalInvoiceRequest) Reset() {
 	*x = DownloadPortalInvoiceRequest{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[10]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1263,7 +3042,7 @@ func (x *DownloadPortalInvoiceRequest) String() string {
 func (*DownloadPortalInvoiceRequest) ProtoMessage() {}
 
 func (x *DownloadPortalInvoiceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[10]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1321,15 +3100,17 @@ func (b0 DownloadPortalInvoiceRequest_builder) Build() *DownloadPortalInvoiceReq
 
 // DownloadPortalInvoiceResponse is the response of CustomerPortalService.DownloadPortalInvoice.
 type DownloadPortalInvoiceResponse struct {
-	state          protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Pdf *v11.Document          `protobuf:"bytes,1,opt,name=pdf"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state              protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Invoice *v13.Invoice           `protobuf:"bytes,1,opt,name=invoice"`
+	xxx_hidden_Pdf     *v11.Document          `protobuf:"bytes,2,opt,name=pdf"`
+	xxx_hidden_Xml     *v11.Document          `protobuf:"bytes,3,opt,name=xml"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *DownloadPortalInvoiceResponse) Reset() {
 	*x = DownloadPortalInvoiceResponse{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[11]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1341,7 +3122,7 @@ func (x *DownloadPortalInvoiceResponse) String() string {
 func (*DownloadPortalInvoiceResponse) ProtoMessage() {}
 
 func (x *DownloadPortalInvoiceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[11]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1352,6 +3133,13 @@ func (x *DownloadPortalInvoiceResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+func (x *DownloadPortalInvoiceResponse) GetInvoice() *v13.Invoice {
+	if x != nil {
+		return x.xxx_hidden_Invoice
+	}
+	return nil
+}
+
 func (x *DownloadPortalInvoiceResponse) GetPdf() *v11.Document {
 	if x != nil {
 		return x.xxx_hidden_Pdf
@@ -1359,8 +3147,30 @@ func (x *DownloadPortalInvoiceResponse) GetPdf() *v11.Document {
 	return nil
 }
 
+func (x *DownloadPortalInvoiceResponse) GetXml() *v11.Document {
+	if x != nil {
+		return x.xxx_hidden_Xml
+	}
+	return nil
+}
+
+func (x *DownloadPortalInvoiceResponse) SetInvoice(v *v13.Invoice) {
+	x.xxx_hidden_Invoice = v
+}
+
 func (x *DownloadPortalInvoiceResponse) SetPdf(v *v11.Document) {
 	x.xxx_hidden_Pdf = v
+}
+
+func (x *DownloadPortalInvoiceResponse) SetXml(v *v11.Document) {
+	x.xxx_hidden_Xml = v
+}
+
+func (x *DownloadPortalInvoiceResponse) HasInvoice() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Invoice != nil
 }
 
 func (x *DownloadPortalInvoiceResponse) HasPdf() bool {
@@ -1370,22 +3180,44 @@ func (x *DownloadPortalInvoiceResponse) HasPdf() bool {
 	return x.xxx_hidden_Pdf != nil
 }
 
+func (x *DownloadPortalInvoiceResponse) HasXml() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Xml != nil
+}
+
+func (x *DownloadPortalInvoiceResponse) ClearInvoice() {
+	x.xxx_hidden_Invoice = nil
+}
+
 func (x *DownloadPortalInvoiceResponse) ClearPdf() {
 	x.xxx_hidden_Pdf = nil
+}
+
+func (x *DownloadPortalInvoiceResponse) ClearXml() {
+	x.xxx_hidden_Xml = nil
 }
 
 type DownloadPortalInvoiceResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// The PDF.
+	// The invoice.
+	Invoice *v13.Invoice
+	// The PDF, once rendered.
 	Pdf *v11.Document
+	// The e-invoice XML, once rendered, when the billing entity has
+	// e-invoicing.
+	Xml *v11.Document
 }
 
 func (b0 DownloadPortalInvoiceResponse_builder) Build() *DownloadPortalInvoiceResponse {
 	m0 := &DownloadPortalInvoiceResponse{}
 	b, x := &b0, m0
 	_, _ = b, x
+	x.xxx_hidden_Invoice = b.Invoice
 	x.xxx_hidden_Pdf = b.Pdf
+	x.xxx_hidden_Xml = b.Xml
 	return m0
 }
 
@@ -1394,6 +3226,7 @@ type ListPortalSubscriptionsRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_PageSize    int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize"`
 	xxx_hidden_PageToken   *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken"`
+	xxx_hidden_Filter      *string                `protobuf:"bytes,3,opt,name=filter"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -1402,7 +3235,7 @@ type ListPortalSubscriptionsRequest struct {
 
 func (x *ListPortalSubscriptionsRequest) Reset() {
 	*x = ListPortalSubscriptionsRequest{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[12]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1414,7 +3247,7 @@ func (x *ListPortalSubscriptionsRequest) String() string {
 func (*ListPortalSubscriptionsRequest) ProtoMessage() {}
 
 func (x *ListPortalSubscriptionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[12]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1442,14 +3275,29 @@ func (x *ListPortalSubscriptionsRequest) GetPageToken() string {
 	return ""
 }
 
+func (x *ListPortalSubscriptionsRequest) GetFilter() string {
+	if x != nil {
+		if x.xxx_hidden_Filter != nil {
+			return *x.xxx_hidden_Filter
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *ListPortalSubscriptionsRequest) SetPageSize(v int32) {
 	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
 }
 
 func (x *ListPortalSubscriptionsRequest) SetPageToken(v string) {
 	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *ListPortalSubscriptionsRequest) SetFilter(v string) {
+	x.xxx_hidden_Filter = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
 func (x *ListPortalSubscriptionsRequest) HasPageSize() bool {
@@ -1466,6 +3314,13 @@ func (x *ListPortalSubscriptionsRequest) HasPageToken() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
+func (x *ListPortalSubscriptionsRequest) HasFilter() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
 func (x *ListPortalSubscriptionsRequest) ClearPageSize() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_PageSize = 0
@@ -1476,6 +3331,11 @@ func (x *ListPortalSubscriptionsRequest) ClearPageToken() {
 	x.xxx_hidden_PageToken = nil
 }
 
+func (x *ListPortalSubscriptionsRequest) ClearFilter() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Filter = nil
+}
+
 type ListPortalSubscriptionsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1483,6 +3343,9 @@ type ListPortalSubscriptionsRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
+	// An AIP-160 filter over `status`, `plan_code` and `currency` (the
+	// plan's); every status by default.
+	Filter *string
 }
 
 func (b0 ListPortalSubscriptionsRequest_builder) Build() *ListPortalSubscriptionsRequest {
@@ -1490,12 +3353,16 @@ func (b0 ListPortalSubscriptionsRequest_builder) Build() *ListPortalSubscription
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
 		x.xxx_hidden_PageSize = *b.PageSize
 	}
 	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
 		x.xxx_hidden_PageToken = b.PageToken
+	}
+	if b.Filter != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_Filter = b.Filter
 	}
 	return m0
 }
@@ -1503,7 +3370,7 @@ func (b0 ListPortalSubscriptionsRequest_builder) Build() *ListPortalSubscription
 // ListPortalSubscriptionsResponse is the response of CustomerPortalService.ListPortalSubscriptions.
 type ListPortalSubscriptionsResponse struct {
 	state                    protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Subscriptions *[]*v13.Subscription   `protobuf:"bytes,1,rep,name=subscriptions"`
+	xxx_hidden_Subscriptions *[]*v14.Subscription   `protobuf:"bytes,1,rep,name=subscriptions"`
 	xxx_hidden_NextPageToken *string                `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken"`
 	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
 	XXX_presence             [1]uint32
@@ -1513,7 +3380,7 @@ type ListPortalSubscriptionsResponse struct {
 
 func (x *ListPortalSubscriptionsResponse) Reset() {
 	*x = ListPortalSubscriptionsResponse{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[13]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1525,7 +3392,7 @@ func (x *ListPortalSubscriptionsResponse) String() string {
 func (*ListPortalSubscriptionsResponse) ProtoMessage() {}
 
 func (x *ListPortalSubscriptionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[13]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1536,7 +3403,7 @@ func (x *ListPortalSubscriptionsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *ListPortalSubscriptionsResponse) GetSubscriptions() []*v13.Subscription {
+func (x *ListPortalSubscriptionsResponse) GetSubscriptions() []*v14.Subscription {
 	if x != nil {
 		if x.xxx_hidden_Subscriptions != nil {
 			return *x.xxx_hidden_Subscriptions
@@ -1555,7 +3422,7 @@ func (x *ListPortalSubscriptionsResponse) GetNextPageToken() string {
 	return ""
 }
 
-func (x *ListPortalSubscriptionsResponse) SetSubscriptions(v []*v13.Subscription) {
+func (x *ListPortalSubscriptionsResponse) SetSubscriptions(v []*v14.Subscription) {
 	x.xxx_hidden_Subscriptions = &v
 }
 
@@ -1580,7 +3447,7 @@ type ListPortalSubscriptionsResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	// The subscriptions of this page.
-	Subscriptions []*v13.Subscription
+	Subscriptions []*v14.Subscription
 	// The token of the next page; empty on the last page.
 	NextPageToken *string
 }
@@ -1597,8 +3464,8 @@ func (b0 ListPortalSubscriptionsResponse_builder) Build() *ListPortalSubscriptio
 	return m0
 }
 
-// GetPortalCurrentUsageRequest is the request of CustomerPortalService.GetPortalCurrentUsage.
-type GetPortalCurrentUsageRequest struct {
+// GetPortalSubscriptionRequest is the request of CustomerPortalService.GetPortalSubscription.
+type GetPortalSubscriptionRequest struct {
 	state                     protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_SubscriptionId *string                `protobuf:"bytes,1,opt,name=subscription_id,json=subscriptionId"`
 	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
@@ -1607,9 +3474,160 @@ type GetPortalCurrentUsageRequest struct {
 	sizeCache                 protoimpl.SizeCache
 }
 
+func (x *GetPortalSubscriptionRequest) Reset() {
+	*x = GetPortalSubscriptionRequest{}
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPortalSubscriptionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPortalSubscriptionRequest) ProtoMessage() {}
+
+func (x *GetPortalSubscriptionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GetPortalSubscriptionRequest) GetSubscriptionId() string {
+	if x != nil {
+		if x.xxx_hidden_SubscriptionId != nil {
+			return *x.xxx_hidden_SubscriptionId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *GetPortalSubscriptionRequest) SetSubscriptionId(v string) {
+	x.xxx_hidden_SubscriptionId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *GetPortalSubscriptionRequest) HasSubscriptionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetPortalSubscriptionRequest) ClearSubscriptionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_SubscriptionId = nil
+}
+
+type GetPortalSubscriptionRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The subscription's ID.
+	SubscriptionId *string
+}
+
+func (b0 GetPortalSubscriptionRequest_builder) Build() *GetPortalSubscriptionRequest {
+	m0 := &GetPortalSubscriptionRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.SubscriptionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_SubscriptionId = b.SubscriptionId
+	}
+	return m0
+}
+
+// GetPortalSubscriptionResponse is the response of CustomerPortalService.GetPortalSubscription.
+type GetPortalSubscriptionResponse struct {
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Subscription *v14.Subscription      `protobuf:"bytes,1,opt,name=subscription"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *GetPortalSubscriptionResponse) Reset() {
+	*x = GetPortalSubscriptionResponse{}
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPortalSubscriptionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPortalSubscriptionResponse) ProtoMessage() {}
+
+func (x *GetPortalSubscriptionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GetPortalSubscriptionResponse) GetSubscription() *v14.Subscription {
+	if x != nil {
+		return x.xxx_hidden_Subscription
+	}
+	return nil
+}
+
+func (x *GetPortalSubscriptionResponse) SetSubscription(v *v14.Subscription) {
+	x.xxx_hidden_Subscription = v
+}
+
+func (x *GetPortalSubscriptionResponse) HasSubscription() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Subscription != nil
+}
+
+func (x *GetPortalSubscriptionResponse) ClearSubscription() {
+	x.xxx_hidden_Subscription = nil
+}
+
+type GetPortalSubscriptionResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The subscription.
+	Subscription *v14.Subscription
+}
+
+func (b0 GetPortalSubscriptionResponse_builder) Build() *GetPortalSubscriptionResponse {
+	m0 := &GetPortalSubscriptionResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Subscription = b.Subscription
+	return m0
+}
+
+// GetPortalCurrentUsageRequest is the request of CustomerPortalService.GetPortalCurrentUsage.
+type GetPortalCurrentUsageRequest struct {
+	state                        protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_SubscriptionId    *string                `protobuf:"bytes,1,opt,name=subscription_id,json=subscriptionId"`
+	xxx_hidden_IncludeProjection bool                   `protobuf:"varint,2,opt,name=include_projection,json=includeProjection"`
+	XXX_raceDetectHookData       protoimpl.RaceDetectHookData
+	XXX_presence                 [1]uint32
+	unknownFields                protoimpl.UnknownFields
+	sizeCache                    protoimpl.SizeCache
+}
+
 func (x *GetPortalCurrentUsageRequest) Reset() {
 	*x = GetPortalCurrentUsageRequest{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[14]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1621,7 +3639,7 @@ func (x *GetPortalCurrentUsageRequest) String() string {
 func (*GetPortalCurrentUsageRequest) ProtoMessage() {}
 
 func (x *GetPortalCurrentUsageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[14]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1642,9 +3660,21 @@ func (x *GetPortalCurrentUsageRequest) GetSubscriptionId() string {
 	return ""
 }
 
+func (x *GetPortalCurrentUsageRequest) GetIncludeProjection() bool {
+	if x != nil {
+		return x.xxx_hidden_IncludeProjection
+	}
+	return false
+}
+
 func (x *GetPortalCurrentUsageRequest) SetSubscriptionId(v string) {
 	x.xxx_hidden_SubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *GetPortalCurrentUsageRequest) SetIncludeProjection(v bool) {
+	x.xxx_hidden_IncludeProjection = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
 }
 
 func (x *GetPortalCurrentUsageRequest) HasSubscriptionId() bool {
@@ -1654,16 +3684,30 @@ func (x *GetPortalCurrentUsageRequest) HasSubscriptionId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
+func (x *GetPortalCurrentUsageRequest) HasIncludeProjection() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
 func (x *GetPortalCurrentUsageRequest) ClearSubscriptionId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_SubscriptionId = nil
 }
 
+func (x *GetPortalCurrentUsageRequest) ClearIncludeProjection() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_IncludeProjection = false
+}
+
 type GetPortalCurrentUsageRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// The subscription (ID or `external_id:<external_id>`).
+	// The subscription's ID.
 	SubscriptionId *string
+	// Adds the usage projected to the end of the period.
+	IncludeProjection *bool
 }
 
 func (b0 GetPortalCurrentUsageRequest_builder) Build() *GetPortalCurrentUsageRequest {
@@ -1671,8 +3715,12 @@ func (b0 GetPortalCurrentUsageRequest_builder) Build() *GetPortalCurrentUsageReq
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.SubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
 		x.xxx_hidden_SubscriptionId = b.SubscriptionId
+	}
+	if b.IncludeProjection != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_IncludeProjection = *b.IncludeProjection
 	}
 	return m0
 }
@@ -1680,14 +3728,14 @@ func (b0 GetPortalCurrentUsageRequest_builder) Build() *GetPortalCurrentUsageReq
 // GetPortalCurrentUsageResponse is the response of CustomerPortalService.GetPortalCurrentUsage.
 type GetPortalCurrentUsageResponse struct {
 	state            protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Usage *v14.Usage             `protobuf:"bytes,1,opt,name=usage"`
+	xxx_hidden_Usage *v15.Usage             `protobuf:"bytes,1,opt,name=usage"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
 
 func (x *GetPortalCurrentUsageResponse) Reset() {
 	*x = GetPortalCurrentUsageResponse{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[15]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1699,7 +3747,7 @@ func (x *GetPortalCurrentUsageResponse) String() string {
 func (*GetPortalCurrentUsageResponse) ProtoMessage() {}
 
 func (x *GetPortalCurrentUsageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[15]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1710,14 +3758,14 @@ func (x *GetPortalCurrentUsageResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *GetPortalCurrentUsageResponse) GetUsage() *v14.Usage {
+func (x *GetPortalCurrentUsageResponse) GetUsage() *v15.Usage {
 	if x != nil {
 		return x.xxx_hidden_Usage
 	}
 	return nil
 }
 
-func (x *GetPortalCurrentUsageResponse) SetUsage(v *v14.Usage) {
+func (x *GetPortalCurrentUsageResponse) SetUsage(v *v15.Usage) {
 	x.xxx_hidden_Usage = v
 }
 
@@ -1736,7 +3784,7 @@ type GetPortalCurrentUsageResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
 	// The usage.
-	Usage *v14.Usage
+	Usage *v15.Usage
 }
 
 func (b0 GetPortalCurrentUsageResponse_builder) Build() *GetPortalCurrentUsageResponse {
@@ -1749,14 +3797,19 @@ func (b0 GetPortalCurrentUsageResponse_builder) Build() *GetPortalCurrentUsageRe
 
 // ListPortalWalletsRequest is the request of CustomerPortalService.ListPortalWallets.
 type ListPortalWalletsRequest struct {
-	state         protoimpl.MessageState `protogen:"opaque.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PageSize    int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize"`
+	xxx_hidden_PageToken   *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken"`
+	xxx_hidden_Filter      *string                `protobuf:"bytes,3,opt,name=filter"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *ListPortalWalletsRequest) Reset() {
 	*x = ListPortalWalletsRequest{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[16]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1768,7 +3821,7 @@ func (x *ListPortalWalletsRequest) String() string {
 func (*ListPortalWalletsRequest) ProtoMessage() {}
 
 func (x *ListPortalWalletsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[16]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1779,29 +3832,128 @@ func (x *ListPortalWalletsRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+func (x *ListPortalWalletsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.xxx_hidden_PageSize
+	}
+	return 0
+}
+
+func (x *ListPortalWalletsRequest) GetPageToken() string {
+	if x != nil {
+		if x.xxx_hidden_PageToken != nil {
+			return *x.xxx_hidden_PageToken
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ListPortalWalletsRequest) GetFilter() string {
+	if x != nil {
+		if x.xxx_hidden_Filter != nil {
+			return *x.xxx_hidden_Filter
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ListPortalWalletsRequest) SetPageSize(v int32) {
+	x.xxx_hidden_PageSize = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *ListPortalWalletsRequest) SetPageToken(v string) {
+	x.xxx_hidden_PageToken = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *ListPortalWalletsRequest) SetFilter(v string) {
+	x.xxx_hidden_Filter = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+}
+
+func (x *ListPortalWalletsRequest) HasPageSize() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ListPortalWalletsRequest) HasPageToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListPortalWalletsRequest) HasFilter() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *ListPortalWalletsRequest) ClearPageSize() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_PageSize = 0
+}
+
+func (x *ListPortalWalletsRequest) ClearPageToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_PageToken = nil
+}
+
+func (x *ListPortalWalletsRequest) ClearFilter() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Filter = nil
+}
+
 type ListPortalWalletsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// The maximum number of results; 20 by default, at most 1000.
+	PageSize *int32
+	// The next_page_token of the previous page.
+	PageToken *string
+	// An AIP-160 filter over `status`; the active wallets by default.
+	Filter *string
 }
 
 func (b0 ListPortalWalletsRequest_builder) Build() *ListPortalWalletsRequest {
 	m0 := &ListPortalWalletsRequest{}
 	b, x := &b0, m0
 	_, _ = b, x
+	if b.PageSize != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_PageSize = *b.PageSize
+	}
+	if b.PageToken != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_PageToken = b.PageToken
+	}
+	if b.Filter != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_Filter = b.Filter
+	}
 	return m0
 }
 
 // ListPortalWalletsResponse is the response of CustomerPortalService.ListPortalWallets.
 type ListPortalWalletsResponse struct {
-	state              protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Wallets *[]*v15.Wallet         `protobuf:"bytes,1,rep,name=wallets"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Wallets       *[]*PortalWallet       `protobuf:"bytes,1,rep,name=wallets"`
+	xxx_hidden_NextPageToken *string                `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken"`
+	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
+	XXX_presence             [1]uint32
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *ListPortalWalletsResponse) Reset() {
 	*x = ListPortalWalletsResponse{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[17]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1813,7 +3965,7 @@ func (x *ListPortalWalletsResponse) String() string {
 func (*ListPortalWalletsResponse) ProtoMessage() {}
 
 func (x *ListPortalWalletsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[17]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1824,7 +3976,7 @@ func (x *ListPortalWalletsResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *ListPortalWalletsResponse) GetWallets() []*v15.Wallet {
+func (x *ListPortalWalletsResponse) GetWallets() []*PortalWallet {
 	if x != nil {
 		if x.xxx_hidden_Wallets != nil {
 			return *x.xxx_hidden_Wallets
@@ -1833,15 +3985,44 @@ func (x *ListPortalWalletsResponse) GetWallets() []*v15.Wallet {
 	return nil
 }
 
-func (x *ListPortalWalletsResponse) SetWallets(v []*v15.Wallet) {
+func (x *ListPortalWalletsResponse) GetNextPageToken() string {
+	if x != nil {
+		if x.xxx_hidden_NextPageToken != nil {
+			return *x.xxx_hidden_NextPageToken
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ListPortalWalletsResponse) SetWallets(v []*PortalWallet) {
 	x.xxx_hidden_Wallets = &v
+}
+
+func (x *ListPortalWalletsResponse) SetNextPageToken(v string) {
+	x.xxx_hidden_NextPageToken = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ListPortalWalletsResponse) HasNextPageToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ListPortalWalletsResponse) ClearNextPageToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_NextPageToken = nil
 }
 
 type ListPortalWalletsResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// The active wallets.
-	Wallets []*v15.Wallet
+	// The wallets of this page.
+	Wallets []*PortalWallet
+	// The token of the next page; empty on the last page.
+	NextPageToken *string
 }
 
 func (b0 ListPortalWalletsResponse_builder) Build() *ListPortalWalletsResponse {
@@ -1849,6 +4030,160 @@ func (b0 ListPortalWalletsResponse_builder) Build() *ListPortalWalletsResponse {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Wallets = &b.Wallets
+	if b.NextPageToken != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_NextPageToken = b.NextPageToken
+	}
+	return m0
+}
+
+// GetPortalWalletRequest is the request of CustomerPortalService.GetPortalWallet.
+type GetPortalWalletRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_WalletId    *string                `protobuf:"bytes,1,opt,name=wallet_id,json=walletId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *GetPortalWalletRequest) Reset() {
+	*x = GetPortalWalletRequest{}
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPortalWalletRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPortalWalletRequest) ProtoMessage() {}
+
+func (x *GetPortalWalletRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GetPortalWalletRequest) GetWalletId() string {
+	if x != nil {
+		if x.xxx_hidden_WalletId != nil {
+			return *x.xxx_hidden_WalletId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *GetPortalWalletRequest) SetWalletId(v string) {
+	x.xxx_hidden_WalletId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *GetPortalWalletRequest) HasWalletId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetPortalWalletRequest) ClearWalletId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_WalletId = nil
+}
+
+type GetPortalWalletRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The wallet's ID.
+	WalletId *string
+}
+
+func (b0 GetPortalWalletRequest_builder) Build() *GetPortalWalletRequest {
+	m0 := &GetPortalWalletRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.WalletId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_WalletId = b.WalletId
+	}
+	return m0
+}
+
+// GetPortalWalletResponse is the response of CustomerPortalService.GetPortalWallet.
+type GetPortalWalletResponse struct {
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Wallet *PortalWallet          `protobuf:"bytes,1,opt,name=wallet"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *GetPortalWalletResponse) Reset() {
+	*x = GetPortalWalletResponse{}
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPortalWalletResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPortalWalletResponse) ProtoMessage() {}
+
+func (x *GetPortalWalletResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *GetPortalWalletResponse) GetWallet() *PortalWallet {
+	if x != nil {
+		return x.xxx_hidden_Wallet
+	}
+	return nil
+}
+
+func (x *GetPortalWalletResponse) SetWallet(v *PortalWallet) {
+	x.xxx_hidden_Wallet = v
+}
+
+func (x *GetPortalWalletResponse) HasWallet() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Wallet != nil
+}
+
+func (x *GetPortalWalletResponse) ClearWallet() {
+	x.xxx_hidden_Wallet = nil
+}
+
+type GetPortalWalletResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The wallet.
+	Wallet *PortalWallet
+}
+
+func (b0 GetPortalWalletResponse_builder) Build() *GetPortalWalletResponse {
+	m0 := &GetPortalWalletResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Wallet = b.Wallet
 	return m0
 }
 
@@ -1865,7 +4200,7 @@ type TopUpPortalWalletRequest struct {
 
 func (x *TopUpPortalWalletRequest) Reset() {
 	*x = TopUpPortalWalletRequest{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[18]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1877,7 +4212,7 @@ func (x *TopUpPortalWalletRequest) String() string {
 func (*TopUpPortalWalletRequest) ProtoMessage() {}
 
 func (x *TopUpPortalWalletRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[18]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1947,7 +4282,7 @@ type TopUpPortalWalletRequest_builder struct {
 
 	// The wallet's ID.
 	WalletId *string
-	// The credits to buy.
+	// The credits to buy; without them nothing is bought.
 	PaidCredits *string
 }
 
@@ -1968,18 +4303,15 @@ func (b0 TopUpPortalWalletRequest_builder) Build() *TopUpPortalWalletRequest {
 
 // TopUpPortalWalletResponse is the response of CustomerPortalService.TopUpPortalWallet.
 type TopUpPortalWalletResponse struct {
-	state                        protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_WalletTransaction *v15.WalletTransaction `protobuf:"bytes,1,opt,name=wallet_transaction,json=walletTransaction"`
-	xxx_hidden_PaymentUrl        *string                `protobuf:"bytes,2,opt,name=payment_url,json=paymentUrl"`
-	XXX_raceDetectHookData       protoimpl.RaceDetectHookData
-	XXX_presence                 [1]uint32
-	unknownFields                protoimpl.UnknownFields
-	sizeCache                    protoimpl.SizeCache
+	state                         protoimpl.MessageState      `protogen:"opaque.v1"`
+	xxx_hidden_WalletTransactions *[]*PortalWalletTransaction `protobuf:"bytes,1,rep,name=wallet_transactions,json=walletTransactions"`
+	unknownFields                 protoimpl.UnknownFields
+	sizeCache                     protoimpl.SizeCache
 }
 
 func (x *TopUpPortalWalletResponse) Reset() {
 	*x = TopUpPortalWalletResponse{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[19]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1991,7 +4323,7 @@ func (x *TopUpPortalWalletResponse) String() string {
 func (*TopUpPortalWalletResponse) ProtoMessage() {}
 
 func (x *TopUpPortalWalletResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[19]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2002,89 +4334,44 @@ func (x *TopUpPortalWalletResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *TopUpPortalWalletResponse) GetWalletTransaction() *v15.WalletTransaction {
+func (x *TopUpPortalWalletResponse) GetWalletTransactions() []*PortalWalletTransaction {
 	if x != nil {
-		return x.xxx_hidden_WalletTransaction
+		if x.xxx_hidden_WalletTransactions != nil {
+			return *x.xxx_hidden_WalletTransactions
+		}
 	}
 	return nil
 }
 
-func (x *TopUpPortalWalletResponse) GetPaymentUrl() string {
-	if x != nil {
-		if x.xxx_hidden_PaymentUrl != nil {
-			return *x.xxx_hidden_PaymentUrl
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *TopUpPortalWalletResponse) SetWalletTransaction(v *v15.WalletTransaction) {
-	x.xxx_hidden_WalletTransaction = v
-}
-
-func (x *TopUpPortalWalletResponse) SetPaymentUrl(v string) {
-	x.xxx_hidden_PaymentUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
-}
-
-func (x *TopUpPortalWalletResponse) HasWalletTransaction() bool {
-	if x == nil {
-		return false
-	}
-	return x.xxx_hidden_WalletTransaction != nil
-}
-
-func (x *TopUpPortalWalletResponse) HasPaymentUrl() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
-}
-
-func (x *TopUpPortalWalletResponse) ClearWalletTransaction() {
-	x.xxx_hidden_WalletTransaction = nil
-}
-
-func (x *TopUpPortalWalletResponse) ClearPaymentUrl() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_PaymentUrl = nil
+func (x *TopUpPortalWalletResponse) SetWalletTransactions(v []*PortalWalletTransaction) {
+	x.xxx_hidden_WalletTransactions = &v
 }
 
 type TopUpPortalWalletResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// The pending transaction.
-	WalletTransaction *v15.WalletTransaction
-	// The checkout URL of the credit invoice, when paid online.
-	PaymentUrl *string
+	// The transactions created: the pending purchase, if any.
+	WalletTransactions []*PortalWalletTransaction
 }
 
 func (b0 TopUpPortalWalletResponse_builder) Build() *TopUpPortalWalletResponse {
 	m0 := &TopUpPortalWalletResponse{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.xxx_hidden_WalletTransaction = b.WalletTransaction
-	if b.PaymentUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
-		x.xxx_hidden_PaymentUrl = b.PaymentUrl
-	}
+	x.xxx_hidden_WalletTransactions = &b.WalletTransactions
 	return m0
 }
 
 // GetPortalOverdueBalanceRequest is the request of CustomerPortalService.GetPortalOverdueBalance.
 type GetPortalOverdueBalanceRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Months      int32                  `protobuf:"varint,1,opt,name=months"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetPortalOverdueBalanceRequest) Reset() {
 	*x = GetPortalOverdueBalanceRequest{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[20]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2096,7 +4383,7 @@ func (x *GetPortalOverdueBalanceRequest) String() string {
 func (*GetPortalOverdueBalanceRequest) ProtoMessage() {}
 
 func (x *GetPortalOverdueBalanceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[20]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2107,45 +4394,15 @@ func (x *GetPortalOverdueBalanceRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *GetPortalOverdueBalanceRequest) GetMonths() int32 {
-	if x != nil {
-		return x.xxx_hidden_Months
-	}
-	return 0
-}
-
-func (x *GetPortalOverdueBalanceRequest) SetMonths(v int32) {
-	x.xxx_hidden_Months = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *GetPortalOverdueBalanceRequest) HasMonths() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *GetPortalOverdueBalanceRequest) ClearMonths() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Months = 0
-}
-
 type GetPortalOverdueBalanceRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// The number of months; 12 by default.
-	Months *int32
 }
 
 func (b0 GetPortalOverdueBalanceRequest_builder) Build() *GetPortalOverdueBalanceRequest {
 	m0 := &GetPortalOverdueBalanceRequest{}
 	b, x := &b0, m0
 	_, _ = b, x
-	if b.Months != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_Months = *b.Months
-	}
 	return m0
 }
 
@@ -2159,7 +4416,7 @@ type GetPortalOverdueBalanceResponse struct {
 
 func (x *GetPortalOverdueBalanceResponse) Reset() {
 	*x = GetPortalOverdueBalanceResponse{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[21]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2171,7 +4428,7 @@ func (x *GetPortalOverdueBalanceResponse) String() string {
 func (*GetPortalOverdueBalanceResponse) ProtoMessage() {}
 
 func (x *GetPortalOverdueBalanceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[21]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2212,17 +4469,14 @@ func (b0 GetPortalOverdueBalanceResponse_builder) Build() *GetPortalOverdueBalan
 
 // GetPortalInvoiceCollectionRequest is the request of CustomerPortalService.GetPortalInvoiceCollection.
 type GetPortalInvoiceCollectionRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Months      int32                  `protobuf:"varint,1,opt,name=months"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *GetPortalInvoiceCollectionRequest) Reset() {
 	*x = GetPortalInvoiceCollectionRequest{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[22]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2234,7 +4488,7 @@ func (x *GetPortalInvoiceCollectionRequest) String() string {
 func (*GetPortalInvoiceCollectionRequest) ProtoMessage() {}
 
 func (x *GetPortalInvoiceCollectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[22]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2245,45 +4499,15 @@ func (x *GetPortalInvoiceCollectionRequest) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-func (x *GetPortalInvoiceCollectionRequest) GetMonths() int32 {
-	if x != nil {
-		return x.xxx_hidden_Months
-	}
-	return 0
-}
-
-func (x *GetPortalInvoiceCollectionRequest) SetMonths(v int32) {
-	x.xxx_hidden_Months = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *GetPortalInvoiceCollectionRequest) HasMonths() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *GetPortalInvoiceCollectionRequest) ClearMonths() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Months = 0
-}
-
 type GetPortalInvoiceCollectionRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// The number of months; 12 by default.
-	Months *int32
 }
 
 func (b0 GetPortalInvoiceCollectionRequest_builder) Build() *GetPortalInvoiceCollectionRequest {
 	m0 := &GetPortalInvoiceCollectionRequest{}
 	b, x := &b0, m0
 	_, _ = b, x
-	if b.Months != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_Months = *b.Months
-	}
 	return m0
 }
 
@@ -2297,7 +4521,7 @@ type GetPortalInvoiceCollectionResponse struct {
 
 func (x *GetPortalInvoiceCollectionResponse) Reset() {
 	*x = GetPortalInvoiceCollectionResponse{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[23]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2309,7 +4533,7 @@ func (x *GetPortalInvoiceCollectionResponse) String() string {
 func (*GetPortalInvoiceCollectionResponse) ProtoMessage() {}
 
 func (x *GetPortalInvoiceCollectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[23]
+	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2348,176 +4572,40 @@ func (b0 GetPortalInvoiceCollectionResponse_builder) Build() *GetPortalInvoiceCo
 	return m0
 }
 
-// PayPortalOverdueBalanceRequest is the request of CustomerPortalService.PayPortalOverdueBalance.
-type PayPortalOverdueBalanceRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Currency    *string                `protobuf:"bytes,1,opt,name=currency"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *PayPortalOverdueBalanceRequest) Reset() {
-	*x = PayPortalOverdueBalanceRequest{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[24]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PayPortalOverdueBalanceRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PayPortalOverdueBalanceRequest) ProtoMessage() {}
-
-func (x *PayPortalOverdueBalanceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[24]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *PayPortalOverdueBalanceRequest) GetCurrency() string {
-	if x != nil {
-		if x.xxx_hidden_Currency != nil {
-			return *x.xxx_hidden_Currency
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *PayPortalOverdueBalanceRequest) SetCurrency(v string) {
-	x.xxx_hidden_Currency = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *PayPortalOverdueBalanceRequest) HasCurrency() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *PayPortalOverdueBalanceRequest) ClearCurrency() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_Currency = nil
-}
-
-type PayPortalOverdueBalanceRequest_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The currency to pay.
-	Currency *string
-}
-
-func (b0 PayPortalOverdueBalanceRequest_builder) Build() *PayPortalOverdueBalanceRequest {
-	m0 := &PayPortalOverdueBalanceRequest{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.Currency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_Currency = b.Currency
-	}
-	return m0
-}
-
-// PayPortalOverdueBalanceResponse is the response of CustomerPortalService.PayPortalOverdueBalance.
-type PayPortalOverdueBalanceResponse struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_PaymentUrl  *string                `protobuf:"bytes,1,opt,name=payment_url,json=paymentUrl"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
-}
-
-func (x *PayPortalOverdueBalanceResponse) Reset() {
-	*x = PayPortalOverdueBalanceResponse{}
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[25]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *PayPortalOverdueBalanceResponse) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*PayPortalOverdueBalanceResponse) ProtoMessage() {}
-
-func (x *PayPortalOverdueBalanceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_portal_v1_portal_proto_msgTypes[25]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-func (x *PayPortalOverdueBalanceResponse) GetPaymentUrl() string {
-	if x != nil {
-		if x.xxx_hidden_PaymentUrl != nil {
-			return *x.xxx_hidden_PaymentUrl
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *PayPortalOverdueBalanceResponse) SetPaymentUrl(v string) {
-	x.xxx_hidden_PaymentUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
-}
-
-func (x *PayPortalOverdueBalanceResponse) HasPaymentUrl() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
-}
-
-func (x *PayPortalOverdueBalanceResponse) ClearPaymentUrl() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
-	x.xxx_hidden_PaymentUrl = nil
-}
-
-type PayPortalOverdueBalanceResponse_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The checkout URL.
-	PaymentUrl *string
-}
-
-func (b0 PayPortalOverdueBalanceResponse_builder) Build() *PayPortalOverdueBalanceResponse {
-	m0 := &PayPortalOverdueBalanceResponse{}
-	b, x := &b0, m0
-	_, _ = b, x
-	if b.PaymentUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
-		x.xxx_hidden_PaymentUrl = b.PaymentUrl
-	}
-	return m0
-}
-
 var File_tanvo_portal_v1_portal_proto protoreflect.FileDescriptor
 
 const file_tanvo_portal_v1_portal_proto_rawDesc = "" +
 	"\n" +
-	"\x1ctanvo/portal/v1/portal.proto\x12\x0ftanvo.portal.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a google/protobuf/field_mask.proto\x1a\"tanvo/analytics/v1/analytics.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\x1a tanvo/customer/v1/customer.proto\x1a\x1etanvo/invoice/v1/invoice.proto\x1a(tanvo/subscription/v1/subscription.proto\x1a\x1atanvo/usage/v1/usage.proto\x1a\x1ctanvo/wallet/v1/wallet.proto\"\xa1\x01\n" +
-	"\x12PortalOrganization\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x19\n" +
-	"\blogo_url\x18\x02 \x01(\tR\alogoUrl\x12)\n" +
-	"\x10default_currency\x18\x03 \x01(\tR\x0fdefaultCurrency\x121\n" +
-	"\x14premium_integrations\x18\x04 \x03(\tR\x13premiumIntegrations\"\x94\x04\n" +
+	"\x1ctanvo/portal/v1/portal.proto\x12\x0ftanvo.portal.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\"tanvo/analytics/v1/analytics.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\x1a tanvo/customer/v1/customer.proto\x1a\x1etanvo/invoice/v1/invoice.proto\x1a(tanvo/subscription/v1/subscription.proto\x1a\x1atanvo/usage/v1/usage.proto\x1a\x1ctanvo/wallet/v1/wallet.proto\"\xa5\x02\n" +
+	"\x12PortalOrganization\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x19\n" +
+	"\blogo_url\x18\x03 \x01(\tR\alogoUrl\x12)\n" +
+	"\x10default_currency\x18\x04 \x01(\tR\x0fdefaultCurrency\x12\x1a\n" +
+	"\btimezone\x18\x05 \x01(\tR\btimezone\x12'\n" +
+	"\x0fdocument_locale\x18\x06 \x01(\tR\x0edocumentLocale\x12%\n" +
+	"\x0einvoice_footer\x18\a \x01(\tR\rinvoiceFooter\x129\n" +
+	"\x19invoice_grace_period_days\x18\b \x01(\x05R\x16invoiceGracePeriodDays\"\xf1\x05\n" +
+	"\x0ePortalCustomer\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12A\n" +
+	"\faccount_type\x18\x02 \x01(\x0e2\x1e.tanvo.customer.v1.AccountTypeR\vaccountType\x12D\n" +
+	"\rcustomer_type\x18\x03 \x01(\x0e2\x1f.tanvo.customer.v1.CustomerTypeR\fcustomerType\x12!\n" +
+	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x12\x12\n" +
+	"\x04name\x18\x05 \x01(\tR\x04name\x12\x1c\n" +
+	"\tfirstname\x18\x06 \x01(\tR\tfirstname\x12\x1a\n" +
+	"\blastname\x18\a \x01(\tR\blastname\x12\x1d\n" +
+	"\n" +
+	"legal_name\x18\b \x01(\tR\tlegalName\x12!\n" +
+	"\flegal_number\x18\t \x01(\tR\vlegalNumber\x12:\n" +
+	"\x19tax_identification_number\x18\n" +
+	" \x01(\tR\x17taxIdentificationNumber\x12\x14\n" +
+	"\x05email\x18\v \x01(\tR\x05email\x12A\n" +
+	"\x0fbilling_address\x18\f \x01(\v2\x18.tanvo.common.v1.AddressR\x0ebillingAddress\x12C\n" +
+	"\x10shipping_address\x18\r \x01(\v2\x18.tanvo.common.v1.AddressR\x0fshippingAddress\x12\x1a\n" +
+	"\bcurrency\x18\x0e \x01(\tR\bcurrency\x12/\n" +
+	"\x13applicable_timezone\x18\x0f \x01(\tR\x12applicableTimezone\x12'\n" +
+	"\x0fdocument_locale\x18\x10 \x01(\tR\x0edocumentLocale\x12C\n" +
+	"\x1ebilling_entity_document_locale\x18\x11 \x01(\tR\x1bbillingEntityDocumentLocale\"\x94\x04\n" +
 	"\rPortalProfile\x12N\n" +
 	"\rcustomer_type\x18\x01 \x01(\x0e2\x1f.tanvo.customer.v1.CustomerTypeB\b\xbaH\x05\x82\x01\x02\x10\x01R\fcustomerType\x12\x1c\n" +
 	"\x04name\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x04name\x12&\n" +
@@ -2530,20 +4618,59 @@ const file_tanvo_portal_v1_portal_proto_rawDesc = "" +
 	"\x0fbilling_address\x18\b \x01(\v2\x18.tanvo.common.v1.AddressR\x0ebillingAddress\x12C\n" +
 	"\x10shipping_address\x18\t \x01(\v2\x18.tanvo.common.v1.AddressR\x0fshippingAddress\x120\n" +
 	"\x0fdocument_locale\x18\n" +
-	" \x01(\tB\a\xbaH\x04r\x02\x18#R\x0edocumentLocale\"\x1e\n" +
+	" \x01(\tB\a\xbaH\x04r\x02\x18#R\x0edocumentLocale\"\xe5\a\n" +
+	"\fPortalWallet\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04code\x18\x02 \x01(\tR\x04code\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x125\n" +
+	"\x06status\x18\x04 \x01(\x0e2\x1d.tanvo.wallet.v1.WalletStatusR\x06status\x12\x1a\n" +
+	"\bcurrency\x18\x05 \x01(\tR\bcurrency\x12\x1f\n" +
+	"\vrate_amount\x18\x06 \x01(\tR\n" +
+	"rateAmount\x12\x1a\n" +
+	"\bpriority\x18\a \x01(\x05R\bpriority\x129\n" +
+	"\n" +
+	"expires_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12=\n" +
+	"\x0ebalance_amount\x18\t \x01(\v2\x16.tanvo.common.v1.MoneyR\rbalanceAmount\x12'\n" +
+	"\x0fcredits_balance\x18\n" +
+	" \x01(\tR\x0ecreditsBalance\x12L\n" +
+	"\x16ongoing_balance_amount\x18\v \x01(\v2\x16.tanvo.common.v1.MoneyR\x14ongoingBalanceAmount\x126\n" +
+	"\x17credits_ongoing_balance\x18\f \x01(\tR\x15creditsOngoingBalance\x12W\n" +
+	"\x1congoing_usage_balance_amount\x18\r \x01(\v2\x16.tanvo.common.v1.MoneyR\x19ongoingUsageBalanceAmount\x12?\n" +
+	"\x0fconsumed_amount\x18\x0e \x01(\v2\x16.tanvo.common.v1.MoneyR\x0econsumedAmount\x12)\n" +
+	"\x10consumed_credits\x18\x0f \x01(\tR\x0fconsumedCredits\x122\n" +
+	"\x16paid_top_up_min_amount\x18\x10 \x01(\tR\x12paidTopUpMinAmount\x124\n" +
+	"\x17paid_top_up_min_credits\x18\x11 \x01(\tR\x13paidTopUpMinCredits\x122\n" +
+	"\x16paid_top_up_max_amount\x18\x12 \x01(\tR\x12paidTopUpMaxAmount\x124\n" +
+	"\x17paid_top_up_max_credits\x18\x13 \x01(\tR\x13paidTopUpMaxCredits\x12K\n" +
+	"\x14last_balance_sync_at\x18\x14 \x01(\v2\x1a.google.protobuf.TimestampR\x11lastBalanceSyncAt\"\xc1\x04\n" +
+	"\x17PortalWalletTransaction\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x125\n" +
+	"\x06wallet\x18\x02 \x01(\v2\x1d.tanvo.portal.v1.PortalWalletR\x06wallet\x12K\n" +
+	"\x10transaction_type\x18\x03 \x01(\x0e2 .tanvo.wallet.v1.TransactionTypeR\x0ftransactionType\x12Q\n" +
+	"\x12transaction_status\x18\x04 \x01(\x0e2\".tanvo.wallet.v1.TransactionStatusR\x11transactionStatus\x129\n" +
+	"\x06status\x18\x05 \x01(\x0e2!.tanvo.wallet.v1.SettlementStatusR\x06status\x12.\n" +
+	"\x06amount\x18\x06 \x01(\v2\x16.tanvo.common.v1.MoneyR\x06amount\x12#\n" +
+	"\rcredit_amount\x18\a \x01(\tR\fcreditAmount\x129\n" +
+	"\n" +
+	"settled_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tsettledAt\x129\n" +
+	"\n" +
+	"created_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"\n" +
+	"updated_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x1e\n" +
 	"\x1cGetPortalOrganizationRequest\"h\n" +
 	"\x1dGetPortalOrganizationResponse\x12G\n" +
 	"\forganization\x18\x01 \x01(\v2#.tanvo.portal.v1.PortalOrganizationR\forganization\"\x1a\n" +
-	"\x18GetPortalCustomerRequest\"T\n" +
-	"\x19GetPortalCustomerResponse\x127\n" +
-	"\bcustomer\x18\x01 \x01(\v2\x1b.tanvo.customer.v1.CustomerR\bcustomer\"\xa0\x01\n" +
+	"\x18GetPortalCustomerRequest\"X\n" +
+	"\x19GetPortalCustomerResponse\x12;\n" +
+	"\bcustomer\x18\x01 \x01(\v2\x1f.tanvo.portal.v1.PortalCustomerR\bcustomer\"\xa0\x01\n" +
 	"\x1bUpdatePortalCustomerRequest\x12D\n" +
 	"\aprofile\x18\x01 \x01(\v2\x1e.tanvo.portal.v1.PortalProfileB\n" +
 	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\aprofile\x12;\n" +
 	"\vupdate_mask\x18\x02 \x01(\v2\x1a.google.protobuf.FieldMaskR\n" +
-	"updateMask\"W\n" +
-	"\x1cUpdatePortalCustomerResponse\x127\n" +
-	"\bcustomer\x18\x01 \x01(\v2\x1b.tanvo.customer.v1.CustomerR\bcustomer\"\xb1\x01\n" +
+	"updateMask\"[\n" +
+	"\x1cUpdatePortalCustomerResponse\x12;\n" +
+	"\bcustomer\x18\x01 \x01(\v2\x1f.tanvo.portal.v1.PortalCustomerR\bcustomer\"\xb1\x01\n" +
 	"\x19ListPortalInvoicesRequest\x12'\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\n" +
 	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
@@ -2556,149 +4683,191 @@ const file_tanvo_portal_v1_portal_proto_rawDesc = "" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"N\n" +
 	"\x1cDownloadPortalInvoiceRequest\x12.\n" +
 	"\n" +
-	"invoice_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\tinvoiceId\"L\n" +
-	"\x1dDownloadPortalInvoiceResponse\x12+\n" +
-	"\x03pdf\x18\x01 \x01(\v2\x19.tanvo.common.v1.DocumentR\x03pdf\"r\n" +
+	"invoice_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\tinvoiceId\"\xae\x01\n" +
+	"\x1dDownloadPortalInvoiceResponse\x123\n" +
+	"\ainvoice\x18\x01 \x01(\v2\x19.tanvo.invoice.v1.InvoiceR\ainvoice\x12+\n" +
+	"\x03pdf\x18\x02 \x01(\v2\x19.tanvo.common.v1.DocumentR\x03pdf\x12+\n" +
+	"\x03xml\x18\x03 \x01(\v2\x19.tanvo.common.v1.DocumentR\x03xml\"\x94\x01\n" +
 	"\x1eListPortalSubscriptionsRequest\x12'\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\n" +
 	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
 	"\n" +
-	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"\x94\x01\n" +
+	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12 \n" +
+	"\x06filter\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\"\x94\x01\n" +
 	"\x1fListPortalSubscriptionsResponse\x12I\n" +
 	"\rsubscriptions\x18\x01 \x03(\v2#.tanvo.subscription.v1.SubscriptionR\rsubscriptions\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"Z\n" +
-	"\x1cGetPortalCurrentUsageRequest\x12:\n" +
-	"\x0fsubscription_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0esubscriptionId\"L\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"X\n" +
+	"\x1cGetPortalSubscriptionRequest\x128\n" +
+	"\x0fsubscription_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\x0esubscriptionId\"h\n" +
+	"\x1dGetPortalSubscriptionResponse\x12G\n" +
+	"\fsubscription\x18\x01 \x01(\v2#.tanvo.subscription.v1.SubscriptionR\fsubscription\"\x87\x01\n" +
+	"\x1cGetPortalCurrentUsageRequest\x128\n" +
+	"\x0fsubscription_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\x0esubscriptionId\x12-\n" +
+	"\x12include_projection\x18\x02 \x01(\bR\x11includeProjection\"L\n" +
 	"\x1dGetPortalCurrentUsageResponse\x12+\n" +
-	"\x05usage\x18\x01 \x01(\v2\x15.tanvo.usage.v1.UsageR\x05usage\"\x1a\n" +
-	"\x18ListPortalWalletsRequest\"N\n" +
-	"\x19ListPortalWalletsResponse\x121\n" +
-	"\awallets\x18\x01 \x03(\v2\x17.tanvo.wallet.v1.WalletR\awallets\"~\n" +
+	"\x05usage\x18\x01 \x01(\v2\x15.tanvo.usage.v1.UsageR\x05usage\"\x8e\x01\n" +
+	"\x18ListPortalWalletsRequest\x12'\n" +
+	"\tpage_size\x18\x01 \x01(\x05B\n" +
+	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12 \n" +
+	"\x06filter\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\"|\n" +
+	"\x19ListPortalWalletsResponse\x127\n" +
+	"\awallets\x18\x01 \x03(\v2\x1d.tanvo.portal.v1.PortalWalletR\awallets\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"F\n" +
+	"\x16GetPortalWalletRequest\x12,\n" +
+	"\twallet_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\bwalletId\"P\n" +
+	"\x17GetPortalWalletResponse\x125\n" +
+	"\x06wallet\x18\x01 \x01(\v2\x1d.tanvo.portal.v1.PortalWalletR\x06wallet\"w\n" +
 	"\x18TopUpPortalWalletRequest\x12,\n" +
-	"\twallet_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\bwalletId\x124\n" +
-	"\fpaid_credits\x18\x02 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05Ф\xca\x06\x01R\vpaidCredits\"\x8f\x01\n" +
-	"\x19TopUpPortalWalletResponse\x12Q\n" +
-	"\x12wallet_transaction\x18\x01 \x01(\v2\".tanvo.wallet.v1.WalletTransactionR\x11walletTransaction\x12\x1f\n" +
-	"\vpayment_url\x18\x02 \x01(\tR\n" +
-	"paymentUrl\"C\n" +
-	"\x1eGetPortalOverdueBalanceRequest\x12!\n" +
-	"\x06months\x18\x01 \x01(\x05B\t\xbaH\x06\x1a\x04\x18x(\x00R\x06months\"b\n" +
+	"\twallet_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\bwalletId\x12-\n" +
+	"\fpaid_credits\x18\x02 \x01(\tB\n" +
+	"\xbaH\ar\x05Ф\xca\x06\x01R\vpaidCredits\"v\n" +
+	"\x19TopUpPortalWalletResponse\x12Y\n" +
+	"\x13wallet_transactions\x18\x01 \x03(\v2(.tanvo.portal.v1.PortalWalletTransactionR\x12walletTransactions\" \n" +
+	"\x1eGetPortalOverdueBalanceRequest\"b\n" +
 	"\x1fGetPortalOverdueBalanceResponse\x12?\n" +
-	"\x06points\x18\x01 \x03(\v2'.tanvo.analytics.v1.OverdueBalancePointR\x06points\"F\n" +
-	"!GetPortalInvoiceCollectionRequest\x12!\n" +
-	"\x06months\x18\x01 \x01(\x05B\t\xbaH\x06\x1a\x04\x18x(\x00R\x06months\"h\n" +
+	"\x06points\x18\x01 \x03(\v2'.tanvo.analytics.v1.OverdueBalancePointR\x06points\"#\n" +
+	"!GetPortalInvoiceCollectionRequest\"h\n" +
 	"\"GetPortalInvoiceCollectionResponse\x12B\n" +
-	"\x06points\x18\x01 \x03(\v2*.tanvo.analytics.v1.InvoiceCollectionPointR\x06points\"O\n" +
-	"\x1ePayPortalOverdueBalanceRequest\x12-\n" +
-	"\bcurrency\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05ؤ\xca\x06\x01R\bcurrency\"B\n" +
-	"\x1fPayPortalOverdueBalanceResponse\x12\x1f\n" +
-	"\vpayment_url\x18\x01 \x01(\tR\n" +
-	"paymentUrl2\xf3\x0f\n" +
+	"\x06points\x18\x01 \x03(\v2*.tanvo.analytics.v1.InvoiceCollectionPointR\x06points2\x91\x11\n" +
 	"\x15CustomerPortalService\x12\xa0\x01\n" +
 	"\x15GetPortalOrganization\x12-.tanvo.portal.v1.GetPortalOrganizationRequest\x1a..tanvo.portal.v1.GetPortalOrganizationResponse\"(\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02\x19\x12\x17/v1/portal/organization\x90\x02\x01\x12\x90\x01\n" +
 	"\x11GetPortalCustomer\x12).tanvo.portal.v1.GetPortalCustomerRequest\x1a*.tanvo.portal.v1.GetPortalCustomerResponse\"$\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/portal/customer\x90\x02\x01\x12\x9f\x01\n" +
 	"\x14UpdatePortalCustomer\x12,.tanvo.portal.v1.UpdatePortalCustomerRequest\x1a-.tanvo.portal.v1.UpdatePortalCustomerResponse\"*\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02\x1e:\aprofile2\x13/v1/portal/customer\x12\x93\x01\n" +
 	"\x12ListPortalInvoices\x12*.tanvo.portal.v1.ListPortalInvoicesRequest\x1a+.tanvo.portal.v1.ListPortalInvoicesResponse\"$\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02\x15\x12\x13/v1/portal/invoices\x90\x02\x01\x12\xb2\x01\n" +
 	"\x15DownloadPortalInvoice\x12-.tanvo.portal.v1.DownloadPortalInvoiceRequest\x1a..tanvo.portal.v1.DownloadPortalInvoiceResponse\":\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02.:\x01*\")/v1/portal/invoices/{invoice_id}:download\x12\xa7\x01\n" +
-	"\x17ListPortalSubscriptions\x12/.tanvo.portal.v1.ListPortalSubscriptionsRequest\x1a0.tanvo.portal.v1.ListPortalSubscriptionsResponse\")\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02\x1a\x12\x18/v1/portal/subscriptions\x90\x02\x01\x12\xc1\x01\n" +
+	"\x17ListPortalSubscriptions\x12/.tanvo.portal.v1.ListPortalSubscriptionsRequest\x1a0.tanvo.portal.v1.ListPortalSubscriptionsResponse\")\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02\x1a\x12\x18/v1/portal/subscriptions\x90\x02\x01\x12\xb3\x01\n" +
+	"\x15GetPortalSubscription\x12-.tanvo.portal.v1.GetPortalSubscriptionRequest\x1a..tanvo.portal.v1.GetPortalSubscriptionResponse\";\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02,\x12*/v1/portal/subscriptions/{subscription_id}\x90\x02\x01\x12\xc1\x01\n" +
 	"\x15GetPortalCurrentUsage\x12-.tanvo.portal.v1.GetPortalCurrentUsageRequest\x1a..tanvo.portal.v1.GetPortalCurrentUsageResponse\"I\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02:\x128/v1/portal/subscriptions/{subscription_id}/usage:current\x90\x02\x01\x12\x8f\x01\n" +
-	"\x11ListPortalWallets\x12).tanvo.portal.v1.ListPortalWalletsRequest\x1a*.tanvo.portal.v1.ListPortalWalletsResponse\"#\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02\x14\x12\x12/v1/portal/wallets\x90\x02\x01\x12\xa2\x01\n" +
+	"\x11ListPortalWallets\x12).tanvo.portal.v1.ListPortalWalletsRequest\x1a*.tanvo.portal.v1.ListPortalWalletsResponse\"#\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02\x14\x12\x12/v1/portal/wallets\x90\x02\x01\x12\x95\x01\n" +
+	"\x0fGetPortalWallet\x12'.tanvo.portal.v1.GetPortalWalletRequest\x1a(.tanvo.portal.v1.GetPortalWalletResponse\"/\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02 \x12\x1e/v1/portal/wallets/{wallet_id}\x90\x02\x01\x12\xa2\x01\n" +
 	"\x11TopUpPortalWallet\x12).tanvo.portal.v1.TopUpPortalWalletRequest\x1a*.tanvo.portal.v1.TopUpPortalWalletResponse\"6\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02*:\x01*\"%/v1/portal/wallets/{wallet_id}:top_up\x12\xa9\x01\n" +
 	"\x17GetPortalOverdueBalance\x12/.tanvo.portal.v1.GetPortalOverdueBalanceRequest\x1a0.tanvo.portal.v1.GetPortalOverdueBalanceResponse\"+\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02\x1c\x12\x1a/v1/portal/overdue_balance\x90\x02\x01\x12\xb5\x01\n" +
-	"\x1aGetPortalInvoiceCollection\x122.tanvo.portal.v1.GetPortalInvoiceCollectionRequest\x1a3.tanvo.portal.v1.GetPortalInvoiceCollectionResponse\".\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02\x1f\x12\x1d/v1/portal/invoice_collection\x90\x02\x01\x12\xad\x01\n" +
-	"\x17PayPortalOverdueBalance\x12/.tanvo.portal.v1.PayPortalOverdueBalanceRequest\x1a0.tanvo.portal.v1.PayPortalOverdueBalanceResponse\"/\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02#:\x01*\"\x1e/v1/portal/overdue_balance:payB\xc6\x01\n" +
+	"\x1aGetPortalInvoiceCollection\x122.tanvo.portal.v1.GetPortalInvoiceCollectionRequest\x1a3.tanvo.portal.v1.GetPortalInvoiceCollectionResponse\".\xca\xf3\x18\x02\x18\x01\x82\xd3\xe4\x93\x02\x1f\x12\x1d/v1/portal/invoice_collection\x90\x02\x01B\xc6\x01\n" +
 	"\x13com.tanvo.portal.v1B\vPortalProtoP\x01ZDgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/portal/v1;portalv1\xa2\x02\x03TPX\xaa\x02\x0fTanvo.Portal.V1\xca\x02\x0fTanvo\\Portal\\V1\xe2\x02\x1bTanvo\\Portal\\V1\\GPBMetadata\xea\x02\x11Tanvo::Portal::V1b\beditionsp\xe8\a"
 
-var file_tanvo_portal_v1_portal_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_tanvo_portal_v1_portal_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_tanvo_portal_v1_portal_proto_goTypes = []any{
 	(*PortalOrganization)(nil),                 // 0: tanvo.portal.v1.PortalOrganization
-	(*PortalProfile)(nil),                      // 1: tanvo.portal.v1.PortalProfile
-	(*GetPortalOrganizationRequest)(nil),       // 2: tanvo.portal.v1.GetPortalOrganizationRequest
-	(*GetPortalOrganizationResponse)(nil),      // 3: tanvo.portal.v1.GetPortalOrganizationResponse
-	(*GetPortalCustomerRequest)(nil),           // 4: tanvo.portal.v1.GetPortalCustomerRequest
-	(*GetPortalCustomerResponse)(nil),          // 5: tanvo.portal.v1.GetPortalCustomerResponse
-	(*UpdatePortalCustomerRequest)(nil),        // 6: tanvo.portal.v1.UpdatePortalCustomerRequest
-	(*UpdatePortalCustomerResponse)(nil),       // 7: tanvo.portal.v1.UpdatePortalCustomerResponse
-	(*ListPortalInvoicesRequest)(nil),          // 8: tanvo.portal.v1.ListPortalInvoicesRequest
-	(*ListPortalInvoicesResponse)(nil),         // 9: tanvo.portal.v1.ListPortalInvoicesResponse
-	(*DownloadPortalInvoiceRequest)(nil),       // 10: tanvo.portal.v1.DownloadPortalInvoiceRequest
-	(*DownloadPortalInvoiceResponse)(nil),      // 11: tanvo.portal.v1.DownloadPortalInvoiceResponse
-	(*ListPortalSubscriptionsRequest)(nil),     // 12: tanvo.portal.v1.ListPortalSubscriptionsRequest
-	(*ListPortalSubscriptionsResponse)(nil),    // 13: tanvo.portal.v1.ListPortalSubscriptionsResponse
-	(*GetPortalCurrentUsageRequest)(nil),       // 14: tanvo.portal.v1.GetPortalCurrentUsageRequest
-	(*GetPortalCurrentUsageResponse)(nil),      // 15: tanvo.portal.v1.GetPortalCurrentUsageResponse
-	(*ListPortalWalletsRequest)(nil),           // 16: tanvo.portal.v1.ListPortalWalletsRequest
-	(*ListPortalWalletsResponse)(nil),          // 17: tanvo.portal.v1.ListPortalWalletsResponse
-	(*TopUpPortalWalletRequest)(nil),           // 18: tanvo.portal.v1.TopUpPortalWalletRequest
-	(*TopUpPortalWalletResponse)(nil),          // 19: tanvo.portal.v1.TopUpPortalWalletResponse
-	(*GetPortalOverdueBalanceRequest)(nil),     // 20: tanvo.portal.v1.GetPortalOverdueBalanceRequest
-	(*GetPortalOverdueBalanceResponse)(nil),    // 21: tanvo.portal.v1.GetPortalOverdueBalanceResponse
-	(*GetPortalInvoiceCollectionRequest)(nil),  // 22: tanvo.portal.v1.GetPortalInvoiceCollectionRequest
-	(*GetPortalInvoiceCollectionResponse)(nil), // 23: tanvo.portal.v1.GetPortalInvoiceCollectionResponse
-	(*PayPortalOverdueBalanceRequest)(nil),     // 24: tanvo.portal.v1.PayPortalOverdueBalanceRequest
-	(*PayPortalOverdueBalanceResponse)(nil),    // 25: tanvo.portal.v1.PayPortalOverdueBalanceResponse
-	(v1.CustomerType)(0),                       // 26: tanvo.customer.v1.CustomerType
-	(*v11.Address)(nil),                        // 27: tanvo.common.v1.Address
-	(*v1.Customer)(nil),                        // 28: tanvo.customer.v1.Customer
-	(*fieldmaskpb.FieldMask)(nil),              // 29: google.protobuf.FieldMask
-	(*v12.Invoice)(nil),                        // 30: tanvo.invoice.v1.Invoice
-	(*v11.Document)(nil),                       // 31: tanvo.common.v1.Document
-	(*v13.Subscription)(nil),                   // 32: tanvo.subscription.v1.Subscription
-	(*v14.Usage)(nil),                          // 33: tanvo.usage.v1.Usage
-	(*v15.Wallet)(nil),                         // 34: tanvo.wallet.v1.Wallet
-	(*v15.WalletTransaction)(nil),              // 35: tanvo.wallet.v1.WalletTransaction
-	(*v16.OverdueBalancePoint)(nil),            // 36: tanvo.analytics.v1.OverdueBalancePoint
-	(*v16.InvoiceCollectionPoint)(nil),         // 37: tanvo.analytics.v1.InvoiceCollectionPoint
+	(*PortalCustomer)(nil),                     // 1: tanvo.portal.v1.PortalCustomer
+	(*PortalProfile)(nil),                      // 2: tanvo.portal.v1.PortalProfile
+	(*PortalWallet)(nil),                       // 3: tanvo.portal.v1.PortalWallet
+	(*PortalWalletTransaction)(nil),            // 4: tanvo.portal.v1.PortalWalletTransaction
+	(*GetPortalOrganizationRequest)(nil),       // 5: tanvo.portal.v1.GetPortalOrganizationRequest
+	(*GetPortalOrganizationResponse)(nil),      // 6: tanvo.portal.v1.GetPortalOrganizationResponse
+	(*GetPortalCustomerRequest)(nil),           // 7: tanvo.portal.v1.GetPortalCustomerRequest
+	(*GetPortalCustomerResponse)(nil),          // 8: tanvo.portal.v1.GetPortalCustomerResponse
+	(*UpdatePortalCustomerRequest)(nil),        // 9: tanvo.portal.v1.UpdatePortalCustomerRequest
+	(*UpdatePortalCustomerResponse)(nil),       // 10: tanvo.portal.v1.UpdatePortalCustomerResponse
+	(*ListPortalInvoicesRequest)(nil),          // 11: tanvo.portal.v1.ListPortalInvoicesRequest
+	(*ListPortalInvoicesResponse)(nil),         // 12: tanvo.portal.v1.ListPortalInvoicesResponse
+	(*DownloadPortalInvoiceRequest)(nil),       // 13: tanvo.portal.v1.DownloadPortalInvoiceRequest
+	(*DownloadPortalInvoiceResponse)(nil),      // 14: tanvo.portal.v1.DownloadPortalInvoiceResponse
+	(*ListPortalSubscriptionsRequest)(nil),     // 15: tanvo.portal.v1.ListPortalSubscriptionsRequest
+	(*ListPortalSubscriptionsResponse)(nil),    // 16: tanvo.portal.v1.ListPortalSubscriptionsResponse
+	(*GetPortalSubscriptionRequest)(nil),       // 17: tanvo.portal.v1.GetPortalSubscriptionRequest
+	(*GetPortalSubscriptionResponse)(nil),      // 18: tanvo.portal.v1.GetPortalSubscriptionResponse
+	(*GetPortalCurrentUsageRequest)(nil),       // 19: tanvo.portal.v1.GetPortalCurrentUsageRequest
+	(*GetPortalCurrentUsageResponse)(nil),      // 20: tanvo.portal.v1.GetPortalCurrentUsageResponse
+	(*ListPortalWalletsRequest)(nil),           // 21: tanvo.portal.v1.ListPortalWalletsRequest
+	(*ListPortalWalletsResponse)(nil),          // 22: tanvo.portal.v1.ListPortalWalletsResponse
+	(*GetPortalWalletRequest)(nil),             // 23: tanvo.portal.v1.GetPortalWalletRequest
+	(*GetPortalWalletResponse)(nil),            // 24: tanvo.portal.v1.GetPortalWalletResponse
+	(*TopUpPortalWalletRequest)(nil),           // 25: tanvo.portal.v1.TopUpPortalWalletRequest
+	(*TopUpPortalWalletResponse)(nil),          // 26: tanvo.portal.v1.TopUpPortalWalletResponse
+	(*GetPortalOverdueBalanceRequest)(nil),     // 27: tanvo.portal.v1.GetPortalOverdueBalanceRequest
+	(*GetPortalOverdueBalanceResponse)(nil),    // 28: tanvo.portal.v1.GetPortalOverdueBalanceResponse
+	(*GetPortalInvoiceCollectionRequest)(nil),  // 29: tanvo.portal.v1.GetPortalInvoiceCollectionRequest
+	(*GetPortalInvoiceCollectionResponse)(nil), // 30: tanvo.portal.v1.GetPortalInvoiceCollectionResponse
+	(v1.AccountType)(0),                        // 31: tanvo.customer.v1.AccountType
+	(v1.CustomerType)(0),                       // 32: tanvo.customer.v1.CustomerType
+	(*v11.Address)(nil),                        // 33: tanvo.common.v1.Address
+	(v12.WalletStatus)(0),                      // 34: tanvo.wallet.v1.WalletStatus
+	(*timestamppb.Timestamp)(nil),              // 35: google.protobuf.Timestamp
+	(*v11.Money)(nil),                          // 36: tanvo.common.v1.Money
+	(v12.TransactionType)(0),                   // 37: tanvo.wallet.v1.TransactionType
+	(v12.TransactionStatus)(0),                 // 38: tanvo.wallet.v1.TransactionStatus
+	(v12.SettlementStatus)(0),                  // 39: tanvo.wallet.v1.SettlementStatus
+	(*fieldmaskpb.FieldMask)(nil),              // 40: google.protobuf.FieldMask
+	(*v13.Invoice)(nil),                        // 41: tanvo.invoice.v1.Invoice
+	(*v11.Document)(nil),                       // 42: tanvo.common.v1.Document
+	(*v14.Subscription)(nil),                   // 43: tanvo.subscription.v1.Subscription
+	(*v15.Usage)(nil),                          // 44: tanvo.usage.v1.Usage
+	(*v16.OverdueBalancePoint)(nil),            // 45: tanvo.analytics.v1.OverdueBalancePoint
+	(*v16.InvoiceCollectionPoint)(nil),         // 46: tanvo.analytics.v1.InvoiceCollectionPoint
 }
 var file_tanvo_portal_v1_portal_proto_depIdxs = []int32{
-	26, // 0: tanvo.portal.v1.PortalProfile.customer_type:type_name -> tanvo.customer.v1.CustomerType
-	27, // 1: tanvo.portal.v1.PortalProfile.billing_address:type_name -> tanvo.common.v1.Address
-	27, // 2: tanvo.portal.v1.PortalProfile.shipping_address:type_name -> tanvo.common.v1.Address
-	0,  // 3: tanvo.portal.v1.GetPortalOrganizationResponse.organization:type_name -> tanvo.portal.v1.PortalOrganization
-	28, // 4: tanvo.portal.v1.GetPortalCustomerResponse.customer:type_name -> tanvo.customer.v1.Customer
-	1,  // 5: tanvo.portal.v1.UpdatePortalCustomerRequest.profile:type_name -> tanvo.portal.v1.PortalProfile
-	29, // 6: tanvo.portal.v1.UpdatePortalCustomerRequest.update_mask:type_name -> google.protobuf.FieldMask
-	28, // 7: tanvo.portal.v1.UpdatePortalCustomerResponse.customer:type_name -> tanvo.customer.v1.Customer
-	30, // 8: tanvo.portal.v1.ListPortalInvoicesResponse.invoices:type_name -> tanvo.invoice.v1.Invoice
-	31, // 9: tanvo.portal.v1.DownloadPortalInvoiceResponse.pdf:type_name -> tanvo.common.v1.Document
-	32, // 10: tanvo.portal.v1.ListPortalSubscriptionsResponse.subscriptions:type_name -> tanvo.subscription.v1.Subscription
-	33, // 11: tanvo.portal.v1.GetPortalCurrentUsageResponse.usage:type_name -> tanvo.usage.v1.Usage
-	34, // 12: tanvo.portal.v1.ListPortalWalletsResponse.wallets:type_name -> tanvo.wallet.v1.Wallet
-	35, // 13: tanvo.portal.v1.TopUpPortalWalletResponse.wallet_transaction:type_name -> tanvo.wallet.v1.WalletTransaction
-	36, // 14: tanvo.portal.v1.GetPortalOverdueBalanceResponse.points:type_name -> tanvo.analytics.v1.OverdueBalancePoint
-	37, // 15: tanvo.portal.v1.GetPortalInvoiceCollectionResponse.points:type_name -> tanvo.analytics.v1.InvoiceCollectionPoint
-	2,  // 16: tanvo.portal.v1.CustomerPortalService.GetPortalOrganization:input_type -> tanvo.portal.v1.GetPortalOrganizationRequest
-	4,  // 17: tanvo.portal.v1.CustomerPortalService.GetPortalCustomer:input_type -> tanvo.portal.v1.GetPortalCustomerRequest
-	6,  // 18: tanvo.portal.v1.CustomerPortalService.UpdatePortalCustomer:input_type -> tanvo.portal.v1.UpdatePortalCustomerRequest
-	8,  // 19: tanvo.portal.v1.CustomerPortalService.ListPortalInvoices:input_type -> tanvo.portal.v1.ListPortalInvoicesRequest
-	10, // 20: tanvo.portal.v1.CustomerPortalService.DownloadPortalInvoice:input_type -> tanvo.portal.v1.DownloadPortalInvoiceRequest
-	12, // 21: tanvo.portal.v1.CustomerPortalService.ListPortalSubscriptions:input_type -> tanvo.portal.v1.ListPortalSubscriptionsRequest
-	14, // 22: tanvo.portal.v1.CustomerPortalService.GetPortalCurrentUsage:input_type -> tanvo.portal.v1.GetPortalCurrentUsageRequest
-	16, // 23: tanvo.portal.v1.CustomerPortalService.ListPortalWallets:input_type -> tanvo.portal.v1.ListPortalWalletsRequest
-	18, // 24: tanvo.portal.v1.CustomerPortalService.TopUpPortalWallet:input_type -> tanvo.portal.v1.TopUpPortalWalletRequest
-	20, // 25: tanvo.portal.v1.CustomerPortalService.GetPortalOverdueBalance:input_type -> tanvo.portal.v1.GetPortalOverdueBalanceRequest
-	22, // 26: tanvo.portal.v1.CustomerPortalService.GetPortalInvoiceCollection:input_type -> tanvo.portal.v1.GetPortalInvoiceCollectionRequest
-	24, // 27: tanvo.portal.v1.CustomerPortalService.PayPortalOverdueBalance:input_type -> tanvo.portal.v1.PayPortalOverdueBalanceRequest
-	3,  // 28: tanvo.portal.v1.CustomerPortalService.GetPortalOrganization:output_type -> tanvo.portal.v1.GetPortalOrganizationResponse
-	5,  // 29: tanvo.portal.v1.CustomerPortalService.GetPortalCustomer:output_type -> tanvo.portal.v1.GetPortalCustomerResponse
-	7,  // 30: tanvo.portal.v1.CustomerPortalService.UpdatePortalCustomer:output_type -> tanvo.portal.v1.UpdatePortalCustomerResponse
-	9,  // 31: tanvo.portal.v1.CustomerPortalService.ListPortalInvoices:output_type -> tanvo.portal.v1.ListPortalInvoicesResponse
-	11, // 32: tanvo.portal.v1.CustomerPortalService.DownloadPortalInvoice:output_type -> tanvo.portal.v1.DownloadPortalInvoiceResponse
-	13, // 33: tanvo.portal.v1.CustomerPortalService.ListPortalSubscriptions:output_type -> tanvo.portal.v1.ListPortalSubscriptionsResponse
-	15, // 34: tanvo.portal.v1.CustomerPortalService.GetPortalCurrentUsage:output_type -> tanvo.portal.v1.GetPortalCurrentUsageResponse
-	17, // 35: tanvo.portal.v1.CustomerPortalService.ListPortalWallets:output_type -> tanvo.portal.v1.ListPortalWalletsResponse
-	19, // 36: tanvo.portal.v1.CustomerPortalService.TopUpPortalWallet:output_type -> tanvo.portal.v1.TopUpPortalWalletResponse
-	21, // 37: tanvo.portal.v1.CustomerPortalService.GetPortalOverdueBalance:output_type -> tanvo.portal.v1.GetPortalOverdueBalanceResponse
-	23, // 38: tanvo.portal.v1.CustomerPortalService.GetPortalInvoiceCollection:output_type -> tanvo.portal.v1.GetPortalInvoiceCollectionResponse
-	25, // 39: tanvo.portal.v1.CustomerPortalService.PayPortalOverdueBalance:output_type -> tanvo.portal.v1.PayPortalOverdueBalanceResponse
-	28, // [28:40] is the sub-list for method output_type
-	16, // [16:28] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	31, // 0: tanvo.portal.v1.PortalCustomer.account_type:type_name -> tanvo.customer.v1.AccountType
+	32, // 1: tanvo.portal.v1.PortalCustomer.customer_type:type_name -> tanvo.customer.v1.CustomerType
+	33, // 2: tanvo.portal.v1.PortalCustomer.billing_address:type_name -> tanvo.common.v1.Address
+	33, // 3: tanvo.portal.v1.PortalCustomer.shipping_address:type_name -> tanvo.common.v1.Address
+	32, // 4: tanvo.portal.v1.PortalProfile.customer_type:type_name -> tanvo.customer.v1.CustomerType
+	33, // 5: tanvo.portal.v1.PortalProfile.billing_address:type_name -> tanvo.common.v1.Address
+	33, // 6: tanvo.portal.v1.PortalProfile.shipping_address:type_name -> tanvo.common.v1.Address
+	34, // 7: tanvo.portal.v1.PortalWallet.status:type_name -> tanvo.wallet.v1.WalletStatus
+	35, // 8: tanvo.portal.v1.PortalWallet.expires_at:type_name -> google.protobuf.Timestamp
+	36, // 9: tanvo.portal.v1.PortalWallet.balance_amount:type_name -> tanvo.common.v1.Money
+	36, // 10: tanvo.portal.v1.PortalWallet.ongoing_balance_amount:type_name -> tanvo.common.v1.Money
+	36, // 11: tanvo.portal.v1.PortalWallet.ongoing_usage_balance_amount:type_name -> tanvo.common.v1.Money
+	36, // 12: tanvo.portal.v1.PortalWallet.consumed_amount:type_name -> tanvo.common.v1.Money
+	35, // 13: tanvo.portal.v1.PortalWallet.last_balance_sync_at:type_name -> google.protobuf.Timestamp
+	3,  // 14: tanvo.portal.v1.PortalWalletTransaction.wallet:type_name -> tanvo.portal.v1.PortalWallet
+	37, // 15: tanvo.portal.v1.PortalWalletTransaction.transaction_type:type_name -> tanvo.wallet.v1.TransactionType
+	38, // 16: tanvo.portal.v1.PortalWalletTransaction.transaction_status:type_name -> tanvo.wallet.v1.TransactionStatus
+	39, // 17: tanvo.portal.v1.PortalWalletTransaction.status:type_name -> tanvo.wallet.v1.SettlementStatus
+	36, // 18: tanvo.portal.v1.PortalWalletTransaction.amount:type_name -> tanvo.common.v1.Money
+	35, // 19: tanvo.portal.v1.PortalWalletTransaction.settled_at:type_name -> google.protobuf.Timestamp
+	35, // 20: tanvo.portal.v1.PortalWalletTransaction.created_at:type_name -> google.protobuf.Timestamp
+	35, // 21: tanvo.portal.v1.PortalWalletTransaction.updated_at:type_name -> google.protobuf.Timestamp
+	0,  // 22: tanvo.portal.v1.GetPortalOrganizationResponse.organization:type_name -> tanvo.portal.v1.PortalOrganization
+	1,  // 23: tanvo.portal.v1.GetPortalCustomerResponse.customer:type_name -> tanvo.portal.v1.PortalCustomer
+	2,  // 24: tanvo.portal.v1.UpdatePortalCustomerRequest.profile:type_name -> tanvo.portal.v1.PortalProfile
+	40, // 25: tanvo.portal.v1.UpdatePortalCustomerRequest.update_mask:type_name -> google.protobuf.FieldMask
+	1,  // 26: tanvo.portal.v1.UpdatePortalCustomerResponse.customer:type_name -> tanvo.portal.v1.PortalCustomer
+	41, // 27: tanvo.portal.v1.ListPortalInvoicesResponse.invoices:type_name -> tanvo.invoice.v1.Invoice
+	41, // 28: tanvo.portal.v1.DownloadPortalInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
+	42, // 29: tanvo.portal.v1.DownloadPortalInvoiceResponse.pdf:type_name -> tanvo.common.v1.Document
+	42, // 30: tanvo.portal.v1.DownloadPortalInvoiceResponse.xml:type_name -> tanvo.common.v1.Document
+	43, // 31: tanvo.portal.v1.ListPortalSubscriptionsResponse.subscriptions:type_name -> tanvo.subscription.v1.Subscription
+	43, // 32: tanvo.portal.v1.GetPortalSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
+	44, // 33: tanvo.portal.v1.GetPortalCurrentUsageResponse.usage:type_name -> tanvo.usage.v1.Usage
+	3,  // 34: tanvo.portal.v1.ListPortalWalletsResponse.wallets:type_name -> tanvo.portal.v1.PortalWallet
+	3,  // 35: tanvo.portal.v1.GetPortalWalletResponse.wallet:type_name -> tanvo.portal.v1.PortalWallet
+	4,  // 36: tanvo.portal.v1.TopUpPortalWalletResponse.wallet_transactions:type_name -> tanvo.portal.v1.PortalWalletTransaction
+	45, // 37: tanvo.portal.v1.GetPortalOverdueBalanceResponse.points:type_name -> tanvo.analytics.v1.OverdueBalancePoint
+	46, // 38: tanvo.portal.v1.GetPortalInvoiceCollectionResponse.points:type_name -> tanvo.analytics.v1.InvoiceCollectionPoint
+	5,  // 39: tanvo.portal.v1.CustomerPortalService.GetPortalOrganization:input_type -> tanvo.portal.v1.GetPortalOrganizationRequest
+	7,  // 40: tanvo.portal.v1.CustomerPortalService.GetPortalCustomer:input_type -> tanvo.portal.v1.GetPortalCustomerRequest
+	9,  // 41: tanvo.portal.v1.CustomerPortalService.UpdatePortalCustomer:input_type -> tanvo.portal.v1.UpdatePortalCustomerRequest
+	11, // 42: tanvo.portal.v1.CustomerPortalService.ListPortalInvoices:input_type -> tanvo.portal.v1.ListPortalInvoicesRequest
+	13, // 43: tanvo.portal.v1.CustomerPortalService.DownloadPortalInvoice:input_type -> tanvo.portal.v1.DownloadPortalInvoiceRequest
+	15, // 44: tanvo.portal.v1.CustomerPortalService.ListPortalSubscriptions:input_type -> tanvo.portal.v1.ListPortalSubscriptionsRequest
+	17, // 45: tanvo.portal.v1.CustomerPortalService.GetPortalSubscription:input_type -> tanvo.portal.v1.GetPortalSubscriptionRequest
+	19, // 46: tanvo.portal.v1.CustomerPortalService.GetPortalCurrentUsage:input_type -> tanvo.portal.v1.GetPortalCurrentUsageRequest
+	21, // 47: tanvo.portal.v1.CustomerPortalService.ListPortalWallets:input_type -> tanvo.portal.v1.ListPortalWalletsRequest
+	23, // 48: tanvo.portal.v1.CustomerPortalService.GetPortalWallet:input_type -> tanvo.portal.v1.GetPortalWalletRequest
+	25, // 49: tanvo.portal.v1.CustomerPortalService.TopUpPortalWallet:input_type -> tanvo.portal.v1.TopUpPortalWalletRequest
+	27, // 50: tanvo.portal.v1.CustomerPortalService.GetPortalOverdueBalance:input_type -> tanvo.portal.v1.GetPortalOverdueBalanceRequest
+	29, // 51: tanvo.portal.v1.CustomerPortalService.GetPortalInvoiceCollection:input_type -> tanvo.portal.v1.GetPortalInvoiceCollectionRequest
+	6,  // 52: tanvo.portal.v1.CustomerPortalService.GetPortalOrganization:output_type -> tanvo.portal.v1.GetPortalOrganizationResponse
+	8,  // 53: tanvo.portal.v1.CustomerPortalService.GetPortalCustomer:output_type -> tanvo.portal.v1.GetPortalCustomerResponse
+	10, // 54: tanvo.portal.v1.CustomerPortalService.UpdatePortalCustomer:output_type -> tanvo.portal.v1.UpdatePortalCustomerResponse
+	12, // 55: tanvo.portal.v1.CustomerPortalService.ListPortalInvoices:output_type -> tanvo.portal.v1.ListPortalInvoicesResponse
+	14, // 56: tanvo.portal.v1.CustomerPortalService.DownloadPortalInvoice:output_type -> tanvo.portal.v1.DownloadPortalInvoiceResponse
+	16, // 57: tanvo.portal.v1.CustomerPortalService.ListPortalSubscriptions:output_type -> tanvo.portal.v1.ListPortalSubscriptionsResponse
+	18, // 58: tanvo.portal.v1.CustomerPortalService.GetPortalSubscription:output_type -> tanvo.portal.v1.GetPortalSubscriptionResponse
+	20, // 59: tanvo.portal.v1.CustomerPortalService.GetPortalCurrentUsage:output_type -> tanvo.portal.v1.GetPortalCurrentUsageResponse
+	22, // 60: tanvo.portal.v1.CustomerPortalService.ListPortalWallets:output_type -> tanvo.portal.v1.ListPortalWalletsResponse
+	24, // 61: tanvo.portal.v1.CustomerPortalService.GetPortalWallet:output_type -> tanvo.portal.v1.GetPortalWalletResponse
+	26, // 62: tanvo.portal.v1.CustomerPortalService.TopUpPortalWallet:output_type -> tanvo.portal.v1.TopUpPortalWalletResponse
+	28, // 63: tanvo.portal.v1.CustomerPortalService.GetPortalOverdueBalance:output_type -> tanvo.portal.v1.GetPortalOverdueBalanceResponse
+	30, // 64: tanvo.portal.v1.CustomerPortalService.GetPortalInvoiceCollection:output_type -> tanvo.portal.v1.GetPortalInvoiceCollectionResponse
+	52, // [52:65] is the sub-list for method output_type
+	39, // [39:52] is the sub-list for method input_type
+	39, // [39:39] is the sub-list for extension type_name
+	39, // [39:39] is the sub-list for extension extendee
+	0,  // [0:39] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_portal_v1_portal_proto_init() }
@@ -2712,7 +4881,7 @@ func file_tanvo_portal_v1_portal_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_portal_v1_portal_proto_rawDesc), len(file_tanvo_portal_v1_portal_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   26,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

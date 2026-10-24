@@ -1085,3 +1085,42 @@ func TestChargeChildrenBatches(t *testing.T) {
 		}
 	}
 }
+
+func TestChargeAcceptsTargetWallet(t *testing.T) {
+	// source: spec/services/charges/create_service_spec.rb:196
+	t.Run("create sets it from the input", func(t *testing.T) {
+		for _, accepts := range []bool{true, false} {
+			h, e := setup(t)
+			p := h.Plan(period.Monthly, 0)
+			m := h.Metric("api", catalog.AggregationTypeCount, "")
+			in := standardInput(m, "api")
+			if accepts {
+				in.AcceptsTargetWallet = core.Some(true)
+			}
+			c, err := e.Plans.CreateCharge(h.Ctx, h.OrgID(), refs.ByID(p.ID), in, false)
+			if err != nil {
+				t.Fatalf("CreateCharge() error = %v", err)
+			}
+			if got := reloadCharge(h, c.ID).AcceptsTargetWallet; got != accepts {
+				t.Errorf("accepts target wallet: got = %v, want = %v", got, accepts)
+			}
+		}
+	})
+
+	// source: spec/services/charges/update_service_spec.rb:150, 164
+	t.Run("update changes it", func(t *testing.T) {
+		for _, want := range []bool{true, false} {
+			h, e := setup(t)
+			p := h.Plan(period.Monthly, 0)
+			m := h.Metric("api", catalog.AggregationTypeCount, "")
+			c := h.Charge(p, m, catalog.ChargeModelStandard, `{"amount":"1"}`, func(c *catalog.Charge) { c.AcceptsTargetWallet = !want })
+			in := plans.ChargeInput{Properties: props(`{"amount":"400"}`), AcceptsTargetWallet: core.Some(want)}
+			if _, err := e.Plans.UpdateCharge(h.Ctx, h.OrgID(), refs.ByID(p.ID), refs.ByID(c.ID), in, false); err != nil {
+				t.Fatalf("UpdateCharge() error = %v", err)
+			}
+			if got := reloadCharge(h, c.ID).AcceptsTargetWallet; got != want {
+				t.Errorf("accepts target wallet: got = %v, want = %v", got, want)
+			}
+		}
+	})
+}

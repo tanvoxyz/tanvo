@@ -9,6 +9,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/money"
@@ -57,8 +58,15 @@ func (s *Service) CreateRate(ctx context.Context, org core.OrganizationID, cardR
 		if err != nil {
 			return err
 		}
-		out, err = s.createRate(ctx, r, k, in, loc)
-		return err
+		before, err := rateCardSnapshot(ctx, r, c)
+		if err != nil {
+			return err
+		}
+		if out, err = s.createRate(ctx, r, k, in, loc); err != nil {
+			return err
+		}
+		// source: app/services/rate_card_rates/create_service.rb:14-18
+		return s.logRateCard(ctx, r, auditlog.ActivityRateCardUpdated, before, c)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("create rate: %w", err)
@@ -146,6 +154,10 @@ func (s *Service) UpdateRate(ctx context.Context, org core.OrganizationID, cardR
 		if err != nil {
 			return err
 		}
+		snapshot, err := auditlog.ObjectOf(rateCardObject{RateCard: c, Rates: rates})
+		if err != nil {
+			return err
+		}
 		now := s.d.Now()
 		status := catalog.RateStatusAt(rate, rates, now)
 		if status != catalog.RateStatusPending {
@@ -221,7 +233,8 @@ func (s *Service) UpdateRate(ctx context.Context, org core.OrganizationID, cardR
 			return err
 		}
 		out = rate
-		return nil
+		// source: app/services/rate_card_rates/update_service.rb:18-21
+		return s.logRateCard(ctx, r, auditlog.ActivityRateCardUpdated, snapshot, c)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("update rate: %w", err)
@@ -252,13 +265,18 @@ func (s *Service) DeleteRate(ctx context.Context, org core.OrganizationID, cardR
 		if catalog.RateStatusAt(rate, rates, s.d.Now()) != catalog.RateStatusPending {
 			return fieldError("status", catalog.CodeOnlyPendingRatesCanBeDeleted)
 		}
+		before, err := auditlog.ObjectOf(rateCardObject{RateCard: c, Rates: rates})
+		if err != nil {
+			return err
+		}
 		now := s.d.Now()
 		if err := r.Rates.Discard(ctx, org, rate.ID, now); err != nil {
 			return fmt.Errorf("discard: %w", err)
 		}
 		rate.DeletedAt = &now
 		out = rate
-		return nil
+		// source: app/services/rate_card_rates/destroy_service.rb:12-15
+		return s.logRateCard(ctx, r, auditlog.ActivityRateCardUpdated, before, c)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("delete rate: %w", err)

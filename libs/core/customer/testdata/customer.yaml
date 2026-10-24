@@ -42,6 +42,10 @@ cases:
   - {name: metadata key too long, source: "spec/models/metadata/customer_metadata_spec.rb:30", metadata: [["hello-hello-hello-hello-hello", "abcdef"]], errors: ["metadata.items[0].key: value_is_too_long"]}
   - {name: metadata value of 100 characters, source: "spec/models/metadata/customer_metadata_spec.rb:38", metadata: [["hello", "a*100"]], errors: []}
   - {name: metadata value too long, source: "spec/models/metadata/customer_metadata_spec.rb:42", metadata: [["hello", "a*101"]], errors: ["metadata.items[0].value: value_is_too_long"]}
+  - {name: lowercase x402 agent address, source: "spec/models/customer_spec.rb:369", x402_agent_address: "0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed", stored_x402_agent_address: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", errors: []}
+  - {name: solana x402 agent address, source: "spec/models/customer_spec.rb:378", x402_agent_address: "2wKupLR9q6wXYppw8Gr2NvWxKBUqm4PPJKkQfoxHDBg4", stored_x402_agent_address: "2wKupLR9q6wXYppw8Gr2NvWxKBUqm4PPJKkQfoxHDBg4", errors: []}
+  - {name: wrong x402 checksum, source: "spec/models/customer_spec.rb:387", x402_agent_address: "0x5AAeb6053F3E94C9b9A09f33669435E7Ef1BeAed", errors: ["x402_agent_address: invalid_format"]}
+  - {name: malformed x402 agent address, source: "spec/models/customer_spec.rb:393", x402_agent_address: "0x5aaeb6053f3e94c9b9a09f33669435e7ef1beae", errors: ["x402_agent_address: invalid_format"]}
   - {name: more than 5 metadata items, source: "tanvo", metadata: [["a", ""], ["b", ""], ["c", ""], ["d", ""], ["e", ""], ["f", ""]], errors: ["metadata.items: too_many_items"]}
 
 skipped:
@@ -52,7 +56,9 @@ skipped:
   - {source: "spec/models/customer_spec.rb:143", reason: "the time zone is a *time.Location, so an invalid name cannot be stored; core.LoadZone rejects it"}
   - {source: "spec/models/customer_spec.rb:164", reason: "Tanvo validates every field on each write; lago's changed-attribute shortcut has no equivalent"}
   - {source: "spec/models/customer_spec.rb:175", reason: "Tanvo validates every field on each write; lago's changed-attribute shortcut has no equivalent"}
-  - {source: "spec/models/customer_spec.rb:407", reason: "x402 agent addresses are out of scope (deprecated in parity)"}
+  - {source: "spec/models/customer_spec.rb:407", reason: "read-only after creation: the customer service refuses a change (libs/billing/customers)"}
+  - {source: "spec/models/customer_spec.rb:421", reason: "unique index: covered by the repository suites"}
+  - {source: "spec/models/customer_spec.rb:490", reason: "ActiveRecord scope: Repository.GetByX402AgentAddress, covered by the repository suites"}
   - {source: "spec/models/customer_spec.rb:446", reason: "ActiveRecord scopes; the wallet refresh flag belongs to package wallet"}
   - {source: "spec/models/customer_spec.rb:473", reason: "ActiveRecord scope; covered by Repository.ListForDunning in the repository suites"}
   - {source: "spec/models/customer_spec.rb:693", reason: "add-ons are applied as one-off invoices in Tanvo, so Documents.HasInvoices covers them"}

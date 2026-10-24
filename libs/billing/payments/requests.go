@@ -8,6 +8,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
@@ -110,6 +111,13 @@ func (s *Service) CreateRequest(ctx context.Context, in RequestInput) (*payment.
 			return nil, wrap(err, "create payment request")
 		}
 		if err := kernel.Emit(ctx, s.d, org, webhook.EventTypePaymentRequestCreated, "payment_request", q.ID.UUID(), q); err != nil {
+			return nil, err
+		}
+		// payment_requests/create_service.rb:41.
+		if err := s.d.LogChange(ctx, r, kernel.Change{
+			Type: auditlog.ActivityPaymentRequestCreated, OrganizationID: org, ResourceType: auditlog.ResourcePaymentRequest,
+			ResourceID: q.ID.UUID(), Object: q, ExternalCustomerID: c.ExternalID,
+		}); err != nil {
 			return nil, err
 		}
 		return q, nil

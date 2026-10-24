@@ -88,6 +88,7 @@ func groups() []group {
 		{"auditlog", testAuditLog},
 		{"attribution", testAttribution},
 		{"product_catalog", testProductCatalog},
+		{"x402", testX402},
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/billing/usage"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
@@ -100,6 +101,10 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.P
 		if err != nil {
 			return err
 		}
+		before, err := auditlog.ObjectOf(p)
+		if err != nil {
+			return err
+		}
 		old := *p
 		in.Name.Apply(&p.Name)
 		in.InvoiceDisplayName.Apply(&p.InvoiceDisplayName)
@@ -118,6 +123,22 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.P
 		}
 		if in.Interval.Set || in.BillFixedChargesMonthly.Set {
 			p.BillFixedChargesMonthly = billMonthly(p.Interval, in.BillFixedChargesMonthly.Value)
+		}
+		// A contract prices against the plan by its code and in its
+		// currency, so both freeze once one uses it.
+		if old.Code != p.Code || old.Currency != p.Currency {
+			if err := contractLock(ctx, r, p); err != nil {
+				return err
+			}
+		}
+		// The plan's rate cards were validated against its currency, so it
+		// freezes before any contract too.
+		//
+		// source: app/services/catalog_plans/update_service.rb:30-34
+		if old.Currency != p.Currency {
+			if err := rateCardsLock(ctx, r, p); err != nil {
+				return err
+			}
 		}
 		if err := validateChargeables(ctx, r, org, in.Charges.Value, in.FixedCharges.Value); err != nil {
 			return err
@@ -192,7 +213,16 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.P
 			return err
 		}
 		out = p
-		return kernel.Emit(ctx, s.d, org, webhook.EventTypePlanUpdated, "plan", p.ID.UUID(), p)
+		if err := kernel.Emit(ctx, s.d, org, webhook.EventTypePlanUpdated, "plan", p.ID.UUID(), p); err != nil {
+			return err
+		}
+		// An override plan's update is not logged.
+		//
+		// source: app/services/plans/update_service.rb:16-20
+		if p.IsChild() {
+			return nil
+		}
+		return s.logPlan(ctx, r, auditlog.ActivityPlanUpdated, before, p)
 	})
 	if err != nil {
 		return nil, fmt.Errorf("update plan %s: %w", id, err)

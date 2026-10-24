@@ -26,6 +26,15 @@ func dateOfCol(t time.Time) core.Date {
 	return core.NewDate(y, m, d)
 }
 
+// optDateCol converts a nullable date to a date column value.
+func optDateCol(d *core.Date) *time.Time {
+	if d == nil {
+		return nil
+	}
+	t := dateCol(*d)
+	return &t
+}
+
 // optDateOf converts a nullable date column.
 func optDateOf(t *time.Time) *core.Date {
 	if t == nil {

@@ -29,6 +29,20 @@ type fakeCatalog struct {
 	charges []*catalog.Charge
 	err     error
 	calls   int
+	// contracts are the in-advance contracts by external ID and metric;
+	// contractCalls counts their lookups.
+	contracts     map[contractKey]core.SubscriptionID
+	contractCalls int
+}
+
+func (c *fakeCatalog) InAdvanceContract(_ context.Context, org core.OrganizationID, externalID string, metric core.BillableMetricID) (core.SubscriptionID, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.contractCalls++
+	if c.err != nil {
+		return core.SubscriptionID{}, c.err
+	}
+	return c.contracts[contractKey{org, externalID, metric}], nil
 }
 
 func (c *fakeCatalog) Metric(_ context.Context, org core.OrganizationID, code string) (*catalog.BillableMetric, error) {

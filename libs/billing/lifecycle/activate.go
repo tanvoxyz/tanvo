@@ -206,7 +206,7 @@ func (s *Service) gate(ctx context.Context, r port.Repos, a *activation, at time
 			return err
 		}
 	}
-	return s.emit(ctx, webhook.EventTypeSubscriptionIncomplete, sub)
+	return s.notify(ctx, r, webhook.EventTypeSubscriptionIncomplete, sub)
 }
 
 // activateStandalone activates a subscription that replaces none and bills
@@ -228,7 +228,7 @@ func (s *Service) activateStandalone(ctx context.Context, r port.Repos, a *activ
 			return err
 		}
 	}
-	return s.emit(ctx, webhook.EventTypeSubscriptionStarted, sub)
+	return s.notify(ctx, r, webhook.EventTypeSubscriptionStarted, sub)
 }
 
 // activateUpgrade terminates the previous subscription without its own
@@ -262,7 +262,7 @@ func (s *Service) activateUpgrade(ctx context.Context, r port.Repos, a *activati
 	if err := s.billRotation(ctx, r, sub.OrganizationID, at.Add(time.Second), subs, items); err != nil {
 		return err
 	}
-	return s.emit(ctx, webhook.EventTypeSubscriptionStarted, sub)
+	return s.notify(ctx, r, webhook.EventTypeSubscriptionStarted, sub)
 }
 
 // activateDowngrade terminates the previous subscription at the end of its
@@ -299,10 +299,10 @@ func (s *Service) activateDowngrade(ctx context.Context, r port.Repos, a *activa
 	if err := s.billAdvanceCharges(ctx, r, prev, at); err != nil {
 		return err
 	}
-	if err := s.emit(ctx, webhook.EventTypeSubscriptionTerminated, prev); err != nil {
+	if err := s.notify(ctx, r, webhook.EventTypeSubscriptionTerminated, prev); err != nil {
 		return err
 	}
-	return s.emit(ctx, webhook.EventTypeSubscriptionStarted, sub)
+	return s.notify(ctx, r, webhook.EventTypeSubscriptionStarted, sub)
 }
 
 // SwapDowngrade terminates, in the transaction of r, the active

@@ -136,7 +136,7 @@ func InAdvance(b ingest.InAdvanceBiller) Handler {
 		var batch []*ingest.Enriched
 		var billed []int
 		for j, e := range events {
-			if e.InAdvance && !e.SubscriptionID.IsZero() {
+			if e.InAdvance && !e.InAdvanceTarget().IsZero() {
 				batch = append(batch, e)
 				billed = append(billed, at[j])
 			}

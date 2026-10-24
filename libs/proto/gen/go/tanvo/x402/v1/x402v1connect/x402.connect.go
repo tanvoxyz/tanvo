@@ -46,10 +46,18 @@ var (
 
 // X402ServiceClient is a client for the tanvo.x402.v1.X402Service service.
 type X402ServiceClient interface {
-	// Checks whether an agent may call a resource: returns its wallet
-	// balance and, when it must pay first, the x402 payment requirements to
-	// answer with HTTP 402. Creates the customer, subscription and wallet of
-	// a new agent when the connection auto-creates customers.
+	// Checks whether an agent may call a resource: its subscription is
+	// active and its wallet covers the estimated cost. Otherwise it returns
+	// the x402 payment requirements of a top-up, to answer with HTTP 402.
+	// A refusal is an invalid argument whose field violation is on "base":
+	// buyer_not_recognized, wallet_not_x402_enabled,
+	// customer_not_refreshable, subscription_not_active,
+	// credit_purchase_pending, agent_address_family_unsupported,
+	// plan_currency_not_supported, plan_not_usage_only, charge_not_targeted
+	// and charge_not_invoiceable.
+	// An unknown connection is not found (connection_not_found); a failure
+	// of the facilitator is unavailable (third_party_error). The calls are
+	// not recorded in the API logs.
 	CheckX402Gate(context.Context, *v1.CheckX402GateRequest) (*v1.CheckX402GateResponse, error)
 }
 
@@ -61,10 +69,18 @@ func NewX402ServiceClient(client *connect.Client) X402ServiceClient {
 
 // X402ServiceHandler is an implementation of the tanvo.x402.v1.X402Service service.
 type X402ServiceHandler interface {
-	// Checks whether an agent may call a resource: returns its wallet
-	// balance and, when it must pay first, the x402 payment requirements to
-	// answer with HTTP 402. Creates the customer, subscription and wallet of
-	// a new agent when the connection auto-creates customers.
+	// Checks whether an agent may call a resource: its subscription is
+	// active and its wallet covers the estimated cost. Otherwise it returns
+	// the x402 payment requirements of a top-up, to answer with HTTP 402.
+	// A refusal is an invalid argument whose field violation is on "base":
+	// buyer_not_recognized, wallet_not_x402_enabled,
+	// customer_not_refreshable, subscription_not_active,
+	// credit_purchase_pending, agent_address_family_unsupported,
+	// plan_currency_not_supported, plan_not_usage_only, charge_not_targeted
+	// and charge_not_invoiceable.
+	// An unknown connection is not found (connection_not_found); a failure
+	// of the facilitator is unavailable (third_party_error). The calls are
+	// not recorded in the API logs.
 	CheckX402Gate(context.Context, *v1.CheckX402GateRequest) (*v1.CheckX402GateResponse, error)
 }
 

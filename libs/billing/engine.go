@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/tanvoxyz/tanvo/libs/billing/contracts"
 	"github.com/tanvoxyz/tanvo/libs/billing/creditnotes"
 	"github.com/tanvoxyz/tanvo/libs/billing/customers"
 	"github.com/tanvoxyz/tanvo/libs/billing/dailyusage"
@@ -64,6 +65,9 @@ type Engine struct {
 	// Quotes runs the quotes, order forms and orders, and executes the
 	// orders ([kernel.JobExecuteOrder]).
 	Quotes *quotes.Service
+	// Contracts manages the contracts, their rate cards and billing
+	// segments (domain §21.4).
+	Contracts *contracts.Service
 
 	d                    *kernel.Deps
 	terminationAlertDays []int
@@ -111,6 +115,12 @@ func New(d Deps, opts ...Option) (*Engine, error) {
 		return nil, fmt.Errorf("billing engine: quotes: %w", err)
 	}
 	e.Quotes = qs
+	ct, err := contracts.New(deps)
+	if err != nil {
+		return nil, fmt.Errorf("billing engine: contracts: %w", err)
+	}
+	e.Contracts = ct
+	inv.WithContractSegments(ct)
 	for _, o := range opts {
 		o(e)
 	}
@@ -362,7 +372,7 @@ func (e *Engine) HandleJob(ctx context.Context, j port.Job) (bool, error) {
 		}
 		return true, e.CreditNotes.ReportTaxes(ctx, j.OrganizationID, a.CreditNoteID)
 	}
-	for _, h := range []func(context.Context, port.Job) (bool, error){e.Invoices.HandleJob, e.Lifecycle.HandleJob, e.Wallets.HandleJob, e.Plans.HandleJob, e.DailyUsages.HandleJob, e.Customers.HandleJob, e.Quotes.HandleJob} {
+	for _, h := range []func(context.Context, port.Job) (bool, error){e.Invoices.HandleJob, e.Lifecycle.HandleJob, e.Wallets.HandleJob, e.Plans.HandleJob, e.DailyUsages.HandleJob, e.Customers.HandleJob, e.Quotes.HandleJob, e.Contracts.HandleJob, e.Invoices.HandleSegmentJob} {
 		if ok, err := h(ctx, j); ok {
 			return true, err
 		}

@@ -9,6 +9,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/wallets"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
@@ -39,6 +40,9 @@ func (s *Service) OngoingUsage(ctx context.Context, r port.Repos, c *customer.Cu
 				return err
 			}
 			uf.BillableMetricID = ch.metric
+			if ch.targetWallet {
+				uf.TargetWalletCode = f.GroupedBy[catalog.EventTargetWalletCode]
+			}
 		}
 		out = append(out, uf)
 		return nil
@@ -131,8 +135,9 @@ func progressiveFees(ctx context.Context, r port.Repos, u *Usage, now time.Time)
 
 // cachedCharge is what the ongoing usage reads of a charge.
 type cachedCharge struct {
-	metric    core.BillableMetricID
-	inAdvance bool
+	metric       core.BillableMetricID
+	inAdvance    bool
+	targetWallet bool
 }
 
 // chargeCache loads charges once.
@@ -154,7 +159,7 @@ func (c *chargeCache) get(ctx context.Context, id core.ChargeID) (cachedCharge, 
 	if c.m == nil {
 		c.m = map[core.ChargeID]cachedCharge{}
 	}
-	v := cachedCharge{metric: ch.BillableMetricID, inAdvance: ch.PayInAdvance}
+	v := cachedCharge{metric: ch.BillableMetricID, inAdvance: ch.PayInAdvance, targetWallet: ch.AcceptsTargetWallet}
 	c.m[id] = v
 	return v, nil
 }

@@ -86,11 +86,19 @@ type TrueUp struct {
 	// UsedPreciseAmountCents is the precise counterpart of
 	// UsedAmountCents; nil to use this fee's.
 	UsedPreciseAmountCents *money.Decimal
+	// ProratedMinimum, when set, is the prorated minimum itself, unrounded
+	// and in the same minor units; MinimumAmountCents, BilledDays and
+	// PeriodDays are then ignored (a billing segment's minimum prorated by
+	// its ratio, lago BillingSegment#prorated_min_amount_cents).
+	ProratedMinimum *money.Decimal
 }
 
 // proratedMinimumAmountCents returns MinimumAmountCents / PeriodDays ×
-// BilledDays, unrounded.
+// BilledDays, unrounded, or ProratedMinimum when set.
 func (t TrueUp) proratedMinimumAmountCents() money.Decimal {
+	if t.ProratedMinimum != nil {
+		return *t.ProratedMinimum
+	}
 	return money.NewFromInt(t.MinimumAmountCents).Mul(money.NewFromInt(t.BilledDays)).
 		Div(money.NewFromInt(t.PeriodDays))
 }
@@ -243,7 +251,7 @@ func fiatAmount(cur money.Currency, amount, unitAmount money.Decimal) (FeeAmount
 // usage, if the usage is below it.
 func trueUpAmount(in AmountsInput, amount *FeeAmount) (*FeeAmount, error) {
 	t := in.TrueUp
-	if t.PeriodDays <= 0 {
+	if t.ProratedMinimum == nil && t.PeriodDays <= 0 {
 		return nil, fmt.Errorf("pricing: true-up over %d period days", t.PeriodDays)
 	}
 	minimum := t.proratedMinimumAmountCents()

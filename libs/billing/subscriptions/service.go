@@ -125,7 +125,8 @@ func findCustomer(ctx context.Context, r port.Repos, org core.OrganizationID, re
 
 // findSubscription returns the subscription ref designates: by ID, or the
 // live subscription with that external ID, preferring active, then
-// incomplete, then pending. A missing one is core.NotFound("subscription").
+// incomplete, then pending. A missing one, or a contract, is
+// core.NotFound("subscription").
 func findSubscription(ctx context.Context, r port.Repos, org core.OrganizationID, ref SubscriptionRef) (*subscription.Subscription, error) {
 	var (
 		s   *subscription.Subscription
@@ -135,6 +136,10 @@ func findSubscription(ctx context.Context, r port.Repos, org core.OrganizationID
 		s, err = r.Subscriptions.GetByExternalID(ctx, org, ref.ExternalID)
 	} else {
 		s, err = r.Subscriptions.Get(ctx, org, ref.ID)
+		if err == nil && s.Contract {
+			// A contract is served by the contract API only.
+			err = core.ErrNotFound
+		}
 	}
 	if errors.Is(err, core.ErrNotFound) {
 		return nil, core.NotFound(Resource)

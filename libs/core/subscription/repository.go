@@ -204,3 +204,67 @@ type DailyUsageRepository interface {
 	// whose day is from or later, and returns how many.
 	DeleteFrom(ctx context.Context, org core.OrganizationID, subs []core.SubscriptionID, from core.Date, limit int) (int, error)
 }
+
+// ContractFilter narrows [ContractRepository.List] (lago ContractsQuery);
+// zero fields do not filter.
+type ContractFilter struct {
+	// Statuses keeps the contracts in one of these statuses.
+	Statuses []Status
+	// ExternalCustomerID keeps the contracts of the customer with that
+	// external ID.
+	ExternalCustomerID string
+	// PlanCode keeps the contracts of the plan with that code.
+	PlanCode string
+	// ExternalID keeps the contracts with that external ID.
+	ExternalID string
+	// BillingEntityIDs keeps the contracts of these billing entities: the
+	// contract's own, or its customer's when it has none.
+	BillingEntityIDs []core.BillingEntityID
+	// HasRateOverrides, when set, keeps the contracts having (true) or not
+	// having (false) a kept rate card phase with an override.
+	HasRateOverrides *bool
+	// Search keeps the contracts whose ID is the term (when it is a
+	// UUID), whose name or external ID contains it, whose plan's name or
+	// code contains it, or, without ExternalCustomerID, whose customer's
+	// name, first name, last name, external ID or email contains it
+	// (case-insensitive, LIKE wildcards matched literally); ignored with
+	// ExternalID.
+	Search string
+}
+
+// Validate checks the filter's statuses.
+func (f ContractFilter) Validate() error {
+	var v core.Validator
+	for i, st := range f.Statuses {
+		v.Enum(fmt.Sprintf("statuses[%d]", i), st)
+	}
+	return v.Err()
+}
+
+// ContractRepository reads contracts: the subscriptions priced by rate
+// cards (Subscription.Contract). They are written through
+// [Repository.Create] and [Repository.Update]; the reads of [Repository]
+// leave them out, except Get and MatchEvent. Every method is scoped to an
+// organization.
+type ContractRepository interface {
+	// GetLive returns the pending or active contract with that external
+	// ID, the pending one first, then the latest started, then the latest
+	// created (lago Contract.live_by_external_id); or core.ErrNotFound.
+	GetLive(ctx context.Context, org core.OrganizationID, externalID string) (*Subscription, error)
+	// GetByStatus returns the latest started contract with that external
+	// ID in the status, or core.ErrNotFound.
+	GetByStatus(ctx context.Context, org core.OrganizationID, externalID string, status Status) (*Subscription, error)
+	// GetTerminatable returns the active contract with that external ID,
+	// else the pending one, or core.ErrNotFound (lago
+	// Contract.terminatable_by_external_id).
+	GetTerminatable(ctx context.Context, org core.OrganizationID, externalID string) (*Subscription, error)
+	// List returns the contracts matching f, newest created first, then by
+	// ID; an invalid filter fails with core.ErrInvalidValue.
+	List(ctx context.Context, org core.OrganizationID, f ContractFilter, page core.PageRequest) (core.Page[*Subscription], error)
+	// ListDueForActivation returns the pending contracts started by t
+	// whose customer is not deleted, ordered by ID.
+	ListDueForActivation(ctx context.Context, org core.OrganizationID, t time.Time) ([]*Subscription, error)
+	// ExistsForPlan reports whether a contract, in any status, is priced
+	// by the plan.
+	ExistsForPlan(ctx context.Context, org core.OrganizationID, plan core.PlanID) (bool, error)
+}

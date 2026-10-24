@@ -305,3 +305,25 @@ func TestListPlans(t *testing.T) {
 		t.Errorf("got filter status = %d (%s), want = 400", status, body)
 	}
 }
+
+// source: spec/requests/api/v1/plans_controller_spec.rb:155
+func TestCreatePlanChargeAcceptsTargetWallet(t *testing.T) {
+	t.Parallel()
+	s := rpctest.New(t)
+	s.Fixtures.Metric("api", catalog.AggregationTypeCount, "")
+	status, body := s.REST(t, s.APIKey, http.MethodPost, "/v1/plans",
+		`{"name":"P1","code":"plan_code","interval":"INTERVAL_MONTHLY","amount":{"currency":"EUR","amount":"1"},
+		"charges":[{"code":"api","billable_metric_id":"code:api","charge_model":"CHARGE_MODEL_STANDARD",
+		"properties":{"standard":{"amount":"1"}},"accepts_target_wallet":true}]}`)
+	if status != http.StatusOK {
+		t.Fatalf("got status = %d (%s), want = 200", status, body)
+	}
+	got := decode[struct {
+		Plan struct {
+			Charges []restCharge `json:"charges"`
+		} `json:"plan"`
+	}](t, body).Plan.Charges
+	if len(got) != 1 || !got[0].AcceptsTarget {
+		t.Errorf("got charges = %+v, want one accepting a target wallet", got)
+	}
+}

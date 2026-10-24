@@ -10,6 +10,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/quote"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -156,6 +157,15 @@ func (s *Service) SignOrderForm(ctx context.Context, org core.OrganizationID, id
 		if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeOrderFormSigned, "order_form", f.ID.UUID(), f); err != nil {
 			return err
 		}
+		// source: app/services/order_forms/mark_as_signed_service.rb:42-43
+		if err := LogOrderForm(ctx, s.d, r, auditlog.ActivityOrderFormSigned, f); err != nil {
+			return err
+		}
+		if doc != nil {
+			if err := LogOrderForm(ctx, s.d, r, auditlog.ActivityOrderFormFileUploaded, f); err != nil {
+				return err
+			}
+		}
 		var executeAt *time.Time
 		if in.ExecuteAt != nil {
 			t := in.ExecuteAt.UTC()
@@ -180,6 +190,10 @@ func (s *Service) SignOrderForm(ctx context.Context, org core.OrganizationID, id
 			return fmt.Errorf("create order: %w", err)
 		}
 		if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeOrderCreated, "order", o.ID.UUID(), o); err != nil {
+			return err
+		}
+		// source: app/services/order_forms/mark_as_signed_service.rb:54
+		if err := s.logOrder(ctx, r, auditlog.ActivityOrderCreated, o); err != nil {
 			return err
 		}
 		if out.OrderForm, err = s.orderFormView(ctx, r, f); err != nil {
@@ -237,7 +251,14 @@ func (s *Service) VoidOrderForm(ctx context.Context, org core.OrganizationID, id
 		if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeOrderFormVoided, "order_form", f.ID.UUID(), f); err != nil {
 			return err
 		}
+		// source: app/services/order_forms/void_service.rb:31,33
+		if err := LogOrderForm(ctx, s.d, r, auditlog.ActivityOrderFormVoided, f); err != nil {
+			return err
+		}
 		if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeQuoteVoided, "quote", v.ID.UUID(), quoteWithVersion{Quote: q, Version: v}); err != nil {
+			return err
+		}
+		if err := LogVoided(ctx, s.d, r, q, v); err != nil {
 			return err
 		}
 		out, err = s.orderFormView(ctx, r, f)

@@ -64,7 +64,7 @@ func Signals(events []*Enriched) []UsageSignal {
 func inAdvance(events []*Enriched) []*Enriched {
 	var out []*Enriched
 	for _, e := range events {
-		if e.InAdvance && !e.SubscriptionID.IsZero() {
+		if e.InAdvance && !e.InAdvanceTarget().IsZero() {
 			out = append(out, e)
 		}
 	}
