@@ -1,0 +1,10 @@
+{
+  "name": "eventstore",
+  "targets": {
+    "test": {
+      "options": {
+        "command": "go test -timeout 30m ./..."
+      }
+    }
+  }
+}
