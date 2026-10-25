@@ -6,7 +6,7 @@ the specs below is ported; each ported case carries a `// source:` comment.
 | Spec | Cases | Reason |
 | :--- | :--- | :--- |
 | `api_keys/create_service_spec.rb`, `update_service_spec.rb`, `rotate_service_spec.rb` | premium / free organization, "api permissions addon" contexts | Tanvo has no premium or license gating (parity §1.50): permissions and preferred expiry are always available. The ported cases are the premium ones. |
-| `api_keys/cache_service_spec.rb` | all | No key cache in the library; apps/server may cache `APIKeys.Authenticate`. |
+| `api_keys/cache_service_spec.rb:31` | `expire_all_cache` on an organization update | The cache keeps the key only, not its organization, so an organization update has nothing to expire. |
 | `api_keys/track_usage_service_spec.rb` | cache-key layout | Uses are collected by `UsageTracker` in memory and flushed to the store's recorded uses (`api_key_uses`) instead of Redis keys; the hourly clock job applies them per organization (`DispatchUsage`, `ApplyUsage`). The observable behavior is ported. |
 | `users_service_spec.rb`, `invites/accept_service_spec.rb`, `auth/*/login_service_spec.rb` | "registers the user device" | Every flow opens its session through `Users.open`, which registers the device; `TestRegisterDevice` ports `user_devices/register_service_spec.rb` and covers sign-in, sign-up and invites once instead of per provider. |
 | `utils/device_info_spec.rb` | user-agent parsing | apps/server parses the user agent into `SessionMeta.Browser`, `OS` and `DeviceType`; libs/auth stores what it is given. |

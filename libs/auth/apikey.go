@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
@@ -19,11 +21,32 @@ import (
 type APIKeys struct {
 	d     Deps
 	usage *UsageTracker
+
+	cache    port.Cache
+	cacheTTL time.Duration
 }
 
 // NewAPIKeys returns the API key service; usage collects last-used
 // instants of authenticated keys (nil disables tracking).
 func NewAPIKeys(d Deps, usage *UsageTracker) *APIKeys { return &APIKeys{d: d, usage: usage} }
+
+// DefaultAPIKeyCacheTTL is how long [APIKeys.AuthenticateCached] reuses a
+// key read from the database (lago config.api_key_cache_ttl,
+// config/application.rb:58).
+const DefaultAPIKeyCacheTTL = time.Hour
+
+// WithCache makes [APIKeys.AuthenticateCached] keep the keys it reads in c
+// for ttl; a nil c or a ttl that is not positive reads every key from the
+// database. Update, Rotate and Destroy remove the key they change from c
+// once their transaction commits, so c must be shared by every server
+// process: a key cached in another process's memory would keep
+// authenticating after its revocation.
+func (s *APIKeys) WithCache(c port.Cache, ttl time.Duration) *APIKeys {
+	if ttl > 0 {
+		s.cache, s.cacheTTL = c, ttl
+	}
+	return s
+}
 
 // CreatedAPIKey is a new key with its secret, which is never stored and
 // cannot be shown again.
@@ -177,6 +200,7 @@ func (s *APIKeys) Update(ctx context.Context, org core.OrganizationID, id core.A
 	if err != nil {
 		return nil, err
 	}
+	s.forget(ctx, k)
 	res := map[string]any{"name": keyName(k), "value_prefix": prefix(k)}
 	maps.Copy(res, diff)
 	s.d.record(ctx, SecurityEvent{OrganizationID: org, Type: SecurityLogAPIKey, Event: EventAPIKeyUpdated, Resources: res})
@@ -235,6 +259,7 @@ func (s *APIKeys) Rotate(ctx context.Context, org core.OrganizationID, id core.A
 	if err != nil {
 		return nil, err
 	}
+	s.forget(ctx, old)
 	s.d.record(ctx, SecurityEvent{OrganizationID: org, Type: SecurityLogAPIKey, Event: EventAPIKeyRotated, Resources: map[string]any{
 		"name": keyName(out.Key), "value_prefix": map[string]string{"deleted": prefix(old), "added": prefix(out.Key)},
 	}})
@@ -273,6 +298,7 @@ func (s *APIKeys) Destroy(ctx context.Context, org core.OrganizationID, id core.
 	if err != nil {
 		return nil, err
 	}
+	s.forget(ctx, k)
 	s.d.record(ctx, SecurityEvent{OrganizationID: org, Type: SecurityLogAPIKey, Event: EventAPIKeyDeleted, Resources: map[string]any{
 		"name": keyName(k), "value_prefix": prefix(k),
 	}})
@@ -286,10 +312,54 @@ func (s *APIKeys) Authenticate(ctx context.Context, secret string) (*access.APIK
 	if secret == "" {
 		return nil, ErrUnauthenticated
 	}
+	k, err := s.lookup(ctx, access.HashToken(secret))
+	if err != nil {
+		return nil, err
+	}
+	return s.accept(k)
+}
+
+// AuthenticateCached is [APIKeys.Authenticate] reading the key from the
+// cache of [APIKeys.WithCache] first and keeping it there once read, for
+// the busiest RPCs (lago ApiKeys::CacheService with with_cache, used by the
+// event endpoints, app/controllers/api/v1/events_controller.rb:10). A
+// cached key is still checked for expiry, and is kept no longer than
+// until it expires.
+func (s *APIKeys) AuthenticateCached(ctx context.Context, secret string) (*access.APIKey, error) {
+	if s.cache == nil {
+		return s.Authenticate(ctx, secret)
+	}
+	if secret == "" {
+		return nil, ErrUnauthenticated
+	}
+	hash := access.HashToken(secret)
+	ck := apiKeyCacheKey(hash)
+	if b, ok := s.cache.Get(ctx, ck); ok {
+		var k access.APIKey
+		if err := json.Unmarshal(b, &k); err == nil {
+			return s.accept(&k)
+		}
+	}
+	k, err := s.lookup(ctx, hash)
+	if err != nil {
+		return nil, err
+	}
+	ttl := s.cacheTTL
+	if k.ExpiresAt != nil {
+		ttl = min(ttl, k.ExpiresAt.Sub(s.d.now()))
+	}
+	if b, err := json.Marshal(k); err == nil {
+		s.cache.Set(ctx, ck, b, ttl)
+	}
+	return s.accept(k)
+}
+
+// lookup reads the key whose secret hashes to hash.
+func (s *APIKeys) lookup(ctx context.Context, hash []byte) (*access.APIKey, error) {
 	var k *access.APIKey
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
 		var err error
-		k, err = r.APIKeys.GetByTokenHash(ctx, access.HashToken(secret))
+		k, err = r.APIKeys.GetByTokenHash(ctx, hash)
 		return err
 	})
 	if errors.Is(err, core.ErrNotFound) {
@@ -298,6 +368,11 @@ func (s *APIKeys) Authenticate(ctx context.Context, secret string) (*access.APIK
 	if err != nil {
 		return nil, fmt.Errorf("authenticate api key: %w", err)
 	}
+	return k, nil
+}
+
+// accept returns k when it is active now, recording its use.
+func (s *APIKeys) accept(k *access.APIKey) (*access.APIKey, error) {
 	now := s.d.now()
 	if !k.Active(now) {
 		return nil, ErrUnauthenticated
@@ -306,6 +381,19 @@ func (s *APIKeys) Authenticate(ctx context.Context, secret string) (*access.APIK
 		s.usage.Record(k.OrganizationID, k.ID, now)
 	}
 	return k, nil
+}
+
+// apiKeyCacheKey is the cache key of the key whose secret hashes to hash.
+// Lago keys its entries by the secret itself (api_keys/cache_service.rb:41);
+// Tanvo never keeps a secret, only its hash.
+func apiKeyCacheKey(hash []byte) string { return "api_key/1/" + hex.EncodeToString(hash) }
+
+// forget removes k from the cache after a change to it committed (lago
+// ApiKeys::CacheService.expire_cache).
+func (s *APIKeys) forget(ctx context.Context, k *access.APIKey) {
+	if s.cache != nil {
+		s.cache.Delete(ctx, apiKeyCacheKey(k.TokenHash))
+	}
 }
 
 type usageKey struct {
