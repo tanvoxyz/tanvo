@@ -6,6 +6,7 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.49.0
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/tanvoxyz/tanvo/libs/core v0.0.0
+	github.com/tanvoxyz/tanvo/libs/dockertest v0.0.0
 	github.com/tanvoxyz/tanvo/libs/eventstore v0.0.0
 	github.com/tanvoxyz/tanvo/libs/expression/go v0.0.0
 	github.com/tanvoxyz/tanvo/libs/metering v0.0.0
@@ -52,3 +53,5 @@ replace github.com/tanvoxyz/tanvo/libs/metering => ../metering
 replace github.com/tanvoxyz/tanvo/libs/eventstore => ../eventstore
 
 replace github.com/tanvoxyz/tanvo/libs/expression/go => ../expression/go
+
+replace github.com/tanvoxyz/tanvo/libs/dockertest => ../dockertest

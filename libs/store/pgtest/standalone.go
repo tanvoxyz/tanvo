@@ -17,7 +17,7 @@ func Standalone(ctx context.Context) (dsn string, stop func(context.Context) err
 		if s.container == nil {
 			return nil
 		}
-		return s.container.remove(ctx)
+		return s.container.Close(ctx)
 	}
 	return s.adminDSN, stop, nil
 }

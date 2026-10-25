@@ -18,9 +18,9 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
+	"github.com/tanvoxyz/tanvo/libs/dockertest"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/clickhouse"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
-	"github.com/tanvoxyz/tanvo/libs/ingest/internal/dockertest"
 	"github.com/tanvoxyz/tanvo/libs/ingest/kafka"
 )
 
@@ -82,7 +82,7 @@ func start(ctx context.Context) error {
 				return err
 			}
 			env.cleanup = append(env.cleanup, func() { _ = c.Close(context.Background()) })
-			dsn = fmt.Sprintf("clickhouse://tanvo:tanvo@127.0.0.1:%s/tanvo", c.Ports["9000/tcp"])
+			dsn = fmt.Sprintf("clickhouse://tanvo:tanvo@%s/tanvo", c.Addr("9000/tcp"))
 		}
 	}
 	opts, err := ch.ParseDSN(dsn)

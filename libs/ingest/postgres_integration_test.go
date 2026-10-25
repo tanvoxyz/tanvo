@@ -17,9 +17,9 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/event"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
+	"github.com/tanvoxyz/tanvo/libs/dockertest"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/postgres"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
-	"github.com/tanvoxyz/tanvo/libs/ingest/internal/dockertest"
 )
 
 // pg is the PostgreSQL of the integration tests, started on first use:
@@ -60,7 +60,7 @@ func startPostgres() (*pgxpool.Pool, func(), error) {
 			return nil, nil, err
 		}
 		cleanup = func() { _ = c.Close(context.Background()) }
-		dsn = fmt.Sprintf("postgres://tanvo:tanvo@127.0.0.1:%s/tanvo?sslmode=disable", c.Ports["5432/tcp"])
+		dsn = fmt.Sprintf("postgres://tanvo:tanvo@%s/tanvo?sslmode=disable", c.Addr("5432/tcp"))
 	}
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {

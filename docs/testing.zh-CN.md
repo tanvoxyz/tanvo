@@ -52,7 +52,21 @@ lago-api 约有 2,700 个 RSpec 文件。Tanvo 移植的是它们的**行为**�
 
 ## 3. 测试基础设施
 
-* **容器**：`libs/store/pgtest`、`libs/eventstore/chtest` 与 `libs/ingest/kafkatest` 在本地 Docker 引擎上为每个包各启动一次 PostgreSQL 18、ClickHouse 与 Redpanda（或使用 `TANVO_TEST_POSTGRES_DSN`、`TANVO_TEST_CLICKHOUSE_DSN`、`TANVO_TEST_KAFKA_BROKERS`）。每个测试有自己的数据库或 schema。
+* **容器**：`libs/dockertest` 通过 Engine API 在本地 Docker 引擎上启动所有测试的容器（§3.1）。`libs/store/pgtest` 以及事件存储、任务与摄取测试的 `TestMain` 为每个包各启动一次 PostgreSQL 18、ClickHouse 与 Redpanda（或使用 `TANVO_TEST_POSTGRES_DSN`、`TANVO_TEST_CLICKHOUSE_DSN`、`TANVO_TEST_KAFKA_BROKERS`）。每个测试有自己的数据库或 schema。
 * **假时钟**：在端到端测试中，计费运行、River 调度与过期由一个可控的时钟驱动。
 * **HTTP fixture**：提供者客户端针对一个回放录制请求与响应的 `httptest` 服务器测试；没有任何测试调用真实的外部服务。
 * **黄金文件**：`go test ./... -update` 重写黄金文件；其差异像代码一样接受评审。
+
+### 3.1 容器生命周期
+
+包在 `TestMain` 或 `t.Cleanup` 中用 `Container.Close` 移除自己启动的容器；使用 `pgtest` 的包在 `TestMain` 中调用 `pgtest.Main`，否则 `pgtest.New` 会失败。对于在清理前死亡的测试进程（`-timeout` panic、SIGKILL、SIGINT），有两个相互独立的机制移除其容器：
+
+* **按属主回收**：每个容器都带有标签 `xyz.tanvo.dockertest`，以及其属主的主机名、进程 ID 和生命周期的结束时间。`Engine.Run` 在启动容器之前，先移除同一主机上属主进程已不存在或生命周期已过期的带标签容器。被杀死的 `go test` 留下的孤儿测试二进制在退出之前仍拥有其容器。
+* **生命周期上限**：镜像的入口点在一个作为 PID 1 的 `/bin/sh` 包装器下运行；生命周期结束时，包装器向其发送镜像的停止信号，10 秒后发送 SIGKILL；随后包装器退出，引擎移除容器（`AutoRemove`）。没有 shell 的镜像（`Spec.NoShell`）改为在引擎的 init 进程下运行，由一个共享其 PID 命名空间的 `busybox` 边车发送这些信号。目前使用的所有镜像（postgres、clickhouse-server、redpanda、redpanda connect、minio）都带有 shell。
+
+| 变量 | 默认值 | 作用 |
+| :--- | :--- | :--- |
+| `TANVO_TEST_CONTAINER_LIFETIME` | `2h` | 每个容器的生命周期上限，Go duration 格式 |
+| `DOCKER_HOST` | — | 要使用的引擎；否则依次使用 Docker CLI 的当前 context，以及 OrbStack、Docker Desktop、Colima、Rancher Desktop、rootless Docker 与 Podman 的套接字 |
+
+`docker ps -a --filter label=xyz.tanvo.dockertest` 列出测试容器。

@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tanvoxyz/tanvo/apps/server/internal/dockertest"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
+	"github.com/tanvoxyz/tanvo/libs/dockertest"
 )
 
 // TestScenarioIngestion ingests events through the public API on both

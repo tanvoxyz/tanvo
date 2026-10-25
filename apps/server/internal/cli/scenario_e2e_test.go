@@ -18,9 +18,10 @@ import (
 
 	"github.com/tanvoxyz/tanvo/apps/server/internal/app"
 	"github.com/tanvoxyz/tanvo/apps/server/internal/cli"
-	"github.com/tanvoxyz/tanvo/apps/server/internal/dockertest"
 	"github.com/tanvoxyz/tanvo/apps/server/internal/rpc"
 	"github.com/tanvoxyz/tanvo/libs/billing/billingtest"
+	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
+	"github.com/tanvoxyz/tanvo/libs/dockertest"
 )
 
 // scenario is a server for one end-to-end scenario: every role over a
@@ -203,23 +204,28 @@ func (s *scenario) trigger(kind string) {
 	}
 }
 
+// idleHorizon is how many seconds ahead [scenario.idle] runs delayed jobs: up to
+// the latest run of a subscription activity signalled now, the end of
+// the next activity interval plus its commit grace (kernel.ActivityKey).
+var idleHorizon = (kernel.ActivityInterval + kernel.ActivityCommitGrace).Seconds()
+
 // idle waits until no job is left to run: every job enqueued so far,
 // and every job they enqueued, has completed, been discarded or been
-// cancelled. Jobs scheduled within a minute run at once; later ones are
-// left out.
+// cancelled. Jobs scheduled within [idleHorizon] run at once; later ones
+// are left out.
 func (s *scenario) idle() {
 	s.t.Helper()
 	err := dockertest.Wait(s.t.Context(), 2*time.Minute, func(ctx context.Context) error {
-		// The delayed jobs due within a minute (a subscription's activity
-		// of the next minute) run now, as lago's perform_all_enqueued_jobs
-		// runs them.
+		// The delayed jobs due within the horizon (a subscription's
+		// activity of the current interval) run now, as lago's
+		// perform_all_enqueued_jobs runs them.
 		if _, err := s.pool.Exec(ctx, `UPDATE river.river_job SET state = 'available', scheduled_at = now()
-			WHERE state = 'scheduled' AND scheduled_at < now() + interval '1 minute'`); err != nil {
+			WHERE state = 'scheduled' AND scheduled_at < now() + $1 * interval '1 second'`, idleHorizon); err != nil {
 			return err
 		}
 		var left []string
 		if err := s.pool.QueryRow(ctx, `SELECT coalesce(array_agg(kind || ' ' || state::text || ' ' || scheduled_at::text), '{}') FROM river.river_job
-			WHERE state IN ('available', 'running', 'retryable', 'pending') OR (state = 'scheduled' AND scheduled_at < now() + interval '1 minute')`).Scan(&left); err != nil {
+			WHERE state IN ('available', 'running', 'retryable', 'pending') OR (state = 'scheduled' AND scheduled_at < now() + $1 * interval '1 second')`, idleHorizon).Scan(&left); err != nil {
 			return err
 		}
 		if len(left) > 0 {

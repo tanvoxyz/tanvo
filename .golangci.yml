@@ -79,6 +79,25 @@ linters:
             - pkg: github.com/tanvoxyz/tanvo
               desc: "core depends only on money and period"
           allow: ["$gostd", github.com/tanvoxyz/tanvo/libs/core, github.com/tanvoxyz/tanvo/libs/money, github.com/tanvoxyz/tanvo/libs/period]
+        dockertest:
+          list-mode: lax
+          files: ["**/libs/dockertest/**"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo
+              desc: "dockertest is a leaf test helper"
+          allow: ["$gostd", github.com/tanvoxyz/tanvo/libs/dockertest]
+        dockertest-tests-only:
+          files:
+            - "**/libs/**"
+            - "**/apps/**"
+            - "**/providers/**"
+            - "!$test"
+            - "!**/libs/dockertest/**"
+            - "!**/libs/store/pgtest/**"
+            - "!**/libs/store/internal/cmd/**"
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo/libs/dockertest
+              desc: "dockertest starts test containers: only tests, libs/store/pgtest and the store's tools use it"
         # The billing tests may use libs/store: libs/billing/storetest runs
         # the concurrency tests on PostgreSQL.
         billing-store:

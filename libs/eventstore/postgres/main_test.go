@@ -10,7 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/tanvoxyz/tanvo/libs/eventstore/internal/dockertest"
+	"github.com/tanvoxyz/tanvo/libs/dockertest"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/postgres"
 )
 
@@ -61,7 +61,7 @@ func run(m *testing.M) int {
 			return 1
 		}
 		defer func() { _ = c.Close(context.Background()) }()
-		dsn = fmt.Sprintf("postgres://tanvo:tanvo@127.0.0.1:%s/tanvo?sslmode=disable", c.Ports["5432/tcp"])
+		dsn = fmt.Sprintf("postgres://tanvo:tanvo@%s/tanvo?sslmode=disable", c.Addr("5432/tcp"))
 	}
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {

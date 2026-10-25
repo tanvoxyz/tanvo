@@ -4,6 +4,7 @@ go 1.27.1
 
 require (
 	github.com/tanvoxyz/tanvo/libs/core v0.0.0
+	github.com/tanvoxyz/tanvo/libs/dockertest v0.0.0
 	github.com/tanvoxyz/tanvo/libs/money v0.0.0
 	github.com/tanvoxyz/tanvo/libs/period v0.0.0
 	go.yaml.in/yaml/v3 v3.0.4
@@ -22,3 +23,5 @@ replace github.com/tanvoxyz/tanvo/libs/core => ../core
 replace github.com/tanvoxyz/tanvo/libs/money => ../money
 
 replace github.com/tanvoxyz/tanvo/libs/period => ../period
+
+replace github.com/tanvoxyz/tanvo/libs/dockertest => ../dockertest

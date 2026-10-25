@@ -25,11 +25,11 @@ import (
 
 	"github.com/tanvoxyz/tanvo/apps/server/internal/app"
 	"github.com/tanvoxyz/tanvo/apps/server/internal/cli"
-	"github.com/tanvoxyz/tanvo/apps/server/internal/dockertest"
 	"github.com/tanvoxyz/tanvo/libs/auth"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
+	"github.com/tanvoxyz/tanvo/libs/dockertest"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
 	"github.com/tanvoxyz/tanvo/libs/metering"
 	"github.com/tanvoxyz/tanvo/libs/store"
@@ -133,7 +133,7 @@ func startPostgres(t *testing.T) string {
 		Cmd:   []string{"postgres", "-c", "fsync=off", "-c", "synchronous_commit=off"},
 		Ports: []string{"5432/tcp"},
 	})
-	dsn := fmt.Sprintf("postgres://tanvo:tanvo@127.0.0.1:%s/tanvo?sslmode=disable", c.Ports["5432/tcp"])
+	dsn := fmt.Sprintf("postgres://tanvo:tanvo@%s/tanvo?sslmode=disable", c.Addr("5432/tcp"))
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
 		t.Fatal(err)
@@ -308,7 +308,7 @@ func startKafka(t *testing.T) (brokers, clickhouseURL string) {
 		Ports: []string{"9000/tcp"},
 	})
 	brokers = "127.0.0.1:" + port
-	clickhouseURL = fmt.Sprintf("clickhouse://tanvo:tanvo@127.0.0.1:%s/tanvo", c.Ports["9000/tcp"])
+	clickhouseURL = fmt.Sprintf("clickhouse://tanvo:tanvo@%s/tanvo", c.Addr("9000/tcp"))
 	if err := dockertest.Wait(ctx, 2*time.Minute, func(ctx context.Context) error {
 		cl, err := kgo.NewClient(kgo.SeedBrokers(brokers))
 		if err != nil {

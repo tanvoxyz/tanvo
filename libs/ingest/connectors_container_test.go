@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tanvoxyz/tanvo/libs/ingest/internal/dockertest"
+	"github.com/tanvoxyz/tanvo/libs/dockertest"
 )
 
 // connectImage is the Redpanda Connect image of connectors/Dockerfile.

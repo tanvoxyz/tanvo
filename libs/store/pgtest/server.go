@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+
+	"github.com/tanvoxyz/tanvo/libs/dockertest"
 )
 
 // DSNEnv names the environment variable holding the DSN of an existing
@@ -31,7 +33,7 @@ const AppRole = "tanvo_app"
 // server is the PostgreSQL server shared by the tests of a process.
 type server struct {
 	adminDSN  string
-	container *container
+	container *dockertest.Container
 
 	mu        sync.Mutex
 	templates map[string]*templateState
@@ -47,6 +49,9 @@ type templateState struct {
 // package, so this is "one server per package"; it is the only state of
 // this package, guarded by its sync.Once.
 var shared struct {
+	// main is set by [Main]: without it nothing would remove the container
+	// when the tests end.
+	main bool
 	once sync.Once
 	srv  *server
 	err  error
@@ -55,11 +60,12 @@ var shared struct {
 // Main runs the tests of a package and then removes the container started
 // for them, if any. Call it from TestMain: os.Exit(pgtest.Main(m)).
 func Main(m *testing.M) int {
+	shared.main = true
 	code := m.Run()
 	if shared.srv != nil && shared.srv.container != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		if err := shared.srv.container.remove(ctx); err != nil {
+		if err := shared.srv.container.Close(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "pgtest: removing container: %v\n", err)
 		}
 	}
@@ -72,13 +78,16 @@ func getServer(t testing.TB) *server {
 	if testing.Short() {
 		t.Skip("pgtest: skipped in -short mode")
 	}
+	if !shared.main && os.Getenv(DSNEnv) == "" {
+		t.Fatal("pgtest: call pgtest.Main from TestMain, so that the container is removed when the tests end")
+	}
 	shared.once.Do(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 		defer cancel()
 		shared.srv, shared.err = startServer(ctx)
 	})
 	if shared.err != nil {
-		if errors.Is(shared.err, errNoDocker) {
+		if errors.Is(shared.err, dockertest.ErrUnavailable) {
 			t.Skipf("pgtest: no PostgreSQL available: %v (set %s or start a Docker engine)", shared.err, DSNEnv)
 		}
 		t.Fatalf("pgtest: %v", shared.err)
@@ -91,20 +100,21 @@ func startServer(ctx context.Context) (*server, error) {
 	if dsn := os.Getenv(DSNEnv); dsn != "" {
 		s.adminDSN = dsn
 	} else {
-		c, err := startContainer(ctx)
+		c, dsn, err := startContainer(ctx)
 		if err != nil {
 			return nil, err
 		}
 		s.container = c
-		s.adminDSN = c.dsn
+		s.adminDSN = dsn
 	}
-	if err := s.waitReady(ctx); err != nil {
+	err := s.waitReady(ctx)
+	if err == nil {
+		err = s.ensureAppRole(ctx)
+	}
+	if err != nil {
 		if s.container != nil {
-			_ = s.container.remove(context.WithoutCancel(ctx))
+			_ = s.container.Close(context.WithoutCancel(ctx))
 		}
-		return nil, err
-	}
-	if err := s.ensureAppRole(ctx); err != nil {
 		return nil, err
 	}
 	return s, nil

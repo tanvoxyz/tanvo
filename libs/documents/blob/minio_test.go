@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
-	"os/exec"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/dockertest"
 )
 
 const (
@@ -19,47 +19,51 @@ const (
 	minioSecret = "tanvotestsecret"
 )
 
-// startMinIO runs MinIO in a container through the docker CLI and returns
-// its endpoint; it skips the test when no Docker engine is reachable.
+// startMinIO runs MinIO in a container on the local Docker engine and
+// returns its endpoint; it skips the test when no Docker engine is
+// reachable.
 func startMinIO(t *testing.T) string {
 	t.Helper()
 	if testing.Short() {
 		t.Skip("skipping MinIO integration test in short mode")
 	}
-	ctx := context.Background()
-	if _, err := exec.LookPath("docker"); err != nil {
-		t.Skip("docker CLI not found")
+	ctx := t.Context()
+	engine, err := dockertest.Connect(ctx)
+	if errors.Is(err, dockertest.ErrUnavailable) {
+		t.Skip(err)
 	}
-	if err := exec.CommandContext(ctx, "docker", "info").Run(); err != nil {
-		t.Skip("no Docker engine reachable")
+	if err != nil {
+		t.Fatal(err)
 	}
-	out, err := exec.CommandContext(ctx, "docker", "run", "-d", "--rm", "-p", "127.0.0.1::9000",
-		"-e", "MINIO_ROOT_USER="+minioUser, "-e", "MINIO_ROOT_PASSWORD="+minioSecret,
-		minioImage, "server", "/data").Output()
+	c, err := engine.Run(ctx, dockertest.Spec{
+		Image: minioImage,
+		Env:   []string{"MINIO_ROOT_USER=" + minioUser, "MINIO_ROOT_PASSWORD=" + minioSecret},
+		Cmd:   []string{"server", "/data"},
+		Ports: []string{"9000/tcp"},
+	})
 	if err != nil {
 		t.Skipf("start MinIO: %v", err)
 	}
-	id := strings.TrimSpace(string(out))
-	t.Cleanup(func() { _ = exec.CommandContext(context.Background(), "docker", "rm", "-f", id).Run() })
-	out, err = exec.CommandContext(ctx, "docker", "port", id, "9000/tcp").Output()
-	if err != nil {
-		t.Fatalf("docker port: %v", err)
-	}
-	endpoint := "http://" + strings.TrimSpace(strings.Split(string(out), "\n")[0])
-	deadline := time.Now().Add(60 * time.Second)
-	for {
-		resp, err := http.Get(endpoint + "/minio/health/live")
-		if err == nil {
-			drain(resp)
-			if resp.StatusCode == http.StatusOK {
-				return endpoint
-			}
+	t.Cleanup(func() { _ = c.Close(context.Background()) })
+	endpoint := "http://" + c.Addr("9000/tcp")
+	if err := dockertest.Wait(ctx, time.Minute, func(ctx context.Context) error {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint+"/minio/health/live", nil)
+		if err != nil {
+			return err
 		}
-		if time.Now().After(deadline) {
-			t.Fatalf("MinIO not ready: %v", err)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return err
 		}
-		time.Sleep(200 * time.Millisecond)
+		drain(resp)
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("health got = %d, want = 200", resp.StatusCode)
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("MinIO not ready: %v", err)
 	}
+	return endpoint
 }
 
 func TestS3MinIO(t *testing.T) {

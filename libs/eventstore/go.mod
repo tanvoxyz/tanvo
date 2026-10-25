@@ -7,6 +7,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/tanvoxyz/tanvo/libs/core v0.0.0
+	github.com/tanvoxyz/tanvo/libs/dockertest v0.0.0
 	github.com/tanvoxyz/tanvo/libs/metering v0.0.0
 	github.com/tanvoxyz/tanvo/libs/money v0.0.0
 	go.opentelemetry.io/otel v1.46.0
@@ -46,3 +47,5 @@ replace github.com/tanvoxyz/tanvo/libs/money => ../money
 replace github.com/tanvoxyz/tanvo/libs/period => ../period
 
 replace github.com/tanvoxyz/tanvo/libs/core => ../core
+
+replace github.com/tanvoxyz/tanvo/libs/dockertest => ../dockertest

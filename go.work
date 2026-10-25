@@ -5,6 +5,7 @@ use (
 	./libs/auth
 	./libs/billing
 	./libs/core
+	./libs/dockertest
 	./libs/documents
 	./libs/eventstore
 	./libs/expression/go

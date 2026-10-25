@@ -11,8 +11,8 @@ import (
 	ch "github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 
+	"github.com/tanvoxyz/tanvo/libs/dockertest"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/clickhouse"
-	"github.com/tanvoxyz/tanvo/libs/eventstore/internal/dockertest"
 )
 
 // testDB is the database of the integration tests: TANVO_TEST_CLICKHOUSE_DSN
@@ -51,7 +51,7 @@ func run(m *testing.M) int {
 			return 1
 		}
 		defer func() { _ = c.Close(context.Background()) }()
-		dsn = fmt.Sprintf("clickhouse://tanvo:tanvo@127.0.0.1:%s/tanvo", c.Ports["9000/tcp"])
+		dsn = fmt.Sprintf("clickhouse://tanvo:tanvo@%s/tanvo", c.Addr("9000/tcp"))
 	}
 	opts, err := ch.ParseDSN(dsn)
 	if err != nil {

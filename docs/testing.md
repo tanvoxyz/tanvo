@@ -52,7 +52,21 @@ lago-api has about 2,700 RSpec files. Tanvo ports their **behavior**, not their 
 
 ## 3. Test Infrastructure
 
-* **Containers**: `libs/store/pgtest`, `libs/eventstore/chtest` and `libs/ingest/kafkatest` start PostgreSQL 18, ClickHouse and Redpanda once per package on the local Docker engine (or use `TANVO_TEST_POSTGRES_DSN`, `TANVO_TEST_CLICKHOUSE_DSN`, `TANVO_TEST_KAFKA_BROKERS`). Each test gets its own database or schema.
+* **Containers**: `libs/dockertest` starts the containers of every test on the local Docker engine through the Engine API (§3.1). `libs/store/pgtest` and the `TestMain` of the event store, job and ingestion tests start PostgreSQL 18, ClickHouse and Redpanda once per package (or use `TANVO_TEST_POSTGRES_DSN`, `TANVO_TEST_CLICKHOUSE_DSN`, `TANVO_TEST_KAFKA_BROKERS`). Each test gets its own database or schema.
 * **Fake clock**: billing runs, River schedules and expirations are driven by a controllable clock in end-to-end tests.
 * **HTTP fixtures**: provider clients are tested against an `httptest` server replaying recorded requests and responses; no test calls a real external service.
 * **Golden files**: `go test ./... -update` rewrites golden files; the diff is reviewed like code.
+
+### 3.1 Container Lifecycle
+
+A package removes the containers it starts with `Container.Close`, from `TestMain` or `t.Cleanup`; a package that uses `pgtest` calls `pgtest.Main` from `TestMain`, and `pgtest.New` fails without it. Two independent mechanisms remove the containers of a test process that dies before its cleanup (a `-timeout` panic, SIGKILL, SIGINT):
+
+* **Owner reaping**: every container carries the label `xyz.tanvo.dockertest` with its owner's hostname and process ID and the end of its lifetime. Before it starts a container, `Engine.Run` removes the labeled containers of the same host whose owner process is gone or whose lifetime has expired. A test binary orphaned by a killed `go test` still owns its containers until it exits.
+* **Lifetime cap**: the image's entrypoint runs under a `/bin/sh` wrapper, PID 1, that sends the image's stop signal to it when the lifetime is over, then SIGKILL after 10 seconds; the wrapper then exits and the engine removes the container (`AutoRemove`). An image without a shell (`Spec.NoShell`) runs under the engine's init process instead, and a `busybox` sidecar sharing its PID namespace sends the signals. Every image used today (postgres, clickhouse-server, redpanda, redpanda connect, minio) has a shell.
+
+| Variable | Default | Effect |
+| :--- | :--- | :--- |
+| `TANVO_TEST_CONTAINER_LIFETIME` | `2h` | Lifetime cap of every container, as a Go duration |
+| `DOCKER_HOST` | — | Engine to use; otherwise the Docker CLI's current context, then the sockets of OrbStack, Docker Desktop, Colima, Rancher Desktop, rootless Docker and Podman |
+
+`docker ps -a --filter label=xyz.tanvo.dockertest` lists the test containers.

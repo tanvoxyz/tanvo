@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tanvoxyz/tanvo/apps/server/internal/dockertest"
+	"github.com/tanvoxyz/tanvo/libs/dockertest"
 )
 
 // TestScenarioAuditLogsRetention lists the activity and API logs of an

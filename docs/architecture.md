@@ -113,7 +113,8 @@ tanvo/
 │   ├── webhooks/                 # [Go] Outbound webhook delivery and signing; inbound webhook storage and retries
 │   ├── documents/                # [Go] Typst rendering, document templates, e-invoice XML
 │   ├── mail/                     # [Go] Email templates and the Mailer port's SMTP implementation
-│   └── auth/                     # [Go] API keys, sessions, OIDC, password hashing, permissions
+│   ├── auth/                     # [Go] API keys, sessions, OIDC, password hashing, permissions
+│   └── dockertest/               # [Go] Test containers on the Docker Engine API: lifetime cap, reaping of dead owners' containers
 │
 ├── providers/
 │   ├── stripe/ adyen/ gocardless/ cashfree/ flutterwave/ moneyhash/   # [Go] Payment providers
@@ -149,6 +150,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 * `core` depends only on `money` and `period`.
 * `billing` reaches storage, events, documents and providers only through ports in `core`; it evaluates metric expressions with `expression` (a pure library).
 * Infrastructure libraries depend on `core` but not on each other, with one exception: `ingest` uses `expression` (a pure library, like `metering`, whose event type it writes). Integration tests may use another library's backends; the depguard rules exempt test files.
+* `dockertest` is a leaf test helper with no in-repo imports; only test files, `store/pgtest` and the store's tools import it.
 * Only `apps/server` wires implementations to ports.
 * The rules are enforced by depguard in `.golangci.yml`; changing them starts with this section.
 

@@ -113,7 +113,8 @@ tanvo/
 │   ├── webhooks/                 # [Go] 出站 webhook 投递与签名；入站 webhook 存储与重试
 │   ├── documents/                # [Go] Typst 渲染、文档模板、电子发票 XML
 │   ├── mail/                     # [Go] 邮件模板与 Mailer 端口的 SMTP 实现
-│   └── auth/                     # [Go] API 密钥、会话、OIDC、密码哈希、权限
+│   ├── auth/                     # [Go] API 密钥、会话、OIDC、密码哈希、权限
+│   └── dockertest/               # [Go] 基于 Docker Engine API 的测试容器：生命周期上限、回收属主已死亡的容器
 │
 ├── providers/
 │   ├── stripe/ adyen/ gocardless/ cashfree/ flutterwave/ moneyhash/   # [Go] 支付提供方
@@ -149,6 +150,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 * `core` 只依赖 `money` 与 `period`。
 * `billing` 只通过 `core` 中的端口访问存储、事件、文档与提供者；它用 `expression`（纯库）对指标表达式求值。
 * 基础设施库依赖 `core`，但彼此之间互不依赖，只有一个例外：`ingest` 使用 `expression`（与 `metering` 一样是纯库，ingest 写入的是它的事件类型）。集成测试可以使用其他库的后端；depguard 规则对测试文件豁免。
+* `dockertest` 是一个不导入任何仓库内模块的叶子测试辅助库；只有测试文件、`store/pgtest` 与 store 的工具导入它。
 * 只有 `apps/server` 把实现装配到端口上。
 * 这些规则由 `.golangci.yml` 中的 depguard 强制；要修改它们，先修改本节。
 

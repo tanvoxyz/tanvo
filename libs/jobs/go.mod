@@ -8,6 +8,7 @@ require (
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.49.0
 	github.com/riverqueue/river/rivertype v0.49.0
 	github.com/tanvoxyz/tanvo/libs/core v0.0.0
+	github.com/tanvoxyz/tanvo/libs/dockertest v0.0.0
 	golang.org/x/time v0.16.0
 )
 
@@ -36,3 +37,5 @@ replace github.com/tanvoxyz/tanvo/libs/core => ../core
 replace github.com/tanvoxyz/tanvo/libs/money => ../money
 
 replace github.com/tanvoxyz/tanvo/libs/period => ../period
+
+replace github.com/tanvoxyz/tanvo/libs/dockertest => ../dockertest

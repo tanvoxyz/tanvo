@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/tanvoxyz/tanvo/apps/server/internal/cli"
-	"github.com/tanvoxyz/tanvo/apps/server/internal/dockertest"
+	"github.com/tanvoxyz/tanvo/libs/dockertest"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
 )
 
