@@ -465,7 +465,6 @@ message DeleteRoleRequest {
 // DeleteRoleResponse is the response of MemberService.DeleteRole.
 message DeleteRoleResponse {}
 
-
 // CreateInviteRequest is the request of MemberService.CreateInvite.
 message CreateInviteRequest {
   option (buf.validate.message).cel = {
