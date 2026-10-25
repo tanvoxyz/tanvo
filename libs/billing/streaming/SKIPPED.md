@@ -2,11 +2,11 @@
 
 Spec cases of the usage-refreshed streaming events that are not ported, each with its reason. Paths are relative to the upstream `spec/` directory. Ported cases carry a `source:` reference in the tests; together the two lists cover every case of the files in `testdata/specs.json` (checked by `go run ./tools/speccov`).
 
-Cases: 81. Ported: 64. Unported: 17.
+Cases: 81. Ported: 65. Unported: 16.
 
 ## Reasons
 
-- **refresh** (16): This module owns only the streaming block of the wallet refresh (refresh_wallets_service_spec.rb:102, the cases cited by libs/billing/streaming/service_test.go); the refresh itself is ported in libs/billing/wallets.
+- **refresh** (15): This module owns only the streaming block of the wallet refresh (refresh_wallets_service_spec.rb:102, the cases cited by libs/billing/streaming/service_test.go); the refresh itself is ported in libs/billing/wallets.
 - **unknown-type** (1): A destination cannot claim an unknown event type: the schema refuses it (streaming_destinations_event_types_check in libs/store/schema/29_streaming.sql) and so does Destination.Validate, so no stored destination asks for another type.
 
 ## Cases
@@ -19,7 +19,6 @@ Cases: 81. Ported: 64. Unported: 17.
 | 87 | "refreshes the wallet balances" | refresh |
 | 98 | "marks customer as not awaiting wallet refresh" | refresh |
 | 248 | when the destination asks for another event type > "enqueues nothing" | unknown-type |
-| 260 | when charges have presentation_group_keys > "calls CustomerUsageService with UsageFilters::WITHOUT_PRESENTATION_FILTER" | refresh |
 | 273 | when charges have presentation_group_keys > "calls AggregationFactory with presentation_by as empty array" | refresh |
 | 316 | when generating invoices are included > "returns current usage for customer including generating invoices" | refresh |
 | 330 | when generating invoices are excluded > "returns current usage for customer excluding generating invoices" | refresh |
