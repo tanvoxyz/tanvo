@@ -16,7 +16,7 @@
 
 | 阶段 | 内容 | 完成标准 | 状态 |
 | :--- | :--- | :--- | :--- |
-| 0. 基础 | Monorepo、Nx 插件、mise、lint 规则、许可证、文档、CI | `pnpm nx run-many -t build test lint` 在 CI 中通过 | 进行中：本地通过，尚未在 CI 中运行 |
+| 0. 基础 | Monorepo、Nx 插件、mise、lint 规则、许可证、文档、CI | `pnpm nx run-many -t build test lint` 在 CI 中通过 | 已完成 |
 | 1. 纯函数库（L0/L1） | `libs/money`、`libs/period`、`libs/expression`（Rust → WASM，Go 宿主）、`libs/pricing`、`libs/metering`（含内存存储与 `storetest`）、`libs/tax` | 各自领域的每个纯 spec 均已移植，或列为跳过并写明原因 | 已完成 |
 | 2. 领域核心（L2） | `libs/core`（实体、仓储接口、服务契约）、`libs/billing`（发票生成、费用、额度、优惠券、钱包、渐进式计费、贷项通知单、承诺消费、阈值、按比例计费、升级与降级） | 计费 spec 移植为基于内存仓储的纯决策 | 已完成 |
 | 3. 基础设施（L3） | `libs/proto`（API 契约）、`libs/store`（PostgreSQL schema、sqlc、RLS）、`libs/eventstore`（PostgreSQL、ClickHouse）、`libs/ingest`（HTTP 批量、Kafka/Redpanda）、`libs/jobs`（River、调度）、`libs/webhooks`、`libs/documents`（Typst、Factur-X/UBL）、`libs/mail`、`libs/auth` | 一致性测试套件在每个实现上通过；文档的黄金测试通过 | 已完成 |
@@ -31,7 +31,7 @@
 * 阶段 1–5，即 lago-api v1.55.0 的后端移植，已完成。每个未弃用的功能都有对应的 Tanvo 模块，并在[功能对齐](parity.zh-CN.md)中标为 `已完成`；例外是 v1.55.0 同样未接入的三行 x402（`逻辑已完成`），以及阶段 6、7 的控制台（`apps/web`）与企业版（`ee/*`）各行。
 * 已移植领域的每个上游 spec 用例，要么带 `source:` 引用移植，要么写明原因跳过，由 `tools/speccov` 检查（0 个未覆盖）。
 * `apps/server` 经 Connect 与 REST 提供每个 API 资源，运行任务与周期调度、PostgreSQL 与 Kafka 两种模式的摄取、文档、邮件、webhook、支付提供者、集成与流式目的地。基于 PostgreSQL、ClickHouse 与 Redpanda 容器的端到端场景覆盖计费周期、计费模型、渐进式计费、按比例计费、贷项通知单、催收、文档、摄取、表达式、用量桶与各提供者。
-* `pnpm nx run-many -t build test lint tidy-check` 在本地对全部 35 个项目通过；阶段 0 在 CI 中通过后结束。
+* `pnpm nx run-many -t buf-lint lint tidy-check build test` 在 CI 中对全部 36 个项目通过，生成代码与 WASM 模块均与源码一致。
 * 阶段 6（控制台）与阶段 7（企业版与云服务）尚未开始。
 
 ## 4. 功能对齐之后：借鉴 OpenMeter 与 Flexprice

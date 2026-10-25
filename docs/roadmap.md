@@ -16,7 +16,7 @@
 
 | Phase | Contents | Completion criteria | Status |
 | :--- | :--- | :--- | :--- |
-| 0. Foundations | Monorepo, Nx plugins, mise, lint rules, licenses, documents, CI | `pnpm nx run-many -t build test lint` passes in CI | In progress: passes locally; not yet run in CI |
+| 0. Foundations | Monorepo, Nx plugins, mise, lint rules, licenses, documents, CI | `pnpm nx run-many -t build test lint` passes in CI | Done |
 | 1. Pure libraries (L0/L1) | `libs/money`, `libs/period`, `libs/expression` (Rust → WASM, Go host), `libs/pricing`, `libs/metering` (with the in-memory store and `storetest`), `libs/tax` | Every pure spec of their areas ported or listed as skipped with a reason | Done |
 | 2. Domain core (L2) | `libs/core` (entities, repository interfaces, services' contracts), `libs/billing` (invoice generation, fees, credits, coupons, wallets, progressive billing, credit notes, commitments, thresholds, prorations, upgrades and downgrades) | Billing specs ported as pure decisions over in-memory repositories | Done |
 | 3. Infrastructure (L3) | `libs/proto` (API contracts), `libs/store` (PostgreSQL schema, sqlc, RLS), `libs/eventstore` (PostgreSQL, ClickHouse), `libs/ingest` (HTTP batch, Kafka/Redpanda), `libs/jobs` (River, schedules), `libs/webhooks`, `libs/documents` (Typst, Factur-X/UBL), `libs/mail`, `libs/auth` | Conformance suites pass on every implementation; documents' golden tests pass | Done |
@@ -31,7 +31,7 @@
 * Phases 1–5, the backend port of lago-api v1.55.0, are done. Every non-deprecated feature has its Tanvo module and is marked `done` in [Parity](parity.md), except the three x402 rows that v1.55.0 does not wire either (`logic done`), and the console (`apps/web`) and Enterprise (`ee/*`) rows of phases 6 and 7.
 * Every upstream spec case of the ported areas is either ported with its `source:` citation or skipped with a reason, as `tools/speccov` checks (0 uncovered).
 * `apps/server` runs every API resource over Connect and REST, the jobs and periodic schedule, ingestion in PostgreSQL and Kafka modes, documents, email, webhooks, payment providers, integrations and streaming destinations. End-to-end scenarios against PostgreSQL, ClickHouse and Redpanda containers cover billing cycles, charge models, progressive billing, prorations, credit notes, dunning, documents, ingestion, expressions, usage buckets and the providers.
-* `pnpm nx run-many -t build test lint tidy-check` passes locally on all 35 projects; phase 0 closes once it passes in CI.
+* `pnpm nx run-many -t buf-lint lint tidy-check build test` passes on all 36 projects in CI, and the generated code and WASM module match their sources.
 * Phases 6 (console) and 7 (Enterprise and Cloud) have not started.
 
 ## 4. After Parity: Lessons from OpenMeter and Flexprice
