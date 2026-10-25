@@ -16,7 +16,7 @@
 * **Correct money**: amounts are exact decimals end to end; every state change and the work it triggers commit atomically (§6, §9).
 * **Strongly typed contracts**: Protobuf + Connect for every API, with a resource-style REST/JSON surface transcoded from the same contracts (§4).
 * **Scale by design**: high-volume event ingestion through Kafka/Redpanda into ClickHouse, horizontal workers, and cells for Tanvo Cloud (§7, §13).
-* **Small operational footprint**: the minimal installation is one `CGO_ENABLED=0` binary, PostgreSQL and the `typst` executable; Redis, Kafka, ClickHouse and object storage are optional.
+* **Small operational footprint**: the minimal installation is one `CGO_ENABLED=0` binary, PostgreSQL and the `typst` executable; Redis or Valkey, Kafka, ClickHouse and object storage are optional.
 
 ### 1.2 Non-goals
 * API, webhook or database compatibility with Lago, or migration tooling from Lago (may come later as a separate tool).
@@ -65,7 +65,7 @@ Rules that follow from this:
 | Background jobs | **River** (PostgreSQL) | Transactional enqueue, unique and periodic jobs, leader election; Redis backend is a later option (§9) |
 | Event streaming | **Kafka API (Redpanda / Kafka)** with **franz-go** | Optional high-throughput ingestion path (§7) |
 | Event analytics store | **ClickHouse** (`clickhouse-go/v2`) | Optional; PostgreSQL partitions are the default (§7.4) |
-| Cache, rate limits | In-process / PostgreSQL by default; **Redis or Valkey** optional (`go-redis/v9`) | Behind the `Cache` and `RateLimiter` ports |
+| Cache | In-process by default; **Redis or Valkey** optional (`valkey-go`) | Behind the `Cache` port, in `libs/cache` (§13.6) |
 | Expressions | **lago-expression ported to Rust** → WASM, run on **wazero** in Go and in the browser | Exact decimal semantics, one implementation for every host (§7.3) |
 | Documents | **Typst** (child process) | PDF/A-3 with embedded e-invoice XML (Factur-X / ZUGFeRD); deterministic output (§10) |
 | E-invoicing | UBL 2.1 and UN/CEFACT CII generated in Go | Peppol BIS, Factur-X, XRechnung profiles |
@@ -114,6 +114,7 @@ tanvo/
 │   ├── documents/                # [Go] Typst rendering, document templates, e-invoice XML
 │   ├── mail/                     # [Go] Email templates and the Mailer port's SMTP implementation
 │   ├── auth/                     # [Go] API keys, sessions, OIDC, password hashing, permissions
+│   ├── cache/                    # [Go] The Cache port's implementations: in-process LRU, Redis/Valkey
 │   └── dockertest/               # [Go] Test containers on the Docker Engine API: lifetime cap, reaping of dead owners' containers
 │
 ├── providers/
@@ -139,7 +140,7 @@ apps/server ──▶ billing ──▶ pricing / metering / tax / period / mone
      │             │
      │             └──▶ core ──▶ money / period
      ├──▶ ingest ──▶ expression(go) / metering / core
-     ├──▶ store / eventstore / jobs / webhooks / documents / mail / auth ──▶ core
+     ├──▶ store / eventstore / jobs / webhooks / documents / mail / auth / cache ──▶ core
      ├──▶ providers/* ──▶ core
      └──▶ proto
 
@@ -308,7 +309,7 @@ Since the enriched row holds no charge or filter, a catalog change rewrites no s
 * **Fees → invoices**: the engine builds fees for subscriptions (base fee, fixed charges, usage charges, commitments' true-ups), applies taxes (internal or provider), coupons, prepaid credits, credit notes and wallet credits in a defined order, and produces invoices with exact totals.
 * **Scheduling**: each subscription's next billing instant is computed and a River job is scheduled for it; an hourly reconciliation job catches anything missed. This replaces Lago's hourly scans of every subscription.
 * **Lifecycle**: draft invoices with a grace period, finalization, numbering, voiding, regeneration, progressive billing, usage thresholds and one-off invoices; see [Domain](domain.md).
-* **Current-usage cache**: the fees of each charge bucket (a charge, or one of its filters, for one subscription) computed for a current usage are kept in an in-process LRU (`kernel.MemoryUsageCache`, `TANVO_USAGE_CACHE_ENTRIES` entries) until the end of the charges period. Full usage has its own entries. An entry is validated lazily when it is read: it records the ingestion watermark of the events it aggregated (`metering.Watermark`: the latest `ingested_at`, or the latest write of a replaced or re-enriched copy, `written_at` in PostgreSQL and `enriched_at` in ClickHouse), and it is recomputed once a later event is stored. An aggregation whose latest event is less than one second old is not kept, since a sibling written at the same instant may not have been visible to it. The key holds the charge's `updated_at` and a fingerprint of the filter, so catalog changes miss the old entries. Reads answered from the usage buckets, reads capped by a timestamp, previews and the daily usage history are never cached. The cache is per process, as caches are by default (§2), and needs no Redis: this is safe because validation needs no invalidation message, only the store's watermark, so a process never serves an entry older than an event it can read. The cost is one cold cache per API replica.
+* **Current-usage cache**: the fees of each charge bucket (a charge, or one of its filters, for one subscription) computed for a current usage are kept in the usage cache (`kernel.UsageCache` on the `port.Cache` of §13.6, `TANVO_USAGE_CACHE_ENTRIES` entries in the process) until the end of the charges period. Full usage has its own entries. An entry is validated lazily when it is read: it records the ingestion watermark of the events it aggregated (`metering.Watermark`: the latest `ingested_at`, or the latest write of a replaced or re-enriched copy, `written_at` in PostgreSQL and `enriched_at` in ClickHouse), and it is recomputed once a later event is stored. An aggregation whose latest event is less than one second old is not kept, since a sibling written at the same instant may not have been visible to it. The key holds the charge's `updated_at` and a fingerprint of the filter, so catalog changes miss the old entries. Reads answered from the usage buckets, reads capped by a timestamp, previews and the daily usage history are never cached. Validation needs no invalidation message, only the store's watermark, so the cache is exact whether it lives in each process (one cold cache per API replica) or on the shared Redis or Valkey server (§13.6), where every replica reuses the fees any of them computed.
 * All writes of one billing run happen in a transaction with the jobs they trigger (documents, webhooks, payments).
 
 ---
@@ -379,7 +380,7 @@ Integrations call the vendors' APIs directly; Tanvo does not depend on an integr
 * `libs/billing/integrations` orchestrates them. Credentials are sealed with the installation's secret box (`auth.SecretBox`) and never returned, except the webhook secrets Tanvo generates for GoCardless and Flutterwave. `StartOAuth` keeps a random state and the redirect URI with the connection's secrets until `CompleteOAuth` exchanges the code; the adapters store refreshed grants at once through the service (`integration.ConnectionStore`).
 * A connection queues its follow-up jobs in its transaction: items fetched for accounting, objects deployed and the account saved for HubSpot, the webhook endpoint registered for payment providers.
 * The syncs are queued with the webhooks that start them: `integrations.Service.Triggers` wraps the webhook emitter of the billing and payments services, so `invoice.created`, `credit_note.created`, `subscription.started` and the others queue the provider's sync in the same transaction. Every synced record is an `integration.Resource` (the provider's ID per invoice, credit note, payment or subscription).
-* `integrations.Taxes` is the billing engine's `kernel.TaxProvider`: drafts and previews are quoted (Anrok's answers kept in an in-process cache), finalized invoices and credit notes reported, voided invoices voided or negated.
+* `integrations.Taxes` is the billing engine's `kernel.TaxProvider`: drafts and previews are quoted (Anrok's answers kept in the cache, §13.6), finalized invoices and credit notes reported, voided invoices voided or negated.
 * Each job kind has the retry rules of its lago job (`integrations.RetryRules`: request limits, provider failures, timeouts after which NetSuite is searched before the record is created again, incomplete documents); other errors fail the job and deliver `integration.provider_error` or the customer error webhooks.
 * Errors are `*integration.ProviderError` with an `integration.ErrorKind`; `ErrRequestLimit` and `ErrRetryable` classify what is retried, `ErrAuthentication` a connection whose credentials fail. The API answers a provider's refusal with FailedPrecondition and the provider's code, and an operation the provider lacks with Unimplemented.
 * The adapters share `providers/apiclient`: one HTTP client per vendor, a rate limiter per connection (per tenant for Xero) that waits rather than fails, and the injected OTel providers.
@@ -402,7 +403,7 @@ The single binary `tanvo serve` runs any combination of roles:
 
 ### 13.2 Self-hosted
 * Minimal: `tanvo serve` + PostgreSQL. Typst and the `fonts-noto-cjk` package (zh-CN and zh-TW documents, §10) are included in the container image; installations outside it need both.
-* Optional: Redpanda/Kafka + ClickHouse for high event volumes, Redis/Valkey for caching, S3-compatible storage.
+* Optional: Redpanda/Kafka + ClickHouse for high event volumes, Redis/Valkey for caches shared by the replicas (§13.6), S3-compatible storage.
 * Distributed as a container image and a Docker Compose file; a Helm chart serves both self-hosted Kubernetes and Tanvo Cloud.
 
 ### 13.3 Tanvo Cloud
@@ -449,7 +450,7 @@ Settings are `TANVO_*` environment variables over an optional TOML file (`--conf
 | `TANVO_JOBS_QUEUE_CONCURRENCY` | library defaults | Comma-separated `queue=n` overrides of the workload queues' concurrency (1 to 10000), e.g. `alerts=20,wallets=5` |
 | `TANVO_SUBSCRIPTION_TERMINATION_ALERT_DAYS` | `15,45` | Days before its ending date a subscription gets `subscription.termination_alert` (comma-separated); empty sends none |
 | `TANVO_DAILY_USAGE_SCHEDULING_JITTER` | 30 minutes | Window the daily usage computations of one hourly run are spread over |
-| `TANVO_USAGE_CACHE_ENTRIES` | `100000` | Charge buckets of current usage kept per server process (§8); `0` turns the cache off |
+| `TANVO_USAGE_CACHE_ENTRIES` | `100000` | Charge buckets of current usage kept per server process without a cache server (§8, §13.6); `0` turns the cache off |
 | `TANVO_USAGE_BUCKETS_MAX_ROWS_PER_BUCKET` | `10000` | Rows of one bucket of one subscription past which a usage bucket definition is blocked and its reads stay on the events (§7.4); `0` blocks none |
 | `TANVO_USAGE_BUCKETS_IDLE_TTL` | `1080h` (45 days) | Time without a read after which the daily sweep drops a usage bucket definition (§7.4); `0` keeps them, otherwise at least `24h` |
 | `TANVO_DISABLE_EVENTS_VALIDATION` | false | Leaves the hourly post-validation of events (`events.errors`) out of the schedule |
@@ -485,7 +486,12 @@ Settings are `TANVO_*` environment variables over an optional TOML file (`--conf
 | `TANVO_HUBSPOT_CLIENT_ID` | | Client ID of the HubSpot app merchants connect their portals to by OAuth; unset, HubSpot cannot be connected |
 | `TANVO_HUBSPOT_CLIENT_SECRET` | | Its client secret |
 | `TANVO_ANROK_DRAFT_TAXES_CACHE_TTL` | `24h` | How long Anrok's taxes of a draft invoice are kept for the same request; `0` turns the cache off |
-| `TANVO_ANALYTICS_CACHE_TTL` | `4h` | How long a computed analytics report is reused, per server process; `0` turns the cache off |
+| `TANVO_ANALYTICS_CACHE_TTL` | `4h` | How long a computed analytics report is reused (§13.6); `0` turns the cache off |
+| `TANVO_CACHE_URL` | | Redis or Valkey server of every cache (§13.6): `redis://`, `rediss://`, `valkey://`, `valkeys://` or `unix://`; unset keeps the caches in each process |
+| `TANVO_CACHE_PREFIX` | `tanvo:` | Prefix of every key on the cache server, for installations sharing one |
+| `TANVO_CACHE_CLIENT_SIDE_TTL` | `0` | Client-side caching (RESP3 tracking) of the cache server's entries for at most this long; `0` turns it off |
+| `TANVO_CACHE_SENTINEL_USERNAME`, `TANVO_CACHE_SENTINEL_PASSWORD` | | Credentials of the sentinels of a `TANVO_CACHE_URL` with `master_set`, independent of the server's credentials in the URL |
+| `TANVO_API_KEY_CACHE_TTL` | `1h` | How long the API key of event ingestion and instant fee estimates is kept on the cache server, at most until it expires; `0` turns the cache off, as does the lack of a cache server |
 | `TANVO_APP_URL` | | Web console URL used in email links |
 | `TANVO_MAIL_FROM` | | Sender address; required with `TANVO_SMTP_HOST` |
 | `TANVO_SMTP_HOST` | | SMTP server; empty logs and drops emails |
@@ -508,6 +514,31 @@ Settings are `TANVO_*` environment variables over an optional TOML file (`--conf
 | `TANVO_DISABLE_SIGNUP` | `false` | turns off self sign-up |
 | `TANVO_GOOGLE_AUTH_CLIENT_ID`, `TANVO_GOOGLE_AUTH_CLIENT_SECRET` | | OAuth client of Google sign-in, redirected to `TANVO_APP_URL/auth/google/callback`; unset disables it |
 | `TANVO_SECRET_KEY` | | installation secret, base64 of at least 32 bytes; HKDF-SHA256 derives the key signing customer portal tokens and the AES-256-GCM key sealing integration secrets (SSO client secrets and x402 connection credentials) from it. Unset disables the customer portal and the SSO connections, and fails every x402 facilitator call; changing it invalidates portal links and makes sealed secrets undecryptable |
+
+
+### 13.6 Caches
+Every cache sits behind one port, `port.Cache` (bytes in, bytes out, a TTL; best effort, so a failure is a miss), implemented in `libs/cache`. The choice of backend is one switch for the whole installation:
+
+* Without `TANVO_CACHE_URL`, each cache is an in-process LRU (`cache.Memory`). Nothing is shared, so every replica warms its own caches.
+* With `TANVO_CACHE_URL`, every cache lives on that one Redis or Valkey server (`cache.Valkey`, on `valkey-go`, with optional client-side caching), shared by every server process. The URL also reaches a cluster (more seed addresses in `addr`) or a Sentinel-managed server (`master_set`), over TLS with `rediss://` or `valkeys://`.
+
+Each use keeps its namespace (`<prefix><name>:<key>`) and its own switch:
+
+| Cache | Contents | Switch | Without a cache server |
+| :--- | :--- | :--- | :--- |
+| `usage` | Fees of the charge buckets of current usage, validated by the ingestion watermark (§8) | `TANVO_USAGE_CACHE_ENTRIES=0` | In-process, `TANVO_USAGE_CACHE_ENTRIES` entries |
+| `analytics` | Computed analytics reports; a customer's reports of one kind are invalidated together by a version token | `TANVO_ANALYTICS_CACHE_TTL=0` | In-process |
+| `anrok-draft-taxes` | Anrok's taxes of a draft invoice, keyed by the request's digest (§12) | `TANVO_ANROK_DRAFT_TAXES_CACHE_TTL=0` | In-process |
+| `api-keys` | API keys of the event ingestion and instant fee estimate RPCs, keyed by the token's SHA-256, never the secret | `TANVO_API_KEY_CACHE_TTL=0` | Off |
+
+* **Correctness does not depend on the backend.** Each cached value is either validated when it is read (the usage watermark, the analytics version) or deleted where it changes. The API key cache is the exception that needs every process to see the deletion: a key rotated or destroyed on one replica must stop working on the others at once. It therefore runs only on the shared server. Its entries live at most until the key expires, and the expiry is checked again on every read.
+* **Versions.** The billing caches encode their entries with one codec (`libs/billing/internal/cachecodec`). Each key covers a fingerprint of the entry's Go type, so during a rolling upgrade, processes whose entry shapes differ never read each other's entries.
+* **Availability.** The cache is not a dependency of readiness (`/readyz`). An unreachable server does not fail the start: the client reconnects in the background with backoff, and until then every read misses and every write is dropped.
+* **Telemetry.** `tanvo.cache.reads` (attributes `tanvo.cache.name`, `tanvo.cache.result`) and `tanvo.cache.errors` (`tanvo.cache.operation`), plus the client's spans and metrics through `valkeyotel`.
+* **Not cached.**
+  * The price lookup of a subscription's charges is built from the charges the billing engine has already loaded.
+  * Lists use cursor pagination, so there are no counts to cache.
+  * Jobs stay in River on PostgreSQL (§9), and the provider rate limiters stay in each process (§12).
 
 ---
 

@@ -11,7 +11,7 @@
 | 层次 | 范围 | 位置 | 运行时机 |
 | :--- | :--- | :--- | :--- |
 | 单元测试 | 不含 I/O 的纯逻辑：金额、周期、表达式、计费模型、聚合、税、计费决策。表驱动，大部分用例移植自 lago-api 的 spec | 代码旁的 `*_test.go`，数据放在 `testdata/` | 每次 CI |
-| 一致性测试 | 同一套测试针对某个接口的每个实现运行：`libs/metering` 的事件存储（内存、PostgreSQL、ClickHouse）、`libs/core` 的仓储（PostgreSQL）、任务队列（River；以后还有 Redis） | 导出的测试套件，如 `libs/metering/storetest`，由每个实现运行 | 每次 CI；依赖容器的在 Linux 上运行 |
+| 一致性测试 | 同一套测试针对某个接口的每个实现运行：`libs/metering` 的事件存储（内存、PostgreSQL、ClickHouse）、`libs/core` 的仓储（PostgreSQL）、任务队列（River；以后还有 Redis）、`libs/cache` 的缓存（进程内、Valkey 8.1、Redis 7.4；`libs/cache/cachetest`） | 导出的测试套件，如 `libs/metering/storetest`，由每个实现运行 | 每次 CI；依赖容器的在 Linux 上运行 |
 | 集成测试 | 真实的 PostgreSQL、ClickHouse、Redpanda、Redis 与 Typst；提供者客户端针对录制的 HTTP fixture | 代码旁，依赖前置条件（缺失时以及使用 `-short` 时 `t.Skip` 并写明原因） | Linux runner 上的 CI；本地需有 Docker 引擎 |
 | 黄金测试 | 渲染出的文档（Typst 源码、提取的 PDF 文本、电子发票 XML）、webhook 负载、OpenAPI 输出 | `testdata/golden/`，用 `-update` 更新 | 每次 CI |
 | 端到端测试 | 进程内的 `apps/server` 加容器：经由 Connect 与 REST 的 API 调用、摄取、由假时钟驱动的计费运行、由测试端点接收的 webhook | `apps/server/internal/e2e` | 每次 CI，在 Linux 上 |

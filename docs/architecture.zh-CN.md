@@ -16,7 +16,7 @@
 * **金额正确**：金额自始至终是精确小数；每次状态变更及其触发的工作原子地提交（§6、§9）。
 * **强类型契约**：所有 API 都使用 Protobuf + Connect，并有从同一份契约转码而来的资源风格 REST/JSON 接口（§4）。
 * **为规模而设计**：经由 Kafka/Redpanda 写入 ClickHouse 的大规模事件摄取、可水平扩展的 worker，以及 Tanvo Cloud 的 cell（§7、§13）。
-* **运维负担小**：最小安装是一个 `CGO_ENABLED=0` 的二进制、PostgreSQL 与 `typst` 可执行文件；Redis、Kafka、ClickHouse 与对象存储都是可选的。
+* **运维负担小**：最小安装是一个 `CGO_ENABLED=0` 的二进制、PostgreSQL 与 `typst` 可执行文件；Redis 或 Valkey、Kafka、ClickHouse 与对象存储都是可选的。
 
 ### 1.2 非目标
 * 与 Lago 的 API、webhook 或数据库兼容，或提供从 Lago 迁移的工具（以后可能作为单独的工具提供）。
@@ -65,7 +65,7 @@ Tanvo 派生自 lago-api 与 lago-expression，两者都以 **GNU AGPL-3.0** 发
 | 后台任务 | **River**（PostgreSQL） | 事务内入队、唯一任务与周期任务、领导者选举；Redis 后端是以后的选项（§9） |
 | 事件流 | **Kafka API（Redpanda / Kafka）**，使用 **franz-go** | 可选的高吞吐摄取路径（§7） |
 | 事件分析存储 | **ClickHouse**（`clickhouse-go/v2`） | 可选；默认使用 PostgreSQL 分区（§7.4） |
-| 缓存、限流 | 默认在进程内 / PostgreSQL；可选 **Redis 或 Valkey**（`go-redis/v9`） | 位于 `Cache` 与 `RateLimiter` 端口之后 |
+| 缓存 | 默认在进程内；可选 **Redis 或 Valkey**（`valkey-go`） | 位于 `Cache` 端口之后，实现在 `libs/cache`（§13.6） |
 | 表达式 | **lago-expression 移植到 Rust** → WASM，在 Go 中与浏览器中都运行于 **wazero** | 精确的小数语义，所有宿主共用一份实现（§7.3） |
 | 文档 | **Typst**（子进程） | 内嵌电子发票 XML（Factur-X / ZUGFeRD）的 PDF/A-3；输出确定（§10） |
 | 电子发票 | 在 Go 中生成 UBL 2.1 与 UN/CEFACT CII | Peppol BIS、Factur-X、XRechnung 配置 |
@@ -114,6 +114,7 @@ tanvo/
 │   ├── documents/                # [Go] Typst 渲染、文档模板、电子发票 XML
 │   ├── mail/                     # [Go] 邮件模板与 Mailer 端口的 SMTP 实现
 │   ├── auth/                     # [Go] API 密钥、会话、OIDC、密码哈希、权限
+│   ├── cache/                    # [Go] Cache 端口的实现：进程内 LRU、Redis/Valkey
 │   └── dockertest/               # [Go] 基于 Docker Engine API 的测试容器：生命周期上限、回收属主已死亡的容器
 │
 ├── providers/
@@ -139,7 +140,7 @@ apps/server ──▶ billing ──▶ pricing / metering / tax / period / mone
      │             │
      │             └──▶ core ──▶ money / period
      ├──▶ ingest ──▶ expression(go) / metering / core
-     ├──▶ store / eventstore / jobs / webhooks / documents / mail / auth ──▶ core
+     ├──▶ store / eventstore / jobs / webhooks / documents / mail / auth / cache ──▶ core
      ├──▶ providers/* ──▶ core
      └──▶ proto
 
@@ -308,7 +309,7 @@ POST /v1/events, /v1/events:batch
 * **费用 → 发票**：引擎为订阅构建费用（基础费、固定计费项、用量计费项、承诺消费的补差），按规定的顺序应用税（内部或提供者）、优惠券、预付额度、贷项通知单与钱包额度，并生成总额精确的发票。
 * **调度**：计算每个订阅的下一个计费时刻，并为其调度一个 River 任务；一个每小时运行的对账任务捕获任何遗漏。这取代了 Lago 每小时扫描所有订阅的做法。
 * **生命周期**：带宽限期的草稿发票、定稿、编号、作废、重新生成、渐进式计费、用量阈值与一次性发票；见[领域模型](domain.zh-CN.md)。
-* **当前用量缓存**：为当前用量计算出的每个计费桶（某订阅的一个计费项或其某个过滤器）的费用保存在进程内 LRU（`kernel.MemoryUsageCache`，`TANVO_USAGE_CACHE_ENTRIES` 个条目）中，直到计费项周期结束。完整用量有自己的条目。条目在读取时惰性校验：它记录所聚合事件的摄取水位（`metering.Watermark`：最新的 `ingested_at`，或被替换、重新富化的副本的最新写入时间，PostgreSQL 中为 `written_at`，ClickHouse 中为 `enriched_at`），一旦存入更晚的事件就重新计算。最新事件不足一秒的聚合不会保留，因为同一时刻写入的兄弟事件可能对它不可见。键包含计费项的 `updated_at` 和过滤器的指纹，因此目录变更不会命中旧条目。由用量桶回答的读取、按时间戳截断的读取、预览以及每日用量历史从不缓存。缓存按进程独立，与默认的缓存方式一致（§2），不需要 Redis：这样做是安全的，因为校验只需要存储的水位，不需要失效消息，所以进程永远不会提供比它能读到的事件更旧的条目。代价是每个 API 副本各有一个冷缓存。
+* **当前用量缓存**：为当前用量计算出的每个计费桶（某订阅的一个计费项或其某个过滤器）的费用保存在用量缓存中（`kernel.UsageCache`，基于 §13.6 的 `port.Cache`，进程内为 `TANVO_USAGE_CACHE_ENTRIES` 个条目），直到计费项周期结束。完整用量有自己的条目。条目在读取时惰性校验：它记录所聚合事件的摄取水位（`metering.Watermark`：最新的 `ingested_at`，或被替换、重新富化的副本的最新写入时间，PostgreSQL 中为 `written_at`，ClickHouse 中为 `enriched_at`），一旦存入更晚的事件就重新计算。最新事件不足一秒的聚合不会保留，因为同一时刻写入的兄弟事件可能对它不可见。键包含计费项的 `updated_at` 和过滤器的指纹，因此目录变更不会命中旧条目。由用量桶回答的读取、按时间戳截断的读取、预览以及每日用量历史从不缓存。校验只需要存储的水位，不需要失效消息，因此无论缓存位于每个进程中（每个 API 副本各有一个冷缓存），还是位于共享的 Redis 或 Valkey 服务器上（§13.6，每个副本都复用任一副本算出的费用），结果都是精确的。
 * 一次计费运行的所有写入都与它触发的任务（文档、webhook、支付）在同一事务中完成。
 
 ---
@@ -379,7 +380,7 @@ POST /v1/events, /v1/events:batch
 * 由 `libs/billing/integrations` 编排。凭据以安装的密钥盒（`auth.SecretBox`）密封，从不返回，Tanvo 为 GoCardless 与 Flutterwave 生成的 webhook 密钥除外。`StartOAuth` 在连接的密钥中保存随机的 state 与重定向 URI，直到 `CompleteOAuth` 兑换授权码；适配器通过服务（`integration.ConnectionStore`）立即保存刷新后的授权。
 * 连接在其事务中排入后续任务：会计集成获取商品，HubSpot 部署对象并保存账户，支付提供者注册 webhook 端点。
 * 同步随触发它们的 webhook 一起排入：`integrations.Service.Triggers` 包装计费与支付服务的 webhook 发送器，因此 `invoice.created`、`credit_note.created`、`subscription.started` 等会在同一事务中排入提供者的同步。每条已同步的记录都是一个 `integration.Resource`（每张发票、贷项通知单、付款或订阅在提供者处的 ID）。
-* `integrations.Taxes` 是计费引擎的 `kernel.TaxProvider`：为草稿与预览询价（Anrok 的答复保存在进程内缓存中），申报已定稿的发票与贷项通知单，作废或冲销已作废发票的税额。
+* `integrations.Taxes` 是计费引擎的 `kernel.TaxProvider`：为草稿与预览询价（Anrok 的答复保存在缓存中，§13.6），申报已定稿的发票与贷项通知单，作废或冲销已作废发票的税额。
 * 每种任务类型具有其 lago 任务的重试规则（`integrations.RetryRules`：请求上限、提供者故障、超时后先在 NetSuite 中查找再重新创建记录、文档尚不完整）；其他错误令任务失败，并发送 `integration.provider_error` 或客户错误 webhook。
 * 错误为带 `integration.ErrorKind` 的 `*integration.ProviderError`；`ErrRequestLimit` 与 `ErrRetryable` 标明可重试的错误，`ErrAuthentication` 标明凭据失效的连接。API 以 FailedPrecondition 及提供者的错误码回应提供者的拒绝，以 Unimplemented 回应提供者不具备的操作。
 * 适配器共用 `providers/apiclient`：每个厂商一个 HTTP 客户端、每个连接一个限流器（Xero 按租户）且等待而非失败，以及注入的 OTel 提供者。
@@ -402,7 +403,7 @@ POST /v1/events, /v1/events:batch
 
 ### 13.2 自托管
 * 最小：`tanvo serve` + PostgreSQL。Typst 与 `fonts-noto-cjk` 软件包（zh-CN 与 zh-TW 文档，§10）包含在容器镜像中；在镜像之外安装时两者都需要。
-* 可选：用于大量事件的 Redpanda/Kafka + ClickHouse，用于缓存的 Redis/Valkey，S3 兼容存储。
+* 可选：用于大量事件的 Redpanda/Kafka + ClickHouse，用于各副本共享缓存的 Redis/Valkey（§13.6），S3 兼容存储。
 * 以容器镜像和 Docker Compose 文件分发；一个 Helm chart 同时服务于自托管 Kubernetes 与 Tanvo Cloud。
 
 ### 13.3 Tanvo Cloud
@@ -449,7 +450,7 @@ POST /v1/events, /v1/events:batch
 | `TANVO_JOBS_QUEUE_CONCURRENCY` | 库默认值 | 以逗号分隔的 `queue=n`，覆盖工作负载队列的并发度（1 到 10000），例如 `alerts=20,wallets=5` |
 | `TANVO_SUBSCRIPTION_TERMINATION_ALERT_DAYS` | `15,45` | 订阅在结束日期前多少天收到 `subscription.termination_alert`（逗号分隔）；为空则不发送 |
 | `TANVO_DAILY_USAGE_SCHEDULING_JITTER` | 30 分钟 | 每小时一次运行中的每日用量计算所分散的时间窗口 |
-| `TANVO_USAGE_CACHE_ENTRIES` | `100000` | 每个服务进程保留的当前用量计费桶数（§8）；`0` 关闭缓存 |
+| `TANVO_USAGE_CACHE_ENTRIES` | `100000` | 没有缓存服务器时每个服务进程保留的当前用量计费桶数（§8、§13.6）；`0` 关闭缓存 |
 | `TANVO_USAGE_BUCKETS_MAX_ROWS_PER_BUCKET` | `10000` | 单个订阅单个桶的行数超过该值时封禁用量桶定义，其读取留在事件路径（§7.4）；`0` 不封禁 |
 | `TANVO_USAGE_BUCKETS_IDLE_TTL` | `1080h`（45 天） | 用量桶定义无读取超过该时长后由每日清扫删除（§7.4）；`0` 保留，否则至少为 `24h` |
 | `TANVO_DISABLE_EVENTS_VALIDATION` | false | 将每小时的事件后置校验（`events.errors`）移出调度 |
@@ -485,7 +486,12 @@ POST /v1/events, /v1/events:batch
 | `TANVO_HUBSPOT_CLIENT_ID` | | 商户通过 OAuth 连接其门户的 HubSpot 应用的客户端 ID；未设置时无法连接 HubSpot |
 | `TANVO_HUBSPOT_CLIENT_SECRET` | | 其客户端密钥 |
 | `TANVO_ANROK_DRAFT_TAXES_CACHE_TTL` | `24h` | 相同请求下 Anrok 对草稿发票的税额保留多久；`0` 关闭缓存 |
-| `TANVO_ANALYTICS_CACHE_TTL` | `4h` | 计算出的分析报表在每个服务器进程中复用多久；`0` 关闭缓存 |
+| `TANVO_ANALYTICS_CACHE_TTL` | `4h` | 计算出的分析报表复用多久（§13.6）；`0` 关闭缓存 |
+| `TANVO_CACHE_URL` | | 所有缓存所用的 Redis 或 Valkey 服务器（§13.6）：`redis://`、`rediss://`、`valkey://`、`valkeys://` 或 `unix://`；不设置时缓存留在每个进程中 |
+| `TANVO_CACHE_PREFIX` | `tanvo:` | 缓存服务器上每个键的前缀，供共用一台服务器的多个安装区分 |
+| `TANVO_CACHE_CLIENT_SIDE_TTL` | `0` | 对缓存服务器条目做客户端缓存（RESP3 跟踪）的最长时间；`0` 关闭 |
+| `TANVO_CACHE_SENTINEL_USERNAME`、`TANVO_CACHE_SENTINEL_PASSWORD` | | 带 `master_set` 的 `TANVO_CACHE_URL` 所用 Sentinel 的凭据，与 URL 中服务器自身的凭据相互独立 |
+| `TANVO_API_KEY_CACHE_TTL` | `1h` | 事件摄取与即时费用估算所用的 API 密钥在缓存服务器上保留多久，最长到密钥过期；`0` 关闭该缓存，没有缓存服务器时也关闭 |
 | `TANVO_APP_URL` | | 邮件链接使用的 Web 控制台 URL |
 | `TANVO_MAIL_FROM` | | 发件地址；设置 `TANVO_SMTP_HOST` 时必填 |
 | `TANVO_SMTP_HOST` | | SMTP 服务器；为空时邮件只记录日志并丢弃 |
@@ -508,6 +514,31 @@ POST /v1/events, /v1/events:batch
 | `TANVO_DISABLE_SIGNUP` | `false` | 关闭自助注册 |
 | `TANVO_GOOGLE_AUTH_CLIENT_ID`、`TANVO_GOOGLE_AUTH_CLIENT_SECRET` | | Google 登录的 OAuth 客户端，回调到 `TANVO_APP_URL/auth/google/callback`；未设置则关闭 |
 | `TANVO_SECRET_KEY` | | 安装密钥，至少 32 字节的 base64；用 HKDF-SHA256 从中派生签发客户门户令牌的密钥，以及加密集成密钥（SSO 客户端密钥与 x402 连接凭据）的 AES-256-GCM 密钥。未设置则关闭客户门户与 SSO 连接，并使每次 x402 结算方调用失败；更换后门户链接失效，已加密的密钥无法解密 |
+
+
+### 13.6 缓存
+所有缓存都位于同一个端口 `port.Cache` 之后（存取字节、带 TTL；尽力而为，失败即视为未命中），实现在 `libs/cache`。后端的选择是整个安装的一个开关：
+
+* 不设置 `TANVO_CACHE_URL` 时，每个缓存都是进程内 LRU（`cache.Memory`）。不共享任何内容，每个副本各自预热自己的缓存。
+* 设置 `TANVO_CACHE_URL` 后，所有缓存都位于这一台 Redis 或 Valkey 服务器上（`cache.Valkey`，基于 `valkey-go`，可选客户端缓存），由所有服务进程共享。该 URL 也可以连接集群（在 `addr` 中给出更多种子地址）或由 Sentinel 管理的服务器（`master_set`），使用 `rediss://` 或 `valkeys://` 时走 TLS。
+
+每种用途保留自己的命名空间（`<prefix><name>:<key>`）和自己的开关：
+
+| 缓存 | 内容 | 开关 | 没有缓存服务器时 |
+| :--- | :--- | :--- | :--- |
+| `usage` | 当前用量各计费桶的费用，按摄取水位校验（§8） | `TANVO_USAGE_CACHE_ENTRIES=0` | 进程内，`TANVO_USAGE_CACHE_ENTRIES` 个条目 |
+| `analytics` | 计算出的分析报表；一个客户同一类报表通过版本令牌一起失效 | `TANVO_ANALYTICS_CACHE_TTL=0` | 进程内 |
+| `anrok-draft-taxes` | Anrok 对草稿发票的税额，按请求摘要作键（§12） | `TANVO_ANROK_DRAFT_TAXES_CACHE_TTL=0` | 进程内 |
+| `api-keys` | 事件摄取与即时费用估算 RPC 所用的 API 密钥，按令牌的 SHA-256 作键，从不使用密钥本身 | `TANVO_API_KEY_CACHE_TTL=0` | 关闭 |
+
+* **正确性不依赖后端。** 每个缓存值要么在读取时校验（用量水位、分析版本），要么在其变更处删除。API 密钥缓存是例外，它需要每个进程都看到删除：在一个副本上轮换或销毁的密钥必须立即在其他副本上失效。因此它只在共享服务器上运行。其条目最长保留到密钥过期，每次读取时都会再次检查过期时间。
+* **版本。** 计费缓存用同一个编解码器编码条目（`libs/billing/internal/cachecodec`）。每个键都包含条目 Go 类型的指纹，因此滚动升级期间，条目结构不同的进程永远不会读取彼此的条目。
+* **可用性。** 缓存不是就绪检查（`/readyz`）的依赖。服务器不可达不会导致启动失败：客户端在后台退避重连，在此之前每次读取都未命中，每次写入都被丢弃。
+* **遥测。** `tanvo.cache.reads`（属性 `tanvo.cache.name`、`tanvo.cache.result`）与 `tanvo.cache.errors`（`tanvo.cache.operation`），以及客户端经 `valkeyotel` 产生的 span 与指标。
+* **不缓存的内容。**
+  * 订阅计费项的价格查找由计费引擎已加载的计费项构建。
+  * 列表使用游标分页，因此没有需要缓存的计数。
+  * 任务留在 PostgreSQL 上的 River 中（§9），服务商限流器留在每个进程中（§12）。
 
 ---
 
