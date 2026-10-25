@@ -8,6 +8,7 @@ node_modules/
 # build outputs
 dist/
 /bin/
+/tools/speccov/speccov
 target/
 *.test
 *.out
