@@ -16,24 +16,23 @@
 
 | 阶段 | 内容 | 完成标准 | 状态 |
 | :--- | :--- | :--- | :--- |
-| 0. 基础 | Monorepo、Nx 插件、mise、lint 规则、许可证、文档、CI | `pnpm nx run-many -t build test lint` 在 CI 中通过 | 进行中 |
+| 0. 基础 | Monorepo、Nx 插件、mise、lint 规则、许可证、文档、CI | `pnpm nx run-many -t build test lint` 在 CI 中通过 | 进行中：本地通过，尚未在 CI 中运行 |
 | 1. 纯函数库（L0/L1） | `libs/money`、`libs/period`、`libs/expression`（Rust → WASM，Go 宿主）、`libs/pricing`、`libs/metering`（含内存存储与 `storetest`）、`libs/tax` | 各自领域的每个纯 spec 均已移植，或列为跳过并写明原因 | 已完成 |
-| 2. 领域核心（L2） | `libs/core`（实体、仓储接口、服务契约）、`libs/billing`（发票生成、费用、额度、优惠券、钱包、渐进式计费、贷项通知单、承诺消费、阈值、按比例计费、升级与降级） | 计费 spec 移植为基于内存仓储的纯决策 | 进行中：`core` 已完成，`billing` 逻辑已完成 |
-| 3. 基础设施（L3） | `libs/proto`（API 契约）、`libs/store`（PostgreSQL schema、sqlc、RLS）、`libs/eventstore`（PostgreSQL、ClickHouse）、`libs/ingest`（HTTP 批量、Kafka/Redpanda）、`libs/jobs`（River、调度）、`libs/webhooks`、`libs/documents`（Typst、Factur-X/UBL）、`libs/mail`、`libs/auth` | 一致性测试套件在每个实现上通过；文档的黄金测试通过 | 进行中 |
-| 4. 服务端（L4） | `apps/server`：Connect + REST（Vanguard）、OpenAPI、角色 api/worker/consumer/all、配置、健康检查、指标、迁移 | 覆盖每个 API 资源及完整计费周期的端到端测试 | 进行中 |
-| 5. 提供者 | 支付提供者（Stripe、Adyen、GoCardless、Cashfree、Flutterwave、Moneyhash），会计/CRM/税务集成，流式目的地 | 每个提供者基于录制 fixture 的测试；端到端的 webhook | 进行中 |
+| 2. 领域核心（L2） | `libs/core`（实体、仓储接口、服务契约）、`libs/billing`（发票生成、费用、额度、优惠券、钱包、渐进式计费、贷项通知单、承诺消费、阈值、按比例计费、升级与降级） | 计费 spec 移植为基于内存仓储的纯决策 | 已完成 |
+| 3. 基础设施（L3） | `libs/proto`（API 契约）、`libs/store`（PostgreSQL schema、sqlc、RLS）、`libs/eventstore`（PostgreSQL、ClickHouse）、`libs/ingest`（HTTP 批量、Kafka/Redpanda）、`libs/jobs`（River、调度）、`libs/webhooks`、`libs/documents`（Typst、Factur-X/UBL）、`libs/mail`、`libs/auth` | 一致性测试套件在每个实现上通过；文档的黄金测试通过 | 已完成 |
+| 4. 服务端（L4） | `apps/server`：Connect + REST（Vanguard）、OpenAPI、角色 api/worker/consumer/all、配置、健康检查、指标、迁移 | 覆盖每个 API 资源及完整计费周期的端到端测试 | 已完成 |
+| 5. 提供者 | 支付提供者（Stripe、Adyen、GoCardless、Cashfree、Flutterwave、Moneyhash），会计/CRM/税务集成，流式目的地 | 每个提供者基于录制 fixture 的测试；端到端的 webhook | 已完成 |
 | 6. 控制台 | `apps/web`：基于 Connect API 的管理控制台、客户门户 | 功能覆盖与 API 一致 | 未开始 |
 | 7. 企业版与云服务 | `ee/*` 服务（分析、助手、MCP、收入确认等）、cell、RLS 加固、Helm chart | 云部署运行端到端测试套件 | 未开始 |
 | 8. 超越功能对齐 | §4 中借鉴自 OpenMeter 与 Flexprice 的改进 | 每项都有自己的设计决定、测试与功能对齐行（标为 Tanvo 新增） | 未开始；在阶段 1–5 完成并测试之后开始 |
 
 ## 3. 当前进度
 
-* 阶段 0：脚手架、Nx 插件、许可证、CI 与全部文档（含译本）已就位。
-* 阶段 1 已完成：`libs/money`、`libs/period`（移植 623 个用例）、`libs/expression`（151 个用例，Rust → WASM，带输入限制）、`libs/pricing`（433 个用例）、`libs/metering`（478 个用例，含 `storetest` 一致性测试套件）与 `libs/tax`（264 个用例）。[功能对齐](parity.zh-CN.md)将它们的功能标为 `逻辑已完成`。
-* 阶段 2：`libs/core` 已完成；`libs/billing` 逻辑已完成（约 1,480 个移植自 lago-api 的用例，含场景测试，其锁有基于 PostgreSQL 存储的测试；未移植的用例列在其 `SKIPPED.md` 文件中），[功能对齐](parity.zh-CN.md)将其已实现的功能标为 `逻辑已完成`；`apps/server` 运行其任务与周期任务，摄取为其提供预付计费项与用量信号；用量、生命周期与钱包告警根据订阅活动与钱包变化评估；除尚待实现的模块（合同、计费片段、定时订单、催收活动、支付、入站 webhook）外，v1.55.0 的每个时钟任务都已运行，目录缓存通过 PostgreSQL 通知在提交时失效。尚待接入：文档；文档任务在 `libs/documents` 接入 blob 存储之前会被取消。
-* 阶段 3：`libs/proto`、`libs/eventstore`、`libs/store`（PostgreSQL 模式、迁移、RLS、事务性任务，以及在 memstore 和 PostgreSQL 上均通过的仓储一致性测试）与 `libs/jobs`（River、周期调度、租户公平）已完成；`libs/webhooks`、`libs/ingest`、`libs/auth` 与 `libs/mail` 与 `libs/documents`（Typst PDF/A-3b、Factur-X、UBL 与 CII，含 zh-CN 在内的十种语言）逻辑已完成；15 分钟用量桶在两种事件存储上增量维护，ClickHouse 上另有周期修复任务。核心整理已使领域模型与 v1.55.0 基线对齐：会话、登录状态、设备与多角色成员资格；采购订单号与 x402 字段；发票抵扣、缓存聚合与费用期间；计划、功能与权益的软删除；以及列表筛选及其排序。
-* 阶段 4：`apps/server` 提供 `tanvo serve`（角色 api、worker、consumer、all）与 `tanvo migrate`，包含类型化配置、OpenTelemetry、健康与就绪检查、任务注册与周期调度，以及经 Connect 与 REST 的事件摄取，并有端到端测试覆盖；计费已端到端运行（经 EventService 摄取的事件由预付计费与计费时钟任务在期末计费）；其他 API 资源待完成。
-* 阶段 5：六个支付提供者（Stripe、Adyen、GoCardless、Moneyhash、Cashfree、Flutterwave）、支付编排（自动付款、付款链接、退款、付款请求、收据、按计费对象选择连接、入站 webhook）以及税务（Anrok、Avalara）、会计（NetSuite、Xero）与 CRM（HubSpot、Salesforce）集成已完成，并有基于录制 fixture 的测试，`tools/speccov` 覆盖每个上游用例。尚待完成：流式目的地，以及等待 blob 存储与邮件的付款收据文档、邮件和 `payment_receipt.generated` webhook。
+* 阶段 1–5，即 lago-api v1.55.0 的后端移植，已完成。每个未弃用的功能都有对应的 Tanvo 模块，并在[功能对齐](parity.zh-CN.md)中标为 `已完成`；例外是 v1.55.0 同样未接入的三行 x402（`逻辑已完成`），以及阶段 6、7 的控制台（`apps/web`）与企业版（`ee/*`）各行。
+* 已移植领域的每个上游 spec 用例，要么带 `source:` 引用移植，要么写明原因跳过，由 `tools/speccov` 检查（0 个未覆盖）。
+* `apps/server` 经 Connect 与 REST 提供每个 API 资源，运行任务与周期调度、PostgreSQL 与 Kafka 两种模式的摄取、文档、邮件、webhook、支付提供者、集成与流式目的地。基于 PostgreSQL、ClickHouse 与 Redpanda 容器的端到端场景覆盖计费周期、计费模型、渐进式计费、按比例计费、贷项通知单、催收、文档、摄取、表达式、用量桶与各提供者。
+* `pnpm nx run-many -t build test lint tidy-check` 在本地对全部 35 个项目通过；阶段 0 在 CI 中通过后结束。
+* 阶段 6（控制台）与阶段 7（企业版与云服务）尚未开始。
 
 ## 4. 功能对齐之后：借鉴 OpenMeter 与 Flexprice
 
