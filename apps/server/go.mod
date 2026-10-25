@@ -22,6 +22,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/tanvoxyz/tanvo/libs/auth v0.0.0
 	github.com/tanvoxyz/tanvo/libs/billing v0.0.0
+	github.com/tanvoxyz/tanvo/libs/cache v0.0.0
 	github.com/tanvoxyz/tanvo/libs/core v0.0.0
 	github.com/tanvoxyz/tanvo/libs/dockertest v0.0.0
 	github.com/tanvoxyz/tanvo/libs/documents v0.0.0
@@ -51,6 +52,7 @@ require (
 	github.com/tanvoxyz/tanvo/providers/xero v0.0.0
 	github.com/twmb/franz-go v1.22.2
 	github.com/twmb/franz-go/plugin/kotel v1.7.1
+	github.com/valkey-io/valkey-go v1.0.79
 	go.opentelemetry.io/contrib/bridges/otelslog v0.21.0
 	go.opentelemetry.io/contrib/exporters/autoexport v0.72.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0
@@ -125,6 +127,7 @@ require (
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/twmb/franz-go/pkg/kadm v1.19.0 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.15.0 // indirect
+	github.com/valkey-io/valkey-go/valkeyotel v1.0.79 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/bridges/prometheus v0.72.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.23.0 // indirect
@@ -213,3 +216,5 @@ replace github.com/tanvoxyz/tanvo/providers/apiclient => ../../providers/apiclie
 replace github.com/tanvoxyz/tanvo/libs/documents => ../../libs/documents
 
 replace github.com/tanvoxyz/tanvo/libs/dockertest => ../../libs/dockertest
+
+replace github.com/tanvoxyz/tanvo/libs/cache => ../../libs/cache

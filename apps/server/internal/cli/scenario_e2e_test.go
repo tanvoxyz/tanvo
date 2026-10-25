@@ -36,6 +36,8 @@ type scenario struct {
 	pool  *pgxpool.Pool
 	logs  *lockedBuffer
 	stop  func()
+	// environ is the server's environment, for a second replica.
+	environ []string
 
 	// key is the organization's API key.
 	key string
@@ -88,6 +90,7 @@ func newScenario(t *testing.T, at time.Time, opts scenarioOptions) *scenario {
 		environ = append(environ, "TANVO_API_URL=http://127.0.0.1:"+port)
 	}
 	migrate(t, dsn, environ, s.logs)
+	s.environ = environ
 	s.srv, s.base, s.stop = serveEnv(t, environ, s.logs, cli.Env{Clock: s.clock, StripeBaseURL: opts.stripeURL, ManualClockJobs: true})
 	t.Cleanup(s.stop)
 	if s.pool, err = pgxpool.New(t.Context(), dsn); err != nil {

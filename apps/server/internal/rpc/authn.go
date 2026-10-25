@@ -20,6 +20,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/access"
 	"github.com/tanvoxyz/tanvo/libs/core/permission"
 	commonv1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/common/v1"
+	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/event/v1/eventv1connect"
 )
 
 // OrganizationHeader names the organization a user session acts in
@@ -39,6 +40,19 @@ type KeyAuthenticator interface {
 	// Authenticate returns the active key whose secret is secret, or
 	// auth.ErrUnauthenticated.
 	Authenticate(ctx context.Context, secret string) (*access.APIKey, error)
+	// AuthenticateCached is Authenticate through the installation's
+	// cache, for [cachedKeyProcedures].
+	AuthenticateCached(ctx context.Context, secret string) (*access.APIKey, error)
+}
+
+// cachedKeyProcedures are the RPCs whose API key is read through the
+// cache: event ingestion and instant fee estimates, the busiest calls
+// (lago ACTIONS_WITH_CACHED_API_KEY,
+// app/controllers/api/v1/events_controller.rb:10).
+var cachedKeyProcedures = map[string]bool{
+	eventv1connect.EventServiceIngestEventProcedure:         true,
+	eventv1connect.EventServiceIngestEventsProcedure:        true,
+	eventv1connect.EventServiceEstimateInstantFeesProcedure: true,
 }
 
 // SessionAuthenticator resolves a session token (libs/auth Sessions).
@@ -119,7 +133,7 @@ func Auth(a Authenticators) connect.ServerInterceptor {
 			if !ok {
 				return newError(connect.CodeUnauthenticated, ReasonUnauthenticated, "missing credential: send Authorization: Bearer <token>")
 			}
-			p, err := a.authenticate(ctx, rule, info, token)
+			p, err := a.authenticate(ctx, rule, info, token, cachedKeyProcedures[spec.Procedure])
 			if err != nil {
 				return Error(ctx, err)
 			}
@@ -137,7 +151,8 @@ func Auth(a Authenticators) connect.ServerInterceptor {
 }
 
 // authenticate resolves the principal of token for an RPC with rule.
-func (a Authenticators) authenticate(ctx context.Context, rule *commonv1.Access, info *connect.CallInfo, token string) (auth.Principal, error) {
+// An API key is read through the cache when cached.
+func (a Authenticators) authenticate(ctx context.Context, rule *commonv1.Access, info *connect.CallInfo, token string, cached bool) (auth.Principal, error) {
 	if rule.GetPortal() {
 		if a.Portal == nil {
 			return auth.Principal{}, auth.ErrUnauthenticated
@@ -150,7 +165,11 @@ func (a Authenticators) authenticate(ctx context.Context, rule *commonv1.Access,
 	}
 	orgHeader := strings.TrimSpace(info.RequestHeader().Get(OrganizationHeader))
 	if orgHeader == "" && a.Keys != nil {
-		key, err := a.Keys.Authenticate(ctx, token)
+		authenticate := a.Keys.Authenticate
+		if cached {
+			authenticate = a.Keys.AuthenticateCached
+		}
+		key, err := authenticate(ctx, token)
 		if err == nil {
 			return auth.APIKeyPrincipal(key), nil
 		}

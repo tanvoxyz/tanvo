@@ -1,22 +1,21 @@
 package integrations
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"strings"
-	"sync"
 	"time"
 
+	"github.com/tanvoxyz/tanvo/libs/billing/internal/cachecodec"
 	"github.com/tanvoxyz/tanvo/libs/core/integration"
+	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
 
 // DefaultDraftTaxTTL is how long a cached draft tax answer is reused
 // (lago DraftTaxesCacheService::DEFAULT_TTL).
 const DefaultDraftTaxTTL = 24 * time.Hour
-
-// defaultDraftTaxEntries bounds the entries of a [DraftTaxCache].
-const defaultDraftTaxEntries = 10_000
 
 // draftTaxCacheVersion is bumped when the key or the stored value changes
 // (lago CACHE_KEY_VERSION).
@@ -31,37 +30,39 @@ const draftTaxCacheVersion = "1"
 // identifiers, which are put back from the current request on a hit, and
 // the integration's last change. Only answers carrying lines are kept.
 //
-// Unlike lago's Rails cache, it lives in the process: each server keeps
-// its own entries. It is safe for concurrent use.
+// Answers are encoded into a [port.Cache], in the process or on Redis or
+// Valkey: with a shared backend every server replica reuses the answers
+// any of them received. A nil *DraftTaxCache caches nothing. It is safe
+// for concurrent use.
 type DraftTaxCache struct {
+	c   port.Cache
 	ttl time.Duration
-	max int
 	now func() time.Time
-
-	mu      sync.Mutex
-	entries map[string]draftTaxEntry
 }
 
+// draftTaxEntry is the encoding of a kept answer.
 type draftTaxEntry struct {
-	result  *integration.TaxResult
-	expires time.Time
+	Result *integration.TaxResult `json:"result"`
+	// Expires is the end of the answer's TTL on the cache's clock, which
+	// the backend's own expiry does not follow.
+	Expires time.Time `json:"expires"`
 }
 
-// NewDraftTaxCache returns a cache keeping answers for ttl; a ttl of zero
-// or less turns it off, reads included (lago
+// NewDraftTaxCache returns a cache keeping answers in c for ttl; a nil c
+// or a ttl of zero or less turns it off, reads included (lago
 // LAGO_ANROK_DRAFT_TAXES_CACHE_TTL_SECONDS). now is the clock; nil uses
 // time.Now.
-func NewDraftTaxCache(ttl time.Duration, now func() time.Time) *DraftTaxCache {
+func NewDraftTaxCache(c port.Cache, ttl time.Duration, now func() time.Time) *DraftTaxCache {
 	if now == nil {
 		now = time.Now
 	}
-	return &DraftTaxCache{ttl: ttl, max: defaultDraftTaxEntries, now: now, entries: map[string]draftTaxEntry{}}
+	return &DraftTaxCache{c: c, ttl: ttl, now: now}
 }
 
 // key returns the cache key of t for the integration i, or "" when the
 // cache is off.
 func (c *DraftTaxCache) key(i *integration.Integration, t *integration.TaxTransaction) string {
-	if c == nil || c.ttl <= 0 {
+	if c == nil || c.c == nil || c.ttl <= 0 {
 		return ""
 	}
 	k := *t
@@ -74,7 +75,9 @@ func (c *DraftTaxCache) key(i *integration.Integration, t *integration.TaxTransa
 	if err != nil {
 		return ""
 	}
-	sum := sha256.Sum256(b)
+	// The shape of the entries joins the request in the digest
+	// (cachecodec.Fingerprint).
+	sum := sha256.Sum256(append(b, cachecodec.Fingerprint[draftTaxEntry]()...))
 	return strings.Join([]string{
 		"anrok-draft-taxes", draftTaxCacheVersion, i.ID.String(),
 		i.UpdatedAt.UTC().Format("2006-01-02T15:04:05.000000Z07:00"), hex.EncodeToString(sum[:]),
@@ -82,51 +85,41 @@ func (c *DraftTaxCache) key(i *integration.Integration, t *integration.TaxTransa
 }
 
 // get returns the answer cached under key, with the line identifiers of t.
-func (c *DraftTaxCache) get(key string, t *integration.TaxTransaction) (*integration.TaxResult, bool) {
+func (c *DraftTaxCache) get(ctx context.Context, key string, t *integration.TaxTransaction) (*integration.TaxResult, bool) {
 	if key == "" {
 		return nil, false
 	}
-	c.mu.Lock()
-	e, ok := c.entries[key]
-	if ok && !c.now().Before(e.expires) {
-		delete(c.entries, key)
-		ok = false
-	}
-	c.mu.Unlock()
+	b, ok := c.c.Get(ctx, key)
 	if !ok {
 		return nil, false
 	}
-	out := &integration.TaxResult{TransactionID: e.result.TransactionID, Lines: make([]integration.TaxLineResult, len(e.result.Lines))}
-	for n, l := range e.result.Lines {
-		l.Breakdown = append([]integration.TaxBreakdown(nil), l.Breakdown...)
-		if n < len(t.Lines) {
-			l.ItemKey, l.ItemID = t.Lines[n].ItemKey, t.Lines[n].ItemID
-		}
-		out.Lines[n] = l
+	var e draftTaxEntry
+	if err := cachecodec.Unmarshal(b, &e); err != nil || e.Result == nil || !c.now().Before(e.Expires) {
+		// An answer past its TTL, or written by another version, is a miss.
+		c.c.Delete(ctx, key)
+		return nil, false
 	}
-	return out, true
+	// The provider answers lines in the order they were sent
+	// (draft_taxes_cache_service.rb:79-89).
+	for n := range e.Result.Lines {
+		if n < len(t.Lines) {
+			e.Result.Lines[n].ItemKey, e.Result.Lines[n].ItemID = t.Lines[n].ItemKey, t.Lines[n].ItemID
+		}
+	}
+	return e.Result, true
 }
 
-// put caches res under key when it carries lines.
-func (c *DraftTaxCache) put(key string, res *integration.TaxResult) {
+// put caches res under key when it carries lines
+// (draft_taxes_cache_service.rb:72-74).
+func (c *DraftTaxCache) put(ctx context.Context, key string, res *integration.TaxResult) {
 	if key == "" || res == nil || len(res.Lines) == 0 {
 		return
 	}
-	now := c.now()
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if len(c.entries) >= c.max {
-		for k, e := range c.entries {
-			if !now.Before(e.expires) {
-				delete(c.entries, k)
-			}
-		}
-		for k := range c.entries {
-			if len(c.entries) < c.max {
-				break
-			}
-			delete(c.entries, k)
-		}
+	b, err := cachecodec.Marshal(draftTaxEntry{Result: res, Expires: c.now().Add(c.ttl)})
+	if err != nil {
+		// Answers always encode; were one not to, the provider is asked
+		// again next time.
+		return
 	}
-	c.entries[key] = draftTaxEntry{result: res, expires: now.Add(c.ttl)}
+	c.c.Set(ctx, key, b, c.ttl)
 }

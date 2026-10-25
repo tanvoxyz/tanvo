@@ -7,6 +7,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/billingtest"
 	"github.com/tanvoxyz/tanvo/libs/billing/fees"
+	"github.com/tanvoxyz/tanvo/libs/billing/internal/cachetest"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/usage"
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -96,9 +97,9 @@ func TestUsageFilters(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			f := newFixture(t, june, "1")
-			cache := kernel.NewMemoryUsageCache(10)
+			cache := cachetest.New(f.Now)
 			d := f.Deps
-			d.UsageCache = cache
+			d.UsageCache = kernel.NewUsageCache(cache)
 			f.svc = usage.New(d)
 			m := f.Metric("seats", catalog.AggregationTypeCount, "")
 			c := f.Charge(f.plan, m, catalog.ChargeModelStandard, `{"amount":"1","pricing_group_keys":["region","user"]}`,

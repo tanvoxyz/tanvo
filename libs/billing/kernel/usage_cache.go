@@ -1,25 +1,28 @@
 package kernel
 
 import (
-	"container/list"
-	"sync"
+	"context"
 	"time"
 
+	"github.com/tanvoxyz/tanvo/libs/billing/internal/cachecodec"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
+	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
 
 // UsageCache keeps the current-usage fees of charge buckets between
 // computations (lago Subscriptions::ChargeCacheService). An entry is
 // validated lazily by its reader: it holds the ingestion watermark of the
 // events it aggregated and is used only while no event was ingested after
-// it (metering.Watermark). Implementations are safe for concurrent use
-// and copy the fees in and out.
-type UsageCache interface {
-	// Get returns the entry of key, false when there is none or it
-	// expired at now.
-	Get(key string, now time.Time) (UsageCacheEntry, bool)
-	// Put stores the entry of key, replacing any.
-	Put(key string, e UsageCacheEntry)
+// it (metering.Watermark).
+//
+// Entries are encoded into a [port.Cache], in the process or on Redis or
+// Valkey: with a shared backend every server replica reuses the fees any
+// of them computed, the watermark keeping them exact. A nil *UsageCache
+// caches nothing. It is safe for concurrent use; the fees are copied in
+// and out.
+type UsageCache struct {
+	c       port.Cache
+	version string
 }
 
 // UsageCacheEntry is one cached bucket: its fees and the watermark they
@@ -35,80 +38,59 @@ type UsageCacheEntry struct {
 	ExpiresAt time.Time
 }
 
-// MemoryUsageCache is the in-process [UsageCache]: a bounded map that
-// evicts the least recently used entry when full.
-type MemoryUsageCache struct {
-	mu      sync.Mutex
-	max     int
-	order   *list.List
-	entries map[string]*list.Element
-}
-
-var _ UsageCache = (*MemoryUsageCache)(nil)
-
-type usageCacheItem struct {
-	key   string
-	entry UsageCacheEntry
-}
-
-// NewMemoryUsageCache returns a cache of at most maxEntries entries; nil
-// when maxEntries is not positive, which turns the cache off.
-func NewMemoryUsageCache(maxEntries int) *MemoryUsageCache {
-	if maxEntries <= 0 {
+// NewUsageCache returns the usage cache over c; nil when c is nil, which
+// turns the cache off.
+func NewUsageCache(c port.Cache) *UsageCache {
+	if c == nil {
 		return nil
 	}
-	return &MemoryUsageCache{max: maxEntries, order: list.New(), entries: map[string]*list.Element{}}
+	return &UsageCache{c: c, version: cachecodec.Fingerprint[UsageCacheEntry]()}
 }
 
-// Get implements [UsageCache].
-func (c *MemoryUsageCache) Get(key string, now time.Time) (UsageCacheEntry, bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	el, ok := c.entries[key]
+// Version is the shape of the entries (cachecodec.Fingerprint), which
+// their keys cover, so that server processes of another version sharing
+// the backend never read them; "" for a nil cache.
+func (u *UsageCache) Version() string {
+	if u == nil {
+		return ""
+	}
+	return u.version
+}
+
+// Get returns the entry of key, false when there is none, it cannot be
+// decoded or it expired at now.
+func (u *UsageCache) Get(ctx context.Context, key string, now time.Time) (UsageCacheEntry, bool) {
+	if u == nil {
+		return UsageCacheEntry{}, false
+	}
+	b, ok := u.c.Get(ctx, key)
 	if !ok {
 		return UsageCacheEntry{}, false
 	}
-	it := el.Value.(*usageCacheItem)
-	if !now.Before(it.entry.ExpiresAt) {
-		c.order.Remove(el)
-		delete(c.entries, key)
+	var e UsageCacheEntry
+	if err := cachecodec.Unmarshal(b, &e); err != nil || !now.Before(e.ExpiresAt) {
+		// An entry written by another version or past its end is a miss.
+		u.c.Delete(ctx, key)
 		return UsageCacheEntry{}, false
 	}
-	c.order.MoveToFront(el)
-	return cloneUsageEntry(it.entry), true
+	return e, true
 }
 
-// Put implements [UsageCache].
-func (c *MemoryUsageCache) Put(key string, e UsageCacheEntry) {
-	e = cloneUsageEntry(e)
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if el, ok := c.entries[key]; ok {
-		el.Value.(*usageCacheItem).entry = e
-		c.order.MoveToFront(el)
+// Put stores the entry of key, replacing any, until e.ExpiresAt; nothing
+// is stored when that is not after now.
+func (u *UsageCache) Put(ctx context.Context, key string, e UsageCacheEntry, now time.Time) {
+	if u == nil {
 		return
 	}
-	c.entries[key] = c.order.PushFront(&usageCacheItem{key: key, entry: e})
-	for c.order.Len() > c.max {
-		last := c.order.Back()
-		c.order.Remove(last)
-		delete(c.entries, last.Value.(*usageCacheItem).key)
+	ttl := e.ExpiresAt.Sub(now)
+	if ttl <= 0 {
+		return
 	}
-}
-
-// Len returns the number of entries.
-func (c *MemoryUsageCache) Len() int {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.order.Len()
-}
-
-func cloneUsageEntry(e UsageCacheEntry) UsageCacheEntry {
-	fees := make([]*invoice.Fee, len(e.Fees))
-	for i, f := range e.Fees {
-		cp := invoice.CloneFee(*f)
-		fees[i] = &cp
+	b, err := cachecodec.Marshal(e)
+	if err != nil {
+		// Fees always encode; were one not to, the bucket is simply
+		// recomputed next time.
+		return
 	}
-	e.Fees = fees
-	return e
+	u.c.Set(ctx, key, b, ttl)
 }

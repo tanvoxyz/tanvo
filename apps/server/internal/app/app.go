@@ -71,6 +71,7 @@ type App struct {
 	changes   *catalogChanges
 	health    *health
 	blobs     *blobs
+	caches    *caches
 	docs      *docs
 	server    *http.Server
 	listener  net.Listener
@@ -139,6 +140,9 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	if a.blobs, err = newBlobs(cfg, a.log, tp); err != nil {
 		return nil, err
 	}
+	if a.caches, err = newCaches(ctx, cfg, a.log, tp, mp); err != nil {
+		return nil, err
+	}
 	composer, sender, err := newMailer(cfg, a.log, tp)
 	if err != nil {
 		return nil, err
@@ -155,7 +159,8 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	if err != nil {
 		return nil, err
 	}
-	integ, err := newIntegrations(cfg, a.store, clock, a.log, tp, mp, pay.gocardlessOAuth, triggers, a.blobs.blobOrNil())
+	integ, err := newIntegrations(cfg, a.store, clock, a.log, tp, mp, pay.gocardlessOAuth, triggers, a.blobs.blobOrNil(),
+		a.caches.named(cacheDraftTax, memoryCacheEntries))
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +170,8 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		return nil, err
 	}
 	streams := newStreamProducer(cfg, a.log, tp, mp)
-	if a.billing, err = newBilling(cfg, a.store, a.stores, clock, a.log, pay.svc.Refunds(), triggers, integ.taxes, streams); err != nil {
+	if a.billing, err = newBilling(cfg, a.store, a.stores, clock, a.log, pay.svc.Refunds(), triggers, integ.taxes, streams,
+		a.caches.named(cacheUsage, cfg.UsageCacheEntries)); err != nil {
 		return nil, err
 	}
 	if err := (streamingJobs{engine: a.billing}).register(reg); err != nil {
@@ -237,7 +243,8 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		if a.api, err = newAPI(mux, APIOptions{
 			Tx: a.store, Ingest: svc, EventReader: reader, AttributedUsage: a.stores, Billing: a.billing, MaxBytes: cfg.HTTPMaxBodyBytes, TrustedProxies: cfg.TrustedProxies,
 			Log: a.log, TracerProvider: tp, MeterProvider: mp, Clock: clock, AppURL: cfg.AppURL,
-			DisableSignup: cfg.DisableSignup, AnalyticsCacheTTL: cfg.AnalyticsCacheTTL, GoogleClientID: cfg.GoogleAuthClientID, GoogleClientSecret: cfg.GoogleAuthClientSecret,
+			DisableSignup: cfg.DisableSignup, AnalyticsCacheTTL: cfg.AnalyticsCacheTTL,
+			AnalyticsCache: a.caches.named(cacheAnalytics, memoryCacheEntries), APIKeyCache: a.caches.sharedOnly(cacheAPIKeys), APIKeyCacheTTL: cfg.APIKeyCacheTTL, GoogleClientID: cfg.GoogleAuthClientID, GoogleClientSecret: cfg.GoogleAuthClientSecret,
 			WebhooksAllowPrivate: cfg.WebhooksAllowPrivate, OIDCAllowPrivate: cfg.OIDCAllowPrivate, SecretKey: secretKey,
 			Payments: pay.svc, InboundWebhooks: pay.inbound, Integrations: integ.svc,
 			Files: a.docs, Blobs: a.blobs.blobOrNil(),
@@ -367,6 +374,7 @@ func (a *App) close() {
 			a.log.Warn("blob store: close", "error", err)
 		}
 	}
+	a.caches.close()
 	if a.pool != nil {
 		a.pool.Close()
 	}

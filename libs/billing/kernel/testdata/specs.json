@@ -6,12 +6,12 @@
     "services/subscriptions/charge_cache_middleware_spec.rb"
   ],
   "notes": [
-    "The cache is `kernel.UsageCache`, in process (`kernel.MemoryUsageCache`, architecture §8); `fees.Service` reads and fills it per charge bucket (libs/billing/fees/usage_cache.go), validating each entry against the store's ingestion watermark (`metering.Watermark`)."
+    "The cache is `kernel.UsageCache`, encoded into the installation's `port.Cache`, in process or on Redis or Valkey (architecture §8); `fees.Service` reads and fills it per charge bucket (libs/billing/fees/usage_cache.go), validating each entry against the store's ingestion watermark (`metering.Watermark`)."
   ],
   "reasons": {
     "hook": "A hook for other cache services: the charge cache keeps every computed value (lago ChargeCacheService does not override `cacheable?`); Tanvo has no other cache service.",
     "untracked": "Every Tanvo cache entry carries its watermark; there is no cache service without lazy validation.",
-    "legacy": "Entry shapes of the shared Rails cache from before lazy validation; the in-process cache starts empty on every start and only holds `kernel.UsageCacheEntry`.",
+    "legacy": "Entry shapes of the shared Rails cache from before lazy validation; Tanvo's cache only ever holds encoded `kernel.UsageCacheEntry` values, and one it cannot decode is a miss.",
     "expire": "Explicit expiry is for event deletion and duplicate cleanup, which change usage without advancing the watermark: lago no longer deletes events when a metric is destroyed (docs/parity.md, deprecated features), and the event stores deduplicate at ingestion, so no Tanvo path removes events the cache aggregated. A replacement or re-enrichment advances the watermark (`written_at` in PostgreSQL, `enriched_at` in ClickHouse).",
     "go-types": "An interface method cannot be left unimplemented in Go.",
     "key-segments": "`usageCacheKey` appends the full-usage segment after the filter segments independently of them; the filter segment is ported at charge_cache_service_spec.rb:21 and the full-usage one at :30."

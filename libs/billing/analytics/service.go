@@ -125,7 +125,7 @@ func report[T any](
 			}
 			scope.CustomerID = id
 		}
-		rows, err := cached(s.cache, kind, org, scope, f.ExpireCache, func() ([]T, error) { return fn(r.Analytics, ctx, org, scope) })
+		rows, err := cached(ctx, s.cache, kind, org, scope, f.ExpireCache, func() ([]T, error) { return fn(r.Analytics, ctx, org, scope) })
 		if err != nil {
 			return fmt.Errorf("analytics: %w", err)
 		}

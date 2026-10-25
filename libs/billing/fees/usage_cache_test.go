@@ -1,12 +1,14 @@
 package fees_test
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/billingtest"
 	"github.com/tanvoxyz/tanvo/libs/billing/fees"
+	"github.com/tanvoxyz/tanvo/libs/billing/internal/cachetest"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
@@ -14,31 +16,31 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/metering"
 )
 
-// countingCache is a usage cache that counts the entries it returns and
-// writes; a returned entry may still be found stale by its reader.
+// countingCache is a cache backend that counts the entries it returns
+// and writes; a returned entry may still be found stale by its reader.
 type countingCache struct {
-	*kernel.MemoryUsageCache
+	*cachetest.Memory
 	hits, puts int
 	keys       []string
 	// onGet, when set, runs on each lookup: before the aggregation.
 	onGet func()
 }
 
-func (c *countingCache) Get(key string, now time.Time) (kernel.UsageCacheEntry, bool) {
+func (c *countingCache) Get(ctx context.Context, key string) ([]byte, bool) {
 	if c.onGet != nil {
 		c.onGet()
 	}
-	e, ok := c.MemoryUsageCache.Get(key, now)
+	b, ok := c.Memory.Get(ctx, key)
 	if ok {
 		c.hits++
 	}
-	return e, ok
+	return b, ok
 }
 
-func (c *countingCache) Put(key string, e kernel.UsageCacheEntry) {
+func (c *countingCache) Set(ctx context.Context, key string, value []byte, ttl time.Duration) {
 	c.puts++
 	c.keys = append(c.keys, key)
-	c.MemoryUsageCache.Put(key, e)
+	c.Memory.Set(ctx, key, value, ttl)
 }
 
 // cacheFixture is a sum charge with a usage cache, the clock on 2022-03-20
@@ -47,6 +49,8 @@ type cacheFixture struct {
 	*chargeFixture
 	m     *catalog.BillableMetric
 	cache *countingCache
+	// usageCache is the usage cache over cache.
+	usageCache *kernel.UsageCache
 }
 
 var cacheNow = date(2022, time.March, 20)
@@ -66,7 +70,8 @@ func newCacheFixtureOf(t *testing.T, metric func(*catalog.BillableMetric), model
 	}
 	m := f.Metric("metric", catalog.AggregationTypeSum, "value", mo...)
 	c := f.Charge(f.plan, m, model, props, opts...)
-	return &cacheFixture{chargeFixture: f, m: m, cache: &countingCache{MemoryUsageCache: kernel.NewMemoryUsageCache(100)}}, c
+	cache := &countingCache{Memory: cachetest.New(f.Now)}
+	return &cacheFixture{chargeFixture: f, m: m, cache: cache, usageCache: kernel.NewUsageCache(cache)}, c
 }
 
 // event stores an event of the metric ingested at ingested.
@@ -85,7 +90,7 @@ func (f *cacheFixture) event(ingested time.Time, props ...string) {
 
 func (f *cacheFixture) usage(c *catalog.Charge, opts ...func(*fees.Options)) []*invoice.Fee {
 	f.T.Helper()
-	o := fees.Options{CurrentUsage: true, UsageCache: f.cache}
+	o := fees.Options{CurrentUsage: true, UsageCache: f.usageCache}
 	for _, fn := range opts {
 		fn(&o)
 	}
@@ -182,7 +187,7 @@ func TestUsageCache(t *testing.T) {
 		f, c := newCacheFixture(t, catalog.ChargeModelStandard, `{"amount":"1"}`)
 		f.cache.onGet = func() { f.Clock.Set(cacheNow.Add(30 * time.Second)) }
 		f.usage(c)
-		e, ok := f.cache.MemoryUsageCache.Get(f.cache.keys[0], cacheNow)
+		e, ok := kernel.NewUsageCache(f.cache.Memory).Get(context.Background(), f.cache.keys[0], cacheNow)
 		if want := cacheNow.Add(-time.Second); !ok || !e.CachedAt.Equal(want) {
 			t.Errorf("no event: got = %v %v, want = %v", e.CachedAt, ok, want)
 		}
@@ -201,7 +206,7 @@ func TestUsageCache(t *testing.T) {
 		f.event(settled, "value", "10")
 		sc := f.usageScope(f.sub, f.Now())
 		f.Clock.Set(sc.Boundaries.Charges.To)
-		f.run(sc, c, fees.Options{CurrentUsage: true, UsageCache: f.cache})
+		f.run(sc, c, fees.Options{CurrentUsage: true, UsageCache: f.usageCache})
 		if f.cache.puts != 0 {
 			t.Errorf("got = %d puts, want = 0", f.cache.puts)
 		}

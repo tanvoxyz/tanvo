@@ -16,6 +16,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/billing/billingtest"
 	"github.com/tanvoxyz/tanvo/libs/billing/integrations"
+	"github.com/tanvoxyz/tanvo/libs/billing/internal/cachetest"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
@@ -683,7 +684,7 @@ func TestDraftTaxCache(t *testing.T) {
 	t.Run("identical request reuses the answer", func(t *testing.T) {
 		// source: spec/services/integrations/aggregator/taxes/invoices/draft_taxes_cache_service_spec.rb:72
 		// source: spec/services/integrations/aggregator/taxes/invoices/create_draft_service_spec.rb:261
-		f := newTaxFixture(t, integration.ProviderAnrok, integrations.NewDraftTaxCache(time.Hour, nil))
+		f := newTaxFixture(t, integration.ProviderAnrok, integrations.NewDraftTaxCache(cachetest.New(nil), time.Hour, nil))
 		_, req1 := request(f, 100)
 		_, req2 := request(f, 100)
 		if _, err := f.taxes.ComputeTaxes(ctx, req1); err != nil {
@@ -703,7 +704,7 @@ func TestDraftTaxCache(t *testing.T) {
 	})
 	t.Run("different amount misses", func(t *testing.T) {
 		// source: spec/services/integrations/aggregator/taxes/invoices/draft_taxes_cache_service_spec.rb:92
-		f := newTaxFixture(t, integration.ProviderAnrok, integrations.NewDraftTaxCache(time.Hour, nil))
+		f := newTaxFixture(t, integration.ProviderAnrok, integrations.NewDraftTaxCache(cachetest.New(nil), time.Hour, nil))
 		_, req1 := request(f, 100)
 		_, req2 := request(f, 200)
 		for _, r := range []kernel.TaxRequest{req1, req2} {
@@ -718,7 +719,7 @@ func TestDraftTaxCache(t *testing.T) {
 	t.Run("expired entry misses", func(t *testing.T) {
 		// source: spec/services/integrations/aggregator/taxes/invoices/draft_taxes_cache_service_spec.rb:124
 		clock := now
-		f := newTaxFixture(t, integration.ProviderAnrok, integrations.NewDraftTaxCache(time.Hour, func() time.Time { return clock }))
+		f := newTaxFixture(t, integration.ProviderAnrok, integrations.NewDraftTaxCache(cachetest.New(nil), time.Hour, func() time.Time { return clock }))
 		_, req1 := request(f, 100)
 		if _, err := f.taxes.ComputeTaxes(ctx, req1); err != nil {
 			t.Fatal(err)
@@ -734,7 +735,7 @@ func TestDraftTaxCache(t *testing.T) {
 	t.Run("failures are not cached", func(t *testing.T) {
 		// source: spec/services/integrations/aggregator/taxes/invoices/draft_taxes_cache_service_spec.rb:145
 		// source: spec/services/integrations/aggregator/taxes/invoices/create_draft_service_spec.rb:304
-		f := newTaxFixture(t, integration.ProviderAnrok, integrations.NewDraftTaxCache(time.Hour, nil))
+		f := newTaxFixture(t, integration.ProviderAnrok, integrations.NewDraftTaxCache(cachetest.New(nil), time.Hour, nil))
 		_, req1 := request(f, 100)
 		f.gw.err = &integration.ProviderError{Provider: integration.ProviderAnrok, Kind: integration.KindInvalidRequest, Code: "invalid", Message: "bad"}
 		if _, err := f.taxes.ComputeTaxes(ctx, req1); err == nil {
@@ -750,7 +751,7 @@ func TestDraftTaxCache(t *testing.T) {
 	})
 	t.Run("off with a zero TTL", func(t *testing.T) {
 		// source: spec/services/integrations/aggregator/taxes/invoices/draft_taxes_cache_service_spec.rb:173
-		f := newTaxFixture(t, integration.ProviderAnrok, integrations.NewDraftTaxCache(0, nil))
+		f := newTaxFixture(t, integration.ProviderAnrok, integrations.NewDraftTaxCache(cachetest.New(nil), 0, nil))
 		_, req1 := request(f, 100)
 		for range 2 {
 			if _, err := f.taxes.ComputeTaxes(ctx, req1); err != nil {
@@ -762,7 +763,7 @@ func TestDraftTaxCache(t *testing.T) {
 		}
 	})
 	t.Run("avalara is not cached", func(t *testing.T) {
-		f := newTaxFixture(t, integration.ProviderAvalara, integrations.NewDraftTaxCache(time.Hour, nil))
+		f := newTaxFixture(t, integration.ProviderAvalara, integrations.NewDraftTaxCache(cachetest.New(nil), time.Hour, nil))
 		_, req1 := request(f, 100)
 		for range 2 {
 			if _, err := f.taxes.ComputeTaxes(ctx, req1); err != nil {

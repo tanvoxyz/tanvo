@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/billingtest"
+	"github.com/tanvoxyz/tanvo/libs/billing/internal/cachetest"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/usage"
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -39,9 +40,9 @@ func TestUsageCacheGate(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			f := newFixture(t, june, "10")
-			cache := kernel.NewMemoryUsageCache(10)
+			cache := cachetest.New(f.Now)
 			d := f.Deps
-			d.UsageCache = cache
+			d.UsageCache = kernel.NewUsageCache(cache)
 			f.svc = usage.New(d)
 			f.Clock.Set(june.Add(-time.Hour))
 			f.events(f.sub, 3, june.Add(-2*time.Hour))
@@ -71,7 +72,7 @@ func TestUsageCacheGate(t *testing.T) {
 		t.Parallel()
 		f := newFixture(t, june, "10")
 		d := f.Deps
-		d.UsageCache = kernel.NewMemoryUsageCache(10)
+		d.UsageCache = kernel.NewUsageCache(cachetest.New(f.Now))
 		f.svc = usage.New(d)
 		f.Clock.Set(june.Add(-time.Hour))
 		f.events(f.sub, 3, june.Add(-2*time.Hour))

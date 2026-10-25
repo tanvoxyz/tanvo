@@ -61,7 +61,7 @@ const throttledSnooze = time.Second
 // the installation secret. Its sync triggers are bound to triggers, the
 // webhook emitter of the billing and payments services.
 func newIntegrations(cfg config.Config, tx port.Transactor, clock core.Clock, log *slog.Logger, tp trace.TracerProvider, mp metric.MeterProvider,
-	gocardlessOAuth integration.OAuthGateway, triggers *syncTriggers, blobs port.BlobStore,
+	gocardlessOAuth integration.OAuthGateway, triggers *syncTriggers, blobs port.BlobStore, draftTaxes port.Cache,
 ) (*integrationsWiring, error) {
 	// The OAuth adapters store their refreshed grants through the
 	// service, made after them.
@@ -107,7 +107,7 @@ func newIntegrations(cfg config.Config, tx port.Transactor, clock core.Clock, lo
 		svc:   svc,
 		docs:  docs,
 		slots: slots,
-		taxes: integrations.NewTaxes(svc, integrations.NewDraftTaxCache(cfg.AnrokDraftTaxesCacheTTL, clock.Now)),
+		taxes: integrations.NewTaxes(svc, integrations.NewDraftTaxCache(draftTaxes, cfg.AnrokDraftTaxesCacheTTL, clock.Now)),
 	}, nil
 }
 

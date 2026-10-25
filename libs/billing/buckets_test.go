@@ -9,6 +9,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing"
 	"github.com/tanvoxyz/tanvo/libs/billing/billingtest"
 	"github.com/tanvoxyz/tanvo/libs/billing/fees"
+	"github.com/tanvoxyz/tanvo/libs/billing/internal/cachetest"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/usage"
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -110,16 +111,16 @@ func (b *bucketedEvents) BucketStats(_ context.Context, d metering.BucketDefinit
 type bucketScenario struct {
 	*scenario
 	events *bucketedEvents
-	cache  *kernel.MemoryUsageCache
+	cache  *cachetest.Memory
 }
 
 func newBucketScenario(t *testing.T, now time.Time, opts ...billing.Option) *bucketScenario {
 	t.Helper()
 	h := billingtest.New(t, now)
 	be := &bucketedEvents{Events: h.Events, now: h.Now, definedAt: map[string]time.Time{}, readAt: map[string]time.Time{}}
-	cache := kernel.NewMemoryUsageCache(100)
+	cache := cachetest.New(h.Now)
 	h.Deps.Events = be
-	h.Deps.UsageCache = cache
+	h.Deps.UsageCache = kernel.NewUsageCache(cache)
 	e, err := billing.New(*h.Deps, opts...)
 	if err != nil {
 		t.Fatalf("billing.New() error = %v", err)

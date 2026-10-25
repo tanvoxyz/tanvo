@@ -53,6 +53,11 @@ func TestLoadTypes(t *testing.T) {
 		"TANVO_JOBS_QUEUE_CONCURRENCY=alerts=20, wallets = 5",
 		"TANVO_USAGE_BUCKETS_MAX_ROWS_PER_BUCKET=500",
 		"TANVO_USAGE_BUCKETS_IDLE_TTL=720h",
+		"TANVO_CACHE_URL=valkeys://cache.internal:6380/2",
+		"TANVO_CACHE_CLIENT_SIDE_TTL=30s",
+		"TANVO_API_KEY_CACHE_TTL=10m",
+		"TANVO_CACHE_SENTINEL_USERNAME=sentinel",
+		"TANVO_CACHE_SENTINEL_PASSWORD=watch",
 	}})
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
@@ -74,6 +79,12 @@ func TestLoadTypes(t *testing.T) {
 	}
 	if cfg.UsageBucketsMaxRowsPerBucket != 500 || cfg.UsageBucketsIdleTTL != 720*time.Hour {
 		t.Errorf("usage bucket limits got = %d %v, want = 500 720h", cfg.UsageBucketsMaxRowsPerBucket, cfg.UsageBucketsIdleTTL)
+	}
+	if cfg.CacheURL != "valkeys://cache.internal:6380/2" || cfg.CachePrefix != "tanvo:" || cfg.CacheClientSideTTL != 30*time.Second || cfg.APIKeyCacheTTL != 10*time.Minute {
+		t.Errorf("cache got = %q %q %v %v, want = valkeys://cache.internal:6380/2 tanvo: 30s 10m", cfg.CacheURL, cfg.CachePrefix, cfg.CacheClientSideTTL, cfg.APIKeyCacheTTL)
+	}
+	if cfg.CacheSentinelUsername != "sentinel" || cfg.CacheSentinelPassword != "watch" {
+		t.Errorf("cache sentinel auth got = %q %q, want = sentinel watch", cfg.CacheSentinelUsername, cfg.CacheSentinelPassword)
 	}
 	if !cfg.DisableEventsValidation {
 		t.Errorf("DisableEventsValidation got = false, want = true")
@@ -186,6 +197,9 @@ func TestLoadInvalid(t *testing.T) {
 		{"blob url ttl too long", []string{dsn, "TANVO_BLOB_BACKEND=gcs", "TANVO_API_URL=https://api.example.com", "TANVO_SECRET_KEY=" + blobSecret, "TANVO_BLOB_BUCKET=b", "TANVO_BLOB_ACCESS_KEY_ID=k", "TANVO_BLOB_SECRET_ACCESS_KEY=s", "TANVO_BLOB_URL_TTL=200h"}, "TANVO_BLOB_URL_TTL"},
 		{"short secret key", []string{dsn, "TANVO_SECRET_KEY=c2hvcnQ="}, "want at least 32"},
 		{"negative bucket rows", []string{dsn, "TANVO_USAGE_BUCKETS_MAX_ROWS_PER_BUCKET=-1"}, "TANVO_USAGE_BUCKETS_MAX_ROWS_PER_BUCKET"},
+		{"cache scheme", []string{dsn, "TANVO_CACHE_URL=memcached://cache:11211"}, "TANVO_CACHE_URL"},
+		{"negative client side ttl", []string{dsn, "TANVO_CACHE_CLIENT_SIDE_TTL=-1s"}, "TANVO_CACHE_CLIENT_SIDE_TTL"},
+		{"negative api key cache ttl", []string{dsn, "TANVO_API_KEY_CACHE_TTL=-1s"}, "TANVO_API_KEY_CACHE_TTL"},
 		{"short bucket idle time", []string{dsn, "TANVO_USAGE_BUCKETS_IDLE_TTL=1h"}, "TANVO_USAGE_BUCKETS_IDLE_TTL: must be 0 or at least 24h"},
 	}
 	for _, tt := range tests {

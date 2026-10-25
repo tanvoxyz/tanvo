@@ -1,12 +1,15 @@
 package integrations
 
 import (
+	"context"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/tanvoxyz/tanvo/libs/billing/internal/cachetest"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/money"
@@ -39,7 +42,7 @@ func cacheAnswer(t *integration.TaxTransaction) *integration.TaxResult {
 func TestDraftTaxCacheKey(t *testing.T) {
 	updated := time.Date(2026, time.October, 5, 10, 0, 0, 100_000_000, time.UTC)
 	integ := &integration.Integration{ID: core.MustParseID[core.IntegrationID]("01000000-0000-7000-8000-000000000001"), UpdatedAt: updated}
-	c := NewDraftTaxCache(time.Hour, nil)
+	c := NewDraftTaxCache(cachetest.New(nil), time.Hour, nil)
 	key := c.key(integ, cacheTransaction())
 
 	// source: spec/services/integrations/aggregator/taxes/invoices/draft_taxes_cache_service_spec.rb:76
@@ -73,17 +76,18 @@ func TestDraftTaxCacheKey(t *testing.T) {
 }
 
 func TestDraftTaxCacheHit(t *testing.T) {
+	ctx := context.Background()
 	integ := &integration.Integration{ID: core.MustParseID[core.IntegrationID](uuid.NewString()), UpdatedAt: time.Now()}
-	c := NewDraftTaxCache(time.Hour, nil)
+	c := NewDraftTaxCache(cachetest.New(nil), time.Hour, nil)
 	first := cacheTransaction()
 	answer := cacheAnswer(first)
-	c.put(c.key(integ, first), answer)
+	c.put(ctx, c.key(integ, first), answer)
 
 	next := cacheTransaction()
 	for n := range next.Lines {
 		next.Lines[n].ItemKey, next.Lines[n].ItemID = "new_"+next.Lines[n].ItemKey, "new_"+next.Lines[n].ItemID
 	}
-	got, ok := c.get(c.key(integ, next), next)
+	got, ok := c.get(ctx, c.key(integ, next), next)
 	if !ok {
 		t.Fatal("hit: got = miss, want = hit")
 	}
@@ -94,40 +98,98 @@ func TestDraftTaxCacheHit(t *testing.T) {
 		}
 	}
 	// source: spec/services/integrations/aggregator/taxes/invoices/draft_taxes_cache_service_spec.rb:165
-	again, ok := c.get(c.key(integ, first), first)
+	again, ok := c.get(ctx, c.key(integ, first), first)
 	if !ok || again.Lines[0].ItemKey != "key_0" || answer.Lines[0].ItemKey != "key_0" {
 		t.Errorf("cached answer: got = %+v, want = untouched", answer.Lines)
 	}
 }
 
+// TestDraftTaxCacheRoundTrip checks that a fully populated answer comes
+// back from the cache equal to what was put, its identifiers aside.
+func TestDraftTaxCacheRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	integ := &integration.Integration{ID: core.MustParseID[core.IntegrationID](uuid.NewString()), UpdatedAt: time.Now()}
+	c := NewDraftTaxCache(cachetest.New(nil), time.Hour, nil)
+	tx := cacheTransaction()
+	rate, tax := money.MustParse("0.0825"), int64(17)
+	answer := &integration.TaxResult{TransactionID: "tr_1", Lines: []integration.TaxLineResult{
+		{ItemKey: "key_0", ItemID: "id_0", ItemCode: "m1", AmountCents: money.MustParse("100.50"), TaxAmountCents: &tax, Breakdown: []integration.TaxBreakdown{
+			{Name: "State", Reason: "taxable", Type: "sales", Rate: &rate, TaxAmount: money.MustParse("8.29")},
+			{Name: "Exempt", TaxAmount: money.Zero},
+		}},
+		{ItemKey: "key_1", ItemID: "id_1", ItemCode: "m2", AmountCents: money.MustParse("200")},
+	}}
+	c.put(ctx, c.key(integ, tx), answer)
+	got, ok := c.get(ctx, c.key(integ, tx), tx)
+	if !ok {
+		t.Fatal("got = miss, want = hit")
+	}
+	if !reflect.DeepEqual(got, answer) {
+		t.Errorf("got = %+v, want = %+v", got, answer)
+	}
+}
+
+// TestDraftTaxCacheShared checks that two caches over one backend, as two
+// server replicas over Redis, reuse each other's answers.
+func TestDraftTaxCacheShared(t *testing.T) {
+	ctx := context.Background()
+	integ := &integration.Integration{ID: core.MustParseID[core.IntegrationID](uuid.NewString()), UpdatedAt: time.Now()}
+	backend := cachetest.New(nil)
+	a, b := NewDraftTaxCache(backend, time.Hour, nil), NewDraftTaxCache(backend, time.Hour, nil)
+	tx := cacheTransaction()
+	if _, ok := b.get(ctx, b.key(integ, tx), tx); ok {
+		t.Fatal("before: got = hit, want = miss")
+	}
+	a.put(ctx, a.key(integ, tx), cacheAnswer(tx))
+	if _, ok := b.get(ctx, b.key(integ, tx), tx); !ok {
+		t.Error("after: got = miss, want = the other cache's answer")
+	}
+}
+
 func TestDraftTaxCacheTTL(t *testing.T) {
+	ctx := context.Background()
 	integ := &integration.Integration{ID: core.MustParseID[core.IntegrationID](uuid.NewString()), UpdatedAt: time.Now()}
 	tx := cacheTransaction()
 
 	// source: spec/services/integrations/aggregator/taxes/invoices/draft_taxes_cache_service_spec.rb:187
 	t.Run("configured", func(t *testing.T) {
 		clock := time.Date(2026, time.March, 1, 0, 0, 0, 0, time.UTC)
-		c := NewDraftTaxCache(time.Minute, func() time.Time { return clock })
+		backend := cachetest.New(func() time.Time { return clock })
+		c := NewDraftTaxCache(backend, time.Minute, func() time.Time { return clock })
 		key := c.key(integ, tx)
-		c.put(key, cacheAnswer(tx))
-		if got := c.entries[key].expires; !got.Equal(clock.Add(time.Minute)) {
-			t.Errorf("expires: got = %v, want = %v", got, clock.Add(time.Minute))
+		c.put(ctx, key, cacheAnswer(tx))
+		clock = clock.Add(time.Minute - time.Nanosecond)
+		if _, ok := c.get(ctx, key, tx); !ok {
+			t.Error("before the TTL: got = miss, want = hit")
+		}
+		clock = clock.Add(time.Nanosecond)
+		if _, ok := c.get(ctx, key, tx); ok {
+			t.Error("at the TTL: got = hit, want = miss")
 		}
 	})
 	// source: spec/services/integrations/aggregator/taxes/invoices/draft_taxes_cache_service_spec.rb:200
 	t.Run("zero", func(t *testing.T) {
-		c := NewDraftTaxCache(0, nil)
-		c.put(c.key(integ, tx), cacheAnswer(tx))
-		if len(c.entries) != 0 {
-			t.Errorf("entries: got = %d, want = 0", len(c.entries))
+		backend := cachetest.New(nil)
+		c := NewDraftTaxCache(backend, 0, nil)
+		c.put(ctx, c.key(integ, tx), cacheAnswer(tx))
+		if backend.Len() != 0 {
+			t.Errorf("entries: got = %d, want = 0", backend.Len())
 		}
 	})
 	// source: spec/services/integrations/aggregator/taxes/invoices/draft_taxes_cache_service_spec.rb:211
 	t.Run("zero with an answer cached before", func(t *testing.T) {
-		c := NewDraftTaxCache(time.Hour, nil)
-		c.put(c.key(integ, tx), cacheAnswer(tx))
-		c.ttl = 0
-		if _, ok := c.get(c.key(integ, tx), tx); ok {
+		backend := cachetest.New(nil)
+		c := NewDraftTaxCache(backend, time.Hour, nil)
+		c.put(ctx, c.key(integ, tx), cacheAnswer(tx))
+		c = NewDraftTaxCache(backend, 0, nil)
+		if _, ok := c.get(ctx, c.key(integ, tx), tx); ok {
+			t.Error("get: got = hit, want = miss")
+		}
+	})
+	t.Run("off without a backend", func(t *testing.T) {
+		c := NewDraftTaxCache(nil, time.Hour, nil)
+		c.put(ctx, c.key(integ, tx), cacheAnswer(tx))
+		if _, ok := c.get(ctx, c.key(integ, tx), tx); ok {
 			t.Error("get: got = hit, want = miss")
 		}
 	})

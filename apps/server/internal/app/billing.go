@@ -32,7 +32,7 @@ import (
 // credit-note refunds sent through refunds (nil leaves them pending). No
 // tax provider is wired: customers taxed by a provider wait for it.
 func newBilling(cfg config.Config, tx port.Transactor, stores *EventStores, clock core.Clock, log *slog.Logger, refunds kernel.RefundGateway,
-	emitter port.WebhookEmitter, taxes kernel.TaxProvider, streams port.StreamProducer,
+	emitter port.WebhookEmitter, taxes kernel.TaxProvider, streams port.StreamProducer, usageCache port.Cache,
 ) (*billing.Engine, error) {
 	deps := kernel.Deps{
 		Streaming:        streams,
@@ -48,9 +48,7 @@ func newBilling(cfg config.Config, tx port.Transactor, stores *EventStores, cloc
 		DailyUsageJitter: cfg.DailyUsageSchedulingJitter,
 		Transient:        retriedByBillingRetry,
 	}
-	if c := kernel.NewMemoryUsageCache(cfg.UsageCacheEntries); c != nil {
-		deps.UsageCache = c
-	}
+	deps.UsageCache = kernel.NewUsageCache(usageCache)
 	e, err := billing.New(deps, billing.WithTerminationAlertDays(cfg.SubscriptionTerminationAlertDays...),
 		billing.WithVIES(&tax.VIESClient{}), billing.WithUsageBucketLimits(usageBucketLimits(cfg)))
 	if err != nil {

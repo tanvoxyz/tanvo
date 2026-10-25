@@ -71,7 +71,7 @@ type Options struct {
 	// UsageCache, with CurrentUsage, keeps the fees of each bucket between
 	// computations (lago Subscriptions::ChargeCacheMiddleware); nil
 	// computes every bucket.
-	UsageCache kernel.UsageCache
+	UsageCache *kernel.UsageCache
 	// FullUsage marks a current usage computed since the subscription
 	// started, whose cache entries are apart from the period's (lago
 	// ChargeCacheService::FULL_USAGE_KEY_SEGMENT).

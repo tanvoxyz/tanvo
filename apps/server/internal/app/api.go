@@ -45,6 +45,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/usageattribution"
 	"github.com/tanvoxyz/tanvo/libs/billing/wallets"
 	"github.com/tanvoxyz/tanvo/libs/billing/x402pay"
+	"github.com/tanvoxyz/tanvo/libs/cache"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
@@ -141,6 +142,15 @@ type APIOptions struct {
 	// AnalyticsCacheTTL is how long a computed analytics report is reused;
 	// 0 computes every report.
 	AnalyticsCacheTTL time.Duration
+	// AnalyticsCache keeps the reports; nil keeps them in an in-process
+	// cache.
+	AnalyticsCache port.Cache
+	// APIKeyCache keeps the API keys of the event ingestion RPCs for
+	// APIKeyCacheTTL; it must be shared by every server process
+	// (auth.APIKeys.WithCache), and nil reads every key from the database.
+	APIKeyCache port.Cache
+	// APIKeyCacheTTL is how long APIKeyCache keeps a key.
+	APIKeyCacheTTL time.Duration
 	// GoogleClientID and GoogleClientSecret enable Google sign-in.
 	GoogleClientID string
 	// GoogleClientSecret is the OAuth client secret of Google sign-in.
@@ -219,7 +229,7 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 		Tx: o.Tx, Clock: o.Clock, IDs: core.UUIDv7Generator{}, Rand: rand.Reader, Logger: o.Log,
 		SecurityLog: auth.NewRepoSecurityLogger(o.Tx, o.Clock, core.UUIDv7Generator{}, rpc.SecurityContext(clientip.New(o.TrustedProxies...))),
 	}
-	keys := auth.NewAPIKeys(ad, a.usage)
+	keys := auth.NewAPIKeys(ad, a.usage).WithCache(o.APIKeyCache, o.APIKeyCacheTTL)
 	sessions := auth.NewSessions(ad, auth.DefaultSessionConfig())
 	// A sign-up's organization gets its default billing entity once the
 	// billing entity service is built below.
@@ -273,7 +283,7 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 	}
 	// The analytics reports of the API and of the customer portal share
 	// one cache, as lago's share the Rails cache.
-	analyticsSvc := billinganalytics.New(billingDeps).WithCache(billinganalytics.NewCache(o.AnalyticsCacheTTL))
+	analyticsSvc := billinganalytics.New(billingDeps).WithCache(billinganalytics.NewCache(analyticsCache(o.AnalyticsCache), o.AnalyticsCacheTTL))
 	integrationSvc := o.Integrations
 	if integrationSvc != nil {
 		billingDeps.Webhooks = integrationSvc.Triggers(billingDeps.Webhooks)
@@ -547,4 +557,12 @@ func (a *api) runAPILogs(ctx context.Context) error { return a.apiLogs.Run(ctx) 
 func serverInfo() rpc.ServerInfo {
 	b := buildinfo.Read()
 	return rpc.ServerInfo{Version: b.Version, Revision: b.Revision}
+}
+
+// analyticsCache returns c, else an in-process cache of the reports.
+func analyticsCache(c port.Cache) port.Cache {
+	if c != nil {
+		return c
+	}
+	return cache.NewMemory(memoryCacheEntries)
 }

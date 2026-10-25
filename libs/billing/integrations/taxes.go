@@ -173,14 +173,14 @@ func (t *Taxes) quote(ctx context.Context, e *taxEnv, tx *integration.TaxTransac
 	if e.anrok() {
 		key = t.cache.key(e.integ, tx)
 	}
-	if res, ok := t.cache.get(key, tx); ok {
+	if res, ok := t.cache.get(ctx, key, tx); ok {
 		return res, nil
 	}
 	res, err := e.gw.QuoteTaxes(ctx, e.conn, tx)
 	if err != nil {
 		return nil, err
 	}
-	t.cache.put(key, res)
+	t.cache.put(ctx, key, res)
 	return res, nil
 }
 

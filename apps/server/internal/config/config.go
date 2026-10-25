@@ -201,6 +201,31 @@ type Config struct {
 	// process, in charge buckets (lago Subscriptions::ChargeCacheService
 	// in the Rails cache); 0 turns the cache off.
 	UsageCacheEntries int `koanf:"usage_cache_entries"`
+	// CacheURL is the Redis or Valkey server every cache of the
+	// installation uses, shared by the server processes (redis://,
+	// rediss://, valkey://, valkeys:// or unix://; lago
+	// LAGO_REDIS_CACHE_URL); empty keeps each cache in its process.
+	CacheURL string `koanf:"cache_url"`
+	// CachePrefix prefixes every key the installation writes to CacheURL.
+	CachePrefix string `koanf:"cache_prefix"`
+	// CacheClientSideTTL keeps the values read from CacheURL in the
+	// process for at most this long, invalidated by the server when they
+	// change (client-side caching, Redis 6 or later and Valkey); 0 reads
+	// the server every time.
+	CacheClientSideTTL time.Duration `koanf:"cache_client_side_ttl"`
+	// CacheSentinelUsername and CacheSentinelPassword authenticate to the
+	// sentinels of a CacheURL with master_set, independently of the
+	// server's credentials in the URL (lago
+	// LAGO_REDIS_CACHE_SENTINEL_USERNAME).
+	CacheSentinelUsername string `koanf:"cache_sentinel_username"`
+	// CacheSentinelPassword is the sentinels' password (lago
+	// LAGO_REDIS_CACHE_SENTINEL_PASSWORD).
+	CacheSentinelPassword string `koanf:"cache_sentinel_password"`
+	// APIKeyCacheTTL is how long the event ingestion RPCs reuse an API key
+	// read from the database (lago config.api_key_cache_ttl, an hour); the
+	// cache needs CacheURL, since a key revoked in one process must stop
+	// working in every other. 0 turns it off.
+	APIKeyCacheTTL time.Duration `koanf:"api_key_cache_ttl"`
 	// UsageBucketsMaxRowsPerBucket is the largest number of rows one
 	// bucket of one subscription of a usage bucket definition may hold
 	// (its combinations of dimension values): past it, the definition is
@@ -435,6 +460,8 @@ func Defaults() Config {
 		AnrokDraftTaxesCacheTTL:          24 * time.Hour,
 		AnalyticsCacheTTL:                4 * time.Hour,
 		UsageCacheEntries:                100_000,
+		CachePrefix:                      "tanvo:",
+		APIKeyCacheTTL:                   time.Hour,
 		UsageBucketsMaxRowsPerBucket:     10_000,
 		UsageBucketsIdleTTL:              45 * 24 * time.Hour,
 	}
@@ -590,6 +617,17 @@ func (c Config) Validate() error {
 	}
 	if c.UsageCacheEntries < 0 {
 		bad("usage_cache_entries", "must not be negative")
+	}
+	if c.CacheURL != "" {
+		if u, err := url.Parse(c.CacheURL); err != nil || !slices.Contains([]string{"redis", "rediss", "valkey", "valkeys", "unix"}, u.Scheme) {
+			bad("cache_url", "want a redis://, rediss://, valkey://, valkeys:// or unix:// URL")
+		}
+	}
+	if c.CacheClientSideTTL < 0 {
+		bad("cache_client_side_ttl", "must not be negative")
+	}
+	if c.APIKeyCacheTTL < 0 {
+		bad("api_key_cache_ttl", "must not be negative")
 	}
 	if c.UsageBucketsMaxRowsPerBucket < 0 {
 		bad("usage_buckets_max_rows_per_bucket", "must not be negative")

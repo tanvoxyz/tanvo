@@ -52,7 +52,7 @@ func (s *Service) cachedBucketFees(ctx context.Context, sc Scope, cc *chargeCont
 	// The instant is read before the aggregation, so that a slow one
 	// cannot make an unsettled event look settled (cache_service.rb:28-31).
 	now := s.d.Now()
-	if e, hit := opts.UsageCache.Get(key, now); hit && usageCacheValid(e, watermark) {
+	if e, hit := opts.UsageCache.Get(ctx, key, now); hit && usageCacheValid(e, watermark) {
 		for _, f := range e.Fees {
 			f.ID = core.NewID[core.FeeID](s.d.IDs)
 			f.CreatedAt, f.UpdatedAt = now, now
@@ -66,7 +66,7 @@ func (s *Service) cachedBucketFees(ctx context.Context, sc Scope, cc *chargeCont
 	// The entry lives until the end of the charges period.
 	stamp, settled := usageCacheStamp(watermark, now)
 	if expires := sc.Boundaries.Charges.To; expires.After(now) && settled {
-		opts.UsageCache.Put(key, kernel.UsageCacheEntry{Fees: fs, CachedAt: stamp, ExpiresAt: expires})
+		opts.UsageCache.Put(ctx, key, kernel.UsageCacheEntry{Fees: fs, CachedAt: stamp, ExpiresAt: expires}, now)
 	}
 	return skipZeroUnits(bk, opts, fs), nil
 }
@@ -116,6 +116,9 @@ func skipZeroUnits(bk bucket, opts Options, fs []*invoice.Fee) []*invoice.Fee {
 // another usage (§4). Tanvo's charge filters carry no update
 // instant, so the fingerprint stands for lago's filter updated_at; it also
 // covers the default bucket, whose events depend on the other filters.
+// The digest also covers the shape of the entries
+// ([kernel.UsageCache.Version]), so that servers of another version
+// sharing the cache never read them.
 //
 // It is false when the bucket cannot be fingerprinted.
 //
@@ -133,7 +136,7 @@ func usageCacheKey(sc Scope, cc *chargeContext, bk bucket, opts Options) (string
 	if err != nil {
 		return "", false
 	}
-	sum := sha256.Sum256(fp)
+	sum := sha256.Sum256(append(fp, opts.UsageCache.Version()...))
 	parts := []string{
 		"charge-usage", cc.charge.ID.String(), sc.Env.Subscription.ID.String(),
 		cc.charge.UpdatedAt.UTC().Format(time.RFC3339Nano), bk.filterID().String(), hex.EncodeToString(sum[:16]),
