@@ -11,6 +11,7 @@ import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 import "google/api/field_behavior.proto";
 import "google/protobuf/timestamp.proto";
+import "tanvo/catalog/v1/metric.proto";
 import "tanvo/common/v1/options.proto";
 import "tanvo/common/v1/types.proto";
 
@@ -38,7 +39,8 @@ service UsageService {
     };
   }
 
-  // Returns the hourly usage of billable metrics over a time range.
+  // Returns the usage of one charge per hour of the customer's time zone,
+  // broken down by charge filter, read from the usage buckets.
   rpc GetHourlyUsage(GetHourlyUsageRequest) returns (GetHourlyUsageResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
     option (google.api.http) = {get: "/v1/customers/{customer_id}/subscriptions/{subscription_id}/usage:hourly"};
@@ -74,6 +76,10 @@ message GroupedUsage {
   string projected_units = 5;
   // The projected amount at the period end.
   tanvo.common.v1.Money projected_amount = 6;
+  // The units of the group's fees by presentation key.
+  repeated tanvo.common.v1.PresentationBreakdown presentation_breakdowns = 7;
+  // The projected units by presentation key.
+  repeated tanvo.common.v1.PresentationBreakdown projected_presentation_breakdowns = 8;
 }
 
 // FilterUsage is the usage of one charge filter.
@@ -96,6 +102,10 @@ message FilterUsage {
   tanvo.common.v1.Money projected_amount = 8;
   // The usage per grouping.
   repeated GroupedUsage grouped_usage = 9;
+  // The units of the filter's fees by presentation key.
+  repeated tanvo.common.v1.PresentationBreakdown presentation_breakdowns = 10;
+  // The projected units by presentation key.
+  repeated tanvo.common.v1.PresentationBreakdown projected_presentation_breakdowns = 11;
 }
 
 // ChargeUsage is the usage of one charge.
@@ -124,6 +134,10 @@ message ChargeUsage {
   repeated FilterUsage filters = 11;
   // The usage per grouping, for charges without filters.
   repeated GroupedUsage grouped_usage = 12;
+  // The units of the ungrouped and unfiltered fees by presentation key.
+  repeated tanvo.common.v1.PresentationBreakdown presentation_breakdowns = 13;
+  // The projected units of the ungrouped fees by presentation key.
+  repeated tanvo.common.v1.PresentationBreakdown projected_presentation_breakdowns = 14;
 }
 
 // Usage is the usage of one billing period.
@@ -152,18 +166,46 @@ message Usage {
   repeated ChargeUsage charges = 11;
 }
 
-// HourlyUsage is the usage of one billable metric in one hour.
-message HourlyUsage {
-  // The start of the hour.
-  google.protobuf.Timestamp hour = 1;
-  // The billable metric code.
-  string billable_metric_code = 2;
-  // The aggregated value of the hour.
-  string units = 3;
-  // The number of events.
-  int64 events_count = 4;
-  // The grouping values.
-  map<string, string> grouped_by = 5;
+// HourlyUsageFilter is one series of an hourly usage: a charge filter
+// with usage in the window, the charge default, or the series folding the
+// smallest filters, with its totals over the window.
+message HourlyUsageFilter {
+  // The charge filter; empty for the charge default and the folded series.
+  string charge_filter_id = 1;
+  // The invoice line name of the filter.
+  string invoice_display_name = 2;
+  // The filter values, joined with commas.
+  map<string, string> values = 3;
+  // The units of the window.
+  string units = 4;
+  // The number of events of the window.
+  int64 events_count = 5;
+  // Marks the series folding every filter past the biggest ones.
+  bool other = 6;
+}
+
+// HourlyUsageBreakdown is the usage of one series in one hour.
+message HourlyUsageBreakdown {
+  // The charge filter; empty for the charge default and the folded series.
+  string charge_filter_id = 1;
+  // The units of the hour.
+  string units = 2;
+  // The number of events of the hour.
+  int64 events_count = 3;
+  // Marks the series folding every filter past the biggest ones.
+  bool other = 4;
+}
+
+// HourlyUsagePoint is one hour of an hourly usage.
+message HourlyUsagePoint {
+  // The start of the hour in the customer's time zone.
+  google.protobuf.Timestamp time = 1;
+  // The units of the hour.
+  string units = 2;
+  // The number of events of the hour.
+  int64 events_count = 3;
+  // The usage of each series, in the order of the filters.
+  repeated HourlyUsageBreakdown breakdown = 4;
 }
 
 // DailyUsage is a snapshot of a subscription's usage on one day.
@@ -194,15 +236,52 @@ message GetCurrentUsageRequest {
   bool apply_taxes = 3;
   // Includes the projection to the period end.
   bool include_projection = 4;
-  // Restricts the usage to one billable metric code.
+  // Restricts the usage to the charges of one billable metric code.
+  // charge_id and charge_code take precedence.
   string billable_metric_code = 5 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
-  // Restricts the usage to events matching these filter values.
-  map<string, string> filter_by = 6 [(buf.validate.field).map.max_pairs = 20];
-  // Groups the usage by these attribution type codes.
-  repeated string group_by_attributions = 7 [(buf.validate.field).repeated = {
-    unique: true
-    max_items: 5
+  // Restricts the usage to one charge of the plan; it takes precedence
+  // over charge_code and billable_metric_code.
+  string charge_id = 8 [(buf.validate.field).string.uuid = true];
+  // Restricts the usage to the charge of this code; it takes precedence
+  // over billable_metric_code.
+  string charge_code = 9 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
+  // Restricts the usage to the events whose property is one of the
+  // values, as `<key>:<value>` entries; several entries of one key match
+  // any of their values. The keys are no longer pricing group keys of the
+  // charges, whose other keys still group the usage.
+  repeated string filter_by_group = 10 [(buf.validate.field).repeated = {
+    max_items: 100
+    items: {
+      string: {
+        pattern: "^[^:]+:"
+        max_len: 1000
+      }
+    }
   }];
+  // Keeps the presentation breakdowns of these presentation keys only;
+  // empty keeps them all.
+  repeated string filter_by_presentation = 11 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 20
+    items: {
+      string: {
+        min_len: 1
+        max_len: 255
+      }
+    }
+  }];
+  // Ignores the pricing group keys of the charges: one fee per charge
+  // and filter.
+  bool skip_grouping = 12;
+  // Computes the usage since the subscription started instead of since
+  // the period start. It needs a charge restriction or filter_by_group,
+  // and charges that are not prorated; include_projection ignores it.
+  bool full_usage = 13;
+
+  reserved 6;
+  reserved filter_by;
+  reserved 7;
+  reserved group_by_attributions;
 }
 
 // GetCurrentUsageResponse is the response of UsageService.GetCurrentUsage.
@@ -269,18 +348,44 @@ message GetHourlyUsageRequest {
     (buf.validate.field).required = true,
     (buf.validate.field).string.(tanvo.common.v1.ref) = true
   ];
-  // The start of the range; the period start by default.
+  // The start of the window; 24 hours before its end by default. The
+  // window starts on the hour at or before it, in the customer's time
+  // zone.
   google.protobuf.Timestamp from = 3;
-  // The end of the range; now by default.
+  // The end of the window; now by default. An end inside a 15-minute
+  // bucket is moved to the end of the bucket. The window spans at most
+  // 31 days.
   google.protobuf.Timestamp to = 4;
-  // Restricts the usage to one billable metric code.
-  string billable_metric_code = 5 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
+  // The charge of the subscription's plan, counting or summing events.
+  string charge_id = 6 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+
+  reserved 5;
+  reserved billable_metric_code;
 }
 
 // GetHourlyUsageResponse is the response of UsageService.GetHourlyUsage.
 message GetHourlyUsageResponse {
-  // The usage per hour and metric.
-  repeated HourlyUsage hourly_usage = 1;
+  // The start of the window the units describe.
+  google.protobuf.Timestamp from = 2;
+  // The end of the window the units describe.
+  google.protobuf.Timestamp to = 3;
+  // The customer's time zone the hours are cut in.
+  string timezone = 4;
+  // The aggregation type of the charge's billable metric.
+  tanvo.catalog.v1.AggregationType aggregation_type = 5;
+  // The latest ingestion time of the events counted.
+  google.protobuf.Timestamp last_ingested_at = 6;
+  // The series with usage in the window, biggest first.
+  repeated HourlyUsageFilter filters = 7;
+  // The hours of the window, gaps included.
+  repeated HourlyUsagePoint hours = 8;
+
+  reserved 1;
+  reserved hourly_usage;
 }
 
 // ListDailyUsageRequest is the request of UsageService.ListDailyUsage.

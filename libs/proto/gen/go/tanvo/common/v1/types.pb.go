@@ -13,6 +13,7 @@ import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	unsafe "unsafe"
@@ -897,11 +898,119 @@ func (b0 Document_builder) Build() *Document {
 	return m0
 }
 
+// PresentationBreakdown is the units of one presentation group of a charge
+// fee: the usage split by the charge's presentation group keys.
+type PresentationBreakdown struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PresentationBy *structpb.Struct       `protobuf:"bytes,1,opt,name=presentation_by,json=presentationBy"`
+	xxx_hidden_Units          *string                `protobuf:"bytes,2,opt,name=units"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *PresentationBreakdown) Reset() {
+	*x = PresentationBreakdown{}
+	mi := &file_tanvo_common_v1_types_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PresentationBreakdown) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PresentationBreakdown) ProtoMessage() {}
+
+func (x *PresentationBreakdown) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_common_v1_types_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *PresentationBreakdown) GetPresentationBy() *structpb.Struct {
+	if x != nil {
+		return x.xxx_hidden_PresentationBy
+	}
+	return nil
+}
+
+func (x *PresentationBreakdown) GetUnits() string {
+	if x != nil {
+		if x.xxx_hidden_Units != nil {
+			return *x.xxx_hidden_Units
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PresentationBreakdown) SetPresentationBy(v *structpb.Struct) {
+	x.xxx_hidden_PresentationBy = v
+}
+
+func (x *PresentationBreakdown) SetUnits(v string) {
+	x.xxx_hidden_Units = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *PresentationBreakdown) HasPresentationBy() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_PresentationBy != nil
+}
+
+func (x *PresentationBreakdown) HasUnits() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *PresentationBreakdown) ClearPresentationBy() {
+	x.xxx_hidden_PresentationBy = nil
+}
+
+func (x *PresentationBreakdown) ClearUnits() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Units = nil
+}
+
+type PresentationBreakdown_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The group's values by presentation key; null for a key missing on the
+	// events.
+	PresentationBy *structpb.Struct
+	// The group's units.
+	Units *string
+}
+
+func (b0 PresentationBreakdown_builder) Build() *PresentationBreakdown {
+	m0 := &PresentationBreakdown{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_PresentationBy = b.PresentationBy
+	if b.Units != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Units = b.Units
+	}
+	return m0
+}
+
 var File_tanvo_common_v1_types_proto protoreflect.FileDescriptor
 
 const file_tanvo_common_v1_types_proto_rawDesc = "" +
 	"\n" +
-	"\x1btanvo/common/v1/types.proto\x12\x0ftanvo.common.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\"Y\n" +
+	"\x1btanvo/common/v1/types.proto\x12\x0ftanvo.common.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\"Y\n" +
 	"\x05Money\x12)\n" +
 	"\bcurrency\x18\x01 \x01(\tB\r\xbaH\n" +
 	"\xc8\x01\x01r\x05ؤ\xca\x06\x01R\bcurrency\x12%\n" +
@@ -928,11 +1037,14 @@ const file_tanvo_common_v1_types_proto_rawDesc = "" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x129\n" +
 	"\n" +
 	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt\x12!\n" +
-	"\fcontent_type\x18\x03 \x01(\tR\vcontentTypeB\xc5\x01\n" +
+	"\fcontent_type\x18\x03 \x01(\tR\vcontentType\"o\n" +
+	"\x15PresentationBreakdown\x12@\n" +
+	"\x0fpresentation_by\x18\x01 \x01(\v2\x17.google.protobuf.StructR\x0epresentationBy\x12\x14\n" +
+	"\x05units\x18\x02 \x01(\tR\x05unitsB\xc5\x01\n" +
 	"\x13com.tanvo.common.v1B\n" +
 	"TypesProtoP\x01ZDgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/common/v1;commonv1\xa2\x02\x03TCX\xaa\x02\x0fTanvo.Common.V1\xca\x02\x0fTanvo\\Common\\V1\xe2\x02\x1bTanvo\\Common\\V1\\GPBMetadata\xea\x02\x11Tanvo::Common::V1b\beditionsp\xe8\a"
 
-var file_tanvo_common_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_tanvo_common_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_tanvo_common_v1_types_proto_goTypes = []any{
 	(*Money)(nil),                 // 0: tanvo.common.v1.Money
 	(*Address)(nil),               // 1: tanvo.common.v1.Address
@@ -940,19 +1052,22 @@ var file_tanvo_common_v1_types_proto_goTypes = []any{
 	(*ConnectionChoice)(nil),      // 3: tanvo.common.v1.ConnectionChoice
 	(*DateTimeRange)(nil),         // 4: tanvo.common.v1.DateTimeRange
 	(*Document)(nil),              // 5: tanvo.common.v1.Document
-	(ConnectionBehavior)(0),       // 6: tanvo.common.v1.ConnectionBehavior
-	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
+	(*PresentationBreakdown)(nil), // 6: tanvo.common.v1.PresentationBreakdown
+	(ConnectionBehavior)(0),       // 7: tanvo.common.v1.ConnectionBehavior
+	(*timestamppb.Timestamp)(nil), // 8: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),       // 9: google.protobuf.Struct
 }
 var file_tanvo_common_v1_types_proto_depIdxs = []int32{
-	6, // 0: tanvo.common.v1.ConnectionChoice.behavior:type_name -> tanvo.common.v1.ConnectionBehavior
-	7, // 1: tanvo.common.v1.DateTimeRange.from:type_name -> google.protobuf.Timestamp
-	7, // 2: tanvo.common.v1.DateTimeRange.to:type_name -> google.protobuf.Timestamp
-	7, // 3: tanvo.common.v1.Document.expires_at:type_name -> google.protobuf.Timestamp
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	7, // 0: tanvo.common.v1.ConnectionChoice.behavior:type_name -> tanvo.common.v1.ConnectionBehavior
+	8, // 1: tanvo.common.v1.DateTimeRange.from:type_name -> google.protobuf.Timestamp
+	8, // 2: tanvo.common.v1.DateTimeRange.to:type_name -> google.protobuf.Timestamp
+	8, // 3: tanvo.common.v1.Document.expires_at:type_name -> google.protobuf.Timestamp
+	9, // 4: tanvo.common.v1.PresentationBreakdown.presentation_by:type_name -> google.protobuf.Struct
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_common_v1_types_proto_init() }
@@ -968,7 +1083,7 @@ func file_tanvo_common_v1_types_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_common_v1_types_proto_rawDesc), len(file_tanvo_common_v1_types_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   6,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

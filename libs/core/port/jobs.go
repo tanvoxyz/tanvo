@@ -19,6 +19,10 @@ const (
 	QueuePayments Queue = "payments"
 	// QueueWebhooks runs outbound webhook deliveries.
 	QueueWebhooks Queue = "webhooks"
+	// QueueWebhooksHighPriority runs the fan-out and first attempt of the
+	// high-priority webhooks, alert.triggered (lago
+	// webhook_worker_high_priority, app/jobs/send_webhook_job.rb:91-99).
+	QueueWebhooksHighPriority Queue = "webhooks_high_priority"
 	// QueueDocuments runs document rendering and emails.
 	QueueDocuments Queue = "documents"
 	// QueueIntegrations runs accounting, CRM and tax integration syncs.
@@ -43,13 +47,13 @@ const (
 
 // QueueValues returns every queue, in declaration order.
 func QueueValues() []Queue {
-	return []Queue{QueueBilling, QueuePayments, QueueWebhooks, QueueDocuments, QueueIntegrations, QueueExports, QueueAlerts, QueueAlertsHighPriority, QueueWallets, QueueStreaming, QueueDefault}
+	return []Queue{QueueBilling, QueuePayments, QueueWebhooks, QueueWebhooksHighPriority, QueueDocuments, QueueIntegrations, QueueExports, QueueAlerts, QueueAlertsHighPriority, QueueWallets, QueueStreaming, QueueDefault}
 }
 
 // Valid reports whether q is a declared queue.
 func (q Queue) Valid() bool {
 	switch q {
-	case QueueBilling, QueuePayments, QueueWebhooks, QueueDocuments, QueueIntegrations, QueueExports,
+	case QueueBilling, QueuePayments, QueueWebhooks, QueueWebhooksHighPriority, QueueDocuments, QueueIntegrations, QueueExports,
 		QueueAlerts, QueueAlertsHighPriority, QueueWallets, QueueStreaming, QueueDefault:
 		return true
 	default:

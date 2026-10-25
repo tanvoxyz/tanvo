@@ -253,3 +253,35 @@ func TestValidateSchema(t *testing.T) {
 		t.Error("migrate of an invalid schema got = nil error, want = an error")
 	}
 }
+
+// A replacement keeping the ingestion instant of its event, as a
+// re-enrichment does, advances the ingestion watermark.
+func TestReplaceAdvancesWatermark(t *testing.T) {
+	ctx := context.Background()
+	store := open(database(t))
+	ts := time.Date(2026, 3, 6, 0, 0, 0, 0, time.UTC)
+	e := event("a", ts)
+	e.IngestedAt = ts
+	if _, err := store.Write(ctx, []metering.Event{e}); err != nil {
+		t.Fatal(err)
+	}
+	q := metering.Query{OrganizationID: "org", SubscriptionID: "sub", Code: "code", From: ts, To: ts}
+	before, err := store.LastIngestedAt(ctx, q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if before.Before(ts) {
+		t.Fatalf("watermark got = %v, want = at least %v", before, ts)
+	}
+	e.Properties = metering.Properties{"value": "5"}
+	if err := store.Replace(ctx, []metering.Event{e}); err != nil {
+		t.Fatal(err)
+	}
+	after, err := store.LastIngestedAt(ctx, q)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !after.After(before) {
+		t.Errorf("watermark after the replacement got = %v, want = after %v", after, before)
+	}
+}

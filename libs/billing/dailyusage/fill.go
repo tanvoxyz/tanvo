@@ -303,7 +303,7 @@ func (s *Service) fillDay(ctx context.Context, r port.Repos, h *history, day cor
 	}
 	end := endOfDay(day, loc)
 	u, err := s.usage.EnvUsage(ctx, r, env, usage.Options{
-		SkipTaxes: true, AnyStatus: true, SkipZeroUnitsFilters: true, Timestamp: end, MaxTimestamp: end,
+		SkipTaxes: true, AnyStatus: true, SkipZeroUnitsFilters: true, Timestamp: end, MaxTimestamp: end, SkipCache: true,
 	})
 	if err != nil || sandbox {
 		return nil, err

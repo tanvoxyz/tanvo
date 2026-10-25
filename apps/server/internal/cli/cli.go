@@ -1,8 +1,9 @@
 // Package cli is the tanvo command line: `tanvo serve` runs the server
 // roles, `tanvo migrate` applies the schemas, `tanvo admin bootstrap`
-// ensures a first organization and `tanvo version` prints the build. Settings come from TANVO_* variables and an optional TOML
-// file (internal/config); telemetry from the OTEL_* variables
-// (internal/telemetry).
+// ensures a first organization, `tanvo events reprocess` re-enriches
+// stored events and `tanvo version` prints the build. Settings come from
+// TANVO_* variables and an optional TOML file (internal/config);
+// telemetry from the OTEL_* variables (internal/telemetry).
 package cli
 
 import (
@@ -40,6 +41,12 @@ type Env struct {
 	// Clock, when set, is the server's billing clock ([app.Options.Clock]);
 	// a test hook.
 	Clock core.Clock
+	// StripeBaseURL, when set, is the Stripe API base URL
+	// ([app.Options.StripeBaseURL]); a test hook.
+	StripeBaseURL string
+	// ManualClockJobs runs the clock jobs only when triggered
+	// ([app.Options.ManualClockJobs]); a test hook.
+	ManualClockJobs bool
 }
 
 // Run runs the command line args (without the program name) until ctx
@@ -70,7 +77,7 @@ func newRoot(env *Env) *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.PersistentFlags().StringVar(&file, "config", "", "TOML settings file (default $"+config.FileEnv+")")
-	root.AddCommand(newServe(env, &file), newMigrate(env, &file), newAdmin(env, &file), newVersion(env))
+	root.AddCommand(newServe(env, &file), newMigrate(env, &file), newAdmin(env, &file), newEvents(env, &file), newVersion(env))
 	return root
 }
 
@@ -137,7 +144,7 @@ func newServe(env *Env, file *string) *cobra.Command {
 					return fmt.Errorf("--queues: %w", err)
 				}
 			}
-			a, err := app.New(ctx, app.Options{Config: cfg, Roles: rs, Telemetry: tel, Clock: env.Clock})
+			a, err := app.New(ctx, app.Options{Config: cfg, Roles: rs, Telemetry: tel, Clock: env.Clock, StripeBaseURL: env.StripeBaseURL, ManualClockJobs: env.ManualClockJobs})
 			if err != nil {
 				tel.Logger.ErrorContext(ctx, "tanvo: start", "error", err)
 				return err

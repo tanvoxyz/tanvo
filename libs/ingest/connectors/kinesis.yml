@@ -63,3 +63,43 @@ output_resources:
 
 metrics:
   prometheus: {}
+
+tests:
+  - name: "Mapping test with all fields"
+    target_processors: "/pipeline/processors"
+    environment:
+      ORGANIZATION_ID: "0199a000-0000-7000-8000-0000000000aa"
+    input_batch:
+      - json_content:
+          external_subscription_id: "123"
+          transaction_id: "456"
+          code: "789"
+          timestamp: 1609459200
+          properties:
+            key1: "value1"
+          precise_total_amount_cents: 100
+    output_batches:
+      - - json_contains:
+            organization_id: "0199a000-0000-7000-8000-0000000000aa"
+            external_subscription_id: "123"
+            transaction_id: "456"
+            code: "789"
+            timestamp: 1609459200
+            properties:
+              key1: "value1"
+            source: "kinesis_connector"
+            precise_total_amount_cents: 100
+  - name: "Mapping test without precise_total_amount_cents"
+    target_processors: "/pipeline/processors"
+    environment:
+      ORGANIZATION_ID: "0199a000-0000-7000-8000-0000000000aa"
+    input_batch:
+      - json_content:
+          external_subscription_id: "123"
+          transaction_id: "456"
+          code: "789"
+    output_batches:
+      - - json_contains:
+            organization_id: "0199a000-0000-7000-8000-0000000000aa"
+            transaction_id: "456"
+            precise_total_amount_cents: "0"

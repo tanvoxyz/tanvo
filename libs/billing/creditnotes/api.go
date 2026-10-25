@@ -26,11 +26,21 @@ func (s *Service) Get(ctx context.Context, org core.OrganizationID, id core.Cred
 }
 
 // List returns the finalized credit notes matching f, newest first (lago
-// CreditNotesQuery over finalized notes).
+// CreditNotesQuery over finalized notes). A filter on an invoice that
+// does not exist is invoice not found.
+//
+// source: app/graphql/resolvers/invoice_credit_notes_resolver.rb:18-28
 func (s *Service) List(ctx context.Context, org core.OrganizationID, f creditnote.Filter, page core.PageRequest) (core.Page[*creditnote.CreditNote], error) {
 	f.Statuses = []creditnote.Status{creditnote.StatusFinalized}
 	f.Order = core.OrderRecent
 	return inTx(ctx, s.d.Tx, func(ctx context.Context, r port.Repos) (core.Page[*creditnote.CreditNote], error) {
+		if !f.InvoiceID.IsZero() {
+			if _, err := r.Invoices.Get(ctx, org, f.InvoiceID); errors.Is(err, core.ErrNotFound) {
+				return core.Page[*creditnote.CreditNote]{}, notFound("invoice", f.InvoiceID)
+			} else if err != nil {
+				return core.Page[*creditnote.CreditNote]{}, fmt.Errorf("load invoice %s: %w", f.InvoiceID, err)
+			}
+		}
 		p, err := r.CreditNotes.List(ctx, org, f, page)
 		if err != nil {
 			return core.Page[*creditnote.CreditNote]{}, fmt.Errorf("list credit notes: %w", err)

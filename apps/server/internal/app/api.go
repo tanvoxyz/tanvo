@@ -50,7 +50,9 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/x402"
+	"github.com/tanvoxyz/tanvo/libs/documents"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
+	"github.com/tanvoxyz/tanvo/libs/metering"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/access/v1/accessv1connect"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/alert/v1/alertv1connect"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/analytics/v1/analyticsv1connect"
@@ -112,6 +114,9 @@ type APIOptions struct {
 	// EventReader reads the events of GetEvent and ListEvents; nil leaves
 	// them Unimplemented.
 	EventReader *ingest.Reader
+	// AttributedUsage answers GetAttributedUsage; nil makes it available
+	// to no organization.
+	AttributedUsage metering.AttributedUsageReader
 	// Billing is the billing engine; nil leaves the RPCs served by its
 	// services Unimplemented.
 	Billing *billing.Engine
@@ -310,6 +315,14 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 	if err != nil {
 		return nil, fmt.Errorf("api: usage attribution: %w", err)
 	}
+	attributedReader := o.AttributedUsage
+	if attributedReader == nil {
+		attributedReader = noAttributedUsage{}
+	}
+	attributedSvc, err := usageattribution.NewQuery(billingDeps, attributedReader)
+	if err != nil {
+		return nil, fmt.Errorf("api: attributed usage: %w", err)
+	}
 	alertSvc, err := alerts.New(billingDeps)
 	if err != nil {
 		return nil, fmt.Errorf("api: alerts: %w", err)
@@ -372,10 +385,14 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 	catalogv1connect.RegisterProductServiceHandler(server, rpc.NewProducts(productSvc))
 	catalogv1connect.RegisterRateCardServiceHandler(server, rpc.NewRateCards(productSvc))
 	catalogv1connect.RegisterPlanRateCardServiceHandler(server, rpc.NewPlanRateCards(productSvc))
-	attributionv1connect.RegisterUsageAttributionServiceHandler(server, rpc.NewUsageAttribution(attributionSvc))
+	attributionv1connect.RegisterUsageAttributionServiceHandler(server, rpc.NewUsageAttribution(attributionSvc).WithAttributedUsage(attributedSvc))
 	if o.Billing != nil {
 		quoteSvc := o.Billing.Quotes.WithBlobs(o.Blobs)
-		quotev1connect.RegisterQuoteServiceHandler(server, rpc.NewQuotes(quoteSvc))
+		mentions, err := documents.NewMentionLocalizer()
+		if err != nil {
+			return nil, fmt.Errorf("api: quotes: %w", err)
+		}
+		quotev1connect.RegisterQuoteServiceHandler(server, rpc.NewQuotes(quoteSvc, mentions))
 		quotev1connect.RegisterOrderFormServiceHandler(server, rpc.NewOrderForms(quoteSvc))
 		quotev1connect.RegisterOrderServiceHandler(server, rpc.NewOrders(quoteSvc))
 	}
@@ -396,7 +413,10 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 		catalogv1connect.RegisterFixedChargeServiceHandler(server, rpc.NewFixedCharges(o.Billing.Plans))
 	}
 	if o.Billing != nil {
-		subscriptionSvc := subscriptions.New(billingDeps, o.Billing.Lifecycle, o.Billing.Usage, o.Billing.Plans)
+		// The subscriptions read the engine's events for the hourly usage.
+		subscriptionDeps := *billingDeps
+		subscriptionDeps.Events = o.Billing.Events()
+		subscriptionSvc := subscriptions.New(&subscriptionDeps, o.Billing.Lifecycle, o.Billing.Usage, o.Billing.Plans)
 		subscriptionv1connect.RegisterSubscriptionServiceHandler(server, rpc.NewSubscriptions(subscriptionSvc).WithPayments(paymentSvc))
 		subscriptionv1connect.RegisterContractServiceHandler(server, rpc.NewContracts(o.Billing.Contracts, productSvc))
 		usagev1connect.RegisterUsageServiceHandler(server, rpc.NewUsage(subscriptionSvc))
@@ -453,7 +473,8 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 	); err != nil {
 		return nil, fmt.Errorf("api: rest: %w", err)
 	}
-	mux.Handle(restPrefix, rpc.RESTRequests(rest))
+	// REST update masks accept the proto field names, as the JSON does.
+	mux.Handle(restPrefix, rpc.RESTRequests(rpc.RESTFieldMasks(rest)))
 	if o.InboundWebhooks != nil {
 		mux.Handle(rpc.InboundWebhookPattern, &rpc.InboundWebhooks{Tx: o.Tx, Receiver: o.InboundWebhooks, Acks: paymentSvc, Log: o.Log})
 	}

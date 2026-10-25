@@ -109,6 +109,7 @@ type Organization struct {
 	xxx_hidden_CreatedAt              *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt              *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=updated_at,json=updatedAt"`
 	xxx_hidden_DocumentNumberPrefix   *string                `protobuf:"bytes,13,opt,name=document_number_prefix,json=documentNumberPrefix"`
+	xxx_hidden_FromEmailEnabled       bool                   `protobuf:"varint,14,opt,name=from_email_enabled,json=fromEmailEnabled"`
 	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
 	XXX_presence                      [1]uint32
 	unknownFields                     protoimpl.UnknownFields
@@ -249,24 +250,31 @@ func (x *Organization) GetDocumentNumberPrefix() string {
 	return ""
 }
 
+func (x *Organization) GetFromEmailEnabled() bool {
+	if x != nil {
+		return x.xxx_hidden_FromEmailEnabled
+	}
+	return false
+}
+
 func (x *Organization) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 14)
 }
 
 func (x *Organization) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 14)
 }
 
 func (x *Organization) SetSlug(v string) {
 	x.xxx_hidden_Slug = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 14)
 }
 
 func (x *Organization) SetEmail(v string) {
 	x.xxx_hidden_Email = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 14)
 }
 
 func (x *Organization) SetAddress(v *v1.Address) {
@@ -278,12 +286,12 @@ func (x *Organization) SetLogo(v []byte) {
 		v = []byte{}
 	}
 	x.xxx_hidden_Logo = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 14)
 }
 
 func (x *Organization) SetLogoUrl(v string) {
 	x.xxx_hidden_LogoUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 14)
 }
 
 func (x *Organization) SetAuthenticationMethods(v []AuthenticationMethod) {
@@ -292,12 +300,12 @@ func (x *Organization) SetAuthenticationMethods(v []AuthenticationMethod) {
 
 func (x *Organization) SetAuditLogsRetentionDays(v int32) {
 	x.xxx_hidden_AuditLogsRetentionDays = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 14)
 }
 
 func (x *Organization) SetMaxWalletsPerCustomer(v int32) {
 	x.xxx_hidden_MaxWalletsPerCustomer = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 14)
 }
 
 func (x *Organization) SetCreatedAt(v *timestamppb.Timestamp) {
@@ -310,7 +318,12 @@ func (x *Organization) SetUpdatedAt(v *timestamppb.Timestamp) {
 
 func (x *Organization) SetDocumentNumberPrefix(v string) {
 	x.xxx_hidden_DocumentNumberPrefix = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 13)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 14)
+}
+
+func (x *Organization) SetFromEmailEnabled(v bool) {
+	x.xxx_hidden_FromEmailEnabled = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 14)
 }
 
 func (x *Organization) HasId() bool {
@@ -397,6 +410,13 @@ func (x *Organization) HasDocumentNumberPrefix() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 12)
 }
 
+func (x *Organization) HasFromEmailEnabled() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 13)
+}
+
 func (x *Organization) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -454,6 +474,11 @@ func (x *Organization) ClearDocumentNumberPrefix() {
 	x.xxx_hidden_DocumentNumberPrefix = nil
 }
 
+func (x *Organization) ClearFromEmailEnabled() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
+	x.xxx_hidden_FromEmailEnabled = false
+}
+
 type Organization_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -486,6 +511,11 @@ type Organization_builder struct {
 	// defaults to the first 3 characters of the name and the last 4 of the
 	// ID.
 	DocumentNumberPrefix *string
+	// Sends document emails (invoices, credit notes, payment receipts and
+	// payment requests) from the issuing billing entity's email, and makes
+	// the organization's email the reply-to of organization emails; the
+	// instance sender otherwise. Default false.
+	FromEmailEnabled *bool
 }
 
 func (b0 Organization_builder) Build() *Organization {
@@ -493,44 +523,48 @@ func (b0 Organization_builder) Build() *Organization {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 14)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 14)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Slug != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 14)
 		x.xxx_hidden_Slug = b.Slug
 	}
 	if b.Email != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 14)
 		x.xxx_hidden_Email = b.Email
 	}
 	x.xxx_hidden_Address = b.Address
 	if b.Logo != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 14)
 		x.xxx_hidden_Logo = b.Logo
 	}
 	if b.LogoUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 14)
 		x.xxx_hidden_LogoUrl = b.LogoUrl
 	}
 	x.xxx_hidden_AuthenticationMethods = b.AuthenticationMethods
 	if b.AuditLogsRetentionDays != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 14)
 		x.xxx_hidden_AuditLogsRetentionDays = *b.AuditLogsRetentionDays
 	}
 	if b.MaxWalletsPerCustomer != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 14)
 		x.xxx_hidden_MaxWalletsPerCustomer = *b.MaxWalletsPerCustomer
 	}
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
 	if b.DocumentNumberPrefix != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 13)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 14)
 		x.xxx_hidden_DocumentNumberPrefix = b.DocumentNumberPrefix
+	}
+	if b.FromEmailEnabled != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 14)
+		x.xxx_hidden_FromEmailEnabled = *b.FromEmailEnabled
 	}
 	return m0
 }
@@ -977,7 +1011,7 @@ var File_tanvo_organization_v1_organization_proto protoreflect.FileDescriptor
 
 const file_tanvo_organization_v1_organization_proto_rawDesc = "" +
 	"\n" +
-	"(tanvo/organization/v1/organization.proto\x12\x15tanvo.organization.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xea\x05\n" +
+	"(tanvo/organization/v1/organization.proto\x12\x15tanvo.organization.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\x98\x06\n" +
 	"\fOrganization\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\x18\n" +
 	"\x04name\x18\x02 \x01(\tB\x04\xe2A\x01\x03R\x04name\x12\x1d\n" +
@@ -996,7 +1030,8 @@ const file_tanvo_organization_v1_organization_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x12?\n" +
 	"\x16document_number_prefix\x18\r \x01(\tB\t\xbaH\x06r\x04\x10\x01\x18\n" +
-	"R\x14documentNumberPrefix:7\xeaA4\n" +
+	"R\x14documentNumberPrefix\x12,\n" +
+	"\x12from_email_enabled\x18\x0e \x01(\bR\x10fromEmailEnabled:7\xeaA4\n" +
 	"\x16tanvo.xyz/Organization\x12\forganization2\forganization\"\x18\n" +
 	"\x16GetOrganizationRequest\"b\n" +
 	"\x17GetOrganizationResponse\x12G\n" +

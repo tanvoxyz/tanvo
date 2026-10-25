@@ -57,7 +57,7 @@ const sweepLimit = 1000
 // libs/jobs leaves out the clock kinds without a handler.
 func newRegistry(h jobHandlers) (*jobs.Registry, error) {
 	reg := jobs.NewRegistry()
-	for _, register := range []func(*jobs.Registry) error{h.registerWebhooks, h.registerAPIKeyUsage, h.registerUsageBuckets, h.registerAccessPurges, h.registerExports} {
+	for _, register := range []func(*jobs.Registry) error{h.registerWebhooks, h.registerAPIKeyUsage, h.registerUsageBuckets, h.registerAccessPurges, h.registerExports, h.registerReEnrichment} {
 		if err := register(reg); err != nil {
 			return nil, err
 		}
@@ -242,8 +242,9 @@ func (h jobHandlers) registerUsageBuckets(reg *jobs.Registry) error {
 
 // newJobs creates the River client of the roles: a working client on
 // the configured queues (with the periodic schedule unless disabled) for
-// the worker role, an insert-only client otherwise.
-func newJobs(pool *pgxpool.Pool, reg *jobs.Registry, cfg config.Config, roles config.Roles, log *slog.Logger, tp trace.TracerProvider, mp metric.MeterProvider) (*jobs.Client, error) {
+// the worker role, an insert-only client otherwise. manualClock works the
+// clock queue but schedules no periodic job ([Options.ManualClockJobs]).
+func newJobs(pool *pgxpool.Pool, reg *jobs.Registry, cfg config.Config, roles config.Roles, manualClock bool, log *slog.Logger, tp trace.TracerProvider, mp metric.MeterProvider) (*jobs.Client, error) {
 	jc := jobs.Config{
 		Schema:           cfg.JobsSchema,
 		DisablePeriodic:  cfg.JobsDisablePeriodic,
@@ -262,6 +263,11 @@ func newJobs(pool *pgxpool.Pool, reg *jobs.Registry, cfg config.Config, roles co
 	}
 	if cfg.DisableEventsValidation {
 		jc.DisabledPeriodic = append(jc.DisabledPeriodic, jobs.KindValidateEvents)
+	}
+	if manualClock {
+		for _, p := range jobs.Schedule() {
+			jc.DisabledPeriodic = append(jc.DisabledPeriodic, p.Kind)
+		}
 	}
 	workers, err := cfg.QueueConcurrency()
 	if err != nil {

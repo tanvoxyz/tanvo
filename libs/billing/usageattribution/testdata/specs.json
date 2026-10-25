@@ -1,0 +1,24 @@
+{
+  "title": "the attributed usage query",
+  "files": [
+    "services/usage_attributions/charge_price_lookup_service_spec.rb",
+    "services/usage_attributions/query_service_spec.rb",
+    "services/usage_attributions/page_spec.rb"
+  ],
+  "reasons": {
+    "cache": "The 1-hour Rails cache of the price lookups, keyed on the filters' last update: Tanvo computes each lookup per query from the current filters, which a query reads in the same transaction as the plan, so a lookup is never stale (parity §1.42).",
+    "order-by": "The order_by parameter of the service, which neither the REST controller nor the GraphQL resolver passes: the basis orders (amount on the amount basis, events count otherwise), and the API has no order_by (parity §1.42).",
+    "feature-flag": "The account_tree feature flag: Tanvo has no feature flags (parity §1.50); the query is available wherever the organization's events are in the ClickHouse store.",
+    "page": "The page-number meta of the REST response: the API pages with opaque page tokens and returns total_size, the number of values (parity §1.42)."
+  },
+  "skipped": {
+    "services/usage_attributions/charge_price_lookup_service_spec.rb:75": "cache",
+    "services/usage_attributions/query_service_spec.rb:221": "order-by",
+    "services/usage_attributions/query_service_spec.rb:274": "order-by",
+    "services/usage_attributions/query_service_spec.rb:481": "feature-flag",
+    "services/usage_attributions/page_spec.rb:12": "page",
+    "services/usage_attributions/page_spec.rb:18": "page",
+    "services/usage_attributions/page_spec.rb:24": "page",
+    "services/usage_attributions/page_spec.rb:39": "page"
+  }
+}

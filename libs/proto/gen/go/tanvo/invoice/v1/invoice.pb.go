@@ -1065,50 +1065,51 @@ func (b0 PricingUnitUsage_builder) Build() *PricingUnitUsage {
 
 // Fee is a line of an invoice, or an in-advance fee.
 type Fee struct {
-	state                               protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Id                       *string                `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_InvoiceId                *string                `protobuf:"bytes,2,opt,name=invoice_id,json=invoiceId"`
-	xxx_hidden_SubscriptionId           *string                `protobuf:"bytes,3,opt,name=subscription_id,json=subscriptionId"`
-	xxx_hidden_CustomerId               *string                `protobuf:"bytes,4,opt,name=customer_id,json=customerId"`
-	xxx_hidden_FeeType                  v1.FeeType             `protobuf:"varint,5,opt,name=fee_type,json=feeType,enum=tanvo.common.v1.FeeType"`
-	xxx_hidden_ChargeId                 *string                `protobuf:"bytes,6,opt,name=charge_id,json=chargeId"`
-	xxx_hidden_ChargeFilterId           *string                `protobuf:"bytes,7,opt,name=charge_filter_id,json=chargeFilterId"`
-	xxx_hidden_FixedChargeId            *string                `protobuf:"bytes,8,opt,name=fixed_charge_id,json=fixedChargeId"`
-	xxx_hidden_AddOnId                  *string                `protobuf:"bytes,9,opt,name=add_on_id,json=addOnId"`
-	xxx_hidden_BillableMetricCode       *string                `protobuf:"bytes,10,opt,name=billable_metric_code,json=billableMetricCode"`
-	xxx_hidden_CommitmentId             *string                `protobuf:"bytes,11,opt,name=commitment_id,json=commitmentId"`
-	xxx_hidden_WalletTransactionId      *string                `protobuf:"bytes,12,opt,name=wallet_transaction_id,json=walletTransactionId"`
-	xxx_hidden_GroupedBy                map[string]string      `protobuf:"bytes,13,rep,name=grouped_by,json=groupedBy" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	xxx_hidden_InvoiceDisplayName       *string                `protobuf:"bytes,14,opt,name=invoice_display_name,json=invoiceDisplayName"`
-	xxx_hidden_Description              *string                `protobuf:"bytes,15,opt,name=description"`
-	xxx_hidden_Amount                   *v1.Money              `protobuf:"bytes,16,opt,name=amount"`
-	xxx_hidden_PreciseAmount            *string                `protobuf:"bytes,17,opt,name=precise_amount,json=preciseAmount"`
-	xxx_hidden_UnitAmount               *string                `protobuf:"bytes,18,opt,name=unit_amount,json=unitAmount"`
-	xxx_hidden_Units                    *string                `protobuf:"bytes,19,opt,name=units"`
-	xxx_hidden_TotalAggregatedUnits     *string                `protobuf:"bytes,20,opt,name=total_aggregated_units,json=totalAggregatedUnits"`
-	xxx_hidden_EventsCount              int64                  `protobuf:"varint,21,opt,name=events_count,json=eventsCount"`
-	xxx_hidden_TaxesAmount              *v1.Money              `protobuf:"bytes,22,opt,name=taxes_amount,json=taxesAmount"`
-	xxx_hidden_TaxesRate                *string                `protobuf:"bytes,23,opt,name=taxes_rate,json=taxesRate"`
-	xxx_hidden_TotalAmount              *v1.Money              `protobuf:"bytes,24,opt,name=total_amount,json=totalAmount"`
-	xxx_hidden_PreciseCouponsAmount     *string                `protobuf:"bytes,25,opt,name=precise_coupons_amount,json=preciseCouponsAmount"`
-	xxx_hidden_PreciseCreditNotesAmount *string                `protobuf:"bytes,26,opt,name=precise_credit_notes_amount,json=preciseCreditNotesAmount"`
-	xxx_hidden_PayInAdvance             bool                   `protobuf:"varint,27,opt,name=pay_in_advance,json=payInAdvance"`
-	xxx_hidden_Invoiceable              bool                   `protobuf:"varint,28,opt,name=invoiceable"`
-	xxx_hidden_PaymentStatus            FeePaymentStatus       `protobuf:"varint,29,opt,name=payment_status,json=paymentStatus,enum=tanvo.invoice.v1.FeePaymentStatus"`
-	xxx_hidden_Period                   *v1.DateTimeRange      `protobuf:"bytes,30,opt,name=period"`
-	xxx_hidden_ChargesPeriod            *v1.DateTimeRange      `protobuf:"bytes,31,opt,name=charges_period,json=chargesPeriod"`
-	xxx_hidden_TrueUpParentFeeId        *string                `protobuf:"bytes,32,opt,name=true_up_parent_fee_id,json=trueUpParentFeeId"`
-	xxx_hidden_TrueUpFeeId              *string                `protobuf:"bytes,33,opt,name=true_up_fee_id,json=trueUpFeeId"`
-	xxx_hidden_PricingUnitUsage         *PricingUnitUsage      `protobuf:"bytes,34,opt,name=pricing_unit_usage,json=pricingUnitUsage"`
-	xxx_hidden_AppliedTaxes             *[]*AppliedTax         `protobuf:"bytes,35,rep,name=applied_taxes,json=appliedTaxes"`
-	xxx_hidden_EventTransactionId       *string                `protobuf:"bytes,36,opt,name=event_transaction_id,json=eventTransactionId"`
-	xxx_hidden_Adjusted                 bool                   `protobuf:"varint,37,opt,name=adjusted"`
-	xxx_hidden_Tiers                    *[]*FeeTier            `protobuf:"bytes,38,rep,name=tiers"`
-	xxx_hidden_SucceededAt              *timestamppb.Timestamp `protobuf:"bytes,39,opt,name=succeeded_at,json=succeededAt"`
-	xxx_hidden_FailedAt                 *timestamppb.Timestamp `protobuf:"bytes,40,opt,name=failed_at,json=failedAt"`
-	xxx_hidden_RefundedAt               *timestamppb.Timestamp `protobuf:"bytes,41,opt,name=refunded_at,json=refundedAt"`
-	xxx_hidden_CreatedAt                *timestamppb.Timestamp `protobuf:"bytes,42,opt,name=created_at,json=createdAt"`
-	xxx_hidden_OriginalFeeId            *string                `protobuf:"bytes,43,opt,name=original_fee_id,json=originalFeeId"`
+	state                               protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_Id                       *string                      `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_InvoiceId                *string                      `protobuf:"bytes,2,opt,name=invoice_id,json=invoiceId"`
+	xxx_hidden_SubscriptionId           *string                      `protobuf:"bytes,3,opt,name=subscription_id,json=subscriptionId"`
+	xxx_hidden_CustomerId               *string                      `protobuf:"bytes,4,opt,name=customer_id,json=customerId"`
+	xxx_hidden_FeeType                  v1.FeeType                   `protobuf:"varint,5,opt,name=fee_type,json=feeType,enum=tanvo.common.v1.FeeType"`
+	xxx_hidden_ChargeId                 *string                      `protobuf:"bytes,6,opt,name=charge_id,json=chargeId"`
+	xxx_hidden_ChargeFilterId           *string                      `protobuf:"bytes,7,opt,name=charge_filter_id,json=chargeFilterId"`
+	xxx_hidden_FixedChargeId            *string                      `protobuf:"bytes,8,opt,name=fixed_charge_id,json=fixedChargeId"`
+	xxx_hidden_AddOnId                  *string                      `protobuf:"bytes,9,opt,name=add_on_id,json=addOnId"`
+	xxx_hidden_BillableMetricCode       *string                      `protobuf:"bytes,10,opt,name=billable_metric_code,json=billableMetricCode"`
+	xxx_hidden_CommitmentId             *string                      `protobuf:"bytes,11,opt,name=commitment_id,json=commitmentId"`
+	xxx_hidden_WalletTransactionId      *string                      `protobuf:"bytes,12,opt,name=wallet_transaction_id,json=walletTransactionId"`
+	xxx_hidden_GroupedBy                map[string]string            `protobuf:"bytes,13,rep,name=grouped_by,json=groupedBy" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_InvoiceDisplayName       *string                      `protobuf:"bytes,14,opt,name=invoice_display_name,json=invoiceDisplayName"`
+	xxx_hidden_Description              *string                      `protobuf:"bytes,15,opt,name=description"`
+	xxx_hidden_Amount                   *v1.Money                    `protobuf:"bytes,16,opt,name=amount"`
+	xxx_hidden_PreciseAmount            *string                      `protobuf:"bytes,17,opt,name=precise_amount,json=preciseAmount"`
+	xxx_hidden_UnitAmount               *string                      `protobuf:"bytes,18,opt,name=unit_amount,json=unitAmount"`
+	xxx_hidden_Units                    *string                      `protobuf:"bytes,19,opt,name=units"`
+	xxx_hidden_TotalAggregatedUnits     *string                      `protobuf:"bytes,20,opt,name=total_aggregated_units,json=totalAggregatedUnits"`
+	xxx_hidden_EventsCount              int64                        `protobuf:"varint,21,opt,name=events_count,json=eventsCount"`
+	xxx_hidden_TaxesAmount              *v1.Money                    `protobuf:"bytes,22,opt,name=taxes_amount,json=taxesAmount"`
+	xxx_hidden_TaxesRate                *string                      `protobuf:"bytes,23,opt,name=taxes_rate,json=taxesRate"`
+	xxx_hidden_TotalAmount              *v1.Money                    `protobuf:"bytes,24,opt,name=total_amount,json=totalAmount"`
+	xxx_hidden_PreciseCouponsAmount     *string                      `protobuf:"bytes,25,opt,name=precise_coupons_amount,json=preciseCouponsAmount"`
+	xxx_hidden_PreciseCreditNotesAmount *string                      `protobuf:"bytes,26,opt,name=precise_credit_notes_amount,json=preciseCreditNotesAmount"`
+	xxx_hidden_PayInAdvance             bool                         `protobuf:"varint,27,opt,name=pay_in_advance,json=payInAdvance"`
+	xxx_hidden_Invoiceable              bool                         `protobuf:"varint,28,opt,name=invoiceable"`
+	xxx_hidden_PaymentStatus            FeePaymentStatus             `protobuf:"varint,29,opt,name=payment_status,json=paymentStatus,enum=tanvo.invoice.v1.FeePaymentStatus"`
+	xxx_hidden_Period                   *v1.DateTimeRange            `protobuf:"bytes,30,opt,name=period"`
+	xxx_hidden_ChargesPeriod            *v1.DateTimeRange            `protobuf:"bytes,31,opt,name=charges_period,json=chargesPeriod"`
+	xxx_hidden_TrueUpParentFeeId        *string                      `protobuf:"bytes,32,opt,name=true_up_parent_fee_id,json=trueUpParentFeeId"`
+	xxx_hidden_TrueUpFeeId              *string                      `protobuf:"bytes,33,opt,name=true_up_fee_id,json=trueUpFeeId"`
+	xxx_hidden_PricingUnitUsage         *PricingUnitUsage            `protobuf:"bytes,34,opt,name=pricing_unit_usage,json=pricingUnitUsage"`
+	xxx_hidden_AppliedTaxes             *[]*AppliedTax               `protobuf:"bytes,35,rep,name=applied_taxes,json=appliedTaxes"`
+	xxx_hidden_EventTransactionId       *string                      `protobuf:"bytes,36,opt,name=event_transaction_id,json=eventTransactionId"`
+	xxx_hidden_Adjusted                 bool                         `protobuf:"varint,37,opt,name=adjusted"`
+	xxx_hidden_Tiers                    *[]*FeeTier                  `protobuf:"bytes,38,rep,name=tiers"`
+	xxx_hidden_SucceededAt              *timestamppb.Timestamp       `protobuf:"bytes,39,opt,name=succeeded_at,json=succeededAt"`
+	xxx_hidden_FailedAt                 *timestamppb.Timestamp       `protobuf:"bytes,40,opt,name=failed_at,json=failedAt"`
+	xxx_hidden_RefundedAt               *timestamppb.Timestamp       `protobuf:"bytes,41,opt,name=refunded_at,json=refundedAt"`
+	xxx_hidden_CreatedAt                *timestamppb.Timestamp       `protobuf:"bytes,42,opt,name=created_at,json=createdAt"`
+	xxx_hidden_OriginalFeeId            *string                      `protobuf:"bytes,43,opt,name=original_fee_id,json=originalFeeId"`
+	xxx_hidden_PresentationBreakdowns   *[]*v1.PresentationBreakdown `protobuf:"bytes,44,rep,name=presentation_breakdowns,json=presentationBreakdowns"`
 	XXX_raceDetectHookData              protoimpl.RaceDetectHookData
 	XXX_presence                        [2]uint32
 	unknownFields                       protoimpl.UnknownFields
@@ -1521,64 +1522,73 @@ func (x *Fee) GetOriginalFeeId() string {
 	return ""
 }
 
+func (x *Fee) GetPresentationBreakdowns() []*v1.PresentationBreakdown {
+	if x != nil {
+		if x.xxx_hidden_PresentationBreakdowns != nil {
+			return *x.xxx_hidden_PresentationBreakdowns
+		}
+	}
+	return nil
+}
+
 func (x *Fee) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 44)
 }
 
 func (x *Fee) SetInvoiceId(v string) {
 	x.xxx_hidden_InvoiceId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 44)
 }
 
 func (x *Fee) SetSubscriptionId(v string) {
 	x.xxx_hidden_SubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 44)
 }
 
 func (x *Fee) SetCustomerId(v string) {
 	x.xxx_hidden_CustomerId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 44)
 }
 
 func (x *Fee) SetFeeType(v v1.FeeType) {
 	x.xxx_hidden_FeeType = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 44)
 }
 
 func (x *Fee) SetChargeId(v string) {
 	x.xxx_hidden_ChargeId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 44)
 }
 
 func (x *Fee) SetChargeFilterId(v string) {
 	x.xxx_hidden_ChargeFilterId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 44)
 }
 
 func (x *Fee) SetFixedChargeId(v string) {
 	x.xxx_hidden_FixedChargeId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 44)
 }
 
 func (x *Fee) SetAddOnId(v string) {
 	x.xxx_hidden_AddOnId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 44)
 }
 
 func (x *Fee) SetBillableMetricCode(v string) {
 	x.xxx_hidden_BillableMetricCode = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 44)
 }
 
 func (x *Fee) SetCommitmentId(v string) {
 	x.xxx_hidden_CommitmentId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 44)
 }
 
 func (x *Fee) SetWalletTransactionId(v string) {
 	x.xxx_hidden_WalletTransactionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 44)
 }
 
 func (x *Fee) SetGroupedBy(v map[string]string) {
@@ -1587,12 +1597,12 @@ func (x *Fee) SetGroupedBy(v map[string]string) {
 
 func (x *Fee) SetInvoiceDisplayName(v string) {
 	x.xxx_hidden_InvoiceDisplayName = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 44)
 }
 
 func (x *Fee) SetDescription(v string) {
 	x.xxx_hidden_Description = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 44)
 }
 
 func (x *Fee) SetAmount(v *v1.Money) {
@@ -1601,27 +1611,27 @@ func (x *Fee) SetAmount(v *v1.Money) {
 
 func (x *Fee) SetPreciseAmount(v string) {
 	x.xxx_hidden_PreciseAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 44)
 }
 
 func (x *Fee) SetUnitAmount(v string) {
 	x.xxx_hidden_UnitAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 44)
 }
 
 func (x *Fee) SetUnits(v string) {
 	x.xxx_hidden_Units = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 44)
 }
 
 func (x *Fee) SetTotalAggregatedUnits(v string) {
 	x.xxx_hidden_TotalAggregatedUnits = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 44)
 }
 
 func (x *Fee) SetEventsCount(v int64) {
 	x.xxx_hidden_EventsCount = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 20, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 20, 44)
 }
 
 func (x *Fee) SetTaxesAmount(v *v1.Money) {
@@ -1630,7 +1640,7 @@ func (x *Fee) SetTaxesAmount(v *v1.Money) {
 
 func (x *Fee) SetTaxesRate(v string) {
 	x.xxx_hidden_TaxesRate = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 22, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 22, 44)
 }
 
 func (x *Fee) SetTotalAmount(v *v1.Money) {
@@ -1639,27 +1649,27 @@ func (x *Fee) SetTotalAmount(v *v1.Money) {
 
 func (x *Fee) SetPreciseCouponsAmount(v string) {
 	x.xxx_hidden_PreciseCouponsAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 24, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 24, 44)
 }
 
 func (x *Fee) SetPreciseCreditNotesAmount(v string) {
 	x.xxx_hidden_PreciseCreditNotesAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 25, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 25, 44)
 }
 
 func (x *Fee) SetPayInAdvance(v bool) {
 	x.xxx_hidden_PayInAdvance = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 26, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 26, 44)
 }
 
 func (x *Fee) SetInvoiceable(v bool) {
 	x.xxx_hidden_Invoiceable = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 27, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 27, 44)
 }
 
 func (x *Fee) SetPaymentStatus(v FeePaymentStatus) {
 	x.xxx_hidden_PaymentStatus = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 28, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 28, 44)
 }
 
 func (x *Fee) SetPeriod(v *v1.DateTimeRange) {
@@ -1672,12 +1682,12 @@ func (x *Fee) SetChargesPeriod(v *v1.DateTimeRange) {
 
 func (x *Fee) SetTrueUpParentFeeId(v string) {
 	x.xxx_hidden_TrueUpParentFeeId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 31, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 31, 44)
 }
 
 func (x *Fee) SetTrueUpFeeId(v string) {
 	x.xxx_hidden_TrueUpFeeId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 32, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 32, 44)
 }
 
 func (x *Fee) SetPricingUnitUsage(v *PricingUnitUsage) {
@@ -1690,12 +1700,12 @@ func (x *Fee) SetAppliedTaxes(v []*AppliedTax) {
 
 func (x *Fee) SetEventTransactionId(v string) {
 	x.xxx_hidden_EventTransactionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 35, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 35, 44)
 }
 
 func (x *Fee) SetAdjusted(v bool) {
 	x.xxx_hidden_Adjusted = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 36, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 36, 44)
 }
 
 func (x *Fee) SetTiers(v []*FeeTier) {
@@ -1720,7 +1730,11 @@ func (x *Fee) SetCreatedAt(v *timestamppb.Timestamp) {
 
 func (x *Fee) SetOriginalFeeId(v string) {
 	x.xxx_hidden_OriginalFeeId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 42, 43)
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 42, 44)
+}
+
+func (x *Fee) SetPresentationBreakdowns(v []*v1.PresentationBreakdown) {
+	x.xxx_hidden_PresentationBreakdowns = &v
 }
 
 func (x *Fee) HasId() bool {
@@ -2283,6 +2297,9 @@ type Fee_builder struct {
 	// The fee of a voided invoice this fee was regenerated from, the first
 	// of the chain.
 	OriginalFeeId *string
+	// The units of a charge fee by the presentation keys its charge
+	// displays on invoices.
+	PresentationBreakdowns []*v1.PresentationBreakdown
 }
 
 func (b0 Fee_builder) Build() *Fee {
@@ -2290,127 +2307,127 @@ func (b0 Fee_builder) Build() *Fee {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 44)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.InvoiceId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 44)
 		x.xxx_hidden_InvoiceId = b.InvoiceId
 	}
 	if b.SubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 44)
 		x.xxx_hidden_SubscriptionId = b.SubscriptionId
 	}
 	if b.CustomerId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 44)
 		x.xxx_hidden_CustomerId = b.CustomerId
 	}
 	if b.FeeType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 44)
 		x.xxx_hidden_FeeType = *b.FeeType
 	}
 	if b.ChargeId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 44)
 		x.xxx_hidden_ChargeId = b.ChargeId
 	}
 	if b.ChargeFilterId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 44)
 		x.xxx_hidden_ChargeFilterId = b.ChargeFilterId
 	}
 	if b.FixedChargeId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 44)
 		x.xxx_hidden_FixedChargeId = b.FixedChargeId
 	}
 	if b.AddOnId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 44)
 		x.xxx_hidden_AddOnId = b.AddOnId
 	}
 	if b.BillableMetricCode != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 44)
 		x.xxx_hidden_BillableMetricCode = b.BillableMetricCode
 	}
 	if b.CommitmentId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 44)
 		x.xxx_hidden_CommitmentId = b.CommitmentId
 	}
 	if b.WalletTransactionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 44)
 		x.xxx_hidden_WalletTransactionId = b.WalletTransactionId
 	}
 	x.xxx_hidden_GroupedBy = b.GroupedBy
 	if b.InvoiceDisplayName != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 44)
 		x.xxx_hidden_InvoiceDisplayName = b.InvoiceDisplayName
 	}
 	if b.Description != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 44)
 		x.xxx_hidden_Description = b.Description
 	}
 	x.xxx_hidden_Amount = b.Amount
 	if b.PreciseAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 44)
 		x.xxx_hidden_PreciseAmount = b.PreciseAmount
 	}
 	if b.UnitAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 44)
 		x.xxx_hidden_UnitAmount = b.UnitAmount
 	}
 	if b.Units != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 44)
 		x.xxx_hidden_Units = b.Units
 	}
 	if b.TotalAggregatedUnits != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 44)
 		x.xxx_hidden_TotalAggregatedUnits = b.TotalAggregatedUnits
 	}
 	if b.EventsCount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 20, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 20, 44)
 		x.xxx_hidden_EventsCount = *b.EventsCount
 	}
 	x.xxx_hidden_TaxesAmount = b.TaxesAmount
 	if b.TaxesRate != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 22, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 22, 44)
 		x.xxx_hidden_TaxesRate = b.TaxesRate
 	}
 	x.xxx_hidden_TotalAmount = b.TotalAmount
 	if b.PreciseCouponsAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 24, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 24, 44)
 		x.xxx_hidden_PreciseCouponsAmount = b.PreciseCouponsAmount
 	}
 	if b.PreciseCreditNotesAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 25, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 25, 44)
 		x.xxx_hidden_PreciseCreditNotesAmount = b.PreciseCreditNotesAmount
 	}
 	if b.PayInAdvance != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 26, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 26, 44)
 		x.xxx_hidden_PayInAdvance = *b.PayInAdvance
 	}
 	if b.Invoiceable != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 27, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 27, 44)
 		x.xxx_hidden_Invoiceable = *b.Invoiceable
 	}
 	if b.PaymentStatus != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 28, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 28, 44)
 		x.xxx_hidden_PaymentStatus = *b.PaymentStatus
 	}
 	x.xxx_hidden_Period = b.Period
 	x.xxx_hidden_ChargesPeriod = b.ChargesPeriod
 	if b.TrueUpParentFeeId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 31, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 31, 44)
 		x.xxx_hidden_TrueUpParentFeeId = b.TrueUpParentFeeId
 	}
 	if b.TrueUpFeeId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 32, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 32, 44)
 		x.xxx_hidden_TrueUpFeeId = b.TrueUpFeeId
 	}
 	x.xxx_hidden_PricingUnitUsage = b.PricingUnitUsage
 	x.xxx_hidden_AppliedTaxes = &b.AppliedTaxes
 	if b.EventTransactionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 35, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 35, 44)
 		x.xxx_hidden_EventTransactionId = b.EventTransactionId
 	}
 	if b.Adjusted != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 36, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 36, 44)
 		x.xxx_hidden_Adjusted = *b.Adjusted
 	}
 	x.xxx_hidden_Tiers = &b.Tiers
@@ -2419,9 +2436,10 @@ func (b0 Fee_builder) Build() *Fee {
 	x.xxx_hidden_RefundedAt = b.RefundedAt
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	if b.OriginalFeeId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 42, 43)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 42, 44)
 		x.xxx_hidden_OriginalFeeId = b.OriginalFeeId
 	}
+	x.xxx_hidden_PresentationBreakdowns = &b.PresentationBreakdowns
 	return m0
 }
 
@@ -12966,7 +12984,7 @@ const file_tanvo_invoice_v1_invoice_proto_rawDesc = "" +
 	"\x0fconversion_rate\x18\x03 \x01(\tR\x0econversionRate\x12\x16\n" +
 	"\x06amount\x18\x04 \x01(\tR\x06amount\x12\x1f\n" +
 	"\vunit_amount\x18\x05 \x01(\tR\n" +
-	"unitAmount\"\xd7\x12\n" +
+	"unitAmount\"\xbe\x13\n" +
 	"\x03Fee\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12#\n" +
 	"\n" +
@@ -13018,7 +13036,8 @@ const file_tanvo_invoice_v1_invoice_proto_rawDesc = "" +
 	"refundedAt\x12?\n" +
 	"\n" +
 	"created_at\x18* \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12,\n" +
-	"\x0foriginal_fee_id\x18+ \x01(\tB\x04\xe2A\x01\x03R\roriginalFeeId\x1a<\n" +
+	"\x0foriginal_fee_id\x18+ \x01(\tB\x04\xe2A\x01\x03R\roriginalFeeId\x12e\n" +
+	"\x17presentation_breakdowns\x18, \x03(\v2&.tanvo.common.v1.PresentationBreakdownB\x04\xe2A\x01\x03R\x16presentationBreakdowns\x1a<\n" +
 	"\x0eGroupedByEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:)\xeaA&\n" +
@@ -13652,19 +13671,20 @@ var file_tanvo_invoice_v1_invoice_proto_goTypes = []any{
 	(*UpdateInvoiceCustomSectionResponse)(nil), // 88: tanvo.invoice.v1.UpdateInvoiceCustomSectionResponse
 	(*DeleteInvoiceCustomSectionRequest)(nil),  // 89: tanvo.invoice.v1.DeleteInvoiceCustomSectionRequest
 	(*DeleteInvoiceCustomSectionResponse)(nil), // 90: tanvo.invoice.v1.DeleteInvoiceCustomSectionResponse
-	nil,                           // 91: tanvo.invoice.v1.Fee.GroupedByEntry
-	(*v1.Money)(nil),              // 92: tanvo.common.v1.Money
-	(v1.FeeType)(0),               // 93: tanvo.common.v1.FeeType
-	(*v1.DateTimeRange)(nil),      // 94: tanvo.common.v1.DateTimeRange
-	(*timestamppb.Timestamp)(nil), // 95: google.protobuf.Timestamp
-	(v1.PaymentStatus)(0),         // 96: tanvo.common.v1.PaymentStatus
-	(*date.Date)(nil),             // 97: google.type.Date
-	(v1.PaymentMethodType)(0),     // 98: tanvo.common.v1.PaymentMethodType
-	(*v1.MetadataItem)(nil),       // 99: tanvo.common.v1.MetadataItem
-	(*fieldmaskpb.FieldMask)(nil), // 100: google.protobuf.FieldMask
-	(*v1.Document)(nil),           // 101: tanvo.common.v1.Document
-	(*v11.Coupon)(nil),            // 102: tanvo.coupon.v1.Coupon
-	(*v1.Address)(nil),            // 103: tanvo.common.v1.Address
+	nil,                              // 91: tanvo.invoice.v1.Fee.GroupedByEntry
+	(*v1.Money)(nil),                 // 92: tanvo.common.v1.Money
+	(v1.FeeType)(0),                  // 93: tanvo.common.v1.FeeType
+	(*v1.DateTimeRange)(nil),         // 94: tanvo.common.v1.DateTimeRange
+	(*timestamppb.Timestamp)(nil),    // 95: google.protobuf.Timestamp
+	(*v1.PresentationBreakdown)(nil), // 96: tanvo.common.v1.PresentationBreakdown
+	(v1.PaymentStatus)(0),            // 97: tanvo.common.v1.PaymentStatus
+	(*date.Date)(nil),                // 98: google.type.Date
+	(v1.PaymentMethodType)(0),        // 99: tanvo.common.v1.PaymentMethodType
+	(*v1.MetadataItem)(nil),          // 100: tanvo.common.v1.MetadataItem
+	(*fieldmaskpb.FieldMask)(nil),    // 101: google.protobuf.FieldMask
+	(*v1.Document)(nil),              // 102: tanvo.common.v1.Document
+	(*v11.Coupon)(nil),               // 103: tanvo.coupon.v1.Coupon
+	(*v1.Address)(nil),               // 104: tanvo.common.v1.Address
 }
 var file_tanvo_invoice_v1_invoice_proto_depIdxs = []int32{
 	92,  // 0: tanvo.invoice.v1.AppliedTax.taxable_amount:type_name -> tanvo.common.v1.Money
@@ -13684,172 +13704,173 @@ var file_tanvo_invoice_v1_invoice_proto_depIdxs = []int32{
 	95,  // 14: tanvo.invoice.v1.Fee.failed_at:type_name -> google.protobuf.Timestamp
 	95,  // 15: tanvo.invoice.v1.Fee.refunded_at:type_name -> google.protobuf.Timestamp
 	95,  // 16: tanvo.invoice.v1.Fee.created_at:type_name -> google.protobuf.Timestamp
-	3,   // 17: tanvo.invoice.v1.InvoiceSubscription.invoicing_reason:type_name -> tanvo.invoice.v1.InvoicingReason
-	94,  // 18: tanvo.invoice.v1.InvoiceSubscription.period:type_name -> tanvo.common.v1.DateTimeRange
-	94,  // 19: tanvo.invoice.v1.InvoiceSubscription.charges_period:type_name -> tanvo.common.v1.DateTimeRange
-	94,  // 20: tanvo.invoice.v1.InvoiceSubscription.fixed_charges_period:type_name -> tanvo.common.v1.DateTimeRange
-	5,   // 21: tanvo.invoice.v1.InvoiceSettlement.settlement_type:type_name -> tanvo.invoice.v1.SettlementType
-	92,  // 22: tanvo.invoice.v1.InvoiceSettlement.amount:type_name -> tanvo.common.v1.Money
-	95,  // 23: tanvo.invoice.v1.InvoiceSettlement.created_at:type_name -> google.protobuf.Timestamp
-	92,  // 24: tanvo.invoice.v1.InvoiceCredit.amount:type_name -> tanvo.common.v1.Money
-	8,   // 25: tanvo.invoice.v1.InvoiceError.code:type_name -> tanvo.invoice.v1.InvoiceErrorCode
-	95,  // 26: tanvo.invoice.v1.InvoiceError.created_at:type_name -> google.protobuf.Timestamp
-	0,   // 27: tanvo.invoice.v1.Invoice.invoice_type:type_name -> tanvo.invoice.v1.InvoiceType
-	1,   // 28: tanvo.invoice.v1.Invoice.status:type_name -> tanvo.invoice.v1.InvoiceStatus
-	96,  // 29: tanvo.invoice.v1.Invoice.payment_status:type_name -> tanvo.common.v1.PaymentStatus
-	2,   // 30: tanvo.invoice.v1.Invoice.tax_status:type_name -> tanvo.invoice.v1.TaxStatus
-	92,  // 31: tanvo.invoice.v1.Invoice.fees_amount:type_name -> tanvo.common.v1.Money
-	92,  // 32: tanvo.invoice.v1.Invoice.progressive_billing_credit_amount:type_name -> tanvo.common.v1.Money
-	92,  // 33: tanvo.invoice.v1.Invoice.coupons_amount:type_name -> tanvo.common.v1.Money
-	92,  // 34: tanvo.invoice.v1.Invoice.sub_total_excluding_taxes_amount:type_name -> tanvo.common.v1.Money
-	92,  // 35: tanvo.invoice.v1.Invoice.taxes_amount:type_name -> tanvo.common.v1.Money
-	92,  // 36: tanvo.invoice.v1.Invoice.sub_total_including_taxes_amount:type_name -> tanvo.common.v1.Money
-	92,  // 37: tanvo.invoice.v1.Invoice.credit_notes_amount:type_name -> tanvo.common.v1.Money
-	92,  // 38: tanvo.invoice.v1.Invoice.prepaid_credit_amount:type_name -> tanvo.common.v1.Money
-	92,  // 39: tanvo.invoice.v1.Invoice.prepaid_granted_credit_amount:type_name -> tanvo.common.v1.Money
-	92,  // 40: tanvo.invoice.v1.Invoice.prepaid_purchased_credit_amount:type_name -> tanvo.common.v1.Money
-	92,  // 41: tanvo.invoice.v1.Invoice.total_amount:type_name -> tanvo.common.v1.Money
-	92,  // 42: tanvo.invoice.v1.Invoice.total_paid_amount:type_name -> tanvo.common.v1.Money
-	92,  // 43: tanvo.invoice.v1.Invoice.offset_amount:type_name -> tanvo.common.v1.Money
-	92,  // 44: tanvo.invoice.v1.Invoice.total_due_amount:type_name -> tanvo.common.v1.Money
-	97,  // 45: tanvo.invoice.v1.Invoice.issuing_date:type_name -> google.type.Date
-	97,  // 46: tanvo.invoice.v1.Invoice.payment_due_date:type_name -> google.type.Date
-	97,  // 47: tanvo.invoice.v1.Invoice.expected_finalization_date:type_name -> google.type.Date
-	95,  // 48: tanvo.invoice.v1.Invoice.payment_dispute_lost_at:type_name -> google.protobuf.Timestamp
-	98,  // 49: tanvo.invoice.v1.Invoice.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
-	99,  // 50: tanvo.invoice.v1.Invoice.metadata:type_name -> tanvo.common.v1.MetadataItem
-	13,  // 51: tanvo.invoice.v1.Invoice.subscriptions:type_name -> tanvo.invoice.v1.InvoiceSubscription
-	11,  // 52: tanvo.invoice.v1.Invoice.fees:type_name -> tanvo.invoice.v1.Fee
-	15,  // 53: tanvo.invoice.v1.Invoice.credits:type_name -> tanvo.invoice.v1.InvoiceCredit
-	9,   // 54: tanvo.invoice.v1.Invoice.applied_taxes:type_name -> tanvo.invoice.v1.AppliedTax
-	14,  // 55: tanvo.invoice.v1.Invoice.settlements:type_name -> tanvo.invoice.v1.InvoiceSettlement
-	16,  // 56: tanvo.invoice.v1.Invoice.errors:type_name -> tanvo.invoice.v1.InvoiceError
-	95,  // 57: tanvo.invoice.v1.Invoice.finalized_at:type_name -> google.protobuf.Timestamp
-	95,  // 58: tanvo.invoice.v1.Invoice.voided_at:type_name -> google.protobuf.Timestamp
-	95,  // 59: tanvo.invoice.v1.Invoice.created_at:type_name -> google.protobuf.Timestamp
-	95,  // 60: tanvo.invoice.v1.Invoice.updated_at:type_name -> google.protobuf.Timestamp
-	18,  // 61: tanvo.invoice.v1.Invoice.applied_invoice_custom_sections:type_name -> tanvo.invoice.v1.AppliedInvoiceCustomSection
-	95,  // 62: tanvo.invoice.v1.AppliedInvoiceCustomSection.created_at:type_name -> google.protobuf.Timestamp
-	6,   // 63: tanvo.invoice.v1.InvoiceCustomSection.section_type:type_name -> tanvo.invoice.v1.InvoiceCustomSectionType
-	95,  // 64: tanvo.invoice.v1.InvoiceCustomSection.created_at:type_name -> google.protobuf.Timestamp
-	95,  // 65: tanvo.invoice.v1.InvoiceCustomSection.updated_at:type_name -> google.protobuf.Timestamp
-	94,  // 66: tanvo.invoice.v1.OneOffFee.period:type_name -> tanvo.common.v1.DateTimeRange
-	95,  // 67: tanvo.invoice.v1.PreviewSubscription.subscription_at:type_name -> google.protobuf.Timestamp
-	20,  // 68: tanvo.invoice.v1.CreateInvoiceRequest.fees:type_name -> tanvo.invoice.v1.OneOffFee
-	98,  // 69: tanvo.invoice.v1.CreateInvoiceRequest.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
-	17,  // 70: tanvo.invoice.v1.CreateInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
-	17,  // 71: tanvo.invoice.v1.GetInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
-	17,  // 72: tanvo.invoice.v1.ListInvoicesResponse.invoices:type_name -> tanvo.invoice.v1.Invoice
-	17,  // 73: tanvo.invoice.v1.UpdateInvoiceRequest.invoice:type_name -> tanvo.invoice.v1.Invoice
-	100, // 74: tanvo.invoice.v1.UpdateInvoiceRequest.update_mask:type_name -> google.protobuf.FieldMask
-	17,  // 75: tanvo.invoice.v1.UpdateInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
-	17,  // 76: tanvo.invoice.v1.RefreshInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
-	17,  // 77: tanvo.invoice.v1.FinalizeInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
-	17,  // 78: tanvo.invoice.v1.VoidInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
-	21,  // 79: tanvo.invoice.v1.RegenerateInvoiceRequest.fees:type_name -> tanvo.invoice.v1.RegeneratedFee
-	17,  // 80: tanvo.invoice.v1.RegenerateInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
-	17,  // 81: tanvo.invoice.v1.RetryInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
-	98,  // 82: tanvo.invoice.v1.RetryInvoicePaymentRequest.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
-	17,  // 83: tanvo.invoice.v1.RetryInvoiceTaxVoidingResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
-	17,  // 84: tanvo.invoice.v1.LoseInvoiceDisputeResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
-	101, // 85: tanvo.invoice.v1.DownloadInvoiceResponse.pdf:type_name -> tanvo.common.v1.Document
-	101, // 86: tanvo.invoice.v1.DownloadInvoiceResponse.xml:type_name -> tanvo.common.v1.Document
-	22,  // 87: tanvo.invoice.v1.PreviewInvoiceRequest.subscription:type_name -> tanvo.invoice.v1.PreviewSubscription
-	95,  // 88: tanvo.invoice.v1.PreviewInvoiceRequest.terminated_at:type_name -> google.protobuf.Timestamp
-	64,  // 89: tanvo.invoice.v1.PreviewInvoiceRequest.customer:type_name -> tanvo.invoice.v1.PreviewCustomer
-	102, // 90: tanvo.invoice.v1.PreviewInvoiceRequest.coupons:type_name -> tanvo.coupon.v1.Coupon
-	103, // 91: tanvo.invoice.v1.PreviewCustomer.billing_address:type_name -> tanvo.common.v1.Address
-	103, // 92: tanvo.invoice.v1.PreviewCustomer.shipping_address:type_name -> tanvo.common.v1.Address
-	65,  // 93: tanvo.invoice.v1.PreviewCustomer.integration_customers:type_name -> tanvo.invoice.v1.PreviewIntegrationCustomer
-	17,  // 94: tanvo.invoice.v1.PreviewInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
-	17,  // 95: tanvo.invoice.v1.SetInvoiceSalesforceIdResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
-	11,  // 96: tanvo.invoice.v1.GetFeeResponse.fee:type_name -> tanvo.invoice.v1.Fee
-	11,  // 97: tanvo.invoice.v1.ListFeesResponse.fees:type_name -> tanvo.invoice.v1.Fee
-	11,  // 98: tanvo.invoice.v1.UpdateFeeRequest.fee:type_name -> tanvo.invoice.v1.Fee
-	100, // 99: tanvo.invoice.v1.UpdateFeeRequest.update_mask:type_name -> google.protobuf.FieldMask
-	11,  // 100: tanvo.invoice.v1.UpdateFeeResponse.fee:type_name -> tanvo.invoice.v1.Fee
-	11,  // 101: tanvo.invoice.v1.DeleteFeeResponse.fee:type_name -> tanvo.invoice.v1.Fee
-	7,   // 102: tanvo.invoice.v1.AdjustFeeRequest.mode:type_name -> tanvo.invoice.v1.FeeAdjustmentMode
-	11,  // 103: tanvo.invoice.v1.AdjustFeeResponse.fee:type_name -> tanvo.invoice.v1.Fee
-	11,  // 104: tanvo.invoice.v1.DeleteFeeAdjustmentResponse.fee:type_name -> tanvo.invoice.v1.Fee
-	19,  // 105: tanvo.invoice.v1.CreateInvoiceCustomSectionRequest.invoice_custom_section:type_name -> tanvo.invoice.v1.InvoiceCustomSection
-	19,  // 106: tanvo.invoice.v1.CreateInvoiceCustomSectionResponse.invoice_custom_section:type_name -> tanvo.invoice.v1.InvoiceCustomSection
-	19,  // 107: tanvo.invoice.v1.GetInvoiceCustomSectionResponse.invoice_custom_section:type_name -> tanvo.invoice.v1.InvoiceCustomSection
-	19,  // 108: tanvo.invoice.v1.ListInvoiceCustomSectionsResponse.invoice_custom_sections:type_name -> tanvo.invoice.v1.InvoiceCustomSection
-	19,  // 109: tanvo.invoice.v1.UpdateInvoiceCustomSectionRequest.invoice_custom_section:type_name -> tanvo.invoice.v1.InvoiceCustomSection
-	100, // 110: tanvo.invoice.v1.UpdateInvoiceCustomSectionRequest.update_mask:type_name -> google.protobuf.FieldMask
-	19,  // 111: tanvo.invoice.v1.UpdateInvoiceCustomSectionResponse.invoice_custom_section:type_name -> tanvo.invoice.v1.InvoiceCustomSection
-	23,  // 112: tanvo.invoice.v1.InvoiceService.CreateInvoice:input_type -> tanvo.invoice.v1.CreateInvoiceRequest
-	25,  // 113: tanvo.invoice.v1.InvoiceService.GetInvoice:input_type -> tanvo.invoice.v1.GetInvoiceRequest
-	27,  // 114: tanvo.invoice.v1.InvoiceService.ListInvoices:input_type -> tanvo.invoice.v1.ListInvoicesRequest
-	29,  // 115: tanvo.invoice.v1.InvoiceService.UpdateInvoice:input_type -> tanvo.invoice.v1.UpdateInvoiceRequest
-	31,  // 116: tanvo.invoice.v1.InvoiceService.DeleteInvoice:input_type -> tanvo.invoice.v1.DeleteInvoiceRequest
-	33,  // 117: tanvo.invoice.v1.InvoiceService.RefreshInvoice:input_type -> tanvo.invoice.v1.RefreshInvoiceRequest
-	35,  // 118: tanvo.invoice.v1.InvoiceService.FinalizeInvoice:input_type -> tanvo.invoice.v1.FinalizeInvoiceRequest
-	37,  // 119: tanvo.invoice.v1.InvoiceService.FinalizeAllInvoices:input_type -> tanvo.invoice.v1.FinalizeAllInvoicesRequest
-	39,  // 120: tanvo.invoice.v1.InvoiceService.VoidInvoice:input_type -> tanvo.invoice.v1.VoidInvoiceRequest
-	41,  // 121: tanvo.invoice.v1.InvoiceService.RegenerateInvoice:input_type -> tanvo.invoice.v1.RegenerateInvoiceRequest
-	43,  // 122: tanvo.invoice.v1.InvoiceService.RetryInvoice:input_type -> tanvo.invoice.v1.RetryInvoiceRequest
-	45,  // 123: tanvo.invoice.v1.InvoiceService.RetryInvoicePayment:input_type -> tanvo.invoice.v1.RetryInvoicePaymentRequest
-	47,  // 124: tanvo.invoice.v1.InvoiceService.RetryAllInvoices:input_type -> tanvo.invoice.v1.RetryAllInvoicesRequest
-	49,  // 125: tanvo.invoice.v1.InvoiceService.RetryAllInvoicePayments:input_type -> tanvo.invoice.v1.RetryAllInvoicePaymentsRequest
-	51,  // 126: tanvo.invoice.v1.InvoiceService.RetryInvoiceSync:input_type -> tanvo.invoice.v1.RetryInvoiceSyncRequest
-	53,  // 127: tanvo.invoice.v1.InvoiceService.RetryInvoiceTaxVoiding:input_type -> tanvo.invoice.v1.RetryInvoiceTaxVoidingRequest
-	55,  // 128: tanvo.invoice.v1.InvoiceService.LoseInvoiceDispute:input_type -> tanvo.invoice.v1.LoseInvoiceDisputeRequest
-	57,  // 129: tanvo.invoice.v1.InvoiceService.DownloadInvoice:input_type -> tanvo.invoice.v1.DownloadInvoiceRequest
-	59,  // 130: tanvo.invoice.v1.InvoiceService.ResendInvoice:input_type -> tanvo.invoice.v1.ResendInvoiceRequest
-	61,  // 131: tanvo.invoice.v1.InvoiceService.GenerateInvoicePaymentUrl:input_type -> tanvo.invoice.v1.GenerateInvoicePaymentUrlRequest
-	63,  // 132: tanvo.invoice.v1.InvoiceService.PreviewInvoice:input_type -> tanvo.invoice.v1.PreviewInvoiceRequest
-	67,  // 133: tanvo.invoice.v1.InvoiceService.SetInvoiceSalesforceId:input_type -> tanvo.invoice.v1.SetInvoiceSalesforceIdRequest
-	69,  // 134: tanvo.invoice.v1.FeeService.GetFee:input_type -> tanvo.invoice.v1.GetFeeRequest
-	71,  // 135: tanvo.invoice.v1.FeeService.ListFees:input_type -> tanvo.invoice.v1.ListFeesRequest
-	73,  // 136: tanvo.invoice.v1.FeeService.UpdateFee:input_type -> tanvo.invoice.v1.UpdateFeeRequest
-	75,  // 137: tanvo.invoice.v1.FeeService.DeleteFee:input_type -> tanvo.invoice.v1.DeleteFeeRequest
-	77,  // 138: tanvo.invoice.v1.FeeService.AdjustFee:input_type -> tanvo.invoice.v1.AdjustFeeRequest
-	79,  // 139: tanvo.invoice.v1.FeeService.DeleteFeeAdjustment:input_type -> tanvo.invoice.v1.DeleteFeeAdjustmentRequest
-	81,  // 140: tanvo.invoice.v1.InvoiceCustomSectionService.CreateInvoiceCustomSection:input_type -> tanvo.invoice.v1.CreateInvoiceCustomSectionRequest
-	83,  // 141: tanvo.invoice.v1.InvoiceCustomSectionService.GetInvoiceCustomSection:input_type -> tanvo.invoice.v1.GetInvoiceCustomSectionRequest
-	85,  // 142: tanvo.invoice.v1.InvoiceCustomSectionService.ListInvoiceCustomSections:input_type -> tanvo.invoice.v1.ListInvoiceCustomSectionsRequest
-	87,  // 143: tanvo.invoice.v1.InvoiceCustomSectionService.UpdateInvoiceCustomSection:input_type -> tanvo.invoice.v1.UpdateInvoiceCustomSectionRequest
-	89,  // 144: tanvo.invoice.v1.InvoiceCustomSectionService.DeleteInvoiceCustomSection:input_type -> tanvo.invoice.v1.DeleteInvoiceCustomSectionRequest
-	24,  // 145: tanvo.invoice.v1.InvoiceService.CreateInvoice:output_type -> tanvo.invoice.v1.CreateInvoiceResponse
-	26,  // 146: tanvo.invoice.v1.InvoiceService.GetInvoice:output_type -> tanvo.invoice.v1.GetInvoiceResponse
-	28,  // 147: tanvo.invoice.v1.InvoiceService.ListInvoices:output_type -> tanvo.invoice.v1.ListInvoicesResponse
-	30,  // 148: tanvo.invoice.v1.InvoiceService.UpdateInvoice:output_type -> tanvo.invoice.v1.UpdateInvoiceResponse
-	32,  // 149: tanvo.invoice.v1.InvoiceService.DeleteInvoice:output_type -> tanvo.invoice.v1.DeleteInvoiceResponse
-	34,  // 150: tanvo.invoice.v1.InvoiceService.RefreshInvoice:output_type -> tanvo.invoice.v1.RefreshInvoiceResponse
-	36,  // 151: tanvo.invoice.v1.InvoiceService.FinalizeInvoice:output_type -> tanvo.invoice.v1.FinalizeInvoiceResponse
-	38,  // 152: tanvo.invoice.v1.InvoiceService.FinalizeAllInvoices:output_type -> tanvo.invoice.v1.FinalizeAllInvoicesResponse
-	40,  // 153: tanvo.invoice.v1.InvoiceService.VoidInvoice:output_type -> tanvo.invoice.v1.VoidInvoiceResponse
-	42,  // 154: tanvo.invoice.v1.InvoiceService.RegenerateInvoice:output_type -> tanvo.invoice.v1.RegenerateInvoiceResponse
-	44,  // 155: tanvo.invoice.v1.InvoiceService.RetryInvoice:output_type -> tanvo.invoice.v1.RetryInvoiceResponse
-	46,  // 156: tanvo.invoice.v1.InvoiceService.RetryInvoicePayment:output_type -> tanvo.invoice.v1.RetryInvoicePaymentResponse
-	48,  // 157: tanvo.invoice.v1.InvoiceService.RetryAllInvoices:output_type -> tanvo.invoice.v1.RetryAllInvoicesResponse
-	50,  // 158: tanvo.invoice.v1.InvoiceService.RetryAllInvoicePayments:output_type -> tanvo.invoice.v1.RetryAllInvoicePaymentsResponse
-	52,  // 159: tanvo.invoice.v1.InvoiceService.RetryInvoiceSync:output_type -> tanvo.invoice.v1.RetryInvoiceSyncResponse
-	54,  // 160: tanvo.invoice.v1.InvoiceService.RetryInvoiceTaxVoiding:output_type -> tanvo.invoice.v1.RetryInvoiceTaxVoidingResponse
-	56,  // 161: tanvo.invoice.v1.InvoiceService.LoseInvoiceDispute:output_type -> tanvo.invoice.v1.LoseInvoiceDisputeResponse
-	58,  // 162: tanvo.invoice.v1.InvoiceService.DownloadInvoice:output_type -> tanvo.invoice.v1.DownloadInvoiceResponse
-	60,  // 163: tanvo.invoice.v1.InvoiceService.ResendInvoice:output_type -> tanvo.invoice.v1.ResendInvoiceResponse
-	62,  // 164: tanvo.invoice.v1.InvoiceService.GenerateInvoicePaymentUrl:output_type -> tanvo.invoice.v1.GenerateInvoicePaymentUrlResponse
-	66,  // 165: tanvo.invoice.v1.InvoiceService.PreviewInvoice:output_type -> tanvo.invoice.v1.PreviewInvoiceResponse
-	68,  // 166: tanvo.invoice.v1.InvoiceService.SetInvoiceSalesforceId:output_type -> tanvo.invoice.v1.SetInvoiceSalesforceIdResponse
-	70,  // 167: tanvo.invoice.v1.FeeService.GetFee:output_type -> tanvo.invoice.v1.GetFeeResponse
-	72,  // 168: tanvo.invoice.v1.FeeService.ListFees:output_type -> tanvo.invoice.v1.ListFeesResponse
-	74,  // 169: tanvo.invoice.v1.FeeService.UpdateFee:output_type -> tanvo.invoice.v1.UpdateFeeResponse
-	76,  // 170: tanvo.invoice.v1.FeeService.DeleteFee:output_type -> tanvo.invoice.v1.DeleteFeeResponse
-	78,  // 171: tanvo.invoice.v1.FeeService.AdjustFee:output_type -> tanvo.invoice.v1.AdjustFeeResponse
-	80,  // 172: tanvo.invoice.v1.FeeService.DeleteFeeAdjustment:output_type -> tanvo.invoice.v1.DeleteFeeAdjustmentResponse
-	82,  // 173: tanvo.invoice.v1.InvoiceCustomSectionService.CreateInvoiceCustomSection:output_type -> tanvo.invoice.v1.CreateInvoiceCustomSectionResponse
-	84,  // 174: tanvo.invoice.v1.InvoiceCustomSectionService.GetInvoiceCustomSection:output_type -> tanvo.invoice.v1.GetInvoiceCustomSectionResponse
-	86,  // 175: tanvo.invoice.v1.InvoiceCustomSectionService.ListInvoiceCustomSections:output_type -> tanvo.invoice.v1.ListInvoiceCustomSectionsResponse
-	88,  // 176: tanvo.invoice.v1.InvoiceCustomSectionService.UpdateInvoiceCustomSection:output_type -> tanvo.invoice.v1.UpdateInvoiceCustomSectionResponse
-	90,  // 177: tanvo.invoice.v1.InvoiceCustomSectionService.DeleteInvoiceCustomSection:output_type -> tanvo.invoice.v1.DeleteInvoiceCustomSectionResponse
-	145, // [145:178] is the sub-list for method output_type
-	112, // [112:145] is the sub-list for method input_type
-	112, // [112:112] is the sub-list for extension type_name
-	112, // [112:112] is the sub-list for extension extendee
-	0,   // [0:112] is the sub-list for field type_name
+	96,  // 17: tanvo.invoice.v1.Fee.presentation_breakdowns:type_name -> tanvo.common.v1.PresentationBreakdown
+	3,   // 18: tanvo.invoice.v1.InvoiceSubscription.invoicing_reason:type_name -> tanvo.invoice.v1.InvoicingReason
+	94,  // 19: tanvo.invoice.v1.InvoiceSubscription.period:type_name -> tanvo.common.v1.DateTimeRange
+	94,  // 20: tanvo.invoice.v1.InvoiceSubscription.charges_period:type_name -> tanvo.common.v1.DateTimeRange
+	94,  // 21: tanvo.invoice.v1.InvoiceSubscription.fixed_charges_period:type_name -> tanvo.common.v1.DateTimeRange
+	5,   // 22: tanvo.invoice.v1.InvoiceSettlement.settlement_type:type_name -> tanvo.invoice.v1.SettlementType
+	92,  // 23: tanvo.invoice.v1.InvoiceSettlement.amount:type_name -> tanvo.common.v1.Money
+	95,  // 24: tanvo.invoice.v1.InvoiceSettlement.created_at:type_name -> google.protobuf.Timestamp
+	92,  // 25: tanvo.invoice.v1.InvoiceCredit.amount:type_name -> tanvo.common.v1.Money
+	8,   // 26: tanvo.invoice.v1.InvoiceError.code:type_name -> tanvo.invoice.v1.InvoiceErrorCode
+	95,  // 27: tanvo.invoice.v1.InvoiceError.created_at:type_name -> google.protobuf.Timestamp
+	0,   // 28: tanvo.invoice.v1.Invoice.invoice_type:type_name -> tanvo.invoice.v1.InvoiceType
+	1,   // 29: tanvo.invoice.v1.Invoice.status:type_name -> tanvo.invoice.v1.InvoiceStatus
+	97,  // 30: tanvo.invoice.v1.Invoice.payment_status:type_name -> tanvo.common.v1.PaymentStatus
+	2,   // 31: tanvo.invoice.v1.Invoice.tax_status:type_name -> tanvo.invoice.v1.TaxStatus
+	92,  // 32: tanvo.invoice.v1.Invoice.fees_amount:type_name -> tanvo.common.v1.Money
+	92,  // 33: tanvo.invoice.v1.Invoice.progressive_billing_credit_amount:type_name -> tanvo.common.v1.Money
+	92,  // 34: tanvo.invoice.v1.Invoice.coupons_amount:type_name -> tanvo.common.v1.Money
+	92,  // 35: tanvo.invoice.v1.Invoice.sub_total_excluding_taxes_amount:type_name -> tanvo.common.v1.Money
+	92,  // 36: tanvo.invoice.v1.Invoice.taxes_amount:type_name -> tanvo.common.v1.Money
+	92,  // 37: tanvo.invoice.v1.Invoice.sub_total_including_taxes_amount:type_name -> tanvo.common.v1.Money
+	92,  // 38: tanvo.invoice.v1.Invoice.credit_notes_amount:type_name -> tanvo.common.v1.Money
+	92,  // 39: tanvo.invoice.v1.Invoice.prepaid_credit_amount:type_name -> tanvo.common.v1.Money
+	92,  // 40: tanvo.invoice.v1.Invoice.prepaid_granted_credit_amount:type_name -> tanvo.common.v1.Money
+	92,  // 41: tanvo.invoice.v1.Invoice.prepaid_purchased_credit_amount:type_name -> tanvo.common.v1.Money
+	92,  // 42: tanvo.invoice.v1.Invoice.total_amount:type_name -> tanvo.common.v1.Money
+	92,  // 43: tanvo.invoice.v1.Invoice.total_paid_amount:type_name -> tanvo.common.v1.Money
+	92,  // 44: tanvo.invoice.v1.Invoice.offset_amount:type_name -> tanvo.common.v1.Money
+	92,  // 45: tanvo.invoice.v1.Invoice.total_due_amount:type_name -> tanvo.common.v1.Money
+	98,  // 46: tanvo.invoice.v1.Invoice.issuing_date:type_name -> google.type.Date
+	98,  // 47: tanvo.invoice.v1.Invoice.payment_due_date:type_name -> google.type.Date
+	98,  // 48: tanvo.invoice.v1.Invoice.expected_finalization_date:type_name -> google.type.Date
+	95,  // 49: tanvo.invoice.v1.Invoice.payment_dispute_lost_at:type_name -> google.protobuf.Timestamp
+	99,  // 50: tanvo.invoice.v1.Invoice.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
+	100, // 51: tanvo.invoice.v1.Invoice.metadata:type_name -> tanvo.common.v1.MetadataItem
+	13,  // 52: tanvo.invoice.v1.Invoice.subscriptions:type_name -> tanvo.invoice.v1.InvoiceSubscription
+	11,  // 53: tanvo.invoice.v1.Invoice.fees:type_name -> tanvo.invoice.v1.Fee
+	15,  // 54: tanvo.invoice.v1.Invoice.credits:type_name -> tanvo.invoice.v1.InvoiceCredit
+	9,   // 55: tanvo.invoice.v1.Invoice.applied_taxes:type_name -> tanvo.invoice.v1.AppliedTax
+	14,  // 56: tanvo.invoice.v1.Invoice.settlements:type_name -> tanvo.invoice.v1.InvoiceSettlement
+	16,  // 57: tanvo.invoice.v1.Invoice.errors:type_name -> tanvo.invoice.v1.InvoiceError
+	95,  // 58: tanvo.invoice.v1.Invoice.finalized_at:type_name -> google.protobuf.Timestamp
+	95,  // 59: tanvo.invoice.v1.Invoice.voided_at:type_name -> google.protobuf.Timestamp
+	95,  // 60: tanvo.invoice.v1.Invoice.created_at:type_name -> google.protobuf.Timestamp
+	95,  // 61: tanvo.invoice.v1.Invoice.updated_at:type_name -> google.protobuf.Timestamp
+	18,  // 62: tanvo.invoice.v1.Invoice.applied_invoice_custom_sections:type_name -> tanvo.invoice.v1.AppliedInvoiceCustomSection
+	95,  // 63: tanvo.invoice.v1.AppliedInvoiceCustomSection.created_at:type_name -> google.protobuf.Timestamp
+	6,   // 64: tanvo.invoice.v1.InvoiceCustomSection.section_type:type_name -> tanvo.invoice.v1.InvoiceCustomSectionType
+	95,  // 65: tanvo.invoice.v1.InvoiceCustomSection.created_at:type_name -> google.protobuf.Timestamp
+	95,  // 66: tanvo.invoice.v1.InvoiceCustomSection.updated_at:type_name -> google.protobuf.Timestamp
+	94,  // 67: tanvo.invoice.v1.OneOffFee.period:type_name -> tanvo.common.v1.DateTimeRange
+	95,  // 68: tanvo.invoice.v1.PreviewSubscription.subscription_at:type_name -> google.protobuf.Timestamp
+	20,  // 69: tanvo.invoice.v1.CreateInvoiceRequest.fees:type_name -> tanvo.invoice.v1.OneOffFee
+	99,  // 70: tanvo.invoice.v1.CreateInvoiceRequest.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
+	17,  // 71: tanvo.invoice.v1.CreateInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
+	17,  // 72: tanvo.invoice.v1.GetInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
+	17,  // 73: tanvo.invoice.v1.ListInvoicesResponse.invoices:type_name -> tanvo.invoice.v1.Invoice
+	17,  // 74: tanvo.invoice.v1.UpdateInvoiceRequest.invoice:type_name -> tanvo.invoice.v1.Invoice
+	101, // 75: tanvo.invoice.v1.UpdateInvoiceRequest.update_mask:type_name -> google.protobuf.FieldMask
+	17,  // 76: tanvo.invoice.v1.UpdateInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
+	17,  // 77: tanvo.invoice.v1.RefreshInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
+	17,  // 78: tanvo.invoice.v1.FinalizeInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
+	17,  // 79: tanvo.invoice.v1.VoidInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
+	21,  // 80: tanvo.invoice.v1.RegenerateInvoiceRequest.fees:type_name -> tanvo.invoice.v1.RegeneratedFee
+	17,  // 81: tanvo.invoice.v1.RegenerateInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
+	17,  // 82: tanvo.invoice.v1.RetryInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
+	99,  // 83: tanvo.invoice.v1.RetryInvoicePaymentRequest.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
+	17,  // 84: tanvo.invoice.v1.RetryInvoiceTaxVoidingResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
+	17,  // 85: tanvo.invoice.v1.LoseInvoiceDisputeResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
+	102, // 86: tanvo.invoice.v1.DownloadInvoiceResponse.pdf:type_name -> tanvo.common.v1.Document
+	102, // 87: tanvo.invoice.v1.DownloadInvoiceResponse.xml:type_name -> tanvo.common.v1.Document
+	22,  // 88: tanvo.invoice.v1.PreviewInvoiceRequest.subscription:type_name -> tanvo.invoice.v1.PreviewSubscription
+	95,  // 89: tanvo.invoice.v1.PreviewInvoiceRequest.terminated_at:type_name -> google.protobuf.Timestamp
+	64,  // 90: tanvo.invoice.v1.PreviewInvoiceRequest.customer:type_name -> tanvo.invoice.v1.PreviewCustomer
+	103, // 91: tanvo.invoice.v1.PreviewInvoiceRequest.coupons:type_name -> tanvo.coupon.v1.Coupon
+	104, // 92: tanvo.invoice.v1.PreviewCustomer.billing_address:type_name -> tanvo.common.v1.Address
+	104, // 93: tanvo.invoice.v1.PreviewCustomer.shipping_address:type_name -> tanvo.common.v1.Address
+	65,  // 94: tanvo.invoice.v1.PreviewCustomer.integration_customers:type_name -> tanvo.invoice.v1.PreviewIntegrationCustomer
+	17,  // 95: tanvo.invoice.v1.PreviewInvoiceResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
+	17,  // 96: tanvo.invoice.v1.SetInvoiceSalesforceIdResponse.invoice:type_name -> tanvo.invoice.v1.Invoice
+	11,  // 97: tanvo.invoice.v1.GetFeeResponse.fee:type_name -> tanvo.invoice.v1.Fee
+	11,  // 98: tanvo.invoice.v1.ListFeesResponse.fees:type_name -> tanvo.invoice.v1.Fee
+	11,  // 99: tanvo.invoice.v1.UpdateFeeRequest.fee:type_name -> tanvo.invoice.v1.Fee
+	101, // 100: tanvo.invoice.v1.UpdateFeeRequest.update_mask:type_name -> google.protobuf.FieldMask
+	11,  // 101: tanvo.invoice.v1.UpdateFeeResponse.fee:type_name -> tanvo.invoice.v1.Fee
+	11,  // 102: tanvo.invoice.v1.DeleteFeeResponse.fee:type_name -> tanvo.invoice.v1.Fee
+	7,   // 103: tanvo.invoice.v1.AdjustFeeRequest.mode:type_name -> tanvo.invoice.v1.FeeAdjustmentMode
+	11,  // 104: tanvo.invoice.v1.AdjustFeeResponse.fee:type_name -> tanvo.invoice.v1.Fee
+	11,  // 105: tanvo.invoice.v1.DeleteFeeAdjustmentResponse.fee:type_name -> tanvo.invoice.v1.Fee
+	19,  // 106: tanvo.invoice.v1.CreateInvoiceCustomSectionRequest.invoice_custom_section:type_name -> tanvo.invoice.v1.InvoiceCustomSection
+	19,  // 107: tanvo.invoice.v1.CreateInvoiceCustomSectionResponse.invoice_custom_section:type_name -> tanvo.invoice.v1.InvoiceCustomSection
+	19,  // 108: tanvo.invoice.v1.GetInvoiceCustomSectionResponse.invoice_custom_section:type_name -> tanvo.invoice.v1.InvoiceCustomSection
+	19,  // 109: tanvo.invoice.v1.ListInvoiceCustomSectionsResponse.invoice_custom_sections:type_name -> tanvo.invoice.v1.InvoiceCustomSection
+	19,  // 110: tanvo.invoice.v1.UpdateInvoiceCustomSectionRequest.invoice_custom_section:type_name -> tanvo.invoice.v1.InvoiceCustomSection
+	101, // 111: tanvo.invoice.v1.UpdateInvoiceCustomSectionRequest.update_mask:type_name -> google.protobuf.FieldMask
+	19,  // 112: tanvo.invoice.v1.UpdateInvoiceCustomSectionResponse.invoice_custom_section:type_name -> tanvo.invoice.v1.InvoiceCustomSection
+	23,  // 113: tanvo.invoice.v1.InvoiceService.CreateInvoice:input_type -> tanvo.invoice.v1.CreateInvoiceRequest
+	25,  // 114: tanvo.invoice.v1.InvoiceService.GetInvoice:input_type -> tanvo.invoice.v1.GetInvoiceRequest
+	27,  // 115: tanvo.invoice.v1.InvoiceService.ListInvoices:input_type -> tanvo.invoice.v1.ListInvoicesRequest
+	29,  // 116: tanvo.invoice.v1.InvoiceService.UpdateInvoice:input_type -> tanvo.invoice.v1.UpdateInvoiceRequest
+	31,  // 117: tanvo.invoice.v1.InvoiceService.DeleteInvoice:input_type -> tanvo.invoice.v1.DeleteInvoiceRequest
+	33,  // 118: tanvo.invoice.v1.InvoiceService.RefreshInvoice:input_type -> tanvo.invoice.v1.RefreshInvoiceRequest
+	35,  // 119: tanvo.invoice.v1.InvoiceService.FinalizeInvoice:input_type -> tanvo.invoice.v1.FinalizeInvoiceRequest
+	37,  // 120: tanvo.invoice.v1.InvoiceService.FinalizeAllInvoices:input_type -> tanvo.invoice.v1.FinalizeAllInvoicesRequest
+	39,  // 121: tanvo.invoice.v1.InvoiceService.VoidInvoice:input_type -> tanvo.invoice.v1.VoidInvoiceRequest
+	41,  // 122: tanvo.invoice.v1.InvoiceService.RegenerateInvoice:input_type -> tanvo.invoice.v1.RegenerateInvoiceRequest
+	43,  // 123: tanvo.invoice.v1.InvoiceService.RetryInvoice:input_type -> tanvo.invoice.v1.RetryInvoiceRequest
+	45,  // 124: tanvo.invoice.v1.InvoiceService.RetryInvoicePayment:input_type -> tanvo.invoice.v1.RetryInvoicePaymentRequest
+	47,  // 125: tanvo.invoice.v1.InvoiceService.RetryAllInvoices:input_type -> tanvo.invoice.v1.RetryAllInvoicesRequest
+	49,  // 126: tanvo.invoice.v1.InvoiceService.RetryAllInvoicePayments:input_type -> tanvo.invoice.v1.RetryAllInvoicePaymentsRequest
+	51,  // 127: tanvo.invoice.v1.InvoiceService.RetryInvoiceSync:input_type -> tanvo.invoice.v1.RetryInvoiceSyncRequest
+	53,  // 128: tanvo.invoice.v1.InvoiceService.RetryInvoiceTaxVoiding:input_type -> tanvo.invoice.v1.RetryInvoiceTaxVoidingRequest
+	55,  // 129: tanvo.invoice.v1.InvoiceService.LoseInvoiceDispute:input_type -> tanvo.invoice.v1.LoseInvoiceDisputeRequest
+	57,  // 130: tanvo.invoice.v1.InvoiceService.DownloadInvoice:input_type -> tanvo.invoice.v1.DownloadInvoiceRequest
+	59,  // 131: tanvo.invoice.v1.InvoiceService.ResendInvoice:input_type -> tanvo.invoice.v1.ResendInvoiceRequest
+	61,  // 132: tanvo.invoice.v1.InvoiceService.GenerateInvoicePaymentUrl:input_type -> tanvo.invoice.v1.GenerateInvoicePaymentUrlRequest
+	63,  // 133: tanvo.invoice.v1.InvoiceService.PreviewInvoice:input_type -> tanvo.invoice.v1.PreviewInvoiceRequest
+	67,  // 134: tanvo.invoice.v1.InvoiceService.SetInvoiceSalesforceId:input_type -> tanvo.invoice.v1.SetInvoiceSalesforceIdRequest
+	69,  // 135: tanvo.invoice.v1.FeeService.GetFee:input_type -> tanvo.invoice.v1.GetFeeRequest
+	71,  // 136: tanvo.invoice.v1.FeeService.ListFees:input_type -> tanvo.invoice.v1.ListFeesRequest
+	73,  // 137: tanvo.invoice.v1.FeeService.UpdateFee:input_type -> tanvo.invoice.v1.UpdateFeeRequest
+	75,  // 138: tanvo.invoice.v1.FeeService.DeleteFee:input_type -> tanvo.invoice.v1.DeleteFeeRequest
+	77,  // 139: tanvo.invoice.v1.FeeService.AdjustFee:input_type -> tanvo.invoice.v1.AdjustFeeRequest
+	79,  // 140: tanvo.invoice.v1.FeeService.DeleteFeeAdjustment:input_type -> tanvo.invoice.v1.DeleteFeeAdjustmentRequest
+	81,  // 141: tanvo.invoice.v1.InvoiceCustomSectionService.CreateInvoiceCustomSection:input_type -> tanvo.invoice.v1.CreateInvoiceCustomSectionRequest
+	83,  // 142: tanvo.invoice.v1.InvoiceCustomSectionService.GetInvoiceCustomSection:input_type -> tanvo.invoice.v1.GetInvoiceCustomSectionRequest
+	85,  // 143: tanvo.invoice.v1.InvoiceCustomSectionService.ListInvoiceCustomSections:input_type -> tanvo.invoice.v1.ListInvoiceCustomSectionsRequest
+	87,  // 144: tanvo.invoice.v1.InvoiceCustomSectionService.UpdateInvoiceCustomSection:input_type -> tanvo.invoice.v1.UpdateInvoiceCustomSectionRequest
+	89,  // 145: tanvo.invoice.v1.InvoiceCustomSectionService.DeleteInvoiceCustomSection:input_type -> tanvo.invoice.v1.DeleteInvoiceCustomSectionRequest
+	24,  // 146: tanvo.invoice.v1.InvoiceService.CreateInvoice:output_type -> tanvo.invoice.v1.CreateInvoiceResponse
+	26,  // 147: tanvo.invoice.v1.InvoiceService.GetInvoice:output_type -> tanvo.invoice.v1.GetInvoiceResponse
+	28,  // 148: tanvo.invoice.v1.InvoiceService.ListInvoices:output_type -> tanvo.invoice.v1.ListInvoicesResponse
+	30,  // 149: tanvo.invoice.v1.InvoiceService.UpdateInvoice:output_type -> tanvo.invoice.v1.UpdateInvoiceResponse
+	32,  // 150: tanvo.invoice.v1.InvoiceService.DeleteInvoice:output_type -> tanvo.invoice.v1.DeleteInvoiceResponse
+	34,  // 151: tanvo.invoice.v1.InvoiceService.RefreshInvoice:output_type -> tanvo.invoice.v1.RefreshInvoiceResponse
+	36,  // 152: tanvo.invoice.v1.InvoiceService.FinalizeInvoice:output_type -> tanvo.invoice.v1.FinalizeInvoiceResponse
+	38,  // 153: tanvo.invoice.v1.InvoiceService.FinalizeAllInvoices:output_type -> tanvo.invoice.v1.FinalizeAllInvoicesResponse
+	40,  // 154: tanvo.invoice.v1.InvoiceService.VoidInvoice:output_type -> tanvo.invoice.v1.VoidInvoiceResponse
+	42,  // 155: tanvo.invoice.v1.InvoiceService.RegenerateInvoice:output_type -> tanvo.invoice.v1.RegenerateInvoiceResponse
+	44,  // 156: tanvo.invoice.v1.InvoiceService.RetryInvoice:output_type -> tanvo.invoice.v1.RetryInvoiceResponse
+	46,  // 157: tanvo.invoice.v1.InvoiceService.RetryInvoicePayment:output_type -> tanvo.invoice.v1.RetryInvoicePaymentResponse
+	48,  // 158: tanvo.invoice.v1.InvoiceService.RetryAllInvoices:output_type -> tanvo.invoice.v1.RetryAllInvoicesResponse
+	50,  // 159: tanvo.invoice.v1.InvoiceService.RetryAllInvoicePayments:output_type -> tanvo.invoice.v1.RetryAllInvoicePaymentsResponse
+	52,  // 160: tanvo.invoice.v1.InvoiceService.RetryInvoiceSync:output_type -> tanvo.invoice.v1.RetryInvoiceSyncResponse
+	54,  // 161: tanvo.invoice.v1.InvoiceService.RetryInvoiceTaxVoiding:output_type -> tanvo.invoice.v1.RetryInvoiceTaxVoidingResponse
+	56,  // 162: tanvo.invoice.v1.InvoiceService.LoseInvoiceDispute:output_type -> tanvo.invoice.v1.LoseInvoiceDisputeResponse
+	58,  // 163: tanvo.invoice.v1.InvoiceService.DownloadInvoice:output_type -> tanvo.invoice.v1.DownloadInvoiceResponse
+	60,  // 164: tanvo.invoice.v1.InvoiceService.ResendInvoice:output_type -> tanvo.invoice.v1.ResendInvoiceResponse
+	62,  // 165: tanvo.invoice.v1.InvoiceService.GenerateInvoicePaymentUrl:output_type -> tanvo.invoice.v1.GenerateInvoicePaymentUrlResponse
+	66,  // 166: tanvo.invoice.v1.InvoiceService.PreviewInvoice:output_type -> tanvo.invoice.v1.PreviewInvoiceResponse
+	68,  // 167: tanvo.invoice.v1.InvoiceService.SetInvoiceSalesforceId:output_type -> tanvo.invoice.v1.SetInvoiceSalesforceIdResponse
+	70,  // 168: tanvo.invoice.v1.FeeService.GetFee:output_type -> tanvo.invoice.v1.GetFeeResponse
+	72,  // 169: tanvo.invoice.v1.FeeService.ListFees:output_type -> tanvo.invoice.v1.ListFeesResponse
+	74,  // 170: tanvo.invoice.v1.FeeService.UpdateFee:output_type -> tanvo.invoice.v1.UpdateFeeResponse
+	76,  // 171: tanvo.invoice.v1.FeeService.DeleteFee:output_type -> tanvo.invoice.v1.DeleteFeeResponse
+	78,  // 172: tanvo.invoice.v1.FeeService.AdjustFee:output_type -> tanvo.invoice.v1.AdjustFeeResponse
+	80,  // 173: tanvo.invoice.v1.FeeService.DeleteFeeAdjustment:output_type -> tanvo.invoice.v1.DeleteFeeAdjustmentResponse
+	82,  // 174: tanvo.invoice.v1.InvoiceCustomSectionService.CreateInvoiceCustomSection:output_type -> tanvo.invoice.v1.CreateInvoiceCustomSectionResponse
+	84,  // 175: tanvo.invoice.v1.InvoiceCustomSectionService.GetInvoiceCustomSection:output_type -> tanvo.invoice.v1.GetInvoiceCustomSectionResponse
+	86,  // 176: tanvo.invoice.v1.InvoiceCustomSectionService.ListInvoiceCustomSections:output_type -> tanvo.invoice.v1.ListInvoiceCustomSectionsResponse
+	88,  // 177: tanvo.invoice.v1.InvoiceCustomSectionService.UpdateInvoiceCustomSection:output_type -> tanvo.invoice.v1.UpdateInvoiceCustomSectionResponse
+	90,  // 178: tanvo.invoice.v1.InvoiceCustomSectionService.DeleteInvoiceCustomSection:output_type -> tanvo.invoice.v1.DeleteInvoiceCustomSectionResponse
+	146, // [146:179] is the sub-list for method output_type
+	113, // [113:146] is the sub-list for method input_type
+	113, // [113:113] is the sub-list for extension type_name
+	113, // [113:113] is the sub-list for extension extendee
+	0,   // [0:113] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_invoice_v1_invoice_proto_init() }

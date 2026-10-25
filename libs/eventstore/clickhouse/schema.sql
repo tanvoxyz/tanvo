@@ -59,6 +59,10 @@ CREATE TABLE IF NOT EXISTS events_enriched (
     value Nullable(String),
     decimal_value Nullable(Decimal(38, 26)) DEFAULT toDecimal128OrZero(value, 26),
     enriched_at DateTime64(6, 'UTC') DEFAULT now64(6),
+    -- The attribution labels of the event, by attribution type code, that
+    -- attributed usage groups by (metering.AttributedQuery); nothing
+    -- writes them yet.
+    attribution_labels Map(String, String),
     -- The bucket repair sweep selects the events by sequence.
     INDEX sequence_minmax sequence TYPE minmax GRANULARITY 1
 )
@@ -72,6 +76,8 @@ ALTER TABLE events_enriched ADD COLUMN IF NOT EXISTS value Nullable(String) AFTE
 ALTER TABLE events_enriched ADD COLUMN IF NOT EXISTS decimal_value Nullable(Decimal(38, 26)) DEFAULT toDecimal128OrZero(value, 26) AFTER value
 ;
 ALTER TABLE events_enriched ADD COLUMN IF NOT EXISTS enriched_at DateTime64(6, 'UTC') DEFAULT now64(6) AFTER decimal_value
+;
+ALTER TABLE events_enriched ADD COLUMN IF NOT EXISTS attribution_labels Map(String, String) AFTER enriched_at
 ;
 -- Usage bucket definitions: the buckets the store maintains for an
 -- organization's billable metric code (see metering.BucketDefinition). A
@@ -167,4 +173,70 @@ CREATE TABLE IF NOT EXISTS events_dead_letter (
 )
 ENGINE = MergeTree
 ORDER BY (organization_id, subscription_id, code, transaction_id, timestamp, ingested_at)
+;
+-- The audit logs (parity §1.45) of installations running ClickHouse: the
+-- security, API and activity logs moved here from PostgreSQL, which holds
+-- them in the transaction of their change until they are moved
+-- (LogStore). The columns follow lago's log tables; maps hold each
+-- top-level key with its value in JSON. ReplacingMergeTree keeps one row
+-- per log, so that a move retried after its insert stores no duplicate;
+-- the sorting key puts the logs of an organization in time order for the
+-- lists, newest first. Reads are FINAL. There is no TTL: retention is
+-- applied by the queries, as in lago.
+CREATE TABLE IF NOT EXISTS security_logs (
+    organization_id String,
+    log_id String,
+    user_id Nullable(String),
+    api_key_id Nullable(String),
+    log_type String,
+    log_event String,
+    device_info Map(String, String),
+    resources Map(String, String),
+    logged_at DateTime64(6, 'UTC'),
+    created_at DateTime64(6, 'UTC'),
+    INDEX idx_log_id log_id TYPE bloom_filter(0.001) GRANULARITY 1
+)
+ENGINE = ReplacingMergeTree
+ORDER BY (organization_id, logged_at, log_id)
+;
+CREATE TABLE IF NOT EXISTS api_logs (
+    organization_id String,
+    request_id String,
+    api_key_id String,
+    api_version String,
+    client String,
+    request_body Map(String, String),
+    request_response Map(String, String),
+    request_path String,
+    request_origin String,
+    http_method Enum8('get' = 1, 'post' = 2, 'put' = 3, 'delete' = 4, 'patch' = 5),
+    http_status Int32,
+    logged_at DateTime64(6, 'UTC'),
+    created_at DateTime64(6, 'UTC'),
+    INDEX idx_request_id request_id TYPE bloom_filter(0.001) GRANULARITY 1
+)
+ENGINE = ReplacingMergeTree
+ORDER BY (organization_id, logged_at, request_id)
+;
+CREATE TABLE IF NOT EXISTS activity_logs (
+    organization_id String,
+    activity_id String,
+    user_id Nullable(String),
+    api_key_id Nullable(String),
+    external_customer_id Nullable(String),
+    external_subscription_id Nullable(String),
+    activity_type String,
+    activity_source Enum8('api' = 1, 'front' = 2, 'system' = 3),
+    activity_object Map(String, String),
+    activity_object_changes Map(String, String),
+    resource_id String,
+    resource_type String,
+    logged_at DateTime64(6, 'UTC'),
+    created_at DateTime64(6, 'UTC'),
+    INDEX idx_activity_id activity_id TYPE bloom_filter(0.001) GRANULARITY 1,
+    INDEX idx_external_customer_id external_customer_id TYPE bloom_filter(0.001) GRANULARITY 1,
+    INDEX idx_external_subscription_id external_subscription_id TYPE bloom_filter(0.001) GRANULARITY 1
+)
+ENGINE = ReplacingMergeTree
+ORDER BY (organization_id, logged_at, activity_id)
 ;

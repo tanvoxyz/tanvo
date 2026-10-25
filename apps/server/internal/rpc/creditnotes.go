@@ -74,7 +74,7 @@ var (
 // cnFilterFields are the fields ListCreditNotes filters on; issuing_date
 // and amount also take >= and <=.
 var cnFilterFields = []string{
-	"credit_status", "refund_status", "reason", "currency", "billing_entity_id", "self_billed",
+	"invoice_id", "credit_status", "refund_status", "reason", "currency", "billing_entity_id", "self_billed",
 	"invoice_number", "purchase_order_number", "type", "issuing_date", "amount",
 }
 
@@ -127,7 +127,11 @@ func (s *CreditNotes) CreateCreditNote(ctx context.Context, req *creditnotev1.Cr
 	if err != nil {
 		return nil, cnError(ctx, err)
 	}
-	return creditnotev1.CreateCreditNoteResponse_builder{CreditNote: creditNote(cn)}.Build(), nil
+	m, err := s.proto(ctx, p.OrganizationID, cn)
+	if err != nil {
+		return nil, err
+	}
+	return creditnotev1.CreateCreditNoteResponse_builder{CreditNote: m}.Build(), nil
 }
 
 // EstimateCreditNote implements CreditNoteService.EstimateCreditNote (lago
@@ -156,8 +160,12 @@ func (s *CreditNotes) EstimateCreditNote(ctx context.Context, req *creditnotev1.
 		}
 		return nil, Error(ctx, err)
 	}
+	views, err := s.svc.Views(ctx, p.OrganizationID, est.CreditNote)
+	if err != nil {
+		return nil, Error(ctx, err)
+	}
 	return creditnotev1.EstimateCreditNoteResponse_builder{
-		CreditNote:           creditNote(est.CreditNote),
+		CreditNote:           creditNoteView(views[0], nil),
 		MaxCreditableAmount:  Money(est.MaxCreditable, c),
 		MaxRefundableAmount:  Money(est.MaxRefundable, c),
 		MaxOffsettableAmount: Money(est.MaxOffsettable, c),
@@ -179,7 +187,11 @@ func (s *CreditNotes) GetCreditNote(ctx context.Context, req *creditnotev1.GetCr
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
-	return creditnotev1.GetCreditNoteResponse_builder{CreditNote: creditNote(cn)}.Build(), nil
+	m, err := s.proto(ctx, p.OrganizationID, cn)
+	if err != nil {
+		return nil, err
+	}
+	return creditnotev1.GetCreditNoteResponse_builder{CreditNote: m}.Build(), nil
 }
 
 // ListCreditNotes implements CreditNoteService.ListCreditNotes: the
@@ -191,7 +203,17 @@ func (s *CreditNotes) ListCreditNotes(ctx context.Context, req *creditnotev1.Lis
 	if err != nil {
 		return nil, err
 	}
-	f, err := cnListFilter(req.GetFilter())
+	f, err := cnListFilter(req.GetFilter(), func(vs []string) ([]core.BillingEntityID, error) {
+		rs, err := CatalogRefs(FilterField, vs)
+		if err != nil {
+			return nil, err
+		}
+		ids, err := s.svc.BillingEntityIDs(ctx, p.OrganizationID, rs)
+		if err != nil {
+			return nil, Error(ctx, err)
+		}
+		return ids, nil
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -218,8 +240,12 @@ func (s *CreditNotes) ListCreditNotes(ctx context.Context, req *creditnotev1.Lis
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
+	ms, err := s.protos(ctx, p.OrganizationID, page.Items...)
+	if err != nil {
+		return nil, Error(ctx, err)
+	}
 	return creditnotev1.ListCreditNotesResponse_builder{
-		CreditNotes:   Items(page, creditNote),
+		CreditNotes:   ms,
 		NextPageToken: new(page.NextToken),
 	}.Build(), nil
 }
@@ -267,7 +293,11 @@ func (s *CreditNotes) UpdateCreditNote(ctx context.Context, req *creditnotev1.Up
 	if err != nil {
 		return nil, cnError(ctx, err)
 	}
-	return creditnotev1.UpdateCreditNoteResponse_builder{CreditNote: creditNote(cn)}.Build(), nil
+	m, err := s.proto(ctx, p.OrganizationID, cn)
+	if err != nil {
+		return nil, err
+	}
+	return creditnotev1.UpdateCreditNoteResponse_builder{CreditNote: m}.Build(), nil
 }
 
 // VoidCreditNote implements CreditNoteService.VoidCreditNote (lago
@@ -285,7 +315,11 @@ func (s *CreditNotes) VoidCreditNote(ctx context.Context, req *creditnotev1.Void
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
-	return creditnotev1.VoidCreditNoteResponse_builder{CreditNote: creditNote(cn)}.Build(), nil
+	m, err := s.proto(ctx, p.OrganizationID, cn)
+	if err != nil {
+		return nil, err
+	}
+	return creditnotev1.VoidCreditNoteResponse_builder{CreditNote: m}.Build(), nil
 }
 
 // DownloadCreditNote implements CreditNoteService.DownloadCreditNote: when
@@ -383,10 +417,11 @@ func cnAmount(field string, m *commonv1.Money, c money.Currency) (int64, error) 
 }
 
 // cnListFilter parses the filter of ListCreditNotes: equalities on
-// cnFilterFields, and ranges on issuing_date and amount.
-func cnListFilter(s string) (creditnote.Filter, error) {
+// cnFilterFields, and ranges on issuing_date and amount. entities resolves
+// the billing_entity_id values.
+func cnListFilter(filter string, entities func([]string) ([]core.BillingEntityID, error)) (creditnote.Filter, error) {
 	var f creditnote.Filter
-	e, err := ParseFilter(s)
+	e, err := ParseFilter(filter)
 	if err != nil || e == nil {
 		return f, err
 	}
@@ -449,12 +484,17 @@ func cnListFilter(s string) (creditnote.Filter, error) {
 			return f, filterError(fmt.Sprintf("field \"currency\": unknown currency %q", v))
 		}
 	}
-	for _, v := range eq["billing_entity_id"] {
-		id, err := core.ParseID[core.BillingEntityID](v)
-		if err != nil {
-			return f, filterError(fmt.Sprintf("field \"billing_entity_id\": invalid ID %q", v))
+	if vs := eq["billing_entity_id"]; len(vs) > 0 {
+		if f.BillingEntityIDs, err = entities(vs); err != nil {
+			return f, err
 		}
-		f.BillingEntityIDs = append(f.BillingEntityIDs, id)
+	}
+	if v, err := FilterSingle("invoice_id", eq["invoice_id"]); err != nil {
+		return f, err
+	} else if v != "" {
+		if f.InvoiceID, err = core.ParseID[core.InvoiceID](v); err != nil {
+			return f, filterError(fmt.Sprintf("field \"invoice_id\": invalid ID %q", v))
+		}
 	}
 	if f.SelfBilled, err = FilterBool("self_billed", eq["self_billed"]); err != nil {
 		return f, err
@@ -466,6 +506,19 @@ func cnListFilter(s string) (creditnote.Filter, error) {
 		return f, err
 	}
 	return f, nil
+}
+
+// billingEntityIDs parses billing entity IDs of a filter.
+func billingEntityIDs(vs []string) ([]core.BillingEntityID, error) {
+	ids := make([]core.BillingEntityID, len(vs))
+	for i, v := range vs {
+		id, err := core.ParseID[core.BillingEntityID](v)
+		if err != nil {
+			return nil, filterError(fmt.Sprintf("field \"billing_entity_id\": invalid ID %q", v))
+		}
+		ids[i] = id
+	}
+	return ids, nil
 }
 
 // cnRange applies an issuing_date (YYYY-MM-DD) or amount (minor units)
@@ -518,6 +571,7 @@ func creditNote(cn *creditnote.CreditNote) *creditnotev1.CreditNote {
 	items := make([]*creditnotev1.CreditNoteItem, len(cn.Items))
 	for i, it := range cn.Items {
 		items[i] = creditnotev1.CreditNoteItem_builder{
+			Id:            new(it.ID.String()),
 			FeeId:         new(it.FeeID.String()),
 			Amount:        new(c.FromMinor(it.Amount).StringFixed(c.Exponent())),
 			PreciseAmount: new(Decimal(c.MinorToUnits(it.PreciseAmount))),
@@ -526,40 +580,47 @@ func creditNote(cn *creditnote.CreditNote) *creditnotev1.CreditNote {
 	taxes := make([]*creditnotev1.CreditNoteAppliedTax, len(cn.AppliedTaxes))
 	for i, t := range cn.AppliedTaxes {
 		taxes[i] = creditnotev1.CreditNoteAppliedTax_builder{
-			TaxId:      new(t.TaxID.String()),
-			TaxCode:    new(t.TaxCode),
-			TaxName:    new(t.TaxName),
-			TaxRate:    new(Decimal(t.TaxRate)),
-			BaseAmount: Money(t.BaseAmount, c),
-			Amount:     Money(t.Amount, c),
+			Id:             new(t.ID.String()),
+			TaxId:          new(t.TaxID.String()),
+			TaxCode:        new(t.TaxCode),
+			TaxName:        new(t.TaxName),
+			TaxDescription: t.TaxDescription,
+			TaxRate:        new(Decimal(t.TaxRate)),
+			BaseAmount:     Money(t.BaseAmount, c),
+			Amount:         Money(t.Amount, c),
 		}.Build()
 	}
 	b := creditnotev1.CreditNote_builder{
-		Id:                           new(cn.ID.String()),
-		InvoiceId:                    new(cn.InvoiceID.String()),
-		CustomerId:                   new(cn.CustomerID.String()),
-		Number:                       new(cn.Number),
-		Status:                       new(cnStatuses.Proto(cn.Status)),
-		Reason:                       new(cnReasons.Proto(cn.Reason)),
-		Description:                  cn.Description,
-		CreditAmount:                 Money(cn.CreditAmount, c),
-		RefundAmount:                 Money(cn.RefundAmount, c),
-		OffsetAmount:                 Money(cn.OffsetAmount, c),
-		BalanceAmount:                Money(cn.BalanceAmount, c),
-		SubTotalExcludingTaxesAmount: Money(cn.SubTotalExcludingTaxesAmount, c),
-		CouponsAdjustmentAmount:      Money(cn.CouponsAdjustmentAmount, c),
-		TaxesAmount:                  Money(cn.TaxesAmount, c),
-		TaxesRate:                    new(Decimal(cn.TaxesRate)),
-		TotalAmount:                  Money(cn.TotalAmount, c),
-		Items:                        items,
-		AppliedTaxes:                 taxes,
-		Metadata:                     Metadata(cn.Metadata),
-		FileAvailable:                new(!cn.File.IsZero()),
-		XmlFileAvailable:             new(!cn.XMLFile.IsZero()),
-		RefundedAt:                   TimestampPtr(cn.RefundedAt),
-		VoidedAt:                     TimestampPtr(cn.VoidedAt),
-		CreatedAt:                    Timestamp(cn.CreatedAt),
-		UpdatedAt:                    Timestamp(cn.UpdatedAt),
+		Id:                             new(cn.ID.String()),
+		InvoiceId:                      new(cn.InvoiceID.String()),
+		CustomerId:                     new(cn.CustomerID.String()),
+		Number:                         new(cn.Number),
+		Status:                         new(cnStatuses.Proto(cn.Status)),
+		Reason:                         new(cnReasons.Proto(cn.Reason)),
+		Description:                    cn.Description,
+		CreditAmount:                   Money(cn.CreditAmount, c),
+		RefundAmount:                   Money(cn.RefundAmount, c),
+		OffsetAmount:                   Money(cn.OffsetAmount, c),
+		BalanceAmount:                  Money(cn.BalanceAmount, c),
+		SubTotalExcludingTaxesAmount:   Money(cn.SubTotalExcludingTaxesAmount, c),
+		CouponsAdjustmentAmount:        Money(cn.CouponsAdjustmentAmount, c),
+		TaxesAmount:                    Money(cn.TaxesAmount, c),
+		TaxesRate:                      new(Decimal(cn.TaxesRate)),
+		TotalAmount:                    Money(cn.TotalAmount, c),
+		Items:                          items,
+		AppliedTaxes:                   taxes,
+		Metadata:                       Metadata(cn.Metadata),
+		FileAvailable:                  new(!cn.File.IsZero()),
+		XmlFileAvailable:               new(!cn.XMLFile.IsZero()),
+		RefundedAt:                     TimestampPtr(cn.RefundedAt),
+		VoidedAt:                       TimestampPtr(cn.VoidedAt),
+		CreatedAt:                      Timestamp(cn.CreatedAt),
+		UpdatedAt:                      Timestamp(cn.UpdatedAt),
+		SequentialId:                   new(cn.SequentialID),
+		PreciseTaxesAmount:             new(Decimal(c.MinorToUnits(cn.PreciseTaxesAmount))),
+		PreciseCouponsAdjustmentAmount: new(Decimal(c.MinorToUnits(cn.PreciseCouponsAdjustmentAmount))),
+		PreciseTotalAmount:             new(Decimal(c.MinorToUnits(cn.PreciseTotal()))),
+		Voidable:                       new(cn.Voidable()),
 	}
 	if !cn.IssuingDate.IsZero() {
 		b.IssuingDate = Date(cn.IssuingDate)
@@ -578,6 +639,58 @@ func creditNote(cn *creditnote.CreditNote) *creditnotev1.CreditNote {
 		}.Build())
 	}
 	return b.Build()
+}
+
+// creditNoteView converts a credit note with what it takes from its
+// invoice and, when known, its integrations to its proto message.
+func creditNoteView(v creditnotes.View, sync *integrations.CreditNoteSync) *creditnotev1.CreditNote {
+	m := creditNote(v.CreditNote)
+	m.SetInvoiceNumber(v.InvoiceNumber)
+	m.SetPurchaseOrderNumber(v.PurchaseOrderNumber)
+	if !v.BillingEntityID.IsZero() {
+		m.SetBillingEntityId(v.BillingEntityID.String())
+	}
+	m.SetSelfBilled(v.SelfBilled)
+	m.SetTaxProviderSyncable(v.TaxProviderSyncable)
+	if sync != nil {
+		m.SetIntegrationSyncable(sync.Syncable)
+		m.SetExternalIntegrationId(sync.ExternalID)
+		m.SetTaxProviderId(sync.TaxProviderID)
+	}
+	return m
+}
+
+// protos converts the stored credit notes cns of org to their proto
+// messages, with their invoice and integration state.
+func (s *CreditNotes) protos(ctx context.Context, org core.OrganizationID, cns ...*creditnote.CreditNote) ([]*creditnotev1.CreditNote, error) {
+	views, err := s.svc.Views(ctx, org, cns...)
+	if err != nil {
+		return nil, err
+	}
+	var syncs []integrations.CreditNoteSync
+	if s.integ != nil {
+		if syncs, err = s.integ.CreditNoteSyncs(ctx, org, cns...); err != nil {
+			return nil, err
+		}
+	}
+	out := make([]*creditnotev1.CreditNote, len(views))
+	for i, v := range views {
+		var sync *integrations.CreditNoteSync
+		if syncs != nil {
+			sync = &syncs[i]
+		}
+		out[i] = creditNoteView(v, sync)
+	}
+	return out, nil
+}
+
+// proto converts the stored credit note cn of org to its proto message.
+func (s *CreditNotes) proto(ctx context.Context, org core.OrganizationID, cn *creditnote.CreditNote) (*creditnotev1.CreditNote, error) {
+	ms, err := s.protos(ctx, org, cn)
+	if err != nil {
+		return nil, Error(ctx, err)
+	}
+	return ms[0], nil
 }
 
 // cnErrorCodes maps the credit note error codes.

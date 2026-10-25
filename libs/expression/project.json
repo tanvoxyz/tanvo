@@ -10,6 +10,38 @@
       "cache": true,
       "inputs": ["rust", "{projectRoot}/scripts/build-wasm.mjs", { "env": "RUSTFLAGS" }],
       "outputs": ["{projectRoot}/go/expression.wasm"]
+    },
+    "wasm-js": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/build-js.mjs web",
+        "cwd": "{projectRoot}"
+      },
+      "cache": true,
+      "inputs": [
+        "rust",
+        "{projectRoot}/js/Cargo.lock",
+        "{projectRoot}/js/rust-toolchain.toml",
+        "{projectRoot}/scripts/build-js.mjs",
+        { "env": "RUSTFLAGS" }
+      ],
+      "outputs": ["{projectRoot}/js/pkg"]
+    },
+    "test-js": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["node scripts/build-js.mjs nodejs", "node --test js/test/"],
+        "parallel": false,
+        "cwd": "{projectRoot}"
+      },
+      "cache": true,
+      "inputs": [
+        "rust",
+        "{projectRoot}/js/Cargo.lock",
+        "{projectRoot}/js/rust-toolchain.toml",
+        "{projectRoot}/js/test/**/*",
+        "{projectRoot}/scripts/build-js.mjs"
+      ]
     }
   }
 }

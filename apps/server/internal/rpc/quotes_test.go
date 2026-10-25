@@ -351,3 +351,43 @@ func TestOrdersREST(t *testing.T) {
 		}
 	})
 }
+
+// TestQuoteMentionVariables checks that a version's mention variables are
+// localized in the customer's current document locale, whether frozen at
+// approval or computed live on a draft (lago QuoteVersions::Object
+// mention_variables).
+func TestQuoteMentionVariables(t *testing.T) {
+	t.Parallel()
+	f := newQuoteFixture(t)
+	get := func(t *testing.T, path string) map[string]any {
+		t.Helper()
+		return decode[struct {
+			Version struct {
+				MentionVariables map[string]any `json:"mention_variables"`
+			} `json:"version"`
+		}](t, f.do(t, http.MethodGet, path, nil, http.StatusOK)).Version.MentionVariables
+	}
+	now := f.s.Clock.Now().UTC()
+	frMonths := []string{"janv.", "févr.", "mars", "avr.", "mai", "juin", "juill.", "août", "sept.", "oct.", "nov.", "déc."}
+	draft := f.createQuote(t)
+	draftPath := "/v1/quotes/" + draft.ID + "/versions/" + draft.CurrentVersion.ID
+	tests := []struct {
+		name, path, locale, wantDate string
+	}{
+		{"approved in English", f.versionPath(), "", now.Format("Jan 02, 2006")},
+		{"draft computed live", draftPath, "", now.Format("Jan 02, 2006")},
+		{"re-rendered in the current locale", f.versionPath(), "fr", fmt.Sprintf("%d %s %d", now.Day(), frMonths[now.Month()-1], now.Year())},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.locale != "" {
+				f.s.Fixtures.UpdateCustomer(f.cust, func(c *customer.Customer) { c.DocumentLocale = &tt.locale })
+			}
+			m := get(t, tt.path)
+			if m["quote_date"] != tt.wantDate || m["commercial_terms_payment_terms"] != "Net 0" ||
+				m["quote_number"] == nil || m["customer_name"] == nil || m["commercial_terms_term_duration"] != nil {
+				t.Errorf("got = %v, want = quote_date %q and Net 0 payment terms", m, tt.wantDate)
+			}
+		})
+	}
+}

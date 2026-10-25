@@ -77,7 +77,8 @@ export type Event = Message<"tanvo.event.v1.Event"> & {
   properties?: JsonObject | undefined;
 
   /**
-   * The amount of a dynamic charge, as a decimal.
+   * The amount of a dynamic charge in the currency's minor unit (cents),
+   * as a decimal string that may carry fractions of a cent ("1050.5").
    *
    * @generated from field: string precise_total_amount = 7;
    */
@@ -179,7 +180,8 @@ export type EnrichedEvent = Message<"tanvo.event.v1.EnrichedEvent"> & {
   decimalValue: string;
 
   /**
-   * The decimal value of the dynamic charge amount.
+   * The amount of a dynamic charge in the currency's minor unit (cents),
+   * as a decimal string.
    *
    * @generated from field: string precise_total_amount = 11;
    */

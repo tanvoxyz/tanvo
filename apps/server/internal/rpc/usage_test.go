@@ -73,11 +73,6 @@ func TestGetCurrentUsage(t *testing.T) {
 		CustomerId: new(c.ID.String()), SubscriptionId: new(pending.ID.String()),
 	}.Build())
 	subWantCode(t, err, connect.CodeFailedPrecondition, "no_active_subscription")
-
-	_, err = cl.GetCurrentUsage(t.Context(), usagev1.GetCurrentUsageRequest_builder{
-		CustomerId: new(c.ID.String()), SubscriptionId: new(sub.ID.String()), FilterBy: map[string]string{"region": "eu"},
-	}.Build())
-	subWantCode(t, err, connect.CodeUnimplemented, "")
 }
 
 // source: spec/requests/api/v1/customers/usage_controller_spec.rb:520

@@ -54,6 +54,9 @@ type OrganizationUpdate struct {
 	Logo core.Optional[[]byte]
 	// DocumentNumberPrefix is upper-cased (lago Organization#document_number_prefix=).
 	DocumentNumberPrefix core.Optional[string]
+	// FromEmailEnabled sends document emails from the billing entities'
+	// own addresses ([organization.Organization.FromEmailEnabled]).
+	FromEmailEnabled core.Optional[bool]
 }
 
 // OrganizationSettings reads and changes an organization's identity and
@@ -143,6 +146,9 @@ func (s *OrganizationSettings) Update(ctx context.Context, org core.Organization
 		u.Address.Apply(&o.Address)
 		if u.DocumentNumberPrefix.Set {
 			o.DocumentNumberPrefix = strings.ToUpper(u.DocumentNumberPrefix.Value)
+		}
+		if u.FromEmailEnabled.Set {
+			o.FromEmailEnabled = u.FromEmailEnabled.Value
 		}
 		var additions, deletions []organization.AuthenticationMethod
 		if u.AuthenticationMethods.Set {

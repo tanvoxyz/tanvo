@@ -128,6 +128,11 @@ message Organization {
     min_len: 1
     max_len: 10
   }];
+  // Sends document emails (invoices, credit notes, payment receipts and
+  // payment requests) from the issuing billing entity's email, and makes
+  // the organization's email the reply-to of organization emails; the
+  // instance sender otherwise. Default false.
+  bool from_email_enabled = 14;
 }
 
 // GetOrganizationRequest is the request of OrganizationService.GetOrganization.

@@ -9,7 +9,6 @@ These are the cases of the quote flow specs (`spec/services/quotes/**`, `quote_v
 | `with concurrent mutations` (`wraps the work in a per-quote lock`, `re-checks the status under the lock …`) | The quote lock is taken before the status is read again. A real race needs a PostgreSQL store; the lock is a memstore no-op. |
 | `when the quote lock cannot be acquired` (`returns a concurrency conflict instead of raising`) | Tanvo's lock waits instead of failing fast, so a lock error is returned as is rather than mapped to concurrency_conflict. |
 | `quotes/lock_service_spec.rb` | Lock acquisition is the store's (port.Locker). |
-| `quote_versions/mention_variables_localizer_spec.rb` | Tanvo returns raw mention variables; documents localize them. |
 | `when saving fails` and `when order creation fails` (`rolls back without persisting a blob`, `mark_as_signed_service_spec.rb:228`, `:265`) | The blob is written before the transaction commits; an orphan blob after a rollback is harmless and is not referenced. |
 | `when the … creation fails with a non-validation failure` (`approve_service_spec.rb:150`, `create_service_spec.rb:214`) | These stub the inner service. Tanvo's errors propagate through the transaction, so nothing is persisted. |
 | `orders/execute_service_spec.rb:52`, `:64`, `:85` (`delegates to …`) | The dispatch is internal; the execution of each order type is tested directly. |

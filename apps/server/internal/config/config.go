@@ -197,6 +197,10 @@ type Config struct {
 	// (lago Analytics::Base.cache_expiration, 4 hours); 0 turns the cache
 	// off.
 	AnalyticsCacheTTL time.Duration `koanf:"analytics_cache_ttl"`
+	// UsageCacheEntries bounds the current-usage cache of each server
+	// process, in charge buckets (lago Subscriptions::ChargeCacheService
+	// in the Rails cache); 0 turns the cache off.
+	UsageCacheEntries int `koanf:"usage_cache_entries"`
 
 	// IngestMode is the default ingestion mode, postgres or kafka.
 	IngestMode string `koanf:"ingest_mode"`
@@ -420,6 +424,7 @@ func Defaults() Config {
 		SubscriptionTerminationAlertDays: []int{15, 45},
 		AnrokDraftTaxesCacheTTL:          24 * time.Hour,
 		AnalyticsCacheTTL:                4 * time.Hour,
+		UsageCacheEntries:                100_000,
 	}
 }
 
@@ -570,6 +575,9 @@ func (c Config) Validate() error {
 	}
 	if c.AnalyticsCacheTTL < 0 {
 		bad("analytics_cache_ttl", "must not be negative")
+	}
+	if c.UsageCacheEntries < 0 {
+		bad("usage_cache_entries", "must not be negative")
 	}
 	if c.DatabaseURL == "" {
 		bad("database_url", "required")

@@ -316,7 +316,7 @@ func exportCreditNoteFilter(q exports.Query) (creditnote.Filter, error) {
 		}
 		rest = append(rest, s)
 	}
-	f, err := cnListFilter(strings.Join(rest, " AND "))
+	f, err := cnListFilter(strings.Join(rest, " AND "), billingEntityIDs)
 	if err != nil {
 		return f, err
 	}

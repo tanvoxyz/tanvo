@@ -209,11 +209,13 @@ func (s *Service) Compute(ctx context.Context, org core.OrganizationID, id core.
 		// A subscription terminated after the job was enqueued is
 		// computed at the run's instant, within its last period
 		// (compute_service.rb:58-68).
-		at := s.d.Now()
+		// The cache is skipped then, as its entries are not relevant to
+		// the last period.
+		at, skipCache := s.d.Now(), false
 		if sub.Status == subscription.StatusTerminated && sub.TerminatedAt != nil && sub.TerminatedAt.After(timestamp) {
-			at = timestamp
+			at, skipCache = timestamp, true
 		}
-		u, err := s.usage.EnvUsage(ctx, r, env, usage.Options{SkipTaxes: true, AnyStatus: true, Timestamp: at})
+		u, err := s.usage.EnvUsage(ctx, r, env, usage.Options{SkipTaxes: true, AnyStatus: true, Timestamp: at, SkipCache: skipCache})
 		if err != nil {
 			return nil, err
 		}

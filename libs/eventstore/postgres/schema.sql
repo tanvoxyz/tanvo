@@ -31,8 +31,14 @@ CREATE TABLE IF NOT EXISTS __schema__.events (
     precise_total_amount_cents numeric,
     ingested_at timestamptz NOT NULL,
     sequence bigint NOT NULL,
+    -- When the row was last written: a replacement, which keeps the
+    -- ingestion instant of a re-enriched event, advances it.
+    written_at timestamptz NOT NULL DEFAULT clock_timestamp(),
     PRIMARY KEY (organization_id, subscription_id, code, "timestamp", transaction_id)
 ) PARTITION BY RANGE ("timestamp");
+
+-- written_at postdates the first event stores.
+ALTER TABLE __schema__.events ADD COLUMN IF NOT EXISTS written_at timestamptz NOT NULL DEFAULT clock_timestamp();
 
 -- Charge filters and pricing group values select on properties by
 -- containment (properties @> '{"region":"europe"}').

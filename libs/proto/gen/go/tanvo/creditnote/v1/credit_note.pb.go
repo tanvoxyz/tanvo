@@ -385,6 +385,7 @@ type CreditNoteItem struct {
 	xxx_hidden_FeeId         *string                `protobuf:"bytes,1,opt,name=fee_id,json=feeId"`
 	xxx_hidden_Amount        *string                `protobuf:"bytes,2,opt,name=amount"`
 	xxx_hidden_PreciseAmount *string                `protobuf:"bytes,3,opt,name=precise_amount,json=preciseAmount"`
+	xxx_hidden_Id            *string                `protobuf:"bytes,4,opt,name=id"`
 	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
 	XXX_presence             [1]uint32
 	unknownFields            protoimpl.UnknownFields
@@ -446,19 +447,34 @@ func (x *CreditNoteItem) GetPreciseAmount() string {
 	return ""
 }
 
+func (x *CreditNoteItem) GetId() string {
+	if x != nil {
+		if x.xxx_hidden_Id != nil {
+			return *x.xxx_hidden_Id
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *CreditNoteItem) SetFeeId(v string) {
 	x.xxx_hidden_FeeId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *CreditNoteItem) SetAmount(v string) {
 	x.xxx_hidden_Amount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *CreditNoteItem) SetPreciseAmount(v string) {
 	x.xxx_hidden_PreciseAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *CreditNoteItem) SetId(v string) {
+	x.xxx_hidden_Id = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *CreditNoteItem) HasFeeId() bool {
@@ -482,6 +498,13 @@ func (x *CreditNoteItem) HasPreciseAmount() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *CreditNoteItem) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *CreditNoteItem) ClearFeeId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_FeeId = nil
@@ -497,6 +520,11 @@ func (x *CreditNoteItem) ClearPreciseAmount() {
 	x.xxx_hidden_PreciseAmount = nil
 }
 
+func (x *CreditNoteItem) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Id = nil
+}
+
 type CreditNoteItem_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -504,8 +532,10 @@ type CreditNoteItem_builder struct {
 	FeeId *string
 	// The amount before taxes.
 	Amount *string
-	// The unrounded amount.
+	// The unrounded amount, in the currency's major unit like `amount`.
 	PreciseAmount *string
+	// The item's ID.
+	Id *string
 }
 
 func (b0 CreditNoteItem_builder) Build() *CreditNoteItem {
@@ -513,33 +543,39 @@ func (b0 CreditNoteItem_builder) Build() *CreditNoteItem {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.FeeId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_FeeId = b.FeeId
 	}
 	if b.Amount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_Amount = b.Amount
 	}
 	if b.PreciseAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_PreciseAmount = b.PreciseAmount
+	}
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_Id = b.Id
 	}
 	return m0
 }
 
 // CreditNoteAppliedTax is a tax of a credit note.
 type CreditNoteAppliedTax struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_TaxId       *string                `protobuf:"bytes,1,opt,name=tax_id,json=taxId"`
-	xxx_hidden_TaxCode     *string                `protobuf:"bytes,2,opt,name=tax_code,json=taxCode"`
-	xxx_hidden_TaxName     *string                `protobuf:"bytes,3,opt,name=tax_name,json=taxName"`
-	xxx_hidden_TaxRate     *string                `protobuf:"bytes,4,opt,name=tax_rate,json=taxRate"`
-	xxx_hidden_BaseAmount  *v1.Money              `protobuf:"bytes,5,opt,name=base_amount,json=baseAmount"`
-	xxx_hidden_Amount      *v1.Money              `protobuf:"bytes,6,opt,name=amount"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_TaxId          *string                `protobuf:"bytes,1,opt,name=tax_id,json=taxId"`
+	xxx_hidden_TaxCode        *string                `protobuf:"bytes,2,opt,name=tax_code,json=taxCode"`
+	xxx_hidden_TaxName        *string                `protobuf:"bytes,3,opt,name=tax_name,json=taxName"`
+	xxx_hidden_TaxRate        *string                `protobuf:"bytes,4,opt,name=tax_rate,json=taxRate"`
+	xxx_hidden_BaseAmount     *v1.Money              `protobuf:"bytes,5,opt,name=base_amount,json=baseAmount"`
+	xxx_hidden_Amount         *v1.Money              `protobuf:"bytes,6,opt,name=amount"`
+	xxx_hidden_Id             *string                `protobuf:"bytes,7,opt,name=id"`
+	xxx_hidden_TaxDescription *string                `protobuf:"bytes,8,opt,name=tax_description,json=taxDescription"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *CreditNoteAppliedTax) Reset() {
@@ -621,24 +657,44 @@ func (x *CreditNoteAppliedTax) GetAmount() *v1.Money {
 	return nil
 }
 
+func (x *CreditNoteAppliedTax) GetId() string {
+	if x != nil {
+		if x.xxx_hidden_Id != nil {
+			return *x.xxx_hidden_Id
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreditNoteAppliedTax) GetTaxDescription() string {
+	if x != nil {
+		if x.xxx_hidden_TaxDescription != nil {
+			return *x.xxx_hidden_TaxDescription
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *CreditNoteAppliedTax) SetTaxId(v string) {
 	x.xxx_hidden_TaxId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 8)
 }
 
 func (x *CreditNoteAppliedTax) SetTaxCode(v string) {
 	x.xxx_hidden_TaxCode = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
 }
 
 func (x *CreditNoteAppliedTax) SetTaxName(v string) {
 	x.xxx_hidden_TaxName = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 8)
 }
 
 func (x *CreditNoteAppliedTax) SetTaxRate(v string) {
 	x.xxx_hidden_TaxRate = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
 }
 
 func (x *CreditNoteAppliedTax) SetBaseAmount(v *v1.Money) {
@@ -647,6 +703,16 @@ func (x *CreditNoteAppliedTax) SetBaseAmount(v *v1.Money) {
 
 func (x *CreditNoteAppliedTax) SetAmount(v *v1.Money) {
 	x.xxx_hidden_Amount = v
+}
+
+func (x *CreditNoteAppliedTax) SetId(v string) {
+	x.xxx_hidden_Id = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 8)
+}
+
+func (x *CreditNoteAppliedTax) SetTaxDescription(v string) {
+	x.xxx_hidden_TaxDescription = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 8)
 }
 
 func (x *CreditNoteAppliedTax) HasTaxId() bool {
@@ -691,6 +757,20 @@ func (x *CreditNoteAppliedTax) HasAmount() bool {
 	return x.xxx_hidden_Amount != nil
 }
 
+func (x *CreditNoteAppliedTax) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *CreditNoteAppliedTax) HasTaxDescription() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
+}
+
 func (x *CreditNoteAppliedTax) ClearTaxId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_TaxId = nil
@@ -719,6 +799,16 @@ func (x *CreditNoteAppliedTax) ClearAmount() {
 	x.xxx_hidden_Amount = nil
 }
 
+func (x *CreditNoteAppliedTax) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_Id = nil
+}
+
+func (x *CreditNoteAppliedTax) ClearTaxDescription() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_TaxDescription = nil
+}
+
 type CreditNoteAppliedTax_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -734,6 +824,10 @@ type CreditNoteAppliedTax_builder struct {
 	BaseAmount *v1.Money
 	// The tax amount.
 	Amount *v1.Money
+	// The applied tax's ID.
+	Id *string
+	// The tax description.
+	TaxDescription *string
 }
 
 func (b0 CreditNoteAppliedTax_builder) Build() *CreditNoteAppliedTax {
@@ -741,62 +835,83 @@ func (b0 CreditNoteAppliedTax_builder) Build() *CreditNoteAppliedTax {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.TaxId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 8)
 		x.xxx_hidden_TaxId = b.TaxId
 	}
 	if b.TaxCode != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
 		x.xxx_hidden_TaxCode = b.TaxCode
 	}
 	if b.TaxName != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 8)
 		x.xxx_hidden_TaxName = b.TaxName
 	}
 	if b.TaxRate != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
 		x.xxx_hidden_TaxRate = b.TaxRate
 	}
 	x.xxx_hidden_BaseAmount = b.BaseAmount
 	x.xxx_hidden_Amount = b.Amount
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 8)
+		x.xxx_hidden_Id = b.Id
+	}
+	if b.TaxDescription != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 8)
+		x.xxx_hidden_TaxDescription = b.TaxDescription
+	}
 	return m0
 }
 
 // CreditNote is an amount credited, refunded or offset against an invoice.
 type CreditNote struct {
-	state                                   protoimpl.MessageState   `protogen:"opaque.v1"`
-	xxx_hidden_Id                           *string                  `protobuf:"bytes,1,opt,name=id"`
-	xxx_hidden_InvoiceId                    *string                  `protobuf:"bytes,2,opt,name=invoice_id,json=invoiceId"`
-	xxx_hidden_CustomerId                   *string                  `protobuf:"bytes,3,opt,name=customer_id,json=customerId"`
-	xxx_hidden_Number                       *string                  `protobuf:"bytes,4,opt,name=number"`
-	xxx_hidden_Status                       CreditNoteStatus         `protobuf:"varint,5,opt,name=status,enum=tanvo.creditnote.v1.CreditNoteStatus"`
-	xxx_hidden_CreditStatus                 CreditStatus             `protobuf:"varint,6,opt,name=credit_status,json=creditStatus,enum=tanvo.creditnote.v1.CreditStatus"`
-	xxx_hidden_RefundStatus                 v1.RefundStatus          `protobuf:"varint,7,opt,name=refund_status,json=refundStatus,enum=tanvo.common.v1.RefundStatus"`
-	xxx_hidden_Reason                       CreditNoteReason         `protobuf:"varint,8,opt,name=reason,enum=tanvo.creditnote.v1.CreditNoteReason"`
-	xxx_hidden_Description                  *string                  `protobuf:"bytes,9,opt,name=description"`
-	xxx_hidden_CreditAmount                 *v1.Money                `protobuf:"bytes,10,opt,name=credit_amount,json=creditAmount"`
-	xxx_hidden_RefundAmount                 *v1.Money                `protobuf:"bytes,11,opt,name=refund_amount,json=refundAmount"`
-	xxx_hidden_OffsetAmount                 *v1.Money                `protobuf:"bytes,12,opt,name=offset_amount,json=offsetAmount"`
-	xxx_hidden_BalanceAmount                *v1.Money                `protobuf:"bytes,13,opt,name=balance_amount,json=balanceAmount"`
-	xxx_hidden_SubTotalExcludingTaxesAmount *v1.Money                `protobuf:"bytes,14,opt,name=sub_total_excluding_taxes_amount,json=subTotalExcludingTaxesAmount"`
-	xxx_hidden_CouponsAdjustmentAmount      *v1.Money                `protobuf:"bytes,15,opt,name=coupons_adjustment_amount,json=couponsAdjustmentAmount"`
-	xxx_hidden_TaxesAmount                  *v1.Money                `protobuf:"bytes,16,opt,name=taxes_amount,json=taxesAmount"`
-	xxx_hidden_TaxesRate                    *string                  `protobuf:"bytes,17,opt,name=taxes_rate,json=taxesRate"`
-	xxx_hidden_TotalAmount                  *v1.Money                `protobuf:"bytes,18,opt,name=total_amount,json=totalAmount"`
-	xxx_hidden_Items                        *[]*CreditNoteItem       `protobuf:"bytes,19,rep,name=items"`
-	xxx_hidden_AppliedTaxes                 *[]*CreditNoteAppliedTax `protobuf:"bytes,20,rep,name=applied_taxes,json=appliedTaxes"`
-	xxx_hidden_IssuingDate                  *date.Date               `protobuf:"bytes,21,opt,name=issuing_date,json=issuingDate"`
-	xxx_hidden_Metadata                     *[]*v1.MetadataItem      `protobuf:"bytes,22,rep,name=metadata"`
-	xxx_hidden_FileAvailable                bool                     `protobuf:"varint,23,opt,name=file_available,json=fileAvailable"`
-	xxx_hidden_XmlFileAvailable             bool                     `protobuf:"varint,24,opt,name=xml_file_available,json=xmlFileAvailable"`
-	xxx_hidden_RefundedAt                   *timestamppb.Timestamp   `protobuf:"bytes,25,opt,name=refunded_at,json=refundedAt"`
-	xxx_hidden_VoidedAt                     *timestamppb.Timestamp   `protobuf:"bytes,26,opt,name=voided_at,json=voidedAt"`
-	xxx_hidden_CreatedAt                    *timestamppb.Timestamp   `protobuf:"bytes,27,opt,name=created_at,json=createdAt"`
-	xxx_hidden_UpdatedAt                    *timestamppb.Timestamp   `protobuf:"bytes,28,opt,name=updated_at,json=updatedAt"`
-	xxx_hidden_Errors                       *[]*CreditNoteError      `protobuf:"bytes,29,rep,name=errors"`
-	XXX_raceDetectHookData                  protoimpl.RaceDetectHookData
-	XXX_presence                            [1]uint32
-	unknownFields                           protoimpl.UnknownFields
-	sizeCache                               protoimpl.SizeCache
+	state                                     protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Id                             *string                  `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_InvoiceId                      *string                  `protobuf:"bytes,2,opt,name=invoice_id,json=invoiceId"`
+	xxx_hidden_CustomerId                     *string                  `protobuf:"bytes,3,opt,name=customer_id,json=customerId"`
+	xxx_hidden_Number                         *string                  `protobuf:"bytes,4,opt,name=number"`
+	xxx_hidden_Status                         CreditNoteStatus         `protobuf:"varint,5,opt,name=status,enum=tanvo.creditnote.v1.CreditNoteStatus"`
+	xxx_hidden_CreditStatus                   CreditStatus             `protobuf:"varint,6,opt,name=credit_status,json=creditStatus,enum=tanvo.creditnote.v1.CreditStatus"`
+	xxx_hidden_RefundStatus                   v1.RefundStatus          `protobuf:"varint,7,opt,name=refund_status,json=refundStatus,enum=tanvo.common.v1.RefundStatus"`
+	xxx_hidden_Reason                         CreditNoteReason         `protobuf:"varint,8,opt,name=reason,enum=tanvo.creditnote.v1.CreditNoteReason"`
+	xxx_hidden_Description                    *string                  `protobuf:"bytes,9,opt,name=description"`
+	xxx_hidden_CreditAmount                   *v1.Money                `protobuf:"bytes,10,opt,name=credit_amount,json=creditAmount"`
+	xxx_hidden_RefundAmount                   *v1.Money                `protobuf:"bytes,11,opt,name=refund_amount,json=refundAmount"`
+	xxx_hidden_OffsetAmount                   *v1.Money                `protobuf:"bytes,12,opt,name=offset_amount,json=offsetAmount"`
+	xxx_hidden_BalanceAmount                  *v1.Money                `protobuf:"bytes,13,opt,name=balance_amount,json=balanceAmount"`
+	xxx_hidden_SubTotalExcludingTaxesAmount   *v1.Money                `protobuf:"bytes,14,opt,name=sub_total_excluding_taxes_amount,json=subTotalExcludingTaxesAmount"`
+	xxx_hidden_CouponsAdjustmentAmount        *v1.Money                `protobuf:"bytes,15,opt,name=coupons_adjustment_amount,json=couponsAdjustmentAmount"`
+	xxx_hidden_TaxesAmount                    *v1.Money                `protobuf:"bytes,16,opt,name=taxes_amount,json=taxesAmount"`
+	xxx_hidden_TaxesRate                      *string                  `protobuf:"bytes,17,opt,name=taxes_rate,json=taxesRate"`
+	xxx_hidden_TotalAmount                    *v1.Money                `protobuf:"bytes,18,opt,name=total_amount,json=totalAmount"`
+	xxx_hidden_Items                          *[]*CreditNoteItem       `protobuf:"bytes,19,rep,name=items"`
+	xxx_hidden_AppliedTaxes                   *[]*CreditNoteAppliedTax `protobuf:"bytes,20,rep,name=applied_taxes,json=appliedTaxes"`
+	xxx_hidden_IssuingDate                    *date.Date               `protobuf:"bytes,21,opt,name=issuing_date,json=issuingDate"`
+	xxx_hidden_Metadata                       *[]*v1.MetadataItem      `protobuf:"bytes,22,rep,name=metadata"`
+	xxx_hidden_FileAvailable                  bool                     `protobuf:"varint,23,opt,name=file_available,json=fileAvailable"`
+	xxx_hidden_XmlFileAvailable               bool                     `protobuf:"varint,24,opt,name=xml_file_available,json=xmlFileAvailable"`
+	xxx_hidden_RefundedAt                     *timestamppb.Timestamp   `protobuf:"bytes,25,opt,name=refunded_at,json=refundedAt"`
+	xxx_hidden_VoidedAt                       *timestamppb.Timestamp   `protobuf:"bytes,26,opt,name=voided_at,json=voidedAt"`
+	xxx_hidden_CreatedAt                      *timestamppb.Timestamp   `protobuf:"bytes,27,opt,name=created_at,json=createdAt"`
+	xxx_hidden_UpdatedAt                      *timestamppb.Timestamp   `protobuf:"bytes,28,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_Errors                         *[]*CreditNoteError      `protobuf:"bytes,29,rep,name=errors"`
+	xxx_hidden_SequentialId                   int64                    `protobuf:"varint,30,opt,name=sequential_id,json=sequentialId"`
+	xxx_hidden_BillingEntityId                *string                  `protobuf:"bytes,31,opt,name=billing_entity_id,json=billingEntityId"`
+	xxx_hidden_InvoiceNumber                  *string                  `protobuf:"bytes,32,opt,name=invoice_number,json=invoiceNumber"`
+	xxx_hidden_PurchaseOrderNumber            *string                  `protobuf:"bytes,33,opt,name=purchase_order_number,json=purchaseOrderNumber"`
+	xxx_hidden_SelfBilled                     bool                     `protobuf:"varint,34,opt,name=self_billed,json=selfBilled"`
+	xxx_hidden_PreciseTaxesAmount             *string                  `protobuf:"bytes,35,opt,name=precise_taxes_amount,json=preciseTaxesAmount"`
+	xxx_hidden_PreciseTotalAmount             *string                  `protobuf:"bytes,36,opt,name=precise_total_amount,json=preciseTotalAmount"`
+	xxx_hidden_PreciseCouponsAdjustmentAmount *string                  `protobuf:"bytes,37,opt,name=precise_coupons_adjustment_amount,json=preciseCouponsAdjustmentAmount"`
+	xxx_hidden_Voidable                       bool                     `protobuf:"varint,38,opt,name=voidable"`
+	xxx_hidden_IntegrationSyncable            bool                     `protobuf:"varint,39,opt,name=integration_syncable,json=integrationSyncable"`
+	xxx_hidden_TaxProviderSyncable            bool                     `protobuf:"varint,40,opt,name=tax_provider_syncable,json=taxProviderSyncable"`
+	xxx_hidden_ExternalIntegrationId          *string                  `protobuf:"bytes,41,opt,name=external_integration_id,json=externalIntegrationId"`
+	xxx_hidden_TaxProviderId                  *string                  `protobuf:"bytes,42,opt,name=tax_provider_id,json=taxProviderId"`
+	XXX_raceDetectHookData                    protoimpl.RaceDetectHookData
+	XXX_presence                              [2]uint32
+	unknownFields                             protoimpl.UnknownFields
+	sizeCache                                 protoimpl.SizeCache
 }
 
 func (x *CreditNote) Reset() {
@@ -1061,49 +1176,164 @@ func (x *CreditNote) GetErrors() []*CreditNoteError {
 	return nil
 }
 
+func (x *CreditNote) GetSequentialId() int64 {
+	if x != nil {
+		return x.xxx_hidden_SequentialId
+	}
+	return 0
+}
+
+func (x *CreditNote) GetBillingEntityId() string {
+	if x != nil {
+		if x.xxx_hidden_BillingEntityId != nil {
+			return *x.xxx_hidden_BillingEntityId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreditNote) GetInvoiceNumber() string {
+	if x != nil {
+		if x.xxx_hidden_InvoiceNumber != nil {
+			return *x.xxx_hidden_InvoiceNumber
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreditNote) GetPurchaseOrderNumber() string {
+	if x != nil {
+		if x.xxx_hidden_PurchaseOrderNumber != nil {
+			return *x.xxx_hidden_PurchaseOrderNumber
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreditNote) GetSelfBilled() bool {
+	if x != nil {
+		return x.xxx_hidden_SelfBilled
+	}
+	return false
+}
+
+func (x *CreditNote) GetPreciseTaxesAmount() string {
+	if x != nil {
+		if x.xxx_hidden_PreciseTaxesAmount != nil {
+			return *x.xxx_hidden_PreciseTaxesAmount
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreditNote) GetPreciseTotalAmount() string {
+	if x != nil {
+		if x.xxx_hidden_PreciseTotalAmount != nil {
+			return *x.xxx_hidden_PreciseTotalAmount
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreditNote) GetPreciseCouponsAdjustmentAmount() string {
+	if x != nil {
+		if x.xxx_hidden_PreciseCouponsAdjustmentAmount != nil {
+			return *x.xxx_hidden_PreciseCouponsAdjustmentAmount
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreditNote) GetVoidable() bool {
+	if x != nil {
+		return x.xxx_hidden_Voidable
+	}
+	return false
+}
+
+func (x *CreditNote) GetIntegrationSyncable() bool {
+	if x != nil {
+		return x.xxx_hidden_IntegrationSyncable
+	}
+	return false
+}
+
+func (x *CreditNote) GetTaxProviderSyncable() bool {
+	if x != nil {
+		return x.xxx_hidden_TaxProviderSyncable
+	}
+	return false
+}
+
+func (x *CreditNote) GetExternalIntegrationId() string {
+	if x != nil {
+		if x.xxx_hidden_ExternalIntegrationId != nil {
+			return *x.xxx_hidden_ExternalIntegrationId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreditNote) GetTaxProviderId() string {
+	if x != nil {
+		if x.xxx_hidden_TaxProviderId != nil {
+			return *x.xxx_hidden_TaxProviderId
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *CreditNote) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 29)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 42)
 }
 
 func (x *CreditNote) SetInvoiceId(v string) {
 	x.xxx_hidden_InvoiceId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 29)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 42)
 }
 
 func (x *CreditNote) SetCustomerId(v string) {
 	x.xxx_hidden_CustomerId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 29)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 42)
 }
 
 func (x *CreditNote) SetNumber(v string) {
 	x.xxx_hidden_Number = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 29)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 42)
 }
 
 func (x *CreditNote) SetStatus(v CreditNoteStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 29)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 42)
 }
 
 func (x *CreditNote) SetCreditStatus(v CreditStatus) {
 	x.xxx_hidden_CreditStatus = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 29)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 42)
 }
 
 func (x *CreditNote) SetRefundStatus(v v1.RefundStatus) {
 	x.xxx_hidden_RefundStatus = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 29)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 42)
 }
 
 func (x *CreditNote) SetReason(v CreditNoteReason) {
 	x.xxx_hidden_Reason = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 29)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 42)
 }
 
 func (x *CreditNote) SetDescription(v string) {
 	x.xxx_hidden_Description = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 29)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 42)
 }
 
 func (x *CreditNote) SetCreditAmount(v *v1.Money) {
@@ -1136,7 +1366,7 @@ func (x *CreditNote) SetTaxesAmount(v *v1.Money) {
 
 func (x *CreditNote) SetTaxesRate(v string) {
 	x.xxx_hidden_TaxesRate = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 29)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 42)
 }
 
 func (x *CreditNote) SetTotalAmount(v *v1.Money) {
@@ -1161,12 +1391,12 @@ func (x *CreditNote) SetMetadata(v []*v1.MetadataItem) {
 
 func (x *CreditNote) SetFileAvailable(v bool) {
 	x.xxx_hidden_FileAvailable = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 22, 29)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 22, 42)
 }
 
 func (x *CreditNote) SetXmlFileAvailable(v bool) {
 	x.xxx_hidden_XmlFileAvailable = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 23, 29)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 23, 42)
 }
 
 func (x *CreditNote) SetRefundedAt(v *timestamppb.Timestamp) {
@@ -1187,6 +1417,71 @@ func (x *CreditNote) SetUpdatedAt(v *timestamppb.Timestamp) {
 
 func (x *CreditNote) SetErrors(v []*CreditNoteError) {
 	x.xxx_hidden_Errors = &v
+}
+
+func (x *CreditNote) SetSequentialId(v int64) {
+	x.xxx_hidden_SequentialId = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 29, 42)
+}
+
+func (x *CreditNote) SetBillingEntityId(v string) {
+	x.xxx_hidden_BillingEntityId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 30, 42)
+}
+
+func (x *CreditNote) SetInvoiceNumber(v string) {
+	x.xxx_hidden_InvoiceNumber = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 31, 42)
+}
+
+func (x *CreditNote) SetPurchaseOrderNumber(v string) {
+	x.xxx_hidden_PurchaseOrderNumber = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 32, 42)
+}
+
+func (x *CreditNote) SetSelfBilled(v bool) {
+	x.xxx_hidden_SelfBilled = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 33, 42)
+}
+
+func (x *CreditNote) SetPreciseTaxesAmount(v string) {
+	x.xxx_hidden_PreciseTaxesAmount = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 34, 42)
+}
+
+func (x *CreditNote) SetPreciseTotalAmount(v string) {
+	x.xxx_hidden_PreciseTotalAmount = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 35, 42)
+}
+
+func (x *CreditNote) SetPreciseCouponsAdjustmentAmount(v string) {
+	x.xxx_hidden_PreciseCouponsAdjustmentAmount = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 36, 42)
+}
+
+func (x *CreditNote) SetVoidable(v bool) {
+	x.xxx_hidden_Voidable = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 37, 42)
+}
+
+func (x *CreditNote) SetIntegrationSyncable(v bool) {
+	x.xxx_hidden_IntegrationSyncable = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 38, 42)
+}
+
+func (x *CreditNote) SetTaxProviderSyncable(v bool) {
+	x.xxx_hidden_TaxProviderSyncable = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 39, 42)
+}
+
+func (x *CreditNote) SetExternalIntegrationId(v string) {
+	x.xxx_hidden_ExternalIntegrationId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 40, 42)
+}
+
+func (x *CreditNote) SetTaxProviderId(v string) {
+	x.xxx_hidden_TaxProviderId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 41, 42)
 }
 
 func (x *CreditNote) HasId() bool {
@@ -1364,6 +1659,97 @@ func (x *CreditNote) HasUpdatedAt() bool {
 	return x.xxx_hidden_UpdatedAt != nil
 }
 
+func (x *CreditNote) HasSequentialId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 29)
+}
+
+func (x *CreditNote) HasBillingEntityId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 30)
+}
+
+func (x *CreditNote) HasInvoiceNumber() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 31)
+}
+
+func (x *CreditNote) HasPurchaseOrderNumber() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 32)
+}
+
+func (x *CreditNote) HasSelfBilled() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 33)
+}
+
+func (x *CreditNote) HasPreciseTaxesAmount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 34)
+}
+
+func (x *CreditNote) HasPreciseTotalAmount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 35)
+}
+
+func (x *CreditNote) HasPreciseCouponsAdjustmentAmount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 36)
+}
+
+func (x *CreditNote) HasVoidable() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 37)
+}
+
+func (x *CreditNote) HasIntegrationSyncable() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 38)
+}
+
+func (x *CreditNote) HasTaxProviderSyncable() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 39)
+}
+
+func (x *CreditNote) HasExternalIntegrationId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 40)
+}
+
+func (x *CreditNote) HasTaxProviderId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 41)
+}
+
 func (x *CreditNote) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -1476,6 +1862,71 @@ func (x *CreditNote) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = nil
 }
 
+func (x *CreditNote) ClearSequentialId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 29)
+	x.xxx_hidden_SequentialId = 0
+}
+
+func (x *CreditNote) ClearBillingEntityId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 30)
+	x.xxx_hidden_BillingEntityId = nil
+}
+
+func (x *CreditNote) ClearInvoiceNumber() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 31)
+	x.xxx_hidden_InvoiceNumber = nil
+}
+
+func (x *CreditNote) ClearPurchaseOrderNumber() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 32)
+	x.xxx_hidden_PurchaseOrderNumber = nil
+}
+
+func (x *CreditNote) ClearSelfBilled() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 33)
+	x.xxx_hidden_SelfBilled = false
+}
+
+func (x *CreditNote) ClearPreciseTaxesAmount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 34)
+	x.xxx_hidden_PreciseTaxesAmount = nil
+}
+
+func (x *CreditNote) ClearPreciseTotalAmount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 35)
+	x.xxx_hidden_PreciseTotalAmount = nil
+}
+
+func (x *CreditNote) ClearPreciseCouponsAdjustmentAmount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 36)
+	x.xxx_hidden_PreciseCouponsAdjustmentAmount = nil
+}
+
+func (x *CreditNote) ClearVoidable() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 37)
+	x.xxx_hidden_Voidable = false
+}
+
+func (x *CreditNote) ClearIntegrationSyncable() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 38)
+	x.xxx_hidden_IntegrationSyncable = false
+}
+
+func (x *CreditNote) ClearTaxProviderSyncable() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 39)
+	x.xxx_hidden_TaxProviderSyncable = false
+}
+
+func (x *CreditNote) ClearExternalIntegrationId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 40)
+	x.xxx_hidden_ExternalIntegrationId = nil
+}
+
+func (x *CreditNote) ClearTaxProviderId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 41)
+	x.xxx_hidden_TaxProviderId = nil
+}
+
 type CreditNote_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1537,6 +1988,36 @@ type CreditNote_builder struct {
 	UpdatedAt *timestamppb.Timestamp
 	// The errors recorded on the credit note.
 	Errors []*CreditNoteError
+	// The sequence of the credit note on its invoice, the n of its number.
+	SequentialId *int64
+	// The invoice's billing entity.
+	BillingEntityId *string
+	// The invoice's number.
+	InvoiceNumber *string
+	// The invoice's purchase order number.
+	PurchaseOrderNumber *string
+	// Marks a credit note on a self-billed invoice.
+	SelfBilled *bool
+	// The unrounded taxes, in the currency's major unit.
+	PreciseTaxesAmount *string
+	// The unrounded total, in the currency's major unit: the items less the
+	// coupons, with the taxes.
+	PreciseTotalAmount *string
+	// The unrounded share of the invoice's coupons removed, in the
+	// currency's major unit.
+	PreciseCouponsAdjustmentAmount *string
+	// Marks a credit note with a balance left to void.
+	Voidable *bool
+	// Marks a finalized credit note that the customer's accounting
+	// integrations sync and that is not synced yet (RetryCreditNoteSync).
+	IntegrationSyncable *bool
+	// Marks a credit note whose report to the tax provider failed
+	// (RetryCreditNoteTaxReporting).
+	TaxProviderSyncable *bool
+	// The credit note's ID at the customer's default accounting integration.
+	ExternalIntegrationId *string
+	// The credit note's ID at the customer's default tax provider.
+	TaxProviderId *string
 }
 
 func (b0 CreditNote_builder) Build() *CreditNote {
@@ -1544,39 +2025,39 @@ func (b0 CreditNote_builder) Build() *CreditNote {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 29)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 42)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.InvoiceId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 29)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 42)
 		x.xxx_hidden_InvoiceId = b.InvoiceId
 	}
 	if b.CustomerId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 29)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 42)
 		x.xxx_hidden_CustomerId = b.CustomerId
 	}
 	if b.Number != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 29)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 42)
 		x.xxx_hidden_Number = b.Number
 	}
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 29)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 42)
 		x.xxx_hidden_Status = *b.Status
 	}
 	if b.CreditStatus != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 29)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 42)
 		x.xxx_hidden_CreditStatus = *b.CreditStatus
 	}
 	if b.RefundStatus != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 29)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 42)
 		x.xxx_hidden_RefundStatus = *b.RefundStatus
 	}
 	if b.Reason != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 29)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 42)
 		x.xxx_hidden_Reason = *b.Reason
 	}
 	if b.Description != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 29)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 42)
 		x.xxx_hidden_Description = b.Description
 	}
 	x.xxx_hidden_CreditAmount = b.CreditAmount
@@ -1587,7 +2068,7 @@ func (b0 CreditNote_builder) Build() *CreditNote {
 	x.xxx_hidden_CouponsAdjustmentAmount = b.CouponsAdjustmentAmount
 	x.xxx_hidden_TaxesAmount = b.TaxesAmount
 	if b.TaxesRate != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 29)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 42)
 		x.xxx_hidden_TaxesRate = b.TaxesRate
 	}
 	x.xxx_hidden_TotalAmount = b.TotalAmount
@@ -1596,11 +2077,11 @@ func (b0 CreditNote_builder) Build() *CreditNote {
 	x.xxx_hidden_IssuingDate = b.IssuingDate
 	x.xxx_hidden_Metadata = &b.Metadata
 	if b.FileAvailable != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 22, 29)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 22, 42)
 		x.xxx_hidden_FileAvailable = *b.FileAvailable
 	}
 	if b.XmlFileAvailable != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 23, 29)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 23, 42)
 		x.xxx_hidden_XmlFileAvailable = *b.XmlFileAvailable
 	}
 	x.xxx_hidden_RefundedAt = b.RefundedAt
@@ -1608,6 +2089,58 @@ func (b0 CreditNote_builder) Build() *CreditNote {
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
 	x.xxx_hidden_Errors = &b.Errors
+	if b.SequentialId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 29, 42)
+		x.xxx_hidden_SequentialId = *b.SequentialId
+	}
+	if b.BillingEntityId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 30, 42)
+		x.xxx_hidden_BillingEntityId = b.BillingEntityId
+	}
+	if b.InvoiceNumber != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 31, 42)
+		x.xxx_hidden_InvoiceNumber = b.InvoiceNumber
+	}
+	if b.PurchaseOrderNumber != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 32, 42)
+		x.xxx_hidden_PurchaseOrderNumber = b.PurchaseOrderNumber
+	}
+	if b.SelfBilled != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 33, 42)
+		x.xxx_hidden_SelfBilled = *b.SelfBilled
+	}
+	if b.PreciseTaxesAmount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 34, 42)
+		x.xxx_hidden_PreciseTaxesAmount = b.PreciseTaxesAmount
+	}
+	if b.PreciseTotalAmount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 35, 42)
+		x.xxx_hidden_PreciseTotalAmount = b.PreciseTotalAmount
+	}
+	if b.PreciseCouponsAdjustmentAmount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 36, 42)
+		x.xxx_hidden_PreciseCouponsAdjustmentAmount = b.PreciseCouponsAdjustmentAmount
+	}
+	if b.Voidable != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 37, 42)
+		x.xxx_hidden_Voidable = *b.Voidable
+	}
+	if b.IntegrationSyncable != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 38, 42)
+		x.xxx_hidden_IntegrationSyncable = *b.IntegrationSyncable
+	}
+	if b.TaxProviderSyncable != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 39, 42)
+		x.xxx_hidden_TaxProviderSyncable = *b.TaxProviderSyncable
+	}
+	if b.ExternalIntegrationId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 40, 42)
+		x.xxx_hidden_ExternalIntegrationId = b.ExternalIntegrationId
+	}
+	if b.TaxProviderId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 41, 42)
+		x.xxx_hidden_TaxProviderId = b.TaxProviderId
+	}
 	return m0
 }
 
@@ -2327,8 +2860,11 @@ type ListCreditNotesRequest_builder struct {
 	// The next_page_token of the previous page.
 	PageToken *string
 	// An AIP-160 filter over `invoice_id`, `credit_status`, `refund_status`,
-	// `reason`, `currency`, `billing_entity_id`, `issuing_date`, `amount`,
-	// `self_billed` and `metadata.<key>`.
+	// `reason`, `currency`, `billing_entity_id`, `issuing_date`, `amount`
+	// (the total in minor units), `self_billed`, `invoice_number`,
+	// `purchase_order_number` and `type` (`credit`, `refund` or `offset`).
+	// `billing_entity_id` takes an ID or `"code:<code>"`; an unknown billing
+	// entity, or an `invoice_id` that is not an invoice, is NOT_FOUND.
 	Filter *string
 	// A search over the number, invoice number and customer.
 	Search *string
@@ -4034,11 +4570,12 @@ const file_tanvo_creditnote_v1_credit_note_proto_rawDesc = "" +
 	"\x04code\x18\x01 \x01(\x0e2(.tanvo.creditnote.v1.CreditNoteErrorCodeR\x04code\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x129\n" +
 	"\n" +
-	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x8a\x01\n" +
+	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xa0\x01\n" +
 	"\x0eCreditNoteItem\x12#\n" +
 	"\x06fee_id\x18\x01 \x01(\tB\f\xe2A\x01\x02\xbaH\x05r\x03\xb0\x01\x01R\x05feeId\x12&\n" +
 	"\x06amount\x18\x02 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05Ф\xca\x06\x01R\x06amount\x12+\n" +
-	"\x0eprecise_amount\x18\x03 \x01(\tB\x04\xe2A\x01\x03R\rpreciseAmount\"\xe7\x01\n" +
+	"\x0eprecise_amount\x18\x03 \x01(\tB\x04\xe2A\x01\x03R\rpreciseAmount\x12\x14\n" +
+	"\x02id\x18\x04 \x01(\tB\x04\xe2A\x01\x03R\x02id\"\xa0\x02\n" +
 	"\x14CreditNoteAppliedTax\x12\x15\n" +
 	"\x06tax_id\x18\x01 \x01(\tR\x05taxId\x12\x19\n" +
 	"\btax_code\x18\x02 \x01(\tR\ataxCode\x12\x19\n" +
@@ -4046,7 +4583,9 @@ const file_tanvo_creditnote_v1_credit_note_proto_rawDesc = "" +
 	"\btax_rate\x18\x04 \x01(\tR\ataxRate\x127\n" +
 	"\vbase_amount\x18\x05 \x01(\v2\x16.tanvo.common.v1.MoneyR\n" +
 	"baseAmount\x12.\n" +
-	"\x06amount\x18\x06 \x01(\v2\x16.tanvo.common.v1.MoneyR\x06amount\"\x84\x0f\n" +
+	"\x06amount\x18\x06 \x01(\v2\x16.tanvo.common.v1.MoneyR\x06amount\x12\x0e\n" +
+	"\x02id\x18\a \x01(\tR\x02id\x12'\n" +
+	"\x0ftax_description\x18\b \x01(\tR\x0etaxDescription\"\xb1\x14\n" +
 	"\n" +
 	"CreditNote\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12,\n" +
@@ -4084,7 +4623,21 @@ const file_tanvo_creditnote_v1_credit_note_proto_rawDesc = "" +
 	"created_at\x18\x1b \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
 	"updated_at\x18\x1c \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x12B\n" +
-	"\x06errors\x18\x1d \x03(\v2$.tanvo.creditnote.v1.CreditNoteErrorB\x04\xe2A\x01\x03R\x06errors:N\xeaAK\n" +
+	"\x06errors\x18\x1d \x03(\v2$.tanvo.creditnote.v1.CreditNoteErrorB\x04\xe2A\x01\x03R\x06errors\x12)\n" +
+	"\rsequential_id\x18\x1e \x01(\x03B\x04\xe2A\x01\x03R\fsequentialId\x120\n" +
+	"\x11billing_entity_id\x18\x1f \x01(\tB\x04\xe2A\x01\x03R\x0fbillingEntityId\x12+\n" +
+	"\x0einvoice_number\x18  \x01(\tB\x04\xe2A\x01\x03R\rinvoiceNumber\x128\n" +
+	"\x15purchase_order_number\x18! \x01(\tB\x04\xe2A\x01\x03R\x13purchaseOrderNumber\x12%\n" +
+	"\vself_billed\x18\" \x01(\bB\x04\xe2A\x01\x03R\n" +
+	"selfBilled\x126\n" +
+	"\x14precise_taxes_amount\x18# \x01(\tB\x04\xe2A\x01\x03R\x12preciseTaxesAmount\x126\n" +
+	"\x14precise_total_amount\x18$ \x01(\tB\x04\xe2A\x01\x03R\x12preciseTotalAmount\x12O\n" +
+	"!precise_coupons_adjustment_amount\x18% \x01(\tB\x04\xe2A\x01\x03R\x1epreciseCouponsAdjustmentAmount\x12 \n" +
+	"\bvoidable\x18& \x01(\bB\x04\xe2A\x01\x03R\bvoidable\x127\n" +
+	"\x14integration_syncable\x18' \x01(\bB\x04\xe2A\x01\x03R\x13integrationSyncable\x128\n" +
+	"\x15tax_provider_syncable\x18( \x01(\bB\x04\xe2A\x01\x03R\x13taxProviderSyncable\x12<\n" +
+	"\x17external_integration_id\x18) \x01(\tB\x04\xe2A\x01\x03R\x15externalIntegrationId\x12,\n" +
+	"\x0ftax_provider_id\x18* \x01(\tB\x04\xe2A\x01\x03R\rtaxProviderId:N\xeaAK\n" +
 	"\x14tanvo.xyz/CreditNote\x12\x1acredit_notes/{credit_note}*\vcreditNotes2\n" +
 	"creditNote\"\x98\x02\n" +
 	"\x17CreateCreditNoteRequest\x12L\n" +

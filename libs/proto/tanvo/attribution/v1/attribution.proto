@@ -183,20 +183,28 @@ message AttributedChargeUsage {
   string charge_filter_invoice_display_name = 6;
   // The units.
   string units = 7;
-  // The amount.
+  // The amount, rounded to the currency's minor unit; unset on the UNITS
+  // basis and for a charge not priced (a non-standard model, or filters
+  // too many to price).
   tanvo.common.v1.Money amount = 8;
   // The number of events.
   int64 events_count = 9;
+  // The unrounded amount in minor units; empty when amount is unset.
+  string precise_amount = 10;
 }
 
 // AttributedAggregate is usage summed over charges.
 message AttributedAggregate {
-  // The amount.
+  // The amount of the priced charges, rounded to the currency's minor
+  // unit; unset on the UNITS basis.
   tanvo.common.v1.Money amount = 1;
   // The number of events.
   int64 events_count = 2;
-  // The usage per charge.
+  // The usage per charge, in the order of the plan's charges, a split
+  // charge's filters in their order and the events no filter matches last.
   repeated AttributedChargeUsage charges_usage = 3;
+  // The unrounded amount in minor units; empty when amount is unset.
+  string precise_amount = 4;
 }
 
 // AttributedUsageRow is the usage of one attribution value.
@@ -323,37 +331,42 @@ message GetAttributedUsageRequest {
     (buf.validate.field).required = true,
     (buf.validate.field).string.(tanvo.common.v1.ref) = true
   ];
-  // The attribution type to group by (its code).
+  // The attribution type to group by (its code); a type unknown or deleted
+  // is not found.
   string group_by = 3 [
     (google.api.field_behavior) = REQUIRED,
     (buf.validate.field).required = true,
-    (buf.validate.field).string.(tanvo.common.v1.code) = true
+    (buf.validate.field).string.max_len = 255
   ];
-  // Restricts usage to these values of other types: type code to values.
-  map<string, Values> filters = 4 [(buf.validate.field).map.max_pairs = 4];
-  // The start of the period; the current billing period's by default.
+  // Restricts usage to these values of other types: type code to values,
+  // an empty string matching the events without a value; at most 20 values
+  // per type and 3 flat types. A hierarchical level whose parent type is
+  // kept is read under a filter on the parent.
+  map<string, Values> filters = 4;
+  // The start of the period; both or neither of from_time and to_time are
+  // set, at most 31 days apart. Neither reads the current billing period,
+  // its last 31 days up to now when it is longer. The period starts at the
+  // subscription's start at the earliest.
   google.protobuf.Timestamp from_time = 5;
-  // The end of the period; now by default.
+  // The end of the period, exclusive; after from_time and the
+  // subscription's start.
   google.protobuf.Timestamp to_time = 6;
-  // Restricts usage to these charges, by code.
-  repeated string charge_codes = 7 [(buf.validate.field).repeated = {
-    unique: true
-    max_items: 100
-    items: {
-      string: {[tanvo.common.v1.code]: true}
-    }
-  }];
-  // Splits the rows by the filters of this charge, by code.
-  string split_charge_code = 8 [(buf.validate.field).string.(tanvo.common.v1.code) = true];
-  // A search over the values.
-  string search = 9 [(buf.validate.field).string.max_len = 255];
-  // What rows are ranked by; UNITS by default.
+  // Restricts usage to these charges of the plan, by code; every count and
+  // sum charge whose metric is not recurring by default. A code outside
+  // the plan is not found.
+  repeated string charge_codes = 7 [(buf.validate.field).repeated.items.string.max_len = 255];
+  // Splits the rows by the filters of this charge of the plan, by code: one
+  // usage per filter, at most 10, and one for the events no filter
+  // matches. It must be among charge_codes when they are set.
+  string split_charge_code = 8 [(buf.validate.field).string.max_len = 255];
+  // Keeps the values containing it, case-insensitively; at most 100
+  // characters. Rows keep their rank among every value.
+  string search = 9;
+  // What rows are ranked by: events count on UNITS, the default, without
+  // amounts; amount on AMOUNT, standard charges priced.
   AttributionBasis basis = 10 [(buf.validate.field).enum.defined_only = true];
-  // The maximum number of rows; 20 by default, at most 1000.
-  int32 page_size = 11 [(buf.validate.field).int32 = {
-    gte: 0
-    lte: 1000
-  }];
+  // The maximum number of rows; 50 by default, at most 100.
+  int32 page_size = 11;
   // The next_page_token of the previous page.
   string page_token = 12 [(buf.validate.field).string.max_len = 1024];
 }
@@ -366,7 +379,7 @@ message GetAttributedUsageResponse {
   string group_by = 2;
   // The basis of the ranking.
   AttributionBasis basis = 3;
-  // The period.
+  // The period read, its end exclusive.
   tanvo.common.v1.DateTimeRange period = 4;
   // The currency.
   string currency = 5;
@@ -378,4 +391,8 @@ message GetAttributedUsageResponse {
   AttributedAggregate totals = 8;
   // The token of the next page; empty on the last page.
   string next_page_token = 9;
+  // The number of values of the type in the period, whatever the search.
+  int64 total_size = 10;
+  // The subscription's external ID.
+  string external_subscription_id = 11;
 }

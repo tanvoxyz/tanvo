@@ -34,7 +34,7 @@ import (
 func newBilling(cfg config.Config, tx port.Transactor, stores *EventStores, clock core.Clock, log *slog.Logger, refunds kernel.RefundGateway,
 	emitter port.WebhookEmitter, taxes kernel.TaxProvider, streams port.StreamProducer,
 ) (*billing.Engine, error) {
-	e, err := billing.New(kernel.Deps{
+	deps := kernel.Deps{
 		Streaming:        streams,
 		Refunds:          refunds,
 		Taxes:            taxes,
@@ -47,7 +47,11 @@ func newBilling(cfg config.Config, tx port.Transactor, stores *EventStores, cloc
 		Logger:           log,
 		DailyUsageJitter: cfg.DailyUsageSchedulingJitter,
 		Transient:        retriedByBillingRetry,
-	}, billing.WithTerminationAlertDays(cfg.SubscriptionTerminationAlertDays...),
+	}
+	if c := kernel.NewMemoryUsageCache(cfg.UsageCacheEntries); c != nil {
+		deps.UsageCache = c
+	}
+	e, err := billing.New(deps, billing.WithTerminationAlertDays(cfg.SubscriptionTerminationAlertDays...),
 		billing.WithVIES(&tax.VIESClient{}))
 	if err != nil {
 		return nil, fmt.Errorf("billing: %w", err)

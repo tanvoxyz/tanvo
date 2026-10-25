@@ -499,6 +499,57 @@ func TestServeKafka(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("connector event and dead letter: %v", err)
 	}
+
+	// With ClickHouse, the workers move the audit logs from PostgreSQL to
+	// ClickHouse's log tables, and the logs API reads them there.
+	if err := dockertest.Wait(ctx, time.Minute, func(ctx context.Context) error {
+		var n uint64
+		if err := conn.QueryRow(ctx, `SELECT count() FROM activity_logs FINAL WHERE organization_id = $1 AND activity_type = 'billable_metric.created'`, org.String()).Scan(&n); err != nil {
+			return err
+		}
+		if n != 1 {
+			return fmt.Errorf("billable_metric.created activity logs in ClickHouse got = %d, want = 1", n)
+		}
+		if err := conn.QueryRow(ctx, `SELECT count() FROM api_logs FINAL WHERE organization_id = $1`, org.String()).Scan(&n); err != nil {
+			return err
+		}
+		if n != 1 {
+			return fmt.Errorf("api logs in ClickHouse got = %d, want = 1", n)
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("audit logs in ClickHouse: %v", err)
+	}
+	pool, err := pgxpool.New(ctx, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	var pending int
+	if err := pool.QueryRow(ctx, `SELECT count(*) FROM activity_logs WHERE activity_type = 'billable_metric.created'`).Scan(&pending); err != nil || pending != 0 {
+		t.Errorf("activity logs left in PostgreSQL got = %d (%v), want = 0", pending, err)
+	}
+	logsReq, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/v1/activity_logs", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	logsReq.Header.Set("Authorization", "Bearer "+secret)
+	logsRes, err := http.DefaultClient.Do(logsReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logsRes.Body.Close()
+	var activity struct {
+		ActivityLogs []struct {
+			ActivityType string `json:"activity_type"`
+		} `json:"activity_logs"`
+	}
+	if err := json.NewDecoder(logsRes.Body).Decode(&activity); err != nil || logsRes.StatusCode != http.StatusOK {
+		t.Fatalf("GET /v1/activity_logs status got = %d (%v), want = 200", logsRes.StatusCode, err)
+	}
+	if len(activity.ActivityLogs) != 1 || activity.ActivityLogs[0].ActivityType != "billable_metric.created" {
+		t.Errorf("GET /v1/activity_logs got = %+v, want = the billable_metric.created log", activity.ActivityLogs)
+	}
 }
 
 // serve runs `tanvo serve --role all` until the test ends or stop is
@@ -513,14 +564,20 @@ func serve(t *testing.T, environ []string, logs *lockedBuffer) (srv *app.App, ba
 // clock).
 func serveWith(t *testing.T, environ []string, logs *lockedBuffer, clock core.Clock) (srv *app.App, base string, stop func()) {
 	t.Helper()
+	return serveEnv(t, environ, logs, cli.Env{Clock: clock})
+}
+
+// serveEnv is [serve] with the test hooks of env (its Clock and
+// StripeBaseURL); its environment, output and Started are the test's.
+func serveEnv(t *testing.T, environ []string, logs *lockedBuffer, env cli.Env) (srv *app.App, base string, stop func()) {
+	t.Helper()
 	ctx := t.Context()
 	serveCtx, cancel := context.WithCancel(ctx)
 	started := make(chan *app.App, 1)
 	done := make(chan error, 1)
+	env.Environ, env.Stdout, env.Started = environ, logs, func(a *app.App) { started <- a }
 	go func() {
-		done <- cli.Run(serveCtx, []string{"serve", "--role", "all"}, cli.Env{
-			Environ: environ, Stdout: logs, Started: func(a *app.App) { started <- a }, Clock: clock,
-		})
+		done <- cli.Run(serveCtx, []string{"serve", "--role", "all"}, env)
 	}()
 	select {
 	case srv = <-started:

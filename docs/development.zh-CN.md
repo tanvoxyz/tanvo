@@ -26,7 +26,7 @@ pnpm install            # 安装 Nx
 
 `pnpm nx` 在 `mise exec` 下运行 Nx（`package.json` 的 `nx` 脚本），因此无论 shell 是否激活了 mise，每个目标都使用锁定版本的工具。在 Nx 之外运行的命令，如在模块中运行 `go test`，经由 `mise exec --` 运行，或在激活了 mise 的 shell 中运行。
 
-Rust 由每个 Cargo workspace 的 `rust-toolchain.toml` 锁定（目前只有 `libs/expression`），rustup 在该目录首次运行 `cargo` 时安装它以及 `wasm32-unknown-unknown` 目标；只需安装 rustup 本身。Go 的构建从不需要 Rust：由它构建的 WASM 模块已提交入库。
+Rust 由每个 Cargo workspace 的 `rust-toolchain.toml` 锁定（目前只有 `libs/expression`），rustup 在该目录首次运行 `cargo` 时安装它以及 `wasm32-unknown-unknown` 目标；只需安装 rustup 本身。Go 的构建从不需要 Rust：由它构建的 WASM 模块已提交入库。同一求值器的浏览器构建（`libs/expression/js`，wasm-bindgen 绑定，接口与 lago-expression 的 `expression-js` 一致）不提交入库：`pnpm nx run expression:wasm-js` 将其写入 `libs/expression/js/pkg/`，`pnpm nx run expression:test-js` 在 Node.js 下用共享的 `testdata/` 用例测试它；两者都使用 `mise.toml` 中锁定的 `wasm-bindgen` CLI。
 
 迁移由 `libs/store` 以库的形式使用 Atlas 生成；不需要 Atlas CLI。需要 PostgreSQL、ClickHouse、Redpanda 或 Redis 的集成测试依次在 `DOCKER_HOST`、Docker CLI 当前上下文的引擎、OrbStack / Docker Desktop / Colima / Rancher Desktop / Podman 的 socket 中找到的第一个引擎上启动容器。
 

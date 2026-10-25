@@ -149,6 +149,11 @@ type Spec struct {
 	// HostPorts fixes the host ports of some Ports (random otherwise), for
 	// servers that advertise their address, as Kafka brokers do.
 	HostPorts map[string]string
+	// Binds are bind mounts, as "/host/path:/container/path:ro".
+	Binds []string
+	// Keep leaves the container after it exits, for [Container.Exit] and
+	// [Container.Logs]; [Container.Close] removes it.
+	Keep bool
 }
 
 // Container is a running container.
@@ -187,7 +192,8 @@ func (e *Engine) Run(ctx context.Context, spec Spec) (*Container, error) {
 		"Labels":       map[string]string{"xyz.tanvo.test": "ingest"},
 		"HostConfig": map[string]any{
 			"PortBindings": bindings,
-			"AutoRemove":   true,
+			"Binds":        spec.Binds,
+			"AutoRemove":   !spec.Keep,
 		},
 	}, &created)
 	if err != nil {
@@ -213,6 +219,47 @@ func (e *Engine) Run(ctx context.Context, spec Spec) (*Container, error) {
 		}
 	}
 	return c, nil
+}
+
+// Exit waits for the container to exit and returns its exit code. The
+// container must be kept ([Spec.Keep]).
+func (c *Container) Exit(ctx context.Context) (int, error) {
+	var res struct{ StatusCode int }
+	if err := c.engine.do(ctx, http.MethodPost, "/containers/"+c.ID+"/wait", nil, &res); err != nil {
+		return 0, err
+	}
+	return res.StatusCode, nil
+}
+
+// Logs returns the standard output and error of the container, in order.
+func (c *Container) Logs(ctx context.Context) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.engine.base+"/containers/"+c.ID+"/logs?stdout=true&stderr=true", nil)
+	if err != nil {
+		return "", fmt.Errorf("dockertest: %w", err)
+	}
+	resp, err := c.engine.client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("dockertest: logs: %w", err)
+	}
+	defer resp.Body.Close()
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("dockertest: logs: %w", err)
+	}
+	if resp.StatusCode >= 300 {
+		return "", &apiError{status: resp.StatusCode, message: strings.TrimSpace(string(b))}
+	}
+	// Without a TTY the engine multiplexes the streams: each frame is a
+	// stream byte, three zero bytes and a big-endian length.
+	var out strings.Builder
+	for len(b) >= 8 {
+		n := int(b[4])<<24 | int(b[5])<<16 | int(b[6])<<8 | int(b[7])
+		b = b[8:]
+		n = min(n, len(b))
+		out.Write(b[:n])
+		b = b[n:]
+	}
+	return out.String(), nil
 }
 
 // Close removes the container.

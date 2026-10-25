@@ -79,7 +79,7 @@ func (s *Service) UpdateVersion(ctx context.Context, org core.OrganizationID, q 
 		if err := logVersion(ctx, s.d, r, auditlog.ActivityQuoteUpdated, before, qt, v); err != nil {
 			return err
 		}
-		out, err = versionView(ctx, r, v)
+		out, err = s.versionView(ctx, r, v)
 		return err
 	})
 	if err != nil {
@@ -276,7 +276,7 @@ func (s *Service) ApproveVersion(ctx context.Context, org core.OrganizationID, q
 		if err != nil {
 			return err
 		}
-		if out.Version, err = versionView(ctx, r, v); err != nil {
+		if out.Version, err = s.versionView(ctx, r, v); err != nil {
 			return err
 		}
 		out.OrderForm, err = s.orderFormView(ctx, r, f)
@@ -388,7 +388,7 @@ func (s *Service) CloneVersion(ctx context.Context, org core.OrganizationID, q c
 		if err := logVersion(ctx, s.d, r, auditlog.ActivityQuoteVersionCreated, nil, qt, next); err != nil {
 			return err
 		}
-		out, err = versionView(ctx, r, next)
+		out, err = s.versionView(ctx, r, next)
 		return err
 	})
 	if err != nil {
@@ -421,7 +421,7 @@ func (s *Service) VoidVersion(ctx context.Context, org core.OrganizationID, q co
 		if err := s.voidVersion(ctx, r, qt, v, quote.VersionVoidReasonManual); err != nil {
 			return err
 		}
-		out, err = versionView(ctx, r, v)
+		out, err = s.versionView(ctx, r, v)
 		return err
 	})
 	if err != nil {

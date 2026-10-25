@@ -166,6 +166,9 @@ func (cc *chargeContext) request(env *kernel.SubscriptionEnv, bk bucket, b perio
 	req := kernel.MeteringRequest(env, cc.metric, b.Charges, b.ChargesDays)
 	req.Filter = bk.scope
 	req.GroupBy = bk.groupKeys(c)
+	// The presentation keys are the charge's, whatever the filter
+	// (app/services/fees/charge_service.rb:570-573).
+	req.PresentationBy = c.Properties.PresentationGroupKeys()
 	req.Prorated = c.Prorated
 	req.PayInAdvance = c.PayInAdvance
 	req.Dynamic = c.ChargeModel == catalog.ChargeModel(pricing.Dynamic)
@@ -181,6 +184,7 @@ func (cc *chargeContext) request(env *kernel.SubscriptionEnv, bk bucket, b perio
 	if !opts.MaxTimestamp.IsZero() {
 		req.MaxTimestamp = opts.MaxTimestamp
 	}
+	opts.UsageFilters.apply(&req)
 	return req
 }
 
@@ -361,9 +365,18 @@ func (s *Service) chargeBilled(ctx context.Context, r port.Repos, sc Scope, c *c
 }
 
 // bucketFees prices one bucket and returns its fees, recording the
-// recurring aggregation states in out.
+// recurring aggregation states in out. A current usage goes through
+// opts.UsageCache when set.
 func (s *Service) bucketFees(ctx context.Context, sc Scope, cc *chargeContext, bk bucket, adj adjustments, opts Options, out *ChargeResult) ([]*invoice.Fee, error) {
 	req := cc.request(sc.Env, bk, sc.Boundaries, opts)
+	if opts.CurrentUsage && opts.UsageCache != nil {
+		return s.cachedBucketFees(ctx, sc, cc, bk, req, opts)
+	}
+	return s.computeBucketFees(ctx, sc, cc, bk, req, adj, opts, out)
+}
+
+// computeBucketFees prices the bucket bk aggregated by req.
+func (s *Service) computeBucketFees(ctx context.Context, sc Scope, cc *chargeContext, bk bucket, req metering.Request, adj adjustments, opts Options, out *ChargeResult) ([]*invoice.Fee, error) {
 	m, agg, err := s.aggregate(ctx, cc, bk, req)
 	if err != nil {
 		return nil, err
@@ -379,6 +392,7 @@ func (s *Service) bucketFees(ctx context.Context, sc Scope, cc *chargeContext, b
 	if len(req.GroupBy) == 0 {
 		results = []metering.Result{m}
 	}
+	byGroup := breakdownsByGroup(m.Breakdowns, res.GroupResults())
 	if len(results) > 0 && results[0].RecurringUpdatedAt != nil && !opts.CurrentUsage {
 		for _, g := range results {
 			out.Aggregations = append(out.Aggregations, CachedAggregation{
@@ -389,6 +403,9 @@ func (s *Service) bucketFees(ctx context.Context, sc Scope, cc *chargeContext, b
 					Timestamp:          *firstNonNil(g.RecurringUpdatedAt, results[0].RecurringUpdatedAt),
 					Groups:             g.Groups,
 					CurrentAggregation: cloneDecimal(firstNonNil(g.TotalAggregatedUnits, &g.Aggregation)),
+					// The breakdowns of the group, without its keys
+					// (charge_service.rb:542).
+					PresentationBreakdowns: meteringBreakdowns(byGroup[groupKeyOf(groupedBy(g.Groups))]),
 				},
 			})
 		}
@@ -405,7 +422,8 @@ func (s *Service) bucketFees(ctx context.Context, sc Scope, cc *chargeContext, b
 			a = adj.charge(cc.charge.ID, bk.filterID(), grouped, sc.Boundaries.Charges)
 		}
 		var f *invoice.Fee
-		if a != nil && a.Mode != invoice.AdjustmentModeDisplayName {
+		adjusted := a != nil && a.Mode != invoice.AdjustmentModeDisplayName
+		if adjusted {
 			f, err = s.adjustedChargeFee(sc, cc, bk, a)
 		} else {
 			f, err = s.chargeFee(sc, cc, bk, gr, opts)
@@ -415,6 +433,11 @@ func (s *Service) bucketFees(ctx context.Context, sc Scope, cc *chargeContext, b
 		}
 		if err != nil {
 			return nil, err
+		}
+		// An adjusted fee keeps the breakdowns only when its units are
+		// those of the usage (charge_service.rb:215-217).
+		if !adjusted || gr.Units.Equal(f.Units) {
+			f.PresentationBreakdowns = invoice.ClonePresentationBreakdowns(byGroup[groupKeyOf(f.GroupedBy)])
 		}
 		fs = append(fs, f)
 	}
@@ -600,6 +623,9 @@ func (s *Service) addTrueUp(env *kernel.SubscriptionEnv, b period.Boundaries, cc
 	f.EventsCount = 0
 	f.ChargeFilterID = core.ChargeFilterID{}
 	f.TrueUpParentFeeID = parent.ID
+	// Fee#dup copies no association: the true-up fee has no breakdowns
+	// (app/services/fees/create_true_up_service.rb:28).
+	f.PresentationBreakdowns = nil
 	out.Fees = append(out.Fees, f)
 	return nil
 }

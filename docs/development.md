@@ -26,7 +26,7 @@ pnpm install            # Install Nx
 
 `pnpm nx` runs Nx under `mise exec` (the `nx` script of `package.json`), so every target uses the pinned tools whether or not the shell activates mise. Commands run outside Nx, such as `go test` in a module, run under `mise exec --` or in a shell that activates mise.
 
-Rust is pinned by each Cargo workspace's `rust-toolchain.toml` (today only `libs/expression`), which rustup installs on the first `cargo` command there, together with the `wasm32-unknown-unknown` target; only rustup itself is needed. Go builds never need Rust: the WASM module built from it is committed.
+Rust is pinned by each Cargo workspace's `rust-toolchain.toml` (today only `libs/expression`), which rustup installs on the first `cargo` command there, together with the `wasm32-unknown-unknown` target; only rustup itself is needed. Go builds never need Rust: the WASM module built from it is committed. The browser build of the same evaluator (`libs/expression/js`, wasm-bindgen bindings with the interface of lago-expression's `expression-js`) is not committed: `pnpm nx run expression:wasm-js` writes it to `libs/expression/js/pkg/`, and `pnpm nx run expression:test-js` runs the shared `testdata/` cases on it under Node.js; both use the `wasm-bindgen` CLI pinned in `mise.toml`.
 
 Migrations are generated with Atlas used as a library from `libs/store`; no Atlas CLI is needed. Integration tests that need PostgreSQL, ClickHouse, Redpanda or Redis start containers on `DOCKER_HOST`, else on the engine of the Docker CLI's current context, else on the first engine found at the sockets of OrbStack, Docker Desktop, Colima, Rancher Desktop or Podman.
 

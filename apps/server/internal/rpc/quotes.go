@@ -23,13 +23,24 @@ import (
 type Quotes struct {
 	quotev1connect.UnimplementedQuoteServiceHandler
 
-	svc *quotes.Service
+	svc      *quotes.Service
+	mentions MentionLocalizer
 }
 
 var _ quotev1connect.QuoteServiceHandler = (*Quotes)(nil)
 
-// NewQuotes returns the service over svc.
-func NewQuotes(svc *quotes.Service) *Quotes { return &Quotes{svc: svc} }
+// MentionLocalizer renders the raw mention variables of a quote version in
+// a document locale (documents.MentionLocalizer).
+type MentionLocalizer interface {
+	// Localize returns the mention variables raw in locale.
+	Localize(raw json.RawMessage, locale string) (json.RawMessage, error)
+}
+
+// NewQuotes returns the service over svc; mentions localizes the mention
+// variables of the versions it returns, which are raw when it is nil.
+func NewQuotes(svc *quotes.Service, mentions MentionLocalizer) *Quotes {
+	return &Quotes{svc: svc, mentions: mentions}
+}
 
 var (
 	quoteOrderTypes = NewEnum(map[quote.OrderType]quotev1.OrderType{
@@ -115,7 +126,7 @@ func (s *Quotes) CreateQuote(ctx context.Context, req *quotev1.CreateQuoteReques
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
-	out, err := quoteProto(q)
+	out, err := quoteProto(q, s.mentions)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +147,7 @@ func (s *Quotes) GetQuote(ctx context.Context, req *quotev1.GetQuoteRequest) (*q
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
-	out, err := quoteProto(q)
+	out, err := quoteProto(q, s.mentions)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +170,7 @@ func (s *Quotes) ListQuotes(ctx context.Context, req *quotev1.ListQuotesRequest)
 	}
 	items := make([]*quotev1.Quote, 0, len(page.Items))
 	for _, q := range page.Items {
-		out, err := quoteProto(q)
+		out, err := quoteProto(q, s.mentions)
 		if err != nil {
 			return nil, err
 		}
@@ -198,7 +209,7 @@ func (s *Quotes) UpdateQuote(ctx context.Context, req *quotev1.UpdateQuoteReques
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
-	out, err := quoteProto(q)
+	out, err := quoteProto(q, s.mentions)
 	if err != nil {
 		return nil, err
 	}
@@ -222,7 +233,7 @@ func (s *Quotes) ListQuoteVersions(ctx context.Context, req *quotev1.ListQuoteVe
 	}
 	items := make([]*quotev1.QuoteVersion, 0, len(page.Items))
 	for _, v := range page.Items {
-		out, err := versionProto(v)
+		out, err := versionProto(v, s.mentions)
 		if err != nil {
 			return nil, err
 		}
@@ -259,7 +270,7 @@ func (s *Quotes) GetQuoteVersion(ctx context.Context, req *quotev1.GetQuoteVersi
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
-	out, err := versionProto(v)
+	out, err := versionProto(v, s.mentions)
 	if err != nil {
 		return nil, err
 	}
@@ -322,7 +333,7 @@ func (s *Quotes) UpdateQuoteVersion(ctx context.Context, req *quotev1.UpdateQuot
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
-	out, err := versionProto(v)
+	out, err := versionProto(v, s.mentions)
 	if err != nil {
 		return nil, err
 	}
@@ -340,7 +351,7 @@ func (s *Quotes) CloneQuoteVersion(ctx context.Context, req *quotev1.CloneQuoteV
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
-	out, err := versionProto(v)
+	out, err := versionProto(v, s.mentions)
 	if err != nil {
 		return nil, err
 	}
@@ -359,7 +370,7 @@ func (s *Quotes) ApproveQuoteVersion(ctx context.Context, req *quotev1.ApproveQu
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
-	v, err := versionProto(a.Version)
+	v, err := versionProto(a.Version, s.mentions)
 	if err != nil {
 		return nil, err
 	}
@@ -381,7 +392,7 @@ func (s *Quotes) VoidQuoteVersion(ctx context.Context, req *quotev1.VoidQuoteVer
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
-	out, err := versionProto(v)
+	out, err := versionProto(v, s.mentions)
 	if err != nil {
 		return nil, err
 	}
@@ -500,7 +511,7 @@ func jsonStructOf(raw json.RawMessage) (*structpb.Struct, error) {
 }
 
 // quoteProto renders q (lago V1::QuoteSerializer).
-func quoteProto(q *quotes.QuoteView) (*quotev1.Quote, error) {
+func quoteProto(q *quotes.QuoteView, mentions MentionLocalizer) (*quotev1.Quote, error) {
 	x := q.Quote
 	ownerIDs := make([]string, len(x.Owners))
 	for i, o := range x.Owners {
@@ -520,7 +531,7 @@ func quoteProto(q *quotes.QuoteView) (*quotev1.Quote, error) {
 		b.SubscriptionId = new(x.SubscriptionID.String())
 	}
 	if q.Current != nil {
-		v, err := versionProto(q.Current)
+		v, err := versionProto(q.Current, mentions)
 		if err != nil {
 			return nil, err
 		}
@@ -529,14 +540,22 @@ func quoteProto(q *quotes.QuoteView) (*quotev1.Quote, error) {
 	return b.Build(), nil
 }
 
-// versionProto renders v (lago V1::QuoteVersionSerializer).
-func versionProto(v *quotes.VersionView) (*quotev1.QuoteVersion, error) {
+// versionProto renders v (lago V1::QuoteVersionSerializer), with the mention
+// variables localized in the customer's document locale as GraphQL
+// QuoteVersion.mentionVariables (types/quote_versions/object.rb:35-42).
+func versionProto(v *quotes.VersionView, mentions MentionLocalizer) (*quotev1.QuoteVersion, error) {
 	x := v.Version
 	items, err := jsonStructOf(x.BillingItems)
 	if err != nil {
 		return nil, err
 	}
-	mentions, err := jsonStructOf(x.MentionVariables)
+	raw := v.MentionVariables
+	if mentions != nil {
+		if raw, err = mentions.Localize(raw, v.DocumentLocale); err != nil {
+			return nil, err
+		}
+	}
+	vars, err := jsonStructOf(raw)
 	if err != nil {
 		return nil, err
 	}
@@ -549,7 +568,7 @@ func versionProto(v *quotes.VersionView) (*quotev1.QuoteVersion, error) {
 		Currency:          StringPtr(x.Currency.Code()),
 		BillingEntityCode: StringPtr(v.BillingEntityCode),
 		BillingItems:      items,
-		MentionVariables:  mentions,
+		MentionVariables:  vars,
 		ApprovedAt:        TimestampPtr(x.ApprovedAt),
 		VoidedAt:          TimestampPtr(x.VoidedAt),
 		CreatedAt:         Timestamp(x.CreatedAt),

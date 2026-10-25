@@ -2349,8 +2349,11 @@ paths:
           in: query
           description: |-
             An AIP-160 filter over `invoice_id`, `credit_status`, `refund_status`,
-             `reason`, `currency`, `billing_entity_id`, `issuing_date`, `amount`,
-             `self_billed` and `metadata.<key>`.
+             `reason`, `currency`, `billing_entity_id`, `issuing_date`, `amount`
+             (the total in minor units), `self_billed`, `invoice_number`,
+             `purchase_order_number` and `type` (`credit`, `refund` or `offset`).
+             `billing_entity_id` takes an ID or `"code:<code>"`; an unknown billing
+             entity, or an `invoice_id` that is not an invoice, is NOT_FOUND.
           schema:
             type: string
             title: filter
@@ -3207,8 +3210,11 @@ paths:
           in: query
           description: |-
             An AIP-160 filter over `invoice_id`, `credit_status`, `refund_status`,
-             `reason`, `currency`, `billing_entity_id`, `issuing_date`, `amount`,
-             `self_billed` and `metadata.<key>`.
+             `reason`, `currency`, `billing_entity_id`, `issuing_date`, `amount`
+             (the total in minor units), `self_billed`, `invoice_number`,
+             `purchase_order_number` and `type` (`credit`, `refund` or `offset`).
+             `billing_entity_id` takes an ID or `"code:<code>"`; an unknown billing
+             entity, or an `invoice_id` that is not an invoice, is NOT_FOUND.
           schema:
             type: string
             title: filter
@@ -3593,13 +3599,14 @@ paths:
             title: subscription_id
         - name: group_by
           in: query
-          description: |
-            The attribution type to group by (its code).
-            string.code = true
+          description: |-
+            The attribution type to group by (its code); a type unknown or deleted
+             is not found.
           required: true
           schema:
             type: string
             title: group_by
+            maxLength: 255
         - name: filters.key
           in: query
           description: The filters.key query parameter.
@@ -3618,7 +3625,11 @@ paths:
             maxItems: 100
         - name: from_time
           in: query
-          description: The start of the period; the current billing period's by default.
+          description: |-
+            The start of the period; both or neither of from_time and to_time are
+             set, at most 31 days apart. Neither reads the current billing period,
+             its last 31 days up to now when it is longer. The period starts at the
+             subscription's start at the earliest.
           schema:
             type: string
             examples:
@@ -3627,7 +3638,9 @@ paths:
             format: date-time
         - name: to_time
           in: query
-          description: The end of the period; now by default.
+          description: |-
+            The end of the period, exclusive; after from_time and the
+             subscription's start.
           schema:
             type: string
             examples:
@@ -3636,35 +3649,39 @@ paths:
             format: date-time
         - name: charge_codes
           in: query
-          description: Restricts usage to these charges, by code.
+          description: |-
+            Restricts usage to these charges of the plan, by code; every count and
+             sum charge whose metric is not recurring by default. A code outside
+             the plan is not found.
           schema:
             type: array
             items:
               type: string
-              description: |
-                string.code = true
+              maxLength: 255
             title: charge_codes
-            maxItems: 100
-            uniqueItems: true
         - name: split_charge_code
           in: query
-          description: |
-            Splits the rows by the filters of this charge, by code.
-            string.code = true
+          description: |-
+            Splits the rows by the filters of this charge of the plan, by code: one
+             usage per filter, at most 10, and one for the events no filter
+             matches. It must be among charge_codes when they are set.
           schema:
             type: string
             title: split_charge_code
+            maxLength: 255
         - name: search
           in: query
-          description: A search over the values.
+          description: |-
+            Keeps the values containing it, case-insensitively; at most 100
+             characters. Rows keep their rank among every value.
           schema:
             type: string
             title: search
-            maxLength: 255
         - name: basis
           in: query
           description: |
-            What rows are ranked by; UNITS by default.
+            What rows are ranked by: events count on UNITS, the default, without
+             amounts; amount on AMOUNT, standard charges priced.
             enum.defined_only = true
           schema:
             allOf:
@@ -3672,12 +3689,10 @@ paths:
             title: basis
         - name: page_size
           in: query
-          description: The maximum number of rows; 20 by default, at most 1000.
+          description: The maximum number of rows; 50 by default, at most 100.
           schema:
             type: integer
             title: page_size
-            maximum: 1000
-            minimum: 0
             format: int32
         - name: page_token
           in: query
@@ -3736,33 +3751,76 @@ paths:
         - name: billable_metric_code
           in: query
           description: |
-            Restricts the usage to one billable metric code.
+            Restricts the usage to the charges of one billable metric code.
+             charge_id and charge_code take precedence.
             string.code = true
           schema:
             type: string
             title: billable_metric_code
-        - name: filter_by.key
+        - name: charge_id
           in: query
-          description: The filter_by.key query parameter.
+          description: |-
+            Restricts the usage to one charge of the plan; it takes precedence
+             over charge_code and billable_metric_code.
           schema:
             type: string
-            title: key
-        - name: filter_by.value
+            title: charge_id
+            format: uuid
+        - name: charge_code
           in: query
-          description: The filter_by.value query parameter.
+          description: |
+            Restricts the usage to the charge of this code; it takes precedence
+             over billable_metric_code.
+            string.code = true
           schema:
             type: string
-            title: value
-        - name: group_by_attributions
+            title: charge_code
+        - name: filter_by_group
           in: query
-          description: Groups the usage by these attribution type codes.
+          description: |-
+            Restricts the usage to the events whose property is one of the
+             values, as `<key>:<value>` entries; several entries of one key match
+             any of their values. The keys are no longer pricing group keys of the
+             charges, whose other keys still group the usage.
           schema:
             type: array
             items:
               type: string
-            title: group_by_attributions
-            maxItems: 5
+              maxLength: 1000
+              pattern: '^[^:]+:'
+            title: filter_by_group
+            maxItems: 100
+        - name: filter_by_presentation
+          in: query
+          description: |-
+            Keeps the presentation breakdowns of these presentation keys only;
+             empty keeps them all.
+          schema:
+            type: array
+            items:
+              type: string
+              maxLength: 255
+              minLength: 1
+            title: filter_by_presentation
+            maxItems: 20
             uniqueItems: true
+        - name: skip_grouping
+          in: query
+          description: |-
+            Ignores the pricing group keys of the charges: one fee per charge
+             and filter.
+          schema:
+            type: boolean
+            title: skip_grouping
+        - name: full_usage
+          in: query
+          description: |-
+            Computes the usage since the subscription started instead of since
+             the period start. It needs a charge restriction or filter_by_group,
+             and charges that are not prorated; include_projection ignores it.
+          schema:
+            type: boolean
+            title: full_usage
       responses:
         "200":
           description: Success
@@ -3844,7 +3902,9 @@ paths:
       tags:
         - UsageService
       summary: GetHourlyUsage
-      description: Returns the hourly usage of billable metrics over a time range.
+      description: |-
+        Returns the usage of one charge per hour of the customer's time zone,
+         broken down by charge filter, read from the usage buckets.
       operationId: tanvo.usage.v1.UsageService.GetHourlyUsage
       parameters:
         - name: customer_id
@@ -3867,7 +3927,10 @@ paths:
             title: subscription_id
         - name: from
           in: query
-          description: The start of the range; the period start by default.
+          description: |-
+            The start of the window; 24 hours before its end by default. The
+             window starts on the hour at or before it, in the customer's time
+             zone.
           schema:
             type: string
             examples:
@@ -3876,21 +3939,24 @@ paths:
             format: date-time
         - name: to
           in: query
-          description: The end of the range; now by default.
+          description: |-
+            The end of the window; now by default. An end inside a 15-minute
+             bucket is moved to the end of the bucket. The window spans at most
+             31 days.
           schema:
             type: string
             examples:
               - "2023-01-15T01:30:15.01Z"
               - "2024-12-25T12:00:00Z"
             format: date-time
-        - name: billable_metric_code
+        - name: charge_id
           in: query
-          description: |
-            Restricts the usage to one billable metric code.
-            string.code = true
+          description: The charge of the subscription's plan, counting or summing events.
+          required: true
           schema:
             type: string
-            title: billable_metric_code
+            title: charge_id
+            format: uuid
       responses:
         "200":
           description: Success
@@ -17261,7 +17327,9 @@ components:
           allOf:
             - $ref: '#/components/schemas/tanvo.common.v1.Money'
           title: amount
-          description: The amount.
+          description: |-
+            The amount of the priced charges, rounded to the currency's minor
+             unit; unset on the UNITS basis.
         events_count:
           type: string
           title: events_count
@@ -17272,7 +17340,13 @@ components:
           items:
             $ref: '#/components/schemas/tanvo.attribution.v1.AttributedChargeUsage'
           title: charges_usage
-          description: The usage per charge.
+          description: |-
+            The usage per charge, in the order of the plan's charges, a split
+             charge's filters in their order and the events no filter matches last.
+        precise_amount:
+          type: string
+          title: precise_amount
+          description: The unrounded amount in minor units; empty when amount is unset.
       title: AttributedAggregate
       additionalProperties: false
       description: AttributedAggregate is usage summed over charges.
@@ -17315,12 +17389,19 @@ components:
           allOf:
             - $ref: '#/components/schemas/tanvo.common.v1.Money'
           title: amount
-          description: The amount.
+          description: |-
+            The amount, rounded to the currency's minor unit; unset on the UNITS
+             basis and for a charge not priced (a non-standard model, or filters
+             too many to price).
         events_count:
           type: string
           title: events_count
           format: int64
           description: The number of events.
+        precise_amount:
+          type: string
+          title: precise_amount
+          description: The unrounded amount in minor units; empty when amount is unset.
       title: AttributedChargeUsage
       additionalProperties: false
       description: AttributedChargeUsage is the usage of one charge (and filter) in a row.
@@ -17415,63 +17496,75 @@ components:
         group_by:
           type: string
           title: group_by
-          description: |
-            The attribution type to group by (its code).
-            string.code = true
+          maxLength: 255
+          description: |-
+            The attribution type to group by (its code); a type unknown or deleted
+             is not found.
         filters:
           type: object
           title: filters
-          maxProperties: 4
           additionalProperties:
             allOf:
               - $ref: '#/components/schemas/tanvo.attribution.v1.Values'
             title: value
-          description: 'Restricts usage to these values of other types: type code to values.'
+          description: |-
+            Restricts usage to these values of other types: type code to values,
+             an empty string matching the events without a value; at most 20 values
+             per type and 3 flat types. A hierarchical level whose parent type is
+             kept is read under a filter on the parent.
         from_time:
           allOf:
             - $ref: '#/components/schemas/google.protobuf.Timestamp'
           title: from_time
-          description: The start of the period; the current billing period's by default.
+          description: |-
+            The start of the period; both or neither of from_time and to_time are
+             set, at most 31 days apart. Neither reads the current billing period,
+             its last 31 days up to now when it is longer. The period starts at the
+             subscription's start at the earliest.
         to_time:
           allOf:
             - $ref: '#/components/schemas/google.protobuf.Timestamp'
           title: to_time
-          description: The end of the period; now by default.
+          description: |-
+            The end of the period, exclusive; after from_time and the
+             subscription's start.
         charge_codes:
           type: array
           items:
             type: string
-            description: |
-              string.code = true
+            maxLength: 255
           title: charge_codes
-          maxItems: 100
-          uniqueItems: true
-          description: Restricts usage to these charges, by code.
+          description: |-
+            Restricts usage to these charges of the plan, by code; every count and
+             sum charge whose metric is not recurring by default. A code outside
+             the plan is not found.
         split_charge_code:
           type: string
           title: split_charge_code
-          description: |
-            Splits the rows by the filters of this charge, by code.
-            string.code = true
+          maxLength: 255
+          description: |-
+            Splits the rows by the filters of this charge of the plan, by code: one
+             usage per filter, at most 10, and one for the events no filter
+             matches. It must be among charge_codes when they are set.
         search:
           type: string
           title: search
-          maxLength: 255
-          description: A search over the values.
+          description: |-
+            Keeps the values containing it, case-insensitively; at most 100
+             characters. Rows keep their rank among every value.
         basis:
           allOf:
             - $ref: '#/components/schemas/tanvo.attribution.v1.AttributionBasis'
           title: basis
           description: |
-            What rows are ranked by; UNITS by default.
+            What rows are ranked by: events count on UNITS, the default, without
+             amounts; amount on AMOUNT, standard charges priced.
             enum.defined_only = true
         page_size:
           type: integer
           title: page_size
-          maximum: 1000
-          minimum: 0
           format: int32
-          description: The maximum number of rows; 20 by default, at most 1000.
+          description: The maximum number of rows; 50 by default, at most 100.
         page_token:
           type: string
           title: page_token
@@ -17504,7 +17597,7 @@ components:
           allOf:
             - $ref: '#/components/schemas/tanvo.common.v1.DateTimeRange'
           title: period
-          description: The period.
+          description: The period read, its end exclusive.
         currency:
           type: string
           title: currency
@@ -17529,6 +17622,15 @@ components:
           type: string
           title: next_page_token
           description: The token of the next page; empty on the last page.
+        total_size:
+          type: string
+          title: total_size
+          format: int64
+          description: The number of values of the type in the period, whatever the search.
+        external_subscription_id:
+          type: string
+          title: external_subscription_id
+          description: The subscription's external ID.
       title: GetAttributedUsageResponse
       additionalProperties: false
       description: GetAttributedUsageResponse is the response of UsageAttributionService.GetAttributedUsage.
@@ -23031,6 +23133,25 @@ components:
         - PAYMENT_STATUS_SUCCEEDED
         - PAYMENT_STATUS_FAILED
       description: PaymentStatus is the payment state of an invoice or payment request.
+    tanvo.common.v1.PresentationBreakdown:
+      type: object
+      properties:
+        presentation_by:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Struct'
+          title: presentation_by
+          description: |-
+            The group's values by presentation key; null for a key missing on the
+             events.
+        units:
+          type: string
+          title: units
+          description: The group's units.
+      title: PresentationBreakdown
+      additionalProperties: false
+      description: |-
+        PresentationBreakdown is the units of one presentation group of a charge
+         fee: the usage split by the charge's presentation group keys.
     tanvo.common.v1.RefundStatus:
       type: string
       title: RefundStatus
@@ -23882,6 +24003,80 @@ components:
           title: errors
           description: The errors recorded on the credit note.
           readOnly: true
+        sequential_id:
+          type: string
+          title: sequential_id
+          format: int64
+          description: The sequence of the credit note on its invoice, the n of its number.
+          readOnly: true
+        billing_entity_id:
+          type: string
+          title: billing_entity_id
+          description: The invoice's billing entity.
+          readOnly: true
+        invoice_number:
+          type: string
+          title: invoice_number
+          description: The invoice's number.
+          readOnly: true
+        purchase_order_number:
+          type: string
+          title: purchase_order_number
+          description: The invoice's purchase order number.
+          readOnly: true
+        self_billed:
+          type: boolean
+          title: self_billed
+          description: Marks a credit note on a self-billed invoice.
+          readOnly: true
+        precise_taxes_amount:
+          type: string
+          title: precise_taxes_amount
+          description: The unrounded taxes, in the currency's major unit.
+          readOnly: true
+        precise_total_amount:
+          type: string
+          title: precise_total_amount
+          description: |-
+            The unrounded total, in the currency's major unit: the items less the
+             coupons, with the taxes.
+          readOnly: true
+        precise_coupons_adjustment_amount:
+          type: string
+          title: precise_coupons_adjustment_amount
+          description: |-
+            The unrounded share of the invoice's coupons removed, in the
+             currency's major unit.
+          readOnly: true
+        voidable:
+          type: boolean
+          title: voidable
+          description: Marks a credit note with a balance left to void.
+          readOnly: true
+        integration_syncable:
+          type: boolean
+          title: integration_syncable
+          description: |-
+            Marks a finalized credit note that the customer's accounting
+             integrations sync and that is not synced yet (RetryCreditNoteSync).
+          readOnly: true
+        tax_provider_syncable:
+          type: boolean
+          title: tax_provider_syncable
+          description: |-
+            Marks a credit note whose report to the tax provider failed
+             (RetryCreditNoteTaxReporting).
+          readOnly: true
+        external_integration_id:
+          type: string
+          title: external_integration_id
+          description: The credit note's ID at the customer's default accounting integration.
+          readOnly: true
+        tax_provider_id:
+          type: string
+          title: tax_provider_id
+          description: The credit note's ID at the customer's default tax provider.
+          readOnly: true
       title: CreditNote
       required:
         - invoice_id
@@ -23918,6 +24113,14 @@ components:
             - $ref: '#/components/schemas/tanvo.common.v1.Money'
           title: amount
           description: The tax amount.
+        id:
+          type: string
+          title: id
+          description: The applied tax's ID.
+        tax_description:
+          type: string
+          title: tax_description
+          description: The tax description.
       title: CreditNoteAppliedTax
       additionalProperties: false
       description: CreditNoteAppliedTax is a tax of a credit note.
@@ -23965,7 +24168,12 @@ components:
         precise_amount:
           type: string
           title: precise_amount
-          description: The unrounded amount.
+          description: The unrounded amount, in the currency's major unit like `amount`.
+          readOnly: true
+        id:
+          type: string
+          title: id
+          description: The item's ID.
           readOnly: true
       title: CreditNoteItem
       required:
@@ -24185,8 +24393,11 @@ components:
           maxLength: 2048
           description: |-
             An AIP-160 filter over `invoice_id`, `credit_status`, `refund_status`,
-             `reason`, `currency`, `billing_entity_id`, `issuing_date`, `amount`,
-             `self_billed` and `metadata.<key>`.
+             `reason`, `currency`, `billing_entity_id`, `issuing_date`, `amount`
+             (the total in minor units), `self_billed`, `invoice_number`,
+             `purchase_order_number` and `type` (`credit`, `refund` or `offset`).
+             `billing_entity_id` takes an ID or `"code:<code>"`; an unknown billing
+             entity, or an `invoice_id` that is not an invoice, is NOT_FOUND.
         search:
           type: string
           title: search
@@ -25453,7 +25664,9 @@ components:
         precise_total_amount:
           type: string
           title: precise_total_amount
-          description: The decimal value of the dynamic charge amount.
+          description: |-
+            The amount of a dynamic charge in the currency's minor unit (cents),
+             as a decimal string.
         properties:
           type: object
           title: properties
@@ -25617,7 +25830,8 @@ components:
           type: string
           title: precise_total_amount
           description: |
-            The amount of a dynamic charge, as a decimal.
+            The amount of a dynamic charge in the currency's minor unit (cents),
+             as a decimal string that may carry fractions of a cent ("1050.5").
             string.decimal = true
         target_wallet_code:
           type: string
@@ -28076,6 +28290,15 @@ components:
           description: |-
             The fee of a voided invoice this fee was regenerated from, the first
              of the chain.
+          readOnly: true
+        presentation_breakdowns:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.PresentationBreakdown'
+          title: presentation_breakdowns
+          description: |-
+            The units of a charge fee by the presentation keys its charge
+             displays on invoices.
           readOnly: true
       title: Fee
       additionalProperties: false
@@ -30566,6 +30789,14 @@ components:
             The prefix of customer slugs, 1–10 characters, stored upper-cased;
              defaults to the first 3 characters of the name and the last 4 of the
              ID.
+        from_email_enabled:
+          type: boolean
+          title: from_email_enabled
+          description: |-
+            Sends document emails (invoices, credit notes, payment receipts and
+             payment requests) from the issuing billing entity's email, and makes
+             the organization's email the reply-to of organization emails; the
+             instance sender otherwise. Default false.
       title: Organization
       additionalProperties: false
       description: |-
@@ -33037,7 +33268,12 @@ components:
           allOf:
             - $ref: '#/components/schemas/google.protobuf.Struct'
           title: mention_variables
-          description: The values of the mentions, frozen at approval.
+          description: |-
+            The values of the mentions, by variable, as display strings in the
+             customer's document locale: frozen at approval, computed live before.
+             Dates are in the locale's date format, the term duration and payment
+             terms are translated and the billing entity address is formatted for
+             its country, one line per row.
           readOnly: true
         approved_at:
           allOf:
@@ -35182,6 +35418,18 @@ components:
             $ref: '#/components/schemas/tanvo.usage.v1.GroupedUsage'
           title: grouped_usage
           description: The usage per grouping, for charges without filters.
+        presentation_breakdowns:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.PresentationBreakdown'
+          title: presentation_breakdowns
+          description: The units of the ungrouped and unfiltered fees by presentation key.
+        projected_presentation_breakdowns:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.PresentationBreakdown'
+          title: projected_presentation_breakdowns
+          description: The projected units of the ungrouped fees by presentation key.
       title: ChargeUsage
       additionalProperties: false
       description: ChargeUsage is the usage of one charge.
@@ -35253,6 +35501,18 @@ components:
             $ref: '#/components/schemas/tanvo.usage.v1.GroupedUsage'
           title: grouped_usage
           description: The usage per grouping.
+        presentation_breakdowns:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.PresentationBreakdown'
+          title: presentation_breakdowns
+          description: The units of the filter's fees by presentation key.
+        projected_presentation_breakdowns:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.PresentationBreakdown'
+          title: projected_presentation_breakdowns
+          description: The projected units by presentation key.
       title: FilterUsage
       additionalProperties: false
       description: FilterUsage is the usage of one charge filter.
@@ -35283,24 +35543,61 @@ components:
           type: string
           title: billable_metric_code
           description: |
-            Restricts the usage to one billable metric code.
+            Restricts the usage to the charges of one billable metric code.
+             charge_id and charge_code take precedence.
             string.code = true
-        filter_by:
-          type: object
-          title: filter_by
-          maxProperties: 20
-          additionalProperties:
-            type: string
-            title: value
-          description: Restricts the usage to events matching these filter values.
-        group_by_attributions:
+        charge_id:
+          type: string
+          title: charge_id
+          format: uuid
+          description: |-
+            Restricts the usage to one charge of the plan; it takes precedence
+             over charge_code and billable_metric_code.
+        charge_code:
+          type: string
+          title: charge_code
+          description: |
+            Restricts the usage to the charge of this code; it takes precedence
+             over billable_metric_code.
+            string.code = true
+        filter_by_group:
           type: array
           items:
             type: string
-          title: group_by_attributions
-          maxItems: 5
+            maxLength: 1000
+            pattern: '^[^:]+:'
+          title: filter_by_group
+          maxItems: 100
+          description: |-
+            Restricts the usage to the events whose property is one of the
+             values, as `<key>:<value>` entries; several entries of one key match
+             any of their values. The keys are no longer pricing group keys of the
+             charges, whose other keys still group the usage.
+        filter_by_presentation:
+          type: array
+          items:
+            type: string
+            maxLength: 255
+            minLength: 1
+          title: filter_by_presentation
+          maxItems: 20
           uniqueItems: true
-          description: Groups the usage by these attribution type codes.
+          description: |-
+            Keeps the presentation breakdowns of these presentation keys only;
+             empty keeps them all.
+        skip_grouping:
+          type: boolean
+          title: skip_grouping
+          description: |-
+            Ignores the pricing group keys of the charges: one fee per charge
+             and filter.
+        full_usage:
+          type: boolean
+          title: full_usage
+          description: |-
+            Computes the usage since the subscription started instead of since
+             the period start. It needs a charge restriction or filter_by_group,
+             and charges that are not prorated; include_projection ignores it.
       title: GetCurrentUsageRequest
       required:
         - customer_id
@@ -35337,22 +35634,28 @@ components:
           allOf:
             - $ref: '#/components/schemas/google.protobuf.Timestamp'
           title: from
-          description: The start of the range; the period start by default.
+          description: |-
+            The start of the window; 24 hours before its end by default. The
+             window starts on the hour at or before it, in the customer's time
+             zone.
         to:
           allOf:
             - $ref: '#/components/schemas/google.protobuf.Timestamp'
           title: to
-          description: The end of the range; now by default.
-        billable_metric_code:
+          description: |-
+            The end of the window; now by default. An end inside a 15-minute
+             bucket is moved to the end of the bucket. The window spans at most
+             31 days.
+        charge_id:
           type: string
-          title: billable_metric_code
-          description: |
-            Restricts the usage to one billable metric code.
-            string.code = true
+          title: charge_id
+          format: uuid
+          description: The charge of the subscription's plan, counting or summing events.
       title: GetHourlyUsageRequest
       required:
         - customer_id
         - subscription_id
+        - charge_id
       additionalProperties: false
       description: |
         GetHourlyUsageRequest is the request of UsageService.GetHourlyUsage.
@@ -35360,12 +35663,42 @@ components:
     tanvo.usage.v1.GetHourlyUsageResponse:
       type: object
       properties:
-        hourly_usage:
+        from:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: from
+          description: The start of the window the units describe.
+        to:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: to
+          description: The end of the window the units describe.
+        timezone:
+          type: string
+          title: timezone
+          description: The customer's time zone the hours are cut in.
+        aggregation_type:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.catalog.v1.AggregationType'
+          title: aggregation_type
+          description: The aggregation type of the charge's billable metric.
+        last_ingested_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: last_ingested_at
+          description: The latest ingestion time of the events counted.
+        filters:
           type: array
           items:
-            $ref: '#/components/schemas/tanvo.usage.v1.HourlyUsage'
-          title: hourly_usage
-          description: The usage per hour and metric.
+            $ref: '#/components/schemas/tanvo.usage.v1.HourlyUsageFilter'
+          title: filters
+          description: The series with usage in the window, biggest first.
+        hours:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.usage.v1.HourlyUsagePoint'
+          title: hours
+          description: The hours of the window, gaps included.
       title: GetHourlyUsageResponse
       additionalProperties: false
       description: GetHourlyUsageResponse is the response of UsageService.GetHourlyUsage.
@@ -35402,40 +35735,107 @@ components:
             - $ref: '#/components/schemas/tanvo.common.v1.Money'
           title: projected_amount
           description: The projected amount at the period end.
+        presentation_breakdowns:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.PresentationBreakdown'
+          title: presentation_breakdowns
+          description: The units of the group's fees by presentation key.
+        projected_presentation_breakdowns:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.PresentationBreakdown'
+          title: projected_presentation_breakdowns
+          description: The projected units by presentation key.
       title: GroupedUsage
       additionalProperties: false
       description: GroupedUsage is the usage of one grouping of a charge.
-    tanvo.usage.v1.HourlyUsage:
+    tanvo.usage.v1.HourlyUsageBreakdown:
       type: object
       properties:
-        hour:
-          allOf:
-            - $ref: '#/components/schemas/google.protobuf.Timestamp'
-          title: hour
-          description: The start of the hour.
-        billable_metric_code:
+        charge_filter_id:
           type: string
-          title: billable_metric_code
-          description: The billable metric code.
+          title: charge_filter_id
+          description: The charge filter; empty for the charge default and the folded series.
         units:
           type: string
           title: units
-          description: The aggregated value of the hour.
+          description: The units of the hour.
         events_count:
           type: string
           title: events_count
           format: int64
-          description: The number of events.
-        grouped_by:
+          description: The number of events of the hour.
+        other:
+          type: boolean
+          title: other
+          description: Marks the series folding every filter past the biggest ones.
+      title: HourlyUsageBreakdown
+      additionalProperties: false
+      description: HourlyUsageBreakdown is the usage of one series in one hour.
+    tanvo.usage.v1.HourlyUsageFilter:
+      type: object
+      properties:
+        charge_filter_id:
+          type: string
+          title: charge_filter_id
+          description: The charge filter; empty for the charge default and the folded series.
+        invoice_display_name:
+          type: string
+          title: invoice_display_name
+          description: The invoice line name of the filter.
+        values:
           type: object
-          title: grouped_by
+          title: values
           additionalProperties:
             type: string
             title: value
-          description: The grouping values.
-      title: HourlyUsage
+          description: The filter values, joined with commas.
+        units:
+          type: string
+          title: units
+          description: The units of the window.
+        events_count:
+          type: string
+          title: events_count
+          format: int64
+          description: The number of events of the window.
+        other:
+          type: boolean
+          title: other
+          description: Marks the series folding every filter past the biggest ones.
+      title: HourlyUsageFilter
       additionalProperties: false
-      description: HourlyUsage is the usage of one billable metric in one hour.
+      description: |-
+        HourlyUsageFilter is one series of an hourly usage: a charge filter
+         with usage in the window, the charge default, or the series folding the
+         smallest filters, with its totals over the window.
+    tanvo.usage.v1.HourlyUsagePoint:
+      type: object
+      properties:
+        time:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: time
+          description: The start of the hour in the customer's time zone.
+        units:
+          type: string
+          title: units
+          description: The units of the hour.
+        events_count:
+          type: string
+          title: events_count
+          format: int64
+          description: The number of events of the hour.
+        breakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.usage.v1.HourlyUsageBreakdown'
+          title: breakdown
+          description: The usage of each series, in the order of the filters.
+      title: HourlyUsagePoint
+      additionalProperties: false
+      description: HourlyUsagePoint is one hour of an hourly usage.
     tanvo.usage.v1.ListDailyUsageRequest:
       type: object
       properties:

@@ -24,6 +24,9 @@ type Projection struct {
 	// PricingUnitAmount is the projected amount in minor units of the
 	// charge's pricing unit; nil when the charge has none.
 	PricingUnitAmount *int64
+	// PresentationBreakdowns are the fee's breakdowns with their units
+	// projected like the fee's.
+	PresentationBreakdowns []invoice.PresentationBreakdown
 }
 
 // repricedModels price the projected units with the charge properties;
@@ -57,7 +60,7 @@ func pricingUnitOf(ctx context.Context, r port.Repos, org core.OrganizationID, c
 // pu when the charge has one; the other models scale the current amount.
 func project(f *invoice.Fee, c *catalog.Charge, m *catalog.BillableMetric, pu *pricing.AppliedPricingUnit, now time.Time, loc *time.Location) (Projection, error) {
 	if m.Recurring {
-		p := Projection{Units: f.Units, Amount: f.Amount}
+		p := Projection{Units: f.Units, Amount: f.Amount, PresentationBreakdowns: invoice.ClonePresentationBreakdowns(f.PresentationBreakdowns)}
 		if f.PricingUnitUsage != nil {
 			p.PricingUnitAmount = ptr(kernel.RoundCents(f.PricingUnitUsage.Amount))
 		}
@@ -75,8 +78,9 @@ func project(f *invoice.Fee, c *catalog.Charge, m *catalog.BillableMetric, pu *p
 	if f.Units.IsPositive() {
 		units = f.Units.Div(ratio).Round(2, money.HalfUp)
 	}
+	breakdowns := projectedBreakdowns(f, ratio)
 	if !slices.Contains(repricedModels, c.ChargeModel) {
-		p := Projection{Units: units, Amount: scale(f.PreciseAmount, ratio)}
+		p := Projection{Units: units, Amount: scale(f.PreciseAmount, ratio), PresentationBreakdowns: breakdowns}
 		if f.PricingUnitUsage != nil {
 			p.PricingUnitAmount = ptr(scale(f.PricingUnitUsage.PreciseAmount, ratio))
 		}
@@ -112,11 +116,24 @@ func project(f *invoice.Fee, c *catalog.Charge, m *catalog.BillableMetric, pu *p
 	if err != nil {
 		return Projection{}, fmt.Errorf("project fee of charge %s: %w", c.ID, err)
 	}
-	p := Projection{Units: units, Amount: amounts.Amount.AmountCents}
+	p := Projection{Units: units, Amount: amounts.Amount.AmountCents, PresentationBreakdowns: breakdowns}
 	if u := amounts.Amount.PricingUnitUsage; u != nil {
 		p.PricingUnitAmount = ptr(u.AmountCents)
 	}
 	return p, nil
+}
+
+// projectedBreakdowns divides the units of the fee's breakdowns by the
+// period ratio, rounded half up to the exponent of the fee's currency
+// (lago Fees::ProjectionService#projected_presentation_breakdowns).
+//
+// source: app/services/fees/projection_service.rb:122-128
+func projectedBreakdowns(f *invoice.Fee, ratio money.Decimal) []invoice.PresentationBreakdown {
+	out := invoice.ClonePresentationBreakdowns(f.PresentationBreakdowns)
+	for i := range out {
+		out[i].Units = out[i].Units.Div(ratio).Round(f.Currency.Exponent(), money.HalfUp)
+	}
+	return out
 }
 
 // scale divides a precise amount by the period ratio, rounded half up and

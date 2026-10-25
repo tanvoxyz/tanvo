@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -19,6 +20,101 @@ func (t *txState) bindAuditLog(r *port.Repos) {
 	r.SecurityLogs = securityLogRepo{t}
 	r.APILogs = apiLogRepo{t}
 	r.ActivityLogs = activityLogRepo{t}
+	if a := t.store.logs; a != nil {
+		r.SecurityLogs = auditlog.ArchivedSecurityLogs(r.SecurityLogs, a.SecurityLogs())
+		r.APILogs = auditlog.ArchivedAPILogs(r.APILogs, a.APILogs())
+		r.ActivityLogs = auditlog.ArchivedActivityLogs(r.ActivityLogs, a.ActivityLogs())
+	}
+}
+
+// WithLogArchive makes the audit log tables hold the logs until
+// [Store.ArchiveLogs] moves them to a, and the repositories read both
+// (architecture §7.4): logs are still written in the transaction of their
+// change.
+func WithLogArchive(a auditlog.Archive) Option {
+	return func(s *Store) { s.logs = a }
+}
+
+// ArchiveLogs moves up to limit logs of each kind, the oldest first, from
+// the audit log tables to a, across organizations, and returns how many
+// it moved. The logs are claimed with FOR UPDATE SKIP LOCKED, so that
+// concurrent movers move different logs, written to a, then deleted in
+// the claiming transaction; a failure after the write leaves them to be
+// written again, which a's idempotent write absorbs.
+func (s *Store) ArchiveLogs(ctx context.Context, a auditlog.Archive, limit int) (int, error) {
+	if limit <= 0 || limit > math.MaxInt32 {
+		return 0, fmt.Errorf("store: archive logs: limit %d: %w", limit, core.ErrInvalidValue)
+	}
+	n := 0
+	err := s.InTx(ctx, func(ctx context.Context, _ port.Repos) error {
+		t, _ := ctx.Value(txKey{}).(*txState)
+		q, err := t.queriesAll(ctx)
+		if err != nil {
+			return err
+		}
+		lim := int32(limit)
+		sec, err := q.ClaimSecurityLogs(ctx, lim)
+		if err != nil {
+			return fmt.Errorf("claim security logs: %w", mapErr(err))
+		}
+		api, err := q.ClaimApiLogs(ctx, lim)
+		if err != nil {
+			return fmt.Errorf("claim api logs: %w", mapErr(err))
+		}
+		act, err := q.ClaimActivityLogs(ctx, lim)
+		if err != nil {
+			return fmt.Errorf("claim activity logs: %w", mapErr(err))
+		}
+		var b auditlog.Batch
+		if b.Security, err = convAll(sec, securityLogOf); err != nil {
+			return err
+		}
+		if b.API, err = convAll(api, apiLogOf); err != nil {
+			return err
+		}
+		if b.Activity, err = convAll(act, activityLogOf); err != nil {
+			return err
+		}
+		if n = b.Len(); n == 0 {
+			return nil
+		}
+		if err := a.Write(ctx, b); err != nil {
+			return fmt.Errorf("write log archive: %w", err)
+		}
+		keys := func(org, id uuid.UUID) string { return org.String() + "/" + id.String() }
+		if len(sec) > 0 {
+			ks := make([]string, len(sec))
+			for i, r := range sec {
+				ks[i] = keys(r.OrganizationID, r.ID)
+			}
+			if err := q.DeleteSecurityLogs(ctx, ks); err != nil {
+				return fmt.Errorf("delete security logs: %w", mapErr(err))
+			}
+		}
+		if len(api) > 0 {
+			ks := make([]string, len(api))
+			for i, r := range api {
+				ks[i] = keys(r.OrganizationID, r.ID)
+			}
+			if err := q.DeleteApiLogs(ctx, ks); err != nil {
+				return fmt.Errorf("delete api logs: %w", mapErr(err))
+			}
+		}
+		if len(act) > 0 {
+			ks := make([]string, len(act))
+			for i, r := range act {
+				ks[i] = keys(r.OrganizationID, r.ID)
+			}
+			if err := q.DeleteActivityLogs(ctx, ks); err != nil {
+				return fmt.Errorf("delete activity logs: %w", mapErr(err))
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, fmt.Errorf("store: archive logs: %w", err)
+	}
+	return n, nil
 }
 
 // logPageArgs returns the cursor and row limit of an audit log list.
@@ -27,21 +123,15 @@ func logPageArgs(p core.PageRequest) (afterAt *time.Time, after *uuid.UUID, lim 
 	if p.Token == "" {
 		return nil, nil, lim, nil
 	}
-	c, err := core.DecodeCursor(p.Token)
+	at, id, err := auditlog.ParsePageToken(p.Token)
 	if err != nil {
 		return nil, nil, 0, err
 	}
-	at, err := time.Parse(time.RFC3339Nano, c.Key)
-	if err != nil {
-		return nil, nil, 0, fmt.Errorf("%w: page token", core.ErrInvalidValue)
-	}
-	return new(at.UTC()), &c.ID, lim, nil
+	return &at, &id, lim, nil
 }
 
 // logToken returns the page token after the entry logged at at with id.
-func logToken(at time.Time, id uuid.UUID) string {
-	return core.Cursor{Key: at.UTC().Format(time.RFC3339Nano), ID: id}.Encode()
-}
+func logToken(at time.Time, id uuid.UUID) string { return auditlog.PageToken(at, id) }
 
 // encodeMap encodes m for a nullable jsonb column (nil to NULL).
 func encodeMap(m map[string]any) ([]byte, error) {

@@ -9,17 +9,17 @@ import type { GenFile, GenMessage } from "@bufbuild/protobuf/codegenv2";
 import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_buf_validate_validate } from "../../../buf/validate/validate_pb.js";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
-import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import { file_google_protobuf_struct, file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
 import type { ConnectionBehavior } from "./enums_pb.js";
 import { file_tanvo_common_v1_enums } from "./enums_pb.js";
 import { file_tanvo_common_v1_options } from "./options_pb.js";
-import type { Message } from "@bufbuild/protobuf";
+import type { JsonObject, Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file tanvo/common/v1/types.proto.
  */
 export const file_tanvo_common_v1_types: GenFile = /*@__PURE__*/
-  fileDesc("Cht0YW52by9jb21tb24vdjEvdHlwZXMucHJvdG8SD3RhbnZvLmNvbW1vbi52MSJHCgVNb25leRIfCghjdXJyZW5jeRgBIAEoCUINukgKyAEBcgXYpMoGARIdCgZhbW91bnQYAiABKAlCDbpICsgBAXIFyKTKBgEirgEKB0FkZHJlc3MSFwoFbGluZTEYASABKAlCCLpIBXIDGP8BEhcKBWxpbmUyGAIgASgJQgi6SAVyAxj/ARIWCgRjaXR5GAMgASgJQgi6SAVyAxj/ARIXCgVzdGF0ZRgEIAEoCUIIukgFcgMY/wESGQoHemlwY29kZRgFIAEoCUIIukgFcgMY/wESJQoHY291bnRyeRgGIAEoCUIUukgRcg8yDV5bQS1aYS16XXsyfSQiXQoMTWV0YWRhdGFJdGVtEhgKA2tleRgBIAEoCUILukgIyAEBcgMY/wESFwoFdmFsdWUYAiABKAlCCLpIBXIDGP8BEhoKEmRpc3BsYXlfaW5faW52b2ljZRgDIAEoCCJrChBDb25uZWN0aW9uQ2hvaWNlEj8KCGJlaGF2aW9yGAEgASgOMiMudGFudm8uY29tbW9uLnYxLkNvbm5lY3Rpb25CZWhhdmlvckIIukgFggECEAESFgoEY29kZRgCIAEoCUIIukgFcgMY/wEiYQoNRGF0ZVRpbWVSYW5nZRIoCgRmcm9tGAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBImCgJ0bxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiXQoIRG9jdW1lbnQSCwoDdXJsGAEgASgJEi4KCmV4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhQKDGNvbnRlbnRfdHlwZRgDIAEoCULFAQoTY29tLnRhbnZvLmNvbW1vbi52MUIKVHlwZXNQcm90b1ABWkRnaXRodWIuY29tL3RhbnZveHl6L3RhbnZvL2xpYnMvcHJvdG8vZ2VuL2dvL3RhbnZvL2NvbW1vbi92MTtjb21tb252MaICA1RDWKoCD1RhbnZvLkNvbW1vbi5WMcoCD1RhbnZvXENvbW1vblxWMeICG1RhbnZvXENvbW1vblxWMVxHUEJNZXRhZGF0YeoCEVRhbnZvOjpDb21tb246OlYxYghlZGl0aW9uc3DoBw", [file_buf_validate_validate, file_google_protobuf_timestamp, file_tanvo_common_v1_enums, file_tanvo_common_v1_options]);
+  fileDesc("Cht0YW52by9jb21tb24vdjEvdHlwZXMucHJvdG8SD3RhbnZvLmNvbW1vbi52MSJHCgVNb25leRIfCghjdXJyZW5jeRgBIAEoCUINukgKyAEBcgXYpMoGARIdCgZhbW91bnQYAiABKAlCDbpICsgBAXIFyKTKBgEirgEKB0FkZHJlc3MSFwoFbGluZTEYASABKAlCCLpIBXIDGP8BEhcKBWxpbmUyGAIgASgJQgi6SAVyAxj/ARIWCgRjaXR5GAMgASgJQgi6SAVyAxj/ARIXCgVzdGF0ZRgEIAEoCUIIukgFcgMY/wESGQoHemlwY29kZRgFIAEoCUIIukgFcgMY/wESJQoHY291bnRyeRgGIAEoCUIUukgRcg8yDV5bQS1aYS16XXsyfSQiXQoMTWV0YWRhdGFJdGVtEhgKA2tleRgBIAEoCUILukgIyAEBcgMY/wESFwoFdmFsdWUYAiABKAlCCLpIBXIDGP8BEhoKEmRpc3BsYXlfaW5faW52b2ljZRgDIAEoCCJrChBDb25uZWN0aW9uQ2hvaWNlEj8KCGJlaGF2aW9yGAEgASgOMiMudGFudm8uY29tbW9uLnYxLkNvbm5lY3Rpb25CZWhhdmlvckIIukgFggECEAESFgoEY29kZRgCIAEoCUIIukgFcgMY/wEiYQoNRGF0ZVRpbWVSYW5nZRIoCgRmcm9tGAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBImCgJ0bxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiXQoIRG9jdW1lbnQSCwoDdXJsGAEgASgJEi4KCmV4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhQKDGNvbnRlbnRfdHlwZRgDIAEoCSJYChVQcmVzZW50YXRpb25CcmVha2Rvd24SMAoPcHJlc2VudGF0aW9uX2J5GAEgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBINCgV1bml0cxgCIAEoCULFAQoTY29tLnRhbnZvLmNvbW1vbi52MUIKVHlwZXNQcm90b1ABWkRnaXRodWIuY29tL3RhbnZveHl6L3RhbnZvL2xpYnMvcHJvdG8vZ2VuL2dvL3RhbnZvL2NvbW1vbi92MTtjb21tb252MaICA1RDWKoCD1RhbnZvLkNvbW1vbi5WMcoCD1RhbnZvXENvbW1vblxWMeICG1RhbnZvXENvbW1vblxWMVxHUEJNZXRhZGF0YeoCEVRhbnZvOjpDb21tb246OlYxYghlZGl0aW9uc3DoBw", [file_buf_validate_validate, file_google_protobuf_struct, file_google_protobuf_timestamp, file_tanvo_common_v1_enums, file_tanvo_common_v1_options]);
 
 /**
  * Money is an exact monetary amount. The amount is a decimal string in the
@@ -244,4 +244,34 @@ export type Document = Message<"tanvo.common.v1.Document"> & {
  */
 export const DocumentSchema: GenMessage<Document> = /*@__PURE__*/
   messageDesc(file_tanvo_common_v1_types, 5);
+
+/**
+ * PresentationBreakdown is the units of one presentation group of a charge
+ * fee: the usage split by the charge's presentation group keys.
+ *
+ * @generated from message tanvo.common.v1.PresentationBreakdown
+ */
+export type PresentationBreakdown = Message<"tanvo.common.v1.PresentationBreakdown"> & {
+  /**
+   * The group's values by presentation key; null for a key missing on the
+   * events.
+   *
+   * @generated from field: google.protobuf.Struct presentation_by = 1;
+   */
+  presentationBy?: JsonObject | undefined;
+
+  /**
+   * The group's units.
+   *
+   * @generated from field: string units = 2;
+   */
+  units: string;
+};
+
+/**
+ * Describes the message tanvo.common.v1.PresentationBreakdown.
+ * Use `create(PresentationBreakdownSchema)` to create a new message.
+ */
+export const PresentationBreakdownSchema: GenMessage<PresentationBreakdown> = /*@__PURE__*/
+  messageDesc(file_tanvo_common_v1_types, 6);
 

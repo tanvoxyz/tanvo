@@ -166,7 +166,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 ### 4.2 经由 Vanguard 的 REST
 * 每个公开 RPC 都有遵循 Google AIP 资源约定的 `google.api.http` 注解：`GET /v1/customers/{customer_id}`、`POST /v1/customers`、`PATCH /v1/customers/{customer.id}`，生命周期操作使用自定义方法（`POST /v1/subscriptions/{id}:terminate`、`POST /v1/invoices/{id}:void`）。
 * Vanguard 从一个 `http.Handler` 同时提供 REST/JSON、Connect、gRPC 与 gRPC-Web。
-* 所有协议上的 JSON 都使用 proto 字段名（**snake_case**）：Connect 的 JSON 编解码器与 Vanguard 的编解码器都配置了 `UseProtoNames`。
+* 所有协议上的 JSON 都使用 proto 字段名（**snake_case**）：Connect 的 JSON 编解码器与 Vanguard 的编解码器都配置了 `UseProtoNames`。REST 的 `update_mask` 查询参数同样使用 proto 字段名（`?update_mask=short_name,email_settings.invoice_finalized`）：protojson 只接受 `google.protobuf.FieldMask` 中的 lowerCamelCase 路径，因此 Vanguard 前的一个中间件（`rpc.RESTFieldMasks`）将每个 snake_case 路径段改写为 lowerCamelCase；lowerCamelCase 路径原样接受。
 * 事件属性中的数字经 JSON 传输时保持精确。`Event.properties` 是 `google.protobuf.Struct`，其数字为 double，因此两个 JSON 编解码器（`apps/server/internal/rpc`）在 protojson 解码之前，把请求中各事件属性里的每个数字改写为其精确十进制文本（普通记数法，`1e3` → `"1000"`）的字符串；这正是摄取层为数字存储的文本。二进制 protobuf 与 gRPC 客户端发送 double，对 double 无法容纳的值（大于 2^53 的整数、超过 15 位有效数字）应发送字符串。
 * 资源以 Tanvo ID 寻址；在 Lago 使用客户提供的标识符（`external_id`、`code`）之处，Tanvo 将其保留为唯一、可过滤的字段，并通过以前缀开头的 `{id}` 接受它们代替 ID（`external_id:acme-42`、`code:api_calls`）。
 * 列表使用游标分页（`page_size`、`page_token`、`next_page_token`）与 AIP-160 风格的过滤器。
@@ -238,7 +238,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 * 以最小货币单位表示的金额为 `bigint`；精确金额、单价与数量为 `numeric`。
 * 枚举为带 `CHECK` 约束的 `text`，并有对应的 Go 字符串类型。
 * 删除是显式的：有生命周期的资源带有状态（`terminated`、`archived`、`voided`）；在没有任何东西引用该行时才使用硬删除。不存在一刀切的软删除。
-* 需要通知客户的变更作为领域事件记录在同一事务中的 `domain_events` 表里，该表为 webhook 提供数据；活动日志由活动日志生产者（`auditlog.ActivityLogger`，经 `kernel.Deps.ActivityLogs`）同样在同一事务中写入 `activity_logs`。
+* 需要通知客户的变更作为领域事件记录在同一事务中的 `domain_events` 表里，该表为 webhook 提供数据；活动日志由活动日志生产者（`auditlog.ActivityLogger`，经 `kernel.Deps.ActivityLogs`）同样在同一事务中写入 `activity_logs`，安装配置了 ClickHouse 时再移入 ClickHouse（§7.4）。
 
 ---
 
@@ -274,14 +274,17 @@ POST /v1/events, /v1/events:batch
 ### 7.2 富化
 富化按 `external_subscription_id` / `external_customer_id` 与时间戳把事件解析到其订阅，按 `code` 解析到计费指标，对指标的表达式求值，提取聚合值、分组键与精确金额，并**为每个事件写入一行富化数据**，不含计费项或过滤器列。它只为判断事件是否进入预付计费而查找计费指标的计费项。计费项过滤器在查询用量和维护用量桶时根据原始属性匹配，而不是把一个事件展开成每个过滤器一行：lago-api 正是因此在 2026 年 9 月删除了展开表（`events_enriched_expanded`），因为否则目录一变就要重写已存储的事件，而且行数随过滤器数量增长。API 与摄取消费者在内存中缓存目录（指标、计费项、订阅）。每个改变目录的存储事务都在提交之前调用 `pg_notify('tanvo_catalog_changes', …)`，因此通知在提交时送达，回滚的写入不会发出通知；每个进程都 LISTEN 并逐出该组织的条目，每次（重新）连接时清空整个缓存，写入进程在提交后也会立即逐出。万一仍漏掉通知，TTL 限定了过期时长。外部 ID 被修改的订阅也会驱逐其旧外部 ID。LISTEN 在每个进程中以会话状态占用一个连接，因此 `TANVO_DATABASE_URL` 必须直连 PostgreSQL，或经由会话模式的连接池；事务模式的 PgBouncer 不会把通知投递给监听者。ClickHouse 与 Kafka 模式同样从 PostgreSQL 读取目录，因此同一通道也覆盖它们。
 
+由于富化行不带计费项或过滤器，目录变更不会改写任何已存储的事件。在指标存在之前摄取的事件，或按指标的其他定义富化的事件，由 `tanvo events reprocess` 重新富化：它列出某组织中套餐在订阅开始后新增了计费项或计费项过滤器的活跃订阅，带 `--reprocess` 时为每个订阅入队一个重新富化任务。该任务分批重新富化订阅已存储的事件，并通过 `eventstore.Replacer` 存回该组织的事件存储（PostgreSQL 或 ClickHouse）；它既不做预付计费，也不发用量刷新信号。
+
 ### 7.3 表达式（libs/expression）
 * 语言即 lago-expression 的语言：小数运算、`event.timestamp`、`event.code`、`event.properties.<name>`、字符串、`concat`、`round`、`ceil`、`floor`、`least`、`greatest`。
-* 它以 Rust 实现一次，编译为 `wasm32-unknown-unknown`。Go 包 `libs/expression/go` 在 wazero 上运行该模块，提供批量接口（每次调用处理多个事件），Web UI 加载同一个模块进行实时预览。
+* 它以 Rust 实现一次，编译为 `wasm32-unknown-unknown`。Go 包 `libs/expression/go` 在 wazero 上运行该模块，提供批量接口（每次调用处理多个事件），Web UI 加载同一 crate 的 wasm-bindgen 构建（`libs/expression/js`：`parseExpression`、`evaluateExpression`，与 lago-expression 的 `expression-js` 一致）进行实时预览。
 
 ### 7.4 事件存储（libs/eventstore）
 * `EventStore` 端口提供计量库所需的聚合查询：计数、求和、最大值、最新值、带增删语义的唯一计数、按时间加权的求和、分组变体、按比例变体与明细，全部以一个计费周期和过滤器为界。
 * **PostgreSQL**：富化事件存放在按月份与组织哈希分区的表中。
-* **ClickHouse**：`events_raw`（账本，按（组织，外部订阅，事务 ID）去重）与 `events_enriched` 为 `ReplacingMergeTree` 表，由摄取消费者批量写入（`events_enriched` 还保存富化赋予每个事件的值、其小数形式及写入时间，供富化事件 API 返回）；活动日志、API 日志与安全日志在所有安装中都存放在 PostgreSQL（`23_audit_log.sql`），ClickHouse 日志存储尚未实现（[对照表](parity.zh-CN.md)）。聚合值按 `Decimal(76, 26)` 读取，因此摄取时拒绝整数部分超过 50 位的数值属性，而不是让 ClickHouse 把它读成零。`events.raw` 以去重键为分区键，`events.enriched` 以（组织，外部订阅）为分区键，因此一个键的所有副本在一个分区上保持有序，同一时刻只有一个写入消费者存储某个订阅的事件并维护其桶：写入者先看到一个键的第一个副本，再看到之后的副本，写入者之间无需解析副本。这把单个订阅的吞吐量限制在一个写入消费者，且一个组织中没有订阅的事件共用一个键。Lago 生产原始事件时不带键（fec71c637）；这些键是刻意的差异。
+* **ClickHouse**：`events_raw`（账本，按（组织，外部订阅，事务 ID）去重）与 `events_enriched` 为 `ReplacingMergeTree` 表，由摄取消费者批量写入（`events_enriched` 还保存富化赋予每个事件的值、其小数形式及写入时间，供富化事件 API 返回；还保存事件的归属标签，归属用量查询按其分组，见 parity §1.42）。聚合值按 `Decimal(76, 26)` 读取，因此摄取时拒绝整数部分超过 50 位的数值属性，而不是让 ClickHouse 把它读成零。`events.raw` 以去重键为分区键，`events.enriched` 以（组织，外部订阅）为分区键，因此一个键的所有副本在一个分区上保持有序，同一时刻只有一个写入消费者存储某个订阅的事件并维护其桶：写入者先看到一个键的第一个副本，再看到之后的副本，写入者之间无需解析副本。这把单个订阅的吞吐量限制在一个写入消费者，且一个组织中没有订阅的事件共用一个键。Lago 生产原始事件时不带键（fec71c637）；这些键是刻意的差异。
+* **审计日志**（对照表 §1.45）：没有 ClickHouse 时，活动日志、API 日志与安全日志存放在 PostgreSQL（`23_audit_log.sql`）。配置了 ClickHouse（`TANVO_CLICKHOUSE_URL`）时，这些表从变更所在的事务起暂存每条日志，直到工作进程把它移入 `clickhouse.LogStore` 的 `security_logs`、`api_logs` 与 `activity_logs` 表（`store.ArchiveLogs`：每个事务每类最多 1,000 条，以 `FOR UPDATE SKIP LOCKED` 认领，写入 ClickHouse 后删除）。这些表采用 lago 的列（映射列保存每个顶层键及其 JSON 值），为按（组织，logged_at，ID）排序的 `ReplacingMergeTree` 表，因此插入后重试的移动不会存下重复；表没有 TTL，保留期与 lago 一样由查询施加。日志仓储（`auditlog.Archive`、`store.WithLogArchive`）在 PostgreSQL 中创建日志并读取两个存储，以同一种分页令牌按（logged_at，ID）合并分页，因此日志写入后立即可读，移动期间亦然。Lago 在提交后把日志生产到 Kafka，供 ClickHouse 的 Kafka 引擎表消费；Tanvo 在事务中写入日志，日志无需 Kafka。
 * **15 分钟**（UTC）的**用量桶**在两种存储中为当前用量查询提供支撑。桶定义指明指标代码、被聚合的属性与维度（其计费项的过滤键、定价分组键与展示键，并始终包含 `target_wallet_code`）；桶的行以（组织、外部订阅 ID、代码、定义、桶、维度取值）为键，过滤键中不属于指标已声明取值的值折叠为同一个"其他"值，从而限定行数，并保持计费项过滤器的精确性，因为过滤器只接受已声明的取值。行存储 `units`、`events_count`、`precise_total_amount`，以及最后事件与摄取时刻。计费项过滤器在读取时按维度匹配，因此修改计费项永远不会使用量桶过期。
 * 用量桶服务于可以跨桶合并的聚合（count、sum、max、latest）以及只需要总量的计费模型（standard、graduated、package、volume、graduated percentage、dynamic）；预付、按比例、周期性计费项、接受目标钱包的计费项以及其他聚合读取事件。查询读取窗口内的整桶，窗口两端的部分桶则从事件读取，因此结果与事件路径完全相同（lago-api 把窗口扩大到整桶，这对它安全只是因为它的桶记录内部订阅；Tanvo 的外部订阅 ID 在升级前后共用）。
 * 用量桶在存储事件的同一次写入中维护，因此没有需要等待的延迟。在 PostgreSQL 上，每次写入在其事务中、在 advisory lock 下更新涉及的桶；替换事件会重建其桶；新定义在写入者已开始维护它的同时分块回填，就绪后才服务读取。在 ClickHouse 上，每次写入把其事件合并进涉及桶的当前行，版本加一（替换则从 `events_enriched FINAL` 重算），插入后检查冲突的写入，并重算冲突的桶；读取保留最高版本。在多副本表上，维护以 `insert_quorum` 插入、以 `select_sequential_consistency` 读取。周期性的 `RepairBuckets` 扫描是正确性所必需的，它重算最近存储事件的桶：修复在存储事件与更新桶之间失败的写入，以及被后台合并对检查隐藏的冲突。它每 10 分钟运行一次（`clock.repair_usage_buckets`），水位（写入者的时钟）取上次扫描开始时间之前一段余量（10 分钟）；每次完成的扫描把其开始时间记录在 ClickHouse 中（`bucket_repairs`，保留 30 天），使水位在重启与领导者切换后依然有效，首次扫描修复所有桶。一次写入的成本与其批次及其桶的行数成正比，而不随桶中已有事件数增长。
@@ -299,6 +302,7 @@ POST /v1/events, /v1/events:batch
 * **费用 → 发票**：引擎为订阅构建费用（基础费、固定计费项、用量计费项、承诺消费的补差），按规定的顺序应用税（内部或提供者）、优惠券、预付额度、贷项通知单与钱包额度，并生成总额精确的发票。
 * **调度**：计算每个订阅的下一个计费时刻，并为其调度一个 River 任务；一个每小时运行的对账任务捕获任何遗漏。这取代了 Lago 每小时扫描所有订阅的做法。
 * **生命周期**：带宽限期的草稿发票、定稿、编号、作废、重新生成、渐进式计费、用量阈值与一次性发票；见[领域模型](domain.zh-CN.md)。
+* **当前用量缓存**：为当前用量计算出的每个计费桶（某订阅的一个计费项或其某个过滤器）的费用保存在进程内 LRU（`kernel.MemoryUsageCache`，`TANVO_USAGE_CACHE_ENTRIES` 个条目）中，直到计费项周期结束。完整用量有自己的条目。条目在读取时惰性校验：它记录所聚合事件的摄取水位（`metering.Watermark`：最新的 `ingested_at`，或被替换、重新富化的副本的最新写入时间，PostgreSQL 中为 `written_at`，ClickHouse 中为 `enriched_at`），一旦存入更晚的事件就重新计算。最新事件不足一秒的聚合不会保留，因为同一时刻写入的兄弟事件可能对它不可见。键包含计费项的 `updated_at` 和过滤器的指纹，因此目录变更不会命中旧条目。由用量桶回答的读取、按时间戳截断的读取、预览以及每日用量历史从不缓存。缓存按进程独立，与默认的缓存方式一致（§2），不需要 Redis：这样做是安全的，因为校验只需要存储的水位，不需要失效消息，所以进程永远不会提供比它能读到的事件更旧的条目。代价是每个 API 副本各有一个冷缓存。
 * 一次计费运行的所有写入都与它触发的任务（文档、webhook、支付）在同一事务中完成。
 
 ---
@@ -308,7 +312,7 @@ POST /v1/events, /v1/events:batch
 * **River** 运行所有后台任务；任务与需要它的状态变更在同一事务中入队。
 * `libs/store` 通过 River 的 `InsertTx` 在自己的 `pgx.Tx` 上插入任务（`store.WithJobInserter`），因此回滚后不会留下任务；没有设置插入器时，任务写入 `job_outbox` 表，由中继转发。River 的表位于它自己的 `river` 模式中，由 River 迁移（这些表保存所有组织的任务，不带行级安全）。唯一键按组织和任务类型限定。
 * **重试**：没有被该任务类型的任何规则归类的错误不会重试，因为任务可能已经在事务之外产生了效果（一次付款、一封邮件、一次服务商调用），再运行一次会重复这些效果。每种任务类型声明哪些错误可以安全重试，以及次数和退避方式（`ErrRetriable` 20 次、锁冲突与序号冲突、服务商限流）。带错误停止重试的任务在 River 中保持 `cancelled` 状态，保留下来供排查和手动重试，并在监控中计为失败。
-* 队列按工作负载分开（`billing`、`payments`、`webhooks`、`documents`、`integrations`、`exports`、`alerts`、`alerts_high_priority`、`wallets`、`streaming`、`default`），各有自己的并发度，使一个部署可以按队列运行 worker；`TANVO_JOBS_QUEUE_CONCURRENCY` 可覆盖其中任一队列的并发度。订阅活动与生命周期用量告警运行在 `alerts` 上，钱包告警运行在 `alerts_high_priority` 上，钱包余额刷新运行在 `wallets` 上，流式目的地投递运行在 `streaming` 上，与 lago-api 相同（`app/jobs/usage_monitoring/process_subscription_activity_job.rb`、`process_lifetime_usage_alert_job.rb`、`process_wallet_alerts_job.rb`、`app/jobs/customers/refresh_wallet_job.rb`、`app/jobs/deliver_event_job.rb`），这样用量刷新的积压不会拖慢计费。lago-api 只在设置了 `SIDEKIQ_ALERTS` 或 `SIDEKIQ_WALLETS` 时使用这些队列，否则回退到 `default` 或 `low_priority`；Tanvo 始终使用它们，因为未单独配置它们的部署仍以默认值处理它们。
+* 队列按工作负载分开（`billing`、`payments`、`webhooks`、`webhooks_high_priority`、`documents`、`integrations`、`exports`、`alerts`、`alerts_high_priority`、`wallets`、`streaming`、`default`），各有自己的并发度，使一个部署可以按队列运行 worker；`TANVO_JOBS_QUEUE_CONCURRENCY` 可覆盖其中任一队列的并发度。订阅活动与生命周期用量告警运行在 `alerts` 上，钱包告警运行在 `alerts_high_priority` 上，`alert.triggered` Webhook 的分发与首次尝试运行在 `webhooks_high_priority` 上（`app/jobs/send_webhook_job.rb`；其重试运行在 `webhooks` 上），钱包余额刷新运行在 `wallets` 上，流式目的地投递运行在 `streaming` 上，与 lago-api 相同（`app/jobs/usage_monitoring/process_subscription_activity_job.rb`、`process_lifetime_usage_alert_job.rb`、`process_wallet_alerts_job.rb`、`app/jobs/customers/refresh_wallet_job.rb`、`app/jobs/deliver_event_job.rb`），这样用量刷新的积压不会拖慢计费。lago-api 只在设置了 `SIDEKIQ_ALERTS` 或 `SIDEKIQ_WALLETS` 时使用这些队列，否则回退到 `default` 或 `low_priority`；Tanvo 始终使用它们，因为未单独配置它们的部署仍以默认值处理它们。
 * 周期任务（对账、过期、催收、清理）是由 River 选举出的领导者插入的 River 周期任务；不需要单独的时钟进程。它们运行在独立的 `clock` 队列上，不分片、不使用令牌桶，由每个携带调度表的进程消费。周期任务只做扫描和分发：它把到期的工作作为相关组织的任务放入各工作负载队列，以本次触发的时间作为这些任务的"当前时间"，并带上唯一键，使积压期间的多次触发不会产生重复任务。因此工作负载队列的积压不会推迟调度，一个组织的失败也不会阻止其他组织。受行级安全约束的表的保留期清理同样按组织分发任务（webhook 投递）；其余清理的分批删除直接在周期任务中执行。除 lago-api 的调度表外，Tanvo 还有自己的周期任务：webhook 扫描，以及用量桶的修复与报告（§7.4、§11）。
 * **租户公平**：任务带有其所属组织；通过按组织哈希对队列分片，以及在入队时使用令牌桶，限制每个组织的并发，使一个租户无法使其他租户饥饿。令牌桶按进程计，因此有多个 API 副本时，一个组织的实际速率是各副本速率之和。
 * 逐事件的工作（富化、ClickHouse 写入）在 Kafka 消费者中运行，而不在 River 中；消费者把逐事件的计费（预付计费项）与按订阅的活动作为 River 任务入队。
@@ -388,7 +392,7 @@ POST /v1/events, /v1/events:batch
 | `consumer` | Kafka 消费者：富化、ClickHouse 写入器（含预付计费项）、用量刷新 |
 | `all` | 全部（自托管安装的默认值）；只有配置了 Kafka broker 时才包含 `consumer` |
 
-`tanvo migrate`、`tanvo admin …` 与 `tanvo version` 是单独的命令。
+`tanvo migrate`、`tanvo admin …`、`tanvo events reprocess`（§7.2）与 `tanvo version` 是单独的命令。
 
 ### 13.2 自托管
 * 最小：`tanvo serve` + PostgreSQL。Typst 与 `fonts-noto-cjk` 软件包（zh-CN 与 zh-TW 文档，§10）包含在容器镜像中；在镜像之外安装时两者都需要。
@@ -439,6 +443,7 @@ POST /v1/events, /v1/events:batch
 | `TANVO_JOBS_QUEUE_CONCURRENCY` | 库默认值 | 以逗号分隔的 `queue=n`，覆盖工作负载队列的并发度（1 到 10000），例如 `alerts=20,wallets=5` |
 | `TANVO_SUBSCRIPTION_TERMINATION_ALERT_DAYS` | `15,45` | 订阅在结束日期前多少天收到 `subscription.termination_alert`（逗号分隔）；为空则不发送 |
 | `TANVO_DAILY_USAGE_SCHEDULING_JITTER` | 30 分钟 | 每小时一次运行中的每日用量计算所分散的时间窗口 |
+| `TANVO_USAGE_CACHE_ENTRIES` | `100000` | 每个服务进程保留的当前用量计费桶数（§8）；`0` 关闭缓存 |
 | `TANVO_DISABLE_EVENTS_VALIDATION` | false | 将每小时的事件后置校验（`events.errors`）移出调度 |
 | `TANVO_INGEST_MODE` | `postgres` | 默认摄取模式，`postgres` 或 `kafka` |
 | `TANVO_INGEST_KAFKA_ORGANIZATIONS` | | 无论默认模式都经 Kafka 摄取的组织 |

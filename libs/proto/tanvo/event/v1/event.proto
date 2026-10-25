@@ -140,7 +140,8 @@ message Event {
   // The event properties: the aggregated field, filter values and
   // expression inputs.
   google.protobuf.Struct properties = 6;
-  // The amount of a dynamic charge, as a decimal.
+  // The amount of a dynamic charge in the currency's minor unit (cents),
+  // as a decimal string that may carry fractions of a cent ("1050.5").
   string precise_total_amount = 7 [(buf.validate.field).string.(tanvo.common.v1.decimal) = true];
   // The code of the wallet that pays the event's usage on charges that
   // accept a target wallet: the `target_wallet_code` property, which is
@@ -178,7 +179,8 @@ message EnrichedEvent {
   string value = 10;
   // The value as a decimal, 0 when it is not a number; unset with no value.
   string decimal_value = 16;
-  // The decimal value of the dynamic charge amount.
+  // The amount of a dynamic charge in the currency's minor unit (cents),
+  // as a decimal string.
   string precise_total_amount = 11;
   // The event properties, with the expression's result under the metric's
   // field name.

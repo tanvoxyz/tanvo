@@ -29,8 +29,14 @@ const mailAttempts = 6
 // messages, so that an installation without mail still runs. The sender
 // is traced.
 func newMailer(cfg config.Config, log *slog.Logger, tp trace.TracerProvider) (*mail.Composer, mail.Sender, error) {
+	from := cfg.MailFrom
+	if cfg.SMTPHost == "" && from == "" {
+		// The messages are dropped: a placeholder sender lets them be
+		// composed instead of failing their jobs.
+		from = dropFrom
+	}
 	composer, err := mail.NewComposer(mail.Config{
-		DefaultFrom: cfg.MailFrom, AppURL: cfg.AppURL,
+		DefaultFrom: from, AppURL: cfg.AppURL,
 		// Without a blob store no PDF is rendered to attach or link.
 		DisablePDFs: cfg.DisablePDFGeneration || cfg.BlobBackend == "",
 	})
@@ -53,6 +59,10 @@ func newMailer(cfg config.Config, log *slog.Logger, tp trace.TracerProvider) (*m
 	}
 	return composer, tracedSender{next: sender, tracer: tp.Tracer(scopeName)}, nil
 }
+
+// dropFrom is the sender address of the messages composed without an
+// SMTP server or TANVO_MAIL_FROM, which [dropSender] drops.
+const dropFrom = "no-reply@localhost"
 
 // dropSender logs the messages it is given instead of sending them.
 type dropSender struct{ log *slog.Logger }

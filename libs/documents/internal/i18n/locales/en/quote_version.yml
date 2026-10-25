@@ -1,0 +1,16 @@
+# Ported verbatim from lago-api 25b8b7b09: config/locales/en/quote_version.yml
+---
+en:
+  quote_version:
+    mention_variables:
+      payment_terms: Net %{count}
+      term_duration:
+        days:
+          one: 1 day
+          other: "%{count} days"
+        months:
+          one: 1 month
+          other: "%{count} months"
+        years:
+          one: 1 year
+          other: "%{count} years"

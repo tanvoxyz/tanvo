@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
 
@@ -20,6 +21,8 @@ type Store struct {
 	jobs JobInserter
 	// onCatalog receives the catalog changes of committed transactions.
 	onCatalog func(context.Context, []CatalogChange)
+	// logs, when set, is the archive the audit logs are moved to.
+	logs auditlog.Archive
 }
 
 var _ port.Transactor = (*Store)(nil)

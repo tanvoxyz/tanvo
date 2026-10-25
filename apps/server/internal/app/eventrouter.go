@@ -3,8 +3,11 @@ package app
 import (
 	"context"
 	"fmt"
+	"time"
 
+	"github.com/tanvoxyz/tanvo/libs/billing/subscriptions"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/eventstore"
 	"github.com/tanvoxyz/tanvo/libs/metering"
 	"github.com/tanvoxyz/tanvo/libs/money"
 )
@@ -16,7 +19,11 @@ type eventRouter struct {
 	stores *EventStores
 }
 
-var _ metering.Store = eventRouter{}
+var (
+	_ metering.Store              = eventRouter{}
+	_ metering.BucketReader       = eventRouter{}
+	_ subscriptions.BucketDefiner = eventRouter{}
+)
 
 // of returns the store of the organization of q.
 func (r eventRouter) of(q metering.Query) (metering.Store, error) {
@@ -254,4 +261,49 @@ func (r eventRouter) GroupedWeightedSum(ctx context.Context, q metering.Query, b
 		return nil, err
 	}
 	return s.GroupedWeightedSum(ctx, q, by, initial)
+}
+
+// LastIngestedAt implements [metering.IngestionWatermarks]; a store that
+// reports none fails with [metering.ErrNotImplemented].
+func (r eventRouter) LastIngestedAt(ctx context.Context, q metering.Query) (time.Time, error) {
+	s, err := r.of(q)
+	if err != nil {
+		return time.Time{}, err
+	}
+	w, ok := s.(metering.IngestionWatermarks)
+	if !ok {
+		return time.Time{}, metering.ErrNotImplemented
+	}
+	return w.LastIngestedAt(ctx, q)
+}
+
+// ReadBuckets implements [metering.BucketReader] by the store of the
+// query's organization; a store without usage buckets reads as no
+// definition covering the read, which sends it back to the events.
+func (r eventRouter) ReadBuckets(ctx context.Context, br metering.BucketRead) ([]metering.BucketTotal, bool, error) {
+	s, err := r.of(br.Query)
+	if err != nil {
+		return nil, false, err
+	}
+	b, ok := s.(metering.BucketReader)
+	if !ok {
+		return nil, false, nil
+	}
+	return b.ReadBuckets(ctx, br)
+}
+
+// DefineBuckets implements the bucket definitions of
+// [eventstore.BucketDefiner] (subscriptions.BucketDefiner) by the store of
+// the definition's organization; a store without usage buckets fails with
+// [metering.ErrBucketsUnavailable].
+func (r eventRouter) DefineBuckets(ctx context.Context, d metering.BucketDefinition) error {
+	s, err := r.of(metering.Query{OrganizationID: d.OrganizationID})
+	if err != nil {
+		return err
+	}
+	b, ok := s.(eventstore.BucketDefiner)
+	if !ok {
+		return fmt.Errorf("eventstore: define buckets: %w", metering.ErrBucketsUnavailable)
+	}
+	return b.DefineBuckets(ctx, d)
 }

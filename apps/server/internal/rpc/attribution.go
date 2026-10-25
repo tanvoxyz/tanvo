@@ -13,12 +13,13 @@ import (
 
 // UsageAttribution serves tanvo.attribution.v1.UsageAttributionService
 // over the billing library's usage attribution service (lago
-// Api::V1::UsageAttributionTypesController). GetAttributedUsage is not
-// served yet.
+// Api::V1::UsageAttributionTypesController), and the attributed usage
+// over the query service (attributed_usage.go).
 type UsageAttribution struct {
 	attributionv1connect.UnimplementedUsageAttributionServiceHandler
 
-	svc *usageattribution.Service
+	svc   *usageattribution.Service
+	query *usageattribution.QueryService
 }
 
 var _ attributionv1connect.UsageAttributionServiceHandler = (*UsageAttribution)(nil)

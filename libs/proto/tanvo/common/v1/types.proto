@@ -6,6 +6,7 @@ edition = "2023";
 package tanvo.common.v1;
 
 import "buf/validate/validate.proto";
+import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "tanvo/common/v1/enums.proto";
 import "tanvo/common/v1/options.proto";
@@ -91,4 +92,14 @@ message Document {
   google.protobuf.Timestamp expires_at = 2;
   // The media type (`application/pdf`, `application/xml`).
   string content_type = 3;
+}
+
+// PresentationBreakdown is the units of one presentation group of a charge
+// fee: the usage split by the charge's presentation group keys.
+message PresentationBreakdown {
+  // The group's values by presentation key; null for a key missing on the
+  // events.
+  google.protobuf.Struct presentation_by = 1;
+  // The group's units.
+  string units = 2;
 }

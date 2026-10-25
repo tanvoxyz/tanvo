@@ -47,7 +47,7 @@ var organizationAddressFields = []string{
 
 // organizationUpdateFields are the update_mask paths of UpdateOrganization;
 // "address" stands for every address field.
-var organizationUpdateFields = append([]string{"slug", "email", "address", "logo", "authentication_methods", "document_number_prefix"}, organizationAddressFields...)
+var organizationUpdateFields = append([]string{"slug", "email", "address", "logo", "authentication_methods", "document_number_prefix", "from_email_enabled"}, organizationAddressFields...)
 
 // GetOrganization implements OrganizationService.GetOrganization.
 func (s *Organizations) GetOrganization(ctx context.Context, _ *organizationv1.GetOrganizationRequest) (*organizationv1.GetOrganizationResponse, error) {
@@ -89,6 +89,8 @@ func (s *Organizations) UpdateOrganization(ctx context.Context, req *organizatio
 			return b.HasLogo()
 		case "document_number_prefix":
 			return b.HasDocumentNumberPrefix()
+		case "from_email_enabled":
+			return b.HasFromEmailEnabled()
 		case "authentication_methods":
 			return len(b.GetAuthenticationMethods()) > 0
 		}
@@ -109,6 +111,8 @@ func (s *Organizations) UpdateOrganization(ctx context.Context, req *organizatio
 			u.Logo = core.Some(b.GetLogo())
 		case "document_number_prefix":
 			u.DocumentNumberPrefix = core.Some(b.GetDocumentNumberPrefix())
+		case "from_email_enabled":
+			u.FromEmailEnabled = core.Some(b.GetFromEmailEnabled())
 		case "authentication_methods":
 			if p.Kind != auth.PrincipalUser || !access.AnyGrants(p.Roles, permission.Permission("authentication_methods:update")) {
 				return nil, newError(connect.CodePermissionDenied, ReasonForbidden, "changing the authentication methods needs the authentication_methods:update permission")
@@ -184,6 +188,7 @@ func (s *Organizations) proto(ctx context.Context, o *organization.Organization)
 		CreatedAt:              Timestamp(o.CreatedAt),
 		UpdatedAt:              Timestamp(o.UpdatedAt),
 		DocumentNumberPrefix:   &o.DocumentNumberPrefix,
+		FromEmailEnabled:       &o.FromEmailEnabled,
 	}.Build(), nil
 }
 

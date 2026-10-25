@@ -1,0 +1,2 @@
+# The browser build (nx run expression:wasm-js).
+js/pkg/

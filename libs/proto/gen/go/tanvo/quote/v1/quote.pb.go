@@ -845,7 +845,11 @@ type QuoteVersion_builder struct {
 	// What is sold: the plans with their overrides, the add-ons, coupons and
 	// wallet credits, and the commercial terms.
 	BillingItems *structpb.Struct
-	// The values of the mentions, frozen at approval.
+	// The values of the mentions, by variable, as display strings in the
+	// customer's document locale: frozen at approval, computed live before.
+	// Dates are in the locale's date format, the term duration and payment
+	// terms are translated and the billing entity address is formatted for
+	// its country, one line per row.
 	MentionVariables *structpb.Struct
 	// When the version was approved.
 	ApprovedAt *timestamppb.Timestamp

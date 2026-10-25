@@ -679,6 +679,9 @@ message Fee {
   // The fee of a voided invoice this fee was regenerated from, the first
   // of the chain.
   string original_fee_id = 43 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The units of a charge fee by the presentation keys its charge
+  // displays on invoices.
+  repeated tanvo.common.v1.PresentationBreakdown presentation_breakdowns = 44 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // FeeTier is the part of a fee priced by one tier.

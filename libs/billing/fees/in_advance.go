@@ -128,6 +128,11 @@ func (s *Service) InAdvanceChargeFees(ctx context.Context, r port.Repos, env *ke
 	if f.AmountDetails == nil {
 		f.AmountDetails = []byte("{}")
 	}
+	// The event's breakdown, without the pricing group keys
+	// (create_pay_in_advance_service.rb:109-115).
+	if bs := withoutGroupKeys(m.PayInAdvanceBreakdowns, groups); len(bs) > 0 {
+		f.PresentationBreakdowns = bs
+	}
 
 	out := &ChargeResult{Fees: []*invoice.Fee{f}}
 	if m.CurrentAggregation != nil || m.MaxAggregation != nil || m.MaxAggregationWithProration != nil {
@@ -142,6 +147,7 @@ func (s *Service) InAdvanceChargeFees(ctx context.Context, r port.Repos, env *ke
 				CurrentAggregation:          cloneDecimal(m.CurrentAggregation),
 				MaxAggregation:              cloneDecimal(m.MaxAggregation),
 				MaxAggregationWithProration: cloneDecimal(m.MaxAggregationWithProration),
+				PresentationBreakdowns:      meteringBreakdowns(withoutGroupKeys(m.Breakdowns, groups)),
 			},
 		})
 	}

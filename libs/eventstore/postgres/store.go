@@ -219,7 +219,8 @@ ON CONFLICT (organization_id, subscription_id, code, "timestamp", transaction_id
 	properties = excluded.properties,
 	precise_total_amount_cents = excluded.precise_total_amount_cents,
 	ingested_at = excluded.ingested_at,
-	sequence = excluded.sequence`
+	sequence = excluded.sequence,
+	written_at = clock_timestamp()`
 
 // currentSQL returns where the ledger has the events of the deduplication
 // keys ($1 to $3: organization, subscription, transaction ID).

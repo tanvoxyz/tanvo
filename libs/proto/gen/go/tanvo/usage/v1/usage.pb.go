@@ -14,6 +14,7 @@ package usagev1
 
 import (
 	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
+	v11 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/catalog/v1"
 	v1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/common/v1"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
@@ -32,17 +33,19 @@ const (
 
 // GroupedUsage is the usage of one grouping of a charge.
 type GroupedUsage struct {
-	state                      protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_GroupedBy       map[string]string      `protobuf:"bytes,1,rep,name=grouped_by,json=groupedBy" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	xxx_hidden_Units           *string                `protobuf:"bytes,2,opt,name=units"`
-	xxx_hidden_Amount          *v1.Money              `protobuf:"bytes,3,opt,name=amount"`
-	xxx_hidden_EventsCount     int64                  `protobuf:"varint,4,opt,name=events_count,json=eventsCount"`
-	xxx_hidden_ProjectedUnits  *string                `protobuf:"bytes,5,opt,name=projected_units,json=projectedUnits"`
-	xxx_hidden_ProjectedAmount *v1.Money              `protobuf:"bytes,6,opt,name=projected_amount,json=projectedAmount"`
-	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
-	XXX_presence               [1]uint32
-	unknownFields              protoimpl.UnknownFields
-	sizeCache                  protoimpl.SizeCache
+	state                                      protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_GroupedBy                       map[string]string            `protobuf:"bytes,1,rep,name=grouped_by,json=groupedBy" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_Units                           *string                      `protobuf:"bytes,2,opt,name=units"`
+	xxx_hidden_Amount                          *v1.Money                    `protobuf:"bytes,3,opt,name=amount"`
+	xxx_hidden_EventsCount                     int64                        `protobuf:"varint,4,opt,name=events_count,json=eventsCount"`
+	xxx_hidden_ProjectedUnits                  *string                      `protobuf:"bytes,5,opt,name=projected_units,json=projectedUnits"`
+	xxx_hidden_ProjectedAmount                 *v1.Money                    `protobuf:"bytes,6,opt,name=projected_amount,json=projectedAmount"`
+	xxx_hidden_PresentationBreakdowns          *[]*v1.PresentationBreakdown `protobuf:"bytes,7,rep,name=presentation_breakdowns,json=presentationBreakdowns"`
+	xxx_hidden_ProjectedPresentationBreakdowns *[]*v1.PresentationBreakdown `protobuf:"bytes,8,rep,name=projected_presentation_breakdowns,json=projectedPresentationBreakdowns"`
+	XXX_raceDetectHookData                     protoimpl.RaceDetectHookData
+	XXX_presence                               [1]uint32
+	unknownFields                              protoimpl.UnknownFields
+	sizeCache                                  protoimpl.SizeCache
 }
 
 func (x *GroupedUsage) Reset() {
@@ -118,13 +121,31 @@ func (x *GroupedUsage) GetProjectedAmount() *v1.Money {
 	return nil
 }
 
+func (x *GroupedUsage) GetPresentationBreakdowns() []*v1.PresentationBreakdown {
+	if x != nil {
+		if x.xxx_hidden_PresentationBreakdowns != nil {
+			return *x.xxx_hidden_PresentationBreakdowns
+		}
+	}
+	return nil
+}
+
+func (x *GroupedUsage) GetProjectedPresentationBreakdowns() []*v1.PresentationBreakdown {
+	if x != nil {
+		if x.xxx_hidden_ProjectedPresentationBreakdowns != nil {
+			return *x.xxx_hidden_ProjectedPresentationBreakdowns
+		}
+	}
+	return nil
+}
+
 func (x *GroupedUsage) SetGroupedBy(v map[string]string) {
 	x.xxx_hidden_GroupedBy = v
 }
 
 func (x *GroupedUsage) SetUnits(v string) {
 	x.xxx_hidden_Units = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 8)
 }
 
 func (x *GroupedUsage) SetAmount(v *v1.Money) {
@@ -133,16 +154,24 @@ func (x *GroupedUsage) SetAmount(v *v1.Money) {
 
 func (x *GroupedUsage) SetEventsCount(v int64) {
 	x.xxx_hidden_EventsCount = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 8)
 }
 
 func (x *GroupedUsage) SetProjectedUnits(v string) {
 	x.xxx_hidden_ProjectedUnits = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 8)
 }
 
 func (x *GroupedUsage) SetProjectedAmount(v *v1.Money) {
 	x.xxx_hidden_ProjectedAmount = v
+}
+
+func (x *GroupedUsage) SetPresentationBreakdowns(v []*v1.PresentationBreakdown) {
+	x.xxx_hidden_PresentationBreakdowns = &v
+}
+
+func (x *GroupedUsage) SetProjectedPresentationBreakdowns(v []*v1.PresentationBreakdown) {
+	x.xxx_hidden_ProjectedPresentationBreakdowns = &v
 }
 
 func (x *GroupedUsage) HasUnits() bool {
@@ -218,6 +247,10 @@ type GroupedUsage_builder struct {
 	ProjectedUnits *string
 	// The projected amount at the period end.
 	ProjectedAmount *v1.Money
+	// The units of the group's fees by presentation key.
+	PresentationBreakdowns []*v1.PresentationBreakdown
+	// The projected units by presentation key.
+	ProjectedPresentationBreakdowns []*v1.PresentationBreakdown
 }
 
 func (b0 GroupedUsage_builder) Build() *GroupedUsage {
@@ -226,38 +259,42 @@ func (b0 GroupedUsage_builder) Build() *GroupedUsage {
 	_, _ = b, x
 	x.xxx_hidden_GroupedBy = b.GroupedBy
 	if b.Units != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 8)
 		x.xxx_hidden_Units = b.Units
 	}
 	x.xxx_hidden_Amount = b.Amount
 	if b.EventsCount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 8)
 		x.xxx_hidden_EventsCount = *b.EventsCount
 	}
 	if b.ProjectedUnits != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 8)
 		x.xxx_hidden_ProjectedUnits = b.ProjectedUnits
 	}
 	x.xxx_hidden_ProjectedAmount = b.ProjectedAmount
+	x.xxx_hidden_PresentationBreakdowns = &b.PresentationBreakdowns
+	x.xxx_hidden_ProjectedPresentationBreakdowns = &b.ProjectedPresentationBreakdowns
 	return m0
 }
 
 // FilterUsage is the usage of one charge filter.
 type FilterUsage struct {
-	state                         protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_ChargeFilterId     *string                `protobuf:"bytes,1,opt,name=charge_filter_id,json=chargeFilterId"`
-	xxx_hidden_InvoiceDisplayName *string                `protobuf:"bytes,2,opt,name=invoice_display_name,json=invoiceDisplayName"`
-	xxx_hidden_Values             map[string]string      `protobuf:"bytes,3,rep,name=values" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	xxx_hidden_Units              *string                `protobuf:"bytes,4,opt,name=units"`
-	xxx_hidden_Amount             *v1.Money              `protobuf:"bytes,5,opt,name=amount"`
-	xxx_hidden_EventsCount        int64                  `protobuf:"varint,6,opt,name=events_count,json=eventsCount"`
-	xxx_hidden_ProjectedUnits     *string                `protobuf:"bytes,7,opt,name=projected_units,json=projectedUnits"`
-	xxx_hidden_ProjectedAmount    *v1.Money              `protobuf:"bytes,8,opt,name=projected_amount,json=projectedAmount"`
-	xxx_hidden_GroupedUsage       *[]*GroupedUsage       `protobuf:"bytes,9,rep,name=grouped_usage,json=groupedUsage"`
-	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
-	XXX_presence                  [1]uint32
-	unknownFields                 protoimpl.UnknownFields
-	sizeCache                     protoimpl.SizeCache
+	state                                      protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_ChargeFilterId                  *string                      `protobuf:"bytes,1,opt,name=charge_filter_id,json=chargeFilterId"`
+	xxx_hidden_InvoiceDisplayName              *string                      `protobuf:"bytes,2,opt,name=invoice_display_name,json=invoiceDisplayName"`
+	xxx_hidden_Values                          map[string]string            `protobuf:"bytes,3,rep,name=values" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_Units                           *string                      `protobuf:"bytes,4,opt,name=units"`
+	xxx_hidden_Amount                          *v1.Money                    `protobuf:"bytes,5,opt,name=amount"`
+	xxx_hidden_EventsCount                     int64                        `protobuf:"varint,6,opt,name=events_count,json=eventsCount"`
+	xxx_hidden_ProjectedUnits                  *string                      `protobuf:"bytes,7,opt,name=projected_units,json=projectedUnits"`
+	xxx_hidden_ProjectedAmount                 *v1.Money                    `protobuf:"bytes,8,opt,name=projected_amount,json=projectedAmount"`
+	xxx_hidden_GroupedUsage                    *[]*GroupedUsage             `protobuf:"bytes,9,rep,name=grouped_usage,json=groupedUsage"`
+	xxx_hidden_PresentationBreakdowns          *[]*v1.PresentationBreakdown `protobuf:"bytes,10,rep,name=presentation_breakdowns,json=presentationBreakdowns"`
+	xxx_hidden_ProjectedPresentationBreakdowns *[]*v1.PresentationBreakdown `protobuf:"bytes,11,rep,name=projected_presentation_breakdowns,json=projectedPresentationBreakdowns"`
+	XXX_raceDetectHookData                     protoimpl.RaceDetectHookData
+	XXX_presence                               [1]uint32
+	unknownFields                              protoimpl.UnknownFields
+	sizeCache                                  protoimpl.SizeCache
 }
 
 func (x *FilterUsage) Reset() {
@@ -362,14 +399,32 @@ func (x *FilterUsage) GetGroupedUsage() []*GroupedUsage {
 	return nil
 }
 
+func (x *FilterUsage) GetPresentationBreakdowns() []*v1.PresentationBreakdown {
+	if x != nil {
+		if x.xxx_hidden_PresentationBreakdowns != nil {
+			return *x.xxx_hidden_PresentationBreakdowns
+		}
+	}
+	return nil
+}
+
+func (x *FilterUsage) GetProjectedPresentationBreakdowns() []*v1.PresentationBreakdown {
+	if x != nil {
+		if x.xxx_hidden_ProjectedPresentationBreakdowns != nil {
+			return *x.xxx_hidden_ProjectedPresentationBreakdowns
+		}
+	}
+	return nil
+}
+
 func (x *FilterUsage) SetChargeFilterId(v string) {
 	x.xxx_hidden_ChargeFilterId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 11)
 }
 
 func (x *FilterUsage) SetInvoiceDisplayName(v string) {
 	x.xxx_hidden_InvoiceDisplayName = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 11)
 }
 
 func (x *FilterUsage) SetValues(v map[string]string) {
@@ -378,7 +433,7 @@ func (x *FilterUsage) SetValues(v map[string]string) {
 
 func (x *FilterUsage) SetUnits(v string) {
 	x.xxx_hidden_Units = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 11)
 }
 
 func (x *FilterUsage) SetAmount(v *v1.Money) {
@@ -387,12 +442,12 @@ func (x *FilterUsage) SetAmount(v *v1.Money) {
 
 func (x *FilterUsage) SetEventsCount(v int64) {
 	x.xxx_hidden_EventsCount = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 11)
 }
 
 func (x *FilterUsage) SetProjectedUnits(v string) {
 	x.xxx_hidden_ProjectedUnits = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 11)
 }
 
 func (x *FilterUsage) SetProjectedAmount(v *v1.Money) {
@@ -401,6 +456,14 @@ func (x *FilterUsage) SetProjectedAmount(v *v1.Money) {
 
 func (x *FilterUsage) SetGroupedUsage(v []*GroupedUsage) {
 	x.xxx_hidden_GroupedUsage = &v
+}
+
+func (x *FilterUsage) SetPresentationBreakdowns(v []*v1.PresentationBreakdown) {
+	x.xxx_hidden_PresentationBreakdowns = &v
+}
+
+func (x *FilterUsage) SetProjectedPresentationBreakdowns(v []*v1.PresentationBreakdown) {
+	x.xxx_hidden_ProjectedPresentationBreakdowns = &v
 }
 
 func (x *FilterUsage) HasChargeFilterId() bool {
@@ -506,6 +569,10 @@ type FilterUsage_builder struct {
 	ProjectedAmount *v1.Money
 	// The usage per grouping.
 	GroupedUsage []*GroupedUsage
+	// The units of the filter's fees by presentation key.
+	PresentationBreakdowns []*v1.PresentationBreakdown
+	// The projected units by presentation key.
+	ProjectedPresentationBreakdowns []*v1.PresentationBreakdown
 }
 
 func (b0 FilterUsage_builder) Build() *FilterUsage {
@@ -513,51 +580,55 @@ func (b0 FilterUsage_builder) Build() *FilterUsage {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.ChargeFilterId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 11)
 		x.xxx_hidden_ChargeFilterId = b.ChargeFilterId
 	}
 	if b.InvoiceDisplayName != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 11)
 		x.xxx_hidden_InvoiceDisplayName = b.InvoiceDisplayName
 	}
 	x.xxx_hidden_Values = b.Values
 	if b.Units != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 11)
 		x.xxx_hidden_Units = b.Units
 	}
 	x.xxx_hidden_Amount = b.Amount
 	if b.EventsCount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 11)
 		x.xxx_hidden_EventsCount = *b.EventsCount
 	}
 	if b.ProjectedUnits != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 11)
 		x.xxx_hidden_ProjectedUnits = b.ProjectedUnits
 	}
 	x.xxx_hidden_ProjectedAmount = b.ProjectedAmount
 	x.xxx_hidden_GroupedUsage = &b.GroupedUsage
+	x.xxx_hidden_PresentationBreakdowns = &b.PresentationBreakdowns
+	x.xxx_hidden_ProjectedPresentationBreakdowns = &b.ProjectedPresentationBreakdowns
 	return m0
 }
 
 // ChargeUsage is the usage of one charge.
 type ChargeUsage struct {
-	state                         protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_ChargeId           *string                `protobuf:"bytes,1,opt,name=charge_id,json=chargeId"`
-	xxx_hidden_BillableMetricId   *string                `protobuf:"bytes,2,opt,name=billable_metric_id,json=billableMetricId"`
-	xxx_hidden_BillableMetricCode *string                `protobuf:"bytes,3,opt,name=billable_metric_code,json=billableMetricCode"`
-	xxx_hidden_InvoiceDisplayName *string                `protobuf:"bytes,4,opt,name=invoice_display_name,json=invoiceDisplayName"`
-	xxx_hidden_Units              *string                `protobuf:"bytes,5,opt,name=units"`
-	xxx_hidden_Amount             *v1.Money              `protobuf:"bytes,6,opt,name=amount"`
-	xxx_hidden_PricingUnitAmount  *string                `protobuf:"bytes,7,opt,name=pricing_unit_amount,json=pricingUnitAmount"`
-	xxx_hidden_EventsCount        int64                  `protobuf:"varint,8,opt,name=events_count,json=eventsCount"`
-	xxx_hidden_ProjectedUnits     *string                `protobuf:"bytes,9,opt,name=projected_units,json=projectedUnits"`
-	xxx_hidden_ProjectedAmount    *v1.Money              `protobuf:"bytes,10,opt,name=projected_amount,json=projectedAmount"`
-	xxx_hidden_Filters            *[]*FilterUsage        `protobuf:"bytes,11,rep,name=filters"`
-	xxx_hidden_GroupedUsage       *[]*GroupedUsage       `protobuf:"bytes,12,rep,name=grouped_usage,json=groupedUsage"`
-	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
-	XXX_presence                  [1]uint32
-	unknownFields                 protoimpl.UnknownFields
-	sizeCache                     protoimpl.SizeCache
+	state                                      protoimpl.MessageState       `protogen:"opaque.v1"`
+	xxx_hidden_ChargeId                        *string                      `protobuf:"bytes,1,opt,name=charge_id,json=chargeId"`
+	xxx_hidden_BillableMetricId                *string                      `protobuf:"bytes,2,opt,name=billable_metric_id,json=billableMetricId"`
+	xxx_hidden_BillableMetricCode              *string                      `protobuf:"bytes,3,opt,name=billable_metric_code,json=billableMetricCode"`
+	xxx_hidden_InvoiceDisplayName              *string                      `protobuf:"bytes,4,opt,name=invoice_display_name,json=invoiceDisplayName"`
+	xxx_hidden_Units                           *string                      `protobuf:"bytes,5,opt,name=units"`
+	xxx_hidden_Amount                          *v1.Money                    `protobuf:"bytes,6,opt,name=amount"`
+	xxx_hidden_PricingUnitAmount               *string                      `protobuf:"bytes,7,opt,name=pricing_unit_amount,json=pricingUnitAmount"`
+	xxx_hidden_EventsCount                     int64                        `protobuf:"varint,8,opt,name=events_count,json=eventsCount"`
+	xxx_hidden_ProjectedUnits                  *string                      `protobuf:"bytes,9,opt,name=projected_units,json=projectedUnits"`
+	xxx_hidden_ProjectedAmount                 *v1.Money                    `protobuf:"bytes,10,opt,name=projected_amount,json=projectedAmount"`
+	xxx_hidden_Filters                         *[]*FilterUsage              `protobuf:"bytes,11,rep,name=filters"`
+	xxx_hidden_GroupedUsage                    *[]*GroupedUsage             `protobuf:"bytes,12,rep,name=grouped_usage,json=groupedUsage"`
+	xxx_hidden_PresentationBreakdowns          *[]*v1.PresentationBreakdown `protobuf:"bytes,13,rep,name=presentation_breakdowns,json=presentationBreakdowns"`
+	xxx_hidden_ProjectedPresentationBreakdowns *[]*v1.PresentationBreakdown `protobuf:"bytes,14,rep,name=projected_presentation_breakdowns,json=projectedPresentationBreakdowns"`
+	XXX_raceDetectHookData                     protoimpl.RaceDetectHookData
+	XXX_presence                               [1]uint32
+	unknownFields                              protoimpl.UnknownFields
+	sizeCache                                  protoimpl.SizeCache
 }
 
 func (x *ChargeUsage) Reset() {
@@ -694,29 +765,47 @@ func (x *ChargeUsage) GetGroupedUsage() []*GroupedUsage {
 	return nil
 }
 
+func (x *ChargeUsage) GetPresentationBreakdowns() []*v1.PresentationBreakdown {
+	if x != nil {
+		if x.xxx_hidden_PresentationBreakdowns != nil {
+			return *x.xxx_hidden_PresentationBreakdowns
+		}
+	}
+	return nil
+}
+
+func (x *ChargeUsage) GetProjectedPresentationBreakdowns() []*v1.PresentationBreakdown {
+	if x != nil {
+		if x.xxx_hidden_ProjectedPresentationBreakdowns != nil {
+			return *x.xxx_hidden_ProjectedPresentationBreakdowns
+		}
+	}
+	return nil
+}
+
 func (x *ChargeUsage) SetChargeId(v string) {
 	x.xxx_hidden_ChargeId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 14)
 }
 
 func (x *ChargeUsage) SetBillableMetricId(v string) {
 	x.xxx_hidden_BillableMetricId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 14)
 }
 
 func (x *ChargeUsage) SetBillableMetricCode(v string) {
 	x.xxx_hidden_BillableMetricCode = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 14)
 }
 
 func (x *ChargeUsage) SetInvoiceDisplayName(v string) {
 	x.xxx_hidden_InvoiceDisplayName = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 14)
 }
 
 func (x *ChargeUsage) SetUnits(v string) {
 	x.xxx_hidden_Units = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 14)
 }
 
 func (x *ChargeUsage) SetAmount(v *v1.Money) {
@@ -725,17 +814,17 @@ func (x *ChargeUsage) SetAmount(v *v1.Money) {
 
 func (x *ChargeUsage) SetPricingUnitAmount(v string) {
 	x.xxx_hidden_PricingUnitAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 14)
 }
 
 func (x *ChargeUsage) SetEventsCount(v int64) {
 	x.xxx_hidden_EventsCount = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 14)
 }
 
 func (x *ChargeUsage) SetProjectedUnits(v string) {
 	x.xxx_hidden_ProjectedUnits = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 12)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 14)
 }
 
 func (x *ChargeUsage) SetProjectedAmount(v *v1.Money) {
@@ -748,6 +837,14 @@ func (x *ChargeUsage) SetFilters(v []*FilterUsage) {
 
 func (x *ChargeUsage) SetGroupedUsage(v []*GroupedUsage) {
 	x.xxx_hidden_GroupedUsage = &v
+}
+
+func (x *ChargeUsage) SetPresentationBreakdowns(v []*v1.PresentationBreakdown) {
+	x.xxx_hidden_PresentationBreakdowns = &v
+}
+
+func (x *ChargeUsage) SetProjectedPresentationBreakdowns(v []*v1.PresentationBreakdown) {
+	x.xxx_hidden_ProjectedPresentationBreakdowns = &v
 }
 
 func (x *ChargeUsage) HasChargeId() bool {
@@ -895,6 +992,10 @@ type ChargeUsage_builder struct {
 	Filters []*FilterUsage
 	// The usage per grouping, for charges without filters.
 	GroupedUsage []*GroupedUsage
+	// The units of the ungrouped and unfiltered fees by presentation key.
+	PresentationBreakdowns []*v1.PresentationBreakdown
+	// The projected units of the ungrouped fees by presentation key.
+	ProjectedPresentationBreakdowns []*v1.PresentationBreakdown
 }
 
 func (b0 ChargeUsage_builder) Build() *ChargeUsage {
@@ -902,41 +1003,43 @@ func (b0 ChargeUsage_builder) Build() *ChargeUsage {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.ChargeId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 14)
 		x.xxx_hidden_ChargeId = b.ChargeId
 	}
 	if b.BillableMetricId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 14)
 		x.xxx_hidden_BillableMetricId = b.BillableMetricId
 	}
 	if b.BillableMetricCode != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 14)
 		x.xxx_hidden_BillableMetricCode = b.BillableMetricCode
 	}
 	if b.InvoiceDisplayName != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 14)
 		x.xxx_hidden_InvoiceDisplayName = b.InvoiceDisplayName
 	}
 	if b.Units != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 14)
 		x.xxx_hidden_Units = b.Units
 	}
 	x.xxx_hidden_Amount = b.Amount
 	if b.PricingUnitAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 14)
 		x.xxx_hidden_PricingUnitAmount = b.PricingUnitAmount
 	}
 	if b.EventsCount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 14)
 		x.xxx_hidden_EventsCount = *b.EventsCount
 	}
 	if b.ProjectedUnits != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 12)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 14)
 		x.xxx_hidden_ProjectedUnits = b.ProjectedUnits
 	}
 	x.xxx_hidden_ProjectedAmount = b.ProjectedAmount
 	x.xxx_hidden_Filters = &b.Filters
 	x.xxx_hidden_GroupedUsage = &b.GroupedUsage
+	x.xxx_hidden_PresentationBreakdowns = &b.PresentationBreakdowns
+	x.xxx_hidden_ProjectedPresentationBreakdowns = &b.ProjectedPresentationBreakdowns
 	return m0
 }
 
@@ -1287,34 +1390,37 @@ func (b0 Usage_builder) Build() *Usage {
 	return m0
 }
 
-// HourlyUsage is the usage of one billable metric in one hour.
-type HourlyUsage struct {
+// HourlyUsageFilter is one series of an hourly usage: a charge filter
+// with usage in the window, the charge default, or the series folding the
+// smallest filters, with its totals over the window.
+type HourlyUsageFilter struct {
 	state                         protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Hour               *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=hour"`
-	xxx_hidden_BillableMetricCode *string                `protobuf:"bytes,2,opt,name=billable_metric_code,json=billableMetricCode"`
-	xxx_hidden_Units              *string                `protobuf:"bytes,3,opt,name=units"`
-	xxx_hidden_EventsCount        int64                  `protobuf:"varint,4,opt,name=events_count,json=eventsCount"`
-	xxx_hidden_GroupedBy          map[string]string      `protobuf:"bytes,5,rep,name=grouped_by,json=groupedBy" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_ChargeFilterId     *string                `protobuf:"bytes,1,opt,name=charge_filter_id,json=chargeFilterId"`
+	xxx_hidden_InvoiceDisplayName *string                `protobuf:"bytes,2,opt,name=invoice_display_name,json=invoiceDisplayName"`
+	xxx_hidden_Values             map[string]string      `protobuf:"bytes,3,rep,name=values" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_Units              *string                `protobuf:"bytes,4,opt,name=units"`
+	xxx_hidden_EventsCount        int64                  `protobuf:"varint,5,opt,name=events_count,json=eventsCount"`
+	xxx_hidden_Other              bool                   `protobuf:"varint,6,opt,name=other"`
 	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
 	XXX_presence                  [1]uint32
 	unknownFields                 protoimpl.UnknownFields
 	sizeCache                     protoimpl.SizeCache
 }
 
-func (x *HourlyUsage) Reset() {
-	*x = HourlyUsage{}
+func (x *HourlyUsageFilter) Reset() {
+	*x = HourlyUsageFilter{}
 	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *HourlyUsage) String() string {
+func (x *HourlyUsageFilter) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*HourlyUsage) ProtoMessage() {}
+func (*HourlyUsageFilter) ProtoMessage() {}
 
-func (x *HourlyUsage) ProtoReflect() protoreflect.Message {
+func (x *HourlyUsageFilter) ProtoReflect() protoreflect.Message {
 	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1326,24 +1432,34 @@ func (x *HourlyUsage) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *HourlyUsage) GetHour() *timestamppb.Timestamp {
+func (x *HourlyUsageFilter) GetChargeFilterId() string {
 	if x != nil {
-		return x.xxx_hidden_Hour
-	}
-	return nil
-}
-
-func (x *HourlyUsage) GetBillableMetricCode() string {
-	if x != nil {
-		if x.xxx_hidden_BillableMetricCode != nil {
-			return *x.xxx_hidden_BillableMetricCode
+		if x.xxx_hidden_ChargeFilterId != nil {
+			return *x.xxx_hidden_ChargeFilterId
 		}
 		return ""
 	}
 	return ""
 }
 
-func (x *HourlyUsage) GetUnits() string {
+func (x *HourlyUsageFilter) GetInvoiceDisplayName() string {
+	if x != nil {
+		if x.xxx_hidden_InvoiceDisplayName != nil {
+			return *x.xxx_hidden_InvoiceDisplayName
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *HourlyUsageFilter) GetValues() map[string]string {
+	if x != nil {
+		return x.xxx_hidden_Values
+	}
+	return nil
+}
+
+func (x *HourlyUsageFilter) GetUnits() string {
 	if x != nil {
 		if x.xxx_hidden_Units != nil {
 			return *x.xxx_hidden_Units
@@ -1353,123 +1469,481 @@ func (x *HourlyUsage) GetUnits() string {
 	return ""
 }
 
-func (x *HourlyUsage) GetEventsCount() int64 {
+func (x *HourlyUsageFilter) GetEventsCount() int64 {
 	if x != nil {
 		return x.xxx_hidden_EventsCount
 	}
 	return 0
 }
 
-func (x *HourlyUsage) GetGroupedBy() map[string]string {
+func (x *HourlyUsageFilter) GetOther() bool {
 	if x != nil {
-		return x.xxx_hidden_GroupedBy
+		return x.xxx_hidden_Other
 	}
-	return nil
+	return false
 }
 
-func (x *HourlyUsage) SetHour(v *timestamppb.Timestamp) {
-	x.xxx_hidden_Hour = v
+func (x *HourlyUsageFilter) SetChargeFilterId(v string) {
+	x.xxx_hidden_ChargeFilterId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 6)
 }
 
-func (x *HourlyUsage) SetBillableMetricCode(v string) {
-	x.xxx_hidden_BillableMetricCode = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 5)
+func (x *HourlyUsageFilter) SetInvoiceDisplayName(v string) {
+	x.xxx_hidden_InvoiceDisplayName = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 6)
 }
 
-func (x *HourlyUsage) SetUnits(v string) {
+func (x *HourlyUsageFilter) SetValues(v map[string]string) {
+	x.xxx_hidden_Values = v
+}
+
+func (x *HourlyUsageFilter) SetUnits(v string) {
 	x.xxx_hidden_Units = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 6)
 }
 
-func (x *HourlyUsage) SetEventsCount(v int64) {
+func (x *HourlyUsageFilter) SetEventsCount(v int64) {
 	x.xxx_hidden_EventsCount = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 5)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 6)
 }
 
-func (x *HourlyUsage) SetGroupedBy(v map[string]string) {
-	x.xxx_hidden_GroupedBy = v
+func (x *HourlyUsageFilter) SetOther(v bool) {
+	x.xxx_hidden_Other = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 6)
 }
 
-func (x *HourlyUsage) HasHour() bool {
+func (x *HourlyUsageFilter) HasChargeFilterId() bool {
 	if x == nil {
 		return false
 	}
-	return x.xxx_hidden_Hour != nil
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *HourlyUsage) HasBillableMetricCode() bool {
+func (x *HourlyUsageFilter) HasInvoiceDisplayName() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
-func (x *HourlyUsage) HasUnits() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
-}
-
-func (x *HourlyUsage) HasEventsCount() bool {
+func (x *HourlyUsageFilter) HasUnits() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
 }
 
-func (x *HourlyUsage) ClearHour() {
-	x.xxx_hidden_Hour = nil
+func (x *HourlyUsageFilter) HasEventsCount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
 }
 
-func (x *HourlyUsage) ClearBillableMetricCode() {
+func (x *HourlyUsageFilter) HasOther() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *HourlyUsageFilter) ClearChargeFilterId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChargeFilterId = nil
+}
+
+func (x *HourlyUsageFilter) ClearInvoiceDisplayName() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
-	x.xxx_hidden_BillableMetricCode = nil
+	x.xxx_hidden_InvoiceDisplayName = nil
 }
 
-func (x *HourlyUsage) ClearUnits() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+func (x *HourlyUsageFilter) ClearUnits() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
 	x.xxx_hidden_Units = nil
 }
 
-func (x *HourlyUsage) ClearEventsCount() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+func (x *HourlyUsageFilter) ClearEventsCount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
 	x.xxx_hidden_EventsCount = 0
 }
 
-type HourlyUsage_builder struct {
-	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
-
-	// The start of the hour.
-	Hour *timestamppb.Timestamp
-	// The billable metric code.
-	BillableMetricCode *string
-	// The aggregated value of the hour.
-	Units *string
-	// The number of events.
-	EventsCount *int64
-	// The grouping values.
-	GroupedBy map[string]string
+func (x *HourlyUsageFilter) ClearOther() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_Other = false
 }
 
-func (b0 HourlyUsage_builder) Build() *HourlyUsage {
-	m0 := &HourlyUsage{}
+type HourlyUsageFilter_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The charge filter; empty for the charge default and the folded series.
+	ChargeFilterId *string
+	// The invoice line name of the filter.
+	InvoiceDisplayName *string
+	// The filter values, joined with commas.
+	Values map[string]string
+	// The units of the window.
+	Units *string
+	// The number of events of the window.
+	EventsCount *int64
+	// Marks the series folding every filter past the biggest ones.
+	Other *bool
+}
+
+func (b0 HourlyUsageFilter_builder) Build() *HourlyUsageFilter {
+	m0 := &HourlyUsageFilter{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.xxx_hidden_Hour = b.Hour
-	if b.BillableMetricCode != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 5)
-		x.xxx_hidden_BillableMetricCode = b.BillableMetricCode
+	if b.ChargeFilterId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 6)
+		x.xxx_hidden_ChargeFilterId = b.ChargeFilterId
 	}
+	if b.InvoiceDisplayName != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 6)
+		x.xxx_hidden_InvoiceDisplayName = b.InvoiceDisplayName
+	}
+	x.xxx_hidden_Values = b.Values
 	if b.Units != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 6)
 		x.xxx_hidden_Units = b.Units
 	}
 	if b.EventsCount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 5)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 6)
 		x.xxx_hidden_EventsCount = *b.EventsCount
 	}
-	x.xxx_hidden_GroupedBy = b.GroupedBy
+	if b.Other != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 6)
+		x.xxx_hidden_Other = *b.Other
+	}
+	return m0
+}
+
+// HourlyUsageBreakdown is the usage of one series in one hour.
+type HourlyUsageBreakdown struct {
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ChargeFilterId *string                `protobuf:"bytes,1,opt,name=charge_filter_id,json=chargeFilterId"`
+	xxx_hidden_Units          *string                `protobuf:"bytes,2,opt,name=units"`
+	xxx_hidden_EventsCount    int64                  `protobuf:"varint,3,opt,name=events_count,json=eventsCount"`
+	xxx_hidden_Other          bool                   `protobuf:"varint,4,opt,name=other"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
+}
+
+func (x *HourlyUsageBreakdown) Reset() {
+	*x = HourlyUsageBreakdown{}
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HourlyUsageBreakdown) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HourlyUsageBreakdown) ProtoMessage() {}
+
+func (x *HourlyUsageBreakdown) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *HourlyUsageBreakdown) GetChargeFilterId() string {
+	if x != nil {
+		if x.xxx_hidden_ChargeFilterId != nil {
+			return *x.xxx_hidden_ChargeFilterId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *HourlyUsageBreakdown) GetUnits() string {
+	if x != nil {
+		if x.xxx_hidden_Units != nil {
+			return *x.xxx_hidden_Units
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *HourlyUsageBreakdown) GetEventsCount() int64 {
+	if x != nil {
+		return x.xxx_hidden_EventsCount
+	}
+	return 0
+}
+
+func (x *HourlyUsageBreakdown) GetOther() bool {
+	if x != nil {
+		return x.xxx_hidden_Other
+	}
+	return false
+}
+
+func (x *HourlyUsageBreakdown) SetChargeFilterId(v string) {
+	x.xxx_hidden_ChargeFilterId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *HourlyUsageBreakdown) SetUnits(v string) {
+	x.xxx_hidden_Units = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *HourlyUsageBreakdown) SetEventsCount(v int64) {
+	x.xxx_hidden_EventsCount = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *HourlyUsageBreakdown) SetOther(v bool) {
+	x.xxx_hidden_Other = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *HourlyUsageBreakdown) HasChargeFilterId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *HourlyUsageBreakdown) HasUnits() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *HourlyUsageBreakdown) HasEventsCount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *HourlyUsageBreakdown) HasOther() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *HourlyUsageBreakdown) ClearChargeFilterId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ChargeFilterId = nil
+}
+
+func (x *HourlyUsageBreakdown) ClearUnits() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Units = nil
+}
+
+func (x *HourlyUsageBreakdown) ClearEventsCount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_EventsCount = 0
+}
+
+func (x *HourlyUsageBreakdown) ClearOther() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Other = false
+}
+
+type HourlyUsageBreakdown_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The charge filter; empty for the charge default and the folded series.
+	ChargeFilterId *string
+	// The units of the hour.
+	Units *string
+	// The number of events of the hour.
+	EventsCount *int64
+	// Marks the series folding every filter past the biggest ones.
+	Other *bool
+}
+
+func (b0 HourlyUsageBreakdown_builder) Build() *HourlyUsageBreakdown {
+	m0 := &HourlyUsageBreakdown{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.ChargeFilterId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_ChargeFilterId = b.ChargeFilterId
+	}
+	if b.Units != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_Units = b.Units
+	}
+	if b.EventsCount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_EventsCount = *b.EventsCount
+	}
+	if b.Other != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_Other = *b.Other
+	}
+	return m0
+}
+
+// HourlyUsagePoint is one hour of an hourly usage.
+type HourlyUsagePoint struct {
+	state                  protoimpl.MessageState   `protogen:"opaque.v1"`
+	xxx_hidden_Time        *timestamppb.Timestamp   `protobuf:"bytes,1,opt,name=time"`
+	xxx_hidden_Units       *string                  `protobuf:"bytes,2,opt,name=units"`
+	xxx_hidden_EventsCount int64                    `protobuf:"varint,3,opt,name=events_count,json=eventsCount"`
+	xxx_hidden_Breakdown   *[]*HourlyUsageBreakdown `protobuf:"bytes,4,rep,name=breakdown"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *HourlyUsagePoint) Reset() {
+	*x = HourlyUsagePoint{}
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HourlyUsagePoint) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HourlyUsagePoint) ProtoMessage() {}
+
+func (x *HourlyUsagePoint) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *HourlyUsagePoint) GetTime() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_Time
+	}
+	return nil
+}
+
+func (x *HourlyUsagePoint) GetUnits() string {
+	if x != nil {
+		if x.xxx_hidden_Units != nil {
+			return *x.xxx_hidden_Units
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *HourlyUsagePoint) GetEventsCount() int64 {
+	if x != nil {
+		return x.xxx_hidden_EventsCount
+	}
+	return 0
+}
+
+func (x *HourlyUsagePoint) GetBreakdown() []*HourlyUsageBreakdown {
+	if x != nil {
+		if x.xxx_hidden_Breakdown != nil {
+			return *x.xxx_hidden_Breakdown
+		}
+	}
+	return nil
+}
+
+func (x *HourlyUsagePoint) SetTime(v *timestamppb.Timestamp) {
+	x.xxx_hidden_Time = v
+}
+
+func (x *HourlyUsagePoint) SetUnits(v string) {
+	x.xxx_hidden_Units = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
+}
+
+func (x *HourlyUsagePoint) SetEventsCount(v int64) {
+	x.xxx_hidden_EventsCount = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *HourlyUsagePoint) SetBreakdown(v []*HourlyUsageBreakdown) {
+	x.xxx_hidden_Breakdown = &v
+}
+
+func (x *HourlyUsagePoint) HasTime() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Time != nil
+}
+
+func (x *HourlyUsagePoint) HasUnits() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *HourlyUsagePoint) HasEventsCount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *HourlyUsagePoint) ClearTime() {
+	x.xxx_hidden_Time = nil
+}
+
+func (x *HourlyUsagePoint) ClearUnits() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Units = nil
+}
+
+func (x *HourlyUsagePoint) ClearEventsCount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_EventsCount = 0
+}
+
+type HourlyUsagePoint_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The start of the hour in the customer's time zone.
+	Time *timestamppb.Timestamp
+	// The units of the hour.
+	Units *string
+	// The number of events of the hour.
+	EventsCount *int64
+	// The usage of each series, in the order of the filters.
+	Breakdown []*HourlyUsageBreakdown
+}
+
+func (b0 HourlyUsagePoint_builder) Build() *HourlyUsagePoint {
+	m0 := &HourlyUsagePoint{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Time = b.Time
+	if b.Units != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
+		x.xxx_hidden_Units = b.Units
+	}
+	if b.EventsCount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
+		x.xxx_hidden_EventsCount = *b.EventsCount
+	}
+	x.xxx_hidden_Breakdown = &b.Breakdown
 	return m0
 }
 
@@ -1485,7 +1959,7 @@ type DailyUsage struct {
 
 func (x *DailyUsage) Reset() {
 	*x = DailyUsage{}
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[5]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1497,7 +1971,7 @@ func (x *DailyUsage) String() string {
 func (*DailyUsage) ProtoMessage() {}
 
 func (x *DailyUsage) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[5]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1597,23 +2071,27 @@ func (b0 DailyUsage_builder) Build() *DailyUsage {
 
 // GetCurrentUsageRequest is the request of UsageService.GetCurrentUsage.
 type GetCurrentUsageRequest struct {
-	state                          protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_CustomerId          *string                `protobuf:"bytes,1,opt,name=customer_id,json=customerId"`
-	xxx_hidden_SubscriptionId      *string                `protobuf:"bytes,2,opt,name=subscription_id,json=subscriptionId"`
-	xxx_hidden_ApplyTaxes          bool                   `protobuf:"varint,3,opt,name=apply_taxes,json=applyTaxes"`
-	xxx_hidden_IncludeProjection   bool                   `protobuf:"varint,4,opt,name=include_projection,json=includeProjection"`
-	xxx_hidden_BillableMetricCode  *string                `protobuf:"bytes,5,opt,name=billable_metric_code,json=billableMetricCode"`
-	xxx_hidden_FilterBy            map[string]string      `protobuf:"bytes,6,rep,name=filter_by,json=filterBy" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	xxx_hidden_GroupByAttributions []string               `protobuf:"bytes,7,rep,name=group_by_attributions,json=groupByAttributions"`
-	XXX_raceDetectHookData         protoimpl.RaceDetectHookData
-	XXX_presence                   [1]uint32
-	unknownFields                  protoimpl.UnknownFields
-	sizeCache                      protoimpl.SizeCache
+	state                           protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_CustomerId           *string                `protobuf:"bytes,1,opt,name=customer_id,json=customerId"`
+	xxx_hidden_SubscriptionId       *string                `protobuf:"bytes,2,opt,name=subscription_id,json=subscriptionId"`
+	xxx_hidden_ApplyTaxes           bool                   `protobuf:"varint,3,opt,name=apply_taxes,json=applyTaxes"`
+	xxx_hidden_IncludeProjection    bool                   `protobuf:"varint,4,opt,name=include_projection,json=includeProjection"`
+	xxx_hidden_BillableMetricCode   *string                `protobuf:"bytes,5,opt,name=billable_metric_code,json=billableMetricCode"`
+	xxx_hidden_ChargeId             *string                `protobuf:"bytes,8,opt,name=charge_id,json=chargeId"`
+	xxx_hidden_ChargeCode           *string                `protobuf:"bytes,9,opt,name=charge_code,json=chargeCode"`
+	xxx_hidden_FilterByGroup        []string               `protobuf:"bytes,10,rep,name=filter_by_group,json=filterByGroup"`
+	xxx_hidden_FilterByPresentation []string               `protobuf:"bytes,11,rep,name=filter_by_presentation,json=filterByPresentation"`
+	xxx_hidden_SkipGrouping         bool                   `protobuf:"varint,12,opt,name=skip_grouping,json=skipGrouping"`
+	xxx_hidden_FullUsage            bool                   `protobuf:"varint,13,opt,name=full_usage,json=fullUsage"`
+	XXX_raceDetectHookData          protoimpl.RaceDetectHookData
+	XXX_presence                    [1]uint32
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *GetCurrentUsageRequest) Reset() {
 	*x = GetCurrentUsageRequest{}
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[6]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1625,7 +2103,7 @@ func (x *GetCurrentUsageRequest) String() string {
 func (*GetCurrentUsageRequest) ProtoMessage() {}
 
 func (x *GetCurrentUsageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[6]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1680,51 +2158,105 @@ func (x *GetCurrentUsageRequest) GetBillableMetricCode() string {
 	return ""
 }
 
-func (x *GetCurrentUsageRequest) GetFilterBy() map[string]string {
+func (x *GetCurrentUsageRequest) GetChargeId() string {
 	if x != nil {
-		return x.xxx_hidden_FilterBy
+		if x.xxx_hidden_ChargeId != nil {
+			return *x.xxx_hidden_ChargeId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *GetCurrentUsageRequest) GetChargeCode() string {
+	if x != nil {
+		if x.xxx_hidden_ChargeCode != nil {
+			return *x.xxx_hidden_ChargeCode
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *GetCurrentUsageRequest) GetFilterByGroup() []string {
+	if x != nil {
+		return x.xxx_hidden_FilterByGroup
 	}
 	return nil
 }
 
-func (x *GetCurrentUsageRequest) GetGroupByAttributions() []string {
+func (x *GetCurrentUsageRequest) GetFilterByPresentation() []string {
 	if x != nil {
-		return x.xxx_hidden_GroupByAttributions
+		return x.xxx_hidden_FilterByPresentation
 	}
 	return nil
+}
+
+func (x *GetCurrentUsageRequest) GetSkipGrouping() bool {
+	if x != nil {
+		return x.xxx_hidden_SkipGrouping
+	}
+	return false
+}
+
+func (x *GetCurrentUsageRequest) GetFullUsage() bool {
+	if x != nil {
+		return x.xxx_hidden_FullUsage
+	}
+	return false
 }
 
 func (x *GetCurrentUsageRequest) SetCustomerId(v string) {
 	x.xxx_hidden_CustomerId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 11)
 }
 
 func (x *GetCurrentUsageRequest) SetSubscriptionId(v string) {
 	x.xxx_hidden_SubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 11)
 }
 
 func (x *GetCurrentUsageRequest) SetApplyTaxes(v bool) {
 	x.xxx_hidden_ApplyTaxes = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 11)
 }
 
 func (x *GetCurrentUsageRequest) SetIncludeProjection(v bool) {
 	x.xxx_hidden_IncludeProjection = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 11)
 }
 
 func (x *GetCurrentUsageRequest) SetBillableMetricCode(v string) {
 	x.xxx_hidden_BillableMetricCode = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 7)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 11)
 }
 
-func (x *GetCurrentUsageRequest) SetFilterBy(v map[string]string) {
-	x.xxx_hidden_FilterBy = v
+func (x *GetCurrentUsageRequest) SetChargeId(v string) {
+	x.xxx_hidden_ChargeId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 11)
 }
 
-func (x *GetCurrentUsageRequest) SetGroupByAttributions(v []string) {
-	x.xxx_hidden_GroupByAttributions = v
+func (x *GetCurrentUsageRequest) SetChargeCode(v string) {
+	x.xxx_hidden_ChargeCode = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 11)
+}
+
+func (x *GetCurrentUsageRequest) SetFilterByGroup(v []string) {
+	x.xxx_hidden_FilterByGroup = v
+}
+
+func (x *GetCurrentUsageRequest) SetFilterByPresentation(v []string) {
+	x.xxx_hidden_FilterByPresentation = v
+}
+
+func (x *GetCurrentUsageRequest) SetSkipGrouping(v bool) {
+	x.xxx_hidden_SkipGrouping = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 11)
+}
+
+func (x *GetCurrentUsageRequest) SetFullUsage(v bool) {
+	x.xxx_hidden_FullUsage = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 11)
 }
 
 func (x *GetCurrentUsageRequest) HasCustomerId() bool {
@@ -1762,6 +2294,34 @@ func (x *GetCurrentUsageRequest) HasBillableMetricCode() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
 }
 
+func (x *GetCurrentUsageRequest) HasChargeId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *GetCurrentUsageRequest) HasChargeCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *GetCurrentUsageRequest) HasSkipGrouping() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
+}
+
+func (x *GetCurrentUsageRequest) HasFullUsage() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
+}
+
 func (x *GetCurrentUsageRequest) ClearCustomerId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_CustomerId = nil
@@ -1787,6 +2347,26 @@ func (x *GetCurrentUsageRequest) ClearBillableMetricCode() {
 	x.xxx_hidden_BillableMetricCode = nil
 }
 
+func (x *GetCurrentUsageRequest) ClearChargeId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_ChargeId = nil
+}
+
+func (x *GetCurrentUsageRequest) ClearChargeCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_ChargeCode = nil
+}
+
+func (x *GetCurrentUsageRequest) ClearSkipGrouping() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	x.xxx_hidden_SkipGrouping = false
+}
+
+func (x *GetCurrentUsageRequest) ClearFullUsage() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	x.xxx_hidden_FullUsage = false
+}
+
 type GetCurrentUsageRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1798,12 +2378,30 @@ type GetCurrentUsageRequest_builder struct {
 	ApplyTaxes *bool
 	// Includes the projection to the period end.
 	IncludeProjection *bool
-	// Restricts the usage to one billable metric code.
+	// Restricts the usage to the charges of one billable metric code.
+	// charge_id and charge_code take precedence.
 	BillableMetricCode *string
-	// Restricts the usage to events matching these filter values.
-	FilterBy map[string]string
-	// Groups the usage by these attribution type codes.
-	GroupByAttributions []string
+	// Restricts the usage to one charge of the plan; it takes precedence
+	// over charge_code and billable_metric_code.
+	ChargeId *string
+	// Restricts the usage to the charge of this code; it takes precedence
+	// over billable_metric_code.
+	ChargeCode *string
+	// Restricts the usage to the events whose property is one of the
+	// values, as `<key>:<value>` entries; several entries of one key match
+	// any of their values. The keys are no longer pricing group keys of the
+	// charges, whose other keys still group the usage.
+	FilterByGroup []string
+	// Keeps the presentation breakdowns of these presentation keys only;
+	// empty keeps them all.
+	FilterByPresentation []string
+	// Ignores the pricing group keys of the charges: one fee per charge
+	// and filter.
+	SkipGrouping *bool
+	// Computes the usage since the subscription started instead of since
+	// the period start. It needs a charge restriction or filter_by_group,
+	// and charges that are not prorated; include_projection ignores it.
+	FullUsage *bool
 }
 
 func (b0 GetCurrentUsageRequest_builder) Build() *GetCurrentUsageRequest {
@@ -1811,27 +2409,43 @@ func (b0 GetCurrentUsageRequest_builder) Build() *GetCurrentUsageRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.CustomerId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 11)
 		x.xxx_hidden_CustomerId = b.CustomerId
 	}
 	if b.SubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 11)
 		x.xxx_hidden_SubscriptionId = b.SubscriptionId
 	}
 	if b.ApplyTaxes != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 11)
 		x.xxx_hidden_ApplyTaxes = *b.ApplyTaxes
 	}
 	if b.IncludeProjection != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 11)
 		x.xxx_hidden_IncludeProjection = *b.IncludeProjection
 	}
 	if b.BillableMetricCode != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 7)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 11)
 		x.xxx_hidden_BillableMetricCode = b.BillableMetricCode
 	}
-	x.xxx_hidden_FilterBy = b.FilterBy
-	x.xxx_hidden_GroupByAttributions = b.GroupByAttributions
+	if b.ChargeId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 11)
+		x.xxx_hidden_ChargeId = b.ChargeId
+	}
+	if b.ChargeCode != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 11)
+		x.xxx_hidden_ChargeCode = b.ChargeCode
+	}
+	x.xxx_hidden_FilterByGroup = b.FilterByGroup
+	x.xxx_hidden_FilterByPresentation = b.FilterByPresentation
+	if b.SkipGrouping != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 11)
+		x.xxx_hidden_SkipGrouping = *b.SkipGrouping
+	}
+	if b.FullUsage != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 11)
+		x.xxx_hidden_FullUsage = *b.FullUsage
+	}
 	return m0
 }
 
@@ -1845,7 +2459,7 @@ type GetCurrentUsageResponse struct {
 
 func (x *GetCurrentUsageResponse) Reset() {
 	*x = GetCurrentUsageResponse{}
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[7]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1857,7 +2471,7 @@ func (x *GetCurrentUsageResponse) String() string {
 func (*GetCurrentUsageResponse) ProtoMessage() {}
 
 func (x *GetCurrentUsageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[7]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1922,7 +2536,7 @@ type ListPastUsageRequest struct {
 
 func (x *ListPastUsageRequest) Reset() {
 	*x = ListPastUsageRequest{}
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[8]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1934,7 +2548,7 @@ func (x *ListPastUsageRequest) String() string {
 func (*ListPastUsageRequest) ProtoMessage() {}
 
 func (x *ListPastUsageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[8]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2162,7 +2776,7 @@ type ListPastUsageResponse struct {
 
 func (x *ListPastUsageResponse) Reset() {
 	*x = ListPastUsageResponse{}
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[9]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2174,7 +2788,7 @@ func (x *ListPastUsageResponse) String() string {
 func (*ListPastUsageResponse) ProtoMessage() {}
 
 func (x *ListPastUsageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[9]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2248,21 +2862,21 @@ func (b0 ListPastUsageResponse_builder) Build() *ListPastUsageResponse {
 
 // GetHourlyUsageRequest is the request of UsageService.GetHourlyUsage.
 type GetHourlyUsageRequest struct {
-	state                         protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_CustomerId         *string                `protobuf:"bytes,1,opt,name=customer_id,json=customerId"`
-	xxx_hidden_SubscriptionId     *string                `protobuf:"bytes,2,opt,name=subscription_id,json=subscriptionId"`
-	xxx_hidden_From               *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=from"`
-	xxx_hidden_To                 *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=to"`
-	xxx_hidden_BillableMetricCode *string                `protobuf:"bytes,5,opt,name=billable_metric_code,json=billableMetricCode"`
-	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
-	XXX_presence                  [1]uint32
-	unknownFields                 protoimpl.UnknownFields
-	sizeCache                     protoimpl.SizeCache
+	state                     protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_CustomerId     *string                `protobuf:"bytes,1,opt,name=customer_id,json=customerId"`
+	xxx_hidden_SubscriptionId *string                `protobuf:"bytes,2,opt,name=subscription_id,json=subscriptionId"`
+	xxx_hidden_From           *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=from"`
+	xxx_hidden_To             *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=to"`
+	xxx_hidden_ChargeId       *string                `protobuf:"bytes,6,opt,name=charge_id,json=chargeId"`
+	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
+	XXX_presence              [1]uint32
+	unknownFields             protoimpl.UnknownFields
+	sizeCache                 protoimpl.SizeCache
 }
 
 func (x *GetHourlyUsageRequest) Reset() {
 	*x = GetHourlyUsageRequest{}
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[10]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2274,7 +2888,7 @@ func (x *GetHourlyUsageRequest) String() string {
 func (*GetHourlyUsageRequest) ProtoMessage() {}
 
 func (x *GetHourlyUsageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[10]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2319,10 +2933,10 @@ func (x *GetHourlyUsageRequest) GetTo() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *GetHourlyUsageRequest) GetBillableMetricCode() string {
+func (x *GetHourlyUsageRequest) GetChargeId() string {
 	if x != nil {
-		if x.xxx_hidden_BillableMetricCode != nil {
-			return *x.xxx_hidden_BillableMetricCode
+		if x.xxx_hidden_ChargeId != nil {
+			return *x.xxx_hidden_ChargeId
 		}
 		return ""
 	}
@@ -2347,8 +2961,8 @@ func (x *GetHourlyUsageRequest) SetTo(v *timestamppb.Timestamp) {
 	x.xxx_hidden_To = v
 }
 
-func (x *GetHourlyUsageRequest) SetBillableMetricCode(v string) {
-	x.xxx_hidden_BillableMetricCode = &v
+func (x *GetHourlyUsageRequest) SetChargeId(v string) {
+	x.xxx_hidden_ChargeId = &v
 	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 5)
 }
 
@@ -2380,7 +2994,7 @@ func (x *GetHourlyUsageRequest) HasTo() bool {
 	return x.xxx_hidden_To != nil
 }
 
-func (x *GetHourlyUsageRequest) HasBillableMetricCode() bool {
+func (x *GetHourlyUsageRequest) HasChargeId() bool {
 	if x == nil {
 		return false
 	}
@@ -2405,9 +3019,9 @@ func (x *GetHourlyUsageRequest) ClearTo() {
 	x.xxx_hidden_To = nil
 }
 
-func (x *GetHourlyUsageRequest) ClearBillableMetricCode() {
+func (x *GetHourlyUsageRequest) ClearChargeId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_BillableMetricCode = nil
+	x.xxx_hidden_ChargeId = nil
 }
 
 type GetHourlyUsageRequest_builder struct {
@@ -2417,12 +3031,16 @@ type GetHourlyUsageRequest_builder struct {
 	CustomerId *string
 	// The subscription's ID or `external_id:<external_id>`.
 	SubscriptionId *string
-	// The start of the range; the period start by default.
+	// The start of the window; 24 hours before its end by default. The
+	// window starts on the hour at or before it, in the customer's time
+	// zone.
 	From *timestamppb.Timestamp
-	// The end of the range; now by default.
+	// The end of the window; now by default. An end inside a 15-minute
+	// bucket is moved to the end of the bucket. The window spans at most
+	// 31 days.
 	To *timestamppb.Timestamp
-	// Restricts the usage to one billable metric code.
-	BillableMetricCode *string
+	// The charge of the subscription's plan, counting or summing events.
+	ChargeId *string
 }
 
 func (b0 GetHourlyUsageRequest_builder) Build() *GetHourlyUsageRequest {
@@ -2439,24 +3057,32 @@ func (b0 GetHourlyUsageRequest_builder) Build() *GetHourlyUsageRequest {
 	}
 	x.xxx_hidden_From = b.From
 	x.xxx_hidden_To = b.To
-	if b.BillableMetricCode != nil {
+	if b.ChargeId != nil {
 		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 5)
-		x.xxx_hidden_BillableMetricCode = b.BillableMetricCode
+		x.xxx_hidden_ChargeId = b.ChargeId
 	}
 	return m0
 }
 
 // GetHourlyUsageResponse is the response of UsageService.GetHourlyUsage.
 type GetHourlyUsageResponse struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_HourlyUsage *[]*HourlyUsage        `protobuf:"bytes,1,rep,name=hourly_usage,json=hourlyUsage"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_From            *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=from"`
+	xxx_hidden_To              *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=to"`
+	xxx_hidden_Timezone        *string                `protobuf:"bytes,4,opt,name=timezone"`
+	xxx_hidden_AggregationType v11.AggregationType    `protobuf:"varint,5,opt,name=aggregation_type,json=aggregationType,enum=tanvo.catalog.v1.AggregationType"`
+	xxx_hidden_LastIngestedAt  *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=last_ingested_at,json=lastIngestedAt"`
+	xxx_hidden_Filters         *[]*HourlyUsageFilter  `protobuf:"bytes,7,rep,name=filters"`
+	xxx_hidden_Hours           *[]*HourlyUsagePoint   `protobuf:"bytes,8,rep,name=hours"`
+	XXX_raceDetectHookData     protoimpl.RaceDetectHookData
+	XXX_presence               [1]uint32
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *GetHourlyUsageResponse) Reset() {
 	*x = GetHourlyUsageResponse{}
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[11]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2468,7 +3094,7 @@ func (x *GetHourlyUsageResponse) String() string {
 func (*GetHourlyUsageResponse) ProtoMessage() {}
 
 func (x *GetHourlyUsageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[11]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2479,31 +3105,187 @@ func (x *GetHourlyUsageResponse) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-func (x *GetHourlyUsageResponse) GetHourlyUsage() []*HourlyUsage {
+func (x *GetHourlyUsageResponse) GetFrom() *timestamppb.Timestamp {
 	if x != nil {
-		if x.xxx_hidden_HourlyUsage != nil {
-			return *x.xxx_hidden_HourlyUsage
+		return x.xxx_hidden_From
+	}
+	return nil
+}
+
+func (x *GetHourlyUsageResponse) GetTo() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_To
+	}
+	return nil
+}
+
+func (x *GetHourlyUsageResponse) GetTimezone() string {
+	if x != nil {
+		if x.xxx_hidden_Timezone != nil {
+			return *x.xxx_hidden_Timezone
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *GetHourlyUsageResponse) GetAggregationType() v11.AggregationType {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 3) {
+			return x.xxx_hidden_AggregationType
+		}
+	}
+	return v11.AggregationType(0)
+}
+
+func (x *GetHourlyUsageResponse) GetLastIngestedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_LastIngestedAt
+	}
+	return nil
+}
+
+func (x *GetHourlyUsageResponse) GetFilters() []*HourlyUsageFilter {
+	if x != nil {
+		if x.xxx_hidden_Filters != nil {
+			return *x.xxx_hidden_Filters
 		}
 	}
 	return nil
 }
 
-func (x *GetHourlyUsageResponse) SetHourlyUsage(v []*HourlyUsage) {
-	x.xxx_hidden_HourlyUsage = &v
+func (x *GetHourlyUsageResponse) GetHours() []*HourlyUsagePoint {
+	if x != nil {
+		if x.xxx_hidden_Hours != nil {
+			return *x.xxx_hidden_Hours
+		}
+	}
+	return nil
+}
+
+func (x *GetHourlyUsageResponse) SetFrom(v *timestamppb.Timestamp) {
+	x.xxx_hidden_From = v
+}
+
+func (x *GetHourlyUsageResponse) SetTo(v *timestamppb.Timestamp) {
+	x.xxx_hidden_To = v
+}
+
+func (x *GetHourlyUsageResponse) SetTimezone(v string) {
+	x.xxx_hidden_Timezone = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 7)
+}
+
+func (x *GetHourlyUsageResponse) SetAggregationType(v v11.AggregationType) {
+	x.xxx_hidden_AggregationType = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 7)
+}
+
+func (x *GetHourlyUsageResponse) SetLastIngestedAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_LastIngestedAt = v
+}
+
+func (x *GetHourlyUsageResponse) SetFilters(v []*HourlyUsageFilter) {
+	x.xxx_hidden_Filters = &v
+}
+
+func (x *GetHourlyUsageResponse) SetHours(v []*HourlyUsagePoint) {
+	x.xxx_hidden_Hours = &v
+}
+
+func (x *GetHourlyUsageResponse) HasFrom() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_From != nil
+}
+
+func (x *GetHourlyUsageResponse) HasTo() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_To != nil
+}
+
+func (x *GetHourlyUsageResponse) HasTimezone() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
+func (x *GetHourlyUsageResponse) HasAggregationType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *GetHourlyUsageResponse) HasLastIngestedAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_LastIngestedAt != nil
+}
+
+func (x *GetHourlyUsageResponse) ClearFrom() {
+	x.xxx_hidden_From = nil
+}
+
+func (x *GetHourlyUsageResponse) ClearTo() {
+	x.xxx_hidden_To = nil
+}
+
+func (x *GetHourlyUsageResponse) ClearTimezone() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_Timezone = nil
+}
+
+func (x *GetHourlyUsageResponse) ClearAggregationType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_AggregationType = v11.AggregationType_AGGREGATION_TYPE_UNSPECIFIED
+}
+
+func (x *GetHourlyUsageResponse) ClearLastIngestedAt() {
+	x.xxx_hidden_LastIngestedAt = nil
 }
 
 type GetHourlyUsageResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// The usage per hour and metric.
-	HourlyUsage []*HourlyUsage
+	// The start of the window the units describe.
+	From *timestamppb.Timestamp
+	// The end of the window the units describe.
+	To *timestamppb.Timestamp
+	// The customer's time zone the hours are cut in.
+	Timezone *string
+	// The aggregation type of the charge's billable metric.
+	AggregationType *v11.AggregationType
+	// The latest ingestion time of the events counted.
+	LastIngestedAt *timestamppb.Timestamp
+	// The series with usage in the window, biggest first.
+	Filters []*HourlyUsageFilter
+	// The hours of the window, gaps included.
+	Hours []*HourlyUsagePoint
 }
 
 func (b0 GetHourlyUsageResponse_builder) Build() *GetHourlyUsageResponse {
 	m0 := &GetHourlyUsageResponse{}
 	b, x := &b0, m0
 	_, _ = b, x
-	x.xxx_hidden_HourlyUsage = &b.HourlyUsage
+	x.xxx_hidden_From = b.From
+	x.xxx_hidden_To = b.To
+	if b.Timezone != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 7)
+		x.xxx_hidden_Timezone = b.Timezone
+	}
+	if b.AggregationType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 7)
+		x.xxx_hidden_AggregationType = *b.AggregationType
+	}
+	x.xxx_hidden_LastIngestedAt = b.LastIngestedAt
+	x.xxx_hidden_Filters = &b.Filters
+	x.xxx_hidden_Hours = &b.Hours
 	return m0
 }
 
@@ -2523,7 +3305,7 @@ type ListDailyUsageRequest struct {
 
 func (x *ListDailyUsageRequest) Reset() {
 	*x = ListDailyUsageRequest{}
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[12]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2535,7 +3317,7 @@ func (x *ListDailyUsageRequest) String() string {
 func (*ListDailyUsageRequest) ProtoMessage() {}
 
 func (x *ListDailyUsageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[12]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2725,7 +3507,7 @@ type ListDailyUsageResponse struct {
 
 func (x *ListDailyUsageResponse) Reset() {
 	*x = ListDailyUsageResponse{}
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[13]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2737,7 +3519,7 @@ func (x *ListDailyUsageResponse) String() string {
 func (*ListDailyUsageResponse) ProtoMessage() {}
 
 func (x *ListDailyUsageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[13]
+	mi := &file_tanvo_usage_v1_usage_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2813,7 +3595,7 @@ var File_tanvo_usage_v1_usage_proto protoreflect.FileDescriptor
 
 const file_tanvo_usage_v1_usage_proto_rawDesc = "" +
 	"\n" +
-	"\x1atanvo/usage/v1/usage.proto\x12\x0etanvo.usage.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xed\x02\n" +
+	"\x1atanvo/usage/v1/usage.proto\x12\x0etanvo.usage.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/catalog/v1/metric.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xc2\x04\n" +
 	"\fGroupedUsage\x12J\n" +
 	"\n" +
 	"grouped_by\x18\x01 \x03(\v2+.tanvo.usage.v1.GroupedUsage.GroupedByEntryR\tgroupedBy\x12\x14\n" +
@@ -2821,10 +3603,12 @@ const file_tanvo_usage_v1_usage_proto_rawDesc = "" +
 	"\x06amount\x18\x03 \x01(\v2\x16.tanvo.common.v1.MoneyR\x06amount\x12!\n" +
 	"\fevents_count\x18\x04 \x01(\x03R\veventsCount\x12'\n" +
 	"\x0fprojected_units\x18\x05 \x01(\tR\x0eprojectedUnits\x12A\n" +
-	"\x10projected_amount\x18\x06 \x01(\v2\x16.tanvo.common.v1.MoneyR\x0fprojectedAmount\x1a<\n" +
+	"\x10projected_amount\x18\x06 \x01(\v2\x16.tanvo.common.v1.MoneyR\x0fprojectedAmount\x12_\n" +
+	"\x17presentation_breakdowns\x18\a \x03(\v2&.tanvo.common.v1.PresentationBreakdownR\x16presentationBreakdowns\x12r\n" +
+	"!projected_presentation_breakdowns\x18\b \x03(\v2&.tanvo.common.v1.PresentationBreakdownR\x1fprojectedPresentationBreakdowns\x1a<\n" +
 	"\x0eGroupedByEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xfd\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd2\x05\n" +
 	"\vFilterUsage\x12(\n" +
 	"\x10charge_filter_id\x18\x01 \x01(\tR\x0echargeFilterId\x120\n" +
 	"\x14invoice_display_name\x18\x02 \x01(\tR\x12invoiceDisplayName\x12?\n" +
@@ -2834,10 +3618,13 @@ const file_tanvo_usage_v1_usage_proto_rawDesc = "" +
 	"\fevents_count\x18\x06 \x01(\x03R\veventsCount\x12'\n" +
 	"\x0fprojected_units\x18\a \x01(\tR\x0eprojectedUnits\x12A\n" +
 	"\x10projected_amount\x18\b \x01(\v2\x16.tanvo.common.v1.MoneyR\x0fprojectedAmount\x12A\n" +
-	"\rgrouped_usage\x18\t \x03(\v2\x1c.tanvo.usage.v1.GroupedUsageR\fgroupedUsage\x1a9\n" +
+	"\rgrouped_usage\x18\t \x03(\v2\x1c.tanvo.usage.v1.GroupedUsageR\fgroupedUsage\x12_\n" +
+	"\x17presentation_breakdowns\x18\n" +
+	" \x03(\v2&.tanvo.common.v1.PresentationBreakdownR\x16presentationBreakdowns\x12r\n" +
+	"!projected_presentation_breakdowns\x18\v \x03(\v2&.tanvo.common.v1.PresentationBreakdownR\x1fprojectedPresentationBreakdowns\x1a9\n" +
 	"\vValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xbb\x04\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x90\x06\n" +
 	"\vChargeUsage\x12\x1b\n" +
 	"\tcharge_id\x18\x01 \x01(\tR\bchargeId\x12,\n" +
 	"\x12billable_metric_id\x18\x02 \x01(\tR\x10billableMetricId\x120\n" +
@@ -2851,7 +3638,9 @@ const file_tanvo_usage_v1_usage_proto_rawDesc = "" +
 	"\x10projected_amount\x18\n" +
 	" \x01(\v2\x16.tanvo.common.v1.MoneyR\x0fprojectedAmount\x125\n" +
 	"\afilters\x18\v \x03(\v2\x1b.tanvo.usage.v1.FilterUsageR\afilters\x12A\n" +
-	"\rgrouped_usage\x18\f \x03(\v2\x1c.tanvo.usage.v1.GroupedUsageR\fgroupedUsage\"\xc0\x04\n" +
+	"\rgrouped_usage\x18\f \x03(\v2\x1c.tanvo.usage.v1.GroupedUsageR\fgroupedUsage\x12_\n" +
+	"\x17presentation_breakdowns\x18\r \x03(\v2&.tanvo.common.v1.PresentationBreakdownR\x16presentationBreakdowns\x12r\n" +
+	"!projected_presentation_breakdowns\x18\x0e \x03(\v2&.tanvo.common.v1.PresentationBreakdownR\x1fprojectedPresentationBreakdowns\"\xc0\x04\n" +
 	"\x05Usage\x12'\n" +
 	"\x0fsubscription_id\x18\x01 \x01(\tR\x0esubscriptionId\x128\n" +
 	"\x18external_subscription_id\x18\x02 \x01(\tR\x16externalSubscriptionId\x12.\n" +
@@ -2866,24 +3655,34 @@ const file_tanvo_usage_v1_usage_proto_rawDesc = "" +
 	"\ftotal_amount\x18\t \x01(\v2\x16.tanvo.common.v1.MoneyR\vtotalAmount\x12A\n" +
 	"\x10projected_amount\x18\n" +
 	" \x01(\v2\x16.tanvo.common.v1.MoneyR\x0fprojectedAmount\x125\n" +
-	"\acharges\x18\v \x03(\v2\x1b.tanvo.usage.v1.ChargeUsageR\acharges\"\xb1\x02\n" +
-	"\vHourlyUsage\x12.\n" +
-	"\x04hour\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04hour\x120\n" +
-	"\x14billable_metric_code\x18\x02 \x01(\tR\x12billableMetricCode\x12\x14\n" +
-	"\x05units\x18\x03 \x01(\tR\x05units\x12!\n" +
-	"\fevents_count\x18\x04 \x01(\x03R\veventsCount\x12I\n" +
-	"\n" +
-	"grouped_by\x18\x05 \x03(\v2*.tanvo.usage.v1.HourlyUsage.GroupedByEntryR\tgroupedBy\x1a<\n" +
-	"\x0eGroupedByEntry\x12\x10\n" +
+	"\acharges\x18\v \x03(\v2\x1b.tanvo.usage.v1.ChargeUsageR\acharges\"\xc0\x02\n" +
+	"\x11HourlyUsageFilter\x12(\n" +
+	"\x10charge_filter_id\x18\x01 \x01(\tR\x0echargeFilterId\x120\n" +
+	"\x14invoice_display_name\x18\x02 \x01(\tR\x12invoiceDisplayName\x12E\n" +
+	"\x06values\x18\x03 \x03(\v2-.tanvo.usage.v1.HourlyUsageFilter.ValuesEntryR\x06values\x12\x14\n" +
+	"\x05units\x18\x04 \x01(\tR\x05units\x12!\n" +
+	"\fevents_count\x18\x05 \x01(\x03R\veventsCount\x12\x14\n" +
+	"\x05other\x18\x06 \x01(\bR\x05other\x1a9\n" +
+	"\vValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xaa\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8f\x01\n" +
+	"\x14HourlyUsageBreakdown\x12(\n" +
+	"\x10charge_filter_id\x18\x01 \x01(\tR\x0echargeFilterId\x12\x14\n" +
+	"\x05units\x18\x02 \x01(\tR\x05units\x12!\n" +
+	"\fevents_count\x18\x03 \x01(\x03R\veventsCount\x12\x14\n" +
+	"\x05other\x18\x04 \x01(\bR\x05other\"\xbf\x01\n" +
+	"\x10HourlyUsagePoint\x12.\n" +
+	"\x04time\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04time\x12\x14\n" +
+	"\x05units\x18\x02 \x01(\tR\x05units\x12!\n" +
+	"\fevents_count\x18\x03 \x01(\x03R\veventsCount\x12B\n" +
+	"\tbreakdown\x18\x04 \x03(\v2$.tanvo.usage.v1.HourlyUsageBreakdownR\tbreakdown\"\xaa\x01\n" +
 	"\n" +
 	"DailyUsage\x129\n" +
 	"\n" +
 	"usage_date\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\tusageDate\x12+\n" +
 	"\x05usage\x18\x02 \x01(\v2\x15.tanvo.usage.v1.UsageR\x05usage\x124\n" +
 	"\n" +
-	"usage_diff\x18\x03 \x01(\v2\x15.tanvo.usage.v1.UsageR\tusageDiff\"\xf0\x03\n" +
+	"usage_diff\x18\x03 \x01(\v2\x15.tanvo.usage.v1.UsageR\tusageDiff\"\xe9\x04\n" +
 	"\x16GetCurrentUsageRequest\x122\n" +
 	"\vcustomer_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\n" +
@@ -2894,13 +3693,17 @@ const file_tanvo_usage_v1_usage_proto_rawDesc = "" +
 	"applyTaxes\x12-\n" +
 	"\x12include_projection\x18\x04 \x01(\bR\x11includeProjection\x12<\n" +
 	"\x14billable_metric_code\x18\x05 \x01(\tB\n" +
-	"\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x12billableMetricCode\x12[\n" +
-	"\tfilter_by\x18\x06 \x03(\v24.tanvo.usage.v1.GetCurrentUsageRequest.FilterByEntryB\b\xbaH\x05\x9a\x01\x02\x10\x14R\bfilterBy\x12>\n" +
-	"\x15group_by_attributions\x18\a \x03(\tB\n" +
-	"\xbaH\a\x92\x01\x04\x10\x05\x18\x01R\x13groupByAttributions\x1a;\n" +
-	"\rFilterByEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"F\n" +
+	"\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x12billableMetricCode\x12%\n" +
+	"\tcharge_id\x18\b \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\bchargeId\x12+\n" +
+	"\vcharge_code\x18\t \x01(\tB\n" +
+	"\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\n" +
+	"chargeCode\x12@\n" +
+	"\x0ffilter_by_group\x18\n" +
+	" \x03(\tB\x18\xbaH\x15\x92\x01\x12\x10d\"\x0er\f\x18\xe8\a2\a^[^:]+:R\rfilterByGroup\x12I\n" +
+	"\x16filter_by_presentation\x18\v \x03(\tB\x13\xbaH\x10\x92\x01\r\x10\x14\x18\x01\"\ar\x05\x10\x01\x18\xff\x01R\x14filterByPresentation\x12#\n" +
+	"\rskip_grouping\x18\f \x01(\bR\fskipGrouping\x12\x1d\n" +
+	"\n" +
+	"full_usage\x18\r \x01(\bR\tfullUsageJ\x04\b\x06\x10\aJ\x04\b\a\x10\bR\tfilter_byR\x15group_by_attributions\"F\n" +
 	"\x17GetCurrentUsageResponse\x12+\n" +
 	"\x05usage\x18\x01 \x01(\v2\x15.tanvo.usage.v1.UsageR\x05usage\"\xc6\x02\n" +
 	"\x14ListPastUsageRequest\x122\n" +
@@ -2918,7 +3721,7 @@ const file_tanvo_usage_v1_usage_proto_rawDesc = "" +
 	"page_token\x18\x06 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\"n\n" +
 	"\x15ListPastUsageResponse\x12-\n" +
 	"\x06usages\x18\x01 \x03(\v2\x15.tanvo.usage.v1.UsageR\x06usages\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x86\x03\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x92\x03\n" +
 	"\x15GetHourlyUsageRequest\x122\n" +
 	"\vcustomer_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\n" +
@@ -2926,12 +3729,17 @@ const file_tanvo_usage_v1_usage_proto_rawDesc = "" +
 	"\x0fsubscription_id\x18\x02 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0esubscriptionId\x12.\n" +
 	"\x04from\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
-	"\x02to\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12<\n" +
-	"\x14billable_metric_code\x18\x05 \x01(\tB\n" +
-	"\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x12billableMetricCode:c\xbaH`\x1a^\n" +
-	"\vrange.order\x12\x16from must be before to\x1a7!has(this.from) || !has(this.to) || this.from < this.to\"X\n" +
-	"\x16GetHourlyUsageResponse\x12>\n" +
-	"\fhourly_usage\x18\x01 \x03(\v2\x1b.tanvo.usage.v1.HourlyUsageR\vhourlyUsage\"\x8f\x02\n" +
+	"\x02to\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12,\n" +
+	"\tcharge_id\x18\x06 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\bchargeId:c\xbaH`\x1a^\n" +
+	"\vrange.order\x12\x16from must be before to\x1a7!has(this.from) || !has(this.to) || this.from < this.toJ\x04\b\x05\x10\x06R\x14billable_metric_code\"\xad\x03\n" +
+	"\x16GetHourlyUsageResponse\x12.\n" +
+	"\x04from\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
+	"\x02to\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\x12\x1a\n" +
+	"\btimezone\x18\x04 \x01(\tR\btimezone\x12L\n" +
+	"\x10aggregation_type\x18\x05 \x01(\x0e2!.tanvo.catalog.v1.AggregationTypeR\x0faggregationType\x12D\n" +
+	"\x10last_ingested_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x0elastIngestedAt\x12;\n" +
+	"\afilters\x18\a \x03(\v2!.tanvo.usage.v1.HourlyUsageFilterR\afilters\x126\n" +
+	"\x05hours\x18\b \x03(\v2 .tanvo.usage.v1.HourlyUsagePointR\x05hoursJ\x04\b\x01\x10\x02R\fhourly_usage\"\x8f\x02\n" +
 	"\x15ListDailyUsageRequest\x122\n" +
 	"\vcustomer_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\n" +
@@ -2958,76 +3766,90 @@ const file_tanvo_usage_v1_usage_proto_rawDesc = "" +
 	"\x12com.tanvo.usage.v1B\n" +
 	"UsageProtoP\x01ZBgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/usage/v1;usagev1\xa2\x02\x03TUX\xaa\x02\x0eTanvo.Usage.V1\xca\x02\x0eTanvo\\Usage\\V1\xe2\x02\x1aTanvo\\Usage\\V1\\GPBMetadata\xea\x02\x10Tanvo::Usage::V1b\beditionsp\xe8\a"
 
-var file_tanvo_usage_v1_usage_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_tanvo_usage_v1_usage_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_tanvo_usage_v1_usage_proto_goTypes = []any{
-	(*GroupedUsage)(nil),            // 0: tanvo.usage.v1.GroupedUsage
-	(*FilterUsage)(nil),             // 1: tanvo.usage.v1.FilterUsage
-	(*ChargeUsage)(nil),             // 2: tanvo.usage.v1.ChargeUsage
-	(*Usage)(nil),                   // 3: tanvo.usage.v1.Usage
-	(*HourlyUsage)(nil),             // 4: tanvo.usage.v1.HourlyUsage
-	(*DailyUsage)(nil),              // 5: tanvo.usage.v1.DailyUsage
-	(*GetCurrentUsageRequest)(nil),  // 6: tanvo.usage.v1.GetCurrentUsageRequest
-	(*GetCurrentUsageResponse)(nil), // 7: tanvo.usage.v1.GetCurrentUsageResponse
-	(*ListPastUsageRequest)(nil),    // 8: tanvo.usage.v1.ListPastUsageRequest
-	(*ListPastUsageResponse)(nil),   // 9: tanvo.usage.v1.ListPastUsageResponse
-	(*GetHourlyUsageRequest)(nil),   // 10: tanvo.usage.v1.GetHourlyUsageRequest
-	(*GetHourlyUsageResponse)(nil),  // 11: tanvo.usage.v1.GetHourlyUsageResponse
-	(*ListDailyUsageRequest)(nil),   // 12: tanvo.usage.v1.ListDailyUsageRequest
-	(*ListDailyUsageResponse)(nil),  // 13: tanvo.usage.v1.ListDailyUsageResponse
-	nil,                             // 14: tanvo.usage.v1.GroupedUsage.GroupedByEntry
-	nil,                             // 15: tanvo.usage.v1.FilterUsage.ValuesEntry
-	nil,                             // 16: tanvo.usage.v1.HourlyUsage.GroupedByEntry
-	nil,                             // 17: tanvo.usage.v1.GetCurrentUsageRequest.FilterByEntry
-	(*v1.Money)(nil),                // 18: tanvo.common.v1.Money
-	(*timestamppb.Timestamp)(nil),   // 19: google.protobuf.Timestamp
-	(*v1.DateTimeRange)(nil),        // 20: tanvo.common.v1.DateTimeRange
+	(*GroupedUsage)(nil),             // 0: tanvo.usage.v1.GroupedUsage
+	(*FilterUsage)(nil),              // 1: tanvo.usage.v1.FilterUsage
+	(*ChargeUsage)(nil),              // 2: tanvo.usage.v1.ChargeUsage
+	(*Usage)(nil),                    // 3: tanvo.usage.v1.Usage
+	(*HourlyUsageFilter)(nil),        // 4: tanvo.usage.v1.HourlyUsageFilter
+	(*HourlyUsageBreakdown)(nil),     // 5: tanvo.usage.v1.HourlyUsageBreakdown
+	(*HourlyUsagePoint)(nil),         // 6: tanvo.usage.v1.HourlyUsagePoint
+	(*DailyUsage)(nil),               // 7: tanvo.usage.v1.DailyUsage
+	(*GetCurrentUsageRequest)(nil),   // 8: tanvo.usage.v1.GetCurrentUsageRequest
+	(*GetCurrentUsageResponse)(nil),  // 9: tanvo.usage.v1.GetCurrentUsageResponse
+	(*ListPastUsageRequest)(nil),     // 10: tanvo.usage.v1.ListPastUsageRequest
+	(*ListPastUsageResponse)(nil),    // 11: tanvo.usage.v1.ListPastUsageResponse
+	(*GetHourlyUsageRequest)(nil),    // 12: tanvo.usage.v1.GetHourlyUsageRequest
+	(*GetHourlyUsageResponse)(nil),   // 13: tanvo.usage.v1.GetHourlyUsageResponse
+	(*ListDailyUsageRequest)(nil),    // 14: tanvo.usage.v1.ListDailyUsageRequest
+	(*ListDailyUsageResponse)(nil),   // 15: tanvo.usage.v1.ListDailyUsageResponse
+	nil,                              // 16: tanvo.usage.v1.GroupedUsage.GroupedByEntry
+	nil,                              // 17: tanvo.usage.v1.FilterUsage.ValuesEntry
+	nil,                              // 18: tanvo.usage.v1.HourlyUsageFilter.ValuesEntry
+	(*v1.Money)(nil),                 // 19: tanvo.common.v1.Money
+	(*v1.PresentationBreakdown)(nil), // 20: tanvo.common.v1.PresentationBreakdown
+	(*timestamppb.Timestamp)(nil),    // 21: google.protobuf.Timestamp
+	(v11.AggregationType)(0),         // 22: tanvo.catalog.v1.AggregationType
+	(*v1.DateTimeRange)(nil),         // 23: tanvo.common.v1.DateTimeRange
 }
 var file_tanvo_usage_v1_usage_proto_depIdxs = []int32{
-	14, // 0: tanvo.usage.v1.GroupedUsage.grouped_by:type_name -> tanvo.usage.v1.GroupedUsage.GroupedByEntry
-	18, // 1: tanvo.usage.v1.GroupedUsage.amount:type_name -> tanvo.common.v1.Money
-	18, // 2: tanvo.usage.v1.GroupedUsage.projected_amount:type_name -> tanvo.common.v1.Money
-	15, // 3: tanvo.usage.v1.FilterUsage.values:type_name -> tanvo.usage.v1.FilterUsage.ValuesEntry
-	18, // 4: tanvo.usage.v1.FilterUsage.amount:type_name -> tanvo.common.v1.Money
-	18, // 5: tanvo.usage.v1.FilterUsage.projected_amount:type_name -> tanvo.common.v1.Money
-	0,  // 6: tanvo.usage.v1.FilterUsage.grouped_usage:type_name -> tanvo.usage.v1.GroupedUsage
-	18, // 7: tanvo.usage.v1.ChargeUsage.amount:type_name -> tanvo.common.v1.Money
-	18, // 8: tanvo.usage.v1.ChargeUsage.projected_amount:type_name -> tanvo.common.v1.Money
-	1,  // 9: tanvo.usage.v1.ChargeUsage.filters:type_name -> tanvo.usage.v1.FilterUsage
-	0,  // 10: tanvo.usage.v1.ChargeUsage.grouped_usage:type_name -> tanvo.usage.v1.GroupedUsage
-	19, // 11: tanvo.usage.v1.Usage.from:type_name -> google.protobuf.Timestamp
-	19, // 12: tanvo.usage.v1.Usage.to:type_name -> google.protobuf.Timestamp
-	19, // 13: tanvo.usage.v1.Usage.issuing_at:type_name -> google.protobuf.Timestamp
-	18, // 14: tanvo.usage.v1.Usage.amount:type_name -> tanvo.common.v1.Money
-	18, // 15: tanvo.usage.v1.Usage.taxes_amount:type_name -> tanvo.common.v1.Money
-	18, // 16: tanvo.usage.v1.Usage.total_amount:type_name -> tanvo.common.v1.Money
-	18, // 17: tanvo.usage.v1.Usage.projected_amount:type_name -> tanvo.common.v1.Money
-	2,  // 18: tanvo.usage.v1.Usage.charges:type_name -> tanvo.usage.v1.ChargeUsage
-	19, // 19: tanvo.usage.v1.HourlyUsage.hour:type_name -> google.protobuf.Timestamp
-	16, // 20: tanvo.usage.v1.HourlyUsage.grouped_by:type_name -> tanvo.usage.v1.HourlyUsage.GroupedByEntry
-	19, // 21: tanvo.usage.v1.DailyUsage.usage_date:type_name -> google.protobuf.Timestamp
-	3,  // 22: tanvo.usage.v1.DailyUsage.usage:type_name -> tanvo.usage.v1.Usage
-	3,  // 23: tanvo.usage.v1.DailyUsage.usage_diff:type_name -> tanvo.usage.v1.Usage
-	17, // 24: tanvo.usage.v1.GetCurrentUsageRequest.filter_by:type_name -> tanvo.usage.v1.GetCurrentUsageRequest.FilterByEntry
-	3,  // 25: tanvo.usage.v1.GetCurrentUsageResponse.usage:type_name -> tanvo.usage.v1.Usage
-	3,  // 26: tanvo.usage.v1.ListPastUsageResponse.usages:type_name -> tanvo.usage.v1.Usage
-	19, // 27: tanvo.usage.v1.GetHourlyUsageRequest.from:type_name -> google.protobuf.Timestamp
-	19, // 28: tanvo.usage.v1.GetHourlyUsageRequest.to:type_name -> google.protobuf.Timestamp
-	4,  // 29: tanvo.usage.v1.GetHourlyUsageResponse.hourly_usage:type_name -> tanvo.usage.v1.HourlyUsage
-	20, // 30: tanvo.usage.v1.ListDailyUsageRequest.range:type_name -> tanvo.common.v1.DateTimeRange
-	5,  // 31: tanvo.usage.v1.ListDailyUsageResponse.daily_usages:type_name -> tanvo.usage.v1.DailyUsage
-	6,  // 32: tanvo.usage.v1.UsageService.GetCurrentUsage:input_type -> tanvo.usage.v1.GetCurrentUsageRequest
-	8,  // 33: tanvo.usage.v1.UsageService.ListPastUsage:input_type -> tanvo.usage.v1.ListPastUsageRequest
-	10, // 34: tanvo.usage.v1.UsageService.GetHourlyUsage:input_type -> tanvo.usage.v1.GetHourlyUsageRequest
-	12, // 35: tanvo.usage.v1.UsageService.ListDailyUsage:input_type -> tanvo.usage.v1.ListDailyUsageRequest
-	7,  // 36: tanvo.usage.v1.UsageService.GetCurrentUsage:output_type -> tanvo.usage.v1.GetCurrentUsageResponse
-	9,  // 37: tanvo.usage.v1.UsageService.ListPastUsage:output_type -> tanvo.usage.v1.ListPastUsageResponse
-	11, // 38: tanvo.usage.v1.UsageService.GetHourlyUsage:output_type -> tanvo.usage.v1.GetHourlyUsageResponse
-	13, // 39: tanvo.usage.v1.UsageService.ListDailyUsage:output_type -> tanvo.usage.v1.ListDailyUsageResponse
-	36, // [36:40] is the sub-list for method output_type
-	32, // [32:36] is the sub-list for method input_type
-	32, // [32:32] is the sub-list for extension type_name
-	32, // [32:32] is the sub-list for extension extendee
-	0,  // [0:32] is the sub-list for field type_name
+	16, // 0: tanvo.usage.v1.GroupedUsage.grouped_by:type_name -> tanvo.usage.v1.GroupedUsage.GroupedByEntry
+	19, // 1: tanvo.usage.v1.GroupedUsage.amount:type_name -> tanvo.common.v1.Money
+	19, // 2: tanvo.usage.v1.GroupedUsage.projected_amount:type_name -> tanvo.common.v1.Money
+	20, // 3: tanvo.usage.v1.GroupedUsage.presentation_breakdowns:type_name -> tanvo.common.v1.PresentationBreakdown
+	20, // 4: tanvo.usage.v1.GroupedUsage.projected_presentation_breakdowns:type_name -> tanvo.common.v1.PresentationBreakdown
+	17, // 5: tanvo.usage.v1.FilterUsage.values:type_name -> tanvo.usage.v1.FilterUsage.ValuesEntry
+	19, // 6: tanvo.usage.v1.FilterUsage.amount:type_name -> tanvo.common.v1.Money
+	19, // 7: tanvo.usage.v1.FilterUsage.projected_amount:type_name -> tanvo.common.v1.Money
+	0,  // 8: tanvo.usage.v1.FilterUsage.grouped_usage:type_name -> tanvo.usage.v1.GroupedUsage
+	20, // 9: tanvo.usage.v1.FilterUsage.presentation_breakdowns:type_name -> tanvo.common.v1.PresentationBreakdown
+	20, // 10: tanvo.usage.v1.FilterUsage.projected_presentation_breakdowns:type_name -> tanvo.common.v1.PresentationBreakdown
+	19, // 11: tanvo.usage.v1.ChargeUsage.amount:type_name -> tanvo.common.v1.Money
+	19, // 12: tanvo.usage.v1.ChargeUsage.projected_amount:type_name -> tanvo.common.v1.Money
+	1,  // 13: tanvo.usage.v1.ChargeUsage.filters:type_name -> tanvo.usage.v1.FilterUsage
+	0,  // 14: tanvo.usage.v1.ChargeUsage.grouped_usage:type_name -> tanvo.usage.v1.GroupedUsage
+	20, // 15: tanvo.usage.v1.ChargeUsage.presentation_breakdowns:type_name -> tanvo.common.v1.PresentationBreakdown
+	20, // 16: tanvo.usage.v1.ChargeUsage.projected_presentation_breakdowns:type_name -> tanvo.common.v1.PresentationBreakdown
+	21, // 17: tanvo.usage.v1.Usage.from:type_name -> google.protobuf.Timestamp
+	21, // 18: tanvo.usage.v1.Usage.to:type_name -> google.protobuf.Timestamp
+	21, // 19: tanvo.usage.v1.Usage.issuing_at:type_name -> google.protobuf.Timestamp
+	19, // 20: tanvo.usage.v1.Usage.amount:type_name -> tanvo.common.v1.Money
+	19, // 21: tanvo.usage.v1.Usage.taxes_amount:type_name -> tanvo.common.v1.Money
+	19, // 22: tanvo.usage.v1.Usage.total_amount:type_name -> tanvo.common.v1.Money
+	19, // 23: tanvo.usage.v1.Usage.projected_amount:type_name -> tanvo.common.v1.Money
+	2,  // 24: tanvo.usage.v1.Usage.charges:type_name -> tanvo.usage.v1.ChargeUsage
+	18, // 25: tanvo.usage.v1.HourlyUsageFilter.values:type_name -> tanvo.usage.v1.HourlyUsageFilter.ValuesEntry
+	21, // 26: tanvo.usage.v1.HourlyUsagePoint.time:type_name -> google.protobuf.Timestamp
+	5,  // 27: tanvo.usage.v1.HourlyUsagePoint.breakdown:type_name -> tanvo.usage.v1.HourlyUsageBreakdown
+	21, // 28: tanvo.usage.v1.DailyUsage.usage_date:type_name -> google.protobuf.Timestamp
+	3,  // 29: tanvo.usage.v1.DailyUsage.usage:type_name -> tanvo.usage.v1.Usage
+	3,  // 30: tanvo.usage.v1.DailyUsage.usage_diff:type_name -> tanvo.usage.v1.Usage
+	3,  // 31: tanvo.usage.v1.GetCurrentUsageResponse.usage:type_name -> tanvo.usage.v1.Usage
+	3,  // 32: tanvo.usage.v1.ListPastUsageResponse.usages:type_name -> tanvo.usage.v1.Usage
+	21, // 33: tanvo.usage.v1.GetHourlyUsageRequest.from:type_name -> google.protobuf.Timestamp
+	21, // 34: tanvo.usage.v1.GetHourlyUsageRequest.to:type_name -> google.protobuf.Timestamp
+	21, // 35: tanvo.usage.v1.GetHourlyUsageResponse.from:type_name -> google.protobuf.Timestamp
+	21, // 36: tanvo.usage.v1.GetHourlyUsageResponse.to:type_name -> google.protobuf.Timestamp
+	22, // 37: tanvo.usage.v1.GetHourlyUsageResponse.aggregation_type:type_name -> tanvo.catalog.v1.AggregationType
+	21, // 38: tanvo.usage.v1.GetHourlyUsageResponse.last_ingested_at:type_name -> google.protobuf.Timestamp
+	4,  // 39: tanvo.usage.v1.GetHourlyUsageResponse.filters:type_name -> tanvo.usage.v1.HourlyUsageFilter
+	6,  // 40: tanvo.usage.v1.GetHourlyUsageResponse.hours:type_name -> tanvo.usage.v1.HourlyUsagePoint
+	23, // 41: tanvo.usage.v1.ListDailyUsageRequest.range:type_name -> tanvo.common.v1.DateTimeRange
+	7,  // 42: tanvo.usage.v1.ListDailyUsageResponse.daily_usages:type_name -> tanvo.usage.v1.DailyUsage
+	8,  // 43: tanvo.usage.v1.UsageService.GetCurrentUsage:input_type -> tanvo.usage.v1.GetCurrentUsageRequest
+	10, // 44: tanvo.usage.v1.UsageService.ListPastUsage:input_type -> tanvo.usage.v1.ListPastUsageRequest
+	12, // 45: tanvo.usage.v1.UsageService.GetHourlyUsage:input_type -> tanvo.usage.v1.GetHourlyUsageRequest
+	14, // 46: tanvo.usage.v1.UsageService.ListDailyUsage:input_type -> tanvo.usage.v1.ListDailyUsageRequest
+	9,  // 47: tanvo.usage.v1.UsageService.GetCurrentUsage:output_type -> tanvo.usage.v1.GetCurrentUsageResponse
+	11, // 48: tanvo.usage.v1.UsageService.ListPastUsage:output_type -> tanvo.usage.v1.ListPastUsageResponse
+	13, // 49: tanvo.usage.v1.UsageService.GetHourlyUsage:output_type -> tanvo.usage.v1.GetHourlyUsageResponse
+	15, // 50: tanvo.usage.v1.UsageService.ListDailyUsage:output_type -> tanvo.usage.v1.ListDailyUsageResponse
+	47, // [47:51] is the sub-list for method output_type
+	43, // [43:47] is the sub-list for method input_type
+	43, // [43:43] is the sub-list for extension type_name
+	43, // [43:43] is the sub-list for extension extendee
+	0,  // [0:43] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_usage_v1_usage_proto_init() }
@@ -3041,7 +3863,7 @@ func file_tanvo_usage_v1_usage_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_usage_v1_usage_proto_rawDesc), len(file_tanvo_usage_v1_usage_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   18,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

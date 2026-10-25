@@ -1,10 +1,20 @@
-# Skipped upstream test cases
+# Unported spec cases
 
-Cases of lago-api (`spec/`) and lago's events-processor (`events-processor/`)
-that libs/ingest does not port, with the reason. Everything else in the
-files listed in the ported `source:` comments is ported.
+Spec cases of the ingestion pipeline (re-enrichment after catalog changes) that are not ported, each with its reason. Paths are relative to the upstream `spec/` directory. Ported cases carry a `source:` reference in the tests; together the two lists cover every case of the files in `testdata/specs.json` (checked by `go run ./tools/speccov`).
 
-## lago-api
+Cases: 23. Ported: 14. Unported: 9.
+
+## Reasons
+
+- **history-repair** (7): Rules repairing enrichments of lago's history: recurring metrics before 2025-11-25 and pricing_group_keys before 2026-03-06 (pre_enrichment_check_service.rb:9-13, 40-59). Tanvo's enriched rows carry no subscription, charge or grouping column (architecture §7.2), so there is nothing of that kind to repair.
+- **current-copy** (1): Both readers (the PostgreSQL raw log and the ClickHouse ledger) return one current copy per deduplication key; covered by the libs/eventstore conformance tests.
+- **in-process** (1): Tanvo re-enriches in process and stores the events with eventstore.Replacer instead of producing raw messages to Kafka (its writer keeps the first copy of a key, so a produced copy would be dropped), so the `reprocess` source_metadata flag of the message does not exist.
+
+## Files skipped whole
+
+The other lago-api (`spec/`) and events-processor (`events-processor/`) cases libs/ingest does not port, by file, with the reason. Everything else in the files cited by the ported `source:` comments is ported.
+
+### lago-api
 
 | Source | Reason |
 | :--- | :--- |
@@ -30,7 +40,7 @@ files listed in the ported `source:` comments is ported.
 | `spec/services/events/validate_creation_service_spec.rb` | Validation of billing estimates (`/events/estimate_fees`), part of libs/billing. |
 | `spec/services/events/common_factory_spec.rb` | Ruby factory of event representations; no Go equivalent. |
 
-## events-processor
+### events-processor
 
 | Source | Reason |
 | :--- | :--- |
@@ -39,3 +49,24 @@ files listed in the ported `source:` comments is ported.
 | `models/event_test.go`, `utils/time_test.go` | Timestamp conversion lives in core/event (`ParseTimestamp`, tested there); its float and string cases are ported at intake (create_service_spec timestamps). |
 | `models/billable_metrics_test.go`, `models/subscriptions_test.go`, `models/stores_test.go`, `cache/**` | SQL models and the LMDB-style cache of the processor; Tanvo reads libs/core repositories through `Catalog`/`Cache` (tested in catalog_test.go). |
 | `utils/env_test.go`, `utils/string_test.go`, `utils/json_test.go`, `utils/result_test.go`, `utils/logger_test.go`, `config/database/database_test.go` | Helpers with no Tanvo counterpart. |
+
+## Cases
+
+### services/events/stores/clickhouse/pre_enrichment_check_service_spec.rb
+
+| Line | Case | Reason |
+| ---: | :--- | :--- |
+| 40 | with recurring BM subscriptions > when subscription started before cutoff and has active subscription with same external_id > "includes the subscription" | history-repair |
+| 51 | with recurring BM subscriptions > when subscription started after cutoff > "excludes the subscription" | history-repair |
+| 64 | with recurring BM subscriptions > when subscription external_id has no active subscription > "excludes the subscription" | history-repair |
+| 90 | with pricing_group_keys subscriptions > when active subscription started before cutoff > "includes the subscription" | history-repair |
+| 103 | with pricing_group_keys subscriptions > when subscription is terminated > "excludes the subscription" | history-repair |
+| 114 | with pricing_group_keys subscriptions > when subscription started after cutoff > "excludes the subscription" | history-repair |
+| 134 | with pricing_group_keys subscriptions > when pricing_group_keys is on charge_filter but not on charge > "includes the subscription" | history-repair |
+
+### services/events/stores/clickhouse/re_enrich_subscription_events_service_spec.rb
+
+| Line | Case | Reason |
+| ---: | :--- | :--- |
+| 144 | with reprocess set to false > "reflects reprocess flag in source_metadata" | in-process |
+| 186 | with duplicated events > "only produces one message for the most recently ingested event" | current-copy |

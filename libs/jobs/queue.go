@@ -61,17 +61,21 @@ const DefaultClockConcurrency = 5
 // DefaultQueues returns the default configuration of every queue.
 func DefaultQueues() map[port.Queue]QueueConfig {
 	return map[port.Queue]QueueConfig{
-		port.QueueBilling:            {Concurrency: 20, Shards: 4, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
-		port.QueuePayments:           {Concurrency: 10, Shards: 4, Rate: 20, Burst: 500, MaxAttempts: DefaultMaxAttempts},
-		port.QueueWebhooks:           {Concurrency: 20, Shards: 4, Rate: 100, Burst: 2000, MaxAttempts: DefaultMaxAttempts},
-		port.QueueDocuments:          {Concurrency: 5, Shards: 2, Rate: 20, Burst: 500, MaxAttempts: DefaultMaxAttempts},
-		port.QueueIntegrations:       {Concurrency: 10, Shards: 4, Rate: 20, Burst: 500, MaxAttempts: DefaultMaxAttempts},
-		port.QueueExports:            {Concurrency: 2, Shards: 2, Rate: 1, Burst: 20, MaxAttempts: DefaultMaxAttempts},
-		port.QueueAlerts:             {Concurrency: 10, Shards: 2, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
-		port.QueueAlertsHighPriority: {Concurrency: 10, Shards: 2, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
-		port.QueueWallets:            {Concurrency: 10, Shards: 2, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
-		port.QueueStreaming:          {Concurrency: 10, Shards: 2, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
-		port.QueueDefault:            {Concurrency: 10, Shards: 1, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
+		port.QueueBilling:  {Concurrency: 20, Shards: 4, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
+		port.QueuePayments: {Concurrency: 10, Shards: 4, Rate: 20, Burst: 500, MaxAttempts: DefaultMaxAttempts},
+		port.QueueWebhooks: {Concurrency: 20, Shards: 4, Rate: 100, Burst: 2000, MaxAttempts: DefaultMaxAttempts},
+		// Workers of their own, so that a backlog of other webhooks does
+		// not delay the alerts (lago weights webhook_worker_high_priority
+		// 3 to 1 over webhook_worker, config/sidekiq/sidekiq_webhook.yml).
+		port.QueueWebhooksHighPriority: {Concurrency: 10, Shards: 2, Rate: 100, Burst: 2000, MaxAttempts: DefaultMaxAttempts},
+		port.QueueDocuments:            {Concurrency: 5, Shards: 2, Rate: 20, Burst: 500, MaxAttempts: DefaultMaxAttempts},
+		port.QueueIntegrations:         {Concurrency: 10, Shards: 4, Rate: 20, Burst: 500, MaxAttempts: DefaultMaxAttempts},
+		port.QueueExports:              {Concurrency: 2, Shards: 2, Rate: 1, Burst: 20, MaxAttempts: DefaultMaxAttempts},
+		port.QueueAlerts:               {Concurrency: 10, Shards: 2, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
+		port.QueueAlertsHighPriority:   {Concurrency: 10, Shards: 2, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
+		port.QueueWallets:              {Concurrency: 10, Shards: 2, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
+		port.QueueStreaming:            {Concurrency: 10, Shards: 2, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
+		port.QueueDefault:              {Concurrency: 10, Shards: 1, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
 	}
 }
 

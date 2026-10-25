@@ -237,7 +237,11 @@ func (s *CreditNotes) RetryCreditNoteTaxReporting(ctx context.Context, req *cred
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
-	return creditnotev1.RetryCreditNoteTaxReportingResponse_builder{CreditNote: creditNote(cn)}.Build(), nil
+	m, err := s.proto(ctx, p.OrganizationID, cn)
+	if err != nil {
+		return nil, err
+	}
+	return creditnotev1.RetryCreditNoteTaxReportingResponse_builder{CreditNote: m}.Build(), nil
 }
 
 // PreviewInvoiceTaxes implements IntegrationService.PreviewInvoiceTaxes

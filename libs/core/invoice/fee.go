@@ -2,8 +2,10 @@ package invoice
 
 import (
 	"encoding/json"
+	"fmt"
 	"maps"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -402,3 +404,46 @@ func sameMilli(a, b time.Time) bool {
 // PreciseAmount returns units × unit price in currency units for the
 // units_and_unit_price mode.
 func (a *AdjustedFee) PreciseAmount() money.Decimal { return a.Units.Mul(a.UnitPreciseAmount) }
+
+// DisplayedPresentationBreakdowns returns the breakdowns of bs restricted
+// to the keys displayed on invoices, the units of the breakdowns sharing
+// the same displayed values summed, in order of first appearance (lago
+// Fee#presentation_breakdowns_displayed_in_invoice). A breakdown carrying
+// none of the keys is left out; no keys give none.
+//
+// source: app/models/fee.rb:224-244
+func DisplayedPresentationBreakdowns(bs []PresentationBreakdown, keys []string) []PresentationBreakdown {
+	if len(keys) == 0 {
+		return nil
+	}
+	var out []PresentationBreakdown
+	index := map[string]int{}
+	for _, b := range bs {
+		by := map[string]*string{}
+		var id strings.Builder
+		for _, k := range keys {
+			v, ok := b.PresentationBy[k]
+			if !ok {
+				continue
+			}
+			if v != nil {
+				c := *v
+				by[k] = &c
+				fmt.Fprintf(&id, "%q=%q;", k, c)
+			} else {
+				by[k] = nil
+				fmt.Fprintf(&id, "%q=nil;", k)
+			}
+		}
+		if len(by) == 0 {
+			continue
+		}
+		if i, ok := index[id.String()]; ok {
+			out[i].Units = out[i].Units.Add(b.Units)
+			continue
+		}
+		index[id.String()] = len(out)
+		out = append(out, PresentationBreakdown{PresentationBy: by, Units: b.Units})
+	}
+	return out
+}

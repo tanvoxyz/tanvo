@@ -161,3 +161,63 @@ func TestProject(t *testing.T) {
 		})
 	}
 }
+
+func TestProjectPresentationBreakdowns(t *testing.T) {
+	t.Parallel()
+	utc := func(s string) time.Time {
+		v, err := time.Parse(time.RFC3339, s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return v
+	}
+	cases := []struct {
+		name      string
+		recurring bool
+		units     string
+		now       time.Time
+		want      string
+	}{
+		// source: spec/services/fees/projection_service_spec.rb:190
+		{name: "scaled", units: "60.33642", now: utc("2025-01-05T12:00:00Z"), want: "120.67"},
+		// source: spec/services/fees/projection_service_spec.rb:204
+		{name: "recurring metric", recurring: true, units: "60", now: utc("2025-01-05T12:00:00Z"), want: "60"},
+		// source: spec/services/fees/projection_service_spec.rb:216
+		{name: "period not started", units: "60", now: utc("2024-12-31T00:00:00Z"), want: ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			dept := "engineering"
+			c := &catalog.Charge{ChargeModel: catalog.ChargeModelStandard, Properties: catalog.MustProperties(`{"amount":"0.1"}`)}
+			f := &invoice.Fee{
+				Units: money.MustParse("10"), Amount: 100, PreciseAmount: money.MustParse("100"),
+				Currency:   money.MustCurrency("EUR"),
+				Properties: invoice.FeeProperties{ChargesFrom: utc("2025-01-01T00:00:00Z"), ChargesTo: utc("2025-01-11T00:00:00Z")},
+				PresentationBreakdowns: []invoice.PresentationBreakdown{
+					{PresentationBy: map[string]*string{"department": &dept}, Units: money.MustParse(tc.units)},
+				},
+			}
+			p, err := project(f, c, &catalog.BillableMetric{Recurring: tc.recurring}, nil, tc.now, time.UTC)
+			if err != nil {
+				t.Fatalf("project() error = %v", err)
+			}
+			if tc.want == "" {
+				if len(p.PresentationBreakdowns) != 0 {
+					t.Errorf("breakdowns = %v, want = none", p.PresentationBreakdowns)
+				}
+				return
+			}
+			if len(p.PresentationBreakdowns) != 1 {
+				t.Fatalf("got = %d breakdowns, want = 1", len(p.PresentationBreakdowns))
+			}
+			b := p.PresentationBreakdowns[0]
+			if v := b.PresentationBy["department"]; v == nil || *v != dept {
+				t.Errorf("presentation_by = %v, want = department=engineering", b.PresentationBy)
+			}
+			if !b.Units.Equal(money.MustParse(tc.want)) {
+				t.Errorf("units = %s, want = %s", b.Units, tc.want)
+			}
+		})
+	}
+}

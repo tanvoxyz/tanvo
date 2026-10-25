@@ -22,8 +22,8 @@ import (
 // when version v of quote q is approved (lago
 // QuoteVersions::ComputeMentionVariablesService,
 // app/services/quote_versions/compute_mention_variables_service.rb:12-143).
-// The values are locale independent; lago formats them at read time
-// (MentionVariablesLocalizer), which is presentation and not ported.
+// The values are locale independent; they are localized when they are
+// shown (documents.MentionLocalizer).
 func (s *Service) mentionVariables(ctx context.Context, r port.Repos, q *quote.Quote, v *quote.Version) (json.RawMessage, error) {
 	org := q.OrganizationID
 	env, err := kernel.LoadCustomerEnv(ctx, r, org, q.CustomerID, core.BillingEntityID{})

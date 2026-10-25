@@ -8,7 +8,7 @@ These lago-api specs, or the cases in them, have no Go test in this package. Pat
 | :--- | :--- |
 | `fees/amounts_service_spec.rb` | Pricing (`pricing.ComputeAmounts`) |
 | `fees/apply_taxes_service_spec.rb`, `fees/apply_provider_taxes_service_spec.rb`, `fees/apply_provider_taxes_to_standalone_fees_service_spec.rb`, `commitments/apply_taxes_service_spec.rb` | Taxes are applied by the caller through kernel's tax resolver |
-| `fees/projection_service_spec.rb` | Projected usage is outside this package's scope |
+| `fees/projection_service_spec.rb` | Projected usage is ported in libs/billing/usage (`projection_internal_test.go`) |
 | `fees/estimate_pay_in_advance_service_spec.rb`, `fees/estimate_instant/**` | Estimates go through the API layer; `InAdvanceEvent.Estimate` is tested |
 | `fees/charge_service_billing_segment_spec.rb`, `fees/charge_service/sources/billing_segment_spec.rb` | Billing segments and contracts are not modelled |
 | `fees/charge_service/options_spec.rb`, `fees/charge_service/metered_item_spec.rb`, `fees/charge_service/sources/charge_spec.rb` | Lago's internal value objects; `Options` and `Scope` replace them |
@@ -32,7 +32,6 @@ These lago-api specs, or the cases in them, have no Go test in this package. Pat
 ### fees/charge_service_spec.rb
 - :73–:143 (validations, billing context, contracts): lago internals and contracts.
 - :227, :339 (persisting, preview): the caller stores fees.
-- :231–:336, :861–:944, :2809–:2840, :2877–:2970, :3876–:3937, :4428–:4573, :4620–:4749 (presentation breakdowns): not modelled.
 - :501, :513, :834, :846 (recurring weighted sum and custom aggregation per group): custom aggregation is not ported (domain §24); the per-group weighted sum is metering's.
 - :546–:860 (pricing group keys combined with filters): grouping and filters are each tested; their combination is metering's `GroupBy`.
 - :1169, :2378 (no pricing unit usage created): asserted inside the ported cases.
@@ -40,7 +39,6 @@ These lago-api specs, or the cases in them, have no Go test in this package. Pat
 - :2842–:2873, :3061–:3092 (aggregation errors): lago stubs; tanvo returns the metering error wrapped.
 - :3004 (adjusted fees loaded once): a lago query count.
 - :3162–:3330 amount_details payload strings: amounts are ported; the detail shapes are pricing's.
-- :3563–:4003 (charge cache middleware): the cache is the caller's `Options.Cache`.
 - :4019 (apply taxes): caller.
 - :4043–:4216, :4240–:4320 except :4230 and :4299 (`filtered_aggregations` skip optimisation): not modelled; every bucket is aggregated.
 - :4321–:4427 (filter_by_group), :4574–:4619 (skip_grouping): current-usage API filters, handled by the usage package.
@@ -52,7 +50,6 @@ These lago-api specs, or the cases in them, have no Go test in this package. Pat
 - :315, :330 (stubbed failures): lago mocks.
 - :469 (charge filter grouped_by): replaced by pricing group keys, ported at :422.
 - :663 (estimate false on an unpersisted event): Go types rule it out.
-- :753–:1003 (presentation breakdowns): not modelled.
 
 ### fees/fixed_charge_service_spec.rb
 - :69–:105 (preview of an unpersisted subscription): previews use stored data in tanvo.

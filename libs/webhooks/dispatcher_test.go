@@ -325,7 +325,7 @@ func TestFanOut(t *testing.T) {
 	}
 	// The fan-out job running twice creates each delivery once.
 	f.inTx(func(ctx context.Context, r port.Repos) error {
-		job, _ := newJob(KindFanOut, f.org, EventArgs{EventID: e.ID}, time.Time{}, "again")
+		job, _ := newJob(KindFanOut, port.QueueWebhooks, f.org, EventArgs{EventID: e.ID}, time.Time{}, "again")
 		return r.Jobs.Enqueue(ctx, job)
 	})
 	f.run()
@@ -435,5 +435,62 @@ func TestDeliveryIDDeterministic(t *testing.T) {
 	}
 	if a.UUID()[0] != ev.UUID()[0] || a.UUID()[5] != ev.UUID()[5] {
 		t.Errorf("timestamp: got = %s, want prefix of %s", a, ev)
+	}
+}
+
+// The fan-out and first attempt of alert.triggered run on the
+// high-priority lane, its retries and every other type on the webhooks
+// queue.
+//
+// source: app/jobs/send_webhook_job.rb:91-99, app/services/webhooks/base_service.rb:29, app/services/webhooks/send_http_service.rb:38
+func TestQueueFor(t *testing.T) {
+	for _, tc := range []struct {
+		typ                  webhook.EventType
+		fanOut, first, retry port.Queue
+	}{
+		{webhook.EventTypeAlertTriggered, port.QueueWebhooksHighPriority, port.QueueWebhooksHighPriority, port.QueueWebhooks},
+		{webhook.EventTypeInvoiceCreated, port.QueueWebhooks, port.QueueWebhooks, port.QueueWebhooks},
+	} {
+		t.Run(string(tc.typ), func(t *testing.T) {
+			f := newFixture(t)
+			srv, _ := server(t, http.StatusInternalServerError, "down")
+			f.endpoint(srv.URL, nil)
+			if err := f.emit.Emit(context.Background(), f.event(tc.typ)); err != nil {
+				t.Fatal(err)
+			}
+			// step runs the single pending job and returns its queue.
+			step := func(name string) port.Queue {
+				t.Helper()
+				jobs := f.store.TakeJobs()
+				if len(jobs) != 1 {
+					t.Fatalf("%s: got = %d jobs, want = 1", name, len(jobs))
+				}
+				j := jobs[0]
+				var err error
+				switch j.Kind {
+				case KindFanOut:
+					var a EventArgs
+					_ = json.Unmarshal(j.Args, &a)
+					err = f.disp.FanOut(context.Background(), j.OrganizationID, a)
+				case KindDeliver:
+					var a DeliveryArgs
+					_ = json.Unmarshal(j.Args, &a)
+					err = f.disp.Deliver(context.Background(), j.OrganizationID, a)
+				}
+				if err != nil {
+					t.Fatalf("%s: %v", name, err)
+				}
+				return j.Queue
+			}
+			for _, c := range []struct {
+				name string
+				want port.Queue
+			}{{"fan-out", tc.fanOut}, {"first attempt", tc.first}, {"retry", tc.retry}} {
+				if got := step(c.name); got != c.want {
+					t.Errorf("%s: got = %s, want = %s", c.name, got, c.want)
+				}
+				f.clock.advance(time.Hour)
+			}
+		})
 	}
 }

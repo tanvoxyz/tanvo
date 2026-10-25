@@ -353,7 +353,11 @@ message QuoteVersion {
   // What is sold: the plans with their overrides, the add-ons, coupons and
   // wallet credits, and the commercial terms.
   google.protobuf.Struct billing_items = 10;
-  // The values of the mentions, frozen at approval.
+  // The values of the mentions, by variable, as display strings in the
+  // customer's document locale: frozen at approval, computed live before.
+  // Dates are in the locale's date format, the term duration and payment
+  // terms are translated and the billing entity address is formatted for
+  // its country, one line per row.
   google.protobuf.Struct mention_variables = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the version was approved.
   google.protobuf.Timestamp approved_at = 12 [(google.api.field_behavior) = OUTPUT_ONLY];

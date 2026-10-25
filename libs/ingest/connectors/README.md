@@ -2,7 +2,7 @@
 
 [Redpanda Connect](https://docs.redpanda.com/redpanda-connect/) configurations that read usage events from an HTTP endpoint, an SQS queue or a Kinesis stream and produce them to the raw events topic of Tanvo's Kafka ingestion (`events.raw`, [architecture §7](../../../docs/architecture.md)). The server's intake consumer validates and enriches them as it does the events of the API; an invalid one goes to the dead letter topic. The organization must ingest through Kafka.
 
-Build the image with `docker build -t tanvo-connect libs/ingest/connectors` and run one configuration with `docker run --env-file … tanvo-connect run /http.yml` (or `sqs.yml`, `kinesis.yml`). `rpk connect test sqs.yml` runs the mapping tests.
+Build the image with `docker build -t tanvo-connect libs/ingest/connectors` and run one configuration with `docker run --env-file … tanvo-connect run /http.yml` (or `sqs.yml`, `kinesis.yml`). Each configuration carries mapping tests: `rpk connect lint` and `rpk connect test` run them, as does `TestConnectorsRedpandaConnect` (libs/ingest) in the image above.
 
 ## Events
 
@@ -34,7 +34,7 @@ HTTP events carry their `organization_id` under `event`; SQS and Kinesis take it
 | `KAFKA_BATCH_COUNT`, `KAFKA_BATCH_BYTE_SIZE`, `KAFKA_BATCH_PERIOD` | HTTP, Kinesis | Batching, default 100 messages, 1 MB, 1s | no |
 | `ORGANIZATION_ID` | SQS, Kinesis | Organization of the events | yes |
 | `SQS_ENDPOINT`, `SQS_REGION`, `SQS_KEY_ID`, `SQS_KEY_SECRET` | SQS | Queue and AWS credentials | yes |
-| `SQS_DLQ_ENDPOINT` | SQS | Queue receiving the events that fail to map | no |
+| `SQS_DLQ_ENDPOINT` | SQS | Queue receiving the events that fail to map; without it they go to Kafka, where the intake consumer dead-letters them | no |
 | `KINESIS_STREAM`, `AWS_REGION` | Kinesis | Stream and region | yes |
 | `AWS_ROLE`, `AWS_ROLE_EXTERNAL_ID` | Kinesis | IAM role assumed and its external ID | yes |
 | `DYNAMODB_TABLE` | Kinesis | Checkpoint table | yes |

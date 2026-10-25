@@ -39,7 +39,8 @@ func (a *args) time(t time.Time) string {
 // columns:
 //
 //	organization_id, subscription_id, code, tx, ts, seq, props, amount,
-//	ingested_at, value (Decimal, 0 unless the property is a number),
+//	ingested_at, enriched_at, value (Decimal, 0 unless the property is a
+//	number),
 //	isnum, prop (the property, "" when missing), op (the unique-count
 //	operation), day (the local day number)
 type selection struct {
@@ -116,7 +117,7 @@ func newSelection(q metering.Query) (*selection, error) {
 
 	s.sql = fmt.Sprintf(`sel AS (
 	SELECT organization_id, subscription_id, code, transaction_id AS tx, timestamp AS ts, sequence AS seq,
-		properties AS props, precise_total_amount_cents AS amount, ingested_at,
+		properties AS props, precise_total_amount_cents AS amount, ingested_at, enriched_at,
 		%s AS value, %s AS isnum, %s AS prop,
 		if(mapContains(properties, 'operation_type'), properties['operation_type'], 'add') AS op,
 		%s AS day

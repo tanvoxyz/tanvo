@@ -77,7 +77,7 @@ func (s *Store) observe(seq uint64) {
 	s.mu.Unlock()
 }
 
-const enrichedInsert = `INSERT INTO events_enriched (organization_id, code, subscription_id, timestamp, transaction_id, properties, precise_total_amount_cents, ingested_at, sequence, value)`
+const enrichedInsert = `INSERT INTO events_enriched (organization_id, code, subscription_id, timestamp, transaction_id, properties, precise_total_amount_cents, ingested_at, sequence, value, attribution_labels)`
 
 const rawInsert = `INSERT INTO events_raw (organization_id, subscription_id, transaction_id, code, timestamp, properties, precise_total_amount_cents, ingested_at, sequence, replaced, user_agent, ip_address)`
 
@@ -104,6 +104,14 @@ func (s *Store) rows(in []ingest.Row) []row {
 	return out
 }
 
+// labelsOf returns the attribution labels to store: an empty map for none.
+func labelsOf(m map[string]string) map[string]string {
+	if m == nil {
+		return map[string]string{}
+	}
+	return m
+}
+
 // insert writes the rows to events_enriched, then to events_raw, marked
 // replaced or not.
 func (s *Store) insert(ctx context.Context, rows []row, replaced bool) error {
@@ -116,7 +124,7 @@ func (s *Store) insert(ctx context.Context, rows []row, replaced bool) error {
 		return err
 	}
 	for _, r := range rows {
-		if err := b.Append(r.OrganizationID, r.Code, r.SubscriptionID, r.Timestamp, r.TransactionID, r.props, r.amount, r.IngestedAt, r.sequence, r.Value); err != nil {
+		if err := b.Append(r.OrganizationID, r.Code, r.SubscriptionID, r.Timestamp, r.TransactionID, r.props, r.amount, r.IngestedAt, r.sequence, r.Value, labelsOf(r.AttributionLabels)); err != nil {
 			_ = b.Abort()
 			return err
 		}

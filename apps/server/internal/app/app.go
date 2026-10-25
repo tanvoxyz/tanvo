@@ -18,6 +18,7 @@ import (
 	"github.com/tanvoxyz/tanvo/apps/server/internal/telemetry"
 	"github.com/tanvoxyz/tanvo/libs/billing"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/jobs"
 	"github.com/tanvoxyz/tanvo/libs/store"
 )
@@ -40,6 +41,14 @@ type Options struct {
 	// and the instant of the billing clock jobs instead of their tick. It
 	// is a test hook: production never sets it.
 	Clock core.Clock
+	// StripeBaseURL, when set, is the Stripe API base URL instead of
+	// Stripe's (a fake Stripe server). It is a test hook: production never
+	// sets it.
+	StripeBaseURL string
+	// ManualClockJobs schedules no periodic job: the clock jobs run only
+	// when triggered ([jobs.Client.Trigger]). It is a test hook for
+	// running them at a test clock's instants.
+	ManualClockJobs bool
 }
 
 // App is a wired server process.
@@ -55,6 +64,7 @@ type App struct {
 	jobs      *jobs.Client
 	billing   *billing.Engine
 	stores    *EventStores
+	logs      auditlog.Archive
 	producer  *kgo.Client
 	consumers *consumers
 	api       *api
@@ -114,6 +124,8 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	if cfg.DatabaseRowLevelSecurity {
 		sopts = append(sopts, store.WithRowLevelSecurity())
 	}
+	a.logs = logArchive(a.ch)
+	sopts = append(sopts, logArchiveOptions(a.logs)...)
 	a.store = store.New(a.pool, sopts...)
 	modeOf, err := ingestModes(cfg)
 	if err != nil {
@@ -139,7 +151,7 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		return nil, err
 	}
 	triggers := newSyncTriggers(a.store)
-	pay, err := newPayments(cfg, a.store, clock, a.log, tp, mp, triggers)
+	pay, err := newPayments(cfg, a.store, clock, a.log, tp, mp, triggers, o.StripeBaseURL)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +189,7 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	if err := (paymentJobs{w: pay, billing: bj, composer: composer, sender: sender, docs: a.docs, log: a.log}).register(reg); err != nil {
 		return nil, err
 	}
-	if a.jobs, err = newJobs(a.pool, reg, cfg, o.Roles, a.log, tp, mp); err != nil {
+	if a.jobs, err = newJobs(a.pool, reg, cfg, o.Roles, o.ManualClockJobs, a.log, tp, mp); err != nil {
 		return nil, err
 	}
 
@@ -223,7 +235,7 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 			return nil, err
 		}
 		if a.api, err = newAPI(mux, APIOptions{
-			Tx: a.store, Ingest: svc, EventReader: reader, Billing: a.billing, MaxBytes: cfg.HTTPMaxBodyBytes, TrustedProxies: cfg.TrustedProxies,
+			Tx: a.store, Ingest: svc, EventReader: reader, AttributedUsage: a.stores, Billing: a.billing, MaxBytes: cfg.HTTPMaxBodyBytes, TrustedProxies: cfg.TrustedProxies,
 			Log: a.log, TracerProvider: tp, MeterProvider: mp, Clock: clock, AppURL: cfg.AppURL,
 			DisableSignup: cfg.DisableSignup, AnalyticsCacheTTL: cfg.AnalyticsCacheTTL, GoogleClientID: cfg.GoogleAuthClientID, GoogleClientSecret: cfg.GoogleAuthClientSecret,
 			WebhooksAllowPrivate: cfg.WebhooksAllowPrivate, OIDCAllowPrivate: cfg.OIDCAllowPrivate, SecretKey: secretKey,
@@ -284,6 +296,9 @@ func (a *App) Run(ctx context.Context) error {
 		if err := a.jobs.Start(runCtx); err != nil {
 			return err
 		}
+	}
+	if a.roles.Has(config.RoleWorker) && a.logs != nil {
+		g.Go(func() error { return runLogArchive(gctx, a.store, a.logs, a.log) })
 	}
 	g.Go(func() error {
 		if err := a.server.Serve(a.listener); err != nil && !errors.Is(err, http.ErrServerClosed) {

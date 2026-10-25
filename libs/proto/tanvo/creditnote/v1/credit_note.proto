@@ -258,8 +258,10 @@ message CreditNoteItem {
     (google.api.field_behavior) = REQUIRED,
     (buf.validate.field).string.(tanvo.common.v1.nonnegative_decimal) = true
   ];
-  // The unrounded amount.
+  // The unrounded amount, in the currency's major unit like `amount`.
   string precise_amount = 3 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The item's ID.
+  string id = 4 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // CreditNoteAppliedTax is a tax of a credit note.
@@ -276,6 +278,10 @@ message CreditNoteAppliedTax {
   tanvo.common.v1.Money base_amount = 5;
   // The tax amount.
   tanvo.common.v1.Money amount = 6;
+  // The applied tax's ID.
+  string id = 7;
+  // The tax description.
+  string tax_description = 8;
 }
 
 // CreditNote is an amount credited, refunded or offset against an invoice.
@@ -360,6 +366,36 @@ message CreditNote {
   google.protobuf.Timestamp updated_at = 28 [(google.api.field_behavior) = OUTPUT_ONLY];
   // The errors recorded on the credit note.
   repeated CreditNoteError errors = 29 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The sequence of the credit note on its invoice, the n of its number.
+  int64 sequential_id = 30 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The invoice's billing entity.
+  string billing_entity_id = 31 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The invoice's number.
+  string invoice_number = 32 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The invoice's purchase order number.
+  string purchase_order_number = 33 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Marks a credit note on a self-billed invoice.
+  bool self_billed = 34 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The unrounded taxes, in the currency's major unit.
+  string precise_taxes_amount = 35 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The unrounded total, in the currency's major unit: the items less the
+  // coupons, with the taxes.
+  string precise_total_amount = 36 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The unrounded share of the invoice's coupons removed, in the
+  // currency's major unit.
+  string precise_coupons_adjustment_amount = 37 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Marks a credit note with a balance left to void.
+  bool voidable = 38 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Marks a finalized credit note that the customer's accounting
+  // integrations sync and that is not synced yet (RetryCreditNoteSync).
+  bool integration_syncable = 39 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // Marks a credit note whose report to the tax provider failed
+  // (RetryCreditNoteTaxReporting).
+  bool tax_provider_syncable = 40 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The credit note's ID at the customer's default accounting integration.
+  string external_integration_id = 41 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The credit note's ID at the customer's default tax provider.
+  string tax_provider_id = 42 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
 // CreateCreditNoteRequest is the request of CreditNoteService.CreateCreditNote.
@@ -441,8 +477,11 @@ message ListCreditNotesRequest {
   // The next_page_token of the previous page.
   string page_token = 3 [(buf.validate.field).string.max_len = 1024];
   // An AIP-160 filter over `invoice_id`, `credit_status`, `refund_status`,
-  // `reason`, `currency`, `billing_entity_id`, `issuing_date`, `amount`,
-  // `self_billed` and `metadata.<key>`.
+  // `reason`, `currency`, `billing_entity_id`, `issuing_date`, `amount`
+  // (the total in minor units), `self_billed`, `invoice_number`,
+  // `purchase_order_number` and `type` (`credit`, `refund` or `offset`).
+  // `billing_entity_id` takes an ID or `"code:<code>"`; an unknown billing
+  // entity, or an `invoice_id` that is not an invoice, is NOT_FOUND.
   string filter = 4 [(buf.validate.field).string.max_len = 2048];
   // A search over the number, invoice number and customer.
   string search = 5 [(buf.validate.field).string.max_len = 255];

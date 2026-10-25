@@ -94,3 +94,52 @@ func (p *Properties) UnmarshalJSON(b []byte) error {
 	*p = v
 	return nil
 }
+
+// presentationGroupKeys is the presentation_group_keys of properties.
+type presentationGroupKeys struct {
+	Keys []struct {
+		Value   *string `json:"value"`
+		Options *struct {
+			DisplayInInvoice *bool `json:"display_in_invoice"`
+		} `json:"options"`
+	} `json:"presentation_group_keys"`
+}
+
+// presentationKeys returns the values of the presentation group keys,
+// those displayed on invoices when displayed is set; properties that do
+// not decode have none.
+func (p Properties) presentationKeys(displayed bool) []string {
+	if p.IsZero() {
+		return nil
+	}
+	var g presentationGroupKeys
+	if err := json.Unmarshal(p.raw, &g); err != nil {
+		return nil
+	}
+	var out []string
+	for _, k := range g.Keys {
+		if k.Value == nil {
+			continue
+		}
+		if displayed && (k.Options == nil || k.Options.DisplayInInvoice == nil || !*k.Options.DisplayInInvoice) {
+			continue
+		}
+		out = append(out, *k.Value)
+	}
+	return out
+}
+
+// PresentationGroupKeys returns the event properties the units are broken
+// down by for presentation (lago Charge#presentation_group_keys_values).
+//
+// source: app/models/charge.rb:75-79
+func (p Properties) PresentationGroupKeys() []string { return p.presentationKeys(false) }
+
+// PresentationGroupKeysDisplayedInInvoice returns the presentation group
+// keys whose breakdown is shown on invoices and in the fee payloads (lago
+// Charge#presentation_group_keys_values_displayed_in_invoice).
+//
+// source: app/models/charge.rb:81-88
+func (p Properties) PresentationGroupKeysDisplayedInInvoice() []string {
+	return p.presentationKeys(true)
+}

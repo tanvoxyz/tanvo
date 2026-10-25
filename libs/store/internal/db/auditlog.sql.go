@@ -13,6 +13,122 @@ import (
 	"github.com/google/uuid"
 )
 
+const claimActivityLogs = `-- name: ClaimActivityLogs :many
+SELECT organization_id, id, user_id, api_key_id, activity_type, activity_source, activity_object, activity_object_changes, resource_id, resource_type, external_customer_id, external_subscription_id, logged_at, created_at FROM activity_logs ORDER BY created_at LIMIT $1 FOR UPDATE SKIP LOCKED
+`
+
+func (q *Queries) ClaimActivityLogs(ctx context.Context, lim int32) ([]ActivityLog, error) {
+	rows, err := q.db.Query(ctx, claimActivityLogs, lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ActivityLog{}
+	for rows.Next() {
+		var i ActivityLog
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.UserID,
+			&i.ApiKeyID,
+			&i.ActivityType,
+			&i.ActivitySource,
+			&i.ActivityObject,
+			&i.ActivityObjectChanges,
+			&i.ResourceID,
+			&i.ResourceType,
+			&i.ExternalCustomerID,
+			&i.ExternalSubscriptionID,
+			&i.LoggedAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const claimApiLogs = `-- name: ClaimApiLogs :many
+SELECT organization_id, id, api_key_id, client, http_method, http_status, request_origin, request_path, request_body, request_response, api_version, logged_at, created_at FROM api_logs ORDER BY created_at LIMIT $1 FOR UPDATE SKIP LOCKED
+`
+
+func (q *Queries) ClaimApiLogs(ctx context.Context, lim int32) ([]ApiLog, error) {
+	rows, err := q.db.Query(ctx, claimApiLogs, lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ApiLog{}
+	for rows.Next() {
+		var i ApiLog
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.ApiKeyID,
+			&i.Client,
+			&i.HttpMethod,
+			&i.HttpStatus,
+			&i.RequestOrigin,
+			&i.RequestPath,
+			&i.RequestBody,
+			&i.RequestResponse,
+			&i.ApiVersion,
+			&i.LoggedAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const claimSecurityLogs = `-- name: ClaimSecurityLogs :many
+
+SELECT organization_id, id, user_id, api_key_id, log_type, log_event, resources, device_info, logged_at, created_at FROM security_logs ORDER BY created_at LIMIT $1 FOR UPDATE SKIP LOCKED
+`
+
+// Moving the logs to a log archive (auditlog.Archive): the oldest
+// entries of every organization not claimed by another mover, then their
+// deletion once archived, by "organization_id/id" keys.
+func (q *Queries) ClaimSecurityLogs(ctx context.Context, lim int32) ([]SecurityLog, error) {
+	rows, err := q.db.Query(ctx, claimSecurityLogs, lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SecurityLog{}
+	for rows.Next() {
+		var i SecurityLog
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.UserID,
+			&i.ApiKeyID,
+			&i.LogType,
+			&i.LogEvent,
+			&i.Resources,
+			&i.DeviceInfo,
+			&i.LoggedAt,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const createActivityLog = `-- name: CreateActivityLog :exec
 INSERT INTO activity_logs (organization_id, id, user_id, api_key_id, activity_type, activity_source, activity_object, activity_object_changes, resource_id, resource_type, external_customer_id, external_subscription_id, logged_at, created_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
@@ -130,6 +246,36 @@ func (q *Queries) CreateSecurityLog(ctx context.Context, arg CreateSecurityLogPa
 		arg.LoggedAt,
 		arg.CreatedAt,
 	)
+	return err
+}
+
+const deleteActivityLogs = `-- name: DeleteActivityLogs :exec
+DELETE FROM activity_logs
+WHERE organization_id::text || '/' || id::text = ANY($1::text[])
+`
+
+func (q *Queries) DeleteActivityLogs(ctx context.Context, keys []string) error {
+	_, err := q.db.Exec(ctx, deleteActivityLogs, keys)
+	return err
+}
+
+const deleteApiLogs = `-- name: DeleteApiLogs :exec
+DELETE FROM api_logs
+WHERE organization_id::text || '/' || id::text = ANY($1::text[])
+`
+
+func (q *Queries) DeleteApiLogs(ctx context.Context, keys []string) error {
+	_, err := q.db.Exec(ctx, deleteApiLogs, keys)
+	return err
+}
+
+const deleteSecurityLogs = `-- name: DeleteSecurityLogs :exec
+DELETE FROM security_logs
+WHERE organization_id::text || '/' || id::text = ANY($1::text[])
+`
+
+func (q *Queries) DeleteSecurityLogs(ctx context.Context, keys []string) error {
+	_, err := q.db.Exec(ctx, deleteSecurityLogs, keys)
 	return err
 }
 

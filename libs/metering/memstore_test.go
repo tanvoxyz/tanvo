@@ -26,3 +26,9 @@ func TestMemoryBucketSpecs(t *testing.T) {
 		return s, s.Buckets(defs...)
 	})
 }
+
+func TestMemoryAttributedUsage(t *testing.T) {
+	storetest.RunAttributed(t, func(_ *testing.T, events []metering.Event) metering.AttributedUsageReader {
+		return metering.NewMemoryStore(events)
+	})
+}

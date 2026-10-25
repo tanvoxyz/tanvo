@@ -61,6 +61,11 @@ type Event struct {
 	// aggregations ignore it; the event stores that keep enriched events
 	// store it there.
 	Value *string `json:"value,omitempty"`
+	// AttributionLabels are the event's attribution values, by attribution
+	// type code, that attributed usage groups by ([AttributedQuery]). The
+	// aggregations ignore them; the event stores answering attributed usage
+	// store them. Nothing gives events labels yet (parity §1.42).
+	AttributionLabels map[string]string `json:"attribution_labels,omitempty"`
 }
 
 // EventMetadata describes the API request an event arrived with: the

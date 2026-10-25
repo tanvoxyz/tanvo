@@ -374,7 +374,8 @@ type Event_builder struct {
 	// The event properties: the aggregated field, filter values and
 	// expression inputs.
 	Properties *structpb.Struct
-	// The amount of a dynamic charge, as a decimal.
+	// The amount of a dynamic charge in the currency's minor unit (cents),
+	// as a decimal string that may carry fractions of a cent ("1050.5").
 	PreciseTotalAmount *string
 	// The code of the wallet that pays the event's usage on charges that
 	// accept a target wallet: the `target_wallet_code` property, which is
@@ -709,7 +710,8 @@ type EnrichedEvent_builder struct {
 	Value *string
 	// The value as a decimal, 0 when it is not a number; unset with no value.
 	DecimalValue *string
-	// The decimal value of the dynamic charge amount.
+	// The amount of a dynamic charge in the currency's minor unit (cents),
+	// as a decimal string.
 	PreciseTotalAmount *string
 	// The event properties, with the expression's result under the metric's
 	// field name.

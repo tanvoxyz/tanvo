@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand/v2"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -71,7 +72,7 @@ func (m *Emitter) Emit(ctx context.Context, e webhook.Event) error {
 		if err := r.DomainEvents.Record(ctx, &e); err != nil {
 			return fmt.Errorf("emit %s: %w", e.Type, err)
 		}
-		job, err := newJob(KindFanOut, e.OrganizationID, EventArgs{EventID: e.ID}, time.Time{}, e.ID.String())
+		job, err := newJob(KindFanOut, QueueFor(e.Type, 0), e.OrganizationID, EventArgs{EventID: e.ID}, time.Time{}, e.ID.String())
 		if err != nil {
 			return fmt.Errorf("emit %s: %w", e.Type, err)
 		}
@@ -79,12 +80,31 @@ func (m *Emitter) Emit(ctx context.Context, e webhook.Event) error {
 	})
 }
 
-func newJob(kind string, org core.OrganizationID, args any, runAt time.Time, key string) (port.Job, error) {
+// highPriority are the event types whose fan-out and first attempt run on
+// [port.QueueWebhooksHighPriority].
+//
+// source: app/jobs/send_webhook_job.rb:91
+var highPriority = []webhook.EventType{webhook.EventTypeAlertTriggered}
+
+// QueueFor returns the queue of the job of an event of type t whose
+// delivery made attempts attempts: the fan-out (0) and first attempt of a
+// high-priority type run on [port.QueueWebhooksHighPriority], everything
+// else, retries included, on [port.QueueWebhooks].
+//
+// source: app/jobs/send_webhook_job.rb:91-99, app/services/webhooks/base_service.rb:29, app/jobs/send_http_webhook_job.rb:4
+func QueueFor(t webhook.EventType, attempts int) port.Queue {
+	if attempts == 0 && slices.Contains(highPriority, t) {
+		return port.QueueWebhooksHighPriority
+	}
+	return port.QueueWebhooks
+}
+
+func newJob(kind string, queue port.Queue, org core.OrganizationID, args any, runAt time.Time, key string) (port.Job, error) {
 	b, err := json.Marshal(args)
 	if err != nil {
 		return port.Job{}, err
 	}
-	return port.Job{Kind: kind, Queue: port.QueueWebhooks, OrganizationID: org, Args: b, RunAt: runAt, UniqueKey: key}, nil
+	return port.Job{Kind: kind, Queue: queue, OrganizationID: org, Args: b, RunAt: runAt, UniqueKey: key}, nil
 }
 
 // deliverJob is the job of the next attempt of d. Its unique key includes
@@ -96,7 +116,7 @@ func deliverJob(d *webhook.Delivery) (port.Job, error) {
 	if d.NextAttemptAt != nil {
 		runAt = *d.NextAttemptAt
 	}
-	return newJob(KindDeliver, d.OrganizationID, DeliveryArgs{DeliveryID: d.ID}, runAt, fmt.Sprintf("%s/%d", d.ID, d.Attempts))
+	return newJob(KindDeliver, QueueFor(d.EventType, d.Attempts), d.OrganizationID, DeliveryArgs{DeliveryID: d.ID}, runAt, fmt.Sprintf("%s/%d", d.ID, d.Attempts))
 }
 
 // Envelope is the JSON body of every delivery.
@@ -334,7 +354,7 @@ func (p *Dispatcher) DispatchPurges(ctx context.Context, now time.Time) (int, er
 		args := PurgeArgs{Cutoff: now.UTC().Add(-webhook.Retention)}
 		jobs := make([]port.Job, 0, len(orgs))
 		for _, org := range orgs {
-			job, err := newJob(KindPurge, org, args, time.Time{}, KindPurge)
+			job, err := newJob(KindPurge, port.QueueWebhooks, org, args, time.Time{}, KindPurge)
 			if err != nil {
 				return err
 			}

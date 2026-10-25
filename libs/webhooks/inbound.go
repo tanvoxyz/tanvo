@@ -121,7 +121,7 @@ func (in *Inbound) Receive(ctx context.Context, rcv Received) (*payment.InboundW
 }
 
 func enqueueInbound(ctx context.Context, r port.Repos, w *payment.InboundWebhook) error {
-	job, err := newJob(KindProcessInbound, w.OrganizationID, InboundArgs{WebhookID: w.ID}, nextRun(w), fmt.Sprintf("%s/%d", w.ID, w.Attempts))
+	job, err := newJob(KindProcessInbound, port.QueueWebhooks, w.OrganizationID, InboundArgs{WebhookID: w.ID}, nextRun(w), fmt.Sprintf("%s/%d", w.ID, w.Attempts))
 	if err != nil {
 		return err
 	}

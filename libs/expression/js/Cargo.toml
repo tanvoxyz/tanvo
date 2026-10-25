@@ -1,0 +1,29 @@
+[workspace]
+
+[package]
+name = "tanvo-expression-js"
+description = "The browser build of tanvo-expression: billable metric expressions for previews in the web UI, through wasm-bindgen (lago-expression's expression-js)"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.99"
+license = "AGPL-3.0-or-later"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+tanvo-expression = { path = ".." }
+# The version must match the wasm-bindgen-cli pinned in mise.toml.
+wasm-bindgen = "=0.2.129"
+js-sys = "0.3"
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }

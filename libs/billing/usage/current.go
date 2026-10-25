@@ -54,9 +54,13 @@ type Options struct {
 	// FullUsage computes the usage since the subscription started instead
 	// of since the start of the current period (lago UsageFilters
 	// full_usage, app/services/invoices/customer_usage_service.rb:196-197);
-	// it needs ChargeIDs and charges that are not prorated, or fails with
-	// [ErrFullUsageNotAllowed].
+	// it needs ChargeIDs or a group filter, and charges that are not
+	// prorated, or fails with [ErrFullUsageNotAllowed].
 	FullUsage bool
+	// Filters narrow the aggregation: grouping skipped, a group filter
+	// and a presentation filter (lago UsageFilters skip_grouping,
+	// filter_by_group and filter_by_presentation).
+	Filters fees.UsageFilters
 	// Cache returns the cached aggregations of a scope; nil reads the
 	// stored ones (domain §10.3).
 	Cache func(sc event.CachedAggregationScope) metering.CachedAggregations
@@ -66,6 +70,10 @@ type Options struct {
 	// (inclusive) (lago max_timestamp,
 	// app/services/invoices/customer_usage_service.rb:141-148).
 	MaxTimestamp time.Time
+	// SkipCache computes every charge, ignoring and not filling the
+	// current-usage cache of the engine (lago with_cache: false). The
+	// cache is never used with MaxTimestamp.
+	SkipCache bool
 	// AnyStatus computes the usage of a subscription that is not active,
 	// as lago does when given the subscription itself
 	// (app/services/invoices/customer_usage_service.rb:54 checks presence
@@ -164,9 +172,10 @@ func (s *Service) EnvUsage(ctx context.Context, r port.Repos, env *kernel.Subscr
 		return nil, err
 	}
 	if opts.FullUsage {
-		// lago app/services/invoices/customer_usage_service.rb:366-375.
-		if opts.ChargeIDs == nil || slices.ContainsFunc(charges, func(c *catalog.Charge) bool {
-			return c.Prorated && slices.Contains(opts.ChargeIDs, c.ID)
+		// lago app/services/invoices/customer_usage_service.rb:366-375:
+		// a charge or group filter, and no prorated charge computed.
+		if opts.ChargeIDs == nil && len(opts.Filters.Group) == 0 || slices.ContainsFunc(charges, func(c *catalog.Charge) bool {
+			return c.Prorated && (opts.ChargeIDs == nil || slices.Contains(opts.ChargeIDs, c.ID))
 		}) {
 			return nil, fmt.Errorf("usage of subscription %s: %w", sub.ID, ErrFullUsageNotAllowed)
 		}
@@ -184,7 +193,15 @@ func (s *Service) EnvUsage(ctx context.Context, r port.Repos, env *kernel.Subscr
 	if cache == nil {
 		cache = kernel.AggregationCache(r, env.OrganizationID())
 	}
-	fo := fees.Options{CurrentUsage: true, SkipZeroUnitsFilters: opts.SkipZeroUnitsFilters, SkipAdjustedFees: true, Cache: cache, MaxTimestamp: opts.MaxTimestamp}
+	fo := fees.Options{
+		CurrentUsage: true, SkipZeroUnitsFilters: opts.SkipZeroUnitsFilters, SkipAdjustedFees: true, Cache: cache,
+		MaxTimestamp: opts.MaxTimestamp, FullUsage: opts.FullUsage, UsageFilters: opts.Filters,
+	}
+	if s.d.UsageCache != nil && !opts.SkipCache && opts.MaxTimestamp.IsZero() && cacheable(opts.Filters) {
+		// lago charge_cache_enabled?, customer_usage_service.rb:346-364;
+		// full usage has no premium gate.
+		fo.UsageCache = s.d.UsageCache
+	}
 	type metricFee struct {
 		name string
 		fee  *invoice.Fee
@@ -252,4 +269,16 @@ func (s *Service) EnvUsage(ctx context.Context, r port.Repos, env *kernel.Subscr
 		}
 	}
 	return u, nil
+}
+
+// cacheable reports whether the fees of a usage narrowed by f can go
+// through the charge usage cache, whose entries are keyed by charge and
+// filter only: a group filter computes a subset of the fees (lago
+// charge_cache_enabled?, customer_usage_service.rb:353-356), and grouping
+// skipped or a presentation filter shape them. lago bypasses the cache
+// for the last two only with full usage (full_usage_cache_enabled?,
+// :360-364), so that a period usage asked with them stores its fees for
+// the next unfiltered read (§4).
+func cacheable(f fees.UsageFilters) bool {
+	return len(f.Group) == 0 && !f.SkipGrouping && f.Presentation == nil
 }

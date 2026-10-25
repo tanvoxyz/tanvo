@@ -80,3 +80,28 @@ WHERE organization_id = @organization_id
        OR (logged_at = sqlc.narg(after_at)::timestamptz AND id > sqlc.narg(after)))
 ORDER BY logged_at DESC, id
 LIMIT @lim;
+
+-- Moving the logs to a log archive (auditlog.Archive): the oldest
+-- entries of every organization not claimed by another mover, then their
+-- deletion once archived, by "organization_id/id" keys.
+
+-- name: ClaimSecurityLogs :many
+SELECT * FROM security_logs ORDER BY created_at LIMIT @lim FOR UPDATE SKIP LOCKED;
+
+-- name: DeleteSecurityLogs :exec
+DELETE FROM security_logs
+WHERE organization_id::text || '/' || id::text = ANY(@keys::text[]);
+
+-- name: ClaimApiLogs :many
+SELECT * FROM api_logs ORDER BY created_at LIMIT @lim FOR UPDATE SKIP LOCKED;
+
+-- name: DeleteApiLogs :exec
+DELETE FROM api_logs
+WHERE organization_id::text || '/' || id::text = ANY(@keys::text[]);
+
+-- name: ClaimActivityLogs :many
+SELECT * FROM activity_logs ORDER BY created_at LIMIT @lim FOR UPDATE SKIP LOCKED;
+
+-- name: DeleteActivityLogs :exec
+DELETE FROM activity_logs
+WHERE organization_id::text || '/' || id::text = ANY(@keys::text[]);

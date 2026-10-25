@@ -359,6 +359,24 @@ func TestOrganization(t *testing.T) {
 		t.Errorf("got %+v, want the new email, slug and city", got)
 	}
 
+	// The from_email premium integration is the from_email_enabled setting
+	// (BillingEntity#from_email_address, billing_entity.rb:141-145).
+	for _, on := range []bool{true, false} {
+		status, body = s.REST(t, s.APIKey, http.MethodPatch, "/v1/organization", map[string]any{"from_email_enabled": on})
+		if status != http.StatusOK {
+			t.Fatalf("got status = %d (%s), want = 200", status, body)
+		}
+		got := decode[struct {
+			Organization struct {
+				FromEmailEnabled bool   `json:"from_email_enabled"`
+				Slug             string `json:"slug"`
+			} `json:"organization"`
+		}](t, body).Organization
+		if got.FromEmailEnabled != on || got.Slug != "new-slug" {
+			t.Errorf("got %+v, want from_email_enabled = %v and the slug kept", got, on)
+		}
+	}
+
 	t.Log("source: spec/services/organizations/update_service_spec.rb:177")
 	status, _ = s.REST(t, s.APIKey, http.MethodPatch, "/v1/organization", map[string]any{"slug": "admin"})
 	if status != http.StatusBadRequest {

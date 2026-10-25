@@ -9,6 +9,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/money"
 	commonv1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/common/v1"
 )
@@ -211,4 +212,23 @@ func (e Enum[D, P]) CorePtr(p *P) *D {
 	}
 	d := e.Core(*p)
 	return &d
+}
+
+// PresentationBreakdowns converts the presentation breakdowns of fees (lago
+// V1::PresentationBreakdownSerializer): a key missing on the events is
+// null.
+func PresentationBreakdowns(bs []invoice.PresentationBreakdown) []*commonv1.PresentationBreakdown {
+	out := make([]*commonv1.PresentationBreakdown, 0, len(bs))
+	for _, b := range bs {
+		by := &structpb.Struct{Fields: make(map[string]*structpb.Value, len(b.PresentationBy))}
+		for k, v := range b.PresentationBy {
+			if v == nil {
+				by.Fields[k] = structpb.NewNullValue()
+			} else {
+				by.Fields[k] = structpb.NewStringValue(*v)
+			}
+		}
+		out = append(out, commonv1.PresentationBreakdown_builder{PresentationBy: by, Units: new(Decimal(b.Units))}.Build())
+	}
+	return out
 }

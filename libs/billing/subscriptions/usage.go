@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tanvoxyz/tanvo/libs/billing/fees"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/usage"
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -40,6 +41,12 @@ type UsageValues struct {
 	ProjectedUnits *money.Decimal
 	// ProjectedAmount is Σ projected amounts; nil without projection.
 	ProjectedAmount *int64
+	// PresentationBreakdowns are the presentation breakdowns of the fees
+	// the level lists (lago V1::Customers::PresentationBreakdownBuilder).
+	PresentationBreakdowns []invoice.PresentationBreakdown
+	// ProjectedPresentationBreakdowns are the projected breakdowns of the
+	// level's fees; nil without projection.
+	ProjectedPresentationBreakdowns []invoice.PresentationBreakdown
 }
 
 // GroupedUsage is the usage of one pricing group.
@@ -105,9 +112,34 @@ type CurrentUsageInput struct {
 	SkipTaxes bool
 	// Projection adds the projection to the period end.
 	Projection bool
+	// ChargeID, when set, keeps that charge of the plan (lago
+	// filter_by_charge_id); it takes precedence over ChargeCode and
+	// BillableMetricCode.
+	ChargeID core.ChargeID
+	// ChargeCode, when set, keeps the charge of that code (lago
+	// filter_by_charge_code); it takes precedence over BillableMetricCode.
+	ChargeCode string
 	// BillableMetricCode, when set, keeps the charges of that metric.
 	BillableMetricCode string
+	// GroupFilter keeps the events whose property is one of the values,
+	// for each key (lago filter_by_group).
+	GroupFilter map[string][]string
+	// PresentationFilter keeps the presentation breakdowns of these keys
+	// only; nil keeps them all (lago filter_by_presentation).
+	PresentationFilter []string
+	// SkipGrouping ignores the pricing group keys (lago skip_grouping).
+	SkipGrouping bool
+	// FullUsage computes the usage since the subscription started (lago
+	// full_usage); it needs a charge restriction or GroupFilter, and
+	// charges that are not prorated. Projection ignores it, as lago's
+	// projected usage does
+	// (UsageFilters.init_from_params_for_projected_usage).
+	FullUsage bool
 }
+
+// CodeFullUsageNotAllowed: full usage was asked without a charge or group
+// filter, or with prorated charges.
+const CodeFullUsageNotAllowed = "full_usage_not_allowed"
 
 // CurrentUsage computes the usage of the current period of a customer's
 // active subscription (lago Invoices::CustomerUsageService with its
@@ -130,30 +162,19 @@ func (s *Service) CurrentUsage(ctx context.Context, in CurrentUsageInput) (*Peri
 		if err != nil {
 			return err
 		}
-		opts := usage.Options{SkipTaxes: in.SkipTaxes, Projection: in.Projection}
-		if in.BillableMetricCode != "" {
-			// customer_usage_service.rb:60: no charge of the metric is a
-			// missing charge.
-			charges, err := env.Charges(ctx, r)
-			if err != nil {
-				return err
-			}
-			m, err := r.Metrics.GetByCode(ctx, org, in.BillableMetricCode)
-			if err != nil && !errors.Is(err, core.ErrNotFound) {
-				return fmt.Errorf("load billable metric %q: %w", in.BillableMetricCode, err)
-			}
-			for _, ch := range charges {
-				if m != nil && ch.BillableMetricID == m.ID {
-					opts.ChargeIDs = append(opts.ChargeIDs, ch.ID)
-				}
-			}
-			if len(opts.ChargeIDs) == 0 {
-				return core.NotFound(ResourceCharge)
-			}
+		opts := usage.Options{
+			SkipTaxes: in.SkipTaxes, Projection: in.Projection, FullUsage: in.FullUsage && !in.Projection,
+			Filters: fees.UsageFilters{SkipGrouping: in.SkipGrouping, Group: in.GroupFilter, Presentation: in.PresentationFilter},
+		}
+		if opts.ChargeIDs, err = usageChargeIDs(ctx, r, env, in); err != nil {
+			return err
 		}
 		u, err := s.usage.EnvUsage(ctx, r, env, opts)
 		if errors.Is(err, usage.ErrNoActiveSubscription) {
 			return noActiveSubscription()
+		}
+		if errors.Is(err, usage.ErrFullUsageNotAllowed) {
+			return core.NewRuleError(CodeFullUsageNotAllowed, "full usage needs a charge or group filter and charges that are not prorated")
 		}
 		if err != nil {
 			return err
@@ -176,6 +197,47 @@ func (s *Service) CurrentUsage(ctx context.Context, in CurrentUsageInput) (*Peri
 		return nil, fmt.Errorf("current usage: %w", err)
 	}
 	return out, nil
+}
+
+// usageChargeIDs returns the charges a current usage keeps: by ID, else
+// by code, else by billable metric code; nil keeps them all. No charge
+// of the plan matching is a missing charge.
+//
+// source: app/services/invoices/customer_usage_service.rb:56, :74-89
+func usageChargeIDs(ctx context.Context, r port.Repos, env *kernel.SubscriptionEnv, in CurrentUsageInput) ([]core.ChargeID, error) {
+	if in.ChargeID.IsZero() && in.ChargeCode == "" && in.BillableMetricCode == "" {
+		return nil, nil
+	}
+	charges, err := env.Charges(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+	var keep func(*catalog.Charge) bool
+	switch {
+	case !in.ChargeID.IsZero():
+		keep = func(c *catalog.Charge) bool { return c.ID == in.ChargeID }
+	case in.ChargeCode != "":
+		keep = func(c *catalog.Charge) bool { return c.Code == in.ChargeCode }
+	default:
+		m, err := r.Metrics.GetByCode(ctx, in.OrganizationID, in.BillableMetricCode)
+		if errors.Is(err, core.ErrNotFound) {
+			return nil, core.NotFound(ResourceCharge)
+		}
+		if err != nil {
+			return nil, fmt.Errorf("load billable metric %q: %w", in.BillableMetricCode, err)
+		}
+		keep = func(c *catalog.Charge) bool { return c.BillableMetricID == m.ID }
+	}
+	var ids []core.ChargeID
+	for _, c := range charges {
+		if keep(c) {
+			ids = append(ids, c.ID)
+		}
+	}
+	if len(ids) == 0 {
+		return nil, core.NotFound(ResourceCharge)
+	}
+	return ids, nil
 }
 
 // PastUsageInput is the request of [Service.PastUsage].
@@ -403,13 +465,20 @@ func chargesUsage(ctx context.Context, r port.Repos, org core.OrganizationID, fe
 			return nil, err
 		}
 		cu := ChargeUsage{UsageValues: totals(group), Charge: c, Metric: m, Grouped: groupedUsage(group)}
+		cu.PresentationBreakdowns = breakdownsOf(group, ungroupedFees)
+		// The projection of the charge leaves out the grouped fees only
+		// (projected_charge_usage_serializer.rb:173-177).
+		cu.ProjectedPresentationBreakdowns = projectedBreakdownsOf(slices.DeleteFunc(slices.Clone(group), func(f usageFee) bool { return len(f.fee.GroupedBy) > 0 }))
 		if filtered {
 			for _, fg := range groupBy(group, func(f usageFee) core.ChargeFilterID { return f.fee.ChargeFilterID }) {
 				cf, err := l.filter(ctx, fg[0].fee.ChargeFilterID)
 				if err != nil {
 					return nil, err
 				}
-				cu.Filters = append(cu.Filters, FilterUsage{UsageValues: totals(fg), Filter: cf, Grouped: groupedUsage(fg)})
+				fu := FilterUsage{UsageValues: totals(fg), Filter: cf, Grouped: groupedUsage(fg)}
+				fu.PresentationBreakdowns = breakdownsOf(fg, allFees)
+				fu.ProjectedPresentationBreakdowns = projectedBreakdownsOf(fg)
+				cu.Filters = append(cu.Filters, fu)
 			}
 		}
 		out = append(out, cu)
@@ -425,7 +494,54 @@ func groupedUsage(fees []usageFee) []GroupedUsage {
 	}
 	var out []GroupedUsage
 	for _, g := range groupBy(fees, func(f usageFee) string { return groupKey(f.fee.GroupedBy) }) {
-		out = append(out, GroupedUsage{UsageValues: totals(g), GroupedBy: g[0].fee.GroupedBy})
+		gu := GroupedUsage{UsageValues: totals(g), GroupedBy: g[0].fee.GroupedBy}
+		gu.PresentationBreakdowns = breakdownsOf(g, groupedFees)
+		gu.ProjectedPresentationBreakdowns = projectedBreakdownsOf(g)
+		out = append(out, gu)
+	}
+	return out
+}
+
+// feeSelection selects the fees whose presentation breakdowns a usage
+// level lists (lago V1::Customers::PresentationBreakdownBuilder ALL,
+// UNGROUPED and GROUPED).
+type feeSelection int
+
+const (
+	allFees feeSelection = iota
+	ungroupedFees
+	groupedFees
+)
+
+// breakdownsOf lists the presentation breakdowns of the fees sel selects.
+//
+// source: app/serializers/v1/customers/presentation_breakdown_builder.rb:22-35
+func breakdownsOf(fees []usageFee, sel feeSelection) []invoice.PresentationBreakdown {
+	out := []invoice.PresentationBreakdown{}
+	for _, f := range fees {
+		isGrouped, filtered := len(f.fee.GroupedBy) > 0, !f.fee.ChargeFilterID.IsZero()
+		if sel == ungroupedFees && (isGrouped || filtered) || sel == groupedFees && (!isGrouped || filtered) {
+			continue
+		}
+		out = append(out, invoice.ClonePresentationBreakdowns(f.fee.PresentationBreakdowns)...)
+	}
+	return out
+}
+
+// projectedBreakdownsOf lists the projected breakdowns of fees, nil
+// without projection (lago UsageProjection#+).
+//
+// source: app/models/usage_projection.rb:8-14
+func projectedBreakdownsOf(fees []usageFee) []invoice.PresentationBreakdown {
+	var out []invoice.PresentationBreakdown
+	for _, f := range fees {
+		if f.proj == nil {
+			continue
+		}
+		if out == nil {
+			out = []invoice.PresentationBreakdown{}
+		}
+		out = append(out, invoice.ClonePresentationBreakdowns(f.proj.PresentationBreakdowns)...)
 	}
 	return out
 }

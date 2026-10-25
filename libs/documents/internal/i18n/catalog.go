@@ -195,6 +195,16 @@ func (l *Locale) Plural(key string, count int64, args ...Arg) string {
 	return interpolate(v, append([]Arg{A("count", strconv.FormatInt(count, 10))}, args...))
 }
 
+// Count translates key for count as Ruby I18n.t(key, count:) does: a
+// pluralized key takes the form of count (Plural), a plain string is
+// interpolated with %{count}.
+func (l *Locale) Count(key string, count int64) string {
+	if _, ok := l.lookup(key).(string); ok {
+		return l.T(key, A("count", strconv.FormatInt(count, 10)))
+	}
+	return l.Plural(key, count)
+}
+
 func (l *Locale) lookup(key string) any {
 	for loc := l; loc != nil; loc = loc.fallback {
 		if v := walk(loc.tree, key); v != nil {

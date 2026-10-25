@@ -263,6 +263,7 @@ func TestMetadataEndpoints(t *testing.T) {
 		{
 			// source: spec/support/shared_examples/wallet_metadata_actions.rb:235
 			// source: spec/requests/api/v1/plans/metadata_controller_spec.rb:240
+			// source: spec/requests/api/v1/credit_notes/metadata_controller_spec.rb:250
 			name: "delete missing key", existing: []string{"baz", "qux"},
 			call: func(ctx context.Context, o metadataOps, id string) (mdItems, error) { return o.delKey(ctx, id, "foo") },
 			want: []string{"baz", "qux"},
@@ -306,6 +307,26 @@ func TestMetadataEndpoints(t *testing.T) {
 				_, err := call()
 				if connect.CodeOf(err) != connect.CodeNotFound || rpc.ErrorReason(err) != res.notFound {
 					t.Errorf("%s: got err = %v (reason %q), want = NotFound %s", name, err, rpc.ErrorReason(err), res.notFound)
+				}
+			}
+		})
+		// A body without metadata replaces with, or merges, nothing: lago
+		// fetches the missing parameter as {}. Without metadata, emptied
+		// metadata is no metadata (see TestMetadataEndpoints' replace
+		// cases), so both answer an empty list.
+		// source: spec/support/shared_examples/wallet_metadata_actions.rb:66, 142
+		// source: spec/requests/api/v1/plans/metadata_controller_spec.rb:74, 152
+		// source: spec/requests/api/v1/credit_notes/metadata_controller_spec.rb:84, 162
+		t.Run(res.name+"/REST without metadata", func(t *testing.T) {
+			for _, method := range []string{http.MethodPost, http.MethodPatch} {
+				status, body := s.REST(t, s.APIKey, method, res.path+res.newID(t)+"/metadata", `{}`)
+				if status != http.StatusOK {
+					t.Fatalf("%s = %d %s, want = 200", method, status, body)
+				}
+				if got := decode[struct {
+					Metadata []struct{ Key, Value string } `json:"metadata"`
+				}](t, body).Metadata; len(got) != 0 {
+					t.Errorf("%s: got = %v, want = no metadata", method, got)
 				}
 			}
 		})

@@ -24,6 +24,10 @@ type FeeView struct {
 	TrueUpFeeID core.FeeID
 	// Adjusted marks a fee adjusted on its draft invoice.
 	Adjusted bool
+	// PresentationBreakdowns are the fee's breakdowns by the presentation
+	// keys its charge displays on invoices (lago V1::FeeSerializer,
+	// app/serializers/v1/fee_serializer.rb:60).
+	PresentationBreakdowns []invoice.PresentationBreakdown
 }
 
 // SubscriptionView is an invoice subscription with the external ID of the
@@ -75,6 +79,7 @@ type viewer struct {
 	r       port.Repos
 	org     core.OrganizationID
 	codes   map[core.ChargeID]string
+	keys    map[core.ChargeID][]string
 	subCust map[core.SubscriptionID]core.CustomerID
 	invCust map[core.InvoiceID]core.CustomerID
 }
@@ -83,6 +88,7 @@ func newViewer(r port.Repos, org core.OrganizationID) *viewer {
 	return &viewer{
 		r: r, org: org,
 		codes:   map[core.ChargeID]string{},
+		keys:    map[core.ChargeID][]string{},
 		subCust: map[core.SubscriptionID]core.CustomerID{},
 		invCust: map[core.InvoiceID]core.CustomerID{},
 	}
@@ -108,6 +114,7 @@ func (v *viewer) metricCode(ctx context.Context, id core.ChargeID) (string, erro
 			return "", fmt.Errorf("get charge %s: %w", id, err)
 		}
 	} else {
+		v.keys[id] = c.Properties.PresentationGroupKeysDisplayedInInvoice()
 		ms, err := v.r.Metrics.ListByIDs(ctx, v.org, []core.BillableMetricID{c.BillableMetricID})
 		if err := ignoreNotFound(err); err != nil {
 			return "", fmt.Errorf("get metric %s: %w", c.BillableMetricID, err)
@@ -168,6 +175,7 @@ func (v *viewer) fees(ctx context.Context, fs []*invoice.Fee, siblings map[core.
 			if fv.BillableMetricCode, err = v.metricCode(ctx, f.ChargeID); err != nil {
 				return nil, err
 			}
+			fv.PresentationBreakdowns = invoice.DisplayedPresentationBreakdowns(f.PresentationBreakdowns, v.keys[f.ChargeID])
 		}
 		if !f.InvoiceID.IsZero() {
 			sib, ok := siblings[f.InvoiceID]

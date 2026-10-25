@@ -8,3 +8,6 @@ sqlc = "1.31.1"
 # Invoice, credit note and receipt documents (libs/documents): PDF/A-3 with
 # embedded e-invoice XML.
 typst = "0.15.1"
+# The browser build of libs/expression; must match the wasm-bindgen crate
+# version in libs/expression/js/Cargo.lock.
+"cargo:wasm-bindgen-cli" = "0.2.129"

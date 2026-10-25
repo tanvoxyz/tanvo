@@ -84,7 +84,8 @@ type UsageServiceClient interface {
 	GetCurrentUsage(context.Context, *v1.GetCurrentUsageRequest) (*v1.GetCurrentUsageResponse, error)
 	// Lists the usage of past billing periods, newest first.
 	ListPastUsage(context.Context, *v1.ListPastUsageRequest) (*v1.ListPastUsageResponse, error)
-	// Returns the hourly usage of billable metrics over a time range.
+	// Returns the usage of one charge per hour of the customer's time zone,
+	// broken down by charge filter, read from the usage buckets.
 	GetHourlyUsage(context.Context, *v1.GetHourlyUsageRequest) (*v1.GetHourlyUsageResponse, error)
 	// Lists the daily usage snapshots of a subscription, with the change
 	// from the previous day.
@@ -104,7 +105,8 @@ type UsageServiceHandler interface {
 	GetCurrentUsage(context.Context, *v1.GetCurrentUsageRequest) (*v1.GetCurrentUsageResponse, error)
 	// Lists the usage of past billing periods, newest first.
 	ListPastUsage(context.Context, *v1.ListPastUsageRequest) (*v1.ListPastUsageResponse, error)
-	// Returns the hourly usage of billable metrics over a time range.
+	// Returns the usage of one charge per hour of the customer's time zone,
+	// broken down by charge filter, read from the usage buckets.
 	GetHourlyUsage(context.Context, *v1.GetHourlyUsageRequest) (*v1.GetHourlyUsageResponse, error)
 	// Lists the daily usage snapshots of a subscription, with the change
 	// from the previous day.

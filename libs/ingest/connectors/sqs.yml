@@ -17,7 +17,9 @@ pipeline:
 output:
   switch:
     cases:
-      - check: errored() && env("SQS_DLQ_ENDPOINT").type() == "string"
+      # Without SQS_DLQ_ENDPOINT, the events that fail to map go to Kafka,
+      # where the intake consumer dead-letters them.
+      - check: errored() && env("SQS_DLQ_ENDPOINT").or("") != ""
         output:
           resource: tanvo_sqs_ingestor_dlq
       - output:
@@ -54,7 +56,7 @@ output_resources:
           password: "${KAFKA_PASSWORD}"
   - label: tanvo_sqs_ingestor_dlq
     aws_sqs:
-      url: "${SQS_DLQ_ENDPOINT}"
+      url: "${SQS_DLQ_ENDPOINT:}"
       region: "${SQS_REGION}"
       credentials:
         id: "${SQS_KEY_ID}"
@@ -116,3 +118,11 @@ tests:
               key1: "value1"
               key2: "value2"
             precise_total_amount_cents: "0"
+  - name: "Message that is not JSON fails to map"
+    target_processors: "/pipeline/processors"
+    environment:
+      ORGANIZATION_ID: "0199a000-0000-7000-8000-0000000000aa"
+    input_batch:
+      - content: "not json"
+    output_batches:
+      - - bloblang: "errored()"

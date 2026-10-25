@@ -25,6 +25,9 @@ type Deps struct {
 	Tx port.Transactor
 	// Events is the event store the aggregations read.
 	Events metering.Store
+	// UsageCache keeps the current-usage fees of charge buckets, validated
+	// against the ingestion watermark of Events; nil caches nothing.
+	UsageCache UsageCache
 	// Clock gives the current instant; everything time-dependent uses it.
 	Clock core.Clock
 	// IDs generates the identifiers of new rows.

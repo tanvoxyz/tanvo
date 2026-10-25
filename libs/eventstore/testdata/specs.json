@@ -1,0 +1,43 @@
+{
+  "title": "the event store, the attributed usage query and the ClickHouse log store",
+  "files": [
+    "models/clickhouse/activity_log_spec.rb",
+    "models/clickhouse/api_log_spec.rb",
+    "models/clickhouse/security_log_spec.rb",
+    "queries/activity_logs_query_spec.rb",
+    "queries/api_logs_query_spec.rb",
+    "queries/security_logs_query_spec.rb",
+    "services/events/stores/clickhouse/attributed_usage_query_spec.rb"
+  ],
+  "reasons": {
+    "associations": "ActiveRecord associations: the logs keep the IDs of their organization, user, API key and resource, read by libs/auth (user emails) and the API.",
+    "log-id": "ActiveRecord callback generating a missing ID: Tanvo's log writers always set the ID (a UUIDv7 for security and activity logs, the request ID for API logs) before the log is stored.",
+    "available": "Tanvo serves the logs in every installation, from PostgreSQL without ClickHouse (parity §1.45), and with no premium or security_logs gate (parity §1.45, §19), so there is no feature_unavailable or forbidden failure.",
+    "null-period": "audit_logs_period is never null in Tanvo (default 30 days, organization.DefaultAuditLogsRetentionDays), so every list applies a retention.",
+    "array-wrap": "Ruby's Array.wrap of a scalar filter: Tanvo's filters are typed lists.",
+    "no-final": "Reading events_enriched without FINAL when the organization has no ClickHouse deduplication: Tanvo's ClickHouse store always reads the current copy of each event (FINAL, parity §1.42 and the event store row)."
+  },
+  "skipped": {
+    "models/clickhouse/activity_log_spec.rb:8": "associations",
+    "models/clickhouse/activity_log_spec.rb:9": "associations",
+    "models/clickhouse/activity_log_spec.rb:10": "associations",
+    "models/clickhouse/activity_log_spec.rb:11": "associations",
+    "models/clickhouse/activity_log_spec.rb:12": "associations",
+    "models/clickhouse/activity_log_spec.rb:13": "associations",
+    "models/clickhouse/activity_log_spec.rb:15": "log-id",
+    "models/clickhouse/api_log_spec.rb:8": "associations",
+    "models/clickhouse/api_log_spec.rb:9": "associations",
+    "models/clickhouse/api_log_spec.rb:11": "log-id",
+    "models/clickhouse/security_log_spec.rb:8": "associations",
+    "models/clickhouse/security_log_spec.rb:16": "log-id",
+    "queries/activity_logs_query_spec.rb:46": "null-period",
+    "queries/activity_logs_query_spec.rb:173": "available",
+    "queries/api_logs_query_spec.rb:47": "null-period",
+    "queries/api_logs_query_spec.rb:131": "array-wrap",
+    "queries/api_logs_query_spec.rb:190": "available",
+    "queries/security_logs_query_spec.rb:20": "available",
+    "queries/security_logs_query_spec.rb:134": "available",
+    "queries/security_logs_query_spec.rb:146": "available",
+    "services/events/stores/clickhouse/attributed_usage_query_spec.rb:119": "no-final"
+  }
+}

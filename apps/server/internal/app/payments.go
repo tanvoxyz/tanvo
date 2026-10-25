@@ -64,10 +64,16 @@ type paymentsWiring struct {
 // (Stripe, Adyen, GoCardless, MoneyHash, Cashfree and Flutterwave), the credentials sealed with the installation secret, and the
 // provider webhook endpoints under cfg.APIURL; it emits its webhooks with
 // emitter. It is bound to the billing engine with [paymentsWiring.bind].
-func newPayments(cfg config.Config, tx port.Transactor, clock core.Clock, log *slog.Logger, tp trace.TracerProvider, mp metric.MeterProvider, emitter port.WebhookEmitter) (*paymentsWiring, error) {
+// stripeURL, when set, replaces the Stripe API base URL
+// ([Options.StripeBaseURL]).
+func newPayments(cfg config.Config, tx port.Transactor, clock core.Clock, log *slog.Logger, tp trace.TracerProvider, mp metric.MeterProvider, emitter port.WebhookEmitter, stripeURL string) (*paymentsWiring, error) {
+	stripeOpts := []stripe.Option{stripe.WithTracerProvider(tp), stripe.WithMeterProvider(mp), stripe.WithLogger(log), stripe.WithClock(clock.Now)}
+	if stripeURL != "" {
+		stripeOpts = append(stripeOpts, stripe.WithBaseURL(stripeURL))
+	}
 	gc := gocardless.New(gocardless.WithTracerProvider(tp), gocardless.WithMeterProvider(mp), gocardless.WithLogger(log), gocardless.WithClock(clock.Now))
 	set, err := port.NewPaymentProviderSet(
-		stripe.New(stripe.WithTracerProvider(tp), stripe.WithMeterProvider(mp), stripe.WithLogger(log), stripe.WithClock(clock.Now)),
+		stripe.New(stripeOpts...),
 		adyen.New(adyen.WithTracerProvider(tp), adyen.WithMeterProvider(mp), adyen.WithLogger(log), adyen.WithClock(clock.Now)),
 		gc,
 		moneyhash.New(moneyhash.WithTracerProvider(tp), moneyhash.WithMeterProvider(mp), moneyhash.WithLogger(log), moneyhash.WithClock(clock.Now)),

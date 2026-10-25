@@ -113,7 +113,7 @@ func newSelection(q metering.Query) (*selection, error) {
 	tz := a.text(calc.Location(q).String())
 	s.sql = fmt.Sprintf(`sel AS NOT MATERIALIZED (
 	SELECT e.organization_id, e.subscription_id, e.code, e.transaction_id AS tx, e."timestamp" AS ts, e.sequence AS seq,
-		e.properties AS props, e.precise_total_amount_cents AS amount, e.ingested_at,
+		e.properties AS props, e.precise_total_amount_cents AS amount, e.ingested_at, e.written_at,
 		%s AS value, %s AS isnum, %s AS prop,
 		coalesce(e.properties->>'operation_type', 'add') AS op,
 		((e."timestamp" AT TIME ZONE %s)::date - DATE '1970-01-01') AS day

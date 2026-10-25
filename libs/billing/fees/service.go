@@ -68,11 +68,21 @@ type Options struct {
 	// Cache returns the cached aggregations of a scope; nil means none are
 	// kept.
 	Cache func(sc event.CachedAggregationScope) metering.CachedAggregations
+	// UsageCache, with CurrentUsage, keeps the fees of each bucket between
+	// computations (lago Subscriptions::ChargeCacheMiddleware); nil
+	// computes every bucket.
+	UsageCache kernel.UsageCache
+	// FullUsage marks a current usage computed since the subscription
+	// started, whose cache entries are apart from the period's (lago
+	// ChargeCacheService::FULL_USAGE_KEY_SEGMENT).
+	FullUsage bool
 	// MaxTimestamp, when set, caps the events read at that instant
 	// (inclusive): the end of the day of a daily usage history fill (lago
 	// BillingPeriodBoundaries#max_timestamp,
 	// app/services/invoices/customer_usage_service.rb:141-148).
 	MaxTimestamp time.Time
+	// UsageFilters narrow a current usage (see [UsageFilters]).
+	UsageFilters UsageFilters
 }
 
 // CachedAggregation is a running aggregation state to store after a fee

@@ -30,6 +30,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
+	"github.com/tanvoxyz/tanvo/libs/metering"
 )
 
 // Deps are the dependencies of the engine.
@@ -137,6 +138,9 @@ func New(d Deps, opts ...Option) (*Engine, error) {
 	}
 	return e, nil
 }
+
+// Events returns the event store the engine's aggregations read.
+func (e *Engine) Events() metering.Store { return e.d.Events }
 
 // JobKinds returns every job kind [Engine.HandleJob] runs: those of
 // [kernel.JobKinds], [customers.JobTerminateRelations],

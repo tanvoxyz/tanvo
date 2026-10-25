@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/quotes/validators"
@@ -26,6 +27,12 @@ type VersionView struct {
 	Version *quote.Version
 	// BillingEntityCode is the code of its billing entity, if any.
 	BillingEntityCode string
+	// MentionVariables are the raw values of the content placeholders:
+	// the ones frozen at approval, else computed now.
+	MentionVariables json.RawMessage
+	// DocumentLocale is the customer's document locale, the one the
+	// mention variables are shown in.
+	DocumentLocale string
 }
 
 // QuoteView is a quote with what its API representation shows (lago
@@ -332,7 +339,7 @@ func (s *Service) ListVersions(ctx context.Context, org core.OrganizationID, id 
 		}
 		end := min(start+page.Limit(), len(vs))
 		for _, v := range vs[start:end] {
-			vv, err := versionView(ctx, r, v)
+			vv, err := s.versionView(ctx, r, v)
 			if err != nil {
 				return err
 			}
@@ -355,7 +362,7 @@ func (s *Service) GetVersion(ctx context.Context, org core.OrganizationID, q cor
 		if err != nil {
 			return err
 		}
-		out, err = versionView(ctx, r, v)
+		out, err = s.versionView(ctx, r, v)
 		return err
 	})
 	return out, err
@@ -379,7 +386,7 @@ func (s *Service) quoteView(ctx context.Context, r port.Repos, q *quote.Quote) (
 	v, err := r.QuoteVersions.GetCurrent(ctx, q.OrganizationID, q.ID)
 	switch {
 	case err == nil:
-		if out.Current, err = versionView(ctx, r, v); err != nil {
+		if out.Current, err = s.versionView(ctx, r, v); err != nil {
 			return nil, err
 		}
 	case !errors.Is(err, core.ErrNotFound):
@@ -395,8 +402,27 @@ func (s *Service) quoteView(ctx context.Context, r port.Repos, q *quote.Quote) (
 	return out, nil
 }
 
-func versionView(ctx context.Context, r port.Repos, v *quote.Version) (*VersionView, error) {
-	out := &VersionView{Version: v}
+// versionView returns the view of v. Its mention variables are the ones
+// frozen at approval, else computed live, with the customer's document
+// locale they are localized in.
+//
+// source: app/graphql/types/quote_versions/object.rb:35-42
+func (s *Service) versionView(ctx context.Context, r port.Repos, v *quote.Version) (*VersionView, error) {
+	out := &VersionView{Version: v, MentionVariables: v.MentionVariables}
+	q, err := r.Quotes.Get(ctx, v.OrganizationID, v.QuoteID)
+	if err != nil {
+		return nil, fmt.Errorf("load quote %s: %w", v.QuoteID, err)
+	}
+	env, err := kernel.LoadCustomerEnv(ctx, r, v.OrganizationID, q.CustomerID, core.BillingEntityID{})
+	if err != nil {
+		return nil, err
+	}
+	out.DocumentLocale = env.Customer.ApplicableDocumentLocale(env.Defaults)
+	if !hasMentions(v.MentionVariables) {
+		if out.MentionVariables, err = s.mentionVariables(ctx, r, q, v); err != nil {
+			return nil, err
+		}
+	}
 	if v.BillingEntityID.IsZero() {
 		return out, nil
 	}
@@ -408,6 +434,13 @@ func versionView(ctx context.Context, r port.Repos, v *quote.Version) (*VersionV
 		return nil, fmt.Errorf("load billing entity %s: %w", v.BillingEntityID, err)
 	}
 	return out, nil
+}
+
+// hasMentions reports a mention variables snapshot that is present (lago
+// presence: neither empty nor an empty object or null).
+func hasMentions(m json.RawMessage) bool {
+	t := strings.TrimSpace(string(m))
+	return t != "" && t != "null" && t != "{}"
 }
 
 // blobURL is the download URL of ref; empty without a blob store.

@@ -551,6 +551,7 @@ type AttributedChargeUsage struct {
 	xxx_hidden_Units                          *string                `protobuf:"bytes,7,opt,name=units"`
 	xxx_hidden_Amount                         *v1.Money              `protobuf:"bytes,8,opt,name=amount"`
 	xxx_hidden_EventsCount                    int64                  `protobuf:"varint,9,opt,name=events_count,json=eventsCount"`
+	xxx_hidden_PreciseAmount                  *string                `protobuf:"bytes,10,opt,name=precise_amount,json=preciseAmount"`
 	XXX_raceDetectHookData                    protoimpl.RaceDetectHookData
 	XXX_presence                              [1]uint32
 	unknownFields                             protoimpl.UnknownFields
@@ -663,24 +664,34 @@ func (x *AttributedChargeUsage) GetEventsCount() int64 {
 	return 0
 }
 
+func (x *AttributedChargeUsage) GetPreciseAmount() string {
+	if x != nil {
+		if x.xxx_hidden_PreciseAmount != nil {
+			return *x.xxx_hidden_PreciseAmount
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *AttributedChargeUsage) SetChargeId(v string) {
 	x.xxx_hidden_ChargeId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 10)
 }
 
 func (x *AttributedChargeUsage) SetChargeCode(v string) {
 	x.xxx_hidden_ChargeCode = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 10)
 }
 
 func (x *AttributedChargeUsage) SetMetricCode(v string) {
 	x.xxx_hidden_MetricCode = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 10)
 }
 
 func (x *AttributedChargeUsage) SetChargeFilterId(v string) {
 	x.xxx_hidden_ChargeFilterId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 10)
 }
 
 func (x *AttributedChargeUsage) SetChargeFilterValues(v map[string]*Values) {
@@ -689,12 +700,12 @@ func (x *AttributedChargeUsage) SetChargeFilterValues(v map[string]*Values) {
 
 func (x *AttributedChargeUsage) SetChargeFilterInvoiceDisplayName(v string) {
 	x.xxx_hidden_ChargeFilterInvoiceDisplayName = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 10)
 }
 
 func (x *AttributedChargeUsage) SetUnits(v string) {
 	x.xxx_hidden_Units = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 10)
 }
 
 func (x *AttributedChargeUsage) SetAmount(v *v1.Money) {
@@ -703,7 +714,12 @@ func (x *AttributedChargeUsage) SetAmount(v *v1.Money) {
 
 func (x *AttributedChargeUsage) SetEventsCount(v int64) {
 	x.xxx_hidden_EventsCount = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 10)
+}
+
+func (x *AttributedChargeUsage) SetPreciseAmount(v string) {
+	x.xxx_hidden_PreciseAmount = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 10)
 }
 
 func (x *AttributedChargeUsage) HasChargeId() bool {
@@ -762,6 +778,13 @@ func (x *AttributedChargeUsage) HasEventsCount() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
 }
 
+func (x *AttributedChargeUsage) HasPreciseAmount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
+}
+
 func (x *AttributedChargeUsage) ClearChargeId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_ChargeId = nil
@@ -801,6 +824,11 @@ func (x *AttributedChargeUsage) ClearEventsCount() {
 	x.xxx_hidden_EventsCount = 0
 }
 
+func (x *AttributedChargeUsage) ClearPreciseAmount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	x.xxx_hidden_PreciseAmount = nil
+}
+
 type AttributedChargeUsage_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -818,10 +846,14 @@ type AttributedChargeUsage_builder struct {
 	ChargeFilterInvoiceDisplayName *string
 	// The units.
 	Units *string
-	// The amount.
+	// The amount, rounded to the currency's minor unit; unset on the UNITS
+	// basis and for a charge not priced (a non-standard model, or filters
+	// too many to price).
 	Amount *v1.Money
 	// The number of events.
 	EventsCount *int64
+	// The unrounded amount in minor units; empty when amount is unset.
+	PreciseAmount *string
 }
 
 func (b0 AttributedChargeUsage_builder) Build() *AttributedChargeUsage {
@@ -829,48 +861,53 @@ func (b0 AttributedChargeUsage_builder) Build() *AttributedChargeUsage {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.ChargeId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 10)
 		x.xxx_hidden_ChargeId = b.ChargeId
 	}
 	if b.ChargeCode != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 10)
 		x.xxx_hidden_ChargeCode = b.ChargeCode
 	}
 	if b.MetricCode != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 10)
 		x.xxx_hidden_MetricCode = b.MetricCode
 	}
 	if b.ChargeFilterId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 10)
 		x.xxx_hidden_ChargeFilterId = b.ChargeFilterId
 	}
 	x.xxx_hidden_ChargeFilterValues = b.ChargeFilterValues
 	if b.ChargeFilterInvoiceDisplayName != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 10)
 		x.xxx_hidden_ChargeFilterInvoiceDisplayName = b.ChargeFilterInvoiceDisplayName
 	}
 	if b.Units != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 10)
 		x.xxx_hidden_Units = b.Units
 	}
 	x.xxx_hidden_Amount = b.Amount
 	if b.EventsCount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 10)
 		x.xxx_hidden_EventsCount = *b.EventsCount
+	}
+	if b.PreciseAmount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 10)
+		x.xxx_hidden_PreciseAmount = b.PreciseAmount
 	}
 	return m0
 }
 
 // AttributedAggregate is usage summed over charges.
 type AttributedAggregate struct {
-	state                   protoimpl.MessageState    `protogen:"opaque.v1"`
-	xxx_hidden_Amount       *v1.Money                 `protobuf:"bytes,1,opt,name=amount"`
-	xxx_hidden_EventsCount  int64                     `protobuf:"varint,2,opt,name=events_count,json=eventsCount"`
-	xxx_hidden_ChargesUsage *[]*AttributedChargeUsage `protobuf:"bytes,3,rep,name=charges_usage,json=chargesUsage"`
-	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
-	XXX_presence            [1]uint32
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                    protoimpl.MessageState    `protogen:"opaque.v1"`
+	xxx_hidden_Amount        *v1.Money                 `protobuf:"bytes,1,opt,name=amount"`
+	xxx_hidden_EventsCount   int64                     `protobuf:"varint,2,opt,name=events_count,json=eventsCount"`
+	xxx_hidden_ChargesUsage  *[]*AttributedChargeUsage `protobuf:"bytes,3,rep,name=charges_usage,json=chargesUsage"`
+	xxx_hidden_PreciseAmount *string                   `protobuf:"bytes,4,opt,name=precise_amount,json=preciseAmount"`
+	XXX_raceDetectHookData   protoimpl.RaceDetectHookData
+	XXX_presence             [1]uint32
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *AttributedAggregate) Reset() {
@@ -921,17 +958,32 @@ func (x *AttributedAggregate) GetChargesUsage() []*AttributedChargeUsage {
 	return nil
 }
 
+func (x *AttributedAggregate) GetPreciseAmount() string {
+	if x != nil {
+		if x.xxx_hidden_PreciseAmount != nil {
+			return *x.xxx_hidden_PreciseAmount
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *AttributedAggregate) SetAmount(v *v1.Money) {
 	x.xxx_hidden_Amount = v
 }
 
 func (x *AttributedAggregate) SetEventsCount(v int64) {
 	x.xxx_hidden_EventsCount = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *AttributedAggregate) SetChargesUsage(v []*AttributedChargeUsage) {
 	x.xxx_hidden_ChargesUsage = &v
+}
+
+func (x *AttributedAggregate) SetPreciseAmount(v string) {
+	x.xxx_hidden_PreciseAmount = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *AttributedAggregate) HasAmount() bool {
@@ -948,6 +1000,13 @@ func (x *AttributedAggregate) HasEventsCount() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
+func (x *AttributedAggregate) HasPreciseAmount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *AttributedAggregate) ClearAmount() {
 	x.xxx_hidden_Amount = nil
 }
@@ -957,15 +1016,24 @@ func (x *AttributedAggregate) ClearEventsCount() {
 	x.xxx_hidden_EventsCount = 0
 }
 
+func (x *AttributedAggregate) ClearPreciseAmount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_PreciseAmount = nil
+}
+
 type AttributedAggregate_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
-	// The amount.
+	// The amount of the priced charges, rounded to the currency's minor
+	// unit; unset on the UNITS basis.
 	Amount *v1.Money
 	// The number of events.
 	EventsCount *int64
-	// The usage per charge.
+	// The usage per charge, in the order of the plan's charges, a split
+	// charge's filters in their order and the events no filter matches last.
 	ChargesUsage []*AttributedChargeUsage
+	// The unrounded amount in minor units; empty when amount is unset.
+	PreciseAmount *string
 }
 
 func (b0 AttributedAggregate_builder) Build() *AttributedAggregate {
@@ -974,10 +1042,14 @@ func (b0 AttributedAggregate_builder) Build() *AttributedAggregate {
 	_, _ = b, x
 	x.xxx_hidden_Amount = b.Amount
 	if b.EventsCount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_EventsCount = *b.EventsCount
 	}
 	x.xxx_hidden_ChargesUsage = &b.ChargesUsage
+	if b.PreciseAmount != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_PreciseAmount = b.PreciseAmount
+	}
 	return m0
 }
 
@@ -2309,23 +2381,37 @@ type GetAttributedUsageRequest_builder struct {
 	CustomerId *string
 	// The active subscription (ID or `external_id:<external_id>`).
 	SubscriptionId *string
-	// The attribution type to group by (its code).
+	// The attribution type to group by (its code); a type unknown or deleted
+	// is not found.
 	GroupBy *string
-	// Restricts usage to these values of other types: type code to values.
+	// Restricts usage to these values of other types: type code to values,
+	// an empty string matching the events without a value; at most 20 values
+	// per type and 3 flat types. A hierarchical level whose parent type is
+	// kept is read under a filter on the parent.
 	Filters map[string]*Values
-	// The start of the period; the current billing period's by default.
+	// The start of the period; both or neither of from_time and to_time are
+	// set, at most 31 days apart. Neither reads the current billing period,
+	// its last 31 days up to now when it is longer. The period starts at the
+	// subscription's start at the earliest.
 	FromTime *timestamppb.Timestamp
-	// The end of the period; now by default.
+	// The end of the period, exclusive; after from_time and the
+	// subscription's start.
 	ToTime *timestamppb.Timestamp
-	// Restricts usage to these charges, by code.
+	// Restricts usage to these charges of the plan, by code; every count and
+	// sum charge whose metric is not recurring by default. A code outside
+	// the plan is not found.
 	ChargeCodes []string
-	// Splits the rows by the filters of this charge, by code.
+	// Splits the rows by the filters of this charge of the plan, by code: one
+	// usage per filter, at most 10, and one for the events no filter
+	// matches. It must be among charge_codes when they are set.
 	SplitChargeCode *string
-	// A search over the values.
+	// Keeps the values containing it, case-insensitively; at most 100
+	// characters. Rows keep their rank among every value.
 	Search *string
-	// What rows are ranked by; UNITS by default.
+	// What rows are ranked by: events count on UNITS, the default, without
+	// amounts; amount on AMOUNT, standard charges priced.
 	Basis *AttributionBasis
-	// The maximum number of rows; 20 by default, at most 1000.
+	// The maximum number of rows; 50 by default, at most 100.
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
@@ -2376,20 +2462,22 @@ func (b0 GetAttributedUsageRequest_builder) Build() *GetAttributedUsageRequest {
 
 // GetAttributedUsageResponse is the response of UsageAttributionService.GetAttributedUsage.
 type GetAttributedUsageResponse struct {
-	state                     protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_SubscriptionId *string                `protobuf:"bytes,1,opt,name=subscription_id,json=subscriptionId"`
-	xxx_hidden_GroupBy        *string                `protobuf:"bytes,2,opt,name=group_by,json=groupBy"`
-	xxx_hidden_Basis          AttributionBasis       `protobuf:"varint,3,opt,name=basis,enum=tanvo.attribution.v1.AttributionBasis"`
-	xxx_hidden_Period         *v1.DateTimeRange      `protobuf:"bytes,4,opt,name=period"`
-	xxx_hidden_Currency       *string                `protobuf:"bytes,5,opt,name=currency"`
-	xxx_hidden_Rows           *[]*AttributedUsageRow `protobuf:"bytes,6,rep,name=rows"`
-	xxx_hidden_Unattributed   *AttributedAggregate   `protobuf:"bytes,7,opt,name=unattributed"`
-	xxx_hidden_Totals         *AttributedAggregate   `protobuf:"bytes,8,opt,name=totals"`
-	xxx_hidden_NextPageToken  *string                `protobuf:"bytes,9,opt,name=next_page_token,json=nextPageToken"`
-	XXX_raceDetectHookData    protoimpl.RaceDetectHookData
-	XXX_presence              [1]uint32
-	unknownFields             protoimpl.UnknownFields
-	sizeCache                 protoimpl.SizeCache
+	state                             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_SubscriptionId         *string                `protobuf:"bytes,1,opt,name=subscription_id,json=subscriptionId"`
+	xxx_hidden_GroupBy                *string                `protobuf:"bytes,2,opt,name=group_by,json=groupBy"`
+	xxx_hidden_Basis                  AttributionBasis       `protobuf:"varint,3,opt,name=basis,enum=tanvo.attribution.v1.AttributionBasis"`
+	xxx_hidden_Period                 *v1.DateTimeRange      `protobuf:"bytes,4,opt,name=period"`
+	xxx_hidden_Currency               *string                `protobuf:"bytes,5,opt,name=currency"`
+	xxx_hidden_Rows                   *[]*AttributedUsageRow `protobuf:"bytes,6,rep,name=rows"`
+	xxx_hidden_Unattributed           *AttributedAggregate   `protobuf:"bytes,7,opt,name=unattributed"`
+	xxx_hidden_Totals                 *AttributedAggregate   `protobuf:"bytes,8,opt,name=totals"`
+	xxx_hidden_NextPageToken          *string                `protobuf:"bytes,9,opt,name=next_page_token,json=nextPageToken"`
+	xxx_hidden_TotalSize              int64                  `protobuf:"varint,10,opt,name=total_size,json=totalSize"`
+	xxx_hidden_ExternalSubscriptionId *string                `protobuf:"bytes,11,opt,name=external_subscription_id,json=externalSubscriptionId"`
+	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
+	XXX_presence                      [1]uint32
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *GetAttributedUsageResponse) Reset() {
@@ -2496,19 +2584,36 @@ func (x *GetAttributedUsageResponse) GetNextPageToken() string {
 	return ""
 }
 
+func (x *GetAttributedUsageResponse) GetTotalSize() int64 {
+	if x != nil {
+		return x.xxx_hidden_TotalSize
+	}
+	return 0
+}
+
+func (x *GetAttributedUsageResponse) GetExternalSubscriptionId() string {
+	if x != nil {
+		if x.xxx_hidden_ExternalSubscriptionId != nil {
+			return *x.xxx_hidden_ExternalSubscriptionId
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *GetAttributedUsageResponse) SetSubscriptionId(v string) {
 	x.xxx_hidden_SubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 11)
 }
 
 func (x *GetAttributedUsageResponse) SetGroupBy(v string) {
 	x.xxx_hidden_GroupBy = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 11)
 }
 
 func (x *GetAttributedUsageResponse) SetBasis(v AttributionBasis) {
 	x.xxx_hidden_Basis = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 11)
 }
 
 func (x *GetAttributedUsageResponse) SetPeriod(v *v1.DateTimeRange) {
@@ -2517,7 +2622,7 @@ func (x *GetAttributedUsageResponse) SetPeriod(v *v1.DateTimeRange) {
 
 func (x *GetAttributedUsageResponse) SetCurrency(v string) {
 	x.xxx_hidden_Currency = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 11)
 }
 
 func (x *GetAttributedUsageResponse) SetRows(v []*AttributedUsageRow) {
@@ -2534,7 +2639,17 @@ func (x *GetAttributedUsageResponse) SetTotals(v *AttributedAggregate) {
 
 func (x *GetAttributedUsageResponse) SetNextPageToken(v string) {
 	x.xxx_hidden_NextPageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 9)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 11)
+}
+
+func (x *GetAttributedUsageResponse) SetTotalSize(v int64) {
+	x.xxx_hidden_TotalSize = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 11)
+}
+
+func (x *GetAttributedUsageResponse) SetExternalSubscriptionId(v string) {
+	x.xxx_hidden_ExternalSubscriptionId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 11)
 }
 
 func (x *GetAttributedUsageResponse) HasSubscriptionId() bool {
@@ -2593,6 +2708,20 @@ func (x *GetAttributedUsageResponse) HasNextPageToken() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 8)
 }
 
+func (x *GetAttributedUsageResponse) HasTotalSize() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
+}
+
+func (x *GetAttributedUsageResponse) HasExternalSubscriptionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
+}
+
 func (x *GetAttributedUsageResponse) ClearSubscriptionId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_SubscriptionId = nil
@@ -2630,6 +2759,16 @@ func (x *GetAttributedUsageResponse) ClearNextPageToken() {
 	x.xxx_hidden_NextPageToken = nil
 }
 
+func (x *GetAttributedUsageResponse) ClearTotalSize() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
+	x.xxx_hidden_TotalSize = 0
+}
+
+func (x *GetAttributedUsageResponse) ClearExternalSubscriptionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	x.xxx_hidden_ExternalSubscriptionId = nil
+}
+
 type GetAttributedUsageResponse_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -2639,7 +2778,7 @@ type GetAttributedUsageResponse_builder struct {
 	GroupBy *string
 	// The basis of the ranking.
 	Basis *AttributionBasis
-	// The period.
+	// The period read, its end exclusive.
 	Period *v1.DateTimeRange
 	// The currency.
 	Currency *string
@@ -2651,6 +2790,10 @@ type GetAttributedUsageResponse_builder struct {
 	Totals *AttributedAggregate
 	// The token of the next page; empty on the last page.
 	NextPageToken *string
+	// The number of values of the type in the period, whatever the search.
+	TotalSize *int64
+	// The subscription's external ID.
+	ExternalSubscriptionId *string
 }
 
 func (b0 GetAttributedUsageResponse_builder) Build() *GetAttributedUsageResponse {
@@ -2658,28 +2801,36 @@ func (b0 GetAttributedUsageResponse_builder) Build() *GetAttributedUsageResponse
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.SubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 11)
 		x.xxx_hidden_SubscriptionId = b.SubscriptionId
 	}
 	if b.GroupBy != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 11)
 		x.xxx_hidden_GroupBy = b.GroupBy
 	}
 	if b.Basis != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 11)
 		x.xxx_hidden_Basis = *b.Basis
 	}
 	x.xxx_hidden_Period = b.Period
 	if b.Currency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 11)
 		x.xxx_hidden_Currency = b.Currency
 	}
 	x.xxx_hidden_Rows = &b.Rows
 	x.xxx_hidden_Unattributed = b.Unattributed
 	x.xxx_hidden_Totals = b.Totals
 	if b.NextPageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 9)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 11)
 		x.xxx_hidden_NextPageToken = b.NextPageToken
+	}
+	if b.TotalSize != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 11)
+		x.xxx_hidden_TotalSize = *b.TotalSize
+	}
+	if b.ExternalSubscriptionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 11)
+		x.xxx_hidden_ExternalSubscriptionId = b.ExternalSubscriptionId
 	}
 	return m0
 }
@@ -2707,7 +2858,7 @@ const file_tanvo_attribution_v1_attribution_proto_rawDesc = "" +
 	"parentCode:\x82\x01\xeaA\x7f\n" +
 	"\x1etanvo.xyz/UsageAttributionType\x120usage_attribution_types/{usage_attribution_type}*\x15usageAttributionTypes2\x14usageAttributionType\"1\n" +
 	"\x06Values\x12'\n" +
-	"\x06values\x18\x01 \x03(\tB\x0f\xbaH\f\x92\x01\t\x10d\"\x05r\x03\x18\xff\x01R\x06values\"\xb1\x04\n" +
+	"\x06values\x18\x01 \x03(\tB\x0f\xbaH\f\x92\x01\t\x10d\"\x05r\x03\x18\xff\x01R\x06values\"\xd8\x04\n" +
 	"\x15AttributedChargeUsage\x12\x1b\n" +
 	"\tcharge_id\x18\x01 \x01(\tR\bchargeId\x12\x1f\n" +
 	"\vcharge_code\x18\x02 \x01(\tR\n" +
@@ -2719,14 +2870,17 @@ const file_tanvo_attribution_v1_attribution_proto_rawDesc = "" +
 	"\"charge_filter_invoice_display_name\x18\x06 \x01(\tR\x1echargeFilterInvoiceDisplayName\x12\x14\n" +
 	"\x05units\x18\a \x01(\tR\x05units\x12.\n" +
 	"\x06amount\x18\b \x01(\v2\x16.tanvo.common.v1.MoneyR\x06amount\x12!\n" +
-	"\fevents_count\x18\t \x01(\x03R\veventsCount\x1ac\n" +
+	"\fevents_count\x18\t \x01(\x03R\veventsCount\x12%\n" +
+	"\x0eprecise_amount\x18\n" +
+	" \x01(\tR\rpreciseAmount\x1ac\n" +
 	"\x17ChargeFilterValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x122\n" +
-	"\x05value\x18\x02 \x01(\v2\x1c.tanvo.attribution.v1.ValuesR\x05value:\x028\x01\"\xba\x01\n" +
+	"\x05value\x18\x02 \x01(\v2\x1c.tanvo.attribution.v1.ValuesR\x05value:\x028\x01\"\xe1\x01\n" +
 	"\x13AttributedAggregate\x12.\n" +
 	"\x06amount\x18\x01 \x01(\v2\x16.tanvo.common.v1.MoneyR\x06amount\x12!\n" +
 	"\fevents_count\x18\x02 \x01(\x03R\veventsCount\x12P\n" +
-	"\rcharges_usage\x18\x03 \x03(\v2+.tanvo.attribution.v1.AttributedChargeUsageR\fchargesUsage\"\x7f\n" +
+	"\rcharges_usage\x18\x03 \x03(\v2+.tanvo.attribution.v1.AttributedChargeUsageR\fchargesUsage\x12%\n" +
+	"\x0eprecise_amount\x18\x04 \x01(\tR\rpreciseAmount\"\x7f\n" +
 	"\x12AttributedUsageRow\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\tR\x05value\x12\x12\n" +
 	"\x04rank\x18\x02 \x01(\x05R\x04rank\x12?\n" +
@@ -2763,31 +2917,29 @@ const file_tanvo_attribution_v1_attribution_proto_rawDesc = "" +
 	"!DeleteUsageAttributionTypeRequest\x12L\n" +
 	"\x19usage_attribution_type_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x16usageAttributionTypeId\"$\n" +
-	"\"DeleteUsageAttributionTypeResponse\"\x8f\x06\n" +
+	"\"DeleteUsageAttributionTypeResponse\"\xe5\x05\n" +
 	"\x19GetAttributedUsageRequest\x122\n" +
 	"\vcustomer_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\n" +
 	"customerId\x12:\n" +
 	"\x0fsubscription_id\x18\x02 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0esubscriptionId\x12,\n" +
-	"\bgroup_by\x18\x03 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
-	"\xc8\x01\x01r\x05\xe8\xa4\xca\x06\x01R\agroupBy\x12`\n" +
-	"\afilters\x18\x04 \x03(\v2<.tanvo.attribution.v1.GetAttributedUsageRequest.FiltersEntryB\b\xbaH\x05\x9a\x01\x02\x10\x04R\afilters\x127\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0esubscriptionId\x12*\n" +
+	"\bgroup_by\x18\x03 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\x18\xff\x01R\agroupBy\x12V\n" +
+	"\afilters\x18\x04 \x03(\v2<.tanvo.attribution.v1.GetAttributedUsageRequest.FiltersEntryR\afilters\x127\n" +
 	"\tfrom_time\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\bfromTime\x123\n" +
-	"\ato_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x06toTime\x126\n" +
-	"\fcharge_codes\x18\a \x03(\tB\x13\xbaH\x10\x92\x01\r\x10d\x18\x01\"\ar\x05\xe8\xa4\xca\x06\x01R\vchargeCodes\x126\n" +
-	"\x11split_charge_code\x18\b \x01(\tB\n" +
-	"\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x0fsplitChargeCode\x12 \n" +
-	"\x06search\x18\t \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x06search\x12F\n" +
+	"\ato_time\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\x06toTime\x120\n" +
+	"\fcharge_codes\x18\a \x03(\tB\r\xbaH\n" +
+	"\x92\x01\a\"\x05r\x03\x18\xff\x01R\vchargeCodes\x124\n" +
+	"\x11split_charge_code\x18\b \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x0fsplitChargeCode\x12\x16\n" +
+	"\x06search\x18\t \x01(\tR\x06search\x12F\n" +
 	"\x05basis\x18\n" +
-	" \x01(\x0e2&.tanvo.attribution.v1.AttributionBasisB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05basis\x12'\n" +
-	"\tpage_size\x18\v \x01(\x05B\n" +
-	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
+	" \x01(\x0e2&.tanvo.attribution.v1.AttributionBasisB\b\xbaH\x05\x82\x01\x02\x10\x01R\x05basis\x12\x1b\n" +
+	"\tpage_size\x18\v \x01(\x05R\bpageSize\x12'\n" +
 	"\n" +
 	"page_token\x18\f \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x1aX\n" +
 	"\fFiltersEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x122\n" +
-	"\x05value\x18\x02 \x01(\v2\x1c.tanvo.attribution.v1.ValuesR\x05value:\x028\x01\"\xea\x03\n" +
+	"\x05value\x18\x02 \x01(\v2\x1c.tanvo.attribution.v1.ValuesR\x05value:\x028\x01\"\xc3\x04\n" +
 	"\x1aGetAttributedUsageResponse\x12'\n" +
 	"\x0fsubscription_id\x18\x01 \x01(\tR\x0esubscriptionId\x12\x19\n" +
 	"\bgroup_by\x18\x02 \x01(\tR\agroupBy\x12<\n" +
@@ -2797,7 +2949,11 @@ const file_tanvo_attribution_v1_attribution_proto_rawDesc = "" +
 	"\x04rows\x18\x06 \x03(\v2(.tanvo.attribution.v1.AttributedUsageRowR\x04rows\x12M\n" +
 	"\funattributed\x18\a \x01(\v2).tanvo.attribution.v1.AttributedAggregateR\funattributed\x12A\n" +
 	"\x06totals\x18\b \x01(\v2).tanvo.attribution.v1.AttributedAggregateR\x06totals\x12&\n" +
-	"\x0fnext_page_token\x18\t \x01(\tR\rnextPageToken*\x88\x01\n" +
+	"\x0fnext_page_token\x18\t \x01(\tR\rnextPageToken\x12\x1d\n" +
+	"\n" +
+	"total_size\x18\n" +
+	" \x01(\x03R\ttotalSize\x128\n" +
+	"\x18external_subscription_id\x18\v \x01(\tR\x16externalSubscriptionId*\x88\x01\n" +
 	"\x14UsageAttributionRole\x12&\n" +
 	"\"USAGE_ATTRIBUTION_ROLE_UNSPECIFIED\x10\x00\x12'\n" +
 	"#USAGE_ATTRIBUTION_ROLE_HIERARCHICAL\x10\x01\x12\x1f\n" +

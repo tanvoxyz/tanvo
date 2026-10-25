@@ -15,8 +15,10 @@ import { file_google_api_annotations } from "../../../google/api/annotations_pb.
 import { file_google_api_field_behavior } from "../../../google/api/field_behavior_pb.js";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { AggregationType } from "../../catalog/v1/metric_pb.js";
+import { file_tanvo_catalog_v1_metric } from "../../catalog/v1/metric_pb.js";
 import { file_tanvo_common_v1_options } from "../../common/v1/options_pb.js";
-import type { DateTimeRange, Money } from "../../common/v1/types_pb.js";
+import type { DateTimeRange, Money, PresentationBreakdown } from "../../common/v1/types_pb.js";
 import { file_tanvo_common_v1_types } from "../../common/v1/types_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -24,7 +26,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file tanvo/usage/v1/usage.proto.
  */
 export const file_tanvo_usage_v1_usage: GenFile = /*@__PURE__*/
-  fileDesc("Chp0YW52by91c2FnZS92MS91c2FnZS5wcm90bxIOdGFudm8udXNhZ2UudjEimQIKDEdyb3VwZWRVc2FnZRI/Cgpncm91cGVkX2J5GAEgAygLMisudGFudm8udXNhZ2UudjEuR3JvdXBlZFVzYWdlLkdyb3VwZWRCeUVudHJ5Eg0KBXVuaXRzGAIgASgJEiYKBmFtb3VudBgDIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRIUCgxldmVudHNfY291bnQYBCABKAMSFwoPcHJvamVjdGVkX3VuaXRzGAUgASgJEjAKEHByb2plY3RlZF9hbW91bnQYBiABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkaMAoOR3JvdXBlZEJ5RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASL6AgoLRmlsdGVyVXNhZ2USGAoQY2hhcmdlX2ZpbHRlcl9pZBgBIAEoCRIcChRpbnZvaWNlX2Rpc3BsYXlfbmFtZRgCIAEoCRI3CgZ2YWx1ZXMYAyADKAsyJy50YW52by51c2FnZS52MS5GaWx0ZXJVc2FnZS5WYWx1ZXNFbnRyeRINCgV1bml0cxgEIAEoCRImCgZhbW91bnQYBSABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSFAoMZXZlbnRzX2NvdW50GAYgASgDEhcKD3Byb2plY3RlZF91bml0cxgHIAEoCRIwChBwcm9qZWN0ZWRfYW1vdW50GAggASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5EjMKDWdyb3VwZWRfdXNhZ2UYCSADKAsyHC50YW52by51c2FnZS52MS5Hcm91cGVkVXNhZ2UaLQoLVmFsdWVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKQAwoLQ2hhcmdlVXNhZ2USEQoJY2hhcmdlX2lkGAEgASgJEhoKEmJpbGxhYmxlX21ldHJpY19pZBgCIAEoCRIcChRiaWxsYWJsZV9tZXRyaWNfY29kZRgDIAEoCRIcChRpbnZvaWNlX2Rpc3BsYXlfbmFtZRgEIAEoCRINCgV1bml0cxgFIAEoCRImCgZhbW91bnQYBiABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSGwoTcHJpY2luZ191bml0X2Ftb3VudBgHIAEoCRIUCgxldmVudHNfY291bnQYCCABKAMSFwoPcHJvamVjdGVkX3VuaXRzGAkgASgJEjAKEHByb2plY3RlZF9hbW91bnQYCiABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSLAoHZmlsdGVycxgLIAMoCzIbLnRhbnZvLnVzYWdlLnYxLkZpbHRlclVzYWdlEjMKDWdyb3VwZWRfdXNhZ2UYDCADKAsyHC50YW52by51c2FnZS52MS5Hcm91cGVkVXNhZ2UivAMKBVVzYWdlEhcKD3N1YnNjcmlwdGlvbl9pZBgBIAEoCRIgChhleHRlcm5hbF9zdWJzY3JpcHRpb25faWQYAiABKAkSKAoEZnJvbRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASJgoCdG8YBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmlzc3VpbmdfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmludm9pY2VfaWQYBiABKAkSJgoGYW1vdW50GAcgASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5EiwKDHRheGVzX2Ftb3VudBgIIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRIsCgx0b3RhbF9hbW91bnQYCSABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSMAoQcHJvamVjdGVkX2Ftb3VudBgKIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRIsCgdjaGFyZ2VzGAsgAygLMhsudGFudm8udXNhZ2UudjEuQ2hhcmdlVXNhZ2Ui7AEKC0hvdXJseVVzYWdlEigKBGhvdXIYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhwKFGJpbGxhYmxlX21ldHJpY19jb2RlGAIgASgJEg0KBXVuaXRzGAMgASgJEhQKDGV2ZW50c19jb3VudBgEIAEoAxI+Cgpncm91cGVkX2J5GAUgAygLMioudGFudm8udXNhZ2UudjEuSG91cmx5VXNhZ2UuR3JvdXBlZEJ5RW50cnkaMAoOR3JvdXBlZEJ5RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKNAQoKRGFpbHlVc2FnZRIuCgp1c2FnZV9kYXRlGAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIkCgV1c2FnZRgCIAEoCzIVLnRhbnZvLnVzYWdlLnYxLlVzYWdlEikKCnVzYWdlX2RpZmYYAyABKAsyFS50YW52by51c2FnZS52MS5Vc2FnZSL2AgoWR2V0Q3VycmVudFVzYWdlUmVxdWVzdBImCgtjdXN0b21lcl9pZBgBIAEoCUIR4kEBArpICsgBAXIF4KTKBgESKgoPc3Vic2NyaXB0aW9uX2lkGAIgASgJQhHiQQECukgKyAEBcgXgpMoGARITCgthcHBseV90YXhlcxgDIAEoCBIaChJpbmNsdWRlX3Byb2plY3Rpb24YBCABKAgSKAoUYmlsbGFibGVfbWV0cmljX2NvZGUYBSABKAlCCrpIB3IF6KTKBgESUQoJZmlsdGVyX2J5GAYgAygLMjQudGFudm8udXNhZ2UudjEuR2V0Q3VycmVudFVzYWdlUmVxdWVzdC5GaWx0ZXJCeUVudHJ5Qgi6SAWaAQIQFBIpChVncm91cF9ieV9hdHRyaWJ1dGlvbnMYByADKAlCCrpIB5IBBBAFGAEaLwoNRmlsdGVyQnlFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIj8KF0dldEN1cnJlbnRVc2FnZVJlc3BvbnNlEiQKBXVzYWdlGAEgASgLMhUudGFudm8udXNhZ2UudjEuVXNhZ2Ui8wEKFExpc3RQYXN0VXNhZ2VSZXF1ZXN0EiYKC2N1c3RvbWVyX2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGARIqCg9zdWJzY3JpcHRpb25faWQYAiABKAlCEeJBAQK6SArIAQFyBeCkygYBEigKFGJpbGxhYmxlX21ldHJpY19jb2RlGAMgASgJQgq6SAdyBeikygYBEiAKDXBlcmlvZHNfY291bnQYBCABKAVCCbpIBhoEGGQoABIdCglwYWdlX3NpemUYBSABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgGIAEoCUIIukgFcgMYgAgiVwoVTGlzdFBhc3RVc2FnZVJlc3BvbnNlEiUKBnVzYWdlcxgBIAMoCzIVLnRhbnZvLnVzYWdlLnYxLlVzYWdlEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSLMAgoVR2V0SG91cmx5VXNhZ2VSZXF1ZXN0EiYKC2N1c3RvbWVyX2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGARIqCg9zdWJzY3JpcHRpb25faWQYAiABKAlCEeJBAQK6SArIAQFyBeCkygYBEigKBGZyb20YAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEiYKAnRvGAQgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIoChRiaWxsYWJsZV9tZXRyaWNfY29kZRgFIAEoCUIKukgHcgXopMoGATpjukhgGl4KC3JhbmdlLm9yZGVyEhZmcm9tIG11c3QgYmUgYmVmb3JlIHRvGjchaGFzKHRoaXMuZnJvbSkgfHwgIWhhcyh0aGlzLnRvKSB8fCB0aGlzLmZyb20gPCB0aGlzLnRvIksKFkdldEhvdXJseVVzYWdlUmVzcG9uc2USMQoMaG91cmx5X3VzYWdlGAEgAygLMhsudGFudm8udXNhZ2UudjEuSG91cmx5VXNhZ2Ui1wEKFUxpc3REYWlseVVzYWdlUmVxdWVzdBImCgtjdXN0b21lcl9pZBgBIAEoCUIR4kEBArpICsgBAXIF4KTKBgESKgoPc3Vic2NyaXB0aW9uX2lkGAIgASgJQhHiQQECukgKyAEBcgXgpMoGARItCgVyYW5nZRgDIAEoCzIeLnRhbnZvLmNvbW1vbi52MS5EYXRlVGltZVJhbmdlEh0KCXBhZ2Vfc2l6ZRgEIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAUgASgJQgi6SAVyAxiACCJjChZMaXN0RGFpbHlVc2FnZVJlc3BvbnNlEjAKDGRhaWx5X3VzYWdlcxgBIAMoCzIaLnRhbnZvLnVzYWdlLnYxLkRhaWx5VXNhZ2USFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJMvgGCgxVc2FnZVNlcnZpY2US3AEKD0dldEN1cnJlbnRVc2FnZRImLnRhbnZvLnVzYWdlLnYxLkdldEN1cnJlbnRVc2FnZVJlcXVlc3QaJy50YW52by51c2FnZS52MS5HZXRDdXJyZW50VXNhZ2VSZXNwb25zZSJ4kAIByvMYIAoOY3VzdG9tZXJzOnJlYWQqDmN1c3RvbWVyX3VzYWdlgtPkkwJLEkkvdjEvY3VzdG9tZXJzL3tjdXN0b21lcl9pZH0vc3Vic2NyaXB0aW9ucy97c3Vic2NyaXB0aW9uX2lkfS91c2FnZTpjdXJyZW50EtMBCg1MaXN0UGFzdFVzYWdlEiQudGFudm8udXNhZ2UudjEuTGlzdFBhc3RVc2FnZVJlcXVlc3QaJS50YW52by51c2FnZS52MS5MaXN0UGFzdFVzYWdlUmVzcG9uc2UidZACAcrzGCAKDmN1c3RvbWVyczpyZWFkKg5jdXN0b21lcl91c2FnZYLT5JMCSBJGL3YxL2N1c3RvbWVycy97Y3VzdG9tZXJfaWR9L3N1YnNjcmlwdGlvbnMve3N1YnNjcmlwdGlvbl9pZH0vdXNhZ2U6cGFzdBLYAQoOR2V0SG91cmx5VXNhZ2USJS50YW52by51c2FnZS52MS5HZXRIb3VybHlVc2FnZVJlcXVlc3QaJi50YW52by51c2FnZS52MS5HZXRIb3VybHlVc2FnZVJlc3BvbnNlIneQAgHK8xggCg5jdXN0b21lcnM6cmVhZCoOY3VzdG9tZXJfdXNhZ2WC0+STAkoSSC92MS9jdXN0b21lcnMve2N1c3RvbWVyX2lkfS9zdWJzY3JpcHRpb25zL3tzdWJzY3JpcHRpb25faWR9L3VzYWdlOmhvdXJseRLXAQoOTGlzdERhaWx5VXNhZ2USJS50YW52by51c2FnZS52MS5MaXN0RGFpbHlVc2FnZVJlcXVlc3QaJi50YW52by51c2FnZS52MS5MaXN0RGFpbHlVc2FnZVJlc3BvbnNlInaQAgHK8xggCg5jdXN0b21lcnM6cmVhZCoOY3VzdG9tZXJfdXNhZ2WC0+STAkkSRy92MS9jdXN0b21lcnMve2N1c3RvbWVyX2lkfS9zdWJzY3JpcHRpb25zL3tzdWJzY3JpcHRpb25faWR9L3VzYWdlOmRhaWx5Qr4BChJjb20udGFudm8udXNhZ2UudjFCClVzYWdlUHJvdG9QAVpCZ2l0aHViLmNvbS90YW52b3h5ei90YW52by9saWJzL3Byb3RvL2dlbi9nby90YW52by91c2FnZS92MTt1c2FnZXYxogIDVFVYqgIOVGFudm8uVXNhZ2UuVjHKAg5UYW52b1xVc2FnZVxWMeICGlRhbnZvXFVzYWdlXFYxXEdQQk1ldGFkYXRh6gIQVGFudm86OlVzYWdlOjpWMWIIZWRpdGlvbnNw6Ac", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_protobuf_timestamp, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
+  fileDesc("Chp0YW52by91c2FnZS92MS91c2FnZS5wcm90bxIOdGFudm8udXNhZ2UudjEitQMKDEdyb3VwZWRVc2FnZRI/Cgpncm91cGVkX2J5GAEgAygLMisudGFudm8udXNhZ2UudjEuR3JvdXBlZFVzYWdlLkdyb3VwZWRCeUVudHJ5Eg0KBXVuaXRzGAIgASgJEiYKBmFtb3VudBgDIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRIUCgxldmVudHNfY291bnQYBCABKAMSFwoPcHJvamVjdGVkX3VuaXRzGAUgASgJEjAKEHByb2plY3RlZF9hbW91bnQYBiABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSRwoXcHJlc2VudGF0aW9uX2JyZWFrZG93bnMYByADKAsyJi50YW52by5jb21tb24udjEuUHJlc2VudGF0aW9uQnJlYWtkb3duElEKIXByb2plY3RlZF9wcmVzZW50YXRpb25fYnJlYWtkb3ducxgIIAMoCzImLnRhbnZvLmNvbW1vbi52MS5QcmVzZW50YXRpb25CcmVha2Rvd24aMAoOR3JvdXBlZEJ5RW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKWBAoLRmlsdGVyVXNhZ2USGAoQY2hhcmdlX2ZpbHRlcl9pZBgBIAEoCRIcChRpbnZvaWNlX2Rpc3BsYXlfbmFtZRgCIAEoCRI3CgZ2YWx1ZXMYAyADKAsyJy50YW52by51c2FnZS52MS5GaWx0ZXJVc2FnZS5WYWx1ZXNFbnRyeRINCgV1bml0cxgEIAEoCRImCgZhbW91bnQYBSABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSFAoMZXZlbnRzX2NvdW50GAYgASgDEhcKD3Byb2plY3RlZF91bml0cxgHIAEoCRIwChBwcm9qZWN0ZWRfYW1vdW50GAggASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5EjMKDWdyb3VwZWRfdXNhZ2UYCSADKAsyHC50YW52by51c2FnZS52MS5Hcm91cGVkVXNhZ2USRwoXcHJlc2VudGF0aW9uX2JyZWFrZG93bnMYCiADKAsyJi50YW52by5jb21tb24udjEuUHJlc2VudGF0aW9uQnJlYWtkb3duElEKIXByb2plY3RlZF9wcmVzZW50YXRpb25fYnJlYWtkb3ducxgLIAMoCzImLnRhbnZvLmNvbW1vbi52MS5QcmVzZW50YXRpb25CcmVha2Rvd24aLQoLVmFsdWVzRW50cnkSCwoDa2V5GAEgASgJEg0KBXZhbHVlGAIgASgJOgI4ASKsBAoLQ2hhcmdlVXNhZ2USEQoJY2hhcmdlX2lkGAEgASgJEhoKEmJpbGxhYmxlX21ldHJpY19pZBgCIAEoCRIcChRiaWxsYWJsZV9tZXRyaWNfY29kZRgDIAEoCRIcChRpbnZvaWNlX2Rpc3BsYXlfbmFtZRgEIAEoCRINCgV1bml0cxgFIAEoCRImCgZhbW91bnQYBiABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSGwoTcHJpY2luZ191bml0X2Ftb3VudBgHIAEoCRIUCgxldmVudHNfY291bnQYCCABKAMSFwoPcHJvamVjdGVkX3VuaXRzGAkgASgJEjAKEHByb2plY3RlZF9hbW91bnQYCiABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSLAoHZmlsdGVycxgLIAMoCzIbLnRhbnZvLnVzYWdlLnYxLkZpbHRlclVzYWdlEjMKDWdyb3VwZWRfdXNhZ2UYDCADKAsyHC50YW52by51c2FnZS52MS5Hcm91cGVkVXNhZ2USRwoXcHJlc2VudGF0aW9uX2JyZWFrZG93bnMYDSADKAsyJi50YW52by5jb21tb24udjEuUHJlc2VudGF0aW9uQnJlYWtkb3duElEKIXByb2plY3RlZF9wcmVzZW50YXRpb25fYnJlYWtkb3ducxgOIAMoCzImLnRhbnZvLmNvbW1vbi52MS5QcmVzZW50YXRpb25CcmVha2Rvd24ivAMKBVVzYWdlEhcKD3N1YnNjcmlwdGlvbl9pZBgBIAEoCRIgChhleHRlcm5hbF9zdWJzY3JpcHRpb25faWQYAiABKAkSKAoEZnJvbRgDIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASJgoCdG8YBCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmlzc3VpbmdfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhIKCmludm9pY2VfaWQYBiABKAkSJgoGYW1vdW50GAcgASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5EiwKDHRheGVzX2Ftb3VudBgIIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRIsCgx0b3RhbF9hbW91bnQYCSABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSMAoQcHJvamVjdGVkX2Ftb3VudBgKIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRIsCgdjaGFyZ2VzGAsgAygLMhsudGFudm8udXNhZ2UudjEuQ2hhcmdlVXNhZ2Ui7QEKEUhvdXJseVVzYWdlRmlsdGVyEhgKEGNoYXJnZV9maWx0ZXJfaWQYASABKAkSHAoUaW52b2ljZV9kaXNwbGF5X25hbWUYAiABKAkSPQoGdmFsdWVzGAMgAygLMi0udGFudm8udXNhZ2UudjEuSG91cmx5VXNhZ2VGaWx0ZXIuVmFsdWVzRW50cnkSDQoFdW5pdHMYBCABKAkSFAoMZXZlbnRzX2NvdW50GAUgASgDEg0KBW90aGVyGAYgASgIGi0KC1ZhbHVlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEiZAoUSG91cmx5VXNhZ2VCcmVha2Rvd24SGAoQY2hhcmdlX2ZpbHRlcl9pZBgBIAEoCRINCgV1bml0cxgCIAEoCRIUCgxldmVudHNfY291bnQYAyABKAMSDQoFb3RoZXIYBCABKAgimgEKEEhvdXJseVVzYWdlUG9pbnQSKAoEdGltZRgBIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFdW5pdHMYAiABKAkSFAoMZXZlbnRzX2NvdW50GAMgASgDEjcKCWJyZWFrZG93bhgEIAMoCzIkLnRhbnZvLnVzYWdlLnYxLkhvdXJseVVzYWdlQnJlYWtkb3duIo0BCgpEYWlseVVzYWdlEi4KCnVzYWdlX2RhdGUYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEiQKBXVzYWdlGAIgASgLMhUudGFudm8udXNhZ2UudjEuVXNhZ2USKQoKdXNhZ2VfZGlmZhgDIAEoCzIVLnRhbnZvLnVzYWdlLnYxLlVzYWdlIsYDChZHZXRDdXJyZW50VXNhZ2VSZXF1ZXN0EiYKC2N1c3RvbWVyX2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGARIqCg9zdWJzY3JpcHRpb25faWQYAiABKAlCEeJBAQK6SArIAQFyBeCkygYBEhMKC2FwcGx5X3RheGVzGAMgASgIEhoKEmluY2x1ZGVfcHJvamVjdGlvbhgEIAEoCBIoChRiaWxsYWJsZV9tZXRyaWNfY29kZRgFIAEoCUIKukgHcgXopMoGARIbCgljaGFyZ2VfaWQYCCABKAlCCLpIBXIDsAEBEh8KC2NoYXJnZV9jb2RlGAkgASgJQgq6SAdyBeikygYBEjEKD2ZpbHRlcl9ieV9ncm91cBgKIAMoCUIYukgVkgESEGQiDnIMGOgHMgdeW146XSs6EjMKFmZpbHRlcl9ieV9wcmVzZW50YXRpb24YCyADKAlCE7pIEJIBDRAUGAEiB3IFEAEY/wESFQoNc2tpcF9ncm91cGluZxgMIAEoCBISCgpmdWxsX3VzYWdlGA0gASgISgQIBhAHSgQIBxAIUglmaWx0ZXJfYnlSFWdyb3VwX2J5X2F0dHJpYnV0aW9ucyI/ChdHZXRDdXJyZW50VXNhZ2VSZXNwb25zZRIkCgV1c2FnZRgBIAEoCzIVLnRhbnZvLnVzYWdlLnYxLlVzYWdlIvMBChRMaXN0UGFzdFVzYWdlUmVxdWVzdBImCgtjdXN0b21lcl9pZBgBIAEoCUIR4kEBArpICsgBAXIF4KTKBgESKgoPc3Vic2NyaXB0aW9uX2lkGAIgASgJQhHiQQECukgKyAEBcgXgpMoGARIoChRiaWxsYWJsZV9tZXRyaWNfY29kZRgDIAEoCUIKukgHcgXopMoGARIgCg1wZXJpb2RzX2NvdW50GAQgASgFQgm6SAYaBBhkKAASHQoJcGFnZV9zaXplGAUgASgFQgq6SAcaBRjoBygAEhwKCnBhZ2VfdG9rZW4YBiABKAlCCLpIBXIDGIAIIlcKFUxpc3RQYXN0VXNhZ2VSZXNwb25zZRIlCgZ1c2FnZXMYASADKAsyFS50YW52by51c2FnZS52MS5Vc2FnZRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAki4gIKFUdldEhvdXJseVVzYWdlUmVxdWVzdBImCgtjdXN0b21lcl9pZBgBIAEoCUIR4kEBArpICsgBAXIF4KTKBgESKgoPc3Vic2NyaXB0aW9uX2lkGAIgASgJQhHiQQECukgKyAEBcgXgpMoGARIoCgRmcm9tGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBImCgJ0bxgEIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASIgoJY2hhcmdlX2lkGAYgASgJQg/iQQECukgIyAEBcgOwAQE6Y7pIYBpeCgtyYW5nZS5vcmRlchIWZnJvbSBtdXN0IGJlIGJlZm9yZSB0bxo3IWhhcyh0aGlzLmZyb20pIHx8ICFoYXModGhpcy50bykgfHwgdGhpcy5mcm9tIDwgdGhpcy50b0oECAUQBlIUYmlsbGFibGVfbWV0cmljX2NvZGUi6AIKFkdldEhvdXJseVVzYWdlUmVzcG9uc2USKAoEZnJvbRgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASJgoCdG8YAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhAKCHRpbWV6b25lGAQgASgJEjsKEGFnZ3JlZ2F0aW9uX3R5cGUYBSABKA4yIS50YW52by5jYXRhbG9nLnYxLkFnZ3JlZ2F0aW9uVHlwZRI0ChBsYXN0X2luZ2VzdGVkX2F0GAYgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIyCgdmaWx0ZXJzGAcgAygLMiEudGFudm8udXNhZ2UudjEuSG91cmx5VXNhZ2VGaWx0ZXISLwoFaG91cnMYCCADKAsyIC50YW52by51c2FnZS52MS5Ib3VybHlVc2FnZVBvaW50SgQIARACUgxob3VybHlfdXNhZ2Ui1wEKFUxpc3REYWlseVVzYWdlUmVxdWVzdBImCgtjdXN0b21lcl9pZBgBIAEoCUIR4kEBArpICsgBAXIF4KTKBgESKgoPc3Vic2NyaXB0aW9uX2lkGAIgASgJQhHiQQECukgKyAEBcgXgpMoGARItCgVyYW5nZRgDIAEoCzIeLnRhbnZvLmNvbW1vbi52MS5EYXRlVGltZVJhbmdlEh0KCXBhZ2Vfc2l6ZRgEIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAUgASgJQgi6SAVyAxiACCJjChZMaXN0RGFpbHlVc2FnZVJlc3BvbnNlEjAKDGRhaWx5X3VzYWdlcxgBIAMoCzIaLnRhbnZvLnVzYWdlLnYxLkRhaWx5VXNhZ2USFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJMvgGCgxVc2FnZVNlcnZpY2US3AEKD0dldEN1cnJlbnRVc2FnZRImLnRhbnZvLnVzYWdlLnYxLkdldEN1cnJlbnRVc2FnZVJlcXVlc3QaJy50YW52by51c2FnZS52MS5HZXRDdXJyZW50VXNhZ2VSZXNwb25zZSJ4kAIByvMYIAoOY3VzdG9tZXJzOnJlYWQqDmN1c3RvbWVyX3VzYWdlgtPkkwJLEkkvdjEvY3VzdG9tZXJzL3tjdXN0b21lcl9pZH0vc3Vic2NyaXB0aW9ucy97c3Vic2NyaXB0aW9uX2lkfS91c2FnZTpjdXJyZW50EtMBCg1MaXN0UGFzdFVzYWdlEiQudGFudm8udXNhZ2UudjEuTGlzdFBhc3RVc2FnZVJlcXVlc3QaJS50YW52by51c2FnZS52MS5MaXN0UGFzdFVzYWdlUmVzcG9uc2UidZACAcrzGCAKDmN1c3RvbWVyczpyZWFkKg5jdXN0b21lcl91c2FnZYLT5JMCSBJGL3YxL2N1c3RvbWVycy97Y3VzdG9tZXJfaWR9L3N1YnNjcmlwdGlvbnMve3N1YnNjcmlwdGlvbl9pZH0vdXNhZ2U6cGFzdBLYAQoOR2V0SG91cmx5VXNhZ2USJS50YW52by51c2FnZS52MS5HZXRIb3VybHlVc2FnZVJlcXVlc3QaJi50YW52by51c2FnZS52MS5HZXRIb3VybHlVc2FnZVJlc3BvbnNlIneQAgHK8xggCg5jdXN0b21lcnM6cmVhZCoOY3VzdG9tZXJfdXNhZ2WC0+STAkoSSC92MS9jdXN0b21lcnMve2N1c3RvbWVyX2lkfS9zdWJzY3JpcHRpb25zL3tzdWJzY3JpcHRpb25faWR9L3VzYWdlOmhvdXJseRLXAQoOTGlzdERhaWx5VXNhZ2USJS50YW52by51c2FnZS52MS5MaXN0RGFpbHlVc2FnZVJlcXVlc3QaJi50YW52by51c2FnZS52MS5MaXN0RGFpbHlVc2FnZVJlc3BvbnNlInaQAgHK8xggCg5jdXN0b21lcnM6cmVhZCoOY3VzdG9tZXJfdXNhZ2WC0+STAkkSRy92MS9jdXN0b21lcnMve2N1c3RvbWVyX2lkfS9zdWJzY3JpcHRpb25zL3tzdWJzY3JpcHRpb25faWR9L3VzYWdlOmRhaWx5Qr4BChJjb20udGFudm8udXNhZ2UudjFCClVzYWdlUHJvdG9QAVpCZ2l0aHViLmNvbS90YW52b3h5ei90YW52by9saWJzL3Byb3RvL2dlbi9nby90YW52by91c2FnZS92MTt1c2FnZXYxogIDVFVYqgIOVGFudm8uVXNhZ2UuVjHKAg5UYW52b1xVc2FnZVxWMeICGlRhbnZvXFVzYWdlXFYxXEdQQk1ldGFkYXRh6gIQVGFudm86OlVzYWdlOjpWMWIIZWRpdGlvbnNw6Ac", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_protobuf_timestamp, file_tanvo_catalog_v1_metric, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
 
 /**
  * GroupedUsage is the usage of one grouping of a charge.
@@ -73,6 +75,20 @@ export type GroupedUsage = Message<"tanvo.usage.v1.GroupedUsage"> & {
    * @generated from field: tanvo.common.v1.Money projected_amount = 6;
    */
   projectedAmount?: Money | undefined;
+
+  /**
+   * The units of the group's fees by presentation key.
+   *
+   * @generated from field: repeated tanvo.common.v1.PresentationBreakdown presentation_breakdowns = 7;
+   */
+  presentationBreakdowns: PresentationBreakdown[];
+
+  /**
+   * The projected units by presentation key.
+   *
+   * @generated from field: repeated tanvo.common.v1.PresentationBreakdown projected_presentation_breakdowns = 8;
+   */
+  projectedPresentationBreakdowns: PresentationBreakdown[];
 };
 
 /**
@@ -150,6 +166,20 @@ export type FilterUsage = Message<"tanvo.usage.v1.FilterUsage"> & {
    * @generated from field: repeated tanvo.usage.v1.GroupedUsage grouped_usage = 9;
    */
   groupedUsage: GroupedUsage[];
+
+  /**
+   * The units of the filter's fees by presentation key.
+   *
+   * @generated from field: repeated tanvo.common.v1.PresentationBreakdown presentation_breakdowns = 10;
+   */
+  presentationBreakdowns: PresentationBreakdown[];
+
+  /**
+   * The projected units by presentation key.
+   *
+   * @generated from field: repeated tanvo.common.v1.PresentationBreakdown projected_presentation_breakdowns = 11;
+   */
+  projectedPresentationBreakdowns: PresentationBreakdown[];
 };
 
 /**
@@ -248,6 +278,20 @@ export type ChargeUsage = Message<"tanvo.usage.v1.ChargeUsage"> & {
    * @generated from field: repeated tanvo.usage.v1.GroupedUsage grouped_usage = 12;
    */
   groupedUsage: GroupedUsage[];
+
+  /**
+   * The units of the ungrouped and unfiltered fees by presentation key.
+   *
+   * @generated from field: repeated tanvo.common.v1.PresentationBreakdown presentation_breakdowns = 13;
+   */
+  presentationBreakdowns: PresentationBreakdown[];
+
+  /**
+   * The projected units of the ungrouped fees by presentation key.
+   *
+   * @generated from field: repeated tanvo.common.v1.PresentationBreakdown projected_presentation_breakdowns = 14;
+   */
+  projectedPresentationBreakdowns: PresentationBreakdown[];
 };
 
 /**
@@ -349,53 +393,146 @@ export const UsageSchema: GenMessage<Usage> = /*@__PURE__*/
   messageDesc(file_tanvo_usage_v1_usage, 3);
 
 /**
- * HourlyUsage is the usage of one billable metric in one hour.
+ * HourlyUsageFilter is one series of an hourly usage: a charge filter
+ * with usage in the window, the charge default, or the series folding the
+ * smallest filters, with its totals over the window.
  *
- * @generated from message tanvo.usage.v1.HourlyUsage
+ * @generated from message tanvo.usage.v1.HourlyUsageFilter
  */
-export type HourlyUsage = Message<"tanvo.usage.v1.HourlyUsage"> & {
+export type HourlyUsageFilter = Message<"tanvo.usage.v1.HourlyUsageFilter"> & {
   /**
-   * The start of the hour.
+   * The charge filter; empty for the charge default and the folded series.
    *
-   * @generated from field: google.protobuf.Timestamp hour = 1;
+   * @generated from field: string charge_filter_id = 1;
    */
-  hour?: Timestamp | undefined;
+  chargeFilterId: string;
 
   /**
-   * The billable metric code.
+   * The invoice line name of the filter.
    *
-   * @generated from field: string billable_metric_code = 2;
+   * @generated from field: string invoice_display_name = 2;
    */
-  billableMetricCode: string;
+  invoiceDisplayName: string;
 
   /**
-   * The aggregated value of the hour.
+   * The filter values, joined with commas.
    *
-   * @generated from field: string units = 3;
+   * @generated from field: map<string, string> values = 3;
+   */
+  values: { [key: string]: string };
+
+  /**
+   * The units of the window.
+   *
+   * @generated from field: string units = 4;
    */
   units: string;
 
   /**
-   * The number of events.
+   * The number of events of the window.
    *
-   * @generated from field: int64 events_count = 4;
+   * @generated from field: int64 events_count = 5;
    */
   eventsCount: bigint;
 
   /**
-   * The grouping values.
+   * Marks the series folding every filter past the biggest ones.
    *
-   * @generated from field: map<string, string> grouped_by = 5;
+   * @generated from field: bool other = 6;
    */
-  groupedBy: { [key: string]: string };
+  other: boolean;
 };
 
 /**
- * Describes the message tanvo.usage.v1.HourlyUsage.
- * Use `create(HourlyUsageSchema)` to create a new message.
+ * Describes the message tanvo.usage.v1.HourlyUsageFilter.
+ * Use `create(HourlyUsageFilterSchema)` to create a new message.
  */
-export const HourlyUsageSchema: GenMessage<HourlyUsage> = /*@__PURE__*/
+export const HourlyUsageFilterSchema: GenMessage<HourlyUsageFilter> = /*@__PURE__*/
   messageDesc(file_tanvo_usage_v1_usage, 4);
+
+/**
+ * HourlyUsageBreakdown is the usage of one series in one hour.
+ *
+ * @generated from message tanvo.usage.v1.HourlyUsageBreakdown
+ */
+export type HourlyUsageBreakdown = Message<"tanvo.usage.v1.HourlyUsageBreakdown"> & {
+  /**
+   * The charge filter; empty for the charge default and the folded series.
+   *
+   * @generated from field: string charge_filter_id = 1;
+   */
+  chargeFilterId: string;
+
+  /**
+   * The units of the hour.
+   *
+   * @generated from field: string units = 2;
+   */
+  units: string;
+
+  /**
+   * The number of events of the hour.
+   *
+   * @generated from field: int64 events_count = 3;
+   */
+  eventsCount: bigint;
+
+  /**
+   * Marks the series folding every filter past the biggest ones.
+   *
+   * @generated from field: bool other = 4;
+   */
+  other: boolean;
+};
+
+/**
+ * Describes the message tanvo.usage.v1.HourlyUsageBreakdown.
+ * Use `create(HourlyUsageBreakdownSchema)` to create a new message.
+ */
+export const HourlyUsageBreakdownSchema: GenMessage<HourlyUsageBreakdown> = /*@__PURE__*/
+  messageDesc(file_tanvo_usage_v1_usage, 5);
+
+/**
+ * HourlyUsagePoint is one hour of an hourly usage.
+ *
+ * @generated from message tanvo.usage.v1.HourlyUsagePoint
+ */
+export type HourlyUsagePoint = Message<"tanvo.usage.v1.HourlyUsagePoint"> & {
+  /**
+   * The start of the hour in the customer's time zone.
+   *
+   * @generated from field: google.protobuf.Timestamp time = 1;
+   */
+  time?: Timestamp | undefined;
+
+  /**
+   * The units of the hour.
+   *
+   * @generated from field: string units = 2;
+   */
+  units: string;
+
+  /**
+   * The number of events of the hour.
+   *
+   * @generated from field: int64 events_count = 3;
+   */
+  eventsCount: bigint;
+
+  /**
+   * The usage of each series, in the order of the filters.
+   *
+   * @generated from field: repeated tanvo.usage.v1.HourlyUsageBreakdown breakdown = 4;
+   */
+  breakdown: HourlyUsageBreakdown[];
+};
+
+/**
+ * Describes the message tanvo.usage.v1.HourlyUsagePoint.
+ * Use `create(HourlyUsagePointSchema)` to create a new message.
+ */
+export const HourlyUsagePointSchema: GenMessage<HourlyUsagePoint> = /*@__PURE__*/
+  messageDesc(file_tanvo_usage_v1_usage, 6);
 
 /**
  * DailyUsage is a snapshot of a subscription's usage on one day.
@@ -430,7 +567,7 @@ export type DailyUsage = Message<"tanvo.usage.v1.DailyUsage"> & {
  * Use `create(DailyUsageSchema)` to create a new message.
  */
 export const DailyUsageSchema: GenMessage<DailyUsage> = /*@__PURE__*/
-  messageDesc(file_tanvo_usage_v1_usage, 5);
+  messageDesc(file_tanvo_usage_v1_usage, 7);
 
 /**
  * GetCurrentUsageRequest is the request of UsageService.GetCurrentUsage.
@@ -467,25 +604,63 @@ export type GetCurrentUsageRequest = Message<"tanvo.usage.v1.GetCurrentUsageRequ
   includeProjection: boolean;
 
   /**
-   * Restricts the usage to one billable metric code.
+   * Restricts the usage to the charges of one billable metric code.
+   * charge_id and charge_code take precedence.
    *
    * @generated from field: string billable_metric_code = 5;
    */
   billableMetricCode: string;
 
   /**
-   * Restricts the usage to events matching these filter values.
+   * Restricts the usage to one charge of the plan; it takes precedence
+   * over charge_code and billable_metric_code.
    *
-   * @generated from field: map<string, string> filter_by = 6;
+   * @generated from field: string charge_id = 8;
    */
-  filterBy: { [key: string]: string };
+  chargeId: string;
 
   /**
-   * Groups the usage by these attribution type codes.
+   * Restricts the usage to the charge of this code; it takes precedence
+   * over billable_metric_code.
    *
-   * @generated from field: repeated string group_by_attributions = 7;
+   * @generated from field: string charge_code = 9;
    */
-  groupByAttributions: string[];
+  chargeCode: string;
+
+  /**
+   * Restricts the usage to the events whose property is one of the
+   * values, as `<key>:<value>` entries; several entries of one key match
+   * any of their values. The keys are no longer pricing group keys of the
+   * charges, whose other keys still group the usage.
+   *
+   * @generated from field: repeated string filter_by_group = 10;
+   */
+  filterByGroup: string[];
+
+  /**
+   * Keeps the presentation breakdowns of these presentation keys only;
+   * empty keeps them all.
+   *
+   * @generated from field: repeated string filter_by_presentation = 11;
+   */
+  filterByPresentation: string[];
+
+  /**
+   * Ignores the pricing group keys of the charges: one fee per charge
+   * and filter.
+   *
+   * @generated from field: bool skip_grouping = 12;
+   */
+  skipGrouping: boolean;
+
+  /**
+   * Computes the usage since the subscription started instead of since
+   * the period start. It needs a charge restriction or filter_by_group,
+   * and charges that are not prorated; include_projection ignores it.
+   *
+   * @generated from field: bool full_usage = 13;
+   */
+  fullUsage: boolean;
 };
 
 /**
@@ -493,7 +668,7 @@ export type GetCurrentUsageRequest = Message<"tanvo.usage.v1.GetCurrentUsageRequ
  * Use `create(GetCurrentUsageRequestSchema)` to create a new message.
  */
 export const GetCurrentUsageRequestSchema: GenMessage<GetCurrentUsageRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_usage_v1_usage, 6);
+  messageDesc(file_tanvo_usage_v1_usage, 8);
 
 /**
  * GetCurrentUsageResponse is the response of UsageService.GetCurrentUsage.
@@ -514,7 +689,7 @@ export type GetCurrentUsageResponse = Message<"tanvo.usage.v1.GetCurrentUsageRes
  * Use `create(GetCurrentUsageResponseSchema)` to create a new message.
  */
 export const GetCurrentUsageResponseSchema: GenMessage<GetCurrentUsageResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_usage_v1_usage, 7);
+  messageDesc(file_tanvo_usage_v1_usage, 9);
 
 /**
  * ListPastUsageRequest is the request of UsageService.ListPastUsage.
@@ -570,7 +745,7 @@ export type ListPastUsageRequest = Message<"tanvo.usage.v1.ListPastUsageRequest"
  * Use `create(ListPastUsageRequestSchema)` to create a new message.
  */
 export const ListPastUsageRequestSchema: GenMessage<ListPastUsageRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_usage_v1_usage, 8);
+  messageDesc(file_tanvo_usage_v1_usage, 10);
 
 /**
  * ListPastUsageResponse is the response of UsageService.ListPastUsage.
@@ -598,7 +773,7 @@ export type ListPastUsageResponse = Message<"tanvo.usage.v1.ListPastUsageRespons
  * Use `create(ListPastUsageResponseSchema)` to create a new message.
  */
 export const ListPastUsageResponseSchema: GenMessage<ListPastUsageResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_usage_v1_usage, 9);
+  messageDesc(file_tanvo_usage_v1_usage, 11);
 
 /**
  * GetHourlyUsageRequest is the request of UsageService.GetHourlyUsage.
@@ -621,25 +796,29 @@ export type GetHourlyUsageRequest = Message<"tanvo.usage.v1.GetHourlyUsageReques
   subscriptionId: string;
 
   /**
-   * The start of the range; the period start by default.
+   * The start of the window; 24 hours before its end by default. The
+   * window starts on the hour at or before it, in the customer's time
+   * zone.
    *
    * @generated from field: google.protobuf.Timestamp from = 3;
    */
   from?: Timestamp | undefined;
 
   /**
-   * The end of the range; now by default.
+   * The end of the window; now by default. An end inside a 15-minute
+   * bucket is moved to the end of the bucket. The window spans at most
+   * 31 days.
    *
    * @generated from field: google.protobuf.Timestamp to = 4;
    */
   to?: Timestamp | undefined;
 
   /**
-   * Restricts the usage to one billable metric code.
+   * The charge of the subscription's plan, counting or summing events.
    *
-   * @generated from field: string billable_metric_code = 5;
+   * @generated from field: string charge_id = 6;
    */
-  billableMetricCode: string;
+  chargeId: string;
 };
 
 /**
@@ -647,7 +826,7 @@ export type GetHourlyUsageRequest = Message<"tanvo.usage.v1.GetHourlyUsageReques
  * Use `create(GetHourlyUsageRequestSchema)` to create a new message.
  */
 export const GetHourlyUsageRequestSchema: GenMessage<GetHourlyUsageRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_usage_v1_usage, 10);
+  messageDesc(file_tanvo_usage_v1_usage, 12);
 
 /**
  * GetHourlyUsageResponse is the response of UsageService.GetHourlyUsage.
@@ -656,11 +835,53 @@ export const GetHourlyUsageRequestSchema: GenMessage<GetHourlyUsageRequest> = /*
  */
 export type GetHourlyUsageResponse = Message<"tanvo.usage.v1.GetHourlyUsageResponse"> & {
   /**
-   * The usage per hour and metric.
+   * The start of the window the units describe.
    *
-   * @generated from field: repeated tanvo.usage.v1.HourlyUsage hourly_usage = 1;
+   * @generated from field: google.protobuf.Timestamp from = 2;
    */
-  hourlyUsage: HourlyUsage[];
+  from?: Timestamp | undefined;
+
+  /**
+   * The end of the window the units describe.
+   *
+   * @generated from field: google.protobuf.Timestamp to = 3;
+   */
+  to?: Timestamp | undefined;
+
+  /**
+   * The customer's time zone the hours are cut in.
+   *
+   * @generated from field: string timezone = 4;
+   */
+  timezone: string;
+
+  /**
+   * The aggregation type of the charge's billable metric.
+   *
+   * @generated from field: tanvo.catalog.v1.AggregationType aggregation_type = 5;
+   */
+  aggregationType: AggregationType;
+
+  /**
+   * The latest ingestion time of the events counted.
+   *
+   * @generated from field: google.protobuf.Timestamp last_ingested_at = 6;
+   */
+  lastIngestedAt?: Timestamp | undefined;
+
+  /**
+   * The series with usage in the window, biggest first.
+   *
+   * @generated from field: repeated tanvo.usage.v1.HourlyUsageFilter filters = 7;
+   */
+  filters: HourlyUsageFilter[];
+
+  /**
+   * The hours of the window, gaps included.
+   *
+   * @generated from field: repeated tanvo.usage.v1.HourlyUsagePoint hours = 8;
+   */
+  hours: HourlyUsagePoint[];
 };
 
 /**
@@ -668,7 +889,7 @@ export type GetHourlyUsageResponse = Message<"tanvo.usage.v1.GetHourlyUsageRespo
  * Use `create(GetHourlyUsageResponseSchema)` to create a new message.
  */
 export const GetHourlyUsageResponseSchema: GenMessage<GetHourlyUsageResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_usage_v1_usage, 11);
+  messageDesc(file_tanvo_usage_v1_usage, 13);
 
 /**
  * ListDailyUsageRequest is the request of UsageService.ListDailyUsage.
@@ -717,7 +938,7 @@ export type ListDailyUsageRequest = Message<"tanvo.usage.v1.ListDailyUsageReques
  * Use `create(ListDailyUsageRequestSchema)` to create a new message.
  */
 export const ListDailyUsageRequestSchema: GenMessage<ListDailyUsageRequest> = /*@__PURE__*/
-  messageDesc(file_tanvo_usage_v1_usage, 12);
+  messageDesc(file_tanvo_usage_v1_usage, 14);
 
 /**
  * ListDailyUsageResponse is the response of UsageService.ListDailyUsage.
@@ -745,7 +966,7 @@ export type ListDailyUsageResponse = Message<"tanvo.usage.v1.ListDailyUsageRespo
  * Use `create(ListDailyUsageResponseSchema)` to create a new message.
  */
 export const ListDailyUsageResponseSchema: GenMessage<ListDailyUsageResponse> = /*@__PURE__*/
-  messageDesc(file_tanvo_usage_v1_usage, 13);
+  messageDesc(file_tanvo_usage_v1_usage, 15);
 
 /**
  * UsageService reads the usage of subscriptions. Usage is keyed by customer
@@ -776,7 +997,8 @@ export const UsageService: GenService<{
     output: typeof ListPastUsageResponseSchema;
   },
   /**
-   * Returns the hourly usage of billable metrics over a time range.
+   * Returns the usage of one charge per hour of the customer's time zone,
+   * broken down by charge filter, read from the usage buckets.
    *
    * @generated from rpc tanvo.usage.v1.UsageService.GetHourlyUsage
    */

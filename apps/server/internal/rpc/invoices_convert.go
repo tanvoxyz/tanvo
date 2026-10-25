@@ -195,6 +195,7 @@ func feeProto(v invoicing.FeeView) *invoicev1.Fee {
 		RefundedAt:               TimestampPtr(f.RefundedAt),
 		CreatedAt:                Timestamp(f.CreatedAt),
 		OriginalFeeId:            idString(f.OriginalFeeID),
+		PresentationBreakdowns:   PresentationBreakdowns(v.PresentationBreakdowns),
 	}
 	if f.InvoiceDisplayName != nil {
 		b.InvoiceDisplayName = new(*f.InvoiceDisplayName)

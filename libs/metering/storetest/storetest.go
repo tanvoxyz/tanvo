@@ -142,10 +142,12 @@ func Cases() (map[string][]Case, error) {
 // Run runs every embedded case against the stores newStore returns. The
 // aggregation cases run the aggregations of package metering over the
 // store, so that a store passing them computes what the reference
-// [metering.MemoryStore] does.
+// [metering.MemoryStore] does. A store reporting ingestion watermarks
+// ([metering.IngestionWatermarks]) is checked on them too.
 func Run(t *testing.T, newStore NewStore) {
 	t.Helper()
 	RunCases(t, func(t *testing.T, _ Case, events []metering.Event) metering.Store { return newStore(t, events) })
+	t.Run("watermark", func(t *testing.T) { runWatermark(t, newStore) })
 }
 
 // RunCases is [Run] with a store factory told the case.
