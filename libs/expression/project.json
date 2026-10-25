@@ -8,7 +8,7 @@
         "cwd": "{projectRoot}"
       },
       "cache": true,
-      "inputs": ["rust", "{projectRoot}/scripts/build-wasm.mjs", { "env": "RUSTFLAGS" }],
+      "inputs": ["rust", "{projectRoot}/scripts/build-wasm.mjs", { "env": "RUSTFLAGS" }, { "env": "TANVO_WASM_BUILD" }],
       "outputs": ["{projectRoot}/go/expression.wasm"]
     },
     "wasm-js": {

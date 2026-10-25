@@ -53,11 +53,11 @@ Nx orchestrates, caches and computes affected projects; every Go module and Carg
 | `generate` | `buf generate` (projects with a `buf.yaml`) | — | No |
 | `buf-lint` | `buf lint && buf format --diff --exit-code` (projects with a `buf.yaml`) | — | Yes |
 
-A project adds or overrides targets with a `project.json` beside its `go.mod` or `Cargo.toml`. `libs/expression` adds `wasm`, which builds the release WASM module and copies it to `libs/expression/go/expression.wasm`; the module is committed, and CI checks that rebuilding it leaves no diff.
+A project adds or overrides targets with a `project.json` beside its `go.mod` or `Cargo.toml`. `libs/expression` adds `wasm`, which builds the release WASM module and copies it to `libs/expression/go/expression.wasm`; the module is committed, and CI checks that rebuilding it leaves no diff. The build runs in a `linux/amd64` `rust:1.99.0` container pinned by digest, because Cargo folds the host triple into each crate's metadata hash and a build on another host produces different bytes; the container keeps its toolchain and crates in the Docker volumes `tanvo-wasm-rustup` and `tanvo-wasm-cargo-registry`. `TANVO_WASM_BUILD=native` builds with the local toolchain for machines without Docker, but its module is not the one to commit.
 
 ```bash
-pnpm nx run-many -t build test lint tidy-check      # Everything
-pnpm nx affected -t build test lint tidy-check      # Projects affected since main
+pnpm nx run-many -t build test lint tidy-check buf-lint      # Everything
+pnpm nx affected -t build test lint tidy-check buf-lint      # Projects affected since main
 pnpm nx run money:test                              # One target of one project
 pnpm nx graph                                       # Dependency graph
 ```

@@ -53,11 +53,11 @@ Nx 负责编排、缓存与计算受影响的项目；每个 Go 模块和 Cargo 
 | `generate` | `buf generate`（仅限含 `buf.yaml` 的项目） | — | 否 |
 | `buf-lint` | `buf lint && buf format --diff --exit-code`（仅限含 `buf.yaml` 的项目） | — | 是 |
 
-项目通过放在其 `go.mod` 或 `Cargo.toml` 旁的 `project.json` 添加或覆盖目标。`libs/expression` 添加了 `wasm`，它构建发布版 WASM 模块并复制到 `libs/expression/go/expression.wasm`；该模块提交入库，CI 检查重新构建后没有差异。
+项目通过放在其 `go.mod` 或 `Cargo.toml` 旁的 `project.json` 添加或覆盖目标。`libs/expression` 添加了 `wasm`，它构建发布版 WASM 模块并复制到 `libs/expression/go/expression.wasm`；该模块提交入库，CI 检查重新构建后没有差异。构建在按 digest 锁定的 `linux/amd64` `rust:1.99.0` 容器中进行，因为 Cargo 会把宿主三元组计入每个 crate 的元数据哈希，在其他宿主上构建会得到不同的字节；容器的工具链与 crate 保存在 Docker 卷 `tanvo-wasm-rustup` 与 `tanvo-wasm-cargo-registry` 中。`TANVO_WASM_BUILD=native` 用本地工具链构建，供没有 Docker 的机器使用，但其产物不应提交。
 
 ```bash
-pnpm nx run-many -t build test lint tidy-check      # 全部
-pnpm nx affected -t build test lint tidy-check      # 相对 main 受影响的项目
+pnpm nx run-many -t build test lint tidy-check buf-lint      # 全部
+pnpm nx affected -t build test lint tidy-check buf-lint      # 相对 main 受影响的项目
 pnpm nx run money:test                              # 单个项目的单个目标
 pnpm nx graph                                       # 依赖图
 ```

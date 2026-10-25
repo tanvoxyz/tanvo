@@ -26,8 +26,8 @@ Tanvo 是以 Go 为服务端核心的开源用量计费与计量平台。它在�
 ```bash
 mise install            # 安装锁定版本的工具链
 pnpm install            # 安装 Nx
-pnpm nx run-many -t build test lint tidy-check     # 检查全部
-pnpm nx affected -t build test lint tidy-check     # 只检查受影响的项目
+pnpm nx run-many -t build test lint tidy-check buf-lint     # 检查全部
+pnpm nx affected -t build test lint tidy-check buf-lint     # 只检查受影响的项目
 pnpm nx show projects                              # 列出项目（名称 = 目录名）
 ```
 

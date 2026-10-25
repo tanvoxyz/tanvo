@@ -26,8 +26,8 @@ Tool versions are pinned in `mise.toml` (go, node, pnpm, buf, golangci-lint, sql
 ```bash
 mise install            # Install the pinned toolchain
 pnpm install            # Install Nx
-pnpm nx run-many -t build test lint tidy-check     # Check everything
-pnpm nx affected -t build test lint tidy-check     # Check affected projects only
+pnpm nx run-many -t build test lint tidy-check buf-lint     # Check everything
+pnpm nx affected -t build test lint tidy-check buf-lint     # Check affected projects only
 pnpm nx show projects                              # List projects (name = directory name)
 ```
 
