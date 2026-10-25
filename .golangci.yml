@@ -125,6 +125,7 @@ linters:
             - "**/libs/documents/**"
             - "**/libs/mail/**"
             - "**/libs/auth/**"
+            - "**/libs/cache/**"
           deny:
             - pkg: github.com/tanvoxyz/tanvo/libs/billing
               desc: "infrastructure implements ports; it does not depend on the billing engine"
@@ -145,6 +146,8 @@ linters:
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
             - pkg: github.com/tanvoxyz/tanvo/libs/ingest
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/cache
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
         infra-eventstore:
           files: ["**/libs/eventstore/**", "!$test"]
           deny:
@@ -161,6 +164,8 @@ linters:
             - pkg: github.com/tanvoxyz/tanvo/libs/auth
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
             - pkg: github.com/tanvoxyz/tanvo/libs/ingest
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/cache
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
         infra-jobs:
           files: ["**/libs/jobs/**", "!$test"]
@@ -179,6 +184,8 @@ linters:
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
             - pkg: github.com/tanvoxyz/tanvo/libs/ingest
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/cache
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
         infra-webhooks:
           files: ["**/libs/webhooks/**", "!$test"]
           deny:
@@ -195,6 +202,8 @@ linters:
             - pkg: github.com/tanvoxyz/tanvo/libs/auth
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
             - pkg: github.com/tanvoxyz/tanvo/libs/ingest
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/cache
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
         infra-documents:
           files: ["**/libs/documents/**", "!$test"]
@@ -213,6 +222,8 @@ linters:
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
             - pkg: github.com/tanvoxyz/tanvo/libs/ingest
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/cache
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
         infra-mail:
           files: ["**/libs/mail/**", "!$test"]
           deny:
@@ -229,6 +240,8 @@ linters:
             - pkg: github.com/tanvoxyz/tanvo/libs/auth
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
             - pkg: github.com/tanvoxyz/tanvo/libs/ingest
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/cache
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
         infra-auth:
           files: ["**/libs/auth/**", "!$test"]
@@ -247,6 +260,8 @@ linters:
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
             - pkg: github.com/tanvoxyz/tanvo/libs/ingest
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/cache
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
         infra-ingest:
           files: ["**/libs/ingest/**", "!$test"]
           deny:
@@ -264,6 +279,23 @@ linters:
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
             - pkg: github.com/tanvoxyz/tanvo/libs/auth
               desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+            - pkg: github.com/tanvoxyz/tanvo/libs/cache
+              desc: "infrastructure libraries do not depend on each other; apps/server wires them"
+        # The cache implements port.Cache; its tests also use libs/dockertest.
+        infra-cache:
+          list-mode: lax
+          files: ["**/libs/cache/**", "!$test"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo
+              desc: "infrastructure libraries depend only on libs/core; apps/server wires them"
+          allow: ["$gostd", github.com/tanvoxyz/tanvo/libs/cache, github.com/tanvoxyz/tanvo/libs/core]
+        # The billing tests may use libs/cache to run the caches they read
+        # through on a real backend.
+        billing-cache:
+          files: ["**/libs/billing/**", "!$test"]
+          deny:
+            - pkg: github.com/tanvoxyz/tanvo/libs/cache
+              desc: "billing uses the Cache port from libs/core; apps/server wires the backend"
         otel-sdk:
           files: ["**/libs/**", "**/providers/**", "!$test"]
           deny:

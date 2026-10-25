@@ -4,6 +4,7 @@ use (
 	./apps/server
 	./libs/auth
 	./libs/billing
+	./libs/cache
 	./libs/core
 	./libs/dockertest
 	./libs/documents
