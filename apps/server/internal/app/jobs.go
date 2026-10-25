@@ -24,9 +24,11 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/exports"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/export"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/clickhouse"
 	"github.com/tanvoxyz/tanvo/libs/jobs"
+	"github.com/tanvoxyz/tanvo/libs/mail"
 	"github.com/tanvoxyz/tanvo/libs/webhooks"
 )
 
@@ -39,6 +41,12 @@ type jobHandlers struct {
 	// clock gives the current instant to the jobs that read it; nil
 	// means the system clock.
 	clock core.Clock
+	// blobs stores the export files; nil leaves the exports processing.
+	blobs port.BlobStore
+	// composer and sender email the completed exports.
+	composer *mail.Composer
+	sender   mail.Sender
+	log      *slog.Logger
 }
 
 // sweepLimit is the number of due webhook deliveries a sweep enqueues.
@@ -116,8 +124,10 @@ func (h jobHandlers) registerWebhooks(reg *jobs.Registry) error {
 
 // registerExports registers the data export jobs: the listing of an
 // export's documents into parts, the rendering of each part and the
-// combination of the parts into the file. No blob store is wired yet, so
-// the combination only logs that the file is not written.
+// combination of the parts into the file, written to the blob store, and
+// the email of the completed export (lago DataExportMailer#completed).
+// Without a blob store, the combination only logs that the file is not
+// written.
 func (h jobHandlers) registerExports(reg *jobs.Registry) error {
 	var clock core.Clock = core.SystemClock{}
 	if h.clock != nil {
@@ -125,7 +135,7 @@ func (h jobHandlers) registerExports(reg *jobs.Registry) error {
 	}
 	svc := exports.New(&kernel.Deps{
 		Tx: h.tx, Clock: clock, IDs: core.UUIDv7Generator{}, Webhooks: &webhooks.Emitter{Tx: h.tx},
-	}, nil, rpc.ExportFilters())
+	}, h.blobs, rpc.ExportFilters())
 	if err := jobs.Register(reg, jobs.Kind{Name: exports.JobExportResources},
 		jobs.HandlerFunc[exports.ExportArgs](func(ctx context.Context, j *jobs.Job[exports.ExportArgs]) error {
 			_, err := svc.ExportResources(ctx, j.OrganizationID, j.Args.DataExportID, exports.BatchSize)
@@ -140,7 +150,7 @@ func (h jobHandlers) registerExports(reg *jobs.Registry) error {
 		})); err != nil {
 		return err
 	}
-	return jobs.Register(reg, jobs.Kind{Name: exports.JobCombineParts},
+	if err := jobs.Register(reg, jobs.Kind{Name: exports.JobCombineParts},
 		jobs.HandlerFunc[exports.ExportArgs](func(ctx context.Context, j *jobs.Job[exports.ExportArgs]) error {
 			_, err := svc.CombineParts(ctx, j.OrganizationID, j.Args.DataExportID)
 			if errors.Is(err, exports.ErrNoBlobStore) {
@@ -149,7 +159,45 @@ func (h jobHandlers) registerExports(reg *jobs.Registry) error {
 				return nil
 			}
 			return err
+		})); err != nil {
+		return err
+	}
+	return jobs.Register(reg, jobs.Kind{Name: exports.JobSendCompletedEmail, MaxAttempts: 1, Retry: emailRetry()},
+		jobs.HandlerFunc[exports.ExportArgs](func(ctx context.Context, j *jobs.Job[exports.ExportArgs]) error {
+			return h.sendExportEmail(ctx, svc, j.OrganizationID, j.Args.DataExportID)
 		}))
+}
+
+// sendExportEmail emails the requester of export id its file link.
+func (h jobHandlers) sendExportEmail(ctx context.Context, svc *exports.Service, org core.OrganizationID, id core.DataExportID) error {
+	if h.composer == nil {
+		return nil
+	}
+	e, err := svc.CompletedEmail(ctx, org, id)
+	if err != nil || e == nil {
+		return permanentDomain(err)
+	}
+	m, err := h.composer.DataExportCompleted(mail.DataExportEmail{
+		UserEmail: e.UserEmail, ResourceType: string(e.Export.ResourceType),
+		Completed: e.Export.Status == export.StatusCompleted, Expired: e.Export.Expired(clockOf(h.clock).Now()),
+		FileURL: e.FileURL, Filename: e.Export.Filename(),
+	})
+	if errors.Is(err, mail.ErrSkipped) {
+		slog.InfoContext(ctx, "mail: skipped", "template", string(mail.KindDataExportCompleted), "reason", err.Error())
+		return nil
+	}
+	if err != nil {
+		return permanentDomain(err)
+	}
+	return h.sender.Send(ctx, m)
+}
+
+// clockOf returns c, or the system clock when nil.
+func clockOf(c core.Clock) core.Clock {
+	if c == nil {
+		return core.SystemClock{}
+	}
+	return c
 }
 
 // registerAPIKeyUsage registers the API key usage clock job and its

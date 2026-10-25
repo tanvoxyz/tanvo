@@ -38,6 +38,14 @@ func TestAuthSessionLifecycle(t *testing.T) {
 	if up.GetSession().GetToken() == "" || up.GetOrganization().GetRoleCode() == "" {
 		t.Errorf("got session %q, role %q, want both set", up.GetSession().GetToken(), up.GetOrganization().GetRoleCode())
 	}
+	// The organization gets its default billing entity, coded after its
+	// name.
+	// source: spec/services/organizations/create_service_spec.rb:100
+	var entity string
+	if err := s.Admin.QueryRow(ctx, `SELECT code || ':' || name || ':' || is_default FROM billing_entities WHERE organization_id = $1`,
+		up.GetOrganization().GetOrganizationId()).Scan(&entity); err != nil || entity != "foobar:FooBar:true" {
+		t.Errorf("got billing entity = %q (%v), want = foobar:FooBar:true", entity, err)
+	}
 
 	// source: spec/graphql/mutations/register_user_spec.rb:73
 	_, err = anon.SignUp(ctx, accessv1.SignUpRequest_builder{

@@ -494,6 +494,15 @@ paths:
           schema:
             type: string
             title: customer_id
+        - name: expire_cache
+          in: query
+          description: |-
+            Recomputes the customer's cached reports of this kind before
+             answering; ignored without a customer, as organization-wide reports
+             are only refreshed by the cache's expiry.
+          schema:
+            type: boolean
+            title: expire_cache
       responses:
         "200":
           description: Success
@@ -681,6 +690,15 @@ paths:
           schema:
             type: string
             title: customer_id
+        - name: expire_cache
+          in: query
+          description: |-
+            Recomputes the customer's cached reports of this kind before
+             answering; ignored without a customer, as organization-wide reports
+             are only refreshed by the cache's expiry.
+          schema:
+            type: boolean
+            title: expire_cache
       responses:
         "200":
           description: Success
@@ -2452,6 +2470,141 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.creditnote.v1.GetCreditNoteResponse'
+  /v1/credit_notes/{credit_note_id}/metadata:
+    post:
+      tags:
+        - CreditNoteService
+      summary: ReplaceCreditNoteMetadata
+      description: Replaces the credit note's metadata; an empty list clears it.
+      operationId: tanvo.creditnote.v1.CreditNoteService.ReplaceCreditNoteMetadata
+      parameters:
+        - name: credit_note_id
+          in: path
+          description: The credit note's ID.
+          required: true
+          schema:
+            type: string
+            title: credit_note_id
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+                  title: metadata
+                  maxItems: 50
+                  description: The new metadata; empty clears it.
+              title: ReplaceCreditNoteMetadataRequest
+              additionalProperties: false
+              description: ReplaceCreditNoteMetadataRequest is the request of ReplaceCreditNoteMetadata.
+        required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.creditnote.v1.ReplaceCreditNoteMetadataResponse'
+    delete:
+      tags:
+        - CreditNoteService
+      summary: DeleteCreditNoteMetadata
+      description: Removes all the credit note's metadata.
+      operationId: tanvo.creditnote.v1.CreditNoteService.DeleteCreditNoteMetadata
+      parameters:
+        - name: credit_note_id
+          in: path
+          description: The credit note's ID.
+          required: true
+          schema:
+            type: string
+            title: credit_note_id
+            format: uuid
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.creditnote.v1.DeleteCreditNoteMetadataResponse'
+    patch:
+      tags:
+        - CreditNoteService
+      summary: MergeCreditNoteMetadata
+      description: |-
+        Merges items into the credit note's metadata: values of existing keys are
+         replaced and new keys appended.
+      operationId: tanvo.creditnote.v1.CreditNoteService.MergeCreditNoteMetadata
+      parameters:
+        - name: credit_note_id
+          in: path
+          description: The credit note's ID.
+          required: true
+          schema:
+            type: string
+            title: credit_note_id
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+                  title: metadata
+                  maxItems: 50
+                  description: The items to merge.
+              title: MergeCreditNoteMetadataRequest
+              additionalProperties: false
+              description: MergeCreditNoteMetadataRequest is the request of MergeCreditNoteMetadata.
+        required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.creditnote.v1.MergeCreditNoteMetadataResponse'
+  /v1/credit_notes/{credit_note_id}/metadata/{key}:
+    delete:
+      tags:
+        - CreditNoteService
+      summary: DeleteCreditNoteMetadataKey
+      description: |-
+        Removes one key from the credit note's metadata; NOT_FOUND when the
+         credit note has no metadata.
+      operationId: tanvo.creditnote.v1.CreditNoteService.DeleteCreditNoteMetadataKey
+      parameters:
+        - name: credit_note_id
+          in: path
+          description: The credit note's ID.
+          required: true
+          schema:
+            type: string
+            title: credit_note_id
+            format: uuid
+        - name: key
+          in: path
+          description: The key to remove.
+          required: true
+          schema:
+            type: string
+            title: key
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.creditnote.v1.DeleteCreditNoteMetadataKeyResponse'
   /v1/credit_notes/{credit_note_id}:download:
     post:
       tags:
@@ -4126,8 +4279,11 @@ paths:
         - EventService
       summary: ListEnrichedEvents
       description: |-
-        Lists enriched events: events resolved to their subscription, charge
-         and filter, with the computed value.
+        Lists enriched events, latest enriched first: the stored events with
+         the value enrichment gave them. Beta (response header
+         `X-Tanvo-Endpoint-Status: beta`); only organizations ingesting through
+         Kafka store enriched events, others get PermissionDenied with reason
+         `endpoint_not_available`.
       operationId: tanvo.event.v1.EventService.ListEnrichedEvents
       parameters:
         - name: page_size
@@ -4149,12 +4305,21 @@ paths:
         - name: filter
           in: query
           description: |-
-            An AIP-160 filter over `code`, `subscription_id`, `charge_id`,
-             `charge_filter_id`, `transaction_id` and `timestamp`.
+            An AIP-160 filter over `code`, `external_subscription_id` and
+             `timestamp`.
           schema:
             type: string
             title: filter
             maxLength: 2048
+        - name: timestamp_from_started_at
+          in: query
+          description: |-
+            Lists the events from the start of the latest subscription with the
+             filter's `external_subscription_id`, in place of a lower `timestamp`
+             bound; without that subscription, the filter applies as is.
+          schema:
+            type: boolean
+            title: timestamp_from_started_at
       responses:
         "200":
           description: Success
@@ -7111,6 +7276,22 @@ paths:
                   title: to
                   maxItems: 20
                   description: The recipients; the customer's billing emails by default.
+                cc:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                  title: cc
+                  maxItems: 20
+                  description: Carbon copies.
+                bcc:
+                  type: array
+                  items:
+                    type: string
+                    format: email
+                  title: bcc
+                  maxItems: 20
+                  description: Blind carbon copies.
               title: ResendPaymentReceiptRequest
               additionalProperties: false
               description: ResendPaymentReceiptRequest is the request of PaymentReceiptService.ResendPaymentReceipt.
@@ -8540,6 +8721,145 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.catalog.v1.DeleteFixedChargeResponse'
+  /v1/plans/{plan_id}/metadata:
+    post:
+      tags:
+        - PlanService
+      summary: ReplacePlanMetadata
+      description: Replaces the plan's metadata; an empty list clears it.
+      operationId: tanvo.catalog.v1.PlanService.ReplacePlanMetadata
+      parameters:
+        - name: plan_id
+          in: path
+          description: |
+            The plan's ID or `code:<code>`.
+            string.ref = true
+          required: true
+          schema:
+            type: string
+            title: plan_id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+                  title: metadata
+                  maxItems: 50
+                  description: The new metadata; empty clears it.
+              title: ReplacePlanMetadataRequest
+              additionalProperties: false
+              description: ReplacePlanMetadataRequest is the request of ReplacePlanMetadata.
+        required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.catalog.v1.ReplacePlanMetadataResponse'
+    delete:
+      tags:
+        - PlanService
+      summary: DeletePlanMetadata
+      description: Removes all the plan's metadata.
+      operationId: tanvo.catalog.v1.PlanService.DeletePlanMetadata
+      parameters:
+        - name: plan_id
+          in: path
+          description: |
+            The plan's ID or `code:<code>`.
+            string.ref = true
+          required: true
+          schema:
+            type: string
+            title: plan_id
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.catalog.v1.DeletePlanMetadataResponse'
+    patch:
+      tags:
+        - PlanService
+      summary: MergePlanMetadata
+      description: |-
+        Merges items into the plan's metadata: values of existing keys are
+         replaced and new keys appended.
+      operationId: tanvo.catalog.v1.PlanService.MergePlanMetadata
+      parameters:
+        - name: plan_id
+          in: path
+          description: |
+            The plan's ID or `code:<code>`.
+            string.ref = true
+          required: true
+          schema:
+            type: string
+            title: plan_id
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+                  title: metadata
+                  maxItems: 50
+                  description: The items to merge.
+              title: MergePlanMetadataRequest
+              additionalProperties: false
+              description: MergePlanMetadataRequest is the request of MergePlanMetadata.
+        required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.catalog.v1.MergePlanMetadataResponse'
+  /v1/plans/{plan_id}/metadata/{key}:
+    delete:
+      tags:
+        - PlanService
+      summary: DeletePlanMetadataKey
+      description: |-
+        Removes one key from the plan's metadata; NOT_FOUND when the
+         plan has no metadata.
+      operationId: tanvo.catalog.v1.PlanService.DeletePlanMetadataKey
+      parameters:
+        - name: plan_id
+          in: path
+          description: |
+            The plan's ID or `code:<code>`.
+            string.ref = true
+          required: true
+          schema:
+            type: string
+            title: plan_id
+        - name: key
+          in: path
+          description: The key to remove.
+          required: true
+          schema:
+            type: string
+            title: key
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.catalog.v1.DeletePlanMetadataKeyResponse'
   /v1/plans/{plan_id}/rate_cards:
     get:
       tags:
@@ -8955,6 +9275,13 @@ paths:
          payment status, in the customer's currency, every month since the
          organization's creation.
       operationId: tanvo.portal.v1.CustomerPortalService.GetPortalInvoiceCollection
+      parameters:
+        - name: expire_cache
+          in: query
+          description: Recomputes the customer's cached report before answering.
+          schema:
+            type: boolean
+            title: expire_cache
       responses:
         "200":
           description: Success
@@ -9056,6 +9383,13 @@ paths:
         Returns the customer's overdue balance per payment due month, in the
          customer's currency, every month since the organization's creation.
       operationId: tanvo.portal.v1.CustomerPortalService.GetPortalOverdueBalance
+      parameters:
+        - name: expire_cache
+          in: query
+          description: Recomputes the customer's cached report before answering.
+          schema:
+            type: boolean
+            title: expire_cache
       responses:
         "200":
           description: Success
@@ -11065,6 +11399,25 @@ paths:
       summary: CreateSubscription
       description: Creates a subscription, starting now, in the past or in the future.
       operationId: tanvo.subscription.v1.SubscriptionService.CreateSubscription
+      parameters:
+        - name: authorization.amount.currency
+          in: query
+          description: |
+            The ISO 4217 code.
+            string.currency = true
+          required: true
+          schema:
+            type: string
+            title: currency
+        - name: authorization.amount.amount
+          in: query
+          description: |
+            The decimal amount in the currency's major unit.
+            string.decimal = true
+          required: true
+          schema:
+            type: string
+            title: amount
       requestBody:
         description: The subscription to create.
         content:
@@ -13589,6 +13942,141 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.alert.v1.BatchCreateAlertsResponse'
+  /v1/wallets/{wallet_id}/metadata:
+    post:
+      tags:
+        - WalletService
+      summary: ReplaceWalletMetadata
+      description: Replaces the wallet's metadata; an empty list clears it.
+      operationId: tanvo.wallet.v1.WalletService.ReplaceWalletMetadata
+      parameters:
+        - name: wallet_id
+          in: path
+          description: The wallet's ID.
+          required: true
+          schema:
+            type: string
+            title: wallet_id
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+                  title: metadata
+                  maxItems: 50
+                  description: The new metadata; empty clears it.
+              title: ReplaceWalletMetadataRequest
+              additionalProperties: false
+              description: ReplaceWalletMetadataRequest is the request of ReplaceWalletMetadata.
+        required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.wallet.v1.ReplaceWalletMetadataResponse'
+    delete:
+      tags:
+        - WalletService
+      summary: DeleteWalletMetadata
+      description: Removes all the wallet's metadata.
+      operationId: tanvo.wallet.v1.WalletService.DeleteWalletMetadata
+      parameters:
+        - name: wallet_id
+          in: path
+          description: The wallet's ID.
+          required: true
+          schema:
+            type: string
+            title: wallet_id
+            format: uuid
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.wallet.v1.DeleteWalletMetadataResponse'
+    patch:
+      tags:
+        - WalletService
+      summary: MergeWalletMetadata
+      description: |-
+        Merges items into the wallet's metadata: values of existing keys are
+         replaced and new keys appended.
+      operationId: tanvo.wallet.v1.WalletService.MergeWalletMetadata
+      parameters:
+        - name: wallet_id
+          in: path
+          description: The wallet's ID.
+          required: true
+          schema:
+            type: string
+            title: wallet_id
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                metadata:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+                  title: metadata
+                  maxItems: 50
+                  description: The items to merge.
+              title: MergeWalletMetadataRequest
+              additionalProperties: false
+              description: MergeWalletMetadataRequest is the request of MergeWalletMetadata.
+        required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.wallet.v1.MergeWalletMetadataResponse'
+  /v1/wallets/{wallet_id}/metadata/{key}:
+    delete:
+      tags:
+        - WalletService
+      summary: DeleteWalletMetadataKey
+      description: |-
+        Removes one key from the wallet's metadata; NOT_FOUND when the
+         wallet has no metadata.
+      operationId: tanvo.wallet.v1.WalletService.DeleteWalletMetadataKey
+      parameters:
+        - name: wallet_id
+          in: path
+          description: The wallet's ID.
+          required: true
+          schema:
+            type: string
+            title: wallet_id
+            format: uuid
+        - name: key
+          in: path
+          description: The key to remove.
+          required: true
+          schema:
+            type: string
+            title: key
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.wallet.v1.DeleteWalletMetadataKeyResponse'
   /v1/wallets/{wallet_id}/recurring_transaction_rules:
     get:
       tags:
@@ -13805,11 +14293,44 @@ paths:
                   title: payment_method_id
                   format: uuid
                   description: The payment method, for PROVIDER.
+                voided_transaction_id:
+                  type: string
+                  title: voided_transaction_id
+                  format: uuid
+                  description: |-
+                    The inbound transaction of a traceable wallet to void from; without
+                     voided_credits its whole remaining amount is voided.
+                priority:
+                  type: integer
+                  title: priority
+                  maximum: 50
+                  minimum: 1
+                  format: int32
+                  description: The consumption priority, from 1 to 50; the wallet's by default.
+                purchase_order_number:
+                  type: string
+                  title: purchase_order_number
+                  maxLength: 255
+                  description: The purchase order number; the wallet's when unset.
+                skip_invoice_custom_sections:
+                  type: boolean
+                  title: skip_invoice_custom_sections
+                  description: The credit invoice prints no invoice custom sections.
+                invoice_custom_section_ids:
+                  type: array
+                  items:
+                    type: string
+                    description: |
+                      string.ref = true
+                  title: invoice_custom_section_ids
+                  maxItems: 50
+                  uniqueItems: true
+                  description: The invoice custom sections (IDs or `code:<code>`) of the credit invoice; the wallet's when empty.
               title: CreateWalletTransactionRequest
               additionalProperties: false
               description: |
                 CreateWalletTransactionRequest is the request of WalletService.CreateWalletTransaction.
-                transaction.credits // set paid_credits, granted_credits or voided_credits
+                transaction.credits // set paid_credits, granted_credits, voided_credits or voided_transaction_id
         required: true
       responses:
         "200":
@@ -16486,6 +17007,13 @@ components:
             The customer (ID or `external_id:<external_id>`); every customer by
              default.
             string.ref = true
+        expire_cache:
+          type: boolean
+          title: expire_cache
+          description: |-
+            Recomputes the customer's cached reports of this kind before
+             answering; ignored without a customer, as organization-wide reports
+             are only refreshed by the cache's expiry.
       title: GetGrossRevenueRequest
       additionalProperties: false
       description: GetGrossRevenueRequest is the request of AnalyticsService.GetGrossRevenue.
@@ -16597,6 +17125,13 @@ components:
             The customer (ID or `external_id:<external_id>`); every customer by
              default.
             string.ref = true
+        expire_cache:
+          type: boolean
+          title: expire_cache
+          description: |-
+            Recomputes the customer's cached reports of this kind before
+             answering; ignored without a customer, as organization-wide reports
+             are only refreshed by the cache's expiry.
       title: GetOverdueBalanceRequest
       additionalProperties: false
       description: GetOverdueBalanceRequest is the request of AnalyticsService.GetOverdueBalance.
@@ -18568,6 +19103,63 @@ components:
       title: DeleteFixedChargeResponse
       additionalProperties: false
       description: DeleteFixedChargeResponse is the response of FixedChargeService.DeleteFixedCharge.
+    tanvo.catalog.v1.DeletePlanMetadataKeyRequest:
+      type: object
+      properties:
+        plan_id:
+          type: string
+          title: plan_id
+          description: |
+            The plan's ID or `code:<code>`.
+            string.ref = true
+        key:
+          type: string
+          title: key
+          description: The key to remove.
+      title: DeletePlanMetadataKeyRequest
+      required:
+        - plan_id
+        - key
+      additionalProperties: false
+      description: DeletePlanMetadataKeyRequest is the request of DeletePlanMetadataKey.
+    tanvo.catalog.v1.DeletePlanMetadataKeyResponse:
+      type: object
+      properties:
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          description: The plan's metadata after the change.
+      title: DeletePlanMetadataKeyResponse
+      additionalProperties: false
+      description: DeletePlanMetadataKeyResponse is the response of DeletePlanMetadataKey.
+    tanvo.catalog.v1.DeletePlanMetadataRequest:
+      type: object
+      properties:
+        plan_id:
+          type: string
+          title: plan_id
+          description: |
+            The plan's ID or `code:<code>`.
+            string.ref = true
+      title: DeletePlanMetadataRequest
+      required:
+        - plan_id
+      additionalProperties: false
+      description: DeletePlanMetadataRequest is the request of DeletePlanMetadata.
+    tanvo.catalog.v1.DeletePlanMetadataResponse:
+      type: object
+      properties:
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          description: The plan's metadata after the change.
+      title: DeletePlanMetadataResponse
+      additionalProperties: false
+      description: DeletePlanMetadataResponse is the response of DeletePlanMetadata.
     tanvo.catalog.v1.DeletePlanRateCardRequest:
       type: object
       properties:
@@ -20314,6 +20906,39 @@ components:
       title: ListRatesResponse
       additionalProperties: false
       description: ListRatesResponse is the response of RateCardService.ListRates.
+    tanvo.catalog.v1.MergePlanMetadataRequest:
+      type: object
+      properties:
+        plan_id:
+          type: string
+          title: plan_id
+          description: |
+            The plan's ID or `code:<code>`.
+            string.ref = true
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          maxItems: 50
+          description: The items to merge.
+      title: MergePlanMetadataRequest
+      required:
+        - plan_id
+      additionalProperties: false
+      description: MergePlanMetadataRequest is the request of MergePlanMetadata.
+    tanvo.catalog.v1.MergePlanMetadataResponse:
+      type: object
+      properties:
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          description: The plan's metadata after the change.
+      title: MergePlanMetadataResponse
+      additionalProperties: false
+      description: MergePlanMetadataResponse is the response of MergePlanMetadata.
     tanvo.catalog.v1.MetricFilter:
       type: object
       properties:
@@ -21401,6 +22026,39 @@ components:
       title: ReplaceEntitlementsResponse
       additionalProperties: false
       description: ReplaceEntitlementsResponse is the response of EntitlementService.ReplaceEntitlements.
+    tanvo.catalog.v1.ReplacePlanMetadataRequest:
+      type: object
+      properties:
+        plan_id:
+          type: string
+          title: plan_id
+          description: |
+            The plan's ID or `code:<code>`.
+            string.ref = true
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          maxItems: 50
+          description: The new metadata; empty clears it.
+      title: ReplacePlanMetadataRequest
+      required:
+        - plan_id
+      additionalProperties: false
+      description: ReplacePlanMetadataRequest is the request of ReplacePlanMetadata.
+    tanvo.catalog.v1.ReplacePlanMetadataResponse:
+      type: object
+      properties:
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          description: The plan's metadata after the change.
+      title: ReplacePlanMetadataResponse
+      additionalProperties: false
+      description: ReplacePlanMetadataResponse is the response of ReplacePlanMetadata.
     tanvo.catalog.v1.RoundingFunction:
       type: string
       title: RoundingFunction
@@ -23181,8 +23839,8 @@ components:
           items:
             $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
           title: metadata
-          maxItems: 5
-          description: Metadata.
+          maxItems: 50
+          description: 'Metadata: at most 50 items.'
         file_available:
           type: boolean
           title: file_available
@@ -23344,6 +24002,61 @@ components:
         - CREDIT_STATUS_CONSUMED
         - CREDIT_STATUS_VOIDED
       description: CreditStatus is the state of a credit note's credit amount.
+    tanvo.creditnote.v1.DeleteCreditNoteMetadataKeyRequest:
+      type: object
+      properties:
+        credit_note_id:
+          type: string
+          title: credit_note_id
+          format: uuid
+          description: The credit note's ID.
+        key:
+          type: string
+          title: key
+          description: The key to remove.
+      title: DeleteCreditNoteMetadataKeyRequest
+      required:
+        - credit_note_id
+        - key
+      additionalProperties: false
+      description: DeleteCreditNoteMetadataKeyRequest is the request of DeleteCreditNoteMetadataKey.
+    tanvo.creditnote.v1.DeleteCreditNoteMetadataKeyResponse:
+      type: object
+      properties:
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          description: The credit note's metadata after the change.
+      title: DeleteCreditNoteMetadataKeyResponse
+      additionalProperties: false
+      description: DeleteCreditNoteMetadataKeyResponse is the response of DeleteCreditNoteMetadataKey.
+    tanvo.creditnote.v1.DeleteCreditNoteMetadataRequest:
+      type: object
+      properties:
+        credit_note_id:
+          type: string
+          title: credit_note_id
+          format: uuid
+          description: The credit note's ID.
+      title: DeleteCreditNoteMetadataRequest
+      required:
+        - credit_note_id
+      additionalProperties: false
+      description: DeleteCreditNoteMetadataRequest is the request of DeleteCreditNoteMetadata.
+    tanvo.creditnote.v1.DeleteCreditNoteMetadataResponse:
+      type: object
+      properties:
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          description: The credit note's metadata after the change.
+      title: DeleteCreditNoteMetadataResponse
+      additionalProperties: false
+      description: DeleteCreditNoteMetadataResponse is the response of DeleteCreditNoteMetadata.
     tanvo.creditnote.v1.DownloadCreditNoteRequest:
       type: object
       properties:
@@ -23498,6 +24211,70 @@ components:
       title: ListCreditNotesResponse
       additionalProperties: false
       description: ListCreditNotesResponse is the response of CreditNoteService.ListCreditNotes.
+    tanvo.creditnote.v1.MergeCreditNoteMetadataRequest:
+      type: object
+      properties:
+        credit_note_id:
+          type: string
+          title: credit_note_id
+          format: uuid
+          description: The credit note's ID.
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          maxItems: 50
+          description: The items to merge.
+      title: MergeCreditNoteMetadataRequest
+      required:
+        - credit_note_id
+      additionalProperties: false
+      description: MergeCreditNoteMetadataRequest is the request of MergeCreditNoteMetadata.
+    tanvo.creditnote.v1.MergeCreditNoteMetadataResponse:
+      type: object
+      properties:
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          description: The credit note's metadata after the change.
+      title: MergeCreditNoteMetadataResponse
+      additionalProperties: false
+      description: MergeCreditNoteMetadataResponse is the response of MergeCreditNoteMetadata.
+    tanvo.creditnote.v1.ReplaceCreditNoteMetadataRequest:
+      type: object
+      properties:
+        credit_note_id:
+          type: string
+          title: credit_note_id
+          format: uuid
+          description: The credit note's ID.
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          maxItems: 50
+          description: The new metadata; empty clears it.
+      title: ReplaceCreditNoteMetadataRequest
+      required:
+        - credit_note_id
+      additionalProperties: false
+      description: ReplaceCreditNoteMetadataRequest is the request of ReplaceCreditNoteMetadata.
+    tanvo.creditnote.v1.ReplaceCreditNoteMetadataResponse:
+      type: object
+      properties:
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          description: The credit note's metadata after the change.
+      title: ReplaceCreditNoteMetadataResponse
+      additionalProperties: false
+      description: ReplaceCreditNoteMetadataResponse is the response of ReplaceCreditNoteMetadata.
     tanvo.creditnote.v1.ResendCreditNoteRequest:
       type: object
       properties:
@@ -23930,6 +24707,13 @@ components:
           title: updated_at
           description: When the customer last changed.
           readOnly: true
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.customer.v1.CustomerError'
+          title: errors
+          description: The errors recorded on the customer.
+          readOnly: true
       title: Customer
       required:
         - external_id
@@ -24015,6 +24799,33 @@ components:
         - integration_id
       additionalProperties: false
       description: CustomerConnection links a customer to its record in an integration.
+    tanvo.customer.v1.CustomerError:
+      type: object
+      properties:
+        code:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.customer.v1.CustomerErrorCode'
+          title: code
+          description: The kind of error.
+        message:
+          type: string
+          title: message
+          description: The provider's details, as JSON.
+        created_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: created_at
+          description: When it happened.
+      title: CustomerError
+      additionalProperties: false
+      description: CustomerError is an error recorded on a customer.
+    tanvo.customer.v1.CustomerErrorCode:
+      type: string
+      title: CustomerErrorCode
+      enum:
+        - CUSTOMER_ERROR_CODE_UNSPECIFIED
+        - CUSTOMER_ERROR_CODE_TAX_ERROR
+      description: CustomerErrorCode is the kind of an error recorded on a customer.
     tanvo.customer.v1.CustomerType:
       type: string
       title: CustomerType
@@ -24610,6 +25421,10 @@ components:
           type: string
           title: transaction_id
           description: The event's transaction ID.
+        external_subscription_id:
+          type: string
+          title: external_subscription_id
+          description: The external ID of the event's subscription.
         code:
           type: string
           title: code
@@ -24619,68 +25434,38 @@ components:
             - $ref: '#/components/schemas/google.protobuf.Timestamp'
           title: timestamp
           description: When the usage happened.
-        subscription_id:
-          type: string
-          title: subscription_id
-          description: The subscription.
-        plan_id:
-          type: string
-          title: plan_id
-          description: The plan.
-        charge_id:
-          type: string
-          title: charge_id
-          description: The charge.
-        charge_filter_id:
-          type: string
-          title: charge_filter_id
-          description: The charge filter, when one matched.
-        billable_metric_id:
-          type: string
-          title: billable_metric_id
-          description: The billable metric.
-        grouped_by:
-          type: object
-          title: grouped_by
-          additionalProperties:
-            type: string
-            title: value
-          description: The grouping values of the charge.
-        value:
-          type: string
-          title: value
-          description: The aggregated value, after the metric's expression and rounding.
-        precise_total_amount:
-          type: string
-          title: precise_total_amount
-          description: The decimal value of the dynamic charge amount.
-        operation:
-          allOf:
-            - $ref: '#/components/schemas/tanvo.event.v1.EnrichedOperation'
-          title: operation
-          description: The operation on recurring aggregations.
         enriched_at:
           allOf:
             - $ref: '#/components/schemas/google.protobuf.Timestamp'
           title: enriched_at
           description: When the event was enriched.
-        target_wallet_code:
+        value:
           type: string
-          title: target_wallet_code
+          title: value
           description: |-
-            The code of the wallet that pays the event's usage, when the charge
-             accepts a target wallet and the event names one.
+            The value the event brings to its metric: "1" for count metrics, the
+             metric's field_name property otherwise ("0" when it is missing); unset
+             when no metric has the code.
+        decimal_value:
+          type: string
+          title: decimal_value
+          description: The value as a decimal, 0 when it is not a number; unset with no value.
+        precise_total_amount:
+          type: string
+          title: precise_total_amount
+          description: The decimal value of the dynamic charge amount.
+        properties:
+          type: object
+          title: properties
+          additionalProperties:
+            type: string
+            title: value
+          description: |-
+            The event properties, with the expression's result under the metric's
+             field name.
       title: EnrichedEvent
       additionalProperties: false
-      description: EnrichedEvent is an event resolved to a charge.
-    tanvo.event.v1.EnrichedOperation:
-      type: string
-      title: EnrichedOperation
-      enum:
-        - ENRICHED_OPERATION_UNSPECIFIED
-        - ENRICHED_OPERATION_ADD
-        - ENRICHED_OPERATION_REMOVE
-      description: EnrichedOperation is how an enriched event changes a recurring aggregation.
+      description: EnrichedEvent is a stored event with the value enrichment gave it.
     tanvo.event.v1.EstimateFeesRequest:
       type: object
       properties:
@@ -25001,8 +25786,15 @@ components:
           title: filter
           maxLength: 2048
           description: |-
-            An AIP-160 filter over `code`, `subscription_id`, `charge_id`,
-             `charge_filter_id`, `transaction_id` and `timestamp`.
+            An AIP-160 filter over `code`, `external_subscription_id` and
+             `timestamp`.
+        timestamp_from_started_at:
+          type: boolean
+          title: timestamp_from_started_at
+          description: |-
+            Lists the events from the start of the latest subscription with the
+             filter's `external_subscription_id`, in place of a lower `timestamp`
+             bound; without that subscription, the filter applies as is.
       title: ListEnrichedEventsRequest
       additionalProperties: false
       description: ListEnrichedEventsRequest is the request of EventService.ListEnrichedEvents.
@@ -30643,6 +31435,22 @@ components:
           title: to
           maxItems: 20
           description: The recipients; the customer's billing emails by default.
+        cc:
+          type: array
+          items:
+            type: string
+            format: email
+          title: cc
+          maxItems: 20
+          description: Carbon copies.
+        bcc:
+          type: array
+          items:
+            type: string
+            format: email
+          title: bcc
+          maxItems: 20
+          description: Blind carbon copies.
       title: ResendPaymentReceiptRequest
       required:
         - payment_receipt_id
@@ -30766,6 +31574,11 @@ components:
       description: GetPortalCustomerResponse is the response of CustomerPortalService.GetPortalCustomer.
     tanvo.portal.v1.GetPortalInvoiceCollectionRequest:
       type: object
+      properties:
+        expire_cache:
+          type: boolean
+          title: expire_cache
+          description: Recomputes the customer's cached report before answering.
       title: GetPortalInvoiceCollectionRequest
       additionalProperties: false
       description: GetPortalInvoiceCollectionRequest is the request of CustomerPortalService.GetPortalInvoiceCollection.
@@ -30799,6 +31612,11 @@ components:
       description: GetPortalOrganizationResponse is the response of CustomerPortalService.GetPortalOrganization.
     tanvo.portal.v1.GetPortalOverdueBalanceRequest:
       type: object
+      properties:
+        expire_cache:
+          type: boolean
+          title: expire_cache
+          description: Recomputes the customer's cached report before answering.
       title: GetPortalOverdueBalanceRequest
       additionalProperties: false
       description: GetPortalOverdueBalanceRequest is the request of CustomerPortalService.GetPortalOverdueBalance.
@@ -32983,6 +33801,17 @@ components:
             - $ref: '#/components/schemas/tanvo.subscription.v1.Subscription'
           title: subscription
           description: The subscription to create.
+        authorization:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.PaymentAuthorizationInput'
+          title: authorization
+          description: |-
+            A pre-authorization of the customer's Stripe payment method placed
+             before the subscription is created: the hold checks that the method
+             can pay and is released at once. A refusal fails the request and no
+             subscription is created. The method is subscription.payment_method_id,
+             else the customer's default.
+          writeOnly: true
       title: CreateSubscriptionRequest
       required:
         - subscription
@@ -32998,6 +33827,11 @@ components:
             - $ref: '#/components/schemas/tanvo.subscription.v1.Subscription'
           title: subscription
           description: The created subscription.
+        authorization:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.subscription.v1.PaymentAuthorization'
+          title: authorization
+          description: The pre-authorization placed, when the request asked for one.
       title: CreateSubscriptionResponse
       additionalProperties: false
       description: CreateSubscriptionResponse is the response of SubscriptionService.CreateSubscription.
@@ -33402,6 +34236,45 @@ components:
       title: ListSubscriptionsResponse
       additionalProperties: false
       description: ListSubscriptionsResponse is the response of SubscriptionService.ListSubscriptions.
+    tanvo.subscription.v1.PaymentAuthorization:
+      type: object
+      properties:
+        id:
+          type: string
+          title: id
+          description: The provider's payment ID (a Stripe PaymentIntent).
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: amount
+          description: The amount authorized.
+        amount_capturable:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: amount_capturable
+          description: The amount held, capturable until released.
+        status:
+          type: string
+          title: status
+          description: The provider's status (`requires_capture` once held).
+      title: PaymentAuthorization
+      additionalProperties: false
+      description: |-
+        PaymentAuthorization is a hold placed on a payment method at the
+         provider.
+    tanvo.subscription.v1.PaymentAuthorizationInput:
+      type: object
+      properties:
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: amount
+          description: The amount to hold.
+      title: PaymentAuthorizationInput
+      required:
+        - amount
+      additionalProperties: false
+      description: PaymentAuthorizationInput is the amount a pre-authorization holds.
     tanvo.subscription.v1.PlanOverrides:
       type: object
       properties:
@@ -34824,13 +35697,46 @@ components:
           title: payment_method_id
           format: uuid
           description: The payment method, for PROVIDER.
+        voided_transaction_id:
+          type: string
+          title: voided_transaction_id
+          format: uuid
+          description: |-
+            The inbound transaction of a traceable wallet to void from; without
+             voided_credits its whole remaining amount is voided.
+        priority:
+          type: integer
+          title: priority
+          maximum: 50
+          minimum: 1
+          format: int32
+          description: The consumption priority, from 1 to 50; the wallet's by default.
+        purchase_order_number:
+          type: string
+          title: purchase_order_number
+          maxLength: 255
+          description: The purchase order number; the wallet's when unset.
+        skip_invoice_custom_sections:
+          type: boolean
+          title: skip_invoice_custom_sections
+          description: The credit invoice prints no invoice custom sections.
+        invoice_custom_section_ids:
+          type: array
+          items:
+            type: string
+            description: |
+              string.ref = true
+          title: invoice_custom_section_ids
+          maxItems: 50
+          uniqueItems: true
+          description: The invoice custom sections (IDs or `code:<code>`) of the credit invoice; the wallet's when empty.
       title: CreateWalletTransactionRequest
       required:
         - wallet_id
       additionalProperties: false
       description: |
         CreateWalletTransactionRequest is the request of WalletService.CreateWalletTransaction.
-        transaction.credits // set paid_credits, granted_credits or voided_credits
+        transaction.credits // set paid_credits, granted_credits, voided_credits or voided_transaction_id
     tanvo.wallet.v1.CreateWalletTransactionResponse:
       type: object
       properties:
@@ -34843,6 +35749,61 @@ components:
       title: CreateWalletTransactionResponse
       additionalProperties: false
       description: CreateWalletTransactionResponse is the response of WalletService.CreateWalletTransaction.
+    tanvo.wallet.v1.DeleteWalletMetadataKeyRequest:
+      type: object
+      properties:
+        wallet_id:
+          type: string
+          title: wallet_id
+          format: uuid
+          description: The wallet's ID.
+        key:
+          type: string
+          title: key
+          description: The key to remove.
+      title: DeleteWalletMetadataKeyRequest
+      required:
+        - wallet_id
+        - key
+      additionalProperties: false
+      description: DeleteWalletMetadataKeyRequest is the request of DeleteWalletMetadataKey.
+    tanvo.wallet.v1.DeleteWalletMetadataKeyResponse:
+      type: object
+      properties:
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          description: The wallet's metadata after the change.
+      title: DeleteWalletMetadataKeyResponse
+      additionalProperties: false
+      description: DeleteWalletMetadataKeyResponse is the response of DeleteWalletMetadataKey.
+    tanvo.wallet.v1.DeleteWalletMetadataRequest:
+      type: object
+      properties:
+        wallet_id:
+          type: string
+          title: wallet_id
+          format: uuid
+          description: The wallet's ID.
+      title: DeleteWalletMetadataRequest
+      required:
+        - wallet_id
+      additionalProperties: false
+      description: DeleteWalletMetadataRequest is the request of DeleteWalletMetadata.
+    tanvo.wallet.v1.DeleteWalletMetadataResponse:
+      type: object
+      properties:
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          description: The wallet's metadata after the change.
+      title: DeleteWalletMetadataResponse
+      additionalProperties: false
+      description: DeleteWalletMetadataResponse is the response of DeleteWalletMetadata.
     tanvo.wallet.v1.GenerateWalletTransactionPaymentUrlRequest:
       type: object
       properties:
@@ -35073,6 +36034,38 @@ components:
       title: ListWalletsResponse
       additionalProperties: false
       description: ListWalletsResponse is the response of WalletService.ListWallets.
+    tanvo.wallet.v1.MergeWalletMetadataRequest:
+      type: object
+      properties:
+        wallet_id:
+          type: string
+          title: wallet_id
+          format: uuid
+          description: The wallet's ID.
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          maxItems: 50
+          description: The items to merge.
+      title: MergeWalletMetadataRequest
+      required:
+        - wallet_id
+      additionalProperties: false
+      description: MergeWalletMetadataRequest is the request of MergeWalletMetadata.
+    tanvo.wallet.v1.MergeWalletMetadataResponse:
+      type: object
+      properties:
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          description: The wallet's metadata after the change.
+      title: MergeWalletMetadataResponse
+      additionalProperties: false
+      description: MergeWalletMetadataResponse is the response of MergeWalletMetadata.
     tanvo.wallet.v1.RecurringMethod:
       type: string
       title: RecurringMethod
@@ -35217,6 +36210,27 @@ components:
           description: |-
             The connection choices keyed by category: payment, tax, accounting
              and crm (see ConnectionChoice).
+        purchase_order_number:
+          type: string
+          title: purchase_order_number
+          maxLength: 255
+          description: |-
+            The purchase order number of the transactions created; the wallet's
+             when unset.
+        skip_invoice_custom_sections:
+          type: boolean
+          title: skip_invoice_custom_sections
+          description: The transactions created print no invoice custom sections.
+        invoice_custom_section_ids:
+          type: array
+          items:
+            type: string
+            description: |
+              string.ref = true
+          title: invoice_custom_section_ids
+          maxItems: 50
+          uniqueItems: true
+          description: The invoice custom sections (IDs or `code:<code>`) the transactions created take; the wallet's when empty.
       title: RecurringTransactionRule
       required:
         - trigger
@@ -35262,6 +36276,38 @@ components:
       title: ReplaceRecurringTransactionRulesResponse
       additionalProperties: false
       description: ReplaceRecurringTransactionRulesResponse is the response of WalletService.ReplaceRecurringTransactionRules.
+    tanvo.wallet.v1.ReplaceWalletMetadataRequest:
+      type: object
+      properties:
+        wallet_id:
+          type: string
+          title: wallet_id
+          format: uuid
+          description: The wallet's ID.
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          maxItems: 50
+          description: The new metadata; empty clears it.
+      title: ReplaceWalletMetadataRequest
+      required:
+        - wallet_id
+      additionalProperties: false
+      description: ReplaceWalletMetadataRequest is the request of ReplaceWalletMetadata.
+    tanvo.wallet.v1.ReplaceWalletMetadataResponse:
+      type: object
+      properties:
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: metadata
+          description: The wallet's metadata after the change.
+      title: ReplaceWalletMetadataResponse
+      additionalProperties: false
+      description: ReplaceWalletMetadataResponse is the response of ReplaceWalletMetadata.
     tanvo.wallet.v1.SettlementStatus:
       type: string
       title: SettlementStatus
@@ -35543,8 +36589,8 @@ components:
           items:
             $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
           title: metadata
-          maxItems: 15
-          description: 'Metadata: at most 15 items.'
+          maxItems: 50
+          description: 'Metadata: at most 50 items.'
         recurring_transaction_rules:
           type: array
           items:
@@ -35614,6 +36660,56 @@ components:
           description: |-
             The connection choices keyed by category: payment, tax, accounting
              and crm (see ConnectionChoice).
+        purchase_order_number:
+          type: string
+          title: purchase_order_number
+          maxLength: 255
+          description: The purchase order number of its transactions and rules.
+        transaction_name:
+          type: string
+          title: transaction_name
+          maxLength: 255
+          description: The name of the initial top-up; on create only.
+          writeOnly: true
+        transaction_priority:
+          type: integer
+          title: transaction_priority
+          maximum: 50
+          minimum: 1
+          format: int32
+          description: |-
+            The consumption priority of the initial top-up, from 1 to 50; on
+             create only.
+          writeOnly: true
+        transaction_metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.common.v1.MetadataItem'
+          title: transaction_metadata
+          maxItems: 15
+          description: The metadata of the initial top-up, at most 15 items; on create only.
+          writeOnly: true
+        ignore_paid_top_up_limits_on_creation:
+          type: boolean
+          title: ignore_paid_top_up_limits_on_creation
+          description: |-
+            Lets the initial purchase ignore the paid top-up minimum and maximum;
+             on create only.
+          writeOnly: true
+        skip_invoice_custom_sections:
+          type: boolean
+          title: skip_invoice_custom_sections
+          description: The credit invoices print no invoice custom sections.
+        invoice_custom_section_ids:
+          type: array
+          items:
+            type: string
+            description: |
+              string.ref = true
+          title: invoice_custom_section_ids
+          maxItems: 50
+          uniqueItems: true
+          description: The invoice custom sections (IDs or `code:<code>`) of the credit invoices; the customer's when empty.
       title: Wallet
       required:
         - customer_id
@@ -35721,6 +36817,46 @@ components:
             - $ref: '#/components/schemas/google.protobuf.Timestamp'
           title: created_at
           description: When it was created.
+        purchase_order_number:
+          type: string
+          title: purchase_order_number
+          description: 'The purchase order number: its own, else the wallet''s.'
+        voided_invoice_id:
+          type: string
+          title: voided_invoice_id
+          description: The voided invoice a recredit gave the credits back for.
+        skip_invoice_custom_sections:
+          type: boolean
+          title: skip_invoice_custom_sections
+          description: Its credit invoice prints no invoice custom sections.
+        invoice_custom_section_ids:
+          type: array
+          items:
+            type: string
+          title: invoice_custom_section_ids
+          description: |-
+            The invoice custom sections of its credit invoice; the wallet's when
+             empty.
+        payment_method_type:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.PaymentMethodType'
+          title: payment_method_type
+          description: The payment method kind of its credit invoice.
+        payment_method_id:
+          type: string
+          title: payment_method_id
+          description: The payment method of its credit invoice.
+        remaining_amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: remaining_amount
+          description: The amount of remaining_credit_amount.
+        billing_entity_id:
+          type: string
+          title: billing_entity_id
+          description: |-
+            The billing entity of its credit invoice: the one snapshotted when it
+             was created, else the wallet's.
       title: WalletTransaction
       additionalProperties: false
       description: WalletTransaction is a change of a wallet's balance.

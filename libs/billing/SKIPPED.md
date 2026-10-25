@@ -221,7 +221,6 @@ Deviation: spec/scenarios/fixed_charges/refresh_draft_keeps_pay_in_advance_fee_s
 | spec/scenarios/daily_usages/renew_daily_usage_spec.rb:24,74,178 | renew daily usage (3) | not yet ported: the daily computation is libs/billing/dailyusage (Compute, ComputeAll; dailyusage/compute_test.go, compute_all_test.go); the end-to-end scenario is pending |
 | spec/scenarios/daily_usages/clickhouse/renew_daily_usage_spec.rb:29,59 | renew daily usage, ClickHouse (2) | duplicate once renew_daily_usage_spec.rb is ported: same assertions over the ClickHouse event store, which the store conformance suites cover |
 | spec/scenarios/daily_usages/yearly_plan_with_monthly_fixed_charges_spec.rb:50 | terminate yearly plan with monthly fixed charges (daily usage) | not yet ported: the daily usage service exists (libs/billing/dailyusage); the end-to-end scenario is pending |
-| spec/scenarios/analytics/customer_cache_invalidation_spec.rb:86,121,148,177,202,230,257,291 | analytics cache invalidation (8) | out of scope: analytics is parity §1.44, outside libs/billing |
 
 ## Ported with a documented deviation (not skipped)
 

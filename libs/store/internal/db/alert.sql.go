@@ -369,9 +369,11 @@ WHERE organization_id = $1 AND deleted_at IS NULL
   AND ($2::text IS NULL OR subscription_external_id = $2)
   AND ($3::uuid IS NULL OR wallet_id = $3)
   AND (cardinality($4::text[]) = 0 OR alert_type = ANY($4::text[]))
-  AND ($5::uuid IS NULL OR id > $5)
-ORDER BY id
-LIMIT $6
+  AND ($5::uuid IS NULL
+       OR created_at < $6::timestamptz
+       OR (created_at = $6::timestamptz AND id > $5))
+ORDER BY created_at DESC, id
+LIMIT $7
 `
 
 type ListAlertsParams struct {
@@ -380,9 +382,11 @@ type ListAlertsParams struct {
 	WalletID               *uuid.UUID
 	AlertTypes             []string
 	After                  *uuid.UUID
+	AfterAt                *time.Time
 	Lim                    int32
 }
 
+// Newest first, then by id (alerts_query.rb:9-10); the cursor is (@after_at, @after).
 func (q *Queries) ListAlerts(ctx context.Context, arg ListAlertsParams) ([]Alert, error) {
 	rows, err := q.db.Query(ctx, listAlerts,
 		arg.OrganizationID,
@@ -390,6 +394,7 @@ func (q *Queries) ListAlerts(ctx context.Context, arg ListAlertsParams) ([]Alert
 		arg.WalletID,
 		arg.AlertTypes,
 		arg.After,
+		arg.AfterAt,
 		arg.Lim,
 	)
 	if err != nil {

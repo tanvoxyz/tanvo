@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"connectrpc.com/connect/v2"
+
 	"github.com/tanvoxyz/tanvo/libs/billing/creditnotes"
 	"github.com/tanvoxyz/tanvo/libs/billing/integrations"
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -17,8 +19,8 @@ import (
 
 // CreditNotes serves tanvo.creditnote.v1.CreditNoteService over the
 // billing library's credit note service (lago
-// Api::V1::CreditNotesController). ResendCreditNote stays Unimplemented:
-// the server sends no document emails. RetryCreditNoteSync needs the
+// Api::V1::CreditNotesController). ResendCreditNote needs the documents
+// ([CreditNotes.WithFiles]). RetryCreditNoteSync needs the
 // integrations service ([CreditNotes.WithIntegrations]).
 type CreditNotes struct {
 	creditnotev1connect.UnimplementedCreditNoteServiceHandler
@@ -27,12 +29,22 @@ type CreditNotes struct {
 	// integ syncs the credit notes with the integrations; nil leaves
 	// RetryCreditNoteSync Unimplemented.
 	integ *integrations.Service
+	// docs links and resends the documents; nil leaves the links empty
+	// and ResendCreditNote Unimplemented.
+	docs DocumentFiles
 }
 
 var _ creditnotev1connect.CreditNoteServiceHandler = (*CreditNotes)(nil)
 
 // NewCreditNotes returns the service over svc.
 func NewCreditNotes(svc *creditnotes.Service) *CreditNotes { return &CreditNotes{svc: svc} }
+
+// WithFiles returns s linking and resending documents with docs.
+func (s *CreditNotes) WithFiles(docs DocumentFiles) *CreditNotes {
+	c := *s
+	c.docs = docs
+	return &c
+}
 
 var (
 	cnStatuses = NewEnum(map[creditnote.Status]creditnotev1.CreditNoteStatus{
@@ -279,8 +291,8 @@ func (s *CreditNotes) VoidCreditNote(ctx context.Context, req *creditnotev1.Void
 // DownloadCreditNote implements CreditNoteService.DownloadCreditNote: when
 // the credit note has no document yet it enqueues its rendering and
 // returns an empty response, to be called again (lago download_pdf's
-// head :ok). A rendered document is returned with its media type; its
-// URL is left empty until the server signs blob store URLs.
+// head :ok). A rendered document is returned with its media type and its
+// permanent link (lago file_url).
 func (s *CreditNotes) DownloadCreditNote(ctx context.Context, req *creditnotev1.DownloadCreditNoteRequest) (*creditnotev1.DownloadCreditNoteResponse, error) {
 	p, err := principal(ctx)
 	if err != nil {
@@ -296,12 +308,33 @@ func (s *CreditNotes) DownloadCreditNote(ctx context.Context, req *creditnotev1.
 	}
 	out := creditnotev1.DownloadCreditNoteResponse_builder{}
 	if ready {
-		out.Pdf = commonv1.Document_builder{ContentType: new("application/pdf")}.Build()
-		if !cn.XMLFile.IsZero() {
-			out.Xml = commonv1.Document_builder{ContentType: new("application/xml")}.Build()
+		if out.Pdf, out.Xml, err = documentPair(ctx, s.docs, p.OrganizationID, cn.File, cn.XMLFile); err != nil {
+			return nil, Error(ctx, err)
 		}
 	}
 	return out.Build(), nil
+}
+
+// ResendCreditNote implements CreditNoteService.ResendCreditNote (lago
+// Api::V1::CreditNotesController#resend_email and Emails::ResendService):
+// the finalized credit note is emailed again to the custom recipients or
+// the customer.
+func (s *CreditNotes) ResendCreditNote(ctx context.Context, req *creditnotev1.ResendCreditNoteRequest) (*creditnotev1.ResendCreditNoteResponse, error) {
+	if s.docs == nil {
+		return nil, connect.NewError(connect.CodeUnimplemented, "document emails are not available")
+	}
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	id, err := ParseID[core.CreditNoteID]("credit_note_id", req.GetCreditNoteId())
+	if err != nil {
+		return nil, err
+	}
+	if err := s.docs.ResendCreditNote(ctx, p.OrganizationID, id, Recipients{To: req.GetTo(), Cc: req.GetCc(), Bcc: req.GetBcc()}); err != nil {
+		return nil, Error(ctx, err)
+	}
+	return creditnotev1.ResendCreditNoteResponse_builder{}.Build(), nil
 }
 
 // cnItems converts the items of a request, whose amounts are in major

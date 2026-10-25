@@ -87,6 +87,7 @@ type gate struct {
 	subscriptions  []*subscription.Subscription
 	active         *subscription.Subscription
 	pendingPayment bool
+	taxError       bool
 }
 
 // GateCheck checks whether an agent may call a resource of org: its
@@ -115,8 +116,9 @@ func (s *Service) GateCheck(ctx context.Context, org core.OrganizationID, in Gat
 	if g.wallet != nil && !g.wallet.X402Enabled {
 		return nil, refusal(CodeWalletNotX402Enabled)
 	}
-	// Lago also refuses a customer carrying a tax error detail
-	// (customer_not_refreshable); Tanvo records no customer error details.
+	if g.taxError {
+		return nil, refusal(CodeCustomerNotRefreshable)
+	}
 	if g.active == nil && len(g.subscriptions) > 0 {
 		return nil, refusal(CodeSubscriptionNotActive)
 	}
@@ -202,6 +204,11 @@ func (s *Service) readGate(ctx context.Context, r port.Repos, org core.Organizat
 		return fmt.Errorf("get customer by x402 agent address: %w", err)
 	}
 	g.customer = cust
+	ds, err := r.CustomerErrorDetails.ListByCustomers(ctx, org, []core.CustomerID{cust.ID})
+	if err != nil {
+		return fmt.Errorf("list error details of customer %s: %w", cust.ID, err)
+	}
+	g.taxError = slices.ContainsFunc(ds, func(d *customer.ErrorDetail) bool { return d.Code == customer.ErrorCodeTaxError })
 	w, err := r.Wallets.GetByCode(ctx, org, cust.ID, g.in.WalletCode)
 	switch {
 	case err == nil:

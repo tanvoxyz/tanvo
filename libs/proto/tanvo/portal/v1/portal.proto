@@ -481,7 +481,10 @@ message TopUpPortalWalletResponse {
 }
 
 // GetPortalOverdueBalanceRequest is the request of CustomerPortalService.GetPortalOverdueBalance.
-message GetPortalOverdueBalanceRequest {}
+message GetPortalOverdueBalanceRequest {
+  // Recomputes the customer's cached report before answering.
+  bool expire_cache = 1;
+}
 
 // GetPortalOverdueBalanceResponse is the response of CustomerPortalService.GetPortalOverdueBalance.
 message GetPortalOverdueBalanceResponse {
@@ -490,7 +493,10 @@ message GetPortalOverdueBalanceResponse {
 }
 
 // GetPortalInvoiceCollectionRequest is the request of CustomerPortalService.GetPortalInvoiceCollection.
-message GetPortalInvoiceCollectionRequest {}
+message GetPortalInvoiceCollectionRequest {
+  // Recomputes the customer's cached report before answering.
+  bool expire_cache = 1;
+}
 
 // GetPortalInvoiceCollectionResponse is the response of CustomerPortalService.GetPortalInvoiceCollection.
 message GetPortalInvoiceCollectionResponse {

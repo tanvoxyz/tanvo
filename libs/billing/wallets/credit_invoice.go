@@ -29,7 +29,13 @@ func creditKind() kernel.InvoiceKind { return kernel.InvoiceKind{Type: invoice.T
 func (s *Service) billPaidCredit(ctx context.Context, r port.Repos, w *wallet.Wallet, t *wallet.Transaction) error {
 	org := w.OrganizationID
 	now := s.d.Now()
-	env, err := kernel.LoadCustomerEnv(ctx, r, org, w.CustomerID, w.BillingEntityID)
+	// The transaction's snapshot, else the wallet's entity, else the
+	// customer's (paid_credit_service.rb:75).
+	be := t.BillingEntityID
+	if be.IsZero() {
+		be = w.BillingEntityID
+	}
+	env, err := kernel.LoadCustomerEnv(ctx, r, org, w.CustomerID, be)
 	if err != nil {
 		return err
 	}
@@ -80,9 +86,12 @@ func (s *Service) billPaidCredit(ctx context.Context, r port.Repos, w *wallet.Wa
 
 	inv.ApplyTotals(invoice.ComputeTotals([]int64{fee.Amount}, invoice.Deductions{}))
 	// paid_credit_service.rb:29-32: the wallet transaction's resource
-	// (WalletTransaction#invoice_custom_section_resource). Wallets and
-	// their transactions select no sections yet, so the customer's apply.
-	if err := kernel.ApplyCustomSections(ctx, s.d, r, env, inv, nil, []kernel.CustomSectionResource{{}}); err != nil {
+	// (WalletTransaction#invoice_custom_section_resource).
+	res, err := sectionResource(ctx, r, w, t)
+	if err != nil {
+		return err
+	}
+	if err := kernel.ApplyCustomSections(ctx, s.d, r, env, inv, nil, []kernel.CustomSectionResource{res}); err != nil {
 		return err
 	}
 	if t.InvoiceRequiresSuccessfulPayment {
@@ -114,7 +123,7 @@ func (s *Service) creditInvoiceFinalized(ctx context.Context, r port.Repos, inv 
 	if err := s.d.LogInvoice(ctx, r, auditlog.ActivityInvoicePaidCreditAdded, inv); err != nil {
 		return err
 	}
-	return kernel.Enqueue(ctx, r, inv.OrganizationID, kernel.JobGenerateInvoiceDocument, kernel.InvoiceArgs{InvoiceID: inv.ID}, inv.ID.String(), time.Time{})
+	return kernel.EnqueueInvoiceDocuments(ctx, r, inv, time.Time{})
 }
 
 // HandleCreditInvoicePayment settles or fails the purchase of a credit

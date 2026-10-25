@@ -3,6 +3,8 @@ package kernel
 import (
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/money"
@@ -87,7 +89,43 @@ const (
 	// receipt when its billing entity sends payment_receipt.created emails
 	// (lago PaymentReceipts::GenerateDocumentsJob).
 	JobGeneratePaymentReceiptDocument = "documents.generate_payment_receipt"
+	// JobSendDocumentEmail emails an invoice, a credit note or a payment
+	// receipt (args [DocumentEmailArgs]; lago InvoiceMailer#created,
+	// CreditNoteMailer#created and PaymentReceiptMailer#created delivered
+	// by SendEmailJob).
+	JobSendDocumentEmail = "mail.send_document"
 )
+
+// Documents emailed by [JobSendDocumentEmail].
+const (
+	// DocumentInvoice is an invoice.
+	DocumentInvoice = "invoice"
+	// DocumentCreditNote is a credit note.
+	DocumentCreditNote = "credit_note"
+	// DocumentPaymentReceipt is a payment receipt.
+	DocumentPaymentReceipt = "payment_receipt"
+)
+
+// DocumentEmailArgs are the args of [JobSendDocumentEmail].
+type DocumentEmailArgs struct {
+	// Type is [DocumentInvoice], [DocumentCreditNote] or
+	// [DocumentPaymentReceipt].
+	Type string `json:"type"`
+	// ID is the document's ID.
+	ID uuid.UUID `json:"id"`
+	// To replaces the customer's addresses when set; Cc and Bcc are
+	// copied (lago Emails::ResendService params).
+	To []string `json:"to,omitempty"`
+	// Cc are the copied recipients.
+	Cc []string `json:"cc,omitempty"`
+	// Bcc are the hidden recipients.
+	Bcc []string `json:"bcc,omitempty"`
+	// Resend marks a manual resend: email settings are ignored and the
+	// email.sent activity log is "resent" from the system source, as
+	// lago's Emails::ResendService passes no user or API key
+	// (app/services/emails/resend_service.rb:44-47).
+	Resend bool `json:"resend,omitempty"`
+}
 
 // BillSubscriptionsArgs are the args of [JobBillSubscriptions].
 type BillSubscriptionsArgs struct {
@@ -123,6 +161,12 @@ type InvoiceArgs struct {
 	PaymentMethodType core.PaymentMethodType `json:"payment_method_type,omitempty"`
 	// PaymentMethodID is the override payment method.
 	PaymentMethodID core.PaymentMethodID `json:"payment_method_id,omitzero"`
+	// Notify emails a [JobGenerateInvoiceDocument]'s invoice once its
+	// documents are rendered (lago GenerateDocumentsJob notify:).
+	Notify bool `json:"notify,omitempty"`
+	// Force renders the documents of a [JobGenerateInvoiceDocument] again
+	// even when they exist (lago's admin context).
+	Force bool `json:"force,omitempty"`
 }
 
 // InvoiceIDsArgs are the args of jobs about several invoices.
@@ -135,6 +179,9 @@ type InvoiceIDsArgs struct {
 type CreditNoteArgs struct {
 	// CreditNoteID is the credit note.
 	CreditNoteID core.CreditNoteID `json:"credit_note_id"`
+	// Force renders the documents of a [JobGenerateCreditNoteDocument]
+	// again even when they exist (lago's admin context).
+	Force bool `json:"force,omitempty"`
 }
 
 // PaymentReceiptArgs are the args of [JobGeneratePaymentReceiptDocument].
@@ -144,6 +191,9 @@ type PaymentReceiptArgs struct {
 	// Notify emails the receipt once rendered: its billing entity sent
 	// payment_receipt.created emails when it was issued.
 	Notify bool `json:"notify,omitempty"`
+	// Force renders the documents again even when they exist (lago's
+	// admin context).
+	Force bool `json:"force,omitempty"`
 }
 
 // InAdvanceChargeArgs are the args of [JobCreateInAdvanceChargeFees].
@@ -191,8 +241,12 @@ func QueueOf(kind string) port.Queue {
 	case JobCreateInvoicePayment, JobProcessDunningCampaigns, JobProcessDunningCustomer, JobProcessDunningAttempt,
 		JobCreateRequestPayment, JobSendPaymentRequestEmail, JobSyncProviderCustomer, JobSetPaymentMethod,
 		JobExpireCheckout, JobCancelAbandonedPayments, JobCancelAbandonedPayment, JobRegisterProviderWebhook, JobExpireConnectionCheckouts,
-		JobUpdatePaymentReference, JobCancelPayment:
+		JobUpdatePaymentReference, JobCancelPayment, JobCancelAuthorization:
 		return port.QueuePayments
+	case JobSendDocumentEmail:
+		// lago SendEmailJob queue_as "mailers"; Tanvo's emails run on
+		// the default queue.
+		return port.QueueDefault
 	case JobGenerateInvoiceDocument, JobGenerateCreditNoteDocument, JobGeneratePaymentReceiptDocument:
 		return port.QueueDocuments
 	case JobPullProviderTaxes, JobVoidProviderTaxes, JobReportCreditNoteTaxes:

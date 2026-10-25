@@ -244,7 +244,7 @@ func (r alertRepo) List(ctx context.Context, org core.OrganizationID, f alert.Fi
 	if err != nil {
 		return core.Page[*alert.Alert]{}, err
 	}
-	after, lim, err := pageArgs(page)
+	after, afterAt, lim, err := timeCursorArgs(page)
 	if err != nil {
 		return core.Page[*alert.Alert]{}, err
 	}
@@ -254,6 +254,7 @@ func (r alertRepo) List(ctx context.Context, org core.OrganizationID, f alert.Fi
 		WalletID:               optUUID(f.WalletID),
 		AlertTypes:             enumStrings(f.Types),
 		After:                  after,
+		AfterAt:                afterAt,
 		Lim:                    lim,
 	})
 	if err != nil {
@@ -266,7 +267,7 @@ func (r alertRepo) List(ctx context.Context, org core.OrganizationID, f alert.Fi
 		if err != nil {
 			return core.Page[*alert.Alert]{}, err
 		}
-		return core.Page[*alert.Alert]{Items: alerts, NextToken: alerts[len(alerts)-1].ID.String()}, nil
+		return core.Page[*alert.Alert]{Items: alerts, NextToken: recentCursor(alerts[len(alerts)-1].CreatedAt, alerts[len(alerts)-1].ID.UUID())}, nil
 	}
 	alerts, err := r.withThresholds(ctx, q, org, rows)
 	if err != nil {

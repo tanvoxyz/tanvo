@@ -56,6 +56,10 @@ type RuleInput struct {
 	// PurchaseOrderNumber is copied to the runs' transactions (blank is
 	// none, falling back to the wallet's); nil keeps it on update.
 	PurchaseOrderNumber *string
+	// InvoiceCustomSections, when not nil, selects the custom sections of
+	// the runs' credit invoices (create_service.rb:67-69,
+	// update_service.rb:43-55).
+	InvoiceCustomSections *CustomSections
 	// Connections, keyed by category, choose the rule's connections
 	// (domain §15.5); categories left out keep theirs (inherit on
 	// creation).
@@ -227,6 +231,9 @@ func (s *Service) updateRules(ctx context.Context, r port.Repos, w *wallet.Walle
 			if err != nil {
 				return err
 			}
+			if err := attachRuleSections(ctx, r, rule, in); err != nil {
+				return err
+			}
 			if err := r.RecurringTransactionRules.Create(ctx, rule); err != nil {
 				return fmt.Errorf("create rule of wallet %s: %w", w.ID, err)
 			}
@@ -239,6 +246,9 @@ func (s *Service) updateRules(ctx context.Context, r port.Repos, w *wallet.Walle
 		}
 		rule, err := s.updatedRule(w, rules[idx], in)
 		if err != nil {
+			return err
+		}
+		if err := attachRuleSections(ctx, r, rule, in); err != nil {
 			return err
 		}
 		if err := r.RecurringTransactionRules.Update(ctx, rule); err != nil {
@@ -332,6 +342,16 @@ func (s *Service) updatedRule(w *wallet.Wallet, rule *wallet.RecurringTransactio
 		return nil, fieldError("recurring_transaction_rules", CodeInvalidRecurringRule)
 	}
 	return rule, nil
+}
+
+// attachRuleSections applies the custom section selection of in to rule.
+func attachRuleSections(ctx context.Context, r port.Repos, rule *wallet.RecurringTransactionRule, in *RuleInput) error {
+	cs, err := attachSections(ctx, r, rule.OrganizationID, rule.InvoiceCustomSections, in.InvoiceCustomSections)
+	if err != nil {
+		return err
+	}
+	rule.InvoiceCustomSections = cs
+	return nil
 }
 
 // terminateRules terminates the active rules of wallet w.

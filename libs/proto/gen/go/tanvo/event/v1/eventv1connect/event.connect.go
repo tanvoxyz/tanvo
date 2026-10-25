@@ -116,8 +116,11 @@ type EventServiceClient interface {
 	GetEvent(context.Context, *v1.GetEventRequest) (*v1.GetEventResponse, error)
 	// Lists events, newest first.
 	ListEvents(context.Context, *v1.ListEventsRequest) (*v1.ListEventsResponse, error)
-	// Lists enriched events: events resolved to their subscription, charge
-	// and filter, with the computed value.
+	// Lists enriched events, latest enriched first: the stored events with
+	// the value enrichment gave them. Beta (response header
+	// `X-Tanvo-Endpoint-Status: beta`); only organizations ingesting through
+	// Kafka store enriched events, others get PermissionDenied with reason
+	// `endpoint_not_available`.
 	ListEnrichedEvents(context.Context, *v1.ListEnrichedEventsRequest) (*v1.ListEnrichedEventsResponse, error)
 	// Estimates the fees an event would create on in-advance charges, without
 	// storing it.
@@ -145,8 +148,11 @@ type EventServiceHandler interface {
 	GetEvent(context.Context, *v1.GetEventRequest) (*v1.GetEventResponse, error)
 	// Lists events, newest first.
 	ListEvents(context.Context, *v1.ListEventsRequest) (*v1.ListEventsResponse, error)
-	// Lists enriched events: events resolved to their subscription, charge
-	// and filter, with the computed value.
+	// Lists enriched events, latest enriched first: the stored events with
+	// the value enrichment gave them. Beta (response header
+	// `X-Tanvo-Endpoint-Status: beta`); only organizations ingesting through
+	// Kafka store enriched events, others get PermissionDenied with reason
+	// `endpoint_not_available`.
 	ListEnrichedEvents(context.Context, *v1.ListEnrichedEventsRequest) (*v1.ListEnrichedEventsResponse, error)
 	// Estimates the fees an event would create on in-advance charges, without
 	// storing it.

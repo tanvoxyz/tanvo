@@ -1521,7 +1521,7 @@ type CreditNote_builder struct {
 	AppliedTaxes []*CreditNoteAppliedTax
 	// The issuing date.
 	IssuingDate *date.Date
-	// Metadata.
+	// Metadata: at most 50 items.
 	Metadata []*v1.MetadataItem
 	// Marks a credit note with a generated PDF.
 	FileAvailable *bool
@@ -3393,6 +3393,638 @@ func (b0 RetryCreditNoteTaxReportingResponse_builder) Build() *RetryCreditNoteTa
 	return m0
 }
 
+// ReplaceCreditNoteMetadataRequest is the request of ReplaceCreditNoteMetadata.
+type ReplaceCreditNoteMetadataRequest struct {
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_CreditNoteId *string                `protobuf:"bytes,1,opt,name=credit_note_id,json=creditNoteId"`
+	xxx_hidden_Metadata     *[]*v1.MetadataItem    `protobuf:"bytes,2,rep,name=metadata"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *ReplaceCreditNoteMetadataRequest) Reset() {
+	*x = ReplaceCreditNoteMetadataRequest{}
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplaceCreditNoteMetadataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplaceCreditNoteMetadataRequest) ProtoMessage() {}
+
+func (x *ReplaceCreditNoteMetadataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ReplaceCreditNoteMetadataRequest) GetCreditNoteId() string {
+	if x != nil {
+		if x.xxx_hidden_CreditNoteId != nil {
+			return *x.xxx_hidden_CreditNoteId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ReplaceCreditNoteMetadataRequest) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *ReplaceCreditNoteMetadataRequest) SetCreditNoteId(v string) {
+	x.xxx_hidden_CreditNoteId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *ReplaceCreditNoteMetadataRequest) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+func (x *ReplaceCreditNoteMetadataRequest) HasCreditNoteId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ReplaceCreditNoteMetadataRequest) ClearCreditNoteId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_CreditNoteId = nil
+}
+
+type ReplaceCreditNoteMetadataRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The credit note's ID.
+	CreditNoteId *string
+	// The new metadata; empty clears it.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 ReplaceCreditNoteMetadataRequest_builder) Build() *ReplaceCreditNoteMetadataRequest {
+	m0 := &ReplaceCreditNoteMetadataRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.CreditNoteId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_CreditNoteId = b.CreditNoteId
+	}
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
+// MergeCreditNoteMetadataRequest is the request of MergeCreditNoteMetadata.
+type MergeCreditNoteMetadataRequest struct {
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_CreditNoteId *string                `protobuf:"bytes,1,opt,name=credit_note_id,json=creditNoteId"`
+	xxx_hidden_Metadata     *[]*v1.MetadataItem    `protobuf:"bytes,2,rep,name=metadata"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *MergeCreditNoteMetadataRequest) Reset() {
+	*x = MergeCreditNoteMetadataRequest{}
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MergeCreditNoteMetadataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MergeCreditNoteMetadataRequest) ProtoMessage() {}
+
+func (x *MergeCreditNoteMetadataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *MergeCreditNoteMetadataRequest) GetCreditNoteId() string {
+	if x != nil {
+		if x.xxx_hidden_CreditNoteId != nil {
+			return *x.xxx_hidden_CreditNoteId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *MergeCreditNoteMetadataRequest) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *MergeCreditNoteMetadataRequest) SetCreditNoteId(v string) {
+	x.xxx_hidden_CreditNoteId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *MergeCreditNoteMetadataRequest) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+func (x *MergeCreditNoteMetadataRequest) HasCreditNoteId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *MergeCreditNoteMetadataRequest) ClearCreditNoteId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_CreditNoteId = nil
+}
+
+type MergeCreditNoteMetadataRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The credit note's ID.
+	CreditNoteId *string
+	// The items to merge.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 MergeCreditNoteMetadataRequest_builder) Build() *MergeCreditNoteMetadataRequest {
+	m0 := &MergeCreditNoteMetadataRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.CreditNoteId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_CreditNoteId = b.CreditNoteId
+	}
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
+// DeleteCreditNoteMetadataRequest is the request of DeleteCreditNoteMetadata.
+type DeleteCreditNoteMetadataRequest struct {
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_CreditNoteId *string                `protobuf:"bytes,1,opt,name=credit_note_id,json=creditNoteId"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *DeleteCreditNoteMetadataRequest) Reset() {
+	*x = DeleteCreditNoteMetadataRequest{}
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteCreditNoteMetadataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteCreditNoteMetadataRequest) ProtoMessage() {}
+
+func (x *DeleteCreditNoteMetadataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeleteCreditNoteMetadataRequest) GetCreditNoteId() string {
+	if x != nil {
+		if x.xxx_hidden_CreditNoteId != nil {
+			return *x.xxx_hidden_CreditNoteId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeleteCreditNoteMetadataRequest) SetCreditNoteId(v string) {
+	x.xxx_hidden_CreditNoteId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeleteCreditNoteMetadataRequest) HasCreditNoteId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteCreditNoteMetadataRequest) ClearCreditNoteId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_CreditNoteId = nil
+}
+
+type DeleteCreditNoteMetadataRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The credit note's ID.
+	CreditNoteId *string
+}
+
+func (b0 DeleteCreditNoteMetadataRequest_builder) Build() *DeleteCreditNoteMetadataRequest {
+	m0 := &DeleteCreditNoteMetadataRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.CreditNoteId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_CreditNoteId = b.CreditNoteId
+	}
+	return m0
+}
+
+// DeleteCreditNoteMetadataKeyRequest is the request of DeleteCreditNoteMetadataKey.
+type DeleteCreditNoteMetadataKeyRequest struct {
+	state                   protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_CreditNoteId *string                `protobuf:"bytes,1,opt,name=credit_note_id,json=creditNoteId"`
+	xxx_hidden_Key          *string                `protobuf:"bytes,2,opt,name=key"`
+	XXX_raceDetectHookData  protoimpl.RaceDetectHookData
+	XXX_presence            [1]uint32
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
+}
+
+func (x *DeleteCreditNoteMetadataKeyRequest) Reset() {
+	*x = DeleteCreditNoteMetadataKeyRequest{}
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteCreditNoteMetadataKeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteCreditNoteMetadataKeyRequest) ProtoMessage() {}
+
+func (x *DeleteCreditNoteMetadataKeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeleteCreditNoteMetadataKeyRequest) GetCreditNoteId() string {
+	if x != nil {
+		if x.xxx_hidden_CreditNoteId != nil {
+			return *x.xxx_hidden_CreditNoteId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeleteCreditNoteMetadataKeyRequest) GetKey() string {
+	if x != nil {
+		if x.xxx_hidden_Key != nil {
+			return *x.xxx_hidden_Key
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeleteCreditNoteMetadataKeyRequest) SetCreditNoteId(v string) {
+	x.xxx_hidden_CreditNoteId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *DeleteCreditNoteMetadataKeyRequest) SetKey(v string) {
+	x.xxx_hidden_Key = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *DeleteCreditNoteMetadataKeyRequest) HasCreditNoteId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteCreditNoteMetadataKeyRequest) HasKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *DeleteCreditNoteMetadataKeyRequest) ClearCreditNoteId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_CreditNoteId = nil
+}
+
+func (x *DeleteCreditNoteMetadataKeyRequest) ClearKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Key = nil
+}
+
+type DeleteCreditNoteMetadataKeyRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The credit note's ID.
+	CreditNoteId *string
+	// The key to remove.
+	Key *string
+}
+
+func (b0 DeleteCreditNoteMetadataKeyRequest_builder) Build() *DeleteCreditNoteMetadataKeyRequest {
+	m0 := &DeleteCreditNoteMetadataKeyRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.CreditNoteId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_CreditNoteId = b.CreditNoteId
+	}
+	if b.Key != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Key = b.Key
+	}
+	return m0
+}
+
+// ReplaceCreditNoteMetadataResponse is the response of ReplaceCreditNoteMetadata.
+type ReplaceCreditNoteMetadataResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Metadata *[]*v1.MetadataItem    `protobuf:"bytes,1,rep,name=metadata"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *ReplaceCreditNoteMetadataResponse) Reset() {
+	*x = ReplaceCreditNoteMetadataResponse{}
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplaceCreditNoteMetadataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplaceCreditNoteMetadataResponse) ProtoMessage() {}
+
+func (x *ReplaceCreditNoteMetadataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ReplaceCreditNoteMetadataResponse) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *ReplaceCreditNoteMetadataResponse) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+type ReplaceCreditNoteMetadataResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The credit note's metadata after the change.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 ReplaceCreditNoteMetadataResponse_builder) Build() *ReplaceCreditNoteMetadataResponse {
+	m0 := &ReplaceCreditNoteMetadataResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
+// MergeCreditNoteMetadataResponse is the response of MergeCreditNoteMetadata.
+type MergeCreditNoteMetadataResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Metadata *[]*v1.MetadataItem    `protobuf:"bytes,1,rep,name=metadata"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *MergeCreditNoteMetadataResponse) Reset() {
+	*x = MergeCreditNoteMetadataResponse{}
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MergeCreditNoteMetadataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MergeCreditNoteMetadataResponse) ProtoMessage() {}
+
+func (x *MergeCreditNoteMetadataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *MergeCreditNoteMetadataResponse) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *MergeCreditNoteMetadataResponse) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+type MergeCreditNoteMetadataResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The credit note's metadata after the change.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 MergeCreditNoteMetadataResponse_builder) Build() *MergeCreditNoteMetadataResponse {
+	m0 := &MergeCreditNoteMetadataResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
+// DeleteCreditNoteMetadataResponse is the response of DeleteCreditNoteMetadata.
+type DeleteCreditNoteMetadataResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Metadata *[]*v1.MetadataItem    `protobuf:"bytes,1,rep,name=metadata"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *DeleteCreditNoteMetadataResponse) Reset() {
+	*x = DeleteCreditNoteMetadataResponse{}
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteCreditNoteMetadataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteCreditNoteMetadataResponse) ProtoMessage() {}
+
+func (x *DeleteCreditNoteMetadataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeleteCreditNoteMetadataResponse) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *DeleteCreditNoteMetadataResponse) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+type DeleteCreditNoteMetadataResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The credit note's metadata after the change.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 DeleteCreditNoteMetadataResponse_builder) Build() *DeleteCreditNoteMetadataResponse {
+	m0 := &DeleteCreditNoteMetadataResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
+// DeleteCreditNoteMetadataKeyResponse is the response of DeleteCreditNoteMetadataKey.
+type DeleteCreditNoteMetadataKeyResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Metadata *[]*v1.MetadataItem    `protobuf:"bytes,1,rep,name=metadata"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *DeleteCreditNoteMetadataKeyResponse) Reset() {
+	*x = DeleteCreditNoteMetadataKeyResponse{}
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteCreditNoteMetadataKeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteCreditNoteMetadataKeyResponse) ProtoMessage() {}
+
+func (x *DeleteCreditNoteMetadataKeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_creditnote_v1_credit_note_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeleteCreditNoteMetadataKeyResponse) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *DeleteCreditNoteMetadataKeyResponse) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+type DeleteCreditNoteMetadataKeyResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The credit note's metadata after the change.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 DeleteCreditNoteMetadataKeyResponse_builder) Build() *DeleteCreditNoteMetadataKeyResponse {
+	m0 := &DeleteCreditNoteMetadataKeyResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
 var File_tanvo_creditnote_v1_credit_note_proto protoreflect.FileDescriptor
 
 const file_tanvo_creditnote_v1_credit_note_proto_rawDesc = "" +
@@ -3442,7 +4074,7 @@ const file_tanvo_creditnote_v1_credit_note_proto_rawDesc = "" +
 	"\x05items\x18\x13 \x03(\v2#.tanvo.creditnote.v1.CreditNoteItemB\x0e\xe2A\x02\x02\x05\xbaH\x06\x92\x01\x03\x10\xe8\aR\x05items\x12T\n" +
 	"\rapplied_taxes\x18\x14 \x03(\v2).tanvo.creditnote.v1.CreditNoteAppliedTaxB\x04\xe2A\x01\x03R\fappliedTaxes\x12:\n" +
 	"\fissuing_date\x18\x15 \x01(\v2\x11.google.type.DateB\x04\xe2A\x01\x03R\vissuingDate\x12C\n" +
-	"\bmetadata\x18\x16 \x03(\v2\x1d.tanvo.common.v1.MetadataItemB\b\xbaH\x05\x92\x01\x02\x10\x05R\bmetadata\x12+\n" +
+	"\bmetadata\x18\x16 \x03(\v2\x1d.tanvo.common.v1.MetadataItemB\b\xbaH\x05\x92\x01\x02\x102R\bmetadata\x12+\n" +
 	"\x0efile_available\x18\x17 \x01(\bB\x04\xe2A\x01\x03R\rfileAvailable\x122\n" +
 	"\x12xml_file_available\x18\x18 \x01(\bB\x04\xe2A\x01\x03R\x10xmlFileAvailable\x12A\n" +
 	"\vrefunded_at\x18\x19 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\n" +
@@ -3524,7 +4156,27 @@ const file_tanvo_creditnote_v1_credit_note_proto_rawDesc = "" +
 	"\x0ecredit_note_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\fcreditNoteId\"g\n" +
 	"#RetryCreditNoteTaxReportingResponse\x12@\n" +
 	"\vcredit_note\x18\x01 \x01(\v2\x1f.tanvo.creditnote.v1.CreditNoteR\n" +
-	"creditNote*c\n" +
+	"creditNote\"\x9e\x01\n" +
+	" ReplaceCreditNoteMetadataRequest\x125\n" +
+	"\x0ecredit_note_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\fcreditNoteId\x12C\n" +
+	"\bmetadata\x18\x02 \x03(\v2\x1d.tanvo.common.v1.MetadataItemB\b\xbaH\x05\x92\x01\x02\x102R\bmetadata\"\x9c\x01\n" +
+	"\x1eMergeCreditNoteMetadataRequest\x125\n" +
+	"\x0ecredit_note_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\fcreditNoteId\x12C\n" +
+	"\bmetadata\x18\x02 \x03(\v2\x1d.tanvo.common.v1.MetadataItemB\b\xbaH\x05\x92\x01\x02\x102R\bmetadata\"X\n" +
+	"\x1fDeleteCreditNoteMetadataRequest\x125\n" +
+	"\x0ecredit_note_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\fcreditNoteId\"y\n" +
+	"\"DeleteCreditNoteMetadataKeyRequest\x125\n" +
+	"\x0ecredit_note_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\fcreditNoteId\x12\x1c\n" +
+	"\x03key\x18\x02 \x01(\tB\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x03key\"^\n" +
+	"!ReplaceCreditNoteMetadataResponse\x129\n" +
+	"\bmetadata\x18\x01 \x03(\v2\x1d.tanvo.common.v1.MetadataItemR\bmetadata\"\\\n" +
+	"\x1fMergeCreditNoteMetadataResponse\x129\n" +
+	"\bmetadata\x18\x01 \x03(\v2\x1d.tanvo.common.v1.MetadataItemR\bmetadata\"]\n" +
+	" DeleteCreditNoteMetadataResponse\x129\n" +
+	"\bmetadata\x18\x01 \x03(\v2\x1d.tanvo.common.v1.MetadataItemR\bmetadata\"`\n" +
+	"#DeleteCreditNoteMetadataKeyResponse\x129\n" +
+	"\bmetadata\x18\x01 \x03(\v2\x1d.tanvo.common.v1.MetadataItemR\bmetadata*c\n" +
 	"\x13CreditNoteErrorCode\x12&\n" +
 	"\"CREDIT_NOTE_ERROR_CODE_UNSPECIFIED\x10\x00\x12$\n" +
 	" CREDIT_NOTE_ERROR_CODE_TAX_ERROR\x10\x01*v\n" +
@@ -3544,7 +4196,7 @@ const file_tanvo_creditnote_v1_credit_note_proto_rawDesc = "" +
 	"\x1fCREDIT_NOTE_REASON_ORDER_CHANGE\x10\x03\x12)\n" +
 	"%CREDIT_NOTE_REASON_ORDER_CANCELLATION\x10\x04\x12(\n" +
 	"$CREDIT_NOTE_REASON_FRAUDULENT_CHARGE\x10\x05\x12\x1c\n" +
-	"\x18CREDIT_NOTE_REASON_OTHER\x10\x062\xb3\x10\n" +
+	"\x18CREDIT_NOTE_REASON_OTHER\x10\x062\xd8\x17\n" +
 	"\x11CreditNoteService\x12\xbc\x01\n" +
 	"\x10CreateCreditNote\x12,.tanvo.creditnote.v1.CreateCreditNoteRequest\x1a-.tanvo.creditnote.v1.CreateCreditNoteResponse\"K\xca\xf3\x18\"\n" +
 	"\x13credit_notes:create*\vcredit_note\x82\xd3\xe4\x93\x02\x1f:\vcredit_note\"\x10/v1/credit_notes\x12\xc1\x01\n" +
@@ -3565,11 +4217,19 @@ const file_tanvo_creditnote_v1_credit_note_proto_rawDesc = "" +
 	"\x13RetryCreditNoteSync\x12/.tanvo.creditnote.v1.RetryCreditNoteSyncRequest\x1a0.tanvo.creditnote.v1.RetryCreditNoteSyncResponse\"]\xca\xf3\x18\"\n" +
 	"\x13credit_notes:update*\vcredit_note\x82\xd3\xe4\x93\x021:\x01*\",/v1/credit_notes/{credit_note_id}:retry_sync\x12\xf8\x01\n" +
 	"\x1bRetryCreditNoteTaxReporting\x127.tanvo.creditnote.v1.RetryCreditNoteTaxReportingRequest\x1a8.tanvo.creditnote.v1.RetryCreditNoteTaxReportingResponse\"f\xca\xf3\x18\"\n" +
-	"\x13credit_notes:update*\vcredit_note\x82\xd3\xe4\x93\x02::\x01*\"5/v1/credit_notes/{credit_note_id}:retry_tax_reportingB\xe6\x01\n" +
+	"\x13credit_notes:update*\vcredit_note\x82\xd3\xe4\x93\x02::\x01*\"5/v1/credit_notes/{credit_note_id}:retry_tax_reporting\x12\xe7\x01\n" +
+	"\x19ReplaceCreditNoteMetadata\x125.tanvo.creditnote.v1.ReplaceCreditNoteMetadataRequest\x1a6.tanvo.creditnote.v1.ReplaceCreditNoteMetadataResponse\"[\xca\xf3\x18\"\n" +
+	"\x13credit_notes:update*\vcredit_note\x82\xd3\xe4\x93\x02/:\x01*\"*/v1/credit_notes/{credit_note_id}/metadata\x12\xe1\x01\n" +
+	"\x17MergeCreditNoteMetadata\x123.tanvo.creditnote.v1.MergeCreditNoteMetadataRequest\x1a4.tanvo.creditnote.v1.MergeCreditNoteMetadataResponse\"[\xca\xf3\x18\"\n" +
+	"\x13credit_notes:update*\vcredit_note\x82\xd3\xe4\x93\x02/:\x01*2*/v1/credit_notes/{credit_note_id}/metadata\x12\xe1\x01\n" +
+	"\x18DeleteCreditNoteMetadata\x124.tanvo.creditnote.v1.DeleteCreditNoteMetadataRequest\x1a5.tanvo.creditnote.v1.DeleteCreditNoteMetadataResponse\"X\xca\xf3\x18\"\n" +
+	"\x13credit_notes:update*\vcredit_note\x82\xd3\xe4\x93\x02,**/v1/credit_notes/{credit_note_id}/metadata\x12\xf0\x01\n" +
+	"\x1bDeleteCreditNoteMetadataKey\x127.tanvo.creditnote.v1.DeleteCreditNoteMetadataKeyRequest\x1a8.tanvo.creditnote.v1.DeleteCreditNoteMetadataKeyResponse\"^\xca\xf3\x18\"\n" +
+	"\x13credit_notes:update*\vcredit_note\x82\xd3\xe4\x93\x022*0/v1/credit_notes/{credit_note_id}/metadata/{key}B\xe6\x01\n" +
 	"\x17com.tanvo.creditnote.v1B\x0fCreditNoteProtoP\x01ZLgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/creditnote/v1;creditnotev1\xa2\x02\x03TCX\xaa\x02\x13Tanvo.Creditnote.V1\xca\x02\x13Tanvo\\Creditnote\\V1\xe2\x02\x1fTanvo\\Creditnote\\V1\\GPBMetadata\xea\x02\x15Tanvo::Creditnote::V1b\beditionsp\xe8\a"
 
 var file_tanvo_creditnote_v1_credit_note_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
-var file_tanvo_creditnote_v1_credit_note_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_tanvo_creditnote_v1_credit_note_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_tanvo_creditnote_v1_credit_note_proto_goTypes = []any{
 	(CreditNoteErrorCode)(0),                    // 0: tanvo.creditnote.v1.CreditNoteErrorCode
 	(CreditNoteStatus)(0),                       // 1: tanvo.creditnote.v1.CreditNoteStatus
@@ -3599,81 +4259,103 @@ var file_tanvo_creditnote_v1_credit_note_proto_goTypes = []any{
 	(*RetryCreditNoteSyncResponse)(nil),         // 25: tanvo.creditnote.v1.RetryCreditNoteSyncResponse
 	(*RetryCreditNoteTaxReportingRequest)(nil),  // 26: tanvo.creditnote.v1.RetryCreditNoteTaxReportingRequest
 	(*RetryCreditNoteTaxReportingResponse)(nil), // 27: tanvo.creditnote.v1.RetryCreditNoteTaxReportingResponse
-	(*timestamppb.Timestamp)(nil),               // 28: google.protobuf.Timestamp
-	(*v1.Money)(nil),                            // 29: tanvo.common.v1.Money
-	(v1.RefundStatus)(0),                        // 30: tanvo.common.v1.RefundStatus
-	(*date.Date)(nil),                           // 31: google.type.Date
-	(*v1.MetadataItem)(nil),                     // 32: tanvo.common.v1.MetadataItem
-	(*fieldmaskpb.FieldMask)(nil),               // 33: google.protobuf.FieldMask
-	(*v1.Document)(nil),                         // 34: tanvo.common.v1.Document
+	(*ReplaceCreditNoteMetadataRequest)(nil),    // 28: tanvo.creditnote.v1.ReplaceCreditNoteMetadataRequest
+	(*MergeCreditNoteMetadataRequest)(nil),      // 29: tanvo.creditnote.v1.MergeCreditNoteMetadataRequest
+	(*DeleteCreditNoteMetadataRequest)(nil),     // 30: tanvo.creditnote.v1.DeleteCreditNoteMetadataRequest
+	(*DeleteCreditNoteMetadataKeyRequest)(nil),  // 31: tanvo.creditnote.v1.DeleteCreditNoteMetadataKeyRequest
+	(*ReplaceCreditNoteMetadataResponse)(nil),   // 32: tanvo.creditnote.v1.ReplaceCreditNoteMetadataResponse
+	(*MergeCreditNoteMetadataResponse)(nil),     // 33: tanvo.creditnote.v1.MergeCreditNoteMetadataResponse
+	(*DeleteCreditNoteMetadataResponse)(nil),    // 34: tanvo.creditnote.v1.DeleteCreditNoteMetadataResponse
+	(*DeleteCreditNoteMetadataKeyResponse)(nil), // 35: tanvo.creditnote.v1.DeleteCreditNoteMetadataKeyResponse
+	(*timestamppb.Timestamp)(nil),               // 36: google.protobuf.Timestamp
+	(*v1.Money)(nil),                            // 37: tanvo.common.v1.Money
+	(v1.RefundStatus)(0),                        // 38: tanvo.common.v1.RefundStatus
+	(*date.Date)(nil),                           // 39: google.type.Date
+	(*v1.MetadataItem)(nil),                     // 40: tanvo.common.v1.MetadataItem
+	(*fieldmaskpb.FieldMask)(nil),               // 41: google.protobuf.FieldMask
+	(*v1.Document)(nil),                         // 42: tanvo.common.v1.Document
 }
 var file_tanvo_creditnote_v1_credit_note_proto_depIdxs = []int32{
 	0,  // 0: tanvo.creditnote.v1.CreditNoteError.code:type_name -> tanvo.creditnote.v1.CreditNoteErrorCode
-	28, // 1: tanvo.creditnote.v1.CreditNoteError.created_at:type_name -> google.protobuf.Timestamp
-	29, // 2: tanvo.creditnote.v1.CreditNoteAppliedTax.base_amount:type_name -> tanvo.common.v1.Money
-	29, // 3: tanvo.creditnote.v1.CreditNoteAppliedTax.amount:type_name -> tanvo.common.v1.Money
+	36, // 1: tanvo.creditnote.v1.CreditNoteError.created_at:type_name -> google.protobuf.Timestamp
+	37, // 2: tanvo.creditnote.v1.CreditNoteAppliedTax.base_amount:type_name -> tanvo.common.v1.Money
+	37, // 3: tanvo.creditnote.v1.CreditNoteAppliedTax.amount:type_name -> tanvo.common.v1.Money
 	1,  // 4: tanvo.creditnote.v1.CreditNote.status:type_name -> tanvo.creditnote.v1.CreditNoteStatus
 	2,  // 5: tanvo.creditnote.v1.CreditNote.credit_status:type_name -> tanvo.creditnote.v1.CreditStatus
-	30, // 6: tanvo.creditnote.v1.CreditNote.refund_status:type_name -> tanvo.common.v1.RefundStatus
+	38, // 6: tanvo.creditnote.v1.CreditNote.refund_status:type_name -> tanvo.common.v1.RefundStatus
 	3,  // 7: tanvo.creditnote.v1.CreditNote.reason:type_name -> tanvo.creditnote.v1.CreditNoteReason
-	29, // 8: tanvo.creditnote.v1.CreditNote.credit_amount:type_name -> tanvo.common.v1.Money
-	29, // 9: tanvo.creditnote.v1.CreditNote.refund_amount:type_name -> tanvo.common.v1.Money
-	29, // 10: tanvo.creditnote.v1.CreditNote.offset_amount:type_name -> tanvo.common.v1.Money
-	29, // 11: tanvo.creditnote.v1.CreditNote.balance_amount:type_name -> tanvo.common.v1.Money
-	29, // 12: tanvo.creditnote.v1.CreditNote.sub_total_excluding_taxes_amount:type_name -> tanvo.common.v1.Money
-	29, // 13: tanvo.creditnote.v1.CreditNote.coupons_adjustment_amount:type_name -> tanvo.common.v1.Money
-	29, // 14: tanvo.creditnote.v1.CreditNote.taxes_amount:type_name -> tanvo.common.v1.Money
-	29, // 15: tanvo.creditnote.v1.CreditNote.total_amount:type_name -> tanvo.common.v1.Money
+	37, // 8: tanvo.creditnote.v1.CreditNote.credit_amount:type_name -> tanvo.common.v1.Money
+	37, // 9: tanvo.creditnote.v1.CreditNote.refund_amount:type_name -> tanvo.common.v1.Money
+	37, // 10: tanvo.creditnote.v1.CreditNote.offset_amount:type_name -> tanvo.common.v1.Money
+	37, // 11: tanvo.creditnote.v1.CreditNote.balance_amount:type_name -> tanvo.common.v1.Money
+	37, // 12: tanvo.creditnote.v1.CreditNote.sub_total_excluding_taxes_amount:type_name -> tanvo.common.v1.Money
+	37, // 13: tanvo.creditnote.v1.CreditNote.coupons_adjustment_amount:type_name -> tanvo.common.v1.Money
+	37, // 14: tanvo.creditnote.v1.CreditNote.taxes_amount:type_name -> tanvo.common.v1.Money
+	37, // 15: tanvo.creditnote.v1.CreditNote.total_amount:type_name -> tanvo.common.v1.Money
 	5,  // 16: tanvo.creditnote.v1.CreditNote.items:type_name -> tanvo.creditnote.v1.CreditNoteItem
 	6,  // 17: tanvo.creditnote.v1.CreditNote.applied_taxes:type_name -> tanvo.creditnote.v1.CreditNoteAppliedTax
-	31, // 18: tanvo.creditnote.v1.CreditNote.issuing_date:type_name -> google.type.Date
-	32, // 19: tanvo.creditnote.v1.CreditNote.metadata:type_name -> tanvo.common.v1.MetadataItem
-	28, // 20: tanvo.creditnote.v1.CreditNote.refunded_at:type_name -> google.protobuf.Timestamp
-	28, // 21: tanvo.creditnote.v1.CreditNote.voided_at:type_name -> google.protobuf.Timestamp
-	28, // 22: tanvo.creditnote.v1.CreditNote.created_at:type_name -> google.protobuf.Timestamp
-	28, // 23: tanvo.creditnote.v1.CreditNote.updated_at:type_name -> google.protobuf.Timestamp
+	39, // 18: tanvo.creditnote.v1.CreditNote.issuing_date:type_name -> google.type.Date
+	40, // 19: tanvo.creditnote.v1.CreditNote.metadata:type_name -> tanvo.common.v1.MetadataItem
+	36, // 20: tanvo.creditnote.v1.CreditNote.refunded_at:type_name -> google.protobuf.Timestamp
+	36, // 21: tanvo.creditnote.v1.CreditNote.voided_at:type_name -> google.protobuf.Timestamp
+	36, // 22: tanvo.creditnote.v1.CreditNote.created_at:type_name -> google.protobuf.Timestamp
+	36, // 23: tanvo.creditnote.v1.CreditNote.updated_at:type_name -> google.protobuf.Timestamp
 	4,  // 24: tanvo.creditnote.v1.CreditNote.errors:type_name -> tanvo.creditnote.v1.CreditNoteError
 	7,  // 25: tanvo.creditnote.v1.CreateCreditNoteRequest.credit_note:type_name -> tanvo.creditnote.v1.CreditNote
 	7,  // 26: tanvo.creditnote.v1.CreateCreditNoteResponse.credit_note:type_name -> tanvo.creditnote.v1.CreditNote
 	5,  // 27: tanvo.creditnote.v1.EstimateCreditNoteRequest.items:type_name -> tanvo.creditnote.v1.CreditNoteItem
 	7,  // 28: tanvo.creditnote.v1.EstimateCreditNoteResponse.credit_note:type_name -> tanvo.creditnote.v1.CreditNote
-	29, // 29: tanvo.creditnote.v1.EstimateCreditNoteResponse.max_creditable_amount:type_name -> tanvo.common.v1.Money
-	29, // 30: tanvo.creditnote.v1.EstimateCreditNoteResponse.max_refundable_amount:type_name -> tanvo.common.v1.Money
-	29, // 31: tanvo.creditnote.v1.EstimateCreditNoteResponse.max_offsettable_amount:type_name -> tanvo.common.v1.Money
+	37, // 29: tanvo.creditnote.v1.EstimateCreditNoteResponse.max_creditable_amount:type_name -> tanvo.common.v1.Money
+	37, // 30: tanvo.creditnote.v1.EstimateCreditNoteResponse.max_refundable_amount:type_name -> tanvo.common.v1.Money
+	37, // 31: tanvo.creditnote.v1.EstimateCreditNoteResponse.max_offsettable_amount:type_name -> tanvo.common.v1.Money
 	7,  // 32: tanvo.creditnote.v1.GetCreditNoteResponse.credit_note:type_name -> tanvo.creditnote.v1.CreditNote
 	7,  // 33: tanvo.creditnote.v1.ListCreditNotesResponse.credit_notes:type_name -> tanvo.creditnote.v1.CreditNote
 	7,  // 34: tanvo.creditnote.v1.UpdateCreditNoteRequest.credit_note:type_name -> tanvo.creditnote.v1.CreditNote
-	33, // 35: tanvo.creditnote.v1.UpdateCreditNoteRequest.update_mask:type_name -> google.protobuf.FieldMask
+	41, // 35: tanvo.creditnote.v1.UpdateCreditNoteRequest.update_mask:type_name -> google.protobuf.FieldMask
 	7,  // 36: tanvo.creditnote.v1.UpdateCreditNoteResponse.credit_note:type_name -> tanvo.creditnote.v1.CreditNote
 	7,  // 37: tanvo.creditnote.v1.VoidCreditNoteResponse.credit_note:type_name -> tanvo.creditnote.v1.CreditNote
-	34, // 38: tanvo.creditnote.v1.DownloadCreditNoteResponse.pdf:type_name -> tanvo.common.v1.Document
-	34, // 39: tanvo.creditnote.v1.DownloadCreditNoteResponse.xml:type_name -> tanvo.common.v1.Document
+	42, // 38: tanvo.creditnote.v1.DownloadCreditNoteResponse.pdf:type_name -> tanvo.common.v1.Document
+	42, // 39: tanvo.creditnote.v1.DownloadCreditNoteResponse.xml:type_name -> tanvo.common.v1.Document
 	7,  // 40: tanvo.creditnote.v1.RetryCreditNoteTaxReportingResponse.credit_note:type_name -> tanvo.creditnote.v1.CreditNote
-	8,  // 41: tanvo.creditnote.v1.CreditNoteService.CreateCreditNote:input_type -> tanvo.creditnote.v1.CreateCreditNoteRequest
-	10, // 42: tanvo.creditnote.v1.CreditNoteService.EstimateCreditNote:input_type -> tanvo.creditnote.v1.EstimateCreditNoteRequest
-	12, // 43: tanvo.creditnote.v1.CreditNoteService.GetCreditNote:input_type -> tanvo.creditnote.v1.GetCreditNoteRequest
-	14, // 44: tanvo.creditnote.v1.CreditNoteService.ListCreditNotes:input_type -> tanvo.creditnote.v1.ListCreditNotesRequest
-	16, // 45: tanvo.creditnote.v1.CreditNoteService.UpdateCreditNote:input_type -> tanvo.creditnote.v1.UpdateCreditNoteRequest
-	18, // 46: tanvo.creditnote.v1.CreditNoteService.VoidCreditNote:input_type -> tanvo.creditnote.v1.VoidCreditNoteRequest
-	20, // 47: tanvo.creditnote.v1.CreditNoteService.DownloadCreditNote:input_type -> tanvo.creditnote.v1.DownloadCreditNoteRequest
-	22, // 48: tanvo.creditnote.v1.CreditNoteService.ResendCreditNote:input_type -> tanvo.creditnote.v1.ResendCreditNoteRequest
-	24, // 49: tanvo.creditnote.v1.CreditNoteService.RetryCreditNoteSync:input_type -> tanvo.creditnote.v1.RetryCreditNoteSyncRequest
-	26, // 50: tanvo.creditnote.v1.CreditNoteService.RetryCreditNoteTaxReporting:input_type -> tanvo.creditnote.v1.RetryCreditNoteTaxReportingRequest
-	9,  // 51: tanvo.creditnote.v1.CreditNoteService.CreateCreditNote:output_type -> tanvo.creditnote.v1.CreateCreditNoteResponse
-	11, // 52: tanvo.creditnote.v1.CreditNoteService.EstimateCreditNote:output_type -> tanvo.creditnote.v1.EstimateCreditNoteResponse
-	13, // 53: tanvo.creditnote.v1.CreditNoteService.GetCreditNote:output_type -> tanvo.creditnote.v1.GetCreditNoteResponse
-	15, // 54: tanvo.creditnote.v1.CreditNoteService.ListCreditNotes:output_type -> tanvo.creditnote.v1.ListCreditNotesResponse
-	17, // 55: tanvo.creditnote.v1.CreditNoteService.UpdateCreditNote:output_type -> tanvo.creditnote.v1.UpdateCreditNoteResponse
-	19, // 56: tanvo.creditnote.v1.CreditNoteService.VoidCreditNote:output_type -> tanvo.creditnote.v1.VoidCreditNoteResponse
-	21, // 57: tanvo.creditnote.v1.CreditNoteService.DownloadCreditNote:output_type -> tanvo.creditnote.v1.DownloadCreditNoteResponse
-	23, // 58: tanvo.creditnote.v1.CreditNoteService.ResendCreditNote:output_type -> tanvo.creditnote.v1.ResendCreditNoteResponse
-	25, // 59: tanvo.creditnote.v1.CreditNoteService.RetryCreditNoteSync:output_type -> tanvo.creditnote.v1.RetryCreditNoteSyncResponse
-	27, // 60: tanvo.creditnote.v1.CreditNoteService.RetryCreditNoteTaxReporting:output_type -> tanvo.creditnote.v1.RetryCreditNoteTaxReportingResponse
-	51, // [51:61] is the sub-list for method output_type
-	41, // [41:51] is the sub-list for method input_type
-	41, // [41:41] is the sub-list for extension type_name
-	41, // [41:41] is the sub-list for extension extendee
-	0,  // [0:41] is the sub-list for field type_name
+	40, // 41: tanvo.creditnote.v1.ReplaceCreditNoteMetadataRequest.metadata:type_name -> tanvo.common.v1.MetadataItem
+	40, // 42: tanvo.creditnote.v1.MergeCreditNoteMetadataRequest.metadata:type_name -> tanvo.common.v1.MetadataItem
+	40, // 43: tanvo.creditnote.v1.ReplaceCreditNoteMetadataResponse.metadata:type_name -> tanvo.common.v1.MetadataItem
+	40, // 44: tanvo.creditnote.v1.MergeCreditNoteMetadataResponse.metadata:type_name -> tanvo.common.v1.MetadataItem
+	40, // 45: tanvo.creditnote.v1.DeleteCreditNoteMetadataResponse.metadata:type_name -> tanvo.common.v1.MetadataItem
+	40, // 46: tanvo.creditnote.v1.DeleteCreditNoteMetadataKeyResponse.metadata:type_name -> tanvo.common.v1.MetadataItem
+	8,  // 47: tanvo.creditnote.v1.CreditNoteService.CreateCreditNote:input_type -> tanvo.creditnote.v1.CreateCreditNoteRequest
+	10, // 48: tanvo.creditnote.v1.CreditNoteService.EstimateCreditNote:input_type -> tanvo.creditnote.v1.EstimateCreditNoteRequest
+	12, // 49: tanvo.creditnote.v1.CreditNoteService.GetCreditNote:input_type -> tanvo.creditnote.v1.GetCreditNoteRequest
+	14, // 50: tanvo.creditnote.v1.CreditNoteService.ListCreditNotes:input_type -> tanvo.creditnote.v1.ListCreditNotesRequest
+	16, // 51: tanvo.creditnote.v1.CreditNoteService.UpdateCreditNote:input_type -> tanvo.creditnote.v1.UpdateCreditNoteRequest
+	18, // 52: tanvo.creditnote.v1.CreditNoteService.VoidCreditNote:input_type -> tanvo.creditnote.v1.VoidCreditNoteRequest
+	20, // 53: tanvo.creditnote.v1.CreditNoteService.DownloadCreditNote:input_type -> tanvo.creditnote.v1.DownloadCreditNoteRequest
+	22, // 54: tanvo.creditnote.v1.CreditNoteService.ResendCreditNote:input_type -> tanvo.creditnote.v1.ResendCreditNoteRequest
+	24, // 55: tanvo.creditnote.v1.CreditNoteService.RetryCreditNoteSync:input_type -> tanvo.creditnote.v1.RetryCreditNoteSyncRequest
+	26, // 56: tanvo.creditnote.v1.CreditNoteService.RetryCreditNoteTaxReporting:input_type -> tanvo.creditnote.v1.RetryCreditNoteTaxReportingRequest
+	28, // 57: tanvo.creditnote.v1.CreditNoteService.ReplaceCreditNoteMetadata:input_type -> tanvo.creditnote.v1.ReplaceCreditNoteMetadataRequest
+	29, // 58: tanvo.creditnote.v1.CreditNoteService.MergeCreditNoteMetadata:input_type -> tanvo.creditnote.v1.MergeCreditNoteMetadataRequest
+	30, // 59: tanvo.creditnote.v1.CreditNoteService.DeleteCreditNoteMetadata:input_type -> tanvo.creditnote.v1.DeleteCreditNoteMetadataRequest
+	31, // 60: tanvo.creditnote.v1.CreditNoteService.DeleteCreditNoteMetadataKey:input_type -> tanvo.creditnote.v1.DeleteCreditNoteMetadataKeyRequest
+	9,  // 61: tanvo.creditnote.v1.CreditNoteService.CreateCreditNote:output_type -> tanvo.creditnote.v1.CreateCreditNoteResponse
+	11, // 62: tanvo.creditnote.v1.CreditNoteService.EstimateCreditNote:output_type -> tanvo.creditnote.v1.EstimateCreditNoteResponse
+	13, // 63: tanvo.creditnote.v1.CreditNoteService.GetCreditNote:output_type -> tanvo.creditnote.v1.GetCreditNoteResponse
+	15, // 64: tanvo.creditnote.v1.CreditNoteService.ListCreditNotes:output_type -> tanvo.creditnote.v1.ListCreditNotesResponse
+	17, // 65: tanvo.creditnote.v1.CreditNoteService.UpdateCreditNote:output_type -> tanvo.creditnote.v1.UpdateCreditNoteResponse
+	19, // 66: tanvo.creditnote.v1.CreditNoteService.VoidCreditNote:output_type -> tanvo.creditnote.v1.VoidCreditNoteResponse
+	21, // 67: tanvo.creditnote.v1.CreditNoteService.DownloadCreditNote:output_type -> tanvo.creditnote.v1.DownloadCreditNoteResponse
+	23, // 68: tanvo.creditnote.v1.CreditNoteService.ResendCreditNote:output_type -> tanvo.creditnote.v1.ResendCreditNoteResponse
+	25, // 69: tanvo.creditnote.v1.CreditNoteService.RetryCreditNoteSync:output_type -> tanvo.creditnote.v1.RetryCreditNoteSyncResponse
+	27, // 70: tanvo.creditnote.v1.CreditNoteService.RetryCreditNoteTaxReporting:output_type -> tanvo.creditnote.v1.RetryCreditNoteTaxReportingResponse
+	32, // 71: tanvo.creditnote.v1.CreditNoteService.ReplaceCreditNoteMetadata:output_type -> tanvo.creditnote.v1.ReplaceCreditNoteMetadataResponse
+	33, // 72: tanvo.creditnote.v1.CreditNoteService.MergeCreditNoteMetadata:output_type -> tanvo.creditnote.v1.MergeCreditNoteMetadataResponse
+	34, // 73: tanvo.creditnote.v1.CreditNoteService.DeleteCreditNoteMetadata:output_type -> tanvo.creditnote.v1.DeleteCreditNoteMetadataResponse
+	35, // 74: tanvo.creditnote.v1.CreditNoteService.DeleteCreditNoteMetadataKey:output_type -> tanvo.creditnote.v1.DeleteCreditNoteMetadataKeyResponse
+	61, // [61:75] is the sub-list for method output_type
+	47, // [47:61] is the sub-list for method input_type
+	47, // [47:47] is the sub-list for extension type_name
+	47, // [47:47] is the sub-list for extension extendee
+	0,  // [0:47] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_creditnote_v1_credit_note_proto_init() }
@@ -3687,7 +4369,7 @@ func file_tanvo_creditnote_v1_credit_note_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_creditnote_v1_credit_note_proto_rawDesc), len(file_tanvo_creditnote_v1_credit_note_proto_rawDesc)),
 			NumEnums:      4,
-			NumMessages:   24,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

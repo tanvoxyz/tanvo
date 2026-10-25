@@ -142,6 +142,50 @@ service CreditNoteService {
       api_resource: "credit_note"
     };
   }
+
+  // Replaces the credit note's metadata; an empty list clears it.
+  rpc ReplaceCreditNoteMetadata(ReplaceCreditNoteMetadataRequest) returns (ReplaceCreditNoteMetadataResponse) {
+    option (google.api.http) = {
+      post: "/v1/credit_notes/{credit_note_id}/metadata"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "credit_notes:update"
+      api_resource: "credit_note"
+    };
+  }
+
+  // Merges items into the credit note's metadata: values of existing keys are
+  // replaced and new keys appended.
+  rpc MergeCreditNoteMetadata(MergeCreditNoteMetadataRequest) returns (MergeCreditNoteMetadataResponse) {
+    option (google.api.http) = {
+      patch: "/v1/credit_notes/{credit_note_id}/metadata"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "credit_notes:update"
+      api_resource: "credit_note"
+    };
+  }
+
+  // Removes all the credit note's metadata.
+  rpc DeleteCreditNoteMetadata(DeleteCreditNoteMetadataRequest) returns (DeleteCreditNoteMetadataResponse) {
+    option (google.api.http) = {delete: "/v1/credit_notes/{credit_note_id}/metadata"};
+    option (tanvo.common.v1.access) = {
+      permission: "credit_notes:update"
+      api_resource: "credit_note"
+    };
+  }
+
+  // Removes one key from the credit note's metadata; NOT_FOUND when the
+  // credit note has no metadata.
+  rpc DeleteCreditNoteMetadataKey(DeleteCreditNoteMetadataKeyRequest) returns (DeleteCreditNoteMetadataKeyResponse) {
+    option (google.api.http) = {delete: "/v1/credit_notes/{credit_note_id}/metadata/{key}"};
+    option (tanvo.common.v1.access) = {
+      permission: "credit_notes:update"
+      api_resource: "credit_note"
+    };
+  }
 }
 
 // CreditNoteErrorCode is the kind of an error recorded on a credit note.
@@ -300,8 +344,8 @@ message CreditNote {
   repeated CreditNoteAppliedTax applied_taxes = 20 [(google.api.field_behavior) = OUTPUT_ONLY];
   // The issuing date.
   google.type.Date issuing_date = 21 [(google.api.field_behavior) = OUTPUT_ONLY];
-  // Metadata.
-  repeated tanvo.common.v1.MetadataItem metadata = 22 [(buf.validate.field).repeated.max_items = 5];
+  // Metadata: at most 50 items.
+  repeated tanvo.common.v1.MetadataItem metadata = 22 [(buf.validate.field).repeated.max_items = 50];
   // Marks a credit note with a generated PDF.
   bool file_available = 23 [(google.api.field_behavior) = OUTPUT_ONLY];
   // Marks a credit note with a generated e-invoice XML.
@@ -530,4 +574,77 @@ message RetryCreditNoteTaxReportingRequest {
 message RetryCreditNoteTaxReportingResponse {
   // The credit note.
   CreditNote credit_note = 1;
+}
+
+// ReplaceCreditNoteMetadataRequest is the request of ReplaceCreditNoteMetadata.
+message ReplaceCreditNoteMetadataRequest {
+  // The credit note's ID.
+  string credit_note_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The new metadata; empty clears it.
+  repeated tanvo.common.v1.MetadataItem metadata = 2 [(buf.validate.field).repeated.max_items = 50];
+}
+
+// MergeCreditNoteMetadataRequest is the request of MergeCreditNoteMetadata.
+message MergeCreditNoteMetadataRequest {
+  // The credit note's ID.
+  string credit_note_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The items to merge.
+  repeated tanvo.common.v1.MetadataItem metadata = 2 [(buf.validate.field).repeated.max_items = 50];
+}
+
+// DeleteCreditNoteMetadataRequest is the request of DeleteCreditNoteMetadata.
+message DeleteCreditNoteMetadataRequest {
+  // The credit note's ID.
+  string credit_note_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DeleteCreditNoteMetadataKeyRequest is the request of DeleteCreditNoteMetadataKey.
+message DeleteCreditNoteMetadataKeyRequest {
+  // The credit note's ID.
+  string credit_note_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The key to remove.
+  string key = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// ReplaceCreditNoteMetadataResponse is the response of ReplaceCreditNoteMetadata.
+message ReplaceCreditNoteMetadataResponse {
+  // The credit note's metadata after the change.
+  repeated tanvo.common.v1.MetadataItem metadata = 1;
+}
+
+// MergeCreditNoteMetadataResponse is the response of MergeCreditNoteMetadata.
+message MergeCreditNoteMetadataResponse {
+  // The credit note's metadata after the change.
+  repeated tanvo.common.v1.MetadataItem metadata = 1;
+}
+
+// DeleteCreditNoteMetadataResponse is the response of DeleteCreditNoteMetadata.
+message DeleteCreditNoteMetadataResponse {
+  // The credit note's metadata after the change.
+  repeated tanvo.common.v1.MetadataItem metadata = 1;
+}
+
+// DeleteCreditNoteMetadataKeyResponse is the response of DeleteCreditNoteMetadataKey.
+message DeleteCreditNoteMetadataKeyResponse {
+  // The credit note's metadata after the change.
+  repeated tanvo.common.v1.MetadataItem metadata = 1;
 }

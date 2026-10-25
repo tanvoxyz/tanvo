@@ -133,6 +133,9 @@ type APIOptions struct {
 	AppURL string
 	// DisableSignup turns off self sign-up.
 	DisableSignup bool
+	// AnalyticsCacheTTL is how long a computed analytics report is reused;
+	// 0 computes every report.
+	AnalyticsCacheTTL time.Duration
 	// GoogleClientID and GoogleClientSecret enable Google sign-in.
 	GoogleClientID string
 	// GoogleClientSecret is the OAuth client secret of Google sign-in.
@@ -170,6 +173,13 @@ type APIOptions struct {
 	// of the API's services. Nil serves the integration RPCs with a
 	// service without providers.
 	Integrations *integrations.Service
+	// Files links the stored documents, renders receipts and resends the
+	// document emails; nil serves the downloads without links and the
+	// resend RPCs as unimplemented.
+	Files rpc.DocumentFiles
+	// Blobs stores the logos, quote files and data exports; nil keeps
+	// none.
+	Blobs port.BlobStore
 }
 
 // oidcCallbacks are the callback paths of the OpenID Connect methods
@@ -206,7 +216,10 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 	}
 	keys := auth.NewAPIKeys(ad, a.usage)
 	sessions := auth.NewSessions(ad, auth.DefaultSessionConfig())
-	users := auth.NewUsers(ad, sessions, auth.NewPasswordHasher(o.PasswordParams, rand.Reader), auth.UsersConfig{SignupDisabled: o.DisableSignup})
+	// A sign-up's organization gets its default billing entity once the
+	// billing entity service is built below.
+	signupOrgs := &organizationCreator{base: auth.BasicOrganizationCreator{Clock: o.Clock, IDs: core.UUIDv7Generator{}}}
+	users := auth.NewUsers(ad, sessions, auth.NewPasswordHasher(o.PasswordParams, rand.Reader), auth.UsersConfig{SignupDisabled: o.DisableSignup, Organizations: signupOrgs})
 	invites := auth.NewInvites(ad, users, auth.InvitesConfig{FrontURL: o.AppURL})
 	redirects := map[organization.AuthenticationMethod]string{}
 	if o.AppURL != "" {
@@ -253,6 +266,9 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 		Tx: o.Tx, Clock: o.Clock, IDs: core.UUIDv7Generator{}, Webhooks: &webhooks.Emitter{Tx: o.Tx}, Logger: o.Log,
 		ActivityLogs: auditlog.NewActivityProducer(o.Clock, core.UUIDv7Generator{}, rpc.ActivityActor),
 	}
+	// The analytics reports of the API and of the customer portal share
+	// one cache, as lago's share the Rails cache.
+	analyticsSvc := billinganalytics.New(billingDeps).WithCache(billinganalytics.NewCache(o.AnalyticsCacheTTL))
 	integrationSvc := o.Integrations
 	if integrationSvc != nil {
 		billingDeps.Webhooks = integrationSvc.Triggers(billingDeps.Webhooks)
@@ -265,10 +281,11 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 	if err != nil {
 		return nil, fmt.Errorf("api: metrics: %w", err)
 	}
-	billingEntitySvc, err := billingentities.New(billingDeps, nil)
+	billingEntitySvc, err := billingentities.New(billingDeps, o.Blobs)
 	if err != nil {
 		return nil, fmt.Errorf("api: billing entities: %w", err)
 	}
+	signupOrgs.entities = billingEntitySvc
 	entitlementSvc, err := entitlements.New(billingDeps)
 	if err != nil {
 		return nil, fmt.Errorf("api: entitlements: %w", err)
@@ -357,9 +374,10 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 	catalogv1connect.RegisterPlanRateCardServiceHandler(server, rpc.NewPlanRateCards(productSvc))
 	attributionv1connect.RegisterUsageAttributionServiceHandler(server, rpc.NewUsageAttribution(attributionSvc))
 	if o.Billing != nil {
-		quotev1connect.RegisterQuoteServiceHandler(server, rpc.NewQuotes(o.Billing.Quotes))
-		quotev1connect.RegisterOrderFormServiceHandler(server, rpc.NewOrderForms(o.Billing.Quotes))
-		quotev1connect.RegisterOrderServiceHandler(server, rpc.NewOrders(o.Billing.Quotes))
+		quoteSvc := o.Billing.Quotes.WithBlobs(o.Blobs)
+		quotev1connect.RegisterQuoteServiceHandler(server, rpc.NewQuotes(quoteSvc))
+		quotev1connect.RegisterOrderFormServiceHandler(server, rpc.NewOrderForms(quoteSvc))
+		quotev1connect.RegisterOrderServiceHandler(server, rpc.NewOrders(quoteSvc))
 	}
 	taxv1connect.RegisterTaxServiceHandler(server, rpc.NewTaxes(taxSvc))
 	alertv1connect.RegisterAlertServiceHandler(server, rpc.NewAlerts(alertSvc))
@@ -368,29 +386,29 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 	organizationv1connect.RegisterBillingEntityServiceHandler(server, rpc.NewBillingEntities(billingEntitySvc))
 	customerv1connect.RegisterCustomerServiceHandler(server, rpc.NewCustomers(customerSvc, portal, o.Tx))
 	if o.Billing != nil {
-		creditnotev1connect.RegisterCreditNoteServiceHandler(server, rpc.NewCreditNotes(o.Billing.CreditNotes).WithIntegrations(integrationSvc))
+		creditnotev1connect.RegisterCreditNoteServiceHandler(server, rpc.NewCreditNotes(o.Billing.CreditNotes).WithIntegrations(integrationSvc).WithFiles(o.Files))
 	}
 	if o.Billing != nil {
 		invoicev1connect.RegisterFeeServiceHandler(server, rpc.NewFees(o.Billing.Invoices))
-		invoicev1connect.RegisterInvoiceServiceHandler(server, rpc.NewInvoices(o.Billing.Invoices, paymentSvc).WithIntegrations(integrationSvc))
+		invoicev1connect.RegisterInvoiceServiceHandler(server, rpc.NewInvoices(o.Billing.Invoices, paymentSvc).WithIntegrations(integrationSvc).WithFiles(o.Files))
 		catalogv1connect.RegisterPlanServiceHandler(server, rpc.NewPlans(o.Billing.Plans))
 		catalogv1connect.RegisterChargeServiceHandler(server, rpc.NewCharges(o.Billing.Plans))
 		catalogv1connect.RegisterFixedChargeServiceHandler(server, rpc.NewFixedCharges(o.Billing.Plans))
 	}
 	if o.Billing != nil {
 		subscriptionSvc := subscriptions.New(billingDeps, o.Billing.Lifecycle, o.Billing.Usage, o.Billing.Plans)
-		subscriptionv1connect.RegisterSubscriptionServiceHandler(server, rpc.NewSubscriptions(subscriptionSvc))
+		subscriptionv1connect.RegisterSubscriptionServiceHandler(server, rpc.NewSubscriptions(subscriptionSvc).WithPayments(paymentSvc))
 		subscriptionv1connect.RegisterContractServiceHandler(server, rpc.NewContracts(o.Billing.Contracts, productSvc))
 		usagev1connect.RegisterUsageServiceHandler(server, rpc.NewUsage(subscriptionSvc))
 		portalv1connect.RegisterCustomerPortalServiceHandler(server, rpc.NewPortal(rpc.PortalDeps{
-			Organizations: auth.NewOrganizationSettings(ad, nil), BillingEntities: billingEntitySvc,
+			Organizations: auth.NewOrganizationSettings(ad, o.Blobs), BillingEntities: billingEntitySvc,
 			Customers: customerSvc, Invoices: o.Billing.Invoices, Subscriptions: subscriptionSvc,
-			Wallets: walletSvc, Analytics: billinganalytics.New(billingDeps),
+			Wallets: walletSvc, Analytics: analyticsSvc, Files: o.Files,
 		}))
 	}
 	paymentv1connect.RegisterPaymentServiceHandler(server, rpc.NewPayments(paymentSvc))
 	paymentv1connect.RegisterPaymentRequestServiceHandler(server, rpc.NewPaymentRequests(paymentSvc))
-	paymentv1connect.RegisterPaymentReceiptServiceHandler(server, rpc.NewPaymentReceipts(paymentSvc))
+	paymentv1connect.RegisterPaymentReceiptServiceHandler(server, rpc.NewPaymentReceipts(paymentSvc).WithFiles(o.Files))
 	paymentv1connect.RegisterPaymentMethodServiceHandler(server, rpc.NewPaymentMethods(paymentSvc))
 	invoicev1connect.RegisterInvoiceCustomSectionServiceHandler(server, rpc.NewInvoiceCustomSections(customsections.New(billingDeps)))
 	dunningv1connect.RegisterDunningCampaignServiceHandler(server, rpc.NewDunningCampaigns(dunning.New(billingDeps)))
@@ -399,11 +417,11 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 		SecurityLog: rpc.WebhookSecurityLog(ad.SecurityLog),
 	}))
 	integrationv1connect.RegisterIntegrationServiceHandler(server, rpc.NewIntegrations(integrationSvc))
-	analyticsv1connect.RegisterAnalyticsServiceHandler(server, rpc.NewAnalytics(billinganalytics.New(billingDeps)))
-	exportv1connect.RegisterDataExportServiceHandler(server, rpc.NewDataExports(exports.New(billingDeps, nil, rpc.ExportFilters()), ad.SecurityLog))
+	analyticsv1connect.RegisterAnalyticsServiceHandler(server, rpc.NewAnalytics(analyticsSvc))
+	exportv1connect.RegisterDataExportServiceHandler(server, rpc.NewDataExports(exports.New(billingDeps, o.Blobs, rpc.ExportFilters()), ad.SecurityLog))
 	accessv1connect.RegisterMemberServiceHandler(server, rpc.NewMembers(auth.NewMemberships(ad), auth.NewRoles(ad), invites))
 	accessv1connect.RegisterApiKeyServiceHandler(server, rpc.NewAPIKeys(keys, o.Clock))
-	organizationv1connect.RegisterOrganizationServiceHandler(server, rpc.NewOrganizations(auth.NewOrganizationSettings(ad, nil)))
+	organizationv1connect.RegisterOrganizationServiceHandler(server, rpc.NewOrganizations(auth.NewOrganizationSettings(ad, o.Blobs)))
 	organizationv1connect.RegisterServerServiceHandler(server, rpc.NewServer(serverInfo()))
 	logv1connect.RegisterLogServiceHandler(server, rpc.NewLogs(auth.NewAuditLogs(ad)))
 	if o.X402Facilitators == nil {

@@ -38,6 +38,7 @@ var (
 	blockRe   = regexp.MustCompile(`^(\s*)(describe|context|it|specify|it_behaves_like|include_examples|RSpec\.describe)\b\s*(.*)$`)
 	exampleRe = regexp.MustCompile(`^(it|specify|it_behaves_like|include_examples)$`)
 	refRe     = regexp.MustCompile(`spec/([\w/]+_spec\.rb):(\d+(?:\s*[-,]\s*\d+)*)`)
+	prefixRe  = regexp.MustCompile(`\b(\w+)\s*:?=\s*"spec/([\w/]+_spec\.rb):"`)
 )
 
 func main() {
@@ -112,21 +113,34 @@ func citations(root string) (map[string]bool, error) {
 			return err
 		}
 		for _, m := range refRe.FindAllStringSubmatch(string(b), -1) {
-			for part := range strings.FieldsFuncSeq(m[2], func(r rune) bool { return r == ',' || r == ' ' }) {
-				lo, hi, rng := strings.Cut(part, "-")
-				a, _ := strconv.Atoi(strings.TrimSpace(lo))
-				z := a
-				if rng {
-					z, _ = strconv.Atoi(strings.TrimSpace(hi))
-				}
-				for l := a; l <= z; l++ {
-					refs[m[1]+":"+strconv.Itoa(l)] = true
-				}
+			addRefs(refs, m[1], m[2])
+		}
+		// A spec path held in a constant and joined to the lines
+		// (const src = "spec/x_spec.rb:"; source: src + "12, 15").
+		for _, c := range prefixRe.FindAllStringSubmatch(string(b), -1) {
+			use := regexp.MustCompile(`\b` + regexp.QuoteMeta(c[1]) + `\s*\+\s*"(\d+(?:\s*[-,]\s*\d+)*)`)
+			for _, m := range use.FindAllStringSubmatch(string(b), -1) {
+				addRefs(refs, c[2], m[1])
 			}
 		}
 		return nil
 	})
 	return refs, err
+}
+
+// addRefs records the citations of the lines spec ("4, 9-10") of file.
+func addRefs(refs map[string]bool, file, spec string) {
+	for part := range strings.FieldsFuncSeq(spec, func(r rune) bool { return r == ',' || r == ' ' }) {
+		lo, hi, rng := strings.Cut(part, "-")
+		a, _ := strconv.Atoi(strings.TrimSpace(lo))
+		z := a
+		if rng {
+			z, _ = strconv.Atoi(strings.TrimSpace(hi))
+		}
+		for l := a; l <= z; l++ {
+			refs[file+":"+strconv.Itoa(l)] = true
+		}
+	}
 }
 
 // cases parses the examples of a spec file by indentation.

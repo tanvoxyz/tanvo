@@ -274,6 +274,7 @@ func resultOf(pi *stripe.PaymentIntent) payment.PaymentResult {
 		Status:            StatusOf(string(pi.Status)),
 		RequiresAction:    string(pi.Status) == statusRequiresAction,
 		Amount:            pi.Amount,
+		AmountCapturable:  pi.AmountCapturable,
 		Currency:          currencyOf(string(pi.Currency)),
 	}
 	if pi.PaymentMethod != nil {

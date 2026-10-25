@@ -168,9 +168,11 @@ func (s *Service) InvoicePaymentURL(ctx context.Context, org core.OrganizationID
 			Currency:    inv.Currency,
 			ExpiresAt:   it.ExpiresAt,
 			Customer:    payment.CustomerParamsOf(c),
-			// flutterwave_service.rb customizations; the logo URL needs
-			// the document blob store, not wired here.
+			// flutterwave_service.rb:89-93 customizations.
 			OrganizationName: o.Name,
+		}
+		if params.OrganizationLogoURL, err = s.logoURL(ctx, o); err != nil {
+			return nil, err
 		}
 		return &invoiceLink{pc: pc, params: params, intent: it.ID, inv: inv, lc: lc}, nil
 	})
@@ -348,6 +350,10 @@ func (s *Service) RequestPaymentURL(ctx context.Context, org core.OrganizationID
 			Currency:           q.Currency,
 			Customer:           payment.CustomerParamsOf(c),
 			OrganizationName:   o.Name,
+		}
+		// payment_requests/payments/flutterwave_service.rb:93-97.
+		if params.OrganizationLogoURL, err = s.logoURL(ctx, o); err != nil {
+			return nil, err
 		}
 		return &prepared{pc: pc, params: params, q: q, cust: c, lc: lc}, nil
 	})

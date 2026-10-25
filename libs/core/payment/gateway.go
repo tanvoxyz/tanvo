@@ -352,6 +352,9 @@ type PaymentResult struct {
 	StaleMethodID string
 	// Amount is the amount, in minor units.
 	Amount int64
+	// AmountCapturable is the amount an authorization holds, in minor
+	// units; zero for a payment that is not an authorization.
+	AmountCapturable int64
 	// Currency is the currency.
 	Currency money.Currency
 }

@@ -157,12 +157,17 @@ func (s *Service) recreditWallet(ctx context.Context, r port.Repos, t *wallet.Tr
 		ID: core.NewID[core.WalletTransactionID](s.d.IDs), OrganizationID: org, WalletID: w.ID,
 		TransactionType: wallet.TransactionTypeInbound, TransactionStatus: wallet.TransactionStatusGranted,
 		Status: wallet.SettlementStatusSettled, Source: wallet.TransactionSourceManual, Currency: w.Currency,
-		Amount: credit.Amount, CreditAmount: credit.Credits, Priority: w.Priority,
+		Amount: credit.Amount, CreditAmount: credit.Credits, Priority: wallet.MaxPriority,
+		// recredit_service.rb:29-31.
+		PurchaseOrderNumber: t.PurchaseOrderNumber, VoidedInvoiceID: t.InvoiceID,
 		SettledAt: &now, CreatedAt: now, UpdatedAt: now,
 	}
 	if w.Traceable {
 		rem := credit.Amount
 		in.RemainingAmount = &rem
+	}
+	if in.BillingEntityID, err = kernel.WalletBillingEntity(ctx, r, w); err != nil {
+		return nil, err
 	}
 	if err := r.WalletTransactions.Create(ctx, in); err != nil {
 		return nil, fmt.Errorf("create wallet transaction: %w", err)

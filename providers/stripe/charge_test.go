@@ -651,12 +651,13 @@ func TestAuthorize(t *testing.T) {
 		method     string
 		routes     map[string][]reply
 		wantMethod string
+		wantHeld   int64
 		wantErr    error
 	}{
 		{
 			source: "spec/services/payment_providers/stripe/payments/authorize_service_spec.rb:54", name: "creates a manual-capture intent",
-			method: "pm_from_payment_method", wantMethod: "pm_from_payment_method",
-			routes: map[string][]reply{routeIntents: {ok(`{"id":"pi_auth","object":"payment_intent","status":"requires_capture","amount":20,"currency":"usd"}`)}},
+			method: "pm_from_payment_method", wantMethod: "pm_from_payment_method", wantHeld: 20,
+			routes: map[string][]reply{routeIntents: {ok(`{"id":"pi_auth","object":"payment_intent","status":"requires_capture","amount":20,"amount_capturable":20,"currency":"usd"}`)}},
 		},
 		{
 			source: "spec/services/payment_providers/stripe/payments/authorize_service_spec.rb:90", name: "no consent collection",
@@ -702,6 +703,9 @@ func TestAuthorize(t *testing.T) {
 			}
 			if res.ProviderPaymentID != "pi_auth" {
 				t.Errorf("ProviderPaymentID: got = %q, want = pi_auth", res.ProviderPaymentID)
+			}
+			if res.AmountCapturable != tt.wantHeld {
+				t.Errorf("AmountCapturable: got = %d, want = %d", res.AmountCapturable, tt.wantHeld)
 			}
 			req := rp.only(routeIntents)
 			// source: spec/services/payment_providers/stripe/payments/authorize_service_spec.rb:61,70

@@ -47,20 +47,25 @@ end
 func TestCitations(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "a_test.go"), []byte(`// source: spec/services/x_spec.rb:4, 9-10
-t.Log("source: spec/services/y_spec.rb:7")`), 0o644); err != nil {
+t.Log("source: spec/services/y_spec.rb:7")
+const src = "spec/services/z_spec.rb:"
+f(src + "3", src+"5-6")`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	got, err := citations(dir)
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, k := range []string{"services/x_spec.rb:4", "services/x_spec.rb:9", "services/x_spec.rb:10", "services/y_spec.rb:7"} {
+	for _, k := range []string{
+		"services/x_spec.rb:4", "services/x_spec.rb:9", "services/x_spec.rb:10", "services/y_spec.rb:7",
+		"services/z_spec.rb:3", "services/z_spec.rb:5", "services/z_spec.rb:6",
+	} {
 		if !got[k] {
 			t.Errorf("%s: got = not cited, want = cited", k)
 		}
 	}
-	if len(got) != 4 {
-		t.Errorf("citations: got = %v, want = 4", got)
+	if len(got) != 7 {
+		t.Errorf("citations: got = %v, want = 7", got)
 	}
 }
 

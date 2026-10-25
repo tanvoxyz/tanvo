@@ -5,6 +5,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/alert"
 )
@@ -137,7 +139,7 @@ func (r alertRepo) List(_ context.Context, org core.OrganizationID, f alert.Filt
 			(f.WalletID.IsZero() || x.WalletID == f.WalletID) &&
 			(len(f.Types) == 0 || slices.Contains(f.Types, x.Type))
 	})
-	return paginate(rows, func(x *alert.Alert) core.AlertID { return x.ID }, page)
+	return paginateRecent(rows, func(x *alert.Alert) (time.Time, uuid.UUID) { return x.CreatedAt, x.ID.UUID() }, page)
 }
 
 func (r alertRepo) Discard(ctx context.Context, org core.OrganizationID, id core.AlertID, at time.Time) error {

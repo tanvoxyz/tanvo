@@ -286,7 +286,8 @@ func (s *Service) Get(ctx context.Context, org core.OrganizationID, owner Owner,
 	})
 }
 
-// List returns a page of the alerts of the owner, oldest first.
+// List returns a page of the alerts of the owner, newest first, then by
+// ID.
 //
 // source: app/queries/usage_monitoring/alerts_query.rb:8-17
 func (s *Service) List(ctx context.Context, org core.OrganizationID, owner Owner, page core.PageRequest) (core.Page[*View], error) {

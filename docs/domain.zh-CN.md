@@ -142,6 +142,7 @@ erDiagram
 * **周期**为左闭右开区间 `[from, to)`。**[变更]** Lago 以 23:59:59.999999 存储闭区间终点；Tanvo 存储下一个本地午夜。
 * **删除**：有生命周期的资源带有状态（`terminated`、`archived`、`voided`、`deleted`）；无引用的行直接物理删除。套餐从不移除：已删除的套餐以 `deleted` 状态保留（§7.2），不再出现在按 code 的查找和列表中，其 code 可再次使用。计费项、计费项过滤器、固定计费项、附加项、税、用量阈值、优惠券、功能、特权项、权益以及产品目录（类别、产品、产品过滤器及其取值、费率卡、费率、套餐费率卡与费率阶段，§21.4）采用软删除（`deleted_at`）：被丢弃的行不再能按 code 查到或被列出，其 code 可再次使用，引用它的单据仍可按 ID 读取它。存储层拒绝（`conflict`）物理删除仍被引用的行。**[变更]** 没有全局的 `deleted_at` 软删除。
 * **元数据**在更新时整体替换（传入的列表替换已存储的列表）。
+* **条目元数据**（套餐、贷项通知单、钱包）最多 50 项，键最长 100 个字符，值最长 255 个字符。除资源自身的更新外，这些资源各有元数据端点：替换、合并（已有键的值被替换，新键追加在后）、全部删除与删除单个键。删除键只改动元数据（不产生 `*.updated` 事件）；对没有元数据的资源删除键返回 `not_found`（`metadata`）。
 * **审计**：本文档中提到的每次状态变更都在同一事务中产生领域事件；Webhook（§18）和活动日志由其派生。
 * **锁**：读写客户余额的操作（优惠券、贷项通知单、预付额度、钱包）获取各章节指明的客户咨询锁；计费运行锁定订阅。
 
@@ -480,7 +481,7 @@ OpenID Connect 登录在跳转到服务商与回调之间保存一个一次性�
 | `bill_fixed_charges_monthly` | `bool?` | 仅用于 `yearly` 和 `semiannual` 套餐 |
 | `parent_id` | `ID?` | 覆盖套餐（§7.2.1）才设置 |
 | `taxes` | `[]Tax` | |
-| `metadata` | Metadata | |
+| `metadata` | Metadata | 条目元数据（§2.3） |
 | `status` | Enum{`active`、`pending_deletion`、`deleted`} | |
 
 规则：
@@ -982,7 +983,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 已定稿的发票、贷项通知单、付款收据和付款请求渲染为 PDF/A-3b；计费主体启用 `einvoicing` 时，电子发票 XML（FR 和 DE 使用 Factur-X / ZUGFeRD CII）被嵌入并单独存储（[架构 §10](architecture.zh-CN.md#10-文档libsdocuments)）。单据以 `document_locale`（客户 → 计费主体）渲染。
 
 ### 11.9 发票自定义区块
-自定义区块是打印在发票上的一段文字：`code`、`name`、`display_name?`、`details?`、`section_type ∈ {manual, system_generated}`。发票的选择顺序：订阅的选择 → 客户的选择 → 计费主体的默认值；订阅或客户上的 `skip_invoice_custom_sections = true` 停用自定义区块。系统生成的区块由功能附加（例如自开票声明）。
+自定义区块是打印在发票上的一段文字：`code`、`name`、`display_name?`、`details?`、`section_type ∈ {manual, system_generated}`。发票的选择顺序：订阅的选择 → 客户的选择 → 计费主体的默认值；订阅或客户上的 `skip_invoice_custom_sections = true` 停用自定义区块。系统生成的区块由功能附加（例如自开票声明，或通过银行转账向 Stripe 付款的客户的银行信息，代码为 `funding_instructions_<客户 ID>`，分配时会清除客户的跳过标志）。
 
 ### 11.10 元数据
 发票元数据只能在定稿后添加；至多 5 项，键 ≤ 20，值 ≤ 140 个字符。
@@ -1062,6 +1063,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 | `applied_taxes` | `[]` | 按发票的已应用税分组 |
 | `issuing_date` | `Date` | |
 | `refunded_at`、`voided_at` | `Time?` | |
+| `metadata` | Metadata | 条目元数据（§2.3）；仅限已定稿的贷项通知单 |
 | `purchase_order_number` | 派生 | 取发票的；贷项通知单列表可按其过滤 |
 
 ### 13.2 规则
@@ -1112,7 +1114,9 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 | `x402_enabled` | `bool` | 默认 false；钱包可由 x402 代理充值 |
 | `billing_entity_id` | `ID?` | |
 | `payment_method_type`、`payment_method_id` | | |
+| `skip_invoice_custom_sections`、`invoice_custom_section_ids` | `bool`、`[]ID` | 其 `credit` 发票的自定义区块（§11.9），在交易既未跳过也未选择区块时使用 |
 | `last_balance_sync_at`、`last_consumed_credit_at`、`depleted_ongoing_balance` | | |
+| `metadata` | Metadata | 条目元数据（§2.3） |
 | `terminated_at` | `Time?` | |
 
 规则：
@@ -1133,7 +1137,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 | `source` | `WalletTransactionSource` | |
 | `amount`、`credit_amount` | `Money`、`Decimal` | `amount = round(credit_amount × rate_amount)` |
 | `remaining_amount` | `Decimal?` | 可追踪钱包：该入账交易剩余的额度 |
-| `priority` | `int?` | 继承钱包的优先级 |
+| `priority` | `int` | 1–50；默认 50，与钱包的优先级无关（越小越先消耗） |
 | `name` | `string(255)?` | |
 | `invoice_id` | `ID?` | 额度发票（购买）或消耗它的发票（已开票） |
 | `credit_note_id` | `ID?` | 退款的作废额度 |
@@ -1141,8 +1145,13 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 | `settled_at`、`failed_at` | `Time?` | |
 | `invoice_requires_successful_payment` | `bool` | |
 | `purchase_order_number` | `string(255)?` | 手动交易取请求的；规则执行和初始充值取规则的，否则取钱包的；重新入账取原交易的；其 `credit` 发票取它，否则取钱包的 |
+| `voided_invoice_id` | `ID?` | 重新入账：退回其已消耗额度的那张已作废发票 |
+| `billing_entity_id` | `ID` | 创建时的快照：钱包的计费主体，否则取客户的；指定目标的作废取其入账交易的。其 `credit` 发票由它开具 |
+| `skip_invoice_custom_sections`、`invoice_custom_section_ids` | `bool`、`[]ID` | 手动交易取请求的，规则执行取规则的；初始充值没有 |
+| `payment_method_type`、`payment_method_id` | | 取请求的，否则取钱包的 |
 
 规则：
+* **`credit` 发票的自定义区块**：交易跳过或选择了有效区块时取交易的选择；否则钱包跳过或选择时取钱包的；再否则取客户和计费主体的默认值（§11.9）。钱包、规则和交易上选择区块遵循同一规则：显式跳过会关闭并清空区块；处于跳过状态时，未带 `skip = false` 的选择被忽略；否则选择替换当前选择（空列表即清空，未知代码被忽略）。已删除的区块仍保持选中但被忽略，规则只把有效区块传给其执行。
 * 付费额度（`purchased`）创建一张 `credit` 发票；在其支付成功之前为 `pending`，之后为 `settled`，无论发票是否以 `open` 状态等待支付。由抵扣型贷项通知单结清的发票不算已支付，不会入账任何额度。支付失败时购买标记为 `failed`，之后支付成功仍会入账；作废 credit 发票同样将其标记为 `failed`，且之后的任何支付都不再入账（lago 作废时让购买保持 `pending`，作废发票之后若被支付仍会发放额度，`app/services/invoices/void_service.rb:30-48`、`app/jobs/invoices/prepaid_credit_job.rb:20-25`；Tanvo 将针对已作废发票的支付视为退款事宜）。
 * 赠送额度立即入账。
 * 作废额度是一笔扣除额度的出账交易。不指定目标时，按消耗顺序从额度池中扣除。指定 `voided_transaction_id` 时，作废可追踪钱包中一笔已入账的入账交易：其全部剩余额度，或给定额度（以该剩余额度为上限）。错误：`wallet_not_traceable`、`wallet_transaction_not_found`、`no_remaining_amount`。
@@ -1173,6 +1182,7 @@ stateDiagram-v2
 | `expiration_at` | `Time?` | |
 | `status` | `RuleStatus` | |
 | `invoice_requires_successful_payment`、`transaction_metadata`、`transaction_name`、`ignore_paid_top_up_limits`、`purchase_order_number` | | 复制到交易上（`purchase_order_number` 回退到钱包的；创建和更新时均可设置，空白即无） |
+| `skip_invoice_custom_sections`、`invoice_custom_section_ids` | `bool`、`[]ID` | 复制到其执行产生的交易上 |
 
 规则：
 * 间隔规则在从 `started_at`（或钱包创建时间）起的每个间隔边界运行，类似按客户时区的周年计划。

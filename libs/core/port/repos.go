@@ -19,6 +19,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/payment"
 	"github.com/tanvoxyz/tanvo/libs/core/quote"
+	"github.com/tanvoxyz/tanvo/libs/core/streaming"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
 	"github.com/tanvoxyz/tanvo/libs/core/wallet"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -158,6 +159,8 @@ type Repos struct {
 	CreditNotes creditnote.Repository
 	// CreditNoteErrorDetails stores credit note error details.
 	CreditNoteErrorDetails creditnote.ErrorDetailRepository
+	// CustomerErrorDetails stores customer error details.
+	CustomerErrorDetails customer.ErrorDetailRepository
 
 	// Wallets stores wallets (domain §14.1).
 	Wallets wallet.Repository
@@ -241,6 +244,11 @@ type Repos struct {
 	X402Connections x402.ConnectionRepository
 	// X402Settlements stores x402 settlements.
 	X402Settlements x402.SettlementRepository
+
+	// StreamingDestinations stores streaming destinations (parity §1.40).
+	StreamingDestinations streaming.Repository
+	// StreamingDeliveryLocks holds the locks of streaming deliveries.
+	StreamingDeliveryLocks streaming.DeliveryLockRepository
 
 	// IdempotencyKeys stores the responses of requests made with an
 	// Idempotency-Key header (architecture §4.2).

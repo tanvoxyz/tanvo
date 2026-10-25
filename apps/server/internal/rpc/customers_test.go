@@ -2,6 +2,7 @@ package rpc_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"slices"
 	"strings"
@@ -631,5 +632,30 @@ func TestListCustomersActiveSubscriptions(t *testing.T) {
 				t.Errorf("got = %v, want = %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// TestCustomerErrors checks that a customer carries its error details
+// (V1::CustomerSerializer error_details).
+func TestCustomerErrors(t *testing.T) {
+	t.Parallel()
+	t.Log("source: app/serializers/v1/customer_serializer.rb:121-127")
+	s := rpctest.New(t)
+	h := s.Fixtures
+	cust := h.Customer()
+	h.Do(func(ctx context.Context, r port.Repos) error {
+		return r.CustomerErrorDetails.Create(ctx, &customer.ErrorDetail{
+			ID: core.NewID[core.ErrorDetailID](h.IDs), OrganizationID: h.OrgID(), CustomerID: cust.ID,
+			Code: customer.ErrorCodeTaxError, Details: json.RawMessage(`{"tax_error":"customerAddressCouldNotResolve"}`), CreatedAt: h.Now(),
+		})
+	})
+	got, err := customersClient(s).GetCustomer(t.Context(), customerv1.GetCustomerRequest_builder{CustomerId: new(cust.ID.String())}.Build())
+	if err != nil {
+		t.Fatal(err)
+	}
+	errs := got.GetCustomer().GetErrors()
+	if len(errs) != 1 || errs[0].GetCode() != customerv1.CustomerErrorCode_CUSTOMER_ERROR_CODE_TAX_ERROR ||
+		!strings.Contains(errs[0].GetMessage(), "customerAddressCouldNotResolve") {
+		t.Errorf("errors: got = %v, want = one tax error", errs)
 	}
 }

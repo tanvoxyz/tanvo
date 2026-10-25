@@ -216,6 +216,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 ### 5.2 Schema 与迁移
 * Schema 以 SQL 声明在 `libs/store/schema/` 下（每个领域一个文件），是唯一事实来源。
 * Atlas 据此计算版本化迁移，写入 `libs/store/migrations/`；已合并的迁移不得修改。
+* Schema 也声明只读的导出视图（`exports_*`，[功能对齐 §1.43](parity.zh-CN.md#143-数据导出)），即数据仓库同步的契约。它们是 `security_invoker` 视图，因此读取者的行级安全生效。开源的 Atlas 规划器会忽略视图、行级安全与部分约束变更，因此由 `migrate-diff`（`libs/store/internal/cmd/migrate-diff`）自行比较：变更过的视图，或读取了某表而会阻止该表计划变更的视图，在表变更前删除、之后重建。
 * 迁移通过 `tanvo migrate` 运行（在 Tanvo Cloud 中是一个 Kubernetes Job）；对于自托管安装，除非禁用，在启动时自动运行。
 * 同一个数据库中有两套迁移历史，以便任务能在业务事务中插入：Atlas 管理 `public` schema，River 自己的迁移（rivermigrate）管理 `river` schema。River 的表不纳入 Atlas，使 Atlas 的 diff、lint 与漂移检查只看到 Tanvo 的 schema，River 升级时也无需手工复制它的迁移。`tanvo migrate` 是唯一入口：先应用 Atlas 的迁移，再应用 River 的，各自在自己的 advisory lock 下执行，并且都是幂等的。
 * PostgreSQL 事件存储（§7）在自己的 schema（默认 `eventstore`）中有第三套迁移历史：它的迁移是幂等的 DDL，由同一命令应用，并同时创建未来几个月的分区；配置了 ClickHouse 时，`tanvo migrate` 也会应用 ClickHouse 的 schema。
@@ -265,7 +266,8 @@ POST /v1/events, /v1/events:batch
 ```
 * 模式是每个安装的设置，在 Tanvo Cloud 中可按组织覆盖。
 * 每个事件保留其 API 请求的元数据，即 `User-Agent` 与客户端地址：PostgreSQL 路径上存于原始日志（`public.events.metadata`），Kafka 路径上存于 ClickHouse 的 `events_raw`，并由原始消息与富化消息携带。lago-api 只在 PostgreSQL 中保留它（其 Kafka 消息不含元数据）；API 以事件的 `user_agent` 与 `ip_address` 返回它。客户端地址按 Rails 的 `request.remote_ip` 解析：取 `X-Forwarded-For`（其次 `Client-Ip`）中离服务器最近且不是受信任代理的地址，且仅当对端本身是受信任代理时才读取这些头；受信任的是回环与私有地址段以及 `TANVO_TRUSTED_PROXIES`。
-* SQS、Kinesis、HTTP 与 Kafka 来源的连接器写入 `events.raw`（Redpanda Connect 配置或内置的消费者）。
+* HTTP、SQS 与 Kinesis 来源的连接器写入 `events.raw`：即 `libs/ingest/connectors/` 中的 Redpanda Connect 配置，其记录键与 API 相同。这些事件的指标表达式由摄入消费者计算，而 API 在摄入时即已计算。
+* 消费者无法处理的消息连同原因进入 `events.dead_letter`（`ingest.DeadLetter`）；该主题的消费者（组 `<prefix>-dead-letters`）把每条死信连同事件的键存入 ClickHouse 的 `events_dead_letter`，以便检查与重放。存储失败会一直重试直到成功，因此死信本身不会再进入死信主题。
 * **用量刷新信号**携带客户、订阅和事件水位。信号在事件存储之后才发出，而用量桶在同一次写入中维护，因此信号不会领先于用量桶（在多副本 ClickHouse 上，刷新以顺序一致性读取）。每个信号都交给计费：PostgreSQL 路径在摄取事务中完成，Kafka 路径经由 `usage.refresh` 消费者完成。它调度每个订阅的活动（生命周期用量、用量阈值与告警，每个订阅每分钟一个延迟任务，因此在某次运行进行中到达的信号会落入下一分钟的任务；失败的运行会立即重试，共四次，与 lago-api 的 `ProcessSubscriptionActivityJob` 相同），把客户标记为 `awaiting_wallet_refresh` 并入队其钱包的刷新（每个客户一个待处理任务）。钱包刷新不等待用量桶。lago-api 的实时钱包刷新（`app/services/wallets/realtime_refresh_service.rb:9-13, 31-34, 70-94`）在刷新前最多轮询其用量桶 5 秒，因为它的触发信号与用量桶写入是同一流处理批次（epoch）中两个互不排序的输出，而在用量桶尚未追上时刷新会写入过期余额，并清除扫描所依据的标记。水位超过 30 秒时它立即放弃，因为这说明落后的是消费者而不是 ClickHouse，并让客户保持标记，交由扫描处理。只有钱包刷新这样做；订阅活动没有这项检查。Tanvo 在用量桶写入之后才发出信号，因此信号对应的用量桶总是已追上，刷新绝不会读到过期余额，也没有信号需要推迟给扫描。对已标记的生命周期用量与客户的 5 分钟扫描仍是权威来源（[领域模型 §14.1](domain.zh-CN.md#141-钱包)）。
 * **预付计费项**在事件存储之后计费，因为其费用基于已存储的事件聚合：PostgreSQL 路径在摄取事务中完成，Kafka 路径由 ClickHouse 写入者为其写入的记录完成。两者都为每个事件入队一个计费任务，按订阅与 transaction ID 唯一。lago-api 从单独的主题计费，并延迟 15 秒以等待 ClickHouse 合并（`app/consumers/events_charged_in_advance_consumer.rb`、`app/services/events/stores/clickhouse_store.rb:11`）。
 
@@ -279,7 +281,7 @@ POST /v1/events, /v1/events:batch
 ### 7.4 事件存储（libs/eventstore）
 * `EventStore` 端口提供计量库所需的聚合查询：计数、求和、最大值、最新值、带增删语义的唯一计数、按时间加权的求和、分组变体、按比例变体与明细，全部以一个计费周期和过滤器为界。
 * **PostgreSQL**：富化事件存放在按月份与组织哈希分区的表中。
-* **ClickHouse**：`events_raw`（账本，按（组织，外部订阅，事务 ID）去重）与 `events_enriched` 为 `ReplacingMergeTree` 表，由摄取消费者批量写入；活动日志、API 日志与安全日志也存放在这里。聚合值按 `Decimal(76, 26)` 读取，因此摄取时拒绝整数部分超过 50 位的数值属性，而不是让 ClickHouse 把它读成零。`events.raw` 以去重键为分区键，`events.enriched` 以（组织，外部订阅）为分区键，因此一个键的所有副本在一个分区上保持有序，同一时刻只有一个写入消费者存储某个订阅的事件并维护其桶：写入者先看到一个键的第一个副本，再看到之后的副本，写入者之间无需解析副本。这把单个订阅的吞吐量限制在一个写入消费者，且一个组织中没有订阅的事件共用一个键。Lago 生产原始事件时不带键（fec71c637）；这些键是刻意的差异。
+* **ClickHouse**：`events_raw`（账本，按（组织，外部订阅，事务 ID）去重）与 `events_enriched` 为 `ReplacingMergeTree` 表，由摄取消费者批量写入（`events_enriched` 还保存富化赋予每个事件的值、其小数形式及写入时间，供富化事件 API 返回）；活动日志、API 日志与安全日志在所有安装中都存放在 PostgreSQL（`23_audit_log.sql`），ClickHouse 日志存储尚未实现（[对照表](parity.zh-CN.md)）。聚合值按 `Decimal(76, 26)` 读取，因此摄取时拒绝整数部分超过 50 位的数值属性，而不是让 ClickHouse 把它读成零。`events.raw` 以去重键为分区键，`events.enriched` 以（组织，外部订阅）为分区键，因此一个键的所有副本在一个分区上保持有序，同一时刻只有一个写入消费者存储某个订阅的事件并维护其桶：写入者先看到一个键的第一个副本，再看到之后的副本，写入者之间无需解析副本。这把单个订阅的吞吐量限制在一个写入消费者，且一个组织中没有订阅的事件共用一个键。Lago 生产原始事件时不带键（fec71c637）；这些键是刻意的差异。
 * **15 分钟**（UTC）的**用量桶**在两种存储中为当前用量查询提供支撑。桶定义指明指标代码、被聚合的属性与维度（其计费项的过滤键、定价分组键与展示键，并始终包含 `target_wallet_code`）；桶的行以（组织、外部订阅 ID、代码、定义、桶、维度取值）为键，过滤键中不属于指标已声明取值的值折叠为同一个"其他"值，从而限定行数，并保持计费项过滤器的精确性，因为过滤器只接受已声明的取值。行存储 `units`、`events_count`、`precise_total_amount`，以及最后事件与摄取时刻。计费项过滤器在读取时按维度匹配，因此修改计费项永远不会使用量桶过期。
 * 用量桶服务于可以跨桶合并的聚合（count、sum、max、latest）以及只需要总量的计费模型（standard、graduated、package、volume、graduated percentage、dynamic）；预付、按比例、周期性计费项、接受目标钱包的计费项以及其他聚合读取事件。查询读取窗口内的整桶，窗口两端的部分桶则从事件读取，因此结果与事件路径完全相同（lago-api 把窗口扩大到整桶，这对它安全只是因为它的桶记录内部订阅；Tanvo 的外部订阅 ID 在升级前后共用）。
 * 用量桶在存储事件的同一次写入中维护，因此没有需要等待的延迟。在 PostgreSQL 上，每次写入在其事务中、在 advisory lock 下更新涉及的桶；替换事件会重建其桶；新定义在写入者已开始维护它的同时分块回填，就绪后才服务读取。在 ClickHouse 上，每次写入把其事件合并进涉及桶的当前行，版本加一（替换则从 `events_enriched FINAL` 重算），插入后检查冲突的写入，并重算冲突的桶；读取保留最高版本。在多副本表上，维护以 `insert_quorum` 插入、以 `select_sequential_consistency` 读取。周期性的 `RepairBuckets` 扫描是正确性所必需的，它重算最近存储事件的桶：修复在存储事件与更新桶之间失败的写入，以及被后台合并对检查隐藏的冲突。它每 10 分钟运行一次（`clock.repair_usage_buckets`），水位（写入者的时钟）取上次扫描开始时间之前一段余量（10 分钟）；每次完成的扫描把其开始时间记录在 ClickHouse 中（`bucket_repairs`，保留 30 天），使水位在重启与领导者切换后依然有效，首次扫描修复所有桶。一次写入的成本与其批次及其桶的行数成正比，而不随桶中已有事件数增长。
@@ -306,7 +308,7 @@ POST /v1/events, /v1/events:batch
 * **River** 运行所有后台任务；任务与需要它的状态变更在同一事务中入队。
 * `libs/store` 通过 River 的 `InsertTx` 在自己的 `pgx.Tx` 上插入任务（`store.WithJobInserter`），因此回滚后不会留下任务；没有设置插入器时，任务写入 `job_outbox` 表，由中继转发。River 的表位于它自己的 `river` 模式中，由 River 迁移（这些表保存所有组织的任务，不带行级安全）。唯一键按组织和任务类型限定。
 * **重试**：没有被该任务类型的任何规则归类的错误不会重试，因为任务可能已经在事务之外产生了效果（一次付款、一封邮件、一次服务商调用），再运行一次会重复这些效果。每种任务类型声明哪些错误可以安全重试，以及次数和退避方式（`ErrRetriable` 20 次、锁冲突与序号冲突、服务商限流）。带错误停止重试的任务在 River 中保持 `cancelled` 状态，保留下来供排查和手动重试，并在监控中计为失败。
-* 队列按工作负载分开（`billing`、`payments`、`webhooks`、`documents`、`integrations`、`exports`、`alerts`、`alerts_high_priority`、`wallets`、`default`），各有自己的并发度，使一个部署可以按队列运行 worker；`TANVO_JOBS_QUEUE_CONCURRENCY` 可覆盖其中任一队列的并发度。订阅活动与生命周期用量告警运行在 `alerts` 上，钱包告警运行在 `alerts_high_priority` 上，钱包余额刷新运行在 `wallets` 上，与 lago-api 相同（`app/jobs/usage_monitoring/process_subscription_activity_job.rb`、`process_lifetime_usage_alert_job.rb`、`process_wallet_alerts_job.rb`、`app/jobs/customers/refresh_wallet_job.rb`），这样用量刷新的积压不会拖慢计费。lago-api 只在设置了 `SIDEKIQ_ALERTS` 或 `SIDEKIQ_WALLETS` 时使用这些队列，否则回退到 `default` 或 `low_priority`；Tanvo 始终使用它们，因为未单独配置它们的部署仍以默认值处理它们。
+* 队列按工作负载分开（`billing`、`payments`、`webhooks`、`documents`、`integrations`、`exports`、`alerts`、`alerts_high_priority`、`wallets`、`streaming`、`default`），各有自己的并发度，使一个部署可以按队列运行 worker；`TANVO_JOBS_QUEUE_CONCURRENCY` 可覆盖其中任一队列的并发度。订阅活动与生命周期用量告警运行在 `alerts` 上，钱包告警运行在 `alerts_high_priority` 上，钱包余额刷新运行在 `wallets` 上，流式目的地投递运行在 `streaming` 上，与 lago-api 相同（`app/jobs/usage_monitoring/process_subscription_activity_job.rb`、`process_lifetime_usage_alert_job.rb`、`process_wallet_alerts_job.rb`、`app/jobs/customers/refresh_wallet_job.rb`、`app/jobs/deliver_event_job.rb`），这样用量刷新的积压不会拖慢计费。lago-api 只在设置了 `SIDEKIQ_ALERTS` 或 `SIDEKIQ_WALLETS` 时使用这些队列，否则回退到 `default` 或 `low_priority`；Tanvo 始终使用它们，因为未单独配置它们的部署仍以默认值处理它们。
 * 周期任务（对账、过期、催收、清理）是由 River 选举出的领导者插入的 River 周期任务；不需要单独的时钟进程。它们运行在独立的 `clock` 队列上，不分片、不使用令牌桶，由每个携带调度表的进程消费。周期任务只做扫描和分发：它把到期的工作作为相关组织的任务放入各工作负载队列，以本次触发的时间作为这些任务的"当前时间"，并带上唯一键，使积压期间的多次触发不会产生重复任务。因此工作负载队列的积压不会推迟调度，一个组织的失败也不会阻止其他组织。受行级安全约束的表的保留期清理同样按组织分发任务（webhook 投递）；其余清理的分批删除直接在周期任务中执行。除 lago-api 的调度表外，Tanvo 还有自己的周期任务：webhook 扫描，以及用量桶的修复与报告（§7.4、§11）。
 * **租户公平**：任务带有其所属组织；通过按组织哈希对队列分片，以及在入队时使用令牌桶，限制每个组织的并发，使一个租户无法使其他租户饥饿。令牌桶按进程计，因此有多个 API 副本时，一个组织的实际速率是各副本速率之和。
 * 逐事件的工作（富化、ClickHouse 写入）在 Kafka 消费者中运行，而不在 River 中；消费者把逐事件的计费（预付计费项）与按订阅的活动作为 River 任务入队。
@@ -319,8 +321,10 @@ POST /v1/events, /v1/events:batch
 * 发票、贷项通知单、付款收据与付款请求由作为子进程运行的 **Typst** 渲染，以文档数据的 JSON 作为输入；模板与字体嵌入在二进制中，启动时写入一个私有目录。
 * 输出为 PDF/A-3b；电子发票把其 XML（Factur-X / ZUGFeRD CII）作为附件嵌入。UBL 2.1 与 CII XML 也单独提供。
 * 字体：二进制为拉丁字母语言嵌入 Inter（SIL OFL）。模板对 zh-CN 回退到 Noto Sans CJK SC / Noto Sans SC，对 zh-TW 回退到 Noto Sans CJK TC / Noto Sans TC，这些字体不嵌入：渲染器搜索系统字体目录（或 `Options.FontPaths`），容器镜像安装 `fonts-noto-cjk`。在没有这些字体的情况下渲染 zh-CN 或 zh-TW 文档会以 `documents.ErrMissingFont` 失败，而不是输出缺字的 PDF。其他没有字体覆盖的文字（客户数据）仍会渲染，生成带警告的普通 PDF。
-* 文档通过 `BlobStore` 端口存储（本地磁盘、S3 兼容存储、GCS）。
-* 渲染在 `documents` 队列中运行；在 Tanvo Cloud 中由一个专门的 Deployment 运行该队列。
+* 文档通过 `BlobStore` 端口（`libs/documents/blob`）存储：本地磁盘、任意 S3 兼容服务（AWS S3、MinIO、R2），或通过 S3 互操作 API 使用 Google Cloud Storage（`TANVO_BLOB_BACKEND`）。每个已存储的文件都有一个永久链接 `TANVO_API_URL/files/<token>`，以由 `TANVO_SECRET_KEY` 派生的密钥签名，重定向到一个短时有效的下载 URL（`TANVO_BLOB_URL_TTL`）：存储桶的预签名 URL，或本地磁盘的 `TANVO_API_URL/blobs/…`。API、邮件与集成对外提供的都是这些链接（发票 `file_url`、HubSpot 的发票文件、付款请求邮件、Flutterwave 的 logo）。没有配置后端时不渲染任何文档：文档任务成功完成但不产生文件，邮件不带附件和链接。
+* 生成由 `libs/billing/docgen` 驱动。`documents` 队列运行 `documents.generate_invoice`、`documents.generate_credit_note` 与 `documents.generate_payment_receipt`：每个任务在开票主体开具电子发票且 UBL XML 缺失时渲染它，然后除非设置了 `TANVO_DISABLE_PDF_GENERATION`，渲染 PDF（电子发票时嵌入 CII XML），存储两者，发出 `invoice.generated`、`credit_note.generated` 或 `payment_receipt.generated` 及其活动日志，并在需要时入队该文档的邮件。已有文件会被保留，除非任务被强制执行（管理员重新生成），此时替换文件并删除旧文件。渲染器或 blob 存储的失败重试 6 次；草稿或不存在的文档直接失败。
+* `mail.send_document`（在 `default` 队列）渲染缺失的 PDF，组装发票、贷项通知单或付款收据邮件，附上 PDF（除非禁用了 PDF）及其链接，遵循开票主体的邮件设置与重发时指定的收件人，发送邮件并记录 `email.sent`（sent、resent 或 failed，含邮件与文档信息）。文件尚未就绪的收据重试 8 次，SMTP 4xx 回复重试 25 次，超时或连接中断重试 6 次；失败只在最后一次尝试后记录。付款请求邮件链接每张发票的 PDF，必要时先渲染它。已完成的数据导出存入 blob 存储，并通过邮件发送给发起人。
+* 渲染在 `documents` 队列中运行；在 Tanvo Cloud 中由一个专门的 Deployment 运行该队列。只要配置了 blob 后端，就需要 Typst（`TANVO_TYPST_PATH`）。
 
 ---
 
@@ -330,6 +334,7 @@ POST /v1/events, /v1/events:batch
 * 投递保留 90 天：每日清理（`clock.clean_webhooks`）为每个有端点的组织入队一个清除任务，在该组织的行级安全范围内删除最后更新早于截止时间的投递，每个事务 1 000 条。每 5 分钟一次的扫描（`clock.sweep_webhooks`）为丢失了任务的到期投递重新入队。
 * **入站**：提供者 webhook 经过验证、存储，并由任务处理；失败会重试，并保留以供检查。
 * 除非明确允许，否则拒绝私有网络目标（SSRF 防护）。
+* **流式目的地**（parity §1.40）：由运维人员配置的目的地（`streaming_destinations`，以 SQL 写入；与 lago-api 相同，没有 API）认领事件类型，每个组织每种类型一个目的地，并可以把某些计划排除在全量用量事件之外。客户的钱包余额刷新时，`libs/billing/streaming` 产生 `customer_usage.refreshed.v1`（提交后内联产生，复用刷新计算出的用量）与 `customer_full_usage.refreshed.v1`（`streaming` 队列上的 `streaming.deliver_event` 任务，只尝试一次）。每个组织、客户与类型一把投递锁（`streaming_delivery_locks`，持有 10 分钟），在一次投递等待期间到来的刷新被丢弃并记为 `superseded`。记录经由 `port.StreamProducer` 端口发出，由 `libs/webhooks/kinesis` 实现：一个以 SigV4 签名的 Kinesis `PutRecord` 客户端，从 worker 的环境 AWS 身份（环境变量、web identity、容器或实例凭证）出发，经 STS 承担每个目的地的角色，设置了 `TANVO_STREAMING_INTERMEDIATE_ROLE_ARN` 时先经过该中间角色，并使用目的地的分区键。每次投递都以 `log/slog` 记录一个结果：`delivered`、`skipped`、`failed`、`superseded`、`throttled` 或 `dropped`。
 
 ---
 
@@ -454,6 +459,9 @@ POST /v1/events, /v1/events:batch
 | `TANVO_KAFKA_TOPIC_REPLICAS` | `-1` | 所建 topic 的副本数（broker 默认值） |
 | `TANVO_WEBHOOKS_ALLOW_PRIVATE` | `false` | 允许投递到私有地址与明文 HTTP |
 | `TANVO_OIDC_ALLOW_PRIVATE` | `false` | 允许经由私有地址与明文 HTTP 访问 OIDC 提供者（开发模式） |
+| `TANVO_STREAMING_INTERMEDIATE_ROLE_ARN` | | worker 在承担每个流式目的地的角色之前先承担的角色（角色链）；未设置则直接承担目的地角色 |
+| `TANVO_STREAMING_KINESIS_ENDPOINT` | | 覆盖区域端点的 Kinesis 端点（测试、LocalStack、VPC 端点） |
+| `TANVO_STREAMING_STS_ENDPOINT` | | 覆盖区域端点的 STS 端点 |
 | `TANVO_WEBHOOKS_TIMEOUT` | `30s` | 单次投递尝试的时限 |
 | `TANVO_API_URL` | | API 的公网 URL；支付服务商把 webhook 发到 `TANVO_API_URL/webhooks/{provider}/{connection_id}`，创建连接时向服务商注册；未设置则不注册 |
 | `TANVO_GOCARDLESS_CLIENT_ID` | | 商户通过 OAuth 连接的 GoCardless 合作伙伴应用的客户端 ID；未设置时无法连接 GoCardless |
@@ -464,12 +472,26 @@ POST /v1/events, /v1/events:batch
 | `TANVO_HUBSPOT_CLIENT_ID` | | 商户通过 OAuth 连接其门户的 HubSpot 应用的客户端 ID；未设置时无法连接 HubSpot |
 | `TANVO_HUBSPOT_CLIENT_SECRET` | | 其客户端密钥 |
 | `TANVO_ANROK_DRAFT_TAXES_CACHE_TTL` | `24h` | 相同请求下 Anrok 对草稿发票的税额保留多久；`0` 关闭缓存 |
+| `TANVO_ANALYTICS_CACHE_TTL` | `4h` | 计算出的分析报表在每个服务器进程中复用多久；`0` 关闭缓存 |
 | `TANVO_APP_URL` | | 邮件链接使用的 Web 控制台 URL |
 | `TANVO_MAIL_FROM` | | 发件地址；设置 `TANVO_SMTP_HOST` 时必填 |
 | `TANVO_SMTP_HOST` | | SMTP 服务器；为空时邮件只记录日志并丢弃 |
 | `TANVO_SMTP_PORT` | `587` | SMTP 端口 |
 | `TANVO_SMTP_USERNAME`、`TANVO_SMTP_PASSWORD` | | SMTP 凭据 |
 | `TANVO_SMTP_SECURITY` | `starttls` | `starttls`、`starttls_optional`、`tls` 或 `none` |
+| `TANVO_BLOB_BACKEND` | | 文档、logo、报价文件与数据导出的 blob 存储：`local`、`s3` 或 `gcs`；为空时不存储任何内容，也不渲染文档。需要 `TANVO_SECRET_KEY` 与 `TANVO_API_URL` |
+| `TANVO_BLOB_LOCAL_ROOT` | | `local` 后端的目录 |
+| `TANVO_BLOB_ENDPOINT` | `gcs` 为 `https://storage.googleapis.com` | `s3` 后端的服务 URL（必填），例如 `https://s3.eu-west-1.amazonaws.com` |
+| `TANVO_BLOB_REGION` | `gcs` 为 `auto` | 签名区域（`s3` 必填） |
+| `TANVO_BLOB_BUCKET` | | `s3` 与 `gcs` 后端的存储桶 |
+| `TANVO_BLOB_ACCESS_KEY_ID`、`TANVO_BLOB_SECRET_ACCESS_KEY` | | 访问密钥及其密文（`gcs` 使用 HMAC 密钥） |
+| `TANVO_BLOB_SESSION_TOKEN` | | 临时凭证的会话令牌 |
+| `TANVO_BLOB_PATH_STYLE` | `false` | 以路径方式寻址存储桶（MinIO） |
+| `TANVO_BLOB_PREFIX` | | 存储桶内的键前缀 |
+| `TANVO_BLOB_URL_TTL` | `15m` | 永久文件链接重定向到的下载 URL 的有效期（最多 7 天） |
+| `TANVO_TYPST_PATH` | `PATH` 中的 `typst` | 渲染 PDF 的 Typst 可执行文件 |
+| `TANVO_DOCUMENTS_FONT_PATHS` | 系统字体目录 | 嵌入字体未覆盖的文字所用的字体目录（zh-CN 与 zh-TW 的 Noto CJK） |
+| `TANVO_DISABLE_PDF_GENERATION` | `false` | 不渲染 PDF，邮件也不附带 PDF；电子发票 XML 仍会生成 |
 | `TANVO_DISABLE_SIGNUP` | `false` | 关闭自助注册 |
 | `TANVO_GOOGLE_AUTH_CLIENT_ID`、`TANVO_GOOGLE_AUTH_CLIENT_SECRET` | | Google 登录的 OAuth 客户端，回调到 `TANVO_APP_URL/auth/google/callback`；未设置则关闭 |
 | `TANVO_SECRET_KEY` | | 安装密钥，至少 32 字节的 base64；用 HKDF-SHA256 从中派生签发客户门户令牌的密钥，以及加密集成密钥（SSO 客户端密钥与 x402 连接凭据）的 AES-256-GCM 密钥。未设置则关闭客户门户与 SSO 连接，并使每次 x402 结算方调用失败；更换后门户链接失效，已加密的密钥无法解密 |

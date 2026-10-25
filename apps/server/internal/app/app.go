@@ -60,6 +60,8 @@ type App struct {
 	api       *api
 	changes   *catalogChanges
 	health    *health
+	blobs     *blobs
+	docs      *docs
 	server    *http.Server
 	listener  net.Listener
 }
@@ -122,7 +124,17 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	if o.Clock != nil {
 		clock = o.Clock
 	}
-	reg, err := newRegistry(jobHandlers{webhooks: newDispatcher(cfg, a.store, tp, mp), tx: a.store, stores: a.stores, mp: mp, clock: clock})
+	if a.blobs, err = newBlobs(cfg, a.log, tp); err != nil {
+		return nil, err
+	}
+	composer, sender, err := newMailer(cfg, a.log, tp)
+	if err != nil {
+		return nil, err
+	}
+	reg, err := newRegistry(jobHandlers{
+		webhooks: newDispatcher(cfg, a.store, tp, mp), tx: a.store, stores: a.stores, mp: mp, clock: clock,
+		blobs: a.blobs.blobOrNil(), composer: composer, sender: sender, log: a.log,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -131,15 +143,20 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	if err != nil {
 		return nil, err
 	}
-	integ, err := newIntegrations(cfg, a.store, clock, a.log, tp, mp, pay.gocardlessOAuth, triggers)
+	integ, err := newIntegrations(cfg, a.store, clock, a.log, tp, mp, pay.gocardlessOAuth, triggers, a.blobs.blobOrNil())
 	if err != nil {
 		return nil, err
 	}
 	pay.svc.WithPaymentSync(integ.svc)
+	pay.svc.WithBlobs(a.blobs.blobOrNil())
 	if err := integ.register(reg); err != nil {
 		return nil, err
 	}
-	if a.billing, err = newBilling(cfg, a.store, a.stores, clock, a.log, pay.svc.Refunds(), triggers, integ.taxes); err != nil {
+	streams := newStreamProducer(cfg, a.log, tp, mp)
+	if a.billing, err = newBilling(cfg, a.store, a.stores, clock, a.log, pay.svc.Refunds(), triggers, integ.taxes, streams); err != nil {
+		return nil, err
+	}
+	if err := (streamingJobs{engine: a.billing}).register(reg); err != nil {
 		return nil, err
 	}
 	pay.bind(a.billing)
@@ -148,14 +165,16 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	if err := bj.register(reg); err != nil {
 		return nil, err
 	}
-	composer, sender, err := newMailer(cfg, a.log, tp)
-	if err != nil {
+	if err := (mailJobs{tx: a.store, composer: composer, sender: sender, blobs: a.blobs.blobOrNil()}).register(reg); err != nil {
 		return nil, err
 	}
-	if err := (mailJobs{tx: a.store, composer: composer, sender: sender}).register(reg); err != nil {
+	if a.docs, err = newDocuments(cfg, a.store, a.stores, clock, a.log, triggers, a.blobs.blobOrNil(), composer, sender); err != nil {
 		return nil, err
 	}
-	if err := (paymentJobs{w: pay, billing: bj, composer: composer, sender: sender, log: a.log}).register(reg); err != nil {
+	if err := a.docs.register(reg); err != nil {
+		return nil, err
+	}
+	if err := (paymentJobs{w: pay, billing: bj, composer: composer, sender: sender, docs: a.docs, log: a.log}).register(reg); err != nil {
 		return nil, err
 	}
 	if a.jobs, err = newJobs(a.pool, reg, cfg, o.Roles, a.log, tp, mp); err != nil {
@@ -182,6 +201,7 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	// HTTP: health and metrics on every role, the API on the api role.
 	mux := http.NewServeMux()
 	a.health.mount(mux)
+	a.blobs.mount(mux)
 	if tel.Metrics != nil {
 		mux.Handle("GET "+metricsPath, tel.Metrics)
 	}
@@ -205,9 +225,10 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		if a.api, err = newAPI(mux, APIOptions{
 			Tx: a.store, Ingest: svc, EventReader: reader, Billing: a.billing, MaxBytes: cfg.HTTPMaxBodyBytes, TrustedProxies: cfg.TrustedProxies,
 			Log: a.log, TracerProvider: tp, MeterProvider: mp, Clock: clock, AppURL: cfg.AppURL,
-			DisableSignup: cfg.DisableSignup, GoogleClientID: cfg.GoogleAuthClientID, GoogleClientSecret: cfg.GoogleAuthClientSecret,
+			DisableSignup: cfg.DisableSignup, AnalyticsCacheTTL: cfg.AnalyticsCacheTTL, GoogleClientID: cfg.GoogleAuthClientID, GoogleClientSecret: cfg.GoogleAuthClientSecret,
 			WebhooksAllowPrivate: cfg.WebhooksAllowPrivate, OIDCAllowPrivate: cfg.OIDCAllowPrivate, SecretKey: secretKey,
 			Payments: pay.svc, InboundWebhooks: pay.inbound, Integrations: integ.svc,
+			Files: a.docs, Blobs: a.blobs.blobOrNil(),
 		}); err != nil {
 			return nil, err
 		}
@@ -323,6 +344,12 @@ func (a *App) close() {
 	if a.ch != nil {
 		if err := a.ch.Close(); err != nil {
 			a.log.Warn("clickhouse: close", "error", err)
+		}
+	}
+	a.docs.close()
+	if a.blobs != nil {
+		if err := a.blobs.close(); err != nil {
+			a.log.Warn("blob store: close", "error", err)
 		}
 	}
 	if a.pool != nil {

@@ -179,6 +179,9 @@ func TestRestoreDeductions(t *testing.T) {
 			eq(t, "type", in.TransactionType, wallet.TransactionTypeInbound)
 			eq(t, "status", in.TransactionStatus, wallet.TransactionStatusGranted)
 			eq(t, "amount", in.Amount, 50)
+			// recredit_service.rb:29-31.
+			eq(t, "voided invoice", in.VoidedInvoiceID, inv.ID)
+			eq(t, "billing entity", in.BillingEntityID, h.BillingEntity.ID)
 			eq(t, "webhook", slices.Contains(h.Webhooks()[before:], webhook.EventTypeWalletTransactionCreated), true)
 		})
 	}

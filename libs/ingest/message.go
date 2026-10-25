@@ -1,6 +1,7 @@
 package ingest
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -65,6 +66,51 @@ func rawMessage(e *event.Event, source string) RawMessage {
 		m.Metadata = &md
 	}
 	return m
+}
+
+// UnmarshalJSON decodes a message of the events.raw topic. Besides the
+// encoding of [RawMessage], it accepts the fields as a connector maps
+// them from an event of the API's format: the timestamps as RFC 3339
+// strings or Unix seconds, the properties as JSON values, normalized as
+// the API does, and the precise amount as a decimal string or number. A
+// connector event without a timestamp happened when it was ingested, as
+// an API event without one.
+func (m *RawMessage) UnmarshalJSON(b []byte) error {
+	type plain RawMessage
+	var aux struct {
+		plain
+		Timestamp               any            `json:"timestamp"`
+		IngestedAt              any            `json:"ingested_at"`
+		Properties              map[string]any `json:"properties"`
+		PreciseTotalAmountCents any            `json:"precise_total_amount_cents"`
+	}
+	d := json.NewDecoder(bytes.NewReader(b))
+	d.UseNumber()
+	if err := d.Decode(&aux); err != nil {
+		return err
+	}
+	*m = RawMessage(aux.plain)
+	var err error
+	if aux.IngestedAt != nil {
+		if m.IngestedAt, err = event.ParseTimestamp(aux.IngestedAt); err != nil {
+			return fmt.Errorf("ingested_at: %w", err)
+		}
+	}
+	m.Timestamp = m.IngestedAt
+	if aux.Timestamp != nil {
+		if m.Timestamp, err = event.ParseTimestamp(aux.Timestamp); err != nil {
+			return fmt.Errorf("timestamp: %w", err)
+		}
+	}
+	if m.Properties, err = event.NormalizeProperties(aux.Properties); err != nil {
+		return fmt.Errorf("properties: %w", err)
+	}
+	amount, ok := parseAmount(aux.PreciseTotalAmountCents)
+	if !ok {
+		return fmt.Errorf("precise_total_amount_cents: %w", core.ErrInvalidValue)
+	}
+	m.PreciseTotalAmountCents = amount
+	return nil
 }
 
 // DecodeRaw decodes and validates a message of the events.raw topic. An
@@ -147,6 +193,58 @@ type DeadLetter struct {
 	ErrorMessage string `json:"error_message"`
 	// FailedAt is the instant of the failure.
 	FailedAt time.Time `json:"failed_at"`
+}
+
+// DeadLetterRecord is a dead letter as stored for inspection: the
+// event's keys read from its message, which may be a raw or an enriched
+// event, or neither.
+type DeadLetterRecord struct {
+	DeadLetter
+	// OrganizationID, ExternalSubscriptionID, Code and TransactionID are
+	// the message's keys; empty when it does not have them.
+	OrganizationID, ExternalSubscriptionID, Code, TransactionID string
+	// Timestamp is the message's timestamp, else IngestedAt.
+	Timestamp time.Time
+	// IngestedAt is the message's ingestion time, else FailedAt.
+	IngestedAt time.Time
+}
+
+// Record returns the stored form of d. Keys and times the message lacks
+// or that do not parse are left empty or fall back as documented on
+// [DeadLetterRecord] (lago's events_dead_letter_mv).
+func (d DeadLetter) Record() DeadLetterRecord {
+	var m struct {
+		OrganizationID         any `json:"organization_id"`
+		ExternalSubscriptionID any `json:"external_subscription_id"`
+		Code                   any `json:"code"`
+		TransactionID          any `json:"transaction_id"`
+		Timestamp              any `json:"timestamp"`
+		IngestedAt             any `json:"ingested_at"`
+	}
+	dec := json.NewDecoder(bytes.NewReader(d.Event))
+	dec.UseNumber()
+	_ = dec.Decode(&m)
+	text := func(v any) string {
+		s, _ := v.(string)
+		return s
+	}
+	at := func(v any, fallback time.Time) time.Time {
+		if v == nil {
+			return fallback
+		}
+		t, err := event.ParseTimestamp(v)
+		if err != nil {
+			return fallback
+		}
+		return t
+	}
+	r := DeadLetterRecord{
+		DeadLetter: d, OrganizationID: text(m.OrganizationID), ExternalSubscriptionID: text(m.ExternalSubscriptionID),
+		Code: text(m.Code), TransactionID: text(m.TransactionID),
+	}
+	r.IngestedAt = at(m.IngestedAt, d.FailedAt.UTC())
+	r.Timestamp = at(m.Timestamp, r.IngestedAt)
+	return r
 }
 
 // MarshalDeadLetter encodes a dead letter; a message that is not JSON is

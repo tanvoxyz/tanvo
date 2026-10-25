@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
+	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/payment"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -125,8 +127,32 @@ func (s *Service) create(ctx context.Context, r port.Repos, st *invoiceState, in
 		if err := s.issued(ctx, r, inv, cn); err != nil {
 			return nil, err
 		}
+		if err := s.deliverEmail(ctx, r, inv, cn); err != nil {
+			return nil, err
+		}
 	}
 	return cn, nil
+}
+
+// emailDelay is the delay of the credit note email (lago
+// deliver_later(wait: 3.seconds)).
+const emailDelay = 3 * time.Second
+
+// deliverEmail enqueues the email of the credit note cn just created when
+// its billing entity sends credit_note.created emails; credit notes
+// finalized with their invoice are not emailed.
+//
+// source: app/services/credit_notes/create_service.rb:102, 236-242
+func (s *Service) deliverEmail(ctx context.Context, r port.Repos, inv *invoice.Invoice, cn *creditnote.CreditNote) error {
+	be, err := r.BillingEntities.Get(ctx, inv.OrganizationID, inv.BillingEntityID)
+	if err != nil {
+		return fmt.Errorf("load billing entity %s: %w", inv.BillingEntityID, err)
+	}
+	if !be.SendsEmail(organization.EmailSettingCreditNoteCreated) {
+		return nil
+	}
+	args := kernel.DocumentEmailArgs{Type: kernel.DocumentCreditNote, ID: cn.ID.UUID()}
+	return kernel.Enqueue(ctx, r, inv.OrganizationID, kernel.JobSendDocumentEmail, args, "", s.d.Now().Add(emailDelay))
 }
 
 // build computes a credit note from in without storing it.

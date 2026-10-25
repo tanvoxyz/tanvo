@@ -163,3 +163,83 @@ func TestReaderKafka(t *testing.T) {
 		t.Errorf("Get(missing) error got = %v, want = %v", err, core.ErrNotFound)
 	}
 }
+
+// fakeEnriched is a store of enriched events, in the order of
+// EnrichedEvents.
+type fakeEnriched struct {
+	events []metering.EnrichedEvent
+	got    []metering.RawFilter
+}
+
+func (f *fakeEnriched) EnrichedEvents(_ context.Context, rf metering.RawFilter, after *metering.EnrichedPosition, limit int) ([]metering.EnrichedEvent, error) {
+	f.got = append(f.got, rf)
+	start := 0
+	if after != nil {
+		start = slices.IndexFunc(f.events, func(e metering.EnrichedEvent) bool {
+			return e.SubscriptionID == after.SubscriptionID && e.TransactionID == after.TransactionID && e.EnrichedAt.Equal(after.EnrichedAt)
+		}) + 1
+	}
+	return f.events[start:min(start+limit, len(f.events))], nil
+}
+
+// source: spec/requests/api/v1/events_controller_spec.rb:485
+// source: spec/requests/api/v1/events_controller_spec.rb:520
+func TestReaderEnriched(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	st := memstore.New()
+	ts := testNow.Add(-time.Hour)
+	started := testNow.Add(-48 * time.Hour)
+	seedEvents(t, st, []*subscription.Subscription{{
+		ID: core.NewID[core.SubscriptionID](testIDs), OrganizationID: testOrg, ExternalID: "sub", Status: subscription.StatusActive, StartedAt: &started,
+	}})
+	en := &fakeEnriched{}
+	for i, tx := range []string{"c", "b", "a"} {
+		en.events = append(en.events, metering.EnrichedEvent{
+			Event:      metering.Event{OrganizationID: testOrg.String(), SubscriptionID: "sub", TransactionID: tx, Code: "bm", Timestamp: ts},
+			EnrichedAt: ts.Add(-time.Duration(i) * time.Minute),
+		})
+	}
+
+	t.Run("postgres mode", func(t *testing.T) {
+		r, err := NewReader(ReaderConfig{Transactor: st, Enriched: en})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := r.ListEnriched(ctx, testOrg, ListInput{}, core.PageRequest{}); !errors.Is(err, ErrEnrichedUnavailable) {
+			t.Errorf("error got = %v, want = %v", err, ErrEnrichedUnavailable)
+		}
+	})
+
+	t.Run("kafka mode", func(t *testing.T) {
+		r, err := NewReader(ReaderConfig{Transactor: st, Mode: ModeKafka, Enriched: en})
+		if err != nil {
+			t.Fatal(err)
+		}
+		var got []string
+		page := core.PageRequest{Size: 2}
+		for {
+			p, err := r.ListEnriched(ctx, testOrg, ListInput{ListFilter: event.ListFilter{ExternalSubscriptionID: "sub"}, FromStartedAt: true}, page)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, e := range p.Items {
+				got = append(got, e.TransactionID)
+			}
+			if p.NextToken == "" {
+				break
+			}
+			page.Token = p.NextToken
+		}
+		if !slices.Equal(got, []string{"c", "b", "a"}) {
+			t.Errorf("events got = %v, want = [c b a]", got)
+		}
+		f := en.got[len(en.got)-1]
+		if f.SubscriptionID != "sub" || f.OrganizationID != testOrg.String() || f.TimestampFrom == nil || !f.TimestampFrom.Equal(started) {
+			t.Errorf("filter got = %+v, want = sub from its start", f)
+		}
+		if _, err := r.ListEnriched(ctx, testOrg, ListInput{}, core.PageRequest{Token: "bad"}); !errors.Is(err, core.ErrInvalidValue) {
+			t.Errorf("bad token error got = %v, want = %v", err, core.ErrInvalidValue)
+		}
+	})
+}

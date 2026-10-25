@@ -49,8 +49,9 @@ const (
 
 // Service is the wallets service.
 type Service struct {
-	d     *kernel.Deps
-	usage UsageSource
+	d        *kernel.Deps
+	usage    UsageSource
+	streamer Streamer
 }
 
 // New returns the service over the checked dependencies d. Ongoing
@@ -63,6 +64,15 @@ func New(d *kernel.Deps) *Service { return &Service{d: d} }
 func (s *Service) WithUsage(u UsageSource) *Service {
 	c := *s
 	c.usage = u
+	return &c
+}
+
+// WithStreamer returns a copy of the service that hands every saved
+// refresh of ongoing balances to st, which delivers the streaming events
+// (parity §1.40).
+func (s *Service) WithStreamer(st Streamer) *Service {
+	c := *s
+	c.streamer = st
 	return &c
 }
 

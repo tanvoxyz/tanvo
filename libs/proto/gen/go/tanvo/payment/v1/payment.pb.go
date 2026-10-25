@@ -5130,6 +5130,8 @@ type ResendPaymentReceiptRequest struct {
 	state                       protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_PaymentReceiptId *string                `protobuf:"bytes,1,opt,name=payment_receipt_id,json=paymentReceiptId"`
 	xxx_hidden_To               []string               `protobuf:"bytes,2,rep,name=to"`
+	xxx_hidden_Cc               []string               `protobuf:"bytes,3,rep,name=cc"`
+	xxx_hidden_Bcc              []string               `protobuf:"bytes,4,rep,name=bcc"`
 	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
 	XXX_presence                [1]uint32
 	unknownFields               protoimpl.UnknownFields
@@ -5178,13 +5180,35 @@ func (x *ResendPaymentReceiptRequest) GetTo() []string {
 	return nil
 }
 
+func (x *ResendPaymentReceiptRequest) GetCc() []string {
+	if x != nil {
+		return x.xxx_hidden_Cc
+	}
+	return nil
+}
+
+func (x *ResendPaymentReceiptRequest) GetBcc() []string {
+	if x != nil {
+		return x.xxx_hidden_Bcc
+	}
+	return nil
+}
+
 func (x *ResendPaymentReceiptRequest) SetPaymentReceiptId(v string) {
 	x.xxx_hidden_PaymentReceiptId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *ResendPaymentReceiptRequest) SetTo(v []string) {
 	x.xxx_hidden_To = v
+}
+
+func (x *ResendPaymentReceiptRequest) SetCc(v []string) {
+	x.xxx_hidden_Cc = v
+}
+
+func (x *ResendPaymentReceiptRequest) SetBcc(v []string) {
+	x.xxx_hidden_Bcc = v
 }
 
 func (x *ResendPaymentReceiptRequest) HasPaymentReceiptId() bool {
@@ -5206,6 +5230,10 @@ type ResendPaymentReceiptRequest_builder struct {
 	PaymentReceiptId *string
 	// The recipients; the customer's billing emails by default.
 	To []string
+	// Carbon copies.
+	Cc []string
+	// Blind carbon copies.
+	Bcc []string
 }
 
 func (b0 ResendPaymentReceiptRequest_builder) Build() *ResendPaymentReceiptRequest {
@@ -5213,10 +5241,12 @@ func (b0 ResendPaymentReceiptRequest_builder) Build() *ResendPaymentReceiptReque
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.PaymentReceiptId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_PaymentReceiptId = b.PaymentReceiptId
 	}
 	x.xxx_hidden_To = b.To
+	x.xxx_hidden_Cc = b.Cc
+	x.xxx_hidden_Bcc = b.Bcc
 	return m0
 }
 
@@ -5462,10 +5492,12 @@ const file_tanvo_payment_v1_payment_proto_rawDesc = "" +
 	"\x12payment_receipt_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\x10paymentReceiptId\"z\n" +
 	"\x1eDownloadPaymentReceiptResponse\x12+\n" +
 	"\x03pdf\x18\x01 \x01(\v2\x19.tanvo.common.v1.DocumentR\x03pdf\x12+\n" +
-	"\x03xml\x18\x02 \x01(\v2\x19.tanvo.common.v1.DocumentR\x03xml\"|\n" +
+	"\x03xml\x18\x02 \x01(\v2\x19.tanvo.common.v1.DocumentR\x03xml\"\xbe\x01\n" +
 	"\x1bResendPaymentReceiptRequest\x12=\n" +
 	"\x12payment_receipt_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\x10paymentReceiptId\x12\x1e\n" +
-	"\x02to\x18\x02 \x03(\tB\x0e\xbaH\v\x92\x01\b\x10\x14\"\x04r\x02`\x01R\x02to\"\x1e\n" +
+	"\x02to\x18\x02 \x03(\tB\x0e\xbaH\v\x92\x01\b\x10\x14\"\x04r\x02`\x01R\x02to\x12\x1e\n" +
+	"\x02cc\x18\x03 \x03(\tB\x0e\xbaH\v\x92\x01\b\x10\x14\"\x04r\x02`\x01R\x02cc\x12 \n" +
+	"\x03bcc\x18\x04 \x03(\tB\x0e\xbaH\v\x92\x01\b\x10\x14\"\x04r\x02`\x01R\x03bcc\"\x1e\n" +
 	"\x1cResendPaymentReceiptResponse*v\n" +
 	"\vPaymentKind\x12\x1c\n" +
 	"\x18PAYMENT_KIND_UNSPECIFIED\x10\x00\x12\x19\n" +

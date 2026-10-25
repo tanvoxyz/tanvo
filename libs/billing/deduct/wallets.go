@@ -237,12 +237,16 @@ func (s *Service) applyPrepaidCredits(ctx context.Context, r port.Repos, inv *in
 			continue
 		}
 		credit.Credits = wallet.CreditsFromMinor(credit.Amount, w.Currency, w.RateAmount)
+		be, err := kernel.WalletBillingEntity(ctx, r, w)
+		if err != nil {
+			return 0, err
+		}
 		t := &wallet.Transaction{
 			ID: core.NewID[core.WalletTransactionID](s.d.IDs), OrganizationID: org, WalletID: w.ID,
 			TransactionType: wallet.TransactionTypeOutbound, TransactionStatus: wallet.TransactionStatusInvoiced,
 			Status: wallet.SettlementStatusSettled, Source: wallet.TransactionSourceManual, Currency: w.Currency,
-			Amount: credit.Amount, CreditAmount: credit.Credits, Priority: w.Priority, InvoiceID: inv.ID,
-			SettledAt: &now, CreatedAt: now, UpdatedAt: now,
+			Amount: credit.Amount, CreditAmount: credit.Credits, Priority: wallet.MaxPriority, InvoiceID: inv.ID,
+			BillingEntityID: be, SettledAt: &now, CreatedAt: now, UpdatedAt: now,
 		}
 		if !opts.Preview {
 			if err := s.consumeWallet(ctx, r, w, t); err != nil {

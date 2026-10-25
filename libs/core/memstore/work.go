@@ -68,7 +68,7 @@ func (r organizationRepo) WithWork(_ context.Context, w organization.Work, at ti
 	case organization.WorkAwaitingWalletRefresh:
 		repo := customerRepo{st.customer, st}
 		st.customer.customers.find(func(c *customer.Customer) bool {
-			if f, ok := st.customer.walletRefresh.get(c.ID); ok && f.awaiting && !c.Deleted() && repo.hasActiveWallet(c.OrganizationID, c.ID) {
+			if f, ok := st.customer.walletRefresh.get(c.ID); ok && f.awaiting && !c.Deleted() && repo.hasActiveWallet(c.OrganizationID, c.ID) && !st.customer.hasTaxError(c.ID) {
 				return add(c.OrganizationID)
 			}
 			return false

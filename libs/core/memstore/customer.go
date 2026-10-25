@@ -21,6 +21,8 @@ type customerData struct {
 	walletRefresh *table[core.CustomerID, walletRefresh]
 	// pendingVIES holds the pending VIES checks of the customers.
 	pendingVIES *table[core.CustomerID, customer.PendingVIESCheck]
+	// errorDetails holds the error details of the customers.
+	errorDetails *table[core.ErrorDetailID, customer.ErrorDetail]
 }
 
 // walletRefresh is the wallet refresh state of a customer.
@@ -41,11 +43,18 @@ func newCustomerData() *customerData {
 		}),
 		walletRefresh: newTable[core.CustomerID, walletRefresh](nil),
 		pendingVIES:   newTable[core.CustomerID, customer.PendingVIESCheck](nil),
+		errorDetails: newTable[core.ErrorDetailID](func(e customer.ErrorDetail) customer.ErrorDetail {
+			e.Details = slices.Clone(e.Details)
+			return e
+		}),
 	}
 }
 
 func (d *customerData) snapshot() *customerData {
-	return &customerData{customers: d.customers.snapshot(), walletRefresh: d.walletRefresh.snapshot(), pendingVIES: d.pendingVIES.snapshot()}
+	return &customerData{
+		customers: d.customers.snapshot(), walletRefresh: d.walletRefresh.snapshot(), pendingVIES: d.pendingVIES.snapshot(),
+		errorDetails: d.errorDetails.snapshot(),
+	}
 }
 
 // customerRepo implements customer.Repository; st is the whole
@@ -269,7 +278,7 @@ func (r customerRepo) ListAwaitingWalletRefresh(_ context.Context, org core.Orga
 			return false
 		}
 		f, ok := r.d.walletRefresh.get(x.ID)
-		return ok && f.awaiting && r.hasActiveWallet(org, x.ID)
+		return ok && f.awaiting && r.hasActiveWallet(org, x.ID) && !r.d.hasTaxError(x.ID)
 	})
 	p, err := paginate(rows, customerKey, page)
 	if err != nil {
@@ -294,4 +303,41 @@ func customerMatches(c *customer.Customer, text string) bool {
 		}
 	}
 	return slices.ContainsFunc(fields, func(s string) bool { return strings.Contains(strings.ToLower(s), text) })
+}
+
+// hasTaxError reports whether customer id has a tax_error detail, which
+// keeps it out of the wallet refresh.
+func (d *customerData) hasTaxError(id core.CustomerID) bool {
+	return d.errorDetails.any(func(x *customer.ErrorDetail) bool {
+		return x.CustomerID == id && x.Code == customer.ErrorCodeTaxError
+	})
+}
+
+var _ customer.ErrorDetailRepository = customerErrorDetailRepo{}
+
+// customerErrorDetailRepo implements customer.ErrorDetailRepository.
+type customerErrorDetailRepo struct{ d *customerData }
+
+func (r customerErrorDetailRepo) Create(_ context.Context, e *customer.ErrorDetail) error {
+	if r.d.errorDetails.has(e.ID) {
+		return conflict("error_detail", "id")
+	}
+	if c, ok := r.d.customers.get(e.CustomerID); !ok || c.OrganizationID != e.OrganizationID {
+		return notFound("customer", e.CustomerID)
+	}
+	r.d.errorDetails.put(e.ID, *e)
+	return nil
+}
+
+func (r customerErrorDetailRepo) ListByCustomers(_ context.Context, org core.OrganizationID, ids []core.CustomerID) ([]*customer.ErrorDetail, error) {
+	return r.d.errorDetails.find(func(x *customer.ErrorDetail) bool {
+		return x.OrganizationID == org && slices.Contains(ids, x.CustomerID)
+	}), nil
+}
+
+func (r customerErrorDetailRepo) DeleteByCustomer(_ context.Context, org core.OrganizationID, id core.CustomerID, code customer.ErrorCode) error {
+	r.d.errorDetails.deleteWhere(func(x *customer.ErrorDetail) bool {
+		return x.OrganizationID == org && x.CustomerID == id && x.Code == code
+	})
+	return nil
 }

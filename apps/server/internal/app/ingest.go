@@ -109,8 +109,10 @@ func (c *consumers) close() {
 // enrichment (raw topic → enriched topic, group <prefix>-enrich) and the
 // ClickHouse writer (enriched topic → ClickHouse, then the in-advance
 // billing jobs of the stored events and the usage signals, group
-// <prefix>-write), and the usage refresh consumer (usage signals →
-// billing, group <prefix>-signals). producer produces their outputs and
+// <prefix>-write), the usage refresh consumer (usage signals →
+// billing, group <prefix>-signals) and the dead letter store (dead
+// letters → ClickHouse's events_dead_letter, group
+// <prefix>-dead-letters). producer produces their outputs and
 // dead letters.
 func newConsumers(cfg config.Config, tx port.Transactor, ch *clickhouse.Store, engine *billing.Engine, producer *kgo.Client, tel kafkaTelemetry, log *slog.Logger, changes *catalogChanges) (*consumers, error) {
 	t := topics(cfg)
@@ -148,5 +150,29 @@ func newConsumers(cfg config.Config, tx port.Transactor, ch *clickhouse.Store, e
 		out.close()
 		return nil, err
 	}
+	if err := add("dead-letters", t.DeadLetter, kafka.DeadLetters(deadLetterStore{ch: ch}, nil, log)); err != nil {
+		out.close()
+		return nil, err
+	}
 	return out, nil
+}
+
+// deadLetterStore stores dead letters in ClickHouse's events_dead_letter.
+type deadLetterStore struct {
+	ch *clickhouse.Store
+}
+
+var _ kafka.DeadLetterSink = deadLetterStore{}
+
+// StoreDeadLetters implements [kafka.DeadLetterSink].
+func (s deadLetterStore) StoreDeadLetters(ctx context.Context, records []ingest.DeadLetterRecord) error {
+	rows := make([]clickhouse.DeadLetter, len(records))
+	for i, r := range records {
+		rows[i] = clickhouse.DeadLetter{
+			OrganizationID: r.OrganizationID, SubscriptionID: r.ExternalSubscriptionID, Code: r.Code, TransactionID: r.TransactionID,
+			Timestamp: r.Timestamp, IngestedAt: r.IngestedAt, FailedAt: r.FailedAt, Event: string(r.Event),
+			ErrorCode: r.ErrorCode, ErrorMessage: r.ErrorMessage, Topic: r.Topic, Partition: r.Partition, Offset: r.Offset,
+		}
+	}
+	return s.ch.WriteDeadLetters(ctx, rows)
 }

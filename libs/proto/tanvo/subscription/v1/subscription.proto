@@ -450,12 +450,42 @@ message CreateSubscriptionRequest {
     (google.api.field_behavior) = REQUIRED,
     (buf.validate.field).required = true
   ];
+  // A pre-authorization of the customer's Stripe payment method placed
+  // before the subscription is created: the hold checks that the method
+  // can pay and is released at once. A refusal fails the request and no
+  // subscription is created. The method is subscription.payment_method_id,
+  // else the customer's default.
+  PaymentAuthorizationInput authorization = 2 [(google.api.field_behavior) = INPUT_ONLY];
+}
+
+// PaymentAuthorizationInput is the amount a pre-authorization holds.
+message PaymentAuthorizationInput {
+  // The amount to hold.
+  tanvo.common.v1.Money amount = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
 }
 
 // CreateSubscriptionResponse is the response of SubscriptionService.CreateSubscription.
 message CreateSubscriptionResponse {
   // The created subscription.
   Subscription subscription = 1;
+  // The pre-authorization placed, when the request asked for one.
+  PaymentAuthorization authorization = 2;
+}
+
+// PaymentAuthorization is a hold placed on a payment method at the
+// provider.
+message PaymentAuthorization {
+  // The provider's payment ID (a Stripe PaymentIntent).
+  string id = 1;
+  // The amount authorized.
+  tanvo.common.v1.Money amount = 2;
+  // The amount held, capturable until released.
+  tanvo.common.v1.Money amount_capturable = 3;
+  // The provider's status (`requires_capture` once held).
+  string status = 4;
 }
 
 // GetSubscriptionRequest is the request of SubscriptionService.GetSubscription.

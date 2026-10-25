@@ -3,8 +3,11 @@ package wallets
 import (
 	"cmp"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
@@ -52,22 +55,115 @@ type UsageSource interface {
 	OngoingUsage(ctx context.Context, r port.Repos, c *customer.Customer) ([]UsageFee, error)
 }
 
+// ComputedUsage is the current usage a [ComputedUsageSource] computed
+// for a refresh. The wallets service does not read it: it hands it to the
+// [Streamer] unchanged, so that the streamed current usage is the one the
+// balances were refreshed from.
+type ComputedUsage any
+
+// ComputedUsageSource is a [UsageSource] that also returns the current
+// usage it computed the fees from.
+type ComputedUsageSource interface {
+	UsageSource
+	// OngoingUsageComputed returns the usage fees of customer c and the
+	// current usage they come from.
+	OngoingUsageComputed(ctx context.Context, r port.Repos, c *customer.Customer) ([]UsageFee, ComputedUsage, error)
+}
+
+// Streamer delivers the streaming events of a refresh of ongoing balances
+// (lago Customers::RefreshWalletsService#deliver_streaming_events,
+// app/services/customers/refresh_wallets_service.rb:46-54).
+type Streamer interface {
+	// WalletsRefreshed runs in the transaction that saved the refreshed
+	// balances of customer c, computed from usage (nil when the usage
+	// source does not return it). It enqueues, in that transaction, the
+	// deliveries that run as jobs, and returns what runs once the
+	// transaction committed, or nil: a rolled back refresh reaches no
+	// stream.
+	WalletsRefreshed(ctx context.Context, r port.Repos, org core.OrganizationID, c core.CustomerID, usage ComputedUsage) (func(context.Context), error)
+}
+
 // RefreshWallet refreshes the ongoing balances of the customer of a wallet
-// (the [kernel.JobRefreshWalletOngoingBalance] handler).
+// (the [kernel.JobRefreshWalletOngoingBalance] handler, lago
+// Customers::RefreshWalletJob, app/jobs/customers/refresh_wallet_job.rb:43-64).
+// A customer with a tax_error detail is skipped. When the tax provider
+// cannot resolve the customer's address, the failure is recorded as a
+// tax_error detail on the customer instead of failing the job, and the
+// customer is no longer refreshed until its address changes.
 func (s *Service) RefreshWallet(ctx context.Context, org core.OrganizationID, id core.WalletID) ([]*wallet.Wallet, error) {
-	var c core.CustomerID
+	var (
+		c       core.CustomerID
+		blocked bool
+	)
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
 		w, err := r.Wallets.Get(ctx, org, id)
 		if err != nil {
 			return fmt.Errorf("load wallet %s: %w", id, err)
 		}
 		c = w.CustomerID
-		return nil
+		blocked, err = hasTaxError(ctx, r, org, c)
+		return err
 	})
-	if err != nil {
+	if err != nil || blocked {
 		return nil, err
 	}
-	return s.RefreshOngoingBalances(ctx, org, c)
+	ws, err := s.RefreshOngoingBalances(ctx, org, c)
+	if pe, ok := addressUnresolved(err); ok {
+		return nil, s.recordTaxError(ctx, org, c, pe, err)
+	}
+	return ws, err
+}
+
+// customerAddressInvalid is the tax provider's error code for an address
+// it cannot resolve (lago Integrations::Aggregator::Taxes::BaseService::
+// CUSTOMER_ADDRESS_INVALID, app/services/integrations/aggregator/taxes/base_service.rb:10).
+const customerAddressInvalid = "customerAddressCouldNotResolve"
+
+// hasTaxError reports whether customer c has a tax_error detail (lago
+// customer.error_details.tax_error.exists?).
+func hasTaxError(ctx context.Context, r port.Repos, org core.OrganizationID, c core.CustomerID) (bool, error) {
+	ds, err := r.CustomerErrorDetails.ListByCustomers(ctx, org, []core.CustomerID{c})
+	if err != nil {
+		return false, fmt.Errorf("list error details of customer %s: %w", c, err)
+	}
+	return slices.ContainsFunc(ds, func(d *customer.ErrorDetail) bool { return d.Code == customer.ErrorCodeTaxError }), nil
+}
+
+// addressUnresolved returns the tax provider failure of err when it is
+// about the customer's address: lago matches the code within the failure
+// message ("code: message", refresh_wallet_job.rb:50-52).
+func addressUnresolved(err error) (*kernel.TaxProviderError, bool) {
+	pe, ok := errors.AsType[*kernel.TaxProviderError](err)
+	if !ok || !strings.Contains(pe.Code+": "+pe.Message, customerAddressInvalid) {
+		return nil, false
+	}
+	return pe, true
+}
+
+// recordTaxError stores the tax_error detail of customer c for the
+// provider failure pe of the refresh error err (refresh_wallet_job.rb:53-63).
+// Its details hold the provider's failure under "tax_error" and the error
+// under "error"; lago's Ruby backtrace has no counterpart.
+func (s *Service) recordTaxError(ctx context.Context, org core.OrganizationID, c core.CustomerID, pe *kernel.TaxProviderError, err error) error {
+	msg := pe.Code
+	if pe.Message != "" {
+		msg += ": " + pe.Message
+	}
+	details, jerr := json.Marshal(map[string]string{string(customer.ErrorCodeTaxError): msg, "error": err.Error()})
+	if jerr != nil {
+		return fmt.Errorf("encode tax error of customer %s: %w", c, jerr)
+	}
+	if err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+		return r.CustomerErrorDetails.Create(ctx, &customer.ErrorDetail{
+			ID: core.NewID[core.ErrorDetailID](s.d.IDs), OrganizationID: org, CustomerID: c,
+			Code: customer.ErrorCodeTaxError, Details: details, CreatedAt: s.d.Now(),
+		})
+	}); err != nil {
+		return fmt.Errorf("store tax error of customer %s: %w", c, err)
+	}
+	s.d.Logger.WarnContext(ctx, "wallet refresh stopped: tax provider cannot resolve the customer address",
+		"organization_id", org, "customer_id", c, "tax_error", msg)
+	return nil
 }
 
 // maxRefreshAttempts bounds how many times a refresh computes the usage
@@ -94,9 +190,10 @@ const maxRefreshAttempts = 3
 func (s *Service) RefreshOngoingBalances(ctx context.Context, org core.OrganizationID, c core.CustomerID) ([]*wallet.Wallet, error) {
 	for attempt := 1; ; attempt++ {
 		var (
-			seen []*wallet.Wallet
-			fees []UsageFee
-			gen  int64
+			seen     []*wallet.Wallet
+			fees     []UsageFee
+			computed ComputedUsage
+			gen      int64
 		)
 		// The refresh is claimed, in a transaction of its own, before the
 		// usage is read: the claim waits for the transactions that flagged
@@ -120,7 +217,7 @@ func (s *Service) RefreshOngoingBalances(ctx context.Context, org core.Organizat
 			if len(seen) == 0 {
 				return nil
 			}
-			fees, err = s.ongoingUsage(ctx, r, org, c)
+			fees, computed, err = s.ongoingUsage(ctx, r, org, c)
 			return err
 		})
 		if err != nil {
@@ -129,7 +226,10 @@ func (s *Service) RefreshOngoingBalances(ctx context.Context, org core.Organizat
 		if len(seen) == 0 {
 			return nil, nil
 		}
-		var out []*wallet.Wallet
+		var (
+			out   []*wallet.Wallet
+			after func(context.Context)
+		)
 		stale := false
 		err = s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
 			if err := lockCustomerCredits(ctx, r, org, c); err != nil {
@@ -152,32 +252,49 @@ func (s *Service) RefreshOngoingBalances(ctx context.Context, org core.Organizat
 			if err := r.Customers.ClearWalletRefresh(ctx, org, c, gen); err != nil {
 				return fmt.Errorf("clear wallet refresh of customer %s: %w", c, err)
 			}
+			if s.streamer != nil {
+				if after, err = s.streamer.WalletsRefreshed(ctx, r, org, c, computed); err != nil {
+					return fmt.Errorf("stream refresh of customer %s: %w", c, err)
+				}
+			}
 			return nil
 		})
 		if err != nil {
 			return nil, err
 		}
 		if !stale {
+			if after != nil {
+				after(ctx)
+			}
 			return out, nil
 		}
 	}
 }
 
-// ongoingUsage returns the usage fees of customer id, none without a
+// ongoingUsage returns the usage fees of customer id and, when the usage
+// source returns it, the current usage they come from; none without a
 // usage source.
-func (s *Service) ongoingUsage(ctx context.Context, r port.Repos, org core.OrganizationID, id core.CustomerID) ([]UsageFee, error) {
+func (s *Service) ongoingUsage(ctx context.Context, r port.Repos, org core.OrganizationID, id core.CustomerID) ([]UsageFee, ComputedUsage, error) {
 	if s.usage == nil {
-		return nil, nil
+		return nil, nil, nil
 	}
 	c, err := r.Customers.Get(ctx, org, id)
 	if err != nil {
-		return nil, fmt.Errorf("load customer %s: %w", id, err)
+		return nil, nil, fmt.Errorf("load customer %s: %w", id, err)
 	}
-	fees, err := s.usage.OngoingUsage(ctx, r, c)
+	var (
+		fees     []UsageFee
+		computed ComputedUsage
+	)
+	if cs, ok := s.usage.(ComputedUsageSource); ok {
+		fees, computed, err = cs.OngoingUsageComputed(ctx, r, c)
+	} else {
+		fees, err = s.usage.OngoingUsage(ctx, r, c)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("usage of customer %s: %w", id, err)
+		return nil, nil, fmt.Errorf("usage of customer %s: %w", id, err)
 	}
-	return fees, nil
+	return fees, computed, nil
 }
 
 // sameBalances reports whether a and b are the same wallets with the same

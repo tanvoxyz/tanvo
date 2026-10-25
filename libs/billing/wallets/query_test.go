@@ -3,6 +3,7 @@ package wallets_test
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 	"time"
 
@@ -53,6 +54,30 @@ func TestList(t *testing.T) {
 		got := append(walletIDs(p1.Items), walletIDs(p2.Items)...)
 		if len(got) != 3 || got[0] != want[0] || got[2] != want[2] || p2.NextToken != "" {
 			t.Fatalf("wallets = %v (next %q), want %v", got, p2.NextToken, want)
+		}
+	})
+	// source: spec/queries/wallets_query_spec.rb:28, 46
+	t.Run("newest first, then by ID", func(t *testing.T) {
+		t.Parallel()
+		h, s := setup(t, t0)
+		c := h.Customer()
+		old1, old2 := h.Wallet(c, "1"), h.Wallet(h.Customer(), "1")
+		h.Clock.Advance(time.Hour)
+		recent := h.Wallet(c, "1")
+		var got []core.WalletID
+		for page := (core.PageRequest{Size: 1}); ; {
+			p, err := s.List(h.Ctx, h.OrgID(), wallets.ListFilter{}, page)
+			if err != nil {
+				t.Fatalf("List() error = %v", err)
+			}
+			got = append(got, walletIDs(p.Items)...)
+			if p.NextToken == "" {
+				break
+			}
+			page.Token = p.NextToken
+		}
+		if want := []core.WalletID{recent.ID, old1.ID, old2.ID}; !slices.Equal(got, want) {
+			t.Fatalf("wallets: got = %v, want = %v", got, want)
 		}
 	})
 	// source: spec/queries/wallets_query_spec.rb:69
@@ -118,6 +143,33 @@ func TestList(t *testing.T) {
 
 func TestListTransactions(t *testing.T) {
 	t.Parallel()
+	// source: spec/queries/wallet_transactions_query_spec.rb:37, 55
+	t.Run("newest first, then by ID", func(t *testing.T) {
+		t.Parallel()
+		h, s := setup(t, t0)
+		w := h.Wallet(h.Customer(), "10")
+		old1 := h.InboundTransaction(w, wallet.TransactionStatusGranted, "1")
+		old2 := h.InboundTransaction(w, wallet.TransactionStatusGranted, "1")
+		h.Clock.Advance(time.Hour)
+		recent := h.InboundTransaction(w, wallet.TransactionStatusGranted, "1")
+		var got []core.WalletTransactionID
+		for page := (core.PageRequest{Size: 1}); ; {
+			p, err := s.ListTransactions(h.Ctx, h.OrgID(), w.ID, wallets.TransactionListFilter{}, page)
+			if err != nil {
+				t.Fatalf("ListTransactions() error = %v", err)
+			}
+			for _, x := range p.Items {
+				got = append(got, x.ID)
+			}
+			if p.NextToken == "" {
+				break
+			}
+			page.Token = p.NextToken
+		}
+		if want := []core.WalletTransactionID{recent.ID, old1.ID, old2.ID}; !slices.Equal(got, want) {
+			t.Fatalf("transactions: got = %v, want = %v", got, want)
+		}
+	})
 	// source: spec/queries/wallet_transactions_query_spec.rb:78
 	// source: spec/queries/wallet_transactions_query_spec.rb:92
 	t.Run("filters by status and type", func(t *testing.T) {

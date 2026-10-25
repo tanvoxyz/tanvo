@@ -56,6 +56,11 @@ type Event struct {
 	// aggregations ignore it; the event stores that keep an ingestion
 	// ledger store it there.
 	Metadata EventMetadata `json:"metadata,omitzero"`
+	// Value is the value enrichment gave the event: "1" for count metrics,
+	// the metric's field_name property otherwise, nil without a metric. The
+	// aggregations ignore it; the event stores that keep enriched events
+	// store it there.
+	Value *string `json:"value,omitempty"`
 }
 
 // EventMetadata describes the API request an event arrived with: the

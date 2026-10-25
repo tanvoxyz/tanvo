@@ -77,6 +77,50 @@ service PlanService {
       api_resource: "plan"
     };
   }
+
+  // Replaces the plan's metadata; an empty list clears it.
+  rpc ReplacePlanMetadata(ReplacePlanMetadataRequest) returns (ReplacePlanMetadataResponse) {
+    option (google.api.http) = {
+      post: "/v1/plans/{plan_id}/metadata"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:update"
+      api_resource: "plan"
+    };
+  }
+
+  // Merges items into the plan's metadata: values of existing keys are
+  // replaced and new keys appended.
+  rpc MergePlanMetadata(MergePlanMetadataRequest) returns (MergePlanMetadataResponse) {
+    option (google.api.http) = {
+      patch: "/v1/plans/{plan_id}/metadata"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "plans:update"
+      api_resource: "plan"
+    };
+  }
+
+  // Removes all the plan's metadata.
+  rpc DeletePlanMetadata(DeletePlanMetadataRequest) returns (DeletePlanMetadataResponse) {
+    option (google.api.http) = {delete: "/v1/plans/{plan_id}/metadata"};
+    option (tanvo.common.v1.access) = {
+      permission: "plans:update"
+      api_resource: "plan"
+    };
+  }
+
+  // Removes one key from the plan's metadata; NOT_FOUND when the
+  // plan has no metadata.
+  rpc DeletePlanMetadataKey(DeletePlanMetadataKeyRequest) returns (DeletePlanMetadataKeyResponse) {
+    option (google.api.http) = {delete: "/v1/plans/{plan_id}/metadata/{key}"};
+    option (tanvo.common.v1.access) = {
+      permission: "plans:update"
+      api_resource: "plan"
+    };
+  }
 }
 
 // PlanStatus is the state of a plan.
@@ -336,4 +380,77 @@ message DeletePlanRequest {
 message DeletePlanResponse {
   // The plan, pending deletion.
   Plan plan = 1;
+}
+
+// ReplacePlanMetadataRequest is the request of ReplacePlanMetadata.
+message ReplacePlanMetadataRequest {
+  // The plan's ID or `code:<code>`.
+  string plan_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The new metadata; empty clears it.
+  repeated tanvo.common.v1.MetadataItem metadata = 2 [(buf.validate.field).repeated.max_items = 50];
+}
+
+// MergePlanMetadataRequest is the request of MergePlanMetadata.
+message MergePlanMetadataRequest {
+  // The plan's ID or `code:<code>`.
+  string plan_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The items to merge.
+  repeated tanvo.common.v1.MetadataItem metadata = 2 [(buf.validate.field).repeated.max_items = 50];
+}
+
+// DeletePlanMetadataRequest is the request of DeletePlanMetadata.
+message DeletePlanMetadataRequest {
+  // The plan's ID or `code:<code>`.
+  string plan_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+}
+
+// DeletePlanMetadataKeyRequest is the request of DeletePlanMetadataKey.
+message DeletePlanMetadataKeyRequest {
+  // The plan's ID or `code:<code>`.
+  string plan_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.(tanvo.common.v1.ref) = true
+  ];
+  // The key to remove.
+  string key = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// ReplacePlanMetadataResponse is the response of ReplacePlanMetadata.
+message ReplacePlanMetadataResponse {
+  // The plan's metadata after the change.
+  repeated tanvo.common.v1.MetadataItem metadata = 1;
+}
+
+// MergePlanMetadataResponse is the response of MergePlanMetadata.
+message MergePlanMetadataResponse {
+  // The plan's metadata after the change.
+  repeated tanvo.common.v1.MetadataItem metadata = 1;
+}
+
+// DeletePlanMetadataResponse is the response of DeletePlanMetadata.
+message DeletePlanMetadataResponse {
+  // The plan's metadata after the change.
+  repeated tanvo.common.v1.MetadataItem metadata = 1;
+}
+
+// DeletePlanMetadataKeyResponse is the response of DeletePlanMetadataKey.
+message DeletePlanMetadataKeyResponse {
+  // The plan's metadata after the change.
+  repeated tanvo.common.v1.MetadataItem metadata = 1;
 }

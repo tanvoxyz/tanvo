@@ -34,7 +34,6 @@ type Ingester interface {
 
 // Events serves tanvo.event.v1.EventService: the ingestion RPCs, the
 // reads with an [EventReader] and the estimates with a [FeeEstimator].
-// ListEnrichedEvents answers Unimplemented.
 type Events struct {
 	eventv1connect.UnimplementedEventServiceHandler
 

@@ -55,7 +55,13 @@ type syncTarget struct {
 //     without webhook endpoints or a provider without such pages, or when
 //     none of the customer's method types can be saved;
 //   - default method (FetchDefaultPaymentMethodService): the provider
-//     customer's default method, else its newest card, is recorded.
+//     customer's default method, else its newest card, is recorded;
+//   - funding (StripeSyncFundingInstructionsJob): a customer paying by
+//     bank transfer to its balance gets the invoice section printing the
+//     bank details ([Service.WithFundingFormatter]).
+//
+// Creation and update enqueue the funding sync of a customer paying by
+// bank transfer (stripe_service.rb sync_funding_instructions).
 //
 // A removed connection, provider customer or customer is ignored. A
 // provider refusal is announced by customer.payment_provider_error and
@@ -101,6 +107,8 @@ func (s *Service) SyncProviderCustomer(ctx context.Context, org core.Organizatio
 		return s.generateCheckout(ctx, t)
 	case args.FetchMethod:
 		return s.fetchDefaultMethod(ctx, t)
+	case args.Funding:
+		return s.syncFunding(ctx, t)
 	case args.Update:
 		return s.pushCustomer(ctx, t)
 	default:
@@ -166,6 +174,9 @@ func (s *Service) createProviderCustomer(ctx context.Context, t *syncTarget) err
 		if err := kernel.Emit(ctx, s.d, org, webhook.EventTypeCustomerPaymentProviderCreated, "customer", t.cust.ID.UUID(), t.cust); err != nil {
 			return err
 		}
+		if err := s.enqueueFunding(ctx, r, t.pc.gw, pcust); err != nil {
+			return err
+		}
 		return kernel.Enqueue(ctx, r, org, kernel.JobSyncProviderCustomer,
 			kernel.ProviderCustomerArgs{ProviderCustomerID: pcust.ID, Checkout: true}, "provider_customer:"+pcust.ID.String()+":checkout", time.Time{})
 	})
@@ -179,8 +190,11 @@ func (s *Service) pushCustomer(ctx context.Context, t *syncTarget) error {
 		return nil
 	}
 	err := t.pc.gw.UpdateCustomer(ctx, t.pc.conn, id, payment.CustomerParamsOf(t.cust))
-	if err == nil || errors.Is(err, payment.ErrUnsupported) {
+	if errors.Is(err, payment.ErrUnsupported) {
 		return nil
+	}
+	if err == nil {
+		return s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error { return s.enqueueFunding(ctx, r, t.pc.gw, t.pcust) })
 	}
 	return s.providerRefusal(ctx, t, "update", err)
 }

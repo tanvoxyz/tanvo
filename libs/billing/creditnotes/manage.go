@@ -149,21 +149,39 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.C
 }
 
 func mergeMetadata(old, md core.Metadata, merge bool) core.Metadata {
-	if !merge {
-		if len(md) == 0 {
-			return nil
-		}
-		return md.Clone()
+	if merge {
+		return old.Merge(md)
 	}
-	out := old.Clone()
-	for _, it := range md {
-		if i := slices.IndexFunc(out, func(o core.MetadataItem) bool { return o.Key == it.Key }); i >= 0 {
-			out[i] = it
-			continue
-		}
-		out = append(out, it)
+	if len(md) == 0 {
+		return nil
 	}
-	return out
+	return md.Clone()
+}
+
+// DeleteMetadataKey removes key from the metadata of the finalized credit
+// note id and returns the metadata left (lago Metadata::DeleteItemKeyService:
+// the credit note itself is not touched). A credit note without metadata
+// is metadata not found
+// (app/controllers/api/v1/credit_notes/metadata_controller.rb:37).
+func (s *Service) DeleteMetadataKey(ctx context.Context, org core.OrganizationID, id core.CreditNoteID, key string) (core.Metadata, error) {
+	return inTx(ctx, s.d.Tx, func(ctx context.Context, r port.Repos) (core.Metadata, error) {
+		cn, err := get(ctx, r, org, id, false)
+		if err != nil {
+			return nil, err
+		}
+		if len(cn.Metadata) == 0 {
+			return nil, core.NotFound("metadata")
+		}
+		md := cn.Metadata.Without(key)
+		if len(md) == len(cn.Metadata) {
+			return md, nil
+		}
+		cn.Metadata = md
+		if err := r.CreditNotes.Update(ctx, cn); err != nil {
+			return nil, fmt.Errorf("update credit note %s: %w", id, err)
+		}
+		return md, nil
+	})
 }
 
 // Recredit gives back amount of a consumed credit to the credit note (the

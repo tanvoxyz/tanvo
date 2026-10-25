@@ -67,6 +67,27 @@ func requestLimit(attempts int) Retry {
 
 func retryable(attempts int) Retry { return Retry{Match: is(ErrSyncRetryable), Attempts: attempts} }
 
+// ConcurrencyLimit is how many accounting and contact sync jobs run at
+// once across the deployment (lago config/initializers/throttling.rb:10,
+// the concurrency limit of the jobs including ConcurrencyThrottlable).
+const ConcurrencyLimit = 5
+
+// ConcurrencySlot is the name of the slots [ConcurrencyLimited] jobs share.
+const ConcurrencySlot = "integrations.sync"
+
+// ConcurrencyLimited reports whether jobs of kind share the
+// [ConcurrencyLimit]: the contact, invoice, credit note and payment syncs
+// (integration_customers/create_job.rb and update_job.rb,
+// aggregator/{invoices,credit_notes,payments}/create_job.rb).
+func ConcurrencyLimited(kind string) bool {
+	switch kind {
+	case kernel.JobSyncContact, kernel.JobSyncInvoice, kernel.JobSyncCreditNote, kernel.JobSyncPayment:
+		return true
+	default:
+		return false
+	}
+}
+
 // JobKinds returns the kinds [Service.HandleJob] runs.
 func JobKinds() []string { return kernel.IntegrationJobKinds() }
 

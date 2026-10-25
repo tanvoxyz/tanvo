@@ -500,6 +500,40 @@ func TestGetListDelete(t *testing.T) {
 			t.Fatalf("alerts = %v, want the subscription's alert", p.Items)
 		}
 	})
+	// The order of apply_consistent_ordering (base_query.rb:111-112,
+	// alerts_query.rb:10).
+	t.Run("lists newest first", func(t *testing.T) {
+		t.Parallel()
+		f := setup(t)
+		ctx := context.Background()
+		for i, code := range []string{"a", "b"} {
+			in := usageInput(code)
+			if i == 1 {
+				in.Type = alert.TypeLifetimeUsageAmount
+			}
+			if _, err := f.s.Create(ctx, f.h.OrgID(), f.subOwner(), in); err != nil {
+				t.Fatalf("Create(%s) error = %v", code, err)
+			}
+			f.h.Clock.Advance(time.Hour)
+		}
+		var got []string
+		for page := (core.PageRequest{Size: 1}); ; {
+			p, err := f.s.List(ctx, f.h.OrgID(), f.subOwner(), page)
+			if err != nil {
+				t.Fatalf("List() error = %v", err)
+			}
+			for _, a := range p.Items {
+				got = append(got, a.Code)
+			}
+			if p.NextToken == "" {
+				break
+			}
+			page.Token = p.NextToken
+		}
+		if !slices.Equal(got, []string{"b", "a"}) {
+			t.Fatalf("alerts: got = %v, want = [b a]", got)
+		}
+	})
 }
 
 func TestBatchCreate(t *testing.T) {

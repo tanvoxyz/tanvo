@@ -23,7 +23,6 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
 	"github.com/tanvoxyz/tanvo/libs/core/wallet"
 	analyticsv1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/analytics/v1"
-	commonv1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/common/v1"
 	customerv1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/customer/v1"
 	invoicev1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/invoice/v1"
 	portalv1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/portal/v1"
@@ -48,6 +47,8 @@ type PortalDeps struct {
 	Wallets *wallets.Service
 	// Analytics computes the overdue balance and the invoice collection.
 	Analytics *analytics.Service
+	// Files links the invoice documents; nil leaves the links empty.
+	Files DocumentFiles
 }
 
 // Portal serves tanvo.portal.v1.CustomerPortalService (lago's
@@ -231,9 +232,8 @@ func (s *Portal) DownloadPortalInvoice(ctx context.Context, req *portalv1.Downlo
 	}
 	out := portalv1.DownloadPortalInvoiceResponse_builder{Invoice: invoiceProto(v)}
 	if ready {
-		out.Pdf = commonv1.Document_builder{ContentType: new("application/pdf")}.Build()
-		if !inv.XMLFile.IsZero() {
-			out.Xml = commonv1.Document_builder{ContentType: new("application/xml")}.Build()
+		if out.Pdf, out.Xml, err = documentPair(ctx, s.d.Files, p.OrganizationID, inv.File, inv.XMLFile); err != nil {
+			return nil, Error(ctx, err)
 		}
 	}
 	return out.Build(), nil
@@ -482,11 +482,12 @@ func (s *Portal) TopUpPortalWallet(ctx context.Context, req *portalv1.TopUpPorta
 // CustomerPortal::Analytics::OverdueBalancesResolver): the customer's
 // overdue balance in its currency, every month since the organization's
 // creation.
-func (s *Portal) GetPortalOverdueBalance(ctx context.Context, _ *portalv1.GetPortalOverdueBalanceRequest) (*portalv1.GetPortalOverdueBalanceResponse, error) {
+func (s *Portal) GetPortalOverdueBalance(ctx context.Context, req *portalv1.GetPortalOverdueBalanceRequest) (*portalv1.GetPortalOverdueBalanceResponse, error) {
 	p, f, err := s.analyticsFilter(ctx)
 	if err != nil {
 		return nil, err
 	}
+	f.ExpireCache = req.GetExpireCache()
 	rows, err := s.d.Analytics.OverdueBalance(ctx, p.OrganizationID, f)
 	if err != nil {
 		return nil, Error(ctx, err)
@@ -512,11 +513,12 @@ func (s *Portal) GetPortalOverdueBalance(ctx context.Context, _ *portalv1.GetPor
 // CustomerPortal::Analytics::InvoiceCollectionsResolver): the customer's
 // finalized invoices in its currency, every month since the
 // organization's creation.
-func (s *Portal) GetPortalInvoiceCollection(ctx context.Context, _ *portalv1.GetPortalInvoiceCollectionRequest) (*portalv1.GetPortalInvoiceCollectionResponse, error) {
+func (s *Portal) GetPortalInvoiceCollection(ctx context.Context, req *portalv1.GetPortalInvoiceCollectionRequest) (*portalv1.GetPortalInvoiceCollectionResponse, error) {
 	p, f, err := s.analyticsFilter(ctx)
 	if err != nil {
 		return nil, err
 	}
+	f.ExpireCache = req.GetExpireCache()
 	rows, err := s.d.Analytics.InvoiceCollection(ctx, p.OrganizationID, f)
 	if err != nil {
 		return nil, Error(ctx, err)

@@ -32,9 +32,10 @@ import (
 // credit-note refunds sent through refunds (nil leaves them pending). No
 // tax provider is wired: customers taxed by a provider wait for it.
 func newBilling(cfg config.Config, tx port.Transactor, stores *EventStores, clock core.Clock, log *slog.Logger, refunds kernel.RefundGateway,
-	emitter port.WebhookEmitter, taxes kernel.TaxProvider,
+	emitter port.WebhookEmitter, taxes kernel.TaxProvider, streams port.StreamProducer,
 ) (*billing.Engine, error) {
 	e, err := billing.New(kernel.Deps{
+		Streaming:        streams,
 		Refunds:          refunds,
 		Taxes:            taxes,
 		Tx:               tx,
@@ -183,9 +184,6 @@ func (b billingJobs) register(reg *jobs.Registry) error {
 			return err
 		}
 	}
-	if err := b.registerPending(reg); err != nil {
-		return err
-	}
 	for _, d := range billingSchedule() {
 		if err := jobs.Register(reg, jobs.Kind{Name: d.clock}, jobs.HandlerFunc[struct{}](func(ctx context.Context, j *jobs.Job[struct{}]) error {
 			n, err := b.dispatch(ctx, d, b.tick(j.ScheduledAt))
@@ -194,22 +192,6 @@ func (b billingJobs) register(reg *jobs.Registry) error {
 			}
 			b.log.InfoContext(ctx, "billing: dispatched", "kind", d.kind, "organizations", n)
 			return nil
-		})); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// registerPending registers the kinds billing enqueues for libraries not
-// wired yet, so that the transactions enqueueing them commit:
-// documents.generate_invoice, documents.generate_credit_note and
-// documents.generate_payment_receipt are cancelled, kept in River for a
-// manual retry once libs/documents is wired to the store and a blob store.
-func (b billingJobs) registerPending(reg *jobs.Registry) error {
-	for _, k := range []string{kernel.JobGenerateInvoiceDocument, kernel.JobGenerateCreditNoteDocument, kernel.JobGeneratePaymentReceiptDocument} {
-		if err := jobs.Register(reg, jobs.Kind{Name: k}, jobs.HandlerFunc[json.RawMessage](func(context.Context, *jobs.Job[json.RawMessage]) error {
-			return jobs.Permanent(fmt.Errorf("%s: documents are not wired: %w", k, core.ErrNotAllowed))
 		})); err != nil {
 			return err
 		}

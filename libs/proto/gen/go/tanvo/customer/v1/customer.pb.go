@@ -284,6 +284,191 @@ func (x CrmTargetedObject) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
+// CustomerErrorCode is the kind of an error recorded on a customer.
+type CustomerErrorCode int32
+
+const (
+	// Not set.
+	CustomerErrorCode_CUSTOMER_ERROR_CODE_UNSPECIFIED CustomerErrorCode = 0
+	// The tax provider could not resolve the customer's address while its
+	// wallets' ongoing balances were refreshed; they are no longer refreshed
+	// until the address changes.
+	CustomerErrorCode_CUSTOMER_ERROR_CODE_TAX_ERROR CustomerErrorCode = 1
+)
+
+// Enum value maps for CustomerErrorCode.
+var (
+	CustomerErrorCode_name = map[int32]string{
+		0: "CUSTOMER_ERROR_CODE_UNSPECIFIED",
+		1: "CUSTOMER_ERROR_CODE_TAX_ERROR",
+	}
+	CustomerErrorCode_value = map[string]int32{
+		"CUSTOMER_ERROR_CODE_UNSPECIFIED": 0,
+		"CUSTOMER_ERROR_CODE_TAX_ERROR":   1,
+	}
+)
+
+func (x CustomerErrorCode) Enum() *CustomerErrorCode {
+	p := new(CustomerErrorCode)
+	*p = x
+	return p
+}
+
+func (x CustomerErrorCode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (CustomerErrorCode) Descriptor() protoreflect.EnumDescriptor {
+	return file_tanvo_customer_v1_customer_proto_enumTypes[5].Descriptor()
+}
+
+func (CustomerErrorCode) Type() protoreflect.EnumType {
+	return &file_tanvo_customer_v1_customer_proto_enumTypes[5]
+}
+
+func (x CustomerErrorCode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// CustomerError is an error recorded on a customer.
+type CustomerError struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Code        CustomerErrorCode      `protobuf:"varint,1,opt,name=code,enum=tanvo.customer.v1.CustomerErrorCode"`
+	xxx_hidden_Message     *string                `protobuf:"bytes,2,opt,name=message"`
+	xxx_hidden_CreatedAt   *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=created_at,json=createdAt"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *CustomerError) Reset() {
+	*x = CustomerError{}
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CustomerError) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CustomerError) ProtoMessage() {}
+
+func (x *CustomerError) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CustomerError) GetCode() CustomerErrorCode {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 0) {
+			return x.xxx_hidden_Code
+		}
+	}
+	return CustomerErrorCode_CUSTOMER_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *CustomerError) GetMessage() string {
+	if x != nil {
+		if x.xxx_hidden_Message != nil {
+			return *x.xxx_hidden_Message
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CustomerError) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_CreatedAt
+	}
+	return nil
+}
+
+func (x *CustomerError) SetCode(v CustomerErrorCode) {
+	x.xxx_hidden_Code = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+}
+
+func (x *CustomerError) SetMessage(v string) {
+	x.xxx_hidden_Message = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *CustomerError) SetCreatedAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_CreatedAt = v
+}
+
+func (x *CustomerError) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CustomerError) HasMessage() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *CustomerError) HasCreatedAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_CreatedAt != nil
+}
+
+func (x *CustomerError) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Code = CustomerErrorCode_CUSTOMER_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *CustomerError) ClearMessage() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Message = nil
+}
+
+func (x *CustomerError) ClearCreatedAt() {
+	x.xxx_hidden_CreatedAt = nil
+}
+
+type CustomerError_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The kind of error.
+	Code *CustomerErrorCode
+	// The provider's details, as JSON.
+	Message *string
+	// When it happened.
+	CreatedAt *timestamppb.Timestamp
+}
+
+func (b0 CustomerError_builder) Build() *CustomerError {
+	m0 := &CustomerError{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Code != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		x.xxx_hidden_Code = *b.Code
+	}
+	if b.Message != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		x.xxx_hidden_Message = b.Message
+	}
+	x.xxx_hidden_CreatedAt = b.CreatedAt
+	return m0
+}
+
 // Customer is a party that is billed.
 type Customer struct {
 	state                                 protoimpl.MessageState   `protogen:"opaque.v1"`
@@ -327,6 +512,7 @@ type Customer struct {
 	xxx_hidden_DeletedAt                  *timestamppb.Timestamp   `protobuf:"bytes,38,opt,name=deleted_at,json=deletedAt"`
 	xxx_hidden_CreatedAt                  *timestamppb.Timestamp   `protobuf:"bytes,39,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt                  *timestamppb.Timestamp   `protobuf:"bytes,40,opt,name=updated_at,json=updatedAt"`
+	xxx_hidden_Errors                     *[]*CustomerError        `protobuf:"bytes,41,rep,name=errors"`
 	XXX_raceDetectHookData                protoimpl.RaceDetectHookData
 	XXX_presence                          [2]uint32
 	unknownFields                         protoimpl.UnknownFields
@@ -335,7 +521,7 @@ type Customer struct {
 
 func (x *Customer) Reset() {
 	*x = Customer{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[0]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -347,7 +533,7 @@ func (x *Customer) String() string {
 func (*Customer) ProtoMessage() {}
 
 func (x *Customer) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[0]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -714,79 +900,88 @@ func (x *Customer) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *Customer) GetErrors() []*CustomerError {
+	if x != nil {
+		if x.xxx_hidden_Errors != nil {
+			return *x.xxx_hidden_Errors
+		}
+	}
+	return nil
+}
+
 func (x *Customer) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 41)
 }
 
 func (x *Customer) SetExternalId(v string) {
 	x.xxx_hidden_ExternalId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 41)
 }
 
 func (x *Customer) SetBillingEntityId(v string) {
 	x.xxx_hidden_BillingEntityId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 41)
 }
 
 func (x *Customer) SetCustomerType(v CustomerType) {
 	x.xxx_hidden_CustomerType = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 41)
 }
 
 func (x *Customer) SetAccountType(v AccountType) {
 	x.xxx_hidden_AccountType = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 41)
 }
 
 func (x *Customer) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 41)
 }
 
 func (x *Customer) SetFirstname(v string) {
 	x.xxx_hidden_Firstname = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 41)
 }
 
 func (x *Customer) SetLastname(v string) {
 	x.xxx_hidden_Lastname = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 41)
 }
 
 func (x *Customer) SetLegalName(v string) {
 	x.xxx_hidden_LegalName = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 41)
 }
 
 func (x *Customer) SetLegalNumber(v string) {
 	x.xxx_hidden_LegalNumber = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 41)
 }
 
 func (x *Customer) SetTaxIdentificationNumber(v string) {
 	x.xxx_hidden_TaxIdentificationNumber = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 41)
 }
 
 func (x *Customer) SetEmail(v string) {
 	x.xxx_hidden_Email = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 41)
 }
 
 func (x *Customer) SetPhone(v string) {
 	x.xxx_hidden_Phone = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 41)
 }
 
 func (x *Customer) SetUrl(v string) {
 	x.xxx_hidden_Url = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 41)
 }
 
 func (x *Customer) SetLogoUrl(v string) {
 	x.xxx_hidden_LogoUrl = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 41)
 }
 
 func (x *Customer) SetBillingAddress(v *v1.Address) {
@@ -799,52 +994,52 @@ func (x *Customer) SetShippingAddress(v *v1.Address) {
 
 func (x *Customer) SetCurrency(v string) {
 	x.xxx_hidden_Currency = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 41)
 }
 
 func (x *Customer) SetTimezone(v string) {
 	x.xxx_hidden_Timezone = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 41)
 }
 
 func (x *Customer) SetApplicableTimezone(v string) {
 	x.xxx_hidden_ApplicableTimezone = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 41)
 }
 
 func (x *Customer) SetDocumentLocale(v string) {
 	x.xxx_hidden_DocumentLocale = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 20, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 20, 41)
 }
 
 func (x *Customer) SetInvoiceGracePeriodDays(v int32) {
 	x.xxx_hidden_InvoiceGracePeriodDays = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 21, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 21, 41)
 }
 
 func (x *Customer) SetNetPaymentTermDays(v int32) {
 	x.xxx_hidden_NetPaymentTermDays = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 22, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 22, 41)
 }
 
 func (x *Customer) SetFinalizeZeroAmountInvoice(v ZeroAmountFinalization) {
 	x.xxx_hidden_FinalizeZeroAmountInvoice = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 23, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 23, 41)
 }
 
 func (x *Customer) SetIssuingDateAnchor(v v1.IssuingDateAnchor) {
 	x.xxx_hidden_IssuingDateAnchor = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 24, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 24, 41)
 }
 
 func (x *Customer) SetIssuingDateAdjustment(v v1.IssuingDateAdjustment) {
 	x.xxx_hidden_IssuingDateAdjustment = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 25, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 25, 41)
 }
 
 func (x *Customer) SetSkipInvoiceCustomSections(v bool) {
 	x.xxx_hidden_SkipInvoiceCustomSections = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 26, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 26, 41)
 }
 
 func (x *Customer) SetInvoiceCustomSectionIds(v []string) {
@@ -853,12 +1048,12 @@ func (x *Customer) SetInvoiceCustomSectionIds(v []string) {
 
 func (x *Customer) SetAppliedDunningCampaignId(v string) {
 	x.xxx_hidden_AppliedDunningCampaignId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 28, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 28, 41)
 }
 
 func (x *Customer) SetExcludeFromDunningCampaign(v bool) {
 	x.xxx_hidden_ExcludeFromDunningCampaign = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 29, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 29, 41)
 }
 
 func (x *Customer) SetTaxIds(v []string) {
@@ -871,7 +1066,7 @@ func (x *Customer) SetMetadata(v []*v1.MetadataItem) {
 
 func (x *Customer) SetPaymentMethodType(v v1.PaymentMethodType) {
 	x.xxx_hidden_PaymentMethodType = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 32, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 32, 41)
 }
 
 func (x *Customer) SetConnections(v []*CustomerConnection) {
@@ -880,17 +1075,17 @@ func (x *Customer) SetConnections(v []*CustomerConnection) {
 
 func (x *Customer) SetX402AgentAddress(v string) {
 	x.xxx_hidden_X402AgentAddress = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 34, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 34, 41)
 }
 
 func (x *Customer) SetSequentialId(v int64) {
 	x.xxx_hidden_SequentialId = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 35, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 35, 41)
 }
 
 func (x *Customer) SetSlug(v string) {
 	x.xxx_hidden_Slug = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 36, 40)
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 36, 41)
 }
 
 func (x *Customer) SetDeletedAt(v *timestamppb.Timestamp) {
@@ -903,6 +1098,10 @@ func (x *Customer) SetCreatedAt(v *timestamppb.Timestamp) {
 
 func (x *Customer) SetUpdatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_UpdatedAt = v
+}
+
+func (x *Customer) SetErrors(v []*CustomerError) {
+	x.xxx_hidden_Errors = &v
 }
 
 func (x *Customer) HasId() bool {
@@ -1423,6 +1622,8 @@ type Customer_builder struct {
 	CreatedAt *timestamppb.Timestamp
 	// When the customer last changed.
 	UpdatedAt *timestamppb.Timestamp
+	// The errors recorded on the customer.
+	Errors []*CustomerError
 }
 
 func (b0 Customer_builder) Build() *Customer {
@@ -1430,138 +1631,139 @@ func (b0 Customer_builder) Build() *Customer {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 41)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.ExternalId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 41)
 		x.xxx_hidden_ExternalId = b.ExternalId
 	}
 	if b.BillingEntityId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 41)
 		x.xxx_hidden_BillingEntityId = b.BillingEntityId
 	}
 	if b.CustomerType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 41)
 		x.xxx_hidden_CustomerType = *b.CustomerType
 	}
 	if b.AccountType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 41)
 		x.xxx_hidden_AccountType = *b.AccountType
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 41)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Firstname != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 41)
 		x.xxx_hidden_Firstname = b.Firstname
 	}
 	if b.Lastname != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 41)
 		x.xxx_hidden_Lastname = b.Lastname
 	}
 	if b.LegalName != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 41)
 		x.xxx_hidden_LegalName = b.LegalName
 	}
 	if b.LegalNumber != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 41)
 		x.xxx_hidden_LegalNumber = b.LegalNumber
 	}
 	if b.TaxIdentificationNumber != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 41)
 		x.xxx_hidden_TaxIdentificationNumber = b.TaxIdentificationNumber
 	}
 	if b.Email != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 41)
 		x.xxx_hidden_Email = b.Email
 	}
 	if b.Phone != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 41)
 		x.xxx_hidden_Phone = b.Phone
 	}
 	if b.Url != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 41)
 		x.xxx_hidden_Url = b.Url
 	}
 	if b.LogoUrl != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 41)
 		x.xxx_hidden_LogoUrl = b.LogoUrl
 	}
 	x.xxx_hidden_BillingAddress = b.BillingAddress
 	x.xxx_hidden_ShippingAddress = b.ShippingAddress
 	if b.Currency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 41)
 		x.xxx_hidden_Currency = b.Currency
 	}
 	if b.Timezone != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 41)
 		x.xxx_hidden_Timezone = b.Timezone
 	}
 	if b.ApplicableTimezone != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 41)
 		x.xxx_hidden_ApplicableTimezone = b.ApplicableTimezone
 	}
 	if b.DocumentLocale != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 20, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 20, 41)
 		x.xxx_hidden_DocumentLocale = b.DocumentLocale
 	}
 	if b.InvoiceGracePeriodDays != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 21, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 21, 41)
 		x.xxx_hidden_InvoiceGracePeriodDays = *b.InvoiceGracePeriodDays
 	}
 	if b.NetPaymentTermDays != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 22, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 22, 41)
 		x.xxx_hidden_NetPaymentTermDays = *b.NetPaymentTermDays
 	}
 	if b.FinalizeZeroAmountInvoice != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 23, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 23, 41)
 		x.xxx_hidden_FinalizeZeroAmountInvoice = *b.FinalizeZeroAmountInvoice
 	}
 	if b.IssuingDateAnchor != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 24, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 24, 41)
 		x.xxx_hidden_IssuingDateAnchor = *b.IssuingDateAnchor
 	}
 	if b.IssuingDateAdjustment != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 25, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 25, 41)
 		x.xxx_hidden_IssuingDateAdjustment = *b.IssuingDateAdjustment
 	}
 	if b.SkipInvoiceCustomSections != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 26, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 26, 41)
 		x.xxx_hidden_SkipInvoiceCustomSections = *b.SkipInvoiceCustomSections
 	}
 	x.xxx_hidden_InvoiceCustomSectionIds = b.InvoiceCustomSectionIds
 	if b.AppliedDunningCampaignId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 28, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 28, 41)
 		x.xxx_hidden_AppliedDunningCampaignId = b.AppliedDunningCampaignId
 	}
 	if b.ExcludeFromDunningCampaign != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 29, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 29, 41)
 		x.xxx_hidden_ExcludeFromDunningCampaign = *b.ExcludeFromDunningCampaign
 	}
 	x.xxx_hidden_TaxIds = b.TaxIds
 	x.xxx_hidden_Metadata = &b.Metadata
 	if b.PaymentMethodType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 32, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 32, 41)
 		x.xxx_hidden_PaymentMethodType = *b.PaymentMethodType
 	}
 	x.xxx_hidden_Connections = &b.Connections
 	if b.X402AgentAddress != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 34, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 34, 41)
 		x.xxx_hidden_X402AgentAddress = b.X402AgentAddress
 	}
 	if b.SequentialId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 35, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 35, 41)
 		x.xxx_hidden_SequentialId = *b.SequentialId
 	}
 	if b.Slug != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 36, 40)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 36, 41)
 		x.xxx_hidden_Slug = b.Slug
 	}
 	x.xxx_hidden_DeletedAt = b.DeletedAt
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
+	x.xxx_hidden_Errors = &b.Errors
 	return m0
 }
 
@@ -1588,7 +1790,7 @@ type CustomerConnection struct {
 
 func (x *CustomerConnection) Reset() {
 	*x = CustomerConnection{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[1]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1600,7 +1802,7 @@ func (x *CustomerConnection) String() string {
 func (*CustomerConnection) ProtoMessage() {}
 
 func (x *CustomerConnection) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[1]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1989,7 +2191,7 @@ type CreateCustomerRequest struct {
 
 func (x *CreateCustomerRequest) Reset() {
 	*x = CreateCustomerRequest{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[2]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2001,7 +2203,7 @@ func (x *CreateCustomerRequest) String() string {
 func (*CreateCustomerRequest) ProtoMessage() {}
 
 func (x *CreateCustomerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[2]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2059,7 +2261,7 @@ type CreateCustomerResponse struct {
 
 func (x *CreateCustomerResponse) Reset() {
 	*x = CreateCustomerResponse{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[3]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2071,7 +2273,7 @@ func (x *CreateCustomerResponse) String() string {
 func (*CreateCustomerResponse) ProtoMessage() {}
 
 func (x *CreateCustomerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[3]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2131,7 +2333,7 @@ type GetCustomerRequest struct {
 
 func (x *GetCustomerRequest) Reset() {
 	*x = GetCustomerRequest{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[4]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2143,7 +2345,7 @@ func (x *GetCustomerRequest) String() string {
 func (*GetCustomerRequest) ProtoMessage() {}
 
 func (x *GetCustomerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[4]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2209,7 +2411,7 @@ type GetCustomerResponse struct {
 
 func (x *GetCustomerResponse) Reset() {
 	*x = GetCustomerResponse{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[5]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2221,7 +2423,7 @@ func (x *GetCustomerResponse) String() string {
 func (*GetCustomerResponse) ProtoMessage() {}
 
 func (x *GetCustomerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[5]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2285,7 +2487,7 @@ type ListCustomersRequest struct {
 
 func (x *ListCustomersRequest) Reset() {
 	*x = ListCustomersRequest{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[6]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2297,7 +2499,7 @@ func (x *ListCustomersRequest) String() string {
 func (*ListCustomersRequest) ProtoMessage() {}
 
 func (x *ListCustomersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[6]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2504,7 +2706,7 @@ type ListCustomersResponse struct {
 
 func (x *ListCustomersResponse) Reset() {
 	*x = ListCustomersResponse{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[7]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2516,7 +2718,7 @@ func (x *ListCustomersResponse) String() string {
 func (*ListCustomersResponse) ProtoMessage() {}
 
 func (x *ListCustomersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[7]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2602,7 +2804,7 @@ type UpdateCustomerRequest struct {
 
 func (x *UpdateCustomerRequest) Reset() {
 	*x = UpdateCustomerRequest{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[8]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2614,7 +2816,7 @@ func (x *UpdateCustomerRequest) String() string {
 func (*UpdateCustomerRequest) ProtoMessage() {}
 
 func (x *UpdateCustomerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[8]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2728,7 +2930,7 @@ type UpdateCustomerResponse struct {
 
 func (x *UpdateCustomerResponse) Reset() {
 	*x = UpdateCustomerResponse{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[9]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2740,7 +2942,7 @@ func (x *UpdateCustomerResponse) String() string {
 func (*UpdateCustomerResponse) ProtoMessage() {}
 
 func (x *UpdateCustomerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[9]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2800,7 +3002,7 @@ type DeleteCustomerRequest struct {
 
 func (x *DeleteCustomerRequest) Reset() {
 	*x = DeleteCustomerRequest{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[10]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2812,7 +3014,7 @@ func (x *DeleteCustomerRequest) String() string {
 func (*DeleteCustomerRequest) ProtoMessage() {}
 
 func (x *DeleteCustomerRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[10]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2878,7 +3080,7 @@ type DeleteCustomerResponse struct {
 
 func (x *DeleteCustomerResponse) Reset() {
 	*x = DeleteCustomerResponse{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[11]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2890,7 +3092,7 @@ func (x *DeleteCustomerResponse) String() string {
 func (*DeleteCustomerResponse) ProtoMessage() {}
 
 func (x *DeleteCustomerResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[11]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2951,7 +3153,7 @@ type GenerateCheckoutUrlRequest struct {
 
 func (x *GenerateCheckoutUrlRequest) Reset() {
 	*x = GenerateCheckoutUrlRequest{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[12]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2963,7 +3165,7 @@ func (x *GenerateCheckoutUrlRequest) String() string {
 func (*GenerateCheckoutUrlRequest) ProtoMessage() {}
 
 func (x *GenerateCheckoutUrlRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[12]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3066,7 +3268,7 @@ type GenerateCheckoutUrlResponse struct {
 
 func (x *GenerateCheckoutUrlResponse) Reset() {
 	*x = GenerateCheckoutUrlResponse{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[13]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3078,7 +3280,7 @@ func (x *GenerateCheckoutUrlResponse) String() string {
 func (*GenerateCheckoutUrlResponse) ProtoMessage() {}
 
 func (x *GenerateCheckoutUrlResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[13]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3171,7 +3373,7 @@ type GeneratePortalUrlRequest struct {
 
 func (x *GeneratePortalUrlRequest) Reset() {
 	*x = GeneratePortalUrlRequest{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[14]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3183,7 +3385,7 @@ func (x *GeneratePortalUrlRequest) String() string {
 func (*GeneratePortalUrlRequest) ProtoMessage() {}
 
 func (x *GeneratePortalUrlRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[14]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3252,7 +3454,7 @@ type GeneratePortalUrlResponse struct {
 
 func (x *GeneratePortalUrlResponse) Reset() {
 	*x = GeneratePortalUrlResponse{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[15]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3264,7 +3466,7 @@ func (x *GeneratePortalUrlResponse) String() string {
 func (*GeneratePortalUrlResponse) ProtoMessage() {}
 
 func (x *GeneratePortalUrlResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[15]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3357,7 +3559,7 @@ type ListCustomerConnectionsRequest struct {
 
 func (x *ListCustomerConnectionsRequest) Reset() {
 	*x = ListCustomerConnectionsRequest{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[16]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3369,7 +3571,7 @@ func (x *ListCustomerConnectionsRequest) String() string {
 func (*ListCustomerConnectionsRequest) ProtoMessage() {}
 
 func (x *ListCustomerConnectionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[16]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3435,7 +3637,7 @@ type ListCustomerConnectionsResponse struct {
 
 func (x *ListCustomerConnectionsResponse) Reset() {
 	*x = ListCustomerConnectionsResponse{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[17]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3447,7 +3649,7 @@ func (x *ListCustomerConnectionsResponse) String() string {
 func (*ListCustomerConnectionsResponse) ProtoMessage() {}
 
 func (x *ListCustomerConnectionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[17]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3499,7 +3701,7 @@ type UpsertCustomerConnectionRequest struct {
 
 func (x *UpsertCustomerConnectionRequest) Reset() {
 	*x = UpsertCustomerConnectionRequest{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[18]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3511,7 +3713,7 @@ func (x *UpsertCustomerConnectionRequest) String() string {
 func (*UpsertCustomerConnectionRequest) ProtoMessage() {}
 
 func (x *UpsertCustomerConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[18]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3602,7 +3804,7 @@ type UpsertCustomerConnectionResponse struct {
 
 func (x *UpsertCustomerConnectionResponse) Reset() {
 	*x = UpsertCustomerConnectionResponse{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[19]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3614,7 +3816,7 @@ func (x *UpsertCustomerConnectionResponse) String() string {
 func (*UpsertCustomerConnectionResponse) ProtoMessage() {}
 
 func (x *UpsertCustomerConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[19]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3676,7 +3878,7 @@ type DeleteCustomerConnectionRequest struct {
 
 func (x *DeleteCustomerConnectionRequest) Reset() {
 	*x = DeleteCustomerConnectionRequest{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[20]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3688,7 +3890,7 @@ func (x *DeleteCustomerConnectionRequest) String() string {
 func (*DeleteCustomerConnectionRequest) ProtoMessage() {}
 
 func (x *DeleteCustomerConnectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[20]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3786,7 +3988,7 @@ type DeleteCustomerConnectionResponse struct {
 
 func (x *DeleteCustomerConnectionResponse) Reset() {
 	*x = DeleteCustomerConnectionResponse{}
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[21]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3798,7 +4000,7 @@ func (x *DeleteCustomerConnectionResponse) String() string {
 func (*DeleteCustomerConnectionResponse) ProtoMessage() {}
 
 func (x *DeleteCustomerConnectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[21]
+	mi := &file_tanvo_customer_v1_customer_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3825,7 +4027,12 @@ var File_tanvo_customer_v1_customer_proto protoreflect.FileDescriptor
 
 const file_tanvo_customer_v1_customer_proto_rawDesc = "" +
 	"\n" +
-	" tanvo/customer/v1/customer.proto\x12\x11tanvo.customer.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\x84\x14\n" +
+	" tanvo/customer/v1/customer.proto\x12\x11tanvo.customer.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\x9e\x01\n" +
+	"\rCustomerError\x128\n" +
+	"\x04code\x18\x01 \x01(\x0e2$.tanvo.customer.v1.CustomerErrorCodeR\x04code\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x129\n" +
+	"\n" +
+	"created_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\xc4\x14\n" +
 	"\bCustomer\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12/\n" +
 	"\vexternal_id\x18\x02 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\n" +
@@ -3878,7 +4085,8 @@ const file_tanvo_customer_v1_customer_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18' \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
-	"updated_at\x18( \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt:B\xeaA?\n" +
+	"updated_at\x18( \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x12>\n" +
+	"\x06errors\x18) \x03(\v2 .tanvo.customer.v1.CustomerErrorB\x04\xe2A\x01\x03R\x06errors:B\xeaA?\n" +
 	"\x12tanvo.xyz/Customer\x12\x14customers/{customer}*\tcustomers2\bcustomer\"\xb2\x05\n" +
 	"\x12CustomerConnection\x125\n" +
 	"\x0eintegration_id\x18\x01 \x01(\tB\x0e\xe2A\x01\x02\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\rintegrationId\x12H\n" +
@@ -4003,7 +4211,10 @@ const file_tanvo_customer_v1_customer_proto_rawDesc = "" +
 	"\x11CrmTargetedObject\x12#\n" +
 	"\x1fCRM_TARGETED_OBJECT_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dCRM_TARGETED_OBJECT_COMPANIES\x10\x01\x12 \n" +
-	"\x1cCRM_TARGETED_OBJECT_CONTACTS\x10\x022\xbf\x0f\n" +
+	"\x1cCRM_TARGETED_OBJECT_CONTACTS\x10\x02*[\n" +
+	"\x11CustomerErrorCode\x12#\n" +
+	"\x1fCUSTOMER_ERROR_CODE_UNSPECIFIED\x10\x00\x12!\n" +
+	"\x1dCUSTOMER_ERROR_CODE_TAX_ERROR\x10\x012\xbf\x0f\n" +
 	"\x0fCustomerService\x12\xa6\x01\n" +
 	"\x0eCreateCustomer\x12(.tanvo.customer.v1.CreateCustomerRequest\x1a).tanvo.customer.v1.CreateCustomerResponse\"?\xca\xf3\x18\x1c\n" +
 	"\x10customers:create*\bcustomer\x82\xd3\xe4\x93\x02\x19:\bcustomer\"\r/v1/customers\x12\xa2\x01\n" +
@@ -4028,100 +4239,105 @@ const file_tanvo_customer_v1_customer_proto_rawDesc = "" +
 	"\x10customers:update*\bcustomer\x82\xd3\xe4\x93\x02:*8/v1/customers/{customer_id}/connections/{integration_id}B\xd6\x01\n" +
 	"\x15com.tanvo.customer.v1B\rCustomerProtoP\x01ZHgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/customer/v1;customerv1\xa2\x02\x03TCX\xaa\x02\x11Tanvo.Customer.V1\xca\x02\x11Tanvo\\Customer\\V1\xe2\x02\x1dTanvo\\Customer\\V1\\GPBMetadata\xea\x02\x13Tanvo::Customer::V1b\beditionsp\xe8\a"
 
-var file_tanvo_customer_v1_customer_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_tanvo_customer_v1_customer_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_tanvo_customer_v1_customer_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_tanvo_customer_v1_customer_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_tanvo_customer_v1_customer_proto_goTypes = []any{
 	(CustomerType)(0),                        // 0: tanvo.customer.v1.CustomerType
 	(AccountType)(0),                         // 1: tanvo.customer.v1.AccountType
 	(ZeroAmountFinalization)(0),              // 2: tanvo.customer.v1.ZeroAmountFinalization
 	(IntegrationCategory)(0),                 // 3: tanvo.customer.v1.IntegrationCategory
 	(CrmTargetedObject)(0),                   // 4: tanvo.customer.v1.CrmTargetedObject
-	(*Customer)(nil),                         // 5: tanvo.customer.v1.Customer
-	(*CustomerConnection)(nil),               // 6: tanvo.customer.v1.CustomerConnection
-	(*CreateCustomerRequest)(nil),            // 7: tanvo.customer.v1.CreateCustomerRequest
-	(*CreateCustomerResponse)(nil),           // 8: tanvo.customer.v1.CreateCustomerResponse
-	(*GetCustomerRequest)(nil),               // 9: tanvo.customer.v1.GetCustomerRequest
-	(*GetCustomerResponse)(nil),              // 10: tanvo.customer.v1.GetCustomerResponse
-	(*ListCustomersRequest)(nil),             // 11: tanvo.customer.v1.ListCustomersRequest
-	(*ListCustomersResponse)(nil),            // 12: tanvo.customer.v1.ListCustomersResponse
-	(*UpdateCustomerRequest)(nil),            // 13: tanvo.customer.v1.UpdateCustomerRequest
-	(*UpdateCustomerResponse)(nil),           // 14: tanvo.customer.v1.UpdateCustomerResponse
-	(*DeleteCustomerRequest)(nil),            // 15: tanvo.customer.v1.DeleteCustomerRequest
-	(*DeleteCustomerResponse)(nil),           // 16: tanvo.customer.v1.DeleteCustomerResponse
-	(*GenerateCheckoutUrlRequest)(nil),       // 17: tanvo.customer.v1.GenerateCheckoutUrlRequest
-	(*GenerateCheckoutUrlResponse)(nil),      // 18: tanvo.customer.v1.GenerateCheckoutUrlResponse
-	(*GeneratePortalUrlRequest)(nil),         // 19: tanvo.customer.v1.GeneratePortalUrlRequest
-	(*GeneratePortalUrlResponse)(nil),        // 20: tanvo.customer.v1.GeneratePortalUrlResponse
-	(*ListCustomerConnectionsRequest)(nil),   // 21: tanvo.customer.v1.ListCustomerConnectionsRequest
-	(*ListCustomerConnectionsResponse)(nil),  // 22: tanvo.customer.v1.ListCustomerConnectionsResponse
-	(*UpsertCustomerConnectionRequest)(nil),  // 23: tanvo.customer.v1.UpsertCustomerConnectionRequest
-	(*UpsertCustomerConnectionResponse)(nil), // 24: tanvo.customer.v1.UpsertCustomerConnectionResponse
-	(*DeleteCustomerConnectionRequest)(nil),  // 25: tanvo.customer.v1.DeleteCustomerConnectionRequest
-	(*DeleteCustomerConnectionResponse)(nil), // 26: tanvo.customer.v1.DeleteCustomerConnectionResponse
-	(*v1.Address)(nil),                       // 27: tanvo.common.v1.Address
-	(v1.IssuingDateAnchor)(0),                // 28: tanvo.common.v1.IssuingDateAnchor
-	(v1.IssuingDateAdjustment)(0),            // 29: tanvo.common.v1.IssuingDateAdjustment
-	(*v1.MetadataItem)(nil),                  // 30: tanvo.common.v1.MetadataItem
-	(v1.PaymentMethodType)(0),                // 31: tanvo.common.v1.PaymentMethodType
-	(*timestamppb.Timestamp)(nil),            // 32: google.protobuf.Timestamp
-	(*fieldmaskpb.FieldMask)(nil),            // 33: google.protobuf.FieldMask
+	(CustomerErrorCode)(0),                   // 5: tanvo.customer.v1.CustomerErrorCode
+	(*CustomerError)(nil),                    // 6: tanvo.customer.v1.CustomerError
+	(*Customer)(nil),                         // 7: tanvo.customer.v1.Customer
+	(*CustomerConnection)(nil),               // 8: tanvo.customer.v1.CustomerConnection
+	(*CreateCustomerRequest)(nil),            // 9: tanvo.customer.v1.CreateCustomerRequest
+	(*CreateCustomerResponse)(nil),           // 10: tanvo.customer.v1.CreateCustomerResponse
+	(*GetCustomerRequest)(nil),               // 11: tanvo.customer.v1.GetCustomerRequest
+	(*GetCustomerResponse)(nil),              // 12: tanvo.customer.v1.GetCustomerResponse
+	(*ListCustomersRequest)(nil),             // 13: tanvo.customer.v1.ListCustomersRequest
+	(*ListCustomersResponse)(nil),            // 14: tanvo.customer.v1.ListCustomersResponse
+	(*UpdateCustomerRequest)(nil),            // 15: tanvo.customer.v1.UpdateCustomerRequest
+	(*UpdateCustomerResponse)(nil),           // 16: tanvo.customer.v1.UpdateCustomerResponse
+	(*DeleteCustomerRequest)(nil),            // 17: tanvo.customer.v1.DeleteCustomerRequest
+	(*DeleteCustomerResponse)(nil),           // 18: tanvo.customer.v1.DeleteCustomerResponse
+	(*GenerateCheckoutUrlRequest)(nil),       // 19: tanvo.customer.v1.GenerateCheckoutUrlRequest
+	(*GenerateCheckoutUrlResponse)(nil),      // 20: tanvo.customer.v1.GenerateCheckoutUrlResponse
+	(*GeneratePortalUrlRequest)(nil),         // 21: tanvo.customer.v1.GeneratePortalUrlRequest
+	(*GeneratePortalUrlResponse)(nil),        // 22: tanvo.customer.v1.GeneratePortalUrlResponse
+	(*ListCustomerConnectionsRequest)(nil),   // 23: tanvo.customer.v1.ListCustomerConnectionsRequest
+	(*ListCustomerConnectionsResponse)(nil),  // 24: tanvo.customer.v1.ListCustomerConnectionsResponse
+	(*UpsertCustomerConnectionRequest)(nil),  // 25: tanvo.customer.v1.UpsertCustomerConnectionRequest
+	(*UpsertCustomerConnectionResponse)(nil), // 26: tanvo.customer.v1.UpsertCustomerConnectionResponse
+	(*DeleteCustomerConnectionRequest)(nil),  // 27: tanvo.customer.v1.DeleteCustomerConnectionRequest
+	(*DeleteCustomerConnectionResponse)(nil), // 28: tanvo.customer.v1.DeleteCustomerConnectionResponse
+	(*timestamppb.Timestamp)(nil),            // 29: google.protobuf.Timestamp
+	(*v1.Address)(nil),                       // 30: tanvo.common.v1.Address
+	(v1.IssuingDateAnchor)(0),                // 31: tanvo.common.v1.IssuingDateAnchor
+	(v1.IssuingDateAdjustment)(0),            // 32: tanvo.common.v1.IssuingDateAdjustment
+	(*v1.MetadataItem)(nil),                  // 33: tanvo.common.v1.MetadataItem
+	(v1.PaymentMethodType)(0),                // 34: tanvo.common.v1.PaymentMethodType
+	(*fieldmaskpb.FieldMask)(nil),            // 35: google.protobuf.FieldMask
 }
 var file_tanvo_customer_v1_customer_proto_depIdxs = []int32{
-	0,  // 0: tanvo.customer.v1.Customer.customer_type:type_name -> tanvo.customer.v1.CustomerType
-	1,  // 1: tanvo.customer.v1.Customer.account_type:type_name -> tanvo.customer.v1.AccountType
-	27, // 2: tanvo.customer.v1.Customer.billing_address:type_name -> tanvo.common.v1.Address
-	27, // 3: tanvo.customer.v1.Customer.shipping_address:type_name -> tanvo.common.v1.Address
-	2,  // 4: tanvo.customer.v1.Customer.finalize_zero_amount_invoice:type_name -> tanvo.customer.v1.ZeroAmountFinalization
-	28, // 5: tanvo.customer.v1.Customer.issuing_date_anchor:type_name -> tanvo.common.v1.IssuingDateAnchor
-	29, // 6: tanvo.customer.v1.Customer.issuing_date_adjustment:type_name -> tanvo.common.v1.IssuingDateAdjustment
-	30, // 7: tanvo.customer.v1.Customer.metadata:type_name -> tanvo.common.v1.MetadataItem
-	31, // 8: tanvo.customer.v1.Customer.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
-	6,  // 9: tanvo.customer.v1.Customer.connections:type_name -> tanvo.customer.v1.CustomerConnection
-	32, // 10: tanvo.customer.v1.Customer.deleted_at:type_name -> google.protobuf.Timestamp
-	32, // 11: tanvo.customer.v1.Customer.created_at:type_name -> google.protobuf.Timestamp
-	32, // 12: tanvo.customer.v1.Customer.updated_at:type_name -> google.protobuf.Timestamp
-	3,  // 13: tanvo.customer.v1.CustomerConnection.category:type_name -> tanvo.customer.v1.IntegrationCategory
-	32, // 14: tanvo.customer.v1.CustomerConnection.created_at:type_name -> google.protobuf.Timestamp
-	32, // 15: tanvo.customer.v1.CustomerConnection.updated_at:type_name -> google.protobuf.Timestamp
-	4,  // 16: tanvo.customer.v1.CustomerConnection.targeted_object:type_name -> tanvo.customer.v1.CrmTargetedObject
-	5,  // 17: tanvo.customer.v1.CreateCustomerRequest.customer:type_name -> tanvo.customer.v1.Customer
-	5,  // 18: tanvo.customer.v1.CreateCustomerResponse.customer:type_name -> tanvo.customer.v1.Customer
-	5,  // 19: tanvo.customer.v1.GetCustomerResponse.customer:type_name -> tanvo.customer.v1.Customer
-	5,  // 20: tanvo.customer.v1.ListCustomersResponse.customers:type_name -> tanvo.customer.v1.Customer
-	5,  // 21: tanvo.customer.v1.UpdateCustomerRequest.customer:type_name -> tanvo.customer.v1.Customer
-	33, // 22: tanvo.customer.v1.UpdateCustomerRequest.update_mask:type_name -> google.protobuf.FieldMask
-	5,  // 23: tanvo.customer.v1.UpdateCustomerResponse.customer:type_name -> tanvo.customer.v1.Customer
-	5,  // 24: tanvo.customer.v1.DeleteCustomerResponse.customer:type_name -> tanvo.customer.v1.Customer
-	32, // 25: tanvo.customer.v1.GenerateCheckoutUrlResponse.expires_at:type_name -> google.protobuf.Timestamp
-	32, // 26: tanvo.customer.v1.GeneratePortalUrlResponse.expires_at:type_name -> google.protobuf.Timestamp
-	6,  // 27: tanvo.customer.v1.ListCustomerConnectionsResponse.connections:type_name -> tanvo.customer.v1.CustomerConnection
-	6,  // 28: tanvo.customer.v1.UpsertCustomerConnectionRequest.connection:type_name -> tanvo.customer.v1.CustomerConnection
-	6,  // 29: tanvo.customer.v1.UpsertCustomerConnectionResponse.connection:type_name -> tanvo.customer.v1.CustomerConnection
-	7,  // 30: tanvo.customer.v1.CustomerService.CreateCustomer:input_type -> tanvo.customer.v1.CreateCustomerRequest
-	9,  // 31: tanvo.customer.v1.CustomerService.GetCustomer:input_type -> tanvo.customer.v1.GetCustomerRequest
-	11, // 32: tanvo.customer.v1.CustomerService.ListCustomers:input_type -> tanvo.customer.v1.ListCustomersRequest
-	13, // 33: tanvo.customer.v1.CustomerService.UpdateCustomer:input_type -> tanvo.customer.v1.UpdateCustomerRequest
-	15, // 34: tanvo.customer.v1.CustomerService.DeleteCustomer:input_type -> tanvo.customer.v1.DeleteCustomerRequest
-	17, // 35: tanvo.customer.v1.CustomerService.GenerateCheckoutUrl:input_type -> tanvo.customer.v1.GenerateCheckoutUrlRequest
-	19, // 36: tanvo.customer.v1.CustomerService.GeneratePortalUrl:input_type -> tanvo.customer.v1.GeneratePortalUrlRequest
-	21, // 37: tanvo.customer.v1.CustomerService.ListCustomerConnections:input_type -> tanvo.customer.v1.ListCustomerConnectionsRequest
-	23, // 38: tanvo.customer.v1.CustomerService.UpsertCustomerConnection:input_type -> tanvo.customer.v1.UpsertCustomerConnectionRequest
-	25, // 39: tanvo.customer.v1.CustomerService.DeleteCustomerConnection:input_type -> tanvo.customer.v1.DeleteCustomerConnectionRequest
-	8,  // 40: tanvo.customer.v1.CustomerService.CreateCustomer:output_type -> tanvo.customer.v1.CreateCustomerResponse
-	10, // 41: tanvo.customer.v1.CustomerService.GetCustomer:output_type -> tanvo.customer.v1.GetCustomerResponse
-	12, // 42: tanvo.customer.v1.CustomerService.ListCustomers:output_type -> tanvo.customer.v1.ListCustomersResponse
-	14, // 43: tanvo.customer.v1.CustomerService.UpdateCustomer:output_type -> tanvo.customer.v1.UpdateCustomerResponse
-	16, // 44: tanvo.customer.v1.CustomerService.DeleteCustomer:output_type -> tanvo.customer.v1.DeleteCustomerResponse
-	18, // 45: tanvo.customer.v1.CustomerService.GenerateCheckoutUrl:output_type -> tanvo.customer.v1.GenerateCheckoutUrlResponse
-	20, // 46: tanvo.customer.v1.CustomerService.GeneratePortalUrl:output_type -> tanvo.customer.v1.GeneratePortalUrlResponse
-	22, // 47: tanvo.customer.v1.CustomerService.ListCustomerConnections:output_type -> tanvo.customer.v1.ListCustomerConnectionsResponse
-	24, // 48: tanvo.customer.v1.CustomerService.UpsertCustomerConnection:output_type -> tanvo.customer.v1.UpsertCustomerConnectionResponse
-	26, // 49: tanvo.customer.v1.CustomerService.DeleteCustomerConnection:output_type -> tanvo.customer.v1.DeleteCustomerConnectionResponse
-	40, // [40:50] is the sub-list for method output_type
-	30, // [30:40] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	5,  // 0: tanvo.customer.v1.CustomerError.code:type_name -> tanvo.customer.v1.CustomerErrorCode
+	29, // 1: tanvo.customer.v1.CustomerError.created_at:type_name -> google.protobuf.Timestamp
+	0,  // 2: tanvo.customer.v1.Customer.customer_type:type_name -> tanvo.customer.v1.CustomerType
+	1,  // 3: tanvo.customer.v1.Customer.account_type:type_name -> tanvo.customer.v1.AccountType
+	30, // 4: tanvo.customer.v1.Customer.billing_address:type_name -> tanvo.common.v1.Address
+	30, // 5: tanvo.customer.v1.Customer.shipping_address:type_name -> tanvo.common.v1.Address
+	2,  // 6: tanvo.customer.v1.Customer.finalize_zero_amount_invoice:type_name -> tanvo.customer.v1.ZeroAmountFinalization
+	31, // 7: tanvo.customer.v1.Customer.issuing_date_anchor:type_name -> tanvo.common.v1.IssuingDateAnchor
+	32, // 8: tanvo.customer.v1.Customer.issuing_date_adjustment:type_name -> tanvo.common.v1.IssuingDateAdjustment
+	33, // 9: tanvo.customer.v1.Customer.metadata:type_name -> tanvo.common.v1.MetadataItem
+	34, // 10: tanvo.customer.v1.Customer.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
+	8,  // 11: tanvo.customer.v1.Customer.connections:type_name -> tanvo.customer.v1.CustomerConnection
+	29, // 12: tanvo.customer.v1.Customer.deleted_at:type_name -> google.protobuf.Timestamp
+	29, // 13: tanvo.customer.v1.Customer.created_at:type_name -> google.protobuf.Timestamp
+	29, // 14: tanvo.customer.v1.Customer.updated_at:type_name -> google.protobuf.Timestamp
+	6,  // 15: tanvo.customer.v1.Customer.errors:type_name -> tanvo.customer.v1.CustomerError
+	3,  // 16: tanvo.customer.v1.CustomerConnection.category:type_name -> tanvo.customer.v1.IntegrationCategory
+	29, // 17: tanvo.customer.v1.CustomerConnection.created_at:type_name -> google.protobuf.Timestamp
+	29, // 18: tanvo.customer.v1.CustomerConnection.updated_at:type_name -> google.protobuf.Timestamp
+	4,  // 19: tanvo.customer.v1.CustomerConnection.targeted_object:type_name -> tanvo.customer.v1.CrmTargetedObject
+	7,  // 20: tanvo.customer.v1.CreateCustomerRequest.customer:type_name -> tanvo.customer.v1.Customer
+	7,  // 21: tanvo.customer.v1.CreateCustomerResponse.customer:type_name -> tanvo.customer.v1.Customer
+	7,  // 22: tanvo.customer.v1.GetCustomerResponse.customer:type_name -> tanvo.customer.v1.Customer
+	7,  // 23: tanvo.customer.v1.ListCustomersResponse.customers:type_name -> tanvo.customer.v1.Customer
+	7,  // 24: tanvo.customer.v1.UpdateCustomerRequest.customer:type_name -> tanvo.customer.v1.Customer
+	35, // 25: tanvo.customer.v1.UpdateCustomerRequest.update_mask:type_name -> google.protobuf.FieldMask
+	7,  // 26: tanvo.customer.v1.UpdateCustomerResponse.customer:type_name -> tanvo.customer.v1.Customer
+	7,  // 27: tanvo.customer.v1.DeleteCustomerResponse.customer:type_name -> tanvo.customer.v1.Customer
+	29, // 28: tanvo.customer.v1.GenerateCheckoutUrlResponse.expires_at:type_name -> google.protobuf.Timestamp
+	29, // 29: tanvo.customer.v1.GeneratePortalUrlResponse.expires_at:type_name -> google.protobuf.Timestamp
+	8,  // 30: tanvo.customer.v1.ListCustomerConnectionsResponse.connections:type_name -> tanvo.customer.v1.CustomerConnection
+	8,  // 31: tanvo.customer.v1.UpsertCustomerConnectionRequest.connection:type_name -> tanvo.customer.v1.CustomerConnection
+	8,  // 32: tanvo.customer.v1.UpsertCustomerConnectionResponse.connection:type_name -> tanvo.customer.v1.CustomerConnection
+	9,  // 33: tanvo.customer.v1.CustomerService.CreateCustomer:input_type -> tanvo.customer.v1.CreateCustomerRequest
+	11, // 34: tanvo.customer.v1.CustomerService.GetCustomer:input_type -> tanvo.customer.v1.GetCustomerRequest
+	13, // 35: tanvo.customer.v1.CustomerService.ListCustomers:input_type -> tanvo.customer.v1.ListCustomersRequest
+	15, // 36: tanvo.customer.v1.CustomerService.UpdateCustomer:input_type -> tanvo.customer.v1.UpdateCustomerRequest
+	17, // 37: tanvo.customer.v1.CustomerService.DeleteCustomer:input_type -> tanvo.customer.v1.DeleteCustomerRequest
+	19, // 38: tanvo.customer.v1.CustomerService.GenerateCheckoutUrl:input_type -> tanvo.customer.v1.GenerateCheckoutUrlRequest
+	21, // 39: tanvo.customer.v1.CustomerService.GeneratePortalUrl:input_type -> tanvo.customer.v1.GeneratePortalUrlRequest
+	23, // 40: tanvo.customer.v1.CustomerService.ListCustomerConnections:input_type -> tanvo.customer.v1.ListCustomerConnectionsRequest
+	25, // 41: tanvo.customer.v1.CustomerService.UpsertCustomerConnection:input_type -> tanvo.customer.v1.UpsertCustomerConnectionRequest
+	27, // 42: tanvo.customer.v1.CustomerService.DeleteCustomerConnection:input_type -> tanvo.customer.v1.DeleteCustomerConnectionRequest
+	10, // 43: tanvo.customer.v1.CustomerService.CreateCustomer:output_type -> tanvo.customer.v1.CreateCustomerResponse
+	12, // 44: tanvo.customer.v1.CustomerService.GetCustomer:output_type -> tanvo.customer.v1.GetCustomerResponse
+	14, // 45: tanvo.customer.v1.CustomerService.ListCustomers:output_type -> tanvo.customer.v1.ListCustomersResponse
+	16, // 46: tanvo.customer.v1.CustomerService.UpdateCustomer:output_type -> tanvo.customer.v1.UpdateCustomerResponse
+	18, // 47: tanvo.customer.v1.CustomerService.DeleteCustomer:output_type -> tanvo.customer.v1.DeleteCustomerResponse
+	20, // 48: tanvo.customer.v1.CustomerService.GenerateCheckoutUrl:output_type -> tanvo.customer.v1.GenerateCheckoutUrlResponse
+	22, // 49: tanvo.customer.v1.CustomerService.GeneratePortalUrl:output_type -> tanvo.customer.v1.GeneratePortalUrlResponse
+	24, // 50: tanvo.customer.v1.CustomerService.ListCustomerConnections:output_type -> tanvo.customer.v1.ListCustomerConnectionsResponse
+	26, // 51: tanvo.customer.v1.CustomerService.UpsertCustomerConnection:output_type -> tanvo.customer.v1.UpsertCustomerConnectionResponse
+	28, // 52: tanvo.customer.v1.CustomerService.DeleteCustomerConnection:output_type -> tanvo.customer.v1.DeleteCustomerConnectionResponse
+	43, // [43:53] is the sub-list for method output_type
+	33, // [33:43] is the sub-list for method input_type
+	33, // [33:33] is the sub-list for extension type_name
+	33, // [33:33] is the sub-list for extension extendee
+	0,  // [0:33] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_customer_v1_customer_proto_init() }
@@ -4134,8 +4350,8 @@ func file_tanvo_customer_v1_customer_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_customer_v1_customer_proto_rawDesc), len(file_tanvo_customer_v1_customer_proto_rawDesc)),
-			NumEnums:      5,
-			NumMessages:   22,
+			NumEnums:      6,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

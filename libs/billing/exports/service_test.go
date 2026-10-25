@@ -18,12 +18,14 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/billingtest"
 	"github.com/tanvoxyz/tanvo/libs/billing/exports"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/access"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/export"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
+	"github.com/tanvoxyz/tanvo/libs/core/permission"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
 	"github.com/tanvoxyz/tanvo/libs/money"
@@ -343,10 +345,41 @@ func TestProcessAndCombine(t *testing.T) {
 	if u, _ := e.svc.FileURL(e.Ctx, done); u != "https://files.test/"+string(done.File) {
 		t.Errorf("url got = %q", u)
 	}
+	// source: spec/services/data_exports/combine_parts_service_spec.rb:42
+	if got := jobs(e, exports.JobSendCompletedEmail); len(got) != 1 {
+		t.Errorf("email jobs got = %d, want = 1", len(got))
+	}
 
 	noBlobs := exports.New(e.Deps, nil, exports.Filters{})
 	if _, err := noBlobs.CombineParts(e.Ctx, e.OrgID(), x.ID); !errors.Is(err, exports.ErrNoBlobStore) {
 		t.Errorf("without blob store got = %v, want = %v", err, exports.ErrNoBlobStore)
+	}
+}
+
+// TestCompletedEmail covers the data of the completed export email.
+//
+// source: app/mailers/data_export_mailer.rb:4-20
+func TestCompletedEmail(t *testing.T) {
+	e := newEnv(t, exports.Filters{})
+	u := access.NewUser(core.NewID[core.UserID](e.IDs), "admin@org.test", nil, e.Now())
+	m := access.NewMembership(e.member, e.OrgID(), u.ID, []core.RoleID{access.BuiltInRoleID(permission.BuiltInRoleAdmin)}, e.Now())
+	e.Do(func(ctx context.Context, r port.Repos) error {
+		if err := r.Users.Create(ctx, u); err != nil {
+			return err
+		}
+		return r.Memberships.Create(ctx, m)
+	})
+	file := core.BlobRef("data_exports/x.csv")
+	x := e.create(export.ResourceInvoices, func(x *export.DataExport) { x.Status, x.File = export.StatusCompleted, file })
+	got, err := e.svc.CompletedEmail(e.Ctx, e.OrgID(), x.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got == nil || got.UserEmail != "admin@org.test" || got.Export.ID != x.ID || got.FileURL != "https://files.test/"+string(file) {
+		t.Errorf("email got = %+v, want = admin@org.test with the file link", got)
+	}
+	if got, err := e.svc.CompletedEmail(e.Ctx, e.OrgID(), core.NewID[core.DataExportID](e.IDs)); err != nil || got != nil {
+		t.Errorf("gone export got = %+v %v, want = nil", got, err)
 	}
 }
 

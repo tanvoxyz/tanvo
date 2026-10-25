@@ -34,6 +34,11 @@ type DocumentEmail struct {
 	// Resend marks a manual resend, which ignores the email settings
 	// (lago's Emails::ResendService).
 	Resend bool
+	// SettingChecked tells that the caller applied the email setting when
+	// it decided to send the email, so it is not checked again: lago's
+	// mailers do not check it (the notify flag of the documents jobs and
+	// CreditNotes::CreateService#deliver_email do).
+	SettingChecked bool
 }
 
 // envelope applies the rules of lago's document mailers: the email
@@ -45,7 +50,7 @@ func (c *Composer) envelope(k Kind, setting organization.EmailSetting, d Documen
 	if be == nil {
 		return nil, fmt.Errorf("%s email: missing billing entity", k)
 	}
-	if setting != "" && !d.Resend && !be.SendsEmail(setting) {
+	if setting != "" && !d.Resend && !d.SettingChecked && !be.SendsEmail(setting) {
 		return nil, skip(k, ReasonEmailSettingDisabled)
 	}
 	beEmail := ""

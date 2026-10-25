@@ -162,10 +162,20 @@ func (r *Renderer) CreditNotePDF(ctx context.Context, d *CreditNote, locale stri
 	return r.compile(ctx, l, &d.Party, xml, "INVOICE")
 }
 
-// PaymentReceiptPDF renders a payment receipt.
+// PaymentReceiptPDF renders a payment receipt, with its CII XML attached
+// when the billing entity issues e-invoices (lago
+// payment_receipts/generate_pdf_service.rb:38, 55-63).
 func (r *Renderer) PaymentReceiptPDF(ctx context.Context, d *PaymentReceipt, locale string) ([]byte, error) {
 	w := newWriter(r.cat, &d.Party, locale, d.Payment.Currency)
-	return r.compile(ctx, w.receiptLayout(d), &d.Party, nil, "")
+	l := w.receiptLayout(d)
+	var xml []byte
+	if einvoice.Eligible(&d.BillingEntity) {
+		var err error
+		if xml, err = r.PaymentReceiptXML(d, locale, CII); err != nil {
+			return nil, fmt.Errorf("documents: payment receipt %s: %w", d.Receipt.ID, err)
+		}
+	}
+	return r.compile(ctx, l, &d.Party, xml, "INVOICE")
 }
 
 // PaymentRequestPDF renders a payment request.

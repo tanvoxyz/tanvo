@@ -24,7 +24,7 @@ import (
 // Invoices serves tanvo.invoice.v1.InvoiceService over the billing
 // library's invoicing service (lago Api::V1::InvoicesController and the
 // invoice mutations), with the payments service for updates.
-// ResendInvoice stays unimplemented: no mailer is wired. RetryInvoiceSync
+// ResendInvoice needs the documents ([Invoices.WithFiles]). RetryInvoiceSync
 // and SetInvoiceSalesforceId need the integrations service
 // ([Invoices.WithIntegrations]).
 type Invoices struct {
@@ -35,6 +35,16 @@ type Invoices struct {
 	// integ syncs the invoices with the integrations; nil leaves the sync
 	// RPCs Unimplemented.
 	integ *integrations.Service
+	// docs links and resends the documents; nil leaves the links empty
+	// and ResendInvoice Unimplemented.
+	docs DocumentFiles
+}
+
+// WithFiles returns s linking and resending documents with docs.
+func (s *Invoices) WithFiles(docs DocumentFiles) *Invoices {
+	c := *s
+	c.docs = docs
+	return &c
 }
 
 var _ invoicev1connect.InvoiceServiceHandler = (*Invoices)(nil)
@@ -494,8 +504,8 @@ func (s *Invoices) LoseInvoiceDispute(ctx context.Context, req *invoicev1.LoseIn
 // DownloadInvoice implements InvoiceService.DownloadInvoice: when the
 // finalized invoice has no PDF yet its rendering is queued and the
 // response is empty, to be called again (lago download_pdf's head :ok). A
-// rendered document is returned with its media type; its signed URL needs
-// a blob store, which is not wired.
+// rendered document is returned with its media type and its permanent
+// link (lago file_url).
 func (s *Invoices) DownloadInvoice(ctx context.Context, req *invoicev1.DownloadInvoiceRequest) (*invoicev1.DownloadInvoiceResponse, error) {
 	p, id, err := s.target(ctx, req.GetInvoiceId())
 	if err != nil {
@@ -507,12 +517,29 @@ func (s *Invoices) DownloadInvoice(ctx context.Context, req *invoicev1.DownloadI
 	}
 	out := invoicev1.DownloadInvoiceResponse_builder{}
 	if ready {
-		out.Pdf = commonv1.Document_builder{ContentType: new("application/pdf")}.Build()
-		if !inv.XMLFile.IsZero() {
-			out.Xml = commonv1.Document_builder{ContentType: new("application/xml")}.Build()
+		if out.Pdf, out.Xml, err = documentPair(ctx, s.docs, p.OrganizationID, inv.File, inv.XMLFile); err != nil {
+			return nil, Error(ctx, err)
 		}
 	}
 	return out.Build(), nil
+}
+
+// ResendInvoice implements InvoiceService.ResendInvoice (lago
+// Api::V1::InvoicesController#resend_email and Emails::ResendService): the
+// finalized, visible invoice is emailed again to the custom recipients or
+// the customer.
+func (s *Invoices) ResendInvoice(ctx context.Context, req *invoicev1.ResendInvoiceRequest) (*invoicev1.ResendInvoiceResponse, error) {
+	if s.docs == nil {
+		return nil, connect.NewError(connect.CodeUnimplemented, "document emails are not available")
+	}
+	p, id, err := s.target(ctx, req.GetInvoiceId())
+	if err != nil {
+		return nil, err
+	}
+	if err := s.docs.ResendInvoice(ctx, p.OrganizationID, id, Recipients{To: req.GetTo(), Cc: req.GetCc(), Bcc: req.GetBcc()}); err != nil {
+		return nil, Error(ctx, err)
+	}
+	return invoicev1.ResendInvoiceResponse_builder{}.Build(), nil
 }
 
 // GenerateInvoicePaymentUrl implements

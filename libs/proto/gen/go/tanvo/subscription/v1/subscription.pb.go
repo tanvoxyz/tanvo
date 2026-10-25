@@ -2448,10 +2448,11 @@ func (b0 LifetimeUsage_builder) Build() *LifetimeUsage {
 
 // CreateSubscriptionRequest is the request of SubscriptionService.CreateSubscription.
 type CreateSubscriptionRequest struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Subscription *Subscription          `protobuf:"bytes,1,opt,name=subscription"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                    protoimpl.MessageState     `protogen:"opaque.v1"`
+	xxx_hidden_Subscription  *Subscription              `protobuf:"bytes,1,opt,name=subscription"`
+	xxx_hidden_Authorization *PaymentAuthorizationInput `protobuf:"bytes,2,opt,name=authorization"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *CreateSubscriptionRequest) Reset() {
@@ -2486,8 +2487,19 @@ func (x *CreateSubscriptionRequest) GetSubscription() *Subscription {
 	return nil
 }
 
+func (x *CreateSubscriptionRequest) GetAuthorization() *PaymentAuthorizationInput {
+	if x != nil {
+		return x.xxx_hidden_Authorization
+	}
+	return nil
+}
+
 func (x *CreateSubscriptionRequest) SetSubscription(v *Subscription) {
 	x.xxx_hidden_Subscription = v
+}
+
+func (x *CreateSubscriptionRequest) SetAuthorization(v *PaymentAuthorizationInput) {
+	x.xxx_hidden_Authorization = v
 }
 
 func (x *CreateSubscriptionRequest) HasSubscription() bool {
@@ -2497,8 +2509,19 @@ func (x *CreateSubscriptionRequest) HasSubscription() bool {
 	return x.xxx_hidden_Subscription != nil
 }
 
+func (x *CreateSubscriptionRequest) HasAuthorization() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Authorization != nil
+}
+
 func (x *CreateSubscriptionRequest) ClearSubscription() {
 	x.xxx_hidden_Subscription = nil
+}
+
+func (x *CreateSubscriptionRequest) ClearAuthorization() {
+	x.xxx_hidden_Authorization = nil
 }
 
 type CreateSubscriptionRequest_builder struct {
@@ -2506,6 +2529,12 @@ type CreateSubscriptionRequest_builder struct {
 
 	// The subscription to create.
 	Subscription *Subscription
+	// A pre-authorization of the customer's Stripe payment method placed
+	// before the subscription is created: the hold checks that the method
+	// can pay and is released at once. A refusal fails the request and no
+	// subscription is created. The method is subscription.payment_method_id,
+	// else the customer's default.
+	Authorization *PaymentAuthorizationInput
 }
 
 func (b0 CreateSubscriptionRequest_builder) Build() *CreateSubscriptionRequest {
@@ -2513,20 +2542,92 @@ func (b0 CreateSubscriptionRequest_builder) Build() *CreateSubscriptionRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Subscription = b.Subscription
+	x.xxx_hidden_Authorization = b.Authorization
+	return m0
+}
+
+// PaymentAuthorizationInput is the amount a pre-authorization holds.
+type PaymentAuthorizationInput struct {
+	state             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Amount *v1.Money              `protobuf:"bytes,1,opt,name=amount"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *PaymentAuthorizationInput) Reset() {
+	*x = PaymentAuthorizationInput{}
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PaymentAuthorizationInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PaymentAuthorizationInput) ProtoMessage() {}
+
+func (x *PaymentAuthorizationInput) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *PaymentAuthorizationInput) GetAmount() *v1.Money {
+	if x != nil {
+		return x.xxx_hidden_Amount
+	}
+	return nil
+}
+
+func (x *PaymentAuthorizationInput) SetAmount(v *v1.Money) {
+	x.xxx_hidden_Amount = v
+}
+
+func (x *PaymentAuthorizationInput) HasAmount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Amount != nil
+}
+
+func (x *PaymentAuthorizationInput) ClearAmount() {
+	x.xxx_hidden_Amount = nil
+}
+
+type PaymentAuthorizationInput_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The amount to hold.
+	Amount *v1.Money
+}
+
+func (b0 PaymentAuthorizationInput_builder) Build() *PaymentAuthorizationInput {
+	m0 := &PaymentAuthorizationInput{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Amount = b.Amount
 	return m0
 }
 
 // CreateSubscriptionResponse is the response of SubscriptionService.CreateSubscription.
 type CreateSubscriptionResponse struct {
-	state                   protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_Subscription *Subscription          `protobuf:"bytes,1,opt,name=subscription"`
-	unknownFields           protoimpl.UnknownFields
-	sizeCache               protoimpl.SizeCache
+	state                    protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Subscription  *Subscription          `protobuf:"bytes,1,opt,name=subscription"`
+	xxx_hidden_Authorization *PaymentAuthorization  `protobuf:"bytes,2,opt,name=authorization"`
+	unknownFields            protoimpl.UnknownFields
+	sizeCache                protoimpl.SizeCache
 }
 
 func (x *CreateSubscriptionResponse) Reset() {
 	*x = CreateSubscriptionResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[6]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2538,7 +2639,7 @@ func (x *CreateSubscriptionResponse) String() string {
 func (*CreateSubscriptionResponse) ProtoMessage() {}
 
 func (x *CreateSubscriptionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[6]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2556,8 +2657,19 @@ func (x *CreateSubscriptionResponse) GetSubscription() *Subscription {
 	return nil
 }
 
+func (x *CreateSubscriptionResponse) GetAuthorization() *PaymentAuthorization {
+	if x != nil {
+		return x.xxx_hidden_Authorization
+	}
+	return nil
+}
+
 func (x *CreateSubscriptionResponse) SetSubscription(v *Subscription) {
 	x.xxx_hidden_Subscription = v
+}
+
+func (x *CreateSubscriptionResponse) SetAuthorization(v *PaymentAuthorization) {
+	x.xxx_hidden_Authorization = v
 }
 
 func (x *CreateSubscriptionResponse) HasSubscription() bool {
@@ -2567,8 +2679,19 @@ func (x *CreateSubscriptionResponse) HasSubscription() bool {
 	return x.xxx_hidden_Subscription != nil
 }
 
+func (x *CreateSubscriptionResponse) HasAuthorization() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Authorization != nil
+}
+
 func (x *CreateSubscriptionResponse) ClearSubscription() {
 	x.xxx_hidden_Subscription = nil
+}
+
+func (x *CreateSubscriptionResponse) ClearAuthorization() {
+	x.xxx_hidden_Authorization = nil
 }
 
 type CreateSubscriptionResponse_builder struct {
@@ -2576,6 +2699,8 @@ type CreateSubscriptionResponse_builder struct {
 
 	// The created subscription.
 	Subscription *Subscription
+	// The pre-authorization placed, when the request asked for one.
+	Authorization *PaymentAuthorization
 }
 
 func (b0 CreateSubscriptionResponse_builder) Build() *CreateSubscriptionResponse {
@@ -2583,6 +2708,174 @@ func (b0 CreateSubscriptionResponse_builder) Build() *CreateSubscriptionResponse
 	b, x := &b0, m0
 	_, _ = b, x
 	x.xxx_hidden_Subscription = b.Subscription
+	x.xxx_hidden_Authorization = b.Authorization
+	return m0
+}
+
+// PaymentAuthorization is a hold placed on a payment method at the
+// provider.
+type PaymentAuthorization struct {
+	state                       protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Id               *string                `protobuf:"bytes,1,opt,name=id"`
+	xxx_hidden_Amount           *v1.Money              `protobuf:"bytes,2,opt,name=amount"`
+	xxx_hidden_AmountCapturable *v1.Money              `protobuf:"bytes,3,opt,name=amount_capturable,json=amountCapturable"`
+	xxx_hidden_Status           *string                `protobuf:"bytes,4,opt,name=status"`
+	XXX_raceDetectHookData      protoimpl.RaceDetectHookData
+	XXX_presence                [1]uint32
+	unknownFields               protoimpl.UnknownFields
+	sizeCache                   protoimpl.SizeCache
+}
+
+func (x *PaymentAuthorization) Reset() {
+	*x = PaymentAuthorization{}
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PaymentAuthorization) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PaymentAuthorization) ProtoMessage() {}
+
+func (x *PaymentAuthorization) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *PaymentAuthorization) GetId() string {
+	if x != nil {
+		if x.xxx_hidden_Id != nil {
+			return *x.xxx_hidden_Id
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PaymentAuthorization) GetAmount() *v1.Money {
+	if x != nil {
+		return x.xxx_hidden_Amount
+	}
+	return nil
+}
+
+func (x *PaymentAuthorization) GetAmountCapturable() *v1.Money {
+	if x != nil {
+		return x.xxx_hidden_AmountCapturable
+	}
+	return nil
+}
+
+func (x *PaymentAuthorization) GetStatus() string {
+	if x != nil {
+		if x.xxx_hidden_Status != nil {
+			return *x.xxx_hidden_Status
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *PaymentAuthorization) SetId(v string) {
+	x.xxx_hidden_Id = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
+}
+
+func (x *PaymentAuthorization) SetAmount(v *v1.Money) {
+	x.xxx_hidden_Amount = v
+}
+
+func (x *PaymentAuthorization) SetAmountCapturable(v *v1.Money) {
+	x.xxx_hidden_AmountCapturable = v
+}
+
+func (x *PaymentAuthorization) SetStatus(v string) {
+	x.xxx_hidden_Status = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
+}
+
+func (x *PaymentAuthorization) HasId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *PaymentAuthorization) HasAmount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_Amount != nil
+}
+
+func (x *PaymentAuthorization) HasAmountCapturable() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_AmountCapturable != nil
+}
+
+func (x *PaymentAuthorization) HasStatus() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
+func (x *PaymentAuthorization) ClearId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Id = nil
+}
+
+func (x *PaymentAuthorization) ClearAmount() {
+	x.xxx_hidden_Amount = nil
+}
+
+func (x *PaymentAuthorization) ClearAmountCapturable() {
+	x.xxx_hidden_AmountCapturable = nil
+}
+
+func (x *PaymentAuthorization) ClearStatus() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_Status = nil
+}
+
+type PaymentAuthorization_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The provider's payment ID (a Stripe PaymentIntent).
+	Id *string
+	// The amount authorized.
+	Amount *v1.Money
+	// The amount held, capturable until released.
+	AmountCapturable *v1.Money
+	// The provider's status (`requires_capture` once held).
+	Status *string
+}
+
+func (b0 PaymentAuthorization_builder) Build() *PaymentAuthorization {
+	m0 := &PaymentAuthorization{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Id != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
+		x.xxx_hidden_Id = b.Id
+	}
+	x.xxx_hidden_Amount = b.Amount
+	x.xxx_hidden_AmountCapturable = b.AmountCapturable
+	if b.Status != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_Status = b.Status
+	}
 	return m0
 }
 
@@ -2598,7 +2891,7 @@ type GetSubscriptionRequest struct {
 
 func (x *GetSubscriptionRequest) Reset() {
 	*x = GetSubscriptionRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[7]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2610,7 +2903,7 @@ func (x *GetSubscriptionRequest) String() string {
 func (*GetSubscriptionRequest) ProtoMessage() {}
 
 func (x *GetSubscriptionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[7]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2676,7 +2969,7 @@ type GetSubscriptionResponse struct {
 
 func (x *GetSubscriptionResponse) Reset() {
 	*x = GetSubscriptionResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[8]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2688,7 +2981,7 @@ func (x *GetSubscriptionResponse) String() string {
 func (*GetSubscriptionResponse) ProtoMessage() {}
 
 func (x *GetSubscriptionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[8]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2752,7 +3045,7 @@ type ListSubscriptionsRequest struct {
 
 func (x *ListSubscriptionsRequest) Reset() {
 	*x = ListSubscriptionsRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[9]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2764,7 +3057,7 @@ func (x *ListSubscriptionsRequest) String() string {
 func (*ListSubscriptionsRequest) ProtoMessage() {}
 
 func (x *ListSubscriptionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[9]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2963,7 +3256,7 @@ type ListSubscriptionsResponse struct {
 
 func (x *ListSubscriptionsResponse) Reset() {
 	*x = ListSubscriptionsResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[10]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2975,7 +3268,7 @@ func (x *ListSubscriptionsResponse) String() string {
 func (*ListSubscriptionsResponse) ProtoMessage() {}
 
 func (x *ListSubscriptionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[10]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3058,7 +3351,7 @@ type UpdateSubscriptionRequest struct {
 
 func (x *UpdateSubscriptionRequest) Reset() {
 	*x = UpdateSubscriptionRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[11]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3070,7 +3363,7 @@ func (x *UpdateSubscriptionRequest) String() string {
 func (*UpdateSubscriptionRequest) ProtoMessage() {}
 
 func (x *UpdateSubscriptionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[11]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3154,7 +3447,7 @@ type UpdateSubscriptionResponse struct {
 
 func (x *UpdateSubscriptionResponse) Reset() {
 	*x = UpdateSubscriptionResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[12]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3166,7 +3459,7 @@ func (x *UpdateSubscriptionResponse) String() string {
 func (*UpdateSubscriptionResponse) ProtoMessage() {}
 
 func (x *UpdateSubscriptionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[12]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3230,7 +3523,7 @@ type ChangeSubscriptionPlanRequest struct {
 
 func (x *ChangeSubscriptionPlanRequest) Reset() {
 	*x = ChangeSubscriptionPlanRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[13]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3242,7 +3535,7 @@ func (x *ChangeSubscriptionPlanRequest) String() string {
 func (*ChangeSubscriptionPlanRequest) ProtoMessage() {}
 
 func (x *ChangeSubscriptionPlanRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[13]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3415,7 +3708,7 @@ type ChangeSubscriptionPlanResponse struct {
 
 func (x *ChangeSubscriptionPlanResponse) Reset() {
 	*x = ChangeSubscriptionPlanResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[14]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3427,7 +3720,7 @@ func (x *ChangeSubscriptionPlanResponse) String() string {
 func (*ChangeSubscriptionPlanResponse) ProtoMessage() {}
 
 func (x *ChangeSubscriptionPlanResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[14]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3516,7 +3809,7 @@ type TerminateSubscriptionRequest struct {
 
 func (x *TerminateSubscriptionRequest) Reset() {
 	*x = TerminateSubscriptionRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[15]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3528,7 +3821,7 @@ func (x *TerminateSubscriptionRequest) String() string {
 func (*TerminateSubscriptionRequest) ProtoMessage() {}
 
 func (x *TerminateSubscriptionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[15]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3660,7 +3953,7 @@ type TerminateSubscriptionResponse struct {
 
 func (x *TerminateSubscriptionResponse) Reset() {
 	*x = TerminateSubscriptionResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[16]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3672,7 +3965,7 @@ func (x *TerminateSubscriptionResponse) String() string {
 func (*TerminateSubscriptionResponse) ProtoMessage() {}
 
 func (x *TerminateSubscriptionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[16]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3732,7 +4025,7 @@ type CancelSubscriptionRequest struct {
 
 func (x *CancelSubscriptionRequest) Reset() {
 	*x = CancelSubscriptionRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[17]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3744,7 +4037,7 @@ func (x *CancelSubscriptionRequest) String() string {
 func (*CancelSubscriptionRequest) ProtoMessage() {}
 
 func (x *CancelSubscriptionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[17]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3810,7 +4103,7 @@ type CancelSubscriptionResponse struct {
 
 func (x *CancelSubscriptionResponse) Reset() {
 	*x = CancelSubscriptionResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[18]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3822,7 +4115,7 @@ func (x *CancelSubscriptionResponse) String() string {
 func (*CancelSubscriptionResponse) ProtoMessage() {}
 
 func (x *CancelSubscriptionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[18]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3883,7 +4176,7 @@ type GetLifetimeUsageRequest struct {
 
 func (x *GetLifetimeUsageRequest) Reset() {
 	*x = GetLifetimeUsageRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[19]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3895,7 +4188,7 @@ func (x *GetLifetimeUsageRequest) String() string {
 func (*GetLifetimeUsageRequest) ProtoMessage() {}
 
 func (x *GetLifetimeUsageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[19]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3992,7 +4285,7 @@ type GetLifetimeUsageResponse struct {
 
 func (x *GetLifetimeUsageResponse) Reset() {
 	*x = GetLifetimeUsageResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[20]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4004,7 +4297,7 @@ func (x *GetLifetimeUsageResponse) String() string {
 func (*GetLifetimeUsageResponse) ProtoMessage() {}
 
 func (x *GetLifetimeUsageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[20]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4079,7 +4372,7 @@ type UpdateLifetimeUsageRequest struct {
 
 func (x *UpdateLifetimeUsageRequest) Reset() {
 	*x = UpdateLifetimeUsageRequest{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[21]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4091,7 +4384,7 @@ func (x *UpdateLifetimeUsageRequest) String() string {
 func (*UpdateLifetimeUsageRequest) ProtoMessage() {}
 
 func (x *UpdateLifetimeUsageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[21]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4190,7 +4483,7 @@ type UpdateLifetimeUsageResponse struct {
 
 func (x *UpdateLifetimeUsageResponse) Reset() {
 	*x = UpdateLifetimeUsageResponse{}
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[22]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4202,7 +4495,7 @@ func (x *UpdateLifetimeUsageResponse) String() string {
 func (*UpdateLifetimeUsageResponse) ProtoMessage() {}
 
 func (x *UpdateLifetimeUsageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[22]
+	mi := &file_tanvo_subscription_v1_subscription_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4340,13 +4633,23 @@ const file_tanvo_subscription_v1_subscription_proto_rawDesc = "" +
 	"\x15invoiced_usage_amount\x18\x04 \x01(\v2\x16.tanvo.common.v1.MoneyR\x13invoicedUsageAmount\x12H\n" +
 	"\x14current_usage_amount\x18\x05 \x01(\v2\x16.tanvo.common.v1.MoneyR\x12currentUsageAmount\x12X\n" +
 	"\x10usage_thresholds\x18\x06 \x03(\v2-.tanvo.subscription.v1.UsageThresholdProgressR\x0fusageThresholds\x12=\n" +
-	"\frefreshed_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\vrefreshedAt\"\xb0\x02\n" +
+	"\frefreshed_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\vrefreshedAt\"\x8e\x03\n" +
 	"\x19CreateSubscriptionRequest\x12S\n" +
 	"\fsubscription\x18\x01 \x01(\v2#.tanvo.subscription.v1.SubscriptionB\n" +
-	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\fsubscription:\xbd\x01\xbaH\xb9\x01\x1a\xb6\x01\n" +
-	"\x15subscription.required\x121external_id, customer_id and plan_id are required\x1ajhas(this.subscription.external_id) && has(this.subscription.customer_id) && has(this.subscription.plan_id)\"e\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\fsubscription\x12\\\n" +
+	"\rauthorization\x18\x02 \x01(\v20.tanvo.subscription.v1.PaymentAuthorizationInputB\x04\xe2A\x01\x04R\rauthorization:\xbd\x01\xbaH\xb9\x01\x1a\xb6\x01\n" +
+	"\x15subscription.required\x121external_id, customer_id and plan_id are required\x1ajhas(this.subscription.external_id) && has(this.subscription.customer_id) && has(this.subscription.plan_id)\"W\n" +
+	"\x19PaymentAuthorizationInput\x12:\n" +
+	"\x06amount\x18\x01 \x01(\v2\x16.tanvo.common.v1.MoneyB\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x06amount\"\xb8\x01\n" +
 	"\x1aCreateSubscriptionResponse\x12G\n" +
-	"\fsubscription\x18\x01 \x01(\v2#.tanvo.subscription.v1.SubscriptionR\fsubscription\"T\n" +
+	"\fsubscription\x18\x01 \x01(\v2#.tanvo.subscription.v1.SubscriptionR\fsubscription\x12Q\n" +
+	"\rauthorization\x18\x02 \x01(\v2+.tanvo.subscription.v1.PaymentAuthorizationR\rauthorization\"\xb3\x01\n" +
+	"\x14PaymentAuthorization\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12.\n" +
+	"\x06amount\x18\x02 \x01(\v2\x16.tanvo.common.v1.MoneyR\x06amount\x12C\n" +
+	"\x11amount_capturable\x18\x03 \x01(\v2\x16.tanvo.common.v1.MoneyR\x10amountCapturable\x12\x16\n" +
+	"\x06status\x18\x04 \x01(\tR\x06status\"T\n" +
 	"\x16GetSubscriptionRequest\x12:\n" +
 	"\x0fsubscription_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x0esubscriptionId\"b\n" +
@@ -4476,7 +4779,7 @@ const file_tanvo_subscription_v1_subscription_proto_rawDesc = "" +
 	"\x19com.tanvo.subscription.v1B\x11SubscriptionProtoP\x01ZPgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/subscription/v1;subscriptionv1\xa2\x02\x03TSX\xaa\x02\x15Tanvo.Subscription.V1\xca\x02\x15Tanvo\\Subscription\\V1\xe2\x02!Tanvo\\Subscription\\V1\\GPBMetadata\xea\x02\x17Tanvo::Subscription::V1b\beditionsp\xe8\a"
 
 var file_tanvo_subscription_v1_subscription_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
-var file_tanvo_subscription_v1_subscription_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
+var file_tanvo_subscription_v1_subscription_proto_msgTypes = make([]protoimpl.MessageInfo, 28)
 var file_tanvo_subscription_v1_subscription_proto_goTypes = []any{
 	(SubscriptionStatus)(0),                // 0: tanvo.subscription.v1.SubscriptionStatus
 	(BillingTime)(0),                       // 1: tanvo.subscription.v1.BillingTime
@@ -4491,115 +4794,122 @@ var file_tanvo_subscription_v1_subscription_proto_goTypes = []any{
 	(*UsageThresholdProgress)(nil),         // 10: tanvo.subscription.v1.UsageThresholdProgress
 	(*LifetimeUsage)(nil),                  // 11: tanvo.subscription.v1.LifetimeUsage
 	(*CreateSubscriptionRequest)(nil),      // 12: tanvo.subscription.v1.CreateSubscriptionRequest
-	(*CreateSubscriptionResponse)(nil),     // 13: tanvo.subscription.v1.CreateSubscriptionResponse
-	(*GetSubscriptionRequest)(nil),         // 14: tanvo.subscription.v1.GetSubscriptionRequest
-	(*GetSubscriptionResponse)(nil),        // 15: tanvo.subscription.v1.GetSubscriptionResponse
-	(*ListSubscriptionsRequest)(nil),       // 16: tanvo.subscription.v1.ListSubscriptionsRequest
-	(*ListSubscriptionsResponse)(nil),      // 17: tanvo.subscription.v1.ListSubscriptionsResponse
-	(*UpdateSubscriptionRequest)(nil),      // 18: tanvo.subscription.v1.UpdateSubscriptionRequest
-	(*UpdateSubscriptionResponse)(nil),     // 19: tanvo.subscription.v1.UpdateSubscriptionResponse
-	(*ChangeSubscriptionPlanRequest)(nil),  // 20: tanvo.subscription.v1.ChangeSubscriptionPlanRequest
-	(*ChangeSubscriptionPlanResponse)(nil), // 21: tanvo.subscription.v1.ChangeSubscriptionPlanResponse
-	(*TerminateSubscriptionRequest)(nil),   // 22: tanvo.subscription.v1.TerminateSubscriptionRequest
-	(*TerminateSubscriptionResponse)(nil),  // 23: tanvo.subscription.v1.TerminateSubscriptionResponse
-	(*CancelSubscriptionRequest)(nil),      // 24: tanvo.subscription.v1.CancelSubscriptionRequest
-	(*CancelSubscriptionResponse)(nil),     // 25: tanvo.subscription.v1.CancelSubscriptionResponse
-	(*GetLifetimeUsageRequest)(nil),        // 26: tanvo.subscription.v1.GetLifetimeUsageRequest
-	(*GetLifetimeUsageResponse)(nil),       // 27: tanvo.subscription.v1.GetLifetimeUsageResponse
-	(*UpdateLifetimeUsageRequest)(nil),     // 28: tanvo.subscription.v1.UpdateLifetimeUsageRequest
-	(*UpdateLifetimeUsageResponse)(nil),    // 29: tanvo.subscription.v1.UpdateLifetimeUsageResponse
-	nil,                                    // 30: tanvo.subscription.v1.Subscription.ConnectionsEntry
-	nil,                                    // 31: tanvo.subscription.v1.ChangeSubscriptionPlanRequest.ConnectionsEntry
-	nil,                                    // 32: tanvo.subscription.v1.GetLifetimeUsageResponse.MetricUnitsEntry
-	(*timestamppb.Timestamp)(nil),          // 33: google.protobuf.Timestamp
-	(*v1.Money)(nil),                       // 34: tanvo.common.v1.Money
-	(*v11.Charge)(nil),                     // 35: tanvo.catalog.v1.Charge
-	(*v11.FixedCharge)(nil),                // 36: tanvo.catalog.v1.FixedCharge
-	(*v11.Commitment)(nil),                 // 37: tanvo.catalog.v1.Commitment
-	(*v11.UsageThreshold)(nil),             // 38: tanvo.catalog.v1.UsageThreshold
-	(v1.PaymentMethodType)(0),              // 39: tanvo.common.v1.PaymentMethodType
-	(*fieldmaskpb.FieldMask)(nil),          // 40: google.protobuf.FieldMask
-	(*v1.ConnectionChoice)(nil),            // 41: tanvo.common.v1.ConnectionChoice
+	(*PaymentAuthorizationInput)(nil),      // 13: tanvo.subscription.v1.PaymentAuthorizationInput
+	(*CreateSubscriptionResponse)(nil),     // 14: tanvo.subscription.v1.CreateSubscriptionResponse
+	(*PaymentAuthorization)(nil),           // 15: tanvo.subscription.v1.PaymentAuthorization
+	(*GetSubscriptionRequest)(nil),         // 16: tanvo.subscription.v1.GetSubscriptionRequest
+	(*GetSubscriptionResponse)(nil),        // 17: tanvo.subscription.v1.GetSubscriptionResponse
+	(*ListSubscriptionsRequest)(nil),       // 18: tanvo.subscription.v1.ListSubscriptionsRequest
+	(*ListSubscriptionsResponse)(nil),      // 19: tanvo.subscription.v1.ListSubscriptionsResponse
+	(*UpdateSubscriptionRequest)(nil),      // 20: tanvo.subscription.v1.UpdateSubscriptionRequest
+	(*UpdateSubscriptionResponse)(nil),     // 21: tanvo.subscription.v1.UpdateSubscriptionResponse
+	(*ChangeSubscriptionPlanRequest)(nil),  // 22: tanvo.subscription.v1.ChangeSubscriptionPlanRequest
+	(*ChangeSubscriptionPlanResponse)(nil), // 23: tanvo.subscription.v1.ChangeSubscriptionPlanResponse
+	(*TerminateSubscriptionRequest)(nil),   // 24: tanvo.subscription.v1.TerminateSubscriptionRequest
+	(*TerminateSubscriptionResponse)(nil),  // 25: tanvo.subscription.v1.TerminateSubscriptionResponse
+	(*CancelSubscriptionRequest)(nil),      // 26: tanvo.subscription.v1.CancelSubscriptionRequest
+	(*CancelSubscriptionResponse)(nil),     // 27: tanvo.subscription.v1.CancelSubscriptionResponse
+	(*GetLifetimeUsageRequest)(nil),        // 28: tanvo.subscription.v1.GetLifetimeUsageRequest
+	(*GetLifetimeUsageResponse)(nil),       // 29: tanvo.subscription.v1.GetLifetimeUsageResponse
+	(*UpdateLifetimeUsageRequest)(nil),     // 30: tanvo.subscription.v1.UpdateLifetimeUsageRequest
+	(*UpdateLifetimeUsageResponse)(nil),    // 31: tanvo.subscription.v1.UpdateLifetimeUsageResponse
+	nil,                                    // 32: tanvo.subscription.v1.Subscription.ConnectionsEntry
+	nil,                                    // 33: tanvo.subscription.v1.ChangeSubscriptionPlanRequest.ConnectionsEntry
+	nil,                                    // 34: tanvo.subscription.v1.GetLifetimeUsageResponse.MetricUnitsEntry
+	(*timestamppb.Timestamp)(nil),          // 35: google.protobuf.Timestamp
+	(*v1.Money)(nil),                       // 36: tanvo.common.v1.Money
+	(*v11.Charge)(nil),                     // 37: tanvo.catalog.v1.Charge
+	(*v11.FixedCharge)(nil),                // 38: tanvo.catalog.v1.FixedCharge
+	(*v11.Commitment)(nil),                 // 39: tanvo.catalog.v1.Commitment
+	(*v11.UsageThreshold)(nil),             // 40: tanvo.catalog.v1.UsageThreshold
+	(v1.PaymentMethodType)(0),              // 41: tanvo.common.v1.PaymentMethodType
+	(*fieldmaskpb.FieldMask)(nil),          // 42: google.protobuf.FieldMask
+	(*v1.ConnectionChoice)(nil),            // 43: tanvo.common.v1.ConnectionChoice
 }
 var file_tanvo_subscription_v1_subscription_proto_depIdxs = []int32{
 	5,  // 0: tanvo.subscription.v1.ActivationRule.rule_type:type_name -> tanvo.subscription.v1.ActivationRuleType
 	6,  // 1: tanvo.subscription.v1.ActivationRule.status:type_name -> tanvo.subscription.v1.ActivationRuleStatus
-	33, // 2: tanvo.subscription.v1.ActivationRule.expires_at:type_name -> google.protobuf.Timestamp
-	34, // 3: tanvo.subscription.v1.PlanOverrides.amount:type_name -> tanvo.common.v1.Money
-	35, // 4: tanvo.subscription.v1.PlanOverrides.charges:type_name -> tanvo.catalog.v1.Charge
-	36, // 5: tanvo.subscription.v1.PlanOverrides.fixed_charges:type_name -> tanvo.catalog.v1.FixedCharge
-	37, // 6: tanvo.subscription.v1.PlanOverrides.minimum_commitment:type_name -> tanvo.catalog.v1.Commitment
-	38, // 7: tanvo.subscription.v1.PlanOverrides.usage_thresholds:type_name -> tanvo.catalog.v1.UsageThreshold
+	35, // 2: tanvo.subscription.v1.ActivationRule.expires_at:type_name -> google.protobuf.Timestamp
+	36, // 3: tanvo.subscription.v1.PlanOverrides.amount:type_name -> tanvo.common.v1.Money
+	37, // 4: tanvo.subscription.v1.PlanOverrides.charges:type_name -> tanvo.catalog.v1.Charge
+	38, // 5: tanvo.subscription.v1.PlanOverrides.fixed_charges:type_name -> tanvo.catalog.v1.FixedCharge
+	39, // 6: tanvo.subscription.v1.PlanOverrides.minimum_commitment:type_name -> tanvo.catalog.v1.Commitment
+	40, // 7: tanvo.subscription.v1.PlanOverrides.usage_thresholds:type_name -> tanvo.catalog.v1.UsageThreshold
 	1,  // 8: tanvo.subscription.v1.Subscription.billing_time:type_name -> tanvo.subscription.v1.BillingTime
 	0,  // 9: tanvo.subscription.v1.Subscription.status:type_name -> tanvo.subscription.v1.SubscriptionStatus
-	33, // 10: tanvo.subscription.v1.Subscription.subscription_at:type_name -> google.protobuf.Timestamp
-	33, // 11: tanvo.subscription.v1.Subscription.ending_at:type_name -> google.protobuf.Timestamp
-	33, // 12: tanvo.subscription.v1.Subscription.started_at:type_name -> google.protobuf.Timestamp
-	33, // 13: tanvo.subscription.v1.Subscription.terminated_at:type_name -> google.protobuf.Timestamp
-	33, // 14: tanvo.subscription.v1.Subscription.canceled_at:type_name -> google.protobuf.Timestamp
+	35, // 10: tanvo.subscription.v1.Subscription.subscription_at:type_name -> google.protobuf.Timestamp
+	35, // 11: tanvo.subscription.v1.Subscription.ending_at:type_name -> google.protobuf.Timestamp
+	35, // 12: tanvo.subscription.v1.Subscription.started_at:type_name -> google.protobuf.Timestamp
+	35, // 13: tanvo.subscription.v1.Subscription.terminated_at:type_name -> google.protobuf.Timestamp
+	35, // 14: tanvo.subscription.v1.Subscription.canceled_at:type_name -> google.protobuf.Timestamp
 	2,  // 15: tanvo.subscription.v1.Subscription.cancellation_reason:type_name -> tanvo.subscription.v1.CancellationReason
-	33, // 16: tanvo.subscription.v1.Subscription.trial_ended_at:type_name -> google.protobuf.Timestamp
+	35, // 16: tanvo.subscription.v1.Subscription.trial_ended_at:type_name -> google.protobuf.Timestamp
 	3,  // 17: tanvo.subscription.v1.Subscription.on_termination_credit_note:type_name -> tanvo.subscription.v1.TerminationCreditNote
 	4,  // 18: tanvo.subscription.v1.Subscription.on_termination_invoice:type_name -> tanvo.subscription.v1.TerminationInvoice
-	39, // 19: tanvo.subscription.v1.Subscription.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
+	41, // 19: tanvo.subscription.v1.Subscription.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
 	7,  // 20: tanvo.subscription.v1.Subscription.activation_rules:type_name -> tanvo.subscription.v1.ActivationRule
 	8,  // 21: tanvo.subscription.v1.Subscription.plan_overrides:type_name -> tanvo.subscription.v1.PlanOverrides
-	33, // 22: tanvo.subscription.v1.Subscription.current_period_started_at:type_name -> google.protobuf.Timestamp
-	33, // 23: tanvo.subscription.v1.Subscription.current_period_ended_at:type_name -> google.protobuf.Timestamp
-	33, // 24: tanvo.subscription.v1.Subscription.next_billing_at:type_name -> google.protobuf.Timestamp
-	33, // 25: tanvo.subscription.v1.Subscription.created_at:type_name -> google.protobuf.Timestamp
-	33, // 26: tanvo.subscription.v1.Subscription.updated_at:type_name -> google.protobuf.Timestamp
-	38, // 27: tanvo.subscription.v1.Subscription.usage_thresholds:type_name -> tanvo.catalog.v1.UsageThreshold
-	30, // 28: tanvo.subscription.v1.Subscription.connections:type_name -> tanvo.subscription.v1.Subscription.ConnectionsEntry
-	33, // 29: tanvo.subscription.v1.UsageThresholdProgress.reached_at:type_name -> google.protobuf.Timestamp
-	34, // 30: tanvo.subscription.v1.LifetimeUsage.external_historical_usage_amount:type_name -> tanvo.common.v1.Money
-	34, // 31: tanvo.subscription.v1.LifetimeUsage.invoiced_usage_amount:type_name -> tanvo.common.v1.Money
-	34, // 32: tanvo.subscription.v1.LifetimeUsage.current_usage_amount:type_name -> tanvo.common.v1.Money
+	35, // 22: tanvo.subscription.v1.Subscription.current_period_started_at:type_name -> google.protobuf.Timestamp
+	35, // 23: tanvo.subscription.v1.Subscription.current_period_ended_at:type_name -> google.protobuf.Timestamp
+	35, // 24: tanvo.subscription.v1.Subscription.next_billing_at:type_name -> google.protobuf.Timestamp
+	35, // 25: tanvo.subscription.v1.Subscription.created_at:type_name -> google.protobuf.Timestamp
+	35, // 26: tanvo.subscription.v1.Subscription.updated_at:type_name -> google.protobuf.Timestamp
+	40, // 27: tanvo.subscription.v1.Subscription.usage_thresholds:type_name -> tanvo.catalog.v1.UsageThreshold
+	32, // 28: tanvo.subscription.v1.Subscription.connections:type_name -> tanvo.subscription.v1.Subscription.ConnectionsEntry
+	35, // 29: tanvo.subscription.v1.UsageThresholdProgress.reached_at:type_name -> google.protobuf.Timestamp
+	36, // 30: tanvo.subscription.v1.LifetimeUsage.external_historical_usage_amount:type_name -> tanvo.common.v1.Money
+	36, // 31: tanvo.subscription.v1.LifetimeUsage.invoiced_usage_amount:type_name -> tanvo.common.v1.Money
+	36, // 32: tanvo.subscription.v1.LifetimeUsage.current_usage_amount:type_name -> tanvo.common.v1.Money
 	10, // 33: tanvo.subscription.v1.LifetimeUsage.usage_thresholds:type_name -> tanvo.subscription.v1.UsageThresholdProgress
-	33, // 34: tanvo.subscription.v1.LifetimeUsage.refreshed_at:type_name -> google.protobuf.Timestamp
+	35, // 34: tanvo.subscription.v1.LifetimeUsage.refreshed_at:type_name -> google.protobuf.Timestamp
 	9,  // 35: tanvo.subscription.v1.CreateSubscriptionRequest.subscription:type_name -> tanvo.subscription.v1.Subscription
-	9,  // 36: tanvo.subscription.v1.CreateSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
-	9,  // 37: tanvo.subscription.v1.GetSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
-	9,  // 38: tanvo.subscription.v1.ListSubscriptionsResponse.subscriptions:type_name -> tanvo.subscription.v1.Subscription
-	9,  // 39: tanvo.subscription.v1.UpdateSubscriptionRequest.subscription:type_name -> tanvo.subscription.v1.Subscription
-	40, // 40: tanvo.subscription.v1.UpdateSubscriptionRequest.update_mask:type_name -> google.protobuf.FieldMask
-	9,  // 41: tanvo.subscription.v1.UpdateSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
-	8,  // 42: tanvo.subscription.v1.ChangeSubscriptionPlanRequest.plan_overrides:type_name -> tanvo.subscription.v1.PlanOverrides
-	31, // 43: tanvo.subscription.v1.ChangeSubscriptionPlanRequest.connections:type_name -> tanvo.subscription.v1.ChangeSubscriptionPlanRequest.ConnectionsEntry
-	9,  // 44: tanvo.subscription.v1.ChangeSubscriptionPlanResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
-	9,  // 45: tanvo.subscription.v1.ChangeSubscriptionPlanResponse.previous_subscription:type_name -> tanvo.subscription.v1.Subscription
-	3,  // 46: tanvo.subscription.v1.TerminateSubscriptionRequest.on_termination_credit_note:type_name -> tanvo.subscription.v1.TerminationCreditNote
-	4,  // 47: tanvo.subscription.v1.TerminateSubscriptionRequest.on_termination_invoice:type_name -> tanvo.subscription.v1.TerminationInvoice
-	9,  // 48: tanvo.subscription.v1.TerminateSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
-	9,  // 49: tanvo.subscription.v1.CancelSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
-	11, // 50: tanvo.subscription.v1.GetLifetimeUsageResponse.lifetime_usage:type_name -> tanvo.subscription.v1.LifetimeUsage
-	32, // 51: tanvo.subscription.v1.GetLifetimeUsageResponse.metric_units:type_name -> tanvo.subscription.v1.GetLifetimeUsageResponse.MetricUnitsEntry
-	11, // 52: tanvo.subscription.v1.UpdateLifetimeUsageResponse.lifetime_usage:type_name -> tanvo.subscription.v1.LifetimeUsage
-	41, // 53: tanvo.subscription.v1.Subscription.ConnectionsEntry.value:type_name -> tanvo.common.v1.ConnectionChoice
-	41, // 54: tanvo.subscription.v1.ChangeSubscriptionPlanRequest.ConnectionsEntry.value:type_name -> tanvo.common.v1.ConnectionChoice
-	12, // 55: tanvo.subscription.v1.SubscriptionService.CreateSubscription:input_type -> tanvo.subscription.v1.CreateSubscriptionRequest
-	14, // 56: tanvo.subscription.v1.SubscriptionService.GetSubscription:input_type -> tanvo.subscription.v1.GetSubscriptionRequest
-	16, // 57: tanvo.subscription.v1.SubscriptionService.ListSubscriptions:input_type -> tanvo.subscription.v1.ListSubscriptionsRequest
-	18, // 58: tanvo.subscription.v1.SubscriptionService.UpdateSubscription:input_type -> tanvo.subscription.v1.UpdateSubscriptionRequest
-	20, // 59: tanvo.subscription.v1.SubscriptionService.ChangeSubscriptionPlan:input_type -> tanvo.subscription.v1.ChangeSubscriptionPlanRequest
-	22, // 60: tanvo.subscription.v1.SubscriptionService.TerminateSubscription:input_type -> tanvo.subscription.v1.TerminateSubscriptionRequest
-	24, // 61: tanvo.subscription.v1.SubscriptionService.CancelSubscription:input_type -> tanvo.subscription.v1.CancelSubscriptionRequest
-	26, // 62: tanvo.subscription.v1.SubscriptionService.GetLifetimeUsage:input_type -> tanvo.subscription.v1.GetLifetimeUsageRequest
-	28, // 63: tanvo.subscription.v1.SubscriptionService.UpdateLifetimeUsage:input_type -> tanvo.subscription.v1.UpdateLifetimeUsageRequest
-	13, // 64: tanvo.subscription.v1.SubscriptionService.CreateSubscription:output_type -> tanvo.subscription.v1.CreateSubscriptionResponse
-	15, // 65: tanvo.subscription.v1.SubscriptionService.GetSubscription:output_type -> tanvo.subscription.v1.GetSubscriptionResponse
-	17, // 66: tanvo.subscription.v1.SubscriptionService.ListSubscriptions:output_type -> tanvo.subscription.v1.ListSubscriptionsResponse
-	19, // 67: tanvo.subscription.v1.SubscriptionService.UpdateSubscription:output_type -> tanvo.subscription.v1.UpdateSubscriptionResponse
-	21, // 68: tanvo.subscription.v1.SubscriptionService.ChangeSubscriptionPlan:output_type -> tanvo.subscription.v1.ChangeSubscriptionPlanResponse
-	23, // 69: tanvo.subscription.v1.SubscriptionService.TerminateSubscription:output_type -> tanvo.subscription.v1.TerminateSubscriptionResponse
-	25, // 70: tanvo.subscription.v1.SubscriptionService.CancelSubscription:output_type -> tanvo.subscription.v1.CancelSubscriptionResponse
-	27, // 71: tanvo.subscription.v1.SubscriptionService.GetLifetimeUsage:output_type -> tanvo.subscription.v1.GetLifetimeUsageResponse
-	29, // 72: tanvo.subscription.v1.SubscriptionService.UpdateLifetimeUsage:output_type -> tanvo.subscription.v1.UpdateLifetimeUsageResponse
-	64, // [64:73] is the sub-list for method output_type
-	55, // [55:64] is the sub-list for method input_type
-	55, // [55:55] is the sub-list for extension type_name
-	55, // [55:55] is the sub-list for extension extendee
-	0,  // [0:55] is the sub-list for field type_name
+	13, // 36: tanvo.subscription.v1.CreateSubscriptionRequest.authorization:type_name -> tanvo.subscription.v1.PaymentAuthorizationInput
+	36, // 37: tanvo.subscription.v1.PaymentAuthorizationInput.amount:type_name -> tanvo.common.v1.Money
+	9,  // 38: tanvo.subscription.v1.CreateSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
+	15, // 39: tanvo.subscription.v1.CreateSubscriptionResponse.authorization:type_name -> tanvo.subscription.v1.PaymentAuthorization
+	36, // 40: tanvo.subscription.v1.PaymentAuthorization.amount:type_name -> tanvo.common.v1.Money
+	36, // 41: tanvo.subscription.v1.PaymentAuthorization.amount_capturable:type_name -> tanvo.common.v1.Money
+	9,  // 42: tanvo.subscription.v1.GetSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
+	9,  // 43: tanvo.subscription.v1.ListSubscriptionsResponse.subscriptions:type_name -> tanvo.subscription.v1.Subscription
+	9,  // 44: tanvo.subscription.v1.UpdateSubscriptionRequest.subscription:type_name -> tanvo.subscription.v1.Subscription
+	42, // 45: tanvo.subscription.v1.UpdateSubscriptionRequest.update_mask:type_name -> google.protobuf.FieldMask
+	9,  // 46: tanvo.subscription.v1.UpdateSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
+	8,  // 47: tanvo.subscription.v1.ChangeSubscriptionPlanRequest.plan_overrides:type_name -> tanvo.subscription.v1.PlanOverrides
+	33, // 48: tanvo.subscription.v1.ChangeSubscriptionPlanRequest.connections:type_name -> tanvo.subscription.v1.ChangeSubscriptionPlanRequest.ConnectionsEntry
+	9,  // 49: tanvo.subscription.v1.ChangeSubscriptionPlanResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
+	9,  // 50: tanvo.subscription.v1.ChangeSubscriptionPlanResponse.previous_subscription:type_name -> tanvo.subscription.v1.Subscription
+	3,  // 51: tanvo.subscription.v1.TerminateSubscriptionRequest.on_termination_credit_note:type_name -> tanvo.subscription.v1.TerminationCreditNote
+	4,  // 52: tanvo.subscription.v1.TerminateSubscriptionRequest.on_termination_invoice:type_name -> tanvo.subscription.v1.TerminationInvoice
+	9,  // 53: tanvo.subscription.v1.TerminateSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
+	9,  // 54: tanvo.subscription.v1.CancelSubscriptionResponse.subscription:type_name -> tanvo.subscription.v1.Subscription
+	11, // 55: tanvo.subscription.v1.GetLifetimeUsageResponse.lifetime_usage:type_name -> tanvo.subscription.v1.LifetimeUsage
+	34, // 56: tanvo.subscription.v1.GetLifetimeUsageResponse.metric_units:type_name -> tanvo.subscription.v1.GetLifetimeUsageResponse.MetricUnitsEntry
+	11, // 57: tanvo.subscription.v1.UpdateLifetimeUsageResponse.lifetime_usage:type_name -> tanvo.subscription.v1.LifetimeUsage
+	43, // 58: tanvo.subscription.v1.Subscription.ConnectionsEntry.value:type_name -> tanvo.common.v1.ConnectionChoice
+	43, // 59: tanvo.subscription.v1.ChangeSubscriptionPlanRequest.ConnectionsEntry.value:type_name -> tanvo.common.v1.ConnectionChoice
+	12, // 60: tanvo.subscription.v1.SubscriptionService.CreateSubscription:input_type -> tanvo.subscription.v1.CreateSubscriptionRequest
+	16, // 61: tanvo.subscription.v1.SubscriptionService.GetSubscription:input_type -> tanvo.subscription.v1.GetSubscriptionRequest
+	18, // 62: tanvo.subscription.v1.SubscriptionService.ListSubscriptions:input_type -> tanvo.subscription.v1.ListSubscriptionsRequest
+	20, // 63: tanvo.subscription.v1.SubscriptionService.UpdateSubscription:input_type -> tanvo.subscription.v1.UpdateSubscriptionRequest
+	22, // 64: tanvo.subscription.v1.SubscriptionService.ChangeSubscriptionPlan:input_type -> tanvo.subscription.v1.ChangeSubscriptionPlanRequest
+	24, // 65: tanvo.subscription.v1.SubscriptionService.TerminateSubscription:input_type -> tanvo.subscription.v1.TerminateSubscriptionRequest
+	26, // 66: tanvo.subscription.v1.SubscriptionService.CancelSubscription:input_type -> tanvo.subscription.v1.CancelSubscriptionRequest
+	28, // 67: tanvo.subscription.v1.SubscriptionService.GetLifetimeUsage:input_type -> tanvo.subscription.v1.GetLifetimeUsageRequest
+	30, // 68: tanvo.subscription.v1.SubscriptionService.UpdateLifetimeUsage:input_type -> tanvo.subscription.v1.UpdateLifetimeUsageRequest
+	14, // 69: tanvo.subscription.v1.SubscriptionService.CreateSubscription:output_type -> tanvo.subscription.v1.CreateSubscriptionResponse
+	17, // 70: tanvo.subscription.v1.SubscriptionService.GetSubscription:output_type -> tanvo.subscription.v1.GetSubscriptionResponse
+	19, // 71: tanvo.subscription.v1.SubscriptionService.ListSubscriptions:output_type -> tanvo.subscription.v1.ListSubscriptionsResponse
+	21, // 72: tanvo.subscription.v1.SubscriptionService.UpdateSubscription:output_type -> tanvo.subscription.v1.UpdateSubscriptionResponse
+	23, // 73: tanvo.subscription.v1.SubscriptionService.ChangeSubscriptionPlan:output_type -> tanvo.subscription.v1.ChangeSubscriptionPlanResponse
+	25, // 74: tanvo.subscription.v1.SubscriptionService.TerminateSubscription:output_type -> tanvo.subscription.v1.TerminateSubscriptionResponse
+	27, // 75: tanvo.subscription.v1.SubscriptionService.CancelSubscription:output_type -> tanvo.subscription.v1.CancelSubscriptionResponse
+	29, // 76: tanvo.subscription.v1.SubscriptionService.GetLifetimeUsage:output_type -> tanvo.subscription.v1.GetLifetimeUsageResponse
+	31, // 77: tanvo.subscription.v1.SubscriptionService.UpdateLifetimeUsage:output_type -> tanvo.subscription.v1.UpdateLifetimeUsageResponse
+	69, // [69:78] is the sub-list for method output_type
+	60, // [60:69] is the sub-list for method input_type
+	60, // [60:60] is the sub-list for extension type_name
+	60, // [60:60] is the sub-list for extension extendee
+	0,  // [0:60] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_subscription_v1_subscription_proto_init() }
@@ -4613,7 +4923,7 @@ func file_tanvo_subscription_v1_subscription_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_subscription_v1_subscription_proto_rawDesc), len(file_tanvo_subscription_v1_subscription_proto_rawDesc)),
 			NumEnums:      7,
-			NumMessages:   26,
+			NumMessages:   28,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

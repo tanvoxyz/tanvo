@@ -193,6 +193,10 @@ type Config struct {
 	// the same payload (lago LAGO_ANROK_DRAFT_TAXES_CACHE_TTL_SECONDS, a
 	// day by default); 0 turns the cache off.
 	AnrokDraftTaxesCacheTTL time.Duration `koanf:"anrok_draft_taxes_cache_ttl"`
+	// AnalyticsCacheTTL is how long a computed analytics report is reused
+	// (lago Analytics::Base.cache_expiration, 4 hours); 0 turns the cache
+	// off.
+	AnalyticsCacheTTL time.Duration `koanf:"analytics_cache_ttl"`
 
 	// IngestMode is the default ingestion mode, postgres or kafka.
 	IngestMode string `koanf:"ingest_mode"`
@@ -248,6 +252,18 @@ type Config struct {
 	// development against a local provider.
 	OIDCAllowPrivate bool `koanf:"oidc_allow_private"`
 
+	// StreamingIntermediateRoleARN, when set, is the AWS role the
+	// workers assume first, per region, to assume the role of each
+	// streaming destination (lago LAGO_STREAMING_INTERMEDIATE_ROLE_ARN).
+	// The workers' own identity comes from the standard AWS environment
+	// (variables, web identity, container or instance credentials).
+	StreamingIntermediateRoleARN string `koanf:"streaming_intermediate_role_arn"`
+	// StreamingKinesisEndpoint overrides the Kinesis endpoint of every
+	// destination, for Kinesis-compatible services and local testing.
+	StreamingKinesisEndpoint string `koanf:"streaming_kinesis_endpoint"`
+	// StreamingSTSEndpoint overrides the regional STS endpoint.
+	StreamingSTSEndpoint string `koanf:"streaming_sts_endpoint"`
+
 	// AppURL is the web console URL used in email links.
 	AppURL string `koanf:"app_url"`
 	// APIURL is the public URL of the API (lago LAGO_API_URL); payment
@@ -291,6 +307,48 @@ type Config struct {
 	// SMTPSecurity is starttls, starttls_optional, tls or none.
 	SMTPSecurity string `koanf:"smtp_security"`
 
+	// BlobBackend stores the documents (invoice, credit note and receipt
+	// PDFs and e-invoices), logos, quote files and data exports: "local"
+	// (BlobLocalRoot), "s3" (any S3-compatible service) or "gcs" (Google
+	// Cloud Storage through its S3 interoperability API, with HMAC keys);
+	// empty stores nothing, so no document is generated.
+	BlobBackend string `koanf:"blob_backend"`
+	// BlobLocalRoot is the directory of the local backend.
+	BlobLocalRoot string `koanf:"blob_local_root"`
+	// BlobEndpoint is the service URL of the s3 backend (scheme and host,
+	// for example https://s3.eu-west-1.amazonaws.com); the gcs backend
+	// defaults to https://storage.googleapis.com.
+	BlobEndpoint string `koanf:"blob_endpoint"`
+	// BlobRegion is the signing region; the gcs backend defaults to auto.
+	BlobRegion string `koanf:"blob_region"`
+	// BlobBucket is the bucket of the s3 and gcs backends.
+	BlobBucket string `koanf:"blob_bucket"`
+	// BlobAccessKeyID is the access key (an HMAC key for gcs).
+	BlobAccessKeyID string `koanf:"blob_access_key_id"`
+	// BlobSecretAccessKey is the secret of BlobAccessKeyID.
+	BlobSecretAccessKey string `koanf:"blob_secret_access_key"`
+	// BlobSessionToken is the optional session token of temporary
+	// credentials.
+	BlobSessionToken string `koanf:"blob_session_token"`
+	// BlobPathStyle addresses the bucket in the path instead of the host
+	// (MinIO usually needs it).
+	BlobPathStyle bool `koanf:"blob_path_style"`
+	// BlobPrefix is an optional key prefix inside the bucket.
+	BlobPrefix string `koanf:"blob_prefix"`
+	// BlobURLTTL is the lifetime of the short-lived download URLs the
+	// permanent file links redirect to; 15 minutes when zero.
+	BlobURLTTL time.Duration `koanf:"blob_url_ttl"`
+	// TypstPath is the typst executable rendering the PDFs; "typst" in
+	// PATH when empty.
+	TypstPath string `koanf:"typst_path"`
+	// DocumentsFontPaths are font directories for the scripts the bundled
+	// font does not cover (Noto CJK for Chinese documents); empty uses the
+	// system font directories.
+	DocumentsFontPaths []string `koanf:"documents_font_paths"`
+	// DisablePDFGeneration renders no PDF and attaches none to emails
+	// (lago LAGO_DISABLE_PDF_GENERATION); e-invoice XML is still made.
+	DisablePDFGeneration bool `koanf:"disable_pdf_generation"`
+
 	// DisableSignup turns off self sign-up (lago LAGO_DISABLE_SIGNUP).
 	DisableSignup bool `koanf:"disable_signup"`
 	// GoogleAuthClientID and GoogleAuthClientSecret are the OAuth client
@@ -308,6 +366,16 @@ type Config struct {
 	// and makes the stored secrets undecryptable.
 	SecretKey string `koanf:"secret_key"`
 }
+
+// The blob backends of [Config.BlobBackend].
+const (
+	// BlobLocal stores the files on the local disk.
+	BlobLocal = "local"
+	// BlobS3 stores the files in an S3-compatible service.
+	BlobS3 = "s3"
+	// BlobGCS stores the files in Google Cloud Storage.
+	BlobGCS = "gcs"
+)
 
 // minSecretKeyBytes is the minimum size of the decoded SecretKey.
 const minSecretKeyBytes = 32
@@ -351,6 +419,7 @@ func Defaults() Config {
 
 		SubscriptionTerminationAlertDays: []int{15, 45},
 		AnrokDraftTaxesCacheTTL:          24 * time.Hour,
+		AnalyticsCacheTTL:                4 * time.Hour,
 	}
 }
 
@@ -456,6 +525,8 @@ func (c *Config) normalize() {
 	c.LogFormat = strings.ToLower(strings.TrimSpace(c.LogFormat))
 	c.IngestMode = strings.ToLower(strings.TrimSpace(c.IngestMode))
 	c.KafkaSASLMechanism = strings.ToLower(strings.TrimSpace(c.KafkaSASLMechanism))
+	c.BlobBackend = strings.ToLower(strings.TrimSpace(c.BlobBackend))
+	c.DocumentsFontPaths = trimAll(c.DocumentsFontPaths)
 }
 
 // Validate checks every setting and returns all the problems at once.
@@ -496,6 +567,9 @@ func (c Config) Validate() error {
 	}
 	if c.AnrokDraftTaxesCacheTTL < 0 {
 		bad("anrok_draft_taxes_cache_ttl", "must not be negative")
+	}
+	if c.AnalyticsCacheTTL < 0 {
+		bad("analytics_cache_ttl", "must not be negative")
 	}
 	if c.DatabaseURL == "" {
 		bad("database_url", "required")
@@ -579,6 +653,19 @@ func (c Config) Validate() error {
 			bad("app_url", "want an absolute URL")
 		}
 	}
+	for _, e := range []struct{ key, v string }{
+		{"streaming_kinesis_endpoint", c.StreamingKinesisEndpoint}, {"streaming_sts_endpoint", c.StreamingSTSEndpoint},
+	} {
+		if e.v == "" {
+			continue
+		}
+		if u, err := url.Parse(e.v); err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" {
+			bad(e.key, "want an absolute http(s) URL")
+		}
+	}
+	if v := c.StreamingIntermediateRoleARN; v != "" && !strings.HasPrefix(v, "arn:") {
+		bad("streaming_intermediate_role_arn", "want an IAM role ARN")
+	}
 	if (c.GoCardlessClientID == "") != (c.GoCardlessClientSecret == "") {
 		bad("gocardless_client_id", "set with %sGOCARDLESS_CLIENT_SECRET, or neither", EnvPrefix)
 	}
@@ -596,6 +683,50 @@ func (c Config) Validate() error {
 	}
 	if _, err := c.SecretKeyBytes(); err != nil {
 		bad("secret_key", "%v", err)
+	}
+	if c.BlobBackend != "" {
+		// The permanent file links are signed and served under the API.
+		if c.SecretKey == "" {
+			bad("secret_key", "required with %sBLOB_BACKEND, which signs the file links", EnvPrefix)
+		}
+		if c.APIURL == "" {
+			bad("api_url", "required with %sBLOB_BACKEND, which serves the file links", EnvPrefix)
+		}
+	}
+	switch c.BlobBackend {
+	case "":
+	case BlobLocal:
+		if c.BlobLocalRoot == "" {
+			bad("blob_local_root", "required with %sBLOB_BACKEND=local", EnvPrefix)
+		}
+	case BlobS3, BlobGCS:
+		if c.BlobBackend == BlobS3 {
+			if c.BlobEndpoint == "" {
+				bad("blob_endpoint", "required with %sBLOB_BACKEND=s3", EnvPrefix)
+			}
+			if c.BlobRegion == "" {
+				bad("blob_region", "required with %sBLOB_BACKEND=s3", EnvPrefix)
+			}
+		}
+		if c.BlobBucket == "" {
+			bad("blob_bucket", "required with %sBLOB_BACKEND=%s", EnvPrefix, c.BlobBackend)
+		}
+		if c.BlobAccessKeyID == "" || c.BlobSecretAccessKey == "" {
+			bad("blob_access_key_id", "required with %sBLOB_SECRET_ACCESS_KEY by %sBLOB_BACKEND=%s", EnvPrefix, EnvPrefix, c.BlobBackend)
+		}
+		if c.BlobEndpoint != "" {
+			if u, err := url.Parse(c.BlobEndpoint); err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+				bad("blob_endpoint", "want an http or https URL")
+			}
+		}
+		if c.BlobURLTTL > 7*24*time.Hour {
+			bad("blob_url_ttl", "%v: want at most 7 days", c.BlobURLTTL)
+		}
+	default:
+		bad("blob_backend", "%q: want local, s3 or gcs", c.BlobBackend)
+	}
+	if c.BlobURLTTL < 0 {
+		bad("blob_url_ttl", "must not be negative")
 	}
 	if c.SMTPHost != "" {
 		if c.MailFrom == "" {

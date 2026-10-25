@@ -20,6 +20,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/lifecycle"
 	"github.com/tanvoxyz/tanvo/libs/billing/plans"
 	"github.com/tanvoxyz/tanvo/libs/billing/quotes"
+	"github.com/tanvoxyz/tanvo/libs/billing/streaming"
 	"github.com/tanvoxyz/tanvo/libs/billing/subscriptions"
 	"github.com/tanvoxyz/tanvo/libs/billing/usage"
 	"github.com/tanvoxyz/tanvo/libs/billing/wallets"
@@ -68,6 +69,10 @@ type Engine struct {
 	// Contracts manages the contracts, their rate cards and billing
 	// segments (domain §21.4).
 	Contracts *contracts.Service
+	// Streaming delivers the usage-refreshed events to the streaming
+	// destinations ([streaming.JobDeliverEvent]); nil without
+	// [Deps.Streaming].
+	Streaming *streaming.Service
 
 	d                    *kernel.Deps
 	terminationAlertDays []int
@@ -81,6 +86,11 @@ func New(d Deps, opts ...Option) (*Engine, error) {
 	deps := &d
 	u := usage.New(deps)
 	w := wallets.New(deps).WithUsage(u)
+	var st *streaming.Service
+	if deps.Streaming != nil {
+		st = streaming.New(deps, u, deps.Streaming)
+		w = w.WithStreamer(st)
+	}
 	cn := creditnotes.New(deps)
 	cn.SetWalletVoider(w)
 	inv := invoicing.New(deps).WithCreditNotes(cn).WithCreditInvoices(w)
@@ -98,6 +108,7 @@ func New(d Deps, opts ...Option) (*Engine, error) {
 		Estimates:   estimates.New(deps),
 		DailyUsages: dailyusage.New(deps, u),
 		Dunning:     dunning.New(deps),
+		Streaming:   st,
 		d:           deps,
 
 		terminationAlertDays: defaultTerminationAlertDays(),

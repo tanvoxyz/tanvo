@@ -70,7 +70,7 @@ type CreditNote struct {
 	ErrorDetails []ErrorDetail
 	// IssuingDate is the issuing date.
 	IssuingDate core.Date
-	// Metadata is free key/value data (≤ 5 items).
+	// Metadata is free key/value data ([core.ItemMetadataLimits]).
 	Metadata core.Metadata
 	// File is the rendered PDF.
 	File core.BlobRef
@@ -190,7 +190,7 @@ func (cn *CreditNote) Validate() error {
 		v.NonNegative(fmt.Sprintf("items[%d].amount", i), it.Amount)
 	}
 	if len(cn.Metadata) > 0 {
-		v.Merge("metadata", cn.Metadata.Validate(core.InvoiceMetadataLimits()))
+		v.Merge("metadata", cn.Metadata.Validate(core.ItemMetadataLimits()))
 	}
 	return v.Err()
 }

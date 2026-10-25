@@ -175,6 +175,50 @@ service WalletService {
       api_resource: "wallet"
     };
   }
+
+  // Replaces the wallet's metadata; an empty list clears it.
+  rpc ReplaceWalletMetadata(ReplaceWalletMetadataRequest) returns (ReplaceWalletMetadataResponse) {
+    option (google.api.http) = {
+      post: "/v1/wallets/{wallet_id}/metadata"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "wallets:update"
+      api_resource: "wallet"
+    };
+  }
+
+  // Merges items into the wallet's metadata: values of existing keys are
+  // replaced and new keys appended.
+  rpc MergeWalletMetadata(MergeWalletMetadataRequest) returns (MergeWalletMetadataResponse) {
+    option (google.api.http) = {
+      patch: "/v1/wallets/{wallet_id}/metadata"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "wallets:update"
+      api_resource: "wallet"
+    };
+  }
+
+  // Removes all the wallet's metadata.
+  rpc DeleteWalletMetadata(DeleteWalletMetadataRequest) returns (DeleteWalletMetadataResponse) {
+    option (google.api.http) = {delete: "/v1/wallets/{wallet_id}/metadata"};
+    option (tanvo.common.v1.access) = {
+      permission: "wallets:update"
+      api_resource: "wallet"
+    };
+  }
+
+  // Removes one key from the wallet's metadata; NOT_FOUND when the
+  // wallet has no metadata.
+  rpc DeleteWalletMetadataKey(DeleteWalletMetadataKeyRequest) returns (DeleteWalletMetadataKeyResponse) {
+    option (google.api.http) = {delete: "/v1/wallets/{wallet_id}/metadata/{key}"};
+    option (tanvo.common.v1.access) = {
+      permission: "wallets:update"
+      api_resource: "wallet"
+    };
+  }
 }
 
 // WalletStatus is the state of a wallet.
@@ -318,6 +362,19 @@ message RecurringTransactionRule {
       string: {max_len: 64}
     }
   }];
+  // The purchase order number of the transactions created; the wallet's
+  // when unset.
+  string purchase_order_number = 22 [(buf.validate.field).string.max_len = 255];
+  // The transactions created print no invoice custom sections.
+  bool skip_invoice_custom_sections = 23;
+  // The invoice custom sections (IDs or `code:<code>`) the transactions created take; the wallet's when empty.
+  repeated string invoice_custom_section_ids = 24 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
 }
 
 // Wallet holds prepaid credits of a customer.
@@ -411,8 +468,8 @@ message Wallet {
   tanvo.common.v1.PaymentMethodType payment_method_type = 25 [(buf.validate.field).enum.defined_only = true];
   // The payment method, for PROVIDER.
   string payment_method_id = 26 [(buf.validate.field).string.uuid = true];
-  // Metadata: at most 15 items.
-  repeated tanvo.common.v1.MetadataItem metadata = 27 [(buf.validate.field).repeated.max_items = 15];
+  // Metadata: at most 50 items.
+  repeated tanvo.common.v1.MetadataItem metadata = 27 [(buf.validate.field).repeated.max_items = 50];
   // The recurring top-up rules; on create only, then managed with
   // ReplaceRecurringTransactionRules.
   repeated RecurringTransactionRule recurring_transaction_rules = 28 [(buf.validate.field).repeated.max_items = 5];
@@ -444,6 +501,40 @@ message Wallet {
     max_pairs: 16
     keys: {
       string: {max_len: 64}
+    }
+  }];
+  // The purchase order number of its transactions and rules.
+  string purchase_order_number = 38 [(buf.validate.field).string.max_len = 255];
+  // The name of the initial top-up; on create only.
+  string transaction_name = 39 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.max_len = 255
+  ];
+  // The consumption priority of the initial top-up, from 1 to 50; on
+  // create only.
+  int32 transaction_priority = 40 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).int32 = {
+      gte: 1
+      lte: 50
+    }
+  ];
+  // The metadata of the initial top-up, at most 15 items; on create only.
+  repeated tanvo.common.v1.MetadataItem transaction_metadata = 41 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).repeated.max_items = 15
+  ];
+  // Lets the initial purchase ignore the paid top-up minimum and maximum;
+  // on create only.
+  bool ignore_paid_top_up_limits_on_creation = 42 [(google.api.field_behavior) = INPUT_ONLY];
+  // The credit invoices print no invoice custom sections.
+  bool skip_invoice_custom_sections = 43;
+  // The invoice custom sections (IDs or `code:<code>`) of the credit invoices; the customer's when empty.
+  repeated string invoice_custom_section_ids = 44 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
     }
   }];
 }
@@ -496,6 +587,24 @@ message WalletTransaction {
   google.protobuf.Timestamp failed_at = 18;
   // When it was created.
   google.protobuf.Timestamp created_at = 19;
+  // The purchase order number: its own, else the wallet's.
+  string purchase_order_number = 20;
+  // The voided invoice a recredit gave the credits back for.
+  string voided_invoice_id = 21;
+  // Its credit invoice prints no invoice custom sections.
+  bool skip_invoice_custom_sections = 22;
+  // The invoice custom sections of its credit invoice; the wallet's when
+  // empty.
+  repeated string invoice_custom_section_ids = 23;
+  // The payment method kind of its credit invoice.
+  tanvo.common.v1.PaymentMethodType payment_method_type = 24;
+  // The payment method of its credit invoice.
+  string payment_method_id = 25;
+  // The amount of remaining_credit_amount.
+  tanvo.common.v1.Money remaining_amount = 26;
+  // The billing entity of its credit invoice: the one snapshotted when it
+  // was created, else the wallet's.
+  string billing_entity_id = 27;
 }
 
 // WalletTransactionConsumption links an outbound transaction to the
@@ -614,8 +723,8 @@ message TerminateWalletResponse {
 message CreateWalletTransactionRequest {
   option (buf.validate.message).cel = {
     id: "transaction.credits"
-    message: "set paid_credits, granted_credits or voided_credits"
-    expression: "has(this.paid_credits) || has(this.granted_credits) || has(this.voided_credits)"
+    message: "set paid_credits, granted_credits, voided_credits or voided_transaction_id"
+    expression: "has(this.paid_credits) || has(this.granted_credits) || has(this.voided_credits) || has(this.voided_transaction_id)"
   };
 
   // The wallet's ID.
@@ -643,6 +752,26 @@ message CreateWalletTransactionRequest {
   tanvo.common.v1.PaymentMethodType payment_method_type = 9 [(buf.validate.field).enum.defined_only = true];
   // The payment method, for PROVIDER.
   string payment_method_id = 10 [(buf.validate.field).string.uuid = true];
+  // The inbound transaction of a traceable wallet to void from; without
+  // voided_credits its whole remaining amount is voided.
+  string voided_transaction_id = 11 [(buf.validate.field).string.uuid = true];
+  // The consumption priority, from 1 to 50; the wallet's by default.
+  int32 priority = 12 [(buf.validate.field).int32 = {
+    gte: 1
+    lte: 50
+  }];
+  // The purchase order number; the wallet's when unset.
+  string purchase_order_number = 13 [(buf.validate.field).string.max_len = 255];
+  // The credit invoice prints no invoice custom sections.
+  bool skip_invoice_custom_sections = 14;
+  // The invoice custom sections (IDs or `code:<code>`) of the credit invoice; the wallet's when empty.
+  repeated string invoice_custom_section_ids = 15 [(buf.validate.field).repeated = {
+    unique: true
+    max_items: 50
+    items: {
+      string: {[tanvo.common.v1.ref]: true}
+    }
+  }];
 }
 
 // CreateWalletTransactionResponse is the response of WalletService.CreateWalletTransaction.
@@ -790,4 +919,77 @@ message TerminateRecurringTransactionRuleRequest {
 message TerminateRecurringTransactionRuleResponse {
   // The terminated rule.
   RecurringTransactionRule recurring_transaction_rule = 1;
+}
+
+// ReplaceWalletMetadataRequest is the request of ReplaceWalletMetadata.
+message ReplaceWalletMetadataRequest {
+  // The wallet's ID.
+  string wallet_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The new metadata; empty clears it.
+  repeated tanvo.common.v1.MetadataItem metadata = 2 [(buf.validate.field).repeated.max_items = 50];
+}
+
+// MergeWalletMetadataRequest is the request of MergeWalletMetadata.
+message MergeWalletMetadataRequest {
+  // The wallet's ID.
+  string wallet_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The items to merge.
+  repeated tanvo.common.v1.MetadataItem metadata = 2 [(buf.validate.field).repeated.max_items = 50];
+}
+
+// DeleteWalletMetadataRequest is the request of DeleteWalletMetadata.
+message DeleteWalletMetadataRequest {
+  // The wallet's ID.
+  string wallet_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+}
+
+// DeleteWalletMetadataKeyRequest is the request of DeleteWalletMetadataKey.
+message DeleteWalletMetadataKeyRequest {
+  // The wallet's ID.
+  string wallet_id = 1 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true,
+    (buf.validate.field).string.uuid = true
+  ];
+  // The key to remove.
+  string key = 2 [
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).required = true
+  ];
+}
+
+// ReplaceWalletMetadataResponse is the response of ReplaceWalletMetadata.
+message ReplaceWalletMetadataResponse {
+  // The wallet's metadata after the change.
+  repeated tanvo.common.v1.MetadataItem metadata = 1;
+}
+
+// MergeWalletMetadataResponse is the response of MergeWalletMetadata.
+message MergeWalletMetadataResponse {
+  // The wallet's metadata after the change.
+  repeated tanvo.common.v1.MetadataItem metadata = 1;
+}
+
+// DeleteWalletMetadataResponse is the response of DeleteWalletMetadata.
+message DeleteWalletMetadataResponse {
+  // The wallet's metadata after the change.
+  repeated tanvo.common.v1.MetadataItem metadata = 1;
+}
+
+// DeleteWalletMetadataKeyResponse is the response of DeleteWalletMetadataKey.
+message DeleteWalletMetadataKeyResponse {
+  // The wallet's metadata after the change.
+  repeated tanvo.common.v1.MetadataItem metadata = 1;
 }

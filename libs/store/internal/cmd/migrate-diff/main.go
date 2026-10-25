@@ -9,6 +9,10 @@
 //   - row-level security (ENABLE ROW LEVEL SECURITY and policies), which
 //     the open-source Atlas planner does not handle, by comparing
 //     pg_class.relrowsecurity and pg_policies;
+//   - views, which the open-source Atlas planner does not handle either, by
+//     comparing their pg_get_viewdef and options: a view that changed, or
+//     reads a table whose planned change it would block, is dropped before
+//     the table changes and created after them;
 //   - check constraints whose expression changed and foreign keys the
 //     planner cannot express (such as ON DELETE SET NULL (column)): the
 //     plan is applied to a replay of the directory and the checks and
@@ -135,11 +139,15 @@ func run() error {
 	if err := replay(ctx, replayed, dir); err != nil {
 		return err
 	}
+	viewDrops, viewCreates, err := diffViews(ctx, replayed, desired, plan)
+	if err != nil {
+		return err
+	}
 	rls, err := diffRLS(ctx, replayed, desired)
 	if err != nil {
 		return err
 	}
-	plan.Changes = append(plan.Changes, rls...)
+	plan.Changes = slices.Concat(viewDrops, plan.Changes, rls, viewCreates)
 	// The Atlas planner misses some changes, such as a new expression of an
 	// existing check constraint or a column list on ON DELETE SET NULL. The
 	// plan is applied to the replayed database and what still differs from

@@ -68,8 +68,11 @@ service EventService {
     };
   }
 
-  // Lists enriched events: events resolved to their subscription, charge
-  // and filter, with the computed value.
+  // Lists enriched events, latest enriched first: the stored events with
+  // the value enrichment gave them. Beta (response header
+  // `X-Tanvo-Endpoint-Status: beta`); only organizations ingesting through
+  // Kafka store enriched events, others get PermissionDenied with reason
+  // `endpoint_not_available`.
   rpc ListEnrichedEvents(ListEnrichedEventsRequest) returns (ListEnrichedEventsResponse) {
     option idempotency_level = NO_SIDE_EFFECTS;
     option (google.api.http) = {get: "/v1/enriched_events"};
@@ -104,16 +107,6 @@ service EventService {
       api_resource: "event"
     };
   }
-}
-
-// EnrichedOperation is how an enriched event changes a recurring aggregation.
-enum EnrichedOperation {
-  // Not set.
-  ENRICHED_OPERATION_UNSPECIFIED = 0;
-  // Adds the value.
-  ENRICHED_OPERATION_ADD = 1;
-  // Removes the value.
-  ENRICHED_OPERATION_REMOVE = 2;
 }
 
 // Event is a usage event.
@@ -164,37 +157,32 @@ message Event {
   google.protobuf.Timestamp created_at = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
 }
 
-// EnrichedEvent is an event resolved to a charge.
+// EnrichedEvent is a stored event with the value enrichment gave it.
 message EnrichedEvent {
+  reserved 4 to 9, 12, 14;
+  reserved subscription_id, plan_id, charge_id, charge_filter_id, billable_metric_id, grouped_by, operation, target_wallet_code;
+
   // The event's transaction ID.
   string transaction_id = 1;
+  // The external ID of the event's subscription.
+  string external_subscription_id = 15;
   // The event's code.
   string code = 2;
   // When the usage happened.
   google.protobuf.Timestamp timestamp = 3;
-  // The subscription.
-  string subscription_id = 4;
-  // The plan.
-  string plan_id = 5;
-  // The charge.
-  string charge_id = 6;
-  // The charge filter, when one matched.
-  string charge_filter_id = 7;
-  // The billable metric.
-  string billable_metric_id = 8;
-  // The grouping values of the charge.
-  map<string, string> grouped_by = 9;
-  // The aggregated value, after the metric's expression and rounding.
-  string value = 10;
-  // The decimal value of the dynamic charge amount.
-  string precise_total_amount = 11;
-  // The operation on recurring aggregations.
-  EnrichedOperation operation = 12;
   // When the event was enriched.
   google.protobuf.Timestamp enriched_at = 13;
-  // The code of the wallet that pays the event's usage, when the charge
-  // accepts a target wallet and the event names one.
-  string target_wallet_code = 14;
+  // The value the event brings to its metric: "1" for count metrics, the
+  // metric's field_name property otherwise ("0" when it is missing); unset
+  // when no metric has the code.
+  string value = 10;
+  // The value as a decimal, 0 when it is not a number; unset with no value.
+  string decimal_value = 16;
+  // The decimal value of the dynamic charge amount.
+  string precise_total_amount = 11;
+  // The event properties, with the expression's result under the metric's
+  // field name.
+  map<string, string> properties = 17;
 }
 
 // EventResult is the outcome of ingesting one event of a batch.
@@ -334,9 +322,13 @@ message ListEnrichedEventsRequest {
   }];
   // The next_page_token of the previous page.
   string page_token = 2 [(buf.validate.field).string.max_len = 1024];
-  // An AIP-160 filter over `code`, `subscription_id`, `charge_id`,
-  // `charge_filter_id`, `transaction_id` and `timestamp`.
+  // An AIP-160 filter over `code`, `external_subscription_id` and
+  // `timestamp`.
   string filter = 3 [(buf.validate.field).string.max_len = 2048];
+  // Lists the events from the start of the latest subscription with the
+  // filter's `external_subscription_id`, in place of a lower `timestamp`
+  // bound; without that subscription, the filter applies as is.
+  bool timestamp_from_started_at = 4;
 }
 
 // ListEnrichedEventsResponse is the response of EventService.ListEnrichedEvents.

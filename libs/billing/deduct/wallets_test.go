@@ -378,6 +378,9 @@ func TestApplyPrepaidCredits(t *testing.T) {
 				eq(t, "type", tx.TransactionType, wallet.TransactionTypeOutbound)
 				eq(t, "status", tx.TransactionStatus, wallet.TransactionStatusInvoiced)
 				eqDec(t, "credit amount", tx.CreditAmount, kernelCredits(tx.Amount))
+				// The customer's entity, the wallets having none
+				// (wallet_transactions/create_service.rb:64-66).
+				eq(t, "billing entity", tx.BillingEntityID, sc.f.h.BillingEntity.ID)
 			}
 			for name, w := range sc.wallets {
 				got := sc.f.h.ReloadWallet(w.ID)

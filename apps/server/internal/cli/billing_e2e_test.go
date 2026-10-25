@@ -124,13 +124,13 @@ func TestServeBilling(t *testing.T) {
 		}
 	}
 	// The jobs of the invoices: a payment and a document each, the
-	// payments completed without a provider and the documents cancelled
-	// until libs/documents is wired.
+	// payments completed without a provider and the documents completed
+	// without a blob store (nothing is rendered).
 	for _, tt := range []struct {
 		kind, state string
 	}{
 		{"payments.create_invoice_payment", "completed"},
-		{"documents.generate_invoice", "cancelled"},
+		{"documents.generate_invoice", "completed"},
 		{"billing.create_in_advance_charge_fees", "completed"},
 	} {
 		err := dockertest.Wait(ctx, 30*time.Second, func(ctx context.Context) error {

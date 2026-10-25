@@ -484,9 +484,9 @@ func (e *Engine) RefreshLifetimeUsages(ctx context.Context, org core.Organizatio
 // every customer of org flagged as awaiting it that has an active wallet
 // (lago Clock::RefreshWalletsOngoingBalanceJob,
 // app/jobs/clock/refresh_wallets_ongoing_balance_job.rb:10,
-// Customer.with_active_wallets.awaiting_wallet_refresh) and returns the
-// number of customers. Lago also leaves out the customers with a tax error
-// detail (without_tax_errors); Tanvo records no error details yet.
+// Customer.with_active_wallets.awaiting_wallet_refresh.without_tax_errors)
+// and returns the number of customers: the customers with a tax_error
+// detail are left out.
 func (e *Engine) RefreshOngoingBalances(ctx context.Context, org core.OrganizationID) (int, error) {
 	n := 0
 	err := e.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {

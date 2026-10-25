@@ -59,8 +59,12 @@ type UpdateInput struct {
 	BillFixedChargesMonthly core.Optional[*bool]
 	// Taxes replace the plan's taxes; an empty list removes them.
 	Taxes core.Optional[[]refs.Ref]
-	// Metadata replaces the plan's metadata.
+	// Metadata replaces the plan's metadata, or with MergeMetadata is
+	// merged into it key by key.
 	Metadata core.Optional[core.Metadata]
+	// MergeMetadata merges Metadata into the plan's metadata instead of
+	// replacing it (lago Plans::UpdateService partial_metadata).
+	MergeMetadata bool
 	// Charges replace the plan's charges: an input with the ID of a charge
 	// of the plan updates it, one without creates a charge, and the
 	// charges left out are removed.
@@ -156,10 +160,16 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.P
 				return &core.ValidationError{Errors: errs}
 			}
 		}
+		if in.Metadata.Set {
+			if in.MergeMetadata {
+				p.Metadata = p.Metadata.Merge(in.Metadata.Value)
+			} else {
+				p.Metadata = in.Metadata.Value.Clone()
+			}
+		}
 		if err := validatePlan(ctx, r, p); err != nil {
 			return err
 		}
-		in.Metadata.Apply(&p.Metadata)
 		if in.Taxes.Set {
 			ids, err := refs.Taxes(r, org).IDs(ctx, in.Taxes.Value)
 			if err != nil {

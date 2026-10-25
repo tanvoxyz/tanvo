@@ -52,47 +52,54 @@ type Filter struct {
 	// Months keeps the last Months months, the current one included; 0
 	// keeps every month since the organization's creation.
 	Months int
+	// ExpireCache recomputes the customer's cached reports of this kind
+	// before answering; it does nothing without Customer (lago
+	// expire_cache, app/models/analytics/base.rb:10-12).
+	ExpireCache bool
 }
 
 // Service computes the analytics reports.
-type Service struct{ d *kernel.Deps }
+type Service struct {
+	d     *kernel.Deps
+	cache *Cache
+}
 
 // New returns the service over d.
 func New(d *kernel.Deps) *Service { return &Service{d: d} }
 
 // GrossRevenue returns the gross revenue by month and currency.
 func (s *Service) GrossRevenue(ctx context.Context, org core.OrganizationID, f Filter) ([]analytics.Revenue, error) {
-	return report(ctx, s, org, f, true, analytics.Repository.GrossRevenue)
+	return report(ctx, s, "gross-revenue", org, f, true, analytics.Repository.GrossRevenue)
 }
 
 // MRR returns the monthly recurring revenue by month and currency; a month
 // without revenue has no currency nor amount.
 func (s *Service) MRR(ctx context.Context, org core.OrganizationID, f Filter) ([]analytics.Revenue, error) {
-	return report(ctx, s, org, f, false, analytics.Repository.MRR)
+	return report(ctx, s, "mrr", org, f, false, analytics.Repository.MRR)
 }
 
 // InvoiceCollection returns the finalized invoices by month, currency and
 // payment status; a month without invoices has no currency nor status.
 func (s *Service) InvoiceCollection(ctx context.Context, org core.OrganizationID, f Filter) ([]analytics.Collection, error) {
-	return report(ctx, s, org, f, true, analytics.Repository.InvoiceCollection)
+	return report(ctx, s, "invoice-collection", org, f, true, analytics.Repository.InvoiceCollection)
 }
 
 // InvoicedUsage returns the usage invoiced by month and billable metric.
 func (s *Service) InvoicedUsage(ctx context.Context, org core.OrganizationID, f Filter) ([]analytics.Usage, error) {
-	return report(ctx, s, org, f, false, analytics.Repository.InvoicedUsage)
+	return report(ctx, s, "invoiced-usage", org, f, false, analytics.Repository.InvoicedUsage)
 }
 
 // OverdueBalance returns the overdue balance by payment due month and
 // currency.
 func (s *Service) OverdueBalance(ctx context.Context, org core.OrganizationID, f Filter) ([]analytics.Overdue, error) {
-	return report(ctx, s, org, f, true, analytics.Repository.OverdueBalance)
+	return report(ctx, s, "overdue-balance", org, f, true, analytics.Repository.OverdueBalance)
 }
 
-// report validates f, resolves its references and runs fn. A customer that
-// does not exist, or is deleted, gives an empty report, as a filter that
-// matches nothing.
+// report validates f, resolves its references and runs fn, or reuses the
+// report of kind the cache keeps. A customer that does not exist, or is
+// deleted, gives an empty report, as a filter that matches nothing.
 func report[T any](
-	ctx context.Context, s *Service, org core.OrganizationID, f Filter, byCustomer bool,
+	ctx context.Context, s *Service, kind string, org core.OrganizationID, f Filter, byCustomer bool,
 	fn func(analytics.Repository, context.Context, core.OrganizationID, analytics.Scope) ([]T, error),
 ) ([]T, error) {
 	var v core.Validator
@@ -118,7 +125,7 @@ func report[T any](
 			}
 			scope.CustomerID = id
 		}
-		rows, err := fn(r.Analytics, ctx, org, scope)
+		rows, err := cached(s.cache, kind, org, scope, f.ExpireCache, func() ([]T, error) { return fn(r.Analytics, ctx, org, scope) })
 		if err != nil {
 			return fmt.Errorf("analytics: %w", err)
 		}

@@ -25,6 +25,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/payment"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
+	"github.com/tanvoxyz/tanvo/libs/documents"
 	"github.com/tanvoxyz/tanvo/libs/jobs"
 	"github.com/tanvoxyz/tanvo/libs/mail"
 	"github.com/tanvoxyz/tanvo/libs/webhooks"
@@ -93,7 +94,13 @@ func newPayments(cfg config.Config, tx port.Transactor, clock core.Clock, log *s
 		ActivityLogs: auditlog.NewActivityProducer(clock, core.UUIDv7Generator{}, rpc.ActivityActor),
 		Transient:    retriedByBillingRetry,
 	}
-	svc := payments.New(deps).WithProviders(p)
+	// Customers paying by bank transfer get their funding instructions
+	// printed on invoices.
+	funding, err := documents.NewFundingFormatter()
+	if err != nil {
+		return nil, fmt.Errorf("payments: %w", err)
+	}
+	svc := payments.New(deps).WithProviders(p).WithFundingFormatter(funding)
 	sources := map[string]webhooks.Source{}
 	for _, pr := range paymentProviders() {
 		sources[string(pr)] = paymentSource{svc: svc, provider: pr}
@@ -154,7 +161,9 @@ type paymentJobs struct {
 	billing  billingJobs
 	composer *mail.Composer
 	sender   mail.Sender
-	log      *slog.Logger
+	// docs links the invoice PDFs of the payment request emails.
+	docs *docs
+	log  *slog.Logger
 }
 
 // paymentRetry are the retry rules of the payment kinds: the store's
@@ -286,6 +295,8 @@ func (p paymentJobs) runKind(ctx context.Context, j *jobs.Job[json.RawMessage]) 
 		return runWith(j, func(a kernel.InvoiceArgs) error { return svc.UpdatePaymentReference(ctx, org, a) })
 	case kernel.JobCancelPayment:
 		return runWith(j, func(a kernel.PaymentArgs) error { return svc.CancelPayment(ctx, org, a) })
+	case kernel.JobCancelAuthorization:
+		return runWith(j, func(a kernel.AuthorizationArgs) error { return svc.CancelAuthorization(ctx, org, a) })
 	}
 	return jobs.Permanent(fmt.Errorf("payments: kind %s: %w", j.Kind, core.ErrNotFound))
 }
@@ -303,8 +314,9 @@ func runWith[A any](j *jobs.Job[json.RawMessage], f func(A) error) error {
 }
 
 // sendRequestEmail sends the email of a payment request (lago
-// PaymentRequestMailer#requested). No blob store is wired yet, so the
-// invoice numbers are shown without links to their PDFs.
+// PaymentRequestMailer#requested): the invoices' missing PDFs are
+// rendered first and linked (payment_request_mailer.rb:36-40,
+// requested.slim:39).
 func (p paymentJobs) sendRequestEmail(ctx context.Context, org core.OrganizationID, a kernel.PaymentRequestArgs) error {
 	e, err := p.w.svc.RequestEmailData(ctx, org, a)
 	if err != nil || e == nil {
@@ -316,7 +328,13 @@ func (p paymentJobs) sendRequestEmail(ctx context.Context, org core.Organization
 		NetPaymentTermDays: e.NetPaymentTermDays, PaymentURL: e.PaymentURL,
 	}
 	for _, inv := range e.Invoices {
-		in.Invoices = append(in.Invoices, mail.ReceiptInvoice{Number: inv.Number, Currency: in.Currency, TotalDueAmount: inv.TotalDueAmount})
+		ri := mail.ReceiptInvoice{Number: inv.Number, Currency: in.Currency, TotalDueAmount: inv.TotalDueAmount}
+		if p.docs != nil {
+			if ri.FileURL, err = p.docs.InvoiceLink(ctx, org, inv.ID); err != nil {
+				return err
+			}
+		}
+		in.Invoices = append(in.Invoices, ri)
 	}
 	m, err := p.composer.PaymentRequestRequested(in)
 	if errors.Is(err, mail.ErrSkipped) {

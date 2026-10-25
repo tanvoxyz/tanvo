@@ -65,13 +65,16 @@ WHERE organization_id = @organization_id AND billable_metric_id = @billable_metr
 ORDER BY id;
 
 -- name: ListAlerts :many
+-- Newest first, then by id (alerts_query.rb:9-10); the cursor is (@after_at, @after).
 SELECT * FROM alerts
 WHERE organization_id = @organization_id AND deleted_at IS NULL
   AND (sqlc.narg(subscription_external_id)::text IS NULL OR subscription_external_id = sqlc.narg(subscription_external_id))
   AND (sqlc.narg(wallet_id)::uuid IS NULL OR wallet_id = sqlc.narg(wallet_id))
   AND (cardinality(@alert_types::text[]) = 0 OR alert_type = ANY(@alert_types::text[]))
-  AND (sqlc.narg(after)::uuid IS NULL OR id > sqlc.narg(after))
-ORDER BY id
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR created_at < sqlc.narg(after_at)::timestamptz
+       OR (created_at = sqlc.narg(after_at)::timestamptz AND id > sqlc.narg(after)))
+ORDER BY created_at DESC, id
 LIMIT @lim;
 
 -- name: DiscardAlert :execrows

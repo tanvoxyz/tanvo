@@ -66,6 +66,8 @@ type RecurringTransactionRule struct {
 	PaymentMethodType core.PaymentMethodType
 	// PaymentMethodID is the payment method of the credit invoices.
 	PaymentMethodID core.PaymentMethodID
+	// InvoiceCustomSections are the invoice custom sections copied to its top-up transactions when set.
+	InvoiceCustomSections CustomSections
 	// TerminatedAt is set once terminated.
 	TerminatedAt *time.Time
 	// CreatedAt is the creation instant.

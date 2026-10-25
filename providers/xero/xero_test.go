@@ -541,3 +541,21 @@ func TestNotConnected(t *testing.T) {
 		t.Errorf("error = %v, want = ErrNotConnected", err)
 	}
 }
+
+func TestDailyLimit(t *testing.T) {
+	// lago config/initializers/throttling.rb: 5000 Xero calls a day; a call
+	// over the quota is a request limit until the next UTC day.
+	s := apiclienttest.New(t, map[string][]apiclienttest.Reply{"GET /api.xro/2.0/Items": {
+		{Status: 200, Body: `{"Items":[]}`},
+	}})
+	g := New(WithRateLimit(0, 0), WithDailyLimit(1), WithBaseURLs(s.URL, s.URL, s.URL), WithClock(func() time.Time { return now }),
+		WithOAuthClient(OAuthClient{ClientID: "cid", ClientSecret: "csecret"}))
+	if _, err := g.FetchItems(context.Background(), live()); err != nil {
+		t.Fatalf("first FetchItems() error got = %v, want = nil", err)
+	}
+	_, err := g.FetchItems(context.Background(), live())
+	pe, ok := integration.AsProviderError(err)
+	if !ok || pe.Kind != integration.KindRequestLimit || pe.RetryAfter != 12*time.Hour {
+		t.Errorf("second FetchItems() error got = %v, want = request limit retried after 12h", err)
+	}
+}

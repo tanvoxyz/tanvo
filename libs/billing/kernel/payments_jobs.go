@@ -54,6 +54,10 @@ const (
 	// JobCancelPayment cancels a pending or processing payment at its
 	// provider (args [PaymentArgs]; lago PaymentProviders::CancelPaymentJob).
 	JobCancelPayment = "payments.cancel_payment"
+	// JobCancelAuthorization releases a pre-authorization hold at its
+	// provider (args [AuthorizationArgs]; lago
+	// PaymentProviders::CancelPaymentAuthorizationJob).
+	JobCancelAuthorization = "payments.cancel_authorization"
 )
 
 // PaymentJobKinds returns the kinds of the payments orchestration,
@@ -63,6 +67,7 @@ func PaymentJobKinds() []string {
 		JobCreateInvoicePayment, JobCreateRequestPayment, JobSendPaymentRequestEmail, JobSyncProviderCustomer,
 		JobSetPaymentMethod, JobExpireCheckout, JobCancelAbandonedPayments, JobCancelAbandonedPayment,
 		JobRegisterProviderWebhook, JobExpireConnectionCheckouts, JobUpdatePaymentReference, JobCancelPayment,
+		JobCancelAuthorization,
 	}
 }
 
@@ -90,6 +95,10 @@ type ProviderCustomerArgs struct {
 	// FetchMethod records the provider customer's default payment method
 	// instead of creating it (lago FetchDefaultPaymentMethodJob).
 	FetchMethod bool `json:"fetch_method,omitempty"`
+	// Funding gives the customer the invoice section printing its bank
+	// transfer funding instructions instead of creating it (lago
+	// StripeSyncFundingInstructionsJob).
+	Funding bool `json:"funding,omitempty"`
 }
 
 // PaymentMethodArgs are the args of [JobSetPaymentMethod].
@@ -116,6 +125,14 @@ type PaymentArgs struct {
 	PaymentID core.PaymentID `json:"payment_id"`
 }
 
+// AuthorizationArgs are the args of jobs about one pre-authorization.
+type AuthorizationArgs struct {
+	// IntegrationID is the connection that placed the hold.
+	IntegrationID core.IntegrationID `json:"integration_id"`
+	// ProviderPaymentID is the provider's payment holding the amount.
+	ProviderPaymentID string `json:"provider_payment_id"`
+}
+
 // IntegrationArgs are the args of jobs about one connection.
 type IntegrationArgs struct {
 	// IntegrationID is the connection.
@@ -140,6 +157,13 @@ func EnqueueUpdatePaymentReference(ctx context.Context, r port.Repos, org core.O
 // subscriptions/activation_rules/cancel_service.rb:81-88).
 func EnqueueCancelPayment(ctx context.Context, r port.Repos, org core.OrganizationID, id core.PaymentID) error {
 	return Enqueue(ctx, r, org, JobCancelPayment, PaymentArgs{PaymentID: id}, "payment:"+id.String()+":cancel", time.Time{})
+}
+
+// EnqueueCancelAuthorization enqueues, in the transaction of r, the
+// release of the pre-authorization args (lago
+// payment_providers/stripe/payments/authorize_service.rb:37-42).
+func EnqueueCancelAuthorization(ctx context.Context, r port.Repos, org core.OrganizationID, args AuthorizationArgs) error {
+	return Enqueue(ctx, r, org, JobCancelAuthorization, args, "authorization:"+args.IntegrationID.String()+":"+args.ProviderPaymentID+":cancel", time.Time{})
 }
 
 // EnqueuePaymentConnectionCreated enqueues, in the transaction of r, the

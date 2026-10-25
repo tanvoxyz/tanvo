@@ -31,54 +31,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// EnrichedOperation is how an enriched event changes a recurring aggregation.
-type EnrichedOperation int32
-
-const (
-	// Not set.
-	EnrichedOperation_ENRICHED_OPERATION_UNSPECIFIED EnrichedOperation = 0
-	// Adds the value.
-	EnrichedOperation_ENRICHED_OPERATION_ADD EnrichedOperation = 1
-	// Removes the value.
-	EnrichedOperation_ENRICHED_OPERATION_REMOVE EnrichedOperation = 2
-)
-
-// Enum value maps for EnrichedOperation.
-var (
-	EnrichedOperation_name = map[int32]string{
-		0: "ENRICHED_OPERATION_UNSPECIFIED",
-		1: "ENRICHED_OPERATION_ADD",
-		2: "ENRICHED_OPERATION_REMOVE",
-	}
-	EnrichedOperation_value = map[string]int32{
-		"ENRICHED_OPERATION_UNSPECIFIED": 0,
-		"ENRICHED_OPERATION_ADD":         1,
-		"ENRICHED_OPERATION_REMOVE":      2,
-	}
-)
-
-func (x EnrichedOperation) Enum() *EnrichedOperation {
-	p := new(EnrichedOperation)
-	*p = x
-	return p
-}
-
-func (x EnrichedOperation) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (EnrichedOperation) Descriptor() protoreflect.EnumDescriptor {
-	return file_tanvo_event_v1_event_proto_enumTypes[0].Descriptor()
-}
-
-func (EnrichedOperation) Type() protoreflect.EnumType {
-	return &file_tanvo_event_v1_event_proto_enumTypes[0]
-}
-
-func (x EnrichedOperation) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
 // Event is a usage event.
 type Event struct {
 	state                             protoimpl.MessageState `protogen:"opaque.v1"`
@@ -478,27 +430,22 @@ func (b0 Event_builder) Build() *Event {
 	return m0
 }
 
-// EnrichedEvent is an event resolved to a charge.
+// EnrichedEvent is a stored event with the value enrichment gave it.
 type EnrichedEvent struct {
-	state                         protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_TransactionId      *string                `protobuf:"bytes,1,opt,name=transaction_id,json=transactionId"`
-	xxx_hidden_Code               *string                `protobuf:"bytes,2,opt,name=code"`
-	xxx_hidden_Timestamp          *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp"`
-	xxx_hidden_SubscriptionId     *string                `protobuf:"bytes,4,opt,name=subscription_id,json=subscriptionId"`
-	xxx_hidden_PlanId             *string                `protobuf:"bytes,5,opt,name=plan_id,json=planId"`
-	xxx_hidden_ChargeId           *string                `protobuf:"bytes,6,opt,name=charge_id,json=chargeId"`
-	xxx_hidden_ChargeFilterId     *string                `protobuf:"bytes,7,opt,name=charge_filter_id,json=chargeFilterId"`
-	xxx_hidden_BillableMetricId   *string                `protobuf:"bytes,8,opt,name=billable_metric_id,json=billableMetricId"`
-	xxx_hidden_GroupedBy          map[string]string      `protobuf:"bytes,9,rep,name=grouped_by,json=groupedBy" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	xxx_hidden_Value              *string                `protobuf:"bytes,10,opt,name=value"`
-	xxx_hidden_PreciseTotalAmount *string                `protobuf:"bytes,11,opt,name=precise_total_amount,json=preciseTotalAmount"`
-	xxx_hidden_Operation          EnrichedOperation      `protobuf:"varint,12,opt,name=operation,enum=tanvo.event.v1.EnrichedOperation"`
-	xxx_hidden_EnrichedAt         *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=enriched_at,json=enrichedAt"`
-	xxx_hidden_TargetWalletCode   *string                `protobuf:"bytes,14,opt,name=target_wallet_code,json=targetWalletCode"`
-	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
-	XXX_presence                  [1]uint32
-	unknownFields                 protoimpl.UnknownFields
-	sizeCache                     protoimpl.SizeCache
+	state                             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_TransactionId          *string                `protobuf:"bytes,1,opt,name=transaction_id,json=transactionId"`
+	xxx_hidden_ExternalSubscriptionId *string                `protobuf:"bytes,15,opt,name=external_subscription_id,json=externalSubscriptionId"`
+	xxx_hidden_Code                   *string                `protobuf:"bytes,2,opt,name=code"`
+	xxx_hidden_Timestamp              *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=timestamp"`
+	xxx_hidden_EnrichedAt             *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=enriched_at,json=enrichedAt"`
+	xxx_hidden_Value                  *string                `protobuf:"bytes,10,opt,name=value"`
+	xxx_hidden_DecimalValue           *string                `protobuf:"bytes,16,opt,name=decimal_value,json=decimalValue"`
+	xxx_hidden_PreciseTotalAmount     *string                `protobuf:"bytes,11,opt,name=precise_total_amount,json=preciseTotalAmount"`
+	xxx_hidden_Properties             map[string]string      `protobuf:"bytes,17,rep,name=properties" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
+	XXX_presence                      [1]uint32
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *EnrichedEvent) Reset() {
@@ -536,6 +483,16 @@ func (x *EnrichedEvent) GetTransactionId() string {
 	return ""
 }
 
+func (x *EnrichedEvent) GetExternalSubscriptionId() string {
+	if x != nil {
+		if x.xxx_hidden_ExternalSubscriptionId != nil {
+			return *x.xxx_hidden_ExternalSubscriptionId
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *EnrichedEvent) GetCode() string {
 	if x != nil {
 		if x.xxx_hidden_Code != nil {
@@ -553,59 +510,9 @@ func (x *EnrichedEvent) GetTimestamp() *timestamppb.Timestamp {
 	return nil
 }
 
-func (x *EnrichedEvent) GetSubscriptionId() string {
+func (x *EnrichedEvent) GetEnrichedAt() *timestamppb.Timestamp {
 	if x != nil {
-		if x.xxx_hidden_SubscriptionId != nil {
-			return *x.xxx_hidden_SubscriptionId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *EnrichedEvent) GetPlanId() string {
-	if x != nil {
-		if x.xxx_hidden_PlanId != nil {
-			return *x.xxx_hidden_PlanId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *EnrichedEvent) GetChargeId() string {
-	if x != nil {
-		if x.xxx_hidden_ChargeId != nil {
-			return *x.xxx_hidden_ChargeId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *EnrichedEvent) GetChargeFilterId() string {
-	if x != nil {
-		if x.xxx_hidden_ChargeFilterId != nil {
-			return *x.xxx_hidden_ChargeFilterId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *EnrichedEvent) GetBillableMetricId() string {
-	if x != nil {
-		if x.xxx_hidden_BillableMetricId != nil {
-			return *x.xxx_hidden_BillableMetricId
-		}
-		return ""
-	}
-	return ""
-}
-
-func (x *EnrichedEvent) GetGroupedBy() map[string]string {
-	if x != nil {
-		return x.xxx_hidden_GroupedBy
+		return x.xxx_hidden_EnrichedAt
 	}
 	return nil
 }
@@ -614,6 +521,16 @@ func (x *EnrichedEvent) GetValue() string {
 	if x != nil {
 		if x.xxx_hidden_Value != nil {
 			return *x.xxx_hidden_Value
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *EnrichedEvent) GetDecimalValue() string {
+	if x != nil {
+		if x.xxx_hidden_DecimalValue != nil {
+			return *x.xxx_hidden_DecimalValue
 		}
 		return ""
 	}
@@ -630,97 +547,53 @@ func (x *EnrichedEvent) GetPreciseTotalAmount() string {
 	return ""
 }
 
-func (x *EnrichedEvent) GetOperation() EnrichedOperation {
+func (x *EnrichedEvent) GetProperties() map[string]string {
 	if x != nil {
-		if protoimpl.X.Present(&(x.XXX_presence[0]), 11) {
-			return x.xxx_hidden_Operation
-		}
-	}
-	return EnrichedOperation_ENRICHED_OPERATION_UNSPECIFIED
-}
-
-func (x *EnrichedEvent) GetEnrichedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.xxx_hidden_EnrichedAt
+		return x.xxx_hidden_Properties
 	}
 	return nil
 }
 
-func (x *EnrichedEvent) GetTargetWalletCode() string {
-	if x != nil {
-		if x.xxx_hidden_TargetWalletCode != nil {
-			return *x.xxx_hidden_TargetWalletCode
-		}
-		return ""
-	}
-	return ""
-}
-
 func (x *EnrichedEvent) SetTransactionId(v string) {
 	x.xxx_hidden_TransactionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 9)
+}
+
+func (x *EnrichedEvent) SetExternalSubscriptionId(v string) {
+	x.xxx_hidden_ExternalSubscriptionId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 9)
 }
 
 func (x *EnrichedEvent) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 14)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 9)
 }
 
 func (x *EnrichedEvent) SetTimestamp(v *timestamppb.Timestamp) {
 	x.xxx_hidden_Timestamp = v
 }
 
-func (x *EnrichedEvent) SetSubscriptionId(v string) {
-	x.xxx_hidden_SubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 14)
-}
-
-func (x *EnrichedEvent) SetPlanId(v string) {
-	x.xxx_hidden_PlanId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 14)
-}
-
-func (x *EnrichedEvent) SetChargeId(v string) {
-	x.xxx_hidden_ChargeId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 14)
-}
-
-func (x *EnrichedEvent) SetChargeFilterId(v string) {
-	x.xxx_hidden_ChargeFilterId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 14)
-}
-
-func (x *EnrichedEvent) SetBillableMetricId(v string) {
-	x.xxx_hidden_BillableMetricId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 14)
-}
-
-func (x *EnrichedEvent) SetGroupedBy(v map[string]string) {
-	x.xxx_hidden_GroupedBy = v
-}
-
-func (x *EnrichedEvent) SetValue(v string) {
-	x.xxx_hidden_Value = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 14)
-}
-
-func (x *EnrichedEvent) SetPreciseTotalAmount(v string) {
-	x.xxx_hidden_PreciseTotalAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 14)
-}
-
-func (x *EnrichedEvent) SetOperation(v EnrichedOperation) {
-	x.xxx_hidden_Operation = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 14)
-}
-
 func (x *EnrichedEvent) SetEnrichedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_EnrichedAt = v
 }
 
-func (x *EnrichedEvent) SetTargetWalletCode(v string) {
-	x.xxx_hidden_TargetWalletCode = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 14)
+func (x *EnrichedEvent) SetValue(v string) {
+	x.xxx_hidden_Value = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 9)
+}
+
+func (x *EnrichedEvent) SetDecimalValue(v string) {
+	x.xxx_hidden_DecimalValue = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 9)
+}
+
+func (x *EnrichedEvent) SetPreciseTotalAmount(v string) {
+	x.xxx_hidden_PreciseTotalAmount = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 9)
+}
+
+func (x *EnrichedEvent) SetProperties(v map[string]string) {
+	x.xxx_hidden_Properties = v
 }
 
 func (x *EnrichedEvent) HasTransactionId() bool {
@@ -730,11 +603,18 @@ func (x *EnrichedEvent) HasTransactionId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
 }
 
-func (x *EnrichedEvent) HasCode() bool {
+func (x *EnrichedEvent) HasExternalSubscriptionId() bool {
 	if x == nil {
 		return false
 	}
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *EnrichedEvent) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
 func (x *EnrichedEvent) HasTimestamp() bool {
@@ -744,62 +624,6 @@ func (x *EnrichedEvent) HasTimestamp() bool {
 	return x.xxx_hidden_Timestamp != nil
 }
 
-func (x *EnrichedEvent) HasSubscriptionId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
-}
-
-func (x *EnrichedEvent) HasPlanId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 4)
-}
-
-func (x *EnrichedEvent) HasChargeId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
-}
-
-func (x *EnrichedEvent) HasChargeFilterId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
-}
-
-func (x *EnrichedEvent) HasBillableMetricId() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
-}
-
-func (x *EnrichedEvent) HasValue() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
-}
-
-func (x *EnrichedEvent) HasPreciseTotalAmount() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
-}
-
-func (x *EnrichedEvent) HasOperation() bool {
-	if x == nil {
-		return false
-	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
-}
-
 func (x *EnrichedEvent) HasEnrichedAt() bool {
 	if x == nil {
 		return false
@@ -807,11 +631,25 @@ func (x *EnrichedEvent) HasEnrichedAt() bool {
 	return x.xxx_hidden_EnrichedAt != nil
 }
 
-func (x *EnrichedEvent) HasTargetWalletCode() bool {
+func (x *EnrichedEvent) HasValue() bool {
 	if x == nil {
 		return false
 	}
-	return protoimpl.X.Present(&(x.XXX_presence[0]), 13)
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 5)
+}
+
+func (x *EnrichedEvent) HasDecimalValue() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 6)
+}
+
+func (x *EnrichedEvent) HasPreciseTotalAmount() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 7)
 }
 
 func (x *EnrichedEvent) ClearTransactionId() {
@@ -819,8 +657,13 @@ func (x *EnrichedEvent) ClearTransactionId() {
 	x.xxx_hidden_TransactionId = nil
 }
 
-func (x *EnrichedEvent) ClearCode() {
+func (x *EnrichedEvent) ClearExternalSubscriptionId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_ExternalSubscriptionId = nil
+}
+
+func (x *EnrichedEvent) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
 	x.xxx_hidden_Code = nil
 }
 
@@ -828,53 +671,23 @@ func (x *EnrichedEvent) ClearTimestamp() {
 	x.xxx_hidden_Timestamp = nil
 }
 
-func (x *EnrichedEvent) ClearSubscriptionId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
-	x.xxx_hidden_SubscriptionId = nil
-}
-
-func (x *EnrichedEvent) ClearPlanId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 4)
-	x.xxx_hidden_PlanId = nil
-}
-
-func (x *EnrichedEvent) ClearChargeId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
-	x.xxx_hidden_ChargeId = nil
-}
-
-func (x *EnrichedEvent) ClearChargeFilterId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
-	x.xxx_hidden_ChargeFilterId = nil
-}
-
-func (x *EnrichedEvent) ClearBillableMetricId() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
-	x.xxx_hidden_BillableMetricId = nil
-}
-
-func (x *EnrichedEvent) ClearValue() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 9)
-	x.xxx_hidden_Value = nil
-}
-
-func (x *EnrichedEvent) ClearPreciseTotalAmount() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
-	x.xxx_hidden_PreciseTotalAmount = nil
-}
-
-func (x *EnrichedEvent) ClearOperation() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
-	x.xxx_hidden_Operation = EnrichedOperation_ENRICHED_OPERATION_UNSPECIFIED
-}
-
 func (x *EnrichedEvent) ClearEnrichedAt() {
 	x.xxx_hidden_EnrichedAt = nil
 }
 
-func (x *EnrichedEvent) ClearTargetWalletCode() {
-	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
-	x.xxx_hidden_TargetWalletCode = nil
+func (x *EnrichedEvent) ClearValue() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 5)
+	x.xxx_hidden_Value = nil
+}
+
+func (x *EnrichedEvent) ClearDecimalValue() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 6)
+	x.xxx_hidden_DecimalValue = nil
+}
+
+func (x *EnrichedEvent) ClearPreciseTotalAmount() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 7)
+	x.xxx_hidden_PreciseTotalAmount = nil
 }
 
 type EnrichedEvent_builder struct {
@@ -882,33 +695,25 @@ type EnrichedEvent_builder struct {
 
 	// The event's transaction ID.
 	TransactionId *string
+	// The external ID of the event's subscription.
+	ExternalSubscriptionId *string
 	// The event's code.
 	Code *string
 	// When the usage happened.
 	Timestamp *timestamppb.Timestamp
-	// The subscription.
-	SubscriptionId *string
-	// The plan.
-	PlanId *string
-	// The charge.
-	ChargeId *string
-	// The charge filter, when one matched.
-	ChargeFilterId *string
-	// The billable metric.
-	BillableMetricId *string
-	// The grouping values of the charge.
-	GroupedBy map[string]string
-	// The aggregated value, after the metric's expression and rounding.
-	Value *string
-	// The decimal value of the dynamic charge amount.
-	PreciseTotalAmount *string
-	// The operation on recurring aggregations.
-	Operation *EnrichedOperation
 	// When the event was enriched.
 	EnrichedAt *timestamppb.Timestamp
-	// The code of the wallet that pays the event's usage, when the charge
-	// accepts a target wallet and the event names one.
-	TargetWalletCode *string
+	// The value the event brings to its metric: "1" for count metrics, the
+	// metric's field_name property otherwise ("0" when it is missing); unset
+	// when no metric has the code.
+	Value *string
+	// The value as a decimal, 0 when it is not a number; unset with no value.
+	DecimalValue *string
+	// The decimal value of the dynamic charge amount.
+	PreciseTotalAmount *string
+	// The event properties, with the expression's result under the metric's
+	// field name.
+	Properties map[string]string
 }
 
 func (b0 EnrichedEvent_builder) Build() *EnrichedEvent {
@@ -916,52 +721,32 @@ func (b0 EnrichedEvent_builder) Build() *EnrichedEvent {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.TransactionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 9)
 		x.xxx_hidden_TransactionId = b.TransactionId
 	}
+	if b.ExternalSubscriptionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 9)
+		x.xxx_hidden_ExternalSubscriptionId = b.ExternalSubscriptionId
+	}
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 9)
 		x.xxx_hidden_Code = b.Code
 	}
 	x.xxx_hidden_Timestamp = b.Timestamp
-	if b.SubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 14)
-		x.xxx_hidden_SubscriptionId = b.SubscriptionId
-	}
-	if b.PlanId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 14)
-		x.xxx_hidden_PlanId = b.PlanId
-	}
-	if b.ChargeId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 14)
-		x.xxx_hidden_ChargeId = b.ChargeId
-	}
-	if b.ChargeFilterId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 14)
-		x.xxx_hidden_ChargeFilterId = b.ChargeFilterId
-	}
-	if b.BillableMetricId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 14)
-		x.xxx_hidden_BillableMetricId = b.BillableMetricId
-	}
-	x.xxx_hidden_GroupedBy = b.GroupedBy
+	x.xxx_hidden_EnrichedAt = b.EnrichedAt
 	if b.Value != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 9)
 		x.xxx_hidden_Value = b.Value
 	}
+	if b.DecimalValue != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 9)
+		x.xxx_hidden_DecimalValue = b.DecimalValue
+	}
 	if b.PreciseTotalAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 14)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 9)
 		x.xxx_hidden_PreciseTotalAmount = b.PreciseTotalAmount
 	}
-	if b.Operation != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 14)
-		x.xxx_hidden_Operation = *b.Operation
-	}
-	x.xxx_hidden_EnrichedAt = b.EnrichedAt
-	if b.TargetWalletCode != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 14)
-		x.xxx_hidden_TargetWalletCode = b.TargetWalletCode
-	}
+	x.xxx_hidden_Properties = b.Properties
 	return m0
 }
 
@@ -2223,14 +2008,15 @@ func (b0 ListEventsResponse_builder) Build() *ListEventsResponse {
 
 // ListEnrichedEventsRequest is the request of EventService.ListEnrichedEvents.
 type ListEnrichedEventsRequest struct {
-	state                  protoimpl.MessageState `protogen:"opaque.v1"`
-	xxx_hidden_PageSize    int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize"`
-	xxx_hidden_PageToken   *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken"`
-	xxx_hidden_Filter      *string                `protobuf:"bytes,3,opt,name=filter"`
-	XXX_raceDetectHookData protoimpl.RaceDetectHookData
-	XXX_presence           [1]uint32
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                             protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PageSize               int32                  `protobuf:"varint,1,opt,name=page_size,json=pageSize"`
+	xxx_hidden_PageToken              *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken"`
+	xxx_hidden_Filter                 *string                `protobuf:"bytes,3,opt,name=filter"`
+	xxx_hidden_TimestampFromStartedAt bool                   `protobuf:"varint,4,opt,name=timestamp_from_started_at,json=timestampFromStartedAt"`
+	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
+	XXX_presence                      [1]uint32
+	unknownFields                     protoimpl.UnknownFields
+	sizeCache                         protoimpl.SizeCache
 }
 
 func (x *ListEnrichedEventsRequest) Reset() {
@@ -2285,19 +2071,31 @@ func (x *ListEnrichedEventsRequest) GetFilter() string {
 	return ""
 }
 
+func (x *ListEnrichedEventsRequest) GetTimestampFromStartedAt() bool {
+	if x != nil {
+		return x.xxx_hidden_TimestampFromStartedAt
+	}
+	return false
+}
+
 func (x *ListEnrichedEventsRequest) SetPageSize(v int32) {
 	x.xxx_hidden_PageSize = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 4)
 }
 
 func (x *ListEnrichedEventsRequest) SetPageToken(v string) {
 	x.xxx_hidden_PageToken = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *ListEnrichedEventsRequest) SetFilter(v string) {
 	x.xxx_hidden_Filter = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *ListEnrichedEventsRequest) SetTimestampFromStartedAt(v bool) {
+	x.xxx_hidden_TimestampFromStartedAt = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *ListEnrichedEventsRequest) HasPageSize() bool {
@@ -2321,6 +2119,13 @@ func (x *ListEnrichedEventsRequest) HasFilter() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *ListEnrichedEventsRequest) HasTimestampFromStartedAt() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *ListEnrichedEventsRequest) ClearPageSize() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_PageSize = 0
@@ -2336,6 +2141,11 @@ func (x *ListEnrichedEventsRequest) ClearFilter() {
 	x.xxx_hidden_Filter = nil
 }
 
+func (x *ListEnrichedEventsRequest) ClearTimestampFromStartedAt() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_TimestampFromStartedAt = false
+}
+
 type ListEnrichedEventsRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -2343,9 +2153,13 @@ type ListEnrichedEventsRequest_builder struct {
 	PageSize *int32
 	// The next_page_token of the previous page.
 	PageToken *string
-	// An AIP-160 filter over `code`, `subscription_id`, `charge_id`,
-	// `charge_filter_id`, `transaction_id` and `timestamp`.
+	// An AIP-160 filter over `code`, `external_subscription_id` and
+	// `timestamp`.
 	Filter *string
+	// Lists the events from the start of the latest subscription with the
+	// filter's `external_subscription_id`, in place of a lower `timestamp`
+	// bound; without that subscription, the filter applies as is.
+	TimestampFromStartedAt *bool
 }
 
 func (b0 ListEnrichedEventsRequest_builder) Build() *ListEnrichedEventsRequest {
@@ -2353,16 +2167,20 @@ func (b0 ListEnrichedEventsRequest_builder) Build() *ListEnrichedEventsRequest {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.PageSize != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 4)
 		x.xxx_hidden_PageSize = *b.PageSize
 	}
 	if b.PageToken != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_PageToken = b.PageToken
 	}
 	if b.Filter != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_Filter = b.Filter
+	}
+	if b.TimestampFromStartedAt != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_TimestampFromStartedAt = *b.TimestampFromStartedAt
 	}
 	return m0
 }
@@ -2741,28 +2559,26 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"ip_address\x18\v \x01(\tB\x04\xe2A\x01\x03R\tipAddress\x12?\n" +
 	"\n" +
 	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt:<\xeaA9\n" +
-	"\x0ftanvo.xyz/Event\x12\x17events/{transaction_id}*\x06events2\x05eventJ\x04\b\f\x10\rR\x06errors\"\xba\x05\n" +
+	"\x0ftanvo.xyz/Event\x12\x17events/{transaction_id}*\x06events2\x05eventJ\x04\b\f\x10\rR\x06errors\"\xfe\x04\n" +
 	"\rEnrichedEvent\x12%\n" +
-	"\x0etransaction_id\x18\x01 \x01(\tR\rtransactionId\x12\x12\n" +
+	"\x0etransaction_id\x18\x01 \x01(\tR\rtransactionId\x128\n" +
+	"\x18external_subscription_id\x18\x0f \x01(\tR\x16externalSubscriptionId\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x128\n" +
-	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12'\n" +
-	"\x0fsubscription_id\x18\x04 \x01(\tR\x0esubscriptionId\x12\x17\n" +
-	"\aplan_id\x18\x05 \x01(\tR\x06planId\x12\x1b\n" +
-	"\tcharge_id\x18\x06 \x01(\tR\bchargeId\x12(\n" +
-	"\x10charge_filter_id\x18\a \x01(\tR\x0echargeFilterId\x12,\n" +
-	"\x12billable_metric_id\x18\b \x01(\tR\x10billableMetricId\x12K\n" +
-	"\n" +
-	"grouped_by\x18\t \x03(\v2,.tanvo.event.v1.EnrichedEvent.GroupedByEntryR\tgroupedBy\x12\x14\n" +
-	"\x05value\x18\n" +
-	" \x01(\tR\x05value\x120\n" +
-	"\x14precise_total_amount\x18\v \x01(\tR\x12preciseTotalAmount\x12?\n" +
-	"\toperation\x18\f \x01(\x0e2!.tanvo.event.v1.EnrichedOperationR\toperation\x12;\n" +
+	"\ttimestamp\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\ttimestamp\x12;\n" +
 	"\venriched_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\n" +
-	"enrichedAt\x12,\n" +
-	"\x12target_wallet_code\x18\x0e \x01(\tR\x10targetWalletCode\x1a<\n" +
-	"\x0eGroupedByEntry\x12\x10\n" +
+	"enrichedAt\x12\x14\n" +
+	"\x05value\x18\n" +
+	" \x01(\tR\x05value\x12#\n" +
+	"\rdecimal_value\x18\x10 \x01(\tR\fdecimalValue\x120\n" +
+	"\x14precise_total_amount\x18\v \x01(\tR\x12preciseTotalAmount\x12M\n" +
+	"\n" +
+	"properties\x18\x11 \x03(\v2-.tanvo.event.v1.EnrichedEvent.PropertiesEntryR\n" +
+	"properties\x1a=\n" +
+	"\x0fPropertiesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xfb\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x04\x10\n" +
+	"J\x04\b\f\x10\rJ\x04\b\x0e\x10\x0fR\x0fsubscription_idR\aplan_idR\tcharge_idR\x10charge_filter_idR\x12billable_metric_idR\n" +
+	"grouped_byR\toperationR\x12target_wallet_code\"\xfb\x01\n" +
 	"\vEventResult\x12%\n" +
 	"\x0etransaction_id\x18\x01 \x01(\tR\rtransactionId\x12+\n" +
 	"\x05event\x18\x02 \x01(\v2\x15.tanvo.event.v1.EventR\x05event\x12\x1c\n" +
@@ -2815,13 +2631,14 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"\x19timestamp_from_started_at\x18\x04 \x01(\bR\x16timestampFromStartedAt\"k\n" +
 	"\x12ListEventsResponse\x12-\n" +
 	"\x06events\x18\x01 \x03(\v2\x15.tanvo.event.v1.EventR\x06events\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\x8f\x01\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xca\x01\n" +
 	"\x19ListEnrichedEventsRequest\x12'\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\n" +
 	"\xbaH\a\x1a\x05\x18\xe8\a(\x00R\bpageSize\x12'\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\x80\bR\tpageToken\x12 \n" +
-	"\x06filter\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\"\x8c\x01\n" +
+	"\x06filter\x18\x03 \x01(\tB\b\xbaH\x05r\x03\x18\x80\x10R\x06filter\x129\n" +
+	"\x19timestamp_from_started_at\x18\x04 \x01(\bR\x16timestampFromStartedAt\"\x8c\x01\n" +
 	"\x1aListEnrichedEventsResponse\x12F\n" +
 	"\x0fenriched_events\x18\x01 \x03(\v2\x1d.tanvo.event.v1.EnrichedEventR\x0eenrichedEvents\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"\xda\x01\n" +
@@ -2835,11 +2652,7 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"\x06events\x18\x01 \x03(\v2\x15.tanvo.event.v1.EventB\x0e\xe2A\x01\x02\xbaH\a\x92\x01\x04\b\x01\x10dR\x06events:\x91\x01\xbaH\x8d\x01\x1a\x8a\x01\n" +
 	"\x0fevents.required\x123every event needs external_subscription_id and code\x1aBthis.events.all(e, has(e.external_subscription_id) && has(e.code))\"O\n" +
 	"\x1bEstimateInstantFeesResponse\x120\n" +
-	"\x04fees\x18\x01 \x03(\v2\x1c.tanvo.event.v1.EstimatedFeeR\x04fees*r\n" +
-	"\x11EnrichedOperation\x12\"\n" +
-	"\x1eENRICHED_OPERATION_UNSPECIFIED\x10\x00\x12\x1a\n" +
-	"\x16ENRICHED_OPERATION_ADD\x10\x01\x12\x1d\n" +
-	"\x19ENRICHED_OPERATION_REMOVE\x10\x022\xbf\b\n" +
+	"\x04fees\x18\x01 \x03(\v2\x1c.tanvo.event.v1.EstimatedFeeR\x04fees2\xbf\b\n" +
 	"\fEventService\x12\x8e\x01\n" +
 	"\vIngestEvent\x12\".tanvo.event.v1.IngestEventRequest\x1a#.tanvo.event.v1.IngestEventResponse\"6\xca\xf3\x18\x16\n" +
 	"\revents:create*\x05event\x82\xd3\xe4\x93\x02\x13:\x05event\"\n" +
@@ -2861,78 +2674,75 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"\x12com.tanvo.event.v1B\n" +
 	"EventProtoP\x01ZBgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/event/v1;eventv1\xa2\x02\x03TEX\xaa\x02\x0eTanvo.Event.V1\xca\x02\x0eTanvo\\Event\\V1\xe2\x02\x1aTanvo\\Event\\V1\\GPBMetadata\xea\x02\x10Tanvo::Event::V1b\beditionsp\xe8\a"
 
-var file_tanvo_event_v1_event_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_tanvo_event_v1_event_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_tanvo_event_v1_event_proto_goTypes = []any{
-	(EnrichedOperation)(0),              // 0: tanvo.event.v1.EnrichedOperation
-	(*Event)(nil),                       // 1: tanvo.event.v1.Event
-	(*EnrichedEvent)(nil),               // 2: tanvo.event.v1.EnrichedEvent
-	(*EventResult)(nil),                 // 3: tanvo.event.v1.EventResult
-	(*EstimatedFee)(nil),                // 4: tanvo.event.v1.EstimatedFee
-	(*IngestEventRequest)(nil),          // 5: tanvo.event.v1.IngestEventRequest
-	(*IngestEventResponse)(nil),         // 6: tanvo.event.v1.IngestEventResponse
-	(*IngestEventsRequest)(nil),         // 7: tanvo.event.v1.IngestEventsRequest
-	(*IngestEventsResponse)(nil),        // 8: tanvo.event.v1.IngestEventsResponse
-	(*GetEventRequest)(nil),             // 9: tanvo.event.v1.GetEventRequest
-	(*GetEventResponse)(nil),            // 10: tanvo.event.v1.GetEventResponse
-	(*ListEventsRequest)(nil),           // 11: tanvo.event.v1.ListEventsRequest
-	(*ListEventsResponse)(nil),          // 12: tanvo.event.v1.ListEventsResponse
-	(*ListEnrichedEventsRequest)(nil),   // 13: tanvo.event.v1.ListEnrichedEventsRequest
-	(*ListEnrichedEventsResponse)(nil),  // 14: tanvo.event.v1.ListEnrichedEventsResponse
-	(*EstimateFeesRequest)(nil),         // 15: tanvo.event.v1.EstimateFeesRequest
-	(*EstimateFeesResponse)(nil),        // 16: tanvo.event.v1.EstimateFeesResponse
-	(*EstimateInstantFeesRequest)(nil),  // 17: tanvo.event.v1.EstimateInstantFeesRequest
-	(*EstimateInstantFeesResponse)(nil), // 18: tanvo.event.v1.EstimateInstantFeesResponse
-	nil,                                 // 19: tanvo.event.v1.EnrichedEvent.GroupedByEntry
-	nil,                                 // 20: tanvo.event.v1.EventResult.ErrorsEntry
-	nil,                                 // 21: tanvo.event.v1.EstimatedFee.GroupedByEntry
-	(*timestamppb.Timestamp)(nil),       // 22: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),             // 23: google.protobuf.Struct
-	(*v1.Money)(nil),                    // 24: tanvo.common.v1.Money
+	(*Event)(nil),                       // 0: tanvo.event.v1.Event
+	(*EnrichedEvent)(nil),               // 1: tanvo.event.v1.EnrichedEvent
+	(*EventResult)(nil),                 // 2: tanvo.event.v1.EventResult
+	(*EstimatedFee)(nil),                // 3: tanvo.event.v1.EstimatedFee
+	(*IngestEventRequest)(nil),          // 4: tanvo.event.v1.IngestEventRequest
+	(*IngestEventResponse)(nil),         // 5: tanvo.event.v1.IngestEventResponse
+	(*IngestEventsRequest)(nil),         // 6: tanvo.event.v1.IngestEventsRequest
+	(*IngestEventsResponse)(nil),        // 7: tanvo.event.v1.IngestEventsResponse
+	(*GetEventRequest)(nil),             // 8: tanvo.event.v1.GetEventRequest
+	(*GetEventResponse)(nil),            // 9: tanvo.event.v1.GetEventResponse
+	(*ListEventsRequest)(nil),           // 10: tanvo.event.v1.ListEventsRequest
+	(*ListEventsResponse)(nil),          // 11: tanvo.event.v1.ListEventsResponse
+	(*ListEnrichedEventsRequest)(nil),   // 12: tanvo.event.v1.ListEnrichedEventsRequest
+	(*ListEnrichedEventsResponse)(nil),  // 13: tanvo.event.v1.ListEnrichedEventsResponse
+	(*EstimateFeesRequest)(nil),         // 14: tanvo.event.v1.EstimateFeesRequest
+	(*EstimateFeesResponse)(nil),        // 15: tanvo.event.v1.EstimateFeesResponse
+	(*EstimateInstantFeesRequest)(nil),  // 16: tanvo.event.v1.EstimateInstantFeesRequest
+	(*EstimateInstantFeesResponse)(nil), // 17: tanvo.event.v1.EstimateInstantFeesResponse
+	nil,                                 // 18: tanvo.event.v1.EnrichedEvent.PropertiesEntry
+	nil,                                 // 19: tanvo.event.v1.EventResult.ErrorsEntry
+	nil,                                 // 20: tanvo.event.v1.EstimatedFee.GroupedByEntry
+	(*timestamppb.Timestamp)(nil),       // 21: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),             // 22: google.protobuf.Struct
+	(*v1.Money)(nil),                    // 23: tanvo.common.v1.Money
 }
 var file_tanvo_event_v1_event_proto_depIdxs = []int32{
-	22, // 0: tanvo.event.v1.Event.timestamp:type_name -> google.protobuf.Timestamp
-	23, // 1: tanvo.event.v1.Event.properties:type_name -> google.protobuf.Struct
-	22, // 2: tanvo.event.v1.Event.created_at:type_name -> google.protobuf.Timestamp
-	22, // 3: tanvo.event.v1.EnrichedEvent.timestamp:type_name -> google.protobuf.Timestamp
-	19, // 4: tanvo.event.v1.EnrichedEvent.grouped_by:type_name -> tanvo.event.v1.EnrichedEvent.GroupedByEntry
-	0,  // 5: tanvo.event.v1.EnrichedEvent.operation:type_name -> tanvo.event.v1.EnrichedOperation
-	22, // 6: tanvo.event.v1.EnrichedEvent.enriched_at:type_name -> google.protobuf.Timestamp
-	1,  // 7: tanvo.event.v1.EventResult.event:type_name -> tanvo.event.v1.Event
-	20, // 8: tanvo.event.v1.EventResult.errors:type_name -> tanvo.event.v1.EventResult.ErrorsEntry
-	24, // 9: tanvo.event.v1.EstimatedFee.amount:type_name -> tanvo.common.v1.Money
-	24, // 10: tanvo.event.v1.EstimatedFee.taxes_amount:type_name -> tanvo.common.v1.Money
-	21, // 11: tanvo.event.v1.EstimatedFee.grouped_by:type_name -> tanvo.event.v1.EstimatedFee.GroupedByEntry
-	1,  // 12: tanvo.event.v1.IngestEventRequest.event:type_name -> tanvo.event.v1.Event
-	1,  // 13: tanvo.event.v1.IngestEventResponse.event:type_name -> tanvo.event.v1.Event
-	1,  // 14: tanvo.event.v1.IngestEventsRequest.events:type_name -> tanvo.event.v1.Event
-	3,  // 15: tanvo.event.v1.IngestEventsResponse.results:type_name -> tanvo.event.v1.EventResult
-	1,  // 16: tanvo.event.v1.GetEventResponse.event:type_name -> tanvo.event.v1.Event
-	1,  // 17: tanvo.event.v1.ListEventsResponse.events:type_name -> tanvo.event.v1.Event
-	2,  // 18: tanvo.event.v1.ListEnrichedEventsResponse.enriched_events:type_name -> tanvo.event.v1.EnrichedEvent
-	1,  // 19: tanvo.event.v1.EstimateFeesRequest.event:type_name -> tanvo.event.v1.Event
-	4,  // 20: tanvo.event.v1.EstimateFeesResponse.fees:type_name -> tanvo.event.v1.EstimatedFee
-	1,  // 21: tanvo.event.v1.EstimateInstantFeesRequest.events:type_name -> tanvo.event.v1.Event
-	4,  // 22: tanvo.event.v1.EstimateInstantFeesResponse.fees:type_name -> tanvo.event.v1.EstimatedFee
-	5,  // 23: tanvo.event.v1.EventService.IngestEvent:input_type -> tanvo.event.v1.IngestEventRequest
-	7,  // 24: tanvo.event.v1.EventService.IngestEvents:input_type -> tanvo.event.v1.IngestEventsRequest
-	9,  // 25: tanvo.event.v1.EventService.GetEvent:input_type -> tanvo.event.v1.GetEventRequest
-	11, // 26: tanvo.event.v1.EventService.ListEvents:input_type -> tanvo.event.v1.ListEventsRequest
-	13, // 27: tanvo.event.v1.EventService.ListEnrichedEvents:input_type -> tanvo.event.v1.ListEnrichedEventsRequest
-	15, // 28: tanvo.event.v1.EventService.EstimateFees:input_type -> tanvo.event.v1.EstimateFeesRequest
-	17, // 29: tanvo.event.v1.EventService.EstimateInstantFees:input_type -> tanvo.event.v1.EstimateInstantFeesRequest
-	6,  // 30: tanvo.event.v1.EventService.IngestEvent:output_type -> tanvo.event.v1.IngestEventResponse
-	8,  // 31: tanvo.event.v1.EventService.IngestEvents:output_type -> tanvo.event.v1.IngestEventsResponse
-	10, // 32: tanvo.event.v1.EventService.GetEvent:output_type -> tanvo.event.v1.GetEventResponse
-	12, // 33: tanvo.event.v1.EventService.ListEvents:output_type -> tanvo.event.v1.ListEventsResponse
-	14, // 34: tanvo.event.v1.EventService.ListEnrichedEvents:output_type -> tanvo.event.v1.ListEnrichedEventsResponse
-	16, // 35: tanvo.event.v1.EventService.EstimateFees:output_type -> tanvo.event.v1.EstimateFeesResponse
-	18, // 36: tanvo.event.v1.EventService.EstimateInstantFees:output_type -> tanvo.event.v1.EstimateInstantFeesResponse
-	30, // [30:37] is the sub-list for method output_type
-	23, // [23:30] is the sub-list for method input_type
-	23, // [23:23] is the sub-list for extension type_name
-	23, // [23:23] is the sub-list for extension extendee
-	0,  // [0:23] is the sub-list for field type_name
+	21, // 0: tanvo.event.v1.Event.timestamp:type_name -> google.protobuf.Timestamp
+	22, // 1: tanvo.event.v1.Event.properties:type_name -> google.protobuf.Struct
+	21, // 2: tanvo.event.v1.Event.created_at:type_name -> google.protobuf.Timestamp
+	21, // 3: tanvo.event.v1.EnrichedEvent.timestamp:type_name -> google.protobuf.Timestamp
+	21, // 4: tanvo.event.v1.EnrichedEvent.enriched_at:type_name -> google.protobuf.Timestamp
+	18, // 5: tanvo.event.v1.EnrichedEvent.properties:type_name -> tanvo.event.v1.EnrichedEvent.PropertiesEntry
+	0,  // 6: tanvo.event.v1.EventResult.event:type_name -> tanvo.event.v1.Event
+	19, // 7: tanvo.event.v1.EventResult.errors:type_name -> tanvo.event.v1.EventResult.ErrorsEntry
+	23, // 8: tanvo.event.v1.EstimatedFee.amount:type_name -> tanvo.common.v1.Money
+	23, // 9: tanvo.event.v1.EstimatedFee.taxes_amount:type_name -> tanvo.common.v1.Money
+	20, // 10: tanvo.event.v1.EstimatedFee.grouped_by:type_name -> tanvo.event.v1.EstimatedFee.GroupedByEntry
+	0,  // 11: tanvo.event.v1.IngestEventRequest.event:type_name -> tanvo.event.v1.Event
+	0,  // 12: tanvo.event.v1.IngestEventResponse.event:type_name -> tanvo.event.v1.Event
+	0,  // 13: tanvo.event.v1.IngestEventsRequest.events:type_name -> tanvo.event.v1.Event
+	2,  // 14: tanvo.event.v1.IngestEventsResponse.results:type_name -> tanvo.event.v1.EventResult
+	0,  // 15: tanvo.event.v1.GetEventResponse.event:type_name -> tanvo.event.v1.Event
+	0,  // 16: tanvo.event.v1.ListEventsResponse.events:type_name -> tanvo.event.v1.Event
+	1,  // 17: tanvo.event.v1.ListEnrichedEventsResponse.enriched_events:type_name -> tanvo.event.v1.EnrichedEvent
+	0,  // 18: tanvo.event.v1.EstimateFeesRequest.event:type_name -> tanvo.event.v1.Event
+	3,  // 19: tanvo.event.v1.EstimateFeesResponse.fees:type_name -> tanvo.event.v1.EstimatedFee
+	0,  // 20: tanvo.event.v1.EstimateInstantFeesRequest.events:type_name -> tanvo.event.v1.Event
+	3,  // 21: tanvo.event.v1.EstimateInstantFeesResponse.fees:type_name -> tanvo.event.v1.EstimatedFee
+	4,  // 22: tanvo.event.v1.EventService.IngestEvent:input_type -> tanvo.event.v1.IngestEventRequest
+	6,  // 23: tanvo.event.v1.EventService.IngestEvents:input_type -> tanvo.event.v1.IngestEventsRequest
+	8,  // 24: tanvo.event.v1.EventService.GetEvent:input_type -> tanvo.event.v1.GetEventRequest
+	10, // 25: tanvo.event.v1.EventService.ListEvents:input_type -> tanvo.event.v1.ListEventsRequest
+	12, // 26: tanvo.event.v1.EventService.ListEnrichedEvents:input_type -> tanvo.event.v1.ListEnrichedEventsRequest
+	14, // 27: tanvo.event.v1.EventService.EstimateFees:input_type -> tanvo.event.v1.EstimateFeesRequest
+	16, // 28: tanvo.event.v1.EventService.EstimateInstantFees:input_type -> tanvo.event.v1.EstimateInstantFeesRequest
+	5,  // 29: tanvo.event.v1.EventService.IngestEvent:output_type -> tanvo.event.v1.IngestEventResponse
+	7,  // 30: tanvo.event.v1.EventService.IngestEvents:output_type -> tanvo.event.v1.IngestEventsResponse
+	9,  // 31: tanvo.event.v1.EventService.GetEvent:output_type -> tanvo.event.v1.GetEventResponse
+	11, // 32: tanvo.event.v1.EventService.ListEvents:output_type -> tanvo.event.v1.ListEventsResponse
+	13, // 33: tanvo.event.v1.EventService.ListEnrichedEvents:output_type -> tanvo.event.v1.ListEnrichedEventsResponse
+	15, // 34: tanvo.event.v1.EventService.EstimateFees:output_type -> tanvo.event.v1.EstimateFeesResponse
+	17, // 35: tanvo.event.v1.EventService.EstimateInstantFees:output_type -> tanvo.event.v1.EstimateInstantFeesResponse
+	29, // [29:36] is the sub-list for method output_type
+	22, // [22:29] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_event_v1_event_proto_init() }
@@ -2945,14 +2755,13 @@ func file_tanvo_event_v1_event_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_event_v1_event_proto_rawDesc), len(file_tanvo_event_v1_event_proto_rawDesc)),
-			NumEnums:      1,
+			NumEnums:      0,
 			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
 		GoTypes:           file_tanvo_event_v1_event_proto_goTypes,
 		DependencyIndexes: file_tanvo_event_v1_event_proto_depIdxs,
-		EnumInfos:         file_tanvo_event_v1_event_proto_enumTypes,
 		MessageInfos:      file_tanvo_event_v1_event_proto_msgTypes,
 	}.Build()
 	File_tanvo_event_v1_event_proto = out.File

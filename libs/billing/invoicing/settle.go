@@ -340,10 +340,10 @@ func (s *Service) announce(ctx context.Context, r port.Repos, inv *invoice.Invoi
 	if err := s.d.LogInvoice(ctx, r, auditlog.ActivityType(created), inv); err != nil {
 		return err
 	}
-	args := kernel.InvoiceArgs{InvoiceID: inv.ID}
-	if err := kernel.Enqueue(ctx, r, org, kernel.JobGenerateInvoiceDocument, args, "invoice:"+inv.ID.String(), now); err != nil {
+	if err := kernel.EnqueueInvoiceDocuments(ctx, r, inv, now); err != nil {
 		return err
 	}
+	args := kernel.InvoiceArgs{InvoiceID: inv.ID}
 	// A self-billed invoice is paid by the organization to its partner,
 	// never collected (lago Invoices::Payments::CreateService).
 	if inv.TotalAmount > 0 && inv.PaymentStatus != core.PaymentStatusSucceeded && !inv.SelfBilled {

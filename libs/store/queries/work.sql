@@ -30,6 +30,8 @@ SELECT DISTINCT c.organization_id FROM customers c
 WHERE c.awaiting_wallet_refresh AND c.deleted_at IS NULL
   AND EXISTS (SELECT 1 FROM wallets w
               WHERE w.organization_id = c.organization_id AND w.customer_id = c.id AND w.status = 'active')
+  AND NOT EXISTS (SELECT 1 FROM customer_error_details e
+                  WHERE e.organization_id = c.organization_id AND e.customer_id = c.id AND e.error_code = 'tax_error')
 ORDER BY c.organization_id;
 
 -- name: ListOrganizationsWithExpiredWallets :many

@@ -15,6 +15,9 @@ import (
 
 const dsn = "TANVO_DATABASE_URL=postgres://tanvo@localhost/tanvo"
 
+// blobSecret is a valid TANVO_SECRET_KEY (32 bytes).
+const blobSecret = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+
 func TestLoadDefaults(t *testing.T) {
 	cfg, warnings, err := config.Load(config.Source{Environ: []string{dsn, "PATH=/bin"}})
 	if err != nil {
@@ -163,6 +166,19 @@ func TestLoadInvalid(t *testing.T) {
 		{"bad trusted proxy", []string{dsn, "TANVO_TRUSTED_PROXIES=lb.internal"}, "trusted_proxies"},
 		{"clickhouse scheme", []string{dsn, "TANVO_CLICKHOUSE_URL=http://ch"}, "TANVO_CLICKHOUSE_URL"},
 		{"secret key not base64", []string{dsn, "TANVO_SECRET_KEY=not base64!"}, "TANVO_SECRET_KEY"},
+		{"bad blob backend", []string{dsn, "TANVO_BLOB_BACKEND=azure"}, "TANVO_BLOB_BACKEND"},
+		{"bad kinesis endpoint", []string{dsn, "TANVO_STREAMING_KINESIS_ENDPOINT=kinesis.local"}, "TANVO_STREAMING_KINESIS_ENDPOINT"},
+		{"bad sts endpoint", []string{dsn, "TANVO_STREAMING_STS_ENDPOINT=ftp://sts"}, "TANVO_STREAMING_STS_ENDPOINT"},
+		{"bad intermediate role", []string{dsn, "TANVO_STREAMING_INTERMEDIATE_ROLE_ARN=writer"}, "TANVO_STREAMING_INTERMEDIATE_ROLE_ARN"},
+		{"blob without secret key", []string{dsn, "TANVO_BLOB_BACKEND=local", "TANVO_BLOB_LOCAL_ROOT=/var/tanvo", "TANVO_API_URL=https://api.example.com"}, "TANVO_SECRET_KEY: required with TANVO_BLOB_BACKEND"},
+		{"blob without api url", []string{dsn, "TANVO_BLOB_BACKEND=local", "TANVO_BLOB_LOCAL_ROOT=/var/tanvo", "TANVO_SECRET_KEY=" + blobSecret}, "TANVO_API_URL: required with TANVO_BLOB_BACKEND"},
+		{"local blob without root", []string{dsn, "TANVO_BLOB_BACKEND=local", "TANVO_API_URL=https://api.example.com", "TANVO_SECRET_KEY=" + blobSecret}, "TANVO_BLOB_LOCAL_ROOT"},
+		{"s3 blob without endpoint", []string{dsn, "TANVO_BLOB_BACKEND=s3", "TANVO_API_URL=https://api.example.com", "TANVO_SECRET_KEY=" + blobSecret, "TANVO_BLOB_REGION=eu-west-1", "TANVO_BLOB_BUCKET=b", "TANVO_BLOB_ACCESS_KEY_ID=k", "TANVO_BLOB_SECRET_ACCESS_KEY=s"}, "TANVO_BLOB_ENDPOINT"},
+		{"s3 blob without region", []string{dsn, "TANVO_BLOB_BACKEND=s3", "TANVO_API_URL=https://api.example.com", "TANVO_SECRET_KEY=" + blobSecret, "TANVO_BLOB_ENDPOINT=https://s3.example.com", "TANVO_BLOB_BUCKET=b", "TANVO_BLOB_ACCESS_KEY_ID=k", "TANVO_BLOB_SECRET_ACCESS_KEY=s"}, "TANVO_BLOB_REGION"},
+		{"gcs blob without bucket", []string{dsn, "TANVO_BLOB_BACKEND=gcs", "TANVO_API_URL=https://api.example.com", "TANVO_SECRET_KEY=" + blobSecret, "TANVO_BLOB_ACCESS_KEY_ID=k", "TANVO_BLOB_SECRET_ACCESS_KEY=s"}, "TANVO_BLOB_BUCKET"},
+		{"gcs blob without keys", []string{dsn, "TANVO_BLOB_BACKEND=gcs", "TANVO_API_URL=https://api.example.com", "TANVO_SECRET_KEY=" + blobSecret, "TANVO_BLOB_BUCKET=b"}, "TANVO_BLOB_ACCESS_KEY_ID"},
+		{"blob endpoint scheme", []string{dsn, "TANVO_BLOB_BACKEND=s3", "TANVO_API_URL=https://api.example.com", "TANVO_SECRET_KEY=" + blobSecret, "TANVO_BLOB_ENDPOINT=ftp://s3", "TANVO_BLOB_REGION=r", "TANVO_BLOB_BUCKET=b", "TANVO_BLOB_ACCESS_KEY_ID=k", "TANVO_BLOB_SECRET_ACCESS_KEY=s"}, "TANVO_BLOB_ENDPOINT: want an http"},
+		{"blob url ttl too long", []string{dsn, "TANVO_BLOB_BACKEND=gcs", "TANVO_API_URL=https://api.example.com", "TANVO_SECRET_KEY=" + blobSecret, "TANVO_BLOB_BUCKET=b", "TANVO_BLOB_ACCESS_KEY_ID=k", "TANVO_BLOB_SECRET_ACCESS_KEY=s", "TANVO_BLOB_URL_TTL=200h"}, "TANVO_BLOB_URL_TTL"},
 		{"short secret key", []string{dsn, "TANVO_SECRET_KEY=c2hvcnQ="}, "want at least 32"},
 	}
 	for _, tt := range tests {
@@ -271,5 +287,40 @@ func TestSecretKeyBytes(t *testing.T) {
 	c.SecretKey = ""
 	if b, err := c.SecretKeyBytes(); b != nil || err != nil {
 		t.Errorf("SecretKeyBytes() unset got = %v, %v, want = nil, nil", b, err)
+	}
+}
+
+func TestLoadBlobBackends(t *testing.T) {
+	base := []string{dsn, "TANVO_API_URL=https://api.example.com", "TANVO_SECRET_KEY=" + blobSecret}
+	tests := []struct {
+		name string
+		env  []string
+		want string
+	}{
+		{"none", []string{dsn}, ""},
+		{"local", append(base, "TANVO_BLOB_BACKEND=Local", "TANVO_BLOB_LOCAL_ROOT=/var/tanvo"), "local"},
+		{"s3", append(base, "TANVO_BLOB_BACKEND=s3", "TANVO_BLOB_ENDPOINT=http://127.0.0.1:9000", "TANVO_BLOB_REGION=us-east-1", "TANVO_BLOB_BUCKET=b", "TANVO_BLOB_ACCESS_KEY_ID=k", "TANVO_BLOB_SECRET_ACCESS_KEY=s", "TANVO_BLOB_PATH_STYLE=true"), "s3"},
+		{"gcs", append(base, "TANVO_BLOB_BACKEND=gcs", "TANVO_BLOB_BUCKET=b", "TANVO_BLOB_ACCESS_KEY_ID=k", "TANVO_BLOB_SECRET_ACCESS_KEY=s"), "gcs"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, _, err := config.Load(config.Source{Environ: slices.Clone(tt.env)})
+			if err != nil {
+				t.Fatalf("Load() error = %v", err)
+			}
+			if cfg.BlobBackend != tt.want {
+				t.Errorf("BlobBackend got = %q, want = %q", cfg.BlobBackend, tt.want)
+			}
+		})
+	}
+}
+
+func TestLoadDocuments(t *testing.T) {
+	cfg, _, err := config.Load(config.Source{Environ: []string{dsn, "TANVO_TYPST_PATH=/usr/bin/typst", "TANVO_DOCUMENTS_FONT_PATHS=/a, /b", "TANVO_DISABLE_PDF_GENERATION=true"}})
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.TypstPath != "/usr/bin/typst" || !slices.Equal(cfg.DocumentsFontPaths, []string{"/a", "/b"}) || !cfg.DisablePDFGeneration {
+		t.Errorf("Load() got = %q %q %v, want = /usr/bin/typst [/a /b] true", cfg.TypstPath, cfg.DocumentsFontPaths, cfg.DisablePDFGeneration)
 	}
 }

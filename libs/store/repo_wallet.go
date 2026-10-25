@@ -63,6 +63,9 @@ func walletParams(w *wallet.Wallet) db.CreateWalletParams {
 		LastBalanceSyncAt:                optUTC(w.LastBalanceSyncAt),
 		LastConsumedCreditAt:             optUTC(w.LastConsumedCreditAt),
 		DepletedOngoingBalance:           w.DepletedOngoingBalance,
+		Metadata:                         encodeMetadata(w.Metadata),
+		SkipInvoiceCustomSections:        w.InvoiceCustomSections.Skip,
+		InvoiceCustomSectionIds:          uuids(w.InvoiceCustomSections.IDs),
 		TerminatedAt:                     optUTC(w.TerminatedAt),
 		CreatedAt:                        utc(w.CreatedAt),
 		UpdatedAt:                        utc(w.UpdatedAt),
@@ -79,6 +82,10 @@ type walletRow struct {
 func walletOf(row walletRow) (*wallet.Wallet, error) {
 	r := row.Wallet
 	cur, err := mustCurrency(r.Currency)
+	if err != nil {
+		return nil, fmt.Errorf("wallet %s: %w", r.ID, err)
+	}
+	md, err := decodeMetadata(r.Metadata)
 	if err != nil {
 		return nil, fmt.Errorf("wallet %s: %w", r.ID, err)
 	}
@@ -115,10 +122,17 @@ func walletOf(row walletRow) (*wallet.Wallet, error) {
 		LastBalanceSyncAt:                optUTC(r.LastBalanceSyncAt),
 		LastConsumedCreditAt:             optUTC(r.LastConsumedCreditAt),
 		DepletedOngoingBalance:           r.DepletedOngoingBalance,
+		Metadata:                         md,
+		InvoiceCustomSections:            sectionsOf(r.SkipInvoiceCustomSections, r.InvoiceCustomSectionIds),
 		TerminatedAt:                     optUTC(r.TerminatedAt),
 		CreatedAt:                        utc(r.CreatedAt),
 		UpdatedAt:                        utc(r.UpdatedAt),
 	}, nil
+}
+
+// sectionsOf returns the invoice custom section selection of a row.
+func sectionsOf(skip bool, ids []uuid.UUID) wallet.CustomSections {
+	return wallet.CustomSections{Skip: skip, IDs: idsOf[core.InvoiceCustomSectionID](ids)}
 }
 
 // writeMetrics writes the targeted billable metrics of w, replacing the
@@ -198,6 +212,21 @@ func (r walletRepo) List(ctx context.Context, org core.OrganizationID, f wallet.
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return core.Page[*wallet.Wallet]{}, err
+	}
+	if f.Recent {
+		after, afterAt, lim, err := timeCursorArgs(page)
+		if err != nil {
+			return core.Page[*wallet.Wallet]{}, err
+		}
+		rows, err := q.ListWalletsRecent(ctx, db.ListWalletsRecentParams{
+			OrganizationID: org.UUID(), CustomerID: optUUID(f.CustomerID), Status: walletEnum(f.Status), After: after, AfterAt: afterAt, Lim: lim,
+		})
+		if err != nil {
+			return core.Page[*wallet.Wallet]{}, fmt.Errorf("list wallets: %w", mapErr(err))
+		}
+		return pageOf(rows, page,
+			func(r db.ListWalletsRecentRow) (*wallet.Wallet, error) { return walletOf(walletRow(r)) },
+			func(w *wallet.Wallet) string { return recentCursor(w.CreatedAt, w.ID.UUID()) })
 	}
 	after, lim, err := pageArgs(page)
 	if err != nil {
@@ -285,6 +314,10 @@ func walletTransactionParams(t *wallet.Transaction) db.CreateWalletTransactionPa
 		PaymentMethodID:                  optUUID(t.PaymentMethodID),
 		InvoiceRequiresSuccessfulPayment: t.InvoiceRequiresSuccessfulPayment,
 		PurchaseOrderNumber:              t.PurchaseOrderNumber,
+		VoidedInvoiceID:                  optUUID(t.VoidedInvoiceID),
+		BillingEntityID:                  optUUID(t.BillingEntityID),
+		SkipInvoiceCustomSections:        t.InvoiceCustomSections.Skip,
+		InvoiceCustomSectionIds:          uuids(t.InvoiceCustomSections.IDs),
 		SettledAt:                        optUTC(t.SettledAt),
 		FailedAt:                         optUTC(t.FailedAt),
 		CreatedAt:                        utc(t.CreatedAt),
@@ -323,6 +356,9 @@ func walletTransactionOf(r db.WalletTransaction) (*wallet.Transaction, error) {
 		PaymentMethodID:                  optIDOf[core.PaymentMethodID](r.PaymentMethodID),
 		InvoiceRequiresSuccessfulPayment: r.InvoiceRequiresSuccessfulPayment,
 		PurchaseOrderNumber:              r.PurchaseOrderNumber,
+		VoidedInvoiceID:                  optIDOf[core.InvoiceID](r.VoidedInvoiceID),
+		BillingEntityID:                  optIDOf[core.BillingEntityID](r.BillingEntityID),
+		InvoiceCustomSections:            sectionsOf(r.SkipInvoiceCustomSections, r.InvoiceCustomSectionIds),
 		SettledAt:                        optUTC(r.SettledAt),
 		FailedAt:                         optUTC(r.FailedAt),
 		CreatedAt:                        utc(r.CreatedAt),
@@ -380,6 +416,27 @@ func (r walletTransactionRepo) List(ctx context.Context, org core.OrganizationID
 	q, err := r.t.queries(ctx, org)
 	if err != nil {
 		return core.Page[*wallet.Transaction]{}, err
+	}
+	if f.Recent {
+		after, afterAt, lim, err := timeCursorArgs(page)
+		if err != nil {
+			return core.Page[*wallet.Transaction]{}, err
+		}
+		rows, err := q.ListWalletTransactionsRecent(ctx, db.ListWalletTransactionsRecentParams{
+			OrganizationID:    org.UUID(),
+			WalletID:          optUUID(f.WalletID),
+			InvoiceID:         optUUID(f.InvoiceID),
+			TransactionType:   walletEnum(f.TransactionType),
+			TransactionStatus: walletEnum(f.TransactionStatus),
+			Status:            walletEnum(f.Status),
+			After:             after,
+			AfterAt:           afterAt,
+			Lim:               lim,
+		})
+		if err != nil {
+			return core.Page[*wallet.Transaction]{}, fmt.Errorf("list wallet transactions: %w", mapErr(err))
+		}
+		return pageOf(rows, page, walletTransactionOf, func(t *wallet.Transaction) string { return recentCursor(t.CreatedAt, t.ID.UUID()) })
 	}
 	after, lim, err := pageArgs(page)
 	if err != nil {
@@ -513,6 +570,8 @@ func recurringTransactionRuleParams(x *wallet.RecurringTransactionRule) db.Creat
 		PurchaseOrderNumber:              x.PurchaseOrderNumber,
 		PaymentMethodType:                walletEnum(x.PaymentMethodType),
 		PaymentMethodID:                  optUUID(x.PaymentMethodID),
+		SkipInvoiceCustomSections:        x.InvoiceCustomSections.Skip,
+		InvoiceCustomSectionIds:          uuids(x.InvoiceCustomSections.IDs),
 		TerminatedAt:                     optUTC(x.TerminatedAt),
 		CreatedAt:                        utc(x.CreatedAt),
 		UpdatedAt:                        utc(x.UpdatedAt),
@@ -556,6 +615,7 @@ func recurringTransactionRuleOf(r db.RecurringTransactionRule) (*wallet.Recurrin
 		PurchaseOrderNumber:              r.PurchaseOrderNumber,
 		PaymentMethodType:                core.PaymentMethodType(deref(r.PaymentMethodType)),
 		PaymentMethodID:                  optIDOf[core.PaymentMethodID](r.PaymentMethodID),
+		InvoiceCustomSections:            sectionsOf(r.SkipInvoiceCustomSections, r.InvoiceCustomSectionIds),
 		TerminatedAt:                     optUTC(r.TerminatedAt),
 		CreatedAt:                        utc(r.CreatedAt),
 		UpdatedAt:                        utc(r.UpdatedAt),

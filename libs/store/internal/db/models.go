@@ -535,6 +535,15 @@ type Customer struct {
 	UpdatedAt                    time.Time
 }
 
+type CustomerErrorDetail struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+	CustomerID     uuid.UUID
+	ErrorCode      string
+	Details        json.RawMessage
+	CreatedAt      time.Time
+}
+
 type CustomerInvoiceCustomSection struct {
 	OrganizationID         uuid.UUID
 	CustomerID             uuid.UUID
@@ -661,6 +670,619 @@ type Event struct {
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
 	Metadata               json.RawMessage
+}
+
+type ExportsAlertThreshold struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+	AlertID        uuid.UUID
+	Code           *string
+	Value          money.Decimal
+	Recurring      bool
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+type ExportsAppliedCoupon struct {
+	OrganizationID             uuid.UUID
+	ID                         uuid.UUID
+	CouponID                   uuid.UUID
+	CustomerID                 uuid.UUID
+	Status                     string
+	Amount                     *int64
+	RemainingAmount            *int64
+	AmountCurrency             *string
+	PercentageRate             *money.Decimal
+	Frequency                  string
+	FrequencyDuration          *int32
+	FrequencyDurationRemaining *int32
+	Credits                    json.RawMessage
+	CreatedAt                  time.Time
+	UpdatedAt                  time.Time
+	TerminatedAt               *time.Time
+}
+
+type ExportsBillableMetric struct {
+	OrganizationID    uuid.UUID
+	ID                uuid.UUID
+	Code              string
+	Name              string
+	Description       *string
+	AggregationType   string
+	FieldName         *string
+	WeightedInterval  *string
+	Recurring         bool
+	Expression        *string
+	RoundingFunction  *string
+	RoundingPrecision *int32
+	Filters           interface{}
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+type ExportsBillingEntity struct {
+	OrganizationID  uuid.UUID
+	ID              uuid.UUID
+	Code            string
+	Name            string
+	LegalName       *string
+	LegalNumber     *string
+	TaxID           *string
+	Email           *string
+	AddressLine1    string
+	AddressLine2    string
+	AddressCity     string
+	AddressState    string
+	AddressZipcode  string
+	AddressCountry  string
+	Timezone        *string
+	DefaultCurrency *string
+	IsDefault       bool
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	ArchivedAt      *time.Time
+}
+
+type ExportsCharge struct {
+	OrganizationID       uuid.UUID
+	ID                   uuid.UUID
+	PlanID               uuid.UUID
+	ParentID             *uuid.UUID
+	BillableMetricID     uuid.UUID
+	Code                 string
+	InvoiceDisplayName   *string
+	ChargeModel          string
+	Properties           []byte
+	PayInAdvance         bool
+	Invoiceable          bool
+	RegroupPaidFees      *string
+	Prorated             bool
+	MinAmount            int64
+	AppliedPricingUnitID *uuid.UUID
+	ConversionRate       *money.Decimal
+	Filters              json.RawMessage
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
+	DeletedAt            *time.Time
+}
+
+type ExportsCoupon struct {
+	OrganizationID         uuid.UUID
+	ID                     uuid.UUID
+	Code                   string
+	Name                   string
+	Description            *string
+	CouponType             string
+	Amount                 *int64
+	AmountCurrency         *string
+	PercentageRate         *money.Decimal
+	Frequency              string
+	FrequencyDuration      *int32
+	Reusable               bool
+	LimitedPlans           bool
+	LimitedBillableMetrics bool
+	PlanIds                json.RawMessage
+	BillableMetricIds      json.RawMessage
+	Expiration             string
+	ExpirationAt           *time.Time
+	Status                 string
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+	TerminatedAt           *time.Time
+	DeletedAt              *time.Time
+}
+
+type ExportsCreditNote struct {
+	OrganizationID               uuid.UUID
+	ID                           uuid.UUID
+	InvoiceID                    uuid.UUID
+	CustomerID                   uuid.UUID
+	SequentialID                 int64
+	Number                       string
+	IssuingDate                  *time.Time
+	Status                       string
+	CreditStatus                 *string
+	RefundStatus                 *string
+	Reason                       string
+	Description                  *string
+	Currency                     string
+	TotalAmount                  int64
+	TaxesAmount                  int64
+	TaxesRate                    money.Decimal
+	SubTotalExcludingTaxesAmount int64
+	BalanceAmount                int64
+	CreditAmount                 int64
+	RefundAmount                 int64
+	OffsetAmount                 int64
+	CouponsAdjustmentAmount      int64
+	Items                        json.RawMessage
+	Metadata                     json.RawMessage
+	ErrorDetails                 json.RawMessage
+	CreatedAt                    time.Time
+	UpdatedAt                    time.Time
+	RefundedAt                   *time.Time
+	VoidedAt                     *time.Time
+}
+
+type ExportsCreditNoteAppliedTax struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+	CreditNoteID   uuid.UUID
+	TaxID          *uuid.UUID
+	TaxCode        string
+	TaxName        string
+	TaxDescription *string
+	TaxRate        money.Decimal
+	BaseAmount     int64
+	Amount         int64
+	PreciseAmount  money.Decimal
+	Currency       string
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+type ExportsCustomer struct {
+	OrganizationID                   uuid.UUID
+	ID                               uuid.UUID
+	BillingEntityID                  uuid.UUID
+	ExternalID                       string
+	AccountType                      string
+	CustomerType                     *string
+	Name                             *string
+	Firstname                        *string
+	Lastname                         *string
+	LegalName                        *string
+	LegalNumber                      *string
+	TaxIdentificationNumber          *string
+	SequentialID                     int64
+	Slug                             string
+	Email                            *string
+	Phone                            *string
+	Url                              *string
+	BillingAddressLine1              string
+	BillingAddressLine2              string
+	BillingAddressCity               string
+	BillingAddressState              string
+	BillingAddressZipcode            string
+	BillingAddressCountry            string
+	ShippingAddressLine1             string
+	ShippingAddressLine2             string
+	ShippingAddressCity              string
+	ShippingAddressState             string
+	ShippingAddressZipcode           string
+	ShippingAddressCountry           string
+	Currency                         *string
+	Timezone                         *string
+	ApplicableTimezone               string
+	NetPaymentTermDays               *int32
+	InvoiceGracePeriodDays           *int32
+	ApplicableInvoiceGracePeriodDays int32
+	DocumentLocale                   *string
+	FinalizeZeroAmountInvoice        string
+	SkipInvoiceCustomSections        bool
+	PaymentProvider                  *string
+	PaymentProviderCode              *string
+	ProviderCustomerID               *string
+	Metadata                         json.RawMessage
+	TaxIds                           json.RawMessage
+	CreatedAt                        time.Time
+	UpdatedAt                        time.Time
+	DeletedAt                        *time.Time
+}
+
+type ExportsDailyUsage struct {
+	OrganizationID         uuid.UUID
+	ID                     uuid.UUID
+	CustomerID             uuid.UUID
+	SubscriptionID         uuid.UUID
+	ExternalSubscriptionID string
+	UsageDate              time.Time
+	FromDatetime           time.Time
+	ToDatetime             time.Time
+	RefreshedAt            time.Time
+	Usage                  json.RawMessage
+	UsageDiff              json.RawMessage
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+}
+
+type ExportsEntitlement struct {
+	OrganizationID  uuid.UUID
+	ID              uuid.UUID
+	FeatureID       uuid.UUID
+	PlanID          *uuid.UUID
+	SubscriptionID  *uuid.UUID
+	PrivilegeValues json.RawMessage
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	DeletedAt       *time.Time
+}
+
+type ExportsFeature struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+	Code           string
+	Name           *string
+	Description    *string
+	Privileges     interface{}
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	DeletedAt      *time.Time
+}
+
+type ExportsFee struct {
+	OrganizationID           uuid.UUID
+	ID                       uuid.UUID
+	InvoiceID                *uuid.UUID
+	SubscriptionID           *uuid.UUID
+	CustomerID               uuid.UUID
+	FeeType                  string
+	ChargeID                 *uuid.UUID
+	ChargeFilterID           *uuid.UUID
+	FixedChargeID            *uuid.UUID
+	AddOnID                  *uuid.UUID
+	CommitmentID             *uuid.UUID
+	WalletTransactionID      *uuid.UUID
+	ProductID                *uuid.UUID
+	Item                     json.RawMessage
+	Description              *string
+	PayInAdvance             bool
+	Invoiceable              bool
+	Currency                 string
+	Units                    money.Decimal
+	TotalAggregatedUnits     money.Decimal
+	EventsCount              int64
+	Amount                   int64
+	PreciseAmount            money.Decimal
+	UnitAmount               int64
+	PreciseUnitAmount        money.Decimal
+	PreciseCouponsAmount     money.Decimal
+	PreciseCreditNotesAmount money.Decimal
+	TaxesAmount              int64
+	TaxesPreciseAmount       money.Decimal
+	TaxesRate                money.Decimal
+	TotalAmount              int32
+	PreciseTotalAmount       int32
+	AmountDetails            json.RawMessage
+	AppliedTaxes             json.RawMessage
+	PaymentStatus            *string
+	FromDatetime             interface{}
+	ToDatetime               interface{}
+	CreatedAt                time.Time
+	UpdatedAt                time.Time
+	SucceededAt              *time.Time
+	FailedAt                 *time.Time
+	RefundedAt               *time.Time
+	DeletedAt                *time.Time
+}
+
+type ExportsIntegrationCustomer struct {
+	OrganizationID     uuid.UUID
+	ID                 uuid.UUID
+	CustomerID         uuid.UUID
+	IntegrationID      uuid.UUID
+	Category           string
+	Provider           string
+	ExternalCustomerID string
+	SubsidiaryID       *string
+	SyncWithProvider   bool
+	Settings           json.RawMessage
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+}
+
+type ExportsInvoice struct {
+	OrganizationID                 uuid.UUID
+	ID                             uuid.UUID
+	CustomerID                     uuid.UUID
+	BillingEntityID                uuid.UUID
+	SequentialID                   *int64
+	BillingEntitySequentialID      *int64
+	Number                         string
+	InvoiceType                    string
+	Status                         string
+	PaymentStatus                  string
+	TaxStatus                      *string
+	IssuingDate                    *time.Time
+	PaymentDueDate                 *time.Time
+	NetPaymentTermDays             int32
+	PaymentOverdue                 bool
+	PaymentDisputeLostAt           *time.Time
+	Currency                       string
+	FeesAmount                     int64
+	TaxesAmount                    int64
+	ProgressiveBillingCreditAmount int64
+	CouponsAmount                  int64
+	CreditNotesAmount              int64
+	SubTotalExcludingTaxesAmount   int64
+	SubTotalIncludingTaxesAmount   int64
+	TotalAmount                    int64
+	TotalPaidAmount                int64
+	TotalDueAmount                 int32
+	PrepaidCreditAmount            int64
+	PrepaidGrantedCreditAmount     int64
+	PrepaidPurchasedCreditAmount   int64
+	VoidedInvoiceID                *uuid.UUID
+	PurchaseOrderNumber            *string
+	Metadata                       json.RawMessage
+	ErrorDetails                   json.RawMessage
+	CreatedAt                      time.Time
+	UpdatedAt                      time.Time
+	FinalizedAt                    *time.Time
+	VoidedAt                       *time.Time
+}
+
+type ExportsInvoiceAppliedTax struct {
+	OrganizationID    uuid.UUID
+	ID                uuid.UUID
+	InvoiceID         uuid.UUID
+	TaxID             *uuid.UUID
+	TaxCode           string
+	TaxName           string
+	TaxDescription    *string
+	TaxRate           money.Decimal
+	FeesAmount        int64
+	TaxableBaseAmount int64
+	Amount            int64
+	PreciseAmount     money.Decimal
+	Currency          string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+type ExportsInvoiceSettlement struct {
+	OrganizationID  uuid.UUID
+	ID              uuid.UUID
+	BillingEntityID uuid.UUID
+	InvoiceID       uuid.UUID
+	SettlementType  string
+	PaymentID       *uuid.UUID
+	CreditNoteID    *uuid.UUID
+	Amount          int64
+	Currency        string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+type ExportsInvoiceSubscription struct {
+	OrganizationID           uuid.UUID
+	ID                       uuid.UUID
+	InvoiceID                uuid.UUID
+	RegeneratedInvoiceID     *uuid.UUID
+	SubscriptionID           uuid.UUID
+	InvoicingReason          string
+	Recurring                bool
+	FromDatetime             time.Time
+	ToDatetime               time.Time
+	ChargesFromDatetime      bool
+	ChargesToDatetime        bool
+	FixedChargesFromDatetime bool
+	FixedChargesToDatetime   bool
+	BillingTimestamp         time.Time
+	CreatedAt                time.Time
+	UpdatedAt                time.Time
+}
+
+type ExportsPayment struct {
+	OrganizationID    uuid.UUID
+	ID                uuid.UUID
+	CustomerID        uuid.UUID
+	PayableType       string
+	PaymentRequestID  *uuid.UUID
+	PaymentKind       string
+	Status            string
+	Amount            int64
+	Currency          string
+	Reference         *string
+	ProviderPaymentID *string
+	PaidAt            *time.Time
+	InvoiceIds        interface{}
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+type ExportsPaymentRequest struct {
+	OrganizationID            uuid.UUID
+	ID                        uuid.UUID
+	CustomerID                uuid.UUID
+	Amount                    int64
+	Currency                  string
+	Email                     *string
+	PaymentStatus             string
+	PaymentAttempts           int32
+	ReadyForPaymentProcessing bool
+	PaymentIds                json.RawMessage
+	InvoiceIds                json.RawMessage
+	CreatedAt                 time.Time
+	UpdatedAt                 time.Time
+}
+
+type ExportsPlan struct {
+	OrganizationID          uuid.UUID
+	ID                      uuid.UUID
+	Code                    string
+	Name                    string
+	InvoiceDisplayName      *string
+	Description             *string
+	BillingInterval         string
+	Amount                  int64
+	Currency                string
+	TrialPeriodDays         int32
+	PayInAdvance            bool
+	BillChargesMonthly      *bool
+	BillFixedChargesMonthly *bool
+	ParentID                *uuid.UUID
+	Status                  string
+	Metadata                json.RawMessage
+	TaxIds                  json.RawMessage
+	CreatedAt               time.Time
+	UpdatedAt               time.Time
+}
+
+type ExportsRecordDeletion struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+	TableName      string
+	RecordID       uuid.UUID
+	DeletedAt      time.Time
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+}
+
+type ExportsSubscription struct {
+	OrganizationID         uuid.UUID
+	ID                     uuid.UUID
+	ExternalID             string
+	CustomerID             uuid.UUID
+	PlanID                 *uuid.UUID
+	BillingEntityID        *uuid.UUID
+	Name                   *string
+	Status                 string
+	BillingTime            string
+	SubscriptionAt         time.Time
+	StartedAt              *time.Time
+	TrialEndedAt           *time.Time
+	EndingAt               *time.Time
+	TerminatedAt           *time.Time
+	CanceledAt             *time.Time
+	CancellationReason     *string
+	PurchaseOrderNumber    *string
+	PreviousSubscriptionID *uuid.UUID
+	NextSubscriptionIds    json.RawMessage
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+}
+
+type ExportsTax struct {
+	OrganizationID   uuid.UUID
+	ID               uuid.UUID
+	Code             string
+	Name             string
+	Rate             money.Decimal
+	Description      *string
+	BillingEntityIds json.RawMessage
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	DeletedAt        *time.Time
+}
+
+type ExportsTriggeredAlert struct {
+	OrganizationID    uuid.UUID
+	ID                uuid.UUID
+	AlertID           uuid.UUID
+	SubscriptionID    *uuid.UUID
+	WalletID          *uuid.UUID
+	CurrentValue      money.Decimal
+	PreviousValue     money.Decimal
+	CrossedThresholds json.RawMessage
+	TriggeredAt       time.Time
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+}
+
+type ExportsUsageThreshold struct {
+	OrganizationID       uuid.UUID
+	ID                   uuid.UUID
+	PlanID               *uuid.UUID
+	SubscriptionID       *uuid.UUID
+	Amount               int64
+	Recurring            bool
+	ThresholdDisplayName *string
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
+	DeletedAt            *time.Time
+}
+
+type ExportsWallet struct {
+	OrganizationID                   uuid.UUID
+	ID                               uuid.UUID
+	CustomerID                       uuid.UUID
+	BillingEntityID                  *uuid.UUID
+	Code                             *string
+	Name                             *string
+	Status                           string
+	Currency                         string
+	RateAmount                       money.Decimal
+	Priority                         int32
+	ExpirationAt                     *time.Time
+	BalanceAmount                    int64
+	CreditsBalance                   money.Decimal
+	OngoingBalanceAmount             int64
+	CreditsOngoingBalance            money.Decimal
+	OngoingUsageBalanceAmount        int64
+	CreditsOngoingUsageBalance       money.Decimal
+	ConsumedAmount                   int64
+	ConsumedCredits                  money.Decimal
+	PaidTopUpMinAmount               *int64
+	PaidTopUpMaxAmount               *int64
+	InvoiceRequiresSuccessfulPayment bool
+	AllowedFeeTypes                  []string
+	Traceable                        bool
+	PurchaseOrderNumber              *string
+	Metadata                         json.RawMessage
+	LastBalanceSyncAt                *time.Time
+	LastConsumedCreditAt             *time.Time
+	CreatedAt                        time.Time
+	UpdatedAt                        time.Time
+	TerminatedAt                     *time.Time
+}
+
+type ExportsWalletTransaction struct {
+	OrganizationID                   uuid.UUID
+	ID                               uuid.UUID
+	WalletID                         uuid.UUID
+	TransactionType                  string
+	TransactionStatus                string
+	Status                           string
+	Source                           string
+	Currency                         string
+	Amount                           int64
+	CreditAmount                     money.Decimal
+	RemainingAmount                  *int64
+	Priority                         int32
+	Name                             *string
+	InvoiceID                        *uuid.UUID
+	CreditNoteID                     *uuid.UUID
+	VoidedInvoiceID                  *uuid.UUID
+	BillingEntityID                  *uuid.UUID
+	RecurringTransactionRuleID       *uuid.UUID
+	PurchaseOrderNumber              *string
+	InvoiceRequiresSuccessfulPayment bool
+	Metadata                         json.RawMessage
+	SettledAt                        *time.Time
+	FailedAt                         *time.Time
+	CreatedAt                        time.Time
+	UpdatedAt                        time.Time
+}
+
+type ExportsWalletTransactionConsumption struct {
+	OrganizationID        uuid.UUID
+	ID                    uuid.UUID
+	InboundTransactionID  uuid.UUID
+	OutboundTransactionID uuid.UUID
+	ConsumedAmount        int64
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
 }
 
 type Feature struct {
@@ -1532,6 +2154,8 @@ type RecurringTransactionRule struct {
 	PurchaseOrderNumber              *string
 	PaymentMethodType                *string
 	PaymentMethodID                  *uuid.UUID
+	SkipInvoiceCustomSections        bool
+	InvoiceCustomSectionIds          []uuid.UUID
 	TerminatedAt                     *time.Time
 	CreatedAt                        time.Time
 	UpdatedAt                        time.Time
@@ -1590,6 +2214,30 @@ type Session struct {
 	LastSeenAt time.Time
 	ExpiresAt  time.Time
 	RevokedAt  *time.Time
+}
+
+type StreamingDeliveryLock struct {
+	OrganizationID uuid.UUID
+	CustomerID     uuid.UUID
+	EventType      string
+	EnqueuedUntil  *time.Time
+	RunningUntil   *time.Time
+}
+
+type StreamingDestination struct {
+	OrganizationID                     uuid.UUID
+	ID                                 uuid.UUID
+	Type                               string
+	Active                             bool
+	EventTypes                         []string
+	CustomerFullUsageExcludedPlanCodes []string
+	StreamArn                          string
+	Region                             string
+	RoleArn                            string
+	ExternalID                         string
+	PartitionKey                       string
+	CreatedAt                          time.Time
+	UpdatedAt                          time.Time
 }
 
 type Subscription struct {
@@ -1801,6 +2449,9 @@ type Wallet struct {
 	LastBalanceSyncAt                *time.Time
 	LastConsumedCreditAt             *time.Time
 	DepletedOngoingBalance           bool
+	Metadata                         json.RawMessage
+	SkipInvoiceCustomSections        bool
+	InvoiceCustomSectionIds          []uuid.UUID
 	TerminatedAt                     *time.Time
 	CreatedAt                        time.Time
 	UpdatedAt                        time.Time
@@ -1835,6 +2486,10 @@ type WalletTransaction struct {
 	PaymentMethodID                  *uuid.UUID
 	InvoiceRequiresSuccessfulPayment bool
 	PurchaseOrderNumber              *string
+	VoidedInvoiceID                  *uuid.UUID
+	BillingEntityID                  *uuid.UUID
+	SkipInvoiceCustomSections        bool
+	InvoiceCustomSectionIds          []uuid.UUID
 	SettledAt                        *time.Time
 	FailedAt                         *time.Time
 	CreatedAt                        time.Time

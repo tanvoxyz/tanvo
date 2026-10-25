@@ -16,7 +16,7 @@ import (
 func newEventReader(cfg config.Config, tx port.Transactor, modeOf func(core.OrganizationID) ingest.Mode, ch *clickhouse.Store) (*ingest.Reader, error) {
 	rc := ingest.ReaderConfig{Transactor: tx, Mode: ingest.Mode(cfg.IngestMode), ModeFor: modeOf}
 	if ch != nil {
-		rc.Raw = ch
+		rc.Raw, rc.Enriched = ch, ch
 	}
 	r, err := ingest.NewReader(rc)
 	if err != nil {

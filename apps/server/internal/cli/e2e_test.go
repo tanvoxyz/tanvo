@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -29,6 +30,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
+	"github.com/tanvoxyz/tanvo/libs/ingest"
 	"github.com/tanvoxyz/tanvo/libs/metering"
 	"github.com/tanvoxyz/tanvo/libs/store"
 )
@@ -372,6 +374,10 @@ func TestServeKafka(t *testing.T) {
 	srv, base, stop := serve(t, environ, logs)
 	defer stop()
 
+	if status, body := post(t, base+"/v1/billable_metrics", secret,
+		`{"name":"API calls","code":"api_calls","aggregation_type":"AGGREGATION_TYPE_SUM","field_name":"tokens"}`); status != http.StatusOK {
+		t.Fatalf("POST /v1/billable_metrics status got = %d (%s), want = 200", status, body)
+	}
 	at := time.Now().UTC().Add(-time.Minute).Truncate(time.Second)
 	batch := fmt.Sprintf(`{"events":[
 		{"transaction_id":"k-1","external_subscription_id":"sub-1","code":"api_calls","timestamp":%[1]q,"properties":{"tokens":3}},
@@ -422,6 +428,76 @@ func TestServeKafka(t *testing.T) {
 	}
 	if ua != userAgent || ip != "127.0.0.1" {
 		t.Errorf("events_raw metadata got = %q %q, want = %q 127.0.0.1", ua, ip, userAgent)
+	}
+
+	// The enriched events keep the value enrichment gave them.
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+"/v1/enriched_events", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Authorization", "Bearer "+secret)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+	var enriched struct {
+		EnrichedEvents []struct {
+			TransactionID string `json:"transaction_id"`
+			Value         string `json:"value"`
+			DecimalValue  string `json:"decimal_value"`
+			EnrichedAt    string `json:"enriched_at"`
+		} `json:"enriched_events"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&enriched); err != nil || res.StatusCode != http.StatusOK {
+		t.Fatalf("GET /v1/enriched_events status got = %d (%v), want = 200", res.StatusCode, err)
+	}
+	values := map[string]string{}
+	for _, e := range enriched.EnrichedEvents {
+		if e.EnrichedAt == "" {
+			t.Errorf("enriched event %s got = no enriched_at, want = one", e.TransactionID)
+		}
+		values[e.TransactionID] = e.Value + "/" + e.DecimalValue
+	}
+	if want := map[string]string{"k-1": "3/3", "k-2": "4/4"}; !maps.Equal(values, want) {
+		t.Errorf("enriched values got = %v, want = %v", values, want)
+	}
+
+	// A connector's message (libs/ingest/connectors/http.yml) is stored as
+	// the API's are, and a message that is not an event lands in
+	// events_dead_letter.
+	cl, err := kgo.NewClient(kgo.SeedBrokers(brokers))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer cl.Close()
+	connector := fmt.Sprintf(`{"organization_id":%q,"external_subscription_id":"sub-1","transaction_id":"c-1","code":"api_calls",
+		"timestamp":%d,"properties":{"tokens":5},"ingested_at":%d,"source":"http_connector","precise_total_amount_cents":"0"}`,
+		org.String(), at.Unix(), time.Now().Unix())
+	if err := cl.ProduceSync(ctx,
+		&kgo.Record{Topic: "events.raw", Key: []byte(org.String() + "/sub-1/c-1"), Value: []byte(connector)},
+		&kgo.Record{Topic: "events.raw", Key: []byte("garbage"), Value: []byte("not an event")},
+	).FirstErr(); err != nil {
+		t.Fatalf("produce: %v", err)
+	}
+	if err := dockertest.Wait(ctx, time.Minute, func(ctx context.Context) error {
+		var value string
+		if err := conn.QueryRow(ctx, `SELECT value FROM events_enriched FINAL WHERE organization_id = $1 AND transaction_id = 'c-1'`, org.String()).Scan(&value); err != nil {
+			return err
+		}
+		if value != "5" {
+			return fmt.Errorf("connector event value got = %q, want = 5", value)
+		}
+		var code string
+		if err := conn.QueryRow(ctx, `SELECT error_code FROM events_dead_letter WHERE event = '"not an event"'`).Scan(&code); err != nil {
+			return err
+		}
+		if code != ingest.ErrorDecode {
+			return fmt.Errorf("dead letter code got = %q, want = %s", code, ingest.ErrorDecode)
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("connector event and dead letter: %v", err)
 	}
 }
 

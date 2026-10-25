@@ -455,6 +455,9 @@ type RecurringTransactionRule struct {
 	xxx_hidden_TerminatedAt                     *timestamppb.Timestamp          `protobuf:"bytes,19,opt,name=terminated_at,json=terminatedAt"`
 	xxx_hidden_CreatedAt                        *timestamppb.Timestamp          `protobuf:"bytes,20,opt,name=created_at,json=createdAt"`
 	xxx_hidden_Connections                      map[string]*v1.ConnectionChoice `protobuf:"bytes,21,rep,name=connections" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_PurchaseOrderNumber              *string                         `protobuf:"bytes,22,opt,name=purchase_order_number,json=purchaseOrderNumber"`
+	xxx_hidden_SkipInvoiceCustomSections        bool                            `protobuf:"varint,23,opt,name=skip_invoice_custom_sections,json=skipInvoiceCustomSections"`
+	xxx_hidden_InvoiceCustomSectionIds          []string                        `protobuf:"bytes,24,rep,name=invoice_custom_section_ids,json=invoiceCustomSectionIds"`
 	XXX_raceDetectHookData                      protoimpl.RaceDetectHookData
 	XXX_presence                                [1]uint32
 	unknownFields                               protoimpl.UnknownFields
@@ -666,49 +669,73 @@ func (x *RecurringTransactionRule) GetConnections() map[string]*v1.ConnectionCho
 	return nil
 }
 
+func (x *RecurringTransactionRule) GetPurchaseOrderNumber() string {
+	if x != nil {
+		if x.xxx_hidden_PurchaseOrderNumber != nil {
+			return *x.xxx_hidden_PurchaseOrderNumber
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *RecurringTransactionRule) GetSkipInvoiceCustomSections() bool {
+	if x != nil {
+		return x.xxx_hidden_SkipInvoiceCustomSections
+	}
+	return false
+}
+
+func (x *RecurringTransactionRule) GetInvoiceCustomSectionIds() []string {
+	if x != nil {
+		return x.xxx_hidden_InvoiceCustomSectionIds
+	}
+	return nil
+}
+
 func (x *RecurringTransactionRule) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 24)
 }
 
 func (x *RecurringTransactionRule) SetTrigger(v RecurringTrigger) {
 	x.xxx_hidden_Trigger = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 24)
 }
 
 func (x *RecurringTransactionRule) SetInterval(v v1.Interval) {
 	x.xxx_hidden_Interval = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 24)
 }
 
 func (x *RecurringTransactionRule) SetThresholdCredits(v string) {
 	x.xxx_hidden_ThresholdCredits = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 24)
 }
 
 func (x *RecurringTransactionRule) SetMethod(v RecurringMethod) {
 	x.xxx_hidden_Method = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 24)
 }
 
 func (x *RecurringTransactionRule) SetPaidCredits(v string) {
 	x.xxx_hidden_PaidCredits = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 24)
 }
 
 func (x *RecurringTransactionRule) SetGrantedCredits(v string) {
 	x.xxx_hidden_GrantedCredits = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 24)
 }
 
 func (x *RecurringTransactionRule) SetTargetOngoingBalance(v string) {
 	x.xxx_hidden_TargetOngoingBalance = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 24)
 }
 
 func (x *RecurringTransactionRule) SetGrantsTargetTopUp(v bool) {
 	x.xxx_hidden_GrantsTargetTopUp = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 24)
 }
 
 func (x *RecurringTransactionRule) SetStartedAt(v *timestamppb.Timestamp) {
@@ -721,17 +748,17 @@ func (x *RecurringTransactionRule) SetExpiresAt(v *timestamppb.Timestamp) {
 
 func (x *RecurringTransactionRule) SetInvoiceRequiresSuccessfulPayment(v bool) {
 	x.xxx_hidden_InvoiceRequiresSuccessfulPayment = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 24)
 }
 
 func (x *RecurringTransactionRule) SetIgnorePaidTopUpLimits(v bool) {
 	x.xxx_hidden_IgnorePaidTopUpLimits = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 24)
 }
 
 func (x *RecurringTransactionRule) SetTransactionName(v string) {
 	x.xxx_hidden_TransactionName = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 24)
 }
 
 func (x *RecurringTransactionRule) SetTransactionMetadata(v []*v1.MetadataItem) {
@@ -740,17 +767,17 @@ func (x *RecurringTransactionRule) SetTransactionMetadata(v []*v1.MetadataItem) 
 
 func (x *RecurringTransactionRule) SetPaymentMethodType(v v1.PaymentMethodType) {
 	x.xxx_hidden_PaymentMethodType = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 24)
 }
 
 func (x *RecurringTransactionRule) SetPaymentMethodId(v string) {
 	x.xxx_hidden_PaymentMethodId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 24)
 }
 
 func (x *RecurringTransactionRule) SetStatus(v RecurringRuleStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 21)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 24)
 }
 
 func (x *RecurringTransactionRule) SetTerminatedAt(v *timestamppb.Timestamp) {
@@ -763,6 +790,20 @@ func (x *RecurringTransactionRule) SetCreatedAt(v *timestamppb.Timestamp) {
 
 func (x *RecurringTransactionRule) SetConnections(v map[string]*v1.ConnectionChoice) {
 	x.xxx_hidden_Connections = v
+}
+
+func (x *RecurringTransactionRule) SetPurchaseOrderNumber(v string) {
+	x.xxx_hidden_PurchaseOrderNumber = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 21, 24)
+}
+
+func (x *RecurringTransactionRule) SetSkipInvoiceCustomSections(v bool) {
+	x.xxx_hidden_SkipInvoiceCustomSections = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 22, 24)
+}
+
+func (x *RecurringTransactionRule) SetInvoiceCustomSectionIds(v []string) {
+	x.xxx_hidden_InvoiceCustomSectionIds = v
 }
 
 func (x *RecurringTransactionRule) HasId() bool {
@@ -898,6 +939,20 @@ func (x *RecurringTransactionRule) HasCreatedAt() bool {
 	return x.xxx_hidden_CreatedAt != nil
 }
 
+func (x *RecurringTransactionRule) HasPurchaseOrderNumber() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 21)
+}
+
+func (x *RecurringTransactionRule) HasSkipInvoiceCustomSections() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 22)
+}
+
 func (x *RecurringTransactionRule) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -989,6 +1044,16 @@ func (x *RecurringTransactionRule) ClearCreatedAt() {
 	x.xxx_hidden_CreatedAt = nil
 }
 
+func (x *RecurringTransactionRule) ClearPurchaseOrderNumber() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 21)
+	x.xxx_hidden_PurchaseOrderNumber = nil
+}
+
+func (x *RecurringTransactionRule) ClearSkipInvoiceCustomSections() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 22)
+	x.xxx_hidden_SkipInvoiceCustomSections = false
+}
+
 type RecurringTransactionRule_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1035,6 +1100,13 @@ type RecurringTransactionRule_builder struct {
 	// The connection choices keyed by category: payment, tax, accounting
 	// and crm (see ConnectionChoice).
 	Connections map[string]*v1.ConnectionChoice
+	// The purchase order number of the transactions created; the wallet's
+	// when unset.
+	PurchaseOrderNumber *string
+	// The transactions created print no invoice custom sections.
+	SkipInvoiceCustomSections *bool
+	// The invoice custom sections (IDs or `code:<code>`) the transactions created take; the wallet's when empty.
+	InvoiceCustomSectionIds []string
 }
 
 func (b0 RecurringTransactionRule_builder) Build() *RecurringTransactionRule {
@@ -1042,71 +1114,80 @@ func (b0 RecurringTransactionRule_builder) Build() *RecurringTransactionRule {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 24)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.Trigger != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 24)
 		x.xxx_hidden_Trigger = *b.Trigger
 	}
 	if b.Interval != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 24)
 		x.xxx_hidden_Interval = *b.Interval
 	}
 	if b.ThresholdCredits != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 24)
 		x.xxx_hidden_ThresholdCredits = b.ThresholdCredits
 	}
 	if b.Method != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 24)
 		x.xxx_hidden_Method = *b.Method
 	}
 	if b.PaidCredits != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 24)
 		x.xxx_hidden_PaidCredits = b.PaidCredits
 	}
 	if b.GrantedCredits != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 24)
 		x.xxx_hidden_GrantedCredits = b.GrantedCredits
 	}
 	if b.TargetOngoingBalance != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 24)
 		x.xxx_hidden_TargetOngoingBalance = b.TargetOngoingBalance
 	}
 	if b.GrantsTargetTopUp != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 24)
 		x.xxx_hidden_GrantsTargetTopUp = *b.GrantsTargetTopUp
 	}
 	x.xxx_hidden_StartedAt = b.StartedAt
 	x.xxx_hidden_ExpiresAt = b.ExpiresAt
 	if b.InvoiceRequiresSuccessfulPayment != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 24)
 		x.xxx_hidden_InvoiceRequiresSuccessfulPayment = *b.InvoiceRequiresSuccessfulPayment
 	}
 	if b.IgnorePaidTopUpLimits != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 24)
 		x.xxx_hidden_IgnorePaidTopUpLimits = *b.IgnorePaidTopUpLimits
 	}
 	if b.TransactionName != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 24)
 		x.xxx_hidden_TransactionName = b.TransactionName
 	}
 	x.xxx_hidden_TransactionMetadata = &b.TransactionMetadata
 	if b.PaymentMethodType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 24)
 		x.xxx_hidden_PaymentMethodType = *b.PaymentMethodType
 	}
 	if b.PaymentMethodId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 24)
 		x.xxx_hidden_PaymentMethodId = b.PaymentMethodId
 	}
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 21)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 24)
 		x.xxx_hidden_Status = *b.Status
 	}
 	x.xxx_hidden_TerminatedAt = b.TerminatedAt
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_Connections = b.Connections
+	if b.PurchaseOrderNumber != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 21, 24)
+		x.xxx_hidden_PurchaseOrderNumber = b.PurchaseOrderNumber
+	}
+	if b.SkipInvoiceCustomSections != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 22, 24)
+		x.xxx_hidden_SkipInvoiceCustomSections = *b.SkipInvoiceCustomSections
+	}
+	x.xxx_hidden_InvoiceCustomSectionIds = b.InvoiceCustomSectionIds
 	return m0
 }
 
@@ -1150,6 +1231,13 @@ type Wallet struct {
 	xxx_hidden_CreatedAt                        *timestamppb.Timestamp          `protobuf:"bytes,35,opt,name=created_at,json=createdAt"`
 	xxx_hidden_UpdatedAt                        *timestamppb.Timestamp          `protobuf:"bytes,36,opt,name=updated_at,json=updatedAt"`
 	xxx_hidden_Connections                      map[string]*v1.ConnectionChoice `protobuf:"bytes,37,rep,name=connections" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	xxx_hidden_PurchaseOrderNumber              *string                         `protobuf:"bytes,38,opt,name=purchase_order_number,json=purchaseOrderNumber"`
+	xxx_hidden_TransactionName                  *string                         `protobuf:"bytes,39,opt,name=transaction_name,json=transactionName"`
+	xxx_hidden_TransactionPriority              int32                           `protobuf:"varint,40,opt,name=transaction_priority,json=transactionPriority"`
+	xxx_hidden_TransactionMetadata              *[]*v1.MetadataItem             `protobuf:"bytes,41,rep,name=transaction_metadata,json=transactionMetadata"`
+	xxx_hidden_IgnorePaidTopUpLimitsOnCreation  bool                            `protobuf:"varint,42,opt,name=ignore_paid_top_up_limits_on_creation,json=ignorePaidTopUpLimitsOnCreation"`
+	xxx_hidden_SkipInvoiceCustomSections        bool                            `protobuf:"varint,43,opt,name=skip_invoice_custom_sections,json=skipInvoiceCustomSections"`
+	xxx_hidden_InvoiceCustomSectionIds          []string                        `protobuf:"bytes,44,rep,name=invoice_custom_section_ids,json=invoiceCustomSectionIds"`
 	XXX_raceDetectHookData                      protoimpl.RaceDetectHookData
 	XXX_presence                                [2]uint32
 	unknownFields                               protoimpl.UnknownFields
@@ -1496,44 +1584,101 @@ func (x *Wallet) GetConnections() map[string]*v1.ConnectionChoice {
 	return nil
 }
 
+func (x *Wallet) GetPurchaseOrderNumber() string {
+	if x != nil {
+		if x.xxx_hidden_PurchaseOrderNumber != nil {
+			return *x.xxx_hidden_PurchaseOrderNumber
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *Wallet) GetTransactionName() string {
+	if x != nil {
+		if x.xxx_hidden_TransactionName != nil {
+			return *x.xxx_hidden_TransactionName
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *Wallet) GetTransactionPriority() int32 {
+	if x != nil {
+		return x.xxx_hidden_TransactionPriority
+	}
+	return 0
+}
+
+func (x *Wallet) GetTransactionMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_TransactionMetadata != nil {
+			return *x.xxx_hidden_TransactionMetadata
+		}
+	}
+	return nil
+}
+
+func (x *Wallet) GetIgnorePaidTopUpLimitsOnCreation() bool {
+	if x != nil {
+		return x.xxx_hidden_IgnorePaidTopUpLimitsOnCreation
+	}
+	return false
+}
+
+func (x *Wallet) GetSkipInvoiceCustomSections() bool {
+	if x != nil {
+		return x.xxx_hidden_SkipInvoiceCustomSections
+	}
+	return false
+}
+
+func (x *Wallet) GetInvoiceCustomSectionIds() []string {
+	if x != nil {
+		return x.xxx_hidden_InvoiceCustomSectionIds
+	}
+	return nil
+}
+
 func (x *Wallet) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 44)
 }
 
 func (x *Wallet) SetCustomerId(v string) {
 	x.xxx_hidden_CustomerId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 44)
 }
 
 func (x *Wallet) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 44)
 }
 
 func (x *Wallet) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 44)
 }
 
 func (x *Wallet) SetStatus(v WalletStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 44)
 }
 
 func (x *Wallet) SetCurrency(v string) {
 	x.xxx_hidden_Currency = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 44)
 }
 
 func (x *Wallet) SetRateAmount(v string) {
 	x.xxx_hidden_RateAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 44)
 }
 
 func (x *Wallet) SetPriority(v int32) {
 	x.xxx_hidden_Priority = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 44)
 }
 
 func (x *Wallet) SetExpiresAt(v *timestamppb.Timestamp) {
@@ -1546,7 +1691,7 @@ func (x *Wallet) SetBalanceAmount(v *v1.Money) {
 
 func (x *Wallet) SetCreditsBalance(v string) {
 	x.xxx_hidden_CreditsBalance = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 44)
 }
 
 func (x *Wallet) SetOngoingBalanceAmount(v *v1.Money) {
@@ -1555,7 +1700,7 @@ func (x *Wallet) SetOngoingBalanceAmount(v *v1.Money) {
 
 func (x *Wallet) SetCreditsOngoingBalance(v string) {
 	x.xxx_hidden_CreditsOngoingBalance = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 44)
 }
 
 func (x *Wallet) SetOngoingUsageBalanceAmount(v *v1.Money) {
@@ -1564,7 +1709,7 @@ func (x *Wallet) SetOngoingUsageBalanceAmount(v *v1.Money) {
 
 func (x *Wallet) SetCreditsOngoingUsageBalance(v string) {
 	x.xxx_hidden_CreditsOngoingUsageBalance = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 14, 44)
 }
 
 func (x *Wallet) SetConsumedAmount(v *v1.Money) {
@@ -1573,22 +1718,22 @@ func (x *Wallet) SetConsumedAmount(v *v1.Money) {
 
 func (x *Wallet) SetConsumedCredits(v string) {
 	x.xxx_hidden_ConsumedCredits = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 16, 44)
 }
 
 func (x *Wallet) SetPaidTopUpMinAmount(v string) {
 	x.xxx_hidden_PaidTopUpMinAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 17, 44)
 }
 
 func (x *Wallet) SetPaidTopUpMaxAmount(v string) {
 	x.xxx_hidden_PaidTopUpMaxAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 18, 44)
 }
 
 func (x *Wallet) SetInvoiceRequiresSuccessfulPayment(v bool) {
 	x.xxx_hidden_InvoiceRequiresSuccessfulPayment = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 44)
 }
 
 func (x *Wallet) SetAllowedFeeTypes(v []v1.FeeType) {
@@ -1601,22 +1746,22 @@ func (x *Wallet) SetBillableMetricIds(v []string) {
 
 func (x *Wallet) SetTraceable(v bool) {
 	x.xxx_hidden_Traceable = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 22, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 22, 44)
 }
 
 func (x *Wallet) SetBillingEntityId(v string) {
 	x.xxx_hidden_BillingEntityId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 23, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 23, 44)
 }
 
 func (x *Wallet) SetPaymentMethodType(v v1.PaymentMethodType) {
 	x.xxx_hidden_PaymentMethodType = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 24, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 24, 44)
 }
 
 func (x *Wallet) SetPaymentMethodId(v string) {
 	x.xxx_hidden_PaymentMethodId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 25, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 25, 44)
 }
 
 func (x *Wallet) SetMetadata(v []*v1.MetadataItem) {
@@ -1629,17 +1774,17 @@ func (x *Wallet) SetRecurringTransactionRules(v []*RecurringTransactionRule) {
 
 func (x *Wallet) SetPaidCredits(v string) {
 	x.xxx_hidden_PaidCredits = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 28, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 28, 44)
 }
 
 func (x *Wallet) SetGrantedCredits(v string) {
 	x.xxx_hidden_GrantedCredits = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 29, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 29, 44)
 }
 
 func (x *Wallet) SetDepletedOngoingBalance(v bool) {
 	x.xxx_hidden_DepletedOngoingBalance = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 30, 37)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 30, 44)
 }
 
 func (x *Wallet) SetLastBalanceSyncAt(v *timestamppb.Timestamp) {
@@ -1664,6 +1809,39 @@ func (x *Wallet) SetUpdatedAt(v *timestamppb.Timestamp) {
 
 func (x *Wallet) SetConnections(v map[string]*v1.ConnectionChoice) {
 	x.xxx_hidden_Connections = v
+}
+
+func (x *Wallet) SetPurchaseOrderNumber(v string) {
+	x.xxx_hidden_PurchaseOrderNumber = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 37, 44)
+}
+
+func (x *Wallet) SetTransactionName(v string) {
+	x.xxx_hidden_TransactionName = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 38, 44)
+}
+
+func (x *Wallet) SetTransactionPriority(v int32) {
+	x.xxx_hidden_TransactionPriority = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 39, 44)
+}
+
+func (x *Wallet) SetTransactionMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_TransactionMetadata = &v
+}
+
+func (x *Wallet) SetIgnorePaidTopUpLimitsOnCreation(v bool) {
+	x.xxx_hidden_IgnorePaidTopUpLimitsOnCreation = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 41, 44)
+}
+
+func (x *Wallet) SetSkipInvoiceCustomSections(v bool) {
+	x.xxx_hidden_SkipInvoiceCustomSections = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[1]), 42, 44)
+}
+
+func (x *Wallet) SetInvoiceCustomSectionIds(v []string) {
+	x.xxx_hidden_InvoiceCustomSectionIds = v
 }
 
 func (x *Wallet) HasId() bool {
@@ -1890,6 +2068,41 @@ func (x *Wallet) HasUpdatedAt() bool {
 	return x.xxx_hidden_UpdatedAt != nil
 }
 
+func (x *Wallet) HasPurchaseOrderNumber() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 37)
+}
+
+func (x *Wallet) HasTransactionName() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 38)
+}
+
+func (x *Wallet) HasTransactionPriority() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 39)
+}
+
+func (x *Wallet) HasIgnorePaidTopUpLimitsOnCreation() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 41)
+}
+
+func (x *Wallet) HasSkipInvoiceCustomSections() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[1]), 42)
+}
+
 func (x *Wallet) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -2040,6 +2253,31 @@ func (x *Wallet) ClearUpdatedAt() {
 	x.xxx_hidden_UpdatedAt = nil
 }
 
+func (x *Wallet) ClearPurchaseOrderNumber() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 37)
+	x.xxx_hidden_PurchaseOrderNumber = nil
+}
+
+func (x *Wallet) ClearTransactionName() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 38)
+	x.xxx_hidden_TransactionName = nil
+}
+
+func (x *Wallet) ClearTransactionPriority() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 39)
+	x.xxx_hidden_TransactionPriority = 0
+}
+
+func (x *Wallet) ClearIgnorePaidTopUpLimitsOnCreation() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 41)
+	x.xxx_hidden_IgnorePaidTopUpLimitsOnCreation = false
+}
+
+func (x *Wallet) ClearSkipInvoiceCustomSections() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[1]), 42)
+	x.xxx_hidden_SkipInvoiceCustomSections = false
+}
+
 type Wallet_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -2096,7 +2334,7 @@ type Wallet_builder struct {
 	PaymentMethodType *v1.PaymentMethodType
 	// The payment method, for PROVIDER.
 	PaymentMethodId *string
-	// Metadata: at most 15 items.
+	// Metadata: at most 50 items.
 	Metadata []*v1.MetadataItem
 	// The recurring top-up rules; on create only, then managed with
 	// ReplaceRecurringTransactionRules.
@@ -2120,6 +2358,22 @@ type Wallet_builder struct {
 	// The connection choices keyed by category: payment, tax, accounting
 	// and crm (see ConnectionChoice).
 	Connections map[string]*v1.ConnectionChoice
+	// The purchase order number of its transactions and rules.
+	PurchaseOrderNumber *string
+	// The name of the initial top-up; on create only.
+	TransactionName *string
+	// The consumption priority of the initial top-up, from 1 to 50; on
+	// create only.
+	TransactionPriority *int32
+	// The metadata of the initial top-up, at most 15 items; on create only.
+	TransactionMetadata []*v1.MetadataItem
+	// Lets the initial purchase ignore the paid top-up minimum and maximum;
+	// on create only.
+	IgnorePaidTopUpLimitsOnCreation *bool
+	// The credit invoices print no invoice custom sections.
+	SkipInvoiceCustomSections *bool
+	// The invoice custom sections (IDs or `code:<code>`) of the credit invoices; the customer's when empty.
+	InvoiceCustomSectionIds []string
 }
 
 func (b0 Wallet_builder) Build() *Wallet {
@@ -2127,100 +2381,100 @@ func (b0 Wallet_builder) Build() *Wallet {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 44)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.CustomerId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 44)
 		x.xxx_hidden_CustomerId = b.CustomerId
 	}
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 44)
 		x.xxx_hidden_Code = b.Code
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 44)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 44)
 		x.xxx_hidden_Status = *b.Status
 	}
 	if b.Currency != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 44)
 		x.xxx_hidden_Currency = b.Currency
 	}
 	if b.RateAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 44)
 		x.xxx_hidden_RateAmount = b.RateAmount
 	}
 	if b.Priority != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 44)
 		x.xxx_hidden_Priority = *b.Priority
 	}
 	x.xxx_hidden_ExpiresAt = b.ExpiresAt
 	x.xxx_hidden_BalanceAmount = b.BalanceAmount
 	if b.CreditsBalance != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 44)
 		x.xxx_hidden_CreditsBalance = b.CreditsBalance
 	}
 	x.xxx_hidden_OngoingBalanceAmount = b.OngoingBalanceAmount
 	if b.CreditsOngoingBalance != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 44)
 		x.xxx_hidden_CreditsOngoingBalance = b.CreditsOngoingBalance
 	}
 	x.xxx_hidden_OngoingUsageBalanceAmount = b.OngoingUsageBalanceAmount
 	if b.CreditsOngoingUsageBalance != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 14, 44)
 		x.xxx_hidden_CreditsOngoingUsageBalance = b.CreditsOngoingUsageBalance
 	}
 	x.xxx_hidden_ConsumedAmount = b.ConsumedAmount
 	if b.ConsumedCredits != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 16, 44)
 		x.xxx_hidden_ConsumedCredits = b.ConsumedCredits
 	}
 	if b.PaidTopUpMinAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 17, 44)
 		x.xxx_hidden_PaidTopUpMinAmount = b.PaidTopUpMinAmount
 	}
 	if b.PaidTopUpMaxAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 18, 44)
 		x.xxx_hidden_PaidTopUpMaxAmount = b.PaidTopUpMaxAmount
 	}
 	if b.InvoiceRequiresSuccessfulPayment != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 44)
 		x.xxx_hidden_InvoiceRequiresSuccessfulPayment = *b.InvoiceRequiresSuccessfulPayment
 	}
 	x.xxx_hidden_AllowedFeeTypes = b.AllowedFeeTypes
 	x.xxx_hidden_BillableMetricIds = b.BillableMetricIds
 	if b.Traceable != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 22, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 22, 44)
 		x.xxx_hidden_Traceable = *b.Traceable
 	}
 	if b.BillingEntityId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 23, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 23, 44)
 		x.xxx_hidden_BillingEntityId = b.BillingEntityId
 	}
 	if b.PaymentMethodType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 24, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 24, 44)
 		x.xxx_hidden_PaymentMethodType = *b.PaymentMethodType
 	}
 	if b.PaymentMethodId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 25, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 25, 44)
 		x.xxx_hidden_PaymentMethodId = b.PaymentMethodId
 	}
 	x.xxx_hidden_Metadata = &b.Metadata
 	x.xxx_hidden_RecurringTransactionRules = &b.RecurringTransactionRules
 	if b.PaidCredits != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 28, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 28, 44)
 		x.xxx_hidden_PaidCredits = b.PaidCredits
 	}
 	if b.GrantedCredits != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 29, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 29, 44)
 		x.xxx_hidden_GrantedCredits = b.GrantedCredits
 	}
 	if b.DepletedOngoingBalance != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 30, 37)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 30, 44)
 		x.xxx_hidden_DepletedOngoingBalance = *b.DepletedOngoingBalance
 	}
 	x.xxx_hidden_LastBalanceSyncAt = b.LastBalanceSyncAt
@@ -2229,6 +2483,28 @@ func (b0 Wallet_builder) Build() *Wallet {
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	x.xxx_hidden_UpdatedAt = b.UpdatedAt
 	x.xxx_hidden_Connections = b.Connections
+	if b.PurchaseOrderNumber != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 37, 44)
+		x.xxx_hidden_PurchaseOrderNumber = b.PurchaseOrderNumber
+	}
+	if b.TransactionName != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 38, 44)
+		x.xxx_hidden_TransactionName = b.TransactionName
+	}
+	if b.TransactionPriority != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 39, 44)
+		x.xxx_hidden_TransactionPriority = *b.TransactionPriority
+	}
+	x.xxx_hidden_TransactionMetadata = &b.TransactionMetadata
+	if b.IgnorePaidTopUpLimitsOnCreation != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 41, 44)
+		x.xxx_hidden_IgnorePaidTopUpLimitsOnCreation = *b.IgnorePaidTopUpLimitsOnCreation
+	}
+	if b.SkipInvoiceCustomSections != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[1]), 42, 44)
+		x.xxx_hidden_SkipInvoiceCustomSections = *b.SkipInvoiceCustomSections
+	}
+	x.xxx_hidden_InvoiceCustomSectionIds = b.InvoiceCustomSectionIds
 	return m0
 }
 
@@ -2254,6 +2530,14 @@ type WalletTransaction struct {
 	xxx_hidden_SettledAt                        *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=settled_at,json=settledAt"`
 	xxx_hidden_FailedAt                         *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=failed_at,json=failedAt"`
 	xxx_hidden_CreatedAt                        *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=created_at,json=createdAt"`
+	xxx_hidden_PurchaseOrderNumber              *string                `protobuf:"bytes,20,opt,name=purchase_order_number,json=purchaseOrderNumber"`
+	xxx_hidden_VoidedInvoiceId                  *string                `protobuf:"bytes,21,opt,name=voided_invoice_id,json=voidedInvoiceId"`
+	xxx_hidden_SkipInvoiceCustomSections        bool                   `protobuf:"varint,22,opt,name=skip_invoice_custom_sections,json=skipInvoiceCustomSections"`
+	xxx_hidden_InvoiceCustomSectionIds          []string               `protobuf:"bytes,23,rep,name=invoice_custom_section_ids,json=invoiceCustomSectionIds"`
+	xxx_hidden_PaymentMethodType                v1.PaymentMethodType   `protobuf:"varint,24,opt,name=payment_method_type,json=paymentMethodType,enum=tanvo.common.v1.PaymentMethodType"`
+	xxx_hidden_PaymentMethodId                  *string                `protobuf:"bytes,25,opt,name=payment_method_id,json=paymentMethodId"`
+	xxx_hidden_RemainingAmount                  *v1.Money              `protobuf:"bytes,26,opt,name=remaining_amount,json=remainingAmount"`
+	xxx_hidden_BillingEntityId                  *string                `protobuf:"bytes,27,opt,name=billing_entity_id,json=billingEntityId"`
 	XXX_raceDetectHookData                      protoimpl.RaceDetectHookData
 	XXX_presence                                [1]uint32
 	unknownFields                               protoimpl.UnknownFields
@@ -2452,34 +2736,104 @@ func (x *WalletTransaction) GetCreatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *WalletTransaction) GetPurchaseOrderNumber() string {
+	if x != nil {
+		if x.xxx_hidden_PurchaseOrderNumber != nil {
+			return *x.xxx_hidden_PurchaseOrderNumber
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *WalletTransaction) GetVoidedInvoiceId() string {
+	if x != nil {
+		if x.xxx_hidden_VoidedInvoiceId != nil {
+			return *x.xxx_hidden_VoidedInvoiceId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *WalletTransaction) GetSkipInvoiceCustomSections() bool {
+	if x != nil {
+		return x.xxx_hidden_SkipInvoiceCustomSections
+	}
+	return false
+}
+
+func (x *WalletTransaction) GetInvoiceCustomSectionIds() []string {
+	if x != nil {
+		return x.xxx_hidden_InvoiceCustomSectionIds
+	}
+	return nil
+}
+
+func (x *WalletTransaction) GetPaymentMethodType() v1.PaymentMethodType {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 23) {
+			return x.xxx_hidden_PaymentMethodType
+		}
+	}
+	return v1.PaymentMethodType(0)
+}
+
+func (x *WalletTransaction) GetPaymentMethodId() string {
+	if x != nil {
+		if x.xxx_hidden_PaymentMethodId != nil {
+			return *x.xxx_hidden_PaymentMethodId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *WalletTransaction) GetRemainingAmount() *v1.Money {
+	if x != nil {
+		return x.xxx_hidden_RemainingAmount
+	}
+	return nil
+}
+
+func (x *WalletTransaction) GetBillingEntityId() string {
+	if x != nil {
+		if x.xxx_hidden_BillingEntityId != nil {
+			return *x.xxx_hidden_BillingEntityId
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *WalletTransaction) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 19)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 27)
 }
 
 func (x *WalletTransaction) SetWalletId(v string) {
 	x.xxx_hidden_WalletId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 19)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 27)
 }
 
 func (x *WalletTransaction) SetTransactionType(v TransactionType) {
 	x.xxx_hidden_TransactionType = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 19)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 27)
 }
 
 func (x *WalletTransaction) SetTransactionStatus(v TransactionStatus) {
 	x.xxx_hidden_TransactionStatus = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 19)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 27)
 }
 
 func (x *WalletTransaction) SetStatus(v SettlementStatus) {
 	x.xxx_hidden_Status = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 19)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 27)
 }
 
 func (x *WalletTransaction) SetSource(v TransactionSource) {
 	x.xxx_hidden_Source = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 19)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 27)
 }
 
 func (x *WalletTransaction) SetAmount(v *v1.Money) {
@@ -2488,37 +2842,37 @@ func (x *WalletTransaction) SetAmount(v *v1.Money) {
 
 func (x *WalletTransaction) SetCreditAmount(v string) {
 	x.xxx_hidden_CreditAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 19)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 27)
 }
 
 func (x *WalletTransaction) SetRemainingCreditAmount(v string) {
 	x.xxx_hidden_RemainingCreditAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 19)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 27)
 }
 
 func (x *WalletTransaction) SetPriority(v int32) {
 	x.xxx_hidden_Priority = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 19)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 27)
 }
 
 func (x *WalletTransaction) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 19)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 27)
 }
 
 func (x *WalletTransaction) SetInvoiceId(v string) {
 	x.xxx_hidden_InvoiceId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 19)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 27)
 }
 
 func (x *WalletTransaction) SetCreditNoteId(v string) {
 	x.xxx_hidden_CreditNoteId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 19)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 27)
 }
 
 func (x *WalletTransaction) SetRecurringTransactionRuleId(v string) {
 	x.xxx_hidden_RecurringTransactionRuleId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 19)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 27)
 }
 
 func (x *WalletTransaction) SetMetadata(v []*v1.MetadataItem) {
@@ -2527,7 +2881,7 @@ func (x *WalletTransaction) SetMetadata(v []*v1.MetadataItem) {
 
 func (x *WalletTransaction) SetInvoiceRequiresSuccessfulPayment(v bool) {
 	x.xxx_hidden_InvoiceRequiresSuccessfulPayment = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 19)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 15, 27)
 }
 
 func (x *WalletTransaction) SetSettledAt(v *timestamppb.Timestamp) {
@@ -2540,6 +2894,44 @@ func (x *WalletTransaction) SetFailedAt(v *timestamppb.Timestamp) {
 
 func (x *WalletTransaction) SetCreatedAt(v *timestamppb.Timestamp) {
 	x.xxx_hidden_CreatedAt = v
+}
+
+func (x *WalletTransaction) SetPurchaseOrderNumber(v string) {
+	x.xxx_hidden_PurchaseOrderNumber = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 19, 27)
+}
+
+func (x *WalletTransaction) SetVoidedInvoiceId(v string) {
+	x.xxx_hidden_VoidedInvoiceId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 20, 27)
+}
+
+func (x *WalletTransaction) SetSkipInvoiceCustomSections(v bool) {
+	x.xxx_hidden_SkipInvoiceCustomSections = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 21, 27)
+}
+
+func (x *WalletTransaction) SetInvoiceCustomSectionIds(v []string) {
+	x.xxx_hidden_InvoiceCustomSectionIds = v
+}
+
+func (x *WalletTransaction) SetPaymentMethodType(v v1.PaymentMethodType) {
+	x.xxx_hidden_PaymentMethodType = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 23, 27)
+}
+
+func (x *WalletTransaction) SetPaymentMethodId(v string) {
+	x.xxx_hidden_PaymentMethodId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 24, 27)
+}
+
+func (x *WalletTransaction) SetRemainingAmount(v *v1.Money) {
+	x.xxx_hidden_RemainingAmount = v
+}
+
+func (x *WalletTransaction) SetBillingEntityId(v string) {
+	x.xxx_hidden_BillingEntityId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 26, 27)
 }
 
 func (x *WalletTransaction) HasId() bool {
@@ -2668,6 +3060,55 @@ func (x *WalletTransaction) HasCreatedAt() bool {
 	return x.xxx_hidden_CreatedAt != nil
 }
 
+func (x *WalletTransaction) HasPurchaseOrderNumber() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 19)
+}
+
+func (x *WalletTransaction) HasVoidedInvoiceId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 20)
+}
+
+func (x *WalletTransaction) HasSkipInvoiceCustomSections() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 21)
+}
+
+func (x *WalletTransaction) HasPaymentMethodType() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 23)
+}
+
+func (x *WalletTransaction) HasPaymentMethodId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 24)
+}
+
+func (x *WalletTransaction) HasRemainingAmount() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_RemainingAmount != nil
+}
+
+func (x *WalletTransaction) HasBillingEntityId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 26)
+}
+
 func (x *WalletTransaction) ClearId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_Id = nil
@@ -2754,6 +3195,40 @@ func (x *WalletTransaction) ClearCreatedAt() {
 	x.xxx_hidden_CreatedAt = nil
 }
 
+func (x *WalletTransaction) ClearPurchaseOrderNumber() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 19)
+	x.xxx_hidden_PurchaseOrderNumber = nil
+}
+
+func (x *WalletTransaction) ClearVoidedInvoiceId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 20)
+	x.xxx_hidden_VoidedInvoiceId = nil
+}
+
+func (x *WalletTransaction) ClearSkipInvoiceCustomSections() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 21)
+	x.xxx_hidden_SkipInvoiceCustomSections = false
+}
+
+func (x *WalletTransaction) ClearPaymentMethodType() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 23)
+	x.xxx_hidden_PaymentMethodType = v1.PaymentMethodType_PAYMENT_METHOD_TYPE_UNSPECIFIED
+}
+
+func (x *WalletTransaction) ClearPaymentMethodId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 24)
+	x.xxx_hidden_PaymentMethodId = nil
+}
+
+func (x *WalletTransaction) ClearRemainingAmount() {
+	x.xxx_hidden_RemainingAmount = nil
+}
+
+func (x *WalletTransaction) ClearBillingEntityId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 26)
+	x.xxx_hidden_BillingEntityId = nil
+}
+
 type WalletTransaction_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -2796,6 +3271,24 @@ type WalletTransaction_builder struct {
 	FailedAt *timestamppb.Timestamp
 	// When it was created.
 	CreatedAt *timestamppb.Timestamp
+	// The purchase order number: its own, else the wallet's.
+	PurchaseOrderNumber *string
+	// The voided invoice a recredit gave the credits back for.
+	VoidedInvoiceId *string
+	// Its credit invoice prints no invoice custom sections.
+	SkipInvoiceCustomSections *bool
+	// The invoice custom sections of its credit invoice; the wallet's when
+	// empty.
+	InvoiceCustomSectionIds []string
+	// The payment method kind of its credit invoice.
+	PaymentMethodType *v1.PaymentMethodType
+	// The payment method of its credit invoice.
+	PaymentMethodId *string
+	// The amount of remaining_credit_amount.
+	RemainingAmount *v1.Money
+	// The billing entity of its credit invoice: the one snapshotted when it
+	// was created, else the wallet's.
+	BillingEntityId *string
 }
 
 func (b0 WalletTransaction_builder) Build() *WalletTransaction {
@@ -2803,66 +3296,92 @@ func (b0 WalletTransaction_builder) Build() *WalletTransaction {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 19)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 27)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.WalletId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 19)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 27)
 		x.xxx_hidden_WalletId = b.WalletId
 	}
 	if b.TransactionType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 19)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 27)
 		x.xxx_hidden_TransactionType = *b.TransactionType
 	}
 	if b.TransactionStatus != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 19)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 27)
 		x.xxx_hidden_TransactionStatus = *b.TransactionStatus
 	}
 	if b.Status != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 19)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 27)
 		x.xxx_hidden_Status = *b.Status
 	}
 	if b.Source != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 19)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 27)
 		x.xxx_hidden_Source = *b.Source
 	}
 	x.xxx_hidden_Amount = b.Amount
 	if b.CreditAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 19)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 27)
 		x.xxx_hidden_CreditAmount = b.CreditAmount
 	}
 	if b.RemainingCreditAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 19)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 27)
 		x.xxx_hidden_RemainingCreditAmount = b.RemainingCreditAmount
 	}
 	if b.Priority != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 19)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 27)
 		x.xxx_hidden_Priority = *b.Priority
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 19)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 27)
 		x.xxx_hidden_Name = b.Name
 	}
 	if b.InvoiceId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 19)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 27)
 		x.xxx_hidden_InvoiceId = b.InvoiceId
 	}
 	if b.CreditNoteId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 19)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 27)
 		x.xxx_hidden_CreditNoteId = b.CreditNoteId
 	}
 	if b.RecurringTransactionRuleId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 19)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 27)
 		x.xxx_hidden_RecurringTransactionRuleId = b.RecurringTransactionRuleId
 	}
 	x.xxx_hidden_Metadata = &b.Metadata
 	if b.InvoiceRequiresSuccessfulPayment != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 19)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 15, 27)
 		x.xxx_hidden_InvoiceRequiresSuccessfulPayment = *b.InvoiceRequiresSuccessfulPayment
 	}
 	x.xxx_hidden_SettledAt = b.SettledAt
 	x.xxx_hidden_FailedAt = b.FailedAt
 	x.xxx_hidden_CreatedAt = b.CreatedAt
+	if b.PurchaseOrderNumber != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 19, 27)
+		x.xxx_hidden_PurchaseOrderNumber = b.PurchaseOrderNumber
+	}
+	if b.VoidedInvoiceId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 20, 27)
+		x.xxx_hidden_VoidedInvoiceId = b.VoidedInvoiceId
+	}
+	if b.SkipInvoiceCustomSections != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 21, 27)
+		x.xxx_hidden_SkipInvoiceCustomSections = *b.SkipInvoiceCustomSections
+	}
+	x.xxx_hidden_InvoiceCustomSectionIds = b.InvoiceCustomSectionIds
+	if b.PaymentMethodType != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 23, 27)
+		x.xxx_hidden_PaymentMethodType = *b.PaymentMethodType
+	}
+	if b.PaymentMethodId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 24, 27)
+		x.xxx_hidden_PaymentMethodId = b.PaymentMethodId
+	}
+	x.xxx_hidden_RemainingAmount = b.RemainingAmount
+	if b.BillingEntityId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 26, 27)
+		x.xxx_hidden_BillingEntityId = b.BillingEntityId
+	}
 	return m0
 }
 
@@ -3928,6 +4447,11 @@ type CreateWalletTransactionRequest struct {
 	xxx_hidden_Metadata                         *[]*v1.MetadataItem    `protobuf:"bytes,8,rep,name=metadata"`
 	xxx_hidden_PaymentMethodType                v1.PaymentMethodType   `protobuf:"varint,9,opt,name=payment_method_type,json=paymentMethodType,enum=tanvo.common.v1.PaymentMethodType"`
 	xxx_hidden_PaymentMethodId                  *string                `protobuf:"bytes,10,opt,name=payment_method_id,json=paymentMethodId"`
+	xxx_hidden_VoidedTransactionId              *string                `protobuf:"bytes,11,opt,name=voided_transaction_id,json=voidedTransactionId"`
+	xxx_hidden_Priority                         int32                  `protobuf:"varint,12,opt,name=priority"`
+	xxx_hidden_PurchaseOrderNumber              *string                `protobuf:"bytes,13,opt,name=purchase_order_number,json=purchaseOrderNumber"`
+	xxx_hidden_SkipInvoiceCustomSections        bool                   `protobuf:"varint,14,opt,name=skip_invoice_custom_sections,json=skipInvoiceCustomSections"`
+	xxx_hidden_InvoiceCustomSectionIds          []string               `protobuf:"bytes,15,rep,name=invoice_custom_section_ids,json=invoiceCustomSectionIds"`
 	XXX_raceDetectHookData                      protoimpl.RaceDetectHookData
 	XXX_presence                                [1]uint32
 	unknownFields                               protoimpl.UnknownFields
@@ -4051,39 +4575,80 @@ func (x *CreateWalletTransactionRequest) GetPaymentMethodId() string {
 	return ""
 }
 
+func (x *CreateWalletTransactionRequest) GetVoidedTransactionId() string {
+	if x != nil {
+		if x.xxx_hidden_VoidedTransactionId != nil {
+			return *x.xxx_hidden_VoidedTransactionId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreateWalletTransactionRequest) GetPriority() int32 {
+	if x != nil {
+		return x.xxx_hidden_Priority
+	}
+	return 0
+}
+
+func (x *CreateWalletTransactionRequest) GetPurchaseOrderNumber() string {
+	if x != nil {
+		if x.xxx_hidden_PurchaseOrderNumber != nil {
+			return *x.xxx_hidden_PurchaseOrderNumber
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreateWalletTransactionRequest) GetSkipInvoiceCustomSections() bool {
+	if x != nil {
+		return x.xxx_hidden_SkipInvoiceCustomSections
+	}
+	return false
+}
+
+func (x *CreateWalletTransactionRequest) GetInvoiceCustomSectionIds() []string {
+	if x != nil {
+		return x.xxx_hidden_InvoiceCustomSectionIds
+	}
+	return nil
+}
+
 func (x *CreateWalletTransactionRequest) SetWalletId(v string) {
 	x.xxx_hidden_WalletId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 15)
 }
 
 func (x *CreateWalletTransactionRequest) SetPaidCredits(v string) {
 	x.xxx_hidden_PaidCredits = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 15)
 }
 
 func (x *CreateWalletTransactionRequest) SetGrantedCredits(v string) {
 	x.xxx_hidden_GrantedCredits = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 15)
 }
 
 func (x *CreateWalletTransactionRequest) SetVoidedCredits(v string) {
 	x.xxx_hidden_VoidedCredits = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 15)
 }
 
 func (x *CreateWalletTransactionRequest) SetInvoiceRequiresSuccessfulPayment(v bool) {
 	x.xxx_hidden_InvoiceRequiresSuccessfulPayment = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 4, 15)
 }
 
 func (x *CreateWalletTransactionRequest) SetIgnorePaidTopUpLimits(v bool) {
 	x.xxx_hidden_IgnorePaidTopUpLimits = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 5, 15)
 }
 
 func (x *CreateWalletTransactionRequest) SetName(v string) {
 	x.xxx_hidden_Name = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 15)
 }
 
 func (x *CreateWalletTransactionRequest) SetMetadata(v []*v1.MetadataItem) {
@@ -4092,12 +4657,36 @@ func (x *CreateWalletTransactionRequest) SetMetadata(v []*v1.MetadataItem) {
 
 func (x *CreateWalletTransactionRequest) SetPaymentMethodType(v v1.PaymentMethodType) {
 	x.xxx_hidden_PaymentMethodType = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 15)
 }
 
 func (x *CreateWalletTransactionRequest) SetPaymentMethodId(v string) {
 	x.xxx_hidden_PaymentMethodId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 10)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 15)
+}
+
+func (x *CreateWalletTransactionRequest) SetVoidedTransactionId(v string) {
+	x.xxx_hidden_VoidedTransactionId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 15)
+}
+
+func (x *CreateWalletTransactionRequest) SetPriority(v int32) {
+	x.xxx_hidden_Priority = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 11, 15)
+}
+
+func (x *CreateWalletTransactionRequest) SetPurchaseOrderNumber(v string) {
+	x.xxx_hidden_PurchaseOrderNumber = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 12, 15)
+}
+
+func (x *CreateWalletTransactionRequest) SetSkipInvoiceCustomSections(v bool) {
+	x.xxx_hidden_SkipInvoiceCustomSections = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 13, 15)
+}
+
+func (x *CreateWalletTransactionRequest) SetInvoiceCustomSectionIds(v []string) {
+	x.xxx_hidden_InvoiceCustomSectionIds = v
 }
 
 func (x *CreateWalletTransactionRequest) HasWalletId() bool {
@@ -4163,6 +4752,34 @@ func (x *CreateWalletTransactionRequest) HasPaymentMethodId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
 }
 
+func (x *CreateWalletTransactionRequest) HasVoidedTransactionId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
+}
+
+func (x *CreateWalletTransactionRequest) HasPriority() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 11)
+}
+
+func (x *CreateWalletTransactionRequest) HasPurchaseOrderNumber() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 12)
+}
+
+func (x *CreateWalletTransactionRequest) HasSkipInvoiceCustomSections() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 13)
+}
+
 func (x *CreateWalletTransactionRequest) ClearWalletId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
 	x.xxx_hidden_WalletId = nil
@@ -4208,6 +4825,26 @@ func (x *CreateWalletTransactionRequest) ClearPaymentMethodId() {
 	x.xxx_hidden_PaymentMethodId = nil
 }
 
+func (x *CreateWalletTransactionRequest) ClearVoidedTransactionId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	x.xxx_hidden_VoidedTransactionId = nil
+}
+
+func (x *CreateWalletTransactionRequest) ClearPriority() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 11)
+	x.xxx_hidden_Priority = 0
+}
+
+func (x *CreateWalletTransactionRequest) ClearPurchaseOrderNumber() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 12)
+	x.xxx_hidden_PurchaseOrderNumber = nil
+}
+
+func (x *CreateWalletTransactionRequest) ClearSkipInvoiceCustomSections() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 13)
+	x.xxx_hidden_SkipInvoiceCustomSections = false
+}
+
 type CreateWalletTransactionRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -4232,6 +4869,17 @@ type CreateWalletTransactionRequest_builder struct {
 	PaymentMethodType *v1.PaymentMethodType
 	// The payment method, for PROVIDER.
 	PaymentMethodId *string
+	// The inbound transaction of a traceable wallet to void from; without
+	// voided_credits its whole remaining amount is voided.
+	VoidedTransactionId *string
+	// The consumption priority, from 1 to 50; the wallet's by default.
+	Priority *int32
+	// The purchase order number; the wallet's when unset.
+	PurchaseOrderNumber *string
+	// The credit invoice prints no invoice custom sections.
+	SkipInvoiceCustomSections *bool
+	// The invoice custom sections (IDs or `code:<code>`) of the credit invoice; the wallet's when empty.
+	InvoiceCustomSectionIds []string
 }
 
 func (b0 CreateWalletTransactionRequest_builder) Build() *CreateWalletTransactionRequest {
@@ -4239,42 +4887,59 @@ func (b0 CreateWalletTransactionRequest_builder) Build() *CreateWalletTransactio
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.WalletId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 15)
 		x.xxx_hidden_WalletId = b.WalletId
 	}
 	if b.PaidCredits != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 15)
 		x.xxx_hidden_PaidCredits = b.PaidCredits
 	}
 	if b.GrantedCredits != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 15)
 		x.xxx_hidden_GrantedCredits = b.GrantedCredits
 	}
 	if b.VoidedCredits != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 15)
 		x.xxx_hidden_VoidedCredits = b.VoidedCredits
 	}
 	if b.InvoiceRequiresSuccessfulPayment != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 4, 15)
 		x.xxx_hidden_InvoiceRequiresSuccessfulPayment = *b.InvoiceRequiresSuccessfulPayment
 	}
 	if b.IgnorePaidTopUpLimits != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 5, 15)
 		x.xxx_hidden_IgnorePaidTopUpLimits = *b.IgnorePaidTopUpLimits
 	}
 	if b.Name != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 15)
 		x.xxx_hidden_Name = b.Name
 	}
 	x.xxx_hidden_Metadata = &b.Metadata
 	if b.PaymentMethodType != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 15)
 		x.xxx_hidden_PaymentMethodType = *b.PaymentMethodType
 	}
 	if b.PaymentMethodId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 10)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 15)
 		x.xxx_hidden_PaymentMethodId = b.PaymentMethodId
 	}
+	if b.VoidedTransactionId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 15)
+		x.xxx_hidden_VoidedTransactionId = b.VoidedTransactionId
+	}
+	if b.Priority != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 11, 15)
+		x.xxx_hidden_Priority = *b.Priority
+	}
+	if b.PurchaseOrderNumber != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 12, 15)
+		x.xxx_hidden_PurchaseOrderNumber = b.PurchaseOrderNumber
+	}
+	if b.SkipInvoiceCustomSections != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 13, 15)
+		x.xxx_hidden_SkipInvoiceCustomSections = *b.SkipInvoiceCustomSections
+	}
+	x.xxx_hidden_InvoiceCustomSectionIds = b.InvoiceCustomSectionIds
 	return m0
 }
 
@@ -5651,11 +6316,643 @@ func (b0 TerminateRecurringTransactionRuleResponse_builder) Build() *TerminateRe
 	return m0
 }
 
+// ReplaceWalletMetadataRequest is the request of ReplaceWalletMetadata.
+type ReplaceWalletMetadataRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_WalletId    *string                `protobuf:"bytes,1,opt,name=wallet_id,json=walletId"`
+	xxx_hidden_Metadata    *[]*v1.MetadataItem    `protobuf:"bytes,2,rep,name=metadata"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *ReplaceWalletMetadataRequest) Reset() {
+	*x = ReplaceWalletMetadataRequest{}
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplaceWalletMetadataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplaceWalletMetadataRequest) ProtoMessage() {}
+
+func (x *ReplaceWalletMetadataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ReplaceWalletMetadataRequest) GetWalletId() string {
+	if x != nil {
+		if x.xxx_hidden_WalletId != nil {
+			return *x.xxx_hidden_WalletId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ReplaceWalletMetadataRequest) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *ReplaceWalletMetadataRequest) SetWalletId(v string) {
+	x.xxx_hidden_WalletId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *ReplaceWalletMetadataRequest) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+func (x *ReplaceWalletMetadataRequest) HasWalletId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ReplaceWalletMetadataRequest) ClearWalletId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_WalletId = nil
+}
+
+type ReplaceWalletMetadataRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The wallet's ID.
+	WalletId *string
+	// The new metadata; empty clears it.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 ReplaceWalletMetadataRequest_builder) Build() *ReplaceWalletMetadataRequest {
+	m0 := &ReplaceWalletMetadataRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.WalletId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_WalletId = b.WalletId
+	}
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
+// MergeWalletMetadataRequest is the request of MergeWalletMetadata.
+type MergeWalletMetadataRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_WalletId    *string                `protobuf:"bytes,1,opt,name=wallet_id,json=walletId"`
+	xxx_hidden_Metadata    *[]*v1.MetadataItem    `protobuf:"bytes,2,rep,name=metadata"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *MergeWalletMetadataRequest) Reset() {
+	*x = MergeWalletMetadataRequest{}
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MergeWalletMetadataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MergeWalletMetadataRequest) ProtoMessage() {}
+
+func (x *MergeWalletMetadataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *MergeWalletMetadataRequest) GetWalletId() string {
+	if x != nil {
+		if x.xxx_hidden_WalletId != nil {
+			return *x.xxx_hidden_WalletId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *MergeWalletMetadataRequest) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *MergeWalletMetadataRequest) SetWalletId(v string) {
+	x.xxx_hidden_WalletId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *MergeWalletMetadataRequest) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+func (x *MergeWalletMetadataRequest) HasWalletId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *MergeWalletMetadataRequest) ClearWalletId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_WalletId = nil
+}
+
+type MergeWalletMetadataRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The wallet's ID.
+	WalletId *string
+	// The items to merge.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 MergeWalletMetadataRequest_builder) Build() *MergeWalletMetadataRequest {
+	m0 := &MergeWalletMetadataRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.WalletId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_WalletId = b.WalletId
+	}
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
+// DeleteWalletMetadataRequest is the request of DeleteWalletMetadata.
+type DeleteWalletMetadataRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_WalletId    *string                `protobuf:"bytes,1,opt,name=wallet_id,json=walletId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *DeleteWalletMetadataRequest) Reset() {
+	*x = DeleteWalletMetadataRequest{}
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteWalletMetadataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteWalletMetadataRequest) ProtoMessage() {}
+
+func (x *DeleteWalletMetadataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeleteWalletMetadataRequest) GetWalletId() string {
+	if x != nil {
+		if x.xxx_hidden_WalletId != nil {
+			return *x.xxx_hidden_WalletId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeleteWalletMetadataRequest) SetWalletId(v string) {
+	x.xxx_hidden_WalletId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeleteWalletMetadataRequest) HasWalletId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteWalletMetadataRequest) ClearWalletId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_WalletId = nil
+}
+
+type DeleteWalletMetadataRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The wallet's ID.
+	WalletId *string
+}
+
+func (b0 DeleteWalletMetadataRequest_builder) Build() *DeleteWalletMetadataRequest {
+	m0 := &DeleteWalletMetadataRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.WalletId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_WalletId = b.WalletId
+	}
+	return m0
+}
+
+// DeleteWalletMetadataKeyRequest is the request of DeleteWalletMetadataKey.
+type DeleteWalletMetadataKeyRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_WalletId    *string                `protobuf:"bytes,1,opt,name=wallet_id,json=walletId"`
+	xxx_hidden_Key         *string                `protobuf:"bytes,2,opt,name=key"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *DeleteWalletMetadataKeyRequest) Reset() {
+	*x = DeleteWalletMetadataKeyRequest{}
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteWalletMetadataKeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteWalletMetadataKeyRequest) ProtoMessage() {}
+
+func (x *DeleteWalletMetadataKeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeleteWalletMetadataKeyRequest) GetWalletId() string {
+	if x != nil {
+		if x.xxx_hidden_WalletId != nil {
+			return *x.xxx_hidden_WalletId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeleteWalletMetadataKeyRequest) GetKey() string {
+	if x != nil {
+		if x.xxx_hidden_Key != nil {
+			return *x.xxx_hidden_Key
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeleteWalletMetadataKeyRequest) SetWalletId(v string) {
+	x.xxx_hidden_WalletId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *DeleteWalletMetadataKeyRequest) SetKey(v string) {
+	x.xxx_hidden_Key = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *DeleteWalletMetadataKeyRequest) HasWalletId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeleteWalletMetadataKeyRequest) HasKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *DeleteWalletMetadataKeyRequest) ClearWalletId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_WalletId = nil
+}
+
+func (x *DeleteWalletMetadataKeyRequest) ClearKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Key = nil
+}
+
+type DeleteWalletMetadataKeyRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The wallet's ID.
+	WalletId *string
+	// The key to remove.
+	Key *string
+}
+
+func (b0 DeleteWalletMetadataKeyRequest_builder) Build() *DeleteWalletMetadataKeyRequest {
+	m0 := &DeleteWalletMetadataKeyRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.WalletId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_WalletId = b.WalletId
+	}
+	if b.Key != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Key = b.Key
+	}
+	return m0
+}
+
+// ReplaceWalletMetadataResponse is the response of ReplaceWalletMetadata.
+type ReplaceWalletMetadataResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Metadata *[]*v1.MetadataItem    `protobuf:"bytes,1,rep,name=metadata"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *ReplaceWalletMetadataResponse) Reset() {
+	*x = ReplaceWalletMetadataResponse{}
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplaceWalletMetadataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplaceWalletMetadataResponse) ProtoMessage() {}
+
+func (x *ReplaceWalletMetadataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ReplaceWalletMetadataResponse) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *ReplaceWalletMetadataResponse) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+type ReplaceWalletMetadataResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The wallet's metadata after the change.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 ReplaceWalletMetadataResponse_builder) Build() *ReplaceWalletMetadataResponse {
+	m0 := &ReplaceWalletMetadataResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
+// MergeWalletMetadataResponse is the response of MergeWalletMetadata.
+type MergeWalletMetadataResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Metadata *[]*v1.MetadataItem    `protobuf:"bytes,1,rep,name=metadata"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *MergeWalletMetadataResponse) Reset() {
+	*x = MergeWalletMetadataResponse{}
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MergeWalletMetadataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MergeWalletMetadataResponse) ProtoMessage() {}
+
+func (x *MergeWalletMetadataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *MergeWalletMetadataResponse) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *MergeWalletMetadataResponse) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+type MergeWalletMetadataResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The wallet's metadata after the change.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 MergeWalletMetadataResponse_builder) Build() *MergeWalletMetadataResponse {
+	m0 := &MergeWalletMetadataResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
+// DeleteWalletMetadataResponse is the response of DeleteWalletMetadata.
+type DeleteWalletMetadataResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Metadata *[]*v1.MetadataItem    `protobuf:"bytes,1,rep,name=metadata"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *DeleteWalletMetadataResponse) Reset() {
+	*x = DeleteWalletMetadataResponse{}
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[36]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteWalletMetadataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteWalletMetadataResponse) ProtoMessage() {}
+
+func (x *DeleteWalletMetadataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[36]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeleteWalletMetadataResponse) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *DeleteWalletMetadataResponse) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+type DeleteWalletMetadataResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The wallet's metadata after the change.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 DeleteWalletMetadataResponse_builder) Build() *DeleteWalletMetadataResponse {
+	m0 := &DeleteWalletMetadataResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
+// DeleteWalletMetadataKeyResponse is the response of DeleteWalletMetadataKey.
+type DeleteWalletMetadataKeyResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Metadata *[]*v1.MetadataItem    `protobuf:"bytes,1,rep,name=metadata"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *DeleteWalletMetadataKeyResponse) Reset() {
+	*x = DeleteWalletMetadataKeyResponse{}
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[37]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteWalletMetadataKeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteWalletMetadataKeyResponse) ProtoMessage() {}
+
+func (x *DeleteWalletMetadataKeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_wallet_v1_wallet_proto_msgTypes[37]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeleteWalletMetadataKeyResponse) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *DeleteWalletMetadataKeyResponse) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+type DeleteWalletMetadataKeyResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The wallet's metadata after the change.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 DeleteWalletMetadataKeyResponse_builder) Build() *DeleteWalletMetadataKeyResponse {
+	m0 := &DeleteWalletMetadataKeyResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
 var File_tanvo_wallet_v1_wallet_proto protoreflect.FileDescriptor
 
 const file_tanvo_wallet_v1_wallet_proto_rawDesc = "" +
 	"\n" +
-	"\x1ctanvo/wallet/v1/wallet.proto\x12\x0ftanvo.wallet.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xd5\v\n" +
+	"\x1ctanvo/wallet/v1/wallet.proto\x12\x0ftanvo.wallet.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a google/protobuf/field_mask.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xa6\r\n" +
 	"\x18RecurringTransactionRule\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x02id\x12I\n" +
 	"\atrigger\x18\x02 \x01(\x0e2!.tanvo.wallet.v1.RecurringTriggerB\f\xe2A\x01\x02\xbaH\x05\x82\x01\x02\x10\x01R\atrigger\x12?\n" +
@@ -5685,10 +6982,13 @@ const file_tanvo_wallet_v1_wallet_proto_rawDesc = "" +
 	"\rterminated_at\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\fterminatedAt\x12?\n" +
 	"\n" +
 	"created_at\x18\x14 \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12l\n" +
-	"\vconnections\x18\x15 \x03(\v2:.tanvo.wallet.v1.RecurringTransactionRule.ConnectionsEntryB\x0e\xbaH\v\x9a\x01\b\x10\x10\"\x04r\x02\x18@R\vconnections\x1aa\n" +
+	"\vconnections\x18\x15 \x03(\v2:.tanvo.wallet.v1.RecurringTransactionRule.ConnectionsEntryB\x0e\xbaH\v\x9a\x01\b\x10\x10\"\x04r\x02\x18@R\vconnections\x12<\n" +
+	"\x15purchase_order_number\x18\x16 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x13purchaseOrderNumber\x12?\n" +
+	"\x1cskip_invoice_custom_sections\x18\x17 \x01(\bR\x19skipInvoiceCustomSections\x12P\n" +
+	"\x1ainvoice_custom_section_ids\x18\x18 \x03(\tB\x13\xbaH\x10\x92\x01\r\x102\x18\x01\"\ar\x05\xe0\xa4\xca\x06\x01R\x17invoiceCustomSectionIds\x1aa\n" +
 	"\x10ConnectionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x127\n" +
-	"\x05value\x18\x02 \x01(\v2!.tanvo.common.v1.ConnectionChoiceR\x05value:\x028\x01\"\xe5\x13\n" +
+	"\x05value\x18\x02 \x01(\v2!.tanvo.common.v1.ConnectionChoiceR\x05value:\x028\x01\"\xe7\x17\n" +
 	"\x06Wallet\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x120\n" +
 	"\vcustomer_id\x18\x02 \x01(\tB\x0f\xe2A\x02\x02\x05\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\n" +
@@ -5723,7 +7023,7 @@ const file_tanvo_wallet_v1_wallet_proto_rawDesc = "" +
 	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\x0fbillingEntityId\x12\\\n" +
 	"\x13payment_method_type\x18\x19 \x01(\x0e2\".tanvo.common.v1.PaymentMethodTypeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x11paymentMethodType\x124\n" +
 	"\x11payment_method_id\x18\x1a \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0fpaymentMethodId\x12C\n" +
-	"\bmetadata\x18\x1b \x03(\v2\x1d.tanvo.common.v1.MetadataItemB\b\xbaH\x05\x92\x01\x02\x10\x0fR\bmetadata\x12s\n" +
+	"\bmetadata\x18\x1b \x03(\v2\x1d.tanvo.common.v1.MetadataItemB\b\xbaH\x05\x92\x01\x02\x102R\bmetadata\x12s\n" +
 	"\x1brecurring_transaction_rules\x18\x1c \x03(\v2).tanvo.wallet.v1.RecurringTransactionRuleB\b\xbaH\x05\x92\x01\x02\x10\x05R\x19recurringTransactionRules\x121\n" +
 	"\fpaid_credits\x18\x1d \x01(\tB\x0e\xe2A\x01\x04\xbaH\ar\x05Ф\xca\x06\x01R\vpaidCredits\x127\n" +
 	"\x0fgranted_credits\x18\x1e \x01(\tB\x0e\xe2A\x01\x04\xbaH\ar\x05Ф\xca\x06\x01R\x0egrantedCredits\x12>\n" +
@@ -5735,11 +7035,18 @@ const file_tanvo_wallet_v1_wallet_proto_rawDesc = "" +
 	"created_at\x18# \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt\x12?\n" +
 	"\n" +
 	"updated_at\x18$ \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tupdatedAt\x12Z\n" +
-	"\vconnections\x18% \x03(\v2(.tanvo.wallet.v1.Wallet.ConnectionsEntryB\x0e\xbaH\v\x9a\x01\b\x10\x10\"\x04r\x02\x18@R\vconnections\x1aa\n" +
+	"\vconnections\x18% \x03(\v2(.tanvo.wallet.v1.Wallet.ConnectionsEntryB\x0e\xbaH\v\x9a\x01\b\x10\x10\"\x04r\x02\x18@R\vconnections\x12<\n" +
+	"\x15purchase_order_number\x18& \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x13purchaseOrderNumber\x127\n" +
+	"\x10transaction_name\x18' \x01(\tB\f\xe2A\x01\x04\xbaH\x05r\x03\x18\xff\x01R\x0ftransactionName\x12@\n" +
+	"\x14transaction_priority\x18( \x01(\x05B\r\xe2A\x01\x04\xbaH\x06\x1a\x04\x182(\x01R\x13transactionPriority\x12^\n" +
+	"\x14transaction_metadata\x18) \x03(\v2\x1d.tanvo.common.v1.MetadataItemB\f\xe2A\x01\x04\xbaH\x05\x92\x01\x02\x10\x0fR\x13transactionMetadata\x12T\n" +
+	"%ignore_paid_top_up_limits_on_creation\x18* \x01(\bB\x04\xe2A\x01\x04R\x1fignorePaidTopUpLimitsOnCreation\x12?\n" +
+	"\x1cskip_invoice_custom_sections\x18+ \x01(\bR\x19skipInvoiceCustomSections\x12P\n" +
+	"\x1ainvoice_custom_section_ids\x18, \x03(\tB\x13\xbaH\x10\x92\x01\r\x102\x18\x01\"\ar\x05\xe0\xa4\xca\x06\x01R\x17invoiceCustomSectionIds\x1aa\n" +
 	"\x10ConnectionsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x127\n" +
 	"\x05value\x18\x02 \x01(\v2!.tanvo.common.v1.ConnectionChoiceR\x05value:\x028\x01:8\xeaA5\n" +
-	"\x10tanvo.xyz/Wallet\x12\x10wallets/{wallet}*\awallets2\x06wallet\"\xce\b\n" +
+	"\x10tanvo.xyz/Wallet\x12\x10wallets/{wallet}*\awallets2\x06wallet\"\x9b\f\n" +
 	"\x11WalletTransaction\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\bR\x02id\x12\x1b\n" +
 	"\twallet_id\x18\x02 \x01(\tR\bwalletId\x12K\n" +
@@ -5763,7 +7070,15 @@ const file_tanvo_wallet_v1_wallet_proto_rawDesc = "" +
 	"settled_at\x18\x11 \x01(\v2\x1a.google.protobuf.TimestampR\tsettledAt\x127\n" +
 	"\tfailed_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\bfailedAt\x129\n" +
 	"\n" +
-	"created_at\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt:q\xeaAn\n" +
+	"created_at\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x122\n" +
+	"\x15purchase_order_number\x18\x14 \x01(\tR\x13purchaseOrderNumber\x12*\n" +
+	"\x11voided_invoice_id\x18\x15 \x01(\tR\x0fvoidedInvoiceId\x12?\n" +
+	"\x1cskip_invoice_custom_sections\x18\x16 \x01(\bR\x19skipInvoiceCustomSections\x12;\n" +
+	"\x1ainvoice_custom_section_ids\x18\x17 \x03(\tR\x17invoiceCustomSectionIds\x12R\n" +
+	"\x13payment_method_type\x18\x18 \x01(\x0e2\".tanvo.common.v1.PaymentMethodTypeR\x11paymentMethodType\x12*\n" +
+	"\x11payment_method_id\x18\x19 \x01(\tR\x0fpaymentMethodId\x12A\n" +
+	"\x10remaining_amount\x18\x1a \x01(\v2\x16.tanvo.common.v1.MoneyR\x0fremainingAmount\x12*\n" +
+	"\x11billing_entity_id\x18\x1b \x01(\tR\x0fbillingEntityId:q\xeaAn\n" +
 	"\x1btanvo.xyz/WalletTransaction\x12(wallet_transactions/{wallet_transaction}*\x12walletTransactions2\x11walletTransaction\"\x88\x02\n" +
 	"\x1cWalletTransactionConsumption\x124\n" +
 	"\x16inbound_transaction_id\x18\x01 \x01(\tR\x14inboundTransactionId\x126\n" +
@@ -5804,7 +7119,7 @@ const file_tanvo_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x16TerminateWalletRequest\x12,\n" +
 	"\twallet_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\bwalletId\"J\n" +
 	"\x17TerminateWalletResponse\x12/\n" +
-	"\x06wallet\x18\x01 \x01(\v2\x17.tanvo.wallet.v1.WalletR\x06wallet\"\x8a\x06\n" +
+	"\x06wallet\x18\x01 \x01(\v2\x17.tanvo.wallet.v1.WalletR\x06wallet\"\xfa\b\n" +
 	"\x1eCreateWalletTransactionRequest\x12,\n" +
 	"\twallet_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\bwalletId\x12-\n" +
 	"\fpaid_credits\x18\x02 \x01(\tB\n" +
@@ -5819,8 +7134,13 @@ const file_tanvo_wallet_v1_wallet_proto_rawDesc = "" +
 	"\bmetadata\x18\b \x03(\v2\x1d.tanvo.common.v1.MetadataItemB\b\xbaH\x05\x92\x01\x02\x10\x0fR\bmetadata\x12\\\n" +
 	"\x13payment_method_type\x18\t \x01(\x0e2\".tanvo.common.v1.PaymentMethodTypeB\b\xbaH\x05\x82\x01\x02\x10\x01R\x11paymentMethodType\x124\n" +
 	"\x11payment_method_id\x18\n" +
-	" \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0fpaymentMethodId:\xa2\x01\xbaH\x9e\x01\x1a\x9b\x01\n" +
-	"\x13transaction.credits\x123set paid_credits, granted_credits or voided_credits\x1aOhas(this.paid_credits) || has(this.granted_credits) || has(this.voided_credits)\"v\n" +
+	" \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x0fpaymentMethodId\x12<\n" +
+	"\x15voided_transaction_id\x18\v \x01(\tB\b\xbaH\x05r\x03\xb0\x01\x01R\x13voidedTransactionId\x12%\n" +
+	"\bpriority\x18\f \x01(\x05B\t\xbaH\x06\x1a\x04\x182(\x01R\bpriority\x12<\n" +
+	"\x15purchase_order_number\x18\r \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x13purchaseOrderNumber\x12?\n" +
+	"\x1cskip_invoice_custom_sections\x18\x0e \x01(\bR\x19skipInvoiceCustomSections\x12P\n" +
+	"\x1ainvoice_custom_section_ids\x18\x0f \x03(\tB\x13\xbaH\x10\x92\x01\r\x102\x18\x01\"\ar\x05\xe0\xa4\xca\x06\x01R\x17invoiceCustomSectionIds:\xdc\x01\xbaH\xd8\x01\x1a\xd5\x01\n" +
+	"\x13transaction.credits\x12Jset paid_credits, granted_credits, voided_credits or voided_transaction_id\x1arhas(this.paid_credits) || has(this.granted_credits) || has(this.voided_credits) || has(this.voided_transaction_id)\"v\n" +
 	"\x1fCreateWalletTransactionResponse\x12S\n" +
 	"\x13wallet_transactions\x18\x01 \x03(\v2\".tanvo.wallet.v1.WalletTransactionR\x12walletTransactions\"b\n" +
 	"\x1bGetWalletTransactionRequest\x12C\n" +
@@ -5864,7 +7184,27 @@ const file_tanvo_wallet_v1_wallet_proto_rawDesc = "" +
 	"\twallet_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\bwalletId\x12(\n" +
 	"\arule_id\x18\x02 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\x06ruleId\"\x94\x01\n" +
 	")TerminateRecurringTransactionRuleResponse\x12g\n" +
-	"\x1arecurring_transaction_rule\x18\x01 \x01(\v2).tanvo.wallet.v1.RecurringTransactionRuleR\x18recurringTransactionRule*e\n" +
+	"\x1arecurring_transaction_rule\x18\x01 \x01(\v2).tanvo.wallet.v1.RecurringTransactionRuleR\x18recurringTransactionRule\"\x91\x01\n" +
+	"\x1cReplaceWalletMetadataRequest\x12,\n" +
+	"\twallet_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\bwalletId\x12C\n" +
+	"\bmetadata\x18\x02 \x03(\v2\x1d.tanvo.common.v1.MetadataItemB\b\xbaH\x05\x92\x01\x02\x102R\bmetadata\"\x8f\x01\n" +
+	"\x1aMergeWalletMetadataRequest\x12,\n" +
+	"\twallet_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\bwalletId\x12C\n" +
+	"\bmetadata\x18\x02 \x03(\v2\x1d.tanvo.common.v1.MetadataItemB\b\xbaH\x05\x92\x01\x02\x102R\bmetadata\"K\n" +
+	"\x1bDeleteWalletMetadataRequest\x12,\n" +
+	"\twallet_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\bwalletId\"l\n" +
+	"\x1eDeleteWalletMetadataKeyRequest\x12,\n" +
+	"\twallet_id\x18\x01 \x01(\tB\x0f\xe2A\x01\x02\xbaH\b\xc8\x01\x01r\x03\xb0\x01\x01R\bwalletId\x12\x1c\n" +
+	"\x03key\x18\x02 \x01(\tB\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x03key\"Z\n" +
+	"\x1dReplaceWalletMetadataResponse\x129\n" +
+	"\bmetadata\x18\x01 \x03(\v2\x1d.tanvo.common.v1.MetadataItemR\bmetadata\"X\n" +
+	"\x1bMergeWalletMetadataResponse\x129\n" +
+	"\bmetadata\x18\x01 \x03(\v2\x1d.tanvo.common.v1.MetadataItemR\bmetadata\"Y\n" +
+	"\x1cDeleteWalletMetadataResponse\x129\n" +
+	"\bmetadata\x18\x01 \x03(\v2\x1d.tanvo.common.v1.MetadataItemR\bmetadata\"\\\n" +
+	"\x1fDeleteWalletMetadataKeyResponse\x129\n" +
+	"\bmetadata\x18\x01 \x03(\v2\x1d.tanvo.common.v1.MetadataItemR\bmetadata*e\n" +
 	"\fWalletStatus\x12\x1d\n" +
 	"\x19WALLET_STATUS_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14WALLET_STATUS_ACTIVE\x10\x01\x12\x1c\n" +
@@ -5900,7 +7240,7 @@ const file_tanvo_wallet_v1_wallet_proto_rawDesc = "" +
 	"\x13RecurringRuleStatus\x12%\n" +
 	"!RECURRING_RULE_STATUS_UNSPECIFIED\x10\x00\x12 \n" +
 	"\x1cRECURRING_RULE_STATUS_ACTIVE\x10\x01\x12$\n" +
-	" RECURRING_RULE_STATUS_TERMINATED\x10\x022\xa2\x16\n" +
+	" RECURRING_RULE_STATUS_TERMINATED\x10\x022\xa7\x1c\n" +
 	"\rWalletService\x12\xca\x01\n" +
 	"\fCreateWallet\x12$.tanvo.wallet.v1.CreateWalletRequest\x1a%.tanvo.wallet.v1.CreateWalletResponse\"m\xca\xf3\x18\x18\n" +
 	"\x0ewallets:create*\x06wallet\x82\xd3\xe4\x93\x02K:\x06walletZ4:\x06wallet\"*/v1/customers/{wallet.customer_id}/wallets\"\v/v1/wallets\x12\x92\x01\n" +
@@ -5927,11 +7267,19 @@ const file_tanvo_wallet_v1_wallet_proto_rawDesc = "" +
 	" ReplaceRecurringTransactionRules\x128.tanvo.wallet.v1.ReplaceRecurringTransactionRulesRequest\x1a9.tanvo.wallet.v1.ReplaceRecurringTransactionRulesResponse\"]\xca\xf3\x18\x18\n" +
 	"\x0ewallets:update*\x06wallet\x82\xd3\xe4\x93\x028:\x01*\x1a3/v1/wallets/{wallet_id}/recurring_transaction_rules\x90\x02\x02\x12\x8a\x02\n" +
 	"!TerminateRecurringTransactionRule\x129.tanvo.wallet.v1.TerminateRecurringTransactionRuleRequest\x1a:.tanvo.wallet.v1.TerminateRecurringTransactionRuleResponse\"n\xca\xf3\x18\x18\n" +
-	"\x0ewallets:update*\x06wallet\x82\xd3\xe4\x93\x02L:\x01*\"G/v1/wallets/{wallet_id}/recurring_transaction_rules/{rule_id}:terminateB\xc6\x01\n" +
+	"\x0ewallets:update*\x06wallet\x82\xd3\xe4\x93\x02L:\x01*\"G/v1/wallets/{wallet_id}/recurring_transaction_rules/{rule_id}:terminate\x12\xbf\x01\n" +
+	"\x15ReplaceWalletMetadata\x12-.tanvo.wallet.v1.ReplaceWalletMetadataRequest\x1a..tanvo.wallet.v1.ReplaceWalletMetadataResponse\"G\xca\xf3\x18\x18\n" +
+	"\x0ewallets:update*\x06wallet\x82\xd3\xe4\x93\x02%:\x01*\" /v1/wallets/{wallet_id}/metadata\x12\xb9\x01\n" +
+	"\x13MergeWalletMetadata\x12+.tanvo.wallet.v1.MergeWalletMetadataRequest\x1a,.tanvo.wallet.v1.MergeWalletMetadataResponse\"G\xca\xf3\x18\x18\n" +
+	"\x0ewallets:update*\x06wallet\x82\xd3\xe4\x93\x02%:\x01*2 /v1/wallets/{wallet_id}/metadata\x12\xb9\x01\n" +
+	"\x14DeleteWalletMetadata\x12,.tanvo.wallet.v1.DeleteWalletMetadataRequest\x1a-.tanvo.wallet.v1.DeleteWalletMetadataResponse\"D\xca\xf3\x18\x18\n" +
+	"\x0ewallets:update*\x06wallet\x82\xd3\xe4\x93\x02\"* /v1/wallets/{wallet_id}/metadata\x12\xc8\x01\n" +
+	"\x17DeleteWalletMetadataKey\x12/.tanvo.wallet.v1.DeleteWalletMetadataKeyRequest\x1a0.tanvo.wallet.v1.DeleteWalletMetadataKeyResponse\"J\xca\xf3\x18\x18\n" +
+	"\x0ewallets:update*\x06wallet\x82\xd3\xe4\x93\x02(*&/v1/wallets/{wallet_id}/metadata/{key}B\xc6\x01\n" +
 	"\x13com.tanvo.wallet.v1B\vWalletProtoP\x01ZDgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/wallet/v1;walletv1\xa2\x02\x03TWX\xaa\x02\x0fTanvo.Wallet.V1\xca\x02\x0fTanvo\\Wallet\\V1\xe2\x02\x1bTanvo\\Wallet\\V1\\GPBMetadata\xea\x02\x11Tanvo::Wallet::V1b\beditionsp\xe8\a"
 
 var file_tanvo_wallet_v1_wallet_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
-var file_tanvo_wallet_v1_wallet_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
+var file_tanvo_wallet_v1_wallet_proto_msgTypes = make([]protoimpl.MessageInfo, 40)
 var file_tanvo_wallet_v1_wallet_proto_goTypes = []any{
 	(WalletStatus)(0),                                   // 0: tanvo.wallet.v1.WalletStatus
 	(TransactionType)(0),                                // 1: tanvo.wallet.v1.TransactionType
@@ -5971,107 +7319,132 @@ var file_tanvo_wallet_v1_wallet_proto_goTypes = []any{
 	(*ReplaceRecurringTransactionRulesResponse)(nil),    // 35: tanvo.wallet.v1.ReplaceRecurringTransactionRulesResponse
 	(*TerminateRecurringTransactionRuleRequest)(nil),    // 36: tanvo.wallet.v1.TerminateRecurringTransactionRuleRequest
 	(*TerminateRecurringTransactionRuleResponse)(nil),   // 37: tanvo.wallet.v1.TerminateRecurringTransactionRuleResponse
-	nil,                           // 38: tanvo.wallet.v1.RecurringTransactionRule.ConnectionsEntry
-	nil,                           // 39: tanvo.wallet.v1.Wallet.ConnectionsEntry
-	(v1.Interval)(0),              // 40: tanvo.common.v1.Interval
-	(*timestamppb.Timestamp)(nil), // 41: google.protobuf.Timestamp
-	(*v1.MetadataItem)(nil),       // 42: tanvo.common.v1.MetadataItem
-	(v1.PaymentMethodType)(0),     // 43: tanvo.common.v1.PaymentMethodType
-	(*v1.Money)(nil),              // 44: tanvo.common.v1.Money
-	(v1.FeeType)(0),               // 45: tanvo.common.v1.FeeType
-	(*fieldmaskpb.FieldMask)(nil), // 46: google.protobuf.FieldMask
-	(*v1.ConnectionChoice)(nil),   // 47: tanvo.common.v1.ConnectionChoice
+	(*ReplaceWalletMetadataRequest)(nil),                // 38: tanvo.wallet.v1.ReplaceWalletMetadataRequest
+	(*MergeWalletMetadataRequest)(nil),                  // 39: tanvo.wallet.v1.MergeWalletMetadataRequest
+	(*DeleteWalletMetadataRequest)(nil),                 // 40: tanvo.wallet.v1.DeleteWalletMetadataRequest
+	(*DeleteWalletMetadataKeyRequest)(nil),              // 41: tanvo.wallet.v1.DeleteWalletMetadataKeyRequest
+	(*ReplaceWalletMetadataResponse)(nil),               // 42: tanvo.wallet.v1.ReplaceWalletMetadataResponse
+	(*MergeWalletMetadataResponse)(nil),                 // 43: tanvo.wallet.v1.MergeWalletMetadataResponse
+	(*DeleteWalletMetadataResponse)(nil),                // 44: tanvo.wallet.v1.DeleteWalletMetadataResponse
+	(*DeleteWalletMetadataKeyResponse)(nil),             // 45: tanvo.wallet.v1.DeleteWalletMetadataKeyResponse
+	nil,                                                 // 46: tanvo.wallet.v1.RecurringTransactionRule.ConnectionsEntry
+	nil,                                                 // 47: tanvo.wallet.v1.Wallet.ConnectionsEntry
+	(v1.Interval)(0),                                    // 48: tanvo.common.v1.Interval
+	(*timestamppb.Timestamp)(nil),                       // 49: google.protobuf.Timestamp
+	(*v1.MetadataItem)(nil),                             // 50: tanvo.common.v1.MetadataItem
+	(v1.PaymentMethodType)(0),                           // 51: tanvo.common.v1.PaymentMethodType
+	(*v1.Money)(nil),                                    // 52: tanvo.common.v1.Money
+	(v1.FeeType)(0),                                     // 53: tanvo.common.v1.FeeType
+	(*fieldmaskpb.FieldMask)(nil),                       // 54: google.protobuf.FieldMask
+	(*v1.ConnectionChoice)(nil),                         // 55: tanvo.common.v1.ConnectionChoice
 }
 var file_tanvo_wallet_v1_wallet_proto_depIdxs = []int32{
 	5,  // 0: tanvo.wallet.v1.RecurringTransactionRule.trigger:type_name -> tanvo.wallet.v1.RecurringTrigger
-	40, // 1: tanvo.wallet.v1.RecurringTransactionRule.interval:type_name -> tanvo.common.v1.Interval
+	48, // 1: tanvo.wallet.v1.RecurringTransactionRule.interval:type_name -> tanvo.common.v1.Interval
 	6,  // 2: tanvo.wallet.v1.RecurringTransactionRule.method:type_name -> tanvo.wallet.v1.RecurringMethod
-	41, // 3: tanvo.wallet.v1.RecurringTransactionRule.started_at:type_name -> google.protobuf.Timestamp
-	41, // 4: tanvo.wallet.v1.RecurringTransactionRule.expires_at:type_name -> google.protobuf.Timestamp
-	42, // 5: tanvo.wallet.v1.RecurringTransactionRule.transaction_metadata:type_name -> tanvo.common.v1.MetadataItem
-	43, // 6: tanvo.wallet.v1.RecurringTransactionRule.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
+	49, // 3: tanvo.wallet.v1.RecurringTransactionRule.started_at:type_name -> google.protobuf.Timestamp
+	49, // 4: tanvo.wallet.v1.RecurringTransactionRule.expires_at:type_name -> google.protobuf.Timestamp
+	50, // 5: tanvo.wallet.v1.RecurringTransactionRule.transaction_metadata:type_name -> tanvo.common.v1.MetadataItem
+	51, // 6: tanvo.wallet.v1.RecurringTransactionRule.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
 	7,  // 7: tanvo.wallet.v1.RecurringTransactionRule.status:type_name -> tanvo.wallet.v1.RecurringRuleStatus
-	41, // 8: tanvo.wallet.v1.RecurringTransactionRule.terminated_at:type_name -> google.protobuf.Timestamp
-	41, // 9: tanvo.wallet.v1.RecurringTransactionRule.created_at:type_name -> google.protobuf.Timestamp
-	38, // 10: tanvo.wallet.v1.RecurringTransactionRule.connections:type_name -> tanvo.wallet.v1.RecurringTransactionRule.ConnectionsEntry
+	49, // 8: tanvo.wallet.v1.RecurringTransactionRule.terminated_at:type_name -> google.protobuf.Timestamp
+	49, // 9: tanvo.wallet.v1.RecurringTransactionRule.created_at:type_name -> google.protobuf.Timestamp
+	46, // 10: tanvo.wallet.v1.RecurringTransactionRule.connections:type_name -> tanvo.wallet.v1.RecurringTransactionRule.ConnectionsEntry
 	0,  // 11: tanvo.wallet.v1.Wallet.status:type_name -> tanvo.wallet.v1.WalletStatus
-	41, // 12: tanvo.wallet.v1.Wallet.expires_at:type_name -> google.protobuf.Timestamp
-	44, // 13: tanvo.wallet.v1.Wallet.balance_amount:type_name -> tanvo.common.v1.Money
-	44, // 14: tanvo.wallet.v1.Wallet.ongoing_balance_amount:type_name -> tanvo.common.v1.Money
-	44, // 15: tanvo.wallet.v1.Wallet.ongoing_usage_balance_amount:type_name -> tanvo.common.v1.Money
-	44, // 16: tanvo.wallet.v1.Wallet.consumed_amount:type_name -> tanvo.common.v1.Money
-	45, // 17: tanvo.wallet.v1.Wallet.allowed_fee_types:type_name -> tanvo.common.v1.FeeType
-	43, // 18: tanvo.wallet.v1.Wallet.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
-	42, // 19: tanvo.wallet.v1.Wallet.metadata:type_name -> tanvo.common.v1.MetadataItem
+	49, // 12: tanvo.wallet.v1.Wallet.expires_at:type_name -> google.protobuf.Timestamp
+	52, // 13: tanvo.wallet.v1.Wallet.balance_amount:type_name -> tanvo.common.v1.Money
+	52, // 14: tanvo.wallet.v1.Wallet.ongoing_balance_amount:type_name -> tanvo.common.v1.Money
+	52, // 15: tanvo.wallet.v1.Wallet.ongoing_usage_balance_amount:type_name -> tanvo.common.v1.Money
+	52, // 16: tanvo.wallet.v1.Wallet.consumed_amount:type_name -> tanvo.common.v1.Money
+	53, // 17: tanvo.wallet.v1.Wallet.allowed_fee_types:type_name -> tanvo.common.v1.FeeType
+	51, // 18: tanvo.wallet.v1.Wallet.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
+	50, // 19: tanvo.wallet.v1.Wallet.metadata:type_name -> tanvo.common.v1.MetadataItem
 	8,  // 20: tanvo.wallet.v1.Wallet.recurring_transaction_rules:type_name -> tanvo.wallet.v1.RecurringTransactionRule
-	41, // 21: tanvo.wallet.v1.Wallet.last_balance_sync_at:type_name -> google.protobuf.Timestamp
-	41, // 22: tanvo.wallet.v1.Wallet.last_consumed_credit_at:type_name -> google.protobuf.Timestamp
-	41, // 23: tanvo.wallet.v1.Wallet.terminated_at:type_name -> google.protobuf.Timestamp
-	41, // 24: tanvo.wallet.v1.Wallet.created_at:type_name -> google.protobuf.Timestamp
-	41, // 25: tanvo.wallet.v1.Wallet.updated_at:type_name -> google.protobuf.Timestamp
-	39, // 26: tanvo.wallet.v1.Wallet.connections:type_name -> tanvo.wallet.v1.Wallet.ConnectionsEntry
-	1,  // 27: tanvo.wallet.v1.WalletTransaction.transaction_type:type_name -> tanvo.wallet.v1.TransactionType
-	2,  // 28: tanvo.wallet.v1.WalletTransaction.transaction_status:type_name -> tanvo.wallet.v1.TransactionStatus
-	3,  // 29: tanvo.wallet.v1.WalletTransaction.status:type_name -> tanvo.wallet.v1.SettlementStatus
-	4,  // 30: tanvo.wallet.v1.WalletTransaction.source:type_name -> tanvo.wallet.v1.TransactionSource
-	44, // 31: tanvo.wallet.v1.WalletTransaction.amount:type_name -> tanvo.common.v1.Money
-	42, // 32: tanvo.wallet.v1.WalletTransaction.metadata:type_name -> tanvo.common.v1.MetadataItem
-	41, // 33: tanvo.wallet.v1.WalletTransaction.settled_at:type_name -> google.protobuf.Timestamp
-	41, // 34: tanvo.wallet.v1.WalletTransaction.failed_at:type_name -> google.protobuf.Timestamp
-	41, // 35: tanvo.wallet.v1.WalletTransaction.created_at:type_name -> google.protobuf.Timestamp
-	44, // 36: tanvo.wallet.v1.WalletTransactionConsumption.consumed_amount:type_name -> tanvo.common.v1.Money
-	41, // 37: tanvo.wallet.v1.WalletTransactionConsumption.created_at:type_name -> google.protobuf.Timestamp
-	9,  // 38: tanvo.wallet.v1.CreateWalletRequest.wallet:type_name -> tanvo.wallet.v1.Wallet
-	9,  // 39: tanvo.wallet.v1.CreateWalletResponse.wallet:type_name -> tanvo.wallet.v1.Wallet
-	9,  // 40: tanvo.wallet.v1.GetWalletResponse.wallet:type_name -> tanvo.wallet.v1.Wallet
-	9,  // 41: tanvo.wallet.v1.ListWalletsResponse.wallets:type_name -> tanvo.wallet.v1.Wallet
-	9,  // 42: tanvo.wallet.v1.UpdateWalletRequest.wallet:type_name -> tanvo.wallet.v1.Wallet
-	46, // 43: tanvo.wallet.v1.UpdateWalletRequest.update_mask:type_name -> google.protobuf.FieldMask
-	9,  // 44: tanvo.wallet.v1.UpdateWalletResponse.wallet:type_name -> tanvo.wallet.v1.Wallet
-	9,  // 45: tanvo.wallet.v1.TerminateWalletResponse.wallet:type_name -> tanvo.wallet.v1.Wallet
-	42, // 46: tanvo.wallet.v1.CreateWalletTransactionRequest.metadata:type_name -> tanvo.common.v1.MetadataItem
-	43, // 47: tanvo.wallet.v1.CreateWalletTransactionRequest.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
-	10, // 48: tanvo.wallet.v1.CreateWalletTransactionResponse.wallet_transactions:type_name -> tanvo.wallet.v1.WalletTransaction
-	10, // 49: tanvo.wallet.v1.GetWalletTransactionResponse.wallet_transaction:type_name -> tanvo.wallet.v1.WalletTransaction
-	10, // 50: tanvo.wallet.v1.ListWalletTransactionsResponse.wallet_transactions:type_name -> tanvo.wallet.v1.WalletTransaction
-	11, // 51: tanvo.wallet.v1.ListWalletTransactionConsumptionsResponse.consumptions:type_name -> tanvo.wallet.v1.WalletTransactionConsumption
-	8,  // 52: tanvo.wallet.v1.ListRecurringTransactionRulesResponse.recurring_transaction_rules:type_name -> tanvo.wallet.v1.RecurringTransactionRule
-	8,  // 53: tanvo.wallet.v1.ReplaceRecurringTransactionRulesRequest.recurring_transaction_rules:type_name -> tanvo.wallet.v1.RecurringTransactionRule
-	8,  // 54: tanvo.wallet.v1.ReplaceRecurringTransactionRulesResponse.recurring_transaction_rules:type_name -> tanvo.wallet.v1.RecurringTransactionRule
-	8,  // 55: tanvo.wallet.v1.TerminateRecurringTransactionRuleResponse.recurring_transaction_rule:type_name -> tanvo.wallet.v1.RecurringTransactionRule
-	47, // 56: tanvo.wallet.v1.RecurringTransactionRule.ConnectionsEntry.value:type_name -> tanvo.common.v1.ConnectionChoice
-	47, // 57: tanvo.wallet.v1.Wallet.ConnectionsEntry.value:type_name -> tanvo.common.v1.ConnectionChoice
-	12, // 58: tanvo.wallet.v1.WalletService.CreateWallet:input_type -> tanvo.wallet.v1.CreateWalletRequest
-	14, // 59: tanvo.wallet.v1.WalletService.GetWallet:input_type -> tanvo.wallet.v1.GetWalletRequest
-	16, // 60: tanvo.wallet.v1.WalletService.ListWallets:input_type -> tanvo.wallet.v1.ListWalletsRequest
-	18, // 61: tanvo.wallet.v1.WalletService.UpdateWallet:input_type -> tanvo.wallet.v1.UpdateWalletRequest
-	20, // 62: tanvo.wallet.v1.WalletService.TerminateWallet:input_type -> tanvo.wallet.v1.TerminateWalletRequest
-	22, // 63: tanvo.wallet.v1.WalletService.CreateWalletTransaction:input_type -> tanvo.wallet.v1.CreateWalletTransactionRequest
-	24, // 64: tanvo.wallet.v1.WalletService.GetWalletTransaction:input_type -> tanvo.wallet.v1.GetWalletTransactionRequest
-	26, // 65: tanvo.wallet.v1.WalletService.ListWalletTransactions:input_type -> tanvo.wallet.v1.ListWalletTransactionsRequest
-	28, // 66: tanvo.wallet.v1.WalletService.ListWalletTransactionConsumptions:input_type -> tanvo.wallet.v1.ListWalletTransactionConsumptionsRequest
-	30, // 67: tanvo.wallet.v1.WalletService.GenerateWalletTransactionPaymentUrl:input_type -> tanvo.wallet.v1.GenerateWalletTransactionPaymentUrlRequest
-	32, // 68: tanvo.wallet.v1.WalletService.ListRecurringTransactionRules:input_type -> tanvo.wallet.v1.ListRecurringTransactionRulesRequest
-	34, // 69: tanvo.wallet.v1.WalletService.ReplaceRecurringTransactionRules:input_type -> tanvo.wallet.v1.ReplaceRecurringTransactionRulesRequest
-	36, // 70: tanvo.wallet.v1.WalletService.TerminateRecurringTransactionRule:input_type -> tanvo.wallet.v1.TerminateRecurringTransactionRuleRequest
-	13, // 71: tanvo.wallet.v1.WalletService.CreateWallet:output_type -> tanvo.wallet.v1.CreateWalletResponse
-	15, // 72: tanvo.wallet.v1.WalletService.GetWallet:output_type -> tanvo.wallet.v1.GetWalletResponse
-	17, // 73: tanvo.wallet.v1.WalletService.ListWallets:output_type -> tanvo.wallet.v1.ListWalletsResponse
-	19, // 74: tanvo.wallet.v1.WalletService.UpdateWallet:output_type -> tanvo.wallet.v1.UpdateWalletResponse
-	21, // 75: tanvo.wallet.v1.WalletService.TerminateWallet:output_type -> tanvo.wallet.v1.TerminateWalletResponse
-	23, // 76: tanvo.wallet.v1.WalletService.CreateWalletTransaction:output_type -> tanvo.wallet.v1.CreateWalletTransactionResponse
-	25, // 77: tanvo.wallet.v1.WalletService.GetWalletTransaction:output_type -> tanvo.wallet.v1.GetWalletTransactionResponse
-	27, // 78: tanvo.wallet.v1.WalletService.ListWalletTransactions:output_type -> tanvo.wallet.v1.ListWalletTransactionsResponse
-	29, // 79: tanvo.wallet.v1.WalletService.ListWalletTransactionConsumptions:output_type -> tanvo.wallet.v1.ListWalletTransactionConsumptionsResponse
-	31, // 80: tanvo.wallet.v1.WalletService.GenerateWalletTransactionPaymentUrl:output_type -> tanvo.wallet.v1.GenerateWalletTransactionPaymentUrlResponse
-	33, // 81: tanvo.wallet.v1.WalletService.ListRecurringTransactionRules:output_type -> tanvo.wallet.v1.ListRecurringTransactionRulesResponse
-	35, // 82: tanvo.wallet.v1.WalletService.ReplaceRecurringTransactionRules:output_type -> tanvo.wallet.v1.ReplaceRecurringTransactionRulesResponse
-	37, // 83: tanvo.wallet.v1.WalletService.TerminateRecurringTransactionRule:output_type -> tanvo.wallet.v1.TerminateRecurringTransactionRuleResponse
-	71, // [71:84] is the sub-list for method output_type
-	58, // [58:71] is the sub-list for method input_type
-	58, // [58:58] is the sub-list for extension type_name
-	58, // [58:58] is the sub-list for extension extendee
-	0,  // [0:58] is the sub-list for field type_name
+	49, // 21: tanvo.wallet.v1.Wallet.last_balance_sync_at:type_name -> google.protobuf.Timestamp
+	49, // 22: tanvo.wallet.v1.Wallet.last_consumed_credit_at:type_name -> google.protobuf.Timestamp
+	49, // 23: tanvo.wallet.v1.Wallet.terminated_at:type_name -> google.protobuf.Timestamp
+	49, // 24: tanvo.wallet.v1.Wallet.created_at:type_name -> google.protobuf.Timestamp
+	49, // 25: tanvo.wallet.v1.Wallet.updated_at:type_name -> google.protobuf.Timestamp
+	47, // 26: tanvo.wallet.v1.Wallet.connections:type_name -> tanvo.wallet.v1.Wallet.ConnectionsEntry
+	50, // 27: tanvo.wallet.v1.Wallet.transaction_metadata:type_name -> tanvo.common.v1.MetadataItem
+	1,  // 28: tanvo.wallet.v1.WalletTransaction.transaction_type:type_name -> tanvo.wallet.v1.TransactionType
+	2,  // 29: tanvo.wallet.v1.WalletTransaction.transaction_status:type_name -> tanvo.wallet.v1.TransactionStatus
+	3,  // 30: tanvo.wallet.v1.WalletTransaction.status:type_name -> tanvo.wallet.v1.SettlementStatus
+	4,  // 31: tanvo.wallet.v1.WalletTransaction.source:type_name -> tanvo.wallet.v1.TransactionSource
+	52, // 32: tanvo.wallet.v1.WalletTransaction.amount:type_name -> tanvo.common.v1.Money
+	50, // 33: tanvo.wallet.v1.WalletTransaction.metadata:type_name -> tanvo.common.v1.MetadataItem
+	49, // 34: tanvo.wallet.v1.WalletTransaction.settled_at:type_name -> google.protobuf.Timestamp
+	49, // 35: tanvo.wallet.v1.WalletTransaction.failed_at:type_name -> google.protobuf.Timestamp
+	49, // 36: tanvo.wallet.v1.WalletTransaction.created_at:type_name -> google.protobuf.Timestamp
+	51, // 37: tanvo.wallet.v1.WalletTransaction.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
+	52, // 38: tanvo.wallet.v1.WalletTransaction.remaining_amount:type_name -> tanvo.common.v1.Money
+	52, // 39: tanvo.wallet.v1.WalletTransactionConsumption.consumed_amount:type_name -> tanvo.common.v1.Money
+	49, // 40: tanvo.wallet.v1.WalletTransactionConsumption.created_at:type_name -> google.protobuf.Timestamp
+	9,  // 41: tanvo.wallet.v1.CreateWalletRequest.wallet:type_name -> tanvo.wallet.v1.Wallet
+	9,  // 42: tanvo.wallet.v1.CreateWalletResponse.wallet:type_name -> tanvo.wallet.v1.Wallet
+	9,  // 43: tanvo.wallet.v1.GetWalletResponse.wallet:type_name -> tanvo.wallet.v1.Wallet
+	9,  // 44: tanvo.wallet.v1.ListWalletsResponse.wallets:type_name -> tanvo.wallet.v1.Wallet
+	9,  // 45: tanvo.wallet.v1.UpdateWalletRequest.wallet:type_name -> tanvo.wallet.v1.Wallet
+	54, // 46: tanvo.wallet.v1.UpdateWalletRequest.update_mask:type_name -> google.protobuf.FieldMask
+	9,  // 47: tanvo.wallet.v1.UpdateWalletResponse.wallet:type_name -> tanvo.wallet.v1.Wallet
+	9,  // 48: tanvo.wallet.v1.TerminateWalletResponse.wallet:type_name -> tanvo.wallet.v1.Wallet
+	50, // 49: tanvo.wallet.v1.CreateWalletTransactionRequest.metadata:type_name -> tanvo.common.v1.MetadataItem
+	51, // 50: tanvo.wallet.v1.CreateWalletTransactionRequest.payment_method_type:type_name -> tanvo.common.v1.PaymentMethodType
+	10, // 51: tanvo.wallet.v1.CreateWalletTransactionResponse.wallet_transactions:type_name -> tanvo.wallet.v1.WalletTransaction
+	10, // 52: tanvo.wallet.v1.GetWalletTransactionResponse.wallet_transaction:type_name -> tanvo.wallet.v1.WalletTransaction
+	10, // 53: tanvo.wallet.v1.ListWalletTransactionsResponse.wallet_transactions:type_name -> tanvo.wallet.v1.WalletTransaction
+	11, // 54: tanvo.wallet.v1.ListWalletTransactionConsumptionsResponse.consumptions:type_name -> tanvo.wallet.v1.WalletTransactionConsumption
+	8,  // 55: tanvo.wallet.v1.ListRecurringTransactionRulesResponse.recurring_transaction_rules:type_name -> tanvo.wallet.v1.RecurringTransactionRule
+	8,  // 56: tanvo.wallet.v1.ReplaceRecurringTransactionRulesRequest.recurring_transaction_rules:type_name -> tanvo.wallet.v1.RecurringTransactionRule
+	8,  // 57: tanvo.wallet.v1.ReplaceRecurringTransactionRulesResponse.recurring_transaction_rules:type_name -> tanvo.wallet.v1.RecurringTransactionRule
+	8,  // 58: tanvo.wallet.v1.TerminateRecurringTransactionRuleResponse.recurring_transaction_rule:type_name -> tanvo.wallet.v1.RecurringTransactionRule
+	50, // 59: tanvo.wallet.v1.ReplaceWalletMetadataRequest.metadata:type_name -> tanvo.common.v1.MetadataItem
+	50, // 60: tanvo.wallet.v1.MergeWalletMetadataRequest.metadata:type_name -> tanvo.common.v1.MetadataItem
+	50, // 61: tanvo.wallet.v1.ReplaceWalletMetadataResponse.metadata:type_name -> tanvo.common.v1.MetadataItem
+	50, // 62: tanvo.wallet.v1.MergeWalletMetadataResponse.metadata:type_name -> tanvo.common.v1.MetadataItem
+	50, // 63: tanvo.wallet.v1.DeleteWalletMetadataResponse.metadata:type_name -> tanvo.common.v1.MetadataItem
+	50, // 64: tanvo.wallet.v1.DeleteWalletMetadataKeyResponse.metadata:type_name -> tanvo.common.v1.MetadataItem
+	55, // 65: tanvo.wallet.v1.RecurringTransactionRule.ConnectionsEntry.value:type_name -> tanvo.common.v1.ConnectionChoice
+	55, // 66: tanvo.wallet.v1.Wallet.ConnectionsEntry.value:type_name -> tanvo.common.v1.ConnectionChoice
+	12, // 67: tanvo.wallet.v1.WalletService.CreateWallet:input_type -> tanvo.wallet.v1.CreateWalletRequest
+	14, // 68: tanvo.wallet.v1.WalletService.GetWallet:input_type -> tanvo.wallet.v1.GetWalletRequest
+	16, // 69: tanvo.wallet.v1.WalletService.ListWallets:input_type -> tanvo.wallet.v1.ListWalletsRequest
+	18, // 70: tanvo.wallet.v1.WalletService.UpdateWallet:input_type -> tanvo.wallet.v1.UpdateWalletRequest
+	20, // 71: tanvo.wallet.v1.WalletService.TerminateWallet:input_type -> tanvo.wallet.v1.TerminateWalletRequest
+	22, // 72: tanvo.wallet.v1.WalletService.CreateWalletTransaction:input_type -> tanvo.wallet.v1.CreateWalletTransactionRequest
+	24, // 73: tanvo.wallet.v1.WalletService.GetWalletTransaction:input_type -> tanvo.wallet.v1.GetWalletTransactionRequest
+	26, // 74: tanvo.wallet.v1.WalletService.ListWalletTransactions:input_type -> tanvo.wallet.v1.ListWalletTransactionsRequest
+	28, // 75: tanvo.wallet.v1.WalletService.ListWalletTransactionConsumptions:input_type -> tanvo.wallet.v1.ListWalletTransactionConsumptionsRequest
+	30, // 76: tanvo.wallet.v1.WalletService.GenerateWalletTransactionPaymentUrl:input_type -> tanvo.wallet.v1.GenerateWalletTransactionPaymentUrlRequest
+	32, // 77: tanvo.wallet.v1.WalletService.ListRecurringTransactionRules:input_type -> tanvo.wallet.v1.ListRecurringTransactionRulesRequest
+	34, // 78: tanvo.wallet.v1.WalletService.ReplaceRecurringTransactionRules:input_type -> tanvo.wallet.v1.ReplaceRecurringTransactionRulesRequest
+	36, // 79: tanvo.wallet.v1.WalletService.TerminateRecurringTransactionRule:input_type -> tanvo.wallet.v1.TerminateRecurringTransactionRuleRequest
+	38, // 80: tanvo.wallet.v1.WalletService.ReplaceWalletMetadata:input_type -> tanvo.wallet.v1.ReplaceWalletMetadataRequest
+	39, // 81: tanvo.wallet.v1.WalletService.MergeWalletMetadata:input_type -> tanvo.wallet.v1.MergeWalletMetadataRequest
+	40, // 82: tanvo.wallet.v1.WalletService.DeleteWalletMetadata:input_type -> tanvo.wallet.v1.DeleteWalletMetadataRequest
+	41, // 83: tanvo.wallet.v1.WalletService.DeleteWalletMetadataKey:input_type -> tanvo.wallet.v1.DeleteWalletMetadataKeyRequest
+	13, // 84: tanvo.wallet.v1.WalletService.CreateWallet:output_type -> tanvo.wallet.v1.CreateWalletResponse
+	15, // 85: tanvo.wallet.v1.WalletService.GetWallet:output_type -> tanvo.wallet.v1.GetWalletResponse
+	17, // 86: tanvo.wallet.v1.WalletService.ListWallets:output_type -> tanvo.wallet.v1.ListWalletsResponse
+	19, // 87: tanvo.wallet.v1.WalletService.UpdateWallet:output_type -> tanvo.wallet.v1.UpdateWalletResponse
+	21, // 88: tanvo.wallet.v1.WalletService.TerminateWallet:output_type -> tanvo.wallet.v1.TerminateWalletResponse
+	23, // 89: tanvo.wallet.v1.WalletService.CreateWalletTransaction:output_type -> tanvo.wallet.v1.CreateWalletTransactionResponse
+	25, // 90: tanvo.wallet.v1.WalletService.GetWalletTransaction:output_type -> tanvo.wallet.v1.GetWalletTransactionResponse
+	27, // 91: tanvo.wallet.v1.WalletService.ListWalletTransactions:output_type -> tanvo.wallet.v1.ListWalletTransactionsResponse
+	29, // 92: tanvo.wallet.v1.WalletService.ListWalletTransactionConsumptions:output_type -> tanvo.wallet.v1.ListWalletTransactionConsumptionsResponse
+	31, // 93: tanvo.wallet.v1.WalletService.GenerateWalletTransactionPaymentUrl:output_type -> tanvo.wallet.v1.GenerateWalletTransactionPaymentUrlResponse
+	33, // 94: tanvo.wallet.v1.WalletService.ListRecurringTransactionRules:output_type -> tanvo.wallet.v1.ListRecurringTransactionRulesResponse
+	35, // 95: tanvo.wallet.v1.WalletService.ReplaceRecurringTransactionRules:output_type -> tanvo.wallet.v1.ReplaceRecurringTransactionRulesResponse
+	37, // 96: tanvo.wallet.v1.WalletService.TerminateRecurringTransactionRule:output_type -> tanvo.wallet.v1.TerminateRecurringTransactionRuleResponse
+	42, // 97: tanvo.wallet.v1.WalletService.ReplaceWalletMetadata:output_type -> tanvo.wallet.v1.ReplaceWalletMetadataResponse
+	43, // 98: tanvo.wallet.v1.WalletService.MergeWalletMetadata:output_type -> tanvo.wallet.v1.MergeWalletMetadataResponse
+	44, // 99: tanvo.wallet.v1.WalletService.DeleteWalletMetadata:output_type -> tanvo.wallet.v1.DeleteWalletMetadataResponse
+	45, // 100: tanvo.wallet.v1.WalletService.DeleteWalletMetadataKey:output_type -> tanvo.wallet.v1.DeleteWalletMetadataKeyResponse
+	84, // [84:101] is the sub-list for method output_type
+	67, // [67:84] is the sub-list for method input_type
+	67, // [67:67] is the sub-list for extension type_name
+	67, // [67:67] is the sub-list for extension extendee
+	0,  // [0:67] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_wallet_v1_wallet_proto_init() }
@@ -6085,7 +7458,7 @@ func file_tanvo_wallet_v1_wallet_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_wallet_v1_wallet_proto_rawDesc), len(file_tanvo_wallet_v1_wallet_proto_rawDesc)),
 			NumEnums:      8,
-			NumMessages:   32,
+			NumMessages:   40,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

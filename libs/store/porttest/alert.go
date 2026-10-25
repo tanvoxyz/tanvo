@@ -216,9 +216,20 @@ func testAlert(t *testing.T, h Harness) {
 			a4 := alertFixtureWalletAlert(e, w, "a4", alert.TypeWalletBalanceAmount)
 			a5 := alertFixture(e, org, "sub_1", "a5", alert.TypeLifetimeUsageAmount)
 			all := []*alert.Alert{a1, a2, a3, a4, a5}
+			// a2 and a3 were created at the same instant; the others an
+			// hour apart.
+			for i, h := range []int{0, 1, 1, 2, 3} {
+				all[i].CreatedAt = now.Add(time.Duration(h) * time.Hour)
+			}
 			for _, a := range all {
 				noErr(t, "Create()", r.Alerts.Create(ctx, a))
 			}
+			// List is newest first, then by ID (alerts_query.rb:9-10).
+			recent := []*alert.Alert{a5, a4, a2, a3}
+			if a3.ID.String() < a2.ID.String() {
+				recent[2], recent[3] = a3, a2
+			}
+			recent = append(recent, a1)
 			noErr(t, "Create() in another organization", r.Alerts.Create(ctx, alertFixture(e, other.org, "sub_1", "a1", alert.TypeCurrentUsageAmount)))
 
 			got, err := r.Alerts.ListBySubscription(ctx, org, "sub_1")
@@ -245,11 +256,11 @@ func testAlert(t *testing.T, h Harness) {
 					return r.Alerts.List(ctx, org, f, pr)
 				})
 			}
-			equal(t, "List()", list(alert.Filter{}), all)
-			equal(t, "List() by subscription", ids(list(alert.Filter{SubscriptionExternalID: "sub_1"}), alertID), []core.AlertID{a1.ID, a2.ID, a5.ID})
+			equal(t, "List()", list(alert.Filter{}), recent)
+			equal(t, "List() by subscription", ids(list(alert.Filter{SubscriptionExternalID: "sub_1"}), alertID), []core.AlertID{a5.ID, a2.ID, a1.ID})
 			equal(t, "List() by wallet", ids(list(alert.Filter{WalletID: w.ID}), alertID), []core.AlertID{a4.ID})
 			equal(t, "List() by types", ids(list(alert.Filter{Types: []alert.Type{alert.TypeCurrentUsageAmount, alert.TypeWalletBalanceAmount}}), alertID),
-				[]core.AlertID{a1.ID, a4.ID})
+				[]core.AlertID{a4.ID, a1.ID})
 			equal(t, "List() by subscription and type", ids(list(alert.Filter{SubscriptionExternalID: "sub_1", Types: []alert.Type{alert.TypeLifetimeUsageAmount}}), alertID),
 				[]core.AlertID{a5.ID})
 			op, err := r.Alerts.List(ctx, other.org, alert.Filter{}, core.PageRequest{})

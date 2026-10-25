@@ -64,6 +64,18 @@ const (
 	// WalletServiceTerminateRecurringTransactionRuleProcedure is the procedure name of the
 	// WalletService's TerminateRecurringTransactionRule RPC.
 	WalletServiceTerminateRecurringTransactionRuleProcedure = "/tanvo.wallet.v1.WalletService/TerminateRecurringTransactionRule"
+	// WalletServiceReplaceWalletMetadataProcedure is the procedure name of the WalletService's
+	// ReplaceWalletMetadata RPC.
+	WalletServiceReplaceWalletMetadataProcedure = "/tanvo.wallet.v1.WalletService/ReplaceWalletMetadata"
+	// WalletServiceMergeWalletMetadataProcedure is the procedure name of the WalletService's
+	// MergeWalletMetadata RPC.
+	WalletServiceMergeWalletMetadataProcedure = "/tanvo.wallet.v1.WalletService/MergeWalletMetadata"
+	// WalletServiceDeleteWalletMetadataProcedure is the procedure name of the WalletService's
+	// DeleteWalletMetadata RPC.
+	WalletServiceDeleteWalletMetadataProcedure = "/tanvo.wallet.v1.WalletService/DeleteWalletMetadata"
+	// WalletServiceDeleteWalletMetadataKeyProcedure is the procedure name of the WalletService's
+	// DeleteWalletMetadataKey RPC.
+	WalletServiceDeleteWalletMetadataKeyProcedure = "/tanvo.wallet.v1.WalletService/DeleteWalletMetadataKey"
 )
 
 var (
@@ -165,6 +177,34 @@ var (
 			Procedure:  WalletServiceTerminateRecurringTransactionRuleProcedure,
 		}
 	})
+	walletServiceReplaceWalletMetadataSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_wallet_v1_wallet_proto.Services().ByName("WalletService").Methods().ByName("ReplaceWalletMetadata"),
+			Procedure:  WalletServiceReplaceWalletMetadataProcedure,
+		}
+	})
+	walletServiceMergeWalletMetadataSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_wallet_v1_wallet_proto.Services().ByName("WalletService").Methods().ByName("MergeWalletMetadata"),
+			Procedure:  WalletServiceMergeWalletMetadataProcedure,
+		}
+	})
+	walletServiceDeleteWalletMetadataSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_wallet_v1_wallet_proto.Services().ByName("WalletService").Methods().ByName("DeleteWalletMetadata"),
+			Procedure:  WalletServiceDeleteWalletMetadataProcedure,
+		}
+	})
+	walletServiceDeleteWalletMetadataKeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_wallet_v1_wallet_proto.Services().ByName("WalletService").Methods().ByName("DeleteWalletMetadataKey"),
+			Procedure:  WalletServiceDeleteWalletMetadataKeyProcedure,
+		}
+	})
 )
 
 // WalletServiceClient is a client for the tanvo.wallet.v1.WalletService service.
@@ -199,6 +239,16 @@ type WalletServiceClient interface {
 	ReplaceRecurringTransactionRules(context.Context, *v1.ReplaceRecurringTransactionRulesRequest) (*v1.ReplaceRecurringTransactionRulesResponse, error)
 	// Terminates a recurring top-up rule.
 	TerminateRecurringTransactionRule(context.Context, *v1.TerminateRecurringTransactionRuleRequest) (*v1.TerminateRecurringTransactionRuleResponse, error)
+	// Replaces the wallet's metadata; an empty list clears it.
+	ReplaceWalletMetadata(context.Context, *v1.ReplaceWalletMetadataRequest) (*v1.ReplaceWalletMetadataResponse, error)
+	// Merges items into the wallet's metadata: values of existing keys are
+	// replaced and new keys appended.
+	MergeWalletMetadata(context.Context, *v1.MergeWalletMetadataRequest) (*v1.MergeWalletMetadataResponse, error)
+	// Removes all the wallet's metadata.
+	DeleteWalletMetadata(context.Context, *v1.DeleteWalletMetadataRequest) (*v1.DeleteWalletMetadataResponse, error)
+	// Removes one key from the wallet's metadata; NOT_FOUND when the
+	// wallet has no metadata.
+	DeleteWalletMetadataKey(context.Context, *v1.DeleteWalletMetadataKeyRequest) (*v1.DeleteWalletMetadataKeyResponse, error)
 }
 
 // NewWalletServiceClient constructs a client for the tanvo.wallet.v1.WalletService service.
@@ -239,6 +289,16 @@ type WalletServiceHandler interface {
 	ReplaceRecurringTransactionRules(context.Context, *v1.ReplaceRecurringTransactionRulesRequest) (*v1.ReplaceRecurringTransactionRulesResponse, error)
 	// Terminates a recurring top-up rule.
 	TerminateRecurringTransactionRule(context.Context, *v1.TerminateRecurringTransactionRuleRequest) (*v1.TerminateRecurringTransactionRuleResponse, error)
+	// Replaces the wallet's metadata; an empty list clears it.
+	ReplaceWalletMetadata(context.Context, *v1.ReplaceWalletMetadataRequest) (*v1.ReplaceWalletMetadataResponse, error)
+	// Merges items into the wallet's metadata: values of existing keys are
+	// replaced and new keys appended.
+	MergeWalletMetadata(context.Context, *v1.MergeWalletMetadataRequest) (*v1.MergeWalletMetadataResponse, error)
+	// Removes all the wallet's metadata.
+	DeleteWalletMetadata(context.Context, *v1.DeleteWalletMetadataRequest) (*v1.DeleteWalletMetadataResponse, error)
+	// Removes one key from the wallet's metadata; NOT_FOUND when the
+	// wallet has no metadata.
+	DeleteWalletMetadataKey(context.Context, *v1.DeleteWalletMetadataKeyRequest) (*v1.DeleteWalletMetadataKeyResponse, error)
 }
 
 // RegisterWalletServiceHandler registers svc as the tanvo.wallet.v1.WalletService implementation on
@@ -259,6 +319,10 @@ func RegisterWalletServiceHandler(server *connect.Server, svc WalletServiceHandl
 		connect.Method{Spec: walletServiceListRecurringTransactionRulesSpec(), Handler: adapter.listRecurringTransactionRules},
 		connect.Method{Spec: walletServiceReplaceRecurringTransactionRulesSpec(), Handler: adapter.replaceRecurringTransactionRules},
 		connect.Method{Spec: walletServiceTerminateRecurringTransactionRuleSpec(), Handler: adapter.terminateRecurringTransactionRule},
+		connect.Method{Spec: walletServiceReplaceWalletMetadataSpec(), Handler: adapter.replaceWalletMetadata},
+		connect.Method{Spec: walletServiceMergeWalletMetadataSpec(), Handler: adapter.mergeWalletMetadata},
+		connect.Method{Spec: walletServiceDeleteWalletMetadataSpec(), Handler: adapter.deleteWalletMetadata},
+		connect.Method{Spec: walletServiceDeleteWalletMetadataKeySpec(), Handler: adapter.deleteWalletMetadataKey},
 	)
 }
 
@@ -315,6 +379,22 @@ func (UnimplementedWalletServiceHandler) ReplaceRecurringTransactionRules(contex
 
 func (UnimplementedWalletServiceHandler) TerminateRecurringTransactionRule(context.Context, *v1.TerminateRecurringTransactionRuleRequest) (*v1.TerminateRecurringTransactionRuleResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.wallet.v1.WalletService.TerminateRecurringTransactionRule is not implemented")
+}
+
+func (UnimplementedWalletServiceHandler) ReplaceWalletMetadata(context.Context, *v1.ReplaceWalletMetadataRequest) (*v1.ReplaceWalletMetadataResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.wallet.v1.WalletService.ReplaceWalletMetadata is not implemented")
+}
+
+func (UnimplementedWalletServiceHandler) MergeWalletMetadata(context.Context, *v1.MergeWalletMetadataRequest) (*v1.MergeWalletMetadataResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.wallet.v1.WalletService.MergeWalletMetadata is not implemented")
+}
+
+func (UnimplementedWalletServiceHandler) DeleteWalletMetadata(context.Context, *v1.DeleteWalletMetadataRequest) (*v1.DeleteWalletMetadataResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.wallet.v1.WalletService.DeleteWalletMetadata is not implemented")
+}
+
+func (UnimplementedWalletServiceHandler) DeleteWalletMetadataKey(context.Context, *v1.DeleteWalletMetadataKeyRequest) (*v1.DeleteWalletMetadataKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.wallet.v1.WalletService.DeleteWalletMetadataKey is not implemented")
 }
 
 type walletServiceClient struct {
@@ -420,6 +500,38 @@ func (c *walletServiceClient) ReplaceRecurringTransactionRules(ctx context.Conte
 func (c *walletServiceClient) TerminateRecurringTransactionRule(ctx context.Context, req *v1.TerminateRecurringTransactionRuleRequest) (*v1.TerminateRecurringTransactionRuleResponse, error) {
 	var res v1.TerminateRecurringTransactionRuleResponse
 	if err := c.client.CallUnary(ctx, walletServiceTerminateRecurringTransactionRuleSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletServiceClient) ReplaceWalletMetadata(ctx context.Context, req *v1.ReplaceWalletMetadataRequest) (*v1.ReplaceWalletMetadataResponse, error) {
+	var res v1.ReplaceWalletMetadataResponse
+	if err := c.client.CallUnary(ctx, walletServiceReplaceWalletMetadataSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletServiceClient) MergeWalletMetadata(ctx context.Context, req *v1.MergeWalletMetadataRequest) (*v1.MergeWalletMetadataResponse, error) {
+	var res v1.MergeWalletMetadataResponse
+	if err := c.client.CallUnary(ctx, walletServiceMergeWalletMetadataSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletServiceClient) DeleteWalletMetadata(ctx context.Context, req *v1.DeleteWalletMetadataRequest) (*v1.DeleteWalletMetadataResponse, error) {
+	var res v1.DeleteWalletMetadataResponse
+	if err := c.client.CallUnary(ctx, walletServiceDeleteWalletMetadataSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *walletServiceClient) DeleteWalletMetadataKey(ctx context.Context, req *v1.DeleteWalletMetadataKeyRequest) (*v1.DeleteWalletMetadataKeyResponse, error) {
+	var res v1.DeleteWalletMetadataKeyResponse
+	if err := c.client.CallUnary(ctx, walletServiceDeleteWalletMetadataKeySpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -577,6 +689,54 @@ func (h walletServiceHandler) terminateRecurringTransactionRule(ctx context.Cont
 		return err
 	}
 	res, err := h.svc.TerminateRecurringTransactionRule(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletServiceHandler) replaceWalletMetadata(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ReplaceWalletMetadataRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ReplaceWalletMetadata(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletServiceHandler) mergeWalletMetadata(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MergeWalletMetadataRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MergeWalletMetadata(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletServiceHandler) deleteWalletMetadata(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteWalletMetadataRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteWalletMetadata(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h walletServiceHandler) deleteWalletMetadataKey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteWalletMetadataKeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteWalletMetadataKey(ctx, &req)
 	if err != nil {
 		return err
 	}

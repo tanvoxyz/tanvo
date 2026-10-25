@@ -146,3 +146,46 @@ func TestThrottle(t *testing.T) {
 		t.Errorf("cancelled wait: got = %v, want = context.Canceled", err)
 	}
 }
+
+func TestWindows(t *testing.T) {
+	// Xero's daily quota (lago config/initializers/throttling.rb, the
+	// throttling gem's epoch-aligned windows): a call over the quota is a
+	// request limit until the window ends, per limiter key.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }))
+	defer srv.Close()
+	now := time.Date(2026, 3, 1, 23, 0, 0, 0, time.UTC)
+	c := New(Config{Provider: integration.ProviderXero, Windows: []Window{{Limit: 2, Period: 24 * time.Hour}}, Now: func() time.Time { return now }})
+	a := integration.Connection{ID: core.MustParseID[core.IntegrationID]("0199a000-0000-7000-8000-000000000001")}
+	call := func(key string) error {
+		return c.Run(context.Background(), Call{Conn: a, LimitKey: key}, func(ctx context.Context) error {
+			_, err := c.Do(ctx, Request{URL: srv.URL, Method: http.MethodGet})
+			return err
+		})
+	}
+	tests := []struct {
+		name  string
+		at    time.Time
+		key   string
+		retry time.Duration // 0: allowed
+	}{
+		{name: "first", at: now, key: "t1"},
+		{name: "second", at: now.Add(time.Minute), key: "t1"},
+		{name: "over the quota", at: now.Add(30 * time.Minute), key: "t1", retry: 30 * time.Minute},
+		{name: "another key", at: now.Add(30 * time.Minute), key: "t2"},
+		{name: "next window", at: now.Add(time.Hour), key: "t1"},
+	}
+	for _, tt := range tests {
+		now = tt.at
+		err := call(tt.key)
+		if tt.retry == 0 {
+			if err != nil {
+				t.Errorf("%s: error got = %v, want = nil", tt.name, err)
+			}
+			continue
+		}
+		pe, ok := integration.AsProviderError(err)
+		if !ok || !errors.Is(err, integration.ErrRequestLimit) || pe.Code != CodeThrottled || pe.RetryAfter != tt.retry {
+			t.Errorf("%s: error got = %v, want = request limit retried after %v", tt.name, err, tt.retry)
+		}
+	}
+}

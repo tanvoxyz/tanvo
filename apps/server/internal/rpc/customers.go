@@ -918,8 +918,20 @@ func customerProto(v customers.View) *customerv1.Customer {
 	for _, cn := range v.Connections {
 		b.Connections = append(b.Connections, connectionProto(cn))
 	}
+	for _, e := range v.Errors {
+		b.Errors = append(b.Errors, customerv1.CustomerError_builder{
+			Code:      new(customerErrorCodes.Proto(e.Code)),
+			Message:   new(string(e.Details)),
+			CreatedAt: Timestamp(e.CreatedAt),
+		}.Build())
+	}
 	return b.Build()
 }
+
+// customerErrorCodes maps the customer error codes.
+var customerErrorCodes = NewEnum(map[customer.ErrorCode]customerv1.CustomerErrorCode{
+	customer.ErrorCodeTaxError: customerv1.CustomerErrorCode_CUSTOMER_ERROR_CODE_TAX_ERROR,
+})
 
 func connectionProto(cn customers.Connection) *customerv1.CustomerConnection {
 	b := customerv1.CustomerConnection_builder{

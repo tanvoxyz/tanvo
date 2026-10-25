@@ -2,12 +2,14 @@ package kafka
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"sync"
 
 	"github.com/twmb/franz-go/pkg/kgo"
 
+	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
 	"github.com/tanvoxyz/tanvo/libs/metering"
 )
@@ -147,6 +149,51 @@ func InAdvance(b ingest.InAdvanceBiller) Handler {
 		if err := b.BillInAdvance(ctx, batch); err != nil {
 			for _, i := range billed {
 				results[i].Disposition, results[i].Code, results[i].Err = Retry, ingest.ErrorInAdvance, err
+			}
+		}
+		return results
+	}
+}
+
+// DeadLetterSink stores dead letters for inspection.
+type DeadLetterSink interface {
+	// StoreDeadLetters stores the records.
+	StoreDeadLetters(ctx context.Context, records []ingest.DeadLetterRecord) error
+}
+
+// DeadLetters returns the handler of the dead letter topic that stores
+// each dead letter in sink (lago's events_dead_letter table). A message
+// that is not a dead letter is logged and skipped, since a dead letter of
+// the dead letter topic would come back to it. A failed store retries the
+// batch for as long as it fails: the records report the current time as
+// their ingestion, so they never age into the dead letter topic.
+func DeadLetters(sink DeadLetterSink, clock core.Clock, logger *slog.Logger) Handler {
+	if clock == nil {
+		clock = core.SystemClock{}
+	}
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return func(ctx context.Context, recs []*kgo.Record) []Result {
+		results := make([]Result, len(recs))
+		var records []ingest.DeadLetterRecord
+		var at []int
+		for i, r := range recs {
+			var d ingest.DeadLetter
+			if err := json.Unmarshal(r.Value, &d); err != nil {
+				logger.WarnContext(ctx, "kafka: skip a message that is not a dead letter", "partition", r.Partition, "offset", r.Offset, "error", err)
+				continue
+			}
+			records = append(records, d.Record())
+			at = append(at, i)
+		}
+		if len(records) == 0 {
+			return results
+		}
+		if err := sink.StoreDeadLetters(ctx, records); err != nil {
+			now := clock.Now()
+			for _, i := range at {
+				results[i] = Result{Disposition: Retry, Code: ingest.ErrorWrite, Err: err, IngestedAt: now}
 			}
 		}
 		return results

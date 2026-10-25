@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -49,6 +50,27 @@ type Config struct {
 	Rate float64
 	// Burst is the bucket size; 0 means max(1, Rate).
 	Burst int
+	// Windows are request quotas per limiter key over fixed windows; a
+	// call over one fails with a request limit instead of waiting.
+	Windows []Window
+	// Now is the clock of Windows; nil uses time.Now.
+	Now func() time.Time
+}
+
+// Window is a quota of Limit requests per limiter key in each Period,
+// the periods aligned on the Unix epoch, as lago's throttling gem
+// (throttling 0.4.1 lib/throttling/base.rb:44-77).
+type Window struct {
+	// Limit is the number of requests a window allows.
+	Limit int
+	// Period is the window length, a whole number of seconds.
+	Period time.Duration
+}
+
+// windowCount counts the requests of one key in one window.
+type windowCount struct {
+	start int64
+	n     int
 }
 
 // Client sends the requests of one adapter. It is safe for concurrent use.
@@ -58,9 +80,12 @@ type Client struct {
 	tracer   trace.Tracer
 	rate     rate.Limit
 	burst    int
+	windows  []Window
+	now      func() time.Time
 
 	mu     sync.Mutex
 	limits map[string]*rate.Limiter
+	counts map[string][]windowCount
 }
 
 // New returns a client.
@@ -81,6 +106,9 @@ func New(c Config) *Client {
 			timeout = c.HTTPClient.Timeout
 		}
 	}
+	if c.Now == nil {
+		c.Now = time.Now
+	}
 	burst := c.Burst
 	if burst <= 0 {
 		burst = max(int(c.Rate), 1)
@@ -94,10 +122,13 @@ func New(c Config) *Client {
 				otelhttp.WithMeterProvider(c.MeterProvider),
 			),
 		},
-		tracer: c.TracerProvider.Tracer(c.InstrumentationName),
-		rate:   rate.Limit(c.Rate),
-		burst:  burst,
-		limits: map[string]*rate.Limiter{},
+		tracer:  c.TracerProvider.Tracer(c.InstrumentationName),
+		rate:    rate.Limit(c.Rate),
+		burst:   burst,
+		windows: slices.DeleteFunc(slices.Clone(c.Windows), func(w Window) bool { return w.Limit <= 0 || w.Period < time.Second }),
+		now:     c.Now,
+		limits:  map[string]*rate.Limiter{},
+		counts:  map[string][]windowCount{},
 	}
 }
 
@@ -161,6 +192,9 @@ type Call struct {
 	// LimitKey overrides the limiter key: lago throttles NetSuite by
 	// client ID and Anrok by API key, across connections sharing them.
 	LimitKey string
+	// Unmetered leaves the call out of the [Window] quotas (an OAuth
+	// exchange, outside the vendor's API quota).
+	Unmetered bool
 }
 
 // Run executes f inside the operation's client span. An error is
@@ -254,12 +288,17 @@ func (c *Client) Do(ctx context.Context, req Request) (*Response, error) {
 }
 
 func (c *Client) wait(ctx context.Context, call Call) error {
-	if c.rate <= 0 {
-		return nil
-	}
 	key := call.LimitKey
 	if key == "" {
 		key = call.Conn.ID.String()
+	}
+	if !call.Unmetered {
+		if err := c.count(key); err != nil {
+			return err
+		}
+	}
+	if c.rate <= 0 {
+		return nil
 	}
 	c.mu.Lock()
 	lim, ok := c.limits[key]
@@ -276,6 +315,43 @@ func (c *Client) wait(ctx context.Context, call Call) error {
 	}
 	return nil
 }
+
+// count records a request of key in each window, unless one is used up:
+// that is a request limit retried when the window ends (lago
+// BaseService::ThrottlingError, aggregator/base_service.rb:69-76).
+func (c *Client) count(key string) error {
+	if len(c.windows) == 0 {
+		return nil
+	}
+	now := c.now().Unix()
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	counts := c.counts[key]
+	if counts == nil {
+		counts = make([]windowCount, len(c.windows))
+		c.counts[key] = counts
+	}
+	for i, w := range c.windows {
+		p := int64(w.Period / time.Second)
+		if start := now - now%p; counts[i].start != start {
+			counts[i] = windowCount{start: start}
+		}
+		if counts[i].n >= w.Limit {
+			return &integration.ProviderError{
+				Provider: c.provider, Kind: integration.KindRequestLimit, Code: CodeThrottled,
+				Message:    fmt.Sprintf("over %d requests per %s", w.Limit, w.Period),
+				RetryAfter: time.Duration(counts[i].start+p-now) * time.Second,
+			}
+		}
+	}
+	for i := range counts {
+		counts[i].n++
+	}
+	return nil
+}
+
+// CodeThrottled is the code of a request refused by a [Window].
+const CodeThrottled = "throttled"
 
 // Kind is the default classification of an HTTP status: 429 is a
 // request limit; 401 and 403 an authentication failure; 404 not found;

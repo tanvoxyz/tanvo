@@ -123,7 +123,11 @@ func (s *Service) prepareRequestCharge(ctx context.Context, r port.Repos, org co
 		return nil, err
 	}
 	if integ == nil {
-		return nil, notFound("payment_provider")
+		// The connection was removed after the job was enqueued: nothing
+		// to collect (create_service.rb:124, should_process_payment?). The
+		// customer without one at creation is emailed instead
+		// (enqueueRequestCollection, create_service.rb:104).
+		return nil, nil
 	}
 	if err := lockInvoices(ctx, r, org, q.InvoiceIDs); err != nil {
 		return nil, err

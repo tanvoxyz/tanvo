@@ -68,7 +68,7 @@ var ErrRefundRejected = errors.New("creditnotes: refund rejected")
 var ErrRefundSkipped = errors.New("creditnotes: refund skipped")
 
 func notFound(resource string, id fmt.Stringer) error {
-	return fmt.Errorf("%s %s: %w", resource, id, core.ErrNotFound)
+	return fmt.Errorf("%s %s: %w", resource, id, core.NotFound(resource))
 }
 
 func rule(code, message string) error { return core.NewRuleError(code, message) }

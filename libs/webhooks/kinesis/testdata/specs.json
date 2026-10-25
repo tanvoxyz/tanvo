@@ -1,0 +1,6 @@
+{
+  "title": "the Kinesis producer of the streaming destinations",
+  "files": ["lib/lago/kinesis/producer_spec.rb"],
+  "reasons": {},
+  "skipped": {}
+}

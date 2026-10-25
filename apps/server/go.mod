@@ -23,6 +23,7 @@ require (
 	github.com/tanvoxyz/tanvo/libs/auth v0.0.0
 	github.com/tanvoxyz/tanvo/libs/billing v0.0.0
 	github.com/tanvoxyz/tanvo/libs/core v0.0.0
+	github.com/tanvoxyz/tanvo/libs/documents v0.0.0
 	github.com/tanvoxyz/tanvo/libs/eventstore v0.0.0
 	github.com/tanvoxyz/tanvo/libs/ingest v0.0.0
 	github.com/tanvoxyz/tanvo/libs/jobs v0.0.0
@@ -207,3 +208,5 @@ replace github.com/tanvoxyz/tanvo/providers/hubspot => ../../providers/hubspot
 replace github.com/tanvoxyz/tanvo/providers/salesforce => ../../providers/salesforce
 
 replace github.com/tanvoxyz/tanvo/providers/apiclient => ../../providers/apiclient
+
+replace github.com/tanvoxyz/tanvo/libs/documents => ../../libs/documents

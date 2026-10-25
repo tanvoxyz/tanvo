@@ -142,6 +142,7 @@ Markers used throughout:
 * **Periods** are half-open `[from, to)`. **[Change]** Lago stores inclusive ends at 23:59:59.999999; Tanvo stores the next local midnight.
 * **Deletion**: resources with a lifecycle carry a status (`terminated`, `archived`, `voided`, `deleted`); unreferenced rows are hard-deleted. Plans are never removed: a deleted plan is kept with the `deleted` status (§7.2), hidden from lookups by code and from lists, and its code is free again. Charges, charge filters, fixed charges, add-ons, taxes, usage thresholds, coupons, features, privileges, entitlements and the product catalog (categories, products, product filters and their values, rate cards, rates, plan rate cards and rate phases, §21.4) are soft-deleted (`deleted_at`): a discarded row is no longer found by code or listed and its code is free again, while documents that reference it still read it by ID. The store refuses (`conflict`) to hard-delete a row still referenced. **[Change]** There is no blanket `deleted_at` soft delete.
 * **Metadata** is replaced as a whole on update (the list sent replaces the stored list).
+* **Item metadata** (plans, credit notes, wallets) has at most 50 items, keys of at most 100 characters and values of at most 255. Besides the resource's own update, each of these resources has metadata endpoints: replace, merge (values of existing keys replaced, new keys appended), delete all and delete one key. Deleting a key changes only the metadata (no `*.updated` event); deleting a key of a resource without metadata is `not_found` (`metadata`).
 * **Audit**: every state change named in this document emits a domain event in the same transaction; webhooks (§18) and activity logs are derived from them.
 * **Locks**: operations that read and write a customer's balances (coupons, credit notes, prepaid credits, wallets) take the customer's advisory lock named in each section; billing runs lock the subscription.
 
@@ -480,7 +481,7 @@ A priced offer.
 | `bill_fixed_charges_monthly` | `bool?` | only for `yearly` and `semiannual` plans |
 | `parent_id` | `ID?` | set for an override plan (§7.2.1) |
 | `taxes` | `[]Tax` | |
-| `metadata` | Metadata | |
+| `metadata` | Metadata | item metadata (§2.3) |
 | `status` | Enum{`active`, `pending_deletion`, `deleted`} | |
 
 Rules:
@@ -982,7 +983,7 @@ A draft invoice can be deleted unless it has been synced to an external system (
 Finalized invoices, credit notes, payment receipts and payment requests are rendered as PDF/A-3b; when the billing entity has `einvoicing`, the e-invoice XML (Factur-X / ZUGFeRD CII for FR and DE) is embedded and also stored separately ([architecture §10](architecture.md#10-documents-libsdocuments)). Documents are rendered in `document_locale` (customer → billing entity).
 
 ### 11.9 Invoice Custom Sections
-A custom section is a block of text printed on invoices: `code`, `name`, `display_name?`, `details?`, `section_type ∈ {manual, system_generated}`. Selection order for an invoice: subscription selection → customer selection → billing entity defaults; `skip_invoice_custom_sections = true` on the subscription or customer disables them. System-generated sections are attached by features (for example, a self-billing mention).
+A custom section is a block of text printed on invoices: `code`, `name`, `display_name?`, `details?`, `section_type ∈ {manual, system_generated}`. Selection order for an invoice: subscription selection → customer selection → billing entity defaults; `skip_invoice_custom_sections = true` on the subscription or customer disables them. System-generated sections are attached by features (for example, a self-billing mention, or the bank details of a customer paying Stripe by bank transfer, coded `funding_instructions_<customer id>`, whose assignment clears the customer's skip flag).
 
 ### 11.10 Metadata
 Invoice metadata is added after finalization only; at most 5 items, key ≤ 20, value ≤ 140 characters.
@@ -1062,6 +1063,7 @@ On a draft invoice, a fee can be adjusted: display name only, units only (the pr
 | `applied_taxes` | `[]` | grouped by invoice applied tax |
 | `issuing_date` | `Date` | |
 | `refunded_at`, `voided_at` | `Time?` | |
+| `metadata` | Metadata | item metadata (§2.3); finalized credit notes only |
 | `purchase_order_number` | derived | the invoice's; credit note lists filter on it |
 
 ### 13.2 Rules
@@ -1112,7 +1114,9 @@ On a draft invoice, a fee can be adjusted: display name only, units only (the pr
 | `x402_enabled` | `bool` | default false; the wallet can be topped up by an x402 agent |
 | `billing_entity_id` | `ID?` | |
 | `payment_method_type`, `payment_method_id` | | |
+| `skip_invoice_custom_sections`, `invoice_custom_section_ids` | `bool`, `[]ID` | the custom sections (§11.9) of its `credit` invoices, used when a transaction neither skips nor selects any |
 | `last_balance_sync_at`, `last_consumed_credit_at`, `depleted_ongoing_balance` | | |
+| `metadata` | Metadata | item metadata (§2.3) |
 | `terminated_at` | `Time?` | |
 
 Rules:
@@ -1133,7 +1137,7 @@ Rules:
 | `source` | `WalletTransactionSource` | |
 | `amount`, `credit_amount` | `Money`, `Decimal` | `amount = round(credit_amount × rate_amount)` |
 | `remaining_amount` | `Decimal?` | traceable wallets: credits left in this inbound transaction |
-| `priority` | `int?` | inherits the wallet's |
+| `priority` | `int` | 1–50; default 50, whatever the wallet's (lower is consumed first) |
 | `name` | `string(255)?` | |
 | `invoice_id` | `ID?` | credit invoice (purchased) or consuming invoice (invoiced) |
 | `credit_note_id` | `ID?` | voided credits refunded |
@@ -1141,8 +1145,13 @@ Rules:
 | `settled_at`, `failed_at` | `Time?` | |
 | `invoice_requires_successful_payment` | `bool` | |
 | `purchase_order_number` | `string(255)?` | the request's (manual), the rule's else the wallet's (rule runs and the initial top-up), the original's (recredit); its `credit` invoice takes it, else the wallet's |
+| `voided_invoice_id` | `ID?` | recredit: the voided invoice whose consumed credits it gives back |
+| `billing_entity_id` | `ID` | snapshot at creation: the wallet's billing entity, else the customer's; a targeted void takes its inbound transaction's. Its `credit` invoice is issued by it |
+| `skip_invoice_custom_sections`, `invoice_custom_section_ids` | `bool`, `[]ID` | the request's (manual) or the rule's (rule runs); the initial top-up has none |
+| `payment_method_type`, `payment_method_id` | | the request's, else the wallet's |
 
 Rules:
+* **Custom sections of a `credit` invoice**: the transaction's selection when it skips or selects a live section, else the wallet's when it does, else the customer and billing entity defaults (§11.9). Selecting sections follows one rule on wallets, rules and transactions: an explicit skip turns them off and clears them; while skipping, a selection without `skip = false` is ignored; otherwise the selection replaces the current one (an empty list clears it, unknown codes are ignored). Deleted sections stay selected and are ignored, and a rule passes only its live sections to its runs.
 * Paid credits (`purchased`) create a `credit` invoice; they are `pending` until its payment succeeds and then `settled`, whether or not the invoice waited `open` for the payment. An invoice settled by an offset credit note is not paid and settles nothing. A payment that fails marks the purchase `failed`, and a later successful payment still settles it; voiding the credit invoice also marks it `failed`, and no later payment settles it (lago leaves the purchase `pending` on void and grants the credits if the voided invoice is paid later, `app/services/invoices/void_service.rb:30-48`, `app/jobs/invoices/prepaid_credit_job.rb:20-25`; Tanvo treats a payment against a voided invoice as a refund matter).
 * Granted credits settle immediately.
 * Voided credits are an outbound transaction that removes credits. Without a target, the amount is taken from the pool in consumption order. With `voided_transaction_id`, one settled inbound transaction of a traceable wallet is voided: its whole remaining amount, or the given amount capped at that remainder. Errors: `wallet_not_traceable`, `wallet_transaction_not_found`, `no_remaining_amount`.
@@ -1173,6 +1182,7 @@ stateDiagram-v2
 | `expiration_at` | `Time?` | |
 | `status` | `RuleStatus` | |
 | `invoice_requires_successful_payment`, `transaction_metadata`, `transaction_name`, `ignore_paid_top_up_limits`, `purchase_order_number` | | copied to the transactions (`purchase_order_number` falls back to the wallet's; set on creation and update, blank is none) |
+| `skip_invoice_custom_sections`, `invoice_custom_section_ids` | `bool`, `[]ID` | copied to the transactions of its runs |
 
 Rules:
 * Interval rules run at each interval boundary from `started_at` (or the wallet creation), like an anniversary schedule in the customer's time zone.

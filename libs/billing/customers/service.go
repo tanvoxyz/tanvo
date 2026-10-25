@@ -472,6 +472,15 @@ func (s *Service) write(ctx context.Context, r port.Repos, org core.Organization
 		if err := r.Customers.Update(ctx, c); err != nil {
 			return nil, externalIDConflict(err)
 		}
+		// A changed address may resolve the tax provider's failure that
+		// stopped the wallet refresh (update_service.rb:154,
+		// upsert_from_api_service.rb:100); the portal keeps it
+		// (customer_portal/customer_update_service.rb).
+		if !in.quiet && (c.BillingAddress != prev.BillingAddress || c.ShippingAddress != prev.ShippingAddress) {
+			if err := r.CustomerErrorDetails.DeleteByCustomer(ctx, org, c.ID, customer.ErrorCodeTaxError); err != nil {
+				return nil, fmt.Errorf("delete tax errors of customer %s: %w", c.ID, err)
+			}
+		}
 	}
 	if err := s.applyVIES(ctx, r, c, vies); err != nil {
 		return nil, err

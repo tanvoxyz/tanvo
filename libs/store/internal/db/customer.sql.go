@@ -189,6 +189,52 @@ func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) 
 	return result.RowsAffected(), nil
 }
 
+const createCustomerErrorDetail = `-- name: CreateCustomerErrorDetail :execrows
+INSERT INTO customer_error_details (organization_id, id, customer_id, error_code, details, created_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT DO NOTHING
+`
+
+type CreateCustomerErrorDetailParams struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+	CustomerID     uuid.UUID
+	ErrorCode      string
+	Details        json.RawMessage
+	CreatedAt      time.Time
+}
+
+func (q *Queries) CreateCustomerErrorDetail(ctx context.Context, arg CreateCustomerErrorDetailParams) (int64, error) {
+	result, err := q.db.Exec(ctx, createCustomerErrorDetail,
+		arg.OrganizationID,
+		arg.ID,
+		arg.CustomerID,
+		arg.ErrorCode,
+		arg.Details,
+		arg.CreatedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const deleteCustomerErrorDetails = `-- name: DeleteCustomerErrorDetails :exec
+DELETE FROM customer_error_details
+WHERE organization_id = $1 AND customer_id = $2 AND error_code = $3
+`
+
+type DeleteCustomerErrorDetailsParams struct {
+	OrganizationID uuid.UUID
+	CustomerID     uuid.UUID
+	ErrorCode      string
+}
+
+func (q *Queries) DeleteCustomerErrorDetails(ctx context.Context, arg DeleteCustomerErrorDetailsParams) error {
+	_, err := q.db.Exec(ctx, deleteCustomerErrorDetails, arg.OrganizationID, arg.CustomerID, arg.ErrorCode)
+	return err
+}
+
 const deleteCustomerSections = `-- name: DeleteCustomerSections :exec
 DELETE FROM customer_invoice_custom_sections WHERE organization_id = $1 AND customer_id = $2
 `
@@ -535,6 +581,44 @@ func (q *Queries) InsertCustomerTaxes(ctx context.Context, arg InsertCustomerTax
 	return err
 }
 
+const listCustomerErrorDetails = `-- name: ListCustomerErrorDetails :many
+SELECT organization_id, id, customer_id, error_code, details, created_at FROM customer_error_details
+WHERE organization_id = $1 AND customer_id = ANY($2::uuid[])
+ORDER BY id
+`
+
+type ListCustomerErrorDetailsParams struct {
+	OrganizationID uuid.UUID
+	CustomerIds    []uuid.UUID
+}
+
+func (q *Queries) ListCustomerErrorDetails(ctx context.Context, arg ListCustomerErrorDetailsParams) ([]CustomerErrorDetail, error) {
+	rows, err := q.db.Query(ctx, listCustomerErrorDetails, arg.OrganizationID, arg.CustomerIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []CustomerErrorDetail{}
+	for rows.Next() {
+		var i CustomerErrorDetail
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.CustomerID,
+			&i.ErrorCode,
+			&i.Details,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listCustomers = `-- name: ListCustomers :many
 SELECT c.organization_id, c.id, c.external_id, c.billing_entity_id, c.customer_type, c.account_type, c.name, c.firstname, c.lastname, c.legal_name, c.legal_number, c.tax_identification_number, c.email, c.phone, c.url, c.logo_url, c.billing_address_line1, c.billing_address_line2, c.billing_address_city, c.billing_address_state, c.billing_address_zipcode, c.billing_address_country, c.shipping_address_line1, c.shipping_address_line2, c.shipping_address_city, c.shipping_address_state, c.shipping_address_zipcode, c.shipping_address_country, c.currency, c.timezone, c.document_locale, c.invoice_grace_period_days, c.net_payment_term_days, c.finalize_zero_amount_invoice, c.issuing_date_anchor, c.issuing_date_adjustment, c.skip_invoice_custom_sections, c.applied_dunning_campaign_id, c.exclude_from_dunning_campaign, c.dunning_campaign_attempts, c.last_dunning_campaign_attempt_at, c.sequential_id, c.slug, c.payment_receipt_counter, c.metadata, c.x402_agent_address, c.awaiting_wallet_refresh, c.wallet_refresh_generation, c.wallet_refresh_claimed, c.deleted_at, c.created_at, c.updated_at,
   ARRAY(SELECT t.tax_id FROM customer_taxes t
@@ -712,6 +796,8 @@ SELECT c.id FROM customers c
 WHERE c.organization_id = $1 AND c.awaiting_wallet_refresh AND c.deleted_at IS NULL
   AND EXISTS (SELECT 1 FROM wallets w
               WHERE w.organization_id = c.organization_id AND w.customer_id = c.id AND w.status = 'active')
+  AND NOT EXISTS (SELECT 1 FROM customer_error_details e
+                  WHERE e.organization_id = c.organization_id AND e.customer_id = c.id AND e.error_code = 'tax_error')
   AND ($2::uuid IS NULL OR c.id > $2)
 ORDER BY c.id
 LIMIT $3

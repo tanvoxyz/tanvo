@@ -185,6 +185,22 @@ SELECT c.id FROM customers c
 WHERE c.organization_id = @organization_id AND c.awaiting_wallet_refresh AND c.deleted_at IS NULL
   AND EXISTS (SELECT 1 FROM wallets w
               WHERE w.organization_id = c.organization_id AND w.customer_id = c.id AND w.status = 'active')
+  AND NOT EXISTS (SELECT 1 FROM customer_error_details e
+                  WHERE e.organization_id = c.organization_id AND e.customer_id = c.id AND e.error_code = 'tax_error')
   AND (sqlc.narg(after)::uuid IS NULL OR c.id > sqlc.narg(after))
 ORDER BY c.id
 LIMIT @lim;
+
+-- name: CreateCustomerErrorDetail :execrows
+INSERT INTO customer_error_details (organization_id, id, customer_id, error_code, details, created_at)
+VALUES (@organization_id, @id, @customer_id, @error_code, @details, @created_at)
+ON CONFLICT DO NOTHING;
+
+-- name: ListCustomerErrorDetails :many
+SELECT * FROM customer_error_details
+WHERE organization_id = @organization_id AND customer_id = ANY(@customer_ids::uuid[])
+ORDER BY id;
+
+-- name: DeleteCustomerErrorDetails :exec
+DELETE FROM customer_error_details
+WHERE organization_id = @organization_id AND customer_id = @customer_id AND error_code = @error_code;

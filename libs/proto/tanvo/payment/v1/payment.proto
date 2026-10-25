@@ -713,6 +713,20 @@ message ResendPaymentReceiptRequest {
       string: {email: true}
     }
   }];
+  // Carbon copies.
+  repeated string cc = 3 [(buf.validate.field).repeated = {
+    max_items: 20
+    items: {
+      string: {email: true}
+    }
+  }];
+  // Blind carbon copies.
+  repeated string bcc = 4 [(buf.validate.field).repeated = {
+    max_items: 20
+    items: {
+      string: {email: true}
+    }
+  }];
 }
 
 // ResendPaymentReceiptResponse is the response of PaymentReceiptService.ResendPaymentReceipt.

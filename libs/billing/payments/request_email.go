@@ -43,6 +43,8 @@ type RequestEmail struct {
 
 // RequestEmailInvoice is an invoice of a [RequestEmail].
 type RequestEmailInvoice struct {
+	// ID is the invoice.
+	ID core.InvoiceID
 	// Number is the invoice number.
 	Number string
 	// TotalDueAmount is what is left to pay, in currency units.
@@ -105,7 +107,7 @@ func (s *Service) RequestEmailData(ctx context.Context, org core.OrganizationID,
 		}
 		for _, inv := range invs {
 			e.Invoices = append(e.Invoices, RequestEmailInvoice{
-				Number: inv.Number, TotalDueAmount: inv.Currency.FromMinor(inv.TotalDueAmount()), File: inv.File,
+				ID: inv.ID, Number: inv.Number, TotalDueAmount: inv.Currency.FromMinor(inv.TotalDueAmount()), File: inv.File,
 			})
 		}
 		return e, nil

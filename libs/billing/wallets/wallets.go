@@ -73,6 +73,11 @@ type CreateInput struct {
 	// PurchaseOrderNumber is the wallet's default purchase order number
 	// (blank is none).
 	PurchaseOrderNumber *string
+	// InvoiceCustomSections, when not nil, selects the custom sections of
+	// the credit invoices (create_service.rb:88-90).
+	InvoiceCustomSections *CustomSections
+	// Metadata is the wallet's metadata (create_service.rb:100).
+	Metadata core.Metadata
 	// Connections, keyed by category, choose the wallet's connections
 	// (domain §15.5); categories left out inherit.
 	Connections map[string]kernel.ConnectionChoice
@@ -166,6 +171,10 @@ func (s *Service) create(ctx context.Context, r port.Repos, org core.Organizatio
 	w.Traceable = !slices.ContainsFunc(actives, func(x *wallet.Wallet) bool { return !x.Traceable })
 	w.BillingEntityID = in.BillingEntityID
 	w.PurchaseOrderNumber = core.NormalizePurchaseOrderNumber(in.PurchaseOrderNumber)
+	w.Metadata = in.Metadata.Clone()
+	if w.InvoiceCustomSections, err = attachSections(ctx, r, org, w.InvoiceCustomSections, in.InvoiceCustomSections); err != nil {
+		return nil, err
+	}
 	if in.PaymentMethod != nil {
 		if in.PaymentMethod.Type != "" {
 			w.PaymentMethodType = in.PaymentMethod.Type
@@ -196,6 +205,9 @@ func (s *Service) create(ctx context.Context, r port.Repos, org core.Organizatio
 	if len(in.RecurringTransactionRules) == 1 {
 		rule, err = s.newRule(w, &in.RecurringTransactionRules[0], in.PaidCredits, in.GrantedCredits)
 		if err != nil {
+			return nil, err
+		}
+		if err := attachRuleSections(ctx, r, rule, &in.RecurringTransactionRules[0]); err != nil {
 			return nil, err
 		}
 		if err := r.RecurringTransactionRules.Create(ctx, rule); err != nil {
@@ -329,6 +341,15 @@ type UpdateInput struct {
 	// PurchaseOrderNumber changes or clears (nil or blank) the purchase
 	// order number.
 	PurchaseOrderNumber Change[*string]
+	// Metadata replaces the metadata (an empty list removes it), or with
+	// MergeMetadata is merged into it key by key (update_service.rb:222-226).
+	Metadata Change[core.Metadata]
+	// MergeMetadata merges Metadata instead of replacing it (lago
+	// partial_metadata).
+	MergeMetadata bool
+	// InvoiceCustomSections, when not nil, changes the custom sections of
+	// the credit invoices (update_service.rb:82).
+	InvoiceCustomSections *CustomSections
 	// Connections, keyed by category, change the wallet's connection
 	// choices (domain §15.5); categories left out keep theirs.
 	Connections map[string]kernel.ConnectionChoice
@@ -425,10 +446,20 @@ func (s *Service) update(ctx context.Context, r port.Repos, org core.Organizatio
 	if in.PurchaseOrderNumber.Set {
 		w.PurchaseOrderNumber = core.NormalizePurchaseOrderNumber(in.PurchaseOrderNumber.Value)
 	}
+	if in.Metadata.Set {
+		if in.MergeMetadata {
+			w.Metadata = w.Metadata.Merge(in.Metadata.Value)
+		} else {
+			w.Metadata = in.Metadata.Value.Clone()
+		}
+	}
 	if in.RecurringTransactionRules.Set {
 		if err := s.updateRules(ctx, r, w, in.RecurringTransactionRules.Value); err != nil {
 			return nil, err
 		}
+	}
+	if w.InvoiceCustomSections, err = attachSections(ctx, r, org, w.InvoiceCustomSections, in.InvoiceCustomSections); err != nil {
+		return nil, err
 	}
 	// update_service.rb:84.
 	if err := kernel.AttachConnections(ctx, s.d, r, org, w.CustomerID, integration.ObjectOwner{WalletID: w.ID}, in.Connections); err != nil {

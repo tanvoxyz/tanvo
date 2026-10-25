@@ -70,6 +70,7 @@ func DefaultQueues() map[port.Queue]QueueConfig {
 		port.QueueAlerts:             {Concurrency: 10, Shards: 2, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
 		port.QueueAlertsHighPriority: {Concurrency: 10, Shards: 2, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
 		port.QueueWallets:            {Concurrency: 10, Shards: 2, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
+		port.QueueStreaming:          {Concurrency: 10, Shards: 2, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
 		port.QueueDefault:            {Concurrency: 10, Shards: 1, Rate: 50, Burst: 1000, MaxAttempts: DefaultMaxAttempts},
 	}
 }

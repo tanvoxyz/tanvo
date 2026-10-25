@@ -32,5 +32,6 @@ func (t *txState) bind() port.Repos {
 	t.bindAttribution(&r)
 	t.bindProductCatalog(&r)
 	t.bindX402(&r)
+	t.bindStreaming(&r)
 	return r
 }

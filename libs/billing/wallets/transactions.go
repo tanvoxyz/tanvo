@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -33,7 +34,7 @@ type TransactionInput struct {
 	VoidedTransactionID core.WalletTransactionID
 	// Source defaults to manual.
 	Source wallet.TransactionSource
-	// Priority defaults to the wallet's.
+	// Priority defaults to wallet.MaxPriority (create_from_params_service.rb:28).
 	Priority *int
 	// Name names the transactions; blank is no name.
 	Name *string
@@ -54,6 +55,17 @@ type TransactionInput struct {
 	// PurchaseOrderNumber is stored on the transactions (blank is none);
 	// their credit invoice falls back to the wallet's.
 	PurchaseOrderNumber *string
+	// InvoiceCustomSections, when not nil, selects the custom sections of
+	// the transactions (create_from_params_service.rb:59-63).
+	InvoiceCustomSections *CustomSections
+	// VoidedInvoiceID is the voided invoice a recredit's granted
+	// transaction gives credits back for (recredit_service.rb:31).
+	VoidedInvoiceID core.InvoiceID
+
+	// rule is the rule a top-up runs for, whose custom sections the
+	// transactions take (create_interval_wallet_transactions_service.rb:27,
+	// threshold_top_up_service.rb:46).
+	rule *wallet.RecurringTransactionRule
 }
 
 // CreateTransactions validates in and records its transactions under the
@@ -88,6 +100,13 @@ func (s *Service) createTransactions(ctx context.Context, r port.Repos, org core
 		return nil, err
 	}
 	p := s.transactionParams(w, in)
+	if p.InvoiceCustomSections, err = s.transactionSections(ctx, r, org, in); err != nil {
+		return nil, err
+	}
+	// The billing entity snapshot (create_service.rb:64-66).
+	if p.BillingEntityID, err = kernel.WalletBillingEntity(ctx, r, w); err != nil {
+		return nil, err
+	}
 	var out []*wallet.Transaction
 	if in.PaidCredits != nil {
 		t, err := s.purchase(ctx, r, w, wallet.NormalizeCredits(*in.PaidCredits), in, p)
@@ -97,7 +116,9 @@ func (s *Service) createTransactions(ctx context.Context, r port.Repos, org core
 		out = appendNonNil(out, t)
 	}
 	if in.GrantedCredits != nil {
-		t, err := s.grant(ctx, r, w, wallet.NormalizeCredits(*in.GrantedCredits), in.ResetConsumedCredits, p)
+		g := *p
+		g.VoidedInvoiceID = in.VoidedInvoiceID
+		t, err := s.grant(ctx, r, w, wallet.NormalizeCredits(*in.GrantedCredits), in.ResetConsumedCredits, &g)
 		if err != nil {
 			return nil, err
 		}
@@ -137,6 +158,20 @@ func (s *Service) createTransactions(ctx context.Context, r port.Repos, org core
 		}
 	}
 	return out, nil
+}
+
+// transactionSections returns the custom section selection of the
+// transactions of in: the rule's for a rule top-up, then the request's
+// applied to it.
+func (s *Service) transactionSections(ctx context.Context, r port.Repos, org core.OrganizationID, in *TransactionInput) (wallet.CustomSections, error) {
+	var cs wallet.CustomSections
+	if in.rule != nil {
+		var err error
+		if cs, err = ruleSections(ctx, r, in.rule); err != nil {
+			return wallet.CustomSections{}, err
+		}
+	}
+	return attachSections(ctx, r, org, cs, in.InvoiceCustomSections)
 }
 
 func appendNonNil(ts []*wallet.Transaction, t *wallet.Transaction) []*wallet.Transaction {
@@ -230,7 +265,7 @@ func (s *Service) transactionParams(w *wallet.Wallet, in *TransactionInput) *wal
 		WalletID:                         w.ID,
 		Source:                           in.Source,
 		Currency:                         w.Currency,
-		Priority:                         w.Priority,
+		Priority:                         wallet.MaxPriority,
 		Name:                             blankToNil(in.Name),
 		Metadata:                         in.Metadata,
 		RecurringTransactionRuleID:       in.RecurringTransactionRuleID,
@@ -264,6 +299,7 @@ func (s *Service) transactionParams(w *wallet.Wallet, in *TransactionInput) *wal
 // movement.
 func (s *Service) newTransaction(p *wallet.Transaction, typ wallet.TransactionType, status wallet.TransactionStatus, c wallet.Credit) *wallet.Transaction {
 	t := *p
+	t.InvoiceCustomSections.IDs = slices.Clone(p.InvoiceCustomSections.IDs)
 	t.ID = core.NewID[core.WalletTransactionID](s.d.IDs)
 	t.TransactionType = typ
 	t.TransactionStatus = status
@@ -357,6 +393,11 @@ func (s *Service) void(ctx context.Context, r port.Repos, w *wallet.Wallet, cred
 	}
 	t := s.newTransaction(p, wallet.TransactionTypeOutbound, wallet.TransactionStatusVoided, *credit)
 	t.RecurringTransactionRuleID = core.RecurringTransactionRuleID{}
+	// A void takes the entity of the inbound transaction it targets
+	// (void_service.rb:41).
+	if inbound != nil && !inbound.BillingEntityID.IsZero() {
+		t.BillingEntityID = inbound.BillingEntityID
+	}
 	if err := s.createTransaction(ctx, r, t); err != nil {
 		return nil, err
 	}
@@ -541,7 +582,7 @@ func (s *Service) Recredit(ctx context.Context, org core.OrganizationID, id core
 		credits := t.CreditAmount
 		ts, err := s.createTransactions(ctx, r, org, &TransactionInput{
 			WalletID: w.ID, GrantedCredits: &credits, ResetConsumedCredits: true,
-			PurchaseOrderNumber: t.PurchaseOrderNumber,
+			PurchaseOrderNumber: t.PurchaseOrderNumber, VoidedInvoiceID: t.InvoiceID,
 		})
 		if err != nil {
 			return err

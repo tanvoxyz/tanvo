@@ -1,0 +1,65 @@
+# Redpanda Connect: consumes a Kinesis stream and produces its events to
+# the raw events topic of Tanvo's Kafka ingestion. See README.md.
+input:
+  aws_kinesis:
+    streams: ["${KINESIS_STREAM}"]
+    region: "${AWS_REGION}"
+    dynamodb:
+      table: "${DYNAMODB_TABLE}"
+      create: true
+      billing_mode: PAY_PER_REQUEST
+      region: "${AWS_REGION}"
+    checkpoint_limit: 1024
+    auto_replay_nacks: true
+    commit_period: 1s
+    steal_grace_period: 1s
+    start_from_oldest: true
+    credentials:
+      role: "${AWS_ROLE}"
+      role_external_id: "${AWS_ROLE_EXTERNAL_ID}"
+
+pipeline:
+  processors:
+    - resource: tanvo_event_mapping
+
+output:
+  broker:
+    outputs:
+      - resource: tanvo_kafka_events_raw
+
+processor_resources:
+  - label: tanvo_event_mapping
+    mapping: |
+      root.organization_id = "${ORGANIZATION_ID}"
+      root.external_subscription_id = this.external_subscription_id
+      root.transaction_id = this.transaction_id
+      root.code = this.code
+      root.timestamp = this.timestamp
+      root.properties = this.properties
+      root.ingested_at = timestamp_unix()
+      root.source = "kinesis_connector"
+      root.precise_total_amount_cents = if this.precise_total_amount_cents.type() == "number" {
+        this.precise_total_amount_cents
+      } else {
+        "0"
+      }
+
+output_resources:
+  - label: tanvo_kafka_events_raw
+    kafka_franz:
+      seed_brokers: ["${KAFKA_BROKERS}"]
+      topic: "${KAFKA_TOPIC:events.raw}"
+      key: '${! json("organization_id") }/${! json("external_subscription_id") }/${! json("transaction_id") }'
+      tls:
+        enabled: ${KAFKA_TLS:false}
+      sasl:
+        - mechanism: SCRAM-SHA-512
+          username: "${KAFKA_USER}"
+          password: "${KAFKA_PASSWORD}"
+      batching:
+        count: ${KAFKA_BATCH_COUNT:100}
+        byte_size: ${KAFKA_BATCH_BYTE_SIZE:1000000}
+        period: ${KAFKA_BATCH_PERIOD:1s}
+
+metrics:
+  prometheus: {}

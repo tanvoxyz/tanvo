@@ -9,6 +9,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -76,8 +78,8 @@ func (s *Service) Get(ctx context.Context, org core.OrganizationID, id core.Wall
 	})
 }
 
-// List returns a page of the organization's wallets matching f, oldest
-// first. A customer that does not exist is core.NotFound("customer").
+// List returns a page of the organization's wallets matching f, newest
+// first, then by ID (lago apply_consistent_ordering). A customer that does not exist is core.NotFound("customer").
 //
 // source: app/queries/wallets_query.rb:7-53
 func (s *Service) List(ctx context.Context, org core.OrganizationID, f ListFilter, page core.PageRequest) (core.Page[*wallet.Wallet], error) {
@@ -109,8 +111,8 @@ func (s *Service) List(ctx context.Context, org core.OrganizationID, f ListFilte
 			return slices.Contains(f.BillingEntityIDs, be), nil
 		}
 		return filterPage(page, func(p core.PageRequest) (core.Page[*wallet.Wallet], error) {
-			return r.Wallets.List(ctx, org, wallet.Filter{CustomerID: f.CustomerID}, p)
-		}, keep, func(w *wallet.Wallet) string { return w.ID.String() })
+			return r.Wallets.List(ctx, org, wallet.Filter{CustomerID: f.CustomerID, Recent: true}, p)
+		}, keep, func(w *wallet.Wallet) string { return recentToken(w.CreatedAt, w.ID.UUID()) })
 	})
 }
 
@@ -124,7 +126,8 @@ func (s *Service) GetTransaction(ctx context.Context, org core.OrganizationID, i
 }
 
 // ListTransactions returns a page of the transactions of the wallet id
-// matching f, oldest first. A wallet that does not exist is
+// matching f, newest first, then by ID (lago apply_consistent_ordering).
+// A wallet that does not exist is
 // core.NotFound("wallet").
 //
 // source: app/queries/wallet_transactions_query.rb:12-61
@@ -133,7 +136,7 @@ func (s *Service) ListTransactions(ctx context.Context, org core.OrganizationID,
 		if _, err := r.Wallets.Get(ctx, org, id); err != nil {
 			return core.Page[*wallet.Transaction]{}, notFound(err, ResourceWallet)
 		}
-		tf := wallet.TransactionFilter{WalletID: id, TransactionType: f.TransactionType, TransactionStatus: f.TransactionStatus, Status: f.Status}
+		tf := wallet.TransactionFilter{WalletID: id, TransactionType: f.TransactionType, TransactionStatus: f.TransactionStatus, Status: f.Status, Recent: true}
 		keep := func(t *wallet.Transaction) (bool, error) {
 			for k, v := range f.Metadata {
 				if v == "" {
@@ -147,7 +150,7 @@ func (s *Service) ListTransactions(ctx context.Context, org core.OrganizationID,
 		}
 		return filterPage(page, func(p core.PageRequest) (core.Page[*wallet.Transaction], error) {
 			return r.WalletTransactions.List(ctx, org, tf, p)
-		}, keep, func(t *wallet.Transaction) string { return t.ID.String() })
+		}, keep, func(t *wallet.Transaction) string { return recentToken(t.CreatedAt, t.ID.UUID()) })
 	})
 }
 
@@ -372,7 +375,7 @@ func recentPage(cs []*wallet.Consumption, req core.PageRequest) (core.Page[*wall
 	p := core.Page[*wallet.Consumption]{Items: cs[start:end]}
 	if end < len(cs) {
 		last := cs[end-1]
-		p.NextToken = core.Cursor{Key: last.CreatedAt.UTC().Format(time.RFC3339Nano), ID: last.ID.UUID()}.Encode()
+		p.NextToken = recentToken(last.CreatedAt, last.ID.UUID())
 	}
 	return p, nil
 }
@@ -393,4 +396,10 @@ func notFound(err error, resource string) error {
 		return core.NotFound(resource)
 	}
 	return err
+}
+
+// recentToken is the page token after the row created at at with ID id in
+// a newest-first list, the cursor of the store's newest-first lists.
+func recentToken(at time.Time, id uuid.UUID) string {
+	return core.Cursor{Key: at.UTC().Format(time.RFC3339Nano), ID: id}.Encode()
 }

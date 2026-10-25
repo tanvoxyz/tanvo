@@ -2,10 +2,12 @@ package payments
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
 
@@ -25,6 +27,8 @@ type Service struct {
 	providers *Providers
 	sync      PaymentSync
 	refunds   RefundStatuses
+	blobs     port.BlobStore
+	funding   FundingFormatter
 }
 
 // New returns the service over the checked dependencies d.
@@ -35,6 +39,29 @@ func New(d *kernel.Deps) *Service { return &Service{d: d} }
 func (s *Service) WithCreditInvoices(h CreditInvoiceHandler) *Service {
 	s.credits = h
 	return s
+}
+
+// WithBlobs sets the blob store holding the organization logos, which
+// the hosted checkouts show; without one they show none.
+func (s *Service) WithBlobs(b port.BlobStore) *Service {
+	s.blobs = b
+	return s
+}
+
+// logoURL returns the permanent link of the logo of o, empty when it has
+// none (lago Organization#logo_url, app/models/organization.rb:234-238).
+func (s *Service) logoURL(ctx context.Context, o *organization.Organization) (string, error) {
+	if s.blobs == nil || o.Logo.IsZero() {
+		return "", nil
+	}
+	u, err := s.blobs.URL(ctx, o.ID, o.Logo)
+	if errors.Is(err, core.ErrNotFound) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("link logo of organization %s: %w", o.ID, err)
+	}
+	return u, nil
 }
 
 // inTx runs fn in a transaction and returns its value.

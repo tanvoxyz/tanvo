@@ -18,6 +18,7 @@ import (
 func (t *txState) bindCustomer(r *port.Repos) {
 	r.Customers = customerRepo{t}
 	r.PendingVIESChecks = pendingVIESCheckRepo{t}
+	r.CustomerErrorDetails = customerErrorDetailRepo{t}
 }
 
 // customerRepo implements customer.Repository.
@@ -458,4 +459,64 @@ func (r customerRepo) ListAwaitingWalletRefresh(ctx context.Context, org core.Or
 	return pageOf(rows, page,
 		func(u uuid.UUID) (core.CustomerID, error) { return idOf[core.CustomerID](u), nil },
 		core.CustomerID.String)
+}
+
+// customerErrorDetailRepo implements customer.ErrorDetailRepository.
+type customerErrorDetailRepo struct{ t *txState }
+
+var _ customer.ErrorDetailRepository = customerErrorDetailRepo{}
+
+func customerErrorDetailOf(r db.CustomerErrorDetail) (*customer.ErrorDetail, error) {
+	return &customer.ErrorDetail{
+		ID:             idOf[core.ErrorDetailID](r.ID),
+		OrganizationID: idOf[core.OrganizationID](r.OrganizationID),
+		CustomerID:     idOf[core.CustomerID](r.CustomerID),
+		Code:           customer.ErrorCode(r.ErrorCode),
+		Details:        rawJSON(r.Details),
+		CreatedAt:      utc(r.CreatedAt),
+	}, nil
+}
+
+func (r customerErrorDetailRepo) Create(ctx context.Context, e *customer.ErrorDetail) error {
+	q, err := r.t.queries(ctx, e.OrganizationID)
+	if err != nil {
+		return err
+	}
+	n, err := q.CreateCustomerErrorDetail(ctx, db.CreateCustomerErrorDetailParams{
+		OrganizationID: e.OrganizationID.UUID(),
+		ID:             e.ID.UUID(),
+		CustomerID:     e.CustomerID.UUID(),
+		ErrorCode:      string(e.Code),
+		Details:        rawJSON(e.Details),
+		CreatedAt:      utc(e.CreatedAt),
+	})
+	return insertErr("error_detail", n, err)
+}
+
+func (r customerErrorDetailRepo) ListByCustomers(ctx context.Context, org core.OrganizationID, ids []core.CustomerID) ([]*customer.ErrorDetail, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := q.ListCustomerErrorDetails(ctx, db.ListCustomerErrorDetailsParams{OrganizationID: org.UUID(), CustomerIds: uuids(ids)})
+	if err != nil {
+		return nil, fmt.Errorf("list customer error details: %w", mapErr(err))
+	}
+	return convAll(rows, customerErrorDetailOf)
+}
+
+func (r customerErrorDetailRepo) DeleteByCustomer(ctx context.Context, org core.OrganizationID, id core.CustomerID, code customer.ErrorCode) error {
+	q, err := r.t.queries(ctx, org)
+	if err != nil {
+		return err
+	}
+	if err := q.DeleteCustomerErrorDetails(ctx, db.DeleteCustomerErrorDetailsParams{
+		OrganizationID: org.UUID(), CustomerID: id.UUID(), ErrorCode: string(code),
+	}); err != nil {
+		return fmt.Errorf("delete customer error details: %w", mapErr(err))
+	}
+	return nil
 }

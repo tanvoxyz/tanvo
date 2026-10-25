@@ -4,7 +4,6 @@ Every lago data export service example not ported as a test in this package, wit
 
 | source | case | reason |
 | :--- | :--- | :--- |
-| spec/services/data_exports/combine_parts_service_spec.rb:42 | sends an email | The completed-export mail is not wired in apps/server yet |
 | spec/services/data_exports/export_resources_service_spec.rb:128 | unsupported resource type | The resource type is an enumeration validated at creation; no unsupported type can be stored |
 | spec/services/data_exports/csv/invoices_spec.rb:149 | preloaded offset amounts without additional queries | Query counting is an ActiveRecord concern; the loader caches each record by ID |
 | spec/services/data_exports/csv/invoice_fees_spec.rb:54 | timezone-agnostic column names | The column names are the constants of InvoiceFeeHeaders (`fee_from_date`, `fee_to_date`) |

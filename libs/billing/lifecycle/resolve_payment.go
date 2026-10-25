@@ -127,7 +127,7 @@ func (s *Service) satisfyPaymentGate(ctx context.Context, r port.Repos, env *ker
 	if err := s.d.LogInvoice(ctx, r, auditlog.ActivityInvoiceCreated, inv); err != nil {
 		return err
 	}
-	if err := kernel.Enqueue(ctx, r, org, kernel.JobGenerateInvoiceDocument, kernel.InvoiceArgs{InvoiceID: inv.ID}, inv.ID.String(), time.Time{}); err != nil {
+	if err := kernel.EnqueueInvoiceDocuments(ctx, r, inv, time.Time{}); err != nil {
 		return err
 	}
 	// resolve_service.rb:46: the taxes quoted while gated are reported

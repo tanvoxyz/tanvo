@@ -1,6 +1,6 @@
 // Package cli is the tanvo command line: `tanvo serve` runs the server
-// roles, `tanvo migrate` applies the schemas and `tanvo version` prints
-// the build. Settings come from TANVO_* variables and an optional TOML
+// roles, `tanvo migrate` applies the schemas, `tanvo admin bootstrap`
+// ensures a first organization and `tanvo version` prints the build. Settings come from TANVO_* variables and an optional TOML
 // file (internal/config); telemetry from the OTEL_* variables
 // (internal/telemetry).
 package cli
@@ -28,6 +28,8 @@ const telemetryFlushTimeout = 5 * time.Second
 type Env struct {
 	// Environ lists the environment as "KEY=value"; nil is os.Environ.
 	Environ []string
+	// Stdin is read by commands taking a secret from it; nil is os.Stdin.
+	Stdin io.Reader
 	// Stdout receives the logs and the version; nil is os.Stdout.
 	Stdout io.Writer
 	// Stderr receives usage errors; nil is os.Stderr.
@@ -49,6 +51,9 @@ func Run(ctx context.Context, args []string, env Env) error {
 	if env.Stderr == nil {
 		env.Stderr = os.Stderr
 	}
+	if env.Stdin == nil {
+		env.Stdin = os.Stdin
+	}
 	root := newRoot(&env)
 	root.SetArgs(args)
 	root.SetOut(env.Stdout)
@@ -65,7 +70,7 @@ func newRoot(env *Env) *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.PersistentFlags().StringVar(&file, "config", "", "TOML settings file (default $"+config.FileEnv+")")
-	root.AddCommand(newServe(env, &file), newMigrate(env, &file), newVersion(env))
+	root.AddCommand(newServe(env, &file), newMigrate(env, &file), newAdmin(env, &file), newVersion(env))
 	return root
 }
 

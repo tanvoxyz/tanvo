@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -116,6 +117,7 @@ var walletUpdateFields = []string{
 	"name", "code", "priority", "expires_at", "invoice_requires_successful_payment",
 	"paid_top_up_min_amount", "paid_top_up_max_amount", "allowed_fee_types",
 	"billable_metric_ids", "billing_entity_id", "payment_method_type", "payment_method_id", "connections",
+	"metadata", "purchase_order_number", "skip_invoice_custom_sections", "invoice_custom_section_ids",
 }
 
 // CreateWallet implements WalletService.CreateWallet (lago
@@ -139,6 +141,21 @@ func (s *Wallets) CreateWallet(ctx context.Context, req *walletv1.CreateWalletRe
 		InvoiceRequiresSuccessfulPayment: w.GetInvoiceRequiresSuccessfulPayment(),
 		ExpirationAt:                     TimePtr(w.GetExpiresAt()),
 		PaymentMethod:                    walletPaymentMethod(w),
+	}
+	if len(w.GetMetadata()) > 0 {
+		in.Metadata = FromMetadata(w.GetMetadata())
+	}
+	in.PurchaseOrderNumber = Opt(w.HasPurchaseOrderNumber(), w.GetPurchaseOrderNumber())
+	in.TransactionName = Opt(w.HasTransactionName(), w.GetTransactionName())
+	if w.HasTransactionPriority() {
+		in.TransactionPriority = new(int(w.GetTransactionPriority()))
+	}
+	if len(w.GetTransactionMetadata()) > 0 {
+		in.TransactionMetadata = FromMetadata(w.GetTransactionMetadata())
+	}
+	in.IgnorePaidTopUpLimitsOnCreation = w.GetIgnorePaidTopUpLimitsOnCreation()
+	if in.InvoiceCustomSections, err = walletCustomSections("wallet.", w.HasSkipInvoiceCustomSections(), w.GetSkipInvoiceCustomSections(), w.GetInvoiceCustomSectionIds()); err != nil {
+		return nil, err
 	}
 	if w.HasCurrency() {
 		if in.Currency, err = walletCurrency("wallet.currency", w.GetCurrency()); err != nil {
@@ -287,6 +304,14 @@ func (s *Wallets) UpdateWallet(ctx context.Context, req *walletv1.UpdateWalletRe
 			return w.HasPaymentMethodId()
 		case "connections":
 			return len(w.GetConnections()) > 0
+		case "metadata":
+			return len(w.GetMetadata()) > 0
+		case "purchase_order_number":
+			return w.HasPurchaseOrderNumber()
+		case "skip_invoice_custom_sections":
+			return w.HasSkipInvoiceCustomSections()
+		case "invoice_custom_section_ids":
+			return len(w.GetInvoiceCustomSectionIds()) > 0
 		}
 		return false
 	})
@@ -343,6 +368,24 @@ func (s *Wallets) UpdateWallet(ctx context.Context, req *walletv1.UpdateWalletRe
 			}
 		case "connections":
 			in.Connections = connectionChoices(w.GetConnections())
+		case "metadata":
+			in.Metadata = wallets.To(FromMetadata(w.GetMetadata()))
+		case "purchase_order_number":
+			in.PurchaseOrderNumber = wallets.To(Opt(w.GetPurchaseOrderNumber() != "", w.GetPurchaseOrderNumber()))
+		case "skip_invoice_custom_sections", "invoice_custom_section_ids":
+			if in.InvoiceCustomSections == nil {
+				in.InvoiceCustomSections = &wallets.CustomSections{}
+			}
+			if path == "skip_invoice_custom_sections" {
+				in.InvoiceCustomSections.Skip = new(w.GetSkipInvoiceCustomSections())
+				continue
+			}
+			rs, err := CatalogRefs("wallet.invoice_custom_section_ids", w.GetInvoiceCustomSectionIds())
+			if err != nil {
+				return nil, err
+			}
+			// A masked empty list clears the sections.
+			in.InvoiceCustomSections.Sections = append([]refs.Ref{}, rs...)
 		}
 	}
 	updated, err := s.svc.Update(ctx, org, cur.ID, in)
@@ -394,6 +437,16 @@ func (s *Wallets) CreateWalletTransaction(ctx context.Context, req *walletv1.Cre
 		Name:                  Opt(req.HasName(), req.GetName()),
 		IgnorePaidTopUpLimits: req.GetIgnorePaidTopUpLimits(),
 		PaymentMethod:         walletPaymentMethod(req),
+		PurchaseOrderNumber:   Opt(req.HasPurchaseOrderNumber(), req.GetPurchaseOrderNumber()),
+	}
+	if req.HasPriority() {
+		in.Priority = new(int(req.GetPriority()))
+	}
+	if in.VoidedTransactionID, err = ParseID[core.WalletTransactionID]("voided_transaction_id", req.GetVoidedTransactionId()); err != nil {
+		return nil, err
+	}
+	if in.InvoiceCustomSections, err = walletCustomSections("", req.HasSkipInvoiceCustomSections(), req.GetSkipInvoiceCustomSections(), req.GetInvoiceCustomSectionIds()); err != nil {
+		return nil, err
 	}
 	if len(req.GetMetadata()) > 0 {
 		in.Metadata = FromMetadata(req.GetMetadata())
@@ -874,8 +927,35 @@ func walletRuleInput(prefix string, r *walletv1.RecurringTransactionRule) (walle
 	if len(r.GetTransactionMetadata()) > 0 {
 		in.TransactionMetadata = FromMetadata(r.GetTransactionMetadata())
 	}
+	in.PurchaseOrderNumber = Opt(r.HasPurchaseOrderNumber(), r.GetPurchaseOrderNumber())
+	if in.InvoiceCustomSections, err = walletCustomSections(prefix, r.HasSkipInvoiceCustomSections(), r.GetSkipInvoiceCustomSections(), r.GetInvoiceCustomSectionIds()); err != nil {
+		return in, err
+	}
 	in.Connections = connectionChoices(r.GetConnections())
 	return in, nil
+}
+
+// walletCustomSections converts the invoice custom section selection of a
+// wallet, a rule or a transaction at prefix (lago invoice_custom_section);
+// nil when the request selects nothing.
+func walletCustomSections(prefix string, hasSkip, skip bool, ids []string) (*wallets.CustomSections, error) {
+	if !hasSkip && len(ids) == 0 {
+		return nil, nil
+	}
+	rs, err := CatalogRefs(prefix+"invoice_custom_section_ids", ids)
+	if err != nil {
+		return nil, err
+	}
+	return &wallets.CustomSections{Skip: Opt(hasSkip, skip), Sections: rs}, nil
+}
+
+// sectionIDs returns the IDs of a custom section selection.
+func sectionIDs(cs wallet.CustomSections) []string {
+	out := make([]string, len(cs.IDs))
+	for i, id := range cs.IDs {
+		out[i] = id.String()
+	}
+	return out
 }
 
 // walletError maps the service errors, whose field paths are the
@@ -921,6 +1001,10 @@ func (s *Wallets) walletProto(ctx context.Context, org core.OrganizationID, w *w
 		InvoiceRequiresSuccessfulPayment: new(w.InvoiceRequiresSuccessfulPayment),
 		Traceable:                        new(w.Traceable),
 		RecurringTransactionRules:        rules,
+		Metadata:                         Metadata(w.Metadata),
+		PurchaseOrderNumber:              w.PurchaseOrderNumber,
+		SkipInvoiceCustomSections:        new(w.InvoiceCustomSections.Skip),
+		InvoiceCustomSectionIds:          sectionIDs(w.InvoiceCustomSections),
 		Connections:                      connectionRoutesProto(routes),
 		DepletedOngoingBalance:           new(w.DepletedOngoingBalance),
 		LastBalanceSyncAt:                TimestampPtr(w.LastBalanceSyncAt),
@@ -981,6 +1065,9 @@ func walletRuleProto(r *wallet.RecurringTransactionRule) *walletv1.RecurringTran
 		IgnorePaidTopUpLimits:            new(r.IgnorePaidTopUpLimits),
 		TransactionName:                  r.TransactionName,
 		TransactionMetadata:              Metadata(r.TransactionMetadata),
+		PurchaseOrderNumber:              r.PurchaseOrderNumber,
+		SkipInvoiceCustomSections:        new(r.InvoiceCustomSections.Skip),
+		InvoiceCustomSectionIds:          sectionIDs(r.InvoiceCustomSections),
 		TerminatedAt:                     TimestampPtr(r.TerminatedAt),
 		CreatedAt:                        Timestamp(r.CreatedAt),
 	}
@@ -1021,6 +1108,25 @@ func walletTransactionProto(w *wallet.Wallet, t *wallet.Transaction) *walletv1.W
 		SettledAt:                        TimestampPtr(t.SettledAt),
 		FailedAt:                         TimestampPtr(t.FailedAt),
 		CreatedAt:                        Timestamp(t.CreatedAt),
+		PurchaseOrderNumber:              wallet.ResolvePurchaseOrderNumber(t.PurchaseOrderNumber, w.PurchaseOrderNumber),
+		SkipInvoiceCustomSections:        new(t.InvoiceCustomSections.Skip),
+		InvoiceCustomSectionIds:          sectionIDs(t.InvoiceCustomSections),
+	}
+	if t.RemainingAmount != nil {
+		b.RemainingAmount = Money(*t.RemainingAmount, t.Currency)
+	}
+	if !t.VoidedInvoiceID.IsZero() {
+		b.VoidedInvoiceId = new(t.VoidedInvoiceID.String())
+	}
+	// lago V1::WalletTransactionSerializer#billing_entity_code.
+	if be := cmp.Or(t.BillingEntityID, w.BillingEntityID); !be.IsZero() {
+		b.BillingEntityId = new(be.String())
+	}
+	if v := walletPaymentMethodTypes.Proto(t.PaymentMethodType); v != 0 {
+		b.PaymentMethodType = &v
+	}
+	if !t.PaymentMethodID.IsZero() {
+		b.PaymentMethodId = new(t.PaymentMethodID.String())
 	}
 	if v := walletTransactionTypes.Proto(t.TransactionType); v != 0 {
 		b.TransactionType = &v

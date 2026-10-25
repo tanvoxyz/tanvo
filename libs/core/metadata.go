@@ -43,6 +43,13 @@ func InvoiceMetadataLimits() MetadataLimits {
 	return MetadataLimits{MaxItems: 5, MaxKeyLength: 20, MaxValueLength: 140}
 }
 
+// ItemMetadataLimits returns the limits of the metadata of plans, credit
+// notes and wallets: ≤ 50 items, key ≤ 100, value ≤ 255 characters (lago
+// Metadata::ItemMetadata, app/models/metadata/item_metadata.rb:5-7).
+func ItemMetadataLimits() MetadataLimits {
+	return MetadataLimits{MaxItems: 50, MaxKeyLength: 100, MaxValueLength: 255}
+}
+
 // WalletTransactionMetadataLimits returns the limits of wallet transaction
 // metadata: ≤ 15 items (domain §14.2).
 func WalletTransactionMetadataLimits() MetadataLimits { return MetadataLimits{MaxItems: 15} }
@@ -83,6 +90,26 @@ func (m Metadata) Get(key string) (string, bool) {
 
 // Clone returns a copy of m that shares no storage with it.
 func (m Metadata) Clone() Metadata { return slices.Clone(m) }
+
+// Merge returns m with the pairs of other: a key of m takes the value of
+// other in place, and the other keys are appended in their order (lago
+// Metadata::UpdateItemService partial update, a Hash#merge).
+func (m Metadata) Merge(other Metadata) Metadata {
+	out := m.Clone()
+	for _, it := range other {
+		if i := slices.IndexFunc(out, func(o MetadataItem) bool { return o.Key == it.Key }); i >= 0 {
+			out[i] = it
+			continue
+		}
+		out = append(out, it)
+	}
+	return out
+}
+
+// Without returns m without the pair of key.
+func (m Metadata) Without(key string) Metadata {
+	return slices.DeleteFunc(m.Clone(), func(it MetadataItem) bool { return it.Key == key })
+}
 
 // MetadataFilter narrows a list by metadata: every key with a value keeps
 // the items whose metadata has that key with exactly that value, and every

@@ -658,3 +658,58 @@ func TestSequence(t *testing.T) {
 		t.Errorf("got = %d %q, want = 4 ORG-55-004", c.SequentialID, c.Slug)
 	}
 }
+
+// TestAddressChangeClearsTaxErrors checks that a changed billing or
+// shipping address deletes the customer's tax_error details, which stop
+// the refresh of its wallets, and that another change keeps them.
+func TestAddressChangeClearsTaxErrors(t *testing.T) {
+	tests := []struct {
+		name   string
+		upsert bool
+		portal bool
+		in     customers.Input
+		want   int
+	}{
+		// source: spec/services/customers/update_service_spec.rb:894
+		{name: "update address", in: customers.Input{BillingAddress: customers.Address{Line1: core.Some("New Address")}}},
+		// source: spec/services/customers/update_service_spec.rb:905
+		{name: "update name", in: customers.Input{Name: core.Some(new("New Name"))}, want: 1},
+		// source: spec/services/customers/upsert_from_api_service_spec.rb:1464
+		{name: "upsert address", upsert: true, in: customers.Input{BillingAddress: customers.Address{Line1: core.Some("New Address")}}},
+		// source: spec/services/customers/upsert_from_api_service_spec.rb:1486
+		{name: "upsert name", upsert: true, in: customers.Input{Name: core.Some(new("New Name"))}, want: 1},
+		{name: "update shipping address", in: customers.Input{ShippingAddress: customers.Address{City: core.Some("Paris")}}},
+		// The portal's update does not delete them (customer_portal/customer_update_service.rb).
+		{name: "portal address", portal: true, in: customers.Input{BillingAddress: customers.Address{Line1: core.Some("New Address")}}, want: 1},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h, svc := setup(t)
+			c := h.Customer(func(c *customer.Customer) { c.ExternalID = "cus"; c.BillingAddress.Line1 = "Old Address" })
+			h.Do(func(ctx context.Context, r port.Repos) error {
+				return r.CustomerErrorDetails.Create(ctx, &customer.ErrorDetail{
+					ID: core.NewID[core.ErrorDetailID](h.IDs), OrganizationID: h.OrgID(), CustomerID: c.ID,
+					Code: customer.ErrorCodeTaxError, CreatedAt: june22,
+				})
+			})
+			var err error
+			switch {
+			case tt.upsert:
+				_, _, err = svc.Upsert(h.Ctx, h.OrgID(), "cus", tt.in)
+			case tt.portal:
+				_, err = svc.UpdateFromPortal(h.Ctx, h.OrgID(), c.ID, tt.in)
+			default:
+				_, err = svc.Update(h.Ctx, h.OrgID(), c.ID, tt.in)
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			ds := billingtest.Read(h, func(ctx context.Context, r port.Repos) ([]*customer.ErrorDetail, error) {
+				return r.CustomerErrorDetails.ListByCustomers(ctx, h.OrgID(), []core.CustomerID{c.ID})
+			})
+			if len(ds) != tt.want {
+				t.Errorf("error details: got = %d, want = %d", len(ds), tt.want)
+			}
+		})
+	}
+}

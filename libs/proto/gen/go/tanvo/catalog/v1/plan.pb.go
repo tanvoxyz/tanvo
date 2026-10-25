@@ -2271,6 +2271,638 @@ func (b0 DeletePlanResponse_builder) Build() *DeletePlanResponse {
 	return m0
 }
 
+// ReplacePlanMetadataRequest is the request of ReplacePlanMetadata.
+type ReplacePlanMetadataRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PlanId      *string                `protobuf:"bytes,1,opt,name=plan_id,json=planId"`
+	xxx_hidden_Metadata    *[]*v1.MetadataItem    `protobuf:"bytes,2,rep,name=metadata"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *ReplacePlanMetadataRequest) Reset() {
+	*x = ReplacePlanMetadataRequest{}
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplacePlanMetadataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplacePlanMetadataRequest) ProtoMessage() {}
+
+func (x *ReplacePlanMetadataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ReplacePlanMetadataRequest) GetPlanId() string {
+	if x != nil {
+		if x.xxx_hidden_PlanId != nil {
+			return *x.xxx_hidden_PlanId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ReplacePlanMetadataRequest) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *ReplacePlanMetadataRequest) SetPlanId(v string) {
+	x.xxx_hidden_PlanId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *ReplacePlanMetadataRequest) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+func (x *ReplacePlanMetadataRequest) HasPlanId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ReplacePlanMetadataRequest) ClearPlanId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_PlanId = nil
+}
+
+type ReplacePlanMetadataRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The plan's ID or `code:<code>`.
+	PlanId *string
+	// The new metadata; empty clears it.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 ReplacePlanMetadataRequest_builder) Build() *ReplacePlanMetadataRequest {
+	m0 := &ReplacePlanMetadataRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.PlanId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_PlanId = b.PlanId
+	}
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
+// MergePlanMetadataRequest is the request of MergePlanMetadata.
+type MergePlanMetadataRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PlanId      *string                `protobuf:"bytes,1,opt,name=plan_id,json=planId"`
+	xxx_hidden_Metadata    *[]*v1.MetadataItem    `protobuf:"bytes,2,rep,name=metadata"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *MergePlanMetadataRequest) Reset() {
+	*x = MergePlanMetadataRequest{}
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MergePlanMetadataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MergePlanMetadataRequest) ProtoMessage() {}
+
+func (x *MergePlanMetadataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *MergePlanMetadataRequest) GetPlanId() string {
+	if x != nil {
+		if x.xxx_hidden_PlanId != nil {
+			return *x.xxx_hidden_PlanId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *MergePlanMetadataRequest) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *MergePlanMetadataRequest) SetPlanId(v string) {
+	x.xxx_hidden_PlanId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *MergePlanMetadataRequest) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+func (x *MergePlanMetadataRequest) HasPlanId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *MergePlanMetadataRequest) ClearPlanId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_PlanId = nil
+}
+
+type MergePlanMetadataRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The plan's ID or `code:<code>`.
+	PlanId *string
+	// The items to merge.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 MergePlanMetadataRequest_builder) Build() *MergePlanMetadataRequest {
+	m0 := &MergePlanMetadataRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.PlanId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_PlanId = b.PlanId
+	}
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
+// DeletePlanMetadataRequest is the request of DeletePlanMetadata.
+type DeletePlanMetadataRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PlanId      *string                `protobuf:"bytes,1,opt,name=plan_id,json=planId"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *DeletePlanMetadataRequest) Reset() {
+	*x = DeletePlanMetadataRequest{}
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeletePlanMetadataRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeletePlanMetadataRequest) ProtoMessage() {}
+
+func (x *DeletePlanMetadataRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeletePlanMetadataRequest) GetPlanId() string {
+	if x != nil {
+		if x.xxx_hidden_PlanId != nil {
+			return *x.xxx_hidden_PlanId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeletePlanMetadataRequest) SetPlanId(v string) {
+	x.xxx_hidden_PlanId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *DeletePlanMetadataRequest) HasPlanId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeletePlanMetadataRequest) ClearPlanId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_PlanId = nil
+}
+
+type DeletePlanMetadataRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The plan's ID or `code:<code>`.
+	PlanId *string
+}
+
+func (b0 DeletePlanMetadataRequest_builder) Build() *DeletePlanMetadataRequest {
+	m0 := &DeletePlanMetadataRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.PlanId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_PlanId = b.PlanId
+	}
+	return m0
+}
+
+// DeletePlanMetadataKeyRequest is the request of DeletePlanMetadataKey.
+type DeletePlanMetadataKeyRequest struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_PlanId      *string                `protobuf:"bytes,1,opt,name=plan_id,json=planId"`
+	xxx_hidden_Key         *string                `protobuf:"bytes,2,opt,name=key"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *DeletePlanMetadataKeyRequest) Reset() {
+	*x = DeletePlanMetadataKeyRequest{}
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeletePlanMetadataKeyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeletePlanMetadataKeyRequest) ProtoMessage() {}
+
+func (x *DeletePlanMetadataKeyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeletePlanMetadataKeyRequest) GetPlanId() string {
+	if x != nil {
+		if x.xxx_hidden_PlanId != nil {
+			return *x.xxx_hidden_PlanId
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeletePlanMetadataKeyRequest) GetKey() string {
+	if x != nil {
+		if x.xxx_hidden_Key != nil {
+			return *x.xxx_hidden_Key
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *DeletePlanMetadataKeyRequest) SetPlanId(v string) {
+	x.xxx_hidden_PlanId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *DeletePlanMetadataKeyRequest) SetKey(v string) {
+	x.xxx_hidden_Key = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *DeletePlanMetadataKeyRequest) HasPlanId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *DeletePlanMetadataKeyRequest) HasKey() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *DeletePlanMetadataKeyRequest) ClearPlanId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_PlanId = nil
+}
+
+func (x *DeletePlanMetadataKeyRequest) ClearKey() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Key = nil
+}
+
+type DeletePlanMetadataKeyRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The plan's ID or `code:<code>`.
+	PlanId *string
+	// The key to remove.
+	Key *string
+}
+
+func (b0 DeletePlanMetadataKeyRequest_builder) Build() *DeletePlanMetadataKeyRequest {
+	m0 := &DeletePlanMetadataKeyRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.PlanId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_PlanId = b.PlanId
+	}
+	if b.Key != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Key = b.Key
+	}
+	return m0
+}
+
+// ReplacePlanMetadataResponse is the response of ReplacePlanMetadata.
+type ReplacePlanMetadataResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Metadata *[]*v1.MetadataItem    `protobuf:"bytes,1,rep,name=metadata"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *ReplacePlanMetadataResponse) Reset() {
+	*x = ReplacePlanMetadataResponse{}
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplacePlanMetadataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplacePlanMetadataResponse) ProtoMessage() {}
+
+func (x *ReplacePlanMetadataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ReplacePlanMetadataResponse) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *ReplacePlanMetadataResponse) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+type ReplacePlanMetadataResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The plan's metadata after the change.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 ReplacePlanMetadataResponse_builder) Build() *ReplacePlanMetadataResponse {
+	m0 := &ReplacePlanMetadataResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
+// MergePlanMetadataResponse is the response of MergePlanMetadata.
+type MergePlanMetadataResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Metadata *[]*v1.MetadataItem    `protobuf:"bytes,1,rep,name=metadata"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *MergePlanMetadataResponse) Reset() {
+	*x = MergePlanMetadataResponse{}
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MergePlanMetadataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MergePlanMetadataResponse) ProtoMessage() {}
+
+func (x *MergePlanMetadataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *MergePlanMetadataResponse) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *MergePlanMetadataResponse) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+type MergePlanMetadataResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The plan's metadata after the change.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 MergePlanMetadataResponse_builder) Build() *MergePlanMetadataResponse {
+	m0 := &MergePlanMetadataResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
+// DeletePlanMetadataResponse is the response of DeletePlanMetadata.
+type DeletePlanMetadataResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Metadata *[]*v1.MetadataItem    `protobuf:"bytes,1,rep,name=metadata"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *DeletePlanMetadataResponse) Reset() {
+	*x = DeletePlanMetadataResponse{}
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeletePlanMetadataResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeletePlanMetadataResponse) ProtoMessage() {}
+
+func (x *DeletePlanMetadataResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeletePlanMetadataResponse) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *DeletePlanMetadataResponse) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+type DeletePlanMetadataResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The plan's metadata after the change.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 DeletePlanMetadataResponse_builder) Build() *DeletePlanMetadataResponse {
+	m0 := &DeletePlanMetadataResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
+// DeletePlanMetadataKeyResponse is the response of DeletePlanMetadataKey.
+type DeletePlanMetadataKeyResponse struct {
+	state               protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Metadata *[]*v1.MetadataItem    `protobuf:"bytes,1,rep,name=metadata"`
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *DeletePlanMetadataKeyResponse) Reset() {
+	*x = DeletePlanMetadataKeyResponse{}
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeletePlanMetadataKeyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeletePlanMetadataKeyResponse) ProtoMessage() {}
+
+func (x *DeletePlanMetadataKeyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_catalog_v1_plan_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *DeletePlanMetadataKeyResponse) GetMetadata() []*v1.MetadataItem {
+	if x != nil {
+		if x.xxx_hidden_Metadata != nil {
+			return *x.xxx_hidden_Metadata
+		}
+	}
+	return nil
+}
+
+func (x *DeletePlanMetadataKeyResponse) SetMetadata(v []*v1.MetadataItem) {
+	x.xxx_hidden_Metadata = &v
+}
+
+type DeletePlanMetadataKeyResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The plan's metadata after the change.
+	Metadata []*v1.MetadataItem
+}
+
+func (b0 DeletePlanMetadataKeyResponse_builder) Build() *DeletePlanMetadataKeyResponse {
+	m0 := &DeletePlanMetadataKeyResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	x.xxx_hidden_Metadata = &b.Metadata
+	return m0
+}
+
 var File_tanvo_catalog_v1_plan_proto protoreflect.FileDescriptor
 
 const file_tanvo_catalog_v1_plan_proto_rawDesc = "" +
@@ -2361,7 +2993,31 @@ const file_tanvo_catalog_v1_plan_proto_rawDesc = "" +
 	"\aplan_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
 	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x06planId\"@\n" +
 	"\x12DeletePlanResponse\x12*\n" +
-	"\x04plan\x18\x01 \x01(\v2\x16.tanvo.catalog.v1.PlanR\x04plan*|\n" +
+	"\x04plan\x18\x01 \x01(\v2\x16.tanvo.catalog.v1.PlanR\x04plan\"\x8d\x01\n" +
+	"\x1aReplacePlanMetadataRequest\x12*\n" +
+	"\aplan_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x06planId\x12C\n" +
+	"\bmetadata\x18\x02 \x03(\v2\x1d.tanvo.common.v1.MetadataItemB\b\xbaH\x05\x92\x01\x02\x102R\bmetadata\"\x8b\x01\n" +
+	"\x18MergePlanMetadataRequest\x12*\n" +
+	"\aplan_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x06planId\x12C\n" +
+	"\bmetadata\x18\x02 \x03(\v2\x1d.tanvo.common.v1.MetadataItemB\b\xbaH\x05\x92\x01\x02\x102R\bmetadata\"G\n" +
+	"\x19DeletePlanMetadataRequest\x12*\n" +
+	"\aplan_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x06planId\"h\n" +
+	"\x1cDeletePlanMetadataKeyRequest\x12*\n" +
+	"\aplan_id\x18\x01 \x01(\tB\x11\xe2A\x01\x02\xbaH\n" +
+	"\xc8\x01\x01r\x05\xe0\xa4\xca\x06\x01R\x06planId\x12\x1c\n" +
+	"\x03key\x18\x02 \x01(\tB\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x03key\"X\n" +
+	"\x1bReplacePlanMetadataResponse\x129\n" +
+	"\bmetadata\x18\x01 \x03(\v2\x1d.tanvo.common.v1.MetadataItemR\bmetadata\"V\n" +
+	"\x19MergePlanMetadataResponse\x129\n" +
+	"\bmetadata\x18\x01 \x03(\v2\x1d.tanvo.common.v1.MetadataItemR\bmetadata\"W\n" +
+	"\x1aDeletePlanMetadataResponse\x129\n" +
+	"\bmetadata\x18\x01 \x03(\v2\x1d.tanvo.common.v1.MetadataItemR\bmetadata\"Z\n" +
+	"\x1dDeletePlanMetadataKeyResponse\x129\n" +
+	"\bmetadata\x18\x01 \x03(\v2\x1d.tanvo.common.v1.MetadataItemR\bmetadata*|\n" +
 	"\n" +
 	"PlanStatus\x12\x1b\n" +
 	"\x17PLAN_STATUS_UNSPECIFIED\x10\x00\x12\x16\n" +
@@ -2370,7 +3026,7 @@ const file_tanvo_catalog_v1_plan_proto_rawDesc = "" +
 	"\x13PLAN_STATUS_DELETED\x10\x03*Y\n" +
 	"\x0eCommitmentType\x12\x1f\n" +
 	"\x1bCOMMITMENT_TYPE_UNSPECIFIED\x10\x00\x12&\n" +
-	"\"COMMITMENT_TYPE_MINIMUM_COMMITMENT\x10\x012\xc6\x05\n" +
+	"\"COMMITMENT_TYPE_MINIMUM_COMMITMENT\x10\x012\x9b\v\n" +
 	"\vPlanService\x12\x88\x01\n" +
 	"\n" +
 	"CreatePlan\x12#.tanvo.catalog.v1.CreatePlanRequest\x1a$.tanvo.catalog.v1.CreatePlanResponse\"/\xca\xf3\x18\x14\n" +
@@ -2386,75 +3042,105 @@ const file_tanvo_catalog_v1_plan_proto_rawDesc = "" +
 	"\fplans:update*\x04plan\x82\xd3\xe4\x93\x02\x1b:\x04plan2\x13/v1/plans/{plan.id}\x12\x8c\x01\n" +
 	"\n" +
 	"DeletePlan\x12#.tanvo.catalog.v1.DeletePlanRequest\x1a$.tanvo.catalog.v1.DeletePlanResponse\"3\xca\xf3\x18\x14\n" +
-	"\fplans:delete*\x04plan\x82\xd3\xe4\x93\x02\x15*\x13/v1/plans/{plan_id}B\xcb\x01\n" +
+	"\fplans:delete*\x04plan\x82\xd3\xe4\x93\x02\x15*\x13/v1/plans/{plan_id}\x12\xb3\x01\n" +
+	"\x13ReplacePlanMetadata\x12,.tanvo.catalog.v1.ReplacePlanMetadataRequest\x1a-.tanvo.catalog.v1.ReplacePlanMetadataResponse\"?\xca\xf3\x18\x14\n" +
+	"\fplans:update*\x04plan\x82\xd3\xe4\x93\x02!:\x01*\"\x1c/v1/plans/{plan_id}/metadata\x12\xad\x01\n" +
+	"\x11MergePlanMetadata\x12*.tanvo.catalog.v1.MergePlanMetadataRequest\x1a+.tanvo.catalog.v1.MergePlanMetadataResponse\"?\xca\xf3\x18\x14\n" +
+	"\fplans:update*\x04plan\x82\xd3\xe4\x93\x02!:\x01*2\x1c/v1/plans/{plan_id}/metadata\x12\xad\x01\n" +
+	"\x12DeletePlanMetadata\x12+.tanvo.catalog.v1.DeletePlanMetadataRequest\x1a,.tanvo.catalog.v1.DeletePlanMetadataResponse\"<\xca\xf3\x18\x14\n" +
+	"\fplans:update*\x04plan\x82\xd3\xe4\x93\x02\x1e*\x1c/v1/plans/{plan_id}/metadata\x12\xbc\x01\n" +
+	"\x15DeletePlanMetadataKey\x12..tanvo.catalog.v1.DeletePlanMetadataKeyRequest\x1a/.tanvo.catalog.v1.DeletePlanMetadataKeyResponse\"B\xca\xf3\x18\x14\n" +
+	"\fplans:update*\x04plan\x82\xd3\xe4\x93\x02$*\"/v1/plans/{plan_id}/metadata/{key}B\xcb\x01\n" +
 	"\x14com.tanvo.catalog.v1B\tPlanProtoP\x01ZFgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/catalog/v1;catalogv1\xa2\x02\x03TCX\xaa\x02\x10Tanvo.Catalog.V1\xca\x02\x10Tanvo\\Catalog\\V1\xe2\x02\x1cTanvo\\Catalog\\V1\\GPBMetadata\xea\x02\x12Tanvo::Catalog::V1b\beditionsp\xe8\a"
 
 var file_tanvo_catalog_v1_plan_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_tanvo_catalog_v1_plan_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_tanvo_catalog_v1_plan_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_tanvo_catalog_v1_plan_proto_goTypes = []any{
-	(PlanStatus)(0),               // 0: tanvo.catalog.v1.PlanStatus
-	(CommitmentType)(0),           // 1: tanvo.catalog.v1.CommitmentType
-	(*Commitment)(nil),            // 2: tanvo.catalog.v1.Commitment
-	(*UsageThreshold)(nil),        // 3: tanvo.catalog.v1.UsageThreshold
-	(*Plan)(nil),                  // 4: tanvo.catalog.v1.Plan
-	(*CreatePlanRequest)(nil),     // 5: tanvo.catalog.v1.CreatePlanRequest
-	(*CreatePlanResponse)(nil),    // 6: tanvo.catalog.v1.CreatePlanResponse
-	(*GetPlanRequest)(nil),        // 7: tanvo.catalog.v1.GetPlanRequest
-	(*GetPlanResponse)(nil),       // 8: tanvo.catalog.v1.GetPlanResponse
-	(*ListPlansRequest)(nil),      // 9: tanvo.catalog.v1.ListPlansRequest
-	(*ListPlansResponse)(nil),     // 10: tanvo.catalog.v1.ListPlansResponse
-	(*UpdatePlanRequest)(nil),     // 11: tanvo.catalog.v1.UpdatePlanRequest
-	(*UpdatePlanResponse)(nil),    // 12: tanvo.catalog.v1.UpdatePlanResponse
-	(*DeletePlanRequest)(nil),     // 13: tanvo.catalog.v1.DeletePlanRequest
-	(*DeletePlanResponse)(nil),    // 14: tanvo.catalog.v1.DeletePlanResponse
-	(*timestamppb.Timestamp)(nil), // 15: google.protobuf.Timestamp
-	(v1.Interval)(0),              // 16: tanvo.common.v1.Interval
-	(*v1.Money)(nil),              // 17: tanvo.common.v1.Money
-	(*v1.MetadataItem)(nil),       // 18: tanvo.common.v1.MetadataItem
-	(*Charge)(nil),                // 19: tanvo.catalog.v1.Charge
-	(*FixedCharge)(nil),           // 20: tanvo.catalog.v1.FixedCharge
-	(*fieldmaskpb.FieldMask)(nil), // 21: google.protobuf.FieldMask
+	(PlanStatus)(0),                       // 0: tanvo.catalog.v1.PlanStatus
+	(CommitmentType)(0),                   // 1: tanvo.catalog.v1.CommitmentType
+	(*Commitment)(nil),                    // 2: tanvo.catalog.v1.Commitment
+	(*UsageThreshold)(nil),                // 3: tanvo.catalog.v1.UsageThreshold
+	(*Plan)(nil),                          // 4: tanvo.catalog.v1.Plan
+	(*CreatePlanRequest)(nil),             // 5: tanvo.catalog.v1.CreatePlanRequest
+	(*CreatePlanResponse)(nil),            // 6: tanvo.catalog.v1.CreatePlanResponse
+	(*GetPlanRequest)(nil),                // 7: tanvo.catalog.v1.GetPlanRequest
+	(*GetPlanResponse)(nil),               // 8: tanvo.catalog.v1.GetPlanResponse
+	(*ListPlansRequest)(nil),              // 9: tanvo.catalog.v1.ListPlansRequest
+	(*ListPlansResponse)(nil),             // 10: tanvo.catalog.v1.ListPlansResponse
+	(*UpdatePlanRequest)(nil),             // 11: tanvo.catalog.v1.UpdatePlanRequest
+	(*UpdatePlanResponse)(nil),            // 12: tanvo.catalog.v1.UpdatePlanResponse
+	(*DeletePlanRequest)(nil),             // 13: tanvo.catalog.v1.DeletePlanRequest
+	(*DeletePlanResponse)(nil),            // 14: tanvo.catalog.v1.DeletePlanResponse
+	(*ReplacePlanMetadataRequest)(nil),    // 15: tanvo.catalog.v1.ReplacePlanMetadataRequest
+	(*MergePlanMetadataRequest)(nil),      // 16: tanvo.catalog.v1.MergePlanMetadataRequest
+	(*DeletePlanMetadataRequest)(nil),     // 17: tanvo.catalog.v1.DeletePlanMetadataRequest
+	(*DeletePlanMetadataKeyRequest)(nil),  // 18: tanvo.catalog.v1.DeletePlanMetadataKeyRequest
+	(*ReplacePlanMetadataResponse)(nil),   // 19: tanvo.catalog.v1.ReplacePlanMetadataResponse
+	(*MergePlanMetadataResponse)(nil),     // 20: tanvo.catalog.v1.MergePlanMetadataResponse
+	(*DeletePlanMetadataResponse)(nil),    // 21: tanvo.catalog.v1.DeletePlanMetadataResponse
+	(*DeletePlanMetadataKeyResponse)(nil), // 22: tanvo.catalog.v1.DeletePlanMetadataKeyResponse
+	(*timestamppb.Timestamp)(nil),         // 23: google.protobuf.Timestamp
+	(v1.Interval)(0),                      // 24: tanvo.common.v1.Interval
+	(*v1.Money)(nil),                      // 25: tanvo.common.v1.Money
+	(*v1.MetadataItem)(nil),               // 26: tanvo.common.v1.MetadataItem
+	(*Charge)(nil),                        // 27: tanvo.catalog.v1.Charge
+	(*FixedCharge)(nil),                   // 28: tanvo.catalog.v1.FixedCharge
+	(*fieldmaskpb.FieldMask)(nil),         // 29: google.protobuf.FieldMask
 }
 var file_tanvo_catalog_v1_plan_proto_depIdxs = []int32{
 	1,  // 0: tanvo.catalog.v1.Commitment.commitment_type:type_name -> tanvo.catalog.v1.CommitmentType
-	15, // 1: tanvo.catalog.v1.Commitment.created_at:type_name -> google.protobuf.Timestamp
-	15, // 2: tanvo.catalog.v1.Commitment.updated_at:type_name -> google.protobuf.Timestamp
-	15, // 3: tanvo.catalog.v1.UsageThreshold.created_at:type_name -> google.protobuf.Timestamp
-	15, // 4: tanvo.catalog.v1.UsageThreshold.updated_at:type_name -> google.protobuf.Timestamp
-	16, // 5: tanvo.catalog.v1.Plan.interval:type_name -> tanvo.common.v1.Interval
-	17, // 6: tanvo.catalog.v1.Plan.amount:type_name -> tanvo.common.v1.Money
-	18, // 7: tanvo.catalog.v1.Plan.metadata:type_name -> tanvo.common.v1.MetadataItem
+	23, // 1: tanvo.catalog.v1.Commitment.created_at:type_name -> google.protobuf.Timestamp
+	23, // 2: tanvo.catalog.v1.Commitment.updated_at:type_name -> google.protobuf.Timestamp
+	23, // 3: tanvo.catalog.v1.UsageThreshold.created_at:type_name -> google.protobuf.Timestamp
+	23, // 4: tanvo.catalog.v1.UsageThreshold.updated_at:type_name -> google.protobuf.Timestamp
+	24, // 5: tanvo.catalog.v1.Plan.interval:type_name -> tanvo.common.v1.Interval
+	25, // 6: tanvo.catalog.v1.Plan.amount:type_name -> tanvo.common.v1.Money
+	26, // 7: tanvo.catalog.v1.Plan.metadata:type_name -> tanvo.common.v1.MetadataItem
 	0,  // 8: tanvo.catalog.v1.Plan.status:type_name -> tanvo.catalog.v1.PlanStatus
-	19, // 9: tanvo.catalog.v1.Plan.charges:type_name -> tanvo.catalog.v1.Charge
-	20, // 10: tanvo.catalog.v1.Plan.fixed_charges:type_name -> tanvo.catalog.v1.FixedCharge
+	27, // 9: tanvo.catalog.v1.Plan.charges:type_name -> tanvo.catalog.v1.Charge
+	28, // 10: tanvo.catalog.v1.Plan.fixed_charges:type_name -> tanvo.catalog.v1.FixedCharge
 	2,  // 11: tanvo.catalog.v1.Plan.minimum_commitment:type_name -> tanvo.catalog.v1.Commitment
 	3,  // 12: tanvo.catalog.v1.Plan.usage_thresholds:type_name -> tanvo.catalog.v1.UsageThreshold
-	17, // 13: tanvo.catalog.v1.Plan.yearly_amount:type_name -> tanvo.common.v1.Money
-	15, // 14: tanvo.catalog.v1.Plan.created_at:type_name -> google.protobuf.Timestamp
-	15, // 15: tanvo.catalog.v1.Plan.updated_at:type_name -> google.protobuf.Timestamp
+	25, // 13: tanvo.catalog.v1.Plan.yearly_amount:type_name -> tanvo.common.v1.Money
+	23, // 14: tanvo.catalog.v1.Plan.created_at:type_name -> google.protobuf.Timestamp
+	23, // 15: tanvo.catalog.v1.Plan.updated_at:type_name -> google.protobuf.Timestamp
 	4,  // 16: tanvo.catalog.v1.CreatePlanRequest.plan:type_name -> tanvo.catalog.v1.Plan
 	4,  // 17: tanvo.catalog.v1.CreatePlanResponse.plan:type_name -> tanvo.catalog.v1.Plan
 	4,  // 18: tanvo.catalog.v1.GetPlanResponse.plan:type_name -> tanvo.catalog.v1.Plan
 	4,  // 19: tanvo.catalog.v1.ListPlansResponse.plans:type_name -> tanvo.catalog.v1.Plan
 	4,  // 20: tanvo.catalog.v1.UpdatePlanRequest.plan:type_name -> tanvo.catalog.v1.Plan
-	21, // 21: tanvo.catalog.v1.UpdatePlanRequest.update_mask:type_name -> google.protobuf.FieldMask
+	29, // 21: tanvo.catalog.v1.UpdatePlanRequest.update_mask:type_name -> google.protobuf.FieldMask
 	4,  // 22: tanvo.catalog.v1.UpdatePlanResponse.plan:type_name -> tanvo.catalog.v1.Plan
 	4,  // 23: tanvo.catalog.v1.DeletePlanResponse.plan:type_name -> tanvo.catalog.v1.Plan
-	5,  // 24: tanvo.catalog.v1.PlanService.CreatePlan:input_type -> tanvo.catalog.v1.CreatePlanRequest
-	7,  // 25: tanvo.catalog.v1.PlanService.GetPlan:input_type -> tanvo.catalog.v1.GetPlanRequest
-	9,  // 26: tanvo.catalog.v1.PlanService.ListPlans:input_type -> tanvo.catalog.v1.ListPlansRequest
-	11, // 27: tanvo.catalog.v1.PlanService.UpdatePlan:input_type -> tanvo.catalog.v1.UpdatePlanRequest
-	13, // 28: tanvo.catalog.v1.PlanService.DeletePlan:input_type -> tanvo.catalog.v1.DeletePlanRequest
-	6,  // 29: tanvo.catalog.v1.PlanService.CreatePlan:output_type -> tanvo.catalog.v1.CreatePlanResponse
-	8,  // 30: tanvo.catalog.v1.PlanService.GetPlan:output_type -> tanvo.catalog.v1.GetPlanResponse
-	10, // 31: tanvo.catalog.v1.PlanService.ListPlans:output_type -> tanvo.catalog.v1.ListPlansResponse
-	12, // 32: tanvo.catalog.v1.PlanService.UpdatePlan:output_type -> tanvo.catalog.v1.UpdatePlanResponse
-	14, // 33: tanvo.catalog.v1.PlanService.DeletePlan:output_type -> tanvo.catalog.v1.DeletePlanResponse
-	29, // [29:34] is the sub-list for method output_type
-	24, // [24:29] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	26, // 24: tanvo.catalog.v1.ReplacePlanMetadataRequest.metadata:type_name -> tanvo.common.v1.MetadataItem
+	26, // 25: tanvo.catalog.v1.MergePlanMetadataRequest.metadata:type_name -> tanvo.common.v1.MetadataItem
+	26, // 26: tanvo.catalog.v1.ReplacePlanMetadataResponse.metadata:type_name -> tanvo.common.v1.MetadataItem
+	26, // 27: tanvo.catalog.v1.MergePlanMetadataResponse.metadata:type_name -> tanvo.common.v1.MetadataItem
+	26, // 28: tanvo.catalog.v1.DeletePlanMetadataResponse.metadata:type_name -> tanvo.common.v1.MetadataItem
+	26, // 29: tanvo.catalog.v1.DeletePlanMetadataKeyResponse.metadata:type_name -> tanvo.common.v1.MetadataItem
+	5,  // 30: tanvo.catalog.v1.PlanService.CreatePlan:input_type -> tanvo.catalog.v1.CreatePlanRequest
+	7,  // 31: tanvo.catalog.v1.PlanService.GetPlan:input_type -> tanvo.catalog.v1.GetPlanRequest
+	9,  // 32: tanvo.catalog.v1.PlanService.ListPlans:input_type -> tanvo.catalog.v1.ListPlansRequest
+	11, // 33: tanvo.catalog.v1.PlanService.UpdatePlan:input_type -> tanvo.catalog.v1.UpdatePlanRequest
+	13, // 34: tanvo.catalog.v1.PlanService.DeletePlan:input_type -> tanvo.catalog.v1.DeletePlanRequest
+	15, // 35: tanvo.catalog.v1.PlanService.ReplacePlanMetadata:input_type -> tanvo.catalog.v1.ReplacePlanMetadataRequest
+	16, // 36: tanvo.catalog.v1.PlanService.MergePlanMetadata:input_type -> tanvo.catalog.v1.MergePlanMetadataRequest
+	17, // 37: tanvo.catalog.v1.PlanService.DeletePlanMetadata:input_type -> tanvo.catalog.v1.DeletePlanMetadataRequest
+	18, // 38: tanvo.catalog.v1.PlanService.DeletePlanMetadataKey:input_type -> tanvo.catalog.v1.DeletePlanMetadataKeyRequest
+	6,  // 39: tanvo.catalog.v1.PlanService.CreatePlan:output_type -> tanvo.catalog.v1.CreatePlanResponse
+	8,  // 40: tanvo.catalog.v1.PlanService.GetPlan:output_type -> tanvo.catalog.v1.GetPlanResponse
+	10, // 41: tanvo.catalog.v1.PlanService.ListPlans:output_type -> tanvo.catalog.v1.ListPlansResponse
+	12, // 42: tanvo.catalog.v1.PlanService.UpdatePlan:output_type -> tanvo.catalog.v1.UpdatePlanResponse
+	14, // 43: tanvo.catalog.v1.PlanService.DeletePlan:output_type -> tanvo.catalog.v1.DeletePlanResponse
+	19, // 44: tanvo.catalog.v1.PlanService.ReplacePlanMetadata:output_type -> tanvo.catalog.v1.ReplacePlanMetadataResponse
+	20, // 45: tanvo.catalog.v1.PlanService.MergePlanMetadata:output_type -> tanvo.catalog.v1.MergePlanMetadataResponse
+	21, // 46: tanvo.catalog.v1.PlanService.DeletePlanMetadata:output_type -> tanvo.catalog.v1.DeletePlanMetadataResponse
+	22, // 47: tanvo.catalog.v1.PlanService.DeletePlanMetadataKey:output_type -> tanvo.catalog.v1.DeletePlanMetadataKeyResponse
+	39, // [39:48] is the sub-list for method output_type
+	30, // [30:39] is the sub-list for method input_type
+	30, // [30:30] is the sub-list for extension type_name
+	30, // [30:30] is the sub-list for extension extendee
+	0,  // [0:30] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_catalog_v1_plan_proto_init() }
@@ -2470,7 +3156,7 @@ func file_tanvo_catalog_v1_plan_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_catalog_v1_plan_proto_rawDesc), len(file_tanvo_catalog_v1_plan_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   13,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

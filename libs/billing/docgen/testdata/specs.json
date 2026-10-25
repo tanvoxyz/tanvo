@@ -1,0 +1,42 @@
+{
+  "title": "the document generation and the document emails",
+  "files": [
+    "jobs/credit_notes/generate_documents_job_spec.rb",
+    "jobs/invoices/generate_documents_job_spec.rb",
+    "jobs/invoices/notify_job_spec.rb",
+    "jobs/payment_receipts/generate_documents_job_spec.rb",
+    "jobs/payment_receipts/notify_job_spec.rb",
+    "jobs/send_email_job_spec.rb",
+    "mailers/credit_note_mailer_spec.rb",
+    "mailers/invoice_mailer_spec.rb",
+    "mailers/payment_receipt_mailer_spec.rb",
+    "mailers/payment_request_mailer_spec.rb",
+    "services/credit_notes/generate_pdf_service_spec.rb",
+    "services/credit_notes/generate_xml_service_spec.rb",
+    "services/emails/resend_service_spec.rb",
+    "services/invoices/generate_pdf_service_spec.rb",
+    "services/invoices/generate_xml_service_spec.rb",
+    "services/payment_receipts/generate_pdf_service_spec.rb",
+    "services/payment_receipts/generate_xml_service_spec.rb"
+  ],
+  "reasons": {
+    "queue": "The configurable queue shared example asserts the Sidekiq queue name and its SIDEKIQ_* environment switch. Tanvo's jobs run on the River queues of libs/jobs, chosen per job kind (architecture §9), with no per-kind environment switch.",
+    "tempfile": "Lago renders through temporary files it must unlink. Tanvo renders in memory, and the Typst child process writes only inside the renderer's private directory, which libs/documents removes (Renderer.Close); there is no temporary file per document.",
+    "actor": "No caller passes user_id or api_key_id to a mailer: the only mailer parameter beyond the document is resend: true (app/services/emails/resend_service.rb:31-47), so the email.sent log is always from the system source. Tanvo's document email jobs carry no actor; the resend status is ported (apps/server/internal/app/documents_test.go).",
+    "premium": "Tanvo has no premium gates: every feature is available to every organization (the Tanvo-wide rule of docs/parity.md: no license checks in the core)."
+  },
+  "skipped": {
+    "jobs/credit_notes/generate_documents_job_spec.rb:16": "queue",
+    "jobs/invoices/generate_documents_job_spec.rb:17": "queue",
+    "jobs/payment_receipts/generate_documents_job_spec.rb:17": "queue",
+    "jobs/send_email_job_spec.rb:33": "actor",
+    "jobs/send_email_job_spec.rb:49": "actor",
+    "services/credit_notes/generate_pdf_service_spec.rb:66": "tempfile",
+    "services/credit_notes/generate_xml_service_spec.rb:45": "tempfile",
+    "services/invoices/generate_pdf_service_spec.rb:161": "tempfile",
+    "services/invoices/generate_xml_service_spec.rb:43": "tempfile",
+    "services/payment_receipts/generate_pdf_service_spec.rb:115": "tempfile",
+    "services/payment_receipts/generate_xml_service_spec.rb:54": "tempfile",
+    "services/emails/resend_service_spec.rb:79": "premium"
+  }
+}

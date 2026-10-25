@@ -390,9 +390,20 @@ func TestGateCheckOrder(t *testing.T) {
 		g.agent = agent
 		g.want(t, gateWant{requirements: []x402pay.Requirement{evmRequirement}, external: s.ExternalID, balance: "0"})
 	})
-	// The refusal of a customer carrying a tax error
-	// (check_service_spec.rb:349-359) is not ported: Tanvo records no
-	// customer error details.
+	// source: spec/services/x402/gate_checks/check_service_spec.rb:349-359
+	t.Run("with a customer carrying a tax error", func(t *testing.T) {
+		g := newGate(t)
+		c := g.customer()
+		g.wallet(c, "15")
+		g.subscription(c)
+		g.h.Do(func(ctx context.Context, r port.Repos) error {
+			return r.CustomerErrorDetails.Create(ctx, &customer.ErrorDetail{
+				ID: core.NewID[core.ErrorDetailID](g.h.IDs), OrganizationID: g.h.OrgID(), CustomerID: c.ID,
+				Code: customer.ErrorCodeTaxError, CreatedAt: g.h.Now(),
+			})
+		})
+		g.refused(t, "base: customer_not_refreshable")
+	})
 }
 
 func TestGateCheckSubscription(t *testing.T) {

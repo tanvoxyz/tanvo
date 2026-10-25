@@ -42,24 +42,24 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 组织资料（名称、法定名称与编号、地址、邮箱、税号、标志） | `app/models/organization.rb`、`app/services/organizations/update_service.rb` | libs/core | 计划中 | |
-| 组织时区、默认货币、文档语言 | `app/models/organization.rb` | libs/core | 计划中 | 作为默认值；计费主体与客户可以覆盖 |
-| 组织设置的读取与更新 API | `app/controllers/api/v1/organizations_controller.rb` | apps/server | 进行中 | `OrganizationService`（`auth.OrganizationSettings`）读取组织并更新其 slug、邮箱、地址、徽标与认证方式；地址逐字段合并。在接入 blob 存储前拒绝上传徽标。`organizations_controller.rb` 的其他资料字段尚未开放 |
+| 组织资料（名称、法定名称与编号、地址、邮箱、税号、标志） | `app/models/organization.rb`、`app/services/organizations/update_service.rb` | libs/core | 已完成 | `auth.OrganizationSettings`（libs/auth/org_settings.go，测试见 org_settings_test.go）保存名称、邮箱、地址与标志。法定名称、编号与税号是计费主体的字段（domain §4.1 [Change]；lago 的 `update_service.rb` 把它们复制到默认计费主体）。配置 blob 存储后才保存标志（§1.47） |
+| 组织时区、默认货币、文档语言 | `app/models/organization.rb` | libs/core | 已完成 | 是计费主体的字段（domain §4.1 [Change]），位于 libs/billing/billingentities；客户可以覆盖它们（`customer.ApplicableTimezone`，libs/core/customer） |
+| 组织设置的读取与更新 API | `app/controllers/api/v1/organizations_controller.rb` | apps/server | 已完成 | `OrganizationService`（`auth.OrganizationSettings`）读取组织并更新其 slug、邮箱、地址、徽标与认证方式；地址逐字段合并。未配置 blob 存储时拒绝上传徽标（`logo_storage_not_configured`，§1.47）。`organizations_controller.rb` 的其他字段（法定名称与编号、税号、时区、货币、语言、发票与邮件设置）是计费主体的设置（domain §4.1 [Change]），由 `BillingEntityService` 提供 |
 | 组织 slug（用于文档编号与收据） | `app/models/organization.rb` | libs/core、libs/auth | 已完成 | 变更时规范化，并检查是否为保留或已占用的 slug（`app/services/organizations/update_service.rb`） |
 | 审计日志保留期设置（`audit_logs_period`） | `app/models/organization.rb` | libs/core、libs/auth | 逻辑已完成 | 应用于活动日志与 API 日志查询（`activity_logs_query.rb`、`api_logs_query.rb`）；与 v1.55.0 一样不能通过 API 更新 |
 | 每个客户的最大钱包数设置 | `app/models/organization.rb` | libs/billing | 逻辑已完成 | |
 | 每个组织允许的认证方式（邮箱密码、Google、Okta、Entra ID） | `app/models/organization.rb`、`app/services/organizations/update_service.rb` | libs/auth、apps/server | 已完成 | Okta 与 Entra ID 成为 OIDC 连接；新增通用 OIDC（`oidc`）作为 Tanvo 扩展。修改需要持有 `authentication_methods:update` 的用户；v1.55.0 定义了该权限（`config/permissions.yml`），但服务端并不检查（`app/graphql/types/organizations/update_organization_input.rb:8`）；REST API 不接受该字段，因此拒绝 API 密钥 |
 | 认证方式变更时通知管理员的邮件 | `app/mailers/organization_mailer.rb` | libs/mail | 逻辑已完成 | |
-| 每个组织用于 webhook 签名的 HMAC 密钥 | `app/models/organization.rb` | libs/webhooks | 计划中 | 由每个端点的 Standard Webhooks 密钥取代（§3） |
-| 首次启动时初始化组织 | `config/initializers/`（`LAGO_CREATE_ORG`、`LAGO_ORG_USER_*`） | apps/server | 计划中 | 以 `tanvo admin bootstrap` 命令代替环境变量 |
-| 按组织选择事件存储（PostgreSQL 或 ClickHouse） | `app/models/organization.rb`（`clickhouse_events_store`） | libs/eventstore | 计划中 | 安装级设置，可按组织覆盖 |
+| 每个组织用于 webhook 签名的 HMAC 密钥 | `app/models/organization.rb` | libs/webhooks | 已完成 | 由每个端点的 Standard Webhooks 密钥取代（§3），位于 libs/webhooks（signature_test.go） |
+| 首次启动时初始化组织 | `lib/tasks/signup.rake`（`LAGO_CREATE_ORG`、`LAGO_ORG_USER_*`、`LAGO_ORG_API_KEY`） | apps/server | 已完成 | 以 `tanvo admin bootstrap --organization-name … --email …` 代替 `LAGO_CREATE_ORG`（§3）；密码来自 `--password-stdin` 或 `TANVO_BOOTSTRAP_PASSWORD`，可选的密钥来自 `TANVO_BOOTSTRAP_API_KEY`，使秘密不出现在命令行上。它在一个事务中按 `signup.rake:14-31` 的方式查找或创建：按邮箱查找用户（已有用户保留其密码）、组织、其默认计费主体（代码为以 `-` 参数化的名称，`signup.rake:18-20`）、带管理员角色的有效成员关系（已有成员关系缺少该角色时补上），以及给定的 API 密钥，未给定时则任一密钥。偏差：组织按由名称派生的 slug 查找，即 Tanvo 唯一的组织键（领域 §4.1），而 lago 按不唯一的名称查找；生成的密钥只打印一次，因为密钥以哈希存储（§3）；给定的密钥属于另一个组织时报冲突，而 lago 的 `find_or_create_by!(organization:, value:)` 会因值唯一而失败。测试：apps/server/internal/app/bootstrap_test.go、cli/admin_test.go |
+| 按组织选择事件存储（PostgreSQL 或 ClickHouse） | `app/models/organization.rb`（`clickhouse_events_store`） | libs/eventstore | 已完成 | 安装级设置 `TANVO_INGEST_MODE`（postgres：PostgreSQL 存储；kafka：ClickHouse），可用 `TANVO_INGEST_KAFKA_ORGANIZATIONS` 与 `TANVO_INGEST_POSTGRES_ORGANIZATIONS` 按组织覆盖；在 apps/server/internal/config 中校验（config_test.go），由 `app.ingestModes` 与 `app.EventStores.For` 应用（ingest_test.go） |
 
 ### 1.3 计费主体
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 计费主体的增删改查（法律身份、地址、标志、货币、时区、语言） | `app/models/billing_entity.rb`、`app/services/billing_entities/` | libs/billing | 进行中 | 创建、查询、列表与更新位于 `libs/billing/billingentities`，附移植的 spec。不提供归档：v1.55.0 从不归档（其删除 mutation 不起作用，`app/graphql/mutations/billing_entities/destroy.rb:17-20`）。创建时也接受税、发票自定义段落与催收活动；标志需要 blob 存储，服务器尚未接入 |
-| 每个组织的默认计费主体及按客户指定 | `app/models/billing_entity.rb`、`app/services/customers/` | libs/core、libs/billing | 进行中 | 最先创建的有效主体成为默认主体（`app/models/organization.rb` `default_billing_entity`）；客户在创建或更新时取按 ID 或 `code:` 指定的主体，否则取默认主体；已归档的主体返回 `billing_entity_not_found`（`upsert_from_api_service.rb:154`） |
+| 计费主体的增删改查（法律身份、地址、标志、货币、时区、语言） | `app/models/billing_entity.rb`、`app/services/billing_entities/` | libs/billing | 已完成 | 创建、查询、列表与更新位于 `libs/billing/billingentities`，附移植的 spec。不提供归档：v1.55.0 从不归档（其删除 mutation 不起作用，`app/graphql/mutations/billing_entities/destroy.rb:17-20`）。创建时也接受税、发票自定义段落与催收活动；配置 blob 存储后才保存标志（§1.47） |
+| 每个组织的默认计费主体及按客户指定 | `app/models/billing_entity.rb`、`app/services/customers/` | libs/core、libs/billing | 已完成 | 最先创建的有效主体成为默认主体（`app/models/organization.rb` `default_billing_entity`）；客户在创建或更新时取按 ID 或 `code:` 指定的主体，否则取默认主体；已归档的主体返回 `billing_entity_not_found`（`upsert_from_api_service.rb:154`）。测试见 billingentities 的 `TestCreateFirstEntityIsDefault` 与 customers 的 service_test.go |
 | 每个组织的计费主体数量（按套餐为 1、2 或不限） | `app/models/organization.rb`（`MULTI_ENTITIES_MAX`） | libs/billing | 已完成 | 核心中不设上限：去掉了 `app/services/billing_entities/create_service.rb:20` 的套餐检查 |
 | 按客户或按计费主体编号文档 | `app/services/billing_entities/change_invoice_numbering_service.rb` | libs/billing | 逻辑已完成 | |
 | 文档编号前缀 | `app/models/billing_entity.rb` | libs/billing | 逻辑已完成 | |
@@ -67,7 +67,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 开票日期锚点与调整设置 | `app/models/billing_entity.rb` | libs/billing | 逻辑已完成 | |
 | 零金额发票定稿设置 | `app/models/billing_entity.rb` | libs/billing | 逻辑已完成 | |
 | 欧盟税务管理开关与自动欧盟税 | `app/services/billing_entities/`、`app/services/taxes/auto_generate_service.rb` | libs/billing | 已完成 | 在欧盟主体上启用时，在同一事务中创建或更新欧盟税（`tanvo_eu_*`，自动生成） |
-| 在支持的国家（法国、德国）启用电子发票 | `app/models/billing_entity.rb` | libs/documents | 逻辑已完成 | |
+| 在支持的国家（法国、德国）启用电子发票 | `app/models/billing_entity.rb` | libs/documents | 已完成 | 对于受支持国家中开具电子发票的计费主体（`einvoice.Eligible`），文档任务渲染 XML 并将其嵌入 PDF |
 | 邮件设置（哪些文档通过邮件发送）与发件地址 | `app/models/billing_entity.rb`（`email_settings`） | libs/mail | 进行中 | |
 | 应用于计费主体的税（应用、移除、管理） | `app/services/billing_entities/taxes/` | libs/billing | 已完成 | 通过 `tax_ids`（ID 或 `code:`）整体替换，并在同一事务中标记该主体的草稿发票待刷新。代码精确匹配；v1.55.0 不区分大小写（`manage_taxes_service.rb:31-32`） |
 | 每个计费主体所应用的催收活动 | `app/services/billing_entities/update_applied_dunning_campaign_service.rb` | libs/billing | 已完成 | 变更时重置回退到该主体活动的客户的尝试次数 |
@@ -92,7 +92,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 邮箱密码登录与注册 | `app/services/users_service.rb`、`app/graphql/mutations/` | libs/auth、apps/server | 已完成 | argon2id 哈希；以不透明会话代替 JWT（§3）。`AuthService`（注册、密码与 OIDC 登录、邀请、当前用户、登出）；会话在 `X-Tanvo-Organization` 请求头指定的组织中操作（[架构 §4.4](architecture.zh-CN.md#44-认证与授权)）；过期会话由每小时的 `clock.purge_sessions` 任务清理 |
+| 邮箱密码登录与注册 | `app/services/users_service.rb`、`app/graphql/mutations/` | libs/auth、apps/server | 已完成 | argon2id 哈希；以不透明会话代替 JWT（§3）。`AuthService`（注册、密码与 OIDC 登录、邀请、当前用户、登出）；会话在 `X-Tanvo-Organization` 请求头指定的组织中操作（[架构 §4.4](architecture.zh-CN.md#44-认证与授权)）；过期会话由每小时的 `clock.purge_sessions` 任务清理。注册创建的组织会得到其默认计费主体，代码为以 `_` 参数化的名称（`organizations/create_service.rb:22-35`）；不随之创建 API 密钥，因为密钥以哈希存储且只显示一次（§3），第一个密钥在 API 密钥设置中创建 |
 | Google 登录、注册与接受邀请 | `app/services/auth/google_service.rb` | libs/auth | 逻辑已完成 | 经由 OIDC 身份提供者 |
 | Okta 登录（authorize、token、userinfo、state 校验） | `app/services/auth/okta/` | libs/auth | 逻辑已完成 | OIDC 连接；一次性 state 存储在 PostgreSQL（`oidc_states`，10 分钟而非 90 秒） |
 | 带租户与附加域名的 Entra ID 登录 | `app/services/auth/entra_id/` | libs/auth | 逻辑已完成 | OIDC 连接 |
@@ -116,7 +116,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 健康与就绪端点 | `config/routes.rb`（`/health`、`/ready`） | apps/server | 已完成 | `/healthz`、`/readyz`；就绪检查 PostgreSQL、事件存储，以及使用时的 ClickHouse 与 Kafka |
 | Prometheus 指标端点 | `config/initializers/yabeda.rb` | apps/server | 已完成 | OpenTelemetry（默认 OTLP）与可选的 `/metrics` 读取器（`TANVO_METRICS_ENDPOINT`） |
 | 当前版本端点 | `app/graphql/resolvers/version_resolver.rb` | apps/server | 已完成 | `ServerService.GetServerInfo`：构建中的版本与修订 |
-| 对第三方 API 调用的限流 | `config/initializers/throttling.rb` | providers/* | 计划中 | 按提供者设定上限（HubSpot 110 次/10 秒，Xero 60 次/分钟与 5000 次/天，NetSuite 10 次/秒，Anrok 9 次/秒，Avalara 10 次/秒） |
+| 对第三方 API 调用的限流 | `config/initializers/throttling.rb` | providers/*、apps/server | 已完成 | providers/apiclient 中按密钥的令牌桶（`x/time/rate`）：HubSpot 110 次/10 秒，Xero 60 次/分钟，NetSuite 10 次/秒，Anrok 9 次/秒，Avalara 10 次/秒。Xero 每租户每天 5000 次是按 UTC 日计的配额，窗口与 throttling gem 一样对齐纪元（`apiclient.Window`）；超出配额的调用以请求限制失败，由任务的请求限制规则重试，同 lago 的 `ThrottlingError`（`aggregator/base_service.rb:69-76`）；OAuth 交换不计入。联系人、发票、贷记单与付款同步任务（lago 中引入 `ConcurrencyThrottlable` 的任务）在整个部署中最多同时运行 5 个（`throttling.rb:10`）：每个任务持有 5 个槽位之一，即会话级咨询锁（libs/store `AcquireSlot`），找不到空槽的任务推迟一秒，同 sidekiq-throttled 1.4.0 在冷却期后重新入队。偏差：令牌桶与每日配额按服务器进程计数，而 lago 在 Rails.cache 中计数，由各 worker 共享。测试：providers/apiclient `TestWindows`、providers/xero `TestDailyLimit`、libs/store `TestAcquireSlot`、apps/server `TestSyncConcurrency` |
 
 ### 1.7 客户
 
@@ -130,7 +130,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 税号、法定名称与编号 | `app/models/customer.rb` | libs/core、apps/server | 已完成 | |
 | 默认货币：新计费对象的偏好，而不是约束 | `app/services/customers/update_currency_service.rb` | libs/core | 逻辑已完成 | 为空时由第一个计费对象设置；显式更新可随时修改 |
 | 每个客户多种货币：订阅取其套餐的货币；钱包、已应用的优惠券和一次性发票取各自的货币；发票按货币拆分 | `app/services/subscriptions/organization_billing_service.rb`（`group_by_currency`）、`app/services/wallets/create_service.rb`、`app/services/applied_coupons/create_service.rb`、`app/services/invoices/create_one_off_service.rb` | libs/billing | 逻辑已完成 | 钱包和固定金额优惠券只抵扣同货币的发票；催收按货币计数尝试次数（§1.35） |
-| 时区，回退到计费主体与组织 | `app/models/customer.rb` | libs/period | 计划中 | 各处一律按客户 → 计费主体 → 组织回退（§4） |
+| 时区，回退到计费主体与组织 | `app/models/customer.rb` | libs/period | 已完成 | `customer.ApplicableTimezone`（libs/core/customer，`TestApplicableSettings`）：客户 → 计费主体 → UTC；组织没有时区（domain §4.1 [Change]） |
 | 宽限期、付款条款、文档语言及其回退 | `app/models/customer.rb` | libs/billing | 逻辑已完成 | |
 | 零金额发票定稿：继承、跳过、定稿 | `app/models/customer.rb` | libs/billing | 逻辑已完成 | |
 | 开票日期锚点与调整的覆盖 | `app/models/customer.rb` | libs/billing | 逻辑已完成 | |
@@ -140,7 +140,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 删除客户并终止其关联 | `app/services/customers/destroy_service.rb`、`app/jobs/customers/terminate_relations_job.rb` | libs/billing、apps/server | 已完成 | `DeleteCustomer` 归档客户并排队 `customers.terminate_relations`，该任务终止其活跃与待生效订阅、已应用的优惠券和活跃钱包，并在 5 分钟后排队定稿其草稿。该任务需注册到计费任务分发（`customers.Service.HandleJob`）。与 lago 相同，不取消待定的 VIES 检查。发票搜索词在查询时由客户信息计算，因此 lago 的 `Customers::RefreshInvoicesSearchTermsJob`（`update_service.rb:158-160`）无需刷新 |
 | 每个客户的支付提供者连接（提供者客户 ID、与提供者同步） | `app/services/payment_provider_customers/create_or_update_batch_service.rb` | libs/billing、apps/server | 已完成 | 通过支付集成使用 `UpsertCustomerConnection`、`ListCustomerConnections` 与 `DeleteCustomerConnection`：每个客户可有多个支付连接，每个支付供应商一个（`base_customer.rb:32`、`create_connection_service.rb`）；第一个为默认连接，`is_default` 移动默认连接（`set_as_default_service.rb`）；既无提供者客户 ID 也无 `sync_with_provider` 的新连接不会创建（`create_connection_service.rb:18, 54-56`）。空的 `provider_payment_methods` 列表保留已存类型；适配器给出默认值（Stripe 为 `card`）并校验（`stripe_customer.rb:9-12`）。删除会作废该连接及其支付方式与各计费对象对它的选择（`destroy_service.rb:14-26`）。提供者客户经 `payments.sync_provider_customer` 在提供者中创建或更新。没有手动连接代码：每个连接都指向一个集成 |
 | 集成客户（会计、CRM、税务）的批量创建与更新 | `app/services/integration_customers/create_or_update_batch_service.rb` | libs/billing、apps/server | 已完成 | 同样的 RPC 用于会计、税务或 CRM 集成：每个客户可有多个，某类别的第一个为默认，`is_default` 可移动默认（`set_as_default_service.rb`）。合作伙伴账户的连接保持不变，没有外部客户 ID 且不同步的连接不会创建，两者都成功返回且无连接（`create_or_update_batch_service.rb:16`、`create_connection_service.rb:18-19`）；同一提供者的第二个连接为 `customer_id` `value_already_exist`，第二个税务连接为 `integration_id` `tax_integration_exists`（`base_customer.rb:42, 44`）。更新只赋值非空的外部客户 ID 与 HubSpot 的 `targeted_object`，Anrok 与 Salesforce 两者都不赋值（`update_service.rb:18-23`）；同步标志与子公司在创建时设定。提供者返回的联系人邮箱保存在连接上。多个客户可链接同一个外部客户。一个 RPC（`UpsertCustomerConnection`，以客户与集成为键）同时服务 REST 与控制台客户端，并像批量服务一样把提供者同步加入队列（`create_or_update_batch_service.rb:48-60`），而控制台的 `CreateConnectionService` 同步调用（`netsuite_service.rb:22-23`）。连接代码随计费对象连接规划（“按计费对象选择连接”一行） |
-| 用于收集支付方式的结账 URL | `app/services/customers/generate_checkout_url_service.rb` | libs/billing、apps/server | 进行中 | `GenerateCheckoutUrl` 检查支付连接（`no_linked_payment_provider`），在提供者客户端接入之前返回 Unimplemented（`customers.WithCheckout`） |
+| 用于收集支付方式的结账 URL | `app/services/customers/generate_checkout_url_service.rb` | libs/billing、apps/server | 已完成 | `customers.Service.CheckoutURL` 检查客户及其支付连接（`no_linked_payment_provider`），通过 `payments.Service.GenerateCheckoutURL`（在 apps/server 中接入）向连接的适配器请求设置页面，不发送 `customer.checkout_url_generated` webhook（`send_webhook: false`）；提供者拒绝时发送 `customer.payment_provider_error`。用例移植在 libs/billing/payments（`TestGenerateCheckoutURL`）和 libs/billing/customers |
 | 客户门户 URL | `app/services/customer_portal/generate_url_service.rb` | libs/auth、apps/server | 已完成 | `GeneratePortalUrl` 返回 URL 及其过期时间（12 小时）；`app.NewPortalTokens` 由 `TANVO_SECRET_KEY` 派生签名密钥；已删除的客户返回 `customer_not_found`；未配置密钥时该 RPC 返回 Unimplemented |
 | 串行化每个客户操作的锁（预付额度、支付方式、贷项通知单、优惠券、计费调度） | `app/services/customers/lock_service.rb` | libs/store | 逻辑已完成 | PostgreSQL 咨询锁 |
 | 按客户选择或跳过发票自定义段落 | `app/services/customers/manage_invoice_custom_sections_service.rb` | libs/billing、apps/server | 已完成 | 跳过会清空所选段落，选择段落会取消跳过，二者同时提供返回 `skip_sections_and_selected_ids_sent_together`；与 lago 的 `where` 一样忽略未知段落 |
@@ -314,21 +314,21 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 摄取和事件过滤中 `external_contract_id` 作为 `external_subscription_id` 的别名 | `app/controllers/api/v1/events_controller.rb` | libs/ingest | 逻辑已完成 | 两者都发送时以显式的 `external_subscription_id` 为准 |
 | 按组织、外部订阅 ID 与交易 ID 去重 | `app/services/events/create_service.rb`、`app/services/events/validate_creation_service.rb`、`db/structure.sql`（`index_unique_transaction_id`） | libs/ingest、libs/store、libs/eventstore | 逻辑已完成 | 所有存储使用同一个键；Lago 的 ClickHouse 存储在查询时去重，并且还以代码和时间戳为键，而 Tanvo 把在另一时间戳的重发视为重复 |
 | 事件上的请求元数据（user agent、IP） | `app/services/events/create_service.rb` | libs/ingest | 已完成 | PostgreSQL 路径上存于 `public.events.metadata`，Kafka 路径上存于 ClickHouse 的 `events_raw`，由原始消息与富化消息携带；lago 的 Kafka 消息不含元数据（`app/services/events/kafka_producer_service.rb:36`），其 ClickHouse 事件也没有（`app/models/clickhouse/events_raw.rb:20`）。以事件的 `user_agent` 与 `ip_address` 返回（lago 仅在 GraphQL 中提供，`app/graphql/types/events/object.rb:20`）；地址按 `request.remote_ip`（`app/controllers/api/v1/events_controller.rb:219`）解析，受信任代理为 ActionDispatch::RemoteIp 的默认集合加上 `TANVO_TRUSTED_PROXIES`，不同之处在于仅当对端受信任时才读取转发头，且与 `X-Forwarded-For` 矛盾的 `Client-Ip` 会被忽略而不是使请求失败（actionpack `remote_ip.rb:151`） |
-| 事件校验（指标代码、订阅、数值字段） | `app/services/events/validate_creation_service.rb` | libs/ingest | 进行中 | |
+| 事件校验（指标代码、订阅、数值字段） | `app/services/events/validate_creation_service.rb` | libs/ingest | 已完成 | v1.55.0 的 `validate_creation_service.rb` 只校验费用估算的事件（`fees/estimate_pay_in_advance_service.rb:16`）；移植于 libs/billing/estimates（service.go、service_test.go）。摄取会保存未匹配的事件，并通过 `events.errors` 报告（§1.38） |
 | 摄取后的事件校验与 `events.errors` webhook | `app/services/events/post_validation_service.rb` | libs/billing, libs/store | 已完成 | `billing.Engine.ValidateEvents` 每小时 :05 为有 webhook 端点且上一个整点小时内创建过事件的组织运行；一个 `events.errors` webhook（对象类型 `events_errors`）按 `db/views/last_hour_events_mv_v04.sql` 的规则列出代码无效、聚合属性缺失或非数值、过滤器取值无效的事务 ID（代码只对应已弃用指标的事件跳过）。以 `events (organization_id, created_at)` 上的直接查询取代物化视图；v1.55.0 从不填写的 `missing_group_key` 不保留。与 lago 只校验存入 PostgreSQL 的事件一致（`app/services/events/create_service.rb:37`），Kafka 管道的事件不做后置校验。`TANVO_DISABLE_EVENTS_VALIDATION`（lago `LAGO_DISABLE_EVENTS_VALIDATION`）将其移出调度。摄取仍同步拒绝能同步检查的内容 |
 | 获取单个事件与列出事件 | `app/controllers/api/v1/events_controller.rb`、`app/queries/events_query.rb` | libs/ingest、apps/server | 已完成 | `EventService.GetEvent`（`GET /v1/events/{transaction_id}`）与 `ListEvents`（`GET /v1/events`）；过滤器可限定 `code`、`external_subscription_id`（=）与 `timestamp`（>=、<=），`timestamp_from_started_at` 从最新订阅的开始时间起算。`GetEvent` 另可接收 `external_subscription_id`（超出 lago），用于在共享同一交易 ID 的事件中选择；未提供时返回最先摄入的事件（`events_controller.rb:55`）。PostgreSQL 列表按事件 ID 打破并列，lago 按交易 ID（`events_query.rb:22`）；ClickHouse 上列表返回每个事件的当前副本（lago 读取 `events_raw` 不去重，`events_query.rb:24,50`），且 ClickHouse 事件没有 ID |
-| 列出富化事件 | `app/controllers/api/v1/events_controller.rb`（`events_enriched`） | apps/server | 计划中 | |
+| 列出富化事件 | `app/controllers/api/v1/events_controller.rb`（`events_enriched`） | apps/server、libs/ingest、libs/eventstore | 已完成 | `EventService.ListEnrichedEvents`（`GET /v1/enriched_events`，`events_controller.rb:94-118`）：响应带有 `X-Tanvo-Endpoint-Status: beta`（lago 为 `X-Lago-Endpoint-Status`）；未通过 Kafka 摄入的组织，其事件不会以富化形式存入 ClickHouse，会得到 PermissionDenied（403）`endpoint_not_available`（lago `ensure_organization_uses_clickhouse`）。过滤条件与 `timestamp_from_started_at` 与 `ListEvents` 相同（带 `enriched` 的 `EventsQuery`）；列表按富化时间从新到旧，再按外部订阅与交易 ID 排序（lago 按 `enriched_at` 降序再按交易 ID：Tanvo 的事件还以订阅为键），按令牌分页。每个事件含 `V1::EventEnrichedSerializer` 的字段：交易 ID、外部订阅 ID、代码、时间戳、`enriched_at`、`value`、`decimal_value`、精确金额与属性。ClickHouse 的 `events_enriched` 新增 `value`（富化时写入：计数指标为 "1"，否则为 field_name 属性）、`decimal_value`（`toDecimal128OrZero(value, 26)`）与 `enriched_at`（`now64(6)`），与 lago 的表一致。测试：`TestEnrichedEvents`（libs/eventstore/clickhouse）、`TestReaderEnriched`（libs/ingest）、`TestListEnrichedEvents`（apps/server，events_controller_spec.rb:485、520）以及 `TestServeKafka` 中的富化值 |
 | 预付事件的费用估算 | `app/services/fees/estimate_pay_in_advance_service.rb` | libs/billing、apps/server | 已完成 | `EventService.EstimateFees`（`POST /v1/events:estimate_fees`），实现于 libs/billing/estimates。缺少 `external_subscription_id` 时由请求校验拒绝（400），lago 返回 404（`estimate_pay_in_advance_service.rb:16`）。响应为估算费用（计费项、过滤器、金额、税额、数量、单价、事件数、分组），而非 lago 带适用税的完整费用序列化（`events_controller.rb:160`）；税务提供者失败会使估算失败 |
 | 即时费用估算与批量即时估算 | `app/services/fees/estimate_instant/` | libs/billing、apps/server | 已完成 | `EventService.EstimateInstantFees`（`POST /v1/events:estimate_instant_fees`）以批量形式同时承担 lago 的两个端点。单价以货币单位表示，lago 的 `precise_unit_amount` 以分表示（`estimate_instant/base_service.rb:39,78`）；数量不是数字时返回校验错误，lago 抛出异常（`base_service.rb:28`）；表达式求值失败与 lago 一样被忽略 |
 | 富化：订阅、指标、表达式、聚合值、分组键、精确金额；查找计费项只为路由预付事件 | `app/services/events/enrich_service.rb`、events-processor `processors/` | libs/ingest | 逻辑已完成 | 富化行上没有计费项或过滤器；过滤器在查询或聚合到桶时根据原始属性匹配 |
 | 带操作类型（增加/移除）的富化事件 | `app/models/enriched_event.rb` | libs/ingest | 逻辑已完成 | |
-| 目录变更后重新富化 | `app/services/events/re_enrich_all_service.rb` | libs/ingest | 计划中 | |
-| 后处理：用量监控、钱包刷新、目标钱包、预付计费项 | `app/services/events/post_process_service.rb` | libs/ingest | 进行中 | 用量监控、钱包刷新与预付计费项已在两种模式下装配：PostgreSQL 模式在摄取事务中完成；Kafka 模式由写入消费者为其写入的事件入队预付任务，`usage.refresh` 消费者把信号交给计费。Lago 从单独的主题在 15 秒后为预付事件计费（`app/consumers/events_charged_in_advance_consumer.rb`、`app/services/events/stores/clickhouse_store.rb:11`） |
+| 目录变更后重新富化 | `app/services/events/re_enrich_all_service.rb` | libs/ingest | 计划中 | `Events::ReEnrichAllService` 在 v1.55.0 中没有调用者；ClickHouse 的路径是运维任务 `events.rake` → `pre_enrichment_check_service.rb` → `re_enrich_subscription_events_service.rb`，它重新生产原始事件。富化行不带计费项或过滤器（architecture §6），因此新增计费项与过滤器无需重新富化。`eventstore.Replacer` 已存在；尚无重新富化任务 |
+| 后处理：用量监控、钱包刷新、目标钱包、预付计费项 | `app/services/events/post_process_service.rb` | libs/ingest | 已完成 | 用量监控、钱包刷新与预付计费项已在两种模式下装配：PostgreSQL 模式在摄取事务中完成；Kafka 模式由写入消费者为其写入的事件入队预付任务，`usage.refresh` 消费者把信号交给计费。Lago 从单独的主题在 15 秒后为预付事件计费（`app/consumers/events_charged_in_advance_consumer.rb`、`app/services/events/stores/clickhouse_store.rb:11`）。目标钱包检查只发送 `event.error`，不移植（§2）。测试见 libs/ingest（service_test.go、catalog_test.go、enrich_test.go） |
 | 指向特定钱包的事件 | `app/services/events/`（`target_wallet_code`） | libs/ingest、libs/billing | 已完成 | 当事件所属套餐在该指标上的计费项接受目标钱包时，`target_wallet_code` 属性对事件用量分组（富化、用量桶、预付与后付费用、进行中余额、预付额度分配）；事件把它作为仅输出字段返回。未移植针对未知钱包的 `event.error` webhook 和实时警告 |
 | 由事件创建预付计费项费用，按来源去重 | `app/services/fees/create_pay_in_advance_service.rb`、`app/services/events/pay_in_advance_service.rb` | libs/billing | 逻辑已完成 | 除非指标按事件计数，或事件带有该指标的字段，否则事件不计费用（`events/pay_in_advance_service.rb:69-74`；自定义聚合未移植） |
 | 带消费者的 Kafka 摄取模式 | events-processor `processors/` | libs/ingest | 逻辑已完成 | 内置于 `consumer` 角色：富化与 ClickHouse 写入消费者组已装配；尚无端到端测试 |
 | 无法处理事件的死信主题 | events-processor `processors/dlq` | libs/ingest | 逻辑已完成 | |
-| HTTP、SQS、Kinesis 来源连接器 | events-processor 连接器 | libs/ingest | 计划中 | 也支持 Kafka |
+| HTTP、SQS、Kinesis 来源连接器 | events-processor 连接器 | libs/ingest | 进行中 | Redpanda Connect 配置位于 `libs/ingest/connectors/`（`http.yml`、`sqs.yml`、`kinesis.yml`，基于 `redpandadata/connect:4.83.0` 的 Dockerfile 及 README），映射与 lago 相同（`connectors/http.yml`、`sqs.yml`、`kinesis.yml`）：相同的输入、环境变量、SASL SCRAM-SHA-512、TLS、批处理、SQS 死信队列与 Prometheus 指标，将 `ingest.RawMessage` 写入 `events.raw`；摄入消费者按 `api_post_processed: false` 的要求计算指标表达式，通过 Kafka 摄入的组织会存储这些事件，无效事件进入死信主题。`RawMessage` 可解码连接器消息：Unix 秒时间戳（允许小数）、时间戳缺省为摄入时间、数值型属性与金额（`TestDecodeConnectorRaw`）；`TestConnectorMappings` 逐一核对映射字段与 `RawMessage`。差异：记录键为 `组织/外部订阅/交易`，与 API 相同（architecture §7；lago 不设键），`KAFKA_TOPIC` 缺省为 `events.raw`。尚余：这些配置及 sqs.yml 移植的映射测试未运行（`rpk connect test`），因本环境没有 Redpanda Connect |
 | 消费者中的目录缓存 | events-processor（Badger 缓存、Debezium） | libs/ingest、apps/server | 已完成 | 以变更通知代替 CDC（§3）。对指标、计费项或订阅的每次已提交变更都会在写入事务内调用 `pg_notify('tanvo_catalog_changes', …)`，因此只在提交时送达；每个 API 与消费者进程都 LISTEN 并逐出该组织的缓存条目，且每次（重新）连接时清空整个缓存，因为期间可能漏掉通知；写入进程在提交后也会立即逐出。TTL 作为兜底保留。所有摄取模式都从 PostgreSQL 读取目录，因此 ClickHouse 与 Kafka 无需额外处理。lago 对指标的 Segment 跟踪未移植（核心不含产品分析） |
 
 ### 1.18 事件存储
@@ -339,7 +339,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 带 FINAL 去重与重试的 ClickHouse 事件存储 | `app/services/events/stores/clickhouse_store.rb` | libs/eventstore | 逻辑已完成 | |
 | 存储查询：计数、求和、最大值、最新值、唯一计数、加权求和、分组、按比例、明细、最后一个事件、不同取值 | `app/services/events/stores/base_store.rb` | libs/eventstore | 逻辑已完成 | |
 | 存储查询上的计费周期过滤 | `app/services/events/stores/` | libs/eventstore | 逻辑已完成 | |
-| ClickHouse 原始表、富化表与死信表 | `db/clickhouse_migrate/` | libs/eventstore | 计划中 | |
+| ClickHouse 原始表、富化表与死信表 | `db/clickhouse_migrate/` | libs/eventstore、libs/ingest、apps/server | 已完成 | libs/eventstore/clickhouse/schema.sql 中的 `events_raw`、`events_enriched`（含 `value`、`decimal_value` 与 `enriched_at`）以及用量桶表。`events_dead_letter` 保存死信主题中的死信，由 `dead-letters` 消费者写入（`kafka.DeadLetters`、`clickhouse.Store.WriteDeadLetters`），而 lago 通过 Kafka 引擎表与物化视图从该主题填充（`20251110100317_create_events_dead_letter.rb`、`20260430075848_update_events_dead_letter_mv.rb`）：事件的组织、外部订阅、代码与交易 ID，其时间戳（缺失时取摄入时间，再缺失时取失败时间），原始消息，错误代码与信息，以及 Tanvo 死信携带的主题、分区与偏移量；Tanvo 的死信没有 `initial_error_message`。与 v1.55.0 一样，没有代码读取该表。测试：`TestWriteDeadLetters`、`TestDeadLetterRecord`、`TestDeadLetters` 以及 `TestServeKafka` 中的死信 |
 | 预聚合用量桶（Lago 中为 15 分钟） | `app/models/clickhouse/usage_bucket.rb`、`app/services/events/stores/usage_bucket_store.rb` | libs/eventstore | 逻辑已完成 | 按维度取值分桶的 15 分钟桶，在 PostgreSQL 与 ClickHouse 上于事件写入时维护；窗口边界精确地从事件读取；未声明的过滤值被折叠；预付、按比例、周期性和目标钱包计费项读取事件；`RepairBuckets` 每 10 分钟从上次运行的开始时间（保存在 ClickHouse 中）起运行；`BucketStats` 每小时报告一次（直方图，以及单个桶超过 10 000 行时的警告）；删除行数过多的定义尚未自动化 |
 | 循环指标的缓存聚合 | `app/models/cached_aggregation.rb` | libs/metering | 已完成 | 由开票保存（每个预付事件一行，循环状态每个计费项、分组和时刻至多一行），由费用计算和当前用量读取（领域 §10.3）。查找仅在设置了计费项过滤器时才按其过滤，并在为事件计价时排除没有事件交易号的状态（`app/services/billable_metrics/aggregations/base_service.rb:223-224`）；聚合值可为空。没有 `current_amount`（未移植自定义聚合） |
 
@@ -352,14 +352,14 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 按周期的历史用量 | `app/queries/past_usage_query.rb` | libs/billing | 逻辑已完成 | |
 | 用量过滤（按指标、按过滤器、完整用量） | `app/services/invoices/customer_usage_service.rb` | libs/billing | 逻辑已完成 | |
 | 计费项级的用量缓存 | `app/services/subscriptions/charge_cache_service.rb` | libs/billing | 计划中 | 惰性校验：条目携带最新已摄取事件，存在更新事件时重新计算，摄取时从不删除；全量用量有单独的键 |
-| 实时用量刷新 | `app/services/subscriptions/`（`realtime_usage`） | libs/billing | 计划中 | 有了用量桶，这成为默认行为 |
+| 实时用量刷新 | `app/services/subscriptions/`（`realtime_usage`） | libs/billing | 已完成 | 用量桶使其成为默认行为：当前用量从摄取时维护的用量桶读取（libs/eventstore，buckettest），钱包的持续余额在摄取时刷新（见上文后处理），这正是 lago 的 `realtime_usage` 标志与 `Wallets::RealtimeRefreshService` 所做的 |
 | 按小时的用量明细 | `app/graphql/resolvers/subscriptions/hourly_usage_resolver.rb` | libs/metering | 逻辑已完成 | 序列由计费项过滤器构建（`HourlySeriesFor`），其他取值归入 `__other__`；窗口不早于订阅开始 |
 | 生命周期用量（历史、已开票、当前） | `app/models/lifetime_usage.rb`、`app/services/lifetime_usages/` | libs/billing | 逻辑已完成 | |
 | 外部历史用量金额 | `app/controllers/api/v1/subscriptions/lifetime_usages_controller.rb` | libs/billing | 逻辑已完成 | |
 | 客户用量 API：当前、预测与历史用量 | `app/controllers/api/v1/customers/usage_controller.rb`、`app/controllers/api/v1/customers/projected_usage_controller.rb` | apps/server | 已完成 | 基于 libs/billing/subscriptions 的 `UsageService.GetCurrentUsage`（以 `include_projection` 代替预测路由，不受 `projected_usage_enabled` 限制，`projected_usage_controller.rb:7`）与 `ListPastUsage`。分组用量位于各过滤器之下（lago 将过滤器嵌套在分组之下，`app/serializers/v1/customers/charge_usage_serializer.rb`），过滤器取值以逗号连接。`filter_by` 与 `group_by_attributions` 为 Unimplemented（`app/controllers/concerns/api/v1/customers/usage_filters.rb`、`shared_api.rb:25`）；lago 的 `full_usage`、`charge_id`/`charge_code`、`skip_grouping`、`filter_by_presentation` 参数及展示拆分未暴露。`GetHourlyUsage` 为 Unimplemented（v1.55.0 仅有 GraphQL，`app/graphql/types/query_type.rb:130`），`ListDailyUsage` 亦然（v1.55.0 无每日用量 API） |
 | 生命周期用量 API | `app/controllers/api/v1/subscriptions/lifetime_usages_controller.rb`、`app/serializers/v1/lifetime_usage_serializer.rb` | apps/server | 已完成 | `SubscriptionService.GetLifetimeUsage` 与 `UpdateLifetimeUsage`；`external_id:` 引用选取活跃订阅。金额为主币单位的小数，精度超过货币最小单位时拒绝；阈值给出 `remaining_amount`（lago 为 `completion_ratio`），以 `refreshed_at` 代替 `from_datetime`/`to_datetime`。订阅关闭渐进计费时阈值为空（lago 的 `has_progressive_billing?` 忽略该标志）。`include_metrics` 无对应项，忽略 |
 | 生命周期用量刷新 | `app/jobs/clock/refresh_lifetime_usages_job.rb` | libs/billing | 已完成 | 与 lago 相同，扫描只处理已开票用量被标记的记录（`app/jobs/clock/refresh_lifetime_usages_job.rb:9-19`）；当前用量由用量信号刷新 |
-| 按指标细分的生命周期用量 | `app/services/lifetime_usages/` | libs/billing | 计划中 | |
+| 按指标细分的生命周期用量 | `app/services/lifetime_usages/` | libs/billing | 已完成 | v1.55.0 没有按指标的生命周期用量存储；它就是 `billable_metric_lifetime_usage_units` 告警（libs/billing/alerts，scenarios_alerts_test.go） |
 | 带差值与历史回填的每日用量 | `app/models/daily_usage.rb`、`app/services/daily_usages/` | libs/billing | 已完成 | 每小时扫描进入其时区新一天的组织，并分散在 `TANVO_DAILY_USAGE_SCHEDULING_JITTER`（默认 30 分钟）内执行；每个订阅每个本地日计算一次（`app/services/daily_usages/compute_all_service.rb:142-148`）；从发票回填时只计该订阅自己的费用（`app/services/daily_usages/fill_from_invoice_service.rb:61-62`）；历史重建（`lib/tasks/daily_usages.rake`）是 `billing.rebuild_daily_usage_history` 任务，可选择先以每批 10,000 行删除已存储的行，再入队回填；快照与 lago 一样会给出已丢弃的计量指标与计费项过滤器（`app/models/fee.rb:18,33`）；无高级版限制 |
 | 订阅活动处理（哪些订阅发生了变化） | `app/services/usage_monitoring/process_subscription_activity_service.rb` | libs/billing | 已完成 | 以每个订阅每分钟一个延迟任务代替 `subscription_activities` 表：运行期间到达的信号落入下一分钟的任务，而 lago 的记录只在处理后删除，会吞掉该信号（`app/services/usage_monitoring/track_subscription_activity_service.rb:23-26`）；失败会立即重试，共四次（`app/jobs/usage_monitoring/process_subscription_activity_job.rb`） |
 
@@ -367,10 +367,10 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 状态 pending、active、terminated、canceled、incomplete | `app/models/subscription.rb` | libs/core | 计划中 | |
+| 状态 pending、active、terminated、canceled、incomplete | `app/models/subscription.rb` | libs/core | 已完成 | libs/core/subscription（enums.go） |
 | 计费时间：自然周期或周年 | `app/models/subscription.rb` | libs/period | 逻辑已完成 | |
 | 订阅开始日期（过去或未来）与结束日期 | `app/services/subscriptions/create_service.rb` | libs/billing | 逻辑已完成 | |
-| 订阅名称与外部 ID | `app/models/subscription.rb` | libs/core | 计划中 | |
+| 订阅名称与外部 ID | `app/models/subscription.rb` | libs/core | 已完成 | libs/core/subscription；subscriptions 的 service_test.go |
 | 创建订阅时覆盖套餐 | `app/services/subscriptions/create_service.rb`、`app/services/plans/override_service.rb` | libs/billing、apps/server | 已完成 | 创建、更新与换套餐时的 `plan_overrides`。创建时，新订阅仅覆盖单位数的覆盖写入单位数覆盖而非子套餐（`create_service.rb:171-174, 284-294`），同一套餐上的当前订阅保留其套餐。更新时，子套餐原地更新：其货币与试用期保持不变（`app/services/plans/update_service.rb:40-49`），保留每个固定计费项并叠加给出的值，不属于子套餐的固定计费项键为未找到（`app/services/subscriptions/update_service.rb:260-288`），给出的计费项替换子套餐的计费项，未知的键创建计费项，未给出的被删除（`plans/update_service.rb:245-276`）。父套餐则被覆盖，订阅的单位数覆盖并入子套餐。带覆盖的换套餐覆盖所请求的套餐，由其金额决定升级或降级（`create_service.rb:136-148`）；将来开始的订阅直接换到所请求的套餐（`plan_upgrade_service.rb:77-80`、`plan_downgrade_service.rb:82-84`）。没有高级版或旧计费的限制（`create_service.rb:37-41`）。激活时在开始后一秒记录每个固定计费项生效的单位数（含订阅自身的单位数），从未完成状态激活时除外（`app/services/subscriptions/activate_service.rb:38,74,104,130,174-179`、`emit_fixed_charge_events_service.rb`）；回溯创建亦然（`create_service.rb:201-207`） |
 | 每个订阅的计费项、过滤器与固定计费项端点 | `app/controllers/api/v1/subscriptions/` | apps/server | 已完成 | ChargeService 与 FixedChargeService 的 `subscription_id` 路径：列出、读取与更新（首次修改时覆盖套餐），过滤器增删改查；v1.55.0 没有创建与删除端点，返回 `unimplemented` |
 | 按年度金额区分升级与降级（升级立即生效，降级在周期结束时生效） | `app/services/subscriptions/plan_upgrade_service.rb` | libs/billing | 逻辑已完成 | |
@@ -378,17 +378,17 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 终止时选择是否开发票（生成、跳过） | `app/services/subscriptions/terminate_service.rb` | libs/billing | 逻辑已完成 | 恰好位于 `terminated_at` 的事件不属于已终止订阅的任何周期（领域 §10.2）；lago 会对其计费（`app/models/event.rb:18`） |
 | 税额待定时拒绝终止 | `app/services/subscriptions/terminate_service.rb` | libs/billing | 逻辑已完成 | |
 | 取消 pending 状态的订阅 | `app/services/subscriptions/terminate_service.rb` | libs/billing | 逻辑已完成 | 不记录取消原因；被取消的订阅发出 `subscription.terminated`，被取消的下一个订阅不发出 webhook（领域模型 §9.2） |
-| 取消原因：付款失败、超时、手动 | `app/models/subscription.rb` | libs/core | 计划中 | |
+| 取消原因：付款失败、超时、手动 | `app/models/subscription.rb` | libs/core | 已完成 | `subscription.CancellationReason`（libs/core/subscription） |
 | 每个订阅的支付方式 | `app/models/subscription.rb` | libs/billing | 逻辑已完成 | |
 | 跨订阅合并发票 | `app/models/subscription.rb` | libs/billing | 逻辑已完成 | |
 | 按订阅关闭渐进式计费 | `app/models/subscription.rb` | libs/billing | 逻辑已完成 | |
-| 采购订单号 | `app/models/subscription.rb` | libs/core | 计划中 | |
-| 按订阅覆盖计费主体 | `app/models/subscription.rb` | libs/core | 计划中 | |
+| 采购订单号 | `app/models/subscription.rb` | libs/core | 已完成 | `Subscription.PurchaseOrderNumber`，已在 API 中（subscription.proto） |
+| 按订阅覆盖计费主体 | `app/models/subscription.rb` | libs/core | 已完成 | `Subscription.BillingEntityID`，已在 API 中（subscription.proto） |
 | 跳过每日用量计算 | `app/models/subscription.rb` | libs/billing | 已完成 | |
 | 激活规则：要求付款，可设超时 | `app/models/subscription/activation_rule.rb`、`app/services/subscriptions/activation_rules/` | libs/billing | 逻辑已完成 | 门控 open 发票的付款状态变为成功或失败时，`billing.resolve_payment_gate` 任务解析该规则（`Invoices::UpdateService#handle_payment_gated_activation`、`payment/resolve_service.rb`）：成功时定稿发票（`invoice.created`、文档），所有规则满足后激活订阅；失败时关闭发票并以 `payment_failed` 取消订阅。由手动付款与提供者付款更新触发；激活过期或被拒绝时取消待处理的提供者付款（`payments.cancel_payment`） |
-| 激活规则状态（inactive、pending、satisfied、not applicable、declined、failed、expired） | `app/models/subscription/activation_rule.rb` | libs/core | 计划中 | |
+| 激活规则状态（inactive、pending、satisfied、not applicable、declined、failed、expired） | `app/models/subscription/activation_rule.rb` | libs/core | 已完成 | `subscription.ActivationRuleStatus`（libs/core/subscription），subscriptions 的 service_test.go |
 | 激活前要求发票已付的门槛 | `app/services/subscriptions/activate_service.rb` | libs/billing | 逻辑已完成 | |
-| 创建订阅时预授权付款（Stripe） | `app/services/payment_providers/stripe/payments/authorize_service.rb` | providers/stripe | 计划中 | |
+| 创建订阅时预授权付款（Stripe） | `app/services/payment_providers/stripe/payments/authorize_service.rb` | providers/stripe、libs/billing/payments、apps/server | 已完成 | `CreateSubscriptionRequest.authorization`（`amount` 为 Money）在创建订阅前冻结金额（`payments.Service.Authorize`，`subscriptions_controller.rb:22-71`）；响应的 `authorization` 带回 payment intent 的 ID、金额、可捕获金额与状态。客户须有 Stripe 连接，否则为规则错误 `stripe_required`（FailedPrecondition；未知客户没有连接）；支付方式取订阅的 `payment_method_id`，否则取客户的默认支付方式，否则由适配器取 Stripe 上最新的支付方式（`authorize_service.rb:48-55`）；都没有时为 `payment_method_id` / `customer_has_no_payment_method`；Stripe 拒绝时为 FailedPrecondition `provider_error`，元数据含提供商、代码、消息、请求 ID 与 HTTP 状态，且不创建订阅。幂等键为 `auth-<提供商客户>-<请求>`，并附 `plan_code` 元数据；释放由 `payments.cancel_authorization` 任务完成，立即入队（`authorize_service.rb:37-42`，`CancelPaymentAuthorizationJob`），通过与提供商无关的 `CancelPayment`。差异：没有 `beta_payment_authorization` 开关（`subscriptions_controller.rb:23-33`；无高级功能开关，§1.50）；金额为 Money，而非 `amount_cents` 与 `amount_currency`；响应没有 `object` 字段；REST 下 `authorization` 字段为查询参数，因为请求体是订阅；旧的 `provider_customer.payment_method_id` 由默认支付方式取代（§1.33）。测试：`TestAuthorize`（libs/billing/payments、providers/stripe）、`TestCreateSubscriptionAuthorization`（apps/server） |
 | 在开始日期激活 pending 订阅 | `app/jobs/clock/activate_subscriptions_job.rb` | libs/billing | 逻辑已完成 | 按订阅调度（§3） |
 | 在结束日期终止 | `app/jobs/clock/terminate_ended_subscriptions_job.rb` | libs/billing | 逻辑已完成 | |
 | incomplete 订阅过期 | `app/jobs/clock/expire_incomplete_subscriptions_job.rb` | libs/billing | 已完成 | 激活规则的过期时间早于或等于当前时刻时过期 |
@@ -398,8 +398,8 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 周期计费选择（今天哪些订阅需要计费） | `app/services/subscriptions/organization_billing_service.rb` | libs/billing | 逻辑已完成 | 按订阅调度的任务加对账（§3） |
 | 同一张发票上一起计费的订阅分组 | `app/services/subscriptions/organization_billing_service.rb` | libs/billing | 逻辑已完成 | |
 | 订阅列表过滤（状态、套餐、客户、是否被覆盖） | `app/queries/subscriptions_query.rb` | libs/store | 逻辑已完成 | 两种存储均已实现查询，移植的规格用例在 porttest 中；套餐过滤排除已删除的套餐；最近排序依次为 subscription_at、created_at（均降序），再按 id 升序；由 `ListSubscriptions` 提供 |
-| 订阅 API | `app/controllers/api/v1/subscriptions_controller.rb`、`app/serializers/v1/subscription_serializer.rb` | apps/server | 已完成 | 基于 libs/billing/subscriptions 的 `SubscriptionService`：创建（以 `external_id:` 引用的不存在客户会以默认计费主体创建）、读取、列表、更新、换套餐、终止、取消。对已有外部 ID 换套餐是独立的 RPC（lago 复用创建，`create_service.rb:59`）。列表默认只含活跃订阅（`app/controllers/concerns/subscription_index.rb:11`）；按 `external_id:` 的 `GetSubscription` 依次取活跃、未完成、待生效的订阅，没有 lago 的 `status` 参数。按 `external_id:` 终止取活跃订阅，`CancelSubscription` 取待生效、否则未完成的订阅（lago 以 `status=pending` 调用 `terminate`，`subscriptions_controller.rb:151`）。创建时接受终止选项（lago 的 `create_params` 不允许）。将 `subscription_at` 移到过去不发出预付固定费用事件（lago `EmitFixedChargeEventsService`）。支持套餐覆盖与用量阈值（§1.20、§1.31）。费率卡与计费锚定日属于合同，由 `ContractService` 提供（§1.22）：不带套餐的创建被拒绝，通过此 API 找不到合同。计费片段没有 API（v1.55.0 无路由）。连接与 Stripe 预授权（`subscriptions_controller.rb:23-71`）参数未暴露 |
-| 订阅 webhook `subscription.started`、`updated`、`terminated`、`canceled`、`incomplete`、`termination_alert`、`trial_ended`、`usage_threshold_reached` | `app/services/webhooks/subscriptions/` | libs/webhooks | 计划中 | |
+| 订阅 API | `app/controllers/api/v1/subscriptions_controller.rb`、`app/serializers/v1/subscription_serializer.rb` | apps/server | 已完成 | 基于 libs/billing/subscriptions 的 `SubscriptionService`：创建（以 `external_id:` 引用的不存在客户会以默认计费主体创建）、读取、列表、更新、换套餐、终止、取消。对已有外部 ID 换套餐是独立的 RPC（lago 复用创建，`create_service.rb:59`）。列表默认只含活跃订阅（`app/controllers/concerns/subscription_index.rb:11`）；按 `external_id:` 的 `GetSubscription` 依次取活跃、未完成、待生效的订阅，没有 lago 的 `status` 参数。按 `external_id:` 终止取活跃订阅，`CancelSubscription` 取待生效、否则未完成的订阅（lago 以 `status=pending` 调用 `terminate`，`subscriptions_controller.rb:151`）。创建时接受终止选项（lago 的 `create_params` 不允许）。将 `subscription_at` 移到过去不发出预付固定费用事件（lago `EmitFixedChargeEventsService`）。支持套餐覆盖与用量阈值（§1.20、§1.31）。费率卡与计费锚定日属于合同，由 `ContractService` 提供（§1.22）：不带套餐的创建被拒绝，通过此 API 找不到合同。计费片段没有 API（v1.55.0 无路由）。Stripe 预授权（`subscriptions_controller.rb:23-71`）为 `authorization` 字段（见预授权一行）。连接参数未暴露 |
+| 订阅 webhook `subscription.started`、`updated`、`terminated`、`canceled`、`incomplete`、`termination_alert`、`trial_ended`、`usage_threshold_reached` | `app/services/webhooks/subscriptions/` | libs/webhooks | 已完成 | 在各自的事务中发送：`started`、`updated`、`terminated`、`canceled`、`incomplete` 和 `trial_ended` 由 libs/billing/lifecycle 与 libs/billing/subscriptions 发送，`termination_alert` 由终止提醒时钟作业发送，`usage_threshold_reached` 由累计用量阈值检查发送（libs/billing/engine.go，`TestUsageThresholdReachedWebhook`） |
 
 ### 1.21 计费周期与日期
 
@@ -449,12 +449,12 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | :--- | :--- | :--- | :--- | :--- |
 | 发票类型 subscription | `app/services/invoices/subscription_service.rb` | libs/billing | 逻辑已完成 | |
 | 发票类型 credit（钱包充值） | `app/services/invoices/paid_credit_service.rb` | libs/billing | 逻辑已完成 | 支付后的入账由 `wallets.Service.HandleCreditInvoicePayment` 完成（lago `Invoices::PrepaidCreditJob`），已由手动付款（`payments.Service.CreateManual`）调用；提供者付款仍等待支付编排中的付款状态更新（`app/services/invoices/update_service.rb:113-117`）。偏差：作废发票会使待处理的购买失败，之后的支付不再入账；lago 让其保持 pending，作废发票被支付后仍发放额度（`app/services/invoices/void_service.rb:30-48`、`app/jobs/invoices/prepaid_credit_job.rb:20-25`） |
-| 发票类型 one-off（附加项） | `app/services/invoices/create_one_off_service.rb`、`app/controllers/api/v1/invoices_controller.rb`（`create`） | libs/billing、apps/server | 已完成 | `InvoiceService.CreateInvoice`；附加项、税、计费主体与自定义栏目按 ID 或代码引用。请求接受采购订单号（`create_one_off_service.rb:129`、`invoices_controller.rb:18`）；应用的自定义栏目存储在发票上（`applied_invoice_custom_sections`，`Invoices::ApplyInvoiceCustomSectionsService`），以 `applied_invoice_custom_sections` 返回。不接受 lago 创建时的 `metadata`。订阅、渐进计费、预付（费用与固定费用）、预收费用与付费额度发票也在 lago 的调用处存储其栏目（`subscription_service.rb:61`、`progressive_billing_service.rb:36`、`advance_charges_service.rb:102`、`create_pay_in_advance_charge_service.rb:32`、`create_pay_in_advance_fixed_charges_service.rb:41`、`paid_credit_service.rb:29`）：由订阅的选择与跳过决定，与 `apply_invoice_custom_sections_service.rb` 一致；刷新草稿时移除并重新应用客户的栏目（`refresh_draft_service.rb:63`、`:129`）。钱包与钱包交易尚不能选择栏目，因此付费额度发票采用客户的栏目。待定 VIES 定稿会再次应用客户的栏目（`finalize_pending_vies_invoice_service.rb:25`） |
+| 发票类型 one-off（附加项） | `app/services/invoices/create_one_off_service.rb`、`app/controllers/api/v1/invoices_controller.rb`（`create`） | libs/billing、apps/server | 已完成 | `InvoiceService.CreateInvoice`；附加项、税、计费主体与自定义栏目按 ID 或代码引用。请求接受采购订单号（`create_one_off_service.rb:129`、`invoices_controller.rb:18`）；应用的自定义栏目存储在发票上（`applied_invoice_custom_sections`，`Invoices::ApplyInvoiceCustomSectionsService`），以 `applied_invoice_custom_sections` 返回。不接受 lago 创建时的 `metadata`。订阅、渐进计费、预付（费用与固定费用）、预收费用与付费额度发票也在 lago 的调用处存储其栏目（`subscription_service.rb:61`、`progressive_billing_service.rb:36`、`advance_charges_service.rb:102`、`create_pay_in_advance_charge_service.rb:32`、`create_pay_in_advance_fixed_charges_service.rb:41`、`paid_credit_service.rb:29`）：由订阅的选择与跳过决定，与 `apply_invoice_custom_sections_service.rb` 一致；刷新草稿时移除并重新应用客户的栏目（`refresh_draft_service.rb:63`、`:129`）。付费额度发票在其交易跳过或选择栏目时采用交易的栏目，否则采用钱包的，再否则采用客户的（`wallet_transaction.rb:113-118`）。待定 VIES 定稿会再次应用客户的栏目（`finalize_pending_vies_invoice_service.rb:25`） |
 | 发票类型 advance charges | `app/services/invoices/advance_charges_service.rb` | libs/billing | 逻辑已完成 | |
 | 发票类型 progressive billing | `app/services/invoices/progressive_billing_service.rb` | libs/billing | 逻辑已完成 | |
 | 预付计费项发票 | `app/services/invoices/create_pay_in_advance_charge_service.rb` | libs/billing | 逻辑已完成 | |
-| 状态 draft、finalized、voided、failed、pending、generating、open、closed | `app/models/invoice.rb` | libs/core | 计划中 | |
-| 付款状态（pending、succeeded、failed）与税务状态 | `app/models/invoice.rb` | libs/core | 计划中 | |
+| 状态 draft、finalized、voided、failed、pending、generating、open、closed | `app/models/invoice.rb` | libs/core | 已完成 | libs/core/invoice（enums.go）；`pending` 即 `open`（domain [Change]） |
+| 付款状态（pending、succeeded、failed）与税务状态 | `app/models/invoice.rb` | libs/core | 已完成 | `core.PaymentStatus`、`invoice.TaxStatus` |
 | 计算得出的金额（费用、优惠券、税、贷项通知单、预付额度、渐进式扣减、合计、应付、已付） | `app/models/invoice.rb`、`app/services/invoices/compute_amounts_from_fees.rb` | libs/billing | 逻辑已完成 | |
 | 澳大利亚、阿联酋、新西兰、印度尼西亚、新加坡的税务发票标签 | `app/models/invoice.rb` | libs/documents | 逻辑已完成 | |
 | 按客户编号（`PREFIX-CCC-NNN`） | `app/models/invoice.rb`（编号） | libs/billing | 逻辑已完成 | |
@@ -483,22 +483,22 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 删除草稿发票 | `app/services/invoices/delete_service.rb` | libs/billing、apps/server | 已完成 | `InvoiceService.DeleteInvoice`：仅限草稿（`not_deletable`），且未同步到外部系统（`invoice_synced_to_external_system`，存在集成资源）；其草稿贷项通知单进入终态且不可见的 `deleted` 状态（`CreditNotes::DeleteService`，`delete_service.rb:41-49`），存在其他贷项通知单时拒绝删除（`credit_note_not_deletable`）；发票进入终态且不可见的 `deleted` 状态，保留其费用与订阅周期（`Invoice#mark_as_deleted`），因此该周期不再计费；发出 `invoice.deleted` |
 | 更新付款状态与元数据（最多 5 个，键 20 字符，值 140 字符） | `app/services/invoices/update_service.rb` | libs/billing、apps/server | 已完成 | `InvoiceService.UpdateInvoice` 基于 `payments.Service.UpdateInvoice`：费用采用发票的付款状态；付款成功时清除逾期标记、重置催收活动请求的催收计数并使结账链接过期；credit 发票结算其钱包购买（`update_service.rb:113-117`）。不排入 Hubspot 更新与订阅门控处理 |
 | 把发票标记为逾期 | `app/services/invoices/payments/mark_overdue_service.rb` | libs/billing | 已完成 | 已定稿、未支付、超过到期日且没有败诉争议的发票 |
-| 发票条目上的条目元数据（最多 50 个键） | `app/models/`（`item_metadata`） | libs/billing | 计划中 | |
-| 发票结清（付款、贷项通知单） | `app/models/invoice_settlement.rb` | libs/billing | 计划中 | |
+| 发票条目上的条目元数据（最多 50 个键） | `app/models/`（`item_metadata`） | libs/billing | 已完成 | Lago 的 `Metadata::ItemMetadata`（`app/models/metadata/item_metadata.rb`：最多 50 个键，键最长 100 个字符，值最长 255 个字符），用于套餐、贷项通知单与钱包。`core.ItemMetadataLimits` 约束套餐、贷项通知单与钱包的元数据（新增 `wallets.metadata`）；`Metadata.Merge` / `Without` 移植 `Metadata::UpdateItemService`（部分更新）与 `DeleteItemKeyService`。每种资源都有 Replace / Merge / Delete / DeleteKey 元数据 RPC（`POST`、`PATCH`、`DELETE /v1/{plans,credit_notes,wallets}/{id}/metadata[/{key}]`），与 Lago 的元数据控制器一样走资源自身的更新服务；钱包在创建与更新时也接收元数据并在返回中带出。测试：`libs/core/metadata_test.go`、`apps/server/internal/rpc/metadata_test.go`（三个元数据控制器规格与 `wallet_metadata_actions.rb`）。差异：空键被拒绝（proto 的 `MetadataItem.key` 为必填；Lago 接受，`item_metadata_spec.rb:85`）；空值存为空字符串；元数据是列表，清空即无元数据，之后删除键返回 `metadata` 未找到，而 Lago 保留空记录并返回 200；Lago 的套餐元数据端点只带元数据运行 `Plans::UpdateService`，会清掉未挂订阅套餐的 `bill_charges_monthly`（`app/services/plans/update_service.rb:41-48`、147-153；§4），Tanvo 保留该设置 |
+| 发票结清（付款、贷项通知单） | `app/models/invoice_settlement.rb` | libs/billing | 已完成 | v1.55.0 只创建贷项通知单结清（`credit_notes/create_service.rb:84`），与 libs/billing/creditnotes/create.go 一致；发票可按结清筛选 |
 | 发票列表过滤与搜索 | `app/queries/invoices_query.rb` | libs/store、apps/server | 已完成 | 包括采购订单号，不区分大小写；两种存储均已实现查询，移植的规格用例在 porttest 中；`ListInvoices` 以 AIP 过滤表达式接收这些条件，支持搜索，并以客户为父资源 |
-| 发票自定义段落（手动、系统生成）及其解析规则 | `app/models/invoice_custom_section.rb`、`app/services/invoice_custom_sections/` | libs/billing、apps/server | 进行中 | 公开 API，而不只供管理界面使用：`InvoiceCustomSectionService` 基于 libs/billing/customsections，创建、获取（ID 或代码）、更新、删除手动段落并按名称列出，与 v1.55.0 的 GraphQL 变更和解析器一致（`app/graphql/resolvers/invoice_custom_sections_resolver.rb`）。代码仍可修改，与 `update_input.rb` 一致；删除会软删除段落（`deleted_at`；其代码可再次使用），并将其从计费主体、客户和订阅的选择中移除（`destroy_service.rb`、`deselect_all_service.rb`）；段落带有不打印的 `description`；列表不接受过滤和搜索，与 v1.55.0 一致。解析规则尚未实现 |
-| 下载 PDF 与 XML | `app/services/invoices/generate_pdf_service.rb` | libs/documents | 逻辑已完成 | `DownloadInvoice` 返回已定稿发票渲染好的 PDF，否则排入渲染任务；XML 渲染尚未排入 |
-| 重新发送发票邮件 | `app/services/emails/resend_service.rb` | libs/mail | 逻辑已完成 | |
+| 发票自定义段落（手动、系统生成）及其解析规则 | `app/models/invoice_custom_section.rb`、`app/services/invoice_custom_sections/` | libs/billing、apps/server | 已完成 | 公开 API，而不只供管理界面使用：`InvoiceCustomSectionService` 基于 libs/billing/customsections，创建、获取（ID 或代码）、更新、删除手动段落并按名称列出，与 v1.55.0 的 GraphQL 变更和解析器一致（`app/graphql/resolvers/invoice_custom_sections_resolver.rb`）。代码仍可修改，与 `update_input.rb` 一致；删除会软删除段落（`deleted_at`；其代码可再次使用），并将其从计费主体、客户和订阅的选择中移除（`destroy_service.rb`、`deselect_all_service.rb`）；段落带有不打印的 `description`；列表不接受过滤和搜索，与 v1.55.0 一致。解析规则位于 `kernel.ApplyCustomSections`（`apply_invoice_custom_sections_service.rb`、`customer.rb` 的 `applicable_invoice_custom_sections`），测试见 invoicing 的 custom_sections_test.go |
+| 下载 PDF 与 XML | `app/services/invoices/generate_pdf_service.rb` | libs/documents、libs/billing/docgen | 已完成 | `DownloadInvoice` 返回已定稿发票 PDF 与 XML 的永久链接，否则排入 `documents.generate_invoice`，由它渲染两者 |
+| 重新发送发票邮件 | `app/services/emails/resend_service.rb` | libs/mail、apps/server | 已完成 | `ResendInvoice`（§1.47） |
 | 发票的付款 URL | `app/services/invoices/payments/generate_payment_url_service.rb` | libs/billing | 已完成 | `invoicing.Service.PaymentURL` 校验已关联提供者、不是 GoCardless、发票可付款，然后返回发票付款意向的结账链接（`payments.Service`，由 `apps/server` 绑定）；`GenerateInvoicePaymentUrl` 返回该链接。`RetryInvoicePayment`（`app/services/invoices/payments/retry_service.rb`）已完成，`payment_method_type` 与 `payment_method_id` 覆盖（`invoices_controller.rb:327-334`）随付款任务传递；`RetryInvoice`（`app/services/invoices/retry_service.rb`）重新打开失败的发票，将其税设为待计算并排队拉取（见重试失败的提供者税额计算） |
 | 在发票上存储 Salesforce ID | `app/controllers/api/v1/invoices_controller.rb`（`sync_salesforce_id`） | libs/billing、apps/server | 已完成 | `SetInvoiceSalesforceId` 将 Salesforce ID 记为发票在该 Salesforce 集成（ID 或代码）下的已同步资源；已记录的发票保留其记录（`invoices/sync_salesforce_id_service.rb:16-22`） |
-| 发票 webhook `invoice.created`、`one_off_created`、`paid_credit_added`、`generated`、`drafted`、`ready_to_finalize`、`voided`、`deleted`、`resynced` | `app/services/webhooks/invoices/` | libs/webhooks | 计划中 | |
-| 发票付款 webhook `invoice.payment_status_updated`、`payment_overdue`、`payment_failure`、`payment_dispute_lost` | `app/services/webhooks/invoices/`、`app/services/webhooks/payment_providers/` | libs/webhooks | 计划中 | |
+| 发票 webhook `invoice.created`、`one_off_created`、`paid_credit_added`、`generated`、`drafted`、`ready_to_finalize`、`voided`、`deleted`、`resynced` | `app/services/webhooks/invoices/` | libs/webhooks | 进行中 | 除 `invoice.generated` 外均在 libs/billing 中发出并测试；`invoice.generated` 随发票文档发出（§1.47） |
+| 发票付款 webhook `invoice.payment_status_updated`、`payment_overdue`、`payment_failure`、`payment_dispute_lost` | `app/services/webhooks/invoices/`、`app/services/webhooks/payment_providers/` | libs/webhooks | 已完成 | libs/billing/payments 与 libs/billing/dunning |
 
 ### 1.24 费用
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 费用类型：计费项、附加项、订阅、额度、承诺消费、固定计费项、产品 | `app/models/fee.rb` | libs/core | 计划中 | |
+| 费用类型：计费项、附加项、订阅、额度、承诺消费、固定计费项、产品 | `app/models/fee.rb` | libs/core | 已完成 | `core.FeeType`（libs/core/enums.go） |
 | 预付费用的付款状态（pending、succeeded、failed、refunded） | `app/models/fee.rb` | libs/core | 已完成 | 通过 `FeeService.UpdateFee` 设置未关联发票的费用；记录新状态的时刻并清除其他时刻（`app/services/fees/update_service.rb:45-62`） |
 | 订阅费用 | `app/services/fees/subscription_service.rb` | libs/billing | 逻辑已完成 | |
 | 计费项费用（包括过滤器与分组） | `app/services/fees/charge_service.rb` | libs/billing | 逻辑已完成 | |
@@ -507,19 +507,19 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 钱包充值的额度费用 | `app/services/fees/paid_credit_service.rb` | libs/billing | 逻辑已完成 | 单价舍去钱包汇率中不足一分的部分，与 lago 的 bigint `unit_amount_cents` 一致（`app/models/wallet_transaction.rb:99`）；精确单价即该单价（`paid_credit_service.rb:40`）。作废 credit 发票会使购买失败（偏差，见 credit 发票一行） |
 | 承诺消费费用 | `app/services/fees/commitments/` | libs/billing | 逻辑已完成 | |
 | 草稿发票上的调整费用（单位数、单价、显示名称） | `app/models/adjusted_fee.rb`、`app/services/adjusted_fees/` | libs/billing、apps/server | 已完成 | 调整只作用于计费项（或固定费用）边界相同的费用，与 lago 的 `matching_charge_boundaries` 一致（`app/models/adjusted_fee.rb:35-39`）。`FeeService.AdjustFee`（`POST /v1/invoices/{invoice_id}/fees:adjust`）和 `FeeService.DeleteFeeAdjustment`（`POST /v1/fees/{fee_id}:delete_adjustment`）对应 lago 的 GraphQL `CreateAdjustedFee` 和 `DestroyAdjustedFee`。调整模式显式给出，lago 则根据是否提供单位数和单价推断（`app/services/adjusted_fees/create_service.rb:35-36`）；没有高级版限制（`create_service.rb:84`）；非草稿发票返回 `not_draft`，lago 返回 `forbidden`。未指定费用时，调整以发票订阅的边界保存且不关联费用，由刷新生成该费用，lago 则先创建一条空费用（`create_service.rb:97-157`）；调整不会重新关联到重新生成的费用，而是按键匹配 |
-| 费用的税 | `app/models/fee/applied_tax.rb` | libs/tax | 计划中 | |
+| 费用的税 | `app/models/fee/applied_tax.rb` | libs/tax | 已完成 | `invoice.FeeAppliedTax`，由 libs/billing 应用（kernel 的 taxes.go） |
 | 费用的展示明细 | `app/models/`（`presentation_breakdowns`） | libs/billing | 进行中 | 存储在费用上（lago 使用 `presentation_breakdowns` 表），并在发票上打印（支持 null 值）；计费尚未计算它们 |
 | 费用 API（列出、获取、更新付款状态、删除未关联的费用） | `app/controllers/api/v1/fees_controller.rb`、`app/queries/fees_query.rb` | apps/server | 已完成 | `FeeService`（`/v1/fees`）。列表过滤支持 `fee_type`、`payment_status`、`currency`、`customer_id` 和 `subscription_id`（ID 或 `external_id:<id>`）、`billable_metric_code`、`event_transaction_id`，以及 `created_at`、`succeeded_at`、`failed_at`、`refunded_at` 的范围；列表先按创建时间升序、再按 ID 排序（`app/queries/fees_query.rb:33`）。删除费用会软删除（`deleted_at`）并返回该费用（`app/services/fees/destroy_service.rb:17`）；所有费用读取都跳过已软删除的费用，与默认作用域一致（`app/models/fee.rb:9`）。已开票的费用返回 `invoiced_fee` 前置条件失败（400），lago 返回 405 |
-| 费用 webhook `fee.created`（预付） | `app/services/webhooks/fees/pay_in_advance_created_service.rb` | libs/webhooks | 计划中 | |
+| 费用 webhook `fee.created`（预付） | `app/services/webhooks/fees/pay_in_advance_created_service.rb` | libs/webhooks | 已完成 | |
 
 ### 1.25 税
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
 | 税的增删改查（名称、代码、税率、描述） | `app/models/tax.rb`、`app/services/taxes/` | libs/billing、apps/server | 已完成 | 由基于 libs/billing/taxes 的 `TaxService` 提供；修改或删除税会标记受影响的草稿发票待刷新。列表按名称排序，可按 `auto_generated` 和 `applied_to_organization` 过滤并可搜索（`taxes_query.rb`）。删除会软删除税并移除其关联，与 v1.55.0 一致。税带有 `applied_to_organization` 与 `applied_to_billing_entities_codes`（`serializers/v1/tax_serializer.rb`）；删除时返回移除关联之前加载的值（`taxes/destroy_service.rb:25`） |
-| 计费主体、客户、套餐、计费项、固定计费项、附加项、承诺消费上的税 | `app/models/` 中的关联表 | libs/tax | 计划中 | |
+| 计费主体、客户、套餐、计费项、固定计费项、附加项、承诺消费上的税 | `app/models/` 中的关联表 | libs/tax | 已完成 | 每个所有者都带税码，由 `kernel.TaxResolver.Candidates` 解析（libs/billing/kernel/taxes.go） |
 | 税的解析顺序（显式、附加项、计费项、固定计费项、承诺消费、套餐、客户、计费主体） | `app/services/fees/apply_taxes_service.rb` | libs/tax | 逻辑已完成 | |
-| 费率卡的税覆盖套餐、客户和计费主体的税 | `app/models/rate_card.rb`（`rate_cards_taxes`） | libs/tax | 计划中 | 在统一目录中，费率卡的税就是其计费项的税 |
+| 费率卡的税覆盖套餐、客户和计费主体的税 | `app/models/rate_card.rb`（`rate_cards_taxes`） | libs/tax | 已完成 | 费率卡保存其税；与 v1.55.0 一样，费用税从不读取它们（`fees/apply_taxes_service.rb:64-77`）：产品费用回退到客户与计费主体的税 |
 | 发票上应用的税，带计税基础与分摊 | `app/services/invoices/apply_taxes_service.rb` | libs/tax | 逻辑已完成 | 服务商的计税基础存储在发票已应用税上并打印在发票上（`app/models/invoice/applied_tax.rb:31-41`） |
 | 贷项通知单上应用的税 | `app/services/credit_notes/apply_taxes_service.rb` | libs/tax | 逻辑已完成 | |
 | 提供者计算的税（Anrok、Avalara），带特殊代码与基础税率 | `app/services/invoices/apply_provider_taxes_service.rb` | libs/tax | 逻辑已完成 | |
@@ -529,7 +529,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 带重试与退避的 VIES 增值税号检查 | `app/services/customers/vies_check_service.rb`、`app/jobs/customers/vies_check_job.rb` | libs/tax、libs/billing | 已完成 | `tax.VIESClient` 按 valvat 2.0.1 的方式调用 VIES SOAP 服务（格式错误的税号与 GB 税号不检查，重定向视为错误）。需要检查的客户写入会保存一行 `pending_vies_checks` 并在 default 队列上排队 `customers.vies_check`；特殊地区或无需 VIES 的决定会删除该行。任务应用所决定的 EU 税（税不存在时不应用），标记草稿待刷新并删除该行；VIES 失败时记录尝试，并在 5、5、10、20、40 分钟后重试，之后每小时一次。未知故障或无法连接 VIES 时任务失败。重试按尝试次数设唯一键，因为队列在任务运行期间保持其唯一性 |
 | 在待定的 VIES 检查完成前挂起发票 | `app/models/pending_vies_check.rb`、`app/services/invoices/ensure_completed_vies_check_service.rb` | libs/billing | 已完成 | 待定检查已存储（`pending_vies_checks`，每个客户一行，以组织与客户为键）。在 lago 调用 `Invoices::ComputeTaxesAndTotalsService` 之处（订阅发票及其刷新与定稿、预付费用与预付固定费用、一次性、渐进计费与重新生成的发票），若客户不由税务服务商计税、其开票主体管理 EU 增值税且有待定检查，发票的费用不计税，以 `tax_status` pending 等待：定稿时为 open（无论是否门控），否则为草稿。不拉取其税，也不发布；新草稿仍发出 `invoice.drafted`。一次性明细的显式税立即应用到其费用，与 lago 在创建费用时应用一致。预览、预付费用账单与独立费用不挂起，与 lago 一致 |
 | VIES webhook `customer.vies_check` | `app/services/webhooks/customers/vies_check_service.rb` | libs/billing、libs/webhooks | 已完成 | 负载为带 `vies_check` 的客户：VIES 查询结果，或 `valid: false`、`valid_format`，失败时还有 `error` |
-| 税务提供者错误 webhook `customer.tax_provider_error`、`fee.tax_provider_error` | `app/services/webhooks/integrations/taxes/` | libs/webhooks | 计划中 | |
+| 税务提供者错误 webhook `customer.tax_provider_error`、`fee.tax_provider_error` | `app/services/webhooks/integrations/taxes/` | libs/webhooks | 已完成 | `customer.tax_provider_error` 由 libs/billing/integrations 发出；v1.55.0 从不发送 `fee.tax_provider_error`（只列于 `send_webhook_job.rb:35`），Tanvo 也不发送 |
 
 ### 1.26 优惠券
 
@@ -560,9 +560,9 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
 | 创建带额度、退款与抵销金额的贷项通知单 | `app/services/credit_notes/create_service.rb` | libs/billing | 逻辑已完成 | |
-| 额度状态（available、consumed、voided）与退款状态（pending、succeeded、failed） | `app/models/credit_note.rb` | libs/core | 计划中 | |
-| 原因：重复收费、产品不满意、订单变更、订单取消、欺诈收费、其他 | `app/models/credit_note.rb` | libs/core | 计划中 | |
-| 状态 draft、finalized | `app/models/credit_note.rb` | libs/core | 计划中 | |
+| 额度状态（available、consumed、voided）与退款状态（pending、succeeded、failed） | `app/models/credit_note.rb` | libs/core | 已完成 | libs/core/creditnote、`core.RefundStatus` |
+| 原因：重复收费、产品不满意、订单变更、订单取消、欺诈收费、其他 | `app/models/credit_note.rb` | libs/core | 已完成 | libs/core/creditnote |
+| 状态 draft、finalized | `app/models/credit_note.rb` | libs/core | 已完成 | libs/core/creditnote |
 | 编号 `INVOICE-CNnnn` | `app/models/credit_note.rb` | libs/billing | 逻辑已完成 | |
 | 按费用的贷项通知单条目 | `app/models/credit_note_item.rb` | libs/billing | 逻辑已完成 | |
 | 带分摊与舍入调整的税 | `app/services/credit_notes/apply_taxes_service.rb` | libs/tax | 逻辑已完成 | |
@@ -578,8 +578,8 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 发票作废时退回额度 | `app/services/credit_notes/recredit_service.rb` | libs/billing | 逻辑已完成 | |
 | 贷项通知单元数据 | `app/models/metadata/` | libs/billing | 逻辑已完成 | |
 | 贷项通知单列表过滤，包括发票的采购订单号 | `app/queries/credit_notes_query.rb` | libs/store | 已完成 | 两种存储均已实现查询，移植的规格用例在 porttest 中；`ListCreditNotes` 可按贷项、退款状态和原因、货币、计费主体、自开票、发票号和采购订单号、类型、客户（ID 或外部 ID）过滤，按开票日期和金额（最小单位）范围过滤，并支持搜索 |
-| 贷项通知单 API | `app/controllers/api/v1/credit_notes_controller.rb` | apps/server | 进行中 | `CreditNoteService` 的 Create、Estimate（附带 `types/credit_notes/estimate.rb` 的最大可贷记、可退款和可抵销金额）、Get、List、Update（退款状态、元数据）、Void 和 Download，基于 libs/billing/creditnotes；只提供已定稿的贷项通知单。Download 会排入文档任务，在 PDF 生成前返回空响应，之后返回其路径而不带签名 URL。ResendCreditNote 与 RetryCreditNoteSync 尚未提供（邮件与集成尚未接入） |
-| 贷项通知单 webhook `credit_note.created`、`credit_note.generated`、`credit_note.provider_refund_failure` | `app/services/webhooks/credit_notes/` | libs/webhooks | 计划中 | 只用一个事件名（§4） |
+| 贷项通知单 API | `app/controllers/api/v1/credit_notes_controller.rb` | apps/server | 进行中 | `CreditNoteService` 的 Create、Estimate（附带 `types/credit_notes/estimate.rb` 的最大可贷记、可退款和可抵销金额）、Get、List、Update（退款状态、元数据）、Void 和 Download，基于 libs/billing/creditnotes；只提供已定稿的贷项通知单。Download 会排入文档任务，在 PDF 生成前返回空响应，之后返回 PDF 与 XML 的永久链接。RetryCreditNoteSync 由 `rpc.IntegrationFlows` 提供；ResendCreditNote 重新发送邮件（§1.47） |
+| 贷项通知单 webhook `credit_note.created`、`credit_note.generated`、`credit_note.provider_refund_failure` | `app/services/webhooks/credit_notes/` | libs/webhooks | 进行中 | `credit_note.created` 与 `credit_note.refund_failure`（只用一个事件名，§4）在 libs/billing/creditnotes 中发出并测试；`credit_note.generated` 随文档发出（§1.47） |
 
 ### 1.29 钱包
 
@@ -602,11 +602,11 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 由当前用量得出的实时余额，跨钱包级联 | `app/services/wallets/balance/refresh_ongoing_usage_service.rb`、`app/services/wallets/balance/allocate_ongoing_usage_by_wallets_service.rb` | libs/billing | 逻辑已完成 | 按应用顺序，每个钱包最多取到其余额，溢出由最后一个承担；有阈值规则的钱包承担全部 |
 | 实时余额刷新 | `app/jobs/clock/refresh_wallets_ongoing_balance_job.rb`、`app/services/wallets/realtime_refresh_service.rb` | libs/billing | 逻辑已完成 | 也由用量刷新信号触发，信号在用量桶存储之后发出；5 分钟的全量扫描仍是权威来源；用量在不持有锁的情况下计算，与 lago 相同（`app/jobs/customers/refresh_wallet_job.rb:47`），但余额在客户的 `prepaid_credits` 锁内写入，若期间有发票消耗了额度则重新计算用量；lago 写入时不加锁 |
 | 钱包过期 | `app/jobs/clock/terminate_wallets_job.rb` | libs/billing | 逻辑已完成 | |
-| 钱包交易的付款 URL | `app/services/wallet_transactions/payments/generate_payment_url_service.rb` | libs/billing | 进行中 | 校验（带发票的待结算购买交易）已完成（`wallets.Service.PaymentURLInvoice`）；在支付提供方的发票付款 URL 实现之前（`app/services/invoices/payments/generate_payment_url_service.rb`），`GenerateWalletTransactionPaymentUrl` 校验通过后返回 Unimplemented |
+| 钱包交易的付款 URL | `app/services/wallet_transactions/payments/generate_payment_url_service.rb` | libs/billing | 已完成 | 校验（带发票的待结算购买交易）位于 `wallets.Service.PaymentURLInvoice`；链接是支付提供方的发票付款 URL（`payments.Service.InvoicePaymentURL`，`app/services/invoices/payments/generate_payment_url_service.rb`），在 apps/server 中装配（`walletPaymentURLs`） |
 | 钱包与交易元数据（最多 15 个键） | `app/models/metadata/` | libs/billing | 逻辑已完成 | |
-| 钱包 webhook `wallet.created`、`updated`、`terminated`、`depleted_ongoing_balance` | `app/services/webhooks/wallets/` | libs/webhooks | 计划中 | |
-| 钱包交易 webhook `wallet_transaction.created`、`updated`、`payment_failure` | `app/services/webhooks/wallet_transactions/` | libs/webhooks | 计划中 | |
-| 钱包与钱包交易 API | `app/controllers/api/v1/wallets_controller.rb`、`app/controllers/api/v1/customers/wallets_controller.rb`、`app/controllers/api/v1/wallet_transactions_controller.rb`、`app/controllers/concerns/wallet_actions.rb` | apps/server | 进行中 | `WalletService` 的 Create、Get、List（`currency` 与 `billing_entity_id` 过滤）、Update、Terminate、CreateWalletTransaction、GetWalletTransaction、ListWalletTransactions（`transaction_type`、`transaction_status`、`status` 与 `metadata.<key>` 过滤）、ListWalletTransactionConsumptions（入账交易的消耗、出账交易的资金来源）和 ReplaceRecurringTransactionRules。列表按从旧到新排列；Lago 按从新到旧排列。钱包附带其当前生效的规则。尚未提供：钱包元数据（未建模）、创建时的 `transaction_name`、`transaction_metadata`、`transaction_priority` 与 `purchase_order_number`、交易的 `voided_transaction_id`、`priority` 与 `purchase_order_number`、发票自定义区块与连接（无请求字段） |
+| 钱包 webhook `wallet.created`、`updated`、`terminated`、`depleted_ongoing_balance` | `app/services/webhooks/wallets/` | libs/webhooks | 已完成 | libs/billing/wallets |
+| 钱包交易 webhook `wallet_transaction.created`、`updated`、`payment_failure` | `app/services/webhooks/wallet_transactions/` | libs/webhooks | 已完成 | `created` 和 `updated` 由 libs/billing/wallets 与 libs/billing/deduct 发送；`payment_failure` 在开放或可见的充值发票扣款失败时由 libs/billing/payments 发送（`deliver_error_webhook_service.rb`，`TestInvoiceFailureWebhooks`） |
+| 钱包与钱包交易 API | `app/controllers/api/v1/wallets_controller.rb`、`app/controllers/api/v1/customers/wallets_controller.rb`、`app/controllers/api/v1/wallet_transactions_controller.rb`、`app/controllers/concerns/wallet_actions.rb` | apps/server | 完成 | `WalletService` 的 Create、Get、List（`currency` 与 `billing_entity_id` 过滤）、Update、Terminate、CreateWalletTransaction、GetWalletTransaction、ListWalletTransactions（`transaction_type`、`transaction_status`、`status` 与 `metadata.<key>` 过滤）、ListWalletTransactionConsumptions（入账交易的消耗、出账交易的资金来源）和 ReplaceRecurringTransactionRules。列表按从新到旧排列，再按 ID 排列（`wallets_query.rb:18`、`wallet_transactions_query.rb:17`）。钱包附带其当前生效的规则。`wallet_actions.rb` 允许的每个字段都已接收：创建时的元数据、`purchase_order_number`、`transaction_name`、`transaction_priority`、`transaction_metadata` 与 `ignore_paid_top_up_limits_on_creation`；交易的 `priority`、`purchase_order_number` 与 `voided_transaction_id`；`applies_to`（即 `allowed_fee_types` 与 `billable_metric_ids`）；开票主体；支付方式；连接；以及钱包、规则和交易上的发票自定义栏目（`skip_invoice_custom_sections`、按 ID 或 code 的 `invoice_custom_section_ids`），按 `attach_to_resource_service.rb` 应用（显式跳过会清空，带掩码的空列表会清空，未知 code 被忽略），并从规则复制到其充值（`recurring_transaction_rule.rb:88-93`）。交易返回 `purchase_order_number`（未设置时取钱包的，`resolved_purchase_order_number`）、`remaining_amount`、`voided_invoice_id`、支付方式和 `billing_entity_id`，即创建时的开票主体快照（钱包的，否则客户的；作废交易取其入账交易的；`create_service.rb:64-66`、`void_service.rb:41`）。偏差：API 按 Tanvo 的 ID 风格返回栏目与开票主体的 ID，而非 `applied_invoice_custom_sections` 对象或 `billing_entity_code`。测试：`rpc/wallets_test.go`、`rpc/wallets_fields_test.go`、`wallets/sections_test.go`、`wallets/entity_test.go`、porttest `wallet` |
 
 ### 1.30 承诺消费
 
@@ -617,7 +617,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 预付与后付的承诺消费周期 | `app/services/commitments/` | libs/billing | 逻辑已完成 | |
 | 不完整周期的按比例系数 | `app/services/commitments/` | libs/billing | 逻辑已完成 | |
 | 发票预览中的承诺消费 | `app/services/invoices/preview_service.rb` | libs/billing | 逻辑已完成 | |
-| 承诺消费的税 | `app/services/commitments/apply_taxes_service.rb` | libs/tax | 计划中 | |
+| 承诺消费的税 | `app/services/commitments/apply_taxes_service.rb` | libs/tax | 已完成 | 承诺消费费用取承诺消费的税，否则依次取套餐、客户与计费主体的税（`kernel.TaxResolver`） |
 
 ### 1.31 渐进式计费与用量阈值
 
@@ -641,7 +641,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 每个告警最多 20 个阈值，可有循环阈值 | `app/models/usage_monitoring/alert.rb` | libs/billing | 已完成 | |
 | 已触发的告警 | `app/models/usage_monitoring/triggered_alert.rb` | libs/billing | 已完成 | |
 | 根据订阅活动评估告警 | `app/services/usage_monitoring/process_subscription_activity_service.rb` | libs/billing | 已完成 | 持有告警的行锁，编辑告警时也取同一把锁。订阅的活动是由用量信号入队的每分钟一个的延迟任务（按订阅与分钟唯一），代替每分钟扫描的 `subscription_activities` 表（`app/services/usage_monitoring/track_subscription_activity_service.rb:23-32`、`app/jobs/clock/process_all_subscription_activities_job.rb`）；由于没有付费版门槛，每个订阅都会被跟踪 |
-| 订阅与钱包上的告警 API，支持批量创建 | `app/controllers/api/v1/subscriptions/alerts_controller.rb`、`app/controllers/api/v1/customers/wallets/alerts_controller.rb` | apps/server | 进行中 | `AlertService` 的 Create、BatchCreate（全部成功或全部失败，错误位于 `alerts[i]` 下）、Get、List、Update、Delete 和 DeleteAlerts（所有者的全部告警，按 ID 顺序加锁，再删除其阈值并软删除告警；不发送 webhook），基于 libs/billing/alerts；告警以 ID 或 `code:` 引用，订阅以 ID 或 `external_id:` 引用，钱包以 ID 引用。Delete 软删除告警（`deleted_at`）并删除其阈值，已触发的告警保留。递减（钱包）告警从钱包的当前值开始。列表按从旧到新排列；Lago 按从新到旧排列 |
+| 订阅与钱包上的告警 API，支持批量创建 | `app/controllers/api/v1/subscriptions/alerts_controller.rb`、`app/controllers/api/v1/customers/wallets/alerts_controller.rb` | apps/server | 已完成 | `AlertService` 的 Create、BatchCreate（全部成功或全部失败，错误位于 `alerts[i]` 下）、Get、List、Update、Delete 和 DeleteAlerts（所有者的全部告警，按 ID 顺序加锁，再删除其阈值并软删除告警；不发送 webhook），基于 libs/billing/alerts；告警以 ID 或 `code:` 引用，订阅以 ID 或 `external_id:` 引用，钱包以 ID 引用。Delete 软删除告警（`deleted_at`）并删除其阈值，已触发的告警保留。递减（钱包）告警从钱包的当前值开始。列表按从新到旧排列，再按 ID 排列（`alerts_query.rb:9-10`） |
 | webhook `alert.triggered`（高优先级） | `app/services/webhooks/usage_monitoring/alert_triggered_service.rb` | libs/webhooks | 逻辑已完成 | 每次触发时发出；尚无投递优先级 |
 
 ### 1.33 支付
@@ -683,11 +683,11 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 带幂等与邮箱回退的 Stripe 客户 | `app/services/payment_provider_customers/stripe_service.rb` | providers/stripe | 逻辑已完成 | 没有邮箱的客户在幂等冲突后不做邮箱查找回退（lago 会用空邮箱查找，`stripe_service.rb:168`） |
 | Stripe 支付方式类型（卡、SEPA 借记、美国银行账户、BACS 借记、Link、Boleto、加密货币、客户余额） | `app/models/payment_provider_customers/stripe_customer.rb` | providers/stripe | 逻辑已完成 | |
 | setup 模式的 Stripe 结账 | `app/services/payment_provider_customers/stripe_service.rb` | providers/stripe | 逻辑已完成 | |
-| 把 Stripe 银行转账资金说明作为系统发票段落 | `app/services/payment_provider_customers/stripe/sync_funding_instructions_service.rb` | providers/stripe | 逻辑已完成 | 网关调用已完成；发票段落属于 libs/documents |
+| 把 Stripe 银行转账资金说明作为系统发票段落 | `app/services/payment_provider_customers/stripe/sync_funding_instructions_service.rb` | providers/stripe、libs/billing、libs/documents | 已完成 | 网关调用为 providers/stripe `FundingInstructions`。创建服务商客户及推送其更新时，若其支付方式包含 `customer_balance`，即入队资金说明同步（带 `funding` 的 `payments.sync_provider_customer`，对应 lago `StripeSyncFundingInstructionsJob`；`stripe_service.rb:243-248`）。同步（libs/billing/payments funding.go）跳过已有 `funding_instructions_<客户 ID>` 段落的客户；按客户的币种（否则按其计费主体的币种）请求资金说明，EUR 时带上客户与计费主体的国家；并把该代码的系统生成段落赋给客户：复用组织已有的段落，否则以客户的单据语言格式化资金说明后创建（libs/documents `FundingFormatter`，`funding_instructions_formatter_service.rb`）。偏差：币种回退到计费主体的币种（domain §6），lago 读取组织的币种（`sync_funding_instructions_service.rb:107-110`）。分配段落会清除客户的 `skip_invoice_custom_sections`，同 lago（`sync_funding_instructions_service.rb:32-36`）；墨西哥与日本地址键是 §4 中记录的 lago 缺陷。服务商错误使作业失败并重试，同 lago 的 `raise_if_error!`。测试：libs/billing/payments funding_test.go、libs/documents funding_test.go |
 | Stripe 付款意向（off session、幂等、按货币的银行转账） | `app/services/payment_providers/stripe/payments/create_service.rb` | providers/stripe | 逻辑已完成 | 元数据键为 `tanvo_*`；Stripe 已不存在的支付方式通过 `StaleMethodID` 报告，由调用方丢弃 |
 | Stripe 共享付款令牌 | `app/services/payment_providers/stripe/payments/create_service.rb` | providers/stripe | 逻辑已完成 | 偏离：没有 `stripe_shared_payment_token` 功能开关（lago `create_service.rb:149`）；功能开关不属于核心 |
 | Stripe 付款链接（payment 模式的结账）及其过期 | `app/services/invoices/payments/stripe_service.rb` | providers/stripe | 逻辑已完成 | 发票结账的元数据同样带有付款对象类型与 ID，与 lago 的付款请求链接一致，使成功 webhook 以同一方式解析两者 |
-| Stripe 预授权 | `app/services/payment_providers/stripe/payments/authorize_service.rb` | providers/stripe | 逻辑已完成 | 支付方式的选择（`authorize_service.rb` `find_provider_method_id`）与延迟取消由调用方负责 |
+| Stripe 预授权 | `app/services/payment_providers/stripe/payments/authorize_service.rb` | providers/stripe | 逻辑已完成 | 支付方式的选择（`authorize_service.rb` `find_provider_method_id`）与取消任务由调用方负责（`payments.Service.Authorize`，§1.20 预授权一行） |
 | 付款上的 Stripe 卡信息 | `app/services/payments/set_payment_method_data_service.rb` | providers/stripe | 逻辑已完成 | |
 | Stripe webhook：setup intent 成功、payment intent 成功、失败、取消、支付方式解绑、退款更新、客户更新、争议关闭、现金余额到账 | `app/services/payment_providers/stripe/handle_event_service.rb` | providers/stripe | 逻辑已完成 | `ParseWebhook` 返回带 `payment.Refs` 的类型化 `payment.Event`；记录查找留在 apps/server。未知的付款对象类型返回 `payment.ErrUnknownPayable`（拒绝类）且不产生事件，无法映射的退款状态返回 `payment.ErrUnknownStatus`；处理器对二者都记录警告后确认，不更新任何记录，与 lago 的 NameError 和校验失败一样不做更新（`webhooks/base_service.rb` `payment_service_klass`） |
 | Adyen 连接（API 密钥、商户账户、live 前缀、HMAC 密钥） | `app/models/payment_providers/adyen_provider.rb` | providers/adyen | 逻辑已完成 | 基于 adyen-go-api-library（Checkout v71）。设置 `merchant_account`、`live_prefix`、`success_redirect_url`；密钥 `api_key`、`hmac_key`。`live_prefix` 非空即选用 live 环境（lago 按 Rails 环境选择，`adyen_provider.rb:20-26`，无法同时存在测试与 live 连接）。按连接和环境做客户端令牌桶限流（lago 没有）。未移植的 spec 用例及原因：providers/adyen/SKIPPED.md |
@@ -716,7 +716,7 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | :--- | :--- | :--- | :--- | :--- |
 | 汇总逾期发票（同一货币与计费主体）的付款请求 | `app/services/payment_requests/create_service.rb` | libs/billing | 已完成 | `payments.Service.CreateRequest`。偏差：排除生成中的发票（lago 排除已删除的发票，`create_service.rb:107`）；已接受的偏差：空的 `invoice_ids` 是校验错误（lago 返回 404）。金额是以主单位表示的十进制字符串，与 `Money` 一致。尚不发送邮件。 |
 | 扣除贷项通知单抵销后的付款请求金额 | `app/services/payment_requests/create_service.rb` | libs/billing | 已完成 | |
-| 付款请求通过提供者扣款，或通过邮件发送 | `app/services/payment_requests/payments/create_service.rb`、`app/mailers/payment_request_mailer.rb` | libs/billing | 已完成 | `payments.create_payment_request_payment` 通过客户的提供者扣取付款请求金额，失败分类与发票相同，并更新请求及其发票；没有提供者客户时通过邮件发送请求（`payments.send_payment_request_email`，`payment_request_mailer.rb`），附带付款链接。偏差：在接入 blob 存储之前，邮件不含发票 PDF 链接，也不会生成缺失的 PDF（`ensure_invoices_pdf`） |
+| 付款请求通过提供者扣款，或通过邮件发送 | `app/services/payment_requests/payments/create_service.rb`、`app/mailers/payment_request_mailer.rb` | libs/billing | 已完成 | `payments.create_payment_request_payment` 通过客户的提供者扣取付款请求金额，失败分类与发票相同，并更新请求及其发票；没有提供者客户时通过邮件发送请求（`payments.send_payment_request_email`，`payment_request_mailer.rb`），附带付款链接。每张发票都链接其 PDF，缺失时先渲染（`payment_request_mailer.rb:36-40`、`requested.slim:39`） |
 | 付款请求状态更新 | `app/services/payment_requests/update_service.rb` | libs/billing | 已完成 | `setRequestPayment`，状态变化时发出 `payment_request.payment_status_updated` |
 | 付款请求 API 与按客户列表 | `app/controllers/api/v1/payment_requests_controller.rb` | apps/server | 已完成 | 过滤条件 `customer_id`、`payment_status`、`currency` 与 `billing_entity_id`（ID 或 `code:<code>`，与其他列表一致；lago 为 `billing_entity_codes`），未知计费主体返回 NotFound（`payment_requests_controller_spec.rb:163`）；代码只匹配未归档的计费主体，lago 也匹配已归档的。按创建时间从新到旧、再按 ID 排序（`base_query.rb:111`）。客户路由的 `customer_id` 列出该客户的付款请求，未知客户返回 NotFound（`customers/payment_requests_controller_spec.rb:15`），Connect 与 REST 行为一致；`/v1/payment_requests` 通过过滤条件 `customer_id` 限定客户，未知客户返回空列表（`payment_requests_controller_spec.rb:118`）。 |
 | 付款请求 webhook `payment_request.created`、`payment_status_updated`、`payment_failure` | `app/services/webhooks/payment_requests/` | libs/webhooks | 已完成 | |
@@ -726,9 +726,9 @@ Lago 有两套目录：上面的套餐/计费项目录，以及受 `product_cata
 | 催收处理：按货币计尝试次数、检查阈值、发起付款请求 | `app/services/dunning_campaigns/bulk_process_service.rb`、`process_attempt_service.rb` | libs/billing | 已完成 | `dunning.Service.ProcessCampaigns`、`ProcessCustomer` 与 `ProcessAttempt`，由每小时（:45）的时钟按组织运行（仅限有未排除客户逾期发票的组织），再为每个客户、每个触发的阈值与计费主体各排一个任务。已归档客户被跳过，与 lago 的默认作用域一致（`customer.rb:139`）。已接受的差距：没有 premium 与 `auto_dunning` 检查；在相应任务类型实现之前，付款请求既不发送邮件，也不通过支付提供商扣款（见上文付款请求扣款） |
 | 催收 webhook `dunning_campaign.finished` | `app/services/webhooks/dunning_campaigns/finished_service.rb` | libs/billing | 已完成 | 当所有已催收货币都达到最大尝试次数时，在客户上发出；载荷遵循 `dunning_campaign_finished_serializer.rb`，包括已弃用的 `customer_external_id` |
 | 成功付款的付款收据，按客户编号 | `app/services/payment_receipts/create_service.rb` | libs/billing | 已完成 | 已有收据时返回该收据（lago 返回 nil）。 |
-| 付款收据 PDF 与 XML，按计费主体设置发送邮件 | `app/services/payment_receipts/generate_pdf_service.rb`、`generate_xml_service.rb` | libs/documents | 逻辑已完成 | |
-| 付款收据 API 与重新发送邮件 | `app/controllers/api/v1/payment_receipts_controller.rb` | apps/server | 进行中 | 列出（过滤 `invoice_id`，按创建时间从新到旧、再按 ID 排序，`base_query.rb:111`）、获取与下载已完成；`ResendPaymentReceipt` 与发票、贷记单的重新发送一样返回 Unimplemented，直到接入文档邮件：邮件附带渲染后的 PDF（`payment_receipt_mailer.rb`） |
-| 付款收据 webhook `payment_receipt.created`、`payment_receipt.generated` | `app/services/webhooks/payment_receipts/` | libs/webhooks | 进行中 | 创建收据时发出 `payment_receipt.created`（`create_service.rb:29`），同时入队 `documents.generate_payment_receipt`，其 `notify` 由开票主体的 `payment_receipt.created` 邮件设置决定（`create_service.rb:43-45`）。`payment_receipt.generated` 在 PDF 渲染后发出：在接入 libs/documents 与 blob 存储之前，文档任务注册为待实现 |
+| 付款收据 PDF 与 XML，按计费主体设置发送邮件 | `app/services/payment_receipts/generate_pdf_service.rb`、`generate_xml_service.rb` | libs/documents、libs/billing/docgen | 已完成 | `documents.generate_payment_receipt` 渲染两者，并在设置 `notify` 时发送收据邮件 |
+| 付款收据 API 与重新发送邮件 | `app/controllers/api/v1/payment_receipts_controller.rb` | apps/server | 已完成 | 列出（过滤 `invoice_id`，按创建时间从新到旧、再按 ID 排序，`base_query.rb:111`）、获取与下载。下载与 GraphQL mutation 一样立即渲染缺失的 PDF（`mutations/payment_receipts/download.rb:18-22`），并返回永久链接。`ResendPaymentReceipt` 重新发送收据邮件；它与发票、贷记单的重新发送一样接受 `cc` 与 `bcc`，lago 的控制器会丢弃它们（`payment_receipts_controller.rb:41-46`） |
+| 付款收据 webhook `payment_receipt.created`、`payment_receipt.generated` | `app/services/webhooks/payment_receipts/` | libs/webhooks | 已完成 | 创建收据时发出 `payment_receipt.created`（`create_service.rb:29`），同时入队 `documents.generate_payment_receipt`，其 `notify` 由开票主体的 `payment_receipt.created` 邮件设置决定（`create_service.rb:43-45`）。`payment_receipt.generated` 在 PDF 存储后发出（`generate_pdf_service.rb:79-83`） |
 | 通过 Stripe、GoCardless、Adyen 为贷项通知单退款 | `app/services/credit_notes/refunds/` | providers/* | 已完成 | `payments.Service.Refunds` 是贷项通知单服务的 `kernel.RefundGateway`：打开被退款付款的连接，以贷项通知单为键退款。拒绝使退款失败，未知状态以待处理记录提供者退款 ID，其他错误重试。手动付款、已移除的连接、没有适配器或不支持退款（`payment.ErrUnsupported`）的供应商会跳过退款（`creditnotes.ErrRefundSkipped`），与 lago 只为 Stripe、GoCardless 与 Adyen 付款入队退款一致（`credit_notes/create_service.rb:255-264`）。Adyen：4xx 拒绝使退款失败，认证错误与 5xx 重试（lago 任何错误都使其失败，`adyen_service.rb:100-106`）。GoCardless：带 `total_amount_confirmation`；4xx 拒绝使其失败，5xx 与连接失败重试（`gocardless_service.rb:48-57`） |
 | 把退款原因映射为提供者的原因 | `app/services/credit_notes/refunds/stripe_service.rb` | providers/stripe | 逻辑已完成 | Stripe 的 `canceled` 退款映射为失败，`requires_action` 映射为待处理；lago 直接复制状态，二者都会校验失败（`credit_note.rb:62`）。其他状态返回 `payment.ErrUnknownStatus`，调用方不予持久化，与 lago 的校验失败一致（`credit_notes/refunds/stripe_service_spec.rb:360`） |
 | 根据提供者 webhook 更新退款状态 | `app/services/credit_notes/refunds/`（`update_status`） | libs/billing | 逻辑已完成 | |
@@ -760,7 +760,7 @@ v1.55.0 中只有准入检查可达（`config/routes/shared_api.rb:174`）：路
 | NetSuite 子公司 | `app/services/integrations/aggregator/subsidiaries_service.rb` | providers/netsuite | 已完成 | `ListIntegrationSubsidiaries`，与 lago 一样不存储 |
 | 按交易 ID 对账 NetSuite 发票 | `app/services/integrations/aggregator/invoices/reconcile_service.rb` | providers/netsuite | 已完成 | 要求先查找时（`RetryInvoiceSync`）以及创建超时后（6 次尝试，间隔 6 分钟，`invoices/create_job.rb:28-36`），发票同步先按 `tranid` 查找发票再创建 |
 | NetSuite 税务关联、税种与税码映射 | `app/models/integration_collection_mappings/netsuite_collection_mapping.rb` | providers/netsuite | 已完成 | 随发票与贷项通知单的税行发送；金额为按货币精度的十进制字符串 |
-| Xero 连接 | `app/models/integrations/xero_integration.rb` | providers/xero | 已完成 | 以安装的应用（`TANVO_XERO_CLIENT_ID`、`TANVO_XERO_CLIENT_SECRET`）直接与 Xero 进行 OAuth 2.0（`StartIntegrationOauth`、`CompleteIntegrationOauth`），取代 Nango；租户为授权的 `authEventId` 对应的租户；刷新后的授权立即保存。按租户限流为每秒 1 次、突发 60 次（`throttling.rb`），因为 Xero 按租户限流；lago 的限流是全局的。每日上限交给 429 之后的重试 |
+| Xero 连接 | `app/models/integrations/xero_integration.rb` | providers/xero | 已完成 | 以安装的应用（`TANVO_XERO_CLIENT_ID`、`TANVO_XERO_CLIENT_SECRET`）直接与 Xero 进行 OAuth 2.0（`StartIntegrationOauth`、`CompleteIntegrationOauth`），取代 Nango；租户为授权的 `authEventId` 对应的租户；刷新后的授权立即保存。按租户限流为每秒 1 次、突发 60 次（`throttling.rb`），因为 Xero 按租户限流；lago 的限流是全局的。每日 5000 次的配额见“对第三方 API 调用的限流” |
 | 会计同步设置：发票、贷项通知单、付款 | `app/models/integrations/` | libs/billing | 已完成 | 发票、贷项通知单与付款的 webhook 在其事务中排入同步（`integrations.Service.Triggers`，包装每个计费服务的 webhook） |
 | 获取提供者的商品与科目 | `app/services/integrations/aggregator/items_service.rb`、`accounts_service.rb` | providers/* | 已完成 | `SyncIntegrationItems`，以及连接时（`fetch_items_job.rb`）；获取的记录替换同类型的缓存记录 |
 | 附加项与计费指标的商品映射，可按计费主体 | `app/services/integration_mappings/` | libs/core、libs/billing、apps/server | 已完成 | `IntegrationService` 基于 libs/billing/integrations 列出、写入与删除集成映射 |
@@ -773,7 +773,7 @@ v1.55.0 中只有准入检查可达（`config/routes/shared_api.rb:174`）：路
 | 手动重新同步发票或贷项通知单 | `app/graphql/mutations/integrations/sync_invoice.rb` | libs/billing | 已完成 | `RetryInvoiceSync`（先在提供者处查找发票）与 `RetryCreditNoteSync`（`sync_credit_note.rb`） |
 | 部署了自定义对象与属性的 HubSpot 连接 | `app/services/integrations/hubspot/` | providers/hubspot | 已完成 | 直接与 HubSpot 进行 OAuth 2.0（`TANVO_HUBSPOT_CLIENT_ID`、`TANVO_HUBSPOT_CLIENT_SECRET`），取代 Nango；使用 v3 schema 与属性批量端点。连接在一个任务中部署全部对象与属性集；对象版本与属性版本分别记录（lago 在 `deploy_object_service.rb:9` 与 `deploy_properties_service.rb:9` 之间共用 `invoices_properties_version`，两者交替），且从 1 开始；已存在的属性视为已部署。属性命名为 `tanvo_*`。返回自定义对象类型 ID。按连接限流为每秒 11 次、突发 110 次，因为 HubSpot 按账户限流；lago 的限流是全局的（`config/initializers/throttling.rb`） |
 | 每个客户的 HubSpot 公司或联系人 | `app/services/integrations/aggregator/companies/`、`contacts/` | providers/hubspot | 已完成 | 未给出目标对象时按客户类型计算 |
-| 带关联的 HubSpot 发票与订阅记录 | `app/services/integrations/aggregator/invoices/hubspot/`、`subscriptions/hubspot/` | providers/hubspot | 已完成 | v3 记录与 v4 默认关联；`SyncHubspotInvoice` 手动排入发票。对象部署前同步的记录以 `object_not_deployed` 失败。发票文件 URL 为限时的 blob URL，在接入 blob 存储前省略；付款状态变化时更新记录（`invoices/update_service.rb:85-102`） |
+| 带关联的 HubSpot 发票与订阅记录 | `app/services/integrations/aggregator/invoices/hubspot/`、`subscriptions/hubspot/` | providers/hubspot | 已完成 | v3 记录与 v4 默认关联；`SyncHubspotInvoice` 手动排入发票。对象部署前同步的记录以 `object_not_deployed` 失败。发票文件 URL 为 PDF 的永久链接，未渲染时为空；付款状态变化时更新记录（`invoices/update_service.rb:85-102`） |
 | Salesforce 连接（实例）与发票 ID 同步 | `app/services/integrations/salesforce/` | providers/salesforce | 已完成 | 连接保存实例 ID；Salesforce 软件包读取 Tanvo 的 API。`SyncSalesforceInvoice` 发送 `invoice.resynced`；`SetInvoiceSalesforceId` 保留发票已有的记录（`sync_salesforce_id_service.rb:16-22`） |
 | Anrok 连接，以及为草稿、预览与用量询价税额 | `app/services/integrations/aggregator/taxes/invoices/create_draft_service.rb` | providers/anrok | 已完成 | 即计费引擎的税务提供者（`kernel.Deps.Taxes`）。请求带 `taxDate`；达到速率上限时适配器等待而不失败 |
 | 草稿发票税额预览 | `app/graphql/mutations/integrations/fetch_draft_invoice_taxes.rb` | libs/billing、apps/server | 已完成 | `PreviewInvoiceTaxes` 通过客户（ID 或外部 ID）的税务集成为附加项费用询价；没有金额的费用被略去，除非所有费用都没有金额；被拒绝时为带提供者错误码的 `tax_error`，并发出 `customer.tax_provider_error` |
@@ -804,27 +804,27 @@ v1.55.0 中只有准入检查可达（`config/routes/shared_api.rb:174`）：路
 | 90 天后清理投递记录 | `app/jobs/clock/webhooks_cleanup_job.rb` | libs/webhooks | 已完成 | 每日 clock 任务为每个有端点的组织入队一个清除任务，在该组织的行级安全范围内每个事务删除 1 000 条投递；lago 在 clock 任务中删除所有组织的记录（`app/jobs/clock/webhooks_cleanup_job.rb:19`）。与 lago 一致，保留期从 `updated_at` 起算，使用索引 `(organization_id, updated_at) INCLUDE (id)` |
 | Webhook 端点 API | `app/controllers/api/v1/webhook_endpoints_controller.rb` | apps/server | 已完成 | `WebhookService` 的端点增删改查，以及投递的 Get、List 与 Retry。删除返回空响应，lago 返回该端点。不提供 lago 的 `/webhooks/public_key` 与 `json_public_key`（§3）。签名密钥只在创建时返回 |
 | 事件组 计费指标：`billable_metric.created`、`updated`、`deleted` | `app/services/webhooks/billable_metrics/` | libs/billing、libs/webhooks | 已完成 | 由指标服务在其事务中发出 |
-| 事件组 套餐：`plan.created`、`updated`、`deleted` | `app/services/webhooks/plans/` | libs/webhooks | 计划中 | |
+| 事件组 套餐：`plan.created`、`updated`、`deleted` | `app/services/webhooks/plans/` | libs/webhooks | 已完成 | 由 libs/billing/plans 在其事务中发出 |
 | 事件组 特性：`feature.created`、`updated`、`deleted` | `app/services/webhooks/features/` | libs/billing、libs/webhooks | 已完成 | 由权益服务在其事务中发出 |
 | 事件组 客户：`customer.created`、`updated`、`vies_check` | `app/services/webhooks/customers/` | libs/billing、libs/webhooks | 已完成 | 由客户服务在其事务中发出；`customer.vies_check` 由 VIES 检查任务发出 |
-| 事件组 客户连接：`customer.payment_provider_created`、`payment_provider_error`、`checkout_url_generated`、`accounting_provider_created`、`accounting_provider_error`、`crm_provider_created`、`crm_provider_error`、`tax_provider_error` | `app/services/webhooks/payment_providers/`、`app/services/webhooks/integrations/` | libs/webhooks | 计划中 | |
-| 事件组 订阅：`subscription.started`、`updated`、`terminated`、`canceled`、`incomplete`、`termination_alert`、`trial_ended`、`usage_threshold_reached` | `app/services/webhooks/subscriptions/` | libs/webhooks | 计划中 | |
-| 事件组 发票：`invoice.created`、`one_off_created`、`paid_credit_added`、`generated`、`drafted`、`ready_to_finalize`、`voided`、`deleted`、`resynced` | `app/services/webhooks/invoices/` | libs/webhooks | 计划中 | |
-| 事件组 发票付款：`invoice.payment_status_updated`、`payment_overdue`、`payment_failure`、`payment_dispute_lost` | `app/services/webhooks/invoices/` | libs/webhooks | 计划中 | |
-| 事件组 费用：`fee.created`、`fee.tax_provider_error` | `app/services/webhooks/fees/`、`app/services/webhooks/integrations/taxes/` | libs/webhooks | 计划中 | |
-| 事件组 事件：`events.errors` | `app/services/webhooks/events/validation_errors_service.rb` | libs/webhooks | 计划中 | 不移植 `event.error`（§2） |
-| 事件组 贷项通知单：`credit_note.created`、`generated`、`provider_refund_failure` | `app/services/webhooks/credit_notes/` | libs/webhooks | 计划中 | |
-| 事件组 钱包：`wallet.created`、`updated`、`terminated`、`depleted_ongoing_balance` | `app/services/webhooks/wallets/` | libs/webhooks | 计划中 | |
-| 事件组 钱包交易：`wallet_transaction.created`、`updated`、`payment_failure` | `app/services/webhooks/wallet_transactions/` | libs/webhooks | 计划中 | |
-| 事件组 付款：`payment.succeeded`、`requires_action`、`payment_provider.error` | `app/services/webhooks/payments/`、`app/services/webhooks/payment_providers/` | libs/webhooks | 计划中 | |
-| 事件组 付款请求：`payment_request.created`、`payment_status_updated`、`payment_failure` | `app/services/webhooks/payment_requests/` | libs/webhooks | 计划中 | |
+| 事件组 客户连接：`customer.payment_provider_created`、`payment_provider_error`、`checkout_url_generated`、`accounting_provider_created`、`accounting_provider_error`、`crm_provider_created`、`crm_provider_error`、`tax_provider_error` | `app/services/webhooks/payment_providers/`、`app/services/webhooks/integrations/` | libs/webhooks | 已完成 | 支付连接由 libs/billing/payments 发送：`payment_provider_created` 和 `checkout_url_generated` 由提供者客户同步发送，提供者拒绝时发送 `payment_provider_error`（`TestSyncProviderCustomer*`）；会计、CRM 和税务由 libs/billing/integrations 发送 |
+| 事件组 订阅：`subscription.started`、`updated`、`terminated`、`canceled`、`incomplete`、`termination_alert`、`trial_ended`、`usage_threshold_reached` | `app/services/webhooks/subscriptions/` | libs/webhooks | 已完成 | 见订阅 webhook 一行（§1.20） |
+| 事件组 发票：`invoice.created`、`one_off_created`、`paid_credit_added`、`generated`、`drafted`、`ready_to_finalize`、`voided`、`deleted`、`resynced` | `app/services/webhooks/invoices/` | libs/webhooks | 进行中 | 除 `invoice.generated` 外均已实现；`invoice.generated` 随发票文档发出（§1.47） |
+| 事件组 发票付款：`invoice.payment_status_updated`、`payment_overdue`、`payment_failure`、`payment_dispute_lost` | `app/services/webhooks/invoices/` | libs/webhooks | 已完成 | libs/billing/payments 与 libs/billing/dunning |
+| 事件组 费用：`fee.created`、`fee.tax_provider_error` | `app/services/webhooks/fees/`、`app/services/webhooks/integrations/taxes/` | libs/webhooks | 已完成 | `fee.tax_provider_error` 在 v1.55.0 中从不发送（只列于 `send_webhook_job.rb:35`） |
+| 事件组 事件：`events.errors` | `app/services/webhooks/events/validation_errors_service.rb` | libs/webhooks | 已完成 | `events.errors` 由每小时的事件校验发出；不移植 `event.error`（§2） |
+| 事件组 贷项通知单：`credit_note.created`、`generated`、`provider_refund_failure` | `app/services/webhooks/credit_notes/` | libs/webhooks | 进行中 | `credit_note.created`、`credit_note.refund_failure`（只用一个事件名，§4）；`generated` 随文档发出（§1.47） |
+| 事件组 钱包：`wallet.created`、`updated`、`terminated`、`depleted_ongoing_balance` | `app/services/webhooks/wallets/` | libs/webhooks | 已完成 | libs/billing/wallets |
+| 事件组 钱包交易：`wallet_transaction.created`、`updated`、`payment_failure` | `app/services/webhooks/wallet_transactions/` | libs/webhooks | 已完成 | 见钱包交易 webhook 一行（§1.29） |
+| 事件组 付款：`payment.succeeded`、`requires_action`、`payment_provider.error` | `app/services/webhooks/payments/`、`app/services/webhooks/payment_providers/` | libs/webhooks | 已完成 | libs/billing/payments：提供者事件成功时发送 `payment.succeeded`（events.go），扣款等待客户操作时发送 `payment.requires_action`，提供者拒绝 webhook 注册时发送 `payment_provider.error`（`register_webhook_service.rb`） |
+| 事件组 付款请求：`payment_request.created`、`payment_status_updated`、`payment_failure` | `app/services/webhooks/payment_requests/` | libs/webhooks | 已完成 | libs/billing/payments：创建请求时发送 `created`，提供者事件时发送 `payment_status_updated`，扣款失败时发送 `payment_failure` |
 | 事件组 付款收据：`payment_receipt.created`、`generated` | `app/services/webhooks/payment_receipts/` | libs/webhooks | 计划中 | |
-| 事件组 催收：`dunning_campaign.finished` | `app/services/webhooks/dunning_campaigns/` | libs/webhooks | 计划中 | |
-| 事件组 集成：`integration.provider_error` | `app/services/webhooks/integrations/provider_error_service.rb` | libs/webhooks | 计划中 | |
-| 事件组 告警：`alert.triggered` | `app/services/webhooks/usage_monitoring/` | libs/webhooks | 计划中 | |
-| 事件组 报价：`quote.created`、`approved`、`voided` | `app/services/webhooks/quotes/` | libs/webhooks | 计划中 | 不设高级版门槛 |
-| 事件组 订购单：`order_form.created`、`signed`、`expired`、`voided` | `app/services/webhooks/order_forms/` | libs/webhooks | 计划中 | 不设高级版门槛 |
-| 事件组 订单：`order.created`、`executed` | `app/services/webhooks/orders/` | libs/webhooks | 计划中 | 不设高级版门槛 |
+| 事件组 催收：`dunning_campaign.finished` | `app/services/webhooks/dunning_campaigns/` | libs/webhooks | 已完成 | libs/billing/dunning |
+| 事件组 集成：`integration.provider_error` | `app/services/webhooks/integrations/provider_error_service.rb` | libs/webhooks | 已完成 | libs/billing/integrations |
+| 事件组 告警：`alert.triggered` | `app/services/webhooks/usage_monitoring/` | libs/webhooks | 已完成 | libs/billing（monitoring.go） |
+| 事件组 报价：`quote.created`、`approved`、`voided` | `app/services/webhooks/quotes/` | libs/webhooks | 已完成 | 不设高级版门槛；libs/billing/quotes |
+| 事件组 订购单：`order_form.created`、`signed`、`expired`、`voided` | `app/services/webhooks/order_forms/` | libs/webhooks | 已完成 | 不设高级版门槛；libs/billing/quotes（`created`、`signed`、`voided`）和订购单过期作业（`expired`，libs/billing/order_forms.go） |
+| 事件组 订单：`order.created`、`executed` | `app/services/webhooks/orders/` | libs/webhooks | 已完成 | 不设高级版门槛；libs/billing/quotes |
 
 ### 1.39 入站 Webhook
 
@@ -840,12 +840,12 @@ v1.55.0 中只有准入检查可达（`config/routes/shared_api.rb:174`）：路
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 认领事件类型的目的地（每种类型一个目的地） | `app/models/streaming_destinations/base_destination.rb` | libs/webhooks | 计划中 | 由运维方配置：v1.55.0 没有创建它们的 API，Tanvo 也没有 |
-| 事件类型 `customer_usage.refreshed.v1`、`customer_full_usage.refreshed.v1` | `app/models/streaming_destinations/base_destination.rb` | libs/webhooks | 计划中 | |
-| 从完整用量事件中排除的套餐 | `app/models/streaming_destinations/base_destination.rb` | libs/webhooks | 计划中 | |
-| 带角色扮演与分区键的 Kinesis 目的地 | `app/models/streaming_destinations/kinesis_destination.rb`、`lib/lago/kinesis/producer.rb` | libs/webhooks | 计划中 | |
-| 带钱包信息的用量刷新信封 | `app/services/event_destinations/` | libs/webhooks | 计划中 | |
-| 投递去重与日志（已投递、跳过、失败、被取代、丢弃） | `app/jobs/deliver_event_job.rb`、`app/services/event_destinations/delivery_logger.rb` | libs/webhooks | 计划中 | |
+| 认领事件类型的目的地（每种类型一个目的地） | `app/models/streaming_destinations/base_destination.rb` | libs/core、libs/store | 已完成 | `libs/core/streaming` 的 `streaming.Destination`，存于 `streaming_destinations`（`libs/store/schema/29_streaming.sql`）；唯一索引拒绝同一组织内第二个认领同一类型的活动目的地，CHECK 约束拒绝未知类型。由运维方以 SQL 配置：v1.55.0 没有创建它们的 API，Tanvo 也没有 |
+| 事件类型 `customer_usage.refreshed.v1`、`customer_full_usage.refreshed.v1` | `app/models/streaming_destinations/base_destination.rb`、`app/services/event_destinations/` | libs/billing | 已完成 | `libs/billing/streaming`，与 lago-api 相同地挂接在钱包余额刷新上（`customers/refresh_wallets_service.rb`）：当前用量在提交后以刷新计算出的用量内联产生，完整用量由 `streaming` 队列上的 `streaming.deliver_event` 任务产生。完整用量没有高级版或 `granular_lifetime_usage` 门槛（`customer_usage_service.rb`） |
+| 从完整用量事件中排除的套餐 | `app/models/streaming_destinations/base_destination.rb` | libs/core、libs/billing | 已完成 | `Destination.EventTypesFor(planCode)` |
+| 带角色扮演与分区键的 Kinesis 目的地 | `app/models/streaming_destinations/kinesis_destination.rb`、`lib/lago/kinesis/producer.rb` | libs/webhooks | 已完成 | `libs/webhooks/kinesis` 不依赖 AWS SDK 实现 `port.StreamProducer`：SigV4、STS `AssumeRole`（设置了 `TANVO_STREAMING_INTERMEDIATE_ROLE_ARN` 时经由该中间角色）与环境凭证链（环境变量、web identity、容器、实例配置文件；不读共享配置文件）。会话名以 `tanvo-` 开头 |
+| 带钱包信息的用量刷新信封 | `app/services/event_destinations/`、`app/serializers/event_destinations/customer_usage_serializer.rb` | libs/billing | 已完成 | `streaming.SerializeUsage`；`to_datetime` 是周期的开区间终点（domain §2.3） |
+| 投递去重与日志（已投递、跳过、失败、被取代、丢弃） | `app/jobs/deliver_event_job.rb`、`app/services/event_destinations/delivery_logger.rb` | libs/core、libs/store、libs/billing | 已完成 | 以 `streaming_delivery_locks`（持有 10 分钟，入队与运行时各认领一次）去重，而非 Redis 唯一锁，因为 River 无法排除正在运行的任务。只尝试一次，不重试。以带 `outcome`（另有 `throttled`）与错误类别的 `log/slog` 记录输出，而非带 Ruby 类名的 logfmt 行 |
 
 ### 1.41 报价、订购单与订单
 
@@ -865,17 +865,17 @@ v1.55.0 中只有准入检查可达（`config/routes/shared_api.rb:174`）：路
 | :--- | :--- | :--- | :--- | :--- |
 | 用量归属类型，分层与扁平（`account_tree` 开关） | `app/models/usage_attribution_type.rb`、`app/controllers/api/v1/usage_attribution_types_controller.rb` | libs/core、libs/billing、apps/server | 已完成 | 基于 libs/billing/usageattribution 的 `UsageAttributionService` Create、Get、List、Update 与 Delete。类型按 ID 或 `code:<code>` 读取，父类型以引用（`parent_id`）给出，lago 使用 `parent_code`。`account_tree` 开关不作为门槛（`usage_attribution_types_controller.rb:118`）。列表过滤 `root = false`（有未删除父类型的类型）超出 lago，lago 只读取 `roots: true`（`usage_attribution_types_query.rb:12`）。Delete 返回空响应体，lago 返回被删除的类型（`usage_attribution_types_controller.rb:43-52`） |
 | 归属取值 | `app/models/usage_attribution_value.rb` | libs/core、libs/store | 已完成 | 随其类型存储、读取与删除；与 v1.55.0 一样，没有代码从事件中记录取值，因此取值只用于冻结其类型的 code、role 与父类型 |
-| 归属用量查询 | `app/controllers/api/v1/customers/attributed_usage_controller.rb` | libs/billing | 计划中 | 与 v1.55.0 一样只有读取侧：查询按 `events_enriched.attribution_labels` 分组，而没有任何代码写入该列，因此归属用量为空 |
+| 归属用量查询 | `app/controllers/api/v1/customers/attributed_usage_controller.rb` | libs/billing | 计划中 | v1.55.0 中只有读取侧，受 `account_tree` 标志与 ClickHouse 限制（`app/services/usage_attributions/query_service.rb:91-95`）：查询按 `events_enriched.attribution_labels` 分组，而没有任何代码写入该列，因此不返回任何归属行；没有标签过滤时，所有事件都落入 `unattributed` 汇总，它与 `totals` 一起报告订阅在时间窗内每个计费项的计数与求和用量（单位数、事件数，以及按金额口径时标准模型的金额，经 `ChargePriceLookupService` 按计费过滤器拆分，`query_service.rb:290-300`、`app/services/events/stores/clickhouse/attributed_usage_query.rb:93-98`）。未实现：在事件携带归属标签之前，该端点只是复述当前用量，而 Tanvo 的事件不携带归属标签（改为携带请求元数据） |
 
 ### 1.43 数据导出
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 按列表过滤条件以 CSV 导出发票、发票费用、贷项通知单、贷项通知单条目 | `app/services/data_exports/` | libs/billing、apps/server | 进行中 | `DataExportService` 的 Export* RPC 基于 libs/billing/exports；仅限成员调用（lago 的 mutation 需要用户），并写 `export.created` 安全日志。CSV 列遵循 `app/services/data_exports/csv/`；总是写出 `progressive_billing_credit_amount_cents`（不设高级版门槛，`csv/invoices.rb:16`）。发票过滤接受 lago 发票导出过滤的字段；贷项通知单过滤另外接受 `customer_id` 与 `customer_external_id`。附加项费用的日期取所存边界的 UTC 日期。安全日志在导出所在事务中写入（`create_service.rb:28`）。`exports.*` 任务在 exports 队列上运行；尚未接入 blob 存储，因此各部分会被渲染，但文件不会保存，合并任务只记录日志。响应带有导出的 `id` 与 `status`，与 lago mutation 的结果一致 |
+| 按列表过滤条件以 CSV 导出发票、发票费用、贷项通知单、贷项通知单条目 | `app/services/data_exports/` | libs/billing、apps/server | 已完成 | `DataExportService` 的 Export* RPC 基于 libs/billing/exports；仅限成员调用（lago 的 mutation 需要用户），并写 `export.created` 安全日志。CSV 列遵循 `app/services/data_exports/csv/`；总是写出 `progressive_billing_credit_amount_cents`（不设高级版门槛，`csv/invoices.rb:16`）。发票过滤接受 lago 发票导出过滤的字段；贷项通知单过滤另外接受 `customer_id` 与 `customer_external_id`。附加项费用的日期取所存边界的 UTC 日期。安全日志在导出所在事务中写入（`create_service.rb:28`）。`exports.*` 任务在 exports 队列上运行；合并后的 CSV 存入 blob 存储，`exports.send_completed_email` 将其链接发送给发起人（`combine_parts_service.rb:38-39`、`data_export_mailer.rb`）。响应带有导出的 `id` 与 `status`，与 lago mutation 的结果一致 |
 | 导出拆分为多个部分再合并 | `app/models/data_export_part.rb` | libs/billing | 逻辑已完成 | 每部分 20 个对象；合并任务按导出唯一 |
 | 导出文件 7 天后过期 | `app/models/data_export.rb` | libs/billing | 逻辑已完成 | |
 | 导出完成邮件 | `app/mailers/data_export_mailer.rb` | libs/mail | 逻辑已完成 | |
-| 发票、费用、贷项通知单、钱包、订阅、告警、每日用量及其他业务表的导出视图（`exports_*`） | `db/views/exports_*.sql` | libs/store | 计划中 | 只读 PostgreSQL 视图，与删除记录（§1.49）一起构成数据仓库同步的契约 |
+| 发票、费用、贷项通知单、钱包、订阅、告警、每日用量及其他业务表的导出视图（`exports_*`） | `db/views/exports_*.sql` | libs/store | 完成 | libs/store/schema/30_export_views.sql 中的 29 个只读视图：计费指标、开票主体、套餐、费用项（charges）、税、用量阈值、功能、权益、优惠券、客户、集成客户、已应用优惠券、订阅、发票、发票订阅、发票应用税、发票结算、费用、贷项通知单、贷项通知单应用税、钱包、钱包交易、钱包交易消耗、付款请求、付款、每日用量、告警阈值、已触发告警以及删除记录（§1.49）。行的选取与 lago 相同：发票不含 generating、open 与 closed，已删除的发票带着其状态导出（`exports_invoices_v04.sql:77-82`）；已删除发票的费用、发票订阅与发票税不导出；已删除的贷项通知单、已删除的计费指标及其已删除的过滤器、已删除的套餐不导出；告警只导出已触发的。视图为 `security_invoker`，因此读取者的行级安全生效；从不更新的行以其 created_at 或父对象的时间作为增量同步的 `updated_at`。migrate-diff 会比较视图（开源 Atlas 规划器忽略视图）：变更过的视图，或读取了某表而会阻止该表计划变更的视图，在表变更前删除、之后重建。偏差（采用 Tanvo 的命名：无 `lago_` 前缀，使用 Tanvo 的列名与最小货币单位金额）：没有 `exports_fees_taxes` 与 `exports_item_metadata`，因为费用税（`fees.applied_taxes`）与条目元数据是其所属对象的列，随所属对象导出并在每次更新时重新导出，因此不需要删除记录；lago 的三个权益视图按存储方式合为 `exports_features`（含特权）与 `exports_entitlements`（含 `privilege_values`）；lago 的 `pending` 发票即 `tax_status = pending` 的 `open` 发票（领域 §11）；税列出其 `billing_entity_ids` 而非 `applied_to_organization`，客户的时区与宽限期回落到开票主体的，因为计费设置位于开票主体上（领域 §4）；Tanvo 未建模的遗留字段不导出（`version_number`、客户的 `vat_rate`、`external_salesforce_id`、提供者 `settings`）。不重现 lago 视图的缺陷（§4）。测试：porttest `RunExportViews`（`TestExportViewsPostgres`：每个视图、组织隔离、发票状态与应付金额、费用的客户与条目、已删除发票的子行、已删除的贷项通知单、付款的发票、删除记录） |
 | 导出视图的数据仓库同步 | Lago 私有的数据管道 | ee/pipeline | 计划中 | 读取视图的独立进程（架构 §14） |
 
 ### 1.44 分析
@@ -887,7 +887,7 @@ v1.55.0 中只有准入检查可达（`config/routes/shared_api.rb:174`）：路
 | 发票回款 | `app/services/analytics/invoice_collections_service.rb` | libs/billing、libs/store、apps/server | 已完成 | `AnalyticsService`。基于 PostgreSQL，按 `app/models/analytics/` 的 SQL，按月（UTC）、货币与支付状态计算；金额精确求和后截断。未知计费主体返回 NotFound，lago 则忽略它（`app/controllers/api/v1/analytics/base_controller.rb:31-33`）。不设高级版门槛；与 lago 一样不支持客户过滤；`is_customer_tin_empty` 只保留没有（或有）税务识别号的客户 |
 | 已开票用量 | `app/services/analytics/invoiced_usages_service.rb` | libs/billing、libs/store、apps/server | 已完成 | `AnalyticsService`。基于 PostgreSQL，按 `app/models/analytics/` 的 SQL，按月（UTC）、货币与计费指标计算；金额精确求和后截断。未知计费主体返回 NotFound，lago 则忽略它（`app/controllers/api/v1/analytics/base_controller.rb:31-33`）。不设高级版门槛；与 lago 一样不支持客户过滤 |
 | 逾期余额 | `app/services/analytics/overdue_balances_service.rb` | libs/billing、libs/store、apps/server | 已完成 | `AnalyticsService`。基于 PostgreSQL，按 `app/models/analytics/` 的 SQL，按付款到期月（UTC）、货币与计费主体（`billing_entity_id`）计算；金额精确求和后截断。未知计费主体返回 NotFound，lago 则忽略它（`app/controllers/api/v1/analytics/base_controller.rb:31-33`）。不设高级版门槛；可按 `customer_id`（lago 的 `external_customer_id`）与 `is_customer_tin_empty` 过滤 |
-| 分析缓存（4 小时） | `app/services/analytics/` | libs/billing | 计划中 | 每次请求都重新计算报表：尚无缓存层，因此结果总是最新的，而 lago 的结果最多可能滞后 4 小时 |
+| 分析缓存（4 小时） | `app/models/analytics/base.rb` | libs/billing、apps/server | 已完成 | libs/billing/analytics `Cache`：报表以其类型、当前 UTC 日期、组织与筛选条件为键（各模型的 `cache_key`）复用 4 小时（`TANVO_ANALYTICS_CACHE_TTL`，`0` 关闭）；API 与客户门户共用该缓存。客户的同类报表带有版本号，带 `expire_cache` 且指定客户的读取会先递增该版本，使所有变体重新计算（`base.rb:9-12`、`:28-60`）；不指定客户时 `expire_cache` 不起作用。`expire_cache` 出现在 GetGrossRevenue、GetOverdueBalance 以及门户的逾期余额与发票收款上，与 lago 的 resolver 一致。偏差：缓存位于每个服务器进程中（同草稿税额缓存），而 lago 的 Rails 缓存是共享的；版本号是计数器而非 lago 的挂钟秒数，因此同一秒内的两次失效都会重新计算。测试：apps/server/internal/rpc analytics_cache_test.go |
 | 按套餐的 MRR、预付额度、按客户与套餐的收入流、用量与聚合金额 | Data API（`app/services/data_api/`） | ee/analytics | 计划中 | |
 | 嵌入式仪表盘 | Superset 嵌入（`app/services/` 中的 superset） | ee/analytics | 计划中 | |
 | 用量预测 | 仅前端使用的高级版开关 | ee/analytics | 计划中 | |
@@ -901,9 +901,9 @@ v1.55.0 中只有准入检查可达（`config/routes/shared_api.rb:174`）：路
 | 每个组织的活动日志保留期 | `app/models/organization.rb` | libs/auth | 已完成 | 应用于列表，不应用于读取单条记录（`activity_logs_query.rb`、`activity_logs_controller.rb`） |
 | 写请求的 API 日志 | `app/services/utils/api_log.rb` | apps/server | 已完成 | `APILogs` 拦截器记录 API 密钥的每个有副作用的调用（事件与日志服务除外，见 `api_loggable.rb` 的 `skip_audit_logs!`），且不在请求路径上：调用把日志放入有界缓冲区，由写入器按批写入 PostgreSQL（每批一个事务），而非经由 Kafka。放不进缓冲区或所在批次写入失败的日志会被丢弃，并计入 `tanvo.api_log.dropped` 指标（`reason` 为 overflow 或 write_error）；重复的请求 ID 保留第一条日志。Connect 调用记录为 `post`，路径为过程名；错误响应为 `{code, message}` |
 | 安全日志（登录、用户、角色、API 密钥、集成、webhook 端点），保留 90 天 | `app/services/utils/security_log.rb` | libs/auth、apps/server | 已完成 | 各服务通过 `auth.NewRepoSecurityLogger` 写入，附带用户以及（API 密钥以外的）客户端设备；超过 90 天的记录既不列出也不可读取（`clickhouse/security_log.rb:12`）。无付费功能门槛 |
-| 邮件已发送活动 | `app/services/utils/activity_log.rb` | libs/mail | 逻辑已完成 | |
+| 邮件已发送活动 | `app/services/utils/activity_log.rb` | libs/mail、apps/server | 已完成 | 文档邮件的 `email.sent`，在投递后或最后一次失败尝试后记录（`send_email_job.rb`），邮件与文档为嵌套对象（lago 的 GraphQL 会把其 JSON 字符串解析回来，`types/activity_logs/object.rb:27-35`）；重新发送记为 `resent`，来源为 system（`resend_service.rb:44-47`） |
 | 带过滤的日志 API | `app/controllers/api/v1/activity_logs_controller.rb`、`api_logs_controller.rb`、`security_logs_controller.rb` | apps/server | 已完成 | `LogService`：以过滤表达式提供 `activity_logs_query.rb`、`api_logs_query.rb` 与 `security_logs_query.rb` 的过滤条件，含 `logged_at` 区间；列出安全日志需要上界（`security_logs_query.rb:17`） |
-| 日志存放在 ClickHouse 中，没有 ClickHouse 时存放在 PostgreSQL 中 | `db/clickhouse_migrate/` | libs/eventstore | 计划中 | Lago 要求 ClickHouse |
+| 日志存放在 ClickHouse 中，没有 ClickHouse 时存放在 PostgreSQL 中 | `db/clickhouse_migrate/` | libs/eventstore | 进行中 | 活动、API 与安全日志在所有安装中都存放在 PostgreSQL（libs/store，23_audit_log.sql）；尚未为配置了 ClickHouse 的安装实现 ClickHouse 日志存储。Lago 要求 ClickHouse |
 
 ### 1.46 客户门户
 
@@ -921,18 +921,18 @@ v1.55.0 中只有准入检查可达（`config/routes/shared_api.rb:174`）：路
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 发票 PDF（当前模板第 4 版及其局部模板） | `app/views/templates/invoices/v4/` | libs/documents | 逻辑已完成 | Typst 模板（§3） |
-| 贷项通知单 PDF | `app/views/templates/credit_notes/` | libs/documents | 逻辑已完成 | |
-| 付款收据 PDF | `app/views/templates/payment_receipts/` | libs/documents | 逻辑已完成 | |
-| 付款请求邮件 | `app/mailers/payment_request_mailer.rb`、`app/views/payment_request_mailer/requested.slim` | libs/mail | 逻辑已完成 | 也渲染为文档 |
+| 发票 PDF（当前模板第 4 版及其局部模板） | `app/views/templates/invoices/v4/` | libs/documents | 已完成 | Typst 模板（§3）。由 `documents.*` 任务生成（libs/billing/docgen，§1.47）并存入 blob 存储（architecture §10） |
+| 贷项通知单 PDF | `app/views/templates/credit_notes/` | libs/documents | 已完成 | 由 `documents.*` 任务生成（libs/billing/docgen，§1.47） |
+| 付款收据 PDF | `app/views/templates/payment_receipts/` | libs/documents | 已完成 | 由 `documents.*` 任务生成（libs/billing/docgen，§1.47） |
+| 付款请求邮件 | `app/mailers/payment_request_mailer.rb`、`app/views/payment_request_mailer/requested.slim` | libs/mail | 已完成 | 也渲染为文档；由 `payments.send_payment_request_email` 发送 |
 | 文档语言 de、en、es、fr、it、nb、pt-BR、sv、zh-TW | `config/locales/` | libs/documents | 逻辑已完成 | 另有 zh-CN（Tanvo 新增）；中文文档需要 Noto CJK 字体（fonts-noto-cjk），否则渲染以 `ErrMissingFont` 失败 |
 | 品牌水印 | `app/views/templates/` | libs/documents | 逻辑已完成 | 没有水印，因此无需移除 |
-| UBL 发票（EN 16931、XRechnung 3.0、Peppol BIS 3） | `app/serializers/e_invoices/invoices/ubl/` | libs/documents | 逻辑已完成 | |
-| 以 Factur-X / ZUGFeRD 嵌入的 CII 发票 | `app/serializers/e_invoices/invoices/cii/` | libs/documents | 逻辑已完成 | |
+| UBL 发票（EN 16931、XRechnung 3.0、Peppol BIS 3） | `app/serializers/e_invoices/invoices/ubl/` | libs/documents | 已完成 | 由 `documents.*` 任务生成（libs/billing/docgen，§1.47） |
+| 以 Factur-X / ZUGFeRD 嵌入的 CII 发票 | `app/serializers/e_invoices/invoices/cii/` | libs/documents | 已完成 | |
 | 电子发票代码表 | `app/serializers/e_invoices/` | libs/documents | 逻辑已完成 | |
-| 贷项通知单与收据的电子发票 | `app/serializers/e_invoices/credit_notes/`、`app/serializers/e_invoices/payments/` | libs/documents | 逻辑已完成 | |
-| 文档邮件（发票、贷项通知单、收据、付款请求） | `app/mailers/` | libs/mail | 逻辑已完成 | |
-| 重新发送文档邮件 | `app/services/emails/resend_service.rb` | libs/mail | 逻辑已完成 | |
+| 贷项通知单与收据的电子发票 | `app/serializers/e_invoices/credit_notes/`、`app/serializers/e_invoices/payments/` | libs/documents | 已完成 | 由 `documents.*` 任务生成（libs/billing/docgen，§1.47） |
+| 文档邮件（发票、贷项通知单、收据、付款请求） | `app/mailers/` | libs/mail、apps/server | 已完成 | `mail.send_document` 渲染缺失的 PDF，除非禁用 PDF 否则附上它，并按 `SendEmailJob` 的方式重试（文件未就绪 8 次、SMTP 4xx 25 次、超时 6 次）。计费主体的邮件设置在入队邮件处检查；重新发送忽略这些设置。没有 blob 存储时，邮件不带文件与链接。与 lago 一样，预付费用发票不发送邮件（`advance_charges_service.rb:31`） |
+| 重新发送文档邮件 | `app/services/emails/resend_service.rb` | libs/mail、apps/server | 已完成 | `ResendInvoice`、`ResendCreditNote` 与 `ResendPaymentReceipt` 像 lago 一样校验收件人与文档，然后入队 `mail.send_document`；未给出 `to` 时使用客户的邮箱 |
 | SMTP 投递与自定义发件地址 | `config/environments/production.rb` | libs/mail | 逻辑已完成 | |
 
 ### 1.48 定时任务
@@ -943,7 +943,7 @@ Lago 的每个时钟任务都成为一个 River 周期任务，或一个在到�
 | :--- | :--- | :--- | :--- | :--- |
 | 激活订阅与合同、刷新草稿（每 5 分钟） | `clock.rb` | libs/jobs | 已完成 | 合同激活分派给有待生效订阅的组织 |
 | 订阅活动处理（每分钟） | `clock.rb` | libs/jobs | 已完成 | 由每个订阅每分钟一个的延迟任务代替（§1.32）；该时钟任务类型未注册 |
-| 刷新生命周期用量与钱包实时余额（每 5 分钟） | `clock.rb` | libs/jobs | 已完成 | 与 lago 选择条件相同：已开票用量被标记的生命周期用量，以及被标记 `awaiting_wallet_refresh` 且有活跃钱包的客户（`app/jobs/clock/refresh_lifetime_usages_job.rb:9-19`、`app/jobs/clock/refresh_wallets_ongoing_balance_job.rb:10`）；在错误详情实现之前，lago 的 `without_tax_errors` 没有对应条件。钱包也由用量刷新信号刷新（§1.29） |
+| 刷新生命周期用量与钱包实时余额（每 5 分钟） | `clock.rb` | libs/jobs | 已完成 | 与 lago 选择条件相同：已开票用量被标记的生命周期用量，以及被标记 `awaiting_wallet_refresh` 且有活跃钱包、没有 `tax_error` 错误详情的客户（`without_tax_errors`；`app/jobs/clock/refresh_lifetime_usages_job.rb:9-19`、`app/jobs/clock/refresh_wallets_ongoing_balance_job.rb:10`）。钱包也由用量刷新信号刷新（§1.29） |
 | 终止已结束的订阅、校验事件（每小时 :05） | `clock.rb` | libs/jobs | 已完成 | 两者均已装配；事件校验按组织与时钟小时各入队一个任务 |
 | 订阅计费（每小时 :10） | `clock.rb`（`SubscriptionsBiller`） | libs/jobs | 已完成 | 每个有活跃订阅的组织在每个时刻一个计费任务，再为每个到期订阅入队一个任务 |
 | 创建与处理计费片段（每小时 :12、:17） | `clock.rb` | libs/jobs | 已完成 | 创建分派给有活跃订阅的组织，处理分派给有待开票片段的组织 |
@@ -956,8 +956,8 @@ Lago 的每个时钟任务都成为一个 River 周期任务，或一个在到�
 | 终止钱包、执行定时订单、催收（每小时 :45） | `clock.rb` | libs/jobs | 已完成 | 钱包终止、定时订单与催收已装配 |
 | 终止提醒、终止循环规则（每小时 :50） | `clock.rb` | libs/jobs | 已完成 | 循环规则随钱包由同一个任务终止 |
 | 按间隔的钱包充值（每小时 :55） | `clock.rb` | libs/jobs | 已完成 | |
-| 重试失败的发票、重试入站 webhook（每 15 分钟） | `clock.rb` | libs/jobs | 进行中 | 为每个拥有 `tax_error_message` 包含 `API limit` 的失败发票的组织排队一个 `billing.retry_tax_failed_invoices`（`app/jobs/clock/retry_failed_invoices_job.rb:8-14`）；入站 webhook 重试尚未装配 |
-| 清理 webhook、入站 webhook 与删除记录（每天） | `clock.rb` | libs/jobs | 进行中 | webhook 投递与删除记录清理已装配，每个组织一个清除任务；入站 webhook 清理待完成 |
+| 重试失败的发票、重试入站 webhook（每 15 分钟） | `clock.rb` | libs/jobs | 已完成 | 为每个拥有 `tax_error_message` 包含 `API limit` 的失败发票的组织排队一个 `billing.retry_tax_failed_invoices`（`app/jobs/clock/retry_failed_invoices_job.rb:8-14`）；入站 webhook 重试按组织运行 `webhooks.Inbound.RetryDue`（apps/server 的 payments.go，libs/webhooks 的 inbound_test.go） |
+| 清理 webhook、入站 webhook 与删除记录（每天） | `clock.rb` | libs/jobs | 已完成 | webhook 投递、入站 webhook（`webhooks.Inbound.Clean`，inbound_test.go）与删除记录清理已装配，每个组织一个清除任务 |
 | 消费订阅刷新队列（每 10 秒） | `clock.rb` | libs/jobs | 已完成 | 由 `usage.refresh` 消费者代替，它把每个信号立即交给计费（订阅活动与钱包刷新） |
 | 按工作负载划分的队列 | `config/sidekiq/` | libs/jobs | 逻辑已完成 | River 队列按组织分片，并按组织使用令牌桶；周期任务运行在不分片的 `clock` 队列上 |
 
@@ -965,11 +965,11 @@ Lago 的每个时钟任务都成为一个 River 周期任务，或一个在到�
 
 | 功能 | Lago 源码 | Tanvo 模块 | 状态 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| 加密提供者密钥与集成凭据 | `app/models/concerns/secrets_storable.rb` | libs/store | 计划中 | AES-256-GCM 信封加密 |
-| 供下游同步使用的删除记录 | `db/structure.sql`（`record_deletions`、`record_deletion()`）、`db/views/exports_record_deletions_v01.sql`、`app/jobs/clock/record_deletions_cleanup_job.rb` | libs/store, libs/billing | 进行中 | 被删除的费用、发票订阅、发票应用税与贷项通知单应用税的墓碑（`export.RecordDeletion`；费用税是费用的一列）。lago 用延迟 `AFTER DELETE` 触发器写入；本 schema 不含触发器，因此存储层记下语句可能删除的行，并在提交前的最后一条语句中为已不存在的行写墓碑，统一以一个 `clock_timestamp()` 打时间戳：回滚不写，晚提交者时间戳更晚，与触发器一致。memstore 比较提交前后的被跟踪行。`billing.Engine.CleanRecordDeletions` 在一个日历月后删除它们，每个事务 10 000 条，每天 01:20 运行。`exports_record_deletions` 视图随导出视图（§1.43）提供；删除事件也写入 `audit_events` |
-| 发票上的错误详情（未提供、税务错误、税额作废错误、发票生成错误） | `app/models/error_detail.rb` | libs/core | 计划中 | |
-| 带超时、重试与 SSRF 防护的出站 HTTP 客户端 | `lib/lago_http_client/` | libs/webhooks | 计划中 | 经由 `libs/core` 端口供提供者共用 |
-| 业务对象的变更历史 | PaperTrail（`app/models/concerns/paper_trail_traceable.rb`） | libs/core | 计划中 | `audit_events` |
+| 加密提供者密钥与集成凭据 | `app/models/concerns/secrets_storable.rb` | libs/store | 已完成 | `auth.SecretBox`（libs/auth）：AES-256-GCM，以组织 ID 作为附加数据，用于集成、支付提供者、x402 连接与 SSO 连接 |
+| 供下游同步使用的删除记录 | `db/structure.sql`（`record_deletions`、`record_deletion()`）、`db/views/exports_record_deletions_v01.sql`、`app/jobs/clock/record_deletions_cleanup_job.rb` | libs/store, libs/billing | 完成 | 被删除的费用、发票订阅、发票应用税与贷项通知单应用税的墓碑（`export.RecordDeletion`；费用税是费用的一列）。lago 用延迟 `AFTER DELETE` 触发器写入；本 schema 不含触发器，因此存储层记下语句可能删除的行，并在提交前的最后一条语句中为已不存在的行写墓碑，统一以一个 `clock_timestamp()` 打时间戳：回滚不写，晚提交者时间戳更晚，与触发器一致。memstore 比较提交前后的被跟踪行。`billing.Engine.CleanRecordDeletions` 在一个日历月后删除它们，每个事务 10 000 条，每天 01:20 运行。`exports_record_deletions` 视图（§1.43）导出它们；删除事件也写入 `audit_events` |
+| 发票上的错误详情（未提供、税务错误、税额作废错误、发票生成错误） | `app/models/error_detail.rb` | libs/core | 已完成 | `invoice.ErrorDetail`（未提供、税务错误、税额作废错误、发票生成错误）、`creditnote.ErrorDetail`（税务错误）与 `customer.ErrorDetail`（税务错误）分别由开票、贷项通知单与钱包刷新写入（表 `invoice_error_details`、`credit_note_error_details`、`customer_error_details`），并作为 `errors` 出现在发票、贷项通知单与客户 API 中（`V1::ErrorDetailSerializer`；错误码、JSON 详情、创建时间）。税务服务商无法解析客户地址时，钱包刷新任务为客户记录 `tax_error`（`customers/refresh_wallet_job.rb:43-64`），并跳过带此错误的客户，定时扫描亦然（`without_tax_errors`）；通过更新或 upsert（门户除外）修改地址会删除该错误（`customers/update_service.rb:154`、`upsert_from_api_service.rb:100`）；x402 网关以 `customer_not_refreshable` 拒绝该客户（`x402/gate_checks/check_service.rb:27`）。测试：`wallets/ongoing_test.go` `TestRefreshWalletTaxError`、`customers/service_test.go` `TestAddressChangeClearsTaxErrors`、`x402pay/gate_test.go`、porttest `customer error details`、`rpc/error_details_test.go`、`rpc/customers_test.go` `TestCustomerErrors` |
+| 带超时、重试与 SSRF 防护的出站 HTTP 客户端 | `lib/lago_http_client/` | libs/webhooks | 已完成 | `webhooks.NewClient`（地址防护、不跟随重定向、超时），由 `apps/server` 注入 webhook 发送器、OIDC 与提供者；重试由各调用方负责（webhook 任务、x402 的 `providers/x402/rpc.go`）。Kinesis 生产者只访问 AWS 端点，使用自己的客户端，带有 `lib/lago/kinesis/producer.rb` 的超时与重试（`kinesis.NewHTTPClient`） |
+| 业务对象的变更历史 | PaperTrail（`app/models/concerns/paper_trail_traceable.rb`） | libs/core | 计划中 | v1.55.0 写入 PaperTrail 的 `versions`（每条记录 5 个，`config/initializers/paper_trail.rb`），但没有任何 API、解析器或任务读取它们；活动日志（§1.45）保存变更及其差异 |
 
 ### 1.50 Lago 的开关及其在 Tanvo 中的归属
 
@@ -1117,12 +1117,13 @@ Lago 自己标记为废弃、只为旧数据保留，或作为死代码保留的
 
 | Lago 的行为 | Lago 源码 | Tanvo 的行为 |
 | :--- | :--- | :--- |
-| 贷项通知单退款失败 webhook 的载荷写的是 `credit_note.refund_failure`，而事件键与目录写的是 `credit_note.provider_refund_failure`，导致端点过滤与载荷不一致 | `app/services/webhooks/credit_notes/payment_provider_refund_failure_service.rb`、`config/webhook_event_types.yml` | 载荷与过滤使用同一个事件名 `credit_note.provider_refund_failure` |
+| 贷项通知单退款失败 webhook 的载荷写的是 `credit_note.refund_failure`，而事件键与目录写的是 `credit_note.provider_refund_failure`，导致端点过滤与载荷不一致 | `app/services/webhooks/credit_notes/payment_provider_refund_failure_service.rb`、`config/webhook_event_types.yml` | 载荷与过滤使用同一个事件名 `credit_note.refund_failure`（lago 实际发送的名称） |
 | Adyen webhook 基础服务从处理器已经拆开的条目中再读取 `notificationItems` | `app/services/payment_providers/adyen/webhooks/base_service.rb` | 每个通知条目只解析一次；败诉的拒付从其自身条目读取（providers/adyen） |
 | Moneyhash 提供者引用了从未定义的 `live_prefix` | `app/models/payment_providers/moneyhash_provider.rb` | 没有未定义的设置；环境来自连接 |
 | Moneyhash 付款 URL 的金额 `total_due_amount_cents.div(100).to_f` 截断了分 | `app/services/invoices/payments/moneyhash_service.rb` | 使用 `libs/money` 的精确小数金额 |
 | 复用处理中的发票付款时匹配 `total_amount_cents`，而付款是按 `total_due_amount_cents` 创建的 | `app/services/invoices/payments/create_service.rb` | 按应付金额匹配 |
 | Flutterwave 与 Moneyhash 按 `total_amount_cents` 扣款，而其他提供者按应付金额扣款 | `app/services/invoices/payments/flutterwave_service.rb`、`moneyhash_service.rb` | 所有提供者都按应付金额扣款 |
+| 禁用 PDF 生成时，付款收据邮件因始终没有 PDF 附件而每次尝试都抛出 `FilesNotReadyError`，从未发送 | `app/mailers/payment_receipt_mailer.rb:12-19` | 禁用 PDF 时，收据邮件不带文件发送（libs/mail） |
 | 发票付款状态没有处理中状态；处理中的付款显示为 pending | `app/services/payment_requests/payments/create_service.rb`（代码注释） | 发票付款状态包含 `processing` |
 | Okta 与 Entra ID 登录创建了没有角色的成员资格 | `app/services/auth/okta/`、`app/services/auth/entra_id/` | 成员资格总有角色；OIDC 注册分配配置的默认角色 |
 | Google 登录错误码 `invite_email_mistmatch` | `app/services/auth/google_service.rb` | `invite_email_mismatch` |
@@ -1144,3 +1145,8 @@ Lago 自己标记为废弃、只为旧数据保留，或作为死代码保留的
 | HubSpot 订阅对象的描述是字面量 `"string"` | `app/services/integrations/hubspot/subscriptions/deploy_object_service.rb:168` | 与发票对象一样描述 |
 | 记录 Salesforce ID 时以外部 ID 查找资源，第二个 ID 会为同一发票再加一条资源，之后的查找取到其中任意一条 | `app/services/invoices/sync_salesforce_id_service.rb:16-22` | 每个集成、类型与同步对象只有一条资源；第二个 ID 保留第一个 |
 | 其他提供者的集合映射带 NetSuite 税务字段时抛出 NoMethodError（500） | `app/services/integration_collection_mappings/create_service.rb:38-41`、`update_service.rb:22-25` | 该字段为 `value_not_allowed` |
+| 不带 `interval` 的套餐更新（包括元数据端点的调用）会把未挂订阅套餐的 `bill_charges_monthly` 与 `bill_fixed_charges_monthly` 重置为 nil | `app/services/plans/update_service.rb:41-48`、147-153 | 只有发送了周期或该设置本身时才改动这些设置 |
+| 已应用优惠券的导出视图为 `forever` 优惠券计算剩余金额而对 `once` 优惠券不计算，与 API 相反，且计入作废、关闭与已删除发票的抵扣，而 API 不计入（`credit.rb:23`） | `db/views/exports_applied_coupons_v02.sql:11-24`、`app/serializers/v1/applied_coupon_serializer.rb:36-41` | `exports_applied_coupons.remaining_amount` 为已应用优惠券存储的剩余金额：与 API 一致，仅限 `once` 固定金额优惠券 |
+| 费用的导出视图从订阅取客户，因此附加项、额度及其他没有订阅的费用没有客户；产品费用被映射为 `unknown` 并带套餐的 code | `db/views/exports_fees_v04.sql:9, 18, 25, 127-128` | 客户取订阅的，否则取发票的；产品费用带其产品 |
+| 客户的导出视图无论客户有什么，都把 `metadata` 导出为 `{}`、`lago_taxes_ids` 导出为 `[]` | `db/views/exports_customers_v08.sql:47-48` | 导出客户的元数据与税 ID |
+| 墨西哥与日本银行转账的资金说明从 `mx_bank_transfer` 与 `jp_bank_transfer` 键读取金融地址，而 Stripe 从不发送这两个键（它发送 `spei` 与 `zengin`），因此每项明细都打印 `-` | `app/services/invoice_custom_sections/funding_instructions_formatter_service.rb:73, 82, 113-115` | 按 Stripe 的键读取明细，同时仍接受 lago 的键（libs/documents `FormatFundingInstructions`） |

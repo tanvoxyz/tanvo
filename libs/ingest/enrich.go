@@ -112,6 +112,7 @@ func (e *Enriched) Metering() metering.Event {
 		PreciseTotalAmountCents: e.PreciseTotalAmountCents,
 		IngestedAt:              e.IngestedAt,
 		Metadata:                metering.EventMetadata{UserAgent: e.Metadata.UserAgent, IPAddress: e.Metadata.IPAddress},
+		Value:                   e.Value,
 	}
 }
 

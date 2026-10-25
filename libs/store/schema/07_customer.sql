@@ -158,3 +158,25 @@ CREATE INDEX pending_vies_checks_billing_entity_idx ON pending_vies_checks (orga
 ALTER TABLE pending_vies_checks ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON pending_vies_checks
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
+
+-- The errors recorded on a customer: a tax_error when the tax provider could
+-- not resolve the customer's address while its wallets' ongoing balances
+-- were refreshed; the refresh skips the customer until its address changes.
+CREATE TABLE customer_error_details (
+  organization_id uuid NOT NULL,
+  id uuid NOT NULL,
+  customer_id uuid NOT NULL,
+  error_code text NOT NULL,
+  details jsonb,
+  created_at timestamptz NOT NULL,
+  PRIMARY KEY (organization_id, id),
+  CONSTRAINT customer_error_details_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
+  CONSTRAINT customer_error_details_customer_fkey FOREIGN KEY (organization_id, customer_id) REFERENCES customers (organization_id, id) ON DELETE CASCADE,
+  CONSTRAINT customer_error_details_error_code_check CHECK (error_code IN ('tax_error'))
+);
+
+CREATE INDEX customer_error_details_customer_idx ON customer_error_details (organization_id, customer_id, error_code);
+
+ALTER TABLE customer_error_details ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON customer_error_details
+  USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');

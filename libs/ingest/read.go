@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -29,7 +30,15 @@ type ReaderConfig struct {
 	// Raw reads the ingestion ledger of [ModeKafka]; nil when no
 	// organization ingests through Kafka.
 	Raw metering.RawReader
+	// Enriched reads the enriched events of [ModeKafka]; nil when no
+	// organization ingests through Kafka.
+	Enriched metering.EnrichedReader
 }
+
+// ErrEnrichedUnavailable reports a read of enriched events by an
+// organization ingesting in [ModePostgres], whose events are not stored
+// enriched (lago endpoint_not_available).
+var ErrEnrichedUnavailable = errors.New("ingest: enriched events are stored in kafka mode only")
 
 // Reader reads ingested events as the event API returns them, from the
 // store of each organization's mode: the raw event log in [ModePostgres],
@@ -158,6 +167,70 @@ func (r *Reader) List(ctx context.Context, org core.OrganizationID, in ListInput
 		out.Items = append(out.Items, fromMetering(org, m))
 	}
 	return out, nil
+}
+
+// ListEnriched returns the enriched events of org matching in, latest
+// enriched first, then by external subscription ID and transaction ID
+// (lago EventsQuery with enriched, ordered by enriched_at). An
+// organization in [ModePostgres] gets [ErrEnrichedUnavailable].
+//
+// source: app/queries/events_query.rb:14-37
+func (r *Reader) ListEnriched(ctx context.Context, org core.OrganizationID, in ListInput, page core.PageRequest) (core.Page[*metering.EnrichedEvent], error) {
+	if r.mode(org) != ModeKafka {
+		return core.Page[*metering.EnrichedEvent]{}, ErrEnrichedUnavailable
+	}
+	if r.cfg.Enriched == nil {
+		return core.Page[*metering.EnrichedEvent]{}, fmt.Errorf("ingest: reader: no enriched events for kafka mode")
+	}
+	f, err := r.filter(ctx, org, in)
+	if err != nil {
+		return core.Page[*metering.EnrichedEvent]{}, err
+	}
+	pos, err := decodeRawToken(page.Token)
+	if err != nil {
+		return core.Page[*metering.EnrichedEvent]{}, err
+	}
+	var after *metering.EnrichedPosition
+	if pos != nil {
+		after = &metering.EnrichedPosition{EnrichedAt: pos.IngestedAt, SubscriptionID: pos.SubscriptionID, TransactionID: pos.TransactionID}
+	}
+	limit := page.Limit()
+	rows, err := r.cfg.Enriched.EnrichedEvents(ctx, f, after, limit+1)
+	if err != nil {
+		return core.Page[*metering.EnrichedEvent]{}, fmt.Errorf("ingest: enriched events: %w", err)
+	}
+	var out core.Page[*metering.EnrichedEvent]
+	if len(rows) > limit {
+		rows = rows[:limit]
+		last := rows[limit-1]
+		out.NextToken = encodeRawToken(metering.RawPosition{IngestedAt: last.EnrichedAt, SubscriptionID: last.SubscriptionID, TransactionID: last.TransactionID})
+	}
+	for i := range rows {
+		out.Items = append(out.Items, &rows[i])
+	}
+	return out, nil
+}
+
+// filter returns the ledger filter of in for org, the subscription's
+// start resolved for FromStartedAt.
+func (r *Reader) filter(ctx context.Context, org core.OrganizationID, in ListInput) (metering.RawFilter, error) {
+	f := in.ListFilter
+	if in.FromStartedAt && f.ExternalSubscriptionID != "" {
+		sub, err := r.latestSubscription(ctx, org, f.ExternalSubscriptionID)
+		if err != nil {
+			return metering.RawFilter{}, err
+		}
+		if sub != nil {
+			f.TimestampFrom = sub.StartedAt
+		}
+	}
+	return metering.RawFilter{
+		OrganizationID: org.String(),
+		Code:           f.Code,
+		SubscriptionID: f.ExternalSubscriptionID,
+		TimestampFrom:  f.TimestampFrom,
+		TimestampTo:    f.TimestampTo,
+	}, nil
 }
 
 // latestSubscription returns the subscription of org with the external ID

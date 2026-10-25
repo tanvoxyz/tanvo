@@ -29,6 +29,9 @@ const (
 	// minute per tenant (lago config/initializers/throttling.rb).
 	DefaultRate  = 1
 	DefaultBurst = 60
+	// DailyLimit is Xero's limit of calls a day per tenant, over UTC days
+	// (lago config/initializers/throttling.rb).
+	DailyLimit = 5000
 
 	// refreshMargin is how long before its expiry an access token is
 	// refreshed.
@@ -95,6 +98,7 @@ type config struct {
 	meterProvider  metric.MeterProvider
 	rate           float64
 	burst          int
+	daily          int
 	now            func() time.Time
 }
 
@@ -135,13 +139,16 @@ func WithRateLimit(perSecond float64, burst int) Option {
 	return func(o *config) { o.rate, o.burst = perSecond, burst }
 }
 
+// WithDailyLimit sets the calls a day per tenant; 0 disables the quota.
+func WithDailyLimit(n int) Option { return func(o *config) { o.daily = n } }
+
 // WithClock sets the clock that decides token expiry (tests).
 func WithClock(now func() time.Time) Option { return func(o *config) { o.now = now } }
 
 // New returns a Xero gateway.
 func New(opts ...Option) *Gateway {
 	c := config{
-		rate: DefaultRate, burst: DefaultBurst, now: time.Now,
+		rate: DefaultRate, burst: DefaultBurst, daily: DailyLimit, now: time.Now,
 		loginURL: LoginURL, identityURL: IdentityURL, apiURL: APIURL,
 	}
 	for _, o := range opts {
@@ -151,7 +158,8 @@ func New(opts ...Option) *Gateway {
 		client: apiclient.New(apiclient.Config{
 			Provider: Provider, InstrumentationName: instrumentationName,
 			HTTPClient: c.httpClient, TracerProvider: c.tracerProvider, MeterProvider: c.meterProvider,
-			Rate: c.rate, Burst: c.burst,
+			Rate: c.rate, Burst: c.burst, Now: c.now,
+			Windows: []apiclient.Window{{Limit: c.daily, Period: 24 * time.Hour}},
 		}),
 		oauth: c.oauth, store: c.store, now: c.now,
 		loginURL: strings.TrimSuffix(c.loginURL, "/"), identityURL: strings.TrimSuffix(c.identityURL, "/"),
@@ -263,7 +271,7 @@ type tenant struct {
 // get-tenant-id helper).
 func (g *Gateway) ExchangeCode(ctx context.Context, conn integration.Connection, redirectURI, code string) (integration.ConnectionUpdate, error) {
 	var u integration.ConnectionUpdate
-	err := g.client.Run(ctx, apiclient.Call{Conn: conn, Op: "exchange_code", LimitKey: "oauth"}, func(ctx context.Context) error {
+	err := g.client.Run(ctx, apiclient.Call{Conn: conn, Op: "exchange_code", LimitKey: "oauth", Unmetered: true}, func(ctx context.Context) error {
 		t, err := g.requestToken(ctx, url.Values{
 			"grant_type": {"authorization_code"}, "code": {code}, "redirect_uri": {redirectURI},
 		})

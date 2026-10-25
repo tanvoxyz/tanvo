@@ -37,6 +37,18 @@ const (
 	PlanServiceUpdatePlanProcedure = "/tanvo.catalog.v1.PlanService/UpdatePlan"
 	// PlanServiceDeletePlanProcedure is the procedure name of the PlanService's DeletePlan RPC.
 	PlanServiceDeletePlanProcedure = "/tanvo.catalog.v1.PlanService/DeletePlan"
+	// PlanServiceReplacePlanMetadataProcedure is the procedure name of the PlanService's
+	// ReplacePlanMetadata RPC.
+	PlanServiceReplacePlanMetadataProcedure = "/tanvo.catalog.v1.PlanService/ReplacePlanMetadata"
+	// PlanServiceMergePlanMetadataProcedure is the procedure name of the PlanService's
+	// MergePlanMetadata RPC.
+	PlanServiceMergePlanMetadataProcedure = "/tanvo.catalog.v1.PlanService/MergePlanMetadata"
+	// PlanServiceDeletePlanMetadataProcedure is the procedure name of the PlanService's
+	// DeletePlanMetadata RPC.
+	PlanServiceDeletePlanMetadataProcedure = "/tanvo.catalog.v1.PlanService/DeletePlanMetadata"
+	// PlanServiceDeletePlanMetadataKeyProcedure is the procedure name of the PlanService's
+	// DeletePlanMetadataKey RPC.
+	PlanServiceDeletePlanMetadataKeyProcedure = "/tanvo.catalog.v1.PlanService/DeletePlanMetadataKey"
 )
 
 var (
@@ -77,6 +89,34 @@ var (
 			Procedure:  PlanServiceDeletePlanProcedure,
 		}
 	})
+	planServiceReplacePlanMetadataSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_catalog_v1_plan_proto.Services().ByName("PlanService").Methods().ByName("ReplacePlanMetadata"),
+			Procedure:  PlanServiceReplacePlanMetadataProcedure,
+		}
+	})
+	planServiceMergePlanMetadataSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_catalog_v1_plan_proto.Services().ByName("PlanService").Methods().ByName("MergePlanMetadata"),
+			Procedure:  PlanServiceMergePlanMetadataProcedure,
+		}
+	})
+	planServiceDeletePlanMetadataSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_catalog_v1_plan_proto.Services().ByName("PlanService").Methods().ByName("DeletePlanMetadata"),
+			Procedure:  PlanServiceDeletePlanMetadataProcedure,
+		}
+	})
+	planServiceDeletePlanMetadataKeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_catalog_v1_plan_proto.Services().ByName("PlanService").Methods().ByName("DeletePlanMetadataKey"),
+			Procedure:  PlanServiceDeletePlanMetadataKeyProcedure,
+		}
+	})
 )
 
 // PlanServiceClient is a client for the tanvo.catalog.v1.PlanService service.
@@ -96,6 +136,16 @@ type PlanServiceClient interface {
 	// Deletes a plan: marks it pending deletion, then terminates its
 	// subscriptions and removes it in the background.
 	DeletePlan(context.Context, *v1.DeletePlanRequest) (*v1.DeletePlanResponse, error)
+	// Replaces the plan's metadata; an empty list clears it.
+	ReplacePlanMetadata(context.Context, *v1.ReplacePlanMetadataRequest) (*v1.ReplacePlanMetadataResponse, error)
+	// Merges items into the plan's metadata: values of existing keys are
+	// replaced and new keys appended.
+	MergePlanMetadata(context.Context, *v1.MergePlanMetadataRequest) (*v1.MergePlanMetadataResponse, error)
+	// Removes all the plan's metadata.
+	DeletePlanMetadata(context.Context, *v1.DeletePlanMetadataRequest) (*v1.DeletePlanMetadataResponse, error)
+	// Removes one key from the plan's metadata; NOT_FOUND when the
+	// plan has no metadata.
+	DeletePlanMetadataKey(context.Context, *v1.DeletePlanMetadataKeyRequest) (*v1.DeletePlanMetadataKeyResponse, error)
 }
 
 // NewPlanServiceClient constructs a client for the tanvo.catalog.v1.PlanService service. Multiple
@@ -121,6 +171,16 @@ type PlanServiceHandler interface {
 	// Deletes a plan: marks it pending deletion, then terminates its
 	// subscriptions and removes it in the background.
 	DeletePlan(context.Context, *v1.DeletePlanRequest) (*v1.DeletePlanResponse, error)
+	// Replaces the plan's metadata; an empty list clears it.
+	ReplacePlanMetadata(context.Context, *v1.ReplacePlanMetadataRequest) (*v1.ReplacePlanMetadataResponse, error)
+	// Merges items into the plan's metadata: values of existing keys are
+	// replaced and new keys appended.
+	MergePlanMetadata(context.Context, *v1.MergePlanMetadataRequest) (*v1.MergePlanMetadataResponse, error)
+	// Removes all the plan's metadata.
+	DeletePlanMetadata(context.Context, *v1.DeletePlanMetadataRequest) (*v1.DeletePlanMetadataResponse, error)
+	// Removes one key from the plan's metadata; NOT_FOUND when the
+	// plan has no metadata.
+	DeletePlanMetadataKey(context.Context, *v1.DeletePlanMetadataKeyRequest) (*v1.DeletePlanMetadataKeyResponse, error)
 }
 
 // RegisterPlanServiceHandler registers svc as the tanvo.catalog.v1.PlanService implementation on
@@ -133,6 +193,10 @@ func RegisterPlanServiceHandler(server *connect.Server, svc PlanServiceHandler) 
 		connect.Method{Spec: planServiceListPlansSpec(), Handler: adapter.listPlans},
 		connect.Method{Spec: planServiceUpdatePlanSpec(), Handler: adapter.updatePlan},
 		connect.Method{Spec: planServiceDeletePlanSpec(), Handler: adapter.deletePlan},
+		connect.Method{Spec: planServiceReplacePlanMetadataSpec(), Handler: adapter.replacePlanMetadata},
+		connect.Method{Spec: planServiceMergePlanMetadataSpec(), Handler: adapter.mergePlanMetadata},
+		connect.Method{Spec: planServiceDeletePlanMetadataSpec(), Handler: adapter.deletePlanMetadata},
+		connect.Method{Spec: planServiceDeletePlanMetadataKeySpec(), Handler: adapter.deletePlanMetadataKey},
 	)
 }
 
@@ -157,6 +221,22 @@ func (UnimplementedPlanServiceHandler) UpdatePlan(context.Context, *v1.UpdatePla
 
 func (UnimplementedPlanServiceHandler) DeletePlan(context.Context, *v1.DeletePlanRequest) (*v1.DeletePlanResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.catalog.v1.PlanService.DeletePlan is not implemented")
+}
+
+func (UnimplementedPlanServiceHandler) ReplacePlanMetadata(context.Context, *v1.ReplacePlanMetadataRequest) (*v1.ReplacePlanMetadataResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.catalog.v1.PlanService.ReplacePlanMetadata is not implemented")
+}
+
+func (UnimplementedPlanServiceHandler) MergePlanMetadata(context.Context, *v1.MergePlanMetadataRequest) (*v1.MergePlanMetadataResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.catalog.v1.PlanService.MergePlanMetadata is not implemented")
+}
+
+func (UnimplementedPlanServiceHandler) DeletePlanMetadata(context.Context, *v1.DeletePlanMetadataRequest) (*v1.DeletePlanMetadataResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.catalog.v1.PlanService.DeletePlanMetadata is not implemented")
+}
+
+func (UnimplementedPlanServiceHandler) DeletePlanMetadataKey(context.Context, *v1.DeletePlanMetadataKeyRequest) (*v1.DeletePlanMetadataKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.catalog.v1.PlanService.DeletePlanMetadataKey is not implemented")
 }
 
 type planServiceClient struct {
@@ -198,6 +278,38 @@ func (c *planServiceClient) UpdatePlan(ctx context.Context, req *v1.UpdatePlanRe
 func (c *planServiceClient) DeletePlan(ctx context.Context, req *v1.DeletePlanRequest) (*v1.DeletePlanResponse, error) {
 	var res v1.DeletePlanResponse
 	if err := c.client.CallUnary(ctx, planServiceDeletePlanSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *planServiceClient) ReplacePlanMetadata(ctx context.Context, req *v1.ReplacePlanMetadataRequest) (*v1.ReplacePlanMetadataResponse, error) {
+	var res v1.ReplacePlanMetadataResponse
+	if err := c.client.CallUnary(ctx, planServiceReplacePlanMetadataSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *planServiceClient) MergePlanMetadata(ctx context.Context, req *v1.MergePlanMetadataRequest) (*v1.MergePlanMetadataResponse, error) {
+	var res v1.MergePlanMetadataResponse
+	if err := c.client.CallUnary(ctx, planServiceMergePlanMetadataSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *planServiceClient) DeletePlanMetadata(ctx context.Context, req *v1.DeletePlanMetadataRequest) (*v1.DeletePlanMetadataResponse, error) {
+	var res v1.DeletePlanMetadataResponse
+	if err := c.client.CallUnary(ctx, planServiceDeletePlanMetadataSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *planServiceClient) DeletePlanMetadataKey(ctx context.Context, req *v1.DeletePlanMetadataKeyRequest) (*v1.DeletePlanMetadataKeyResponse, error) {
+	var res v1.DeletePlanMetadataKeyResponse
+	if err := c.client.CallUnary(ctx, planServiceDeletePlanMetadataKeySpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -259,6 +371,54 @@ func (h planServiceHandler) deletePlan(ctx context.Context, _ connect.Spec, stre
 		return err
 	}
 	res, err := h.svc.DeletePlan(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h planServiceHandler) replacePlanMetadata(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ReplacePlanMetadataRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ReplacePlanMetadata(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h planServiceHandler) mergePlanMetadata(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MergePlanMetadataRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MergePlanMetadata(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h planServiceHandler) deletePlanMetadata(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeletePlanMetadataRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeletePlanMetadata(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h planServiceHandler) deletePlanMetadataKey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeletePlanMetadataKeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeletePlanMetadataKey(ctx, &req)
 	if err != nil {
 		return err
 	}

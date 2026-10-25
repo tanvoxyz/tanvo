@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"sync"
 	"testing"
 	"time"
@@ -265,4 +266,53 @@ func TestInAdvanceHandler(t *testing.T) {
 	if res[0].Disposition != Done || res[1].Disposition != Retry || res[1].Code != ingest.ErrorInAdvance || res[2].Disposition != Done {
 		t.Errorf("failed billing results got = %+v, want = done, retry, done", res)
 	}
+}
+
+// deadSinkFake records the dead letters stored.
+type deadSinkFake struct {
+	records []ingest.DeadLetterRecord
+	err     error
+}
+
+func (s *deadSinkFake) StoreDeadLetters(_ context.Context, r []ingest.DeadLetterRecord) error {
+	if s.err != nil {
+		return s.err
+	}
+	s.records = append(s.records, r...)
+	return nil
+}
+
+func TestDeadLetters(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 3, 6, 12, 0, 0, 0, time.UTC)
+	letter, err := ingest.MarshalDeadLetter(ingest.DeadLetter{
+		Event: json.RawMessage(`{"organization_id":"o","transaction_id":"t"}`), Topic: "events.raw", Offset: 7, ErrorCode: ingest.ErrorDecode, FailedAt: now,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	recs := []*kgo.Record{{Value: letter}, {Value: []byte("not a dead letter")}}
+
+	t.Run("stores", func(t *testing.T) {
+		t.Parallel()
+		sink := &deadSinkFake{}
+		results := DeadLetters(sink, core.FixedClock(now), slog.New(slog.DiscardHandler))(context.Background(), recs)
+		if results[0].Disposition != Done || results[1].Disposition != Done {
+			t.Errorf("dispositions got = %v, %v, want = done, done", results[0].Disposition, results[1].Disposition)
+		}
+		if len(sink.records) != 1 || sink.records[0].TransactionID != "t" || sink.records[0].Offset != 7 || sink.records[0].Topic != "events.raw" {
+			t.Errorf("records got = %+v, want = t from events.raw at 7", sink.records)
+		}
+	})
+	t.Run("retries a failed store without aging", func(t *testing.T) {
+		t.Parallel()
+		sink := &deadSinkFake{err: errors.New("down")}
+		results := DeadLetters(sink, core.FixedClock(now), slog.New(slog.DiscardHandler))(context.Background(), recs)
+		if r := results[0]; r.Disposition != Retry || r.Code != ingest.ErrorWrite || !r.IngestedAt.Equal(now) {
+			t.Errorf("result got = %+v, want = retry, %s, ingested now", r, ingest.ErrorWrite)
+		}
+		if results[1].Disposition != Done {
+			t.Errorf("skipped message got = %v, want = done", results[1].Disposition)
+		}
+	})
 }

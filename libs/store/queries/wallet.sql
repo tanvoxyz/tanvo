@@ -7,14 +7,16 @@ INSERT INTO wallets (
   ongoing_usage_balance_amount, credits_ongoing_usage_balance, consumed_amount, consumed_credits,
   paid_top_up_min_amount, paid_top_up_max_amount, invoice_requires_successful_payment, allowed_fee_types,
   traceable, purchase_order_number, x402_enabled, billing_entity_id, payment_method_type, payment_method_id,
-  last_balance_sync_at, last_consumed_credit_at, depleted_ongoing_balance, terminated_at, created_at, updated_at
+  last_balance_sync_at, last_consumed_credit_at, depleted_ongoing_balance, metadata,
+  skip_invoice_custom_sections, invoice_custom_section_ids, terminated_at, created_at, updated_at
 ) VALUES (
   @organization_id, @id, @customer_id, @code, @name, @status, @currency, @rate_amount, @priority, @expiration_at,
   @balance_amount, @credits_balance, @ongoing_balance_amount, @credits_ongoing_balance,
   @ongoing_usage_balance_amount, @credits_ongoing_usage_balance, @consumed_amount, @consumed_credits,
   @paid_top_up_min_amount, @paid_top_up_max_amount, @invoice_requires_successful_payment, @allowed_fee_types,
   @traceable, @purchase_order_number, @x402_enabled, @billing_entity_id, @payment_method_type, @payment_method_id,
-  @last_balance_sync_at, @last_consumed_credit_at, @depleted_ongoing_balance, @terminated_at, @created_at, @updated_at
+  @last_balance_sync_at, @last_consumed_credit_at, @depleted_ongoing_balance, @metadata,
+  @skip_invoice_custom_sections, @invoice_custom_section_ids, @terminated_at, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
 
@@ -32,6 +34,8 @@ UPDATE wallets SET
   billing_entity_id = @billing_entity_id, payment_method_type = @payment_method_type,
   payment_method_id = @payment_method_id, last_balance_sync_at = @last_balance_sync_at,
   last_consumed_credit_at = @last_consumed_credit_at, depleted_ongoing_balance = @depleted_ongoing_balance,
+  metadata = @metadata, skip_invoice_custom_sections = @skip_invoice_custom_sections,
+  invoice_custom_section_ids = @invoice_custom_section_ids,
   terminated_at = @terminated_at, created_at = @created_at, updated_at = @updated_at
 WHERE organization_id = @organization_id AND id = @id;
 
@@ -69,6 +73,22 @@ WHERE w.organization_id = @organization_id
 ORDER BY w.id
 LIMIT @lim;
 
+-- name: ListWalletsRecent :many
+-- ListWallets newest first, then by id (wallets_query.rb:18); the cursor
+-- is (@after_at, @after).
+SELECT sqlc.embed(w),
+  ARRAY(SELECT m.billable_metric_id FROM wallet_billable_metrics m
+        WHERE m.organization_id = w.organization_id AND m.wallet_id = w.id ORDER BY m.position)::uuid[] AS billable_metric_ids
+FROM wallets w
+WHERE w.organization_id = @organization_id
+  AND (sqlc.narg(customer_id)::uuid IS NULL OR w.customer_id = sqlc.narg(customer_id))
+  AND (sqlc.narg(status)::text IS NULL OR w.status = sqlc.narg(status))
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR w.created_at < sqlc.narg(after_at)::timestamptz
+       OR (w.created_at = sqlc.narg(after_at)::timestamptz AND w.id > sqlc.narg(after)))
+ORDER BY w.created_at DESC, w.id
+LIMIT @lim;
+
 -- name: ListWalletsActiveForApplication :many
 SELECT sqlc.embed(w),
   ARRAY(SELECT m.billable_metric_id FROM wallet_billable_metrics m
@@ -94,12 +114,14 @@ INSERT INTO wallet_transactions (
   organization_id, id, wallet_id, transaction_type, transaction_status, status, source, currency,
   amount, credit_amount, remaining_amount, priority, name, invoice_id, credit_note_id,
   recurring_transaction_rule_id, metadata, payment_method_type, payment_method_id,
-  invoice_requires_successful_payment, purchase_order_number, settled_at, failed_at, created_at, updated_at
+  invoice_requires_successful_payment, purchase_order_number, voided_invoice_id, billing_entity_id,
+  skip_invoice_custom_sections, invoice_custom_section_ids, settled_at, failed_at, created_at, updated_at
 ) VALUES (
   @organization_id, @id, @wallet_id, @transaction_type, @transaction_status, @status, @source, @currency,
   @amount, @credit_amount, @remaining_amount, @priority, @name, @invoice_id, @credit_note_id,
   @recurring_transaction_rule_id, @metadata, @payment_method_type, @payment_method_id,
-  @invoice_requires_successful_payment, @purchase_order_number, @settled_at, @failed_at, @created_at, @updated_at
+  @invoice_requires_successful_payment, @purchase_order_number, @voided_invoice_id, @billing_entity_id,
+  @skip_invoice_custom_sections, @invoice_custom_section_ids, @settled_at, @failed_at, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
 
@@ -112,7 +134,8 @@ UPDATE wallet_transactions SET
   recurring_transaction_rule_id = @recurring_transaction_rule_id, metadata = @metadata,
   payment_method_type = @payment_method_type, payment_method_id = @payment_method_id,
   invoice_requires_successful_payment = @invoice_requires_successful_payment,
-  purchase_order_number = @purchase_order_number,
+  purchase_order_number = @purchase_order_number, voided_invoice_id = @voided_invoice_id, billing_entity_id = @billing_entity_id,
+  skip_invoice_custom_sections = @skip_invoice_custom_sections, invoice_custom_section_ids = @invoice_custom_section_ids,
   settled_at = @settled_at, failed_at = @failed_at, created_at = @created_at, updated_at = @updated_at
 WHERE organization_id = @organization_id AND id = @id;
 
@@ -129,6 +152,22 @@ WHERE organization_id = @organization_id
   AND (sqlc.narg(status)::text IS NULL OR status = sqlc.narg(status))
   AND (sqlc.narg(after)::uuid IS NULL OR id > sqlc.narg(after))
 ORDER BY id
+LIMIT @lim;
+
+-- name: ListWalletTransactionsRecent :many
+-- ListWalletTransactions newest first, then by id
+-- (wallet_transactions_query.rb:17); the cursor is (@after_at, @after).
+SELECT * FROM wallet_transactions
+WHERE organization_id = @organization_id
+  AND (sqlc.narg(wallet_id)::uuid IS NULL OR wallet_id = sqlc.narg(wallet_id))
+  AND (sqlc.narg(invoice_id)::uuid IS NULL OR invoice_id = sqlc.narg(invoice_id))
+  AND (sqlc.narg(transaction_type)::text IS NULL OR transaction_type = sqlc.narg(transaction_type))
+  AND (sqlc.narg(transaction_status)::text IS NULL OR transaction_status = sqlc.narg(transaction_status))
+  AND (sqlc.narg(status)::text IS NULL OR status = sqlc.narg(status))
+  AND (sqlc.narg(after)::uuid IS NULL
+       OR created_at < sqlc.narg(after_at)::timestamptz
+       OR (created_at = sqlc.narg(after_at)::timestamptz AND id > sqlc.narg(after)))
+ORDER BY created_at DESC, id
 LIMIT @lim;
 
 -- name: ListWalletTransactionsByInvoice :many
@@ -174,12 +213,14 @@ INSERT INTO recurring_transaction_rules (
   organization_id, id, wallet_id, "trigger", "interval", threshold_credits, method, paid_credits, granted_credits,
   target_ongoing_balance, grants_target_top_up, started_at, expiration_at, status,
   invoice_requires_successful_payment, transaction_metadata, transaction_name, ignore_paid_top_up_limits,
-  purchase_order_number, payment_method_type, payment_method_id, terminated_at, created_at, updated_at
+  purchase_order_number, payment_method_type, payment_method_id, skip_invoice_custom_sections, invoice_custom_section_ids,
+  terminated_at, created_at, updated_at
 ) VALUES (
   @organization_id, @id, @wallet_id, @trigger, @interval, @threshold_credits, @method, @paid_credits, @granted_credits,
   @target_ongoing_balance, @grants_target_top_up, @started_at, @expiration_at, @status,
   @invoice_requires_successful_payment, @transaction_metadata, @transaction_name, @ignore_paid_top_up_limits,
-  @purchase_order_number, @payment_method_type, @payment_method_id, @terminated_at, @created_at, @updated_at
+  @purchase_order_number, @payment_method_type, @payment_method_id, @skip_invoice_custom_sections, @invoice_custom_section_ids,
+  @terminated_at, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
 
@@ -193,7 +234,9 @@ UPDATE recurring_transaction_rules SET
   transaction_metadata = @transaction_metadata, transaction_name = @transaction_name,
   ignore_paid_top_up_limits = @ignore_paid_top_up_limits, purchase_order_number = @purchase_order_number,
   payment_method_type = @payment_method_type,
-  payment_method_id = @payment_method_id, terminated_at = @terminated_at, created_at = @created_at, updated_at = @updated_at
+  payment_method_id = @payment_method_id, skip_invoice_custom_sections = @skip_invoice_custom_sections,
+  invoice_custom_section_ids = @invoice_custom_section_ids,
+  terminated_at = @terminated_at, created_at = @created_at, updated_at = @updated_at
 WHERE organization_id = @organization_id AND id = @id;
 
 -- name: GetRecurringTransactionRule :one

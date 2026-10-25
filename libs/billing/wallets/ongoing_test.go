@@ -2,9 +2,13 @@ package wallets_test
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"slices"
 	"testing"
 
+	"github.com/tanvoxyz/tanvo/libs/billing/billingtest"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/wallets"
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -454,6 +458,84 @@ func TestRefreshOngoingBalancesRecomputesWhenBalanceChanged(t *testing.T) {
 			if u.calls != tt.wantCalls || got.OngoingUsageBalanceAmount != tt.wantUsage || got.OngoingBalanceAmount != tt.wantBal-tt.wantUsage {
 				t.Errorf("calls, usage, ongoing = %d, %d, %d, want = %d, %d, %d",
 					u.calls, got.OngoingUsageBalanceAmount, got.OngoingBalanceAmount, tt.wantCalls, tt.wantUsage, tt.wantBal-tt.wantUsage)
+			}
+		})
+	}
+}
+
+// failingUsage is a usage source that fails with err and counts its calls.
+type failingUsage struct {
+	err   error
+	calls *int
+}
+
+func (f failingUsage) OngoingUsage(context.Context, port.Repos, *customer.Customer) ([]wallets.UsageFee, error) {
+	*f.calls++
+	return nil, f.err
+}
+
+// TestRefreshWalletTaxError ports Customers::RefreshWalletJob: a customer
+// whose address the tax provider cannot resolve gets a tax_error detail,
+// and a customer with one is not refreshed.
+func TestRefreshWalletTaxError(t *testing.T) {
+	address := fmt.Errorf("usage: %w: %w", kernel.ErrTaxProvider, &kernel.TaxProviderError{Code: "customerAddressCouldNotResolve", Message: "address could not be resolved"})
+	cases := []struct {
+		name      string
+		existing  bool
+		err       error
+		wantErr   bool
+		wantCalls int
+		wantCount int
+	}{
+		// source: spec/jobs/customers/refresh_wallet_job_spec.rb:92
+		{name: "tax error detail exists", existing: true, wantCalls: 0, wantCount: 1},
+		// source: spec/jobs/customers/refresh_wallet_job_spec.rb:102, 106
+		{name: "address error", err: address, wantCalls: 1, wantCount: 1},
+		// source: spec/jobs/customers/refresh_wallet_job_spec.rb:137
+		{name: "unknown tax failure", err: fmt.Errorf("%w: %w", kernel.ErrTaxProvider, &kernel.TaxProviderError{Code: "failure"}), wantErr: true, wantCalls: 1},
+		// source: spec/jobs/customers/refresh_wallet_job_spec.rb:183
+		{name: "non-tax error", err: errors.New("something"), wantErr: true, wantCalls: 1},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			h, s := setup(t, t0)
+			c := h.Customer()
+			w := h.Wallet(c, "10")
+			if tc.existing {
+				h.Do(func(ctx context.Context, r port.Repos) error {
+					return r.CustomerErrorDetails.Create(ctx, &customer.ErrorDetail{
+						ID: core.NewID[core.ErrorDetailID](h.IDs), OrganizationID: h.OrgID(), CustomerID: c.ID,
+						Code: customer.ErrorCodeTaxError, CreatedAt: t0,
+					})
+				})
+			}
+			calls := 0
+			s = s.WithUsage(failingUsage{err: tc.err, calls: &calls})
+			_, err := s.RefreshWallet(h.Ctx, h.OrgID(), w.ID)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("RefreshWallet() error: got = %v, want error = %v", err, tc.wantErr)
+			}
+			if calls != tc.wantCalls {
+				t.Errorf("usage calls: got = %d, want = %d", calls, tc.wantCalls)
+			}
+			ds := billingtest.Read(h, func(ctx context.Context, r port.Repos) ([]*customer.ErrorDetail, error) {
+				return r.CustomerErrorDetails.ListByCustomers(ctx, h.OrgID(), []core.CustomerID{c.ID})
+			})
+			if len(ds) != tc.wantCount {
+				t.Fatalf("error details: got = %d, want = %d", len(ds), tc.wantCount)
+			}
+			if errors.Is(tc.err, address) {
+				var details map[string]string
+				if err := json.Unmarshal(ds[0].Details, &details); err != nil {
+					t.Fatal(err)
+				}
+				if want := "customerAddressCouldNotResolve: address could not be resolved"; ds[0].Code != customer.ErrorCodeTaxError || details["tax_error"] != want {
+					t.Errorf("error detail: got = %s %v, want = tax_error %q", ds[0].Code, details, want)
+				}
+				// The customer is no longer refreshed.
+				if _, err := s.RefreshWallet(h.Ctx, h.OrgID(), w.ID); err != nil || calls != 1 {
+					t.Errorf("second refresh: got = %v, %d calls, want = nil, 1 call", err, calls)
+				}
 			}
 		})
 	}

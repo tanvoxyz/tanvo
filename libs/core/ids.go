@@ -68,6 +68,7 @@ type (
 	inboundWebhookKind               struct{}
 	x402ConnectionKind               struct{}
 	x402SettlementKind               struct{}
+	streamingDestinationKind         struct{}
 	dunningCampaignKind              struct{}
 	dunningCampaignThresholdKind     struct{}
 	integrationKind                  struct{}
@@ -237,6 +238,8 @@ type (
 	X402ConnectionID = ID[x402ConnectionKind]
 	// X402SettlementID identifies an x402 settlement (parity §1.36).
 	X402SettlementID = ID[x402SettlementKind]
+	// StreamingDestinationID identifies a streaming destination (parity §1.40).
+	StreamingDestinationID = ID[streamingDestinationKind]
 	// DunningCampaignID identifies a dunning campaign (domain §16).
 	DunningCampaignID = ID[dunningCampaignKind]
 	// DunningCampaignThresholdID identifies a dunning campaign threshold (domain §16).

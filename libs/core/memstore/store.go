@@ -52,6 +52,7 @@ type state struct {
 
 	productCatalog *productCatalogData
 	x402           *x402Data
+	streaming      *streamingData
 }
 
 type storeSequenceKey struct {
@@ -86,6 +87,7 @@ func newState() *state {
 
 		productCatalog: newProductCatalogData(),
 		x402:           newX402Data(),
+		streaming:      newStreamingData(),
 	}
 }
 
@@ -116,6 +118,7 @@ func (s *state) snapshot() *state {
 
 		productCatalog: s.productCatalog.snapshot(),
 		x402:           s.x402.snapshot(),
+		streaming:      s.streaming.snapshot(),
 	}
 }
 
@@ -213,8 +216,9 @@ func (tx *storeTx) bind() port.Repos {
 		OIDCStates:     oidcStateRepo{st.access},
 		UserDevices:    userDeviceRepo{st.access},
 
-		Customers:         customerRepo{st.customer, st},
-		PendingVIESChecks: pendingVIESCheckRepo{st.customer, st},
+		Customers:            customerRepo{st.customer, st},
+		PendingVIESChecks:    pendingVIESCheckRepo{st.customer, st},
+		CustomerErrorDetails: customerErrorDetailRepo{st.customer},
 
 		Metrics:         metricRepo{st.catalog},
 		Plans:           planRepo{st.catalog},
@@ -313,6 +317,9 @@ func (tx *storeTx) bind() port.Repos {
 
 		X402Connections: x402ConnectionRepo{st.x402},
 		X402Settlements: x402SettlementRepo{st.x402},
+
+		StreamingDestinations:  streamingDestinationRepo{st.streaming},
+		StreamingDeliveryLocks: streamingLockRepo{st.streaming},
 
 		IdempotencyKeys: idempotencyRepo{st.idempotency},
 

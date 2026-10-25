@@ -40,6 +40,9 @@ type Deps struct {
 	// ActivityLogs records the activity logs of resource changes; nil
 	// records none ([Deps.LogActivity]).
 	ActivityLogs auditlog.ActivityLogger
+	// Streaming writes the usage-refreshed events to the organizations'
+	// streaming destinations (parity §1.40); nil streams nothing.
+	Streaming port.StreamProducer
 	// Logger logs; nil means slog.Default().
 	Logger *slog.Logger
 	// Transient reports an error the job's retry policy runs again with

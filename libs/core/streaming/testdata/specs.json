@@ -1,0 +1,21 @@
+{
+  "title": "the streaming destinations and their delivery logs",
+  "files": [
+    "models/streaming_destinations/base_destination_spec.rb",
+    "models/streaming_destinations/kinesis_destination_spec.rb",
+    "services/event_destinations/delivery_logger_spec.rb"
+  ],
+  "reasons": {
+    "rails": "ActiveRecord mechanics with no Go counterpart: the paper_trail change history, the organization association and find_by on an array column. Destinations are configured by the operator in SQL (libs/store/schema/29_streaming.sql); their repository is tested by the store's porttest streaming case.",
+    "interface": "The producer is not built by the destination: apps/server injects a port.StreamProducer (libs/webhooks/kinesis for Kinesis, the only type), so there is no abstract producer method or per-type producer class to assert.",
+    "secrets": "No destination type stores secrets: Kinesis authenticates with an assumed role and an optional external ID, which are settings, so there is no secrets column to round-trip."
+  },
+  "skipped": {
+    "models/streaming_destinations/base_destination_spec.rb:8": "rails",
+    "models/streaming_destinations/base_destination_spec.rb:17": "rails",
+    "models/streaming_destinations/base_destination_spec.rb:77": "interface",
+    "models/streaming_destinations/base_destination_spec.rb:144": "rails",
+    "models/streaming_destinations/base_destination_spec.rb:151": "secrets",
+    "models/streaming_destinations/kinesis_destination_spec.rb:25": "interface"
+  }
+}

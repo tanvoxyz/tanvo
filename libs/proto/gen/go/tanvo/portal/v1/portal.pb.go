@@ -4364,9 +4364,12 @@ func (b0 TopUpPortalWalletResponse_builder) Build() *TopUpPortalWalletResponse {
 
 // GetPortalOverdueBalanceRequest is the request of CustomerPortalService.GetPortalOverdueBalance.
 type GetPortalOverdueBalanceRequest struct {
-	state         protoimpl.MessageState `protogen:"opaque.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ExpireCache bool                   `protobuf:"varint,1,opt,name=expire_cache,json=expireCache"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetPortalOverdueBalanceRequest) Reset() {
@@ -4394,15 +4397,45 @@ func (x *GetPortalOverdueBalanceRequest) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
+func (x *GetPortalOverdueBalanceRequest) GetExpireCache() bool {
+	if x != nil {
+		return x.xxx_hidden_ExpireCache
+	}
+	return false
+}
+
+func (x *GetPortalOverdueBalanceRequest) SetExpireCache(v bool) {
+	x.xxx_hidden_ExpireCache = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *GetPortalOverdueBalanceRequest) HasExpireCache() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetPortalOverdueBalanceRequest) ClearExpireCache() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ExpireCache = false
+}
+
 type GetPortalOverdueBalanceRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Recomputes the customer's cached report before answering.
+	ExpireCache *bool
 }
 
 func (b0 GetPortalOverdueBalanceRequest_builder) Build() *GetPortalOverdueBalanceRequest {
 	m0 := &GetPortalOverdueBalanceRequest{}
 	b, x := &b0, m0
 	_, _ = b, x
+	if b.ExpireCache != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_ExpireCache = *b.ExpireCache
+	}
 	return m0
 }
 
@@ -4469,9 +4502,12 @@ func (b0 GetPortalOverdueBalanceResponse_builder) Build() *GetPortalOverdueBalan
 
 // GetPortalInvoiceCollectionRequest is the request of CustomerPortalService.GetPortalInvoiceCollection.
 type GetPortalInvoiceCollectionRequest struct {
-	state         protoimpl.MessageState `protogen:"opaque.v1"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_ExpireCache bool                   `protobuf:"varint,1,opt,name=expire_cache,json=expireCache"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *GetPortalInvoiceCollectionRequest) Reset() {
@@ -4499,15 +4535,45 @@ func (x *GetPortalInvoiceCollectionRequest) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
+func (x *GetPortalInvoiceCollectionRequest) GetExpireCache() bool {
+	if x != nil {
+		return x.xxx_hidden_ExpireCache
+	}
+	return false
+}
+
+func (x *GetPortalInvoiceCollectionRequest) SetExpireCache(v bool) {
+	x.xxx_hidden_ExpireCache = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 1)
+}
+
+func (x *GetPortalInvoiceCollectionRequest) HasExpireCache() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *GetPortalInvoiceCollectionRequest) ClearExpireCache() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_ExpireCache = false
+}
+
 type GetPortalInvoiceCollectionRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
+	// Recomputes the customer's cached report before answering.
+	ExpireCache *bool
 }
 
 func (b0 GetPortalInvoiceCollectionRequest_builder) Build() *GetPortalInvoiceCollectionRequest {
 	m0 := &GetPortalInvoiceCollectionRequest{}
 	b, x := &b0, m0
 	_, _ = b, x
+	if b.ExpireCache != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 1)
+		x.xxx_hidden_ExpireCache = *b.ExpireCache
+	}
 	return m0
 }
 
@@ -4724,11 +4790,13 @@ const file_tanvo_portal_v1_portal_proto_rawDesc = "" +
 	"\fpaid_credits\x18\x02 \x01(\tB\n" +
 	"\xbaH\ar\x05Ф\xca\x06\x01R\vpaidCredits\"v\n" +
 	"\x19TopUpPortalWalletResponse\x12Y\n" +
-	"\x13wallet_transactions\x18\x01 \x03(\v2(.tanvo.portal.v1.PortalWalletTransactionR\x12walletTransactions\" \n" +
-	"\x1eGetPortalOverdueBalanceRequest\"b\n" +
+	"\x13wallet_transactions\x18\x01 \x03(\v2(.tanvo.portal.v1.PortalWalletTransactionR\x12walletTransactions\"C\n" +
+	"\x1eGetPortalOverdueBalanceRequest\x12!\n" +
+	"\fexpire_cache\x18\x01 \x01(\bR\vexpireCache\"b\n" +
 	"\x1fGetPortalOverdueBalanceResponse\x12?\n" +
-	"\x06points\x18\x01 \x03(\v2'.tanvo.analytics.v1.OverdueBalancePointR\x06points\"#\n" +
-	"!GetPortalInvoiceCollectionRequest\"h\n" +
+	"\x06points\x18\x01 \x03(\v2'.tanvo.analytics.v1.OverdueBalancePointR\x06points\"F\n" +
+	"!GetPortalInvoiceCollectionRequest\x12!\n" +
+	"\fexpire_cache\x18\x01 \x01(\bR\vexpireCache\"h\n" +
 	"\"GetPortalInvoiceCollectionResponse\x12B\n" +
 	"\x06points\x18\x01 \x03(\v2*.tanvo.analytics.v1.InvoiceCollectionPointR\x06points2\x91\x11\n" +
 	"\x15CustomerPortalService\x12\xa0\x01\n" +

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"strconv"
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connectproto"
@@ -12,6 +13,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/auth"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/integration"
+	"github.com/tanvoxyz/tanvo/libs/core/payment"
 )
 
 // FieldViolation is one invalid field of a request.
@@ -68,6 +70,10 @@ const (
 	// ReasonUnsupported: the integration's provider does not have the
 	// operation.
 	ReasonUnsupported = "unsupported"
+	// ReasonProviderError: the payment provider refused the operation; the
+	// ErrorInfo metadata carry the provider's code, message, request ID
+	// and HTTP status (lago "provider_error").
+	ReasonProviderError = "provider_error"
 )
 
 // withReason adds a google.rpc.ErrorInfo detail with the stable reason.
@@ -114,6 +120,9 @@ func validationViolations(prefix string, err error) ([]FieldViolation, bool) {
 //     PermissionDenied; core.ErrInvalidValue: InvalidArgument;
 //     core.ErrInvalidTransition: FailedPrecondition; core.ErrConflict:
 //     AlreadyExists; context errors: Canceled and DeadlineExceeded;
+//   - *payment.ProviderError: FailedPrecondition, reason provider_error,
+//     with the provider's code, message, request ID and HTTP status in
+//     the ErrorInfo metadata;
 //   - *integration.ProviderError: FailedPrecondition, reason the
 //     provider's code (third_party_error without one);
 //     integration.ErrNotConnected and ErrAuthentication:
@@ -141,6 +150,9 @@ func Error(ctx context.Context, err error) error {
 	}
 	if re, ok := errors.AsType[*core.RuleError](err); ok {
 		return newError(connect.CodeFailedPrecondition, re.Code, re.Error())
+	}
+	if pe, ok := payment.AsProviderError(err); ok {
+		return providerError(pe)
 	}
 	if pe, ok := errors.AsType[*integration.ProviderError](err); ok {
 		// A provider's refusal is the caller's to fix at the provider
@@ -179,6 +191,22 @@ func Error(ctx context.Context, err error) error {
 	return connect.NewError(connect.CodeInternal, "internal error")
 }
 
+// providerError is the Connect error of a payment provider's refusal.
+func providerError(pe *payment.ProviderError) *connect.Error {
+	e := connect.NewError(connect.CodeFailedPrecondition, pe.Error())
+	md := map[string]string{"provider": pe.Provider, "code": pe.Code, "message": pe.Message}
+	if pe.RequestID != "" {
+		md["request_id"] = pe.RequestID
+	}
+	if pe.HTTPStatus != 0 {
+		md["http_status"] = strconv.Itoa(pe.HTTPStatus)
+	}
+	if d, err := connectproto.NewErrorDetail(&errdetails.ErrorInfo{Reason: ReasonProviderError, Domain: ErrorDomain, Metadata: md}); err == nil {
+		e = e.WithDetail(d)
+	}
+	return e
+}
+
 // ErrorReason returns the reason of the google.rpc.ErrorInfo detail of
 // err, or "".
 func ErrorReason(err error) string {
@@ -196,6 +224,25 @@ func ErrorReason(err error) string {
 		}
 	}
 	return ""
+}
+
+// ErrorMetadata returns the metadata of the google.rpc.ErrorInfo detail
+// of err, or nil.
+func ErrorMetadata(err error) map[string]string {
+	ce, ok := errors.AsType[*connect.Error](err)
+	if !ok {
+		return nil
+	}
+	for _, d := range ce.Details() {
+		v, err := connectproto.UnmarshalErrorDetail(d)
+		if err != nil {
+			continue
+		}
+		if info, ok := v.(*errdetails.ErrorInfo); ok {
+			return info.GetMetadata()
+		}
+	}
+	return nil
 }
 
 // ErrorViolations returns the field violations of the google.rpc.BadRequest

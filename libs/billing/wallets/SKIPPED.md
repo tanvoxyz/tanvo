@@ -2,7 +2,8 @@
 
 The lago-api specs `spec/services/wallets/**` and `spec/services/wallet_transactions/**`
 are ported into the `*_test.go` files of this package and into
-`kernel/wallets_balance_test.go`. Each ported case has a `// source:` comment.
+`kernel/wallets_balance_test.go`. Each ported case has a `// source:` comment. The wallet metadata
+cases are ported in `apps/server/internal/rpc/metadata_test.go`.
 This file lists the cases that were not ported, grouped by reason.
 
 ## Transport, parsing and lookup
@@ -20,11 +21,6 @@ external IDs and codes, and it parses strings.
 
 ## Features outside this package or not in Tanvo
 
-- Purchase order numbers: `create_from_params_service_spec.rb:183`, `threshold_top_up_service_spec.rb` (four cases), `create_interval_wallet_transactions_service_spec.rb:455,482,519`, `invoices/paid_credit_service_spec.rb:60–102,285–310`. Tanvo does not have purchase order numbers.
-- Invoice custom sections: `create_from_params_service_spec.rb:483,506,523`, `threshold_top_up_service_spec.rb` (two cases), `create_interval_wallet_transactions_service_spec.rb:534`, the `paid_credit_service` custom-section cases. These belong to the invoice document layer.
-- `voided_invoice_id` on recredit (`recredit_service_spec.rb:49`, `create_from_params_service_spec.rb:199`): `wallet.Transaction` has no field for the voided invoice. See the report.
-- Billing entity snapshots (`create_service_spec.rb:187–227`, `void_service_spec.rb:129`, `paid_credit_service_spec.rb:111–126,336`): `wallet.Transaction` has no `BillingEntityID`, so a credit invoice uses the wallet's current entity.
-- Wallet metadata and `partial_metadata` on update. Wallet metadata is a core `Metadata` value, and the API replaces it.
 - `wallets/realtime_refresh_service_spec.rb`: lago's synchronous refresh on event ingestion. Tanvo refreshes through the job queue.
 - `wallet_transactions/payments/generate_payment_url_service_spec.rb`: payment URLs belong to the payments package.
 - Activity logs, Segment tracking, the e-mail sending of `paid_credit_service_spec.rb:201–222`. Tanvo has none of these. The `ProcessWalletAlertsJob` enqueues of the balance specs are ported in libs/billing `TestWalletAlertsEnqueued`.
@@ -38,6 +34,7 @@ external IDs and codes, and it parses strings.
 - The `CreateJob` parameter shape (`threshold_top_up_service_spec.rb:35` and the other `have_enqueued_job` assertions). Top-ups run inline, so the tests assert the transactions created rather than the job arguments.
 - `void_service_spec.rb:197`: the stale snapshot of the remaining amount. `void` re-reads the inbound transaction under the lock. The race itself cannot be set up through the service API.
 - `prepaid_credit_job_spec.rb:48,54–59,101–121`: job retry policy and argument defaults.
+- `invoices/paid_credit_service_spec.rb:256–316`: the invoice handed back by `BillPaidCreditJob` when it retries a failed generation. Tanvo bills the credit invoice in the transaction that creates the purchase, so a failure leaves no invoice to reuse.
 - `recurring_transaction_rules/terminate_service_spec.rb:22,34`: `Rule.Terminate` in `libs/core/wallet` covers these, and `TestExpireWallets` exercises it.
 
 ## Different behavior (ported with the Tanvo outcome)

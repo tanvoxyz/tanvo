@@ -28,7 +28,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file tanvo/catalog/v1/plan.proto.
  */
 export const file_tanvo_catalog_v1_plan: GenFile = /*@__PURE__*/
-  fileDesc("Cht0YW52by9jYXRhbG9nL3YxL3BsYW4ucHJvdG8SEHRhbnZvLmNhdGFsb2cudjEiwQIKCkNvbW1pdG1lbnQSEAoCaWQYASABKAlCBOJBAQgSRwoPY29tbWl0bWVudF90eXBlGAIgASgOMiAudGFudm8uY2F0YWxvZy52MS5Db21taXRtZW50VHlwZUIM4kEBArpIBYIBAhABEh4KBmFtb3VudBgDIAEoCUIO4kEBArpIB3IF0KTKBgESJgoUaW52b2ljZV9kaXNwbGF5X25hbWUYBCABKAlCCLpIBXIDGP8BEiQKB3RheF9pZHMYBSADKAlCE7pIEJIBDRAyGAEiB3IF4KTKBgESNAoKY3JlYXRlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNAoKdXBkYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMi6wEKDlVzYWdlVGhyZXNob2xkEhAKAmlkGAEgASgJQgTiQQEIEh4KBmFtb3VudBgCIAEoCUIO4kEBArpIB3IF0KTKBgESEQoJcmVjdXJyaW5nGAMgASgIEigKFnRocmVzaG9sZF9kaXNwbGF5X25hbWUYBCABKAlCCLpIBXIDGP8BEjQKCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDIskICgRQbGFuEhAKAmlkGAEgASgJQgTiQQEIEhwKBGNvZGUYAiABKAlCDuJBAQK6SAdyBeikygYBEhwKBG5hbWUYAyABKAlCDuJBAQK6SAdyBRABGP8BEiYKFGludm9pY2VfZGlzcGxheV9uYW1lGAQgASgJQgi6SAVyAxj/ARIdCgtkZXNjcmlwdGlvbhgFIAEoCUIIukgFcgMYgAgSOQoIaW50ZXJ2YWwYBiABKA4yGS50YW52by5jb21tb24udjEuSW50ZXJ2YWxCDOJBAQK6SAWCAQIQARIsCgZhbW91bnQYByABKAsyFi50YW52by5jb21tb24udjEuTW9uZXlCBOJBAQISFgoOcGF5X2luX2FkdmFuY2UYCCABKAgSJQoRdHJpYWxfcGVyaW9kX2RheXMYCSABKAVCCrpIBxoFGMIcKAASHAoUYmlsbF9jaGFyZ2VzX21vbnRobHkYCiABKAgSIgoaYmlsbF9maXhlZF9jaGFyZ2VzX21vbnRobHkYCyABKAgSFwoJcGFyZW50X2lkGAwgASgJQgTiQQEDEiQKB3RheF9pZHMYDSADKAlCE7pIEJIBDRAyGAEiB3IF4KTKBgESOQoIbWV0YWRhdGEYDiADKAsyHS50YW52by5jb21tb24udjEuTWV0YWRhdGFJdGVtQgi6SAWSAQIQMhIyCgZzdGF0dXMYDyABKA4yHC50YW52by5jYXRhbG9nLnYxLlBsYW5TdGF0dXNCBOJBAQMSNAoHY2hhcmdlcxgQIAMoCzIYLnRhbnZvLmNhdGFsb2cudjEuQ2hhcmdlQgm6SAaSAQMQ9AMSPwoNZml4ZWRfY2hhcmdlcxgRIAMoCzIdLnRhbnZvLmNhdGFsb2cudjEuRml4ZWRDaGFyZ2VCCbpIBpIBAxD0AxI4ChJtaW5pbXVtX2NvbW1pdG1lbnQYEiABKAsyHC50YW52by5jYXRhbG9nLnYxLkNvbW1pdG1lbnQSRAoQdXNhZ2VfdGhyZXNob2xkcxgTIAMoCzIgLnRhbnZvLmNhdGFsb2cudjEuVXNhZ2VUaHJlc2hvbGRCCLpIBZIBAhAyEjMKDXllYXJseV9hbW91bnQYFCABKAsyFi50YW52by5jb21tb24udjEuTW9uZXlCBOJBAQMSKAoaYWN0aXZlX3N1YnNjcmlwdGlvbnNfY291bnQYFSABKAVCBOJBAQMSIgoUZHJhZnRfaW52b2ljZXNfY291bnQYFiABKAVCBOJBAQMSNAoKY3JlYXRlZF9hdBgXIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNAoKdXBkYXRlZF9hdBgYIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQM6LupBKwoOdGFudm8ueHl6L1BsYW4SDHBsYW5zL3twbGFufSoFcGxhbnMyBHBsYW4i7AEKEUNyZWF0ZVBsYW5SZXF1ZXN0EjAKBHBsYW4YASABKAsyFi50YW52by5jYXRhbG9nLnYxLlBsYW5CCuJBAQK6SAPIAQE6pAG6SKABGp0BCg1wbGFuLnJlcXVpcmVkEixjb2RlLCBuYW1lLCBpbnRlcnZhbCBhbmQgYW1vdW50IGFyZSByZXF1aXJlZBpeaGFzKHRoaXMucGxhbi5jb2RlKSAmJiBoYXModGhpcy5wbGFuLm5hbWUpICYmIGhhcyh0aGlzLnBsYW4uaW50ZXJ2YWwpICYmIGhhcyh0aGlzLnBsYW4uYW1vdW50KSI6ChJDcmVhdGVQbGFuUmVzcG9uc2USJAoEcGxhbhgBIAEoCzIWLnRhbnZvLmNhdGFsb2cudjEuUGxhbiI0Cg5HZXRQbGFuUmVxdWVzdBIiCgdwbGFuX2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGASI3Cg9HZXRQbGFuUmVzcG9uc2USJAoEcGxhbhgBIAEoCzIWLnRhbnZvLmNhdGFsb2cudjEuUGxhbiKDAQoQTGlzdFBsYW5zUmVxdWVzdBIdCglwYWdlX3NpemUYASABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgCIAEoCUIIukgFcgMYgAgSGAoGZmlsdGVyGAMgASgJQgi6SAVyAxiAEBIYCgZzZWFyY2gYBCABKAlCCLpIBXIDGP8BIlMKEUxpc3RQbGFuc1Jlc3BvbnNlEiUKBXBsYW5zGAEgAygLMhYudGFudm8uY2F0YWxvZy52MS5QbGFuEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSLsAQoRVXBkYXRlUGxhblJlcXVlc3QSMAoEcGxhbhgBIAEoCzIWLnRhbnZvLmNhdGFsb2cudjEuUGxhbkIK4kEBArpIA8gBARIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2sSFwoPY2FzY2FkZV91cGRhdGVzGAMgASgIEiMKG3VwZGF0ZV9zdWJzY3JpcHRpb25zX2Ftb3VudBgEIAEoCDo2ukgzGjEKB3BsYW4uaWQSE3BsYW4uaWQgaXMgcmVxdWlyZWQaEWhhcyh0aGlzLnBsYW4uaWQpIjoKElVwZGF0ZVBsYW5SZXNwb25zZRIkCgRwbGFuGAEgASgLMhYudGFudm8uY2F0YWxvZy52MS5QbGFuIjcKEURlbGV0ZVBsYW5SZXF1ZXN0EiIKB3BsYW5faWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBIjoKEkRlbGV0ZVBsYW5SZXNwb25zZRIkCgRwbGFuGAEgASgLMhYudGFudm8uY2F0YWxvZy52MS5QbGFuKnwKClBsYW5TdGF0dXMSGwoXUExBTl9TVEFUVVNfVU5TUEVDSUZJRUQQABIWChJQTEFOX1NUQVRVU19BQ1RJVkUQARIgChxQTEFOX1NUQVRVU19QRU5ESU5HX0RFTEVUSU9OEAISFwoTUExBTl9TVEFUVVNfREVMRVRFRBADKlkKDkNvbW1pdG1lbnRUeXBlEh8KG0NPTU1JVE1FTlRfVFlQRV9VTlNQRUNJRklFRBAAEiYKIkNPTU1JVE1FTlRfVFlQRV9NSU5JTVVNX0NPTU1JVE1FTlQQATLGBQoLUGxhblNlcnZpY2USiAEKCkNyZWF0ZVBsYW4SIy50YW52by5jYXRhbG9nLnYxLkNyZWF0ZVBsYW5SZXF1ZXN0GiQudGFudm8uY2F0YWxvZy52MS5DcmVhdGVQbGFuUmVzcG9uc2UiL8rzGBQKDHBsYW5zOmNyZWF0ZSoEcGxhboLT5JMCEToEcGxhbiIJL3YxL3BsYW5zEoQBCgdHZXRQbGFuEiAudGFudm8uY2F0YWxvZy52MS5HZXRQbGFuUmVxdWVzdBohLnRhbnZvLmNhdGFsb2cudjEuR2V0UGxhblJlc3BvbnNlIjSQAgHK8xgSCgpwbGFuczpyZWFkKgRwbGFugtPkkwIVEhMvdjEvcGxhbnMve3BsYW5faWR9EoABCglMaXN0UGxhbnMSIi50YW52by5jYXRhbG9nLnYxLkxpc3RQbGFuc1JlcXVlc3QaIy50YW52by5jYXRhbG9nLnYxLkxpc3RQbGFuc1Jlc3BvbnNlIiqQAgHK8xgSCgpwbGFuczpyZWFkKgRwbGFugtPkkwILEgkvdjEvcGxhbnMSkgEKClVwZGF0ZVBsYW4SIy50YW52by5jYXRhbG9nLnYxLlVwZGF0ZVBsYW5SZXF1ZXN0GiQudGFudm8uY2F0YWxvZy52MS5VcGRhdGVQbGFuUmVzcG9uc2UiOcrzGBQKDHBsYW5zOnVwZGF0ZSoEcGxhboLT5JMCGzoEcGxhbjITL3YxL3BsYW5zL3twbGFuLmlkfRKMAQoKRGVsZXRlUGxhbhIjLnRhbnZvLmNhdGFsb2cudjEuRGVsZXRlUGxhblJlcXVlc3QaJC50YW52by5jYXRhbG9nLnYxLkRlbGV0ZVBsYW5SZXNwb25zZSIzyvMYFAoMcGxhbnM6ZGVsZXRlKgRwbGFugtPkkwIVKhMvdjEvcGxhbnMve3BsYW5faWR9QssBChRjb20udGFudm8uY2F0YWxvZy52MUIJUGxhblByb3RvUAFaRmdpdGh1Yi5jb20vdGFudm94eXovdGFudm8vbGlicy9wcm90by9nZW4vZ28vdGFudm8vY2F0YWxvZy92MTtjYXRhbG9ndjGiAgNUQ1iqAhBUYW52by5DYXRhbG9nLlYxygIQVGFudm9cQ2F0YWxvZ1xWMeICHFRhbnZvXENhdGFsb2dcVjFcR1BCTWV0YWRhdGHqAhJUYW52bzo6Q2F0YWxvZzo6VjFiCGVkaXRpb25zcOgH", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_tanvo_catalog_v1_charge, file_tanvo_catalog_v1_fixed_charge, file_tanvo_common_v1_enums, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
+  fileDesc("Cht0YW52by9jYXRhbG9nL3YxL3BsYW4ucHJvdG8SEHRhbnZvLmNhdGFsb2cudjEiwQIKCkNvbW1pdG1lbnQSEAoCaWQYASABKAlCBOJBAQgSRwoPY29tbWl0bWVudF90eXBlGAIgASgOMiAudGFudm8uY2F0YWxvZy52MS5Db21taXRtZW50VHlwZUIM4kEBArpIBYIBAhABEh4KBmFtb3VudBgDIAEoCUIO4kEBArpIB3IF0KTKBgESJgoUaW52b2ljZV9kaXNwbGF5X25hbWUYBCABKAlCCLpIBXIDGP8BEiQKB3RheF9pZHMYBSADKAlCE7pIEJIBDRAyGAEiB3IF4KTKBgESNAoKY3JlYXRlZF9hdBgGIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNAoKdXBkYXRlZF9hdBgHIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMi6wEKDlVzYWdlVGhyZXNob2xkEhAKAmlkGAEgASgJQgTiQQEIEh4KBmFtb3VudBgCIAEoCUIO4kEBArpIB3IF0KTKBgESEQoJcmVjdXJyaW5nGAMgASgIEigKFnRocmVzaG9sZF9kaXNwbGF5X25hbWUYBCABKAlCCLpIBXIDGP8BEjQKCmNyZWF0ZWRfYXQYBSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDEjQKCnVwZGF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wQgTiQQEDIskICgRQbGFuEhAKAmlkGAEgASgJQgTiQQEIEhwKBGNvZGUYAiABKAlCDuJBAQK6SAdyBeikygYBEhwKBG5hbWUYAyABKAlCDuJBAQK6SAdyBRABGP8BEiYKFGludm9pY2VfZGlzcGxheV9uYW1lGAQgASgJQgi6SAVyAxj/ARIdCgtkZXNjcmlwdGlvbhgFIAEoCUIIukgFcgMYgAgSOQoIaW50ZXJ2YWwYBiABKA4yGS50YW52by5jb21tb24udjEuSW50ZXJ2YWxCDOJBAQK6SAWCAQIQARIsCgZhbW91bnQYByABKAsyFi50YW52by5jb21tb24udjEuTW9uZXlCBOJBAQISFgoOcGF5X2luX2FkdmFuY2UYCCABKAgSJQoRdHJpYWxfcGVyaW9kX2RheXMYCSABKAVCCrpIBxoFGMIcKAASHAoUYmlsbF9jaGFyZ2VzX21vbnRobHkYCiABKAgSIgoaYmlsbF9maXhlZF9jaGFyZ2VzX21vbnRobHkYCyABKAgSFwoJcGFyZW50X2lkGAwgASgJQgTiQQEDEiQKB3RheF9pZHMYDSADKAlCE7pIEJIBDRAyGAEiB3IF4KTKBgESOQoIbWV0YWRhdGEYDiADKAsyHS50YW52by5jb21tb24udjEuTWV0YWRhdGFJdGVtQgi6SAWSAQIQMhIyCgZzdGF0dXMYDyABKA4yHC50YW52by5jYXRhbG9nLnYxLlBsYW5TdGF0dXNCBOJBAQMSNAoHY2hhcmdlcxgQIAMoCzIYLnRhbnZvLmNhdGFsb2cudjEuQ2hhcmdlQgm6SAaSAQMQ9AMSPwoNZml4ZWRfY2hhcmdlcxgRIAMoCzIdLnRhbnZvLmNhdGFsb2cudjEuRml4ZWRDaGFyZ2VCCbpIBpIBAxD0AxI4ChJtaW5pbXVtX2NvbW1pdG1lbnQYEiABKAsyHC50YW52by5jYXRhbG9nLnYxLkNvbW1pdG1lbnQSRAoQdXNhZ2VfdGhyZXNob2xkcxgTIAMoCzIgLnRhbnZvLmNhdGFsb2cudjEuVXNhZ2VUaHJlc2hvbGRCCLpIBZIBAhAyEjMKDXllYXJseV9hbW91bnQYFCABKAsyFi50YW52by5jb21tb24udjEuTW9uZXlCBOJBAQMSKAoaYWN0aXZlX3N1YnNjcmlwdGlvbnNfY291bnQYFSABKAVCBOJBAQMSIgoUZHJhZnRfaW52b2ljZXNfY291bnQYFiABKAVCBOJBAQMSNAoKY3JlYXRlZF9hdBgXIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQMSNAoKdXBkYXRlZF9hdBgYIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXBCBOJBAQM6LupBKwoOdGFudm8ueHl6L1BsYW4SDHBsYW5zL3twbGFufSoFcGxhbnMyBHBsYW4i7AEKEUNyZWF0ZVBsYW5SZXF1ZXN0EjAKBHBsYW4YASABKAsyFi50YW52by5jYXRhbG9nLnYxLlBsYW5CCuJBAQK6SAPIAQE6pAG6SKABGp0BCg1wbGFuLnJlcXVpcmVkEixjb2RlLCBuYW1lLCBpbnRlcnZhbCBhbmQgYW1vdW50IGFyZSByZXF1aXJlZBpeaGFzKHRoaXMucGxhbi5jb2RlKSAmJiBoYXModGhpcy5wbGFuLm5hbWUpICYmIGhhcyh0aGlzLnBsYW4uaW50ZXJ2YWwpICYmIGhhcyh0aGlzLnBsYW4uYW1vdW50KSI6ChJDcmVhdGVQbGFuUmVzcG9uc2USJAoEcGxhbhgBIAEoCzIWLnRhbnZvLmNhdGFsb2cudjEuUGxhbiI0Cg5HZXRQbGFuUmVxdWVzdBIiCgdwbGFuX2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGASI3Cg9HZXRQbGFuUmVzcG9uc2USJAoEcGxhbhgBIAEoCzIWLnRhbnZvLmNhdGFsb2cudjEuUGxhbiKDAQoQTGlzdFBsYW5zUmVxdWVzdBIdCglwYWdlX3NpemUYASABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgCIAEoCUIIukgFcgMYgAgSGAoGZmlsdGVyGAMgASgJQgi6SAVyAxiAEBIYCgZzZWFyY2gYBCABKAlCCLpIBXIDGP8BIlMKEUxpc3RQbGFuc1Jlc3BvbnNlEiUKBXBsYW5zGAEgAygLMhYudGFudm8uY2F0YWxvZy52MS5QbGFuEhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSLsAQoRVXBkYXRlUGxhblJlcXVlc3QSMAoEcGxhbhgBIAEoCzIWLnRhbnZvLmNhdGFsb2cudjEuUGxhbkIK4kEBArpIA8gBARIvCgt1cGRhdGVfbWFzaxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5GaWVsZE1hc2sSFwoPY2FzY2FkZV91cGRhdGVzGAMgASgIEiMKG3VwZGF0ZV9zdWJzY3JpcHRpb25zX2Ftb3VudBgEIAEoCDo2ukgzGjEKB3BsYW4uaWQSE3BsYW4uaWQgaXMgcmVxdWlyZWQaEWhhcyh0aGlzLnBsYW4uaWQpIjoKElVwZGF0ZVBsYW5SZXNwb25zZRIkCgRwbGFuGAEgASgLMhYudGFudm8uY2F0YWxvZy52MS5QbGFuIjcKEURlbGV0ZVBsYW5SZXF1ZXN0EiIKB3BsYW5faWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBIjoKEkRlbGV0ZVBsYW5SZXNwb25zZRIkCgRwbGFuGAEgASgLMhYudGFudm8uY2F0YWxvZy52MS5QbGFuInsKGlJlcGxhY2VQbGFuTWV0YWRhdGFSZXF1ZXN0EiIKB3BsYW5faWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBEjkKCG1ldGFkYXRhGAIgAygLMh0udGFudm8uY29tbW9uLnYxLk1ldGFkYXRhSXRlbUIIukgFkgECEDIieQoYTWVyZ2VQbGFuTWV0YWRhdGFSZXF1ZXN0EiIKB3BsYW5faWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBEjkKCG1ldGFkYXRhGAIgAygLMh0udGFudm8uY29tbW9uLnYxLk1ldGFkYXRhSXRlbUIIukgFkgECEDIiPwoZRGVsZXRlUGxhbk1ldGFkYXRhUmVxdWVzdBIiCgdwbGFuX2lkGAEgASgJQhHiQQECukgKyAEBcgXgpMoGASJbChxEZWxldGVQbGFuTWV0YWRhdGFLZXlSZXF1ZXN0EiIKB3BsYW5faWQYASABKAlCEeJBAQK6SArIAQFyBeCkygYBEhcKA2tleRgCIAEoCUIK4kEBArpIA8gBASJOChtSZXBsYWNlUGxhbk1ldGFkYXRhUmVzcG9uc2USLwoIbWV0YWRhdGEYASADKAsyHS50YW52by5jb21tb24udjEuTWV0YWRhdGFJdGVtIkwKGU1lcmdlUGxhbk1ldGFkYXRhUmVzcG9uc2USLwoIbWV0YWRhdGEYASADKAsyHS50YW52by5jb21tb24udjEuTWV0YWRhdGFJdGVtIk0KGkRlbGV0ZVBsYW5NZXRhZGF0YVJlc3BvbnNlEi8KCG1ldGFkYXRhGAEgAygLMh0udGFudm8uY29tbW9uLnYxLk1ldGFkYXRhSXRlbSJQCh1EZWxldGVQbGFuTWV0YWRhdGFLZXlSZXNwb25zZRIvCghtZXRhZGF0YRgBIAMoCzIdLnRhbnZvLmNvbW1vbi52MS5NZXRhZGF0YUl0ZW0qfAoKUGxhblN0YXR1cxIbChdQTEFOX1NUQVRVU19VTlNQRUNJRklFRBAAEhYKElBMQU5fU1RBVFVTX0FDVElWRRABEiAKHFBMQU5fU1RBVFVTX1BFTkRJTkdfREVMRVRJT04QAhIXChNQTEFOX1NUQVRVU19ERUxFVEVEEAMqWQoOQ29tbWl0bWVudFR5cGUSHwobQ09NTUlUTUVOVF9UWVBFX1VOU1BFQ0lGSUVEEAASJgoiQ09NTUlUTUVOVF9UWVBFX01JTklNVU1fQ09NTUlUTUVOVBABMpsLCgtQbGFuU2VydmljZRKIAQoKQ3JlYXRlUGxhbhIjLnRhbnZvLmNhdGFsb2cudjEuQ3JlYXRlUGxhblJlcXVlc3QaJC50YW52by5jYXRhbG9nLnYxLkNyZWF0ZVBsYW5SZXNwb25zZSIvyvMYFAoMcGxhbnM6Y3JlYXRlKgRwbGFugtPkkwIROgRwbGFuIgkvdjEvcGxhbnMShAEKB0dldFBsYW4SIC50YW52by5jYXRhbG9nLnYxLkdldFBsYW5SZXF1ZXN0GiEudGFudm8uY2F0YWxvZy52MS5HZXRQbGFuUmVzcG9uc2UiNJACAcrzGBIKCnBsYW5zOnJlYWQqBHBsYW6C0+STAhUSEy92MS9wbGFucy97cGxhbl9pZH0SgAEKCUxpc3RQbGFucxIiLnRhbnZvLmNhdGFsb2cudjEuTGlzdFBsYW5zUmVxdWVzdBojLnRhbnZvLmNhdGFsb2cudjEuTGlzdFBsYW5zUmVzcG9uc2UiKpACAcrzGBIKCnBsYW5zOnJlYWQqBHBsYW6C0+STAgsSCS92MS9wbGFucxKSAQoKVXBkYXRlUGxhbhIjLnRhbnZvLmNhdGFsb2cudjEuVXBkYXRlUGxhblJlcXVlc3QaJC50YW52by5jYXRhbG9nLnYxLlVwZGF0ZVBsYW5SZXNwb25zZSI5yvMYFAoMcGxhbnM6dXBkYXRlKgRwbGFugtPkkwIbOgRwbGFuMhMvdjEvcGxhbnMve3BsYW4uaWR9EowBCgpEZWxldGVQbGFuEiMudGFudm8uY2F0YWxvZy52MS5EZWxldGVQbGFuUmVxdWVzdBokLnRhbnZvLmNhdGFsb2cudjEuRGVsZXRlUGxhblJlc3BvbnNlIjPK8xgUCgxwbGFuczpkZWxldGUqBHBsYW6C0+STAhUqEy92MS9wbGFucy97cGxhbl9pZH0SswEKE1JlcGxhY2VQbGFuTWV0YWRhdGESLC50YW52by5jYXRhbG9nLnYxLlJlcGxhY2VQbGFuTWV0YWRhdGFSZXF1ZXN0Gi0udGFudm8uY2F0YWxvZy52MS5SZXBsYWNlUGxhbk1ldGFkYXRhUmVzcG9uc2UiP8rzGBQKDHBsYW5zOnVwZGF0ZSoEcGxhboLT5JMCIToBKiIcL3YxL3BsYW5zL3twbGFuX2lkfS9tZXRhZGF0YRKtAQoRTWVyZ2VQbGFuTWV0YWRhdGESKi50YW52by5jYXRhbG9nLnYxLk1lcmdlUGxhbk1ldGFkYXRhUmVxdWVzdBorLnRhbnZvLmNhdGFsb2cudjEuTWVyZ2VQbGFuTWV0YWRhdGFSZXNwb25zZSI/yvMYFAoMcGxhbnM6dXBkYXRlKgRwbGFugtPkkwIhOgEqMhwvdjEvcGxhbnMve3BsYW5faWR9L21ldGFkYXRhEq0BChJEZWxldGVQbGFuTWV0YWRhdGESKy50YW52by5jYXRhbG9nLnYxLkRlbGV0ZVBsYW5NZXRhZGF0YVJlcXVlc3QaLC50YW52by5jYXRhbG9nLnYxLkRlbGV0ZVBsYW5NZXRhZGF0YVJlc3BvbnNlIjzK8xgUCgxwbGFuczp1cGRhdGUqBHBsYW6C0+STAh4qHC92MS9wbGFucy97cGxhbl9pZH0vbWV0YWRhdGESvAEKFURlbGV0ZVBsYW5NZXRhZGF0YUtleRIuLnRhbnZvLmNhdGFsb2cudjEuRGVsZXRlUGxhbk1ldGFkYXRhS2V5UmVxdWVzdBovLnRhbnZvLmNhdGFsb2cudjEuRGVsZXRlUGxhbk1ldGFkYXRhS2V5UmVzcG9uc2UiQsrzGBQKDHBsYW5zOnVwZGF0ZSoEcGxhboLT5JMCJCoiL3YxL3BsYW5zL3twbGFuX2lkfS9tZXRhZGF0YS97a2V5fULLAQoUY29tLnRhbnZvLmNhdGFsb2cudjFCCVBsYW5Qcm90b1ABWkZnaXRodWIuY29tL3RhbnZveHl6L3RhbnZvL2xpYnMvcHJvdG8vZ2VuL2dvL3RhbnZvL2NhdGFsb2cvdjE7Y2F0YWxvZ3YxogIDVENYqgIQVGFudm8uQ2F0YWxvZy5WMcoCEFRhbnZvXENhdGFsb2dcVjHiAhxUYW52b1xDYXRhbG9nXFYxXEdQQk1ldGFkYXRh6gISVGFudm86OkNhdGFsb2c6OlYxYghlZGl0aW9uc3DoBw", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_field_mask, file_google_protobuf_timestamp, file_tanvo_catalog_v1_charge, file_tanvo_catalog_v1_fixed_charge, file_tanvo_common_v1_enums, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
 
 /**
  * Commitment is a minimum amount a subscription pays per period.
@@ -597,6 +597,195 @@ export const DeletePlanResponseSchema: GenMessage<DeletePlanResponse> = /*@__PUR
   messageDesc(file_tanvo_catalog_v1_plan, 12);
 
 /**
+ * ReplacePlanMetadataRequest is the request of ReplacePlanMetadata.
+ *
+ * @generated from message tanvo.catalog.v1.ReplacePlanMetadataRequest
+ */
+export type ReplacePlanMetadataRequest = Message<"tanvo.catalog.v1.ReplacePlanMetadataRequest"> & {
+  /**
+   * The plan's ID or `code:<code>`.
+   *
+   * @generated from field: string plan_id = 1;
+   */
+  planId: string;
+
+  /**
+   * The new metadata; empty clears it.
+   *
+   * @generated from field: repeated tanvo.common.v1.MetadataItem metadata = 2;
+   */
+  metadata: MetadataItem[];
+};
+
+/**
+ * Describes the message tanvo.catalog.v1.ReplacePlanMetadataRequest.
+ * Use `create(ReplacePlanMetadataRequestSchema)` to create a new message.
+ */
+export const ReplacePlanMetadataRequestSchema: GenMessage<ReplacePlanMetadataRequest> = /*@__PURE__*/
+  messageDesc(file_tanvo_catalog_v1_plan, 13);
+
+/**
+ * MergePlanMetadataRequest is the request of MergePlanMetadata.
+ *
+ * @generated from message tanvo.catalog.v1.MergePlanMetadataRequest
+ */
+export type MergePlanMetadataRequest = Message<"tanvo.catalog.v1.MergePlanMetadataRequest"> & {
+  /**
+   * The plan's ID or `code:<code>`.
+   *
+   * @generated from field: string plan_id = 1;
+   */
+  planId: string;
+
+  /**
+   * The items to merge.
+   *
+   * @generated from field: repeated tanvo.common.v1.MetadataItem metadata = 2;
+   */
+  metadata: MetadataItem[];
+};
+
+/**
+ * Describes the message tanvo.catalog.v1.MergePlanMetadataRequest.
+ * Use `create(MergePlanMetadataRequestSchema)` to create a new message.
+ */
+export const MergePlanMetadataRequestSchema: GenMessage<MergePlanMetadataRequest> = /*@__PURE__*/
+  messageDesc(file_tanvo_catalog_v1_plan, 14);
+
+/**
+ * DeletePlanMetadataRequest is the request of DeletePlanMetadata.
+ *
+ * @generated from message tanvo.catalog.v1.DeletePlanMetadataRequest
+ */
+export type DeletePlanMetadataRequest = Message<"tanvo.catalog.v1.DeletePlanMetadataRequest"> & {
+  /**
+   * The plan's ID or `code:<code>`.
+   *
+   * @generated from field: string plan_id = 1;
+   */
+  planId: string;
+};
+
+/**
+ * Describes the message tanvo.catalog.v1.DeletePlanMetadataRequest.
+ * Use `create(DeletePlanMetadataRequestSchema)` to create a new message.
+ */
+export const DeletePlanMetadataRequestSchema: GenMessage<DeletePlanMetadataRequest> = /*@__PURE__*/
+  messageDesc(file_tanvo_catalog_v1_plan, 15);
+
+/**
+ * DeletePlanMetadataKeyRequest is the request of DeletePlanMetadataKey.
+ *
+ * @generated from message tanvo.catalog.v1.DeletePlanMetadataKeyRequest
+ */
+export type DeletePlanMetadataKeyRequest = Message<"tanvo.catalog.v1.DeletePlanMetadataKeyRequest"> & {
+  /**
+   * The plan's ID or `code:<code>`.
+   *
+   * @generated from field: string plan_id = 1;
+   */
+  planId: string;
+
+  /**
+   * The key to remove.
+   *
+   * @generated from field: string key = 2;
+   */
+  key: string;
+};
+
+/**
+ * Describes the message tanvo.catalog.v1.DeletePlanMetadataKeyRequest.
+ * Use `create(DeletePlanMetadataKeyRequestSchema)` to create a new message.
+ */
+export const DeletePlanMetadataKeyRequestSchema: GenMessage<DeletePlanMetadataKeyRequest> = /*@__PURE__*/
+  messageDesc(file_tanvo_catalog_v1_plan, 16);
+
+/**
+ * ReplacePlanMetadataResponse is the response of ReplacePlanMetadata.
+ *
+ * @generated from message tanvo.catalog.v1.ReplacePlanMetadataResponse
+ */
+export type ReplacePlanMetadataResponse = Message<"tanvo.catalog.v1.ReplacePlanMetadataResponse"> & {
+  /**
+   * The plan's metadata after the change.
+   *
+   * @generated from field: repeated tanvo.common.v1.MetadataItem metadata = 1;
+   */
+  metadata: MetadataItem[];
+};
+
+/**
+ * Describes the message tanvo.catalog.v1.ReplacePlanMetadataResponse.
+ * Use `create(ReplacePlanMetadataResponseSchema)` to create a new message.
+ */
+export const ReplacePlanMetadataResponseSchema: GenMessage<ReplacePlanMetadataResponse> = /*@__PURE__*/
+  messageDesc(file_tanvo_catalog_v1_plan, 17);
+
+/**
+ * MergePlanMetadataResponse is the response of MergePlanMetadata.
+ *
+ * @generated from message tanvo.catalog.v1.MergePlanMetadataResponse
+ */
+export type MergePlanMetadataResponse = Message<"tanvo.catalog.v1.MergePlanMetadataResponse"> & {
+  /**
+   * The plan's metadata after the change.
+   *
+   * @generated from field: repeated tanvo.common.v1.MetadataItem metadata = 1;
+   */
+  metadata: MetadataItem[];
+};
+
+/**
+ * Describes the message tanvo.catalog.v1.MergePlanMetadataResponse.
+ * Use `create(MergePlanMetadataResponseSchema)` to create a new message.
+ */
+export const MergePlanMetadataResponseSchema: GenMessage<MergePlanMetadataResponse> = /*@__PURE__*/
+  messageDesc(file_tanvo_catalog_v1_plan, 18);
+
+/**
+ * DeletePlanMetadataResponse is the response of DeletePlanMetadata.
+ *
+ * @generated from message tanvo.catalog.v1.DeletePlanMetadataResponse
+ */
+export type DeletePlanMetadataResponse = Message<"tanvo.catalog.v1.DeletePlanMetadataResponse"> & {
+  /**
+   * The plan's metadata after the change.
+   *
+   * @generated from field: repeated tanvo.common.v1.MetadataItem metadata = 1;
+   */
+  metadata: MetadataItem[];
+};
+
+/**
+ * Describes the message tanvo.catalog.v1.DeletePlanMetadataResponse.
+ * Use `create(DeletePlanMetadataResponseSchema)` to create a new message.
+ */
+export const DeletePlanMetadataResponseSchema: GenMessage<DeletePlanMetadataResponse> = /*@__PURE__*/
+  messageDesc(file_tanvo_catalog_v1_plan, 19);
+
+/**
+ * DeletePlanMetadataKeyResponse is the response of DeletePlanMetadataKey.
+ *
+ * @generated from message tanvo.catalog.v1.DeletePlanMetadataKeyResponse
+ */
+export type DeletePlanMetadataKeyResponse = Message<"tanvo.catalog.v1.DeletePlanMetadataKeyResponse"> & {
+  /**
+   * The plan's metadata after the change.
+   *
+   * @generated from field: repeated tanvo.common.v1.MetadataItem metadata = 1;
+   */
+  metadata: MetadataItem[];
+};
+
+/**
+ * Describes the message tanvo.catalog.v1.DeletePlanMetadataKeyResponse.
+ * Use `create(DeletePlanMetadataKeyResponseSchema)` to create a new message.
+ */
+export const DeletePlanMetadataKeyResponseSchema: GenMessage<DeletePlanMetadataKeyResponse> = /*@__PURE__*/
+  messageDesc(file_tanvo_catalog_v1_plan, 20);
+
+/**
  * PlanStatus is the state of a plan.
  *
  * @generated from enum tanvo.catalog.v1.PlanStatus
@@ -726,6 +915,48 @@ export const PlanService: GenService<{
     methodKind: "unary";
     input: typeof DeletePlanRequestSchema;
     output: typeof DeletePlanResponseSchema;
+  },
+  /**
+   * Replaces the plan's metadata; an empty list clears it.
+   *
+   * @generated from rpc tanvo.catalog.v1.PlanService.ReplacePlanMetadata
+   */
+  replacePlanMetadata: {
+    methodKind: "unary";
+    input: typeof ReplacePlanMetadataRequestSchema;
+    output: typeof ReplacePlanMetadataResponseSchema;
+  },
+  /**
+   * Merges items into the plan's metadata: values of existing keys are
+   * replaced and new keys appended.
+   *
+   * @generated from rpc tanvo.catalog.v1.PlanService.MergePlanMetadata
+   */
+  mergePlanMetadata: {
+    methodKind: "unary";
+    input: typeof MergePlanMetadataRequestSchema;
+    output: typeof MergePlanMetadataResponseSchema;
+  },
+  /**
+   * Removes all the plan's metadata.
+   *
+   * @generated from rpc tanvo.catalog.v1.PlanService.DeletePlanMetadata
+   */
+  deletePlanMetadata: {
+    methodKind: "unary";
+    input: typeof DeletePlanMetadataRequestSchema;
+    output: typeof DeletePlanMetadataResponseSchema;
+  },
+  /**
+   * Removes one key from the plan's metadata; NOT_FOUND when the
+   * plan has no metadata.
+   *
+   * @generated from rpc tanvo.catalog.v1.PlanService.DeletePlanMetadataKey
+   */
+  deletePlanMetadataKey: {
+    methodKind: "unary";
+    input: typeof DeletePlanMetadataKeyRequestSchema;
+    output: typeof DeletePlanMetadataKeyResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_tanvo_catalog_v1_plan, 0);

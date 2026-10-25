@@ -53,12 +53,25 @@ CREATE TABLE IF NOT EXISTS events_enriched (
     ingested_at DateTime64(6, 'UTC'),
     sequence UInt64,
     is_deleted UInt8 DEFAULT 0,
+    -- The value enrichment gave the event (metering.Event.Value), as a
+    -- decimal, and when the copy was written; the enriched events API
+    -- returns them.
+    value Nullable(String),
+    decimal_value Nullable(Decimal(38, 26)) DEFAULT toDecimal128OrZero(value, 26),
+    enriched_at DateTime64(6, 'UTC') DEFAULT now64(6),
     -- The bucket repair sweep selects the events by sequence.
     INDEX sequence_minmax sequence TYPE minmax GRANULARITY 1
 )
 ENGINE = ReplacingMergeTree(sequence, is_deleted)
 PARTITION BY toYYYYMM(timestamp)
 ORDER BY (organization_id, code, subscription_id, timestamp, transaction_id)
+;
+-- The value and enrichment columns, for tables created before them.
+ALTER TABLE events_enriched ADD COLUMN IF NOT EXISTS value Nullable(String) AFTER is_deleted
+;
+ALTER TABLE events_enriched ADD COLUMN IF NOT EXISTS decimal_value Nullable(Decimal(38, 26)) DEFAULT toDecimal128OrZero(value, 26) AFTER value
+;
+ALTER TABLE events_enriched ADD COLUMN IF NOT EXISTS enriched_at DateTime64(6, 'UTC') DEFAULT now64(6) AFTER decimal_value
 ;
 -- Usage bucket definitions: the buckets the store maintains for an
 -- organization's billable metric code (see metering.BucketDefinition). A
@@ -131,4 +144,27 @@ CREATE TABLE IF NOT EXISTS bucket_repairs (
 ENGINE = MergeTree
 ORDER BY started
 TTL finished + INTERVAL 30 DAY
+;
+-- The messages the ingest consumers could not process, kept for
+-- inspection and replay: each dead letter of the dead letter topic, with
+-- the event's keys when its message has them (empty otherwise), the
+-- original message and why it failed. subscription_id is the external
+-- subscription ID, as in the event tables.
+CREATE TABLE IF NOT EXISTS events_dead_letter (
+    organization_id String,
+    subscription_id String,
+    code String,
+    transaction_id String,
+    timestamp DateTime64(6, 'UTC'),
+    ingested_at DateTime64(6, 'UTC'),
+    failed_at DateTime64(6, 'UTC'),
+    event String,
+    error_code String,
+    error_message String,
+    topic String,
+    partition Int32,
+    offset Int64
+)
+ENGINE = MergeTree
+ORDER BY (organization_id, subscription_id, code, transaction_id, timestamp, ingested_at)
 ;

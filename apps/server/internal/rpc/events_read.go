@@ -7,11 +7,15 @@ import (
 	"maps"
 	"time"
 
+	"connectrpc.com/connect/v2"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/tanvoxyz/tanvo/libs/billing/estimates"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/event"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
+	"github.com/tanvoxyz/tanvo/libs/metering"
 	"github.com/tanvoxyz/tanvo/libs/money"
 	eventv1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/event/v1"
 )
@@ -23,7 +27,19 @@ type EventReader interface {
 	Get(ctx context.Context, org core.OrganizationID, externalSubscriptionID, transactionID string) (*event.Event, error)
 	// List returns the events matching in, newest first.
 	List(ctx context.Context, org core.OrganizationID, in ingest.ListInput, page core.PageRequest) (core.Page[*event.Event], error)
+	// ListEnriched returns the enriched events matching in, latest
+	// enriched first; ingest.ErrEnrichedUnavailable when org does not
+	// store them.
+	ListEnriched(ctx context.Context, org core.OrganizationID, in ingest.ListInput, page core.PageRequest) (core.Page[*metering.EnrichedEvent], error)
 }
+
+// EndpointStatusHeader marks the responses of beta RPCs (lago
+// X-Lago-Endpoint-Status).
+const EndpointStatusHeader = "X-Tanvo-Endpoint-Status"
+
+// ReasonEndpointNotAvailable is the reason of an RPC the organization's
+// setup does not serve (lago endpoint_not_available).
+const ReasonEndpointNotAvailable = "endpoint_not_available"
 
 // FeeEstimator estimates the fees of events (libs/billing/estimates
 // Service).
@@ -89,6 +105,58 @@ func (s *Events) ListEvents(ctx context.Context, req *eventv1.ListEventsRequest)
 		return nil, Error(ctx, err)
 	}
 	return eventv1.ListEventsResponse_builder{Events: Items(page, toProto), NextPageToken: &page.NextToken}.Build(), nil
+}
+
+// ListEnrichedEvents implements EventService.ListEnrichedEvents (lago
+// EventsController#index_enriched), a beta RPC: the filter is that of
+// ListEvents, and only organizations ingesting through Kafka store
+// enriched events (lago ensure_organization_uses_clickhouse).
+//
+// source: app/controllers/api/v1/events_controller.rb:94-118
+func (s *Events) ListEnrichedEvents(ctx context.Context, req *eventv1.ListEnrichedEventsRequest) (*eventv1.ListEnrichedEventsResponse, error) {
+	if s.reader == nil {
+		return s.UnimplementedEventServiceHandler.ListEnrichedEvents(ctx, req)
+	}
+	p, err := principal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if info, ok := connect.CallInfoForServerContext(ctx); ok {
+		info.ResponseHeader().Set(EndpointStatusHeader, "beta")
+	}
+	f, err := eventsFilter(req.GetFilter())
+	if err != nil {
+		return nil, err
+	}
+	page, err := s.reader.ListEnriched(ctx, p.OrganizationID, ingest.ListInput{ListFilter: f, FromStartedAt: req.GetTimestampFromStartedAt()}, Page(req.GetPageSize(), req.GetPageToken()))
+	if errors.Is(err, ingest.ErrEnrichedUnavailable) {
+		return nil, newError(connect.CodePermissionDenied, ReasonEndpointNotAvailable, "enriched events are stored for organizations ingesting through Kafka")
+	}
+	if err != nil {
+		return nil, Error(ctx, err)
+	}
+	return eventv1.ListEnrichedEventsResponse_builder{EnrichedEvents: Items(page, toEnrichedProto), NextPageToken: &page.NextToken}.Build(), nil
+}
+
+// toEnrichedProto maps a stored enriched event (lago
+// V1::EventEnrichedSerializer).
+func toEnrichedProto(e *metering.EnrichedEvent) *eventv1.EnrichedEvent {
+	b := eventv1.EnrichedEvent_builder{
+		TransactionId:          &e.TransactionID,
+		ExternalSubscriptionId: &e.SubscriptionID,
+		Code:                   &e.Code,
+		Timestamp:              timestamppb.New(e.Timestamp),
+		EnrichedAt:             timestamppb.New(e.EnrichedAt),
+		Value:                  e.Value,
+		Properties:             maps.Clone(map[string]string(e.Properties)),
+	}
+	if e.DecimalValue != nil {
+		b.DecimalValue = new(e.DecimalValue.String())
+	}
+	if e.PreciseTotalAmountCents != nil {
+		b.PreciseTotalAmount = new(e.PreciseTotalAmountCents.String())
+	}
+	return b.Build()
 }
 
 // eventsFilter reads the filter of ListEvents.

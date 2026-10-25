@@ -29,7 +29,11 @@ const mailAttempts = 6
 // messages, so that an installation without mail still runs. The sender
 // is traced.
 func newMailer(cfg config.Config, log *slog.Logger, tp trace.TracerProvider) (*mail.Composer, mail.Sender, error) {
-	composer, err := mail.NewComposer(mail.Config{DefaultFrom: cfg.MailFrom, AppURL: cfg.AppURL})
+	composer, err := mail.NewComposer(mail.Config{
+		DefaultFrom: cfg.MailFrom, AppURL: cfg.AppURL,
+		// Without a blob store no PDF is rendered to attach or link.
+		DisablePDFs: cfg.DisablePDFGeneration || cfg.BlobBackend == "",
+	})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -83,6 +87,8 @@ type mailJobs struct {
 	tx       port.Transactor
 	composer *mail.Composer
 	sender   mail.Sender
+	// blobs holds the organization logos; nil shows none.
+	blobs port.BlobStore
 }
 
 // register adds the mail kind to reg: temporary SMTP failures are retried

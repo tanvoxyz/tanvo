@@ -51,3 +51,36 @@ func PayInAdvanceInterval(ctx context.Context, r port.Repos, f *invoice.Fee, c *
 	p, ok = d.ChargesPeriod()
 	return p, ok, nil
 }
+
+// PayInAdvanceProration returns the proration a document prints for a
+// charge fee of a prorated charge paid in advance on an invoiceable
+// charge: the days from the fee's event to the end of the charges period
+// holding the billing instant of is, out of that period's days (lago
+// Invoice#charge_pay_in_advance_proration_range, app/models/invoice.rb:387-408,
+// in current-usage mode). The event's instant is the fee's timestamp,
+// which a fee paid in advance takes from its event. ok is false for the
+// other fees and for a fee without an event, as lago returns {} when the
+// event is not found.
+func PayInAdvanceProration(ctx context.Context, r port.Repos, f *invoice.Fee, c *catalog.Charge, is *invoice.Subscription) (days, total int, ok bool, err error) {
+	if f.Type != core.FeeTypeCharge || c == nil || !c.Prorated || !c.Invoiceable || f.SubscriptionID.IsZero() ||
+		f.PayInAdvanceEventTransactionID == "" && f.PayInAdvanceEventID.IsZero() {
+		return 0, 0, false, nil
+	}
+	ts := f.Properties.Timestamp
+	if is != nil {
+		ts = is.Timestamp
+	}
+	env, err := LoadSubscriptionEnv(ctx, r, f.OrganizationID, f.SubscriptionID)
+	if err != nil {
+		return 0, 0, false, fmt.Errorf("proration of fee %s: %w", f.ID, err)
+	}
+	d, err := env.Dates(ts, period.CurrentUsage)
+	if err != nil {
+		return 0, 0, false, fmt.Errorf("proration of fee %s: %w", f.ID, err)
+	}
+	p, ok := d.ChargesPeriod()
+	if !ok {
+		return 0, 0, false, nil
+	}
+	return period.DaysBetween(f.Properties.Timestamp, p.To, env.Location()), d.ChargesDays(), true, nil
+}

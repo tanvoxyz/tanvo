@@ -58,7 +58,8 @@ type BlobStore interface {
 	Get(ctx context.Context, org core.OrganizationID, ref core.BlobRef) (io.ReadCloser, error)
 	// Delete removes a stored file; deleting a missing file succeeds.
 	Delete(ctx context.Context, org core.OrganizationID, ref core.BlobRef) error
-	// URL returns a time-limited download URL of a stored file.
+	// URL returns a download URL of a stored file: a time-limited URL, or
+	// a permanent link that redirects to one.
 	URL(ctx context.Context, org core.OrganizationID, ref core.BlobRef) (string, error)
 }
 

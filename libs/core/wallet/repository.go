@@ -13,6 +13,9 @@ type Filter struct {
 	CustomerID core.CustomerID
 	// Status keeps the wallets in one status.
 	Status Status
+	// Recent lists newest first, then by ID, the order of the API;
+	// otherwise the list is by ID, oldest first.
+	Recent bool
 }
 
 // Repository stores wallets.
@@ -54,6 +57,9 @@ type TransactionFilter struct {
 	TransactionStatus TransactionStatus
 	// Status keeps one settlement status.
 	Status SettlementStatus
+	// Recent lists newest first, then by ID, the order of the API;
+	// otherwise the list is by ID, oldest first.
+	Recent bool
 }
 
 // TransactionRepository stores wallet transactions and their consumption

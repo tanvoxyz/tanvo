@@ -108,6 +108,10 @@ message GetGrossRevenueRequest {
   // The customer (ID or `external_id:<external_id>`); every customer by
   // default.
   string customer_id = 2 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // Recomputes the customer's cached reports of this kind before
+  // answering; ignored without a customer, as organization-wide reports
+  // are only refreshed by the cache's expiry.
+  bool expire_cache = 3;
 }
 
 // GetGrossRevenueResponse is the response of AnalyticsService.GetGrossRevenue.
@@ -202,6 +206,10 @@ message GetOverdueBalanceRequest {
   // The customer (ID or `external_id:<external_id>`); every customer by
   // default.
   string customer_id = 3 [(buf.validate.field).string.(tanvo.common.v1.ref) = true];
+  // Recomputes the customer's cached reports of this kind before
+  // answering; ignored without a customer, as organization-wide reports
+  // are only refreshed by the cache's expiry.
+  bool expire_cache = 4;
 }
 
 // GetOverdueBalanceResponse is the response of AnalyticsService.GetOverdueBalance.

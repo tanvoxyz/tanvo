@@ -8,8 +8,8 @@
 // Package tanvo.event.v1 is the API of usage events: ingestion, retrieval and
 // fee estimates.
 
-import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_buf_validate_validate } from "../../../buf/validate/validate_pb.js";
 import { file_google_api_annotations } from "../../../google/api/annotations_pb.js";
 import { file_google_api_field_behavior } from "../../../google/api/field_behavior_pb.js";
@@ -25,7 +25,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file tanvo/event/v1/event.proto.
  */
 export const file_tanvo_event_v1_event: GenFile = /*@__PURE__*/
-  fileDesc("Chp0YW52by9ldmVudC92MS9ldmVudC5wcm90bxIOdGFudm8uZXZlbnQudjEi7wMKBUV2ZW50EhAKAmlkGAEgASgJQgTiQQEDEiYKDnRyYW5zYWN0aW9uX2lkGAIgASgJQg7iQQEIukgHcgXopMoGARIwChhleHRlcm5hbF9zdWJzY3JpcHRpb25faWQYAyABKAlCDuJBAQK6SAdyBeikygYBEhwKBGNvZGUYBCABKAlCDuJBAQK6SAdyBeikygYBEi0KCXRpbWVzdGFtcBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKwoKcHJvcGVydGllcxgGIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSKAoUcHJlY2lzZV90b3RhbF9hbW91bnQYByABKAlCCrpIB3IFyKTKBgESIAoSdGFyZ2V0X3dhbGxldF9jb2RlGAggASgJQgTiQQEDEhgKCnVzZXJfYWdlbnQYCiABKAlCBOJBAQMSGAoKaXBfYWRkcmVzcxgLIAEoCUIE4kEBAxI0CgpjcmVhdGVkX2F0GA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAzo86kE5Cg90YW52by54eXovRXZlbnQSF2V2ZW50cy97dHJhbnNhY3Rpb25faWR9KgZldmVudHMyBWV2ZW50SgQIDBANUgZlcnJvcnMi+wMKDUVucmljaGVkRXZlbnQSFgoOdHJhbnNhY3Rpb25faWQYASABKAkSDAoEY29kZRgCIAEoCRItCgl0aW1lc3RhbXAYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhcKD3N1YnNjcmlwdGlvbl9pZBgEIAEoCRIPCgdwbGFuX2lkGAUgASgJEhEKCWNoYXJnZV9pZBgGIAEoCRIYChBjaGFyZ2VfZmlsdGVyX2lkGAcgASgJEhoKEmJpbGxhYmxlX21ldHJpY19pZBgIIAEoCRJACgpncm91cGVkX2J5GAkgAygLMiwudGFudm8uZXZlbnQudjEuRW5yaWNoZWRFdmVudC5Hcm91cGVkQnlFbnRyeRINCgV2YWx1ZRgKIAEoCRIcChRwcmVjaXNlX3RvdGFsX2Ftb3VudBgLIAEoCRI0CglvcGVyYXRpb24YDCABKA4yIS50YW52by5ldmVudC52MS5FbnJpY2hlZE9wZXJhdGlvbhIvCgtlbnJpY2hlZF9hdBgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASGgoSdGFyZ2V0X3dhbGxldF9jb2RlGA4gASgJGjAKDkdyb3VwZWRCeUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEixgEKC0V2ZW50UmVzdWx0EhYKDnRyYW5zYWN0aW9uX2lkGAEgASgJEiQKBWV2ZW50GAIgASgLMhUudGFudm8uZXZlbnQudjEuRXZlbnQSEQoJZHVwbGljYXRlGAMgASgIEjcKBmVycm9ycxgEIAMoCzInLnRhbnZvLmV2ZW50LnYxLkV2ZW50UmVzdWx0LkVycm9yc0VudHJ5Gi0KC0Vycm9yc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEi9AIKDEVzdGltYXRlZEZlZRIRCgljaGFyZ2VfaWQYASABKAkSGAoQY2hhcmdlX2ZpbHRlcl9pZBgCIAEoCRIcChRiaWxsYWJsZV9tZXRyaWNfY29kZRgDIAEoCRIWCg50cmFuc2FjdGlvbl9pZBgEIAEoCRImCgZhbW91bnQYBSABKAsyFi50YW52by5jb21tb24udjEuTW9uZXkSLAoMdGF4ZXNfYW1vdW50GAYgASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5Eg0KBXVuaXRzGAcgASgJEhMKC3VuaXRfYW1vdW50GAggASgJEhQKDGV2ZW50c19jb3VudBgJIAEoAxI/Cgpncm91cGVkX2J5GAogAygLMisudGFudm8uZXZlbnQudjEuRXN0aW1hdGVkRmVlLkdyb3VwZWRCeUVudHJ5GjAKDkdyb3VwZWRCeUVudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAEihAIKEkluZ2VzdEV2ZW50UmVxdWVzdBIwCgVldmVudBgBIAEoCzIVLnRhbnZvLmV2ZW50LnYxLkV2ZW50QgriQQECukgDyAEBOrsBuki3ARq0AQoOZXZlbnQucmVxdWlyZWQSPnRyYW5zYWN0aW9uX2lkLCBleHRlcm5hbF9zdWJzY3JpcHRpb25faWQgYW5kIGNvZGUgYXJlIHJlcXVpcmVkGmJoYXModGhpcy5ldmVudC50cmFuc2FjdGlvbl9pZCkgJiYgaGFzKHRoaXMuZXZlbnQuZXh0ZXJuYWxfc3Vic2NyaXB0aW9uX2lkKSAmJiBoYXModGhpcy5ldmVudC5jb2RlKSJOChNJbmdlc3RFdmVudFJlc3BvbnNlEiQKBWV2ZW50GAEgASgLMhUudGFudm8uZXZlbnQudjEuRXZlbnQSEQoJZHVwbGljYXRlGAIgASgIIokCChNJbmdlc3RFdmVudHNSZXF1ZXN0EjUKBmV2ZW50cxgBIAMoCzIVLnRhbnZvLmV2ZW50LnYxLkV2ZW50Qg7iQQECukgHkgEECAEQZDq6AbpItgEaswEKD2V2ZW50cy5yZXF1aXJlZBJDZXZlcnkgZXZlbnQgbmVlZHMgdHJhbnNhY3Rpb25faWQsIGV4dGVybmFsX3N1YnNjcmlwdGlvbl9pZCBhbmQgY29kZRpbdGhpcy5ldmVudHMuYWxsKGUsIGhhcyhlLnRyYW5zYWN0aW9uX2lkKSAmJiBoYXMoZS5leHRlcm5hbF9zdWJzY3JpcHRpb25faWQpICYmIGhhcyhlLmNvZGUpKSJEChRJbmdlc3RFdmVudHNSZXNwb25zZRIsCgdyZXN1bHRzGAEgAygLMhsudGFudm8uZXZlbnQudjEuRXZlbnRSZXN1bHQiXgoPR2V0RXZlbnRSZXF1ZXN0EikKDnRyYW5zYWN0aW9uX2lkGAEgASgJQhHiQQECukgKyAEBcgXopMoGARIgChhleHRlcm5hbF9zdWJzY3JpcHRpb25faWQYAiABKAkiOAoQR2V0RXZlbnRSZXNwb25zZRIkCgVldmVudBgBIAEoCzIVLnRhbnZvLmV2ZW50LnYxLkV2ZW50Io0BChFMaXN0RXZlbnRzUmVxdWVzdBIdCglwYWdlX3NpemUYASABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgCIAEoCUIIukgFcgMYgAgSGAoGZmlsdGVyGAMgASgJQgi6SAVyAxiAEBIhChl0aW1lc3RhbXBfZnJvbV9zdGFydGVkX2F0GAQgASgIIlQKEkxpc3RFdmVudHNSZXNwb25zZRIlCgZldmVudHMYASADKAsyFS50YW52by5ldmVudC52MS5FdmVudBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkicgoZTGlzdEVucmljaGVkRXZlbnRzUmVxdWVzdBIdCglwYWdlX3NpemUYASABKAVCCrpIBxoFGOgHKAASHAoKcGFnZV90b2tlbhgCIAEoCUIIukgFcgMYgAgSGAoGZmlsdGVyGAMgASgJQgi6SAVyAxiAECJtChpMaXN0RW5yaWNoZWRFdmVudHNSZXNwb25zZRI2Cg9lbnJpY2hlZF9ldmVudHMYASADKAsyHS50YW52by5ldmVudC52MS5FbnJpY2hlZEV2ZW50EhcKD25leHRfcGFnZV90b2tlbhgCIAEoCSLTAQoTRXN0aW1hdGVGZWVzUmVxdWVzdBIwCgVldmVudBgBIAEoCzIVLnRhbnZvLmV2ZW50LnYxLkV2ZW50QgriQQECukgDyAEBOokBukiFARqCAQoOZXZlbnQucmVxdWlyZWQSLmV4dGVybmFsX3N1YnNjcmlwdGlvbl9pZCBhbmQgY29kZSBhcmUgcmVxdWlyZWQaQGhhcyh0aGlzLmV2ZW50LmV4dGVybmFsX3N1YnNjcmlwdGlvbl9pZCkgJiYgaGFzKHRoaXMuZXZlbnQuY29kZSkiQgoURXN0aW1hdGVGZWVzUmVzcG9uc2USKgoEZmVlcxgBIAMoCzIcLnRhbnZvLmV2ZW50LnYxLkVzdGltYXRlZEZlZSLnAQoaRXN0aW1hdGVJbnN0YW50RmVlc1JlcXVlc3QSNQoGZXZlbnRzGAEgAygLMhUudGFudm8uZXZlbnQudjEuRXZlbnRCDuJBAQK6SAeSAQQIARBkOpEBukiNARqKAQoPZXZlbnRzLnJlcXVpcmVkEjNldmVyeSBldmVudCBuZWVkcyBleHRlcm5hbF9zdWJzY3JpcHRpb25faWQgYW5kIGNvZGUaQnRoaXMuZXZlbnRzLmFsbChlLCBoYXMoZS5leHRlcm5hbF9zdWJzY3JpcHRpb25faWQpICYmIGhhcyhlLmNvZGUpKSJJChtFc3RpbWF0ZUluc3RhbnRGZWVzUmVzcG9uc2USKgoEZmVlcxgBIAMoCzIcLnRhbnZvLmV2ZW50LnYxLkVzdGltYXRlZEZlZSpyChFFbnJpY2hlZE9wZXJhdGlvbhIiCh5FTlJJQ0hFRF9PUEVSQVRJT05fVU5TUEVDSUZJRUQQABIaChZFTlJJQ0hFRF9PUEVSQVRJT05fQUREEAESHQoZRU5SSUNIRURfT1BFUkFUSU9OX1JFTU9WRRACMr8ICgxFdmVudFNlcnZpY2USjgEKC0luZ2VzdEV2ZW50EiIudGFudm8uZXZlbnQudjEuSW5nZXN0RXZlbnRSZXF1ZXN0GiMudGFudm8uZXZlbnQudjEuSW5nZXN0RXZlbnRSZXNwb25zZSI2kAICyvMYFgoNZXZlbnRzOmNyZWF0ZSoFZXZlbnSC0+STAhM6BWV2ZW50IgovdjEvZXZlbnRzEpMBCgxJbmdlc3RFdmVudHMSIy50YW52by5ldmVudC52MS5Jbmdlc3RFdmVudHNSZXF1ZXN0GiQudGFudm8uZXZlbnQudjEuSW5nZXN0RXZlbnRzUmVzcG9uc2UiOJACAsrzGBYKDWV2ZW50czpjcmVhdGUqBWV2ZW50gtPkkwIVOgEqIhAvdjEvZXZlbnRzOmJhdGNoEo0BCghHZXRFdmVudBIfLnRhbnZvLmV2ZW50LnYxLkdldEV2ZW50UmVxdWVzdBogLnRhbnZvLmV2ZW50LnYxLkdldEV2ZW50UmVzcG9uc2UiPpACAcrzGBQKC2V2ZW50czpyZWFkKgVldmVudILT5JMCHRIbL3YxL2V2ZW50cy97dHJhbnNhY3Rpb25faWR9EoIBCgpMaXN0RXZlbnRzEiEudGFudm8uZXZlbnQudjEuTGlzdEV2ZW50c1JlcXVlc3QaIi50YW52by5ldmVudC52MS5MaXN0RXZlbnRzUmVzcG9uc2UiLZACAcrzGBQKC2V2ZW50czpyZWFkKgVldmVudILT5JMCDBIKL3YxL2V2ZW50cxKjAQoSTGlzdEVucmljaGVkRXZlbnRzEikudGFudm8uZXZlbnQudjEuTGlzdEVucmljaGVkRXZlbnRzUmVxdWVzdBoqLnRhbnZvLmV2ZW50LnYxLkxpc3RFbnJpY2hlZEV2ZW50c1Jlc3BvbnNlIjaQAgHK8xgUCgtldmVudHM6cmVhZCoFZXZlbnSC0+STAhUSEy92MS9lbnJpY2hlZF9ldmVudHMSlgEKDEVzdGltYXRlRmVlcxIjLnRhbnZvLmV2ZW50LnYxLkVzdGltYXRlRmVlc1JlcXVlc3QaJC50YW52by5ldmVudC52MS5Fc3RpbWF0ZUZlZXNSZXNwb25zZSI7yvMYFAoLZXZlbnRzOnJlYWQqBWV2ZW50gtPkkwIdOgEqIhgvdjEvZXZlbnRzOmVzdGltYXRlX2ZlZXMSswEKE0VzdGltYXRlSW5zdGFudEZlZXMSKi50YW52by5ldmVudC52MS5Fc3RpbWF0ZUluc3RhbnRGZWVzUmVxdWVzdBorLnRhbnZvLmV2ZW50LnYxLkVzdGltYXRlSW5zdGFudEZlZXNSZXNwb25zZSJDyvMYFAoLZXZlbnRzOnJlYWQqBWV2ZW50gtPkkwIlOgEqIiAvdjEvZXZlbnRzOmVzdGltYXRlX2luc3RhbnRfZmVlc0K+AQoSY29tLnRhbnZvLmV2ZW50LnYxQgpFdmVudFByb3RvUAFaQmdpdGh1Yi5jb20vdGFudm94eXovdGFudm8vbGlicy9wcm90by9nZW4vZ28vdGFudm8vZXZlbnQvdjE7ZXZlbnR2MaICA1RFWKoCDlRhbnZvLkV2ZW50LlYxygIOVGFudm9cRXZlbnRcVjHiAhpUYW52b1xFdmVudFxWMVxHUEJNZXRhZGF0YeoCEFRhbnZvOjpFdmVudDo6VjFiCGVkaXRpb25zcOgH", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_struct, file_google_protobuf_timestamp, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
+  fileDesc("Chp0YW52by9ldmVudC92MS9ldmVudC5wcm90bxIOdGFudm8uZXZlbnQudjEi7wMKBUV2ZW50EhAKAmlkGAEgASgJQgTiQQEDEiYKDnRyYW5zYWN0aW9uX2lkGAIgASgJQg7iQQEIukgHcgXopMoGARIwChhleHRlcm5hbF9zdWJzY3JpcHRpb25faWQYAyABKAlCDuJBAQK6SAdyBeikygYBEhwKBGNvZGUYBCABKAlCDuJBAQK6SAdyBeikygYBEi0KCXRpbWVzdGFtcBgFIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASKwoKcHJvcGVydGllcxgGIAEoCzIXLmdvb2dsZS5wcm90b2J1Zi5TdHJ1Y3QSKAoUcHJlY2lzZV90b3RhbF9hbW91bnQYByABKAlCCrpIB3IFyKTKBgESIAoSdGFyZ2V0X3dhbGxldF9jb2RlGAggASgJQgTiQQEDEhgKCnVzZXJfYWdlbnQYCiABKAlCBOJBAQMSGAoKaXBfYWRkcmVzcxgLIAEoCUIE4kEBAxI0CgpjcmVhdGVkX2F0GA0gASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcEIE4kEBAzo86kE5Cg90YW52by54eXovRXZlbnQSF2V2ZW50cy97dHJhbnNhY3Rpb25faWR9KgZldmVudHMyBWV2ZW50SgQIDBANUgZlcnJvcnMi+QMKDUVucmljaGVkRXZlbnQSFgoOdHJhbnNhY3Rpb25faWQYASABKAkSIAoYZXh0ZXJuYWxfc3Vic2NyaXB0aW9uX2lkGA8gASgJEgwKBGNvZGUYAiABKAkSLQoJdGltZXN0YW1wGAMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIvCgtlbnJpY2hlZF9hdBgNIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASDQoFdmFsdWUYCiABKAkSFQoNZGVjaW1hbF92YWx1ZRgQIAEoCRIcChRwcmVjaXNlX3RvdGFsX2Ftb3VudBgLIAEoCRJBCgpwcm9wZXJ0aWVzGBEgAygLMi0udGFudm8uZXZlbnQudjEuRW5yaWNoZWRFdmVudC5Qcm9wZXJ0aWVzRW50cnkaMQoPUHJvcGVydGllc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFKBAgEEApKBAgMEA1KBAgOEA9SD3N1YnNjcmlwdGlvbl9pZFIHcGxhbl9pZFIJY2hhcmdlX2lkUhBjaGFyZ2VfZmlsdGVyX2lkUhJiaWxsYWJsZV9tZXRyaWNfaWRSCmdyb3VwZWRfYnlSCW9wZXJhdGlvblISdGFyZ2V0X3dhbGxldF9jb2RlIsYBCgtFdmVudFJlc3VsdBIWCg50cmFuc2FjdGlvbl9pZBgBIAEoCRIkCgVldmVudBgCIAEoCzIVLnRhbnZvLmV2ZW50LnYxLkV2ZW50EhEKCWR1cGxpY2F0ZRgDIAEoCBI3CgZlcnJvcnMYBCADKAsyJy50YW52by5ldmVudC52MS5FdmVudFJlc3VsdC5FcnJvcnNFbnRyeRotCgtFcnJvcnNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIvQCCgxFc3RpbWF0ZWRGZWUSEQoJY2hhcmdlX2lkGAEgASgJEhgKEGNoYXJnZV9maWx0ZXJfaWQYAiABKAkSHAoUYmlsbGFibGVfbWV0cmljX2NvZGUYAyABKAkSFgoOdHJhbnNhY3Rpb25faWQYBCABKAkSJgoGYW1vdW50GAUgASgLMhYudGFudm8uY29tbW9uLnYxLk1vbmV5EiwKDHRheGVzX2Ftb3VudBgGIAEoCzIWLnRhbnZvLmNvbW1vbi52MS5Nb25leRINCgV1bml0cxgHIAEoCRITCgt1bml0X2Ftb3VudBgIIAEoCRIUCgxldmVudHNfY291bnQYCSABKAMSPwoKZ3JvdXBlZF9ieRgKIAMoCzIrLnRhbnZvLmV2ZW50LnYxLkVzdGltYXRlZEZlZS5Hcm91cGVkQnlFbnRyeRowCg5Hcm91cGVkQnlFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBIoQCChJJbmdlc3RFdmVudFJlcXVlc3QSMAoFZXZlbnQYASABKAsyFS50YW52by5ldmVudC52MS5FdmVudEIK4kEBArpIA8gBATq7AbpItwEatAEKDmV2ZW50LnJlcXVpcmVkEj50cmFuc2FjdGlvbl9pZCwgZXh0ZXJuYWxfc3Vic2NyaXB0aW9uX2lkIGFuZCBjb2RlIGFyZSByZXF1aXJlZBpiaGFzKHRoaXMuZXZlbnQudHJhbnNhY3Rpb25faWQpICYmIGhhcyh0aGlzLmV2ZW50LmV4dGVybmFsX3N1YnNjcmlwdGlvbl9pZCkgJiYgaGFzKHRoaXMuZXZlbnQuY29kZSkiTgoTSW5nZXN0RXZlbnRSZXNwb25zZRIkCgVldmVudBgBIAEoCzIVLnRhbnZvLmV2ZW50LnYxLkV2ZW50EhEKCWR1cGxpY2F0ZRgCIAEoCCKJAgoTSW5nZXN0RXZlbnRzUmVxdWVzdBI1CgZldmVudHMYASADKAsyFS50YW52by5ldmVudC52MS5FdmVudEIO4kEBArpIB5IBBAgBEGQ6ugG6SLYBGrMBCg9ldmVudHMucmVxdWlyZWQSQ2V2ZXJ5IGV2ZW50IG5lZWRzIHRyYW5zYWN0aW9uX2lkLCBleHRlcm5hbF9zdWJzY3JpcHRpb25faWQgYW5kIGNvZGUaW3RoaXMuZXZlbnRzLmFsbChlLCBoYXMoZS50cmFuc2FjdGlvbl9pZCkgJiYgaGFzKGUuZXh0ZXJuYWxfc3Vic2NyaXB0aW9uX2lkKSAmJiBoYXMoZS5jb2RlKSkiRAoUSW5nZXN0RXZlbnRzUmVzcG9uc2USLAoHcmVzdWx0cxgBIAMoCzIbLnRhbnZvLmV2ZW50LnYxLkV2ZW50UmVzdWx0Il4KD0dldEV2ZW50UmVxdWVzdBIpCg50cmFuc2FjdGlvbl9pZBgBIAEoCUIR4kEBArpICsgBAXIF6KTKBgESIAoYZXh0ZXJuYWxfc3Vic2NyaXB0aW9uX2lkGAIgASgJIjgKEEdldEV2ZW50UmVzcG9uc2USJAoFZXZlbnQYASABKAsyFS50YW52by5ldmVudC52MS5FdmVudCKNAQoRTGlzdEV2ZW50c1JlcXVlc3QSHQoJcGFnZV9zaXplGAEgASgFQgq6SAcaBRjoBygAEhwKCnBhZ2VfdG9rZW4YAiABKAlCCLpIBXIDGIAIEhgKBmZpbHRlchgDIAEoCUIIukgFcgMYgBASIQoZdGltZXN0YW1wX2Zyb21fc3RhcnRlZF9hdBgEIAEoCCJUChJMaXN0RXZlbnRzUmVzcG9uc2USJQoGZXZlbnRzGAEgAygLMhUudGFudm8uZXZlbnQudjEuRXZlbnQSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJIpUBChlMaXN0RW5yaWNoZWRFdmVudHNSZXF1ZXN0Eh0KCXBhZ2Vfc2l6ZRgBIAEoBUIKukgHGgUY6AcoABIcCgpwYWdlX3Rva2VuGAIgASgJQgi6SAVyAxiACBIYCgZmaWx0ZXIYAyABKAlCCLpIBXIDGIAQEiEKGXRpbWVzdGFtcF9mcm9tX3N0YXJ0ZWRfYXQYBCABKAgibQoaTGlzdEVucmljaGVkRXZlbnRzUmVzcG9uc2USNgoPZW5yaWNoZWRfZXZlbnRzGAEgAygLMh0udGFudm8uZXZlbnQudjEuRW5yaWNoZWRFdmVudBIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAki0wEKE0VzdGltYXRlRmVlc1JlcXVlc3QSMAoFZXZlbnQYASABKAsyFS50YW52by5ldmVudC52MS5FdmVudEIK4kEBArpIA8gBATqJAbpIhQEaggEKDmV2ZW50LnJlcXVpcmVkEi5leHRlcm5hbF9zdWJzY3JpcHRpb25faWQgYW5kIGNvZGUgYXJlIHJlcXVpcmVkGkBoYXModGhpcy5ldmVudC5leHRlcm5hbF9zdWJzY3JpcHRpb25faWQpICYmIGhhcyh0aGlzLmV2ZW50LmNvZGUpIkIKFEVzdGltYXRlRmVlc1Jlc3BvbnNlEioKBGZlZXMYASADKAsyHC50YW52by5ldmVudC52MS5Fc3RpbWF0ZWRGZWUi5wEKGkVzdGltYXRlSW5zdGFudEZlZXNSZXF1ZXN0EjUKBmV2ZW50cxgBIAMoCzIVLnRhbnZvLmV2ZW50LnYxLkV2ZW50Qg7iQQECukgHkgEECAEQZDqRAbpIjQEaigEKD2V2ZW50cy5yZXF1aXJlZBIzZXZlcnkgZXZlbnQgbmVlZHMgZXh0ZXJuYWxfc3Vic2NyaXB0aW9uX2lkIGFuZCBjb2RlGkJ0aGlzLmV2ZW50cy5hbGwoZSwgaGFzKGUuZXh0ZXJuYWxfc3Vic2NyaXB0aW9uX2lkKSAmJiBoYXMoZS5jb2RlKSkiSQobRXN0aW1hdGVJbnN0YW50RmVlc1Jlc3BvbnNlEioKBGZlZXMYASADKAsyHC50YW52by5ldmVudC52MS5Fc3RpbWF0ZWRGZWUyvwgKDEV2ZW50U2VydmljZRKOAQoLSW5nZXN0RXZlbnQSIi50YW52by5ldmVudC52MS5Jbmdlc3RFdmVudFJlcXVlc3QaIy50YW52by5ldmVudC52MS5Jbmdlc3RFdmVudFJlc3BvbnNlIjaQAgLK8xgWCg1ldmVudHM6Y3JlYXRlKgVldmVudILT5JMCEzoFZXZlbnQiCi92MS9ldmVudHMSkwEKDEluZ2VzdEV2ZW50cxIjLnRhbnZvLmV2ZW50LnYxLkluZ2VzdEV2ZW50c1JlcXVlc3QaJC50YW52by5ldmVudC52MS5Jbmdlc3RFdmVudHNSZXNwb25zZSI4kAICyvMYFgoNZXZlbnRzOmNyZWF0ZSoFZXZlbnSC0+STAhU6ASoiEC92MS9ldmVudHM6YmF0Y2gSjQEKCEdldEV2ZW50Eh8udGFudm8uZXZlbnQudjEuR2V0RXZlbnRSZXF1ZXN0GiAudGFudm8uZXZlbnQudjEuR2V0RXZlbnRSZXNwb25zZSI+kAIByvMYFAoLZXZlbnRzOnJlYWQqBWV2ZW50gtPkkwIdEhsvdjEvZXZlbnRzL3t0cmFuc2FjdGlvbl9pZH0SggEKCkxpc3RFdmVudHMSIS50YW52by5ldmVudC52MS5MaXN0RXZlbnRzUmVxdWVzdBoiLnRhbnZvLmV2ZW50LnYxLkxpc3RFdmVudHNSZXNwb25zZSItkAIByvMYFAoLZXZlbnRzOnJlYWQqBWV2ZW50gtPkkwIMEgovdjEvZXZlbnRzEqMBChJMaXN0RW5yaWNoZWRFdmVudHMSKS50YW52by5ldmVudC52MS5MaXN0RW5yaWNoZWRFdmVudHNSZXF1ZXN0GioudGFudm8uZXZlbnQudjEuTGlzdEVucmljaGVkRXZlbnRzUmVzcG9uc2UiNpACAcrzGBQKC2V2ZW50czpyZWFkKgVldmVudILT5JMCFRITL3YxL2VucmljaGVkX2V2ZW50cxKWAQoMRXN0aW1hdGVGZWVzEiMudGFudm8uZXZlbnQudjEuRXN0aW1hdGVGZWVzUmVxdWVzdBokLnRhbnZvLmV2ZW50LnYxLkVzdGltYXRlRmVlc1Jlc3BvbnNlIjvK8xgUCgtldmVudHM6cmVhZCoFZXZlbnSC0+STAh06ASoiGC92MS9ldmVudHM6ZXN0aW1hdGVfZmVlcxKzAQoTRXN0aW1hdGVJbnN0YW50RmVlcxIqLnRhbnZvLmV2ZW50LnYxLkVzdGltYXRlSW5zdGFudEZlZXNSZXF1ZXN0GisudGFudm8uZXZlbnQudjEuRXN0aW1hdGVJbnN0YW50RmVlc1Jlc3BvbnNlIkPK8xgUCgtldmVudHM6cmVhZCoFZXZlbnSC0+STAiU6ASoiIC92MS9ldmVudHM6ZXN0aW1hdGVfaW5zdGFudF9mZWVzQr4BChJjb20udGFudm8uZXZlbnQudjFCCkV2ZW50UHJvdG9QAVpCZ2l0aHViLmNvbS90YW52b3h5ei90YW52by9saWJzL3Byb3RvL2dlbi9nby90YW52by9ldmVudC92MTtldmVudHYxogIDVEVYqgIOVGFudm8uRXZlbnQuVjHKAg5UYW52b1xFdmVudFxWMeICGlRhbnZvXEV2ZW50XFYxXEdQQk1ldGFkYXRh6gIQVGFudm86OkV2ZW50OjpWMWIIZWRpdGlvbnNw6Ac", [file_buf_validate_validate, file_google_api_annotations, file_google_api_field_behavior, file_google_api_resource, file_google_protobuf_struct, file_google_protobuf_timestamp, file_tanvo_common_v1_options, file_tanvo_common_v1_types]);
 
 /**
  * Event is a usage event.
@@ -122,7 +122,7 @@ export const EventSchema: GenMessage<Event> = /*@__PURE__*/
   messageDesc(file_tanvo_event_v1_event, 0);
 
 /**
- * EnrichedEvent is an event resolved to a charge.
+ * EnrichedEvent is a stored event with the value enrichment gave it.
  *
  * @generated from message tanvo.event.v1.EnrichedEvent
  */
@@ -133,6 +133,13 @@ export type EnrichedEvent = Message<"tanvo.event.v1.EnrichedEvent"> & {
    * @generated from field: string transaction_id = 1;
    */
   transactionId: string;
+
+  /**
+   * The external ID of the event's subscription.
+   *
+   * @generated from field: string external_subscription_id = 15;
+   */
+  externalSubscriptionId: string;
 
   /**
    * The event's code.
@@ -149,53 +156,27 @@ export type EnrichedEvent = Message<"tanvo.event.v1.EnrichedEvent"> & {
   timestamp?: Timestamp | undefined;
 
   /**
-   * The subscription.
+   * When the event was enriched.
    *
-   * @generated from field: string subscription_id = 4;
+   * @generated from field: google.protobuf.Timestamp enriched_at = 13;
    */
-  subscriptionId: string;
+  enrichedAt?: Timestamp | undefined;
 
   /**
-   * The plan.
-   *
-   * @generated from field: string plan_id = 5;
-   */
-  planId: string;
-
-  /**
-   * The charge.
-   *
-   * @generated from field: string charge_id = 6;
-   */
-  chargeId: string;
-
-  /**
-   * The charge filter, when one matched.
-   *
-   * @generated from field: string charge_filter_id = 7;
-   */
-  chargeFilterId: string;
-
-  /**
-   * The billable metric.
-   *
-   * @generated from field: string billable_metric_id = 8;
-   */
-  billableMetricId: string;
-
-  /**
-   * The grouping values of the charge.
-   *
-   * @generated from field: map<string, string> grouped_by = 9;
-   */
-  groupedBy: { [key: string]: string };
-
-  /**
-   * The aggregated value, after the metric's expression and rounding.
+   * The value the event brings to its metric: "1" for count metrics, the
+   * metric's field_name property otherwise ("0" when it is missing); unset
+   * when no metric has the code.
    *
    * @generated from field: string value = 10;
    */
   value: string;
+
+  /**
+   * The value as a decimal, 0 when it is not a number; unset with no value.
+   *
+   * @generated from field: string decimal_value = 16;
+   */
+  decimalValue: string;
 
   /**
    * The decimal value of the dynamic charge amount.
@@ -205,26 +186,12 @@ export type EnrichedEvent = Message<"tanvo.event.v1.EnrichedEvent"> & {
   preciseTotalAmount: string;
 
   /**
-   * The operation on recurring aggregations.
+   * The event properties, with the expression's result under the metric's
+   * field name.
    *
-   * @generated from field: tanvo.event.v1.EnrichedOperation operation = 12;
+   * @generated from field: map<string, string> properties = 17;
    */
-  operation: EnrichedOperation;
-
-  /**
-   * When the event was enriched.
-   *
-   * @generated from field: google.protobuf.Timestamp enriched_at = 13;
-   */
-  enrichedAt?: Timestamp | undefined;
-
-  /**
-   * The code of the wallet that pays the event's usage, when the charge
-   * accepts a target wallet and the event names one.
-   *
-   * @generated from field: string target_wallet_code = 14;
-   */
-  targetWalletCode: string;
+  properties: { [key: string]: string };
 };
 
 /**
@@ -595,12 +562,21 @@ export type ListEnrichedEventsRequest = Message<"tanvo.event.v1.ListEnrichedEven
   pageToken: string;
 
   /**
-   * An AIP-160 filter over `code`, `subscription_id`, `charge_id`,
-   * `charge_filter_id`, `transaction_id` and `timestamp`.
+   * An AIP-160 filter over `code`, `external_subscription_id` and
+   * `timestamp`.
    *
    * @generated from field: string filter = 3;
    */
   filter: string;
+
+  /**
+   * Lists the events from the start of the latest subscription with the
+   * filter's `external_subscription_id`, in place of a lower `timestamp`
+   * bound; without that subscription, the filter applies as is.
+   *
+   * @generated from field: bool timestamp_from_started_at = 4;
+   */
+  timestampFromStartedAt: boolean;
 };
 
 /**
@@ -723,40 +699,6 @@ export const EstimateInstantFeesResponseSchema: GenMessage<EstimateInstantFeesRe
   messageDesc(file_tanvo_event_v1_event, 17);
 
 /**
- * EnrichedOperation is how an enriched event changes a recurring aggregation.
- *
- * @generated from enum tanvo.event.v1.EnrichedOperation
- */
-export enum EnrichedOperation {
-  /**
-   * Not set.
-   *
-   * @generated from enum value: ENRICHED_OPERATION_UNSPECIFIED = 0;
-   */
-  UNSPECIFIED = 0,
-
-  /**
-   * Adds the value.
-   *
-   * @generated from enum value: ENRICHED_OPERATION_ADD = 1;
-   */
-  ADD = 1,
-
-  /**
-   * Removes the value.
-   *
-   * @generated from enum value: ENRICHED_OPERATION_REMOVE = 2;
-   */
-  REMOVE = 2,
-}
-
-/**
- * Describes the enum tanvo.event.v1.EnrichedOperation.
- */
-export const EnrichedOperationSchema: GenEnum<EnrichedOperation> = /*@__PURE__*/
-  enumDesc(file_tanvo_event_v1_event, 0);
-
-/**
  * EventService ingests and reads usage events. Events are deduplicated per
  * organization and subscription by (external_subscription_id,
  * transaction_id): one transaction ID under two subscriptions is two events.
@@ -807,8 +749,11 @@ export const EventService: GenService<{
     output: typeof ListEventsResponseSchema;
   },
   /**
-   * Lists enriched events: events resolved to their subscription, charge
-   * and filter, with the computed value.
+   * Lists enriched events, latest enriched first: the stored events with
+   * the value enrichment gave them. Beta (response header
+   * `X-Tanvo-Endpoint-Status: beta`); only organizations ingesting through
+   * Kafka store enriched events, others get PermissionDenied with reason
+   * `endpoint_not_available`.
    *
    * @generated from rpc tanvo.event.v1.EventService.ListEnrichedEvents
    */

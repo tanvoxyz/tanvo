@@ -154,6 +154,7 @@ type Repository interface {
 	// gen survives that refresh.
 	ClearWalletRefresh(ctx context.Context, org core.OrganizationID, id core.CustomerID, gen int64) error
 	// ListAwaitingWalletRefresh returns the IDs of the non-deleted flagged
-	// customers that have an active wallet, in ID order.
+	// customers that have an active wallet and no tax_error detail
+	// (lago Customer.without_tax_errors), in ID order.
 	ListAwaitingWalletRefresh(ctx context.Context, org core.OrganizationID, page core.PageRequest) (core.Page[core.CustomerID], error)
 }

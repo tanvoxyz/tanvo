@@ -33,6 +33,7 @@
 // # Throttling
 //
 // Calls are throttled per tenant at Xero's limit of 60 per minute, as a
-// bucket of 60 refilled at one per second; a 429 answer is a request
-// limit with Xero's Retry-After delay.
+// bucket of 60 refilled at one per second, and at 5000 per UTC day: a
+// call over the day's quota is a request limit retried the next day. A 429
+// answer is a request limit with Xero's Retry-After delay.
 package xero

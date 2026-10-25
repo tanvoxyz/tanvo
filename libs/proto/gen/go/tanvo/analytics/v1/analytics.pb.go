@@ -346,6 +346,7 @@ type GetGrossRevenueRequest struct {
 	state                  protoimpl.MessageState `protogen:"opaque.v1"`
 	xxx_hidden_Scope       *AnalyticsScope        `protobuf:"bytes,1,opt,name=scope"`
 	xxx_hidden_CustomerId  *string                `protobuf:"bytes,2,opt,name=customer_id,json=customerId"`
+	xxx_hidden_ExpireCache bool                   `protobuf:"varint,3,opt,name=expire_cache,json=expireCache"`
 	XXX_raceDetectHookData protoimpl.RaceDetectHookData
 	XXX_presence           [1]uint32
 	unknownFields          protoimpl.UnknownFields
@@ -394,13 +395,25 @@ func (x *GetGrossRevenueRequest) GetCustomerId() string {
 	return ""
 }
 
+func (x *GetGrossRevenueRequest) GetExpireCache() bool {
+	if x != nil {
+		return x.xxx_hidden_ExpireCache
+	}
+	return false
+}
+
 func (x *GetGrossRevenueRequest) SetScope(v *AnalyticsScope) {
 	x.xxx_hidden_Scope = v
 }
 
 func (x *GetGrossRevenueRequest) SetCustomerId(v string) {
 	x.xxx_hidden_CustomerId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+}
+
+func (x *GetGrossRevenueRequest) SetExpireCache(v bool) {
+	x.xxx_hidden_ExpireCache = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
 }
 
 func (x *GetGrossRevenueRequest) HasScope() bool {
@@ -417,6 +430,13 @@ func (x *GetGrossRevenueRequest) HasCustomerId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
 }
 
+func (x *GetGrossRevenueRequest) HasExpireCache() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
+}
+
 func (x *GetGrossRevenueRequest) ClearScope() {
 	x.xxx_hidden_Scope = nil
 }
@@ -424,6 +444,11 @@ func (x *GetGrossRevenueRequest) ClearScope() {
 func (x *GetGrossRevenueRequest) ClearCustomerId() {
 	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
 	x.xxx_hidden_CustomerId = nil
+}
+
+func (x *GetGrossRevenueRequest) ClearExpireCache() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 2)
+	x.xxx_hidden_ExpireCache = false
 }
 
 type GetGrossRevenueRequest_builder struct {
@@ -434,6 +459,10 @@ type GetGrossRevenueRequest_builder struct {
 	// The customer (ID or `external_id:<external_id>`); every customer by
 	// default.
 	CustomerId *string
+	// Recomputes the customer's cached reports of this kind before
+	// answering; ignored without a customer, as organization-wide reports
+	// are only refreshed by the cache's expiry.
+	ExpireCache *bool
 }
 
 func (b0 GetGrossRevenueRequest_builder) Build() *GetGrossRevenueRequest {
@@ -442,8 +471,12 @@ func (b0 GetGrossRevenueRequest_builder) Build() *GetGrossRevenueRequest {
 	_, _ = b, x
 	x.xxx_hidden_Scope = b.Scope
 	if b.CustomerId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
 		x.xxx_hidden_CustomerId = b.CustomerId
+	}
+	if b.ExpireCache != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		x.xxx_hidden_ExpireCache = *b.ExpireCache
 	}
 	return m0
 }
@@ -1386,6 +1419,7 @@ type GetOverdueBalanceRequest struct {
 	xxx_hidden_Scope              *AnalyticsScope        `protobuf:"bytes,1,opt,name=scope"`
 	xxx_hidden_IsCustomerTinEmpty bool                   `protobuf:"varint,2,opt,name=is_customer_tin_empty,json=isCustomerTinEmpty"`
 	xxx_hidden_CustomerId         *string                `protobuf:"bytes,3,opt,name=customer_id,json=customerId"`
+	xxx_hidden_ExpireCache        bool                   `protobuf:"varint,4,opt,name=expire_cache,json=expireCache"`
 	XXX_raceDetectHookData        protoimpl.RaceDetectHookData
 	XXX_presence                  [1]uint32
 	unknownFields                 protoimpl.UnknownFields
@@ -1441,18 +1475,30 @@ func (x *GetOverdueBalanceRequest) GetCustomerId() string {
 	return ""
 }
 
+func (x *GetOverdueBalanceRequest) GetExpireCache() bool {
+	if x != nil {
+		return x.xxx_hidden_ExpireCache
+	}
+	return false
+}
+
 func (x *GetOverdueBalanceRequest) SetScope(v *AnalyticsScope) {
 	x.xxx_hidden_Scope = v
 }
 
 func (x *GetOverdueBalanceRequest) SetIsCustomerTinEmpty(v bool) {
 	x.xxx_hidden_IsCustomerTinEmpty = v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 4)
 }
 
 func (x *GetOverdueBalanceRequest) SetCustomerId(v string) {
 	x.xxx_hidden_CustomerId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 3)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 4)
+}
+
+func (x *GetOverdueBalanceRequest) SetExpireCache(v bool) {
+	x.xxx_hidden_ExpireCache = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 4)
 }
 
 func (x *GetOverdueBalanceRequest) HasScope() bool {
@@ -1476,6 +1522,13 @@ func (x *GetOverdueBalanceRequest) HasCustomerId() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 2)
 }
 
+func (x *GetOverdueBalanceRequest) HasExpireCache() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 3)
+}
+
 func (x *GetOverdueBalanceRequest) ClearScope() {
 	x.xxx_hidden_Scope = nil
 }
@@ -1490,6 +1543,11 @@ func (x *GetOverdueBalanceRequest) ClearCustomerId() {
 	x.xxx_hidden_CustomerId = nil
 }
 
+func (x *GetOverdueBalanceRequest) ClearExpireCache() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 3)
+	x.xxx_hidden_ExpireCache = false
+}
+
 type GetOverdueBalanceRequest_builder struct {
 	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
 
@@ -1501,6 +1559,10 @@ type GetOverdueBalanceRequest_builder struct {
 	// The customer (ID or `external_id:<external_id>`); every customer by
 	// default.
 	CustomerId *string
+	// Recomputes the customer's cached reports of this kind before
+	// answering; ignored without a customer, as organization-wide reports
+	// are only refreshed by the cache's expiry.
+	ExpireCache *bool
 }
 
 func (b0 GetOverdueBalanceRequest_builder) Build() *GetOverdueBalanceRequest {
@@ -1509,12 +1571,16 @@ func (b0 GetOverdueBalanceRequest_builder) Build() *GetOverdueBalanceRequest {
 	_, _ = b, x
 	x.xxx_hidden_Scope = b.Scope
 	if b.IsCustomerTinEmpty != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 4)
 		x.xxx_hidden_IsCustomerTinEmpty = *b.IsCustomerTinEmpty
 	}
 	if b.CustomerId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 3)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 4)
 		x.xxx_hidden_CustomerId = b.CustomerId
+	}
+	if b.ExpireCache != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 4)
+		x.xxx_hidden_ExpireCache = *b.ExpireCache
 	}
 	return m0
 }
@@ -1595,12 +1661,13 @@ const file_tanvo_analytics_v1_analytics_proto_rawDesc = "" +
 	"\x05month\x18\x01 \x01(\v2\x11.google.type.DateR\x05month\x12.\n" +
 	"\x06amount\x18\x02 \x01(\v2\x16.tanvo.common.v1.MoneyR\x06amount\x12%\n" +
 	"\x0einvoices_count\x18\x03 \x01(\x03R\rinvoicesCount\x12*\n" +
-	"\x11billing_entity_id\x18\x04 \x01(\tR\x0fbillingEntityId\"\x7f\n" +
+	"\x11billing_entity_id\x18\x04 \x01(\tR\x0fbillingEntityId\"\xa2\x01\n" +
 	"\x16GetGrossRevenueRequest\x128\n" +
 	"\x05scope\x18\x01 \x01(\v2\".tanvo.analytics.v1.AnalyticsScopeR\x05scope\x12+\n" +
 	"\vcustomer_id\x18\x02 \x01(\tB\n" +
 	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\n" +
-	"customerId\"S\n" +
+	"customerId\x12!\n" +
+	"\fexpire_cache\x18\x03 \x01(\bR\vexpireCache\"S\n" +
 	"\x17GetGrossRevenueResponse\x128\n" +
 	"\x06points\x18\x01 \x03(\v2 .tanvo.analytics.v1.RevenuePointR\x06points\"I\n" +
 	"\rGetMrrRequest\x128\n" +
@@ -1631,13 +1698,14 @@ const file_tanvo_analytics_v1_analytics_proto_rawDesc = "" +
 	"\x06amount\x18\x02 \x01(\v2\x16.tanvo.common.v1.MoneyR\x06amount\x12\x1f\n" +
 	"\vinvoice_ids\x18\x03 \x03(\tR\n" +
 	"invoiceIds\x12*\n" +
-	"\x11billing_entity_id\x18\x04 \x01(\tR\x0fbillingEntityId\"\xb4\x01\n" +
+	"\x11billing_entity_id\x18\x04 \x01(\tR\x0fbillingEntityId\"\xd7\x01\n" +
 	"\x18GetOverdueBalanceRequest\x128\n" +
 	"\x05scope\x18\x01 \x01(\v2\".tanvo.analytics.v1.AnalyticsScopeR\x05scope\x121\n" +
 	"\x15is_customer_tin_empty\x18\x02 \x01(\bR\x12isCustomerTinEmpty\x12+\n" +
 	"\vcustomer_id\x18\x03 \x01(\tB\n" +
 	"\xbaH\ar\x05\xe0\xa4\xca\x06\x01R\n" +
-	"customerId\"\\\n" +
+	"customerId\x12!\n" +
+	"\fexpire_cache\x18\x04 \x01(\bR\vexpireCache\"\\\n" +
 	"\x19GetOverdueBalanceResponse\x12?\n" +
 	"\x06points\x18\x01 \x03(\v2'.tanvo.analytics.v1.OverdueBalancePointR\x06points2\x8c\a\n" +
 	"\x10AnalyticsService\x12\xb0\x01\n" +

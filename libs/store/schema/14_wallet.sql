@@ -33,6 +33,12 @@ CREATE TABLE wallets (
   last_balance_sync_at timestamptz,
   last_consumed_credit_at timestamptz,
   depleted_ongoing_balance boolean NOT NULL DEFAULT false,
+  metadata jsonb NOT NULL DEFAULT '[]',
+  -- The invoice custom sections the credit invoices print (lago
+  -- invoice_custom_section); sections are soft-deleted, never removed, so
+  -- the IDs have no foreign key and deleted ones are ignored.
+  skip_invoice_custom_sections boolean NOT NULL DEFAULT false,
+  invoice_custom_section_ids uuid[] NOT NULL DEFAULT '{}',
   terminated_at timestamptz,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
@@ -42,6 +48,7 @@ CREATE TABLE wallets (
   CONSTRAINT wallets_billing_entity_fkey FOREIGN KEY (organization_id, billing_entity_id) REFERENCES billing_entities (organization_id, id),
   CONSTRAINT wallets_status_check CHECK (status IN ('active', 'terminated')),
   CONSTRAINT wallets_rate_amount_check CHECK (rate_amount > 0),
+  CONSTRAINT wallets_metadata_check CHECK (jsonb_typeof(metadata) = 'array'),
   CONSTRAINT wallets_priority_check CHECK (priority BETWEEN 1 AND 50),
   CONSTRAINT wallets_paid_top_up_min_amount_check CHECK (paid_top_up_min_amount > 0),
   CONSTRAINT wallets_paid_top_up_max_amount_check CHECK (paid_top_up_max_amount > 0),
@@ -103,6 +110,11 @@ CREATE TABLE recurring_transaction_rules (
   payment_method_type text,
   -- References payment_methods; the foreign key is added in 90_fk_wallet.sql.
   payment_method_id uuid,
+  -- The invoice custom sections the top-up transactions take (lago
+  -- invoice_custom_section); sections are soft-deleted, never removed, so
+  -- the IDs have no foreign key and deleted ones are ignored.
+  skip_invoice_custom_sections boolean NOT NULL DEFAULT false,
+  invoice_custom_section_ids uuid[] NOT NULL DEFAULT '{}',
   terminated_at timestamptz,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
@@ -152,6 +164,17 @@ CREATE TABLE wallet_transactions (
   payment_method_id uuid,
   invoice_requires_successful_payment boolean NOT NULL DEFAULT false,
   purchase_order_number text,
+  -- The voided invoice whose credits a granted transaction gives back.
+  voided_invoice_id uuid,
+  -- The billing entity snapshotted at creation (lago billing_entity_id):
+  -- the wallet's, or a void's inbound transaction's; it issues the credit
+  -- invoice.
+  billing_entity_id uuid,
+  -- The invoice custom sections the credit invoice prints (lago
+  -- invoice_custom_section); sections are soft-deleted, never removed, so
+  -- the IDs have no foreign key and deleted ones are ignored.
+  skip_invoice_custom_sections boolean NOT NULL DEFAULT false,
+  invoice_custom_section_ids uuid[] NOT NULL DEFAULT '{}',
   settled_at timestamptz,
   failed_at timestamptz,
   created_at timestamptz NOT NULL,
@@ -161,6 +184,8 @@ CREATE TABLE wallet_transactions (
   CONSTRAINT wallet_transactions_wallet_fkey FOREIGN KEY (organization_id, wallet_id) REFERENCES wallets (organization_id, id),
   CONSTRAINT wallet_transactions_invoice_fkey FOREIGN KEY (organization_id, invoice_id) REFERENCES invoices (organization_id, id),
   CONSTRAINT wallet_transactions_credit_note_fkey FOREIGN KEY (organization_id, credit_note_id) REFERENCES credit_notes (organization_id, id),
+  CONSTRAINT wallet_transactions_voided_invoice_fkey FOREIGN KEY (organization_id, voided_invoice_id) REFERENCES invoices (organization_id, id),
+  CONSTRAINT wallet_transactions_billing_entity_fkey FOREIGN KEY (organization_id, billing_entity_id) REFERENCES billing_entities (organization_id, id),
   CONSTRAINT wallet_transactions_transaction_type_check CHECK (transaction_type IN ('inbound', 'outbound')),
   CONSTRAINT wallet_transactions_transaction_status_check CHECK (
     (transaction_type = 'inbound' AND transaction_status IN ('purchased', 'granted')) OR
@@ -177,6 +202,8 @@ CREATE TABLE wallet_transactions (
 
 CREATE INDEX wallet_transactions_wallet_idx ON wallet_transactions (organization_id, wallet_id);
 CREATE INDEX wallet_transactions_invoice_idx ON wallet_transactions (organization_id, invoice_id) WHERE invoice_id IS NOT NULL;
+CREATE INDEX wallet_transactions_voided_invoice_idx ON wallet_transactions (organization_id, voided_invoice_id) WHERE voided_invoice_id IS NOT NULL;
+CREATE INDEX wallet_transactions_billing_entity_idx ON wallet_transactions (organization_id, billing_entity_id) WHERE billing_entity_id IS NOT NULL;
 CREATE INDEX wallet_transactions_credit_note_idx ON wallet_transactions (organization_id, credit_note_id) WHERE credit_note_id IS NOT NULL;
 CREATE INDEX wallet_transactions_payment_method_idx ON wallet_transactions (organization_id, payment_method_id) WHERE payment_method_id IS NOT NULL;
 -- The pending purchases of recurring rules (threshold rules wait for them).

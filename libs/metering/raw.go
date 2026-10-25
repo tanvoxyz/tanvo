@@ -3,6 +3,8 @@ package metering
 import (
 	"context"
 	"time"
+
+	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
 // RawFilter narrows [RawReader.RawEvents]; zero fields do not filter.
@@ -38,4 +40,31 @@ type RawReader interface {
 	// first, then by external subscription ID and transaction ID
 	// ascending, starting after the position when it is set.
 	RawEvents(ctx context.Context, f RawFilter, after *RawPosition, limit int) ([]Event, error)
+}
+
+// EnrichedEvent is a stored enriched event: the current copy of a
+// deduplication key, with the value enrichment gave it.
+type EnrichedEvent struct {
+	Event
+	// DecimalValue is Value as a decimal, zero when it is not a number; nil
+	// with no Value.
+	DecimalValue *money.Decimal
+	// EnrichedAt is when the event store wrote the copy.
+	EnrichedAt time.Time
+}
+
+// EnrichedPosition is the position of an event in the order of
+// [EnrichedReader.EnrichedEvents]: the last event of the previous page.
+type EnrichedPosition struct {
+	EnrichedAt     time.Time
+	SubscriptionID string
+	TransactionID  string
+}
+
+// EnrichedReader reads the stored enriched events.
+type EnrichedReader interface {
+	// EnrichedEvents returns up to limit events matching f, latest
+	// enriched first, then by external subscription ID and transaction ID
+	// ascending, starting after the position when it is set.
+	EnrichedEvents(ctx context.Context, f RawFilter, after *EnrichedPosition, limit int) ([]EnrichedEvent, error)
 }

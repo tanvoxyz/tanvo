@@ -6,8 +6,10 @@ import (
 	"slices"
 	"strings"
 
+	"connectrpc.com/connect/v2"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
+	"github.com/tanvoxyz/tanvo/libs/billing/payments"
 	"github.com/tanvoxyz/tanvo/libs/billing/plans"
 	"github.com/tanvoxyz/tanvo/libs/billing/subscriptions"
 	"github.com/tanvoxyz/tanvo/libs/billing/usage"
@@ -32,12 +34,21 @@ type Subscriptions struct {
 	subscriptionv1connect.UnimplementedSubscriptionServiceHandler
 
 	svc *subscriptions.Service
+	pay *payments.Service
 }
 
 var _ subscriptionv1connect.SubscriptionServiceHandler = (*Subscriptions)(nil)
 
 // NewSubscriptions returns the service over svc.
 func NewSubscriptions(svc *subscriptions.Service) *Subscriptions { return &Subscriptions{svc: svc} }
+
+// WithPayments sets the payments service placing the pre-authorizations
+// of CreateSubscription; without it a request with an authorization is
+// Unimplemented.
+func (s *Subscriptions) WithPayments(pay *payments.Service) *Subscriptions {
+	s.pay = pay
+	return s
+}
 
 var (
 	subStatuses = NewEnum(map[subscription.Status]subscriptionv1.SubscriptionStatus{
@@ -172,11 +183,55 @@ func (s *Subscriptions) CreateSubscription(ctx context.Context, req *subscriptio
 			return nil, err
 		}
 	}
+	var auth *subscriptionv1.PaymentAuthorization
+	if req.HasAuthorization() {
+		if auth, err = s.authorize(ctx, p.OrganizationID, req, in); err != nil {
+			return nil, err
+		}
+	}
 	v, err := s.svc.Create(ctx, in)
 	if err != nil {
 		return nil, subscriptionError(ctx, "subscription.", err)
 	}
-	return subscriptionv1.CreateSubscriptionResponse_builder{Subscription: subscriptionProto(v)}.Build(), nil
+	return subscriptionv1.CreateSubscriptionResponse_builder{Subscription: subscriptionProto(v), Authorization: auth}.Build(), nil
+}
+
+// authorize places the pre-authorization of req before its subscription
+// in is created (lago SubscriptionsController#create, 22-71). Lago gates
+// it behind the beta_payment_authorization premium integration; Tanvo has
+// no feature gates (parity §1.50).
+func (s *Subscriptions) authorize(ctx context.Context, org core.OrganizationID, req *subscriptionv1.CreateSubscriptionRequest, in subscriptions.CreateInput) (*subscriptionv1.PaymentAuthorization, error) {
+	if s.pay == nil {
+		return nil, connect.NewError(connect.CodeUnimplemented, "payment authorization is not configured")
+	}
+	amount, cur, err := FromMoney("authorization.amount", req.GetAuthorization().GetAmount())
+	if err != nil {
+		return nil, err
+	}
+	ai := payments.AuthorizeInput{
+		Customer: payments.CustomerRef{ID: in.Customer.ID, ExternalID: in.Customer.ExternalID},
+		Amount:   amount, Currency: cur, Plan: in.Plan,
+		RequestID: requestID(ctx, core.UUIDv7Generator{}).String(),
+	}
+	if b := req.GetSubscription(); b.HasPaymentMethodId() {
+		if ai.PaymentMethodID, err = ParseID[core.PaymentMethodID]("subscription.payment_method_id", b.GetPaymentMethodId()); err != nil {
+			return nil, err
+		}
+	}
+	res, err := s.pay.Authorize(ctx, org, ai)
+	if err != nil {
+		return nil, Error(ctx, err)
+	}
+	c := res.Currency
+	if c.Code() == "" {
+		c = cur
+	}
+	return subscriptionv1.PaymentAuthorization_builder{
+		Id:               new(res.ProviderPaymentID),
+		Amount:           Money(res.Amount, c),
+		AmountCapturable: Money(res.AmountCapturable, c),
+		Status:           new(res.ProviderStatus),
+	}.Build(), nil
 }
 
 // GetSubscription implements SubscriptionService.GetSubscription (lago

@@ -1,7 +1,9 @@
 // Package blob implements the [port.BlobStore] port: [Local] keeps files on
 // the local disk and serves them through signed URLs, [S3] keeps them in an
 // S3-compatible object store (AWS S3, MinIO, Cloudflare R2, …) with a
-// hand-written AWS Signature Version 4.
+// hand-written AWS Signature Version 4 (Google Cloud Storage through its
+// S3 interoperability API too). [Links] wraps either with permanent signed
+// links that redirect to their short-lived URLs.
 //
 // # References
 //

@@ -374,6 +374,19 @@ func TestSyncEnqueue(t *testing.T) {
 			t.Errorf("jobs: got = %d, want = 1", got)
 		}
 	})
+	t.Run("payment without accounting integration", func(t *testing.T) {
+		// source: spec/services/invoices/payments/stripe_service_spec.rb:276
+		f := newAcctFixture(t, integration.ProviderNetsuite, true)
+		inv := f.invoice()
+		f.h.Do(func(ctx context.Context, r port.Repos) error {
+			return r.IntegrationCustomers.Delete(ctx, f.h.OrgID(), f.ic.ID)
+		})
+		p := f.h.StoredPayment(payment.InvoicePayable(inv.ID), f.cust.ID, 1000, payment.StateSucceeded, core.IntegrationID{})
+		f.h.Do(func(ctx context.Context, r port.Repos) error { return f.svc.EnqueuePaymentSync(ctx, r, p, inv) })
+		if got := len(syncJobs(f.h, kernel.JobSyncPayment)); got != 0 {
+			t.Errorf("jobs: got = %d, want = 0", got)
+		}
+	})
 	t.Run("missing invoice", func(t *testing.T) {
 		// source: spec/services/integrations/aggregator/invoices/create_service_spec.rb:332
 		f := newAcctFixture(t, integration.ProviderNetsuite, true)

@@ -24,15 +24,32 @@ type View struct {
 	// Connections are the customer's connections, as [Service.ListConnections]
 	// returns them.
 	Connections []Connection
+	// Errors are the error details of the customer, in ID order
+	// (V1::CustomerSerializer error_details).
+	Errors []*customer.ErrorDetail
 }
 
 // Views returns the views of cs, in order.
 //
 // source: app/serializers/v1/customer_serializer.rb (applicable_timezone,
-// integration_customers)
+// integration_customers, error_details)
 func (s *Service) Views(ctx context.Context, cs ...*customer.Customer) ([]View, error) {
 	return read(ctx, s.d, func(ctx context.Context, r port.Repos) ([]View, error) {
 		entities := map[core.BillingEntityID]*organization.BillingEntity{}
+		errs := map[core.CustomerID][]*customer.ErrorDetail{}
+		if len(cs) > 0 {
+			ids := make([]core.CustomerID, len(cs))
+			for i, c := range cs {
+				ids[i] = c.ID
+			}
+			ds, err := r.CustomerErrorDetails.ListByCustomers(ctx, cs[0].OrganizationID, ids)
+			if err != nil {
+				return nil, fmt.Errorf("list customer error details: %w", err)
+			}
+			for _, d := range ds {
+				errs[d.CustomerID] = append(errs[d.CustomerID], d)
+			}
+		}
 		out := make([]View, len(cs))
 		for i, c := range cs {
 			be, ok := entities[c.BillingEntityID]
@@ -47,7 +64,7 @@ func (s *Service) Views(ctx context.Context, cs ...*customer.Customer) ([]View, 
 			if err != nil {
 				return nil, err
 			}
-			out[i] = View{Customer: c, ApplicableTimezone: c.ApplicableTimezone(kernel.DefaultsOf(be)), Connections: conns}
+			out[i] = View{Customer: c, ApplicableTimezone: c.ApplicableTimezone(kernel.DefaultsOf(be)), Connections: conns, Errors: errs[c.ID]}
 		}
 		return out, nil
 	})

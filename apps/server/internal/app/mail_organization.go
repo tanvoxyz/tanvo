@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/tanvoxyz/tanvo/libs/auth"
@@ -35,6 +36,14 @@ func (h mailJobs) authenticationMethodsUpdated(ctx context.Context, org core.Org
 			in.OrganizationEmail = *o.Email
 		}
 		in.FromEmailEnabled = o.FromEmailEnabled
+		// layouts/mailer.slim:50-53: the organization's logo_url.
+		if h.blobs != nil && !o.Logo.IsZero() {
+			u, err := h.blobs.URL(ctx, org, o.Logo)
+			if err != nil && !errors.Is(err, core.ErrNotFound) {
+				return fmt.Errorf("link logo: %w", err)
+			}
+			in.OrganizationLogoURL = u
+		}
 		if be, err := r.BillingEntities.GetDefault(ctx, org); err == nil && be.DocumentLocale != "" {
 			in.Locale = be.DocumentLocale
 		}

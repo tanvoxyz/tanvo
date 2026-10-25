@@ -113,6 +113,10 @@ type Wallet struct {
 	LastConsumedCreditAt *time.Time
 	// DepletedOngoingBalance is set once the ongoing balance reached 0.
 	DepletedOngoingBalance bool
+	// Metadata is free key/value data ([core.ItemMetadataLimits]).
+	Metadata core.Metadata
+	// InvoiceCustomSections are the invoice custom sections of its credit invoices, unless a transaction selects its own.
+	InvoiceCustomSections CustomSections
 	// TerminatedAt is set once terminated.
 	TerminatedAt *time.Time
 	// CreatedAt is the creation instant.
@@ -172,6 +176,9 @@ func (w *Wallet) Validate() error {
 	v.Check(len(w.BillableMetricIDs) == len(dedup(w.BillableMetricIDs)), "billable_metric_ids", core.CodeDuplicated)
 	v.OptionalEnum("payment_method_type", w.PaymentMethodType)
 	v.OptionalString("purchase_order_number", w.PurchaseOrderNumber, core.MaxPurchaseOrderNumberLength)
+	if len(w.Metadata) > 0 {
+		v.Merge("metadata", w.Metadata.Validate(core.ItemMetadataLimits()))
+	}
 	return v.Err()
 }
 

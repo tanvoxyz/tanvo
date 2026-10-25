@@ -336,7 +336,7 @@ func TestRenderMissingGlyphFallback(t *testing.T) {
 	}
 }
 
-// source: spec/services/invoices/generate_pdf_service_spec.rb (e-invoicing)
+// source: spec/services/invoices/generate_pdf_service_spec.rb:192
 func TestRenderFacturX(t *testing.T) {
 	r, _ := newTestRenderer(t)
 	inv := prepaidCreditsInvoice(300, 200)(t, &ids{})
@@ -398,6 +398,31 @@ func TestRenderUnsupported(t *testing.T) {
 	} {
 		if _, err := r.Render(context.Background(), c.kind, "en", c.data); !errors.Is(err, ErrUnsupported) {
 			t.Errorf("Render(%s, %T): got = %v, want = ErrUnsupported", c.kind, c.data, err)
+		}
+	}
+}
+
+// source: spec/services/payment_receipts/generate_pdf_service_spec.rb:146
+func TestRenderPaymentReceiptFacturX(t *testing.T) {
+	r, _ := newTestRenderer(t)
+	inv := prepaidCreditsInvoice(300, 200)(t, &ids{})
+	d := receiptForInvoice(t, inv)
+	plain, err := r.PaymentReceiptPDF(context.Background(), d, "fr")
+	if err != nil {
+		t.Fatalf("PaymentReceiptPDF: %v", err)
+	}
+	if bytes.Contains(plain, []byte("factur-x.xml")) {
+		t.Errorf("PDF without e-invoicing: got = a factur-x.xml attachment, want = none")
+	}
+	d.BillingEntity.EInvoicing = true
+	d.BillingEntity.Address.Country = "FR"
+	b, err := r.PaymentReceiptPDF(context.Background(), d, "fr")
+	if err != nil {
+		t.Fatalf("PaymentReceiptPDF: %v", err)
+	}
+	for _, want := range []string{"/AFRelationship/Alternative", "factur-x.xml", "/EmbeddedFiles", "<fx:DocumentType>INVOICE</fx:DocumentType>"} {
+		if !bytes.Contains(b, []byte(want)) {
+			t.Errorf("PDF: got = no %q, want = %q", want, want)
 		}
 	}
 }

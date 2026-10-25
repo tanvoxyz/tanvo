@@ -2,6 +2,7 @@ package porttest
 
 import (
 	"context"
+	"encoding/json"
 	"slices"
 	"testing"
 	"time"
@@ -105,4 +106,71 @@ func testWalletRefresh(t *testing.T, h Harness) {
 			return nil
 		})
 	})
+	t.Run("customer error details", func(t *testing.T) {
+		t.Parallel()
+		testCustomerErrorDetails(t, h)
+	})
+}
+
+// testCustomerErrorDetails checks customer.ErrorDetailRepository and that
+// a tax_error keeps a customer out of the wallet refresh.
+func testCustomerErrorDetails(t *testing.T, h Harness) {
+	e := newEnv(t, h)
+	a, b := e.twoOrgs()
+	org := a.OrganizationID
+	failed := customer.New(org, core.NewID[core.CustomerID](e.ids), "ced-failed", a.ID, now)
+	fine := customer.New(org, core.NewID[core.CustomerID](e.ids), "ced-fine", a.ID, now)
+	other := customer.New(b.OrganizationID, core.NewID[core.CustomerID](e.ids), "ced-other", b.ID, now)
+	mk := func(c *customer.Customer, created time.Time) *customer.ErrorDetail {
+		return &customer.ErrorDetail{
+			ID: core.NewID[core.ErrorDetailID](e.ids), OrganizationID: c.OrganizationID, CustomerID: c.ID, Code: customer.ErrorCodeTaxError,
+			Details: json.RawMessage(`{"tax_error": "customerAddressCouldNotResolve"}`), CreatedAt: created,
+		}
+	}
+	first, second, foreign := mk(failed, now), mk(failed, at(time.Minute)), mk(other, now)
+	e.tx(func(ctx context.Context, r port.Repos) error {
+		for _, c := range []*customer.Customer{failed, fine, other} {
+			noErr(t, "Customers.Create()", r.Customers.Create(ctx, c))
+			w := wallet.New(c.OrganizationID, core.NewID[core.WalletID](e.ids), c.ID, money.MustCurrency("EUR"), money.MustParse("1"), now)
+			noErr(t, "Wallets.Create()", r.Wallets.Create(ctx, w))
+			noErr(t, "FlagWalletRefresh()", r.Customers.FlagWalletRefresh(ctx, c.OrganizationID, c.ID))
+		}
+		for _, d := range []*customer.ErrorDetail{first, second, foreign} {
+			noErr(t, "Create()", r.CustomerErrorDetails.Create(ctx, d))
+		}
+		wantErr(t, "Create() same ID", r.CustomerErrorDetails.Create(ctx, first), core.ErrConflict)
+		got, err := r.CustomerErrorDetails.ListByCustomers(ctx, org, []core.CustomerID{failed.ID})
+		noErr(t, "ListByCustomers()", err)
+		equal(t, "ListByCustomers()", got, []*customer.ErrorDetail{first, second})
+		got, err = r.CustomerErrorDetails.ListByCustomers(ctx, org, []core.CustomerID{failed.ID, fine.ID, other.ID})
+		noErr(t, "ListByCustomers() of several customers", err)
+		equal(t, "ListByCustomers() of several customers", len(got), 2)
+		got, err = r.CustomerErrorDetails.ListByCustomers(ctx, org, nil)
+		noErr(t, "ListByCustomers() of none", err)
+		equal(t, "ListByCustomers() of none", len(got), 0)
+
+		ids, err := r.Customers.ListAwaitingWalletRefresh(ctx, org, core.PageRequest{Size: 10})
+		noErr(t, "ListAwaitingWalletRefresh()", err)
+		equal(t, "ListAwaitingWalletRefresh() with a tax error", ids.Items, []core.CustomerID{fine.ID})
+		return nil
+	})
+	e.tx(func(ctx context.Context, r port.Repos) error {
+		got, err := r.Organizations.WithWork(ctx, organization.WorkAwaitingWalletRefresh, now)
+		noErr(t, "WithWork(awaiting_wallet_refresh)", err)
+		got = slices.DeleteFunc(got, func(o core.OrganizationID) bool { return o != org && o != b.OrganizationID })
+		equal(t, "WithWork(awaiting_wallet_refresh) with tax errors", got, []core.OrganizationID{org})
+
+		noErr(t, "DeleteByCustomer()", r.CustomerErrorDetails.DeleteByCustomer(ctx, org, failed.ID, customer.ErrorCodeTaxError))
+		left, err := r.CustomerErrorDetails.ListByCustomers(ctx, org, []core.CustomerID{failed.ID})
+		noErr(t, "ListByCustomers() deleted", err)
+		equal(t, "ListByCustomers() deleted", len(left), 0)
+		ids, err := r.Customers.ListAwaitingWalletRefresh(ctx, org, core.PageRequest{Size: 10})
+		noErr(t, "ListAwaitingWalletRefresh() cleared", err)
+		equal(t, "ListAwaitingWalletRefresh() cleared", len(ids.Items), 2)
+		return nil
+	})
+	stray := mk(other, now)
+	stray.OrganizationID = org
+	err := e.txErr(func(ctx context.Context, r port.Repos) error { return r.CustomerErrorDetails.Create(ctx, stray) })
+	wantErr(t, "Create() of a foreign customer", err, core.ErrNotFound)
 }

@@ -1,0 +1,20 @@
+{
+  "title": "the usage-refreshed streaming events",
+  "files": [
+    "jobs/deliver_event_job_spec.rb",
+    "serializers/event_destinations/customer_usage_serializer_spec.rb",
+    "services/event_destinations/customer_usage/refreshed_service_spec.rb",
+    "services/event_destinations/customer_full_usage/refreshed_service_spec.rb",
+    "services/customers/refresh_wallets_service_spec.rb"
+  ],
+  "reasons": {
+    "usage-source": "Tanvo computes the current usage one way (usage.Service), with no usage buckets and no presentation breakdowns to select, so there is no source argument to match between the inline and the job delivery. The two differ only by taxes, which the record leaves out; TestDeliverGivenUsage checks that both give the same envelope.",
+    "refresh": "This module owns only the streaming block of the wallet refresh (refresh_wallets_service_spec.rb:102, the cases cited by libs/billing/streaming/service_test.go); the refresh itself is ported in libs/billing/wallets.",
+    "unknown-type": "A destination cannot claim an unknown event type: the schema refuses it (streaming_destinations_event_types_check in libs/store/schema/29_streaming.sql) and so does Destination.Validate, so no stored destination asks for another type."
+  },
+  "skipped": {
+    "services/event_destinations/customer_usage/refreshed_service_spec.rb:103": "usage-source",
+    "services/customers/refresh_wallets_service_spec.rb": "refresh",
+    "services/customers/refresh_wallets_service_spec.rb:248": "unknown-type"
+  }
+}

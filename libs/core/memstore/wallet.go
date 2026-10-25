@@ -5,6 +5,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/wallet"
@@ -23,10 +25,13 @@ func newWalletData() *walletData {
 		wallets: newTable[core.WalletID](func(w wallet.Wallet) wallet.Wallet {
 			w.AllowedFeeTypes = slices.Clone(w.AllowedFeeTypes)
 			w.BillableMetricIDs = slices.Clone(w.BillableMetricIDs)
+			w.Metadata = w.Metadata.Clone()
+			w.InvoiceCustomSections.IDs = slices.Clone(w.InvoiceCustomSections.IDs)
 			return w
 		}),
 		transactions: newTable[core.WalletTransactionID](func(t wallet.Transaction) wallet.Transaction {
 			t.Metadata = slices.Clone(t.Metadata)
+			t.InvoiceCustomSections.IDs = slices.Clone(t.InvoiceCustomSections.IDs)
 			if t.RemainingAmount != nil {
 				r := *t.RemainingAmount
 				t.RemainingAmount = &r
@@ -36,6 +41,7 @@ func newWalletData() *walletData {
 		consumptions: newTable[core.WalletTransactionConsumptionID, wallet.Consumption](nil),
 		rules: newTable[core.RecurringTransactionRuleID](func(r wallet.RecurringTransactionRule) wallet.RecurringTransactionRule {
 			r.TransactionMetadata = slices.Clone(r.TransactionMetadata)
+			r.InvoiceCustomSections.IDs = slices.Clone(r.InvoiceCustomSections.IDs)
 			return r
 		}),
 	}
@@ -115,6 +121,9 @@ func (r walletRepo) List(_ context.Context, org core.OrganizationID, f wallet.Fi
 			(f.CustomerID.IsZero() || x.CustomerID == f.CustomerID) &&
 			(f.Status == "" || x.Status == f.Status)
 	})
+	if f.Recent {
+		return paginateRecent(rows, func(x *wallet.Wallet) (time.Time, uuid.UUID) { return x.CreatedAt, x.ID.UUID() }, page)
+	}
 	return paginate(rows, func(x *wallet.Wallet) core.WalletID { return x.ID }, page)
 }
 
@@ -177,6 +186,9 @@ func (r walletTransactionRepo) List(_ context.Context, org core.OrganizationID, 
 			(f.TransactionStatus == "" || x.TransactionStatus == f.TransactionStatus) &&
 			(f.Status == "" || x.Status == f.Status)
 	})
+	if f.Recent {
+		return paginateRecent(rows, func(x *wallet.Transaction) (time.Time, uuid.UUID) { return x.CreatedAt, x.ID.UUID() }, page)
+	}
 	return paginate(rows, func(x *wallet.Transaction) core.WalletTransactionID { return x.ID }, page)
 }
 

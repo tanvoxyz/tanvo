@@ -32,6 +32,7 @@ func NewAnalytics(svc *analytics.Service) *Analytics { return &Analytics{svc: sv
 // Analytics::GrossRevenuesService).
 func (s *Analytics) GetGrossRevenue(ctx context.Context, req *analyticsv1.GetGrossRevenueRequest) (*analyticsv1.GetGrossRevenueResponse, error) {
 	rows, err := runReport(ctx, req.GetScope(), s.svc.GrossRevenue, func(f *analytics.Filter) error {
+		f.ExpireCache = req.GetExpireCache()
 		return analyticsCustomer(f, req.GetCustomerId())
 	})
 	if err != nil {
@@ -94,6 +95,7 @@ func (s *Analytics) GetInvoicedUsage(ctx context.Context, req *analyticsv1.GetIn
 func (s *Analytics) GetOverdueBalance(ctx context.Context, req *analyticsv1.GetOverdueBalanceRequest) (*analyticsv1.GetOverdueBalanceResponse, error) {
 	rows, err := runReport(ctx, req.GetScope(), s.svc.OverdueBalance, func(f *analytics.Filter) error {
 		f.CustomerTINEmpty = Opt(req.HasIsCustomerTinEmpty(), req.GetIsCustomerTinEmpty())
+		f.ExpireCache = req.GetExpireCache()
 		return analyticsCustomer(f, req.GetCustomerId())
 	})
 	if err != nil {

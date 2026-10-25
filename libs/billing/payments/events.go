@@ -216,7 +216,9 @@ func (s *Service) handlePaymentEvent(ctx context.Context, pc providerConn, ev pa
 		p, err := r.Payments.GetByProviderPaymentID(ctx, org, pc.integ.ID, ev.ProviderPaymentID)
 		switch {
 		case isNotFound(err):
-			p = nil
+			// An event of a payment Tanvo does not have, on no payable it
+			// knows, changes nothing (stripe_service.rb:27-29).
+			p, err = nil, nil
 		case err != nil:
 			return wrap(err, "load payment %s", ev.ProviderPaymentID)
 		}
@@ -768,8 +770,13 @@ func (s *Service) eventCustomer(ctx context.Context, r port.Repos, integ *integr
 		if pc.Deleted() || pc.IntegrationID != integ.ID {
 			continue
 		}
-		if pc.ProviderCustomerID != nil && *pc.ProviderCustomerID != "" || providerCustomerID == "" {
+		if providerCustomerID == "" {
 			return pc, nil
+		}
+		if pc.ProviderCustomerID != nil && *pc.ProviderCustomerID != "" {
+			// Linked to another provider customer: the event's is unknown
+			// (stripe webhooks/base_service.rb:27-49).
+			continue
 		}
 		c, err := r.Customers.Get(ctx, org, id)
 		if err != nil {

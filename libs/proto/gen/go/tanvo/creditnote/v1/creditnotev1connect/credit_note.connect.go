@@ -59,6 +59,18 @@ const (
 	// CreditNoteServiceRetryCreditNoteTaxReportingProcedure is the procedure name of the
 	// CreditNoteService's RetryCreditNoteTaxReporting RPC.
 	CreditNoteServiceRetryCreditNoteTaxReportingProcedure = "/tanvo.creditnote.v1.CreditNoteService/RetryCreditNoteTaxReporting"
+	// CreditNoteServiceReplaceCreditNoteMetadataProcedure is the procedure name of the
+	// CreditNoteService's ReplaceCreditNoteMetadata RPC.
+	CreditNoteServiceReplaceCreditNoteMetadataProcedure = "/tanvo.creditnote.v1.CreditNoteService/ReplaceCreditNoteMetadata"
+	// CreditNoteServiceMergeCreditNoteMetadataProcedure is the procedure name of the
+	// CreditNoteService's MergeCreditNoteMetadata RPC.
+	CreditNoteServiceMergeCreditNoteMetadataProcedure = "/tanvo.creditnote.v1.CreditNoteService/MergeCreditNoteMetadata"
+	// CreditNoteServiceDeleteCreditNoteMetadataProcedure is the procedure name of the
+	// CreditNoteService's DeleteCreditNoteMetadata RPC.
+	CreditNoteServiceDeleteCreditNoteMetadataProcedure = "/tanvo.creditnote.v1.CreditNoteService/DeleteCreditNoteMetadata"
+	// CreditNoteServiceDeleteCreditNoteMetadataKeyProcedure is the procedure name of the
+	// CreditNoteService's DeleteCreditNoteMetadataKey RPC.
+	CreditNoteServiceDeleteCreditNoteMetadataKeyProcedure = "/tanvo.creditnote.v1.CreditNoteService/DeleteCreditNoteMetadataKey"
 )
 
 var (
@@ -134,6 +146,34 @@ var (
 			Procedure:  CreditNoteServiceRetryCreditNoteTaxReportingProcedure,
 		}
 	})
+	creditNoteServiceReplaceCreditNoteMetadataSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_creditnote_v1_credit_note_proto.Services().ByName("CreditNoteService").Methods().ByName("ReplaceCreditNoteMetadata"),
+			Procedure:  CreditNoteServiceReplaceCreditNoteMetadataProcedure,
+		}
+	})
+	creditNoteServiceMergeCreditNoteMetadataSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_creditnote_v1_credit_note_proto.Services().ByName("CreditNoteService").Methods().ByName("MergeCreditNoteMetadata"),
+			Procedure:  CreditNoteServiceMergeCreditNoteMetadataProcedure,
+		}
+	})
+	creditNoteServiceDeleteCreditNoteMetadataSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_creditnote_v1_credit_note_proto.Services().ByName("CreditNoteService").Methods().ByName("DeleteCreditNoteMetadata"),
+			Procedure:  CreditNoteServiceDeleteCreditNoteMetadataProcedure,
+		}
+	})
+	creditNoteServiceDeleteCreditNoteMetadataKeySpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_creditnote_v1_credit_note_proto.Services().ByName("CreditNoteService").Methods().ByName("DeleteCreditNoteMetadataKey"),
+			Procedure:  CreditNoteServiceDeleteCreditNoteMetadataKeyProcedure,
+		}
+	})
 )
 
 // CreditNoteServiceClient is a client for the tanvo.creditnote.v1.CreditNoteService service.
@@ -162,6 +202,16 @@ type CreditNoteServiceClient interface {
 	// Reports a credit note to the customer's tax provider again; a refusal
 	// is kept in the credit note's errors.
 	RetryCreditNoteTaxReporting(context.Context, *v1.RetryCreditNoteTaxReportingRequest) (*v1.RetryCreditNoteTaxReportingResponse, error)
+	// Replaces the credit note's metadata; an empty list clears it.
+	ReplaceCreditNoteMetadata(context.Context, *v1.ReplaceCreditNoteMetadataRequest) (*v1.ReplaceCreditNoteMetadataResponse, error)
+	// Merges items into the credit note's metadata: values of existing keys are
+	// replaced and new keys appended.
+	MergeCreditNoteMetadata(context.Context, *v1.MergeCreditNoteMetadataRequest) (*v1.MergeCreditNoteMetadataResponse, error)
+	// Removes all the credit note's metadata.
+	DeleteCreditNoteMetadata(context.Context, *v1.DeleteCreditNoteMetadataRequest) (*v1.DeleteCreditNoteMetadataResponse, error)
+	// Removes one key from the credit note's metadata; NOT_FOUND when the
+	// credit note has no metadata.
+	DeleteCreditNoteMetadataKey(context.Context, *v1.DeleteCreditNoteMetadataKeyRequest) (*v1.DeleteCreditNoteMetadataKeyResponse, error)
 }
 
 // NewCreditNoteServiceClient constructs a client for the tanvo.creditnote.v1.CreditNoteService
@@ -197,6 +247,16 @@ type CreditNoteServiceHandler interface {
 	// Reports a credit note to the customer's tax provider again; a refusal
 	// is kept in the credit note's errors.
 	RetryCreditNoteTaxReporting(context.Context, *v1.RetryCreditNoteTaxReportingRequest) (*v1.RetryCreditNoteTaxReportingResponse, error)
+	// Replaces the credit note's metadata; an empty list clears it.
+	ReplaceCreditNoteMetadata(context.Context, *v1.ReplaceCreditNoteMetadataRequest) (*v1.ReplaceCreditNoteMetadataResponse, error)
+	// Merges items into the credit note's metadata: values of existing keys are
+	// replaced and new keys appended.
+	MergeCreditNoteMetadata(context.Context, *v1.MergeCreditNoteMetadataRequest) (*v1.MergeCreditNoteMetadataResponse, error)
+	// Removes all the credit note's metadata.
+	DeleteCreditNoteMetadata(context.Context, *v1.DeleteCreditNoteMetadataRequest) (*v1.DeleteCreditNoteMetadataResponse, error)
+	// Removes one key from the credit note's metadata; NOT_FOUND when the
+	// credit note has no metadata.
+	DeleteCreditNoteMetadataKey(context.Context, *v1.DeleteCreditNoteMetadataKeyRequest) (*v1.DeleteCreditNoteMetadataKeyResponse, error)
 }
 
 // RegisterCreditNoteServiceHandler registers svc as the tanvo.creditnote.v1.CreditNoteService
@@ -214,6 +274,10 @@ func RegisterCreditNoteServiceHandler(server *connect.Server, svc CreditNoteServ
 		connect.Method{Spec: creditNoteServiceResendCreditNoteSpec(), Handler: adapter.resendCreditNote},
 		connect.Method{Spec: creditNoteServiceRetryCreditNoteSyncSpec(), Handler: adapter.retryCreditNoteSync},
 		connect.Method{Spec: creditNoteServiceRetryCreditNoteTaxReportingSpec(), Handler: adapter.retryCreditNoteTaxReporting},
+		connect.Method{Spec: creditNoteServiceReplaceCreditNoteMetadataSpec(), Handler: adapter.replaceCreditNoteMetadata},
+		connect.Method{Spec: creditNoteServiceMergeCreditNoteMetadataSpec(), Handler: adapter.mergeCreditNoteMetadata},
+		connect.Method{Spec: creditNoteServiceDeleteCreditNoteMetadataSpec(), Handler: adapter.deleteCreditNoteMetadata},
+		connect.Method{Spec: creditNoteServiceDeleteCreditNoteMetadataKeySpec(), Handler: adapter.deleteCreditNoteMetadataKey},
 	)
 }
 
@@ -258,6 +322,22 @@ func (UnimplementedCreditNoteServiceHandler) RetryCreditNoteSync(context.Context
 
 func (UnimplementedCreditNoteServiceHandler) RetryCreditNoteTaxReporting(context.Context, *v1.RetryCreditNoteTaxReportingRequest) (*v1.RetryCreditNoteTaxReportingResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.creditnote.v1.CreditNoteService.RetryCreditNoteTaxReporting is not implemented")
+}
+
+func (UnimplementedCreditNoteServiceHandler) ReplaceCreditNoteMetadata(context.Context, *v1.ReplaceCreditNoteMetadataRequest) (*v1.ReplaceCreditNoteMetadataResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.creditnote.v1.CreditNoteService.ReplaceCreditNoteMetadata is not implemented")
+}
+
+func (UnimplementedCreditNoteServiceHandler) MergeCreditNoteMetadata(context.Context, *v1.MergeCreditNoteMetadataRequest) (*v1.MergeCreditNoteMetadataResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.creditnote.v1.CreditNoteService.MergeCreditNoteMetadata is not implemented")
+}
+
+func (UnimplementedCreditNoteServiceHandler) DeleteCreditNoteMetadata(context.Context, *v1.DeleteCreditNoteMetadataRequest) (*v1.DeleteCreditNoteMetadataResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.creditnote.v1.CreditNoteService.DeleteCreditNoteMetadata is not implemented")
+}
+
+func (UnimplementedCreditNoteServiceHandler) DeleteCreditNoteMetadataKey(context.Context, *v1.DeleteCreditNoteMetadataKeyRequest) (*v1.DeleteCreditNoteMetadataKeyResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.creditnote.v1.CreditNoteService.DeleteCreditNoteMetadataKey is not implemented")
 }
 
 type creditNoteServiceClient struct {
@@ -339,6 +419,38 @@ func (c *creditNoteServiceClient) RetryCreditNoteSync(ctx context.Context, req *
 func (c *creditNoteServiceClient) RetryCreditNoteTaxReporting(ctx context.Context, req *v1.RetryCreditNoteTaxReportingRequest) (*v1.RetryCreditNoteTaxReportingResponse, error) {
 	var res v1.RetryCreditNoteTaxReportingResponse
 	if err := c.client.CallUnary(ctx, creditNoteServiceRetryCreditNoteTaxReportingSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *creditNoteServiceClient) ReplaceCreditNoteMetadata(ctx context.Context, req *v1.ReplaceCreditNoteMetadataRequest) (*v1.ReplaceCreditNoteMetadataResponse, error) {
+	var res v1.ReplaceCreditNoteMetadataResponse
+	if err := c.client.CallUnary(ctx, creditNoteServiceReplaceCreditNoteMetadataSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *creditNoteServiceClient) MergeCreditNoteMetadata(ctx context.Context, req *v1.MergeCreditNoteMetadataRequest) (*v1.MergeCreditNoteMetadataResponse, error) {
+	var res v1.MergeCreditNoteMetadataResponse
+	if err := c.client.CallUnary(ctx, creditNoteServiceMergeCreditNoteMetadataSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *creditNoteServiceClient) DeleteCreditNoteMetadata(ctx context.Context, req *v1.DeleteCreditNoteMetadataRequest) (*v1.DeleteCreditNoteMetadataResponse, error) {
+	var res v1.DeleteCreditNoteMetadataResponse
+	if err := c.client.CallUnary(ctx, creditNoteServiceDeleteCreditNoteMetadataSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *creditNoteServiceClient) DeleteCreditNoteMetadataKey(ctx context.Context, req *v1.DeleteCreditNoteMetadataKeyRequest) (*v1.DeleteCreditNoteMetadataKeyResponse, error) {
+	var res v1.DeleteCreditNoteMetadataKeyResponse
+	if err := c.client.CallUnary(ctx, creditNoteServiceDeleteCreditNoteMetadataKeySpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -460,6 +572,54 @@ func (h creditNoteServiceHandler) retryCreditNoteTaxReporting(ctx context.Contex
 		return err
 	}
 	res, err := h.svc.RetryCreditNoteTaxReporting(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h creditNoteServiceHandler) replaceCreditNoteMetadata(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.ReplaceCreditNoteMetadataRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.ReplaceCreditNoteMetadata(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h creditNoteServiceHandler) mergeCreditNoteMetadata(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.MergeCreditNoteMetadataRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.MergeCreditNoteMetadata(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h creditNoteServiceHandler) deleteCreditNoteMetadata(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteCreditNoteMetadataRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteCreditNoteMetadata(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h creditNoteServiceHandler) deleteCreditNoteMetadataKey(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.DeleteCreditNoteMetadataKeyRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.DeleteCreditNoteMetadataKey(ctx, &req)
 	if err != nil {
 		return err
 	}

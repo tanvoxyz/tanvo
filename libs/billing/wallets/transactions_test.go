@@ -337,7 +337,9 @@ func TestCreateTransactionsFromParams(t *testing.T) {
 	// source: spec/services/wallet_transactions/create_from_params_service_spec.rb:47
 	h, s := setup(t, t0)
 	c := h.Customer()
-	w := h.Wallet(c, "10")
+	// The default priority is 50 whatever the wallet's
+	// (create_from_params_service.rb:28).
+	w := h.Wallet(c, "10", func(w *wallet.Wallet) { w.Priority = 5 })
 	ts, err := s.CreateTransactions(h.Ctx, h.OrgID(), wallets.TransactionInput{
 		WalletID: w.ID, PaidCredits: dec("10.00"), GrantedCredits: dec("15.00"), VoidedCredits: dec("3.00"),
 	})

@@ -30,6 +30,10 @@ const (
 	// JobCombineParts writes the file of an export once every part is
 	// rendered (lago DataExports::CombinePartsJob).
 	JobCombineParts = "exports.combine_parts"
+	// JobSendCompletedEmail emails the requester the link of a completed
+	// export (lago DataExportMailer#completed, delivered by
+	// CombinePartsService).
+	JobSendCompletedEmail = "exports.send_completed_email"
 )
 
 // BatchSize is the number of exported documents of a part (lago
@@ -409,10 +413,12 @@ func (s *Service) File(ctx context.Context, org core.OrganizationID, id core.Dat
 	return buf.Bytes(), name, nil
 }
 
-// CombineParts writes the file of an export to the blob store and
-// completes the export (lago DataExports::CombinePartsService). It fails
-// with [ErrNoBlobStore] when none is wired. The completion email is not
-// sent here.
+// CombineParts writes the file of an export to the blob store, completes
+// the export and enqueues its [JobSendCompletedEmail] (lago
+// DataExports::CombinePartsService). It fails with [ErrNoBlobStore] when
+// none is wired.
+//
+// source: app/services/data_exports/combine_parts_service.rb:12-42
 func (s *Service) CombineParts(ctx context.Context, org core.OrganizationID, id core.DataExportID) (*export.DataExport, error) {
 	if s.blobs == nil {
 		return nil, ErrNoBlobStore
@@ -442,7 +448,7 @@ func (s *Service) CombineParts(ctx context.Context, org core.OrganizationID, id 
 			return fmt.Errorf("update data export %s: %w", id, err)
 		}
 		out = e
-		return nil
+		return enqueue(ctx, r, org, JobSendCompletedEmail, ExportArgs{DataExportID: id}, "")
 	})
 	if err != nil {
 		return nil, err
@@ -457,6 +463,57 @@ func (s *Service) FileURL(ctx context.Context, e *export.DataExport) (string, er
 		return "", nil
 	}
 	return s.blobs.URL(ctx, e.OrganizationID, e.File)
+}
+
+// CompletedEmail is the data of the email of a completed export.
+type CompletedEmail struct {
+	// UserEmail is the requester's address.
+	UserEmail string
+	// Export is the export.
+	Export *export.DataExport
+	// FileURL is the file's link, empty once expired.
+	FileURL string
+}
+
+// CompletedEmail returns the data of the email of export id; nil when the
+// export or its requester is gone. The composer skips an export that is
+// not completed or expired (data_export_mailer.rb:9-10).
+//
+// source: app/mailers/data_export_mailer.rb:4-20
+func (s *Service) CompletedEmail(ctx context.Context, org core.OrganizationID, id core.DataExportID) (*CompletedEmail, error) {
+	var out *CompletedEmail
+	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+		e, err := r.DataExports.Get(ctx, org, id)
+		if errors.Is(err, core.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("get data export %s: %w", id, err)
+		}
+		m, err := r.Memberships.Get(ctx, org, e.MembershipID)
+		if errors.Is(err, core.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("get membership %s: %w", e.MembershipID, err)
+		}
+		u, err := r.Users.Get(ctx, m.UserID)
+		if errors.Is(err, core.ErrNotFound) {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("get user %s: %w", m.UserID, err)
+		}
+		out = &CompletedEmail{UserEmail: u.Email, Export: e}
+		return nil
+	})
+	if err != nil || out == nil {
+		return nil, err
+	}
+	if out.FileURL, err = s.FileURL(ctx, out.Export); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 // enqueue enqueues a job of kind on the exports queue.

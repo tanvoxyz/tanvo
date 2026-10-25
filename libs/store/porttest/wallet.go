@@ -1,7 +1,10 @@
 package porttest
 
 import (
+	"cmp"
 	"context"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -122,15 +125,22 @@ func testWallet(t *testing.T, h Harness) {
 		w1.BillableMetricIDs = []core.BillableMetricID{m2, m1}
 		w1.Traceable = true
 		w1.PurchaseOrderNumber = ptr("PO-WALLET")
+		// Section IDs are kept without a foreign key (soft-deleted sections
+		// stay selected), in their order.
+		w1.InvoiceCustomSections = wallet.CustomSections{IDs: []core.InvoiceCustomSectionID{
+			core.NewID[core.InvoiceCustomSectionID](e.ids), core.NewID[core.InvoiceCustomSectionID](e.ids),
+		}}
 		w1.X402Enabled = true
 		w1.BillingEntityID = a.ID
 		w1.PaymentMethodType = core.PaymentMethodTypeManual
 		w1.LastBalanceSyncAt = ptr(at(time.Minute))
 		w1.LastConsumedCreditAt = ptr(at(2 * time.Minute))
 		w1.DepletedOngoingBalance = true
+		w1.Metadata = core.Metadata{{Key: "team", Value: "growth"}, {Key: "empty", Value: ""}}
 		w2 := walletNew(e, org, c2)
 		w2.Code = ptr("main")
 		w2.PaymentMethodType = ""
+		w2.CreatedAt, w2.UpdatedAt = at(time.Hour), at(time.Hour)
 		e.tx(func(ctx context.Context, r port.Repos) error {
 			noErr(t, "Create()", r.Wallets.Create(ctx, w1))
 			noErr(t, "Create() with the code of another customer's wallet", r.Wallets.Create(ctx, w2))
@@ -155,12 +165,14 @@ func testWallet(t *testing.T, h Harness) {
 
 			// Update clears optional fields and reorders the metrics.
 			w2.Name = ptr("Second")
+			w2.Metadata = core.Metadata{{Key: "k", Value: "v"}}
 			w2.BillableMetricIDs = []core.BillableMetricID{m1}
 			w2.UpdatedAt = at(time.Hour)
 			noErr(t, "Update()", r.Wallets.Update(ctx, w2))
 			w1.ExpirationAt, w1.PaidTopUpMinAmount, w1.BillingEntityID = nil, nil, core.BillingEntityID{}
 			w1.BillableMetricIDs = []core.BillableMetricID{m1, m2}
-			w1.AllowedFeeTypes = nil
+			w1.AllowedFeeTypes, w1.Metadata = nil, nil
+			w1.InvoiceCustomSections = wallet.CustomSections{Skip: true}
 			noErr(t, "Update() clearing fields", r.Wallets.Update(ctx, w1))
 			got, err = r.Wallets.Get(ctx, org, w1.ID)
 			noErr(t, "Get() after Update()", err)
@@ -218,6 +230,15 @@ func testWallet(t *testing.T, h Harness) {
 				return r.Wallets.List(ctx, org, wallet.Filter{CustomerID: c1, Status: wallet.StatusTerminated}, p)
 			})
 			equal(t, "List() terminated of a customer", ids(list, walletID), []core.WalletID{w1.ID})
+			// Recent: newest first, then by ID (wallets_query.rb:18).
+			list = listAll(t, 1, func(p core.PageRequest) (core.Page[*wallet.Wallet], error) {
+				return r.Wallets.List(ctx, org, wallet.Filter{Recent: true}, p)
+			})
+			equal(t, "List() recent", ids(list, walletID), []core.WalletID{w2.ID, w1.ID, dup.ID})
+			list = listAll(t, 1, func(p core.PageRequest) (core.Page[*wallet.Wallet], error) {
+				return r.Wallets.List(ctx, org, wallet.Filter{Recent: true, CustomerID: c1}, p)
+			})
+			equal(t, "List() recent of a customer", ids(list, walletID), []core.WalletID{w1.ID, dup.ID})
 			n, err = r.Wallets.CountActive(ctx, org, c1)
 			noErr(t, "CountActive()", err)
 			equal(t, "CountActive()", n, 1)
@@ -333,6 +354,9 @@ func testWallet(t *testing.T, h Harness) {
 		full.PaymentMethodType = core.PaymentMethodTypeProvider
 		full.InvoiceRequiresSuccessfulPayment = true
 		full.PurchaseOrderNumber = ptr("PO-TX")
+		full.VoidedInvoiceID = inv2
+		full.BillingEntityID = a.ID
+		full.InvoiceCustomSections = wallet.CustomSections{Skip: true}
 		// Inbound transactions with value left, in their consumption order.
 		g1 := tx(w.ID, wallet.TransactionTypeInbound, wallet.TransactionStatusGranted, 50, at(time.Hour))
 		g1.RemainingAmount = ptr(int64(10))
@@ -377,6 +401,7 @@ func testWallet(t *testing.T, h Harness) {
 			// Settling it; the update clears optional fields.
 			noErr(t, "Settle()", full.Settle(at(time.Minute)))
 			full.Name, full.CreditNoteID, full.Metadata, full.PaymentMethodType = nil, core.CreditNoteID{}, nil, ""
+			full.VoidedInvoiceID, full.BillingEntityID, full.InvoiceCustomSections = core.InvoiceID{}, core.BillingEntityID{}, wallet.CustomSections{IDs: []core.InvoiceCustomSectionID{core.NewID[core.InvoiceCustomSectionID](e.ids)}}
 			noErr(t, "Update()", r.WalletTransactions.Update(ctx, full))
 			got, err = r.WalletTransactions.Get(ctx, org, full.ID)
 			noErr(t, "Get() after Update()", err)
@@ -427,6 +452,22 @@ func testWallet(t *testing.T, h Harness) {
 				})
 				equal(t, "List() by "+c.name, ids(got, walletTransactionID), ids(c.want, walletTransactionID))
 			}
+			// Recent: newest first, then by ID (wallet_transactions_query.rb:17).
+			recent := func(xs ...*wallet.Transaction) []core.WalletTransactionID {
+				ys := slices.Clone(xs)
+				slices.SortStableFunc(ys, func(a, b *wallet.Transaction) int {
+					return cmp.Or(b.CreatedAt.Compare(a.CreatedAt), strings.Compare(a.ID.String(), b.ID.String()))
+				})
+				return ids(ys, walletTransactionID)
+			}
+			rl := listAll(t, 2, func(p core.PageRequest) (core.Page[*wallet.Transaction], error) {
+				return r.WalletTransactions.List(ctx, org, wallet.TransactionFilter{Recent: true}, p)
+			})
+			equal(t, "List() recent", ids(rl, walletTransactionID), recent(all...))
+			rl = listAll(t, 1, func(p core.PageRequest) (core.Page[*wallet.Transaction], error) {
+				return r.WalletTransactions.List(ctx, org, wallet.TransactionFilter{Recent: true, TransactionStatus: wallet.TransactionStatusPurchased}, p)
+			})
+			equal(t, "List() recent purchases", ids(rl, walletTransactionID), recent(full, p1, p2))
 			byInv, err = r.WalletTransactions.ListByInvoice(ctx, org, inv)
 			noErr(t, "ListByInvoice()", err)
 			equal(t, "ListByInvoice()", byInv, []*wallet.Transaction{full, void})
@@ -507,6 +548,7 @@ func testWallet(t *testing.T, h Harness) {
 		full.TransactionName = ptr("Monthly top-up")
 		full.IgnorePaidTopUpLimits = true
 		full.PurchaseOrderNumber = ptr("PO-RULE")
+		full.InvoiceCustomSections = wallet.CustomSections{IDs: []core.InvoiceCustomSectionID{core.NewID[core.InvoiceCustomSectionID](e.ids)}}
 		full.PaymentMethodType = core.PaymentMethodTypeManual
 		threshold := rule(w1, wallet.RecurringTriggerThreshold)
 		expiredInterval := rule(w2, wallet.RecurringTriggerInterval)

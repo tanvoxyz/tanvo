@@ -35,8 +35,8 @@ type Transaction struct {
 	// RemainingAmount is, on inbound transactions of traceable wallets, the
 	// value not consumed yet, in minor units of Currency; nil otherwise.
 	RemainingAmount *int64
-	// Priority orders consumption of inbound transactions, 1–50; inherited
-	// from the wallet.
+	// Priority orders consumption of inbound transactions, 1–50; default
+	// MaxPriority, whatever the wallet's.
 	Priority int
 	// Name is the display name, 1–255 characters.
 	Name *string
@@ -63,6 +63,17 @@ type Transaction struct {
 	// transaction's own on a recredit; the credit invoice takes it, else the
 	// wallet's.
 	PurchaseOrderNumber *string
+	// VoidedInvoiceID is the voided invoice whose credits a granted
+	// recredit gives back.
+	VoidedInvoiceID core.InvoiceID
+	// BillingEntityID is the billing entity snapshotted at creation: the
+	// wallet's, or a void's inbound transaction's. It issues the credit
+	// invoice; zero falls back to the wallet's current entity.
+	BillingEntityID core.BillingEntityID
+	// InvoiceCustomSections are the invoice custom sections of its credit
+	// invoice; when it neither skips nor selects live sections, the
+	// wallet's apply.
+	InvoiceCustomSections CustomSections
 	// SettledAt is set once settled.
 	SettledAt *time.Time
 	// FailedAt is set once failed.

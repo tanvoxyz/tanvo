@@ -15,7 +15,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
 
-var _ wallets.UsageSource = (*Service)(nil)
+var _ wallets.ComputedUsageSource = (*Service)(nil)
 
 // OngoingUsage implements [wallets.UsageSource] (lago
 // Customers::RefreshWalletsService inputs): for every active subscription
@@ -25,12 +25,30 @@ var _ wallets.UsageSource = (*Service)(nil)
 // customer's draft invoices with a non-zero total (amount + taxes −
 // coupons).
 func (s *Service) OngoingUsage(ctx context.Context, r port.Repos, c *customer.Customer) ([]wallets.UsageFee, error) {
+	fees, _, err := s.OngoingUsageComputed(ctx, r, c)
+	return fees, err
+}
+
+// OngoingUsageComputed implements [wallets.ComputedUsageSource]: the fees
+// of [Service.OngoingUsage] and the current usages ([]*[Usage], one per
+// active subscription) they come from.
+func (s *Service) OngoingUsageComputed(ctx context.Context, r port.Repos, c *customer.Customer) ([]wallets.UsageFee, wallets.ComputedUsage, error) {
+	usages, err := s.CustomerUsage(ctx, r, c.OrganizationID, c.ID, Options{})
+	if err != nil {
+		return nil, nil, err
+	}
+	fees, err := s.ongoingFees(ctx, r, c, usages)
+	if err != nil {
+		return nil, nil, err
+	}
+	return fees, usages, nil
+}
+
+// ongoingFees returns the usage fees of customer c from its current
+// usages.
+func (s *Service) ongoingFees(ctx context.Context, r port.Repos, c *customer.Customer, usages []*Usage) ([]wallets.UsageFee, error) {
 	org := c.OrganizationID
 	charges := chargeCache{r: r, org: org}
-	usages, err := s.CustomerUsage(ctx, r, org, c.ID, Options{})
-	if err != nil {
-		return nil, err
-	}
 	var out []wallets.UsageFee
 	add := func(f *invoice.Fee, amount int64) error {
 		uf := wallets.UsageFee{FeeType: f.Type, Currency: f.Currency, Amount: amount}

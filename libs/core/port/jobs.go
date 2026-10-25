@@ -34,20 +34,23 @@ const (
 	// QueueWallets runs the refreshes of wallets' ongoing balances (lago
 	// wallets, app/jobs/customers/refresh_wallet_job.rb:6-11).
 	QueueWallets Queue = "wallets"
+	// QueueStreaming runs the deliveries to streaming destinations (lago
+	// streaming, app/jobs/deliver_event_job.rb:4).
+	QueueStreaming Queue = "streaming"
 	// QueueDefault runs everything else.
 	QueueDefault Queue = "default"
 )
 
 // QueueValues returns every queue, in declaration order.
 func QueueValues() []Queue {
-	return []Queue{QueueBilling, QueuePayments, QueueWebhooks, QueueDocuments, QueueIntegrations, QueueExports, QueueAlerts, QueueAlertsHighPriority, QueueWallets, QueueDefault}
+	return []Queue{QueueBilling, QueuePayments, QueueWebhooks, QueueDocuments, QueueIntegrations, QueueExports, QueueAlerts, QueueAlertsHighPriority, QueueWallets, QueueStreaming, QueueDefault}
 }
 
 // Valid reports whether q is a declared queue.
 func (q Queue) Valid() bool {
 	switch q {
 	case QueueBilling, QueuePayments, QueueWebhooks, QueueDocuments, QueueIntegrations, QueueExports,
-		QueueAlerts, QueueAlertsHighPriority, QueueWallets, QueueDefault:
+		QueueAlerts, QueueAlertsHighPriority, QueueWallets, QueueStreaming, QueueDefault:
 		return true
 	default:
 		return false

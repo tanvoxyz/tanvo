@@ -137,7 +137,7 @@ func (p *Plan) Validate() error {
 		v.Check(catalogSplitsMonthly(p.Interval), "bill_fixed_charges_monthly", core.CodeForbidden)
 	}
 	v.Check(p.ParentID != p.ID || p.ID.IsZero(), "parent_id", core.CodeInvalid)
-	v.Merge("metadata", p.Metadata.Validate(core.MetadataLimits{}))
+	v.Merge("metadata", p.Metadata.Validate(core.ItemMetadataLimits()))
 	v.Enum("status", p.Status)
 	return v.Err()
 }
