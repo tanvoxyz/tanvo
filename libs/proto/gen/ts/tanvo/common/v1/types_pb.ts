@@ -10,6 +10,8 @@ import { fileDesc, messageDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_buf_validate_validate } from "../../../buf/validate/validate_pb.js";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_timestamp } from "@bufbuild/protobuf/wkt";
+import type { ConnectionBehavior } from "./enums_pb.js";
+import { file_tanvo_common_v1_enums } from "./enums_pb.js";
 import { file_tanvo_common_v1_options } from "./options_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -17,7 +19,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file tanvo/common/v1/types.proto.
  */
 export const file_tanvo_common_v1_types: GenFile = /*@__PURE__*/
-  fileDesc("Cht0YW52by9jb21tb24vdjEvdHlwZXMucHJvdG8SD3RhbnZvLmNvbW1vbi52MSJHCgVNb25leRIfCghjdXJyZW5jeRgBIAEoCUINukgKyAEBcgXYpMoGARIdCgZhbW91bnQYAiABKAlCDbpICsgBAXIFyKTKBgEirgEKB0FkZHJlc3MSFwoFbGluZTEYASABKAlCCLpIBXIDGP8BEhcKBWxpbmUyGAIgASgJQgi6SAVyAxj/ARIWCgRjaXR5GAMgASgJQgi6SAVyAxj/ARIXCgVzdGF0ZRgEIAEoCUIIukgFcgMY/wESGQoHemlwY29kZRgFIAEoCUIIukgFcgMY/wESJQoHY291bnRyeRgGIAEoCUIUukgRcg8yDV5bQS1aYS16XXsyfSQiXQoMTWV0YWRhdGFJdGVtEhgKA2tleRgBIAEoCUILukgIyAEBcgMY/wESFwoFdmFsdWUYAiABKAlCCLpIBXIDGP8BEhoKEmRpc3BsYXlfaW5faW52b2ljZRgDIAEoCCJhCg1EYXRlVGltZVJhbmdlEigKBGZyb20YASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEiYKAnRvGAIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcCJdCghEb2N1bWVudBILCgN1cmwYASABKAkSLgoKZXhwaXJlc19hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFAoMY29udGVudF90eXBlGAMgASgJQsUBChNjb20udGFudm8uY29tbW9uLnYxQgpUeXBlc1Byb3RvUAFaRGdpdGh1Yi5jb20vdGFudm94eXovdGFudm8vbGlicy9wcm90by9nZW4vZ28vdGFudm8vY29tbW9uL3YxO2NvbW1vbnYxogIDVENYqgIPVGFudm8uQ29tbW9uLlYxygIPVGFudm9cQ29tbW9uXFYx4gIbVGFudm9cQ29tbW9uXFYxXEdQQk1ldGFkYXRh6gIRVGFudm86OkNvbW1vbjo6VjFiCGVkaXRpb25zcOgH", [file_buf_validate_validate, file_google_protobuf_timestamp, file_tanvo_common_v1_options]);
+  fileDesc("Cht0YW52by9jb21tb24vdjEvdHlwZXMucHJvdG8SD3RhbnZvLmNvbW1vbi52MSJHCgVNb25leRIfCghjdXJyZW5jeRgBIAEoCUINukgKyAEBcgXYpMoGARIdCgZhbW91bnQYAiABKAlCDbpICsgBAXIFyKTKBgEirgEKB0FkZHJlc3MSFwoFbGluZTEYASABKAlCCLpIBXIDGP8BEhcKBWxpbmUyGAIgASgJQgi6SAVyAxj/ARIWCgRjaXR5GAMgASgJQgi6SAVyAxj/ARIXCgVzdGF0ZRgEIAEoCUIIukgFcgMY/wESGQoHemlwY29kZRgFIAEoCUIIukgFcgMY/wESJQoHY291bnRyeRgGIAEoCUIUukgRcg8yDV5bQS1aYS16XXsyfSQiXQoMTWV0YWRhdGFJdGVtEhgKA2tleRgBIAEoCUILukgIyAEBcgMY/wESFwoFdmFsdWUYAiABKAlCCLpIBXIDGP8BEhoKEmRpc3BsYXlfaW5faW52b2ljZRgDIAEoCCJrChBDb25uZWN0aW9uQ2hvaWNlEj8KCGJlaGF2aW9yGAEgASgOMiMudGFudm8uY29tbW9uLnYxLkNvbm5lY3Rpb25CZWhhdmlvckIIukgFggECEAESFgoEY29kZRgCIAEoCUIIukgFcgMY/wEiYQoNRGF0ZVRpbWVSYW5nZRIoCgRmcm9tGAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBImCgJ0bxgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXAiXQoIRG9jdW1lbnQSCwoDdXJsGAEgASgJEi4KCmV4cGlyZXNfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhQKDGNvbnRlbnRfdHlwZRgDIAEoCULFAQoTY29tLnRhbnZvLmNvbW1vbi52MUIKVHlwZXNQcm90b1ABWkRnaXRodWIuY29tL3RhbnZveHl6L3RhbnZvL2xpYnMvcHJvdG8vZ2VuL2dvL3RhbnZvL2NvbW1vbi92MTtjb21tb252MaICA1RDWKoCD1RhbnZvLkNvbW1vbi5WMcoCD1RhbnZvXENvbW1vblxWMeICG1RhbnZvXENvbW1vblxWMVxHUEJNZXRhZGF0YeoCEVRhbnZvOjpDb21tb246OlYxYghlZGl0aW9uc3DoBw", [file_buf_validate_validate, file_google_protobuf_timestamp, file_tanvo_common_v1_enums, file_tanvo_common_v1_options]);
 
 /**
  * Money is an exact monetary amount. The amount is a decimal string in the
@@ -146,6 +148,40 @@ export const MetadataItemSchema: GenMessage<MetadataItem> = /*@__PURE__*/
   messageDesc(file_tanvo_common_v1_types, 2);
 
 /**
+ * ConnectionChoice is a billing object's connection of one category
+ * (payment, tax, accounting or crm), the value of its `connections` map
+ * keyed by category. A request sends exactly one of a code, naming one of
+ * the customer's connections of the category by its integration's code,
+ * and a behavior, skip or inherit; categories left out keep their choice
+ * (inherit on creation). A response holds every category with its behavior
+ * and the code of the connection in effect, empty for none.
+ *
+ * @generated from message tanvo.common.v1.ConnectionChoice
+ */
+export type ConnectionChoice = Message<"tanvo.common.v1.ConnectionChoice"> & {
+  /**
+   * The behavior.
+   *
+   * @generated from field: tanvo.common.v1.ConnectionBehavior behavior = 1;
+   */
+  behavior: ConnectionBehavior;
+
+  /**
+   * The code of the connection's integration.
+   *
+   * @generated from field: string code = 2;
+   */
+  code: string;
+};
+
+/**
+ * Describes the message tanvo.common.v1.ConnectionChoice.
+ * Use `create(ConnectionChoiceSchema)` to create a new message.
+ */
+export const ConnectionChoiceSchema: GenMessage<ConnectionChoice> = /*@__PURE__*/
+  messageDesc(file_tanvo_common_v1_types, 3);
+
+/**
  * DateTimeRange is a half-open interval of instants `[from, to)`.
  *
  * @generated from message tanvo.common.v1.DateTimeRange
@@ -171,7 +207,7 @@ export type DateTimeRange = Message<"tanvo.common.v1.DateTimeRange"> & {
  * Use `create(DateTimeRangeSchema)` to create a new message.
  */
 export const DateTimeRangeSchema: GenMessage<DateTimeRange> = /*@__PURE__*/
-  messageDesc(file_tanvo_common_v1_types, 3);
+  messageDesc(file_tanvo_common_v1_types, 4);
 
 /**
  * Document is a rendered document (PDF or e-invoice XML) available for
@@ -207,5 +243,5 @@ export type Document = Message<"tanvo.common.v1.Document"> & {
  * Use `create(DocumentSchema)` to create a new message.
  */
 export const DocumentSchema: GenMessage<Document> = /*@__PURE__*/
-  messageDesc(file_tanvo_common_v1_types, 4);
+  messageDesc(file_tanvo_common_v1_types, 5);
 

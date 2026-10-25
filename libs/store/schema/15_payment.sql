@@ -6,7 +6,7 @@
 -- integration referenced by payment rows cannot be deleted.
 
 -- A customer's identity at one provider connection (domain §15.5); one live
--- row per (customer, connection).
+-- row per (customer, connection) and at most one live default per customer.
 CREATE TABLE payment_provider_customers (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -15,6 +15,7 @@ CREATE TABLE payment_provider_customers (
   provider_customer_id text,
   sync_with_provider boolean NOT NULL DEFAULT false,
   provider_payment_methods text[] NOT NULL DEFAULT '{}',
+  is_default boolean NOT NULL DEFAULT false,
   deleted_at timestamptz,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,
@@ -24,6 +25,7 @@ CREATE TABLE payment_provider_customers (
 );
 
 CREATE UNIQUE INDEX payment_provider_customers_customer_integration_live_key ON payment_provider_customers (organization_id, customer_id, integration_id) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX payment_provider_customers_default_live_key ON payment_provider_customers (organization_id, customer_id) WHERE is_default AND deleted_at IS NULL;
 CREATE INDEX payment_provider_customers_integration_idx ON payment_provider_customers (organization_id, integration_id) WHERE deleted_at IS NULL;
 CREATE INDEX payment_provider_customers_provider_customer_idx ON payment_provider_customers (organization_id, integration_id, provider_customer_id) WHERE deleted_at IS NULL;
 
@@ -33,7 +35,8 @@ CREATE POLICY tenant_isolation ON payment_provider_customers
 
 -- A customer's payment method at a provider connection (domain §15.5);
 -- details is the store-encoded payment.MethodDetails. At most one live
--- default per customer.
+-- default per customer, and one live method per provider customer and
+-- provider method.
 CREATE TABLE payment_methods (
   organization_id uuid NOT NULL,
   id uuid NOT NULL,
@@ -56,6 +59,7 @@ CREATE TABLE payment_methods (
 CREATE UNIQUE INDEX payment_methods_default_live_key ON payment_methods (organization_id, customer_id) WHERE is_default AND deleted_at IS NULL;
 CREATE INDEX payment_methods_customer_idx ON payment_methods (organization_id, customer_id);
 CREATE INDEX payment_methods_provider_method_idx ON payment_methods (organization_id, integration_id, provider_method_id) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX payment_methods_provider_method_live_key ON payment_methods (organization_id, payment_provider_customer_id, provider_method_id) WHERE deleted_at IS NULL;
 CREATE INDEX payment_methods_provider_customer_idx ON payment_methods (organization_id, payment_provider_customer_id);
 
 ALTER TABLE payment_methods ENABLE ROW LEVEL SECURITY;

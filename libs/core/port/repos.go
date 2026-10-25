@@ -190,6 +190,8 @@ type Repos struct {
 	Integrations integration.Repository
 	// IntegrationCustomers stores customers linked to integrations.
 	IntegrationCustomers integration.CustomerRepository
+	// ObjectConnections stores billing objects' connection choices.
+	ObjectConnections integration.ObjectConnectionRepository
 	// IntegrationMappings stores per-object mappings.
 	IntegrationMappings integration.MappingRepository
 	// IntegrationCollectionMappings stores collection mappings.

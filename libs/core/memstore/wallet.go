@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/wallet"
 )
 
@@ -230,7 +231,10 @@ func (r walletTransactionRepo) ListConsumptionsByInbound(_ context.Context, org 
 }
 
 // recurringRuleRepo implements wallet.RecurringTransactionRuleRepository.
-type recurringRuleRepo struct{ d *walletData }
+type recurringRuleRepo struct {
+	d  *walletData
+	st *state
+}
 
 var _ wallet.RecurringTransactionRuleRepository = recurringRuleRepo{}
 
@@ -265,6 +269,9 @@ func (r recurringRuleRepo) Delete(_ context.Context, org core.OrganizationID, id
 		return notFound("recurring_transaction_rule", id)
 	}
 	r.d.rules.del(id)
+	r.st.integration.objectConnections.deleteWhere(func(x *integration.ObjectConnection) bool {
+		return x.Owner.RecurringTransactionRuleID == id
+	})
 	return nil
 }
 

@@ -396,6 +396,14 @@ message Subscription {
   // plan_overrides.usage_thresholds; on read, the thresholds that apply
   // (its own, else its plan's, else the original plan's).
   repeated tanvo.catalog.v1.UsageThreshold usage_thresholds = 39 [(buf.validate.field).repeated.max_items = 50];
+  // The connection choices keyed by category: payment, tax, accounting
+  // and crm (see ConnectionChoice).
+  map<string, tanvo.common.v1.ConnectionChoice> connections = 40 [(buf.validate.field).map = {
+    max_pairs: 16
+    keys: {
+      string: {max_len: 64}
+    }
+  }];
 }
 
 // UsageThresholdProgress is a threshold and the lifetime usage still needed
@@ -534,6 +542,14 @@ message ChangeSubscriptionPlanRequest {
   PlanOverrides plan_overrides = 3;
   // The new subscription's name; the current one by default.
   string name = 4 [(buf.validate.field).string.max_len = 255];
+  // The connection choices of the subscription on the new plan, keyed by
+  // category (see tanvo.common.v1.ConnectionChoice).
+  map<string, tanvo.common.v1.ConnectionChoice> connections = 5 [(buf.validate.field).map = {
+    max_pairs: 16
+    keys: {
+      string: {max_len: 64}
+    }
+  }];
 }
 
 // ChangeSubscriptionPlanResponse is the response of SubscriptionService.ChangeSubscriptionPlan.

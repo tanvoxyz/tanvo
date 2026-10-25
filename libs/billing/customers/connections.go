@@ -31,8 +31,7 @@ type Connection struct {
 	// ProviderPaymentMethods are the payment method types allowed at
 	// checkout (payment connections).
 	ProviderPaymentMethods []string
-	// IsDefault marks the default connection of its category; a payment
-	// connection, the only one of its customer, is the default.
+	// IsDefault marks the default connection of its category.
 	IsDefault bool
 	// TargetedObject is the HubSpot object of the customer
 	// (integration.TargetedObjectCompanies or TargetedObjectContacts),
@@ -155,7 +154,7 @@ func paymentConnection(in *integration.Integration, pc *payment.ProviderCustomer
 		ExternalCustomerID:     value(pc.ProviderCustomerID),
 		SyncWithProvider:       pc.SyncWithProvider,
 		ProviderPaymentMethods: slices.Clone(pc.ProviderPaymentMethods),
-		IsDefault:              true,
+		IsDefault:              pc.IsDefault,
 		CreatedAt:              pc.CreatedAt,
 		UpdatedAt:              pc.UpdatedAt,
 	}
@@ -180,16 +179,15 @@ func integrationConnection(in *integration.Integration, ic *integration.Integrat
 // UpsertConnection creates or updates the connection of the live customer
 // id to the integration ref names.
 //
-// A payment connection is a provider customer; a customer has at most one
-// (only_one_connection_allowed, lago
-// payment_provider_customers/create_or_update_batch_service.rb:24-29). An
-// accounting, tax or CRM connection is an integration customer: the first
-// of its category, or one asked to be, is the default and the others of
-// the category stop being it
-// (integration_customers/create_connection_service.rb,
+// A payment connection is a provider customer; an accounting, tax or CRM
+// connection is an integration customer. A customer has at most one
+// connection per provider (customer_id value_already_exist). The first of
+// its category, or one asked to be, is the default and the others of the
+// category stop being it (payment_provider_customers and
+// integration_customers create_connection_service.rb,
 // set_as_default_service.rb). None is created or changed for a partner
-// account, and none is created without an external customer ID or
-// sync_with_provider: the result is
+// account (integration customers), and none is created without an
+// external customer ID or sync_with_provider: the result is
 // the zero Connection, whose Integration is nil
 // (create_connection_service.rb:18-19,
 // create_or_update_batch_service.rb:16, 90-94). An update assigns a
@@ -198,7 +196,8 @@ func integrationConnection(in *integration.Integration, ic *integration.Integrat
 // flag and the subsidiary are set at creation.
 //
 // source: app/services/integration_customers/create_or_update_batch_service.rb:14-29
-// source: app/services/payment_provider_customers/create_or_update_batch_service.rb:20-80
+// source: app/services/payment_provider_customers/create_connection_service.rb:14-37
+// source: app/services/payment_provider_customers/set_as_default_service.rb:14-31
 func (s *Service) UpsertConnection(ctx context.Context, org core.OrganizationID, id core.CustomerID, ref refs.Ref, in ConnectionInput) (Connection, error) {
 	var out Connection
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
@@ -229,26 +228,43 @@ func (s *Service) UpsertConnection(ctx context.Context, org core.OrganizationID,
 
 func (s *Service) upsertPayment(ctx context.Context, r port.Repos, c *customer.Customer, integ *integration.Integration, in ConnectionInput) (Connection, error) {
 	now := s.d.Now()
-	pc, err := r.PaymentProviderCustomers.GetByCustomer(ctx, c.OrganizationID, c.ID, integ.ID)
-	created := errors.Is(err, core.ErrNotFound)
-	switch {
-	case created:
-		others, err := r.PaymentProviderCustomers.ListByCustomer(ctx, c.OrganizationID, c.ID)
-		if err != nil {
-			return Connection{}, fmt.Errorf("list payment connections: %w", err)
-		}
-		if len(others) > 0 {
-			return Connection{}, fieldError("connection", CodeOnlyOneConnectionAllowed)
-		}
+	links, err := r.PaymentProviderCustomers.ListByCustomer(ctx, c.OrganizationID, c.ID)
+	if err != nil {
+		return Connection{}, fmt.Errorf("list payment connections: %w", err)
+	}
+	links = slices.DeleteFunc(links, (*payment.ProviderCustomer).Deleted)
+	i := slices.IndexFunc(links, func(l *payment.ProviderCustomer) bool { return l.IntegrationID == integ.ID })
+	var pc *payment.ProviderCustomer
+	var v core.Validator
+	created := i < 0
+	if created && in.ExternalCustomerID.Value == "" && !in.SyncWithProvider.Value {
+		// create_connection_service.rb:18, 54-56.
+		return Connection{}, nil
+	}
+	if created {
 		pc = &payment.ProviderCustomer{
 			ID:             core.NewID[core.PaymentProviderCustomerID](s.d.IDs),
 			OrganizationID: c.OrganizationID,
 			CustomerID:     c.ID,
 			IntegrationID:  integ.ID,
-			CreatedAt:      now,
+			// create_connection_service.rb:21, 27: the first is the default.
+			IsDefault: len(links) == 0,
+			CreatedAt: now,
 		}
-	case err != nil:
-		return Connection{}, fmt.Errorf("find payment connection: %w", err)
+		// One connection per provider (base_customer.rb:32, customer_id
+		// value_already_exist).
+		for _, l := range links {
+			li, err := r.Integrations.Get(ctx, c.OrganizationID, l.IntegrationID)
+			if err != nil {
+				return Connection{}, fmt.Errorf("load integration %s: %w", l.IntegrationID, err)
+			}
+			if li.Provider == integ.Provider {
+				v.Add("customer_id", core.CodeAlreadyExists)
+				break
+			}
+		}
+	} else {
+		pc = links[i]
 	}
 	ch := kernel.ConnectionChange{Created: created, ProviderCustomerIDSet: in.ExternalCustomerID.Set}
 	if pc.ProviderCustomerID != nil {
@@ -261,12 +277,38 @@ func (s *Service) upsertPayment(ctx context.Context, r port.Repos, c *customer.C
 		}
 	}
 	in.SyncWithProvider.Apply(&pc.SyncWithProvider)
-	in.ProviderPaymentMethods.Apply(&pc.ProviderPaymentMethods)
+	// stripe/customers/create_service.rb:60-70: an empty list keeps an
+	// existing connection's types and gives a new one the defaults.
+	types := in.ProviderPaymentMethods.Set && len(in.ProviderPaymentMethods.Value) > 0
+	if types {
+		pc.ProviderPaymentMethods = in.ProviderPaymentMethods.Value
+	}
 	pc.UpdatedAt = now
-	var v core.Validator
 	v.Merge("", pc.Validate())
+	if gw := s.customerGateway(integ.Provider); gw != nil && (created || types) {
+		if created && len(pc.ProviderPaymentMethods) == 0 {
+			pc.ProviderPaymentMethods = gw.DefaultMethodTypes()
+		}
+		// stripe_customer.rb:9-12, validated on every save.
+		v.Merge("", gw.ValidateMethodTypes(pc.ProviderPaymentMethods))
+	}
 	if err := v.Err(); err != nil {
 		return Connection{}, err
+	}
+	if in.IsDefault.Set && in.IsDefault.Value && !pc.IsDefault {
+		// set_as_default_service.rb:23-27: the others stop being it.
+		for _, l := range links {
+			if l.ID == pc.ID || !l.IsDefault {
+				continue
+			}
+			l.IsDefault, l.UpdatedAt = false, now
+			if err := r.PaymentProviderCustomers.Update(ctx, l); err != nil {
+				return Connection{}, fmt.Errorf("unset default payment connection %s: %w", l.ID, err)
+			}
+		}
+		pc.IsDefault = true
+	} else if in.IsDefault.Set && !in.IsDefault.Value {
+		pc.IsDefault = false
 	}
 	if created {
 		err = r.PaymentProviderCustomers.Create(ctx, pc)
@@ -274,7 +316,7 @@ func (s *Service) upsertPayment(ctx context.Context, r port.Repos, c *customer.C
 		err = r.PaymentProviderCustomers.Update(ctx, pc)
 	}
 	if errors.Is(err, core.ErrConflict) {
-		return Connection{}, fieldError("connection", CodeOnlyOneConnectionAllowed)
+		return Connection{}, fieldError("customer_id", core.CodeAlreadyExists)
 	}
 	if err != nil {
 		return Connection{}, fmt.Errorf("store payment connection: %w", err)
@@ -283,6 +325,19 @@ func (s *Service) upsertPayment(ctx context.Context, r port.Repos, c *customer.C
 		return Connection{}, err
 	}
 	return paymentConnection(integ, pc), nil
+}
+
+// customerGateway returns the adapter of payment vendor p, or nil without
+// one.
+func (s *Service) customerGateway(p integration.Provider) payment.CustomerGateway {
+	if s.gateways == nil {
+		return nil
+	}
+	gw, err := s.gateways.PaymentProvider(p)
+	if err != nil {
+		return nil
+	}
+	return gw
 }
 
 func (s *Service) upsertIntegration(ctx context.Context, r port.Repos, c *customer.Customer, integ *integration.Integration, in ConnectionInput) (Connection, error) {
@@ -391,9 +446,12 @@ func (s *Service) upsertIntegration(ctx context.Context, r port.Repos, c *custom
 }
 
 // DeleteConnection deletes the connection of the customer id to the
-// integration ref names: a payment connection is discarded, an integration
-// customer destroyed (lago PaymentProviderCustomers::DestroyService,
-// IntegrationCustomers::DestroyService).
+// integration ref names: a payment connection is discarded with its
+// payment methods, an integration customer destroyed, and the billing
+// objects' choices of either deleted (lago
+// PaymentProviderCustomers::DestroyService,
+// IntegrationCustomers::DestroyService). Another connection does not
+// become the default.
 func (s *Service) DeleteConnection(ctx context.Context, org core.OrganizationID, id core.CustomerID, ref refs.Ref) error {
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
 		if _, err := r.Customers.Get(ctx, org, id); err != nil {
@@ -410,12 +468,7 @@ func (s *Service) DeleteConnection(ctx context.Context, org core.OrganizationID,
 			} else if err != nil {
 				return fmt.Errorf("find payment connection: %w", err)
 			}
-			now := s.d.Now()
-			pc.DeletedAt, pc.UpdatedAt = &now, now
-			if err := r.PaymentProviderCustomers.Update(ctx, pc); err != nil {
-				return fmt.Errorf("discard payment connection: %w", err)
-			}
-			return nil
+			return s.discardPayment(ctx, r, pc)
 		}
 		links, err := r.IntegrationCustomers.ListByCustomer(ctx, org, id, integ.Category)
 		if err != nil {
@@ -436,9 +489,43 @@ func (s *Service) DeleteConnection(ctx context.Context, org core.OrganizationID,
 	return nil
 }
 
+// discardPayment discards the payment connection pc, which stops being
+// the default, with its payment methods and the billing objects' choices of
+// it.
+//
+// source: app/services/payment_provider_customers/destroy_service.rb:14-26
+func (s *Service) discardPayment(ctx context.Context, r port.Repos, pc *payment.ProviderCustomer) error {
+	now := s.d.Now()
+	pc.IsDefault = false
+	pc.DeletedAt, pc.UpdatedAt = &now, now
+	if err := r.PaymentProviderCustomers.Update(ctx, pc); err != nil {
+		return fmt.Errorf("discard payment connection: %w", err)
+	}
+	methods, err := r.PaymentMethods.ListByCustomer(ctx, pc.OrganizationID, pc.CustomerID)
+	if err != nil {
+		return fmt.Errorf("list payment methods: %w", err)
+	}
+	for _, m := range methods {
+		if m.PaymentProviderCustomerID != pc.ID || m.Deleted() {
+			continue
+		}
+		if err := m.Delete(now); err != nil {
+			return err
+		}
+		if err := r.PaymentMethods.Update(ctx, m); err != nil {
+			return fmt.Errorf("discard payment method %s: %w", m.ID, err)
+		}
+	}
+	if err := r.ObjectConnections.DeleteByPaymentProviderCustomer(ctx, pc.OrganizationID, pc.ID); err != nil {
+		return fmt.Errorf("delete billing object connections: %w", err)
+	}
+	return nil
+}
+
 // CheckoutURL returns the checkout URL of the live customer id with its
-// payment connection to the integration ref names, or its only payment
-// connection for a zero ref. A customer without one fails with
+// payment connection to the integration ref names, or its payment
+// connection in effect for a zero ref (the only one, else the default). A
+// customer without one fails with
 // no_linked_payment_provider; without a [CheckoutURLGenerator] the call
 // fails with [ErrCheckoutUnavailable] once these checks pass.
 //
@@ -467,10 +554,9 @@ func (s *Service) CheckoutURL(ctx context.Context, org core.OrganizationID, id c
 			}
 			pcs = slices.DeleteFunc(pcs, func(pc *payment.ProviderCustomer) bool { return pc.IntegrationID != integ.ID })
 		}
-		if len(pcs) == 0 {
+		if f.pc = payment.DefaultProviderCustomer(pcs); f.pc == nil {
 			return f, fieldError("base", CodeNoLinkedPaymentProvider)
 		}
-		f.pc = pcs[0]
 		if f.integ, err = r.Integrations.Get(ctx, org, f.pc.IntegrationID); err != nil {
 			return f, fmt.Errorf("load integration %s: %w", f.pc.IntegrationID, err)
 		}

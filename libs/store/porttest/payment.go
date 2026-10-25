@@ -688,6 +688,9 @@ func testPayment(t *testing.T, h Harness) {
 			wantErr(t, "Create() second default", r.PaymentMethods.Create(ctx, dup), core.ErrConflict)
 			dup.DeletedAt = ptr(now)
 			noErr(t, "Create() deleted default", r.PaymentMethods.Create(ctx, dup))
+			twin := method(pa.customers[0], "pm_1", false)
+			twin.PaymentProviderCustomerID = ppc.ID
+			wantErr(t, "Create() same provider customer and method", r.PaymentMethods.Create(ctx, twin), core.ErrConflict)
 
 			for _, m := range []*payment.Method{m1, m2} {
 				got, err := r.PaymentMethods.Get(ctx, pa.org, m.ID)
@@ -743,6 +746,7 @@ func testPayment(t *testing.T, h Harness) {
 			other := *m2
 			other.OrganizationID = pb.org
 			wantErr(t, "Update() other org", r.PaymentMethods.Update(ctx, &other), core.ErrNotFound)
+			noErr(t, "Create() method of a deleted one", r.PaymentMethods.Create(ctx, twin))
 			return nil
 		})
 	})
@@ -763,6 +767,7 @@ func testPayment(t *testing.T, h Harness) {
 		c1 := pc(pa.customers[0], pa.integrations[0], ptr("cus_1"))
 		c1.SyncWithProvider = true
 		c1.ProviderPaymentMethods = []string{"card", "sepa_debit"}
+		c1.IsDefault = true
 		c2 := pc(pa.customers[0], pa.integrations[1], nil)
 		c3 := pc(pa.customers[1], pa.integrations[0], ptr("cus_3"))
 		cOther := pc(pb.customers[0], pb.integrations[0], ptr("cus_1"))
@@ -811,6 +816,11 @@ func testPayment(t *testing.T, h Harness) {
 			noErr(t, "ListByIntegration() other org", err)
 			equal(t, "ListByIntegration() other org", len(list), 0)
 
+			// A second live default conflicts.
+			c2.IsDefault = true
+			wantErr(t, "Update() second default", r.PaymentProviderCustomers.Update(ctx, c2), core.ErrConflict)
+			c2.IsDefault = false
+
 			// Reviving the deleted row conflicts; deleting the live one first
 			// frees the connection.
 			dup.DeletedAt = nil
@@ -821,6 +831,8 @@ func testPayment(t *testing.T, h Harness) {
 			c1.UpdatedAt = at(time.Minute)
 			noErr(t, "Update() deleting", r.PaymentProviderCustomers.Update(ctx, c1))
 			noErr(t, "Update() reviving after", r.PaymentProviderCustomers.Update(ctx, dup))
+			c2.IsDefault, c2.UpdatedAt = true, at(time.Minute)
+			noErr(t, "Update() default after the default is deleted", r.PaymentProviderCustomers.Update(ctx, c2))
 			got, err = r.PaymentProviderCustomers.Get(ctx, pa.org, c1.ID)
 			noErr(t, "Get() after Update()", err)
 			equal(t, "Get() after Update()", got, c1)

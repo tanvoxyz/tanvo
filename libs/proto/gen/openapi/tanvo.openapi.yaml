@@ -12687,6 +12687,17 @@ paths:
                   title: name
                   maxLength: 255
                   description: The new subscription's name; the current one by default.
+                connections:
+                  type: object
+                  title: connections
+                  maxProperties: 16
+                  additionalProperties:
+                    allOf:
+                      - $ref: '#/components/schemas/tanvo.common.v1.ConnectionChoice'
+                    title: value
+                  description: |-
+                    The connection choices of the subscription on the new plan, keyed by
+                     category (see tanvo.common.v1.ConnectionChoice).
               title: ChangeSubscriptionPlanRequest
               required:
                 - plan_id
@@ -22175,6 +22186,42 @@ components:
       description: |-
         Address is a postal address. Every field is optional; country is
          validated.
+    tanvo.common.v1.ConnectionBehavior:
+      type: string
+      title: ConnectionBehavior
+      enum:
+        - CONNECTION_BEHAVIOR_UNSPECIFIED
+        - CONNECTION_BEHAVIOR_SPECIFIC
+        - CONNECTION_BEHAVIOR_SKIP
+        - CONNECTION_BEHAVIOR_INHERIT
+      description: |-
+        ConnectionBehavior is how a billing object (a subscription, a wallet or a
+         recurring transaction rule) picks its connection of a category.
+    tanvo.common.v1.ConnectionChoice:
+      type: object
+      properties:
+        behavior:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.ConnectionBehavior'
+          title: behavior
+          description: |
+            The behavior.
+            enum.defined_only = true
+        code:
+          type: string
+          title: code
+          maxLength: 255
+          description: The code of the connection's integration.
+      title: ConnectionChoice
+      additionalProperties: false
+      description: |-
+        ConnectionChoice is a billing object's connection of one category
+         (payment, tax, accounting or crm), the value of its `connections` map
+         keyed by category. A request sends exactly one of a code, naming one of
+         the customer's connections of the category by its integration's code,
+         and a behavior, skip or inherit; categories left out keep their choice
+         (inherit on creation). A response holds every category with its behavior
+         and the code of the connection in effect, empty for none.
     tanvo.common.v1.DateTimeRange:
       type: object
       properties:
@@ -32548,6 +32595,17 @@ components:
           title: name
           maxLength: 255
           description: The new subscription's name; the current one by default.
+        connections:
+          type: object
+          title: connections
+          maxProperties: 16
+          additionalProperties:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.common.v1.ConnectionChoice'
+            title: value
+          description: |-
+            The connection choices of the subscription on the new plan, keyed by
+             category (see tanvo.common.v1.ConnectionChoice).
       title: ChangeSubscriptionPlanRequest
       required:
         - subscription_id
@@ -33644,6 +33702,17 @@ components:
              subscription's own thresholds, which replace its own and exclude
              plan_overrides.usage_thresholds; on read, the thresholds that apply
              (its own, else its plan's, else the original plan's).
+        connections:
+          type: object
+          title: connections
+          maxProperties: 16
+          additionalProperties:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.common.v1.ConnectionChoice'
+            title: value
+          description: |-
+            The connection choices keyed by category: payment, tax, accounting
+             and crm (see ConnectionChoice).
       title: Subscription
       required:
         - external_id
@@ -35137,6 +35206,17 @@ components:
           title: created_at
           description: When the rule was created.
           readOnly: true
+        connections:
+          type: object
+          title: connections
+          maxProperties: 16
+          additionalProperties:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.common.v1.ConnectionChoice'
+            title: value
+          description: |-
+            The connection choices keyed by category: payment, tax, accounting
+             and crm (see ConnectionChoice).
       title: RecurringTransactionRule
       required:
         - trigger
@@ -35523,6 +35603,17 @@ components:
           title: updated_at
           description: When the wallet last changed.
           readOnly: true
+        connections:
+          type: object
+          title: connections
+          maxProperties: 16
+          additionalProperties:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.common.v1.ConnectionChoice'
+            title: value
+          description: |-
+            The connection choices keyed by category: payment, tax, accounting
+             and crm (see ConnectionChoice).
       title: Wallet
       required:
         - customer_id

@@ -13,6 +13,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/payment"
@@ -116,6 +117,9 @@ type CreateInput struct {
 	PaymentMethod *PaymentMethod
 	// InvoiceCustomSections, when not nil, selects the custom sections.
 	InvoiceCustomSections *CustomSections
+	// Connections, keyed by category, choose the subscription's
+	// connections (domain §15.5); categories left out inherit.
+	Connections map[string]kernel.ConnectionChoice
 	// ActivationRules are the activation rules.
 	ActivationRules []ActivationRule
 	// PlanOverrides, when not nil, subscribe to an override plan of Plan
@@ -170,6 +174,8 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (*View, error) {
 		if err := checkActivationRules(ctx, r, &v, c, nil, in.PaymentMethod, in.ActivationRules, false); err != nil {
 			return err
 		}
+		// validate_service.rb:105-113.
+		kernel.ValidateConnections(&v, in.Connections)
 		if err := v.Err(); err != nil {
 			return err
 		}
@@ -236,9 +242,13 @@ func (s *Service) Create(ctx context.Context, in CreateInput) (*View, error) {
 				return err
 			}
 		}
-		downgrade := res.ID != sub.ID && res.Status == subscription.StatusPending && !res.PreviousSubscriptionID.IsZero()
-		if !downgrade && in.InvoiceCustomSections != nil {
-			// create_service.rb:87: not on a downgrade.
+		// create_service.rb:87-89 attach the custom sections and the
+		// connections to the resulting subscription, and on a downgrade
+		// plan_downgrade_service.rb:62-64 to the pending one, which res is.
+		if err := kernel.AttachConnections(ctx, s.d, r, org, c.ID, integration.ObjectOwner{SubscriptionID: res.ID}, in.Connections); err != nil {
+			return err
+		}
+		if in.InvoiceCustomSections != nil {
 			if err := attachSections(ctx, r, res, *in.InvoiceCustomSections); err != nil {
 				return err
 			}
@@ -397,7 +407,7 @@ func paymentRuleError(ctx context.Context, r port.Repos, c *customer.Customer, s
 	if err != nil {
 		return "", fmt.Errorf("list provider customers of %s: %w", c.ID, err)
 	}
-	linked := len(providers) > 0
+	linked := payment.DefaultProviderCustomer(providers) != nil
 	switch {
 	case typ != "" && typ == core.PaymentMethodTypeProvider && method != nil:
 		return "", nil

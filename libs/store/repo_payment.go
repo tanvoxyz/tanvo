@@ -780,6 +780,7 @@ func paymentProviderCustomerParams(c *payment.ProviderCustomer) db.CreatePayment
 		ProviderCustomerID:     c.ProviderCustomerID,
 		SyncWithProvider:       c.SyncWithProvider,
 		ProviderPaymentMethods: enumStrings(c.ProviderPaymentMethods),
+		IsDefault:              c.IsDefault,
 		DeletedAt:              optUTC(c.DeletedAt),
 		CreatedAt:              utc(c.CreatedAt),
 		UpdatedAt:              utc(c.UpdatedAt),
@@ -795,6 +796,7 @@ func paymentProviderCustomerOf(r db.PaymentProviderCustomer) (*payment.ProviderC
 		ProviderCustomerID:     r.ProviderCustomerID,
 		SyncWithProvider:       r.SyncWithProvider,
 		ProviderPaymentMethods: enumsOf[string](r.ProviderPaymentMethods),
+		IsDefault:              r.IsDefault,
 		DeletedAt:              optUTC(r.DeletedAt),
 		CreatedAt:              utc(r.CreatedAt),
 		UpdatedAt:              utc(r.UpdatedAt),
@@ -815,7 +817,8 @@ func (r paymentProviderCustomerRepo) Update(ctx context.Context, c *payment.Prov
 	if err != nil {
 		return err
 	}
-	// One live row per (customer, connection).
+	// One live row per (customer, connection), one live default per
+	// customer.
 	var n int64
 	err = r.t.guard(ctx, func() (err error) {
 		n, err = q.UpdatePaymentProviderCustomer(ctx, db.UpdatePaymentProviderCustomerParams(paymentProviderCustomerParams(c)))

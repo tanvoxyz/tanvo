@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/lifecycle"
 	"github.com/tanvoxyz/tanvo/libs/billing/plans"
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
 )
@@ -28,6 +30,9 @@ type ChangePlanInput struct {
 	// plan of Plan with these values; a subscription starting in the
 	// future moves to Plan itself.
 	PlanOverrides *plans.OverrideInput
+	// Connections, keyed by category, choose the connections of the
+	// subscription on the new plan (domain §15.5).
+	Connections map[string]kernel.ConnectionChoice
 }
 
 // PlanChange is the result of a plan change.
@@ -58,6 +63,12 @@ func (s *Service) ChangePlan(ctx context.Context, in ChangePlanInput) (*PlanChan
 		if err != nil {
 			return err
 		}
+		// validate_service.rb:105-113.
+		var v core.Validator
+		kernel.ValidateConnections(&v, in.Connections)
+		if err := v.Err(); err != nil {
+			return err
+		}
 		if in.PlanOverrides != nil && cur.PlanID != plan.ID && !cur.StartingInTheFuture() {
 			// plan_upgrade_service.rb:57, plan_downgrade_service.rb:36; a
 			// subscription starting in the future moves to plan itself
@@ -72,6 +83,12 @@ func (s *Service) ChangePlan(ctx context.Context, in ChangePlanInput) (*PlanChan
 		}
 		next, err := s.life.ChangePlan(ctx, ci)
 		if err != nil {
+			return err
+		}
+		// create_service.rb:89 on the upgraded subscription or the one
+		// changed in place, plan_downgrade_service.rb:64 on the pending
+		// downgrade: the subscription on the new plan.
+		if err := kernel.AttachConnections(ctx, s.d, r, org, next.CustomerID, integration.ObjectOwner{SubscriptionID: next.ID}, in.Connections); err != nil {
 			return err
 		}
 		now := s.d.Now()

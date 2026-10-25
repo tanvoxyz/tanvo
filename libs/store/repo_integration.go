@@ -22,6 +22,7 @@ func (t *txState) bindIntegration(r *port.Repos) {
 	r.IntegrationCollectionMappings = integrationCollectionMappingRepo{t}
 	r.IntegrationItems = integrationItemRepo{t}
 	r.IntegrationResources = integrationResourceRepo{t}
+	r.ObjectConnections = objectConnectionRepo{t}
 }
 
 // integrationOptEnum returns nil for the empty enum value (no filter).

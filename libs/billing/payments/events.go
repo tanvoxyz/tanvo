@@ -674,12 +674,63 @@ func (s *Service) handleMethodAttached(ctx context.Context, pc providerConn, e p
 		}
 	}
 	return s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
+		var err error
 		if e.SetAsDefault {
-			return s.updateDefaultMethod(ctx, r, pcust, e.ProviderMethodID, details)
+			err = s.updateDefaultMethod(ctx, r, pcust, e.ProviderMethodID, details)
+		} else {
+			_, err = s.findOrCreateMethod(ctx, r, pcust, e.ProviderMethodID, details, false)
 		}
-		_, err := s.findOrCreateMethod(ctx, r, pcust, e.ProviderMethodID, details, false)
-		return err
+		if err != nil || pc.integ.Provider != integration.ProviderMoneyhash || e.Details.IsZero() {
+			return err
+		}
+		return s.updateMethodDetails(ctx, r, pcust, e.ProviderMethodID, e.Details)
 	})
+}
+
+// updateMethodDetails stores the card details a MoneyHash card token event
+// reports on the customer's method of the provider identifier id, already
+// known or just created: each detail the event knows replaces the stored
+// one, the others are kept (lago PaymentMethods::UpdateDetailsService
+// insert, called by moneyhash_service.rb:89-94). An unknown method is left
+// alone, as the caller only updates a method it found or created
+// (moneyhash_service.rb:89).
+//
+// source: app/services/payment_methods/update_details_service.rb:15-25
+func (s *Service) updateMethodDetails(ctx context.Context, r port.Repos, pcust *payment.ProviderCustomer, id string, details payment.MethodDetails) error {
+	m, err := r.PaymentMethods.GetByProviderMethodID(ctx, pcust.OrganizationID, pcust.IntegrationID, id)
+	if isNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return wrap(err, "load payment method %s", id)
+	}
+	if m.CustomerID != pcust.CustomerID {
+		return nil
+	}
+	merged := m.Details
+	for _, f := range []struct {
+		dst *string
+		src string
+	}{{&merged.Type, details.Type}, {&merged.Brand, details.Brand}, {&merged.Last4, details.Last4}} {
+		if f.src != "" {
+			*f.dst = f.src
+		}
+	}
+	if details.ExpMonth != 0 {
+		merged.ExpMonth = details.ExpMonth
+	}
+	if details.ExpYear != 0 {
+		merged.ExpYear = details.ExpYear
+	}
+	if merged == m.Details {
+		return nil
+	}
+	m.Details = merged
+	m.UpdatedAt = s.d.Now()
+	if err := r.PaymentMethods.Update(ctx, m); err != nil {
+		return wrap(err, "update payment method %s", m.ID)
+	}
+	return nil
 }
 
 // eventCustomer returns the live provider customer of integ an event
@@ -798,22 +849,28 @@ func (s *Service) updateDefaultMethod(ctx context.Context, r port.Repos, pcust *
 // default when Tanvo does not have it (lago
 // PaymentMethods::FindOrCreateFromProviderService and
 // CreateFromProviderService); a found one is made the default with
-// setDefault. An empty id finds nothing.
+// setDefault, unless it is already. A method created meanwhile by another
+// transaction (the live provider customer and method key taken) is found
+// again, as find_or_create_from_provider_service.rb:26-27 does. An empty id
+// finds nothing.
 func (s *Service) findOrCreateMethod(ctx context.Context, r port.Repos, pcust *payment.ProviderCustomer, id string, details payment.MethodDetails, setDefault bool) (*payment.Method, error) {
 	if id == "" {
 		return nil, nil
 	}
 	org := pcust.OrganizationID
-	m, err := r.PaymentMethods.GetByProviderMethodID(ctx, org, pcust.IntegrationID, id)
-	switch {
-	case err == nil:
+	found := func(m *payment.Method) (*payment.Method, error) {
 		if m.CustomerID != pcust.CustomerID {
 			return nil, nil
 		}
-		if !setDefault {
+		if !setDefault || m.IsDefault {
 			return m, nil
 		}
 		return m, s.setDefault(ctx, r, m)
+	}
+	m, err := r.PaymentMethods.GetByProviderMethodID(ctx, org, pcust.IntegrationID, id)
+	switch {
+	case err == nil:
+		return found(m)
 	case !isNotFound(err):
 		return nil, wrap(err, "load payment method %s", id)
 	}
@@ -838,7 +895,14 @@ func (s *Service) findOrCreateMethod(ctx context.Context, r port.Repos, pcust *p
 	if err := m.Validate(); err != nil {
 		return nil, err
 	}
-	if err := r.PaymentMethods.Create(ctx, m); err != nil {
+	err = r.PaymentMethods.Create(ctx, m)
+	if errors.Is(err, core.ErrConflict) {
+		if m, err = r.PaymentMethods.GetByProviderMethodID(ctx, org, pcust.IntegrationID, id); err != nil {
+			return nil, wrap(err, "load payment method %s", id)
+		}
+		return found(m)
+	}
+	if err != nil {
 		return nil, wrap(err, "create payment method %s", id)
 	}
 	return m, s.setDefault(ctx, r, m)

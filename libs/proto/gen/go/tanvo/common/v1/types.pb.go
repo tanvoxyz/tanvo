@@ -541,6 +541,125 @@ func (b0 MetadataItem_builder) Build() *MetadataItem {
 	return m0
 }
 
+// ConnectionChoice is a billing object's connection of one category
+// (payment, tax, accounting or crm), the value of its `connections` map
+// keyed by category. A request sends exactly one of a code, naming one of
+// the customer's connections of the category by its integration's code,
+// and a behavior, skip or inherit; categories left out keep their choice
+// (inherit on creation). A response holds every category with its behavior
+// and the code of the connection in effect, empty for none.
+type ConnectionChoice struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Behavior    ConnectionBehavior     `protobuf:"varint,1,opt,name=behavior,enum=tanvo.common.v1.ConnectionBehavior"`
+	xxx_hidden_Code        *string                `protobuf:"bytes,2,opt,name=code"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *ConnectionChoice) Reset() {
+	*x = ConnectionChoice{}
+	mi := &file_tanvo_common_v1_types_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConnectionChoice) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConnectionChoice) ProtoMessage() {}
+
+func (x *ConnectionChoice) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_common_v1_types_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *ConnectionChoice) GetBehavior() ConnectionBehavior {
+	if x != nil {
+		if protoimpl.X.Present(&(x.XXX_presence[0]), 0) {
+			return x.xxx_hidden_Behavior
+		}
+	}
+	return ConnectionBehavior_CONNECTION_BEHAVIOR_UNSPECIFIED
+}
+
+func (x *ConnectionChoice) GetCode() string {
+	if x != nil {
+		if x.xxx_hidden_Code != nil {
+			return *x.xxx_hidden_Code
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *ConnectionChoice) SetBehavior(v ConnectionBehavior) {
+	x.xxx_hidden_Behavior = v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *ConnectionChoice) SetCode(v string) {
+	x.xxx_hidden_Code = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 2)
+}
+
+func (x *ConnectionChoice) HasBehavior() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *ConnectionChoice) HasCode() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 1)
+}
+
+func (x *ConnectionChoice) ClearBehavior() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Behavior = ConnectionBehavior_CONNECTION_BEHAVIOR_UNSPECIFIED
+}
+
+func (x *ConnectionChoice) ClearCode() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 1)
+	x.xxx_hidden_Code = nil
+}
+
+type ConnectionChoice_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The behavior.
+	Behavior *ConnectionBehavior
+	// The code of the connection's integration.
+	Code *string
+}
+
+func (b0 ConnectionChoice_builder) Build() *ConnectionChoice {
+	m0 := &ConnectionChoice{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Behavior != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Behavior = *b.Behavior
+	}
+	if b.Code != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 2)
+		x.xxx_hidden_Code = b.Code
+	}
+	return m0
+}
+
 // DateTimeRange is a half-open interval of instants `[from, to)`.
 type DateTimeRange struct {
 	state           protoimpl.MessageState `protogen:"opaque.v1"`
@@ -552,7 +671,7 @@ type DateTimeRange struct {
 
 func (x *DateTimeRange) Reset() {
 	*x = DateTimeRange{}
-	mi := &file_tanvo_common_v1_types_proto_msgTypes[3]
+	mi := &file_tanvo_common_v1_types_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -564,7 +683,7 @@ func (x *DateTimeRange) String() string {
 func (*DateTimeRange) ProtoMessage() {}
 
 func (x *DateTimeRange) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_common_v1_types_proto_msgTypes[3]
+	mi := &file_tanvo_common_v1_types_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -652,7 +771,7 @@ type Document struct {
 
 func (x *Document) Reset() {
 	*x = Document{}
-	mi := &file_tanvo_common_v1_types_proto_msgTypes[4]
+	mi := &file_tanvo_common_v1_types_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -664,7 +783,7 @@ func (x *Document) String() string {
 func (*Document) ProtoMessage() {}
 
 func (x *Document) ProtoReflect() protoreflect.Message {
-	mi := &file_tanvo_common_v1_types_proto_msgTypes[4]
+	mi := &file_tanvo_common_v1_types_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -782,7 +901,7 @@ var File_tanvo_common_v1_types_proto protoreflect.FileDescriptor
 
 const file_tanvo_common_v1_types_proto_rawDesc = "" +
 	"\n" +
-	"\x1btanvo/common/v1/types.proto\x12\x0ftanvo.common.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\"Y\n" +
+	"\x1btanvo/common/v1/types.proto\x12\x0ftanvo.common.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\"Y\n" +
 	"\x05Money\x12)\n" +
 	"\bcurrency\x18\x01 \x01(\tB\r\xbaH\n" +
 	"\xc8\x01\x01r\x05ؤ\xca\x06\x01R\bcurrency\x12%\n" +
@@ -798,7 +917,10 @@ const file_tanvo_common_v1_types_proto_rawDesc = "" +
 	"\fMetadataItem\x12\x1d\n" +
 	"\x03key\x18\x01 \x01(\tB\v\xbaH\b\xc8\x01\x01r\x03\x18\xff\x01R\x03key\x12\x1e\n" +
 	"\x05value\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x05value\x12,\n" +
-	"\x12display_in_invoice\x18\x03 \x01(\bR\x10displayInInvoice\"k\n" +
+	"\x12display_in_invoice\x18\x03 \x01(\bR\x10displayInInvoice\"{\n" +
+	"\x10ConnectionChoice\x12I\n" +
+	"\bbehavior\x18\x01 \x01(\x0e2#.tanvo.common.v1.ConnectionBehaviorB\b\xbaH\x05\x82\x01\x02\x10\x01R\bbehavior\x12\x1c\n" +
+	"\x04code\x18\x02 \x01(\tB\b\xbaH\x05r\x03\x18\xff\x01R\x04code\"k\n" +
 	"\rDateTimeRange\x12.\n" +
 	"\x04from\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\x04from\x12*\n" +
 	"\x02to\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\x02to\"z\n" +
@@ -810,24 +932,27 @@ const file_tanvo_common_v1_types_proto_rawDesc = "" +
 	"\x13com.tanvo.common.v1B\n" +
 	"TypesProtoP\x01ZDgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/common/v1;commonv1\xa2\x02\x03TCX\xaa\x02\x0fTanvo.Common.V1\xca\x02\x0fTanvo\\Common\\V1\xe2\x02\x1bTanvo\\Common\\V1\\GPBMetadata\xea\x02\x11Tanvo::Common::V1b\beditionsp\xe8\a"
 
-var file_tanvo_common_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_tanvo_common_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_tanvo_common_v1_types_proto_goTypes = []any{
 	(*Money)(nil),                 // 0: tanvo.common.v1.Money
 	(*Address)(nil),               // 1: tanvo.common.v1.Address
 	(*MetadataItem)(nil),          // 2: tanvo.common.v1.MetadataItem
-	(*DateTimeRange)(nil),         // 3: tanvo.common.v1.DateTimeRange
-	(*Document)(nil),              // 4: tanvo.common.v1.Document
-	(*timestamppb.Timestamp)(nil), // 5: google.protobuf.Timestamp
+	(*ConnectionChoice)(nil),      // 3: tanvo.common.v1.ConnectionChoice
+	(*DateTimeRange)(nil),         // 4: tanvo.common.v1.DateTimeRange
+	(*Document)(nil),              // 5: tanvo.common.v1.Document
+	(ConnectionBehavior)(0),       // 6: tanvo.common.v1.ConnectionBehavior
+	(*timestamppb.Timestamp)(nil), // 7: google.protobuf.Timestamp
 }
 var file_tanvo_common_v1_types_proto_depIdxs = []int32{
-	5, // 0: tanvo.common.v1.DateTimeRange.from:type_name -> google.protobuf.Timestamp
-	5, // 1: tanvo.common.v1.DateTimeRange.to:type_name -> google.protobuf.Timestamp
-	5, // 2: tanvo.common.v1.Document.expires_at:type_name -> google.protobuf.Timestamp
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	6, // 0: tanvo.common.v1.ConnectionChoice.behavior:type_name -> tanvo.common.v1.ConnectionBehavior
+	7, // 1: tanvo.common.v1.DateTimeRange.from:type_name -> google.protobuf.Timestamp
+	7, // 2: tanvo.common.v1.DateTimeRange.to:type_name -> google.protobuf.Timestamp
+	7, // 3: tanvo.common.v1.Document.expires_at:type_name -> google.protobuf.Timestamp
+	4, // [4:4] is the sub-list for method output_type
+	4, // [4:4] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_common_v1_types_proto_init() }
@@ -835,6 +960,7 @@ func file_tanvo_common_v1_types_proto_init() {
 	if File_tanvo_common_v1_types_proto != nil {
 		return
 	}
+	file_tanvo_common_v1_enums_proto_init()
 	file_tanvo_common_v1_options_proto_init()
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -842,7 +968,7 @@ func file_tanvo_common_v1_types_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_common_v1_types_proto_rawDesc), len(file_tanvo_common_v1_types_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

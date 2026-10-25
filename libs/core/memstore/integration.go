@@ -23,6 +23,7 @@ type integrationData struct {
 	collectionMappings *table[core.IntegrationCollectionMappingID, integration.CollectionMapping]
 	items              *table[core.IntegrationItemID, integration.Item]
 	resources          *table[core.IntegrationResourceID, integration.Resource]
+	objectConnections  *table[core.ObjectConnectionID, integration.ObjectConnection]
 }
 
 func newIntegrationData() *integrationData {
@@ -41,8 +42,9 @@ func newIntegrationData() *integrationData {
 			m.Currencies = maps.Clone(m.Currencies)
 			return m
 		}),
-		items:     newTable[core.IntegrationItemID, integration.Item](nil),
-		resources: newTable[core.IntegrationResourceID, integration.Resource](nil),
+		items:             newTable[core.IntegrationItemID, integration.Item](nil),
+		resources:         newTable[core.IntegrationResourceID, integration.Resource](nil),
+		objectConnections: newTable[core.ObjectConnectionID, integration.ObjectConnection](nil),
 	}
 }
 
@@ -54,6 +56,7 @@ func (d *integrationData) snapshot() *integrationData {
 		collectionMappings: d.collectionMappings.snapshot(),
 		items:              d.items.snapshot(),
 		resources:          d.resources.snapshot(),
+		objectConnections:  d.objectConnections.snapshot(),
 	}
 }
 
@@ -191,6 +194,9 @@ func (r integrationRepo) Delete(_ context.Context, org core.OrganizationID, id c
 		return conflict("integration", "still referenced by payments")
 	}
 	r.d.integrations.del(id)
+	for _, c := range r.d.customers.find(func(x *integration.IntegrationCustomer) bool { return x.IntegrationID == id }) {
+		r.d.deleteObjectConnectionsOf(c.ID)
+	}
 	r.d.customers.deleteWhere(func(x *integration.IntegrationCustomer) bool { return x.IntegrationID == id })
 	r.d.mappings.deleteWhere(func(x *integration.Mapping) bool { return x.IntegrationID == id })
 	r.d.collectionMappings.deleteWhere(func(x *integration.CollectionMapping) bool { return x.IntegrationID == id })
@@ -265,6 +271,72 @@ func (r integrationCustomerRepo) Delete(_ context.Context, org core.Organization
 		return notFound("integration_customer", id)
 	}
 	r.d.customers.del(id)
+	r.d.deleteObjectConnectionsOf(id)
+	return nil
+}
+
+// deleteObjectConnectionsOf deletes the object connections of the
+// integration customer id (ON DELETE CASCADE).
+func (d *integrationData) deleteObjectConnectionsOf(id core.IntegrationCustomerID) {
+	d.objectConnections.deleteWhere(func(x *integration.ObjectConnection) bool { return x.IntegrationCustomerID == id })
+}
+
+// objectConnectionRepo implements integration.ObjectConnectionRepository.
+type objectConnectionRepo struct{ d *integrationData }
+
+var _ integration.ObjectConnectionRepository = objectConnectionRepo{}
+
+func (r objectConnectionRepo) check(c *integration.ObjectConnection) error {
+	if r.d.objectConnections.any(func(x *integration.ObjectConnection) bool {
+		return x.ID != c.ID && x.OrganizationID == c.OrganizationID && x.Owner == c.Owner && x.Category == c.Category
+	}) {
+		return conflict("billing_object_connection", "category")
+	}
+	return nil
+}
+
+func (r objectConnectionRepo) Create(_ context.Context, c *integration.ObjectConnection) error {
+	if r.d.objectConnections.has(c.ID) {
+		return conflict("billing_object_connection", "id")
+	}
+	if err := r.check(c); err != nil {
+		return err
+	}
+	r.d.objectConnections.put(c.ID, *c)
+	return nil
+}
+
+func (r objectConnectionRepo) Update(_ context.Context, c *integration.ObjectConnection) error {
+	cur, ok := r.d.objectConnections.get(c.ID)
+	if !ok || cur.OrganizationID != c.OrganizationID {
+		return notFound("billing_object_connection", c.ID)
+	}
+	if err := r.check(c); err != nil {
+		return err
+	}
+	r.d.objectConnections.put(c.ID, *c)
+	return nil
+}
+
+func (r objectConnectionRepo) Delete(_ context.Context, org core.OrganizationID, id core.ObjectConnectionID) error {
+	c, ok := r.d.objectConnections.get(id)
+	if !ok || c.OrganizationID != org {
+		return notFound("billing_object_connection", id)
+	}
+	r.d.objectConnections.del(id)
+	return nil
+}
+
+func (r objectConnectionRepo) ListByOwner(_ context.Context, org core.OrganizationID, owner integration.ObjectOwner) ([]*integration.ObjectConnection, error) {
+	return r.d.objectConnections.find(func(x *integration.ObjectConnection) bool {
+		return x.OrganizationID == org && x.Owner == owner
+	}), nil
+}
+
+func (r objectConnectionRepo) DeleteByPaymentProviderCustomer(_ context.Context, org core.OrganizationID, id core.PaymentProviderCustomerID) error {
+	r.d.objectConnections.deleteWhere(func(x *integration.ObjectConnection) bool {
+		return x.OrganizationID == org && x.PaymentProviderCustomerID == id
+	})
 	return nil
 }
 

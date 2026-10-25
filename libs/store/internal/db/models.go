@@ -255,6 +255,20 @@ type BillingEntityTax struct {
 	Position        int32
 }
 
+type BillingObjectConnection struct {
+	OrganizationID             uuid.UUID
+	ID                         uuid.UUID
+	SubscriptionID             *uuid.UUID
+	WalletID                   *uuid.UUID
+	RecurringTransactionRuleID *uuid.UUID
+	Category                   string
+	Behavior                   string
+	PaymentProviderCustomerID  *uuid.UUID
+	IntegrationCustomerID      *uuid.UUID
+	CreatedAt                  time.Time
+	UpdatedAt                  time.Time
+}
+
 type BillingSegment struct {
 	OrganizationID         uuid.UUID
 	ID                     uuid.UUID
@@ -1231,6 +1245,7 @@ type PaymentProviderCustomer struct {
 	ProviderCustomerID     *string
 	SyncWithProvider       bool
 	ProviderPaymentMethods []string
+	IsDefault              bool
 	DeletedAt              *time.Time
 	CreatedAt              time.Time
 	UpdatedAt              time.Time

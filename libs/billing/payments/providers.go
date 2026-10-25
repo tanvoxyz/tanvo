@@ -100,26 +100,24 @@ func (s *Service) open(ctx context.Context, integ *integration.Integration) (pro
 	return providerConn{gw: gw, conn: conn, integ: integ}, nil
 }
 
-// customerConnection returns the customer's live payment connection and
-// its live integration, or nils when the customer has none (lago
-// Customer#payment_provider with PaymentProviderFinder: a customer has at
-// most one payment connection, customers.upsertPayment).
+// customerConnection returns the customer's payment connection in effect
+// (the only one, else the default, [payment.DefaultProviderCustomer]) and
+// its live integration, or nils when there is none (lago
+// Customer#payment_provider with PaymentProviderFinder).
 func customerConnection(ctx context.Context, r port.Repos, org core.OrganizationID, id core.CustomerID) (*payment.ProviderCustomer, *integration.Integration, error) {
 	pcs, err := r.PaymentProviderCustomers.ListByCustomer(ctx, org, id)
 	if err != nil {
 		return nil, nil, wrap(err, "list payment connections of customer %s", id)
 	}
-	for _, pc := range pcs {
-		if pc.Deleted() {
-			continue
-		}
-		integ, err := liveIntegration(ctx, r, org, pc.IntegrationID)
-		if err != nil || integ == nil {
-			return nil, nil, err
-		}
-		return pc, integ, nil
+	pc := payment.DefaultProviderCustomer(pcs)
+	if pc == nil {
+		return nil, nil, nil
 	}
-	return nil, nil, nil
+	integ, err := liveIntegration(ctx, r, org, pc.IntegrationID)
+	if err != nil || integ == nil {
+		return nil, nil, err
+	}
+	return pc, integ, nil
 }
 
 // liveIntegration returns a live payment integration, or nil when it is

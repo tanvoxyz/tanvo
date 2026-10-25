@@ -3,10 +3,12 @@ package payments
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
+	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/payment"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -23,7 +25,8 @@ type ReceiptDetail struct {
 // PaymentReceipts::CreateService): none for a payment not succeeded or of
 // a partner customer, the existing one when the payment has one, else a
 // new receipt numbered "<customer slug>-RCPT-<n %06d>" by the customer's
-// receipt sequence, announced by the payment_receipt.created webhook.
+// receipt sequence, announced by the payment_receipt.created webhook, with
+// its documents to render ([kernel.JobGeneratePaymentReceiptDocument]).
 // Issuing receipts is a core feature, so every organization issues them.
 func (s *Service) createReceipt(ctx context.Context, r port.Repos, p *payment.Payment) (*payment.Receipt, error) {
 	org := p.OrganizationID
@@ -77,6 +80,16 @@ func (s *Service) createReceipt(ctx context.Context, r port.Repos, p *payment.Pa
 		Type: auditlog.ActivityPaymentReceiptCreated, OrganizationID: org, ResourceType: auditlog.ResourcePaymentReceipt,
 		ResourceID: rc.ID.UUID(), Object: rc, CustomerID: p.CustomerID,
 	}); err != nil {
+		return nil, err
+	}
+	// payment_receipts/create_service.rb:29, 43-45; every billing entity
+	// may send it, there is no premium gate.
+	ent, err := r.BillingEntities.Get(ctx, org, be)
+	if err != nil {
+		return nil, wrap(err, "load billing entity %s", be)
+	}
+	args := kernel.PaymentReceiptArgs{PaymentReceiptID: rc.ID, Notify: ent.SendsEmail(organization.EmailSettingPaymentReceiptCreated)}
+	if err := kernel.Enqueue(ctx, r, org, kernel.JobGeneratePaymentReceiptDocument, args, "payment_receipt:"+rc.ID.String(), time.Time{}); err != nil {
 		return nil, err
 	}
 	return rc, nil

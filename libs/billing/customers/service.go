@@ -47,9 +47,6 @@ const (
 	// customer without a payment connection
 	// (generate_checkout_url_service.rb:16-18).
 	CodeNoLinkedPaymentProvider = "no_linked_payment_provider"
-	// CodeOnlyOneConnectionAllowed: a second payment connection was
-	// asked for (payment_provider_customers/create_or_update_batch_service.rb:24-29).
-	CodeOnlyOneConnectionAllowed = "only_one_connection_allowed"
 )
 
 // ErrCheckoutUnavailable is returned by [Service.CheckoutURL] once its
@@ -77,6 +74,8 @@ type Service struct {
 	// invoices waiting for a check ([WithVIESInvoiceFinalizer]).
 	vies         tax.VIESChecker
 	viesInvoices VIESInvoiceFinalizer
+	// gateways are the payment provider adapters ([WithPaymentProviders]).
+	gateways port.PaymentProviders
 }
 
 // Option configures a [Service].
@@ -84,6 +83,12 @@ type Option func(*Service)
 
 // WithCheckout generates the checkout URLs of payment connections.
 func WithCheckout(g CheckoutURLGenerator) Option { return func(s *Service) { s.checkout = g } }
+
+// WithPaymentProviders checks the method types of payment connections with
+// their provider's adapter, which also gives a new connection its default
+// types; without adapters, or for a vendor without one, any types are
+// stored.
+func WithPaymentProviders(p port.PaymentProviders) Option { return func(s *Service) { s.gateways = p } }
 
 // New returns the service over d, terminating the relations of deleted
 // customers with rel. It fails when a dependency the service uses is nil.
@@ -736,18 +741,18 @@ func (s *Service) logActivity(ctx context.Context, r port.Repos, t auditlog.Acti
 }
 
 // pushToProviders enqueues the push of an updated customer to its
-// provider customers.
+// payment connection in effect (lago Customer#provider_customer, the
+// connection of its payment provider).
 //
 // source: app/services/customers/upsert_from_api_service.rb:281-296
+// source: app/services/payment_provider_customers/update_service.rb:15-18
 func pushToProviders(ctx context.Context, r port.Repos, c *customer.Customer) error {
 	pcs, err := r.PaymentProviderCustomers.ListByCustomer(ctx, c.OrganizationID, c.ID)
 	if err != nil {
 		return fmt.Errorf("list payment connections: %w", err)
 	}
-	for _, pc := range pcs {
-		if err := kernel.EnqueueCustomerPush(ctx, r, pc); err != nil {
-			return err
-		}
+	if pc := payment.DefaultProviderCustomer(pcs); pc != nil {
+		return kernel.EnqueueCustomerPush(ctx, r, pc)
 	}
 	return nil
 }

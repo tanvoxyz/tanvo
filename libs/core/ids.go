@@ -72,6 +72,7 @@ type (
 	dunningCampaignThresholdKind     struct{}
 	integrationKind                  struct{}
 	integrationCustomerKind          struct{}
+	objectConnectionKind             struct{}
 	integrationMappingKind           struct{}
 	integrationCollectionMappingKind struct{}
 	integrationItemKind              struct{}
@@ -244,6 +245,8 @@ type (
 	IntegrationID = ID[integrationKind]
 	// IntegrationCustomerID identifies an integration customer (domain §17.2).
 	IntegrationCustomerID = ID[integrationCustomerKind]
+	// ObjectConnectionID identifies a billing object's connection choice (domain §15.5).
+	ObjectConnectionID = ID[objectConnectionKind]
 	// IntegrationMappingID identifies an integration mapping (domain §17.3).
 	IntegrationMappingID = ID[integrationMappingKind]
 	// IntegrationCollectionMappingID identifies an integration collection mapping (domain §17.3).

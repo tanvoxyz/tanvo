@@ -99,3 +99,18 @@ enum IssuingDateAdjustment {
   // Align the issuing date with the finalization date.
   ISSUING_DATE_ADJUSTMENT_ALIGN_WITH_FINALIZATION_DATE = 2;
 }
+
+// ConnectionBehavior is how a billing object (a subscription, a wallet or a
+// recurring transaction rule) picks its connection of a category.
+enum ConnectionBehavior {
+  // Not set.
+  CONNECTION_BEHAVIOR_UNSPECIFIED = 0;
+  // A chosen connection of the customer, named by its code. Output only:
+  // requests choose a connection by sending its code.
+  CONNECTION_BEHAVIOR_SPECIFIC = 1;
+  // No connection of the category.
+  CONNECTION_BEHAVIOR_SKIP = 2;
+  // The customer's default connection of the category; in a request, it
+  // removes the object's own choice.
+  CONNECTION_BEHAVIOR_INHERIT = 3;
+}

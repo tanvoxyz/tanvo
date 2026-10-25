@@ -54,6 +54,9 @@ type paymentsWiring struct {
 	// installation's partner application; it is registered with the
 	// integrations service's gateways.
 	gocardlessOAuth integration.OAuthGateway
+	// gateways are the payment provider adapters, which check the method
+	// types of the customers' payment connections.
+	gateways port.PaymentProviders
 }
 
 // newPayments returns the payments service over the provider adapters
@@ -96,8 +99,9 @@ func newPayments(cfg config.Config, tx port.Transactor, clock core.Clock, log *s
 		sources[string(pr)] = paymentSource{svc: svc, provider: pr}
 	}
 	return &paymentsWiring{
-		svc:     svc,
-		inbound: &webhooks.Inbound{Tx: tx, Sources: sources, Clock: clock, IDs: core.UUIDv7Generator{}},
+		svc:      svc,
+		gateways: set,
+		inbound:  &webhooks.Inbound{Tx: tx, Sources: sources, Clock: clock, IDs: core.UUIDv7Generator{}},
 		gocardlessOAuth: gocardlessOAuth{gw: gc, client: gocardless.OAuthClient{
 			ClientID: cfg.GoCardlessClientID, ClientSecret: cfg.GoCardlessClientSecret, Sandbox: cfg.GoCardlessSandbox,
 		}},
@@ -124,6 +128,7 @@ func (w *paymentsWiring) bind(e *billing.Engine) {
 	w.svc.WithCreditInvoices(e.Wallets).WithRefundStatuses(e.CreditNotes)
 	e.Invoices.WithPaymentURLs(w.svc)
 	customers.WithCheckout(w.svc)(e.Customers)
+	customers.WithPaymentProviders(w.gateways)(e.Customers)
 }
 
 // paymentSource is the [webhooks.Source] of a payment provider.

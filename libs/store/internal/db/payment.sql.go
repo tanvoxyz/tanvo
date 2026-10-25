@@ -224,10 +224,10 @@ func (q *Queries) CreatePaymentMethod(ctx context.Context, arg CreatePaymentMeth
 const createPaymentProviderCustomer = `-- name: CreatePaymentProviderCustomer :execrows
 INSERT INTO payment_provider_customers (
   organization_id, id, customer_id, integration_id, provider_customer_id, sync_with_provider,
-  provider_payment_methods, deleted_at, created_at, updated_at
+  provider_payment_methods, is_default, deleted_at, created_at, updated_at
 ) VALUES (
   $1, $2, $3, $4, $5, $6,
-  $7, $8, $9, $10
+  $7, $8, $9, $10, $11
 )
 ON CONFLICT DO NOTHING
 `
@@ -240,6 +240,7 @@ type CreatePaymentProviderCustomerParams struct {
 	ProviderCustomerID     *string
 	SyncWithProvider       bool
 	ProviderPaymentMethods []string
+	IsDefault              bool
 	DeletedAt              *time.Time
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
@@ -254,6 +255,7 @@ func (q *Queries) CreatePaymentProviderCustomer(ctx context.Context, arg CreateP
 		arg.ProviderCustomerID,
 		arg.SyncWithProvider,
 		arg.ProviderPaymentMethods,
+		arg.IsDefault,
 		arg.DeletedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,
@@ -685,7 +687,7 @@ func (q *Queries) GetPaymentMethodByProviderMethodID(ctx context.Context, arg Ge
 }
 
 const getPaymentProviderCustomer = `-- name: GetPaymentProviderCustomer :one
-SELECT organization_id, id, customer_id, integration_id, provider_customer_id, sync_with_provider, provider_payment_methods, deleted_at, created_at, updated_at FROM payment_provider_customers WHERE organization_id = $1 AND id = $2
+SELECT organization_id, id, customer_id, integration_id, provider_customer_id, sync_with_provider, provider_payment_methods, is_default, deleted_at, created_at, updated_at FROM payment_provider_customers WHERE organization_id = $1 AND id = $2
 `
 
 type GetPaymentProviderCustomerParams struct {
@@ -704,6 +706,7 @@ func (q *Queries) GetPaymentProviderCustomer(ctx context.Context, arg GetPayment
 		&i.ProviderCustomerID,
 		&i.SyncWithProvider,
 		&i.ProviderPaymentMethods,
+		&i.IsDefault,
 		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -712,7 +715,7 @@ func (q *Queries) GetPaymentProviderCustomer(ctx context.Context, arg GetPayment
 }
 
 const getPaymentProviderCustomerByCustomer = `-- name: GetPaymentProviderCustomerByCustomer :one
-SELECT organization_id, id, customer_id, integration_id, provider_customer_id, sync_with_provider, provider_payment_methods, deleted_at, created_at, updated_at FROM payment_provider_customers
+SELECT organization_id, id, customer_id, integration_id, provider_customer_id, sync_with_provider, provider_payment_methods, is_default, deleted_at, created_at, updated_at FROM payment_provider_customers
 WHERE organization_id = $1 AND customer_id = $2 AND integration_id = $3
   AND deleted_at IS NULL
 `
@@ -734,6 +737,7 @@ func (q *Queries) GetPaymentProviderCustomerByCustomer(ctx context.Context, arg 
 		&i.ProviderCustomerID,
 		&i.SyncWithProvider,
 		&i.ProviderPaymentMethods,
+		&i.IsDefault,
 		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -742,7 +746,7 @@ func (q *Queries) GetPaymentProviderCustomerByCustomer(ctx context.Context, arg 
 }
 
 const getPaymentProviderCustomerByProviderCustomerID = `-- name: GetPaymentProviderCustomerByProviderCustomerID :one
-SELECT organization_id, id, customer_id, integration_id, provider_customer_id, sync_with_provider, provider_payment_methods, deleted_at, created_at, updated_at FROM payment_provider_customers
+SELECT organization_id, id, customer_id, integration_id, provider_customer_id, sync_with_provider, provider_payment_methods, is_default, deleted_at, created_at, updated_at FROM payment_provider_customers
 WHERE organization_id = $1 AND integration_id = $2
   AND provider_customer_id = $3 AND deleted_at IS NULL
 ORDER BY id
@@ -766,6 +770,7 @@ func (q *Queries) GetPaymentProviderCustomerByProviderCustomerID(ctx context.Con
 		&i.ProviderCustomerID,
 		&i.SyncWithProvider,
 		&i.ProviderPaymentMethods,
+		&i.IsDefault,
 		&i.DeletedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -1127,7 +1132,7 @@ func (q *Queries) ListPaymentMethodsByCustomer(ctx context.Context, arg ListPaym
 }
 
 const listPaymentProviderCustomersByCustomer = `-- name: ListPaymentProviderCustomersByCustomer :many
-SELECT organization_id, id, customer_id, integration_id, provider_customer_id, sync_with_provider, provider_payment_methods, deleted_at, created_at, updated_at FROM payment_provider_customers
+SELECT organization_id, id, customer_id, integration_id, provider_customer_id, sync_with_provider, provider_payment_methods, is_default, deleted_at, created_at, updated_at FROM payment_provider_customers
 WHERE organization_id = $1 AND customer_id = $2 AND deleted_at IS NULL
 ORDER BY id
 `
@@ -1154,6 +1159,7 @@ func (q *Queries) ListPaymentProviderCustomersByCustomer(ctx context.Context, ar
 			&i.ProviderCustomerID,
 			&i.SyncWithProvider,
 			&i.ProviderPaymentMethods,
+			&i.IsDefault,
 			&i.DeletedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -1169,7 +1175,7 @@ func (q *Queries) ListPaymentProviderCustomersByCustomer(ctx context.Context, ar
 }
 
 const listPaymentProviderCustomersByIntegration = `-- name: ListPaymentProviderCustomersByIntegration :many
-SELECT organization_id, id, customer_id, integration_id, provider_customer_id, sync_with_provider, provider_payment_methods, deleted_at, created_at, updated_at FROM payment_provider_customers
+SELECT organization_id, id, customer_id, integration_id, provider_customer_id, sync_with_provider, provider_payment_methods, is_default, deleted_at, created_at, updated_at FROM payment_provider_customers
 WHERE organization_id = $1 AND integration_id = $2 AND deleted_at IS NULL
 ORDER BY id
 `
@@ -1196,6 +1202,7 @@ func (q *Queries) ListPaymentProviderCustomersByIntegration(ctx context.Context,
 			&i.ProviderCustomerID,
 			&i.SyncWithProvider,
 			&i.ProviderPaymentMethods,
+			&i.IsDefault,
 			&i.DeletedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -2010,8 +2017,8 @@ const updatePaymentProviderCustomer = `-- name: UpdatePaymentProviderCustomer :e
 UPDATE payment_provider_customers SET
   organization_id = $1, id = $2, customer_id = $3, integration_id = $4,
   provider_customer_id = $5, sync_with_provider = $6,
-  provider_payment_methods = $7, deleted_at = $8,
-  created_at = $9, updated_at = $10
+  provider_payment_methods = $7, is_default = $8, deleted_at = $9,
+  created_at = $10, updated_at = $11
 WHERE organization_id = $1 AND id = $2
 `
 
@@ -2023,6 +2030,7 @@ type UpdatePaymentProviderCustomerParams struct {
 	ProviderCustomerID     *string
 	SyncWithProvider       bool
 	ProviderPaymentMethods []string
+	IsDefault              bool
 	DeletedAt              *time.Time
 	CreatedAt              time.Time
 	UpdatedAt              time.Time
@@ -2037,6 +2045,7 @@ func (q *Queries) UpdatePaymentProviderCustomer(ctx context.Context, arg UpdateP
 		arg.ProviderCustomerID,
 		arg.SyncWithProvider,
 		arg.ProviderPaymentMethods,
+		arg.IsDefault,
 		arg.DeletedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,

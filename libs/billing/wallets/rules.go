@@ -7,7 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/wallet"
 	"github.com/tanvoxyz/tanvo/libs/money"
@@ -54,6 +56,10 @@ type RuleInput struct {
 	// PurchaseOrderNumber is copied to the runs' transactions (blank is
 	// none, falling back to the wallet's); nil keeps it on update.
 	PurchaseOrderNumber *string
+	// Connections, keyed by category, choose the rule's connections
+	// (domain §15.5); categories left out keep theirs (inherit on
+	// creation).
+	Connections map[string]kernel.ConnectionChoice
 }
 
 func (in *RuleInput) method() wallet.RecurringMethod {
@@ -107,6 +113,16 @@ func validateRuleInputs(v *core.Validator, ins []RuleInput, now time.Time) {
 		v.Add("recurring_transaction_rules", CodeInvalidNumberOfRecurringRules)
 	case len(ins) == 1 && !validRuleInput(&ins[0], now):
 		v.Add("recurring_transaction_rules", CodeInvalidRecurringRule)
+	}
+	// The first error code of the first rule with invalid connections.
+	//
+	// source: app/services/wallets/recurring_transaction_rules/create_service.rb:117-124
+	// source: app/services/wallets/recurring_transaction_rules/update_service.rb:149-160
+	for i := range ins {
+		if codes := kernel.ConnectionErrorCodes(ins[i].Connections); len(codes) > 0 {
+			v.Add(kernel.FieldConnections, codes[0])
+			return
+		}
 	}
 }
 
@@ -214,6 +230,10 @@ func (s *Service) updateRules(ctx context.Context, r port.Repos, w *wallet.Walle
 			if err := r.RecurringTransactionRules.Create(ctx, rule); err != nil {
 				return fmt.Errorf("create rule of wallet %s: %w", w.ID, err)
 			}
+			// update_service.rb:76.
+			if err := kernel.AttachConnections(ctx, s.d, r, w.OrganizationID, w.CustomerID, integration.ObjectOwner{RecurringTransactionRuleID: rule.ID}, in.Connections); err != nil {
+				return err
+			}
 			keep[rule.ID] = true
 			continue
 		}
@@ -223,6 +243,10 @@ func (s *Service) updateRules(ctx context.Context, r port.Repos, w *wallet.Walle
 		}
 		if err := r.RecurringTransactionRules.Update(ctx, rule); err != nil {
 			return fmt.Errorf("update rule %s: %w", rule.ID, err)
+		}
+		// update_service.rb:59.
+		if err := kernel.AttachConnections(ctx, s.d, r, w.OrganizationID, w.CustomerID, integration.ObjectOwner{RecurringTransactionRuleID: rule.ID}, in.Connections); err != nil {
+			return err
 		}
 		keep[rule.ID] = true
 	}

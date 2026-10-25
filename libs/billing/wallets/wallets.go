@@ -14,6 +14,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/wallet"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -72,6 +73,9 @@ type CreateInput struct {
 	// PurchaseOrderNumber is the wallet's default purchase order number
 	// (blank is none).
 	PurchaseOrderNumber *string
+	// Connections, keyed by category, choose the wallet's connections
+	// (domain §15.5); categories left out inherit.
+	Connections map[string]kernel.ConnectionChoice
 }
 
 // Create creates a wallet (lago Wallets::CreateService), emits
@@ -123,6 +127,8 @@ func (s *Service) create(ctx context.Context, r port.Repos, org core.Organizatio
 	if err := validateRulePaymentMethods(ctx, r, org, c.ID, &v, in.RecurringTransactionRules); err != nil {
 		return nil, err
 	}
+	// validate_service.rb:122-126.
+	kernel.ValidateConnections(&v, in.Connections)
 	if !in.BillingEntityID.IsZero() {
 		if _, err := r.BillingEntities.Get(ctx, org, in.BillingEntityID); err != nil {
 			return nil, fmt.Errorf("load billing entity %s: %w", in.BillingEntityID, err)
@@ -195,6 +201,14 @@ func (s *Service) create(ctx context.Context, r port.Repos, org core.Organizatio
 		if err := r.RecurringTransactionRules.Create(ctx, rule); err != nil {
 			return nil, fmt.Errorf("create rule of wallet %s: %w", w.ID, err)
 		}
+		// recurring_transaction_rules/create_service.rb:71-72.
+		if err := kernel.AttachConnections(ctx, s.d, r, org, c.ID, integration.ObjectOwner{RecurringTransactionRuleID: rule.ID}, in.RecurringTransactionRules[0].Connections); err != nil {
+			return nil, err
+		}
+	}
+	// create_service.rb:92-93.
+	if err := kernel.AttachConnections(ctx, s.d, r, org, c.ID, integration.ObjectOwner{WalletID: w.ID}, in.Connections); err != nil {
+		return nil, err
 	}
 	if err := kernel.EnqueueWalletRefresh(ctx, r, w); err != nil {
 		return nil, err
@@ -315,6 +329,9 @@ type UpdateInput struct {
 	// PurchaseOrderNumber changes or clears (nil or blank) the purchase
 	// order number.
 	PurchaseOrderNumber Change[*string]
+	// Connections, keyed by category, change the wallet's connection
+	// choices (domain §15.5); categories left out keep theirs.
+	Connections map[string]kernel.ConnectionChoice
 }
 
 // Update changes an active wallet and emits wallet.updated.
@@ -360,6 +377,8 @@ func (s *Service) update(ctx context.Context, r port.Repos, org core.Organizatio
 	if err := validateRulePaymentMethods(ctx, r, org, w.CustomerID, &v, in.RecurringTransactionRules.Value); err != nil {
 		return nil, err
 	}
+	// update_service.rb:141-145.
+	kernel.ValidateConnections(&v, in.Connections)
 	if err := v.Err(); err != nil {
 		return nil, err
 	}
@@ -410,6 +429,10 @@ func (s *Service) update(ctx context.Context, r port.Repos, org core.Organizatio
 		if err := s.updateRules(ctx, r, w, in.RecurringTransactionRules.Value); err != nil {
 			return nil, err
 		}
+	}
+	// update_service.rb:84.
+	if err := kernel.AttachConnections(ctx, s.d, r, org, w.CustomerID, integration.ObjectOwner{WalletID: w.ID}, in.Connections); err != nil {
+		return nil, err
 	}
 	rules, err := r.RecurringTransactionRules.ListByWallet(ctx, org, w.ID)
 	if err != nil {

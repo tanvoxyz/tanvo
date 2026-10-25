@@ -530,7 +530,7 @@ func TestCustomerConnections(t *testing.T) {
 	_, err := c.GenerateCheckoutUrl(t.Context(), customerv1.GenerateCheckoutUrlRequest_builder{CustomerId: ref}.Build())
 	customerWantViolation(t, err, "base", customers.CodeNoLinkedPaymentProvider)
 
-	t.Log("source: spec/services/payment_provider_customers/create_or_update_batch_service_spec.rb:27")
+	t.Log("source: spec/services/payment_provider_customers/create_or_update_batch_service_spec.rb:92")
 	up, err := c.UpsertCustomerConnection(t.Context(), customerv1.UpsertCustomerConnectionRequest_builder{
 		CustomerId: ref,
 		Connection: customerv1.CustomerConnection_builder{IntegrationId: new("code:stripe"), ExternalCustomerId: new("cus_stripe")}.Build(),

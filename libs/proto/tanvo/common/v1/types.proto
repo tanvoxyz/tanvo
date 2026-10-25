@@ -7,6 +7,7 @@ package tanvo.common.v1;
 
 import "buf/validate/validate.proto";
 import "google/protobuf/timestamp.proto";
+import "tanvo/common/v1/enums.proto";
 import "tanvo/common/v1/options.proto";
 
 // Money is an exact monetary amount. The amount is a decimal string in the
@@ -57,6 +58,20 @@ message MetadataItem {
   string value = 2 [(buf.validate.field).string.max_len = 255];
   // Prints the pair on invoices (customer metadata only).
   bool display_in_invoice = 3;
+}
+
+// ConnectionChoice is a billing object's connection of one category
+// (payment, tax, accounting or crm), the value of its `connections` map
+// keyed by category. A request sends exactly one of a code, naming one of
+// the customer's connections of the category by its integration's code,
+// and a behavior, skip or inherit; categories left out keep their choice
+// (inherit on creation). A response holds every category with its behavior
+// and the code of the connection in effect, empty for none.
+message ConnectionChoice {
+  // The behavior.
+  ConnectionBehavior behavior = 1 [(buf.validate.field).enum.defined_only = true];
+  // The code of the connection's integration.
+  string code = 2 [(buf.validate.field).string.max_len = 255];
 }
 
 // DateTimeRange is a half-open interval of instants `[from, to)`.

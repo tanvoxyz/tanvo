@@ -263,7 +263,7 @@ func (tx *storeTx) bind() port.Repos {
 
 		Wallets:                   walletRepo{st.wallet},
 		WalletTransactions:        walletTransactionRepo{st.wallet},
-		RecurringTransactionRules: recurringRuleRepo{st.wallet},
+		RecurringTransactionRules: recurringRuleRepo{st.wallet, st},
 
 		Payments:                 paymentRepo{st.payment, st},
 		PaymentReceipts:          paymentReceiptRepo{st.payment, st},
@@ -282,6 +282,7 @@ func (tx *storeTx) bind() port.Repos {
 		IntegrationCollectionMappings: integrationCollectionMappingRepo{st.integration},
 		IntegrationItems:              integrationItemRepo{st.integration},
 		IntegrationResources:          integrationResourceRepo{st.integration},
+		ObjectConnections:             objectConnectionRepo{st.integration},
 
 		WebhookEndpoints:  webhookEndpointRepo{st.webhook},
 		WebhookDeliveries: webhookDeliveryRepo{st.webhook},

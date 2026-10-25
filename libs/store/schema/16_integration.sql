@@ -74,6 +74,51 @@ ALTER TABLE integration_customers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation ON integration_customers
   USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
 
+-- A billing object's choice of connection for one category (domain §15.5):
+-- a specific connection of its customer (a payment provider customer for
+-- payment, an integration customer otherwise) or none (skip). The absence
+-- of a row inherits the customer's default. The owner is exactly one of a
+-- subscription, a wallet and a recurring transaction rule; one row per
+-- (owner, category). Integration customers are deleted with their rows;
+-- payment provider customers are discarded, and their rows deleted then.
+CREATE TABLE billing_object_connections (
+  organization_id uuid NOT NULL,
+  id uuid NOT NULL,
+  subscription_id uuid,
+  wallet_id uuid,
+  recurring_transaction_rule_id uuid,
+  category text NOT NULL,
+  behavior text NOT NULL,
+  payment_provider_customer_id uuid,
+  integration_customer_id uuid,
+  created_at timestamptz NOT NULL,
+  updated_at timestamptz NOT NULL,
+  PRIMARY KEY (organization_id, id),
+  CONSTRAINT billing_object_connections_organization_fkey FOREIGN KEY (organization_id) REFERENCES organizations (id),
+  CONSTRAINT billing_object_connections_subscription_fkey FOREIGN KEY (organization_id, subscription_id) REFERENCES subscriptions (organization_id, id) ON DELETE CASCADE,
+  CONSTRAINT billing_object_connections_wallet_fkey FOREIGN KEY (organization_id, wallet_id) REFERENCES wallets (organization_id, id) ON DELETE CASCADE,
+  CONSTRAINT billing_object_connections_rule_fkey FOREIGN KEY (organization_id, recurring_transaction_rule_id) REFERENCES recurring_transaction_rules (organization_id, id) ON DELETE CASCADE,
+  CONSTRAINT billing_object_connections_payment_provider_customer_fkey FOREIGN KEY (organization_id, payment_provider_customer_id) REFERENCES payment_provider_customers (organization_id, id),
+  CONSTRAINT billing_object_connections_integration_customer_fkey FOREIGN KEY (organization_id, integration_customer_id) REFERENCES integration_customers (organization_id, id) ON DELETE CASCADE,
+  CONSTRAINT billing_object_connections_owner_check CHECK (num_nonnulls(subscription_id, wallet_id, recurring_transaction_rule_id) = 1),
+  CONSTRAINT billing_object_connections_category_check CHECK (category IN ('payment', 'tax', 'accounting', 'crm')),
+  CONSTRAINT billing_object_connections_behavior_check CHECK (behavior IN ('specific', 'skip')),
+  CONSTRAINT billing_object_connections_connection_check CHECK (
+    (payment_provider_customer_id IS NOT NULL) = (behavior = 'specific' AND category = 'payment')
+    AND (integration_customer_id IS NOT NULL) = (behavior = 'specific' AND category <> 'payment')
+  )
+);
+
+CREATE UNIQUE INDEX billing_object_connections_subscription_key ON billing_object_connections (organization_id, subscription_id, category) WHERE subscription_id IS NOT NULL;
+CREATE UNIQUE INDEX billing_object_connections_wallet_key ON billing_object_connections (organization_id, wallet_id, category) WHERE wallet_id IS NOT NULL;
+CREATE UNIQUE INDEX billing_object_connections_rule_key ON billing_object_connections (organization_id, recurring_transaction_rule_id, category) WHERE recurring_transaction_rule_id IS NOT NULL;
+CREATE INDEX billing_object_connections_payment_provider_customer_idx ON billing_object_connections (organization_id, payment_provider_customer_id) WHERE payment_provider_customer_id IS NOT NULL;
+CREATE INDEX billing_object_connections_integration_customer_idx ON billing_object_connections (organization_id, integration_customer_id) WHERE integration_customer_id IS NOT NULL;
+
+ALTER TABLE billing_object_connections ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON billing_object_connections
+  USING (organization_id = NULLIF(NULLIF(current_setting('tanvo.organization_id', true), ''), '*')::uuid OR current_setting('tanvo.organization_id', true) = '*');
+
 -- The mapping of an add-on or billable metric (polymorphic, without foreign
 -- key) to an external item, optionally per billing entity: unique per
 -- (integration, mappable, billing entity), a NULL billing entity counting

@@ -238,3 +238,36 @@ SELECT EXISTS (
 
 -- name: DeleteIntegrationResource :execrows
 DELETE FROM integration_resources WHERE organization_id = @organization_id AND id = @id;
+
+-- name: CreateBillingObjectConnection :execrows
+INSERT INTO billing_object_connections (
+  organization_id, id, subscription_id, wallet_id, recurring_transaction_rule_id, category, behavior,
+  payment_provider_customer_id, integration_customer_id, created_at, updated_at
+) VALUES (
+  @organization_id, @id, @subscription_id, @wallet_id, @recurring_transaction_rule_id, @category, @behavior,
+  @payment_provider_customer_id, @integration_customer_id, @created_at, @updated_at
+)
+ON CONFLICT DO NOTHING;
+
+-- name: UpdateBillingObjectConnection :execrows
+UPDATE billing_object_connections SET
+  organization_id = @organization_id, id = @id, subscription_id = @subscription_id, wallet_id = @wallet_id,
+  recurring_transaction_rule_id = @recurring_transaction_rule_id, category = @category, behavior = @behavior,
+  payment_provider_customer_id = @payment_provider_customer_id, integration_customer_id = @integration_customer_id,
+  created_at = @created_at, updated_at = @updated_at
+WHERE organization_id = @organization_id AND id = @id;
+
+-- name: DeleteBillingObjectConnection :execrows
+DELETE FROM billing_object_connections WHERE organization_id = @organization_id AND id = @id;
+
+-- name: ListBillingObjectConnectionsByOwner :many
+SELECT * FROM billing_object_connections
+-- The owner sets one of the three IDs; a NULL argument matches nothing.
+WHERE organization_id = @organization_id
+  AND (subscription_id = sqlc.narg(subscription_id)::uuid OR wallet_id = sqlc.narg(wallet_id)::uuid
+    OR recurring_transaction_rule_id = sqlc.narg(recurring_transaction_rule_id)::uuid)
+ORDER BY id;
+
+-- name: DeleteBillingObjectConnectionsByPaymentProviderCustomer :exec
+DELETE FROM billing_object_connections
+WHERE organization_id = @organization_id AND payment_provider_customer_id = @payment_provider_customer_id;

@@ -65,13 +65,7 @@ func paymentLinkConnection(ctx context.Context, r port.Repos, org core.Organizat
 	if err != nil {
 		return linkConnection{}, wrap(err, "list payment connections of customer %s", id)
 	}
-	var pcust *payment.ProviderCustomer
-	for _, pc := range pcs {
-		if !pc.Deleted() {
-			pcust = pc
-			break
-		}
-	}
+	pcust := payment.DefaultProviderCustomer(pcs)
 	if pcust == nil {
 		return linkConnection{}, baseError(CodeNoLinkedPaymentProvider)
 	}

@@ -15,6 +15,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
@@ -97,6 +98,9 @@ type View struct {
 	// its plan's, else the original plan's; none when progressive billing
 	// is disabled (lago Subscription#applicable_usage_thresholds).
 	UsageThresholds []*catalog.UsageThreshold
+	// Connections are its connection routing per category (lago
+	// connections of the subscription serializer).
+	Connections []kernel.ConnectionRoute
 }
 
 // findCustomer returns the customer ref designates; a missing one is
@@ -227,6 +231,10 @@ func view(ctx context.Context, r port.Repos, s *subscription.Subscription, now t
 		ActivationRules: rules,
 	}
 	if v.UsageThresholds, err = applicableThresholds(ctx, r, s, env.Plan); err != nil {
+		return nil, err
+	}
+	// source: app/serializers/v1/subscription_serializer.rb:51-58
+	if v.Connections, err = kernel.ConnectionRouting(ctx, r, s.OrganizationID, s.CustomerID, integration.ObjectOwner{SubscriptionID: s.ID}); err != nil {
 		return nil, err
 	}
 	if s.Status == subscription.StatusActive && s.StartedAt != nil {

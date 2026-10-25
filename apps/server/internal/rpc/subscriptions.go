@@ -90,7 +90,7 @@ var subscriptionUpdateFields = []string{
 	"name", "subscription_at", "ending_at", "purchase_order_number", "progressive_billing_disabled",
 	"consolidate_invoice", "on_termination_credit_note", "on_termination_invoice", "payment_method_type",
 	"payment_method_id", "billing_entity_id", "skip_invoice_custom_sections", "invoice_custom_section_ids",
-	"activation_rules", "plan_overrides", "usage_thresholds",
+	"activation_rules", "plan_overrides", "usage_thresholds", "connections",
 }
 
 // subscriptionFields renames the domain's field paths to the proto's.
@@ -152,6 +152,7 @@ func (s *Subscriptions) CreateSubscription(ctx context.Context, req *subscriptio
 		}
 	}
 	in.ActivationRules = subActivationRules(b.GetActivationRules())
+	in.Connections = connectionChoices(b.GetConnections())
 	if b.HasPlanOverrides() || len(b.GetUsageThresholds()) > 0 {
 		cur, err := s.svc.PlanCurrency(ctx, p.OrganizationID, in.Plan)
 		if err != nil {
@@ -241,6 +242,8 @@ func (s *Subscriptions) UpdateSubscription(ctx context.Context, req *subscriptio
 			return len(b.GetActivationRules()) > 0
 		case "usage_thresholds":
 			return len(b.GetUsageThresholds()) > 0
+		case "connections":
+			return len(b.GetConnections()) > 0
 		}
 		return b.ProtoReflect().Has(b.ProtoReflect().Descriptor().Fields().ByName(protoreflect.Name(subFieldName(path))))
 	})
@@ -284,6 +287,8 @@ func (s *Subscriptions) UpdateSubscription(ctx context.Context, req *subscriptio
 			sections = true
 		case "activation_rules":
 			in.ActivationRules = core.Some(subActivationRules(b.GetActivationRules()))
+		case "connections":
+			in.Connections = connectionChoices(b.GetConnections())
 		}
 	}
 	if in.PaymentMethod, err = subPaymentMethod(b, pmType, pmID); err != nil {
@@ -334,7 +339,7 @@ func (s *Subscriptions) ChangeSubscriptionPlan(ctx context.Context, req *subscri
 	if err != nil {
 		return nil, err
 	}
-	in := subscriptions.ChangePlanInput{OrganizationID: p.OrganizationID, Name: Opt(req.HasName(), req.GetName())}
+	in := subscriptions.ChangePlanInput{OrganizationID: p.OrganizationID, Name: Opt(req.HasName(), req.GetName()), Connections: connectionChoices(req.GetConnections())}
 	if in.Subscription, err = subRef("subscription_id", req.GetSubscriptionId()); err != nil {
 		return nil, err
 	}
@@ -681,6 +686,7 @@ func subscriptionProto(v *subscriptions.View) *subscriptionv1.Subscription {
 	for _, t := range v.UsageThresholds {
 		b.UsageThresholds = append(b.UsageThresholds, subUsageThresholdProto(t, v.Plan.Currency))
 	}
+	b.Connections = connectionRoutesProto(v.Connections)
 	return b.Build()
 }
 

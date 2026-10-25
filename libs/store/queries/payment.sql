@@ -284,10 +284,10 @@ ORDER BY id;
 -- name: CreatePaymentProviderCustomer :execrows
 INSERT INTO payment_provider_customers (
   organization_id, id, customer_id, integration_id, provider_customer_id, sync_with_provider,
-  provider_payment_methods, deleted_at, created_at, updated_at
+  provider_payment_methods, is_default, deleted_at, created_at, updated_at
 ) VALUES (
   @organization_id, @id, @customer_id, @integration_id, @provider_customer_id, @sync_with_provider,
-  @provider_payment_methods, @deleted_at, @created_at, @updated_at
+  @provider_payment_methods, @is_default, @deleted_at, @created_at, @updated_at
 )
 ON CONFLICT DO NOTHING;
 
@@ -295,7 +295,7 @@ ON CONFLICT DO NOTHING;
 UPDATE payment_provider_customers SET
   organization_id = @organization_id, id = @id, customer_id = @customer_id, integration_id = @integration_id,
   provider_customer_id = @provider_customer_id, sync_with_provider = @sync_with_provider,
-  provider_payment_methods = @provider_payment_methods, deleted_at = @deleted_at,
+  provider_payment_methods = @provider_payment_methods, is_default = @is_default, deleted_at = @deleted_at,
   created_at = @created_at, updated_at = @updated_at
 WHERE organization_id = @organization_id AND id = @id;
 

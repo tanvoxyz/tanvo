@@ -82,6 +82,11 @@ const (
 	JobGenerateInvoiceDocument = "documents.generate_invoice"
 	// JobGenerateCreditNoteDocument renders the PDF of a credit note.
 	JobGenerateCreditNoteDocument = "documents.generate_credit_note"
+	// JobGeneratePaymentReceiptDocument renders the documents of a payment
+	// receipt, announces them with payment_receipt.generated and emails the
+	// receipt when its billing entity sends payment_receipt.created emails
+	// (lago PaymentReceipts::GenerateDocumentsJob).
+	JobGeneratePaymentReceiptDocument = "documents.generate_payment_receipt"
 )
 
 // BillSubscriptionsArgs are the args of [JobBillSubscriptions].
@@ -132,6 +137,15 @@ type CreditNoteArgs struct {
 	CreditNoteID core.CreditNoteID `json:"credit_note_id"`
 }
 
+// PaymentReceiptArgs are the args of [JobGeneratePaymentReceiptDocument].
+type PaymentReceiptArgs struct {
+	// PaymentReceiptID is the receipt.
+	PaymentReceiptID core.PaymentReceiptID `json:"payment_receipt_id"`
+	// Notify emails the receipt once rendered: its billing entity sent
+	// payment_receipt.created emails when it was issued.
+	Notify bool `json:"notify,omitempty"`
+}
+
 // InAdvanceChargeArgs are the args of [JobCreateInAdvanceChargeFees].
 type InAdvanceChargeArgs struct {
 	// SubscriptionID is the subscription the event belongs to, or the
@@ -179,7 +193,7 @@ func QueueOf(kind string) port.Queue {
 		JobExpireCheckout, JobCancelAbandonedPayments, JobCancelAbandonedPayment, JobRegisterProviderWebhook, JobExpireConnectionCheckouts,
 		JobUpdatePaymentReference, JobCancelPayment:
 		return port.QueuePayments
-	case JobGenerateInvoiceDocument, JobGenerateCreditNoteDocument:
+	case JobGenerateInvoiceDocument, JobGenerateCreditNoteDocument, JobGeneratePaymentReceiptDocument:
 		return port.QueueDocuments
 	case JobPullProviderTaxes, JobVoidProviderTaxes, JobReportCreditNoteTaxes:
 		return port.QueueIntegrations

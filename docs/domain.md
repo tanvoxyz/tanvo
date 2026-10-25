@@ -1247,10 +1247,10 @@ Asks a customer to pay several overdue invoices at once.
 Rules: a successful payment of the request settles each invoice; a failed one marks each invoice's payment as failed. If the customer has no payment provider connection, the request is emailed. `payment_request.created`, `payment_request.payment_status_updated`, `payment_request.payment_failure`.
 
 ### 15.5 Payment Method and Provider Connections
-* **[Change]** Multi-connection is the native model: an organization can have several connections per payment provider, each with a `code` and an `is_default` flag. A customer has a `PaymentProviderCustomer` per connection {integration, provider customer id, `sync_with_provider`}.
-* `PaymentMethod`: `customer_id`, `integration_id`, `provider_method_id`, `method_type` (card, sepa_debit, …), `details` (brand, last 4, expiry), `is_default` (at most one per customer).
+* **[Change]** Multi-connection is the native model: an organization can have several connections per payment provider, each an integration with a `code`. A customer has a `PaymentProviderCustomer` per connection {integration, provider customer id, `sync_with_provider`, provider payment method types, `is_default`}: several per customer, at most one per vendor and one live default (`payment_provider_customers_default_live_key`). The first connection is the default; setting `is_default` moves it; discarding a connection discards its payment methods and the billing objects' choices of it, and leaves the customer without a default until one is set.
+* `PaymentMethod`: `customer_id`, `integration_id`, `payment_provider_customer_id`, `provider_method_id`, `details` (type such as card or sepa_debit, brand, last 4, expiry), `is_default` (at most one per customer). A live method is unique per connection and `provider_method_id` (`payment_methods_provider_method_live_key`). Methods are found or created from provider events, a concurrent duplicate being read back; detail updates merge into the stored details.
 * The method used for a payable is the first present of: explicit method on the request → subscription's → wallet transaction's → recurring rule's → wallet's → customer default. A `manual` payment method type at any level stops automatic charging.
-* Connections per object can be `specific` (a connection), `skip` (no automatic action) or `inherit` (the next level).
+* Connections per object (`BillingObjectConnection`, one per owner and category; owners are subscriptions, wallets and recurring transaction rules) can be `specific` (a connection of the customer in that category), `skip` (no connection) or `inherit` (no row). `inherit` resolves to the customer's connection of the category: the only one, else the default. A choice names its connection by the integration code; choices are validated against the customer's connections and replaced as a whole on update.
 
 ### 15.6 Inbound Provider Webhooks
 Stored with `status ∈ {pending, processing, succeeded, failed}`, processed by a job with retries every 15 minutes within a 2-hour window, kept 90 days. Each provider adapter verifies the signature and maps the event to payment, refund, payment method or customer updates. **[Fix]** Adyen notifications with several `notificationItems` process every item.
@@ -1749,5 +1749,5 @@ The questions raised while writing this model, and how Tanvo settles them. A lat
 16. **Tiers**: the API exposes adjacent tiers only.
 17. **Mixed upgrade invoice**: each invoice subscription records its own reason (`subscription_terminating`, `subscription_starting`); the invoice is issued on the upgrade date.
 18. **Expired activations** refund captured payments with that refund reason.
-19. **Payment connections** resolve subscription → wallet → customer → organization default; `skip` stops inheritance per category.
+19. **Connections** of a billing object resolve per category: its specific choice, none for `skip`, else the customer's only or default connection.
 20. **Coupons on drafts** are shown as a preview deduction without being consumed; they are applied at finalization.

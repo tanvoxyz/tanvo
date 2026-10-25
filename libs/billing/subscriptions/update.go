@@ -12,6 +12,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
@@ -62,6 +63,9 @@ type UpdateInput struct {
 	ActivationRules core.Optional[[]ActivationRule]
 	// InvoiceCustomSections, when not nil, selects the custom sections.
 	InvoiceCustomSections *CustomSections
+	// Connections, keyed by category, change the subscription's
+	// connection choices (domain §15.5); categories left out keep theirs.
+	Connections map[string]kernel.ConnectionChoice
 	// PlanOverrides, when set, update the subscription's override plan,
 	// or move a subscription of an original plan onto a new override
 	// plan; fixed charge units only (and no other value) on an original
@@ -134,6 +138,8 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) (*View, error) {
 				return err
 			}
 		}
+		// validate_service.rb:105-113.
+		kernel.ValidateConnections(&v, in.Connections)
 		if err := v.Err(); err != nil {
 			return err
 		}
@@ -228,6 +234,10 @@ func (s *Service) Update(ctx context.Context, in UpdateInput) (*View, error) {
 			if err := s.replaceThresholds(ctx, r, sub, in.UsageThresholds.Value); err != nil {
 				return err
 			}
+		}
+		// update_service.rb:129.
+		if err := kernel.AttachConnections(ctx, s.d, r, org, sub.CustomerID, integration.ObjectOwner{SubscriptionID: sub.ID}, in.Connections); err != nil {
+			return err
 		}
 		// The update of a subscription starting in the future is not
 		// logged; its start, when it moves to now, is.

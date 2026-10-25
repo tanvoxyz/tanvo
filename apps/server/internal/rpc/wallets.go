@@ -12,6 +12,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/billing/wallets"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/wallet"
 	"github.com/tanvoxyz/tanvo/libs/money"
 	"github.com/tanvoxyz/tanvo/libs/period"
@@ -114,7 +115,7 @@ var (
 var walletUpdateFields = []string{
 	"name", "code", "priority", "expires_at", "invoice_requires_successful_payment",
 	"paid_top_up_min_amount", "paid_top_up_max_amount", "allowed_fee_types",
-	"billable_metric_ids", "billing_entity_id", "payment_method_type", "payment_method_id",
+	"billable_metric_ids", "billing_entity_id", "payment_method_type", "payment_method_id", "connections",
 }
 
 // CreateWallet implements WalletService.CreateWallet (lago
@@ -181,6 +182,7 @@ func (s *Wallets) CreateWallet(ctx context.Context, req *walletv1.CreateWalletRe
 		}
 		in.RecurringTransactionRules = append(in.RecurringTransactionRules, rule)
 	}
+	in.Connections = connectionChoices(w.GetConnections())
 	created, err := s.svc.Create(ctx, org, in)
 	if err != nil {
 		return nil, walletError(ctx, "wallet.", err)
@@ -283,6 +285,8 @@ func (s *Wallets) UpdateWallet(ctx context.Context, req *walletv1.UpdateWalletRe
 			return w.HasPaymentMethodType()
 		case "payment_method_id":
 			return w.HasPaymentMethodId()
+		case "connections":
+			return len(w.GetConnections()) > 0
 		}
 		return false
 	})
@@ -337,6 +341,8 @@ func (s *Wallets) UpdateWallet(ctx context.Context, req *walletv1.UpdateWalletRe
 			} else if in.PaymentMethod.ID, err = ParseID[core.PaymentMethodID]("wallet.payment_method_id", w.GetPaymentMethodId()); err != nil {
 				return nil, err
 			}
+		case "connections":
+			in.Connections = connectionChoices(w.GetConnections())
 		}
 	}
 	updated, err := s.svc.Update(ctx, org, cur.ID, in)
@@ -542,7 +548,7 @@ func (s *Wallets) ReplaceRecurringTransactionRules(ctx context.Context, req *wal
 	if _, err := s.svc.Update(ctx, org, w.ID, wallets.UpdateInput{RecurringTransactionRules: wallets.To(rules)}); err != nil {
 		return nil, walletError(ctx, "", err)
 	}
-	out, err := s.walletRules(ctx, org, w.ID)
+	out, err := s.walletRules(ctx, org, w)
 	if err != nil {
 		return nil, Error(ctx, err)
 	}
@@ -868,6 +874,7 @@ func walletRuleInput(prefix string, r *walletv1.RecurringTransactionRule) (walle
 	if len(r.GetTransactionMetadata()) > 0 {
 		in.TransactionMetadata = FromMetadata(r.GetTransactionMetadata())
 	}
+	in.Connections = connectionChoices(r.GetConnections())
 	return in, nil
 }
 
@@ -883,7 +890,11 @@ func walletError(ctx context.Context, prefix string, err error) error {
 // walletProto converts w with its recurring rules (lago
 // V1::WalletSerializer with recurring_transaction_rules and limitations).
 func (s *Wallets) walletProto(ctx context.Context, org core.OrganizationID, w *wallet.Wallet) (*walletv1.Wallet, error) {
-	rules, err := s.walletRules(ctx, org, w.ID)
+	rules, err := s.walletRules(ctx, org, w)
+	if err != nil {
+		return nil, err
+	}
+	routes, err := s.svc.Connections(ctx, org, w.CustomerID, integration.ObjectOwner{WalletID: w.ID})
 	if err != nil {
 		return nil, err
 	}
@@ -910,6 +921,7 @@ func (s *Wallets) walletProto(ctx context.Context, org core.OrganizationID, w *w
 		InvoiceRequiresSuccessfulPayment: new(w.InvoiceRequiresSuccessfulPayment),
 		Traceable:                        new(w.Traceable),
 		RecurringTransactionRules:        rules,
+		Connections:                      connectionRoutesProto(routes),
 		DepletedOngoingBalance:           new(w.DepletedOngoingBalance),
 		LastBalanceSyncAt:                TimestampPtr(w.LastBalanceSyncAt),
 		LastConsumedCreditAt:             TimestampPtr(w.LastConsumedCreditAt),
@@ -938,14 +950,19 @@ func (s *Wallets) walletProto(ctx context.Context, org core.OrganizationID, w *w
 	return b.Build(), nil
 }
 
-func (s *Wallets) walletRules(ctx context.Context, org core.OrganizationID, id core.WalletID) ([]*walletv1.RecurringTransactionRule, error) {
-	rules, err := s.svc.ListRules(ctx, org, id)
+func (s *Wallets) walletRules(ctx context.Context, org core.OrganizationID, w *wallet.Wallet) ([]*walletv1.RecurringTransactionRule, error) {
+	rules, err := s.svc.ListRules(ctx, org, w.ID)
 	if err != nil {
 		return nil, err
 	}
 	out := make([]*walletv1.RecurringTransactionRule, len(rules))
 	for i, r := range rules {
+		routes, err := s.svc.Connections(ctx, org, w.CustomerID, integration.ObjectOwner{RecurringTransactionRuleID: r.ID})
+		if err != nil {
+			return nil, err
+		}
 		out[i] = walletRuleProto(r)
+		out[i].SetConnections(connectionRoutesProto(routes))
 	}
 	return out, nil
 }

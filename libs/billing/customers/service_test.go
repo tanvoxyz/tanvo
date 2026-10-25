@@ -531,13 +531,10 @@ func TestConnections(t *testing.T) {
 	xero := newIntegration("xero", integration.CategoryAccounting, integration.ProviderXero)
 	c := h.Customer()
 
-	t.Log("source: spec/services/payment_provider_customers/create_or_update_batch_service_spec.rb:27")
+	t.Log("source: spec/services/payment_provider_customers/create_or_update_batch_service_spec.rb:92")
 	got, err := svc.UpsertConnection(h.Ctx, h.OrgID(), c.ID, refs.ByCode("stripe"), customers.ConnectionInput{ExternalCustomerID: core.Some("cus_stripe")})
 	if err != nil || got.ExternalCustomerID != "cus_stripe" || got.Integration.ID != stripe.ID {
 		t.Fatalf("got = %+v %v, want = stripe connection", got, err)
-	}
-	if _, err := svc.UpsertConnection(h.Ctx, h.OrgID(), c.ID, refs.ByCode("adyen"), customers.ConnectionInput{SyncWithProvider: core.Some(true)}); fieldCode(err, "connection") != customers.CodeOnlyOneConnectionAllowed {
-		t.Errorf("got = %v, want = only_one_connection_allowed", err)
 	}
 
 	t.Log("source: spec/services/integration_customers/create_connection_service_spec.rb:117")
@@ -573,7 +570,7 @@ func TestConnections(t *testing.T) {
 		t.Fatalf("DeleteConnection: %v", err)
 	}
 	if _, err := svc.UpsertConnection(h.Ctx, h.OrgID(), c.ID, refs.ByCode("adyen"), customers.ConnectionInput{SyncWithProvider: core.Some(true)}); err != nil {
-		t.Errorf("got = %v, want = adyen connection once stripe is gone", err)
+		t.Errorf("got = %v, want = adyen connection", err)
 	}
 	if err := svc.DeleteConnection(h.Ctx, h.OrgID(), c.ID, refs.ByCode("stripe")); !errors.Is(err, core.ErrNotFound) {
 		t.Errorf("got = %v, want = not found", err)

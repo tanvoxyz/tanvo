@@ -11,6 +11,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/creditnote"
 	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
+	"github.com/tanvoxyz/tanvo/libs/core/payment"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
 )
@@ -321,7 +322,7 @@ func (s *Service) RetryPayment(ctx context.Context, org core.OrganizationID, id 
 		if err != nil {
 			return fmt.Errorf("list payment connections of customer %s: %w", inv.CustomerID, err)
 		}
-		if len(pcs) == 0 {
+		if payment.DefaultProviderCustomer(pcs) == nil {
 			return kernel.Emit(ctx, s.d, org, webhook.EventTypeInvoicePaymentFailure, "invoice", kernel.ObjectID(inv.ID),
 				PaymentFailure{Invoice: inv, ErrorDetails: map[string]string{"code": CodeCustomerMustHavePaymentProvider}})
 		}
@@ -463,12 +464,13 @@ func (s *Service) PaymentURL(ctx context.Context, org core.OrganizationID, id co
 		if err != nil {
 			return fmt.Errorf("list payment connections of customer %s: %w", inv.CustomerID, err)
 		}
-		if len(pcs) == 0 {
+		pc := payment.DefaultProviderCustomer(pcs)
+		if pc == nil {
 			return fieldError("base", CodeNoLinkedPaymentProvider)
 		}
-		integ, err := r.Integrations.Get(ctx, org, pcs[0].IntegrationID)
+		integ, err := r.Integrations.Get(ctx, org, pc.IntegrationID)
 		if err != nil {
-			return fmt.Errorf("load integration %s: %w", pcs[0].IntegrationID, err)
+			return fmt.Errorf("load integration %s: %w", pc.IntegrationID, err)
 		}
 		if integ.Provider == integration.ProviderGocardless {
 			return fieldError("base", CodeInvalidPaymentProvider)

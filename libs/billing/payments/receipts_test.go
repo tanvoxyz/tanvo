@@ -1,12 +1,18 @@
 package payments_test
 
 import (
+	"context"
+	"encoding/json"
+	"slices"
 	"testing"
 
+	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/payments"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
+	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/payment"
+	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
 )
 
@@ -110,5 +116,55 @@ func TestGetAndListReceipts(t *testing.T) {
 	}
 	if _, ready, err := svc.DownloadReceipt(h.Ctx, h.OrgID(), rc.ID); err != nil || ready {
 		t.Errorf("download: got = %t %v, want = not ready", ready, err)
+	}
+}
+
+func TestCreateReceiptDocuments(t *testing.T) {
+	for _, tt := range []struct {
+		name   string
+		source string
+		emails bool
+	}{
+		{"billing entity emailing receipts", "spec/services/payment_receipts/create_service_spec.rb:92", true},
+		{"billing entity not emailing receipts", "", false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.source != "" {
+				t.Log("source: " + tt.source)
+			}
+			h, svc := newHarness(t)
+			cust := h.Customer()
+			inv := h.StoredInvoice(cust, finalized(10000, 0))
+			if tt.emails {
+				h.Do(func(ctx context.Context, r port.Repos) error {
+					be, err := r.BillingEntities.Get(ctx, h.OrgID(), inv.BillingEntityID)
+					if err != nil {
+						return err
+					}
+					be.EmailSettings = append(be.EmailSettings, organization.EmailSettingPaymentReceiptCreated)
+					return r.BillingEntities.Update(ctx, be)
+				})
+			}
+			p := h.StoredPayment(payment.InvoicePayable(inv.ID), cust.ID, 10000, payment.StateSucceeded, core.IntegrationID{})
+			rc, err := svc.CreateReceipt(h.Ctx, p)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var got []kernel.PaymentReceiptArgs
+			for _, j := range h.Store.Jobs() {
+				if j.Kind != kernel.JobGeneratePaymentReceiptDocument {
+					continue
+				}
+				var args kernel.PaymentReceiptArgs
+				if err := json.Unmarshal(j.Args, &args); err != nil {
+					t.Fatal(err)
+				}
+				got = append(got, args)
+			}
+			want := []kernel.PaymentReceiptArgs{{PaymentReceiptID: rc.ID, Notify: tt.emails}}
+			if !slices.Equal(got, want) {
+				t.Errorf("document jobs: got = %+v, want = %+v", got, want)
+			}
+		})
 	}
 }

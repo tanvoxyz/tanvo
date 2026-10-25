@@ -203,11 +203,11 @@ func (b billingJobs) register(reg *jobs.Registry) error {
 
 // registerPending registers the kinds billing enqueues for libraries not
 // wired yet, so that the transactions enqueueing them commit:
-// documents.generate_invoice and documents.generate_credit_note are
-// cancelled, kept in River for a manual retry once libs/documents is
-// wired to the store and a blob store.
+// documents.generate_invoice, documents.generate_credit_note and
+// documents.generate_payment_receipt are cancelled, kept in River for a
+// manual retry once libs/documents is wired to the store and a blob store.
 func (b billingJobs) registerPending(reg *jobs.Registry) error {
-	for _, k := range []string{kernel.JobGenerateInvoiceDocument, kernel.JobGenerateCreditNoteDocument} {
+	for _, k := range []string{kernel.JobGenerateInvoiceDocument, kernel.JobGenerateCreditNoteDocument, kernel.JobGeneratePaymentReceiptDocument} {
 		if err := jobs.Register(reg, jobs.Kind{Name: k}, jobs.HandlerFunc[json.RawMessage](func(context.Context, *jobs.Job[json.RawMessage]) error {
 			return jobs.Permanent(fmt.Errorf("%s: documents are not wired: %w", k, core.ErrNotAllowed))
 		})); err != nil {

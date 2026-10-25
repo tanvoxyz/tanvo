@@ -59,7 +59,8 @@ func (m *Method) Delete(now time.Time) error {
 }
 
 // ProviderCustomer is a customer's identity at one provider connection
-// (domain §15.5); one live row per (connection, customer).
+// (domain §15.5); one live row per (connection, customer), and at most one
+// live row per customer is the default.
 type ProviderCustomer struct {
 	// ID identifies the provider customer.
 	ID core.PaymentProviderCustomerID
@@ -76,12 +77,36 @@ type ProviderCustomer struct {
 	// ProviderPaymentMethods are the provider method types allowed for the
 	// customer (validated by the provider adapter).
 	ProviderPaymentMethods []string
+	// IsDefault marks the customer's default payment connection.
+	IsDefault bool
 	// DeletedAt is set once deleted (soft delete).
 	DeletedAt *time.Time
 	// CreatedAt is the creation instant.
 	CreatedAt time.Time
 	// UpdatedAt is the instant of the last change.
 	UpdatedAt time.Time
+}
+
+// DefaultProviderCustomer returns the payment connection in effect among
+// a customer's live connections: the only one, else the default, else nil.
+//
+// source: app/models/concerns/connection_resolvable.rb:98-102
+func DefaultProviderCustomer(pcs []*ProviderCustomer) *ProviderCustomer {
+	var live []*ProviderCustomer
+	for _, pc := range pcs {
+		if !pc.Deleted() {
+			live = append(live, pc)
+		}
+	}
+	if len(live) == 1 {
+		return live[0]
+	}
+	for _, pc := range live {
+		if pc.IsDefault {
+			return pc
+		}
+	}
+	return nil
 }
 
 // Validate checks the provider customer.

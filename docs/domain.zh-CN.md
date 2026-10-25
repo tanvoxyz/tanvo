@@ -1247,10 +1247,10 @@ stateDiagram-v2
 规则：请求支付成功会结清每张发票；支付失败会把每张发票的支付标记为失败。客户没有支付服务商连接时，以邮件发送请求。发出 `payment_request.created`、`payment_request.payment_status_updated`、`payment_request.payment_failure`。
 
 ### 15.5 支付方式与服务商连接
-* **[变更]** 多连接是原生模型：组织可以为每个支付服务商建立多个连接，每个连接有 `code` 和 `is_default` 标志。客户在每个连接上有一个 `PaymentProviderCustomer` {集成，服务商客户 ID，`sync_with_provider`}。
-* `PaymentMethod`：`customer_id`、`integration_id`、`provider_method_id`、`method_type`（card、sepa_debit 等）、`details`（品牌、后 4 位、有效期）、`is_default`（每个客户至多一个）。
+* **[变更]** 多连接是原生模型：组织可以为每个支付服务商建立多个连接，每个连接是一个带 `code` 的集成。客户在每个连接上有一个 `PaymentProviderCustomer` {集成，服务商客户 ID，`sync_with_provider`，服务商支付方式类型，`is_default`}：每个客户可有多个，每个供应商至多一个，且至多一个有效的默认连接（`payment_provider_customers_default_live_key`）。第一个连接为默认；设置 `is_default` 会移动默认；作废连接会作废其支付方式与各计费对象对它的选择，并使客户在重新设置前没有默认连接。
+* `PaymentMethod`：`customer_id`、`integration_id`、`payment_provider_customer_id`、`provider_method_id`、`details`（类型如 card 或 sepa_debit、品牌、后 4 位、有效期）、`is_default`（每个客户至多一个）。有效的支付方式按连接与 `provider_method_id` 唯一（`payment_methods_provider_method_live_key`）。支付方式根据服务商事件查找或创建，并发产生的重复会被重新读取；详情更新合并到已存详情中。
 * 被支付对象使用的支付方式取以下第一个存在者：请求上显式指定 → 订阅的 → 钱包交易的 → 周期充值规则的 → 钱包的 → 客户默认。任何层级上的 `manual` 支付方式类型都会停止自动扣款。
-* 每个对象的连接可以是 `specific`（指定连接）、`skip`（不做自动操作）或 `inherit`（使用下一层级）。
+* 每个对象的连接（`BillingObjectConnection`，每个所有者每个类别一条；所有者为订阅、钱包与周期交易规则）可以是 `specific`（客户在该类别下的某个连接）、`skip`（不使用连接）或 `inherit`（没有记录）。`inherit` 解析为客户在该类别下的连接：唯一的那个，否则为默认连接。选择以集成代码指定连接；选择会对照客户的连接校验，更新时整体替换。
 
 ### 15.6 入站服务商 Webhook
 以 `status ∈ {pending, processing, succeeded, failed}` 存储，由任务处理，在 2 小时窗口内每 15 分钟重试，保留 90 天。每个服务商适配器校验签名，并把事件映射为支付、退款、支付方式或客户的更新。**[修复]** 含多个 `notificationItems` 的 Adyen 通知会处理每一项。
@@ -1749,5 +1749,5 @@ Tanvo 统一两套目录，并把合同建模为订阅（§24，第 2–3 条）
 16. **分层**：API 只暴露相邻分层。
 17. **混合升级发票**：每个发票订阅记录自己的原因（`subscription_terminating`、`subscription_starting`）；发票在升级日期开具。
 18. **过期的激活**以该退款原因退还已捕获的付款。
-19. **支付连接**按 订阅 → 钱包 → 客户 → 组织默认 解析；`skip` 按类别停止继承。
+19. 计费对象的**连接**按类别解析：其指定选择；`skip` 则无；否则为客户唯一的或默认的连接。
 20. **草稿上的优惠券**显示为预览抵扣而不被消耗；在定稿时才应用。

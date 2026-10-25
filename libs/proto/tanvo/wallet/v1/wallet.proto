@@ -310,6 +310,14 @@ message RecurringTransactionRule {
   google.protobuf.Timestamp terminated_at = 19 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the rule was created.
   google.protobuf.Timestamp created_at = 20 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The connection choices keyed by category: payment, tax, accounting
+  // and crm (see ConnectionChoice).
+  map<string, tanvo.common.v1.ConnectionChoice> connections = 21 [(buf.validate.field).map = {
+    max_pairs: 16
+    keys: {
+      string: {max_len: 64}
+    }
+  }];
 }
 
 // Wallet holds prepaid credits of a customer.
@@ -430,6 +438,14 @@ message Wallet {
   google.protobuf.Timestamp created_at = 35 [(google.api.field_behavior) = OUTPUT_ONLY];
   // When the wallet last changed.
   google.protobuf.Timestamp updated_at = 36 [(google.api.field_behavior) = OUTPUT_ONLY];
+  // The connection choices keyed by category: payment, tax, accounting
+  // and crm (see ConnectionChoice).
+  map<string, tanvo.common.v1.ConnectionChoice> connections = 37 [(buf.validate.field).map = {
+    max_pairs: 16
+    keys: {
+      string: {max_len: 64}
+    }
+  }];
 }
 
 // WalletTransaction is a change of a wallet's balance.

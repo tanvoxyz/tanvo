@@ -406,6 +406,61 @@ func (x IssuingDateAdjustment) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
+// ConnectionBehavior is how a billing object (a subscription, a wallet or a
+// recurring transaction rule) picks its connection of a category.
+type ConnectionBehavior int32
+
+const (
+	// Not set.
+	ConnectionBehavior_CONNECTION_BEHAVIOR_UNSPECIFIED ConnectionBehavior = 0
+	// A chosen connection of the customer, named by its code. Output only:
+	// requests choose a connection by sending its code.
+	ConnectionBehavior_CONNECTION_BEHAVIOR_SPECIFIC ConnectionBehavior = 1
+	// No connection of the category.
+	ConnectionBehavior_CONNECTION_BEHAVIOR_SKIP ConnectionBehavior = 2
+	// The customer's default connection of the category; in a request, it
+	// removes the object's own choice.
+	ConnectionBehavior_CONNECTION_BEHAVIOR_INHERIT ConnectionBehavior = 3
+)
+
+// Enum value maps for ConnectionBehavior.
+var (
+	ConnectionBehavior_name = map[int32]string{
+		0: "CONNECTION_BEHAVIOR_UNSPECIFIED",
+		1: "CONNECTION_BEHAVIOR_SPECIFIC",
+		2: "CONNECTION_BEHAVIOR_SKIP",
+		3: "CONNECTION_BEHAVIOR_INHERIT",
+	}
+	ConnectionBehavior_value = map[string]int32{
+		"CONNECTION_BEHAVIOR_UNSPECIFIED": 0,
+		"CONNECTION_BEHAVIOR_SPECIFIC":    1,
+		"CONNECTION_BEHAVIOR_SKIP":        2,
+		"CONNECTION_BEHAVIOR_INHERIT":     3,
+	}
+)
+
+func (x ConnectionBehavior) Enum() *ConnectionBehavior {
+	p := new(ConnectionBehavior)
+	*p = x
+	return p
+}
+
+func (x ConnectionBehavior) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ConnectionBehavior) Descriptor() protoreflect.EnumDescriptor {
+	return file_tanvo_common_v1_enums_proto_enumTypes[7].Descriptor()
+}
+
+func (ConnectionBehavior) Type() protoreflect.EnumType {
+	return &file_tanvo_common_v1_enums_proto_enumTypes[7]
+}
+
+func (x ConnectionBehavior) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
 var File_tanvo_common_v1_enums_proto protoreflect.FileDescriptor
 
 const file_tanvo_common_v1_enums_proto_rawDesc = "" +
@@ -449,11 +504,16 @@ const file_tanvo_common_v1_enums_proto_rawDesc = "" +
 	"\x15IssuingDateAdjustment\x12'\n" +
 	"#ISSUING_DATE_ADJUSTMENT_UNSPECIFIED\x10\x00\x12'\n" +
 	"#ISSUING_DATE_ADJUSTMENT_KEEP_ANCHOR\x10\x01\x128\n" +
-	"4ISSUING_DATE_ADJUSTMENT_ALIGN_WITH_FINALIZATION_DATE\x10\x02B\xc5\x01\n" +
+	"4ISSUING_DATE_ADJUSTMENT_ALIGN_WITH_FINALIZATION_DATE\x10\x02*\x9a\x01\n" +
+	"\x12ConnectionBehavior\x12#\n" +
+	"\x1fCONNECTION_BEHAVIOR_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cCONNECTION_BEHAVIOR_SPECIFIC\x10\x01\x12\x1c\n" +
+	"\x18CONNECTION_BEHAVIOR_SKIP\x10\x02\x12\x1f\n" +
+	"\x1bCONNECTION_BEHAVIOR_INHERIT\x10\x03B\xc5\x01\n" +
 	"\x13com.tanvo.common.v1B\n" +
 	"EnumsProtoP\x01ZDgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/common/v1;commonv1\xa2\x02\x03TCX\xaa\x02\x0fTanvo.Common.V1\xca\x02\x0fTanvo\\Common\\V1\xe2\x02\x1bTanvo\\Common\\V1\\GPBMetadata\xea\x02\x11Tanvo::Common::V1b\beditionsp\xe8\a"
 
-var file_tanvo_common_v1_enums_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
+var file_tanvo_common_v1_enums_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
 var file_tanvo_common_v1_enums_proto_goTypes = []any{
 	(Interval)(0),              // 0: tanvo.common.v1.Interval
 	(PaymentMethodType)(0),     // 1: tanvo.common.v1.PaymentMethodType
@@ -462,6 +522,7 @@ var file_tanvo_common_v1_enums_proto_goTypes = []any{
 	(RefundStatus)(0),          // 4: tanvo.common.v1.RefundStatus
 	(IssuingDateAnchor)(0),     // 5: tanvo.common.v1.IssuingDateAnchor
 	(IssuingDateAdjustment)(0), // 6: tanvo.common.v1.IssuingDateAdjustment
+	(ConnectionBehavior)(0),    // 7: tanvo.common.v1.ConnectionBehavior
 }
 var file_tanvo_common_v1_enums_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for method output_type
@@ -481,7 +542,7 @@ func file_tanvo_common_v1_enums_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_common_v1_enums_proto_rawDesc), len(file_tanvo_common_v1_enums_proto_rawDesc)),
-			NumEnums:      7,
+			NumEnums:      8,
 			NumMessages:   0,
 			NumExtensions: 0,
 			NumServices:   0,

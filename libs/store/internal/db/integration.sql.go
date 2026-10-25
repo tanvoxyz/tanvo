@@ -13,6 +13,51 @@ import (
 	"github.com/google/uuid"
 )
 
+const createBillingObjectConnection = `-- name: CreateBillingObjectConnection :execrows
+INSERT INTO billing_object_connections (
+  organization_id, id, subscription_id, wallet_id, recurring_transaction_rule_id, category, behavior,
+  payment_provider_customer_id, integration_customer_id, created_at, updated_at
+) VALUES (
+  $1, $2, $3, $4, $5, $6, $7,
+  $8, $9, $10, $11
+)
+ON CONFLICT DO NOTHING
+`
+
+type CreateBillingObjectConnectionParams struct {
+	OrganizationID             uuid.UUID
+	ID                         uuid.UUID
+	SubscriptionID             *uuid.UUID
+	WalletID                   *uuid.UUID
+	RecurringTransactionRuleID *uuid.UUID
+	Category                   string
+	Behavior                   string
+	PaymentProviderCustomerID  *uuid.UUID
+	IntegrationCustomerID      *uuid.UUID
+	CreatedAt                  time.Time
+	UpdatedAt                  time.Time
+}
+
+func (q *Queries) CreateBillingObjectConnection(ctx context.Context, arg CreateBillingObjectConnectionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, createBillingObjectConnection,
+		arg.OrganizationID,
+		arg.ID,
+		arg.SubscriptionID,
+		arg.WalletID,
+		arg.RecurringTransactionRuleID,
+		arg.Category,
+		arg.Behavior,
+		arg.PaymentProviderCustomerID,
+		arg.IntegrationCustomerID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const createIntegration = `-- name: CreateIntegration :execrows
 
 INSERT INTO integrations (
@@ -246,6 +291,38 @@ func (q *Queries) CreateIntegrationResource(ctx context.Context, arg CreateInteg
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const deleteBillingObjectConnection = `-- name: DeleteBillingObjectConnection :execrows
+DELETE FROM billing_object_connections WHERE organization_id = $1 AND id = $2
+`
+
+type DeleteBillingObjectConnectionParams struct {
+	OrganizationID uuid.UUID
+	ID             uuid.UUID
+}
+
+func (q *Queries) DeleteBillingObjectConnection(ctx context.Context, arg DeleteBillingObjectConnectionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteBillingObjectConnection, arg.OrganizationID, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const deleteBillingObjectConnectionsByPaymentProviderCustomer = `-- name: DeleteBillingObjectConnectionsByPaymentProviderCustomer :exec
+DELETE FROM billing_object_connections
+WHERE organization_id = $1 AND payment_provider_customer_id = $2
+`
+
+type DeleteBillingObjectConnectionsByPaymentProviderCustomerParams struct {
+	OrganizationID            uuid.UUID
+	PaymentProviderCustomerID *uuid.UUID
+}
+
+func (q *Queries) DeleteBillingObjectConnectionsByPaymentProviderCustomer(ctx context.Context, arg DeleteBillingObjectConnectionsByPaymentProviderCustomerParams) error {
+	_, err := q.db.Exec(ctx, deleteBillingObjectConnectionsByPaymentProviderCustomer, arg.OrganizationID, arg.PaymentProviderCustomerID)
+	return err
 }
 
 const deleteIntegration = `-- name: DeleteIntegration :execrows
@@ -697,6 +774,59 @@ func (q *Queries) IntegrationResourceExistsForSyncable(ctx context.Context, arg 
 	return exists, err
 }
 
+const listBillingObjectConnectionsByOwner = `-- name: ListBillingObjectConnectionsByOwner :many
+SELECT organization_id, id, subscription_id, wallet_id, recurring_transaction_rule_id, category, behavior, payment_provider_customer_id, integration_customer_id, created_at, updated_at FROM billing_object_connections
+WHERE organization_id = $1
+  AND (subscription_id = $2::uuid OR wallet_id = $3::uuid
+    OR recurring_transaction_rule_id = $4::uuid)
+ORDER BY id
+`
+
+type ListBillingObjectConnectionsByOwnerParams struct {
+	OrganizationID             uuid.UUID
+	SubscriptionID             *uuid.UUID
+	WalletID                   *uuid.UUID
+	RecurringTransactionRuleID *uuid.UUID
+}
+
+// The owner sets one of the three IDs; a NULL argument matches nothing.
+func (q *Queries) ListBillingObjectConnectionsByOwner(ctx context.Context, arg ListBillingObjectConnectionsByOwnerParams) ([]BillingObjectConnection, error) {
+	rows, err := q.db.Query(ctx, listBillingObjectConnectionsByOwner,
+		arg.OrganizationID,
+		arg.SubscriptionID,
+		arg.WalletID,
+		arg.RecurringTransactionRuleID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []BillingObjectConnection{}
+	for rows.Next() {
+		var i BillingObjectConnection
+		if err := rows.Scan(
+			&i.OrganizationID,
+			&i.ID,
+			&i.SubscriptionID,
+			&i.WalletID,
+			&i.RecurringTransactionRuleID,
+			&i.Category,
+			&i.Behavior,
+			&i.PaymentProviderCustomerID,
+			&i.IntegrationCustomerID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listIntegrationCollectionMappings = `-- name: ListIntegrationCollectionMappings :many
 SELECT organization_id, id, integration_id, mapping_type, billing_entity_id, external_id, external_account_code, external_name, tax_nexus, tax_type, tax_code, currencies, created_at, updated_at FROM integration_collection_mappings
 WHERE organization_id = $1 AND integration_id = $2
@@ -1078,6 +1208,49 @@ func (q *Queries) OrganizationOfPaymentIntegration(ctx context.Context, id uuid.
 	var organization_id uuid.UUID
 	err := row.Scan(&organization_id)
 	return organization_id, err
+}
+
+const updateBillingObjectConnection = `-- name: UpdateBillingObjectConnection :execrows
+UPDATE billing_object_connections SET
+  organization_id = $1, id = $2, subscription_id = $3, wallet_id = $4,
+  recurring_transaction_rule_id = $5, category = $6, behavior = $7,
+  payment_provider_customer_id = $8, integration_customer_id = $9,
+  created_at = $10, updated_at = $11
+WHERE organization_id = $1 AND id = $2
+`
+
+type UpdateBillingObjectConnectionParams struct {
+	OrganizationID             uuid.UUID
+	ID                         uuid.UUID
+	SubscriptionID             *uuid.UUID
+	WalletID                   *uuid.UUID
+	RecurringTransactionRuleID *uuid.UUID
+	Category                   string
+	Behavior                   string
+	PaymentProviderCustomerID  *uuid.UUID
+	IntegrationCustomerID      *uuid.UUID
+	CreatedAt                  time.Time
+	UpdatedAt                  time.Time
+}
+
+func (q *Queries) UpdateBillingObjectConnection(ctx context.Context, arg UpdateBillingObjectConnectionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateBillingObjectConnection,
+		arg.OrganizationID,
+		arg.ID,
+		arg.SubscriptionID,
+		arg.WalletID,
+		arg.RecurringTransactionRuleID,
+		arg.Category,
+		arg.Behavior,
+		arg.PaymentProviderCustomerID,
+		arg.IntegrationCustomerID,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const updateIntegration = `-- name: UpdateIntegration :execrows

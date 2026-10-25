@@ -9,8 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/refs"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/wallet"
@@ -201,6 +203,18 @@ func (s *Service) PaymentURLInvoice(ctx context.Context, org core.OrganizationID
 			return core.InvoiceID{}, fieldError("base", CodeTransactionHasNoInvoice)
 		}
 		return t.InvoiceID, nil
+	})
+}
+
+// Connections returns the connection routing of a wallet or a recurring
+// rule of customer cust (the connections of lago's V1::WalletSerializer
+// and V1::Wallets::RecurringTransactionRuleSerializer).
+//
+// source: app/serializers/v1/wallet_serializer.rb:80-86
+// source: app/serializers/v1/wallets/recurring_transaction_rule_serializer.rb:55-61
+func (s *Service) Connections(ctx context.Context, org core.OrganizationID, cust core.CustomerID, owner integration.ObjectOwner) ([]kernel.ConnectionRoute, error) {
+	return read(ctx, s, func(ctx context.Context, r port.Repos) ([]kernel.ConnectionRoute, error) {
+		return kernel.ConnectionRouting(ctx, r, org, cust, owner)
 	})
 }
 

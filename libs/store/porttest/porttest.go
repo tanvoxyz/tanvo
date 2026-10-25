@@ -77,6 +77,7 @@ func groups() []group {
 		{"wallet_refresh", testWalletRefresh},
 		{"payment", testPayment},
 		{"integration", testIntegration},
+		{"object_connection", testObjectConnection},
 		{"webhook", testWebhook},
 		{"export", testExport},
 		{"quote", testQuote},

@@ -417,7 +417,16 @@ type paymentMethodRepo struct{ d *paymentData }
 var _ payment.MethodRepository = paymentMethodRepo{}
 
 func (r paymentMethodRepo) check(m *payment.Method) error {
-	if !m.IsDefault || m.Deleted() {
+	if m.Deleted() {
+		return nil
+	}
+	if !m.PaymentProviderCustomerID.IsZero() && r.d.methods.any(func(x *payment.Method) bool {
+		return x.ID != m.ID && x.OrganizationID == m.OrganizationID && x.PaymentProviderCustomerID == m.PaymentProviderCustomerID &&
+			x.ProviderMethodID == m.ProviderMethodID && !x.Deleted()
+	}) {
+		return conflict("payment_method", "provider_method_id")
+	}
+	if !m.IsDefault {
 		return nil
 	}
 	if r.d.methods.any(func(x *payment.Method) bool {
@@ -499,6 +508,12 @@ func (r providerCustomerRepo) check(c *payment.ProviderCustomer) error {
 			x.IntegrationID == c.IntegrationID && !x.Deleted()
 	}) {
 		return conflict("payment_provider_customer", "integration_id")
+	}
+	if c.IsDefault && r.d.providerCustomers.any(func(x *payment.ProviderCustomer) bool {
+		return x.ID != c.ID && x.OrganizationID == c.OrganizationID && x.CustomerID == c.CustomerID &&
+			x.IsDefault && !x.Deleted()
+	}) {
+		return conflict("payment_provider_customer", "is_default")
 	}
 	return nil
 }
