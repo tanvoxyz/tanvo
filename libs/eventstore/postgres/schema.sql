@@ -146,6 +146,29 @@ CREATE TABLE IF NOT EXISTS __schema__.usage_bucket_definitions (
     PRIMARY KEY (organization_id, code, definition_id)
 );
 
+-- Every insert of a definition takes a new generation, so that a definer
+-- backfilling it tells its definition from one dropped and defined again
+-- meanwhile, which another definer backfills.
+CREATE SEQUENCE IF NOT EXISTS __schema__.usage_bucket_generations;
+ALTER TABLE __schema__.usage_bucket_definitions ADD COLUMN IF NOT EXISTS generation bigint NOT NULL
+    DEFAULT nextval('__schema__.usage_bucket_generations');
+-- The last read served from the buckets, recorded at most once an hour per
+-- process (metering.BucketReadResolution); NULL before the first one.
+ALTER TABLE __schema__.usage_bucket_definitions ADD COLUMN IF NOT EXISTS read_at timestamptz;
+
+-- The blocked definitions (metering.BucketLifecycle.BlockBuckets): dropped
+-- for their size, and not defined again while blocked.
+CREATE TABLE IF NOT EXISTS __schema__.usage_bucket_blocks (
+    organization_id text NOT NULL,
+    code text NOT NULL,
+    definition_id text NOT NULL,
+    property text NOT NULL,
+    dimensions text[] NOT NULL,
+    fold jsonb NOT NULL DEFAULT '{}',
+    blocked_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (organization_id, code, definition_id)
+);
+
 -- The 15-minute usage buckets: per external subscription, code,
 -- definition, UTC bucket and combination of dimension values, the totals
 -- of the events. Maintained in the transaction of every write.

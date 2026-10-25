@@ -2,7 +2,10 @@ package kernel
 
 import (
 	"context"
+	"time"
 
+	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/metering"
 )
 
@@ -37,4 +40,31 @@ type BucketDefiner interface {
 	// events already stored; defining it again is a no-op. A store
 	// without usage buckets fails with [metering.ErrBucketsUnavailable].
 	DefineBuckets(ctx context.Context, d metering.BucketDefinition) error
+}
+
+// JobSweepUsageBuckets drops the usage bucket definitions of an
+// organization nothing reads any more (args [InstantArgs], unique per
+// organization, [SweepUsageBucketsKey]): those of a deleted metric, of a
+// metric whose code, property or filters changed, of a metric no live
+// charge reads from the buckets, and those no read used for the idle
+// time. The daily clock enqueues it for every organization with
+// definitions, and a metric update or deletion for its organization. It
+// is Tanvo design: lago's buckets are keyed by charge and have no
+// definitions to drop.
+const JobSweepUsageBuckets = "billing.sweep_usage_buckets"
+
+// SweepUsageBucketsKey is the unique key of the [JobSweepUsageBuckets] of
+// an organization: one pending sweep, which sweeps every definition.
+const SweepUsageBucketsKey = "usage_buckets:sweep"
+
+// BucketLifecycle drops and blocks usage bucket definitions: the
+// lifecycle of libs/eventstore's BucketDefiner billing needs
+// ([metering.BucketLifecycle]).
+type BucketLifecycle = metering.BucketLifecycle
+
+// EnqueueUsageBucketsSweep enqueues, in the transaction of r, the
+// [JobSweepUsageBuckets] of the organization org at the instant at, once
+// while one is pending.
+func EnqueueUsageBucketsSweep(ctx context.Context, r port.Repos, org core.OrganizationID, at time.Time) error {
+	return Enqueue(ctx, r, org, JobSweepUsageBuckets, InstantArgs{At: at}, SweepUsageBucketsKey, time.Time{})
 }

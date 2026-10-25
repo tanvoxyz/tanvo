@@ -100,6 +100,43 @@ CREATE TABLE IF NOT EXISTS usage_bucket_definitions (
 ENGINE = ReplacingMergeTree(version, is_deleted)
 ORDER BY (organization_id, code, definition_id)
 ;
+-- The generation of a definition: the version of the write defining it,
+-- written again with its ready version (generation + 1), so that a drop,
+-- written above both, wins over a definer that has not finished. The rows
+-- of a generation are keyed by definition_id.generation (definition_id
+-- alone for generation 0, the definitions written before generations), so
+-- that each definition of an ID has rows of its own.
+ALTER TABLE usage_bucket_definitions ADD COLUMN IF NOT EXISTS generation UInt64 AFTER ready
+;
+-- The blocked definitions (metering.BucketLifecycle.BlockBuckets): dropped
+-- for their size, and not defined again while blocked.
+CREATE TABLE IF NOT EXISTS usage_bucket_blocks (
+    organization_id String,
+    code String,
+    definition_id String,
+    property String,
+    dimensions Array(String),
+    fold Map(String, Array(String)),
+    blocked_at DateTime64(6, 'UTC'),
+    is_deleted UInt8,
+    version UInt64
+)
+ENGINE = ReplacingMergeTree(version, is_deleted)
+ORDER BY (organization_id, code, definition_id)
+;
+-- The last read served from each generation of a definition, recorded at
+-- most once an hour per process (metering.BucketReadResolution).
+CREATE TABLE IF NOT EXISTS usage_bucket_reads (
+    organization_id String,
+    code String,
+    definition_id String,
+    generation UInt64,
+    read_at DateTime64(6, 'UTC')
+)
+ENGINE = ReplacingMergeTree(read_at)
+ORDER BY (organization_id, code, definition_id, generation)
+TTL toDateTime(read_at) + INTERVAL 400 DAY
+;
 -- The 15-minute usage buckets: per code, external subscription,
 -- definition, UTC bucket and combination of dimension values, the totals
 -- of the events. version counts the writes of a bucket: each write reads

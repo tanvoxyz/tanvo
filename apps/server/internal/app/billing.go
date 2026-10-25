@@ -52,13 +52,19 @@ func newBilling(cfg config.Config, tx port.Transactor, stores *EventStores, cloc
 		deps.UsageCache = c
 	}
 	e, err := billing.New(deps, billing.WithTerminationAlertDays(cfg.SubscriptionTerminationAlertDays...),
-		billing.WithVIES(&tax.VIESClient{}))
+		billing.WithVIES(&tax.VIESClient{}), billing.WithUsageBucketLimits(usageBucketLimits(cfg)))
 	if err != nil {
 		return nil, fmt.Errorf("billing: %w", err)
 	}
 	// A completed VIES check finalizes the invoices held for it.
 	customers.WithVIESInvoiceFinalizer(e.Invoices)(e.Customers)
 	return e, nil
+}
+
+// usageBucketLimits returns the configured limits of the usage bucket
+// definitions.
+func usageBucketLimits(cfg config.Config) billing.UsageBucketLimits {
+	return billing.UsageBucketLimits{MaxRowsPerBucket: cfg.UsageBucketsMaxRowsPerBucket, IdleTTL: cfg.UsageBucketsIdleTTL}
 }
 
 // billingJobs registers the billing job kinds and the billing periodic

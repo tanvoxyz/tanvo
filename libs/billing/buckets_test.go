@@ -22,25 +22,87 @@ import (
 
 // bucketedEvents is the harness event store with the usage buckets of the
 // definitions defined on it, counting the bucket reads and those a ready
-// definition served.
+// definition served, and keeping the lifecycle of the definitions.
 type bucketedEvents struct {
 	*billingtest.Events
+	now           func() time.Time
 	defs          []metering.BucketDefinition
+	blocked       []metering.BucketDefinition
+	definedAt     map[string]time.Time
+	readAt        map[string]time.Time
 	reads, served int
+	// stats is the size of the buckets of every definition.
+	stats metering.BucketStats
 }
+
+var _ kernel.BucketLifecycle = (*bucketedEvents)(nil)
+
+func bucketKey(d metering.BucketDefinition) string { return d.Code + "/" + d.Normalize().ID() }
 
 func (b *bucketedEvents) ReadBuckets(ctx context.Context, r metering.BucketRead) ([]metering.BucketTotal, bool, error) {
 	b.reads++
 	totals, ok, err := b.MemoryStore.Buckets(b.defs...).ReadBuckets(ctx, r)
 	if ok {
 		b.served++
+		if d, ok := metering.CoveringDefinition(b.defs, r); ok {
+			b.readAt[bucketKey(d)] = b.now()
+		}
 	}
 	return totals, ok, err
 }
 
 func (b *bucketedEvents) DefineBuckets(_ context.Context, d metering.BucketDefinition) error {
-	b.defs = append(b.defs, d)
+	k := bucketKey(d)
+	if slices.ContainsFunc(b.blocked, func(o metering.BucketDefinition) bool { return bucketKey(o) == k }) {
+		return metering.ErrBucketsBlocked
+	}
+	if _, ok := b.definedAt[k]; ok {
+		return nil
+	}
+	b.defs = append(b.defs, d.Normalize())
+	b.definedAt[k] = b.now()
 	return nil
+}
+
+func (b *bucketedEvents) BucketDefinitionStates(_ context.Context, org string) ([]metering.BucketDefinitionState, error) {
+	var out []metering.BucketDefinitionState
+	for _, d := range b.defs {
+		if org == "" || d.OrganizationID == org {
+			out = append(out, metering.BucketDefinitionState{Definition: d, Ready: true, DefinedAt: b.definedAt[bucketKey(d)], ReadAt: b.readAt[bucketKey(d)]})
+		}
+	}
+	for _, d := range b.blocked {
+		if org == "" || d.OrganizationID == org {
+			out = append(out, metering.BucketDefinitionState{Definition: d, Blocked: true, DefinedAt: b.definedAt[bucketKey(d)]})
+		}
+	}
+	return out, nil
+}
+
+func (b *bucketedEvents) DropBuckets(_ context.Context, d metering.BucketDefinition) error {
+	k := bucketKey(d)
+	other := func(o metering.BucketDefinition) bool { return bucketKey(o) == k }
+	b.defs = slices.DeleteFunc(b.defs, other)
+	b.blocked = slices.DeleteFunc(b.blocked, other)
+	delete(b.definedAt, k)
+	delete(b.readAt, k)
+	return nil
+}
+
+func (b *bucketedEvents) BlockBuckets(ctx context.Context, d metering.BucketDefinition) error {
+	if err := b.DropBuckets(ctx, d); err != nil {
+		return err
+	}
+	b.blocked = append(b.blocked, d.Normalize())
+	b.definedAt[bucketKey(d)] = b.now()
+	return nil
+}
+
+func (b *bucketedEvents) BucketStats(_ context.Context, d metering.BucketDefinition) (metering.BucketStats, error) {
+	if _, ok := b.definedAt[bucketKey(d)]; !ok || slices.ContainsFunc(b.blocked, func(o metering.BucketDefinition) bool { return bucketKey(o) == bucketKey(d) }) {
+		return metering.BucketStats{}, nil
+	}
+	return b.stats, nil
 }
 
 // bucketScenario is a scenario whose event store keeps usage buckets and
@@ -51,14 +113,14 @@ type bucketScenario struct {
 	cache  *kernel.MemoryUsageCache
 }
 
-func newBucketScenario(t *testing.T, now time.Time) *bucketScenario {
+func newBucketScenario(t *testing.T, now time.Time, opts ...billing.Option) *bucketScenario {
 	t.Helper()
 	h := billingtest.New(t, now)
-	be := &bucketedEvents{Events: h.Events}
+	be := &bucketedEvents{Events: h.Events, now: h.Now, definedAt: map[string]time.Time{}, readAt: map[string]time.Time{}}
 	cache := kernel.NewMemoryUsageCache(100)
 	h.Deps.Events = be
 	h.Deps.UsageCache = cache
-	e, err := billing.New(*h.Deps)
+	e, err := billing.New(*h.Deps, opts...)
 	if err != nil {
 		t.Fatalf("billing.New() error = %v", err)
 	}

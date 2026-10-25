@@ -145,7 +145,7 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	}
 	reg, err := newRegistry(jobHandlers{
 		webhooks: newDispatcher(cfg, a.store, tp, mp), tx: a.store, stores: a.stores, mp: mp, clock: clock,
-		blobs: a.blobs.blobOrNil(), composer: composer, sender: sender, log: a.log,
+		blobs: a.blobs.blobOrNil(), composer: composer, sender: sender, bucketLimits: usageBucketLimits(cfg), log: a.log,
 	})
 	if err != nil {
 		return nil, err

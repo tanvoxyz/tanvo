@@ -11,6 +11,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/eventstore"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/internal/ingest"
+	"github.com/tanvoxyz/tanvo/libs/eventstore/internal/reads"
 	"github.com/tanvoxyz/tanvo/libs/metering"
 )
 
@@ -21,6 +22,7 @@ type Store struct {
 
 	heal  time.Duration
 	locks keyLocks
+	reads reads.Throttle
 	// hook, when set (by tests), is called at named stages of a write.
 	hook func(stage string)
 

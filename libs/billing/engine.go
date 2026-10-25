@@ -77,6 +77,7 @@ type Engine struct {
 
 	d                    *kernel.Deps
 	terminationAlertDays []int
+	bucketLimits         UsageBucketLimits
 }
 
 // New returns an engine over d configured by opts.
@@ -113,6 +114,7 @@ func New(d Deps, opts ...Option) (*Engine, error) {
 		d:           deps,
 
 		terminationAlertDays: defaultTerminationAlertDays(),
+		bucketLimits:         DefaultUsageBucketLimits(),
 	}
 	cs, err := customers.New(deps, customers.Relations{Lifecycle: lc, Coupons: e.Deductions, Wallets: w})
 	if err != nil {
@@ -392,6 +394,16 @@ func (e *Engine) HandleJob(ctx context.Context, j port.Job) (bool, error) {
 			return true, err
 		}
 		return true, e.DefineUsageBuckets(ctx, j.OrganizationID, a.Definition)
+	case kernel.JobSweepUsageBuckets:
+		var a kernel.InstantArgs
+		if err := decode(j, &a); err != nil {
+			return true, err
+		}
+		if a.At.IsZero() {
+			a.At = e.d.Clock.Now()
+		}
+		_, err := e.SweepUsageBuckets(ctx, j.OrganizationID, a.At)
+		return true, err
 	}
 	for _, h := range []func(context.Context, port.Job) (bool, error){e.Invoices.HandleJob, e.Lifecycle.HandleJob, e.Wallets.HandleJob, e.Plans.HandleJob, e.DailyUsages.HandleJob, e.Customers.HandleJob, e.Quotes.HandleJob, e.Contracts.HandleJob, e.Invoices.HandleSegmentJob} {
 		if ok, err := h(ctx, j); ok {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"slices"
+	"strconv"
 	"sync"
 	"time"
 
@@ -251,16 +252,34 @@ func (s *Store) conflicting(ctx context.Context, a *args, b buckets, c counters,
 	return out, err
 }
 
+// rowKey is the expression, over usage_bucket_definitions, of the
+// definition_id of the bucket rows of a definition's generation (see
+// [instanceKey]).
+const rowKey = "if(generation = 0, definition_id, concat(definition_id, '.', toString(generation)))"
+
+// instanceKey returns the definition_id of the bucket rows of generation
+// of the definition id: each generation of a definition (each time it is
+// defined again after a drop) has rows of its own, so that the rows a
+// writer or a backfill of a dropped generation leaves behind are never
+// read. Definitions written before generations existed have generation
+// 0 and rows keyed by their ID.
+func instanceKey(id string, generation uint64) string {
+	if generation == 0 {
+		return id
+	}
+	return id + "." + strconv.FormatUint(generation, 10)
+}
+
 // aggregated returns the CTEs "defs", "valued" and "rows": the events of
 // the CTE "ev" aggregated into the rows of the buckets of the definitions
-// selected by defs.
+// selected by defs, keyed by the generation of each definition.
 func aggregated(defs string) string {
 	zero := fmt.Sprintf("toDecimal256(0, %d)", scale)
 	return `defs AS (
-	SELECT organization_id, code, definition_id, property, dimensions, fold FROM usage_bucket_definitions FINAL WHERE ` + defs + `
+	SELECT organization_id, code, ` + rowKey + ` AS row_key, property, dimensions, fold FROM usage_bucket_definitions FINAL WHERE ` + defs + `
 ),
 valued AS (
-	SELECT ev.*, d.definition_id AS definition_id,
+	SELECT ev.*, d.row_key AS definition_id,
 		mapSort(mapApply((k, v) -> (k, if(v != '' AND mapContains(d.fold, k) AND NOT has(d.fold[k], v), ` + "'" + metering.BucketOtherValue + "'" + `, v)),
 			mapFilter((k, v) -> has(d.dimensions, k), ev.properties))) AS dims,
 		d.property != '' AND match(ev.properties[d.property], ` + numericPattern + `) AS isnum,
@@ -422,7 +441,8 @@ func (l *keyLocks) lock(b buckets) (unlock func()) {
 }
 
 // recompute aggregates the buckets again from the events, for every
-// definition of their codes or, with id, for that one, as a version above
+// definition of their codes or, with id, for the generation whose rows are
+// keyed by id ([instanceKey]), as a version above
 // every row of each bucket, then tombstones the rows of the definitions it
 // did not write. A bucket another writer merged into meanwhile at that
 // version is recomputed again, higher (see [Store.conflicts]).
@@ -482,7 +502,7 @@ func (s *Store) recomputeAt(ctx context.Context, b buckets, next counters, write
 		WHERE ` + b.scope(&a, bucketUs, "timestamp") + ` GROUP BY 1, 2, 3`
 	defs := "organization_id = " + a.add(b.org) + " AND code IN " + a.add(set(keyCodes(b.keys)))
 	if id != "" {
-		defs += " AND definition_id = " + a.add(id)
+		defs += " AND " + rowKey + " = " + a.add(id)
 	}
 	if err := s.conn.Exec(ctx, recomputeSQL(ev, seqs, next.sql(&a, b), defs, w), a...); err != nil {
 		return fmt.Errorf("recompute buckets: %w", err)

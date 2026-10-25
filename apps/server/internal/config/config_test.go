@@ -51,6 +51,8 @@ func TestLoadTypes(t *testing.T) {
 		"TANVO_DAILY_USAGE_SCHEDULING_JITTER=10m",
 		"TANVO_DISABLE_EVENTS_VALIDATION=true",
 		"TANVO_JOBS_QUEUE_CONCURRENCY=alerts=20, wallets = 5",
+		"TANVO_USAGE_BUCKETS_MAX_ROWS_PER_BUCKET=500",
+		"TANVO_USAGE_BUCKETS_IDLE_TTL=720h",
 	}})
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
@@ -69,6 +71,9 @@ func TestLoadTypes(t *testing.T) {
 	}
 	if cfg.DailyUsageSchedulingJitter != 10*time.Minute {
 		t.Errorf("DailyUsageSchedulingJitter got = %v, want = 10m", cfg.DailyUsageSchedulingJitter)
+	}
+	if cfg.UsageBucketsMaxRowsPerBucket != 500 || cfg.UsageBucketsIdleTTL != 720*time.Hour {
+		t.Errorf("usage bucket limits got = %d %v, want = 500 720h", cfg.UsageBucketsMaxRowsPerBucket, cfg.UsageBucketsIdleTTL)
 	}
 	if !cfg.DisableEventsValidation {
 		t.Errorf("DisableEventsValidation got = false, want = true")
@@ -180,6 +185,8 @@ func TestLoadInvalid(t *testing.T) {
 		{"blob endpoint scheme", []string{dsn, "TANVO_BLOB_BACKEND=s3", "TANVO_API_URL=https://api.example.com", "TANVO_SECRET_KEY=" + blobSecret, "TANVO_BLOB_ENDPOINT=ftp://s3", "TANVO_BLOB_REGION=r", "TANVO_BLOB_BUCKET=b", "TANVO_BLOB_ACCESS_KEY_ID=k", "TANVO_BLOB_SECRET_ACCESS_KEY=s"}, "TANVO_BLOB_ENDPOINT: want an http"},
 		{"blob url ttl too long", []string{dsn, "TANVO_BLOB_BACKEND=gcs", "TANVO_API_URL=https://api.example.com", "TANVO_SECRET_KEY=" + blobSecret, "TANVO_BLOB_BUCKET=b", "TANVO_BLOB_ACCESS_KEY_ID=k", "TANVO_BLOB_SECRET_ACCESS_KEY=s", "TANVO_BLOB_URL_TTL=200h"}, "TANVO_BLOB_URL_TTL"},
 		{"short secret key", []string{dsn, "TANVO_SECRET_KEY=c2hvcnQ="}, "want at least 32"},
+		{"negative bucket rows", []string{dsn, "TANVO_USAGE_BUCKETS_MAX_ROWS_PER_BUCKET=-1"}, "TANVO_USAGE_BUCKETS_MAX_ROWS_PER_BUCKET"},
+		{"short bucket idle time", []string{dsn, "TANVO_USAGE_BUCKETS_IDLE_TTL=1h"}, "TANVO_USAGE_BUCKETS_IDLE_TTL: must be 0 or at least 24h"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

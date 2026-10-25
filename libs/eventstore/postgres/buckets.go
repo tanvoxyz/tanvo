@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -183,11 +184,12 @@ var backfillInsertSQL = `INSERT INTO __schema__.usage_buckets (` + bucketColumns
 
 // lockSharedDefinitionSQL takes the definitions lock of ($1, $2) shared,
 // as a writer does; definitionInPlaceSQL, run after it in a snapshot of
-// its own, reports whether definition $3 is still in place.
+// its own, reports whether definition $3 is still in place in generation
+// $4, neither dropped nor dropped and defined again.
 var lockSharedDefinitionSQL = fmt.Sprintf(`SELECT pg_advisory_xact_lock_shared(%d, hashtext('__schema__.' || $1 || chr(31) || $2))`, lockDefinitions)
 
 const definitionInPlaceSQL = `SELECT EXISTS (
-	SELECT 1 FROM __schema__.usage_bucket_definitions WHERE organization_id = $1 AND code = $2 AND definition_id = $3
+	SELECT 1 FROM __schema__.usage_bucket_definitions WHERE organization_id = $1 AND code = $2 AND definition_id = $3 AND generation = $4
 )`
 
 // lockArgs returns the arrays of the lock and recomputation statements.
@@ -242,51 +244,78 @@ func checkDefinition(d metering.BucketDefinition) error {
 // of the stored events, each in its own transaction under the locks of its
 // buckets, alongside the writers, and marks the definition ready. Defining
 // a ready definition again is a no-op; defining one whose backfill was
-// interrupted resumes it.
+// interrupted resumes it; defining a blocked one fails with
+// [metering.ErrBucketsBlocked].
+//
+// Each insert of a definition takes a new generation. The backfill stops,
+// and the definition is not marked ready, once its generation is no longer
+// in place: the definition was dropped, and possibly defined again, which
+// that definer backfills from the start.
 func (s *Store) DefineBuckets(ctx context.Context, d metering.BucketDefinition) error {
 	if err := checkDefinition(d); err != nil {
 		return wrap("define buckets", err)
 	}
 	d = d.Normalize()
-	values := d.Values
-	if values == nil {
-		values = map[string][]string{}
-	}
-	fold, err := json.Marshal(values)
+	fold, err := foldOf(d)
 	if err != nil {
 		return wrap("define buckets", err)
 	}
-	var ready bool
+	var (
+		ready      bool
+		generation int64
+	)
 	err = s.inTx(ctx, func(tx pgx.Tx) error {
 		lock, args := definitionLockKey(d)
 		if _, err := tx.Exec(ctx, lock, args...); err != nil {
 			return err
 		}
+		var blocked bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS (SELECT 1 FROM __schema__.usage_bucket_blocks
+			WHERE organization_id = $1 AND code = $2 AND definition_id = $3)`, d.OrganizationID, d.Code, d.ID()).Scan(&blocked); err != nil {
+			return err
+		}
+		if blocked {
+			return metering.ErrBucketsBlocked
+		}
 		if _, err := tx.Exec(ctx, `INSERT INTO __schema__.usage_bucket_definitions (organization_id, code, definition_id, property, dimensions, fold)
 			VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`, d.OrganizationID, d.Code, d.ID(), d.Property, d.Dimensions, fold); err != nil {
 			return err
 		}
-		return tx.QueryRow(ctx, `SELECT ready FROM __schema__.usage_bucket_definitions WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
-			d.OrganizationID, d.Code, d.ID()).Scan(&ready)
+		return tx.QueryRow(ctx, `SELECT ready, generation FROM __schema__.usage_bucket_definitions WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
+			d.OrganizationID, d.Code, d.ID()).Scan(&ready, &generation)
 	})
 	if err != nil || ready {
 		return wrap("define buckets", err)
 	}
-	if err := s.backfill(ctx, d); err != nil {
+	if err := s.backfill(ctx, d, generation); err != nil {
+		if errors.Is(err, errDropped) {
+			return nil
+		}
 		return wrap("define buckets", err)
 	}
-	_, err = s.db.Exec(ctx, `UPDATE __schema__.usage_bucket_definitions SET ready = true WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
-		d.OrganizationID, d.Code, d.ID())
+	_, err = s.db.Exec(ctx, `UPDATE __schema__.usage_bucket_definitions SET ready = true
+		WHERE organization_id = $1 AND code = $2 AND definition_id = $3 AND generation = $4`,
+		d.OrganizationID, d.Code, d.ID(), generation)
 	return wrap("define buckets", err)
+}
+
+// foldOf returns the fold column of a normalized definition.
+func foldOf(d metering.BucketDefinition) ([]byte, error) {
+	values := d.Values
+	if values == nil {
+		values = map[string][]string{}
+	}
+	return json.Marshal(values)
 }
 
 // errDropped stops the backfill of a definition dropped meanwhile.
 var errDropped = errors.New("definition dropped")
 
-// backfill aggregates the buckets of d again from the stored events, chunk
-// by chunk in (subscription, timestamp) order. A chunk ends on a bucket
-// boundary, so that it rebuilds whole buckets.
-func (s *Store) backfill(ctx context.Context, d metering.BucketDefinition) error {
+// backfill aggregates the buckets of generation of d again from the stored
+// events, chunk by chunk in (subscription, timestamp) order. A chunk ends
+// on a bucket boundary, so that it rebuilds whole buckets. It fails with
+// errDropped once the generation is no longer in place.
+func (s *Store) backfill(ctx context.Context, d metering.BucketDefinition, generation int64) error {
 	var (
 		fromSub string
 		fromTS  = time.Time{}
@@ -314,7 +343,7 @@ func (s *Store) backfill(ctx context.Context, d metering.BucketDefinition) error
 				return fmt.Errorf("lock definitions: %w", err)
 			}
 			var present bool
-			if err := tx.QueryRow(ctx, definitionInPlaceSQL, d.OrganizationID, d.Code, d.ID()).Scan(&present); err != nil {
+			if err := tx.QueryRow(ctx, definitionInPlaceSQL, d.OrganizationID, d.Code, d.ID(), generation).Scan(&present); err != nil {
 				return err
 			}
 			if !present {
@@ -345,7 +374,7 @@ func (s *Store) backfill(ctx context.Context, d metering.BucketDefinition) error
 			return err
 		})
 		if errors.Is(err, errDropped) {
-			return nil
+			return err
 		}
 		if err != nil {
 			return fmt.Errorf("backfill: %w", err)
@@ -357,53 +386,138 @@ func (s *Store) backfill(ctx context.Context, d metering.BucketDefinition) error
 	}
 }
 
-// DropBuckets implements [eventstore.BucketDefiner].
+// drop deletes, in tx under the exclusive definitions lock of the code,
+// the definition and its buckets: writers and backfills of the code wait
+// for it, and a read checks the definition in the snapshot of its rows.
+func drop(ctx context.Context, tx pgx.Tx, d metering.BucketDefinition) error {
+	lock, args := definitionLockKey(d)
+	if _, err := tx.Exec(ctx, lock, args...); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM __schema__.usage_bucket_definitions WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
+		d.OrganizationID, d.Code, d.ID()); err != nil {
+		return err
+	}
+	_, err := tx.Exec(ctx, `DELETE FROM __schema__.usage_buckets WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
+		d.OrganizationID, d.Code, d.ID())
+	return err
+}
+
+// DropBuckets implements [metering.BucketLifecycle]: the definition, its
+// buckets and its block are deleted in one transaction.
 func (s *Store) DropBuckets(ctx context.Context, d metering.BucketDefinition) error {
 	if err := checkDefinition(d); err != nil {
 		return wrap("drop buckets", err)
 	}
+	d = d.Normalize()
 	err := s.inTx(ctx, func(tx pgx.Tx) error {
-		lock, args := definitionLockKey(d)
-		if _, err := tx.Exec(ctx, lock, args...); err != nil {
+		if err := drop(ctx, tx, d); err != nil {
 			return err
 		}
-		if _, err := tx.Exec(ctx, `DELETE FROM __schema__.usage_bucket_definitions WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
-			d.OrganizationID, d.Code, d.ID()); err != nil {
-			return err
-		}
-		_, err := tx.Exec(ctx, `DELETE FROM __schema__.usage_buckets WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
+		_, err := tx.Exec(ctx, `DELETE FROM __schema__.usage_bucket_blocks WHERE organization_id = $1 AND code = $2 AND definition_id = $3`,
 			d.OrganizationID, d.Code, d.ID())
 		return err
 	})
+	s.reads.Forget(d)
 	return wrap("drop buckets", err)
+}
+
+// BlockBuckets implements [metering.BucketLifecycle]: the definition and
+// its buckets are deleted and its block inserted in one transaction, under
+// the lock [Store.DefineBuckets] checks the blocks under.
+func (s *Store) BlockBuckets(ctx context.Context, d metering.BucketDefinition) error {
+	if err := checkDefinition(d); err != nil {
+		return wrap("block buckets", err)
+	}
+	d = d.Normalize()
+	fold, err := foldOf(d)
+	if err != nil {
+		return wrap("block buckets", err)
+	}
+	err = s.inTx(ctx, func(tx pgx.Tx) error {
+		if err := drop(ctx, tx, d); err != nil {
+			return err
+		}
+		_, err := tx.Exec(ctx, `INSERT INTO __schema__.usage_bucket_blocks (organization_id, code, definition_id, property, dimensions, fold, blocked_at)
+			VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT DO NOTHING`, d.OrganizationID, d.Code, d.ID(), d.Property, d.Dimensions, fold, s.now().UTC())
+		return err
+	})
+	s.reads.Forget(d)
+	return wrap("block buckets", err)
+}
+
+// BucketDefinitionStates implements [metering.BucketLifecycle].
+func (s *Store) BucketDefinitionStates(ctx context.Context, organizationID string) ([]metering.BucketDefinitionState, error) {
+	var (
+		out                 []metering.BucketDefinitionState
+		org, code, property string
+		dims                []string
+		fold                []byte
+		ready, blocked      bool
+		definedAt           time.Time
+		readAt              *time.Time
+	)
+	err := s.each(ctx, `SELECT organization_id, code, definition_id, property, dimensions, fold, ready, false, created_at, read_at
+		FROM __schema__.usage_bucket_definitions WHERE organization_id = $1 OR $1 = ''
+		UNION ALL
+		SELECT organization_id, code, definition_id, property, dimensions, fold, false, true, blocked_at, NULL
+		FROM __schema__.usage_bucket_blocks WHERE organization_id = $1 OR $1 = ''
+		ORDER BY 1, 2, 3`, args{organizationID},
+		[]any{&org, &code, new(string), &property, &dims, &fold, &ready, &blocked, &definedAt, &readAt}, func() error {
+			d := metering.BucketDefinition{OrganizationID: org, Code: code, Property: property, Dimensions: dims}
+			if err := json.Unmarshal(fold, &d.Values); err != nil {
+				return fmt.Errorf("fold of definition: %w", err)
+			}
+			st := metering.BucketDefinitionState{Definition: d.Normalize(), Ready: ready, Blocked: blocked, DefinedAt: definedAt.UTC()}
+			if readAt != nil {
+				st.ReadAt = readAt.UTC()
+			}
+			out = append(out, st)
+			return nil
+		})
+	return out, wrap("bucket definition states", err)
 }
 
 // BucketDefinitions implements [eventstore.BucketDefiner].
 func (s *Store) BucketDefinitions(ctx context.Context, organizationID, code string) ([]metering.BucketDefinition, error) {
 	defs, err := s.definitions(ctx, organizationID, code, false)
-	return defs, wrap("bucket definitions", err)
+	if err != nil {
+		return nil, wrap("bucket definitions", err)
+	}
+	out := make([]metering.BucketDefinition, len(defs))
+	for i, d := range defs {
+		out[i] = d.BucketDefinition
+	}
+	return out, nil
+}
+
+// definition is a stored definition and its generation.
+type definition struct {
+	metering.BucketDefinition
+	generation int64
 }
 
 // definitions returns the definitions of a code, the ready ones only when
 // ready is set.
-func (s *Store) definitions(ctx context.Context, organizationID, code string, ready bool) ([]metering.BucketDefinition, error) {
+func (s *Store) definitions(ctx context.Context, organizationID, code string, ready bool) ([]definition, error) {
 	if organizationID == "" {
 		return nil, eventstore.ErrMissingOrganization
 	}
 	var (
-		out      []metering.BucketDefinition
-		property string
-		dims     []string
-		fold     []byte
+		out        []definition
+		property   string
+		dims       []string
+		fold       []byte
+		generation int64
 	)
-	err := s.each(ctx, `SELECT property, dimensions, fold FROM __schema__.usage_bucket_definitions
+	err := s.each(ctx, `SELECT property, dimensions, fold, generation FROM __schema__.usage_bucket_definitions
 		WHERE organization_id = $1 AND code = $2 AND (ready OR NOT $3) ORDER BY definition_id`, args{organizationID, code, ready},
-		[]any{&property, &dims, &fold}, func() error {
+		[]any{&property, &dims, &fold, &generation}, func() error {
 			d := metering.BucketDefinition{OrganizationID: organizationID, Code: code, Property: property, Dimensions: dims}
 			if err := json.Unmarshal(fold, &d.Values); err != nil {
 				return fmt.Errorf("fold of definition: %w", err)
 			}
-			out = append(out, d.Normalize())
+			out = append(out, definition{BucketDefinition: d.Normalize(), generation: generation})
 			return nil
 		})
 	return out, err
@@ -430,26 +544,40 @@ func (s *Store) AllBucketDefinitions(ctx context.Context) ([]metering.BucketDefi
 	return out, wrap("all bucket definitions", err)
 }
 
-// readyDefinitionSQL reports whether a definition is in place and ready.
+// readyDefinitionSQL reports whether a definition is in place and ready in
+// generation $4.
 const readyDefinitionSQL = `SELECT EXISTS (SELECT 1 FROM __schema__.usage_bucket_definitions
-	WHERE organization_id = $1 AND code = $2 AND definition_id = $3 AND ready)`
+	WHERE organization_id = $1 AND code = $2 AND definition_id = $3 AND generation = $4 AND ready)`
 
 // ReadBuckets implements [metering.BucketReader]. It reads the ready
 // definitions only. The statement reading the rows checks that the
-// definition is still in place, in the same snapshot; when it returns no
-// row, a second statement tells an empty read from a dropped definition.
+// definition is still in place, in the generation the read chose, in the
+// same snapshot; when it returns no row, a second statement tells an empty
+// read from a dropped definition. A generation once dropped never comes
+// back, so the two statements cannot disagree on a definition dropped
+// and defined again between them.
 func (s *Store) ReadBuckets(ctx context.Context, r metering.BucketRead) ([]metering.BucketTotal, bool, error) {
 	q := r.Query
-	defs, err := s.definitions(ctx, q.OrganizationID, q.Code, true)
+	stored, err := s.definitions(ctx, q.OrganizationID, q.Code, true)
 	if err != nil {
 		return nil, false, wrap("read buckets", err)
+	}
+	defs := make([]metering.BucketDefinition, len(stored))
+	for i, d := range stored {
+		defs[i] = d.BucketDefinition
 	}
 	d, ok := metering.CoveringDefinition(defs, r)
 	if !ok {
 		return nil, false, nil
 	}
+	var generation int64
+	for _, sd := range stored {
+		if sd.ID() == d.ID() {
+			generation = sd.generation
+		}
+	}
 	var a args
-	org, code, id := a.add(q.OrganizationID), a.add(q.Code), a.add(d.ID())
+	org, code, id, gen := a.add(q.OrganizationID), a.add(q.Code), a.add(d.ID()), a.add(generation)
 	where := []string{
 		"b.organization_id = " + org,
 		"b.subscription_id = " + a.add(q.SubscriptionID),
@@ -458,7 +586,8 @@ func (s *Store) ReadBuckets(ctx context.Context, r metering.BucketRead) ([]meter
 		"b.bucket >= " + a.add(r.From.UTC()) + "::timestamptz",
 		"b.bucket < " + a.add(r.To.UTC()) + "::timestamptz",
 		`EXISTS (SELECT 1 FROM __schema__.usage_bucket_definitions d
-			WHERE d.organization_id = ` + org + ` AND d.code = ` + code + ` AND d.definition_id = ` + id + ` AND d.ready)`,
+			WHERE d.organization_id = ` + org + ` AND d.code = ` + code + ` AND d.definition_id = ` + id + `
+				AND d.generation = ` + gen + ` AND d.ready)`,
 	}
 	count, amount, last := "b.events_count", "b.precise_total_amount_cents", "b.last_event_at"
 	if q.Numeric {
@@ -537,14 +666,33 @@ func (s *Store) ReadBuckets(ctx context.Context, r metering.BucketRead) ([]meter
 		return nil, false, wrap("read buckets", err)
 	}
 	if len(out) == 0 {
-		if err := s.db.QueryRow(ctx, readyDefinitionSQL, q.OrganizationID, q.Code, d.ID()).Scan(&ok); err != nil {
+		if err := s.db.QueryRow(ctx, readyDefinitionSQL, q.OrganizationID, q.Code, d.ID(), generation).Scan(&ok); err != nil {
 			return nil, false, wrap("read buckets", err)
 		}
+	}
+	if ok {
+		s.recordRead(ctx, d, generation)
 	}
 	return out, ok, nil
 }
 
-// BucketStats implements [eventstore.BucketDefiner].
+// recordRead records the read of generation of d, at most once per
+// [metering.BucketReadResolution] and process. A failure only logs: the
+// read is served all the same, and the next one records it.
+func (s *Store) recordRead(ctx context.Context, d metering.BucketDefinition, generation int64) {
+	now := s.now().UTC()
+	if !s.reads.Due(d, now) {
+		return
+	}
+	if _, err := s.db.Exec(ctx, `UPDATE __schema__.usage_bucket_definitions SET read_at = $5
+		WHERE organization_id = $1 AND code = $2 AND definition_id = $3 AND generation = $4 AND (read_at IS NULL OR read_at < $5)`,
+		d.OrganizationID, d.Code, d.ID(), generation, now); err != nil {
+		s.reads.Forget(d)
+		slog.WarnContext(ctx, "eventstore: postgres: record usage bucket read", "organization_id", d.OrganizationID, "code", d.Code, "error", err)
+	}
+}
+
+// BucketStats implements [metering.BucketLifecycle].
 func (s *Store) BucketStats(ctx context.Context, d metering.BucketDefinition) (eventstore.BucketStats, error) {
 	if err := checkDefinition(d); err != nil {
 		return eventstore.BucketStats{}, wrap("bucket stats", err)

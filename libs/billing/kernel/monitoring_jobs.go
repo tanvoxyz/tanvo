@@ -70,7 +70,7 @@ func JobKinds() []string {
 		JobValidateEvents, JobCleanRecordDeletions,
 		JobComputeDailyUsages, JobComputeDailyUsage, JobFillDailyUsageFromInvoice, JobFillDailyUsageHistory, JobRebuildDailyUsageHistory,
 		JobProcessDunningCampaigns, JobProcessDunningCustomer, JobProcessDunningAttempt,
-		JobDefineUsageBuckets,
+		JobDefineUsageBuckets, JobSweepUsageBuckets,
 	}
 	kinds = append(kinds, planJobKinds()...)
 	kinds = append(kinds, chargeJobKinds()...)

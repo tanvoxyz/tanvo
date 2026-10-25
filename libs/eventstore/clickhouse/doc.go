@@ -135,11 +135,19 @@
 // longest write and the clock skew between writers (10 minutes is ample);
 // overlapping runs only recompute buckets again.
 //
-// [Store.DefineBuckets] writes a definition not ready, backfills it by
-// recomputing its buckets in pages of a thousand, then writes it ready;
-// writers maintain definitions that are not ready yet, and reads use ready
-// ones only, read again after the rows so that a definition dropped
-// meanwhile sends the read back to the events. Dimensions declared with
+// [Store.DefineBuckets] writes a definition not ready, as a new
+// generation whose version is the generation, backfills it by recomputing
+// its buckets in pages of a thousand, then writes it ready one version
+// up; writers maintain definitions that are not ready yet, and reads use
+// ready ones only, read again after the rows so that a definition dropped
+// or defined again meanwhile sends the read back to the events. The rows
+// of a generation are keyed apart (definition_id.generation), so that
+// rows left by a writer of a dropped generation are never read.
+// [Store.DropBuckets] and [Store.BlockBuckets] write a tombstone above
+// every version of the definition, which a later ready write of a
+// backfill loses to, then delete the rows of its generations;
+// usage_bucket_blocks holds the blocks, usage_bucket_reads the last read
+// of each generation ([metering.BucketLifecycle]). Dimensions declared with
 // values fold the others into one value (see
 // [metering.BucketDefinition]); [Store.BucketStats] reports the
 // cardinality of a definition's rows.

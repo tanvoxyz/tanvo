@@ -15,6 +15,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/eventstore"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/internal/ingest"
+	"github.com/tanvoxyz/tanvo/libs/eventstore/internal/reads"
 	"github.com/tanvoxyz/tanvo/libs/metering"
 )
 
@@ -37,6 +38,9 @@ type Store struct {
 
 	mu     sync.Mutex
 	months map[int]bool // months (year*12 + month) known to have partitions
+
+	// reads throttles the records of the bucket reads.
+	reads reads.Throttle
 }
 
 var (

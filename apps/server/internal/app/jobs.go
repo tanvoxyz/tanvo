@@ -21,6 +21,7 @@ import (
 	"github.com/tanvoxyz/tanvo/apps/server/internal/logctx"
 	"github.com/tanvoxyz/tanvo/apps/server/internal/rpc"
 	"github.com/tanvoxyz/tanvo/libs/auth"
+	"github.com/tanvoxyz/tanvo/libs/billing"
 	"github.com/tanvoxyz/tanvo/libs/billing/exports"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -46,7 +47,9 @@ type jobHandlers struct {
 	// composer and sender email the completed exports.
 	composer *mail.Composer
 	sender   mail.Sender
-	log      *slog.Logger
+	// bucketLimits bound the usage bucket definitions.
+	bucketLimits billing.UsageBucketLimits
+	log          *slog.Logger
 }
 
 // sweepLimit is the number of due webhook deliveries a sweep enqueues.
@@ -219,8 +222,9 @@ func (h jobHandlers) registerAPIKeyUsage(reg *jobs.Registry) error {
 }
 
 // registerUsageBuckets registers the event stores' bucket maintenance:
-// the ClickHouse repair, when ClickHouse is configured, and the bucket
-// size report.
+// the ClickHouse repair, when ClickHouse is configured, the bucket size
+// report, which blocks the oversized definitions, and the daily dispatch
+// of the sweeps of the definitions nothing reads.
 func (h jobHandlers) registerUsageBuckets(reg *jobs.Registry) error {
 	if ch := h.stores.ClickHouse(); ch != nil {
 		if err := jobs.Register(reg, jobs.Kind{Name: jobs.KindRepairUsageBuckets},
@@ -230,13 +234,26 @@ func (h jobHandlers) registerUsageBuckets(reg *jobs.Registry) error {
 			return err
 		}
 	}
-	report, err := newBucketStatsReport(h.stores, h.mp)
+	report, err := newBucketStatsReport(h.stores, h.bucketLimits.MaxRowsPerBucket, h.mp)
 	if err != nil {
 		return err
 	}
-	return jobs.Register(reg, jobs.Kind{Name: jobs.KindReportUsageBucketStats},
+	if err := jobs.Register(reg, jobs.Kind{Name: jobs.KindReportUsageBucketStats},
 		jobs.HandlerFunc[struct{}](func(ctx context.Context, _ *jobs.Job[struct{}]) error {
 			return report.run(ctx)
+		})); err != nil {
+		return err
+	}
+	sweep := bucketSweep{stores: h.stores, tx: h.tx}
+	return jobs.Register(reg, jobs.Kind{Name: jobs.KindSweepUsageBuckets},
+		jobs.HandlerFunc[struct{}](func(ctx context.Context, j *jobs.Job[struct{}]) error {
+			tick := j.ScheduledAt.UTC()
+			if h.clock != nil {
+				tick = h.clock.Now().UTC()
+			}
+			n, err := sweep.run(ctx, tick)
+			h.log.InfoContext(ctx, "eventstore: dispatched usage bucket sweeps", "organizations", n)
+			return err
 		}))
 }
 

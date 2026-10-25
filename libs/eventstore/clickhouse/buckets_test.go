@@ -52,6 +52,17 @@ func TestBucketBackfillConformance(t *testing.T) {
 	storetest.RunBucketConformance(t, bucketStore(t, true))
 }
 
+func TestBucketLifecycle(t *testing.T) {
+	store := clickhouse.New(database(t))
+	storetest.RunBucketLifecycle(t, func(t *testing.T, events []metering.Event) (metering.Store, storetest.LifecycleBuckets) {
+		truncate(t)
+		if err := store.Replace(t.Context(), events); err != nil {
+			t.Fatal(err)
+		}
+		return store, store
+	})
+}
+
 func TestBucketSpecs(t *testing.T) {
 	storetest.RunBucketSpecs(t, bucketStore(t, false))
 }

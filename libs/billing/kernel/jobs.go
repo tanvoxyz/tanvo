@@ -278,9 +278,9 @@ func QueueOf(kind string) port.Queue {
 	case JobDestroyMetricFilters:
 		// lago app/jobs/billable_metric_filters/destroy_all_job.rb:5.
 		return port.QueueDefault
-	case JobDefineUsageBuckets:
-		// A backfill reads every stored event of a code: away from
-		// billing.
+	case JobDefineUsageBuckets, JobSweepUsageBuckets:
+		// A backfill reads every stored event of a code, and a sweep
+		// deletes buckets: away from billing.
 		return port.QueueDefault
 	default:
 		return port.QueueBilling

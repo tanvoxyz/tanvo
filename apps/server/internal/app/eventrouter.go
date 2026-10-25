@@ -23,6 +23,7 @@ var (
 	_ metering.Store              = eventRouter{}
 	_ metering.BucketReader       = eventRouter{}
 	_ subscriptions.BucketDefiner = eventRouter{}
+	_ metering.BucketLifecycle    = eventRouter{}
 )
 
 // of returns the store of the organization of q.
@@ -306,4 +307,62 @@ func (r eventRouter) DefineBuckets(ctx context.Context, d metering.BucketDefinit
 		return fmt.Errorf("eventstore: define buckets: %w", metering.ErrBucketsUnavailable)
 	}
 	return b.DefineBuckets(ctx, d)
+}
+
+// lifecycle returns the store of the organization org with its usage
+// bucket lifecycle, or false when the store keeps no usage buckets.
+func (r eventRouter) lifecycle(org string) (metering.BucketLifecycle, bool, error) {
+	s, err := r.of(metering.Query{OrganizationID: org})
+	if err != nil {
+		return nil, false, err
+	}
+	lc, ok := s.(metering.BucketLifecycle)
+	return lc, ok, nil
+}
+
+// BucketDefinitionStates implements [metering.BucketLifecycle] by the
+// store of the organization; the definitions an organization left in a
+// store it no longer ingests into are swept by the clock
+// (clock.sweep_usage_buckets). Every organization at once is refused:
+// the stores list theirs themselves.
+func (r eventRouter) BucketDefinitionStates(ctx context.Context, organizationID string) ([]metering.BucketDefinitionState, error) {
+	if organizationID == "" {
+		return nil, fmt.Errorf("eventstore: bucket definition states: %w", eventstore.ErrMissingOrganization)
+	}
+	lc, ok, err := r.lifecycle(organizationID)
+	if err != nil || !ok {
+		return nil, err
+	}
+	return lc.BucketDefinitionStates(ctx, organizationID)
+}
+
+// DropBuckets implements [metering.BucketLifecycle] by the store of the
+// definition's organization.
+func (r eventRouter) DropBuckets(ctx context.Context, d metering.BucketDefinition) error {
+	lc, ok, err := r.lifecycle(d.OrganizationID)
+	if err != nil || !ok {
+		return err
+	}
+	return lc.DropBuckets(ctx, d)
+}
+
+// BlockBuckets implements [metering.BucketLifecycle] by the store of the
+// definition's organization; a store without usage buckets has nothing to
+// block.
+func (r eventRouter) BlockBuckets(ctx context.Context, d metering.BucketDefinition) error {
+	lc, ok, err := r.lifecycle(d.OrganizationID)
+	if err != nil || !ok {
+		return err
+	}
+	return lc.BlockBuckets(ctx, d)
+}
+
+// BucketStats implements [metering.BucketLifecycle] by the store of the
+// definition's organization.
+func (r eventRouter) BucketStats(ctx context.Context, d metering.BucketDefinition) (metering.BucketStats, error) {
+	lc, ok, err := r.lifecycle(d.OrganizationID)
+	if err != nil || !ok {
+		return metering.BucketStats{}, err
+	}
+	return lc.BucketStats(ctx, d)
 }

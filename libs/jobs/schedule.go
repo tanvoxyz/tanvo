@@ -140,6 +140,10 @@ const (
 	// KindReportUsageBucketStats reports the size of the usage buckets of
 	// every definition, to watch their cardinality.
 	KindReportUsageBucketStats = "clock.report_usage_bucket_stats"
+	// KindSweepUsageBuckets enqueues the sweep of the usage bucket
+	// definitions of each organization that has some, which drops those
+	// nothing reads any more (architecture §7.4).
+	KindSweepUsageBuckets = "clock.sweep_usage_buckets"
 	// KindPurgeSessions deletes the expired and revoked user sessions and
 	// the expired OpenID Connect sign-in states (libs/auth
 	// Sessions.Purge).
@@ -212,6 +216,7 @@ func Schedule() []Periodic {
 		{KindSweepWebhooks, port.QueueWebhooks, Every(5 * time.Minute), "", ""},
 		{KindRepairUsageBuckets, port.QueueDefault, Every(10 * time.Minute), "", ""},
 		{KindReportUsageBucketStats, port.QueueDefault, HourlyAt(0), "", ""},
+		{KindSweepUsageBuckets, port.QueueDefault, DailyAt(2, 40), "", ""},
 		{KindPurgeSessions, port.QueueDefault, HourlyAt(7), "", ""},
 		{KindPurgeIdempotencyKeys, port.QueueDefault, HourlyAt(37), "", ""},
 	}

@@ -201,6 +201,16 @@ type Config struct {
 	// process, in charge buckets (lago Subscriptions::ChargeCacheService
 	// in the Rails cache); 0 turns the cache off.
 	UsageCacheEntries int `koanf:"usage_cache_entries"`
+	// UsageBucketsMaxRowsPerBucket is the largest number of rows one
+	// bucket of one subscription of a usage bucket definition may hold
+	// (its combinations of dimension values): past it, the definition is
+	// blocked and its reads stay on the events (architecture §7.4); 0
+	// blocks none.
+	UsageBucketsMaxRowsPerBucket int64 `koanf:"usage_buckets_max_rows_per_bucket"`
+	// UsageBucketsIdleTTL is how long a usage bucket definition is kept
+	// without a read served from it before the daily sweep drops it
+	// (architecture §7.4); 0 drops none for being idle.
+	UsageBucketsIdleTTL time.Duration `koanf:"usage_buckets_idle_ttl"`
 
 	// IngestMode is the default ingestion mode, postgres or kafka.
 	IngestMode string `koanf:"ingest_mode"`
@@ -425,6 +435,8 @@ func Defaults() Config {
 		AnrokDraftTaxesCacheTTL:          24 * time.Hour,
 		AnalyticsCacheTTL:                4 * time.Hour,
 		UsageCacheEntries:                100_000,
+		UsageBucketsMaxRowsPerBucket:     10_000,
+		UsageBucketsIdleTTL:              45 * 24 * time.Hour,
 	}
 }
 
@@ -578,6 +590,16 @@ func (c Config) Validate() error {
 	}
 	if c.UsageCacheEntries < 0 {
 		bad("usage_cache_entries", "must not be negative")
+	}
+	if c.UsageBucketsMaxRowsPerBucket < 0 {
+		bad("usage_buckets_max_rows_per_bucket", "must not be negative")
+	}
+	if c.UsageBucketsIdleTTL < 0 {
+		bad("usage_buckets_idle_ttl", "must not be negative")
+	} else if c.UsageBucketsIdleTTL > 0 && c.UsageBucketsIdleTTL < 24*time.Hour {
+		// Shorter than a day, the daily sweep would drop the definitions
+		// of the reads of a daily job between two of them.
+		bad("usage_buckets_idle_ttl", "must be 0 or at least 24h")
 	}
 	if c.DatabaseURL == "" {
 		bad("database_url", "required")

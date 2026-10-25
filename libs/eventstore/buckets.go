@@ -10,14 +10,16 @@ import (
 //
 // Once a definition is in place, the store maintains its buckets with every
 // [Writer.Write] and [Replacer.Replace] of events of its organization and
-// code, and answers [metering.BucketReader] reads from them.
+// code, and answers [metering.BucketReader] reads from them. Its
+// [metering.BucketLifecycle] drops the definitions nothing reads and
+// blocks the oversized ones.
 type BucketDefiner interface {
+	metering.BucketLifecycle
 	// DefineBuckets adds a definition and fills its buckets from the events
-	// already stored. Defining a definition again is a no-op. A definition
-	// is read only once its buckets hold every stored event.
+	// already stored. Defining a definition again is a no-op; defining a
+	// blocked one fails with [metering.ErrBucketsBlocked]. A definition is
+	// read only once its buckets hold every stored event.
 	DefineBuckets(ctx context.Context, d metering.BucketDefinition) error
-	// DropBuckets removes a definition and its buckets.
-	DropBuckets(ctx context.Context, d metering.BucketDefinition) error
 	// BucketDefinitions returns the definitions of an organization's
 	// billable metric code, ready or still backfilling.
 	BucketDefinitions(ctx context.Context, organizationID, code string) ([]metering.BucketDefinition, error)
@@ -25,19 +27,9 @@ type BucketDefiner interface {
 	// and code, ready or still backfilling, ordered by organization, code
 	// and ID: the operator's view, to watch their [BucketStats].
 	AllBucketDefinitions(ctx context.Context) ([]metering.BucketDefinition, error)
-	// BucketStats returns the size of the buckets of a definition, to watch
-	// their cardinality: a definition whose rows grow too many (pricing
-	// group or breakdown values without bounds) is better dropped, which
-	// sends its reads back to the events.
-	BucketStats(ctx context.Context, d metering.BucketDefinition) (BucketStats, error)
 }
 
-// BucketStats is the size of the buckets of a definition.
-type BucketStats struct {
-	// Rows is the number of rows, one per subscription, bucket and
-	// combination of dimension values.
-	Rows int64
-	// MaxRowsPerBucket is the largest number of rows of one bucket of one
-	// subscription: its combinations of dimension values.
-	MaxRowsPerBucket int64
-}
+// BucketStats is the size of the buckets of a definition: a definition
+// whose rows grow too many (pricing group or breakdown values without
+// bounds) is better blocked, which sends its reads back to the events.
+type BucketStats = metering.BucketStats

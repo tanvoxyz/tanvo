@@ -17,6 +17,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/core/webhook"
 	expression "github.com/tanvoxyz/tanvo/libs/expression/go"
+	"github.com/tanvoxyz/tanvo/libs/metering"
 	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
@@ -51,8 +52,8 @@ func (defaultCompiler) Compile(_ context.Context, src string) (*expression.Progr
 	return expression.Compile(src)
 }
 
-// Service manages billable metrics. It uses d.Tx, d.Clock, d.IDs and
-// d.Webhooks only.
+// Service manages billable metrics. It uses d.Tx, d.Clock, d.IDs,
+// d.Webhooks and, to sweep the usage buckets, d.Events only.
 type Service struct {
 	d    *kernel.Deps
 	expr Compiler
@@ -203,6 +204,7 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.B
 		if err != nil {
 			return err
 		}
+		buckets := bucketIdentity(m)
 		in.Name.Apply(&m.Name)
 		in.Description.Apply(&m.Description)
 		if in.Filters.Set {
@@ -234,6 +236,11 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.B
 			return codeConflict(err)
 		}
 		out = m
+		if bucketIdentity(m) != buckets {
+			if err := s.sweepBuckets(ctx, r, org); err != nil {
+				return err
+			}
+		}
 		if err := s.logActivity(ctx, r, auditlog.ActivityBillableMetricUpdated, before, m); err != nil {
 			return err
 		}
@@ -301,6 +308,9 @@ func (s *Service) Delete(ctx context.Context, org core.OrganizationID, id core.B
 		if err := kernel.Enqueue(ctx, r, org, kernel.JobDestroyMetricFilters, kernel.MetricArgs{BillableMetricID: id}, "", time.Time{}); err != nil {
 			return err
 		}
+		if err := s.sweepBuckets(ctx, r, org); err != nil {
+			return err
+		}
 		m.DeletedAt, m.UpdatedAt = &now, now
 		out = m
 		if err := s.logActivity(ctx, r, auditlog.ActivityBillableMetricDeleted, nil, m); err != nil {
@@ -312,6 +322,27 @@ func (s *Service) Delete(ctx context.Context, org core.OrganizationID, id core.B
 		return nil, fmt.Errorf("delete billable metric %s: %w", id, err)
 	}
 	return out, nil
+}
+
+// bucketIdentity returns what the usage bucket definitions of m depend
+// on: its code, its aggregated property and filters, and what decides
+// whether its charges read the buckets.
+func bucketIdentity(m *catalog.BillableMetric) string {
+	mm := kernel.MeteringMetric(m)
+	d := metering.BucketDefinitionFor(m.OrganizationID.String(), mm, kernel.MeteringMetricFilters(m))
+	return fmt.Sprintf("%s\x00%s\x00%s\x00%t", d.Code, d.ID(), mm.Aggregation, mm.Recurring)
+}
+
+// sweepBuckets enqueues, in the transaction of r, the sweep of the usage
+// bucket definitions of org ([kernel.JobSweepUsageBuckets]) after a
+// change of a metric they may depend on, when the event store keeps
+// them: the definitions of the metric before the change then go at once
+// rather than at the daily sweep.
+func (s *Service) sweepBuckets(ctx context.Context, r port.Repos, org core.OrganizationID) error {
+	if _, ok := s.d.Events.(kernel.BucketLifecycle); !ok {
+		return nil
+	}
+	return kernel.EnqueueUsageBucketsSweep(ctx, r, org, s.d.Now())
 }
 
 // logActivity records the activity log of m, whose attributes before an

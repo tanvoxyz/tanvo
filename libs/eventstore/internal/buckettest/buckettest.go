@@ -484,6 +484,7 @@ func Run(t *testing.T, open Open, peers ...Peers) {
 		}
 		check(t, s)
 	})
+	runLifecycle(t, open)
 	same := func(s Backend, n int) []Backend { return slices.Repeat([]Backend{s}, n) }
 	for i, p := range append([]Peers{same}, peers...) {
 		concurrent(t, open, p, i > 0)

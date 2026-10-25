@@ -75,7 +75,14 @@
 //     and aggregates them again, alongside the writers. The definition is
 //     then marked ready; [Store.ReadBuckets] reads ready definitions only,
 //     and checks in the statement reading the rows that the definition is
-//     still in place.
+//     still in place, of the same generation;
+//   - [Store.DropBuckets] and [Store.BlockBuckets] take the (organization,
+//     code) lock exclusively and delete the definition and its rows in one
+//     transaction (a block is kept in usage_bucket_blocks). Each definition
+//     has a generation (usage_bucket_generations): a backfill chunk of a
+//     generation dropped meanwhile writes nothing, and only its own
+//     generation is marked ready, so that a drop is never undone. Reads
+//     record read_at at most once per [metering.BucketReadResolution].
 //
 // The bucket locks serialize the writers of a bucket, so that each
 // statement, under READ COMMITTED, reads the bucket rows and events the
