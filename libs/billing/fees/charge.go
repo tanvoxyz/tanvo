@@ -61,6 +61,9 @@ type chargeContext struct {
 	cur     pricingCurrency
 	filters []metering.ChargeFilter
 	metricF []metering.MetricFilter
+	// bucketMisses are the usage bucket reads of the charge's current
+	// usage no ready definition covered (see [Service.eventsFor]).
+	bucketMisses []metering.BucketRead
 }
 
 // loadCharge loads the metric and pricing currency of c.
@@ -185,7 +188,31 @@ func (cc *chargeContext) request(env *kernel.SubscriptionEnv, bk bucket, b perio
 		req.MaxTimestamp = opts.MaxTimestamp
 	}
 	opts.UsageFilters.apply(&req)
+	req.UsageBuckets = cc.servedFromBuckets(req, opts)
 	return req
+}
+
+// servedFromBuckets reports whether the aggregation req of a current usage
+// may read the usage buckets (lago Events::Stores::Provider): the caller
+// asked for them, the read covers the whole charges period of a charge the
+// buckets serve, and it narrows the events to no pricing group, event or
+// presentation breakdown. A full usage opens on the subscription start and
+// a group filter reads other keys than the charge's, so neither is
+// served.
+//
+// source: app/services/events/stores/provider.rb:38-60, :103-115
+func (cc *chargeContext) servedFromBuckets(req metering.Request, opts Options) bool {
+	if !opts.UsageBuckets || !opts.CurrentUsage || opts.FullUsage || len(opts.UsageFilters.Group) > 0 || !opts.MaxTimestamp.IsZero() {
+		return false
+	}
+	if len(req.GroupValues) > 0 || req.Event != nil || len(req.PresentationBy) > 0 {
+		return false
+	}
+	c := cc.charge
+	return metering.BucketServable(req.Metric, metering.BucketCharge{
+		ChargeModel: string(c.ChargeModel), PayInAdvance: c.PayInAdvance, Prorated: c.Prorated,
+		AcceptsTargetWallet: c.AcceptsTargetWallet,
+	})
 }
 
 // cacheScope returns the cached aggregation scope of a bucket; defaultBucket
@@ -243,7 +270,7 @@ func aggregationOf(m metering.Result) pricing.AggregationResult {
 
 // aggregate aggregates a bucket and converts the result for pricing.
 func (s *Service) aggregate(ctx context.Context, cc *chargeContext, bk bucket, req metering.Request) (metering.Result, pricing.AggregationResult, error) {
-	m, err := metering.Aggregate(ctx, s.d.Events, req)
+	m, err := metering.Aggregate(ctx, s.eventsFor(cc, req), req)
 	if err != nil {
 		return metering.Result{}, pricing.AggregationResult{}, fmt.Errorf("aggregate charge %s: %w", cc.charge.ID, err)
 	}
@@ -311,6 +338,9 @@ func (s *Service) ChargeFees(ctx context.Context, r port.Repos, sc Scope, c *cat
 		out.Fees = append(out.Fees, fs...)
 	}
 	if opts.CurrentUsage {
+		if err := s.defineMissedBuckets(ctx, r, cc); err != nil {
+			return nil, err
+		}
 		return out, nil
 	}
 

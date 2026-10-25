@@ -46,10 +46,24 @@ func keyName(k *access.APIKey) any {
 	return *k.Name
 }
 
+// flatPermissions returns the permissions of m as lago's
+// ApiKey#flat_permissions (api_key.rb:34-36): sorted "resource:mode"
+// strings, a write level counting both modes since it includes read, and
+// a key without grants, which has full access, every resource in both
+// modes (lago's default_permissions, api_key.rb:44-46).
 func flatPermissions(m map[permission.APIResource]permission.Level) []string {
-	out := make([]string, 0, len(m))
+	if len(m) == 0 {
+		m = map[permission.APIResource]permission.Level{}
+		for _, r := range permission.APIResourceValues() {
+			m[r] = permission.LevelWrite
+		}
+	}
+	out := make([]string, 0, 2*len(m))
 	for r, l := range m {
-		out = append(out, string(r)+":"+string(l))
+		out = append(out, string(r)+":"+string(permission.LevelRead))
+		if l == permission.LevelWrite {
+			out = append(out, string(r)+":"+string(permission.LevelWrite))
+		}
 	}
 	slices.Sort(out)
 	return out
@@ -124,16 +138,30 @@ func (s *APIKeys) Update(ctx context.Context, org core.OrganizationID, id core.A
 		if k, err = getKey(ctx, r, org, id); err != nil {
 			return err
 		}
+		// The diff of lago's update_service.rb:36-53: the name without a
+		// blank side (compact_blank), the permissions without an empty side.
 		if u.Name != nil && (k.Name == nil || *k.Name != *u.Name) {
-			diff["name"] = map[string]any{"deleted": keyName(k), "added": *u.Name}
+			entry := map[string]any{}
+			if k.Name != nil && *k.Name != "" {
+				entry["deleted"] = *k.Name
+			}
+			if *u.Name != "" {
+				entry["added"] = *u.Name
+			}
+			diff["name"] = entry
 			k.Name = u.Name
 		}
 		if u.Permissions != nil {
 			before, after := flatPermissions(k.Permissions), flatPermissions(*u.Permissions)
-			added := slices.DeleteFunc(slices.Clone(after), func(p string) bool { return slices.Contains(before, p) })
-			deleted := slices.DeleteFunc(slices.Clone(before), func(p string) bool { return slices.Contains(after, p) })
-			if len(added)+len(deleted) > 0 {
-				diff["permissions"] = map[string]any{"added": added, "deleted": deleted}
+			entry := map[string]any{}
+			if deleted := slices.DeleteFunc(slices.Clone(before), func(p string) bool { return slices.Contains(after, p) }); len(deleted) > 0 {
+				entry["deleted"] = deleted
+			}
+			if added := slices.DeleteFunc(slices.Clone(after), func(p string) bool { return slices.Contains(before, p) }); len(added) > 0 {
+				entry["added"] = added
+			}
+			if len(entry) > 0 {
+				diff["permissions"] = entry
 			}
 			k.Permissions = maps.Clone(*u.Permissions)
 		}

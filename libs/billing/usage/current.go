@@ -79,6 +79,9 @@ type Options struct {
 	// (app/services/invoices/customer_usage_service.rb:54 checks presence
 	// only; the daily usages pass terminated subscriptions).
 	AnyStatus bool
+	// UsageBuckets reads the usage buckets for the charges they serve
+	// (lago use_usage_buckets, see [fees.Options.UsageBuckets]).
+	UsageBuckets bool
 }
 
 // Usage is the current usage of a subscription: its charge fees for the
@@ -196,6 +199,7 @@ func (s *Service) EnvUsage(ctx context.Context, r port.Repos, env *kernel.Subscr
 	fo := fees.Options{
 		CurrentUsage: true, SkipZeroUnitsFilters: opts.SkipZeroUnitsFilters, SkipAdjustedFees: true, Cache: cache,
 		MaxTimestamp: opts.MaxTimestamp, FullUsage: opts.FullUsage, UsageFilters: opts.Filters,
+		UsageBuckets: opts.UsageBuckets,
 	}
 	if s.d.UsageCache != nil && !opts.SkipCache && opts.MaxTimestamp.IsZero() && cacheable(opts.Filters) {
 		// lago charge_cache_enabled?, customer_usage_service.rb:346-364;
@@ -272,13 +276,11 @@ func (s *Service) EnvUsage(ctx context.Context, r port.Repos, env *kernel.Subscr
 }
 
 // cacheable reports whether the fees of a usage narrowed by f can go
-// through the charge usage cache, whose entries are keyed by charge and
-// filter only: a group filter computes a subset of the fees (lago
-// charge_cache_enabled?, customer_usage_service.rb:353-356), and grouping
-// skipped or a presentation filter shape them. lago bypasses the cache
-// for the last two only with full usage (full_usage_cache_enabled?,
-// :360-364), so that a period usage asked with them stores its fees for
-// the next unfiltered read (§4).
+// through the charge usage cache: a group filter computes a subset of the
+// fees (lago charge_cache_enabled?, customer_usage_service.rb:353-356).
+// Skipped grouping and a presentation filter, which shape the fees, have
+// their own cache keys, where lago shares the entries of the unfiltered
+// usage (full_usage_cache_enabled?, :360-364, §4).
 func cacheable(f fees.UsageFilters) bool {
-	return len(f.Group) == 0 && !f.SkipGrouping && f.Presentation == nil
+	return len(f.Group) == 0
 }

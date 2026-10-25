@@ -108,7 +108,7 @@ func (s *CreditNotes) CreateCreditNote(ctx context.Context, req *creditnotev1.Cr
 		Items:          items,
 		Reason:         cnReasons.Core(b.GetReason()),
 		Description:    Opt(b.HasDescription(), b.GetDescription()),
-		Metadata:       FromMetadata(b.GetMetadata()),
+		Metadata:       createMetadata(b.GetMetadata()),
 	}
 	for _, a := range []struct {
 		field string

@@ -352,6 +352,10 @@ func (s *Service) subscriptionUsage(ctx context.Context, r port.Repos, sub *subs
 		if i := slices.IndexFunc(given, func(u *usage.Usage) bool { return u.Subscription.ID == sub.ID }); i >= 0 {
 			return given[i], nil
 		}
+		// The source of the inline delivery of the wallet refresh, so that
+		// the record does not depend on where it ran.
+		opts = usage.WalletRefreshOptions()
+		opts.SkipTaxes = true
 	} else {
 		cs, err := r.Charges.ListByPlan(ctx, sub.OrganizationID, sub.PlanID)
 		if err != nil {

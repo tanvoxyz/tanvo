@@ -279,8 +279,9 @@ func TestInvitesAccept(t *testing.T) {
 		if _, err := e.users.Login(e.ctx, "new@hooli.com", "ILoveLago", SessionMeta{}); err != nil {
 			t.Errorf("login with the invite password: %v", err)
 		}
-		if e.log.count(EventUserJoined) != 1 {
-			t.Errorf("events = %v, want user.joined", e.log.names())
+		// UsersService#register_from_invite logs no security event.
+		if got := e.log.names(); !slices.Equal(got, []string{EventUserInvited}) {
+			t.Errorf("events = %v, want only user.invited", got)
 		}
 	})
 	tests := []struct {

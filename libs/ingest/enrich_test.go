@@ -11,6 +11,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/event"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
+	expression "github.com/tanvoxyz/tanvo/libs/expression/go"
 	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
@@ -381,5 +382,31 @@ func TestEnrichContract(t *testing.T) {
 				t.Errorf("target, contract, in advance got = %s, %s, %t, want = %s, contract %t (%s)", got.InAdvanceTarget(), got.ContractID, got.InAdvance, wantTarget, tc.want, tc.source)
 			}
 		})
+	}
+}
+
+// TestBigDecimalText checks that the event API writes an expression's
+// number as lago-api's BigDecimal is written in JSON.
+//
+// source: spec/services/events/create_service_spec.rb:222
+// source: spec/requests/api/v1/events_controller_spec.rb:144
+func TestBigDecimalText(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		in   expression.Value
+		want string
+	}{
+		{expression.NumberValue(money.MustParse("3")), "3.0"},
+		{expression.NumberValue(money.MustParse("1.50")), "1.5"},
+		{expression.NumberValue(money.MustParse("12.177")), "12.177"},
+		{expression.NumberValue(money.MustParse("-2")), "-2.0"},
+		{expression.NumberValue(money.MustParse("100")), "100.0"},
+		{expression.NumberValue(money.MustParse("1E+2")), "100.0"},
+		{expression.StringValue("3"), "3"},
+		{expression.StringValue("1.23test"), "1.23test"},
+	} {
+		if got := bigDecimalText(tt.in); got != tt.want {
+			t.Errorf("bigDecimalText(%v) got = %q, want = %q", tt.in, got, tt.want)
+		}
 	}
 }

@@ -99,3 +99,59 @@ func TestMetadataMergeWithout(t *testing.T) {
 		t.Errorf("Without changed its receiver: got = %v", existing)
 	}
 }
+
+// TestUpdateItemMetadata ports the table of Metadata::UpdateItemService:
+// nil is no metadata item, a non-nil empty list an item without keys.
+func TestUpdateItemMetadata(t *testing.T) {
+	existing := items("old", "value")
+	empty := core.Metadata{}
+	pairs := items("foo", "bar", "baz", "qux")
+	tests := []struct {
+		name    string
+		old     core.Metadata
+		value   core.Metadata
+		partial bool
+		want    core.Metadata
+	}{
+		// source: spec/services/metadata/update_item_service_spec.rb:26
+		{name: "nil partial without metadata", value: nil, partial: true, want: nil},
+		// source: spec/services/metadata/update_item_service_spec.rb:41
+		{name: "nil partial with metadata", old: existing, value: nil, partial: true, want: existing},
+		// source: spec/services/metadata/update_item_service_spec.rb:54
+		{name: "nil without metadata", value: nil, want: nil},
+		// source: spec/services/metadata/update_item_service_spec.rb:68
+		{name: "nil deletes metadata", old: existing, value: nil, want: nil},
+		// source: spec/services/metadata/update_item_service_spec.rb:82
+		{name: "empty partial without metadata", value: empty, partial: true, want: nil},
+		// source: spec/services/metadata/update_item_service_spec.rb:97
+		{name: "empty partial keeps metadata", old: existing, value: empty, partial: true, want: existing},
+		// source: spec/services/metadata/update_item_service_spec.rb:110
+		{name: "empty creates an empty item", value: empty, want: empty},
+		// source: spec/services/metadata/update_item_service_spec.rb:125
+		{name: "empty replaces with an empty item", old: existing, value: empty, want: empty},
+		// source: spec/services/metadata/update_item_service_spec.rb:138
+		{name: "partial creates", value: pairs, partial: true, want: pairs},
+		// source: spec/services/metadata/update_item_service_spec.rb:156
+		{name: "partial merges", old: existing, value: pairs, partial: true, want: items("old", "value", "foo", "bar", "baz", "qux")},
+		// source: spec/services/metadata/update_item_service_spec.rb:169
+		{name: "replace creates", value: items("foo", "bar"), want: items("foo", "bar")},
+		// source: spec/services/metadata/update_item_service_spec.rb:181
+		{name: "replace replaces", old: existing, value: items("foo", "bar"), want: items("foo", "bar")},
+		{name: "partial into an empty item", old: empty, value: items("foo", "bar"), partial: true, want: items("foo", "bar")},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := core.UpdateItemMetadata(tt.old, tt.value, tt.partial)
+			if !core.SameItemMetadata(got, tt.want) {
+				t.Errorf("got = %#v, want = %#v", got, tt.want)
+			}
+		})
+	}
+	// source: spec/services/metadata/delete_item_key_service_spec.rb:52
+	if got := items("foo", "bar").Without("foo"); got == nil || len(got) != 0 {
+		t.Errorf("deleting the last key: got = %#v, want = an empty item", got)
+	}
+	if core.SameItemMetadata(nil, empty) {
+		t.Error("SameItemMetadata(nil, empty) = true, want = false")
+	}
+}

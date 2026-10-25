@@ -191,6 +191,30 @@ func decodeMetadata(b []byte) (core.Metadata, error) {
 	return m, nil
 }
 
+// encodeItemMetadata encodes the item metadata of a plan, credit note or
+// wallet: SQL NULL when m is nil (no metadata item), otherwise the array,
+// empty for an item whose keys were all removed (lago
+// Metadata::ItemMetadata keeps its record).
+func encodeItemMetadata(m core.Metadata) []byte {
+	if m == nil {
+		return nil
+	}
+	return encodeMetadata(m)
+}
+
+// decodeItemMetadata decodes an item metadata column: SQL NULL is nil, an
+// array a non-nil list, empty when the array is.
+func decodeItemMetadata(b []byte) (core.Metadata, error) {
+	if b == nil {
+		return nil, nil
+	}
+	m, err := decodeMetadata(b)
+	if err != nil || m != nil {
+		return m, err
+	}
+	return core.Metadata{}, nil
+}
+
 // encodeJSON encodes v for a jsonb column of a store-defined value object.
 func encodeJSON(v any) ([]byte, error) {
 	b, err := json.Marshal(v)

@@ -164,7 +164,8 @@ func (s *Service) CurrentUsage(ctx context.Context, in CurrentUsageInput) (*Peri
 		}
 		opts := usage.Options{
 			SkipTaxes: in.SkipTaxes, Projection: in.Projection, FullUsage: in.FullUsage && !in.Projection,
-			Filters: fees.UsageFilters{SkipGrouping: in.SkipGrouping, Group: in.GroupFilter, Presentation: in.PresentationFilter},
+			Filters:      fees.UsageFilters{SkipGrouping: in.SkipGrouping, Group: in.GroupFilter, Presentation: in.PresentationFilter},
+			UsageBuckets: true,
 		}
 		if opts.ChargeIDs, err = usageChargeIDs(ctx, r, env, in); err != nil {
 			return err

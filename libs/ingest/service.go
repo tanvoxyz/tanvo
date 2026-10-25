@@ -185,10 +185,10 @@ func (s *Service) evaluate(ctx context.Context, e *event.Event) error {
 	if err != nil {
 		return err
 	}
-	err = s.cfg.Programs.Apply(ctx, m, e)
+	err = s.cfg.Programs.ApplyAPI(ctx, m, e)
 	var xe *ExpressionError
 	if errors.As(err, &xe) {
-		return &core.ValidationError{Errors: []core.FieldError{{Field: "properties", Code: CodeExpressionFailed}}}
+		return &core.ValidationError{Errors: []core.FieldError{{Field: "properties", Code: CodeExpressionFailed, Message: xe.Message()}}}
 	}
 	if err != nil {
 		return err

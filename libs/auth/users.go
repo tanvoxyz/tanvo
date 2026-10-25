@@ -148,7 +148,6 @@ func (u *Users) Login(ctx context.Context, email, password string, meta SessionM
 	if err != nil {
 		return nil, err
 	}
-	u.recordSignIn(ctx, user, ms, organization.AuthenticationMethodEmailPassword)
 	return u.open(ctx, &SignedIn{User: user}, organization.AuthenticationMethodEmailPassword, meta)
 }
 
@@ -161,15 +160,6 @@ func (u *Users) open(ctx context.Context, s *SignedIn, method organization.Authe
 	s.Token, s.Session = tok, sess
 	u.registerDevice(ctx, s.User, meta, s.newUser)
 	return s, nil
-}
-
-// recordSignIn logs a sign-in in every organization of the user.
-func (u *Users) recordSignIn(ctx context.Context, user *access.User, ms []*access.Membership, method organization.AuthenticationMethod) {
-	for _, m := range ms {
-		u.d.record(ctx, SecurityEvent{OrganizationID: m.OrganizationID, UserID: user.ID, Type: SecurityLogUser, Event: EventUserSignedIn, Resources: map[string]any{
-			"email": user.Email, "login_method": string(method),
-		}})
-	}
 }
 
 // Register creates a user with password, an organization named orgName

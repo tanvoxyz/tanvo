@@ -954,7 +954,7 @@ The order of deductions and their bases are in §22.7. No total is negative; eac
 ### 11.4 Voiding
 * An invoice is **voidable** when: `status = finalized`, `payment_status ∈ {pending, failed}`, `total_paid_amount = 0`, it has no non-voided credit notes and no lost dispute.
 * Voiding may create a credit note in the same request: `credit_amount + refund_amount ≤ creditable amount`.
-* Voiding restores what the invoice consumed: applied coupons get their amounts back (`recurring` coupons get `frequency_duration_remaining + 1`, terminated ones are reactivated if still valid), wallet transactions of type outbound are voided and their credits returned, consumed credit-note credits are restored.
+* Voiding restores what the invoice consumed: applied coupons get their amounts back (`recurring` coupons get `frequency_duration_remaining + 1`, terminated ones are reactivated if still valid), the credits of outbound wallet transactions return to their wallets, when active, unless a credit note is created. Consumed credit-note credits stay consumed; they are restored only when the invoice gating an incomplete subscription is closed (§9.3).
 * `invoice.voided` is emitted.
 * **Regeneration**: a voided subscription invoice can be regenerated: a new invoice with the same periods is built with current catalog data, `voided_invoice_id` set to the voided one.
 

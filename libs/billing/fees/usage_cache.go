@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -41,7 +42,7 @@ func (s *Service) cachedBucketFees(ctx context.Context, sc Scope, cc *chargeCont
 	if err != nil {
 		return nil, fmt.Errorf("charge %s: %w", cc.charge.ID, err)
 	}
-	key, keyed := usageCacheKey(sc, cc, bk, opts.FullUsage)
+	key, keyed := usageCacheKey(sc, cc, bk, opts)
 	if !ok || !keyed {
 		// The usage buckets answer, fresh already (charge_service.rb:140),
 		// or nothing validates an entry.
@@ -110,14 +111,16 @@ func skipZeroUnits(bk bucket, opts Options, fs []*invoice.Fee) []*invoice.Fee {
 // usageCacheKey is the cache key of a bucket: the charge as last changed,
 // the subscription, the bucket's filter and a fingerprint of what selects
 // and prices its events, and the full-usage segment (lago
-// ChargeCacheService#cache_key). Tanvo's charge filters carry no update
+// ChargeCacheService#cache_key). Skipped grouping and a presentation filter
+// have their own segments, so that the fees they shape are never served to
+// another usage (§4). Tanvo's charge filters carry no update
 // instant, so the fingerprint stands for lago's filter updated_at; it also
 // covers the default bucket, whose events depend on the other filters.
 //
 // It is false when the bucket cannot be fingerprinted.
 //
 // source: app/services/subscriptions/charge_cache_service.rb:55-67
-func usageCacheKey(sc Scope, cc *chargeContext, bk bucket, fullUsage bool) (string, bool) {
+func usageCacheKey(sc Scope, cc *chargeContext, bk bucket, opts Options) (string, bool) {
 	var name *string
 	if bk.filter != nil {
 		name = bk.filter.InvoiceDisplayName
@@ -135,8 +138,21 @@ func usageCacheKey(sc Scope, cc *chargeContext, bk bucket, fullUsage bool) (stri
 		"charge-usage", cc.charge.ID.String(), sc.Env.Subscription.ID.String(),
 		cc.charge.UpdatedAt.UTC().Format(time.RFC3339Nano), bk.filterID().String(), hex.EncodeToString(sum[:16]),
 	}
-	if fullUsage {
+	if opts.FullUsage {
 		parts = append(parts, "full-usage")
+	}
+	if opts.UsageFilters.SkipGrouping {
+		parts = append(parts, "skip-grouping")
+	}
+	if p := opts.UsageFilters.Presentation; p != nil {
+		keys := slices.Clone(p)
+		slices.Sort(keys)
+		// The keys are JSON-encoded, so that no key can mimic a segment.
+		enc, err := json.Marshal(slices.Compact(keys))
+		if err != nil {
+			return "", false
+		}
+		parts = append(parts, "presentation:"+string(enc))
 	}
 	return strings.Join(parts, "/"), true
 }

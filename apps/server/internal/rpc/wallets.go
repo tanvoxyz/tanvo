@@ -142,9 +142,7 @@ func (s *Wallets) CreateWallet(ctx context.Context, req *walletv1.CreateWalletRe
 		ExpirationAt:                     TimePtr(w.GetExpiresAt()),
 		PaymentMethod:                    walletPaymentMethod(w),
 	}
-	if len(w.GetMetadata()) > 0 {
-		in.Metadata = FromMetadata(w.GetMetadata())
-	}
+	in.Metadata = createMetadata(w.GetMetadata())
 	in.PurchaseOrderNumber = Opt(w.HasPurchaseOrderNumber(), w.GetPurchaseOrderNumber())
 	in.TransactionName = Opt(w.HasTransactionName(), w.GetTransactionName())
 	if w.HasTransactionPriority() {

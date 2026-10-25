@@ -44,6 +44,7 @@ type Event struct {
 	xxx_hidden_TargetWalletCode       *string                `protobuf:"bytes,8,opt,name=target_wallet_code,json=targetWalletCode"`
 	xxx_hidden_UserAgent              *string                `protobuf:"bytes,10,opt,name=user_agent,json=userAgent"`
 	xxx_hidden_IpAddress              *string                `protobuf:"bytes,11,opt,name=ip_address,json=ipAddress"`
+	xxx_hidden_ExternalContractId     *string                `protobuf:"bytes,14,opt,name=external_contract_id,json=externalContractId"`
 	xxx_hidden_CreatedAt              *timestamppb.Timestamp `protobuf:"bytes,13,opt,name=created_at,json=createdAt"`
 	XXX_raceDetectHookData            protoimpl.RaceDetectHookData
 	XXX_presence                      [1]uint32
@@ -170,6 +171,16 @@ func (x *Event) GetIpAddress() string {
 	return ""
 }
 
+func (x *Event) GetExternalContractId() string {
+	if x != nil {
+		if x.xxx_hidden_ExternalContractId != nil {
+			return *x.xxx_hidden_ExternalContractId
+		}
+		return ""
+	}
+	return ""
+}
+
 func (x *Event) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.xxx_hidden_CreatedAt
@@ -179,22 +190,22 @@ func (x *Event) GetCreatedAt() *timestamppb.Timestamp {
 
 func (x *Event) SetId(v string) {
 	x.xxx_hidden_Id = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 12)
 }
 
 func (x *Event) SetTransactionId(v string) {
 	x.xxx_hidden_TransactionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 1, 12)
 }
 
 func (x *Event) SetExternalSubscriptionId(v string) {
 	x.xxx_hidden_ExternalSubscriptionId = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 2, 12)
 }
 
 func (x *Event) SetCode(v string) {
 	x.xxx_hidden_Code = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 3, 12)
 }
 
 func (x *Event) SetTimestamp(v *timestamppb.Timestamp) {
@@ -207,22 +218,27 @@ func (x *Event) SetProperties(v *structpb.Struct) {
 
 func (x *Event) SetPreciseTotalAmount(v string) {
 	x.xxx_hidden_PreciseTotalAmount = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 6, 12)
 }
 
 func (x *Event) SetTargetWalletCode(v string) {
 	x.xxx_hidden_TargetWalletCode = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 7, 12)
 }
 
 func (x *Event) SetUserAgent(v string) {
 	x.xxx_hidden_UserAgent = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 8, 12)
 }
 
 func (x *Event) SetIpAddress(v string) {
 	x.xxx_hidden_IpAddress = &v
-	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 11)
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 9, 12)
+}
+
+func (x *Event) SetExternalContractId(v string) {
+	x.xxx_hidden_ExternalContractId = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 10, 12)
 }
 
 func (x *Event) SetCreatedAt(v *timestamppb.Timestamp) {
@@ -299,6 +315,13 @@ func (x *Event) HasIpAddress() bool {
 	return protoimpl.X.Present(&(x.XXX_presence[0]), 9)
 }
 
+func (x *Event) HasExternalContractId() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 10)
+}
+
 func (x *Event) HasCreatedAt() bool {
 	if x == nil {
 		return false
@@ -354,6 +377,11 @@ func (x *Event) ClearIpAddress() {
 	x.xxx_hidden_IpAddress = nil
 }
 
+func (x *Event) ClearExternalContractId() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 10)
+	x.xxx_hidden_ExternalContractId = nil
+}
+
 func (x *Event) ClearCreatedAt() {
 	x.xxx_hidden_CreatedAt = nil
 }
@@ -385,6 +413,9 @@ type Event_builder struct {
 	UserAgent *string
 	// The client IP of the ingestion request.
 	IpAddress *string
+	// An alias of external_subscription_id on ingestion; when both are
+	// set, external_subscription_id wins. It is not returned.
+	ExternalContractId *string
 	// When the event was ingested.
 	CreatedAt *timestamppb.Timestamp
 }
@@ -394,38 +425,42 @@ func (b0 Event_builder) Build() *Event {
 	b, x := &b0, m0
 	_, _ = b, x
 	if b.Id != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 12)
 		x.xxx_hidden_Id = b.Id
 	}
 	if b.TransactionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 1, 12)
 		x.xxx_hidden_TransactionId = b.TransactionId
 	}
 	if b.ExternalSubscriptionId != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 2, 12)
 		x.xxx_hidden_ExternalSubscriptionId = b.ExternalSubscriptionId
 	}
 	if b.Code != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 3, 12)
 		x.xxx_hidden_Code = b.Code
 	}
 	x.xxx_hidden_Timestamp = b.Timestamp
 	x.xxx_hidden_Properties = b.Properties
 	if b.PreciseTotalAmount != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 6, 12)
 		x.xxx_hidden_PreciseTotalAmount = b.PreciseTotalAmount
 	}
 	if b.TargetWalletCode != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 7, 12)
 		x.xxx_hidden_TargetWalletCode = b.TargetWalletCode
 	}
 	if b.UserAgent != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 8, 12)
 		x.xxx_hidden_UserAgent = b.UserAgent
 	}
 	if b.IpAddress != nil {
-		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 11)
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 9, 12)
 		x.xxx_hidden_IpAddress = b.IpAddress
+	}
+	if b.ExternalContractId != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 10, 12)
+		x.xxx_hidden_ExternalContractId = b.ExternalContractId
 	}
 	x.xxx_hidden_CreatedAt = b.CreatedAt
 	return m0
@@ -2541,7 +2576,7 @@ var File_tanvo_event_v1_event_proto protoreflect.FileDescriptor
 
 const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"\n" +
-	"\x1atanvo/event/v1/event.proto\x12\x0etanvo.event.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xfe\x04\n" +
+	"\x1atanvo/event/v1/event.proto\x12\x0etanvo.event.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/api/field_behavior.proto\x1a\x19google/api/resource.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xc0\x05\n" +
 	"\x05Event\x12\x14\n" +
 	"\x02id\x18\x01 \x01(\tB\x04\xe2A\x01\x03R\x02id\x125\n" +
 	"\x0etransaction_id\x18\x02 \x01(\tB\x0e\xe2A\x01\b\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\rtransactionId\x12H\n" +
@@ -2558,7 +2593,8 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	"user_agent\x18\n" +
 	" \x01(\tB\x04\xe2A\x01\x03R\tuserAgent\x12#\n" +
 	"\n" +
-	"ip_address\x18\v \x01(\tB\x04\xe2A\x01\x03R\tipAddress\x12?\n" +
+	"ip_address\x18\v \x01(\tB\x04\xe2A\x01\x03R\tipAddress\x12@\n" +
+	"\x14external_contract_id\x18\x0e \x01(\tB\x0e\xe2A\x01\x04\xbaH\ar\x05\xe8\xa4\xca\x06\x01R\x12externalContractId\x12?\n" +
 	"\n" +
 	"created_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampB\x04\xe2A\x01\x03R\tcreatedAt:<\xeaA9\n" +
 	"\x0ftanvo.xyz/Event\x12\x17events/{transaction_id}*\x06events2\x05eventJ\x04\b\f\x10\rR\x06errors\"\xfe\x04\n" +
@@ -2605,17 +2641,17 @@ const file_tanvo_event_v1_event_proto_rawDesc = "" +
 	" \x03(\v2+.tanvo.event.v1.EstimatedFee.GroupedByEntryR\tgroupedBy\x1a<\n" +
 	"\x0eGroupedByEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8b\x02\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xd0\x02\n" +
 	"\x12IngestEventRequest\x127\n" +
 	"\x05event\x18\x01 \x01(\v2\x15.tanvo.event.v1.EventB\n" +
-	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x05event:\xbb\x01\xbaH\xb7\x01\x1a\xb4\x01\n" +
-	"\x0eevent.required\x12>transaction_id, external_subscription_id and code are required\x1abhas(this.event.transaction_id) && has(this.event.external_subscription_id) && has(this.event.code)\"`\n" +
+	"\xe2A\x01\x02\xbaH\x03\xc8\x01\x01R\x05event:\x80\x02\xbaH\xfc\x01\x1a\xf9\x01\n" +
+	"\x0eevent.required\x12Xtransaction_id, external_subscription_id (or external_contract_id) and code are required\x1a\x8c\x01has(this.event.transaction_id) && (has(this.event.external_subscription_id) || has(this.event.external_contract_id)) && has(this.event.code)\"`\n" +
 	"\x13IngestEventResponse\x12+\n" +
 	"\x05event\x18\x01 \x01(\v2\x15.tanvo.event.v1.EventR\x05event\x12\x1c\n" +
-	"\tduplicate\x18\x02 \x01(\bR\tduplicate\"\x91\x02\n" +
+	"\tduplicate\x18\x02 \x01(\bR\tduplicate\"\xcc\x02\n" +
 	"\x13IngestEventsRequest\x12=\n" +
-	"\x06events\x18\x01 \x03(\v2\x15.tanvo.event.v1.EventB\x0e\xe2A\x01\x02\xbaH\a\x92\x01\x04\b\x01\x10dR\x06events:\xba\x01\xbaH\xb6\x01\x1a\xb3\x01\n" +
-	"\x0fevents.required\x12Cevery event needs transaction_id, external_subscription_id and code\x1a[this.events.all(e, has(e.transaction_id) && has(e.external_subscription_id) && has(e.code))\"M\n" +
+	"\x06events\x18\x01 \x03(\v2\x15.tanvo.event.v1.EventB\x0e\xe2A\x01\x02\xbaH\a\x92\x01\x04\b\x01\x10dR\x06events:\xf5\x01\xbaH\xf1\x01\x1a\xee\x01\n" +
+	"\x0fevents.required\x12]every event needs transaction_id, external_subscription_id (or external_contract_id) and code\x1a|this.events.all(e, has(e.transaction_id) && (has(e.external_subscription_id) || has(e.external_contract_id)) && has(e.code))\"M\n" +
 	"\x14IngestEventsResponse\x125\n" +
 	"\aresults\x18\x01 \x03(\v2\x1b.tanvo.event.v1.EventResultR\aresults\"\x85\x01\n" +
 	"\x0fGetEventRequest\x128\n" +

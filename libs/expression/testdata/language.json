@@ -323,24 +323,28 @@
     {
       "source": "lago-expression:expression-core/src/evaluate.rs",
       "name": "division by zero",
+      "note": "lago-expression at 2abd2b3 (lago-api v1.55.0, Gemfile:124) panics here; this is the error of its fix 6a70c6d (parity §4).",
       "expression": "0 / 0",
       "error": {"kind": "division_by_zero", "message": "Division by zero"}
     },
     {
       "source": "lago-expression:expression-core/src/evaluate.rs",
       "name": "division by a zero property",
+      "note": "lago-expression at 2abd2b3 (lago-api v1.55.0, Gemfile:124) panics here; this is the error of its fix 6a70c6d (parity §4).",
       "expression": "event.properties.i / event.properties.zero",
       "error": {"kind": "division_by_zero", "message": "Division by zero"}
     },
     {
       "source": "lago-expression:expression-core/src/evaluate.rs",
       "name": "division by 0.0",
+      "note": "lago-expression at 2abd2b3 (lago-api v1.55.0, Gemfile:124) panics here; this is the error of its fix 6a70c6d (parity §4).",
       "expression": "1 / 0.0",
       "error": {"kind": "division_by_zero", "message": "Division by zero"}
     },
     {
       "source": "lago-expression:expression-core/src/evaluate.rs",
       "name": "division by zero inside concat",
+      "note": "lago-expression at 2abd2b3 (lago-api v1.55.0, Gemfile:124) panics here; this is the error of its fix 6a70c6d (parity §4).",
       "expression": "concat('a', 1 / 0)",
       "error": {"kind": "division_by_zero", "message": "Division by zero"}
     },

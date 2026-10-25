@@ -25851,6 +25851,14 @@ components:
           title: ip_address
           description: The client IP of the ingestion request.
           readOnly: true
+        external_contract_id:
+          type: string
+          title: external_contract_id
+          description: |
+            An alias of external_subscription_id on ingestion; when both are
+             set, external_subscription_id wins. It is not returned.
+            string.code = true
+          writeOnly: true
         created_at:
           allOf:
             - $ref: '#/components/schemas/google.protobuf.Timestamp'
@@ -25934,7 +25942,7 @@ components:
       additionalProperties: false
       description: |
         IngestEventRequest is the request of EventService.IngestEvent.
-        event.required // transaction_id, external_subscription_id and code are required
+        event.required // transaction_id, external_subscription_id (or external_contract_id) and code are required
     tanvo.event.v1.IngestEventResponse:
       type: object
       properties:
@@ -25967,7 +25975,7 @@ components:
       additionalProperties: false
       description: |
         IngestEventsRequest is the request of EventService.IngestEvents.
-        events.required // every event needs transaction_id, external_subscription_id and code
+        events.required // every event needs transaction_id, external_subscription_id (or external_contract_id) and code
     tanvo.event.v1.IngestEventsResponse:
       type: object
       properties:

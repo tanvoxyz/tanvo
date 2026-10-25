@@ -83,6 +83,13 @@ type Options struct {
 	MaxTimestamp time.Time
 	// UsageFilters narrow a current usage (see [UsageFilters]).
 	UsageFilters UsageFilters
+	// UsageBuckets, with CurrentUsage, reads the usage buckets for the
+	// charges they serve (lago use_usage_buckets): the API and portal
+	// current and projected usage, the wallet refresh, the usage-refreshed
+	// stream and the subscription activity ask for them. A charge whose
+	// read no ready definition covers is read from the events, and the
+	// definition enqueued ([kernel.JobDefineUsageBuckets]).
+	UsageBuckets bool
 }
 
 // CachedAggregation is a running aggregation state to store after a fee

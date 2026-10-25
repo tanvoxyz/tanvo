@@ -153,6 +153,12 @@ message Event {
   string ip_address = 11 [(google.api.field_behavior) = OUTPUT_ONLY];
   reserved 12;
   reserved errors;
+  // An alias of external_subscription_id on ingestion; when both are
+  // set, external_subscription_id wins. It is not returned.
+  string external_contract_id = 14 [
+    (google.api.field_behavior) = INPUT_ONLY,
+    (buf.validate.field).string.(tanvo.common.v1.code) = true
+  ];
 
   // When the event was ingested.
   google.protobuf.Timestamp created_at = 13 [(google.api.field_behavior) = OUTPUT_ONLY];
@@ -227,8 +233,8 @@ message EstimatedFee {
 message IngestEventRequest {
   option (buf.validate.message).cel = {
     id: "event.required"
-    message: "transaction_id, external_subscription_id and code are required"
-    expression: "has(this.event.transaction_id) && has(this.event.external_subscription_id) && has(this.event.code)"
+    message: "transaction_id, external_subscription_id (or external_contract_id) and code are required"
+    expression: "has(this.event.transaction_id) && (has(this.event.external_subscription_id) || has(this.event.external_contract_id)) && has(this.event.code)"
   };
 
   // The event.
@@ -250,8 +256,8 @@ message IngestEventResponse {
 message IngestEventsRequest {
   option (buf.validate.message).cel = {
     id: "events.required"
-    message: "every event needs transaction_id, external_subscription_id and code"
-    expression: "this.events.all(e, has(e.transaction_id) && has(e.external_subscription_id) && has(e.code))"
+    message: "every event needs transaction_id, external_subscription_id (or external_contract_id) and code"
+    expression: "this.events.all(e, has(e.transaction_id) && (has(e.external_subscription_id) || has(e.external_contract_id)) && has(e.code))"
   };
 
   // The events.

@@ -11,9 +11,9 @@ import (
 // DeleteMetadataKey removes key from the metadata of plan id and returns
 // the metadata left. Only the metadata changes: no webhook is sent, as lago
 // Metadata::DeleteItemKeyService updates the metadata item alone. An
-// override plan is plan not found, a plan without metadata is metadata not
-// found
-// (app/controllers/api/v1/plans/metadata_controller.rb:37).
+// override plan is plan not found, a plan without a metadata item is
+// metadata not found, while emptied metadata answers an empty list
+// (app/controllers/api/v1/plans/metadata_controller.rb:38).
 func (s *Service) DeleteMetadataKey(ctx context.Context, org core.OrganizationID, id core.PlanID, key string) (core.Metadata, error) {
 	var out core.Metadata
 	err := s.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
@@ -24,7 +24,7 @@ func (s *Service) DeleteMetadataKey(ctx context.Context, org core.OrganizationID
 		if p.IsChild() {
 			return core.NotFound(Resource)
 		}
-		if len(p.Metadata) == 0 {
+		if p.Metadata == nil {
 			return core.NotFound("metadata")
 		}
 		out = p.Metadata.Without(key)
@@ -46,8 +46,8 @@ func (s *Service) DeleteMetadataKey(ctx context.Context, org core.OrganizationID
 // UpdateMetadata replaces the metadata of plan id with md, or with merge
 // merges md into it key by key, as [Service.Update] does with only the
 // metadata set, and returns the plan's metadata (lago
-// Api::V1::Plans::MetadataController). An empty md without merge removes
-// the metadata. Override plans are plan not found: the endpoints find the
+// Api::V1::Plans::MetadataController). A nil md without merge removes the
+// metadata and an empty one leaves an empty item. Override plans are plan not found: the endpoints find the
 // plans by code (app/controllers/api/v1/plans/base_controller.rb:12-14).
 func (s *Service) UpdateMetadata(ctx context.Context, org core.OrganizationID, id core.PlanID, md core.Metadata, merge bool) (core.Metadata, error) {
 	p, err := s.Get(ctx, org, id)

@@ -190,13 +190,21 @@ func TestCreate(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Create() error = %v", err)
 		}
-		if got := out.Event.Properties["result"]; got != "3" {
-			t.Errorf("result got = %q, want = %q", got, "3")
+		// The API's result is written as lago-api's BigDecimal is.
+		if got := out.Event.Properties["result"]; got != "3.0" {
+			t.Errorf("result got = %q, want = %q", got, "3.0")
 		}
 		// source: spec/services/events/create_service_spec.rb:230
 		_, err = h.svc.Create(ctx, testOrg, Input{TransactionID: "tx2", Code: "sum_agg", ExternalSubscriptionID: "s", Properties: map[string]any{}}, Metadata{})
 		if !hasField(err, "properties", CodeExpressionFailed) {
 			t.Errorf("Create() error got = %v, want = properties: %s", err, CodeExpressionFailed)
+		}
+		// source: spec/requests/api/v1/events_controller_spec.rb:164
+		var ve *core.ValidationError
+		if errors.As(err, &ve) && len(ve.Errors) == 1 {
+			if got, want := ve.Errors[0].Message, "Variable: left not found"; got != want {
+				t.Errorf("expression failure message got = %q, want = %q", got, want)
+			}
 		}
 	})
 

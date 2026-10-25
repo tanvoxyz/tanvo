@@ -10,7 +10,10 @@ Cases of the lago specs listed in the porting brief that are not ported to `usag
 | 85 | Does not query adjusted fees | Covered by `fees.Options.SkipAdjustedFees`, set unconditionally. |
 | 187–416 | Tax provider integration (single line item per grouped charge, non-taxable fees excluded, rate dilution, provider error) | Owned by `kernel.TaxResolver.Compute` and the tax provider; usage only passes the in-memory invoice with `Draft: true`. |
 | 620–638 | `full_usage` without the granular lifetime usage integration | Tanvo has no premium gates (domain §4.1): `Options.FullUsage` is allowed whenever the charge filter and the proration rules allow it (ported in `full_test.go`). |
-| 1071–1600 | Usage buckets vs events store (ClickHouse) | Belongs to the metering store; usage reads `kernel.Deps.Events` like the fees package. |
+| 1126, 1130 | Bucket read failure falls back to the events, or raises under the forced gate | The buckets live in the event store, so a failed bucket read is a failed events read too and the error is returned; there is no forced gate (libs/metering SKIPPED.md, `same-store` and `no-gate`). The other cases of 1071–1731 are ported in libs/billing/buckets_test.go (`TestCurrentUsageFromBuckets`, `TestUsageBucketsCache`). |
+| 1142 | One provider reads ClickHouse once for the whole computation | Tanvo's buckets are keyed by dimensions and each charge bucket reads its own totals (libs/metering SKIPPED.md, `prefetch`). |
+| 1153 | Organization flag off | No realtime usage flag (parity §1.50). |
+| 1284–1333, 1387, 1434 | The billing period's events pre-filter resolved from the buckets | Tanvo has no events pre-filter query to skip (libs/metering SKIPPED.md, `prefilter`). |
 
 ## spec/services/lifetime_usages/**
 

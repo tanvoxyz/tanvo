@@ -17,7 +17,16 @@ import (
 
 // RestoreOptions tune [Service.Restore].
 type RestoreOptions struct {
-	// IssuesCreditNote marks a void that issues a credit note over the
+	// Void marks the restore of a voided invoice (lago
+	// Invoices::VoidService): its credit-note credits stay consumed, as
+	// the void gives back only coupon and wallet credits
+	// (app/services/invoices/void_service.rb:37-49). Credit notes are given
+	// their credits back only when the invoice gating an incomplete
+	// subscription is closed (CreditNotes::RecreditJob,
+	// app/services/subscriptions/activation_rules/cancel_service.rb:71-73,
+	// activation_rules/payment/resolve_service.rb:75-77).
+	Void bool
+	// IssuesCreditNote, with Void, marks a void that issues a credit note over the
 	// invoice's creditable amount (lago Invoices::VoidService with
 	// generate_credit_note). That amount already counts what wallets and
 	// credit notes paid ([invoice.Fee.CreditableAmount] deducts neither),
@@ -40,15 +49,11 @@ type Restored struct {
 // Restore gives back what a voided invoice consumed (domain §11.4), in
 // the caller's transaction r: each coupon credit returns to its applied
 // coupon (lago AppliedCoupons::RecreditService), each credit-note credit
-// to its credit note unless voided (CreditNotes::RecreditService), and the
-// credits of each outbound wallet transaction return to its wallet, when
-// active, as granted credits (WalletTransactions::RecreditService). With
-// opts.IssuesCreditNote only the coupons are given back.
-//
-// Lago no longer gives credit-note credits back on void (void_service.rb
-// since 4a64ba268), so that a credit note issued on void cannot credit
-// them twice; Tanvo restores them on a plain void (domain §11.4), where
-// no credit note is issued, and keeps them consumed otherwise.
+// to its credit note unless voided (CreditNotes::RecreditService) and not
+// opts.Void, and the credits of each outbound wallet transaction return to
+// its wallet, when active, as granted credits
+// (WalletTransactions::RecreditService). With opts.IssuesCreditNote only
+// the coupons are given back.
 // Progressive billing credits need nothing: credits of voided invoices are
 // no longer active.
 func (s *Service) Restore(ctx context.Context, r port.Repos, inv *invoice.Invoice, opts RestoreOptions) (Restored, error) {
@@ -87,7 +92,7 @@ func (s *Service) Restore(ctx context.Context, r port.Repos, inv *invoice.Invoic
 			}
 			out.AppliedCoupons = append(out.AppliedCoupons, a)
 		case invoice.CreditKindCreditNote:
-			if opts.IssuesCreditNote {
+			if opts.Void || opts.IssuesCreditNote {
 				continue
 			}
 			if err := lock(customer.LockScopeCreditNotes); err != nil {

@@ -28,7 +28,7 @@ lago-api 约有 2,700 个 RSpec 文件。Tanvo 移植的是它们的**行为**�
 1. **先移植纯 spec。** 计算类 spec（计费模型、聚合、日期、税、舍入、表达式、按比例计费、额度抵扣）转为目标库 `testdata/` 下的数据文件（JSON 或 YAML），由表驱动的 Go 测试运行。这正是 Tanvo 自底向上构建的原因：最底层的库承载最多可移植的用例。
 2. **来源记录。** 每条用例记录 `source: spec/<path>_spec.rb:<line>`（其 `it`/`context` 块所在的行），以便评审者打开原文。为 Tanvo 编写的用例没有 `source`。
 3. **不允许静默丢弃。** 未移植的用例在同一数据文件的 `skipped` 下列出，附带来源与原因：该功能已废弃（[功能对齐 §Deprecated](parity.zh-CN.md)）、该用例断言的是 Rails 或 GraphQL 的行为，或 Tanvo 有意采取不同行为（并引用相应决定）。
-   对于服务 spec，模块的 `testdata/specs.json` 列出它负责的 spec 文件、原因以及跳过的用例（某个用例或其外层块的 `file:line`，或整个文件）。`go run ./tools/speccov [-write] [module…]` 检查这些文件的每条用例要么被该模块的测试、testdata 或 `porttest` 套件中的 `source:` 行引用，要么以已知原因跳过；`-write` 据此重新生成模块的 `SKIPPED.md`。
+   对于服务 spec，模块的 `testdata/specs.json` 列出它负责的 spec 文件、原因以及跳过的用例（某个用例或其外层块的 `file:line`，或整个文件）。`go run ./tools/speccov [-write] [module…]` 检查这些文件的每条用例要么被该模块的测试、testdata 或共享一致性套件（`porttest`、`storetest`、`buckettest`）中的 `source:` 行引用，要么以已知原因跳过；`-write` 据此重新生成模块的 `SKIPPED.md`。
 4. **服务 spec**（数据库、任务、提供者）由人工移植为拥有该行为的库中的集成测试，用容器代替 factory；其 fixture（提供者 webhook 负载、API 响应）复制到 `testdata/`，并附带记录每个文件来源的 `SOURCES.json`。
 5. **请求 spec**（`spec/requests/api/**`）移植为对应 Tanvo API 的端到端用例，以行为而非 Lago 的 URL 或 JSON 结构为准。
 6. **上游 bug。** 当某个 spec 编码的行为在清单中被认定为 bug 时，保留该用例，改为修正后的预期，并附上解释差异的 `note:`。

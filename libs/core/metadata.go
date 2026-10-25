@@ -111,6 +111,41 @@ func (m Metadata) Without(key string) Metadata {
 	return slices.DeleteFunc(m.Clone(), func(it MetadataItem) bool { return it.Key == key })
 }
 
+// UpdateItemMetadata returns the item metadata of a plan, credit note or
+// wallet after it is set to value, merged when partial (lago
+// Metadata::UpdateItemService, app/services/metadata/update_item_service.rb).
+// Nil is no metadata item; a non-nil empty list is an item without keys.
+// Without old metadata, a nil value or an empty partial one leaves none and
+// any other value creates it; with old metadata, a nil value deletes it
+// unless partial, a replacing value replaces it (an empty one leaves an
+// empty item) and a partial one is merged into it.
+func UpdateItemMetadata(old, value Metadata, partial bool) Metadata {
+	switch {
+	case old == nil:
+		if value == nil || (partial && len(value) == 0) {
+			return nil
+		}
+		return value.Clone()
+	case value == nil:
+		if partial {
+			return old
+		}
+		return nil
+	case !partial:
+		return value.Clone()
+	case len(value) == 0:
+		return old
+	default:
+		return old.Merge(value)
+	}
+}
+
+// SameItemMetadata reports whether a and b hold the same pairs and are both
+// present or both absent (nil).
+func SameItemMetadata(a, b Metadata) bool {
+	return (a == nil) == (b == nil) && slices.Equal(a, b)
+}
+
 // MetadataFilter narrows a list by metadata: every key with a value keeps
 // the items whose metadata has that key with exactly that value, and every
 // key with an empty value keeps the items whose metadata lacks the key.

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tanvoxyz/tanvo/libs/auth"
 	"github.com/tanvoxyz/tanvo/libs/billing/billingentities"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
@@ -32,6 +33,20 @@ var _ organizationv1connect.BillingEntityServiceHandler = (*BillingEntities)(nil
 // NewBillingEntities returns the service over svc.
 func NewBillingEntities(svc *billingentities.Service) *BillingEntities {
 	return &BillingEntities{svc: svc}
+}
+
+// BillingEntitySecurityLog adapts the security log to the billing
+// entities service.
+func BillingEntitySecurityLog(l auth.SecurityLogger) billingentities.SecurityLogger {
+	return billingEntitySecurityLog{l}
+}
+
+type billingEntitySecurityLog struct{ l auth.SecurityLogger }
+
+func (b billingEntitySecurityLog) RecordBillingEntity(ctx context.Context, org core.OrganizationID, event string, resources map[string]any) error {
+	return b.l.Record(ctx, auth.SecurityEvent{
+		OrganizationID: org, Type: billingentities.SecurityLogType, Event: event, Resources: resources,
+	})
 }
 
 var (

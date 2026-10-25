@@ -314,6 +314,15 @@ func (s *Service) generate(ctx context.Context, r port.Repos, inv *invoice.Invoi
 	if err := s.finish(ctx, r, cenv, inv, k, st, mode); err != nil {
 		return nil, err
 	}
+	// The payment of a new invoice held open by a gated subscription
+	// resolves its payment rule (subscription_service.rb:102-103).
+	if mode == modeNew && st.gated && st.taxFailure == nil && !st.pending && inv.Status == invoice.StatusOpen &&
+		inv.TotalAmount > 0 && inv.PaymentStatus != core.PaymentStatusSucceeded && !inv.SelfBilled && !inv.SkipAutomaticPayment {
+		args := kernel.InvoiceArgs{InvoiceID: inv.ID}
+		if err := kernel.Enqueue(ctx, r, inv.OrganizationID, kernel.JobCreateInvoicePayment, args, "invoice:"+inv.ID.String(), s.d.Now()); err != nil {
+			return nil, err
+		}
+	}
 	if inv.Status != invoice.StatusDraft {
 		if err := s.flagLifetimeUsage(ctx, r, inv.OrganizationID, subs); err != nil {
 			return nil, err

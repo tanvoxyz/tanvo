@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"connectrpc.com/connect/v2"
 	"connectrpc.com/connect/v2/connectproto"
@@ -15,6 +16,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 
+	"github.com/tanvoxyz/tanvo/libs/core/event"
 	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
@@ -29,7 +31,9 @@ import (
 // notation (1e3 becomes "1000"), which is the text the intake stores for a
 // number. Numbers with an exponent beyond ±1000 are left to the double
 // decoding. Binary (protobuf, gRPC) clients send the doubles they have;
-// they send strings for values a double cannot hold.
+// they send strings for values a double cannot hold. An event timestamp
+// given as Unix seconds (a number or a numeric string) is rewritten as
+// its RFC 3339 form, which google.protobuf.Timestamp decodes.
 type JSONCodec struct {
 	*connectproto.JSONCodec
 
@@ -181,6 +185,8 @@ func (x *exactNumbers) message(data []byte, md protoreflect.MessageDescriptor) (
 		switch {
 		case md.FullName() == eventMessage && f.Name() == "properties":
 			v, c = properties(m.value)
+		case md.FullName() == eventMessage && f.Name() == "timestamp":
+			v, c = unixTimestamp(m.value)
 		case !x.reaches(f.Message()):
 			continue
 		case f.IsList():
@@ -260,6 +266,35 @@ func properties(data []byte) ([]byte, bool) {
 		return data, false
 	}
 	return encodeObject(members), true
+}
+
+// unixTimestamp rewrites data, the JSON of an event timestamp given as
+// Unix seconds with an optional fraction (a number, or a string of one,
+// which lago reads with BigDecimal, app/services/events/create_service.rb:57,
+// create_batch_service.rb:54), as the RFC 3339 string a
+// google.protobuf.Timestamp decodes. Anything else is left as it is.
+func unixTimestamp(data []byte) ([]byte, bool) {
+	text, ok := exactText(data)
+	if !ok {
+		var s string
+		if err := json.Unmarshal(data, &s); err != nil {
+			return data, false
+		}
+		d, err := money.Parse(strings.TrimSpace(s))
+		if err != nil {
+			return data, false
+		}
+		text = d.String()
+	}
+	t, err := event.ParseTimestamp(text)
+	if err != nil || t.Year() < 1 || t.Year() > 9999 {
+		return data, false
+	}
+	v, err := json.Marshal(t.Format(time.RFC3339Nano))
+	if err != nil {
+		return data, false
+	}
+	return v, true
 }
 
 // exactText returns the plain decimal text of raw when it is a JSON number

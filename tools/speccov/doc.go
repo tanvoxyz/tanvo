@@ -12,8 +12,9 @@
 //	}
 //
 // Paths are relative to the upstream spec directory. A case (an it,
-// specify or it_behaves_like line) is ported when a test or testdata file
-// anywhere in the repository cites its line, or the line of an enclosing
+// specify or it_behaves_like line) is ported when a test or testdata file,
+// or a Go file of a shared conformance suite (porttest, storetest and
+// buckettest packages), anywhere in the repository cites its line, or the line of an enclosing
 // context or describe block, as "spec/<path>:<line>". Every other case
 // must be skipped with one of the module's reasons. A skipped key is a
 // case's line, the line of a context or describe block (covering every

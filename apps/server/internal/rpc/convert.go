@@ -142,6 +142,19 @@ func FromMetadata(items []*commonv1.MetadataItem) core.Metadata {
 	return out
 }
 
+// createMetadata converts the metadata of a created plan, credit note or
+// wallet: no items is no metadata item. A repeated field has no presence,
+// so the empty item lago creates for an explicit empty hash
+// (app/services/plans/create_service.rb:57,
+// app/services/credit_notes/create_service.rb:49,
+// app/services/wallets/create_service.rb:100) is left out.
+func createMetadata(items []*commonv1.MetadataItem) core.Metadata {
+	if len(items) == 0 {
+		return nil
+	}
+	return FromMetadata(items)
+}
+
 // Struct returns the Go values of a Struct (nil for nil): numbers are
 // float64, as [structpb.Struct.AsMap] gives them.
 func Struct(s *structpb.Struct) map[string]any {

@@ -512,7 +512,7 @@ func planParams(p *catalog.Plan) db.CreatePlanParams {
 		BillChargesMonthly:      p.BillChargesMonthly,
 		BillFixedChargesMonthly: p.BillFixedChargesMonthly,
 		ParentID:                optUUID(p.ParentID),
-		Metadata:                encodeMetadata(p.Metadata),
+		Metadata:                encodeItemMetadata(p.Metadata),
 		Status:                  string(p.Status),
 		CreatedAt:               utc(p.CreatedAt),
 		UpdatedAt:               utc(p.UpdatedAt),
@@ -529,7 +529,7 @@ func planOf(row catalogPlanRow) (*catalog.Plan, error) {
 	if err != nil {
 		return nil, fmt.Errorf("plan %s: %w", r.ID, err)
 	}
-	md, err := decodeMetadata(r.Metadata)
+	md, err := decodeItemMetadata(r.Metadata)
 	if err != nil {
 		return nil, fmt.Errorf("plan %s: %w", r.ID, err)
 	}

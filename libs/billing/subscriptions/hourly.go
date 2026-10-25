@@ -31,15 +31,11 @@ const (
 	CodeWindowTooLong = "window_too_long"
 )
 
-// BucketDefiner adds usage bucket definitions to an event store: the part
-// of libs/eventstore's BucketDefiner hourly usage needs. An event store
-// implementing it next to [metering.BucketReader] gets the definition an
-// hourly usage reads defined on its first read.
-type BucketDefiner interface {
-	// DefineBuckets adds a definition and fills its buckets from the
-	// events already stored; defining it again is a no-op.
-	DefineBuckets(ctx context.Context, d metering.BucketDefinition) error
-}
+// BucketDefiner adds usage bucket definitions to an event store (see
+// [kernel.BucketDefiner]). An event store implementing it next to
+// [metering.BucketReader] gets the definition an hourly usage reads
+// defined on its first read.
+type BucketDefiner = kernel.BucketDefiner
 
 // HourlyUsageInput is the request of [Service.HourlyUsage].
 type HourlyUsageInput struct {

@@ -341,8 +341,10 @@ type UpdateInput struct {
 	// PurchaseOrderNumber changes or clears (nil or blank) the purchase
 	// order number.
 	PurchaseOrderNumber Change[*string]
-	// Metadata replaces the metadata (an empty list removes it), or with
-	// MergeMetadata is merged into it key by key (update_service.rb:222-226).
+	// Metadata sets the metadata as [core.UpdateItemMetadata] does: nil
+	// removes it, an empty list replaces it with an empty item, and with
+	// MergeMetadata it is merged into it key by key
+	// (update_service.rb:222-226).
 	Metadata Change[core.Metadata]
 	// MergeMetadata merges Metadata instead of replacing it (lago
 	// partial_metadata).
@@ -447,11 +449,7 @@ func (s *Service) update(ctx context.Context, r port.Repos, org core.Organizatio
 		w.PurchaseOrderNumber = core.NormalizePurchaseOrderNumber(in.PurchaseOrderNumber.Value)
 	}
 	if in.Metadata.Set {
-		if in.MergeMetadata {
-			w.Metadata = w.Metadata.Merge(in.Metadata.Value)
-		} else {
-			w.Metadata = in.Metadata.Value.Clone()
-		}
+		w.Metadata = core.UpdateItemMetadata(w.Metadata, in.Metadata.Value, in.MergeMetadata)
 	}
 	if in.RecurringTransactionRules.Set {
 		if err := s.updateRules(ctx, r, w, in.RecurringTransactionRules.Value); err != nil {

@@ -87,8 +87,8 @@ func run(lago string, write bool, modules []string) error {
 }
 
 // citations returns the spec lines cited by the tests, the testdata files
-// and the shared conformance suites (porttest packages) of the repository
-// under root.
+// and the shared conformance suites (porttest, storetest and buckettest
+// packages) of the repository under root.
 func citations(root string) (map[string]bool, error) {
 	refs := map[string]bool{}
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
@@ -103,8 +103,9 @@ func citations(root string) (map[string]bool, error) {
 			return nil
 		}
 		slash := filepath.ToSlash(path)
+		suite := strings.Contains(slash, "/porttest/") || strings.Contains(slash, "/storetest/") || strings.Contains(slash, "/buckettest/")
 		test := strings.HasSuffix(path, "_test.go") || strings.Contains(slash, "/testdata/") ||
-			strings.Contains(slash, "/porttest/") && strings.HasSuffix(path, ".go")
+			suite && strings.HasSuffix(path, ".go")
 		if !test || d.Name() == "specs.json" {
 			return nil
 		}

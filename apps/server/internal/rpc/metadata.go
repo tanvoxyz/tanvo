@@ -65,7 +65,7 @@ func (s *Plans) MergePlanMetadata(ctx context.Context, req *catalogv1.MergePlanM
 
 // DeletePlanMetadata implements PlanService.DeletePlanMetadata.
 func (s *Plans) DeletePlanMetadata(ctx context.Context, req *catalogv1.DeletePlanMetadataRequest) (*catalogv1.DeletePlanMetadataResponse, error) {
-	md, err := s.planMetadata(ctx, req.GetPlanId(), core.Metadata{}, false)
+	md, err := s.planMetadata(ctx, req.GetPlanId(), nil, false)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func (s *CreditNotes) MergeCreditNoteMetadata(ctx context.Context, req *creditno
 // DeleteCreditNoteMetadata implements
 // CreditNoteService.DeleteCreditNoteMetadata.
 func (s *CreditNotes) DeleteCreditNoteMetadata(ctx context.Context, req *creditnotev1.DeleteCreditNoteMetadataRequest) (*creditnotev1.DeleteCreditNoteMetadataResponse, error) {
-	md, err := s.creditNoteMetadata(ctx, req.GetCreditNoteId(), core.Metadata{}, false)
+	md, err := s.creditNoteMetadata(ctx, req.GetCreditNoteId(), nil, false)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func (s *Wallets) MergeWalletMetadata(ctx context.Context, req *walletv1.MergeWa
 
 // DeleteWalletMetadata implements WalletService.DeleteWalletMetadata.
 func (s *Wallets) DeleteWalletMetadata(ctx context.Context, req *walletv1.DeleteWalletMetadataRequest) (*walletv1.DeleteWalletMetadataResponse, error) {
-	md, err := s.walletMetadata(ctx, req.GetWalletId(), core.Metadata{}, false)
+	md, err := s.walletMetadata(ctx, req.GetWalletId(), nil, false)
 	if err != nil {
 		return nil, err
 	}

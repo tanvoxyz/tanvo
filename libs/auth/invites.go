@@ -309,9 +309,6 @@ func (s *Invites) Accept(ctx context.Context, token, password string, meta Sessi
 }
 
 func (s *Invites) finish(ctx context.Context, out *SignedIn, method organization.AuthenticationMethod, meta SessionMeta) (*SignedIn, error) {
-	s.d.record(ctx, SecurityEvent{OrganizationID: out.Membership.OrganizationID, UserID: out.User.ID, Type: SecurityLogUser, Event: EventUserJoined, Resources: map[string]any{
-		"email": out.User.Email, "login_method": string(method),
-	}})
 	return s.users.open(ctx, out, method, meta)
 }
 

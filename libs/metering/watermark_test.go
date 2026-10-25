@@ -68,7 +68,7 @@ func TestWatermark(t *testing.T) {
 		{"bound to an event", mem, req(func(r *metering.Request) { r.Event = &metering.Event{} }), time.Time{}, false},
 		{"a store without watermarks", noWatermarks{mem}, req(), time.Time{}, false},
 		{"a routed store without watermarks", notImplemented{mem}, req(), time.Time{}, false},
-		// source: spec/services/subscriptions/charge_cache_middleware_spec.rb:41
+		// source: spec/services/subscriptions/charge_cache_middleware_spec.rb:41, spec/services/events/stores/usage_bucket_store_spec.rb:38
 		{"answered from the usage buckets", withBuckets{mem}, req(func(r *metering.Request) { r.UsageBuckets = true }), time.Time{}, false},
 		{"usage buckets not asked for", withBuckets{mem}, req(), ingested, true},
 	}

@@ -298,8 +298,8 @@ func TestPipeline(t *testing.T) {
 	eventually(t, "in-advance events billed after a retry", func() bool { return b.count() == 2 })
 
 	var total string
-	if err := env.conn.QueryRow(ctx, "SELECT properties['total'] FROM events_raw WHERE organization_id = ? AND transaction_id = 's1'", org.String()).Scan(&total); err != nil || total != "12" {
-		t.Errorf("expression result got = %q, %v, want = 12", total, err)
+	if err := env.conn.QueryRow(ctx, "SELECT properties['total'] FROM events_raw WHERE organization_id = ? AND transaction_id = 's1'", org.String()).Scan(&total); err != nil || total != "12.0" {
+		t.Errorf("expression result got = %q, %v, want = 12.0", total, err)
 	}
 
 	read := func(topic string, n int) [][]byte {

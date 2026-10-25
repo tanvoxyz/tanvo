@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -171,6 +172,22 @@ func (e *ExpressionError) Error() string {
 // Unwrap returns the evaluation error.
 func (e *ExpressionError) Unwrap() error { return e.Err }
 
+// Message returns lago-expression's report of the failure, such as
+// "Variable: b not found", which lago-api returns with the
+// expression_evaluation_failed code
+// (app/services/events/calculate_expression_service.rb:29-30).
+func (e *ExpressionError) Message() string {
+	var ee *expression.EvaluationError
+	if errors.As(e.Err, &ee) {
+		return ee.Message
+	}
+	var se *expression.SyntaxError
+	if errors.As(e.Err, &se) {
+		return se.Message
+	}
+	return e.Err.Error()
+}
+
 // Programs compiles and keeps metric expressions. It is safe for concurrent
 // use.
 type Programs struct {
@@ -214,10 +231,41 @@ func (p *Programs) compile(ctx context.Context, src string) (*expression.Program
 }
 
 // Apply evaluates the metric's expression for e and stores its result in
-// e.Properties under the metric's field name. A metric without an
-// expression leaves e unchanged. An expression that cannot be evaluated is
-// an [*ExpressionError]; other errors are failures of the engine.
+// e.Properties under the metric's field name, a number as lago-expression
+// writes it ("3", as the events processor stores it,
+// processors/events_processor/enrichment_service.go:132-134). A metric
+// without an expression leaves e unchanged. An expression that cannot be
+// evaluated is an [*ExpressionError]; other errors are failures of the
+// engine.
 func (p *Programs) Apply(ctx context.Context, m *catalog.BillableMetric, e *event.Event) error {
+	return p.apply(ctx, m, e, expression.Value.String)
+}
+
+// ApplyAPI is [Programs.Apply] for the events of the event API, which store
+// a number as lago-api's BigDecimal is written in JSON: without trailing
+// zeros, and with ".0" when whole ("3.0",
+// app/services/events/calculate_expression_service.rb:25-26,
+// spec/requests/api/v1/events_controller_spec.rb:148).
+func (p *Programs) ApplyAPI(ctx context.Context, m *catalog.BillableMetric, e *event.Event) error {
+	return p.apply(ctx, m, e, bigDecimalText)
+}
+
+// bigDecimalText writes v as Ruby's BigDecimal#to_s("F") does (the format
+// ActiveSupport encodes BigDecimals with): 3 is "3.0", 1.50 is "1.5". A
+// string result is written as it is.
+func bigDecimalText(v expression.Value) string {
+	d, ok := v.Decimal()
+	if !ok {
+		return v.String()
+	}
+	s := d.Reduce().String()
+	if !strings.Contains(s, ".") {
+		s += ".0"
+	}
+	return s
+}
+
+func (p *Programs) apply(ctx context.Context, m *catalog.BillableMetric, e *event.Event, format func(expression.Value) string) error {
 	if m == nil || m.Expression == nil || *m.Expression == "" || m.FieldName == nil {
 		return nil
 	}
@@ -244,7 +292,7 @@ func (p *Programs) Apply(ctx context.Context, m *catalog.BillableMetric, e *even
 	if e.Properties == nil {
 		e.Properties = map[string]string{}
 	}
-	e.Properties[*m.FieldName] = v.String()
+	e.Properties[*m.FieldName] = format(v)
 	return nil
 }
 

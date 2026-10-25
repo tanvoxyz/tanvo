@@ -149,7 +149,7 @@ func TestMetadataEndpoints(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		existing []string // the metadata set first, nil for none
+		existing []string // the metadata set first, nil for none, empty for an empty item
 		call     func(ctx context.Context, ops metadataOps, id string) (mdItems, error)
 		want     []string
 		notFound string // the NotFound reason expected instead
@@ -268,6 +268,36 @@ func TestMetadataEndpoints(t *testing.T) {
 			call: func(ctx context.Context, o metadataOps, id string) (mdItems, error) { return o.delKey(ctx, id, "foo") },
 			want: []string{"baz", "qux"},
 		},
+		{
+			// Emptied metadata is still a metadata item: the key endpoints
+			// answer not found only without one
+			// (app/controllers/api/v1/plans/metadata_controller.rb:38,
+			// app/controllers/api/v1/credit_notes/metadata_controller.rb:38,
+			// app/controllers/concerns/wallet_metadata_actions.rb:38).
+			name: "delete key of emptied metadata", existing: []string{},
+			call: func(ctx context.Context, o metadataOps, id string) (mdItems, error) { return o.delKey(ctx, id, "foo") },
+			want: []string{},
+		},
+		{
+			name: "delete the last key twice", existing: []string{"foo", "bar"},
+			call: func(ctx context.Context, o metadataOps, id string) (mdItems, error) {
+				if _, err := o.delKey(ctx, id, "foo"); err != nil {
+					return nil, err
+				}
+				return o.delKey(ctx, id, "foo")
+			},
+			want: []string{},
+		},
+		{
+			name: "delete key after deleting metadata", existing: []string{"foo", "bar"},
+			call: func(ctx context.Context, o metadataOps, id string) (mdItems, error) {
+				if _, err := o.del(ctx, id); err != nil {
+					return nil, err
+				}
+				return o.delKey(ctx, id, "foo")
+			},
+			notFound: "metadata_not_found",
+		},
 	}
 	s := rpctest.New(t)
 	for _, res := range metadataResources(t, s) {
@@ -310,10 +340,15 @@ func TestMetadataEndpoints(t *testing.T) {
 				}
 			}
 		})
-		// A body without metadata replaces with, or merges, nothing: lago
-		// fetches the missing parameter as {}. Without metadata, emptied
-		// metadata is no metadata (see TestMetadataEndpoints' replace
-		// cases), so both answer an empty list.
+		// A body without metadata replaces with, or merges, nothing. Lago
+		// credit notes fetch the missing parameter as {}
+		// (app/controllers/api/v1/credit_notes/metadata_controller.rb:52);
+		// lago plans and wallets skip it and answer null
+		// (app/services/plans/update_service.rb:128,
+		// app/services/wallets/update_service.rb:223). A repeated field has
+		// no presence, so Tanvo treats every resource as an empty list: the
+		// replace creates an empty item and the merge creates none, and
+		// both answer an empty list.
 		// source: spec/support/shared_examples/wallet_metadata_actions.rb:66, 142
 		// source: spec/requests/api/v1/plans/metadata_controller_spec.rb:74, 152
 		// source: spec/requests/api/v1/credit_notes/metadata_controller_spec.rb:84, 162

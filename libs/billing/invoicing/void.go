@@ -21,7 +21,7 @@ const CodeNotVoided = "not_voided"
 // VoidInput are the options of [Service.Void].
 type VoidInput struct {
 	// GenerateCreditNote credits the voided invoice with credit notes
-	// instead of giving its wallet and credit note credits back.
+	// instead of giving its wallet credits back.
 	GenerateCreditNote bool
 	// CreditAmount and RefundAmount, in minor units, split the requested
 	// credit note of GenerateCreditNote; both zero issues none.
@@ -31,7 +31,8 @@ type VoidInput struct {
 
 // Void voids the finalized invoice id (lago Invoices::VoidService): coupon
 // credits are given back, and so are, without in.GenerateCreditNote, its
-// credit note and wallet credits (domain §11.4). With it, the requested
+// wallet credits; credit-note credits stay consumed (void_service.rb:37-49,
+// domain §11.4). With it, the requested
 // credit note of in's amounts is issued over a share of every fee, and
 // what stays creditable goes on a second note voided at once, so the
 // credits the invoice consumed stay consumed. The purchase of a credit
@@ -83,7 +84,7 @@ func (s *Service) void(ctx context.Context, r port.Repos, inv *invoice.Invoice, 
 	if err := s.flagInvoiceUsage(ctx, r, inv); err != nil {
 		return err
 	}
-	if _, err := s.deduct.Restore(ctx, r, inv, deduct.RestoreOptions{IssuesCreditNote: in.GenerateCreditNote}); err != nil {
+	if _, err := s.deduct.Restore(ctx, r, inv, deduct.RestoreOptions{Void: true, IssuesCreditNote: in.GenerateCreditNote}); err != nil {
 		return err
 	}
 	if err := r.Invoices.Update(ctx, inv); err != nil {

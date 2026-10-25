@@ -83,7 +83,7 @@ func (s *Plans) CreatePlan(ctx context.Context, req *catalogv1.CreatePlanRequest
 		BillChargesMonthly:      Opt(b.HasBillChargesMonthly(), b.GetBillChargesMonthly()),
 		BillFixedChargesMonthly: Opt(b.HasBillFixedChargesMonthly(), b.GetBillFixedChargesMonthly()),
 		Taxes:                   taxes,
-		Metadata:                FromMetadata(b.GetMetadata()),
+		Metadata:                createMetadata(b.GetMetadata()),
 	}
 	if in.Charges, err = planCharges(b); err != nil {
 		return nil, err

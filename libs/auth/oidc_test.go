@@ -205,8 +205,9 @@ func TestOIDCGoogle(t *testing.T) {
 			if out.User.Email != "foo@bar.com" || out.Session.Method != google {
 				t.Errorf("got = %s via %s", out.User.Email, out.Session.Method)
 			}
-			if out.User.LastSignInAt == nil || e.log.count(EventUserSignedIn) != 1 {
-				t.Errorf("sign-in not recorded: %v", e.log.names())
+			// A sign-in is logged only from a new device (user_devices/register_service.rb:36-46).
+			if out.User.LastSignInAt == nil || len(e.log.names()) != 0 {
+				t.Errorf("last sign-in = %v, events = %v, want a sign-in time and no event", out.User.LastSignInAt, e.log.names())
 			}
 		}},
 		// source: spec/services/auth/google_service_spec.rb:77

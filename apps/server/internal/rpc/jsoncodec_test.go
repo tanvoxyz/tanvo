@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect/v2/connectproto"
 	"google.golang.org/protobuf/proto"
@@ -111,5 +112,51 @@ func TestJSONCodecLeavesOtherJSON(t *testing.T) {
 				t.Errorf("UnmarshalRead() got = %v, %v, want = %v, %v", got, gotErr, want, wantErr)
 			}
 		})
+	}
+}
+
+// TestJSONCodecUnixTimestamps decodes event timestamps given as Unix
+// seconds, as lago reads them (BigDecimal of the number or its string),
+// next to the RFC 3339 form of google.protobuf.Timestamp.
+func TestJSONCodecUnixTimestamps(t *testing.T) {
+	tests := []struct {
+		source, name, json, want string
+	}{
+		{"spec/requests/api/v1/events_controller_spec.rb:22", "integer seconds", `1693842312`, "2023-09-04T15:45:12Z"},
+		{"spec/services/events/create_service_spec.rb:146", "fractional seconds", `1693842312.344`, "2023-09-04T15:45:12.344Z"},
+		{"spec/services/events/create_service_spec.rb:135", "seconds as a string", `"1693842312.344"`, "2023-09-04T15:45:12.344Z"},
+		{"spec/services/events/create_service_spec.rb:157", "repeating float fraction", `1780586634.1`, "2026-06-04T15:23:54.1Z"},
+		{"", "RFC 3339", `"2023-09-04T15:45:12.344Z"`, "2023-09-04T15:45:12.344Z"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.source != "" {
+				t.Log("source: " + tt.source)
+			}
+			for _, decode := range []func(string, *eventv1.IngestEventRequest) error{
+				func(body string, req *eventv1.IngestEventRequest) error {
+					return rpc.NewJSONCodec().UnmarshalRead(context.Background(), strings.NewReader(`{"event":`+body+`}`), req)
+				},
+				func(body string, req *eventv1.IngestEventRequest) error {
+					field := req.ProtoReflect().Descriptor().Fields().ByName("event")
+					return rpc.NewRESTCodec(protoregistry.GlobalTypes).UnmarshalField(context.Background(), []byte(body), req, field)
+				},
+			} {
+				var req eventv1.IngestEventRequest
+				if err := decode(`{"code":"c","timestamp":`+tt.json+`}`, &req); err != nil {
+					t.Fatalf("decode error = %v", err)
+				}
+				if got := req.GetEvent().GetTimestamp().AsTime().Format(time.RFC3339Nano); got != tt.want {
+					t.Errorf("timestamp got = %s, want = %s", got, tt.want)
+				}
+			}
+		})
+	}
+
+	// source: spec/services/events/create_service_spec.rb:179
+	var req eventv1.IngestEventRequest
+	body := `{"event":{"code":"c","timestamp":"2023-09-04 15:45:12 UTC"}}`
+	if err := rpc.NewJSONCodec().UnmarshalRead(context.Background(), strings.NewReader(body), &req); err == nil {
+		t.Errorf("a timestamp in another format: got = %v, want = an error", req.GetEvent().GetTimestamp())
 	}
 }

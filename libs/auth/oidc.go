@@ -564,7 +564,6 @@ func (s *OIDC) login(ctx context.Context, c *Connection, method organization.Aut
 	if err != nil {
 		return nil, err
 	}
-	s.users.recordSignIn(ctx, user, ms, method)
 	return s.users.open(ctx, &SignedIn{User: user}, method, meta)
 }
 

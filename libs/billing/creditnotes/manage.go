@@ -95,8 +95,9 @@ func (s *Service) Delete(ctx context.Context, org core.OrganizationID, id core.C
 type UpdateInput struct {
 	// RefundStatus sets the refund status.
 	RefundStatus *core.RefundStatus
-	// Metadata replaces the metadata, or with MergeMetadata merges into it
-	// key by key; an empty list clears them.
+	// Metadata sets the metadata as [core.UpdateItemMetadata] does: nil
+	// removes it, an empty list replaces it with an empty item, and with
+	// MergeMetadata it is merged into it key by key.
 	Metadata *core.Metadata
 	// MergeMetadata merges Metadata instead of replacing.
 	MergeMetadata bool
@@ -128,8 +129,8 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.C
 			}
 		}
 		if in.Metadata != nil {
-			md := mergeMetadata(cn.Metadata, *in.Metadata, in.MergeMetadata)
-			if !slices.Equal(md, cn.Metadata) {
+			md := core.UpdateItemMetadata(cn.Metadata, *in.Metadata, in.MergeMetadata)
+			if !core.SameItemMetadata(md, cn.Metadata) {
 				cn.Metadata = md
 				changed = true
 			}
@@ -148,28 +149,19 @@ func (s *Service) Update(ctx context.Context, org core.OrganizationID, id core.C
 	})
 }
 
-func mergeMetadata(old, md core.Metadata, merge bool) core.Metadata {
-	if merge {
-		return old.Merge(md)
-	}
-	if len(md) == 0 {
-		return nil
-	}
-	return md.Clone()
-}
-
 // DeleteMetadataKey removes key from the metadata of the finalized credit
 // note id and returns the metadata left (lago Metadata::DeleteItemKeyService:
-// the credit note itself is not touched). A credit note without metadata
-// is metadata not found
-// (app/controllers/api/v1/credit_notes/metadata_controller.rb:37).
+// the credit note itself is not touched). A credit note without a
+// metadata item is metadata not found, while emptied metadata answers an
+// empty list
+// (app/controllers/api/v1/credit_notes/metadata_controller.rb:38).
 func (s *Service) DeleteMetadataKey(ctx context.Context, org core.OrganizationID, id core.CreditNoteID, key string) (core.Metadata, error) {
 	return inTx(ctx, s.d.Tx, func(ctx context.Context, r port.Repos) (core.Metadata, error) {
 		cn, err := get(ctx, r, org, id, false)
 		if err != nil {
 			return nil, err
 		}
-		if len(cn.Metadata) == 0 {
+		if cn.Metadata == nil {
 			return nil, core.NotFound("metadata")
 		}
 		md := cn.Metadata.Without(key)

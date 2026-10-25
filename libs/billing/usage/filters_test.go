@@ -14,8 +14,8 @@ import (
 )
 
 // TestUsageFilters narrows a current usage by group and by skipping the
-// grouping, through the charge usage cache, which the narrowing filters
-// bypass.
+// grouping, through the charge usage cache, which a group filter bypasses
+// and skipped grouping and a presentation filter key apart (§4).
 func TestUsageFilters(t *testing.T) {
 	t.Parallel()
 	june := billingtest.Date(2025, time.June, 15)
@@ -55,14 +55,14 @@ func TestUsageFilters(t *testing.T) {
 			opts: func(*fixture, *catalog.Charge) usage.Options {
 				return usage.Options{Filters: fees.UsageFilters{SkipGrouping: true}}
 			},
-			fees: 1, amount: 5_00,
+			fees: 1, amount: 5_00, entries: 1,
 		},
 		{
 			name: "presentation filter",
 			opts: func(*fixture, *catalog.Charge) usage.Options {
 				return usage.Options{Filters: fees.UsageFilters{Presentation: []string{}}}
 			},
-			fees: 3, amount: 5_00,
+			fees: 3, amount: 5_00, entries: 1,
 		},
 		{
 			name: "full usage with a group filter", source: "spec/requests/api/v1/customers/usage_controller_spec.rb:402",
@@ -77,7 +77,7 @@ func TestUsageFilters(t *testing.T) {
 			opts: func(_ *fixture, c *catalog.Charge) usage.Options {
 				return usage.Options{FullUsage: true, ChargeIDs: []core.ChargeID{c.ID}, Filters: fees.UsageFilters{SkipGrouping: true}}
 			},
-			fees: 1, amount: 6_00,
+			fees: 1, amount: 6_00, entries: 1,
 		},
 		{
 			name: "full usage of a prorated charge", source: "app/services/invoices/customer_usage_service.rb:366-375",
@@ -138,6 +138,18 @@ func TestUsageFilters(t *testing.T) {
 			}
 			if cache.Len() != tc.entries {
 				t.Errorf("cache entries: got = %d, want = %d", cache.Len(), tc.entries)
+			}
+			// The entries of a usage shaped by its filters are never
+			// served to the unfiltered usage, which writes its own.
+			if flt := opts.Filters; flt.SkipGrouping || flt.Presentation != nil {
+				plain := opts
+				plain.Filters = fees.UsageFilters{}
+				if _, err := f.usageOf(f.sub, plain); err != nil {
+					t.Fatal(err)
+				}
+				if cache.Len() != tc.entries+1 {
+					t.Errorf("cache entries after the unfiltered usage: got = %d, want = %d", cache.Len(), tc.entries+1)
+				}
 			}
 		})
 	}

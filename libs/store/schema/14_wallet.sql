@@ -33,7 +33,9 @@ CREATE TABLE wallets (
   last_balance_sync_at timestamptz,
   last_consumed_credit_at timestamptz,
   depleted_ongoing_balance boolean NOT NULL DEFAULT false,
-  metadata jsonb NOT NULL DEFAULT '[]',
+  -- The item metadata (lago Metadata::ItemMetadata): NULL when there is none,
+  -- an array, possibly empty, when it exists (an emptied item stays).
+  metadata jsonb,
   -- The invoice custom sections the credit invoices print (lago
   -- invoice_custom_section); sections are soft-deleted, never removed, so
   -- the IDs have no foreign key and deleted ones are ignored.

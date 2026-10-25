@@ -63,7 +63,7 @@ func walletParams(w *wallet.Wallet) db.CreateWalletParams {
 		LastBalanceSyncAt:                optUTC(w.LastBalanceSyncAt),
 		LastConsumedCreditAt:             optUTC(w.LastConsumedCreditAt),
 		DepletedOngoingBalance:           w.DepletedOngoingBalance,
-		Metadata:                         encodeMetadata(w.Metadata),
+		Metadata:                         encodeItemMetadata(w.Metadata),
 		SkipInvoiceCustomSections:        w.InvoiceCustomSections.Skip,
 		InvoiceCustomSectionIds:          uuids(w.InvoiceCustomSections.IDs),
 		TerminatedAt:                     optUTC(w.TerminatedAt),
@@ -85,7 +85,7 @@ func walletOf(row walletRow) (*wallet.Wallet, error) {
 	if err != nil {
 		return nil, fmt.Errorf("wallet %s: %w", r.ID, err)
 	}
-	md, err := decodeMetadata(r.Metadata)
+	md, err := decodeItemMetadata(r.Metadata)
 	if err != nil {
 		return nil, fmt.Errorf("wallet %s: %w", r.ID, err)
 	}

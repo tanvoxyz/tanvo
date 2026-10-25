@@ -1,5 +1,5 @@
 {
-  "description": "The Ruby binding's specs of lago-expression (github.com/getlago/lago-expression), run against the WASM module. A number property is the Ruby Numeric the spec passes; its event is Lago::Event.new(\"code\", 1234, {...}).",
+  "description": "The Ruby binding's specs of lago-expression (github.com/getlago/lago-expression) at 2abd2b3, the revision lago-api v1.55.0 pins (Gemfile:124), run against the WASM module. A number property is the Ruby Numeric the spec passes; its event is Lago::Event.new(\"code\", 1234, {...}).",
   "event": {"code": "code", "properties": {"decimal_property": 2.3, "property_1": 1.23, "property_2": "test", "property_3": "12.34"}, "timestamp": 1234},
   "cases": [
     {
@@ -39,81 +39,88 @@
       "error": {"kind": "missing_variable", "message": "Variable: does_not_exists not found"}
     },
     {
-      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:33",
+      "note": "Not in lago-expression at 2abd2b3, the revision lago-api v1.55.0 pins (Gemfile:124), where dividing by zero panics in BigDecimal (expression-core/src/evaluate.rs, Operation::Divide) and takes the host down. Tanvo returns the error that upstream added in 6a70c6d (parity §4); the case is the spec 6a70c6d added (expression_spec.rb:32).",
       "name": "dividing by zero raises an error instead of crashing",
       "expression": "1 / 0",
       "error": {"kind": "division_by_zero", "message": "Division by zero"}
     },
     {
-      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:35",
+      "note": "Not in lago-expression at 2abd2b3, the revision lago-api v1.55.0 pins (Gemfile:124), where dividing by zero panics in BigDecimal (expression-core/src/evaluate.rs, Operation::Divide) and takes the host down. Tanvo returns the error that upstream added in 6a70c6d (parity §4); the case is the spec 6a70c6d added (expression_spec.rb:32).",
       "name": "dividing by zero inside a function raises an error instead of crashing",
       "expression": "ceil(-1 / 0)",
       "error": {"kind": "division_by_zero", "message": "Division by zero"}
     },
     {
-      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:40",
       "name": "a property that is not a finite number raises an error instead of crashing",
-      "note": "Ruby raises when it builds the event; here the event's evaluation fails.",
+      "note": "Not in lago-expression at 2abd2b3 (Gemfile:124), where the Ruby binding panics on a property that is not a finite number (expression-ruby/ext/lago_expression/src/lib.rs, expect on the BigDecimal parse); Tanvo fails as upstream does since 6a70c6d (expression_spec.rb:39 there). Ruby raises when it builds the event; here the event's evaluation fails.",
       "expression": "1",
       "event": {"code": "code", "timestamp": 1234, "properties": {"value": {"number": "Infinity"}}},
       "error": {"kind": "invalid_event", "message": "Failed to parse a number as bigdecimal"}
     },
     {
-      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:48",
+      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:35",
       "name": "a simple string expression returns a string",
       "expression": "'test'",
       "string": "test"
     },
     {
-      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:57",
+      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:44",
       "name": "a math expression with a decimal value from the event",
       "expression": "(123 - event.properties.property_1) / 10",
       "number": "12.177"
     },
     {
-      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:65",
+      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:52",
       "name": "a string expression with a decimal value from the event",
       "expression": "CONCAT(event.properties.property_1, 'test')",
       "string": "1.23test"
     },
     {
-      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:73",
+      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:60",
       "name": "a decimal expression with decimal values from the event",
       "expression": "event.properties.property_1 + event.properties.decimal_property",
       "number": "3.53"
     },
     {
-      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:89",
+      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:68",
+      "name": "a property that is neither a number nor a string evaluates to its text",
+      "note": "The Ruby binding turns a value that is not Numeric into text (Dummy#to_s returns an Integer, so Ruby falls back to its default #<Dummy:0x...>), and the spec checks only that the result is not nil. Tanvo's evaluator takes text and numbers; its hosts convert other JSON values to text first (lago_api.json, evaluate_expression_service.rb:26).",
+      "expression": "event.properties.dummy",
+      "event": {"code": "code", "timestamp": 1234, "properties": {"dummy": "#<Dummy:0x000000010>"}},
+      "string": "#<Dummy:0x000000010>"
+    },
+    {
+      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:76",
       "name": "concat concatenates the strings",
       "expression": "concat(event.properties.property_2, '-', 'suffix')",
       "string": "test-suffix"
     },
     {
-      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:97",
+      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:84",
       "name": "round with negative digits rounds the property to tens",
       "expression": "round(event.properties.property_3, -1)",
       "number": "10"
     },
     {
-      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:105",
+      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:92",
       "name": "least with the property value higher",
       "expression": "least(event.properties.property_3, 5.0)",
       "number": "5.0"
     },
     {
-      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:113",
+      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:100",
       "name": "least with the property value lower",
       "expression": "least(event.properties.property_3, 15.0)",
       "number": "12.34"
     },
     {
-      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:121",
+      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:108",
       "name": "greatest with the property value higher",
       "expression": "greatest(event.properties.property_3, 5.0)",
       "number": "12.34"
     },
     {
-      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:129",
+      "source": "lago-expression:expression-ruby/spec/lago-expression/expression_spec.rb:116",
       "name": "greatest with the property value lower",
       "expression": "greatest(event.properties.property_3, 15.0)",
       "number": "15.0"

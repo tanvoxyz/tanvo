@@ -954,7 +954,7 @@ total_amount                     = sub_total_including_taxes_amount − credit_n
 ### 11.4 作废
 * 发票满足以下条件时**可作废**：`status = finalized`、`payment_status ∈ {pending, failed}`、`total_paid_amount = 0`、没有未作废的贷项通知单、没有败诉的争议。
 * 作废时可以在同一请求中创建贷项通知单：`credit_amount + refund_amount ≤ 可冲减金额`。
-* 作废会恢复发票所消耗的内容：已应用优惠券退回金额（`recurring` 优惠券的 `frequency_duration_remaining + 1`，已终止且仍有效的重新启用），出账类钱包交易被作废并退回额度，已消耗的贷项通知单额度被恢复。
+* 作废会恢复发票所消耗的内容：已应用优惠券退回金额（`recurring` 优惠券的 `frequency_duration_remaining + 1`，已终止且仍有效的重新启用），未创建贷项通知单时，出账类钱包交易的额度退回仍有效的钱包。已消耗的贷项通知单额度不恢复；只有在未完成订阅的激活门槛发票被关闭时才恢复（§9.3）。
 * 发出 `invoice.voided`。
 * **重新生成**：已作废的订阅发票可以重新生成：以当前目录数据为相同周期构建一张新发票，`voided_invoice_id` 指向被作废的发票。
 

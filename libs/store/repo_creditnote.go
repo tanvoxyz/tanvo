@@ -48,7 +48,7 @@ func creditNoteParams(cn *creditnote.CreditNote) db.CreateCreditNoteParams {
 		TotalAmount:                  cn.TotalAmount,
 		Currency:                     cn.Currency.Code(),
 		IssuingDate:                  invoiceDateCol(cn.IssuingDate),
-		Metadata:                     encodeMetadata(cn.Metadata),
+		Metadata:                     encodeItemMetadata(cn.Metadata),
 		File:                         optString(string(cn.File)),
 		XmlFile:                      optString(string(cn.XMLFile)),
 		RefundedAt:                   optUTC(cn.RefundedAt),
@@ -67,7 +67,7 @@ func creditNoteOf(r db.CreditNote) (*creditnote.CreditNote, error) {
 	if err != nil {
 		return nil, fmt.Errorf("credit note %s: %w", r.ID, err)
 	}
-	md, err := decodeMetadata(r.Metadata)
+	md, err := decodeItemMetadata(r.Metadata)
 	if err != nil {
 		return nil, fmt.Errorf("credit note %s: %w", r.ID, err)
 	}

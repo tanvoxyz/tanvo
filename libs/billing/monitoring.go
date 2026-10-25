@@ -193,7 +193,8 @@ func (e *Engine) ProcessSubscriptionActivity(ctx context.Context, org core.Organ
 	var errs []error
 	var current *usage.Usage
 	err = e.d.Tx.InTx(ctx, func(ctx context.Context, r port.Repos) error {
-		u, err := e.Usage.CurrentUsage(ctx, r, org, id, usage.Options{SkipTaxes: true})
+		// source: app/services/usage_monitoring/process_subscription_activity_service.rb:74-81
+		u, err := e.Usage.CurrentUsage(ctx, r, org, id, usage.Options{SkipTaxes: true, UsageBuckets: true})
 		current = u
 		return err
 	})

@@ -99,7 +99,7 @@ func validationViolations(prefix string, err error) ([]FieldViolation, bool) {
 	}
 	out := make([]FieldViolation, len(ve.Errors))
 	for i, fe := range ve.Errors {
-		out[i] = FieldViolation{Field: prefix + fe.Field, Reason: fe.Code}
+		out[i] = FieldViolation{Field: prefix + fe.Field, Reason: fe.Code, Description: fe.Message}
 	}
 	return out, true
 }

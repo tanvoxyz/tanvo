@@ -24,6 +24,7 @@ import (
 	sd "github.com/tanvoxyz/tanvo/libs/core/streaming"
 	"github.com/tanvoxyz/tanvo/libs/core/subscription"
 	"github.com/tanvoxyz/tanvo/libs/core/wallet"
+	"github.com/tanvoxyz/tanvo/libs/metering"
 	"github.com/tanvoxyz/tanvo/libs/money"
 	"github.com/tanvoxyz/tanvo/libs/period"
 )
@@ -396,6 +397,56 @@ func TestDeliverGivenUsage(t *testing.T) {
 	slices.Sort(want)
 	if !slices.Equal(subs, want) {
 		t.Errorf("subscriptions: got = %v, want = %v", subs, want)
+	}
+}
+
+// bucketReads is the harness event store recording the codes of the
+// usage bucket reads, which no definition answers.
+type bucketReads struct {
+	*billingtest.Events
+	codes []string
+}
+
+func (b *bucketReads) ReadBuckets(_ context.Context, r metering.BucketRead) ([]metering.BucketTotal, bool, error) {
+	if !slices.Contains(b.codes, r.Query.Code) {
+		b.codes = append(b.codes, r.Query.Code)
+	}
+	return nil, false, nil
+}
+
+// TestDeliverUsageSource checks that a usage-refreshed record computed by
+// the delivery reads the usage the wallet refresh delivers inline: from
+// the usage buckets, with no presentation breakdown, so a charge
+// breaking its usage down by presentation keys is read from them too. A
+// full usage never reads them.
+//
+// source: spec/services/event_destinations/customer_usage/refreshed_service_spec.rb:103
+func TestDeliverUsageSource(t *testing.T) {
+	f := newFixture(t)
+	f.destination()
+	regions := f.Metric("regions", catalog.AggregationTypeCount, "")
+	f.Charge(f.plan, regions, catalog.ChargeModelStandard, `{"amount":"1","presentation_group_keys":[{"value":"region"}]}`)
+	f.events(f.sub, 2, t0.Add(-time.Hour))
+	f.Event(f.sub, regions.Code, t0.Add(-time.Hour), "region", "eu")
+	probe := &bucketReads{Events: f.Events}
+	d := *f.Deps
+	d.Events = probe
+	f.usage = usage.New(&d)
+	f.svc = streaming.New(&d, f.usage, f.producer)
+
+	f.deliver(sd.EventCustomerUsageRefreshed, nil)
+	slices.Sort(probe.codes)
+	if want := []string{f.metric.Code, regions.Code}; !slices.Equal(probe.codes, want) {
+		t.Errorf("bucket reads: got = %v, want = %v", probe.codes, want)
+	}
+	if got := f.producer.records(); len(got) != 1 || got[0].env.CustomerUsage.AmountCents != 3_00 {
+		t.Errorf("records: got = %+v, want = one record of 300", got)
+	}
+
+	probe.codes = nil
+	f.deliver(sd.EventCustomerFullUsageRefreshed, nil)
+	if len(probe.codes) != 0 {
+		t.Errorf("full usage bucket reads: got = %v, want = none", probe.codes)
 	}
 }
 

@@ -120,11 +120,13 @@ func TestRestoreCouponNotFound(t *testing.T) {
 	}
 }
 
-// Coupons, credit notes and wallets consumed by an invoice return on void
+// Coupons, credit notes and wallets consumed by an invoice return when its
+// gating invoice is closed; a void keeps the credit-note credits consumed
 // (domain §11.4).
 func TestRestoreDeductions(t *testing.T) {
 	tests := []struct {
 		name        string
+		void        bool
 		issuesNote  bool
 		voidedNote  bool
 		wantNote    int64
@@ -133,11 +135,15 @@ func TestRestoreDeductions(t *testing.T) {
 	}{
 		// source: spec/services/credit_notes/recredit_service_spec.rb:1
 		// source: spec/services/wallet_transactions/recredit_service_spec.rb:23
+		// (the recredit of a closed gating invoice,
+		// activation_rules/cancel_service.rb:67-79)
 		{name: "everything", wantNote: 30, wantWallet: 1000, wantInbound: 1},
+		// source: spec/services/invoices/void_service_spec.rb:159, 167
+		{name: "void", void: true, wantNote: 0, wantWallet: 1000, wantInbound: 1},
 		// source: app/services/invoices/void_service.rb:41 (with
 		// generate_credit_note the creditable amount counts what wallets
 		// and credit notes paid: neither is given back)
-		{name: "credit note issued", issuesNote: true, wantNote: 0, wantWallet: 950},
+		{name: "credit note issued", void: true, issuesNote: true, wantNote: 0, wantWallet: 950},
 		{name: "voided credit note", voidedNote: true, wantNote: 0, wantWallet: 1000, wantInbound: 1},
 	}
 	for _, tt := range tests {
@@ -167,7 +173,7 @@ func TestRestoreDeductions(t *testing.T) {
 			}
 			inv.Status = invoice.StatusVoided
 			before := len(h.Webhooks())
-			got, err := f.restore(inv, deduct.RestoreOptions{IssuesCreditNote: tt.issuesNote})
+			got, err := f.restore(inv, deduct.RestoreOptions{Void: tt.void, IssuesCreditNote: tt.issuesNote})
 			mustOK(t, err)
 			eq(t, "note balance", h.ReloadCreditNote(cn.ID).BalanceAmount, tt.wantNote)
 			eq(t, "wallet balance", h.ReloadWallet(w.ID).BalanceAmount, tt.wantWallet)

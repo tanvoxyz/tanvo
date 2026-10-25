@@ -3,13 +3,16 @@ package rpc_test
 import (
 	"context"
 	"net/http"
+	"reflect"
 	"testing"
 
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 
 	"github.com/tanvoxyz/tanvo/apps/server/internal/rpctest"
+	"github.com/tanvoxyz/tanvo/libs/billing/billingentities"
 	"github.com/tanvoxyz/tanvo/libs/billing/billingtest"
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/organization"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
@@ -418,4 +421,39 @@ func beOtherOrg(t *testing.T, s *rpctest.Server, code string) *organization.Bill
 		t.Fatalf("other organization: %v", err)
 	}
 	return be
+}
+
+func TestBillingEntitySecurityLogs(t *testing.T) {
+	t.Parallel()
+	s := rpctest.New(t)
+	t.Log("source: spec/requests/api/v1/billing_entities_controller_spec.rb:182")
+	if status, body := s.REST(t, s.APIKey, http.MethodPost, "/v1/billing_entities", `{"code":"second","name":"Second"}`); status != http.StatusOK {
+		t.Fatalf("create: got = %d %s, want = 200", status, body)
+	}
+	t.Log("source: spec/requests/api/v1/billing_entities_controller_spec.rb:308")
+	if status, body := s.REST(t, s.APIKey, http.MethodPatch, "/v1/billing_entities/code%3Asecond", `{"name":"Renamed"}`); status != http.StatusOK {
+		t.Fatalf("update: got = %d %s, want = 200", status, body)
+	}
+	var logs []*auditlog.SecurityLog
+	if err := s.Store.InTx(t.Context(), func(ctx context.Context, r port.Repos) error {
+		p, err := r.SecurityLogs.List(ctx, s.Org.ID, auditlog.SecurityLogFilter{Types: []string{billingentities.SecurityLogType}}, core.PageRequest{})
+		logs = p.Items
+		return err
+	}); err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]map[string]any{}
+	for _, l := range logs {
+		got[l.Event] = l.Resources
+	}
+	want := map[string]map[string]any{
+		billingentities.EventCreated: {"billing_entity_name": "Second", "billing_entity_code": "second"},
+		billingentities.EventUpdated: {
+			"billing_entity_name": "Renamed", "billing_entity_code": "second",
+			"name": map[string]any{"deleted": "Second", "added": "Renamed"},
+		},
+	}
+	if len(logs) != 2 || !reflect.DeepEqual(got, want) {
+		t.Errorf("got = %v, want = %v", got, want)
+	}
 }

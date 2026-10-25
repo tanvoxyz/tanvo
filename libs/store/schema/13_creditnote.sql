@@ -32,7 +32,9 @@ CREATE TABLE credit_notes (
   total_amount bigint NOT NULL,
   currency text NOT NULL,
   issuing_date date,
-  metadata jsonb NOT NULL,
+  -- The item metadata (lago Metadata::ItemMetadata): NULL when there is none,
+  -- an array, possibly empty, when it exists (an emptied item stays).
+  metadata jsonb,
   file text,
   xml_file text,
   refunded_at timestamptz,

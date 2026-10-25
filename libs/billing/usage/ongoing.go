@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/tanvoxyz/tanvo/libs/billing/fees"
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
 	"github.com/tanvoxyz/tanvo/libs/billing/wallets"
 	"github.com/tanvoxyz/tanvo/libs/core"
@@ -29,11 +30,21 @@ func (s *Service) OngoingUsage(ctx context.Context, r port.Repos, c *customer.Cu
 	return fees, err
 }
 
+// WalletRefreshOptions are the options of the current usages a wallet
+// refresh reads, which the usage-refreshed stream reads too: no
+// presentation breakdown, which would keep the usage buckets from serving
+// them, and the usage buckets.
+//
+// source: app/services/customers/refresh_wallets_service.rb:143, app/services/event_destinations/customer_usage/refreshed_service.rb:56-66
+func WalletRefreshOptions() Options {
+	return Options{Filters: fees.UsageFilters{Presentation: []string{}}, UsageBuckets: true}
+}
+
 // OngoingUsageComputed implements [wallets.ComputedUsageSource]: the fees
 // of [Service.OngoingUsage] and the current usages ([]*[Usage], one per
 // active subscription) they come from.
 func (s *Service) OngoingUsageComputed(ctx context.Context, r port.Repos, c *customer.Customer) ([]wallets.UsageFee, wallets.ComputedUsage, error) {
-	usages, err := s.CustomerUsage(ctx, r, c.OrganizationID, c.ID, Options{})
+	usages, err := s.CustomerUsage(ctx, r, c.OrganizationID, c.ID, WalletRefreshOptions())
 	if err != nil {
 		return nil, nil, err
 	}

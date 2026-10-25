@@ -139,8 +139,10 @@ func fetchBucketSpecs() []bucketSpec {
 		},
 		{
 			// Lago re-upserts the bucket; Tanvo's buckets hold the latest
-			// copy of a re-sent event.
-			name: "a re-sent event is not counted twice", source: src + "74", metric: sumMetric,
+			// copy of a re-sent event, so a deduplicating organization is
+			// served from them too.
+			// source: spec/services/events/stores/provider_spec.rb:144, 316
+			name: "a re-sent event is not counted twice", source: src + "74, 424", metric: sumMetric,
 			events: []metering.Event{
 				specEvent("a", m(0), "value", "10"),
 				func() metering.Event { e := specEvent("a", m(0), "value", "12"); e.IngestedAt = m(time.Hour); return e }(),
@@ -316,7 +318,7 @@ func fetchBucketSpecs() []bucketSpec {
 			// Lago floors the start to the enclosing bucket; Tanvo reads the
 			// partial bucket from the events, so only the events of the
 			// window count.
-			name: "when the window starts inside a bucket, counts the events of the window only", source: src + "347", metric: sumMetric,
+			name: "when the window starts inside a bucket, counts the events of the window only", source: src + "347, 365", metric: sumMetric,
 			events: []metering.Event{
 				specEvent("a", m(0), "value", "7"), specEvent("b", m(2*time.Second), "value", "3"),
 				specEvent("c", m(time.Hour), "value", "1"),
@@ -431,7 +433,7 @@ func hourlySpecs() []bucketSpec {
 	dims := []string{"region", "zone"}
 	return []bucketSpec{
 		{
-			name: "returns one gap-filled hour per hour of the window, broken down by charge filter", source: src + "48",
+			name: "returns one gap-filled hour per hour of the window, broken down by charge filter", source: src + "49, 64, 76",
 			metric: sumMetric, dims: dims, events: inWindow,
 			check: run(request(europe), func(res metering.HourlyUsageResult) error {
 				return errors.Join(
@@ -446,7 +448,7 @@ func hourlySpecs() []bucketSpec {
 			}),
 		},
 		{
-			name: "folds every filter past the biggest ones into one series", source: src + "95",
+			name: "folds every filter past the biggest ones into one series", source: src + "95, 102",
 			metric: sumMetric, dims: dims,
 			events: []metering.Event{
 				specEvent("a", at(9, 30), "value", "100", "region", "a"),
@@ -499,7 +501,7 @@ func hourlySpecs() []bucketSpec {
 			// Charge filters only take declared values
 			// (app/models/charge_filter_value.rb:25), so folding the others
 			// into one bucket value keeps the default series exact.
-			name: "breaks down charge filters over a dimension folding undeclared values", source: src + "48",
+			name: "breaks down charge filters over a dimension folding undeclared values", source: src + "64",
 			metric: sumMetric, filters: []metering.MetricFilter{{Key: "region", Values: []string{"asia", "eu", "us"}}},
 			events: []metering.Event{
 				specEvent("a", at(9, 30), "value", "10", "region", "eu"),
@@ -538,7 +540,7 @@ func hourlySpecs() []bucketSpec {
 			}),
 		},
 		{
-			name: "ignores the buckets outside the window", source: src + "125", metric: sumMetric, dims: dims,
+			name: "ignores the buckets outside the window", source: src + "118", metric: sumMetric, dims: dims,
 			events: []metering.Event{specEvent("a", at(8, 45), "value", "99"), specEvent("b", at(12, 15), "value", "77")},
 			check: run(request(europe), func(res metering.HourlyUsageResult) error {
 				return errors.Join(want("series", series(res), ""), want("hours", hourUnits(res), "09:00=0 10:00=0 11:00=0 12:00=0"))
@@ -552,7 +554,7 @@ func hourlySpecs() []bucketSpec {
 			}),
 		},
 		{
-			name: "cuts the hours on the walls of a timezone offset by half an hour", source: src + "164", metric: sumMetric, dims: dims,
+			name: "cuts the hours on the walls of a timezone offset by half an hour", source: src + "166", metric: sumMetric, dims: dims,
 			events: []metering.Event{specEvent("a", at(9, 15), "value", "2"), specEvent("b", at(9, 45), "value", "8")},
 			check: func() func(context.Context, metering.Store, metering.BucketReader) error {
 				req := request(europe)
@@ -568,7 +570,7 @@ func hourlySpecs() []bucketSpec {
 			}(),
 		},
 		{
-			name: "when to sits inside a bucket, reports the end of that bucket", source: src + "179", metric: sumMetric, dims: dims,
+			name: "when to sits inside a bucket, reports the end of that bucket", source: src + "178", metric: sumMetric, dims: dims,
 			events: []metering.Event{specEvent("a", at(12, 0), "value", "7")},
 			check: run(request(europe), func(res metering.HourlyUsageResult) error {
 				return errors.Join(want("to", res.To.Format(time.TimeOnly), "12:15:00"),
@@ -576,7 +578,7 @@ func hourlySpecs() []bucketSpec {
 			}),
 		},
 		{
-			name: "when to sits on a bucket wall, keeps it and leaves out the bucket opening on it", source: src + "190", metric: sumMetric, dims: dims,
+			name: "when to sits on a bucket wall, keeps it and leaves out the bucket opening on it", source: src + "189", metric: sumMetric, dims: dims,
 			events: []metering.Event{specEvent("a", at(12, 0), "value", "7")},
 			check: func() func(context.Context, metering.Store, metering.BucketReader) error {
 				req := request(europe)
@@ -589,7 +591,7 @@ func hourlySpecs() []bucketSpec {
 			}(),
 		},
 		{
-			name: "counts the events of a count charge", source: src + "48", metric: countMetric, dims: dims, events: inWindow,
+			name: "counts the events of a count charge", source: src + "49", metric: countMetric, dims: dims, events: inWindow,
 			check: func() func(context.Context, metering.Store, metering.BucketReader) error {
 				req := request(europe)
 				req.Metric = countMetric
@@ -599,7 +601,7 @@ func hourlySpecs() []bucketSpec {
 			}(),
 		},
 		{
-			fails: true, name: "fails when the window is longer than the cap", source: src + "220", metric: sumMetric, dims: dims,
+			fails: true, name: "fails when the window is longer than the cap", source: src + "213", metric: sumMetric, dims: dims,
 			check: func() func(context.Context, metering.Store, metering.BucketReader) error {
 				req := request(europe)
 				req.To = from.Add(40 * 24 * time.Hour)
@@ -607,7 +609,7 @@ func hourlySpecs() []bucketSpec {
 			}(),
 		},
 		{
-			fails: true, name: "fails when the charge is not one the buckets can answer", source: src + "237", metric: sumMetric, dims: dims,
+			fails: true, name: "fails when the charge is not one the buckets can answer", source: src + "231", metric: sumMetric, dims: dims,
 			check: func() func(context.Context, metering.Store, metering.BucketReader) error {
 				req := request(europe)
 				req.Metric = metering.Metric{Code: DefaultCode, Aggregation: metering.AggregationUniqueCount, FieldName: "value"}
@@ -615,7 +617,7 @@ func hourlySpecs() []bucketSpec {
 			}(),
 		},
 		{
-			fails: true, name: "fails when the charge aggregates values that do not add up across hours", source: src + "245", metric: sumMetric, dims: dims,
+			fails: true, name: "fails when the charge aggregates values that do not add up across hours", source: src + "240", metric: sumMetric, dims: dims,
 			check: func() func(context.Context, metering.Store, metering.BucketReader) error {
 				req := request(europe)
 				req.Metric = maxMetric
@@ -623,7 +625,7 @@ func hourlySpecs() []bucketSpec {
 			}(),
 		},
 		{
-			fails: true, name: "fails when the window is empty", source: src + "253", metric: sumMetric, dims: dims,
+			fails: true, name: "fails when the window is empty", source: src + "249", metric: sumMetric, dims: dims,
 			check: func() func(context.Context, metering.Store, metering.BucketReader) error {
 				req := request(europe)
 				req.From = to
@@ -631,7 +633,7 @@ func hourlySpecs() []bucketSpec {
 			}(),
 		},
 		{
-			name: "fails when no bucket definition covers a series", source: src + "237", metric: sumMetric,
+			name: "fails when no bucket definition covers a series", source: src + "231", metric: sumMetric,
 			check: fails(request(europe), metering.ErrBucketsUnavailable), noDefs: true,
 		},
 	}

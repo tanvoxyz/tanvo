@@ -265,6 +265,7 @@ func Run(t *testing.T, open Open, peers ...Peers) {
 			t.Errorf("duplicates got = %v, want = [0]", dups)
 		}
 	})
+	// source: spec/models/clickhouse/usage_bucket_spec.rb:31, 41
 	t.Run("replace corrects the bucket", func(t *testing.T) {
 		s := open(t)
 		define(t, s, countDef, valueDef)
@@ -306,6 +307,20 @@ func Run(t *testing.T, open Open, peers ...Peers) {
 		write(t, s, ev("a", at(10, 0), "1"))
 		replace(t, s, ev("z", at(10, 3), "5"), ev("z", at(10, 3), "8"))
 		wantSnapshot(t, check(t, s), "count=2 sum=9/2 max=8/2 last=8/2")
+	})
+	// source: spec/models/clickhouse/usage_bucket_spec.rb:79, 85, 92
+	t.Run("precision", func(t *testing.T) {
+		s := open(t)
+		define(t, s, valueDef)
+		tiny, wide := ev("a", at(10, 0), "0.00000000000000000001"), ev("b", at(10, 1), "123456789012345678")
+		amount := money.MustParse("12345678901234567890.000000000000001")
+		tiny.PreciseTotalAmountCents = &amount
+		write(t, s, tiny, wide)
+		wantSnapshot(t, check(t, s), "count=2 sum=123456789012345678.00000000000000000001/2")
+		tot, ok := totals(t, s, true)
+		if !ok || !tot.PreciseTotalAmountCents.Equal(amount) {
+			t.Errorf("precise amount got = %s %v, want = %s true", tot.PreciseTotalAmountCents, ok, amount)
+		}
 	})
 	t.Run("backfill", func(t *testing.T) {
 		s := open(t)

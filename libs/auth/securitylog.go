@@ -23,16 +23,11 @@ const (
 const (
 	// EventUserSignedUp: a user registered and created an organization.
 	EventUserSignedUp = "user.signed_up"
-	// EventUserSignedIn: a user opened a session. New in Tanvo (lago logs
-	// new devices only).
-	EventUserSignedIn = "user.signed_in"
 	// EventNewDeviceLoggedIn: a user signed in from a device never seen
 	// before; the resources describe the client.
 	EventNewDeviceLoggedIn = "user.new_device_logged_in"
 	// EventUserInvited: an invite was created.
 	EventUserInvited = "user.invited"
-	// EventUserJoined: an invite was accepted.
-	EventUserJoined = "user.joined"
 	// EventUserRoleEdited: a membership's roles changed; the resources
 	// list the added and deleted role codes.
 	EventUserRoleEdited = "user.role_edited"

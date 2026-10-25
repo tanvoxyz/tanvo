@@ -64,6 +64,9 @@ type FieldError struct {
 	// Code is the stable reason, one of the Code* constants or a
 	// package-specific code.
 	Code string
+	// Message, when set, explains the failure for people, such as an
+	// expression evaluator's report; Code stays the stable reason.
+	Message string
 }
 
 // String returns "field: code".
@@ -118,7 +121,9 @@ type Validator struct {
 }
 
 // Add records code for field.
-func (v *Validator) Add(field, code string) { v.errs = append(v.errs, FieldError{field, code}) }
+func (v *Validator) Add(field, code string) {
+	v.errs = append(v.errs, FieldError{Field: field, Code: code})
+}
 
 // Check records code for field when ok is false, and returns ok.
 func (v *Validator) Check(ok bool, field, code string) bool {

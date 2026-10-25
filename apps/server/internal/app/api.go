@@ -290,6 +290,7 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 	if err != nil {
 		return nil, fmt.Errorf("api: billing entities: %w", err)
 	}
+	billingEntitySvc.WithSecurityLog(rpc.BillingEntitySecurityLog(ad.SecurityLog))
 	signupOrgs.entities = billingEntitySvc
 	entitlementSvc, err := entitlements.New(billingDeps)
 	if err != nil {

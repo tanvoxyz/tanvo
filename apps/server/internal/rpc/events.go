@@ -144,6 +144,7 @@ func toInput(prefix string, e *eventv1.Event) (ingest.Input, []FieldViolation) {
 		TransactionID:          e.GetTransactionId(),
 		Code:                   e.GetCode(),
 		ExternalSubscriptionID: e.GetExternalSubscriptionId(),
+		ExternalContractID:     e.GetExternalContractId(),
 	}
 	var violations []FieldViolation
 	if e.HasTimestamp() {

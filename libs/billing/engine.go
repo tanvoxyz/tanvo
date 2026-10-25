@@ -386,6 +386,12 @@ func (e *Engine) HandleJob(ctx context.Context, j port.Job) (bool, error) {
 			return true, err
 		}
 		return true, e.CreditNotes.ReportTaxes(ctx, j.OrganizationID, a.CreditNoteID)
+	case kernel.JobDefineUsageBuckets:
+		var a kernel.DefineUsageBucketsArgs
+		if err := decode(j, &a); err != nil {
+			return true, err
+		}
+		return true, e.DefineUsageBuckets(ctx, j.OrganizationID, a.Definition)
 	}
 	for _, h := range []func(context.Context, port.Job) (bool, error){e.Invoices.HandleJob, e.Lifecycle.HandleJob, e.Wallets.HandleJob, e.Plans.HandleJob, e.DailyUsages.HandleJob, e.Customers.HandleJob, e.Quotes.HandleJob, e.Contracts.HandleJob, e.Invoices.HandleSegmentJob} {
 		if ok, err := h(ctx, j); ok {

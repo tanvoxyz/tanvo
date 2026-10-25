@@ -51,4 +51,3 @@ Timing out on an advisory lock is a store concern, which the memstore can't repr
 | `credits/progressive_billing_service_spec.rb:534` | Creates a credit note of zero | Reports the note items; the credit notes service decides whether to create it |
 | `credits/applied_coupons_service_spec.rb:350` | The fixture totals are inconsistent | The expected totals are recomputed from the fees |
 | `credits/credit_note_service_spec.rb:170` | The fixture's invoice total disagrees with its fees | Fee-level amounts are not checked |
-| `invoices/void_service_spec.rb` (credit note recredit) | Since the move to credit notes on void, a void never gives back credit-note credits | A plain void (no credit note issued) gives them back, per domain §11.4. A void that issues a credit note gives back only coupons (`RestoreOptions.IssuesCreditNote`) |

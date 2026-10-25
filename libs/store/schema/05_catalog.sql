@@ -99,7 +99,9 @@ CREATE TABLE plans (
   bill_fixed_charges_monthly boolean,
   -- The original plan of an override plan (domain §7.2.1).
   parent_id uuid,
-  metadata jsonb NOT NULL DEFAULT '[]',
+  -- The item metadata (lago Metadata::ItemMetadata): NULL when there is none,
+  -- an array, possibly empty, when it exists (an emptied item stays).
+  metadata jsonb,
   status text NOT NULL,
   created_at timestamptz NOT NULL,
   updated_at timestamptz NOT NULL,

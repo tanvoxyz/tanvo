@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -362,5 +363,61 @@ func TestUsageTracker(t *testing.T) {
 	e.usage.Record(o.ID, core.NewID[core.APIKeyID](e.deps.IDs), e.clock.Now())
 	if err := e.usage.Flush(e.ctx, e.store); err != nil {
 		t.Errorf("flush of an unknown key: %v", err)
+	}
+}
+
+// lastEvent returns the resources of the last event named event.
+func (r *recorder) lastEvent(event string) map[string]any {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for i := len(r.events) - 1; i >= 0; i-- {
+		if r.events[i].Event == event {
+			return r.events[i].Resources
+		}
+	}
+	return nil
+}
+
+func TestAPIKeySecurityLogResources(t *testing.T) {
+	e := newEnv(t)
+	o := e.org()
+	// source: spec/services/api_keys/create_service_spec.rb:34
+	out, err := e.keys.Create(e.ctx, o.ID, ptr("ci"), map[permission.APIResource]permission.Level{
+		permission.APIResourceCustomer: permission.LevelRead, permission.APIResourceInvoice: permission.LevelWrite,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]any{
+		"name": "ci", "value_prefix": out.Key.Prefix,
+		"permissions": []string{"customer:read", "invoice:read", "invoice:write"},
+	}
+	if got := e.log.lastEvent(EventAPIKeyCreated); !reflect.DeepEqual(got, want) {
+		t.Errorf("created got = %v, want = %v", got, want)
+	}
+	// A key without grants has full access: lago's default permissions.
+	full := e.key(o)
+	if got := e.log.lastEvent(EventAPIKeyCreated)["permissions"].([]string); len(got) != 2*len(permission.APIResourceValues()) {
+		t.Errorf("full access permissions got = %d, want = every resource in both modes", len(got))
+	}
+	// source: spec/services/api_keys/update_service_spec.rb:29
+	if _, err := e.keys.Update(e.ctx, o.ID, out.Key.ID, APIKeyUpdate{Name: ptr("ci2"), Permissions: ptr(map[permission.APIResource]permission.Level{
+		permission.APIResourceCustomer: permission.LevelRead,
+	})}); err != nil {
+		t.Fatal(err)
+	}
+	want = map[string]any{
+		"name": map[string]any{"deleted": "ci", "added": "ci2"}, "value_prefix": out.Key.Prefix,
+		"permissions": map[string]any{"deleted": []string{"invoice:read", "invoice:write"}},
+	}
+	if got := e.log.lastEvent(EventAPIKeyUpdated); !reflect.DeepEqual(got, want) {
+		t.Errorf("updated got = %v, want = %v", got, want)
+	}
+	// A key without a name takes one: no deleted side (compact_blank).
+	if _, err := e.keys.Update(e.ctx, o.ID, full.Key.ID, APIKeyUpdate{Name: ptr("named")}); err != nil {
+		t.Fatal(err)
+	}
+	if got, w := e.log.lastEvent(EventAPIKeyUpdated)["name"], map[string]any{"added": "named"}; !reflect.DeepEqual(got, w) {
+		t.Errorf("name got = %v, want = %v", got, w)
 	}
 }
