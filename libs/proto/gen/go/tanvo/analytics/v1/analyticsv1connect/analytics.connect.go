@@ -84,9 +84,10 @@ var (
 	})
 	analyticsServiceCreateDataApiTokenSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
-			StreamType: connect.StreamTypeUnary,
-			Schema:     v1.File_tanvo_analytics_v1_analytics_proto.Services().ByName("AnalyticsService").Methods().ByName("CreateDataApiToken"),
-			Procedure:  AnalyticsServiceCreateDataApiTokenProcedure,
+			StreamType:       connect.StreamTypeUnary,
+			Schema:           v1.File_tanvo_analytics_v1_analytics_proto.Services().ByName("AnalyticsService").Methods().ByName("CreateDataApiToken"),
+			Procedure:        AnalyticsServiceCreateDataApiTokenProcedure,
+			IdempotencyLevel: connect.IdempotencyNoSideEffects,
 		}
 	})
 	analyticsServiceGetOverdueBalanceSpec = sync.OnceValue(func() connect.Spec {
@@ -113,7 +114,9 @@ type AnalyticsServiceClient interface {
 	GetInvoicedUsage(context.Context, *v1.GetInvoicedUsageRequest) (*v1.GetInvoicedUsageResponse, error)
 	// Returns a service token for the Data API (DataApiService, served by
 	// the enterprise analytics service), granting the caller's `data_api`
-	// permissions in the organization for a short time.
+	// permissions in the organization for a short time. Issuing a token
+	// changes no state, so an API key with read access to the analytics
+	// may call it.
 	CreateDataApiToken(context.Context, *v1.CreateDataApiTokenRequest) (*v1.CreateDataApiTokenResponse, error)
 	// Returns the overdue balance at the end of each month.
 	GetOverdueBalance(context.Context, *v1.GetOverdueBalanceRequest) (*v1.GetOverdueBalanceResponse, error)
@@ -139,7 +142,9 @@ type AnalyticsServiceHandler interface {
 	GetInvoicedUsage(context.Context, *v1.GetInvoicedUsageRequest) (*v1.GetInvoicedUsageResponse, error)
 	// Returns a service token for the Data API (DataApiService, served by
 	// the enterprise analytics service), granting the caller's `data_api`
-	// permissions in the organization for a short time.
+	// permissions in the organization for a short time. Issuing a token
+	// changes no state, so an API key with read access to the analytics
+	// may call it.
 	CreateDataApiToken(context.Context, *v1.CreateDataApiTokenRequest) (*v1.CreateDataApiTokenResponse, error)
 	// Returns the overdue balance at the end of each month.
 	GetOverdueBalance(context.Context, *v1.GetOverdueBalanceRequest) (*v1.GetOverdueBalanceResponse, error)

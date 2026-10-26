@@ -466,7 +466,9 @@ paths:
       description: |-
         Returns a service token for the Data API (DataApiService, served by
          the enterprise analytics service), granting the caller's `data_api`
-         permissions in the organization for a short time.
+         permissions in the organization for a short time. Issuing a token
+         changes no state, so an API key with read access to the analytics
+         may call it.
       operationId: tanvo.analytics.v1.AnalyticsService.CreateDataApiToken
       requestBody:
         content:

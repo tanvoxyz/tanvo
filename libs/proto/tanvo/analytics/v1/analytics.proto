@@ -64,8 +64,11 @@ service AnalyticsService {
 
   // Returns a service token for the Data API (DataApiService, served by
   // the enterprise analytics service), granting the caller's `data_api`
-  // permissions in the organization for a short time.
+  // permissions in the organization for a short time. Issuing a token
+  // changes no state, so an API key with read access to the analytics
+  // may call it.
   rpc CreateDataApiToken(CreateDataApiTokenRequest) returns (CreateDataApiTokenResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
     option (google.api.http) = {
       post: "/v1/analytics/data_api_tokens"
       body: "*"

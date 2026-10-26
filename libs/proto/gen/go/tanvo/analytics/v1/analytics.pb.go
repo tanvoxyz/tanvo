@@ -1864,7 +1864,7 @@ const file_tanvo_analytics_v1_analytics_proto_rawDesc = "" +
 	"\x1aCreateDataApiTokenResponse\x12\x14\n" +
 	"\x05token\x18\x01 \x01(\tR\x05token\x129\n" +
 	"\n" +
-	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt2\xc9\b\n" +
+	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt2\xcc\b\n" +
 	"\x10AnalyticsService\x12\xb0\x01\n" +
 	"\x0fGetGrossRevenue\x12*.tanvo.analytics.v1.GetGrossRevenueRequest\x1a+.tanvo.analytics.v1.GetGrossRevenueResponse\"D\xca\xf3\x18\x1a\n" +
 	"\x0eanalytics:read*\banalytic\x82\xd3\xe4\x93\x02\x1d\x12\x1b/v1/analytics/gross_revenue\x90\x02\x01\x12\x8b\x01\n" +
@@ -1873,9 +1873,9 @@ const file_tanvo_analytics_v1_analytics_proto_rawDesc = "" +
 	"\x14GetInvoiceCollection\x12/.tanvo.analytics.v1.GetInvoiceCollectionRequest\x1a0.tanvo.analytics.v1.GetInvoiceCollectionResponse\"I\xca\xf3\x18\x1a\n" +
 	"\x0eanalytics:read*\banalytic\x82\xd3\xe4\x93\x02\"\x12 /v1/analytics/invoice_collection\x90\x02\x01\x12\xb4\x01\n" +
 	"\x10GetInvoicedUsage\x12+.tanvo.analytics.v1.GetInvoicedUsageRequest\x1a,.tanvo.analytics.v1.GetInvoicedUsageResponse\"E\xca\xf3\x18\x1a\n" +
-	"\x0eanalytics:read*\banalytic\x82\xd3\xe4\x93\x02\x1e\x12\x1c/v1/analytics/invoiced_usage\x90\x02\x01\x12\xba\x01\n" +
-	"\x12CreateDataApiToken\x12-.tanvo.analytics.v1.CreateDataApiTokenRequest\x1a..tanvo.analytics.v1.CreateDataApiTokenResponse\"E\xca\xf3\x18\x19\n" +
-	"\rdata_api:read*\banalytic\x82\xd3\xe4\x93\x02\":\x01*\"\x1d/v1/analytics/data_api_tokens\x12\xb8\x01\n" +
+	"\x0eanalytics:read*\banalytic\x82\xd3\xe4\x93\x02\x1e\x12\x1c/v1/analytics/invoiced_usage\x90\x02\x01\x12\xbd\x01\n" +
+	"\x12CreateDataApiToken\x12-.tanvo.analytics.v1.CreateDataApiTokenRequest\x1a..tanvo.analytics.v1.CreateDataApiTokenResponse\"H\xca\xf3\x18\x19\n" +
+	"\rdata_api:read*\banalytic\x82\xd3\xe4\x93\x02\":\x01*\"\x1d/v1/analytics/data_api_tokens\x90\x02\x01\x12\xb8\x01\n" +
 	"\x11GetOverdueBalance\x12,.tanvo.analytics.v1.GetOverdueBalanceRequest\x1a-.tanvo.analytics.v1.GetOverdueBalanceResponse\"F\xca\xf3\x18\x1a\n" +
 	"\x0eanalytics:read*\banalytic\x82\xd3\xe4\x93\x02\x1f\x12\x1d/v1/analytics/overdue_balance\x90\x02\x01B\xde\x01\n" +
 	"\x16com.tanvo.analytics.v1B\x0eAnalyticsProtoP\x01ZJgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/analytics/v1;analyticsv1\xa2\x02\x03TAX\xaa\x02\x12Tanvo.Analytics.V1\xca\x02\x12Tanvo\\Analytics\\V1\xe2\x02\x1eTanvo\\Analytics\\V1\\GPBMetadata\xea\x02\x14Tanvo::Analytics::V1b\beditionsp\xe8\a"
