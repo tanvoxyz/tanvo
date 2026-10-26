@@ -24,6 +24,7 @@ func TestError(t *testing.T) {
 		{core.ErrNotAllowed, connect.CodeFailedPrecondition},
 		{core.ErrNotFound, connect.CodeNotFound},
 		{core.ErrConflict, connect.CodeAlreadyExists},
+		{fmt.Errorf("forget api key: %w", core.ErrUnavailable), connect.CodeUnavailable},
 		{core.ErrInvalidTransition, connect.CodeFailedPrecondition},
 		{core.ErrInvalidValue, connect.CodeInvalidArgument},
 		{errors.New("boom"), connect.CodeInternal},

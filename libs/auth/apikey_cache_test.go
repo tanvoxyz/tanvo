@@ -5,12 +5,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/access"
 )
 
@@ -20,6 +22,8 @@ type testCache struct {
 	data map[string][]byte
 	ttls map[string]time.Duration
 	hits int
+	// down makes every removal fail.
+	down bool
 }
 
 func newTestCache() *testCache {
@@ -45,13 +49,17 @@ func (c *testCache) Set(_ context.Context, key string, value []byte, ttl time.Du
 	c.data[key], c.ttls[key] = slices.Clone(value), ttl
 }
 
-func (c *testCache) Delete(_ context.Context, keys ...string) {
+func (c *testCache) Delete(_ context.Context, keys ...string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.down {
+		return fmt.Errorf("test cache: %w", core.ErrUnavailable)
+	}
 	for _, k := range keys {
 		delete(c.data, k)
 		delete(c.ttls, k)
 	}
+	return nil
 }
 
 func (c *testCache) has(key string) bool {
@@ -201,6 +209,23 @@ func TestAPIKeysChangesExpireTheCache(t *testing.T) {
 			k := e.key(e.org())
 			if _, err := e.keys.AuthenticateCached(e.ctx, k.Secret); err != nil {
 				t.Fatal(err)
+			}
+			// A cache that cannot remove the entry fails the change, which
+			// does not happen.
+			c.mu.Lock()
+			c.down = true
+			c.mu.Unlock()
+			if err := tc.change(e, k); !errors.Is(err, core.ErrUnavailable) {
+				t.Fatalf("%s with the cache down: error got = %v, want = %v", tc.name, err, core.ErrUnavailable)
+			}
+			c.mu.Lock()
+			c.down = false
+			c.mu.Unlock()
+			if err := c.Delete(e.ctx, apiKeyCacheKey(k.Key.TokenHash)); err != nil {
+				t.Fatal(err)
+			}
+			if got, err := e.keys.AuthenticateCached(e.ctx, k.Secret); err != nil || got.Name != nil && *got.Name == name {
+				t.Fatalf("AuthenticateCached() after the failed %s got = %v %v, want = the key unchanged", tc.name, got, err)
 			}
 			if err := tc.change(e, k); err != nil {
 				t.Fatal(err)

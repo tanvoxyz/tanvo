@@ -74,6 +74,10 @@ const (
 	// ErrorInfo metadata carry the provider's code, message, request ID
 	// and HTTP status (lago "provider_error").
 	ReasonProviderError = "provider_error"
+	// ReasonUnavailable: a service the operation needs, such as the cache
+	// server, does not answer; the operation did not happen and may be
+	// retried.
+	ReasonUnavailable = "unavailable"
 )
 
 // withReason adds a google.rpc.ErrorInfo detail with the stable reason.
@@ -182,6 +186,9 @@ func Error(ctx context.Context, err error) error {
 		return newError(connect.CodeFailedPrecondition, ReasonInvalidTransition, err.Error())
 	case errors.Is(err, core.ErrConflict):
 		return newError(connect.CodeAlreadyExists, ReasonConflict, "conflict")
+	case errors.Is(err, core.ErrUnavailable):
+		slog.WarnContext(ctx, "rpc: unavailable", "error", err)
+		return newError(connect.CodeUnavailable, ReasonUnavailable, "unavailable, try again")
 	case errors.Is(err, integration.ErrUnsupported):
 		return newError(connect.CodeUnimplemented, ReasonUnsupported, "not supported by the provider")
 	case errors.Is(err, integration.ErrNotConnected), errors.Is(err, integration.ErrAuthentication):

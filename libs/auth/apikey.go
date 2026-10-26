@@ -198,12 +198,12 @@ func (s *APIKeys) Update(ctx context.Context, org core.OrganizationID, id core.A
 		if err := r.APIKeys.Update(ctx, k); err != nil {
 			return fmt.Errorf("update api key: %w", err)
 		}
-		return nil
+		return s.forget(ctx, k)
 	})
 	if err != nil {
 		return nil, err
 	}
-	s.forget(ctx, k)
+	s.forgetCommitted(ctx, k)
 	res := map[string]any{"name": keyName(k), "value_prefix": prefix(k)}
 	maps.Copy(res, diff)
 	s.d.record(ctx, SecurityEvent{OrganizationID: org, Type: SecurityLogAPIKey, Event: EventAPIKeyUpdated, Resources: res})
@@ -257,12 +257,12 @@ func (s *APIKeys) Rotate(ctx context.Context, org core.OrganizationID, id core.A
 			return err
 		}
 		out = &CreatedAPIKey{Key: n, Secret: secret}
-		return nil
+		return s.forget(ctx, old)
 	})
 	if err != nil {
 		return nil, err
 	}
-	s.forget(ctx, old)
+	s.forgetCommitted(ctx, old)
 	s.d.record(ctx, SecurityEvent{OrganizationID: org, Type: SecurityLogAPIKey, Event: EventAPIKeyRotated, Resources: map[string]any{
 		"name": keyName(out.Key), "value_prefix": map[string]string{"deleted": prefix(old), "added": prefix(out.Key)},
 	}})
@@ -294,14 +294,16 @@ func (s *APIKeys) Destroy(ctx context.Context, org core.OrganizationID, id core.
 			return fmt.Errorf("expire api key: %w", err)
 		}
 		if !force {
-			return enqueueMail(ctx, r, apiKeyMail(MailAPIKeyDestroyed, k, now))
+			if err := enqueueMail(ctx, r, apiKeyMail(MailAPIKeyDestroyed, k, now)); err != nil {
+				return err
+			}
 		}
-		return nil
+		return s.forget(ctx, k)
 	})
 	if err != nil {
 		return nil, err
 	}
-	s.forget(ctx, k)
+	s.forgetCommitted(ctx, k)
 	s.d.record(ctx, SecurityEvent{OrganizationID: org, Type: SecurityLogAPIKey, Event: EventAPIKeyDeleted, Resources: map[string]any{
 		"name": keyName(k), "value_prefix": prefix(k),
 	}})
@@ -414,11 +416,29 @@ func (s *APIKeys) accept(k *access.APIKey) (*access.APIKey, error) {
 // Tanvo never keeps a secret, only its hash.
 func apiKeyCacheKey(hash []byte) string { return "api_key/1/" + hex.EncodeToString(hash) }
 
-// forget removes k from the cache after a change to it committed (lago
-// ApiKeys::CacheService.expire_cache).
-func (s *APIKeys) forget(ctx context.Context, k *access.APIKey) {
-	if s.cache != nil {
-		s.cache.Delete(ctx, apiKeyCacheKey(k.TokenHash))
+// forget removes k from the cache as the last step of the transaction
+// changing it (lago ApiKeys::CacheService.expire_cache), so that a cache
+// that cannot remove it fails the change: the entry is not validated when
+// read, and would keep a rotated or destroyed key working on every server
+// until it expires.
+func (s *APIKeys) forget(ctx context.Context, k *access.APIKey) error {
+	if s.cache == nil {
+		return nil
+	}
+	if err := s.cache.Delete(ctx, apiKeyCacheKey(k.TokenHash)); err != nil {
+		return fmt.Errorf("forget api key: %w", err)
+	}
+	return nil
+}
+
+// forgetCommitted removes k from the cache again once its change
+// committed, since a request may have cached the key as it was between
+// [APIKeys.forget] and the commit. The first removal succeeded a moment
+// ago, so a failure now is only logged.
+func (s *APIKeys) forgetCommitted(ctx context.Context, k *access.APIKey) {
+	if err := s.forget(ctx, k); err != nil {
+		s.d.logger().ErrorContext(ctx, "auth: api key may stay cached until it expires", "error", err,
+			"organization_id", k.OrganizationID.String(), "api_key_id", k.ID.String())
 	}
 }
 
