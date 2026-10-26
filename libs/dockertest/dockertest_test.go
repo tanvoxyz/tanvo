@@ -183,6 +183,28 @@ func TestRunPorts(t *testing.T) {
 	}
 }
 
+// TestRunIP checks that another container reaches an unpublished port
+// of a container at its IP.
+func TestRunIP(t *testing.T) {
+	e := engine(t)
+	srv := run(t, e, Spec{
+		Image: SidecarImage,
+		Cmd:   []string{"httpd", "-f", "-p", "80", "-h", "/srv"},
+		Tmpfs: map[string]string{"/srv": "rw"},
+	})
+	if srv.IP == "" {
+		t.Fatal("IP got = empty, want = the container's address")
+	}
+	client := run(t, e, Spec{
+		Image: SidecarImage,
+		Cmd:   []string{"sh", "-c", "for i in 1 2 3 4 5 6 7 8 9 10; do nc -z -w 1 " + srv.IP + " 80 && exit 0; sleep 1; done; exit 1"},
+		Keep:  true,
+	})
+	if code, err := client.Exit(t.Context()); err != nil || code != 0 {
+		t.Errorf("connect to %s:80 got = exit %d, %v, want = exit 0", srv.IP, code, err)
+	}
+}
+
 // TestLifetimeCap checks that a container is removed at the end of its
 // lifetime, with or without a shell in the image, and that a command
 // ignoring its stop signal is killed after the grace period.

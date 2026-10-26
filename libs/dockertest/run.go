@@ -8,9 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -58,6 +60,10 @@ type Container struct {
 	Host string
 	// Ports maps the published container ports to their host ports.
 	Ports map[string]string
+	// IP is the container's address on its network (the engine's default
+	// bridge), where the other containers of the engine reach its
+	// unpublished ports; empty when the engine reports none.
+	IP string
 }
 
 // Addr returns the host:port address of a published container port, as
@@ -148,7 +154,8 @@ func (e *Engine) Run(ctx context.Context, spec Spec) (*Container, error) {
 	}
 	var inspect struct {
 		NetworkSettings struct {
-			Ports map[string][]struct{ HostIP, HostPort string }
+			Ports    map[string][]struct{ HostIP, HostPort string }
+			Networks map[string]struct{ IPAddress string }
 		}
 	}
 	if err := e.do(ctx, http.MethodGet, "/containers/"+c.ID+"/json", nil, &inspect); err != nil {
@@ -160,6 +167,12 @@ func (e *Engine) Run(ctx context.Context, spec Spec) (*Container, error) {
 			return fail(fmt.Errorf("dockertest: port %s of %s not published", p, spec.Image))
 		}
 		c.Ports[p] = b[0].HostPort
+	}
+	for _, name := range slices.Sorted(maps.Keys(inspect.NetworkSettings.Networks)) {
+		if ip := inspect.NetworkSettings.Networks[name].IPAddress; ip != "" {
+			c.IP = ip
+			break
+		}
 	}
 	return c, nil
 }
