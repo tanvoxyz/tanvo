@@ -383,7 +383,7 @@ POST /v1/events, /v1/events:batch
 * `integrations.Taxes` 是计费引擎的 `kernel.TaxProvider`：为草稿与预览询价（Anrok 的答复保存在缓存中，§13.6），申报已定稿的发票与贷项通知单，作废或冲销已作废发票的税额。
 * 每种任务类型具有其 lago 任务的重试规则（`integrations.RetryRules`：请求上限、提供者故障、超时后先在 NetSuite 中查找再重新创建记录、文档尚不完整）；其他错误令任务失败，并发送 `integration.provider_error` 或客户错误 webhook。
 * 错误为带 `integration.ErrorKind` 的 `*integration.ProviderError`；`ErrRequestLimit` 与 `ErrRetryable` 标明可重试的错误，`ErrAuthentication` 标明凭据失效的连接。API 以 FailedPrecondition 及提供者的错误码回应提供者的拒绝，以 Unimplemented 回应提供者不具备的操作。
-* 适配器共用 `providers/apiclient`：每个厂商一个 HTTP 客户端、每个连接一个限流器（Xero 按租户）且等待而非失败，以及注入的 OTel 提供者。
+* 适配器共用 `providers/apiclient`：每个厂商一个 HTTP 客户端、每个连接一个限流器（Xero 按租户）且等待而非失败，有缓存服务器时跨进程在其上计数（§13.6），以及注入的 OTel 提供者。
 
 ---
 
@@ -487,7 +487,7 @@ POST /v1/events, /v1/events:batch
 | `TANVO_HUBSPOT_CLIENT_SECRET` | | 其客户端密钥 |
 | `TANVO_ANROK_DRAFT_TAXES_CACHE_TTL` | `24h` | 相同请求下 Anrok 对草稿发票的税额保留多久；`0` 关闭缓存 |
 | `TANVO_ANALYTICS_CACHE_TTL` | `4h` | 计算出的分析报表复用多久（§13.6）；`0` 关闭缓存 |
-| `TANVO_CACHE_URL` | | 所有缓存所用的 Redis 或 Valkey 服务器（§13.6）：`redis://`、`rediss://`、`valkey://`、`valkeys://` 或 `unix://`；不设置时缓存留在每个进程中 |
+| `TANVO_CACHE_URL` | | 所有缓存与服务商限流所用的 Redis 或 Valkey 服务器（§13.6）：`redis://`、`rediss://`、`valkey://`、`valkeys://` 或 `unix://`；不设置时缓存留在每个进程中 |
 | `TANVO_CACHE_PREFIX` | `tanvo:` | 缓存服务器上每个键的前缀，供共用一台服务器的多个安装区分 |
 | `TANVO_CACHE_CLIENT_SIDE_TTL` | `0` | 对缓存服务器条目做客户端缓存（RESP3 跟踪）的最长时间；`0` 关闭 |
 | `TANVO_CACHE_SENTINEL_USERNAME`、`TANVO_CACHE_SENTINEL_PASSWORD` | | 带 `master_set` 的 `TANVO_CACHE_URL` 所用 Sentinel 的凭据，与 URL 中服务器自身的凭据相互独立 |
@@ -538,7 +538,8 @@ POST /v1/events, /v1/events:batch
 * **不缓存的内容。**
   * 订阅计费项的价格查找由计费引擎已加载的计费项构建。
   * 列表使用游标分页，因此没有需要缓存的计数。
-  * 任务留在 PostgreSQL 上的 River 中（§9），服务商限流器留在每个进程中（§12）。
+  * 任务留在 PostgreSQL 上的 River 中（§9）。
+* **计数器。** 服务商的限流（§12）在同一台服务器上计数，键位于 `rate-limits:` 之下，每个固定窗口一次原子递增（`Valkey.Incr`），因此所有副本合起来遵守每个厂商的限额。与缓存不同，递增失败是错误：客户端随后在自己的进程中计数，直到服务器恢复应答。
 
 ---
 

@@ -117,7 +117,7 @@ Lago 用 `License.premium?`、`organization.premium_integrations` 或 `organizat
 | 健康与就绪端点 | `config/routes.rb`（`/health`、`/ready`） | apps/server | 已完成 | `/healthz`、`/readyz`；就绪检查 PostgreSQL、事件存储，以及使用时的 ClickHouse 与 Kafka |
 | Prometheus 指标端点 | `config/initializers/yabeda.rb` | apps/server | 已完成 | OpenTelemetry（默认 OTLP）与可选的 `/metrics` 读取器（`TANVO_METRICS_ENDPOINT`） |
 | 当前版本端点 | `app/graphql/resolvers/version_resolver.rb` | apps/server | 已完成 | `ServerService.GetServerInfo`：构建中的版本与修订 |
-| 对第三方 API 调用的限流 | `config/initializers/throttling.rb` | providers/*、apps/server | 已完成 | providers/apiclient 中按密钥的令牌桶（`x/time/rate`）：HubSpot 110 次/10 秒，Xero 60 次/分钟，NetSuite 10 次/秒，Anrok 9 次/秒，Avalara 10 次/秒。Xero 每租户每天 5000 次是按 UTC 日计的配额，窗口与 throttling gem 一样对齐纪元（`apiclient.Window`）；超出配额的调用以请求限制失败，由任务的请求限制规则重试，同 lago 的 `ThrottlingError`（`aggregator/base_service.rb:69-76`）；OAuth 交换不计入。联系人、发票、贷记单与付款同步任务（lago 中引入 `ConcurrencyThrottlable` 的任务）在整个部署中最多同时运行 5 个（`throttling.rb:10`）：每个任务持有 5 个槽位之一，即会话级咨询锁（libs/store `AcquireSlot`），找不到空槽的任务推迟一秒，同 sidekiq-throttled 1.4.0 在冷却期后重新入队。偏差：令牌桶与每日配额按服务器进程计数，而 lago 在 Rails.cache 中计数，由各 worker 共享。测试：providers/apiclient `TestWindows`、providers/xero `TestDailyLimit`、libs/store `TestAcquireSlot`、apps/server `TestSyncConcurrency` |
+| 对第三方 API 调用的限流 | `config/initializers/throttling.rb` | providers/*、apps/server | 已完成 | providers/apiclient 中按密钥的令牌桶（`x/time/rate`）：HubSpot 110 次/10 秒，Xero 60 次/分钟，NetSuite 10 次/秒，Anrok 9 次/秒，Avalara 10 次/秒。Xero 每租户每天 5000 次是按 UTC 日计的配额，窗口与 throttling gem 一样对齐纪元（`apiclient.Window`）；超出配额的调用以请求限制失败，由任务的请求限制规则重试，同 lago 的 `ThrottlingError`（`aggregator/base_service.rb:69-76`）；OAuth 交换不计入。联系人、发票、贷记单与付款同步任务（lago 中引入 `ConcurrencyThrottlable` 的任务）在整个部署中最多同时运行 5 个（`throttling.rb:10`）：每个任务持有 5 个槽位之一，即会话级咨询锁（libs/store `AcquireSlot`），找不到空槽的任务推迟一秒，同 sidekiq-throttled 1.4.0 在冷却期后重新入队。设置 `TANVO_CACHE_URL` 时，所有服务器进程都在该 Redis 或 Valkey 服务器上计数（`apiclient.Counter`，每个窗口一次原子递增；限流键经过哈希，因为 Anrok 的限流键就是其 API 密钥），同 lago 在 Rails.cache 中计数：速率变为 lago 对齐纪元的窗口（10 秒 110 次、每分钟 60 次、每秒 10 次或 9 次）；服务器出错时，每个进程退回自己的令牌桶与配额。偏差：超出速率的调用等待下一个窗口或令牌，而不是失败后重试其任务。测试：providers/apiclient `TestWindows`、`TestSharedWindows`、`TestSharedThrottle`，libs/cache `TestValkeyIncr`，providers/xero `TestDailyLimit`、libs/store `TestAcquireSlot`、apps/server `TestSyncConcurrency` |
 
 ### 1.7 客户
 
@@ -1106,7 +1106,7 @@ Lago 自己标记为废弃、只为旧数据保留，或作为死代码保留的
 | CS 管理与管理 REST | `tanvo admin` 命令；支持工具在 `ee/` 中 | 没有未经认证的本地端点 |
 | `LAGO_CREATE_ORG` 初始化变量 | `tanvo admin bootstrap` | 显式命令 |
 | 提供者回调的 OAuth 代理 | 回调由 `apps/server` 提供 | 自包含 |
-| 基于 Redis 的 `throttling` gem | 按提供者的令牌桶 | 没有 Redis 也能工作 |
+| 基于 Redis 的 `throttling` gem | 按提供者的限额，有缓存服务器时在其上计数，否则每个进程各自用令牌桶 | 没有 Redis 也能工作 |
 | Rails 缓存位于 Redis（`LAGO_REDIS_CACHE_*`，支持 Sentinel）或 Memcached（`LAGO_MEMCACHE_SERVERS`）上，否则每个容器各一份 | libs/cache 中的 `port.Cache`：设置 `TANVO_CACHE_URL` 时所有缓存使用同一台 Redis 或 Valkey 服务器（Sentinel、集群与 TLS 通过 URL 配置，Sentinel 自己的凭据在 `TANVO_CACHE_SENTINEL_USERNAME` 与 `TANVO_CACHE_SENTINEL_PASSWORD` 中），否则每个进程各一个 LRU（[架构 §13.6](architecture.zh-CN.md#136-缓存)） | 一个客户端同时支持 Redis 与 Valkey；Memcached 只会多一种协议，不带来任何功能 |
 | API 密钥最近使用时间在每个请求中写入 Rails 缓存，每小时复制 | 每个 API 进程收集使用记录，每分钟记录到 `api_key_uses`，每小时按组织应用 | 没有 Redis 也能工作；按组织的工作受行级安全约束 |
 | Yabeda 指标 | OpenTelemetry 与 `/metrics` | 标准化的监测 |

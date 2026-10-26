@@ -383,7 +383,7 @@ Integrations call the vendors' APIs directly; Tanvo does not depend on an integr
 * `integrations.Taxes` is the billing engine's `kernel.TaxProvider`: drafts and previews are quoted (Anrok's answers kept in the cache, §13.6), finalized invoices and credit notes reported, voided invoices voided or negated.
 * Each job kind has the retry rules of its lago job (`integrations.RetryRules`: request limits, provider failures, timeouts after which NetSuite is searched before the record is created again, incomplete documents); other errors fail the job and deliver `integration.provider_error` or the customer error webhooks.
 * Errors are `*integration.ProviderError` with an `integration.ErrorKind`; `ErrRequestLimit` and `ErrRetryable` classify what is retried, `ErrAuthentication` a connection whose credentials fail. The API answers a provider's refusal with FailedPrecondition and the provider's code, and an operation the provider lacks with Unimplemented.
-* The adapters share `providers/apiclient`: one HTTP client per vendor, a rate limiter per connection (per tenant for Xero) that waits rather than fails, and the injected OTel providers.
+* The adapters share `providers/apiclient`: one HTTP client per vendor, a rate limiter per connection (per tenant for Xero) that waits rather than fails, counted across processes on the cache server when there is one (§13.6), and the injected OTel providers.
 
 ---
 
@@ -487,7 +487,7 @@ Settings are `TANVO_*` environment variables over an optional TOML file (`--conf
 | `TANVO_HUBSPOT_CLIENT_SECRET` | | Its client secret |
 | `TANVO_ANROK_DRAFT_TAXES_CACHE_TTL` | `24h` | How long Anrok's taxes of a draft invoice are kept for the same request; `0` turns the cache off |
 | `TANVO_ANALYTICS_CACHE_TTL` | `4h` | How long a computed analytics report is reused (§13.6); `0` turns the cache off |
-| `TANVO_CACHE_URL` | | Redis or Valkey server of every cache (§13.6): `redis://`, `rediss://`, `valkey://`, `valkeys://` or `unix://`; unset keeps the caches in each process |
+| `TANVO_CACHE_URL` | | Redis or Valkey server of every cache and of the provider rate limits (§13.6): `redis://`, `rediss://`, `valkey://`, `valkeys://` or `unix://`; unset keeps the caches in each process |
 | `TANVO_CACHE_PREFIX` | `tanvo:` | Prefix of every key on the cache server, for installations sharing one |
 | `TANVO_CACHE_CLIENT_SIDE_TTL` | `0` | Client-side caching (RESP3 tracking) of the cache server's entries for at most this long; `0` turns it off |
 | `TANVO_CACHE_SENTINEL_USERNAME`, `TANVO_CACHE_SENTINEL_PASSWORD` | | Credentials of the sentinels of a `TANVO_CACHE_URL` with `master_set`, independent of the server's credentials in the URL |
@@ -538,7 +538,8 @@ Each use keeps its namespace (`<prefix><name>:<key>`) and its own switch:
 * **Not cached.**
   * The price lookup of a subscription's charges is built from the charges the billing engine has already loaded.
   * Lists use cursor pagination, so there are no counts to cache.
-  * Jobs stay in River on PostgreSQL (§9), and the provider rate limiters stay in each process (§12).
+  * Jobs stay in River on PostgreSQL (§9).
+* **Counters.** The provider rate limits (§12) are counted on the same server, under `rate-limits:`, with one atomic increment per fixed window (`Valkey.Incr`), so that the replicas together keep to each vendor's limit. Unlike a cache, a failed increment is an error: the client then counts in its own process until the server answers.
 
 ---
 
