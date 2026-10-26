@@ -24,14 +24,15 @@
 | 5. Providers | Payment providers (Stripe, Adyen, GoCardless, Cashfree, Flutterwave, Moneyhash), accounting/CRM/tax integrations, streaming destinations | Recorded-fixture tests per provider; webhooks end to end | Done |
 | 6. Console | `apps/web`: the administration console on the Connect API, customer portal | Feature coverage matching the API | Not started |
 | 7. Enterprise and Cloud | `ee/*` services (analytics, assistant, MCP, revenue recognition, …), cells, RLS hardening, Helm charts | Cloud deployment runs the end-to-end suite | Not started |
-| 8. Beyond parity | The improvements of §4, learned from OpenMeter and Flexprice | Each one has its own design decision, tests and Parity row (marked as a Tanvo addition) | Not started; begins after phases 1–5 are done and tested |
+| 8. Beyond parity | The improvements of §4, learned from OpenMeter and Flexprice | Each one has its own design decision, tests and Parity row (marked as a Tanvo addition) | In progress: the items found necessary are done (§4) |
 
 ## 3. Current Status
 
 * Phases 1–5, the backend port of lago-api v1.55.0, are done. Every non-deprecated feature has its Tanvo module and is marked `done` in [Parity](parity.md), except the three x402 rows that v1.55.0 does not wire either (`logic done`), and the console (`apps/web`) and Enterprise (`ee/*`) rows of phases 6 and 7.
 * Every upstream spec case of the ported areas is either ported with its `source:` citation or skipped with a reason, as `tools/speccov` checks (0 uncovered).
 * `apps/server` runs every API resource over Connect and REST, the jobs and periodic schedule, ingestion in PostgreSQL and Kafka modes, documents, email, webhooks, payment providers, integrations and streaming destinations. End-to-end scenarios against PostgreSQL, ClickHouse and Redpanda containers cover billing cycles, charge models, progressive billing, prorations, credit notes, dunning, documents, ingestion, expressions, usage buckets and the providers.
-* `pnpm nx run-many -t buf-lint lint tidy-check build test` passes on all 36 projects in CI, and the generated code and WASM module match their sources.
+* `pnpm nx run-many -t buf-lint lint tidy-check build test` passes on all 38 projects in CI, and the generated code and WASM module match their sources.
+* Phase 8: the items of §4 found necessary are done (Kafka operations, migration safety, the ingestion barrier before periodic billing); the others are deferred or not adopted, with the reasons in §4.
 * Phases 6 (console) and 7 (Enterprise and Cloud) have not started.
 
 ## 4. After Parity: Lessons from OpenMeter and Flexprice
@@ -54,5 +55,24 @@ Two lessons were applied at once because they are lago-api's own current design:
 | 10 | Read replicas with writer pinning: after a request, message or job writes, its reads go to the primary | Flexprice | `store` |
 | 11 | Atlas migration lint in CI, test databases cloned from a template, webhook endpoints disabled after prolonged failure | OpenMeter | `store`, `webhooks` |
 | 12 | Tax-inclusive prices, customer tax exemption, windowed aggregations (maximum or sum per window, e.g. GPU hours or peak concurrency) | Flexprice | `pricing`, `tax`, `metering` |
+
+Decisions of October 2026. An item is done only where measurements or a concrete failure showed it necessary; the others wait for such evidence. Each addition is recorded in [Parity §5](parity.md#5-tanvo-additions) with what to check when porting newer lago releases.
+
+| # | Decision |
+| :--- | :--- |
+| 1 | **Partly done.** The gap that matters is a Kafka backlog at a billing boundary: the periodic billing of Kafka-mode organizations now waits for an ingestion barrier ([Architecture §7.1](architecture.md#71-ingestion-paths)). A cutoff stored on each invoice is deferred: lago's draft refreshes take late events on purpose |
+| 2 | **Not adopted.** It would change amounts that lago computes over the whole period |
+| 3 | **Not needed.** Invoices already have unique keys and fees are replaced atomically; lago's unique indexes of in-advance fees were added instead, scoped by subscription ([Parity §4](parity.md)) |
+| 4 | **Already the case.** A preview runs the billing code in a transaction that is rolled back |
+| 5 | **Deferred** to the console (phase 6), which would show the sub-states |
+| 6 | **Not needed now.** If profiling shows these balances slow, the usage buckets gain weighted-sum and unique-count states first |
+| 7 | **Not needed.** Lago expires whole wallets, and its consumption order is ported |
+| 8 | **Done:** consumer metrics (records by outcome, lag, retry age), isolation of rejected events and dead letter replay. **Already the case:** declared topics, partition key equal to the deduplication key. **Not adopted:** a dead-letter topic per consumer group (the dead letter records its source topic). **Deferred:** lanes for backfills and noisy tenants, per-topic configurations |
+| 9 | **Deferred** |
+| 10 | **Deferred** until a deployment needs read replicas |
+| 11 | **Done:** migration lint (Atlas analyzers and PostgreSQL lock checks) and the migration and query code checks in CI, a lock timeout for migrations, files without a transaction for concurrent indexes ([Development §4.1](development.md)). **Already the case:** test databases cloned from a template. **Deferred:** disabling failing webhook endpoints, which lago never does |
+| 12 | **Not adopted.** Customer tax exemption is already at parity; tax-inclusive prices and windowed aggregations would add API and amounts lago does not have |
+
+A measurement outside the list also led to a change: River's fetch cooldown capped each queue shard at 50 jobs a second, so it is now 25 ms and tunable ([Benchmarks §1](benchmarks.md#1-job-queue-river-and-a-redis-queue)).
 
 Not adopted: Ent with automatic migrations, uber/fx, Temporal, CEL expressions, a single encryption key, roles defined in a static file, an `environment_id` column on every row, webhook payloads built at delivery time, routing events by customer.
