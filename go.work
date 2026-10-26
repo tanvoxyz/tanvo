@@ -35,5 +35,6 @@ use (
 	./providers/stripe
 	./providers/x402
 	./providers/xero
+	./tools/queuebench
 	./tools/speccov
 )

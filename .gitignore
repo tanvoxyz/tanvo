@@ -9,6 +9,7 @@ node_modules/
 dist/
 /bin/
 /tools/speccov/speccov
+/tools/queuebench/qb
 target/
 *.test
 *.out
