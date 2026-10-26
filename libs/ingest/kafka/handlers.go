@@ -92,10 +92,20 @@ func decodeEnriched(recs []*kgo.Record, results []Result) ([]*ingest.Enriched, [
 // Writer returns the handler of the enriched events topic that stores
 // events: each polled batch is one [ingest.EventWriter.Write], which drops
 // the duplicates of stored events (by organization, external subscription
-// ID and transaction ID). After a successful write, the
-// batch's usage refresh signals go to signals (when not nil); a failed
+// ID and transaction ID). After a successful write, the usage refresh
+// signals of the stored events go to signals (when not nil); a failed
 // signal is logged, not retried, since the periodic sweep stays
-// authoritative. A failed write retries the batch.
+// authoritative.
+//
+// A failed write retries the batch, unless the store rejected the events
+// (an error wrapping [core.ErrInvalidValue]): the store rejects them
+// again until the store or the events change, so the batch is split in
+// halves, each written on its own, down to the records the store rejects
+// alone, which go to the dead letter topic ([ingest.ErrorReject]) while
+// the others are stored. A failure that is not a rejection (the store is
+// unreachable, times out or is overloaded) retries the part of the batch
+// not stored yet. The halves deduplicate like any write, so a record
+// stored by a failed write is not stored twice.
 func Writer(w ingest.EventWriter, signals ingest.UsageSignaler, logger *slog.Logger) Handler {
 	if logger == nil {
 		logger = slog.Default()
@@ -110,20 +120,60 @@ func Writer(w ingest.EventWriter, signals ingest.UsageSignaler, logger *slog.Log
 		for i, e := range events {
 			rows[i] = e.Metering()
 		}
-		if _, err := w.Write(ctx, rows); err != nil {
-			for _, i := range at {
-				results[i].Disposition, results[i].Code, results[i].Err = Retry, ingest.ErrorWrite, err
-			}
-			return results
-		}
+		iso := isolator{w: w, results: results, at: at}
+		iso.write(ctx, rows, 0)
 		if signals != nil {
-			if sig := ingest.Signals(events); len(sig) > 0 {
+			var stored []*ingest.Enriched
+			for j, e := range events {
+				if results[at[j]].Disposition == Done {
+					stored = append(stored, e)
+				}
+			}
+			if sig := ingest.Signals(stored); len(sig) > 0 {
 				if err := signals.SignalUsage(ctx, sig); err != nil {
 					logger.WarnContext(ctx, "kafka: signal usage", "error", err)
 				}
 			}
 		}
 		return results
+	}
+}
+
+// isolator writes a batch, splitting it around the events the store
+// rejects.
+type isolator struct {
+	w       ingest.EventWriter
+	results []Result
+	// at maps the rows to their records.
+	at []int
+	// failed is the error that stopped the writes, which the rows not
+	// written yet are retried with.
+	failed error
+}
+
+// write writes rows, the rows of the batch from first on.
+func (iso *isolator) write(ctx context.Context, rows []metering.Event, first int) {
+	if iso.failed == nil {
+		_, err := iso.w.Write(ctx, rows)
+		switch {
+		case err == nil:
+			return
+		case !errors.Is(err, core.ErrInvalidValue):
+			iso.failed = err
+		case len(rows) == 1:
+			r := &iso.results[iso.at[first]]
+			r.Disposition, r.Code, r.Err = Dead, ingest.ErrorReject, err
+			return
+		default:
+			mid := len(rows) / 2
+			iso.write(ctx, rows[:mid], first)
+			iso.write(ctx, rows[mid:], first+mid)
+			return
+		}
+	}
+	for j := range rows {
+		r := &iso.results[iso.at[first+j]]
+		r.Disposition, r.Code, r.Err = Retry, ingest.ErrorWrite, iso.failed
 	}
 }
 

@@ -172,6 +172,9 @@ const (
 	ErrorProduce = "produce_enriched"
 	// ErrorWrite: the events could not be written.
 	ErrorWrite = "write_events"
+	// ErrorReject: the event store rejected the event, which it will
+	// reject again until the store or the event changes.
+	ErrorReject = "reject_event"
 	// ErrorInAdvance: in-advance billing failed.
 	ErrorInAdvance = "bill_in_advance"
 )
