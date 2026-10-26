@@ -1,0 +1,1 @@
+ALTER TABLE fees ALTER COLUMN code TYPE varchar(64);

@@ -1,0 +1,1 @@
+ALTER TABLE fees DROP COLUMN note;

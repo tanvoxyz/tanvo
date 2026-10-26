@@ -23,6 +23,21 @@
 // and migrations/atlas.sum is rewritten. With -check it writes nothing and
 // fails when the directory is not up to date (used by CI).
 //
+// With -lint it checks the migrations that the merge base of HEAD and
+// -base (default $NX_BASE, else origin/main) does not have, so merged
+// migrations are never linted again: each is replayed statement by
+// statement and analyzed with Atlas's destructive, backward-incompatible,
+// data-dependent and constraint-drop analyzers and with the lock checks of
+// lint.go (indexes of existing tables built CONCURRENTLY in a file without
+// a transaction, constraints added NOT VALID, no table rewrite). Every
+// finding fails the run unless a reviewed directive opts out of it: a
+// comment "-- atlas:nolint [analyzer or code ...]" right before the
+// statement, or in the file header (followed by an empty line) for the
+// whole file.
+//
+// With -hash it rewrites migrations/atlas.sum, after a generated migration
+// was edited by hand (for instance to build its indexes CONCURRENTLY).
+//
 // The development databases live on the server of -dev-url, or of
 // TANVO_TEST_POSTGRES_DSN, or of a postgres:18 container started on the
 // local Docker engine and removed afterwards.
@@ -31,6 +46,8 @@
 //
 //	go run ./internal/cmd/migrate-diff -name add_wallets
 //	go run ./internal/cmd/migrate-diff -check
+//	go run ./internal/cmd/migrate-diff -lint
+//	go run ./internal/cmd/migrate-diff -hash
 package main
 
 import (
@@ -64,31 +81,51 @@ func main() {
 func run() error {
 	name := flag.String("name", "", "name of the new migration (required unless -check)")
 	check := flag.Bool("check", false, "fail when migrations/ is not up to date with schema/, writing nothing")
+	lintMode := flag.Bool("lint", false, "lint the migrations that are not on the base branch")
+	base := flag.String("base", "", "with -lint, the git revision whose merge base with HEAD holds the merged migrations (default $NX_BASE, else origin/main)")
+	hash := flag.Bool("hash", false, "rewrite atlas.sum from the migration files")
 	devURL := flag.String("dev-url", "", "superuser DSN of a PostgreSQL 18 server for the development databases")
 	schemaDir := flag.String("schema", "schema", "directory of the declarative schema")
 	migrationsDir := flag.String("migrations", "migrations", "migration directory")
 	flag.Parse()
-	if !*check && *name == "" {
-		return errors.New("-name is required")
+	modes := 0
+	for _, on := range []bool{*name != "", *check, *lintMode, *hash} {
+		if on {
+			modes++
+		}
+	}
+	if modes != 1 {
+		return errors.New("exactly one of -name, -check, -lint and -hash is required")
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
 	defer cancel()
 
-	server := *devURL
-	if server == "" {
-		dsn, stopServer, err := pgtest.Standalone(ctx)
+	if *hash {
+		dir, err := migrate.NewLocalDir(*migrationsDir)
 		if err != nil {
-			return err
+			return fmt.Errorf("open %s: %w", *migrationsDir, err)
 		}
-		defer func() {
-			if err := stopServer(context.WithoutCancel(ctx)); err != nil {
-				slog.WarnContext(ctx, "removing the development server", "error", err)
-			}
-		}()
-		server = dsn
+		sum, err := dir.Checksum()
+		if err != nil {
+			return fmt.Errorf("hash %s: %w", *migrationsDir, err)
+		}
+		if err := migrate.WriteSumFile(dir, sum); err != nil {
+			return fmt.Errorf("write atlas.sum: %w", err)
+		}
+		slog.InfoContext(ctx, "wrote atlas.sum")
+		return nil
 	}
+	if *lintMode {
+		return runLint(ctx, *devURL, *migrationsDir, *base)
+	}
+
+	server, stopServer, err := devServer(ctx, *devURL)
+	if err != nil {
+		return err
+	}
+	defer stopServer()
 
 	dir, err := migrate.NewLocalDir(*migrationsDir)
 	if err != nil {
@@ -185,6 +222,69 @@ func run() error {
 	return nil
 }
 
+// devServer returns the superuser DSN of the server of the development
+// databases: devURL, or else a server started by pgtest.Standalone, which
+// the returned function removes.
+func devServer(ctx context.Context, devURL string) (string, func(), error) {
+	if devURL != "" {
+		return devURL, func() {}, nil
+	}
+	dsn, stop, err := pgtest.Standalone(ctx)
+	if err != nil {
+		return "", nil, err
+	}
+	return dsn, func() {
+		if err := stop(context.WithoutCancel(ctx)); err != nil {
+			slog.WarnContext(ctx, "removing the development server", "error", err)
+		}
+	}, nil
+}
+
+// runLint lints the migrations of migrationsDir that are not on base.
+func runLint(ctx context.Context, devURL, migrationsDir, base string) error {
+	dir, err := migrate.NewLocalDir(migrationsDir)
+	if err != nil {
+		return fmt.Errorf("open %s: %w", migrationsDir, err)
+	}
+	if err := migrate.Validate(dir); err != nil {
+		return fmt.Errorf("validate %s: %w", migrationsDir, err)
+	}
+	files, err := dir.Files()
+	if err != nil {
+		return fmt.Errorf("list migrations: %w", err)
+	}
+	names, err := newMigrations(ctx, migrationsDir, files, base)
+	if err != nil {
+		return err
+	}
+	if len(names) == 0 {
+		slog.InfoContext(ctx, "no new migrations to lint")
+		return nil
+	}
+	server, stopServer, err := devServer(ctx, devURL)
+	if err != nil {
+		return err
+	}
+	defer stopServer()
+	db, err := openDev(ctx, server)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	findings, err := lint(ctx, db, files, func(f migrate.File) bool { return slices.Contains(names, f.Name()) })
+	if err != nil {
+		return err
+	}
+	for _, f := range findings {
+		fmt.Fprintf(os.Stderr, "%s/%s\n", migrationsDir, f)
+	}
+	if len(findings) > 0 {
+		return fmt.Errorf("%d migration lint findings above in %s; fix them, or opt out of a reviewed one with -- atlas:nolint <analyzer or code>", len(findings), strings.Join(names, ", "))
+	}
+	slog.InfoContext(ctx, "migrations lint clean", "files", names)
+	return nil
+}
+
 // openDev creates an empty database on the server and opens it.
 func openDev(ctx context.Context, server string) (*sql.DB, error) {
 	dsn, err := pgtest.CreateDatabase(ctx, server)
@@ -225,8 +325,8 @@ func replay(ctx context.Context, db *sql.DB, dir migrate.Dir) error {
 		return fmt.Errorf("list migrations: %w", err)
 	}
 	for _, f := range files {
-		if _, err := db.ExecContext(ctx, string(f.Bytes())); err != nil {
-			return fmt.Errorf("replay %s: %w", f.Name(), err)
+		if err := execFile(ctx, db, f); err != nil {
+			return fmt.Errorf("replay %w", err)
 		}
 	}
 	return nil

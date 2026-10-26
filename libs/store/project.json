@@ -36,6 +36,20 @@
       "cache": true,
       "inputs": ["go", "{projectRoot}/schema/*.sql", "{projectRoot}/migrations/*"]
     },
+    "migrate-lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go run ./internal/cmd/migrate-diff -lint",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "migrate-hash": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "go run ./internal/cmd/migrate-diff -hash",
+        "cwd": "{projectRoot}"
+      }
+    },
     "test": {
       "inputs": ["go", "goTestdata", "{projectRoot}/schema/*.sql", "{projectRoot}/queries/*.sql", "{projectRoot}/migrations/*", { "env": "TANVO_TEST_POSTGRES_DSN" }, { "env": "TANVO_STORE_TEST_SCHEMA" }]
     }
