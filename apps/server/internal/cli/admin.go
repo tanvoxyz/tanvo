@@ -32,7 +32,7 @@ func newAdmin(env *Env, file *string) *cobra.Command {
 		Short: "Administer the installation",
 		Args:  cobra.NoArgs,
 	}
-	admin.AddCommand(newBootstrap(env, file), newServiceTokenKey(env, file))
+	admin.AddCommand(newBootstrap(env, file), newServiceTokenKey(env, file), newGrantAnalytics(env, file))
 	return admin
 }
 
@@ -90,6 +90,39 @@ func newServiceTokenKey(env *Env, file *string) *cobra.Command {
 		},
 	}
 	cmd.AddCommand(generate, public)
+	return cmd
+}
+
+func newGrantAnalytics(env *Env, file *string) *cobra.Command {
+	var schema string
+	cmd := &cobra.Command{
+		Use:   "grant-analytics <role>",
+		Short: "Let a database role run the enterprise analytics service",
+		Long: "In the core database, create the schema --schema owned by <role>, which the analytics service migrates,\n" +
+			"and grant <role> USAGE on the core schema and SELECT on the export views (exports_*) and on the tables\n" +
+			"they read, as the views are security_invoker. The role must exist and must not bypass row-level\n" +
+			"security: it reads the rows of the organization it sets as tanvo.organization_id in each transaction.\n" +
+			"Running it again, after a migration adds views, grants what they need.",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			ctx := cmd.Context()
+			cfg, tel, err := setup(ctx, env, *file, "admin")
+			if err != nil {
+				return err
+			}
+			defer shutdownTelemetry(ctx, tel, &err)
+			res, err := app.GrantAnalytics(ctx, cfg, args[0], schema, tel.TracerProvider, tel.MeterProvider)
+			if err != nil {
+				tel.Logger.ErrorContext(ctx, "tanvo: grant analytics", "error", err)
+				return err
+			}
+			tel.Logger.InfoContext(ctx, "tanvo: grant analytics done", "role", args[0], "schema", schema, "views", len(res.Views), "tables", len(res.Tables))
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "core_schema: %s\nanalytics_schema: %s\nviews: %s\ntables: %s\n",
+				res.CoreSchema, schema, strings.Join(res.Views, ","), strings.Join(res.Tables, ","))
+			return err
+		},
+	}
+	cmd.Flags().StringVar(&schema, "schema", app.DefaultAnalyticsSchema, "schema of the analytics service, created owned by <role>")
 	return cmd
 }
 
