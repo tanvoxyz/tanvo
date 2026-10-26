@@ -7,10 +7,14 @@ import (
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"regexp"
+	"strconv"
 	"strings"
+	"time"
 
 	"ariga.io/atlas/sql/migrate"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -27,17 +31,55 @@ const migrateLockKey int64 = 0x74616e766f6d6967
 // revisionsTable records the applied migrations.
 const revisionsTable = "tanvo_schema_revisions"
 
+// DefaultLockTimeout is the lock_timeout of the migrations unless
+// [WithLockTimeout] sets another.
+const DefaultLockTimeout = 5 * time.Second
+
+// MigrateOption configures [Migrate].
+type MigrateOption func(*migrateConfig)
+
+type migrateConfig struct {
+	lockTimeout time.Duration
+}
+
+// WithLockTimeout sets the lock_timeout of each migration statement
+// (default [DefaultLockTimeout]); 0 waits for locks indefinitely. A
+// statement waiting for a lock queues every later lock request on its
+// table behind it, so a migration blocked by a long transaction would stop
+// the writes of the running release: with a timeout it fails instead, and
+// can be retried.
+func WithLockTimeout(d time.Duration) MigrateOption {
+	return func(c *migrateConfig) { c.lockTimeout = d }
+}
+
 // Migrate applies the embedded migrations that the database has not applied
-// yet, in version order, each in its own transaction. It holds an advisory
-// lock meanwhile, so concurrent server instances apply them once. It fails
-// when atlas.sum does not match the files, when an applied migration was
-// modified (merged migrations are never modified), or when the database has
-// applied a migration this binary does not know (it is older than the
-// database).
-func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
+// yet, in version order. It holds an advisory lock meanwhile, so concurrent
+// server instances apply them once. It fails when atlas.sum does not match
+// the files, when an applied migration was modified (merged migrations are
+// never modified), or when the database has applied a migration this binary
+// does not know (it is older than the database).
+//
+// Each file runs in its own transaction with a lock_timeout
+// ([WithLockTimeout]). A file whose header has the directive
+// "-- atlas:txmode none" runs without a transaction, one statement at a
+// time, so that it can hold CREATE INDEX CONCURRENTLY; its revision is
+// recorded once every statement has succeeded, so a failed file runs again
+// from its first statement, and its statements must be idempotent (IF NOT
+// EXISTS). A concurrent index build that failed leaves an invalid index:
+// before a CREATE INDEX CONCURRENTLY, an invalid index of the same name is
+// dropped, so the retry builds it again instead of skipping it.
+func Migrate(ctx context.Context, pool *pgxpool.Pool, opts ...MigrateOption) error {
 	files, sum, err := migrations()
 	if err != nil {
 		return err
+	}
+	return migrateFiles(ctx, pool, files, sum, opts...)
+}
+
+func migrateFiles(ctx context.Context, pool *pgxpool.Pool, files []migrate.File, sum migrate.HashFile, opts ...MigrateOption) error {
+	cfg := migrateConfig{lockTimeout: DefaultLockTimeout}
+	for _, o := range opts {
+		o(&cfg)
 	}
 	conn, err := pool.Acquire(ctx)
 	if err != nil {
@@ -77,22 +119,135 @@ func Migrate(ctx context.Context, pool *pgxpool.Pool) error {
 			}
 			continue
 		}
-		if err := pgx.BeginFunc(ctx, conn, func(tx pgx.Tx) error {
-			if _, err := tx.Exec(ctx, string(f.Bytes())); err != nil {
-				return mapErr(err)
-			}
-			_, err := tx.Exec(ctx, "INSERT INTO "+revisionsTable+" (version, description, checksum) VALUES ($1, $2, $3)",
-				f.Version(), f.Desc(), checksum)
-			return err
-		}); err != nil {
+		transactional, err := migrationTx(f)
+		if err != nil {
+			return fmt.Errorf("store: migrate: %s: %w", f.Name(), err)
+		}
+		if transactional {
+			err = applyInTx(ctx, conn.Conn(), f, checksum, cfg.lockTimeout)
+		} else {
+			err = applyWithoutTx(ctx, conn.Conn(), f, checksum, cfg.lockTimeout)
+		}
+		if err != nil {
 			return fmt.Errorf("store: migrate: apply %s: %w", f.Name(), err)
 		}
-		slog.InfoContext(ctx, "store: applied migration", "version", f.Version(), "description", f.Desc())
+		slog.InfoContext(ctx, "store: applied migration", "version", f.Version(), "description", f.Desc(), "transaction", transactional)
 	}
 	for v := range applied {
 		if !known[v] {
 			return fmt.Errorf("store: migrate: the database has applied migration %s, unknown to this version", v)
 		}
+	}
+	return nil
+}
+
+// migrationTx reports whether f runs in a transaction: it does unless its
+// header has the directive "-- atlas:txmode none".
+func migrationTx(f migrate.File) (bool, error) {
+	d, ok := f.(interface{ Directive(string) []string })
+	if !ok {
+		return true, nil
+	}
+	modes := d.Directive("txmode")
+	switch {
+	case len(modes) == 0:
+		return true, nil
+	case len(modes) > 1:
+		return false, errors.New("more than one atlas:txmode directive")
+	case modes[0] == "file":
+		return true, nil
+	case modes[0] == "none":
+		return false, nil
+	default:
+		return false, fmt.Errorf("unsupported atlas:txmode %q (want file or none)", modes[0])
+	}
+}
+
+// lockTimeoutSetting formats d for set_config('lock_timeout', …).
+func lockTimeoutSetting(d time.Duration) string {
+	return strconv.FormatInt(d.Milliseconds(), 10) + "ms"
+}
+
+func recordRevision(ctx context.Context, q interface {
+	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
+}, f migrate.File, checksum string,
+) error {
+	_, err := q.Exec(ctx, "INSERT INTO "+revisionsTable+" (version, description, checksum) VALUES ($1, $2, $3)",
+		f.Version(), f.Desc(), checksum)
+	return err
+}
+
+// applyInTx runs f and records its revision in one transaction.
+func applyInTx(ctx context.Context, conn *pgx.Conn, f migrate.File, checksum string, lockTimeout time.Duration) error {
+	return pgx.BeginFunc(ctx, conn, func(tx pgx.Tx) error {
+		if _, err := tx.Exec(ctx, "SELECT set_config('lock_timeout', $1, true)", lockTimeoutSetting(lockTimeout)); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx, string(f.Bytes())); err != nil {
+			return mapErr(err)
+		}
+		return recordRevision(ctx, tx, f, checksum)
+	})
+}
+
+// concurrentIndex matches CREATE INDEX CONCURRENTLY and captures the
+// index name.
+var concurrentIndex = regexp.MustCompile(`(?is)^\s*CREATE\s+(?:UNIQUE\s+)?INDEX\s+CONCURRENTLY\s+(?:IF\s+NOT\s+EXISTS\s+)?("(?:[^"]|"")+"|[a-z_][a-z0-9_$]*)`)
+
+// concurrentStmt matches the statements that run CONCURRENTLY: they never
+// block the writes of the table, but wait for the transactions in progress,
+// so they run without a lock_timeout.
+var concurrentStmt = regexp.MustCompile(`(?is)^\s*(?:CREATE\s+(?:UNIQUE\s+)?INDEX|DROP\s+INDEX|REINDEX\s+(?:\(.*?\)\s*)?(?:INDEX|TABLE))\s+CONCURRENTLY\b`)
+
+// applyWithoutTx runs the statements of f one at a time outside of a
+// transaction, then records its revision.
+func applyWithoutTx(ctx context.Context, conn *pgx.Conn, f migrate.File, checksum string, lockTimeout time.Duration) (err error) {
+	stmts, err := f.StmtDecls()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if _, rerr := conn.Exec(context.WithoutCancel(ctx), "RESET lock_timeout"); rerr != nil {
+			err = errors.Join(err, rerr)
+		}
+	}()
+	for _, s := range stmts {
+		timeout := lockTimeout
+		if concurrentStmt.MatchString(s.Text) {
+			timeout = 0
+		}
+		if _, err := conn.Exec(ctx, "SELECT set_config('lock_timeout', $1, false)", lockTimeoutSetting(timeout)); err != nil {
+			return err
+		}
+		if m := concurrentIndex.FindStringSubmatch(s.Text); m != nil {
+			if err := dropInvalidIndex(ctx, conn, m[1]); err != nil {
+				return err
+			}
+		}
+		if _, err := conn.Exec(ctx, s.Text); err != nil {
+			return fmt.Errorf("statement at offset %d: %w", s.Pos, mapErr(err))
+		}
+	}
+	return recordRevision(ctx, conn, f, checksum)
+}
+
+// dropInvalidIndex drops the index named name (an SQL identifier, quoted
+// or not) when it is invalid: a CREATE INDEX CONCURRENTLY that failed left
+// it, and CREATE INDEX CONCURRENTLY IF NOT EXISTS would skip it.
+func dropInvalidIndex(ctx context.Context, conn *pgx.Conn, name string) error {
+	var invalid bool
+	err := conn.QueryRow(ctx, `SELECT NOT i.indisvalid FROM pg_index i WHERE i.indexrelid = to_regclass($1)`, name).Scan(&invalid)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		return nil
+	case err != nil:
+		return fmt.Errorf("check index %s: %w", name, err)
+	case !invalid:
+		return nil
+	}
+	slog.WarnContext(ctx, "store: migrate: dropping an invalid index left by a failed concurrent build", "index", name)
+	if _, err := conn.Exec(ctx, "DROP INDEX CONCURRENTLY IF EXISTS "+name); err != nil {
+		return fmt.Errorf("drop invalid index %s: %w", name, err)
 	}
 	return nil
 }
