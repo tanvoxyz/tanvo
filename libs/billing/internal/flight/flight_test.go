@@ -137,6 +137,33 @@ func TestDoWaiterCancelled(t *testing.T) {
 	}
 }
 
+// TestDoMaxWait checks that a caller stops waiting on a computation that
+// needs what the caller holds (its connection, its locks) and computes on
+// its own, which frees the other.
+func TestDoMaxWait(t *testing.T) {
+	g := flight.Group[int]{MaxWait: 50 * time.Millisecond}
+	held := make(chan struct{})
+	inLeader := make(chan struct{})
+	leaderDone := make(chan int, 1)
+	go func() {
+		v, _, _ := g.Do(t.Context(), "k", func(context.Context) (int, error) {
+			close(inLeader)
+			<-held // what the waiter holds
+			return 1, nil
+		})
+		leaderDone <- v
+	}()
+	<-inLeader
+	v, leader, err := g.Do(t.Context(), "k", func(context.Context) (int, error) { return 2, nil })
+	if err != nil || v != 2 || !leader {
+		t.Errorf("waiter Do() got = %d, %v, %v, want = 2, true, nil", v, leader, err)
+	}
+	close(held)
+	if v := <-leaderDone; v != 1 {
+		t.Errorf("leader Do() got = %d, want = 1", v)
+	}
+}
+
 func TestDoError(t *testing.T) {
 	var g flight.Group[int]
 	boom := errors.New("boom")

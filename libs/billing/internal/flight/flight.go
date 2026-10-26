@@ -1,11 +1,13 @@
 package flight
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"runtime/debug"
 	"sync/atomic"
+	"time"
 
 	"golang.org/x/sync/singleflight"
 )
@@ -19,7 +21,20 @@ import (
 // bytes it decodes.
 type Group[T any] struct {
 	g singleflight.Group
+	// MaxWait bounds how long a caller waits on another caller's
+	// computation before it computes on its own; 0 is [DefaultMaxWait].
+	MaxWait time.Duration
 }
+
+// DefaultMaxWait is the [Group.MaxWait] of a zero Group. Callers wait
+// inside their own transactions, holding a pooled connection and maybe
+// locks that the shared computation needs; the bound turns such a cycle
+// into a delay instead of a deadlock.
+const DefaultMaxWait = time.Second
+
+// errAbandoned is the result of a call whose caller stopped waiting before
+// its function started: the callers that joined it compute again.
+var errAbandoned = errors.New("flight: computation abandoned")
 
 // Call states of [Group.Do]: whether the caller's own function started,
 // or the caller gave up before it did.
@@ -34,20 +49,22 @@ const (
 // reports whether the result is the one of this caller's own fn.
 //
 // A caller whose ctx ends while it waits on another caller's computation
-// returns ctx.Err() at once; one whose own fn is running waits for it, fn
+// returns ctx.Err() at once, and one that has waited [Group.MaxWait] runs
+// fn itself; one whose own fn is running waits for it, fn
 // seeing the same ctx, so that fn never outlives the caller (it may use
 // the caller's transaction). When the computation it shared fails with a
 // context error while its own ctx is still alive, the caller's work was
 // cut short by another caller's context, and it computes again. A panic in
 // fn is raised again in the caller that ran it; the others get an error.
 func (g *Group[T]) Do(ctx context.Context, key string, fn func(context.Context) (T, error)) (v T, leader bool, err error) {
+	wait := time.NewTimer(cmp.Or(g.MaxWait, DefaultMaxWait))
+	defer wait.Stop()
 	for {
 		var state atomic.Int32
 		ch := g.g.DoChan(key, func() (res any, err error) {
 			if !state.CompareAndSwap(pending, running) {
-				// The caller left before its turn came: the context error
-				// makes the callers that joined compute again.
-				return nil, ctx.Err()
+				// The caller left before its turn came.
+				return nil, errAbandoned
 			}
 			// singleflight crashes the process on a panic in a DoChan
 			// function; it is handed to the caller instead.
@@ -68,13 +85,20 @@ func (g *Group[T]) Do(ctx context.Context, key string, fn func(context.Context) 
 			}
 			// This caller's fn is running: it sees ctx end and stops soon.
 			r = <-ch
+		case <-wait.C:
+			if state.CompareAndSwap(pending, abandoned) {
+				v, err = fn(ctx)
+				return v, true, err
+			}
+			// This caller's fn is running: its result is the one to wait for.
+			r = <-ch
 		}
 		mine := state.Load() == running
 		if pe, ok := errors.AsType[*panicError](r.Err); ok && mine {
 			panic(pe.value)
 		}
 		if r.Err != nil {
-			if !mine && ctx.Err() == nil && isContextErr(r.Err) {
+			if !mine && ctx.Err() == nil && (isContextErr(r.Err) || errors.Is(r.Err, errAbandoned)) {
 				continue
 			}
 			var zero T
