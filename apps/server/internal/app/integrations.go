@@ -40,8 +40,8 @@ type integrationsWiring struct {
 	// docs renders the documents sent to NetSuite once [integrationsWiring.bind]
 	// gives it the billing engine's services.
 	docs *rpc.Documents
-	// slots bounds the concurrent sync jobs across the deployment; nil
-	// leaves them unbounded.
+	// slots bounds the concurrent sync jobs of each organization across
+	// the deployment; nil leaves them unbounded.
 	slots slotAcquirer
 }
 
@@ -179,7 +179,7 @@ func constantDelay(d time.Duration) jobs.Backoff { return func(int) time.Duratio
 // run runs an integration job with the service.
 func (w *integrationsWiring) run(ctx context.Context, j *jobs.Job[json.RawMessage]) error {
 	if w.slots != nil && integrations.ConcurrencyLimited(j.Kind) {
-		release, ok, err := w.slots.AcquireSlot(ctx, integrations.ConcurrencySlot, integrations.ConcurrencyLimit)
+		release, ok, err := w.slots.AcquireSlot(ctx, integrations.ConcurrencySlotOf(j.OrganizationID), integrations.ConcurrencyLimit)
 		if err != nil {
 			return err
 		}

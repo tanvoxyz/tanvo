@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/kernel"
+	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
@@ -67,13 +68,23 @@ func requestLimit(attempts int) Retry {
 
 func retryable(attempts int) Retry { return Retry{Match: is(ErrSyncRetryable), Attempts: attempts} }
 
-// ConcurrencyLimit is how many accounting and contact sync jobs run at
-// once across the deployment (lago config/initializers/throttling.rb:10,
-// the concurrency limit of the jobs including ConcurrencyThrottlable).
+// ConcurrencyLimit is how many accounting and contact sync jobs of one
+// organization run at once across the deployment (lago
+// config/initializers/throttling.rb:10, the concurrency limit of the jobs
+// including ConcurrencyThrottlable, which lago shares across every
+// organization).
 const ConcurrencyLimit = 5
 
-// ConcurrencySlot is the name of the slots [ConcurrencyLimited] jobs share.
+// ConcurrencySlot is the prefix of the slots [ConcurrencyLimited] jobs
+// share; [ConcurrencySlotOf] names the slots of one organization.
 const ConcurrencySlot = "integrations.sync"
+
+// ConcurrencySlotOf returns the name of the slots the [ConcurrencyLimited]
+// jobs of org share, so that one organization's backlog does not hold the
+// slots of the others.
+func ConcurrencySlotOf(org core.OrganizationID) string {
+	return ConcurrencySlot + "/" + org.String()
+}
 
 // ConcurrencyLimited reports whether jobs of kind share the
 // [ConcurrencyLimit]: the contact, invoice, credit note and payment syncs
