@@ -563,12 +563,13 @@ Each use keeps its namespace (`<prefix><name>:<key>`) and its own switch:
 
 Features behind Lago's premium license (progressive billing, wallets' advanced rules, integrations, e-invoicing, …) are part of the AGPL core with no gate. Only what Lago runs as private cloud services is implemented as enterprise services under ELv2, each a separate process that uses `libs/proto` contracts and read-only data (PostgreSQL views or ClickHouse):
 
-* Analytics and dashboards (revenue, MRR, usage, collections, forecasts), replacing Lago's private Data API and Superset.
-* The billing assistant: an AI agent with an MCP server exposing Tanvo's API.
+* Analytics and dashboards (MRR movements, revenue streams, prepaid credits, usage, revenue recognition), replacing Lago's private Data API and Superset.
+* An MCP server exposing Tanvo's API as tools, generated from the `libs/proto` descriptors.
+* The billing assistant: an AI agent over a pluggable model provider, using the MCP server, replacing Lago's finance assistant and AI conversations.
 * Warehouse sync: copying the core's read-only export views, with their deletion tombstones, to customer data warehouses, replacing Lago's private data pipeline ([Feature Parity §1.43](parity.md#143-data-exports)).
 * Customer-success tooling and the other private services listed in [Feature Parity §1.50](parity.md#150-lago-gates-and-their-tanvo-placement).
 
-Self-hosted installations enable them with an offline-verifiable license key (Ed25519-signed); Tanvo Cloud enables them per plan. The AGPL core contains no license checks.
+Self-hosted installations enable them with an offline-verifiable license key (Ed25519-signed); Tanvo Cloud enables them per plan. The AGPL core contains no license checks; it only issues the short-lived tokens these services accept. The order and design of each service are planned in [Roadmap §5](roadmap.md#5-phase-7-plan-what-lago-keeps-closed).
 
 ---
 

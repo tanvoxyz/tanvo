@@ -889,10 +889,12 @@ v1.55.0 中只有准入检查可达（`config/routes/shared_api.rb:174`）：路
 | 已开票用量 | `app/services/analytics/invoiced_usages_service.rb` | libs/billing、libs/store、apps/server | 已完成 | `AnalyticsService`。基于 PostgreSQL，按 `app/models/analytics/` 的 SQL，按月（UTC）、货币与计费指标计算；金额精确求和后截断。未知计费主体返回 NotFound，lago 则忽略它（`app/controllers/api/v1/analytics/base_controller.rb:31-33`）。不设高级版门槛；与 lago 一样不支持客户过滤 |
 | 逾期余额 | `app/services/analytics/overdue_balances_service.rb` | libs/billing、libs/store、apps/server | 已完成 | `AnalyticsService`。基于 PostgreSQL，按 `app/models/analytics/` 的 SQL，按付款到期月（UTC）、货币与计费主体（`billing_entity_id`）计算；金额精确求和后截断。未知计费主体返回 NotFound，lago 则忽略它（`app/controllers/api/v1/analytics/base_controller.rb:31-33`）。不设高级版门槛；可按 `customer_id`（lago 的 `external_customer_id`）与 `is_customer_tin_empty` 过滤 |
 | 分析缓存（4 小时） | `app/models/analytics/base.rb` | libs/billing、apps/server | 已完成 | libs/billing/analytics `Cache`：报表以其类型、当前 UTC 日期、组织与筛选条件为键（各模型的 `cache_key`）复用 4 小时（`TANVO_ANALYTICS_CACHE_TTL`，`0` 关闭）；API 与客户门户共用该缓存。客户的同类报表带有版本号，带 `expire_cache` 且指定客户的读取会先递增该版本，使所有变体重新计算（`base.rb:9-12`、`:28-60`）；不指定客户时 `expire_cache` 不起作用。`expire_cache` 出现在 GetGrossRevenue、GetOverdueBalance 以及门户的逾期余额与发票收款上，与 lago 的 resolver 一致。缓存位于 `TANVO_CACHE_URL` 的缓存服务器上，否则位于每个服务器进程中（架构 §13.6）。偏差：版本号是失效时刻的挂钟纳秒数，时钟未前进时取上一个版本加一，而非 lago 的秒数，因此同一秒内的两次失效都会重新计算。测试：apps/server/internal/rpc analytics_cache_test.go |
-| 按套餐的 MRR、预付额度、按客户与套餐的收入流、用量与聚合金额 | Data API（`app/services/data_api/`） | ee/analytics | 计划中 | |
-| 嵌入式仪表盘 | Superset 嵌入（`app/services/` 中的 superset） | ee/analytics | 计划中 | |
-| 用量预测 | 仅前端使用的高级版开关 | ee/analytics | 计划中 | |
-| 收入确认 | 仅前端使用的高级版开关 | ee/analytics | 计划中 | |
+| MRR 及其变动（新增、扩张、收缩、流失）与按套餐的 MRR | Data API（`app/services/data_api/mrrs_service.rb`、`mrrs/plans_service.rb`；字段见 `app/graphql/types/data_api/mrrs/`） | ee/analytics | 计划中 | Lago 转发给其私有 Data API（`LAGO_DATA_API_URL`）；公开的只有请求过滤条件与响应字段，因此口径由 Tanvo 自行定义（[路线图 §5](roadmap.zh-CN.md#5-阶段-7-计划lago-未开源的部分)） |
+| 收入流（总收入、净收入、优惠券、各类费用、收入抵减与额度），按客户、按套餐 | Data API（`revenue_streams_service.rb`、`revenue_streams/`） | ee/analytics | 计划中 | 同上 |
+| 预付额度（购买、赠送、消耗、作废；金额与数量） | Data API（`prepaid_credits_service.rb`） | ee/analytics | 计划中 | 同上 |
+| 用量、已开票用量与聚合金额，按日、周或月 | Data API（`usages_service.rb`、`usages/`）、`app/controllers/api/v1/data_api/usages_controller.rb` | ee/analytics | 计划中 | 同上。没有许可证时 lago 把用量限制为最近 30 天、按日（`usages_service.rb:25-38`）；Tanvo 没有这一限制 |
+| 嵌入式仪表盘（分析、收入确认） | `app/services/auth/superset_service.rb`、`app/graphql/resolvers/superset/`（`SUPERSET_URL`） | ee/analytics、apps/web | 计划中 | 由控制台基于分析 API 绘制图表，而非嵌入 Superset；仪表盘的查询位于 Lago 的私有 Superset 中 |
+| 收入确认 | `revenue_recognition` 之后的 Superset 仪表盘 “Revenue Recognition”（前端 `src/pages/dashboards/RevenueRecognition.tsx`） | ee/analytics | 计划中 | 按期间的已确认收入与递延收入；Lago 的查询是私有的，因此口径由 Tanvo 定义 |
 
 ### 1.45 日志
 
@@ -969,6 +971,9 @@ Lago 的每个时钟任务都成为一个 River 周期任务，或一个在到�
 | 加密提供者密钥与集成凭据 | `app/models/concerns/secrets_storable.rb` | libs/store | 已完成 | `auth.SecretBox`（libs/auth）：AES-256-GCM，以组织 ID 作为附加数据，用于集成、支付提供者、x402 连接与 SSO 连接 |
 | 供下游同步使用的删除记录 | `db/structure.sql`（`record_deletions`、`record_deletion()`）、`db/views/exports_record_deletions_v01.sql`、`app/jobs/clock/record_deletions_cleanup_job.rb` | libs/store, libs/billing | 已完成 | 被删除的费用、发票订阅、发票应用税与贷项通知单应用税的墓碑（`export.RecordDeletion`；费用税是费用的一列）。lago 用延迟 `AFTER DELETE` 触发器写入；本 schema 不含触发器，因此存储层记下语句可能删除的行，并在提交前的最后一条语句中为已不存在的行写墓碑，统一以一个 `clock_timestamp()` 打时间戳：回滚不写，晚提交者时间戳更晚，与触发器一致。memstore 比较提交前后的被跟踪行。`billing.Engine.CleanRecordDeletions` 在一个日历月后删除它们，每个事务 10 000 条，每天 01:20 运行。`exports_record_deletions` 视图（§1.43）导出它们；删除事件也写入 `audit_events` |
 | 发票上的错误详情（未提供、税务错误、税额作废错误、发票生成错误） | `app/models/error_detail.rb` | libs/core | 已完成 | `invoice.ErrorDetail`（未提供、税务错误、税额作废错误、发票生成错误）、`creditnote.ErrorDetail`（税务错误）与 `customer.ErrorDetail`（税务错误）分别由开票、贷项通知单与钱包刷新写入（表 `invoice_error_details`、`credit_note_error_details`、`customer_error_details`），并作为 `errors` 出现在发票、贷项通知单与客户 API 中（`V1::ErrorDetailSerializer`；错误码、JSON 详情、创建时间）。税务服务商无法解析客户地址时，钱包刷新任务为客户记录 `tax_error`（`customers/refresh_wallet_job.rb:43-64`），并跳过带此错误的客户，定时扫描亦然（`without_tax_errors`）；通过更新或 upsert（门户除外）修改地址会删除该错误（`customers/update_service.rb:154`、`upsert_from_api_service.rb:100`）；x402 网关以 `customer_not_refreshable` 拒绝该客户（`x402/gate_checks/check_service.rb:27`）。测试：`wallets/ongoing_test.go` `TestRefreshWalletTaxError`、`customers/service_test.go` `TestAddressChangeClearsTaxErrors`、`x402pay/gate_test.go`、porttest `customer error details`、`rpc/error_details_test.go`、`rpc/customers_test.go` `TestCustomerErrors` |
+| 财务助手：以解释与结果表回答问题，会话内可追问，结果可导出为 CSV（链接 7 天有效） | `app/services/finance_assistant/`（`LAGO_FINANCE_ASSISTANT_URL`）、`app/graphql/mutations/finance_assistant/` | ee/assistant | 计划中 | Lago 用组织权限最大的 API 密钥转发给私有服务（`ask_service.rb:96-98`）；Tanvo 交给助手一个按成员权限限定范围的短期令牌 |
+| 流式推送到控制台的 AI 对话，智能体的会话按成员保存 | `app/models/ai_conversation.rb`、`app/services/ai_conversations/`、`lib/lago_mcp_client/`（`MISTRAL_API_KEY`、`MISTRAL_AGENT_ID`、`LAGO_MCP_SERVER_URL`） | ee/assistant | 计划中 | Lago 的智能体配置在 Mistral 内部，工具来自 lago-api 之外的 MCP 服务器；Tanvo 接受任意模型提供方，并使用自己的 MCP 服务器（下一行） |
+| 把 API 暴露为工具的 MCP 服务器 | lago-api 之外（`LAGO_MCP_SERVER_URL`） | ee/mcp | 计划中 | 由 `libs/proto` 描述符生成：每个公开 RPC 一个工具，除非令牌授予写权限，否则只读 |
 | 带超时、重试与 SSRF 防护的出站 HTTP 客户端 | `lib/lago_http_client/` | libs/webhooks | 已完成 | `webhooks.NewClient`（地址防护、不跟随重定向、超时），由 `apps/server` 注入 webhook 发送器、OIDC 与提供者；重试由各调用方负责（webhook 任务、x402 的 `providers/x402/rpc.go`）。Kinesis 生产者只访问 AWS 端点，使用自己的客户端，带有 `lib/lago/kinesis/producer.rb` 的超时与重试（`kinesis.NewHTTPClient`） |
 
 ### 1.50 Lago 的开关及其在 Tanvo 中的归属
@@ -987,7 +992,8 @@ Lago 的每个时钟任务都成为一个 River 周期任务，或一个在到�
 | `order_forms` | 高级集成与功能开关 | 核心 | |
 | `revenue_share` | 高级集成 | 核心 | 合作伙伴账户与自开票 |
 | `revenue_analytics` | 高级集成 | 核心 | 每日用量与分析 API 在核心中；仪表盘在 ee/analytics |
-| `analytics_dashboards`、`forecasted_usage`、`revenue_recognition` | 高级集成（仅前端） | ee/analytics | |
+| `analytics_dashboards`、`revenue_recognition` | 高级集成（仅前端） | ee/analytics | Lago 中为 Superset 仪表盘 |
+| `forecasted_usage` | 高级集成 | 不移植 | v1.55.0 中没有行为（§2） |
 | Data API、Superset | 私有云服务 | ee/analytics | |
 | 财务助手、AI 对话 | 私有云服务 | ee/assistant | 带 MCP 服务器 |
 | CS 管理工具 | 私有云服务 | ee | 组织开关改为 `tanvo admin` 命令 |
@@ -1015,6 +1021,7 @@ Lago 自己标记为废弃、只为旧数据保留，或作为死代码保留的
 | 组织级文档设置（`eu_tax_management`、`email_settings`、按组织编号、宽限期、付款期限） | `app/models/organization.rb`、`app/jobs/invoices/update_grace_period_from_billing_entity_job.rb` | 已移到计费主体 |
 | `taxes.applied_to_organization` | `app/models/tax.rb` | 组织级税的兼容垫片 |
 | Data API 基础控制器 | `app/controllers/data_api/base_controller.rb` | 死代码 |
+| 用量预测 | `Organization::PREMIUM_INTEGRATIONS` 中的 `forecasted_usage`；前端 `LEGACY_APP_PATH_SEGMENTS` 保留 `forecasts` 仅为兼容旧书签 | v1.55.0 中没有代码读取该开关，也没有页面使用它；已发布的预测是预计用量（§1.19） |
 | 开关 `wallet_traceability`、`x402_reservation_counter_disabled`、`fixed_charge_usage_delta_migration` | `app/models/organization.rb` | 未使用或只用于迁移的开关 |
 | 已触发告警的 `resolved` 与种子类型 | `app/models/usage_monitoring/triggered_alert.rb` | v1.55.0 中从未产生：已触发告警的 `kind`（`triggered`、`resolved`、`seeded`）、`in_alarm_thresholds` 和 `fully_resolved` 列存在，但没有任何代码写入已解决或种子告警，也不发送 `alert.resolved` |
 | 管理 REST 控制器（只限本地） | `app/controllers/admin/` | 由 `tanvo admin` 取代 |

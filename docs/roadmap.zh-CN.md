@@ -76,3 +76,24 @@
 清单之外的一项测量也带来了改动：River 的取任务冷却期把每个队列分片限制在每秒 50 个任务，因此现在为 25 ms 且可调（[基准测试 §1](benchmarks.zh-CN.md#1-任务队列river-与-redis-队列)）。
 
 不采用：带自动迁移的 Ent、uber/fx、Temporal、CEL 表达式、单一加密密钥、静态文件定义的角色、每行都有 `environment_id` 列、投递时才构建的 webhook 载荷、按客户路由事件。
+
+## 5. 阶段 7 计划：Lago 未开源的部分
+
+2026 年 10 月对 lago-api v1.55.0 及其前端做了一次梳理，把 Lago 不开源的功能分为三类。阶段 7 排期后才开始；在此之前，本节就是计划。
+
+**有门控但代码开源。** 30 个 `Organization::PREMIUM_INTEGRATIONS`、`License.premium?` 与功能开关所控制的代码都在 lago-api 之中：渐进式计费、累计用量、预计用量、预览、自动催收、手动付款、收据、付款预授权、NetSuite、Xero、HubSpot、Salesforce、Avalara、Okta、Entra ID、自定义角色、API 密钥权限、安全日志、多开票主体、收入分成、订单表单、指向钱包的事件、发件地址与水印。这些已全部移植到 AGPL 核心，且不设门控（[功能对齐 §1.50](parity.zh-CN.md#150-lago-的开关及其在-tanvo-中的归属)）。`forecasted_usage` 在 v1.55.0 中不控制任何东西，不移植（[功能对齐 §2](parity.zh-CN.md#2-已废弃且不移植)）。
+
+**以自包含设计取代。** 这类是 Lago 自己托管、而自托管的 Tanvo 不应依赖的服务：许可证服务器（`LAGO_LICENSE_URL`）、Nango、OAuth 代理、Segment 跟踪，以及 CS 管理工具及其 Slack 通知。它们已被取代：核心中没有许可证检查，改为直连各提供方的客户端，回调由 `apps/server` 提供，安装实例不发送遥测，并以 `tanvo admin` 取代管理工具（[功能对齐 §3.2](parity.zh-CN.md#32-组件)）。
+
+**逻辑在 lago-api 之外。** 公开的只有客户端一侧：请求过滤条件、响应字段、权限与环境变量。这些功能成为 `ee/` 下的企业服务。每个服务是独立进程，只导入 `libs/proto`（[架构 §14](architecture.zh-CN.md#14-企业版ee)）。Lago 的计算逻辑无从阅读，因此口径由 Tanvo 自行定义。每个口径写入[领域模型](domain.zh-CN.md)，并用 Tanvo 自己的用例测试，因为没有可移植的 lago 测试。
+
+| 顺序 | 服务 | 取代 Lago 的 | 计划 |
+| :--- | :--- | :--- | :--- |
+| 1 | `ee/license`（库） | `LAGO_LICENSE` 与许可证服务器 | 离线校验的 Ed25519 签名密钥，载有被许可方、到期时间与所启用的服务。每个 `ee/*` 服务在启动时及每天校验一次。Tanvo Cloud 按套餐签发密钥 |
+| 2 | `libs/proto` 中的契约 | Data API 的 REST 接口，以及 GraphQL 中的 `FinanceAssistant*` 与 `AiConversation*` | `tanvo.analytics.v1` 与 `tanvo.assistant.v1` 两个包，采用 Apache-2.0。核心签发短期签名令牌，方式与门户令牌相同。令牌载明组织、成员及其权限（`data_api:view`、`ai_conversations:create`）。服务用核心的公钥校验令牌，从不接收 API 密钥 |
+| 3 | `ee/mcp` | `LAGO_MCP_SERVER_URL` 所指的 MCP 服务器 | 由 `libs/proto` 描述符生成：每个公开 RPC 一个工具，输入模式取自请求消息，描述取自文档注释。除非令牌授予写权限，否则隐藏写操作工具。支持 Streamable HTTP 与 stdio，以调用者的令牌调用核心的 Connect API |
+| 4 | `ee/analytics` | Data API（`LAGO_DATA_API_URL`）、Superset 与收入确认仪表盘 | 通过只读 PostgreSQL 角色读取核心的导出视图（`exports_*`，[功能对齐 §1.43](parity.zh-CN.md#143-数据导出)），配置了 ClickHouse 副本时则读副本。它以 lago 的过滤条件与时间粒度回答八个 Data API 报表：MRR 及其变动、按套餐的 MRR、按客户与按套餐的收入流、预付额度、用量、已开票用量与聚合金额。另有收入确认报表，给出按期间的已确认收入与递延收入：费用在其服务期间内分摊，用量在发生时计入。金额保持精确（`money.Decimal`）。图表由控制台绘制（阶段 6），不嵌入 Superset。黄金测试基于一个预置数据的组织运行 |
+| 5 | `ee/assistant` | 财务助手（`LAGO_FINANCE_ASSISTANT_URL`）与 AI 对话（Mistral 与 `lib/lago_mcp_client`） | 基于可插拔模型提供方的智能体循环：Anthropic、OpenAI、Mistral，或任何兼容 OpenAI 的端点。工具来自 `ee/mcp`，数值问题由 `ee/analytics` 回答。会话与消息按成员存于它自己的模式中，回答通过 Connect 服务端流式推送。结果可导出为 CSV，存入对象存储，链接 7 天有效，与 lago 相同。测试回放录制的模型响应 |
+| 6 | `ee/pipeline` | Lago 的数据管道 | 把导出视图及其删除记录增量复制到客户的数据仓库：S3（Parquet）、BigQuery、Snowflake 与 ClickHouse（[功能对齐 §1.43](parity.zh-CN.md#143-数据导出)） |
+
+核心只需要第 1、2 项：令牌签发与契约。服务 3 至 6 互不依赖，只有助手要用 MCP 服务器。它们可以按上述顺序交给不同的代理分别实现。
