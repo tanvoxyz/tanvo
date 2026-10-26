@@ -209,6 +209,10 @@ func testInvoice(t *testing.T, h Harness) {
 		t.Parallel()
 		testInvoiceFees(t, h)
 	})
+	t.Run("fees in advance key", func(t *testing.T) {
+		t.Parallel()
+		testInvoiceFeesInAdvanceKey(t, h)
+	})
 	t.Run("applied taxes", func(t *testing.T) {
 		t.Parallel()
 		testInvoiceAppliedTaxes(t, h)
@@ -828,6 +832,60 @@ func testInvoiceFees(t *testing.T, h Harness) {
 			return r.Fees.Create(ctx, orphan)
 		}), core.ErrNotFound)
 	}
+}
+
+// testInvoiceFeesInAdvanceKey checks that a subscription bills an event at
+// most once per charge (and filter) or contract rate card in advance.
+// The unique indexes idx_pay_in_advance_duplication_guard_charge, _charge_filter
+// and idx_pay_in_advance_product_card_event of db/structure.sql.
+func testInvoiceFeesInAdvanceKey(t *testing.T, h Harness) {
+	e := newEnv(t, h)
+	_, be := e.org("Acme")
+	p := invoiceFixtureParents(e, be)
+	charge := core.NewID[core.ChargeID](e.ids)
+	fee := func(sub core.SubscriptionID, tx string, mod func(*invoice.Fee)) *invoice.Fee {
+		f := invoiceFixtureFee(e, p, core.InvoiceID{}, now)
+		f.SubscriptionID, f.ChargeID = sub, charge
+		f.PayInAdvance, f.PayInAdvanceEventTransactionID = true, tx
+		if mod != nil {
+			mod(f)
+		}
+		return f
+	}
+	sub, other := p.subscriptions[0], p.subscriptions[1]
+	filter := core.NewID[core.ChargeFilterID](e.ids)
+	card := core.NewID[core.SubscriptionRateCardID](e.ids)
+	withFilter := func(f *invoice.Fee) { f.ChargeFilterID = filter }
+	onCard := func(f *invoice.Fee) { f.Type, f.ChargeID, f.SubscriptionRateCardID = core.FeeTypeProduct, core.ChargeID{}, card }
+	first := fee(sub, "tx", nil)
+	for _, c := range []struct {
+		name string
+		f    *invoice.Fee
+		err  error
+	}{
+		{"first", first, nil},
+		{"same event and charge", fee(sub, "tx", nil), core.ErrConflict},
+		{"other event", fee(sub, "tx-2", nil), nil},
+		{"other subscription", fee(other, "tx", nil), nil},
+		{"filter", fee(sub, "tx", withFilter), nil},
+		{"same filter", fee(sub, "tx", withFilter), core.ErrConflict},
+		{"rate card", fee(sub, "tx", onCard), nil},
+		{"same rate card", fee(sub, "tx", onCard), core.ErrConflict},
+		{"in arrears", fee(sub, "tx", func(f *invoice.Fee) { f.PayInAdvance = false }), nil},
+		{"regenerated", fee(sub, "tx", func(f *invoice.Fee) { f.OriginalFeeID = first.ID }), nil},
+	} {
+		err := e.txErr(func(ctx context.Context, r port.Repos) error { return r.Fees.Create(ctx, c.f) })
+		if c.err == nil {
+			noErr(t, "Create() "+c.name, err)
+		} else {
+			wantErr(t, "Create() "+c.name, err, c.err)
+		}
+	}
+	// An update into a taken key conflicts too.
+	moved := fee(sub, "tx-3", nil)
+	e.tx(func(ctx context.Context, r port.Repos) error { return r.Fees.Create(ctx, moved) })
+	moved.PayInAdvanceEventTransactionID = "tx"
+	wantErr(t, "Update() into a taken key", e.txErr(func(ctx context.Context, r port.Repos) error { return r.Fees.Update(ctx, moved) }), core.ErrConflict)
 }
 
 func testInvoiceAppliedTaxes(t *testing.T, h Harness) {

@@ -238,6 +238,19 @@ CREATE INDEX fees_true_up_parent_fee_idx ON fees (organization_id, true_up_paren
 CREATE INDEX fees_original_fee_idx ON fees (organization_id, original_fee_id) WHERE original_fee_id IS NOT NULL;
 CREATE INDEX fees_event_transaction_idx ON fees (organization_id, subscription_id, pay_in_advance_event_transaction_id)
   WHERE pay_in_advance_event_transaction_id IS NOT NULL;
+-- One pay-in-advance fee per event and charge (and filter), or per event and
+-- contract rate card: the guard behind the event lock of in-advance billing.
+-- The subscription is part of the key since transaction IDs are unique per
+-- subscription.
+CREATE UNIQUE INDEX fees_in_advance_charge_event_key ON fees (organization_id, subscription_id, pay_in_advance_event_transaction_id, charge_id)
+  WHERE pay_in_advance AND pay_in_advance_event_transaction_id IS NOT NULL AND charge_filter_id IS NULL
+    AND original_fee_id IS NULL AND deleted_at IS NULL;
+CREATE UNIQUE INDEX fees_in_advance_charge_filter_event_key ON fees (organization_id, subscription_id, pay_in_advance_event_transaction_id, charge_id, charge_filter_id)
+  WHERE pay_in_advance AND pay_in_advance_event_transaction_id IS NOT NULL AND charge_filter_id IS NOT NULL
+    AND original_fee_id IS NULL AND deleted_at IS NULL;
+CREATE UNIQUE INDEX fees_in_advance_rate_card_event_key ON fees (organization_id, subscription_id, pay_in_advance_event_transaction_id, subscription_rate_card_id)
+  WHERE pay_in_advance AND pay_in_advance_event_transaction_id IS NOT NULL AND charge_id IS NULL AND subscription_rate_card_id IS NOT NULL
+    AND original_fee_id IS NULL AND deleted_at IS NULL;
 -- The unbilled pay-in-advance fees regrouped by advance-charges invoices.
 CREATE INDEX fees_unbilled_in_advance_idx ON fees (organization_id, created_at)
   WHERE invoice_id IS NULL AND pay_in_advance AND invoiceable AND payment_status = 'succeeded' AND deleted_at IS NULL;

@@ -465,6 +465,9 @@ func (r feeRepo) Create(_ context.Context, f *invoice.Fee) error {
 	if r.d.fees.has(f.ID) {
 		return conflict("fee", "id")
 	}
+	if r.inAdvanceTaken(f) {
+		return conflict("fee", "pay_in_advance_event_transaction_id")
+	}
 	r.d.fees.put(f.ID, *f)
 	return nil
 }
@@ -474,8 +477,47 @@ func (r feeRepo) Update(_ context.Context, f *invoice.Fee) error {
 	if !ok || cur.OrganizationID != f.OrganizationID || cur.DeletedAt != nil {
 		return notFound("fee", f.ID)
 	}
+	if r.inAdvanceTaken(f) {
+		return conflict("fee", "pay_in_advance_event_transaction_id")
+	}
 	r.d.fees.put(f.ID, *f)
 	return nil
+}
+
+// inAdvanceTaken reports whether another live fee holds f's pay-in-advance
+// key: its event and charge (and filter), or its event and contract rate
+// card (the unique indexes fees_in_advance_*_event_key).
+func (r feeRepo) inAdvanceTaken(f *invoice.Fee) bool {
+	k, ok := inAdvanceKey(f)
+	return ok && r.d.fees.any(func(x *invoice.Fee) bool {
+		xk, ok := inAdvanceKey(x)
+		return ok && x.ID != f.ID && x.OrganizationID == f.OrganizationID && xk == k
+	})
+}
+
+type feeInAdvanceKey struct {
+	subscription core.SubscriptionID
+	transaction  string
+	charge       core.ChargeID
+	filter       core.ChargeFilterID
+	card         core.SubscriptionRateCardID
+}
+
+func inAdvanceKey(f *invoice.Fee) (feeInAdvanceKey, bool) {
+	if !f.PayInAdvance || f.PayInAdvanceEventTransactionID == "" || !f.OriginalFeeID.IsZero() || f.DeletedAt != nil {
+		return feeInAdvanceKey{}, false
+	}
+	k := feeInAdvanceKey{subscription: f.SubscriptionID, transaction: f.PayInAdvanceEventTransactionID}
+	switch {
+	case !f.ChargeID.IsZero():
+		k.charge, k.filter = f.ChargeID, f.ChargeFilterID
+	case !f.SubscriptionRateCardID.IsZero():
+		k.card = f.SubscriptionRateCardID
+	default:
+		return feeInAdvanceKey{}, false
+	}
+	// A NULL subscription is distinct from every other in PostgreSQL.
+	return k, !f.SubscriptionID.IsZero()
 }
 
 func (r feeRepo) Get(_ context.Context, org core.OrganizationID, id core.FeeID) (*invoice.Fee, error) {
