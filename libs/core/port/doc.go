@@ -2,11 +2,13 @@
 // the transaction boundary with every repository ([Transactor], [Repos]),
 // advisory locks, document sequences, the job queue, the clock and ID
 // generator (re-exported from core), the document renderer, the blob store,
-// the mailer, the webhook emitter and the best-effort [Cache].
+// the mailer, the webhook emitter, the best-effort [Cache] and the
+// concurrency [Slots].
 //
 // libs/store implements [Transactor] on PostgreSQL and libs/core/memstore
 // in memory; libs/cache implements [Cache] in the process and on Redis or
-// Valkey; apps/server wires the other ports.
+// Valkey; both implement [Slots] with leases; apps/server wires the other
+// ports.
 //
 // The event store is not a port of this package: aggregation over usage
 // events goes through metering.Store in libs/metering, which core does not
