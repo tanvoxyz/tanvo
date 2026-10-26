@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/internal/cachecodec"
+	"github.com/tanvoxyz/tanvo/libs/billing/internal/flight"
 	"github.com/tanvoxyz/tanvo/libs/core/integration"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
@@ -34,10 +35,14 @@ const draftTaxCacheVersion = "1"
 // Valkey: with a shared backend every server replica reuses the answers
 // any of them received. A nil *DraftTaxCache caches nothing. It is safe
 // for concurrent use.
+//
+// Concurrent misses of one process on the same request ask the provider
+// once ([DraftTaxCache.quote]).
 type DraftTaxCache struct {
-	c   port.Cache
-	ttl time.Duration
-	now func() time.Time
+	c      port.Cache
+	ttl    time.Duration
+	now    func() time.Time
+	flight flight.Group[[]byte]
 }
 
 // draftTaxEntry is the encoding of a kept answer.
@@ -93,20 +98,32 @@ func (c *DraftTaxCache) get(ctx context.Context, key string, t *integration.TaxT
 	if !ok {
 		return nil, false
 	}
-	var e draftTaxEntry
-	if err := cachecodec.Unmarshal(b, &e); err != nil || e.Result == nil || !c.now().Before(e.Expires) {
+	e, ok := decodeDraftTax(b, t)
+	if !ok || e.Result == nil || !c.now().Before(e.Expires) {
 		// An answer past its TTL, or written by another version, is a miss.
 		c.c.Delete(ctx, key)
 		return nil, false
 	}
-	// The provider answers lines in the order they were sent
-	// (draft_taxes_cache_service.rb:79-89).
-	for n := range e.Result.Lines {
-		if n < len(t.Lines) {
-			e.Result.Lines[n].ItemKey, e.Result.Lines[n].ItemID = t.Lines[n].ItemKey, t.Lines[n].ItemID
+	return e.Result, true
+}
+
+// decodeDraftTax decodes the entry b, giving its lines the identifiers of
+// t.
+func decodeDraftTax(b []byte, t *integration.TaxTransaction) (draftTaxEntry, bool) {
+	var e draftTaxEntry
+	if err := cachecodec.Unmarshal(b, &e); err != nil {
+		return draftTaxEntry{}, false
+	}
+	if e.Result != nil {
+		// The provider answers lines in the order they were sent
+		// (draft_taxes_cache_service.rb:79-89).
+		for n := range e.Result.Lines {
+			if n < len(t.Lines) {
+				e.Result.Lines[n].ItemKey, e.Result.Lines[n].ItemID = t.Lines[n].ItemKey, t.Lines[n].ItemID
+			}
 		}
 	}
-	return e.Result, true
+	return e, true
 }
 
 // put caches res under key when it carries lines
@@ -122,4 +139,48 @@ func (c *DraftTaxCache) put(ctx context.Context, key string, res *integration.Ta
 		return
 	}
 	c.c.Set(ctx, key, b, c.ttl)
+}
+
+// quote returns the answer to t cached under key, else asks the provider
+// with ask and caches its answer. Concurrent callers of the process
+// missing the same key share one request to the provider, each getting
+// an answer of its own with its own line identifiers. Without a key
+// (cache off, or not Anrok) it only asks.
+func (c *DraftTaxCache) quote(
+	ctx context.Context, key string, t *integration.TaxTransaction,
+	ask func(context.Context) (*integration.TaxResult, error),
+) (*integration.TaxResult, error) {
+	if key == "" {
+		return ask(ctx)
+	}
+	if res, ok := c.get(ctx, key, t); ok {
+		return res, nil
+	}
+	var res *integration.TaxResult
+	enc, leader, err := c.flight.Do(ctx, key, func(ctx context.Context) ([]byte, error) {
+		var err error
+		if res, err = ask(ctx); err != nil {
+			return nil, err
+		}
+		c.put(ctx, key, res)
+		// The answer is encoded for the callers sharing it before its
+		// caller can change it; one that does not encode makes each of
+		// them ask on its own.
+		b, err := cachecodec.Marshal(draftTaxEntry{Result: res})
+		if err != nil {
+			return nil, nil
+		}
+		return b, nil
+	})
+	switch {
+	case err != nil:
+		return nil, err
+	case leader:
+		return res, nil
+	}
+	e, ok := decodeDraftTax(enc, t)
+	if enc == nil || !ok {
+		return ask(ctx)
+	}
+	return e.Result, nil
 }

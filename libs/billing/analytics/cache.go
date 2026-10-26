@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/internal/cachecodec"
+	"github.com/tanvoxyz/tanvo/libs/billing/internal/flight"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/analytics"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
@@ -31,9 +32,13 @@ const versionTTL = 24 * time.Hour
 // on Redis or Valkey: with a shared backend every server replica reuses
 // the reports any of them computed, and an expiring read on one replica
 // is seen by all. It is safe for concurrent use.
+//
+// Concurrent misses of one process on the same report compute it once,
+// every caller decoding rows of its own from the shared encoding.
 type Cache struct {
-	c   port.Cache
-	ttl time.Duration
+	c      port.Cache
+	ttl    time.Duration
+	flight flight.Group[[]byte]
 }
 
 // cacheEntry is the encoding of a kept report.
@@ -140,16 +145,34 @@ func cached[T any](ctx context.Context, c *Cache, kind string, org core.Organiza
 		// A report past its TTL, or written by another version, is a miss.
 		c.c.Delete(ctx, key)
 	}
-	rows, err := compute()
-	if err != nil {
-		return nil, err
-	}
-	// Rows always encode; were they not to, the report is recomputed next
-	// time.
-	if b, err := cachecodec.Marshal(cacheEntry[T]{Rows: rows, Expires: sc.Now.Add(c.ttl)}); err == nil {
+	var rows []T
+	enc, leader, err := c.flight.Do(ctx, key, func(context.Context) ([]byte, error) {
+		var err error
+		if rows, err = compute(); err != nil {
+			return nil, err
+		}
+		b, err := cachecodec.Marshal(cacheEntry[T]{Rows: rows, Expires: sc.Now.Add(c.ttl)})
+		if err != nil {
+			// Rows always encode; were they not to, the report is
+			// recomputed next time, and each caller sharing it computes
+			// its own.
+			return nil, nil
+		}
 		c.c.Set(ctx, key, b, c.ttl)
+		return b, nil
+	})
+	switch {
+	case err != nil:
+		return nil, err
+	case leader:
+		return rows, nil
 	}
-	return rows, nil
+	// Another request computed the report: this one gets rows of its own.
+	var e cacheEntry[T]
+	if enc == nil || cachecodec.Unmarshal(enc, &e) != nil {
+		return compute()
+	}
+	return e.Rows, nil
 }
 
 func idOrEmpty[T interface {

@@ -173,15 +173,9 @@ func (t *Taxes) quote(ctx context.Context, e *taxEnv, tx *integration.TaxTransac
 	if e.anrok() {
 		key = t.cache.key(e.integ, tx)
 	}
-	if res, ok := t.cache.get(ctx, key, tx); ok {
-		return res, nil
-	}
-	res, err := e.gw.QuoteTaxes(ctx, e.conn, tx)
-	if err != nil {
-		return nil, err
-	}
-	t.cache.put(ctx, key, res)
-	return res, nil
+	return t.cache.quote(ctx, key, tx, func(ctx context.Context) (*integration.TaxResult, error) {
+		return e.gw.QuoteTaxes(ctx, e.conn, tx)
+	})
 }
 
 // taxableFees returns the fees in creation order (then by ID, then as

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/tanvoxyz/tanvo/libs/billing/internal/cachecodec"
+	"github.com/tanvoxyz/tanvo/libs/billing/internal/flight"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
@@ -20,9 +21,22 @@ import (
 // of them computed, the watermark keeping them exact. A nil *UsageCache
 // caches nothing. It is safe for concurrent use; the fees are copied in
 // and out.
+//
+// Concurrent misses of one process on the same bucket compute it once
+// ([UsageCache.Compute]), so that a burst of current-usage requests does
+// not aggregate the same events many times over.
 type UsageCache struct {
 	c       port.Cache
 	version string
+	flight  flight.Group[usageFlight]
+}
+
+// usageFlight is the result of a computation shared by [UsageCache.Compute]:
+// the entry, which only the caller that computed it receives, and its
+// encoding, which every other caller decodes into fees of its own.
+type usageFlight struct {
+	entry UsageCacheEntry
+	enc   []byte
 }
 
 // UsageCacheEntry is one cached bucket: its fees and the watermark they
@@ -93,4 +107,55 @@ func (u *UsageCache) Put(ctx context.Context, key string, e UsageCacheEntry, now
 		return
 	}
 	u.c.Set(ctx, key, b, ttl)
+}
+
+// Compute returns the entry of key computed by compute, and stores it
+// until its ExpiresAt when compute reports it may be kept. Concurrent
+// callers of the process with the same key and watermark (the ingestion
+// watermark each read, which makes them read the same events) share one
+// computation: the caller that ran it receives the entry compute
+// returned, the others a decoded copy, shared being true, whose fees they
+// must give identifiers and timestamps of their own as on a hit. An error
+// of compute is returned to every caller sharing it and is not stored.
+// now is the instant the caller started at, which bounds the entry's TTL.
+func (u *UsageCache) Compute(
+	ctx context.Context, key string, watermark, now time.Time,
+	compute func(context.Context) (e UsageCacheEntry, keep bool, err error),
+) (e UsageCacheEntry, shared bool, err error) {
+	if u == nil {
+		e, _, err = compute(ctx)
+		return e, false, err
+	}
+	fk := key + "@" + watermark.UTC().Format(time.RFC3339Nano)
+	res, leader, err := u.flight.Do(ctx, fk, func(ctx context.Context) (usageFlight, error) {
+		e, keep, err := compute(ctx)
+		if err != nil {
+			return usageFlight{}, err
+		}
+		// The encoding is made here, before any caller can change the
+		// fees.
+		b, encErr := cachecodec.Marshal(e)
+		if encErr != nil {
+			// Fees always encode; were one not to, the bucket is simply
+			// recomputed next time, and each caller sharing it computes
+			// its own.
+			return usageFlight{entry: e}, nil
+		}
+		if ttl := e.ExpiresAt.Sub(now); keep && ttl > 0 {
+			u.c.Set(ctx, key, b, ttl)
+		}
+		return usageFlight{entry: e, enc: b}, nil
+	})
+	switch {
+	case err != nil:
+		return UsageCacheEntry{}, false, err
+	case leader:
+		return res.entry, false, nil
+	}
+	var d UsageCacheEntry
+	if res.enc == nil || cachecodec.Unmarshal(res.enc, &d) != nil {
+		e, _, err = compute(ctx)
+		return e, false, err
+	}
+	return d, true, nil
 }

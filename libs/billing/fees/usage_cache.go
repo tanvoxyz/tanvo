@@ -33,7 +33,7 @@ const usageCacheSettleWindow = time.Second
 //
 // source: app/services/subscriptions/charge_cache_middleware.rb:16-53, app/services/cache_service.rb:21-38, :86-104
 func (s *Service) cachedBucketFees(ctx context.Context, sc Scope, cc *chargeContext, bk bucket, req metering.Request, opts Options) ([]*invoice.Fee, error) {
-	compute := func() ([]*invoice.Fee, error) {
+	compute := func(ctx context.Context) ([]*invoice.Fee, error) {
 		o := opts
 		o.SkipZeroUnitsFilters = false
 		return s.computeBucketFees(ctx, sc, cc, bk, req, adjustments{}, o, &ChargeResult{})
@@ -46,29 +46,44 @@ func (s *Service) cachedBucketFees(ctx context.Context, sc Scope, cc *chargeCont
 	if !ok || !keyed {
 		// The usage buckets answer, fresh already (charge_service.rb:140),
 		// or nothing validates an entry.
-		fs, err := compute()
+		fs, err := compute(ctx)
 		return skipZeroUnits(bk, opts, fs), err
 	}
 	// The instant is read before the aggregation, so that a slow one
 	// cannot make an unsettled event look settled (cache_service.rb:28-31).
 	now := s.d.Now()
 	if e, hit := opts.UsageCache.Get(ctx, key, now); hit && usageCacheValid(e, watermark) {
-		for _, f := range e.Fees {
-			f.ID = core.NewID[core.FeeID](s.d.IDs)
-			f.CreatedAt, f.UpdatedAt = now, now
-		}
-		return skipZeroUnits(bk, opts, e.Fees), nil
+		return skipZeroUnits(bk, opts, s.refreshFees(e.Fees, now)), nil
 	}
-	fs, err := compute()
+	// Concurrent misses on the bucket share one aggregation; the fees
+	// another request computed are a hit to this one.
+	e, shared, err := opts.UsageCache.Compute(ctx, key, watermark, now, func(ctx context.Context) (kernel.UsageCacheEntry, bool, error) {
+		fs, err := compute(ctx)
+		if err != nil {
+			return kernel.UsageCacheEntry{}, false, err
+		}
+		// The entry lives until the end of the charges period.
+		stamp, settled := usageCacheStamp(watermark, now)
+		expires := sc.Boundaries.Charges.To
+		return kernel.UsageCacheEntry{Fees: fs, CachedAt: stamp, ExpiresAt: expires}, settled && expires.After(now), nil
+	})
 	if err != nil {
 		return nil, err
 	}
-	// The entry lives until the end of the charges period.
-	stamp, settled := usageCacheStamp(watermark, now)
-	if expires := sc.Boundaries.Charges.To; expires.After(now) && settled {
-		opts.UsageCache.Put(ctx, key, kernel.UsageCacheEntry{Fees: fs, CachedAt: stamp, ExpiresAt: expires}, now)
+	if shared {
+		s.refreshFees(e.Fees, now)
 	}
-	return skipZeroUnits(bk, opts, fs), nil
+	return skipZeroUnits(bk, opts, e.Fees), nil
+}
+
+// refreshFees gives the fees fs read from the cache identifiers of their
+// own and the instant now, and returns them.
+func (s *Service) refreshFees(fs []*invoice.Fee, now time.Time) []*invoice.Fee {
+	for _, f := range fs {
+		f.ID = core.NewID[core.FeeID](s.d.IDs)
+		f.CreatedAt, f.UpdatedAt = now, now
+	}
+	return fs
 }
 
 // usageCacheValid reports whether the entry e still holds every event

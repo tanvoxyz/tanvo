@@ -3,6 +3,8 @@ package fees_test
 import (
 	"context"
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -13,7 +15,9 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/catalog"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
+	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/metering"
+	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
 // countingCache is a cache backend that counts the entries it returns
@@ -337,4 +341,74 @@ func byFilterFees(fs []*invoice.Fee, id core.ChargeFilterID) string {
 		}
 	}
 	return "none"
+}
+
+// blockingEvents holds the sum aggregations until release closes,
+// counting them.
+type blockingEvents struct {
+	*billingtest.Events
+	sums    atomic.Int32
+	entered chan struct{}
+	release chan struct{}
+}
+
+func (e *blockingEvents) Sum(ctx context.Context, q metering.Query) (metering.Total, error) {
+	if e.sums.Add(1) == 1 {
+		close(e.entered)
+	}
+	<-e.release
+	return e.Events.Sum(ctx, q)
+}
+
+func TestUsageCacheConcurrentMisses(t *testing.T) {
+	t.Parallel()
+	f, c := newCacheFixture(t, catalog.ChargeModelStandard, `{"amount":"1"}`)
+	f.event(cacheNow.Add(-time.Minute), "value", "10")
+	ev := &blockingEvents{Events: f.Events, entered: make(chan struct{}), release: make(chan struct{})}
+	f.Deps.Events = ev
+	uc := kernel.NewUsageCache(cachetest.New(f.Now))
+	sc := f.usageScope(f.sub, f.Now())
+	const n = 5
+	got := make([][]*invoice.Fee, n)
+	// The callers share one transaction: the in-memory store serializes
+	// transactions.
+	f.Do(func(ctx context.Context, r port.Repos) error {
+		var wg sync.WaitGroup
+		for i := range n {
+			wg.Go(func() {
+				res, err := f.svc.ChargeFees(ctx, r, sc, c, fees.Options{CurrentUsage: true, UsageCache: uc})
+				if err != nil {
+					t.Errorf("ChargeFees() error got = %v, want = nil", err)
+					return
+				}
+				got[i] = res.Fees
+			})
+		}
+		<-ev.entered
+		time.Sleep(50 * time.Millisecond) // the others join the aggregation
+		close(ev.release)
+		wg.Wait()
+		return nil
+	})
+	if s := ev.sums.Load(); s != 1 {
+		t.Errorf("aggregations got = %d, want = 1", s)
+	}
+	ids := map[core.FeeID]bool{}
+	for i, fs := range got {
+		if u := units(fs); u != "10" {
+			t.Errorf("caller %d units got = %s, want = 10", i, u)
+			continue
+		}
+		ids[fs[0].ID] = true
+	}
+	if len(ids) != n {
+		t.Errorf("distinct fee IDs got = %d, want = %d", len(ids), n)
+	}
+	// Every caller has fees of its own.
+	if got[0] != nil && got[1] != nil {
+		got[0][0].Units = money.One
+		if u := units(got[1]); u != "10" {
+			t.Errorf("caller 1 units after changing caller 0 got = %s, want = 10", u)
+		}
+	}
 }
