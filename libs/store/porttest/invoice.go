@@ -856,7 +856,9 @@ func testInvoiceFeesInAdvanceKey(t *testing.T, h Harness) {
 	filter := core.NewID[core.ChargeFilterID](e.ids)
 	card := core.NewID[core.SubscriptionRateCardID](e.ids)
 	withFilter := func(f *invoice.Fee) { f.ChargeFilterID = filter }
-	onCard := func(f *invoice.Fee) { f.Type, f.ChargeID, f.SubscriptionRateCardID = core.FeeTypeProduct, core.ChargeID{}, card }
+	onCard := func(f *invoice.Fee) {
+		f.Type, f.ChargeID, f.SubscriptionRateCardID = core.FeeTypeProduct, core.ChargeID{}, card
+	}
 	first := fee(sub, "tx", nil)
 	for _, c := range []struct {
 		name string
