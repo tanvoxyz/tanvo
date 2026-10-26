@@ -369,6 +369,13 @@ type CommitmentTax struct {
 	Position       int32
 }
 
+type ConcurrencySlot struct {
+	Name      string
+	Slot      int32
+	Holder    uuid.UUID
+	ExpiresAt time.Time
+}
+
 type Counter struct {
 	OrganizationID uuid.UUID
 	Name           string

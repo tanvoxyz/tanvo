@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -17,10 +18,10 @@ import (
 // Store is the PostgreSQL implementation of [port.Transactor].
 type Store struct {
 	pool *pgxpool.Pool
-	// session, when set, gives the connections that keep session state
-	// ([Store.AcquireSlot]); nil takes them from pool.
-	session *pgxpool.Pool
-	rls     bool
+	rls  bool
+	// slotTTL is the lease TTL of [Store.AcquireSlot].
+	slotTTL time.Duration
+	log     *slog.Logger
 	jobs    JobInserter
 	// onCatalog receives the catalog changes of committed transactions.
 	onCatalog func(context.Context, []CatalogChange)
@@ -51,19 +52,30 @@ func WithJobInserter(f JobInserter) Option {
 	return func(s *Store) { s.jobs = f }
 }
 
-// WithSessionPool makes the store take the connections that keep the
-// state of their session (the session advisory locks of
-// [Store.AcquireSlot]) from pool rather than from the store's pool, so
-// that the store's pool may go through a pooler in transaction mode
-// (PgBouncer), which does not keep a client on one server session.
-func WithSessionPool(pool *pgxpool.Pool) Option {
-	return func(s *Store) { s.session = pool }
+// WithSlotTTL sets the lease TTL of the slots of [Store.AcquireSlot],
+// [port.DefaultSlotTTL] by default; a TTL that is not positive keeps it.
+func WithSlotTTL(d time.Duration) Option {
+	return func(s *Store) {
+		if d > 0 {
+			s.slotTTL = d
+		}
+	}
+}
+
+// WithLogger sets the logger of the store's warnings, slog.Default() by
+// default.
+func WithLogger(l *slog.Logger) Option {
+	return func(s *Store) {
+		if l != nil {
+			s.log = l
+		}
+	}
 }
 
 // New returns a store on pool. The pool's connections should decode
 // timestamptz in UTC ([ConfigurePool]); the store converts to UTC anyway.
 func New(pool *pgxpool.Pool, opts ...Option) *Store {
-	s := &Store{pool: pool}
+	s := &Store{pool: pool, slotTTL: port.DefaultSlotTTL, log: slog.Default()}
 	for _, o := range opts {
 		o(s)
 	}

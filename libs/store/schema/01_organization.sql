@@ -174,3 +174,21 @@ CREATE TABLE job_outbox (
 );
 
 CREATE UNIQUE INDEX job_outbox_unique_key ON job_outbox (organization_id, kind, unique_key) WHERE unique_key IS NOT NULL;
+
+-- Leases of the concurrency slots of port.Slots (Store.AcquireSlot): row
+-- (name, slot) is slot number slot of the limit slots named name, held by
+-- holder, a random token, until expires_at (the database clock). The names
+-- are shared by every process and are not an organization's rows (a name
+-- may embed an organization's ID), so the table has neither
+-- organization_id nor row-level security. A released lease is deleted;
+-- the lease of a crashed holder expires and is overwritten by the next
+-- acquirer, so no job cleans the table.
+CREATE TABLE concurrency_slots (
+  name text NOT NULL,
+  slot integer NOT NULL,
+  holder uuid NOT NULL,
+  expires_at timestamptz NOT NULL,
+  PRIMARY KEY (name, slot),
+  CONSTRAINT concurrency_slots_name_check CHECK (name <> ''),
+  CONSTRAINT concurrency_slots_slot_check CHECK (slot >= 0)
+);
