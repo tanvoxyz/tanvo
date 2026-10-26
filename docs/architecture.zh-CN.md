@@ -561,7 +561,7 @@ POST /v1/events, /v1/events:batch
 
 ## 14. 企业版（ee/）
 
-Lago 高级许可证之下的功能（渐进式计费、钱包的高级规则、集成、电子发票等）属于 AGPL 核心，不设门槛。只有 Lago 作为私有云服务运行的部分，才作为 ELv2 下的企业版服务实现，每个都是一个独立进程，使用 `libs/proto` 契约与只读数据（PostgreSQL 视图或 ClickHouse）：
+Lago 高级许可证之下的功能（渐进式计费、钱包的高级规则、集成、电子发票等）属于 AGPL 核心，不设门槛。只有 Lago 作为私有云服务运行的部分，才作为 ELv2 下的企业版服务实现，每个都是一个独立进程，使用 `libs/proto` 契约与只读数据（PostgreSQL 视图或 ClickHouse）；需要时另有一个存放派生数据的自有模式（§14.1）：
 
 * 分析与仪表盘（MRR 变动、收入流、预付额度、用量、收入确认），取代 Lago 私有的 Data API 与 Superset。
 * 把 Tanvo API 暴露为工具的 MCP 服务器，由 `libs/proto` 描述符生成。
@@ -570,6 +570,25 @@ Lago 高级许可证之下的功能（渐进式计费、钱包的高级规则、
 * 客户成功工具，以及[功能对齐 §1.50](parity.zh-CN.md#150-lago-的开关及其在-tanvo-中的归属)列出的其他私有服务。
 
 自托管安装通过可离线验证的许可证密钥（Ed25519 签名）启用它们；Tanvo Cloud 按套餐启用。AGPL 核心不包含任何许可证检查，只签发这些服务所接受的短期令牌。各服务的顺序与设计见[路线图 §5](roadmap.zh-CN.md#5-阶段-7-计划lago-未开源的部分)。
+
+### 14.1 分析服务的部署
+
+`ee/analytics` 构建 `tanvo-analytics` 可执行文件与容器镜像：一个无状态的 HTTP 服务（Connect，包 `tanvo.analytics.v1`）及其自有的定时任务，以一个或多个副本运行在 `tanvo serve` 旁边。
+
+```
+客户端 ─▶ ingress ─┬─ /v1/*            ─▶ tanvo serve（api）     签发分析令牌
+                   └─ /v1/analytics/*  ─▶ tanvo-analytics       用核心的公钥校验令牌
+                                             │ 读取 exports_* 视图（配置了副本时读副本；Kafka 模式的用量读 ClickHouse）
+                                             └ 读写 analytics 模式（主库）
+```
+
+* **路由与认证。** ingress 在同一主机下把 `/v1/analytics/` 路由到 `tanvo-analytics`，控制台与 API 客户端看到的是同一套 API。调用方先向核心申请分析令牌：短期有效，由核心的 Ed25519 密钥签名，载明组织、成员或 API 密钥及其权限（`data_api:view`）。`tanvo-analytics` 离线校验令牌，从不接触 API 密钥、会话或核心的密钥。核心从不代理分析流量。
+* **读取核心数据。** 专用的 PostgreSQL 角色（`tanvo_analytics`）只对 `exports_*` 视图有 `SELECT` 权限，对表没有任何权限。视图是 `security_invoker`，因此该角色的行级安全生效；每个查询都按令牌设置 `tanvo.organization_id`，与核心的做法相同（§5.4）。设置 `TANVO_ANALYTICS_REPLICA_URL` 后，重查询走副本，报表不会与计费写入争抢资源。Kafka 模式组织的用量通过只读用户从 ClickHouse 读取。
+* **自有模式。** MRR 变动需要每个订阅逐日的 MRR，收入确认需要把每笔费用分摊到其服务期间；对大组织而言，每次请求都从发票重新计算太慢。因此该服务拥有 `analytics` 模式，这也是它唯一写入的地方，其中有两类数据。一是每个订阅的每日 MRR 快照：组织、订阅、客户、套餐、开票主体、币种、日期与精确金额。二是每笔费用的确认计划：费用、期间、已确认与递延金额。两者都是派生数据。任务根据视图的 `updated_at` 水位与删除记录（[功能对齐 §1.49](parity.zh-CN.md#149-平台服务)）增量维护它们，`tanvo-analytics rebuild` 可从头重算一个组织。该模式在 `ee/analytics` 下有自己的 Atlas 迁移，由 `tanvo-analytics migrate` 执行。它从不修改核心的模式，核心也从不读取它。它的写入走主库；它也可以放在单独的数据库中（`TANVO_ANALYTICS_DATABASE_URL`）。
+* **报表。** 快照回答 MRR、按套餐的 MRR 与收入确认。视图直接回答收入流、预付额度与已开票用量，事件存储回答用量。金额为 `money.Decimal`。结果的缓存方式与核心的分析相同（§13.6）。
+* **自托管。** 没有许可证时一切不变：`tanvo serve` 加 PostgreSQL，使用核心的分析（§13.6，[功能对齐 §1.44](parity.zh-CN.md#144-分析)）。有许可证时，Compose 文件与 Helm chart 增加 `tanvo-analytics` 服务及其许可证密钥（`TANVO_LICENSE_KEY`）。服务在启动时及每天校验密钥，没有有效密钥时不提供任何报表。
+* **Tanvo Cloud。** 每个 cell 一个 `tanvo-analytics` Deployment，紧邻该 cell 的副本与 ClickHouse；其 `analytics` 模式位于该 cell 的 PostgreSQL 集群中。
+* **遥测。** 遵循 §15：OTel 链路与指标，组织 ID 只放在 span 与日志上。
 
 ---
 

@@ -561,7 +561,7 @@ Each use keeps its namespace (`<prefix><name>:<key>`) and its own switch:
 
 ## 14. Enterprise Edition (ee/)
 
-Features behind Lago's premium license (progressive billing, wallets' advanced rules, integrations, e-invoicing, …) are part of the AGPL core with no gate. Only what Lago runs as private cloud services is implemented as enterprise services under ELv2, each a separate process that uses `libs/proto` contracts and read-only data (PostgreSQL views or ClickHouse):
+Features behind Lago's premium license (progressive billing, wallets' advanced rules, integrations, e-invoicing, …) are part of the AGPL core with no gate. Only what Lago runs as private cloud services is implemented as enterprise services under ELv2, each a separate process that uses `libs/proto` contracts and read-only data (PostgreSQL views or ClickHouse), plus a schema of its own for derived data where a service needs one (§14.1):
 
 * Analytics and dashboards (MRR movements, revenue streams, prepaid credits, usage, revenue recognition), replacing Lago's private Data API and Superset.
 * An MCP server exposing Tanvo's API as tools, generated from the `libs/proto` descriptors.
@@ -570,6 +570,25 @@ Features behind Lago's premium license (progressive billing, wallets' advanced r
 * Customer-success tooling and the other private services listed in [Feature Parity §1.50](parity.md#150-lago-gates-and-their-tanvo-placement).
 
 Self-hosted installations enable them with an offline-verifiable license key (Ed25519-signed); Tanvo Cloud enables them per plan. The AGPL core contains no license checks; it only issues the short-lived tokens these services accept. The order and design of each service are planned in [Roadmap §5](roadmap.md#5-phase-7-plan-what-lago-keeps-closed).
+
+### 14.1 Analytics Deployment
+
+`ee/analytics` builds the `tanvo-analytics` binary and container image: a stateless HTTP server (Connect, package `tanvo.analytics.v1`) and its own scheduled jobs, run as one or more replicas beside `tanvo serve`.
+
+```
+clients ─▶ ingress ─┬─ /v1/*            ─▶ tanvo serve (api)      issues analytics tokens
+                    └─ /v1/analytics/*  ─▶ tanvo-analytics        verifies them with the core's public key
+                                              │ reads exports_* views  (replica when configured; ClickHouse for Kafka-mode usage)
+                                              └ reads and writes the analytics schema (primary)
+```
+
+* **Routing and authentication.** The ingress routes `/v1/analytics/` to `tanvo-analytics` under the same host, so the console and API clients see one API. A caller first asks the core for an analytics token: short-lived, signed with the core's Ed25519 key, naming the organization, the member or API key and its permissions (`data_api:view`). `tanvo-analytics` verifies it offline and never sees an API key, a session or the core's secrets. The core never proxies analytics traffic.
+* **Reading the core.** A dedicated PostgreSQL role (`tanvo_analytics`) has `SELECT` on the `exports_*` views only, never on tables. The views are `security_invoker`, so the row-level security of the role applies; every query sets `tanvo.organization_id` from the token, as the core does (§5.4). With `TANVO_ANALYTICS_REPLICA_URL` the heavy reads go to a replica, so reports never compete with billing writes. Usage of Kafka-mode organizations is read from ClickHouse through a read-only user.
+* **Its own schema.** MRR movements need each subscription's MRR day by day, and revenue recognition needs each fee spread over its service period; recomputing them from invoices on every request is too slow for large organizations. The service therefore owns the `analytics` schema, the only place it writes: daily MRR snapshots per subscription (organization, subscription, customer, plan, billing entity, currency, day, exact amount) and recognition schedules per fee (fee, period, recognized and deferred amounts). Both are derived data. Jobs maintain them incrementally from the views' `updated_at` watermarks and the deletion records ([Feature Parity §1.49](parity.md#149-platform-services)), and `tanvo-analytics rebuild` recomputes an organization from scratch. The schema has its own Atlas migrations under `ee/analytics`, applied by `tanvo-analytics migrate`. It never alters the core's schema, and the core never reads it. Its writes go to the primary; it may also live in a separate database (`TANVO_ANALYTICS_DATABASE_URL`).
+* **Reports.** Snapshots answer MRR, MRR by plan and revenue recognition. The views answer revenue streams, prepaid credits and invoiced usage directly, and the event store answers usage. Amounts are `money.Decimal`. Results are cached like the core's analytics (§13.6).
+* **Self-hosted.** Without a license nothing changes: `tanvo serve` and PostgreSQL, with the core's analytics (§13.6, [Feature Parity §1.44](parity.md#144-analytics)). With one, the Compose file and Helm chart add the `tanvo-analytics` service and its license key (`TANVO_LICENSE_KEY`). It checks the key at start-up and daily, and serves no report without a valid key.
+* **Tanvo Cloud.** One `tanvo-analytics` Deployment per cell, next to the cell's replica and ClickHouse; its `analytics` schema lives in the cell's PostgreSQL cluster.
+* **Telemetry.** The service follows §15: OTel traces and metrics, organization IDs on spans and logs only.
 
 ---
 
