@@ -272,7 +272,9 @@ POST /v1/events, /v1/events:batch
 * 模式是每个安装的设置，在 Tanvo Cloud 中可按组织覆盖。
 * 每个事件保留其 API 请求的元数据，即 `User-Agent` 与客户端地址：PostgreSQL 路径上存于原始日志（`public.events.metadata`），Kafka 路径上存于 ClickHouse 的 `events_raw`，并由原始消息与富化消息携带。lago-api 只在 PostgreSQL 中保留它（其 Kafka 消息不含元数据）；API 以事件的 `user_agent` 与 `ip_address` 返回它。客户端地址按 Rails 的 `request.remote_ip` 解析：取 `X-Forwarded-For`（其次 `Client-Ip`）中离服务器最近且不是受信任代理的地址，且仅当对端本身是受信任代理时才读取这些头；受信任的是回环与私有地址段以及 `TANVO_TRUSTED_PROXIES`。
 * HTTP、SQS 与 Kinesis 来源的连接器写入 `events.raw`：即 `libs/ingest/connectors/` 中的 Redpanda Connect 配置，其记录键与 API 相同。这些事件的指标表达式由摄入消费者计算，而 API 在摄入时即已计算。
-* 消费者无法处理的消息连同原因进入 `events.dead_letter`（`ingest.DeadLetter`）；该主题的消费者（组 `<prefix>-dead-letters`）把每条死信连同事件的键存入 ClickHouse 的 `events_dead_letter`，以便检查与重放。存储失败会一直重试直到成功，因此死信本身不会再进入死信主题。
+* 消费者无法处理的消息连同原因进入 `events.dead_letter`（`ingest.DeadLetter`）：永远不会成功的消息立即进入；被重试的消息（其分区回退到它，间隔一秒）按摄入时间超过 12 小时后进入（`kafka.MaxRetryAge`）。该主题的消费者（组 `<prefix>-dead-letters`）把每条死信连同事件的键存入 ClickHouse 的 `events_dead_letter`，以便检查与重放。存储失败会一直重试直到成功，因此死信本身不会再进入死信主题。
+* **被拒绝的事件。** ClickHouse 写入器把拉取到的一批记录（最多 1,000 条）作为一次写入存储。当存储拒绝该批中的某个值时（错误包装 `core.ErrInvalidValue`：没有组织的事件、驱动无法转换为其列类型的值，例如超出 `Decimal(76, 26)` 的小数，或由某个值引起的服务端异常，例如 `CANNOT_PARSE_TEXT` 或 `DECIMAL_OVERFLOW`；见 `clickhouse` 的 `rejected`），写入器把该批对半拆分、分别写入，直到找出被单独拒绝的记录：这些记录以 `reject_event` 进入死信，其余记录正常存储。连接失败、超时、过载（`MEMORY_LIMIT_EXCEEDED`、`TOO_MANY_PARTS` 等）以及 schema 或语句错误都不属于拒绝：它们会重试该批中尚未存储的部分。拆分后的各半与任何写入一样去重，因此隔离保持了去重键的恰好一次存储；一条被拒绝的记录约花费 2·log₂(批大小) 次写入，而不是让其分区停滞 12 小时后再把整批送入死信。
+* **重放。** `tanvo events replay-dead-letters --organization <id> [--from <RFC 3339>] [--to <RFC 3339>] [--error-code <code>] [--replay] [--batch-size 500]` 按错误代码与来源主题统计该组织尚未重放的死信，可只统计在 [`--from`, `--to`) 内失败且具有某个代码的死信；不带 `--replay` 时为试运行。带 `--replay` 时，它把每条死信的原始消息重新生产到其记录的主题，键与其生产者的键相同（`events.raw` 用 `ingest.PartitionKey`，`events.enriched` 用 `ingest.SubscriptionPartitionKey`，`usage.refresh` 用组织与客户；其他主题的死信或缺少组织的死信被跳过），并在该页被确认后把重放记录到 ClickHouse 的 `events_dead_letter_replays`（按原始消息的主题、分区与偏移量），因此一条死信（或被存储两次的死信）只重放一次（`kafka.Replayer`）。一次重放只处理在它开始之前失败的死信：再次失败的消息会以新的偏移量再次进入死信，等待下一次重放。重放是幂等的：写入器保留去重键的首个副本，预付计费在该键上唯一，因此在生产与记录之间中断后再次运行的重放，每个事件仍只存储与计费一次。
 * **用量刷新信号**携带客户、订阅和事件水位。信号在事件存储之后才发出，而用量桶在同一次写入中维护，因此信号不会领先于用量桶（在多副本 ClickHouse 上，刷新以顺序一致性读取）。每个信号都交给计费：PostgreSQL 路径在摄取事务中完成，Kafka 路径经由 `usage.refresh` 消费者完成。它调度每个订阅的活动（生命周期用量、用量阈值与告警，每个订阅每分钟一个延迟任务，因此在某次运行进行中到达的信号会落入下一分钟的任务；失败的运行会立即重试，共四次，与 lago-api 的 `ProcessSubscriptionActivityJob` 相同），把客户标记为 `awaiting_wallet_refresh` 并入队其钱包的刷新（每个客户一个待处理任务）。钱包刷新不等待用量桶。lago-api 的实时钱包刷新（`app/services/wallets/realtime_refresh_service.rb:9-13, 31-34, 70-94`）在刷新前最多轮询其用量桶 5 秒，因为它的触发信号与用量桶写入是同一流处理批次（epoch）中两个互不排序的输出，而在用量桶尚未追上时刷新会写入过期余额，并清除扫描所依据的标记。水位超过 30 秒时它立即放弃，因为这说明落后的是消费者而不是 ClickHouse，并让客户保持标记，交由扫描处理。只有钱包刷新这样做；订阅活动没有这项检查。Tanvo 在用量桶写入之后才发出信号，因此信号对应的用量桶总是已追上，刷新绝不会读到过期余额，也没有信号需要推迟给扫描。对已标记的生命周期用量与客户的 5 分钟扫描仍是权威来源（[领域模型 §14.1](domain.zh-CN.md#141-钱包)）。
 * **预付计费项**在事件存储之后计费，因为其费用基于已存储的事件聚合：PostgreSQL 路径在摄取事务中完成，Kafka 路径由 ClickHouse 写入者为其写入的记录完成。两者都为每个事件入队一个计费任务，按订阅与 transaction ID 唯一。lago-api 从单独的主题计费，并延迟 15 秒以等待 ClickHouse 合并（`app/consumers/events_charged_in_advance_consumer.rb`、`app/services/events/stores/clickhouse_store.rb:11`）。
 
@@ -402,7 +404,7 @@ POST /v1/events, /v1/events:batch
 | `consumer` | Kafka 消费者：富化、ClickHouse 写入器（含预付计费项）、用量刷新 |
 | `all` | 全部（自托管安装的默认值）；只有配置了 Kafka broker 时才包含 `consumer` |
 
-`tanvo migrate`、`tanvo admin …`、`tanvo events reprocess`（§7.2）与 `tanvo version` 是单独的命令。
+`tanvo migrate`、`tanvo admin …`、`tanvo events reprocess`（§7.2）、`tanvo events replay-dead-letters`（§7.1）与 `tanvo version` 是单独的命令。
 
 ### 13.2 自托管
 * 最小：`tanvo serve` + PostgreSQL。Typst 与 `fonts-noto-cjk` 软件包（zh-CN 与 zh-TW 文档，§10）包含在容器镜像中；在镜像之外安装时两者都需要。
@@ -576,7 +578,8 @@ Lago 高级许可证之下的功能（渐进式计费、钱包的高级规则、
   * 库只依赖 OTel API，经构造函数选项接收 `TracerProvider` 与 `MeterProvider`，默认为 no-op；只有 `apps/server` 引入 SDK 与导出器（由 depguard 强制）并安装全局 provider。
   * SDK 由标准 `OTEL_*` 环境变量配置（`OTEL_SERVICE_NAME`、`OTEL_RESOURCE_ATTRIBUTES`、`OTEL_EXPORTER_OTLP_*`、`OTEL_TRACES_SAMPLER` 等）。默认导出器是基于 gRPC 或 HTTP 的 OTLP；Prometheus `/metrics` 端点是可选的指标读取器，用于拉取式部署。
   * resource 带有 `service.name`（`tanvo`）、`service.version`、`service.instance.id`、`deployment.environment.name` 与进程角色（`tanvo.role`）；Kubernetes 属性来自环境或 Collector。
-  * 埋点使用维护中的埋点库并遵循语义约定：API 用 `otelhttp` 与一个遵循 RPC 语义约定的 Connect 拦截器，PostgreSQL 用 `otelpgx`，franz-go 用 `kotel`，River 用其 OpenTelemetry 中间件，ClickHouse 语句（`clickhouse.WithTracerProvider`：`db.system.name`、`db.operation.name`、`db.collection.name` 与参数化的 `db.query.text`）与 provider 调用外包 span。名称与单位遵循语义约定（`http.server.request.duration`，单位为秒）；Tanvo 自己的指标与属性使用 `tanvo.` 前缀（`tanvo.jobs.duration`、`tanvo.ingest.events`）。
+  * 埋点使用维护中的埋点库并遵循语义约定：API 用 `otelhttp` 与一个遵循 RPC 语义约定的 Connect 拦截器，PostgreSQL 用 `otelpgx`，franz-go 用 `kotel`，River 用其 OpenTelemetry 中间件，ClickHouse 语句（`clickhouse.WithTracerProvider`：`db.system.name`、`db.operation.name`、`db.collection.name` 与参数化的 `db.query.text`）与 provider 调用外包 span。名称与单位遵循语义约定（`http.server.request.duration`，单位为秒）；Tanvo 自己的指标与属性使用 `tanvo.` 前缀（`tanvo.jobs.duration`、`tanvo.ingest.records`）。
+  * 摄取消费者（§7.1）除 kotel 的客户端指标外还上报：`tanvo.ingest.records`（计数器，`{record}`），按消费者组（`messaging.consumer.group.name`）、结果（`tanvo.ingest.outcome`：`done`、`retry` 或 `dead`）以及后两者的 `error.type`（死信代码，限定在已知代码内，其余为 `other`）统计记录数；`tanvo.ingest.consumer.lag`（仪表，`{record}`），消费者组在某个主题（`messaging.destination.name`）上尚未提交的记录数，由运行该消费者的每个进程每 15 秒用 kadm 读取，因此同一组的各序列一致，聚合时取最大值；`tanvo.ingest.retry.age`（仪表，`s`），消费者正在重试的最早记录自摄入以来的时长，没有时为零，可在 12 小时上限把它送入死信之前告警。
   * 上下文以 W3C Trace Context 与 Baggage 传播，异步边界也不例外：Kafka 记录头与任务元数据携带 `traceparent`。消费者或任务处理单个请求的工作时，其 span 是生产方 span 的子 span；处理批量、分发与周期任务时，则以 span link 关联。
   * 日志是以 JSON 写到 stdout 的 `slog` 记录，并桥接到 OTel logs（`otelslog`），带有 `trace_id` 与 `span_id`；组织、请求与任务 ID 作为属性。
   * 组织 ID 是 span 与日志的属性（`tanvo.organization.id`），但绝不作为指标属性：指标属性的取值有界（角色、队列、任务类型、状态、provider）。按租户的分析使用 trace 与 exemplar。
