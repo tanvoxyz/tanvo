@@ -3,6 +3,8 @@ package apiclient
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -55,6 +57,17 @@ type Config struct {
 	Windows []Window
 	// Now is the clock of Windows; nil uses time.Now.
 	Now func() time.Time
+	// Counter, when set, counts the requests of every server process
+	// together (lago counts in Rails.cache); nil counts in this process.
+	Counter Counter
+}
+
+// Counter is a counter shared by the server processes, the Redis or
+// Valkey server of the installation (libs/cache Valkey.Incr).
+type Counter interface {
+	// Incr adds one to the counter key and returns its new value; the
+	// counter starts at zero and expires ttl after its first increment.
+	Incr(ctx context.Context, key string, ttl time.Duration) (int64, error)
 }
 
 // Window is a quota of Limit requests per limiter key in each Period,
@@ -82,6 +95,10 @@ type Client struct {
 	burst    int
 	windows  []Window
 	now      func() time.Time
+	counter  Counter
+	// period is the window of the shared rate limit: Burst requests in
+	// Burst/Rate.
+	period time.Duration
 
 	mu     sync.Mutex
 	limits map[string]*rate.Limiter
@@ -113,6 +130,10 @@ func New(c Config) *Client {
 	if burst <= 0 {
 		burst = max(int(c.Rate), 1)
 	}
+	var period time.Duration
+	if c.Rate > 0 {
+		period = time.Duration(float64(burst) / c.Rate * float64(time.Second)).Round(time.Millisecond)
+	}
 	return &Client{
 		provider: c.Provider,
 		hc: &http.Client{
@@ -127,6 +148,8 @@ func New(c Config) *Client {
 		burst:   burst,
 		windows: slices.DeleteFunc(slices.Clone(c.Windows), func(w Window) bool { return w.Limit <= 0 || w.Period < time.Second }),
 		now:     c.Now,
+		counter: c.Counter,
+		period:  period,
 		limits:  map[string]*rate.Limiter{},
 		counts:  map[string][]windowCount{},
 	}
@@ -293,12 +316,20 @@ func (c *Client) wait(ctx context.Context, call Call) error {
 		key = call.Conn.ID.String()
 	}
 	if !call.Unmetered {
-		if err := c.count(key); err != nil {
+		if err := c.count(ctx, key); err != nil {
 			return err
 		}
 	}
 	if c.rate <= 0 {
 		return nil
+	}
+	if c.counter != nil {
+		err := c.waitShared(ctx, key)
+		if err == nil || ctx.Err() != nil {
+			return err
+		}
+		// The shared counter failed (logged by it): this process's own
+		// bucket throttles until it answers again.
 	}
 	c.mu.Lock()
 	lim, ok := c.limits[key]
@@ -316,14 +347,60 @@ func (c *Client) wait(ctx context.Context, call Call) error {
 	return nil
 }
 
+// waitShared takes one of the Burst requests of key's current window of
+// Burst/Rate on the shared counter, the windows aligned on the Unix epoch
+// as lago's (110 in 10 seconds for HubSpot, 60 a minute for Xero, 10 a
+// second for NetSuite), waiting for the next window while this one is
+// used up. Lago refuses the request instead and retries its job.
+func (c *Client) waitShared(ctx context.Context, key string) error {
+	p := c.period.Milliseconds()
+	for {
+		now := c.now().UnixMilli()
+		start := now - now%p
+		n, err := c.counter.Incr(ctx, c.counterKey(key, "rate", start), time.Duration(start+2*p-now)*time.Millisecond)
+		if err != nil {
+			return err
+		}
+		if n <= int64(c.burst) {
+			return nil
+		}
+		t := time.NewTimer(time.Duration(start+p-now) * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			t.Stop()
+			return ctx.Err()
+		case <-t.C:
+		}
+	}
+}
+
+// counterKey is the shared counter of key in the window of kind starting
+// at start: the key is hashed, since a limiter key may be a credential
+// (lago throttles Anrok by API key).
+func (c *Client) counterKey(key, kind string, start int64) string {
+	sum := sha256.Sum256([]byte(key))
+	return fmt.Sprintf("%s/%s/%s/%d", c.provider, hex.EncodeToString(sum[:12]), kind, start)
+}
+
 // count records a request of key in each window, unless one is used up:
 // that is a request limit retried when the window ends (lago
-// BaseService::ThrottlingError, aggregator/base_service.rb:69-76).
-func (c *Client) count(key string) error {
+// BaseService::ThrottlingError, aggregator/base_service.rb:69-76). With
+// a [Counter] the windows are counted across processes; when it fails,
+// in this process.
+func (c *Client) count(ctx context.Context, key string) error {
 	if len(c.windows) == 0 {
 		return nil
 	}
 	now := c.now().Unix()
+	if c.counter != nil {
+		err := c.countShared(ctx, key, now)
+		if err == nil || ctx.Err() != nil {
+			return err
+		}
+		if _, ok := integration.AsProviderError(err); ok {
+			return err
+		}
+	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	counts := c.counts[key]
@@ -337,17 +414,42 @@ func (c *Client) count(key string) error {
 			counts[i] = windowCount{start: start}
 		}
 		if counts[i].n >= w.Limit {
-			return &integration.ProviderError{
-				Provider: c.provider, Kind: integration.KindRequestLimit, Code: CodeThrottled,
-				Message:    fmt.Sprintf("over %d requests per %s", w.Limit, w.Period),
-				RetryAfter: time.Duration(counts[i].start+p-now) * time.Second,
-			}
+			return c.throttled(w, counts[i].start+p-now)
 		}
 	}
 	for i := range counts {
 		counts[i].n++
 	}
 	return nil
+}
+
+// countShared counts a request of key in each window on the shared
+// counter, in one atomic increment per window where lago's throttling gem
+// reads and then increments (throttling 0.4.1 lib/throttling/base.rb). As
+// there, a request refused by a window still counts in the windows before
+// it.
+func (c *Client) countShared(ctx context.Context, key string, now int64) error {
+	for _, w := range c.windows {
+		p := int64(w.Period / time.Second)
+		start := now - now%p
+		n, err := c.counter.Incr(ctx, c.counterKey(key, strconv.FormatInt(p, 10)+"s", start), time.Duration(start+2*p-now)*time.Second)
+		if err != nil {
+			return err
+		}
+		if n > int64(w.Limit) {
+			return c.throttled(w, start+p-now)
+		}
+	}
+	return nil
+}
+
+// throttled is the request limit of window w, which ends in left seconds.
+func (c *Client) throttled(w Window, left int64) error {
+	return &integration.ProviderError{
+		Provider: c.provider, Kind: integration.KindRequestLimit, Code: CodeThrottled,
+		Message:    fmt.Sprintf("over %d requests per %s", w.Limit, w.Period),
+		RetryAfter: time.Duration(left) * time.Second,
+	}
 }
 
 // CodeThrottled is the code of a request refused by a [Window].

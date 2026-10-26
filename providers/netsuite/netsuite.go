@@ -67,6 +67,7 @@ var (
 
 type config struct {
 	httpClient     *http.Client
+	counter        apiclient.Counter
 	suiteURL       func(string) string
 	tracerProvider trace.TracerProvider
 	meterProvider  metric.MeterProvider
@@ -98,6 +99,10 @@ func WithMeterProvider(mp metric.MeterProvider) Option {
 	return func(o *config) { o.meterProvider = mp }
 }
 
+// WithCounter counts the rate limit across server processes on c (the
+// installation's cache server); without it each process counts its own.
+func WithCounter(c apiclient.Counter) Option { return func(o *config) { o.counter = c } }
+
 // WithRateLimit sets the request rate per client ID; 0 disables
 // throttling.
 func WithRateLimit(perSecond float64) Option { return func(o *config) { o.rate = perSecond } }
@@ -119,7 +124,7 @@ func New(opts ...Option) *Gateway {
 	return &Gateway{
 		client: apiclient.New(apiclient.Config{
 			Provider: Provider, InstrumentationName: instrumentationName,
-			HTTPClient: c.httpClient, TracerProvider: c.tracerProvider, MeterProvider: c.meterProvider,
+			HTTPClient: c.httpClient, TracerProvider: c.tracerProvider, MeterProvider: c.meterProvider, Counter: c.counter,
 			Rate: c.rate,
 		}),
 		suiteURL: c.suiteURL, now: c.now, nonce: c.nonce,

@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -187,5 +190,120 @@ func TestWindows(t *testing.T) {
 		if !ok || !errors.Is(err, integration.ErrRequestLimit) || pe.Code != CodeThrottled || pe.RetryAfter != tt.retry {
 			t.Errorf("%s: error got = %v, want = request limit retried after %v", tt.name, err, tt.retry)
 		}
+	}
+}
+
+// sharedCounter is a Counter in a map, standing for the cache server of
+// several processes; fail makes every increment fail.
+type sharedCounter struct {
+	mu   sync.Mutex
+	n    map[string]int64
+	fail bool
+}
+
+func (s *sharedCounter) Incr(_ context.Context, key string, ttl time.Duration) (int64, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.fail {
+		return 0, errors.New("unreachable")
+	}
+	if ttl <= 0 {
+		return 0, errors.New("no ttl")
+	}
+	s.n[key]++
+	return s.n[key], nil
+}
+
+func (s *sharedCounter) keys() map[string]int64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return maps.Clone(s.n)
+}
+
+func TestSharedWindows(t *testing.T) {
+	// The quota is counted across processes, as lago's in Rails.cache.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }))
+	defer srv.Close()
+	now := time.Date(2026, 3, 1, 23, 0, 0, 0, time.UTC)
+	counter := &sharedCounter{n: map[string]int64{}}
+	cfg := Config{Provider: integration.ProviderXero, Windows: []Window{{Limit: 2, Period: 24 * time.Hour}}, Now: func() time.Time { return now }, Counter: counter}
+	one, two := New(cfg), New(cfg)
+	a := integration.Connection{ID: core.MustParseID[core.IntegrationID]("0199a000-0000-7000-8000-000000000001")}
+	call := func(c *Client) error {
+		return c.Run(context.Background(), Call{Conn: a, LimitKey: "tenant-secret"}, func(ctx context.Context) error {
+			_, err := c.Do(ctx, Request{URL: srv.URL, Method: http.MethodGet})
+			return err
+		})
+	}
+	if err := call(one); err != nil {
+		t.Fatal(err)
+	}
+	if err := call(two); err != nil {
+		t.Fatal(err)
+	}
+	now = now.Add(30 * time.Minute)
+	err := call(one)
+	if pe, ok := integration.AsProviderError(err); !ok || pe.Code != CodeThrottled || pe.RetryAfter != 30*time.Minute {
+		t.Errorf("third call: error got = %v, want = request limit retried after 30m", err)
+	}
+	for k := range counter.keys() {
+		if strings.Contains(k, "tenant-secret") {
+			t.Errorf("counter key got = %q, want = the limiter key hashed", k)
+		}
+	}
+	// Without the shared counter, each process counts on its own.
+	counter.fail = true
+	if err := call(one); err != nil {
+		t.Errorf("call with the counter down: error got = %v, want = nil", err)
+	}
+	now = now.Add(time.Hour)
+	counter.fail = false
+	if err := call(one); err != nil {
+		t.Errorf("call in the next window: error got = %v, want = nil", err)
+	}
+}
+
+func TestSharedThrottle(t *testing.T) {
+	// A rate of Burst requests in Burst/Rate is shared by the processes:
+	// two requests of each window of 200ms between both clients.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }))
+	defer srv.Close()
+	counter := &sharedCounter{n: map[string]int64{}}
+	cfg := Config{Provider: integration.ProviderHubspot, Rate: 10, Burst: 2, Counter: counter}
+	one, two := New(cfg), New(cfg)
+	a := integration.Connection{ID: core.MustParseID[core.IntegrationID]("0199a000-0000-7000-8000-000000000001")}
+	for i, c := range []*Client{one, two, one, two, one} {
+		err := c.Run(context.Background(), Call{Conn: a}, func(ctx context.Context) error {
+			_, err := c.Do(ctx, Request{URL: srv.URL, Method: http.MethodGet})
+			return err
+		})
+		if err != nil {
+			t.Fatalf("call %d: %v", i, err)
+		}
+	}
+	var granted int64
+	keys := counter.keys()
+	for _, n := range keys {
+		granted += min(n, 2)
+	}
+	if granted != 5 || len(keys) < 3 {
+		t.Errorf("windows got = %v, want = 5 requests over at least 3 windows of 2", keys)
+	}
+	// A cancelled wait for the next window returns at once.
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := one.Run(ctx, Call{Conn: a}, func(ctx context.Context) error {
+		_, err := one.Do(ctx, Request{URL: srv.URL, Method: http.MethodGet})
+		return err
+	}); err != nil && !errors.Is(err, context.Canceled) {
+		t.Errorf("cancelled wait: got = %v, want = nil or context.Canceled", err)
+	}
+	// The counter down, each process throttles on its own bucket.
+	counter.fail = true
+	if err := two.Run(context.Background(), Call{Conn: a}, func(ctx context.Context) error {
+		_, err := two.Do(ctx, Request{URL: srv.URL, Method: http.MethodGet})
+		return err
+	}); err != nil {
+		t.Errorf("call with the counter down: error got = %v, want = nil", err)
 	}
 }
