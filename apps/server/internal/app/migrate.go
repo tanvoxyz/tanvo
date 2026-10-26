@@ -50,7 +50,7 @@ func Migrate(ctx context.Context, cfg config.Config, tp trace.TracerProvider, mp
 // mode.
 func migrateAll(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, conn driver.Conn) error {
 	start := time.Now()
-	if err := store.Migrate(ctx, pool); err != nil {
+	if err := store.Migrate(ctx, pool, store.WithLockTimeout(cfg.MigrateLockTimeout)); err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}
 	if err := jobs.Migrate(ctx, pool, cfg.JobsSchema); err != nil {

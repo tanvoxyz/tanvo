@@ -165,6 +165,7 @@ func TestLoadInvalid(t *testing.T) {
 		{"bad direct database scheme", []string{dsn, "TANVO_DATABASE_DIRECT_URL=mysql://x"}, "TANVO_DATABASE_DIRECT_URL: want a postgres:// URL"},
 		{"bad duration", []string{dsn, "TANVO_SHUTDOWN_TIMEOUT=soon"}, "shutdown_timeout"},
 		{"bad bool", []string{dsn, "TANVO_MIGRATE_ON_START=maybe"}, "migrate_on_start"},
+		{"negative migrate lock timeout", []string{dsn, "TANVO_MIGRATE_LOCK_TIMEOUT=-1s"}, "TANVO_MIGRATE_LOCK_TIMEOUT"},
 		{"bad level", []string{dsn, "TANVO_LOG_LEVEL=loud"}, "TANVO_LOG_LEVEL"},
 		{"bad format", []string{dsn, "TANVO_LOG_FORMAT=xml"}, "TANVO_LOG_FORMAT"},
 		{"bad addr", []string{dsn, "TANVO_HTTP_ADDR=8080"}, "TANVO_HTTP_ADDR"},

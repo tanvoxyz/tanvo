@@ -27,6 +27,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/eventstore/postgres"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
 	"github.com/tanvoxyz/tanvo/libs/mail"
+	"github.com/tanvoxyz/tanvo/libs/store"
 )
 
 // EnvPrefix is the prefix of Tanvo's environment variables.
@@ -166,6 +167,11 @@ type Config struct {
 	// MigrateOnStart applies the migrations when serve starts; otherwise
 	// serve checks that they are applied and refuses to start if not.
 	MigrateOnStart bool `koanf:"migrate_on_start"`
+	// MigrateLockTimeout bounds how long a migration statement waits for a
+	// lock before the migration fails (store.WithLockTimeout), so that it
+	// does not queue the writes of the running release behind it; 0 waits
+	// indefinitely.
+	MigrateLockTimeout time.Duration `koanf:"migrate_lock_timeout"`
 
 	// JobsSchema is the schema of River's tables.
 	JobsSchema string `koanf:"jobs_schema"`
@@ -452,6 +458,7 @@ func Defaults() Config {
 		HTTPMaxBodyBytes:         8 << 20,
 		ShutdownTimeout:          30 * time.Second,
 		MigrateOnStart:           true,
+		MigrateLockTimeout:       store.DefaultLockTimeout,
 		JobsSchema:               "river",
 		IngestMode:               string(ingest.ModePostgres),
 		IngestEnrichConcurrency:  4,
@@ -607,6 +614,9 @@ func (c Config) Validate() error {
 	}
 	if c.ShutdownTimeout <= 0 {
 		bad("shutdown_timeout", "must be positive")
+	}
+	if c.MigrateLockTimeout < 0 {
+		bad("migrate_lock_timeout", "must not be negative")
 	}
 	for _, d := range c.SubscriptionTerminationAlertDays {
 		if d < 0 {
