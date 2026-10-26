@@ -44,7 +44,7 @@ Every Go module also works without Nx: `cd libs/money && mise exec -- go test ./
   GOWORK=off go mod tidy
   ```
 - New module: create the directory → `go mod init github.com/tanvoxyz/tanvo/<dir>` → set the `go` directive to `1.27.1` → add it to `use` in `go.work`. Nx infers the project from `go.mod`.
-- The dependency direction of [architecture §3.2](docs/architecture.md#32-dependency-direction) is enforced by depguard in `.golangci.yml`. **Only `apps/server` does wiring.** `ee/*` imports only `libs/proto`.
+- The dependency direction of [architecture §3.2](docs/architecture.md#32-dependency-direction) is enforced by depguard in `.golangci.yml`. **Only `apps/server` does wiring.** `ee/*` imports only `libs/proto` and other `ee/*` modules (such as `ee/license`).
 
 ### Third-party Dependencies
 - **No CGO**: everything builds with `CGO_ENABLED=0`; native capabilities come from child processes or WASM on wazero.

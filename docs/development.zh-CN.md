@@ -107,7 +107,7 @@ pnpm nx graph                                       # 依赖图
   * `libs/money` 不导入任何仓库内模块；`libs/period` 与 `libs/expression/go` 只导入 `money`；`libs/pricing`、`libs/metering` 与 `libs/tax` 只导入 `money`、`period` 以及彼此。
   * `libs/billing` 不导入 `store`、`eventstore`、`jobs`、`documents` 或 `webhooks`；它基于 `libs/core` 的接口工作。
   * 基础设施库不导入 `billing`。
-  * `ee/*` 只导入 `libs/proto`。
+  * `ee/*` 只导入 `libs/proto` 与其他 `ee/*` 模块（如 `ee/license`）。
 * Rust：`cargo fmt`、`cargo clippy -D warnings`，`unsafe` 只出现在 WASM ABI 模块中。
 * Protobuf：`buf lint`、`buf format`，API 发布后再对照 `main` 运行 `buf breaking`。
 

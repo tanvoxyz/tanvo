@@ -141,10 +141,11 @@ apps/server ──▶ billing ──▶ pricing / metering / tax / period / mone
      │             └──▶ core ──▶ money / period
      ├──▶ ingest ──▶ expression(go) / metering / core
      ├──▶ store / eventstore / jobs / webhooks / documents / mail / auth / cache ──▶ core
+     │                                                       auth ──▶ proto (service token claims)
      ├──▶ providers/* ──▶ core
      └──▶ proto
 
-ee/* ──▶ proto        (never any other in-repo module)
+ee/* ──▶ proto / ee/*  (never any other in-repo module)
 ```
 
 * `money`, `period`, `expression`, `pricing`, `metering` and `tax` are pure libraries: they depend only on each other in the order shown and on the standard library or vetted third-party packages, never on `core`, storage or I/O (except `tax`'s VIES client behind an interface).
@@ -153,6 +154,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 * Infrastructure libraries depend on `core` but not on each other, with one exception: `ingest` uses `expression` (a pure library, like `metering`, whose event type it writes). Integration tests may use another library's backends; the depguard rules exempt test files.
 * `dockertest` is a leaf test helper with no in-repo imports; only test files, `store/pgtest` and the store's tools import it.
 * Only `apps/server` wires implementations to ports.
+* `auth` imports `proto` for one message, the service token claims (`tanvo.access.v1.ServiceTokenClaims`), the contract the enterprise services decode (§14.1).
 * The rules are enforced by depguard in `.golangci.yml`; changing them starts with this section.
 
 ---
@@ -527,6 +529,7 @@ Settings are `TANVO_*` environment variables over an optional TOML file (`--conf
 | `TANVO_DISABLE_SIGNUP` | `false` | turns off self sign-up |
 | `TANVO_GOOGLE_AUTH_CLIENT_ID`, `TANVO_GOOGLE_AUTH_CLIENT_SECRET` | | OAuth client of Google sign-in, redirected to `TANVO_APP_URL/auth/google/callback`; unset disables it |
 | `TANVO_SECRET_KEY` | | installation secret, base64 of at least 32 bytes; HKDF-SHA256 derives the key signing customer portal tokens and the AES-256-GCM key sealing integration secrets (SSO client secrets and x402 connection credentials) from it. Unset disables the customer portal and the SSO connections, and fails every x402 facilitator call; changing it invalidates portal links and makes sealed secrets undecryptable |
+| `TANVO_SERVICE_TOKEN_KEYS` | | Ed25519 keys signing the service tokens of the enterprise services (§14.1), `<key_id>:<base64url seed>[,…]`; the first signs, the others still verify during a rotation. `tanvo admin service-token-key generate` makes one and `public` prints the public keys for `TANVO_ANALYTICS_TOKEN_KEYS`. Unset makes `CreateDataApiToken` fail with `not_configured` |
 
 
 ### 13.6 Caches
@@ -573,22 +576,32 @@ Self-hosted installations enable them with an offline-verifiable license key (Ed
 
 ### 14.1 Analytics Deployment
 
-`ee/analytics` builds the `tanvo-analytics` binary and container image: a stateless HTTP server (Connect, package `tanvo.analytics.v1`) and its own scheduled jobs, run as one or more replicas beside `tanvo serve`.
+`ee/analytics` builds the `tanvo-analytics` binary: a stateless HTTP server of the Data API (`tanvo.dataapi.v1.DataApiService`, over Connect, gRPC and REST) that also refreshes its derived data, run as one or more replicas beside `tanvo serve`.
 
 ```
-clients ─▶ ingress ─┬─ /v1/*            ─▶ tanvo serve (api)      issues analytics tokens
-                    └─ /v1/analytics/*  ─▶ tanvo-analytics        verifies them with the core's public key
-                                              │ reads exports_* views  (replica when configured; ClickHouse for Kafka-mode usage)
+clients ─▶ ingress ─┬─ /v1/*            ─▶ tanvo serve (api)      issues Data API tokens
+                    └─ /v1/data_api/*   ─▶ tanvo-analytics        verifies them with the core's public keys
+                                              │ reads exports_* views  (replica when configured)
                                               └ reads and writes the analytics schema (primary)
 ```
 
-* **Routing and authentication.** The ingress routes `/v1/analytics/` to `tanvo-analytics` under the same host, so the console and API clients see one API. A caller first asks the core for an analytics token: short-lived, signed with the core's Ed25519 key, naming the organization, the member or API key and its permissions (`data_api:view`). `tanvo-analytics` verifies it offline and never sees an API key, a session or the core's secrets. The core never proxies analytics traffic.
-* **Reading the core.** A dedicated PostgreSQL role (`tanvo_analytics`) has `SELECT` on the `exports_*` views only, never on tables. The views are `security_invoker`, so the row-level security of the role applies; every query sets `tanvo.organization_id` from the token, as the core does (§5.4). With `TANVO_ANALYTICS_REPLICA_URL` the heavy reads go to a replica, so reports never compete with billing writes. Usage of Kafka-mode organizations is read from ClickHouse through a read-only user.
-* **Its own schema.** MRR movements need each subscription's MRR day by day, and revenue recognition needs each fee spread over its service period; recomputing them from invoices on every request is too slow for large organizations. The service therefore owns the `analytics` schema, the only place it writes: daily MRR snapshots per subscription (organization, subscription, customer, plan, billing entity, currency, day, exact amount) and recognition schedules per fee (fee, period, recognized and deferred amounts). Both are derived data. Jobs maintain them incrementally from the views' `updated_at` watermarks and the deletion records ([Feature Parity §1.49](parity.md#149-platform-services)), and `tanvo-analytics rebuild` recomputes an organization from scratch. The schema has its own Atlas migrations under `ee/analytics`, applied by `tanvo-analytics migrate`. It never alters the core's schema, and the core never reads it. Its writes go to the primary; it may also live in a separate database (`TANVO_ANALYTICS_DATABASE_URL`).
-* **Reports.** Snapshots answer MRR, MRR by plan and revenue recognition. The views answer revenue streams, prepaid credits and invoiced usage directly, and the event store answers usage. Amounts are `money.Decimal`. Results are cached like the core's analytics (§13.6).
-* **Self-hosted.** Without a license nothing changes: `tanvo serve` and PostgreSQL, with the core's analytics (§13.6, [Feature Parity §1.44](parity.md#144-analytics)). With one, the Compose file and Helm chart add the `tanvo-analytics` service and its license key (`TANVO_LICENSE_KEY`). It checks the key at start-up and daily, and serves no report without a valid key.
-* **Tanvo Cloud.** One `tanvo-analytics` Deployment per cell, next to the cell's replica and ClickHouse; its `analytics` schema lives in the cell's PostgreSQL cluster.
-* **Telemetry.** The service follows §15: OTel traces and metrics, organization IDs on spans and logs only.
+* **Routing and authentication.** The ingress routes `/v1/data_api/` (and the Connect path `/tanvo.dataapi.v1.DataApiService/`) to `tanvo-analytics` under the same host, so the console and API clients see one API. A caller first calls `AnalyticsService.CreateDataApiToken` on the core (`POST /v1/analytics/data_api_tokens`) with its session or API key. The token lives 15 minutes and names the organization, the caller (`user:<id>` or `api_key:<id>`) and the caller's Data API permissions (`data_api:read`: the admin and finance roles, and API keys granted the `analytic` resource). It is the deterministic encoding of `tanvo.access.v1.ServiceTokenClaims` and its Ed25519 signature, signed by the first key of `TANVO_SERVICE_TOKEN_KEYS` (`tanvo admin service-token-key generate`). `tanvo-analytics` verifies it offline with the public keys of `TANVO_ANALYTICS_TOKEN_KEYS` (`tanvo admin service-token-key public`), so it never sees an API key, a session or the core's secrets, and the core never proxies Data API traffic. Without signing keys the RPC fails with `not_configured`.
+* **Reading the core.** A dedicated PostgreSQL role connects to the core database. `tanvo admin grant-analytics <role>` creates the `analytics` schema owned by it and grants `SELECT` on the `exports_*` views and, since the views are `security_invoker`, on the columns of the tables they read, never on the others (API keys, integration secrets). The command refuses superusers, roles that bypass row-level security and owners of the core tables. Every transaction sets `tanvo.organization_id` to the token's organization, so row-level security applies as in the core (§5.4); the token's organization must be a UUID. Row-level security is defense in depth here: a role with these grants could set the wildcard itself, so the role's credentials are as sensitive as the core's. With `TANVO_ANALYTICS_REPLICA_URL` the reports read a replica, so they never compete with billing writes.
+* **Its own schema.** MRR movements need each subscription's MRR on any day, and revenue recognition needs each fee spread over its service period. The service therefore owns the `analytics` schema, the only place it writes: each subscription's MRR as intervals of constant MRR per currency (a fee changes it, a termination ends it), recognition schedules per fee, a catalog of the plans seen (so that reports keep the code and name of plans deleted since), and each organization's refresh state. All are derived data, never altered by hand. An organization is built on its first report, in one transaction; every `TANVO_ANALYTICS_REFRESH_INTERVAL` (5 minutes by default) the service rebuilds the organizations whose core data changed since, by the views' `updated_at` watermarks and the deletion records ([Feature Parity §1.49](parity.md#149-platform-services)). `tanvo-analytics rebuild --organization <id>` rebuilds one on demand. The schema has its own migrations under `ee/analytics/store/migrations`, applied by `tanvo-analytics migrate` and at start-up. It never alters the core's schema, and the core never reads it. Its writes go to the primary; a report right after a build reads the primary too, since the replica may lag.
+* **Reports.** The intervals answer MRR and MRR by plan, the schedules revenue recognition; the views answer revenue streams, prepaid credits and invoiced usage directly, and the daily usage increments (`exports_daily_usages`) answer usage. Their definitions are in [Domain §25](domain.md#25-data-api-reports). Amounts are exact decimals.
+* **Self-hosted.** Without a license nothing changes: `tanvo serve` and PostgreSQL, with the core's analytics (§13.6, [Feature Parity §1.44](parity.md#144-analytics)). With one, the deployment adds the `tanvo-analytics` service with its license key (`TANVO_LICENSE_KEY`), checked by `ee/license` at start-up and daily. It refuses to start without a valid key, and answers `Unavailable` once the key expires.
+* **Tanvo Cloud.** One `tanvo-analytics` Deployment per cell, next to the cell's replica; its `analytics` schema lives in the cell's PostgreSQL cluster.
+* **Telemetry.** The service follows §15: the OTel SDK configured by the `OTEL_*` variables, RPC spans and the `rpc.server.call.duration` histogram, a span per rebuild, and JSON logs bridged to OTel; organization IDs go on spans and logs only.
+
+| Variable | Use |
+| :--- | :--- |
+| `TANVO_ANALYTICS_DATABASE_URL` | The core database's primary, as the analytics role (required) |
+| `TANVO_ANALYTICS_REPLICA_URL` | A replica serving the reports (optional) |
+| `TANVO_ANALYTICS_TOKEN_KEYS` | The core's service token public keys, `<key_id>:<base64url key>,…` |
+| `TANVO_LICENSE_KEY` | The license key |
+| `TANVO_ANALYTICS_LISTEN` | The listen address, `:8090` by default |
+| `TANVO_ANALYTICS_REFRESH_INTERVAL` | The refresh interval, `5m` by default |
+| `TANVO_LOG_LEVEL` | `debug`, `info` (default), `warn` or `error` |
 
 ---
 
@@ -597,7 +610,7 @@ clients ─▶ ingress ─┬─ /v1/*            ─▶ tanvo serve (api)      
 * Secrets are encrypted with AES-256-GCM envelopes; data keys are encrypted by a key from configuration or a KMS. Today `auth.SecretBox` seals integration secrets with one AES-256-GCM key derived from `TANVO_SECRET_KEY` (HKDF-SHA256), with the organization ID as additional data; envelopes and KMS keys come later.
 * Security-relevant actions (sign-ins, key creation, role changes) are written to the security log.
 * **Observability follows OpenTelemetry** for traces, metrics and logs:
-  * Libraries depend only on the OTel API and take their `TracerProvider` and `MeterProvider` through constructor options, no-op by default; only `apps/server` imports the SDK and the exporters (enforced by depguard) and installs the global providers.
+  * Libraries depend only on the OTel API and take their `TracerProvider` and `MeterProvider` through constructor options, no-op by default; only `apps/server` and the `ee/*` binaries import the SDK and the exporters (enforced by depguard) and install the global providers.
   * The SDK is configured by the standard `OTEL_*` environment variables (`OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_EXPORTER_OTLP_*`, `OTEL_TRACES_SAMPLER`, …). OTLP over gRPC or HTTP is the default exporter; a Prometheus `/metrics` endpoint is an optional metric reader for pull-based setups.
   * The resource carries `service.name` (`tanvo`), `service.version`, `service.instance.id`, `deployment.environment.name` and the process role (`tanvo.role`); Kubernetes attributes come from the environment or the Collector.
   * Instrumentation uses maintained instrumentation libraries and the semantic conventions: `otelhttp` and a Connect interceptor emitting the RPC semantic conventions for the API, `otelpgx` for PostgreSQL, `kotel` for franz-go, River's OpenTelemetry middleware, spans around ClickHouse statements (`clickhouse.WithTracerProvider`: `db.system.name`, `db.operation.name`, `db.collection.name` and the parameterized `db.query.text`) and provider calls. Names and units follow the semantic conventions (`http.server.request.duration` in seconds); Tanvo's own instruments and attributes use the `tanvo.` prefix (`tanvo.jobs.duration`, `tanvo.ingest.records`).

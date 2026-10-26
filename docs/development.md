@@ -107,7 +107,7 @@ Generated files are committed and never edited by hand; CI fails when they are s
   * `libs/money` imports nothing in-repo; `libs/period` and `libs/expression/go` only `money`; `libs/pricing`, `libs/metering` and `libs/tax` only `money`, `period` and each other.
   * `libs/billing` does not import `store`, `eventstore`, `jobs`, `documents` or `webhooks`; it works on interfaces of `libs/core`.
   * Infrastructure libraries do not import `billing`.
-  * `ee/*` imports only `libs/proto`.
+  * `ee/*` imports only `libs/proto` and other `ee/*` modules (such as `ee/license`).
 * Rust: `cargo fmt`, `cargo clippy -D warnings`, `unsafe` only in the WASM ABI module.
 * Protobuf: `buf lint`, `buf format`, and `buf breaking` against `main` once the API is published.
 

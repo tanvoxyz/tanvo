@@ -34,6 +34,7 @@ This document defines Tanvo's business entities, their fields, invariants, enume
 22. [Billing Rules](#22-billing-rules)
 23. [Deliberate Changes from Lago](#23-deliberate-changes-from-lago)
 24. [Design Decisions](#24-design-decisions)
+25. [Data API Reports](#25-data-api-reports)
 
 ---
 
@@ -1761,3 +1762,47 @@ The questions raised while writing this model, and how Tanvo settles them. A lat
 18. **Expired activations** refund captured payments with that refund reason.
 19. **Connections** of a billing object resolve per category: its specific choice, none for `skip`, else the customer's only or default connection.
 20. **Coupons on drafts** are shown as a preview deduction without being consumed; they are applied at finalization.
+
+---
+
+## 25. Data API Reports
+
+The Data API (`tanvo.dataapi.v1.DataApiService`, served by `ee/analytics`, [Architecture §14.1](architecture.md#141-analytics-deployment)) answers the reports lago forwards to its private Data API. Lago's computations are not public, so these definitions are Tanvo's own ([Parity §1.44](parity.md#144-analytics)). Every report reads the core's export views (`exports_*`) and the derived `analytics` schema; amounts exclude taxes, are exact, and are returned in major units of their currency, rounded half to even at the currency's exponent.
+
+### 25.1 Periods and Filters
+
+* A report covers the days `from_date` to `to_date`, both included. `to_date` defaults to today (UTC); `from_date` to the start of the 12th period before the one of `to_date` (the 30th day before for daily periods).
+* Periods are days, ISO weeks (Monday to Sunday) or calendar months, monthly by default and daily for the usage reports. The first and last periods are clipped to the range, and a range has at most 1000 periods.
+* A day is a day of the customer's time zone (the applicable one, §4), as invoices' issuing dates are.
+* Every report returns one point per period and currency, oldest first, also for periods without data. List reports (MRR by plan, revenue by customer or plan) cover the whole range, are paged (20 rows by default, at most 1000) and return the total row count.
+* The filters are those of lago's Data API: currency, customer country, customer type, external customer ID, external subscription ID, billing entity code, plan code (deleted plans included), and `is_customer_tin_empty`.
+
+### 25.2 MRR
+
+* **Rate.** A subscription fee of a finalized invoice, not self-billed and without a lost dispute, contributes its amount less its coupons as a monthly rate over its service period (`from_datetime` to `to_datetime`, in the customer's days): net × D / (W × D + d), where the period is W whole calendar months plus d days and D is the length of the month in which the remaining days start (a 31st clamps to the month's last day). A yearly fee of 1200 has an MRR of 100; a fee of 1000 for 1 to 14 February 2027 has an MRR of 2000.
+* **Intervals.** A subscription's MRR on a day is the sum of the rates of its fees covering it. Between two fees it keeps the last MRR, so a subscription billed in arrears or in advance has no gaps; from its termination day it is zero; an active subscription keeps its last MRR open-ended. These intervals are stored per subscription and currency in the `analytics` schema, rebuilt when the organization's core data changes.
+* **Movements.** For each customer and currency, the MRR on the day before the period (starting) is compared with the MRR on the period's last day (ending): from zero is *new*, to zero is *churn*, an increase is *expansion* and a decrease *contraction*. The report sums them with the starting and ending MRR; `mrr_change` is ending less starting.
+* **By plan.** The MRR on `to_date` by plan and currency, with the plan's share of the currency's MRR and the count and share of the customers with an MRR on it.
+
+### 25.3 Revenue Streams
+
+* **Fees counted.** The fees of finalized invoices that are not self-billed and have no lost dispute, plus the fees paid in advance outside an invoice; credit purchase fees are excluded (the credit is counted when it is consumed). A fee counts on its invoice's issuing date, or the day it was created without an invoice.
+* **Gross revenue** is the fees' amounts by kind: subscription (subscription, fixed charge and product fees), usage-based (charge fees), commitment (minimum commitment true-ups) and one-off (add-on fees).
+* **Contra revenue** is what reduces it: coupons, credit-note credits, free (granted) prepaid credits and progressive billing credits. These are amounts of the invoice, so each is allocated to the invoice's fees in proportion to their amounts. *Net revenue* is gross less contra revenue.
+* **Purchased prepaid credits** applied to the invoice are reported apart: they are a means of payment, not a reduction of revenue.
+* **By customer and by plan.** The gross and net revenue of the whole range per customer (or plan) and currency, with their shares of the currency's; plans also count their invoiced customers. Order by gross (default) or net revenue, descending.
+
+### 25.4 Prepaid Credits
+
+The settled wallet transactions of each period, by settlement day in the customer's time zone: purchased (inbound, purchased), offered (inbound, granted), consumed (outbound, invoiced) and voided (outbound, voided), each as an amount in the wallet's currency and as credits.
+
+### 25.5 Usage
+
+* **Usage** sums the daily usage increments (`exports_daily_usages`, the change of each subscription's current usage on a day, §10) per period, currency and billable metric: units and amount. Billable metrics can be narrowed to one code, or to recurring or non-recurring metrics; a metric deleted since is flagged. *Usage amounts* is the same without the per-metric split.
+* **Invoiced usage** sums the charge fees counted as revenue (§25.3), gross, by issuing day and billable metric, optionally narrowed to one metric, to the fees of the pricing groups with given `grouped_by` values, or to the fees of charge filters allowing given values.
+
+### 25.6 Revenue Recognition
+
+* Each fee counted as revenue (§25.3) is recognized straight-line over its service period, by day; a fee without one, such as a one-off fee, is recognized on its issuing day.
+* For each period: *invoiced* is the net revenue issued in it, *recognized* the net revenue recognized in it, and *deferred* the net revenue issued up to its end but not recognized by then.
+* A charge fee's service period is its billing period, so usage is recognized over the period it was incurred in, not when it is invoiced.

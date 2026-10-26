@@ -44,7 +44,7 @@ pnpm nx show projects                              # 列出项目（名称 = 目
   GOWORK=off go mod tidy
   ```
 - 新增模块：创建目录 → `go mod init github.com/tanvoxyz/tanvo/<dir>` → 把 `go` 指令设为 `1.27.1` → 加入 `go.work` 的 `use`。Nx 从 `go.mod` 推断出项目。
-- [架构 §3.2](docs/architecture.zh-CN.md#32-依赖方向) 的依赖方向由 `.golangci.yml` 中的 depguard 强制。**只有 `apps/server` 负责装配。** `ee/*` 只导入 `libs/proto`。
+- [架构 §3.2](docs/architecture.zh-CN.md#32-依赖方向) 的依赖方向由 `.golangci.yml` 中的 depguard 强制。**只有 `apps/server` 负责装配。** `ee/*` 只导入 `libs/proto` 与其他 `ee/*` 模块（如 `ee/license`）。
 
 ### 第三方依赖
 - **禁止 CGO**：一切都以 `CGO_ENABLED=0` 构建；原生能力来自子进程或 wazero 运行的 WASM。

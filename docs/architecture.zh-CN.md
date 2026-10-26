@@ -141,10 +141,11 @@ apps/server ──▶ billing ──▶ pricing / metering / tax / period / mone
      │             └──▶ core ──▶ money / period
      ├──▶ ingest ──▶ expression(go) / metering / core
      ├──▶ store / eventstore / jobs / webhooks / documents / mail / auth / cache ──▶ core
+     │                                                       auth ──▶ proto (service token claims)
      ├──▶ providers/* ──▶ core
      └──▶ proto
 
-ee/* ──▶ proto        (never any other in-repo module)
+ee/* ──▶ proto / ee/*  (never any other in-repo module)
 ```
 
 * `money`、`period`、`expression`、`pricing`、`metering` 与 `tax` 是纯函数库：它们只按图示顺序相互依赖，并依赖标准库或经过审查的第三方包，从不依赖 `core`、存储或 I/O（`tax` 位于接口之后的 VIES 客户端除外）。
@@ -153,6 +154,7 @@ ee/* ──▶ proto        (never any other in-repo module)
 * 基础设施库依赖 `core`，但彼此之间互不依赖，只有一个例外：`ingest` 使用 `expression`（与 `metering` 一样是纯库，ingest 写入的是它的事件类型）。集成测试可以使用其他库的后端；depguard 规则对测试文件豁免。
 * `dockertest` 是一个不导入任何仓库内模块的叶子测试辅助库；只有测试文件、`store/pgtest` 与 store 的工具导入它。
 * 只有 `apps/server` 把实现装配到端口上。
+* `auth` 只为一个消息引入 `proto`：服务令牌的声明（`tanvo.access.v1.ServiceTokenClaims`），即企业版服务解码的契约（§14.1）。
 * 这些规则由 `.golangci.yml` 中的 depguard 强制；要修改它们，先修改本节。
 
 ---
@@ -527,6 +529,7 @@ POST /v1/events, /v1/events:batch
 | `TANVO_DISABLE_SIGNUP` | `false` | 关闭自助注册 |
 | `TANVO_GOOGLE_AUTH_CLIENT_ID`、`TANVO_GOOGLE_AUTH_CLIENT_SECRET` | | Google 登录的 OAuth 客户端，回调到 `TANVO_APP_URL/auth/google/callback`；未设置则关闭 |
 | `TANVO_SECRET_KEY` | | 安装密钥，至少 32 字节的 base64；用 HKDF-SHA256 从中派生签发客户门户令牌的密钥，以及加密集成密钥（SSO 客户端密钥与 x402 连接凭据）的 AES-256-GCM 密钥。未设置则关闭客户门户与 SSO 连接，并使每次 x402 结算方调用失败；更换后门户链接失效，已加密的密钥无法解密 |
+| `TANVO_SERVICE_TOKEN_KEYS` | | 签发企业版服务令牌（§14.1）的 Ed25519 密钥，`<key_id>:<base64url 种子>[,…]`；第一个用于签名，其余在轮换期间仍可校验。`tanvo admin service-token-key generate` 生成密钥，`public` 打印供 `TANVO_ANALYTICS_TOKEN_KEYS` 使用的公钥。未设置时 `CreateDataApiToken` 以 `not_configured` 失败 |
 
 
 ### 13.6 缓存
@@ -573,22 +576,32 @@ Lago 高级许可证之下的功能（渐进式计费、钱包的高级规则、
 
 ### 14.1 分析服务的部署
 
-`ee/analytics` 构建 `tanvo-analytics` 可执行文件与容器镜像：一个无状态的 HTTP 服务（Connect，包 `tanvo.analytics.v1`）及其自有的定时任务，以一个或多个副本运行在 `tanvo serve` 旁边。
+`ee/analytics` 构建 `tanvo-analytics` 可执行文件：一个提供 Data API（`tanvo.dataapi.v1.DataApiService`，经 Connect、gRPC 与 REST）的无状态 HTTP 服务，同时负责刷新其派生数据，以一个或多个副本运行在 `tanvo serve` 旁边。
 
 ```
-客户端 ─▶ ingress ─┬─ /v1/*            ─▶ tanvo serve（api）     签发分析令牌
-                   └─ /v1/analytics/*  ─▶ tanvo-analytics       用核心的公钥校验令牌
-                                             │ 读取 exports_* 视图（配置了副本时读副本；Kafka 模式的用量读 ClickHouse）
+客户端 ─▶ ingress ─┬─ /v1/*            ─▶ tanvo serve（api）     签发 Data API 令牌
+                   └─ /v1/data_api/*   ─▶ tanvo-analytics       用核心的公钥校验令牌
+                                             │ 读取 exports_* 视图（配置了副本时读副本）
                                              └ 读写 analytics 模式（主库）
 ```
 
-* **路由与认证。** ingress 在同一主机下把 `/v1/analytics/` 路由到 `tanvo-analytics`，控制台与 API 客户端看到的是同一套 API。调用方先向核心申请分析令牌：短期有效，由核心的 Ed25519 密钥签名，载明组织、成员或 API 密钥及其权限（`data_api:view`）。`tanvo-analytics` 离线校验令牌，从不接触 API 密钥、会话或核心的密钥。核心从不代理分析流量。
-* **读取核心数据。** 专用的 PostgreSQL 角色（`tanvo_analytics`）只对 `exports_*` 视图有 `SELECT` 权限，对表没有任何权限。视图是 `security_invoker`，因此该角色的行级安全生效；每个查询都按令牌设置 `tanvo.organization_id`，与核心的做法相同（§5.4）。设置 `TANVO_ANALYTICS_REPLICA_URL` 后，重查询走副本，报表不会与计费写入争抢资源。Kafka 模式组织的用量通过只读用户从 ClickHouse 读取。
-* **自有模式。** MRR 变动需要每个订阅逐日的 MRR，收入确认需要把每笔费用分摊到其服务期间；对大组织而言，每次请求都从发票重新计算太慢。因此该服务拥有 `analytics` 模式，这也是它唯一写入的地方，其中有两类数据。一是每个订阅的每日 MRR 快照：组织、订阅、客户、套餐、开票主体、币种、日期与精确金额。二是每笔费用的确认计划：费用、期间、已确认与递延金额。两者都是派生数据。任务根据视图的 `updated_at` 水位与删除记录（[功能对齐 §1.49](parity.zh-CN.md#149-平台服务)）增量维护它们，`tanvo-analytics rebuild` 可从头重算一个组织。该模式在 `ee/analytics` 下有自己的 Atlas 迁移，由 `tanvo-analytics migrate` 执行。它从不修改核心的模式，核心也从不读取它。它的写入走主库；它也可以放在单独的数据库中（`TANVO_ANALYTICS_DATABASE_URL`）。
-* **报表。** 快照回答 MRR、按套餐的 MRR 与收入确认。视图直接回答收入流、预付额度与已开票用量，事件存储回答用量。金额为 `money.Decimal`。结果的缓存方式与核心的分析相同（§13.6）。
-* **自托管。** 没有许可证时一切不变：`tanvo serve` 加 PostgreSQL，使用核心的分析（§13.6，[功能对齐 §1.44](parity.zh-CN.md#144-分析)）。有许可证时，Compose 文件与 Helm chart 增加 `tanvo-analytics` 服务及其许可证密钥（`TANVO_LICENSE_KEY`）。服务在启动时及每天校验密钥，没有有效密钥时不提供任何报表。
-* **Tanvo Cloud。** 每个 cell 一个 `tanvo-analytics` Deployment，紧邻该 cell 的副本与 ClickHouse；其 `analytics` 模式位于该 cell 的 PostgreSQL 集群中。
-* **遥测。** 遵循 §15：OTel 链路与指标，组织 ID 只放在 span 与日志上。
+* **路由与认证。** ingress 在同一主机下把 `/v1/data_api/`（以及 Connect 路径 `/tanvo.dataapi.v1.DataApiService/`）路由到 `tanvo-analytics`，控制台与 API 客户端看到的是同一套 API。调用方先以其会话或 API 密钥调用核心的 `AnalyticsService.CreateDataApiToken`（`POST /v1/analytics/data_api_tokens`）。令牌有效 15 分钟，载明组织、调用方（`user:<id>` 或 `api_key:<id>`）及其 Data API 权限（`data_api:read`：admin 与 finance 角色，以及被授予 `analytic` 资源的 API 密钥）。它是 `tanvo.access.v1.ServiceTokenClaims` 的确定性编码加上 Ed25519 签名，由 `TANVO_SERVICE_TOKEN_KEYS` 的第一个密钥签发（`tanvo admin service-token-key generate`）。`tanvo-analytics` 用 `TANVO_ANALYTICS_TOKEN_KEYS` 中的公钥（`tanvo admin service-token-key public`）离线校验，因此从不接触 API 密钥、会话或核心的密钥，核心也从不代理 Data API 流量。没有签名密钥时该 RPC 以 `not_configured` 失败。
+* **读取核心数据。** 专用的 PostgreSQL 角色连接核心数据库。`tanvo admin grant-analytics <role>` 创建归该角色所有的 `analytics` 模式，授予它对 `exports_*` 视图的 `SELECT`；由于视图是 `security_invoker`，还授予对视图所读表中相应列的 `SELECT`，其他列（API 密钥、集成密钥）一概不授予。该命令拒绝超级用户、绕过行级安全的角色以及核心表的所有者。每个事务都把 `tanvo.organization_id` 设为令牌中的组织，使行级安全与核心中一样生效（§5.4）；令牌中的组织必须是 UUID。这里的行级安全是纵深防御：拥有这些授权的角色可以自行设置通配符，因此该角色的凭据与核心的凭据同样敏感。设置 `TANVO_ANALYTICS_REPLICA_URL` 后，报表读副本，不会与计费写入争抢资源。
+* **自有模式。** MRR 变动需要每个订阅在任意一天的 MRR，收入确认需要把每笔费用分摊到其服务期。因此该服务拥有 `analytics` 模式，这也是它唯一写入的地方：每个订阅按币种的 MRR 区间（MRR 在区间内不变，费用改变它，终止结束它）、每笔费用的确认计划、所见套餐的目录（使报表保留此后被删除的套餐的代码与名称），以及每个组织的刷新状态。它们都是派生数据，从不手工修改。组织在首次请求报表时于一个事务内构建；每隔 `TANVO_ANALYTICS_REFRESH_INTERVAL`（默认 5 分钟），服务按视图的 `updated_at` 水位与删除记录（[功能对齐 §1.49](parity.zh-CN.md#149-平台服务)）重建核心数据有变化的组织。`tanvo-analytics rebuild --organization <id>` 按需重建一个组织。该模式在 `ee/analytics/store/migrations` 下有自己的迁移，由 `tanvo-analytics migrate` 及启动时执行。它从不修改核心的模式，核心也从不读取它。它的写入走主库；构建后紧接着的报表也读主库，因为副本可能滞后。
+* **报表。** MRR 区间回答 MRR 与按套餐的 MRR，确认计划回答收入确认；视图直接回答收入流、预付额度与已开票用量，每日用量增量（`exports_daily_usages`）回答用量。其定义见[领域 §25](domain.zh-CN.md#25-data-api-报表)。金额为精确的十进制数。
+* **自托管。** 没有许可证时一切不变：`tanvo serve` 加 PostgreSQL，使用核心的分析（§13.6，[功能对齐 §1.44](parity.zh-CN.md#144-分析)）。有许可证时，部署中增加 `tanvo-analytics` 服务及其许可证密钥（`TANVO_LICENSE_KEY`），由 `ee/license` 在启动时及每天校验。没有有效密钥时服务拒绝启动，密钥过期后以 `Unavailable` 应答。
+* **Tanvo Cloud。** 每个 cell 一个 `tanvo-analytics` Deployment，紧邻该 cell 的副本；其 `analytics` 模式位于该 cell 的 PostgreSQL 集群中。
+* **遥测。** 遵循 §15：由 `OTEL_*` 变量配置的 OTel SDK，RPC span 与 `rpc.server.call.duration` 直方图，每次重建一个 span，JSON 日志并桥接到 OTel；组织 ID 只放在 span 与日志上。
+
+| 变量 | 用途 |
+| :--- | :--- |
+| `TANVO_ANALYTICS_DATABASE_URL` | 核心数据库的主库，以分析角色连接（必填） |
+| `TANVO_ANALYTICS_REPLICA_URL` | 提供报表的副本（可选） |
+| `TANVO_ANALYTICS_TOKEN_KEYS` | 核心服务令牌的公钥，`<key_id>:<base64url 公钥>,…` |
+| `TANVO_LICENSE_KEY` | 许可证密钥 |
+| `TANVO_ANALYTICS_LISTEN` | 监听地址，默认 `:8090` |
+| `TANVO_ANALYTICS_REFRESH_INTERVAL` | 刷新间隔，默认 `5m` |
+| `TANVO_LOG_LEVEL` | `debug`、`info`（默认）、`warn` 或 `error` |
 
 ---
 
@@ -597,7 +610,7 @@ Lago 高级许可证之下的功能（渐进式计费、钱包的高级规则、
 * 机密以 AES-256-GCM 信封加密；数据密钥由来自配置或 KMS 的密钥加密。目前 `auth.SecretBox` 用一个由 `TANVO_SECRET_KEY` 派生（HKDF-SHA256）的 AES-256-GCM 密钥加密集成机密，并以组织 ID 作为附加数据；信封加密与 KMS 密钥在后续实现。
 * 与安全相关的操作（登录、创建 key、角色变更）写入安全日志。
 * **可观测性遵循 OpenTelemetry**，覆盖 trace、metrics 与 logs：
-  * 库只依赖 OTel API，经构造函数选项接收 `TracerProvider` 与 `MeterProvider`，默认为 no-op；只有 `apps/server` 引入 SDK 与导出器（由 depguard 强制）并安装全局 provider。
+  * 库只依赖 OTel API，经构造函数选项接收 `TracerProvider` 与 `MeterProvider`，默认为 no-op；只有 `apps/server` 与 `ee/*` 的可执行文件引入 SDK 与导出器（由 depguard 强制）并安装全局 provider。
   * SDK 由标准 `OTEL_*` 环境变量配置（`OTEL_SERVICE_NAME`、`OTEL_RESOURCE_ATTRIBUTES`、`OTEL_EXPORTER_OTLP_*`、`OTEL_TRACES_SAMPLER` 等）。默认导出器是基于 gRPC 或 HTTP 的 OTLP；Prometheus `/metrics` 端点是可选的指标读取器，用于拉取式部署。
   * resource 带有 `service.name`（`tanvo`）、`service.version`、`service.instance.id`、`deployment.environment.name` 与进程角色（`tanvo.role`）；Kubernetes 属性来自环境或 Collector。
   * 埋点使用维护中的埋点库并遵循语义约定：API 用 `otelhttp` 与一个遵循 RPC 语义约定的 Connect 拦截器，PostgreSQL 用 `otelpgx`，franz-go 用 `kotel`，River 用其 OpenTelemetry 中间件，ClickHouse 语句（`clickhouse.WithTracerProvider`：`db.system.name`、`db.operation.name`、`db.collection.name` 与参数化的 `db.query.text`）与 provider 调用外包 span。名称与单位遵循语义约定（`http.server.request.duration`，单位为秒）；Tanvo 自己的指标与属性使用 `tanvo.` 前缀（`tanvo.jobs.duration`、`tanvo.ingest.records`）。

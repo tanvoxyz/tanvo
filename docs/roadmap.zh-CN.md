@@ -23,7 +23,7 @@
 | 4. 服务端（L4） | `apps/server`：Connect + REST（Vanguard）、OpenAPI、角色 api/worker/consumer/all、配置、健康检查、指标、迁移 | 覆盖每个 API 资源及完整计费周期的端到端测试 | 已完成 |
 | 5. 提供者 | 支付提供者（Stripe、Adyen、GoCardless、Cashfree、Flutterwave、Moneyhash），会计/CRM/税务集成，流式目的地 | 每个提供者基于录制 fixture 的测试；端到端的 webhook | 已完成 |
 | 6. 控制台 | `apps/web`：基于 Connect API 的管理控制台、客户门户 | 功能覆盖与 API 一致 | 未开始 |
-| 7. 企业版与云服务 | `ee/*` 服务（分析、助手、MCP、收入确认等）、cell、RLS 加固、Helm chart | 云部署运行端到端测试套件 | 未开始 |
+| 7. 企业版与云服务 | `ee/*` 服务（分析、助手、MCP、收入确认等）、cell、RLS 加固、Helm chart | 云部署运行端到端测试套件 | 进行中：`ee/license`、Data API 契约与令牌、`ee/analytics` 已完成（§5） |
 | 8. 超越功能对齐 | §4 中借鉴自 OpenMeter 与 Flexprice 的改进 | 每项都有自己的设计决定、测试与功能对齐行（标为 Tanvo 新增） | 进行中：判定为必要的各项已完成（§4） |
 
 ## 3. 当前进度
@@ -33,7 +33,7 @@
 * `apps/server` 经 Connect 与 REST 提供每个 API 资源，运行任务与周期调度、PostgreSQL 与 Kafka 两种模式的摄取、文档、邮件、webhook、支付提供者、集成与流式目的地。基于 PostgreSQL、ClickHouse 与 Redpanda 容器的端到端场景覆盖计费周期、计费模型、渐进式计费、按比例计费、贷项通知单、催收、文档、摄取、表达式、用量桶与各提供者。
 * `pnpm nx run-many -t buf-lint lint tidy-check build test` 在 CI 中对全部 38 个项目通过，生成代码与 WASM 模块均与源码一致。
 * 阶段 8：§4 中判定为必要的各项已完成（Kafka 运维、迁移安全、周期计费前的摄取屏障）；其余各项推迟或不采用，理由见 §4。
-* 阶段 6（控制台）与阶段 7（企业版与云服务）尚未开始。
+* 阶段 6（控制台）尚未开始。阶段 7 已开始：`ee/license`、Data API 契约与服务令牌、`ee/analytics` 已完成（§5）；其他企业服务、cell 与 Helm chart 尚未开始。
 
 ## 4. 功能对齐之后：借鉴 OpenMeter 与 Flexprice
 
@@ -85,14 +85,14 @@
 
 **以自包含设计取代。** 这类是 Lago 自己托管、而自托管的 Tanvo 不应依赖的服务：许可证服务器（`LAGO_LICENSE_URL`）、Nango、OAuth 代理、Segment 跟踪，以及 CS 管理工具及其 Slack 通知。它们已被取代：核心中没有许可证检查，改为直连各提供方的客户端，回调由 `apps/server` 提供，安装实例不发送遥测，并以 `tanvo admin` 取代管理工具（[功能对齐 §3.2](parity.zh-CN.md#32-组件)）。
 
-**逻辑在 lago-api 之外。** 公开的只有客户端一侧：请求过滤条件、响应字段、权限与环境变量。这些功能成为 `ee/` 下的企业服务。每个服务是独立进程，只导入 `libs/proto`（[架构 §14](architecture.zh-CN.md#14-企业版ee)）。Lago 的计算逻辑无从阅读，因此口径由 Tanvo 自行定义。每个口径写入[领域模型](domain.zh-CN.md)，并用 Tanvo 自己的用例测试，因为没有可移植的 lago 测试。
+**逻辑在 lago-api 之外。** 公开的只有客户端一侧：请求过滤条件、响应字段、权限与环境变量。这些功能成为 `ee/` 下的企业服务。每个服务是独立进程，只导入 `libs/proto` 与 `ee/license`（[架构 §14](architecture.zh-CN.md#14-企业版ee)）。Lago 的计算逻辑无从阅读，因此口径由 Tanvo 自行定义。每个口径写入[领域模型](domain.zh-CN.md)，并用 Tanvo 自己的用例测试，因为没有可移植的 lago 测试。
 
 | 顺序 | 服务 | 取代 Lago 的 | 计划 |
 | :--- | :--- | :--- | :--- |
-| 1 | `ee/license`（库） | `LAGO_LICENSE` 与许可证服务器 | 离线校验的 Ed25519 签名密钥，载有被许可方、到期时间与所启用的服务。每个 `ee/*` 服务在启动时及每天校验一次。Tanvo Cloud 按套餐签发密钥 |
-| 2 | `libs/proto` 中的契约 | Data API 的 REST 接口，以及 GraphQL 中的 `FinanceAssistant*` 与 `AiConversation*` | `tanvo.analytics.v1` 与 `tanvo.assistant.v1` 两个包，采用 Apache-2.0。核心签发短期签名令牌，方式与门户令牌相同。令牌载明组织、成员及其权限（`data_api:view`、`ai_conversations:create`）。服务用核心的公钥校验令牌，从不接收 API 密钥 |
+| 1 | `ee/license`（库） | `LAGO_LICENSE` 与许可证服务器 | **已完成。** 离线校验的 Ed25519 签名密钥（`tanvo1.<载荷>.<签名>`），以编译进 `ee/license` 的公钥校验，载有被许可方、到期时间与所启用的服务。每个 `ee/*` 服务在启动时及每天校验一次（`license.Checker`），没有有效密钥时拒绝启动。`tanvo-license` 生成签名密钥、签发与查看许可证；生产签名密钥保存在仓库之外。Tanvo Cloud 按套餐签发密钥 |
+| 2 | `libs/proto` 中的契约 | Data API 的 REST 接口，以及 GraphQL 中的 `FinanceAssistant*` 与 `AiConversation*` | `tanvo.dataapi.v1`（**已完成**）与 `tanvo.assistant.v1` 两个包，采用 Apache-2.0。核心签发短期签名的服务令牌（Data API 部分**已完成**：`AnalyticsService.CreateDataApiToken`，Ed25519，`tanvo.access.v1.ServiceTokenClaims`，[架构 §14.1](architecture.zh-CN.md#141-分析服务的部署)）。令牌载明组织、成员或 API 密钥及其权限（`data_api:read`、`ai_conversations:create`）。服务用核心的公钥校验令牌，从不接收 API 密钥 |
 | 3 | `ee/mcp` | `LAGO_MCP_SERVER_URL` 所指的 MCP 服务器 | 由 `libs/proto` 描述符生成：每个公开 RPC 一个工具，输入模式取自请求消息，描述取自文档注释。除非令牌授予写权限，否则隐藏写操作工具。支持 Streamable HTTP 与 stdio，以调用者的令牌调用核心的 Connect API |
-| 4 | `ee/analytics` | Data API（`LAGO_DATA_API_URL`）、Superset 与收入确认仪表盘 | 通过只读 PostgreSQL 角色读取核心的导出视图（`exports_*`，[功能对齐 §1.43](parity.zh-CN.md#143-数据导出)），配置了副本时读副本；Kafka 模式的用量从 ClickHouse 读取。它只写入自己的 `analytics` 模式，其中有每个订阅的每日 MRR 快照与每笔费用的确认计划，均增量维护且可重建。它作为 `tanvo-analytics` 服务运行，由 ingress 在 `/v1/analytics/` 下提供（[架构 §14.1](architecture.zh-CN.md#141-分析服务的部署)）。它以 lago 的过滤条件与时间粒度回答八个 Data API 报表：MRR 及其变动、按套餐的 MRR、按客户与按套餐的收入流、预付额度、用量、已开票用量与聚合金额。另有收入确认报表，给出按期间的已确认收入与递延收入：费用在其服务期间内分摊，用量在发生时计入。金额保持精确（`money.Decimal`）。图表由控制台绘制（阶段 6），不嵌入 Superset。黄金测试基于一个预置数据的组织运行 |
+| 4 | `ee/analytics` | Data API（`LAGO_DATA_API_URL`）、Superset 与收入确认仪表盘 | **已完成**（图表等待控制台）。即 `tanvo-analytics` 服务，由 ingress 在 `/v1/data_api/` 下提供（[架构 §14.1](architecture.zh-CN.md#141-分析服务的部署)）。它以专用的 PostgreSQL 角色（`tanvo admin grant-analytics`）读取核心的导出视图（`exports_*`，[功能对齐 §1.43](parity.zh-CN.md#143-数据导出)），配置了副本时读副本；只写入自己的 `analytics` 模式：每个订阅的 MRR 区间、每笔费用的确认计划与套餐目录，组织数据变化时按组织重建。它以 lago 的过滤条件与时间粒度回答 Data API 报表：MRR 及其变动、按套餐的 MRR、收入流及按客户与按套餐的收入、预付额度、用量、用量金额与已开票用量，另有收入确认（按期间的已开票、已确认与递延收入）。定义见[领域 §25](domain.zh-CN.md#25-data-api-报表)。金额保持精确。图表由控制台绘制（阶段 6），不嵌入 Superset。测试在 PostgreSQL 中基于预置数据的组织运行各报表 |
 | 5 | `ee/assistant` | 财务助手（`LAGO_FINANCE_ASSISTANT_URL`）与 AI 对话（Mistral 与 `lib/lago_mcp_client`） | 基于可插拔模型提供方的智能体循环：Anthropic、OpenAI、Mistral，或任何兼容 OpenAI 的端点。工具来自 `ee/mcp`，数值问题由 `ee/analytics` 回答。会话与消息按成员存于它自己的模式中，回答通过 Connect 服务端流式推送。结果可导出为 CSV，存入对象存储，链接 7 天有效，与 lago 相同。测试回放录制的模型响应 |
 | 6 | `ee/pipeline` | Lago 的数据管道 | 把导出视图及其删除记录增量复制到客户的数据仓库：S3（Parquet）、BigQuery、Snowflake 与 ClickHouse（[功能对齐 §1.43](parity.zh-CN.md#143-数据导出)） |
 
