@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -251,10 +252,11 @@ func TestSharedWindows(t *testing.T) {
 			t.Errorf("counter key got = %q, want = the limiter key hashed", k)
 		}
 	}
-	// Without the shared counter, each process counts on its own.
+	// The counter down, a call is a request limit retried shortly.
 	counter.fail = true
-	if err := call(one); err != nil {
-		t.Errorf("call with the counter down: error got = %v, want = nil", err)
+	err = call(one)
+	if pe, ok := integration.AsProviderError(err); !ok || pe.Code != CodeUncounted || pe.RetryAfter != UncountedRetry {
+		t.Errorf("call with the counter down: error got = %v, want = request limit retried after %v", err, UncountedRetry)
 	}
 	now = now.Add(time.Hour)
 	counter.fail = false
@@ -298,12 +300,20 @@ func TestSharedThrottle(t *testing.T) {
 	}); err != nil && !errors.Is(err, context.Canceled) {
 		t.Errorf("cancelled wait: got = %v, want = nil or context.Canceled", err)
 	}
-	// The counter down, each process throttles on its own bucket.
+	// The counter down, a call is a request limit retried shortly, the
+	// request not sent.
 	counter.fail = true
-	if err := two.Run(context.Background(), Call{Conn: a}, func(ctx context.Context) error {
-		_, err := two.Do(ctx, Request{URL: srv.URL, Method: http.MethodGet})
+	var sent atomic.Bool
+	down := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { sent.Store(true) }))
+	defer down.Close()
+	err := two.Run(context.Background(), Call{Conn: a}, func(ctx context.Context) error {
+		_, err := two.Do(ctx, Request{URL: down.URL, Method: http.MethodGet})
 		return err
-	}); err != nil {
-		t.Errorf("call with the counter down: error got = %v, want = nil", err)
+	})
+	if pe, ok := integration.AsProviderError(err); !ok || pe.Kind != integration.KindRequestLimit || pe.Code != CodeUncounted {
+		t.Errorf("call with the counter down: error got = %v, want = request limit %s", err, CodeUncounted)
+	}
+	if sent.Load() {
+		t.Errorf("call with the counter down: sent got = true, want = false")
 	}
 }

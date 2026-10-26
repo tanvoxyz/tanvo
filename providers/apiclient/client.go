@@ -58,7 +58,8 @@ type Config struct {
 	// Now is the clock of Windows; nil uses time.Now.
 	Now func() time.Time
 	// Counter, when set, counts the requests of every server process
-	// together (lago counts in Rails.cache); nil counts in this process.
+	// together (lago counts in Rails.cache), the only count then: a call
+	// it cannot count fails as a request limit; nil counts in this process.
 	Counter Counter
 }
 
@@ -324,12 +325,7 @@ func (c *Client) wait(ctx context.Context, call Call) error {
 		return nil
 	}
 	if c.counter != nil {
-		err := c.waitShared(ctx, key)
-		if err == nil || ctx.Err() != nil {
-			return err
-		}
-		// The shared counter failed (logged by it): this process's own
-		// bucket throttles until it answers again.
+		return c.waitShared(ctx, key)
 	}
 	c.mu.Lock()
 	lim, ok := c.limits[key]
@@ -359,7 +355,7 @@ func (c *Client) waitShared(ctx context.Context, key string) error {
 		start := now - now%p
 		n, err := c.counter.Incr(ctx, c.counterKey(key, "rate", start), time.Duration(start+2*p-now)*time.Millisecond)
 		if err != nil {
-			return err
+			return c.uncounted(ctx, err)
 		}
 		if n <= int64(c.burst) {
 			return nil
@@ -385,21 +381,14 @@ func (c *Client) counterKey(key, kind string, start int64) string {
 // count records a request of key in each window, unless one is used up:
 // that is a request limit retried when the window ends (lago
 // BaseService::ThrottlingError, aggregator/base_service.rb:69-76). With
-// a [Counter] the windows are counted across processes; when it fails,
-// in this process.
+// a [Counter] the windows are counted across processes only.
 func (c *Client) count(ctx context.Context, key string) error {
 	if len(c.windows) == 0 {
 		return nil
 	}
 	now := c.now().Unix()
 	if c.counter != nil {
-		err := c.countShared(ctx, key, now)
-		if err == nil || ctx.Err() != nil {
-			return err
-		}
-		if _, ok := integration.AsProviderError(err); ok {
-			return err
-		}
+		return c.countShared(ctx, key, now)
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -434,7 +423,7 @@ func (c *Client) countShared(ctx context.Context, key string, now int64) error {
 		start := now - now%p
 		n, err := c.counter.Incr(ctx, c.counterKey(key, strconv.FormatInt(p, 10)+"s", start), time.Duration(start+2*p-now)*time.Second)
 		if err != nil {
-			return err
+			return c.uncounted(ctx, err)
 		}
 		if n > int64(w.Limit) {
 			return c.throttled(w, start+p-now)
@@ -454,6 +443,27 @@ func (c *Client) throttled(w Window, left int64) error {
 
 // CodeThrottled is the code of a request refused by a [Window].
 const CodeThrottled = "throttled"
+
+// uncounted is the failure of a call the [Counter] could not count: a
+// request limit retried after [UncountedRetry], since the other processes
+// may have used the limit up; ctx's own end is returned as it is.
+func (c *Client) uncounted(ctx context.Context, err error) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	return &integration.ProviderError{
+		Provider: c.provider, Kind: integration.KindRequestLimit, Code: CodeUncounted,
+		Message: "rate limit counter: " + err.Error(), RetryAfter: UncountedRetry,
+	}
+}
+
+// CodeUncounted is the code of a request the shared [Counter] could not
+// count.
+const CodeUncounted = "rate_limit_uncounted"
+
+// UncountedRetry is how long after a request the shared [Counter] could
+// not count it may be tried again.
+const UncountedRetry = 5 * time.Second
 
 // Kind is the default classification of an HTTP status: 429 is a
 // request limit; 401 and 403 an authentication failure; 404 not found;
