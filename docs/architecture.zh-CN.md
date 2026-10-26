@@ -321,7 +321,7 @@ POST /v1/events, /v1/events:batch
 * **重试**：没有被该任务类型的任何规则归类的错误不会重试，因为任务可能已经在事务之外产生了效果（一次付款、一封邮件、一次服务商调用），再运行一次会重复这些效果。每种任务类型声明哪些错误可以安全重试，以及次数和退避方式（`ErrRetriable` 20 次、锁冲突与序号冲突、服务商限流）。带错误停止重试的任务在 River 中保持 `cancelled` 状态，保留下来供排查和手动重试，并在监控中计为失败。
 * 队列按工作负载分开（`billing`、`payments`、`webhooks`、`webhooks_high_priority`、`documents`、`integrations`、`exports`、`alerts`、`alerts_high_priority`、`wallets`、`streaming`、`default`），各有自己的并发度，使一个部署可以按队列运行 worker；`TANVO_JOBS_QUEUE_CONCURRENCY` 可覆盖其中任一队列的并发度。订阅活动与生命周期用量告警运行在 `alerts` 上，钱包告警运行在 `alerts_high_priority` 上，`alert.triggered` Webhook 的分发与首次尝试运行在 `webhooks_high_priority` 上（`app/jobs/send_webhook_job.rb`；其重试运行在 `webhooks` 上），钱包余额刷新运行在 `wallets` 上，流式目的地投递运行在 `streaming` 上，与 lago-api 相同（`app/jobs/usage_monitoring/process_subscription_activity_job.rb`、`process_lifetime_usage_alert_job.rb`、`process_wallet_alerts_job.rb`、`app/jobs/customers/refresh_wallet_job.rb`、`app/jobs/deliver_event_job.rb`），这样用量刷新的积压不会拖慢计费。lago-api 只在设置了 `SIDEKIQ_ALERTS` 或 `SIDEKIQ_WALLETS` 时使用这些队列，否则回退到 `default` 或 `low_priority`；Tanvo 始终使用它们，因为未单独配置它们的部署仍以默认值处理它们。
 * 周期任务（对账、过期、催收、清理）是由 River 选举出的领导者插入的 River 周期任务；不需要单独的时钟进程。它们运行在独立的 `clock` 队列上，不分片、不使用令牌桶，由每个携带调度表的进程消费。周期任务只做扫描和分发：它把到期的工作作为相关组织的任务放入各工作负载队列，以本次触发的时间作为这些任务的"当前时间"，并带上唯一键，使积压期间的多次触发不会产生重复任务。因此工作负载队列的积压不会推迟调度，一个组织的失败也不会阻止其他组织。受行级安全约束的表的保留期清理同样按组织分发任务（webhook 投递）；其余清理的分批删除直接在周期任务中执行。除 lago-api 的调度表外，Tanvo 还有自己的周期任务：webhook 扫描，以及用量桶的修复、报告与清扫（§7.4、§11）。
-* **租户公平**：任务带有其所属组织；通过按组织哈希对队列分片，以及在入队时使用令牌桶，限制每个组织的并发，使一个租户无法使其他租户饥饿。令牌桶按进程计，因此有多个 API 副本时，一个组织的实际速率是各副本速率之和。集成同步任务按组织共用 5 个并发槽位（会话级咨询锁），使一个组织的积压不会占住其他组织的槽位。
+* **租户公平**：任务带有其所属组织；通过按组织哈希对队列分片，以及在入队时使用令牌桶，限制每个组织的并发，使一个租户无法使其他租户饥饿。令牌桶按进程计，因此有多个 API 副本时，一个组织的实际速率是各副本速率之和。集成同步任务按组织共用 5 个并发槽位（`port.Slots`），使一个组织的积压不会占住其他组织的槽位。槽位是 TTL 为 30 秒的租约，持有者每 10 秒续租一次，因此崩溃的持有者的槽位会自行释放：在 PostgreSQL 中是 `concurrency_slots` 表的行，设置 `TANVO_CACHE_URL` 时是缓存服务器上的有序集合（§13.6）。没有空闲槽位的任务推迟一秒；后端无应答而取不到槽位的任务记录警告并推迟五秒，两者都不消耗尝试次数。
 * 逐事件的工作（富化、ClickHouse 写入）在 Kafka 消费者中运行，而不在 River 中；消费者把逐事件的计费（预付计费项）与按订阅的活动作为 River 任务入队。
 * 基于 Redis 的队列是以后的选项，位于同一个窄接口之后（经由 outbox 的事务内入队、延迟、周期任务与唯一任务）；只有在测量表明 PostgreSQL 成为瓶颈时才会加入。
 
@@ -404,7 +404,7 @@ POST /v1/events, /v1/events:batch
 ### 13.2 自托管
 * 最小：`tanvo serve` + PostgreSQL。Typst 与 `fonts-noto-cjk` 软件包（zh-CN 与 zh-TW 文档，§10）包含在容器镜像中；在镜像之外安装时两者都需要。
 * 可选：用于大量事件的 Redpanda/Kafka + ClickHouse，用于各副本共享缓存的 Redis/Valkey（§13.6），S3 兼容存储。
-* **位于 PgBouncer 之后。** 当 `TANVO_DATABASE_DIRECT_URL` 直连 PostgreSQL 时，`TANVO_DATABASE_URL` 可以指向事务模式的 PgBouncer（或其他连接池）。主连接池上运行的都是事务范围的操作：行级安全设置使用 `set_config(…, true)`，计费锁是 `pg_advisory_xact_lock`，`pg_notify` 在写入事务内发送。会话状态都在直连池（"direct"）上：目录变更的 `LISTEN` 连接（§7.2）、River 的通知监听器（River 经主连接池查询，在直连连接上监听，因此新任务仍会立即被取走）、限制集成同步的会话级咨询锁（§9），以及以会话级咨询锁串行化的迁移。pgx 按连接缓存具名预处理语句，因此 PgBouncer 必须为 1.21 或更高版本且 `max_prepared_statements` 大于零；更旧的连接池需在 `TANVO_DATABASE_URL` 中加 `default_query_exec_mode=exec`，每次查询多一次往返。PgBouncer 的 `default_pool_size` 覆盖各主连接池（每个进程 `TANVO_DATABASE_MAX_CONNS`）；直连连接另计入 PostgreSQL 的 `max_connections`。
+* **位于 PgBouncer 之后。** 当 `TANVO_DATABASE_DIRECT_URL` 直连 PostgreSQL 时，`TANVO_DATABASE_URL` 可以指向事务模式的 PgBouncer（或其他连接池）。主连接池上运行的都是事务范围的操作：行级安全设置使用 `set_config(…, true)`，计费锁是 `pg_advisory_xact_lock`，`pg_notify` 在写入事务内发送。会话状态都在直连池（"direct"）上：目录变更的 `LISTEN` 连接（§7.2）、River 的通知监听器（River 经主连接池查询，在直连连接上监听，因此新任务仍会立即被取走），以及以会话级咨询锁串行化的迁移；每个服务进程最多保持四个直连连接。集成同步的并发槽位（§9）是以单条语句写入的租约，因此经由连接池。pgx 按连接缓存具名预处理语句，因此 PgBouncer 必须为 1.21 或更高版本且 `max_prepared_statements` 大于零；更旧的连接池需在 `TANVO_DATABASE_URL` 中加 `default_query_exec_mode=exec`，每次查询多一次往返。PgBouncer 的 `default_pool_size` 覆盖各主连接池（每个进程 `TANVO_DATABASE_MAX_CONNS`）；直连连接另计入 PostgreSQL 的 `max_connections`。
 * 以容器镜像和 Docker Compose 文件分发；一个 Helm chart 同时服务于自托管 Kubernetes 与 Tanvo Cloud。
 
 ### 13.3 Tanvo Cloud
@@ -442,7 +442,7 @@ POST /v1/events, /v1/events:batch
 | `TANVO_METRICS_ENDPOINT` | `false` | 在 `/metrics` 以 Prometheus 格式提供指标 |
 | `TANVO_DATABASE_URL` | 必填 | PostgreSQL URL（`postgres://…`） |
 | `TANVO_DATABASE_MAX_CONNS` | pgx 默认值 | 连接池大小 |
-| `TANVO_DATABASE_DIRECT_URL` | — | 绕过任何连接池的直连（会话）PostgreSQL URL，供需要会话状态的功能使用：目录变更与 River 的 `LISTEN` 连接、集成同步槽位的会话级咨询锁，以及迁移（`tanvo migrate`、`TANVO_MIGRATE_ON_START`）。`TANVO_DATABASE_URL` 经由事务模式的 PgBouncer 时设置（§13.2）；为空时由 `TANVO_DATABASE_URL` 提供一切。其连接池容纳两个监听器、integrations 队列的并发数与两个迁移连接 |
+| `TANVO_DATABASE_DIRECT_URL` | — | 绕过任何连接池的直连（会话）PostgreSQL URL，供需要会话状态的功能使用：目录变更与 River 的 `LISTEN` 连接，以及迁移（`tanvo migrate`、`TANVO_MIGRATE_ON_START`）。`TANVO_DATABASE_URL` 经由事务模式的 PgBouncer 时设置（§13.2）；为空时由 `TANVO_DATABASE_URL` 提供一切。其连接池容纳两个监听器与两个迁移连接 |
 | `TANVO_DATABASE_ROW_LEVEL_SECURITY` | `false` | 为行级安全策略设置租户（§5.4） |
 | `TANVO_MIGRATE_ON_START` | `true` | 启动时应用迁移；否则只检查 |
 | `TANVO_JOBS_SCHEMA` | `river` | River 表所在的 schema |
@@ -533,17 +533,18 @@ POST /v1/events, /v1/events:batch
 | `anrok-draft-taxes` | Anrok 对草稿发票的税额，按请求摘要作键（§12） | `TANVO_ANROK_DRAFT_TAXES_CACHE_TTL=0` | 进程内 |
 | `api-keys` | 事件摄取与即时费用估算 RPC 所用的 API 密钥，按令牌的 SHA-256 作键，从不使用密钥本身 | `TANVO_API_KEY_CACHE_TTL=0` | 关闭 |
 
-* **正确性不依赖后端。** 每个缓存值要么在读取时校验（用量水位、分析版本），要么在其变更处删除。API 密钥缓存是例外，它需要每个进程都看到删除：在一个副本上轮换或销毁的密钥必须立即在其他副本上失效。因此它只在共享服务器上运行。其条目最长保留到密钥过期，每次读取时都会再次检查过期时间。
+* **正确性不依赖后端。** 每个缓存值要么在读取时校验（用量水位、分析版本），要么在其变更处删除。API 密钥缓存是例外，它需要每个进程都看到删除：在一个副本上轮换或销毁的密钥必须立即在其他副本上失效。因此它只在共享服务器上运行；服务器无法删除密钥的条目时，更新、轮换或销毁密钥都会失败且不做任何改变（`core.ErrUnavailable`，Connect `unavailable`）：条目在变更事务的最后一步删除，提交后再删除一次。其条目最长保留到密钥过期，每次读取时都会再次检查过期时间。
 * **版本。** 计费缓存用同一个编解码器编码条目（`libs/billing/internal/cachecodec`）。每个键都包含条目 Go 类型的指纹，因此滚动升级期间，条目结构不同的进程永远不会读取彼此的条目。
 * **击穿。** 未命中时需要计算的缓存（当前用量的分桶费用、分析报表、Anrok 草稿税额报价、API 密钥查找）在进程内把同一个键的并发未命中合并为一次计算（`golang.org/x/sync/singleflight`，每个缓存一个组）。执行计算的调用方保留其结果，其余调用方各自解码一份副本；用量费用如同命中时一样获得新的标识与时间戳。用量计算只在读取到同一摄取水位的调用方之间共享。等待中的调用方其上下文结束时立即停止等待；共享的计算因其他调用方的上下文而中断时，它自己重新计算。等待一秒后，等待者自行计算：调用方在各自的事务内等待，占着一个池连接，也可能持有共享计算所需的锁（其事件存储读取还要另取一个连接），这个上限把这种循环等待变成延迟而不是死锁。跨进程时，同一个键每个副本最多计算一次。
 * **压缩。** 在共享服务器上，每个值带一个字节的头部：1 KiB 及以上的值若压缩后更小，则以 DEFLATE（BestSpeed）压缩存储，否则原样存储。头部未知或解码失败的值（例如旧版本写入的值）视为未命中，计入 `tanvo.cache.operation="decode"`，并由下一次写入替换。进程内缓存原样存储值，计数器是普通整数。
-* **可用性。** 缓存不是就绪检查（`/readyz`）的依赖。服务器不可达不会导致启动失败：客户端在后台退避重连，在此之前每次读取都未命中，每次写入都被丢弃。
+* **可用性。** 缓存不是就绪检查（`/readyz`）的依赖。服务器不可达不会导致启动失败：客户端在后台退避重连，在此之前每次读取都未命中，每次写入都被丢弃。以 Redis 或 Valkey 为唯一副本的功能在此期间失败，而不是退回另一个会分开计数的后端：API 密钥变更、服务商调用（请求限额错误，会重试）与并发槽位（任务推迟），每次失败都计入 `tanvo.cache.errors` 以便告警。
 * **遥测。** `tanvo.cache.reads`（属性 `tanvo.cache.name`、`tanvo.cache.result`）与 `tanvo.cache.errors`（`tanvo.cache.operation`），以及客户端经 `valkeyotel` 产生的 span 与指标。
 * **不缓存的内容。**
   * 订阅计费项的价格查找由计费引擎已加载的计费项构建。
   * 列表使用游标分页，因此没有需要缓存的计数。
   * 任务留在 PostgreSQL 上的 River 中（§9）。
-* **计数器。** 服务商的限流（§12）在同一台服务器上计数，键位于 `rate-limits:` 之下，每个固定窗口一次原子递增（`Valkey.Incr`），因此所有副本合起来遵守每个厂商的限额。与缓存不同，递增失败是错误：客户端随后在自己的进程中计数，直到服务器恢复应答。
+* **计数器。** 服务商的限流（§12）在同一台服务器上计数，键位于 `rate-limits:` 之下，每个固定窗口一次原子递增（`Valkey.Incr`），因此所有副本合起来遵守每个厂商的限额。与缓存不同，递增失败是错误，调用以请求限额错误失败，五秒后重试（`apiclient.CodeUncounted`）：设置了共享服务器时，它是唯一的计数。
+* **槽位。** 并发槽位（`port.Slots`，§9）是同一台服务器上的租约：每个槽位名在 `slots:` 之下一个有序集合，成员是随机的持有者令牌，分值是按服务器时钟计的到期时间，由单键 Lua 脚本修改（兼容集群）。设置 `TANVO_CACHE_URL` 时它们是唯一的槽位，不退回 PostgreSQL；未设置时它们是 `concurrency_slots` 表的行。
 
 ---
 
