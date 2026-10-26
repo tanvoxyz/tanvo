@@ -1,7 +1,8 @@
 // Package cli is the tanvo command line: `tanvo serve` runs the server
 // roles, `tanvo migrate` applies the schemas, `tanvo admin bootstrap`
 // ensures a first organization, `tanvo events reprocess` re-enriches
-// stored events and `tanvo version` prints the build. Settings come from
+// stored events, `tanvo events replay-dead-letters` produces dead letters
+// again and `tanvo version` prints the build. Settings come from
 // TANVO_* variables and an optional TOML file (internal/config);
 // telemetry from the OTEL_* variables (internal/telemetry).
 package cli

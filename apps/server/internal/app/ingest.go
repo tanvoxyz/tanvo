@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/twmb/franz-go/pkg/kgo"
@@ -129,6 +130,7 @@ func newConsumers(cfg config.Config, tx port.Transactor, ch *clickhouse.Store, e
 			DeadLetterTopic: t.DeadLetter,
 			Handler:         h,
 			Logger:          log.With("consumer", name),
+			MeterProvider:   tel.mp,
 		})
 		if err != nil {
 			return fmt.Errorf("kafka: consumer %s: %w", name, err)
@@ -157,12 +159,16 @@ func newConsumers(cfg config.Config, tx port.Transactor, ch *clickhouse.Store, e
 	return out, nil
 }
 
-// deadLetterStore stores dead letters in ClickHouse's events_dead_letter.
+// deadLetterStore stores dead letters in ClickHouse's events_dead_letter
+// and reads them back for replays.
 type deadLetterStore struct {
 	ch *clickhouse.Store
 }
 
-var _ kafka.DeadLetterSink = deadLetterStore{}
+var (
+	_ kafka.DeadLetterSink  = deadLetterStore{}
+	_ kafka.DeadLetterStore = deadLetterStore{}
+)
 
 // StoreDeadLetters implements [kafka.DeadLetterSink].
 func (s deadLetterStore) StoreDeadLetters(ctx context.Context, records []ingest.DeadLetterRecord) error {
@@ -175,4 +181,54 @@ func (s deadLetterStore) StoreDeadLetters(ctx context.Context, records []ingest.
 		}
 	}
 	return s.ch.WriteDeadLetters(ctx, rows)
+}
+
+func deadLetterFilter(f kafka.ReplayFilter) clickhouse.DeadLetterFilter {
+	return clickhouse.DeadLetterFilter{OrganizationID: f.OrganizationID.String(), FailedFrom: f.From, FailedTo: f.To, ErrorCode: f.ErrorCode}
+}
+
+// PendingDeadLetters implements [kafka.DeadLetterStore].
+func (s deadLetterStore) PendingDeadLetters(ctx context.Context, f kafka.ReplayFilter, after *ingest.DeadLetterRecord, limit int) ([]ingest.DeadLetterRecord, error) {
+	var pos *clickhouse.DeadLetterPosition
+	if after != nil {
+		pos = &clickhouse.DeadLetterPosition{FailedAt: after.FailedAt, Topic: after.Topic, Partition: after.Partition, Offset: after.Offset}
+	}
+	rows, err := s.ch.PendingDeadLetters(ctx, deadLetterFilter(f), pos, limit)
+	if err != nil {
+		return nil, err
+	}
+	out := make([]ingest.DeadLetterRecord, len(rows))
+	for i, r := range rows {
+		out[i] = ingest.DeadLetterRecord{
+			DeadLetter: ingest.DeadLetter{
+				Event: []byte(r.Event), Topic: r.Topic, Partition: r.Partition, Offset: r.Offset,
+				ErrorCode: r.ErrorCode, ErrorMessage: r.ErrorMessage, FailedAt: r.FailedAt,
+			},
+			OrganizationID: r.OrganizationID, ExternalSubscriptionID: r.SubscriptionID, Code: r.Code, TransactionID: r.TransactionID,
+			Timestamp: r.Timestamp, IngestedAt: r.IngestedAt,
+		}
+	}
+	return out, nil
+}
+
+// CountPendingDeadLetters implements [kafka.DeadLetterStore].
+func (s deadLetterStore) CountPendingDeadLetters(ctx context.Context, f kafka.ReplayFilter) ([]kafka.DeadLetterCount, error) {
+	counts, err := s.ch.CountPendingDeadLetters(ctx, deadLetterFilter(f))
+	if err != nil {
+		return nil, err
+	}
+	out := make([]kafka.DeadLetterCount, len(counts))
+	for i, c := range counts {
+		out[i] = kafka.DeadLetterCount(c)
+	}
+	return out, nil
+}
+
+// MarkReplayed implements [kafka.DeadLetterStore].
+func (s deadLetterStore) MarkReplayed(ctx context.Context, dead []ingest.DeadLetterRecord, at time.Time) error {
+	rows := make([]clickhouse.DeadLetter, len(dead))
+	for i, d := range dead {
+		rows[i] = clickhouse.DeadLetter{OrganizationID: d.OrganizationID, Topic: d.Topic, Partition: d.Partition, Offset: d.Offset}
+	}
+	return s.ch.MarkDeadLettersReplayed(ctx, rows, at)
 }

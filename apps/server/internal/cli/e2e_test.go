@@ -508,6 +508,50 @@ func TestServeKafka(t *testing.T) {
 		t.Fatalf("connector event and dead letter: %v", err)
 	}
 
+	// `tanvo events replay-dead-letters` counts the organization's dead
+	// letters, produces them again to their topic and records the replay:
+	// the event, still invalid, is dead-lettered again at its new offset,
+	// which the next dry run counts alone.
+	invalid := fmt.Sprintf(`{"organization_id":%q,"external_subscription_id":"sub-1","transaction_id":"r-1","timestamp":%d}`, org.String(), at.Unix())
+	if err := cl.ProduceSync(ctx, &kgo.Record{Topic: "events.raw", Key: []byte(org.String() + "/sub-1/r-1"), Value: []byte(invalid)}).FirstErr(); err != nil {
+		t.Fatalf("produce: %v", err)
+	}
+	deadLetters := func(want uint64) {
+		t.Helper()
+		if err := dockertest.Wait(ctx, time.Minute, func(ctx context.Context) error {
+			var n uint64
+			if err := conn.QueryRow(ctx, `SELECT count() FROM events_dead_letter WHERE organization_id = $1 AND transaction_id = 'r-1'`, org.String()).Scan(&n); err != nil {
+				return err
+			}
+			if n != want {
+				return fmt.Errorf("dead letters of r-1 got = %d, want = %d", n, want)
+			}
+			return nil
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	replay := func(args ...string) string {
+		t.Helper()
+		var out lockedBuffer
+		args = append([]string{"events", "replay-dead-letters", "--organization", org.String(), "--error-code", ingest.ErrorDecode}, args...)
+		if err := cli.Run(ctx, args, cli.Env{Environ: environ, Stdout: &out}); err != nil {
+			t.Fatalf("events replay-dead-letters %v error = %v; output %s", args, err, out.String())
+		}
+		return out.String()
+	}
+	deadLetters(1)
+	if out := replay(); !strings.Contains(out, "[DRY RUN] "+ingest.ErrorDecode+" on events.raw: 1 dead letters") {
+		t.Errorf("dry run output got = %q, want = 1 dead letter on events.raw", out)
+	}
+	if out := replay("--replay", "--from", at.Add(-time.Hour).Format(time.RFC3339)); !strings.Contains(out, "[REPLAY] 1 replayed, 0 skipped") {
+		t.Errorf("replay output got = %q, want = 1 replayed", out)
+	}
+	deadLetters(2)
+	if out := replay(); !strings.Contains(out, "[DRY RUN] 1 dead letters to replay") {
+		t.Errorf("dry run after the replay output got = %q, want = the new dead letter alone", out)
+	}
+
 	// With ClickHouse, the workers move the audit logs from PostgreSQL to
 	// ClickHouse's log tables, and the logs API reads them there.
 	if err := dockertest.Wait(ctx, time.Minute, func(ctx context.Context) error {
