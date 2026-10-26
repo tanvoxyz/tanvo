@@ -4,7 +4,7 @@
 
 > 相关文档：[架构](architecture.zh-CN.md) · [领域模型](domain.zh-CN.md) · [开发指南](development.zh-CN.md) · [测试策略](testing.zh-CN.md) · [路线图](roadmap.zh-CN.md) · [AGENTS.zh-CN.md](../AGENTS.zh-CN.md)
 
-> 本文是 lago-api 功能及其 Tanvo 对应实现的权威清单。lago-api 每项未废弃的功能都在 §1 中有一行。Lago 已废弃或遗留的部分列于 §2，Tanvo 以不同设计取代的部分列于 §3，Tanvo 有意不重现的上游缺陷列于 §4。除非注明其他仓库，Lago 源码路径都相对于 lago-api 仓库（`~/Code/frameworks/lago/api`）。
+> 本文是 lago-api 功能及其 Tanvo 对应实现的权威清单。lago-api 每项未废弃的功能都在 §1 中有一行。Lago 已废弃或遗留的部分列于 §2，Tanvo 以不同设计取代的部分列于 §3，Tanvo 有意不重现的上游缺陷列于 §4，Tanvo 在 lago 行为之上新增的部分列于 §5。除非注明其他仓库，Lago 源码路径都相对于 lago-api 仓库（`~/Code/frameworks/lago/api`）。
 
 ---
 
@@ -1160,3 +1160,10 @@ Lago 自己标记为废弃、只为旧数据保留，或作为死代码保留的
 | 除以零的表达式会在求值器中 panic（BigDecimal 除法），连带使 Ruby 进程崩溃；非有限的事件数字（`Float::INFINITY`）同样如此，因为 Ruby 绑定用 `expect` 解析它。lago-expression 在 lago-api v1.55.0 所固定的版本之后修复了这两处（6a70c6d） | lago-expression 在 2abd2b3 的 `expression-core/src/evaluate.rs`（`Operation::Divide`）与 `expression-ruby/ext/lago_expression/src/lib.rs`，由 `Gemfile:124` 固定 | 除以零是求值错误 `division_by_zero`（`Division by zero`），不是小数的数字是 `invalid_event`，与上游自 6a70c6d 起一致（libs/expression `testdata/language.json`、`lago_expression.json`） |
 | 事件摄取的 API 密钥缓存位于 `Rails.cache` 中，除非配置了 Redis 或 Memcached，否则它是每个容器各自的存储，而 `expire_cache` 只在轮换或销毁密钥的那个容器中删除条目，因此其他容器在条目过期前（最长一小时）仍接受已吊销的密钥 | `app/services/api_keys/cache_service.rb:17-37`、`config/environments/production.rb:54-70` | 该缓存只在 `TANVO_CACHE_URL` 的共享服务器上运行，删除会到达每个副本（apps/server `caches.sharedOnly`、cli `TestServeSharedCache`） |
 | 保护预付费用的唯一索引以交易 ID 与计费项为键而不含订阅，但交易 ID 按订阅唯一（`index_unique_transaction_id`），因此同一方案的两个订阅发送相同交易 ID 时会冲突，第二个事件的费用无法创建 | `db/structure.sql`（`idx_pay_in_advance_duplication_guard_charge`、`_charge_filter`、`idx_pay_in_advance_product_card_event`） | 键包含组织与订阅 |
+
+## 5. Tanvo 新增
+
+Tanvo 在 lago-api v1.55.0 之上新增的部分（路线图第 8 阶段，[路线图 §4](roadmap.zh-CN.md#4-功能对齐之后借鉴-openmeter-与-flexprice)）。每行说明 lago 的做法、Tanvo 取代或补充的做法，以及基线移到更新的 lago 版本时要检查什么，使移植上游变更时既不撤销新增，也不重复新增。受影响的 §1 行指向这里。
+
+| 新增 | Lago v1.55.0 | Tanvo | 移植上游时 |
+| :--- | :--- | :--- | :--- |

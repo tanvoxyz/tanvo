@@ -4,7 +4,7 @@
 
 > Related: [Architecture](architecture.md) · [Domain Model](domain.md) · [Development](development.md) · [Testing](testing.md) · [Roadmap](roadmap.md) · [AGENTS.md](../AGENTS.md)
 
-> This is the authoritative checklist of lago-api features and their Tanvo counterparts. Every non-deprecated lago-api feature has a row in §1. Lago's deprecated or legacy parts are in §2, the parts Tanvo replaces with a different design are in §3, and the upstream bugs that Tanvo deliberately does not reproduce are in §4. Lago source paths are relative to the lago-api repository (`~/Code/frameworks/lago/api`) unless they name another repository.
+> This is the authoritative checklist of lago-api features and their Tanvo counterparts. Every non-deprecated lago-api feature has a row in §1. Lago's deprecated or legacy parts are in §2, the parts Tanvo replaces with a different design are in §3, the upstream bugs that Tanvo deliberately does not reproduce are in §4, and what Tanvo adds on top of lago's behavior is in §5. Lago source paths are relative to the lago-api repository (`~/Code/frameworks/lago/api`) unless they name another repository.
 
 ---
 
@@ -1160,3 +1160,10 @@ Ported tests encode the corrected behavior and cite the Lago location.
 | An expression that divides by zero panics in the evaluator (BigDecimal division), which takes the Ruby process down with it; so does an event number that is not finite (`Float::INFINITY`), which the Ruby binding parses with `expect`. lago-expression fixed both after the revision lago-api v1.55.0 pins (6a70c6d) | lago-expression `expression-core/src/evaluate.rs` (`Operation::Divide`) and `expression-ruby/ext/lago_expression/src/lib.rs` at 2abd2b3, pinned by `Gemfile:124` | Division by zero is the evaluation error `division_by_zero` (`Division by zero`) and a number that is not a decimal is `invalid_event`, as upstream since 6a70c6d (libs/expression `testdata/language.json`, `lago_expression.json`) |
 | The API key cache of event ingestion lives in `Rails.cache`, a store in each container unless Redis or Memcached is configured, and `expire_cache` deletes the entry only in the container that rotated or destroyed the key, so the other containers accept a revoked key until their entry expires, up to an hour | `app/services/api_keys/cache_service.rb:17-37`, `config/environments/production.rb:54-70` | The cache runs only on the shared server of `TANVO_CACHE_URL`, where a deletion reaches every replica (apps/server `caches.sharedOnly`, cli `TestServeSharedCache`) |
 | The unique indexes guarding pay-in-advance fees key on the transaction ID and the charge without the subscription, while transaction IDs are unique per subscription (`index_unique_transaction_id`), so two subscriptions of one plan sending the same transaction ID collide and the second event's fee cannot be created | `db/structure.sql` (`idx_pay_in_advance_duplication_guard_charge`, `_charge_filter`, `idx_pay_in_advance_product_card_event`) | The keys include the organization and the subscription |
+
+## 5. Tanvo Additions
+
+What Tanvo adds on top of lago-api v1.55.0 (roadmap phase 8, [Roadmap §4](roadmap.md#4-after-parity-lessons-from-openmeter-and-flexprice)). Each row says what lago does, what Tanvo does instead or in addition, and what to check when the baseline moves to a newer lago release, so that porting upstream changes neither undoes an addition nor adds it twice. The §1 rows a change touches point here.
+
+| Addition | Lago v1.55.0 | Tanvo | When porting upstream |
+| :--- | :--- | :--- | :--- |
