@@ -264,13 +264,18 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		if err != nil {
 			return nil, err
 		}
+		serviceTokenKeys, err := cfg.ServiceTokenKeyList()
+		if err != nil {
+			return nil, err
+		}
 		if a.api, err = newAPI(mux, APIOptions{
 			Tx: a.store, Ingest: svc, EventReader: reader, AttributedUsage: a.stores, Billing: a.billing, MaxBytes: cfg.HTTPMaxBodyBytes, TrustedProxies: cfg.TrustedProxies,
 			Log: a.log, TracerProvider: tp, MeterProvider: mp, Clock: clock, AppURL: cfg.AppURL,
 			DisableSignup: cfg.DisableSignup, AnalyticsCacheTTL: cfg.AnalyticsCacheTTL,
 			AnalyticsCache: a.caches.named(cacheAnalytics, memoryCacheEntries), APIKeyCache: a.caches.sharedOnly(cacheAPIKeys), APIKeyCacheTTL: cfg.APIKeyCacheTTL, GoogleClientID: cfg.GoogleAuthClientID, GoogleClientSecret: cfg.GoogleAuthClientSecret,
 			WebhooksAllowPrivate: cfg.WebhooksAllowPrivate, OIDCAllowPrivate: cfg.OIDCAllowPrivate, SecretKey: secretKey,
-			Payments: pay.svc, InboundWebhooks: pay.inbound, Integrations: integ.svc,
+			ServiceTokenKeys: serviceTokenKeys,
+			Payments:         pay.svc, InboundWebhooks: pay.inbound, Integrations: integ.svc,
 			Files: a.docs, Blobs: a.blobs.blobOrNil(),
 		}); err != nil {
 			return nil, err

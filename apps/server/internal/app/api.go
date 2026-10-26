@@ -172,6 +172,10 @@ type APIOptions struct {
 	// refuses the customer portal tokens and leaves the SSO connection
 	// RPCs Unimplemented.
 	SecretKey []byte
+	// ServiceTokenKeys sign the service tokens of the enterprise services
+	// (TANVO_SERVICE_TOKEN_KEYS), the first one signing; none leaves the
+	// Data API tokens unconfigured.
+	ServiceTokenKeys []auth.ServiceTokenKey
 	// X402Facilitators reaches the x402 facilitators; nil is the HTTP
 	// clients of providers/x402. Without SecretKey, every facilitator
 	// call fails.
@@ -275,6 +279,13 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 		sso.WithIssuerChecker(oidcSvc)
 	}
 	authz := auth.NewAuthorizer(o.Tx)
+	var serviceTokens *auth.ServiceTokens
+	if len(o.ServiceTokenKeys) > 0 {
+		var err error
+		if serviceTokens, err = auth.NewServiceTokens(auth.ServiceTokenConfig{Keys: o.ServiceTokenKeys}, o.Clock); err != nil {
+			return nil, fmt.Errorf("api: %w", err)
+		}
+	}
 	ips := clientip.New(o.TrustedProxies...)
 
 	billingDeps := &kernel.Deps{
@@ -448,7 +459,7 @@ func newAPI(mux *http.ServeMux, o APIOptions) (*api, error) {
 		SecurityLog: rpc.WebhookSecurityLog(ad.SecurityLog),
 	}))
 	integrationv1connect.RegisterIntegrationServiceHandler(server, rpc.NewIntegrations(integrationSvc))
-	analyticsv1connect.RegisterAnalyticsServiceHandler(server, rpc.NewAnalytics(analyticsSvc))
+	analyticsv1connect.RegisterAnalyticsServiceHandler(server, rpc.NewAnalytics(analyticsSvc, serviceTokens, authz))
 	exportv1connect.RegisterDataExportServiceHandler(server, rpc.NewDataExports(exports.New(billingDeps, o.Blobs, rpc.ExportFilters()), ad.SecurityLog))
 	accessv1connect.RegisterMemberServiceHandler(server, rpc.NewMembers(auth.NewMemberships(ad), auth.NewRoles(ad), invites))
 	accessv1connect.RegisterApiKeyServiceHandler(server, rpc.NewAPIKeys(keys, o.Clock))

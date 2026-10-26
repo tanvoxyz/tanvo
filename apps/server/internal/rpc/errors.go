@@ -78,6 +78,9 @@ const (
 	// server, does not answer; the operation did not happen and may be
 	// retried.
 	ReasonUnavailable = "unavailable"
+	// ReasonNotConfigured: the installation is not configured for the
+	// operation, such as the Data API without service token keys.
+	ReasonNotConfigured = "not_configured"
 )
 
 // withReason adds a google.rpc.ErrorInfo detail with the stable reason.

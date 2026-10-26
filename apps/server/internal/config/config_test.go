@@ -334,6 +334,52 @@ func TestSecretKeyBytes(t *testing.T) {
 	}
 }
 
+func TestServiceTokenKeys(t *testing.T) {
+	seed := strings.Repeat("A", 43) // 32 bytes of zeros, base64url without padding
+	tests := []struct {
+		name string
+		env  string
+		ids  []string
+		err  bool
+	}{
+		{name: "unset"},
+		{name: "one key", env: "k1:" + seed, ids: []string{"k1"}},
+		{name: "rotation", env: "k2:" + seed + ", k1:" + seed, ids: []string{"k2", "k1"}},
+		{name: "padded seed", env: "k1:" + seed + "=", err: true},
+		{name: "no key id", env: seed, err: true},
+		{name: "duplicate", env: "k1:" + seed + ",k1:" + seed, err: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			env := []string{dsn}
+			if tt.env != "" {
+				env = append(env, "TANVO_SERVICE_TOKEN_KEYS="+tt.env)
+			}
+			c, _, err := config.Load(config.Source{Environ: env})
+			if (err != nil) != tt.err {
+				t.Fatalf("Load() error got = %v, want error = %v", err, tt.err)
+			}
+			if tt.err {
+				if !strings.Contains(err.Error(), "service_token_keys") {
+					t.Errorf("Load() error got = %v, want = one naming service_token_keys", err)
+				}
+				return
+			}
+			keys, err := c.ServiceTokenKeyList()
+			if err != nil {
+				t.Fatal(err)
+			}
+			var ids []string
+			for _, k := range keys {
+				ids = append(ids, k.ID)
+			}
+			if !slices.Equal(ids, tt.ids) {
+				t.Errorf("key ids got = %v, want = %v", ids, tt.ids)
+			}
+		})
+	}
+}
+
 func TestLoadBlobBackends(t *testing.T) {
 	base := []string{dsn, "TANVO_API_URL=https://api.example.com", "TANVO_SECRET_KEY=" + blobSecret}
 	tests := []struct {

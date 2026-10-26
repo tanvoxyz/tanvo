@@ -5,11 +5,14 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect/v2"
 	"google.golang.org/genproto/googleapis/type/date"
 
+	"github.com/tanvoxyz/tanvo/libs/auth"
 	"github.com/tanvoxyz/tanvo/libs/billing/analytics"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	coreanalytics "github.com/tanvoxyz/tanvo/libs/core/analytics"
+	"github.com/tanvoxyz/tanvo/libs/core/permission"
 	"github.com/tanvoxyz/tanvo/libs/money"
 	analyticsv1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/analytics/v1"
 	"github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/analytics/v1/analyticsv1connect"
@@ -20,13 +23,53 @@ import (
 type Analytics struct {
 	analyticsv1connect.UnimplementedAnalyticsServiceHandler
 
-	svc *analytics.Service
+	svc    *analytics.Service
+	tokens *auth.ServiceTokens
+	authz  *auth.Authorizer
 }
 
 var _ analyticsv1connect.AnalyticsServiceHandler = (*Analytics)(nil)
 
-// NewAnalytics returns the service over svc.
-func NewAnalytics(svc *analytics.Service) *Analytics { return &Analytics{svc: svc} }
+// NewAnalytics returns the service over svc. tokens issues the Data API
+// tokens, whose permissions authz checks; nil tokens leaves the Data API
+// unconfigured.
+func NewAnalytics(svc *analytics.Service, tokens *auth.ServiceTokens, authz *auth.Authorizer) *Analytics {
+	return &Analytics{svc: svc, tokens: tokens, authz: authz}
+}
+
+// dataAPIPermissions are the permissions the Data API reads; a token
+// carries those its caller holds.
+var dataAPIPermissions = []permission.Permission{"data_api:read"}
+
+// CreateDataApiToken implements AnalyticsService.CreateDataApiToken: a
+// service token for the Data API of the enterprise analytics service,
+// carrying the caller's Data API permissions in the organization. Only
+// members and API keys get one; without service token keys
+// (TANVO_SERVICE_TOKEN_KEYS) it fails with FailedPrecondition.
+func (s *Analytics) CreateDataApiToken(ctx context.Context, _ *analyticsv1.CreateDataApiTokenRequest) (*analyticsv1.CreateDataApiTokenResponse, error) {
+	if s.tokens == nil {
+		return nil, newError(connect.CodeFailedPrecondition, ReasonNotConfigured, "the Data API is not configured")
+	}
+	p, ok := Principal(ctx)
+	if !ok {
+		return nil, Error(ctx, auth.ErrUnauthenticated)
+	}
+	subject, err := p.ServiceSubject()
+	if err != nil {
+		return nil, Error(ctx, err)
+	}
+	var perms []permission.Permission
+	for _, perm := range dataAPIPermissions {
+		if s.authz.Check(p, perm) == nil {
+			perms = append(perms, perm)
+		}
+	}
+	tok, claims, err := s.tokens.Issue(auth.ServiceTokenAudienceDataAPI, p.OrganizationID, subject, perms)
+	if err != nil {
+		return nil, Error(ctx, err)
+	}
+	return analyticsv1.CreateDataApiTokenResponse_builder{Token: new(tok), ExpiresAt: Timestamp(claims.ExpiresAt)}.Build(), nil
+}
 
 // GetGrossRevenue implements AnalyticsService.GetGrossRevenue (lago
 // Analytics::GrossRevenuesService).

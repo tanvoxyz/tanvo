@@ -2,16 +2,22 @@ package rpc_test
 
 import (
 	"context"
+	"crypto/rand"
 	"net/http"
+	"slices"
 	"testing"
 	"time"
 
 	"connectrpc.com/connect/v2"
 
+	"github.com/tanvoxyz/tanvo/apps/server/internal/app"
+	"github.com/tanvoxyz/tanvo/apps/server/internal/rpc"
 	"github.com/tanvoxyz/tanvo/apps/server/internal/rpctest"
+	"github.com/tanvoxyz/tanvo/libs/auth"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/customer"
 	"github.com/tanvoxyz/tanvo/libs/core/invoice"
+	"github.com/tanvoxyz/tanvo/libs/core/permission"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/money"
 	analyticsv1 "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/analytics/v1"
@@ -243,4 +249,92 @@ func TestGetOverdueBalance(t *testing.T) {
 			t.Errorf("GetOverdueBalance(%v) got = %v, %v, want = %d points", tt.req, res.GetPoints(), err, tt.want)
 		}
 	}
+}
+
+// TestCreateDataApiToken checks the Data API tokens: their subject and
+// permissions per caller, and the callers refused.
+func TestCreateDataApiToken(t *testing.T) {
+	t.Parallel()
+	t.Log("source: config/permissions.yml:88 (data_api:view held by finance and admin), app/controllers/api/v1/data_api/base_controller.rb:9 (API keys need the analytic resource)")
+	key, err := auth.GenerateServiceTokenKey(rand.Reader, "k1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := rpctest.New(t, func(o *app.APIOptions) { o.ServiceTokenKeys = []auth.ServiceTokenKey{key} })
+	verifier, err := auth.NewServiceTokens(auth.ServiceTokenConfig{Keys: []auth.ServiceTokenKey{key}}, s.Clock)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := auth.Deps{Tx: s.Store, Clock: s.Clock, IDs: core.UUIDv7Generator{}, Rand: rand.Reader}
+	keyWith := func(perms map[permission.APIResource]permission.Level) (rpctest.Credential, string) {
+		k, err := auth.NewAPIKeys(d, nil).Create(t.Context(), s.Org.ID, nil, perms)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return rpctest.Credential{Token: k.Secret}, "api_key:" + k.Key.ID.String()
+	}
+	analyticRead, analyticReadSubject := keyWith(map[permission.APIResource]permission.Level{permission.APIResourceAnalytic: permission.LevelRead})
+	full, fullSubject := keyWith(nil)
+	customersOnly, _ := keyWith(map[permission.APIResource]permission.Level{permission.APIResourceCustomer: permission.LevelWrite})
+	finance := member(t, s, "finance@tanvo.test", permission.BuiltInRoleFinance)
+	manager := member(t, s, "manager@tanvo.test", permission.BuiltInRoleManager)
+
+	for _, tt := range []struct {
+		name    string
+		cred    rpctest.Credential
+		subject string
+		code    connect.Code
+		reason  string
+	}{
+		{name: "full access key", cred: full, subject: fullSubject},
+		{name: "analytic read key", cred: analyticRead, subject: analyticReadSubject},
+		{name: "admin", cred: s.Session, subject: "user:" + s.User.ID.String()},
+		{name: "finance", cred: session(t, s, finance), subject: "user:" + finance.UserID.String()},
+		{name: "manager", cred: session(t, s, manager), code: connect.CodePermissionDenied},
+		{name: "key without analytics", cred: customersOnly, code: connect.CodePermissionDenied, reason: "read_action_not_allowed_for_analytic"},
+		{name: "portal token", cred: s.Portal(t, s.Fixtures.Customer().ID), code: connect.CodeUnauthenticated},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			res, err := analyticsClient(s, tt.cred).CreateDataApiToken(t.Context(), &analyticsv1.CreateDataApiTokenRequest{})
+			if tt.code != 0 {
+				wantCode(t, err, tt.code, tt.reason)
+				return
+			}
+			if err != nil {
+				t.Fatalf("CreateDataApiToken() error got = %v, want = nil", err)
+			}
+			claims, err := verifier.Verify(res.GetToken(), auth.ServiceTokenAudienceDataAPI)
+			if err != nil {
+				t.Fatalf("Verify() error got = %v, want = nil", err)
+			}
+			if claims.Subject != tt.subject || claims.OrganizationID != s.Org.ID || !slices.Equal(claims.Permissions, []permission.Permission{"data_api:read"}) {
+				t.Errorf("claims got = %s, %s, %v, want = %s, %s, [data_api:read]", claims.Subject, claims.OrganizationID, claims.Permissions, tt.subject, s.Org.ID)
+			}
+			want := s.Clock.Now().Truncate(time.Second).Add(auth.DefaultServiceTokenTTL)
+			if got := res.GetExpiresAt().AsTime(); !got.Equal(want) || !claims.ExpiresAt.Equal(want) {
+				t.Errorf("expires_at got = %s, want = %s", got, want)
+			}
+		})
+	}
+
+	t.Run("REST", func(t *testing.T) {
+		status, body := s.REST(t, analyticRead, http.MethodPost, "/v1/analytics/data_api_tokens", map[string]any{})
+		if status != http.StatusOK {
+			t.Fatalf("status got = %d (%s), want = 200", status, body)
+		}
+		got := decode[struct {
+			Token     string `json:"token"`
+			ExpiresAt string `json:"expires_at"`
+		}](t, body)
+		if _, err := verifier.Verify(got.Token, auth.ServiceTokenAudienceDataAPI); err != nil || got.ExpiresAt == "" {
+			t.Errorf("token got = %q, %v, expires_at %q, want = a valid token and its expiry", got.Token, err, got.ExpiresAt)
+		}
+	})
+
+	t.Run("not configured", func(t *testing.T) {
+		t.Parallel()
+		bare := rpctest.New(t)
+		_, err := analyticsClient(bare, bare.APIKey).CreateDataApiToken(t.Context(), &analyticsv1.CreateDataApiTokenRequest{})
+		wantCode(t, err, connect.CodeFailedPrecondition, rpc.ReasonNotConfigured)
+	})
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/knadh/koanf/v2"
 
 	"github.com/tanvoxyz/tanvo/apps/server/internal/clientip"
+	"github.com/tanvoxyz/tanvo/libs/auth"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/postgres"
@@ -436,6 +437,14 @@ type Config struct {
 	// and the SSO connections. Changing it invalidates the portal links
 	// and makes the stored secrets undecryptable.
 	SecretKey string `koanf:"secret_key"`
+	// ServiceTokenKeys are the Ed25519 keys signing the service tokens of
+	// the enterprise services (CreateDataApiToken), comma-separated
+	// "<key id>:<seed>" entries with the 32-byte seed in base64url without
+	// padding (`tanvo admin service-token-key generate`); the first signs,
+	// the others still verify during a rotation. Unset leaves the Data
+	// API unconfigured. The services verify with the public keys
+	// (`tanvo admin service-token-key public`).
+	ServiceTokenKeys []string `koanf:"service_token_keys"`
 }
 
 // The blob backends of [Config.BlobBackend].
@@ -464,6 +473,16 @@ func (c Config) SecretKeyBytes() ([]byte, error) {
 		return nil, fmt.Errorf("secret_key: got %d bytes, want at least %d", len(b), minSecretKeyBytes)
 	}
 	return b, nil
+}
+
+// ServiceTokenKeyList returns the parsed ServiceTokenKeys, the signing key
+// first; none when unset.
+func (c Config) ServiceTokenKeyList() ([]auth.ServiceTokenKey, error) {
+	keys, err := auth.ParseServiceTokenKeys(c.ServiceTokenKeys)
+	if err != nil {
+		return nil, fmt.Errorf("service_token_keys: %w", err)
+	}
+	return keys, nil
 }
 
 // Defaults returns the configuration before any source is read.
@@ -598,6 +617,7 @@ func (c *Config) normalize() {
 	c.JobsQueueConcurrency = trimAll(c.JobsQueueConcurrency)
 	c.JobsShardConcurrency = trimAll(c.JobsShardConcurrency)
 	c.KafkaBrokers = trimAll(c.KafkaBrokers)
+	c.ServiceTokenKeys = trimAll(c.ServiceTokenKeys)
 	c.IngestKafkaOrganizations = trimAll(c.IngestKafkaOrganizations)
 	c.IngestPostgresOrganizations = trimAll(c.IngestPostgresOrganizations)
 	c.LogLevel = strings.ToLower(strings.TrimSpace(c.LogLevel))
@@ -806,6 +826,9 @@ func (c Config) Validate() error {
 	}
 	if _, err := c.SecretKeyBytes(); err != nil {
 		bad("secret_key", "%v", err)
+	}
+	if _, err := c.ServiceTokenKeyList(); err != nil {
+		bad("service_token_keys", "%v", err)
 	}
 	if c.BlobBackend != "" {
 		// The permanent file links are signed and served under the API.

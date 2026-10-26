@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/tanvoxyz/tanvo/apps/server/internal/cli"
+	"github.com/tanvoxyz/tanvo/libs/auth"
 )
 
 // outputLine returns the value of the "key: value" line of out.
@@ -75,5 +76,43 @@ func TestAdminBootstrap(t *testing.T) {
 	}
 	if got != "1:1:1:1:1" {
 		t.Errorf("organizations:billing_entities:users:memberships:api_keys got = %s, want = 1:1:1:1:1", got)
+	}
+}
+
+// TestAdminServiceTokenKey generates two keys and prints the public keys
+// of a configuration rotating from the second to the first.
+func TestAdminServiceTokenKey(t *testing.T) {
+	t.Parallel()
+	gen := func(id string) string {
+		t.Helper()
+		var out bytes.Buffer
+		if err := cli.Run(t.Context(), []string{"admin", "service-token-key", "generate", "--key-id", id}, cli.Env{Environ: []string{}, Stdout: &out}); err != nil {
+			t.Fatalf("generate error got = %v, want = nil", err)
+		}
+		return strings.TrimSpace(out.String())
+	}
+	k1, k2 := gen("k1"), gen("k2")
+	want := make([]string, 2)
+	for i, entry := range []string{k2, k1} {
+		k, err := auth.ParseServiceTokenKey(entry)
+		if err != nil {
+			t.Fatalf("generated key %q: %v", entry, err)
+		}
+		want[i] = k.Public().String()
+	}
+	if !strings.HasPrefix(k1, "k1:") || !strings.HasPrefix(k2, "k2:") || k1[3:] == k2[3:] {
+		t.Errorf("generated keys got = %q, %q, want = two distinct keys named k1 and k2", k1, k2)
+	}
+	var out bytes.Buffer
+	environ := []string{"TANVO_DATABASE_URL=postgres://127.0.0.1:1/none", "TANVO_SERVICE_TOKEN_KEYS=" + k2 + "," + k1}
+	if err := cli.Run(t.Context(), []string{"admin", "service-token-key", "public"}, cli.Env{Environ: environ, Stdout: &out}); err != nil {
+		t.Fatalf("public error got = %v, want = nil", err)
+	}
+	if got := strings.TrimSpace(out.String()); got != strings.Join(want, ",") {
+		t.Errorf("public got = %q, want = %q", got, strings.Join(want, ","))
+	}
+	err := cli.Run(t.Context(), []string{"admin", "service-token-key", "public"}, cli.Env{Environ: environ[:1], Stdout: &out})
+	if err == nil || !strings.Contains(err.Error(), "TANVO_SERVICE_TOKEN_KEYS") {
+		t.Errorf("unconfigured error got = %v, want = no service token key", err)
 	}
 }

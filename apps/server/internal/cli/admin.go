@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +12,8 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/tanvoxyz/tanvo/apps/server/internal/app"
+	"github.com/tanvoxyz/tanvo/apps/server/internal/config"
+	"github.com/tanvoxyz/tanvo/libs/auth"
 )
 
 // Environment variables of `tanvo admin bootstrap`'s secrets, which stay
@@ -29,8 +32,65 @@ func newAdmin(env *Env, file *string) *cobra.Command {
 		Short: "Administer the installation",
 		Args:  cobra.NoArgs,
 	}
-	admin.AddCommand(newBootstrap(env, file))
+	admin.AddCommand(newBootstrap(env, file), newServiceTokenKey(env, file))
 	return admin
+}
+
+func newServiceTokenKey(env *Env, file *string) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "service-token-key",
+		Short: "Manage the keys signing the service tokens of the enterprise services",
+		Args:  cobra.NoArgs,
+	}
+	var keyID string
+	generate := &cobra.Command{
+		Use:   "generate",
+		Short: "Print a new service token signing key",
+		Long: "Print a new Ed25519 key as <key id>:<seed>, the seed in base64url without padding. Put it first in\n" +
+			"$TANVO_SERVICE_TOKEN_KEYS (comma-separated) to sign with it; keep the previous key after it until the\n" +
+			"tokens it signed have expired (15 minutes). The output is a secret.",
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			k, err := auth.GenerateServiceTokenKey(rand.Reader, keyID)
+			if err != nil {
+				return err
+			}
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), k.Encode())
+			return err
+		},
+	}
+	generate.Flags().StringVar(&keyID, "key-id", "", "ID of the key: letters, digits, - or _ (default: 8 random hexadecimal digits)")
+	public := &cobra.Command{
+		Use:   "public",
+		Short: "Print the public keys of the configured service token keys",
+		Long: "Print, comma-separated, <key id>:<public key> for each key of $TANVO_SERVICE_TOKEN_KEYS, the public key in\n" +
+			"base64url without padding: the value of the enterprise services' $TANVO_ANALYTICS_TOKEN_KEYS.",
+		Args: cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cfg, warnings, err := config.Load(config.Source{Environ: env.Environ, File: *file})
+			if err != nil {
+				return err
+			}
+			for _, w := range warnings {
+				fmt.Fprintln(cmd.ErrOrStderr(), "config: "+w)
+			}
+			keys, err := cfg.ServiceTokenKeyList()
+			if err != nil {
+				return err
+			}
+			if len(keys) == 0 {
+				return errors.New("no service token key: set $TANVO_SERVICE_TOKEN_KEYS (tanvo admin service-token-key generate)")
+			}
+			pubs := make([]string, len(keys))
+			for i, k := range keys {
+				pubs[i] = k.Public().String()
+			}
+			_, err = fmt.Fprintln(cmd.OutOrStdout(), strings.Join(pubs, ","))
+			return err
+		},
+	}
+	cmd.AddCommand(generate, public)
+	return cmd
 }
 
 func newBootstrap(env *Env, file *string) *cobra.Command {
