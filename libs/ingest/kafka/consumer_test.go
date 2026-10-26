@@ -1,12 +1,18 @@
 package kafka
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"testing"
 	"time"
 
 	"github.com/twmb/franz-go/pkg/kgo"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
+
+	"github.com/tanvoxyz/tanvo/libs/ingest"
 )
 
 var now = time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
@@ -85,5 +91,77 @@ func TestDecidePartitions(t *testing.T) {
 	}
 	if got := offsetOf(p.rewind[partitionKey{"t", 1}]); got != 20 {
 		t.Errorf("partition 1 rewind got = %d, want = 20", got)
+	}
+}
+
+func TestDecideCounts(t *testing.T) {
+	t.Parallel()
+	recs := []*kgo.Record{rec(0, 1), rec(0, 2), rec(0, 3), rec(0, 4), rec(1, 1), rec(1, 2)}
+	res := []Result{
+		{},
+		{Disposition: Dead, Code: ingest.ErrorReject},
+		{Disposition: Retry, Code: ingest.ErrorWrite, IngestedAt: now.Add(-time.Hour)},
+		{}, // after the retried record: redelivered
+		{Disposition: Retry, Code: ingest.ErrorInAdvance, IngestedAt: now.Add(-13 * time.Hour)},
+		{Disposition: Retry, Code: ingest.ErrorCatalog, IngestedAt: now.Add(-2 * time.Hour)},
+	}
+	p := decide(recs, res, now, MaxRetryAge)
+	want := map[outcomeKey]int64{
+		{outcome: outcomeDone}:               1,
+		{outcomeDead, ingest.ErrorReject}:    1,
+		{outcomeDead, ingest.ErrorInAdvance}: 1,
+		{outcomeRetry, ingest.ErrorWrite}:    2,
+		{outcomeRetry, ingest.ErrorCatalog}:  1,
+	}
+	if !maps.Equal(p.counts, want) {
+		t.Errorf("counts got = %v, want = %v", p.counts, want)
+	}
+	if p.retryAge != 2*time.Hour {
+		t.Errorf("retry age got = %v, want = 2h", p.retryAge)
+	}
+}
+
+func TestMeters(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	reader := sdkmetric.NewManualReader()
+	m := newMeters(sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader)), "tanvo-write")
+	m.count(ctx, map[outcomeKey]int64{
+		{outcome: outcomeDone}:              3,
+		{outcomeDead, ingest.ErrorReject}:   1,
+		{outcomeRetry, "a code of its own"}: 2,
+		{outcomeRetry, ""}:                  1,
+	})
+	m.retrying(ctx, 90*time.Second)
+	var rm metricdata.ResourceMetrics
+	if err := reader.Collect(ctx, &rm); err != nil {
+		t.Fatal(err)
+	}
+	got := map[string]int64{}
+	var age float64
+	for _, sm := range rm.ScopeMetrics {
+		for _, mt := range sm.Metrics {
+			switch d := mt.Data.(type) {
+			case metricdata.Sum[int64]:
+				for _, p := range d.DataPoints {
+					group, _ := p.Attributes.Value(AttrGroup)
+					outcome, _ := p.Attributes.Value(AttrOutcome)
+					code, _ := p.Attributes.Value(AttrErrorType)
+					if group.AsString() != "tanvo-write" {
+						t.Errorf("group got = %q, want = tanvo-write", group.AsString())
+					}
+					got[outcome.AsString()+"/"+code.AsString()] = p.Value
+				}
+			case metricdata.Gauge[float64]:
+				age = d.DataPoints[0].Value
+			}
+		}
+	}
+	want := map[string]int64{"done/": 3, "dead/" + ingest.ErrorReject: 1, "retry/other": 2, "retry/unknown": 1}
+	if !maps.Equal(got, want) {
+		t.Errorf("records got = %v, want = %v", got, want)
+	}
+	if age != 90 {
+		t.Errorf("retry age got = %v, want = 90", age)
 	}
 }

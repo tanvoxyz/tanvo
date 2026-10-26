@@ -8,9 +8,11 @@ import (
 	"log/slog"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/twmb/franz-go/pkg/kgo"
+	"go.opentelemetry.io/otel/metric"
 
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
@@ -78,11 +80,22 @@ type ConsumerConfig struct {
 	Clock core.Clock
 	// Logger logs failures; slog.Default() when nil.
 	Logger *slog.Logger
+	// MeterProvider receives the consumer's metrics (the records by
+	// outcome, the group's lag and the age of the retried records); none
+	// are reported when nil.
+	MeterProvider metric.MeterProvider
+	// Group names the consumer group on the metrics; the client's group
+	// when empty.
+	Group string
+	// LagInterval overrides [DefaultLagInterval] when positive; a negative
+	// one turns the lag reports off.
+	LagInterval time.Duration
 }
 
 // Consumer runs a consumer group loop. See the package documentation.
 type Consumer struct {
 	cfg ConsumerConfig
+	m   meters
 }
 
 // NewConsumer returns a consumer configured by cfg.
@@ -108,12 +121,26 @@ func NewConsumer(cfg ConsumerConfig) (*Consumer, error) {
 	if cfg.Logger == nil {
 		cfg.Logger = slog.Default()
 	}
-	return &Consumer{cfg: cfg}, nil
+	if cfg.Group == "" {
+		cfg.Group, _ = cfg.Client.OptValue(kgo.ConsumerGroup).(string)
+	}
+	if cfg.LagInterval == 0 {
+		cfg.LagInterval = DefaultLagInterval
+	}
+	return &Consumer{cfg: cfg, m: newMeters(cfg.MeterProvider, cfg.Group)}, nil
 }
 
 // Run consumes until ctx is done or the client is closed; it returns nil
-// then.
+// then. With a meter provider, it reports the group's lag every
+// LagInterval while it runs.
 func (c *Consumer) Run(ctx context.Context) error {
+	if c.m.enabled && c.cfg.LagInterval > 0 && c.m.group != "" {
+		lctx, cancel := context.WithCancel(ctx)
+		var wg sync.WaitGroup
+		wg.Go(func() { c.reportLag(lctx, c.cfg.LagInterval) })
+		defer wg.Wait()
+		defer cancel()
+	}
 	cl := c.cfg.Client
 	for {
 		fetches := cl.PollRecords(ctx, c.cfg.MaxPollRecords)
@@ -153,6 +180,12 @@ type plan struct {
 	rewind map[partitionKey]*kgo.Record
 	// dead holds the dead letters to produce.
 	dead []ingest.DeadLetter
+	// counts counts the records by outcome and error code: the committed
+	// records are done or dead, the others retried, with the code of the
+	// record their partition stopped at.
+	counts map[outcomeKey]int64
+	// retryAge is the age of the oldest record retried.
+	retryAge time.Duration
 }
 
 // decide applies the commit rules to a batch: per partition, in offset
@@ -160,7 +193,8 @@ type plan struct {
 // record younger than maxAge stops it and is retried with every record
 // after it.
 func decide(recs []*kgo.Record, results []Result, now time.Time, maxAge time.Duration) plan {
-	p := plan{commit: map[partitionKey]*kgo.Record{}, rewind: map[partitionKey]*kgo.Record{}}
+	p := plan{commit: map[partitionKey]*kgo.Record{}, rewind: map[partitionKey]*kgo.Record{}, counts: map[outcomeKey]int64{}}
+	stopCode := map[partitionKey]string{}
 	order := make([]int, len(recs))
 	for i := range order {
 		order[i] = i
@@ -173,22 +207,28 @@ func decide(recs []*kgo.Record, results []Result, now time.Time, maxAge time.Dur
 		r, res := recs[i], results[i]
 		k := partitionKey{r.Topic, r.Partition}
 		if _, stopped := p.rewind[k]; stopped {
+			p.counts[outcomeKey{outcomeRetry, stopCode[k]}]++
 			continue
 		}
 		switch res.Disposition {
 		case Done:
+			p.counts[outcomeKey{outcome: outcomeDone}]++
 		case Retry:
 			at := res.IngestedAt
 			if at.IsZero() {
 				at = r.Timestamp
 			}
-			if now.Sub(at) < maxAge {
-				p.rewind[k] = r
+			if age := now.Sub(at); age < maxAge {
+				p.rewind[k], stopCode[k] = r, res.Code
+				p.retryAge = max(p.retryAge, age)
+				p.counts[outcomeKey{outcomeRetry, res.Code}]++
 				continue
 			}
 			p.dead = append(p.dead, deadLetter(r, res, now))
+			p.counts[outcomeKey{outcomeDead, res.Code}]++
 		default:
 			p.dead = append(p.dead, deadLetter(r, res, now))
+			p.counts[outcomeKey{outcomeDead, res.Code}]++
 		}
 		p.commit[k] = r
 	}
@@ -226,8 +266,12 @@ func (c *Consumer) process(ctx context.Context, recs []*kgo.Record) bool {
 		// Commit nothing: rewind every partition of the batch.
 		c.cfg.Logger.ErrorContext(ctx, "kafka: produce dead letters", "error", err)
 		c.rewind(firstPerPartition(recs))
+		c.m.count(ctx, map[outcomeKey]int64{{outcomeRetry, codeDeadLetters}: int64(len(recs))})
+		c.m.retrying(ctx, p.retryAge)
 		return true
 	}
+	c.m.count(ctx, p.counts)
+	c.m.retrying(ctx, p.retryAge)
 	if len(p.commit) > 0 {
 		last := make([]*kgo.Record, 0, len(p.commit))
 		for _, r := range p.commit {
