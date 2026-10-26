@@ -1007,6 +1007,7 @@ type ExportsInvoice struct {
 	BillingEntitySequentialID      *int64
 	Number                         string
 	InvoiceType                    string
+	SelfBilled                     bool
 	Status                         string
 	PaymentStatus                  string
 	TaxStatus                      *string

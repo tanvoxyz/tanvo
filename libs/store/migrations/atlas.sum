@@ -1,4 +1,4 @@
-h1:ciZ+mMIo2P9kVRYZ5sTHy0mDJfCFyyyChcL2vXnQykA=
+h1:usdSN47fAy7jKaBiJl9pKBt+Nv9EGfXWsoB9Es9Rvsk=
 20261023063856_init.sql h1:uZYUuHOtHpwAsZ8N5Y7hts02c+rDFtFQIs7KnC8cYHA=
 20261023064656_job_outbox_unique_org.sql h1:EYvgBwVtueYiMKEA34sjRFTySA0ueKsAQ83ccjVsi1Y=
 20261023081947_invoice_subscription_keys.sql h1:Iapy3LJtOOsXs9rkTGjAb4UBKqyaEOpYC5J+I3IWjus=
@@ -17,3 +17,4 @@ h1:ciZ+mMIo2P9kVRYZ5sTHy0mDJfCFyyyChcL2vXnQykA=
 20261025061711_item_metadata_presence.sql h1:JjrxBb2erm/h+my6w+A1fYb+O6MFKZvjA8qiW27zNqI=
 20261026082139_concurrency_slots.sql h1:ZrJcYrF5aNcJaeczDurBMy6Rylo/PfYLsOLTdLCOsg0=
 20261026094322_fees_in_advance_event_keys.sql h1:yy2Tgo2C/SNXzlfxQRjQ9vJ0jGM+Au/8xCHTwx76U5Y=
+20261026163348_invoices_export_self_billed.sql h1:B1E4cD35YConNH+Cv7otEIbXnu8ldsSviHvo9SPtjRM=

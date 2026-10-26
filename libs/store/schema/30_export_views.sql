@@ -393,6 +393,7 @@ SELECT
   i.billing_entity_sequential_id,
   i.number,
   i.invoice_type,
+  i.self_billed,
   i.status,
   i.payment_status,
   i.tax_status,

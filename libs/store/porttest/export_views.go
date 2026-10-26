@@ -74,8 +74,9 @@ func testExportViewsIsolation(t *testing.T, h Harness, q ViewQuery) {
 	equal(t, "exports_customers", customers, sortedIDs(pa.customers[:]...))
 }
 
-// testExportViewsInvoices checks the statuses exported and the derived
-// amount due (db/views/exports_invoices_v04.sql).
+// testExportViewsInvoices checks the statuses exported, the derived
+// amount due (db/views/exports_invoices_v04.sql) and the self-billed flag
+// (a Tanvo addition).
 func testExportViewsInvoices(t *testing.T, h Harness, q ViewQuery) {
 	e := newEnv(t, h)
 	_, be := e.org("Acme")
@@ -100,6 +101,7 @@ func testExportViewsInvoices(t *testing.T, h Harness, q ViewQuery) {
 		inv := invoiceFixtureMinimal(e, p, now)
 		inv.Status, inv.TaxStatus = s.status, s.tax
 		inv.TotalAmount, inv.TotalPaidAmount = 1000, 400
+		inv.SelfBilled = s.name == "finalized"
 		byStatus[s.name] = inv
 		invs = append(invs, inv)
 	}
@@ -111,6 +113,8 @@ func testExportViewsInvoices(t *testing.T, h Harness, q ViewQuery) {
 	))
 	due := q(t, e.tr, p.org, `SELECT total_due_amount::text FROM exports_invoices WHERE id = $1`, byStatus["draft"].ID.UUID())
 	equal(t, "total_due_amount", due, []string{"600"})
+	selfBilled := q(t, e.tr, p.org, `SELECT id::text FROM exports_invoices WHERE self_billed ORDER BY id`)
+	equal(t, "self-billed invoices", selfBilled, sortedIDs(byStatus["finalized"].ID))
 }
 
 // testExportViewsFees checks the fees exported, their customer and item,
