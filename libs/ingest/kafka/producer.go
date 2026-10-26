@@ -82,7 +82,11 @@ var _ ingest.UsageSignaler = SignalProducer{}
 
 // SignalUsage implements [ingest.UsageSignaler].
 func (p SignalProducer) SignalUsage(ctx context.Context, signals []ingest.UsageSignal) error {
-	return produce(ctx, p.Client, p.Topic, signals, func(s ingest.UsageSignal) []byte {
-		return []byte(s.OrganizationID.String() + "/" + s.CustomerID.String())
-	})
+	return produce(ctx, p.Client, p.Topic, signals, signalKey)
+}
+
+// signalKey is the partition key of a usage refresh signal: (organization,
+// customer).
+func signalKey(s ingest.UsageSignal) []byte {
+	return []byte(s.OrganizationID.String() + "/" + s.CustomerID.String())
 }
