@@ -286,6 +286,9 @@ func TestValkeyUnreachable(t *testing.T) {
 	if err := v.Ping(ctx); !errors.Is(err, cache.ErrNotConnected) {
 		t.Errorf("Ping() = %v, want = ErrNotConnected", err)
 	}
+	if _, _, err := v.AcquireSlot(ctx, "s", 1); !errors.Is(err, cache.ErrNotConnected) {
+		t.Errorf("AcquireSlot() error got = %v, want = %v", err, cache.ErrNotConnected)
+	}
 	eventually(t, 5*time.Second, "several connection attempts", func() bool {
 		return counter(t, reader, "tanvo.cache.errors", "connect") >= 3
 	})

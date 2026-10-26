@@ -22,6 +22,8 @@ import (
 	"go.opentelemetry.io/otel/metric/noop"
 	"go.opentelemetry.io/otel/trace"
 	tracenoop "go.opentelemetry.io/otel/trace/noop"
+
+	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
 
 // ErrNotConnected is the error of [Valkey.Ping] while the client has not
@@ -72,6 +74,8 @@ type Valkey struct {
 	client atomic.Pointer[valkey.Client]
 
 	incr    *valkey.Lua
+	acquire *valkey.Lua
+	renew   *valkey.Lua
 	errs    metric.Int64Counter
 	errAttr map[string]metric.AddOption
 	logs    map[string]*limiter
@@ -95,6 +99,7 @@ type valkeyConfig struct {
 	mp         metric.MeterProvider
 	minBackoff time.Duration
 	maxBackoff time.Duration
+	slotTTL    time.Duration
 
 	sentinelUser, sentinelPassword string
 }
@@ -143,6 +148,16 @@ func WithTimeout(d time.Duration) ValkeyOption {
 	return valkeyOption(func(c *valkeyConfig) {
 		if d > 0 {
 			c.timeout = d
+		}
+	})
+}
+
+// WithSlotTTL sets the lease TTL of the slots of [Valkey.AcquireSlot],
+// [port.DefaultSlotTTL] by default; a TTL that is not positive keeps it.
+func WithSlotTTL(d time.Duration) ValkeyOption {
+	return valkeyOption(func(c *valkeyConfig) {
+		if d > 0 {
+			c.slotTTL = d
 		}
 	})
 }
@@ -196,6 +211,7 @@ func NewValkey(ctx context.Context, rawURL string, opts ...ValkeyOption) (*Valke
 		logger:     slog.Default(),
 		minBackoff: minBackoff,
 		maxBackoff: maxBackoff,
+		slotTTL:    port.DefaultSlotTTL,
 	}
 	for _, o := range opts {
 		o.applyValkey(&cfg)
@@ -220,6 +236,8 @@ func NewValkey(ctx context.Context, rawURL string, opts ...ValkeyOption) (*Valke
 		cfg:     cfg,
 		opt:     opt,
 		incr:    valkey.NewLuaScript(incrScript),
+		acquire: valkey.NewLuaScript(slotAcquireScript),
+		renew:   valkey.NewLuaScript(slotRenewScript),
 		errs:    errs,
 		errAttr: map[string]metric.AddOption{},
 		logs:    map[string]*limiter{},
@@ -230,7 +248,7 @@ func NewValkey(ctx context.Context, rawURL string, opts ...ValkeyOption) (*Valke
 		return w
 	}
 	v.readers.New = func() any { return flate.NewReader(nil) }
-	for _, op := range []string{"get", "decode", "set", "delete", "incr", "connect"} {
+	for _, op := range []string{"get", "decode", "set", "delete", "incr", "slot-acquire", "slot-renew", "slot-release", "connect"} {
 		v.errAttr[op] = metric.WithAttributeSet(attribute.NewSet(AttrOperation.String(op)))
 		v.logs[op] = &limiter{}
 	}

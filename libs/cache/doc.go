@@ -15,6 +15,10 @@
 //     startup or later, reads miss and writes are dropped, and the client
 //     reconnects in the background.
 //
+// [Valkey] also implements [port.Slots] with leases in one sorted set per
+// slot name ([Valkey.AcquireSlot]); unlike the cache, its failures are
+// errors of the caller.
+//
 // [Namespace] gives each user of a cache a key prefix of its own and
 // counts its hits and misses as OpenTelemetry metrics.
 //
@@ -30,4 +34,5 @@ var (
 	_ port.Cache = (*Memory)(nil)
 	_ port.Cache = (*Valkey)(nil)
 	_ port.Cache = (*namespace)(nil)
+	_ port.Slots = (*Valkey)(nil)
 )
