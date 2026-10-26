@@ -573,3 +573,42 @@ func TestTrigger(t *testing.T) {
 	}
 	eventually(t, 20*time.Second, "the triggered run", func() bool { return runs.Load() == 1 })
 }
+
+// TestListenerPool checks that, with a listener pool, River listens on a
+// connection of it and still picks a new job up at once on the
+// notification of its insert, long before the next poll.
+func TestListenerPool(t *testing.T) {
+	t.Parallel()
+	_, s := schema(t)
+	listener, err := pgxpool.NewWithConfig(context.Background(), testDB.pool.Config().Copy())
+	if err != nil {
+		t.Fatalf("pgxpool.NewWithConfig() = %v", err)
+	}
+	t.Cleanup(listener.Close)
+	reg := jobs.NewRegistry()
+	var done atomic.Int64
+	jobs.MustRegister(reg, jobs.Kind{Name: "test.listen"}, jobs.HandlerFunc[testArgs](func(context.Context, *jobs.Job[testArgs]) error {
+		done.Add(1)
+		return nil
+	}))
+	c, err := jobs.New(testDB.pool, reg, jobs.Config{
+		Schema:            s,
+		Queues:            unlimited(),
+		Work:              []port.Queue{port.QueueDefault},
+		DisablePeriodic:   true,
+		FetchCooldown:     20 * time.Millisecond,
+		FetchPollInterval: time.Minute,
+		ListenerPool:      listener,
+	})
+	if err != nil {
+		t.Fatalf("New() = %v", err)
+	}
+	start(t, c)
+	eventually(t, 10*time.Second, "the listener connection", func() bool { return listener.Stat().NewConnsCount() > 0 })
+	// Let the notifier subscribe and the producers make their first fetch.
+	time.Sleep(time.Second)
+	if err := c.Insert(context.Background(), job("test.listen", org(), 1, "")); err != nil {
+		t.Fatalf("Insert() = %v", err)
+	}
+	eventually(t, 10*time.Second, "the job", func() bool { return done.Load() == 1 })
+}

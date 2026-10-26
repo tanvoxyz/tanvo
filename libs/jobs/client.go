@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 	"github.com/riverqueue/river/rivertype"
 
@@ -55,6 +56,12 @@ type Config struct {
 	// FetchCooldown and FetchPollInterval tune how often workers look for
 	// jobs; 0 keeps River's defaults (100 ms, 1 s).
 	FetchCooldown, FetchPollInterval time.Duration
+	// ListenerPool, when set, gives the connection River holds in the
+	// LISTEN state for its notifications (new jobs, leadership, queue
+	// controls), so that the client's pool may go through a pooler in
+	// transaction mode (PgBouncer), where LISTEN does not work. nil
+	// listens on a connection of the client's pool.
+	ListenerPool *pgxpool.Pool
 	// Clock is the time source of the token buckets; nil is the system
 	// clock.
 	Clock core.Clock
@@ -131,12 +138,31 @@ func New(pool *pgxpool.Pool, reg *Registry, cfg Config) (*Client, error) {
 			rc.Queues[string(ClockQueue)] = river.QueueConfig{MaxWorkers: cmp.Or(cfg.ClockConcurrency, DefaultClockConcurrency)}
 		}
 	}
-	rv, err := river.NewClient(riverpgxv5.New(pool), rc)
+	var driver riverdriver.Driver[pgx.Tx] = riverpgxv5.New(pool)
+	if cfg.ListenerPool != nil {
+		driver = &listenerDriver{Driver: riverpgxv5.New(pool), listener: riverpgxv5.New(cfg.ListenerPool)}
+	}
+	rv, err := river.NewClient(driver, rc)
 	if err != nil {
 		return nil, fmt.Errorf("jobs: new river client: %w", err)
 	}
 	c.river = rv
 	return c, nil
+}
+
+// listenerDriver is River's pgx driver on one pool whose listener holds a
+// connection of another ([Config].ListenerPool). River's listener only
+// takes a connection of its driver's pool, and NOTIFY reaches the
+// listeners of the whole database, so the notifications that the
+// executor sends through the first pool arrive on the second.
+type listenerDriver struct {
+	*riverpgxv5.Driver
+	listener *riverpgxv5.Driver
+}
+
+// GetListener returns a listener on the listener pool.
+func (d *listenerDriver) GetListener(params *riverdriver.GetListenenerParams) riverdriver.Listener {
+	return d.listener.GetListener(params)
 }
 
 // periodicJobs builds the River periodic jobs of the schedule entries
