@@ -9,6 +9,7 @@ require (
 	github.com/tanvoxyz/tanvo/libs/core v0.0.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/oauth2 v0.37.0
+	golang.org/x/sync v0.24.0
 )
 
 require (

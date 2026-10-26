@@ -24,6 +24,9 @@ type APIKeys struct {
 
 	cache    port.Cache
 	cacheTTL time.Duration
+	// flight makes the concurrent cache misses of one process on the same
+	// key read the database once.
+	flight flightGroup[[]byte]
 }
 
 // NewAPIKeys returns the API key service; usage collects last-used
@@ -340,18 +343,41 @@ func (s *APIKeys) AuthenticateCached(ctx context.Context, secret string) (*acces
 			return s.accept(&k)
 		}
 	}
-	k, err := s.lookup(ctx, hash)
-	if err != nil {
-		return nil, err
-	}
-	ttl := s.cacheTTL
-	if k.ExpiresAt != nil {
-		ttl = min(ttl, k.ExpiresAt.Sub(s.d.now()))
-	}
-	if b, err := json.Marshal(k); err == nil {
+	// Concurrent misses on the key read it once; each caller decodes a key
+	// of its own.
+	var k *access.APIKey
+	enc, leader, err := s.flight.do(ctx, ck, func(ctx context.Context) ([]byte, error) {
+		var err error
+		if k, err = s.lookup(ctx, hash); err != nil {
+			return nil, err
+		}
+		b, err := json.Marshal(k)
+		if err != nil {
+			// Keys always encode; were one not to, each caller sharing
+			// the read reads it on its own.
+			return nil, nil
+		}
+		ttl := s.cacheTTL
+		if k.ExpiresAt != nil {
+			ttl = min(ttl, k.ExpiresAt.Sub(s.d.now()))
+		}
 		s.cache.Set(ctx, ck, b, ttl)
+		return b, nil
+	})
+	switch {
+	case err != nil:
+		return nil, err
+	case leader:
+		return s.accept(k)
 	}
-	return s.accept(k)
+	var own access.APIKey
+	if enc == nil || json.Unmarshal(enc, &own) != nil {
+		if k, err = s.lookup(ctx, hash); err != nil {
+			return nil, err
+		}
+		return s.accept(k)
+	}
+	return s.accept(&own)
 }
 
 // lookup reads the key whose secret hashes to hash.
