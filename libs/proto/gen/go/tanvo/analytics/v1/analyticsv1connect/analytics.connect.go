@@ -41,6 +41,9 @@ const (
 	// AnalyticsServiceGetInvoicedUsageProcedure is the procedure name of the AnalyticsService's
 	// GetInvoicedUsage RPC.
 	AnalyticsServiceGetInvoicedUsageProcedure = "/tanvo.analytics.v1.AnalyticsService/GetInvoicedUsage"
+	// AnalyticsServiceCreateDataApiTokenProcedure is the procedure name of the AnalyticsService's
+	// CreateDataApiToken RPC.
+	AnalyticsServiceCreateDataApiTokenProcedure = "/tanvo.analytics.v1.AnalyticsService/CreateDataApiToken"
 	// AnalyticsServiceGetOverdueBalanceProcedure is the procedure name of the AnalyticsService's
 	// GetOverdueBalance RPC.
 	AnalyticsServiceGetOverdueBalanceProcedure = "/tanvo.analytics.v1.AnalyticsService/GetOverdueBalance"
@@ -79,6 +82,13 @@ var (
 			IdempotencyLevel: connect.IdempotencyNoSideEffects,
 		}
 	})
+	analyticsServiceCreateDataApiTokenSpec = sync.OnceValue(func() connect.Spec {
+		return connect.Spec{
+			StreamType: connect.StreamTypeUnary,
+			Schema:     v1.File_tanvo_analytics_v1_analytics_proto.Services().ByName("AnalyticsService").Methods().ByName("CreateDataApiToken"),
+			Procedure:  AnalyticsServiceCreateDataApiTokenProcedure,
+		}
+	})
 	analyticsServiceGetOverdueBalanceSpec = sync.OnceValue(func() connect.Spec {
 		return connect.Spec{
 			StreamType:       connect.StreamTypeUnary,
@@ -101,6 +111,10 @@ type AnalyticsServiceClient interface {
 	GetInvoiceCollection(context.Context, *v1.GetInvoiceCollectionRequest) (*v1.GetInvoiceCollectionResponse, error)
 	// Returns the usage invoiced per month, by billable metric.
 	GetInvoicedUsage(context.Context, *v1.GetInvoicedUsageRequest) (*v1.GetInvoicedUsageResponse, error)
+	// Returns a service token for the Data API (DataApiService, served by
+	// the enterprise analytics service), granting the caller's `data_api`
+	// permissions in the organization for a short time.
+	CreateDataApiToken(context.Context, *v1.CreateDataApiTokenRequest) (*v1.CreateDataApiTokenResponse, error)
 	// Returns the overdue balance at the end of each month.
 	GetOverdueBalance(context.Context, *v1.GetOverdueBalanceRequest) (*v1.GetOverdueBalanceResponse, error)
 }
@@ -123,6 +137,10 @@ type AnalyticsServiceHandler interface {
 	GetInvoiceCollection(context.Context, *v1.GetInvoiceCollectionRequest) (*v1.GetInvoiceCollectionResponse, error)
 	// Returns the usage invoiced per month, by billable metric.
 	GetInvoicedUsage(context.Context, *v1.GetInvoicedUsageRequest) (*v1.GetInvoicedUsageResponse, error)
+	// Returns a service token for the Data API (DataApiService, served by
+	// the enterprise analytics service), granting the caller's `data_api`
+	// permissions in the organization for a short time.
+	CreateDataApiToken(context.Context, *v1.CreateDataApiTokenRequest) (*v1.CreateDataApiTokenResponse, error)
 	// Returns the overdue balance at the end of each month.
 	GetOverdueBalance(context.Context, *v1.GetOverdueBalanceRequest) (*v1.GetOverdueBalanceResponse, error)
 }
@@ -136,6 +154,7 @@ func RegisterAnalyticsServiceHandler(server *connect.Server, svc AnalyticsServic
 		connect.Method{Spec: analyticsServiceGetMrrSpec(), Handler: adapter.getMrr},
 		connect.Method{Spec: analyticsServiceGetInvoiceCollectionSpec(), Handler: adapter.getInvoiceCollection},
 		connect.Method{Spec: analyticsServiceGetInvoicedUsageSpec(), Handler: adapter.getInvoicedUsage},
+		connect.Method{Spec: analyticsServiceCreateDataApiTokenSpec(), Handler: adapter.createDataApiToken},
 		connect.Method{Spec: analyticsServiceGetOverdueBalanceSpec(), Handler: adapter.getOverdueBalance},
 	)
 }
@@ -157,6 +176,10 @@ func (UnimplementedAnalyticsServiceHandler) GetInvoiceCollection(context.Context
 
 func (UnimplementedAnalyticsServiceHandler) GetInvoicedUsage(context.Context, *v1.GetInvoicedUsageRequest) (*v1.GetInvoicedUsageResponse, error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.analytics.v1.AnalyticsService.GetInvoicedUsage is not implemented")
+}
+
+func (UnimplementedAnalyticsServiceHandler) CreateDataApiToken(context.Context, *v1.CreateDataApiTokenRequest) (*v1.CreateDataApiTokenResponse, error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, "tanvo.analytics.v1.AnalyticsService.CreateDataApiToken is not implemented")
 }
 
 func (UnimplementedAnalyticsServiceHandler) GetOverdueBalance(context.Context, *v1.GetOverdueBalanceRequest) (*v1.GetOverdueBalanceResponse, error) {
@@ -194,6 +217,14 @@ func (c *analyticsServiceClient) GetInvoiceCollection(ctx context.Context, req *
 func (c *analyticsServiceClient) GetInvoicedUsage(ctx context.Context, req *v1.GetInvoicedUsageRequest) (*v1.GetInvoicedUsageResponse, error) {
 	var res v1.GetInvoicedUsageResponse
 	if err := c.client.CallUnary(ctx, analyticsServiceGetInvoicedUsageSpec(), req, &res); err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
+func (c *analyticsServiceClient) CreateDataApiToken(ctx context.Context, req *v1.CreateDataApiTokenRequest) (*v1.CreateDataApiTokenResponse, error) {
+	var res v1.CreateDataApiTokenResponse
+	if err := c.client.CallUnary(ctx, analyticsServiceCreateDataApiTokenSpec(), req, &res); err != nil {
 		return nil, err
 	}
 	return &res, nil
@@ -251,6 +282,18 @@ func (h analyticsServiceHandler) getInvoicedUsage(ctx context.Context, _ connect
 		return err
 	}
 	res, err := h.svc.GetInvoicedUsage(ctx, &req)
+	if err != nil {
+		return err
+	}
+	return stream.Send(res)
+}
+
+func (h analyticsServiceHandler) createDataApiToken(ctx context.Context, _ connect.Spec, stream connect.ServerStream) error {
+	var req v1.CreateDataApiTokenRequest
+	if err := stream.Receive(&req); err != nil {
+		return err
+	}
+	res, err := h.svc.CreateDataApiToken(ctx, &req)
 	if err != nil {
 		return err
 	}

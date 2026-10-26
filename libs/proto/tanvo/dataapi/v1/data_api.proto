@@ -1,0 +1,562 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+// Package tanvo.dataapi.v1 is the API of the Data API: revenue, MRR,
+// prepaid credit, usage and revenue recognition reports over periods.
+// It is served by the enterprise analytics service (`tanvo-analytics`,
+// architecture §14.1), not by the core server, and authenticated by the
+// service tokens that AnalyticsService.CreateDataApiToken returns.
+package tanvo.dataapi.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+import "google/type/date.proto";
+import "tanvo/common/v1/enums.proto";
+import "tanvo/common/v1/options.proto";
+import "tanvo/common/v1/types.proto";
+import "tanvo/customer/v1/customer.proto";
+
+// DataApiService returns reports over periods of a day, an ISO week
+// (Monday to Sunday) or a calendar month. Every report covers the periods
+// from from_date to to_date and lists them oldest first; days are those of
+// each customer's time zone, as invoices' issuing dates are. Amounts are
+// exact and exclude taxes.
+service DataApiService {
+  // Returns the MRR at the start and end of each period, and its
+  // movements: new, expansion, contraction and churn (domain §25.2).
+  rpc GetMrr(GetMrrRequest) returns (GetMrrResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/data_api/mrr"};
+    option (tanvo.common.v1.access) = {
+      permission: "data_api:read"
+      api_resource: "analytic"
+    };
+  }
+
+  // Returns the MRR by plan on to_date, with the plans' shares.
+  rpc ListMrrByPlan(ListMrrByPlanRequest) returns (ListMrrByPlanResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/data_api/mrr/plans"};
+    option (tanvo.common.v1.access) = {
+      permission: "data_api:read"
+      api_resource: "analytic"
+    };
+  }
+
+  // Returns the revenue of each period: gross revenue by kind of fee, the
+  // contra revenue that reduces it and the net revenue (domain §25.3).
+  rpc GetRevenueStreams(GetRevenueStreamsRequest) returns (GetRevenueStreamsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/data_api/revenue_streams"};
+    option (tanvo.common.v1.access) = {
+      permission: "data_api:read"
+      api_resource: "analytic"
+    };
+  }
+
+  // Returns the gross and net revenue of the whole range by customer.
+  rpc ListRevenueStreamsByCustomer(ListRevenueStreamsByCustomerRequest) returns (ListRevenueStreamsByCustomerResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/data_api/revenue_streams/customers"};
+    option (tanvo.common.v1.access) = {
+      permission: "data_api:read"
+      api_resource: "analytic"
+    };
+  }
+
+  // Returns the gross and net revenue of the whole range by plan.
+  rpc ListRevenueStreamsByPlan(ListRevenueStreamsByPlanRequest) returns (ListRevenueStreamsByPlanResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/data_api/revenue_streams/plans"};
+    option (tanvo.common.v1.access) = {
+      permission: "data_api:read"
+      api_resource: "analytic"
+    };
+  }
+
+  // Returns the prepaid credits purchased, offered, consumed and voided in
+  // each period (domain §25.4).
+  rpc GetPrepaidCredits(GetPrepaidCreditsRequest) returns (GetPrepaidCreditsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/data_api/prepaid_credits"};
+    option (tanvo.common.v1.access) = {
+      permission: "data_api:read"
+      api_resource: "analytic"
+    };
+  }
+
+  // Returns the usage of each period by billable metric, from the daily
+  // usage snapshots (domain §25.5).
+  rpc GetUsage(GetUsageRequest) returns (GetUsageResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/data_api/usage"};
+    option (tanvo.common.v1.access) = {
+      permission: "data_api:read"
+      api_resource: "analytic"
+    };
+  }
+
+  // Returns the usage amount of each period, every billable metric
+  // together.
+  rpc GetUsageAmounts(GetUsageAmountsRequest) returns (GetUsageAmountsResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/data_api/usage/amounts"};
+    option (tanvo.common.v1.access) = {
+      permission: "data_api:read"
+      api_resource: "analytic"
+    };
+  }
+
+  // Returns the usage invoiced in each period by billable metric, from
+  // the charge fees of finalized invoices.
+  rpc GetInvoicedUsage(GetInvoicedUsageRequest) returns (GetInvoicedUsageResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/data_api/usage/invoiced"};
+    option (tanvo.common.v1.access) = {
+      permission: "data_api:read"
+      api_resource: "analytic"
+    };
+  }
+
+  // Returns the revenue invoiced and recognized in each period and the
+  // deferred revenue at its end (domain §25.6).
+  rpc GetRevenueRecognition(GetRevenueRecognitionRequest) returns (GetRevenueRecognitionResponse) {
+    option idempotency_level = NO_SIDE_EFFECTS;
+    option (google.api.http) = {get: "/v1/data_api/revenue_recognition"};
+    option (tanvo.common.v1.access) = {
+      permission: "data_api:read"
+      api_resource: "analytic"
+    };
+  }
+}
+
+// TimeGranularity is the length of a report's periods.
+enum TimeGranularity {
+  // Not set: the report's default.
+  TIME_GRANULARITY_UNSPECIFIED = 0;
+  // A day.
+  TIME_GRANULARITY_DAILY = 1;
+  // An ISO week, Monday to Sunday.
+  TIME_GRANULARITY_WEEKLY = 2;
+  // A calendar month.
+  TIME_GRANULARITY_MONTHLY = 3;
+}
+
+// Filter restricts a report. Every field is optional.
+message Filter {
+  // The first day of the range; by default the start of the 12th period
+  // before the one of to_date (the 30th day before for daily periods).
+  google.type.Date from_date = 1;
+  // The last day of the range, included; today (UTC) by default.
+  google.type.Date to_date = 2;
+  // The length of the periods; monthly by default, daily for the usage
+  // reports. A range has at most 1000 periods.
+  TimeGranularity time_granularity = 3 [(buf.validate.field).enum.defined_only = true];
+  // The currency; every currency, each in its own points, by default.
+  string currency = 4 [(buf.validate.field).string.(tanvo.common.v1.currency) = true];
+  // The customers' billing country (ISO 3166-1 alpha-2).
+  string customer_country = 5 [(buf.validate.field).string.pattern = "^([A-Za-z]{2})?$"];
+  // The customers' type.
+  tanvo.customer.v1.CustomerType customer_type = 6 [(buf.validate.field).enum.defined_only = true];
+  // One customer, by external ID.
+  string external_customer_id = 7 [(buf.validate.field).string.max_len = 255];
+  // One subscription, by external ID.
+  string external_subscription_id = 8 [(buf.validate.field).string.max_len = 255];
+  // One billing entity, by code.
+  string billing_entity_code = 9 [(buf.validate.field).string.max_len = 255];
+  // One plan, by code, deleted plans included.
+  string plan_code = 10 [(buf.validate.field).string.max_len = 255];
+  // Keeps the customers without (true) or with (false) a tax
+  // identification number; every customer when not set.
+  bool is_customer_tin_empty = 11;
+}
+
+// Period is one period of a report.
+message Period {
+  // The first day.
+  google.type.Date start_date = 1;
+  // The last day, included.
+  google.type.Date end_date = 2;
+}
+
+// MrrPoint is the MRR of one period in one currency.
+message MrrPoint {
+  // The period.
+  Period period = 1;
+  // The MRR on the day before the period.
+  tanvo.common.v1.Money starting_mrr = 2;
+  // The MRR on the period's last day.
+  tanvo.common.v1.Money ending_mrr = 3;
+  // The MRR of customers who had none at the start.
+  tanvo.common.v1.Money new_mrr = 4;
+  // The increase of customers whose MRR grew.
+  tanvo.common.v1.Money expansion_mrr = 5;
+  // The decrease of customers whose MRR shrank but stayed positive.
+  tanvo.common.v1.Money contraction_mrr = 6;
+  // The MRR of customers who have none at the end.
+  tanvo.common.v1.Money churned_mrr = 7;
+  // ending_mrr minus starting_mrr.
+  tanvo.common.v1.Money mrr_change = 8;
+}
+
+// GetMrrRequest is the request of DataApiService.GetMrr.
+message GetMrrRequest {
+  // The filter.
+  Filter filter = 1;
+}
+
+// GetMrrResponse is the response of DataApiService.GetMrr.
+message GetMrrResponse {
+  // The points, oldest first, by currency.
+  repeated MrrPoint points = 1;
+}
+
+// PlanRef is a plan of a report.
+message PlanRef {
+  // The plan.
+  string plan_id = 1;
+  // The plan's code.
+  string plan_code = 2;
+  // The plan's name.
+  string plan_name = 3;
+  // The plan's billing interval.
+  tanvo.common.v1.Interval plan_interval = 4;
+  // Whether the plan is deleted.
+  bool plan_deleted = 5;
+}
+
+// MrrByPlan is the MRR of one plan in one currency.
+message MrrByPlan {
+  // The plan.
+  PlanRef plan = 1;
+  // The MRR.
+  tanvo.common.v1.Money mrr = 2;
+  // The plan's part of the currency's MRR, a decimal from 0 to 1.
+  string mrr_share = 3;
+  // The customers with an MRR on the plan.
+  int64 active_customers_count = 4;
+  // The plan's part of the currency's customers with an MRR, a decimal
+  // from 0 to 1.
+  string active_customers_share = 5;
+}
+
+// ListMrrByPlanRequest is the request of DataApiService.ListMrrByPlan.
+message ListMrrByPlanRequest {
+  // The filter; only to_date, the day of the MRR, and the customer,
+  // subscription, plan, billing entity and currency fields apply.
+  Filter filter = 1;
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 2 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 3 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListMrrByPlanResponse is the response of DataApiService.ListMrrByPlan.
+message ListMrrByPlanResponse {
+  // The plans, largest MRR first.
+  repeated MrrByPlan plans = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+  // The number of results of every page.
+  int64 total_size = 3;
+}
+
+// RevenueStreamPoint is the revenue of one period in one currency.
+message RevenueStreamPoint {
+  // The period.
+  Period period = 1;
+  // The fees of subscriptions, fixed charges and products.
+  tanvo.common.v1.Money subscription_fees = 2;
+  // The fees of usage-based charges.
+  tanvo.common.v1.Money usage_based_fees = 3;
+  // The fees of minimum commitments.
+  tanvo.common.v1.Money commitment_fees = 4;
+  // The fees of one-off add-ons.
+  tanvo.common.v1.Money one_off_fees = 5;
+  // The sum of the four kinds of fees.
+  tanvo.common.v1.Money gross_revenue = 6;
+  // The coupons applied.
+  tanvo.common.v1.Money coupons = 7;
+  // The credit note credits applied.
+  tanvo.common.v1.Money credit_notes_credits = 8;
+  // The granted prepaid credits applied.
+  tanvo.common.v1.Money free_credits = 9;
+  // The usage already invoiced by progressive billing and deducted.
+  tanvo.common.v1.Money progressive_billing_credits = 10;
+  // The sum of the four reductions above.
+  tanvo.common.v1.Money contra_revenue = 11;
+  // gross_revenue minus contra_revenue.
+  tanvo.common.v1.Money net_revenue = 12;
+  // The purchased prepaid credits applied: a means of payment, neither
+  // revenue nor contra revenue.
+  tanvo.common.v1.Money prepaid_credits = 13;
+}
+
+// GetRevenueStreamsRequest is the request of DataApiService.GetRevenueStreams.
+message GetRevenueStreamsRequest {
+  // The filter.
+  Filter filter = 1;
+}
+
+// GetRevenueStreamsResponse is the response of DataApiService.GetRevenueStreams.
+message GetRevenueStreamsResponse {
+  // The points, oldest first, by currency.
+  repeated RevenueStreamPoint points = 1;
+}
+
+// RevenueOrder orders the rows of revenue lists.
+enum RevenueOrder {
+  // Not set: by gross revenue.
+  REVENUE_ORDER_UNSPECIFIED = 0;
+  // Largest gross revenue first.
+  REVENUE_ORDER_GROSS_REVENUE = 1;
+  // Largest net revenue first.
+  REVENUE_ORDER_NET_REVENUE = 2;
+}
+
+// CustomerRef is a customer of a report.
+message CustomerRef {
+  // The customer.
+  string customer_id = 1;
+  // The customer's external ID.
+  string external_customer_id = 2;
+  // The customer's name.
+  string customer_name = 3;
+  // Whether the customer is deleted.
+  bool customer_deleted = 4;
+}
+
+// RevenueByCustomer is the revenue of one customer in one currency.
+message RevenueByCustomer {
+  // The customer.
+  CustomerRef customer = 1;
+  // The gross revenue.
+  tanvo.common.v1.Money gross_revenue = 2;
+  // The customer's part of the currency's gross revenue, a decimal.
+  string gross_revenue_share = 3;
+  // The net revenue.
+  tanvo.common.v1.Money net_revenue = 4;
+  // The customer's part of the currency's net revenue, a decimal.
+  string net_revenue_share = 5;
+}
+
+// ListRevenueStreamsByCustomerRequest is the request of DataApiService.ListRevenueStreamsByCustomer.
+message ListRevenueStreamsByCustomerRequest {
+  // The filter; the range is summed, the granularity does not apply.
+  Filter filter = 1;
+  // The order.
+  RevenueOrder order_by = 2 [(buf.validate.field).enum.defined_only = true];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 3 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 4 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListRevenueStreamsByCustomerResponse is the response of DataApiService.ListRevenueStreamsByCustomer.
+message ListRevenueStreamsByCustomerResponse {
+  // The customers.
+  repeated RevenueByCustomer customers = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+  // The number of results of every page.
+  int64 total_size = 3;
+}
+
+// RevenueByPlan is the revenue of one plan in one currency.
+message RevenueByPlan {
+  // The plan.
+  PlanRef plan = 1;
+  // The customers invoiced on the plan.
+  int64 customers_count = 2;
+  // The plan's part of the currency's invoiced customers, a decimal.
+  string customers_share = 3;
+  // The gross revenue.
+  tanvo.common.v1.Money gross_revenue = 4;
+  // The plan's part of the currency's gross revenue, a decimal.
+  string gross_revenue_share = 5;
+  // The net revenue.
+  tanvo.common.v1.Money net_revenue = 6;
+  // The plan's part of the currency's net revenue, a decimal.
+  string net_revenue_share = 7;
+}
+
+// ListRevenueStreamsByPlanRequest is the request of DataApiService.ListRevenueStreamsByPlan.
+message ListRevenueStreamsByPlanRequest {
+  // The filter; the range is summed, the granularity does not apply.
+  Filter filter = 1;
+  // The order.
+  RevenueOrder order_by = 2 [(buf.validate.field).enum.defined_only = true];
+  // The maximum number of results; 20 by default, at most 1000.
+  int32 page_size = 3 [(buf.validate.field).int32 = {
+    gte: 0
+    lte: 1000
+  }];
+  // The next_page_token of the previous page.
+  string page_token = 4 [(buf.validate.field).string.max_len = 1024];
+}
+
+// ListRevenueStreamsByPlanResponse is the response of DataApiService.ListRevenueStreamsByPlan.
+message ListRevenueStreamsByPlanResponse {
+  // The plans.
+  repeated RevenueByPlan plans = 1;
+  // The token of the next page; empty on the last page.
+  string next_page_token = 2;
+  // The number of results of every page.
+  int64 total_size = 3;
+}
+
+// PrepaidCreditPoint is the prepaid credits of one period in one currency.
+message PrepaidCreditPoint {
+  // The period.
+  Period period = 1;
+  // The amount of the credits purchased.
+  tanvo.common.v1.Money purchased_amount = 2;
+  // The credits purchased, a decimal.
+  string purchased_credits = 3;
+  // The amount of the credits offered.
+  tanvo.common.v1.Money offered_amount = 4;
+  // The credits offered, a decimal.
+  string offered_credits = 5;
+  // The amount of the credits consumed by invoices.
+  tanvo.common.v1.Money consumed_amount = 6;
+  // The credits consumed, a decimal.
+  string consumed_credits = 7;
+  // The amount of the credits voided.
+  tanvo.common.v1.Money voided_amount = 8;
+  // The credits voided, a decimal.
+  string voided_credits = 9;
+}
+
+// GetPrepaidCreditsRequest is the request of DataApiService.GetPrepaidCredits.
+message GetPrepaidCreditsRequest {
+  // The filter; external_subscription_id and plan_code do not apply.
+  Filter filter = 1;
+}
+
+// GetPrepaidCreditsResponse is the response of DataApiService.GetPrepaidCredits.
+message GetPrepaidCreditsResponse {
+  // The points, oldest first, by currency.
+  repeated PrepaidCreditPoint points = 1;
+}
+
+// UsageFilter restricts the usage reports.
+message UsageFilter {
+  // One billable metric, by code.
+  string billable_metric_code = 1 [(buf.validate.field).string.max_len = 255];
+  // Keeps the recurring (true) or the other (false) billable metrics;
+  // every metric when not set.
+  bool is_billable_metric_recurring = 2;
+}
+
+// UsagePoint is the usage of one period, currency and billable metric.
+message UsagePoint {
+  // The period.
+  Period period = 1;
+  // The billable metric's code.
+  string billable_metric_code = 2;
+  // Whether the billable metric is deleted.
+  bool billable_metric_deleted = 3;
+  // The units, a decimal.
+  string units = 4;
+  // The amount.
+  tanvo.common.v1.Money amount = 5;
+}
+
+// GetUsageRequest is the request of DataApiService.GetUsage.
+message GetUsageRequest {
+  // The filter.
+  Filter filter = 1;
+  // The usage filter.
+  UsageFilter usage_filter = 2;
+}
+
+// GetUsageResponse is the response of DataApiService.GetUsage.
+message GetUsageResponse {
+  // The points, oldest first, by currency and billable metric.
+  repeated UsagePoint points = 1;
+}
+
+// UsageAmountPoint is the usage amount of one period and currency.
+message UsageAmountPoint {
+  // The period.
+  Period period = 1;
+  // The amount.
+  tanvo.common.v1.Money amount = 2;
+}
+
+// GetUsageAmountsRequest is the request of DataApiService.GetUsageAmounts.
+message GetUsageAmountsRequest {
+  // The filter.
+  Filter filter = 1;
+  // The usage filter; billable_metric_code does not apply.
+  UsageFilter usage_filter = 2;
+}
+
+// GetUsageAmountsResponse is the response of DataApiService.GetUsageAmounts.
+message GetUsageAmountsResponse {
+  // The points, oldest first, by currency.
+  repeated UsageAmountPoint points = 1;
+}
+
+// InvoicedUsagePoint is the usage invoiced in one period and currency for
+// one billable metric.
+message InvoicedUsagePoint {
+  // The period.
+  Period period = 1;
+  // The billable metric's code.
+  string billable_metric_code = 2;
+  // The amount invoiced.
+  tanvo.common.v1.Money amount = 3;
+}
+
+// GetInvoicedUsageRequest is the request of DataApiService.GetInvoicedUsage.
+message GetInvoicedUsageRequest {
+  // The filter.
+  Filter filter = 1;
+  // One billable metric, by code.
+  string billable_metric_code = 2 [(buf.validate.field).string.max_len = 255];
+  // Keeps the fees of a pricing group whose values include these.
+  map<string, string> grouped_by = 3;
+  // Keeps the fees of a charge filter whose values include these.
+  map<string, string> filter_values = 4;
+}
+
+// GetInvoicedUsageResponse is the response of DataApiService.GetInvoicedUsage.
+message GetInvoicedUsageResponse {
+  // The points, oldest first, by currency and billable metric.
+  repeated InvoicedUsagePoint points = 1;
+}
+
+// RevenueRecognitionPoint is the revenue recognition of one period in one
+// currency.
+message RevenueRecognitionPoint {
+  // The period.
+  Period period = 1;
+  // The net revenue invoiced in the period.
+  tanvo.common.v1.Money invoiced = 2;
+  // The net revenue recognized in the period.
+  tanvo.common.v1.Money recognized = 3;
+  // The revenue invoiced but not yet recognized at the period's end;
+  // negative when more was recognized than invoiced (unbilled revenue).
+  tanvo.common.v1.Money deferred = 4;
+}
+
+// GetRevenueRecognitionRequest is the request of DataApiService.GetRevenueRecognition.
+message GetRevenueRecognitionRequest {
+  // The filter.
+  Filter filter = 1;
+}
+
+// GetRevenueRecognitionResponse is the response of DataApiService.GetRevenueRecognition.
+message GetRevenueRecognitionResponse {
+  // The points, oldest first, by currency.
+  repeated RevenueRecognitionPoint points = 1;
+}

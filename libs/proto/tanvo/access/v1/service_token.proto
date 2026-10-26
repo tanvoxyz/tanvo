@@ -1,0 +1,41 @@
+// Copyright 2026 The Tanvo Authors
+// SPDX-License-Identifier: Apache-2.0
+
+edition = "2023";
+
+package tanvo.access.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// ServiceTokenClaims are what a service token grants: the permissions of
+// one caller in one organization, for one audience, until expires_at.
+//
+// The core issues service tokens to the callers of the enterprise
+// services (architecture §14), which verify them offline with the core's
+// public keys. A token is
+//
+//	base64url(claims) "." base64url(signature)
+//
+// without padding, where claims is the binary encoding of this message
+// and signature is the Ed25519 signature of the bytes
+// "tanvo.service_token.v1." followed by claims, made with the key that
+// key_id names.
+message ServiceTokenClaims {
+  // The format version; 1.
+  int32 version = 1;
+  // The ID of the signing key.
+  string key_id = 2;
+  // The service the token is for: `data_api`.
+  string audience = 3;
+  // The organization the caller acts in.
+  string organization_id = 4;
+  // The caller: `user:<id>` for a member, `api_key:<id>` for an API key.
+  string subject = 5;
+  // The permissions the caller holds among those the audience needs
+  // (`data_api:read`).
+  repeated string permissions = 6;
+  // The issue instant.
+  google.protobuf.Timestamp issued_at = 7;
+  // The end of validity.
+  google.protobuf.Timestamp expires_at = 8;
+}

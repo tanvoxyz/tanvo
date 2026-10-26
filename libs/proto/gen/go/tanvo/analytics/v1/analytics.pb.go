@@ -20,6 +20,7 @@ import (
 	date "google.golang.org/genproto/googleapis/type/date"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
 	reflect "reflect"
 	unsafe "unsafe"
 )
@@ -1646,11 +1647,162 @@ func (b0 GetOverdueBalanceResponse_builder) Build() *GetOverdueBalanceResponse {
 	return m0
 }
 
+// CreateDataApiTokenRequest is the request of AnalyticsService.CreateDataApiToken.
+type CreateDataApiTokenRequest struct {
+	state         protoimpl.MessageState `protogen:"opaque.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateDataApiTokenRequest) Reset() {
+	*x = CreateDataApiTokenRequest{}
+	mi := &file_tanvo_analytics_v1_analytics_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateDataApiTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateDataApiTokenRequest) ProtoMessage() {}
+
+func (x *CreateDataApiTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_analytics_v1_analytics_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+type CreateDataApiTokenRequest_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+}
+
+func (b0 CreateDataApiTokenRequest_builder) Build() *CreateDataApiTokenRequest {
+	m0 := &CreateDataApiTokenRequest{}
+	b, x := &b0, m0
+	_, _ = b, x
+	return m0
+}
+
+// CreateDataApiTokenResponse is the response of AnalyticsService.CreateDataApiToken.
+type CreateDataApiTokenResponse struct {
+	state                  protoimpl.MessageState `protogen:"opaque.v1"`
+	xxx_hidden_Token       *string                `protobuf:"bytes,1,opt,name=token"`
+	xxx_hidden_ExpiresAt   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=expires_at,json=expiresAt"`
+	XXX_raceDetectHookData protoimpl.RaceDetectHookData
+	XXX_presence           [1]uint32
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
+}
+
+func (x *CreateDataApiTokenResponse) Reset() {
+	*x = CreateDataApiTokenResponse{}
+	mi := &file_tanvo_analytics_v1_analytics_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateDataApiTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateDataApiTokenResponse) ProtoMessage() {}
+
+func (x *CreateDataApiTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_tanvo_analytics_v1_analytics_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+func (x *CreateDataApiTokenResponse) GetToken() string {
+	if x != nil {
+		if x.xxx_hidden_Token != nil {
+			return *x.xxx_hidden_Token
+		}
+		return ""
+	}
+	return ""
+}
+
+func (x *CreateDataApiTokenResponse) GetExpiresAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.xxx_hidden_ExpiresAt
+	}
+	return nil
+}
+
+func (x *CreateDataApiTokenResponse) SetToken(v string) {
+	x.xxx_hidden_Token = &v
+	protoimpl.X.SetPresent(&(x.XXX_presence[0]), 0, 2)
+}
+
+func (x *CreateDataApiTokenResponse) SetExpiresAt(v *timestamppb.Timestamp) {
+	x.xxx_hidden_ExpiresAt = v
+}
+
+func (x *CreateDataApiTokenResponse) HasToken() bool {
+	if x == nil {
+		return false
+	}
+	return protoimpl.X.Present(&(x.XXX_presence[0]), 0)
+}
+
+func (x *CreateDataApiTokenResponse) HasExpiresAt() bool {
+	if x == nil {
+		return false
+	}
+	return x.xxx_hidden_ExpiresAt != nil
+}
+
+func (x *CreateDataApiTokenResponse) ClearToken() {
+	protoimpl.X.ClearPresent(&(x.XXX_presence[0]), 0)
+	x.xxx_hidden_Token = nil
+}
+
+func (x *CreateDataApiTokenResponse) ClearExpiresAt() {
+	x.xxx_hidden_ExpiresAt = nil
+}
+
+type CreateDataApiTokenResponse_builder struct {
+	_ [0]func() // Prevents comparability and use of unkeyed literals for the builder.
+
+	// The token, sent as the bearer credential of the Data API
+	// (tanvo.access.v1.ServiceTokenClaims describes its format).
+	Token *string
+	// The end of the token's validity.
+	ExpiresAt *timestamppb.Timestamp
+}
+
+func (b0 CreateDataApiTokenResponse_builder) Build() *CreateDataApiTokenResponse {
+	m0 := &CreateDataApiTokenResponse{}
+	b, x := &b0, m0
+	_, _ = b, x
+	if b.Token != nil {
+		protoimpl.X.SetPresentNonAtomic(&(x.XXX_presence[0]), 0, 2)
+		x.xxx_hidden_Token = b.Token
+	}
+	x.xxx_hidden_ExpiresAt = b.ExpiresAt
+	return m0
+}
+
 var File_tanvo_analytics_v1_analytics_proto protoreflect.FileDescriptor
 
 const file_tanvo_analytics_v1_analytics_proto_rawDesc = "" +
 	"\n" +
-	"\"tanvo/analytics/v1/analytics.proto\x12\x12tanvo.analytics.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x16google/type/date.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xa6\x01\n" +
+	"\"tanvo/analytics/v1/analytics.proto\x12\x12tanvo.analytics.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x16google/type/date.proto\x1a\x1btanvo/common/v1/enums.proto\x1a\x1dtanvo/common/v1/options.proto\x1a\x1btanvo/common/v1/types.proto\"\xa6\x01\n" +
 	"\x0eAnalyticsScope\x12&\n" +
 	"\bcurrency\x18\x01 \x01(\tB\n" +
 	"\xbaH\ar\x05ؤ\xca\x06\x01R\bcurrency\x126\n" +
@@ -1707,7 +1859,12 @@ const file_tanvo_analytics_v1_analytics_proto_rawDesc = "" +
 	"customerId\x12!\n" +
 	"\fexpire_cache\x18\x04 \x01(\bR\vexpireCache\"\\\n" +
 	"\x19GetOverdueBalanceResponse\x12?\n" +
-	"\x06points\x18\x01 \x03(\v2'.tanvo.analytics.v1.OverdueBalancePointR\x06points2\x8c\a\n" +
+	"\x06points\x18\x01 \x03(\v2'.tanvo.analytics.v1.OverdueBalancePointR\x06points\"\x1b\n" +
+	"\x19CreateDataApiTokenRequest\"m\n" +
+	"\x1aCreateDataApiTokenResponse\x12\x14\n" +
+	"\x05token\x18\x01 \x01(\tR\x05token\x129\n" +
+	"\n" +
+	"expires_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\texpiresAt2\xc9\b\n" +
 	"\x10AnalyticsService\x12\xb0\x01\n" +
 	"\x0fGetGrossRevenue\x12*.tanvo.analytics.v1.GetGrossRevenueRequest\x1a+.tanvo.analytics.v1.GetGrossRevenueResponse\"D\xca\xf3\x18\x1a\n" +
 	"\x0eanalytics:read*\banalytic\x82\xd3\xe4\x93\x02\x1d\x12\x1b/v1/analytics/gross_revenue\x90\x02\x01\x12\x8b\x01\n" +
@@ -1716,12 +1873,14 @@ const file_tanvo_analytics_v1_analytics_proto_rawDesc = "" +
 	"\x14GetInvoiceCollection\x12/.tanvo.analytics.v1.GetInvoiceCollectionRequest\x1a0.tanvo.analytics.v1.GetInvoiceCollectionResponse\"I\xca\xf3\x18\x1a\n" +
 	"\x0eanalytics:read*\banalytic\x82\xd3\xe4\x93\x02\"\x12 /v1/analytics/invoice_collection\x90\x02\x01\x12\xb4\x01\n" +
 	"\x10GetInvoicedUsage\x12+.tanvo.analytics.v1.GetInvoicedUsageRequest\x1a,.tanvo.analytics.v1.GetInvoicedUsageResponse\"E\xca\xf3\x18\x1a\n" +
-	"\x0eanalytics:read*\banalytic\x82\xd3\xe4\x93\x02\x1e\x12\x1c/v1/analytics/invoiced_usage\x90\x02\x01\x12\xb8\x01\n" +
+	"\x0eanalytics:read*\banalytic\x82\xd3\xe4\x93\x02\x1e\x12\x1c/v1/analytics/invoiced_usage\x90\x02\x01\x12\xba\x01\n" +
+	"\x12CreateDataApiToken\x12-.tanvo.analytics.v1.CreateDataApiTokenRequest\x1a..tanvo.analytics.v1.CreateDataApiTokenResponse\"E\xca\xf3\x18\x19\n" +
+	"\rdata_api:read*\banalytic\x82\xd3\xe4\x93\x02\":\x01*\"\x1d/v1/analytics/data_api_tokens\x12\xb8\x01\n" +
 	"\x11GetOverdueBalance\x12,.tanvo.analytics.v1.GetOverdueBalanceRequest\x1a-.tanvo.analytics.v1.GetOverdueBalanceResponse\"F\xca\xf3\x18\x1a\n" +
 	"\x0eanalytics:read*\banalytic\x82\xd3\xe4\x93\x02\x1f\x12\x1d/v1/analytics/overdue_balance\x90\x02\x01B\xde\x01\n" +
 	"\x16com.tanvo.analytics.v1B\x0eAnalyticsProtoP\x01ZJgithub.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/analytics/v1;analyticsv1\xa2\x02\x03TAX\xaa\x02\x12Tanvo.Analytics.V1\xca\x02\x12Tanvo\\Analytics\\V1\xe2\x02\x1eTanvo\\Analytics\\V1\\GPBMetadata\xea\x02\x14Tanvo::Analytics::V1b\beditionsp\xe8\a"
 
-var file_tanvo_analytics_v1_analytics_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_tanvo_analytics_v1_analytics_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_tanvo_analytics_v1_analytics_proto_goTypes = []any{
 	(*AnalyticsScope)(nil),               // 0: tanvo.analytics.v1.AnalyticsScope
 	(*RevenuePoint)(nil),                 // 1: tanvo.analytics.v1.RevenuePoint
@@ -1738,45 +1897,51 @@ var file_tanvo_analytics_v1_analytics_proto_goTypes = []any{
 	(*OverdueBalancePoint)(nil),          // 12: tanvo.analytics.v1.OverdueBalancePoint
 	(*GetOverdueBalanceRequest)(nil),     // 13: tanvo.analytics.v1.GetOverdueBalanceRequest
 	(*GetOverdueBalanceResponse)(nil),    // 14: tanvo.analytics.v1.GetOverdueBalanceResponse
-	(*date.Date)(nil),                    // 15: google.type.Date
-	(*v1.Money)(nil),                     // 16: tanvo.common.v1.Money
-	(v1.PaymentStatus)(0),                // 17: tanvo.common.v1.PaymentStatus
+	(*CreateDataApiTokenRequest)(nil),    // 15: tanvo.analytics.v1.CreateDataApiTokenRequest
+	(*CreateDataApiTokenResponse)(nil),   // 16: tanvo.analytics.v1.CreateDataApiTokenResponse
+	(*date.Date)(nil),                    // 17: google.type.Date
+	(*v1.Money)(nil),                     // 18: tanvo.common.v1.Money
+	(v1.PaymentStatus)(0),                // 19: tanvo.common.v1.PaymentStatus
+	(*timestamppb.Timestamp)(nil),        // 20: google.protobuf.Timestamp
 }
 var file_tanvo_analytics_v1_analytics_proto_depIdxs = []int32{
-	15, // 0: tanvo.analytics.v1.RevenuePoint.month:type_name -> google.type.Date
-	16, // 1: tanvo.analytics.v1.RevenuePoint.amount:type_name -> tanvo.common.v1.Money
+	17, // 0: tanvo.analytics.v1.RevenuePoint.month:type_name -> google.type.Date
+	18, // 1: tanvo.analytics.v1.RevenuePoint.amount:type_name -> tanvo.common.v1.Money
 	0,  // 2: tanvo.analytics.v1.GetGrossRevenueRequest.scope:type_name -> tanvo.analytics.v1.AnalyticsScope
 	1,  // 3: tanvo.analytics.v1.GetGrossRevenueResponse.points:type_name -> tanvo.analytics.v1.RevenuePoint
 	0,  // 4: tanvo.analytics.v1.GetMrrRequest.scope:type_name -> tanvo.analytics.v1.AnalyticsScope
 	1,  // 5: tanvo.analytics.v1.GetMrrResponse.points:type_name -> tanvo.analytics.v1.RevenuePoint
-	15, // 6: tanvo.analytics.v1.InvoiceCollectionPoint.month:type_name -> google.type.Date
-	17, // 7: tanvo.analytics.v1.InvoiceCollectionPoint.payment_status:type_name -> tanvo.common.v1.PaymentStatus
-	16, // 8: tanvo.analytics.v1.InvoiceCollectionPoint.amount:type_name -> tanvo.common.v1.Money
+	17, // 6: tanvo.analytics.v1.InvoiceCollectionPoint.month:type_name -> google.type.Date
+	19, // 7: tanvo.analytics.v1.InvoiceCollectionPoint.payment_status:type_name -> tanvo.common.v1.PaymentStatus
+	18, // 8: tanvo.analytics.v1.InvoiceCollectionPoint.amount:type_name -> tanvo.common.v1.Money
 	0,  // 9: tanvo.analytics.v1.GetInvoiceCollectionRequest.scope:type_name -> tanvo.analytics.v1.AnalyticsScope
 	6,  // 10: tanvo.analytics.v1.GetInvoiceCollectionResponse.points:type_name -> tanvo.analytics.v1.InvoiceCollectionPoint
-	15, // 11: tanvo.analytics.v1.InvoicedUsagePoint.month:type_name -> google.type.Date
-	16, // 12: tanvo.analytics.v1.InvoicedUsagePoint.amount:type_name -> tanvo.common.v1.Money
+	17, // 11: tanvo.analytics.v1.InvoicedUsagePoint.month:type_name -> google.type.Date
+	18, // 12: tanvo.analytics.v1.InvoicedUsagePoint.amount:type_name -> tanvo.common.v1.Money
 	0,  // 13: tanvo.analytics.v1.GetInvoicedUsageRequest.scope:type_name -> tanvo.analytics.v1.AnalyticsScope
 	9,  // 14: tanvo.analytics.v1.GetInvoicedUsageResponse.points:type_name -> tanvo.analytics.v1.InvoicedUsagePoint
-	15, // 15: tanvo.analytics.v1.OverdueBalancePoint.month:type_name -> google.type.Date
-	16, // 16: tanvo.analytics.v1.OverdueBalancePoint.amount:type_name -> tanvo.common.v1.Money
+	17, // 15: tanvo.analytics.v1.OverdueBalancePoint.month:type_name -> google.type.Date
+	18, // 16: tanvo.analytics.v1.OverdueBalancePoint.amount:type_name -> tanvo.common.v1.Money
 	0,  // 17: tanvo.analytics.v1.GetOverdueBalanceRequest.scope:type_name -> tanvo.analytics.v1.AnalyticsScope
 	12, // 18: tanvo.analytics.v1.GetOverdueBalanceResponse.points:type_name -> tanvo.analytics.v1.OverdueBalancePoint
-	2,  // 19: tanvo.analytics.v1.AnalyticsService.GetGrossRevenue:input_type -> tanvo.analytics.v1.GetGrossRevenueRequest
-	4,  // 20: tanvo.analytics.v1.AnalyticsService.GetMrr:input_type -> tanvo.analytics.v1.GetMrrRequest
-	7,  // 21: tanvo.analytics.v1.AnalyticsService.GetInvoiceCollection:input_type -> tanvo.analytics.v1.GetInvoiceCollectionRequest
-	10, // 22: tanvo.analytics.v1.AnalyticsService.GetInvoicedUsage:input_type -> tanvo.analytics.v1.GetInvoicedUsageRequest
-	13, // 23: tanvo.analytics.v1.AnalyticsService.GetOverdueBalance:input_type -> tanvo.analytics.v1.GetOverdueBalanceRequest
-	3,  // 24: tanvo.analytics.v1.AnalyticsService.GetGrossRevenue:output_type -> tanvo.analytics.v1.GetGrossRevenueResponse
-	5,  // 25: tanvo.analytics.v1.AnalyticsService.GetMrr:output_type -> tanvo.analytics.v1.GetMrrResponse
-	8,  // 26: tanvo.analytics.v1.AnalyticsService.GetInvoiceCollection:output_type -> tanvo.analytics.v1.GetInvoiceCollectionResponse
-	11, // 27: tanvo.analytics.v1.AnalyticsService.GetInvoicedUsage:output_type -> tanvo.analytics.v1.GetInvoicedUsageResponse
-	14, // 28: tanvo.analytics.v1.AnalyticsService.GetOverdueBalance:output_type -> tanvo.analytics.v1.GetOverdueBalanceResponse
-	24, // [24:29] is the sub-list for method output_type
-	19, // [19:24] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	20, // 19: tanvo.analytics.v1.CreateDataApiTokenResponse.expires_at:type_name -> google.protobuf.Timestamp
+	2,  // 20: tanvo.analytics.v1.AnalyticsService.GetGrossRevenue:input_type -> tanvo.analytics.v1.GetGrossRevenueRequest
+	4,  // 21: tanvo.analytics.v1.AnalyticsService.GetMrr:input_type -> tanvo.analytics.v1.GetMrrRequest
+	7,  // 22: tanvo.analytics.v1.AnalyticsService.GetInvoiceCollection:input_type -> tanvo.analytics.v1.GetInvoiceCollectionRequest
+	10, // 23: tanvo.analytics.v1.AnalyticsService.GetInvoicedUsage:input_type -> tanvo.analytics.v1.GetInvoicedUsageRequest
+	15, // 24: tanvo.analytics.v1.AnalyticsService.CreateDataApiToken:input_type -> tanvo.analytics.v1.CreateDataApiTokenRequest
+	13, // 25: tanvo.analytics.v1.AnalyticsService.GetOverdueBalance:input_type -> tanvo.analytics.v1.GetOverdueBalanceRequest
+	3,  // 26: tanvo.analytics.v1.AnalyticsService.GetGrossRevenue:output_type -> tanvo.analytics.v1.GetGrossRevenueResponse
+	5,  // 27: tanvo.analytics.v1.AnalyticsService.GetMrr:output_type -> tanvo.analytics.v1.GetMrrResponse
+	8,  // 28: tanvo.analytics.v1.AnalyticsService.GetInvoiceCollection:output_type -> tanvo.analytics.v1.GetInvoiceCollectionResponse
+	11, // 29: tanvo.analytics.v1.AnalyticsService.GetInvoicedUsage:output_type -> tanvo.analytics.v1.GetInvoicedUsageResponse
+	16, // 30: tanvo.analytics.v1.AnalyticsService.CreateDataApiToken:output_type -> tanvo.analytics.v1.CreateDataApiTokenResponse
+	14, // 31: tanvo.analytics.v1.AnalyticsService.GetOverdueBalance:output_type -> tanvo.analytics.v1.GetOverdueBalanceResponse
+	26, // [26:32] is the sub-list for method output_type
+	20, // [20:26] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_tanvo_analytics_v1_analytics_proto_init() }
@@ -1790,7 +1955,7 @@ func file_tanvo_analytics_v1_analytics_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tanvo_analytics_v1_analytics_proto_rawDesc), len(file_tanvo_analytics_v1_analytics_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   15,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

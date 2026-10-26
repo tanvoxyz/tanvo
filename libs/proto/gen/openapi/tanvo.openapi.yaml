@@ -108,6 +108,14 @@ info:
     CustomerService manages customers. Customers are addressed by ID or by
      `external_id:<external_id>`.
 
+    ## tanvo.dataapi.v1.DataApiService
+
+    DataApiService returns reports over periods of a day, an ISO week
+     (Monday to Sunday) or a calendar month. Every report covers the periods
+     from from_date to to_date and lists them oldest first; days are those of
+     each customer's time zone, as invoices' issuing dates are. Amounts are
+     exact and exclude taxes.
+
     ## tanvo.dunning.v1.DunningCampaignService
 
     DunningCampaignService manages dunning campaigns. A campaign applies to
@@ -450,6 +458,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.catalog.v1.DeleteAddOnResponse'
+  /v1/analytics/data_api_tokens:
+    post:
+      tags:
+        - AnalyticsService
+      summary: CreateDataApiToken
+      description: |-
+        Returns a service token for the Data API (DataApiService, served by
+         the enterprise analytics service), granting the caller's `data_api`
+         permissions in the organization for a short time.
+      operationId: tanvo.analytics.v1.AnalyticsService.CreateDataApiToken
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/tanvo.analytics.v1.CreateDataApiTokenRequest'
+        required: true
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.analytics.v1.CreateDataApiTokenResponse'
   /v1/analytics/gross_revenue:
     get:
       tags:
@@ -4179,6 +4210,1557 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/tanvo.wallet.v1.CreateWalletResponse'
+  /v1/data_api/mrr:
+    get:
+      tags:
+        - DataApiService
+      summary: GetMrr
+      description: |-
+        Returns the MRR at the start and end of each period, and its
+         movements: new, expansion, contraction and churn (domain §25.2).
+      operationId: tanvo.dataapi.v1.DataApiService.GetMrr
+      parameters:
+        - name: filter.from_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.from_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.from_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.to_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.to_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.to_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.time_granularity
+          in: query
+          description: |
+            The length of the periods; monthly by default, daily for the usage
+             reports. A range has at most 1000 periods.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.dataapi.v1.TimeGranularity'
+            title: time_granularity
+        - name: filter.currency
+          in: query
+          description: |
+            The currency; every currency, each in its own points, by default.
+            string.currency = true
+          schema:
+            type: string
+            title: currency
+        - name: filter.customer_country
+          in: query
+          description: The customers' billing country (ISO 3166-1 alpha-2).
+          schema:
+            type: string
+            title: customer_country
+            pattern: ^([A-Za-z]{2})?$
+        - name: filter.customer_type
+          in: query
+          description: |
+            The customers' type.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.customer.v1.CustomerType'
+            title: customer_type
+        - name: filter.external_customer_id
+          in: query
+          description: One customer, by external ID.
+          schema:
+            type: string
+            title: external_customer_id
+            maxLength: 255
+        - name: filter.external_subscription_id
+          in: query
+          description: One subscription, by external ID.
+          schema:
+            type: string
+            title: external_subscription_id
+            maxLength: 255
+        - name: filter.billing_entity_code
+          in: query
+          description: One billing entity, by code.
+          schema:
+            type: string
+            title: billing_entity_code
+            maxLength: 255
+        - name: filter.plan_code
+          in: query
+          description: One plan, by code, deleted plans included.
+          schema:
+            type: string
+            title: plan_code
+            maxLength: 255
+        - name: filter.is_customer_tin_empty
+          in: query
+          description: |-
+            Keeps the customers without (true) or with (false) a tax
+             identification number; every customer when not set.
+          schema:
+            type: boolean
+            title: is_customer_tin_empty
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.dataapi.v1.GetMrrResponse'
+  /v1/data_api/mrr/plans:
+    get:
+      tags:
+        - DataApiService
+      summary: ListMrrByPlan
+      description: Returns the MRR by plan on to_date, with the plans' shares.
+      operationId: tanvo.dataapi.v1.DataApiService.ListMrrByPlan
+      parameters:
+        - name: filter.from_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.from_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.from_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.to_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.to_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.to_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.time_granularity
+          in: query
+          description: |
+            The length of the periods; monthly by default, daily for the usage
+             reports. A range has at most 1000 periods.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.dataapi.v1.TimeGranularity'
+            title: time_granularity
+        - name: filter.currency
+          in: query
+          description: |
+            The currency; every currency, each in its own points, by default.
+            string.currency = true
+          schema:
+            type: string
+            title: currency
+        - name: filter.customer_country
+          in: query
+          description: The customers' billing country (ISO 3166-1 alpha-2).
+          schema:
+            type: string
+            title: customer_country
+            pattern: ^([A-Za-z]{2})?$
+        - name: filter.customer_type
+          in: query
+          description: |
+            The customers' type.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.customer.v1.CustomerType'
+            title: customer_type
+        - name: filter.external_customer_id
+          in: query
+          description: One customer, by external ID.
+          schema:
+            type: string
+            title: external_customer_id
+            maxLength: 255
+        - name: filter.external_subscription_id
+          in: query
+          description: One subscription, by external ID.
+          schema:
+            type: string
+            title: external_subscription_id
+            maxLength: 255
+        - name: filter.billing_entity_code
+          in: query
+          description: One billing entity, by code.
+          schema:
+            type: string
+            title: billing_entity_code
+            maxLength: 255
+        - name: filter.plan_code
+          in: query
+          description: One plan, by code, deleted plans included.
+          schema:
+            type: string
+            title: plan_code
+            maxLength: 255
+        - name: filter.is_customer_tin_empty
+          in: query
+          description: |-
+            Keeps the customers without (true) or with (false) a tax
+             identification number; every customer when not set.
+          schema:
+            type: boolean
+            title: is_customer_tin_empty
+        - name: page_size
+          in: query
+          description: The maximum number of results; 20 by default, at most 1000.
+          schema:
+            type: integer
+            title: page_size
+            maximum: 1000
+            minimum: 0
+            format: int32
+        - name: page_token
+          in: query
+          description: The next_page_token of the previous page.
+          schema:
+            type: string
+            title: page_token
+            maxLength: 1024
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.dataapi.v1.ListMrrByPlanResponse'
+  /v1/data_api/prepaid_credits:
+    get:
+      tags:
+        - DataApiService
+      summary: GetPrepaidCredits
+      description: |-
+        Returns the prepaid credits purchased, offered, consumed and voided in
+         each period (domain §25.4).
+      operationId: tanvo.dataapi.v1.DataApiService.GetPrepaidCredits
+      parameters:
+        - name: filter.from_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.from_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.from_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.to_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.to_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.to_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.time_granularity
+          in: query
+          description: |
+            The length of the periods; monthly by default, daily for the usage
+             reports. A range has at most 1000 periods.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.dataapi.v1.TimeGranularity'
+            title: time_granularity
+        - name: filter.currency
+          in: query
+          description: |
+            The currency; every currency, each in its own points, by default.
+            string.currency = true
+          schema:
+            type: string
+            title: currency
+        - name: filter.customer_country
+          in: query
+          description: The customers' billing country (ISO 3166-1 alpha-2).
+          schema:
+            type: string
+            title: customer_country
+            pattern: ^([A-Za-z]{2})?$
+        - name: filter.customer_type
+          in: query
+          description: |
+            The customers' type.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.customer.v1.CustomerType'
+            title: customer_type
+        - name: filter.external_customer_id
+          in: query
+          description: One customer, by external ID.
+          schema:
+            type: string
+            title: external_customer_id
+            maxLength: 255
+        - name: filter.external_subscription_id
+          in: query
+          description: One subscription, by external ID.
+          schema:
+            type: string
+            title: external_subscription_id
+            maxLength: 255
+        - name: filter.billing_entity_code
+          in: query
+          description: One billing entity, by code.
+          schema:
+            type: string
+            title: billing_entity_code
+            maxLength: 255
+        - name: filter.plan_code
+          in: query
+          description: One plan, by code, deleted plans included.
+          schema:
+            type: string
+            title: plan_code
+            maxLength: 255
+        - name: filter.is_customer_tin_empty
+          in: query
+          description: |-
+            Keeps the customers without (true) or with (false) a tax
+             identification number; every customer when not set.
+          schema:
+            type: boolean
+            title: is_customer_tin_empty
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.dataapi.v1.GetPrepaidCreditsResponse'
+  /v1/data_api/revenue_recognition:
+    get:
+      tags:
+        - DataApiService
+      summary: GetRevenueRecognition
+      description: |-
+        Returns the revenue invoiced and recognized in each period and the
+         deferred revenue at its end (domain §25.6).
+      operationId: tanvo.dataapi.v1.DataApiService.GetRevenueRecognition
+      parameters:
+        - name: filter.from_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.from_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.from_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.to_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.to_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.to_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.time_granularity
+          in: query
+          description: |
+            The length of the periods; monthly by default, daily for the usage
+             reports. A range has at most 1000 periods.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.dataapi.v1.TimeGranularity'
+            title: time_granularity
+        - name: filter.currency
+          in: query
+          description: |
+            The currency; every currency, each in its own points, by default.
+            string.currency = true
+          schema:
+            type: string
+            title: currency
+        - name: filter.customer_country
+          in: query
+          description: The customers' billing country (ISO 3166-1 alpha-2).
+          schema:
+            type: string
+            title: customer_country
+            pattern: ^([A-Za-z]{2})?$
+        - name: filter.customer_type
+          in: query
+          description: |
+            The customers' type.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.customer.v1.CustomerType'
+            title: customer_type
+        - name: filter.external_customer_id
+          in: query
+          description: One customer, by external ID.
+          schema:
+            type: string
+            title: external_customer_id
+            maxLength: 255
+        - name: filter.external_subscription_id
+          in: query
+          description: One subscription, by external ID.
+          schema:
+            type: string
+            title: external_subscription_id
+            maxLength: 255
+        - name: filter.billing_entity_code
+          in: query
+          description: One billing entity, by code.
+          schema:
+            type: string
+            title: billing_entity_code
+            maxLength: 255
+        - name: filter.plan_code
+          in: query
+          description: One plan, by code, deleted plans included.
+          schema:
+            type: string
+            title: plan_code
+            maxLength: 255
+        - name: filter.is_customer_tin_empty
+          in: query
+          description: |-
+            Keeps the customers without (true) or with (false) a tax
+             identification number; every customer when not set.
+          schema:
+            type: boolean
+            title: is_customer_tin_empty
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.dataapi.v1.GetRevenueRecognitionResponse'
+  /v1/data_api/revenue_streams:
+    get:
+      tags:
+        - DataApiService
+      summary: GetRevenueStreams
+      description: |-
+        Returns the revenue of each period: gross revenue by kind of fee, the
+         contra revenue that reduces it and the net revenue (domain §25.3).
+      operationId: tanvo.dataapi.v1.DataApiService.GetRevenueStreams
+      parameters:
+        - name: filter.from_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.from_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.from_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.to_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.to_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.to_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.time_granularity
+          in: query
+          description: |
+            The length of the periods; monthly by default, daily for the usage
+             reports. A range has at most 1000 periods.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.dataapi.v1.TimeGranularity'
+            title: time_granularity
+        - name: filter.currency
+          in: query
+          description: |
+            The currency; every currency, each in its own points, by default.
+            string.currency = true
+          schema:
+            type: string
+            title: currency
+        - name: filter.customer_country
+          in: query
+          description: The customers' billing country (ISO 3166-1 alpha-2).
+          schema:
+            type: string
+            title: customer_country
+            pattern: ^([A-Za-z]{2})?$
+        - name: filter.customer_type
+          in: query
+          description: |
+            The customers' type.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.customer.v1.CustomerType'
+            title: customer_type
+        - name: filter.external_customer_id
+          in: query
+          description: One customer, by external ID.
+          schema:
+            type: string
+            title: external_customer_id
+            maxLength: 255
+        - name: filter.external_subscription_id
+          in: query
+          description: One subscription, by external ID.
+          schema:
+            type: string
+            title: external_subscription_id
+            maxLength: 255
+        - name: filter.billing_entity_code
+          in: query
+          description: One billing entity, by code.
+          schema:
+            type: string
+            title: billing_entity_code
+            maxLength: 255
+        - name: filter.plan_code
+          in: query
+          description: One plan, by code, deleted plans included.
+          schema:
+            type: string
+            title: plan_code
+            maxLength: 255
+        - name: filter.is_customer_tin_empty
+          in: query
+          description: |-
+            Keeps the customers without (true) or with (false) a tax
+             identification number; every customer when not set.
+          schema:
+            type: boolean
+            title: is_customer_tin_empty
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.dataapi.v1.GetRevenueStreamsResponse'
+  /v1/data_api/revenue_streams/customers:
+    get:
+      tags:
+        - DataApiService
+      summary: ListRevenueStreamsByCustomer
+      description: Returns the gross and net revenue of the whole range by customer.
+      operationId: tanvo.dataapi.v1.DataApiService.ListRevenueStreamsByCustomer
+      parameters:
+        - name: filter.from_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.from_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.from_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.to_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.to_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.to_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.time_granularity
+          in: query
+          description: |
+            The length of the periods; monthly by default, daily for the usage
+             reports. A range has at most 1000 periods.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.dataapi.v1.TimeGranularity'
+            title: time_granularity
+        - name: filter.currency
+          in: query
+          description: |
+            The currency; every currency, each in its own points, by default.
+            string.currency = true
+          schema:
+            type: string
+            title: currency
+        - name: filter.customer_country
+          in: query
+          description: The customers' billing country (ISO 3166-1 alpha-2).
+          schema:
+            type: string
+            title: customer_country
+            pattern: ^([A-Za-z]{2})?$
+        - name: filter.customer_type
+          in: query
+          description: |
+            The customers' type.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.customer.v1.CustomerType'
+            title: customer_type
+        - name: filter.external_customer_id
+          in: query
+          description: One customer, by external ID.
+          schema:
+            type: string
+            title: external_customer_id
+            maxLength: 255
+        - name: filter.external_subscription_id
+          in: query
+          description: One subscription, by external ID.
+          schema:
+            type: string
+            title: external_subscription_id
+            maxLength: 255
+        - name: filter.billing_entity_code
+          in: query
+          description: One billing entity, by code.
+          schema:
+            type: string
+            title: billing_entity_code
+            maxLength: 255
+        - name: filter.plan_code
+          in: query
+          description: One plan, by code, deleted plans included.
+          schema:
+            type: string
+            title: plan_code
+            maxLength: 255
+        - name: filter.is_customer_tin_empty
+          in: query
+          description: |-
+            Keeps the customers without (true) or with (false) a tax
+             identification number; every customer when not set.
+          schema:
+            type: boolean
+            title: is_customer_tin_empty
+        - name: order_by
+          in: query
+          description: |
+            The order.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.dataapi.v1.RevenueOrder'
+            title: order_by
+        - name: page_size
+          in: query
+          description: The maximum number of results; 20 by default, at most 1000.
+          schema:
+            type: integer
+            title: page_size
+            maximum: 1000
+            minimum: 0
+            format: int32
+        - name: page_token
+          in: query
+          description: The next_page_token of the previous page.
+          schema:
+            type: string
+            title: page_token
+            maxLength: 1024
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.dataapi.v1.ListRevenueStreamsByCustomerResponse'
+  /v1/data_api/revenue_streams/plans:
+    get:
+      tags:
+        - DataApiService
+      summary: ListRevenueStreamsByPlan
+      description: Returns the gross and net revenue of the whole range by plan.
+      operationId: tanvo.dataapi.v1.DataApiService.ListRevenueStreamsByPlan
+      parameters:
+        - name: filter.from_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.from_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.from_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.to_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.to_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.to_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.time_granularity
+          in: query
+          description: |
+            The length of the periods; monthly by default, daily for the usage
+             reports. A range has at most 1000 periods.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.dataapi.v1.TimeGranularity'
+            title: time_granularity
+        - name: filter.currency
+          in: query
+          description: |
+            The currency; every currency, each in its own points, by default.
+            string.currency = true
+          schema:
+            type: string
+            title: currency
+        - name: filter.customer_country
+          in: query
+          description: The customers' billing country (ISO 3166-1 alpha-2).
+          schema:
+            type: string
+            title: customer_country
+            pattern: ^([A-Za-z]{2})?$
+        - name: filter.customer_type
+          in: query
+          description: |
+            The customers' type.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.customer.v1.CustomerType'
+            title: customer_type
+        - name: filter.external_customer_id
+          in: query
+          description: One customer, by external ID.
+          schema:
+            type: string
+            title: external_customer_id
+            maxLength: 255
+        - name: filter.external_subscription_id
+          in: query
+          description: One subscription, by external ID.
+          schema:
+            type: string
+            title: external_subscription_id
+            maxLength: 255
+        - name: filter.billing_entity_code
+          in: query
+          description: One billing entity, by code.
+          schema:
+            type: string
+            title: billing_entity_code
+            maxLength: 255
+        - name: filter.plan_code
+          in: query
+          description: One plan, by code, deleted plans included.
+          schema:
+            type: string
+            title: plan_code
+            maxLength: 255
+        - name: filter.is_customer_tin_empty
+          in: query
+          description: |-
+            Keeps the customers without (true) or with (false) a tax
+             identification number; every customer when not set.
+          schema:
+            type: boolean
+            title: is_customer_tin_empty
+        - name: order_by
+          in: query
+          description: |
+            The order.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.dataapi.v1.RevenueOrder'
+            title: order_by
+        - name: page_size
+          in: query
+          description: The maximum number of results; 20 by default, at most 1000.
+          schema:
+            type: integer
+            title: page_size
+            maximum: 1000
+            minimum: 0
+            format: int32
+        - name: page_token
+          in: query
+          description: The next_page_token of the previous page.
+          schema:
+            type: string
+            title: page_token
+            maxLength: 1024
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.dataapi.v1.ListRevenueStreamsByPlanResponse'
+  /v1/data_api/usage:
+    get:
+      tags:
+        - DataApiService
+      summary: GetUsage
+      description: |-
+        Returns the usage of each period by billable metric, from the daily
+         usage snapshots (domain §25.5).
+      operationId: tanvo.dataapi.v1.DataApiService.GetUsage
+      parameters:
+        - name: filter.from_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.from_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.from_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.to_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.to_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.to_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.time_granularity
+          in: query
+          description: |
+            The length of the periods; monthly by default, daily for the usage
+             reports. A range has at most 1000 periods.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.dataapi.v1.TimeGranularity'
+            title: time_granularity
+        - name: filter.currency
+          in: query
+          description: |
+            The currency; every currency, each in its own points, by default.
+            string.currency = true
+          schema:
+            type: string
+            title: currency
+        - name: filter.customer_country
+          in: query
+          description: The customers' billing country (ISO 3166-1 alpha-2).
+          schema:
+            type: string
+            title: customer_country
+            pattern: ^([A-Za-z]{2})?$
+        - name: filter.customer_type
+          in: query
+          description: |
+            The customers' type.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.customer.v1.CustomerType'
+            title: customer_type
+        - name: filter.external_customer_id
+          in: query
+          description: One customer, by external ID.
+          schema:
+            type: string
+            title: external_customer_id
+            maxLength: 255
+        - name: filter.external_subscription_id
+          in: query
+          description: One subscription, by external ID.
+          schema:
+            type: string
+            title: external_subscription_id
+            maxLength: 255
+        - name: filter.billing_entity_code
+          in: query
+          description: One billing entity, by code.
+          schema:
+            type: string
+            title: billing_entity_code
+            maxLength: 255
+        - name: filter.plan_code
+          in: query
+          description: One plan, by code, deleted plans included.
+          schema:
+            type: string
+            title: plan_code
+            maxLength: 255
+        - name: filter.is_customer_tin_empty
+          in: query
+          description: |-
+            Keeps the customers without (true) or with (false) a tax
+             identification number; every customer when not set.
+          schema:
+            type: boolean
+            title: is_customer_tin_empty
+        - name: usage_filter.billable_metric_code
+          in: query
+          description: One billable metric, by code.
+          schema:
+            type: string
+            title: billable_metric_code
+            maxLength: 255
+        - name: usage_filter.is_billable_metric_recurring
+          in: query
+          description: |-
+            Keeps the recurring (true) or the other (false) billable metrics;
+             every metric when not set.
+          schema:
+            type: boolean
+            title: is_billable_metric_recurring
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.dataapi.v1.GetUsageResponse'
+  /v1/data_api/usage/amounts:
+    get:
+      tags:
+        - DataApiService
+      summary: GetUsageAmounts
+      description: |-
+        Returns the usage amount of each period, every billable metric
+         together.
+      operationId: tanvo.dataapi.v1.DataApiService.GetUsageAmounts
+      parameters:
+        - name: filter.from_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.from_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.from_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.to_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.to_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.to_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.time_granularity
+          in: query
+          description: |
+            The length of the periods; monthly by default, daily for the usage
+             reports. A range has at most 1000 periods.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.dataapi.v1.TimeGranularity'
+            title: time_granularity
+        - name: filter.currency
+          in: query
+          description: |
+            The currency; every currency, each in its own points, by default.
+            string.currency = true
+          schema:
+            type: string
+            title: currency
+        - name: filter.customer_country
+          in: query
+          description: The customers' billing country (ISO 3166-1 alpha-2).
+          schema:
+            type: string
+            title: customer_country
+            pattern: ^([A-Za-z]{2})?$
+        - name: filter.customer_type
+          in: query
+          description: |
+            The customers' type.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.customer.v1.CustomerType'
+            title: customer_type
+        - name: filter.external_customer_id
+          in: query
+          description: One customer, by external ID.
+          schema:
+            type: string
+            title: external_customer_id
+            maxLength: 255
+        - name: filter.external_subscription_id
+          in: query
+          description: One subscription, by external ID.
+          schema:
+            type: string
+            title: external_subscription_id
+            maxLength: 255
+        - name: filter.billing_entity_code
+          in: query
+          description: One billing entity, by code.
+          schema:
+            type: string
+            title: billing_entity_code
+            maxLength: 255
+        - name: filter.plan_code
+          in: query
+          description: One plan, by code, deleted plans included.
+          schema:
+            type: string
+            title: plan_code
+            maxLength: 255
+        - name: filter.is_customer_tin_empty
+          in: query
+          description: |-
+            Keeps the customers without (true) or with (false) a tax
+             identification number; every customer when not set.
+          schema:
+            type: boolean
+            title: is_customer_tin_empty
+        - name: usage_filter.billable_metric_code
+          in: query
+          description: One billable metric, by code.
+          schema:
+            type: string
+            title: billable_metric_code
+            maxLength: 255
+        - name: usage_filter.is_billable_metric_recurring
+          in: query
+          description: |-
+            Keeps the recurring (true) or the other (false) billable metrics;
+             every metric when not set.
+          schema:
+            type: boolean
+            title: is_billable_metric_recurring
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.dataapi.v1.GetUsageAmountsResponse'
+  /v1/data_api/usage/invoiced:
+    get:
+      tags:
+        - DataApiService
+      summary: GetInvoicedUsage
+      description: |-
+        Returns the usage invoiced in each period by billable metric, from
+         the charge fees of finalized invoices.
+      operationId: tanvo.dataapi.v1.DataApiService.GetInvoicedUsage
+      parameters:
+        - name: filter.from_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.from_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.from_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.to_date.year
+          in: query
+          description: |-
+            Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+             a year.
+          schema:
+            type: integer
+            title: year
+            format: int32
+        - name: filter.to_date.month
+          in: query
+          description: |-
+            Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+             month and day.
+          schema:
+            type: integer
+            title: month
+            format: int32
+        - name: filter.to_date.day
+          in: query
+          description: |-
+            Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+             to specify a year by itself or a year and month where the day isn't
+             significant.
+          schema:
+            type: integer
+            title: day
+            format: int32
+        - name: filter.time_granularity
+          in: query
+          description: |
+            The length of the periods; monthly by default, daily for the usage
+             reports. A range has at most 1000 periods.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.dataapi.v1.TimeGranularity'
+            title: time_granularity
+        - name: filter.currency
+          in: query
+          description: |
+            The currency; every currency, each in its own points, by default.
+            string.currency = true
+          schema:
+            type: string
+            title: currency
+        - name: filter.customer_country
+          in: query
+          description: The customers' billing country (ISO 3166-1 alpha-2).
+          schema:
+            type: string
+            title: customer_country
+            pattern: ^([A-Za-z]{2})?$
+        - name: filter.customer_type
+          in: query
+          description: |
+            The customers' type.
+            enum.defined_only = true
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/tanvo.customer.v1.CustomerType'
+            title: customer_type
+        - name: filter.external_customer_id
+          in: query
+          description: One customer, by external ID.
+          schema:
+            type: string
+            title: external_customer_id
+            maxLength: 255
+        - name: filter.external_subscription_id
+          in: query
+          description: One subscription, by external ID.
+          schema:
+            type: string
+            title: external_subscription_id
+            maxLength: 255
+        - name: filter.billing_entity_code
+          in: query
+          description: One billing entity, by code.
+          schema:
+            type: string
+            title: billing_entity_code
+            maxLength: 255
+        - name: filter.plan_code
+          in: query
+          description: One plan, by code, deleted plans included.
+          schema:
+            type: string
+            title: plan_code
+            maxLength: 255
+        - name: filter.is_customer_tin_empty
+          in: query
+          description: |-
+            Keeps the customers without (true) or with (false) a tax
+             identification number; every customer when not set.
+          schema:
+            type: boolean
+            title: is_customer_tin_empty
+        - name: billable_metric_code
+          in: query
+          description: One billable metric, by code.
+          schema:
+            type: string
+            title: billable_metric_code
+            maxLength: 255
+        - name: grouped_by.key
+          in: query
+          description: The grouped_by.key query parameter.
+          schema:
+            type: string
+            title: key
+        - name: grouped_by.value
+          in: query
+          description: The grouped_by.value query parameter.
+          schema:
+            type: string
+            title: value
+        - name: filter_values.key
+          in: query
+          description: The filter_values.key query parameter.
+          schema:
+            type: string
+            title: key
+        - name: filter_values.value
+          in: query
+          description: The filter_values.value query parameter.
+          schema:
+            type: string
+            title: value
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tanvo.dataapi.v1.GetInvoicedUsageResponse'
   /v1/dunning_campaigns:
     get:
       tags:
@@ -16001,6 +17583,64 @@ components:
       title: RotateApiKeyResponse
       additionalProperties: false
       description: RotateApiKeyResponse is the response of ApiKeyService.RotateApiKey.
+    tanvo.access.v1.ServiceTokenClaims:
+      type: object
+      properties:
+        version:
+          type: integer
+          title: version
+          format: int32
+          description: The format version; 1.
+        key_id:
+          type: string
+          title: key_id
+          description: The ID of the signing key.
+        audience:
+          type: string
+          title: audience
+          description: 'The service the token is for: `data_api`.'
+        organization_id:
+          type: string
+          title: organization_id
+          description: The organization the caller acts in.
+        subject:
+          type: string
+          title: subject
+          description: 'The caller: `user:<id>` for a member, `api_key:<id>` for an API key.'
+        permissions:
+          type: array
+          items:
+            type: string
+          title: permissions
+          description: |-
+            The permissions the caller holds among those the audience needs
+             (`data_api:read`).
+        issued_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: issued_at
+          description: The issue instant.
+        expires_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: expires_at
+          description: The end of validity.
+      title: ServiceTokenClaims
+      additionalProperties: false
+      description: |-
+        ServiceTokenClaims are what a service token grants: the permissions of
+         one caller in one organization, for one audience, until expires_at.
+
+         The core issues service tokens to the callers of the enterprise
+         services (architecture §14), which verify them offline with the core's
+         public keys. A token is
+
+        	base64url(claims) "." base64url(signature)
+
+         without padding, where claims is the binary encoding of this message
+         and signature is the Ed25519 signature of the bytes
+         "tanvo.service_token.v1." followed by claims, made with the key that
+         key_id names.
     tanvo.access.v1.Session:
       type: object
       properties:
@@ -17058,6 +18698,28 @@ components:
       title: AnalyticsScope
       additionalProperties: false
       description: AnalyticsScope restricts an analytics series.
+    tanvo.analytics.v1.CreateDataApiTokenRequest:
+      type: object
+      title: CreateDataApiTokenRequest
+      additionalProperties: false
+      description: CreateDataApiTokenRequest is the request of AnalyticsService.CreateDataApiToken.
+    tanvo.analytics.v1.CreateDataApiTokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          title: token
+          description: |-
+            The token, sent as the bearer credential of the Data API
+             (tanvo.access.v1.ServiceTokenClaims describes its format).
+        expires_at:
+          allOf:
+            - $ref: '#/components/schemas/google.protobuf.Timestamp'
+          title: expires_at
+          description: The end of the token's validity.
+      title: CreateDataApiTokenResponse
+      additionalProperties: false
+      description: CreateDataApiTokenResponse is the response of AnalyticsService.CreateDataApiToken.
     tanvo.analytics.v1.GetGrossRevenueRequest:
       type: object
       properties:
@@ -25363,6 +27025,873 @@ components:
         - ZERO_AMOUNT_FINALIZATION_SKIP
         - ZERO_AMOUNT_FINALIZATION_FINALIZE
       description: ZeroAmountFinalization says what happens to invoices whose total is zero.
+    tanvo.dataapi.v1.CustomerRef:
+      type: object
+      properties:
+        customer_id:
+          type: string
+          title: customer_id
+          description: The customer.
+        external_customer_id:
+          type: string
+          title: external_customer_id
+          description: The customer's external ID.
+        customer_name:
+          type: string
+          title: customer_name
+          description: The customer's name.
+        customer_deleted:
+          type: boolean
+          title: customer_deleted
+          description: Whether the customer is deleted.
+      title: CustomerRef
+      additionalProperties: false
+      description: CustomerRef is a customer of a report.
+    tanvo.dataapi.v1.Filter:
+      type: object
+      properties:
+        from_date:
+          allOf:
+            - $ref: '#/components/schemas/google.type.Date'
+          title: from_date
+          description: |-
+            The first day of the range; by default the start of the 12th period
+             before the one of to_date (the 30th day before for daily periods).
+        to_date:
+          allOf:
+            - $ref: '#/components/schemas/google.type.Date'
+          title: to_date
+          description: The last day of the range, included; today (UTC) by default.
+        time_granularity:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.TimeGranularity'
+          title: time_granularity
+          description: |
+            The length of the periods; monthly by default, daily for the usage
+             reports. A range has at most 1000 periods.
+            enum.defined_only = true
+        currency:
+          type: string
+          title: currency
+          description: |
+            The currency; every currency, each in its own points, by default.
+            string.currency = true
+        customer_country:
+          type: string
+          title: customer_country
+          pattern: ^([A-Za-z]{2})?$
+          description: The customers' billing country (ISO 3166-1 alpha-2).
+        customer_type:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.customer.v1.CustomerType'
+          title: customer_type
+          description: |
+            The customers' type.
+            enum.defined_only = true
+        external_customer_id:
+          type: string
+          title: external_customer_id
+          maxLength: 255
+          description: One customer, by external ID.
+        external_subscription_id:
+          type: string
+          title: external_subscription_id
+          maxLength: 255
+          description: One subscription, by external ID.
+        billing_entity_code:
+          type: string
+          title: billing_entity_code
+          maxLength: 255
+          description: One billing entity, by code.
+        plan_code:
+          type: string
+          title: plan_code
+          maxLength: 255
+          description: One plan, by code, deleted plans included.
+        is_customer_tin_empty:
+          type: boolean
+          title: is_customer_tin_empty
+          description: |-
+            Keeps the customers without (true) or with (false) a tax
+             identification number; every customer when not set.
+      title: Filter
+      additionalProperties: false
+      description: Filter restricts a report. Every field is optional.
+    tanvo.dataapi.v1.GetInvoicedUsageRequest:
+      type: object
+      properties:
+        filter:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Filter'
+          title: filter
+          description: The filter.
+        billable_metric_code:
+          type: string
+          title: billable_metric_code
+          maxLength: 255
+          description: One billable metric, by code.
+        grouped_by:
+          type: object
+          title: grouped_by
+          additionalProperties:
+            type: string
+            title: value
+          description: Keeps the fees of a pricing group whose values include these.
+        filter_values:
+          type: object
+          title: filter_values
+          additionalProperties:
+            type: string
+            title: value
+          description: Keeps the fees of a charge filter whose values include these.
+      title: GetInvoicedUsageRequest
+      additionalProperties: false
+      description: GetInvoicedUsageRequest is the request of DataApiService.GetInvoicedUsage.
+    tanvo.dataapi.v1.GetInvoicedUsageResponse:
+      type: object
+      properties:
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.dataapi.v1.InvoicedUsagePoint'
+          title: points
+          description: The points, oldest first, by currency and billable metric.
+      title: GetInvoicedUsageResponse
+      additionalProperties: false
+      description: GetInvoicedUsageResponse is the response of DataApiService.GetInvoicedUsage.
+    tanvo.dataapi.v1.GetMrrRequest:
+      type: object
+      properties:
+        filter:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Filter'
+          title: filter
+          description: The filter.
+      title: GetMrrRequest
+      additionalProperties: false
+      description: GetMrrRequest is the request of DataApiService.GetMrr.
+    tanvo.dataapi.v1.GetMrrResponse:
+      type: object
+      properties:
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.dataapi.v1.MrrPoint'
+          title: points
+          description: The points, oldest first, by currency.
+      title: GetMrrResponse
+      additionalProperties: false
+      description: GetMrrResponse is the response of DataApiService.GetMrr.
+    tanvo.dataapi.v1.GetPrepaidCreditsRequest:
+      type: object
+      properties:
+        filter:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Filter'
+          title: filter
+          description: The filter; external_subscription_id and plan_code do not apply.
+      title: GetPrepaidCreditsRequest
+      additionalProperties: false
+      description: GetPrepaidCreditsRequest is the request of DataApiService.GetPrepaidCredits.
+    tanvo.dataapi.v1.GetPrepaidCreditsResponse:
+      type: object
+      properties:
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.dataapi.v1.PrepaidCreditPoint'
+          title: points
+          description: The points, oldest first, by currency.
+      title: GetPrepaidCreditsResponse
+      additionalProperties: false
+      description: GetPrepaidCreditsResponse is the response of DataApiService.GetPrepaidCredits.
+    tanvo.dataapi.v1.GetRevenueRecognitionRequest:
+      type: object
+      properties:
+        filter:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Filter'
+          title: filter
+          description: The filter.
+      title: GetRevenueRecognitionRequest
+      additionalProperties: false
+      description: GetRevenueRecognitionRequest is the request of DataApiService.GetRevenueRecognition.
+    tanvo.dataapi.v1.GetRevenueRecognitionResponse:
+      type: object
+      properties:
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.dataapi.v1.RevenueRecognitionPoint'
+          title: points
+          description: The points, oldest first, by currency.
+      title: GetRevenueRecognitionResponse
+      additionalProperties: false
+      description: GetRevenueRecognitionResponse is the response of DataApiService.GetRevenueRecognition.
+    tanvo.dataapi.v1.GetRevenueStreamsRequest:
+      type: object
+      properties:
+        filter:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Filter'
+          title: filter
+          description: The filter.
+      title: GetRevenueStreamsRequest
+      additionalProperties: false
+      description: GetRevenueStreamsRequest is the request of DataApiService.GetRevenueStreams.
+    tanvo.dataapi.v1.GetRevenueStreamsResponse:
+      type: object
+      properties:
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.dataapi.v1.RevenueStreamPoint'
+          title: points
+          description: The points, oldest first, by currency.
+      title: GetRevenueStreamsResponse
+      additionalProperties: false
+      description: GetRevenueStreamsResponse is the response of DataApiService.GetRevenueStreams.
+    tanvo.dataapi.v1.GetUsageAmountsRequest:
+      type: object
+      properties:
+        filter:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Filter'
+          title: filter
+          description: The filter.
+        usage_filter:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.UsageFilter'
+          title: usage_filter
+          description: The usage filter; billable_metric_code does not apply.
+      title: GetUsageAmountsRequest
+      additionalProperties: false
+      description: GetUsageAmountsRequest is the request of DataApiService.GetUsageAmounts.
+    tanvo.dataapi.v1.GetUsageAmountsResponse:
+      type: object
+      properties:
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.dataapi.v1.UsageAmountPoint'
+          title: points
+          description: The points, oldest first, by currency.
+      title: GetUsageAmountsResponse
+      additionalProperties: false
+      description: GetUsageAmountsResponse is the response of DataApiService.GetUsageAmounts.
+    tanvo.dataapi.v1.GetUsageRequest:
+      type: object
+      properties:
+        filter:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Filter'
+          title: filter
+          description: The filter.
+        usage_filter:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.UsageFilter'
+          title: usage_filter
+          description: The usage filter.
+      title: GetUsageRequest
+      additionalProperties: false
+      description: GetUsageRequest is the request of DataApiService.GetUsage.
+    tanvo.dataapi.v1.GetUsageResponse:
+      type: object
+      properties:
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.dataapi.v1.UsagePoint'
+          title: points
+          description: The points, oldest first, by currency and billable metric.
+      title: GetUsageResponse
+      additionalProperties: false
+      description: GetUsageResponse is the response of DataApiService.GetUsage.
+    tanvo.dataapi.v1.InvoicedUsagePoint:
+      type: object
+      properties:
+        period:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Period'
+          title: period
+          description: The period.
+        billable_metric_code:
+          type: string
+          title: billable_metric_code
+          description: The billable metric's code.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: amount
+          description: The amount invoiced.
+      title: InvoicedUsagePoint
+      additionalProperties: false
+      description: |-
+        InvoicedUsagePoint is the usage invoiced in one period and currency for
+         one billable metric.
+    tanvo.dataapi.v1.ListMrrByPlanRequest:
+      type: object
+      properties:
+        filter:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Filter'
+          title: filter
+          description: |-
+            The filter; only to_date, the day of the MRR, and the customer,
+             subscription, plan, billing entity and currency fields apply.
+        page_size:
+          type: integer
+          title: page_size
+          maximum: 1000
+          minimum: 0
+          format: int32
+          description: The maximum number of results; 20 by default, at most 1000.
+        page_token:
+          type: string
+          title: page_token
+          maxLength: 1024
+          description: The next_page_token of the previous page.
+      title: ListMrrByPlanRequest
+      additionalProperties: false
+      description: ListMrrByPlanRequest is the request of DataApiService.ListMrrByPlan.
+    tanvo.dataapi.v1.ListMrrByPlanResponse:
+      type: object
+      properties:
+        plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.dataapi.v1.MrrByPlan'
+          title: plans
+          description: The plans, largest MRR first.
+        next_page_token:
+          type: string
+          title: next_page_token
+          description: The token of the next page; empty on the last page.
+        total_size:
+          type: string
+          title: total_size
+          format: int64
+          description: The number of results of every page.
+      title: ListMrrByPlanResponse
+      additionalProperties: false
+      description: ListMrrByPlanResponse is the response of DataApiService.ListMrrByPlan.
+    tanvo.dataapi.v1.ListRevenueStreamsByCustomerRequest:
+      type: object
+      properties:
+        filter:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Filter'
+          title: filter
+          description: The filter; the range is summed, the granularity does not apply.
+        order_by:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.RevenueOrder'
+          title: order_by
+          description: |
+            The order.
+            enum.defined_only = true
+        page_size:
+          type: integer
+          title: page_size
+          maximum: 1000
+          minimum: 0
+          format: int32
+          description: The maximum number of results; 20 by default, at most 1000.
+        page_token:
+          type: string
+          title: page_token
+          maxLength: 1024
+          description: The next_page_token of the previous page.
+      title: ListRevenueStreamsByCustomerRequest
+      additionalProperties: false
+      description: ListRevenueStreamsByCustomerRequest is the request of DataApiService.ListRevenueStreamsByCustomer.
+    tanvo.dataapi.v1.ListRevenueStreamsByCustomerResponse:
+      type: object
+      properties:
+        customers:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.dataapi.v1.RevenueByCustomer'
+          title: customers
+          description: The customers.
+        next_page_token:
+          type: string
+          title: next_page_token
+          description: The token of the next page; empty on the last page.
+        total_size:
+          type: string
+          title: total_size
+          format: int64
+          description: The number of results of every page.
+      title: ListRevenueStreamsByCustomerResponse
+      additionalProperties: false
+      description: ListRevenueStreamsByCustomerResponse is the response of DataApiService.ListRevenueStreamsByCustomer.
+    tanvo.dataapi.v1.ListRevenueStreamsByPlanRequest:
+      type: object
+      properties:
+        filter:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Filter'
+          title: filter
+          description: The filter; the range is summed, the granularity does not apply.
+        order_by:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.RevenueOrder'
+          title: order_by
+          description: |
+            The order.
+            enum.defined_only = true
+        page_size:
+          type: integer
+          title: page_size
+          maximum: 1000
+          minimum: 0
+          format: int32
+          description: The maximum number of results; 20 by default, at most 1000.
+        page_token:
+          type: string
+          title: page_token
+          maxLength: 1024
+          description: The next_page_token of the previous page.
+      title: ListRevenueStreamsByPlanRequest
+      additionalProperties: false
+      description: ListRevenueStreamsByPlanRequest is the request of DataApiService.ListRevenueStreamsByPlan.
+    tanvo.dataapi.v1.ListRevenueStreamsByPlanResponse:
+      type: object
+      properties:
+        plans:
+          type: array
+          items:
+            $ref: '#/components/schemas/tanvo.dataapi.v1.RevenueByPlan'
+          title: plans
+          description: The plans.
+        next_page_token:
+          type: string
+          title: next_page_token
+          description: The token of the next page; empty on the last page.
+        total_size:
+          type: string
+          title: total_size
+          format: int64
+          description: The number of results of every page.
+      title: ListRevenueStreamsByPlanResponse
+      additionalProperties: false
+      description: ListRevenueStreamsByPlanResponse is the response of DataApiService.ListRevenueStreamsByPlan.
+    tanvo.dataapi.v1.MrrByPlan:
+      type: object
+      properties:
+        plan:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.PlanRef'
+          title: plan
+          description: The plan.
+        mrr:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: mrr
+          description: The MRR.
+        mrr_share:
+          type: string
+          title: mrr_share
+          description: The plan's part of the currency's MRR, a decimal from 0 to 1.
+        active_customers_count:
+          type: string
+          title: active_customers_count
+          format: int64
+          description: The customers with an MRR on the plan.
+        active_customers_share:
+          type: string
+          title: active_customers_share
+          description: |-
+            The plan's part of the currency's customers with an MRR, a decimal
+             from 0 to 1.
+      title: MrrByPlan
+      additionalProperties: false
+      description: MrrByPlan is the MRR of one plan in one currency.
+    tanvo.dataapi.v1.MrrPoint:
+      type: object
+      properties:
+        period:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Period'
+          title: period
+          description: The period.
+        starting_mrr:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: starting_mrr
+          description: The MRR on the day before the period.
+        ending_mrr:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: ending_mrr
+          description: The MRR on the period's last day.
+        new_mrr:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: new_mrr
+          description: The MRR of customers who had none at the start.
+        expansion_mrr:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: expansion_mrr
+          description: The increase of customers whose MRR grew.
+        contraction_mrr:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: contraction_mrr
+          description: The decrease of customers whose MRR shrank but stayed positive.
+        churned_mrr:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: churned_mrr
+          description: The MRR of customers who have none at the end.
+        mrr_change:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: mrr_change
+          description: ending_mrr minus starting_mrr.
+      title: MrrPoint
+      additionalProperties: false
+      description: MrrPoint is the MRR of one period in one currency.
+    tanvo.dataapi.v1.Period:
+      type: object
+      properties:
+        start_date:
+          allOf:
+            - $ref: '#/components/schemas/google.type.Date'
+          title: start_date
+          description: The first day.
+        end_date:
+          allOf:
+            - $ref: '#/components/schemas/google.type.Date'
+          title: end_date
+          description: The last day, included.
+      title: Period
+      additionalProperties: false
+      description: Period is one period of a report.
+    tanvo.dataapi.v1.PlanRef:
+      type: object
+      properties:
+        plan_id:
+          type: string
+          title: plan_id
+          description: The plan.
+        plan_code:
+          type: string
+          title: plan_code
+          description: The plan's code.
+        plan_name:
+          type: string
+          title: plan_name
+          description: The plan's name.
+        plan_interval:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Interval'
+          title: plan_interval
+          description: The plan's billing interval.
+        plan_deleted:
+          type: boolean
+          title: plan_deleted
+          description: Whether the plan is deleted.
+      title: PlanRef
+      additionalProperties: false
+      description: PlanRef is a plan of a report.
+    tanvo.dataapi.v1.PrepaidCreditPoint:
+      type: object
+      properties:
+        period:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Period'
+          title: period
+          description: The period.
+        purchased_amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: purchased_amount
+          description: The amount of the credits purchased.
+        purchased_credits:
+          type: string
+          title: purchased_credits
+          description: The credits purchased, a decimal.
+        offered_amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: offered_amount
+          description: The amount of the credits offered.
+        offered_credits:
+          type: string
+          title: offered_credits
+          description: The credits offered, a decimal.
+        consumed_amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: consumed_amount
+          description: The amount of the credits consumed by invoices.
+        consumed_credits:
+          type: string
+          title: consumed_credits
+          description: The credits consumed, a decimal.
+        voided_amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: voided_amount
+          description: The amount of the credits voided.
+        voided_credits:
+          type: string
+          title: voided_credits
+          description: The credits voided, a decimal.
+      title: PrepaidCreditPoint
+      additionalProperties: false
+      description: PrepaidCreditPoint is the prepaid credits of one period in one currency.
+    tanvo.dataapi.v1.RevenueByCustomer:
+      type: object
+      properties:
+        customer:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.CustomerRef'
+          title: customer
+          description: The customer.
+        gross_revenue:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: gross_revenue
+          description: The gross revenue.
+        gross_revenue_share:
+          type: string
+          title: gross_revenue_share
+          description: The customer's part of the currency's gross revenue, a decimal.
+        net_revenue:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: net_revenue
+          description: The net revenue.
+        net_revenue_share:
+          type: string
+          title: net_revenue_share
+          description: The customer's part of the currency's net revenue, a decimal.
+      title: RevenueByCustomer
+      additionalProperties: false
+      description: RevenueByCustomer is the revenue of one customer in one currency.
+    tanvo.dataapi.v1.RevenueByPlan:
+      type: object
+      properties:
+        plan:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.PlanRef'
+          title: plan
+          description: The plan.
+        customers_count:
+          type: string
+          title: customers_count
+          format: int64
+          description: The customers invoiced on the plan.
+        customers_share:
+          type: string
+          title: customers_share
+          description: The plan's part of the currency's invoiced customers, a decimal.
+        gross_revenue:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: gross_revenue
+          description: The gross revenue.
+        gross_revenue_share:
+          type: string
+          title: gross_revenue_share
+          description: The plan's part of the currency's gross revenue, a decimal.
+        net_revenue:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: net_revenue
+          description: The net revenue.
+        net_revenue_share:
+          type: string
+          title: net_revenue_share
+          description: The plan's part of the currency's net revenue, a decimal.
+      title: RevenueByPlan
+      additionalProperties: false
+      description: RevenueByPlan is the revenue of one plan in one currency.
+    tanvo.dataapi.v1.RevenueOrder:
+      type: string
+      title: RevenueOrder
+      enum:
+        - REVENUE_ORDER_UNSPECIFIED
+        - REVENUE_ORDER_GROSS_REVENUE
+        - REVENUE_ORDER_NET_REVENUE
+      description: RevenueOrder orders the rows of revenue lists.
+    tanvo.dataapi.v1.RevenueRecognitionPoint:
+      type: object
+      properties:
+        period:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Period'
+          title: period
+          description: The period.
+        invoiced:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: invoiced
+          description: The net revenue invoiced in the period.
+        recognized:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: recognized
+          description: The net revenue recognized in the period.
+        deferred:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: deferred
+          description: |-
+            The revenue invoiced but not yet recognized at the period's end;
+             negative when more was recognized than invoiced (unbilled revenue).
+      title: RevenueRecognitionPoint
+      additionalProperties: false
+      description: |-
+        RevenueRecognitionPoint is the revenue recognition of one period in one
+         currency.
+    tanvo.dataapi.v1.RevenueStreamPoint:
+      type: object
+      properties:
+        period:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Period'
+          title: period
+          description: The period.
+        subscription_fees:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: subscription_fees
+          description: The fees of subscriptions, fixed charges and products.
+        usage_based_fees:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: usage_based_fees
+          description: The fees of usage-based charges.
+        commitment_fees:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: commitment_fees
+          description: The fees of minimum commitments.
+        one_off_fees:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: one_off_fees
+          description: The fees of one-off add-ons.
+        gross_revenue:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: gross_revenue
+          description: The sum of the four kinds of fees.
+        coupons:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: coupons
+          description: The coupons applied.
+        credit_notes_credits:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: credit_notes_credits
+          description: The credit note credits applied.
+        free_credits:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: free_credits
+          description: The granted prepaid credits applied.
+        progressive_billing_credits:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: progressive_billing_credits
+          description: The usage already invoiced by progressive billing and deducted.
+        contra_revenue:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: contra_revenue
+          description: The sum of the four reductions above.
+        net_revenue:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: net_revenue
+          description: gross_revenue minus contra_revenue.
+        prepaid_credits:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: prepaid_credits
+          description: |-
+            The purchased prepaid credits applied: a means of payment, neither
+             revenue nor contra revenue.
+      title: RevenueStreamPoint
+      additionalProperties: false
+      description: RevenueStreamPoint is the revenue of one period in one currency.
+    tanvo.dataapi.v1.TimeGranularity:
+      type: string
+      title: TimeGranularity
+      enum:
+        - TIME_GRANULARITY_UNSPECIFIED
+        - TIME_GRANULARITY_DAILY
+        - TIME_GRANULARITY_WEEKLY
+        - TIME_GRANULARITY_MONTHLY
+      description: TimeGranularity is the length of a report's periods.
+    tanvo.dataapi.v1.UsageAmountPoint:
+      type: object
+      properties:
+        period:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Period'
+          title: period
+          description: The period.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: amount
+          description: The amount.
+      title: UsageAmountPoint
+      additionalProperties: false
+      description: UsageAmountPoint is the usage amount of one period and currency.
+    tanvo.dataapi.v1.UsageFilter:
+      type: object
+      properties:
+        billable_metric_code:
+          type: string
+          title: billable_metric_code
+          maxLength: 255
+          description: One billable metric, by code.
+        is_billable_metric_recurring:
+          type: boolean
+          title: is_billable_metric_recurring
+          description: |-
+            Keeps the recurring (true) or the other (false) billable metrics;
+             every metric when not set.
+      title: UsageFilter
+      additionalProperties: false
+      description: UsageFilter restricts the usage reports.
+    tanvo.dataapi.v1.UsagePoint:
+      type: object
+      properties:
+        period:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.dataapi.v1.Period'
+          title: period
+          description: The period.
+        billable_metric_code:
+          type: string
+          title: billable_metric_code
+          description: The billable metric's code.
+        billable_metric_deleted:
+          type: boolean
+          title: billable_metric_deleted
+          description: Whether the billable metric is deleted.
+        units:
+          type: string
+          title: units
+          description: The units, a decimal.
+        amount:
+          allOf:
+            - $ref: '#/components/schemas/tanvo.common.v1.Money'
+          title: amount
+          description: The amount.
+      title: UsagePoint
+      additionalProperties: false
+      description: UsagePoint is the usage of one period, currency and billable metric.
     tanvo.dunning.v1.CreateDunningCampaignRequest:
       type: object
       properties:
@@ -37906,6 +40435,13 @@ tags:
     description: |-
       CustomerService manages customers. Customers are addressed by ID or by
        `external_id:<external_id>`.
+  - name: DataApiService
+    description: |-
+      DataApiService returns reports over periods of a day, an ISO week
+       (Monday to Sunday) or a calendar month. Every report covers the periods
+       from from_date to to_date and lists them oldest first; days are those of
+       each customer's time zone, as invoices' issuing dates are. Amounts are
+       exact and exclude taxes.
   - name: DunningCampaignService
     description: |-
       DunningCampaignService manages dunning campaigns. A campaign applies to

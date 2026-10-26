@@ -28,6 +28,7 @@ import (
 	_ "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/coupon/v1"
 	_ "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/creditnote/v1"
 	_ "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/customer/v1"
+	_ "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/dataapi/v1"
 	_ "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/dunning/v1"
 	_ "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/event/v1"
 	_ "github.com/tanvoxyz/tanvo/libs/proto/gen/go/tanvo/export/v1"
@@ -232,7 +233,7 @@ var paritySections = map[string][]string{
 	"1.41": {"tanvo.quote.v1.QuoteService", "tanvo.quote.v1.OrderFormService", "tanvo.quote.v1.OrderService"},
 	"1.42": {"tanvo.attribution.v1.UsageAttributionService"},
 	"1.43": {"tanvo.export.v1.DataExportService"},
-	"1.44": {"tanvo.analytics.v1.AnalyticsService"},
+	"1.44": {"tanvo.analytics.v1.AnalyticsService", "tanvo.dataapi.v1.DataApiService"},
 	"1.45": {"tanvo.log.v1.LogService"},
 	"1.46": {"tanvo.portal.v1.CustomerPortalService"},
 	"1.47": nil,

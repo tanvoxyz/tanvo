@@ -10,6 +10,7 @@ package tanvo.analytics.v1;
 
 import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
 import "google/type/date.proto";
 import "tanvo/common/v1/enums.proto";
 import "tanvo/common/v1/options.proto";
@@ -57,6 +58,20 @@ service AnalyticsService {
     option (google.api.http) = {get: "/v1/analytics/invoiced_usage"};
     option (tanvo.common.v1.access) = {
       permission: "analytics:read"
+      api_resource: "analytic"
+    };
+  }
+
+  // Returns a service token for the Data API (DataApiService, served by
+  // the enterprise analytics service), granting the caller's `data_api`
+  // permissions in the organization for a short time.
+  rpc CreateDataApiToken(CreateDataApiTokenRequest) returns (CreateDataApiTokenResponse) {
+    option (google.api.http) = {
+      post: "/v1/analytics/data_api_tokens"
+      body: "*"
+    };
+    option (tanvo.common.v1.access) = {
+      permission: "data_api:read"
       api_resource: "analytic"
     };
   }
@@ -216,4 +231,16 @@ message GetOverdueBalanceRequest {
 message GetOverdueBalanceResponse {
   // The points, oldest first.
   repeated OverdueBalancePoint points = 1;
+}
+
+// CreateDataApiTokenRequest is the request of AnalyticsService.CreateDataApiToken.
+message CreateDataApiTokenRequest {}
+
+// CreateDataApiTokenResponse is the response of AnalyticsService.CreateDataApiToken.
+message CreateDataApiTokenResponse {
+  // The token, sent as the bearer credential of the Data API
+  // (tanvo.access.v1.ServiceTokenClaims describes its format).
+  string token = 1;
+  // The end of the token's validity.
+  google.protobuf.Timestamp expires_at = 2;
 }
