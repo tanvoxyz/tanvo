@@ -172,6 +172,17 @@ func Run(t *testing.T, newCache func(t *testing.T) port.Cache, opts ...Option) {
 		want(t, c, "large", v)
 	})
 
+	t.Run("LargeRepetitiveValue", func(t *testing.T) {
+		// A backend may compress such a value; it reads back the same.
+		c := newCache(t)
+		v := bytes.Repeat([]byte(`{"amount_cents":"1000","currency":"EUR"},`), 1<<14)
+		c.Set(ctx, "repetitive", v, long)
+		want(t, c, "repetitive", v)
+		got, _ := c.Get(ctx, "repetitive")
+		got[0] = 'x'
+		want(t, c, "repetitive", v)
+	})
+
 	t.Run("Concurrent", func(t *testing.T) {
 		c := newCache(t)
 		const workers, rounds, keys = 8, 200, 16

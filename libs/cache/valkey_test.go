@@ -140,9 +140,16 @@ func TestValkeyIncr(t *testing.T) {
 			if got, _ := one.Incr(ctx, "short", time.Hour); got != 2 {
 				t.Fatalf("Incr(short) again = %d, want = 2", got)
 			}
+			// A counter has no value header, so Get does not read it; the
+			// server is asked directly.
+			raw, err := valkey.NewClient(valkey.MustParseURL(b.url + "?client_cache=0"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer raw.Close()
 			eventually(t, 5*time.Second, "the counter to expire", func() bool {
-				_, ok := one.Get(ctx, "short")
-				return !ok
+				n, err := raw.Do(ctx, raw.B().Exists().Key(prefix+"short").Build()).AsInt64()
+				return err == nil && n == 0
 			})
 			if got, _ := one.Incr(ctx, "short", time.Hour); got != 1 {
 				t.Errorf("Incr(short) after expiry = %d, want = 1", got)

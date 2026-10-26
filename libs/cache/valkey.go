@@ -1,12 +1,16 @@
 package cache
 
 import (
+	"bytes"
+	"compress/flate"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -34,6 +38,16 @@ const (
 	maxBackoff = 30 * time.Second
 	// logInterval is the least time between two warnings of the same kind.
 	logInterval = 10 * time.Second
+	// compressThreshold is the size from which [Valkey.Set] compresses a
+	// value: below it, compression saves too little to be worth its time.
+	compressThreshold = 1 << 10
+)
+
+// Headers of the values [Valkey] stores: the first byte of each says how
+// the rest is encoded.
+const (
+	headerRaw     byte = 0x00
+	headerDeflate byte = 0x01
 )
 
 // Valkey is a [port.Cache] on a Valkey or Redis server that every process
@@ -44,6 +58,14 @@ const (
 // Failures are logged at warn level (at most one record per 10 seconds per
 // operation) and counted in the tanvo.cache.errors counter with the
 // attribute tanvo.cache.operation.
+//
+// Each value is stored behind a one-byte header: values of at least 1 KiB
+// are compressed with DEFLATE (compress/flate at BestSpeed) when that
+// makes them smaller, which saves memory on the server and bandwidth to
+// it. A value whose header is unknown or that does
+// not decode, such as one written by a version without headers, is a miss,
+// counted and logged as a decode failure; the caller's next Set replaces
+// it. The counters of [Valkey.Incr] are plain integers, without a header.
 type Valkey struct {
 	cfg    valkeyConfig
 	opt    valkey.ClientOption
@@ -53,6 +75,10 @@ type Valkey struct {
 	errs    metric.Int64Counter
 	errAttr map[string]metric.AddOption
 	logs    map[string]*limiter
+
+	// writers and readers hold reusable DEFLATE encoders and decoders.
+	writers sync.Pool
+	readers sync.Pool
 
 	cancel context.CancelFunc
 	done   chan struct{}
@@ -199,7 +225,12 @@ func NewValkey(ctx context.Context, rawURL string, opts ...ValkeyOption) (*Valke
 		logs:    map[string]*limiter{},
 		done:    make(chan struct{}),
 	}
-	for _, op := range []string{"get", "set", "delete", "incr", "connect"} {
+	v.writers.New = func() any {
+		w, _ := flate.NewWriter(nil, flate.BestSpeed) // the level is valid
+		return w
+	}
+	v.readers.New = func() any { return flate.NewReader(nil) }
+	for _, op := range []string{"get", "decode", "set", "delete", "incr", "connect"} {
 		v.errAttr[op] = metric.WithAttributeSet(attribute.NewSet(AttrOperation.String(op)))
 		v.logs[op] = &limiter{}
 	}
@@ -277,7 +308,7 @@ func (v *Valkey) Get(ctx context.Context, key string) ([]byte, bool) {
 		res = c.Do(ctx, c.B().Get().Key(v.cfg.prefix+key).Build())
 	}
 	// ToString, unlike AsBytes, returns memory that the client-side cache
-	// does not share; the conversion copies it again for the caller.
+	// does not share; decoding copies it again for the caller.
 	s, err := res.ToString()
 	if err != nil {
 		if !valkey.IsValkeyNil(err) {
@@ -285,7 +316,72 @@ func (v *Valkey) Get(ctx context.Context, key string) ([]byte, bool) {
 		}
 		return nil, false
 	}
-	return []byte(s), true
+	b, err := v.decode(s)
+	if err != nil {
+		v.fail(ctx, "decode", err)
+		return nil, false
+	}
+	return b, true
+}
+
+// encode returns value behind its header, compressed when it is at least
+// 1 KiB and compression makes it smaller. The result is a new string: a
+// command that times out may still be written after Set returns and the
+// caller reuses value.
+func (v *Valkey) encode(value []byte) string {
+	if len(value) >= compressThreshold {
+		var sb strings.Builder
+		sb.Grow(len(value) / 2)
+		sb.WriteByte(headerDeflate)
+		w := v.writers.Get().(*flate.Writer)
+		w.Reset(&sb)
+		_, err := w.Write(value)
+		if err == nil {
+			err = w.Close()
+		}
+		// The pooled writer must not keep the value alive.
+		w.Reset(io.Discard)
+		v.writers.Put(w)
+		if err == nil && sb.Len() < 1+len(value) {
+			return sb.String()
+		}
+	}
+	var sb strings.Builder
+	sb.Grow(1 + len(value))
+	sb.WriteByte(headerRaw)
+	sb.Write(value)
+	return sb.String()
+}
+
+// errBadHeader is the decode failure of a value without a known header.
+var errBadHeader = errors.New("cache: value without a known header")
+
+// decode returns the value stored as s, in memory of its own.
+func (v *Valkey) decode(s string) ([]byte, error) {
+	if s == "" {
+		return nil, errBadHeader
+	}
+	switch s[0] {
+	case headerRaw:
+		return []byte(s[1:]), nil
+	case headerDeflate:
+		r := v.readers.Get().(io.ReadCloser)
+		defer v.readers.Put(r)
+		if err := r.(flate.Resetter).Reset(strings.NewReader(s[1:]), nil); err != nil {
+			return nil, fmt.Errorf("cache: decompress: %w", err)
+		}
+		var buf bytes.Buffer
+		buf.Grow(4 * len(s))
+		_, err := buf.ReadFrom(r)
+		// The pooled reader must not keep the value alive.
+		_ = r.(flate.Resetter).Reset(strings.NewReader(""), nil)
+		if err != nil {
+			return nil, fmt.Errorf("cache: decompress: %w", err)
+		}
+		return buf.Bytes(), nil
+	default:
+		return nil, errBadHeader
+	}
 }
 
 // Set stores value under key for ttl (PX, at least one millisecond),
@@ -301,9 +397,7 @@ func (v *Valkey) Set(ctx context.Context, key string, value []byte, ttl time.Dur
 	ctx, cancel := context.WithTimeout(ctx, v.cfg.timeout)
 	defer cancel()
 	ms := max(ttl.Milliseconds(), 1)
-	// string(value) copies: a command that times out may still be written
-	// after Set returns and the caller reuses value.
-	cmd := c.B().Set().Key(v.cfg.prefix + key).Value(string(value)).PxMilliseconds(ms).Build()
+	cmd := c.B().Set().Key(v.cfg.prefix + key).Value(v.encode(value)).PxMilliseconds(ms).Build()
 	if err := c.Do(ctx, cmd).Error(); err != nil {
 		v.fail(ctx, "set", err)
 	}

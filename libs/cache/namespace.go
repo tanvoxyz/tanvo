@@ -20,7 +20,8 @@ const (
 	AttrName = attribute.Key("tanvo.cache.name")
 	// AttrResult is the result of a read: "hit" or "miss".
 	AttrResult = attribute.Key("tanvo.cache.result")
-	// AttrOperation is the operation that failed: "get", "set", "delete".
+	// AttrOperation is the operation that failed: "get", "decode" (a stored
+	// value that does not decode), "set", "delete", "incr", "connect".
 	AttrOperation = attribute.Key("tanvo.cache.operation")
 )
 

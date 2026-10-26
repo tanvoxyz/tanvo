@@ -11,3 +11,6 @@ func WithBackoff(lo, hi time.Duration) ValkeyOption {
 func SentinelAuth(v *Valkey) (user, password string) {
 	return v.opt.Sentinel.Username, v.opt.Sentinel.Password
 }
+
+// CompressThreshold is the size from which Valkey compresses a value.
+const CompressThreshold = compressThreshold
