@@ -155,8 +155,8 @@ type Config struct {
 	DatabaseMaxConns int32 `koanf:"database_max_conns"`
 	// DatabaseDirectURL, when set, is a direct (session) PostgreSQL
 	// connection string for what needs the state of a session: the
-	// LISTEN of the catalog changes and of the job queue, the slots'
-	// session advisory locks and the migrations' locks. It lets
+	// LISTEN of the catalog changes and of the job queue and the
+	// migrations' session advisory locks. It lets
 	// DatabaseURL point at a pooler in transaction mode (PgBouncer).
 	// Empty, DatabaseURL serves everything.
 	DatabaseDirectURL string `koanf:"database_direct_url"`

@@ -92,6 +92,18 @@ func (c *caches) counter(name string) apiclient.Counter {
 	return namedCounter{v: c.shared, prefix: name + ":"}
 }
 
+// slots returns the concurrency slots on the shared server, as leases in
+// its sorted sets; nil without one, which leaves them to the database.
+// With a shared server its slots are the only ones: an error of the server
+// is the caller's, with no fallback to the database, so that every
+// process counts the holders in one place.
+func (c *caches) slots() port.Slots {
+	if c == nil || c.shared == nil {
+		return nil
+	}
+	return c.shared
+}
+
 // namedCounter is the namespace of a counter on the shared server.
 type namedCounter struct {
 	v      *cache.Valkey

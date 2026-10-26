@@ -19,6 +19,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/billing"
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
+	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/jobs"
 	"github.com/tanvoxyz/tanvo/libs/store"
 )
@@ -100,7 +101,7 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	if a.pool, err = openPool(ctx, cfg.DatabaseURL, poolOptions{MaxConns: cfg.DatabaseMaxConns, Name: "main"}, tp, mp); err != nil {
 		return nil, err
 	}
-	if a.direct, err = openDirectPool(ctx, cfg, directMaxConns(cfg), tp, mp); err != nil {
+	if a.direct, err = openDirectPool(ctx, cfg, directMaxConns, tp, mp); err != nil {
 		return nil, err
 	}
 	if cfg.ClickHouseURL != "" {
@@ -130,12 +131,10 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	sopts := []store.Option{
 		store.WithJobInserter(jobInserter(func() *jobs.Client { return a.jobs })),
 		store.WithCatalogChanges(a.changes.committed),
+		store.WithLogger(a.log),
 	}
 	if cfg.DatabaseRowLevelSecurity {
 		sopts = append(sopts, store.WithRowLevelSecurity())
-	}
-	if a.direct != nil {
-		sopts = append(sopts, store.WithSessionPool(a.direct))
 	}
 	a.logs = logArchive(a.ch)
 	sopts = append(sopts, logArchiveOptions(a.logs)...)
@@ -171,8 +170,14 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	if err != nil {
 		return nil, err
 	}
+	// The concurrency slots are the shared server's when TANVO_CACHE_URL
+	// names one, else the database's.
+	var slots port.Slots = a.store
+	if s := a.caches.slots(); s != nil {
+		slots = s
+	}
 	integ, err := newIntegrations(cfg, a.store, clock, a.log, tp, mp, pay.gocardlessOAuth, triggers, a.blobs.blobOrNil(),
-		a.caches.named(cacheDraftTax, memoryCacheEntries), a.caches.counter(counterRateLimits))
+		a.caches.named(cacheDraftTax, memoryCacheEntries), a.caches.counter(counterRateLimits), slots)
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +401,7 @@ func (a *App) close() {
 }
 
 // sessionPool is the pool of the connections that keep session state
-// (LISTEN, session advisory locks): the direct pool when
+// (LISTEN, the migrations' session advisory locks): the direct pool when
 // TANVO_DATABASE_DIRECT_URL is set, so that TANVO_DATABASE_URL may point
 // at a pooler in transaction mode, the main pool otherwise.
 func (a *App) sessionPool() *pgxpool.Pool {

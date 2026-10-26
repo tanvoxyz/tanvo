@@ -4,7 +4,6 @@ import (
 	"cmp"
 	"context"
 	"fmt"
-	"math"
 
 	"github.com/exaring/otelpgx"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,8 +12,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/tanvoxyz/tanvo/apps/server/internal/config"
-	"github.com/tanvoxyz/tanvo/libs/core/port"
-	"github.com/tanvoxyz/tanvo/libs/jobs"
 	"github.com/tanvoxyz/tanvo/libs/store"
 )
 
@@ -73,15 +70,7 @@ func openDirectPool(ctx context.Context, cfg config.Config, maxConns int32, tp t
 }
 
 // directMaxConns sizes the direct pool of a serving process: the LISTEN
-// connections of the catalog changes and of River, one per integration
-// sync job that may hold a slot at once (the concurrency of the
-// integrations queue), and two for the migrations at startup.
-func directMaxConns(cfg config.Config) int32 {
-	n := jobs.DefaultQueues()[port.QueueIntegrations].Concurrency
-	if workers, err := cfg.QueueConcurrency(); err == nil {
-		if w, ok := workers[port.QueueIntegrations]; ok {
-			n = w
-		}
-	}
-	return int32(min(2+n+2, math.MaxInt32))
-}
+// connections of the catalog changes and of River, and two for the
+// migrations at startup. The concurrency slots are leases written through
+// the main pool, so they hold no connection.
+const directMaxConns int32 = 2 + 2

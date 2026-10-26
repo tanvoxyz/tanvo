@@ -149,13 +149,19 @@ func TestServePgBouncer(t *testing.T) {
 	}
 
 	// The business connections are PgBouncer's; the catalog listeners of
-	// both replicas are direct.
-	var pooled, listeners int
+	// both replicas are direct, and the direct pool of each replica holds
+	// at most its two listeners and two migration connections, beside the
+	// test's own pool.
+	var pooled, listeners, direct int
 	if err := s.pool.QueryRow(t.Context(), `SELECT
 			count(*) FILTER (WHERE client_addr = $1::inet),
-			count(*) FILTER (WHERE client_addr <> $1::inet AND query = 'LISTEN ' || $2)
-		FROM pg_stat_activity WHERE datname = 'tanvo'`, s.bouncer, store.CatalogChannel).Scan(&pooled, &listeners); err != nil {
+			count(*) FILTER (WHERE client_addr <> $1::inet AND query = 'LISTEN ' || $2),
+			count(*) FILTER (WHERE client_addr <> $1::inet)
+		FROM pg_stat_activity WHERE datname = 'tanvo' AND backend_type = 'client backend'`, s.bouncer, store.CatalogChannel).Scan(&pooled, &listeners, &direct); err != nil {
 		t.Fatal(err)
+	}
+	if limit := 2*(2+2) + int(s.pool.Stat().TotalConns()); direct > limit {
+		t.Errorf("direct connections got = %d, want <= %d", direct, limit)
 	}
 	if pooled == 0 {
 		t.Errorf("connections from PgBouncer got = 0, want = some")

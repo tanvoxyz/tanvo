@@ -42,13 +42,8 @@ type integrationsWiring struct {
 	docs *rpc.Documents
 	// slots bounds the concurrent sync jobs of each organization across
 	// the deployment; nil leaves them unbounded.
-	slots slotAcquirer
-}
-
-// slotAcquirer takes one of a bounded number of named slots shared by
-// every server ([store.Store.AcquireSlot]).
-type slotAcquirer interface {
-	AcquireSlot(ctx context.Context, name string, limit int) (release func(), ok bool, err error)
+	slots port.Slots
+	log   *slog.Logger
 }
 
 // throttledSnooze is how long a sync job waits for a free slot, as
@@ -56,13 +51,22 @@ type slotAcquirer interface {
 // fetched again after its cooldown period of one second.
 const throttledSnooze = time.Second
 
+// slotErrorSnooze is how long a sync job waits when its slot cannot be
+// acquired at all (the Redis server or the database is unreachable):
+// longer than [throttledSnooze], so that an outage is not hammered, and a
+// snooze rather than an error, which no retry rule classifies and would
+// end the job, so that the job keeps its attempts.
+const slotErrorSnooze = 5 * time.Second
+
 // newIntegrations returns the integrations service over the adapters of
 // Anrok, Avalara, NetSuite, Xero, HubSpot and Salesforce, and GoCardless'
 // OAuth connection (gocardlessOAuth), with the credentials sealed with
 // the installation secret. Its sync triggers are bound to triggers, the
-// webhook emitter of the billing and payments services.
+// webhook emitter of the billing and payments services; slots bounds the
+// concurrent sync jobs of each organization.
 func newIntegrations(cfg config.Config, tx port.Transactor, clock core.Clock, log *slog.Logger, tp trace.TracerProvider, mp metric.MeterProvider,
 	gocardlessOAuth integration.OAuthGateway, triggers *syncTriggers, blobs port.BlobStore, draftTaxes port.Cache, rateLimits apiclient.Counter,
+	slots port.Slots,
 ) (*integrationsWiring, error) {
 	// The OAuth adapters store their refreshed grants through the
 	// service, made after them.
@@ -103,11 +107,11 @@ func newIntegrations(cfg config.Config, tx port.Transactor, clock core.Clock, lo
 		integrations.WithBlobs(blobs))
 	store.svc = svc
 	triggers.svc = svc
-	slots, _ := tx.(slotAcquirer)
 	return &integrationsWiring{
 		svc:   svc,
 		docs:  docs,
 		slots: slots,
+		log:   log,
 		taxes: integrations.NewTaxes(svc, integrations.NewDraftTaxCache(draftTaxes, cfg.AnrokDraftTaxesCacheTTL, clock.Now)),
 	}, nil
 }
@@ -176,12 +180,22 @@ func (w *integrationsWiring) register(reg *jobs.Registry) error {
 // constantDelay waits d between attempts.
 func constantDelay(d time.Duration) jobs.Backoff { return func(int) time.Duration { return d } }
 
+// logger returns the wiring's logger, slog.Default() without one.
+func (w *integrationsWiring) logger() *slog.Logger {
+	if w.log == nil {
+		return slog.Default()
+	}
+	return w.log
+}
+
 // run runs an integration job with the service.
 func (w *integrationsWiring) run(ctx context.Context, j *jobs.Job[json.RawMessage]) error {
 	if w.slots != nil && integrations.ConcurrencyLimited(j.Kind) {
 		release, ok, err := w.slots.AcquireSlot(ctx, integrations.ConcurrencySlotOf(j.OrganizationID), integrations.ConcurrencyLimit)
 		if err != nil {
-			return err
+			w.logger().WarnContext(ctx, "integrations: acquire concurrency slot", slog.String("kind", j.Kind),
+				slog.String("organization_id", j.OrganizationID.String()), slog.String("error", err.Error()))
+			return jobs.Snooze(slotErrorSnooze)
 		}
 		if !ok {
 			return jobs.Snooze(throttledSnooze)
