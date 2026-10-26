@@ -87,7 +87,16 @@ pnpm nx graph                                       # Dependency graph
 | `libs/store/queries/*.sql` | sqlc | `libs/store/internal/db/` | `pnpm nx run store:sqlc` |
 | `libs/expression/crates/**` | cargo (wasm32-unknown-unknown, release) | `libs/expression/go/expression.wasm` | `pnpm nx run expression:wasm` |
 
-Generated files are committed and never edited by hand; CI regenerates them and fails on a diff.
+Generated files are committed and never edited by hand; CI fails when they are stale (§6).
+
+### 4.1 Migrations
+
+`store:migrate-diff --name=<name>` writes the migration of a schema change. A migration must be safe to apply while the previous release runs ([Architecture §5.2](architecture.md#52-schema-and-migrations)); `pnpm nx run store:migrate-lint` checks the migrations of the branch (those the merge base with `$NX_BASE`, else `origin/main`, does not have) and runs in CI:
+
+* An index of an existing table is built `CONCURRENTLY` in a file of its own whose header is `-- atlas:txmode none` followed by an empty line, with `IF NOT EXISTS` (`DROP INDEX CONCURRENTLY IF EXISTS` to drop one). Edit the generated file accordingly, then run `pnpm nx run store:migrate-hash` to rewrite `atlas.sum`.
+* A check or foreign key added to an existing table is added `NOT VALID`, then validated with `ALTER TABLE … VALIDATE CONSTRAINT`.
+* Dropping or renaming a table or column, changing a column type and setting a column `NOT NULL` are contract steps: they wait for the release after the one that stopped using the old shape.
+* A finding that was reviewed and is safe (a unique index on data known to be unique, a table known to be small) is opted out of with a comment right before the statement, naming the analyzer or the code and, on the line above, why: `-- atlas:nolint MF101`. In the file header, the directive covers the whole file.
 
 ---
 
@@ -109,8 +118,8 @@ Generated files are committed and never edited by hand; CI regenerates them and 
 `.github/workflows/ci.yml` runs on pull requests and on `main`:
 
 1. Set up mise (pinned tools) and the Go, pnpm and Cargo caches.
-2. `pnpm nx affected -t build test lint tidy-check buf-lint` (`run-many` on `main`).
-3. Regenerate (`proto:generate`, `store:sqlc`, `expression:wasm`) and fail on `git diff`.
+2. `pnpm nx affected -t buf-lint lint tidy-check build test migrate-check migrate-lint sqlc-check` (`run-many` on `main` and when the CI or the toolchain changed). `store:migrate-check` fails when `libs/store/schema/` has a change without its migration, `store:sqlc-check` (`sqlc diff`) when `libs/store/internal/db/` is stale, and `store:migrate-lint` on an unsafe new migration (§4.1).
+3. Regenerate (`generate` targets such as `proto:generate`, and `expression:wasm`) and fail on `git diff`.
 4. Integration tests with PostgreSQL, ClickHouse and Redpanda containers (Linux runners).
 
 ---

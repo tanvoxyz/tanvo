@@ -224,6 +224,8 @@ ee/* ──▶ proto        (never any other in-repo module)
 * 同一个数据库中有两套迁移历史，以便任务能在业务事务中插入：Atlas 管理 `public` schema，River 自己的迁移（rivermigrate）管理 `river` schema。River 的表不纳入 Atlas，使 Atlas 的 diff、lint 与漂移检查只看到 Tanvo 的 schema，River 升级时也无需手工复制它的迁移。`tanvo migrate` 是唯一入口：先应用 Atlas 的迁移，再应用 River 的，各自在自己的 advisory lock 下执行，并且都是幂等的。
 * PostgreSQL 事件存储（§7）在自己的 schema（默认 `eventstore`）中有第三套迁移历史：它的迁移是幂等的 DDL，由同一命令应用，并同时创建未来几个月的分区；配置了 ClickHouse 时，`tanvo migrate` 也会应用 ClickHouse 的 schema。
 * 一个版本内的迁移只做扩展，使滚动部署期间旧版本仍能运行；迁移在新版本上线之前应用。进程启动时检查 schema 是否已应用，否则拒绝启动：River 的每个迁移，以及本版本的每个 Atlas 迁移及其校验和（`store.CheckSchema`；接受更新版本的迁移，如滚动部署期间）都已应用，且事件存储存在。
+* 应用迁移不得阻断正在运行的版本的写入。`store.Migrate` 在事务中运行每个文件，并设置 `lock_timeout`（`TANVO_MIGRATE_LOCK_TIMEOUT`，默认 5 秒）：排在长事务之后、拿不到锁的语句会直接失败，而不是让该表后续的所有加锁请求排在它后面；整个文件回滚，可以重试。文件头带有 `-- atlas:txmode none` 的文件在事务之外逐条执行语句，从而能够 `CONCURRENTLY` 地创建和删除索引（这些语句不受 `lock_timeout` 约束，因为它们从不阻塞写入；其余语句仍受约束）。只有在每条语句都成功之后才记录其 revision，因此失败的文件会从第一条语句重新执行：其语句是幂等的（`IF NOT EXISTS`、`IF EXISTS`），并且在同名的 `CREATE INDEX CONCURRENTLY` 重新执行之前，会删除失败的并发构建遗留的无效索引。
+* CI 对分支新增的迁移强制执行这些规则：`store:migrate-check` 在 schema 变更缺少对应迁移时失败；`store:migrate-lint` 重放与 `$NX_BASE` 的合并基点中没有的迁移，并逐条分析语句。它运行 Atlas 的破坏性、向后不兼容、数据相关与约束删除分析器，以及自己的锁检查：已有表的索引必须在非事务文件中 `CONCURRENTLY` 地创建和删除（PG101–PG104）；向已有表添加的 check 或外键必须是 `NOT VALID`，并在之后的语句中验证（PG301）；拒绝列类型变更（PG302）与对已有列新增 `NOT NULL`（PG303）。经过评审并接受的发现，可在语句之前用 `-- atlas:nolint <分析器或代码>` 豁免，或写在文件头中豁免整个文件。已合并的迁移不再重新 lint。
 
 ### 5.3 查询
 * sqlc 基于 pgx/v5 驱动，从 `libs/store/queries/` 中的 SQL 生成类型安全的 Go。
@@ -445,6 +447,7 @@ POST /v1/events, /v1/events:batch
 | `TANVO_DATABASE_DIRECT_URL` | — | 绕过任何连接池的直连（会话）PostgreSQL URL，供需要会话状态的功能使用：目录变更与 River 的 `LISTEN` 连接，以及迁移（`tanvo migrate`、`TANVO_MIGRATE_ON_START`）。`TANVO_DATABASE_URL` 经由事务模式的 PgBouncer 时设置（§13.2）；为空时由 `TANVO_DATABASE_URL` 提供一切。其连接池容纳两个监听器与两个迁移连接 |
 | `TANVO_DATABASE_ROW_LEVEL_SECURITY` | `false` | 为行级安全策略设置租户（§5.4） |
 | `TANVO_MIGRATE_ON_START` | `true` | 启动时应用迁移；否则只检查 |
+| `TANVO_MIGRATE_LOCK_TIMEOUT` | `5s` | 迁移语句等待锁的时长，超过则迁移失败，以免让正在运行的版本的写入排在它后面（§5.2）；`0` 表示无限等待 |
 | `TANVO_JOBS_SCHEMA` | `river` | River 表所在的 schema |
 | `TANVO_WORKER_QUEUES` | 全部队列 | `worker` 角色的队列；`--queues` 优先 |
 | `TANVO_JOBS_DISABLE_PERIODIC` | `false` | 不让 worker 参与周期调度 |

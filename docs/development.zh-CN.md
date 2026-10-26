@@ -87,7 +87,16 @@ pnpm nx graph                                       # 依赖图
 | `libs/store/queries/*.sql` | sqlc | `libs/store/internal/db/` | `pnpm nx run store:sqlc` |
 | `libs/expression/crates/**` | cargo（wasm32-unknown-unknown，release） | `libs/expression/go/expression.wasm` | `pnpm nx run expression:wasm` |
 
-生成的文件提交入库，从不手工编辑；CI 重新生成它们，有差异即失败。
+生成的文件提交入库，从不手工编辑；它们过时则 CI 失败（§6）。
+
+### 4.1 迁移
+
+`store:migrate-diff --name=<name>` 为 schema 变更写出迁移。迁移必须能在旧版本运行期间安全应用（[架构 §5.2](architecture.zh-CN.md#52-schema-与迁移)）；`pnpm nx run store:migrate-lint` 检查分支的迁移（与 `$NX_BASE`，否则 `origin/main`，的合并基点中没有的迁移），并在 CI 中运行：
+
+* 已有表的索引在单独的文件中 `CONCURRENTLY` 地构建，并带 `IF NOT EXISTS`（删除时用 `DROP INDEX CONCURRENTLY IF EXISTS`）；该文件的文件头为 `-- atlas:txmode none`，其后跟一个空行。据此修改生成的文件，然后运行 `pnpm nx run store:migrate-hash` 重写 `atlas.sum`。
+* 向已有表添加的 check 或外键先以 `NOT VALID` 添加，再用 `ALTER TABLE … VALIDATE CONSTRAINT` 验证。
+* 删除或重命名表或列、修改列类型以及把列设为 `NOT NULL` 属于收缩步骤：要等到不再使用旧结构的版本之后的下一个版本。
+* 经过评审且安全的发现（已知数据唯一的唯一索引、已知很小的表），在语句之前用注释豁免，注明分析器或代码，并在上一行说明原因：`-- atlas:nolint MF101`。写在文件头中时，该指令覆盖整个文件。
 
 ---
 
@@ -109,8 +118,8 @@ pnpm nx graph                                       # 依赖图
 `.github/workflows/ci.yml` 在 PR 和 `main` 上运行：
 
 1. 配置 mise（锁定版本的工具）以及 Go、pnpm 与 Cargo 的缓存。
-2. `pnpm nx affected -t build test lint tidy-check buf-lint`（在 `main` 上为 `run-many`）。
-3. 重新生成（`proto:generate`、`store:sqlc`、`expression:wasm`），`git diff` 有差异即失败。
+2. `pnpm nx affected -t buf-lint lint tidy-check build test migrate-check migrate-lint sqlc-check`（在 `main` 上以及 CI 或工具链变更时为 `run-many`）。`libs/store/schema/` 有变更却缺少对应迁移时 `store:migrate-check` 失败，`libs/store/internal/db/` 过时时 `store:sqlc-check`（`sqlc diff`）失败，新迁移不安全时 `store:migrate-lint` 失败（§4.1）。
+3. 重新生成（`proto:generate` 等 `generate` target，以及 `expression:wasm`），`git diff` 有差异即失败。
 4. 使用 PostgreSQL、ClickHouse 与 Redpanda 容器的集成测试（Linux runner）。
 
 ---
