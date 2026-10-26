@@ -16,6 +16,7 @@ Status: early development (P1 foundations). See the [roadmap](docs/roadmap.md).
 | [Development](docs/development.md) | Toolchain, Nx, Go and Rust conventions, code generation, CI |
 | [Testing](docs/testing.md) | Test layers and porting lago-api tests |
 | [Roadmap](docs/roadmap.md) | Phases, completion criteria, current status |
+| [Benchmarks](docs/benchmarks.md) | Measurements behind design decisions |
 | [AGENTS.md](AGENTS.md) | Working rules for AI coding agents and contributors |
 
 ## Quick Start

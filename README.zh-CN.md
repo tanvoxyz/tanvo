@@ -16,6 +16,7 @@ Tanvo 是以 Go 为服务端核心的开源用量计费与计量平台：任意�
 | [开发指南](docs/development.zh-CN.md) | 工具链、Nx、Go 与 Rust 约定、代码生成、CI |
 | [测试策略](docs/testing.zh-CN.md) | 测试分层与移植 lago-api 测试 |
 | [路线图](docs/roadmap.zh-CN.md) | 阶段划分、完成标准、当前进度 |
+| [基准测试](docs/benchmarks.zh-CN.md) | 支撑设计决策的测量 |
 | [AGENTS.zh-CN.md](AGENTS.zh-CN.md) | AI 编码代理与贡献者的工作规则 |
 
 ## 快速开始

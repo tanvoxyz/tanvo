@@ -12,6 +12,7 @@
 | [docs/development.zh-CN.md](docs/development.zh-CN.md) | 工具链、Nx、Go 模块约定、代码生成、代码质量、CI |
 | [docs/testing.zh-CN.md](docs/testing.zh-CN.md) | 测试分层、移植 lago-api 测试、测试基础设施 |
 | [docs/roadmap.zh-CN.md](docs/roadmap.zh-CN.md) | 阶段划分、完成标准、当前进度 |
+| [docs/benchmarks.zh-CN.md](docs/benchmarks.zh-CN.md) | 支撑设计决策的测量（River 与 Redis 队列），以及如何重新运行 |
 
 ## 项目概览
 

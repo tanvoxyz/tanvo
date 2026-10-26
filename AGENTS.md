@@ -12,6 +12,7 @@ This is the repository working guide for AI coding agents (and new developers). 
 | [docs/development.md](docs/development.md) | Toolchain, Nx, Go module conventions, code generation, code quality, CI |
 | [docs/testing.md](docs/testing.md) | Test layers, porting lago-api tests, test infrastructure |
 | [docs/roadmap.md](docs/roadmap.md) | Phases, completion criteria, current status |
+| [docs/benchmarks.md](docs/benchmarks.md) | Measurements behind design decisions (River and a Redis queue), how to rerun them |
 
 ## Project Overview
 
