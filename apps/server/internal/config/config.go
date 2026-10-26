@@ -1,6 +1,7 @@
 package config
 
 import (
+	"cmp"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -26,6 +27,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/postgres"
 	"github.com/tanvoxyz/tanvo/libs/ingest"
+	"github.com/tanvoxyz/tanvo/libs/jobs"
 	"github.com/tanvoxyz/tanvo/libs/mail"
 	"github.com/tanvoxyz/tanvo/libs/store"
 )
@@ -192,6 +194,18 @@ type Config struct {
 	// SIDEKIQ_ALERTS and SIDEKIQ_WALLETS, app/jobs/usage_monitoring/ and
 	// app/jobs/customers/refresh_wallet_job.rb:6-11).
 	JobsQueueConcurrency []string `koanf:"jobs_queue_concurrency"`
+	// JobsShardConcurrency sets the workers of each shard of queues, as
+	// "queue=workers" pairs ("billing=10"), in place of their concurrency
+	// spread over the shards: one organization's jobs of the queue run at
+	// most that many at once in a process.
+	JobsShardConcurrency []string `koanf:"jobs_shard_concurrency"`
+	// JobsFetchCooldown is the shortest interval between two fetches of a
+	// queue, which caps a shard's throughput in a process at its workers
+	// per cooldown; 0 is the library default (25 ms).
+	JobsFetchCooldown time.Duration `koanf:"jobs_fetch_cooldown"`
+	// JobsFetchPollInterval is how often a queue is fetched when no insert
+	// notification arrives; 0 is River's default (1 s).
+	JobsFetchPollInterval time.Duration `koanf:"jobs_fetch_poll_interval"`
 
 	// SubscriptionTerminationAlertDays are the days before its ending_at
 	// a subscription gets subscription.termination_alert (lago
@@ -576,6 +590,7 @@ func (c *Config) normalize() {
 	c.Role = trimAll(c.Role)
 	c.WorkerQueues = trimAll(c.WorkerQueues)
 	c.JobsQueueConcurrency = trimAll(c.JobsQueueConcurrency)
+	c.JobsShardConcurrency = trimAll(c.JobsShardConcurrency)
 	c.KafkaBrokers = trimAll(c.KafkaBrokers)
 	c.IngestKafkaOrganizations = trimAll(c.IngestKafkaOrganizations)
 	c.IngestPostgresOrganizations = trimAll(c.IngestPostgresOrganizations)
@@ -691,6 +706,15 @@ func (c Config) Validate() error {
 	}
 	if _, err := c.QueueConcurrency(); err != nil {
 		bad("jobs_queue_concurrency", "%v", err)
+	}
+	if _, err := c.ShardConcurrency(); err != nil {
+		bad("jobs_shard_concurrency", "%v", err)
+	}
+	if d := c.JobsFetchCooldown; d != 0 && (d < time.Millisecond || d > 10*time.Second) {
+		bad("jobs_fetch_cooldown", "%s: want 0 or between 1ms and 10s", d)
+	}
+	if d := c.JobsFetchPollInterval; d != 0 && (d < cmp.Or(c.JobsFetchCooldown, jobs.DefaultFetchCooldown) || d > time.Hour) {
+		bad("jobs_fetch_poll_interval", "%s: want 0 or between the fetch cooldown and 1h", d)
 	}
 	if m := ingest.Mode(c.IngestMode); m != ingest.ModePostgres && m != ingest.ModeKafka {
 		bad("ingest_mode", "%q: want postgres or kafka", c.IngestMode)
@@ -883,8 +907,19 @@ func (c Config) Queues() []port.Queue {
 // JobsQueueConcurrency by queue, or an error naming the first malformed
 // pair: an unknown or repeated queue, or workers not in [1, 10000].
 func (c Config) QueueConcurrency() (map[port.Queue]int, error) {
+	return queueWorkers(c.JobsQueueConcurrency)
+}
+
+// ShardConcurrency returns the workers per shard of JobsShardConcurrency
+// by queue, with the errors of [Config.QueueConcurrency].
+func (c Config) ShardConcurrency() (map[port.Queue]int, error) {
+	return queueWorkers(c.JobsShardConcurrency)
+}
+
+// queueWorkers parses "queue=workers" pairs.
+func queueWorkers(pairs []string) (map[port.Queue]int, error) {
 	out := map[port.Queue]int{}
-	for _, kv := range c.JobsQueueConcurrency {
+	for _, kv := range pairs {
 		name, n, ok := strings.Cut(kv, "=")
 		q := port.Queue(strings.TrimSpace(name))
 		if !ok || !q.Valid() {

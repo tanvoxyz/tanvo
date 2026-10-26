@@ -140,3 +140,27 @@ func TestFairnessDelay(t *testing.T) {
 		t.Errorf("buckets = %d, want eviction to bound them", len(f.buckets))
 	}
 }
+
+func TestWorkersPerShard(t *testing.T) {
+	t.Parallel()
+	for _, tt := range []struct {
+		name string
+		c    QueueConfig
+		want int
+	}{
+		{"spread", QueueConfig{Concurrency: 20, Shards: 4}, 5},
+		{"rounded up", QueueConfig{Concurrency: 10, Shards: 4}, 3},
+		{"at least one", QueueConfig{Concurrency: 1, Shards: 4}, 1},
+		{"per shard", QueueConfig{Concurrency: 20, Shards: 4, ShardConcurrency: 12}, 12},
+	} {
+		if got := tt.c.workersPerShard(); got != tt.want {
+			t.Errorf("%s: workersPerShard() got = %d, want = %d", tt.name, got, tt.want)
+		}
+	}
+	for _, n := range []int{-1, 10_001} {
+		c := QueueConfig{Concurrency: 1, Shards: 1, ShardConcurrency: n}
+		if err := c.validate(port.QueueDefault); !errors.Is(err, core.ErrInvalidValue) {
+			t.Errorf("validate() with shard concurrency %d got = %v, want = %v", n, err, core.ErrInvalidValue)
+		}
+	}
+}

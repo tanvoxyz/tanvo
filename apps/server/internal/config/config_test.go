@@ -52,6 +52,9 @@ func TestLoadTypes(t *testing.T) {
 		"TANVO_DAILY_USAGE_SCHEDULING_JITTER=10m",
 		"TANVO_DISABLE_EVENTS_VALIDATION=true",
 		"TANVO_JOBS_QUEUE_CONCURRENCY=alerts=20, wallets = 5",
+		"TANVO_JOBS_SHARD_CONCURRENCY=billing=10",
+		"TANVO_JOBS_FETCH_COOLDOWN=10ms",
+		"TANVO_JOBS_FETCH_POLL_INTERVAL=2s",
 		"TANVO_USAGE_BUCKETS_MAX_ROWS_PER_BUCKET=500",
 		"TANVO_USAGE_BUCKETS_IDLE_TTL=720h",
 		"TANVO_CACHE_URL=valkeys://cache.internal:6380/2",
@@ -95,6 +98,12 @@ func TestLoadTypes(t *testing.T) {
 	}
 	if got, err := cfg.QueueConcurrency(); err != nil || !maps.Equal(got, map[port.Queue]int{port.QueueAlerts: 20, port.QueueWallets: 5}) {
 		t.Errorf("QueueConcurrency() got = %v, %v, want = map[alerts:20 wallets:5]", got, err)
+	}
+	if got, err := cfg.ShardConcurrency(); err != nil || !maps.Equal(got, map[port.Queue]int{port.QueueBilling: 10}) {
+		t.Errorf("ShardConcurrency() got = %v, %v, want = map[billing:10]", got, err)
+	}
+	if cfg.JobsFetchCooldown != 10*time.Millisecond || cfg.JobsFetchPollInterval != 2*time.Second {
+		t.Errorf("fetch cooldown and poll interval got = %s %s, want = 10ms 2s", cfg.JobsFetchCooldown, cfg.JobsFetchPollInterval)
 	}
 	if got := cfg.Queues(); !slices.Equal(got, []port.Queue{port.QueueBilling, port.QueueWebhooks}) {
 		t.Errorf("Queues() got = %v, want = [billing webhooks]", got)
@@ -173,6 +182,9 @@ func TestLoadInvalid(t *testing.T) {
 		{"bad queue concurrency queue", []string{dsn, "TANVO_JOBS_QUEUE_CONCURRENCY=nope=2"}, "TANVO_JOBS_QUEUE_CONCURRENCY"},
 		{"bad queue concurrency workers", []string{dsn, "TANVO_JOBS_QUEUE_CONCURRENCY=alerts=0"}, "TANVO_JOBS_QUEUE_CONCURRENCY"},
 		{"repeated queue concurrency", []string{dsn, "TANVO_JOBS_QUEUE_CONCURRENCY=alerts=2,alerts=3"}, "given twice"},
+		{"bad shard concurrency", []string{dsn, "TANVO_JOBS_SHARD_CONCURRENCY=billing=0"}, "TANVO_JOBS_SHARD_CONCURRENCY"},
+		{"fetch cooldown too short", []string{dsn, "TANVO_JOBS_FETCH_COOLDOWN=100us"}, "TANVO_JOBS_FETCH_COOLDOWN"},
+		{"poll interval under the cooldown", []string{dsn, "TANVO_JOBS_FETCH_POLL_INTERVAL=10ms"}, "TANVO_JOBS_FETCH_POLL_INTERVAL"},
 		{"bad mode", []string{dsn, "TANVO_INGEST_MODE=sqs"}, "TANVO_INGEST_MODE"},
 		{"bad role", []string{dsn, "TANVO_ROLE=web"}, "TANVO_ROLE"},
 		{"bad org", []string{dsn, "TANVO_INGEST_KAFKA_ORGANIZATIONS=acme"}, "not an organization ID"},

@@ -53,9 +53,13 @@ type Config struct {
 	// JobTimeout bounds an attempt of kinds without their own timeout; 0
 	// is 30 minutes.
 	JobTimeout time.Duration
-	// FetchCooldown and FetchPollInterval tune how often workers look for
-	// jobs; 0 keeps River's defaults (100 ms, 1 s).
-	FetchCooldown, FetchPollInterval time.Duration
+	// FetchCooldown is the shortest interval between two fetches of a
+	// queue, which bounds the queue's throughput in a process to its
+	// workers per cooldown; 0 is [DefaultFetchCooldown].
+	FetchCooldown time.Duration
+	// FetchPollInterval is how often a queue is fetched when no insert
+	// notification arrives; 0 keeps River's default (1 s).
+	FetchPollInterval time.Duration
 	// ListenerPool, when set, gives the connection River holds in the
 	// LISTEN state for its notifications (new jobs, leadership, queue
 	// controls), so that the client's pool may go through a pooler in
@@ -112,7 +116,7 @@ func New(pool *pgxpool.Pool, reg *Registry, cfg Config) (*Client, error) {
 		Workers:           reg.workers,
 		JobTimeout:        cmp.Or(cfg.JobTimeout, 30*time.Minute),
 		MaxAttempts:       DefaultMaxAttempts,
-		FetchCooldown:     cfg.FetchCooldown,
+		FetchCooldown:     cmp.Or(cfg.FetchCooldown, DefaultFetchCooldown),
 		FetchPollInterval: cfg.FetchPollInterval,
 		Logger:            cfg.Logger,
 		Middleware:        slices.Clone(cfg.Middleware),

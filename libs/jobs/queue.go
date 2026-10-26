@@ -37,6 +37,10 @@ type QueueConfig struct {
 	// MaxAttempts is the attempt bound of jobs whose kind and enqueue do
 	// not set one.
 	MaxAttempts int
+	// ShardConcurrency, when positive, is the number of jobs each shard
+	// runs at once in one process, in place of Concurrency spread over the
+	// shards; it bounds one organization's jobs on the queue.
+	ShardConcurrency int
 }
 
 // DefaultMaxAttempts is the attempt bound of a job when neither the job,
@@ -53,6 +57,13 @@ const DefaultMaxAttempts = 1
 // workload queue does not delay the schedule, a long scan does not hold a
 // workload worker, and one tenant's failure does not stop the others.
 const ClockQueue port.Queue = "clock"
+
+// DefaultFetchCooldown is the shortest interval between two fetches of a
+// queue when [Config.FetchCooldown] is 0. River's own default, 100 ms,
+// caps a shard of 5 workers at 50 short jobs a second in a process; 25 ms
+// raises that to 200 without the fetches contending with the inserts, as
+// shorter cooldowns do.
+const DefaultFetchCooldown = 25 * time.Millisecond
 
 // DefaultClockConcurrency is the number of periodic jobs one process runs
 // at once on [ClockQueue] when [Config.ClockConcurrency] is 0.
@@ -89,12 +100,17 @@ func (c QueueConfig) validate(q port.Queue) error {
 		return fmt.Errorf("jobs: queue %s: rate %g burst %d: %w", q, c.Rate, c.Burst, core.ErrInvalidValue)
 	case c.MaxAttempts < 0:
 		return fmt.Errorf("jobs: queue %s: max attempts %d: %w", q, c.MaxAttempts, core.ErrInvalidValue)
+	case c.ShardConcurrency < 0 || c.ShardConcurrency > 10_000:
+		return fmt.Errorf("jobs: queue %s: shard concurrency %d: %w", q, c.ShardConcurrency, core.ErrInvalidValue)
 	}
 	return nil
 }
 
 // workersPerShard is the River MaxWorkers of each shard.
 func (c QueueConfig) workersPerShard() int {
+	if c.ShardConcurrency > 0 {
+		return c.ShardConcurrency
+	}
 	return max(1, (c.Concurrency+c.Shards-1)/c.Shards)
 }
 

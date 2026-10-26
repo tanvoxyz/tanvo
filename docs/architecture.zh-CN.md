@@ -325,7 +325,8 @@ POST /v1/events, /v1/events:batch
 * 周期任务（对账、过期、催收、清理）是由 River 选举出的领导者插入的 River 周期任务；不需要单独的时钟进程。它们运行在独立的 `clock` 队列上，不分片、不使用令牌桶，由每个携带调度表的进程消费。周期任务只做扫描和分发：它把到期的工作作为相关组织的任务放入各工作负载队列，以本次触发的时间作为这些任务的"当前时间"，并带上唯一键，使积压期间的多次触发不会产生重复任务。因此工作负载队列的积压不会推迟调度，一个组织的失败也不会阻止其他组织。受行级安全约束的表的保留期清理同样按组织分发任务（webhook 投递）；其余清理的分批删除直接在周期任务中执行。除 lago-api 的调度表外，Tanvo 还有自己的周期任务：webhook 扫描，以及用量桶的修复、报告与清扫（§7.4、§11）。
 * **租户公平**：任务带有其所属组织；通过按组织哈希对队列分片，以及在入队时使用令牌桶，限制每个组织的并发，使一个租户无法使其他租户饥饿。令牌桶按进程计，因此有多个 API 副本时，一个组织的实际速率是各副本速率之和。集成同步任务按组织共用 5 个并发槽位（`port.Slots`），使一个组织的积压不会占住其他组织的槽位。槽位是 TTL 为 30 秒的租约，持有者每 10 秒续租一次，因此崩溃的持有者的槽位会自行释放：在 PostgreSQL 中是 `concurrency_slots` 表的行，设置 `TANVO_CACHE_URL` 时是缓存服务器上的有序集合（§13.6）。没有空闲槽位的任务推迟一秒；后端无应答而取不到槽位的任务记录警告并推迟五秒，两者都不消耗尝试次数。
 * 逐事件的工作（富化、ClickHouse 写入）在 Kafka 消费者中运行，而不在 River 中；消费者把逐事件的计费（预付计费项）与按订阅的活动作为 River 任务入队。
-* 基于 Redis 的队列是以后的选项，位于同一个窄接口之后（经由 outbox 的事务内入队、延迟、周期任务与唯一任务）；只有在测量表明 PostgreSQL 成为瓶颈时才会加入。
+* **取任务**：River 每个取任务冷却期最多取一次某个队列，取走与空闲 worker 数相同的任务，因此在一个进程中，一个分片每个冷却期最多运行其 worker 数个任务，无论任务多轻。冷却期为 25 ms（`TANVO_JOBS_FETCH_COOLDOWN`；River 自己的默认值 100 ms 会把 5 个 worker 的分片限制在每秒 50 个任务）；更短的冷却期会使取任务与插入互相争用。`TANVO_JOBS_SHARD_CONCURRENCY` 设置队列每个分片的 worker 数，即一个组织的任务在一个进程中的上限。
+* 基于 Redis 的队列是以后的选项，位于同一个窄接口之后（经由 outbox 的事务内入队、延迟、周期任务与唯一任务）；只有在测量表明 PostgreSQL 成为瓶颈时才会加入。目前的测量（[基准测试 §1](benchmarks.zh-CN.md#1-任务队列river-与-redis-队列)）表明，调好冷却期的 River 在吞吐上与 Valkey Streams 队列相当，两者都受限于入队的 PostgreSQL 事务；而事务性的 Redis 队列（经由 outbox）的尾部延迟与 River 相同。
 
 ---
 
@@ -453,6 +454,9 @@ POST /v1/events, /v1/events:batch
 | `TANVO_JOBS_DISABLE_PERIODIC` | `false` | 不让 worker 参与周期调度 |
 | `TANVO_JOBS_CLOCK_CONCURRENCY` | 库默认值 | clock 队列的并发度 |
 | `TANVO_JOBS_QUEUE_CONCURRENCY` | 库默认值 | 以逗号分隔的 `queue=n`，覆盖工作负载队列的并发度（1 到 10000），例如 `alerts=20,wallets=5` |
+| `TANVO_JOBS_SHARD_CONCURRENCY` | 队列并发度分摊到各分片 | 以逗号分隔的 `queue=n`，每个分片的 worker 数（1 到 10000），取代分摊到各分片的并发度，例如 `billing=10`（§9） |
+| `TANVO_JOBS_FETCH_COOLDOWN` | `25ms` | 两次取同一队列之间的最短间隔（1 ms 到 10 s）；一个分片每个冷却期最多运行其 worker 数个任务（§9） |
+| `TANVO_JOBS_FETCH_POLL_INTERVAL` | `1s` | 没有插入通知时取队列的频率（从冷却期到 1 h） |
 | `TANVO_SUBSCRIPTION_TERMINATION_ALERT_DAYS` | `15,45` | 订阅在结束日期前多少天收到 `subscription.termination_alert`（逗号分隔）；为空则不发送 |
 | `TANVO_DAILY_USAGE_SCHEDULING_JITTER` | 30 分钟 | 每小时一次运行中的每日用量计算所分散的时间窗口 |
 | `TANVO_USAGE_CACHE_ENTRIES` | `100000` | 没有缓存服务器时每个服务进程保留的当前用量计费桶数（§8、§13.6）；`0` 关闭缓存 |

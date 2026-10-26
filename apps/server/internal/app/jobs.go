@@ -265,11 +265,13 @@ func (h jobHandlers) registerUsageBuckets(reg *jobs.Registry) error {
 // is not nil (TANVO_DATABASE_DIRECT_URL), of pool otherwise.
 func newJobs(pool, listener *pgxpool.Pool, reg *jobs.Registry, cfg config.Config, roles config.Roles, manualClock bool, log *slog.Logger, tp trace.TracerProvider, mp metric.MeterProvider) (*jobs.Client, error) {
 	jc := jobs.Config{
-		Schema:           cfg.JobsSchema,
-		ListenerPool:     listener,
-		DisablePeriodic:  cfg.JobsDisablePeriodic,
-		ClockConcurrency: cfg.JobsClockConcurrency,
-		Logger:           log,
+		Schema:            cfg.JobsSchema,
+		ListenerPool:      listener,
+		DisablePeriodic:   cfg.JobsDisablePeriodic,
+		FetchCooldown:     cfg.JobsFetchCooldown,
+		FetchPollInterval: cfg.JobsFetchPollInterval,
+		ClockConcurrency:  cfg.JobsClockConcurrency,
+		Logger:            log,
 		Middleware: []rivertype.Middleware{
 			otelriver.NewMiddleware(&otelriver.MiddlewareConfig{
 				TracerProvider:         tp,
@@ -293,12 +295,24 @@ func newJobs(pool, listener *pgxpool.Pool, reg *jobs.Registry, cfg config.Config
 	if err != nil {
 		return nil, fmt.Errorf("jobs: %w", err)
 	}
-	if len(workers) > 0 {
+	perShard, err := cfg.ShardConcurrency()
+	if err != nil {
+		return nil, fmt.Errorf("jobs: %w", err)
+	}
+	if len(workers) > 0 || len(perShard) > 0 {
 		defaults := jobs.DefaultQueues()
 		jc.Queues = map[port.Queue]jobs.QueueConfig{}
 		for q, n := range workers {
 			qc := defaults[q]
 			qc.Concurrency = n
+			jc.Queues[q] = qc
+		}
+		for q, n := range perShard {
+			qc, ok := jc.Queues[q]
+			if !ok {
+				qc = defaults[q]
+			}
+			qc.ShardConcurrency = n
 			jc.Queues[q] = qc
 		}
 	}
