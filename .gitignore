@@ -10,6 +10,7 @@ dist/
 /bin/
 /tools/speccov/speccov
 /tools/queuebench/qb
+/tools/queuebench/queuebench
 target/
 *.test
 *.out
