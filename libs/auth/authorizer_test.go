@@ -24,6 +24,7 @@ func TestAPIResourceFor(t *testing.T) {
 		{"billable_metrics:update", permission.APIResourceBillableMetric, permission.LevelWrite, true},
 		{"addons:read", permission.APIResourceAddOn, permission.LevelRead, true},
 		{"analytics:read", permission.APIResourceAnalytic, permission.LevelRead, true},
+		{"data_api:read", permission.APIResourceAnalytic, permission.LevelRead, true},
 		{"audit_logs:view", permission.APIResourceActivityLog, permission.LevelWrite, true},
 		{"billing_entities:read", permission.APIResourceBillingEntity, permission.LevelRead, true},
 		{"charges:create", permission.APIResourcePlan, permission.LevelWrite, true},

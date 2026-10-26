@@ -71,6 +71,11 @@ func apiResourceOverride(res string) (permission.APIResource, bool) {
 		return permission.APIResourceActivityLog, true
 	case "billing_entities":
 		return permission.APIResourceBillingEntity, true
+	case "data_api":
+		// API keys read the Data API through the analytics resource,
+		// as lago's Data API controllers authorize "analytic"
+		// (app/controllers/api/v1/data_api/base_controller.rb:9).
+		return permission.APIResourceAnalytic, true
 	case "charges":
 		return permission.APIResourcePlan, true
 	case "organization:taxes":
