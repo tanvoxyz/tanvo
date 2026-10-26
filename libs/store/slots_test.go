@@ -4,7 +4,10 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/tanvoxyz/tanvo/libs/core"
+	"github.com/tanvoxyz/tanvo/libs/store"
 )
 
 func TestAcquireSlot(t *testing.T) {
@@ -35,5 +38,37 @@ func TestAcquireSlot(t *testing.T) {
 	held[1]()
 	if _, _, err := s.AcquireSlot(ctx, "integrations", 0); !errors.Is(err, core.ErrInvalidValue) {
 		t.Errorf("limit 0: error got = %v, want = %v", err, core.ErrInvalidValue)
+	}
+}
+
+// TestAcquireSlotSessionPool checks that a slot holds a connection of the
+// session pool, not of the store's pool, when the store has one.
+func TestAcquireSlotSessionPool(t *testing.T) {
+	main := open(t, true)
+	ctx := t.Context()
+	session, err := pgxpool.New(ctx, main.Pool().Config().ConnString())
+	if err != nil {
+		t.Fatalf("pgxpool.New() error got = %v, want = nil", err)
+	}
+	t.Cleanup(session.Close)
+	s := store.New(main.Pool(), store.WithSessionPool(session))
+	release, ok, err := s.AcquireSlot(ctx, "integrations", 1)
+	if err != nil || !ok {
+		t.Fatalf("slot: got = %v, %v, want = taken", ok, err)
+	}
+	if got := session.Stat().AcquiredConns(); got != 1 {
+		t.Errorf("session pool acquired conns got = %d, want = 1", got)
+	}
+	if got := main.Pool().Stat().AcquiredConns(); got != 0 {
+		t.Errorf("store pool acquired conns got = %d, want = 0", got)
+	}
+	// The lock is the database's: a store without the session pool sees
+	// the slot taken.
+	if _, ok, err := main.AcquireSlot(ctx, "integrations", 1); err != nil || ok {
+		t.Errorf("slot through the store's pool: got = %v, %v, want = not taken", ok, err)
+	}
+	release()
+	if got := session.Stat().AcquiredConns(); got != 0 {
+		t.Errorf("session pool acquired conns after release got = %d, want = 0", got)
 	}
 }

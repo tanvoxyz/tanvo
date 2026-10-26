@@ -15,13 +15,18 @@ const slotReleaseTimeout = 5 * time.Second
 // AcquireSlot takes one of the limit slots named name, shared by every
 // process on the database, and returns the function that frees it; ok is
 // false, with nothing held, when all are taken. A slot is a session
-// advisory lock held on a connection taken from the pool until release,
-// so a crashed holder frees it with its connection.
+// advisory lock held on a connection taken from the session pool
+// ([WithSessionPool]), or else from the store's pool, until release, so a
+// crashed holder frees it with its connection.
 func (s *Store) AcquireSlot(ctx context.Context, name string, limit int) (release func(), ok bool, err error) {
 	if name == "" || limit < 1 {
 		return nil, false, fmt.Errorf("slot %q: %w", name, core.ErrInvalidValue)
 	}
-	conn, err := s.pool.Acquire(ctx)
+	pool := s.pool
+	if s.session != nil {
+		pool = s.session
+	}
+	conn, err := pool.Acquire(ctx)
 	if err != nil {
 		return nil, false, fmt.Errorf("slot %s: %w", name, mapErr(err))
 	}
