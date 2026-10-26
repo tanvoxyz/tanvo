@@ -73,7 +73,10 @@ type billingJobs struct {
 	// clock, when set, is the instant of the clock jobs instead of their
 	// tick (a test hook: [Options.Clock]).
 	clock core.Clock
-	log   *slog.Logger
+	// barrier holds the periodic billing of the organizations that
+	// ingest through Kafka; nil bills at once.
+	barrier *ingestBarrier
+	log     *slog.Logger
 }
 
 // clockDispatch is a periodic job of the billing schedule: it lists the
@@ -209,6 +212,9 @@ func (b billingJobs) register(reg *jobs.Registry) error {
 
 // run runs a billing job with the engine.
 func (b billingJobs) run(ctx context.Context, j *jobs.Job[json.RawMessage]) error {
+	if err := b.barrier.wait(ctx, j); err != nil {
+		return err
+	}
 	args := j.Args
 	if len(args) == 0 {
 		args = json.RawMessage(`{}`)

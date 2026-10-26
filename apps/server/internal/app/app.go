@@ -196,7 +196,24 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	}
 	pay.bind(a.billing)
 	integ.bind(a.billing)
+	// Kafka: the producer of the API, the client of the consumers, and the
+	// ingestion barrier of the workers' periodic billing.
+	ktel := kafkaTelemetry{tp: tp, mp: mp, propagator: tel.Propagator}
+	if ((o.Roles.Has(config.RoleAPI) || o.Roles.Has(config.RoleWorker)) && cfg.KafkaUsed()) || o.Roles.Has(config.RoleConsumer) {
+		if a.producer, err = newKafkaClient(cfg, ktel, ""); err != nil {
+			return nil, err
+		}
+		if err := ensureTopics(ctx, cfg, a.producer); err != nil {
+			return nil, err
+		}
+		a.health.add("kafka", a.producer.Ping)
+	}
 	bj := billingJobs{engine: a.billing, tx: a.store, clock: o.Clock, log: a.log}
+	if o.Roles.Has(config.RoleWorker) && cfg.KafkaUsed() {
+		if bj.barrier, err = newIngestBarrier(cfg, a.producer, modeOf, clock, mp, a.log); err != nil {
+			return nil, err
+		}
+	}
 	if err := bj.register(reg); err != nil {
 		return nil, err
 	}
@@ -216,17 +233,7 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		return nil, err
 	}
 
-	// Kafka.
-	ktel := kafkaTelemetry{tp: tp, mp: mp, propagator: tel.Propagator}
-	if (o.Roles.Has(config.RoleAPI) && cfg.KafkaUsed()) || o.Roles.Has(config.RoleConsumer) {
-		if a.producer, err = newKafkaClient(cfg, ktel, ""); err != nil {
-			return nil, err
-		}
-		if err := ensureTopics(ctx, cfg, a.producer); err != nil {
-			return nil, err
-		}
-		a.health.add("kafka", a.producer.Ping)
-	}
+	// The Kafka consumers.
 	if o.Roles.Has(config.RoleConsumer) {
 		if a.consumers, err = newConsumers(cfg, a.store, a.stores.ClickHouse(), a.billing, a.producer, ktel, a.log, a.changes); err != nil {
 			return nil, err

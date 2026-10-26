@@ -263,6 +263,11 @@ type Config struct {
 	// without a read served from it before the daily sweep drops it
 	// (architecture §7.4); 0 drops none for being idle.
 	UsageBucketsIdleTTL time.Duration `koanf:"usage_buckets_idle_ttl"`
+	// BillingIngestBarrierMaxWait bounds how long the periodic billing of
+	// an organization that ingests through Kafka waits for the events
+	// received before its billing instant to reach the event store; 0
+	// bills at once, as in postgres mode.
+	BillingIngestBarrierMaxWait time.Duration `koanf:"billing_ingest_barrier_max_wait"`
 
 	// IngestMode is the default ingestion mode, postgres or kafka.
 	IngestMode string `koanf:"ingest_mode"`
@@ -492,6 +497,7 @@ func Defaults() Config {
 		APIKeyCacheTTL:                   time.Hour,
 		UsageBucketsMaxRowsPerBucket:     10_000,
 		UsageBucketsIdleTTL:              45 * 24 * time.Hour,
+		BillingIngestBarrierMaxWait:      time.Hour,
 	}
 }
 
@@ -663,6 +669,9 @@ func (c Config) Validate() error {
 	}
 	if c.UsageBucketsMaxRowsPerBucket < 0 {
 		bad("usage_buckets_max_rows_per_bucket", "must not be negative")
+	}
+	if d := c.BillingIngestBarrierMaxWait; d < 0 || d > 7*24*time.Hour {
+		bad("billing_ingest_barrier_max_wait", "%s: want between 0 and 168h", d)
 	}
 	if c.UsageBucketsIdleTTL < 0 {
 		bad("usage_buckets_idle_ttl", "must not be negative")

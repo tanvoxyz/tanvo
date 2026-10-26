@@ -52,6 +52,7 @@ require (
 	github.com/tanvoxyz/tanvo/providers/x402 v0.0.0
 	github.com/tanvoxyz/tanvo/providers/xero v0.0.0
 	github.com/twmb/franz-go v1.22.2
+	github.com/twmb/franz-go/pkg/kadm v1.19.0
 	github.com/twmb/franz-go/plugin/kotel v1.7.1
 	github.com/valkey-io/valkey-go v1.0.79
 	go.opentelemetry.io/contrib/bridges/otelslog v0.21.0
@@ -125,7 +126,6 @@ require (
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
-	github.com/twmb/franz-go/pkg/kadm v1.19.0 // indirect
 	github.com/twmb/franz-go/pkg/kmsg v1.15.0 // indirect
 	github.com/valkey-io/valkey-go/valkeyotel v1.0.79 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect

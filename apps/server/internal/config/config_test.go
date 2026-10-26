@@ -55,6 +55,7 @@ func TestLoadTypes(t *testing.T) {
 		"TANVO_JOBS_SHARD_CONCURRENCY=billing=10",
 		"TANVO_JOBS_FETCH_COOLDOWN=10ms",
 		"TANVO_JOBS_FETCH_POLL_INTERVAL=2s",
+		"TANVO_BILLING_INGEST_BARRIER_MAX_WAIT=30m",
 		"TANVO_USAGE_BUCKETS_MAX_ROWS_PER_BUCKET=500",
 		"TANVO_USAGE_BUCKETS_IDLE_TTL=720h",
 		"TANVO_CACHE_URL=valkeys://cache.internal:6380/2",
@@ -104,6 +105,9 @@ func TestLoadTypes(t *testing.T) {
 	}
 	if cfg.JobsFetchCooldown != 10*time.Millisecond || cfg.JobsFetchPollInterval != 2*time.Second {
 		t.Errorf("fetch cooldown and poll interval got = %s %s, want = 10ms 2s", cfg.JobsFetchCooldown, cfg.JobsFetchPollInterval)
+	}
+	if cfg.BillingIngestBarrierMaxWait != 30*time.Minute {
+		t.Errorf("BillingIngestBarrierMaxWait got = %s, want = 30m", cfg.BillingIngestBarrierMaxWait)
 	}
 	if got := cfg.Queues(); !slices.Equal(got, []port.Queue{port.QueueBilling, port.QueueWebhooks}) {
 		t.Errorf("Queues() got = %v, want = [billing webhooks]", got)
@@ -185,6 +189,7 @@ func TestLoadInvalid(t *testing.T) {
 		{"bad shard concurrency", []string{dsn, "TANVO_JOBS_SHARD_CONCURRENCY=billing=0"}, "TANVO_JOBS_SHARD_CONCURRENCY"},
 		{"fetch cooldown too short", []string{dsn, "TANVO_JOBS_FETCH_COOLDOWN=100us"}, "TANVO_JOBS_FETCH_COOLDOWN"},
 		{"poll interval under the cooldown", []string{dsn, "TANVO_JOBS_FETCH_POLL_INTERVAL=10ms"}, "TANVO_JOBS_FETCH_POLL_INTERVAL"},
+		{"negative barrier wait", []string{dsn, "TANVO_BILLING_INGEST_BARRIER_MAX_WAIT=-1s"}, "TANVO_BILLING_INGEST_BARRIER_MAX_WAIT"},
 		{"bad mode", []string{dsn, "TANVO_INGEST_MODE=sqs"}, "TANVO_INGEST_MODE"},
 		{"bad role", []string{dsn, "TANVO_ROLE=web"}, "TANVO_ROLE"},
 		{"bad org", []string{dsn, "TANVO_INGEST_KAFKA_ORGANIZATIONS=acme"}, "not an organization ID"},
