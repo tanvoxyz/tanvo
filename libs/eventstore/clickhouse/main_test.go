@@ -88,7 +88,7 @@ func database(t testing.TB) driver.Conn {
 
 func truncate(t testing.TB) {
 	t.Helper()
-	for _, table := range []string{"events_enriched", "events_raw", "usage_buckets_15m", "usage_bucket_definitions", "usage_bucket_blocks", "usage_bucket_reads", "bucket_repairs", "events_dead_letter", "security_logs", "api_logs", "activity_logs"} {
+	for _, table := range []string{"events_enriched", "events_raw", "usage_buckets_15m", "usage_bucket_definitions", "usage_bucket_blocks", "usage_bucket_reads", "bucket_repairs", "events_dead_letter", "events_dead_letter_replays", "security_logs", "api_logs", "activity_logs"} {
 		if err := testDB.conn.Exec(context.Background(), "TRUNCATE TABLE "+table); err != nil {
 			t.Fatal(err)
 		}

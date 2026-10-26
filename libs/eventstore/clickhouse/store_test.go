@@ -2,13 +2,17 @@ package clickhouse_test
 
 import (
 	"context"
+	"errors"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/clickhouse"
 	"github.com/tanvoxyz/tanvo/libs/metering"
 	"github.com/tanvoxyz/tanvo/libs/metering/storetest"
+	"github.com/tanvoxyz/tanvo/libs/money"
 )
 
 func TestConformance(t *testing.T) {
@@ -119,5 +123,38 @@ func TestWriteKeepsMetadata(t *testing.T) {
 	}
 	if got := (metering.EventMetadata{UserAgent: ua, IPAddress: ip}); got != e.Metadata {
 		t.Errorf("stored metadata got = %+v, want = %+v", got, e.Metadata)
+	}
+}
+
+// A value its column cannot hold is a rejection, which a writer isolates;
+// the other events of the store's batch are stored once written alone.
+func TestWriteRejects(t *testing.T) {
+	ctx := context.Background()
+	store := clickhouse.New(database(t))
+	march := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	huge := money.MustParse("1" + strings.Repeat("0", 60)) // Decimal(76, 26) holds 50 integer digits
+	poison := event("poison", march)
+	poison.PreciseTotalAmountCents = &huge
+	_, err := store.Write(ctx, []metering.Event{event("a", march), poison})
+	if !errors.Is(err, core.ErrInvalidValue) {
+		t.Fatalf("write error got = %v, want = %v", err, core.ErrInvalidValue)
+	}
+	noOrg := event("b", march)
+	noOrg.OrganizationID = ""
+	if _, err := store.Write(ctx, []metering.Event{noOrg}); !errors.Is(err, core.ErrInvalidValue) {
+		t.Errorf("write without organization error got = %v, want = %v", err, core.ErrInvalidValue)
+	}
+	if _, err := store.Write(ctx, []metering.Event{event("a", march)}); err != nil {
+		t.Fatal(err)
+	}
+	n, err := store.Count(ctx, metering.Query{OrganizationID: "org", SubscriptionID: "sub", Code: "code", From: march, To: march.Add(time.Hour)})
+	if err != nil || n != 1 {
+		t.Errorf("count got = %d, %v, want = 1", n, err)
+	}
+	// A failure of the server is not a rejection.
+	cctx, cancel := context.WithCancel(ctx)
+	cancel()
+	if _, err := store.Write(cctx, []metering.Event{event("c", march)}); err == nil || errors.Is(err, core.ErrInvalidValue) {
+		t.Errorf("canceled write error got = %v, want = a failure that is not a rejection", err)
 	}
 }

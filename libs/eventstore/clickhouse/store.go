@@ -221,10 +221,15 @@ func (s *Store) lookup(ctx context.Context, org string, subs, ids []string, out 
 // into them, and recomputes those of the duplicates whose stored copy is
 // within the heal window and above every event their bucket holds (the
 // copies of a write that failed before its maintenance).
+//
+// An error wrapping core.ErrInvalidValue means that the store rejects a
+// value of the events (an event without an organization, a value its
+// column cannot hold): writing the same events fails again, and the
+// ledger holds none of them.
 func (s *Store) Write(ctx context.Context, events []metering.Event) ([]int, error) {
 	rows, err := ingest.Prepare(events, s.now())
 	if err != nil {
-		return nil, fmt.Errorf("eventstore: clickhouse: write: %w", err)
+		return nil, fmt.Errorf("eventstore: clickhouse: write: %w", rejection(err))
 	}
 	kept, duplicates := ingest.FirstPerTransaction(rows)
 	if len(kept) == 0 {
@@ -255,7 +260,7 @@ func (s *Store) Write(ctx context.Context, events []metering.Event) ([]int, erro
 	if len(accepted) > 0 {
 		stored = s.rows(accepted)
 		if err := s.insert(consistent(ctx), stored, false); err != nil {
-			return nil, fmt.Errorf("eventstore: clickhouse: write: %w", err)
+			return nil, fmt.Errorf("eventstore: clickhouse: write: %w", rejection(err))
 		}
 	}
 	if err := s.maintain(ctx, stored, nil, heal); err != nil {

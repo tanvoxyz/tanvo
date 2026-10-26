@@ -211,6 +211,22 @@ CREATE TABLE IF NOT EXISTS events_dead_letter (
 ENGINE = MergeTree
 ORDER BY (organization_id, subscription_id, code, transaction_id, timestamp, ingested_at)
 ;
+-- The replays of the dead letters (tanvo events replay-dead-letters): the
+-- original message of a dead letter, by its topic, partition and offset,
+-- was produced again to its topic at replayed_at. A dead letter whose
+-- original message has a replay is not replayed again, and a dead letter
+-- stored twice is replayed once. ReplacingMergeTree keeps one row per
+-- message, the latest replay.
+CREATE TABLE IF NOT EXISTS events_dead_letter_replays (
+    organization_id String,
+    topic String,
+    partition Int32,
+    offset Int64,
+    replayed_at DateTime64(6, 'UTC')
+)
+ENGINE = ReplacingMergeTree(replayed_at)
+ORDER BY (organization_id, topic, partition, offset)
+;
 -- The audit logs (parity §1.45) of installations running ClickHouse: the
 -- security, API and activity logs moved here from PostgreSQL, which holds
 -- them in the transaction of their change until they are moved
