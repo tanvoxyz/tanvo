@@ -39,6 +39,7 @@ require (
 	github.com/tanvoxyz/tanvo/libs/webhooks v0.0.0
 	github.com/tanvoxyz/tanvo/providers/adyen v0.0.0
 	github.com/tanvoxyz/tanvo/providers/anrok v0.0.0
+	github.com/tanvoxyz/tanvo/providers/apiclient v0.0.0
 	github.com/tanvoxyz/tanvo/providers/avalara v0.0.0
 	github.com/tanvoxyz/tanvo/providers/cashfree v0.0.0
 	github.com/tanvoxyz/tanvo/providers/flutterwave v0.0.0
@@ -119,7 +120,6 @@ require (
 	github.com/stripe/stripe-go/v84 v84.4.1 // indirect
 	github.com/tanvoxyz/tanvo/libs/expression/go v0.0.0 // indirect
 	github.com/tanvoxyz/tanvo/libs/pricing v0.0.0 // indirect
-	github.com/tanvoxyz/tanvo/providers/apiclient v0.0.0 // indirect
 	github.com/tetratelabs/wazero v1.12.0 // indirect
 	github.com/tidwall/gjson v1.19.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect

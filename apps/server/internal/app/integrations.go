@@ -23,6 +23,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/jobs"
 	"github.com/tanvoxyz/tanvo/libs/webhooks"
 	"github.com/tanvoxyz/tanvo/providers/anrok"
+	"github.com/tanvoxyz/tanvo/providers/apiclient"
 	"github.com/tanvoxyz/tanvo/providers/avalara"
 	"github.com/tanvoxyz/tanvo/providers/hubspot"
 	"github.com/tanvoxyz/tanvo/providers/netsuite"
@@ -61,18 +62,18 @@ const throttledSnooze = time.Second
 // the installation secret. Its sync triggers are bound to triggers, the
 // webhook emitter of the billing and payments services.
 func newIntegrations(cfg config.Config, tx port.Transactor, clock core.Clock, log *slog.Logger, tp trace.TracerProvider, mp metric.MeterProvider,
-	gocardlessOAuth integration.OAuthGateway, triggers *syncTriggers, blobs port.BlobStore, draftTaxes port.Cache,
+	gocardlessOAuth integration.OAuthGateway, triggers *syncTriggers, blobs port.BlobStore, draftTaxes port.Cache, rateLimits apiclient.Counter,
 ) (*integrationsWiring, error) {
 	// The OAuth adapters store their refreshed grants through the
 	// service, made after them.
 	store := &connectionStore{}
 	set, err := port.NewIntegrationProviderSet(
-		anrok.New(anrok.WithTracerProvider(tp), anrok.WithMeterProvider(mp), anrok.WithClock(clock.Now)),
-		avalara.New(avalara.WithTracerProvider(tp), avalara.WithMeterProvider(mp)),
-		netsuite.New(netsuite.WithTracerProvider(tp), netsuite.WithMeterProvider(mp)),
-		xero.New(xero.WithTracerProvider(tp), xero.WithMeterProvider(mp), xero.WithClock(clock.Now), xero.WithConnectionStore(store),
+		anrok.New(anrok.WithTracerProvider(tp), anrok.WithMeterProvider(mp), anrok.WithClock(clock.Now), anrok.WithCounter(rateLimits)),
+		avalara.New(avalara.WithTracerProvider(tp), avalara.WithMeterProvider(mp), avalara.WithCounter(rateLimits)),
+		netsuite.New(netsuite.WithTracerProvider(tp), netsuite.WithMeterProvider(mp), netsuite.WithCounter(rateLimits)),
+		xero.New(xero.WithTracerProvider(tp), xero.WithMeterProvider(mp), xero.WithClock(clock.Now), xero.WithCounter(rateLimits), xero.WithConnectionStore(store),
 			xero.WithOAuthClient(xero.OAuthClient{ClientID: cfg.XeroClientID, ClientSecret: cfg.XeroClientSecret})),
-		hubspot.New(hubspot.WithTracerProvider(tp), hubspot.WithMeterProvider(mp), hubspot.WithClock(clock.Now), hubspot.WithConnectionStore(store),
+		hubspot.New(hubspot.WithTracerProvider(tp), hubspot.WithMeterProvider(mp), hubspot.WithClock(clock.Now), hubspot.WithCounter(rateLimits), hubspot.WithConnectionStore(store),
 			hubspot.WithOAuthClient(hubspot.OAuthClient{ClientID: cfg.HubSpotClientID, ClientSecret: cfg.HubSpotClientSecret})),
 		salesforce.New(),
 		gocardlessOAuth,

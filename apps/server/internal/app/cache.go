@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
@@ -11,6 +12,7 @@ import (
 	"github.com/tanvoxyz/tanvo/apps/server/internal/config"
 	"github.com/tanvoxyz/tanvo/libs/cache"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
+	"github.com/tanvoxyz/tanvo/providers/apiclient"
 )
 
 // Names of the caches, the namespaces of their keys on the shared server
@@ -20,6 +22,8 @@ const (
 	cacheAnalytics = "analytics"
 	cacheDraftTax  = "anrok-draft-taxes"
 	cacheAPIKeys   = "api-keys"
+	// counterRateLimits is the namespace of the provider rate limits.
+	counterRateLimits = "rate-limits"
 )
 
 // memoryCacheEntries bounds the in-process caches whose size is not
@@ -77,6 +81,25 @@ func (c *caches) sharedOnly(name string) port.Cache {
 		return nil
 	}
 	return cache.Namespace(c.shared, name, cache.WithMeterProvider(c.mp))
+}
+
+// counter returns the shared counter of the use name; nil without a
+// shared server, which leaves the count to each process.
+func (c *caches) counter(name string) apiclient.Counter {
+	if c == nil || c.shared == nil {
+		return nil
+	}
+	return namedCounter{v: c.shared, prefix: name + ":"}
+}
+
+// namedCounter is the namespace of a counter on the shared server.
+type namedCounter struct {
+	v      *cache.Valkey
+	prefix string
+}
+
+func (n namedCounter) Incr(ctx context.Context, key string, ttl time.Duration) (int64, error) {
+	return n.v.Incr(ctx, n.prefix+key, ttl)
 }
 
 // close disconnects from the shared server.

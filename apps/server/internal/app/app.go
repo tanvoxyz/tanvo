@@ -160,7 +160,7 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		return nil, err
 	}
 	integ, err := newIntegrations(cfg, a.store, clock, a.log, tp, mp, pay.gocardlessOAuth, triggers, a.blobs.blobOrNil(),
-		a.caches.named(cacheDraftTax, memoryCacheEntries))
+		a.caches.named(cacheDraftTax, memoryCacheEntries), a.caches.counter(counterRateLimits))
 	if err != nil {
 		return nil, err
 	}
