@@ -111,6 +111,47 @@ func TestValkeyPrefix(t *testing.T) {
 	}
 }
 
+func TestValkeyIncr(t *testing.T) {
+	ctx := context.Background()
+	for _, b := range backends(t) {
+		t.Run(b.name, func(t *testing.T) {
+			prefix := uniquePrefix()
+			// Two processes share the counter.
+			one := newValkey(t, b.url, cache.WithPrefix(prefix))
+			two := newValkey(t, b.url, cache.WithPrefix(prefix))
+			var wg sync.WaitGroup
+			for _, v := range []*cache.Valkey{one, two} {
+				for range 10 {
+					wg.Go(func() {
+						if _, err := v.Incr(ctx, "n", time.Minute); err != nil {
+							t.Errorf("Incr(n) error = %v", err)
+						}
+					})
+				}
+			}
+			wg.Wait()
+			if got, err := one.Incr(ctx, "n", time.Minute); err != nil || got != 21 {
+				t.Errorf("Incr(n) = %d, %v, want = 21, nil", got, err)
+			}
+			// The counter expires after the TTL of its first increment.
+			if got, err := one.Incr(ctx, "short", 50*time.Millisecond); err != nil || got != 1 {
+				t.Fatalf("Incr(short) = %d, %v, want = 1, nil", got, err)
+			}
+			if got, _ := one.Incr(ctx, "short", time.Hour); got != 2 {
+				t.Fatalf("Incr(short) again = %d, want = 2", got)
+			}
+			eventually(t, 5*time.Second, "the counter to expire", func() bool {
+				_, ok := one.Get(ctx, "short")
+				return !ok
+			})
+			if got, _ := one.Incr(ctx, "short", time.Hour); got != 1 {
+				t.Errorf("Incr(short) after expiry = %d, want = 1", got)
+			}
+			one.Delete(ctx, "n", "short")
+		})
+	}
+}
+
 func TestValkeyClientSideCache(t *testing.T) {
 	ctx := context.Background()
 	for _, b := range backends(t) {
@@ -231,6 +272,9 @@ func TestValkeyUnreachable(t *testing.T) {
 	v.Delete(ctx, "k")
 	if _, ok := v.Get(ctx, "k"); ok {
 		t.Error("Get(k) ok = true, want = false")
+	}
+	if _, err := v.Incr(ctx, "n", time.Hour); !errors.Is(err, cache.ErrNotConnected) {
+		t.Errorf("Incr() = %v, want = ErrNotConnected", err)
 	}
 	if err := v.Ping(ctx); !errors.Is(err, cache.ErrNotConnected) {
 		t.Errorf("Ping() = %v, want = ErrNotConnected", err)

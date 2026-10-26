@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -48,6 +49,7 @@ type Valkey struct {
 	opt    valkey.ClientOption
 	client atomic.Pointer[valkey.Client]
 
+	incr    *valkey.Lua
 	errs    metric.Int64Counter
 	errAttr map[string]metric.AddOption
 	logs    map[string]*limiter
@@ -191,12 +193,13 @@ func NewValkey(ctx context.Context, rawURL string, opts ...ValkeyOption) (*Valke
 	v := &Valkey{
 		cfg:     cfg,
 		opt:     opt,
+		incr:    valkey.NewLuaScript(incrScript),
 		errs:    errs,
 		errAttr: map[string]metric.AddOption{},
 		logs:    map[string]*limiter{},
 		done:    make(chan struct{}),
 	}
-	for _, op := range []string{"get", "set", "delete", "connect"} {
+	for _, op := range []string{"get", "set", "delete", "incr", "connect"} {
 		v.errAttr[op] = metric.WithAttributeSet(attribute.NewSet(AttrOperation.String(op)))
 		v.logs[op] = &limiter{}
 	}
@@ -329,6 +332,35 @@ func (v *Valkey) Delete(ctx context.Context, keys ...string) {
 			return
 		}
 	}
+}
+
+// incrScript increments KEYS[1] and, on its first increment, makes it
+// expire in ARGV[1] milliseconds: one atomic step, so that a counter never
+// outlives its window (EXPIRE NX needs Redis 7).
+const incrScript = `local n = redis.call('INCR', KEYS[1])
+if n == 1 then redis.call('PEXPIRE', KEYS[1], ARGV[1]) end
+return n`
+
+// Incr adds one to the counter key and returns its new value; the counter
+// starts at zero and expires ttl (at least one millisecond) after its
+// first increment. Unlike the cache methods, a failure is an error, so
+// that the caller can fall back on a count of its own: [ErrNotConnected]
+// until the client has connected, else the command's error, counted and
+// logged as an incr failure.
+func (v *Valkey) Incr(ctx context.Context, key string, ttl time.Duration) (int64, error) {
+	c := v.load()
+	if c == nil {
+		return 0, ErrNotConnected
+	}
+	ctx, cancel := context.WithTimeout(ctx, v.cfg.timeout)
+	defer cancel()
+	ms := max(ttl.Milliseconds(), 1)
+	n, err := v.incr.Exec(ctx, c, []string{v.cfg.prefix + key}, []string{strconv.FormatInt(ms, 10)}).AsInt64()
+	if err != nil {
+		v.fail(ctx, "incr", err)
+		return 0, fmt.Errorf("cache: incr: %w", err)
+	}
+	return n, nil
 }
 
 // Ping checks the server, for diagnostics; the cache works without it, so
