@@ -84,7 +84,7 @@ func (u *UsageCache) Get(ctx context.Context, key string, now time.Time) (UsageC
 	var e UsageCacheEntry
 	if err := cachecodec.Unmarshal(b, &e); err != nil || !now.Before(e.ExpiresAt) {
 		// An entry written by another version or past its end is a miss.
-		u.c.Delete(ctx, key)
+		_ = u.c.Delete(ctx, key) // its failure is the cache's to report
 		return UsageCacheEntry{}, false
 	}
 	return e, true

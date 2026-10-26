@@ -42,7 +42,9 @@ func TestNamespacePrefixes(t *testing.T) {
 			t.Errorf("Get(%s) = %q, %v, want = %q, true", tt.key, got, ok, tt.want)
 		}
 	}
-	a.Delete(ctx, "k", "missing")
+	if err := a.Delete(ctx, "k", "missing"); err != nil {
+		t.Fatal(err)
+	}
 	if _, ok := m.Get(ctx, "a:k"); ok {
 		t.Error("Get(a:k) after a.Delete(k) ok = true, want = false")
 	}

@@ -24,6 +24,10 @@ var (
 	// rule other than a field validation (for example deleting the last
 	// non-expiring API key).
 	ErrNotAllowed = errors.New("not allowed")
+	// ErrUnavailable is returned when a service the operation needs, such
+	// as the shared cache server, does not answer: the operation did not
+	// happen and may be tried again.
+	ErrUnavailable = errors.New("unavailable")
 )
 
 // InvalidEnum returns an error wrapping [ErrInvalidValue] for value s of the

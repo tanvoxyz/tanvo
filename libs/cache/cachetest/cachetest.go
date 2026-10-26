@@ -77,7 +77,9 @@ func Run(t *testing.T, newCache func(t *testing.T) port.Cache, opts ...Option) {
 	t.Run("EmptyValue", func(t *testing.T) {
 		c := newCache(t)
 		for _, v := range [][]byte{{}, nil} {
-			c.Delete(ctx, "k")
+			if err := c.Delete(ctx, "k"); err != nil {
+				t.Fatal(err)
+			}
 			c.Set(ctx, "k", v, long)
 			got, ok := c.Get(ctx, "k")
 			if !ok || len(got) != 0 {
@@ -121,13 +123,21 @@ func Run(t *testing.T, newCache func(t *testing.T) port.Cache, opts ...Option) {
 		for _, k := range []string{"a", "b", "c"} {
 			c.Set(ctx, k, []byte(k), long)
 		}
-		c.Delete(ctx)
-		c.Delete(ctx, "missing")
-		c.Delete(ctx, "a", "missing", "c")
+		if err := c.Delete(ctx); err != nil {
+			t.Fatal(err)
+		}
+		if err := c.Delete(ctx, "missing"); err != nil {
+			t.Fatal(err)
+		}
+		if err := c.Delete(ctx, "a", "missing", "c"); err != nil {
+			t.Fatal(err)
+		}
 		wantMiss(t, c, "a")
 		wantMiss(t, c, "c")
 		want(t, c, "b", []byte("b"))
-		c.Delete(ctx, "b", "b")
+		if err := c.Delete(ctx, "b", "b"); err != nil {
+			t.Fatal(err)
+		}
 		wantMiss(t, c, "b")
 	})
 
@@ -160,7 +170,9 @@ func Run(t *testing.T, newCache func(t *testing.T) port.Cache, opts ...Option) {
 		key := "k \x00\r\n\xff:é"
 		c.Set(ctx, key, []byte("v"), long)
 		want(t, c, key, []byte("v"))
-		c.Delete(ctx, key)
+		if err := c.Delete(ctx, key); err != nil {
+			t.Fatal(err)
+		}
 		wantMiss(t, c, key)
 	})
 
@@ -196,7 +208,9 @@ func Run(t *testing.T, newCache func(t *testing.T) port.Cache, opts ...Option) {
 					case 0, 1:
 						c.Set(ctx, k, []byte(k+"="+strconv.Itoa(w)), long)
 					case 2:
-						c.Delete(ctx, k)
+						if err := c.Delete(ctx, k); err != nil {
+							t.Fatal(err)
+						}
 					}
 					// Any value read was written for the key it is read from.
 					if v, ok := c.Get(ctx, k); ok && !bytes.HasPrefix(v, []byte(k+"=")) {

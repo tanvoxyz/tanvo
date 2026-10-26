@@ -21,6 +21,7 @@ import (
 
 	"github.com/tanvoxyz/tanvo/libs/cache"
 	"github.com/tanvoxyz/tanvo/libs/cache/cachetest"
+	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 	"github.com/tanvoxyz/tanvo/libs/dockertest"
 )
@@ -106,7 +107,9 @@ func TestValkeyPrefix(t *testing.T) {
 			if got, ok := plain.Get(ctx, prefix+"k"); !ok || string(got) != "v" {
 				t.Errorf("Get(%sk) without prefix = %q, %v, want = %q, true", prefix, got, ok, "v")
 			}
-			plain.Delete(ctx, prefix+"k")
+			if err := plain.Delete(ctx, prefix+"k"); err != nil {
+				t.Fatal(err)
+			}
 		})
 	}
 }
@@ -154,7 +157,9 @@ func TestValkeyIncr(t *testing.T) {
 			if got, _ := one.Incr(ctx, "short", time.Hour); got != 1 {
 				t.Errorf("Incr(short) after expiry = %d, want = 1", got)
 			}
-			one.Delete(ctx, "n", "short")
+			if err := one.Delete(ctx, "n", "short"); err != nil {
+				t.Fatal(err)
+			}
 		})
 	}
 }
@@ -179,7 +184,9 @@ func TestValkeyClientSideCache(t *testing.T) {
 				got, ok := reader.Get(ctx, "k")
 				return ok && string(got) == "v2"
 			})
-			writer.Delete(ctx, "k")
+			if err := writer.Delete(ctx, "k"); err != nil {
+				t.Fatal(err)
+			}
 			eventually(t, 5*time.Second, "the reader to miss", func() bool {
 				_, ok := reader.Get(ctx, "k")
 				return !ok
@@ -276,7 +283,9 @@ func TestValkeyUnreachable(t *testing.T) {
 		t.Fatal("Connected() = true, want = false")
 	}
 	v.Set(ctx, "k", []byte("v"), time.Hour)
-	v.Delete(ctx, "k")
+	if err := v.Delete(ctx, "k"); !errors.Is(err, core.ErrUnavailable) || !errors.Is(err, cache.ErrNotConnected) {
+		t.Errorf("Delete() error got = %v, want = %v and %v", err, core.ErrUnavailable, cache.ErrNotConnected)
+	}
 	if _, ok := v.Get(ctx, "k"); ok {
 		t.Error("Get(k) ok = true, want = false")
 	}

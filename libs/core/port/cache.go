@@ -11,11 +11,14 @@ import (
 // every server process shares; apps/server picks one backend for every
 // cache of the installation.
 //
-// A cache is best effort: it may drop any entry at any time, and its
-// failures are misses that the implementation reports itself (logs and
-// metrics), never errors of the request. Readers therefore validate what
-// they read when staleness matters, and writers remove the entries a
-// change invalidates after the change commits.
+// A cache is best effort: it may drop any entry at any time, and the
+// failures of reads and writes are misses that the implementation reports
+// itself (logs and metrics), never errors of the request. Readers
+// therefore validate what they read when staleness matters, and writers
+// remove the entries a change invalidates. A removal is the exception: it
+// returns its failure, since a dropped one leaves an entry that outlives
+// the change; the callers whose entries are not validated when read fail
+// the change on it.
 //
 // Values are opaque bytes; callers encode and decode them, so that every
 // read returns a copy. Keys are namespaced by the caller.
@@ -25,6 +28,7 @@ type Cache interface {
 	// Set stores value under key for ttl, replacing any; a ttl that is
 	// not positive stores nothing.
 	Set(ctx context.Context, key string, value []byte, ttl time.Duration)
-	// Delete removes the keys; missing keys are ignored.
-	Delete(ctx context.Context, keys ...string)
+	// Delete removes the keys; missing keys are ignored. An error wraps
+	// [core.ErrUnavailable] when the cache could not remove them.
+	Delete(ctx context.Context, keys ...string) error
 }

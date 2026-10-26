@@ -103,7 +103,9 @@ func TestMemoryOff(t *testing.T) {
 		}
 		// A nil *Memory stores nothing.
 		m.Set(ctx, "k", []byte("v"), time.Hour)
-		m.Delete(ctx, "k")
+		if err := m.Delete(ctx, "k"); err != nil {
+			t.Fatal(err)
+		}
 		if _, ok := m.Get(ctx, "k"); ok {
 			t.Errorf("nil Memory Get(k) ok = true, want = false")
 		}

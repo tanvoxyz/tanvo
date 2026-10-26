@@ -106,9 +106,9 @@ func (m *Memory) Set(_ context.Context, key string, value []byte, ttl time.Durat
 }
 
 // Delete removes the keys; missing keys are ignored.
-func (m *Memory) Delete(_ context.Context, keys ...string) {
+func (m *Memory) Delete(_ context.Context, keys ...string) error {
 	if m == nil || len(keys) == 0 {
-		return
+		return nil
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -117,6 +117,7 @@ func (m *Memory) Delete(_ context.Context, keys ...string) {
 			m.remove(el)
 		}
 	}
+	return nil
 }
 
 // Len returns the number of entries, expired ones that no Get has removed

@@ -23,6 +23,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	tracenoop "go.opentelemetry.io/otel/trace/noop"
 
+	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
 )
 
@@ -423,14 +424,16 @@ func (v *Valkey) Set(ctx context.Context, key string, value []byte, ttl time.Dur
 
 // Delete removes the keys with UNLINK, one command per key so that the
 // keys of a cluster may live in different slots, sent in one pipeline;
-// missing keys are ignored.
-func (v *Valkey) Delete(ctx context.Context, keys ...string) {
+// missing keys are ignored. A failure, counted and logged, wraps
+// [core.ErrUnavailable], as does [ErrNotConnected] before the client
+// connected.
+func (v *Valkey) Delete(ctx context.Context, keys ...string) error {
 	if len(keys) == 0 {
-		return
+		return nil
 	}
 	c := v.load()
 	if c == nil {
-		return
+		return fmt.Errorf("cache: delete: %w: %w", core.ErrUnavailable, ErrNotConnected)
 	}
 	ctx, cancel := context.WithTimeout(ctx, v.cfg.timeout)
 	defer cancel()
@@ -441,9 +444,10 @@ func (v *Valkey) Delete(ctx context.Context, keys ...string) {
 	for _, res := range c.DoMulti(ctx, cmds...) {
 		if err := res.Error(); err != nil {
 			v.fail(ctx, "delete", err)
-			return
+			return fmt.Errorf("cache: delete: %w: %w", core.ErrUnavailable, err)
 		}
 	}
+	return nil
 }
 
 // incrScript increments KEYS[1] and, on its first increment, makes it

@@ -61,12 +61,13 @@ func (m *Memory) Set(_ context.Context, key string, value []byte, ttl time.Durat
 }
 
 // Delete implements [port.Cache].
-func (m *Memory) Delete(_ context.Context, keys ...string) {
+func (m *Memory) Delete(_ context.Context, keys ...string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, k := range keys {
 		delete(m.entries, k)
 	}
+	return nil
 }
 
 // Len returns the number of entries not expired.

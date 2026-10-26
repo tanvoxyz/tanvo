@@ -101,7 +101,7 @@ func (c *DraftTaxCache) get(ctx context.Context, key string, t *integration.TaxT
 	e, ok := decodeDraftTax(b, t)
 	if !ok || e.Result == nil || !c.now().Before(e.Expires) {
 		// An answer past its TTL, or written by another version, is a miss.
-		c.c.Delete(ctx, key)
+		_ = c.c.Delete(ctx, key) // its failure is the cache's to report
 		return nil, false
 	}
 	return e.Result, true

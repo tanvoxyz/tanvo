@@ -118,17 +118,16 @@ func (n *namespace) Set(ctx context.Context, key string, value []byte, ttl time.
 }
 
 // Delete removes the prefixed keys.
-func (n *namespace) Delete(ctx context.Context, keys ...string) {
+func (n *namespace) Delete(ctx context.Context, keys ...string) error {
 	if len(keys) == 0 {
-		return
+		return nil
 	}
 	if n.prefix == "" {
-		n.c.Delete(ctx, keys...)
-		return
+		return n.c.Delete(ctx, keys...)
 	}
 	prefixed := make([]string, len(keys))
 	for i, k := range keys {
 		prefixed[i] = n.prefix + k
 	}
-	n.c.Delete(ctx, prefixed...)
+	return n.c.Delete(ctx, prefixed...)
 }

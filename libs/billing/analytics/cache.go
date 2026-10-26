@@ -143,7 +143,7 @@ func cached[T any](ctx context.Context, c *Cache, kind string, org core.Organiza
 			return e.Rows, nil
 		}
 		// A report past its TTL, or written by another version, is a miss.
-		c.c.Delete(ctx, key)
+		_ = c.c.Delete(ctx, key) // its failure is the cache's to report
 	}
 	var rows []T
 	enc, leader, err := c.flight.Do(ctx, key, func(context.Context) ([]byte, error) {
