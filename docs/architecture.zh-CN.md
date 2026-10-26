@@ -275,7 +275,7 @@ POST /v1/events, /v1/events:batch
 * **预付计费项**在事件存储之后计费，因为其费用基于已存储的事件聚合：PostgreSQL 路径在摄取事务中完成，Kafka 路径由 ClickHouse 写入者为其写入的记录完成。两者都为每个事件入队一个计费任务，按订阅与 transaction ID 唯一。lago-api 从单独的主题计费，并延迟 15 秒以等待 ClickHouse 合并（`app/consumers/events_charged_in_advance_consumer.rb`、`app/services/events/stores/clickhouse_store.rb:11`）。
 
 ### 7.2 富化
-富化按 `external_subscription_id` / `external_customer_id` 与时间戳把事件解析到其订阅，按 `code` 解析到计费指标，对指标的表达式求值，提取聚合值、分组键与精确金额，并**为每个事件写入一行富化数据**，不含计费项或过滤器列。它只为判断事件是否进入预付计费而查找计费指标的计费项。计费项过滤器在查询用量和维护用量桶时根据原始属性匹配，而不是把一个事件展开成每个过滤器一行：lago-api 正是因此在 2026 年 9 月删除了展开表（`events_enriched_expanded`），因为否则目录一变就要重写已存储的事件，而且行数随过滤器数量增长。API 与摄取消费者在内存中缓存目录（指标、计费项、订阅）。每个改变目录的存储事务都在提交之前调用 `pg_notify('tanvo_catalog_changes', …)`，因此通知在提交时送达，回滚的写入不会发出通知；每个进程都 LISTEN 并逐出该组织的条目，每次（重新）连接时清空整个缓存，写入进程在提交后也会立即逐出。万一仍漏掉通知，TTL 限定了过期时长。外部 ID 被修改的订阅也会驱逐其旧外部 ID。LISTEN 在每个进程中以会话状态占用一个连接，因此 `TANVO_DATABASE_URL` 必须直连 PostgreSQL，或经由会话模式的连接池；事务模式的 PgBouncer 不会把通知投递给监听者。ClickHouse 与 Kafka 模式同样从 PostgreSQL 读取目录，因此同一通道也覆盖它们。
+富化按 `external_subscription_id` / `external_customer_id` 与时间戳把事件解析到其订阅，按 `code` 解析到计费指标，对指标的表达式求值，提取聚合值、分组键与精确金额，并**为每个事件写入一行富化数据**，不含计费项或过滤器列。它只为判断事件是否进入预付计费而查找计费指标的计费项。计费项过滤器在查询用量和维护用量桶时根据原始属性匹配，而不是把一个事件展开成每个过滤器一行：lago-api 正是因此在 2026 年 9 月删除了展开表（`events_enriched_expanded`），因为否则目录一变就要重写已存储的事件，而且行数随过滤器数量增长。API 与摄取消费者在内存中缓存目录（指标、计费项、订阅）。每个改变目录的存储事务都在提交之前调用 `pg_notify('tanvo_catalog_changes', …)`，因此通知在提交时送达，回滚的写入不会发出通知；每个进程都 LISTEN 并逐出该组织的条目，每次（重新）连接时清空整个缓存，写入进程在提交后也会立即逐出。万一仍漏掉通知，TTL 限定了过期时长。外部 ID 被修改的订阅也会驱逐其旧外部 ID。LISTEN 在每个进程中以会话状态占用一个连接，因此设置了 `TANVO_DATABASE_DIRECT_URL` 时它在该连接上运行（§13.2）。ClickHouse 与 Kafka 模式同样从 PostgreSQL 读取目录，因此同一通道也覆盖它们。
 
 由于富化行不带计费项或过滤器，目录变更不会改写任何已存储的事件。在指标存在之前摄取的事件，或按指标的其他定义富化的事件，由 `tanvo events reprocess` 重新富化：它列出某组织中套餐在订阅开始后新增了计费项或计费项过滤器的活跃订阅，带 `--reprocess` 时为每个订阅入队一个重新富化任务。该任务分批重新富化订阅已存储的事件，并通过 `eventstore.Replacer` 存回该组织的事件存储（PostgreSQL 或 ClickHouse）；它既不做预付计费，也不发用量刷新信号。
 
@@ -404,6 +404,7 @@ POST /v1/events, /v1/events:batch
 ### 13.2 自托管
 * 最小：`tanvo serve` + PostgreSQL。Typst 与 `fonts-noto-cjk` 软件包（zh-CN 与 zh-TW 文档，§10）包含在容器镜像中；在镜像之外安装时两者都需要。
 * 可选：用于大量事件的 Redpanda/Kafka + ClickHouse，用于各副本共享缓存的 Redis/Valkey（§13.6），S3 兼容存储。
+* **位于 PgBouncer 之后。** 当 `TANVO_DATABASE_DIRECT_URL` 直连 PostgreSQL 时，`TANVO_DATABASE_URL` 可以指向事务模式的 PgBouncer（或其他连接池）。主连接池上运行的都是事务范围的操作：行级安全设置使用 `set_config(…, true)`，计费锁是 `pg_advisory_xact_lock`，`pg_notify` 在写入事务内发送。会话状态都在直连池（"direct"）上：目录变更的 `LISTEN` 连接（§7.2）、River 的通知监听器（River 经主连接池查询，在直连连接上监听，因此新任务仍会立即被取走）、限制集成同步的会话级咨询锁（§9），以及以会话级咨询锁串行化的迁移。pgx 按连接缓存具名预处理语句，因此 PgBouncer 必须为 1.21 或更高版本且 `max_prepared_statements` 大于零；更旧的连接池需在 `TANVO_DATABASE_URL` 中加 `default_query_exec_mode=exec`，每次查询多一次往返。PgBouncer 的 `default_pool_size` 覆盖各主连接池（每个进程 `TANVO_DATABASE_MAX_CONNS`）；直连连接另计入 PostgreSQL 的 `max_connections`。
 * 以容器镜像和 Docker Compose 文件分发；一个 Helm chart 同时服务于自托管 Kubernetes 与 Tanvo Cloud。
 
 ### 13.3 Tanvo Cloud
@@ -441,6 +442,7 @@ POST /v1/events, /v1/events:batch
 | `TANVO_METRICS_ENDPOINT` | `false` | 在 `/metrics` 以 Prometheus 格式提供指标 |
 | `TANVO_DATABASE_URL` | 必填 | PostgreSQL URL（`postgres://…`） |
 | `TANVO_DATABASE_MAX_CONNS` | pgx 默认值 | 连接池大小 |
+| `TANVO_DATABASE_DIRECT_URL` | — | 绕过任何连接池的直连（会话）PostgreSQL URL，供需要会话状态的功能使用：目录变更与 River 的 `LISTEN` 连接、集成同步槽位的会话级咨询锁，以及迁移（`tanvo migrate`、`TANVO_MIGRATE_ON_START`）。`TANVO_DATABASE_URL` 经由事务模式的 PgBouncer 时设置（§13.2）；为空时由 `TANVO_DATABASE_URL` 提供一切。其连接池容纳两个监听器、integrations 队列的并发数与两个迁移连接 |
 | `TANVO_DATABASE_ROW_LEVEL_SECURITY` | `false` | 为行级安全策略设置租户（§5.4） |
 | `TANVO_MIGRATE_ON_START` | `true` | 启动时应用迁移；否则只检查 |
 | `TANVO_JOBS_SCHEMA` | `river` | River 表所在的 schema |

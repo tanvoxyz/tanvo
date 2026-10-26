@@ -42,6 +42,7 @@ func TestLoadTypes(t *testing.T) {
 		"TANVO_SHUTDOWN_TIMEOUT=45s",
 		"TANVO_MIGRATE_ON_START=false",
 		"TANVO_DATABASE_MAX_CONNS=12",
+		"TANVO_DATABASE_DIRECT_URL=postgresql://tanvo@db-primary:5432/tanvo",
 		"TANVO_WORKER_QUEUES=billing, webhooks",
 		"TANVO_KAFKA_BROKERS=a:9092,b:9092",
 		"TANVO_LOG_LEVEL=DEBUG",
@@ -70,6 +71,9 @@ func TestLoadTypes(t *testing.T) {
 	}
 	if cfg.DatabaseMaxConns != 12 {
 		t.Errorf("DatabaseMaxConns got = %d, want = 12", cfg.DatabaseMaxConns)
+	}
+	if cfg.DatabaseDirectURL != "postgresql://tanvo@db-primary:5432/tanvo" {
+		t.Errorf("DatabaseDirectURL got = %q, want = postgresql://tanvo@db-primary:5432/tanvo", cfg.DatabaseDirectURL)
 	}
 	if !slices.Equal(cfg.SubscriptionTerminationAlertDays, []int{1}) {
 		t.Errorf("SubscriptionTerminationAlertDays got = %v, want = [1]", cfg.SubscriptionTerminationAlertDays)
@@ -158,6 +162,7 @@ func TestLoadInvalid(t *testing.T) {
 	}{
 		{"missing database", nil, "TANVO_DATABASE_URL: required"},
 		{"bad database scheme", []string{"TANVO_DATABASE_URL=mysql://x"}, "TANVO_DATABASE_URL: want a postgres:// URL"},
+		{"bad direct database scheme", []string{dsn, "TANVO_DATABASE_DIRECT_URL=mysql://x"}, "TANVO_DATABASE_DIRECT_URL: want a postgres:// URL"},
 		{"bad duration", []string{dsn, "TANVO_SHUTDOWN_TIMEOUT=soon"}, "shutdown_timeout"},
 		{"bad bool", []string{dsn, "TANVO_MIGRATE_ON_START=maybe"}, "migrate_on_start"},
 		{"bad level", []string{dsn, "TANVO_LOG_LEVEL=loud"}, "TANVO_LOG_LEVEL"},

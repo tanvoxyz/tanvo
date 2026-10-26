@@ -58,7 +58,10 @@ type App struct {
 	tel   *telemetry.Telemetry
 	log   *slog.Logger
 
-	pool      *pgxpool.Pool
+	pool *pgxpool.Pool
+	// direct is the pool of TANVO_DATABASE_DIRECT_URL, nil when unset:
+	// the connections that keep session state ([App.sessionPool]).
+	direct    *pgxpool.Pool
 	ch        driver.Conn
 	store     *store.Store
 	jobs      *jobs.Client
@@ -97,13 +100,16 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	if a.pool, err = openPool(ctx, cfg.DatabaseURL, poolOptions{MaxConns: cfg.DatabaseMaxConns, Name: "main"}, tp, mp); err != nil {
 		return nil, err
 	}
+	if a.direct, err = openDirectPool(ctx, cfg, directMaxConns(cfg), tp, mp); err != nil {
+		return nil, err
+	}
 	if cfg.ClickHouseURL != "" {
 		if a.ch, err = openClickHouse(ctx, cfg.ClickHouseURL); err != nil {
 			return nil, err
 		}
 	}
 	if cfg.MigrateOnStart {
-		err = migrateAll(ctx, cfg, a.pool, a.ch)
+		err = migrateAll(ctx, cfg, a.sessionPool(), a.ch)
 	} else {
 		err = checkSchemas(ctx, cfg, a.pool)
 	}
@@ -111,7 +117,10 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 		return nil, err
 	}
 	a.health.add("postgres", a.pool.Ping)
-	a.changes = newCatalogChanges(a.pool, a.log)
+	if a.direct != nil {
+		a.health.add("postgres_direct", a.direct.Ping)
+	}
+	a.changes = newCatalogChanges(a.sessionPool(), a.log)
 	if a.ch != nil {
 		a.health.add("clickhouse", a.ch.Ping)
 	}
@@ -124,6 +133,9 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	}
 	if cfg.DatabaseRowLevelSecurity {
 		sopts = append(sopts, store.WithRowLevelSecurity())
+	}
+	if a.direct != nil {
+		sopts = append(sopts, store.WithSessionPool(a.direct))
 	}
 	a.logs = logArchive(a.ch)
 	sopts = append(sopts, logArchiveOptions(a.logs)...)
@@ -195,7 +207,7 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	if err := (paymentJobs{w: pay, billing: bj, composer: composer, sender: sender, docs: a.docs, log: a.log}).register(reg); err != nil {
 		return nil, err
 	}
-	if a.jobs, err = newJobs(a.pool, reg, cfg, o.Roles, o.ManualClockJobs, a.log, tp, mp); err != nil {
+	if a.jobs, err = newJobs(a.pool, a.direct, reg, cfg, o.Roles, o.ManualClockJobs, a.log, tp, mp); err != nil {
 		return nil, err
 	}
 
@@ -378,4 +390,18 @@ func (a *App) close() {
 	if a.pool != nil {
 		a.pool.Close()
 	}
+	if a.direct != nil {
+		a.direct.Close()
+	}
+}
+
+// sessionPool is the pool of the connections that keep session state
+// (LISTEN, session advisory locks): the direct pool when
+// TANVO_DATABASE_DIRECT_URL is set, so that TANVO_DATABASE_URL may point
+// at a pooler in transaction mode, the main pool otherwise.
+func (a *App) sessionPool() *pgxpool.Pool {
+	if a.direct != nil {
+		return a.direct
+	}
+	return a.pool
 }

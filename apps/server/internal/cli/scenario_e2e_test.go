@@ -38,6 +38,9 @@ type scenario struct {
 	stop  func()
 	// environ is the server's environment, for a second replica.
 	environ []string
+	// bouncer is PgBouncer's address on the container network, the client
+	// address of its server connections ([scenarioOptions].pgbouncer).
+	bouncer string
 
 	// key is the organization's API key.
 	key string
@@ -55,6 +58,10 @@ type scenarioOptions struct {
 	// selfAPIURL sets TANVO_API_URL to the server's own address, which
 	// serves the file links.
 	selfAPIURL bool
+	// pgbouncer puts PgBouncer in transaction pooling mode in front of
+	// the database: TANVO_DATABASE_URL goes through it and
+	// TANVO_DATABASE_DIRECT_URL is the direct URL.
+	pgbouncer bool
 }
 
 // scenarioSecret is the installation secret of the scenario servers.
@@ -65,19 +72,25 @@ var scenarioSecret = base64.StdEncoding.EncodeToString(bytes.Repeat([]byte{0x42}
 // with [scenario.trigger].
 func newScenario(t *testing.T, at time.Time, opts scenarioOptions) *scenario {
 	t.Helper()
-	dsn := startPostgres(t)
+	pg, dsn := startPostgresContainer(t)
+	serverDSN, bouncer := dsn, ""
+	var extra []string
+	if opts.pgbouncer {
+		serverDSN, bouncer = startPgBouncer(t, pg)
+		extra = append(extra, "TANVO_DATABASE_DIRECT_URL="+dsn)
+	}
 	port, err := dockertest.FreePort()
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := &scenario{t: t, clock: billingtest.NewClock(at), logs: &lockedBuffer{}}
+	s := &scenario{t: t, clock: billingtest.NewClock(at), logs: &lockedBuffer{}, bouncer: bouncer}
 	t.Cleanup(func() {
 		if t.Failed() {
 			t.Logf("server logs:\n%s", s.logs.String())
 		}
 	})
 	environ := append([]string{
-		"TANVO_DATABASE_URL=" + dsn,
+		"TANVO_DATABASE_URL=" + serverDSN,
 		"TANVO_HTTP_ADDR=127.0.0.1:" + port,
 		"TANVO_MIGRATE_ON_START=false",
 		"TANVO_SHUTDOWN_TIMEOUT=10s",
@@ -85,7 +98,7 @@ func newScenario(t *testing.T, at time.Time, opts scenarioOptions) *scenario {
 		"TANVO_SECRET_KEY=" + scenarioSecret,
 		"TANVO_APP_URL=https://app.tanvo.test",
 		"OTEL_SDK_DISABLED=true",
-	}, opts.environ...)
+	}, append(extra, opts.environ...)...)
 	if opts.selfAPIURL {
 		environ = append(environ, "TANVO_API_URL=http://127.0.0.1:"+port)
 	}

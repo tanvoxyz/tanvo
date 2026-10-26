@@ -1,8 +1,10 @@
 package app
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/exaring/otelpgx"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -10,6 +12,9 @@ import (
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/tanvoxyz/tanvo/apps/server/internal/config"
+	"github.com/tanvoxyz/tanvo/libs/core/port"
+	"github.com/tanvoxyz/tanvo/libs/jobs"
 	"github.com/tanvoxyz/tanvo/libs/store"
 )
 
@@ -20,6 +25,9 @@ type poolOptions struct {
 	MaxConns int32
 	// Name tells the pools apart in telemetry ("main").
 	Name string
+	// Setting names the variable of the URL in errors; "" is
+	// TANVO_DATABASE_URL.
+	Setting string
 }
 
 // openPool opens a PostgreSQL pool on dsn whose connections decode
@@ -28,7 +36,7 @@ type poolOptions struct {
 func openPool(ctx context.Context, dsn string, o poolOptions, tp trace.TracerProvider, mp metric.MeterProvider) (*pgxpool.Pool, error) {
 	cfg, err := pgxpool.ParseConfig(dsn)
 	if err != nil {
-		return nil, fmt.Errorf("postgres: parse TANVO_DATABASE_URL: %w", err)
+		return nil, fmt.Errorf("postgres: parse %s: %w", cmp.Or(o.Setting, "TANVO_DATABASE_URL"), err)
 	}
 	store.ConfigurePool(cfg)
 	if o.MaxConns > 0 {
@@ -52,4 +60,28 @@ func openPool(ctx context.Context, dsn string, o poolOptions, tp trace.TracerPro
 		return nil, fmt.Errorf("postgres: %s pool stats: %w", o.Name, err)
 	}
 	return pool, nil
+}
+
+// openDirectPool opens the pool of TANVO_DATABASE_DIRECT_URL, named
+// "direct", bounded by maxConns; it returns nil when the variable is
+// unset.
+func openDirectPool(ctx context.Context, cfg config.Config, maxConns int32, tp trace.TracerProvider, mp metric.MeterProvider) (*pgxpool.Pool, error) {
+	if cfg.DatabaseDirectURL == "" {
+		return nil, nil
+	}
+	return openPool(ctx, cfg.DatabaseDirectURL, poolOptions{MaxConns: maxConns, Name: "direct", Setting: "TANVO_DATABASE_DIRECT_URL"}, tp, mp)
+}
+
+// directMaxConns sizes the direct pool of a serving process: the LISTEN
+// connections of the catalog changes and of River, one per integration
+// sync job that may hold a slot at once (the concurrency of the
+// integrations queue), and two for the migrations at startup.
+func directMaxConns(cfg config.Config) int32 {
+	n := jobs.DefaultQueues()[port.QueueIntegrations].Concurrency
+	if workers, err := cfg.QueueConcurrency(); err == nil {
+		if w, ok := workers[port.QueueIntegrations]; ok {
+			n = w
+		}
+	}
+	return int32(min(2+n+2, math.MaxInt32))
 }

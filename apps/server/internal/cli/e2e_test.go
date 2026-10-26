@@ -126,6 +126,14 @@ func start(t *testing.T, spec dockertest.Spec) *dockertest.Container {
 // startPostgres starts a postgres:18 container and returns its URL.
 func startPostgres(t *testing.T) string {
 	t.Helper()
+	_, dsn := startPostgresContainer(t)
+	return dsn
+}
+
+// startPostgresContainer starts a postgres:18 container and returns it
+// with its URL.
+func startPostgresContainer(t *testing.T) (*dockertest.Container, string) {
+	t.Helper()
 	ctx := t.Context()
 	c := start(t, dockertest.Spec{
 		Image: "postgres:18",
@@ -142,7 +150,7 @@ func startPostgres(t *testing.T) string {
 	if err := dockertest.Wait(ctx, time.Minute, pool.Ping); err != nil {
 		t.Fatal(err)
 	}
-	return dsn
+	return c, dsn
 }
 
 // TestServeSmoke migrates a fresh database, serves every role, ingests an

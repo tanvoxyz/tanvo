@@ -153,6 +153,13 @@ type Config struct {
 	DatabaseURL string `koanf:"database_url"`
 	// DatabaseMaxConns bounds the pool; 0 keeps pgx's default.
 	DatabaseMaxConns int32 `koanf:"database_max_conns"`
+	// DatabaseDirectURL, when set, is a direct (session) PostgreSQL
+	// connection string for what needs the state of a session: the
+	// LISTEN of the catalog changes and of the job queue, the slots'
+	// session advisory locks and the migrations' locks. It lets
+	// DatabaseURL point at a pooler in transaction mode (PgBouncer).
+	// Empty, DatabaseURL serves everything.
+	DatabaseDirectURL string `koanf:"database_direct_url"`
 	// DatabaseRowLevelSecurity makes transactions set the tenant for the
 	// row-level security policies (a role that does not own the tables).
 	DatabaseRowLevelSecurity bool `koanf:"database_row_level_security"`
@@ -643,6 +650,11 @@ func (c Config) Validate() error {
 		bad("database_url", "required")
 	} else if u, err := url.Parse(c.DatabaseURL); err != nil || (u.Scheme != "postgres" && u.Scheme != "postgresql") {
 		bad("database_url", "want a postgres:// URL")
+	}
+	if c.DatabaseDirectURL != "" {
+		if u, err := url.Parse(c.DatabaseDirectURL); err != nil || (u.Scheme != "postgres" && u.Scheme != "postgresql") {
+			bad("database_direct_url", "want a postgres:// URL")
+		}
 	}
 	if c.DatabaseMaxConns < 0 {
 		bad("database_max_conns", "must not be negative")

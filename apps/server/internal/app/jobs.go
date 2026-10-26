@@ -261,9 +261,12 @@ func (h jobHandlers) registerUsageBuckets(reg *jobs.Registry) error {
 // the configured queues (with the periodic schedule unless disabled) for
 // the worker role, an insert-only client otherwise. manualClock works the
 // clock queue but schedules no periodic job ([Options.ManualClockJobs]).
-func newJobs(pool *pgxpool.Pool, reg *jobs.Registry, cfg config.Config, roles config.Roles, manualClock bool, log *slog.Logger, tp trace.TracerProvider, mp metric.MeterProvider) (*jobs.Client, error) {
+// River listens for its notifications on a connection of listener when it
+// is not nil (TANVO_DATABASE_DIRECT_URL), of pool otherwise.
+func newJobs(pool, listener *pgxpool.Pool, reg *jobs.Registry, cfg config.Config, roles config.Roles, manualClock bool, log *slog.Logger, tp trace.TracerProvider, mp metric.MeterProvider) (*jobs.Client, error) {
 	jc := jobs.Config{
 		Schema:           cfg.JobsSchema,
+		ListenerPool:     listener,
 		DisablePeriodic:  cfg.JobsDisablePeriodic,
 		ClockConcurrency: cfg.JobsClockConcurrency,
 		Logger:           log,

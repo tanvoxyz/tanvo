@@ -21,9 +21,14 @@ import (
 // Migrate applies the schemas of cfg (architecture §5.2) and returns: the
 // store's versioned migrations, River's, the PostgreSQL event store's
 // and, when TANVO_CLICKHOUSE_URL is set, ClickHouse's. It is `tanvo
-// migrate`.
+// migrate`. It connects to TANVO_DATABASE_DIRECT_URL when set, since the
+// migrations hold session advisory locks.
 func Migrate(ctx context.Context, cfg config.Config, tp trace.TracerProvider, mp metric.MeterProvider) error {
-	pool, err := openPool(ctx, cfg.DatabaseURL, poolOptions{MaxConns: 4, Name: "migrate"}, tp, mp)
+	dsn, setting := cfg.DatabaseURL, ""
+	if cfg.DatabaseDirectURL != "" {
+		dsn, setting = cfg.DatabaseDirectURL, "TANVO_DATABASE_DIRECT_URL"
+	}
+	pool, err := openPool(ctx, dsn, poolOptions{MaxConns: 4, Name: "migrate", Setting: setting}, tp, mp)
 	if err != nil {
 		return err
 	}
@@ -40,7 +45,9 @@ func Migrate(ctx context.Context, cfg config.Config, tp trace.TracerProvider, mp
 
 // migrateAll applies the schemas over pool and conn (nil skips
 // ClickHouse). Each step is idempotent and serialized by an advisory lock,
-// so concurrent instances may run it.
+// so concurrent instances may run it; the store's and River's locks are
+// session locks, so pool must not go through a pooler in transaction
+// mode.
 func migrateAll(ctx context.Context, cfg config.Config, pool *pgxpool.Pool, conn driver.Conn) error {
 	start := time.Now()
 	if err := store.Migrate(ctx, pool); err != nil {
