@@ -52,7 +52,7 @@ lago-api has about 2,700 RSpec files. Tanvo ports their **behavior**, not their 
 
 ## 3. Test Infrastructure
 
-* **Containers**: `libs/dockertest` starts the containers of every test on the local Docker engine through the Engine API (§3.1). `libs/store/pgtest` and the `TestMain` of the event store, job and ingestion tests start PostgreSQL 18, ClickHouse and Redpanda once per package (or use `TANVO_TEST_POSTGRES_DSN`, `TANVO_TEST_CLICKHOUSE_DSN`, `TANVO_TEST_KAFKA_BROKERS`). Each test gets its own database or schema.
+* **Containers**: `libs/dockertest` starts the containers of every test on the local Docker engine through the Engine API (§3.1). `libs/store/pgtest` and the `TestMain` of the event store, job and ingestion tests start PostgreSQL 18, ClickHouse and Redpanda once per package (or use `TANVO_TEST_POSTGRES_DSN`, `TANVO_TEST_CLICKHOUSE_DSN`, `TANVO_TEST_KAFKA_BROKERS`). With `TANVO_TEST_CLICKHOUSE_REPLICATED=1` (`pnpm nx run eventstore:test-replicated`), the ClickHouse tests run instead on two replicas of a Replicated database, with ClickHouse Keeper, in one container. Each test gets its own database or schema.
 * **Fake clock**: billing runs, River schedules and expirations are driven by a controllable clock in end-to-end tests.
 * **HTTP fixtures**: provider clients are tested against an `httptest` server replaying recorded requests and responses; no test calls a real external service.
 * **Golden files**: `go test ./... -update` rewrites golden files; the diff is reviewed like code.

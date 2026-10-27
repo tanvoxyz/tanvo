@@ -52,7 +52,7 @@ lago-api 约有 2,700 个 RSpec 文件。Tanvo 移植的是它们的**行为**�
 
 ## 3. 测试基础设施
 
-* **容器**：`libs/dockertest` 通过 Engine API 在本地 Docker 引擎上启动所有测试的容器（§3.1）。`libs/store/pgtest` 以及事件存储、任务与摄取测试的 `TestMain` 为每个包各启动一次 PostgreSQL 18、ClickHouse 与 Redpanda（或使用 `TANVO_TEST_POSTGRES_DSN`、`TANVO_TEST_CLICKHOUSE_DSN`、`TANVO_TEST_KAFKA_BROKERS`）。每个测试有自己的数据库或 schema。
+* **容器**：`libs/dockertest` 通过 Engine API 在本地 Docker 引擎上启动所有测试的容器（§3.1）。`libs/store/pgtest` 以及事件存储、任务与摄取测试的 `TestMain` 为每个包各启动一次 PostgreSQL 18、ClickHouse 与 Redpanda（或使用 `TANVO_TEST_POSTGRES_DSN`、`TANVO_TEST_CLICKHOUSE_DSN`、`TANVO_TEST_KAFKA_BROKERS`）。设置 `TANVO_TEST_CLICKHOUSE_REPLICATED=1`（`pnpm nx run eventstore:test-replicated`）时，ClickHouse 测试改在同一容器内、带 ClickHouse Keeper 的 Replicated 数据库的两个副本上运行。每个测试有自己的数据库或 schema。
 * **假时钟**：在端到端测试中，计费运行、River 调度与过期由一个可控的时钟驱动。
 * **HTTP fixture**：提供者客户端针对一个回放录制请求与响应的 `httptest` 服务器测试；没有任何测试调用真实的外部服务。
 * **黄金文件**：`go test ./... -update` 重写黄金文件；其差异像代码一样接受评审。
