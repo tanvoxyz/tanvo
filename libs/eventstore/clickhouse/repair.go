@@ -18,7 +18,7 @@ const RepairMargin = 10 * time.Minute
 // bucket_repairs keeps), it repairs every bucket. A failed run records
 // nothing: the next one repairs from the same point.
 func (s *Store) RepairRecentBuckets(ctx context.Context, margin time.Duration) error {
-	ctx = consistent(ctx)
+	ctx = consistent(writing(ctx))
 	started := s.sequences(1)
 	var prev uint64
 	if err := s.each(ctx, `SELECT max(started) FROM bucket_repairs`, nil, []any{&prev}, func() error { return nil }); err != nil {

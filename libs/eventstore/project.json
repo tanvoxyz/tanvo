@@ -5,6 +5,13 @@
       "options": {
         "command": "go test -timeout 30m ./..."
       }
+    },
+    "test-replicated": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "TANVO_TEST_CLICKHOUSE_REPLICATED=1 go test -timeout 40m ./clickhouse/",
+        "cwd": "{projectRoot}"
+      }
     }
   }
 }

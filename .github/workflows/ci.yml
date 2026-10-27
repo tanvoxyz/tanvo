@@ -45,7 +45,7 @@ jobs:
       # migrate-check fails on a schema change without its migration,
       # sqlc-check on stale query code, and migrate-lint on an unsafe
       # migration among those that $NX_BASE does not have.
-      - run: pnpm nx ${{ steps.scope.outputs.cmd }} -t buf-lint lint tidy-check build test migrate-check migrate-lint sqlc-check --output-style=static
+      - run: pnpm nx ${{ steps.scope.outputs.cmd }} -t buf-lint lint tidy-check build test test-replicated migrate-check migrate-lint sqlc-check --output-style=static
       - name: Generated code is up to date
         run: |
           pnpm nx run-many -t generate wasm --output-style=static

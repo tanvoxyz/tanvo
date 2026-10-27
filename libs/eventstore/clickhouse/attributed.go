@@ -68,14 +68,9 @@ func (s *Store) AttributedUsage(ctx context.Context, q metering.AttributedQuery)
 	cells := q.Cells()
 	sql, a := attributedSQL(q, cells, order)
 
-	// The settings of [consistent], which the query settings replace, and
-	// the query's own.
-	settings := ch.Settings{
-		"select_sequential_consistency": 1,
-		// A price lookup may hold 20000 entries per key set.
-		"max_query_size":   4_194_304,
-		"max_ast_elements": 500_000,
-	}
+	// Sequentially consistent, as every read (see [consistent]), with the
+	// query's own limits, which win over the read limits.
+	settings := ch.Settings{"select_sequential_consistency": 1}
 	if q.MaxGroups > 0 {
 		settings["max_rows_to_group_by"] = q.MaxGroups
 		settings["group_by_overflow_mode"] = "throw"
@@ -84,7 +79,7 @@ func (s *Store) AttributedUsage(ctx context.Context, q metering.AttributedQuery)
 		settings["max_execution_time"] = int(math.Ceil(q.MaxExecutionTime.Seconds()))
 		settings["timeout_overflow_mode"] = "throw"
 	}
-	ctx = ch.Context(ctx, ch.WithSettings(settings))
+	ctx = withSettings(ctx, settings)
 
 	var (
 		node         string

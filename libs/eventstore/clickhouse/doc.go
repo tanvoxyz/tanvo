@@ -113,12 +113,17 @@
 // (ReplicatedMergeTree, SharedMergeTree) need and a single node ignores.
 // Every other read (usage queries, bucket reads, the deduplication lookup)
 // is sequentially consistent too, so a lagging replica does not bill
-// without events or buckets a quorum acknowledged. These settings are
-// tested on a single node only; on a replicated deployment check whether
-// the server version needs insert_quorum_parallel = 0 for
-// select_sequential_consistency to hold, and the repair sweep's watermark
-// should start a margin before the previous sweep, as it is the writers'
-// clock.
+// without events or buckets a quorum acknowledged, and every other insert
+// (dead letters, the record of a bucket read) waits for the quorum, so
+// that a read through another replica sees it at once. The tests run on two
+// replicas with TANVO_TEST_CLICKHOUSE_REPLICATED=1, which [Migrate]
+// creates as replicated tables in a database of the Replicated engine;
+// the repair sweep's watermark starts a margin before the previous sweep,
+// as it is the writers' clock.
+//
+// Every statement carries raised parser limits and a log_comment with its
+// trace and span IDs; the reads that answer a caller are bounded by
+// [ReadLimits], the statements of a write never are.
 //
 // [Store.Write] also heals the buckets of the duplicates whose stored copy
 // is younger than the heal window ([WithHealWindow], an hour by default)

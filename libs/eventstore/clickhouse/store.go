@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/tanvoxyz/tanvo/libs/eventstore"
 	"github.com/tanvoxyz/tanvo/libs/eventstore/internal/ingest"
@@ -17,8 +18,10 @@ import (
 
 // Store is the ClickHouse event store. It is safe for concurrent use.
 type Store struct {
-	conn driver.Conn
-	now  func() time.Time
+	conn   driver.Conn
+	now    func() time.Time
+	limits ReadLimits
+	tracer trace.TracerProvider
 
 	heal  time.Duration
 	locks keyLocks
@@ -52,9 +55,13 @@ func WithHealWindow(d time.Duration) Option { return func(s *Store) { s.heal = d
 
 // New returns a store over conn, whose schema [Migrate] applied.
 func New(conn driver.Conn, opts ...Option) *Store {
-	s := &Store{conn: conn, now: time.Now, heal: time.Hour}
+	s := &Store{now: time.Now, heal: time.Hour}
 	for _, o := range opts {
 		o(s)
+	}
+	s.conn = settingsConn{Conn: conn, limits: s.limits}
+	if s.tracer != nil {
+		s.conn = tracedConn{Conn: s.conn, tracer: s.tracer.Tracer(scopeName)}
 	}
 	return s
 }
@@ -227,6 +234,7 @@ func (s *Store) lookup(ctx context.Context, org string, subs, ids []string, out 
 // column cannot hold): writing the same events fails again, and the
 // ledger holds none of them.
 func (s *Store) Write(ctx context.Context, events []metering.Event) ([]int, error) {
+	ctx = writing(ctx)
 	rows, err := ingest.Prepare(events, s.now())
 	if err != nil {
 		return nil, fmt.Errorf("eventstore: clickhouse: write: %w", rejection(err))
@@ -278,6 +286,7 @@ func (s *Store) Write(ctx context.Context, events []metering.Event) ([]int, erro
 // replaced copies are recomputed, and their rows the copies left
 // tombstoned.
 func (s *Store) Replace(ctx context.Context, events []metering.Event) error {
+	ctx = writing(ctx)
 	rows, err := ingest.Prepare(events, s.now())
 	if err != nil {
 		return fmt.Errorf("eventstore: clickhouse: replace: %w", err)

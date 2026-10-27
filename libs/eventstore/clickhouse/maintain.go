@@ -763,7 +763,7 @@ const repairChunk = 1000
 // minutes is ample): runs overlap, and recomputing a bucket that is right
 // is harmless.
 func (s *Store) RepairBuckets(ctx context.Context, since time.Time) error {
-	ctx = consistent(ctx)
+	ctx = consistent(writing(ctx))
 	from := uint64(max(since.UnixNano(), 0))
 	var (
 		recomputed []row

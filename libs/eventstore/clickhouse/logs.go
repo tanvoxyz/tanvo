@@ -27,7 +27,7 @@ var _ auditlog.Archive = (*LogStore)(nil)
 
 // NewLogStore returns the log store over conn, whose schema [Migrate]
 // applied.
-func NewLogStore(conn driver.Conn) *LogStore { return &LogStore{conn: conn} }
+func NewLogStore(conn driver.Conn) *LogStore { return &LogStore{conn: settingsConn{Conn: conn}} }
 
 const (
 	securityLogColumns = `organization_id, log_id, user_id, api_key_id, log_type, log_event, device_info, resources, logged_at, created_at`

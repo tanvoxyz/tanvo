@@ -31,10 +31,10 @@ var (
 // maintenance rely on (see [Store.conflicts]). Tables that are not
 // replicated ignore both.
 func consistent(ctx context.Context) context.Context {
-	return ch.Context(ctx, ch.WithSettings(ch.Settings{
+	return withSettings(ctx, ch.Settings{
 		"insert_quorum":                 "auto",
 		"select_sequential_consistency": 1,
-	}))
+	})
 }
 
 func checkDefinition(d metering.BucketDefinition) error {
@@ -146,6 +146,7 @@ func (s *Store) blocked(ctx context.Context, d metering.BucketDefinition) (bool,
 // definition resumes its generation; defining a blocked one fails with
 // [metering.ErrBucketsBlocked], checked again before the ready version.
 func (s *Store) DefineBuckets(ctx context.Context, d metering.BucketDefinition) error {
+	ctx = writing(ctx)
 	if err := checkDefinition(d); err != nil {
 		return wrap("define buckets", err)
 	}
@@ -530,7 +531,7 @@ func (s *Store) recordRead(ctx context.Context, d definition) {
 	if !s.reads.Due(d.BucketDefinition, now) {
 		return
 	}
-	err := s.conn.Exec(ctx, `INSERT INTO usage_bucket_reads (organization_id, code, definition_id, generation, read_at) VALUES ($1, $2, $3, $4, $5)`,
+	err := s.conn.Exec(consistent(ctx), `INSERT INTO usage_bucket_reads (organization_id, code, definition_id, generation, read_at) VALUES ($1, $2, $3, $4, $5)`,
 		d.OrganizationID, d.Code, d.ID(), d.generation, now)
 	if err != nil {
 		s.reads.Forget(d.BucketDefinition)

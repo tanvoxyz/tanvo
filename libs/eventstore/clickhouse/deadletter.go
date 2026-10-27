@@ -37,7 +37,7 @@ func (s *Store) WriteDeadLetters(ctx context.Context, rows []DeadLetter) error {
 	if len(rows) == 0 {
 		return nil
 	}
-	b, err := s.conn.PrepareBatch(ctx, `INSERT INTO events_dead_letter (organization_id, subscription_id, code, transaction_id,
+	b, err := s.conn.PrepareBatch(consistent(ctx), `INSERT INTO events_dead_letter (organization_id, subscription_id, code, transaction_id,
 		timestamp, ingested_at, failed_at, event, error_code, error_message, topic, partition, offset)`)
 	if err != nil {
 		return wrap("write dead letters", err)

@@ -20,11 +20,7 @@ const scopeName = "github.com/tanvoxyz/tanvo/libs/eventstore/clickhouse"
 // inserts, and the parameterized db.query.text). Without it the store
 // makes no spans.
 func WithTracerProvider(tp trace.TracerProvider) Option {
-	return func(s *Store) {
-		if tp != nil {
-			s.conn = tracedConn{Conn: s.conn, tracer: tp.Tracer(scopeName)}
-		}
-	}
+	return func(s *Store) { s.tracer = tp }
 }
 
 // tracedConn wraps the statements of a connection in client spans; the

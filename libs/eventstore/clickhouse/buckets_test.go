@@ -72,7 +72,8 @@ func TestBucketMaintenance(t *testing.T) {
 		func(_ buckettest.Backend, n int) []buckettest.Backend {
 			out := make([]buckettest.Backend, n)
 			for i := range out {
-				out[i] = clickhouse.New(testDB.conn)
+				// Processes on every replica, when there are replicas.
+				out[i] = clickhouse.New(nodes()[i%len(nodes())])
 			}
 			return out
 		})
