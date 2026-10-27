@@ -63,6 +63,8 @@ func TestLoadTypes(t *testing.T) {
 		"TANVO_API_KEY_CACHE_TTL=10m",
 		"TANVO_CACHE_SENTINEL_USERNAME=sentinel",
 		"TANVO_CACHE_SENTINEL_PASSWORD=watch",
+		"TANVO_CLICKHOUSE_READ_MAX_EXECUTION_TIME=30s",
+		"TANVO_CLICKHOUSE_READ_MAX_MEMORY_USAGE=8000000000",
 	}})
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
@@ -72,6 +74,9 @@ func TestLoadTypes(t *testing.T) {
 	}
 	if cfg.MigrateOnStart {
 		t.Error("MigrateOnStart got = true, want = false")
+	}
+	if cfg.ClickHouseReadMaxExecutionTime != 30*time.Second || cfg.ClickHouseReadMaxMemoryUsage != 8_000_000_000 {
+		t.Errorf("ClickHouse read limits got = %v, %d, want = 30s, 8000000000", cfg.ClickHouseReadMaxExecutionTime, cfg.ClickHouseReadMaxMemoryUsage)
 	}
 	if cfg.DatabaseMaxConns != 12 {
 		t.Errorf("DatabaseMaxConns got = %d, want = 12", cfg.DatabaseMaxConns)

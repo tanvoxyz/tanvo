@@ -20,6 +20,7 @@ import (
 	"github.com/tanvoxyz/tanvo/libs/core"
 	"github.com/tanvoxyz/tanvo/libs/core/auditlog"
 	"github.com/tanvoxyz/tanvo/libs/core/port"
+	"github.com/tanvoxyz/tanvo/libs/eventstore/clickhouse"
 	"github.com/tanvoxyz/tanvo/libs/jobs"
 	"github.com/tanvoxyz/tanvo/libs/store"
 )
@@ -143,7 +144,9 @@ func New(ctx context.Context, o Options) (_ *App, err error) {
 	if err != nil {
 		return nil, err
 	}
-	a.stores = newEventStores(a.pool, cfg.EventStoreSchema, a.ch, modeOf, tp)
+	a.stores = newEventStores(a.pool, cfg.EventStoreSchema, a.ch, clickhouse.ReadLimits{
+		MaxExecutionTime: cfg.ClickHouseReadMaxExecutionTime, MaxMemoryUsage: cfg.ClickHouseReadMaxMemoryUsage,
+	}, modeOf, tp)
 	var clock core.Clock = core.SystemClock{}
 	if o.Clock != nil {
 		clock = o.Clock

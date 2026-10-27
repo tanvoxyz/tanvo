@@ -288,6 +288,12 @@ type Config struct {
 	EventStoreHashPartitions int `koanf:"eventstore_hash_partitions"`
 	// ClickHouseURL is the ClickHouse DSN of the kafka-mode event store.
 	ClickHouseURL string `koanf:"clickhouse_url"`
+	// ClickHouseReadMaxExecutionTime bounds the time of a ClickHouse read
+	// (usage, buckets, events); 0 leaves it to the server's profile.
+	ClickHouseReadMaxExecutionTime time.Duration `koanf:"clickhouse_read_max_execution_time"`
+	// ClickHouseReadMaxMemoryUsage bounds the memory of a ClickHouse read,
+	// in bytes; 0 leaves it to the server's profile.
+	ClickHouseReadMaxMemoryUsage int64 `koanf:"clickhouse_read_max_memory_usage"`
 
 	// KafkaBrokers are the seed brokers.
 	KafkaBrokers []string `koanf:"kafka_brokers"`
@@ -709,6 +715,12 @@ func (c Config) Validate() error {
 		if u, err := url.Parse(c.DatabaseDirectURL); err != nil || (u.Scheme != "postgres" && u.Scheme != "postgresql") {
 			bad("database_direct_url", "want a postgres:// URL")
 		}
+	}
+	if c.ClickHouseReadMaxExecutionTime < 0 {
+		bad("clickhouse_read_max_execution_time", "must not be negative")
+	}
+	if c.ClickHouseReadMaxMemoryUsage < 0 {
+		bad("clickhouse_read_max_memory_usage", "must not be negative")
 	}
 	if c.DatabaseMaxConns < 0 {
 		bad("database_max_conns", "must not be negative")

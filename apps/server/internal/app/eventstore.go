@@ -90,11 +90,12 @@ func (s *EventStores) For(org core.OrganizationID) metering.Store {
 func (s *EventStores) ClickHouse() *clickhouse.Store { return s.ch }
 
 // newEventStores builds the stores: PostgreSQL over pool in schema, and
-// ClickHouse over conn when set, its statements traced with tp.
-func newEventStores(pool *pgxpool.Pool, schema string, conn driver.Conn, modeOf func(core.OrganizationID) ingest.Mode, tp trace.TracerProvider) *EventStores {
+// ClickHouse over conn when set, its reads bounded by limits and its
+// statements traced with tp.
+func newEventStores(pool *pgxpool.Pool, schema string, conn driver.Conn, limits clickhouse.ReadLimits, modeOf func(core.OrganizationID) ingest.Mode, tp trace.TracerProvider) *EventStores {
 	s := &EventStores{pg: postgres.New(pool, postgres.WithSchema(schema)), modeOf: modeOf}
 	if conn != nil {
-		s.ch = clickhouse.New(conn, clickhouse.WithTracerProvider(tp))
+		s.ch = clickhouse.New(conn, clickhouse.WithReadLimits(limits), clickhouse.WithTracerProvider(tp))
 	}
 	return s
 }
